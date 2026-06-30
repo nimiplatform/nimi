@@ -4,7 +4,9 @@
 
 ## Scope
 
-This guide points to the desktop authority surfaces for world-detail. It does not define product rules.
+This guide points to the desktop authority surfaces for world-detail. World
+entry surfaces browse admitted Realm Worlds through Explore and open the
+selected world in the Desktop `world-detail` detail tab.
 
 ## Reading Path
 

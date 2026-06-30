@@ -4,4 +4,125 @@ owner: platform
 catalog_id: platform_nimi_ui_compositions
 entries:
   - platform_nimi_ui_compositions
-components: []
+components:
+  - id: density.compact
+    kind: density_mode
+    title: Compact density
+    source_rule: P-DESIGN-024
+    intent: Repeated operational desktop work with high scan efficiency and low visual ceremony.
+    use_for:
+      - Desktop ordinary shell chrome
+      - Chat shell chrome and repeated conversation controls
+      - Settings, runtime configuration, diagnostics, tables, lists, and developer tools
+      - Runtime bootstrap failure, admission failure, repair, blocked, and setup status states
+      - Support diagnostics and accountable progress surfaces
+    avoid_for:
+      - Identity-led profile or world hero moments
+      - Marketing, editorial, or cinematic presentation surfaces
+    typography:
+      body: 13-14px
+      dense_label: 12-13px
+      caption: 11-12px
+      section_title: 15-16px
+      page_title: 20-24px
+      operational_status_title: 18-22px
+      banned_operational_classes:
+        - text-[30px]
+        - text-3xl
+        - text-4xl
+        - text-5xl
+    shape:
+      card_panel_radius: 8-12px
+      modal_drawer_radius: 12-16px
+      banned_operational_classes:
+        - rounded-3xl
+    spacing:
+      panel_padding: 12-16px
+      page_content_padding: 16-20px
+      card_padding: 12-16px
+      internal_gap: 6-12px
+      section_gap: 12-16px
+      banned_operational_classes:
+        - py-10
+        - py-11
+        - p-9
+        - px-10
+    tone:
+      status_surface: Runtime failure, setup, repair, blocked, and bootstrap status surfaces use panel/card status semantics, not hero tone.
+      banned_operational_patterns:
+        - tone="hero"
+        - material="glass-thick"
+    controls:
+      common_button_height: 32-36px
+      primary_confirmation_height: 38-40px
+      field_height: 34-38px
+      icon_control: 28-36px visible chrome with accessible hit target
+    motion:
+      rule: Functional transitions only; no decorative pulse or spin on operational failure, repair, or blocked states.
+      banned_status_patterns:
+        - pulse
+        - spin
+        - float
+        - decorative dot bounce
+  - id: density.regular
+    kind: density_mode
+    title: Regular density
+    source_rule: P-DESIGN-024
+    intent: Default Kit readability for ordinary app pages and shared primitives.
+    use_for:
+      - Kit primitive defaults
+      - Standard forms and mixed content panels
+      - Onboarding steps before setup becomes an operational status surface
+      - Help copy and low-density explanatory content
+    avoid_for:
+      - Desktop high-frequency operational chrome
+      - Runtime bootstrap, repair, blocked, diagnostics, settings, developer tools, and runtime configuration
+      - Identity-led hero or cinematic presentation surfaces
+    typography:
+      body: 14px
+      label: 14-15px
+      caption: 12px
+      section_title: 16px
+      page_title: 24px max
+    shape:
+      card_panel_radius: 12-16px
+      modal_drawer_radius: 16-20px
+    spacing:
+      panel_padding: 16-24px
+      page_content_padding: 20-24px
+      gap: 12-20px
+    controls:
+      button_height: 36-40px
+      field_height: 38-42px
+    motion:
+      rule: Light elevation and useful transitions are allowed when they clarify grouping or state.
+    admission:
+      rule: Desktop surfaces must declare regular density at the registered page or composition boundary; baseline or secondary profile alone is not density authority.
+  - id: density.expressive
+    kind: density_mode
+    title: Expressive density
+    source_rule: P-DESIGN-024
+    intent: Opt-in identity, content, and cinematic presentation moments.
+    use_for:
+      - Profile, source, character, and world identity heroes
+      - First-run brand moments before operational setup begins
+      - Explicitly admitted cinematic or ambience surfaces
+    avoid_for:
+      - Runtime errors
+      - Setup, repair, blocked, diagnostics, settings, developer tools, and runtime configuration
+      - Ordinary shell chrome
+    typography:
+      body: 14-16px
+      section_title: 18-24px
+      hero_title: 30-48px only when identity or content presentation is the primary task
+    shape:
+      hero_radius: 16-24px
+      large_media_radius: 16-24px
+    spacing:
+      composition_padding: 24-40px only when it supports identity composition
+    motion:
+      rule: Brand or ambience motion is allowed only when reduced-motion handling is present.
+    allowed_region:
+      rule: Expressive density is limited to the identity hero or admitted art-direction boundary; inner operational sections must fall back to regular or compact density.
+    admission:
+      rule: Expressive density must be explicit at the page or composition boundary and must not be used as precedent for operational chrome.

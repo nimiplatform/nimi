@@ -211,6 +211,36 @@ Nimi Kit is the shared UI foundation for Nimi apps. It projects platform-owned s
 
 The product posture is industrial-grade, dense where needed, and explicit about ownership: app UI should consume Kit primitives first, extend Kit when a reusable primitive is missing, and avoid app-local design truth for shared interaction patterns.
 
+## Density
+
+Density modes are canonical composition guidance from `nimi-ui-compositions.yaml`. Desktop operational surfaces default to compact density; regular density remains the Kit primitive baseline; expressive density is opt-in for identity/content presentation only.
+
+- **Compact density:** Repeated operational desktop work with high scan efficiency and low visual ceremony.
+  - Use for: Desktop ordinary shell chrome; Chat shell chrome and repeated conversation controls; Settings, runtime configuration, diagnostics, tables, lists, and developer tools; Runtime bootstrap failure, admission failure, repair, blocked, and setup status states; Support diagnostics and accountable progress surfaces.
+  - Avoid for: Identity-led profile or world hero moments; Marketing, editorial, or cinematic presentation surfaces.
+  - Typography: body `13-14px`, dense-label `12-13px`, caption `11-12px`, section-title `15-16px`, page-title `20-24px`, operational-status-title `18-22px`, banned-operational-classes `text-[30px], text-3xl, text-4xl, text-5xl`.
+  - Shape: card-panel-radius `8-12px`, modal-drawer-radius `12-16px`, banned-operational-classes `rounded-3xl`.
+  - Spacing: panel-padding `12-16px`, page-content-padding `16-20px`, card-padding `12-16px`, internal-gap `6-12px`, section-gap `12-16px`, banned-operational-classes `py-10, py-11, p-9, px-10`.
+  - Controls: common-button-height `32-36px`, primary-confirmation-height `38-40px`, field-height `34-38px`, icon-control `28-36px visible chrome with accessible hit target`.
+  - Motion: rule `Functional transitions only; no decorative pulse or spin on operational failure, repair, or blocked states.`, banned-status-patterns `pulse, spin, float, decorative dot bounce`.
+- **Regular density:** Default Kit readability for ordinary app pages and shared primitives.
+  - Use for: Kit primitive defaults; Standard forms and mixed content panels; Onboarding steps before setup becomes an operational status surface; Help copy and low-density explanatory content.
+  - Avoid for: Desktop high-frequency operational chrome; Runtime bootstrap, repair, blocked, diagnostics, settings, developer tools, and runtime configuration; Identity-led hero or cinematic presentation surfaces.
+  - Typography: body `14px`, label `14-15px`, caption `12px`, section-title `16px`, page-title `24px max`.
+  - Shape: card-panel-radius `12-16px`, modal-drawer-radius `16-20px`.
+  - Spacing: panel-padding `16-24px`, page-content-padding `20-24px`, gap `12-20px`.
+  - Controls: button-height `36-40px`, field-height `38-42px`.
+  - Motion: rule `Light elevation and useful transitions are allowed when they clarify grouping or state.`.
+  - Admission: rule `Desktop surfaces must declare regular density at the registered page or composition boundary; baseline or secondary profile alone is not density authority.`.
+- **Expressive density:** Opt-in identity, content, and cinematic presentation moments.
+  - Use for: Profile, source, character, and world identity heroes; First-run brand moments before operational setup begins; Explicitly admitted cinematic or ambience surfaces.
+  - Avoid for: Runtime errors; Setup, repair, blocked, diagnostics, settings, developer tools, and runtime configuration; Ordinary shell chrome.
+  - Typography: body `14-16px`, section-title `18-24px`, hero-title `30-48px only when identity or content presentation is the primary task`.
+  - Shape: hero-radius `16-24px`, large-media-radius `16-24px`.
+  - Spacing: composition-padding `24-40px only when it supports identity composition`.
+  - Motion: rule `Brand or ambience motion is allowed only when reduced-motion handling is present.`.
+  - Admission: rule `Expressive density must be explicit at the page or composition boundary and must not be used as precedent for operational chrome.`.
+
 ## Colors
 
 Colors come from `nimi-ui-tokens.yaml` and `nimi-ui-themes.yaml`. The front matter exposes Google DESIGN.md-compatible `colors` using the default foundation/accent values. `kit/design-projection.json` preserves every original Nimi token id, CSS variable, theme layer, source rule, and per-theme value.
@@ -364,6 +394,8 @@ Official component token aliases:
 ## Do's and Don'ts
 
 - Do consume `@nimiplatform/kit/ui` primitives before creating app-local UI chrome.
+- Do default Desktop operational surfaces to compact density unless a spec-admitted composition says otherwise.
+- Do require an explicit expressive-density boundary before using hero-scale type, large card radii, or cinematic spacing.
 - Do update `.nimi/spec/platform/kernel/tables/nimi-ui-*.yaml` first when the design authority changes.
 - Do regenerate this projection with `node scripts/generate-nimi-design-md.mjs --write` after admitted spec changes.
 - Do verify drift with `node scripts/generate-nimi-design-md.mjs --check` and the relevant Kit gates.
@@ -371,4 +403,5 @@ Official component token aliases:
 - Don't hand-edit `kit/DESIGN.md` or root `DESIGN.md`.
 - Don't treat `kit/design_tokens.json` or `kit/tailwind-theme.css` as runtime authority; Nimi runtime CSS is still generated from `.nimi/spec` through `generate-nimi-ui-lib.mjs`.
 - Don't create app-local token, radius, spacing, glass, or primitive truth for shared Nimi surfaces.
+- Don't use expressive scale for runtime failure, setup, repair, blocked, diagnostics, settings, developer tools, or runtime configuration surfaces.
 - Don't treat this file as stronger than `.nimi/spec/platform/kernel/**`; it is a generated projection.

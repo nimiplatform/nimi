@@ -217,6 +217,7 @@ ai_governance:
         - "**/test/**/*.ts"
         - "**/test/**/*.tsx"
         - "**/__tests__/**"
+        - "**/e2e/fixtures/**"
       spec_yaml:
         - .nimi/spec/**/*.yaml
         - .nimi/spec/**/*.yml
@@ -226,6 +227,7 @@ ai_governance:
         - apps/**/spec/**/*.yml
       generated:
         - .nimi/spec/**/kernel/generated/**
+        - kit/design-projection.json
         - runtime/internal/providerregistry/generated.go
         - runtime/catalog/providers/**
         - runtime/catalog/generated/**

@@ -18,6 +18,7 @@ export function checkRendererDesignTables(fail) {
 
   const allowedTokenCategories = new Set(['brand', 'surface', 'text', 'radius', 'elevation', 'z', 'motion', 'typography', 'spacing', 'stroke', 'state']);
   const allowedSurfaceProfiles = new Set(['baseline', 'secondary', 'exception']);
+  const allowedDensityModes = new Set(['compact', 'regular', 'expressive']);
   const allowedSidebarFamily = new Set(['desktop-sidebar-v1']);
   const allowedSidebarItemKinds = new Set(['entity-row', 'category-row', 'nav-row']);
   const allowedExceptionPolicies = new Set(['none', 'allowlisted_arbitrary', 'controlled']);
@@ -59,16 +60,23 @@ export function checkRendererDesignTables(fail) {
     const module = String(item?.module || '').trim();
     const role = String(item?.role || '').trim();
     const profile = String(item?.surface_profile || '').trim();
+    const densityMode = String(item?.density_mode || '').trim();
     const exceptionPolicy = String(item?.exception_policy || '').trim();
-    if (!id || !module || !role || !profile || !exceptionPolicy) {
-      fail(`${surfacesPath} surface rows require id/module/role/surface_profile/exception_policy`);
+    if (!id || !module || !role || !profile || !densityMode || !exceptionPolicy) {
+      fail(`${surfacesPath} surface rows require id/module/role/surface_profile/density_mode/exception_policy`);
       continue;
     }
     if (!allowedSurfaceProfiles.has(profile)) {
       fail(`${surfacesPath} surface ${id} has invalid surface_profile: ${profile}`);
     }
+    if (!allowedDensityModes.has(densityMode)) {
+      fail(`${surfacesPath} surface ${id} has invalid density_mode: ${densityMode}`);
+    }
     if (!allowedExceptionPolicies.has(exceptionPolicy)) {
       fail(`${surfacesPath} surface ${id} has invalid exception_policy: ${exceptionPolicy}`);
+    }
+    if (densityMode === 'expressive' && profile !== 'exception') {
+      fail(`${surfacesPath} surface ${id} uses expressive density without exception profile`);
     }
     if (typeof item?.testid_required !== 'boolean') {
       fail(`${surfacesPath} surface ${id} must declare boolean testid_required`);

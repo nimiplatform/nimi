@@ -364,17 +364,18 @@ function renderRendererDesignSurfaces(doc, sourceName) {
   const surfaces = Array.isArray(doc?.surfaces) ? doc.surfaces : [];
   let out = header('Generated Renderer Design Surfaces', sourceName);
 
-  out += '| Surface ID | Module | Role | Profile | Exception Policy | Source Rule |\n';
-  out += '|---|---|---|---|---|---|\n';
+  out += '| Surface ID | Module | Role | Profile | Density | Exception Policy | Source Rule |\n';
+  out += '|---|---|---|---|---|---|---|\n';
   for (const item of surfaces) {
     const id = String(item?.id || '').trim();
     if (!id) continue;
     const module = String(item?.module || '').trim() || '—';
     const role = String(item?.role || '').trim() || '—';
     const profile = String(item?.surface_profile || '').trim() || '—';
+    const densityMode = String(item?.density_mode || '').trim() || '—';
     const exceptionPolicy = String(item?.exception_policy || '').trim() || '—';
     const sourceRule = String(item?.source_rule || '').trim() || '—';
-    out += `| \`${id}\` | \`${module}\` | \`${role}\` | \`${profile}\` | \`${exceptionPolicy}\` | \`${sourceRule}\` |\n`;
+    out += `| \`${id}\` | \`${module}\` | \`${role}\` | \`${profile}\` | \`${densityMode}\` | \`${exceptionPolicy}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
 

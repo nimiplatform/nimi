@@ -61,7 +61,7 @@ thread/anchor metadata 升格成递归 continuation chain 的 owner。
 `createUiSlice` 管理 UI 导航状态：
 
 - `activeTab: AppTab`、`previousTab: AppTab | null`
-- `selectedChatId`、`selectedProfileId`、`selectedProfileIsSource`、`selectedWorldId`
+- `selectedChatId`、`selectedProfileId`、`selectedProfileIsSource`
 - `profileDetailOverlayOpen`：共享资料详情弹层占据主内容区时为 `true`，shell 左 rail 需要隐藏
 - `statusBanner: StatusBanner | null`
 - `bootstrapReady: boolean`、`bootstrapError: string | null`

@@ -6,7 +6,7 @@ authority_refs:
 entries:
   - id: worlds
     name: Worlds
-    semantics: Browse admitted Realm Worlds and enter World detail.
+    semantics: Browse admitted Realm Worlds and project selected World context into Chat.
   - id: personas
     name: Personas
     semantics: Discover RealmPersona sources across Worlds.

@@ -535,6 +535,8 @@ function renderCompactFrontMatter(fullProjection) {
 
 function renderMarkdownBody(frontMatter) {
   const primitiveRows = normalizeArray(frontMatter.componentStandards?.primitives);
+  const compositionRows = normalizeArray(frontMatter.componentStandards?.compositions);
+  const densityRows = compositionRows.filter((composition) => String(composition?.kind || '') === 'density_mode');
   const colors = normalizeObject(frontMatter.colors);
   const typography = normalizeObject(frontMatter.typography);
   const spacing = normalizeObject(frontMatter.spacing);
@@ -570,6 +572,13 @@ function renderMarkdownBody(frontMatter) {
     'Nimi Kit is the shared UI foundation for Nimi apps. It projects platform-owned semantic tokens, primitive contracts, and component usage rules into a compact DESIGN.md file that coding agents and design tools can read before touching UI/UX surfaces.',
     '',
     'The product posture is industrial-grade, dense where needed, and explicit about ownership: app UI should consume Kit primitives first, extend Kit when a reusable primitive is missing, and avoid app-local design truth for shared interaction patterns.',
+    '',
+    '## Density',
+    '',
+    'Density modes are canonical composition guidance from `nimi-ui-compositions.yaml`. Desktop operational surfaces default to compact density; regular density remains the Kit primitive baseline; expressive density is opt-in for identity/content presentation only.',
+    '',
+    ...densityRows.flatMap(renderDensityCompositionLines),
+    ...(densityRows.length ? [] : ['- No density modes are currently admitted.']),
     '',
     '## Colors',
     '',
@@ -614,6 +623,8 @@ function renderMarkdownBody(frontMatter) {
     "## Do's and Don'ts",
     '',
     '- Do consume `@nimiplatform/kit/ui` primitives before creating app-local UI chrome.',
+    '- Do default Desktop operational surfaces to compact density unless a spec-admitted composition says otherwise.',
+    '- Do require an explicit expressive-density boundary before using hero-scale type, large card radii, or cinematic spacing.',
     '- Do update `.nimi/spec/platform/kernel/tables/nimi-ui-*.yaml` first when the design authority changes.',
     '- Do regenerate this projection with `node scripts/generate-nimi-design-md.mjs --write` after admitted spec changes.',
     '- Do verify drift with `node scripts/generate-nimi-design-md.mjs --check` and the relevant Kit gates.',
@@ -621,9 +632,37 @@ function renderMarkdownBody(frontMatter) {
     '- Don\'t hand-edit `kit/DESIGN.md` or root `DESIGN.md`.',
     '- Don\'t treat `kit/design_tokens.json` or `kit/tailwind-theme.css` as runtime authority; Nimi runtime CSS is still generated from `.nimi/spec` through `generate-nimi-ui-lib.mjs`.',
     '- Don\'t create app-local token, radius, spacing, glass, or primitive truth for shared Nimi surfaces.',
+    '- Don\'t use expressive scale for runtime failure, setup, repair, blocked, diagnostics, settings, developer tools, or runtime configuration surfaces.',
     '- Don\'t treat this file as stronger than `.nimi/spec/platform/kernel/**`; it is a generated projection.',
     '',
   ].join('\n');
+}
+
+function formatList(value) {
+  const rows = normalizeArray(value).map((item) => String(item || '').trim()).filter(Boolean);
+  return rows.length ? rows.join('; ') : '';
+}
+
+function formatDensityRecord(value) {
+  const object = normalizeObject(value);
+  const entries = Object.entries(object)
+    .map(([key, item]) => `${toKebab(key)} ${inlineCode(Array.isArray(item) ? item.join(', ') : item)}`);
+  return entries.join(', ');
+}
+
+function renderDensityCompositionLines(composition) {
+  const title = String(composition?.title || composition?.id || '').trim();
+  const intent = String(composition?.intent || '').trim();
+  const useFor = formatList(composition?.use_for);
+  const avoidFor = formatList(composition?.avoid_for);
+  const lines = [`- **${title}:** ${intent}`];
+  if (useFor) lines.push(`  - Use for: ${useFor}.`);
+  if (avoidFor) lines.push(`  - Avoid for: ${avoidFor}.`);
+  for (const key of ['typography', 'shape', 'spacing', 'controls', 'motion', 'admission']) {
+    const detail = formatDensityRecord(composition?.[key]);
+    if (detail) lines.push(`  - ${toTitle(key)}: ${detail}.`);
+  }
+  return lines;
 }
 
 function inlineCode(value) {
