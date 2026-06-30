@@ -445,8 +445,11 @@ present and mutually consistent:
   materialized.
 - `OpenApp` issued a successful launch-resolution projection for the same app,
   active version, release descriptor, and app scope.
-- Desktop supplies the one-time launch nonce through the host-owned binding
-  path, not through renderer state.
+- Desktop supplies `launch_host_id`, `launch_nonce`, and
+  `release_descriptor_ref` through the host-owned `AccountCaller` binding path,
+  not through renderer state. Runtime must compare those fields with the
+  successful `OpenApp` launch-resolution evidence before admitting this caller
+  posture.
 - Account state is `authenticated` and Runtime owns session custody.
 
 `MUST`: the installed-app host may request account/session metadata only through

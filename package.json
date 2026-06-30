@@ -111,6 +111,7 @@
     "check:home-shell-no-runtime-internal-import": "node scripts/check-home-shell-no-runtime-internal-import.mjs",
     "check:home-shell-aiscoperef-required": "node scripts/check-home-shell-aiscoperef-required.mjs",
     "check:install-gateway-no-admission-authority": "node scripts/check-install-gateway-no-admission-authority.mjs",
+    "check:nimi-app-descriptor-admission": "node scripts/check-nimi-app-descriptor-admission.mjs",
     "check:first-party-no-standalone-ordinary-user-entry": "node scripts/check-first-party-no-standalone-ordinary-user-entry.mjs",
     "check:no-steam-copy-language": "node scripts/check-no-steam-copy-language.mjs",
     "check:no-global-openapi-config": "pnpm check:no-openapi-base-assignment && pnpm check:no-openapi-token-assignment",

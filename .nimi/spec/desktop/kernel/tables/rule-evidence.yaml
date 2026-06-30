@@ -30,7 +30,7 @@ entries:
   - evidence_catalog
   - rules
 rule_registry:
-  total_d_rules: 314
+  total_d_rules: 315
 fragments:
   evidence_catalog: rule-evidence.catalog.yaml
   rules:

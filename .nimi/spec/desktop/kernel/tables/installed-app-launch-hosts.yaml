@@ -1,0 +1,71 @@
+version: 1
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_installed_app_launch_hosts
+entries:
+  - desktop-electron-installed-app-host
+
+host_schema:
+  owner: desktop_ui_shell
+  source_rule: D-SHELL-038
+  fields:
+    - host_id
+    - host_kind
+    - app_package_kind
+    - launch_resolution
+    - auth_channel
+    - shell_capability_set_ref
+    - storage_root_policy_ref
+    - app_instance_id_template
+    - device_id
+    - required_runtime_projection_fields
+    - forbidden_identity_sources
+    - forbidden_host_capabilities
+    - source_rule
+
+hosts:
+  - host_id: desktop-electron-installed-app-host
+    host_kind: electron
+    app_package_kind: nimi-app
+    launch_resolution: runtime-openapp-attested
+    auth_channel: host-owned-runtime-app-session
+    shell_capability_set_ref: installed-nimi-app-standard-shell-v1
+    storage_root_policy_ref: nimi-data-app-roots
+    app_instance_id_template: "{app_id}.desktop-host"
+    device_id: desktop-installed-app-host-device
+    required_runtime_projection_fields:
+      - app_id
+      - active_version
+      - release_descriptor_ref
+      - descriptor_class
+      - admission_track
+      - source_kind
+      - ordinary_visibility
+      - digest_verification_state
+      - runtime_entry_ref
+      - active_release_root_or_launch_uri
+      - app_storage_handles
+      - shell_capability_set_ref
+      - caller_mode
+      - launch_nonce
+      - product_readiness_claim_allowed
+    forbidden_identity_sources:
+      - local_adoption
+      - account_only_inventory
+      - tester_developer_registration
+      - desktop_shell_caller_identity
+      - renderer_supplied_session_metadata
+      - renderer_supplied_bearer_token
+      - process_liveness
+      - app_self_report
+    forbidden_host_capabilities:
+      - desktop-private.product-control
+      - runtime-lifecycle.start
+      - runtime-lifecycle.stop
+      - runtime-lifecycle.restart
+      - oauth.tokenExchange
+      - local-agent.runtimeTrustedCaller
+      - tauri-only.commands
+      - electron.raw-ipc
+      - node.raw-fs
+    source_rule: D-SHELL-038
