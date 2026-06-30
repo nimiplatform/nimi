@@ -225,6 +225,7 @@ export type NimiElectronShellUiCommandInput = {
 };
 
 export type NimiElectronStandardShellHost = {
+  readonly capabilitySetRef?: string;
   readonly dataRoot?: string;
   readonly localAssetRoots?: readonly string[];
   readonly resolveLocalAssetUrl?: (filePath: string) => Promise<string> | string;

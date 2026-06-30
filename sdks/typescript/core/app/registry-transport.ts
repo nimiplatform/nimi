@@ -118,17 +118,17 @@ async function composeInventory(options: NimiAppRegistryTransportOptions): Promi
     loadRows(options.loadRows),
     loadReleaseDescriptors(options.loadReleaseDescriptors),
   ]);
-  const catalogById = new Map<string, NimiAppRow>();
-  for (const row of rows) {
-    if (resolveOrdinaryVisibleDescriptor(row, descriptors).ok) {
-      catalogById.set(row.appId, toClientRow(row));
-    }
-  }
-
   const accountResult = await loadOptionalAccountInventory(options.loadAccountInventory);
   const accountById = new Map<string, NimiAppAccountInventoryRow>();
   if (accountResult.record) {
     for (const row of accountResult.record.apps) accountById.set(row.appId, row);
+  }
+
+  const catalogById = new Map<string, NimiAppRow>();
+  for (const row of rows) {
+    if (resolveInventoryCatalogDescriptor(row, descriptors, accountById.get(row.appId)).ok) {
+      catalogById.set(row.appId, toClientRow(row));
+    }
   }
 
   const localResult = await loadOptionalLocalAdoptions(options.loadLocalAdoptions);
@@ -276,6 +276,7 @@ function toClientRow(row: NimiAppRegistrySourceRow): NimiAppRow {
     appKind: row.appKind,
     displayName: row.displayName,
     trustTier: row.trustTier,
+    ordinaryVisibility: row.ordinaryVisibility,
     publisher: row.publisher,
     aiProfileSelectionRef: row.aiProfileSelectionRef,
     capabilitySet: [...row.capabilitySet],
@@ -598,6 +599,44 @@ function isDescriptorValidForRow(
   return !isMutableSourceRef(descriptor.sourceKind, descriptor.sourceRef);
 }
 
+function resolveInventoryCatalogDescriptor(
+  row: NimiAppRegistrySourceRow,
+  descriptors: readonly NimiAppReleaseDescriptorRow[],
+  account: NimiAppAccountInventoryRow | undefined,
+): DescriptorResolution {
+  const ordinary = resolveOrdinaryVisibleDescriptor(row, descriptors);
+  if (ordinary.ok) return ordinary;
+  return resolveDeveloperSandboxAccountCatalogDescriptor(row, descriptors, account);
+}
+
+function resolveDeveloperSandboxAccountCatalogDescriptor(
+  row: NimiAppRegistrySourceRow,
+  descriptors: readonly NimiAppReleaseDescriptorRow[],
+  account: NimiAppAccountInventoryRow | undefined,
+): DescriptorResolution {
+  if (!account || !isLaunchableAccountInventoryRow(account)) {
+    return { ok: false, reason: 'developer-catalog-account-required' };
+  }
+  if (row.admissionStatus !== 'admitted') return { ok: false, reason: 'app-not-admitted' };
+  if (row.ordinaryVisibility !== 'developer-only') return { ok: false, reason: 'app-not-developer-only' };
+  if (row.appKind !== 'nimi-app') return { ok: false, reason: 'app-kind-not-nimi-app' };
+  const descriptor = descriptors.find((candidate) => candidate.descriptorId === row.releaseDescriptorRef);
+  if (!descriptor) return { ok: false, reason: 'release-descriptor-missing' };
+  if (!isDescriptorValidForRow(row, descriptor)) {
+    return { ok: false, reason: 'release-descriptor-invalid-for-registry-row', descriptor };
+  }
+  if (descriptor.descriptorClass !== 'external-immutable-artifact') {
+    return { ok: false, reason: 'developer-catalog-descriptor-class-invalid', descriptor };
+  }
+  if (descriptor.sourceKind !== 'admission-sandbox-https-artifact') {
+    return { ok: false, reason: 'developer-catalog-source-kind-invalid', descriptor };
+  }
+  if (descriptor.admissionPath.trim() !== 'admission-sandbox-ci') {
+    return { ok: false, reason: 'developer-catalog-admission-path-invalid', descriptor };
+  }
+  return { ok: true, descriptor };
+}
+
 function defaultStatusDetail(
   readiness: AppLaunchReadiness,
   descriptorResolution: DescriptorResolution,
@@ -671,7 +710,19 @@ function mutableBySourceKind(sourceKind: NimiAppReleaseDescriptorRow['sourceKind
   if (sourceKind === 'github-release') {
     return bareGitTagRef(normalizedRef) || !immutableGithubReleaseArtifactRef(normalizedRef);
   }
+  if (sourceKind === 'admission-sandbox-https-artifact') {
+    return !immutableHTTPSArtifactRef(normalizedRef);
+  }
   return true;
+}
+
+function immutableHTTPSArtifactRef(ref: string): boolean {
+  return ref.startsWith('https://')
+    && !ref.includes('/latest/')
+    && !ref.includes('/main/')
+    && !ref.includes('/master/')
+    && !ref.includes('/next/')
+    && !ref.includes('/stable/');
 }
 
 function exactNpmPackageVersionRef(ref: string): boolean {

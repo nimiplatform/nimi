@@ -392,6 +392,54 @@ describe('vNext app surface', () => {
     assert.equal((await admitted.status('nimi.example-app')).launchReadiness, 'ready');
   });
 
+  it('projects the admitted sandbox fixture as developer-only catalog plumbing', async () => {
+    const generated = createNimiAppRegistryTransport({
+      loadRows: loadNimiAppRegistryRows,
+      loadReleaseDescriptors: loadNimiAppReleaseDescriptorRows,
+    });
+    const fixture = loadNimiAppRegistryRows()
+      .find((row) => row.appId === 'community.nimi.fixture.platform-proof');
+    assert.ok(fixture);
+    assert.equal(fixture.trustTier, 'nimi-community');
+    assert.equal(fixture.ordinaryVisibility, 'developer-only');
+    assert.equal(fixture.admissionStatus, 'admitted');
+    assert.equal(
+      fixture.releaseDescriptorRef,
+      'community.nimi.fixture.platform-proof.0.1.0-sandbox',
+    );
+
+    const descriptor = loadNimiAppReleaseDescriptorRows()
+      .find((row) => row.descriptorId === fixture.releaseDescriptorRef);
+    assert.ok(descriptor);
+    assert.equal(descriptor.descriptorClass, 'external-immutable-artifact');
+    assert.equal(descriptor.sourceKind, 'admission-sandbox-https-artifact');
+    assert.equal(descriptor.storagePolicyRef, 'nimi-data-app-roots');
+
+    assert.deepEqual((await generated.list()).map((row) => row.appId), []);
+    const status = await generated.status('community.nimi.fixture.platform-proof');
+    assert.equal(status.launchReadiness, 'unsupported');
+    assert.equal(status.detail, 'registry row is not installable: app-not-ordinary-visible');
+
+    const sandboxAccount = createNimiAppRegistryTransport({
+      loadRows: loadNimiAppRegistryRows,
+      loadReleaseDescriptors: loadNimiAppReleaseDescriptorRows,
+      loadAccountInventory: () => accountInventoryRecord([
+        accountInventoryRow({
+          appId: 'community.nimi.fixture.platform-proof',
+          accountState: 'verified',
+          installState: 'not-installed',
+          source: 'admission-sandbox-ci',
+        }),
+      ]),
+    });
+    const [sandboxEntry] = await sandboxAccount.list();
+    assert.equal(sandboxEntry?.appId, 'community.nimi.fixture.platform-proof');
+    assert.equal(sandboxEntry?.sources.catalog.status, 'present');
+    assert.equal(sandboxEntry?.sources.catalog.value?.ordinaryVisibility, 'developer-only');
+    assert.equal(sandboxEntry?.installState, 'not-installed');
+    assert.deepEqual(sandboxEntry?.nextActions, ['install']);
+  });
+
   it('fails closed on registry source and package readiness boundary errors', async () => {
     assert.throws(
       () => createNimiAppRegistryTransport({
@@ -855,6 +903,57 @@ describe('vNext app surface', () => {
       }),
       /ordinaryVisibility is invalid/,
     );
+  });
+
+  it('decodes Desktop bridge developer-only sandbox rows for account-gated catalog composition', async () => {
+    const appId = 'community.nimi.fixture.platform-proof';
+    const descriptorId = `${appId}.0.1.0-sandbox`;
+    const projection = parseNimiAppBridgeProjection({
+      registryPath: '/Users/test/.nimi/apps/registry.json',
+      packagesPath: '/Users/test/.nimi/apps/packages',
+      registryRows: [registryRow({
+        appId,
+        displayName: 'Platform Proof Fixture',
+        publisher: 'nimiplatform-fixtures',
+        trustTier: 'nimi-community',
+        ordinaryVisibility: 'developer-only',
+        admissionStatus: 'admitted',
+        releaseDescriptorRef: descriptorId,
+        sourceRule: 'P-NAPP-033',
+      })],
+      releaseDescriptors: [releaseDescriptor({
+        descriptorId,
+        appId,
+        descriptorClass: 'external-immutable-artifact',
+        sourceKind: 'admission-sandbox-https-artifact',
+        sourceRef: 'https://fixtures.nimi.test/releases/platform-proof/0.1.0-sandbox/nimi-app-platform-fixture-0.1.0-sandbox.tar',
+        artifactLocator: 'https://fixtures.nimi.test/releases/platform-proof/0.1.0-sandbox/nimi-app-platform-fixture-0.1.0-sandbox.tar',
+        admissionPath: 'admission-sandbox-ci',
+        sourceRule: 'P-NAPP-033',
+      })],
+    });
+
+    assert.deepEqual(projection.registryRows.map((row) => row.appId), [appId]);
+    assert.deepEqual(projection.releaseDescriptors.map((descriptor) => descriptor.appId), [appId]);
+
+    const transport = createNimiAppRegistryTransport({
+      loadRows: () => projection.registryRows,
+      loadReleaseDescriptors: () => projection.releaseDescriptors,
+      loadAccountInventory: () => accountInventoryRecord([
+        accountInventoryRow({
+          appId,
+          accountState: 'verified',
+          installState: 'not-installed',
+          source: 'admission-sandbox-ci',
+        }),
+      ]),
+    });
+    const [entry] = await transport.list();
+    assert.equal(entry?.appId, appId);
+    assert.equal(entry?.sources.catalog.status, 'present');
+    assert.equal(entry?.sources.catalog.value?.ordinaryVisibility, 'developer-only');
+    assert.equal(entry?.sources.account.status, 'present');
+    assert.equal(entry?.nextActions.includes('install'), true);
   });
 
   it('fails closed on non-canonical app rows and status', async () => {

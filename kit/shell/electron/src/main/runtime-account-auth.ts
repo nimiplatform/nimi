@@ -1,6 +1,7 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
 import {
   Runtime,
+  createNimiDesktopLaunchedNimiAppRuntimeAccountCaller,
   createNimiRuntimeAppSessionMetadataProvider,
   toNimiRuntimeTimestamp,
   withNimiRuntimeIdempotencyMetadata,
@@ -75,6 +76,25 @@ export type NimiElectronRuntimeAccountTrustedMetadataProviderInput = {
   readonly protectedAccess: NimiElectronRuntimeAccountProtectedAccessInput;
   readonly runtime?: NimiElectronRuntimeAccountAuthRuntime;
 };
+
+export type NimiElectronInstalledAppLaunchBinding = {
+  readonly appInstanceId: string;
+  readonly deviceId: string;
+  readonly launchHostId: string;
+  readonly launchNonce: string;
+  readonly releaseDescriptorRef: string;
+};
+
+export type NimiElectronInstalledAppSessionInput =
+  Omit<NimiElectronRuntimeAccountAppSessionInput, 'appInstanceId' | 'deviceId' | 'developerRegistration'> & {
+    readonly developerRegistration?: boolean;
+  };
+
+export type NimiElectronInstalledAppRuntimeAccountTrustedMetadataProviderInput =
+  Omit<NimiElectronRuntimeAccountTrustedMetadataProviderInput, 'accountCaller' | 'appSession'> & {
+    readonly installedApp: NimiElectronInstalledAppLaunchBinding;
+    readonly appSession: NimiElectronInstalledAppSessionInput;
+  };
 
 const DEFAULT_PROTECTED_ACCESS_DOMAIN = 'app-auth';
 const DEFAULT_PROTECTED_ACCESS_TTL_SECONDS = 3600;
@@ -240,6 +260,42 @@ export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
   }
 
   return trustedMetadata;
+}
+
+export function createNimiElectronInstalledAppRuntimeAccountTrustedMetadataProvider(
+  input: NimiElectronInstalledAppRuntimeAccountTrustedMetadataProviderInput,
+): ElectronRuntimeBridgeTrustedMetadataProvider {
+  const appId = requireText(input.appId, 'appId');
+  const installedApp = {
+    appInstanceId: requireText(input.installedApp.appInstanceId, 'installedApp.appInstanceId'),
+    deviceId: requireText(input.installedApp.deviceId, 'installedApp.deviceId'),
+    launchHostId: requireText(input.installedApp.launchHostId, 'installedApp.launchHostId'),
+    launchNonce: requireText(input.installedApp.launchNonce, 'installedApp.launchNonce'),
+    releaseDescriptorRef: requireText(input.installedApp.releaseDescriptorRef, 'installedApp.releaseDescriptorRef'),
+  };
+  if (input.appSession.developerRegistration === true) {
+    throw new Error('Electron installed app Runtime account metadata forbids appSession.developerRegistration');
+  }
+  return createNimiElectronRuntimeAccountTrustedMetadataProvider({
+    appId,
+    runtimeEndpoint: input.runtimeEndpoint,
+    protectedAccess: input.protectedAccess,
+    runtime: input.runtime,
+    accountCaller: createNimiDesktopLaunchedNimiAppRuntimeAccountCaller({
+      appId,
+      appInstanceId: installedApp.appInstanceId,
+      deviceId: installedApp.deviceId,
+      launchHostId: installedApp.launchHostId,
+      launchNonce: installedApp.launchNonce,
+      releaseDescriptorRef: installedApp.releaseDescriptorRef,
+    }),
+    appSession: {
+      ...input.appSession,
+      appInstanceId: installedApp.appInstanceId,
+      deviceId: installedApp.deviceId,
+      developerRegistration: false,
+    },
+  });
 }
 
 function normalizeProtectedAccessInput(

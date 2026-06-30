@@ -10,7 +10,13 @@ import {
   type RuntimeGrpcBridgeClient,
 } from '../src/main/index.js';
 import { installNimiElectronRuntimeBridge } from '../src/preload/index.js';
-import { NIMI_STANDARD_SHELL_CAPABILITY_IDS, NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
+import {
+  NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+  NIMI_STANDARD_SHELL_CAPABILITIES,
+  NIMI_STANDARD_SHELL_CAPABILITY_IDS,
+  NIMI_STANDARD_SHELL_CAPABILITY_SETS,
+  NIMI_STANDARD_SHELL_COMMANDS,
+} from '@nimiplatform/kit/shell/capabilities';
 import {
   FakeIpcMain,
   STANDARD_COMMANDS,
@@ -173,6 +179,48 @@ describe('Electron standard shell capability catalog', () => {
       config_get: NIMI_STANDARD_SHELL_COMMANDS['config.get'],
       config_set: NIMI_STANDARD_SHELL_COMMANDS['config.set'],
     });
+  });
+
+  it('projects the admitted installed Nimi App standard shell capability set', () => {
+    const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find((set) =>
+      set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID
+    );
+    expect(installedSet).toMatchObject({
+      setId: 'installed-nimi-app-standard-shell-v1',
+      hostClass: 'desktop-electron-installed-app-host',
+      appPackageKind: 'nimi-app',
+      launchResolution: 'runtime-openapp-attested',
+      authBinding: 'host-owned-runtime-app-session',
+      sourceRule: 'P-KIT-044',
+    });
+    expect(installedSet?.allowedCommands).toEqual([
+      NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'],
+      NIMI_STANDARD_SHELL_COMMANDS['runtime.streamOpen'],
+      NIMI_STANDARD_SHELL_COMMANDS['runtime.streamClose'],
+      NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'],
+      NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
+      NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
+      NIMI_STANDARD_SHELL_COMMANDS['config.get'],
+      NIMI_STANDARD_SHELL_COMMANDS['config.set'],
+      NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
+      NIMI_STANDARD_SHELL_COMMANDS['ai-config.set'],
+      NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl'],
+      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog'],
+      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag'],
+      NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'],
+    ]);
+    expect(installedSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status']);
+    expect(installedSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']);
+    expect(installedSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']);
+    expect(installedSet?.forbiddenOperations).toContain('electron.raw-ipc');
+    expect(installedSet?.forbiddenOperations).toContain('node.raw-fs');
+
+    const standardCommands = new Set(NIMI_STANDARD_SHELL_CAPABILITIES.flatMap((capability) =>
+      capability.operations.map((operation) => operation.command),
+    ));
+    for (const command of [...installedSet?.allowedCommands ?? [], ...installedSet?.forbiddenCommands ?? []]) {
+      expect(standardCommands.has(command), command).toBe(true);
+    }
   });
 
   it('uses the standard unavailable envelope for admitted but unimplemented commands', () => {
@@ -470,6 +518,90 @@ describe('registerNimiElectronRuntimeBridge', () => {
       })).rejects.toMatchObject({
         code: 'external-daemon-required',
         reasonCode: 'electron-runtime-account-custody-external',
+        source: 'electron',
+      });
+    }
+  });
+
+  it('denies forbidden commands before dispatch for installed Nimi App standard shell hosts', async () => {
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'community.nimi.fixture.platform-proof',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => {
+        throw new Error('forbidden command must not initialize Runtime client');
+      },
+      standardShellHost: {
+        capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        localAgentIdentity: {
+          ownerUserId: 'owner-1',
+          runtimeSourceRef: 'tester-runtime',
+          localAgentRef: 'local-agent:opaque-tester-runtime',
+        },
+        runtimeTrustedCaller: {
+          mode: 'local-developer-app',
+        },
+      },
+    });
+
+    for (const command of [
+      NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status'],
+      NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get'],
+      NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad'],
+      NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
+      NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
+      NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
+    ]) {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command,
+        payload: {},
+      })).rejects.toMatchObject({
+        code: 'capability-unavailable',
+        reasonCode: 'electron-standard-capability-not-in-host-set',
+        source: 'electron',
+        details: {
+          command,
+          capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+        },
+      });
+    }
+  });
+
+  it('rejects renderer-provided bearer and session metadata for protected Runtime calls', async () => {
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'community.nimi.fixture.platform-proof',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => {
+        throw new Error('renderer-owned auth metadata must not reach Runtime client');
+      },
+      standardShellHost: {
+        capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+      },
+    });
+    const protectedPayloads = [
+      { authorization: 'Bearer renderer-token' },
+      { appSession: { sessionId: 'renderer-session', sessionToken: 'renderer-secret' } },
+      { protectedAccessToken: { tokenId: 'renderer-token-id', secret: 'renderer-secret' } },
+      { metadata: { extra: { 'x-nimi-session-id': 'renderer-session' } } },
+      { metadata: { extra: { 'x-nimi-session-token': 'renderer-secret' } } },
+      { metadata: { extra: { authorization: 'Bearer renderer-token' } } },
+    ];
+
+    for (const payload of protectedPayloads) {
+      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: STANDARD_COMMANDS.unary,
+        payload: {
+          methodId: '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth',
+          requestBytesBase64: '',
+          ...payload,
+        },
+      })).rejects.toMatchObject({
+        code: 'forbidden-renderer-access',
         source: 'electron',
       });
     }

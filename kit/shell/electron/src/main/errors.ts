@@ -47,6 +47,27 @@ export function createElectronCapabilityUnavailableError(command: string): NimiE
     details: { command },
   });
 }
+export function createElectronCapabilityNotInHostSetError(
+  command: string,
+  capabilitySetRef: string,
+): NimiElectronShellHostError {
+  return new NimiElectronShellHostError({
+    code: 'capability-unavailable',
+    message: `Electron standard shell capability set ${normalizeErrorToken(capabilitySetRef, 'capabilitySetRef')} does not admit command: ${normalizeErrorToken(command, 'command')}`,
+    reasonCode: 'electron-standard-capability-not-in-host-set',
+    actionHint: 'use_command_admitted_by_electron_standard_shell_capability_set',
+    details: { command, capabilitySetRef },
+  });
+}
+export function createElectronCapabilitySetUnknownError(capabilitySetRef: string): NimiElectronShellHostError {
+  return new NimiElectronShellHostError({
+    code: 'capability-unavailable',
+    message: `Electron standard shell capability set is unknown: ${normalizeErrorToken(capabilitySetRef, 'capabilitySetRef')}`,
+    reasonCode: 'electron-standard-capability-set-unknown',
+    actionHint: 'use_admitted_standard_shell_capability_set',
+    details: { capabilitySetRef },
+  });
+}
 export function createElectronRuntimeEndpointUnavailableError(
   command: string,
   runtimeEndpoint: string,

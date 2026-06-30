@@ -16,6 +16,7 @@ const NIMI_APP_RELEASE_SOURCE_KINDS = new Set([
   'github-release',
   'github-commit',
   'npm-package',
+  'admission-sandbox-https-artifact',
 ]);
 
 const NIMI_APP_ADMISSION_STATUSES = new Set([
@@ -37,7 +38,7 @@ export function parseNimiAppBridgeProjection(value: unknown): NimiAppBridgeProje
   const record = asNimiAppBridgeRecord(value, 'apps_bridge_projection_get');
   const registryRows = asNimiAppBridgeArray(record.registryRows, 'apps_bridge_projection registryRows')
     .map(parseNimiAppBridgeRegistryRow)
-    .filter(isOrdinaryVisibleAdmittedApp);
+    .filter(isDesktopBridgeCatalogCandidate);
   const admittedAppIds = new Set(registryRows.map((row) => row.appId));
   return {
     registryRows,
@@ -192,6 +193,10 @@ function optionalNimiAppBridgeString(value: unknown): string | undefined {
   return normalized || undefined;
 }
 
-function isOrdinaryVisibleAdmittedApp(row: NimiAppRegistrySourceRow): boolean {
-  return row.ordinaryVisibility === 'ordinary-visible' && row.admissionStatus === 'admitted';
+function isDesktopBridgeCatalogCandidate(row: NimiAppRegistrySourceRow): boolean {
+  return row.admissionStatus === 'admitted'
+    && (
+      row.ordinaryVisibility === 'ordinary-visible'
+      || row.ordinaryVisibility === 'developer-only'
+    );
 }

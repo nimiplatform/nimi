@@ -10,6 +10,14 @@ export type NimiRuntimeAccountCallerInput = {
   readonly scopes?: readonly string[];
 };
 
+export const NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID = 'desktop-electron-installed-app-host';
+
+export type NimiDesktopLaunchedNimiAppRuntimeAccountCallerInput = NimiRuntimeAccountCallerInput & {
+  readonly launchHostId: string;
+  readonly launchNonce: string;
+  readonly releaseDescriptorRef: string;
+};
+
 export function createNimiLocalFirstPartyRuntimeAccountCaller(
   input: NimiRuntimeAccountCallerInput,
 ): NimiRuntimeAccountCaller {
@@ -48,6 +56,38 @@ export function createNimiDeveloperRegisteredRuntimeAccountCaller(
   );
 }
 
+export function createNimiDesktopLaunchedNimiAppRuntimeAccountCaller(
+  input: NimiDesktopLaunchedNimiAppRuntimeAccountCallerInput,
+): NimiRuntimeAccountCaller {
+  const appId = requireText(input.appId, 'appId');
+  const appInstanceId = requireInstalledBindingText(input.appInstanceId, 'appInstanceId');
+  const deviceId = requireInstalledBindingText(input.deviceId, 'deviceId');
+  const launchHostId = requireInstalledBindingText(input.launchHostId, 'launchHostId');
+  requireInstalledBindingText(input.launchNonce, 'launchNonce');
+  requireInstalledBindingText(input.releaseDescriptorRef, 'releaseDescriptorRef');
+  if (launchHostId !== NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID) {
+    throw createNimiError({
+      message: `Desktop-launched installed Nimi App caller requires launchHostId ${NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID}.`,
+      reasonCode: 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
+      actionHint: 'use_runtime_open_app_launch_resolution_binding',
+      source: 'sdk',
+    });
+  }
+  return createNimiRuntimeAccountCaller(
+    {
+      ...input,
+      appId,
+      appInstanceId,
+      deviceId,
+      launchHostId,
+      launchNonce: requireInstalledBindingText(input.launchNonce, 'launchNonce'),
+      releaseDescriptorRef: requireInstalledBindingText(input.releaseDescriptorRef, 'releaseDescriptorRef'),
+    },
+    AccountCallerMode.DESKTOP_LAUNCHED_NIMI_APP,
+    '',
+  );
+}
+
 export function createNimiDesktopShellRuntimeAccountCaller(
   input: NimiRuntimeAccountCallerInput,
 ): NimiRuntimeAccountCaller {
@@ -59,7 +99,7 @@ export function createNimiDesktopShellRuntimeAccountCaller(
 }
 
 function createNimiRuntimeAccountCaller(
-  input: NimiRuntimeAccountCallerInput,
+  input: NimiRuntimeAccountCallerInput & Partial<NimiDesktopLaunchedNimiAppRuntimeAccountCallerInput>,
   mode: AccountCallerMode,
   defaultDeviceId: string,
 ): NimiRuntimeAccountCaller {
@@ -72,13 +112,22 @@ function createNimiRuntimeAccountCaller(
     input.deviceId === undefined ? defaultDeviceId : input.deviceId,
     'deviceId',
   );
-  return {
+  const caller = {
     appId,
     appInstanceId,
     deviceId,
     mode,
     scopes: [...new Set((input.scopes || []).map((scope) => String(scope).trim()).filter(Boolean))],
-  };
+  } as NimiRuntimeAccountCaller;
+  if (mode === AccountCallerMode.DESKTOP_LAUNCHED_NIMI_APP) {
+    return {
+      ...caller,
+      launchHostId: requireInstalledBindingText(input.launchHostId, 'launchHostId'),
+      launchNonce: requireInstalledBindingText(input.launchNonce, 'launchNonce'),
+      releaseDescriptorRef: requireInstalledBindingText(input.releaseDescriptorRef, 'releaseDescriptorRef'),
+    } as NimiRuntimeAccountCaller;
+  }
+  return caller;
 }
 
 function requireText(value: unknown, field: string): string {
@@ -88,6 +137,19 @@ function requireText(value: unknown, field: string): string {
       message: `Runtime account caller requires ${field}`,
       reasonCode: 'SDK_RUNTIME_ACCOUNT_CALLER_INVALID',
       actionHint: 'provide_runtime_account_caller_identity',
+      source: 'sdk',
+    });
+  }
+  return normalized;
+}
+
+function requireInstalledBindingText(value: unknown, field: string): string {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    throw createNimiError({
+      message: `Desktop-launched installed Nimi App caller requires ${field} from Runtime launch resolution.`,
+      reasonCode: 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
+      actionHint: 'use_runtime_open_app_launch_resolution_binding',
       source: 'sdk',
     });
   }

@@ -24,6 +24,7 @@ const appReleaseDescriptorTablePath = path.join(repoRoot, '.nimi/spec/platform/k
 const vNextAppOutputPath = path.join(repoRoot, 'sdks/typescript/core/app/platform-catalog.generated.ts');
 const rustOutputPath = path.join(repoRoot, 'kit/shell/tauri/src/platform_catalog/ai_profile_factory.rs');
 const rustAppRegistryOutputPath = path.join(repoRoot, 'kit/shell/tauri/src/platform_catalog/nimi_app_registry.rs');
+const kitPlatformProjectionOutputPath = path.join(repoRoot, 'kit/shell/capabilities/src/platform-projection.ts');
 
 function asArray(value, label) {
   if (!Array.isArray(value)) {
@@ -43,6 +44,26 @@ function asString(value, label) {
 function optionalString(value) {
   const normalized = String(value ?? '').trim();
   return normalized || undefined;
+}
+
+function storagePolicyRefId(value, label) {
+  if (typeof value === 'string') {
+    return asString(value, label);
+  }
+  if (value && typeof value === 'object') {
+    return asString(value.id, `${label}.id`);
+  }
+  return asString(value, label);
+}
+
+function artifactSizeProjection(value, label) {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return asString(value, label);
+  }
+  if (value && typeof value === 'object') {
+    return asString(value.download, `${label}.download`);
+  }
+  return asString(value, label);
 }
 
 function asBoolean(value, label) {
@@ -129,13 +150,13 @@ function normalizeNimiAppReleaseDescriptorRows(doc) {
       artifactLocator: asString(artifact?.locator, `${descriptorId}.artifact.locator`),
       digestAlgorithm: asString(artifact?.digest_algorithm, `${descriptorId}.artifact.digest_algorithm`),
       sha256: asString(artifact?.sha256, `${descriptorId}.artifact.sha256`),
-      size: asString(artifact?.size, `${descriptorId}.artifact.size`),
+      size: artifactSizeProjection(artifact?.size, `${descriptorId}.artifact.size`),
       provenanceRef: asString(artifact?.signature_or_provenance_ref, `${descriptorId}.artifact.signature_or_provenance_ref`),
       packageKind: asString(runtime?.package_kind, `${descriptorId}.runtime.package_kind`),
       entryRef: asString(runtime?.entry_ref, `${descriptorId}.runtime.entry_ref`),
       sandboxRef: asString(runtime?.sandbox_ref, `${descriptorId}.runtime.sandbox_ref`),
       permissionsRef: asString(row?.permissions_ref, `${descriptorId}.permissions_ref`),
-      storagePolicyRef: asString(row?.storage_policy_ref, `${descriptorId}.storage_policy_ref`),
+      storagePolicyRef: storagePolicyRefId(row?.storage_policy_ref, `${descriptorId}.storage_policy_ref`),
       admissionPath: asString(review?.admission_path, `${descriptorId}.review.admission_path`),
       mutableSourceAllowed: asBoolean(review?.mutable_source_allowed, `${descriptorId}.review.mutable_source_allowed`),
       installDigestVerificationRequired: asString(
@@ -307,6 +328,78 @@ function renderVNextApp(factoryRows, appRows, releaseDescriptorRows, aiProfiles)
   ].join('\n');
 }
 
+function renderKitPlatformProjectionSource(currentSource, appRegistryDoc, appRows, releaseDescriptorRows) {
+  const registryVersion = Number(appRegistryDoc?.version ?? 0);
+  if (!Number.isInteger(registryVersion) || registryVersion <= 0) {
+    throw new Error('nimi app registry catalog version must be a positive integer for Kit platform projection');
+  }
+  const kitAppRows = appRows.map((row) => ({
+    appId: row.appId,
+    appKind: row.appKind,
+    displayName: row.displayName,
+    publisher: row.publisher,
+    trustTier: row.trustTier,
+    ordinaryVisibility: row.ordinaryVisibility,
+    aiProfileSelectionRef: row.aiProfileSelectionRef,
+    capabilitySetRefs: row.capabilitySet,
+    releaseDescriptorRef: row.releaseDescriptorRef,
+    installStoragePolicyRef: row.installStoragePolicyRef,
+    admissionStatus: row.admissionStatus,
+    sourceRule: row.sourceRule,
+  }));
+  const kitReleaseDescriptorRows = releaseDescriptorRows.map((row) => ({
+    descriptorId: row.descriptorId,
+    appId: row.appId,
+    version: row.version,
+    descriptorClass: row.descriptorClass,
+    sourceKind: row.sourceKind,
+    sourceRef: row.sourceRef,
+    artifactLocator: row.artifactLocator,
+    sha256: row.sha256,
+    packageKind: row.packageKind,
+    storagePolicyRef: row.storagePolicyRef,
+    digestAlgorithm: row.digestAlgorithm,
+    mutableSourceAllowed: row.mutableSourceAllowed,
+    admissionPath: row.admissionPath,
+    installDigestVerificationRequired: row.installDigestVerificationRequired,
+    sourceRule: row.sourceRule,
+    size: row.size,
+    provenanceRef: row.provenanceRef,
+    entryRef: row.entryRef,
+    sandboxRef: row.sandboxRef,
+    permissionsRef: row.permissionsRef,
+  }));
+  let rendered = currentSource.replace(
+    /export const NIMI_PLATFORM_NIMI_APP_REGISTRY_CATALOG_VERSION = \d+;/u,
+    `export const NIMI_PLATFORM_NIMI_APP_REGISTRY_CATALOG_VERSION = ${registryVersion};`,
+  );
+  rendered = replaceConstRows(
+    rendered,
+    'NIMI_PLATFORM_NIMI_APP_REGISTRY_ROWS',
+    'NimiPlatformNimiAppRegistryRow',
+    kitAppRows,
+  );
+  rendered = replaceConstRows(
+    rendered,
+    'NIMI_PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS',
+    'NimiPlatformNimiAppReleaseDescriptorRow',
+    kitReleaseDescriptorRows,
+  );
+  return rendered;
+}
+
+function replaceConstRows(source, constName, typeName, rows) {
+  const pattern = new RegExp(
+    `export const ${constName} = [\\s\\S]*? as const satisfies readonly ${typeName}\\[\\];`,
+    'u',
+  );
+  const renderedRows = `export const ${constName} = ${stableStringify(rows)} as const satisfies readonly ${typeName}[];`;
+  if (!pattern.test(source)) {
+    throw new Error(`Kit platform projection row block not found: ${constName}`);
+  }
+  return source.replace(pattern, renderedRows);
+}
+
 function rustString(value) {
   return JSON.stringify(String(value));
 }
@@ -448,8 +541,15 @@ function renderRustAppRegistry(appRegistryDoc, releaseDescriptorDoc, appRows, re
     `        version: ${rustString(row.version)},`,
     `        descriptor_class: ${rustString(row.descriptorClass)},`,
     `        source_kind: ${rustString(row.sourceKind)},`,
+    `        source_ref: ${rustString(row.sourceRef)},`,
+    `        artifact_locator: ${rustString(row.artifactLocator)},`,
     `        sha256: ${rustString(row.sha256)},`,
+    `        size: ${rustString(row.size)},`,
+    `        provenance_ref: ${rustString(row.provenanceRef)},`,
     `        package_kind: ${rustString(row.packageKind)},`,
+    `        entry_ref: ${rustString(row.entryRef)},`,
+    `        sandbox_ref: ${rustString(row.sandboxRef)},`,
+    `        permissions_ref: ${rustString(row.permissionsRef)},`,
     `        storage_policy_ref: ${rustString(row.storagePolicyRef)},`,
     `        digest_algorithm: ${rustString(row.digestAlgorithm)},`,
     `        mutable_source_allowed: ${row.mutableSourceAllowed ? 'true' : 'false'},`,
@@ -492,8 +592,15 @@ function renderRustAppRegistry(appRegistryDoc, releaseDescriptorDoc, appRows, re
     "    pub version: &'static str,",
     "    pub descriptor_class: &'static str,",
     "    pub source_kind: &'static str,",
+    "    pub source_ref: &'static str,",
+    "    pub artifact_locator: &'static str,",
     "    pub sha256: &'static str,",
+    "    pub size: &'static str,",
+    "    pub provenance_ref: &'static str,",
     "    pub package_kind: &'static str,",
+    "    pub entry_ref: &'static str,",
+    "    pub sandbox_ref: &'static str,",
+    "    pub permissions_ref: &'static str,",
     "    pub storage_policy_ref: &'static str,",
     "    pub digest_algorithm: &'static str,",
     '    pub mutable_source_allowed: bool,',
@@ -574,6 +681,20 @@ async function main() {
   const renderedRustAppRegistry = formatRust(
     renderRustAppRegistry(appRegistryDoc, releaseDescriptorDoc, appRows, releaseDescriptorRows),
   );
+  let currentKitPlatformProjection = '';
+  try {
+    currentKitPlatformProjection = await fs.readFile(kitPlatformProjectionOutputPath, 'utf8');
+  } catch {
+    throw new Error(
+      `Kit platform projection missing: ${path.relative(repoRoot, kitPlatformProjectionOutputPath)}`,
+    );
+  }
+  const renderedKitPlatformProjection = renderKitPlatformProjectionSource(
+    currentKitPlatformProjection,
+    appRegistryDoc,
+    appRows,
+    releaseDescriptorRows,
+  );
 
   if (checkMode) {
     let currentVNextApp = '';
@@ -605,6 +726,9 @@ async function main() {
     if (currentRustAppRegistry !== renderedRustAppRegistry) {
       throw new Error(`Platform Nimi App registry projection drift detected. Run pnpm generate:platform-catalog.`);
     }
+    if (currentKitPlatformProjection !== renderedKitPlatformProjection) {
+      throw new Error(`Kit platform projection drift detected. Run pnpm generate:platform-catalog.`);
+    }
     process.stdout.write('generate-platform-catalog --check passed\n');
     return;
   }
@@ -612,12 +736,15 @@ async function main() {
   await fs.mkdir(path.dirname(vNextAppOutputPath), { recursive: true });
   await fs.mkdir(path.dirname(rustOutputPath), { recursive: true });
   await fs.mkdir(path.dirname(rustAppRegistryOutputPath), { recursive: true });
+  await fs.mkdir(path.dirname(kitPlatformProjectionOutputPath), { recursive: true });
   await fs.writeFile(vNextAppOutputPath, renderedVNextApp, 'utf8');
   await fs.writeFile(rustOutputPath, renderedRust, 'utf8');
   await fs.writeFile(rustAppRegistryOutputPath, renderedRustAppRegistry, 'utf8');
+  await fs.writeFile(kitPlatformProjectionOutputPath, renderedKitPlatformProjection, 'utf8');
   process.stdout.write(`generated ${path.relative(repoRoot, vNextAppOutputPath)}\n`);
   process.stdout.write(`generated ${path.relative(repoRoot, rustOutputPath)}\n`);
   process.stdout.write(`generated ${path.relative(repoRoot, rustAppRegistryOutputPath)}\n`);
+  process.stdout.write(`generated ${path.relative(repoRoot, kitPlatformProjectionOutputPath)}\n`);
 }
 
 main().catch((error) => {

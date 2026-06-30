@@ -32,6 +32,22 @@ export interface NimiStandardShellCapability {
   operations: readonly NimiStandardShellOperation[];
 }
 
+export const NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID = 'installed-nimi-app-standard-shell-v1';
+
+export interface NimiStandardShellCapabilitySet {
+  readonly setId: string;
+  readonly hostClass: string;
+  readonly appPackageKind: string;
+  readonly launchResolution: string;
+  readonly authBinding: string;
+  readonly allowedOperations: readonly string[];
+  readonly forbiddenOperations: readonly string[];
+  readonly allowedCommands: readonly string[];
+  readonly forbiddenCommands: readonly string[];
+  readonly negativeTests: readonly string[];
+  readonly sourceRule: string;
+}
+
 export const NIMI_STANDARD_SHELL_CAPABILITIES = [
   {
     id: 'runtime',
@@ -145,3 +161,87 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
     ],
   },
 ] as const satisfies readonly NimiStandardShellCapability[];
+
+const INSTALLED_NIMI_APP_ALLOWED_OPERATIONS = [
+  'runtime.unary',
+  'runtime.streamOpen',
+  'runtime.streamClose',
+  'data.pathResolve',
+  'storage.readJson',
+  'storage.writeJson',
+  'config.get',
+  'config.set',
+  'ai-config.get',
+  'ai-config.set',
+  'local-assets.resolveUrl',
+  'shell-ui.confirmDialog',
+  'shell-ui.startWindowDrag',
+  'shell-ui.focusMainWindow',
+] as const;
+
+const INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS = [
+  'runtime-lifecycle.status',
+  'runtime-lifecycle.start',
+  'runtime-lifecycle.stop',
+  'runtime-lifecycle.restart',
+  'runtime-defaults.get',
+  'auth.sessionLoad',
+  'auth.sessionSave',
+  'auth.sessionClear',
+  'oauth.openExternalUrl',
+  'oauth.tokenExchange',
+  'oauth.listenForCode',
+  'diagnostics.rendererEntryProbe',
+  'local-agent.identity',
+  'local-agent.runtimeTrustedCaller',
+  'ai-profile.get',
+  'avatar.assetResolve',
+  'platform-projection.get',
+  'desktop-private.product-control',
+  'tauri-only.commands',
+  'electron.raw-ipc',
+  'node.raw-fs',
+] as const;
+
+export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
+  {
+    setId: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+    hostClass: 'desktop-electron-installed-app-host',
+    appPackageKind: 'nimi-app',
+    launchResolution: 'runtime-openapp-attested',
+    authBinding: 'host-owned-runtime-app-session',
+    allowedOperations: INSTALLED_NIMI_APP_ALLOWED_OPERATIONS,
+    forbiddenOperations: INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS,
+    allowedCommands: INSTALLED_NIMI_APP_ALLOWED_OPERATIONS.map(resolveStandardShellOperationCommand),
+    forbiddenCommands: INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS
+      .map(resolveOptionalStandardShellOperationCommand)
+      .filter((command): command is string => Boolean(command)),
+    negativeTests: [
+      'desktop-installed-app-denies-runtime-lifecycle',
+      'desktop-installed-app-denies-auth-session-custody',
+      'desktop-installed-app-denies-oauth-token-exchange',
+      'desktop-installed-app-denies-local-agent-trusted-caller',
+      'desktop-installed-app-denies-platform-projection',
+      'desktop-installed-app-denies-desktop-private-bridge',
+      'desktop-installed-app-denies-tauri-only-commands',
+    ],
+    sourceRule: 'P-KIT-044',
+  },
+] as const satisfies readonly NimiStandardShellCapabilitySet[];
+
+function resolveStandardShellOperationCommand(operationRef: string): string {
+  const command = resolveOptionalStandardShellOperationCommand(operationRef);
+  if (!command) {
+    throw new Error(`Unknown standard shell operation ref: ${operationRef}`);
+  }
+  return command;
+}
+
+function resolveOptionalStandardShellOperationCommand(operationRef: string): string | undefined {
+  const separator = operationRef.indexOf('.');
+  const capabilityId = operationRef.slice(0, separator);
+  const operationId = operationRef.slice(separator + 1);
+  const capability = NIMI_STANDARD_SHELL_CAPABILITIES.find((entry) => entry.id === capabilityId);
+  const operation = capability?.operations.find((entry) => entry.id === operationId);
+  return operation?.command;
+}

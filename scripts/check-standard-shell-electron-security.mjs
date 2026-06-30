@@ -37,6 +37,14 @@ assertContains(avatarMain, /contextIsolation:\s*true/u, 'apps/avatar/src-electro
 assertContains(avatarMain, /nodeIntegration:\s*false/u, 'apps/avatar/src-electron/main.ts must set nodeIntegration: false');
 assertContains(avatarMain, /sandbox:\s*true/u, 'apps/avatar/src-electron/main.ts must set sandbox: true');
 assertNotContains(avatarMain, /sandbox:\s*false/u, 'apps/avatar/src-electron/main.ts must not set sandbox: false');
+const electronHost = readRepo('kit/shell/electron/src/main/host.ts');
+assertContains(electronHost, /NIMI_STANDARD_SHELL_CAPABILITY_SETS/u, 'kit/shell/electron/src/main/host.ts must enforce standard shell capability sets');
+assertContains(electronHost, /createElectronCapabilityNotInHostSetError/u, 'kit/shell/electron/src/main/host.ts must fail closed for commands outside the host capability set');
+assertContains(electronHost, /assertElectronStandardShellCommandAllowed/u, 'kit/shell/electron/src/main/host.ts must check capability-set allowlists before dispatch');
+const electronHostTypes = readRepo('kit/shell/electron/src/main/types.ts');
+assertContains(electronHostTypes, /capabilitySetRef\?:\s*string/u, 'kit/shell/electron/src/main/types.ts must expose host capabilitySetRef');
+const desktopInstalledAppHost = readRepo('apps/desktop/src-electron/app-launch/installed-app-host-window.ts');
+assertContains(desktopInstalledAppHost, /capabilitySetRef:\s*input\.standardShell\.capabilitySetRef/u, 'Desktop installed app host must pass the Runtime-attested standard shell capability set into Kit Electron host');
 
 for (const file of collectSourceFiles(scanRoots)) {
   const relative = slash(path.relative(repoRoot, file));

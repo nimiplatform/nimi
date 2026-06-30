@@ -1,5 +1,9 @@
 import { createDefaultRuntimeGrpcBridgeClient } from './grpc-client.js';
-import { NIMI_STANDARD_SHELL_CAPABILITIES, NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
+import {
+  NIMI_STANDARD_SHELL_CAPABILITIES,
+  NIMI_STANDARD_SHELL_CAPABILITY_SETS,
+  NIMI_STANDARD_SHELL_COMMANDS,
+} from '@nimiplatform/kit/shell/capabilities';
 import { isElectronRuntimeAccountCustodyCommand } from './auth.js';
 import { resolveElectronAvatarAssetUrl } from './avatar.js';
 import { getElectronAiConfig, setElectronAiConfig } from './ai-config.js';
@@ -10,6 +14,8 @@ import { resolveElectronDiagnosticsRendererEntryProbe, resolveElectronRendererOr
 import {
   assertAllowedElectronRendererOrigin,
   assertAllowedElectronRendererUrl,
+  createElectronCapabilityNotInHostSetError,
+  createElectronCapabilitySetUnknownError,
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
   createElectronRuntimeAccountCustodyExternalError,
@@ -37,6 +43,8 @@ import {
   getElectronStandardShellCapabilityIds,
   invokeElectronRuntimeUnary,
   openElectronRuntimeStream,
+  parseElectronRuntimeStreamOpenRequest,
+  parseElectronRuntimeUnaryRequest,
   probeElectronRuntimeStatus,
   resolveElectronRuntimeDefaults,
 } from './runtime.js';
@@ -70,6 +78,11 @@ const STANDARD_SHELL_COMMAND_SET: ReadonlySet<string> = new Set(
   NIMI_STANDARD_SHELL_CAPABILITIES.flatMap((capability) => capability.operations.map((operation) => operation.command)),
 );
 
+type ResolvedElectronStandardShellCapabilitySet = {
+  readonly capabilitySetRef: string;
+  readonly allowedCommands: ReadonlySet<string>;
+};
+
 function isStandardShellCommand(command: string): boolean {
   return STANDARD_SHELL_COMMAND_SET.has(command);
 }
@@ -93,6 +106,7 @@ export function registerNimiElectronRuntimeBridge(
   const eventNamespace = normalizeText(input.eventNamespace) || 'nimi.shell.runtime';
   const invokeChannel = normalizeText(input.invokeChannel) || 'nimi:runtime:invoke';
   const eventChannelPrefix = normalizeText(input.eventChannelPrefix) || 'nimi:runtime:event:';
+  const capabilitySet = resolveElectronStandardShellCapabilitySet(input.standardShellHost?.capabilitySetRef);
   const createGrpcClient = input.createGrpcClient ?? createDefaultRuntimeGrpcBridgeClient;
   let clientPromise: Promise<RuntimeGrpcBridgeClient> | undefined;
   const ensureClient = () => {
@@ -113,10 +127,13 @@ export function registerNimiElectronRuntimeBridge(
     const envelope = asRecord(message, 'Electron Runtime bridge message must be an object');
     const command = normalizeRequiredToken(envelope.command, 'command');
     const payload = asRecord(envelope.payload ?? {}, 'Electron Runtime bridge command ' + command + ' payload must be an object');
+    assertElectronStandardShellCommandAllowed(command, capabilitySet);
     if (command === commandNames.unary) {
+      const runtimePayload = electronRuntimeCommandPayload(payload, command);
+      parseElectronRuntimeUnaryRequest(runtimePayload);
       return invokeElectronRuntimeUnary({
         client: await ensureClient(),
-        payload: electronRuntimeCommandPayload(payload, command),
+        payload: runtimePayload,
         appId,
         event,
         runtimeEndpoint,
@@ -125,9 +142,11 @@ export function registerNimiElectronRuntimeBridge(
       });
     }
     if (command === commandNames.stream_open) {
+      const runtimePayload = electronRuntimeCommandPayload(payload, command);
+      parseElectronRuntimeStreamOpenRequest(runtimePayload);
       return openElectronRuntimeStream({
         client: await ensureClient(),
-        payload: electronRuntimeCommandPayload(payload, command),
+        payload: runtimePayload,
         appId,
         runtimeEndpoint,
         command,
@@ -210,4 +229,31 @@ export function registerNimiElectronRuntimeBridge(
       void clientPromise?.then((client) => client.close()).catch(() => undefined);
     },
   };
+}
+
+function resolveElectronStandardShellCapabilitySet(
+  capabilitySetRef: string | undefined,
+): ResolvedElectronStandardShellCapabilitySet | undefined {
+  const normalized = normalizeText(capabilitySetRef);
+  if (!normalized) {
+    return undefined;
+  }
+  const capabilitySet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find((entry) => entry.setId === normalized);
+  if (!capabilitySet) {
+    throw createElectronCapabilitySetUnknownError(normalized);
+  }
+  return {
+    capabilitySetRef: normalized,
+    allowedCommands: new Set(capabilitySet.allowedCommands),
+  };
+}
+
+function assertElectronStandardShellCommandAllowed(
+  command: string,
+  capabilitySet: ResolvedElectronStandardShellCapabilitySet | undefined,
+): void {
+  if (!capabilitySet || capabilitySet.allowedCommands.has(command)) {
+    return;
+  }
+  throw createElectronCapabilityNotInHostSetError(command, capabilitySet.capabilitySetRef);
 }

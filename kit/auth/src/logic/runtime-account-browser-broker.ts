@@ -6,6 +6,9 @@ type RuntimeAccountCaller = {
   appInstanceId: string;
   deviceId: string;
   mode: number;
+  launchHostId: string;
+  launchNonce: string;
+  releaseDescriptorRef: string;
   scopes: string[];
 };
 

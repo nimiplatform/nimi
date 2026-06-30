@@ -28,6 +28,9 @@ fn runtime_account_caller(
         device_id,
         mode: mode as i32,
         scopes: Vec::new(),
+        launch_host_id: String::new(),
+        launch_nonce: String::new(),
+        release_descriptor_ref: String::new(),
     })
 }
 

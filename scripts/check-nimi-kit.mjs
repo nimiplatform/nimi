@@ -309,6 +309,54 @@ function assertStandardShellCapabilityCatalog() {
       expect(capabilitySource.includes(`'${command}'`), `kit/shell/capabilities/src/index.ts: missing standard command ${command}`);
     }
   }
+
+  const commandByOperationRef = new Map();
+  for (const capability of capabilities) {
+    const capabilityId = String(capability?.id || '').trim();
+    for (const operation of Array.isArray(capability?.operations) ? capability.operations : []) {
+      const operationId = String(operation?.id || '').trim();
+      const command = String(operation?.command || '').trim();
+      if (capabilityId && operationId && command) {
+        commandByOperationRef.set(`${capabilityId}.${operationId}`, command);
+      }
+    }
+  }
+  const capabilitySets = Array.isArray(standardShellCatalog?.capability_sets)
+    ? standardShellCatalog.capability_sets
+    : [];
+  const installedSet = capabilitySets.find((entry) => String(entry?.set_id || '').trim() === 'installed-nimi-app-standard-shell-v1');
+  expect(installedSet, 'standard-shell-capabilities.yaml: missing installed-nimi-app-standard-shell-v1 capability set');
+  expect(
+    String(installedSet?.source_rule || '').trim() === 'P-KIT-044',
+    'standard-shell-capabilities.yaml: installed-nimi-app-standard-shell-v1 must be owned by P-KIT-044',
+  );
+  expect(
+    capabilitySource.includes('NIMI_STANDARD_SHELL_CAPABILITY_SETS')
+      && capabilitySource.includes(`'installed-nimi-app-standard-shell-v1'`)
+      && capabilitySource.includes(`'P-KIT-044'`),
+    'kit/shell/capabilities/src/index.ts: missing installed app capability-set projection',
+  );
+  for (const field of ['allowed_operations', 'forbidden_operations', 'negative_tests']) {
+    expect(
+      Array.isArray(installedSet?.[field]) && installedSet[field].length > 0,
+      `standard-shell-capabilities.yaml: installed-nimi-app-standard-shell-v1 ${field} must not be empty`,
+    );
+  }
+  for (const operationRef of Array.isArray(installedSet?.allowed_operations) ? installedSet.allowed_operations : []) {
+    const normalizedRef = String(operationRef || '').trim();
+    const command = commandByOperationRef.get(normalizedRef);
+    expect(command, `standard-shell-capabilities.yaml: capability set allowed operation ${normalizedRef} must resolve to a standard command`);
+    expect(capabilitySource.includes(`'${normalizedRef}'`), `kit/shell/capabilities/src/index.ts: missing capability set operation ${normalizedRef}`);
+    expect(capabilitySource.includes(`'${command}'`), `kit/shell/capabilities/src/index.ts: missing capability set command ${command}`);
+  }
+  for (const operationRef of Array.isArray(installedSet?.forbidden_operations) ? installedSet.forbidden_operations : []) {
+    const normalizedRef = String(operationRef || '').trim();
+    const command = commandByOperationRef.get(normalizedRef);
+    expect(capabilitySource.includes(`'${normalizedRef}'`), `kit/shell/capabilities/src/index.ts: missing capability set operation ${normalizedRef}`);
+    if (command) {
+      expect(capabilitySource.includes(`'${command}'`), `kit/shell/capabilities/src/index.ts: missing capability set command ${command}`);
+    }
+  }
 }
 
 function readSourceTree(root, pattern) {

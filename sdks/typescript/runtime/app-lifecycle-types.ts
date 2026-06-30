@@ -225,6 +225,19 @@ export type NimiRuntimeAppOpenProjection = {
   readonly scope?: NimiRuntimeAppOpenScopeRef;
   readonly reasonCode?: string;
   readonly detail?: string;
+  readonly releaseDescriptorRef?: string;
+  readonly descriptorClass?: string;
+  readonly admissionTrack?: string;
+  readonly sourceKind?: string;
+  readonly ordinaryVisibility?: string;
+  readonly digestVerificationState?: string;
+  readonly runtimeEntryRef?: string;
+  readonly activeReleaseRoot?: string;
+  readonly storage?: NimiRuntimeAppInstallStorage;
+  readonly shellCapabilitySetRef?: string;
+  readonly callerMode?: string;
+  readonly launchNonce?: string;
+  readonly productReadinessClaimAllowed?: boolean;
 };
 
 export type NimiRuntimeAppInstallInput = {

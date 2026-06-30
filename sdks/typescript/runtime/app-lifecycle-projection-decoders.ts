@@ -235,6 +235,17 @@ export function decodeNimiRuntimeAppOpenProjection(
   }
   const activeVersion = normalizeNimiRuntimeAppLifecycleText(projection.activeVersion);
   const detail = normalizeNimiRuntimeAppLifecycleText(projection.detail);
+  const releaseDescriptorRef = normalizeNimiRuntimeAppLifecycleText(projection.releaseDescriptorRef);
+  const descriptorClass = normalizeNimiRuntimeAppLifecycleText(projection.descriptorClass);
+  const admissionTrack = normalizeNimiRuntimeAppLifecycleText(projection.admissionTrack);
+  const sourceKind = normalizeNimiRuntimeAppLifecycleText(projection.sourceKind);
+  const ordinaryVisibility = normalizeNimiRuntimeAppLifecycleText(projection.ordinaryVisibility);
+  const digestVerificationState = normalizeNimiRuntimeAppLifecycleText(projection.digestVerificationState);
+  const runtimeEntryRef = normalizeNimiRuntimeAppLifecycleText(projection.runtimeEntryRef);
+  const activeReleaseRoot = normalizeNimiRuntimeAppLifecycleText(projection.activeReleaseRoot);
+  const shellCapabilitySetRef = normalizeNimiRuntimeAppLifecycleText(projection.shellCapabilitySetRef);
+  const callerMode = normalizeNimiRuntimeAppLifecycleText(projection.callerMode);
+  const launchNonce = normalizeNimiRuntimeAppLifecycleText(projection.launchNonce);
   return {
     appId,
     state,
@@ -244,6 +255,19 @@ export function decodeNimiRuntimeAppOpenProjection(
     ...(scope ? { scope } : {}),
     ...(reasonCode ? { reasonCode } : {}),
     ...(detail ? { detail } : {}),
+    ...(releaseDescriptorRef ? { releaseDescriptorRef } : {}),
+    ...(descriptorClass ? { descriptorClass } : {}),
+    ...(admissionTrack ? { admissionTrack } : {}),
+    ...(sourceKind ? { sourceKind } : {}),
+    ...(ordinaryVisibility ? { ordinaryVisibility } : {}),
+    ...(digestVerificationState ? { digestVerificationState } : {}),
+    ...(runtimeEntryRef ? { runtimeEntryRef } : {}),
+    ...(activeReleaseRoot ? { activeReleaseRoot } : {}),
+    ...(projection.storage ? { storage: decodeNimiRuntimeAppInstallStorage(projection.storage) } : {}),
+    ...(shellCapabilitySetRef ? { shellCapabilitySetRef } : {}),
+    ...(callerMode ? { callerMode } : {}),
+    ...(launchNonce ? { launchNonce } : {}),
+    ...(releaseDescriptorRef ? { productReadinessClaimAllowed: Boolean(projection.productReadinessClaimAllowed) } : {}),
   };
 }
 

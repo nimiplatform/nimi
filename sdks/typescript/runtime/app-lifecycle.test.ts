@@ -657,6 +657,40 @@ test('Nimi Runtime app lifecycle projection decoders normalize storage readiness
     assert.equal(projection.state, 'blocked');
     assert.equal(projection.launched, false);
   }
+
+  const sandboxLaunch = decodeNimiRuntimeAppOpenProjection({
+    appId: 'community.nimi.fixture.platform-proof',
+    state: AppOpenState.LAUNCHED,
+    reachedStep: AppOpenFlowStep.LAUNCH,
+    launched: true,
+    activeVersion: '0.1.0-sandbox',
+    scope: { kind: 'app', ownerId: 'community.nimi.fixture.platform-proof', surfaceId: '' },
+    reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+    detail: '',
+    releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
+    descriptorClass: 'external-immutable-artifact',
+    admissionTrack: 'admission-sandbox-ci',
+    sourceKind: 'admission-sandbox-https-artifact',
+    ordinaryVisibility: 'developer-only',
+    digestVerificationState: 'digest-verified',
+    runtimeEntryRef: 'dist/index.html',
+    activeReleaseRoot: '/nimi/apps/community.nimi.fixture.platform-proof/releases/0.1.0-sandbox',
+    storage: {
+      appRoot: '/nimi/apps/community.nimi.fixture.platform-proof',
+      releaseRoot: '/nimi/apps/community.nimi.fixture.platform-proof/releases/0.1.0-sandbox',
+      durableDataRoot: '/nimi/apps/community.nimi.fixture.platform-proof/data',
+      cacheRoot: '/nimi/apps/community.nimi.fixture.platform-proof/cache',
+      tempRoot: '/nimi/apps/community.nimi.fixture.platform-proof/tmp',
+    },
+    shellCapabilitySetRef: 'installed-nimi-app-standard-shell-v1',
+    callerMode: 'desktop-launched-nimi-app',
+    launchNonce: 'nonce-1',
+    productReadinessClaimAllowed: false,
+  });
+  assert.equal(sandboxLaunch.releaseDescriptorRef, 'community.nimi.fixture.platform-proof.0.1.0-sandbox');
+  assert.equal(sandboxLaunch.admissionTrack, 'admission-sandbox-ci');
+  assert.equal(sandboxLaunch.productReadinessClaimAllowed, false);
+  assert.equal(sandboxLaunch.storage?.releaseRoot, sandboxLaunch.activeReleaseRoot);
 });
 
 test('Nimi Runtime app lifecycle decoders fail closed on malformed Runtime projections', () => {

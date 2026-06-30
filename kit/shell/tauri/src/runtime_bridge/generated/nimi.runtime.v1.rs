@@ -1394,6 +1394,12 @@ pub struct AccountCaller {
     pub mode: i32,
     #[prost(string, repeated, tag = "5")]
     pub scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "6")]
+    pub launch_host_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub launch_nonce: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub release_descriptor_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ScopedAppBindingRelation {
@@ -2116,6 +2122,7 @@ pub enum AccountCallerMode {
     WebCloud = 5,
     ExternalPrincipal = 6,
     LocalDeveloperApp = 7,
+    DesktopLaunchedNimiApp = 8,
 }
 impl AccountCallerMode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2131,6 +2138,9 @@ impl AccountCallerMode {
             Self::WebCloud => "ACCOUNT_CALLER_MODE_WEB_CLOUD",
             Self::ExternalPrincipal => "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL",
             Self::LocalDeveloperApp => "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP",
+            Self::DesktopLaunchedNimiApp => {
+                "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2145,6 +2155,9 @@ impl AccountCallerMode {
             "ACCOUNT_CALLER_MODE_WEB_CLOUD" => Some(Self::WebCloud),
             "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL" => Some(Self::ExternalPrincipal),
             "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP" => Some(Self::LocalDeveloperApp),
+            "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP" => {
+                Some(Self::DesktopLaunchedNimiApp)
+            }
             _ => None,
         }
     }
@@ -13730,7 +13743,7 @@ pub struct AppOpenScopeRef {
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenAppRequest {
     /// app_id resolves an admitted Nimi App registry row
-    /// (admission_status=admitted, ordinary_visibility=ordinary-visible).
+    /// (admission_status=admitted) and a track-discriminated launch path.
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
     /// scope is the explicit canonical app-launch AIConfig scope. It is
@@ -13773,6 +13786,41 @@ pub struct AppOpenProjection {
     pub reason_code: i32,
     #[prost(string, tag = "8")]
     pub detail: ::prost::alloc::string::String,
+    /// release_descriptor_ref is Runtime-attested descriptor identity used for
+    /// the installed launch. It is empty for local adoption launches, which do
+    /// not satisfy P-NAPP-034 installed third-party launch proof.
+    #[prost(string, tag = "9")]
+    pub release_descriptor_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub descriptor_class: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub admission_track: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub ordinary_visibility: ::prost::alloc::string::String,
+    #[prost(string, tag = "14")]
+    pub digest_verification_state: ::prost::alloc::string::String,
+    #[prost(string, tag = "15")]
+    pub runtime_entry_ref: ::prost::alloc::string::String,
+    /// active_release_root is the verified installed release root Desktop can
+    /// host without recomputing descriptor paths. Future opaque launch URI
+    /// support must use a new field, not overload this path.
+    #[prost(string, tag = "16")]
+    pub active_release_root: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "17")]
+    pub storage: ::core::option::Option<AppInstallStorageProjection>,
+    #[prost(string, tag = "18")]
+    pub shell_capability_set_ref: ::prost::alloc::string::String,
+    /// caller_mode is the installed-app posture string. The AccountCallerMode enum
+    /// authority lands in Task 6; this field carries the OpenApp launch-resolution
+    /// string without reusing external-principal posture.
+    #[prost(string, tag = "19")]
+    pub caller_mode: ::prost::alloc::string::String,
+    #[prost(string, tag = "20")]
+    pub launch_nonce: ::prost::alloc::string::String,
+    #[prost(bool, tag = "21")]
+    pub product_readiness_claim_allowed: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenAppResponse {

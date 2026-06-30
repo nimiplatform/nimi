@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   createNimiDeveloperRegisteredRuntimeAccountCaller,
+  createNimiDesktopLaunchedNimiAppRuntimeAccountCaller,
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
 } from './index';
@@ -69,6 +70,44 @@ test('Runtime account caller projection supports desktop shell caller identity',
       mode: AccountCallerMode.DESKTOP_SHELL,
       scopes: [],
     },
+  );
+});
+
+test('Runtime account caller projection supports Desktop-launched installed Nimi App posture', () => {
+  assert.deepEqual(
+    createNimiDesktopLaunchedNimiAppRuntimeAccountCaller({
+      appId: 'community.nimi.fixture.platform-proof',
+      appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
+      deviceId: 'desktop-installed-app-host-device',
+      launchHostId: 'desktop-electron-installed-app-host',
+      launchNonce: 'launch-nonce-1',
+      releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
+      scopes: [' runtime.account ', '', 'runtime.account'],
+    }),
+    {
+      appId: 'community.nimi.fixture.platform-proof',
+      appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
+      deviceId: 'desktop-installed-app-host-device',
+      mode: AccountCallerMode.DESKTOP_LAUNCHED_NIMI_APP,
+      launchHostId: 'desktop-electron-installed-app-host',
+      launchNonce: 'launch-nonce-1',
+      releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
+      scopes: ['runtime.account'],
+    },
+  );
+});
+
+test('Runtime account caller projection rejects installed Nimi App posture without launch binding evidence', () => {
+  assert.throws(
+    () => createNimiDesktopLaunchedNimiAppRuntimeAccountCaller({
+      appId: 'community.nimi.fixture.platform-proof',
+      appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
+      deviceId: 'desktop-installed-app-host-device',
+      launchHostId: 'desktop-electron-installed-app-host',
+      launchNonce: '',
+      releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
   );
 });
 

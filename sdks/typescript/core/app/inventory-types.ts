@@ -100,6 +100,7 @@ export interface NimiAppRow {
   readonly appKind: AppKind;
   readonly displayName: string;
   readonly trustTier: TrustTierId;
+  readonly ordinaryVisibility?: NimiAppOrdinaryVisibility;
   readonly publisher: string;
   readonly aiProfileSelectionRef: string;
   readonly capabilitySet: readonly string[];
@@ -199,7 +200,8 @@ export type NimiAppReleaseSourceKind =
   | 'nimi-bundle'
   | 'github-release'
   | 'github-commit'
-  | 'npm-package';
+  | 'npm-package'
+  | 'admission-sandbox-https-artifact';
 
 export interface NimiAppReleaseDescriptorRow {
   readonly descriptorId: string;
@@ -383,6 +385,13 @@ function validateNimiAppRow(row: NimiAppRow | null | undefined): void {
   }
   if (!isCanonicalTrustTier(row.trustTier)) {
     appError('SDK_APP_RESPONSE_INVALID', `Nimi app trust tier "${String(row.trustTier)}" is not canonical`, 'fix_app_registry_row');
+  }
+  if (row.ordinaryVisibility !== undefined && !CANONICAL_ORDINARY_VISIBILITY.includes(row.ordinaryVisibility)) {
+    appError(
+      'SDK_APP_RESPONSE_INVALID',
+      `Nimi app ordinaryVisibility "${String(row.ordinaryVisibility)}" is not canonical`,
+      'fix_app_registry_row',
+    );
   }
   for (const [field, value] of [
     ['publisher', row.publisher],

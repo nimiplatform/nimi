@@ -11,6 +11,7 @@ import {
 } from '../core-generated/runtime-typed-client';
 import { ReasonCode as SdkReasonCode } from '../types';
 import {
+  createNimiRuntimeInstalledAppSessionMetadataProvider,
   createNimiRuntimeAppSessionMetadataProvider,
   createNimiRuntimeFullAppRegistration,
 } from './app-session';
@@ -137,5 +138,81 @@ test('Runtime app session metadata provider fails closed without session token',
   await assert.rejects(
     missingToken(),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.RUNTIME_CALL_FAILED,
+  );
+});
+
+test('Runtime installed app session metadata provider registers without developer registration', async () => {
+  const registrations: RegisterAppRequest[] = [];
+  const sessions: OpenSessionRequest[] = [];
+  const provider = createNimiRuntimeInstalledAppSessionMetadataProvider({
+    binding: {
+      appId: 'community.nimi.fixture.platform-proof',
+      appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
+      deviceId: 'desktop-installed-app-host-device',
+      launchHostId: 'desktop-electron-installed-app-host',
+      launchNonce: 'launch-nonce-1',
+      releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
+    },
+    capabilities: ['runtime.account.status', 'runtime.account.status', ' '],
+    auth: {
+      async registerApp(request: RegisterAppRequest) {
+        registrations.push(request);
+        return {
+          appInstanceId: request.appInstanceId,
+          accepted: true,
+          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        };
+      },
+      async openSession(request: OpenSessionRequest) {
+        sessions.push(request);
+        return {
+          sessionId: 'installed-session-1',
+          sessionToken: 'installed-token-1',
+          issuedAt: { seconds: String(Math.floor(Date.now() / 1000)), nanos: 0 },
+          expiresAt: { seconds: String(Math.floor(Date.now() / 1000) + 3600), nanos: 0 },
+          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        };
+      },
+    },
+  });
+
+  assert.deepEqual(await provider(), {
+    'x-nimi-session-id': 'installed-session-1',
+    'x-nimi-session-token': 'installed-token-1',
+  });
+  assert.equal(registrations.length, 1);
+  assert.equal(registrations[0]?.appId, 'community.nimi.fixture.platform-proof');
+  assert.equal(registrations[0]?.appInstanceId, 'community.nimi.fixture.platform-proof.desktop-host');
+  assert.equal(registrations[0]?.deviceId, 'desktop-installed-app-host-device');
+  assert.equal(registrations[0]?.developerRegistration, false);
+  assert.deepEqual(registrations[0]?.capabilities, ['runtime.account.status']);
+  assert.deepEqual(sessions.map((request) => request.subjectUserId), ['']);
+});
+
+test('Runtime installed app session metadata provider rejects developer registration', async () => {
+  await assert.rejects(
+    async () => {
+      const provider = createNimiRuntimeInstalledAppSessionMetadataProvider({
+        binding: {
+          appId: 'community.nimi.fixture.platform-proof',
+          appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
+          deviceId: 'desktop-installed-app-host-device',
+          launchHostId: 'desktop-electron-installed-app-host',
+          launchNonce: 'launch-nonce-1',
+          releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
+        },
+        developerRegistration: true,
+        auth: {
+          async registerApp() {
+            throw new Error('installed app must not register through developer mode');
+          },
+          async openSession() {
+            throw new Error('installed app session must not open after rejected developer registration');
+          },
+        },
+      } as never);
+      await provider();
+    },
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_SESSION_DEVELOPER_REGISTRATION_FORBIDDEN',
   );
 });

@@ -106,16 +106,16 @@ pub fn build_apps_bridge_projection(
             version: descriptor.version.to_string(),
             descriptor_class: descriptor.descriptor_class.to_string(),
             source_kind: descriptor.source_kind.to_string(),
-            source_ref: "current-atomic-nimi-release".to_string(),
-            artifact_locator: "current-nimi-release-bundle".to_string(),
+            source_ref: descriptor.source_ref.to_string(),
+            artifact_locator: descriptor.artifact_locator.to_string(),
             digest_algorithm: descriptor.digest_algorithm.to_string(),
             sha256: descriptor.sha256.to_string(),
-            size: "inherited-from-atomic-nimi-release-manifest".to_string(),
-            provenance_ref: "nimi-first-party-signature-policy".to_string(),
+            size: descriptor.size.to_string(),
+            provenance_ref: descriptor.provenance_ref.to_string(),
             package_kind: descriptor.package_kind.to_string(),
-            entry_ref: format!("{}-runtime-registration", descriptor.app_id),
-            sandbox_ref: "first-party-bundled-app".to_string(),
-            permissions_ref: format!("{}.permission_scope_ref", descriptor.app_id),
+            entry_ref: descriptor.entry_ref.to_string(),
+            sandbox_ref: descriptor.sandbox_ref.to_string(),
+            permissions_ref: descriptor.permissions_ref.to_string(),
             storage_policy_ref: descriptor.storage_policy_ref.to_string(),
             admission_path: descriptor.admission_path.to_string(),
             mutable_source_allowed: descriptor.mutable_source_allowed,
@@ -153,6 +153,43 @@ mod tests {
         assert_eq!(
             projection.release_descriptors.len(),
             PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS.len()
+        );
+    }
+
+    #[test]
+    fn bridge_projection_preserves_external_release_descriptor_fields() {
+        let projection = build_apps_bridge_projection(
+            "~/.nimi/apps/registry.json".to_string(),
+            "~/.nimi/apps/packages.json".to_string(),
+        )
+        .expect("projection");
+        let descriptor = projection
+            .release_descriptors
+            .iter()
+            .find(|row| {
+                row.descriptor_id == "community.nimi.fixture.platform-proof.0.1.0-sandbox"
+            })
+            .expect("sandbox fixture descriptor");
+
+        assert_eq!(descriptor.source_kind, "admission-sandbox-https-artifact");
+        assert_eq!(
+            descriptor.source_ref,
+            "https://fixtures.nimi.test/releases/platform-proof/0.1.0-sandbox/nimi-app-platform-fixture-0.1.0-sandbox.tar"
+        );
+        assert_eq!(descriptor.artifact_locator, descriptor.source_ref);
+        assert_eq!(descriptor.size, "1503232");
+        assert_eq!(
+            descriptor.provenance_ref,
+            "ci-provenance/platform-proof/0.1.0-sandbox/sha256-2e8527a892b227a0d0ea5038f6f375b13c6ba2649ba4c06d96ae539ec9105863"
+        );
+        assert_eq!(descriptor.entry_ref, "dist/index.html");
+        assert_eq!(
+            descriptor.sandbox_ref,
+            "installed-nimi-app-standard-shell-v1"
+        );
+        assert_eq!(
+            descriptor.permissions_ref,
+            "community.nimi.fixture.platform-proof.permission_scope_ref"
         );
     }
 }

@@ -52,6 +52,12 @@ export {
   startWindowDrag,
   focusMainWindow,
 } from './ui.js';
+export {
+  createInstalledNimiAppStandardShellSurface,
+} from './installed-app.js';
+export type {
+  InstalledNimiAppStandardShellSurface,
+} from './installed-app.js';
 export type {
   JsonPrimitive,
   JsonValue,
