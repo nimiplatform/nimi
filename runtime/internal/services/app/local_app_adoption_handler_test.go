@@ -202,6 +202,12 @@ func TestAdoptLocalAppUpdatesAccountInventoryAndOpenUsesLocalMaterialization(t *
 	if openResp.GetProjection().GetState() != runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCHED {
 		t.Fatalf("OpenApp state = %v detail=%q, want LAUNCHED", openResp.GetProjection().GetState(), openResp.GetProjection().GetDetail())
 	}
+	if openResp.GetProjection().GetReleaseDescriptorRef() != "" ||
+		openResp.GetProjection().GetCallerMode() != "" ||
+		openResp.GetProjection().GetLaunchNonce() != "" ||
+		openResp.GetProjection().GetProductReadinessClaimAllowed() {
+		t.Fatalf("local adoption must not emit installed-app launch proof: %+v", openResp.GetProjection())
+	}
 }
 
 func TestRemoveLocalAppAdoptionUpdatesAccountInventory(t *testing.T) {

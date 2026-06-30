@@ -572,7 +572,7 @@ enum AppOpenState {
 
 message OpenAppRequest {
   // app_id resolves an admitted Nimi App registry row
-  // (admission_status=admitted, ordinary_visibility=ordinary-visible).
+  // (admission_status=admitted) and a track-discriminated launch path.
   string app_id = 1;
   // scope is the explicit canonical app-launch AIConfig scope. It is
   // mandatory: OpenApp never infers launch scope (K-APP-017 / S-APP-003).
@@ -605,6 +605,28 @@ message AppOpenProjection {
   // value.
   ReasonCode reason_code = 7;
   string detail = 8;
+  // release_descriptor_ref is Runtime-attested descriptor identity used for
+  // the installed launch. It is empty for local adoption launches, which do
+  // not satisfy P-NAPP-034 installed third-party launch proof.
+  string release_descriptor_ref = 9;
+  string descriptor_class = 10;
+  string admission_track = 11;
+  string source_kind = 12;
+  string ordinary_visibility = 13;
+  string digest_verification_state = 14;
+  string runtime_entry_ref = 15;
+  // active_release_root is the verified installed release root Desktop can
+  // host without recomputing descriptor paths. Future opaque launch URI
+  // support must use a new field, not overload this path.
+  string active_release_root = 16;
+  AppInstallStorageProjection storage = 17;
+  string shell_capability_set_ref = 18;
+  // caller_mode is the installed-app posture string. The AccountCallerMode enum
+  // authority lands in Task 6; this field carries the OpenApp launch-resolution
+  // string without reusing external-principal posture.
+  string caller_mode = 19;
+  string launch_nonce = 20;
+  bool product_readiness_claim_allowed = 21;
 }
 
 message OpenAppResponse {

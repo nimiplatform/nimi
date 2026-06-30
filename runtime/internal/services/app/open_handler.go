@@ -2,11 +2,14 @@ package app
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"os"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
@@ -17,6 +20,8 @@ import (
 // appOpenScopeKind is the only AIScopeRef kind admitted by the Open flow
 // (K-APP-017 / P-AISC-007). The launch AIConfig scope is always app-shaped.
 const appOpenScopeKind = "app"
+const installedAppShellCapabilitySetRef = "installed-nimi-app-standard-shell-v1"
+const desktopLaunchedNimiAppCallerMode = "desktop-launched-nimi-app"
 
 // openBlocked is the internal carrier for a fail-closed Open-flow branch. It
 // names the exact step that blocked and the distinct typed reason; the Open
@@ -27,10 +32,71 @@ type openBlocked struct {
 	detail string
 }
 
+type openLaunchPolicy struct {
+	productReadinessClaimAllowed bool
+}
+
+type openPackageResolution struct {
+	ActiveVersion string
+	Plan          appstorage.Plan
+	Evidence      appstorage.InstallEvidence
+}
+
 func (e openBlocked) Error() string { return e.detail }
 
 func blocked(step runtimev1.AppOpenFlowStep, reason runtimev1.ReasonCode, detail string) openBlocked {
 	return openBlocked{step: step, reason: reason, detail: detail}
+}
+
+func resolveOpenLaunchPolicy(app appregistrycatalog.App, descriptor appreleasecatalog.Descriptor) (openLaunchPolicy, *openBlocked) {
+	switch descriptor.AdmissionTrack {
+	case appreleasecatalog.AdmissionTrackSandboxCI:
+		if app.OrdinaryVisibility != appregistrycatalog.OrdinaryVisibilityDeveloperOnly {
+			e := blocked(
+				runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY,
+				runtimev1.ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND,
+				"admission-sandbox-ci launch requires developer-only ordinary visibility",
+			)
+			return openLaunchPolicy{}, &e
+		}
+		if descriptor.Source.Kind != appreleasecatalog.SourceKindAdmissionSandboxHTTPSArtifact {
+			e := blocked(
+				runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY,
+				runtimev1.ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND,
+				"admission-sandbox-ci launch requires admission-sandbox-https-artifact source",
+			)
+			return openLaunchPolicy{}, &e
+		}
+		return openLaunchPolicy{productReadinessClaimAllowed: false}, nil
+	case appreleasecatalog.AdmissionTrackOrdinaryReleaseProof:
+		if app.OrdinaryVisibility != appregistrycatalog.OrdinaryVisibilityOrdinaryVisible {
+			e := blocked(
+				runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY,
+				runtimev1.ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND,
+				"ordinary-release-proof launch requires ordinary-visible registry visibility",
+			)
+			return openLaunchPolicy{}, &e
+		}
+		return openLaunchPolicy{productReadinessClaimAllowed: true}, nil
+	case "":
+		if descriptor.DescriptorClass == appreleasecatalog.DescriptorClassBundledWithNimi &&
+			app.OrdinaryVisibility == appregistrycatalog.OrdinaryVisibilityOrdinaryVisible {
+			return openLaunchPolicy{productReadinessClaimAllowed: true}, nil
+		}
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY,
+			runtimev1.ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND,
+			"app registry row is not ordinary-visible",
+		)
+		return openLaunchPolicy{}, &e
+	default:
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY,
+			runtimev1.ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND,
+			"app release descriptor admission_track is not launchable",
+		)
+		return openLaunchPolicy{}, &e
+	}
 }
 
 // OpenApp is the sole Runtime RPC entry for launching a Nimi App (K-APP-017).
@@ -78,14 +144,9 @@ func (s *Service) OpenApp(ctx context.Context, req *runtimev1.OpenAppRequest) (*
 		}
 		return nil, installResolveError(resolveErr)
 	}
-	// resolveDescriptor already enforces admission_status=admitted; the Open
-	// flow additionally requires the row to be ordinary-visible (K-APP-017).
-	if app.OrdinaryVisibility != appregistrycatalog.OrdinaryVisibilityOrdinaryVisible {
-		return openBlockedResponse(appID, scope, blocked(
-			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_RESOLVE_REGISTRY,
-			runtimev1.ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND,
-			"app registry row is not ordinary-visible",
-		)), nil
+	launchPolicy, launchPolicyErr := resolveOpenLaunchPolicy(app, descriptor)
+	if launchPolicyErr != nil {
+		return openBlockedResponse(appID, scope, *launchPolicyErr), nil
 	}
 
 	plan, planErr := s.installRuntime.plan(descriptor)
@@ -98,7 +159,7 @@ func (s *Service) OpenApp(ctx context.Context, req *runtimev1.OpenAppRequest) (*
 	}
 
 	// Step 2 — verify the materialized release package + install evidence.
-	activeVersion, packageErr := verifyOpenPackage(s.installRuntime, plan, descriptor)
+	packageResolution, packageErr := verifyOpenPackage(s.installRuntime, plan, descriptor)
 	if packageErr != nil {
 		return openBlockedResponse(appID, scope, *packageErr), nil
 	}
@@ -141,22 +202,92 @@ func (s *Service) OpenApp(ctx context.Context, req *runtimev1.OpenAppRequest) (*
 	if s.logger != nil {
 		s.logger.Info("app open flow launched",
 			"app_id", appID,
-			"active_version", activeVersion,
+			"active_version", packageResolution.ActiveVersion,
 			"scope_owner", scope.GetOwnerId(),
 			"scope_surface", scope.GetSurfaceId(),
 		)
 	}
+	nonce, nonceErr := newLaunchNonce()
+	if nonceErr != nil {
+		return openBlockedResponse(appID, scope, blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+			runtimev1.ReasonCode_APP_INSTALL_INTERNAL,
+			nonceErr.Error(),
+		)), nil
+	}
+	if admissionErr := s.recordDesktopLaunchedNimiAppAdmission(app, descriptor, packageResolution.Plan, nonce); admissionErr != nil {
+		return openBlockedResponse(appID, scope, *admissionErr), nil
+	}
 	return &runtimev1.OpenAppResponse{
 		Projection: &runtimev1.AppOpenProjection{
-			AppId:         appID,
-			State:         runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCHED,
-			ReachedStep:   runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
-			Launched:      true,
-			ActiveVersion: activeVersion,
-			Scope:         scope,
-			ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+			AppId:                        appID,
+			State:                        runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCHED,
+			ReachedStep:                  runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+			Launched:                     true,
+			ActiveVersion:                packageResolution.ActiveVersion,
+			Scope:                        scope,
+			ReasonCode:                   runtimev1.ReasonCode_ACTION_EXECUTED,
+			ReleaseDescriptorRef:         descriptor.DescriptorID,
+			DescriptorClass:              string(descriptor.DescriptorClass),
+			AdmissionTrack:               string(descriptor.AdmissionTrack),
+			SourceKind:                   string(descriptor.Source.Kind),
+			OrdinaryVisibility:           string(app.OrdinaryVisibility),
+			DigestVerificationState:      packageResolution.Evidence.VerificationState,
+			RuntimeEntryRef:              descriptor.Runtime.EntryRef,
+			ActiveReleaseRoot:            packageResolution.Plan.ReleaseRoot,
+			Storage:                      storageProjectionFromPlan(packageResolution.Plan),
+			ShellCapabilitySetRef:        installedAppShellCapabilitySetRef,
+			CallerMode:                   desktopLaunchedNimiAppCallerMode,
+			LaunchNonce:                  nonce,
+			ProductReadinessClaimAllowed: launchPolicy.productReadinessClaimAllowed,
 		},
 	}, nil
+}
+
+func (s *Service) recordDesktopLaunchedNimiAppAdmission(
+	app appregistrycatalog.App,
+	descriptor appreleasecatalog.Descriptor,
+	plan appstorage.Plan,
+	launchNonce string,
+) *openBlocked {
+	if s.runtimeAppRegistry == nil {
+		return &openBlocked{
+			step:   runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+			reason: runtimev1.ReasonCode_APP_INSTALL_INTERNAL,
+			detail: "Runtime app registry is not configured for Desktop-launched Nimi App admission",
+		}
+	}
+	appID := strings.TrimSpace(app.AppID)
+	admission := appregistry.DesktopLaunchedNimiAppAdmission{
+		PlatformRegistryAdmitted: app.AdmissionStatus == appregistrycatalog.AdmissionStatusAdmitted,
+		ReleaseDescriptorRef:     descriptor.DescriptorID,
+		ActiveReleaseRoot:        plan.ReleaseRoot,
+		LaunchHostID:             appregistry.DesktopInstalledAppLaunchHostID,
+		LaunchNonce:              launchNonce,
+		AccountInventoryEntitled: true,
+		LocalMaterialized:        true,
+	}
+	err := s.runtimeAppRegistry.UpsertDesktopLaunchedNimiAppInstance(
+		appID,
+		appregistry.DesktopInstalledAppInstanceID(appID),
+		appregistry.DesktopInstalledAppDeviceID,
+		&runtimev1.AppModeManifest{
+			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+			RuntimeRequired: true,
+			RealmRequired:   true,
+			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+		},
+		nil,
+		admission,
+	)
+	if err != nil {
+		return &openBlocked{
+			step:   runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+			reason: runtimev1.ReasonCode_APP_INSTALL_INTERNAL,
+			detail: err.Error(),
+		}
+	}
+	return nil
 }
 
 func (s *Service) openLocalAdoptedApp(
@@ -322,6 +453,14 @@ func verifyOpenLocalManifest(adoption localAppAdoptionRecord) *openBlocked {
 	return nil
 }
 
+func newLaunchNonce() (string, error) {
+	var bytes [16]byte
+	if _, err := rand.Read(bytes[:]); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes[:]), nil
+}
+
 // validateOpenScope validates the explicit app-launch AIConfig scope against
 // the P-AISC-007 app shape: kind must be the literal `app`, owner_id must be
 // the app being opened, and surface_id (when present) must be a clean token.
@@ -392,7 +531,7 @@ func classifyResolveForOpen(err error) *openBlocked {
 // install evidence for an installed app. An app with no active release is not
 // installed; a release with missing or non-digest-verified evidence is not a
 // launchable package.
-func verifyOpenPackage(runtime *installRuntime, plan appstorage.Plan, descriptor appreleasecatalog.Descriptor) (string, *openBlocked) {
+func verifyOpenPackage(runtime *installRuntime, plan appstorage.Plan, descriptor appreleasecatalog.Descriptor) (openPackageResolution, *openBlocked) {
 	active, activeErr := runtime.activeRelease(plan)
 	if activeErr != nil {
 		e := blocked(
@@ -400,7 +539,7 @@ func verifyOpenPackage(runtime *installRuntime, plan appstorage.Plan, descriptor
 			runtimev1.ReasonCode_APP_OPEN_PACKAGE_NOT_VERIFIED,
 			"app has no active release; it is not installed",
 		)
-		return "", &e
+		return openPackageResolution{}, &e
 	}
 	activeVersion := strings.TrimSpace(active.ActiveVersion)
 	if activeVersion == "" {
@@ -409,7 +548,7 @@ func verifyOpenPackage(runtime *installRuntime, plan appstorage.Plan, descriptor
 			runtimev1.ReasonCode_APP_OPEN_PACKAGE_NOT_VERIFIED,
 			"app active release pointer has no version",
 		)
-		return "", &e
+		return openPackageResolution{}, &e
 	}
 	// The install evidence is read against the active release's storage plan.
 	activePlan := plan
@@ -424,7 +563,7 @@ func verifyOpenPackage(runtime *installRuntime, plan appstorage.Plan, descriptor
 			runtimev1.ReasonCode_APP_OPEN_PACKAGE_NOT_VERIFIED,
 			"app install evidence is missing for the active release",
 		)
-		return "", &e
+		return openPackageResolution{}, &e
 	}
 	// A launchable package carries a verified install state: an external
 	// artifact is `digest-verified`, a bundled-with-nimi artifact is
@@ -436,7 +575,7 @@ func verifyOpenPackage(runtime *installRuntime, plan appstorage.Plan, descriptor
 			runtimev1.ReasonCode_APP_OPEN_PACKAGE_NOT_VERIFIED,
 			"app install evidence is not in a verified state",
 		)
-		return "", &e
+		return openPackageResolution{}, &e
 	}
 	if strings.TrimSpace(evidence.InstalledVersion) != activeVersion {
 		e := blocked(
@@ -444,9 +583,28 @@ func verifyOpenPackage(runtime *installRuntime, plan appstorage.Plan, descriptor
 			runtimev1.ReasonCode_APP_OPEN_PACKAGE_NOT_VERIFIED,
 			"app install evidence version does not match the active release",
 		)
-		return "", &e
+		return openPackageResolution{}, &e
 	}
-	return activeVersion, nil
+	if strings.TrimSpace(evidence.AppID) != descriptor.AppID ||
+		strings.TrimSpace(evidence.ReleaseDescriptorRef) != descriptor.DescriptorID ||
+		strings.TrimSpace(evidence.StoragePolicyRef) != descriptor.StoragePolicyRef {
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_PACKAGE,
+			runtimev1.ReasonCode_APP_OPEN_PACKAGE_NOT_VERIFIED,
+			"app install evidence does not match the release descriptor",
+		)
+		return openPackageResolution{}, &e
+	}
+	if strings.TrimSpace(evidence.VerificationState) == "digest-verified" &&
+		strings.TrimSpace(evidence.SHA256) != descriptor.Artifact.SHA256 {
+		e := blocked(
+			runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_VERIFY_PACKAGE,
+			runtimev1.ReasonCode_APP_OPEN_PACKAGE_NOT_VERIFIED,
+			"app install evidence sha256 does not match the release descriptor",
+		)
+		return openPackageResolution{}, &e
+	}
+	return openPackageResolution{ActiveVersion: activeVersion, Plan: activePlan, Evidence: evidence}, nil
 }
 
 // isVerifiedInstallState reports whether an install evidence verification

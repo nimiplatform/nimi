@@ -86,6 +86,18 @@ export interface AccountCaller {
      * @generated from protobuf field: repeated string scopes = 5
      */
     scopes: string[];
+    /**
+     * @generated from protobuf field: string launch_host_id = 6
+     */
+    launchHostId: string;
+    /**
+     * @generated from protobuf field: string launch_nonce = 7
+     */
+    launchNonce: string;
+    /**
+     * @generated from protobuf field: string release_descriptor_ref = 8
+     */
+    releaseDescriptorRef: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ScopedAppBindingRelation
@@ -1197,7 +1209,11 @@ export enum AccountCallerMode {
     /**
      * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP = 7;
      */
-    LOCAL_DEVELOPER_APP = 7
+    LOCAL_DEVELOPER_APP = 7,
+    /**
+     * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP = 8;
+     */
+    DESKTOP_LAUNCHED_NIMI_APP = 8
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScopedAppBindingState
@@ -1485,7 +1501,10 @@ class AccountCaller$Type extends MessageType<AccountCaller> {
             { no: 2, name: "app_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "device_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.AccountCallerMode", AccountCallerMode, "ACCOUNT_CALLER_MODE_"] },
-            { no: 5, name: "scopes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "scopes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "launch_host_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "launch_nonce", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "release_descriptor_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AccountCaller>): AccountCaller {
@@ -1495,6 +1514,9 @@ class AccountCaller$Type extends MessageType<AccountCaller> {
         message.deviceId = "";
         message.mode = 0;
         message.scopes = [];
+        message.launchHostId = "";
+        message.launchNonce = "";
+        message.releaseDescriptorRef = "";
         if (value !== undefined)
             reflectionMergePartial<AccountCaller>(this, message, value);
         return message;
@@ -1518,6 +1540,15 @@ class AccountCaller$Type extends MessageType<AccountCaller> {
                     break;
                 case /* repeated string scopes */ 5:
                     message.scopes.push(reader.string());
+                    break;
+                case /* string launch_host_id */ 6:
+                    message.launchHostId = reader.string();
+                    break;
+                case /* string launch_nonce */ 7:
+                    message.launchNonce = reader.string();
+                    break;
+                case /* string release_descriptor_ref */ 8:
+                    message.releaseDescriptorRef = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1546,6 +1577,15 @@ class AccountCaller$Type extends MessageType<AccountCaller> {
         /* repeated string scopes = 5; */
         for (let i = 0; i < message.scopes.length; i++)
             writer.tag(5, WireType.LengthDelimited).string(message.scopes[i]);
+        /* string launch_host_id = 6; */
+        if (message.launchHostId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.launchHostId);
+        /* string launch_nonce = 7; */
+        if (message.launchNonce !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.launchNonce);
+        /* string release_descriptor_ref = 8; */
+        if (message.releaseDescriptorRef !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.releaseDescriptorRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

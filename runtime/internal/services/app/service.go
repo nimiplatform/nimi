@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
@@ -87,6 +88,7 @@ type Service struct {
 	appStorageDataRoot string
 	openReadiness      OpenAppReadinessVerifier
 	accountProjection  runtimeAccountProjectionProvider
+	runtimeAppRegistry *appregistry.Registry
 	accountInventory   *accountAppInventoryStore
 	localAdoptions     *localAppAdoptionStore
 }
@@ -141,6 +143,12 @@ func WithOpenAppReadinessVerifier(verifier OpenAppReadinessVerifier) Option {
 func WithRuntimeAccountProjectionProvider(provider runtimeAccountProjectionProvider) Option {
 	return func(s *Service) {
 		s.accountProjection = provider
+	}
+}
+
+func WithRuntimeAppRegistry(registry *appregistry.Registry) Option {
+	return func(s *Service) {
+		s.runtimeAppRegistry = registry
 	}
 }
 

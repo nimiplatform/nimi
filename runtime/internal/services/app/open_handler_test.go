@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 )
 
@@ -81,6 +82,78 @@ func TestOpenAppLaunchesInstalledApp(t *testing.T) {
 	}
 	if proj.GetActiveVersion() == "" {
 		t.Fatal("expected resolved active version")
+	}
+}
+
+func TestOpenAppLaunchesSandboxFixtureWithRuntimeAttestedResolution(t *testing.T) {
+	payload := zipFixturePayload(t)
+	svc, runtimeAppRegistry, _, _ := newExternalFixtureInstallServiceWithRuntimeAppRegistry(t, payload, payload, "developer-only")
+	installResp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{
+		AppId:     "community.nimi.fixture.platform-proof",
+		Confirmed: true,
+	})
+	if err != nil {
+		t.Fatalf("InstallApp sandbox fixture: %v", err)
+	}
+	job := waitForTerminalJob(t, svc, installResp.GetJob().GetJobId())
+	if job.GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_INSTALLED {
+		t.Fatalf("install job state = %v detail=%q, want INSTALLED", job.GetState(), job.GetFailureDetail())
+	}
+
+	resp, err := svc.OpenApp(context.Background(), &runtimev1.OpenAppRequest{
+		AppId: "community.nimi.fixture.platform-proof",
+		Scope: appOpenScope("community.nimi.fixture.platform-proof"),
+	})
+	if err != nil {
+		t.Fatalf("OpenApp sandbox fixture: %v", err)
+	}
+	proj := resp.GetProjection()
+	if proj.GetState() != runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCHED {
+		t.Fatalf("open state = %v detail=%q, want LAUNCHED", proj.GetState(), proj.GetDetail())
+	}
+	if proj.GetReleaseDescriptorRef() != "community.nimi.fixture.platform-proof.0.1.0-sandbox" {
+		t.Fatalf("descriptor ref = %q", proj.GetReleaseDescriptorRef())
+	}
+	if proj.GetDescriptorClass() != "external-immutable-artifact" ||
+		proj.GetAdmissionTrack() != "admission-sandbox-ci" ||
+		proj.GetSourceKind() != "admission-sandbox-https-artifact" ||
+		proj.GetOrdinaryVisibility() != "developer-only" {
+		t.Fatalf("launch descriptor projection = class=%q track=%q source=%q visibility=%q",
+			proj.GetDescriptorClass(), proj.GetAdmissionTrack(), proj.GetSourceKind(), proj.GetOrdinaryVisibility())
+	}
+	if proj.GetProductReadinessClaimAllowed() {
+		t.Fatal("sandbox CI launch must not claim ordinary product readiness")
+	}
+	if proj.GetDigestVerificationState() != "digest-verified" {
+		t.Fatalf("digest verification = %q, want digest-verified", proj.GetDigestVerificationState())
+	}
+	if proj.GetRuntimeEntryRef() != "dist/index.html" {
+		t.Fatalf("runtime entry ref = %q", proj.GetRuntimeEntryRef())
+	}
+	if proj.GetActiveReleaseRoot() == "" || proj.GetStorage().GetReleaseRoot() != proj.GetActiveReleaseRoot() {
+		t.Fatalf("active release root/storage mismatch: active=%q storage=%+v", proj.GetActiveReleaseRoot(), proj.GetStorage())
+	}
+	if proj.GetStorage().GetDurableDataRoot() == "" || proj.GetStorage().GetCacheRoot() == "" || proj.GetStorage().GetTempRoot() == "" {
+		t.Fatalf("storage handles incomplete: %+v", proj.GetStorage())
+	}
+	if proj.GetShellCapabilitySetRef() != "installed-nimi-app-standard-shell-v1" {
+		t.Fatalf("shell capability set = %q", proj.GetShellCapabilitySetRef())
+	}
+	if proj.GetCallerMode() != "desktop-launched-nimi-app" {
+		t.Fatalf("caller mode = %q", proj.GetCallerMode())
+	}
+	if proj.GetLaunchNonce() == "" {
+		t.Fatal("launch nonce must be Runtime-minted")
+	}
+	if !runtimeAppRegistry.AdmitDesktopLaunchedNimiAppInstance(
+		"community.nimi.fixture.platform-proof",
+		"community.nimi.fixture.platform-proof.desktop-host",
+		"desktop-installed-app-host-device",
+		appregistry.DesktopInstalledAppLaunchHostID,
+		proj.GetLaunchNonce(),
+		proj.GetReleaseDescriptorRef(),
+	) {
+		t.Fatal("OpenApp must record Runtime launch-resolution evidence for installed app account admission")
 	}
 }
 

@@ -82,6 +82,7 @@ pub enum AccountCallerMode {
     ACCOUNTCALLERMODEWEBCLOUD,
     ACCOUNTCALLERMODEEXTERNALPRINCIPAL,
     ACCOUNTCALLERMODELOCALDEVELOPERAPP,
+    ACCOUNTCALLERMODEDESKTOPLAUNCHEDNIMIAPP,
 }
 
 impl Default for AccountCallerMode {
@@ -2768,6 +2769,9 @@ pub struct AccountCaller {
     pub device_id: Option<String>,
     pub mode: Option<AccountCallerMode>,
     pub scopes: Vec<String>,
+    pub launch_host_id: Option<String>,
+    pub launch_nonce: Option<String>,
+    pub release_descriptor_ref: Option<String>,
 }
 
 impl AccountCaller {
@@ -2778,6 +2782,9 @@ impl AccountCaller {
         if let Some(value) = &self.device_id { pairs.push(format!("device_id={}", value)); }
         if let Some(value) = &self.mode { pairs.push(format!("mode={:?}", value)); }
         for value in &self.scopes { pairs.push(format!("scopes={}", value)); }
+        if let Some(value) = &self.launch_host_id { pairs.push(format!("launch_host_id={}", value)); }
+        if let Some(value) = &self.launch_nonce { pairs.push(format!("launch_nonce={}", value)); }
+        if let Some(value) = &self.release_descriptor_ref { pairs.push(format!("release_descriptor_ref={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -2794,6 +2801,9 @@ impl AccountCaller {
         out.app_instance_id = pairs.get("app_instance_id").cloned();
         out.device_id = pairs.get("device_id").cloned();
         out.scopes = parse_repeated_string(raw, "scopes");
+        out.launch_host_id = pairs.get("launch_host_id").cloned();
+        out.launch_nonce = pairs.get("launch_nonce").cloned();
+        out.release_descriptor_ref = pairs.get("release_descriptor_ref").cloned();
         out
     }
 }
@@ -4712,6 +4722,19 @@ pub struct AppOpenProjection {
     pub scope: Option<Box<AppOpenScopeRef>>,
     pub reason_code: Option<ReasonCode>,
     pub detail: Option<String>,
+    pub release_descriptor_ref: Option<String>,
+    pub descriptor_class: Option<String>,
+    pub admission_track: Option<String>,
+    pub source_kind: Option<String>,
+    pub ordinary_visibility: Option<String>,
+    pub digest_verification_state: Option<String>,
+    pub runtime_entry_ref: Option<String>,
+    pub active_release_root: Option<String>,
+    pub storage: Option<Box<AppInstallStorageProjection>>,
+    pub shell_capability_set_ref: Option<String>,
+    pub caller_mode: Option<String>,
+    pub launch_nonce: Option<String>,
+    pub product_readiness_claim_allowed: Option<bool>,
 }
 
 impl AppOpenProjection {
@@ -4725,13 +4748,26 @@ impl AppOpenProjection {
         if self.scope.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode scope"); }
         if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={:?}", value)); }
         if let Some(value) = &self.detail { pairs.push(format!("detail={}", value)); }
+        if let Some(value) = &self.release_descriptor_ref { pairs.push(format!("release_descriptor_ref={}", value)); }
+        if let Some(value) = &self.descriptor_class { pairs.push(format!("descriptor_class={}", value)); }
+        if let Some(value) = &self.admission_track { pairs.push(format!("admission_track={}", value)); }
+        if let Some(value) = &self.source_kind { pairs.push(format!("source_kind={}", value)); }
+        if let Some(value) = &self.ordinary_visibility { pairs.push(format!("ordinary_visibility={}", value)); }
+        if let Some(value) = &self.digest_verification_state { pairs.push(format!("digest_verification_state={}", value)); }
+        if let Some(value) = &self.runtime_entry_ref { pairs.push(format!("runtime_entry_ref={}", value)); }
+        if let Some(value) = &self.active_release_root { pairs.push(format!("active_release_root={}", value)); }
+        if self.storage.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode storage"); }
+        if let Some(value) = &self.shell_capability_set_ref { pairs.push(format!("shell_capability_set_ref={}", value)); }
+        if let Some(value) = &self.caller_mode { pairs.push(format!("caller_mode={}", value)); }
+        if let Some(value) = &self.launch_nonce { pairs.push(format!("launch_nonce={}", value)); }
+        if let Some(value) = &self.product_readiness_claim_allowed { pairs.push(format!("product_readiness_claim_allowed={}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["state", "reached_step", "scope", "reason_code"] {
+        for key in ["state", "reached_step", "scope", "reason_code", "storage"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -4741,6 +4777,18 @@ impl AppOpenProjection {
         out.launched = pairs.get("launched").and_then(|value| value.parse().ok());
         out.active_version = pairs.get("active_version").cloned();
         out.detail = pairs.get("detail").cloned();
+        out.release_descriptor_ref = pairs.get("release_descriptor_ref").cloned();
+        out.descriptor_class = pairs.get("descriptor_class").cloned();
+        out.admission_track = pairs.get("admission_track").cloned();
+        out.source_kind = pairs.get("source_kind").cloned();
+        out.ordinary_visibility = pairs.get("ordinary_visibility").cloned();
+        out.digest_verification_state = pairs.get("digest_verification_state").cloned();
+        out.runtime_entry_ref = pairs.get("runtime_entry_ref").cloned();
+        out.active_release_root = pairs.get("active_release_root").cloned();
+        out.shell_capability_set_ref = pairs.get("shell_capability_set_ref").cloned();
+        out.caller_mode = pairs.get("caller_mode").cloned();
+        out.launch_nonce = pairs.get("launch_nonce").cloned();
+        out.product_readiness_claim_allowed = pairs.get("product_readiness_claim_allowed").and_then(|value| value.parse().ok());
         out
     }
 }

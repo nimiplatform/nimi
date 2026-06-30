@@ -91,6 +91,7 @@ enum AccountCallerMode {
   ACCOUNT_CALLER_MODE_WEB_CLOUD = 5;
   ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL = 6;
   ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP = 7;
+  ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP = 8;
 }
 
 enum ScopedAppBindingState {
@@ -151,6 +152,9 @@ message AccountCaller {
   string device_id = 3;
   AccountCallerMode mode = 4;
   repeated string scopes = 5;
+  string launch_host_id = 6;
+  string launch_nonce = 7;
+  string release_descriptor_ref = 8;
 }
 
 message ScopedAppBindingRelation {

@@ -42,6 +42,7 @@ const (
 	ACCOUNTCALLERMODEWEBCLOUD AccountCallerMode = "ACCOUNT_CALLER_MODE_WEB_CLOUD"
 	ACCOUNTCALLERMODEEXTERNALPRINCIPAL AccountCallerMode = "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL"
 	ACCOUNTCALLERMODELOCALDEVELOPERAPP AccountCallerMode = "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP"
+	ACCOUNTCALLERMODEDESKTOPLAUNCHEDNIMIAPP AccountCallerMode = "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP"
 )
 
 type AccountEventType string
@@ -1810,6 +1811,9 @@ type AccountCaller struct {
 	DeviceId string `json:"device_id,omitempty"`
 	Mode AccountCallerMode `json:"mode,omitempty"`
 	Scopes []string `json:"scopes,omitempty"`
+	LaunchHostId string `json:"launch_host_id,omitempty"`
+	LaunchNonce string `json:"launch_nonce,omitempty"`
+	ReleaseDescriptorRef string `json:"release_descriptor_ref,omitempty"`
 }
 
 type AccountProjection struct {
@@ -2270,6 +2274,19 @@ type AppOpenProjection struct {
 	Scope *AppOpenScopeRef `json:"scope,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	Detail string `json:"detail,omitempty"`
+	ReleaseDescriptorRef string `json:"release_descriptor_ref,omitempty"`
+	DescriptorClass string `json:"descriptor_class,omitempty"`
+	AdmissionTrack string `json:"admission_track,omitempty"`
+	SourceKind string `json:"source_kind,omitempty"`
+	OrdinaryVisibility string `json:"ordinary_visibility,omitempty"`
+	DigestVerificationState string `json:"digest_verification_state,omitempty"`
+	RuntimeEntryRef string `json:"runtime_entry_ref,omitempty"`
+	ActiveReleaseRoot string `json:"active_release_root,omitempty"`
+	Storage *AppInstallStorageProjection `json:"storage,omitempty"`
+	ShellCapabilitySetRef string `json:"shell_capability_set_ref,omitempty"`
+	CallerMode string `json:"caller_mode,omitempty"`
+	LaunchNonce string `json:"launch_nonce,omitempty"`
+	ProductReadinessClaimAllowed bool `json:"product_readiness_claim_allowed,omitempty"`
 }
 
 type AppOpenScopeRef struct {

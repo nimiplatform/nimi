@@ -22,6 +22,16 @@ func validateProductionCaller(caller *runtimev1.AccountCaller, tokenRequest bool
 			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 		}
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
+	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP:
+		if strings.TrimSpace(caller.GetAppId()) == "" ||
+			strings.TrimSpace(caller.GetAppInstanceId()) == "" ||
+			strings.TrimSpace(caller.GetDeviceId()) == "" ||
+			strings.TrimSpace(caller.GetLaunchHostId()) == "" ||
+			strings.TrimSpace(caller.GetLaunchNonce()) == "" ||
+			strings.TrimSpace(caller.GetReleaseDescriptorRef()) == "" {
+			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
+		}
+		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR:
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY, false
 	default:
@@ -46,6 +56,23 @@ func (s *Service) validateRuntimeAdmittedCaller(caller *runtimev1.AccountCaller,
 		}
 		if s.registry == nil || !s.registry.AdmitLocalDeveloperInstance(caller.GetAppId(), caller.GetAppInstanceId()) {
 			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
+		}
+	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP:
+		if s.registry == nil || !s.registry.AdmitDesktopLaunchedNimiAppInstance(
+			caller.GetAppId(),
+			caller.GetAppInstanceId(),
+			caller.GetDeviceId(),
+			caller.GetLaunchHostId(),
+			caller.GetLaunchNonce(),
+			caller.GetReleaseDescriptorRef(),
+		) {
+			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
+		}
+		if tokenRequest {
+			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
+		}
+		if s.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
+			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, false
 		}
 	default:
 		return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false

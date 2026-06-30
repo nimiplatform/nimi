@@ -374,6 +374,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		appservice.WithScopedBindingValidator(accountSvc),
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
 		appservice.WithInstallRuntime(appInstallRuntime),
+		appservice.WithRuntimeAppRegistry(appRegistry),
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
 		appservice.WithOpenAppReadinessVerifier(appservice.NewAccountProjectionOpenAppReadinessVerifier(accountSvc)),
 	)

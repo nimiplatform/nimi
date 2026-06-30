@@ -939,7 +939,7 @@ export interface AppOpenScopeRef {
 export interface OpenAppRequest {
     /**
      * app_id resolves an admitted Nimi App registry row
-     * (admission_status=admitted, ordinary_visibility=ordinary-visible).
+     * (admission_status=admitted) and a track-discriminated launch path.
      *
      * @generated from protobuf field: string app_id = 1
      */
@@ -1011,6 +1011,70 @@ export interface AppOpenProjection {
      * @generated from protobuf field: string detail = 8
      */
     detail: string;
+    /**
+     * release_descriptor_ref is Runtime-attested descriptor identity used for
+     * the installed launch. It is empty for local adoption launches, which do
+     * not satisfy P-NAPP-034 installed third-party launch proof.
+     *
+     * @generated from protobuf field: string release_descriptor_ref = 9
+     */
+    releaseDescriptorRef: string;
+    /**
+     * @generated from protobuf field: string descriptor_class = 10
+     */
+    descriptorClass: string;
+    /**
+     * @generated from protobuf field: string admission_track = 11
+     */
+    admissionTrack: string;
+    /**
+     * @generated from protobuf field: string source_kind = 12
+     */
+    sourceKind: string;
+    /**
+     * @generated from protobuf field: string ordinary_visibility = 13
+     */
+    ordinaryVisibility: string;
+    /**
+     * @generated from protobuf field: string digest_verification_state = 14
+     */
+    digestVerificationState: string;
+    /**
+     * @generated from protobuf field: string runtime_entry_ref = 15
+     */
+    runtimeEntryRef: string;
+    /**
+     * active_release_root is the verified installed release root Desktop can
+     * host without recomputing descriptor paths. Future opaque launch URI
+     * support must use a new field, not overload this path.
+     *
+     * @generated from protobuf field: string active_release_root = 16
+     */
+    activeReleaseRoot: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppInstallStorageProjection storage = 17
+     */
+    storage?: AppInstallStorageProjection;
+    /**
+     * @generated from protobuf field: string shell_capability_set_ref = 18
+     */
+    shellCapabilitySetRef: string;
+    /**
+     * caller_mode is the installed-app posture string. The AccountCallerMode enum
+     * authority lands in Task 6; this field carries the OpenApp launch-resolution
+     * string without reusing external-principal posture.
+     *
+     * @generated from protobuf field: string caller_mode = 19
+     */
+    callerMode: string;
+    /**
+     * @generated from protobuf field: string launch_nonce = 20
+     */
+    launchNonce: string;
+    /**
+     * @generated from protobuf field: bool product_readiness_claim_allowed = 21
+     */
+    productReadinessClaimAllowed: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.OpenAppResponse
@@ -4260,7 +4324,20 @@ class AppOpenProjection$Type extends MessageType<AppOpenProjection> {
             { no: 5, name: "active_version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "scope", kind: "message", T: () => AppOpenScopeRef },
             { no: 7, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 8, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "release_descriptor_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "descriptor_class", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "admission_track", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "ordinary_visibility", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "digest_verification_state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 15, name: "runtime_entry_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "active_release_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "storage", kind: "message", T: () => AppInstallStorageProjection },
+            { no: 18, name: "shell_capability_set_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "caller_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "launch_nonce", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "product_readiness_claim_allowed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<AppOpenProjection>): AppOpenProjection {
@@ -4272,6 +4349,18 @@ class AppOpenProjection$Type extends MessageType<AppOpenProjection> {
         message.activeVersion = "";
         message.reasonCode = 0;
         message.detail = "";
+        message.releaseDescriptorRef = "";
+        message.descriptorClass = "";
+        message.admissionTrack = "";
+        message.sourceKind = "";
+        message.ordinaryVisibility = "";
+        message.digestVerificationState = "";
+        message.runtimeEntryRef = "";
+        message.activeReleaseRoot = "";
+        message.shellCapabilitySetRef = "";
+        message.callerMode = "";
+        message.launchNonce = "";
+        message.productReadinessClaimAllowed = false;
         if (value !== undefined)
             reflectionMergePartial<AppOpenProjection>(this, message, value);
         return message;
@@ -4304,6 +4393,45 @@ class AppOpenProjection$Type extends MessageType<AppOpenProjection> {
                     break;
                 case /* string detail */ 8:
                     message.detail = reader.string();
+                    break;
+                case /* string release_descriptor_ref */ 9:
+                    message.releaseDescriptorRef = reader.string();
+                    break;
+                case /* string descriptor_class */ 10:
+                    message.descriptorClass = reader.string();
+                    break;
+                case /* string admission_track */ 11:
+                    message.admissionTrack = reader.string();
+                    break;
+                case /* string source_kind */ 12:
+                    message.sourceKind = reader.string();
+                    break;
+                case /* string ordinary_visibility */ 13:
+                    message.ordinaryVisibility = reader.string();
+                    break;
+                case /* string digest_verification_state */ 14:
+                    message.digestVerificationState = reader.string();
+                    break;
+                case /* string runtime_entry_ref */ 15:
+                    message.runtimeEntryRef = reader.string();
+                    break;
+                case /* string active_release_root */ 16:
+                    message.activeReleaseRoot = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppInstallStorageProjection storage */ 17:
+                    message.storage = AppInstallStorageProjection.internalBinaryRead(reader, reader.uint32(), options, message.storage);
+                    break;
+                case /* string shell_capability_set_ref */ 18:
+                    message.shellCapabilitySetRef = reader.string();
+                    break;
+                case /* string caller_mode */ 19:
+                    message.callerMode = reader.string();
+                    break;
+                case /* string launch_nonce */ 20:
+                    message.launchNonce = reader.string();
+                    break;
+                case /* bool product_readiness_claim_allowed */ 21:
+                    message.productReadinessClaimAllowed = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4341,6 +4469,45 @@ class AppOpenProjection$Type extends MessageType<AppOpenProjection> {
         /* string detail = 8; */
         if (message.detail !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.detail);
+        /* string release_descriptor_ref = 9; */
+        if (message.releaseDescriptorRef !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.releaseDescriptorRef);
+        /* string descriptor_class = 10; */
+        if (message.descriptorClass !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.descriptorClass);
+        /* string admission_track = 11; */
+        if (message.admissionTrack !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.admissionTrack);
+        /* string source_kind = 12; */
+        if (message.sourceKind !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.sourceKind);
+        /* string ordinary_visibility = 13; */
+        if (message.ordinaryVisibility !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.ordinaryVisibility);
+        /* string digest_verification_state = 14; */
+        if (message.digestVerificationState !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.digestVerificationState);
+        /* string runtime_entry_ref = 15; */
+        if (message.runtimeEntryRef !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.runtimeEntryRef);
+        /* string active_release_root = 16; */
+        if (message.activeReleaseRoot !== "")
+            writer.tag(16, WireType.LengthDelimited).string(message.activeReleaseRoot);
+        /* nimi.runtime.v1.AppInstallStorageProjection storage = 17; */
+        if (message.storage)
+            AppInstallStorageProjection.internalBinaryWrite(message.storage, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
+        /* string shell_capability_set_ref = 18; */
+        if (message.shellCapabilitySetRef !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.shellCapabilitySetRef);
+        /* string caller_mode = 19; */
+        if (message.callerMode !== "")
+            writer.tag(19, WireType.LengthDelimited).string(message.callerMode);
+        /* string launch_nonce = 20; */
+        if (message.launchNonce !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.launchNonce);
+        /* bool product_readiness_claim_allowed = 21; */
+        if (message.productReadinessClaimAllowed !== false)
+            writer.tag(21, WireType.Varint).bool(message.productReadinessClaimAllowed);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -7652,6 +7652,27 @@
             "repeated": true,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "launch_host_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "launch_nonce",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "release_descriptor_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -10439,6 +10460,97 @@
             "repeated": false,
             "optional": false,
             "number": 8
+          },
+          {
+            "name": "release_descriptor_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "descriptor_class",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "admission_track",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "source_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "ordinary_visibility",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "digest_verification_state",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "runtime_entry_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "active_release_root",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "storage",
+            "type": "AppInstallStorageProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "shell_capability_set_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          },
+          {
+            "name": "caller_mode",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 19
+          },
+          {
+            "name": "launch_nonce",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 20
+          },
+          {
+            "name": "product_readiness_claim_allowed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 21
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -38185,7 +38297,8 @@
           "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR",
           "ACCOUNT_CALLER_MODE_WEB_CLOUD",
           "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL",
-          "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP"
+          "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP",
+          "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP"
         ],
         "source_file": "proto/runtime/v1/account.proto"
       },

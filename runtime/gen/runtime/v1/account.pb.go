@@ -396,13 +396,14 @@ func (PresenceVerificationMethod) EnumDescriptor() ([]byte, []int) {
 type AccountCallerMode int32
 
 const (
-	AccountCallerMode_ACCOUNT_CALLER_MODE_UNSPECIFIED             AccountCallerMode = 0
-	AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP   AccountCallerMode = 1
-	AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL           AccountCallerMode = 2
-	AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR AccountCallerMode = 3
-	AccountCallerMode_ACCOUNT_CALLER_MODE_WEB_CLOUD               AccountCallerMode = 5
-	AccountCallerMode_ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL      AccountCallerMode = 6
-	AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP     AccountCallerMode = 7
+	AccountCallerMode_ACCOUNT_CALLER_MODE_UNSPECIFIED               AccountCallerMode = 0
+	AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP     AccountCallerMode = 1
+	AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL             AccountCallerMode = 2
+	AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR   AccountCallerMode = 3
+	AccountCallerMode_ACCOUNT_CALLER_MODE_WEB_CLOUD                 AccountCallerMode = 5
+	AccountCallerMode_ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL        AccountCallerMode = 6
+	AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP       AccountCallerMode = 7
+	AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP AccountCallerMode = 8
 )
 
 // Enum value maps for AccountCallerMode.
@@ -415,15 +416,17 @@ var (
 		5: "ACCOUNT_CALLER_MODE_WEB_CLOUD",
 		6: "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL",
 		7: "ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP",
+		8: "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP",
 	}
 	AccountCallerMode_value = map[string]int32{
-		"ACCOUNT_CALLER_MODE_UNSPECIFIED":             0,
-		"ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP":   1,
-		"ACCOUNT_CALLER_MODE_DESKTOP_SHELL":           2,
-		"ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR": 3,
-		"ACCOUNT_CALLER_MODE_WEB_CLOUD":               5,
-		"ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL":      6,
-		"ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP":     7,
+		"ACCOUNT_CALLER_MODE_UNSPECIFIED":               0,
+		"ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP":     1,
+		"ACCOUNT_CALLER_MODE_DESKTOP_SHELL":             2,
+		"ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR":   3,
+		"ACCOUNT_CALLER_MODE_WEB_CLOUD":                 5,
+		"ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL":        6,
+		"ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP":       7,
+		"ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP": 8,
 	}
 )
 
@@ -865,14 +868,17 @@ func (x *AccountProjection) GetWorkspaceMemberships() []*WorkspaceMembershipProj
 }
 
 type AccountCaller struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	AppInstanceId string                 `protobuf:"bytes,2,opt,name=app_instance_id,json=appInstanceId,proto3" json:"app_instance_id,omitempty"`
-	DeviceId      string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
-	Mode          AccountCallerMode      `protobuf:"varint,4,opt,name=mode,proto3,enum=nimi.runtime.v1.AccountCallerMode" json:"mode,omitempty"`
-	Scopes        []string               `protobuf:"bytes,5,rep,name=scopes,proto3" json:"scopes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	AppId                string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	AppInstanceId        string                 `protobuf:"bytes,2,opt,name=app_instance_id,json=appInstanceId,proto3" json:"app_instance_id,omitempty"`
+	DeviceId             string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	Mode                 AccountCallerMode      `protobuf:"varint,4,opt,name=mode,proto3,enum=nimi.runtime.v1.AccountCallerMode" json:"mode,omitempty"`
+	Scopes               []string               `protobuf:"bytes,5,rep,name=scopes,proto3" json:"scopes,omitempty"`
+	LaunchHostId         string                 `protobuf:"bytes,6,opt,name=launch_host_id,json=launchHostId,proto3" json:"launch_host_id,omitempty"`
+	LaunchNonce          string                 `protobuf:"bytes,7,opt,name=launch_nonce,json=launchNonce,proto3" json:"launch_nonce,omitempty"`
+	ReleaseDescriptorRef string                 `protobuf:"bytes,8,opt,name=release_descriptor_ref,json=releaseDescriptorRef,proto3" json:"release_descriptor_ref,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *AccountCaller) Reset() {
@@ -938,6 +944,27 @@ func (x *AccountCaller) GetScopes() []string {
 		return x.Scopes
 	}
 	return nil
+}
+
+func (x *AccountCaller) GetLaunchHostId() string {
+	if x != nil {
+		return x.LaunchHostId
+	}
+	return ""
+}
+
+func (x *AccountCaller) GetLaunchNonce() string {
+	if x != nil {
+		return x.LaunchNonce
+	}
+	return ""
+}
+
+func (x *AccountCaller) GetReleaseDescriptorRef() string {
+	if x != nil {
+		return x.ReleaseDescriptorRef
+	}
+	return ""
 }
 
 type ScopedAppBindingRelation struct {
@@ -3392,13 +3419,16 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x120\n" +
 	"\x14realm_environment_id\x18\x03 \x01(\tR\x12realmEnvironmentId\x12c\n" +
-	"\x15workspace_memberships\x18\x04 \x03(\v2..nimi.runtime.v1.WorkspaceMembershipProjectionR\x14workspaceMemberships\"\xbb\x01\n" +
+	"\x15workspace_memberships\x18\x04 \x03(\v2..nimi.runtime.v1.WorkspaceMembershipProjectionR\x14workspaceMemberships\"\xba\x02\n" +
 	"\rAccountCaller\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fapp_instance_id\x18\x02 \x01(\tR\rappInstanceId\x12\x1b\n" +
 	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId\x126\n" +
 	"\x04mode\x18\x04 \x01(\x0e2\".nimi.runtime.v1.AccountCallerModeR\x04mode\x12\x16\n" +
-	"\x06scopes\x18\x05 \x03(\tR\x06scopes\"\x91\x05\n" +
+	"\x06scopes\x18\x05 \x03(\tR\x06scopes\x12$\n" +
+	"\x0elaunch_host_id\x18\x06 \x01(\tR\flaunchHostId\x12!\n" +
+	"\flaunch_nonce\x18\a \x01(\tR\vlaunchNonce\x124\n" +
+	"\x16release_descriptor_ref\x18\b \x01(\tR\x14releaseDescriptorRef\"\x91\x05\n" +
 	"\x18ScopedAppBindingRelation\x12\x1d\n" +
 	"\n" +
 	"binding_id\x18\x01 \x01(\tR\tbindingId\x12$\n" +
@@ -3706,7 +3736,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"(PRESENCE_VERIFICATION_METHOD_UNSPECIFIED\x10\x00\x12.\n" +
 	"*PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL\x10\x01\x12,\n" +
 	"(PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH\x10\x02\x12-\n" +
-	")PRESENCE_VERIFICATION_METHOD_TEST_HARNESS\x10\x03*\xda\x02\n" +
+	")PRESENCE_VERIFICATION_METHOD_TEST_HARNESS\x10\x03*\x8d\x03\n" +
 	"\x11AccountCallerMode\x12#\n" +
 	"\x1fACCOUNT_CALLER_MODE_UNSPECIFIED\x10\x00\x12-\n" +
 	")ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP\x10\x01\x12%\n" +
@@ -3714,7 +3744,8 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"+ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR\x10\x03\x12!\n" +
 	"\x1dACCOUNT_CALLER_MODE_WEB_CLOUD\x10\x05\x12*\n" +
 	"&ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL\x10\x06\x12+\n" +
-	"'ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP\x10\a\"\x04\b\x04\x10\x04*\x17ACCOUNT_CALLER_MODE_MOD*\xa8\x02\n" +
+	"'ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP\x10\a\x121\n" +
+	"-ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP\x10\b\"\x04\b\x04\x10\x04*\x17ACCOUNT_CALLER_MODE_MOD*\xa8\x02\n" +
 	"\x15ScopedAppBindingState\x12(\n" +
 	"$SCOPED_APP_BINDING_STATE_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fSCOPED_APP_BINDING_STATE_ISSUED\x10\x01\x12#\n" +

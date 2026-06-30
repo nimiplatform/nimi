@@ -3577,7 +3577,7 @@ func (x *AppOpenScopeRef) GetSurfaceId() string {
 type OpenAppRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// app_id resolves an admitted Nimi App registry row
-	// (admission_status=admitted, ordinary_visibility=ordinary-visible).
+	// (admission_status=admitted) and a track-discriminated launch path.
 	AppId string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	// scope is the explicit canonical app-launch AIConfig scope. It is
 	// mandatory: OpenApp never infers launch scope (K-APP-017 / S-APP-003).
@@ -3655,10 +3655,32 @@ type AppOpenProjection struct {
 	// reason_code is the typed fail-closed reason on a blocked open, or
 	// ACTION_EXECUTED on a launched open. It is never collapsed into a generic
 	// value.
-	ReasonCode    ReasonCode `protobuf:"varint,7,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	Detail        string     `protobuf:"bytes,8,opt,name=detail,proto3" json:"detail,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ReasonCode ReasonCode `protobuf:"varint,7,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	Detail     string     `protobuf:"bytes,8,opt,name=detail,proto3" json:"detail,omitempty"`
+	// release_descriptor_ref is Runtime-attested descriptor identity used for
+	// the installed launch. It is empty for local adoption launches, which do
+	// not satisfy P-NAPP-034 installed third-party launch proof.
+	ReleaseDescriptorRef    string `protobuf:"bytes,9,opt,name=release_descriptor_ref,json=releaseDescriptorRef,proto3" json:"release_descriptor_ref,omitempty"`
+	DescriptorClass         string `protobuf:"bytes,10,opt,name=descriptor_class,json=descriptorClass,proto3" json:"descriptor_class,omitempty"`
+	AdmissionTrack          string `protobuf:"bytes,11,opt,name=admission_track,json=admissionTrack,proto3" json:"admission_track,omitempty"`
+	SourceKind              string `protobuf:"bytes,12,opt,name=source_kind,json=sourceKind,proto3" json:"source_kind,omitempty"`
+	OrdinaryVisibility      string `protobuf:"bytes,13,opt,name=ordinary_visibility,json=ordinaryVisibility,proto3" json:"ordinary_visibility,omitempty"`
+	DigestVerificationState string `protobuf:"bytes,14,opt,name=digest_verification_state,json=digestVerificationState,proto3" json:"digest_verification_state,omitempty"`
+	RuntimeEntryRef         string `protobuf:"bytes,15,opt,name=runtime_entry_ref,json=runtimeEntryRef,proto3" json:"runtime_entry_ref,omitempty"`
+	// active_release_root is the verified installed release root Desktop can
+	// host without recomputing descriptor paths. Future opaque launch URI
+	// support must use a new field, not overload this path.
+	ActiveReleaseRoot     string                       `protobuf:"bytes,16,opt,name=active_release_root,json=activeReleaseRoot,proto3" json:"active_release_root,omitempty"`
+	Storage               *AppInstallStorageProjection `protobuf:"bytes,17,opt,name=storage,proto3" json:"storage,omitempty"`
+	ShellCapabilitySetRef string                       `protobuf:"bytes,18,opt,name=shell_capability_set_ref,json=shellCapabilitySetRef,proto3" json:"shell_capability_set_ref,omitempty"`
+	// caller_mode is the installed-app posture string. The AccountCallerMode enum
+	// authority lands in Task 6; this field carries the OpenApp launch-resolution
+	// string without reusing external-principal posture.
+	CallerMode                   string `protobuf:"bytes,19,opt,name=caller_mode,json=callerMode,proto3" json:"caller_mode,omitempty"`
+	LaunchNonce                  string `protobuf:"bytes,20,opt,name=launch_nonce,json=launchNonce,proto3" json:"launch_nonce,omitempty"`
+	ProductReadinessClaimAllowed bool   `protobuf:"varint,21,opt,name=product_readiness_claim_allowed,json=productReadinessClaimAllowed,proto3" json:"product_readiness_claim_allowed,omitempty"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *AppOpenProjection) Reset() {
@@ -3745,6 +3767,97 @@ func (x *AppOpenProjection) GetDetail() string {
 		return x.Detail
 	}
 	return ""
+}
+
+func (x *AppOpenProjection) GetReleaseDescriptorRef() string {
+	if x != nil {
+		return x.ReleaseDescriptorRef
+	}
+	return ""
+}
+
+func (x *AppOpenProjection) GetDescriptorClass() string {
+	if x != nil {
+		return x.DescriptorClass
+	}
+	return ""
+}
+
+func (x *AppOpenProjection) GetAdmissionTrack() string {
+	if x != nil {
+		return x.AdmissionTrack
+	}
+	return ""
+}
+
+func (x *AppOpenProjection) GetSourceKind() string {
+	if x != nil {
+		return x.SourceKind
+	}
+	return ""
+}
+
+func (x *AppOpenProjection) GetOrdinaryVisibility() string {
+	if x != nil {
+		return x.OrdinaryVisibility
+	}
+	return ""
+}
+
+func (x *AppOpenProjection) GetDigestVerificationState() string {
+	if x != nil {
+		return x.DigestVerificationState
+	}
+	return ""
+}
+
+func (x *AppOpenProjection) GetRuntimeEntryRef() string {
+	if x != nil {
+		return x.RuntimeEntryRef
+	}
+	return ""
+}
+
+func (x *AppOpenProjection) GetActiveReleaseRoot() string {
+	if x != nil {
+		return x.ActiveReleaseRoot
+	}
+	return ""
+}
+
+func (x *AppOpenProjection) GetStorage() *AppInstallStorageProjection {
+	if x != nil {
+		return x.Storage
+	}
+	return nil
+}
+
+func (x *AppOpenProjection) GetShellCapabilitySetRef() string {
+	if x != nil {
+		return x.ShellCapabilitySetRef
+	}
+	return ""
+}
+
+func (x *AppOpenProjection) GetCallerMode() string {
+	if x != nil {
+		return x.CallerMode
+	}
+	return ""
+}
+
+func (x *AppOpenProjection) GetLaunchNonce() string {
+	if x != nil {
+		return x.LaunchNonce
+	}
+	return ""
+}
+
+func (x *AppOpenProjection) GetProductReadinessClaimAllowed() bool {
+	if x != nil {
+		return x.ProductReadinessClaimAllowed
+	}
+	return false
 }
 
 type OpenAppResponse struct {
@@ -4022,7 +4135,7 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"surface_id\x18\x03 \x01(\tR\tsurfaceId\"_\n" +
 	"\x0eOpenAppRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x126\n" +
-	"\x05scope\x18\x02 \x01(\v2 .nimi.runtime.v1.AppOpenScopeRefR\x05scope\"\xf5\x02\n" +
+	"\x05scope\x18\x02 \x01(\v2 .nimi.runtime.v1.AppOpenScopeRefR\x05scope\"\xf5\a\n" +
 	"\x11AppOpenProjection\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x123\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x1d.nimi.runtime.v1.AppOpenStateR\x05state\x12C\n" +
@@ -4032,7 +4145,23 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x05scope\x18\x06 \x01(\v2 .nimi.runtime.v1.AppOpenScopeRefR\x05scope\x12<\n" +
 	"\vreason_code\x18\a \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x16\n" +
-	"\x06detail\x18\b \x01(\tR\x06detail\"U\n" +
+	"\x06detail\x18\b \x01(\tR\x06detail\x124\n" +
+	"\x16release_descriptor_ref\x18\t \x01(\tR\x14releaseDescriptorRef\x12)\n" +
+	"\x10descriptor_class\x18\n" +
+	" \x01(\tR\x0fdescriptorClass\x12'\n" +
+	"\x0fadmission_track\x18\v \x01(\tR\x0eadmissionTrack\x12\x1f\n" +
+	"\vsource_kind\x18\f \x01(\tR\n" +
+	"sourceKind\x12/\n" +
+	"\x13ordinary_visibility\x18\r \x01(\tR\x12ordinaryVisibility\x12:\n" +
+	"\x19digest_verification_state\x18\x0e \x01(\tR\x17digestVerificationState\x12*\n" +
+	"\x11runtime_entry_ref\x18\x0f \x01(\tR\x0fruntimeEntryRef\x12.\n" +
+	"\x13active_release_root\x18\x10 \x01(\tR\x11activeReleaseRoot\x12F\n" +
+	"\astorage\x18\x11 \x01(\v2,.nimi.runtime.v1.AppInstallStorageProjectionR\astorage\x127\n" +
+	"\x18shell_capability_set_ref\x18\x12 \x01(\tR\x15shellCapabilitySetRef\x12\x1f\n" +
+	"\vcaller_mode\x18\x13 \x01(\tR\n" +
+	"callerMode\x12!\n" +
+	"\flaunch_nonce\x18\x14 \x01(\tR\vlaunchNonce\x12E\n" +
+	"\x1fproduct_readiness_claim_allowed\x18\x15 \x01(\bR\x1cproductReadinessClaimAllowed\"U\n" +
 	"\x0fOpenAppResponse\x12B\n" +
 	"\n" +
 	"projection\x18\x01 \x01(\v2\".nimi.runtime.v1.AppOpenProjectionR\n" +
@@ -4277,44 +4406,45 @@ var file_runtime_v1_app_proto_depIdxs = []int32{
 	12, // 48: nimi.runtime.v1.AppOpenProjection.reached_step:type_name -> nimi.runtime.v1.AppOpenFlowStep
 	52, // 49: nimi.runtime.v1.AppOpenProjection.scope:type_name -> nimi.runtime.v1.AppOpenScopeRef
 	58, // 50: nimi.runtime.v1.AppOpenProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	54, // 51: nimi.runtime.v1.OpenAppResponse.projection:type_name -> nimi.runtime.v1.AppOpenProjection
-	14, // 52: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
-	16, // 53: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
-	22, // 54: nimi.runtime.v1.RuntimeAppService.InstallApp:input_type -> nimi.runtime.v1.InstallAppRequest
-	45, // 55: nimi.runtime.v1.RuntimeAppService.UninstallApp:input_type -> nimi.runtime.v1.UninstallAppRequest
-	26, // 56: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
-	30, // 57: nimi.runtime.v1.RuntimeAppService.GetAccountAppInventory:input_type -> nimi.runtime.v1.GetAccountAppInventoryRequest
-	33, // 58: nimi.runtime.v1.RuntimeAppService.AdoptLocalApp:input_type -> nimi.runtime.v1.AdoptLocalAppRequest
-	35, // 59: nimi.runtime.v1.RuntimeAppService.ListLocalAppAdoptions:input_type -> nimi.runtime.v1.ListLocalAppAdoptionsRequest
-	37, // 60: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAdoption:input_type -> nimi.runtime.v1.RemoveLocalAppAdoptionRequest
-	39, // 61: nimi.runtime.v1.RuntimeAppService.GetAppPackageReadiness:input_type -> nimi.runtime.v1.GetAppPackageReadinessRequest
-	24, // 62: nimi.runtime.v1.RuntimeAppService.GetAppInstallJob:input_type -> nimi.runtime.v1.GetAppInstallJobRequest
-	41, // 63: nimi.runtime.v1.RuntimeAppService.ListAppInstallJobs:input_type -> nimi.runtime.v1.ListAppInstallJobsRequest
-	43, // 64: nimi.runtime.v1.RuntimeAppService.WatchAppInstallJobEvents:input_type -> nimi.runtime.v1.WatchAppInstallJobEventsRequest
-	48, // 65: nimi.runtime.v1.RuntimeAppService.UpdateApp:input_type -> nimi.runtime.v1.UpdateAppRequest
-	50, // 66: nimi.runtime.v1.RuntimeAppService.HealthRepairApp:input_type -> nimi.runtime.v1.HealthRepairAppRequest
-	53, // 67: nimi.runtime.v1.RuntimeAppService.OpenApp:input_type -> nimi.runtime.v1.OpenAppRequest
-	15, // 68: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
-	17, // 69: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
-	23, // 70: nimi.runtime.v1.RuntimeAppService.InstallApp:output_type -> nimi.runtime.v1.InstallAppResponse
-	47, // 71: nimi.runtime.v1.RuntimeAppService.UninstallApp:output_type -> nimi.runtime.v1.UninstallAppResponse
-	27, // 72: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
-	31, // 73: nimi.runtime.v1.RuntimeAppService.GetAccountAppInventory:output_type -> nimi.runtime.v1.GetAccountAppInventoryResponse
-	34, // 74: nimi.runtime.v1.RuntimeAppService.AdoptLocalApp:output_type -> nimi.runtime.v1.AdoptLocalAppResponse
-	36, // 75: nimi.runtime.v1.RuntimeAppService.ListLocalAppAdoptions:output_type -> nimi.runtime.v1.ListLocalAppAdoptionsResponse
-	38, // 76: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAdoption:output_type -> nimi.runtime.v1.RemoveLocalAppAdoptionResponse
-	40, // 77: nimi.runtime.v1.RuntimeAppService.GetAppPackageReadiness:output_type -> nimi.runtime.v1.GetAppPackageReadinessResponse
-	25, // 78: nimi.runtime.v1.RuntimeAppService.GetAppInstallJob:output_type -> nimi.runtime.v1.GetAppInstallJobResponse
-	42, // 79: nimi.runtime.v1.RuntimeAppService.ListAppInstallJobs:output_type -> nimi.runtime.v1.ListAppInstallJobsResponse
-	44, // 80: nimi.runtime.v1.RuntimeAppService.WatchAppInstallJobEvents:output_type -> nimi.runtime.v1.AppInstallJobEvent
-	49, // 81: nimi.runtime.v1.RuntimeAppService.UpdateApp:output_type -> nimi.runtime.v1.UpdateAppResponse
-	51, // 82: nimi.runtime.v1.RuntimeAppService.HealthRepairApp:output_type -> nimi.runtime.v1.HealthRepairAppResponse
-	55, // 83: nimi.runtime.v1.RuntimeAppService.OpenApp:output_type -> nimi.runtime.v1.OpenAppResponse
-	68, // [68:84] is the sub-list for method output_type
-	52, // [52:68] is the sub-list for method input_type
-	52, // [52:52] is the sub-list for extension type_name
-	52, // [52:52] is the sub-list for extension extendee
-	0,  // [0:52] is the sub-list for field type_name
+	18, // 51: nimi.runtime.v1.AppOpenProjection.storage:type_name -> nimi.runtime.v1.AppInstallStorageProjection
+	54, // 52: nimi.runtime.v1.OpenAppResponse.projection:type_name -> nimi.runtime.v1.AppOpenProjection
+	14, // 53: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
+	16, // 54: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
+	22, // 55: nimi.runtime.v1.RuntimeAppService.InstallApp:input_type -> nimi.runtime.v1.InstallAppRequest
+	45, // 56: nimi.runtime.v1.RuntimeAppService.UninstallApp:input_type -> nimi.runtime.v1.UninstallAppRequest
+	26, // 57: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
+	30, // 58: nimi.runtime.v1.RuntimeAppService.GetAccountAppInventory:input_type -> nimi.runtime.v1.GetAccountAppInventoryRequest
+	33, // 59: nimi.runtime.v1.RuntimeAppService.AdoptLocalApp:input_type -> nimi.runtime.v1.AdoptLocalAppRequest
+	35, // 60: nimi.runtime.v1.RuntimeAppService.ListLocalAppAdoptions:input_type -> nimi.runtime.v1.ListLocalAppAdoptionsRequest
+	37, // 61: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAdoption:input_type -> nimi.runtime.v1.RemoveLocalAppAdoptionRequest
+	39, // 62: nimi.runtime.v1.RuntimeAppService.GetAppPackageReadiness:input_type -> nimi.runtime.v1.GetAppPackageReadinessRequest
+	24, // 63: nimi.runtime.v1.RuntimeAppService.GetAppInstallJob:input_type -> nimi.runtime.v1.GetAppInstallJobRequest
+	41, // 64: nimi.runtime.v1.RuntimeAppService.ListAppInstallJobs:input_type -> nimi.runtime.v1.ListAppInstallJobsRequest
+	43, // 65: nimi.runtime.v1.RuntimeAppService.WatchAppInstallJobEvents:input_type -> nimi.runtime.v1.WatchAppInstallJobEventsRequest
+	48, // 66: nimi.runtime.v1.RuntimeAppService.UpdateApp:input_type -> nimi.runtime.v1.UpdateAppRequest
+	50, // 67: nimi.runtime.v1.RuntimeAppService.HealthRepairApp:input_type -> nimi.runtime.v1.HealthRepairAppRequest
+	53, // 68: nimi.runtime.v1.RuntimeAppService.OpenApp:input_type -> nimi.runtime.v1.OpenAppRequest
+	15, // 69: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
+	17, // 70: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
+	23, // 71: nimi.runtime.v1.RuntimeAppService.InstallApp:output_type -> nimi.runtime.v1.InstallAppResponse
+	47, // 72: nimi.runtime.v1.RuntimeAppService.UninstallApp:output_type -> nimi.runtime.v1.UninstallAppResponse
+	27, // 73: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
+	31, // 74: nimi.runtime.v1.RuntimeAppService.GetAccountAppInventory:output_type -> nimi.runtime.v1.GetAccountAppInventoryResponse
+	34, // 75: nimi.runtime.v1.RuntimeAppService.AdoptLocalApp:output_type -> nimi.runtime.v1.AdoptLocalAppResponse
+	36, // 76: nimi.runtime.v1.RuntimeAppService.ListLocalAppAdoptions:output_type -> nimi.runtime.v1.ListLocalAppAdoptionsResponse
+	38, // 77: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAdoption:output_type -> nimi.runtime.v1.RemoveLocalAppAdoptionResponse
+	40, // 78: nimi.runtime.v1.RuntimeAppService.GetAppPackageReadiness:output_type -> nimi.runtime.v1.GetAppPackageReadinessResponse
+	25, // 79: nimi.runtime.v1.RuntimeAppService.GetAppInstallJob:output_type -> nimi.runtime.v1.GetAppInstallJobResponse
+	42, // 80: nimi.runtime.v1.RuntimeAppService.ListAppInstallJobs:output_type -> nimi.runtime.v1.ListAppInstallJobsResponse
+	44, // 81: nimi.runtime.v1.RuntimeAppService.WatchAppInstallJobEvents:output_type -> nimi.runtime.v1.AppInstallJobEvent
+	49, // 82: nimi.runtime.v1.RuntimeAppService.UpdateApp:output_type -> nimi.runtime.v1.UpdateAppResponse
+	51, // 83: nimi.runtime.v1.RuntimeAppService.HealthRepairApp:output_type -> nimi.runtime.v1.HealthRepairAppResponse
+	55, // 84: nimi.runtime.v1.RuntimeAppService.OpenApp:output_type -> nimi.runtime.v1.OpenAppResponse
+	69, // [69:85] is the sub-list for method output_type
+	53, // [53:69] is the sub-list for method input_type
+	53, // [53:53] is the sub-list for extension type_name
+	53, // [53:53] is the sub-list for extension extendee
+	0,  // [0:53] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_app_proto_init() }

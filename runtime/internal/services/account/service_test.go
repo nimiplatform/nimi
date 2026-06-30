@@ -157,6 +157,18 @@ func localDeveloperCaller() *runtimev1.AccountCaller {
 	}
 }
 
+func installedNimiAppCaller() *runtimev1.AccountCaller {
+	return &runtimev1.AccountCaller{
+		AppId:                "community.nimi.fixture.platform-proof",
+		AppInstanceId:        "community.nimi.fixture.platform-proof.desktop-host",
+		DeviceId:             "desktop-installed-app-host-device",
+		Mode:                 runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP,
+		LaunchHostId:         appregistry.DesktopInstalledAppLaunchHostID,
+		LaunchNonce:          "launch-nonce-1",
+		ReleaseDescriptorRef: "community.nimi.fixture.platform-proof.0.1.0-sandbox",
+	}
+}
+
 func testAppRegistry(t *testing.T, callers ...*runtimev1.AccountCaller) *appregistry.Registry {
 	t.Helper()
 	registry := appregistry.New()
@@ -172,6 +184,32 @@ func testAppRegistry(t *testing.T, callers ...*runtimev1.AccountCaller) *appregi
 		}, nil); err != nil {
 			t.Fatalf("register test app caller: %v", err)
 		}
+	}
+	return registry
+}
+
+func testInstalledNimiAppRegistry(t *testing.T, caller *runtimev1.AccountCaller, configure func(*appregistry.DesktopLaunchedNimiAppAdmission)) *appregistry.Registry {
+	t.Helper()
+	registry := testAppRegistry(t, firstPartyCaller())
+	admission := appregistry.DesktopLaunchedNimiAppAdmission{
+		PlatformRegistryAdmitted: true,
+		ReleaseDescriptorRef:     "community.nimi.fixture.platform-proof.0.1.0-sandbox",
+		ActiveReleaseRoot:        "D:/nimi-data/apps/community.nimi.fixture.platform-proof/releases/0.1.0",
+		LaunchHostID:             appregistry.DesktopInstalledAppLaunchHostID,
+		LaunchNonce:              "launch-nonce-1",
+		AccountInventoryEntitled: true,
+		LocalMaterialized:        true,
+	}
+	if configure != nil {
+		configure(&admission)
+	}
+	if err := registry.UpsertDesktopLaunchedNimiAppInstance(caller.GetAppId(), caller.GetAppInstanceId(), caller.GetDeviceId(), &runtimev1.AppModeManifest{
+		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+		RuntimeRequired: true,
+		RealmRequired:   true,
+		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+	}, nil, admission); err != nil {
+		t.Fatalf("register installed Nimi App caller: %v", err)
 	}
 	return registry
 }
@@ -756,6 +794,176 @@ func TestLocalDeveloperRegistrationCannotBeClaimedAsLocalFirstPartyCaller(t *tes
 	}
 	if token.GetAccepted() || token.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
 		t.Fatalf("developer-registered instance must not become first-party by caller mode: %+v", token)
+	}
+}
+
+func TestDesktopLaunchedInstalledNimiAppAccountSurfaceRequiresInstalledLaunchEvidence(t *testing.T) {
+	caller := installedNimiAppCaller()
+	svc := newHarnessService(
+		t,
+		nil,
+		WithAppRegistry(testInstalledNimiAppRegistry(t, caller, nil)),
+		WithRefresher(staticRefresher{material: testMaterial("acct-1", "access-2", "refresh-2")}),
+	)
+	completeLogin(t, svc)
+
+	status, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: caller})
+	if err != nil {
+		t.Fatalf("installed app GetAccountSessionStatus: %v", err)
+	}
+	if status.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
+		status.GetAccountProjection().GetAccountId() != "acct-1" {
+		t.Fatalf("installed app should receive host-owned account projection after launch evidence: %+v", status)
+	}
+
+	refresh, err := svc.RefreshAccountSession(context.Background(), &runtimev1.RefreshAccountSessionRequest{Caller: caller})
+	if err != nil {
+		t.Fatalf("installed app RefreshAccountSession: %v", err)
+	}
+	if !refresh.GetAccepted() || refresh.GetAccountProjection().GetAccountId() != "acct-1" {
+		t.Fatalf("installed app should refresh through Runtime custody: %+v", refresh)
+	}
+
+	binding, err := svc.IssueScopedAppBinding(context.Background(), &runtimev1.IssueScopedAppBindingRequest{
+		Caller: caller,
+		Relation: &runtimev1.ScopedAppBindingRelation{
+			RuntimeAppId:  caller.GetAppId(),
+			AppInstanceId: caller.GetAppInstanceId(),
+			AgentId:       "agent-1",
+			Purpose:       runtimev1.ScopedAppBindingPurpose_SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME,
+		},
+	})
+	if err != nil {
+		t.Fatalf("installed app IssueScopedAppBinding: %v", err)
+	}
+	if !binding.GetAccepted() || binding.GetBindingId() == "" {
+		t.Fatalf("installed app should receive mediated scoped binding: %+v", binding)
+	}
+
+	token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: caller})
+	if err != nil {
+		t.Fatalf("installed app GetAccessToken: %v", err)
+	}
+	if token.GetAccepted() || token.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("installed app must not receive raw Realm access token: %+v", token)
+	}
+
+	logout, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: caller})
+	if err != nil {
+		t.Fatalf("installed app Logout: %v", err)
+	}
+	if logout.GetAccepted() || logout.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("installed app must not own logout authority: %+v", logout)
+	}
+}
+
+func TestDesktopLaunchedInstalledNimiAppCallerFailsClosedWithoutInstalledEvidence(t *testing.T) {
+	caller := installedNimiAppCaller()
+	cases := []struct {
+		name     string
+		registry *appregistry.Registry
+		want     runtimev1.AccountReasonCode
+	}{
+		{
+			name:     "shape_only_first_party_registration",
+			registry: testAppRegistry(t, firstPartyCaller(), caller),
+			want:     runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED,
+		},
+		{
+			name:     "developer_registration",
+			registry: testDeveloperAppRegistry(t, caller),
+			want:     runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED,
+		},
+		{
+			name: "missing_release_descriptor",
+			registry: testInstalledNimiAppRegistry(t, caller, func(admission *appregistry.DesktopLaunchedNimiAppAdmission) {
+				admission.ReleaseDescriptorRef = ""
+			}),
+			want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED,
+		},
+		{
+			name: "wrong_desktop_host",
+			registry: testInstalledNimiAppRegistry(t, caller, func(admission *appregistry.DesktopLaunchedNimiAppAdmission) {
+				admission.LaunchHostID = "desktop-shell"
+			}),
+			want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED,
+		},
+		{
+			name: "missing_account_inventory_entitlement",
+			registry: testInstalledNimiAppRegistry(t, caller, func(admission *appregistry.DesktopLaunchedNimiAppAdmission) {
+				admission.AccountInventoryEntitled = false
+			}),
+			want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED,
+		},
+		{
+			name: "missing_local_materialization",
+			registry: testInstalledNimiAppRegistry(t, caller, func(admission *appregistry.DesktopLaunchedNimiAppAdmission) {
+				admission.LocalMaterialized = false
+			}),
+			want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED,
+		},
+		{
+			name: "wrong_device",
+			registry: testInstalledNimiAppRegistry(t, caller, func(admission *appregistry.DesktopLaunchedNimiAppAdmission) {
+			}),
+			want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED,
+		},
+		{
+			name: "wrong_launch_nonce",
+			registry: testInstalledNimiAppRegistry(t, caller, func(admission *appregistry.DesktopLaunchedNimiAppAdmission) {
+			}),
+			want: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			testCaller := proto.Clone(caller).(*runtimev1.AccountCaller)
+			if tc.name == "wrong_device" {
+				testCaller.DeviceId = "other-device"
+			}
+			if tc.name == "wrong_launch_nonce" {
+				testCaller.LaunchNonce = "wrong-launch-nonce"
+			}
+			svc := newHarnessService(t, nil, WithAppRegistry(tc.registry))
+			completeLogin(t, svc)
+
+			status, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: testCaller})
+			if err != nil {
+				t.Fatalf("GetAccountSessionStatus: %v", err)
+			}
+			if status.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
+				status.GetAccountReasonCode() != tc.want ||
+				status.GetAccountProjection() != nil {
+				t.Fatalf("installed app caller without full evidence must fail closed: %+v", status)
+			}
+		})
+	}
+}
+
+func TestDesktopLaunchedInstalledNimiAppCallerRequiresAuthenticatedAccount(t *testing.T) {
+	caller := installedNimiAppCaller()
+	svc := newHarnessService(
+		t,
+		&memoryCustody{err: ErrNoStoredAccount},
+		WithAppRegistry(testInstalledNimiAppRegistry(t, caller, nil)),
+	)
+
+	status, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: caller})
+	if err != nil {
+		t.Fatalf("GetAccountSessionStatus: %v", err)
+	}
+	if status.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
+		status.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE ||
+		status.GetAccountProjection() != nil {
+		t.Fatalf("installed app caller must require authenticated Runtime account custody: %+v", status)
+	}
+
+	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: caller})
+	if err != nil {
+		t.Fatalf("BeginLogin: %v", err)
+	}
+	if begin.GetAccepted() || begin.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE {
+		t.Fatalf("installed app caller must not bootstrap login from anonymous account state: %+v", begin)
 	}
 }
 

@@ -1,10 +1,16 @@
 package app
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"sync"
@@ -13,6 +19,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appinstallgateway"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -159,6 +166,187 @@ descriptors:
 	return catalog
 }
 
+func externalFixtureRegistry(t *testing.T, visibility string) *appregistrycatalog.Registry {
+	t.Helper()
+	body := fmt.Sprintf(`version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: test_nimi_app_registry
+apps:
+  - app_id: community.nimi.fixture.platform-proof
+    display_label: Platform Proof Fixture
+    publisher: nimiplatform-fixtures
+    trust_tier_ref: nimi-community
+    package_kind: nimi-app
+    runtime_registration_mode: app-managed
+    permission_scope_ref:
+      - { appId: community.nimi.fixture.platform-proof, scopeFamily: account, scopeName: account.session.read }
+    ordinary_visibility: %s
+    release_descriptor_ref: community.nimi.fixture.platform-proof.0.1.0-sandbox
+    install_storage_policy_ref: nimi-data-app-roots
+    admission_status: admitted
+    source_rule: P-NAPP-033
+`, visibility)
+	registry, err := appregistrycatalog.LoadRegistry(stringReader(body))
+	if err != nil {
+		t.Fatalf("load external fixture registry: %v", err)
+	}
+	return registry
+}
+
+func externalFixtureReleaseCatalog(t *testing.T, artifactURL string, payload []byte) *appreleasecatalog.Catalog {
+	t.Helper()
+	sum := sha256.Sum256(payload)
+	body := fmt.Sprintf(`version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_nimi_app_release_descriptors
+descriptors:
+  - descriptor_id: community.nimi.fixture.platform-proof.0.1.0-sandbox
+    app_id: community.nimi.fixture.platform-proof
+    version: 0.1.0-sandbox
+    admission_track: admission-sandbox-ci
+    descriptor_class: external-immutable-artifact
+    publisher:
+      github_namespace: github.com/nimiplatform-fixtures
+      namespace_kind: org
+      identity_assurance: domain-verified
+      verified_domain: fixtures.nimi.test
+      kyc_verification_ref: ci-kyc-deferred
+    source:
+      kind: admission-sandbox-https-artifact
+      ref: %s
+    artifact:
+      locator: %s
+      digest_algorithm: sha256
+      sha256: %s
+      size:
+        download: "%d"
+        installed: "%d"
+        user_data: "0"
+        cache: "0"
+        shared_deps: "0"
+      signature_or_provenance_ref: ci-provenance/platform-proof/0.1.0-sandbox
+    artifact_mirror_ref: nimi-ci-mirror://platform-proof/0.1.0-sandbox/app.zip
+    mirror_license_cleared: true
+    build_assurance: deterministic-fixture-build
+    dependency_assurance: pnpm-lock-and-sdk-kit-boundary-scan
+    platform_signing_assurance:
+      macos_notarization: not-required-internal
+      macos_developer_id_subject: not-required-internal
+      windows_code_signing: not-required-internal
+      installer_signature: not-required-internal
+      entitlements_ref: ci-entitlements/platform-proof
+      signing_subject: nimi-internal-ci
+    runtime:
+      package_kind: nimi-app
+      entry_ref: dist/index.html
+      sandbox_ref: installed-nimi-app-standard-shell-v1
+    permissions_ref: community.nimi.fixture.platform-proof.permission_scope_ref
+    storage_policy_ref:
+      id: nimi-data-app-roots
+      kind: nimi-mediated-default
+    update_channel_ref: platform-proof-sandbox-channel
+    rollback_eligibility: no-prior-admitted-descriptor
+    review:
+      admission_path: admission-sandbox-ci
+      mutable_source_allowed: false
+      install_digest_verification_required: required
+      decision: approved
+      adjudicator_kind: platform-review-bot
+      adjudicator_ref: ci/platform-proof
+      decided_at: "2026-06-30T00:00:00Z"
+    support:
+      diagnostics_bundle_fields: [runtime, storage, descriptor]
+      redaction_rules: [strip-account-token]
+      user_visible_issue_categories: [install-failed, launch-failed]
+      escalation_path: ci-fixture-support
+      kill_switch_visibility: developer-only
+      recovery_instructions: [reinstall]
+    source_rule: P-NAPP-033
+`, artifactURL, artifactURL, hex.EncodeToString(sum[:]), len(payload), len(payload))
+	catalog, err := appreleasecatalog.LoadCatalog(stringReader(body))
+	if err != nil {
+		t.Fatalf("load external fixture release catalog: %v", err)
+	}
+	return catalog
+}
+
+func zipFixturePayload(t *testing.T) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	for name, body := range map[string]string{
+		"dist/index.html":        "<main>Nimi platform fixture</main>",
+		"dist/assets/fixture.js": "globalThis.__nimiFixture = true;",
+		"nimi-app.manifest.json": `{"appId":"community.nimi.fixture.platform-proof","entryRef":"dist/index.html"}`,
+	} {
+		w, err := zw.Create(name)
+		if err != nil {
+			t.Fatalf("zip create %s: %v", name, err)
+		}
+		if _, err := w.Write([]byte(body)); err != nil {
+			t.Fatalf("zip write %s: %v", name, err)
+		}
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatalf("zip close: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func newExternalFixtureInstallService(t *testing.T, descriptorPayload []byte, servedPayload []byte, visibility string) (*Service, string, string) {
+	t.Helper()
+	svc, _, dataRoot, nimiDir := newExternalFixtureInstallServiceWithRuntimeAppRegistry(t, descriptorPayload, servedPayload, visibility)
+	return svc, dataRoot, nimiDir
+}
+
+func newExternalFixtureInstallServiceWithRuntimeAppRegistry(
+	t *testing.T,
+	descriptorPayload []byte,
+	servedPayload []byte,
+	visibility string,
+) (*Service, *appregistry.Registry, string, string) {
+	t.Helper()
+	server := httptest.NewTLSServer(httpBytesHandler(servedPayload))
+	t.Cleanup(server.Close)
+	runtime, err := NewInstallRuntime(
+		externalFixtureRegistry(t, visibility),
+		externalFixtureReleaseCatalog(t, server.URL+"/fixture.zip", descriptorPayload),
+		t.TempDir(),
+		"",
+		appinstallgateway.NewHTTPSDownloader(
+			appinstallgateway.WithHTTPClient(server.Client()),
+			appinstallgateway.WithAllowedArtifactHosts("127.0.0.1"),
+		),
+		appinstallgateway.NewArchiveUnpacker(),
+	)
+	if err != nil {
+		t.Fatalf("NewInstallRuntime external fixture: %v", err)
+	}
+	runtimeAppRegistry := appregistry.New()
+	nimiDir := filepath.Join(t.TempDir(), ".nimi")
+	svc := New(testLogger(),
+		WithInstallRuntime(runtime),
+		WithSessionValidator(allowingAppSessionValidator{}),
+		WithOpenAppReadinessVerifier(allowOpenReadinessVerifier{}),
+		WithRuntimeAppRegistry(runtimeAppRegistry),
+		WithRuntimeAccountProjectionProvider(testRuntimeAccountProjectionProvider{
+			projection: &runtimev1.AccountProjection{AccountId: "account_1"},
+			ok:         true,
+		}),
+		WithAccountAppInventoryStoreForTest(newAccountAppInventoryStoreForTest(nimiDir)),
+	)
+	seedAccountInventoryStateForTest(t, nimiDir, "account_1", "community.nimi.fixture.platform-proof", accountAppInventoryStateVerified, accountAppInstallStateNotInstalled)
+	return svc, runtimeAppRegistry, runtime.dataRootRef, nimiDir
+}
+
+func httpBytesHandler(payload []byte) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(payload)
+	}
+}
+
 func stringReader(s string) *os.File {
 	// stringReader writes s to a temp file and returns it as an io.Reader
 	// compatible *os.File. LoadCatalog/LoadRegistry accept any io.Reader.
@@ -223,6 +411,7 @@ func newBundledInstallServiceWithRegistryAndAccountRow(
 		WithInstallRuntime(runtime),
 		WithSessionValidator(allowingAppSessionValidator{}),
 		WithOpenAppReadinessVerifier(verifier),
+		WithRuntimeAppRegistry(appregistry.New()),
 		WithRuntimeAccountProjectionProvider(testRuntimeAccountProjectionProvider{
 			projection: &runtimev1.AccountProjection{AccountId: "account_1"},
 			ok:         true,
@@ -289,6 +478,77 @@ func TestInstallAppBundledReachesInstalled(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(job.GetStorage().GetReleaseRoot(), "manifest.json")); err != nil {
 		t.Fatalf("expected materialized release payload: %v", err)
+	}
+}
+
+func TestInstallAppExternalFixtureVerifiesDigestAndCommitsActiveRelease(t *testing.T) {
+	payload := zipFixturePayload(t)
+	svc, dataRoot, _ := newExternalFixtureInstallService(t, payload, payload, "developer-only")
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{
+		AppId:     "community.nimi.fixture.platform-proof",
+		Confirmed: true,
+	})
+	if err != nil {
+		t.Fatalf("InstallApp external fixture: %v", err)
+	}
+	if resp.GetJob().GetSourceKind() != runtimev1.AppInstallSourceKind_APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT {
+		t.Fatalf("source kind = %v, want external artifact", resp.GetJob().GetSourceKind())
+	}
+	job := waitForTerminalJob(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_INSTALLED {
+		t.Fatalf("job state = %v detail=%q, want INSTALLED", job.GetState(), job.GetFailureDetail())
+	}
+	if job.GetSha256() == "" || job.GetArtifactBytes() != int64(len(payload)) {
+		t.Fatalf("job digest/bytes = %q/%d", job.GetSha256(), job.GetArtifactBytes())
+	}
+	readiness, err := svc.GetAppPackageReadiness(context.Background(), &runtimev1.GetAppPackageReadinessRequest{
+		AppId: "community.nimi.fixture.platform-proof",
+	})
+	if err != nil {
+		t.Fatalf("GetAppPackageReadiness: %v", err)
+	}
+	proj := readiness.GetProjection()
+	if proj.GetState() != runtimev1.AppPackageReadinessState_APP_PACKAGE_READINESS_STATE_READY {
+		t.Fatalf("readiness state = %v detail=%q, want READY", proj.GetState(), proj.GetDetail())
+	}
+	if proj.GetVerificationState() != "digest-verified" {
+		t.Fatalf("verification state = %q, want digest-verified", proj.GetVerificationState())
+	}
+	activePath := filepath.Join(dataRoot, "apps", "community.nimi.fixture.platform-proof", ".nimi", "active-release.json")
+	if _, err := os.Stat(activePath); err != nil {
+		t.Fatalf("active release pointer missing: %v", err)
+	}
+}
+
+func TestInstallAppExternalFixtureDigestMismatchDoesNotCommitInstall(t *testing.T) {
+	descriptorPayload := zipFixturePayload(t)
+	servedPayload := append([]byte(nil), descriptorPayload...)
+	servedPayload[len(servedPayload)-1] ^= 0xff
+	svc, dataRoot, nimiDir := newExternalFixtureInstallService(t, descriptorPayload, servedPayload, "developer-only")
+	resp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{
+		AppId:     "community.nimi.fixture.platform-proof",
+		Confirmed: true,
+	})
+	if err != nil {
+		t.Fatalf("InstallApp external fixture mismatch: %v", err)
+	}
+	job := waitForTerminalJob(t, svc, resp.GetJob().GetJobId())
+	if job.GetState() != runtimev1.AppInstallJobState_APP_INSTALL_JOB_STATE_FAILED {
+		t.Fatalf("job state = %v detail=%q, want FAILED", job.GetState(), job.GetFailureDetail())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_APP_INSTALL_DIGEST_MISMATCH {
+		t.Fatalf("reason = %v, want APP_INSTALL_DIGEST_MISMATCH", job.GetReasonCode())
+	}
+	activePath := filepath.Join(dataRoot, "apps", "community.nimi.fixture.platform-proof", ".nimi", "active-release.json")
+	if _, err := os.Stat(activePath); !os.IsNotExist(err) {
+		t.Fatalf("active release pointer must not be committed, stat err=%v", err)
+	}
+	record, err := newAccountAppInventoryStoreForTest(nimiDir).readOrEmpty("account_1")
+	if err != nil {
+		t.Fatalf("read account inventory: %v", err)
+	}
+	if len(record.Apps) != 1 || record.Apps[0].InstallState != accountAppInstallStateNotInstalled {
+		t.Fatalf("account inventory mutated after failed install: %+v", record.Apps)
 	}
 }
 
