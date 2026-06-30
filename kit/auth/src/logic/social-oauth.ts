@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
-// Social OAuth — parameterized on TauriOAuthBridge
+// Social OAuth — parameterized on the standard shell OAuth bridge
 // ---------------------------------------------------------------------------
 
-import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import {
   createDesktopCallbackRedirectUri,
   createDesktopCallbackState,
@@ -93,7 +93,7 @@ function normalizeProviderUrl(value: string, fallback: string): string {
 
 export function resolveSocialOauthConfig(
   provider: SocialOauthProvider,
-  bridge: TauriOAuthBridge,
+  bridge: ShellOAuthBridge,
 ): SocialOauthConfig {
   const label = resolveProviderLabel(provider);
   const clientId = readProviderEnv(provider, 'CLIENT_ID').trim();
@@ -105,7 +105,7 @@ export function resolveSocialOauthConfig(
   const authorizeExtra = parseExtra(readProviderEnv(provider, 'AUTHORIZE_EXTRA'));
 
   let disabledReason = '';
-  if (!bridge.hasTauriInvoke()) {
+  if (!bridge.hasShellHostInvoke()) {
     disabledReason = `${label} OAuth requires desktop runtime`;
   } else if (!clientId) {
     disabledReason = `Missing ${provider} OAuth client ID`;
@@ -177,7 +177,7 @@ function buildAuthorizeUrl(input: {
 
 export async function startSocialOauth(
   provider: SocialOauthProvider,
-  bridge: TauriOAuthBridge,
+  bridge: ShellOAuthBridge,
 ): Promise<SocialOauthResult> {
   const config = resolveSocialOauthConfig(provider, bridge);
   if (!config.enabled) {

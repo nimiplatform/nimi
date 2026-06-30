@@ -149,7 +149,7 @@
       "exportKey": "./core/oauth",
       "source": "kit/core/src/oauth/index.ts",
       "exports": [
-        "export type { OauthTokenExchangePayload, OauthTokenExchangeResult, OauthListenForCodePayload, OauthListenForCodeResult, OpenExternalUrlResult, TauriOAuthCodeBridge, TauriOAuthBridge, } from './oauth-types.js';",
+        "export type { OauthTokenExchangePayload, OauthTokenExchangeResult, OauthListenForCodePayload, OauthListenForCodeResult, OpenExternalUrlResult, ShellOAuthCodeBridge, ShellOAuthBridge, } from './oauth-types.js';",
         "export { parseOauthTokenExchangeResult, parseOauthListenForCodeResult, parseOpenExternalUrlResult, } from './oauth-types.js';"
       ]
     },
@@ -1314,11 +1314,13 @@
       "source": "kit/shell/electron/src/main/index.ts",
       "exports": [
         "export * from './host.js';",
+        "export * from './runtime-account-auth.js';",
         "export * from './types.js';"
       ],
       "expandedExports": [
         "class NimiElectronShellHostError",
-        "export { assertAllowedElectronRendererOrigin, assertAllowedElectronRendererUrl, createElectronCapabilityUnavailableError, createElectronExternalDaemonRequiredError, createElectronRuntimeBridgeCommandNames, createElectronRuntimeBridgeEventName, createElectronRuntimeEndpointUnavailableError, getElectronStandardShellCapabilityIds, isAllowedElectronRendererOrigin, isAllowedElectronRendererUrl, normalizeElectronShellAppId, };",
+        "export { assertAllowedElectronRendererOrigin, assertAllowedElectronRendererUrl, createElectronCapabilityUnavailableError, createElectronExternalDaemonRequiredError, createElectronRuntimeBridgeCommandNames, createElectronRuntimeBridgeEventName, createElectronRuntimeEndpointUnavailableError, getElectronStandardShellCapabilityIds, isAllowedElectronRendererOrigin, isAllowedElectronRendererUrl, normalizeElectronShellAppId, assertOpaqueElectronLocalAgentRef, };",
+        "function createNimiElectronRuntimeAccountTrustedMetadataProvider",
         "function registerNimiElectronRuntimeBridge",
         "type ElectronRuntimeBridgeAppSession",
         "type ElectronRuntimeBridgeCommandNames",
@@ -1347,8 +1349,15 @@
         "type NimiElectronLocalAgentIdentityInput",
         "type NimiElectronOAuthTokenExchangeFetch",
         "type NimiElectronOAuthTokenExchangeResponse",
+        "type NimiElectronRuntimeAccountAppSessionInput",
+        "type NimiElectronRuntimeAccountAuthRuntime",
+        "type NimiElectronRuntimeAccountProtectedAccessInput",
+        "type NimiElectronRuntimeAccountResourceSelectors",
+        "type NimiElectronRuntimeAccountTrustedMetadataProviderInput",
         "type NimiElectronRuntimeConfigGet",
         "type NimiElectronRuntimeConfigGetResult",
+        "type NimiElectronRuntimeProtectedAccessIdempotencyInput",
+        "type NimiElectronRuntimeProtectedAccessIdempotencyKey",
         "type NimiElectronRuntimeTrustedCallerInput",
         "type NimiElectronRuntimeTrustedCallerMode",
         "type NimiElectronShellUiCommandInput",
@@ -1400,11 +1409,13 @@
       "exports": [
         "const DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS",
         "const DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS",
+        "const DEFAULT_STANDARD_SHELL_HOST_INSTALL_RETRY_DELAYS_MS",
         "export { installNimiShellRuntimeBridge} from './runtime-bridge.js';",
         "function checkRuntimeDaemonVersion",
         "function createRendererEntryImportError",
         "function createRendererEntryModuleLoader",
         "function describeRendererEntryFailureReason",
+        "function ensureNimiShellRuntimeBridgeInstalled",
         "function ensureRuntimeReady",
         "function isRetryableRendererEntryImportError",
         "function isRuntimeDaemonReachable",
@@ -1422,7 +1433,9 @@
         "type RendererEntryModuleLoaderOptions",
         "type RuntimeDaemonVersionCheckOptions",
         "type RuntimeDaemonVersionCheckResult",
-        "type RuntimeReadinessConfig"
+        "type RuntimeReadinessConfig",
+        "type StandardShellHostInstallOptions",
+        "type StandardShellHostInstallStageReporter"
       ]
     },
     {
@@ -1443,7 +1456,7 @@
         "export { invoke, invokeChecked, BridgeError} from './invoke.js';",
         "export { loadAuthSession, saveAuthSession, clearAuthSession, watchAuthSessionChanges, } from './auth-session.js';",
         "export { normalizeShellExternalUrl, openExternalUrl, confirmDialog, startWindowDrag, focusMainWindow, } from './ui.js';",
-        "export { oauthTokenExchange, oauthListenForCode, createTauriOAuthCodeBridge, createTauriOAuthBridge, } from './oauth.js';"
+        "export { oauthTokenExchange, oauthListenForCode, createStandardShellOAuthCodeBridge, createStandardShellOAuthBridge, } from './oauth.js';"
       ]
     },
     {

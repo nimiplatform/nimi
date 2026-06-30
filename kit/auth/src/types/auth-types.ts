@@ -3,7 +3,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   ReactNode,
 } from 'react';
-import type { TauriOAuthBridge, TauriOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthBridge, ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 
 // ---------------------------------------------------------------------------
@@ -147,7 +147,7 @@ export type ShellAuthDesktopBrowserAuthRuntimeBroker = {
 };
 
 export type ShellAuthDesktopBrowserAuth = {
-  bridge: TauriOAuthCodeBridge;
+  bridge: ShellOAuthCodeBridge;
   baseUrl?: string;
   onRootPointerDown?: (event: ReactMouseEvent<HTMLElement>) => void;
   hintVisibility?: 'always' | 'hover-or-status';

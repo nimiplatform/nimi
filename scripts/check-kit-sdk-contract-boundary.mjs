@@ -63,6 +63,10 @@ function isSdkSpecifier(specifier) {
   return specifier === '@nimiplatform/sdk' || specifier.startsWith('@nimiplatform/sdk/');
 }
 
+function isElectronMainHostGlue(fileRel) {
+  return fileRel.startsWith('kit/shell/electron/src/main/');
+}
+
 function resolvesToSdkContract(fromFile, specifier) {
   if (!specifier.startsWith('.')) return false;
   const resolved = path.resolve(path.dirname(fromFile), specifier);
@@ -91,6 +95,12 @@ for (const filePath of walkFiles(kitRoot)) {
 
   for (const specifier of specifiers) {
     if (isSdkSpecifier(specifier)) {
+      if (isElectronMainHostGlue(fileRel)) {
+        if (!allowedSdkContractSpecifiers.has(specifier)) {
+          violations.push(`${fileRel}: Electron main host glue imports unadmitted SDK subpath ${specifier}`);
+        }
+        continue;
+      }
       violations.push(`${fileRel}: direct SDK import is forbidden; route through @nimiplatform/kit/core/sdk-contract (${specifier})`);
     }
     if (resolvesToSdkContract(filePath, specifier)) {

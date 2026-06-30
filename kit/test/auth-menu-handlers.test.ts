@@ -68,7 +68,7 @@ function createAdapter(overrides?: Partial<AuthPlatformAdapter>): AuthPlatformAd
     loadCurrentUser: async () => null,
     applyToken: async () => undefined,
     oauthBridge: {
-      hasTauriInvoke: () => false,
+      hasShellHostInvoke: () => false,
       oauthListenForCode: async () => ({ code: '', state: '', error: '' }),
       oauthTokenExchange: async () => ({ accessToken: '' }),
       openExternalUrl: async () => ({ opened: true }),

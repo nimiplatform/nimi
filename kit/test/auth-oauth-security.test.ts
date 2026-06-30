@@ -6,6 +6,7 @@ import {
   createDesktopOAuthCallbackState,
   handleWalletLogin,
   localizeAuthError,
+  toDesktopBrowserAuthErrorMessage,
   toErrorMessage,
   validateDesktopCallbackState,
 } from '@nimiplatform/kit/auth';
@@ -108,6 +109,11 @@ describe('auth error rendering', () => {
     } finally {
       restoreEnv();
     }
+  });
+
+  it('surfaces RuntimeAccountService availability failures for desktop browser auth', () => {
+    expect(toDesktopBrowserAuthErrorMessage(new Error('Runtime account login could not start: electron-runtime-endpoint-unavailable')))
+      .toBe('Runtime account service is unavailable. Start or connect the external Runtime daemon and try again.');
   });
 });
 

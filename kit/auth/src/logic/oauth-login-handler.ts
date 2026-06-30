@@ -2,14 +2,14 @@
 // Generic OAuth login handler
 // ---------------------------------------------------------------------------
 
-import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import type { SocialOauthProvider } from './social-oauth.js';
 import { resolveProviderLabel, startSocialOauth } from './social-oauth.js';
 import { toErrorMessage } from './oauth-helpers.js';
 
 export type OAuthLoginInput = {
   provider: SocialOauthProvider;
-  bridge: TauriOAuthBridge;
+  bridge: ShellOAuthBridge;
   oauthLogin: (provider: string, accessToken: string) => Promise<Record<string, unknown>>;
   onSuccess: (result: {
     accessToken: string;

@@ -28,6 +28,11 @@ import type {
 } from './permission-types.js';
 
 export {
+  createRealmWithRuntimeAccountToken,
+  type RuntimeAccountRealmFetch,
+  type RuntimeAccountRealmRuntime,
+} from './runtime-account-realm.js';
+export {
   NIMI_APP_AI_PROFILE_FACTORY_CATALOG,
   NIMI_APP_AI_PROFILE_FACTORY_ROWS,
   NIMI_APP_RELEASE_DESCRIPTOR_ROWS,

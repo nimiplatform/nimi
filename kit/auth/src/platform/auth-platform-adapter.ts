@@ -1,4 +1,4 @@
-import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import type {
   NimiRealmAuthTokens,
   NimiRealmOAuthLoginResult,
@@ -45,7 +45,7 @@ export type AuthPlatformAdapter = {
 
   // Social OAuth token-exchange bridge. Desktop-browser RuntimeAccountService
   // login does not require or own this capability.
-  oauthBridge?: TauriOAuthBridge;
+  oauthBridge?: ShellOAuthBridge;
 
   // Data sync side effects (Desktop: loadChats/loadContacts; Relay: no-op)
   syncAfterLogin?: () => Promise<void>;

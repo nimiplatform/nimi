@@ -43,6 +43,14 @@ function isTestSource(filePath: string): boolean {
   );
 }
 
+function isAllowedSdkImportSource(filePath: string): boolean {
+  const normalized = path.relative(repoRoot, filePath).split(path.sep).join('/');
+  return (
+    normalized === 'kit/core/src/sdk-contract.ts'
+    || normalized.startsWith('kit/shell/electron/src/main/')
+  );
+}
+
 function importSpecifiers(source: string): string[] {
   const specifiers: string[] = [];
   const importPattern = /(?:from\s+|import\s*\(\s*)['"]([^'"]+)['"]/g;
@@ -58,7 +66,7 @@ function importSpecifiers(source: string): string[] {
 
 test('Kit code and tests route static SDK imports through the SDK contract boundary only', () => {
   const offenders = walkSourceFiles(kitRoot)
-    .filter((filePath) => path.relative(repoRoot, filePath).split(path.sep).join('/') !== 'kit/core/src/sdk-contract.ts')
+    .filter((filePath) => !isAllowedSdkImportSource(filePath))
     .filter((filePath) => {
       const specifiers = importSpecifiers(fs.readFileSync(filePath, 'utf8'));
       return specifiers.some((specifier) => specifier === '@nimiplatform/sdk' || specifier.startsWith('@nimiplatform/sdk/'));

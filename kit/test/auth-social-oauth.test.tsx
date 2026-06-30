@@ -15,7 +15,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 const desktopOAuthBridge = {
-  hasTauriInvoke: () => true,
+  hasShellHostInvoke: () => true,
   oauthListenForCode: async () => ({ callbackUrl: '' }),
   oauthTokenExchange: async () => ({ accessToken: '', raw: {} }),
   openExternalUrl: async () => ({ opened: true }),

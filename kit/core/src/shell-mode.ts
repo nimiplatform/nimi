@@ -20,6 +20,18 @@ function hasTauriRuntime(): boolean {
   return Boolean(win.__TAURI__ || win.__TAURI_INTERNALS__ || win.__TAURI_IPC__);
 }
 
+function hasElectronRuntime(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  const win = window as unknown as Record<string, unknown>;
+  const hook = win.__NIMI_ELECTRON_RUNTIME__;
+  if (!hook || typeof hook !== 'object' || Array.isArray(hook)) {
+    return false;
+  }
+  return typeof (hook as { invoke?: unknown }).invoke === 'function';
+}
+
 function resolveShellModeFromEnv(): ShellMode {
   const raw = readBundledEnv('VITE_NIMI_SHELL_MODE').toLowerCase();
   if (raw === 'desktop' || raw === 'web') {
@@ -28,7 +40,7 @@ function resolveShellModeFromEnv(): ShellMode {
   if (typeof window === 'undefined') {
     return 'desktop';
   }
-  return hasTauriRuntime() ? 'desktop' : 'web';
+  return hasTauriRuntime() || hasElectronRuntime() ? 'desktop' : 'web';
 }
 
 function isMacDesktopEnvironment(): boolean {
@@ -53,15 +65,15 @@ export function getShellFeatureFlags(): ShellFeatureFlags {
 
   const mode = resolveShellModeFromEnv();
   const isDesktop = mode === 'desktop';
-  const isTauriShell = isDesktop;
-  const enableMenuBarShell = isDesktop && isMacDesktopEnvironment();
+  const isTauriShell = hasTauriRuntime();
+  const enableMenuBarShell = isTauriShell && isMacDesktopEnvironment();
 
   cachedFlags = {
     mode,
     enableRuntimeTab: isDesktop,
     enableTitlebarDrag: isTauriShell,
     enableMenuBarShell,
-    enableRuntimeBootstrap: isTauriShell,
+    enableRuntimeBootstrap: isDesktop,
   };
 
   return cachedFlags;

@@ -42,8 +42,8 @@ export {
 export {
   oauthTokenExchange,
   oauthListenForCode,
-  createTauriOAuthCodeBridge,
-  createTauriOAuthBridge,
+  createStandardShellOAuthCodeBridge,
+  createStandardShellOAuthBridge,
 } from './oauth.js';
 export {
   normalizeShellExternalUrl,

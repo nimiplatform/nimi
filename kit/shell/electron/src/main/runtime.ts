@@ -19,6 +19,8 @@ import type {
 } from './types.js';
 import { NimiElectronShellHostError } from './types.js';
 
+let electronRuntimeBridgeIdempotencyCounter = 1;
+
 function standardCommand(key: keyof typeof NIMI_STANDARD_SHELL_COMMANDS): string {
   return NIMI_STANDARD_SHELL_COMMANDS[key];
 }
@@ -202,10 +204,14 @@ export function buildElectronRuntimeGrpcMetadata(
   addMetadata(metadata, 'x-nimi-domain', request.metadata?.domain || trusted?.metadata?.domain || 'runtime.rpc');
   addMetadata(metadata, 'x-nimi-app-id', fallbackAppId);
   addMetadata(metadata, 'x-nimi-trace-id', request.metadata?.traceId);
-  addMetadata(metadata, 'x-nimi-idempotency-key', request.metadata?.idempotencyKey);
+  addMetadata(
+    metadata,
+    'x-nimi-idempotency-key',
+    request.metadata?.idempotencyKey || createElectronRuntimeBridgeIdempotencyKey(request.methodId),
+  );
   addMetadata(metadata, 'x-nimi-caller-kind', trusted?.metadata?.callerKind || 'third-party-app');
   addMetadata(metadata, 'x-nimi-caller-id', trusted?.metadata?.callerId || fallbackAppId);
-  addMetadata(metadata, 'x-nimi-surface-id', request.metadata?.surfaceId);
+  addMetadata(metadata, 'x-nimi-surface-id', trusted?.metadata?.surfaceId || request.metadata?.surfaceId);
   addMetadata(metadata, 'x-nimi-key-source', request.metadata?.keySource);
   addMetadata(metadata, 'x-nimi-provider-type', request.metadata?.providerType);
   addMetadata(metadata, 'x-nimi-client-id', request.metadata?.clientId);
@@ -231,6 +237,12 @@ export function buildElectronRuntimeGrpcMetadata(
   }
   return metadata;
 }
+
+function createElectronRuntimeBridgeIdempotencyKey(methodId: string): string {
+  const counter = electronRuntimeBridgeIdempotencyCounter++;
+  return `bridge-${methodId.replaceAll('/', '_')}-${Date.now()}-${counter}`;
+}
+
 export async function resolveTrustedRuntimeMetadata(input: {
   readonly provider: ElectronRuntimeBridgeTrustedMetadataProvider | undefined;
   readonly command: string;

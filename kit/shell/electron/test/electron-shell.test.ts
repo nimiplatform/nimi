@@ -248,18 +248,71 @@ describe('registerNimiElectronRuntimeBridge', () => {
       'x-nimi-session-id': 'session-id',
       'x-nimi-session-token': 'session-token',
     });
+    expect(capturedMetadata['x-nimi-idempotency-key']).toMatch(/^bridge-_nimi\.runtime\.v1\.RuntimeAuditService_GetRuntimeHealth-\d+-\d+$/);
     expect(capturedMetadata['x-nimi-custom']).toBe('custom-value');
     expect([...fromBase64(response.responseBytesBase64)]).toEqual([4, 5, 6]);
     expect(response.responseMetadata['x-nimi-runtime-version']).toBe('0.5.0');
   });
 
+  it('uses host trusted Runtime identity metadata ahead of renderer metadata', async () => {
+    let capturedMetadata: Record<string, string> = {};
+    const fakeClient: RuntimeGrpcBridgeClient = {
+      unary: async (request) => {
+        capturedMetadata = request.metadata;
+        return {
+          responseBytes: Uint8Array.from([4, 5, 6]),
+        };
+      },
+      serverStream: () => {
+        throw new Error('not used');
+      },
+      close: () => undefined,
+    };
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.desktop',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => fakeClient,
+      trustedRuntimeMetadataProvider: async () => ({
+        metadata: {
+          participantId: 'nimi.desktop',
+          callerKind: 'desktop-core',
+          callerId: 'desktop.product-control',
+          surfaceId: 'desktop.product-control',
+        },
+      }),
+    });
+
+    await invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: STANDARD_COMMANDS.unary,
+      payload: {
+        methodId: '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord',
+        requestBytesBase64: '',
+        metadata: {
+          surfaceId: 'renderer-spoofed-surface',
+        },
+      },
+    });
+
+    expect(capturedMetadata).toMatchObject({
+      'x-nimi-participant-id': 'nimi.desktop',
+      'x-nimi-caller-kind': 'desktop-core',
+      'x-nimi-caller-id': 'desktop.product-control',
+      'x-nimi-surface-id': 'desktop.product-control',
+    });
+  });
+
   it('accepts SDK electron-ipc Runtime payloads passed through the preload invoke hook', async () => {
     let capturedMethod = '';
     let capturedBytes = new Uint8Array();
+    let capturedMetadata: Record<string, string> = {};
     const fakeClient: RuntimeGrpcBridgeClient = {
       unary: async (request) => {
         capturedMethod = request.methodId;
         capturedBytes = request.requestBytes;
+        capturedMetadata = request.metadata;
         return {
           responseBytes: Uint8Array.from([7, 8, 9]),
         };
@@ -304,6 +357,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
 
     expect(capturedMethod).toBe('/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth');
     expect([...capturedBytes]).toEqual([1, 2, 3]);
+    expect(capturedMetadata['x-nimi-idempotency-key']).toMatch(/^bridge-_nimi\.runtime\.v1\.RuntimeAuditService_GetRuntimeHealth-\d+-\d+$/);
     expect([...fromBase64(response.responseBytesBase64)]).toEqual([7, 8, 9]);
   });
 

@@ -1,11 +1,11 @@
-import { hasTauriInvoke } from './env.js';
+import { hasShellHostInvoke } from './env.js';
 import { invokeChecked } from './invoke.js';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
   parseOauthTokenExchangeResult,
   parseOauthListenForCodeResult,
-  type TauriOAuthBridge,
-  type TauriOAuthCodeBridge,
+  type ShellOAuthBridge,
+  type ShellOAuthCodeBridge,
   type OauthTokenExchangePayload,
   type OauthTokenExchangeResult,
   type OauthListenForCodePayload,
@@ -38,18 +38,18 @@ export async function oauthListenForCode(
   }, parseOauthListenForCodeResult);
 }
 
-export function createTauriOAuthCodeBridge(): TauriOAuthCodeBridge {
+export function createStandardShellOAuthCodeBridge(): ShellOAuthCodeBridge {
   return {
-    hasTauriInvoke,
+    hasShellHostInvoke,
     oauthListenForCode,
     openExternalUrl: async (url: string) => openExternalUrl(url),
     focusMainWindow,
   };
 }
 
-export function createTauriOAuthBridge(): TauriOAuthBridge {
+export function createStandardShellOAuthBridge(): ShellOAuthBridge {
   return {
-    ...createTauriOAuthCodeBridge(),
+    ...createStandardShellOAuthCodeBridge(),
     oauthTokenExchange,
   };
 }

@@ -1,4 +1,4 @@
-// kit/core/oauth — Shell contract only (types, parsers, TauriOAuthBridge)
+// kit/core/oauth — standard shell contract only (types, parsers, OAuth bridge)
 //
 // Auth domain helpers (flow orchestration, callback, login handler)
 // live in kit/auth/src/logic/oauth-*.ts
@@ -9,8 +9,8 @@ export type {
   OauthListenForCodePayload,
   OauthListenForCodeResult,
   OpenExternalUrlResult,
-  TauriOAuthCodeBridge,
-  TauriOAuthBridge,
+  ShellOAuthCodeBridge,
+  ShellOAuthBridge,
 } from './oauth-types.js';
 export {
   parseOauthTokenExchangeResult,

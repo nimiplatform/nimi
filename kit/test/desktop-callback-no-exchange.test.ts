@@ -67,7 +67,7 @@ describe('performDesktopWebAuth direct-to-loopback flow', () => {
     const opens: string[] = [];
     return {
       bridge: {
-        hasTauriInvoke: () => true,
+        hasShellHostInvoke: () => true,
         openExternalUrl: async (url: string) => {
           opens.push(url);
           return { opened: true };

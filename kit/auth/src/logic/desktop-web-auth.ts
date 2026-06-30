@@ -1,4 +1,4 @@
-import type { TauriOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthCodeBridge } from '@nimiplatform/kit/core/oauth';
 import { DESKTOP_CALLBACK_TIMEOUT_MS } from './oauth-helpers.js';
 import { createDesktopCallbackRedirectUri } from './desktop-callback-helpers.js';
 import { AUTH_COPY } from './auth-copy.js';
@@ -57,7 +57,7 @@ export function validateRuntimeOAuthAuthorizationUrl(value: unknown): string {
  *    returns a fully-formed realm OAuth authorize URL (with PKCE S256
  *    challenge, client_id, redirect_uri, state). The desktop kit MUST use
  *    that URL verbatim — no fallback URL construction is admitted.
- * 3. Spawn the Tauri loopback listener and open the user agent at the
+ * 3. Spawn the standard shell loopback listener and open the user agent at the
  *    runtime-supplied authorize URL.
  * 4. Realm authorizes the user and 302-redirects the user agent directly to
  *    the loopback redirect_uri with `code` + `state`.
@@ -68,7 +68,7 @@ export function validateRuntimeOAuthAuthorizationUrl(value: unknown): string {
  * stage of this flow.
  */
 export async function performDesktopWebAuth(
-  bridge: TauriOAuthCodeBridge,
+  bridge: ShellOAuthCodeBridge,
   options: {
     timeoutMs?: number;
     onOpened?: () => void;
@@ -96,7 +96,7 @@ export async function performDesktopWebAuth(
     baseUrl?: string;
   },
 ): Promise<DesktopWebAuthResult> {
-  if (!bridge.hasTauriInvoke()) {
+  if (!bridge.hasShellHostInvoke()) {
     throw new Error(AUTH_COPY.desktopBrowserAuthUnsupported);
   }
 

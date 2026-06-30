@@ -115,13 +115,13 @@ export function parseOpenExternalUrlResult(value: unknown): OpenExternalUrlResul
 // not be required by RuntimeAccountService desktop login consumers.
 // ---------------------------------------------------------------------------
 
-export type TauriOAuthCodeBridge = {
-  hasTauriInvoke: () => boolean;
+export type ShellOAuthCodeBridge = {
+  hasShellHostInvoke: () => boolean;
   oauthListenForCode: (payload: OauthListenForCodePayload) => Promise<OauthListenForCodeResult>;
   openExternalUrl: (url: string) => Promise<{ opened: boolean }>;
   focusMainWindow: () => Promise<void>;
 };
 
-export type TauriOAuthBridge = TauriOAuthCodeBridge & {
+export type ShellOAuthBridge = ShellOAuthCodeBridge & {
   oauthTokenExchange: (payload: OauthTokenExchangePayload) => Promise<OauthTokenExchangeResult>;
 };

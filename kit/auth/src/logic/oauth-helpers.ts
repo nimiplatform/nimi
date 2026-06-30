@@ -281,6 +281,19 @@ export function localizeAuthError(message: string): string {
 }
 
 export function toDesktopBrowserAuthErrorMessage(error: unknown): string {
+  const rawMessage = readRawAuthErrorMessage(error).toLowerCase();
+  if (
+    rawMessage.includes('runtime account login could not start')
+    || rawMessage.includes('runtime account service')
+    || rawMessage.includes('runtime account bootstrap')
+    || rawMessage.includes('electron-runtime-endpoint-unavailable')
+    || rawMessage.includes('external-daemon-required')
+    || rawMessage.includes('sdk_platform_client_not_ready')
+    || rawMessage.includes('configure_desktop_nimi_client_session')
+  ) {
+    return 'Runtime account service is unavailable. Start or connect the external Runtime daemon and try again.';
+  }
+
   const message = toErrorMessage(error, '网页登录授权失败').trim();
   const lowered = message.toLowerCase();
 
