@@ -99,7 +99,7 @@ export function WalletBalanceCards({
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-4xl font-bold">{sparkBalance}</span>
+            <span className="text-2xl font-bold">{sparkBalance}</span>
             <span className="ml-2 text-sm text-white/70">{t('Wallet.sparkUnit')}</span>
           </div>
           <div className="mt-2 text-xs text-white/60">
@@ -124,7 +124,7 @@ export function WalletBalanceCards({
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-4xl font-bold">{gemBalance}</span>
+            <span className="text-2xl font-bold">{gemBalance}</span>
             <span className="ml-2 text-sm text-white/70">{t('Wallet.gemUnit')}</span>
           </div>
           <div className="mt-2 text-xs text-white/60">

@@ -1,12 +1,18 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@nimiplatform/kit/ui';
+import { motion } from 'motion/react';
 import type { AppTab } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
   SHELL_CHROME_TOOLTIP_CLASS,
 } from './shell-chrome-classes';
+import {
+  desktopActiveIndicatorTransition,
+  useDesktopInteractiveMotion,
+  useDesktopReducedMotion,
+} from '@renderer/ui/motion/desktop-motion';
 
 export type NavItem = { id: AppTab | string; label: string; icon: ReactNode };
 
@@ -186,13 +192,19 @@ export function NavLink({
   badge?: ReactNode;
 }) {
   const { t } = useTranslation();
+  const reducedMotion = useDesktopReducedMotion();
+  const interactiveMotion = useDesktopInteractiveMotion();
   const translatedLabel = t(`Navigation.${String(item.id)}`, { defaultValue: item.label });
   const button = (
-      <button
+      <motion.button
         type="button"
         data-testid={E2E_IDS.navTab(String(item.id))}
         onClick={onClick}
-        className={`relative flex items-center text-sm transition-all duration-150 ${
+        layout
+        whileHover={interactiveMotion.whileHover}
+        whileTap={interactiveMotion.whileTap}
+        transition={interactiveMotion.transition}
+        className={`relative flex items-center overflow-hidden text-sm transition-colors duration-150 ${
           active
             ? 'font-semibold text-[var(--nimi-text-primary)]'
             : 'text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
@@ -200,12 +212,20 @@ export function NavLink({
           ? `mx-auto h-12 w-12 justify-center ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`
           : `w-full gap-3 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS} px-3 py-2.5`
         } ${active
-          ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
+          ? 'ring-1 ring-inset ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]'
           : 'hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
         }`}
       >
+        {active ? (
+          <motion.span
+            layoutId="desktop-shell-active-nav-indicator"
+            className="absolute inset-0 rounded-[inherit] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)]"
+            transition={desktopActiveIndicatorTransition(reducedMotion)}
+            aria-hidden="true"
+          />
+        ) : null}
         <span
-          className={`relative flex items-center justify-center transition-all duration-200 ${
+          className={`relative z-10 flex items-center justify-center transition-colors duration-200 ${
             active
               ? 'text-[var(--nimi-action-primary-bg)]'
               : 'text-[var(--nimi-text-secondary)]'
@@ -213,7 +233,7 @@ export function NavLink({
         >
           {item.icon}
         </span>
-        {collapsed ? null : <span className="flex-1 text-left">{translatedLabel}</span>}
+        {collapsed ? null : <span className="relative z-10 flex-1 text-left">{translatedLabel}</span>}
         {collapsed ? null : badge}
         {collapsed && badge ? (
           <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-[var(--nimi-status-warning)]" />
@@ -221,7 +241,7 @@ export function NavLink({
         {collapsed ? (
           <span className="sr-only">{translatedLabel}</span>
         ) : null}
-      </button>
+      </motion.button>
   );
 
   if (!collapsed) {

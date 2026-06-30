@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { motion } from 'motion/react';
 import { i18n } from '@renderer/i18n';
+import { useDesktopInteractiveMotion } from '@renderer/ui/motion/desktop-motion';
 
 type ChromeTabProps = {
   active?: boolean;
@@ -26,6 +28,7 @@ type ChromeTabStyle = CSSProperties & {
 };
 
 export function ChromeTab(props: ChromeTabProps) {
+  const interactiveMotion = useDesktopInteractiveMotion();
   const {
     active = false,
     title,
@@ -52,9 +55,13 @@ export function ChromeTab(props: ChromeTabProps) {
   };
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
+      layout
+      whileHover={interactiveMotion.whileHover}
+      whileTap={interactiveMotion.whileTap}
+      transition={interactiveMotion.transition}
       className={`chrome-tab ${active ? 'active' : ''} ${className}`.trim()}
       style={cssVars}
     >
@@ -86,6 +93,6 @@ export function ChromeTab(props: ChromeTabProps) {
           </span>
         ) : null}
       </div>
-    </button>
+    </motion.button>
   );
 }

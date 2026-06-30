@@ -4,6 +4,10 @@ import type {
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
+import { initI18n } from '../src/shell/renderer/i18n';
+import {
+  runtimeDependencyBannerTitle,
+} from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-dependency-banner';
 import {
   runtimeDependencyCurrentState,
   runtimeDependencyJobForDisplay,
@@ -70,4 +74,20 @@ test('active and retryable jobs surface only while the current dependency still 
   assert.equal(runtimeDependencyCurrentState(currentDependency, activeJob), 'downloading');
   assert.equal(runtimeDependencyJobForDisplay(currentDependency, retryableJob), retryableJob);
   assert.equal(runtimeDependencyCurrentState(currentDependency, retryableJob), 'failed');
+});
+
+test('runtime dependency setup title reserves GPU acceleration copy for CUDA runtime dependencies', async () => {
+  await initI18n();
+
+  assert.equal(runtimeDependencyBannerTitle(dependency('needs_confirmation', {
+    dependencyFamily: 'native-engine-package.stablediffusion-ggml',
+    dependencyId: 'stable-diffusion.cpp.package',
+    consumerScope: 'stable-diffusion.cpp.metal',
+  })), 'Local image runtime setup');
+
+  assert.equal(runtimeDependencyBannerTitle(dependency('needs_confirmation', {
+    dependencyFamily: 'accelerator.cuda.runtime',
+    dependencyId: 'nvidia-cuda-user-space-runtime',
+    consumerScope: 'stable-diffusion.cpp.cuda',
+  })), 'Optional local GPU acceleration');
 });

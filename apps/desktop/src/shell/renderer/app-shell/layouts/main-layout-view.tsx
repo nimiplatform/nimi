@@ -3,6 +3,7 @@ import logoImage from '../../assets/logo.png';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { loadNimiRealmNotificationUnreadCount } from '@nimiplatform/sdk/realm';
+import { AnimatePresence, motion } from 'motion/react';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { AmbientBackground, ScrollArea, Tooltip } from '@nimiplatform/kit/ui';
@@ -36,6 +37,11 @@ import {
   SHELL_CHROME_INTERACTIVE_RADIUS_CLASS,
   SHELL_CHROME_TOOLTIP_CLASS,
 } from './shell-chrome-classes';
+import {
+  DESKTOP_MENU_VARIANTS,
+  useDesktopInteractiveMotion,
+  useDesktopReducedMotion,
+} from '@renderer/ui/motion/desktop-motion';
 import {
   getCoreNavItems,
   getQuickNavItems,
@@ -112,6 +118,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const [exploreSearchText, setExploreSearchText] = useState('');
   const [homeFeedScope, setHomeFeedScope] = useState(DEFAULT_HOME_FEED_SCOPE);
   const [homeCreatePostRequestKey, setHomeCreatePostRequestKey] = useState(0);
+  const reducedMotion = useDesktopReducedMotion();
+  const interactiveMotion = useDesktopInteractiveMotion();
 
   // Keep-alive: once the runtime tab is visited, keep the component mounted (display:none
   // when inactive) so that subsequent visits are instant — no re-init, no re-hydration.
@@ -317,9 +325,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 placement="right"
                 contentClassName={SHELL_CHROME_TOOLTIP_CLASS}
               >
-                <button
+                <motion.button
                   type="button"
                   data-testid={E2E_IDS.navTab('home')}
+                  whileHover={interactiveMotion.whileHover}
+                  whileTap={interactiveMotion.whileTap}
+                  transition={interactiveMotion.transition}
                   className={`flex h-11 w-11 items-center justify-center transition-transform duration-150 hover:-translate-y-0.5 ${SHELL_CHROME_INTERACTIVE_RADIUS_CLASS}`}
                   aria-label={t('Navigation.home', { defaultValue: 'Home' })}
                   onClick={() => {
@@ -328,7 +339,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   }}
                 >
                   {nimiHomeNode}
-                </button>
+                </motion.button>
               </Tooltip>
             </div>
             <nav className="flex-1">
@@ -368,7 +379,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             developerModeEnabled={developerModeEnabled}
             exploreActiveSection={exploreActiveSection}
             exploreSearchText={exploreSearchText}
-            onExploreSearchTextChange={setExploreSearchText}
             homeCreatePostRequestKey={homeCreatePostRequestKey}
             homeFeedScope={homeFeedScope}
             runtimeActive={runtimeActive}
@@ -377,8 +387,17 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         </div>
       </div>
 
+      <AnimatePresence initial={false}>
       {settingsMenuOpen ? (
-        <div ref={settingsMenuRef}>
+        <motion.div
+          key="settings-menu"
+          ref={settingsMenuRef}
+          custom={reducedMotion}
+          variants={DESKTOP_MENU_VARIANTS}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
           <MainLayoutSettingsMenu
             userAvatarUrl={props.userAvatarUrl}
             displayName={props.displayName}
@@ -397,8 +416,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               setSettingsMenuOpen(false);
             }}
           />
-        </div>
+        </motion.div>
       ) : null}
+      </AnimatePresence>
     </AmbientBackground>
   );
 }

@@ -83,6 +83,8 @@
     "@types/three": "^0.184.1",
     "ajv": "^8.20.0",
     "i18next": "^25.8.18",
+    "lucide-react": "^0.577.0",
+    "motion": "^12.42.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-i18next": "^16.5.8",

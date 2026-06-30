@@ -1,10 +1,13 @@
 import React, { Suspense, lazy, type PropsWithChildren } from 'react';
 import { createRoot } from 'react-dom/client';
 import { NimiThemeProvider } from '@nimiplatform/kit/ui';
+import { usePrefersReducedMotion } from '@nimiplatform/kit/ui/motion';
+import { motion } from 'motion/react';
 import {
   DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS,
   createRendererEntryModuleLoader,
   describeRendererEntryFailureReason,
+  ensureNimiShellRuntimeBridgeInstalled,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
 import bootstrapEntryCopy from '@renderer/locales/en/26-Bootstrap.json';
 import entryLogoImage from './assets/logo.png';
@@ -36,17 +39,16 @@ async function preflightRendererAppDependencies(): Promise<void> {
     ]);
 }
 
-// All runtime modules are lazy-imported to keep vendor-data and
-// runtime-bridge out of the main entry's static dependency graph.
-// They resolve concurrently with the lazy App chunk — well before
-// App mounts and makes its first shell bridge / i18n call.
+// The standard shell host hook is an entry preflight: App must never mount
+// before the host invoke/listen surface exists. Other runtime modules still
+// resolve with the lazy App chunk before App makes product bridge calls.
 const runtimeReady = Promise.all([
-    loadEntryModule('entry:shell-runtime-bridge', () => import('@nimiplatform/kit/shell/renderer/bridge')),
+    ensureNimiShellRuntimeBridgeInstalled({
+      reportStage: pingSmokeAsync,
+      setTimeout: window.setTimeout.bind(window),
+    }),
     loadEntryModule('entry:i18n', () => import('@renderer/i18n')),
-]).then(([shellBridge, i18nMod]) => {
-    shellBridge.installNimiShellRuntimeBridge();
-    return i18nMod;
-});
+]).then(([, i18nMod]) => i18nMod);
 const entryBootCopy = bootstrapEntryCopy as {
     initializingRuntime: string;
     initializingRuntimeDescription: string;
@@ -159,9 +161,15 @@ class EntryErrorBoundary extends React.Component<PropsWithChildren, EntryErrorBo
 }
 
 function EntryBootSurface(props: { title: string; detail: string }) {
+    const prefersReducedMotion = usePrefersReducedMotion();
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--nimi-canvas-bg,#f8fafc)] px-6 text-[var(--nimi-text-primary,#111827)]">
-        <div className="w-full max-w-lg rounded-lg border border-[var(--nimi-border-subtle,#e5e7eb)] bg-[var(--nimi-surface-bg,#ffffff)] p-6 shadow-sm">
+        <motion.div
+          initial={{ opacity: prefersReducedMotion ? 1 : 0, y: prefersReducedMotion ? 0 : 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
+          className="w-full max-w-lg rounded-lg border border-[var(--nimi-border-subtle,#e5e7eb)] bg-[var(--nimi-surface-bg,#ffffff)] p-6 shadow-sm"
+        >
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted,#64748b)]">
             Nimi Runtime
           </p>
@@ -171,7 +179,7 @@ function EntryBootSurface(props: { title: string; detail: string }) {
           <p className="mt-3 break-words text-sm leading-6 text-[var(--nimi-text-secondary,#475569)]">
             {props.detail}
           </p>
-        </div>
+        </motion.div>
       </div>
     );
 }
@@ -187,25 +195,10 @@ function EntryRuntimeBootSurface(props: {
     detail: string;
     sequenceLabel: string;
 }) {
+    const prefersReducedMotion = usePrefersReducedMotion();
     return (
       <div className="nimi-entry-runtime-boot relative flex min-h-screen items-center justify-center overflow-hidden px-6 text-[var(--nimi-text-primary,#111827)]">
         <style>{`
-          @keyframes nimi-entry-float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-6px); }
-          }
-          @keyframes nimi-entry-spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          @keyframes nimi-entry-pulse {
-            0%, 100% { transform: scale(1); opacity: 0.45; }
-            50% { transform: scale(1.08); opacity: 0.9; }
-          }
-          @keyframes nimi-entry-dot {
-            0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
-            40% { transform: translateY(-4px); opacity: 1; }
-          }
           .nimi-entry-runtime-boot {
             background:
               radial-gradient(circle at 22% 18%, rgba(186, 222, 255, 0.56), transparent 35%),
@@ -219,38 +212,33 @@ function EntryRuntimeBootSurface(props: {
             box-shadow: 0 24px 70px rgba(15, 23, 42, 0.10);
             backdrop-filter: blur(22px);
           }
-          .nimi-entry-pulse { animation: nimi-entry-pulse 2.8s ease-in-out infinite; }
-          .nimi-entry-pulse-slow { animation: nimi-entry-pulse 3.4s ease-in-out infinite; }
-          .nimi-entry-spin { animation: nimi-entry-spin 18s linear infinite; }
-          .nimi-entry-float { animation: nimi-entry-float 3.2s ease-in-out infinite; }
-          .nimi-entry-dot { animation: nimi-entry-dot 1.4s ease-in-out infinite; }
-          .nimi-entry-dot:nth-child(2) { animation-delay: 180ms; }
-          .nimi-entry-dot:nth-child(3) { animation-delay: 360ms; }
         `}</style>
-        <section className="nimi-entry-card w-full max-w-[460px] rounded-3xl px-8 py-10 sm:px-10 sm:py-11">
+        <motion.section
+          initial={{ opacity: prefersReducedMotion ? 1 : 0, y: prefersReducedMotion ? 0 : 10, scale: prefersReducedMotion ? 1 : 0.985 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.32, ease: [0.05, 0.7, 0.1, 1] }}
+          className="nimi-entry-card w-full max-w-[420px] rounded-2xl px-6 py-7 sm:px-7 sm:py-8"
+        >
           <div className="flex flex-col items-center text-center">
-            <div className="relative mb-8 flex h-24 w-24 items-center justify-center">
-              <div className="nimi-entry-pulse absolute inset-0 rounded-3xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_26%,var(--nimi-surface-card,#ffffff))]" />
-              <div className="nimi-entry-spin absolute inset-[-8px] rounded-3xl border border-dashed border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_16%,var(--nimi-surface-card,#ffffff))]" />
-              <div className="nimi-entry-pulse-slow absolute inset-[-16px] rounded-3xl border border-[var(--nimi-border-subtle,#e5e7eb)]" />
-              <div className="nimi-entry-float relative flex h-20 w-20 items-center justify-center rounded-3xl border border-[var(--nimi-border-subtle,#e5e7eb)] bg-[var(--nimi-surface-card,#ffffff)] shadow-[0_12px_30px_rgba(15,23,42,0.12)]">
+            <div className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--nimi-border-subtle,#e5e7eb)] bg-[var(--nimi-surface-card,#ffffff)] shadow-[0_10px_24px_rgba(15,23,42,0.10)]">
                 <EntryNimiLogoMark />
-              </div>
             </div>
             <div className="mb-3 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_18%,var(--nimi-surface-card,#ffffff))] bg-[var(--nimi-surface-active,#e9fbf5)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--nimi-action-primary-bg-hover,#2f9f8d)]">
               Nimi Runtime
             </div>
-            <h1 className="text-[30px] font-semibold tracking-[-0.03em] text-[var(--nimi-text-primary,#111827)]">
+            <h1 className="text-2xl font-semibold text-[var(--nimi-text-primary,#111827)]">
               {props.title}
             </h1>
             <p className="mt-3 max-w-[28rem] text-sm leading-6 text-[var(--nimi-text-secondary,#475569)]">
               {props.detail}
             </p>
-            <div className="mt-8 w-full max-w-[18rem]">
+            <div className="mt-7 w-full max-w-[18rem]">
               <div className="h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#5fcbb2)_13%,white)]">
-                <div
+                <motion.div
                   className="h-full rounded-full bg-[var(--nimi-action-primary-bg,#5fcbb2)]"
-                  style={{ width: `${ENTRY_BOOT_PROGRESS_FLOOR_PERCENT}%` }}
+                  initial={{ width: prefersReducedMotion ? `${ENTRY_BOOT_PROGRESS_FLOOR_PERCENT}%` : '2%' }}
+                  animate={{ width: `${ENTRY_BOOT_PROGRESS_FLOOR_PERCENT}%` }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.6, ease: [0.2, 0, 0, 1] }}
                 />
               </div>
               <div className="mt-3 flex items-center justify-between text-xs text-[var(--nimi-text-muted,#64748b)]">
@@ -261,13 +249,13 @@ function EntryRuntimeBootSurface(props: {
                 {[0, 1, 2].map((i) => (
                   <span
                     key={i}
-                    className="nimi-entry-dot h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg,#5fcbb2)]"
+                    className="h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg,#5fcbb2)] opacity-70"
                   />
                 ))}
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
       </div>
     );
 }

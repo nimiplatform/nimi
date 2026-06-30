@@ -63,18 +63,18 @@ export function SupportPanel() {
   return (
     <div
       data-testid="panel:support"
-      className="flex min-h-0 flex-1 gap-4 px-5 pb-5 pt-4"
+      className="flex min-h-0 flex-1 gap-3 px-4 pb-4 pt-3"
     >
-      <SidebarShell width={240} data-testid="panel:support-sidebar">
+      <SidebarShell width={216} data-testid="panel:support-sidebar">
         <SidebarHeader
           title={(
-            <h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">
+            <h1 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">
               {t('Support.surfaceTitle')}
             </h1>
           )}
-          className="px-6"
+          className="px-5"
         />
-        <ScrollArea className="flex-1" contentClassName="space-y-5 px-3 pb-3 pt-2">
+        <ScrollArea className="flex-1" contentClassName="space-y-4 px-3 pb-3 pt-1">
           <SidebarSection label={t('Support.sidebarSectionLabel')}>
             {SUPPORT_SECTION_IDS.map((sectionId) => {
               const active = selected === sectionId;
@@ -98,7 +98,7 @@ export function SupportPanel() {
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl"
       >
         {renderSupportSection(selected, navigate)}
       </Surface>

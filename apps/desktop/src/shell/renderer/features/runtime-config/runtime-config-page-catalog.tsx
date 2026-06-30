@@ -309,7 +309,7 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
 
       {/* Model picker (full width) */}
       {selectedProvider?.inventoryMode === 'dynamic_endpoint' ? (
-        <Card className="rounded-3xl p-5">
+        <Card className="rounded-2xl p-5">
           <div className="space-y-2">
             <p className="text-sm font-medium text-[var(--nimi-text-primary)]">Live inventory provider</p>
             <p className="text-sm text-[var(--nimi-text-secondary)]">
@@ -365,7 +365,7 @@ function ModelSection(props: { providerId: string; onDeleteModel: (modelId: stri
   return (
     <RuntimeModelPickerPanel
       state={state}
-      className="rounded-3xl [&>div]:xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
+      className="rounded-2xl [&>div]:xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
       pickerClassName="h-[600px] overflow-y-scroll space-y-3 p-4 [&_.lg\:grid-cols-2]:!grid-cols-1 [&_label.min-h-11]:hidden [&>div>div.grid.gap-2]:!block [&_.mt-3.gap-1]:hidden [&_button>div>div>p.mt-1]:hidden [&_button>div.gap-3>span]:hidden [&_button>div.mt-2]:!mt-0 [&_button>div.items-start]:items-center [&_button]:flex [&_button]:items-center [&_button]:justify-between [&_button>div.mt-2]:!ml-auto [&_button>div.mt-2]:!flex-nowrap [&_div.rounded-2xl]:!p-0 [&_button.w-full]:!px-3 [&_button.w-full]:!py-2.5"
       detailClassName="h-[600px] overflow-y-scroll space-y-4 p-4"
       renderItemActions={(model) => (

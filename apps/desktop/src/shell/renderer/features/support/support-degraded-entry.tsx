@@ -64,9 +64,9 @@ export function SupportDegradedEntry() {
         >
           <Surface
             tone="panel"
-            material="glass-thick"
+            material="glass-regular"
             padding="none"
-            className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl"
+            className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl"
           >
             <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-5 py-3">
               <div className="flex items-center gap-2">

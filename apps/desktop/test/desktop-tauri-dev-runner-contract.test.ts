@@ -100,8 +100,8 @@ test('Windows Tauri dev runner lets Ctrl-C reach the desktop child before forced
   assert.match(runnerSource, /if \(signal !== 'SIGINT'\)/);
 });
 
-test('Desktop Tauri dev command only rebuilds SDK dist when renderer aliases are missing', () => {
-  const sdkBuildIndex = runTauriDevSource.indexOf('ensureSdkDistForDesktopDev();');
+test('Desktop Tauri dev command rebuilds SDK dist when renderer aliases are missing or stale', () => {
+  const sdkBuildIndex = runTauriDevSource.indexOf('if (ensureSdkDistForDesktopDev()) {');
   const spawnIndex = runTauriDevSource.indexOf('const child = spawn(command, commandArgs');
 
   assert.ok(sdkBuildIndex > -1, 'dev command must ensure @nimiplatform/sdk dist');
@@ -110,12 +110,26 @@ test('Desktop Tauri dev command only rebuilds SDK dist when renderer aliases are
   assert.match(runTauriDevSource, /'core\/app\/index\.js'/);
   assert.match(runTauriDevSource, /'core\/contracts\/index\.js'/);
   assert.match(runTauriDevSource, /'features\/conversation\/index\.js'/);
+  assert.match(runTauriDevSource, /const SDK_DIST_FRESHNESS_INPUT_EXTENSIONS = new Set\(\[/);
+  assert.match(runTauriDevSource, /const SDK_DIST_FRESHNESS_SKIP_DIRS = new Set\(\['dist', 'node_modules'\]\)/);
+  assert.match(runTauriDevSource, /function collectNewestSdkInputMtimeMs\(rootDir\)/);
+  assert.match(runTauriDevSource, /oldestDistMtimeMs = Math\.min\(oldestDistMtimeMs, statSync\(distPath\)\.mtimeMs\)/);
+  assert.match(runTauriDevSource, /const newestSdkInputMtimeMs = collectNewestSdkInputMtimeMs\(sdkPackageRoot\)/);
+  assert.match(runTauriDevSource, /return newestSdkInputMtimeMs <= oldestDistMtimeMs/);
   assert.match(runTauriDevSource, /function isSdkDistReadyForDesktopDev\(\)/);
-  assert.match(runTauriDevSource, /if \(isSdkDistReadyForDesktopDev\(\)\) \{\s*return;\s*\}/);
+  assert.match(runTauriDevSource, /if \(isSdkDistReadyForDesktopDev\(\)\) \{\s*return false;\s*\}/);
   assert.match(runTauriDevSource, /'--filter', '@nimiplatform\/sdk', 'build'/);
   assert.match(runTauriDevSource, /process\.platform === 'win32' \? 'cmd\.exe' : pnpmBin/);
   assert.match(runTauriDevSource, /\['\/d', '\/s', '\/c', \[pnpmBin, \.\.\.pnpmArgs\]\.map\(quoteCmdArg\)\.join\(' '\)\]/);
   assert.doesNotMatch(runTauriDevSource, /spawnSync\(pnpmBin, \['--dir'/);
+});
+
+test('Desktop Tauri dev command refreshes renderer optimizer after rebuilding SDK dist', () => {
+  assert.match(runTauriDevSource, /const viteOptimizerCacheRoot = path\.join\(desktopRoot, 'node_modules', '\.vite'\)/);
+  assert.match(runTauriDevSource, /function refreshRendererOptimizerAfterSdkRebuild\(\)/);
+  assert.match(runTauriDevSource, /rmSync\(viteOptimizerCacheRoot, \{ recursive: true, force: true \}\)/);
+  assert.match(runTauriDevSource, /childEnv\.NIMI_DESKTOP_DEV_RENDERER_RESTART = '1'/);
+  assert.match(runTauriDevSource, /if \(ensureSdkDistForDesktopDev\(\)\) \{\s*refreshRendererOptimizerAfterSdkRebuild\(\);\s*\}/);
 });
 
 test('Workspace desktop dev script avoids a nested pnpm batch wrapper on Windows', () => {

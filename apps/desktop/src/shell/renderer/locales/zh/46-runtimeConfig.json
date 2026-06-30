@@ -1061,6 +1061,7 @@
     "cudaRuntimeSetupTitle": "可选的本地 GPU 加速",
     "cudaModelWaitingForSetup": "等待本地 GPU 运行时设置完成",
     "runtimeDependencyNotReady": "Runtime 托管的本地环境依赖尚未就绪。",
+    "runtimeSetupTitle": "本地图像 Runtime 需要设置",
     "runtimeNotReadyBadge": "Runtime 未就绪",
     "runtimeRepairRequiredBadge": "Runtime 需要修复",
     "runtimeRepairRequiredTitle": "本地图像 Runtime 需要修复",

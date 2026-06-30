@@ -33,7 +33,7 @@ test('shell chrome retune: shell chrome classes tighten radius scale', () => {
 
 test('shell chrome retune: nav, home launcher, account menu, and tooltips consume the tighter shell scale', () => {
   assert.match(mainLayoutViewSource, /<Tooltip[\s\S]*placement="right"[\s\S]*SHELL_CHROME_TOOLTIP_CLASS/);
-  assert.match(mainLayoutViewSource, /<button[\s\S]*SHELL_CHROME_INTERACTIVE_RADIUS_CLASS/);
+  assert.match(mainLayoutViewSource, /<(?:motion\.)?button[\s\S]*SHELL_CHROME_INTERACTIVE_RADIUS_CLASS/);
   assert.match(mainLayoutSettingsMenuSource, /<Surface[\s\S]*tone="overlay"[\s\S]*material="glass-thick"[\s\S]*SHELL_CHROME_OVERLAY_CLASS/);
   assert.match(mainLayoutViewSource, /avatarNode[\s\S]*sizeClassName="h-9 w-9"/u);
   assert.match(mainLayoutSettingsMenuSource, /SHELL_CHROME_MENU_ITEM_BASE_CLASS/);

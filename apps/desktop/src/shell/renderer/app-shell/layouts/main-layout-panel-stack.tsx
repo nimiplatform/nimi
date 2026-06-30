@@ -1,9 +1,14 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import type { AppTab } from '@renderer/app-shell/providers/app-store';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
 import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import {
+  DESKTOP_PANEL_VARIANTS,
+  useDesktopPanelCustom,
+} from '@renderer/ui/motion/desktop-motion';
 
 const ChatPage = lazy(async () => {
   const mod = await import('@renderer/features/chat/chat-page');
@@ -71,19 +76,43 @@ type MainLayoutPanelStackProps = {
   developerModeEnabled: boolean;
   exploreActiveSection: ExploreSectionId;
   exploreSearchText: string;
-  onExploreSearchTextChange: (value: string) => void;
   homeCreatePostRequestKey: number;
   homeFeedScope: NimiRealmFeedScope;
   runtimeActive: boolean;
   runtimeEverMounted: boolean;
 };
 
+function MotionPanelFrame({
+  panelId,
+  className = 'flex min-h-0 flex-1 flex-col',
+  children,
+}: {
+  panelId: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const motionCustom = useDesktopPanelCustom();
+  return (
+    <motion.div
+      key={panelId}
+      data-testid={E2E_IDS.panel(panelId)}
+      className={className}
+      custom={motionCustom}
+      variants={DESKTOP_PANEL_VARIANTS}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 export function MainLayoutPanelStack({
   activeTab,
   developerModeEnabled,
   exploreActiveSection,
   exploreSearchText,
-  onExploreSearchTextChange,
   homeCreatePostRequestKey,
   homeFeedScope,
   runtimeActive,
@@ -103,96 +132,97 @@ export function MainLayoutPanelStack({
       ) : null}
 
       <Suspense fallback={activeTab === 'world-detail' ? <WorldDetailRouteLoading /> : <div className="flex min-h-0 flex-1" />}>
+        <AnimatePresence mode="wait" initial={false}>
         {activeTab === 'home' ? (
-          <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="home">
             <HomePanel
               createPostRequestKey={homeCreatePostRequestKey}
               feedScope={homeFeedScope}
             />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'chat' ? (
-          <div data-testid={E2E_IDS.panel('chat')} className="flex min-h-0 flex-1">
+          <MotionPanelFrame panelId="chat" className="flex min-h-0 flex-1">
             <ChatPage />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'explore' ? (
-          <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="explore">
             <ExplorePanel
               activeSection={exploreActiveSection}
               searchText={exploreSearchText}
-              onSearchTextChange={onExploreSearchTextChange}
             />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'apps' ? (
-          <div data-testid={E2E_IDS.panel('apps')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="apps">
             <AppsPanel />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'notification' ? (
-          <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="notification">
             <NotificationPanel />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'gift-inbox' ? (
-          <div data-testid={E2E_IDS.panel('gift-inbox')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="gift-inbox">
             <GiftInboxPanel />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'settings' ? (
-          <div data-testid={E2E_IDS.panel('settings')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="settings">
             <SettingsPanelBody />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'support' ? (
-          <div data-testid={E2E_IDS.panel('support')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="support">
             <SupportPanel />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'profile' ? (
-          <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="profile">
             <ProfilePanel />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'source-detail' ? (
-          <div data-testid={E2E_IDS.panel('source-detail')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="source-detail">
             <SourceDetailPanel />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'world-detail' ? (
-          <div data-testid={E2E_IDS.panel('world-detail')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="world-detail">
             <WorldDetailPanel />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'developer-tools' && developerModeEnabled ? (
-          <div data-testid={E2E_IDS.panel('developer-tools')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="developer-tools">
             <DeveloperToolsPanel />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'privacy-policy' ? (
-          <div data-testid={E2E_IDS.panel('privacy-policy')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="privacy-policy">
             <PrivacyPolicyView />
-          </div>
+          </MotionPanelFrame>
         ) : null}
 
         {activeTab === 'terms-of-service' ? (
-          <div data-testid={E2E_IDS.panel('terms-of-service')} className="flex min-h-0 flex-1 flex-col">
+          <MotionPanelFrame panelId="terms-of-service">
             <TermsOfServiceView />
-          </div>
+          </MotionPanelFrame>
         ) : null}
+        </AnimatePresence>
       </Suspense>
     </>
   );

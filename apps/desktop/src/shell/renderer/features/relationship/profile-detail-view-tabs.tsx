@@ -5,6 +5,7 @@ import type { ProfileDetailViewController } from './profile-detail-view-controll
 import { ProfileDetailTabFallback } from './profile-detail-view-content-shell.js';
 
 const PROFILE_DETAIL_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
+const OWN_PROFILE_DETAIL_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts', 'FollowedWorlds'];
 
 const PostsTab = lazy(async () => {
   const module = await import('@renderer/features/profile/posts-tab');
@@ -22,6 +23,10 @@ const GiftsTab = lazy(async () => {
   const module = await import('@renderer/features/profile/gifts-tab');
   return { default: module.GiftsTab };
 });
+const FollowedWorldsTab = lazy(async () => {
+  const module = await import('@renderer/features/profile/followed-worlds-tab');
+  return { default: module.FollowedWorldsTab };
+});
 
 function getProfileDetailTabLabel(t: ReturnType<typeof useTranslation>['t'], tab: ProfileTab): string {
   switch (tab) {
@@ -33,6 +38,8 @@ function getProfileDetailTabLabel(t: ReturnType<typeof useTranslation>['t'], tab
       return t('Profile.tabLikes', { defaultValue: 'Likes' });
     case 'Gifts':
       return t('Profile.tabGifts', { defaultValue: 'Gifts' });
+    case 'FollowedWorlds':
+      return t('Profile.tabFollowedWorlds', { defaultValue: 'Followed worlds' });
   }
 }
 
@@ -61,6 +68,9 @@ function renderTabPanel(
     case 'Gifts':
       content = <GiftsTab />;
       break;
+    case 'FollowedWorlds':
+      content = <FollowedWorldsTab />;
+      break;
     default:
       return null;
   }
@@ -88,6 +98,7 @@ type ProfileDetailTabsProps = {
 
 export function ProfileDetailTabs(props: ProfileDetailTabsProps) {
   const { t } = useTranslation();
+  const tabs = props.isOwnProfile ? OWN_PROFILE_DETAIL_TABS : PROFILE_DETAIL_TABS;
 
   return (
     <>
@@ -96,7 +107,7 @@ export function ProfileDetailTabs(props: ProfileDetailTabsProps) {
           ref={props.tabListRef}
           className="relative flex flex-wrap gap-6 border-b border-slate-200/70 pb-2"
         >
-          {PROFILE_DETAIL_TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab}
               ref={(node) => {
@@ -128,7 +139,7 @@ export function ProfileDetailTabs(props: ProfileDetailTabsProps) {
         </div>
       </div>
       <div className="px-1 pt-4">
-        {PROFILE_DETAIL_TABS.map((tab) => (
+        {tabs.map((tab) => (
           renderTabPanel(props.activeTab, Boolean(props.isBlockedProfile), props.profileId, tab, props.visitedTabs)
         ))}
       </div>

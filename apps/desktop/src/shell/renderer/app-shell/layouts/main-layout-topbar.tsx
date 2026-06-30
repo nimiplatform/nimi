@@ -1,11 +1,13 @@
 import type { MouseEvent, ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@nimiplatform/kit/ui';
+import { motion } from 'motion/react';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { HomeCreatePostButton } from '@renderer/features/home/home-feed-controls';
 import {
   SHELL_CHROME_ACTION_CELL_CLASS,
 } from './shell-chrome-classes';
+import { useDesktopInteractiveMotion } from '@renderer/ui/motion/desktop-motion';
 
 const SHELL_TOPBAR_GHOST_ICON_CLASS =
   'relative flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--nimi-fg-2)] transition-colors hover:text-[color:var(--nimi-fg-1)]';
@@ -30,6 +32,7 @@ type MainLayoutTopBarProps = {
 
 export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
   const { t } = useTranslation();
+  const interactiveMotion = useDesktopInteractiveMotion();
   const anonymousMode = props.authStatus !== 'authenticated';
   const unreadBadge = props.unreadCount > 99 ? '99+' : String(props.unreadCount);
 
@@ -49,26 +52,32 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
             <div className="flex items-center gap-2">
               {props.activeTab !== 'chat' ? (
                 <Tooltip content={t('Navigation.chat', { defaultValue: 'Chat' })} className="h-10">
-                  <button
+                  <motion.button
                   type="button"
                   data-titlebar-interactive="true"
                   onClick={props.onOpenChat}
+                  whileHover={interactiveMotion.whileHover}
+                  whileTap={interactiveMotion.whileTap}
+                  transition={interactiveMotion.transition}
                   className={SHELL_CHROME_ACTION_CELL_CLASS}
                   aria-label={t('Navigation.chat', { defaultValue: 'Chat' })}
                 >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
-                  </button>
+                  </motion.button>
                 </Tooltip>
               ) : null}
               {props.activeTab !== 'runtime' ? (
                 <Tooltip content={t('Navigation.runtime', { defaultValue: 'Runtime' })} className="h-10">
-                  <button
+                  <motion.button
                     type="button"
                     data-testid={E2E_IDS.topbarRuntimeButton}
                     data-titlebar-interactive="true"
                     onClick={props.onOpenRuntimeConfig}
+                    whileHover={interactiveMotion.whileHover}
+                    whileTap={interactiveMotion.whileTap}
+                    transition={interactiveMotion.transition}
                     className={SHELL_CHROME_ACTION_CELL_CLASS}
                     aria-label={t('Navigation.runtime', { defaultValue: 'Runtime' })}
                   >
@@ -78,15 +87,18 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                       <line x1="6" y1="6" x2="6.01" y2="6" />
                       <line x1="6" y1="18" x2="6.01" y2="18" />
                     </svg>
-                  </button>
+                  </motion.button>
                 </Tooltip>
               ) : null}
               <Tooltip content={t('Auth.login', { defaultValue: 'Login' })} className="h-10">
-                <button
+                <motion.button
                   type="button"
                   data-testid={E2E_IDS.topbarLoginButton}
                   data-titlebar-interactive="true"
                   onClick={props.onLogin}
+                  whileHover={interactiveMotion.whileHover}
+                  whileTap={interactiveMotion.whileTap}
+                  transition={interactiveMotion.transition}
                   className={SHELL_CHROME_ACTION_CELL_CLASS}
                   aria-label={t('Auth.login', { defaultValue: 'Login' })}
                 >
@@ -95,7 +107,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                     <polyline points="10 17 15 12 10 7" />
                     <line x1="15" y1="12" x2="3" y2="12" />
                   </svg>
-                </button>
+                </motion.button>
               </Tooltip>
             </div>
           ) : (
@@ -104,10 +116,13 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                 <HomeCreatePostButton onClick={props.onCreatePostRequest} />
               ) : null}
               <Tooltip content={t('Navigation.notifications')} className="h-9">
-                <button
+                <motion.button
                   type="button"
                   data-titlebar-interactive="true"
                   onClick={props.onOpenNotifications}
+                  whileHover={interactiveMotion.whileHover}
+                  whileTap={interactiveMotion.whileTap}
+                  transition={interactiveMotion.transition}
                   className={SHELL_TOPBAR_GHOST_ICON_CLASS}
                   aria-label={t('Common.openNotifications')}
                 >
@@ -124,20 +139,23 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                       <span className="absolute right-1 top-1.5 h-2 w-2 rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-red-500" />
                     )
                   ) : null}
-                </button>
+                </motion.button>
               </Tooltip>
               <Tooltip content={t('Common.openAccountMenu')} placement="top" className="h-9">
                 <div ref={props.settingsTriggerRef} className="flex h-9 items-center">
-                  <button
+                  <motion.button
                     type="button"
                     data-titlebar-interactive="true"
                     onClick={props.onToggleSettingsMenu}
+                    whileHover={interactiveMotion.whileHover}
+                    whileTap={interactiveMotion.whileTap}
+                    transition={interactiveMotion.transition}
                     className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-black/5 bg-white p-0 text-[var(--nimi-text-primary)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-transform duration-150 hover:scale-[1.03]"
                     aria-label={t('Common.openAccountMenu')}
                     aria-expanded={props.settingsMenuOpen}
                   >
                     {props.avatarNode}
-                  </button>
+                  </motion.button>
                 </div>
               </Tooltip>
             </>

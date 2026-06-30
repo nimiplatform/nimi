@@ -13,10 +13,10 @@ const mainLayoutSettingsMenuSource = readWorkspaceFile('src/shell/renderer/app-s
 const mainLayoutTopbarSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx');
 const navConfigSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts/navigation-config.tsx');
 
-test('W2 shell redesign: shared status shell adopts AmbientBackground and glass host', () => {
+test('W2 shell redesign: shared status shell adopts AmbientBackground and compact glass host', () => {
   assert.match(appRoutesSource, /import \{ AmbientBackground, ProgressIndicator, Surface \} from '@nimiplatform\/kit\/ui';/);
   assert.match(appRoutesSource, /<AmbientBackground[\s\S]*variant="mesh"/);
-  assert.match(appRoutesSource, /<Surface[\s\S]*material="glass-thick"/);
+  assert.match(appRoutesSource, /<Surface[\s\S]*material="glass-regular"/);
   assert.match(appRoutesSource, /<ProgressIndicator[\s\S]*value=\{clamped\}/);
   assert.doesNotMatch(appRoutesSource, /function SharedScreenBackdrop/u);
 });

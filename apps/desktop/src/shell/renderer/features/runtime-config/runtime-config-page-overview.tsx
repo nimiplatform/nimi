@@ -82,7 +82,7 @@ function StatTile({
   const content = (
     <>
       <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{title}</p>
-      <p className={cn('mt-2 text-3xl font-bold', TOKEN_TEXT_PRIMARY)}>{value}</p>
+      <p className={cn('mt-2 text-2xl font-bold', TOKEN_TEXT_PRIMARY)}>{value}</p>
       <p className={cn('mt-1 text-xs', TOKEN_TEXT_MUTED)}>{subtitle}</p>
     </>
   );

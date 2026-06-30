@@ -725,7 +725,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       <section
         data-testid="product-first-run-workflow"
         data-product-state={state}
-        className="flex min-h-full flex-1 items-center justify-center px-6 py-10"
+        className="flex min-h-full flex-1 items-center justify-center px-6 py-8"
       >
         <FirstRunReconcilingScreen productState={state} mode="ready-record" />
       </section>

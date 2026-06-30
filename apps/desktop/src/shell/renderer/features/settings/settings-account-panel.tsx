@@ -335,7 +335,7 @@ export function ProfilePage() {
                 kind="human"
                 sizeClassName="h-24 w-24"
                 className="ring-4 ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)]"
-                textClassName="text-3xl font-bold"
+                textClassName="text-2xl font-bold"
                 fallbackClassName="bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] text-[var(--nimi-action-primary-bg)]"
               />
               <button

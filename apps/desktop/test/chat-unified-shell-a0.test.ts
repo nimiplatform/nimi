@@ -108,6 +108,18 @@ test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
   assert.deepEqual(harness.getState().chatSetupState.ai, createReadyConversationSetupState('ai'));
 });
 
+test('A0 world navigation opens world detail instead of chat', () => {
+  const harness = createUiSliceHarness();
+  const state = harness.getState();
+
+  state.setActiveTab('explore');
+  state.navigateToWorld(' world-alpha ');
+
+  assert.equal(harness.getState().activeTab, 'world-detail');
+  assert.equal(harness.getState().previousTab, 'explore');
+  assert.equal(harness.getState().runtimeFields.worldId, 'world-alpha');
+});
+
 test('A0 AI setup is ready only when text.generate projection is supported', () => {
   const result = resolveAiConversationSetupStateFromProjection(createProjection({
     supported: true,

@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'motion/react';
 import {
   AppCardSurface,
   Button as KitButton,
@@ -9,6 +10,11 @@ import {
   cn,
 } from '@nimiplatform/kit/ui';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import {
+  useDesktopCardMotion,
+  useDesktopInteractiveMotion,
+  useDesktopReducedMotion,
+} from '@renderer/ui/motion/desktop-motion';
 
 type AppCardSurfaceStyle = ComponentProps<typeof AppCardSurface>['style'];
 
@@ -25,16 +31,22 @@ export function Card({
   className?: string;
   style?: AppCardSurfaceStyle;
 }) {
+  const cardMotion = useDesktopCardMotion();
   return (
-    <AppCardSurface
-      kind="operational-solid"
+    <motion.div
+      layout
+      whileHover={cardMotion.whileHover}
+      whileTap={cardMotion.whileTap}
+      transition={cardMotion.transition}
       className={cn(
         className,
       )}
       style={style}
     >
-      {children}
-    </AppCardSurface>
+      <AppCardSurface kind="operational-solid">
+        {children}
+      </AppCardSurface>
+    </motion.div>
   );
 }
 
@@ -107,17 +119,25 @@ export function Button({
   disabled?: boolean;
   className?: string;
 }) {
+  const interactiveMotion = useDesktopInteractiveMotion();
   return (
-    <KitButton
-      tone={variant}
-      size={size}
-      leadingIcon={icon}
-      onClick={onClick}
-      disabled={disabled}
-      className={className}
+    <motion.span
+      className="inline-flex"
+      whileHover={disabled ? undefined : interactiveMotion.whileHover}
+      whileTap={disabled ? undefined : interactiveMotion.whileTap}
+      transition={interactiveMotion.transition}
     >
-      {children}
-    </KitButton>
+      <KitButton
+        tone={variant}
+        size={size}
+        leadingIcon={icon}
+        onClick={onClick}
+        disabled={disabled}
+        className={className}
+      >
+        {children}
+      </KitButton>
+    </motion.span>
   );
 }
 
@@ -137,8 +157,15 @@ export function SaveFooter({
   showCancel?: boolean;
 }) {
   const { t } = useTranslation();
+  const reducedMotion = useDesktopReducedMotion();
   return (
-    <div className="flex shrink-0 items-center justify-end gap-3 border-t border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] px-6 py-4">
+    <motion.div
+      layout
+      initial={{ opacity: reducedMotion ? 1 : 0, y: reducedMotion ? 0 : 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reducedMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
+      className="flex shrink-0 items-center justify-end gap-3 border-t border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] px-6 py-4"
+    >
       {showCancel ? (
         <Button variant="secondary" onClick={onCancel}>
           {t('Common.cancel')}
@@ -147,7 +174,7 @@ export function SaveFooter({
       <Button variant="primary" onClick={onSave} disabled={saving}>
         {saving ? t('Common.saving') : t('Common.saveChanges')}
       </Button>
-    </div>
+    </motion.div>
   );
 }
 

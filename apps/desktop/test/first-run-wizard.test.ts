@@ -171,10 +171,11 @@ test('step indicator highlights the phase matching the current state', () => {
   });
   assert.match(setup, /data-testid="first-run-step-setup" data-active="true"/);
 
-  // Terminal screens carry no active step.
+  // Terminal screens are operational status surfaces, not inactive phases.
   const repair = render('repair_required');
-  assert.match(repair, /data-testid="first-run-step-storage" data-active="false"/);
-  assert.match(repair, /data-testid="first-run-step-setup" data-active="false"/);
+  assert.doesNotMatch(repair, /data-testid="first-run-step-indicator"/);
+  assert.doesNotMatch(repair, /data-testid="first-run-step-storage"/);
+  assert.match(repair, /data-testid="first-run-screen-repair"/);
 });
 
 // --- Folder picker → selectProductDataRoot --------------------------------

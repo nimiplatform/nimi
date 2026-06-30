@@ -1061,6 +1061,7 @@
     "cudaRuntimeSetupTitle": "Optional local GPU acceleration",
     "cudaModelWaitingForSetup": "Waiting for local GPU support to be set up.",
     "runtimeDependencyNotReady": "Runtime-managed local environment dependencies are not ready.",
+    "runtimeSetupTitle": "Local image runtime setup",
     "runtimeNotReadyBadge": "Runtime not ready",
     "runtimeRepairRequiredBadge": "Runtime repair required",
     "runtimeRepairRequiredTitle": "Local image runtime repair required",

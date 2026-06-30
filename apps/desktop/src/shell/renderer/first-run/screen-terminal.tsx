@@ -34,20 +34,20 @@ type ScreenRepairProps = {
 export function ScreenRepair(props: ScreenRepairProps): ReactElement {
   const { t } = useTranslation();
   return (
-    <div data-testid="first-run-screen-repair" className="flex flex-col items-center gap-6 text-center">
+    <div data-testid="first-run-screen-repair" className="flex flex-col items-center gap-4 text-center">
       <span
         aria-hidden
-        className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,white)] text-[var(--nimi-status-warning)]"
+        className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,white)] text-[var(--nimi-status-warning)]"
       >
-        <WrenchIcon className="h-7 w-7" />
+        <WrenchIcon className="h-5 w-5" />
       </span>
       <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
+        <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">
           {t('FirstRun.repair.heading', {
             defaultValue: 'Nimi needs to repair a component',
           })}
         </h2>
-        <p className="text-sm text-[var(--nimi-text-secondary)]">
+        <p className="max-w-md text-sm leading-5 text-[var(--nimi-text-secondary)]">
           {t('FirstRun.repair.body', {
             defaultValue:
               'A required local component needs repair before normal use. Retry the setup or run a repair to restore it.',
@@ -63,14 +63,14 @@ export function ScreenRepair(props: ScreenRepairProps): ReactElement {
         <Button
           type="button"
           tone="primary"
-          className="rounded-full px-6"
+          className="rounded-md px-4"
           data-testid="first-run-repair-retry"
           disabled={props.busy}
           onClick={props.onRetry}
         >
           {t('FirstRun.repair.retry', { defaultValue: 'Retry' })}
         </Button>
-        <div className="[&_button]:rounded-full" data-testid="first-run-repair-support">
+        <div className="[&_button]:rounded-md" data-testid="first-run-repair-support">
           <SupportDegradedEntry />
         </div>
       </div>
@@ -90,18 +90,18 @@ type ScreenBlockedProps = {
 export function ScreenBlocked(props: ScreenBlockedProps): ReactElement {
   const { t } = useTranslation();
   return (
-    <div data-testid="first-run-screen-blocked" className="flex flex-col items-center gap-6 text-center">
+    <div data-testid="first-run-screen-blocked" className="flex flex-col items-center gap-4 text-center">
       <span
         aria-hidden
-        className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--nimi-status-danger)_16%,white)] text-[var(--nimi-status-danger)]"
+        className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-status-danger)_14%,white)] text-[var(--nimi-status-danger)]"
       >
-        <AlertIcon className="h-7 w-7" />
+        <AlertIcon className="h-5 w-5" />
       </span>
       <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
+        <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">
           {t('FirstRun.blocked.heading', { defaultValue: 'Nimi cannot continue safely' })}
         </h2>
-        <p className="text-sm text-[var(--nimi-text-secondary)]">
+        <p className="max-w-md text-sm leading-5 text-[var(--nimi-text-secondary)]">
           {t('FirstRun.blocked.body', {
             defaultValue:
               'Setup cannot continue safely on this device right now. Contact Support to resolve the blocking cause.',
@@ -113,7 +113,7 @@ export function ScreenBlocked(props: ScreenBlockedProps): ReactElement {
           </p>
         ) : null}
       </div>
-      <div className="[&_button]:rounded-full" data-testid="first-run-blocked-support">
+      <div className="[&_button]:rounded-md" data-testid="first-run-blocked-support">
         <SupportDegradedEntry />
       </div>
     </div>
@@ -127,15 +127,15 @@ export function ScreenBlocked(props: ScreenBlockedProps): ReactElement {
 export function ScreenReady(): ReactElement {
   const { t } = useTranslation();
   return (
-    <div data-testid="first-run-screen-ready" className="flex flex-col items-center gap-5 py-4 text-center">
+    <div data-testid="first-run-screen-ready" className="flex flex-col items-center gap-4 text-center">
       <span
         aria-hidden
-        className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] text-[var(--nimi-action-primary-bg)]"
+        className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,white)] text-[var(--nimi-action-primary-bg)]"
       >
-        <CheckCircleFilledIcon className="h-8 w-8" />
+        <CheckCircleFilledIcon className="h-5 w-5" />
       </span>
       <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
+        <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">
           {t('FirstRun.ready.heading', { defaultValue: 'Nimi is ready' })}
         </h2>
         <p className="text-sm text-[var(--nimi-text-secondary)]">

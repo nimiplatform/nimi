@@ -1,4 +1,5 @@
 import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { motion } from 'motion/react';
 import { i18n } from '@renderer/i18n';
 
 import {
@@ -16,6 +17,10 @@ import {
   statusTextV11,
   type ProviderStatusV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import {
+  useDesktopCardMotion,
+  useDesktopInteractiveMotion,
+} from '@renderer/ui/motion/desktop-motion';
 
 export function Card({
   children,
@@ -24,13 +29,19 @@ export function Card({
   children: ReactNode;
   className?: string;
 }) {
+  const cardMotion = useDesktopCardMotion();
   return (
-    <AppCardSurface
-      kind="operational-solid"
+    <motion.div
+      layout
+      whileHover={cardMotion.whileHover}
+      whileTap={cardMotion.whileTap}
+      transition={cardMotion.transition}
       className={cn(className)}
     >
-      {children}
-    </AppCardSurface>
+      <AppCardSurface kind="operational-solid">
+        {children}
+      </AppCardSurface>
+    </motion.div>
   );
 }
 
@@ -47,15 +58,23 @@ export function Button({
   disabled?: boolean;
   size?: 'sm' | 'md';
 }) {
+  const interactiveMotion = useDesktopInteractiveMotion();
   return (
-    <KitButton
-      tone={variant}
-      size={size}
-      onClick={onClick}
-      disabled={disabled}
+    <motion.span
+      className="inline-flex"
+      whileHover={disabled ? undefined : interactiveMotion.whileHover}
+      whileTap={disabled ? undefined : interactiveMotion.whileTap}
+      transition={interactiveMotion.transition}
     >
-      {children}
-    </KitButton>
+      <KitButton
+        tone={variant}
+        size={size}
+        onClick={onClick}
+        disabled={disabled}
+      >
+        {children}
+      </KitButton>
+    </motion.span>
   );
 }
 
@@ -204,6 +223,7 @@ function SearchableRuntimeSelect({
 }) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const interactiveMotion = useDesktopInteractiveMotion();
   const safeOptions = useMemo(() => options.filter((option) => option.value !== ''), [options]);
   const selectedOption = safeOptions.find((option) => option.value === value) || null;
   const filteredOptions = useMemo(() => {
@@ -244,11 +264,14 @@ function SearchableRuntimeSelect({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <button
+        <motion.button
           type="button"
           disabled={disabled}
           aria-haspopup="listbox"
           aria-expanded={open}
+          whileHover={disabled ? undefined : interactiveMotion.whileHover}
+          whileTap={disabled ? undefined : interactiveMotion.whileTap}
+          transition={interactiveMotion.transition}
           className={cn(
             'flex w-full items-center justify-between gap-2 border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-left text-[var(--nimi-field-text)] transition-colors duration-[var(--nimi-motion-fast)] outline-none enabled:hover:border-[var(--nimi-field-focus)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)] disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
             triggerClass,
@@ -264,7 +287,7 @@ function SearchableRuntimeSelect({
           <span className="shrink-0 text-[var(--nimi-text-muted)]">
             <ChevronIcon />
           </span>
-        </button>
+        </motion.button>
       </PopoverTrigger>
       <PopoverContent
         align="start"

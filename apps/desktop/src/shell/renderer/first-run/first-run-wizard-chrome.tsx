@@ -40,6 +40,7 @@ type FirstRunWizardChromeProps = {
 export function FirstRunWizardChrome(props: FirstRunWizardChromeProps): ReactElement {
   const { t } = useTranslation();
   const activeIndex = props.activePhase ? NIMI_FIRST_RUN_PHASES.indexOf(props.activePhase) : -1;
+  const terminal = props.activePhase === null;
 
   return (
     <div
@@ -54,7 +55,7 @@ export function FirstRunWizardChrome(props: FirstRunWizardChromeProps): ReactEle
       `}</style>
 
       {/* Top chrome row: wordmark + Support pill. */}
-      <div className="flex items-start justify-between px-10 pt-8">
+      <div className="flex items-start justify-between px-6 pt-8 sm:px-8">
         <span
           data-testid="first-run-wordmark"
           className="select-none text-sm font-semibold uppercase tracking-[0.42em] text-[var(--nimi-text-primary)]"
@@ -66,47 +67,52 @@ export function FirstRunWizardChrome(props: FirstRunWizardChromeProps): ReactEle
         </div>
       </div>
 
-      {/* Slim step indicator. */}
-      <nav
-        data-testid="first-run-step-indicator"
-        aria-label={t('FirstRun.stepIndicatorLabel', { defaultValue: 'Setup steps' })}
-        className="mx-auto mt-7 flex w-full max-w-md items-stretch gap-3 px-10"
-      >
-        {NIMI_FIRST_RUN_PHASES.map((phase, index) => {
-          const active = index === activeIndex;
-          return (
-            <div
-              key={phase}
-              data-testid={`first-run-step-${phase}`}
-              data-active={active ? 'true' : 'false'}
-              className="flex flex-1 flex-col items-center gap-1.5"
-            >
-              <span
-                className={
-                  active
-                    ? 'text-xs font-semibold text-[var(--nimi-action-primary-bg)]'
-                    : 'text-xs font-medium text-[color-mix(in_srgb,var(--nimi-text-muted)_88%,transparent)]'
-                }
+      {terminal ? null : (
+        <nav
+          data-testid="first-run-step-indicator"
+          aria-label={t('FirstRun.stepIndicatorLabel', { defaultValue: 'Setup steps' })}
+          className="mx-auto mt-7 flex w-full max-w-md items-stretch gap-3 px-6 sm:px-8"
+        >
+          {NIMI_FIRST_RUN_PHASES.map((phase, index) => {
+            const active = index === activeIndex;
+            return (
+              <div
+                key={phase}
+                data-testid={`first-run-step-${phase}`}
+                data-active={active ? 'true' : 'false'}
+                className="flex flex-1 flex-col items-center gap-1.5"
               >
-                {t(STEP_LABEL_KEYS[phase], { defaultValue: STEP_LABEL_DEFAULTS[phase] })}
-              </span>
-              <span
-                className={
-                  active
-                    ? 'h-[3px] w-full rounded-full bg-[var(--nimi-action-primary-bg)]'
-                    : 'h-[3px] w-full rounded-full bg-[color-mix(in_srgb,var(--nimi-text-muted)_22%,transparent)]'
-                }
-              />
-            </div>
-          );
-        })}
-      </nav>
+                <span
+                  className={
+                    active
+                      ? 'text-xs font-semibold text-[var(--nimi-action-primary-bg)]'
+                      : 'text-xs font-medium text-[color-mix(in_srgb,var(--nimi-text-muted)_88%,transparent)]'
+                  }
+                >
+                  {t(STEP_LABEL_KEYS[phase], { defaultValue: STEP_LABEL_DEFAULTS[phase] })}
+                </span>
+                <span
+                  className={
+                    active
+                      ? 'h-[3px] w-full rounded-full bg-[var(--nimi-action-primary-bg)]'
+                      : 'h-[3px] w-full rounded-full bg-[color-mix(in_srgb,var(--nimi-text-muted)_22%,transparent)]'
+                  }
+                />
+              </div>
+            );
+          })}
+        </nav>
+      )}
 
       {/* Centered content card. */}
-      <div className="flex flex-1 items-center justify-center px-6 py-10">
+      <div className={terminal ? 'flex flex-1 items-start justify-center px-6 pb-8 pt-24' : 'flex flex-1 items-center justify-center px-6 py-8'}>
         <div
           data-testid="first-run-wizard-card"
-          className="w-full max-w-xl rounded-2xl bg-[var(--nimi-surface-card)] p-9 shadow-[0_24px_60px_-12px_rgba(30,41,90,0.18)]"
+          className={
+            terminal
+              ? 'w-full max-w-lg rounded-xl bg-[var(--nimi-surface-card)] p-5 shadow-[0_12px_30px_-16px_rgba(30,41,90,0.18)]'
+              : 'w-full max-w-xl rounded-2xl bg-[var(--nimi-surface-card)] p-6 shadow-[0_18px_44px_-12px_rgba(30,41,90,0.16)]'
+          }
         >
           {props.children}
         </div>

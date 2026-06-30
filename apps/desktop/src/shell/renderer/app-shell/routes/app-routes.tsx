@@ -63,60 +63,22 @@ function SharedStatusShell(props: {
         className="absolute inset-x-0 top-0 z-20 h-8"
         onMouseDown={onDragRegionMouseDown}
       />
-      <style>{`
-        @keyframes nimi-float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-6px); }
-        }
-        @keyframes nimi-spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes nimi-pulse {
-          0%, 100% { transform: scale(1); opacity: 0.45; }
-          50% { transform: scale(1.08); opacity: 0.9; }
-        }
-        @keyframes nimi-dot {
-          0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
-          40% { transform: translateY(-4px); opacity: 1; }
-        }
-        .nimi-bootstrap-pulse { animation: nimi-pulse 2.8s ease-in-out infinite; }
-        .nimi-bootstrap-pulse-slow { animation: nimi-pulse 3.4s ease-in-out infinite; }
-        .nimi-bootstrap-spin { animation: nimi-spin 18s linear infinite; }
-        .nimi-bootstrap-float { animation: nimi-float 3.2s ease-in-out infinite; }
-        .nimi-bootstrap-dot { animation: nimi-dot 1.4s ease-in-out infinite; }
-        .nimi-bootstrap-dot:nth-child(2) { animation-delay: 180ms; }
-        .nimi-bootstrap-dot:nth-child(3) { animation-delay: 360ms; }
-      `}</style>
       <div className="relative z-10 flex min-h-screen items-center justify-center p-6">
         <Surface
           as="section"
-          tone="hero"
-          material="glass-thick"
+          tone="panel"
+          material="glass-regular"
           padding="none"
-          className="w-full max-w-[460px] rounded-3xl px-8 py-10 sm:px-10 sm:py-11"
+          className="w-full max-w-[420px] rounded-2xl px-6 py-7 sm:px-7 sm:py-8"
         >
           <div className="flex flex-col items-center text-center">
-            <div className="relative mb-8 flex h-24 w-24 items-center justify-center">
-              <div
-                className="nimi-bootstrap-pulse absolute inset-0 rounded-3xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_26%,var(--nimi-surface-card))]"
-              />
-              <div
-                className="nimi-bootstrap-spin absolute inset-[-8px] rounded-3xl border border-dashed border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,var(--nimi-surface-card))]"
-              />
-              <div
-                className="nimi-bootstrap-pulse-slow absolute inset-[-16px] rounded-3xl border border-[var(--nimi-border-subtle)]"
-              />
-              <div
-                className="nimi-bootstrap-float relative flex h-20 w-20 items-center justify-center rounded-3xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-raised)]"
-              >
-                <NimiLogoMark />
-              </div>
+            <div className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-raised)]">
+              <NimiLogoMark className="h-10 w-10" />
             </div>
             <div className="mb-3 rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,var(--nimi-surface-card))] bg-[var(--nimi-surface-active)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--nimi-action-primary-bg-hover)]">
               {props.eyebrow}
             </div>
-            <h1 className="text-[30px] font-semibold tracking-[-0.03em] text-[var(--nimi-text-primary)]">
+            <h1 className="text-2xl font-semibold tracking-[-0.02em] text-[var(--nimi-text-primary)]">
               {props.title}
             </h1>
             {props.description ? (
@@ -177,7 +139,7 @@ function LoadingScreen() {
           {[0, 1, 2].map((i) => (
             <span
               key={i}
-              className="nimi-bootstrap-dot h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg)]"
+              className="h-2.5 w-2.5 rounded-full bg-[var(--nimi-action-primary-bg)] opacity-70"
             />
           ))}
         </div>

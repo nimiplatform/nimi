@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'motion/react';
 import { Button, ProgressIndicator } from '@nimiplatform/kit/ui';
 import type {
   NimiAppInventoryInstallState,
@@ -22,6 +23,7 @@ import {
   type AppCardRequirementSummary,
 } from './apps-card-fields.js';
 import type { DesktopAppsCardState, DesktopAppsEntry, DesktopAppsPanelProjection } from './apps-panel-projection.js';
+import { useDesktopCardMotion } from '@renderer/ui/motion/desktop-motion';
 
 const TRUST_TIER_LABEL_KEYS: Record<NimiAppInventoryTrustTier, string> = {
   'nimi-first-party': 'Apps.trustTier.firstParty',
@@ -263,6 +265,7 @@ interface AppCardProps {
 
 function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
   const { t } = useTranslation();
+  const cardMotion = useDesktopCardMotion();
   const { app, cardState, job } = entry;
   const version = deriveVersionState(entry);
   const requirements = deriveRequirementSummary(entry);
@@ -273,13 +276,17 @@ function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
   });
 
   return (
-    <li
+    <motion.li
+      layout
       data-testid={`apps-entry-${app.appId}`}
       data-app-card-state={cardState}
       data-trust-tier={app.trustTier}
       data-install-state={app.installState}
       data-open-readiness={app.openReadiness}
       data-launch-readiness={entry.status?.launchReadiness ?? 'unknown'}
+      whileHover={cardMotion.whileHover}
+      whileTap={cardMotion.whileTap}
+      transition={cardMotion.transition}
       className="flex flex-col gap-3 rounded-lg border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-3 py-3"
     >
       <div className="flex items-start justify-between gap-4">
@@ -386,7 +393,7 @@ function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
       {entry.detail ? (
         <span data-testid={`apps-entry-${app.appId}-detail`} className="sr-only">{entry.detail}</span>
       ) : null}
-    </li>
+    </motion.li>
   );
 }
 

@@ -40,13 +40,13 @@ const SETTINGS_ITEM_KEY_BY_ID: Record<string, string> = {
 };
 
 export function SettingsPanelBody() {
-  const MIN_SETTINGS_SIDEBAR_WIDTH = 220;
-  const MAX_SETTINGS_SIDEBAR_WIDTH = 360;
+  const MIN_SETTINGS_SIDEBAR_WIDTH = 200;
+  const MAX_SETTINGS_SIDEBAR_WIDTH = 320;
   const { t } = useTranslation();
   const menuSections = getSettingsMenuSections();
   const containerRef = useRef<HTMLDivElement>(null);
   const resizingRef = useRef(false);
-  const [sidebarWidth, setSidebarWidth] = useState(240);
+  const [sidebarWidth, setSidebarWidth] = useState(216);
   const [selectedId, setSelectedId] = useState(() => loadStoredSettingsSelected('profile'));
 
   const handleSelect = (id: string) => {
@@ -100,10 +100,10 @@ export function SettingsPanelBody() {
   };
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 gap-4 px-5 pb-5 pt-4" data-testid="panel:settings">
+    <div ref={containerRef} className="flex min-h-0 flex-1 gap-3 px-4 pb-4 pt-3" data-testid="panel:settings">
       <SidebarShell width={sidebarWidth} data-testid="panel:settings-sidebar">
-        <SidebarHeader title={<h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Navigation.settings')}</h1>} className="px-6" />
-        <ScrollArea className="flex-1" contentClassName="space-y-5 px-3 pb-3 pt-2">
+        <SidebarHeader title={<h1 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{t('Navigation.settings')}</h1>} className="px-5" />
+        <ScrollArea className="flex-1" contentClassName="space-y-4 px-3 pb-3 pt-1">
           {menuSections.map((section) => {
             const sectionKey = SETTINGS_SECTION_KEY_BY_LABEL[section.label];
             return (
@@ -141,7 +141,7 @@ export function SettingsPanelBody() {
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border-white/60 shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
       >
         {renderSettingsPage(selectedId)}
       </Surface>

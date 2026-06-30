@@ -91,7 +91,7 @@ export function DeveloperToolsPanel() {
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl"
       >
         {renderDeveloperToolsSection(selected)}
       </Surface>

@@ -52,7 +52,7 @@ export function AppsPanel(): ReactElement {
       >
         <header>
           <p className="text-xs font-semibold uppercase text-[var(--nimi-text-secondary)]">Nimi</p>
-          <h1 className="mt-2 text-3xl font-semibold text-[var(--nimi-text-primary)]">
+          <h1 className="mt-2 text-2xl font-semibold text-[var(--nimi-text-primary)]">
             {t('Navigation.apps', { defaultValue: 'Apps' })}
           </h1>
         </header>

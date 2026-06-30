@@ -1,15 +1,19 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const pnpmBin = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const desktopRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const workspaceRoot = path.resolve(desktopRoot, '../..');
+const sdkPackageRoot = path.join(workspaceRoot, 'sdks', 'typescript');
 const sdkDistRoot = path.join(workspaceRoot, 'sdks', 'typescript', 'dist');
+const viteOptimizerCacheRoot = path.join(desktopRoot, 'node_modules', '.vite');
 const tauriBin = path.join(desktopRoot, 'node_modules', '.bin', process.platform === 'win32' ? 'tauri.cmd' : 'tauri');
 const args = ['dev', '--config', 'src-tauri/tauri.conf.json'];
+const SDK_DIST_FRESHNESS_INPUT_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.cts', '.json']);
+const SDK_DIST_FRESHNESS_SKIP_DIRS = new Set(['dist', 'node_modules']);
 const REQUIRED_SDK_DIST_FILES = [
   'index.js',
   'runtime/index.js',
@@ -56,6 +60,29 @@ function quoteCmdArg(value) {
   return `"${raw.replaceAll('"', '\\"')}"`;
 }
 
+function collectNewestSdkInputMtimeMs(rootDir) {
+  let newestMtimeMs = 0;
+  const entries = existsSync(rootDir) ? readdirSync(rootDir, { withFileTypes: true }) : [];
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      if (SDK_DIST_FRESHNESS_SKIP_DIRS.has(entry.name)) {
+        continue;
+      }
+      newestMtimeMs = Math.max(newestMtimeMs, collectNewestSdkInputMtimeMs(path.join(rootDir, entry.name)));
+      continue;
+    }
+    if (!entry.isFile()) {
+      continue;
+    }
+    const filePath = path.join(rootDir, entry.name);
+    if (!SDK_DIST_FRESHNESS_INPUT_EXTENSIONS.has(path.extname(filePath))) {
+      continue;
+    }
+    newestMtimeMs = Math.max(newestMtimeMs, statSync(filePath).mtimeMs);
+  }
+  return newestMtimeMs;
+}
+
 let command = tauriBin;
 let commandArgs = args;
 if (process.platform === 'win32') {
@@ -76,13 +103,22 @@ function isSdkDistReadyForDesktopDev() {
   if (process.env.NIMI_DESKTOP_DEV_REBUILD_SDK === '1') {
     return false;
   }
-  return REQUIRED_SDK_DIST_FILES.every((relativePath) =>
-    existsSync(path.join(sdkDistRoot, ...relativePath.split('/'))));
+  let oldestDistMtimeMs = Number.POSITIVE_INFINITY;
+  for (const relativePath of REQUIRED_SDK_DIST_FILES) {
+    const distPath = path.join(sdkDistRoot, ...relativePath.split('/'));
+    if (!existsSync(distPath)) {
+      return false;
+    }
+    oldestDistMtimeMs = Math.min(oldestDistMtimeMs, statSync(distPath).mtimeMs);
+  }
+
+  const newestSdkInputMtimeMs = collectNewestSdkInputMtimeMs(sdkPackageRoot);
+  return newestSdkInputMtimeMs <= oldestDistMtimeMs;
 }
 
 function ensureSdkDistForDesktopDev() {
   if (isSdkDistReadyForDesktopDev()) {
-    return;
+    return false;
   }
   const pnpmArgs = ['--dir', workspaceRoot, '--filter', '@nimiplatform/sdk', 'build'];
   const buildCommand = process.platform === 'win32' ? 'cmd.exe' : pnpmBin;
@@ -102,6 +138,12 @@ function ensureSdkDistForDesktopDev() {
     process.stderr.write(`[run-tauri-dev] SDK dist build failed with status ${result.status ?? 'unknown'}\n`);
     process.exit(result.status ?? 1);
   }
+  return true;
+}
+
+function refreshRendererOptimizerAfterSdkRebuild() {
+  rmSync(viteOptimizerCacheRoot, { recursive: true, force: true });
+  childEnv.NIMI_DESKTOP_DEV_RENDERER_RESTART = '1';
 }
 
 function isChildRunning(child) {
@@ -174,7 +216,9 @@ function exitFromSignal(signal) {
   }
 }
 
-ensureSdkDistForDesktopDev();
+if (ensureSdkDistForDesktopDev()) {
+  refreshRendererOptimizerAfterSdkRebuild();
+}
 
 for (const signal of SIGNAL_EXIT_CODES.keys()) {
   process.on(signal, () => exitFromSignal(signal));

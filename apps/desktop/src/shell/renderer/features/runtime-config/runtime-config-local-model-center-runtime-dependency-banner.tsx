@@ -164,6 +164,13 @@ function runtimeDependencyActiveDetail(job: NimiRuntimeLocalEnvironmentDependenc
   return state;
 }
 
+function runtimeDependencyIsCUDARuntime(
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
+): boolean {
+  return String(dependency?.dependencyFamily || job?.dependencyFamily || '').trim() === 'accelerator.cuda.runtime';
+}
+
 export function runtimeDependencyBannerTitle(
   dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
   job?: NimiRuntimeLocalEnvironmentDependencyJob,
@@ -192,7 +199,12 @@ export function runtimeDependencyBannerTitle(
       defaultValue: 'Local image runtime unsupported',
     });
   }
-  return i18n.t('runtimeConfig.localModelCenter.cudaRuntimeSetupTitle', {
+  if (runtimeDependencyIsCUDARuntime(dependency, job)) {
+    return i18n.t('runtimeConfig.localModelCenter.cudaRuntimeSetupTitle', {
+      defaultValue: 'Optional local GPU acceleration',
+    });
+  }
+  return i18n.t('runtimeConfig.localModelCenter.runtimeSetupTitle', {
     defaultValue: 'Local image runtime setup',
   });
 }

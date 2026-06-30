@@ -199,6 +199,8 @@ test('desktop shell source guardrails keep auth helpers centralized', () => {
   assert.doesNotMatch(authMenuSource, /function toAuthUserRecord/);
   assert.match(mainSource, /createRendererEntryModuleLoader/);
   assert.match(mainSource, /describeRendererEntryFailureReason/);
+  assert.match(mainSource, /ensureNimiShellRuntimeBridgeInstalled/);
+  assert.doesNotMatch(mainSource, /installNimiShellRuntimeBridge\(\);/);
   assert.match(mainSource, /from '@nimiplatform\/kit\/shell\/renderer\/bootstrap'/);
   assert.doesNotMatch(mainSource, /function isRetryableEntryImportError|function createEntryImportError|Failed to fetch dynamically imported module|Importing a module script failed/);
   assert.doesNotMatch(desktopTauriConfigSource, /"pubkey"\s*:\s*"dev-placeholder"/);
