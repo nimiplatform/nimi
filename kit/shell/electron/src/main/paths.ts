@@ -71,6 +71,26 @@ export function isSameOrChildPath(root: string, candidate: string): boolean {
   const relative = path.relative(root, candidate);
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
+async function canonicalElectronPathCandidate(candidate: string): Promise<string> {
+  const resolved = path.resolve(candidate);
+  const missingSegments: string[] = [];
+  let current = resolved;
+  for (;;) {
+    try {
+      const canonical = await realpath(current);
+      return missingSegments.length === 0
+        ? canonical
+        : path.join(canonical, ...missingSegments.reverse());
+    } catch {
+      const parent = path.dirname(current);
+      if (parent === current) {
+        return resolved;
+      }
+      missingSegments.push(path.basename(current));
+      current = parent;
+    }
+  }
+}
 export async function resolveElectronStandardDataRootPath(
   host: NimiElectronStandardShellHost | undefined,
   payload: Readonly<Record<string, unknown>>,
@@ -107,7 +127,8 @@ export async function resolveElectronStandardLocalAssetPath(
   const candidates = path.isAbsolute(rawPath)
     ? [path.resolve(rawPath)]
     : canonicalRoots.map((root) => path.resolve(root, rawPath));
-  for (const candidate of candidates) {
+  for (const rawCandidate of candidates) {
+    const candidate = await canonicalElectronPathCandidate(rawCandidate);
     const owningRoot = canonicalRoots.find((root) => isSameOrChildPath(root, candidate));
     if (!owningRoot) {
       continue;

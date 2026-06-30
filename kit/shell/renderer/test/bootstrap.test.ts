@@ -3,6 +3,7 @@ import {
   checkRuntimeDaemonVersion,
   createRendererEntryModuleLoader,
   describeRendererEntryFailureReason,
+  ensureNimiShellRuntimeBridgeInstalled,
   isRuntimeDaemonReachable,
   safeBootstrapErrorMessage,
   withBootstrapStepTimeout,
@@ -113,5 +114,46 @@ describe('shell renderer bootstrap primitives', () => {
       message: 'bad',
       raw: expect.stringContaining('"value":"1"'),
     });
+  });
+
+  it('waits for the standard shell runtime bridge before renderer bootstrap continues', async () => {
+    const stages: Array<{ stage: string; details?: Record<string, unknown> }> = [];
+    let attempts = 0;
+    const result = await ensureNimiShellRuntimeBridgeInstalled({
+      retryDelaysMs: [1],
+      reportStage: (stage, details) => stages.push({ stage, details }),
+      install: () => {
+        attempts += 1;
+        return attempts === 1
+          ? { installed: false, reason: 'standard-host-preload-required' }
+          : { installed: true, host: 'tauri' };
+      },
+      setTimeout: ((handler: TimerHandler) => {
+        if (typeof handler === 'function') {
+          handler();
+        }
+        return 0 as unknown as ReturnType<typeof setTimeout>;
+      }) as typeof setTimeout,
+    });
+
+    expect(result).toEqual({ installed: true, host: 'tauri' });
+    expect(attempts).toBe(2);
+    expect(stages).toEqual([
+      {
+        stage: 'standard-shell-host-install-retry',
+        details: {
+          attempt: 1,
+          retryDelayMs: 1,
+          reason: 'standard-host-preload-required',
+        },
+      },
+    ]);
+  });
+
+  it('fails closed when the standard shell runtime bridge never appears', async () => {
+    await expect(ensureNimiShellRuntimeBridgeInstalled({
+      retryDelaysMs: [],
+      install: () => ({ installed: false, reason: 'standard-host-preload-required' }),
+    })).rejects.toThrow(/Standard shell host preload was not available/);
   });
 });

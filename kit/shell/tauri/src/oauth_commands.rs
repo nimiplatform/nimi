@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -227,8 +228,18 @@ fn write_oauth_callback_page(stream: &mut std::net::TcpStream, success: bool) {
 
 const DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE: &str =
     include_str!("native-oauth-result-page.template.html");
+const DESKTOP_OAUTH_RESULT_LOGO_PNG: &[u8] =
+    include_bytes!("../../../auth/src/logic/native-oauth-result-logo.png");
+
+fn oauth_result_logo_data_uri() -> String {
+    format!(
+        "data:image/png;base64,{}",
+        BASE64_STANDARD.encode(DESKTOP_OAUTH_RESULT_LOGO_PNG)
+    )
+}
 
 fn render_oauth_callback_page(success: bool) -> String {
+    let logo_data_uri = oauth_result_logo_data_uri();
     if success {
         DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE
             .replace("__PAGE_TITLE__", "OAuth Complete - Nimi")
@@ -237,6 +248,7 @@ fn render_oauth_callback_page(success: bool) -> String {
             .replace("__LOGO_ANIMATION_DURATION__", "3s")
             .replace("__LOGO_ANIMATION_REPEAT__", "infinite")
             .replace("__LOGO_FILTER__", "none")
+            .replace("__LOGO_DATA_URI__", &logo_data_uri)
             .replace(
                 "__SUCCESS_ICON_ANIMATION__",
                 "scaleIn 0.5s ease-out 0.3s both",
@@ -278,6 +290,7 @@ fn render_oauth_callback_page(success: bool) -> String {
                 "__LOGO_FILTER__",
                 "drop-shadow(0 10px 20px rgba(240, 147, 251, 0.3))",
             )
+            .replace("__LOGO_DATA_URI__", &logo_data_uri)
             .replace(
                 "__SUCCESS_ICON_ANIMATION__",
                 "scaleIn 0.5s ease-out 0.3s both",
@@ -542,6 +555,7 @@ mod tests {
     use super::{
         normalize_oauth_callback_target, oauth_token_exchange_url,
         parse_oauth_callback_http_request, parse_oauth_token_exchange_provider,
+        render_oauth_callback_page,
         redact_body_preview, redact_json_value, OauthTokenExchangePayload,
         OauthTokenExchangeProvider,
     };
@@ -640,5 +654,13 @@ mod tests {
             Some("token-123")
         );
         assert_eq!(parsed.params.get("state").map(String::as_str), Some("abc"));
+    }
+
+    #[test]
+    fn render_oauth_callback_page_uses_current_png_logo_data_uri() {
+        let page = render_oauth_callback_page(true);
+        assert!(page.contains(r#"<img class="logo" src="data:image/png;base64,"#));
+        assert!(!page.contains("nimiLogoGradient"));
+        assert!(!page.contains(r#"<rect x="10" y="10" width="120" height="120""#));
     }
 }

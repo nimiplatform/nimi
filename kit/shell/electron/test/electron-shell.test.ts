@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import {
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
@@ -903,6 +903,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
       await mkdir(assetRoot, { recursive: true });
       const assetPath = path.join(assetRoot, 'avatar.vrm');
       await writeFile(assetPath, 'avatar bytes', 'utf8');
+      const canonicalAssetPath = await realpath(assetPath);
       const ipcMain = new FakeIpcMain();
       registerNimiElectronRuntimeBridge({
         appId: 'nimi.tester',
@@ -922,8 +923,8 @@ describe('registerNimiElectronRuntimeBridge', () => {
         command: NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve'],
         payload: { path: assetPath },
       })).resolves.toEqual({
-        path: assetPath,
-        url: `nimi-shell-file://${encodeURIComponent(assetPath)}`,
+        path: canonicalAssetPath,
+        url: `nimi-shell-file://${encodeURIComponent(canonicalAssetPath)}`,
       });
     });
   });
@@ -1112,6 +1113,8 @@ describe('registerNimiElectronRuntimeBridge', () => {
       await mkdir(assetRoot, { recursive: true });
       const assetPath = path.join(assetRoot, 'preview.txt');
       await writeFile(assetPath, 'preview', 'utf8');
+      const canonicalDataRoot = await realpath(dataRoot);
+      const canonicalAssetPath = await realpath(assetPath);
       const registeredAssets: string[] = [];
       const ipcMain = new FakeIpcMain();
       registerNimiElectronRuntimeBridge({
@@ -1137,7 +1140,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         command: NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'],
         payload: { relativePath: 'settings/profile.json' },
       })).resolves.toMatchObject({
-        path: path.join(dataRoot, 'settings', 'profile.json'),
+        path: path.join(canonicalDataRoot, 'settings', 'profile.json'),
       });
 
       const writeResult = await invokeBridge(ipcMain, event, {
@@ -1147,14 +1150,14 @@ describe('registerNimiElectronRuntimeBridge', () => {
           value: { schemaVersion: 1, enabled: true },
         },
       }) as { path: string; value: Record<string, unknown> };
-      expect(writeResult.path).toBe(path.join(dataRoot, 'settings', 'profile.json'));
+      expect(writeResult.path).toBe(path.join(canonicalDataRoot, 'settings', 'profile.json'));
       expect(JSON.parse(await readFile(writeResult.path, 'utf8'))).toEqual({ schemaVersion: 1, enabled: true });
 
       await expect(invokeBridge(ipcMain, event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
         payload: { relativePath: 'settings/profile.json' },
       })).resolves.toEqual({
-        path: path.join(dataRoot, 'settings', 'profile.json'),
+        path: path.join(canonicalDataRoot, 'settings', 'profile.json'),
         value: { schemaVersion: 1, enabled: true },
       });
 
@@ -1162,10 +1165,10 @@ describe('registerNimiElectronRuntimeBridge', () => {
         command: NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl'],
         payload: { path: assetPath },
       })).resolves.toEqual({
-        path: assetPath,
-        url: `nimi-shell-file://${encodeURIComponent(assetPath)}`,
+        path: canonicalAssetPath,
+        url: `nimi-shell-file://${encodeURIComponent(canonicalAssetPath)}`,
       });
-      expect(registeredAssets).toEqual([assetPath]);
+      expect(registeredAssets).toEqual([canonicalAssetPath]);
     });
   });
 

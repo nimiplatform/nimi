@@ -228,6 +228,7 @@ ai_governance:
       generated:
         - .nimi/spec/**/kernel/generated/**
         - kit/design-projection.json
+        - kit/auth/src/logic/native-oauth-result-logo.ts
         - runtime/internal/providerregistry/generated.go
         - runtime/catalog/providers/**
         - runtime/catalog/generated/**

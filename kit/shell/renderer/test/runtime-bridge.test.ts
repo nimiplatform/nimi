@@ -39,13 +39,20 @@ type TauriRuntimeTestGlobal = typeof globalThis & {
   __NIMI_ELECTRON_RUNTIME__?: TauriRuntimeTestGlobal['__NIMI_ELECTRON_TEST__'];
   __TAURI_INTERNALS__?: unknown;
   __TAURI_IPC__?: unknown;
+  isTauri?: boolean;
   window?: {
     __NIMI_TAURI_TEST__?: TauriRuntimeTestGlobal['__NIMI_TAURI_TEST__'];
     __NIMI_TAURI_RUNTIME__?: TauriRuntimeTestGlobal['__NIMI_TAURI_RUNTIME__'];
     __NIMI_ELECTRON_TEST__?: TauriRuntimeTestGlobal['__NIMI_ELECTRON_TEST__'];
     __NIMI_ELECTRON_RUNTIME__?: TauriRuntimeTestGlobal['__NIMI_ELECTRON_RUNTIME__'];
-    __TAURI_INTERNALS__?: unknown;
+    __TAURI_INTERNALS__?: {
+      invoke?: (command: string, payload?: unknown) => Promise<unknown>;
+      transformCallback?: (callback: unknown, once?: boolean) => number;
+      unregisterCallback?: (id: number) => void;
+      convertFileSrc?: (fileUrl: string, protocol?: string) => string;
+    };
     __TAURI_IPC__?: unknown;
+    isTauri?: boolean;
   };
 };
 
@@ -58,6 +65,7 @@ function resetTauriGlobals(): void {
   delete testGlobal.__NIMI_ELECTRON_RUNTIME__;
   delete testGlobal.__TAURI_INTERNALS__;
   delete testGlobal.__TAURI_IPC__;
+  delete testGlobal.isTauri;
   delete testGlobal.window;
 }
 
@@ -202,6 +210,31 @@ describe('installNimiShellRuntimeBridge', () => {
 
     expect(hasTauriRuntime()).toBe(false);
     expect(hasTauriInvoke()).toBe(false);
+  });
+
+  it('installs from native Tauri internals when the isTauri marker is not initialized yet', async () => {
+    const invokeCalls: Array<{ command: string; payload: unknown }> = [];
+    testGlobal.window = {
+      __TAURI_INTERNALS__: {
+        invoke: async (command, payload) => {
+          invokeCalls.push({ command, payload });
+          return { command, payload };
+        },
+        transformCallback: () => 1,
+        unregisterCallback: () => undefined,
+        convertFileSrc: (fileUrl) => `asset://local/${fileUrl}`,
+      },
+    };
+
+    expect(testGlobal.window.isTauri).toBeUndefined();
+    expect(installNimiShellRuntimeBridge()).toEqual({ installed: true, host: 'tauri' });
+    expect(hasTauriInvoke()).toBe(true);
+
+    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get'], {})).resolves.toEqual({
+      command: 'runtime_defaults',
+      payload: {},
+    });
+    expect(invokeCalls).toEqual([{ command: 'runtime_defaults', payload: {} }]);
   });
 });
 

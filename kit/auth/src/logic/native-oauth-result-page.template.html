@@ -47,6 +47,7 @@
             width: 140px;
             height: 140px;
             filter: __LOGO_FILTER__;
+            object-fit: contain;
         }
         .status_wrapper {
             display: flex;
@@ -156,17 +157,7 @@
 <body>
     <div class="container">
         <div class="logo_wrapper">
-            <svg class="logo" viewBox="0 0 140 140" role="img" aria-label="Nimi" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <linearGradient id="nimiLogoGradient" x1="18" y1="16" x2="124" y2="126" gradientUnits="userSpaceOnUse">
-                        <stop offset="0" stop-color="#1F9BAB" />
-                        <stop offset="1" stop-color="#1E377A" />
-                    </linearGradient>
-                </defs>
-                <rect x="10" y="10" width="120" height="120" rx="30" fill="url(#nimiLogoGradient)" />
-                <path d="M39 96V44h16l30 31V44h16v52H85L55 65v31H39Z" fill="#FFFFFF" />
-                <circle cx="104" cy="38" r="8" fill="#BFF7F0" />
-            </svg>
+            <img class="logo" src="__LOGO_DATA_URI__" alt="Nimi" aria-label="Nimi" />
         </div>
         <div class="status_wrapper">
             <div class="__STATUS_ICON_CLASS__">

@@ -4,7 +4,9 @@
 // Apps retain their own bootstrap orchestration, store integration, daemon
 // policy, and local data bootstrap. This module owns only the shared skeleton.
 
+import type { NimiShellRuntimeBridgeResult } from '../bridge/tauri-api.js';
 import type { RuntimeDefaults } from '../bridge/types.js';
+import { installNimiShellRuntimeBridge } from './runtime-bridge.js';
 export { installNimiShellRuntimeBridge } from './runtime-bridge.js';
 
 export type BootstrapLogEvent = {
@@ -117,6 +119,51 @@ export function createRendererEntryModuleLoader(
       }
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Standard shell host readiness
+// ---------------------------------------------------------------------------
+
+export type StandardShellHostInstallStageReporter = (
+  stage: string,
+  details?: Record<string, unknown>,
+) => void;
+
+export type StandardShellHostInstallOptions = {
+  retryDelaysMs?: readonly number[];
+  reportStage?: StandardShellHostInstallStageReporter;
+  setTimeout?: typeof globalThis.setTimeout;
+  install?: () => NimiShellRuntimeBridgeResult;
+};
+
+export const DEFAULT_STANDARD_SHELL_HOST_INSTALL_RETRY_DELAYS_MS = [8, 16, 32, 64, 128, 256] as const;
+
+export async function ensureNimiShellRuntimeBridgeInstalled(
+  options: StandardShellHostInstallOptions = {},
+): Promise<NimiShellRuntimeBridgeResult> {
+  const retryDelaysMs = options.retryDelaysMs ?? DEFAULT_STANDARD_SHELL_HOST_INSTALL_RETRY_DELAYS_MS;
+  const setTimeoutImpl = options.setTimeout || globalThis.setTimeout.bind(globalThis);
+  const install = options.install || installNimiShellRuntimeBridge;
+  let attempts = 0;
+
+  for (;;) {
+    attempts += 1;
+    const result = install();
+    if (result.installed) {
+      return result;
+    }
+    const retryDelay = retryDelaysMs[attempts - 1];
+    if (retryDelay === undefined) {
+      throw new Error(`Standard shell host preload was not available after ${attempts} attempt(s): ${result.reason}`);
+    }
+    options.reportStage?.('standard-shell-host-install-retry', {
+      attempt: attempts,
+      retryDelayMs: retryDelay,
+      reason: result.reason,
+    });
+    await delay(retryDelay, setTimeoutImpl);
+  }
 }
 
 // ---------------------------------------------------------------------------

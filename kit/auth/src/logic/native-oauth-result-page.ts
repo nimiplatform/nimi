@@ -1,4 +1,5 @@
 import template from './native-oauth-result-page.template.html';
+import { NIMI_OAUTH_RESULT_LOGO_DATA_URI } from './native-oauth-result-logo.js';
 
 export type DesktopOAuthResultPageStatus = 'success' | 'error';
 export type DesktopOAuthResultPageLocale = 'en';
@@ -103,6 +104,7 @@ function renderTemplate(input: {
     .replace('__LOGO_ANIMATION_DURATION__', escapeHtml(input.logoAnimationDuration))
     .replace('__LOGO_ANIMATION_REPEAT__', escapeHtml(input.logoAnimationRepeat))
     .replace('__LOGO_FILTER__', escapeHtml(input.logoFilter))
+    .replace('__LOGO_DATA_URI__', escapeHtml(NIMI_OAUTH_RESULT_LOGO_DATA_URI))
     .replace('__SUCCESS_ICON_ANIMATION__', escapeHtml(input.successIconAnimation))
     .replace('__ERROR_ICON_ANIMATION__', escapeHtml(input.errorIconAnimation))
     .replace('__STATUS_ICON_CLASS__', escapeHtml(input.statusIconClass))

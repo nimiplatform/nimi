@@ -16,7 +16,24 @@ function shellGlobal(): TauriRuntimeGlobal {
 }
 
 function hasNativeTauriRuntime(): boolean {
-  return isTauri();
+  const value = shellGlobal();
+  const windowRecord = value.window && typeof value.window === 'object'
+    ? value.window as unknown as Record<string, unknown>
+    : undefined;
+  const globalRecord = value as Record<string, unknown>;
+  return (
+    isTauri()
+    || hasNativeTauriInvoke(windowRecord?.__TAURI_INTERNALS__)
+    || hasNativeTauriInvoke(globalRecord.__TAURI_INTERNALS__)
+  );
+}
+
+function hasNativeTauriInvoke(candidate: unknown): boolean {
+  return Boolean(
+    candidate
+    && typeof candidate === 'object'
+    && typeof (candidate as { invoke?: unknown }).invoke === 'function',
+  );
 }
 
 function createNimiShellRuntimeHook(): NimiShellRuntimeHook {

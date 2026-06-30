@@ -3,14 +3,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const kitRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const copiedAssetExtensions = new Set(['.css', '.html']);
 
-function collectCssFiles(relativeDir, files = []) {
+function collectDistAssetFiles(relativeDir, files = []) {
   const absoluteDir = path.join(kitRoot, relativeDir);
   for (const entry of readdirSync(absoluteDir, { withFileTypes: true })) {
     const relativePath = path.join(relativeDir, entry.name);
     if (entry.isDirectory()) {
-      collectCssFiles(relativePath, files);
-    } else if (entry.isFile() && entry.name.endsWith('.css')) {
+      collectDistAssetFiles(relativePath, files);
+    } else if (entry.isFile() && copiedAssetExtensions.has(path.extname(entry.name))) {
       files.push(relativePath);
     }
   }
@@ -18,8 +19,8 @@ function collectCssFiles(relativeDir, files = []) {
 }
 
 for (const relativePath of [
-  ...collectCssFiles('auth/src'),
-  ...collectCssFiles('ui/src'),
+  ...collectDistAssetFiles('auth/src'),
+  ...collectDistAssetFiles('ui/src'),
 ]) {
   const source = path.join(kitRoot, relativePath);
   // Strip the `/src/` segment to match normalize-dist-layout's flattening and the
