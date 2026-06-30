@@ -6,7 +6,7 @@ import {
   resolveSessionExpiry,
   type AuthPlatformAdapter,
 } from '@nimiplatform/kit/auth';
-import type { TauriOAuthBridge } from '@nimiplatform/kit/core/oauth';
+import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import { isWebShellMode } from '@nimiplatform/kit/core/shell-mode';
 import {
   checkNimiRealmAuthEmail,
@@ -53,8 +53,8 @@ import {
   shouldUseFreshOauthBrowserSessionLogin,
 } from './fresh-oauth-browser-session-login.js';
 
-export const desktopOAuthBridge: TauriOAuthBridge = {
-  hasTauriInvoke: () => desktopBridge.hasShellHostInvoke(),
+export const desktopOAuthBridge: ShellOAuthBridge = {
+  hasShellHostInvoke: () => desktopBridge.hasShellHostInvoke(),
   oauthListenForCode: (payload) => desktopBridge.oauthListenForCode(payload),
   oauthTokenExchange: (payload) => desktopBridge.oauthTokenExchange(payload),
   openExternalUrl: (url) => desktopBridge.openExternalUrl(url),

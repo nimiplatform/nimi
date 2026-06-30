@@ -62,10 +62,14 @@ export function LoginPage() {
     return null;
   }
 
+  const authMode = flags.mode === 'web'
+    ? 'embedded'
+    : 'desktop-browser';
+
   return (
     <div className="relative min-h-screen">
       <Suspense fallback={null}>
-        <WebAuthMenu mode={flags.mode === 'web' ? 'embedded' : 'desktop-browser'} />
+        <WebAuthMenu mode={authMode} />
       </Suspense>
     </div>
   );

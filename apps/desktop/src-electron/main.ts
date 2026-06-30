@@ -8,6 +8,7 @@ import {
   registerNimiElectronRuntimeBridge,
   type NimiElectronAIConfigStore,
 } from '@nimiplatform/kit/shell/electron/main';
+import { createDesktopElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 
 const APP_ID = 'nimi.desktop';
 const FILE_PROTOCOL = 'nimi-shell-file';
@@ -50,6 +51,10 @@ void app.whenReady().then(async () => {
     allowedOrigins: allowedRendererOrigins(),
     allowedRendererUrls: allowedRendererUrls(),
     ipcMain,
+    trustedRuntimeMetadataProvider: createDesktopElectronTrustedRuntimeMetadataProvider({
+      appId: APP_ID,
+      runtimeEndpoint,
+    }),
     standardShellHost: {
       dataRoot: standardDataRoot,
       localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),

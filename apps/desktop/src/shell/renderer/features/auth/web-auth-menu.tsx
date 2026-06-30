@@ -21,7 +21,10 @@ import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/
 export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const mode = props.mode || 'embedded';
   const adapter = useMemo(() => createDesktopAuthAdapter(), []);
-  const runtimeAccountBroker = useMemo(() => createDesktopRuntimeAccountBrowserBroker(), []);
+  const runtimeAccountBroker = useMemo(
+    () => mode === 'desktop-browser' ? createDesktopRuntimeAccountBrowserBroker() : null,
+    [mode],
+  );
   const authStatus = useAppStore((state) => state.auth.status);
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
@@ -85,7 +88,7 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
       }}
       footer={footer}
       desktopBrowserAuth={
-        mode === 'desktop-browser'
+        mode === 'desktop-browser' && runtimeAccountBroker
           ? {
               bridge: desktopOAuthBridge,
               onRootPointerDown: handleRootMouseDown,

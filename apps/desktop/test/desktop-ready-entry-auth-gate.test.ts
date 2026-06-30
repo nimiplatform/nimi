@@ -5,6 +5,10 @@ import test from 'node:test';
 
 import { getProductControlRecord } from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
 import type { NimiProductControlRecordProjection } from '../src/shell/renderer/bridge/runtime-bridge/product-control.js';
+import {
+  clearDesktopNimiClientSession,
+  setDesktopNimiClientSessionForTests,
+} from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.js';
 
 const appRoutesSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/app-shell/routes/app-routes.tsx'),
@@ -295,6 +299,66 @@ test('Wave 8: a fabricated renderer/localStorage ready_for_use never mounts Read
     assert.equal(deriveOrdinaryShellAdmission(projection), 'not-ready');
   } finally {
     env.restore();
+  }
+});
+
+test('Desktop Electron product-control record reads the RuntimeLocalService projection', async () => {
+  const globalRecord = globalThis as Record<string, unknown>;
+  const previousTauri = globalRecord.__NIMI_TAURI_TEST__;
+  const previousElectron = globalRecord.__NIMI_ELECTRON_TEST__;
+  const previousWindow = globalRecord.window;
+  const calls: unknown[] = [];
+  delete globalRecord.__NIMI_TAURI_TEST__;
+  const electronHook = {
+    invoke: async () => ({}),
+    listen: () => () => {},
+  };
+  globalRecord.__NIMI_ELECTRON_TEST__ = electronHook;
+  globalRecord.window = {
+    __NIMI_ELECTRON_TEST__: electronHook,
+  };
+  setDesktopNimiClientSessionForTests({
+    appId: 'nimi.desktop',
+    realm: {} as never,
+    runtime: {
+      generated: {
+        async getProductControlRecord(request: unknown) {
+          calls.push(request);
+          return {
+            json: JSON.stringify({
+              path: '/runtime/.nimi/nimi.json',
+              exists: true,
+              state: 'ready_for_use',
+              record: null,
+              error: null,
+            }),
+          };
+        },
+      },
+    } as never,
+  });
+  try {
+    const projection = await getProductControlRecord();
+    assert.equal(projection.state, 'ready_for_use');
+    assert.equal(projection.path, '/runtime/.nimi/nimi.json');
+    assert.deepEqual(calls, [{}]);
+  } finally {
+    clearDesktopNimiClientSession();
+    if (typeof previousTauri === 'undefined') {
+      delete globalRecord.__NIMI_TAURI_TEST__;
+    } else {
+      globalRecord.__NIMI_TAURI_TEST__ = previousTauri;
+    }
+    if (typeof previousElectron === 'undefined') {
+      delete globalRecord.__NIMI_ELECTRON_TEST__;
+    } else {
+      globalRecord.__NIMI_ELECTRON_TEST__ = previousElectron;
+    }
+    if (typeof previousWindow === 'undefined') {
+      delete globalRecord.window;
+    } else {
+      globalRecord.window = previousWindow;
+    }
   }
 });
 

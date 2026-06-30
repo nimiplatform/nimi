@@ -1,18 +1,28 @@
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasShellHostInvoke, hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 import {
+  completeNimiRuntimeProductControlFirstRunDeviceEnvironmentScan,
+  ensureNimiRuntimeProductControlRecordCreated,
+  getNimiRuntimeProductControlRecord,
+  getNimiRuntimeProductControlSelectedDataRoot,
   parseNimiProductControlRecordProjection,
   parseNimiProductControlSelectedDataRootProjection,
   projectUnavailableNimiProductControlRecord,
   projectUnavailableNimiProductControlSelectedDataRoot,
+  reconcileNimiRuntimeProductControlFirstRunSetupState,
+  selectNimiRuntimeProductControlDataRoot,
+  setNimiRuntimeProductControlFirstRunInstallLevel,
   type NimiProductControlRecordProjection,
   type NimiProductControlSelectedDataRootProjection,
+  type NimiRuntimeProductControlClientFor,
+  type NimiRuntimeProductControlLocalClient,
 } from '@nimiplatform/sdk/runtime';
 import {
   parseNimiAIProfile,
   type NimiAIConfig,
   type NimiAIProfile,
 } from '@nimiplatform/sdk/ai';
+import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 export type {
   NimiProductControlRecord,
@@ -20,6 +30,20 @@ export type {
   NimiProductControlSelectedDataRootProjection,
   NimiProductControlState,
 } from '@nimiplatform/sdk/runtime';
+
+const PRODUCT_CONTROL_SURFACE_ID = 'desktop.product-control';
+const PRODUCT_CONTROL_CALL_OPTIONS = {
+  callOptions: {
+    metadata: {
+      surfaceId: PRODUCT_CONTROL_SURFACE_ID,
+    },
+  },
+} as const;
+
+function electronProductControlClient<Method extends keyof NimiRuntimeProductControlLocalClient>():
+  NimiRuntimeProductControlClientFor<Method> {
+  return getDesktopRuntime().generated as unknown as NimiRuntimeProductControlClientFor<Method>;
+}
 
 function asRecord(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -29,39 +53,64 @@ function asRecord(value: unknown, label: string): Record<string, unknown> {
 }
 
 export async function getProductControlRecord(): Promise<NimiProductControlRecordProjection> {
-  if (!hasTauriInvoke()) {
-    return projectUnavailableNimiProductControlRecord('product_control_record_get requires Tauri runtime');
+  if (hasTauriInvoke()) {
+    return invokeChecked('product_control_record_get', {}, parseNimiProductControlRecordProjection);
   }
-  return invokeChecked('product_control_record_get', {}, parseNimiProductControlRecordProjection);
+  if (hasShellHostInvoke()) {
+    return getNimiRuntimeProductControlRecord(
+      electronProductControlClient<'getProductControlRecord'>(),
+      PRODUCT_CONTROL_CALL_OPTIONS,
+    );
+  }
+  return projectUnavailableNimiProductControlRecord('product_control_record_get requires standard shell Runtime');
 }
 
 export async function getProductControlSelectedDataRoot(): Promise<NimiProductControlSelectedDataRootProjection> {
-  if (!hasTauriInvoke()) {
-    return projectUnavailableNimiProductControlSelectedDataRoot(
-      'product_control_selected_data_root_get requires Tauri runtime',
+  if (hasTauriInvoke()) {
+    return invokeChecked(
+      'product_control_selected_data_root_get',
+      {},
+      parseNimiProductControlSelectedDataRootProjection,
     );
   }
-  return invokeChecked(
-    'product_control_selected_data_root_get',
-    {},
-    parseNimiProductControlSelectedDataRootProjection,
+  if (hasShellHostInvoke()) {
+    return getNimiRuntimeProductControlSelectedDataRoot(
+      electronProductControlClient<'getProductControlSelectedDataRoot'>(),
+      PRODUCT_CONTROL_CALL_OPTIONS,
+    );
+  }
+  return projectUnavailableNimiProductControlSelectedDataRoot(
+    'product_control_selected_data_root_get requires standard shell Runtime',
   );
 }
 
 export async function ensureProductControlRecordCreated(): Promise<NimiProductControlRecordProjection> {
-  if (!hasTauriInvoke()) {
-    throw new Error('product_control_record_ensure_created requires Tauri runtime');
+  if (hasTauriInvoke()) {
+    return invokeChecked('product_control_record_ensure_created', {}, parseNimiProductControlRecordProjection);
   }
-  return invokeChecked('product_control_record_ensure_created', {}, parseNimiProductControlRecordProjection);
+  if (hasShellHostInvoke()) {
+    return ensureNimiRuntimeProductControlRecordCreated(
+      electronProductControlClient<'ensureProductControlRecordCreated'>(),
+      PRODUCT_CONTROL_CALL_OPTIONS,
+    );
+  }
+  throw new Error('product_control_record_ensure_created requires standard shell Runtime');
 }
 
 export async function selectProductDataRoot(dataRoot: string): Promise<NimiProductControlRecordProjection> {
-  if (!hasTauriInvoke()) {
-    throw new Error('product_control_record_select_data_root requires Tauri runtime');
+  if (hasTauriInvoke()) {
+    return invokeChecked('product_control_record_select_data_root', {
+      payload: { dataRoot },
+    }, parseNimiProductControlRecordProjection);
   }
-  return invokeChecked('product_control_record_select_data_root', {
-    payload: { dataRoot },
-  }, parseNimiProductControlRecordProjection);
+  if (hasShellHostInvoke()) {
+    return selectNimiRuntimeProductControlDataRoot(
+      electronProductControlClient<'selectProductControlDataRoot'>(),
+      { dataRoot },
+      PRODUCT_CONTROL_CALL_OPTIONS,
+    );
+  }
+  throw new Error('product_control_record_select_data_root requires standard shell Runtime');
 }
 
 /**
@@ -113,12 +162,22 @@ export async function setProductFirstRunInstallLevel(input: {
   installLevel: 'minimal' | 'recommended';
   aiProfileAlias?: string | null;
 }): Promise<NimiProductControlRecordProjection> {
-  if (!hasTauriInvoke()) {
-    throw new Error('product_control_record_set_first_run_install_level requires Tauri runtime');
+  if (hasTauriInvoke()) {
+    return invokeChecked('product_control_record_set_first_run_install_level', {
+      payload: input,
+    }, parseNimiProductControlRecordProjection);
   }
-  return invokeChecked('product_control_record_set_first_run_install_level', {
-    payload: input,
-  }, parseNimiProductControlRecordProjection);
+  if (hasShellHostInvoke()) {
+    return setNimiRuntimeProductControlFirstRunInstallLevel(
+      electronProductControlClient<'setProductControlFirstRunInstallLevel'>(),
+      {
+        installLevel: input.installLevel,
+        aiProfileAlias: input.aiProfileAlias || '',
+      },
+      PRODUCT_CONTROL_CALL_OPTIONS,
+    );
+  }
+  throw new Error('product_control_record_set_first_run_install_level requires standard shell Runtime');
 }
 
 export async function ensureProductAccountDefaultProfile(): Promise<NimiProductControlRecordProjection> {
@@ -144,25 +203,37 @@ export async function prepareProductFirstRunLocalAiReady(): Promise<NimiProductC
 }
 
 export async function reconcileProductFirstRunSetupState(): Promise<NimiProductControlRecordProjection> {
-  if (!hasTauriInvoke()) {
-    throw new Error('product_control_record_reconcile_first_run_setup_state requires Tauri runtime');
+  if (hasTauriInvoke()) {
+    return invokeChecked(
+      'product_control_record_reconcile_first_run_setup_state',
+      {},
+      parseNimiProductControlRecordProjection,
+    );
   }
-  return invokeChecked(
-    'product_control_record_reconcile_first_run_setup_state',
-    {},
-    parseNimiProductControlRecordProjection,
-  );
+  if (hasShellHostInvoke()) {
+    return reconcileNimiRuntimeProductControlFirstRunSetupState(
+      electronProductControlClient<'reconcileProductControlFirstRunSetupState'>(),
+      PRODUCT_CONTROL_CALL_OPTIONS,
+    );
+  }
+  throw new Error('product_control_record_reconcile_first_run_setup_state requires standard shell Runtime');
 }
 
 export async function completeProductFirstRunDeviceEnvironmentScan(): Promise<NimiProductControlRecordProjection> {
-  if (!hasTauriInvoke()) {
-    throw new Error('product_control_record_complete_first_run_device_environment_scan requires Tauri runtime');
+  if (hasTauriInvoke()) {
+    return invokeChecked(
+      'product_control_record_complete_first_run_device_environment_scan',
+      {},
+      parseNimiProductControlRecordProjection,
+    );
   }
-  return invokeChecked(
-    'product_control_record_complete_first_run_device_environment_scan',
-    {},
-    parseNimiProductControlRecordProjection,
-  );
+  if (hasShellHostInvoke()) {
+    return completeNimiRuntimeProductControlFirstRunDeviceEnvironmentScan(
+      electronProductControlClient<'completeProductControlFirstRunDeviceEnvironmentScan'>(),
+      PRODUCT_CONTROL_CALL_OPTIONS,
+    );
+  }
+  throw new Error('product_control_record_complete_first_run_device_environment_scan requires standard shell Runtime');
 }
 
 /** The Account Default Profile projected as a portable AIProfile payload. */

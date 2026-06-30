@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -8,6 +9,8 @@ import { _electron as electron } from 'playwright';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
 const root = path.resolve(import.meta.dirname, '..');
+const require = createRequire(import.meta.url);
+const electronExecutablePath = require('electron');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
 const rendererAcceptanceUrl = `${pathToFileURL(path.join(root, 'dist', 'index.html')).toString()}?nimiDesktopElectronAcceptance=1`;
 
@@ -28,6 +31,7 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
     }, null, 2), 'utf8');
 
     const app = await electron.launch({
+      executablePath: electronExecutablePath,
       args: [mainEntry],
       env: {
         ...process.env,
@@ -73,6 +77,17 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
         require: false,
         process: false,
       });
+
+      const rendererBootstrapSurface = await waitForDesktopRendererBootstrapSurface(page);
+      assert.equal(rendererBootstrapSurface, 'login');
+      const loginScreen = page.getByTestId('login-screen');
+      assert.equal(await loginScreen.getAttribute('data-auth-mode'), 'desktop-browser');
+      await page.getByTestId('login-logo-trigger').click();
+      await page.getByText(/Runtime account service is unavailable|external Runtime daemon/i).waitFor({
+        state: 'visible',
+        timeout: 10_000,
+      });
+      assert.doesNotMatch(await page.locator('body').innerText(), /Authentication failed\. Please try again\./);
 
       const diagnosticsProbe = await invokeShell(page, 'diagnostics.rendererEntryProbe', { stage: 'desktop-electron-acceptance' });
       assert.equal(diagnosticsProbe.ok, true);
@@ -245,6 +260,7 @@ test('Desktop Electron config.get fails closed with standard not-found when runt
   await withTempDir('missing-config', async (tmpRoot) => {
     const dataRoot = path.join(tmpRoot, 'data');
     const app = await electron.launch({
+      executablePath: electronExecutablePath,
       args: [mainEntry],
       env: {
         ...process.env,
@@ -300,6 +316,29 @@ async function captureInvokeError(page, commandKey, payload) {
   });
   assert.notEqual(errorPayload, null);
   return errorPayload;
+}
+
+async function waitForDesktopRendererBootstrapSurface(page) {
+  const handle = await page.waitForFunction((selectors) => {
+    for (const [surface, selector] of Object.entries(selectors)) {
+      if (document.querySelector(selector)) {
+        return surface;
+      }
+    }
+    return null;
+  }, {
+    error: '[data-testid="app-bootstrap-error-screen"]',
+    login: '[data-testid="login-screen"]',
+    main: '[data-testid="main-shell"]',
+    firstRun: '[data-testid="desktop-first-run-gate"]',
+    admissionFailed: '[data-testid="desktop-admission-failed"]',
+  }, { timeout: 45_000 });
+  const surface = await handle.jsonValue();
+  if (surface === 'error') {
+    const bodyText = await page.locator('body').innerText().catch(() => '');
+    assert.fail(`Desktop Electron renderer bootstrap failed:\n${bodyText}`);
+  }
+  return surface;
 }
 
 async function withTempDir(prefix, run) {

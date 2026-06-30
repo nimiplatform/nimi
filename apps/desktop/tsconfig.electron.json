@@ -7,9 +7,9 @@
     "jsx": "react-jsx",
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": false,
+    "noEmit": true,
     "outDir": "dist-electron",
-    "rootDir": "src-electron",
+    "rootDir": ".",
     "types": [
       "node",
       "electron"
@@ -17,6 +17,7 @@
   },
   "include": [
     "src-electron/**/*.ts",
-    "src-electron/**/*.cts"
+    "src-electron/**/*.cts",
+    "src/shell/shared/**/*.ts"
   ]
 }

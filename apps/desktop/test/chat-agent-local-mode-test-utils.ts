@@ -306,6 +306,16 @@ function normalizeDesktopTestRuntime(appId: string, runtime: unknown) {
   return runtime;
 }
 
+function normalizeDesktopTestRuntimeTransport(value: unknown) {
+  const candidate = value && typeof value === 'object'
+    ? value as { readonly type?: unknown }
+    : null;
+  if (candidate?.type === 'electron-ipc' || candidate?.type === 'tauri-ipc') {
+    return candidate;
+  }
+  return { type: 'tauri-ipc' as const };
+}
+
 function clearDesktopTestNimiClientSession() {
   clearDesktopNimiClientSession();
 }
@@ -329,6 +339,7 @@ function createDesktopTestNimiClientSession(input: {
     });
   const session = {
     appId: input.appId,
+    runtimeTransport: normalizeDesktopTestRuntimeTransport(input.runtimeTransport),
     client: {},
     accountCaller: createDefaultDesktopTestAccountCaller(),
     get runtime() {

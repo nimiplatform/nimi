@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import { logoutAndClearSession } from '../src/shell/renderer/features/auth/logout';
+
+const logoutSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/auth/logout.ts'),
+  'utf8',
+);
 
 function createTranslate() {
   return (_key: string, options?: { defaultValue?: string; error?: string }) =>
@@ -89,4 +96,9 @@ test('logout flow fails closed when Runtime logout cannot be confirmed', async (
   ]);
   assert.equal(bannerKind, 'warning');
   assert.match(bannerMessage, /could not be completed/i);
+});
+
+test('logout flow does not bypass Runtime logout for Desktop shells', () => {
+  assert.doesNotMatch(logoutSource, /isDesktopRuntimeAccountSessionReady/);
+  assert.match(logoutSource, /getDesktopAccountRuntime\(\)\.account\.logout/);
 });

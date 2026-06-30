@@ -12,6 +12,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import {
+  clearDesktopNimiClientSession,
+  setDesktopNimiClientSessionForTests,
+  withDesktopRuntimeProtectedScopes,
+} from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session';
 
 const __filename = fileURLToPath(import.meta.url);
 const desktopRoot = resolve(dirname(__filename), '..');
@@ -65,6 +70,46 @@ test('desktop Runtime Realm session delegates Runtime construction to the SDK pl
   assert.doesNotMatch(source, /\bnew\s+Runtime\s*\(/u);
   assert.equal(importsRuntimeAsValueFromSdkRuntime(source), false);
   assert.match(source, /\bcreateNimiRuntimePlatformClient\b/);
+});
+
+test('desktop Runtime Realm session accepts the Electron IPC Runtime transport', () => {
+  const source = readSessionSource();
+
+  assert.match(source, /readonly type: 'tauri-ipc'/u);
+  assert.match(source, /readonly type: 'electron-ipc'/u);
+  assert.match(source, /type: 'electron-ipc'/u);
+  assert.doesNotMatch(
+    source,
+    /const transport = input\.runtimeTransport \|\| \{\s*type: 'tauri-ipc' as const,/u,
+    'Desktop Runtime transport must not silently default Electron shell back to Tauri IPC',
+  );
+});
+
+test('desktop Electron Runtime calls leave host-owned auth metadata to the Electron shell', async () => {
+  setDesktopNimiClientSessionForTests({
+    appId: 'nimi.desktop',
+    runtimeTransport: { type: 'electron-ipc' },
+    client: {},
+    runtime: {},
+    accountRuntime: {
+      account: {
+        getAccountSessionStatus: async () => {
+          throw new Error('Electron renderer must not mint Runtime account metadata');
+        },
+      },
+    },
+    accountCaller: {},
+    realm: {},
+  } as never);
+  try {
+    const result = await withDesktopRuntimeProtectedScopes(['runtime.agent.read'], async (callOptions) => {
+      assert.deepEqual(callOptions, {});
+      return 'electron-host-owned';
+    });
+    assert.equal(result, 'electron-host-owned');
+  } finally {
+    clearDesktopNimiClientSession();
+  }
 });
 
 test('root anonymous fallback gate scans the desktop session path for renderer Runtime construction', () => {

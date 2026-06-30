@@ -6,6 +6,14 @@ const authAdapterSource = readFileSync(
   new URL('../src/shell/renderer/features/auth/desktop-auth-adapter.ts', import.meta.url),
   'utf8',
 );
+const loginPageSource = readFileSync(
+  new URL('../src/shell/renderer/features/auth/login-page.tsx', import.meta.url),
+  'utf8',
+);
+const webAuthMenuSource = readFileSync(
+  new URL('../src/shell/renderer/features/auth/web-auth-menu.tsx', import.meta.url),
+  'utf8',
+);
 
 function assertGuardedCall(handlerName: string): void {
   const start = authAdapterSource.indexOf(`${handlerName}:`);
@@ -35,6 +43,7 @@ test('desktop auth adapter guards Runtime-backed auth API calls behind bootstrap
     authAdapterSource.includes('supportsPasswordLogin: isWebShellMode()'),
     'password login may only be exposed by the explicit Web/cloud shell mode',
   );
+  assert.doesNotMatch(authAdapterSource, /isRealmAuthSurfaceEnabled/);
 
   assert.match(
     authAdapterSource,
@@ -86,4 +95,14 @@ test('desktop runtime account browser broker does not mutate Runtime account cus
   assert.doesNotMatch(authAdapterSource, /runtime\.account\.logout/);
   assert.doesNotMatch(authAdapterSource, /clearRuntimeAccountForReauth/);
   assert.doesNotMatch(authAdapterSource, /desktop_login_reauth/);
+});
+
+test('desktop Electron login uses RuntimeAccountService desktop-browser auth, not Realm fallback', () => {
+  assert.doesNotMatch(loginPageSource, /isDesktopRuntimeAccountSessionReady/);
+  assert.match(
+    loginPageSource,
+    /const authMode = flags\.mode === 'web'\s*\?\s*'embedded'\s*:\s*'desktop-browser'/s,
+  );
+  assert.match(loginPageSource, /<WebAuthMenu mode=\{authMode\} \/>/);
+  assert.match(webAuthMenuSource, /mode === 'desktop-browser'\s*\?\s*createDesktopRuntimeAccountBrowserBroker\(\)\s*:\s*null/s);
 });

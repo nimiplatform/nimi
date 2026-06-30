@@ -40,7 +40,9 @@ import {
 } from './runtime-bootstrap-config-sync';
 import {
   clearDesktopNimiClientSession,
+  configureDesktopRealmOnlySession,
   configureDesktopRuntimeRealmSession,
+  type DesktopRuntimeTransport,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 let bootstrapPromise: Promise<void> | null = null;
@@ -120,6 +122,20 @@ function createObservedRealmFetch(fetchImpl: typeof fetch): typeof fetch {
       throw error;
     }
   };
+}
+
+function resolveDesktopRuntimeTransport(): DesktopRuntimeTransport {
+  if (desktopBridge.hasTauriInvoke()) {
+    return {
+      type: 'tauri-ipc',
+      commandNamespace: 'runtime_bridge',
+      eventNamespace: 'runtime_bridge',
+    };
+  }
+  if (desktopBridge.hasShellHostInvoke()) {
+    return { type: 'electron-ipc' };
+  }
+  throw new Error('Desktop Runtime transport requires a standard shell host invoke.');
 }
 
 export function rebootstrapRuntime(): Promise<void> {
@@ -333,97 +349,117 @@ export function bootstrapRuntime(): Promise<void> {
     }
     registerExitHandler({ managed: daemonStatus.managed });
     const proxyFetch = createProxyFetch();
+    const observedRealmFetch = createObservedRealmFetch(proxyFetch);
     void pingDesktopMacosSmoke('bootstrap-platform-client-start', {
       skipHeavyBootstrapForMacosSmoke,
     }).catch(() => {});
     clearDesktopNimiClientSession();
-    const desktopSession = await configureDesktopRuntimeRealmSession({
-      appId: 'nimi.desktop',
-      realmBaseUrl: defaults.realm.realmBaseUrl,
-      realmFetchImpl: createObservedRealmFetch(proxyFetch),
-      runtimeTransport: {
-        type: 'tauri-ipc',
-        commandNamespace: 'runtime_bridge',
-        eventNamespace: 'runtime_bridge',
-      },
-    });
     unsubscribeRealmConnectivityEvents?.();
     unsubscribeRealmConnectivityEvents = null;
-    bindDesktopConversationCapabilityRouteRuntime();
-    const accountCaller = createNimiDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
-    const accountStatus = await desktopSession.accountRuntime.account.getAccountSessionStatus({
-      caller: accountCaller,
-    });
-    const accountProjection = accountStatus.accountProjection;
-    let accountTokenAvailable = false;
-    if (
-      accountStatus.state === AccountSessionState.AUTHENTICATED
-      && accountProjection?.accountId
-    ) {
-      const tokenStatus = await desktopSession.accountRuntime.account.getAccessToken({
-        caller: accountCaller,
-        requestedScopes: [],
+    if (runtimeUnavailable) {
+      await configureDesktopRealmOnlySession({
+        appId: 'nimi.desktop',
+        realmBaseUrl: defaults.realm.realmBaseUrl,
+        accessToken: defaults.realm.accessToken,
+        fetchImpl: observedRealmFetch,
       });
-      accountTokenAvailable = Boolean(tokenStatus.accepted && tokenStatus.accessToken);
-      if (!accountTokenAvailable) {
+      clearDesktopConversationCapabilityRouteRuntime();
+      useAppStore.getState().clearAuthSession();
+    } else {
+      const desktopSession = await configureDesktopRuntimeRealmSession({
+        appId: 'nimi.desktop',
+        realmBaseUrl: defaults.realm.realmBaseUrl,
+        realmFetchImpl: observedRealmFetch,
+        runtimeTransport: resolveDesktopRuntimeTransport(),
+      });
+      bindDesktopConversationCapabilityRouteRuntime();
+      const accountCaller = createNimiDesktopShellRuntimeAccountCaller({ appId: 'nimi.desktop' });
+      const accountStatus = await desktopSession.accountRuntime.account.getAccountSessionStatus({
+        caller: accountCaller,
+      });
+      const accountProjection = accountStatus.accountProjection;
+      let accountTokenAvailable = false;
+      if (
+        accountStatus.state === AccountSessionState.AUTHENTICATED
+        && accountProjection?.accountId
+      ) {
+        const tokenStatus = await desktopSession.accountRuntime.account.getAccessToken({
+          caller: accountCaller,
+          requestedScopes: [],
+        });
+        accountTokenAvailable = Boolean(tokenStatus.accepted && tokenStatus.accessToken);
+        if (!accountTokenAvailable) {
+          logRendererEvent({
+            level: 'warn',
+            area: 'renderer-bootstrap',
+            message: 'phase:runtime-account-token-unavailable',
+            flowId,
+            details: {
+              accountReasonCode: tokenStatus.accountReasonCode || null,
+              reasonCode: tokenStatus.reasonCode || null,
+            },
+          });
+        }
+      }
+      if (accountProjection?.accountId && accountTokenAvailable) {
+        useAppStore.getState().setAuthSession({
+          id: accountProjection.accountId,
+          displayName: accountProjection.displayName,
+          realmEnvironmentId: accountProjection.realmEnvironmentId,
+        });
+      } else {
+        useAppStore.getState().clearAuthSession();
+      }
+      await withBootstrapStepTimeout(
+        'local runtime reconcile',
+        reconcileLocalRuntimeBootstrapState({ flowId }),
+        DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+      ).catch((error) => {
         logRendererEvent({
           level: 'warn',
           area: 'renderer-bootstrap',
-          message: 'phase:runtime-account-token-unavailable',
+          message: 'phase:local-reconcile:deferred',
           flowId,
           details: {
-            accountReasonCode: tokenStatus.accountReasonCode || null,
-            reasonCode: tokenStatus.reasonCode || null,
+            error: safeBootstrapErrorMessage(error),
           },
         });
-      }
-    }
-    if (accountProjection?.accountId && accountTokenAvailable) {
-      useAppStore.getState().setAuthSession({
-        id: accountProjection.accountId,
-        displayName: accountProjection.displayName,
-        realmEnvironmentId: accountProjection.realmEnvironmentId,
+        return {
+          reconciled: [],
+          adopted: [],
+        };
       });
-    } else {
-      useAppStore.getState().clearAuthSession();
-    }
-    await withBootstrapStepTimeout(
-      'local runtime reconcile',
-      reconcileLocalRuntimeBootstrapState({ flowId }),
-      DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
-    ).catch((error) => {
-      logRendererEvent({
-        level: 'warn',
-        area: 'renderer-bootstrap',
-        message: 'phase:local-reconcile:deferred',
-        flowId,
-        details: {
-          error: safeBootstrapErrorMessage(error),
-        },
-      });
-      return {
-        reconciled: [],
-        adopted: [],
-      };
-    });
-    void pingDesktopMacosSmoke('bootstrap-platform-client-done', {
-      skipHeavyBootstrapForMacosSmoke,
-    }).catch(() => {});
-
-    if (accountProjection?.accountId) {
-      if (accountTokenAvailable) {
+      if (accountProjection?.accountId) {
+        if (accountTokenAvailable) {
+          await withBootstrapStepTimeout(
+            'account profile hydrate',
+            hydrateDesktopAccountProfile({
+              accountProjection,
+              flowId,
+            }),
+            DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+          ).catch((error) => {
+            logRendererEvent({
+              level: 'warn',
+              area: 'renderer-bootstrap',
+              message: 'phase:account-profile:hydrate-deferred',
+              flowId,
+              details: {
+                accountId: accountProjection.accountId,
+                error: safeBootstrapErrorMessage(error),
+              },
+            });
+          });
+        }
         await withBootstrapStepTimeout(
-          'account profile hydrate',
-          hydrateDesktopAccountProfile({
-            accountProjection,
-            flowId,
-          }),
+          'built-in chat AIConfig init',
+          initializeBuiltInChatScopesAfterReadyAdmission(flowId),
           DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
         ).catch((error) => {
           logRendererEvent({
             level: 'warn',
             area: 'renderer-bootstrap',
-            message: 'phase:account-profile:hydrate-deferred',
+            message: 'phase:built-in-ai-config:init-deferred',
             flowId,
             details: {
               accountId: accountProjection.accountId,
@@ -432,23 +468,10 @@ export function bootstrapRuntime(): Promise<void> {
           });
         });
       }
-      await withBootstrapStepTimeout(
-        'built-in chat AIConfig init',
-        initializeBuiltInChatScopesAfterReadyAdmission(flowId),
-        DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
-      ).catch((error) => {
-        logRendererEvent({
-          level: 'warn',
-          area: 'renderer-bootstrap',
-          message: 'phase:built-in-ai-config:init-deferred',
-          flowId,
-          details: {
-            accountId: accountProjection.accountId,
-            error: safeBootstrapErrorMessage(error),
-          },
-        });
-      });
     }
+    void pingDesktopMacosSmoke('bootstrap-platform-client-done', {
+      skipHeavyBootstrapForMacosSmoke,
+    }).catch(() => {});
 
     startAuthStateWatcher();
 

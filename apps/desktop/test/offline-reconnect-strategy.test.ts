@@ -76,7 +76,8 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     assert.match(RUNTIME_BOOTSTRAP_SOURCE, /getOfflineCoordinator\(\)\.markRealmRestReachable\(true\)/);
     assert.match(RUNTIME_BOOTSTRAP_SOURCE, /isRealmOfflineError\(error\)/);
     assert.match(RUNTIME_BOOTSTRAP_SOURCE, /getOfflineCoordinator\(\)\.markRealmRestReachable\(false\)/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /realmFetchImpl: createObservedRealmFetch\(proxyFetch\)/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /const observedRealmFetch = createObservedRealmFetch\(proxyFetch\)/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /realmFetchImpl: observedRealmFetch/);
     assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('request\.success'/);
     assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('error'/);
   });

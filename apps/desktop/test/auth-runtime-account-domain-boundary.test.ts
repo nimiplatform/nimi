@@ -77,8 +77,8 @@ test('Desktop OAuth bridge uses the standard shell host availability, not Tauri-
 
   assert.match(desktopAuthAdapter, /hasShellHostInvoke/);
   assert.match(desktopRuntimeBridgeBarrel, /hasShellHostInvoke/);
-  assert.match(desktopAuthAdapter, /hasTauriInvoke:\s*\(\)\s*=>\s*desktopBridge\.hasShellHostInvoke\(\)/);
-  assert.doesNotMatch(desktopAuthAdapter, /hasTauriInvoke:\s*\(\)\s*=>\s*desktopBridge\.hasTauriInvoke\(\)/);
+  assert.match(desktopAuthAdapter, /hasShellHostInvoke:\s*\(\)\s*=>\s*desktopBridge\.hasShellHostInvoke\(\)/);
+  assert.doesNotMatch(desktopAuthAdapter, /hasShellHostInvoke:\s*\(\)\s*=>\s*desktopBridge\.hasTauriInvoke\(\)/);
 });
 
 test('Desktop has no app-local Runtime account browser broker', () => {
