@@ -122,6 +122,29 @@
 - Standard Electron acceptance windows must enable `sandbox: true`, `contextIsolation: true`, and `nodeIntegration: false`.
 - Local artifact URLs must be served through a registered protocol or same-origin host handler with path/root validation. Electron renderer code must not receive raw `file://` escape hatches for artifact inspection.
 
+## P-KIT-044 - Installed App Standard Shell Capability Sets
+
+- `tables/standard-shell-capabilities.yaml` owns standard shell capability-set
+  policy for installed Nimi App hosts. The vocabulary remains the
+  `P-KIT-041C` standard capability catalog; this rule admits host-class
+  allowlists over that vocabulary.
+- The first installed-app capability set is
+  `installed-nimi-app-standard-shell-v1`. It is for `nimi-app` packages
+  launched from Runtime `OpenApp` launch-resolution by the Desktop Electron
+  installed-app host.
+- The installed-app set may include only standard operations required by an
+  installed app: Runtime unary/stream proxying, app-scoped storage/config/local
+  asset operations, and limited shell UI operations.
+- Host-owned Runtime account/session metadata is injected by Electron main
+  trusted providers bound to Runtime launch nonce and caller posture. It is not
+  a renderer-readable standard shell auth session operation.
+- The installed-app set must fail closed for Runtime daemon lifecycle
+  management, OAuth/token-exchange surfaces, local-agent trusted caller
+  surfaces, platform projection, Desktop-private product-control commands,
+  raw Electron/Node/Tauri bridge access, and any Tauri-only command assumption.
+- Negative tests for excluded capabilities are part of the capability-set
+  contract. Missing negative tests make the set inadmissible.
+
 ## P-KIT-043 — Runtime Capabilities Module
 
 - `core/runtime-capabilities` is a logic sub-surface for pure-logic capability normalization, wildcard matching, and codegen capability catalog truth.

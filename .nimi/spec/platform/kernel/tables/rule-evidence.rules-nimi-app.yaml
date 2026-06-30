@@ -55,6 +55,8 @@ entries:
 - P-NAPP-030
 - P-NAPP-031
 - P-NAPP-032
+- P-NAPP-033
+- P-NAPP-034
 - P-MOEX-001
 - P-MOEX-002
 - P-MOEX-003
@@ -255,6 +257,16 @@ rules:
   - platform_kernel_consistency
   evidence_requirement: structural_required
   evidence_scope_note: structural only; explicit local adoption is enforced by Runtime adoption validation and SDK typed lifecycle accessors under their owner evidence catalogs.
+- rule_id: P-NAPP-033
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; admission track enforcement is owned by release descriptor admission validation and ordinary-readiness gates.
+- rule_id: P-NAPP-034
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: structural only; installed-app launch/session enforcement is owned by Runtime OpenApp, Runtime account posture, Kit shell capability-set, and Desktop launch-host gates.
 - rule_id: P-MOEX-001
   evidence_refs:
   - platform_kernel_consistency

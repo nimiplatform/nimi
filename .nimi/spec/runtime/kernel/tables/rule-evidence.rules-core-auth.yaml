@@ -76,6 +76,7 @@ entries:
   - K-ACCSVC-019
   - K-ACCSVC-020
   - K-ACCSVC-021
+  - K-ACCSVC-022
   - K-GRANT-001
   - K-GRANT-002
   - K-GRANT-003
@@ -324,6 +325,19 @@ rules:
       - runtime/internal/services/account/presence_realm_test.go
       - sdks/typescript/runtime/account-presence-verification.test.ts
       - apps/desktop/test/fresh-oauth-browser-session-login.test.ts
+  - rule_id: K-ACCSVC-022
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+    evidence_requirement: required
+    note: Desktop-launched installed Nimi App caller posture; implementation evidence lands with Runtime account posture, SDK app session, Kit Electron auth, and Desktop launch host gates.
+    test_files:
+      - runtime/internal/services/account/service_test.go
+      - sdks/typescript/runtime/app-session.test.ts
+      - kit/shell/electron/test/electron-runtime-account-auth.test.ts
+      - apps/desktop/test/desktop-installed-app-launcher.test.ts
   - rule_id: K-GRANT-001
     evidence_refs:
       - runtime_kernel_consistency

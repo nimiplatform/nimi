@@ -161,6 +161,32 @@ export function checkNimiDesignTables({
     if (!definedRuleIds.has(source)) fail(`${adoptionRel}: ${id} references unknown source_rule ${source}`);
   }
 
+  const densityModes = Array.isArray(designCompositionsTable?.density_modes) ? designCompositionsTable.density_modes : [];
+  const allowedDensityModeIds = new Set(['density.compact', 'density.regular', 'density.expressive']);
+  for (const row of densityModes) {
+    const id = String(row?.id || '').trim();
+    const kind = String(row?.kind || '').trim();
+    const title = String(row?.title || '').trim();
+    const intent = String(row?.intent || '').trim();
+    const source = String(row?.source_rule || '').trim();
+    const useFor = Array.isArray(row?.use_for) ? row.use_for.map((item) => String(item || '').trim()).filter(Boolean) : [];
+    const avoidFor = Array.isArray(row?.avoid_for) ? row.avoid_for.map((item) => String(item || '').trim()).filter(Boolean) : [];
+    if (!id || !kind || !title || !intent) {
+      fail(`${compositionsRel}: density mode rows require id, kind, title, intent`);
+      continue;
+    }
+    if (!allowedDensityModeIds.has(id)) {
+      fail(`${compositionsRel}: ${id} is not an admitted density mode id`);
+    }
+    if (kind !== 'density_mode') {
+      fail(`${compositionsRel}: ${id} must declare kind density_mode`);
+    }
+    if (useFor.length === 0 || avoidFor.length === 0) {
+      fail(`${compositionsRel}: ${id} must declare non-empty use_for and avoid_for guidance`);
+    }
+    if (!definedRuleIds.has(source)) fail(`${compositionsRel}: ${id} references unknown source_rule ${source}`);
+  }
+
   const components = Array.isArray(designCompositionsTable?.components) ? designCompositionsTable.components : [];
   const allowedClassification = new Set(['thin_wrapper', 'app_owned_composition']);
   for (const row of components) {

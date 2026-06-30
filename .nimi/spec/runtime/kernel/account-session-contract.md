@@ -260,6 +260,7 @@ binding 在 daemon 重启时全部失效；调用方必须重新申请。Runtime
 | Binding-only Avatar mode | 不允许直接 account registration | N/A | Runtime-issued scoped binding from owner surface | account access token、refresh token、anchor 创建、independent auth truth |
 | Web / cloud app | 显式 Web/cloud adapter | Web/cloud session | Web/cloud adapter | local Runtime account authority claim |
 | External principal | 现有 external-principal 注册 | external proof | external-principal session / grant | local account projection claim |
+| Desktop-launched installed Nimi App | Runtime `OpenApp` launch-resolution + Desktop host nonce binding | `authenticated` | host-owned Runtime app session metadata + mediated account/Realm/protected Runtime access | developer registration proof、Desktop shell caller identity、external-principal local-account claim、renderer token/session custody |
 
 ## K-ACCSVC-013 Activation Boundary
 
@@ -426,3 +427,36 @@ app-owned prompts. The only Realm-backed exception is the Runtime-owned
 - daemon restart 后无法恢复 custody
 - remote revocation 检测失败但无法证明本地 session 仍有效
 - account projection 缺少必需字段
+
+## K-ACCSVC-022 Desktop-Launched Installed Nimi App Caller Posture
+
+`MUST`: installed third-party Nimi Apps use a distinct Runtime caller posture
+named `desktop-launched-nimi-app`. The proto realization is a new
+`AccountCallerMode` value, `ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP`,
+admitted by this rule and by Platform `P-NAPP-034`.
+
+`MUST`: Runtime admits this posture only when all launch-bound evidence is
+present and mutually consistent:
+
+- Platform registry row is admitted for the app id.
+- Runtime install evidence proves the active release digest was verified before
+  unpack, registration, launch-resolution, or execution.
+- Runtime account app-inventory marks the app entitled or verified and locally
+  materialized.
+- `OpenApp` issued a successful launch-resolution projection for the same app,
+  active version, release descriptor, and app scope.
+- Desktop supplies the one-time launch nonce through the host-owned binding
+  path, not through renderer state.
+- Account state is `authenticated` and Runtime owns session custody.
+
+`MUST`: the installed-app host may request account/session metadata only through
+host-owned Runtime metadata providers and mediated SDK/Runtime helpers. Renderer
+code may receive command bridge access and SDK results, but it must not receive
+refresh tokens, raw Realm bearer tokens, durable session stores, decoded subject
+truth, or caller-supplied account ids.
+
+`MUST NOT`: `ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL` must not be constrained
+into this installed-app posture. External principal remains the external proof
+/ grant path and continues to forbid local account projection claims. Tester
+developer registration and `ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP` remain
+development paths and cannot satisfy installed third-party proof.

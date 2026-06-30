@@ -3696,7 +3696,8 @@
         "./ui/themes/nimi-accent.css"
       ]
     },
-    "compositions": [
+    "compositions": [],
+    "densityModes": [
       {
         "id": "density.compact",
         "kind": "density_mode",

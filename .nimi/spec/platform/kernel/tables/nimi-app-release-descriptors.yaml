@@ -15,6 +15,7 @@ descriptor_schema:
     - descriptor_id
     - app_id
     - version
+    - admission_track
     - descriptor_class
     - source
     - artifact
@@ -32,6 +33,10 @@ descriptor_schema:
       - github-release
       - github-commit
       - npm-package
+      - admission-sandbox-https-artifact
+    admission_track:
+      - ordinary-release-proof
+      - admission-sandbox-ci
     artifact.digest_algorithm:
       - sha256
     runtime.package_kind:
@@ -116,6 +121,7 @@ third_party_descriptor_floor:
     - descriptor_id
     - app_id
     - version
+    - admission_track
     - publisher.github_namespace
     - publisher.namespace_kind
     - publisher.identity_assurance
@@ -165,6 +171,25 @@ third_party_descriptor_floor:
     - github-release
     - github-commit
     - npm-package
+    - admission-sandbox-https-artifact
+  admission_track_constraints:
+    ordinary-release-proof:
+      product_readiness_claim_allowed: true
+      ordinary_visibility_allowed:
+        - ordinary-visible
+      forbidden_source_kinds:
+        - admission-sandbox-https-artifact
+      platform_signing: notarized_and_signed_required
+      source_rule: P-NAPP-033
+    admission-sandbox-ci:
+      product_readiness_claim_allowed: false
+      ordinary_visibility_allowed:
+        - developer-only
+      allowed_source_kinds:
+        - admission-sandbox-https-artifact
+      artifact_locator: immutable_https_ci_endpoint
+      platform_signing: constrained_internal_ci_only
+      source_rule: P-NAPP-033
   forbidden_install_inputs:
     - mutable_git_branch
     - mutable_git_tag_without_protection

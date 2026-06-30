@@ -149,7 +149,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041C
-    notes: Machine truth is .nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml. Topic documents, acceptance matrices, and gate descriptions consume or validate that table only.
+    notes: Machine truth is .nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml. Topic documents, acceptance matrices, and gate descriptions consume or validate that table only. Installed app standard shell capability-set policy is admitted by P-KIT-044 and remains an allowlist over this module's standard capability vocabulary.
   - id: kit.shell.tauri
     subpath: /shell/tauri
     kind: infra
@@ -224,7 +224,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041E
-    notes: Node/Electron-host only. Renderer code must not import this module directly. Runtime daemon lifecycle is external-host only; start/stop/restart/config mutation must fail closed with the standard external-daemon-required envelope until a separate authority cut admits Electron daemon ownership. Runtime calls use @grpc/grpc-js raw identity byte proxying and preserve SDK tauri-ipc wire shape.
+    notes: Node/Electron-host only. Renderer code must not import this module directly. Runtime daemon lifecycle is external-host only; start/stop/restart/config mutation must fail closed with the standard external-daemon-required envelope until a separate authority cut admits Electron daemon ownership. Runtime calls use @grpc/grpc-js raw identity byte proxying and preserve SDK tauri-ipc wire shape. Desktop-launched installed Nimi App hosts must consume Runtime OpenApp launch-resolution, bind the one-time launch nonce, use the installed-nimi-app-standard-shell-v1 capability set, and inject Runtime account/session metadata from Electron main trusted providers rather than renderer-readable auth custody.
   - id: kit.core.runtime-capabilities
     subpath: /core/runtime-capabilities
     kind: logic

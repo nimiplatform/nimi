@@ -479,6 +479,7 @@ function renderFrontMatter({
         exports: normalizeArray(kitUiModule.exports).map(String),
       },
       compositions: normalizeArray(compositionsDoc?.components),
+      densityModes: normalizeArray(compositionsDoc?.density_modes),
       adoption: normalizeArray(adoptionDoc?.modules),
       allowlists: normalizeArray(allowlistsDoc?.items),
     },
@@ -535,8 +536,7 @@ function renderCompactFrontMatter(fullProjection) {
 
 function renderMarkdownBody(frontMatter) {
   const primitiveRows = normalizeArray(frontMatter.componentStandards?.primitives);
-  const compositionRows = normalizeArray(frontMatter.componentStandards?.compositions);
-  const densityRows = compositionRows.filter((composition) => String(composition?.kind || '') === 'density_mode');
+  const densityRows = normalizeArray(frontMatter.componentStandards?.densityModes);
   const colors = normalizeObject(frontMatter.colors);
   const typography = normalizeObject(frontMatter.typography);
   const spacing = normalizeObject(frontMatter.spacing);

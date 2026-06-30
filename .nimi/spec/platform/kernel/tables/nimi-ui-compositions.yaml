@@ -4,7 +4,7 @@ owner: platform
 catalog_id: platform_nimi_ui_compositions
 entries:
   - platform_nimi_ui_compositions
-components:
+density_modes:
   - id: density.compact
     kind: density_mode
     title: Compact density
@@ -126,3 +126,4 @@ components:
       rule: Expressive density is limited to the identity hero or admitted art-direction boundary; inner operational sections must fall back to regular or compact density.
     admission:
       rule: Expressive density must be explicit at the page or composition boundary and must not be used as precedent for operational chrome.
+components: []

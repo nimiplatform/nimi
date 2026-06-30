@@ -165,7 +165,21 @@ primitives:
           styles:
             background-color: var(--nimi-status-info)
 `);
-  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml', 'version: 1\ncomponents: []\n');
+  write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml', `version: 1
+components: []
+density_modes:
+  - id: density.compact
+    kind: density_mode
+    title: Compact density
+    source_rule: P-DESIGN-024
+    intent: Repeated operational desktop work with high scan efficiency.
+    use_for:
+      - Desktop ordinary shell chrome
+    avoid_for:
+      - Identity-led hero moments
+    typography:
+      body: 13-14px
+`);
   write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml', 'version: 1\nmodules: []\n');
   write(root, '.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml', 'version: 1\nitems: []\n');
   return root;
@@ -199,6 +213,7 @@ test('renders Google DESIGN.md-shaped Nimi design projection from spec authority
     assert.match(body, /## Typography/m);
     assert.match(body, /## Components/m);
     assert.match(body, /## Do's and Don'ts/m);
+    assert.match(body, /- \*\*Compact density:\*\* Repeated operational desktop work with high scan efficiency\./m);
     assert.match(body, /- `Surface` \(`primitive.surface`\): family `surface`, source `P-DESIGN-011`/m);
     assert.match(body, /- Do consume `@nimiplatform\/kit\/ui`/m);
 
@@ -206,6 +221,8 @@ test('renders Google DESIGN.md-shaped Nimi design projection from spec authority
     assert.equal(fullProjection.colors.info, '#3B82F6');
     assert.equal(fullProjection.tokens.all.surface['surface.card'].cssVar, '--nimi-surface-card');
     assert.equal(fullProjection.componentStandards.primitives.length, 2);
+    assert.equal(fullProjection.componentStandards.compositions.length, 0);
+    assert.equal(fullProjection.componentStandards.densityModes[0].id, 'density.compact');
 
     const designTokens = readJson(root, 'kit/design_tokens.json');
     assert.equal(designTokens.colors.info.$value, '#3B82F6');

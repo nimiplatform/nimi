@@ -201,6 +201,10 @@
   `status.*.soft_border`, and `status.*.soft_text` tokens. Consumers should
   not hand-author status badge or alert backgrounds with raw `color-mix(...)`
   expressions when a soft status token exists.
+- Density-mode guidance is platform-owned taxonomy and must live under
+  `tables/nimi-ui-compositions.yaml#density_modes`; platform composition
+  registry rows remain under `components` and must not be used to carry density
+  guidance.
 
 ## P-DESIGN-025 — Composition Extraction Boundary
 
@@ -261,6 +265,7 @@
 - `tables/nimi-ui-tokens.yaml`
 - `tables/nimi-ui-primitives.yaml`
 - `tables/nimi-ui-themes.yaml`
+- `tables/nimi-ui-compositions.yaml`
 - consuming app `spec/**/tables/nimi-kit-adoption.yaml` manifests
 - consuming app `spec/**/tables/nimi-kit-compositions.yaml` manifests
 - `tables/nimi-ui-allowlists.yaml`

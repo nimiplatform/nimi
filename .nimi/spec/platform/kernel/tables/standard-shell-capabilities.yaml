@@ -37,6 +37,73 @@ error_envelope:
     - invalid-payload
     - host-internal-error
 
+capability_set_schema:
+  owner: platform_standard_shell_capabilities
+  source_rule: P-KIT-044
+  fields:
+    - set_id
+    - host_class
+    - app_package_kind
+    - launch_resolution
+    - auth_binding
+    - allowed_operations
+    - forbidden_operations
+    - negative_tests
+    - source_rule
+
+capability_sets:
+  - set_id: installed-nimi-app-standard-shell-v1
+    host_class: desktop-electron-installed-app-host
+    app_package_kind: nimi-app
+    launch_resolution: runtime-openapp-attested
+    auth_binding: host-owned-runtime-app-session
+    allowed_operations:
+      - runtime.unary
+      - runtime.streamOpen
+      - runtime.streamClose
+      - data.pathResolve
+      - storage.readJson
+      - storage.writeJson
+      - config.get
+      - config.set
+      - ai-config.get
+      - ai-config.set
+      - local-assets.resolveUrl
+      - shell-ui.confirmDialog
+      - shell-ui.startWindowDrag
+      - shell-ui.focusMainWindow
+    forbidden_operations:
+      - runtime-lifecycle.status
+      - runtime-lifecycle.start
+      - runtime-lifecycle.stop
+      - runtime-lifecycle.restart
+      - runtime-defaults.get
+      - auth.sessionLoad
+      - auth.sessionSave
+      - auth.sessionClear
+      - oauth.openExternalUrl
+      - oauth.tokenExchange
+      - oauth.listenForCode
+      - diagnostics.rendererEntryProbe
+      - local-agent.identity
+      - local-agent.runtimeTrustedCaller
+      - ai-profile.get
+      - avatar.assetResolve
+      - platform-projection.get
+      - desktop-private.product-control
+      - tauri-only.commands
+      - electron.raw-ipc
+      - node.raw-fs
+    negative_tests:
+      - desktop-installed-app-denies-runtime-lifecycle
+      - desktop-installed-app-denies-auth-session-custody
+      - desktop-installed-app-denies-oauth-token-exchange
+      - desktop-installed-app-denies-local-agent-trusted-caller
+      - desktop-installed-app-denies-platform-projection
+      - desktop-installed-app-denies-desktop-private-bridge
+      - desktop-installed-app-denies-tauri-only-commands
+    source_rule: P-KIT-044
+
 capabilities:
   - id: runtime
     host_contract: NimiStandardShellCapabilityHost

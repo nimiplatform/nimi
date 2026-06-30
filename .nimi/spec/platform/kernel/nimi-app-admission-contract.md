@@ -287,6 +287,7 @@ Required descriptor fields:
 - `descriptor_id` — stable descriptor identity.
 - `app_id` — admitted app identifier (`P-NAPP-002`).
 - `version` — exact semantic version.
+- `admission_track` — closed enum `ordinary-release-proof | admission-sandbox-ci` (`P-NAPP-033`).
 - `publisher.github_namespace` — `github.com/<owner>` namespace anchor.
 - `publisher.namespace_kind` — closed enum `user | org`.
 - `publisher.identity_assurance` — closed enum
@@ -501,17 +502,9 @@ surfaces, `windows_code_signing` MUST resolve to `signed`. Failure to
 resolve to the required value fails admission closed with typed reason
 `platform_signing_required`.
 
-`MUST NOT`：a third-party admission MUST NOT carry `macos_notarization:
-not-applicable` or `windows_code_signing: not-applicable`. The
-`not-applicable` value is forbidden for third-party admitted artifacts;
-declaring it fails admission closed with typed reason
-`platform_signing_required`.
+`MUST NOT`：a third-party ordinary release proof MUST NOT carry `macos_notarization: not-applicable`, `macos_notarization: not-required-internal`, `windows_code_signing: not-applicable`, or `windows_code_signing: not-required-internal`; declaring any of those values on `admission_track: ordinary-release-proof` fails admission closed with typed reason `platform_signing_required`.
 
-`MUST NOT`：a third-party admission MUST NOT carry `macos_notarization:
-not-required-internal` or `windows_code_signing: not-required-internal`.
-The `not-required-internal` value is valid ONLY when
-`trust_tier_ref: nimi-first-party`; declaring it on any other tier fails
-admission closed with typed reason `platform_signing_required`.
+`MUST`：a third-party `admission_track: admission-sandbox-ci` descriptor MAY carry `not-required-internal` platform-signing subfields only under the non-product boundary in `P-NAPP-033`; that allowance is CI plumbing evidence, not ordinary-user signing evidence, and MUST fail closed if the registry row is projected as `ordinary_visibility: ordinary-visible`.
 
 `MUST NOT`：this rule MUST NOT introduce a new `admission_status` enum
 value. The existing admitted `admission_status` enum in
@@ -774,6 +767,11 @@ repositories, PATH entries, process liveness, filesystem presence, or app-local
 spec slices. Local adoption MUST NOT bypass permission, account/session,
 AIConfig, storage, or Runtime OpenApp gates.
 
+## P-NAPP-033 — Third-Party Admission Track Boundary
+`MUST`: every third-party external immutable descriptor declares exactly one `admission_track`: `ordinary-release-proof` is the only track that may satisfy ordinary-user third-party product readiness; `admission-sandbox-ci` is non-product CI plumbing for descriptor download, digest verification, install, launch-resolution, host binding, and SDK/Kit probes before public release evidence exists. `MUST`: an `ordinary-release-proof` app projected as `ordinary_visibility: ordinary-visible` must truthfully satisfy the full third-party descriptor floor: immutable GitHub-style or pinned package source, public source repository visibility, publisher identity posture, mirror/license clearance, typed sizes/dates/versions, support posture, and platform signing/notarization required by `P-NAPP-024`. `MUST`: an `admission-sandbox-ci` app row, when later admitted for tests, must use non-product `ordinary_visibility: developer-only`; it MUST NOT appear in ordinary Apps catalog proof, satisfy live readiness claims, or be described as an ordinary-visible community app. `MUST`: `admission-sandbox-ci` may use an immutable HTTPS CI artifact endpoint and constrained internal signing posture only with `admission_track: admission-sandbox-ci`, `source.kind: admission-sandbox-https-artifact`, exact `artifact.sha256`, typed artifact sizes, mirror/license test evidence, and review/support test evidence; Runtime must still verify sha256 before unpack, registration, launch-resolution, or execution. `MUST NOT`: unsigned local artifacts, mutable Git refs, direct clone/build/run source, direct `npx`, or app-local fixture manifests must never be admitted or projected as ordinary-visible community proof. Promotion from `admission-sandbox-ci` to `ordinary-release-proof` is a new descriptor and registry admission, not in-place reinterpretation.
+## P-NAPP-034 — Desktop-Launched Installed Nimi App Boundary
+`MUST`: Runtime `OpenApp` remains the Runtime launch gate. The first admitted third-party launch-resolution contract extends `OpenApp`'s typed projection instead of adding a separate launch RPC; Runtime owns launch-resolution fields and Desktop consumes them without deriving descriptor refs, release roots, entry refs, caller posture, or storage roots from filesystem guesses. `MUST`: installed-app launch resolution is track-discriminated. `ordinary-release-proof` may satisfy product proof only with `ordinary_visibility: ordinary-visible` and the `P-NAPP-033` ordinary release floor; `admission-sandbox-ci` is developer-only CI plumbing evidence carrying `ordinary_visibility: developer-only`, `source.kind: admission-sandbox-https-artifact`, and `product_readiness_claim_allowed: false`, and it MUST NOT satisfy ordinary Apps catalog discovery or ordinary release readiness. `MUST`: a successful installed Nimi App launch resolution must carry Runtime-attested app id, active version, release descriptor ref, descriptor class, `admission_track`, source kind, ordinary visibility, digest verification state, `runtime.entry_ref`, verified active release root or opaque launch URI, app data/cache/tmp roots or opaque storage handles, standard shell capability-set ref, installed-app caller mode, and one-time launch nonce. `MUST`: installed third-party apps use a Runtime-owned caller/session posture named `desktop-launched-nimi-app` and implemented as a new `AccountCallerMode` in Runtime authority; `ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL` remains the external proof / grant path and MUST NOT be tightened into the installed-app local account posture because its existing contract forbids local account projection claims. `MUST`: Desktop owns app host process/window creation and host-owned Runtime session metadata injection after Runtime returns successful launch resolution; Kit/SDK may expose app-facing helpers, but they do not own admission truth, package truth, account truth, or token custody. `MUST NOT`: tester developer registration, local adoption, account-only inventory, Desktop shell caller identity, renderer-provided bearer/session metadata, or app self-report may emit or satisfy installed third-party product proof, catalog proof, `desktop-launched-nimi-app` caller posture, launch nonce, or release descriptor launch-resolution proof.
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-001..P-ARCH-021`
@@ -789,6 +787,9 @@ AIConfig, storage, or Runtime OpenApp gates.
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
+- `.nimi/spec/platform/kernel/kit-contract.md` — `P-KIT-041C`, `P-KIT-041E`, `P-KIT-044`
 - `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-021`
+- `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*`
+- `.nimi/spec/runtime/kernel/app-messaging-contract.md` — `K-APP-*`
 - `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`

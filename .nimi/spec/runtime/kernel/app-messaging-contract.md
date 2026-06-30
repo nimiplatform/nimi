@@ -326,7 +326,11 @@ launch（Open flow）的唯一 Runtime RPC 入口。Runtime 拥有 app launch
 supervision（Platform `P-NAPP-006`）。`OpenApp` 必须：
 
 - 解析 `app_id` 对应的 admitted Nimi App registry row
-  （`admission_status=admitted`、`ordinary_visibility=ordinary-visible`）；
+  （`admission_status=admitted`），并按 descriptor `admission_track`
+  执行 visibility gate：`ordinary-release-proof` 必须来自 catalog
+  ordinary-visible row；`admission-sandbox-ci` 只能来自 admitted
+  developer-only sandbox row 和显式 CI/test harness launch context，不能计入
+  ordinary Apps discovery 或 product-readiness proof；
 - 接收一个显式的 canonical `AIScopeRef`，且该 ref 必须是 `P-AISC-007`
   定义的 app-launch scope 形状 `{ kind: 'app', ownerId: <admitted app_id>,
   surfaceId? }`，其 `ownerId` 必须与被 launch 的 `app_id` 一致；
@@ -339,6 +343,16 @@ supervision（Platform `P-NAPP-006`）。`OpenApp` 必须：
 - 返回 typed launch projection，并对 package / library / app-data /
   permission / AIConfig / manifest 任一环节的 fail-closed reason 携带
   typed `reason_code`。
+
+`MUST`：`OpenAppResponse.projection` is the Runtime-owned launch-resolution contract for installed Nimi Apps. The first third-party launch cut extends `OpenApp`; it MUST NOT add a parallel launch-resolution RPC unless a later Runtime authority rule amends the `K-APP-001` method set.
+
+`MUST`: for `APP_OPEN_STATE_LAUNCHED`, the projection MUST carry Runtime-attested launch-resolution fields: `app_id`, active version, release descriptor ref, descriptor class, `admission_track`, source kind, ordinary visibility, digest verification state, descriptor `runtime.entry_ref`, verified active release root or opaque launch URI rooted in the installed digest-verified release, app data/cache/tmp roots or opaque storage handles, standard shell capability-set ref for installed Nimi Apps, installed-app caller mode `desktop-launched-nimi-app`, and one-time launch nonce bound to the Desktop-created app host.
+
+`MUST`: an `admission-sandbox-ci` launch projection is non-product plumbing evidence. It MUST carry `ordinary_visibility: developer-only`, `source.kind: admission-sandbox-https-artifact`, and `product_readiness_claim_allowed: false`; Desktop/SDK may consume it only for CI/developer sandbox install-open-host probes. It MUST NOT satisfy ordinary catalog discovery, ordinary third-party release readiness, user-visible community listing proof, or the manual ordinary release gate.
+
+`MUST NOT`：Desktop, SDK, Kit, or apps must not derive descriptor refs, release roots, entry refs, storage roots, caller posture, or launch success from filesystem guesses, process liveness, local adoption, or renderer self-report.
+
+`MUST NOT`: local adoption, account-only inventory, tester developer registration, or Desktop shell caller identity may emit or satisfy the installed third-party launch-resolution fields admitted by `P-NAPP-034`, including `desktop-launched-nimi-app`, the one-time launch nonce, descriptor catalog proof, or product-readiness proof.
 
 `MUST NOT`：`OpenApp` 不得在缺少显式 `AIScopeRef` 时 launch，不得从 active
 chat、renderer-local current app、或默认 scope 隐式推断 launch scope

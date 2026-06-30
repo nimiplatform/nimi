@@ -309,7 +309,16 @@ function renderDesignAdoption(doc, sourceName) {
 
 function renderDesignCompositions(doc, sourceName) {
   const components = Array.isArray(doc?.components) ? doc.components : [];
+  const densityModes = Array.isArray(doc?.density_modes) ? doc.density_modes : [];
   let out = header('Generated Nimi Design Composition Registry', sourceName);
+  out += '## Density Modes\n\n';
+  out += '| Density ID | Kind | Title | Intent | Source |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of densityModes) {
+    out += `| \`${String(item?.id || '')}\` | \`${String(item?.kind || '')}\` | ${String(item?.title || '')} | ${String(item?.intent || '')} | \`${String(item?.source_rule || '')}\` |\n`;
+  }
+  out += '\n';
+  out += '## Composition Rows\n\n';
   out += '| Component ID | App | Module | Component | Classification | Shared Families | Shared Targets | Source |\n';
   out += '|---|---|---|---|---|---|---|---|\n';
   for (const item of components) {
