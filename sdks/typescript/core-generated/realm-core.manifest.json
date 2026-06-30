@@ -14114,6 +14114,9 @@
       "name": "WorldPublicDetailWithCharactersDto"
     },
     {
+      "name": "WorldPublicEntityCardDto"
+    },
+    {
       "name": "WorldPublicItemDto"
     },
     {
@@ -14121,6 +14124,15 @@
     },
     {
       "name": "WorldPublicMediaDto"
+    },
+    {
+      "name": "WorldPublicSceneCountsDto"
+    },
+    {
+      "name": "WorldPublicSceneDto"
+    },
+    {
+      "name": "WorldPublicSceneResourceDto"
     },
     {
       "name": "WorldPublicSourceCardDto"
@@ -14142,6 +14154,9 @@
     },
     {
       "name": "WorldPublicTimeSnapshotDto"
+    },
+    {
+      "name": "WorldPublicTimelineEventDto"
     },
     {
       "name": "WorldPublicViewerRelationDto"
@@ -20256,12 +20271,36 @@
                             "kind": "object",
                             "properties": [
                               {
+                                "name": "characterRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
+                                }
+                              },
+                              {
                                 "name": "endsAt",
                                 "required": false,
                                 "schema": {
                                   "kind": "scalar",
                                   "type": "string",
                                   "format": null
+                                }
+                              },
+                              {
+                                "name": "entityRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
                                 }
                               },
                               {
@@ -20283,12 +20322,48 @@
                                 }
                               },
                               {
+                                "name": "locationRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
+                                }
+                              },
+                              {
+                                "name": "sceneRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
+                                }
+                              },
+                              {
                                 "name": "sequence",
                                 "required": false,
                                 "schema": {
                                   "kind": "scalar",
                                   "type": "number",
                                   "format": null
+                                }
+                              },
+                              {
+                                "name": "sourceRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
                                 }
                               },
                               {
@@ -28705,12 +28780,36 @@
                             "kind": "object",
                             "properties": [
                               {
+                                "name": "characterRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
+                                }
+                              },
+                              {
                                 "name": "endsAt",
                                 "required": false,
                                 "schema": {
                                   "kind": "scalar",
                                   "type": "string",
                                   "format": null
+                                }
+                              },
+                              {
+                                "name": "entityRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
                                 }
                               },
                               {
@@ -28732,12 +28831,48 @@
                                 }
                               },
                               {
+                                "name": "locationRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
+                                }
+                              },
+                              {
+                                "name": "sceneRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
+                                }
+                              },
+                              {
                                 "name": "sequence",
                                 "required": false,
                                 "schema": {
                                   "kind": "scalar",
                                   "type": "number",
                                   "format": null
+                                }
+                              },
+                              {
+                                "name": "sourceRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
                                 }
                               },
                               {
@@ -36139,12 +36274,36 @@
                             "kind": "object",
                             "properties": [
                               {
+                                "name": "characterRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
+                                }
+                              },
+                              {
                                 "name": "endsAt",
                                 "required": false,
                                 "schema": {
                                   "kind": "scalar",
                                   "type": "string",
                                   "format": null
+                                }
+                              },
+                              {
+                                "name": "entityRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
                                 }
                               },
                               {
@@ -36166,12 +36325,48 @@
                                 }
                               },
                               {
+                                "name": "locationRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
+                                }
+                              },
+                              {
+                                "name": "sceneRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
+                                }
+                              },
+                              {
                                 "name": "sequence",
                                 "required": false,
                                 "schema": {
                                   "kind": "scalar",
                                   "type": "number",
                                   "format": null
+                                }
+                              },
+                              {
+                                "name": "sourceRefs",
+                                "required": false,
+                                "schema": {
+                                  "kind": "array",
+                                  "items": {
+                                    "kind": "scalar",
+                                    "type": "string",
+                                    "format": null
+                                  }
                                 }
                               },
                               {
@@ -36907,6 +37102,16 @@
         "kind": "object",
         "properties": [
           {
+            "name": "durationSec",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "height",
             "required": false,
             "schema": {
@@ -36936,9 +37141,11 @@
                 "hero",
                 "highlight",
                 "avatar",
+                "portrait",
                 "referenceImage",
                 "profileCover",
-                "cover"
+                "cover",
+                "voiceSample"
               ]
             }
           },
@@ -37135,9 +37342,9 @@
             "schema": {
               "kind": "array",
               "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicSceneDto",
+                "ref_name": "WorldPublicSceneDto"
               }
             }
           },
@@ -37208,9 +37415,9 @@
             "schema": {
               "kind": "array",
               "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicTimelineEventDto",
+                "ref_name": "WorldPublicTimelineEventDto"
               }
             }
           },
@@ -37270,6 +37477,53 @@
               "kind": "ref",
               "ref": "#/components/schemas/WorldPublicDetailDto",
               "ref_name": "WorldPublicDetailDto"
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicEntityCardDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "label",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "summary",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
             }
           }
         ],
@@ -37537,6 +37791,231 @@
       }
     },
     {
+      "name": "WorldPublicSceneCountsDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "activeEntityCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "relatedCharacterCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "relatedEventCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          },
+          {
+            "name": "relatedResourceCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicSceneDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "activeEntities",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicEntityCardDto",
+                "ref_name": "WorldPublicEntityCardDto"
+              }
+            }
+          },
+          {
+            "name": "counts",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicSceneCountsDto",
+              "ref_name": "WorldPublicSceneCountsDto"
+            }
+          },
+          {
+            "name": "media",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicAssetDto",
+                "ref_name": "WorldPublicAssetDto"
+              }
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "relatedCharacters",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicSourceCardDto",
+                "ref_name": "WorldPublicSourceCardDto"
+              }
+            }
+          },
+          {
+            "name": "relatedEvents",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicTimelineEventDto",
+                "ref_name": "WorldPublicTimelineEventDto"
+              }
+            }
+          },
+          {
+            "name": "relatedResources",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/WorldPublicSceneResourceDto",
+                "ref_name": "WorldPublicSceneResourceDto"
+              }
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "summary",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicSceneResourceDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "entityRefs",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "eventRefs",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "system",
+                "entity",
+                "relationship",
+                "timelineEvent",
+                "rule"
+              ]
+            }
+          },
+          {
+            "name": "summary",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "title",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
       "name": "WorldPublicSourceCardDto",
       "schema": {
         "kind": "object",
@@ -37696,7 +38175,37 @@
             }
           },
           {
+            "name": "portrait",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          },
+          {
             "name": "profileCover",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "referenceImage",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/WorldPublicAssetDto",
+              "ref_name": "WorldPublicAssetDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "voiceSample",
             "required": false,
             "schema": {
               "kind": "ref",
@@ -37734,7 +38243,37 @@
             }
           },
           {
+            "name": "portraitUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
             "name": "profileCoverUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "referenceImageUrl",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "voiceSampleUrl",
             "required": false,
             "schema": {
               "kind": "scalar",
@@ -38005,6 +38544,153 @@
                 "wallClockAnchored",
                 "static"
               ]
+            }
+          }
+        ],
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "WorldPublicTimelineEventDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "characterRefs",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "endsAt",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "entityRefs",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
+            }
+          },
+          {
+            "name": "importance",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "locationRefs",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "sceneRefs",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "sequence",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "sourceRefs",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null
+              }
+            }
+          },
+          {
+            "name": "startsAt",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "summary",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "timestamp",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "title",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null
             }
           }
         ],

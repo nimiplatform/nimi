@@ -1961,9 +1961,10 @@ class WorldEntityCoreDto:
 
 @dataclass(frozen=True)
 class WorldPublicAssetDto:
+    durationSec: float | None = None
     height: float | None = None
     id: str | None = None
-    kind: Literal["icon", "banner", "hero", "highlight", "avatar", "referenceImage", "profileCover", "cover"] | None = None
+    kind: Literal["icon", "banner", "hero", "highlight", "avatar", "portrait", "referenceImage", "profileCover", "cover", "voiceSample"] | None = None
     mimeType: str | None = None
     provenance: WorldPublicAssetProvenanceDto | None = None
     provider: str | None = None
@@ -1987,14 +1988,14 @@ class WorldPublicDetailDto:
     name: str | None = None
     relationshipTypes: tuple[str, ...] = field(default_factory=tuple)
     rules: tuple[str, ...] = field(default_factory=tuple)
-    scenes: tuple[str, ...] = field(default_factory=tuple)
+    scenes: tuple[WorldPublicSceneDto, ...] = field(default_factory=tuple)
     stats: WorldPublicStatsDto | None = None
     summary: str | None = None
     systems: tuple[str, ...] = field(default_factory=tuple)
     tagline: str | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
     time: WorldPublicTimeSnapshotDto | None = None
-    timeline: tuple[str, ...] = field(default_factory=tuple)
+    timeline: tuple[WorldPublicTimelineEventDto, ...] = field(default_factory=tuple)
     type: Literal["OASIS", "CREATOR"] | None = None
     updatedAt: str | None = None
     visibility: Literal["public", "system"] | None = None
@@ -2003,6 +2004,13 @@ class WorldPublicDetailDto:
 class WorldPublicDetailWithCharactersDto:
     sources: WorldPublicSourceSectionsDto | None = None
     world: WorldPublicDetailDto | None = None
+
+@dataclass(frozen=True)
+class WorldPublicEntityCardDto:
+    id: str | None = None
+    kind: str | None = None
+    label: str | None = None
+    summary: str | None = None
 
 @dataclass(frozen=True)
 class WorldPublicItemDto:
@@ -2037,6 +2045,34 @@ class WorldPublicMediaDto:
     iconUrl: str | None = None
 
 @dataclass(frozen=True)
+class WorldPublicSceneCountsDto:
+    activeEntityCount: float | None = None
+    relatedCharacterCount: float | None = None
+    relatedEventCount: float | None = None
+    relatedResourceCount: float | None = None
+
+@dataclass(frozen=True)
+class WorldPublicSceneDto:
+    activeEntities: tuple[WorldPublicEntityCardDto, ...] = field(default_factory=tuple)
+    counts: WorldPublicSceneCountsDto | None = None
+    media: tuple[WorldPublicAssetDto, ...] = field(default_factory=tuple)
+    name: str | None = None
+    relatedCharacters: tuple[WorldPublicSourceCardDto, ...] = field(default_factory=tuple)
+    relatedEvents: tuple[WorldPublicTimelineEventDto, ...] = field(default_factory=tuple)
+    relatedResources: tuple[WorldPublicSceneResourceDto, ...] = field(default_factory=tuple)
+    sceneId: str | None = None
+    summary: str | None = None
+
+@dataclass(frozen=True)
+class WorldPublicSceneResourceDto:
+    entityRefs: tuple[str, ...] = field(default_factory=tuple)
+    eventRefs: tuple[str, ...] = field(default_factory=tuple)
+    id: str | None = None
+    kind: Literal["system", "entity", "relationship", "timelineEvent", "rule"] | None = None
+    summary: str | None = None
+    title: str | None = None
+
+@dataclass(frozen=True)
 class WorldPublicSourceCardDto:
     displayName: str | None = None
     handle: str | None = None
@@ -2056,13 +2092,19 @@ class WorldPublicSourceCardDto:
 @dataclass(frozen=True)
 class WorldPublicSourceMediaAssetsDto:
     avatar: WorldPublicAssetDto | None = None
+    portrait: WorldPublicAssetDto | None = None
     profileCover: WorldPublicAssetDto | None = None
+    referenceImage: WorldPublicAssetDto | None = None
+    voiceSample: WorldPublicAssetDto | None = None
 
 @dataclass(frozen=True)
 class WorldPublicSourceMediaDto:
     assets: WorldPublicSourceMediaAssetsDto | None = None
     avatarUrl: str | None = None
+    portraitUrl: str | None = None
     profileCoverUrl: str | None = None
+    referenceImageUrl: str | None = None
+    voiceSampleUrl: str | None = None
 
 @dataclass(frozen=True)
 class WorldPublicSourceRefDto:
@@ -2099,6 +2141,22 @@ class WorldPublicTimeSnapshotDto:
     flowRatio: float | None = None
     isPaused: bool | None = None
     mode: Literal["wallClockAnchored", "static"] | None = None
+
+@dataclass(frozen=True)
+class WorldPublicTimelineEventDto:
+    characterRefs: tuple[str, ...] = field(default_factory=tuple)
+    endsAt: str | None = None
+    entityRefs: tuple[str, ...] = field(default_factory=tuple)
+    eventId: str | None = None
+    importance: float | None = None
+    locationRefs: tuple[str, ...] = field(default_factory=tuple)
+    sceneRefs: tuple[str, ...] = field(default_factory=tuple)
+    sequence: float | None = None
+    sourceRefs: tuple[str, ...] = field(default_factory=tuple)
+    startsAt: str | None = None
+    summary: str | None = None
+    timestamp: str | None = None
+    title: str | None = None
 
 @dataclass(frozen=True)
 class WorldPublicViewerRelationDto:

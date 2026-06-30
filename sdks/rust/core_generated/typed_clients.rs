@@ -40490,6 +40490,7 @@ pub struct WorldEntityCoreDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicAssetDto {
+    pub duration_sec: f64,
     pub height: f64,
     pub id: String,
     pub kind: String,
@@ -40518,14 +40519,14 @@ pub struct WorldPublicDetailDto {
     pub name: String,
     pub relationship_types: Vec<String>,
     pub rules: Vec<String>,
-    pub scenes: Vec<String>,
+    pub scenes: Vec<WorldPublicSceneDto>,
     pub stats: Box<WorldPublicStatsDto>,
     pub summary: String,
     pub systems: Vec<String>,
     pub tagline: String,
     pub tags: Vec<String>,
     pub time: Box<WorldPublicTimeSnapshotDto>,
-    pub timeline: Vec<String>,
+    pub timeline: Vec<WorldPublicTimelineEventDto>,
     pub r#type: String,
     pub updated_at: String,
     pub visibility: String,
@@ -40535,6 +40536,14 @@ pub struct WorldPublicDetailDto {
 pub struct WorldPublicDetailWithCharactersDto {
     pub sources: Box<WorldPublicSourceSectionsDto>,
     pub world: Box<WorldPublicDetailDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicEntityCardDto {
+    pub id: String,
+    pub kind: String,
+    pub label: String,
+    pub summary: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40573,6 +40582,37 @@ pub struct WorldPublicMediaDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSceneCountsDto {
+    pub active_entity_count: f64,
+    pub related_character_count: f64,
+    pub related_event_count: f64,
+    pub related_resource_count: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSceneDto {
+    pub active_entities: Vec<WorldPublicEntityCardDto>,
+    pub counts: Box<WorldPublicSceneCountsDto>,
+    pub media: Vec<WorldPublicAssetDto>,
+    pub name: String,
+    pub related_characters: Vec<WorldPublicSourceCardDto>,
+    pub related_events: Vec<WorldPublicTimelineEventDto>,
+    pub related_resources: Vec<WorldPublicSceneResourceDto>,
+    pub scene_id: String,
+    pub summary: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicSceneResourceDto {
+    pub entity_refs: Vec<String>,
+    pub event_refs: Vec<String>,
+    pub id: String,
+    pub kind: String,
+    pub summary: String,
+    pub title: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicSourceCardDto {
     pub display_name: String,
     pub handle: String,
@@ -40593,14 +40633,20 @@ pub struct WorldPublicSourceCardDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicSourceMediaAssetsDto {
     pub avatar: Box<WorldPublicAssetDto>,
+    pub portrait: Box<WorldPublicAssetDto>,
     pub profile_cover: Box<WorldPublicAssetDto>,
+    pub reference_image: Box<WorldPublicAssetDto>,
+    pub voice_sample: Box<WorldPublicAssetDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorldPublicSourceMediaDto {
     pub assets: Box<WorldPublicSourceMediaAssetsDto>,
     pub avatar_url: String,
+    pub portrait_url: String,
     pub profile_cover_url: String,
+    pub reference_image_url: String,
+    pub voice_sample_url: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -40641,6 +40687,23 @@ pub struct WorldPublicTimeSnapshotDto {
     pub flow_ratio: f64,
     pub is_paused: bool,
     pub mode: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorldPublicTimelineEventDto {
+    pub character_refs: Vec<String>,
+    pub ends_at: String,
+    pub entity_refs: Vec<String>,
+    pub event_id: String,
+    pub importance: f64,
+    pub location_refs: Vec<String>,
+    pub scene_refs: Vec<String>,
+    pub sequence: f64,
+    pub source_refs: Vec<String>,
+    pub starts_at: String,
+    pub summary: String,
+    pub timestamp: String,
+    pub title: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

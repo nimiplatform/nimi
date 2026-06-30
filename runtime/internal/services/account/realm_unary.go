@@ -17,6 +17,7 @@ import (
 const realmUnaryDefaultTimeout = 30 * time.Second
 
 const (
+	realmDesktopAppID       = "nimi.desktop"
 	realmPersonaStudioAppID = "nimi.realm-persona-studio"
 	realmWorldStudioAppID   = "nimi.realm-world-studio"
 )
@@ -51,13 +52,17 @@ var realmUnaryOperations = map[string]realmUnaryOperation{
 	"WorldCoreController_replaceWorldCore":                  worldStudioRealmUnaryOperation(http.MethodPut, "/api/realm/core/worlds/{worldId}"),
 	"WorldCoreController_replaceWorldEntity":                worldStudioRealmUnaryOperation(http.MethodPut, "/api/realm/core/world-entities/{entityId}"),
 	"WorldCoreController_replaceWorldRelationship":          worldStudioRealmUnaryOperation(http.MethodPut, "/api/realm/core/world-relationships/{relationshipId}"),
-	"createPost":              personaStudioRealmUnaryOperation(http.MethodPost, "/api/world/posts"),
-	"listResources":           personaStudioRealmUnaryOperation(http.MethodGet, "/api/resources"),
-	"createImageDirectUpload": studioRealmUnaryOperation(http.MethodPost, "/api/resources/images/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"createVideoDirectUpload": studioRealmUnaryOperation(http.MethodPost, "/api/resources/videos/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"createAudioDirectUpload": studioRealmUnaryOperation(http.MethodPost, "/api/resources/audio/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"finalizeResource":        studioRealmUnaryOperation(http.MethodPost, "/api/resources/{resourceId}/finalize", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"createTextResource":      studioRealmUnaryOperation(http.MethodPost, "/api/resources/texts", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"WorldPublicController_getWorld":                        publicWorldRealmUnaryOperation(http.MethodGet, "/api/world/by-id/{worldId}"),
+	"WorldPublicController_getWorldDetailWithCharacters":    publicWorldRealmUnaryOperation(http.MethodGet, "/api/world/by-id/{worldId}/detail-with-characters"),
+	"WorldPublicController_listWorldCharacters":             publicWorldRealmUnaryOperation(http.MethodGet, "/api/world/by-id/{worldId}/characters"),
+	"WorldPublicController_listWorlds":                      publicWorldRealmUnaryOperation(http.MethodGet, "/api/world"),
+	"createPost":                                            personaStudioRealmUnaryOperation(http.MethodPost, "/api/world/posts"),
+	"listResources":                                         personaStudioRealmUnaryOperation(http.MethodGet, "/api/resources"),
+	"createImageDirectUpload":                               studioRealmUnaryOperation(http.MethodPost, "/api/resources/images/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"createVideoDirectUpload":                               studioRealmUnaryOperation(http.MethodPost, "/api/resources/videos/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"createAudioDirectUpload":                               studioRealmUnaryOperation(http.MethodPost, "/api/resources/audio/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"finalizeResource":                                      studioRealmUnaryOperation(http.MethodPost, "/api/resources/{resourceId}/finalize", realmPersonaStudioAppID, realmWorldStudioAppID),
+	"createTextResource":                                    studioRealmUnaryOperation(http.MethodPost, "/api/resources/texts", realmPersonaStudioAppID, realmWorldStudioAppID),
 }
 
 func personaStudioRealmUnaryOperation(method string, path string) realmUnaryOperation {
@@ -66,6 +71,10 @@ func personaStudioRealmUnaryOperation(method string, path string) realmUnaryOper
 
 func worldStudioRealmUnaryOperation(method string, path string) realmUnaryOperation {
 	return studioRealmUnaryOperation(method, path, realmWorldStudioAppID)
+}
+
+func publicWorldRealmUnaryOperation(method string, path string) realmUnaryOperation {
+	return studioRealmUnaryOperation(method, path, realmDesktopAppID)
 }
 
 func studioRealmUnaryOperation(method string, path string, appIDs ...string) realmUnaryOperation {

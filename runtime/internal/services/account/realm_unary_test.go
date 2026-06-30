@@ -300,6 +300,38 @@ func TestInvokeRealmUnaryAdmitsStudioOperationIDs(t *testing.T) {
 			method:      http.MethodPost,
 			path:        "/api/resources/images/direct-upload",
 		},
+		{
+			name:        "desktop public world list",
+			caller:      realmDesktopShellCaller(),
+			methodID:    "WorldPublicController_listWorlds",
+			requestJSON: `{"path":{}}`,
+			method:      http.MethodGet,
+			path:        "/api/world",
+		},
+		{
+			name:        "desktop public world detail",
+			caller:      realmDesktopShellCaller(),
+			methodID:    "WorldPublicController_getWorld",
+			requestJSON: `{"path":{"worldId":"world-1"}}`,
+			method:      http.MethodGet,
+			path:        "/api/world/by-id/world-1",
+		},
+		{
+			name:        "desktop public world characters",
+			caller:      realmDesktopShellCaller(),
+			methodID:    "WorldPublicController_listWorldCharacters",
+			requestJSON: `{"path":{"worldId":"world-1"}}`,
+			method:      http.MethodGet,
+			path:        "/api/world/by-id/world-1/characters",
+		},
+		{
+			name:        "desktop public world detail with characters",
+			caller:      realmDesktopShellCaller(),
+			methodID:    "WorldPublicController_getWorldDetailWithCharacters",
+			requestJSON: `{"path":{"worldId":"world-1"}}`,
+			method:      http.MethodGet,
+			path:        "/api/world/by-id/world-1/detail-with-characters",
+		},
 	}
 
 	for _, tc := range cases {
@@ -490,7 +522,7 @@ func newRealmUnaryHarnessService(t *testing.T, realmBaseURL string) *Service {
 	return newHarnessService(
 		t,
 		nil,
-		WithAppRegistry(testAppRegistry(t, firstPartyCaller(), realmPersonaStudioCaller(), realmWorldStudioCaller())),
+		WithAppRegistry(testAppRegistry(t, firstPartyCaller(), realmPersonaStudioCaller(), realmWorldStudioCaller(), realmDesktopShellCaller())),
 		WithRealmBaseURL(realmBaseURL),
 	)
 }
@@ -510,5 +542,14 @@ func realmWorldStudioCaller() *runtimev1.AccountCaller {
 		AppInstanceId: "nimi.realm-world-studio.local-first-party",
 		DeviceId:      "device-1",
 		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+	}
+}
+
+func realmDesktopShellCaller() *runtimev1.AccountCaller {
+	return &runtimev1.AccountCaller{
+		AppId:         "nimi.desktop",
+		AppInstanceId: "nimi.desktop.local-first-party",
+		DeviceId:      "desktop-shell",
+		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL,
 	}
 }

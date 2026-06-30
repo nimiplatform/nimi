@@ -11923,6 +11923,7 @@ type WorldEntityCoreDto struct {
 }
 
 type WorldPublicAssetDto struct {
+	DurationSec float64 `json:"durationSec,omitempty"`
 	Height float64 `json:"height,omitempty"`
 	Id string `json:"id,omitempty"`
 	Kind string `json:"kind,omitempty"`
@@ -11949,14 +11950,14 @@ type WorldPublicDetailDto struct {
 	Name string `json:"name,omitempty"`
 	RelationshipTypes []string `json:"relationshipTypes,omitempty"`
 	Rules []string `json:"rules,omitempty"`
-	Scenes []string `json:"scenes,omitempty"`
+	Scenes []WorldPublicSceneDto `json:"scenes,omitempty"`
 	Stats *WorldPublicStatsDto `json:"stats,omitempty"`
 	Summary string `json:"summary,omitempty"`
 	Systems []string `json:"systems,omitempty"`
 	Tagline string `json:"tagline,omitempty"`
 	Tags []string `json:"tags,omitempty"`
 	Time *WorldPublicTimeSnapshotDto `json:"time,omitempty"`
-	Timeline []string `json:"timeline,omitempty"`
+	Timeline []WorldPublicTimelineEventDto `json:"timeline,omitempty"`
 	Type string `json:"type,omitempty"`
 	UpdatedAt string `json:"updatedAt,omitempty"`
 	Visibility string `json:"visibility,omitempty"`
@@ -11965,6 +11966,13 @@ type WorldPublicDetailDto struct {
 type WorldPublicDetailWithCharactersDto struct {
 	Sources *WorldPublicSourceSectionsDto `json:"sources,omitempty"`
 	World *WorldPublicDetailDto `json:"world,omitempty"`
+}
+
+type WorldPublicEntityCardDto struct {
+	Id string `json:"id,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Label string `json:"label,omitempty"`
+	Summary string `json:"summary,omitempty"`
 }
 
 type WorldPublicItemDto struct {
@@ -11999,6 +12007,34 @@ type WorldPublicMediaDto struct {
 	IconUrl string `json:"iconUrl,omitempty"`
 }
 
+type WorldPublicSceneCountsDto struct {
+	ActiveEntityCount float64 `json:"activeEntityCount,omitempty"`
+	RelatedCharacterCount float64 `json:"relatedCharacterCount,omitempty"`
+	RelatedEventCount float64 `json:"relatedEventCount,omitempty"`
+	RelatedResourceCount float64 `json:"relatedResourceCount,omitempty"`
+}
+
+type WorldPublicSceneDto struct {
+	ActiveEntities []WorldPublicEntityCardDto `json:"activeEntities,omitempty"`
+	Counts *WorldPublicSceneCountsDto `json:"counts,omitempty"`
+	Media []WorldPublicAssetDto `json:"media,omitempty"`
+	Name string `json:"name,omitempty"`
+	RelatedCharacters []WorldPublicSourceCardDto `json:"relatedCharacters,omitempty"`
+	RelatedEvents []WorldPublicTimelineEventDto `json:"relatedEvents,omitempty"`
+	RelatedResources []WorldPublicSceneResourceDto `json:"relatedResources,omitempty"`
+	SceneId string `json:"sceneId,omitempty"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type WorldPublicSceneResourceDto struct {
+	EntityRefs []string `json:"entityRefs,omitempty"`
+	EventRefs []string `json:"eventRefs,omitempty"`
+	Id string `json:"id,omitempty"`
+	Kind string `json:"kind,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	Title string `json:"title,omitempty"`
+}
+
 type WorldPublicSourceCardDto struct {
 	DisplayName string `json:"displayName,omitempty"`
 	Handle string `json:"handle,omitempty"`
@@ -12018,13 +12054,19 @@ type WorldPublicSourceCardDto struct {
 
 type WorldPublicSourceMediaAssetsDto struct {
 	Avatar *WorldPublicAssetDto `json:"avatar,omitempty"`
+	Portrait *WorldPublicAssetDto `json:"portrait,omitempty"`
 	ProfileCover *WorldPublicAssetDto `json:"profileCover,omitempty"`
+	ReferenceImage *WorldPublicAssetDto `json:"referenceImage,omitempty"`
+	VoiceSample *WorldPublicAssetDto `json:"voiceSample,omitempty"`
 }
 
 type WorldPublicSourceMediaDto struct {
 	Assets *WorldPublicSourceMediaAssetsDto `json:"assets,omitempty"`
 	AvatarUrl string `json:"avatarUrl,omitempty"`
+	PortraitUrl string `json:"portraitUrl,omitempty"`
 	ProfileCoverUrl string `json:"profileCoverUrl,omitempty"`
+	ReferenceImageUrl string `json:"referenceImageUrl,omitempty"`
+	VoiceSampleUrl string `json:"voiceSampleUrl,omitempty"`
 }
 
 type WorldPublicSourceRefDto struct {
@@ -12061,6 +12103,22 @@ type WorldPublicTimeSnapshotDto struct {
 	FlowRatio float64 `json:"flowRatio,omitempty"`
 	IsPaused bool `json:"isPaused,omitempty"`
 	Mode string `json:"mode,omitempty"`
+}
+
+type WorldPublicTimelineEventDto struct {
+	CharacterRefs []string `json:"characterRefs,omitempty"`
+	EndsAt string `json:"endsAt,omitempty"`
+	EntityRefs []string `json:"entityRefs,omitempty"`
+	EventId string `json:"eventId,omitempty"`
+	Importance float64 `json:"importance,omitempty"`
+	LocationRefs []string `json:"locationRefs,omitempty"`
+	SceneRefs []string `json:"sceneRefs,omitempty"`
+	Sequence float64 `json:"sequence,omitempty"`
+	SourceRefs []string `json:"sourceRefs,omitempty"`
+	StartsAt string `json:"startsAt,omitempty"`
+	Summary string `json:"summary,omitempty"`
+	Timestamp string `json:"timestamp,omitempty"`
+	Title string `json:"title,omitempty"`
 }
 
 type WorldPublicViewerRelationDto struct {

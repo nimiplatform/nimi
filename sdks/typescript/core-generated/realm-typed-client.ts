@@ -1697,9 +1697,10 @@ export interface WorldEntityCoreDto {
   readonly worldId: string;
 }
 export interface WorldPublicAssetDto {
+  readonly durationSec?: number | null;
   readonly height?: number | null;
   readonly id: string;
-  readonly kind: "icon" | "banner" | "hero" | "highlight" | "avatar" | "referenceImage" | "profileCover" | "cover";
+  readonly kind: "icon" | "banner" | "hero" | "highlight" | "avatar" | "portrait" | "referenceImage" | "profileCover" | "cover" | "voiceSample";
   readonly mimeType?: string | null;
   readonly provenance: WorldPublicAssetProvenanceDto;
   readonly provider: string;
@@ -1721,14 +1722,14 @@ export interface WorldPublicDetailDto {
   readonly name: string;
   readonly relationshipTypes: readonly (string)[];
   readonly rules: readonly (string)[];
-  readonly scenes: readonly (string)[];
+  readonly scenes: readonly (WorldPublicSceneDto)[];
   readonly stats: WorldPublicStatsDto;
   readonly summary: string;
   readonly systems: readonly (string)[];
   readonly tagline?: string | null;
   readonly tags: readonly (string)[];
   readonly time: WorldPublicTimeSnapshotDto;
-  readonly timeline: readonly (string)[];
+  readonly timeline: readonly (WorldPublicTimelineEventDto)[];
   readonly type: "OASIS" | "CREATOR";
   readonly updatedAt: string;
   readonly visibility: "public" | "system";
@@ -1736,6 +1737,12 @@ export interface WorldPublicDetailDto {
 export interface WorldPublicDetailWithCharactersDto {
   readonly sources: WorldPublicSourceSectionsDto;
   readonly world: WorldPublicDetailDto;
+}
+export interface WorldPublicEntityCardDto {
+  readonly id: string;
+  readonly kind: string;
+  readonly label?: string | null;
+  readonly summary?: string | null;
 }
 export interface WorldPublicItemDto {
   readonly createdAt: string;
@@ -1766,6 +1773,31 @@ export interface WorldPublicMediaDto {
   readonly highlightUrls: readonly (string)[];
   readonly iconUrl?: string | null;
 }
+export interface WorldPublicSceneCountsDto {
+  readonly activeEntityCount: number;
+  readonly relatedCharacterCount: number;
+  readonly relatedEventCount: number;
+  readonly relatedResourceCount: number;
+}
+export interface WorldPublicSceneDto {
+  readonly activeEntities: readonly (WorldPublicEntityCardDto)[];
+  readonly counts: WorldPublicSceneCountsDto;
+  readonly media: readonly (WorldPublicAssetDto)[];
+  readonly name: string;
+  readonly relatedCharacters: readonly (WorldPublicSourceCardDto)[];
+  readonly relatedEvents: readonly (WorldPublicTimelineEventDto)[];
+  readonly relatedResources: readonly (WorldPublicSceneResourceDto)[];
+  readonly sceneId: string;
+  readonly summary: string;
+}
+export interface WorldPublicSceneResourceDto {
+  readonly entityRefs: readonly (string)[];
+  readonly eventRefs: readonly (string)[];
+  readonly id: string;
+  readonly kind: "system" | "entity" | "relationship" | "timelineEvent" | "rule";
+  readonly summary?: string | null;
+  readonly title: string;
+}
 export interface WorldPublicSourceCardDto {
   readonly displayName: string;
   readonly handle?: string | null;
@@ -1784,12 +1816,18 @@ export interface WorldPublicSourceCardDto {
 }
 export interface WorldPublicSourceMediaAssetsDto {
   readonly avatar?: WorldPublicAssetDto | null;
+  readonly portrait?: WorldPublicAssetDto | null;
   readonly profileCover?: WorldPublicAssetDto | null;
+  readonly referenceImage?: WorldPublicAssetDto | null;
+  readonly voiceSample?: WorldPublicAssetDto | null;
 }
 export interface WorldPublicSourceMediaDto {
   readonly assets?: WorldPublicSourceMediaAssetsDto;
   readonly avatarUrl?: string | null;
+  readonly portraitUrl?: string | null;
   readonly profileCoverUrl?: string | null;
+  readonly referenceImageUrl?: string | null;
+  readonly voiceSampleUrl?: string | null;
 }
 export interface WorldPublicSourceRefDto {
   readonly kind: "worldCharacter" | "realmPersona";
@@ -1822,6 +1860,21 @@ export interface WorldPublicTimeSnapshotDto {
   readonly flowRatio: number;
   readonly isPaused: boolean;
   readonly mode: "wallClockAnchored" | "static";
+}
+export interface WorldPublicTimelineEventDto {
+  readonly characterRefs: readonly (string)[];
+  readonly endsAt?: string | null;
+  readonly entityRefs: readonly (string)[];
+  readonly eventId: string;
+  readonly importance?: number | null;
+  readonly locationRefs: readonly (string)[];
+  readonly sceneRefs: readonly (string)[];
+  readonly sequence?: number | null;
+  readonly sourceRefs: readonly (string)[];
+  readonly startsAt?: string | null;
+  readonly summary?: string | null;
+  readonly timestamp?: string | null;
+  readonly title: string;
 }
 export interface WorldPublicViewerRelationDto {
   readonly connectionId?: string | null;
@@ -2454,9 +2507,13 @@ export interface RealmTypedModelMap {
   readonly "WorldPublicAssetProvenanceDto": WorldPublicAssetProvenanceDto;
   readonly "WorldPublicDetailDto": WorldPublicDetailDto;
   readonly "WorldPublicDetailWithCharactersDto": WorldPublicDetailWithCharactersDto;
+  readonly "WorldPublicEntityCardDto": WorldPublicEntityCardDto;
   readonly "WorldPublicItemDto": WorldPublicItemDto;
   readonly "WorldPublicMediaAssetsDto": WorldPublicMediaAssetsDto;
   readonly "WorldPublicMediaDto": WorldPublicMediaDto;
+  readonly "WorldPublicSceneCountsDto": WorldPublicSceneCountsDto;
+  readonly "WorldPublicSceneDto": WorldPublicSceneDto;
+  readonly "WorldPublicSceneResourceDto": WorldPublicSceneResourceDto;
   readonly "WorldPublicSourceCardDto": WorldPublicSourceCardDto;
   readonly "WorldPublicSourceMediaAssetsDto": WorldPublicSourceMediaAssetsDto;
   readonly "WorldPublicSourceMediaDto": WorldPublicSourceMediaDto;
@@ -2464,6 +2521,7 @@ export interface RealmTypedModelMap {
   readonly "WorldPublicSourceSectionsDto": WorldPublicSourceSectionsDto;
   readonly "WorldPublicStatsDto": WorldPublicStatsDto;
   readonly "WorldPublicTimeSnapshotDto": WorldPublicTimeSnapshotDto;
+  readonly "WorldPublicTimelineEventDto": WorldPublicTimelineEventDto;
   readonly "WorldPublicViewerRelationDto": WorldPublicViewerRelationDto;
   readonly "WorldRelationshipCoreDto": WorldRelationshipCoreDto;
 }

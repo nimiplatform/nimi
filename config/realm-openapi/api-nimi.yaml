@@ -2396,15 +2396,40 @@ components:
                   items:
                     additionalProperties: false
                     properties:
+                      characterRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       endsAt:
                         type: string
+                      entityRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       eventId:
                         minLength: 1
                         type: string
                       importance:
                         type: number
+                      locationRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
+                      sceneRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       sequence:
                         type: number
+                      sourceRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       startsAt:
                         type: string
                       summary:
@@ -5743,15 +5768,40 @@ components:
                   items:
                     additionalProperties: false
                     properties:
+                      characterRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       endsAt:
                         type: string
+                      entityRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       eventId:
                         minLength: 1
                         type: string
                       importance:
                         type: number
+                      locationRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
+                      sceneRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       sequence:
                         type: number
+                      sourceRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       startsAt:
                         type: string
                       summary:
@@ -8584,15 +8634,40 @@ components:
                   items:
                     additionalProperties: false
                     properties:
+                      characterRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       endsAt:
                         type: string
+                      entityRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       eventId:
                         minLength: 1
                         type: string
                       importance:
                         type: number
+                      locationRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
+                      sceneRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       sequence:
                         type: number
+                      sourceRefs:
+                        items:
+                          minLength: 1
+                          type: string
+                        type: array
                       startsAt:
                         type: string
                       summary:
@@ -8896,6 +8971,9 @@ components:
       type: object
     WorldPublicAssetDto:
       properties:
+        durationSec:
+          nullable: true
+          type: number
         height:
           nullable: true
           type: number
@@ -8908,9 +8986,11 @@ components:
             - hero
             - highlight
             - avatar
+            - portrait
             - referenceImage
             - profileCover
             - cover
+            - voiceSample
           type: string
         mimeType:
           nullable: true
@@ -8973,7 +9053,7 @@ components:
           type: array
         scenes:
           items:
-            type: string
+            $ref: '#/components/schemas/WorldPublicSceneDto'
           type: array
         stats:
           $ref: '#/components/schemas/WorldPublicStatsDto'
@@ -8994,7 +9074,7 @@ components:
           $ref: '#/components/schemas/WorldPublicTimeSnapshotDto'
         timeline:
           items:
-            type: string
+            $ref: '#/components/schemas/WorldPublicTimelineEventDto'
           type: array
         type:
           enum:
@@ -9036,6 +9116,22 @@ components:
       required:
         - world
         - sources
+      type: object
+    WorldPublicEntityCardDto:
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        label:
+          nullable: true
+          type: string
+        summary:
+          nullable: true
+          type: string
+      required:
+        - id
+        - kind
       type: object
     WorldPublicItemDto:
       properties:
@@ -9139,6 +9235,95 @@ components:
       required:
         - highlightUrls
       type: object
+    WorldPublicSceneCountsDto:
+      properties:
+        activeEntityCount:
+          type: number
+        relatedCharacterCount:
+          type: number
+        relatedEventCount:
+          type: number
+        relatedResourceCount:
+          type: number
+      required:
+        - activeEntityCount
+        - relatedCharacterCount
+        - relatedEventCount
+        - relatedResourceCount
+      type: object
+    WorldPublicSceneDto:
+      properties:
+        activeEntities:
+          items:
+            $ref: '#/components/schemas/WorldPublicEntityCardDto'
+          type: array
+        counts:
+          $ref: '#/components/schemas/WorldPublicSceneCountsDto'
+        media:
+          items:
+            $ref: '#/components/schemas/WorldPublicAssetDto'
+          type: array
+        name:
+          type: string
+        relatedCharacters:
+          items:
+            $ref: '#/components/schemas/WorldPublicSourceCardDto'
+          type: array
+        relatedEvents:
+          items:
+            $ref: '#/components/schemas/WorldPublicTimelineEventDto'
+          type: array
+        relatedResources:
+          items:
+            $ref: '#/components/schemas/WorldPublicSceneResourceDto'
+          type: array
+        sceneId:
+          type: string
+        summary:
+          type: string
+      required:
+        - sceneId
+        - name
+        - summary
+        - media
+        - activeEntities
+        - relatedCharacters
+        - relatedEvents
+        - relatedResources
+        - counts
+      type: object
+    WorldPublicSceneResourceDto:
+      properties:
+        entityRefs:
+          items:
+            type: string
+          type: array
+        eventRefs:
+          items:
+            type: string
+          type: array
+        id:
+          type: string
+        kind:
+          enum:
+            - system
+            - entity
+            - relationship
+            - timelineEvent
+            - rule
+          type: string
+        summary:
+          nullable: true
+          type: string
+        title:
+          type: string
+      required:
+        - id
+        - kind
+        - title
+        - entityRefs
+        - eventRefs
+      type: object
     WorldPublicSourceCardDto:
       properties:
         displayName:
@@ -9200,7 +9385,22 @@ components:
             - $ref: '#/components/schemas/WorldPublicAssetDto'
           nullable: true
           type: object
+        portrait:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicAssetDto'
+          nullable: true
+          type: object
         profileCover:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicAssetDto'
+          nullable: true
+          type: object
+        referenceImage:
+          allOf:
+            - $ref: '#/components/schemas/WorldPublicAssetDto'
+          nullable: true
+          type: object
+        voiceSample:
           allOf:
             - $ref: '#/components/schemas/WorldPublicAssetDto'
           nullable: true
@@ -9213,7 +9413,16 @@ components:
         avatarUrl:
           nullable: true
           type: string
+        portraitUrl:
+          nullable: true
+          type: string
         profileCoverUrl:
+          nullable: true
+          type: string
+        referenceImageUrl:
+          nullable: true
+          type: string
+        voiceSampleUrl:
           nullable: true
           type: string
       type: object
@@ -9314,6 +9523,59 @@ components:
         - currentWorldTime
         - currentWorldTimeDisplay
         - computedAt
+      type: object
+    WorldPublicTimelineEventDto:
+      properties:
+        characterRefs:
+          items:
+            type: string
+          type: array
+        endsAt:
+          nullable: true
+          type: string
+        entityRefs:
+          items:
+            type: string
+          type: array
+        eventId:
+          type: string
+        importance:
+          nullable: true
+          type: number
+        locationRefs:
+          items:
+            type: string
+          type: array
+        sceneRefs:
+          items:
+            type: string
+          type: array
+        sequence:
+          nullable: true
+          type: number
+        sourceRefs:
+          items:
+            type: string
+          type: array
+        startsAt:
+          nullable: true
+          type: string
+        summary:
+          nullable: true
+          type: string
+        timestamp:
+          nullable: true
+          type: string
+        title:
+          type: string
+      required:
+        - eventId
+        - title
+        - sceneRefs
+        - locationRefs
+        - entityRefs
+        - characterRefs
+        - sourceRefs
       type: object
     WorldPublicViewerRelationDto:
       properties:
@@ -9467,7 +9729,7 @@ info:
   description: |-
     The Nimi Social Platform API
 
-    Last updated: 2026-06-29T04:03:12.425Z
+    Last updated: 2026-06-30T09:28:43.743Z
   title: Nimi Realm SDK API
   version: '1.0'
 openapi: 3.0.0
