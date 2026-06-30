@@ -1,8 +1,8 @@
-import { prefetchWorldDetailAndHistory } from './world-detail-queries';
-import { prefetchWorldDetailPanel } from './world-detail-route-state';
+import { Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Button, NimiText, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { formatNum } from './world-list-atoms';
-import { displayTags, GLASS_CARD_CLASS, GLASS_CARD_STYLE, sourceCount, statusLabel, worldHeroBackground } from './world-list-catalog-model';
-import { IconArrow, IconSpark } from './world-list-catalog-primitives';
+import { displayTags, sourceCount, statusLabel, worldHeroBackground } from './world-list-catalog-model';
 import type { WorldListItem } from './world-list-model';
 
 function FeaturedCard({
@@ -16,121 +16,62 @@ function FeaturedCard({
   onSelect: () => void;
   onOpen: () => void;
 }) {
-  const banner = world.bannerUrl;
-  const tags = displayTags(world, 2);
+  const { t, i18n } = useTranslation();
+  const tags = displayTags(world, 2, i18n.language);
   return (
-    <article
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onDoubleClick={onOpen}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') onOpen();
-      }}
-      onMouseEnter={() => {
-        prefetchWorldDetailPanel();
-        prefetchWorldDetailAndHistory(world.id);
-      }}
-      style={{
-        position: 'relative',
-        minHeight: 154,
-        borderRadius: 14,
-        overflow: 'hidden',
-        cursor: 'pointer',
-        outline: selected ? '2px solid rgba(76,125,245,0.38)' : '1px solid rgba(255,255,255,0.28)',
-        outlineOffset: 0,
-        background: worldHeroBackground(banner),
-        boxShadow: '0 18px 34px rgba(39,55,94,0.14)',
-      }}
+    <Surface
+      as="article"
+      tone="card"
+      material="solid"
+      elevation="base"
+      padding="none"
+      className={[
+        'relative min-h-[154px] overflow-hidden rounded-[var(--nimi-radius-lg)] shadow-none',
+        selected ? 'ring-2 ring-[var(--nimi-status-info)] ring-offset-0' : 'border-[var(--nimi-material-glass-thin-border)]',
+      ].join(' ')}
+      data-testid="world-atlas-featured-card"
+      style={{ boxShadow: 'none' }}
     >
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(15,23,42,0.12), rgba(15,23,42,0.05) 44%, rgba(15,23,42,0.26))' }} />
-      <div
-        style={{
-          position: 'absolute',
-          left: 16,
-          right: 16,
-          bottom: 14,
-          display: 'grid',
-          gap: 8,
-          color: '#ffffff',
-        }}
+      <span
+        aria-hidden="true"
+        className="absolute inset-0"
+        style={{ background: worldHeroBackground(world.bannerUrl) }}
+      />
+      <button
+        type="button"
+        aria-pressed={selected}
+        className="absolute inset-0 cursor-pointer border-0 bg-transparent p-0 text-left"
+        onClick={onSelect}
+        onDoubleClick={onOpen}
       >
-        <div style={{ minWidth: 0, paddingRight: 50 }}>
-          <h3
+        <span className="absolute inset-0 bg-[linear-gradient(90deg,color-mix(in_srgb,black_38%,transparent),color-mix(in_srgb,black_12%,transparent)_44%,color-mix(in_srgb,black_50%,transparent))]" />
+        <span className="absolute right-4 bottom-3 left-4 grid gap-2 text-white">
+          <NimiText
+            as="span"
+            role="card-title"
+            className="block max-w-full truncate text-[length:var(--nimi-type-section-title-size)] font-bold text-current"
             title={world.name}
-            style={{
-              margin: 0,
-              minWidth: 0,
-              maxWidth: '100%',
-              fontSize: 17,
-              fontWeight: 900,
-              letterSpacing: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
           >
             {world.name}
-          </h3>
-        </div>
-        <button
-          type="button"
-          aria-label={`Open ${world.name}`}
-          data-testid="world-atlas-featured-card-action"
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen();
-          }}
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 0,
-            width: 38,
-            height: 38,
-            borderRadius: 999,
-            border: '1px solid rgba(255,255,255,0.30)',
-            background: 'rgba(255,255,255,0.72)',
-            color: '#25334a',
-            display: 'grid',
-            placeItems: 'center',
-            cursor: 'pointer',
-          }}
-        >
-          <IconArrow />
-        </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700 }}>
-          <span style={{ width: 7, height: 7, borderRadius: 999, background: '#45d0aa' }} />
-          <span>{statusLabel(world)}</span>
-          <span>{formatNum(sourceCount(world))} sources</span>
-        </div>
-        {tags.length > 0 ? (
-          <div style={{ display: 'flex', gap: 6, minWidth: 0, overflow: 'hidden' }}>
-            {tags.map((tag, index) => (
-              <span
-                key={tag}
-                title={tag}
-                style={{
-                  minWidth: 0,
-                  maxWidth: index === 0 ? 'none' : '100%',
-                  flex: index === 0 ? '0 0 auto' : '1 1 auto',
-                  borderRadius: 999,
-                  padding: '4px 9px',
-                  background: 'rgba(255,255,255,0.28)',
-                  color: '#ffffff',
-                  fontSize: 11,
-                  fontWeight: 800,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </article>
+          </NimiText>
+          <span className="flex min-w-0 items-center gap-2 text-[length:var(--nimi-type-caption-size)] font-bold">
+            <StatusBadge tone={world.status === 'FROZEN' ? 'warning' : 'success'} shape="dot" className="bg-transparent px-0 text-current">
+              {statusLabel(world)}
+            </StatusBadge>
+            <span className="truncate">{t('World.atlas.sourceCount', { value: formatNum(sourceCount(world)) })}</span>
+          </span>
+          {tags.length > 0 ? (
+            <span className="flex min-w-0 gap-1.5 overflow-hidden">
+              {tags.map((tag) => (
+                <StatusBadge key={tag} title={tag} tone="neutral" shape="soft" className="min-w-0 max-w-full truncate bg-white/25 text-current backdrop-blur-[var(--nimi-backdrop-blur-thin)]">
+                  {tag}
+                </StatusBadge>
+              ))}
+            </span>
+          ) : null}
+        </span>
+      </button>
+    </Surface>
   );
 }
 
@@ -145,56 +86,35 @@ export function FeaturedStrip({
   onSelectWorld: (worldId: string) => void;
   onOpenWorld: (worldId: string) => void;
 }) {
+  const { t } = useTranslation();
   const featured = worlds.slice(0, 3);
   if (featured.length === 0) {
     return null;
   }
   return (
-    <section
-      className={GLASS_CARD_CLASS}
-      data-nimi-material="glass-regular"
-      data-nimi-tone="card"
+    <Surface
+      as="section"
+      tone="card"
+      material="glass-regular"
+      elevation="base"
+      padding="md"
       data-testid="world-atlas-featured-strip"
-      style={{
-        ...GLASS_CARD_STYLE,
-        display: 'grid',
-        gridTemplateColumns: '150px minmax(0, 1fr)',
-        gap: 16,
-        borderRadius: 18,
-        padding: 18,
-      }}
+      className="grid rounded-[var(--nimi-radius-xl)] border-transparent bg-[var(--nimi-material-glass-regular-bg)] shadow-none"
+      style={{ gridTemplateColumns: '112px minmax(0, 1fr)', gap: 12, boxShadow: 'none' }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#111827', fontSize: 15, fontWeight: 900 }}>
-          <span style={{ color: '#4c7df5', display: 'inline-grid', placeItems: 'center' }}><IconSpark /></span>
-          Featured
-        </div>
-        <p style={{ margin: 0, color: '#526277', fontSize: 13, lineHeight: 1.45, fontWeight: 600 }}>
-          Handpicked public worlds for source discovery and setting context.
-        </p>
-        <button
-          type="button"
-          style={{
-            alignSelf: 'flex-start',
-            border: 0,
-            background: 'transparent',
-            color: '#2563ff',
-            fontSize: 12,
-            fontWeight: 900,
-            padding: 0,
-            cursor: 'pointer',
-          }}
-        >
-          View all
-        </button>
+      <div className="flex flex-col justify-center gap-2.5">
+        <NimiText as="h2" role="card-title" className="flex items-center gap-2">
+          <Sparkles size={16} aria-hidden="true" className="text-[var(--nimi-action-primary-bg)]" />
+          {t('World.atlas.featured.title')}
+        </NimiText>
+        <NimiText role="helper" className="font-semibold">
+          {t('World.atlas.featured.body')}
+        </NimiText>
+        <Button tone="ghost" size="sm" className="self-start px-0 text-[var(--nimi-status-info)]">
+          {t('World.atlas.featured.viewAll')}
+        </Button>
       </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          gap: 12,
-        }}
-      >
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(3, minmax(190px, 1fr))', gap: 12 }}>
         {featured.map((world) => (
           <FeaturedCard
             key={world.id}
@@ -205,19 +125,17 @@ export function FeaturedStrip({
           />
         ))}
       </div>
-      <div style={{ gridColumn: '2 / 3', display: 'flex', justifyContent: 'center', gap: 7, marginTop: -4 }}>
+      <div className="col-start-2 flex justify-center gap-2">
         {featured.map((world) => (
           <span
             key={world.id}
-            style={{
-              width: world.id === selectedWorldId ? 20 : 8,
-              height: 4,
-              borderRadius: 999,
-              background: world.id === selectedWorldId ? '#4c7df5' : 'rgba(76,125,245,0.18)',
-            }}
+            className={world.id === selectedWorldId
+              ? 'h-1 w-5 rounded-full bg-[var(--nimi-action-primary-bg)]'
+              : 'h-1 w-2 rounded-full bg-[var(--nimi-surface-active)]'}
+            aria-hidden="true"
           />
         ))}
       </div>
-    </section>
+    </Surface>
   );
 }

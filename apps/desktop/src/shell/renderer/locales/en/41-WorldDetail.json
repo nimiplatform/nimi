@@ -415,7 +415,9 @@
         "quickSheetViewProfile": "View Full Profile",
         "groupPrimary": "Primary Characters",
         "groupSecondary": "Secondary Characters",
-        "groupBackground": "Background Characters"
+        "groupBackground": "Background Characters",
+        "voiceSample": "Voice sample",
+        "voiceReady": "Ready audio resource"
       },
       "extended": {
         "evolutionTitle": "Worldview Evolution",
@@ -434,6 +436,325 @@
         "nextLevel": "Next Level",
         "mutationsTitle": "Maintenance Trail",
         "mutationsSubtitle": "Recent maintenance changes"
+      }
+    }
+  },
+  "paper": {
+    "viewAll": "View all",
+    "metrics": {
+      "people": {
+        "label": "People to meet",
+        "unit": "",
+        "sub": "Each with full historical context"
+      },
+      "materials": {
+        "label": "Browseable records",
+        "unit": "",
+        "sub": "People, scenes, events, and lore"
+      },
+      "scenes": {
+        "label": "Explorable scenes",
+        "unit": "",
+        "sub": "Immersive location anchors"
+      },
+      "events": {
+        "label": "Major events",
+        "unit": "",
+        "sub": "Key moments of this world"
+      }
+    },
+    "paths": {
+      "title": "Recommended paths",
+      "subtitle": "Not sure where to start? Follow one of these routes.",
+      "enter": "Start exploring",
+      "lead": {
+        "titleNamed": "Start with {{name}}",
+        "title": "Start with a key figure",
+        "desc": "Get to know the central figures of this world and how they relate."
+      },
+      "relations": {
+        "title": "Follow the relationships",
+        "desc": "Trace lineage, exchanges, and affiliations between people."
+      },
+      "scenes": {
+        "title": "Step into the scenes",
+        "desc": "Read this world immersively through concrete scenes."
+      }
+    },
+    "characters": {
+      "title": "People you can meet",
+      "subtitle": "Add them as friends and talk anytime — each carries their own life and connections.",
+      "empty": "This world has no public character or persona sources yet.",
+      "chat": "Say hi",
+      "openProfile": "Open {{name}} profile",
+      "engagement": "Activity",
+      "vitality": "Vitality",
+      "connect": "Add friend",
+      "connected": "Connected",
+      "unavailable": "Unavailable"
+    },
+    "gallery": {
+      "title": "People you can meet",
+      "subtitle": "{{total}} characters with full life stories — {{connectable}} you can add as friends right now. Switch the arrangement to see how they cluster into a web of relations.",
+      "close": "Close",
+      "backToWorld": "Back to world detail",
+      "searchPlaceholder": "Search by name, role or circle",
+      "count": "{{count}}",
+      "empty": "No matching characters.",
+      "footerHint": "Tap a name to read their story, or “Add friend” to chat anytime.",
+      "groupBy": {
+        "faction": "By circle",
+        "tier": "By prominence",
+        "status": "By status"
+      },
+      "tier": {
+        "PRIMARY": {
+          "label": "Core figures",
+          "caption": "The key people who carry this world's story."
+        },
+        "SECONDARY": {
+          "label": "Active figures",
+          "caption": "Notable characters who often drive world events."
+        },
+        "BACKGROUND": {
+          "label": "Background figures",
+          "caption": "People who texture and color the world."
+        }
+      },
+      "status": {
+        "connectable": {
+          "label": "Available now",
+          "caption": "Add as a friend and chat anytime."
+        },
+        "connected": {
+          "label": "Connected",
+          "caption": "You've already added them as friends."
+        },
+        "unavailable": {
+          "label": "Unavailable",
+          "caption": "Can't be met for now."
+        }
+      },
+      "faction": {
+        "member": "{{count}} members",
+        "ungrouped": {
+          "label": "Unaffiliated",
+          "caption": "People with no fixed circle who keep to themselves."
+        }
+      }
+    },
+    "materials": {
+      "title": "Popular records",
+      "subtitle": "Source records for people, scenes, events, and lore — browse anytime.",
+      "records": "records",
+      "cat": {
+        "people": {
+          "tag": "People",
+          "title": "People archive",
+          "desc": "Lives and connections of the people in this world."
+        },
+        "scenes": {
+          "tag": "Scenes",
+          "title": "Scene library",
+          "desc": "Locations and scene anchors to explore immersively."
+        },
+        "events": {
+          "tag": "Events",
+          "title": "Event chronicle",
+          "desc": "Key world moments arranged in time."
+        },
+        "resources": {
+          "tag": "Resources",
+          "title": "Resource references",
+          "desc": "Canonical resources and external references this world declares."
+        },
+        "lore": {
+          "tag": "Lore",
+          "title": "Setting compendium",
+          "desc": "Rules, power systems, taboos, and languages."
+        }
+      }
+    },
+    "timeline": {
+      "title": "River of time",
+      "subtitle": "Walk through time and see how these people met and moved through their era.",
+      "empty": "No major events have been published for this world."
+    },
+    "scenes": {
+      "title": "Explorable scenes",
+      "subtitle": "Step into a concrete scene and experience this world immersively.",
+      "enter": "Enter scene",
+      "empty": "No scenes are published for this world yet.",
+      "detailCard": "Scene detail card",
+      "image": "Image",
+      "public": "PUBLIC · explorable",
+      "sceneResolved": "sceneId resolved",
+      "activeEntities": "Active entities",
+      "relatedCharacters": "Related characters",
+      "relatedEvents": "Related events",
+      "fromEntityRefs": "from entityRefs",
+      "fromCharacters": "from character placement",
+      "fromEvents": "from locationRefs and summaries",
+      "sceneId": "Scene ID",
+      "imageAssetRef": "Image Asset Ref",
+      "noImage": "No image",
+      "none": "None",
+      "enterHintTitle": "Explain what is here before entry",
+      "enterHintDesc": "Open the scene sheet, then jump into people, events, and sources."
+    },
+    "settings": {
+      "title": "World settings",
+      "subtitle": "Where this world comes from, and how it runs.",
+      "language": "Primary language",
+      "era": "Era",
+      "visibility": "Visibility",
+      "visibilityPublic": "Public · open to anyone",
+      "visibilitySystem": "System · platform managed",
+      "features": {
+        "traceable": {
+          "title": "Everything is traceable",
+          "desc": "Every piece of information links back to its original record."
+        },
+        "scoped": {
+          "title": "Clear, trustworthy scope",
+          "desc": "Only the people selected into this world and their relationships are shown."
+        },
+        "summoned": {
+          "title": "Summoned by you",
+          "desc": "A talkable character is generated only when you start chatting with someone."
+        }
+      }
+    },
+    "relationshipExplorer": {
+      "back": "Back to detail",
+      "eyebrow": "Character relationship exploration",
+      "title": "Yuan Literati Academy World",
+      "subtitle": "Explore Yuan literati, work clues, social ties, and historical threads. Start with people, inspect relationships, then continue through source materials.",
+      "noTargetMeta": "No public identity metadata",
+      "openCharacter": "Open character profile",
+      "graphLabel": "Character relationship network",
+      "noCharactersTitle": "No public people yet",
+      "noCharactersDesc": "Character relationship exploration needs at least one public person.",
+      "metrics": {
+        "people": "People collected",
+        "relationships": "Relationships organized",
+        "clues": "Explorable clues",
+        "featured": "Key people"
+      },
+      "identity": {
+        "primary": "Key person",
+        "secondary": "Related person",
+        "background": "Era person"
+      },
+      "network": {
+        "heading": "Relationship network",
+        "centerHint": "Centered on {{name}} — view social ties and kinship.",
+        "pickHint": "Click any person on the left to switch their relationship network."
+      },
+      "profile": {
+        "status": "Character profile",
+        "defaultIntro": "This person has a basic profile. Start with identity, historical position, and available material.",
+        "identity": "Identity tags",
+        "materials": "Available material",
+        "basicMaterial": "Basic character information is collected",
+        "bioMaterial": "Character introduction is organized",
+        "topicMaterial": "{{count}} material clues are organized",
+        "placeMaterial": "Continue through the regional context of {{place}}",
+        "workMaterial": "Continue through {{count}} work clues",
+        "directions": "Possible directions",
+        "defaultDirection": "Browse contemporaries first, then continue through identity or work clues.",
+        "directionFaction": "Follow the circle around {{value}}",
+        "directionRole": "Find other people with the role {{value}}",
+        "directionWork": "Continue from records around {{value}}",
+        "directionPlace": "View regional clues around {{value}}",
+        "viewProfile": "Open character profile",
+        "contemporaries": "Contemporaries",
+        "sameIdentity": "Same identity",
+        "sameWorks": "Same works",
+        "noRelated": "Continue from the people list.",
+        "peers": "Contemporaries"
+      },
+      "side": {
+        "relationship": "Relationship detail",
+        "clue": "Exploration clue",
+        "profile": "Character profile"
+      },
+      "relation": {
+        "type": "Relationship type",
+        "confidence": "Confidence",
+        "confidenceHigh": "Supported by multiple material notes; good to inspect first.",
+        "confidenceNormal": "Material exists; continue into original records.",
+        "source": "Source explanation",
+        "sourceDesc": "This relationship comes from public character material. The page only draws lines when the material points to another person in this world.",
+        "works": "Related works",
+        "noWorks": "No explicit work title appears in this relationship yet."
+      },
+      "clue": {
+        "title": "This is an exploration clue",
+        "desc": "It suggests a possible social, work, or identity direction, but it is not a confirmed person-to-person relationship.",
+        "continue": "Continue from {{name}}'s profile."
+      },
+      "clueList": {
+        "title": "Work and material clues",
+        "empty": "Start from the profile and contemporaries for this person.",
+        "count": "{{count}}"
+      },
+      "kinds": {
+        "association": "Association",
+        "kinship": "Kinship",
+        "office": "Office",
+        "text": "Text",
+        "entry": "Entry",
+        "address": "Place",
+        "status": "Status",
+        "topic": "Topic"
+      },
+      "worldKindStatic": "Static historical world",
+      "peopleList": {
+        "title": "People",
+        "searchPlaceholder": "Search people or identity…",
+        "clueCount": "{{count}}",
+        "empty": "No people match the current filter.",
+        "filters": {
+          "all": "All",
+          "featured": "Key",
+          "literati": "Circle",
+          "academy": "Academy",
+          "open": "To explore"
+        }
+      }
+    },
+    "rail": {
+      "sources": "Connectable sources",
+      "worldTime": "World time",
+      "followWorld": "Follow",
+      "followingWorld": "Following",
+      "followWorldUnavailable": "Sign in to follow worlds.",
+      "recFriends": "Suggested friends",
+      "addFriend": "Add",
+      "viewAllPeople": "View all people",
+      "quick": "Quick entries",
+      "entries": {
+        "people": {
+          "title": "Browse all people",
+          "sub": "Everyone in this world"
+        },
+        "library": {
+          "title": "Open the library",
+          "sub": "Search and browse"
+        },
+        "timeline": {
+          "title": "View the timeline",
+          "sub": "Explore the timeline"
+        },
+        "scenes": {
+          "title": "Explore scenes",
+          "sub": "Immersive exploration"
+        }
+      },
+      "chatCta": {
+        "title": "Talk with people in this world",
+        "desc": "They each carry full historical context, ready to chat."
       }
     }
   }

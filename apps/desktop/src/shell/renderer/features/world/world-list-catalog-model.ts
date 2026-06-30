@@ -1,13 +1,13 @@
-import type { CSSProperties } from 'react';
 import { formatNum } from './world-list-atoms';
 import { isMainWorld, type WorldListItem } from './world-list-model';
 
-export type CategoryId = 'all' | 'trending' | 'new' | 'fantasy' | 'sci-fi' | 'nature' | 'steampunk' | 'mystery' | 'anime';
+export type CategoryId = 'all' | 'followed' | 'trending' | 'new' | 'fantasy' | 'sci-fi' | 'nature' | 'steampunk' | 'mystery' | 'anime';
 export type SortId = 'active' | 'recent' | 'alpha' | 'sources';
 export type ViewMode = 'grid' | 'list';
 
 export const CATEGORY_TABS: readonly { id: CategoryId; label: string }[] = [
   { id: 'all', label: 'All Worlds' },
+  { id: 'followed', label: 'Followed' },
   { id: 'trending', label: 'Trending' },
   { id: 'new', label: 'New' },
   { id: 'fantasy', label: 'Fantasy' },
@@ -18,20 +18,11 @@ export const CATEGORY_TABS: readonly { id: CategoryId; label: string }[] = [
   { id: 'anime', label: 'Anime' },
 ] as const;
 
-export const GLASS_CARD_STYLE: CSSProperties = {
-  background: 'var(--nimi-material-glass-regular-bg)',
-  border: '1px solid var(--nimi-material-glass-regular-border)',
-  boxShadow: '0 16px 42px rgba(54,80,125,0.08)',
-};
-
-export const GLASS_CARD_CLASS = 'nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]';
-
-const WORLD_MEDIA_PLACEHOLDER =
-  'linear-gradient(135deg, rgba(95,201,234,0.82), rgba(143,115,255,0.76))';
+const WORLD_MEDIA_PLACEHOLDER = 'var(--nimi-surface-hero)';
 
 export function worldHeroBackground(imageUrl: string | null): string {
   if (imageUrl) {
-    return `linear-gradient(180deg, rgba(15,23,42,0.12), rgba(15,23,42,0.58)), url(${imageUrl}) center/cover no-repeat`;
+    return `url(${imageUrl}) center/cover no-repeat`;
   }
   return WORLD_MEDIA_PLACEHOLDER;
 }
@@ -92,12 +83,93 @@ export function categoryMatches(world: WorldListItem, category: CategoryId): boo
   return tags.includes(needle);
 }
 
-export function displayTags(world: WorldListItem, limit = 4): string[] {
+type WorldTagLanguage = 'en' | 'zh';
+
+const WORLD_TAG_LABELS: Record<string, Record<WorldTagLanguage, string>> = {
+  historical: { en: 'Historical', zh: '历史世界' },
+  fantasy: { en: 'Fantasy', zh: '奇幻' },
+  'sci-fi': { en: 'Sci-Fi', zh: '科幻' },
+  scifi: { en: 'Sci-Fi', zh: '科幻' },
+  nature: { en: 'Nature', zh: '自然' },
+  steampunk: { en: 'Steampunk', zh: '蒸汽朋克' },
+  mystery: { en: 'Mystery', zh: '悬疑' },
+  anime: { en: 'Anime', zh: '动画' },
+};
+
+const WORLD_TAG_PREFIX_LABELS: ReadonlyArray<{
+  prefix: string;
+  labels: Record<WorldTagLanguage, string>;
+}> = [
+  { prefix: 'cbdb', labels: { en: 'Scholarly sources', zh: '学术资料' } },
+];
+
+function resolveWorldTagLanguage(language?: string): WorldTagLanguage {
+  return language?.toLocaleLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+function normalizeWorldDisplayTag(value: string | null | undefined, language?: string): string | null {
+  const tag = value?.trim().replace(/\s+/g, ' ');
+  if (!tag) {
+    return null;
+  }
+  const locale = resolveWorldTagLanguage(language);
+  const key = tag.toLocaleLowerCase();
+  const directLabel = WORLD_TAG_LABELS[key];
+  if (directLabel) {
+    return directLabel[locale];
+  }
+  const prefixLabel = WORLD_TAG_PREFIX_LABELS.find(({ prefix }) =>
+    key === prefix || key.startsWith(`${prefix}-`) || key.startsWith(`${prefix}_`),
+  );
+  if (prefixLabel) {
+    return prefixLabel.labels[locale];
+  }
+  if (isTechnicalWorldTag(tag)) {
+    return null;
+  }
+  return tag;
+}
+
+function isTechnicalWorldTag(tag: string): boolean {
+  const lower = tag.toLocaleLowerCase();
+  if (['discoverable', 'public', 'system', 'no tag', '暂无标签'].includes(lower)) {
+    return true;
+  }
+  if (/^\d+(?:\.\d+)?\s*(?:source|sources|character|characters|persona|personas)\b/i.test(tag)) {
+    return true;
+  }
+  if (/(?:time\s*flow|timeflow|时间流速|\d+(?:\.\d+)?x\b)/i.test(tag)) {
+    return true;
+  }
+  if (/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}/i.test(tag)) {
+    return true;
+  }
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(tag)) {
+    return true;
+  }
+  if (/^(?:world|source|realm|runtime|local-agent|cloud)[\s:/_-]/i.test(tag)) {
+    return true;
+  }
+  return /^[a-z0-9]+(?:[-_][a-z0-9]+){2,}$/i.test(tag) && tag.length > 20;
+}
+
+export function displayTags(world: WorldListItem, limit = 4, language?: string): string[] {
   const values: string[] = [];
-  if (world.genre) values.push(world.genre);
-  if (world.era && !values.includes(world.era)) values.push(world.era);
+  const pushTag = (value: string | null | undefined) => {
+    const tag = normalizeWorldDisplayTag(value, language);
+    if (!tag) {
+      return;
+    }
+    const key = tag.toLocaleLowerCase();
+    if (values.some((existing) => existing.toLocaleLowerCase() === key)) {
+      return;
+    }
+    values.push(tag);
+  };
+  pushTag(world.genre);
+  pushTag(world.era);
   for (const theme of world.themes) {
-    if (!values.includes(theme)) values.push(theme);
+    pushTag(theme);
   }
   return values.slice(0, limit);
 }

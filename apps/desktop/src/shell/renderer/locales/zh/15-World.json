@@ -28,6 +28,20 @@
     "countSummary": "{{value}} 个世界 / 公开设定索引",
     "worldCount": "{{value}} 个世界",
     "sourceDiscovery": "Source 发现",
+    "sourceCount": "{{value}} sources",
+    "followed": {
+      "title": "我的关注世界",
+      "summary": "{{value}} 个世界 · 仅本机保存",
+      "empty": {
+        "title": "还没有关注的世界",
+        "body": "在世界详情页点「关注」，或在卡片上点爱心，把感兴趣的世界收进来。",
+        "cta": "浏览全部世界"
+      },
+      "error": "无法读取本机关注列表。",
+      "follow": "关注世界",
+      "unfollow": "取消关注",
+      "unavailable": "登录后才能关注世界。"
+    },
     "publicWorld": "公开世界",
     "emptySources": "当这个世界暴露公开 Source 时，Character 和 Persona 会显示在这里。",
     "schemaTabs": {
@@ -49,8 +63,15 @@
     "recentHighlights": "近期亮点",
     "categories": "世界分类",
     "more": "更多",
+    "featured": {
+      "title": "精选",
+      "body": "精选公共世界，用于 Source 发现与设定上下文。",
+      "viewAll": "查看全部",
+      "open": "打开 {{name}}"
+    },
     "category": {
       "all": "全部世界",
+      "followed": "已关注",
       "trending": "趋势",
       "new": "最新",
       "fantasy": "奇幻",
@@ -71,13 +92,45 @@
       "moreWorldActions": "更多世界操作",
       "bookmarkWorld": "收藏世界",
       "details": "详情"
+    },
+    "preview": {
+      "introFallback": "一个可以查阅人物、资料、场景与关系，并与其中人物交流的世界。",
+      "chatableTag": "可交流人物",
+      "metrics": {
+        "people": "位人物",
+        "materials": "份资料",
+        "scenes": "个场景",
+        "network": "人物关系网络",
+        "networkCompact": "关系网络",
+        "networkSub": "{{value}} 组关系"
+      },
+      "people": {
+        "title": "推荐认识",
+        "viewAll": "查看全部人物",
+        "addFriend": "加好友",
+        "empty": "这个世界还没有可结识的人物。",
+        "unavailable": "人物数据暂时无法加载。"
+      },
+      "quick": {
+        "title": "快速入口",
+        "people": { "title": "浏览人物", "sub": "世界中所有人物" },
+        "library": { "title": "打开资料馆", "sub": "搜索与查阅" },
+        "timeline": { "title": "查看时间长河", "sub": "探索时间脉络" },
+        "scenes": { "title": "进入场景探索", "sub": "沉浸式探索" }
+      },
+      "status": {
+        "friends": "已添加好友 {{count}} 位",
+        "recent": "可先认识：{{names}}"
+      }
     }
   },
   "toolbar": {
     "heading": "World Atlas",
     "filterPlaceholder": "按名称或标签筛选…",
+    "viewMode": "视图模式",
     "gridView": "网格视图",
     "listView": "列表视图",
+    "sortLabel": "排序世界",
     "sort": {
       "active": "Source 最丰富",
       "recent": "最近更新",

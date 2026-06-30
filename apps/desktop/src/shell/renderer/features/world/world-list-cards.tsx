@@ -1,7 +1,5 @@
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { prefetchWorldDetailAndHistory } from './world-detail-queries';
-import { prefetchWorldDetailPanel } from './world-detail-route-state';
 import type { WorldListItem } from './world-list-model';
 import { WorldChronoPanel } from './world-list-chrono-panel';
 import { Chip, Seal, Stat, formatNum, sealGradientFor } from './world-list-atoms';
@@ -194,8 +192,6 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
       className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
       onClick={onOpen}
       onMouseEnter={(event) => {
-        prefetchWorldDetailPanel();
-        prefetchWorldDetailAndHistory(world.id);
         event.currentTarget.style.boxShadow = 'var(--nimi-elevation-raised)';
         event.currentTarget.style.transform = 'translateY(-1px)';
       }}
@@ -372,8 +368,6 @@ export function WorldListRow({ world, onOpen }: { world: WorldListItem; onOpen: 
       className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
       onClick={onOpen}
       onMouseEnter={(event) => {
-        prefetchWorldDetailPanel();
-        prefetchWorldDetailAndHistory(world.id);
         event.currentTarget.style.boxShadow = 'var(--nimi-elevation-raised)';
       }}
       onMouseLeave={(event) => {

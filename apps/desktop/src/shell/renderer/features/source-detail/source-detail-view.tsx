@@ -5,6 +5,8 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import { describeRealmPersonaPrimaryAction } from '@renderer/features/explore/realm-persona-source-materialization';
 import type { SourceDetailData } from './source-detail-model.js';
 import { getStateBadgeColor } from './source-detail-model.js';
+import { ScoreProgressBar, SourceDetailPrimaryActionIcon } from './source-detail-view-primitives.js';
+import { WorldCharacterSourceDetailPage } from './source-detail-world-character-view.js';
 
 type SourceDetailViewProps = {
   source: SourceDetailData;
@@ -17,23 +19,6 @@ type SourceDetailViewProps = {
   onPrimaryAction: () => void;
   onSendGift: () => void;
 };
-
-// Score progress bar with rainbow gradient
-function ScoreProgressBar({ score = 0 }: { score?: number }) {
-  const percentage = Math.min(100, Math.max(0, score));
-  
-  return (
-    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-      <div 
-        className="h-full rounded-full"
-        style={{ 
-          width: `${percentage}%`,
-          background: 'linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff)',
-        }}
-      />
-    </div>
-  );
-}
 
 // Source state badge
 function SourceStateBadge({ state }: { state?: string }) {
@@ -92,19 +77,6 @@ function OnlineIndicator({ isOnline }: { isOnline?: boolean }) {
   );
 }
 
-function SourceDetailPrimaryActionIcon({
-  action: _action,
-}: {
-  action: ReturnType<typeof describeRealmPersonaPrimaryAction>['action'];
-}) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 3" />
-    </svg>
-  );
-}
-
 export function SourceDetailView(props: SourceDetailViewProps) {
   const { t } = useTranslation();
 
@@ -132,6 +104,10 @@ export function SourceDetailView(props: SourceDetailViewProps) {
   }
 
   const { source } = props;
+  if (source.sourceKind === 'worldCharacter') {
+    return <WorldCharacterSourceDetailPage {...props} source={source} />;
+  }
+
   const bannerUrl = source.profileCoverUrl ?? source.worldBannerUrl;
   const palette = getSemanticSourcePalette({
     archetype: source.archetype,
@@ -152,7 +128,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
         contentClassName="mx-auto max-w-md px-6 py-8"
       >
           {/* Profile Card */}
-          <div className="relative rounded-[24px] bg-white shadow-lg overflow-hidden">
+          <div data-testid="source-detail-compact-profile-card" className="relative rounded-[24px] bg-white shadow-lg overflow-hidden">
             {/* Banner Background */}
             <div className="relative h-32 w-full overflow-hidden">
               {bannerUrl ? (
@@ -192,7 +168,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
               )}
             </div>
 
-            {/* Source connection primary action â€?Top Right (D-EXPL-006) */}
+            {/* Source connection primary action  - Top Right (D-EXPL-006) */}
             <button
               type="button"
               onClick={handlePrimaryAction}
@@ -245,7 +221,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
               {/* Category & Origin */}
               {(source.archetype || source.origin) && (
                 <p className="mt-2 text-xs" style={{ color: palette.accent }}>
-                  {source.archetype}{source.archetype && source.origin ? ' â€?' : ''}{source.origin ? `Origin: ${source.origin}` : ''}
+                  {source.archetype}{source.archetype && source.origin ? '  - ' : ''}{source.origin ? `Origin: ${source.origin}` : ''}
                 </p>
               )}
 

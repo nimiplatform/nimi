@@ -40,12 +40,54 @@ export function worldCharacterCount(characters: readonly WorldCharacter[]): numb
 
 export function displayTags(world: WorldDetailData): string[] {
   const tags: string[] = [];
-  if (world.genre) tags.push(world.genre);
-  if (world.era && !tags.includes(world.era)) tags.push(world.era);
+  const pushTag = (value: string | null | undefined) => {
+    const tag = normalizeUserFacingWorldTag(value);
+    if (!tag) {
+      return;
+    }
+    const key = tag.toLocaleLowerCase();
+    if (tags.some((existing) => existing.toLocaleLowerCase() === key)) {
+      return;
+    }
+    tags.push(tag);
+  };
+  pushTag(world.genre);
+  pushTag(world.era);
   for (const theme of world.themes ?? []) {
-    if (!tags.includes(theme)) tags.push(theme);
+    pushTag(theme);
   }
-  return tags.slice(0, 8);
+  return tags.slice(0, 4);
+}
+
+function normalizeUserFacingWorldTag(value: string | null | undefined): string | null {
+  const tag = value?.trim().replace(/\s+/g, ' ');
+  if (!tag || isTechnicalWorldTag(tag)) {
+    return null;
+  }
+  return tag;
+}
+
+function isTechnicalWorldTag(tag: string): boolean {
+  const lower = tag.toLocaleLowerCase();
+  if (['discoverable', 'public', 'system', 'no tag', '暂无标签'].includes(lower)) {
+    return true;
+  }
+  if (/^\d+(?:\.\d+)?\s*(?:source|sources|character|characters|persona|personas)\b/i.test(tag)) {
+    return true;
+  }
+  if (/(?:time\s*flow|timeflow|时间流速|\d+(?:\.\d+)?x\b)/i.test(tag)) {
+    return true;
+  }
+  if (/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}/i.test(tag)) {
+    return true;
+  }
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(tag)) {
+    return true;
+  }
+  if (/^(?:world|source|realm|runtime|local-agent|cloud)[\s:/_-]/i.test(tag)) {
+    return true;
+  }
+  return /^[a-z0-9]+(?:[-_][a-z0-9]+){2,}$/i.test(tag) && tag.length > 20;
 }
 
 export function worldSummary(world: WorldDetailData): string {

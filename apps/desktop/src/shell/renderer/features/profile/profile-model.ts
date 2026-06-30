@@ -8,7 +8,7 @@ import {
   readRealmCoreSourceRef,
 } from '@renderer/features/realm-source/realm-source-identity.js';
 
-export type ProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts';
+export type ProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts' | 'FollowedWorlds';
 
 export const PROFILE_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
 

@@ -29,3 +29,17 @@ test('source detail route state carries typed sourceRef instead of bare profile 
   assert.doesNotMatch(sourcePanel, /fetchSourceDisplayDetail\(sourceIdentifier\)/);
   assert.doesNotMatch(sourcePanel, /sourceDisplayDetailQueryKey\(sourceIdentifier\)/);
 });
+
+test('world character source detail loads relationship neighborhood through Realm SDK', () => {
+  const sourceDetailData = readRepo('apps/desktop/src/shell/renderer/features/source-detail/data/realm-source-detail-data.ts');
+
+  assert.match(sourceDetailData, /worldCoreControllerListWorldRelationships\(\{/);
+  assert.match(sourceDetailData, /path:\s*\{\s*worldId\s*\}/);
+  assert.match(sourceDetailData, /query:\s*\{\s*entityId,\s*take:\s*500\s*\}/);
+  assert.match(sourceDetailData, /relationships\.map\(projectWorldRelationshipCore\)/);
+  assert.match(sourceDetailData, /relationships,/);
+  assert.doesNotMatch(sourceDetailData, /fetch\(/);
+  assert.doesNotMatch(sourceDetailData, /axios/);
+  assert.doesNotMatch(sourceDetailData, /BIOG_TEXT_DATA/);
+  assert.doesNotMatch(sourceDetailData, /POSTED_TO_OFFICE_DATA/);
+});

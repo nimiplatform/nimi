@@ -415,7 +415,9 @@
         "quickSheetViewProfile": "查看完整资料",
         "groupPrimary": "主要角色",
         "groupSecondary": "次要角色",
-        "groupBackground": "背景角色"
+        "groupBackground": "背景角色",
+        "voiceSample": "语音样本",
+        "voiceReady": "音频资源已就绪"
       },
       "extended": {
         "evolutionTitle": "世界观演化",
@@ -434,6 +436,325 @@
         "nextLevel": "后续等级",
         "mutationsTitle": "维护轨迹",
         "mutationsSubtitle": "最近的维护变更"
+      }
+    }
+  },
+  "paper": {
+    "viewAll": "查看全部",
+    "metrics": {
+      "people": {
+        "label": "可结识人物",
+        "unit": "位",
+        "sub": "带有完整历史背景"
+      },
+      "materials": {
+        "label": "可查阅资料",
+        "unit": "条",
+        "sub": "人物、场景、事件与设定"
+      },
+      "scenes": {
+        "label": "可探索场景",
+        "unit": "个",
+        "sub": "沉浸式地点锚点"
+      },
+      "events": {
+        "label": "大事件",
+        "unit": "条",
+        "sub": "世界关键节点"
+      }
+    },
+    "paths": {
+      "title": "推荐探索路径",
+      "subtitle": "不知道从哪里开始？跟着这几条路线走一遍。",
+      "enter": "开始探索",
+      "lead": {
+        "titleNamed": "从 {{name}} 开始",
+        "title": "从核心人物开始",
+        "desc": "了解这个世界的核心人物与他们的关系。"
+      },
+      "relations": {
+        "title": "沿着人物关系探索",
+        "desc": "查看师承、交游与归属之间的连接。"
+      },
+      "scenes": {
+        "title": "进入场景探索",
+        "desc": "从具体场景沉浸式地读懂这个世界。"
+      }
+    },
+    "characters": {
+      "title": "可结识的人物",
+      "subtitle": "把他们加为好友，随时和他们聊聊——每个人都带着自己的生平与交游。",
+      "empty": "这个世界还没有公开 Character 或 Persona Source。",
+      "chat": "和他聊聊",
+      "openProfile": "打开 {{name}} 详情",
+      "engagement": "互动",
+      "vitality": "活力",
+      "connect": "加为好友",
+      "connected": "已连接",
+      "unavailable": "暂不可用"
+    },
+    "gallery": {
+      "title": "可结识的人物",
+      "subtitle": "共 {{total}} 位带着完整生平的人物，其中 {{connectable}} 位现在就能加为好友。换个排列方式，看看他们是如何聚成一张关系网的。",
+      "close": "关闭",
+      "backToWorld": "返回世界详情",
+      "searchPlaceholder": "按名字、身份或交游圈搜索",
+      "count": "{{count}} 位",
+      "empty": "没有匹配的人物。",
+      "footerHint": "点名字看生平，点「加为好友」即可随时和他聊聊。",
+      "groupBy": {
+        "faction": "按交游圈",
+        "tier": "按重要程度",
+        "status": "按结识状态"
+      },
+      "tier": {
+        "PRIMARY": {
+          "label": "核心人物",
+          "caption": "撑起这个世界叙事的关键人物。"
+        },
+        "SECONDARY": {
+          "label": "活跃人物",
+          "caption": "频繁参与世界事件的重要角色。"
+        },
+        "BACKGROUND": {
+          "label": "背景人物",
+          "caption": "丰富世界肌理、点缀其间的人物。"
+        }
+      },
+      "status": {
+        "connectable": {
+          "label": "现在可结识",
+          "caption": "加为好友后即可随时对话。"
+        },
+        "connected": {
+          "label": "已结识",
+          "caption": "你已经把他们加为好友。"
+        },
+        "unavailable": {
+          "label": "暂不可用",
+          "caption": "暂时还无法与他们结识。"
+        }
+      },
+      "faction": {
+        "member": "{{count}} 位成员",
+        "ungrouped": {
+          "label": "自由交游",
+          "caption": "没有固定归属、独来独往的人物。"
+        }
+      }
+    },
+    "materials": {
+      "title": "热门资料",
+      "subtitle": "人物、场景、事件与设定的原始记录，随时可以翻阅。",
+      "records": "条记录",
+      "cat": {
+        "people": {
+          "tag": "人物",
+          "title": "人物档案集",
+          "desc": "世界中可结识人物的生平与交游记录。"
+        },
+        "scenes": {
+          "tag": "场景",
+          "title": "场景资料集",
+          "desc": "可沉浸探索的地点与场景锚点。"
+        },
+        "events": {
+          "tag": "事件",
+          "title": "事件编年",
+          "desc": "按时间排列的世界关键节点。"
+        },
+        "resources": {
+          "tag": "资源",
+          "title": "资源引用集",
+          "desc": "世界声明的规范资源与外部引用。"
+        },
+        "lore": {
+          "tag": "设定",
+          "title": "世界设定集",
+          "desc": "规则、力量体系、禁忌与语言设定。"
+        }
+      }
+    },
+    "timeline": {
+      "title": "时间长河",
+      "subtitle": "顺着时间走一遍，看这些人物如何相遇、又如何走过他们的时代。",
+      "empty": "这个世界还没有发布重大事件。"
+    },
+    "scenes": {
+      "title": "可探索场景",
+      "subtitle": "走进一个个具体的场景，沉浸式地体验这个世界。",
+      "enter": "进入场景",
+      "empty": "这个世界还没有发布场景。",
+      "detailCard": "详细场景卡",
+      "image": "图片",
+      "public": "PUBLIC · 可探索",
+      "sceneResolved": "sceneId 已解析",
+      "activeEntities": "活跃实体",
+      "relatedCharacters": "相关人物",
+      "relatedEvents": "相关事件",
+      "fromEntityRefs": "来自 entityRefs",
+      "fromCharacters": "来自人物 placement",
+      "fromEvents": "来自 locationRefs 与摘要",
+      "sceneId": "Scene ID",
+      "imageAssetRef": "Image Asset Ref",
+      "noImage": "暂无图片",
+      "none": "暂无",
+      "enterHintTitle": "进入前先说明“这里有什么”",
+      "enterHintDesc": "打开场景面板后，可继续查看人物、事件和资料源。"
+    },
+    "settings": {
+      "title": "世界设定",
+      "subtitle": "关于这个世界从哪里来，以及它如何运转。",
+      "language": "主要语言",
+      "era": "时代",
+      "visibility": "可见范围",
+      "visibilityPublic": "公开 · 任何人可探索",
+      "visibilitySystem": "系统 · 平台托管",
+      "features": {
+        "traceable": {
+          "title": "资料都可追溯",
+          "desc": "你看到的每条信息，都连着它的原始记录。"
+        },
+        "scoped": {
+          "title": "范围清晰可信",
+          "desc": "这里只呈现被选入这个世界的人物与他们的关系。"
+        },
+        "summoned": {
+          "title": "人物由你唤起",
+          "desc": "当你和某个人物聊天时，才会为他生成可对话的角色。"
+        }
+      }
+    },
+    "relationshipExplorer": {
+      "back": "返回详情",
+      "eyebrow": "人物关系探索",
+      "title": "元代文人书院世界",
+      "subtitle": "在这里认识元代文人、作品线索、交往关系与时代脉络，先读人物，再看关系，再沿资料继续探索。",
+      "noTargetMeta": "暂无公开身份信息",
+      "openCharacter": "查看人物档案",
+      "graphLabel": "人物关系网络",
+      "noCharactersTitle": "这个世界还没有公开人物",
+      "noCharactersDesc": "人物关系探索需要至少一位公开人物。",
+      "metrics": {
+        "people": "已收录人物",
+        "relationships": "已整理关系",
+        "clues": "可探索线索",
+        "featured": "重点人物"
+      },
+      "identity": {
+        "primary": "重点人物",
+        "secondary": "相关人物",
+        "background": "时代人物"
+      },
+      "network": {
+        "heading": "关系网络",
+        "centerHint": "以 {{name}} 为中心，看交往与亲属脉络。",
+        "pickHint": "点击左侧任一人物，即可切换其关系网络。"
+      },
+      "profile": {
+        "status": "人物档案",
+        "defaultIntro": "这个人物已有基础档案，适合先从身份、时代位置和相关资料开始了解。",
+        "identity": "身份标签",
+        "materials": "已有资料",
+        "basicMaterial": "已收录基础人物信息",
+        "bioMaterial": "已整理人物简介",
+        "topicMaterial": "已整理 {{count}} 条资料线索",
+        "placeMaterial": "可从 {{place}} 的地域脉络继续查看",
+        "workMaterial": "可从 {{count}} 条作品线索继续查看",
+        "directions": "可能的探索方向",
+        "defaultDirection": "可先浏览同代人物，再沿身份或作品线索继续。",
+        "directionFaction": "沿 {{value}} 的交往圈继续",
+        "directionRole": "寻找同为 {{value}} 的人物",
+        "directionWork": "从 {{value}} 相关记录继续",
+        "directionPlace": "查看 {{value}} 的地域线索",
+        "viewProfile": "查看人物档案",
+        "contemporaries": "同时代人物",
+        "sameIdentity": "同身份人物",
+        "sameWorks": "同作品人物",
+        "noRelated": "可先从人物列表继续。",
+        "peers": "同代人物"
+      },
+      "side": {
+        "relationship": "关系详情",
+        "clue": "探索线索",
+        "profile": "人物档案"
+      },
+      "relation": {
+        "type": "关系类型",
+        "confidence": "可信程度",
+        "confidenceHigh": "多条资料共同支持，适合优先查看。",
+        "confidenceNormal": "已有资料说明，可继续查看原始记录。",
+        "source": "来源说明",
+        "sourceDesc": "这条关系来自公开人物资料中的关系说明，页面只把能指向世界内人物的内容画成关系线。",
+        "works": "相关作品",
+        "noWorks": "这条关系暂未出现明确作品名。"
+      },
+      "clue": {
+        "title": "这是一条探索线索",
+        "desc": "它提示了可能的交往、作品或身份方向，但还不是已确认的人物关系。",
+        "continue": "可以从 {{name}} 的档案继续追踪。"
+      },
+      "clueList": {
+        "title": "作品与资料线索",
+        "empty": "当前人物适合先从档案和同代人物开始。",
+        "count": "{{count}} 条"
+      },
+      "kinds": {
+        "association": "交往",
+        "kinship": "亲属",
+        "office": "官职",
+        "text": "文本",
+        "entry": "入仕",
+        "address": "地点",
+        "status": "身份",
+        "topic": "主题"
+      },
+      "worldKindStatic": "静态历史世界",
+      "peopleList": {
+        "title": "人物",
+        "searchPlaceholder": "搜索人物或身份…",
+        "clueCount": "{{count}} 条",
+        "empty": "没有符合条件的人物。",
+        "filters": {
+          "all": "全部",
+          "featured": "重点",
+          "literati": "交往圈",
+          "academy": "书院学术",
+          "open": "待探索"
+        }
+      }
+    },
+    "rail": {
+      "sources": "可结识 Source",
+      "worldTime": "世界时间",
+      "followWorld": "关注",
+      "followingWorld": "已关注",
+      "followWorldUnavailable": "登录后才能关注世界。",
+      "recFriends": "推荐好友",
+      "addFriend": "加好友",
+      "viewAllPeople": "查看全部人物",
+      "quick": "快捷入口",
+      "entries": {
+        "people": {
+          "title": "浏览全部人物",
+          "sub": "世界中所有人"
+        },
+        "library": {
+          "title": "打开资料馆",
+          "sub": "搜索与查阅"
+        },
+        "timeline": {
+          "title": "查看时间长河",
+          "sub": "探索时间脉络"
+        },
+        "scenes": {
+          "title": "进入场景探索",
+          "sub": "沉浸式探索"
+        }
+      },
+      "chatCta": {
+        "title": "与世界中的人物交流",
+        "desc": "他们都带着完整的历史背景，等你来聊。"
       }
     }
   }

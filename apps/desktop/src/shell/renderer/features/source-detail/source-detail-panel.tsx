@@ -3,8 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
-import { prefetchWorldDetailAndHistory } from '@renderer/features/world/world-detail-queries.js';
-import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
 import { realmPersonaSourceMaterializationMessage } from '@renderer/features/explore/realm-persona-source-materialization';
 import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
@@ -101,8 +99,6 @@ export function SourceDetailPanel() {
           if (!source?.worldId) {
             return;
           }
-          prefetchWorldDetailPanel();
-          prefetchWorldDetailAndHistory(source.worldId);
           navigateToWorld(source.worldId);
         }}
         onPrimaryAction={() => {

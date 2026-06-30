@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { IconButton, ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -42,7 +42,6 @@ type ExploreViewProps = {
   onPersonaSourceOpen?: (sourceId: string) => void;
   onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
   onWorldOpen?: (worldId: string) => void;
-  onWorldSearchTextChange: (value: string) => void;
 };
 
 function ExploreSkeletonBlock({ className }: { className: string }) {
@@ -114,10 +113,6 @@ export function ExploreView(props: ExploreViewProps) {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'auto' });
   }, [props.activeSection]);
 
-  const scrollToTop = () => {
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   if (props.loading) {
     return (
       <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
@@ -149,14 +144,19 @@ export function ExploreView(props: ExploreViewProps) {
   }
 
   return (
-    <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
+    <div
+      data-testid={E2E_IDS.panel('explore')}
+      className={props.activeSection === 'worlds'
+        ? 'flex min-h-0 flex-1 flex-col'
+        : 'flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4'}
+    >
       {/* Scrollable section content */}
       <ScrollArea
         ref={scrollContainerRef}
         className="min-h-0 flex-1"
         viewportClassName="bg-transparent"
         contentClassName={props.activeSection === 'worlds'
-          ? 'w-full px-1 py-5'
+          ? 'w-full px-5 py-5'
           : 'mx-auto w-full max-w-6xl px-1 py-5'}
         viewportRef={feedScrollRef}
       >
@@ -171,7 +171,6 @@ export function ExploreView(props: ExploreViewProps) {
                 worlds={props.worldCatalogItems}
                 onOpenWorld={(worldId) => props.onWorldOpen?.(worldId)}
                 searchQuery={props.worldSearchText}
-                onSearchQueryChange={props.onWorldSearchTextChange}
                 embedded
               />
             )}
@@ -215,20 +214,6 @@ export function ExploreView(props: ExploreViewProps) {
         )}
 
       </ScrollArea>
-
-      <IconButton
-        onClick={scrollToTop}
-        tone="secondary"
-        icon={(
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 19V5" />
-            <polyline points="5 12 12 5 19 12" />
-          </svg>
-        )}
-        className="fixed bottom-6 right-6 z-50 h-12 w-12 ring-1 ring-white/45 bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] text-[var(--nimi-text-secondary)] shadow-[0_18px_40px_rgba(15,23,42,0.12)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] hover:text-[var(--nimi-text-primary)]"
-        aria-label={t('Explore.backToTop', { defaultValue: 'Back to top' })}
-        title={t('Explore.backToTop', { defaultValue: 'Back to top' })}
-      />
     </div>
   );
 }

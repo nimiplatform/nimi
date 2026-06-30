@@ -110,7 +110,16 @@ test('World detail display keeps world characters and public personas as source 
   realmWorldData.loadWorldDetailWithCharacters = async () => ({
     ...world,
     characters: [
-      source('worldCharacter', 'character-1'),
+      {
+        ...source('worldCharacter', 'character-1'),
+        display: {
+          role: 'Archivist',
+          tags: ['与许有壬有交往。'],
+          sourceKind: 'worldCharacter',
+          ownership: 'worldOwned',
+          worldName: 'Eldoria',
+        },
+      },
       source('realmPersona', 'persona-1'),
     ],
   });
@@ -130,6 +139,7 @@ test('World detail display keeps world characters and public personas as source 
       (detail.characters[0]?.sourceRef as { sourceContentHash?: string } | undefined)?.sourceContentHash,
       'worldCharacter-hash-character-1',
     );
+    assert.deepEqual(detail.characters[0]?.tags, ['与许有壬有交往。']);
   } finally {
     realmWorldData.loadWorldDetailWithCharacters = originals.loadWorldDetailWithCharacters;
     realmWorldData.loadWorldHistory = originals.loadWorldHistory;

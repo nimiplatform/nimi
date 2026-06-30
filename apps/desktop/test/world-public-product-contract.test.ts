@@ -6,7 +6,11 @@ import {
   loadWorldAssets,
   loadWorldList,
 } from '../src/shell/renderer/features/world/data/realm-world-data.js';
-import { worldPublicHighlightImages } from '../src/shell/renderer/features/world/world-detail-queries.js';
+import { displayTags } from '../src/shell/renderer/features/world/world-list-catalog-model.js';
+import {
+  toWorldDisplayFallback,
+  worldPublicHighlightImages,
+} from '../src/shell/renderer/features/world/world-detail-queries.js';
 import { toWorldListItem } from '../src/shell/renderer/features/world/world-list-model.js';
 
 type RealmWorldDataError = {
@@ -222,6 +226,27 @@ test('World list model accepts allowlisted public DTOs and rejects reliance on r
   assert.deepEqual(item.relationshipTypes, ['serves', 'authored', 'locatedIn']);
 });
 
+test('World detail list-item fallback consumes the already projected world list item', () => {
+  const item = toWorldListItem(publicWorld());
+
+  const fallback = toWorldDisplayFallback(item);
+
+  assert.equal(fallback.id, 'world-1');
+  assert.equal(fallback.name, 'Eldoria');
+  assert.equal(fallback.description, 'A kingdom-scale fantasy setting for source discovery.');
+  assert.equal(fallback.characterCount, 1);
+  assert.equal(fallback.currentWorldTime, '2026-06-19T00:00:00.000Z');
+});
+
+test('World Atlas preview tags project public taxonomy into user-facing labels', () => {
+  const item = toWorldListItem(publicWorld({
+    tags: ['historical', 'cbdb-yuan-literati-academy-world'],
+  }));
+
+  assert.deepEqual(displayTags(item, 2, 'zh-CN'), ['历史世界', '学术资料']);
+  assert.deepEqual(displayTags(item, 2, 'en-US'), ['Historical', 'Scholarly sources']);
+});
+
 test('World detail consumes public source sections for characters and personas', async () => {
   const errors: RealmWorldDataError[] = [];
   const persona = publicSource({
@@ -272,29 +297,101 @@ test('World detail consumes public source sections for characters and personas',
   assert.equal(errors.length, 0);
 });
 
-test('World detail preserves local media paths for forged world and character products', async () => {
+test('World detail projects public source sections into atlas recommended people', async () => {
   const errors: RealmWorldDataError[] = [];
-  const localWorld = publicWorld({
+  const persona = publicSource({
+    id: 'persona-1',
+    sourceKind: 'realmPersona',
+    ownership: 'userOwned',
+    sourceRef: {
+      kind: 'realmPersona',
+      worldId: 'world-1',
+      sourceId: 'persona-1',
+      sourceContentHash: 'persona-hash-1',
+    },
+    displayName: 'Mira Vale',
+    handle: 'mira',
+    summary: 'A visiting scholar with a public source profile.',
+  });
+  const { callApi } = createWorldPublicCallApi({
+    detail: publicWorld({
+      stats: {
+        entityCount: 8,
+        relationshipCount: 12,
+        characterCount: 1,
+        personaCount: 1,
+        sceneCount: 2,
+        systemCount: 1,
+        timelineEventCount: 2,
+      },
+    }),
+    characters: [publicSource()],
+    personas: [persona],
+  });
+
+  const result = await loadWorldDetailWithCharacters(
+    callApi as never,
+    createEmitter(errors),
+    'world-1',
+  );
+  const item = toWorldListItem(result as NonNullable<typeof result>);
+
+  assert.deepEqual(
+    item.computed.entry.recommendedCharacters.map((character) => character.name),
+    ['Archivist Liora', 'Mira Vale'],
+  );
+  assert.equal(item.characters?.[0]?.bio, 'Keeps a field record of Eldoria.');
+  assert.equal(item.characters?.[1]?.bio, 'A visiting scholar with a public source profile.');
+  assert.equal(errors.length, 0);
+});
+
+test('World detail consumes public resource media for forged world and character products', async () => {
+  const errors: RealmWorldDataError[] = [];
+  const resourceWorld = publicWorld({
     media: {
       iconUrl: 'file:///tmp/nimi-forge/world/icon.png',
       bannerUrl: 'file:///tmp/nimi-forge/world/banner.png',
       heroUrl: 'file:///tmp/nimi-forge/world/hero.png',
       highlightUrls: [
         'file:///tmp/nimi-forge/world/highlight-1.png',
-        'file:///tmp/nimi-forge/world/highlight-2.png',
-        'file:///tmp/nimi-forge/world/highlight-3.png',
       ],
+      assets: {
+        icon: { id: 'world-icon-resource', kind: 'icon', url: 'https://cdn.example.test/world/icon.png', provider: 'CF_IMAGE' },
+        banner: { id: 'world-banner-resource', kind: 'banner', url: 'https://cdn.example.test/world/banner.png', provider: 'CF_IMAGE' },
+        hero: { id: 'world-hero-resource', kind: 'hero', url: 'https://cdn.example.test/world/hero.png', provider: 'CF_IMAGE' },
+        highlights: [
+          { id: 'world-highlight-1-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-1.png', provider: 'CF_IMAGE' },
+          { id: 'world-highlight-2-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-2.png', provider: 'CF_IMAGE' },
+          { id: 'world-highlight-3-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-3.png', provider: 'CF_IMAGE' },
+        ],
+      },
     },
   });
-  const localCharacter = publicSource({
+  const resourceCharacter = publicSource({
     media: {
       avatarUrl: '/tmp/nimi-forge/character/avatar.png',
       profileCoverUrl: '/tmp/nimi-forge/character/profile-cover.png',
+      referenceImageUrl: '/tmp/nimi-forge/character/reference.png',
+      voiceSampleUrl: '/tmp/nimi-forge/character/voice.wav',
+      assets: {
+        avatar: { id: 'character-avatar-resource', kind: 'avatar', url: 'https://cdn.example.test/character/avatar.png', provider: 'CF_IMAGE' },
+        profileCover: { id: 'character-cover-resource', kind: 'profileCover', url: 'https://cdn.example.test/character/profile-cover.png', provider: 'CF_IMAGE' },
+        referenceImage: { id: 'character-reference-resource', kind: 'referenceImage', url: 'https://cdn.example.test/character/reference.png', provider: 'CF_IMAGE' },
+        voiceSample: {
+          id: 'character-voice-resource',
+          kind: 'voiceSample',
+          url: 'https://cdn.example.test/character/voice.wav',
+          provider: 'S3_OBJECT',
+          mimeType: 'audio/wav',
+          durationSec: 8.42,
+          sha256: 'sha256-voice',
+        },
+      },
     },
   });
   const { callApi } = createWorldPublicCallApi({
-    detail: localWorld,
-    characters: [localCharacter],
+    detail: resourceWorld,
+    characters: [resourceCharacter],
     personas: [],
   });
 
@@ -304,33 +401,44 @@ test('World detail preserves local media paths for forged world and character pr
     'world-1',
   );
 
-  assert.equal(result?.heroUrl, 'file:///tmp/nimi-forge/world/hero.png');
+  assert.equal(result?.heroUrl, 'https://cdn.example.test/world/hero.png');
   assert.deepEqual(result?.highlightUrls, [
-    'file:///tmp/nimi-forge/world/highlight-1.png',
-    'file:///tmp/nimi-forge/world/highlight-2.png',
-    'file:///tmp/nimi-forge/world/highlight-3.png',
+    'https://cdn.example.test/world/highlight-1.png',
+    'https://cdn.example.test/world/highlight-2.png',
+    'https://cdn.example.test/world/highlight-3.png',
   ]);
-  assert.equal(result?.characters[0]?.avatarUrl, '/tmp/nimi-forge/character/avatar.png');
+  assert.equal(result?.characters[0]?.avatarUrl, 'https://cdn.example.test/character/avatar.png');
   assert.equal(
     (result?.characters[0] as { profileCoverUrl?: string | null } | undefined)?.profileCoverUrl,
-    '/tmp/nimi-forge/character/profile-cover.png',
+    'https://cdn.example.test/character/profile-cover.png',
   );
+  assert.equal(
+    (result?.characters[0] as { referenceImageUrl?: string | null } | undefined)?.referenceImageUrl,
+    'https://cdn.example.test/character/reference.png',
+  );
+  assert.equal(
+    (result?.characters[0] as { voiceSampleUrl?: string | null } | undefined)?.voiceSampleUrl,
+    'https://cdn.example.test/character/voice.wav',
+  );
+  assert.equal(JSON.stringify(result).includes('/tmp/nimi-forge'), false);
   assert.equal(errors.length, 0);
 });
 
-test('World assets projection exposes hero banner icon and three local highlights', async () => {
+test('World assets projection exposes hero banner icon and accepted public highlights', async () => {
   const errors: RealmWorldDataError[] = [];
   const { callApi } = createWorldPublicCallApi({
     detail: publicWorld({
       media: {
-        iconUrl: 'file:///tmp/nimi-forge/world/icon.png',
-        bannerUrl: 'file:///tmp/nimi-forge/world/banner.png',
-        heroUrl: 'file:///tmp/nimi-forge/world/hero.png',
-        highlightUrls: [
-          'file:///tmp/nimi-forge/world/highlight-1.png',
-          'file:///tmp/nimi-forge/world/highlight-2.png',
-          'file:///tmp/nimi-forge/world/highlight-3.png',
-        ],
+        assets: {
+          icon: { id: 'world-icon-resource', kind: 'icon', url: 'https://cdn.example.test/world/icon.png', provider: 'CF_IMAGE' },
+          banner: { id: 'world-banner-resource', kind: 'banner', url: 'https://cdn.example.test/world/banner.png', provider: 'CF_IMAGE' },
+          hero: { id: 'world-hero-resource', kind: 'hero', url: 'https://cdn.example.test/world/hero.png', provider: 'CF_IMAGE' },
+          highlights: [
+            { id: 'world-highlight-1-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-1.png', provider: 'CF_IMAGE' },
+            { id: 'world-highlight-2-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-2.png', provider: 'CF_IMAGE' },
+            { id: 'world-highlight-3-resource', kind: 'highlight', url: 'https://cdn.example.test/world/highlight-3.png', provider: 'CF_IMAGE' },
+          ],
+        },
       },
     }),
   });
@@ -342,32 +450,40 @@ test('World assets projection exposes hero banner icon and three local highlight
   );
 
   assert.deepEqual(assets.externalRefs.map((ref) => [ref.kind, ref.uri]), [
-    ['icon', 'file:///tmp/nimi-forge/world/icon.png'],
-    ['banner', 'file:///tmp/nimi-forge/world/banner.png'],
-    ['hero', 'file:///tmp/nimi-forge/world/hero.png'],
-    ['highlight-1', 'file:///tmp/nimi-forge/world/highlight-1.png'],
-    ['highlight-2', 'file:///tmp/nimi-forge/world/highlight-2.png'],
-    ['highlight-3', 'file:///tmp/nimi-forge/world/highlight-3.png'],
+    ['icon', 'https://cdn.example.test/world/icon.png'],
+    ['banner', 'https://cdn.example.test/world/banner.png'],
+    ['hero', 'https://cdn.example.test/world/hero.png'],
+    ['highlight', 'https://cdn.example.test/world/highlight-1.png'],
+    ['highlight', 'https://cdn.example.test/world/highlight-2.png'],
+    ['highlight', 'https://cdn.example.test/world/highlight-3.png'],
+  ]);
+  assert.deepEqual(assets.resourceRefs.map((ref) => [ref.kind, ref.refId]), [
+    ['icon', 'world-icon-resource'],
+    ['banner', 'world-banner-resource'],
+    ['hero', 'world-hero-resource'],
+    ['highlight', 'world-highlight-1-resource'],
+    ['highlight', 'world-highlight-2-resource'],
+    ['highlight', 'world-highlight-3-resource'],
   ]);
   assert.equal(errors.length, 0);
 });
 
-test('World detail highlight model prefers public local highlight assets over bundled samples', () => {
+test('World detail highlight model prefers accepted public highlight assets over bundled samples', () => {
   const highlights = worldPublicHighlightImages({
     resourceRefs: [],
     externalRefs: [
-      { refId: 'world-media-icon', kind: 'icon', uri: 'file:///tmp/nimi-forge/world/icon.png' },
-      { refId: 'world-media-highlight-1', kind: 'highlight-1', uri: 'file:///tmp/nimi-forge/world/highlight-1.png' },
-      { refId: 'world-media-highlight-2', kind: 'highlight-2', uri: 'file:///tmp/nimi-forge/world/highlight-2.png' },
-      { refId: 'world-media-highlight-3', kind: 'highlight-3', uri: 'file:///tmp/nimi-forge/world/highlight-3.png' },
+      { refId: 'world-media-icon', kind: 'icon', uri: 'https://cdn.example.test/world/icon.png' },
+      { refId: 'world-media-highlight-1', kind: 'highlight', uri: 'https://cdn.example.test/world/highlight-1.png' },
+      { refId: 'world-media-highlight-2', kind: 'highlight', uri: 'https://cdn.example.test/world/highlight-2.png' },
+      { refId: 'world-media-highlight-3', kind: 'highlight', uri: 'https://cdn.example.test/world/highlight-3.png' },
     ],
     intents: [],
     scenes: [],
   });
 
   assert.deepEqual(highlights, [
-    'file:///tmp/nimi-forge/world/highlight-1.png',
-    'file:///tmp/nimi-forge/world/highlight-2.png',
-    'file:///tmp/nimi-forge/world/highlight-3.png',
+    'https://cdn.example.test/world/highlight-1.png',
+    'https://cdn.example.test/world/highlight-2.png',
+    'https://cdn.example.test/world/highlight-3.png',
   ]);
 });

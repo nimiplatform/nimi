@@ -11,12 +11,12 @@ const worldDetailQueriesSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-queries.ts'),
   'utf8',
 );
-const worldDetailActivePanelSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-active-panel.tsx'),
-  'utf8',
-);
 const worldDetailSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail.tsx'),
+  'utf8',
+);
+const worldListSelectedPanelSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-list-selected-panel.tsx'),
   'utf8',
 );
 const worldDetailTemplateSource = fs.readFileSync(
@@ -43,18 +43,8 @@ test('world semantic bundle projects public world detail without raw core fallba
   assert.doesNotMatch(semanticBundleSection, /catch\s*\{\s*return null;\s*\}/);
 });
 
-test('world detail prefetch is limited to first-screen queries', () => {
-  const prefetchSection = worldDetailQueriesSource.slice(
-    worldDetailQueriesSource.indexOf('export function prefetchWorldDetailAndHistory'),
-  );
-  assert.match(prefetchSection, /worldDisplayDetailQueryKey/);
-  assert.match(prefetchSection, /fetchWorldDisplayDetail/);
-  assert.doesNotMatch(prefetchSection, /worldListQueryKey/);
-  assert.doesNotMatch(prefetchSection, /worldDetailWithCharactersQueryKey/);
-  assert.doesNotMatch(prefetchSection, /worldHistoryQueryKey/);
-  assert.doesNotMatch(prefetchSection, /worldSemanticBundleQueryKey/);
-  assert.doesNotMatch(prefetchSection, /worldLevelAuditsQueryKey/);
-  assert.doesNotMatch(prefetchSection, /worldPublicAssetsQueryKey/);
+test('world entry no longer exposes eager world detail history prefetch', () => {
+  assert.doesNotMatch(worldDetailQueriesSource, /export function prefetchWorldDetailAndHistory/);
 });
 
 test('world detail primary query adopts SDK public world DTO through a bounded adapter', () => {
@@ -67,21 +57,17 @@ test('world detail primary query adopts SDK public world DTO through a bounded a
   assert.doesNotMatch(worldDetailQueriesSource, /WORLD_DETAIL_WORLD_TRUTH_INVALID/);
 });
 
-test('world detail panel can resolve the selected world from cache before world list finishes loading', () => {
-  assert.match(worldDetailActivePanelSource, /queryClient\.getQueryData<ReturnType<typeof toWorldListItem>\[\]>/);
-  assert.match(worldDetailActivePanelSource, /queryClient\.getQueryData<WorldDisplayDetail>/);
-  assert.match(worldDetailActivePanelSource, /fetchWorldListItems\(\)/);
-  assert.match(worldDetailActivePanelSource, /worldDisplayDetailQueryKey\(selectedWorldId\)/);
-  assert.match(worldDetailActivePanelSource, /toWorldListItem\(cachedWorldDetail\.primary\)/);
-  assert.match(worldDetailActivePanelSource, /const selectedWorld = worldsQuery\.data\?\.find/);
-  assert.match(worldDetailActivePanelSource, /if \(!selectedWorld && worldsQuery\.isPending\)/);
+test('world atlas selected panel shares the display-detail query shape with world detail', () => {
+  assert.match(worldListSelectedPanelSource, /worldDisplayDetailQueryKey\(world\.id\)/);
+  assert.match(worldListSelectedPanelSource, /fetchWorldDisplayDetail\(world\.id\)/);
+  assert.doesNotMatch(worldListSelectedPanelSource, /fetchWorldDetailWithCharacters/);
 });
 
 test('world detail only treats the primary query as a page-level error and defers non-critical sections', () => {
   assert.match(worldDetailSource, /const initialError = !initialLoading/);
-  assert.match(worldDetailSource, /const supplementalError = display/);
-  assert.match(worldDetailSource, /Object\.values\(display\.sections\)\.some\(\(status\) => status === 'error'\)/);
-  assert.match(worldDetailSource, /const pageError = initialError \|\| supplementalError/);
+  assert.doesNotMatch(worldDetailSource, /const supplementalError =/);
+  assert.doesNotMatch(worldDetailSource, /Object\.values\(display\.sections\)\.some\(\(status\) => status === 'error'\)/);
+  assert.match(worldDetailSource, /const pageError = initialError/);
   assert.match(worldDetailSource, /message: 'detail:primary-ready'/);
   assert.match(worldDetailSource, /message: 'detail:history-semantic-settled'/);
   assert.match(worldDetailSource, /message: 'detail:assets-audits-settled'/);

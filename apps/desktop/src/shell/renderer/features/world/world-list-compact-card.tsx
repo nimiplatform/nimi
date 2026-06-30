@@ -1,8 +1,30 @@
-import { prefetchWorldDetailAndHistory } from './world-detail-queries';
-import { prefetchWorldDetailPanel } from './world-detail-route-state';
+import { Heart, MoreHorizontal } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Avatar, IconButton, NimiText, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { formatNum, worldInitial } from './world-list-atoms';
-import { displayTags, GLASS_CARD_CLASS, GLASS_CARD_STYLE, sourceCount, statusLabel, worldThumbBackground, type ViewMode } from './world-list-catalog-model';
+import { displayTags, sourceCount, statusLabel, type ViewMode } from './world-list-catalog-model';
 import type { WorldListItem } from './world-list-model';
+
+const COMPACT_WORLD_TAG_LABELS: Record<string, string | null> = {
+  Historical: 'Historical',
+  'Scholarly sources': null,
+  历史世界: '历史',
+  学术资料: null,
+};
+
+function isChineseWorldTagLanguage(language?: string): boolean {
+  return language?.toLocaleLowerCase().startsWith('zh') ?? false;
+}
+
+function compactWorldTagLabel(tag: string, world: WorldListItem, language?: string): string | null {
+  if (world.era && tag === world.era) {
+    return isChineseWorldTagLanguage(language) ? '朝代' : 'Era';
+  }
+  if (Object.prototype.hasOwnProperty.call(COMPACT_WORLD_TAG_LABELS, tag)) {
+    return COMPACT_WORLD_TAG_LABELS[tag] ?? null;
+  }
+  return tag;
+}
 
 export function CompactWorldCard({
   world,
@@ -10,136 +32,107 @@ export function CompactWorldCard({
   view,
   onSelect,
   onOpen,
+  followed = false,
+  followAvailable = false,
+  onToggleFollow,
 }: {
   world: WorldListItem;
   selected: boolean;
   view: ViewMode;
   onSelect: () => void;
   onOpen: () => void;
+  followed?: boolean;
+  followAvailable?: boolean;
+  onToggleFollow?: () => void;
 }) {
-  const image = world.bannerUrl;
-  const tags = displayTags(world, 3);
+  const { t, i18n } = useTranslation();
+  const tags = displayTags(world, 3, i18n.language);
   const listMode = view === 'list';
   return (
-    <article
-      className={GLASS_CARD_CLASS}
-      data-nimi-material="glass-regular"
-      data-nimi-tone="card"
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onDoubleClick={onOpen}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') onOpen();
-      }}
-      onMouseEnter={() => {
-        prefetchWorldDetailPanel();
-        prefetchWorldDetailAndHistory(world.id);
-      }}
-      style={{
-        ...GLASS_CARD_STYLE,
-        minHeight: listMode ? 88 : 88,
-        borderRadius: 16,
-        padding: 10,
-        display: 'grid',
-        gridTemplateColumns: listMode ? '72px minmax(0,1fr) auto' : '78px minmax(0,1fr) 20px',
-        gap: 12,
-        alignItems: 'center',
-        cursor: 'pointer',
-        outline: selected ? '2px solid rgba(76,125,245,0.30)' : '0 solid transparent',
-        transition: 'transform 160ms ease, box-shadow 160ms ease',
-      }}
+    <Surface
+      as="article"
+      tone="card"
+      material="glass-regular"
+      elevation="base"
+      padding="sm"
+      className={[
+        'relative min-h-[88px] rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-material-glass-regular-bg)] shadow-none',
+        selected ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))]' : 'border-transparent',
+      ].join(' ')}
+      style={{ boxShadow: 'none' }}
     >
-      <div
-        style={{
-          width: listMode ? 72 : 78,
-          height: 68,
-          borderRadius: 12,
-          background: worldThumbBackground(image),
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.36)',
-          display: 'grid',
-          placeItems: 'center',
-          color: '#ffffff',
-          fontSize: 24,
-          fontWeight: 950,
-        }}
-      >
-        {image ? null : worldInitial(world.name)}
-      </div>
-      <div style={{ minWidth: 0, display: 'grid', gap: 5 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-          <h3
-            title={world.name}
-            style={{
-              margin: 0,
-              minWidth: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              color: '#152033',
-              fontSize: 13,
-              fontWeight: 900,
-              letterSpacing: 0,
-            }}
-          >
-            {world.name}
-          </h3>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, color: '#64748b', fontSize: 11, fontWeight: 700 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#19b987' }}>
-            <span style={{ width: 6, height: 6, borderRadius: 999, background: '#45d0aa' }} />
-            {statusLabel(world)}
-          </span>
-          <span>{formatNum(sourceCount(world))}</span>
-        </div>
-        <div style={{ display: 'flex', gap: 5, minWidth: 0, overflow: 'hidden' }}>
-          {tags.map((tag, index) => (
-            <span
-              key={tag}
-              title={tag}
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: 999,
-                display: 'grid',
-                placeItems: 'center',
-                flex: '0 0 auto',
-                border: `1px solid ${index % 2 === 0 ? 'rgba(69,208,170,0.42)' : 'rgba(138,120,255,0.42)'}`,
-                color: index % 2 === 0 ? '#1aa37f' : '#7657dc',
-                fontSize: 9,
-                fontWeight: 900,
-                background: 'rgba(255,255,255,0.42)',
-              }}
-            >
-              {tag.charAt(0).toUpperCase()}
-            </span>
-          ))}
-        </div>
-      </div>
+      {onToggleFollow ? (
+        <IconButton
+          type="button"
+          data-testid="world-card-follow-toggle"
+          aria-label={followed ? t('World.atlas.followed.unfollow') : t('World.atlas.followed.follow')}
+          aria-pressed={followed}
+          title={followAvailable ? undefined : t('World.atlas.followed.unavailable')}
+          disabled={!followAvailable}
+          icon={<Heart size={15} fill={followed ? 'currentColor' : 'none'} aria-hidden="true" />}
+          tone="ghost"
+          size="sm"
+          className={followed ? 'absolute top-2 right-2 z-10 text-[var(--nimi-status-danger-soft-text)]' : 'absolute top-2 right-2 z-10 text-[var(--nimi-text-muted)]'}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleFollow();
+          }}
+        />
+      ) : null}
       <button
         type="button"
-        aria-label={`Open ${world.name}`}
+        aria-pressed={selected}
+        className="grid w-full min-w-0 cursor-pointer items-center gap-3 border-0 bg-transparent p-0 pr-8 text-left"
+        style={{ gridTemplateColumns: listMode ? '72px minmax(0,1fr)' : '78px minmax(0,1fr)' }}
+        onClick={onSelect}
+        onDoubleClick={onOpen}
+      >
+        <Avatar
+          alt={world.name}
+          src={world.bannerUrl}
+          shape="rounded"
+          size="lg"
+          fallback={worldInitial(world.name)}
+          fallbackClassName="bg-[image:var(--nimi-surface-hero)] text-[var(--nimi-action-primary-text)] text-2xl font-bold"
+          className={listMode ? 'h-[68px] w-[72px]' : 'h-[68px] w-[78px]'}
+        />
+        <span className="grid min-w-0 gap-1.5">
+          <NimiText as="span" role="card-title" className="truncate" title={world.name}>
+            {world.name}
+          </NimiText>
+          <span className="flex min-w-0 items-center gap-2">
+            <StatusBadge tone={world.status === 'FROZEN' ? 'warning' : 'success'} shape="dot" className="px-0 bg-transparent font-bold">
+              {statusLabel(world)}
+            </StatusBadge>
+            <NimiText as="span" role="caption">{formatNum(sourceCount(world))}</NimiText>
+          </span>
+          <span className="flex min-w-0 flex-wrap gap-1.5 overflow-hidden">
+            {tags.map((tag) => {
+              const label = compactWorldTagLabel(tag, world, i18n.language);
+              if (!label) {
+                return null;
+              }
+              return (
+                <StatusBadge key={tag} title={tag} tone="neutral" shape="outline" className="h-[18px] min-w-0 max-w-full justify-center border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-1.5 text-[length:var(--nimi-type-caption-size)]">
+                  {label}
+                </StatusBadge>
+              );
+            })}
+          </span>
+        </span>
+      </button>
+      <IconButton
+        type="button"
+        aria-label={t('World.card.view')}
+        icon={<MoreHorizontal size={17} aria-hidden="true" />}
+        tone="ghost"
+        size="sm"
+        className="absolute right-2 bottom-2"
         onClick={(event) => {
           event.stopPropagation();
           onOpen();
         }}
-        style={{
-          border: 0,
-          background: 'transparent',
-          color: '#66758b',
-          width: 22,
-          height: 28,
-          display: 'grid',
-          placeItems: 'center',
-          cursor: 'pointer',
-        }}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <circle cx="5" cy="12" r="1.7" />
-          <circle cx="12" cy="12" r="1.7" />
-          <circle cx="19" cy="12" r="1.7" />
-        </svg>
-      </button>
-    </article>
+      />
+    </Surface>
   );
 }

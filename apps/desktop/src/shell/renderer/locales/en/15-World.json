@@ -28,6 +28,20 @@
     "countSummary": "{{value}} worlds / public setting index",
     "worldCount": "{{value}} worlds",
     "sourceDiscovery": "Source Discovery",
+    "sourceCount": "{{value}} sources",
+    "followed": {
+      "title": "Worlds you follow",
+      "summary": "{{value}} worlds · saved on this device",
+      "empty": {
+        "title": "No followed worlds yet",
+        "body": "Tap Follow on a world's detail page, or the heart on a card, to keep the worlds you care about here.",
+        "cta": "Browse all worlds"
+      },
+      "error": "Couldn't read your followed worlds on this device.",
+      "follow": "Follow world",
+      "unfollow": "Unfollow",
+      "unavailable": "Sign in to follow worlds."
+    },
     "publicWorld": "Public world",
     "emptySources": "Characters and personas appear here when this world exposes public sources.",
     "schemaTabs": {
@@ -49,8 +63,15 @@
     "recentHighlights": "Recent Highlights",
     "categories": "World categories",
     "more": "More",
+    "featured": {
+      "title": "Featured",
+      "body": "Handpicked public worlds for source discovery and setting context.",
+      "viewAll": "View all",
+      "open": "Open {{name}}"
+    },
     "category": {
       "all": "All Worlds",
+      "followed": "Followed",
       "trending": "Trending",
       "new": "New",
       "fantasy": "Fantasy",
@@ -71,13 +92,45 @@
       "moreWorldActions": "More world actions",
       "bookmarkWorld": "Bookmark world",
       "details": "Details"
+    },
+    "preview": {
+      "introFallback": "A world where you can browse people, materials, scenes, and relationships, and talk with the people in it.",
+      "chatableTag": "People to talk to",
+      "metrics": {
+        "people": "people",
+        "materials": "materials",
+        "scenes": "scenes",
+        "network": "Relationship network",
+        "networkCompact": "Network",
+        "networkSub": "{{value}} relations"
+      },
+      "people": {
+        "title": "People to meet",
+        "viewAll": "View all people",
+        "addFriend": "Add friend",
+        "empty": "This world has no people to meet yet.",
+        "unavailable": "People data could not be loaded yet."
+      },
+      "quick": {
+        "title": "Quick entries",
+        "people": { "title": "Browse people", "sub": "Everyone in this world" },
+        "library": { "title": "Open the archive", "sub": "Search and read" },
+        "timeline": { "title": "View the timeline", "sub": "Explore the timeline" },
+        "scenes": { "title": "Explore scenes", "sub": "Immersive exploration" }
+      },
+      "status": {
+        "friends": "{{count}} friends added",
+        "recent": "Meet first: {{names}}"
+      }
     }
   },
   "toolbar": {
     "heading": "World Atlas",
     "filterPlaceholder": "Filter by name or tag…",
+    "viewMode": "View mode",
     "gridView": "Grid view",
     "listView": "List view",
+    "sortLabel": "Sort worlds",
     "sort": {
       "active": "Source rich",
       "recent": "Recently updated",

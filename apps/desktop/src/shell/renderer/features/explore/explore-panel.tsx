@@ -16,10 +16,8 @@ import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { parsePersonaSources, toProfileTargetFromPersonaSource } from './explore-persona-source-projection';
 import {
   fetchWorldListItems,
-  prefetchWorldDetailAndHistory,
   worldListQueryKey,
 } from '../world/world-detail-queries.js';
-import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
 import {
   realmPersonaSourceMaterializationMessage,
   resolveRealmPersonaSourceState,
@@ -39,7 +37,6 @@ function toRecord(value: unknown): JsonObject | null {
 type ExplorePanelProps = {
   activeSection: ExploreSectionId;
   searchText: string;
-  onSearchTextChange: (value: string) => void;
 };
 
 export function ExplorePanel(props: ExplorePanelProps) {
@@ -171,8 +168,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
 
   const onWorldOpen = useCallback(
     (worldId: string) => {
-      prefetchWorldDetailPanel();
-      prefetchWorldDetailAndHistory(worldId);
       navigateToWorld(worldId);
     },
     [navigateToWorld],
@@ -215,7 +210,6 @@ export function ExplorePanel(props: ExplorePanelProps) {
         onPersonaSourceOpen={onPersonaSourceOpen}
         onPostAuthorOpen={setSelectedProfileTarget}
         onWorldOpen={onWorldOpen}
-        onWorldSearchTextChange={props.onSearchTextChange}
       />
       <SendGiftModal
         open={giftModalOpen}

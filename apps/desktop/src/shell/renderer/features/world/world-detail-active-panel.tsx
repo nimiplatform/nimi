@@ -3,21 +3,32 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { WorldDetail } from './world-detail';
+import { WorldDetailLoadingState } from './world-detail-template';
 import {
   fetchWorldListItems,
   type WorldDisplayDetail,
   worldDisplayDetailQueryKey,
   worldListQueryKey,
 } from './world-detail-queries';
-import { toWorldListItem } from './world-list-model';
-import { WorldDetailSkeletonPage } from './world-detail-route-state';
+import { toWorldListItem, type WorldListItem } from './world-list-model';
+
+function readCachedWorldDetailListItem(detail: WorldDisplayDetail | null | undefined): WorldListItem | null {
+  if (!detail) {
+    return null;
+  }
+  try {
+    return toWorldListItem(detail.primary);
+  } catch {
+    return null;
+  }
+}
 
 export function WorldDetailActivePanel() {
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedWorldId = useAppStore((state) => state.selectedWorldId);
   const navigateBack = useAppStore((state) => state.navigateBack);
-  const cachedWorlds = queryClient.getQueryData<ReturnType<typeof toWorldListItem>[]>(worldListQueryKey());
+  const cachedWorlds = queryClient.getQueryData<WorldListItem[]>(worldListQueryKey());
   const cachedSelectedWorld = selectedWorldId
     ? cachedWorlds?.find((item) => item.id === selectedWorldId) ?? null
     : null;
@@ -26,7 +37,6 @@ export function WorldDetailActivePanel() {
       worldDisplayDetailQueryKey(selectedWorldId),
     )
     : null;
-  const selectedWorldFromDetailCache = cachedWorldDetail ? toWorldListItem(cachedWorldDetail.primary) : null;
 
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
@@ -44,13 +54,13 @@ export function WorldDetailActivePanel() {
     );
   }
 
-  const selectedWorld = worldsQuery.data?.find((item) => item.id === selectedWorldId)
+  const selectedWorldFromList = worldsQuery.data?.find((item) => item.id === selectedWorldId)
     ?? cachedSelectedWorld
-    ?? selectedWorldFromDetailCache
     ?? null;
+  const selectedWorld = selectedWorldFromList ?? readCachedWorldDetailListItem(cachedWorldDetail);
 
   if (!selectedWorld && worldsQuery.isPending) {
-    return <WorldDetailSkeletonPage />;
+    return <WorldDetailLoadingState />;
   }
 
   if (!selectedWorld && worldsQuery.isError) {

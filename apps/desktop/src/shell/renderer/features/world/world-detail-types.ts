@@ -18,6 +18,27 @@ export type WorldRecommendedCharacter = {
   readonly display?: WorldRecommendedCharacterDisplay | null;
 };
 
+export type WorldPublicMediaAsset = {
+  readonly id: string;
+  readonly kind: string;
+  readonly url: string;
+  readonly provider?: string | null;
+  readonly mimeType?: string | null;
+  readonly width?: number | null;
+  readonly height?: number | null;
+  readonly durationSec?: number | null;
+  readonly sha256?: string | null;
+  readonly provenance?: Record<string, unknown> | null;
+};
+
+export type WorldCharacterMediaAssets = {
+  readonly avatar?: WorldPublicMediaAsset | null;
+  readonly portrait?: WorldPublicMediaAsset | null;
+  readonly profileCover?: WorldPublicMediaAsset | null;
+  readonly referenceImage?: WorldPublicMediaAsset | null;
+  readonly voiceSample?: WorldPublicMediaAsset | null;
+};
+
 export type WorldDetailData = {
   readonly id: string;
   readonly name: string;
@@ -49,6 +70,12 @@ export type WorldDetailData = {
   readonly currentWorldTime?: string | null;
   readonly currentTimeLabel?: string | null;
   readonly eraLabel?: string | null;
+  readonly entityCount?: number;
+  readonly relationshipCount?: number;
+  readonly personaCount?: number;
+  readonly sceneCount?: number;
+  readonly systemCount?: number;
+  readonly timelineEventCount?: number;
   readonly primaryLanguage?: string | null;
   readonly commonLanguages?: readonly string[];
   readonly recommendedCharacters?: readonly WorldRecommendedCharacter[];
@@ -80,9 +107,14 @@ export type WorldCharacter = {
   readonly rank?: string | null;
   readonly sceneName?: string | null;
   readonly location?: string | null;
+  readonly tags?: readonly string[];
   readonly createdAt: string;
   readonly avatarUrl?: string | null;
+  readonly portraitUrl?: string | null;
   readonly profileCoverUrl?: string | null;
+  readonly referenceImageUrl?: string | null;
+  readonly voiceSampleUrl?: string | null;
+  readonly mediaAssets?: WorldCharacterMediaAssets | null;
   readonly importance: 'PRIMARY' | 'SECONDARY' | 'BACKGROUND';
   readonly stats?: WorldCharacterStats | null;
 };

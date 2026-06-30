@@ -115,15 +115,86 @@ function text(value, fallback = '') {
   return normalized || fallback;
 }
 
+function publicUrl(value) {
+  const normalized = String(value || '').trim();
+  return /^https?:\/\//i.test(normalized) ? normalized : null;
+}
+
+function publicMediaAsset(refId, kind, url, extra = {}) {
+  const publicUri = publicUrl(url);
+  if (!refId || !kind || !publicUri) {
+    return null;
+  }
+  return {
+    id: refId,
+    kind,
+    url: publicUri,
+    provider: extra.provider || 'E2E_PUBLIC',
+    mimeType: extra.mimeType ?? null,
+    width: extra.width ?? null,
+    height: extra.height ?? null,
+    durationSec: extra.durationSec ?? null,
+    sha256: extra.sha256 ?? null,
+    provenance: extra.provenance ?? null,
+  };
+}
+
+function normalizeWorldMedia(world) {
+  const media = world?.media || {};
+  const assets = media.assets || {};
+  const iconUrl = publicUrl(media.iconUrl ?? world?.iconUrl);
+  const bannerUrl = publicUrl(media.bannerUrl ?? world?.bannerUrl);
+  const heroUrl = publicUrl(media.heroUrl ?? world?.heroUrl ?? world?.bannerUrl);
+  const highlightUrls = asArray(media.highlightUrls ?? world?.highlightUrls).map(publicUrl).filter(Boolean);
+  return {
+    iconUrl,
+    bannerUrl,
+    heroUrl,
+    highlightUrls,
+    assets: {
+      icon: assets.icon || publicMediaAsset(`${text(world?.id, 'world-e2e-1')}-icon`, 'icon', iconUrl),
+      banner: assets.banner || publicMediaAsset(`${text(world?.id, 'world-e2e-1')}-banner`, 'banner', bannerUrl),
+      hero: assets.hero || publicMediaAsset(`${text(world?.id, 'world-e2e-1')}-hero`, 'hero', heroUrl),
+      highlights: Array.isArray(assets.highlights)
+        ? assets.highlights
+        : highlightUrls.map((url, index) => publicMediaAsset(`${text(world?.id, 'world-e2e-1')}-highlight-${index + 1}`, 'highlight', url)).filter(Boolean),
+    },
+  };
+}
+
+function normalizeSourceMedia(source) {
+  const media = source?.media || {};
+  const assets = media.assets || {};
+  const id = text(source?.id, 'source-fixture');
+  const avatarUrl = publicUrl(media.avatarUrl ?? source?.avatarUrl);
+  const portraitUrl = publicUrl(media.portraitUrl ?? source?.portraitUrl);
+  const profileCoverUrl = publicUrl(media.profileCoverUrl ?? source?.profileCoverUrl);
+  const referenceImageUrl = publicUrl(media.referenceImageUrl ?? source?.referenceImageUrl);
+  const voiceSampleUrl = publicUrl(media.voiceSampleUrl ?? source?.voiceSampleUrl);
+  return {
+    avatarUrl,
+    portraitUrl,
+    profileCoverUrl,
+    referenceImageUrl,
+    voiceSampleUrl,
+    assets: {
+      avatar: assets.avatar || publicMediaAsset(`${id}-avatar`, 'avatar', avatarUrl),
+      portrait: assets.portrait || publicMediaAsset(`${id}-portrait`, 'portrait', portraitUrl),
+      profileCover: assets.profileCover || publicMediaAsset(`${id}-profileCover`, 'profileCover', profileCoverUrl),
+      referenceImage: assets.referenceImage || publicMediaAsset(`${id}-referenceImage`, 'referenceImage', referenceImageUrl),
+      voiceSample: assets.voiceSample || publicMediaAsset(`${id}-voiceSample`, 'voiceSample', voiceSampleUrl, {
+        provider: 'E2E_AUDIO',
+        mimeType: source?.voiceSampleMimeType || 'audio/wav',
+        durationSec: source?.voiceSampleDurationSec ?? null,
+      }),
+    },
+  };
+}
+
 function projectPublicWorld(world) {
   const tags = asArray(world?.tags).length ? asArray(world.tags) : asArray(world?.themes);
   const computedTime = world?.computed?.time || {};
-  const media = world?.media || {
-    iconUrl: world?.iconUrl ?? null,
-    bannerUrl: world?.bannerUrl ?? null,
-    heroUrl: world?.heroUrl ?? world?.bannerUrl ?? null,
-    highlightUrls: asArray(world?.highlightUrls),
-  };
+  const media = normalizeWorldMedia(world);
   const characters = asArray(world?.characters);
   const personas = asArray(world?.personas);
   const scenes = asArray(world?.scenes).map((item) => typeof item === 'string' ? item : text(item?.name || item?.title || item?.summary, 'Scene'));
@@ -202,10 +273,7 @@ function projectPublicSource(world, source, sourceKind) {
     worldId,
     worldName: text(world?.name, 'Fixture World'),
     tags: asArray(source?.tags),
-    media: source?.media || {
-      avatarUrl: source?.avatarUrl ?? null,
-      profileCoverUrl: source?.profileCoverUrl ?? null,
-    },
+    media: normalizeSourceMedia(source),
     relation: source?.relation || {
       state: 'connectable',
       connectionId: null,

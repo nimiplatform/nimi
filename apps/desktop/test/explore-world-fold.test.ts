@@ -52,6 +52,9 @@ test('Explore fold mounts complete Worlds catalog under Explore', () => {
   assert.match(worldListSource, /data-testid="world-atlas-glass-layout"/);
   assert.match(worldListSource, /data-testid="world-atlas-world-grid"/);
   assert.match(worldListSource, /data-testid="world-atlas-selected-panel"/);
+  assert.doesNotMatch(worldListSource, /World\.toolbar\.heading/);
+  assert.doesNotMatch(worldListSource, /AtlasSearch/);
+  assert.match(worldListSource, /<AtlasCategoryTabs[\s\S]*view=\{view\}[\s\S]*sort=\{sort\}/);
   assert.match(explorePanelSource, /worldCatalogItems=\{worldsQuery\.data \?\? \[\]\}/);
   assert.match(explorePanelSource, /worldsLoading=\{worldsQuery\.isPending\}/);
   assert.match(explorePanelSource, /worldsError=\{worldsQuery\.isError\}/);

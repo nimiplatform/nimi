@@ -1,10 +1,11 @@
 import { realmWorldData } from './data/realm-world-data';
-import { queryClient } from '@renderer/infra/query-client/query-client';
 import type {
   WorldCharacter,
+  WorldCharacterMediaAssets,
   WorldCharacterStats,
   WorldAssetExternalRef,
   WorldAssetIntent,
+  WorldPublicMediaAsset,
   WorldAssetResourceRef,
   WorldAuditItem,
   WorldDetailData,
@@ -46,7 +47,6 @@ export type WorldDisplayDetail = {
   };
 };
 
-const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT = 4;
 
 const EMPTY_WORLD_HISTORY: WorldHistoryBundle = {
@@ -76,11 +76,15 @@ const EMPTY_WORLD_PUBLIC_ASSETS: WorldPublicAssetsData = {
   scenes: [],
 };
 
-export function worldPublicHighlightImages(publicAssets: WorldPublicAssetsData): string[] {
+export function worldPublicHighlightRefs(publicAssets: WorldPublicAssetsData): WorldAssetExternalRef[] {
   return publicAssets.externalRefs
     .filter((ref) => ref.kind === 'highlight' || ref.kind.startsWith('highlight-'))
-    .map((ref) => readStringValue(ref.uri))
-    .filter(Boolean);
+    .map((ref) => ({ ...ref, uri: readStringValue(ref.uri) }))
+    .filter((ref) => Boolean(ref.uri));
+}
+
+export function worldPublicHighlightImages(publicAssets: WorldPublicAssetsData): string[] {
+  return worldPublicHighlightRefs(publicAssets).map((ref) => ref.uri);
 }
 
 function normalizeWorldId(worldId: string): string {
@@ -95,6 +99,11 @@ function asRecord(value: unknown): JsonRecord {
 
 function readStringValue(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function readPublicUrlValue(value: unknown): string {
+  const normalized = readStringValue(value);
+  return /^https?:\/\//i.test(normalized) ? normalized : '';
 }
 
 function readString(record: JsonRecord, ...keys: string[]): string {
@@ -128,6 +137,49 @@ function readRecordArray(value: unknown): JsonRecord[] {
     : [];
 }
 
+function readPublicMediaAsset(value: unknown): WorldPublicMediaAsset | null {
+  const record = asRecord(value);
+  const id = readString(record, 'id');
+  const kind = readString(record, 'kind');
+  const url = readPublicUrlValue(record.url);
+  if (!id || !kind || !url) {
+    return null;
+  }
+  return {
+    id,
+    kind,
+    url,
+    provider: readString(record, 'provider') || null,
+    mimeType: readString(record, 'mimeType') || null,
+    width: readNumber(record.width) ?? null,
+    height: readNumber(record.height) ?? null,
+    durationSec: readNumber(record.durationSec) ?? null,
+    sha256: readString(record, 'sha256') || null,
+    provenance: Object.keys(asRecord(record.provenance)).length > 0
+      ? asRecord(record.provenance)
+      : null,
+  };
+}
+
+function readCharacterMediaAssets(record: JsonRecord): WorldCharacterMediaAssets | null {
+  const mediaAssets = asRecord(record.mediaAssets);
+  const avatar = readPublicMediaAsset(mediaAssets.avatar);
+  const portrait = readPublicMediaAsset(mediaAssets.portrait);
+  const profileCover = readPublicMediaAsset(mediaAssets.profileCover);
+  const referenceImage = readPublicMediaAsset(mediaAssets.referenceImage);
+  const voiceSample = readPublicMediaAsset(mediaAssets.voiceSample);
+  if (!avatar && !portrait && !profileCover && !referenceImage && !voiceSample) {
+    return null;
+  }
+  return {
+    avatar,
+    portrait,
+    profileCover,
+    referenceImage,
+    voiceSample,
+  };
+}
+
 function formatMixedLabel(source: string): string {
   return String(source || '')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -156,8 +208,7 @@ function normalizeDisplayFreezeReason(value: unknown): WorldDetailData['freezeRe
     : null;
 }
 
-function toWorldDisplayData(detailValue: unknown): WorldDetailData {
-  const listItem = toWorldListItem(asRecord(detailValue));
+function worldListItemToDisplayData(listItem: WorldListItem): WorldDetailData {
   return {
     id: listItem.id,
     name: listItem.name || 'Unknown World',
@@ -189,6 +240,12 @@ function toWorldDisplayData(detailValue: unknown): WorldDetailData {
     currentWorldTime: listItem.computed.time.currentWorldTime,
     currentTimeLabel: listItem.computed.time.currentLabel,
     eraLabel: listItem.computed.time.eraLabel,
+    entityCount: listItem.entityCount,
+    relationshipCount: listItem.relationshipCount,
+    personaCount: listItem.personaCount,
+    sceneCount: listItem.sceneCount,
+    systemCount: listItem.systemCount,
+    timelineEventCount: listItem.timelineEventCount,
     primaryLanguage: listItem.computed.languages.primary,
     commonLanguages: listItem.computed.languages.common,
     recommendedCharacters: listItem.computed.entry.recommendedCharacters.map((character) => ({
@@ -202,8 +259,13 @@ function toWorldDisplayData(detailValue: unknown): WorldDetailData {
   };
 }
 
+function toWorldDisplayData(detailValue: unknown): WorldDetailData {
+  const listItem = toWorldListItem(asRecord(detailValue));
+  return worldListItemToDisplayData(listItem);
+}
+
 export function toWorldDisplayFallback(world: WorldListItem): WorldDetailData {
-  return toWorldDisplayData(world);
+  return worldListItemToDisplayData(world);
 }
 
 export function worldListQueryKey() {
@@ -534,6 +596,7 @@ function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string
   const relation = asRecord(character.relation);
   const relationState = readString(relation, 'state');
   const ownership = readString(character, 'ownership');
+  const mediaAssets = readCharacterMediaAssets(character);
   return {
     id: readString(character, 'id'),
     name: readString(character, 'name', 'displayName') || 'Unknown',
@@ -559,9 +622,18 @@ function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string
     rank: readString(display, 'rank') || null,
     sceneName: readString(display, 'sceneName') || null,
     location: readString(display, 'location') || null,
+    tags: readStringArray(display.tags),
     createdAt: readString(character, 'createdAt') || worldCreatedAt,
-    avatarUrl: readString(character, 'avatarUrl') || null,
-    profileCoverUrl: readString(character, 'profileCoverUrl') || null,
+    avatarUrl: readPublicUrlValue(character.avatarUrl)
+      || mediaAssets?.avatar?.url
+      || mediaAssets?.portrait?.url
+      || mediaAssets?.referenceImage?.url
+      || null,
+    portraitUrl: readPublicUrlValue(character.portraitUrl) || mediaAssets?.portrait?.url || null,
+    profileCoverUrl: readPublicUrlValue(character.profileCoverUrl) || mediaAssets?.profileCover?.url || null,
+    referenceImageUrl: readPublicUrlValue(character.referenceImageUrl) || mediaAssets?.referenceImage?.url || null,
+    voiceSampleUrl: readPublicUrlValue(character.voiceSampleUrl) || mediaAssets?.voiceSample?.url || null,
+    mediaAssets,
     importance: importance === 'SECONDARY' || importance === 'BACKGROUND' ? importance : 'PRIMARY',
     stats: Object.keys(stats).length > 0 ? stats as WorldCharacterStats : null,
   };
@@ -592,16 +664,4 @@ export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDis
       publicAssets: publicAssetsResult.status === 'fulfilled' ? 'success' : 'error',
     },
   };
-}
-
-export function prefetchWorldDetailAndHistory(worldId: string): void {
-  const normalizedWorldId = normalizeWorldId(worldId);
-  if (!normalizedWorldId) {
-    return;
-  }
-  void queryClient.prefetchQuery({
-    queryKey: worldDisplayDetailQueryKey(normalizedWorldId),
-    queryFn: () => fetchWorldDisplayDetail(normalizedWorldId),
-    staleTime: DEFAULT_WORLD_PREFETCH_STALE_TIME_MS,
-  });
 }

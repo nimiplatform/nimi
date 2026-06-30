@@ -1,9 +1,29 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { WorldCharacterQuickSheet, WorldSceneQuickSheet } from './world-detail-quick-sheets.js';
-import { worldPublicHighlightImages } from './world-detail-queries.js';
+import { WorldCharacterQuickSheet } from './world-detail-quick-sheets.js';
+import { WorldPeopleArchivePage } from './world-detail-people-gallery.js';
+import { WorldRelationshipExplorer } from './world-detail-relationship-explorer.js';
+import { WorldSceneDetailPage } from './world-detail-scene-detail-page.js';
+import { worldPublicHighlightRefs } from './world-detail-queries.js';
 import { IconArrowLeft } from './world-detail-glass-primitives';
-import { CharacterGallery, DetailHero, HeroStats, LorePanel, ScenesPanel, SourceDiscoveryPanel, TimelinePanel } from './world-detail-glass-sections';
+import { DetailHero } from './world-detail-glass-sections';
+import {
+  PaperCharactersSection,
+  PaperMaterialsSection,
+  PaperMetricStrip,
+  PaperPathsSection,
+  PaperScenesSection,
+  PaperTimelineSection,
+} from './world-detail-paper-sections';
+import {
+  PAPER,
+  derivedMaterials,
+  derivedMetrics,
+  derivedPaths,
+  type PaperMaterial,
+  type PaperMaterialKey,
+  type PaperPath,
+} from './world-detail-paper-model';
 import { derivedScenes } from './world-detail-template-model';
 import type { WorldCharacter, WorldAuditItem, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from './world-detail-types.js';
 
@@ -25,22 +45,30 @@ export type WorldDetailPageProps = {
   // Chat is materialized only after Runtime creates a device-local LocalAgent.
   onViewCharacter?: (character: WorldCharacter) => void;
   onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
+  onFollowWorld?: (world: WorldDetailData) => Promise<void> | void;
+  worldFollowed?: boolean;
 };
 
 export type XianxiaWorldTemplateProps = WorldDetailPageProps;
 export type XianxiaWorldData = WorldDetailData;
+type ActivePaperSubpage = 'root' | 'people-archive' | 'relationship-explorer' | 'scene-detail';
 
-function WorldDetailLoadingState() {
+export function resolveWorldMaterialSubpage(materialKey: PaperMaterialKey): ActivePaperSubpage | null {
+  if (materialKey === 'people') {
+    return 'people-archive';
+  }
+  return null;
+}
+
+export function WorldDetailLoadingState() {
   return (
-    <div className="px-5 py-6">
-      <div className="mx-auto max-w-[1540px] space-y-5">
-        <div className="h-[390px] animate-pulse rounded-[24px] bg-white/55" />
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-5">
-            <div className="h-20 animate-pulse rounded-2xl bg-white/55" />
-            <div className="h-80 animate-pulse rounded-[20px] bg-white/55" />
-          </div>
-          <div className="h-[620px] animate-pulse rounded-[24px] bg-white/55" />
+    <div style={{ position: 'relative', minHeight: '100%' }}>
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background: PAPER.pageGradient }} />
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1180, margin: '0 auto', padding: '22px 28px 80px' }}>
+        <div className="space-y-[18px]">
+          <div className="h-[316px] animate-pulse rounded-[24px] bg-[#fbf8f1]" />
+          <div className="h-20 animate-pulse rounded-[16px] bg-[#fbf8f1]" />
+          <div className="h-80 animate-pulse rounded-[16px] bg-[#fbf8f1]" />
         </div>
       </div>
     </div>
@@ -71,6 +99,8 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   const world = props.world;
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
+  const [activePaperSubpage, setActivePaperSubpage] = useState<ActivePaperSubpage>('root');
+  const [pendingRootScrollId, setPendingRootScrollId] = useState<string | null>(null);
 
   const selectedCharacter = selectedCharacterId
     ? props.characters.find((character) => character.id === selectedCharacterId) ?? null
@@ -80,13 +110,32 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
     () => derivedScenes(props.publicAssets, props.semantic),
     [props.publicAssets, props.semantic],
   );
-  const highlightImages = useMemo(
-    () => worldPublicHighlightImages(props.publicAssets),
+  const highlightRefs = useMemo(
+    () => worldPublicHighlightRefs(props.publicAssets),
     [props.publicAssets],
+  );
+
+  const materials = useMemo(
+    () => derivedMaterials(props.characters, scenes, props.history, props.publicAssets, props.semantic),
+    [props.characters, scenes, props.history, props.publicAssets, props.semantic],
+  );
+  const metrics = useMemo(
+    () => derivedMetrics(props.characters, scenes, props.history, materials),
+    [props.characters, scenes, props.history, materials],
+  );
+  const paths = useMemo(
+    () => derivedPaths(props.characters, scenes),
+    [props.characters, scenes],
   );
 
   const selectedScene = selectedSceneId
     ? scenes.find((scene) => scene.id === selectedSceneId) ?? null
+    : null;
+  const selectedSceneIndex = selectedScene
+    ? scenes.findIndex((scene) => scene.id === selectedScene.id)
+    : -1;
+  const selectedSceneImageRef = selectedSceneIndex >= 0 && highlightRefs.length > 0
+    ? highlightRefs[selectedSceneIndex % highlightRefs.length] ?? null
     : null;
 
   const selectedSceneRelatedCharacters = selectedScene
@@ -109,88 +158,187 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  useEffect(() => {
+    if (activePaperSubpage !== 'root') {
+      const subpageTestId = {
+        'people-archive': 'world-detail-people-archive-page',
+        'relationship-explorer': 'world-relationship-explorer',
+        'scene-detail': 'world-detail-scene-detail-page',
+      }[activePaperSubpage];
+      window.requestAnimationFrame(() => {
+        document.querySelector(`[data-testid="${subpageTestId}"]`)?.scrollIntoView({ behavior: 'auto', block: 'start' });
+      });
+    }
+  }, [activePaperSubpage]);
+
+  useEffect(() => {
+    if (activePaperSubpage !== 'root' || !pendingRootScrollId) {
+      return;
+    }
+    const targetId = pendingRootScrollId;
+    setPendingRootScrollId(null);
+    window.requestAnimationFrame(() => {
+      scrollToSection(targetId);
+    });
+  }, [activePaperSubpage, pendingRootScrollId]);
+
+  const nav = {
+    onBrowsePeople: () => scrollToSection('world-detail-characters'),
+    onViewAllPeople: () => setActivePaperSubpage('people-archive'),
+    onOpenLibrary: () => scrollToSection('world-detail-materials'),
+    onGoTimeline: () => scrollToSection('world-detail-timeline'),
+    onGoScenes: () => scrollToSection('world-detail-scenes'),
+  };
+
+  const handleEnterPath = (path: PaperPath) => {
+    if (path.key === 'relations') {
+      setActivePaperSubpage('relationship-explorer');
+      return;
+    }
+    if (path.key === 'scenes') {
+      nav.onGoScenes();
+      return;
+    }
+    nav.onBrowsePeople();
+  };
+
+  const handleOpenMaterial = (material: PaperMaterial) => {
+    const subpage = resolveWorldMaterialSubpage(material.key);
+    if (subpage) {
+      setActivePaperSubpage(subpage);
+    } else if (material.key === 'scenes') {
+      nav.onGoScenes();
+    } else if (material.key === 'events') {
+      nav.onGoTimeline();
+    } else {
+      scrollToSection('world-detail-materials');
+    }
+  };
+
+  const openSceneDetail = (sceneId: string) => {
+    setSelectedSceneId(sceneId);
+    setActivePaperSubpage('scene-detail');
+  };
+
+  const returnToRoot = () => {
+    setSelectedSceneId(null);
+    setActivePaperSubpage('root');
+  };
+
+  const returnToRootAndScroll = (targetId: string) => {
+    setPendingRootScrollId(targetId);
+    returnToRoot();
+  };
+
+  if (activePaperSubpage === 'relationship-explorer') {
+    return (
+      <>
+        <WorldRelationshipExplorer
+          world={world}
+          characters={props.characters}
+          history={props.history}
+          onBack={() => setActivePaperSubpage('root')}
+          onSelectCharacter={setSelectedCharacterId}
+        />
+
+        {selectedCharacter ? (
+          <WorldCharacterQuickSheet
+            character={selectedCharacter}
+            onClose={() => setSelectedCharacterId(null)}
+            onViewCharacter={props.onViewCharacter}
+            onMaterializeSource={props.onMaterializeSource}
+          />
+        ) : null}
+      </>
+    );
+  }
+
+  if (activePaperSubpage === 'people-archive') {
+    return (
+      <>
+        <WorldPeopleArchivePage
+          characters={props.characters}
+          onBack={() => setActivePaperSubpage('root')}
+          onSelect={setSelectedCharacterId}
+          onViewCharacter={props.onViewCharacter}
+          onMaterializeSource={props.onMaterializeSource}
+        />
+
+        {selectedCharacter ? (
+          <WorldCharacterQuickSheet
+            character={selectedCharacter}
+            onClose={() => setSelectedCharacterId(null)}
+            onViewCharacter={props.onViewCharacter}
+            onMaterializeSource={props.onMaterializeSource}
+          />
+        ) : null}
+      </>
+    );
+  }
+
+  if (activePaperSubpage === 'scene-detail' && selectedScene) {
+    return (
+      <>
+        <WorldSceneDetailPage
+          isOasisWorld={world.type === 'OASIS'}
+          oasisSceneActionLabel={t('WorldDetail.glass.scenes.viewRelatedSources')}
+          onBack={returnToRoot}
+          onSelectCharacter={setSelectedCharacterId}
+          onViewCharacters={() => returnToRootAndScroll('world-detail-characters')}
+          onViewEvents={() => returnToRootAndScroll('world-detail-timeline')}
+          relatedCharacters={selectedSceneRelatedCharacters}
+          relatedEvents={selectedSceneRelatedEvents}
+          scene={selectedScene}
+          sceneImageRef={selectedSceneImageRef}
+        />
+
+        {selectedCharacter ? (
+          <WorldCharacterQuickSheet
+            character={selectedCharacter}
+            onClose={() => setSelectedCharacterId(null)}
+            onViewCharacter={props.onViewCharacter}
+            onMaterializeSource={props.onMaterializeSource}
+          />
+        ) : null}
+      </>
+    );
+  }
+
   return (
     <>
-      <style>
-        {`
-          .world-detail-glass-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
-            gap: 22px;
-            align-items: start;
-          }
-          @media (max-width: 1180px) {
-            .world-detail-glass-grid {
-              grid-template-columns: minmax(0, 1fr);
-            }
-            .world-detail-side-panel {
-              position: static !important;
-            }
-          }
-          @media (max-width: 900px) {
-            .world-detail-main-grid,
-            .world-detail-secondary-grid {
-              grid-template-columns: minmax(0, 1fr) !important;
-            }
-          }
-        `}
-      </style>
-      <div className="relative font-sans" data-testid="world-detail-glass-layout">
-        <div className="mx-auto grid w-full max-w-[1540px] gap-5 px-5 py-6">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#64748b', fontSize: 12, fontWeight: 850 }}>
-            <button
-              type="button"
-              onClick={props.onBack}
-              style={{
-                border: 0,
-                background: 'rgba(255,255,255,0.56)',
-                color: '#1f8f69',
-                width: 38,
-                height: 38,
-                borderRadius: 999,
-                display: 'grid',
-                placeItems: 'center',
-                boxShadow: '0 10px 22px rgba(54,80,125,0.08)',
-                cursor: 'pointer',
-              }}
-              aria-label={t('WorldDetail.glass.backToAtlas')}
-            >
-              <IconArrowLeft />
-            </button>
-            <span>{t('WorldDetail.studioTitle')}</span>
-            <span>/</span>
-            <span style={{ color: '#111827' }}>{world.name}</span>
-          </div>
-
-          <div className="world-detail-glass-grid">
-            <main style={{ minWidth: 0, display: 'grid', gap: 18 }}>
-              <DetailHero
-                world={world}
-                characters={props.characters}
-                onBack={props.onBack}
-                onScrollTo={scrollToSection}
-              />
-              <HeroStats world={world} characters={props.characters} history={props.history} />
-              <div className="world-detail-main-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.08fr) minmax(0,0.92fr)', gap: 18 }}>
-                <LorePanel world={world} semantic={props.semantic} />
-                <CharacterGallery
-                  characters={props.characters}
-                  loading={props.charactersLoading}
-                  onSelect={setSelectedCharacterId}
-                  onMaterializeSource={props.onMaterializeSource}
-                />
-              </div>
-              <div className="world-detail-secondary-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,0.88fr) minmax(0,1.12fr)', gap: 18 }}>
-                <ScenesPanel scenes={scenes} highlightImages={highlightImages} onSelectScene={setSelectedSceneId} />
-                <TimelinePanel history={props.history} loading={props.historyLoading} />
-              </div>
-            </main>
-            <SourceDiscoveryPanel
+      <div style={{ position: 'relative', minHeight: '100%', fontFamily: 'var(--nimi-font-sans)' }} data-testid="world-detail-paper-layout">
+        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background: PAPER.pageGradient }} />
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1180, margin: '0 auto', padding: '22px 28px 80px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
+            <DetailHero
               world={world}
               characters={props.characters}
-              highlightImages={highlightImages}
-              onSelectCharacter={setSelectedCharacterId}
+              onBack={props.onBack}
+              onScrollTo={scrollToSection}
+              onFollowWorld={props.onFollowWorld}
+              worldFollowed={props.worldFollowed}
+            />
+            <PaperMetricStrip metrics={metrics} />
+            <PaperPathsSection paths={paths} onEnterPath={handleEnterPath} />
+            <PaperCharactersSection
+              characters={props.characters}
+              loading={props.charactersLoading}
+              onSelect={setSelectedCharacterId}
+              onViewCharacter={props.onViewCharacter}
               onMaterializeSource={props.onMaterializeSource}
+              onViewAll={nav.onViewAllPeople}
+            />
+            <PaperMaterialsSection
+              materials={materials}
+              onOpen={handleOpenMaterial}
+              onOpenLibrary={nav.onBrowsePeople}
+            />
+            <PaperTimelineSection history={props.history} loading={props.historyLoading} />
+            <PaperScenesSection
+              scenes={scenes}
+              highlightRefs={highlightRefs}
+              onSelectScene={openSceneDetail}
+              onGoScenes={nav.onGoScenes}
             />
           </div>
         </div>
@@ -205,28 +353,6 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
         />
       ) : null}
 
-      {selectedScene ? (
-        <WorldSceneQuickSheet
-          isOasisWorld={world.type === 'OASIS'}
-          oasisSceneActionLabel={t('WorldDetail.glass.scenes.viewRelatedSources')}
-          onClose={() => setSelectedSceneId(null)}
-          onSelectCharacter={(characterId) => {
-            setSelectedSceneId(null);
-            setSelectedCharacterId(characterId);
-          }}
-          onViewCharacters={() => {
-            setSelectedSceneId(null);
-            scrollToSection('world-detail-characters');
-          }}
-          onViewEvents={() => {
-            setSelectedSceneId(null);
-            scrollToSection('world-detail-timeline');
-          }}
-          relatedCharacters={selectedSceneRelatedCharacters}
-          relatedEvents={selectedSceneRelatedEvents}
-          scene={selectedScene}
-        />
-      ) : null}
     </>
   );
 }

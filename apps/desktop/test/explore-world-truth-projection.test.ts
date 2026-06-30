@@ -31,10 +31,11 @@ test('ExploreView renders worlds only through the Atlas catalog surface', () => 
   assert.match(exploreViewSource, /<WorldCatalogContent/);
   assert.match(exploreViewSource, /worlds=\{props\.worldCatalogItems\}/);
   assert.match(exploreViewSource, /searchQuery=\{props\.worldSearchText\}/);
-  assert.match(exploreViewSource, /onSearchQueryChange=\{props\.onWorldSearchTextChange\}/);
+  assert.doesNotMatch(exploreViewSource, /onSearchQueryChange/);
 });
 
-test('ExplorePanel passes topbar search state into the Worlds Atlas', () => {
+test('ExplorePanel passes topbar search state into the Worlds catalog without an inner search setter', () => {
   assert.match(explorePanelSource, /worldSearchText=\{props\.searchText\}/);
-  assert.match(explorePanelSource, /onWorldSearchTextChange=\{props\.onSearchTextChange\}/);
+  assert.doesNotMatch(explorePanelSource, /onWorldSearchTextChange/);
+  assert.doesNotMatch(explorePanelSource, /onSearchTextChange/);
 });

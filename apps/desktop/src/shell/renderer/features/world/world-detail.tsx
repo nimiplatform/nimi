@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { i18n } from '@renderer/i18n';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
@@ -17,6 +18,7 @@ import {
   toWorldDisplayFallback,
   worldDisplayDetailQueryKey,
 } from './world-detail-queries';
+import { useFollowedWorlds } from './world-follow-store';
 
 type WorldDetailProps = {
   world: WorldListItem;
@@ -46,10 +48,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const initialLoading = worldCompositeQuery.isPending && !display;
   const initialError = !initialLoading
     && (worldCompositeQuery.isError || (worldCompositeQuery.isSuccess && !display));
-  const supplementalError = display
-    ? Object.values(display.sections).some((status) => status === 'error')
-    : false;
-  const pageError = initialError || supplementalError;
+  const pageError = initialError;
   const worldData = display?.world ?? toWorldDisplayFallback(world);
   const characters: WorldCharacter[] = display?.characters ?? [];
   const safeHistory = display?.history ?? { items: [], summary: null };
@@ -160,6 +159,21 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     navigateToSourceDetail(character.sourceRef);
   };
 
+  const followed = useFollowedWorlds();
+  const worldFollowed = followed.isFollowed(world.id);
+  const handleFollowWorld = () => {
+    if (!followed.available) {
+      setFeedback({ kind: 'error', message: i18n.t('World.atlas.followed.unavailable') });
+      return;
+    }
+    try {
+      followed.toggle(world.id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : i18n.t('World.atlas.followed.error');
+      setFeedback({ kind: 'error', message });
+    }
+  };
+
   const handleMaterializeSource = async (character: WorldCharacter) => {
     try {
       const target = await materializeSourceContactLaunchTarget({
@@ -207,6 +221,8 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onBack={onBack}
           onViewCharacter={handleViewCharacter}
           onMaterializeSource={handleMaterializeSource}
+          onFollowWorld={handleFollowWorld}
+          worldFollowed={worldFollowed}
         />
       ) : (
         <NarrativeWorldDetailPage
@@ -226,6 +242,8 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onBack={onBack}
           onViewCharacter={handleViewCharacter}
           onMaterializeSource={handleMaterializeSource}
+          onFollowWorld={handleFollowWorld}
+          worldFollowed={worldFollowed}
         />
       )}
     </ScrollArea>

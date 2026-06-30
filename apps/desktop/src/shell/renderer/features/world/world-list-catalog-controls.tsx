@@ -1,173 +1,93 @@
-import type { CSSProperties } from 'react';
+import { Grid2X2, Heart, List } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { CATEGORY_TABS, GLASS_CARD_CLASS, GLASS_CARD_STYLE, type CategoryId, type ViewMode } from './world-list-catalog-model';
-import { IconGrid, IconList, IconSearch } from './world-list-catalog-primitives';
-
-export function AtlasSearch({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <label
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        height: 40,
-        minWidth: 280,
-        maxWidth: 420,
-        flex: '1 1 320px',
-        borderRadius: 14,
-        padding: '0 14px',
-        color: '#64748b',
-        background: 'rgba(255,255,255,0.58)',
-        border: '1px solid rgba(129,145,169,0.16)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
-      }}
-    >
-      <IconSearch />
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={t('World.searchPlaceholder')}
-        style={{
-          minWidth: 0,
-          flex: 1,
-          border: 0,
-          outline: 0,
-          background: 'transparent',
-          color: '#162033',
-          fontSize: 13,
-          fontWeight: 600,
-          fontFamily: 'var(--nimi-font-sans)',
-        }}
-      />
-    </label>
-  );
-}
-
-export function ViewToggle({
-  view,
-  onChange,
-}: {
-  view: ViewMode;
-  onChange: (view: ViewMode) => void;
-}) {
-  const { t } = useTranslation();
-  const buttonStyle = (active: boolean): CSSProperties => ({
-    width: 36,
-    height: 34,
-    borderRadius: 11,
-    border: active ? '1px solid rgba(76,125,245,0.16)' : '1px solid transparent',
-    background: active ? '#ffffff' : 'transparent',
-    color: active ? '#376af6' : '#64748b',
-    display: 'grid',
-    placeItems: 'center',
-    cursor: 'pointer',
-    boxShadow: active ? '0 8px 18px rgba(54,80,125,0.08)' : 'none',
-  });
-  return (
-    <div
-      style={{
-        display: 'flex',
-        gap: 2,
-        padding: 3,
-        borderRadius: 14,
-        background: 'rgba(255,255,255,0.48)',
-        border: '1px solid rgba(129,145,169,0.12)',
-      }}
-    >
-      <button type="button" aria-label={t('World.toolbar.gridView')} aria-pressed={view === 'grid'} style={buttonStyle(view === 'grid')} onClick={() => onChange('grid')}>
-        <IconGrid />
-      </button>
-      <button type="button" aria-label={t('World.toolbar.listView')} aria-pressed={view === 'list'} style={buttonStyle(view === 'list')} onClick={() => onChange('list')}>
-        <IconList />
-      </button>
-    </div>
-  );
-}
+import { Button, SegmentedControl, SelectField, Surface } from '@nimiplatform/kit/ui';
+import { CATEGORY_TABS, type CategoryId, type SortId, type ViewMode } from './world-list-catalog-model';
 
 export function AtlasCategoryTabs({
   active,
   onChange,
+  followedCount = 0,
+  view,
+  onViewChange,
+  sort,
+  onSortChange,
 }: {
   active: CategoryId;
   onChange: (category: CategoryId) => void;
+  followedCount?: number;
+  view: ViewMode;
+  onViewChange: (view: ViewMode) => void;
+  sort: SortId;
+  onSortChange: (sort: SortId) => void;
 }) {
   const { t } = useTranslation();
+  const categoryItems = CATEGORY_TABS.map((category) => {
+    const isFollowed = category.id === 'followed';
+    return {
+      value: category.id,
+      icon: isFollowed ? <Heart size={13} fill={followedCount > 0 ? 'currentColor' : 'none'} aria-hidden="true" /> : undefined,
+      label: (
+        <span className="inline-flex min-w-0 items-center gap-1.5">
+          <span className="truncate">{t(`World.atlas.category.${category.id}`)}</span>
+          {isFollowed && followedCount > 0 ? (
+            <span className="inline-grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--nimi-surface-active)] px-1 text-[length:var(--nimi-type-caption-size)] font-bold text-[var(--nimi-action-primary-bg)]">
+              {followedCount}
+            </span>
+          ) : null}
+        </span>
+      ),
+    };
+  });
   return (
-    <nav
-      className={GLASS_CARD_CLASS}
+    <Surface
+      as="nav"
       aria-label={t('World.atlas.categories')}
-      data-nimi-material="glass-regular"
-      data-nimi-tone="panel"
       data-testid="world-atlas-category-tabs"
-      style={{
-        ...GLASS_CARD_STYLE,
-        minHeight: 54,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: 7,
-        borderRadius: 16,
-        overflowX: 'auto',
-      }}
+      tone="panel"
+      material="glass-regular"
+      elevation="base"
+      padding="sm"
+      className="min-h-[54px] rounded-[var(--nimi-radius-xl)] shadow-none"
+      style={{ boxShadow: 'none' }}
     >
-      {CATEGORY_TABS.map((category) => {
-        const selected = category.id === active;
-        return (
-          <button
-            key={category.id}
-            type="button"
-            aria-pressed={selected}
-            onClick={() => onChange(category.id)}
-            style={{
-              flex: '0 0 auto',
-              height: 38,
-              border: '1px solid transparent',
-              borderRadius: 12,
-              padding: '0 16px',
-              fontSize: 13,
-              fontWeight: 800,
-              fontFamily: 'var(--nimi-font-sans)',
-              color: selected ? '#2563ff' : '#41516a',
-              background: selected ? 'rgba(255,255,255,0.82)' : 'transparent',
-              boxShadow: selected ? '0 10px 22px rgba(54,80,125,0.08)' : 'none',
-              cursor: 'pointer',
-            }}
-          >
-            {t(`World.atlas.category.${category.id}`)}
-          </button>
-        );
-      })}
-      <button
-        type="button"
-        style={{
-          marginLeft: 'auto',
-          height: 38,
-          border: 0,
-          borderRadius: 12,
-          padding: '0 14px',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          fontSize: 13,
-          fontWeight: 800,
-          color: '#41516a',
-          background: 'transparent',
-          cursor: 'pointer',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {t('World.atlas.more')}
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-    </nav>
+      <div className="flex min-w-0 items-center gap-2">
+        <SegmentedControl
+          ariaLabel={t('World.atlas.categories')}
+          className="min-w-0 flex-1 overflow-x-auto border-transparent bg-transparent shadow-none [&_.nimi-segmented-control__item]:min-h-9 [&_.nimi-segmented-control__item]:px-4 [&_.nimi-segmented-control__item--selected]:bg-[var(--nimi-surface-card)] [&_.nimi-segmented-control__item--selected]:text-[var(--nimi-status-info)] [&_.nimi-segmented-control__item--selected]:shadow-none"
+          items={categoryItems}
+          size="sm"
+          value={active}
+          onValueChange={(value) => onChange(value as CategoryId)}
+        />
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <SegmentedControl
+            ariaLabel={t('World.toolbar.viewMode')}
+            className="rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-card)] shadow-none [&_.nimi-segmented-control__item]:aspect-square [&_.nimi-segmented-control__item]:px-2 [&_.nimi-segmented-control__item--selected]:text-[var(--nimi-status-info)]"
+            items={[
+              { value: 'grid', label: <span className="sr-only">{t('World.toolbar.gridView')}</span>, icon: <Grid2X2 size={14} aria-hidden="true" /> },
+              { value: 'list', label: <span className="sr-only">{t('World.toolbar.listView')}</span>, icon: <List size={14} aria-hidden="true" /> },
+            ]}
+            size="sm"
+            value={view}
+            onValueChange={(value) => onViewChange(value as ViewMode)}
+          />
+          <SelectField
+            aria-label={t('World.toolbar.sortLabel')}
+            className="min-w-[124px] rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-card)]"
+            options={[
+              { value: 'active', label: t('World.atlas.sort.active') },
+              { value: 'recent', label: t('World.atlas.sort.recent') },
+              { value: 'sources', label: t('World.atlas.sort.sources') },
+              { value: 'alpha', label: t('World.atlas.sort.alpha') },
+            ]}
+            value={sort}
+            onValueChange={(value) => onSortChange(value as SortId)}
+          />
+          <Button tone="ghost" size="sm">
+            {t('World.atlas.more')}
+          </Button>
+        </div>
+      </div>
+    </Surface>
   );
 }
