@@ -222,7 +222,62 @@ function runGeneratedInstallInitCheckBuild(target, versions) {
   linkStandaloneSmokeToLocalWorkspace(target);
   runPnpm(target, ['run', 'init'], 'pnpm run init');
   runPnpm(target, ['run', 'check'], 'pnpm run check');
+  runGeneratedNodeTests(target);
   runPnpm(target, ['run', 'build'], 'pnpm run build');
+  runGeneratedPack(target);
+  assertGeneratedEvidenceBoundary(target);
+}
+
+function runGeneratedNodeTests(target) {
+  runPnpm(target, ['run', 'test'], 'pnpm run test');
+}
+
+function runGeneratedPack(target) {
+  runPnpm(target, ['run', 'pack'], 'pnpm run pack');
+}
+
+function readGeneratedJson(target, relativePath) {
+  return JSON.parse(readFileSync(path.join(target, relativePath), 'utf8'));
+}
+
+function assertGeneratedNonTruth(payload, relativePath) {
+  for (const field of [
+    'publicAdmissionTruth',
+    'releaseDescriptorTruth',
+    'ordinaryVisibilityTruth',
+    'permissionGrantTruth',
+    'signingTruth',
+    'notarizationTruth',
+    'mirrorLicenseClearanceTruth',
+  ]) {
+    if (payload[field] != null && payload[field] !== 'not-generated') {
+      throw new Error(`${relativePath} claims ${field}: ${String(payload[field])}`);
+    }
+  }
+  if (payload.productReadinessClaimAllowed !== false) {
+    throw new Error(`${relativePath} must keep productReadinessClaimAllowed=false`);
+  }
+}
+
+function assertGeneratedEvidenceBoundary(target) {
+  const submissionPath = 'dist/nimi-app-submission.json';
+  const evidencePath = 'dist/nimi-app-artifact-evidence.json';
+  const submission = readGeneratedJson(target, submissionPath);
+  const evidence = readGeneratedJson(target, evidencePath);
+  assertGeneratedNonTruth(submission, submissionPath);
+  assertGeneratedNonTruth(evidence, evidencePath);
+  const combined = `${JSON.stringify(submission)}\n${JSON.stringify(evidence)}`;
+  for (const forbidden of [
+    'community.nimi.fixture.platform-proof',
+    'apps/nimi-app-platform-fixture',
+    'NIMI_TESTER',
+    'nimi.tester',
+    'ordinary-visible',
+  ]) {
+    if (combined.includes(forbidden)) {
+      throw new Error(`generated scaffold evidence leaked forbidden product truth: ${forbidden}`);
+    }
+  }
 }
 
 function runGeneratedCargoCheck(target) {

@@ -10,6 +10,9 @@ import {
   type RuntimeOptions,
 } from '@nimiplatform/sdk/runtime';
 import {
+  createInstalledNimiAppStandardShellSurface,
+} from '@nimiplatform/kit/shell/renderer/bridge';
+import {
   AccountSessionState,
   AuthorizationPreset,
   ExternalPrincipalType,
@@ -23,7 +26,7 @@ export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 import { appId, appTitle } from './app-identity.js';
 import { createNimiAppRuntimeTransportConfig, resolveNimiAppRuntimeHostKind } from './runtime-transport.js';
 
-export const runtimeAccountLoginEnabled = true;
+export const runtimeAccountLoginEnabled = resolveRuntimeAuthMode() === 'developer-registered-local-app';
 
 const runtimeDeveloperRegistrationRequested = true;
 const runtimeClientIdPrefix = normalizeClientIdPrefix(appId);
@@ -83,7 +86,9 @@ let runtimeReadyProjection: RuntimePlatformReadyProjection | null = null;
 let runtimeAccountCaller: NimiRuntimeAccountCaller | null = null;
 
 function resolveRuntimeAuthMode(): RuntimeAuthMode {
-  return runtimeAccountLoginEnabled ? 'developer-registered-local-app' : 'third-party-nimi-app';
+  return resolveNimiAppRuntimeHostKind() === 'electron'
+    ? 'third-party-nimi-app'
+    : 'developer-registered-local-app';
 }
 
 export function clearRuntimePlatformProjection() {
@@ -100,13 +105,7 @@ export function getRuntimePlatformProjection() {
     runtimeProjection ??= createDeveloperRegisteredRuntimeProjection(mode);
     return runtimeProjection;
   }
-  runtimeProjection ??= Promise.resolve({
-    status: 'unavailable',
-    mode,
-    reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
-    actionHint: 'wait_for_runtime_nimi_app_session_projection',
-    message: 'third-party Nimi App Runtime session projection is not exposed by this SDK/runtime pair',
-  });
+  runtimeProjection ??= createInstalledAppRuntimeProjection(mode);
   return runtimeProjection;
 }
 
@@ -210,6 +209,23 @@ async function createDeveloperRegisteredRuntimeProjection(
       },
     };
     return runtimeReadyProjection;
+  } catch (error) {
+    return unavailableFromError(mode, error);
+  }
+}
+
+async function createInstalledAppRuntimeProjection(
+  mode: RuntimeAuthMode,
+): Promise<RuntimePlatformProjection> {
+  try {
+    createInstalledNimiAppStandardShellSurface();
+    return {
+      status: 'unavailable',
+      mode,
+      reasonCode: 'SDK_INSTALLED_APP_HOST_BINDING_REQUIRED',
+      actionHint: 'launch_through_desktop_installed_app_host',
+      message: 'installed app host binding is required before a third-party Nimi App can create Runtime account/session projection',
+    };
   } catch (error) {
     return unavailableFromError(mode, error);
   }

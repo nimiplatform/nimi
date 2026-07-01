@@ -11,8 +11,10 @@ export type NimiRuntimeAccountCallerInput = {
 };
 
 export const NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID = 'desktop-electron-installed-app-host';
+export const NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE = 'host-owned-installed-app-bridge';
 
 export type NimiDesktopLaunchedNimiAppRuntimeAccountCallerInput = NimiRuntimeAccountCallerInput & {
+  readonly bindingSource: typeof NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE;
   readonly launchHostId: string;
   readonly launchNonce: string;
   readonly releaseDescriptorRef: string;
@@ -62,6 +64,7 @@ export function createNimiDesktopLaunchedNimiAppRuntimeAccountCaller(
   const appId = requireText(input.appId, 'appId');
   const appInstanceId = requireInstalledBindingText(input.appInstanceId, 'appInstanceId');
   const deviceId = requireInstalledBindingText(input.deviceId, 'deviceId');
+  requireHostOwnedInstalledAppBindingSource(input.bindingSource, 'bindingSource');
   const launchHostId = requireInstalledBindingText(input.launchHostId, 'launchHostId');
   requireInstalledBindingText(input.launchNonce, 'launchNonce');
   requireInstalledBindingText(input.releaseDescriptorRef, 'releaseDescriptorRef');
@@ -128,6 +131,18 @@ function createNimiRuntimeAccountCaller(
     } as NimiRuntimeAccountCaller;
   }
   return caller;
+}
+
+function requireHostOwnedInstalledAppBindingSource(value: unknown, field: string): void {
+  const normalized = String(value || '').trim();
+  if (normalized !== NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE) {
+    throw createNimiError({
+      message: `Desktop-launched installed Nimi App caller requires ${field} ${NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE}.`,
+      reasonCode: 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
+      actionHint: 'use_host_owned_installed_app_bridge_binding',
+      source: 'sdk',
+    });
+  }
 }
 
 function requireText(value: unknown, field: string): string {

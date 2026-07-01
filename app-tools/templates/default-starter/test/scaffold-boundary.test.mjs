@@ -12,6 +12,14 @@ const demoSource = readFileSync(new URL('../src/shell/routes/demo-surfaces.tsx',
 const mainSource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const tauriMainSource = readFileSync(new URL('../src-tauri/src/main.rs', import.meta.url), 'utf8');
 const appSource = [authSource, runtimeLoginSource, productSource, demoSource].join('\n');
+const scaffoldManagedShellSource = [
+  authSource,
+  authGateSource,
+  runtimeAccountAuthSource,
+  runtimeTransportSource,
+  runtimeLoginSource,
+  mainSource,
+].join('\n');
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
 const admission = readFileSync(new URL('../ADMISSION.md', import.meta.url), 'utf8');
 
@@ -45,6 +53,16 @@ test('Runtime transport selector supports Electron without spoofing Tauri', () =
   assert.match(runtimeTransportSource, /typeof window !== 'undefined'/);
   assert.doesNotMatch(runtimeTransportSource, /__NIMI_TAURI_RUNTIME__\s*=/);
   assert.doesNotMatch(runtimeTransportSource, /__TAURI__\?\.core\?\.invoke/);
+});
+
+test('installed app skeleton consumes host-owned standard shell without renderer launch binding', () => {
+  assert.match(authSource, /'third-party-nimi-app'/);
+  assert.match(authSource, /createInstalledNimiAppStandardShellSurface/);
+  assert.match(authSource, /installed-app-host-binding-required|installed app host binding/i);
+  assert.doesNotMatch(scaffoldManagedShellSource, /\blaunchNonce\b/);
+  assert.doesNotMatch(scaffoldManagedShellSource, /\breleaseDescriptorRef\b/);
+  assert.doesNotMatch(scaffoldManagedShellSource, /\blaunchBinding\b/);
+  assert.doesNotMatch(scaffoldManagedShellSource, /\bdeveloperRegistration:\s*true[\s\S]*third-party-nimi-app/);
 });
 
 test('single login model uses Runtime account login without developer-session bypass', () => {

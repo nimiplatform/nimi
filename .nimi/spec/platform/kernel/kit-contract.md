@@ -138,6 +138,11 @@
 - Host-owned Runtime account/session metadata is injected by Electron main
   trusted providers bound to Runtime launch nonce and caller posture. It is not
   a renderer-readable standard shell auth session operation.
+- Kit/Electron installed-app host code may adapt Runtime/Desktop launch binding
+  into SDK bootstrap inputs only behind the host-owned bridge. Renderer
+  application code must not import Electron host modules or supply launch
+  nonce, release descriptor ref, launch binding, or caller posture as trusted
+  fields.
 - The installed-app set must fail closed for Runtime daemon lifecycle
   management, OAuth/token-exchange surfaces, local-agent trusted caller
   surfaces, platform projection, Desktop-private product-control commands,

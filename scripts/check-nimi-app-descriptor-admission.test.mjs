@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { validateCatalogDocument } from './check-nimi-app-descriptor-admission.mjs';
+import {
+  createGeneratedDescriptorDryRunReport,
+  validateCatalogDocument,
+  validateGeneratedDescriptorDryRunReport,
+} from './check-nimi-app-descriptor-admission.mjs';
 
 const sandboxDescriptorDoc = {
   descriptors: [
@@ -117,4 +121,122 @@ test('descriptor admission guard rejects os storage disclosure on nimi-mediated 
   }];
   const failures = validateCatalogDocument(doc);
   assert.ok(failures.some((failure) => failure.includes('os_storage_disclosure')));
+});
+
+const generatedArtifactEvidence = {
+  evidenceVersion: 1,
+  evidenceRole: 'developer-submitted-input',
+  generatedBy: '@nimiplatform/app-tools',
+  packageName: 'acme-widget',
+  appVersion: '0.1.0',
+  tauriIdentifier: 'ai.nimi.apps.acme.widget',
+  entryRef: 'dist/index.html',
+  manifestPath: 'nimi.app.yaml',
+  admissionRequestPath: '.nimi/admission/submission.yaml',
+  buildProfileRef: '.nimi/admission/build-profile.yaml',
+  artifact: {
+    role: 'renderer-entry',
+    path: 'dist/index.html',
+    mediaType: 'text/html',
+    sizeBytes: 1024,
+    sha256: '6f1ed002ab5595859014ebf0951522d9b604294d9ad9e4d12d85bc8f0d0bb8a1',
+  },
+  publicAdmissionTruth: 'not-generated',
+  releaseDescriptorTruth: 'not-generated',
+  ordinaryVisibilityTruth: 'not-generated',
+  permissionGrantTruth: 'not-generated',
+  signingTruth: 'not-generated',
+  notarizationTruth: 'not-generated',
+  mirrorLicenseClearanceTruth: 'not-generated',
+  productReadinessClaimAllowed: false,
+};
+
+test('generated artifact evidence dry-run remains descriptor review input only', () => {
+  const report = createGeneratedDescriptorDryRunReport(generatedArtifactEvidence);
+  assert.equal(report.dryRunRole, 'descriptor-review-input');
+  assert.equal(report.admissionTrack, 'admission-sandbox-ci');
+  assert.equal(report.ordinaryCatalogDiscovery, false);
+  assert.equal(report.productReadinessClaimAllowed, false);
+  assert.equal(report.artifact.sha256, generatedArtifactEvidence.artifact.sha256);
+  assert.equal(report.artifact.sizeBytes, 1024);
+  assert.ok(report.missingOrdinaryReleaseProofFields.includes('admitted ordinary-visible registry row'));
+  assert.ok(report.missingOrdinaryReleaseProofFields.includes('platform signing and notarization evidence'));
+  assert.deepEqual(validateGeneratedDescriptorDryRunReport(report), []);
+});
+
+test('generated descriptor dry-run rejects product readiness claims', () => {
+  const cases = [
+    {
+      mutate(report) {
+        report.registryAdmissionTruth = 'admitted';
+      },
+      pattern: /registryAdmissionTruth/,
+    },
+    {
+      mutate(report) {
+        report.releaseDescriptorTruth = 'admitted';
+      },
+      pattern: /releaseDescriptorTruth/,
+    },
+    {
+      mutate(report) {
+        report.ordinaryCatalogDiscovery = true;
+      },
+      pattern: /ordinaryCatalogDiscovery/,
+    },
+    {
+      mutate(report) {
+        report.productReadinessClaimAllowed = true;
+      },
+      pattern: /productReadinessClaimAllowed/,
+    },
+    {
+      mutate(report) {
+        report.signingTruth = 'signed';
+      },
+      pattern: /signingTruth/,
+    },
+    {
+      mutate(report) {
+        report.notarizationTruth = 'notarized';
+      },
+      pattern: /notarizationTruth/,
+    },
+    {
+      mutate(report) {
+        report.mirrorLicenseClearanceTruth = 'cleared';
+      },
+      pattern: /mirrorLicenseClearanceTruth/,
+    },
+    {
+      mutate(report) {
+        report.supportApprovalTruth = 'approved';
+      },
+      pattern: /supportApprovalTruth/,
+    },
+    {
+      mutate(report) {
+        report.reviewDecisionTruth = 'approved';
+      },
+      pattern: /reviewDecisionTruth/,
+    },
+  ];
+
+  for (const testCase of cases) {
+    const report = createGeneratedDescriptorDryRunReport(generatedArtifactEvidence);
+    testCase.mutate(report);
+    assert.ok(
+      validateGeneratedDescriptorDryRunReport(report).some((failure) => testCase.pattern.test(failure)),
+      JSON.stringify(report),
+    );
+  }
+});
+
+test('generated descriptor dry-run rejects source evidence that claims product truth', () => {
+  const evidence = structuredClone(generatedArtifactEvidence);
+  evidence.productReadinessClaimAllowed = true;
+  assert.throws(
+    () => createGeneratedDescriptorDryRunReport(evidence),
+    /generated artifact evidence must keep productReadinessClaimAllowed=false/,
+  );
 });

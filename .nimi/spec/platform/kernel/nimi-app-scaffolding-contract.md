@@ -310,6 +310,82 @@ that do not claim model-test feature availability.
 export, edit kit source/package files through scaffolding, or treat a planned
 feature as available package surface.
 
+## P-SCAF-014 - Generated App Skeleton Acceptance Track
+
+`MUST`: app-tools generated app skeleton acceptance is a scaffolding acceptance
+track. It proves that `standalone` and `workspace-app` outputs are coherent
+developer repositories that can run create/init/doctor/test/build/pack with the
+admitted SDK, Kit, Tauri shell, and local developer Runtime account paths.
+
+`MUST`: this acceptance track is Horizon 1 skeleton readiness only. It may
+claim that generated repository glue is usable, fail-closed, and bounded by
+the admitted contracts it consumes.
+
+`MUST NOT`: generated app skeleton acceptance must not claim public Nimi App
+admission, registry truth, release descriptor truth, ordinary-visible product
+readiness, Runtime live artifact install, live `OpenApp` launch-resolution, or
+Desktop hosted launch proof. Those remain owned by `P-NAPP-*`, `K-APP-*`, and
+Desktop/live E2E gates.
+
+## P-SCAF-015 - Tester Reference And Second-Consumer Boundary
+
+`MUST`: `apps/tester` is a real first-party second-consumer/reference proof for
+SDK, Kit, Runtime account/session, Tauri shell, and Electron shell integration.
+Scaffolding may inspect tester to learn which admitted surfaces a complete app
+uses, and the explicit `tester-reference` profile may carry tester proof code.
+
+`MUST`: generic `standalone` and `workspace-app` scaffold truth remains owned
+by this `P-SCAF-*` contract plus the app-tools default starter and tests. The
+default starter must contain generic product surfaces only.
+
+`MUST NOT`: tester product code, tester-specific storage, tester workbench UI,
+tester Electron acceptance host code, tester environment variables, or tester
+app ids must not leak into default third-party templates. Tester passing does
+not substitute for generated default starter acceptance.
+
+## P-SCAF-016 - Installed-App Launch Binding Custody For Scaffolds
+
+`MUST`: scaffolded installed-app paths consume Runtime/Desktop launch binding
+custody exactly as owned by `K-ACCSVC-022` and `K-APP-017`. The launch host id,
+launch nonce, release descriptor ref, caller posture, and Runtime-issued app
+session metadata are host-owned binding facts supplied through the Desktop
+installed-app host / Kit Electron bridge path.
+
+`MUST`: generated default starter source may contain fail-closed installed-app
+mode detection and host bridge consumption, but renderer-owned app code must
+not read, construct, persist, or pass `launchNonce`, `releaseDescriptorRef`, or
+`launchBinding` as app-supplied truth.
+
+`MUST NOT`: scaffolding must not teach third-party apps to self-report launch
+binding, descriptor truth, host identity, Runtime account caller posture, app
+session metadata, protected-access tokens, or permission grants. Missing host
+binding is a typed unavailable / fail-closed state, not local developer
+success.
+
+## P-SCAF-017 - Generated Artifact Evidence And Proof Horizon Separation
+
+`MUST`: app-tools may generate deterministic developer-submitted artifact
+evidence for a built app skeleton. Such evidence may include build input refs,
+entry refs, typed sizes, hashes, and local audit output when all fields are
+explicitly labeled as developer-submitted input.
+
+`MUST`: generated scaffold proof, sandbox fixture proof, live Runtime sandbox
+proof, and ordinary-visible product readiness are separate horizons:
+
+- generated scaffold proof demonstrates app-tools skeleton readiness;
+- sandbox fixture proof demonstrates existing Desktop fixture plumbing only;
+- live Runtime sandbox proof demonstrates Runtime artifact download, digest
+  verification, `OpenApp`, Desktop host launch, and host-owned auth for a
+  sandbox app;
+- ordinary-visible product readiness requires real admitted descriptor,
+  signing/notarization, mirror/license, public source, support, and review
+  evidence.
+
+`MUST NOT`: `apps/nimi-app-platform-fixture` must not become canonical scaffold
+template truth, and generated scaffold evidence must not be promoted into
+ordinary-visible product readiness, signing truth, mirror truth, review truth,
+or registry/release descriptor truth.
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` --

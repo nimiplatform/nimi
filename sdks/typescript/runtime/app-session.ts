@@ -9,8 +9,13 @@ import {
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { createNimiClientId, createNimiError, type CoreMetadata } from '../types';
-import { NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID } from './account-caller';
+import {
+  NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID,
+  NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
+} from './account-caller';
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
+
+export { NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE } from './account-caller';
 
 export interface NimiRuntimeAppRegistrationClient {
   registerApp(request: RegisterAppRequest, options?: RuntimeTypedCallOptions): Promise<RegisterAppResponse>;
@@ -41,6 +46,7 @@ export interface NimiRuntimeInstalledAppLaunchBinding {
   readonly appId: string;
   readonly appInstanceId: string;
   readonly deviceId: string;
+  readonly bindingSource: typeof NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE;
   readonly launchHostId: string;
   readonly launchNonce: string;
   readonly releaseDescriptorRef: string;
@@ -262,6 +268,7 @@ function normalizeInstalledAppLaunchBinding(input: NimiRuntimeInstalledAppLaunch
     appId: requireInstalledAppBindingText(input?.appId, 'binding.appId'),
     appInstanceId: requireInstalledAppBindingText(input?.appInstanceId, 'binding.appInstanceId'),
     deviceId: requireInstalledAppBindingText(input?.deviceId, 'binding.deviceId'),
+    bindingSource: requireHostOwnedInstalledAppBindingSource(input?.bindingSource, 'binding.bindingSource'),
     launchHostId: requireInstalledAppBindingText(input?.launchHostId, 'binding.launchHostId'),
     launchNonce: requireInstalledAppBindingText(input?.launchNonce, 'binding.launchNonce'),
     releaseDescriptorRef: requireInstalledAppBindingText(input?.releaseDescriptorRef, 'binding.releaseDescriptorRef'),
@@ -275,6 +282,19 @@ function normalizeInstalledAppLaunchBinding(input: NimiRuntimeInstalledAppLaunch
     });
   }
   return binding;
+}
+
+function requireHostOwnedInstalledAppBindingSource(value: unknown, field: string): typeof NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE {
+  const normalized = normalizeText(value);
+  if (normalized !== NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE) {
+    throw createNimiError({
+      message: `Desktop-launched installed Nimi App session requires ${field} ${NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE}.`,
+      reasonCode: 'SDK_RUNTIME_INSTALLED_APP_SESSION_BINDING_REQUIRED',
+      actionHint: 'use_host_owned_installed_app_bridge_binding',
+      source: 'sdk',
+    });
+  }
+  return NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE;
 }
 
 function requireInstalledAppBindingText(value: unknown, field: string): string {

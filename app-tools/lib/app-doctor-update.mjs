@@ -256,6 +256,17 @@ function buildProviderModelHardcodingPattern() {
   return new RegExp(`(?:${keyedLiteral}|${slashQualifiedLiteral}|${bareProviderOrModelLiteral})`, 'i');
 }
 
+function buildNonGeneratedTruthClaimPattern(field) {
+  return new RegExp(
+    String.raw`"?${escapeRegExp(field)}"?\s*:\s*['"]?(?!not-generated(?:['"]|[\s,}\]]|$))[^"',}\]\s]+`,
+    'i',
+  );
+}
+
+function buildBooleanTrueClaimPattern(field) {
+  return new RegExp(String.raw`"?${escapeRegExp(field)}"?\s*:\s*['"]?true`, 'i');
+}
+
 function buildForbiddenPatterns() {
   const runtimeBridgeName = ['runtime', 'bridge', 'plugin'].join('_');
   const retiredFlag = ['--', 'template'].join('');
@@ -293,13 +304,43 @@ function buildForbiddenPatterns() {
     ['provider/model hardcoding', buildProviderModelHardcodingPattern()],
     ['local audit wording promoted to admission', /local[\s-]+audit[\s-]+as[\s-]+admission/i],
     ['manifest wording promoted to grant', /manifest[\s-]+as[\s-]+grant/i],
-    ['installed-app update claim', /installed[\s-]+app[\s-]+update[\s-]+truth:\s*(?!not-generated)/i],
+    ['installed-app update claim', new RegExp(String.raw`(?:installed[\s-]+app[\s-]+update[\s-]+truth:\s*(?!not-generated(?:[\s,}\]]|$))|${buildNonGeneratedTruthClaimPattern('installedAppUpdateTruth').source})`, 'i')],
+    ['admission truth claim', /\badmission_status\s*:\s*admitted\b/i],
+    ['ordinary-visible claim', /\bordinary_visibility\s*:\s*ordinary-visible\b/i],
+    ['product readiness claim', buildBooleanTrueClaimPattern('productReadinessClaimAllowed')],
+    ['public admission truth claim', buildNonGeneratedTruthClaimPattern('publicAdmissionTruth')],
+    ['release descriptor truth claim', buildNonGeneratedTruthClaimPattern('releaseDescriptorTruth')],
+    ['ordinary visibility truth claim', buildNonGeneratedTruthClaimPattern('ordinaryVisibilityTruth')],
+    ['permission grant truth claim', buildNonGeneratedTruthClaimPattern('permissionGrantTruth')],
+    ['signing truth claim', new RegExp(String.raw`(?:\bsigning_status\s*:\s*(?:passed|cleared|approved)\b|${buildNonGeneratedTruthClaimPattern('signingTruth').source})`, 'i')],
+    ['notarization truth claim', new RegExp(String.raw`(?:\bnotarization_status\s*:\s*(?:passed|cleared|approved)\b|${buildNonGeneratedTruthClaimPattern('notarizationTruth').source})`, 'i')],
+    ['mirror/license clearance truth claim', new RegExp(String.raw`(?:\bmirror_license_clearance\s*:\s*(?:passed|cleared|approved)\b|${buildNonGeneratedTruthClaimPattern('mirrorLicenseClearanceTruth').source})`, 'i')],
+    ['external principal installed-app posture', /\bACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL\b/],
+    ['renderer launch binding custody', /\b(?:launchNonce|releaseDescriptorRef|launchBinding)\b/],
+    ['installed-app developer registration bypass', /(?:developerRegistration\s*:\s*true[\s\S]{0,160}third-party-nimi-app|third-party-nimi-app[\s\S]{0,160}developerRegistration\s*:\s*true)/],
+    ['Desktop private import', /\bfrom\s+['"`][^'"`]*apps\/desktop\//],
+    ['Runtime private import', /\bfrom\s+['"`][^'"`]*runtime\/internal\//],
+    ['generated private Runtime client', /\bfrom\s+['"`][^'"`]*(?:@nimiplatform\/runtime\/generated\/private-client|runtime\/generated\/private|generated\/private-client)/],
+    ['forbidden installed-app shell capability', /\b(?:auth\.session(?:Load|Save|Clear)|local-agent\.runtimeTrustedCaller|platform-projection\.get|tauri-only\.commands)\b/],
   ];
 }
 
-function scanForbiddenPatterns(targetDir) {
+function scanForbiddenPatterns(targetDir, profile) {
   const findings = [];
   const patterns = buildForbiddenPatterns();
+  const testFileAllowedLabels = new Set([
+    'renderer launch binding custody',
+    'installed-app developer registration bypass',
+    'forbidden installed-app shell capability',
+    'Desktop private import',
+    'Runtime private import',
+    'generated private Runtime client',
+    'external principal installed-app posture',
+  ]);
+  const testerReferenceAllowedLabels = new Set([
+    'renderer launch binding custody',
+    'forbidden installed-app shell capability',
+  ]);
   for (const filePath of collectTextFiles(targetDir)) {
     const relativePath = path.relative(targetDir, filePath).split(path.sep).join('/');
     const text = readFileSync(filePath, 'utf8');
@@ -309,6 +350,12 @@ function scanForbiddenPatterns(targetDir) {
       // negative assertions that forbid hardcoding); only product/glue source is
       // product truth, so the hardcoding pattern is scoped out of tests.
       if (label === 'provider/model hardcoding' && isTestFile) {
+        continue;
+      }
+      if (isTestFile && testFileAllowedLabels.has(label)) {
+        continue;
+      }
+      if (profile === 'tester-reference' && testerReferenceAllowedLabels.has(label)) {
         continue;
       }
       if (pattern.test(text)) {
@@ -521,7 +568,7 @@ function validateDoctorState(targetDir, versions, runners = {}) {
   assertSemanticMarkers(targetDir);
   assertManagedFilesCurrent(targetDir, lock);
   assertNimicodingProjectionCurrent(targetDir, runners);
-  const forbiddenFindings = scanForbiddenPatterns(targetDir);
+  const forbiddenFindings = scanForbiddenPatterns(targetDir, lock.profile);
   if (forbiddenFindings.length > 0) {
     throw new Error(`Forbidden scaffold remnants detected: ${forbiddenFindings.join('; ')}`);
   }

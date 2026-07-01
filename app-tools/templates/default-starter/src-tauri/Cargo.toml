@@ -11,6 +11,7 @@ serde_json = "1"
 url = "2"
 base64 = "0.22"
 dirs = "6"
+time = "=0.3.47"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

@@ -549,6 +549,31 @@ manager installs, or app-local specs to manufacture Apps inventory entries.
 Local adoption is not Platform public admission and MUST NOT bypass Runtime
 OpenApp permissions, AIConfig, storage, account/session, or manifest gates.
 
+## S-APP-022 - Installed-App Bootstrap Custody Boundary
+
+`MUST`: SDK installed-app bootstrap helpers consume Runtime/Desktop launch
+binding only as a projection of `K-ACCSVC-022` and `K-APP-017`. The helper
+surface may map host-owned launch binding into typed SDK/Runtime account
+caller inputs, but it is a consumer of Runtime/Desktop truth, not an owner.
+
+`MUST`: when a generated third-party app uses an installed-app SDK bootstrap
+path, the app-owned renderer source must receive a host-owned installed-app
+bridge projection. The renderer source must not construct, persist, or pass
+`launchNonce`, `releaseDescriptorRef`, or `launchBinding` as app-supplied
+truth.
+
+`MUST NOT`: SDK installed-app bootstrap must not accept renderer-owned access
+tokens, session stores, raw auth metadata, descriptor refs, launch nonces,
+host ids, or caller posture as trust-bearing input from generated app code.
+Absent host binding, missing descriptor binding, digest/install evidence
+mismatch, or unavailable Runtime `OpenApp` projection is a typed fail-closed
+state and must not fall back to developer registration.
+
+Cross-references: `P-SCAF-016` (scaffolded installed-app binding custody),
+`K-ACCSVC-022` (Desktop-launched installed Nimi App caller posture),
+`K-APP-017` (Runtime OpenApp launch-resolution authority), `P-KIT-044`
+(installed app standard shell capability set).
+
 ## Fact Sources
 
 - `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`

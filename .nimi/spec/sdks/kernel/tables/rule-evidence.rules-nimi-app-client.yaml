@@ -42,6 +42,9 @@ entries:
   - S-APP-017
   - S-APP-018
   - S-APP-019
+  - S-APP-020
+  - S-APP-021
+  - S-APP-022
 rules:
   - rule_id: S-APP-001
     evidence_refs:
@@ -132,4 +135,22 @@ rules:
       - sdk_kernel_consistency
       - sdk_behavioral_test
     note: SDK account app-inventory accessor is backed by Runtime GetAccountAppInventory and must not read account-scoped projection files locally.
+    evidence_requirement: required
+  - rule_id: S-APP-020
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_behavioral_test
+    note: SDK unified Apps inventory composition preserves source identity and must not relabel account or local adoption entries as ordinary catalog truth.
+    evidence_requirement: required
+  - rule_id: S-APP-021
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_behavioral_test
+    note: SDK local app adoption accessor is backed by Runtime explicit adoption APIs and must not scan local workspaces as inventory truth.
+    evidence_requirement: required
+  - rule_id: S-APP-022
+    evidence_refs:
+      - sdk_kernel_consistency
+      - sdk_behavioral_test
+    note: SDK installed-app bootstrap consumes host-owned Runtime/Desktop launch binding and must fail closed on renderer-owned auth or launch-binding custody.
     evidence_requirement: required

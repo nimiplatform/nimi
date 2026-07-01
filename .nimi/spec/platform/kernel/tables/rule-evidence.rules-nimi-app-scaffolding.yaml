@@ -37,6 +37,10 @@ entries:
   - P-SCAF-011
   - P-SCAF-012
   - P-SCAF-013
+  - P-SCAF-014
+  - P-SCAF-015
+  - P-SCAF-016
+  - P-SCAF-017
 rules:
   - rule_id: P-SCAF-001
     evidence_refs:
@@ -104,3 +108,23 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; model-test dependency closure requires kit-owned default-import validation before scaffold defaults may depend on it
+  - rule_id: P-SCAF-014
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; generated skeleton readiness requires app-tools scaffold tests and generated app smoke checks
+  - rule_id: P-SCAF-015
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; tester second-consumer status requires tester tests and scaffold leakage checks
+  - rule_id: P-SCAF-016
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; launch-binding custody enforcement requires SDK/Kit host-owned bridge tests and generated starter boundary scans
+  - rule_id: P-SCAF-017
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; artifact evidence and horizon separation require app-tools pack/local-audit tests plus later Desktop/live gates

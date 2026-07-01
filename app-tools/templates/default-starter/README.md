@@ -19,7 +19,9 @@ pnpm run update
 
 `init` runs the pinned local `nimicoding sync --apply` projection and writes app-scaffold admission/build-profile/lock state. It is explicit after install; package installation does not mutate `.nimi/**` by itself.
 
-`dev:shell` launches the Tauri shell (`tauri dev`). The app authenticates through the in-app Runtime account login, exactly like a shipped app — there is no standalone developer session. For a not-yet-admitted local app, enable Developer Mode in the desktop app; the Runtime developer-registration gate then admits the local app under your real logged-in account. This is local developer material only; it is not Nimi listing admission, install truth, or a permission grant.
+`dev:shell` launches the Tauri shell (`tauri dev`). The app authenticates through the in-app Runtime account login, exactly like a shipped app; there is no standalone developer session. For a not-yet-admitted local app, enable Developer Mode in the desktop app; the Runtime developer-registration gate then admits the local app under your real logged-in account. This is local developer material only; it is not Nimi listing admission, install truth, or a permission grant.
+
+`pack` writes `dist/nimi-app-submission.json` and `dist/nimi-app-artifact-evidence.json` after a successful renderer build. These files include sha256 and typed size evidence for `dist/index.html` and explicitly mark public admission, release descriptor, ordinary visibility, signing, notarization, mirror/license clearance, and permission grant truth as `not-generated`.
 
 `doctor` and `update` are developer scaffold checks for this source repository. They do not update an installed app, publish admission truth, create release descriptors, or grant permissions.
 

@@ -245,6 +245,14 @@ function runNimiApp(args, cwd, options = {}) {
   });
 }
 
+function runGeneratedNodeScript(generated, scriptPath) {
+  return spawnSync(process.execPath, [scriptPath], {
+    cwd: generated.target,
+    encoding: 'utf8',
+    env: generated.env ? generated.env : process.env,
+  });
+}
+
 test('standalone scaffold creates a generic starter with rewritten identity', () => {
   const generated = scaffold('standalone');
   try {
@@ -274,6 +282,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.equal(tauri.build.devUrl, `http://127.0.0.1:${devPort}`);
     assert.match(generated.read('src-tauri/Cargo.toml'), /name = "acme-widget-shell"/);
     assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = "0\.1\.0"/);
+    assert.match(generated.read('src-tauri/Cargo.toml'), /time = "=0\.3\.47"/);
     assert.match(generated.read('nimi.app.yaml'), /scope: file\.read\.scoped/);
     assert.match(generated.read('nimi.app.yaml'), /scope: file\.write\.scoped/);
     assert.doesNotMatch(generated.read('nimi.app.yaml'), /scope: app\.local\.drafts/);
@@ -334,7 +343,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
     assert.match(runtimePlatform, /createNimiClient/);
     assert.match(runtimePlatform, /createDeveloperRegisteredRuntimeProjection/);
-    assert.match(runtimePlatform, /runtimeAccountLoginEnabled = true/);
+    assert.match(runtimePlatform, /runtimeAccountLoginEnabled = resolveRuntimeAuthMode\(\) === 'developer-registered-local-app'/);
     assert.match(runtimePlatform, /source: 'runtime-local-developer-app'/);
     assert.doesNotMatch(runtimePlatform, /createLocalFirstPartyRuntimeProjection/);
     assert.doesNotMatch(runtimePlatform, /dev-standalone/);
@@ -455,6 +464,133 @@ test('generated package.json scripts reference only commands and existing local 
     }
   } finally {
     generated.cleanup();
+  }
+});
+
+test('generated pack writes developer-submitted artifact evidence only', () => {
+  const generated = scaffold('standalone');
+  try {
+    mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
+    writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>Nimi generated app</main>\n');
+
+    const result = runGeneratedNodeScript(generated, 'scripts/pack.mjs');
+    assert.equal(result.status, 0, result.stderr);
+
+    const submission = JSON.parse(generated.read('dist/nimi-app-submission.json'));
+    const evidence = JSON.parse(generated.read('dist/nimi-app-artifact-evidence.json'));
+
+    assert.equal(submission.packetRole, 'developer-submitted-input');
+    assert.equal(submission.artifactEvidencePath, 'dist/nimi-app-artifact-evidence.json');
+    assert.equal(submission.publicAdmissionTruth, 'not-generated');
+    assert.equal(submission.releaseDescriptorTruth, 'not-generated');
+    assert.equal(submission.ordinaryVisibilityTruth, 'not-generated');
+    assert.equal(submission.permissionGrantTruth, 'not-generated');
+    assert.equal(submission.productReadinessClaimAllowed, false);
+
+    assert.equal(evidence.evidenceRole, 'developer-submitted-input');
+    assert.equal(evidence.entryRef, 'dist/index.html');
+    assert.equal(evidence.manifestPath, 'nimi.app.yaml');
+    assert.equal(evidence.admissionRequestPath, '.nimi/admission/submission.yaml');
+    assert.equal(evidence.buildProfileRef, '.nimi/admission/build-profile.yaml');
+    assert.equal(evidence.artifact.sha256.length, 64);
+    assert.equal(typeof evidence.artifact.sizeBytes, 'number');
+    assert.equal(evidence.artifact.sizeBytes, Buffer.byteLength('<main>Nimi generated app</main>\n'));
+    assert.equal(evidence.publicAdmissionTruth, 'not-generated');
+    assert.equal(evidence.releaseDescriptorTruth, 'not-generated');
+    assert.equal(evidence.ordinaryVisibilityTruth, 'not-generated');
+    assert.equal(evidence.permissionGrantTruth, 'not-generated');
+    assert.equal(evidence.signingTruth, 'not-generated');
+    assert.equal(evidence.notarizationTruth, 'not-generated');
+    assert.equal(evidence.mirrorLicenseClearanceTruth, 'not-generated');
+    assert.equal(evidence.productReadinessClaimAllowed, false);
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('generated pack fails closed on missing inputs and fake product truth', () => {
+  const cases = [
+    {
+      mutate(generated) {
+        rmSync(path.join(generated.target, 'dist'), { recursive: true, force: true });
+      },
+      pattern: /renderer build output missing/,
+    },
+    {
+      mutate(generated) {
+        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
+        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
+        writeFileSync(
+          path.join(generated.target, 'nimi.app.yaml'),
+          generated.read('nimi.app.yaml').replace('manifest_role: submitted-input', 'manifest_role: release-descriptor'),
+        );
+      },
+      pattern: /submitted manifest role marker missing/,
+    },
+    {
+      mutate(generated) {
+        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
+        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
+        rmSync(path.join(generated.target, '.nimi', 'admission', 'submission.yaml'), { force: true });
+      },
+      pattern: /developer submission input missing/,
+    },
+    {
+      mutate(generated) {
+        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
+        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
+        writeFileSync(
+          path.join(generated.target, '.nimi', 'admission', 'submission.yaml'),
+          `${generated.read('.nimi/admission/submission.yaml')}productReadinessClaimAllowed: true\n`,
+        );
+      },
+      pattern: /product readiness claim/,
+    },
+    {
+      mutate(generated) {
+        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
+        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
+        writeFileSync(
+          path.join(generated.target, '.nimi', 'admission', 'submission.yaml'),
+          `${generated.read('.nimi/admission/submission.yaml')}productReadinessClaimAllowed: "true"\n`,
+        );
+      },
+      pattern: /product readiness claim/,
+    },
+    {
+      mutate(generated) {
+        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
+        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
+        writeFileSync(
+          path.join(generated.target, '.nimi', 'admission', 'submission.yaml'),
+          `${generated.read('.nimi/admission/submission.yaml')}publicAdmissionTruth: not-generated-extra\n`,
+        );
+      },
+      pattern: /public admission truth claim/,
+    },
+    {
+      mutate(generated) {
+        mkdirSync(path.join(generated.target, 'dist'), { recursive: true });
+        writeFileSync(path.join(generated.target, 'dist', 'index.html'), '<main>ready</main>\n');
+        writeFileSync(
+          path.join(generated.target, 'dist', 'nimi-app-artifact-evidence.json'),
+          '{"evidenceRole":"developer-submitted-input","productReadinessClaimAllowed":true}\n',
+        );
+      },
+      pattern: /existing artifact evidence/,
+    },
+  ];
+
+  for (const testCase of cases) {
+    const generated = scaffold('standalone');
+    try {
+      testCase.mutate(generated);
+      const result = runGeneratedNodeScript(generated, 'scripts/pack.mjs');
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, testCase.pattern);
+    } finally {
+      generated.cleanup();
+    }
   }
 });
 
@@ -858,6 +994,46 @@ test('doctor fails closed on app-owned Realm permission grant shortcuts', () => 
   }
 });
 
+test('doctor fails closed on scaffold pseudo-success and installed-app custody bypasses', () => {
+  const cases = [
+    { source: "export const truth = 'admission_status: admitted';\n", pattern: /admission truth claim/ },
+    { source: "export const truth = 'ordinary_visibility: ordinary-visible';\n", pattern: /ordinary-visible claim/ },
+    { source: 'export const truth = { productReadinessClaimAllowed: true };\n', pattern: /product readiness claim/ },
+    { source: 'export const truth = { productReadinessClaimAllowed: "true" };\n', pattern: /product readiness claim/ },
+    { source: "export const truth = { publicAdmissionTruth: 'not-generated-extra' };\n", pattern: /public admission truth claim/ },
+    { source: "export const truth = { installedAppUpdateTruth: 'not-generated-extra' };\n", pattern: /installed-app update claim/ },
+    { source: "export const truth = 'signing_status: passed';\n", pattern: /signing truth claim/ },
+    { source: "export const truth = 'notarization_status: passed';\n", pattern: /notarization truth claim/ },
+    { source: "export const truth = 'mirror_license_clearance: cleared';\n", pattern: /mirror\/license clearance truth claim/ },
+    { source: "export const mode = 'ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL';\n", pattern: /external principal installed-app posture/ },
+    { source: "export const binding = { launchNonce: 'renderer-owned' };\n", pattern: /renderer launch binding custody/ },
+    { source: "export const binding = { releaseDescriptorRef: 'renderer-owned' };\n", pattern: /renderer launch binding custody/ },
+    { source: "export const binding = { launchBinding: {} };\n", pattern: /renderer launch binding custody/ },
+    { source: "export const registration = { developerRegistration: true, mode: 'third-party-nimi-app' };\n", pattern: /installed-app developer registration bypass/ },
+    { source: "import x from 'apps/desktop/src/shell/renderer/session';\nexport const y = x;\n", pattern: /Desktop private import/ },
+    { source: "import x from 'runtime/internal/appinstallgateway';\nexport const y = x;\n", pattern: /Runtime private import/ },
+    { source: "import x from '@nimiplatform/runtime/generated/private-client';\nexport const y = x;\n", pattern: /generated private Runtime client/ },
+    { source: "export const command = 'auth.sessionLoad';\n", pattern: /forbidden installed-app shell capability/ },
+    { source: "export const command = 'auth.sessionSave';\n", pattern: /forbidden installed-app shell capability/ },
+    { source: "export const command = 'auth.sessionClear';\n", pattern: /forbidden installed-app shell capability/ },
+    { source: "export const command = 'local-agent.runtimeTrustedCaller';\n", pattern: /forbidden installed-app shell capability/ },
+    { source: "export const command = 'platform-projection.get';\n", pattern: /forbidden installed-app shell capability/ },
+    { source: "export const command = 'tauri-only.commands';\n", pattern: /forbidden installed-app shell capability/ },
+  ];
+
+  for (const { source, pattern } of cases) {
+    const generated = cliScaffold('standalone');
+    try {
+      writeFileSync(path.join(generated.target, 'src/shell/routes/product-area.tsx'), source);
+      const result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      assert.notEqual(result.status, 0, source);
+      assert.match(result.stderr, pattern, source);
+    } finally {
+      generated.cleanup();
+    }
+  }
+});
+
 test('doctor fails closed on non-canonical submitted permission declarations', () => {
   const cases = [
     {
@@ -996,10 +1172,14 @@ test('generated app smoke gate is a real package script', () => {
   assert.match(source, /pnpm\s+install\s+--no-frozen-lockfile/);
   assert.match(source, /pnpm\s+run\s+init/);
   assert.match(source, /pnpm\s+run\s+check/);
+  assert.match(source, /pnpm\s+run\s+test/);
   assert.match(source, /pnpm\s+run\s+build/);
+  assert.match(source, /pnpm\s+run\s+pack/);
   assert.match(source, /cargo\s+check/);
+  assert.match(source, /runGeneratedNodeTests\(target\)/);
+  assert.match(source, /runGeneratedPack\(target\)/);
   assert.match(source, /runGeneratedCargoCheck\(target\)/);
-  assert.doesNotMatch(source, /runGeneratedNodeTests\(target\)/);
+  assert.match(source, /assertGeneratedEvidenceBoundary\(target\)/);
 });
 
 test('default starter profile code has no dead tester snapshot omission seam', () => {
@@ -1041,5 +1221,40 @@ test('generated scaffold mechanically excludes forbidden shortcuts', () => {
     }
   } finally {
     generated.cleanup();
+  }
+});
+
+test('default profiles generate installed-app skeleton boundaries without tester or fixture truth', () => {
+  for (const profile of ['standalone', 'workspace-app']) {
+    const generated = scaffold(profile);
+    try {
+      const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
+      const authGate = generated.read('src/shell/auth/auth-gate.tsx');
+      const main = generated.read('src/main.tsx');
+      const joined = [runtimePlatform, authGate, main].join('\n');
+
+      assert.match(runtimePlatform, /'developer-registered-local-app'/, `${profile} keeps local developer mode`);
+      assert.match(runtimePlatform, /'third-party-nimi-app'/, `${profile} keeps third-party installed-app mode`);
+      assert.match(runtimePlatform, /createInstalledNimiAppStandardShellSurface/, `${profile} must compose installed-app standard shell`);
+      assert.match(runtimePlatform, /installed-app-host-binding-required|installed app host binding/i, `${profile} must fail closed without installed host binding`);
+
+      for (const forbidden of [
+        'launchNonce',
+        'releaseDescriptorRef',
+        'launchBinding',
+        'community.nimi.fixture.platform-proof',
+        'apps/nimi-app-platform-fixture',
+        'NIMI_TESTER',
+        'nimi.tester',
+      ]) {
+        assert.equal(joined.includes(forbidden), false, `${forbidden} must not appear in ${profile} generated shell`);
+      }
+
+      assert.match(generated.read('nimi.app.yaml'), /manifest_role: submitted-input/);
+      assert.match(generated.read('.nimi/admission/submission.yaml'), /submission_role: developer-submitted-input/);
+      assert.doesNotMatch(generated.read('nimi.app.yaml'), /admission_status|ordinary_visibility|release_descriptor_ref/);
+    } finally {
+      generated.cleanup();
+    }
   }
 });
