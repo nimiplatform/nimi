@@ -3,7 +3,17 @@ import {
   type RealmOperationDescriptor,
 } from '../core-generated/realm-client';
 import type { CoreTransport } from '../core-client';
-import { createNimiError, ReasonCode, type CoreMetadata, type CoreStreamRequest, type CoreUnaryRequest, type JsonObject, type JsonValue } from '../types';
+import {
+  createNimiError,
+  createOfflineNimiError,
+  isRealmOfflineErrorLike,
+  ReasonCode,
+  type CoreMetadata,
+  type CoreStreamRequest,
+  type CoreUnaryRequest,
+  type JsonObject,
+  type JsonValue,
+} from '../types';
 
 export interface RealmFetchTransportOptions {
   readonly baseUrl: string;
@@ -35,13 +45,18 @@ export function createRealmFetchTransport(options: RealmFetchTransportOptions): 
       const url = createRealmFetchUrl(baseUrl, descriptor, requestBody);
       const headers = await createRealmFetchHeaders(options.headers, request.metadata, requestBody.headers);
       const body = createRealmFetchBody(descriptor, requestBody, headers);
-      const response = await fetchImpl(url, {
-        method: descriptor.method,
-        headers,
-        body,
-        credentials: options.credentials,
-        signal: request.signal,
-      });
+      let response: globalThis.Response;
+      try {
+        response = await fetchImpl(url, {
+          method: descriptor.method,
+          headers,
+          body,
+          credentials: options.credentials,
+          signal: request.signal,
+        });
+      } catch (error) {
+        throw normalizeRealmFetchTransportError(error, descriptor.operationId);
+      }
       request.responseMetadataObserver?.(readRealmFetchResponseMetadata(response));
       return readRealmFetchResponse<Response>(response, descriptor);
     },
@@ -188,6 +203,51 @@ function readRealmFetchResponseMetadata(response: Response): CoreMetadata {
   });
   metadata.status = String(response.status);
   return metadata;
+}
+
+function normalizeRealmFetchTransportError(error: unknown, operationId: string): Error {
+  if (isRealmOfflineErrorLike(error, { transportOwner: 'realm' })) {
+    return createOfflineNimiError({
+      message: readRealmFetchTransportErrorMessage(error)
+        || `Realm operation ${operationId} could not reach the Realm API.`,
+      reasonCode: ReasonCode.REALM_UNAVAILABLE,
+      actionHint: 'check_realm_endpoint_and_network',
+      source: 'realm',
+      details: {
+        operationId,
+        cause: readRealmFetchTransportErrorCause(error),
+      },
+    });
+  }
+  if (error instanceof Error) {
+    return error;
+  }
+  return createNimiError({
+    message: `Realm operation ${operationId} fetch failed with a non-error rejection.`,
+    reasonCode: ReasonCode.SDK_REALM_HTTP_REQUEST_FAILED,
+    actionHint: 'inspect_realm_fetch_transport',
+    source: 'sdk',
+    details: {
+      operationId,
+      cause: readRealmFetchTransportErrorCause(error),
+    },
+  });
+}
+
+function readRealmFetchTransportErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return String(error.message || '').trim();
+  }
+  return String(error || '').trim();
+}
+
+function readRealmFetchTransportErrorCause(error: unknown): string {
+  if (error instanceof Error) {
+    return error.name
+      ? `${error.name}: ${readRealmFetchTransportErrorMessage(error)}`
+      : readRealmFetchTransportErrorMessage(error);
+  }
+  return String(error);
 }
 
 async function readRealmFetchResponse<Result>(

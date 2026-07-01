@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createRealmFetchTransport, Realm } from './index';
+import { ReasonCode } from '../types';
 
 test('Realm fetch transport maps generated operation requests to HTTP fetch', async () => {
   const calls: Array<{ readonly url: string; readonly init: RequestInit }> = [];
@@ -96,6 +97,35 @@ test('Realm fetch transport fails closed on HTTP errors and streaming calls', as
     },
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_REALM_FETCH_STREAM_UNSUPPORTED');
+      return true;
+    },
+  );
+});
+
+test('Realm fetch transport maps network fetch failures to Realm unavailable', async () => {
+  const transport = createRealmFetchTransport({
+    baseUrl: 'https://realm.test',
+    fetch: async () => {
+      throw new TypeError('fetch failed');
+    },
+  });
+
+  await assert.rejects(
+    transport.unary({
+      methodId: 'WorldPublicController_listWorlds',
+      body: { path: {}, query: {} },
+    }),
+    (error: unknown) => {
+      const record = error as {
+        readonly reasonCode?: string;
+        readonly source?: string;
+        readonly retryable?: boolean;
+        readonly details?: { readonly operationId?: string };
+      };
+      assert.equal(record.reasonCode, ReasonCode.REALM_UNAVAILABLE);
+      assert.equal(record.source, 'realm');
+      assert.equal(record.retryable, true);
+      assert.equal(record.details?.operationId, 'WorldPublicController_listWorlds');
       return true;
     },
   );
