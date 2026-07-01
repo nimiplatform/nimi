@@ -170,5 +170,9 @@ test('world character detail renders reference image and voice sample controls',
   assert.match(markup, /data-testid="world-character-voice-sample-audio"/);
   assert.match(markup, /https:\/\/cdn\.example\.test\/character\/reference\.png/);
   assert.match(markup, /https:\/\/cdn\.example\.test\/character\/voice-sample\.wav/);
+  assert.match(markup, /data-testid="world-character-reference-image"[^>]*aspect-\[2\/3\]/);
+  assert.match(markup, /src="https:\/\/cdn\.example\.test\/character\/reference\.png" alt="" class="[^"]*object-contain/);
+  assert.doesNotMatch(markup, /src="https:\/\/cdn\.example\.test\/character\/reference\.png" alt="" class="[^"]*object-cover/);
+  assert.doesNotMatch(markup, /bg-\[#f3eee3\]/);
   assert.doesNotMatch(markup, /\/tmp\/nimi-forge/);
 });

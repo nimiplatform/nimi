@@ -57,8 +57,14 @@
     "identityScenes": "场景",
     "milestonesEyebrow": "人物生平",
     "milestonesTitle": "生涯节点",
+    "timeUnknown": "未标注",
+    "milestoneKind": {
+      "biography": "生平"
+    },
     "relationshipEyebrow": "图谱证据",
     "relationshipTitle": "关系线索",
+    "relationshipSummary": "{{name}}的关系主要围绕{{kinds}}展开。",
+    "relationshipAll": "全部",
     "relationshipKind": {
       "status": "身份",
       "office": "官职",

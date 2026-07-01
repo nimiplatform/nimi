@@ -57,8 +57,14 @@
     "identityScenes": "Scenes",
     "milestonesEyebrow": "Biography",
     "milestonesTitle": "Life milestones",
+    "timeUnknown": "Time unknown",
+    "milestoneKind": {
+      "biography": "Biography"
+    },
     "relationshipEyebrow": "Graph evidence",
     "relationshipTitle": "Relationship clues",
+    "relationshipSummary": "{{name}} relationship network centers on {{kinds}}.",
+    "relationshipAll": "All",
     "relationshipKind": {
       "status": "Status",
       "office": "Office",

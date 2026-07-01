@@ -175,12 +175,14 @@ const ouYangDeRaw = {
           title: '嘉靖二年（1523）中进士',
           summary: '嘉靖二年（1523）中进士',
           sequence: 1,
+          timeLabel: '1523',
         },
         {
           milestoneId: 'cbdb-person-99984-milestone-3',
           title: '官至礼部尚书',
           summary: '官至礼部尚书',
           sequence: 3,
+          timeLabel: '1554',
         },
       ],
     },
@@ -221,6 +223,7 @@ const ouYangDeRaw = {
           summary: '着有《欧阳南野先生文集》三十卷，是其思想与文学成就的主要载体。',
         },
         attributes: {
+          year: 1545,
           textCode: '28102',
           titleChn: '欧阳南野先生文集',
           role: 'author',
@@ -240,6 +243,7 @@ const ouYangDeRaw = {
           summary: '官至礼部尚书，是其仕途的顶峰，掌管国家礼仪与科举事务。',
         },
         attributes: {
+          startYear: 1554,
           officeLabel: '礼部尚书',
           rowRef: 'cbdb:POSTED_TO_OFFICE_DATA:99984:219651:9',
           joinStatus: 'resolved',
@@ -275,8 +279,17 @@ test('world character source detail projects admitted character dossier fields',
   assert.deepEqual(detail.worldCharacter?.sceneRefs, ['ming-literati-network', 'ming-official-career', 'ming-kinship-clan']);
   assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), [
     '嘉靖二年（1523）中进士',
+    '欧阳南野先生文集',
     '官至礼部尚书',
   ]);
+  assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.timeLabel), [
+    '1523',
+    '1545',
+    '1554',
+  ]);
+  assert.equal(detail.worldCharacter?.milestones[2]?.kind, 'office');
+  assert.equal(detail.worldCharacter?.milestones[2]?.derived, true);
+  assert.match(detail.worldCharacter?.milestones[2]?.summary ?? '', /掌管国家礼仪与科举事务/);
   assert.equal(detail.worldCharacter?.relationshipNotes[0]?.summary, '欧阳德被明确标识为阳明学派理学家，这是其最核心的学术身份。');
   assert.match(detail.worldCharacter?.conversationAnchors.join('\n') ?? '', /想问诗文、仕途还是人生起落/);
 });
@@ -288,9 +301,16 @@ test('world character source detail uses Realm relationship neighborhood for wor
   assert.deepEqual(detail.works.map((work) => work.title), ['欧阳南野先生文集']);
   assert.equal(detail.works[0]?.textId, '28102');
   assert.deepEqual(detail.relationshipClues.map((clue) => clue.label), [
-    '礼部尚书',
     '理学家 - 阳明学派',
   ]);
+  assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), [
+    '嘉靖二年（1523）中进士',
+    '欧阳南野先生文集',
+    '官至礼部尚书',
+  ]);
+  assert.equal(detail.worldCharacter?.milestones[1]?.kind, 'work');
+  assert.equal(detail.worldCharacter?.milestones[1]?.derived, true);
+  assert.match(detail.worldCharacter?.milestones[1]?.summary ?? '', /思想与文学成就/);
 });
 
 test('world character source detail renders dossier sections without exposing raw relationship source fields', () => {
@@ -312,10 +332,17 @@ test('world character source detail renders dossier sections without exposing ra
 
   assert.match(markup, /Identity coordinates/);
   assert.match(markup, /Life milestones/);
+  assert.match(markup, /data-testid="world-character-milestones-timeline"/);
   assert.match(markup, /Relationship clues/);
   assert.match(markup, /阳明学派思想家与朝廷重臣/);
   assert.match(markup, /嘉靖二年（1523）中进士/);
+  assert.match(markup, /1554/);
+  assert.match(markup, /1545/);
   assert.match(markup, /欧阳南野先生文集/);
+  assert.match(markup, /data-testid="world-character-relationship-map"/);
+  assert.match(markup, /data-testid="world-character-career-derived-node"/);
+  assert.doesNotMatch(markup, /data-testid="world-character-relationship-clue-postedToOffice"/);
+  assert.doesNotMatch(markup, /data-testid="world-character-relationship-clue-text"/);
   assert.doesNotMatch(visibleMarkup, /cbdb-rel-99984/);
   assert.doesNotMatch(visibleMarkup, /cbdb:BIOG_TEXT_DATA/);
   assert.doesNotMatch(visibleMarkup, /cbdb:POSTED_TO_OFFICE_DATA/);

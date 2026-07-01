@@ -74,6 +74,9 @@ export type SourceDetailWorldCharacterMilestone = {
   title: string;
   summary: string | null;
   sequence: number | null;
+  timeLabel: string | null;
+  kind: 'biography' | 'entry' | 'office' | 'work';
+  derived: boolean;
 };
 
 export type SourceDetailWorldCharacterRelationshipNote = {
@@ -202,6 +205,75 @@ function readFiniteNumber(value: unknown): number | null {
   if (typeof value === 'string' && value.trim()) {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function readYearLabel(value: unknown): string | null {
+  const numeric = readFiniteNumber(value);
+  if (numeric !== null) {
+    return String(Math.trunc(numeric));
+  }
+  const scalar = readScalarString(value);
+  if (!scalar) {
+    return null;
+  }
+  const yearMatch = scalar.match(/\d{3,4}/u);
+  return yearMatch?.[0] ?? scalar;
+}
+
+function readExplicitTimeLabel(record: JsonObject | null | undefined): string | null {
+  if (!record) {
+    return null;
+  }
+  for (const key of ['timeLabel', 'timeRef', 'time', 'happenedAt', 'timestamp', 'eventTime', 'dateLabel', 'date']) {
+    const value = readScalarString(record[key]);
+    if (value) {
+      return value;
+    }
+  }
+
+  const year = readYearLabel(record.year);
+  if (year) {
+    return year;
+  }
+
+  const startYear = readYearLabel(record.startYear ?? record.fromYear ?? record.beginYear);
+  const endYear = readYearLabel(record.endYear ?? record.toYear);
+  if (startYear && endYear && startYear !== endYear) {
+    return `${startYear}-${endYear}`;
+  }
+  return startYear ?? endYear;
+}
+
+function readTimeLabelFromText(value: string | null | undefined): string | null {
+  const text = String(value || '').trim();
+  if (!text) {
+    return null;
+  }
+  const parenthesizedYear = text.match(/[（(](\d{3,4}(?:\s*[-–—]\s*\d{1,4})?)[）)]/u);
+  if (parenthesizedYear?.[1]) {
+    return parenthesizedYear[1].replace(/\s+/gu, '');
+  }
+  const yearText = text.match(/(\d{3,4})\s*年/u);
+  return yearText?.[1] ?? null;
+}
+
+function readMilestoneTimeLabel(
+  records: readonly (JsonObject | null | undefined)[],
+  fallbackTexts: readonly (string | null | undefined)[],
+): string | null {
+  for (const record of records) {
+    const label = readExplicitTimeLabel(record);
+    if (label) {
+      return label;
+    }
+  }
+  for (const text of fallbackTexts) {
+    const label = readTimeLabelFromText(text);
+    if (label) {
+      return label;
+    }
   }
   return null;
 }
@@ -383,6 +455,22 @@ function readRelationshipType(record: JsonObject): string | null {
     ?? readOptionalString(record, 'kind');
 }
 
+const CAREER_RELATIONSHIP_TYPES = new Set(['entry', 'postedToOffice', 'text']);
+
+function isCareerRelationshipType(type: string | null): type is string {
+  return Boolean(type && CAREER_RELATIONSHIP_TYPES.has(type));
+}
+
+function careerMilestoneKind(type: string): SourceDetailWorldCharacterMilestone['kind'] {
+  if (type === 'postedToOffice') {
+    return 'office';
+  }
+  if (type === 'text') {
+    return 'work';
+  }
+  return 'entry';
+}
+
 function readRelationshipSummary(record: JsonObject): string | null {
   const presentation = relationshipPresentation(record);
   return readOptionalString(presentation, 'summary')
@@ -402,6 +490,12 @@ function readRelationshipRows(value: unknown): JsonObject[] {
 
 function readTextTitleFromSummary(summary: string | null): string | null {
   const match = summary?.match(/《([^》]+)》/u);
+  return match?.[1]?.trim() || null;
+}
+
+function readOfficeTitleFromSummary(summary: string | null): string | null {
+  const match = summary?.match(/官至([^，。；、\s]+)/u)
+    ?? summary?.match(/[任拜授为]([^，。；、\s]+(?:尚书|侍郎|学士|御史|知府|知州|知县|郎中|主事))/u);
   return match?.[1]?.trim() || null;
 }
 
@@ -474,7 +568,7 @@ function readRelationshipClues(relationships: JsonObject[]): SourceDetailRelatio
   return relationships
     .map((row, index): SourceDetailRelationshipClue | null => {
       const type = readRelationshipType(row);
-      if (!type || type === 'text') {
+      if (!type || isCareerRelationshipType(type)) {
         return null;
       }
       const label = readRelationshipLabel(row);
@@ -501,26 +595,207 @@ function readRelationshipClues(relationships: JsonObject[]): SourceDetailRelatio
     .slice(0, 12);
 }
 
-function readWorldCharacterMilestones(sourceCore: JsonObject | null | undefined): SourceDetailWorldCharacterMilestone[] {
+function readCareerMilestonesFromRelationships(relationships: JsonObject[]): SourceDetailWorldCharacterMilestone[] {
+  const milestones = relationships
+    .map((row, index): SourceDetailWorldCharacterMilestone | null => {
+      const type = readRelationshipType(row);
+      if (!isCareerRelationshipType(type)) {
+        return null;
+      }
+      const attributes = relationshipAttributes(row);
+      const presentation = relationshipPresentation(row);
+      const core = relationshipCore(row);
+      const summary = readRelationshipSummary(row);
+      const label = readRelationshipLabel(row)
+        ?? (type === 'text' ? readTextTitleFromSummary(summary) : null)
+        ?? (type === 'postedToOffice' ? readOfficeTitleFromSummary(summary) : null);
+      const title = label ?? summary;
+      if (!title) {
+        return null;
+      }
+      const kind = careerMilestoneKind(type);
+      return {
+        id: `career-${readRelationshipId(row, `${type}-${index + 1}`)}`,
+        title,
+        summary,
+        sequence: null,
+        timeLabel: readMilestoneTimeLabel([attributes, presentation, core, row], [title, summary]),
+        kind,
+        derived: true,
+      };
+    })
+    .filter((milestone): milestone is SourceDetailWorldCharacterMilestone => Boolean(milestone))
+    .sort((left, right) => {
+      const order: Record<SourceDetailWorldCharacterMilestone['kind'], number> = {
+        biography: 0,
+        entry: 1,
+        office: 2,
+        work: 3,
+      };
+      return order[left.kind] - order[right.kind];
+    });
+  return dedupeMilestones(milestones);
+}
+
+function milestoneTexts(milestone: SourceDetailWorldCharacterMilestone): string[] {
+  return [milestone.title, milestone.summary]
+    .map((value) => value?.trim() ?? '')
+    .filter(Boolean);
+}
+
+function milestoneTitlesOverlap(
+  left: SourceDetailWorldCharacterMilestone,
+  right: SourceDetailWorldCharacterMilestone,
+): boolean {
+  if (left.kind !== right.kind) {
+    return false;
+  }
+  return milestoneTexts(left).some((leftText) => (
+    milestoneTexts(right).some((rightText) => (
+      leftText.includes(right.title)
+        || rightText.includes(left.title)
+        || leftText.includes(rightText)
+        || rightText.includes(leftText)
+    ))
+  ));
+}
+
+function mergeMilestone(
+  left: SourceDetailWorldCharacterMilestone,
+  right: SourceDetailWorldCharacterMilestone,
+): SourceDetailWorldCharacterMilestone {
+  return {
+    ...left,
+    summary: left.summary ?? right.summary,
+    sequence: left.sequence ?? right.sequence,
+    timeLabel: left.timeLabel ?? right.timeLabel,
+    kind: left.kind === 'biography' && right.kind !== 'biography' ? right.kind : left.kind,
+    derived: left.derived || right.derived,
+  };
+}
+
+function dedupeMilestones(
+  milestones: readonly SourceDetailWorldCharacterMilestone[],
+): SourceDetailWorldCharacterMilestone[] {
+  const result: SourceDetailWorldCharacterMilestone[] = [];
+  for (const milestone of milestones) {
+    const existingIndex = result.findIndex((candidate) => (
+      `${candidate.kind}:${candidate.title}` === `${milestone.kind}:${milestone.title}`
+        || milestoneTitlesOverlap(candidate, milestone)
+    ));
+    if (existingIndex >= 0) {
+      const existing = result[existingIndex];
+      if (existing) {
+        result[existingIndex] = mergeMilestone(existing, milestone);
+      }
+      continue;
+    }
+    result.push(milestone);
+  }
+  return result;
+}
+
+function milestoneSortValue(milestone: SourceDetailWorldCharacterMilestone): number {
+  const fromTimeLabel = readYearLabel(milestone.timeLabel) ?? readTimeLabelFromText(milestone.timeLabel);
+  if (fromTimeLabel) {
+    const parsed = Number(fromTimeLabel.match(/\d{3,4}/u)?.[0]);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  const fromText = milestoneTexts(milestone).map(readTimeLabelFromText).find(Boolean);
+  if (fromText) {
+    const parsed = Number(fromText.match(/\d{3,4}/u)?.[0]);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return Number.MAX_SAFE_INTEGER;
+}
+
+function sortMilestones(
+  milestones: readonly SourceDetailWorldCharacterMilestone[],
+): SourceDetailWorldCharacterMilestone[] {
+  const order: Record<SourceDetailWorldCharacterMilestone['kind'], number> = {
+    biography: 0,
+    entry: 1,
+    office: 2,
+    work: 3,
+  };
+  return [...milestones].sort((left, right) => (
+    milestoneSortValue(left) - milestoneSortValue(right)
+      || (left.sequence ?? Number.MAX_SAFE_INTEGER) - (right.sequence ?? Number.MAX_SAFE_INTEGER)
+      || order[left.kind] - order[right.kind]
+      || left.title.localeCompare(right.title)
+  ));
+}
+
+function careerMilestoneMatchesAuthored(
+  authored: SourceDetailWorldCharacterMilestone,
+  career: SourceDetailWorldCharacterMilestone,
+): boolean {
+  const careerTitle = career.title.trim();
+  const careerSummary = career.summary?.trim() ?? '';
+  const authoredTexts = milestoneTexts(authored);
+  return authoredTexts.some((text) => (
+    text.includes(careerTitle)
+      || (careerSummary.length > 0 && careerSummary.includes(text))
+  ));
+}
+
+function readWorldCharacterMilestones(
+  sourceCore: JsonObject | null | undefined,
+  careerMilestones: readonly SourceDetailWorldCharacterMilestone[],
+): SourceDetailWorldCharacterMilestone[] {
   const biography = parseOptionalJsonObject(sourceCore?.biography);
-  return readRecordArray(biography?.milestones)
+  const authored = readRecordArray(biography?.milestones)
     .map((row, index): SourceDetailWorldCharacterMilestone | null => {
       const title = readOptionalString(row, 'title') ?? readOptionalString(row, 'summary');
       if (!title) {
         return null;
       }
+      const summary = readOptionalString(row, 'summary');
       const sequence = readFiniteNumber(row.sequence);
       return {
         id: readOptionalString(row, 'milestoneId')
           ?? readOptionalString(row, 'id')
           ?? slug(title, String(index + 1)),
         title,
-        summary: readOptionalString(row, 'summary'),
+        summary,
         sequence,
+        timeLabel: readMilestoneTimeLabel([row], [title, summary]),
+        kind: 'biography',
+        derived: false,
       };
     })
     .filter((milestone): milestone is SourceDetailWorldCharacterMilestone => Boolean(milestone))
     .sort((left, right) => (left.sequence ?? Number.MAX_SAFE_INTEGER) - (right.sequence ?? Number.MAX_SAFE_INTEGER));
+  const mergedAuthored = authored.map((milestone) => {
+    const career = careerMilestones.find((candidate) => careerMilestoneMatchesAuthored(milestone, candidate));
+    if (!career) {
+      return milestone;
+    }
+    return {
+      ...milestone,
+      summary: career.summary ?? milestone.summary,
+      timeLabel: milestone.timeLabel ?? career.timeLabel,
+      kind: career.kind,
+      derived: true,
+    };
+  });
+  const seen = new Set(mergedAuthored.map((milestone) => `${milestone.kind}:${milestone.title}`));
+  const derived = careerMilestones.filter((milestone) => {
+    if (mergedAuthored.some((authoredMilestone) => careerMilestoneMatchesAuthored(authoredMilestone, milestone))) {
+      return false;
+    }
+    const key = `${milestone.kind}:${milestone.title}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+  return sortMilestones(dedupeMilestones([...mergedAuthored, ...derived]));
 }
 
 function readWorldCharacterRelationshipNotes(sourceCore: JsonObject | null | undefined): SourceDetailWorldCharacterRelationshipNote[] {
@@ -529,7 +804,7 @@ function readWorldCharacterRelationshipNotes(sourceCore: JsonObject | null | und
       const summary = readOptionalString(row, 'summary');
       const type = readOptionalString(row, 'relationType')
         ?? readOptionalString(row, 'type');
-      if (!summary || !type) {
+      if (!summary || !type || isCareerRelationshipType(type)) {
         return null;
       }
       const targetRef = readOptionalString(row, 'targetRef');
@@ -582,7 +857,10 @@ function readWorldCharacterConversationAnchors(sourceCore: JsonObject | null | u
   return anchors.slice(0, 10);
 }
 
-function readWorldCharacter(sourceCore: JsonObject | null | undefined): SourceDetailWorldCharacter | null {
+function readWorldCharacter(
+  sourceCore: JsonObject | null | undefined,
+  careerMilestones: readonly SourceDetailWorldCharacterMilestone[],
+): SourceDetailWorldCharacter | null {
   if (!sourceCore) {
     return null;
   }
@@ -592,7 +870,7 @@ function readWorldCharacter(sourceCore: JsonObject | null | undefined): SourceDe
     faction: readOptionalString(placement, 'faction'),
     rank: readOptionalString(placement, 'rank'),
     sceneRefs: readStringArray(placement?.sceneRefs),
-    milestones: readWorldCharacterMilestones(sourceCore),
+    milestones: readWorldCharacterMilestones(sourceCore, careerMilestones),
     relationshipNotes: readWorldCharacterRelationshipNotes(sourceCore),
     conversationAnchors: readWorldCharacterConversationAnchors(sourceCore),
     interaction: readWorldCharacterInteraction(sourceCore),
@@ -677,6 +955,10 @@ export function toSourceDetailData(
     throw new Error('Source detail projection requires displayName from Realm Core');
   }
   const relationships = readRelationshipRows(raw.relationships);
+  const sourceRelationships = readRelationshipRows(sourceRecord?.relationships);
+  const careerMilestones = sourceKind === 'worldCharacter'
+    ? readCareerMilestonesFromRelationships([...sourceRelationships, ...relationships])
+    : [];
   const works = sourceKind === 'worldCharacter'
     ? dedupeWorks([
         ...readWorldCharacterWorks(sourceRecord),
@@ -733,7 +1015,7 @@ export function toSourceDetailData(
     ),
     sourceRef,
     entity: readSourceDetailEntity(raw.entity),
-    worldCharacter: sourceKind === 'worldCharacter' ? readWorldCharacter(sourceRecord) : null,
+    worldCharacter: sourceKind === 'worldCharacter' ? readWorldCharacter(sourceRecord, careerMilestones) : null,
     relationshipClues: sourceKind === 'worldCharacter' ? readRelationshipClues(relationships) : [],
     works,
     worksAvailability: works.length > 0 ? 'available' : 'unavailable',
