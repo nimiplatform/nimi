@@ -1,121 +1,70 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { Avatar, Button, IconButton, NimiText, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
+import type { LucideIcon } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  ChevronRight,
+  Clock3,
+  Compass,
+  FileText,
+  Images,
+  Layers,
+  MessageSquare,
+  Shield,
+  Users,
+} from 'lucide-react';
 import { PAPER, PAPER_RADIUS, PAPER_SERIF } from './world-detail-paper-model';
 import { worldInitial } from './world-list-atoms';
 
 type IconProps = { size?: number; color?: string; strokeWidth?: number };
 
-function strokeIcon(size: number, color: string, strokeWidth: number, children: ReactNode) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {children}
-    </svg>
-  );
+function kitIcon(Icon: LucideIcon, { size = 18, color = 'currentColor', strokeWidth = 1.6 }: IconProps) {
+  return <Icon aria-hidden="true" size={size} color={color} strokeWidth={strokeWidth} />;
 }
 
-export function IconUsers({ size = 18, color = 'currentColor', strokeWidth = 1.6 }: IconProps) {
-  return strokeIcon(size, color, strokeWidth, (
-    <>
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-    </>
-  ));
+export function IconUsers(props: IconProps) {
+  return kitIcon(Users, props);
 }
 
-export function IconBook({ size = 18, color = 'currentColor', strokeWidth = 1.6 }: IconProps) {
-  return strokeIcon(size, color, strokeWidth, (
-    <>
-      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-    </>
-  ));
+export function IconBook(props: IconProps) {
+  return kitIcon(BookOpen, props);
 }
 
-export function IconScene({ size = 18, color = 'currentColor', strokeWidth = 1.6 }: IconProps) {
-  return strokeIcon(size, color, strokeWidth, (
-    <>
-      <path d="m3 18 5-7 4 5 3-4 6 6" />
-      <path d="M3 18h18" />
-      <circle cx="8" cy="7" r="1.6" />
-    </>
-  ));
+export function IconScene(props: IconProps) {
+  return kitIcon(Images, props);
 }
 
-export function IconCompass({ size = 18, color = 'currentColor', strokeWidth = 1.6 }: IconProps) {
-  return strokeIcon(size, color, strokeWidth, (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-    </>
-  ));
+export function IconCompass(props: IconProps) {
+  return kitIcon(Compass, props);
 }
 
-export function IconClock({ size = 18, color = 'currentColor', strokeWidth = 1.6 }: IconProps) {
-  return strokeIcon(size, color, strokeWidth, (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 8v4l2.5 2.5" />
-    </>
-  ));
+export function IconClock(props: IconProps) {
+  return kitIcon(Clock3, props);
 }
 
-export function IconLayers({ size = 18, color = 'currentColor', strokeWidth = 1.6 }: IconProps) {
-  return strokeIcon(size, color, strokeWidth, (
-    <>
-      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-      <line x1="8" y1="2" x2="8" y2="18" />
-      <line x1="16" y1="6" x2="16" y2="22" />
-    </>
-  ));
+export function IconLayers(props: IconProps) {
+  return kitIcon(Layers, props);
 }
 
-export function IconFile({ size = 18, color = 'currentColor', strokeWidth = 1.6 }: IconProps) {
-  return strokeIcon(size, color, strokeWidth, (
-    <>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-    </>
-  ));
+export function IconFile(props: IconProps) {
+  return kitIcon(FileText, props);
 }
 
-export function IconShield({ size = 18, color = 'currentColor', strokeWidth = 1.6 }: IconProps) {
-  return strokeIcon(size, color, strokeWidth, (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 8v4l2.5 2.5" />
-    </>
-  ));
+export function IconShield(props: IconProps) {
+  return kitIcon(Shield, props);
 }
 
-export function IconChat({ size = 18, color = 'currentColor', strokeWidth = 1.6 }: IconProps) {
-  return strokeIcon(size, color, strokeWidth, (
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-  ));
+export function IconChat(props: IconProps) {
+  return kitIcon(MessageSquare, props);
 }
 
-export function IconArrow({ size = 14, color = 'currentColor', strokeWidth = 2 }: IconProps) {
-  return strokeIcon(size, color, strokeWidth, (
-    <>
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
-    </>
-  ));
+export function IconArrow(props: IconProps) {
+  return kitIcon(ArrowRight, props);
 }
 
-export function IconChevron({ size = 14, color = 'currentColor', strokeWidth = 2 }: IconProps) {
-  return strokeIcon(size, color, strokeWidth, (
-    <polyline points="9 18 15 12 9 6" />
-  ));
+export function IconChevron(props: IconProps) {
+  return kitIcon(ChevronRight, props);
 }
 
 /** Warm rice-paper avatar with a serif initial, used across the paper surface. */
@@ -132,26 +81,37 @@ export function PaperAvatar({
   return (
     <div
       aria-hidden="true"
+      className="shrink-0 overflow-hidden"
       style={{
         width: size,
         height: size,
         borderRadius: radius,
-        flexShrink: 0,
         border: `1.5px solid ${PAPER.avatarBorder}`,
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        fontFamily: PAPER_SERIF,
-        fontSize: Math.round(size * 0.42),
-        fontWeight: 700,
-        color: PAPER.ink,
         boxShadow: 'inset 0 -6px 14px rgba(90,80,56,.16)',
-        background: imageUrl
-          ? `url(${imageUrl}) center/cover no-repeat`
-          : PAPER.avatarGradient,
+        background: PAPER.avatarGradient,
       }}
     >
-      {imageUrl ? null : <span style={{ paddingBottom: Math.round(size * 0.1) }}>{worldInitial(name)}</span>}
+      <Avatar
+        alt={name}
+        src={imageUrl}
+        size="lg"
+        shape={size >= 48 ? 'rounded' : 'circle'}
+        className="h-full w-full bg-transparent"
+        fallbackClassName="items-end bg-transparent"
+        fallback={(
+          <span
+            style={{
+              paddingBottom: Math.round(size * 0.1),
+              fontFamily: PAPER_SERIF,
+              fontSize: Math.round(size * 0.42),
+              fontWeight: 700,
+              color: PAPER.ink,
+            }}
+          >
+            {worldInitial(name)}
+          </span>
+        )}
+      />
     </div>
   );
 }
@@ -173,54 +133,58 @@ export function PaperSection({
   children: ReactNode;
 }) {
   return (
-    <section
+    <Surface
+      as="section"
+      tone="card"
+      material="solid"
+      elevation="base"
+      padding="none"
       id={id}
       data-testid={testId}
+      className="min-w-0 scroll-mt-20 p-6"
       style={{
-        scrollMarginTop: 80,
         background: PAPER.card,
-        border: `1px solid ${PAPER.border}`,
+        borderColor: PAPER.border,
         borderRadius: PAPER_RADIUS.lg,
         boxShadow: PAPER.cardShadow,
-        padding: '22px 24px',
-        minWidth: 0,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
-          <span style={{ width: 4, height: 18, borderRadius: 2, background: PAPER.green, flexShrink: 0 }} />
-          <h2 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 20, fontWeight: 700, color: PAPER.inkStrong }}>{title}</h2>
+      <div className="mb-1 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span aria-hidden="true" className="h-[18px] w-1 shrink-0 rounded-[var(--nimi-radius-sm)]" style={{ background: PAPER.green }} />
+          <NimiText
+            as="h2"
+            role="section-title"
+            className="truncate text-xl font-bold"
+            style={{ color: PAPER.inkStrong, fontFamily: PAPER_SERIF }}
+          >
+            {title}
+          </NimiText>
         </div>
-        {action ? <div style={{ flexShrink: 0 }}>{action}</div> : null}
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      {subtitle ? <p style={{ margin: '0 0 16px', fontSize: 13, color: PAPER.faint }}>{subtitle}</p> : null}
+      {subtitle ? (
+        <NimiText role="helper" className="mb-4" style={{ color: PAPER.faint }}>
+          {subtitle}
+        </NimiText>
+      ) : null}
       {children}
-    </section>
+    </Surface>
   );
 }
 
 export function PaperViewAll({ label, onClick }: { label: string; onClick?: () => void }) {
   return (
-    <button
-      type="button"
+    <Button
       onClick={onClick}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 5,
-        fontFamily: 'inherit',
-        fontSize: 13,
-        fontWeight: 600,
-        color: PAPER.green,
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: 0,
-      }}
+      tone="ghost"
+      size="sm"
+      trailingIcon={<IconChevron size={14} color="currentColor" />}
+      className="min-h-0 px-0 py-0 hover:bg-transparent"
+      style={{ color: PAPER.green }}
     >
       {label}
-      <IconChevron size={14} color={PAPER.green} />
-    </button>
+    </Button>
   );
 }
 
@@ -233,20 +197,18 @@ export function PaperTag({
 }) {
   const palette = tone === 'green'
     ? { color: PAPER.green, background: PAPER.greenSoftBg }
-    : { color: PAPER.muted, background: 'rgba(120,108,80,.1)' };
+    : { color: PAPER.muted, background: 'color-mix(in srgb, var(--nimi-text-muted) 10%, transparent)' };
   return (
-    <span
+    <StatusBadge
+      tone={tone === 'green' ? 'success' : 'neutral'}
+      shape="soft"
+      className="whitespace-nowrap px-2 py-0 text-[10.5px] font-semibold"
       style={{
-        fontSize: 10.5,
-        fontWeight: 600,
-        padding: '2px 8px',
-        borderRadius: 999,
-        whiteSpace: 'nowrap',
         ...palette,
       }}
     >
       {children}
-    </span>
+    </StatusBadge>
   );
 }
 
@@ -255,14 +217,14 @@ export const paperPrimaryButton: CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   gap: 6,
-  fontFamily: 'inherit',
-  fontSize: 12.5,
-  fontWeight: 600,
+  fontFamily: 'var(--nimi-font-sans)',
+  fontSize: 'var(--nimi-type-body-sm-size)',
+  fontWeight: 'var(--nimi-type-label-weight)',
   padding: '8px 15px',
-  borderRadius: 9,
+  borderRadius: 'var(--nimi-radius-sm)',
   border: 'none',
   background: PAPER.green,
-  color: '#f6f2e7',
+  color: 'var(--nimi-action-primary-text)',
   cursor: 'pointer',
 };
 
@@ -271,13 +233,42 @@ export const paperGhostButton: CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   gap: 6,
-  fontFamily: 'inherit',
-  fontSize: 12.5,
-  fontWeight: 600,
+  fontFamily: 'var(--nimi-font-sans)',
+  fontSize: 'var(--nimi-type-body-sm-size)',
+  fontWeight: 'var(--nimi-type-label-weight)',
   padding: 8,
-  borderRadius: 9,
-  border: `1px solid #d6c9ac`,
+  borderRadius: 'var(--nimi-radius-sm)',
+  border: `1px solid ${PAPER.borderSoft}`,
   background: PAPER.card,
   color: PAPER.ink,
   cursor: 'pointer',
 };
+
+export function PaperIconButton({
+  label,
+  icon,
+  onClick,
+  className,
+}: {
+  label: string;
+  icon: ReactNode;
+  onClick?: () => void;
+  className?: string;
+}) {
+  return (
+    <IconButton
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      icon={icon}
+      tone="secondary"
+      size="sm"
+      className={cn('h-8 w-8', className)}
+      style={{
+        color: PAPER.ink,
+        borderColor: PAPER.borderSoft,
+        background: PAPER.card,
+      }}
+    />
+  );
+}

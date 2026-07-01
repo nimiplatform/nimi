@@ -1,6 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import {
+  BookOpen,
+  Minus,
+  PanelRightClose,
+  PanelRightOpen,
+  Plus,
+  RotateCcw,
+  UserRound,
+} from 'lucide-react';
 import {
   buildWorldRelationshipEvidenceGraph,
   type WorldRelationshipEvidenceCharacterBucket,
@@ -29,10 +38,23 @@ type WorldRelationshipExplorerProps = {
 };
 
 type PeopleFilterKey = 'all' | 'featured' | 'literati' | 'academy' | 'open';
+type RelationFilterKey = 'all' | WorldRelationshipEvidenceKind;
 
 type GraphPosition = {
   readonly x: number;
   readonly y: number;
+};
+
+type GraphCardBounds = {
+  readonly halfWidth: number;
+  readonly halfHeight: number;
+};
+
+type GraphRect = {
+  readonly left: number;
+  readonly right: number;
+  readonly top: number;
+  readonly bottom: number;
 };
 
 type CenterClue = {
@@ -43,29 +65,94 @@ type CenterClue = {
   readonly clueId: string | null;
 };
 
+type RelationshipKindTheme = {
+  readonly accent: string;
+  readonly border: string;
+  readonly softBg: string;
+  readonly cardBg: string;
+  readonly ink: string;
+  readonly dash: string;
+};
+
 const FILTER_KEYS: readonly PeopleFilterKey[] = ['all', 'featured', 'literati', 'academy', 'open'];
+const GRAPH_MIN_ZOOM = .72;
+const GRAPH_MAX_ZOOM = 1.36;
+const GRAPH_DEFAULT_ZOOM = 1.1;
 
-const GRAPH_CENTER: GraphPosition = { x: 500, y: 326 };
-const GRAPH_POSITIONS: readonly GraphPosition[] = [
-  { x: 690, y: 132 },
-  { x: 794, y: 326 },
-  { x: 690, y: 520 },
-  { x: 500, y: 576 },
-  { x: 310, y: 520 },
-  { x: 206, y: 326 },
-  { x: 310, y: 132 },
-  { x: 500, y: 76 },
-];
+const GRAPH_CENTER: GraphPosition = { x: 500, y: 500 };
+const EDGE_LABEL_SIZE = { width: 108, height: 28 };
+const GRAPH_LABEL_SAFE_GAP = 6;
+const GRAPH_LABEL_ESCAPE_STEP = 12;
+const GRAPH_LABEL_ESCAPE_MAX = 240;
+const GRAPH_VIEWBOX_BOUNDS: GraphRect = { left: 0, right: 1000, top: 0, bottom: 1000 };
+const CENTER_GRAPH_CARD_BOUNDS: GraphCardBounds = { halfWidth: 88, halfHeight: 88 };
+const TARGET_GRAPH_CARD_BOUNDS: GraphCardBounds = { halfWidth: 96, halfHeight: 48 };
 
-const KIND_COLORS: Record<WorldRelationshipEvidenceKind, string> = {
-  association: '#4f78c9',
-  kinship: '#8d68c8',
-  office: '#4aa371',
-  text: '#c98a36',
-  entry: '#ba7b28',
-  address: '#4c9a96',
-  status: '#68736f',
-  topic: '#8d7a52',
+const KIND_THEMES: Record<WorldRelationshipEvidenceKind, RelationshipKindTheme> = {
+  kinship: {
+    accent: '#2c8a54',
+    border: '#98caa5',
+    softBg: 'rgba(232,247,235,.92)',
+    cardBg: 'linear-gradient(135deg, rgba(246,253,247,.98), rgba(235,248,238,.92))',
+    ink: '#17603c',
+    dash: '5 6',
+  },
+  association: {
+    accent: '#4d7edb',
+    border: '#93b5ee',
+    softBg: 'rgba(235,243,255,.92)',
+    cardBg: 'linear-gradient(135deg, rgba(248,251,255,.98), rgba(236,244,255,.92))',
+    ink: '#2f62c0',
+    dash: '4 6',
+  },
+  office: {
+    accent: '#c28419',
+    border: '#e2bf73',
+    softBg: 'rgba(255,247,228,.94)',
+    cardBg: 'linear-gradient(135deg, rgba(255,252,243,.98), rgba(255,244,221,.92))',
+    ink: '#9b650f',
+    dash: '4 6',
+  },
+  text: {
+    accent: '#7c4ed1',
+    border: '#b99ae6',
+    softBg: 'rgba(246,239,255,.94)',
+    cardBg: 'linear-gradient(135deg, rgba(253,250,255,.98), rgba(246,238,255,.92))',
+    ink: '#6b39bf',
+    dash: '4 6',
+  },
+  entry: {
+    accent: '#bd7b21',
+    border: '#dfb46f',
+    softBg: 'rgba(255,246,231,.94)',
+    cardBg: 'linear-gradient(135deg, rgba(255,252,246,.98), rgba(255,242,221,.92))',
+    ink: '#9c5f14',
+    dash: '4 6',
+  },
+  address: {
+    accent: '#278b87',
+    border: '#8bc8c4',
+    softBg: 'rgba(232,249,247,.94)',
+    cardBg: 'linear-gradient(135deg, rgba(248,255,254,.98), rgba(232,248,246,.92))',
+    ink: '#17706c',
+    dash: '4 6',
+  },
+  status: {
+    accent: '#68736f',
+    border: '#b7c0bb',
+    softBg: 'rgba(243,246,243,.94)',
+    cardBg: 'linear-gradient(135deg, rgba(253,253,250,.98), rgba(240,244,240,.92))',
+    ink: '#515c58',
+    dash: '3 6',
+  },
+  topic: {
+    accent: '#8c7742',
+    border: '#cdbd8d',
+    softBg: 'rgba(249,244,229,.94)',
+    cardBg: 'linear-gradient(135deg, rgba(255,253,247,.98), rgba(247,239,218,.92))',
+    ink: '#76602e',
+    dash: '3 6',
+  },
 };
 
 const KIND_ORDER: readonly WorldRelationshipEvidenceKind[] = [
@@ -78,6 +165,8 @@ const KIND_ORDER: readonly WorldRelationshipEvidenceKind[] = [
   'status',
   'topic',
 ];
+
+const RELATION_FILTER_KEYS: readonly RelationFilterKey[] = ['all', ...KIND_ORDER];
 
 function panelStyle(): CSSProperties {
   return {
@@ -96,17 +185,191 @@ function softPanelStyle(): CSSProperties {
   };
 }
 
+function toolButtonStyle(active = false): CSSProperties {
+  return {
+    width: 30,
+    height: 30,
+    borderRadius: 999,
+    border: `1px solid ${active ? PAPER.green : PAPER.border}`,
+    background: active ? PAPER.green : 'rgba(255,252,244,.86)',
+    color: active ? '#f6f2e7' : PAPER.muted,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  };
+}
+
+function filterChipStyle(active: boolean): CSSProperties {
+  return {
+    border: `1px solid ${active ? PAPER.green : PAPER.border}`,
+    background: active ? PAPER.green : PAPER.card,
+    color: active ? '#f6f2e7' : PAPER.muted,
+    borderRadius: 999,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 11.5,
+    fontWeight: 800,
+    padding: '5px 10px',
+    whiteSpace: 'nowrap',
+  };
+}
+
+function relationshipKindTheme(kind: WorldRelationshipEvidenceKind): RelationshipKindTheme {
+  return KIND_THEMES[kind];
+}
+
+function storyFilterChipStyle(active: boolean, kind: RelationFilterKey): CSSProperties {
+  const theme = kind === 'all' ? null : relationshipKindTheme(kind);
+  const accent = theme?.accent ?? PAPER.green;
+  return {
+    border: `1px solid ${active ? accent : PAPER.borderSoft}`,
+    background: active ? accent : 'rgba(255,253,248,.9)',
+    color: active ? '#fffaf0' : PAPER.muted,
+    borderRadius: 999,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 12,
+    fontWeight: 850,
+    padding: '7px 16px',
+    whiteSpace: 'nowrap',
+    boxShadow: active ? '0 7px 16px rgba(64,55,36,.11)' : 'none',
+  };
+}
+
 function relationKindLabel(t: ReturnType<typeof useTranslation>['t'], kind: WorldRelationshipEvidenceKind): string {
   return t(`WorldDetail.paper.relationshipExplorer.kinds.${kind}`);
 }
 
+function relationFilterLabel(t: ReturnType<typeof useTranslation>['t'], key: RelationFilterKey): string {
+  return key === 'all'
+    ? t('WorldDetail.paper.relationshipExplorer.allKinds')
+    : t(`WorldDetail.paper.relationshipExplorer.kinds.${key}`);
+}
+
+function clampZoom(value: number): number {
+  return Math.min(GRAPH_MAX_ZOOM, Math.max(GRAPH_MIN_ZOOM, Number(value.toFixed(2))));
+}
+
 function graphPosition(index: number): GraphPosition {
-  return GRAPH_POSITIONS[index] ?? GRAPH_POSITIONS[index % GRAPH_POSITIONS.length] ?? GRAPH_CENTER;
+  const slots: readonly GraphPosition[] = [
+    { x: 255, y: 244 },
+    { x: 746, y: 250 },
+    { x: 245, y: 688 },
+    { x: 760, y: 676 },
+    { x: 163, y: 474 },
+    { x: 843, y: 488 },
+    { x: 356, y: 156 },
+    { x: 636, y: 800 },
+  ];
+  const slot = slots[index % slots.length] ?? GRAPH_CENTER;
+  const lap = Math.floor(index / slots.length);
+  if (lap === 0) {
+    return slot;
+  }
+  return {
+    x: slot.x + (index % 2 === 0 ? -18 : 18),
+    y: slot.y + (lap * 24),
+  };
 }
 
 function graphPath(position: GraphPosition): string {
   const controlX = (GRAPH_CENTER.x + position.x) / 2;
   return `M ${GRAPH_CENTER.x} ${GRAPH_CENTER.y} C ${controlX} ${GRAPH_CENTER.y} ${controlX} ${position.y} ${position.x} ${position.y}`;
+}
+
+function graphClearanceDistance(unitX: number, unitY: number, bounds: GraphCardBounds): number {
+  const labelHalfWidth = EDGE_LABEL_SIZE.width / 2;
+  const labelHalfHeight = EDGE_LABEL_SIZE.height / 2;
+  const xDistance = Math.abs(unitX) < .01
+    ? Number.POSITIVE_INFINITY
+    : (bounds.halfWidth + labelHalfWidth + GRAPH_LABEL_SAFE_GAP) / Math.abs(unitX);
+  const yDistance = Math.abs(unitY) < .01
+    ? Number.POSITIVE_INFINITY
+    : (bounds.halfHeight + labelHalfHeight + GRAPH_LABEL_SAFE_GAP) / Math.abs(unitY);
+  return Math.min(xDistance, yDistance);
+}
+
+function graphRectFromCenter(position: GraphPosition, bounds: GraphCardBounds, padding = 0): GraphRect {
+  return {
+    left: position.x - bounds.halfWidth - padding,
+    right: position.x + bounds.halfWidth + padding,
+    top: position.y - bounds.halfHeight - padding,
+    bottom: position.y + bounds.halfHeight + padding,
+  };
+}
+
+function graphLabelRect(position: GraphPosition): GraphRect {
+  return graphRectFromCenter(position, {
+    halfWidth: EDGE_LABEL_SIZE.width / 2,
+    halfHeight: EDGE_LABEL_SIZE.height / 2,
+  });
+}
+
+function graphRectsOverlap(a: GraphRect, b: GraphRect): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+function graphRectWithin(a: GraphRect, b: GraphRect): boolean {
+  return a.left >= b.left && a.right <= b.right && a.top >= b.top && a.bottom <= b.bottom;
+}
+
+function graphLabelOverlapsOccupied(position: GraphPosition, targetPosition: GraphPosition): boolean {
+  const labelRect = graphLabelRect(position);
+  const centerRect = graphRectFromCenter(GRAPH_CENTER, CENTER_GRAPH_CARD_BOUNDS, GRAPH_LABEL_SAFE_GAP);
+  const targetRect = graphRectFromCenter(targetPosition, TARGET_GRAPH_CARD_BOUNDS, GRAPH_LABEL_SAFE_GAP);
+  return graphRectsOverlap(labelRect, centerRect) || graphRectsOverlap(labelRect, targetRect);
+}
+
+function graphEscapedLabelPosition(
+  basePosition: GraphPosition,
+  targetPosition: GraphPosition,
+  unitX: number,
+  unitY: number,
+): GraphPosition {
+  if (!graphLabelOverlapsOccupied(basePosition, targetPosition)) {
+    return basePosition;
+  }
+
+  const tangentX = -unitY;
+  const tangentY = unitX;
+  for (let offset = GRAPH_LABEL_ESCAPE_STEP; offset <= GRAPH_LABEL_ESCAPE_MAX; offset += GRAPH_LABEL_ESCAPE_STEP) {
+    const candidates: readonly GraphPosition[] = [
+      { x: basePosition.x + tangentX * offset, y: basePosition.y + tangentY * offset },
+      { x: basePosition.x - tangentX * offset, y: basePosition.y - tangentY * offset },
+    ];
+    const resolved = candidates.find((candidate) => (
+      graphRectWithin(graphLabelRect(candidate), GRAPH_VIEWBOX_BOUNDS)
+      && !graphLabelOverlapsOccupied(candidate, targetPosition)
+    ));
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return basePosition;
+}
+
+export function relationshipGraphEdgeLabelPosition(position: GraphPosition): GraphPosition {
+  const dx = position.x - GRAPH_CENTER.x;
+  const dy = position.y - GRAPH_CENTER.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 1) {
+    return GRAPH_CENTER;
+  }
+  const unitX = dx / distance;
+  const unitY = dy / distance;
+  const minDistance = graphClearanceDistance(unitX, unitY, CENTER_GRAPH_CARD_BOUNDS);
+  const maxDistance = distance - graphClearanceDistance(unitX, unitY, TARGET_GRAPH_CARD_BOUNDS);
+  const labelDistance = maxDistance >= minDistance
+    ? minDistance
+    : distance / 2;
+  const basePosition = {
+    x: GRAPH_CENTER.x + unitX * labelDistance,
+    y: GRAPH_CENTER.y + unitY * labelDistance,
+  };
+  return graphEscapedLabelPosition(basePosition, position, unitX, unitY);
 }
 
 function extractWorkTitles(texts: readonly string[]): string[] {
@@ -202,6 +465,21 @@ function relatedLists(center: WorldCharacter, characters: readonly WorldCharacte
       ? others.filter((character) => extractWorkTitles(character.tags ?? []).some((work) => works.includes(work))).slice(0, 4)
       : [],
   };
+}
+
+function dedupeCenterClues(clues: readonly CenterClue[]): CenterClue[] {
+  const seenTexts = new Set<string>();
+  return clues.filter((clue) => {
+    const key = clue.text.replace(/\s+/g, ' ').trim();
+    if (!key) {
+      return false;
+    }
+    if (seenTexts.has(key)) {
+      return false;
+    }
+    seenTexts.add(key);
+    return true;
+  });
 }
 
 function CharacterMiniList({
@@ -307,57 +585,200 @@ function ProfileFallback({
 function RelationshipNetwork({
   center,
   edges,
+  allEdgeCount,
+  relationKindFilter,
+  relationKindOptions,
+  zoomScale,
+  detailCollapsed,
   selectedEdgeId,
   onSelectEdge,
   onSelectCharacter,
+  onRelationKindFilterChange,
+  onZoomIn,
+  onZoomOut,
+  onResetView,
+  onToggleDetailPanel,
 }: {
   readonly center: WorldCharacter;
   readonly edges: readonly WorldRelationshipEvidenceEdge[];
+  readonly allEdgeCount: number;
+  readonly relationKindFilter: RelationFilterKey;
+  readonly relationKindOptions: readonly RelationFilterKey[];
+  readonly zoomScale: number;
+  readonly detailCollapsed: boolean;
   readonly selectedEdgeId: string | null;
   readonly onSelectEdge: (edgeId: string) => void;
   readonly onSelectCharacter: (characterId: string) => void;
+  readonly onRelationKindFilterChange: (filter: RelationFilterKey) => void;
+  readonly onZoomIn: () => void;
+  readonly onZoomOut: () => void;
+  readonly onResetView: () => void;
+  readonly onToggleDetailPanel: () => void;
 }) {
   const { t } = useTranslation();
+  const displayedEdges = edges.slice(0, 8);
+  const legendKinds = relationKindOptions.filter((kind): kind is WorldRelationshipEvidenceKind => kind !== 'all').slice(0, 6);
+  const detailToggleLabel = t(
+    `WorldDetail.paper.relationshipExplorer.controls.${detailCollapsed ? 'expandDetail' : 'collapseDetail'}`,
+  );
   return (
-    <div style={{ ...panelStyle(), overflow: 'hidden', minHeight: 500 }}>
-      <svg viewBox="0 0 1000 660" role="img" aria-label={t('WorldDetail.paper.relationshipExplorer.graphLabel')} style={{ width: '100%', height: 500, display: 'block', background: 'radial-gradient(circle at 50% 45%, rgba(235,226,200,.82), rgba(248,246,238,.94) 48%, rgba(230,238,232,.84))' }}>
-        <circle cx={GRAPH_CENTER.x} cy={GRAPH_CENTER.y} r="190" fill="none" stroke="rgba(120,108,80,.2)" strokeDasharray="4 10" />
-        {edges.slice(0, 8).map((edge, index) => {
-          const position = graphPosition(index);
-          const selected = edge.id === selectedEdgeId;
-          return (
-            <g key={edge.id}>
-              <path d={graphPath(position)} fill="none" stroke={KIND_COLORS[edge.kind]} strokeWidth={selected ? 4 : 2.4} strokeOpacity={selected ? .95 : .58} strokeDasharray={edge.kind === 'text' ? '8 7' : undefined} onClick={() => onSelectEdge(edge.id)} style={{ cursor: 'pointer' }} />
-              <foreignObject x={(GRAPH_CENTER.x + position.x) / 2 - 52} y={(GRAPH_CENTER.y + position.y) / 2 - 14} width="104" height="28">
-                <button type="button" onClick={() => onSelectEdge(edge.id)} style={{ width: '100%', height: 26, border: `1px solid ${selected ? KIND_COLORS[edge.kind] : 'rgba(180,170,146,.74)'}`, borderRadius: 999, background: 'rgba(255,252,244,.9)', color: selected ? PAPER.inkStrong : PAPER.muted, fontSize: 11, fontWeight: 800, fontFamily: 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>
-                  {relationKindLabel(t, edge.kind)}
-                </button>
-              </foreignObject>
-            </g>
-          );
-        })}
-        <foreignObject x={GRAPH_CENTER.x - 72} y={GRAPH_CENTER.y - 82} width="144" height="164">
-          <button type="button" onClick={() => onSelectCharacter(center.id)} style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>
-            <div style={{ width: 110, height: 110, margin: '0 auto 9px', borderRadius: '50%', background: PAPER.avatarGradient, border: `3px solid ${PAPER.green}`, boxShadow: '0 14px 32px rgba(55,89,68,.22)', display: 'grid', placeItems: 'center', fontFamily: PAPER_SERIF, fontSize: 48, fontWeight: 900, color: PAPER.inkStrong }}>{center.name.slice(0, 1)}</div>
-            <div style={{ fontSize: 15, fontWeight: 900, color: PAPER.inkStrong }}>{center.name}</div>
-            <div style={{ marginTop: 2, fontSize: 11, color: PAPER.green, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{characterMeta(center)}</div>
-          </button>
-        </foreignObject>
-        {edges.slice(0, 8).map((edge, index) => {
-          const position = graphPosition(index);
-          const selected = edge.id === selectedEdgeId;
-          return (
-            <foreignObject key={`${edge.id}-node`} x={position.x - 62} y={position.y - 76} width="124" height="152">
-              <button type="button" onClick={() => onSelectCharacter(edge.targetCharacterId)} style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>
-                <div style={{ width: 72, height: 72, margin: '0 auto 8px', borderRadius: '50%', background: PAPER.avatarGradient, border: `3px solid ${selected ? KIND_COLORS[edge.kind] : '#fff'}`, boxShadow: selected ? '0 10px 26px rgba(33,85,62,.28)' : '0 8px 20px rgba(97,88,65,.16)', display: 'grid', placeItems: 'center', fontFamily: PAPER_SERIF, fontSize: 31, fontWeight: 900, color: PAPER.ink }}>{edge.targetName.slice(0, 1)}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 900, color: PAPER.inkStrong }}>{edge.targetName}</div>
-                <div style={{ marginTop: 2, fontSize: 10.5, color: PAPER.faint, minHeight: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{[edge.targetRole, edge.targetFaction].filter(Boolean).join(' · ') || t('WorldDetail.paper.relationshipExplorer.noTargetMeta')}</div>
+    <section
+      data-testid="world-relationship-story-panel"
+      style={{
+        ...panelStyle(),
+        minHeight: 720,
+        padding: 22,
+        overflow: 'hidden',
+        background:
+          'radial-gradient(55% 42% at 52% 8%, rgba(65,111,79,.10), transparent 60%),'
+          + 'linear-gradient(135deg, rgba(255,253,247,.96), rgba(249,247,240,.93) 48%, rgba(251,249,243,.96))',
+      }}
+    >
+      <div data-testid="world-relationship-graph-toolbar" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 9, display: 'grid', placeItems: 'center', background: PAPER.greenSoftBg, color: PAPER.green, flexShrink: 0 }}>
+            <BookOpen size={16} strokeWidth={2.2} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 20, lineHeight: 1.25, fontWeight: 950, color: PAPER.inkStrong }}>{t('WorldDetail.paper.relationshipExplorer.story.title')}</h2>
+            <p style={{ margin: '8px 0 0', maxWidth: 620, fontSize: 12.8, lineHeight: 1.65, color: PAPER.muted }}>
+              {t('WorldDetail.paper.relationshipExplorer.story.subtitle', { name: center.name })}
+            </p>
+          </div>
+        </div>
+        <div style={{ display: 'grid', justifyItems: 'end', gap: 10, flexShrink: 0 }}>
+          <div data-testid="world-relationship-kind-legend" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {legendKinds.map((kind) => {
+              const theme = relationshipKindTheme(kind);
+              return (
+                <span key={kind} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: PAPER.muted, fontSize: 11.5, fontWeight: 800, whiteSpace: 'nowrap' }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 999, background: theme.accent, boxShadow: `0 0 0 3px ${theme.softBg}` }} />
+                  {relationKindLabel(t, kind)}
+                </span>
+              );
+            })}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button type="button" aria-label={t('WorldDetail.paper.relationshipExplorer.controls.zoomOut')} title={t('WorldDetail.paper.relationshipExplorer.controls.zoomOut')} onClick={onZoomOut} style={toolButtonStyle()}>
+              <Minus size={14} />
+            </button>
+            <button type="button" aria-label={t('WorldDetail.paper.relationshipExplorer.controls.zoomIn')} title={t('WorldDetail.paper.relationshipExplorer.controls.zoomIn')} onClick={onZoomIn} style={toolButtonStyle()}>
+              <Plus size={14} />
+            </button>
+            <button type="button" aria-label={t('WorldDetail.paper.relationshipExplorer.controls.resetView')} title={t('WorldDetail.paper.relationshipExplorer.controls.resetView')} onClick={onResetView} style={toolButtonStyle()}>
+              <RotateCcw size={14} />
+            </button>
+            <button type="button" aria-label={detailToggleLabel} title={detailToggleLabel} onClick={onToggleDetailPanel} style={toolButtonStyle(detailCollapsed)}>
+              {detailCollapsed ? <PanelRightOpen size={14} /> : <PanelRightClose size={14} />}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div style={{ aspectRatio: '1 / 1', border: `1px solid ${PAPER.borderSoft}`, borderRadius: 22, overflow: 'hidden', background: 'linear-gradient(180deg, rgba(255,253,248,.74), rgba(250,247,238,.62))' }}>
+        <svg
+          viewBox="0 0 1000 1000"
+          role="img"
+          aria-label={t('WorldDetail.paper.relationshipExplorer.graphLabel')}
+          style={{ width: '100%', height: '100%', display: 'block' }}
+        >
+          <g transform={`translate(${GRAPH_CENTER.x} ${GRAPH_CENTER.y}) scale(${zoomScale}) translate(${-GRAPH_CENTER.x} ${-GRAPH_CENTER.y})`}>
+            <circle cx={GRAPH_CENTER.x} cy={GRAPH_CENTER.y} r="138" fill="none" stroke="rgba(34,93,62,.16)" />
+            {displayedEdges.map((edge, index) => {
+              const position = graphPosition(index);
+              const labelPosition = relationshipGraphEdgeLabelPosition(position);
+              const selected = edge.id === selectedEdgeId;
+              const theme = relationshipKindTheme(edge.kind);
+              return (
+                <g key={edge.id}>
+                  <path
+                    d={graphPath(position)}
+                    fill="none"
+                    stroke={theme.accent}
+                    strokeWidth={selected ? 3.8 : 2.4}
+                    strokeOpacity={selected ? .96 : .58}
+                    strokeDasharray={theme.dash}
+                    onClick={() => onSelectEdge(edge.id)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <foreignObject x={labelPosition.x - (EDGE_LABEL_SIZE.width / 2)} y={labelPosition.y - (EDGE_LABEL_SIZE.height / 2)} width={EDGE_LABEL_SIZE.width} height={EDGE_LABEL_SIZE.height}>
+                    <button type="button" onClick={() => onSelectEdge(edge.id)} style={{ width: '100%', height: 26, border: `1px solid ${selected ? theme.accent : theme.border}`, borderRadius: 999, background: 'rgba(255,252,244,.96)', color: theme.ink, fontSize: 11, fontWeight: 900, fontFamily: 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                      {relationKindLabel(t, edge.kind)}
+                    </button>
+                  </foreignObject>
+                </g>
+              );
+            })}
+            {displayedEdges.length === 0 ? (
+              <text x={GRAPH_CENTER.x} y={GRAPH_CENTER.y + 120} textAnchor="middle" fill={PAPER.faint} fontSize="16" fontWeight="700">
+                {t('WorldDetail.paper.relationshipExplorer.network.noFilteredEdges')}
+              </text>
+            ) : null}
+            <foreignObject x={GRAPH_CENTER.x - 92} y={GRAPH_CENTER.y - 92} width="184" height="184">
+              <button type="button" onClick={() => onSelectCharacter(center.id)} style={{ width: '100%', height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', display: 'grid', placeItems: 'center' }}>
+                <div style={{ width: 136, height: 136, borderRadius: '50%', background: 'radial-gradient(circle at 50% 35%, #2f8257, #145033 72%)', border: '6px solid rgba(255,253,247,.92)', boxShadow: '0 0 0 2px rgba(37,99,77,.20), 0 18px 36px rgba(25,70,45,.22)', display: 'grid', placeItems: 'center', color: '#fffef8', textAlign: 'center' }}>
+                  <span style={{ maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: PAPER_SERIF, fontSize: 29, fontWeight: 950 }}>{center.name}</span>
+                </div>
               </button>
             </foreignObject>
+            {displayedEdges.map((edge, index) => {
+              const position = graphPosition(index);
+              const selected = edge.id === selectedEdgeId;
+              const theme = relationshipKindTheme(edge.kind);
+              const targetMeta = [edge.targetRole, edge.targetFaction].filter(Boolean).join(' · ') || t('WorldDetail.paper.relationshipExplorer.noTargetMeta');
+              return (
+                <foreignObject key={`${edge.id}-node`} x={position.x - 94} y={position.y - 42} width="188" height="86">
+                  <button
+                    type="button"
+                    onClick={() => (edge.targetIsWorldCharacter ? onSelectCharacter(edge.targetCharacterId) : onSelectEdge(edge.id))}
+                    style={{
+                      width: '100%',
+                      minHeight: 78,
+                      border: `1.5px solid ${selected ? theme.accent : theme.border}`,
+                      borderRadius: edge.targetIsWorldCharacter ? 34 : 999,
+                      background: theme.softBg,
+                      color: PAPER.inkStrong,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      boxShadow: selected ? '0 14px 28px rgba(42,77,58,.16)' : '0 8px 20px rgba(86,75,52,.09)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 14px',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ width: 36, height: 36, borderRadius: 999, display: 'grid', placeItems: 'center', background: theme.accent, color: '#fffaf2', flexShrink: 0 }}>
+                      <UserRound size={18} strokeWidth={2.4} />
+                    </span>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 13, fontWeight: 950, color: theme.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{edge.targetName}</span>
+                      <span style={{ display: 'block', marginTop: 3, fontSize: 11.5, color: PAPER.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{targetMeta}</span>
+                    </span>
+                  </button>
+                </foreignObject>
+              );
+            })}
+          </g>
+        </svg>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
+        {relationKindOptions.map((kind) => {
+          const active = kind === relationKindFilter;
+          return (
+            <button key={kind} type="button" onClick={() => onRelationKindFilterChange(kind)} style={storyFilterChipStyle(active, kind)}>
+              {relationFilterLabel(t, kind)}
+            </button>
           );
         })}
-      </svg>
-    </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+        <button type="button" onClick={onResetView} style={{ border: 'none', background: 'transparent', color: PAPER.green, fontSize: 12.5, fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit' }}>
+          {t('WorldDetail.paper.relationshipExplorer.story.viewAllSystem', { count: allEdgeCount })} <IconArrow size={13} />
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -382,8 +803,8 @@ function PeoplePanel({
 }) {
   const { t } = useTranslation();
   return (
-    <aside style={{ ...panelStyle(), display: 'flex', flexDirection: 'column', minHeight: 0, maxHeight: 'calc(100vh - 96px)', position: 'sticky', top: 16, overflow: 'hidden' }}>
-      <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${PAPER.divider}` }}>
+    <aside style={{ ...panelStyle(), display: 'flex', flexDirection: 'column', minHeight: 0, height: 'calc(100vh - 92px)', position: 'sticky', top: 12, overflow: 'hidden' }}>
+      <div style={{ padding: '14px 14px 12px', borderBottom: `1px solid ${PAPER.divider}` }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
           <h2 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 17, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.relationshipExplorer.peopleList.title')}</h2>
           <span style={{ fontSize: 12, color: PAPER.faint, fontWeight: 700 }}>{buckets.length} / {totalCount}</span>
@@ -407,7 +828,7 @@ function PeoplePanel({
             outline: 'none',
           }}
         />
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 11 }}>
           {FILTER_KEYS.map((key) => {
             const active = key === filter;
             return (
@@ -415,17 +836,7 @@ function PeoplePanel({
                 key={key}
                 type="button"
                 onClick={() => onFilterChange(key)}
-                style={{
-                  border: `1px solid ${active ? PAPER.green : PAPER.border}`,
-                  background: active ? PAPER.green : PAPER.card,
-                  color: active ? '#f6f2e7' : PAPER.muted,
-                  borderRadius: 999,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  fontSize: 11.5,
-                  fontWeight: 700,
-                  padding: '5px 11px',
-                }}
+                style={filterChipStyle(active)}
               >
                 {t(`WorldDetail.paper.relationshipExplorer.peopleList.filters.${key}`)}
               </button>
@@ -446,7 +857,7 @@ function PeoplePanel({
                   onClick={() => onSelect(bucket.character.id)}
                   style={{
                     width: '100%',
-                    padding: '9px 10px',
+                    padding: '9px 16px 9px 10px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
@@ -460,12 +871,14 @@ function PeoplePanel({
                 >
                   <PaperAvatar name={bucket.character.name} imageUrl={bucket.character.avatarUrl} size={38} />
                   <span style={{ minWidth: 0, flex: 1 }}>
-                    <span style={{ display: 'block', fontSize: 13, fontWeight: 900, color: PAPER.inkStrong }}>{bucket.character.name}</span>
+                    <span data-testid="world-relationship-person-title-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
+                      <span style={{ minWidth: 0, fontSize: 13, fontWeight: 900, color: PAPER.inkStrong, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bucket.character.name}</span>
+                      {count > 0 ? (
+                        <span data-testid="world-relationship-person-count" style={{ flexShrink: 0, fontSize: 11, color: PAPER.green, fontWeight: 850, lineHeight: 1 }}>{t('WorldDetail.paper.relationshipExplorer.peopleList.clueCount', { count })}</span>
+                      ) : null}
+                    </span>
                     <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: PAPER.faint, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{characterMeta(bucket.character)}</span>
                   </span>
-                  {count > 0 ? (
-                    <span style={{ fontSize: 11, color: PAPER.green, fontWeight: 800, whiteSpace: 'nowrap' }}>{t('WorldDetail.paper.relationshipExplorer.peopleList.clueCount', { count })}</span>
-                  ) : null}
                 </button>
               );
             })}
@@ -487,12 +900,21 @@ function RelationshipDetail({
 }) {
   const { t } = useTranslation();
   const works = extractWorkTitles(edge.evidenceTexts);
+  const evidenceClues = edge.evidenceTexts.slice(0, 3);
   return (
     <>
-      <button type="button" onClick={onBackToProfile} style={{ ...paperGhostButton, padding: '5px 10px', fontSize: 11.5, marginBottom: 12 }}>
-        <IconChevron size={13} color={PAPER.green} /> {t('WorldDetail.paper.relationshipExplorer.side.profile')}
-      </button>
-      <PaperTag>{t('WorldDetail.paper.relationshipExplorer.side.relationship')}</PaperTag>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <button
+          type="button"
+          onClick={onBackToProfile}
+          aria-label={t('WorldDetail.paper.relationshipExplorer.side.profile')}
+          title={t('WorldDetail.paper.relationshipExplorer.side.profile')}
+          style={{ ...paperGhostButton, width: 28, height: 28, padding: 0, justifyContent: 'center' }}
+        >
+          <IconChevron size={13} color={PAPER.green} />
+        </button>
+        <PaperTag>{t('WorldDetail.paper.relationshipExplorer.side.relationship')}</PaperTag>
+      </div>
       <h3 style={{ margin: '12px 0 6px', fontFamily: PAPER_SERIF, fontSize: 20, fontWeight: 900, color: PAPER.inkStrong }}>{edge.sourceName} · {edge.targetName}</h3>
       <dl style={{ margin: 0, display: 'grid', gap: 13 }}>
         <div>
@@ -500,22 +922,23 @@ function RelationshipDetail({
           <dd style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 900, color: PAPER.inkStrong }}>{relationKindLabel(t, edge.kind)}</dd>
         </div>
         <div>
-          <dt style={{ fontSize: 11, color: PAPER.faint }}>{t('WorldDetail.paper.relationshipExplorer.relation.confidence')}</dt>
-          <dd style={{ margin: '4px 0 0', fontSize: 13, color: PAPER.muted }}>{edge.weight >= 24 ? t('WorldDetail.paper.relationshipExplorer.relation.confidenceHigh') : t('WorldDetail.paper.relationshipExplorer.relation.confidenceNormal')}</dd>
-        </div>
-        <div>
-          <dt style={{ fontSize: 11, color: PAPER.faint }}>{t('WorldDetail.paper.relationshipExplorer.relation.source')}</dt>
-          <dd style={{ margin: '4px 0 0', fontSize: 12.5, lineHeight: 1.65, color: PAPER.muted }}>{t('WorldDetail.paper.relationshipExplorer.relation.sourceDesc')}</dd>
+          <dt style={{ fontSize: 11, color: PAPER.faint }}>{t('WorldDetail.paper.relationshipExplorer.relation.description')}</dt>
+          <dd style={{ margin: '6px 0 0', padding: 12, borderRadius: 12, background: PAPER.cardSoft, fontSize: 12.5, lineHeight: 1.65, color: PAPER.ink }}>{edge.evidenceTexts[0] ?? t('WorldDetail.paper.relationshipExplorer.relation.noEvidence')}</dd>
         </div>
         <div>
           <dt style={{ fontSize: 11, color: PAPER.faint }}>{t('WorldDetail.paper.relationshipExplorer.relation.works')}</dt>
           <dd style={{ margin: '6px 0 0', display: 'flex', gap: 6, flexWrap: 'wrap' }}>{works.length > 0 ? works.map((work) => <PaperTag key={work} tone="neutral">{work}</PaperTag>) : <span style={{ fontSize: 12.5, color: PAPER.faint }}>{t('WorldDetail.paper.relationshipExplorer.relation.noWorks')}</span>}</dd>
         </div>
       </dl>
-      {edge.evidenceTexts.slice(0, 2).map((text) => (
-        <p key={text} style={{ margin: '12px 0 0', padding: 12, borderRadius: 12, background: PAPER.cardSoft, fontSize: 12.5, lineHeight: 1.65, color: PAPER.ink }}>{text}</p>
-      ))}
-      {onOpenCharacter ? (
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${PAPER.divider}` }}>
+        <div style={{ marginBottom: 10, fontSize: 13.5, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.relationshipExplorer.relation.evidence')}</div>
+        <div style={{ display: 'grid', gap: 8 }}>
+          {evidenceClues.map((text) => (
+            <p key={text} style={{ margin: 0, padding: 12, borderRadius: 12, background: PAPER.cardSoft, fontSize: 12.5, lineHeight: 1.65, color: PAPER.ink }}>{text}</p>
+          ))}
+        </div>
+      </div>
+      {onOpenCharacter && edge.targetIsWorldCharacter ? (
         <button type="button" onClick={() => onOpenCharacter(edge.targetCharacterId)} style={{ ...paperPrimaryButton, width: '100%', marginTop: 16 }}>
           {t('WorldDetail.paper.relationshipExplorer.openCharacter')} <IconArrow size={13} />
         </button>
@@ -549,6 +972,7 @@ function ClueDetail({
 function ProfileSummary({
   center,
   clues,
+  edges,
   onOpenCharacter,
   onBrowsePeers,
   onSelectEdge,
@@ -556,12 +980,18 @@ function ProfileSummary({
 }: {
   readonly center: WorldCharacter;
   readonly clues: readonly CenterClue[];
+  readonly edges: readonly WorldRelationshipEvidenceEdge[];
   readonly onOpenCharacter?: (characterId: string) => void;
   readonly onBrowsePeers: () => void;
   readonly onSelectEdge: (edgeId: string) => void;
   readonly onSelectClue: (clueId: string) => void;
 }) {
   const { t } = useTranslation();
+  const primaryClues = clues.slice(0, 3);
+  const relationOverview = KIND_ORDER.map((kind) => ({
+    kind,
+    count: edges.filter((edge) => edge.kind === kind).length,
+  })).filter((item) => item.count > 0);
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -584,14 +1014,25 @@ function ProfileSummary({
         </button>
       </div>
 
+      <div style={{ marginTop: 18, paddingTop: 15, borderTop: `1px solid ${PAPER.divider}` }}>
+        <div style={{ marginBottom: 10, fontSize: 13.5, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.relationshipExplorer.profile.relationshipOverview')}</div>
+        {relationOverview.length > 0 ? (
+          <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+            {relationOverview.map((item) => (
+              <PaperTag key={item.kind} tone="neutral">{relationKindLabel(t, item.kind)} · {item.count}</PaperTag>
+            ))}
+          </div>
+        ) : <p style={{ margin: 0, fontSize: 12.5, color: PAPER.faint }}>{t('WorldDetail.paper.relationshipExplorer.profile.noRelationshipOverview')}</p>}
+      </div>
+
       <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${PAPER.divider}` }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
           <h4 style={{ margin: 0, fontSize: 13.5, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.relationshipExplorer.clueList.title')}</h4>
-          <span style={{ fontSize: 11.5, color: PAPER.faint, fontWeight: 700 }}>{t('WorldDetail.paper.relationshipExplorer.clueList.count', { count: clues.length })}</span>
+          <span style={{ fontSize: 11.5, color: PAPER.faint, fontWeight: 700 }}>{t('WorldDetail.paper.relationshipExplorer.clueList.limitedCount', { shown: primaryClues.length, total: clues.length })}</span>
         </div>
-        {clues.length > 0 ? (
+        {primaryClues.length > 0 ? (
           <div style={{ display: 'grid', gap: 8 }}>
-            {clues.map((clue) => (
+            {primaryClues.map((clue) => (
               <button
                 key={clue.id}
                 type="button"
@@ -612,11 +1053,34 @@ function ProfileSummary({
   );
 }
 
-function HeroStat({ value, label }: { readonly value: string; readonly label: string }) {
+function RelationshipDetailPanel({
+  activeLabel,
+  children,
+}: {
+  readonly activeLabel: string;
+  readonly children: ReactNode;
+}) {
+  const { t } = useTranslation();
+  return (
+    <aside data-testid="world-relationship-detail-panel" aria-expanded={true} style={{ ...panelStyle(), height: 'calc(100vh - 92px)', position: 'sticky', top: 12, alignSelf: 'start', display: 'grid', gridTemplateRows: 'auto 1fr', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '13px 14px 11px', borderBottom: `1px solid ${PAPER.divider}` }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 900, color: PAPER.faint }}>{t('WorldDetail.paper.relationshipExplorer.side.detail')}</div>
+          <div style={{ marginTop: 3, fontSize: 13, fontWeight: 900, color: PAPER.inkStrong, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeLabel}</div>
+        </div>
+      </div>
+      <div style={{ minHeight: 0, overflowY: 'auto', padding: 16 }}>
+        {children}
+      </div>
+    </aside>
+  );
+}
+
+function TopStat({ value, label }: { readonly value: string; readonly label: string }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontFamily: PAPER_SERIF, fontSize: 26, fontWeight: 800, color: PAPER.inkStrong, lineHeight: 1 }}>{value}</div>
-      <div style={{ marginTop: 5, fontSize: 11.5, color: PAPER.muted, whiteSpace: 'nowrap' }}>{label}</div>
+      <div style={{ fontFamily: PAPER_SERIF, fontSize: 18, fontWeight: 900, color: PAPER.inkStrong, lineHeight: 1 }}>{value}</div>
+      <div style={{ marginTop: 4, fontSize: 10.5, color: PAPER.muted, whiteSpace: 'nowrap' }}>{label}</div>
     </div>
   );
 }
@@ -634,6 +1098,9 @@ export function WorldRelationshipExplorer({
   const [selectedClueId, setSelectedClueId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<PeopleFilterKey>('all');
+  const [relationKindFilter, setRelationKindFilter] = useState<RelationFilterKey>('all');
+  const [zoomScale, setZoomScale] = useState(GRAPH_DEFAULT_ZOOM);
+  const [detailCollapsed, setDetailCollapsed] = useState(true);
   const graph = useMemo(() => buildWorldRelationshipEvidenceGraph({
     world,
     characters,
@@ -647,15 +1114,37 @@ export function WorldRelationshipExplorer({
     ...graph.density.empty,
   ], [graph.density.clueOnly, graph.density.empty, graph.density.linked]);
   const visibleBuckets = useMemo(
-    () => buckets.filter((bucket) => bucketMatchesFilter(bucket, filter) && bucketMatchesQuery(bucket, query)),
+    () => buckets.filter((bucket) => (
+      bucketMatchesFilter(bucket, filter)
+      && bucketMatchesQuery(bucket, query)
+    )),
     [buckets, filter, query],
+  );
+  const relationKindOptions = useMemo<RelationFilterKey[]>(() => {
+    const available = new Set<WorldRelationshipEvidenceKind>();
+    buckets.forEach((bucket) => {
+      if (bucket.primaryKind) {
+        available.add(bucket.primaryKind);
+      }
+    });
+    KIND_ORDER.forEach((kind) => {
+      if (graph.kindCounts[kind] > 0) {
+        available.add(kind);
+      }
+    });
+    return RELATION_FILTER_KEYS.filter((kind) => kind === 'all' || available.has(kind));
+  }, [buckets, graph.kindCounts]);
+  const visibleEdges = useMemo(
+    () => relationKindFilter === 'all'
+      ? graph.edges
+      : graph.edges.filter((edge) => edge.kind === relationKindFilter),
+    [graph.edges, relationKindFilter],
   );
   const selectedEdge = selectedEdgeId ? graph.edges.find((edge) => edge.id === selectedEdgeId) ?? null : null;
   const selectedClue = selectedClueId ? graph.unlinkedEvidence.find((record) => record.id === selectedClueId) ?? null : null;
-  const activeKinds = KIND_ORDER.filter((kind) => graph.kindCounts[kind] > 0);
   const totalClues = buckets.reduce((sum, bucket) => sum + clueCount(bucket), 0);
   const featuredCount = buckets.filter((bucket) => bucket.character.importance === 'PRIMARY').length;
-  const centerClues = useMemo<CenterClue[]>(() => [
+  const centerClues = useMemo<CenterClue[]>(() => dedupeCenterClues([
     ...graph.edges.map((edge) => ({
       id: `edge:${edge.id}`,
       kind: edge.kind,
@@ -670,54 +1159,71 @@ export function WorldRelationshipExplorer({
       edgeId: null,
       clueId: record.id,
     })),
-  ], [graph.edges, graph.unlinkedEvidence]);
+  ]), [graph.edges, graph.unlinkedEvidence]);
 
   const selectCenter = (characterId: string) => {
     setSelectedCenterId(characterId);
     setSelectedEdgeId(null);
     setSelectedClueId(null);
+    setDetailCollapsed(false);
   };
   const selectEdge = (edgeId: string) => {
     setSelectedEdgeId(edgeId);
     setSelectedClueId(null);
+    setDetailCollapsed(false);
   };
   const selectClue = (recordId: string) => {
     setSelectedClueId(recordId);
     setSelectedEdgeId(null);
+    setDetailCollapsed(false);
   };
   const clearSelection = () => {
     setSelectedEdgeId(null);
     setSelectedClueId(null);
+    setDetailCollapsed(true);
   };
   const browsePeers = () => {
     setFilter('all');
     setQuery('');
   };
+  const zoomIn = () => setZoomScale((value) => clampZoom(value + .12));
+  const zoomOut = () => setZoomScale((value) => clampZoom(value - .12));
+  const resetView = () => {
+    setZoomScale(GRAPH_DEFAULT_ZOOM);
+    setRelationKindFilter('all');
+    setSelectedEdgeId(null);
+    setSelectedClueId(null);
+    setDetailCollapsed(true);
+  };
+  const activeDetailLabel = selectedEdge
+    ? `${selectedEdge.sourceName} · ${selectedEdge.targetName}`
+    : selectedClue
+      ? t('WorldDetail.paper.relationshipExplorer.side.clue')
+      : graph.center?.name ?? t('WorldDetail.paper.relationshipExplorer.side.profile');
+  const expandedExplorerLayoutStyle = {
+    gridTemplateColumns: 'minmax(212px,244px) minmax(0,1fr) minmax(300px,340px)',
+  };
+  const collapsedExplorerColumns = 'minmax(212px,244px) minmax(0,1fr)';
 
   return (
     <div style={{ minHeight: '100%', color: PAPER.ink, background: 'linear-gradient(135deg, #f4efe2 0%, #eef4ee 48%, #f8f4e9 100%)' }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 24px', borderBottom: `1px solid ${PAPER.border}`, background: 'rgba(255,253,247,.7)' }}>
-        <button type="button" onClick={onBack} style={{ ...paperGhostButton, border: 'none', background: 'transparent', padding: '4px 6px', color: PAPER.muted }}>
+      <header data-testid="world-relationship-topbar" style={{ display: 'grid', gridTemplateColumns: 'minmax(170px,auto) minmax(0,1fr) auto', alignItems: 'center', gap: 18, padding: '9px 18px', minHeight: 58, borderBottom: `1px solid ${PAPER.border}`, background: 'rgba(255,253,247,.82)', backdropFilter: 'blur(10px)' }}>
+        <button type="button" onClick={onBack} style={{ ...paperGhostButton, border: 'none', background: 'transparent', padding: '4px 6px', color: PAPER.muted, justifyContent: 'flex-start' }}>
           <IconChevron size={14} color={PAPER.green} /> {t('WorldDetail.paper.relationshipExplorer.back')}
         </button>
-        <div style={{ fontFamily: PAPER_SERIF, fontSize: 14.5, fontWeight: 900, color: PAPER.inkStrong, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('WorldDetail.paper.relationshipExplorer.title')}</div>
-        <div style={{ fontSize: 12, color: PAPER.faint, whiteSpace: 'nowrap' }}>
-          {t('WorldDetail.paper.relationshipExplorer.eyebrow')} · {t('WorldDetail.paper.relationshipExplorer.worldKindStatic')}
+        <div style={{ minWidth: 0, textAlign: 'center' }}>
+          <div style={{ fontFamily: PAPER_SERIF, fontSize: 15.5, fontWeight: 900, color: PAPER.inkStrong, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('WorldDetail.paper.relationshipExplorer.title')}</div>
+          <div style={{ marginTop: 3, fontSize: 11.5, color: PAPER.faint, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('WorldDetail.paper.relationshipExplorer.topbar.current', { name: graph.center?.name ?? '--' })}</div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 22, flexWrap: 'wrap' }}>
+          <TopStat value={formatNum(graph.summary.worldCharacterCount)} label={t('WorldDetail.paper.relationshipExplorer.metrics.people')} />
+          <TopStat value={formatNum(graph.summary.relationshipCount || graph.summary.linkedEvidenceCount)} label={t('WorldDetail.paper.relationshipExplorer.metrics.relationships')} />
+          <TopStat value={formatNum(totalClues)} label={t('WorldDetail.paper.relationshipExplorer.metrics.clues')} />
+          <TopStat value={formatNum(featuredCount)} label={t('WorldDetail.paper.relationshipExplorer.metrics.featured')} />
         </div>
       </header>
 
-      <section style={{ padding: '26px 24px 22px', background: 'linear-gradient(135deg, rgba(228,238,228,.9), rgba(238,242,226,.78) 55%, rgba(247,243,233,.6))', borderBottom: `1px solid ${PAPER.border}` }}>
-        <h1 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 30, lineHeight: 1.12, color: PAPER.inkStrong }}>{t('WorldDetail.paper.relationshipExplorer.title')}</h1>
-        <p style={{ margin: '10px 0 0', maxWidth: 760, fontSize: 13.5, lineHeight: 1.75, color: PAPER.muted }}>{t('WorldDetail.paper.relationshipExplorer.subtitle')}</p>
-        <div style={{ display: 'flex', gap: 40, marginTop: 20, flexWrap: 'wrap' }}>
-          <HeroStat value={formatNum(graph.summary.worldCharacterCount)} label={t('WorldDetail.paper.relationshipExplorer.metrics.people')} />
-          <HeroStat value={formatNum(graph.summary.relationshipCount || graph.summary.linkedEvidenceCount)} label={t('WorldDetail.paper.relationshipExplorer.metrics.relationships')} />
-          <HeroStat value={formatNum(totalClues)} label={t('WorldDetail.paper.relationshipExplorer.metrics.clues')} />
-          <HeroStat value={formatNum(featuredCount)} label={t('WorldDetail.paper.relationshipExplorer.metrics.featured')} />
-        </div>
-      </section>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px,300px) minmax(0,1fr) minmax(320px,360px)', gap: 16, alignItems: 'start', padding: 16 }}>
+      <div style={{ display: 'grid', ...expandedExplorerLayoutStyle, gridTemplateColumns: detailCollapsed ? collapsedExplorerColumns : expandedExplorerLayoutStyle.gridTemplateColumns, gap: 12, alignItems: 'start', padding: 12 }}>
         <PeoplePanel
           buckets={visibleBuckets}
           totalCount={buckets.length}
@@ -729,30 +1235,26 @@ export function WorldRelationshipExplorer({
           onSelect={selectCenter}
         />
 
-        <main style={{ minWidth: 0, display: 'grid', gap: 12 }}>
-          <div style={{ ...panelStyle(), padding: '16px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <span style={{ width: 4, height: 18, borderRadius: 2, background: PAPER.green, flexShrink: 0 }} />
-              <h2 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 18, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.relationshipExplorer.network.heading')}</h2>
-            </div>
-            {graph.center ? (
-              <p style={{ margin: '8px 0 0', fontSize: 12.5, color: PAPER.faint }}>{t('WorldDetail.paper.relationshipExplorer.network.centerHint', { name: graph.center.name })}</p>
-            ) : null}
-            {activeKinds.length > 0 ? (
-              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 12 }}>
-                {activeKinds.map((kind) => (
-                  <span key={kind} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: PAPER.muted, fontSize: 12 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: KIND_COLORS[kind] }} />
-                    {relationKindLabel(t, kind)}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-
+        <main style={{ minWidth: 0 }}>
           {graph.center ? (
             graph.edges.length > 0 ? (
-              <RelationshipNetwork center={graph.center} edges={graph.edges} selectedEdgeId={selectedEdgeId} onSelectEdge={selectEdge} onSelectCharacter={selectCenter} />
+              <RelationshipNetwork
+                center={graph.center}
+                edges={visibleEdges}
+                allEdgeCount={graph.edges.length}
+                relationKindFilter={relationKindFilter}
+                relationKindOptions={relationKindOptions}
+                zoomScale={zoomScale}
+                detailCollapsed={detailCollapsed}
+                selectedEdgeId={selectedEdgeId}
+                onSelectEdge={selectEdge}
+                onSelectCharacter={selectCenter}
+                onRelationKindFilterChange={setRelationKindFilter}
+                onZoomIn={zoomIn}
+                onZoomOut={zoomOut}
+                onResetView={resetView}
+                onToggleDetailPanel={() => setDetailCollapsed((value) => !value)}
+              />
             ) : (
               <ProfileFallback center={graph.center} characters={characters} onSelect={selectCenter} onOpenProfile={onSelectCharacter} />
             )
@@ -762,32 +1264,31 @@ export function WorldRelationshipExplorer({
               <p style={{ margin: '8px 0 0', fontSize: 12.5, lineHeight: 1.65, color: PAPER.faint }}>{t('WorldDetail.paper.relationshipExplorer.noCharactersDesc')}</p>
             </div>
           )}
-
-          {graph.center ? (
-            <p style={{ margin: 0, padding: '0 4px', fontSize: 12, color: PAPER.faint }}>{t('WorldDetail.paper.relationshipExplorer.network.pickHint')}</p>
-          ) : null}
         </main>
 
-        <aside style={{ ...panelStyle(), padding: 20, position: 'sticky', top: 16, alignSelf: 'start' }}>
-          {graph.center ? (
-            selectedEdge ? (
-              <RelationshipDetail edge={selectedEdge} onBackToProfile={clearSelection} onOpenCharacter={onSelectCharacter} />
-            ) : selectedClue ? (
-              <ClueDetail clue={selectedClue} onBackToProfile={clearSelection} />
+        {!detailCollapsed ? (
+          <RelationshipDetailPanel activeLabel={activeDetailLabel}>
+            {graph.center ? (
+              selectedEdge ? (
+                <RelationshipDetail edge={selectedEdge} onBackToProfile={clearSelection} onOpenCharacter={onSelectCharacter} />
+              ) : selectedClue ? (
+                <ClueDetail clue={selectedClue} onBackToProfile={clearSelection} />
+              ) : (
+                <ProfileSummary
+                  center={graph.center}
+                  clues={centerClues}
+                  edges={graph.edges}
+                  onOpenCharacter={onSelectCharacter}
+                  onBrowsePeers={browsePeers}
+                  onSelectEdge={selectEdge}
+                  onSelectClue={selectClue}
+                />
+              )
             ) : (
-              <ProfileSummary
-                center={graph.center}
-                clues={centerClues}
-                onOpenCharacter={onSelectCharacter}
-                onBrowsePeers={browsePeers}
-                onSelectEdge={selectEdge}
-                onSelectClue={selectClue}
-              />
-            )
-          ) : (
-            <p style={{ margin: 0, fontSize: 12.8, lineHeight: 1.7, color: PAPER.muted }}>{t('WorldDetail.paper.relationshipExplorer.noCharactersDesc')}</p>
-          )}
-        </aside>
+              <p style={{ margin: 0, fontSize: 12.8, lineHeight: 1.7, color: PAPER.muted }}>{t('WorldDetail.paper.relationshipExplorer.noCharactersDesc')}</p>
+            )}
+          </RelationshipDetailPanel>
+        ) : null}
       </div>
     </div>
   );

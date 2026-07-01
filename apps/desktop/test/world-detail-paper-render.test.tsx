@@ -16,8 +16,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 // ScrollArea / radix CJS primitives expect a global `React`.
 (globalThis as { React?: typeof React }).React = React;
 
-import { initI18n } from '../src/shell/renderer/i18n';
+import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
 import { worldTimeDisplay } from '../src/shell/renderer/features/world/world-detail-paper-model';
+import {
+  WorldRelationshipExplorer,
+  relationshipGraphEdgeLabelPosition,
+} from '../src/shell/renderer/features/world/world-detail-relationship-explorer';
 import { NarrativeWorldDetailPage } from '../src/shell/renderer/features/world/world-detail-template';
 import { WorldSceneDetailPage } from '../src/shell/renderer/features/world/world-detail-scene-detail-page';
 import type { WorldCharacter, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from '../src/shell/renderer/features/world/world-detail-types';
@@ -125,6 +129,29 @@ const publicAssets: WorldPublicAssetsData = {
   ],
 };
 
+type TestRect = {
+  readonly left: number;
+  readonly right: number;
+  readonly top: number;
+  readonly bottom: number;
+};
+
+function testRectFromCenter(
+  center: { readonly x: number; readonly y: number },
+  bounds: { readonly halfWidth: number; readonly halfHeight: number },
+): TestRect {
+  return {
+    left: center.x - bounds.halfWidth,
+    right: center.x + bounds.halfWidth,
+    top: center.y - bounds.halfHeight,
+    bottom: center.y + bounds.halfHeight,
+  };
+}
+
+function testRectsOverlap(a: TestRect, b: TestRect): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
 test.before(async () => {
   await initI18n();
 });
@@ -146,6 +173,7 @@ test('paper world detail renders narrative sections without the duplicate settin
 
   // Layout + sections present.
   assert.match(markup, /data-testid="world-detail-paper-layout"/);
+  assert.doesNotMatch(markup, /pointer-events:none;background:radial-gradient\(60% 50% at 0% 0%/);
   assert.match(markup, /data-testid="world-detail-paper-characters"/);
   assert.match(markup, /data-testid="world-detail-paper-materials"/);
   assert.match(markup, /data-testid="world-detail-paper-timeline"/);
@@ -170,6 +198,63 @@ test('paper world detail renders narrative sections without the duplicate settin
   assert.match(markup, /1238/);
   assert.match(markup, /书院讲堂/);
   assert.match(markup, /aria-label="Open 姚燧 profile"/);
+});
+
+test('world relationship explorer dedupes repeated material clues and renders kinship in the network', async () => {
+  await changeLocale('zh');
+  try {
+    const repeatedIntro = '元代文人书院世界，聚焦文人与书院的学术社交网络。马祖常身处其中，其仕宦经历与庞大的交游网络（与黄溍、柳贯、许有壬等关联人物）是该世界文人交流与仕宦的典型缩影。';
+    const relationshipCharacters: WorldCharacter[] = [
+      {
+        ...character('ma-zu-chang', '马祖常', true),
+        role: '文臣、文学家',
+        tags: [
+          repeatedIntro,
+          'kinship: 祖父马世昌，家族渊源。',
+          'kinship: 长子马武子，家族传承。',
+          'kinship: 次子马文子，家族传承。',
+          'postedToOffice: 出任御史中丞，执掌监察。',
+        ],
+      },
+      character('huang-jin', '黄溍', true),
+      character('liu-guan', '柳贯', true),
+      character('xu-you-ren', '许有壬', true),
+    ];
+
+    const markup = renderToStaticMarkup(
+      React.createElement(WorldRelationshipExplorer, {
+        world,
+        characters: relationshipCharacters,
+        history,
+        onBack: () => {},
+        onSelectCharacter: () => {},
+      }),
+    );
+
+    assert.match(markup, /data-testid="world-relationship-story-panel"/);
+    assert.match(markup, /data-testid="world-relationship-kind-legend"/);
+    assert.match(markup, /查看全部关系系统/);
+    assert.match(markup, /亲属/);
+    assert.match(markup, /马世昌/);
+    assert.match(markup, /马武子/);
+    assert.match(markup, /马文子/);
+    assert.doesNotMatch(markup, /长子马武/);
+    assert.doesNotMatch(markup, /次子马文/);
+    assert.doesNotMatch(markup, /postedToOffice: 出任御史中丞/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('world relationship explorer moves short vertical edge labels out of occupied person areas', () => {
+  const label = relationshipGraphEdgeLabelPosition({ x: 500, y: 372 });
+  const labelRect = testRectFromCenter(label, { halfWidth: 54, halfHeight: 14 });
+  const centerSafeRect = testRectFromCenter({ x: 500, y: 500 }, { halfWidth: 94, halfHeight: 94 });
+  const targetSafeRect = testRectFromCenter({ x: 500, y: 372 }, { halfWidth: 102, halfHeight: 54 });
+
+  assert.equal(testRectsOverlap(labelRect, centerSafeRect), false);
+  assert.equal(testRectsOverlap(labelRect, targetSafeRect), false);
+  assert.notEqual(label.x, 500);
 });
 
 test('paper world detail renders scene entry cards without inline detail-page data', () => {

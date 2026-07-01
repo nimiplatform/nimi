@@ -18,6 +18,7 @@ export type WorldRelationshipEvidenceRecord = {
   readonly sourceName: string;
   readonly targetCharacterId: string | null;
   readonly targetName: string | null;
+  readonly targetIsWorldCharacter: boolean;
   readonly kind: WorldRelationshipEvidenceKind;
   readonly evidenceText: string;
   readonly sourceField: WorldRelationshipEvidenceSourceField;
@@ -30,6 +31,7 @@ export type WorldRelationshipEvidenceEdge = {
   readonly sourceName: string;
   readonly targetCharacterId: string;
   readonly targetName: string;
+  readonly targetIsWorldCharacter: boolean;
   readonly targetRole: string | null;
   readonly targetFaction: string | null;
   readonly kind: WorldRelationshipEvidenceKind;
@@ -103,6 +105,54 @@ const EMPTY_KIND_COUNTS: Record<WorldRelationshipEvidenceKind, number> = {
   topic: 0,
 };
 
+const HAN_PERSON_NAME_PATTERN = '[\\u3400-\\u9fff·]{2,8}';
+const KINSHIP_TERMS = [
+  '外祖父',
+  '外祖母',
+  '曾祖父',
+  '曾祖母',
+  '祖父',
+  '祖母',
+  '伯父',
+  '叔父',
+  '父亲',
+  '母亲',
+  '兄长',
+  '弟弟',
+  '长子',
+  '次子',
+  '三子',
+  '四子',
+  '五子',
+  '幼子',
+  '长女',
+  '次女',
+  '侄子',
+  '侄女',
+  '族兄',
+  '族弟',
+  '父',
+  '母',
+  '兄',
+  '弟',
+  '子',
+  '女',
+  '夫',
+  '妻',
+] as const;
+
+const KINSHIP_TARGET_STOP_WORDS = new Set([
+  '亲属',
+  '亲族',
+  '族人',
+  '家族',
+  '宗族',
+  '渊源',
+  '传承',
+]);
+
+const KINSHIP_ROLE_PREFIX_TERMS = KINSHIP_TERMS.filter((term) => term.length > 1);
+
 function normalizeEvidenceText(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }
@@ -115,6 +165,67 @@ function relationshipEvidenceTexts(character: WorldCharacter): string[] {
 
 function textIncludesAny(text: string, needles: readonly string[]): boolean {
   return needles.some((needle) => text.includes(needle));
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeKinshipTargetName(value: string, source: WorldCharacter): string | null {
+  const withoutPrefix = value
+    .replace(/^(?:其|其之|他的|她的|为|是)+/, '')
+    .trim();
+  const genericBoundary = ['家族', '宗族', '渊源', '传承']
+    .map((token) => withoutPrefix.indexOf(token))
+    .filter((index) => index > 0)
+    .sort((left, right) => left - right)[0];
+  const candidate = (genericBoundary ? withoutPrefix.slice(0, genericBoundary) : withoutPrefix).trim();
+  if (candidate.length < 2 || candidate.length > 8) {
+    return null;
+  }
+  if (/[是为其的他她]/.test(candidate)) {
+    return null;
+  }
+  if (KINSHIP_ROLE_PREFIX_TERMS.some((term) => candidate.startsWith(term))) {
+    return null;
+  }
+  if (candidate === source.name || KINSHIP_TARGET_STOP_WORDS.has(candidate)) {
+    return null;
+  }
+  return candidate;
+}
+
+function extractKinshipTargetNames(text: string, source: WorldCharacter): string[] {
+  const names = new Set<string>();
+  for (const term of KINSHIP_TERMS) {
+    const escapedTerm = escapeRegExp(term);
+    const relationBeforeName = new RegExp(
+      `(?:^|[\\s:：，。；、（(]|其|其之|他的|她的)${escapedTerm}(?:为|是)?(${HAN_PERSON_NAME_PATTERN})`,
+      'g',
+    );
+    for (const match of text.matchAll(relationBeforeName)) {
+      const name = normalizeKinshipTargetName(match[1] ?? '', source);
+      if (name) {
+        names.add(name);
+      }
+    }
+
+    const nameBeforeRelation = new RegExp(
+      `(${HAN_PERSON_NAME_PATTERN})(?:是|为)?(?:其|其之|他的|她的)?${escapedTerm}`,
+      'g',
+    );
+    for (const match of text.matchAll(nameBeforeRelation)) {
+      const name = normalizeKinshipTargetName(match[1] ?? '', source);
+      if (name) {
+        names.add(name);
+      }
+    }
+  }
+  return [...names];
+}
+
+function inferredKinshipTargetId(source: WorldCharacter, targetName: string): string {
+  return `${source.id}:kinship:${encodeURIComponent(targetName)}`;
 }
 
 export function classifyRelationshipEvidence(text: string): WorldRelationshipEvidenceKind {
@@ -182,20 +293,7 @@ function buildEvidenceRecords(
     }
     const kind = classifyRelationshipEvidence(text);
     const targets = mentionedTargets(text, source, characters);
-    if (targets.length === 0) {
-      records.push({
-        id: `${source.id}:tag:${sourceIndex}:unlinked`,
-        sourceCharacterId: source.id,
-        sourceName: source.name,
-        targetCharacterId: null,
-        targetName: null,
-        kind,
-        evidenceText: text,
-        sourceField: 'source.tags' as const,
-        sourceIndex,
-      });
-      return;
-    }
+    let linkedRecordCount = 0;
     targets.forEach((target) => {
       records.push({
         id: `${source.id}:tag:${sourceIndex}:${target.id}`,
@@ -203,12 +301,49 @@ function buildEvidenceRecords(
         sourceName: source.name,
         targetCharacterId: target.id,
         targetName: target.name,
+        targetIsWorldCharacter: true,
         kind,
         evidenceText: text,
         sourceField: 'source.tags' as const,
         sourceIndex,
       });
+      linkedRecordCount += 1;
     });
+    if (kind === 'kinship') {
+      const existingTargetNames = new Set(targets.map((target) => target.name));
+      for (const targetName of extractKinshipTargetNames(text, source)) {
+        if (existingTargetNames.has(targetName)) {
+          continue;
+        }
+        records.push({
+          id: `${source.id}:tag:${sourceIndex}:${inferredKinshipTargetId(source, targetName)}`,
+          sourceCharacterId: source.id,
+          sourceName: source.name,
+          targetCharacterId: inferredKinshipTargetId(source, targetName),
+          targetName,
+          targetIsWorldCharacter: false,
+          kind,
+          evidenceText: text,
+          sourceField: 'source.tags' as const,
+          sourceIndex,
+        });
+        linkedRecordCount += 1;
+      }
+    }
+    if (linkedRecordCount === 0) {
+      records.push({
+        id: `${source.id}:tag:${sourceIndex}:unlinked`,
+        sourceCharacterId: source.id,
+        sourceName: source.name,
+        targetCharacterId: null,
+        targetName: null,
+        targetIsWorldCharacter: false,
+        kind,
+        evidenceText: text,
+        sourceField: 'source.tags' as const,
+        sourceIndex,
+      });
+    }
   });
   return records;
 }
@@ -276,6 +411,7 @@ function mergeRecordsIntoEdges(
       sourceName: first?.sourceName ?? '',
       targetCharacterId: first?.targetCharacterId ?? '',
       targetName: first?.targetName ?? '',
+      targetIsWorldCharacter: first?.targetIsWorldCharacter ?? false,
       targetRole: target?.role ?? null,
       targetFaction: target?.faction ?? null,
       kind: first?.kind ?? 'topic',

@@ -16,7 +16,6 @@ import {
   PaperTimelineSection,
 } from './world-detail-paper-sections';
 import {
-  PAPER,
   derivedMaterials,
   derivedMetrics,
   derivedPaths,
@@ -63,7 +62,6 @@ export function resolveWorldMaterialSubpage(materialKey: PaperMaterialKey): Acti
 export function WorldDetailLoadingState() {
   return (
     <div style={{ position: 'relative', minHeight: '100%' }}>
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background: PAPER.pageGradient }} />
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1180, margin: '0 auto', padding: '22px 28px 80px' }}>
         <div className="space-y-[18px]">
           <div className="h-[316px] animate-pulse rounded-[24px] bg-[#fbf8f1]" />
@@ -307,7 +305,6 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   return (
     <>
       <div style={{ position: 'relative', minHeight: '100%', fontFamily: 'var(--nimi-font-sans)' }} data-testid="world-detail-paper-layout">
-        <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background: PAPER.pageGradient }} />
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 1180, margin: '0 auto', padding: '22px 28px 80px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
             <DetailHero

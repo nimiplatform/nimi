@@ -4,35 +4,29 @@ import { currentWorldTime, formatNum, personaCount, sourceCount, worldCharacterC
 
 /**
  * Paper / ink themed palette for the redesigned world detail surface.
- * Warm rice-paper backgrounds, classical serif headings, single green accent.
- * The hero banner is intentionally excluded — it keeps its existing styling.
+ * Local paper cards, classical serif headings, single green accent.
+ * The page canvas and hero banner intentionally keep platform styling.
  */
 export const PAPER = {
-  pageGradient:
-    'radial-gradient(60% 50% at 0% 0%,rgba(205,196,170,.5),transparent 60%),'
-    + 'radial-gradient(55% 50% at 100% 0%,rgba(198,205,184,.42),transparent 60%),'
-    + 'radial-gradient(60% 60% at 100% 100%,rgba(214,200,182,.38),transparent 60%),'
-    + 'radial-gradient(55% 55% at 0% 100%,rgba(200,210,192,.34),transparent 60%),'
-    + 'linear-gradient(135deg,#f3eee3 0%,#ece5d6 100%)',
-  card: '#fbf8f1',
-  cardSoft: '#fefcf7',
-  border: '#e7dfce',
-  borderSoft: '#e9e1d0',
-  borderInner: '#efe7d6',
-  divider: '#ece4d3',
-  green: '#1d5f43',
-  greenInk: '#247053',
-  greenSoftBg: 'rgba(29,95,67,.1)',
-  inkStrong: '#262017',
-  ink: '#3b3527',
-  body: '#4a4336',
-  bodySoft: '#6f6657',
-  muted: '#7a7060',
-  faint: '#9b9180',
+  card: 'color-mix(in srgb, var(--nimi-surface-card) 92%, #f8eed8)',
+  cardSoft: 'color-mix(in srgb, var(--nimi-surface-card) 96%, #fbf0dc)',
+  border: 'color-mix(in srgb, var(--nimi-border-subtle) 68%, #dbc8a7)',
+  borderSoft: 'color-mix(in srgb, var(--nimi-border-subtle) 72%, #e1d0ae)',
+  borderInner: 'color-mix(in srgb, var(--nimi-border-subtle) 76%, #e9d9bc)',
+  divider: 'color-mix(in srgb, var(--nimi-border-subtle) 74%, #e5d3b4)',
+  green: 'color-mix(in srgb, var(--nimi-action-primary-bg) 44%, #0f442f)',
+  greenInk: 'color-mix(in srgb, var(--nimi-action-primary-bg) 50%, #155239)',
+  greenSoftBg: 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)',
+  inkStrong: 'color-mix(in srgb, var(--nimi-text-primary) 90%, #2f2618)',
+  ink: 'color-mix(in srgb, var(--nimi-text-primary) 76%, #5a4d36)',
+  body: 'color-mix(in srgb, var(--nimi-text-secondary) 82%, #5d4f38)',
+  bodySoft: 'color-mix(in srgb, var(--nimi-text-secondary) 72%, #817056)',
+  muted: 'color-mix(in srgb, var(--nimi-text-muted) 76%, #7b6d54)',
+  faint: 'color-mix(in srgb, var(--nimi-text-muted) 68%, #9c8e72)',
   cardShadow: '0 6px 18px rgba(60,50,30,.06)',
   cardShadowStrong: '0 8px 22px rgba(60,50,30,.08)',
-  avatarBorder: '#e3d6ba',
-  avatarGradient: 'radial-gradient(circle at 50% 30%,#e7ddc6,#b3a585)',
+  avatarBorder: 'color-mix(in srgb, var(--nimi-border-subtle) 62%, #d8c292)',
+  avatarGradient: 'radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--nimi-surface-panel) 74%, #e4d5b4), color-mix(in srgb, var(--nimi-action-primary-bg) 16%, #aa9871))',
 } as const;
 
 export const PAPER_SERIF =

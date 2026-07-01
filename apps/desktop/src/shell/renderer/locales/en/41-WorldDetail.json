@@ -635,6 +635,10 @@
       "graphLabel": "Character relationship network",
       "noCharactersTitle": "No public people yet",
       "noCharactersDesc": "Character relationship exploration needs at least one public person.",
+      "allKinds": "All relations",
+      "topbar": {
+        "current": "Exploring: {{name}}"
+      },
       "metrics": {
         "people": "People collected",
         "relationships": "Relationships organized",
@@ -649,7 +653,15 @@
       "network": {
         "heading": "Relationship network",
         "centerHint": "Centered on {{name}} — view social ties and kinship.",
-        "pickHint": "Click any person on the left to switch their relationship network."
+        "pickHint": "Click any person on the left to switch their relationship network.",
+        "visibleCount": "Showing {{visible}} / {{total}} first-degree relations",
+        "noFilteredEdges": "No first-degree relations match this filter."
+      },
+      "story": {
+        "title": "Character Relationships And Clues",
+        "subtitle": "{{name}}'s relationships are organized around people, works, identity, and historical clues.",
+        "cardAction": "View relationship path",
+        "viewAllSystem": "View full relationship system ({{count}})"
       },
       "profile": {
         "status": "Character profile",
@@ -672,20 +684,21 @@
         "sameIdentity": "Same identity",
         "sameWorks": "Same works",
         "noRelated": "Continue from the people list.",
-        "peers": "Contemporaries"
+        "peers": "Contemporaries",
+        "relationshipOverview": "Relationship overview",
+        "noRelationshipOverview": "This person has no drawable first-degree relations yet."
       },
       "side": {
         "relationship": "Relationship detail",
         "clue": "Exploration clue",
-        "profile": "Character profile"
+        "profile": "Character profile",
+        "detail": "Detail panel"
       },
       "relation": {
         "type": "Relationship type",
-        "confidence": "Confidence",
-        "confidenceHigh": "Supported by multiple material notes; good to inspect first.",
-        "confidenceNormal": "Material exists; continue into original records.",
-        "source": "Source explanation",
-        "sourceDesc": "This relationship comes from public character material. The page only draws lines when the material points to another person in this world.",
+        "description": "Relationship note",
+        "evidence": "Evidence clues",
+        "noEvidence": "No displayable evidence text is available for this relationship yet.",
         "works": "Related works",
         "noWorks": "No explicit work title appears in this relationship yet."
       },
@@ -695,9 +708,10 @@
         "continue": "Continue from {{name}}'s profile."
       },
       "clueList": {
-        "title": "Work and material clues",
+        "title": "Key clues",
         "empty": "Start from the profile and contemporaries for this person.",
-        "count": "{{count}}"
+        "count": "{{count}}",
+        "limitedCount": "Showing {{shown}} / {{total}}"
       },
       "kinds": {
         "association": "Association",
@@ -722,6 +736,13 @@
           "academy": "Academy",
           "open": "To explore"
         }
+      },
+      "controls": {
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "resetView": "Reset view",
+        "collapseDetail": "Collapse detail panel",
+        "expandDetail": "Expand detail panel"
       }
     },
     "rail": {

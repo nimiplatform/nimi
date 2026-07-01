@@ -1,16 +1,10 @@
+import { Button, IconButton, NimiText, Surface, cn } from '@nimiplatform/kit/ui';
+import { Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { WorldCharacter, WorldDetailData } from './world-detail-types.js';
 import { detailHeroBackground, worldSummary } from './world-detail-template-model';
-import { GLASS_STRONG_STYLE, GLASS_STRONG_SURFACE_CLASS, GlassButton, IconArrowLeft, IconDots, IconShare, Seal } from './world-detail-glass-primitives';
+import { GLASS_STRONG_STYLE, GLASS_STRONG_SURFACE_CLASS, IconArrowLeft, IconDots, IconShare, Seal } from './world-detail-glass-primitives';
 import { worldInitial } from './world-list-atoms';
-
-function IconFollow({ filled = false }: { filled?: boolean }) {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M19.5 12.572 12 20l-7.5-7.428A5 5 0 1 1 12 6.006a5 5 0 1 1 7.5 6.566z" />
-    </svg>
-  );
-}
 
 export function DetailHero({
   world,
@@ -36,16 +30,16 @@ export function DetailHero({
     { id: 'world-detail-timeline', label: t('WorldDetail.glass.nav.timeline') },
   ];
   return (
-    <section
-      className={GLASS_STRONG_SURFACE_CLASS}
-      data-nimi-material="glass-thick"
-      data-nimi-tone="hero"
+    <Surface
+      as="section"
+      tone="hero"
+      material="glass-thick"
+      elevation="raised"
+      padding="none"
+      className={cn(GLASS_STRONG_SURFACE_CLASS, 'relative min-h-[302px] overflow-hidden rounded-[var(--nimi-radius-xl)]')}
       style={{
         ...GLASS_STRONG_STYLE,
-        position: 'relative',
-        minHeight: 302,
         borderRadius: 24,
-        overflow: 'hidden',
         background: detailHeroBackground(banner),
       }}
     >
@@ -69,76 +63,70 @@ export function DetailHero({
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 18 }}>
         <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
           {onBack ? (
-            <button
-              type="button"
+            <IconButton
               aria-label={t('WorldDetail.glass.backToAtlas')}
               onClick={onBack}
+              icon={<IconArrowLeft />}
+              tone="ghost"
+              size="md"
+              className="h-[42px] w-[42px] border border-white/25 bg-[rgba(8,23,36,0.36)] text-[#8ff0d0] hover:bg-[rgba(8,23,36,0.48)]"
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 999,
-                border: '1px solid rgba(255,255,255,0.24)',
-                background: 'rgba(8,23,36,0.36)',
-                color: '#8ff0d0',
-                display: 'grid',
-                placeItems: 'center',
-                cursor: 'pointer',
+                borderColor: 'rgba(255,255,255,0.24)',
               }}
-            >
-              <IconArrowLeft />
-            </button>
+            />
           ) : null}
           {tabs.map((tab) => (
-            <button
+            <Button
               key={tab.id}
               type="button"
+              tone="ghost"
+              size="sm"
               onClick={() => onScrollTo(tab.id)}
+              className="h-[38px] min-h-0 border border-white/20 bg-[rgba(8,23,36,0.42)] px-[14px] font-extrabold text-white hover:bg-[rgba(8,23,36,0.55)] hover:text-white"
               style={{
-                height: 38,
-                borderRadius: 999,
-                border: '1px solid rgba(255,255,255,0.18)',
-                background: 'rgba(8,23,36,0.42)',
-                color: '#ffffff',
-                padding: '0 14px',
-                fontSize: 13,
-                fontWeight: 850,
-                fontFamily: 'var(--nimi-font-sans)',
-                cursor: 'pointer',
+                borderColor: 'rgba(255,255,255,0.18)',
               }}
             >
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
           {onFollowWorld ? (
-            <button
+            <Button
               type="button"
+              tone="primary"
+              size="sm"
               data-testid="world-detail-hero-world-follow"
               aria-pressed={worldFollowed}
               onClick={() => onFollowWorld(world)}
+              leadingIcon={<Heart aria-hidden="true" size={15} fill={worldFollowed ? 'currentColor' : 'none'} strokeWidth={1.9} />}
+              className="h-[38px] min-h-0 px-[18px] font-extrabold text-[#eafff6]"
               style={{
-                height: 38,
-                borderRadius: 999,
                 border: worldFollowed ? '1px solid rgba(143,240,208,0.85)' : '1px solid rgba(143,240,208,0.5)',
                 background: worldFollowed ? 'rgba(29,95,67,0.95)' : 'rgba(29,95,67,0.82)',
                 color: '#eafff6',
-                padding: '0 18px',
-                fontSize: 13,
-                fontWeight: 850,
-                fontFamily: 'var(--nimi-font-sans)',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
               }}
             >
-              <IconFollow filled={worldFollowed} />
               {worldFollowed ? t('WorldDetail.paper.rail.followingWorld') : t('WorldDetail.paper.rail.followWorld')}
-            </button>
+            </Button>
           ) : null}
-          <GlassButton label={t('World.atlas.actions.shareWorld')}><IconShare /></GlassButton>
-          <GlassButton label={t('World.atlas.actions.moreWorldActions')}><IconDots /></GlassButton>
+          <IconButton
+            aria-label={t('World.atlas.actions.shareWorld')}
+            title={t('World.atlas.actions.shareWorld')}
+            icon={<IconShare />}
+            tone="ghost"
+            size="md"
+            className="h-[38px] w-[38px] border border-white/30 bg-[rgba(23,45,70,0.34)] text-white hover:bg-[rgba(23,45,70,0.48)] hover:text-white"
+          />
+          <IconButton
+            aria-label={t('World.atlas.actions.moreWorldActions')}
+            title={t('World.atlas.actions.moreWorldActions')}
+            icon={<IconDots />}
+            tone="ghost"
+            size="md"
+            className="h-[38px] w-[38px] border border-white/30 bg-[rgba(23,45,70,0.34)] text-white hover:bg-[rgba(23,45,70,0.48)] hover:text-white"
+          />
         </div>
       </div>
       <div
@@ -156,15 +144,17 @@ export function DetailHero({
       >
         <Seal name={world.name} imageUrl={world.iconUrl} size={72} />
         <div style={{ minWidth: 0, color: '#ffffff' }}>
-          <div style={{ color: '#8ff0d0', fontSize: 11, lineHeight: 1.2, fontWeight: 950, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 12 }}>
+          <NimiText as="div" role="caption" className="mb-3 uppercase text-[#8ff0d0]" style={{ letterSpacing: 1.6, fontWeight: 950 }}>
             {world.tagline || world.motto || t('WorldDetail.glass.publicSettingBackground')}
-          </div>
-          <h1 style={{ margin: 0, fontSize: 40, lineHeight: 1, fontWeight: 950, letterSpacing: 0 }}>{world.name}</h1>
-          <p style={{ margin: '12px 0 0', maxWidth: 740, color: 'rgba(255,255,255,0.88)', fontSize: 14, lineHeight: 1.48, fontWeight: 650 }}>
+          </NimiText>
+          <NimiText as="h1" role="page-title" className="m-0 text-[40px] leading-none text-white" style={{ fontWeight: 950, letterSpacing: 0 }}>
+            {world.name}
+          </NimiText>
+          <NimiText as="p" role="body" className="mt-3 max-w-[740px] text-white/90" style={{ fontWeight: 650 }}>
             {worldSummary(world)}
-          </p>
+          </NimiText>
         </div>
       </div>
-    </section>
+    </Surface>
   );
 }

@@ -1,4 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { Avatar, IconButton, cn } from '@nimiplatform/kit/ui';
+import { ArrowLeft, ArrowRight, MoreHorizontal, Share2 } from 'lucide-react';
 import { worldInitial } from './world-list-atoms';
 
 export const GLASS_STYLE: CSSProperties = {
@@ -17,40 +19,19 @@ export const GLASS_SURFACE_CLASS = 'nimi-material-glass-regular backdrop-blur-[v
 export const GLASS_STRONG_SURFACE_CLASS = 'nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)]';
 
 export function IconArrowLeft() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M19 12H5" />
-      <path d="M12 19l-7-7 7-7" />
-    </svg>
-  );
+  return <ArrowLeft aria-hidden="true" size={18} strokeWidth={1.9} />;
 }
 
 export function IconArrowRight() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M5 12h14" />
-      <path d="M13 6l6 6-6 6" />
-    </svg>
-  );
+  return <ArrowRight aria-hidden="true" size={18} strokeWidth={1.9} />;
 }
 
 export function IconDots() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <circle cx="5" cy="12" r="1.8" />
-      <circle cx="12" cy="12" r="1.8" />
-      <circle cx="19" cy="12" r="1.8" />
-    </svg>
-  );
+  return <MoreHorizontal aria-hidden="true" size={18} strokeWidth={2} />;
 }
 
 export function IconShare() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M7 17L17 7" />
-      <path d="M9 7h8v8" />
-    </svg>
-  );
+  return <Share2 aria-hidden="true" size={18} strokeWidth={1.9} />;
 }
 
 export function GlassButton({
@@ -63,24 +44,14 @@ export function GlassButton({
   onClick?: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <IconButton
       aria-label={label}
       onClick={onClick}
-      style={{
-        width: 38,
-        height: 38,
-        borderRadius: 999,
-        border: '1px solid rgba(255,255,255,0.28)',
-        background: 'rgba(23,45,70,0.34)',
-        color: '#ffffff',
-        display: 'grid',
-        placeItems: 'center',
-        cursor: 'pointer',
-      }}
-    >
-      {children}
-    </button>
+      icon={children}
+      tone="ghost"
+      size="md"
+      className="h-[38px] w-[38px] border border-white/30 bg-[rgba(23,45,70,0.34)] text-white hover:bg-[rgba(23,45,70,0.48)] hover:text-white"
+    />
   );
 }
 
@@ -147,12 +118,11 @@ export function Seal({
   return (
     <div
       aria-hidden="true"
+      className="overflow-hidden"
       style={{
         width: size,
         height: size,
         borderRadius: Math.round(size * 0.24),
-        display: 'grid',
-        placeItems: 'center',
         flex: '0 0 auto',
         color: '#ffffff',
         fontSize: Math.round(size * 0.38),
@@ -163,7 +133,16 @@ export function Seal({
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.48), 0 12px 28px rgba(54,80,125,0.16)',
       }}
     >
-      {displayImage ? null : worldInitial(name)}
+      <Avatar
+        alt={name}
+        src={displayImage}
+        size="lg"
+        shape="rounded"
+        tone="accent"
+        className={cn('h-full w-full bg-transparent text-white')}
+        fallbackClassName="bg-transparent font-black"
+        fallback={worldInitial(name)}
+      />
     </div>
   );
 }

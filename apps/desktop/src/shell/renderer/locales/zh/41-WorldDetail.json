@@ -635,6 +635,10 @@
       "graphLabel": "人物关系网络",
       "noCharactersTitle": "这个世界还没有公开人物",
       "noCharactersDesc": "人物关系探索需要至少一位公开人物。",
+      "allKinds": "全部关系",
+      "topbar": {
+        "current": "当前探索：{{name}}"
+      },
       "metrics": {
         "people": "已收录人物",
         "relationships": "已整理关系",
@@ -649,7 +653,15 @@
       "network": {
         "heading": "关系网络",
         "centerHint": "以 {{name}} 为中心，看交往与亲属脉络。",
-        "pickHint": "点击左侧任一人物，即可切换其关系网络。"
+        "pickHint": "点击左侧任一人物，即可切换其关系网络。",
+        "visibleCount": "显示 {{visible}} / {{total}} 条一度关系",
+        "noFilteredEdges": "当前筛选下暂无一度关系。"
+      },
+      "story": {
+        "title": "人物关系与线索",
+        "subtitle": "{{name}} 的关系主要围绕已整理的人物、作品、身份与时代线索展开。",
+        "cardAction": "查看关系脉络",
+        "viewAllSystem": "查看全部关系系统（{{count}}）"
       },
       "profile": {
         "status": "人物档案",
@@ -672,20 +684,21 @@
         "sameIdentity": "同身份人物",
         "sameWorks": "同作品人物",
         "noRelated": "可先从人物列表继续。",
-        "peers": "同代人物"
+        "peers": "同代人物",
+        "relationshipOverview": "关系概览",
+        "noRelationshipOverview": "当前人物还没有可绘制的一度关系。"
       },
       "side": {
         "relationship": "关系详情",
         "clue": "探索线索",
-        "profile": "人物档案"
+        "profile": "人物档案",
+        "detail": "详情面板"
       },
       "relation": {
         "type": "关系类型",
-        "confidence": "可信程度",
-        "confidenceHigh": "多条资料共同支持，适合优先查看。",
-        "confidenceNormal": "已有资料说明，可继续查看原始记录。",
-        "source": "来源说明",
-        "sourceDesc": "这条关系来自公开人物资料中的关系说明，页面只把能指向世界内人物的内容画成关系线。",
+        "description": "关系说明",
+        "evidence": "证据线索",
+        "noEvidence": "这条关系暂未出现可展示的证据文本。",
         "works": "相关作品",
         "noWorks": "这条关系暂未出现明确作品名。"
       },
@@ -695,9 +708,10 @@
         "continue": "可以从 {{name}} 的档案继续追踪。"
       },
       "clueList": {
-        "title": "作品与资料线索",
+        "title": "主要线索",
         "empty": "当前人物适合先从档案和同代人物开始。",
-        "count": "{{count}} 条"
+        "count": "{{count}} 条",
+        "limitedCount": "显示 {{shown}} / {{total}} 条"
       },
       "kinds": {
         "association": "交往",
@@ -713,7 +727,7 @@
       "peopleList": {
         "title": "人物",
         "searchPlaceholder": "搜索人物或身份…",
-        "clueCount": "{{count}} 条",
+        "clueCount": "{{count}}",
         "empty": "没有符合条件的人物。",
         "filters": {
           "all": "全部",
@@ -722,6 +736,13 @@
           "academy": "书院学术",
           "open": "待探索"
         }
+      },
+      "controls": {
+        "zoomIn": "放大",
+        "zoomOut": "缩小",
+        "resetView": "重置视图",
+        "collapseDetail": "折叠详情面板",
+        "expandDetail": "展开详情面板"
       }
     },
     "rail": {

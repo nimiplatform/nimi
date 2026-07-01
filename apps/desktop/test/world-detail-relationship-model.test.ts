@@ -107,6 +107,62 @@ test('relationship evidence graph links only notes that name another world chara
   assert.equal(graph.summary.emptyCharacterCount, 3);
 });
 
+test('relationship evidence graph promotes named kinship clues without world character records', () => {
+  const characters = [
+    character('ma-zu-chang', '马祖常', [
+      'kinship: 祖父马世昌，家族渊源。',
+      'kinship: 长子马式，家族传承。',
+      'kinship: 次子马熙，家族传承。',
+    ]),
+    character('huang-jin', '黄溍'),
+  ];
+
+  const graph = buildWorldRelationshipEvidenceGraph({
+    world: world(),
+    characters,
+    history: history(),
+    preferredCenterId: 'ma-zu-chang',
+  });
+
+  assert.deepEqual(
+    graph.edges.map((edge) => [edge.targetName, edge.kind, edge.targetIsWorldCharacter]),
+    [
+      ['马世昌', 'kinship', false],
+      ['马式', 'kinship', false],
+      ['马熙', 'kinship', false],
+    ],
+  );
+  assert.equal(graph.unlinkedEvidence.length, 0);
+  assert.equal(graph.kindCounts.kinship, 3);
+  assert.equal(graph.summary.linkedEvidenceCount, 3);
+});
+
+test('relationship evidence graph does not split zi-ending kinship names into role-prefixed aliases', () => {
+  const characters = [
+    character('ma-zu-chang', '马祖常', [
+      'kinship: 长子马武子，家族传承。',
+      'kinship: 次子马文子，家族传承。',
+    ]),
+  ];
+
+  const graph = buildWorldRelationshipEvidenceGraph({
+    world: world(),
+    characters,
+    history: history(),
+    preferredCenterId: 'ma-zu-chang',
+  });
+
+  assert.deepEqual(
+    graph.edges.map((edge) => edge.targetName).sort(),
+    ['马文子', '马武子'],
+  );
+  assert.equal(
+    graph.edges.some((edge) => edge.targetName === '长子马武' || edge.targetName === '次子马文'),
+    false,
+  );
+  assert.equal(graph.summary.linkedEvidenceCount, 2);
+});
+
 test('relationship evidence graph separates linked, clue-only, and empty characters', () => {
   const characters = [
     character('wu-cheng', '吴澄', ['核心人物', '文学']),

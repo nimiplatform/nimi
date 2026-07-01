@@ -435,7 +435,6 @@ export function WorldPeopleArchivePage({
       data-testid="world-detail-people-archive-page"
       style={{ position: 'relative', minHeight: '100%', fontFamily: 'var(--nimi-font-sans)' }}
     >
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', background: PAPER.pageGradient }} />
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1180, margin: '0 auto', padding: '22px 28px 80px' }}>
         <button
           type="button"

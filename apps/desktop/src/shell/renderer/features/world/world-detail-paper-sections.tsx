@@ -1,5 +1,6 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button, NimiText, Statistic, Surface, cn } from '@nimiplatform/kit/ui';
 import type { WorldAssetExternalRef, WorldCharacter, WorldHistoryBundle, WorldSceneItem } from './world-detail-types.js';
 import { characterMeta } from './world-detail-template-model';
 import {
@@ -26,11 +27,9 @@ import {
   PaperSection,
   PaperTag,
   PaperViewAll,
-  paperGhostButton,
-  paperPrimaryButton,
 } from './world-detail-paper-primitives';
 
-const WARM_PANEL_BG = 'linear-gradient(135deg,#e9e0cb,#d8ccae)';
+const WARM_PANEL_BG = 'linear-gradient(135deg, color-mix(in srgb, var(--nimi-surface-panel) 72%, #e4d6ba), color-mix(in srgb, var(--nimi-action-primary-bg) 12%, #d6c4a3))';
 
 /** Localized connect-state label for the paper surface (mirrors relation state). */
 function paperRelationLabel(character: WorldCharacter, t: ReturnType<typeof useTranslation>['t']): string {
@@ -39,12 +38,35 @@ function paperRelationLabel(character: WorldCharacter, t: ReturnType<typeof useT
   return t('WorldDetail.paper.characters.connect');
 }
 
-function cardBaseStyle(): CSSProperties {
-  return {
-    background: PAPER.cardSoft,
-    border: `1px solid ${PAPER.borderSoft}`,
-    borderRadius: PAPER_RADIUS.md,
-  };
+const paperCardClassName = 'border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-card)]';
+
+function PaperCardSurface({
+  children,
+  className,
+  interactive = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  interactive?: boolean;
+}) {
+  return (
+    <Surface
+      tone="card"
+      material="solid"
+      elevation="base"
+      padding="none"
+      interactive={interactive}
+      className={cn(paperCardClassName, className)}
+      style={{
+        background: PAPER.cardSoft,
+        borderColor: PAPER.borderSoft,
+        borderRadius: PAPER_RADIUS.md,
+        boxShadow: 'none',
+      }}
+    >
+      {children}
+    </Surface>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -61,53 +83,44 @@ const METRIC_ICON: Record<PaperMetric['key'], ReactNode> = {
 export function PaperMetricStrip({ metrics }: { metrics: readonly PaperMetric[] }) {
   const { t } = useTranslation();
   return (
-    <section
+    <Surface
+      as="section"
+      tone="card"
+      material="solid"
+      elevation="base"
+      padding="none"
+      className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] p-1.5"
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))',
         background: PAPER.card,
-        border: `1px solid ${PAPER.border}`,
+        borderColor: PAPER.border,
         borderRadius: PAPER_RADIUS.lg,
         boxShadow: PAPER.cardShadow,
-        padding: 6,
       }}
     >
       {metrics.map((metric, index) => (
-        <div
+        <Statistic
           key={metric.key}
-          style={{
-            display: 'flex',
-            gap: 13,
-            alignItems: 'center',
-            padding: '16px 18px',
-            borderRight: index < metrics.length - 1 ? `1px solid ${PAPER.divider}` : 'none',
-          }}
-        >
-          <div
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: 13,
-              flexShrink: 0,
-              background: PAPER.avatarGradient,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {METRIC_ICON[metric.key]}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-              <span style={{ fontFamily: PAPER_SERIF, fontSize: 27, fontWeight: 700, color: PAPER.inkStrong }}>{metric.value}</span>
-              <span style={{ fontSize: 13, color: PAPER.muted }}>{t(`WorldDetail.paper.metrics.${metric.key}.unit`)}</span>
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: PAPER.ink, marginTop: 1 }}>{t(`WorldDetail.paper.metrics.${metric.key}.label`)}</div>
-            <div style={{ fontSize: 11.5, color: PAPER.faint }}>{t(`WorldDetail.paper.metrics.${metric.key}.sub`)}</div>
-          </div>
-        </div>
+          label={t(`WorldDetail.paper.metrics.${metric.key}.label`)}
+          value={metric.value}
+          suffix={t(`WorldDetail.paper.metrics.${metric.key}.unit`)}
+          helper={t(`WorldDetail.paper.metrics.${metric.key}.sub`)}
+          prefix={(
+            <span
+              aria-hidden="true"
+              className="inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[var(--nimi-radius-md)]"
+              style={{ background: PAPER.avatarGradient, color: PAPER.ink }}
+            >
+              {METRIC_ICON[metric.key]}
+            </span>
+          )}
+          tone="neutral"
+          className={cn(
+            'grid-cols-[46px_minmax(0,1fr)] items-center gap-x-3 border-0 bg-transparent p-[18px] shadow-none',
+            index < metrics.length - 1 && 'border-r border-[color:var(--nimi-border-subtle)]',
+          )}
+        />
       ))}
-    </section>
+    </Surface>
   );
 }
 
@@ -135,17 +148,17 @@ export function PaperPathsSection({
     >
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 13 }}>
         {paths.map((path, index) => (
-          <div
+          <Surface
+            as="article"
             key={path.key}
+            tone="card"
+            material="solid"
+            elevation="base"
+            padding="none"
+            className="relative flex min-h-[200px] flex-col justify-end overflow-hidden"
             style={{
-              position: 'relative',
               borderRadius: PAPER_RADIUS.md,
-              overflow: 'hidden',
-              minHeight: 200,
-              border: '1px solid #e3d9c6',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-end',
+              borderColor: PAPER.borderSoft,
               background: WARM_PANEL_BG,
             }}
           >
@@ -179,12 +192,23 @@ export function PaperPathsSection({
               <p style={{ margin: '0 0 13px', fontSize: 12.5, lineHeight: 1.6, color: PAPER.bodySoft }}>
                 {t(`WorldDetail.paper.paths.${path.key}.desc`)}
               </p>
-              <button type="button" onClick={() => onEnterPath(path)} style={paperPrimaryButton}>
+              <Button
+                type="button"
+                tone="primary"
+                size="sm"
+                onClick={() => onEnterPath(path)}
+                trailingIcon={<IconArrow size={13} color="currentColor" />}
+                className="shadow-none"
+                style={{
+                  background: PAPER.green,
+                  borderColor: PAPER.green,
+                  color: 'var(--nimi-action-primary-text)',
+                }}
+              >
                 {t('WorldDetail.paper.paths.enter')}
-                <IconArrow size={13} color="#f6f2e7" />
-              </button>
+              </Button>
             </div>
-          </div>
+          </Surface>
         ))}
       </div>
     </PaperSection>
@@ -250,16 +274,16 @@ export function PaperCharactersSection({
           ))}
         </div>
       ) : featured.length === 0 ? (
-        <div style={{ ...cardBaseStyle(), padding: 22, color: PAPER.bodySoft, fontSize: 13 }}>
+        <PaperCardSurface className="p-5 text-[length:var(--nimi-type-body-sm-size)]" >
           {t('WorldDetail.paper.characters.empty')}
-        </div>
+        </PaperCardSurface>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(232px,1fr))', gap: 13 }}>
           {featured.map((character) => {
             const connectable = character.relation?.state === 'connectable';
             const isPersona = character.ownership === 'userOwned' || character.sourceKind === 'realmPersona';
             return (
-              <div key={character.id} style={{ ...cardBaseStyle(), padding: 16 }}>
+              <PaperCardSurface key={character.id} className="p-4">
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <button
                     type="button"
@@ -287,33 +311,48 @@ export function PaperCharactersSection({
                       </button>
                       <PaperTag>{isPersona ? t('WorldDetail.glass.characters.persona') : t('WorldDetail.glass.characters.character')}</PaperTag>
                     </div>
-                    <div style={{ fontSize: 12.5, color: PAPER.bodySoft, lineHeight: 1.5, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <NimiText as="div" role="helper" className="mt-1 truncate" style={{ color: PAPER.bodySoft }}>
                       {characterMeta(character)}
-                    </div>
+                    </NimiText>
                   </div>
                 </div>
                 {characterStatRow(character, t) ?? <div style={{ height: 14 }} />}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button
+                  <Button
                     type="button"
+                    tone="primary"
+                    size="sm"
+                    fullWidth
                     disabled={!connectable}
                     onClick={() => onMaterializeSource?.(character)}
+                    className="flex-1"
                     style={{
-                      ...paperPrimaryButton,
-                      flex: 1,
                       background: connectable ? PAPER.green : 'rgba(120,108,80,.18)',
+                      borderColor: connectable ? PAPER.green : 'rgba(120,108,80,.18)',
                       color: connectable ? '#f6f2e7' : PAPER.muted,
                       cursor: connectable ? 'pointer' : 'default',
                     }}
                   >
                     {paperRelationLabel(character, t)}
-                  </button>
-                  <button type="button" onClick={() => onSelect(character.id)} style={{ ...paperGhostButton, flex: 1 }}>
-                    <IconChat size={14} color={PAPER.ink} strokeWidth={1.7} />
+                  </Button>
+                  <Button
+                    type="button"
+                    tone="secondary"
+                    size="sm"
+                    fullWidth
+                    onClick={() => onSelect(character.id)}
+                    leadingIcon={<IconChat size={14} color="currentColor" strokeWidth={1.7} />}
+                    className="flex-1"
+                    style={{
+                      background: PAPER.card,
+                      borderColor: PAPER.borderSoft,
+                      color: PAPER.ink,
+                    }}
+                  >
                     {t('WorldDetail.paper.characters.chat')}
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </PaperCardSurface>
             );
           })}
         </div>
@@ -357,11 +396,23 @@ export function PaperMaterialsSection({
     >
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 13 }}>
         {materials.map((material) => (
-          <button
+          <Surface
+            as="button"
             key={material.key}
             type="button"
+            tone="card"
+            material="solid"
+            elevation="base"
+            padding="none"
+            interactive
             onClick={() => onOpen(material)}
-            style={{ ...cardBaseStyle(), overflow: 'hidden', cursor: 'pointer', textAlign: 'left', padding: 0 }}
+            className="overflow-hidden text-left"
+            style={{
+              background: PAPER.cardSoft,
+              borderColor: PAPER.borderSoft,
+              borderRadius: PAPER_RADIUS.md,
+              boxShadow: 'none',
+            }}
           >
             <div style={{ position: 'relative', height: 96, background: WARM_PANEL_BG, display: 'flex', alignItems: 'flex-end', padding: 10 }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: PAPER.green, color: '#f6f2e7' }}>
@@ -385,7 +436,7 @@ export function PaperMaterialsSection({
                 <IconArrow size={15} color={PAPER.green} />
               </div>
             </div>
-          </button>
+          </Surface>
         ))}
       </div>
     </PaperSection>
@@ -419,9 +470,9 @@ export function PaperTimelineSection({
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div style={{ ...cardBaseStyle(), padding: 22, color: PAPER.bodySoft, fontSize: 13 }}>
+        <PaperCardSurface className="p-5 text-[length:var(--nimi-type-body-sm-size)]">
           {t('WorldDetail.paper.timeline.empty')}
-        </div>
+        </PaperCardSurface>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {items.map((item, index) => (
@@ -480,20 +531,32 @@ export function PaperScenesSection({
       action={<PaperViewAll label={t('WorldDetail.paper.viewAll')} onClick={onGoScenes} />}
     >
       {scenes.length === 0 ? (
-        <div style={{ ...cardBaseStyle(), padding: 22, color: PAPER.bodySoft, fontSize: 13 }}>
+        <PaperCardSurface className="p-5 text-[length:var(--nimi-type-body-sm-size)]">
           {t('WorldDetail.paper.scenes.empty')}
-        </div>
+        </PaperCardSurface>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 13 }}>
           {scenes.slice(0, 4).map((scene, index) => {
             const highlightRef = sceneImageForIndex(highlightRefs, index);
             return (
-              <button
+              <Surface
+                as="button"
                 key={scene.id}
                 type="button"
+                tone="card"
+                material="solid"
+                elevation="base"
+                padding="none"
+                interactive
                 data-testid="world-detail-paper-scene-entry-card"
                 onClick={() => onSelectScene(scene.id)}
-                style={{ ...cardBaseStyle(), overflow: 'hidden', padding: 0, display: 'grid', gridTemplateRows: '120px 1fr', textAlign: 'left', cursor: 'pointer', minHeight: 300 }}
+                className="grid min-h-[300px] grid-rows-[120px_1fr] overflow-hidden text-left"
+                style={{
+                  background: PAPER.cardSoft,
+                  borderColor: PAPER.borderSoft,
+                  borderRadius: PAPER_RADIUS.md,
+                  boxShadow: 'none',
+                }}
               >
                 <div style={{ background: highlightRef ? `url(${highlightRef.uri}) center/cover no-repeat` : WARM_PANEL_BG }} />
                 <div style={{ padding: '15px 16px 16px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -508,7 +571,7 @@ export function PaperScenesSection({
                     <IconArrow size={13} color={PAPER.green} />
                   </span>
                 </div>
-              </button>
+              </Surface>
             );
           })}
         </div>
