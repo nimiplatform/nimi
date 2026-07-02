@@ -53,9 +53,6 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
         NIMI_AGENT_ID: 'desktop-acceptance-agent',
         NIMI_WORLD_ID: 'desktop-acceptance-world',
         NIMI_USER_CONFIRMED_UPLOAD: '1',
-        NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_OWNER_USER_ID: 'desktop-owner',
-        NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF: 'desktop-runtime-source',
-        NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_REF: 'local-agent:desktop-acceptance-agent',
       },
     });
     try {
@@ -132,12 +129,9 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
         },
       });
 
-      const localAgentIdentity = await invokeShell(page, 'local-agent.identity', {});
-      assert.deepEqual(localAgentIdentity, {
-        ownerUserId: 'desktop-owner',
-        runtimeSourceRef: 'desktop-runtime-source',
-        localAgentRef: 'local-agent:desktop-acceptance-agent',
-      });
+      const localAgentIdentityError = await captureInvokeError(page, 'local-agent.identity', {});
+      assert.equal(localAgentIdentityError.code, 'capability-unavailable');
+      assert.equal(localAgentIdentityError.reasonCode, 'electron-standard-capability-unavailable');
 
       const trustedCaller = await invokeShell(page, 'local-agent.runtimeTrustedCaller', {});
       assert.deepEqual(trustedCaller, {

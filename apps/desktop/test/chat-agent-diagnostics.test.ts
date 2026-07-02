@@ -4,6 +4,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { buildAgentDiagnosticsViewModel } from '../src/shell/renderer/features/chat/chat-agent-diagnostics-view-model.js';
+import type { NimiRuntimeAgentInspectSnapshot } from '../src/shell/renderer/infra/runtime-agent-inspect.js';
 import type { AgentTurnLifecycleState } from '../src/shell/renderer/features/chat/chat-agent-shell-lifecycle.js';
 
 const t = (_key: string, options?: { defaultValue?: string }) => options?.defaultValue || _key;
@@ -48,6 +49,78 @@ function baseInput() {
     runtimeInspectLoading: false,
     t,
     targetsPending: false,
+  };
+}
+
+function runtimeInspect(overrides: Partial<NimiRuntimeAgentInspectSnapshot> = {}): NimiRuntimeAgentInspectSnapshot {
+  return {
+    lifecycleStatus: 'active',
+    executionState: 'life-pending',
+    statusText: 'waiting to follow up',
+    activeWorldId: 'world-1',
+    activeUserId: 'user-1',
+    updatedAt: '2026-04-14T03:00:00.000Z',
+    currentEmotion: 'focused',
+    proactiveInterruptibility: {
+      projectionId: null,
+      projectionKind: null,
+      mode: null,
+      optInState: null,
+      deliveryChannel: null,
+      quietHoursState: null,
+      frequencyCapState: null,
+      suggestedEvent: null,
+      lastDeliveredEvent: null,
+      lastSuppressedEvent: null,
+      auditRefs: [],
+      unsupportedFields: [],
+    },
+    autonomyMode: 'medium',
+    autonomyEnabled: true,
+    autonomyBudgetExhausted: false,
+    autonomyUsedTokensInWindow: 88,
+    autonomyDailyTokenBudget: 400,
+    autonomyMaxTokensPerHook: 120,
+    autonomyWindowStartedAt: '2026-04-14T00:00:00.000Z',
+    autonomySuspendedUntil: null,
+    pendingHooksCount: 2,
+    nextScheduledFor: '2026-04-14T03:00:00.000Z',
+    pendingHooks: [
+      {
+        hookId: 'hook-1',
+        status: 'pending',
+        triggerKind: 'scheduled-time',
+        scheduledFor: '2026-04-14T03:00:00.000Z',
+      },
+      {
+        hookId: 'hook-2',
+        status: 'pending',
+        triggerKind: 'turn-completed',
+        scheduledFor: null,
+      },
+    ],
+    recentTerminalHooks: [
+      {
+        hookId: 'hook-completed-1',
+        status: 'completed',
+        triggerKind: 'turn-completed',
+        scheduledFor: '2026-04-14T02:50:00.000Z',
+        admittedAt: '2026-04-14T03:10:00.000Z',
+      },
+    ],
+    recentCanonicalMemories: [
+      {
+        memoryId: 'mem-dyadic-1',
+        canonicalClass: 'dyadic',
+        kind: 'observational',
+        summary: 'user prefers jasmine tea',
+        updatedAt: '2026-04-14T03:12:00.000Z',
+        sourceEventId: 'turn-dyadic-1',
+        policyReason: 'query_agent_memory_history',
+        recallScore: 0,
+      },
+    ],
+    ...overrides,
   };
 }
 
@@ -407,58 +480,7 @@ test('agent diagnostics view model shows runtime agent state and pending hook in
   const viewModel = buildAgentDiagnosticsViewModel({
     ...baseInput(),
     lifecycle: baseLifecycle(),
-    runtimeInspect: {
-      lifecycleStatus: 'active',
-      executionState: 'life-pending',
-      statusText: 'waiting to follow up',
-      activeWorldId: 'world-1',
-      activeUserId: 'user-1',
-      autonomyMode: 'medium',
-      autonomyEnabled: true,
-      autonomyBudgetExhausted: false,
-      autonomyUsedTokensInWindow: 88,
-      autonomyDailyTokenBudget: 400,
-      autonomyMaxTokensPerHook: 120,
-      autonomyWindowStartedAt: '2026-04-14T00:00:00.000Z',
-      autonomySuspendedUntil: null,
-      pendingHooksCount: 2,
-      nextScheduledFor: '2026-04-14T03:00:00.000Z',
-      pendingHooks: [
-        {
-          hookId: 'hook-1',
-          status: 'pending',
-          triggerKind: 'scheduled-time',
-          scheduledFor: '2026-04-14T03:00:00.000Z',
-        },
-        {
-          hookId: 'hook-2',
-          status: 'pending',
-          triggerKind: 'turn-completed',
-          scheduledFor: null,
-        },
-      ],
-      recentTerminalHooks: [
-        {
-          hookId: 'hook-completed-1',
-          status: 'completed',
-          triggerKind: 'turn-completed',
-          scheduledFor: '2026-04-14T02:50:00.000Z',
-          admittedAt: '2026-04-14T03:10:00.000Z',
-        },
-      ],
-      recentCanonicalMemories: [
-        {
-          memoryId: 'mem-dyadic-1',
-          canonicalClass: 'dyadic',
-          kind: 'observational',
-          summary: 'user prefers jasmine tea',
-          updatedAt: '2026-04-14T03:12:00.000Z',
-          sourceEventId: 'turn-dyadic-1',
-          policyReason: 'query_agent_memory_history',
-          recallScore: 0,
-        },
-      ],
-    },
+    runtimeInspect: runtimeInspect(),
   });
 
   assert.equal(viewModel.stateCards.length, 5);
@@ -574,22 +596,8 @@ test('agent diagnostics panel renders runtime control actions when inspect data 
         remainingTokens: null,
       }],
       routeReady: true,
-      runtimeInspect: {
-        lifecycleStatus: 'active',
-        executionState: 'life-pending',
-        statusText: 'waiting to follow up',
-        activeWorldId: 'world-1',
-        activeUserId: 'user-1',
-        autonomyMode: 'medium',
-        autonomyEnabled: true,
-        autonomyBudgetExhausted: false,
-        autonomyUsedTokensInWindow: 88,
-        autonomyDailyTokenBudget: 400,
-        autonomyMaxTokensPerHook: 120,
-        autonomyWindowStartedAt: '2026-04-14T00:00:00.000Z',
-        autonomySuspendedUntil: null,
+      runtimeInspect: runtimeInspect({
         pendingHooksCount: 1,
-        nextScheduledFor: '2026-04-14T03:00:00.000Z',
         pendingHooks: [{
           hookId: 'hook-1',
           status: 'pending',
@@ -601,24 +609,7 @@ test('agent diagnostics panel renders runtime control actions when inspect data 
           triggerKind: 'turn-completed',
           scheduledFor: null,
         }],
-        recentTerminalHooks: [{
-          hookId: 'hook-completed-1',
-          status: 'completed',
-          triggerKind: 'turn-completed',
-          scheduledFor: '2026-04-14T02:50:00.000Z',
-          admittedAt: '2026-04-14T03:10:00.000Z',
-        }],
-        recentCanonicalMemories: [{
-          memoryId: 'mem-dyadic-1',
-          canonicalClass: 'dyadic',
-          kind: 'observational',
-          summary: 'user prefers jasmine tea',
-          updatedAt: '2026-04-14T03:12:00.000Z',
-          sourceEventId: 'turn-dyadic-1',
-          policyReason: 'query_agent_memory_history',
-          recallScore: 0,
-        }],
-      },
+      }),
       runtimeInspectLoading: false,
       onRefreshInspect: () => undefined,
       t,

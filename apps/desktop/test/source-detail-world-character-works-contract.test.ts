@@ -21,7 +21,7 @@ const liBaiRaw = {
   sourceId: 'cbdb-person-32540',
   sourceContentHash: 'hash-li-bai',
   source: {
-    state: 'source_materializable',
+    state: 'source_materialization_available',
     authoring: {
       extensions: {
         sourcePerson: {
@@ -52,7 +52,7 @@ test.before(async () => {
 });
 
 test('world character source detail maps source text rows as works collections only', () => {
-  const detail = toSourceDetailData(liBaiRaw, 'source_materializable');
+  const detail = toSourceDetailData(liBaiRaw, 'source_materialization_available');
 
   assert.equal(detail.worksAvailability, 'available');
   assert.deepEqual(detail.works.map((work) => work.title), ['李太白集', '草堂集(李白)']);
@@ -69,7 +69,7 @@ test('world character source detail maps source text rows as works collections o
 });
 
 test('source detail renders works collections without inventing individual poems or exposing technical source fields', () => {
-  const source = toSourceDetailData(liBaiRaw, 'source_materializable');
+  const source = toSourceDetailData(liBaiRaw, 'source_materialization_available');
   const markup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {
       source,
@@ -97,14 +97,14 @@ test('source detail renders works collections without inventing individual poems
   assert.doesNotMatch(visibleMarkup, /Text ID/);
   assert.doesNotMatch(visibleMarkup, /Row ref/);
   assert.doesNotMatch(visibleMarkup, /cbdb:BIOG_TEXT_DATA:32540:13008:1/);
-  assert.doesNotMatch(visibleMarkup, /source_materializable/);
+  assert.doesNotMatch(visibleMarkup, /source_materialization_available/);
   assert.doesNotMatch(visibleMarkup, /worldCharacter/);
   assert.doesNotMatch(visibleMarkup, /Create local agent/);
   assert.doesNotMatch(visibleMarkup, /local agent/);
 });
 
 test('world character source detail uses the dedicated world character page surface', () => {
-  const source = toSourceDetailData(liBaiRaw, 'source_materializable');
+  const source = toSourceDetailData(liBaiRaw, 'source_materialization_available');
   const markup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {
       source,
@@ -133,7 +133,7 @@ test('world character source detail fails closed when source text rows are absen
         extensions: {},
       },
     },
-  }, 'source_materializable');
+  }, 'source_materialization_available');
 
   assert.equal(detail.worksAvailability, 'unavailable');
   assert.deepEqual(detail.works, []);
@@ -271,7 +271,7 @@ const ouYangDeRaw = {
 };
 
 test('world character source detail projects admitted character dossier fields', () => {
-  const detail = toSourceDetailData(ouYangDeRaw, 'source_materializable');
+  const detail = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
 
   assert.equal(detail.worldCharacter?.role, '阳明学派思想家与朝廷重臣');
   assert.equal(detail.worldCharacter?.faction, '阳明学派');
@@ -295,7 +295,7 @@ test('world character source detail projects admitted character dossier fields',
 });
 
 test('world character source detail uses Realm relationship neighborhood for works and clues', () => {
-  const detail = toSourceDetailData(ouYangDeRaw, 'source_materializable');
+  const detail = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
 
   assert.equal(detail.worksAvailability, 'available');
   assert.deepEqual(detail.works.map((work) => work.title), ['欧阳南野先生文集']);
@@ -314,7 +314,7 @@ test('world character source detail uses Realm relationship neighborhood for wor
 });
 
 test('world character source detail renders dossier sections without exposing raw relationship source fields', () => {
-  const source = toSourceDetailData(ouYangDeRaw, 'source_materializable');
+  const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
   const markup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {
       source,

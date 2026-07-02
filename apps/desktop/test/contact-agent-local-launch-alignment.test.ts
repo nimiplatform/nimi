@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import {
+  describeRealmPersonaPrimaryAction,
+  resolveRealmPersonaSourceState,
+} from '../src/shell/renderer/features/explore/realm-persona-source-materialization.js';
 import { toSourceContactLaunchTarget } from '../src/shell/renderer/features/relationship/source-contact-launch-target.js';
 
 const repoRoot = path.join(import.meta.dirname, '../../..');
@@ -166,4 +170,61 @@ test('source contact launch target fails closed and requires Runtime-owned local
       runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
     }, 'user-1');
   }, /requires localAgentRef/);
+});
+
+test('Realm source state distinguishes packet availability from Runtime-owned LocalAgent discovery', () => {
+  const source = {
+    id: 'character-1',
+    displayName: 'Archivist',
+    handle: 'archivist',
+    avatarUrl: null,
+    bio: 'ordinary source contact',
+    isSource: true,
+    worldId: 'oasis',
+    sourceKind: 'worldCharacter',
+    sourceId: 'character-1',
+    sourceContentHash: 'hash-1',
+    runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
+  };
+
+  assert.equal(resolveRealmPersonaSourceState(source), 'source_materialization_available');
+  assert.equal(describeRealmPersonaPrimaryAction('source_materialization_available').action, 'materialize_source');
+
+  assert.equal(resolveRealmPersonaSourceState({
+    ...source,
+    runtimeSourceRef: null,
+  }, [{
+    ownerUserId: 'user-1',
+    runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
+    localAgentRef: 'local-agent:runtime-owned-existing',
+    sourceKind: 'worldCharacter',
+    sourceWorldId: 'oasis',
+    sourceId: 'character-1',
+    sourceContentHash: 'hash-1',
+  }]), 'local_agent_available');
+
+  assert.equal(resolveRealmPersonaSourceState(source, [{
+    ownerUserId: 'user-1',
+    runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
+    localAgentRef: 'local-agent:runtime-owned-existing',
+    sourceKind: 'worldCharacter',
+    sourceWorldId: 'oasis',
+    sourceId: 'character-1',
+    sourceContentHash: 'hash-1',
+  }]), 'local_agent_available');
+  assert.equal(describeRealmPersonaPrimaryAction('local_agent_available').action, 'open_local_agent');
+
+  assert.equal(resolveRealmPersonaSourceState({
+    ...source,
+    sourceContentHash: '',
+    runtimeSourceRef: '',
+  }, [{
+    ownerUserId: 'user-1',
+    runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
+    localAgentRef: 'local-agent:runtime-owned-existing',
+    sourceKind: 'worldCharacter',
+    sourceWorldId: 'oasis',
+    sourceId: 'character-1',
+    sourceContentHash: 'hash-1',
+  }]), 'source_materialization_unavailable');
 });

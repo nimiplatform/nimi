@@ -28,7 +28,11 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
   const requestCalls: Array<{
     requestId?: string;
     threadId: string;
-    executionBindings?: Record<string, { route?: string; modelId?: string; connectorId?: string }>;
+    executionBindings?: Record<string, {
+      route?: string;
+      modelId?: string;
+      connectorId?: string;
+    }>;
   }> = [];
   (client as unknown as { runtime: unknown }).runtime = {
     local: {
@@ -171,7 +175,11 @@ test('agent runtime turn request sends resolved route/model binding to Runtime',
   const requestCalls: Array<{
     requestId?: string;
     threadId: string;
-    executionBindings?: Record<string, { route?: string; modelId?: string; connectorId?: string }>;
+    executionBindings?: Record<string, {
+      route?: string;
+      modelId?: string;
+      connectorId?: string;
+    }>;
   }> = [];
   (client as unknown as { runtime: unknown }).runtime = {
     local: {
@@ -236,7 +244,11 @@ test('agent runtime turn request sends resolved route/model binding to Runtime',
         request: async (request: {
           requestId?: string;
           threadId: string;
-          executionBindings?: Record<string, { route?: string; modelId?: string; connectorId?: string }>;
+          executionBindings?: Record<string, {
+            route?: string;
+            modelId?: string;
+            connectorId?: string;
+          }>;
         }) => {
           requestCalls.push(request);
         },

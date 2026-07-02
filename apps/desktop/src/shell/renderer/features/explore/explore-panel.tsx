@@ -19,11 +19,14 @@ import {
   worldListQueryKey,
 } from '../world/world-detail-queries.js';
 import {
+  discoverRealmSourceLocalAgents,
   realmPersonaSourceMaterializationMessage,
+  realmSourceRefKey,
   resolveRealmPersonaSourceState,
 } from './realm-persona-source-materialization';
 import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
+import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -43,6 +46,11 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfileTarget, setSelectedProfileTarget] = useState<PostCardAuthorProfileTarget | null>(null);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
@@ -71,15 +79,36 @@ export function ExplorePanel(props: ExplorePanelProps) {
     enabled: authStatus === 'authenticated',
   });
 
-  const personaSources = useMemo(
-    () => {
-      const mapped = parsePersonaSources(personaSourcesQuery.data, worldsMap);
-      return mapped.map((personaSource) => ({
-        ...personaSource,
-        sourceState: resolveRealmPersonaSourceState(personaSource),
-      }));
-    },
+  const personaSourceBase = useMemo(
+    () => parsePersonaSources(personaSourcesQuery.data, worldsMap),
     [personaSourcesQuery.data, worldsMap],
+  );
+
+  const personaSourceDiscoveryKey = useMemo(
+    () => personaSourceBase
+      .map((source) => source.sourceRef ? realmSourceRefKey(source.sourceRef) : source.id)
+      .join('|'),
+    [personaSourceBase],
+  );
+
+  const personaSourceLocalAgentsQuery = useQuery({
+    queryKey: ['explore-personas-local-agents', ownerUserId, personaSourceDiscoveryKey],
+    queryFn: async () => (await Promise.all(
+      personaSourceBase.map((source) => discoverRealmSourceLocalAgents(source, ownerUserId)),
+    )).flat(),
+    enabled: authStatus === 'authenticated' && Boolean(ownerUserId) && personaSourceBase.length > 0,
+    staleTime: 10_000,
+  });
+
+  const personaSources = useMemo(
+    () => personaSourceBase.map((personaSource) => ({
+      ...personaSource,
+      sourceState: resolveRealmPersonaSourceState(
+        personaSource,
+        personaSourceLocalAgentsQuery.data ?? [],
+      ),
+    })),
+    [personaSourceBase, personaSourceLocalAgentsQuery.data],
   );
 
   const categories = useMemo(() => {
@@ -125,10 +154,18 @@ export function ExplorePanel(props: ExplorePanelProps) {
     try {
       const target = await materializeSourceContactLaunchTarget(source, ownerUserId);
       await ensureRuntimeAgentExists(target);
+      await launchAgentConversationFromDisplay({
+        target,
+        setActiveTab,
+        setChatMode,
+        setSelectedTargetForSource,
+        setAgentConversationSelection,
+        setAgentConversationTargetSnapshot,
+      });
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.realmPersonaSourceMaterializedFeedback', {
-          defaultValue: 'Local agent created on this device.',
+          defaultValue: 'Local agent opened on this device.',
         }),
       });
       logRendererEvent({
@@ -142,7 +179,14 @@ export function ExplorePanel(props: ExplorePanelProps) {
         message: error instanceof Error ? error.message : realmPersonaSourceMaterializationMessage(),
       });
     }
-  }, [ownerUserId]);
+  }, [
+    ownerUserId,
+    setActiveTab,
+    setAgentConversationSelection,
+    setAgentConversationTargetSnapshot,
+    setChatMode,
+    setSelectedTargetForSource,
+  ]);
 
   const onPersonaSourceSendGift = useCallback(
     (sourceId: string) => {

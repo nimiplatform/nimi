@@ -118,6 +118,10 @@ truth.
 `MUST`: unavailable source or stale hash states are real fail-closed product
 states, not loading placeholders. A new materialization attempt must request a
 fresh packet and must not synthesize LocalAgent identity from source metadata.
+`MUST`: an existing local-agent state requires Runtime inventory/provenance
+read through the SDK/host projection. Desktop may pass the Runtime-owned opaque
+`localAgentRef` to Agent Chat, but it must not store token/session custody in
+renderer state and must not construct `localAgentRef` from Realm source fields.
 
 `MUST NOT`: Explore must not open LocalAgent Chat directly from a bare
 RealmPersona source. LocalAgent Chat requires a Runtime-owned LocalAgent with

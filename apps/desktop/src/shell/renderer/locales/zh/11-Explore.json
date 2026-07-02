@@ -35,6 +35,7 @@
   "friendshipAdd": "加为好友",
   "friendshipPending": "申请中",
   "realmPersonaSourceMaterialize": "创建 local agent",
+  "realmPersonaSourceOpenLocalAgent": "打开 local agent",
   "realmPersonaSourceMaterializedFeedback": "local agent 已在本设备创建。",
   "realmPersonaSourceMaterializationUnavailable": "此 Source 需要当前有效且包含哈希的 sourceRef 后才能成为 local agent。",
   "realmPersonaSourceMaterializationHandoffRequired": "Realm source materialization 需要 packet handoff 支持。",

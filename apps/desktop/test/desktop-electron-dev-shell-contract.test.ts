@@ -45,6 +45,10 @@ test('desktop Electron host installs the standard shell bridge for the Desktop r
   assert.match(mainSource, /appId: APP_ID/);
   assert.match(mainSource, /runtimeTrustedCaller:\s*{[\s\S]*mode: 'desktop-shell'/);
   assert.match(mainSource, /NIMI_DESKTOP_ELECTRON_RENDERER_URL/);
+  assert.doesNotMatch(mainSource, /resolveOptionalDesktopElectronLocalAgentIdentity/);
+  assert.doesNotMatch(mainSource, /NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_REF/);
+  assert.doesNotMatch(mainSource, /assertOpaqueElectronLocalAgentRef/);
+  assert.doesNotMatch(mainSource, /localAgentIdentity/);
   assert.doesNotMatch(mainSource, /local-agent:desktop-electron/);
 });
 

@@ -49,7 +49,7 @@ function MiniSparkline({ seed, width = 52, height = 18 }: { seed: string; width?
   );
 }
 function sourcePillStyle(state: RealmPersonaSourceState): CSSProperties {
-  if (state === 'source_materializable') {
+  if (state === 'source_materialization_available' || state === 'local_agent_available') {
     return {
       background: 'var(--nimi-accent-soft)',
       color: 'var(--nimi-accent)',

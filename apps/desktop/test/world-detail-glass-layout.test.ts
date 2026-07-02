@@ -24,6 +24,8 @@ const paperPrimitiveSource = readWorldSource('world-detail-paper-primitives.tsx'
 const paperSectionsSource = readWorldSource('world-detail-paper-sections.tsx');
 const glassSectionsSource = readWorldSource('world-detail-glass-sections.tsx');
 const relationshipExplorerSource = readWorldSource('world-detail-relationship-explorer.tsx');
+const relationshipExplorerModelSource = readWorldSource('world-detail-relationship-explorer-model.ts');
+const relationshipNetworkSource = readWorldSource('world-detail-relationship-network.tsx');
 const relationshipExplorerLocaleSource = ['zh', 'en'].map((locale) => {
   const localeJson = JSON.parse(readFileSync(
     resolve(import.meta.dirname, `../src/shell/renderer/locales/${locale}/41-WorldDetail.json`),
@@ -135,33 +137,33 @@ test('world detail resolves the people material card to the people archive page'
 test('world relationship explorer is a three-column user-facing exploration page', () => {
   // Left people browser, center relationship network, right collapsible detail panel.
   assert.match(relationshipExplorerSource, /function PeoplePanel/);
-  assert.match(relationshipExplorerSource, /function RelationshipNetwork/);
+  assert.match(relationshipNetworkSource, /function RelationshipNetwork/);
   assert.match(relationshipExplorerSource, /function ProfileSummary/);
   assert.match(relationshipExplorerSource, /function RelationshipDetailPanel/);
   // Single-character worlds still resolve to a profile instead of an empty graph.
   assert.match(relationshipExplorerSource, /function ProfileFallback/);
   // People and relation filters are localized through key templates, not hardcoded labels.
   assert.match(relationshipExplorerSource, /relationshipExplorer\.peopleList\.filters\.\$\{key\}/);
-  assert.match(relationshipExplorerSource, /relationshipExplorer\.kinds\.\$\{kind\}/);
+  assert.match(relationshipExplorerModelSource, /relationshipExplorer\.kinds\.\$\{kind\}/);
   assert.match(relationshipExplorerSource, /data-testid="world-relationship-person-title-row"/);
   assert.match(relationshipExplorerSource, /data-testid="world-relationship-person-count"/);
   assert.match(relationshipExplorerSource, /padding: '9px 16px 9px 10px'/);
-  assert.match(relationshipExplorerSource, /const FILTER_KEYS[^=]*=\s*\['all', 'featured', 'literati', 'academy', 'open'\]/);
-  assert.match(relationshipExplorerSource, /const RELATION_FILTER_KEYS[^=]*=\s*\['all', \.\.\.KIND_ORDER\]/);
+  assert.match(relationshipExplorerModelSource, /const FILTER_KEYS[^=]*=\s*\['all', 'featured', 'literati', 'academy', 'open'\]/);
+  assert.match(relationshipExplorerModelSource, /const RELATION_FILTER_KEYS[^=]*=\s*\['all', \.\.\.KIND_ORDER\]/);
   assert.match(relationshipExplorerLocaleSource, /元代文人书院世界/);
   assert.match(relationshipExplorerLocaleSource, /关系网络/);
   assert.match(relationshipExplorerLocaleSource, /人物档案/);
   assert.match(relationshipExplorerLocaleSource, /静态历史世界/);
   assert.match(relationshipExplorerLocaleSource, /主要线索/);
   assert.match(relationshipExplorerSource, /data-testid="world-relationship-topbar"/);
-  assert.match(relationshipExplorerSource, /data-testid="world-relationship-story-panel"/);
-  assert.match(relationshipExplorerSource, /data-testid="world-relationship-graph-toolbar"/);
+  assert.match(relationshipNetworkSource, /data-testid="world-relationship-story-panel"/);
+  assert.match(relationshipNetworkSource, /data-testid="world-relationship-graph-toolbar"/);
   assert.match(relationshipExplorerSource, /data-testid="world-relationship-detail-panel"/);
-  assert.match(relationshipExplorerSource, /const GRAPH_DEFAULT_ZOOM = 1\.1/);
-  assert.match(relationshipExplorerSource, /minHeight: 720/);
-  assert.match(relationshipExplorerSource, /aspectRatio: '1 \/ 1'/);
-  assert.match(relationshipExplorerSource, /viewBox="0 0 1000 1000"/);
-  assert.match(relationshipExplorerSource, /height: '100%', display: 'block'/);
+  assert.match(relationshipExplorerModelSource, /const GRAPH_DEFAULT_ZOOM = 1\.1/);
+  assert.match(relationshipNetworkSource, /minHeight: 720/);
+  assert.match(relationshipNetworkSource, /aspectRatio: '1 \/ 1'/);
+  assert.match(relationshipNetworkSource, /viewBox="0 0 1000 1000"/);
+  assert.match(relationshipNetworkSource, /height: '100%', display: 'block'/);
   assert.match(relationshipExplorerSource, /setZoomScale\(GRAPH_DEFAULT_ZOOM\)/);
   assert.match(relationshipExplorerSource, /gridTemplateColumns: 'minmax\(212px,244px\) minmax\(0,1fr\) minmax\(300px,340px\)'/);
   assert.match(relationshipExplorerSource, /zoomScale/);
@@ -170,12 +172,12 @@ test('world relationship explorer is a three-column user-facing exploration page
   assert.match(relationshipExplorerSource, /resetView/);
   assert.match(relationshipExplorerSource, /detailCollapsed/);
   assert.match(relationshipExplorerSource, /onToggleDetailPanel/);
-  assert.match(relationshipExplorerSource, /PanelRightOpen/);
-  assert.match(relationshipExplorerSource, /PanelRightClose/);
+  assert.match(relationshipNetworkSource, /PanelRightOpen/);
+  assert.match(relationshipNetworkSource, /PanelRightClose/);
   assert.match(relationshipExplorerSource, /const collapsedExplorerColumns = 'minmax\(212px,244px\) minmax\(0,1fr\)'/);
-  assert.match(relationshipExplorerSource, /function relationshipGraphEdgeLabelPosition/);
-  assert.match(relationshipExplorerSource, /CENTER_GRAPH_CARD_BOUNDS/);
-  assert.match(relationshipExplorerSource, /TARGET_GRAPH_CARD_BOUNDS/);
+  assert.match(relationshipExplorerModelSource, /function relationshipGraphEdgeLabelPosition/);
+  assert.match(relationshipExplorerModelSource, /CENTER_GRAPH_CARD_BOUNDS/);
+  assert.match(relationshipExplorerModelSource, /TARGET_GRAPH_CARD_BOUNDS/);
   assert.match(relationshipExplorerSource, /const selectCenter = \(characterId: string\) => \{[\s\S]*?setDetailCollapsed\(false\)/);
   assert.match(relationshipExplorerSource, /const selectEdge = \(edgeId: string\) => \{[\s\S]*?setDetailCollapsed\(false\)/);
   assert.match(relationshipExplorerSource, /const selectClue = \(recordId: string\) => \{[\s\S]*?setDetailCollapsed\(false\)/);

@@ -402,9 +402,9 @@ rules:
   - desktop_kernel_consistency
   - desktop_spec_docs_drift_gate
   - desktop_test_gate
-  note: Desktop installed Nimi App launch host authority; implementation evidence
-    lands with Runtime launch-resolution, Kit shell allowlist, and Desktop
-    installed-app launcher negative tests.
+  note: Desktop installed Nimi App launch host authority; evidence binds Runtime
+    launch-resolution, Kit shell allowlist, and Desktop installed-app launcher
+    negative tests.
   test_files:
   - apps/desktop/test/desktop-installed-app-launcher.test.ts
   - apps/desktop/test/desktop-installed-app-launch-resolution.test.ts

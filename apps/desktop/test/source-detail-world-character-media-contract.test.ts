@@ -117,7 +117,7 @@ function sourceDetailRaw() {
 test('source detail consumes public world character media and voice resources', () => {
   const detail = toSourceDetailData({
     ...sourceDetailRaw(),
-  }, 'source_materializable');
+  }, 'source_materialization_available');
 
   assert.equal(detail.avatarUrl, 'https://cdn.example.test/character/avatar.png');
   assert.equal(detail.profileCoverUrl, 'https://cdn.example.test/character/profile-cover.png');
@@ -151,7 +151,7 @@ test('source detail consumes public world character media and voice resources', 
 });
 
 test('world character detail renders reference image and voice sample controls', () => {
-  const detail = toSourceDetailData(sourceDetailRaw(), 'source_materializable');
+  const detail = toSourceDetailData(sourceDetailRaw(), 'source_materialization_available');
   const markup = renderToStaticMarkup(
     React.createElement(SourceDetailView, {
       source: detail,

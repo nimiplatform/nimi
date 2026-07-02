@@ -35,6 +35,7 @@
   "friendshipAdd": "Add friend",
   "friendshipPending": "Pending",
   "realmPersonaSourceMaterialize": "Create local agent",
+  "realmPersonaSourceOpenLocalAgent": "Open local agent",
   "realmPersonaSourceMaterializedFeedback": "Local agent created on this device.",
   "realmPersonaSourceMaterializationUnavailable": "This source requires a current hash-bearing sourceRef before it can become a local agent.",
   "realmPersonaSourceMaterializationHandoffRequired": "Realm source materialization requires packet handoff support.",

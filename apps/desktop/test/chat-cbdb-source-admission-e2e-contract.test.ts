@@ -34,7 +34,7 @@ test('Explore source card E2E selector remains and primary action materializes a
   assert.match(e2eIdsSource, /explorePersonaSourceCard:\s*\(sourceId: string\) => `explore-persona-source-card:\$\{sourceId\}`/);
   assert.match(e2eIdsSource, /explorePersonaSourcePrimaryAction:\s*\(sourceId: string\) => `explore-persona-source-primary-action:\$\{sourceId\}`/);
   assert.match(personaSourceCardSource, /data-source-state=\{sourceState\}/);
-  assert.match(personaSourceCardSource, /source_materializable/);
+  assert.match(personaSourceCardSource, /source_materialization_available/);
   assert.doesNotMatch(personaSourceCardSource, /source_connected/);
   assert.doesNotMatch(personaSourceCardSource, /source_core_handoff_required/);
 });

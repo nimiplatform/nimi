@@ -9,7 +9,7 @@ import {
   type AvatarLaunchArbitrationInput,
   type StartWithChatGateConditionId,
   type StartWithChatGateInput,
-} from '../src/shell/renderer/features/chat/chat-agent-avatar-launch-arbitration';
+} from '@nimiplatform/kit/features/avatar/headless';
 
 const LOCAL_AGENT = 'local-agent:owner-1:agent-1';
 const REUSE_INSTANCE = 'desktop-avatar-local-agent-owner-1-agent-1-thread-1';
@@ -43,19 +43,23 @@ test('start_with_chat gate auto-launches when all eight conditions hold', () => 
 });
 
 test('start_with_chat gate fails closed when any single condition is false', () => {
-  const mutators: Array<{ id: StartWithChatGateConditionId; mutate: (input: StartWithChatGateInput) => void }> = [
-    { id: 'user_logged_in', mutate: (input) => { input.userLoggedIn = false; } },
-    { id: 'local_agent_target', mutate: (input) => { input.localAgentRef = 'agent-1'; input.runtimeSourceRef = 'agent-1'; } },
-    { id: 'conversation_anchor_present', mutate: (input) => { input.conversationAnchorId = null; } },
-    { id: 'local_avatar_asset_valid', mutate: (input) => { input.localAvatarAssetRef = null; } },
-    { id: 'backend_capability_posture_valid', mutate: (input) => { input.backendCapabilityProfileRef = null; } },
-    { id: 'runtime_projection_authorized', mutate: (input) => { input.runtimeProjectionAuthorization = 'unauthorized'; } },
-    { id: 'launch_mode_start_with_chat', mutate: (input) => { input.launchMode = 'manual'; } },
-    { id: 'instance_policy_resolvable', mutate: (input) => { input.avatarInstancePolicy = 'bogus_policy'; } },
+  const cases: Array<{ id: StartWithChatGateConditionId; input: StartWithChatGateInput }> = [
+    { id: 'user_logged_in', input: { ...passingGateInput(), userLoggedIn: false } },
+    {
+      id: 'local_agent_target',
+      input: { ...passingGateInput(), localAgentRef: 'agent-1', runtimeSourceRef: 'agent-1' },
+    },
+    { id: 'conversation_anchor_present', input: { ...passingGateInput(), conversationAnchorId: null } },
+    { id: 'local_avatar_asset_valid', input: { ...passingGateInput(), localAvatarAssetRef: null } },
+    { id: 'backend_capability_posture_valid', input: { ...passingGateInput(), backendCapabilityProfileRef: null } },
+    {
+      id: 'runtime_projection_authorized',
+      input: { ...passingGateInput(), runtimeProjectionAuthorization: 'unauthorized' },
+    },
+    { id: 'launch_mode_start_with_chat', input: { ...passingGateInput(), launchMode: 'manual' } },
+    { id: 'instance_policy_resolvable', input: { ...passingGateInput(), avatarInstancePolicy: 'bogus_policy' } },
   ];
-  for (const { id, mutate } of mutators) {
-    const input = passingGateInput();
-    mutate(input);
+  for (const { id, input } of cases) {
     const result = evaluateStartWithChatGate(input);
     assert.equal(result.decision, 'no_launch', `${id} should fail the gate closed`);
     if (result.decision === 'no_launch') {
@@ -65,9 +69,11 @@ test('start_with_chat gate fails closed when any single condition is false', () 
 });
 
 test('start_with_chat gate condition 2 rejects a bare runtime source target', () => {
-  const input = passingGateInput();
-  input.localAgentRef = 'runtime-source-99';
-  input.runtimeSourceRef = 'runtime-source-99';
+  const input = {
+    ...passingGateInput(),
+    localAgentRef: 'runtime-source-99',
+    runtimeSourceRef: 'runtime-source-99',
+  };
   const result = evaluateStartWithChatGate(input);
   assert.equal(result.decision, 'no_launch');
   if (result.decision === 'no_launch') {
@@ -76,8 +82,10 @@ test('start_with_chat gate condition 2 rejects a bare runtime source target', ()
 });
 
 test('start_with_chat gate condition 6 rejects an unknown runtime authorization verdict', () => {
-  const input = passingGateInput();
-  input.runtimeProjectionAuthorization = 'unknown';
+  const input = {
+    ...passingGateInput(),
+    runtimeProjectionAuthorization: 'unknown' as const,
+  };
   const result = evaluateStartWithChatGate(input);
   assert.equal(result.decision, 'no_launch');
   if (result.decision === 'no_launch') {
@@ -86,8 +94,10 @@ test('start_with_chat gate condition 6 rejects an unknown runtime authorization 
 });
 
 test('start_with_chat gate condition 5 fails when local asset validation is not valid', () => {
-  const input = passingGateInput();
-  input.localAvatarAssetValidationStatus = 'unsupported_backend';
+  const input = {
+    ...passingGateInput(),
+    localAvatarAssetValidationStatus: 'unsupported_backend',
+  };
   const result = evaluateStartWithChatGate(input);
   assert.equal(result.decision, 'no_launch');
   if (result.decision === 'no_launch') {

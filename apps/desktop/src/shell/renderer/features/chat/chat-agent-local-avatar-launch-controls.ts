@@ -10,13 +10,13 @@ import {
   listDesktopAvatarLiveInstances,
 } from '@renderer/bridge/runtime-bridge/chat-agent-avatar-instance-registry';
 import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
-import { useQuery } from '@tanstack/react-query';
 import {
   arbitrateAvatarLaunch,
   evaluateStartWithChatGate,
   type AvatarLaunchArbitrationResult,
   type StartWithChatGateResult,
-} from './chat-agent-avatar-launch-arbitration';
+} from '@nimiplatform/kit/features/avatar/headless';
+import { useQuery } from '@tanstack/react-query';
 import { registerDesktopAvatarLiveInstanceBinding } from './chat-agent-avatar-live-instance-runtime-binding';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import type { AgentCenterLocalConfig } from './chat-agent-center-local-config';

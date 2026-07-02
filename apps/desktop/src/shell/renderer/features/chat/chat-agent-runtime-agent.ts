@@ -98,6 +98,7 @@ function resolveRuntimeAgentTextExecutionBinding(
   return {
     route,
     modelId,
+    ...(resolved.targetRef ? { targetRef: resolved.targetRef } : {}),
     ...(normalizeText(resolved.connectorId) ? { connectorId: normalizeText(resolved.connectorId) } : {}),
   };
 }
@@ -147,6 +148,7 @@ function bindingFromResolvedTarget(
   return {
     route,
     modelId,
+    ...(resolved.targetRef ? { targetRef: resolved.targetRef } : {}),
     ...(normalizeText(resolved.connectorId) ? { connectorId: normalizeText(resolved.connectorId) } : {}),
   };
 }

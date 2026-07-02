@@ -3,7 +3,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { appendFile, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell, type MessageBoxOptions } from 'electron';
 import {
-  assertOpaqueElectronLocalAgentRef,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   type NimiElectronAIConfigStore,
@@ -62,7 +61,6 @@ configureDesktopElectronChromiumRuntime();
 void app.whenReady().then(async () => {
   registerReadableFileProtocol();
   const standardDataRoot = resolveStandardDataRoot();
-  const localAgentIdentity = resolveOptionalDesktopElectronLocalAgentIdentity();
   await mkdir(standardDataRoot, { recursive: true });
   const installedAppLauncher = createDesktopInstalledAppLauncher({
     runtimeEndpoint,
@@ -96,7 +94,6 @@ void app.whenReady().then(async () => {
       openExternalUrl: openDesktopExternalUrl,
       confirmDialog: confirmDesktopDialog,
       focusMainWindow: focusDesktopMainWindow,
-      ...(localAgentIdentity ? { localAgentIdentity } : {}),
       runtimeTrustedCaller: {
         mode: 'desktop-shell',
       },
@@ -210,47 +207,6 @@ function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
     .map((filePath) => normalizeText(filePath))
     .filter(Boolean)
     .map((filePath) => path.resolve(filePath));
-}
-
-function resolveOptionalDesktopElectronLocalAgentIdentity(): {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-} | undefined {
-  const localAgentRef = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_REF);
-  if (!localAgentRef) {
-    return undefined;
-  }
-  const ownerUserId = normalizeRequiredEnv(
-    process.env.NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_OWNER_USER_ID,
-    'NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_OWNER_USER_ID',
-  );
-  const runtimeSourceRef = normalizeRequiredEnv(
-    process.env.NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF,
-    'NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF',
-  );
-  if (!localAgentRef.startsWith('local-agent:')) {
-    throw new Error('NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_REF must start with local-agent:');
-  }
-  assertOpaqueElectronLocalAgentRef({
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
-    command: 'NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_REF',
-  });
-  return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
-  };
-}
-
-function normalizeRequiredEnv(value: unknown, field: string): string {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    throw new Error(`${field} is required when NIMI_DESKTOP_ELECTRON_LOCAL_AGENT_REF is set`);
-  }
-  return normalized;
 }
 
 function createDesktopAiConfigStore(dataRoot: string): NimiElectronAIConfigStore {

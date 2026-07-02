@@ -1,7 +1,10 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
 import type { ContactRecord } from './relationship-model';
-import { createNimiHostRuntimeAgentLifecycleSurface } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiHostRuntimeAgentLifecycleSurface,
+  normalizeNimiRuntimeAgentText,
+} from '@nimiplatform/sdk/runtime';
 import {
   createRealmSourceMaterializationPacket,
   resolveRealmCoreSourceRef,
@@ -48,6 +51,36 @@ function normalizeOwnershipType(value: unknown): AgentLocalTargetSnapshot['owner
   return null;
 }
 
+async function discoverSourceContactLaunchTarget(
+  source: SourceContactLaunchSource,
+  ownerUserId: string,
+): Promise<AgentLocalTargetSnapshot | null> {
+  const sourceRef = resolveRealmCoreSourceRef(source);
+  const runtimeSourceRef = normalizeNimiRuntimeAgentText(source.runtimeSourceRef);
+  if (!sourceRef) {
+    return null;
+  }
+  const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
+    getRuntime: getDesktopHostRuntimeAgentClient,
+    getSubjectUserId: () => ownerUserId,
+    withScopes: withDesktopRuntimeProtectedScopes,
+  });
+  const existing = await lifecycle.discoverLocalAgentsBySource({
+    ownerUserId,
+    runtimeSourceRef,
+    sourceRef,
+  });
+  const first = existing[0];
+  if (!first) {
+    return null;
+  }
+  return toSourceContactLaunchTarget({
+    ...source,
+    runtimeSourceRef: first.runtimeSourceRef,
+    localAgentRef: first.localAgentRef,
+  }, ownerUserId);
+}
+
 export function toSourceContactLaunchTarget(
   source: SourceContactLaunchSource,
   ownerUserIdInput: string | null | undefined,
@@ -92,8 +125,12 @@ export async function materializeSourceContactLaunchTarget(
   source: SourceContactLaunchSource,
   ownerUserIdInput: string | null | undefined,
 ): Promise<AgentLocalTargetSnapshot> {
-  const packet = await createRealmSourceMaterializationPacket(source);
   const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
+  const discovered = await discoverSourceContactLaunchTarget(source, ownerUserId);
+  if (discovered) {
+    return discovered;
+  }
+  const packet = await createRealmSourceMaterializationPacket(source);
   const runtimeSourceRef = normalizeRequiredText(packet.runtimeSourceRef, 'runtimeSourceRef');
   const displayName = normalizeRequiredText(source.displayName || source.name, 'displayName');
   const worldId = source.sourceWorldId || source.worldId || null;
