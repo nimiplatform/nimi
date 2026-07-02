@@ -190,6 +190,36 @@ file-API non-admission; `S-APP-014` records the current SDK file-client
 non-admission. This Platform rule keeps the qualifier semantics but does
 not admit an execution surface.
 
+## P-PERM-012 - Zhiyu Proactive Interruptibility Permission Binding
+
+`proactive_interruptibility_v1` uses the following `AIScopeRef` for the Zhiyu
+product slice:
+
+```text
+{
+  appId: 'nimi.zhiyu',
+  scopeFamily: 'notification',
+  scopeName: 'notification.subscribe',
+  qualifier: 'proactive_interruptibility_v1.in_app_surface'
+}
+```
+
+This scope is a product-facing opt-in for Runtime/host in-app proactive
+companion projection only. It does not admit OS notification delivery,
+`notification.send`, app registry release/admission, ordinary app visibility,
+or an app-local scheduler.
+
+`MUST`: missing, denied, revoked, or expired grant evidence suppresses
+`proactive_interruptibility_v1` delivery and surfaces an owner-projected
+`suppression_reason` plus audit evidence from Realm/Runtime as applicable.
+
+`MUST NOT`: Zhiyu, SDKs, and apps may not treat this scope as granted without
+Realm/Runtime grant evidence.
+
+`MUST NOT`: `notification.not_admitted` is the required delivery-channel value
+for OS notification paths in this PP6 slice until separate host notification
+authority exists.
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/agent-identity-floor-contract.md` — `P-AGID-001..P-AGID-008`

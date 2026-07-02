@@ -1,9 +1,11 @@
 node_modules/
 dist/
+dist-electron/
 .next/
 coverage/
-*.log
 .DS_Store
+*.log
+*.tar
 
 # local environment files (keep templates only)
 .env
@@ -54,12 +56,7 @@ dev/
 # local AI coding artifacts (never committed)
 .local/
 
-# desktop generated reports/evidence
-apps/desktop/reports/
-apps/avatar/reports/
-apps/desktop/dist-electron/
-apps/tester/dist-electron/
-apps/avatar/dist-electron/
+reports/
 
 # local scratch outputs
 .tmp/

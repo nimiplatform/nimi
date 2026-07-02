@@ -30,6 +30,7 @@ entries:
   - runtime.agent.life-track
   - runtime.agent.memory
   - runtime.agent.hooks
+  - runtime.agent.proactive-interruptibility
   - runtime.agent.delegated-approval-resume
   - runtime.artifact.read-bytes
   - runtime.agent.voice-avatar
@@ -220,6 +221,29 @@ capabilities:
     verification_refs:
       - runtime/internal/services/runtimeagent/service_life_hook_test.go
       - runtime/internal/services/runtimeagent/chat_public_surface_followup_test.go
+    source_rule: P-GOV-026
+
+  - id: runtime.agent.proactive-interruptibility
+    posture: partial
+    owner_domain: runtime
+    authority_refs:
+      - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-143
+      - .nimi/spec/runtime/kernel/agent-hook-intent-contract.md#K-AGCORE-043
+      - .nimi/spec/runtime/kernel/agent-presentation-stream-contract.md#K-AGCORE-037
+      - .nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml
+      - .nimi/spec/platform/kernel/app-permission-contract.md#P-PERM-012
+    login_requirement: realm_login_required
+    public_promise: Runtime may expose the bounded `proactive_interruptibility_v1` in-app projection for default-off opt-in Life Track suggestions, delivered/suppressed state, quiet_hours, frequency_cap, permission state, delivery_channel, suppression_reason, and audit refs.
+    failure_behavior: Missing opt-in, denied/revoked permission, quiet_hours active, frequency_cap exceeded, scheduler denial, Runtime unavailable, unsupported delivery channel, or missing audit ref suppresses delivery with typed Runtime/host projection; no renderer timer, app scheduler, pseudo notification, or pseudo-success.
+    partial_deferred_reason: OS notification delivery, general reminders, appointments, external contact, broad proactive initiate-chat, and app-authored scheduling remain outside promise; notification.not_admitted is explicit until host notification authority lands.
+    closure:
+      spec: partial_bounded_projection_admitted
+      implementation: pending
+      sdk_projection: pending
+      ui_event: pending
+      audit: pending
+    verification_refs:
+      - .nimi/local/plans/zhiyu/40-pp6-proactive-interruptibility-unblock-plan.md
     source_rule: P-GOV-026
 
   - id: runtime.agent.delegated-approval-resume

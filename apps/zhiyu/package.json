@@ -1,0 +1,39 @@
+{
+  "name": "@nimiplatform/zhiyu",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm run dev:renderer",
+    "dev:renderer": "vite --host 127.0.0.1 --port 1472 --strictPort",
+    "dev:electron": "corepack pnpm run build:electron && node scripts/run-electron-dev.mjs",
+    "prepare:workspace-surfaces": "corepack pnpm --filter @nimiplatform/sdk build && corepack pnpm --filter @nimiplatform/kit build",
+    "typecheck": "pnpm run prepare:workspace-surfaces && tsc --noEmit",
+    "build": "pnpm run prepare:workspace-surfaces && tsc --noEmit && vite build",
+    "build:electron": "pnpm run prepare:workspace-surfaces && tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs",
+    "pack:release-evidence": "corepack pnpm run build && corepack pnpm run build:electron && node scripts/pack-release-evidence.mjs",
+    "test:e2e:electron": "corepack pnpm run build && corepack pnpm run build:electron && node --test test/electron-acceptance.mjs",
+    "test:e2e:electron:live-runtime": "corepack pnpm run build && corepack pnpm run build:electron && node --import tsx --test test/electron-live-runtime-acceptance.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@nimiplatform/kit": "workspace:*",
+    "@nimiplatform/sdk": "workspace:*",
+    "lucide-react": "^0.577.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "electron": "^42.5.0",
+    "esbuild": "^0.28.0",
+    "playwright": "^1.61.0",
+    "tsx": "^4.22.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4"
+  }
+}

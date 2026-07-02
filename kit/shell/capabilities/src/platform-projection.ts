@@ -112,6 +112,22 @@ export const NIMI_PLATFORM_NIMI_APP_REGISTRY_ROWS = [
     "installStoragePolicyRef": "nimi-data-app-roots",
     "admissionStatus": "admitted",
     "sourceRule": "P-NAPP-011"
+  },
+  {
+    "appId": "nimi.zhiyu",
+    "appKind": "nimi-app",
+    "displayName": "Zhiyu",
+    "publisher": "nimi-first-party",
+    "trustTier": "nimi-first-party",
+    "ordinaryVisibility": "developer-only",
+    "aiProfileSelectionRef": "local-standard",
+    "capabilitySetRefs": [
+      "text.generate"
+    ],
+    "releaseDescriptorRef": "nimi.zhiyu.bundled-with-nimi",
+    "installStoragePolicyRef": "nimi-data-app-roots",
+    "admissionStatus": "admitted",
+    "sourceRule": "P-NAPP-011"
   }
 ] as const satisfies readonly NimiPlatformNimiAppRegistryRow[];
 
@@ -181,6 +197,28 @@ export const NIMI_PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS = [
     "entryRef": "realm-world-studio-runtime-registration",
     "sandboxRef": "first-party-bundled-app",
     "permissionsRef": "nimi.realm-world-studio.permission_scope_ref"
+  },
+  {
+    "descriptorId": "nimi.zhiyu.bundled-with-nimi",
+    "appId": "nimi.zhiyu",
+    "version": "bundled-with-current-nimi-release",
+    "descriptorClass": "bundled-with-nimi",
+    "sourceKind": "nimi-bundle",
+    "sourceRef": "current-atomic-nimi-release",
+    "artifactLocator": "current-nimi-release-bundle",
+    "sha256": "inherited-from-atomic-nimi-release-manifest",
+    "packageKind": "nimi-app",
+    "storagePolicyRef": "nimi-data-app-roots",
+    "digestAlgorithm": "sha256",
+    "mutableSourceAllowed": false,
+    "admissionPath": "first-party-bundled-release",
+    "installDigestVerificationRequired": "inherited_from_atomic_bundle",
+    "sourceRule": "P-NAPP-014",
+    "size": "inherited-from-atomic-nimi-release-manifest",
+    "provenanceRef": "nimi-first-party-signature-policy",
+    "entryRef": "zhiyu-runtime-registration",
+    "sandboxRef": "first-party-bundled-app",
+    "permissionsRef": "nimi.zhiyu.permission_scope_ref"
   },
   {
     "descriptorId": "community.nimi.fixture.platform-proof.0.1.0-sandbox",

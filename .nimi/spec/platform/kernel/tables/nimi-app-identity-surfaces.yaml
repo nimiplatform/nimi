@@ -80,3 +80,15 @@ apps:
     npm_package: "@nimiplatform/tester"
     product_status: developer-test-reference
     source_rule: P-NAPP-012
+
+  - source_root: apps/zhiyu
+    product_surface: zhiyu-local-agent-companion-app
+    canonical_app_id: nimi.zhiyu
+    sdk_app_id: nimi.zhiyu
+    runtime_app_id: nimi.zhiyu
+    runtime_caller_mode: local-developer-app
+    tauri_identifier: null
+    tauri_identifier_required: false
+    npm_package: "@nimiplatform/zhiyu"
+    product_status: first-party-consuming-app-preparation
+    source_rule: P-NAPP-012

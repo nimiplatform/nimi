@@ -35,6 +35,7 @@ entries:
   - P-PERM-009
   - P-PERM-010
   - P-PERM-011
+  - P-PERM-012
 rules:
   - rule_id: P-PERM-001
     evidence_refs:
@@ -91,3 +92,8 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; app-local-drafts qualifier semantics are admitted, while Runtime `K-APP-018` and SDK `S-APP-014` currently record file-API/client non-admission
+  - rule_id: P-PERM-012
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; Zhiyu proactive_interruptibility_v1 permission binding admits AIScopeRef shape and notification.not_admitted posture, while grant lifecycle enforcement requires Realm/Runtime grant evidence and Runtime/SDK/Zhiyu consumer validation under K-AGCORE-143

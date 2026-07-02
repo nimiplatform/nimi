@@ -16,6 +16,9 @@ entries:
     first-party Apps in this cut so standalone desktop dev-shell account
     registration can use Runtime registry truth and short-lived Realm account
     tokens without app-owned refresh-token custody
+  - Zhiyu is admitted only as a first-party bundled developer-only App in R1;
+    it does not satisfy ordinary Apps catalog discovery or ordinary release
+    readiness
   - admission-sandbox-ci fixture rows are developer-only non-product plumbing
     evidence and must not satisfy ordinary Apps catalog discovery or ordinary
     release readiness
@@ -290,6 +293,63 @@ apps:
       - stale-projection
     ordinary_visibility: developer-only
     release_descriptor_ref: nimi.realm-world-studio.bundled-with-nimi
+    install_storage_policy_ref: nimi-data-app-roots
+    source_repo_url: null
+    admission_status: admitted
+    source_rule: P-NAPP-011
+  - app_id: nimi.zhiyu
+    display_label: Zhiyu
+    publisher: nimi-first-party
+    trust_tier_ref: nimi-first-party
+    package_kind: nimi-app
+    package_signature_policy_ref: nimi-first-party-signature-policy
+    update_channel_ref: stable
+    ai_profile_selection_ref: local-standard
+    capability_set_refs:
+      - text.generate
+    local_compute_pack_refs:
+      - local-text
+    runtime_registration_mode: app-managed
+    permission_scope_ref:
+      - appId: nimi.zhiyu
+        scopeFamily: account
+        scopeName: account.session.read
+      - appId: nimi.zhiyu
+        scopeFamily: agent
+        scopeName: agent.identity.project
+      - appId: nimi.zhiyu
+        scopeFamily: ai_spend
+        scopeName: ai.spend.meter
+      - appId: nimi.zhiyu
+        scopeFamily: ai_profile
+        scopeName: ai_profile.selection.consume
+      - appId: nimi.zhiyu
+        scopeFamily: memory
+        scopeName: memory.read.bounded
+        qualifier: persona-scoped
+      - appId: nimi.zhiyu
+        scopeFamily: memory
+        scopeName: memory.write.admitted
+        qualifier: session-scoped-chat-derived-projection
+      - appId: nimi.zhiyu
+        scopeFamily: notification
+        scopeName: notification.subscribe
+        qualifier: proactive_interruptibility_v1.in_app_surface
+      - appId: nimi.zhiyu
+        scopeFamily: audit
+        scopeName: audit.read.scoped
+        qualifier: zhiyu-own-audit-projections
+    health_repair_projection:
+      - unavailable
+      - setup-required
+      - needs-confirmation
+      - in-progress
+      - failed
+      - unsupported
+      - repair-required
+      - stale-projection
+    ordinary_visibility: developer-only
+    release_descriptor_ref: nimi.zhiyu.bundled-with-nimi
     install_storage_policy_ref: nimi-data-app-roots
     source_repo_url: null
     admission_status: admitted

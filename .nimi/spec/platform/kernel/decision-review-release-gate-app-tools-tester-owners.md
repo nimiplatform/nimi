@@ -1,7 +1,6 @@
 # Decision Review: Release Gate Owner Namespaces For App Tools And Tester
 
 decision_review_id: decision-review-release-gate-app-tools-tester-owners
-topic_id: tester-proof-app-template-governance
 date: 2026-06-28
 disposition: superseded
 decision: Admit `app-tools` and `tester` as release-gate owner namespace segments under P-RELG-008 so scaffold publication safety and dual-shell proof-app parity can be registered as first-class platform release gates.
