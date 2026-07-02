@@ -66,6 +66,14 @@ test('runtime local agent identity fails closed on missing or mismatched parts',
     () => projectRuntimeLocalAgentIdentity({
       ownerUserId: 'owner-1',
       runtimeSourceRef: 'agent-1',
+      localAgentRef: '',
+    }),
+    /localAgentRef is malformed/,
+  );
+  assert.throws(
+    () => projectRuntimeLocalAgentIdentity({
+      ownerUserId: 'owner-1',
+      runtimeSourceRef: 'agent-1',
       localAgentRef: 'agent-1',
     }),
     /localAgentRef is malformed/,

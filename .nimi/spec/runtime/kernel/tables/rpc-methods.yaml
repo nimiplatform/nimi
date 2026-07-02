@@ -538,6 +538,8 @@ services:
         type: unary
       - name: RequestAgentCanonicalMemoryBankBind
         type: unary
+      - name: GetAgentCanonicalMemoryReviewStatus
+        type: unary
       - name: DescribeParticipationProfiles
         type: unary
       - name: DescribeParticipationContextBlocks

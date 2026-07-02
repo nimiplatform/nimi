@@ -92,6 +92,8 @@ func (t *fakeTransport) Unary(ctx context.Context, req sdkstypes.CoreUnaryReques
 			})
 		}
 		return json.Marshal(t.fixtures.Cases.RuntimeUnary.ResponseBody)
+	case t.fixtures.Cases.RealmOperation.OperationID:
+		return json.Marshal(t.fixtures.Cases.RealmOperation.ResponseBody)
 	case "WorldCoreController_createSourceMaterializationPacket":
 		if os.Getenv("SDKS_CONFORMANCE_PROFILE") == "typed-core" {
 			return json.Marshal(SourceMaterializationPacketDto{
@@ -145,7 +147,7 @@ func (t *fakeTransport) ServerStream(ctx context.Context, req sdkstypes.CoreStre
 
 func loadBehaviorFixtures(t *testing.T) behaviorFixtures {
 	t.Helper()
-	data, err := os.ReadFile("../conformance/fixtures/behavior-fixtures.json")
+	data, err := os.ReadFile("../../conformance/fixtures/behavior-fixtures.json")
 	if err != nil {
 		t.Fatalf("read fixtures: %v", err)
 	}

@@ -56,6 +56,8 @@ func (s *Service) newEventAt(agentID string, eventType runtimev1.AgentEventType,
 		event.Detail = typed
 	case *runtimev1.AgentEvent_AvatarDebug:
 		event.Detail = typed
+	case *runtimev1.AgentEvent_Proactive:
+		event.Detail = typed
 	}
 	return event
 }

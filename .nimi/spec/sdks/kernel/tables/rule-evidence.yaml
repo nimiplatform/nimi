@@ -29,7 +29,7 @@ entries:
   - evidence_catalog
   - rules
 rule_registry:
-  total_s_rules: 245
+  total_s_rules: 253
   sdk_version: 0.4.0
 fragments:
   evidence_catalog: rule-evidence.catalog.yaml
@@ -39,3 +39,4 @@ fragments:
     - rule-evidence.rules-domain-adapters.yaml
     - rule-evidence.rules-nimi-app-client.yaml
     - rule-evidence.rules-nimi-permission-client.yaml
+    - rule-evidence.rules-nimi-proposal-intake-client.yaml

@@ -7,6 +7,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -26,6 +27,54 @@ func (s stubPublicChatTurnExecutor) StreamChatTurn(
 	emit func(*runtimev1.StreamScenarioEvent) error,
 ) error {
 	return s.stream(ctx, req, emit)
+}
+
+type targetRefCapturePublicChatScenarioStreamer struct {
+	request *runtimev1.StreamScenarioRequest
+}
+
+func (s *targetRefCapturePublicChatScenarioStreamer) StreamScenario(
+	req *runtimev1.StreamScenarioRequest,
+	_ grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent],
+) error {
+	s.request = req
+	return nil
+}
+
+func TestAIBackedPublicChatTurnExecutorPassesDurableTargetRef(t *testing.T) {
+	t.Parallel()
+	streamer := &targetRefCapturePublicChatScenarioStreamer{}
+	executor := NewAIBackedPublicChatTurnExecutor(streamer)
+	targetRef := &runtimev1.RuntimeDurableTargetRef{
+		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
+			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+				Version: "v2",
+				Ref: &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{
+					ProfileBindingId: "local-runtime:fixture-chat",
+				},
+			},
+		},
+	}
+	err := executor.StreamChatTurn(context.Background(), &PublicChatTurnExecutionRequest{
+		AppID:         "nimi.zhiyu",
+		SubjectUserID: "user-1",
+		Messages: []*runtimev1.ChatMessage{{
+			Role:    "user",
+			Content: "hello",
+		}},
+		Binding: publicChatExecutionBinding{
+			ModelID:     "runtime-agent-live-e2e",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			TargetRef:   targetRef,
+		},
+	}, nil)
+	if err != nil {
+		t.Fatalf("StreamChatTurn: %v", err)
+	}
+	got := streamer.request.GetHead().GetTargetRef().GetLocalRuntime().GetProfileBindingId()
+	if got != "local-runtime:fixture-chat" {
+		t.Fatalf("expected scenario head target_ref profile binding id, got %q", got)
+	}
 }
 
 type stubChatTrackSidecarExecutor struct {

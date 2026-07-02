@@ -128,40 +128,33 @@ const (
 	AGENTCANONICALMEMORYBANKMODEUNAVAILABLE AgentCanonicalMemoryBankMode = "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE"
 )
 
+type AgentCanonicalMemoryReviewReadiness string
+
+const (
+	AGENTCANONICALMEMORYREVIEWREADINESSUNSPECIFIED AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED"
+	AGENTCANONICALMEMORYREVIEWREADINESSELIGIBLE AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE"
+	AGENTCANONICALMEMORYREVIEWREADINESSWAITINGFORWINDOW AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW"
+	AGENTCANONICALMEMORYREVIEWREADINESSEXECUTORUNAVAILABLE AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE"
+	AGENTCANONICALMEMORYREVIEWREADINESSRECOVERABLERUNBLOCKING AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING"
+	AGENTCANONICALMEMORYREVIEWREADINESSBANKUNAVAILABLE AgentCanonicalMemoryReviewReadiness = "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE"
+)
+
 type AgentEventType string
 
 const (
 	AGENTEVENTTYPEUNSPECIFIED AgentEventType = "AGENT_EVENT_TYPE_UNSPECIFIED"
-	AGENTEVENTTYPELIFECYCLE AgentEventType = "AGENT_EVENT_TYPE_LIFECYCLE"
-	AGENTEVENTTYPEHOOK AgentEventType = "AGENT_EVENT_TYPE_HOOK"
-	AGENTEVENTTYPEMEMORY AgentEventType = "AGENT_EVENT_TYPE_MEMORY"
-	AGENTEVENTTYPEBUDGET AgentEventType = "AGENT_EVENT_TYPE_BUDGET"
-	AGENTEVENTTYPEREPLICATION AgentEventType = "AGENT_EVENT_TYPE_REPLICATION"
-	AGENTEVENTTYPESTATE AgentEventType = "AGENT_EVENT_TYPE_STATE"
-	AGENTEVENTTYPEPRESENTATION AgentEventType = "AGENT_EVENT_TYPE_PRESENTATION"
-	AGENTEVENTTYPEAVATARDEBUG AgentEventType = "AGENT_EVENT_TYPE_AVATAR_DEBUG"
 )
 
 type AgentExecutionState string
 
 const (
 	AGENTEXECUTIONSTATEUNSPECIFIED AgentExecutionState = "AGENT_EXECUTION_STATE_UNSPECIFIED"
-	AGENTEXECUTIONSTATEIDLE AgentExecutionState = "AGENT_EXECUTION_STATE_IDLE"
-	AGENTEXECUTIONSTATECHATACTIVE AgentExecutionState = "AGENT_EXECUTION_STATE_CHAT_ACTIVE"
-	AGENTEXECUTIONSTATELIFEPENDING AgentExecutionState = "AGENT_EXECUTION_STATE_LIFE_PENDING"
-	AGENTEXECUTIONSTATELIFERUNNING AgentExecutionState = "AGENT_EXECUTION_STATE_LIFE_RUNNING"
-	AGENTEXECUTIONSTATESUSPENDED AgentExecutionState = "AGENT_EXECUTION_STATE_SUSPENDED"
 )
 
 type AgentLifecycleStatus string
 
 const (
 	AGENTLIFECYCLESTATUSUNSPECIFIED AgentLifecycleStatus = "AGENT_LIFECYCLE_STATUS_UNSPECIFIED"
-	AGENTLIFECYCLESTATUSINITIALIZING AgentLifecycleStatus = "AGENT_LIFECYCLE_STATUS_INITIALIZING"
-	AGENTLIFECYCLESTATUSACTIVE AgentLifecycleStatus = "AGENT_LIFECYCLE_STATUS_ACTIVE"
-	AGENTLIFECYCLESTATUSSUSPENDED AgentLifecycleStatus = "AGENT_LIFECYCLE_STATUS_SUSPENDED"
-	AGENTLIFECYCLESTATUSTERMINATING AgentLifecycleStatus = "AGENT_LIFECYCLE_STATUS_TERMINATING"
-	AGENTLIFECYCLESTATUSTERMINATED AgentLifecycleStatus = "AGENT_LIFECYCLE_STATUS_TERMINATED"
 )
 
 type AgentPresentationBackendKind string
@@ -179,22 +172,60 @@ type AgentPresentationEventFamily string
 
 const (
 	AGENTPRESENTATIONEVENTFAMILYUNSPECIFIED AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED"
-	AGENTPRESENTATIONEVENTFAMILYACTIVITYREQUESTED AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED"
-	AGENTPRESENTATIONEVENTFAMILYMOTIONREQUESTED AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED"
-	AGENTPRESENTATIONEVENTFAMILYEXPRESSIONREQUESTED AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED"
-	AGENTPRESENTATIONEVENTFAMILYPOSEREQUESTED AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED"
-	AGENTPRESENTATIONEVENTFAMILYPOSECLEARED AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED"
-	AGENTPRESENTATIONEVENTFAMILYLOOKATREQUESTED AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED"
+)
+
+type AgentProactiveDeliveryChannel string
+
+const (
+	AGENTPROACTIVEDELIVERYCHANNELUNSPECIFIED AgentProactiveDeliveryChannel = "AGENT_PROACTIVE_DELIVERY_CHANNEL_UNSPECIFIED"
+)
+
+type AgentProactiveEffectClass string
+
+const (
+	AGENTPROACTIVEEFFECTCLASSUNSPECIFIED AgentProactiveEffectClass = "AGENT_PROACTIVE_EFFECT_CLASS_UNSPECIFIED"
+)
+
+type AgentProactiveEventFamily string
+
+const (
+	AGENTPROACTIVEEVENTFAMILYUNSPECIFIED AgentProactiveEventFamily = "AGENT_PROACTIVE_EVENT_FAMILY_UNSPECIFIED"
+)
+
+type AgentProactiveFrequencyCapState string
+
+const (
+	AGENTPROACTIVEFREQUENCYCAPSTATEUNSPECIFIED AgentProactiveFrequencyCapState = "AGENT_PROACTIVE_FREQUENCY_CAP_STATE_UNSPECIFIED"
+)
+
+type AgentProactiveOptInState string
+
+const (
+	AGENTPROACTIVEOPTINSTATEUNSPECIFIED AgentProactiveOptInState = "AGENT_PROACTIVE_OPT_IN_STATE_UNSPECIFIED"
+)
+
+type AgentProactiveQuietHoursState string
+
+const (
+	AGENTPROACTIVEQUIETHOURSSTATEUNSPECIFIED AgentProactiveQuietHoursState = "AGENT_PROACTIVE_QUIET_HOURS_STATE_UNSPECIFIED"
+)
+
+type AgentProactiveSuppressionReason string
+
+const (
+	AGENTPROACTIVESUPPRESSIONREASONUNSPECIFIED AgentProactiveSuppressionReason = "AGENT_PROACTIVE_SUPPRESSION_REASON_UNSPECIFIED"
+)
+
+type AgentProactiveTriggerSource string
+
+const (
+	AGENTPROACTIVETRIGGERSOURCEUNSPECIFIED AgentProactiveTriggerSource = "AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED"
 )
 
 type AgentStateEventFamily string
 
 const (
 	AGENTSTATEEVENTFAMILYUNSPECIFIED AgentStateEventFamily = "AGENT_STATE_EVENT_FAMILY_UNSPECIFIED"
-	AGENTSTATEEVENTFAMILYSTATUSTEXTCHANGED AgentStateEventFamily = "AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED"
-	AGENTSTATEEVENTFAMILYEXECUTIONSTATECHANGED AgentStateEventFamily = "AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED"
-	AGENTSTATEEVENTFAMILYEMOTIONCHANGED AgentStateEventFamily = "AGENT_STATE_EVENT_FAMILY_EMOTION_CHANGED"
-	AGENTSTATEEVENTFAMILYPOSTURECHANGED AgentStateEventFamily = "AGENT_STATE_EVENT_FAMILY_POSTURE_CHANGED"
 )
 
 type AgentTrackType string
@@ -632,29 +663,18 @@ type HookAdmissionState string
 
 const (
 	HOOKADMISSIONSTATEUNSPECIFIED HookAdmissionState = "HOOK_ADMISSION_STATE_UNSPECIFIED"
-	HOOKADMISSIONSTATEPROPOSED HookAdmissionState = "HOOK_ADMISSION_STATE_PROPOSED"
-	HOOKADMISSIONSTATEPENDING HookAdmissionState = "HOOK_ADMISSION_STATE_PENDING"
-	HOOKADMISSIONSTATEREJECTED HookAdmissionState = "HOOK_ADMISSION_STATE_REJECTED"
-	HOOKADMISSIONSTATERUNNING HookAdmissionState = "HOOK_ADMISSION_STATE_RUNNING"
-	HOOKADMISSIONSTATECOMPLETED HookAdmissionState = "HOOK_ADMISSION_STATE_COMPLETED"
-	HOOKADMISSIONSTATEFAILED HookAdmissionState = "HOOK_ADMISSION_STATE_FAILED"
-	HOOKADMISSIONSTATECANCELED HookAdmissionState = "HOOK_ADMISSION_STATE_CANCELED"
-	HOOKADMISSIONSTATERESCHEDULED HookAdmissionState = "HOOK_ADMISSION_STATE_RESCHEDULED"
 )
 
 type HookEffect string
 
 const (
 	HOOKEFFECTUNSPECIFIED HookEffect = "HOOK_EFFECT_UNSPECIFIED"
-	HOOKEFFECTFOLLOWUPTURN HookEffect = "HOOK_EFFECT_FOLLOW_UP_TURN"
 )
 
 type HookTriggerFamily string
 
 const (
 	HOOKTRIGGERFAMILYUNSPECIFIED HookTriggerFamily = "HOOK_TRIGGER_FAMILY_UNSPECIFIED"
-	HOOKTRIGGERFAMILYTIME HookTriggerFamily = "HOOK_TRIGGER_FAMILY_TIME"
-	HOOKTRIGGERFAMILYEVENT HookTriggerFamily = "HOOK_TRIGGER_FAMILY_EVENT"
 )
 
 type KnowledgeBankScope string
@@ -1915,6 +1935,18 @@ type AgentCanonicalMemoryBankStatus struct {
 	CutoverAllowed bool `json:"cutover_allowed,omitempty"`
 }
 
+type AgentCanonicalMemoryReviewStatus struct {
+	Bank *MemoryBankLocator `json:"bank,omitempty"`
+	Readiness AgentCanonicalMemoryReviewReadiness `json:"readiness,omitempty"`
+	EligibleNow bool `json:"eligible_now,omitempty"`
+	ReviewExecutorAvailable bool `json:"review_executor_available,omitempty"`
+	LastReviewRunId string `json:"last_review_run_id,omitempty"`
+	CheckpointBasis string `json:"checkpoint_basis,omitempty"`
+	LastCompletedAt string `json:"last_completed_at,omitempty"`
+	NextEligibleAt string `json:"next_eligible_at,omitempty"`
+	RecoverableReviewRunId string `json:"recoverable_review_run_id,omitempty"`
+}
+
 type AgentConversationSummary struct {
 	Anchor *ConversationAnchor `json:"anchor,omitempty"`
 	Title string `json:"title,omitempty"`
@@ -1947,6 +1979,7 @@ type AgentEvent struct {
 	State *AgentStateEventDetail `json:"state,omitempty"`
 	Presentation *AgentPresentationEventDetail `json:"presentation,omitempty"`
 	AvatarDebug *AgentAvatarDebugEventDetail `json:"avatar_debug,omitempty"`
+	Proactive *AgentProactiveEventDetail `json:"proactive,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
 	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
@@ -2009,6 +2042,44 @@ type AgentPresentationProfile struct {
 	IdlePreset string `json:"idle_preset,omitempty"`
 	InteractionPolicyRef string `json:"interaction_policy_ref,omitempty"`
 	DefaultVoiceReference string `json:"default_voice_reference,omitempty"`
+}
+
+type AgentProactiveEventDetail struct {
+	Family AgentProactiveEventFamily `json:"family,omitempty"`
+	ProjectionId string `json:"projection_id,omitempty"`
+	ProjectionKind string `json:"projection_kind,omitempty"`
+	OwnerDomain string `json:"owner_domain,omitempty"`
+	TriggerSource AgentProactiveTriggerSource `json:"trigger_source,omitempty"`
+	EffectClass AgentProactiveEffectClass `json:"effect_class,omitempty"`
+	DeliveryChannel AgentProactiveDeliveryChannel `json:"delivery_channel,omitempty"`
+	Mode AgentAutonomyMode `json:"mode,omitempty"`
+	OptInState AgentProactiveOptInState `json:"opt_in_state,omitempty"`
+	QuietHours AgentProactiveQuietHoursState `json:"quiet_hours,omitempty"`
+	FrequencyCap AgentProactiveFrequencyCapState `json:"frequency_cap,omitempty"`
+	SuppressionReason AgentProactiveSuppressionReason `json:"suppression_reason,omitempty"`
+	ReasonCode string `json:"reason_code,omitempty"`
+	AuditRef string `json:"audit_ref,omitempty"`
+	SourceHookId string `json:"source_hook_id,omitempty"`
+	SourceCadenceId string `json:"source_cadence_id,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	OriginatingTurnId string `json:"originating_turn_id,omitempty"`
+	OriginatingStreamId string `json:"originating_stream_id,omitempty"`
+	ObservedAt string `json:"observed_at,omitempty"`
+}
+
+type AgentProactiveInterruptibilityProjection struct {
+	ProjectionId string `json:"projection_id,omitempty"`
+	ProjectionKind string `json:"projection_kind,omitempty"`
+	Mode AgentAutonomyMode `json:"mode,omitempty"`
+	OptInState AgentProactiveOptInState `json:"opt_in_state,omitempty"`
+	DeliveryChannel AgentProactiveDeliveryChannel `json:"delivery_channel,omitempty"`
+	QuietHours AgentProactiveQuietHoursState `json:"quiet_hours,omitempty"`
+	FrequencyCap AgentProactiveFrequencyCapState `json:"frequency_cap,omitempty"`
+	AuditRefs []string `json:"audit_refs,omitempty"`
+	SuggestedEvent *AgentProactiveEventDetail `json:"suggested_event,omitempty"`
+	LastDeliveredEvent *AgentProactiveEventDetail `json:"last_delivered_event,omitempty"`
+	LastSuppressedEvent *AgentProactiveEventDetail `json:"last_suppressed_event,omitempty"`
+	UnsupportedFields []string `json:"unsupported_fields,omitempty"`
 }
 
 type AgentRecord struct {
@@ -2086,6 +2157,7 @@ type AgentStateProjection struct {
 	Attributes map[string]string `json:"attributes,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
 	CurrentEmotion string `json:"current_emotion,omitempty"`
+	ProactiveInterruptibility *AgentProactiveInterruptibilityProjection `json:"proactive_interruptibility,omitempty"`
 }
 
 type AgentStatePutAttribute struct {
@@ -3485,6 +3557,16 @@ type GetAgentCanonicalMemoryBankStatusRequest struct {
 
 type GetAgentCanonicalMemoryBankStatusResponse struct {
 	Status *AgentCanonicalMemoryBankStatus `json:"status,omitempty"`
+}
+
+type GetAgentCanonicalMemoryReviewStatusRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	AgentId string `json:"agent_id,omitempty"`
+	Bank *MemoryBankLocator `json:"bank,omitempty"`
+}
+
+type GetAgentCanonicalMemoryReviewStatusResponse struct {
+	Status *AgentCanonicalMemoryReviewStatus `json:"status,omitempty"`
 }
 
 type GetAgentRequest struct {
@@ -8247,6 +8329,14 @@ func (c RuntimeTypedClient) GetAgentCanonicalMemoryBankStatus(ctx context.Contex
 		return GetAgentCanonicalMemoryBankStatusResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetAgentCanonicalMemoryBankStatusResponse](raw, "GetAgentCanonicalMemoryBankStatusResponse")
+}
+
+func (c RuntimeTypedClient) GetAgentCanonicalMemoryReviewStatus(ctx context.Context, request GetAgentCanonicalMemoryReviewStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentCanonicalMemoryReviewStatusResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAgentCanonicalMemoryReviewStatusResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetAgentCanonicalMemoryReviewStatusResponse](raw, "GetAgentCanonicalMemoryReviewStatusResponse")
 }
 
 func (c RuntimeTypedClient) GetAgentState(ctx context.Context, request GetAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentStateResponse, error) {

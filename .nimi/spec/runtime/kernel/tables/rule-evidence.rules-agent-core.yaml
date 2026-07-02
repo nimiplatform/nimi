@@ -44,6 +44,7 @@ entries:
   - K-AGCORE-014
   - K-AGCORE-015
   - K-AGCORE-016
+  - K-AGCORE-016a
   - K-AGCORE-017
   - K-AGCORE-018
   - K-AGCORE-019
@@ -168,6 +169,7 @@ entries:
   - K-AGCORE-140
   - K-AGCORE-141
   - K-AGCORE-142
+  - K-AGCORE-143
 rules:
   - rule_id: K-AGCORE-001
     evidence_refs: []
@@ -231,6 +233,13 @@ rules:
   - rule_id: K-AGCORE-016
     evidence_refs: []
     evidence_requirement: deferred
+  - rule_id: K-AGCORE-016a
+    evidence_refs:
+      - runtime_kernel_consistency
+    test_files:
+      - runtime/internal/services/runtimeagent/service_canonical_review_status_test.go
+    note: Runtime-owned bank-level canonical review status projection for app-facing observability; no per-record review truth or mutation is admitted here.
+    evidence_requirement: required
   - rule_id: K-AGCORE-017
     evidence_refs: []
     evidence_requirement: deferred
@@ -832,4 +841,12 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
     note: Built-in Nimi usage documentation corpus is product knowledge authored alongside the guide bootstrap definition and attached per-turn as context only; it is not a runtime-owned catalog, not memory truth, and not setup/profile authority.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-143
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+    note: Proactive interruptibility is a bounded Runtime-owned projection for Zhiyu PP6; runtime, SDK, and consuming app evidence must prove default-off mode, quiet_hours, frequency_cap, permission suppression, delivery/suppression events, audit refs, and explicit notification.not_admitted behavior without app-local scheduler truth.
     evidence_requirement: required

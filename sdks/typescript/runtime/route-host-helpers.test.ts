@@ -332,6 +332,33 @@ test('Runtime host route access builds call options and checks Runtime health so
   assert.equal(options.timeoutMs, 120000);
   assert.equal(options.metadata?.callerKind, 'desktop-core');
   assert.equal(options.metadata?.surfaceId, 'desktop.test');
+  const hostIdentityOptions = buildNimiRuntimeRouteTargetCallOptions({
+    targetId: 'core.chat.agent',
+    timeoutMs: 120000,
+    callerKind: 'desktop-core',
+    surfaceId: 'desktop.test',
+    callerIdPrefix: 'route',
+    identityMetadataMode: 'host',
+  });
+  assert.equal(hostIdentityOptions.metadata?.callerKind, undefined);
+  assert.equal(hostIdentityOptions.metadata?.callerId, undefined);
+  assert.equal(hostIdentityOptions.metadata?.surfaceId, 'desktop.test');
+  assert.ok(hostIdentityOptions.metadata?.traceId);
+  const hostIdentitySurface = createNimiHostRuntimeRouteAccessSurface({
+    appId: 'nimi.test',
+    callerKind: 'desktop-core',
+    surfaceId: 'desktop.test',
+    identityMetadataMode: 'host',
+    getRuntime: () => surface.getRuntimeClient(),
+  });
+  const hostSurfaceOptions = await hostIdentitySurface.buildCallOptions({
+    source: 'local-runtime',
+    targetId: 'core.chat.agent',
+    timeoutMs: 120000,
+  });
+  assert.equal(hostSurfaceOptions.metadata?.callerKind, undefined);
+  assert.equal(hostSurfaceOptions.metadata?.callerId, undefined);
+  assert.equal(hostSurfaceOptions.metadata?.surfaceId, 'desktop.test');
   await surface.ensureLocalModelWarm({
     targetId: 'core.chat.agent',
     resolvedBinding: resolved,

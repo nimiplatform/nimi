@@ -34,6 +34,7 @@ import type {
   NimiRuntimeAgentStateSnapshot,
   ProjectNimiRuntimeAgentInspectSnapshotInput,
 } from './runtime-agent-inspect-types';
+import { projectNimiRuntimeAgentProactiveInterruptibility } from './runtime-agent-proactive-projection';
 
 export function normalizeNimiRuntimeAgentOptionalNumber(value: unknown): number | null {
   const normalized = Number(value);
@@ -222,6 +223,12 @@ export function formatNimiRuntimeAgentEventType(value: unknown): string | null {
       return 'replication';
     case AgentEventType.STATE:
       return 'state';
+    case AgentEventType.PRESENTATION:
+      return 'presentation';
+    case AgentEventType.AVATAR_DEBUG:
+      return 'avatar-debug';
+    case AgentEventType.PROACTIVE:
+      return 'proactive';
     default:
       return null;
   }
@@ -341,6 +348,9 @@ export function projectNimiRuntimeAgentStateSnapshot(
     statusText: normalizeNimiRuntimeAgentText(state?.statusText) || null,
     activeWorldId: normalizeNimiRuntimeAgentText(state?.activeWorldId) || null,
     activeUserId: normalizeNimiRuntimeAgentText(state?.activeUserId) || null,
+    updatedAt: runtimeAgentTimestampToIso(state?.updatedAt),
+    currentEmotion: normalizeNimiRuntimeAgentText(state?.currentEmotion) || null,
+    proactiveInterruptibility: projectNimiRuntimeAgentProactiveInterruptibility(state?.proactiveInterruptibility),
   };
 }
 
@@ -405,6 +415,9 @@ export function projectNimiRuntimeAgentInspectSnapshot(
     statusText: state.statusText,
     activeWorldId: state.activeWorldId,
     activeUserId: state.activeUserId,
+    updatedAt: state.updatedAt,
+    currentEmotion: state.currentEmotion,
+    proactiveInterruptibility: state.proactiveInterruptibility,
     autonomyMode: autonomy.mode,
     autonomyEnabled: autonomy.enabled,
     autonomyBudgetExhausted: autonomy.budgetExhausted,

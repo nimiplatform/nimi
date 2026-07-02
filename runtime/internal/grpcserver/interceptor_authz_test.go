@@ -252,6 +252,11 @@ func TestProtectedCapabilityForUnaryExemptsRouteDescribeProbe(t *testing.T) {
 			namespace:    "nimi.scenario.text_generate.route_describe",
 		},
 		{
+			name:         "text embed",
+			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
+			namespace:    "nimi.scenario.text_embed.route_describe",
+		},
+		{
 			name:         "speech synthesize",
 			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 			namespace:    "nimi.scenario.speech_synthesize.route_describe",

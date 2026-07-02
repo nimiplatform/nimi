@@ -68,6 +68,7 @@ export const RUNTIME_AGENT_METHODS = [
   'queryAgentMemory',
   'writeAgentMemory',
   'getAgentCanonicalMemoryBankStatus',
+  'getAgentCanonicalMemoryReviewStatus',
   'requestAgentCanonicalMemoryBankBind',
   'describeParticipationProfiles',
   'describeParticipationContextBlocks',

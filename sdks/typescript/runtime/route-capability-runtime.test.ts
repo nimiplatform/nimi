@@ -72,6 +72,21 @@ function createTextGenerateRouteMetadata(
   };
 }
 
+function createTextEmbedRouteMetadata(
+  overrides: Partial<{
+    dimensions: number;
+    maxInputsPerRequest: number;
+    supportsBatch: boolean;
+  }> = {},
+): Record<string, unknown> {
+  return {
+    dimensions: 4,
+    maxInputsPerRequest: 16,
+    supportsBatch: true,
+    ...overrides,
+  };
+}
+
 function createRouteOptionsSnapshot(selectedTargetRef: NimiRuntimeRouteTargetRef | null = cloudTargetRef): NimiRuntimeRouteOptionsSnapshot {
   return {
     capability: 'text.generate',
@@ -509,6 +524,13 @@ test('Runtime route describe builds scenario probes and validates metadata bound
     readonly modelId: string;
     readonly metadata: Record<string, unknown>;
   }> = [
+    {
+      capability: 'text.embed',
+      scenarioType: ScenarioType.TEXT_EMBED,
+      oneofKind: 'textEmbed',
+      modelId: 'embedding-model',
+      metadata: createTextEmbedRouteMetadata(),
+    },
     {
       capability: 'image.generate',
       scenarioType: ScenarioType.IMAGE_GENERATE,

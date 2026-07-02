@@ -10,6 +10,8 @@ import type {
   GetPublicChatSessionSnapshotResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
+  ListAgentsRequest,
+  ListAgentsResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
   QueryAgentMemoryRequest,
@@ -30,9 +32,12 @@ import { createNimiError, ReasonCode } from '../types';
 import { projectRuntimeLocalAgentIdentity, type RuntimeLocalAgentIdentityInput } from './agent-local-identity';
 import {
   createNimiHostRuntimeAgentLifecycleSurface,
+  type NimiRuntimeAgentDiscoveredLocalAgent,
+  type NimiRuntimeAgentDiscoverLocalAgentsBySourceInput,
   type NimiRuntimeAgentEnsureLocalAgentInitializedInput,
   type NimiRuntimeAgentInitializedLocalAgent,
   type NimiRuntimeAgentInitializeLocalAgentInput,
+  type NimiRuntimeAgentListLocalAgentsInput,
   type NimiRuntimeAgentTerminateLocalAgentInput,
 } from './runtime-agent-lifecycle';
 import {
@@ -79,6 +84,7 @@ export interface NimiRuntimeAgentClientRuntime {
 export interface NimiRuntimeAgentClientAgentModule {
   getAgent(request: GetAgentRequest, options?: RuntimeTypedCallOptions): Promise<GetAgentResponse>;
   initializeAgent(request: InitializeAgentRequest, options?: RuntimeTypedCallOptions): Promise<InitializeAgentResponse>;
+  listAgents(request: ListAgentsRequest, options?: RuntimeTypedCallOptions): Promise<ListAgentsResponse>;
   terminateAgent(request: TerminateAgentRequest, options?: RuntimeTypedCallOptions): Promise<TerminateAgentResponse>;
   openConversationAnchor(request: OpenConversationAnchorRequest, options?: RuntimeTypedCallOptions): Promise<OpenConversationAnchorResponse>;
   getPublicChatSessionSnapshot(
@@ -118,6 +124,8 @@ export interface NimiRuntimeAgentOpenConversationInput extends NimiRuntimeAgentI
 }
 
 export interface NimiRuntimeAgentClient {
+  listLocalAgents(input?: NimiRuntimeAgentListLocalAgentsInput): Promise<NimiRuntimeAgentDiscoveredLocalAgent[]>;
+  discoverBySource(input: NimiRuntimeAgentDiscoverLocalAgentsBySourceInput): Promise<NimiRuntimeAgentDiscoveredLocalAgent[]>;
   ensureInitialized(input: NimiRuntimeAgentEnsureLocalAgentInitializedInput): Promise<NimiRuntimeAgentInitializedLocalAgent>;
   initialize(input: NimiRuntimeAgentInitializeLocalAgentInput): Promise<NimiRuntimeAgentInitializedLocalAgent>;
   terminate(input: NimiRuntimeAgentTerminateLocalAgentInput): Promise<void>;
@@ -188,6 +196,8 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
   });
 
   return {
+    listLocalAgents: lifecycle.listLocalAgents,
+    discoverBySource: lifecycle.discoverLocalAgentsBySource,
     ensureInitialized: lifecycle.ensureLocalAgentInitialized,
     initialize: lifecycle.initializeLocalAgent,
     terminate: lifecycle.terminateLocalAgent,
@@ -209,7 +219,7 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
             runtimeSourceRef: identity.runtimeSourceRef,
             localAgentRef: identity.localAgentRef,
           },
-          agentId: identity.localAgentRef,
+          agentId: '',
           subjectUserId,
           localAgentRef: identity.localAgentRef,
           ownerUserId: identity.ownerUserId,

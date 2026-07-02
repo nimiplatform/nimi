@@ -66,6 +66,7 @@ export interface NimiRuntimeRouteHealthResult {
 
 export type NimiRuntimeRouteMetadataKind =
   | 'text.generate'
+  | 'text.embed'
   | 'image.generate'
   | 'audio.synthesize'
   | 'audio.transcribe'
@@ -83,6 +84,12 @@ export interface NimiRuntimeRouteTextGenerateMetadata {
   readonly supportsAudioInput: boolean;
   readonly supportsVideoInput: boolean;
   readonly supportsArtifactRefInput: boolean;
+}
+
+export interface NimiRuntimeRouteTextEmbedMetadata {
+  readonly dimensions?: number;
+  readonly maxInputsPerRequest: number;
+  readonly supportsBatch: boolean;
 }
 
 export interface NimiRuntimeRouteImageGenerateMetadata {
@@ -154,6 +161,10 @@ export type NimiRuntimeRouteDescribeResult =
       readonly metadata: NimiRuntimeRouteTextGenerateMetadata;
     })
   | (NimiRuntimeRouteDescribeResultBase & {
+      readonly metadataKind: 'text.embed';
+      readonly metadata: NimiRuntimeRouteTextEmbedMetadata;
+    })
+  | (NimiRuntimeRouteDescribeResultBase & {
       readonly metadataKind: 'image.generate';
       readonly metadata: NimiRuntimeRouteImageGenerateMetadata;
     })
@@ -212,6 +223,7 @@ export type NimiRuntimeRouteCapabilityOptionsLoader = (input: {
 
 export interface NimiRuntimeRouteCapabilityDescribeHost {
   readonly appId: string;
+  readonly subjectUserId?: string;
   readonly executeScenario: NimiRuntimeRouteExecuteScenario;
 }
 

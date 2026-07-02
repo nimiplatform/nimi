@@ -507,5 +507,6 @@ groups:
       - WriteAgentMemory
       - GetAgentCanonicalMemoryBankStatus
       - RequestAgentCanonicalMemoryBankBind
+      - GetAgentCanonicalMemoryReviewStatus
       - SubscribeAgentEvents
     source_rule: S-SURFACE-002

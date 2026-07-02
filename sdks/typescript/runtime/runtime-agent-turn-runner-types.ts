@@ -4,6 +4,7 @@ import type { JsonObject } from '../types';
 import type {
   RuntimeLocalAgentIdentityInput,
 } from './agent-local-identity';
+import type { NimiRuntimeRouteTargetRef } from './route-options';
 import type {
   NimiRuntimeAgentConsumeEvent,
   NimiRuntimeAgentSessionSnapshot,
@@ -41,6 +42,7 @@ export type NimiRuntimeAgentExecutionBinding = {
   readonly route: 'local' | 'cloud';
   readonly modelId: string;
   readonly connectorId?: string;
+  readonly targetRef?: NimiRuntimeRouteTargetRef;
 };
 
 export type NimiRuntimeAgentExecutionBindings = Partial<Record<

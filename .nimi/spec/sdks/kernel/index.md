@@ -20,3 +20,5 @@ Current scope:
   `.nimi/spec/realm/**`.
 - `runtime-agent-participation-contract.md` owns the vNext SDK-facing Runtime
   Agent Participation method projection gate.
+- `nimi-proposal-intake-client-contract.md` owns the SDK typed consumer
+  surface for Platform `P-PROP-*` proposal intake.

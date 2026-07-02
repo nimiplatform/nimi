@@ -332,7 +332,7 @@ rules:
       - sdk_runtime_test
       - desktop_boundary_test
     evidence_requirement: required
-    note: Desktop-launched installed Nimi App caller posture; implementation evidence lands with Runtime account posture, SDK app session, Kit Electron auth, and Desktop launch host gates.
+    note: Desktop-launched installed Nimi App caller posture; evidence binds Runtime account posture, SDK app session, Kit Electron auth, and Desktop launch host gates.
     test_files:
       - runtime/internal/services/account/service_test.go
       - sdks/typescript/runtime/app-session.test.ts

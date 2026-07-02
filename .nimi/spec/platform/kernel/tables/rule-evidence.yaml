@@ -45,6 +45,7 @@ fragments:
     - rule-evidence.rules-nimi-app-audit-pipeline.yaml
     - rule-evidence.rules-nimi-app-developer-workflow.yaml
     - rule-evidence.rules-nimi-app-scaffolding.yaml
+    - rule-evidence.rules-nimi-proposal-intake.yaml
     - rule-evidence.rules-agent-identity-floor.yaml
     - rule-evidence.rules-app-permission.yaml
     - rule-evidence.rules-first-party.yaml

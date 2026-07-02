@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"encoding/json"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
 	"time"
@@ -59,6 +60,7 @@ type publicChatExecutionBinding struct {
 	ModelID     string
 	RoutePolicy runtimev1.RoutePolicy
 	ConnectorID string
+	TargetRef   *runtimev1.RuntimeDurableTargetRef
 }
 type publicChatExecutionBindings map[string]publicChatExecutionBinding
 type publicChatReasoningConfig struct {
@@ -73,7 +75,7 @@ type avatarLiveInstanceBindingState struct {
 	AgentID              string
 	LocalAgentRef        string
 	OwnerUserID          string
-	RuntimeSourceRef         string
+	RuntimeSourceRef     string
 	CallerAppID          string
 	SubjectUserID        string
 	RegisteredAt         time.Time
@@ -90,7 +92,7 @@ type publicChatAnchorState struct {
 	AgentID                string
 	LocalAgentRef          string
 	OwnerUserID            string
-	RuntimeSourceRef           string
+	RuntimeSourceRef       string
 	CallerAppID            string
 	SubjectUserID          string
 	ThreadID               string
@@ -151,9 +153,10 @@ type publicChatMessagePayload struct {
 	Name    string `json:"name,omitempty"`
 }
 type publicChatExecutionBindingPayload struct {
-	Route       string `json:"route"`
-	ModelID     string `json:"model_id"`
-	ConnectorID string `json:"connector_id,omitempty"`
+	Route       string          `json:"route"`
+	ModelID     string          `json:"model_id"`
+	ConnectorID string          `json:"connector_id,omitempty"`
+	TargetRef   json.RawMessage `json:"target_ref,omitempty"`
 }
 type publicChatReasoningPayload struct {
 	Mode         string `json:"mode,omitempty"`
@@ -170,7 +173,7 @@ type publicChatTurnRequestPayload struct {
 	AgentID              string                                       `json:"agent_id"`
 	LocalAgentRef        string                                       `json:"local_agent_ref"`
 	OwnerUserID          string                                       `json:"owner_user_id"`
-	RuntimeSourceRef         string                                       `json:"runtime_source_ref"`
+	RuntimeSourceRef     string                                       `json:"runtime_source_ref"`
 	ConversationAnchorID string                                       `json:"conversation_anchor_id"`
 	RequestID            string                                       `json:"request_id,omitempty"`
 	ThreadID             string                                       `json:"thread_id,omitempty"`

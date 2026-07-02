@@ -69,6 +69,21 @@ func TestClassifyScenarioExtensionsAllowsTextGenerateRouteDescribeProbe(t *testi
 	}
 }
 
+func TestClassifyScenarioExtensionsAllowsTextEmbedRouteDescribeProbe(t *testing.T) {
+	ignored, err := classifyScenarioExtensions(
+		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
+		[]*runtimev1.ScenarioExtension{
+			{Namespace: textEmbedRouteDescribeExtensionNamespace},
+		},
+	)
+	if err != nil {
+		t.Fatalf("classify scenario extensions: %v", err)
+	}
+	if len(ignored) != 0 {
+		t.Fatalf("strict extension should not be ignored, got=%d", len(ignored))
+	}
+}
+
 func TestClassifyScenarioExtensionsAllowsVoiceWorkflowRouteDescribeProbe(t *testing.T) {
 	ignored, err := classifyScenarioExtensions(
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,

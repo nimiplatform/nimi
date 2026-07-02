@@ -182,6 +182,100 @@ func TestExecuteScenarioTextGenerateRouteDescribeProbeWritesHeaderForLocalRoute(
 	}
 }
 
+func TestExecuteScenarioTextEmbedRouteDescribeProbeWritesHeaderForLocalRoute(t *testing.T) {
+	requestCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"embedding":[0.1,0.2,0.3,0.4]}]}`))
+	}))
+	defer func() { server.Close() }()
+
+	metadataStruct, err := structpb.NewStruct(map[string]any{
+		"embedding.dimension": 4,
+	})
+	if err != nil {
+		t.Fatalf("build metadata: %v", err)
+	}
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	localAsset := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "local-embedding-e5-small",
+		AssetId:      "e5-small",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
+		Engine:       "llama",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		Endpoint:     server.URL + "/v1",
+		Capabilities: []string{"text.embed"},
+		Metadata:     metadataStruct,
+	}
+	svc.localModel = &fakeLocalModelLister{
+		responses: repeatedLocalAssetsResponse(localAsset, 2),
+	}
+
+	transport := &routeDescribeTransportStream{}
+	ctx := grpc.NewContextWithServerTransportStream(context.Background(), transport)
+	resp, err := svc.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/e5-small",
+			TargetRef:     localScenarioTargetRef("local-runtime:local-embedding-e5-small"),
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Extensions: []*runtimev1.ScenarioExtension{{
+			Namespace: textEmbedRouteDescribeExtensionNamespace,
+			Payload: testProbePayload(t, map[string]any{
+				"version":            "v1",
+				"resolvedBindingRef": "binding-embed-local-001",
+			}),
+		}},
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextEmbed{
+				TextEmbed: &runtimev1.TextEmbedScenarioSpec{
+					Inputs: []string{"route describe probe"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("execute text embed route describe probe: %v", err)
+	}
+	if requestCount != 0 {
+		t.Fatalf("route describe probe must not call provider embedding endpoint, got=%d", requestCount)
+	}
+	if resp.GetOutput().GetTextEmbed() == nil {
+		t.Fatalf("text embed route describe probe should return textEmbed output envelope")
+	}
+	payload := decodeRouteDescribeHeader(t, transport.header)
+	trailerPayload := decodeRouteDescribeHeader(t, transport.trailer)
+	if got := trailerPayload["metadataKind"]; got != "text.embed" {
+		t.Fatalf("trailer metadataKind mismatch: got=%v", got)
+	}
+	if got := payload["capability"]; got != "text.embed" {
+		t.Fatalf("capability mismatch: got=%v", got)
+	}
+	if got := payload["resolvedBindingRef"]; got != "binding-embed-local-001" {
+		t.Fatalf("resolvedBindingRef mismatch: got=%v", got)
+	}
+	metadataPayload, ok := payload["metadata"].(map[string]any)
+	if !ok {
+		t.Fatalf("metadata payload missing: %#v", payload["metadata"])
+	}
+	if got := metadataPayload["dimensions"]; got != float64(4) {
+		t.Fatalf("dimensions mismatch: got=%v", got)
+	}
+	if got := metadataPayload["maxInputsPerRequest"]; got != float64(16) {
+		t.Fatalf("maxInputsPerRequest mismatch: got=%v", got)
+	}
+	if got := metadataPayload["supportsBatch"]; got != true {
+		t.Fatalf("supportsBatch mismatch: got=%v", got)
+	}
+}
+
 func TestExecuteScenarioTextGenerateRouteDescribeProbeUsesTargetRefLocalAssetIdentity(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.localModel = &fakeLocalModelLister{

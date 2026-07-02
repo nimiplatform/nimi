@@ -520,6 +520,267 @@ test('Runtime Agent lifecycle rejects initialize responses without Runtime-owned
   );
 });
 
+test('Runtime Agent lifecycle fails closed instead of synthesizing AlreadyExists success', async () => {
+  const surface = createNimiHostRuntimeAgentLifecycleSurface({
+    getRuntime: () => ({
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agent: {
+        async getAgent() {
+          throw new Error('initializeLocalAgent must not read before initialize');
+        },
+        async initializeAgent() {
+          throw createNimiError({
+            message: 'local agent already exists',
+            reasonCode: 'RUNTIME_GRPC_ALREADY_EXISTS',
+            actionHint: 'read_runtime_owned_local_agent_projection',
+            source: 'runtime',
+          });
+        },
+        async terminateAgent() {
+          return {};
+        },
+      },
+    }),
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (_scopes, operation) => operation({}),
+  });
+
+  await assert.rejects(
+    () => surface.initializeLocalAgent({
+      localAgentRef: 'local-agent:caller-authored-ref',
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
+      displayName: 'Already Exists Agent',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'RUNTIME_GRPC_ALREADY_EXISTS',
+  );
+});
+
+test('Runtime Agent lifecycle discovers existing LocalAgents through Runtime inventory provenance', async () => {
+  const calls: Array<{ readonly method: string; readonly request: unknown; readonly options?: RuntimeTypedCallOptions }> = [];
+  const matchingLocalAgentRef = 'local-agent:runtime-owned-existing';
+  const surface = createNimiHostRuntimeAgentLifecycleSurface({
+    getRuntime: () => ({
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agent: {
+        async getAgent() {
+          throw new Error('discoverLocalAgentsBySource must not require caller localAgentRef');
+        },
+        async initializeAgent() {
+          throw new Error('discoverLocalAgentsBySource must not materialize');
+        },
+        async listAgents(request: unknown, options?: RuntimeTypedCallOptions) {
+          calls.push({ method: 'listAgents', request, options });
+          if ((request as { readonly pageToken?: string }).pageToken === 'page-2') {
+            return {
+              agents: [
+                {
+                  agentId: matchingLocalAgentRef,
+                  localAgentRef: matchingLocalAgentRef,
+                  ownerUserId: OWNER_USER_ID,
+                  runtimeSourceRef: 'runtime-source:worldCharacter:world-1:source-1:hash-1',
+                  displayName: 'Existing Source Agent',
+                  lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+                  metadata: toNimiRuntimeProtoStruct({
+                    sourceMaterialization: {
+                      sourceKind: 'worldCharacter',
+                      sourceWorldId: 'world-1',
+                      sourceId: 'source-1',
+                      sourceContentHash: 'hash-1',
+                    },
+                  }),
+                },
+              ],
+              nextPageToken: '',
+            };
+          }
+          return {
+            agents: [
+              {
+                agentId: 'local-agent:other-owner',
+                localAgentRef: 'local-agent:other-owner',
+                ownerUserId: 'other-user',
+                runtimeSourceRef: 'runtime-source:worldCharacter:world-1:source-1:hash-1',
+                lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+              },
+              {
+                agentId: 'local-agent:stale-hash',
+                localAgentRef: 'local-agent:stale-hash',
+                ownerUserId: OWNER_USER_ID,
+                runtimeSourceRef: 'runtime-source:worldCharacter:world-1:source-1:stale',
+                lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+              },
+            ],
+            nextPageToken: 'page-2',
+          };
+        },
+        async terminateAgent() {
+          return {};
+        },
+      },
+    }),
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (scopes, operation) => operation({ metadata: { scopes: scopes.join(' ') } }),
+  });
+
+  const discovered = await surface.discoverLocalAgentsBySource({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: 'runtime-source:worldCharacter:world-1:source-1:hash-1',
+    sourceRef: {
+      kind: 'worldCharacter',
+      worldId: 'world-1',
+      sourceId: 'source-1',
+      sourceContentHash: 'hash-1',
+    },
+  });
+
+  assert.deepEqual(discovered.map((agent) => agent.localAgentRef), [matchingLocalAgentRef]);
+  assert.deepEqual(calls.map((call) => call.method), ['listAgents', 'listAgents']);
+  assert.deepEqual(calls.map((call) => (call.request as { readonly pageToken?: string }).pageToken), ['', 'page-2']);
+  assert.equal(calls[1]?.options?.metadata?.scopes, 'runtime.agent.read');
+});
+
+test('Runtime Agent lifecycle discovers source provenance without caller runtimeSourceRef', async () => {
+  const calls: Array<{ readonly method: string; readonly request: unknown; readonly options?: RuntimeTypedCallOptions }> = [];
+  const matchingLocalAgentRef = 'local-agent:runtime-owned-source-only';
+  const runtimeSourceRef = 'runtime-source:worldCharacter:world-1:source-1:hash-1';
+  const surface = createNimiHostRuntimeAgentLifecycleSurface({
+    getRuntime: () => ({
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agent: {
+        async getAgent() {
+          throw new Error('source provenance discovery must not require caller localAgentRef');
+        },
+        async initializeAgent() {
+          throw new Error('source provenance discovery must not materialize');
+        },
+        async listAgents(request: unknown, options?: RuntimeTypedCallOptions) {
+          calls.push({ method: 'listAgents', request, options });
+          return {
+            agents: [
+              {
+                agentId: matchingLocalAgentRef,
+                localAgentRef: matchingLocalAgentRef,
+                ownerUserId: OWNER_USER_ID,
+                runtimeSourceRef,
+                displayName: 'Existing Source Agent',
+                lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+                metadata: toNimiRuntimeProtoStruct({
+                  sourceMaterialization: {
+                    sourceKind: 'worldCharacter',
+                    sourceWorldId: 'world-1',
+                    sourceId: 'source-1',
+                    sourceContentHash: 'hash-1',
+                  },
+                }),
+              },
+            ],
+            nextPageToken: '',
+          };
+        },
+        async terminateAgent() {
+          return {};
+        },
+      },
+    }),
+    getSubjectUserId: () => OWNER_USER_ID,
+    withScopes: async (scopes, operation) => operation({ metadata: { scopes: scopes.join(' ') } }),
+  });
+
+  const discovered = await surface.discoverLocalAgentsBySource({
+    ownerUserId: OWNER_USER_ID,
+    sourceRef: {
+      kind: 'worldCharacter',
+      worldId: 'world-1',
+      sourceId: 'source-1',
+      sourceContentHash: 'hash-1',
+    },
+  });
+
+  assert.deepEqual(discovered.map((agent) => agent.localAgentRef), [matchingLocalAgentRef]);
+  assert.equal(discovered[0]?.runtimeSourceRef, runtimeSourceRef);
+  assert.deepEqual(calls.map((call) => call.method), ['listAgents']);
+  assert.equal(calls[0]?.options?.metadata?.scopes, 'runtime.agent.read');
+});
+
+test('Runtime Agent lifecycle lists active LocalAgents without source selection', async () => {
+  const calls: Array<{ readonly method: string; readonly request: unknown; readonly options?: RuntimeTypedCallOptions }> = [];
+  const surface = createNimiHostRuntimeAgentLifecycleSurface({
+    getRuntime: () => ({
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agent: {
+        async getAgent() {
+          throw new Error('listLocalAgents must not require caller localAgentRef');
+        },
+        async initializeAgent() {
+          throw new Error('listLocalAgents must not materialize');
+        },
+        async listAgents(request: unknown, options?: RuntimeTypedCallOptions) {
+          calls.push({ method: 'listAgents', request, options });
+          return {
+            agents: [
+              {
+                agentId: 'local-agent:runtime-owned-existing',
+                localAgentRef: 'local-agent:runtime-owned-existing',
+                ownerUserId: OWNER_USER_ID,
+                runtimeSourceRef: 'runtime-source:worldCharacter:world-1:source-1:hash-1',
+                displayName: 'Existing Source Agent',
+                lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+                metadata: toNimiRuntimeProtoStruct({
+                  sourceMaterialization: {
+                    sourceKind: 'worldCharacter',
+                    sourceWorldId: 'world-1',
+                    sourceId: 'source-1',
+                    sourceContentHash: 'hash-1',
+                  },
+                }),
+              },
+              {
+                agentId: 'local-agent:inactive',
+                localAgentRef: 'local-agent:inactive',
+                ownerUserId: OWNER_USER_ID,
+                runtimeSourceRef: 'runtime-source:worldCharacter:world-1:source-2:hash-1',
+                lifecycleStatus: AgentLifecycleStatus.TERMINATED,
+              },
+              {
+                agentId: 'local-agent:other-owner',
+                localAgentRef: 'local-agent:other-owner',
+                ownerUserId: 'other-user',
+                runtimeSourceRef: 'runtime-source:worldCharacter:world-1:source-1:hash-1',
+                lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+              },
+            ],
+            nextPageToken: '',
+          };
+        },
+        async terminateAgent() {
+          return {};
+        },
+      },
+    }),
+    getSubjectUserId: () => OWNER_USER_ID,
+    withScopes: async (scopes, operation) => operation({ metadata: { scopes: scopes.join(' ') } }),
+  });
+
+  const listed = await surface.listLocalAgents({ ownerUserId: OWNER_USER_ID });
+
+  assert.deepEqual(listed.map((agent) => agent.localAgentRef), ['local-agent:runtime-owned-existing']);
+  assert.equal(listed[0]?.sourceKind, 'worldCharacter');
+  assert.equal(listed[0]?.sourceWorldId, 'world-1');
+  assert.equal(listed[0]?.sourceId, 'source-1');
+  assert.equal(listed[0]?.sourceContentHash, 'hash-1');
+  assert.deepEqual(calls.map((call) => call.method), ['listAgents']);
+  assert.equal(calls[0]?.options?.metadata?.scopes, 'runtime.agent.read');
+});
+
 test('Runtime Realm group message candidate surface builds verified commit payloads and rejects mismatched evidence', async () => {
   const createCalls: CreateRealmGroupMessageCandidateRequest[] = [];
   const evidenceCalls: GetRealmGroupMessageCandidateEvidenceRequest[] = [];

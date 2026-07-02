@@ -32,6 +32,7 @@ import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
 
 export * from './runtime-agent-inspect-projection';
 export * from './runtime-agent-inspect-types';
+export * from './runtime-agent-proactive-projection';
 
 const DEFAULT_MAX_PENDING_HOOK_PREVIEW = 3;
 const DEFAULT_MAX_RECENT_TERMINAL_HOOKS = 6;

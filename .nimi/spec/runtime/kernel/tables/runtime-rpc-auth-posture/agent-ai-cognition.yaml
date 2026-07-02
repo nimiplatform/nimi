@@ -103,6 +103,8 @@ surfaces:
   - methods_90
   - methods_91
   - methods_92
+  - methods_93
+  - methods_94
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService
@@ -374,6 +376,13 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-004
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus
+    posture: protected_or_scoped_binding_read
+    rationale: runtime-owned canonical review scheduler and follow-up status read requires runtime.agent.read capability
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-016a
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents
     posture: anonymous_read
     rationale: agent event stream; no JWT validation

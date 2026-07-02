@@ -121,6 +121,9 @@ var scenarioExtensionRegistry = map[runtimev1.ScenarioType]map[string]scenarioEx
 	runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE: {
 		textGenerateRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
 	},
+	runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED: {
+		textEmbedRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
+	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE: {
 		imageGenerateRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
 		"nimi.scenario.image.request":                scenarioExtensionStrategyBestEffort,

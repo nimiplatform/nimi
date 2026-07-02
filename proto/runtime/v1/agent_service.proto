@@ -10,87 +10,43 @@ import "runtime/v1/agent_participation.proto";
 import "runtime/v1/common.proto";
 import "runtime/v1/delegated_control.proto";
 import "runtime/v1/memory.proto";
-enum AgentLifecycleStatus {
-  AGENT_LIFECYCLE_STATUS_UNSPECIFIED = 0;
-  AGENT_LIFECYCLE_STATUS_INITIALIZING = 1;
-  AGENT_LIFECYCLE_STATUS_ACTIVE = 2;
-  AGENT_LIFECYCLE_STATUS_SUSPENDED = 3;
-  AGENT_LIFECYCLE_STATUS_TERMINATING = 4;
-  AGENT_LIFECYCLE_STATUS_TERMINATED = 5;
-}
-enum AgentExecutionState {
-  AGENT_EXECUTION_STATE_UNSPECIFIED = 0;
-  AGENT_EXECUTION_STATE_IDLE = 1;
-  AGENT_EXECUTION_STATE_CHAT_ACTIVE = 2;
-  AGENT_EXECUTION_STATE_LIFE_PENDING = 3;
-  AGENT_EXECUTION_STATE_LIFE_RUNNING = 4;
-  AGENT_EXECUTION_STATE_SUSPENDED = 5;
-}
+enum AgentLifecycleStatus { AGENT_LIFECYCLE_STATUS_UNSPECIFIED = 0; AGENT_LIFECYCLE_STATUS_INITIALIZING = 1; AGENT_LIFECYCLE_STATUS_ACTIVE = 2; AGENT_LIFECYCLE_STATUS_SUSPENDED = 3; AGENT_LIFECYCLE_STATUS_TERMINATING = 4; AGENT_LIFECYCLE_STATUS_TERMINATED = 5; }
+enum AgentExecutionState { AGENT_EXECUTION_STATE_UNSPECIFIED = 0; AGENT_EXECUTION_STATE_IDLE = 1; AGENT_EXECUTION_STATE_CHAT_ACTIVE = 2; AGENT_EXECUTION_STATE_LIFE_PENDING = 3; AGENT_EXECUTION_STATE_LIFE_RUNNING = 4; AGENT_EXECUTION_STATE_SUSPENDED = 5; }
 enum AgentTrackType { AGENT_TRACK_TYPE_UNSPECIFIED = 0; AGENT_TRACK_TYPE_CHAT = 1; AGENT_TRACK_TYPE_LIFE = 2; }
 // K-AGCORE-041 HookIntent trigger family is limited to `time` and `event`.
 // Non-admitted trigger families (turn_completed, scheduled_time absolute,
 // state_condition, world_event, compound) are not part of the mounted
 // vocabulary and must not be reintroduced by implementation rename.
-enum HookTriggerFamily {
-  HOOK_TRIGGER_FAMILY_UNSPECIFIED = 0;
-  HOOK_TRIGGER_FAMILY_TIME = 1;
-  HOOK_TRIGGER_FAMILY_EVENT = 2;
-}
+enum HookTriggerFamily { HOOK_TRIGGER_FAMILY_UNSPECIFIED = 0; HOOK_TRIGGER_FAMILY_TIME = 1; HOOK_TRIGGER_FAMILY_EVENT = 2; }
 // K-AGCORE-041 admitted effect is limited to `follow-up-turn`. Widening
 // beyond this matrix requires a later dedicated runtime rule.
-enum HookEffect {
-  HOOK_EFFECT_UNSPECIFIED = 0;
-  HOOK_EFFECT_FOLLOW_UP_TURN = 1;
-}
+enum HookEffect { HOOK_EFFECT_UNSPECIFIED = 0; HOOK_EFFECT_FOLLOW_UP_TURN = 1; }
 // K-AGCORE-041 admission states that must remain reconstructable through
 // committed runtime truth.
-enum HookAdmissionState {
-  HOOK_ADMISSION_STATE_UNSPECIFIED = 0;
-  HOOK_ADMISSION_STATE_PROPOSED = 1;
-  HOOK_ADMISSION_STATE_PENDING = 2;
-  HOOK_ADMISSION_STATE_REJECTED = 3;
-  HOOK_ADMISSION_STATE_RUNNING = 4;
-  HOOK_ADMISSION_STATE_COMPLETED = 5;
-  HOOK_ADMISSION_STATE_FAILED = 6;
-  HOOK_ADMISSION_STATE_CANCELED = 7;
-  HOOK_ADMISSION_STATE_RESCHEDULED = 8;
-}
-enum AgentEventType {
-  AGENT_EVENT_TYPE_UNSPECIFIED = 0;
-  AGENT_EVENT_TYPE_LIFECYCLE = 1;
-  AGENT_EVENT_TYPE_HOOK = 2;
-  AGENT_EVENT_TYPE_MEMORY = 3;
-  AGENT_EVENT_TYPE_BUDGET = 4;
-  AGENT_EVENT_TYPE_REPLICATION = 5;
-  AGENT_EVENT_TYPE_STATE = 6;
-  AGENT_EVENT_TYPE_PRESENTATION = 7;
-  AGENT_EVENT_TYPE_AVATAR_DEBUG = 8;
-}
+enum HookAdmissionState { HOOK_ADMISSION_STATE_UNSPECIFIED = 0; HOOK_ADMISSION_STATE_PROPOSED = 1; HOOK_ADMISSION_STATE_PENDING = 2; HOOK_ADMISSION_STATE_REJECTED = 3; HOOK_ADMISSION_STATE_RUNNING = 4; HOOK_ADMISSION_STATE_COMPLETED = 5; HOOK_ADMISSION_STATE_FAILED = 6; HOOK_ADMISSION_STATE_CANCELED = 7; HOOK_ADMISSION_STATE_RESCHEDULED = 8; }
+enum AgentEventType { AGENT_EVENT_TYPE_UNSPECIFIED = 0; AGENT_EVENT_TYPE_LIFECYCLE = 1; AGENT_EVENT_TYPE_HOOK = 2; AGENT_EVENT_TYPE_MEMORY = 3; AGENT_EVENT_TYPE_BUDGET = 4; AGENT_EVENT_TYPE_REPLICATION = 5; AGENT_EVENT_TYPE_STATE = 6; AGENT_EVENT_TYPE_PRESENTATION = 7; AGENT_EVENT_TYPE_AVATAR_DEBUG = 8; AGENT_EVENT_TYPE_PROACTIVE = 9; }
 // K-AGCORE-037 AgentStateEventFamily discriminates runtime.agent.state.* event
 // families. Mapping is 1:1 to the mounted public family names
 // (runtime.agent.state.{status_text_changed|execution_state_changed|
 // emotion_changed|posture_changed}). Consumers MUST dispatch on `family`;
 // reading payload fields alone is not a substitute for the discriminator.
-enum AgentStateEventFamily {
-  AGENT_STATE_EVENT_FAMILY_UNSPECIFIED = 0;
-  AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED = 1;
-  AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED = 2;
-  AGENT_STATE_EVENT_FAMILY_EMOTION_CHANGED = 3;
-  AGENT_STATE_EVENT_FAMILY_POSTURE_CHANGED = 4;
-}
+enum AgentStateEventFamily { AGENT_STATE_EVENT_FAMILY_UNSPECIFIED = 0; AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED = 1; AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED = 2; AGENT_STATE_EVENT_FAMILY_EMOTION_CHANGED = 3; AGENT_STATE_EVENT_FAMILY_POSTURE_CHANGED = 4; }
 // K-AGCORE-037 AgentPresentationEventFamily discriminates
 // runtime.agent.presentation.* families. Mapping is 1:1 to
 // runtime.agent.presentation.{activity_requested|motion_requested|
 // expression_requested|pose_requested|pose_cleared|lookat_requested}.
-enum AgentPresentationEventFamily {
-  AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED = 0;
-  AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED = 1;
-  AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED = 2;
-  AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED = 3;
-  AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED = 4;
-  AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED = 5;
-  AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6;
-}
+enum AgentPresentationEventFamily { AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED = 0; AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED = 1; AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED = 2; AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED = 3; AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED = 4; AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED = 5; AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6; }
+// K-AGCORE-143 AgentProactiveEventFamily discriminates
+// runtime.agent.proactive.* event families. The family maps 1:1 to
+// runtime.agent.proactive.{suggested|delivered|suppressed}.
+enum AgentProactiveEventFamily { AGENT_PROACTIVE_EVENT_FAMILY_UNSPECIFIED = 0; AGENT_PROACTIVE_EVENT_FAMILY_SUGGESTED = 1; AGENT_PROACTIVE_EVENT_FAMILY_DELIVERED = 2; AGENT_PROACTIVE_EVENT_FAMILY_SUPPRESSED = 3; }
+enum AgentProactiveTriggerSource { AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED = 0; AGENT_PROACTIVE_TRIGGER_SOURCE_LIFE_TRACK_CADENCE = 1; AGENT_PROACTIVE_TRIGGER_SOURCE_HOOK_INTENT = 2; }
+enum AgentProactiveEffectClass { AGENT_PROACTIVE_EFFECT_CLASS_UNSPECIFIED = 0; AGENT_PROACTIVE_EFFECT_CLASS_IN_APP_COMPANION_SURFACE = 1; }
+enum AgentProactiveDeliveryChannel { AGENT_PROACTIVE_DELIVERY_CHANNEL_UNSPECIFIED = 0; AGENT_PROACTIVE_DELIVERY_CHANNEL_IN_APP_SURFACE = 1; AGENT_PROACTIVE_DELIVERY_CHANNEL_NOTIFICATION_NOT_ADMITTED = 2; }
+enum AgentProactiveOptInState { AGENT_PROACTIVE_OPT_IN_STATE_UNSPECIFIED = 0; AGENT_PROACTIVE_OPT_IN_STATE_OFF = 1; AGENT_PROACTIVE_OPT_IN_STATE_PENDING = 2; AGENT_PROACTIVE_OPT_IN_STATE_GRANTED = 3; AGENT_PROACTIVE_OPT_IN_STATE_DENIED = 4; AGENT_PROACTIVE_OPT_IN_STATE_REVOKED = 5; AGENT_PROACTIVE_OPT_IN_STATE_EXPIRED = 6; AGENT_PROACTIVE_OPT_IN_STATE_MISSING = 7; }
+enum AgentProactiveQuietHoursState { AGENT_PROACTIVE_QUIET_HOURS_STATE_UNSPECIFIED = 0; AGENT_PROACTIVE_QUIET_HOURS_STATE_INACTIVE = 1; AGENT_PROACTIVE_QUIET_HOURS_STATE_ACTIVE = 2; AGENT_PROACTIVE_QUIET_HOURS_STATE_NOT_CONFIGURED = 3; }
+enum AgentProactiveFrequencyCapState { AGENT_PROACTIVE_FREQUENCY_CAP_STATE_UNSPECIFIED = 0; AGENT_PROACTIVE_FREQUENCY_CAP_STATE_WITHIN_CAP = 1; AGENT_PROACTIVE_FREQUENCY_CAP_STATE_CAPPED = 2; AGENT_PROACTIVE_FREQUENCY_CAP_STATE_NOT_CONFIGURED = 3; }
+enum AgentProactiveSuppressionReason { AGENT_PROACTIVE_SUPPRESSION_REASON_UNSPECIFIED = 0; AGENT_PROACTIVE_SUPPRESSION_REASON_QUIET_HOURS_ACTIVE = 1; AGENT_PROACTIVE_SUPPRESSION_REASON_FREQUENCY_CAP_EXCEEDED = 2; AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_DENIED = 3; AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_REVOKED = 4; AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_MISSING = 5; AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_EXPIRED = 6; AGENT_PROACTIVE_SUPPRESSION_REASON_AUTONOMY_OFF = 7; AGENT_PROACTIVE_SUPPRESSION_REASON_BUDGET_EXHAUSTED = 8; AGENT_PROACTIVE_SUPPRESSION_REASON_SCHEDULER_DENIED = 9; AGENT_PROACTIVE_SUPPRESSION_REASON_HOOK_CONFLICT = 10; AGENT_PROACTIVE_SUPPRESSION_REASON_RUNTIME_UNAVAILABLE = 11; AGENT_PROACTIVE_SUPPRESSION_REASON_UNSUPPORTED_DELIVERY_CHANNEL = 12; AGENT_PROACTIVE_SUPPRESSION_REASON_MISSING_AUDIT_REF = 13; }
 enum AvatarDebugProbeKind {
   AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED = 0; AVATAR_DEBUG_PROBE_KIND_PACKAGE_VALIDATION = 1; AVATAR_DEBUG_PROBE_KIND_LAUNCH_READINESS = 2;
   AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD = 3; AVATAR_DEBUG_PROBE_KIND_CAPABILITY_PROFILE = 4; AVATAR_DEBUG_PROBE_KIND_ROUTE_SUPPORT_MATRIX = 5;
@@ -110,6 +66,14 @@ enum AgentAutonomyMode {
   AGENT_AUTONOMY_MODE_LOW = 2;
   AGENT_AUTONOMY_MODE_MEDIUM = 3;
   AGENT_AUTONOMY_MODE_HIGH = 4;
+}
+enum AgentCanonicalMemoryReviewReadiness {
+  AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED = 0;
+  AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE = 1;
+  AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW = 2;
+  AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE = 3;
+  AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING = 4;
+  AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE = 5;
 }
 enum AgentPresentationBackendKind {
   AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED = 0;
@@ -165,6 +129,11 @@ message AgentStateProjection {
   // drift: GetAgentState / snapshot / recovery would not observe committed
   // emotion truth.
   string current_emotion = 7;
+  // K-AGCORE-143: proactive_interruptibility is the bounded read-only
+  // proactive_interruptibility_v1 projection. Runtime owns the fields; apps
+  // and SDKs must not infer quiet hours, frequency caps, permission grants, or
+  // delivery truth when this projection is absent.
+  AgentProactiveInterruptibilityProjection proactive_interruptibility = 8;
 }
 message AgentStateSetStatusText {
   string status_text = 1;
@@ -390,6 +359,19 @@ message AgentPresentationEventDetail {
   bool lookat_has_y = 55;
   bool lookat_has_z = 56;
 }
+// AgentProactiveEventDetail projects runtime.agent.proactive.* per K-AGCORE-143; required audit/origin fields must not be fabricated.
+message AgentProactiveEventDetail {
+  AgentProactiveEventFamily family = 1; string projection_id = 2; string projection_kind = 3; string owner_domain = 4;
+  AgentProactiveTriggerSource trigger_source = 5; AgentProactiveEffectClass effect_class = 6; AgentProactiveDeliveryChannel delivery_channel = 7; AgentAutonomyMode mode = 8;
+  AgentProactiveOptInState opt_in_state = 9; AgentProactiveQuietHoursState quiet_hours = 10; AgentProactiveFrequencyCapState frequency_cap = 11; AgentProactiveSuppressionReason suppression_reason = 12;
+  string reason_code = 13; string audit_ref = 14; string source_hook_id = 15; string source_cadence_id = 16; string conversation_anchor_id = 17; string originating_turn_id = 18; string originating_stream_id = 19; google.protobuf.Timestamp observed_at = 20;
+}
+// AgentProactiveInterruptibilityProjection is read-only proactive_interruptibility_v1 state; unsupported_fields blocks consumer inference.
+message AgentProactiveInterruptibilityProjection {
+  string projection_id = 1; string projection_kind = 2; AgentAutonomyMode mode = 3; AgentProactiveOptInState opt_in_state = 4;
+  AgentProactiveDeliveryChannel delivery_channel = 5; AgentProactiveQuietHoursState quiet_hours = 6; AgentProactiveFrequencyCapState frequency_cap = 7; repeated string audit_refs = 8;
+  AgentProactiveEventDetail suggested_event = 9; AgentProactiveEventDetail last_delivered_event = 10; AgentProactiveEventDetail last_suppressed_event = 11; repeated string unsupported_fields = 12;
+}
 message AvatarDebugProbeRequestEnvelope {
   string probe_id = 1; string agent_id = 2; string conversation_anchor_id = 3; AvatarDebugProbeKind probe_kind = 4; google.protobuf.Timestamp requested_at = 5; AvatarDebugRequestedBy requested_by = 6;
   string turn_id = 7; string stream_id = 8; string avatar_instance_id = 9; string runtime_replay_ref = 10; bool replay_requested = 11;
@@ -418,6 +400,7 @@ message AgentEvent {
     AgentStateEventDetail state = 15;
     AgentPresentationEventDetail presentation = 16;
     AgentAvatarDebugEventDetail avatar_debug = 17;
+    AgentProactiveEventDetail proactive = 18;
   }
 }
 message InitializeAgentRequest {
@@ -586,6 +569,19 @@ message RequestAgentCanonicalMemoryBankBindResponse {
   string outcome = 2;
   ReasonCode blocked_reason_code = 3;
 }
+message AgentCanonicalMemoryReviewStatus {
+  MemoryBankLocator bank = 1;
+  AgentCanonicalMemoryReviewReadiness readiness = 2;
+  bool eligible_now = 3;
+  bool review_executor_available = 4;
+  string last_review_run_id = 5;
+  string checkpoint_basis = 6;
+  google.protobuf.Timestamp last_completed_at = 7;
+  google.protobuf.Timestamp next_eligible_at = 8;
+  string recoverable_review_run_id = 9;
+}
+message GetAgentCanonicalMemoryReviewStatusRequest { AgentRequestContext context = 1; string agent_id = 2; MemoryBankLocator bank = 3; }
+message GetAgentCanonicalMemoryReviewStatusResponse { AgentCanonicalMemoryReviewStatus status = 1; }
 message SubscribeAgentEventsRequest {
   AgentRequestContext context = 1;
   string agent_id = 2;
@@ -861,6 +857,7 @@ service RuntimeAgentService {
   rpc WriteAgentMemory(WriteAgentMemoryRequest) returns (WriteAgentMemoryResponse);
   rpc GetAgentCanonicalMemoryBankStatus(GetAgentCanonicalMemoryBankStatusRequest) returns (GetAgentCanonicalMemoryBankStatusResponse);
   rpc RequestAgentCanonicalMemoryBankBind(RequestAgentCanonicalMemoryBankBindRequest) returns (RequestAgentCanonicalMemoryBankBindResponse);
+  rpc GetAgentCanonicalMemoryReviewStatus(GetAgentCanonicalMemoryReviewStatusRequest) returns (GetAgentCanonicalMemoryReviewStatusResponse);
   // Runtime Agent Participation surface (K-AGCORE-061..088, K-PROTO-012).
   rpc DescribeParticipationProfiles(DescribeParticipationProfilesRequest) returns (DescribeParticipationProfilesResponse);
   rpc DescribeParticipationContextBlocks(DescribeParticipationContextBlocksRequest) returns (DescribeParticipationContextBlocksResponse);

@@ -96,12 +96,21 @@ AccountReasonCode = Literal["ACCOUNT_REASON_CODE_UNSPECIFIED", "ACCOUNT_REASON_C
 AccountSessionState = Literal["ACCOUNT_SESSION_STATE_UNSPECIFIED", "ACCOUNT_SESSION_STATE_ANONYMOUS", "ACCOUNT_SESSION_STATE_LOGIN_PENDING", "ACCOUNT_SESSION_STATE_AUTHENTICATED", "ACCOUNT_SESSION_STATE_REFRESH_PENDING", "ACCOUNT_SESSION_STATE_EXPIRED", "ACCOUNT_SESSION_STATE_REAUTH_REQUIRED", "ACCOUNT_SESSION_STATE_SWITCHING", "ACCOUNT_SESSION_STATE_LOGGING_OUT", "ACCOUNT_SESSION_STATE_UNAVAILABLE"]
 AgentAutonomyMode = Literal["AGENT_AUTONOMY_MODE_UNSPECIFIED", "AGENT_AUTONOMY_MODE_OFF", "AGENT_AUTONOMY_MODE_LOW", "AGENT_AUTONOMY_MODE_MEDIUM", "AGENT_AUTONOMY_MODE_HIGH"]
 AgentCanonicalMemoryBankMode = Literal["AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED", "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE", "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD", "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE"]
-AgentEventType = Literal["AGENT_EVENT_TYPE_UNSPECIFIED", "AGENT_EVENT_TYPE_LIFECYCLE", "AGENT_EVENT_TYPE_HOOK", "AGENT_EVENT_TYPE_MEMORY", "AGENT_EVENT_TYPE_BUDGET", "AGENT_EVENT_TYPE_REPLICATION", "AGENT_EVENT_TYPE_STATE", "AGENT_EVENT_TYPE_PRESENTATION", "AGENT_EVENT_TYPE_AVATAR_DEBUG"]
-AgentExecutionState = Literal["AGENT_EXECUTION_STATE_UNSPECIFIED", "AGENT_EXECUTION_STATE_IDLE", "AGENT_EXECUTION_STATE_CHAT_ACTIVE", "AGENT_EXECUTION_STATE_LIFE_PENDING", "AGENT_EXECUTION_STATE_LIFE_RUNNING", "AGENT_EXECUTION_STATE_SUSPENDED"]
-AgentLifecycleStatus = Literal["AGENT_LIFECYCLE_STATUS_UNSPECIFIED", "AGENT_LIFECYCLE_STATUS_INITIALIZING", "AGENT_LIFECYCLE_STATUS_ACTIVE", "AGENT_LIFECYCLE_STATUS_SUSPENDED", "AGENT_LIFECYCLE_STATUS_TERMINATING", "AGENT_LIFECYCLE_STATUS_TERMINATED"]
+AgentCanonicalMemoryReviewReadiness = Literal["AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE"]
+AgentEventType = Literal["AGENT_EVENT_TYPE_UNSPECIFIED"]
+AgentExecutionState = Literal["AGENT_EXECUTION_STATE_UNSPECIFIED"]
+AgentLifecycleStatus = Literal["AGENT_LIFECYCLE_STATUS_UNSPECIFIED"]
 AgentPresentationBackendKind = Literal["AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED", "AGENT_PRESENTATION_BACKEND_KIND_VRM", "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D", "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D", "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D", "AGENT_PRESENTATION_BACKEND_KIND_VIDEO"]
-AgentPresentationEventFamily = Literal["AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED", "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED", "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED", "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED", "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED", "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED", "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED"]
-AgentStateEventFamily = Literal["AGENT_STATE_EVENT_FAMILY_UNSPECIFIED", "AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED", "AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED", "AGENT_STATE_EVENT_FAMILY_EMOTION_CHANGED", "AGENT_STATE_EVENT_FAMILY_POSTURE_CHANGED"]
+AgentPresentationEventFamily = Literal["AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED"]
+AgentProactiveDeliveryChannel = Literal["AGENT_PROACTIVE_DELIVERY_CHANNEL_UNSPECIFIED"]
+AgentProactiveEffectClass = Literal["AGENT_PROACTIVE_EFFECT_CLASS_UNSPECIFIED"]
+AgentProactiveEventFamily = Literal["AGENT_PROACTIVE_EVENT_FAMILY_UNSPECIFIED"]
+AgentProactiveFrequencyCapState = Literal["AGENT_PROACTIVE_FREQUENCY_CAP_STATE_UNSPECIFIED"]
+AgentProactiveOptInState = Literal["AGENT_PROACTIVE_OPT_IN_STATE_UNSPECIFIED"]
+AgentProactiveQuietHoursState = Literal["AGENT_PROACTIVE_QUIET_HOURS_STATE_UNSPECIFIED"]
+AgentProactiveSuppressionReason = Literal["AGENT_PROACTIVE_SUPPRESSION_REASON_UNSPECIFIED"]
+AgentProactiveTriggerSource = Literal["AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED"]
+AgentStateEventFamily = Literal["AGENT_STATE_EVENT_FAMILY_UNSPECIFIED"]
 AgentTrackType = Literal["AGENT_TRACK_TYPE_UNSPECIFIED"]
 AppHealthRepairAction = Literal["APP_HEALTH_REPAIR_ACTION_UNSPECIFIED", "APP_HEALTH_REPAIR_ACTION_CANCEL", "APP_HEALTH_REPAIR_ACTION_RETRY", "APP_HEALTH_REPAIR_ACTION_REPAIR", "APP_HEALTH_REPAIR_ACTION_REINSTALL"]
 AppInstallJobPhase = Literal["APP_INSTALL_JOB_PHASE_UNSPECIFIED", "APP_INSTALL_JOB_PHASE_QUEUED", "APP_INSTALL_JOB_PHASE_RESOLVE_DESCRIPTOR", "APP_INSTALL_JOB_PHASE_DOWNLOAD", "APP_INSTALL_JOB_PHASE_VERIFY", "APP_INSTALL_JOB_PHASE_MATERIALIZE", "APP_INSTALL_JOB_PHASE_UNPACK", "APP_INSTALL_JOB_PHASE_EVIDENCE", "APP_INSTALL_JOB_PHASE_INSTALLED", "APP_INSTALL_JOB_PHASE_FAILED", "APP_INSTALL_JOB_PHASE_SWAP", "APP_INSTALL_JOB_PHASE_CANCELLED", "APP_INSTALL_JOB_PHASE_UNINSTALLED"]
@@ -148,9 +157,9 @@ ExternalProofType = Literal["EXTERNAL_PROOF_TYPE_UNSPECIFIED", "EXTERNAL_PROOF_T
 FallbackPolicy = Literal["FALLBACK_POLICY_UNSPECIFIED", "FALLBACK_POLICY_DENY", "FALLBACK_POLICY_ALLOW"]
 FinishReason = Literal["FINISH_REASON_UNSPECIFIED", "FINISH_REASON_STOP", "FINISH_REASON_LENGTH", "FINISH_REASON_TOOL_CALL", "FINISH_REASON_CONTENT_FILTER", "FINISH_REASON_ERROR"]
 GpuMemoryModel = Literal["GPU_MEMORY_MODEL_UNSPECIFIED", "GPU_MEMORY_MODEL_DISCRETE", "GPU_MEMORY_MODEL_UNIFIED"]
-HookAdmissionState = Literal["HOOK_ADMISSION_STATE_UNSPECIFIED", "HOOK_ADMISSION_STATE_PROPOSED", "HOOK_ADMISSION_STATE_PENDING", "HOOK_ADMISSION_STATE_REJECTED", "HOOK_ADMISSION_STATE_RUNNING", "HOOK_ADMISSION_STATE_COMPLETED", "HOOK_ADMISSION_STATE_FAILED", "HOOK_ADMISSION_STATE_CANCELED", "HOOK_ADMISSION_STATE_RESCHEDULED"]
-HookEffect = Literal["HOOK_EFFECT_UNSPECIFIED", "HOOK_EFFECT_FOLLOW_UP_TURN"]
-HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED", "HOOK_TRIGGER_FAMILY_TIME", "HOOK_TRIGGER_FAMILY_EVENT"]
+HookAdmissionState = Literal["HOOK_ADMISSION_STATE_UNSPECIFIED"]
+HookEffect = Literal["HOOK_EFFECT_UNSPECIFIED"]
+HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
 KnowledgeBankScope = Literal["KNOWLEDGE_BANK_SCOPE_UNSPECIFIED", "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE", "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE"]
 KnowledgeIngestTaskStatus = Literal["KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED", "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED", "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING", "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED", "KNOWLEDGE_INGEST_TASK_STATUS_FAILED"]
 LocalAppAdoptionState = Literal["LOCAL_APP_ADOPTION_STATE_UNSPECIFIED", "LOCAL_APP_ADOPTION_STATE_ADOPTED", "LOCAL_APP_ADOPTION_STATE_REPAIR_REQUIRED", "LOCAL_APP_ADOPTION_STATE_REMOVED"]
@@ -402,6 +411,18 @@ class AgentCanonicalMemoryBankStatus:
     cutover_allowed: bool | None = None
 
 @dataclass(frozen=True)
+class AgentCanonicalMemoryReviewStatus:
+    bank: MemoryBankLocator | None = None
+    readiness: AgentCanonicalMemoryReviewReadiness | None = None
+    eligible_now: bool | None = None
+    review_executor_available: bool | None = None
+    last_review_run_id: str | None = None
+    checkpoint_basis: str | None = None
+    last_completed_at: str | None = None
+    next_eligible_at: str | None = None
+    recoverable_review_run_id: str | None = None
+
+@dataclass(frozen=True)
 class AgentConversationSummary:
     anchor: ConversationAnchor | None = None
     title: str | None = None
@@ -434,6 +455,7 @@ class AgentEvent:
     state: AgentStateEventDetail | None = None
     presentation: AgentPresentationEventDetail | None = None
     avatar_debug: AgentAvatarDebugEventDetail | None = None
+    proactive: AgentProactiveEventDetail | None = None
     local_agent_ref: str | None = None
     owner_user_id: str | None = None
     runtime_source_ref: str | None = None
@@ -496,6 +518,44 @@ class AgentPresentationProfile:
     idle_preset: str | None = None
     interaction_policy_ref: str | None = None
     default_voice_reference: str | None = None
+
+@dataclass(frozen=True)
+class AgentProactiveEventDetail:
+    family: AgentProactiveEventFamily | None = None
+    projection_id: str | None = None
+    projection_kind: str | None = None
+    owner_domain: str | None = None
+    trigger_source: AgentProactiveTriggerSource | None = None
+    effect_class: AgentProactiveEffectClass | None = None
+    delivery_channel: AgentProactiveDeliveryChannel | None = None
+    mode: AgentAutonomyMode | None = None
+    opt_in_state: AgentProactiveOptInState | None = None
+    quiet_hours: AgentProactiveQuietHoursState | None = None
+    frequency_cap: AgentProactiveFrequencyCapState | None = None
+    suppression_reason: AgentProactiveSuppressionReason | None = None
+    reason_code: str | None = None
+    audit_ref: str | None = None
+    source_hook_id: str | None = None
+    source_cadence_id: str | None = None
+    conversation_anchor_id: str | None = None
+    originating_turn_id: str | None = None
+    originating_stream_id: str | None = None
+    observed_at: str | None = None
+
+@dataclass(frozen=True)
+class AgentProactiveInterruptibilityProjection:
+    projection_id: str | None = None
+    projection_kind: str | None = None
+    mode: AgentAutonomyMode | None = None
+    opt_in_state: AgentProactiveOptInState | None = None
+    delivery_channel: AgentProactiveDeliveryChannel | None = None
+    quiet_hours: AgentProactiveQuietHoursState | None = None
+    frequency_cap: AgentProactiveFrequencyCapState | None = None
+    audit_refs: tuple[str, ...] = field(default_factory=tuple)
+    suggested_event: AgentProactiveEventDetail | None = None
+    last_delivered_event: AgentProactiveEventDetail | None = None
+    last_suppressed_event: AgentProactiveEventDetail | None = None
+    unsupported_fields: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class AgentRecord:
@@ -573,6 +633,7 @@ class AgentStateProjection:
     attributes: Mapping[str, str] = field(default_factory=dict)
     updated_at: str | None = None
     current_emotion: str | None = None
+    proactive_interruptibility: AgentProactiveInterruptibilityProjection | None = None
 
 @dataclass(frozen=True)
 class AgentStatePutAttribute:
@@ -1972,6 +2033,16 @@ class GetAgentCanonicalMemoryBankStatusRequest:
 @dataclass(frozen=True)
 class GetAgentCanonicalMemoryBankStatusResponse:
     status: AgentCanonicalMemoryBankStatus | None = None
+
+@dataclass(frozen=True)
+class GetAgentCanonicalMemoryReviewStatusRequest:
+    context: AgentRequestContext | None = None
+    agent_id: str | None = None
+    bank: MemoryBankLocator | None = None
+
+@dataclass(frozen=True)
+class GetAgentCanonicalMemoryReviewStatusResponse:
+    status: AgentCanonicalMemoryReviewStatus | None = None
 
 @dataclass(frozen=True)
 class GetAgentRequest:
@@ -6534,6 +6605,10 @@ class RuntimeTypedClient:
     async def get_agent_canonical_memory_bank_status(self, request: GetAgentCanonicalMemoryBankStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentCanonicalMemoryBankStatusResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAgentCanonicalMemoryBankStatusResponse, raw)
+
+    async def get_agent_canonical_memory_review_status(self, request: GetAgentCanonicalMemoryReviewStatusRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentCanonicalMemoryReviewStatusResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetAgentCanonicalMemoryReviewStatusResponse, raw)
 
     async def get_agent_state(self, request: GetAgentStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

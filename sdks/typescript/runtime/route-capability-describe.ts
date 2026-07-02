@@ -30,6 +30,7 @@ import {
   type NimiRuntimeRouteSpeechSynthesizeMetadata,
   type NimiRuntimeRouteSpeechTimingMode,
   type NimiRuntimeRouteSpeechTranscribeMetadata,
+  type NimiRuntimeRouteTextEmbedMetadata,
   type NimiRuntimeRouteTextGenerateMetadata,
   type NimiRuntimeRouteTextGenerateTraceModeSupport,
   type NimiRuntimeRouteVoiceWorkflowTextMode,
@@ -109,6 +110,20 @@ function buildNimiRuntimeRouteDescribeScenarioProbe(input: {
             stop: [],
             seed: '0',
             includeRawChunks: false,
+          },
+        },
+      },
+    };
+  }
+  if (input.capability === 'text.embed') {
+    return {
+      namespace: 'nimi.scenario.text_embed.route_describe',
+      scenarioType: ScenarioType.TEXT_EMBED,
+      spec: {
+        spec: {
+          oneofKind: 'textEmbed',
+          textEmbed: {
+            inputs: [ROUTE_DESCRIBE_PROBE_TEXT],
           },
         },
       },
@@ -284,6 +299,7 @@ function runtimeDurableTargetRefFromRouteTargetRef(targetRef: NimiRuntimeRouteTa
 
 function buildNimiRuntimeRouteDescribeExecuteScenarioRequest(input: {
   readonly appId: string;
+  readonly subjectUserId?: string;
   readonly capability: NimiRuntimeCanonicalCapability;
   readonly resolvedBindingRef: string;
   readonly resolved: NimiRuntimeResolvedBinding;
@@ -302,7 +318,7 @@ function buildNimiRuntimeRouteDescribeExecuteScenarioRequest(input: {
   return {
       head: {
       appId: input.appId,
-      subjectUserId: '',
+      subjectUserId: normalizeText(input.subjectUserId),
       modelId,
       routePolicy: input.resolved.source === 'local-runtime' ? RoutePolicy.LOCAL : RoutePolicy.CLOUD,
       fallback: FallbackPolicy.DENY,
@@ -319,9 +335,6 @@ function buildNimiRuntimeRouteDescribeExecuteScenarioRequest(input: {
         version: 'v1',
         resolvedBindingRef: input.resolvedBindingRef,
         routeMetadataRef: normalizeText(input.resolved.routeMetadataRef) || undefined,
-        localAssetId: normalizeText(input.resolved.localAssetId) || undefined,
-        remoteModelCatalogId: normalizeText(input.resolved.remoteModelCatalogId) || undefined,
-        providerModelId: normalizeText(input.resolved.providerModelId) || undefined,
       }),
     }],
   };
@@ -336,6 +349,7 @@ function decodeBase64Text(input: string): string {
 
 const NIMI_RUNTIME_ROUTE_METADATA_KINDS: readonly NimiRuntimeRouteMetadataKind[] = [
   'text.generate',
+  'text.embed',
   'image.generate',
   'audio.synthesize',
   'audio.transcribe',
@@ -374,6 +388,25 @@ function requireRouteMetadataBoolean(metadata: JsonObject, field: string): boole
   const value = metadata[field];
   if (typeof value !== 'boolean') {
     failNimiRuntimeRouteDescribeMetadata(`Runtime route describe metadata field "${field}" must be a boolean.`);
+  }
+  return value;
+}
+
+function requireRouteMetadataPositiveInteger(metadata: JsonObject, field: string): number {
+  const value = metadata[field];
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    failNimiRuntimeRouteDescribeMetadata(`Runtime route describe metadata field "${field}" must be a positive integer.`);
+  }
+  return value;
+}
+
+function readOptionalRouteMetadataPositiveInteger(metadata: JsonObject, field: string): number | undefined {
+  const value = metadata[field];
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    failNimiRuntimeRouteDescribeMetadata(`Runtime route describe metadata field "${field}" must be a positive integer.`);
   }
   return value;
 }
@@ -452,6 +485,16 @@ function parseNimiRuntimeRouteTextGenerateMetadata(metadata: JsonObject): NimiRu
     supportsVideoInput: requireRouteMetadataBoolean(metadata, 'supportsVideoInput'),
     supportsArtifactRefInput: requireRouteMetadataBoolean(metadata, 'supportsArtifactRefInput'),
   };
+}
+
+function parseNimiRuntimeRouteTextEmbedMetadata(metadata: JsonObject): NimiRuntimeRouteTextEmbedMetadata {
+  const dimensions = readOptionalRouteMetadataPositiveInteger(metadata, 'dimensions');
+  const result: NimiRuntimeRouteTextEmbedMetadata = {
+    maxInputsPerRequest: requireRouteMetadataPositiveInteger(metadata, 'maxInputsPerRequest'),
+    supportsBatch: requireRouteMetadataBoolean(metadata, 'supportsBatch'),
+  };
+  assignOptionalRouteMetadata(result, 'dimensions', dimensions);
+  return result;
 }
 
 function parseNimiRuntimeRouteImageGenerateMetadata(metadata: JsonObject): NimiRuntimeRouteImageGenerateMetadata {
@@ -575,6 +618,8 @@ function parseNimiRuntimeRouteDescribeMetadata(
   switch (metadataKind as NimiRuntimeRouteMetadataKind) {
     case 'text.generate':
       return { ...base, metadataKind: 'text.generate', metadata: parseNimiRuntimeRouteTextGenerateMetadata(metadataObject) };
+    case 'text.embed':
+      return { ...base, metadataKind: 'text.embed', metadata: parseNimiRuntimeRouteTextEmbedMetadata(metadataObject) };
     case 'image.generate':
       return { ...base, metadataKind: 'image.generate', metadata: parseNimiRuntimeRouteImageGenerateMetadata(metadataObject) };
     case 'audio.synthesize':
@@ -590,6 +635,7 @@ function parseNimiRuntimeRouteDescribeMetadata(
 
 export async function describeNimiRuntimeRouteWithHost(input: {
   readonly appId: string;
+  readonly subjectUserId?: string;
   readonly targetId: string;
   readonly capability: NimiRuntimeCanonicalCapability;
   readonly resolvedBindingRef: string;
@@ -601,6 +647,7 @@ export async function describeNimiRuntimeRouteWithHost(input: {
   const timeoutMs = input.timeoutMs ?? NIMI_RUNTIME_ROUTE_DESCRIBE_TIMEOUT_MS;
   const request = buildNimiRuntimeRouteDescribeExecuteScenarioRequest({
     appId: input.appId,
+    subjectUserId: input.subjectUserId,
     capability: input.capability,
     resolvedBindingRef: input.resolvedBindingRef,
     resolved: input.resolved,

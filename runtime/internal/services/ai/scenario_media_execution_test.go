@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -350,6 +351,99 @@ func TestExecuteBackendSyncMediaImageUsesPlainPathForPythonPipelineSelection(t *
 	}
 	if len(artifacts) != 1 {
 		t.Fatalf("expected one artifact, got %d", len(artifacts))
+	}
+}
+
+func TestExecuteBackendSyncMediaImageUsesCloudTargetWithoutLocalResolver(t *testing.T) {
+	t.Helper()
+
+	var (
+		generatePath    string
+		generateModelID string
+		authHeader      string
+	)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		generatePath = r.URL.Path
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/images/generations" {
+			http.NotFound(w, r)
+			return
+		}
+		authHeader = r.Header.Get("Authorization")
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode image request: %v", err)
+		}
+		generateModelID, _ = payload["model"].(string)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": []map[string]any{
+				{"b64_json": base64.StdEncoding.EncodeToString([]byte("cloud-image"))},
+			},
+		})
+	}))
+	defer func() { server.Close() }()
+
+	cloudProvider := nimillm.NewCloudProvider(nimillm.CloudConfig{
+		HTTPTimeout:           time.Second,
+		AllowLoopbackEndpoint: true,
+	}, nil, nil)
+	remoteTarget := &nimillm.RemoteTarget{
+		ProviderType:    "openai",
+		Endpoint:        server.URL,
+		APIKey:          "connector-key",
+		ProviderModelID: "gpt-image-1.5",
+		AllowLoopback:   true,
+	}
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			ModelId: "openai/gpt-image-1.5",
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_ImageGenerate{
+				ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
+					Prompt:         "industrial future control room",
+					N:              1,
+					Size:           "1024x1024",
+					ResponseFormat: "base64",
+				},
+			},
+		},
+	}
+
+	artifacts, _, _, err := executeBackendSyncMedia(
+		context.Background(),
+		&Service{},
+		nil,
+		req,
+		nil,
+		"openai/gpt-image-1.5",
+		"openai_compat_adapter",
+		remoteTarget,
+		cloudProvider,
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("executeBackendSyncMedia cloud image: %v", err)
+	}
+	if generatePath != "/v1/images/generations" {
+		t.Fatalf("generate path = %q, want /v1/images/generations", generatePath)
+	}
+	if generateModelID != "gpt-image-1.5" {
+		t.Fatalf("provider model id = %q, want gpt-image-1.5", generateModelID)
+	}
+	if authHeader != "Bearer connector-key" {
+		t.Fatalf("authorization header = %q, want connector bearer token", authHeader)
+	}
+	if len(artifacts) != 1 {
+		t.Fatalf("expected one cloud image artifact, got %d", len(artifacts))
+	}
+	if string(artifacts[0].GetBytes()) != "cloud-image" {
+		t.Fatalf("artifact payload = %q, want cloud-image", string(artifacts[0].GetBytes()))
+	}
+	if got := metadataStringValue(artifacts[0].GetMetadata(), "adapter"); got != "openai_compat_adapter" {
+		t.Fatalf("artifact adapter metadata = %q, want openai_compat_adapter", got)
 	}
 }
 

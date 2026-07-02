@@ -32,6 +32,7 @@ import {
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
 import { normalizeNimiRuntimeAgentText, toNimiRuntimeProtoStruct } from './runtime-agent-values';
+import type { NimiRuntimeRouteTargetRef } from './route-options';
 import type {
   NimiRuntimeAgentConsumeRequest,
   NimiRuntimeAgentMessage,
@@ -178,7 +179,56 @@ function normalizeExecutionBinding(
     ...(optionalString(binding?.connectorId)
       ? { connector_id: optionalString(binding?.connectorId) }
       : {}),
+    ...(runtimeAgentTargetRefPayload(binding?.targetRef)
+      ? { target_ref: runtimeAgentTargetRefPayload(binding?.targetRef) }
+      : {}),
   };
+}
+
+function runtimeAgentTargetRefPayload(targetRef: NimiRuntimeRouteTargetRef | null | undefined): JsonObject | undefined {
+  if (!targetRef) {
+    return undefined;
+  }
+  if (targetRef.kind === 'local-runtime') {
+    const profileBindingId = optionalString(targetRef.profileBindingId);
+    const readinessRef = optionalString(targetRef.readinessRef);
+    if (targetRef.version !== 'v2' || Boolean(profileBindingId) === Boolean(readinessRef)) {
+      runtimeAgentInputError(
+        'runtime agent turn request execution binding local targetRef must use v2 and exactly one local ref',
+        'provide_runtime_route_target_ref',
+      );
+    }
+    return {
+      localRuntime: {
+        version: 'v2',
+        ...(profileBindingId ? { profileBindingId } : { readinessRef }),
+      },
+    };
+  }
+  if (targetRef.kind === 'cloud-connector') {
+    const connectorId = optionalString(targetRef.connectorId);
+    const remoteModelCatalogId = optionalString(targetRef.remoteModelCatalogId);
+    const providerModelId = optionalString(targetRef.providerModelId);
+    if (targetRef.version !== 'v2' || !connectorId || !remoteModelCatalogId || !providerModelId) {
+      runtimeAgentInputError(
+        'runtime agent turn request execution binding cloud targetRef must use v2 connector, catalog, and model ids',
+        'provide_runtime_route_target_ref',
+      );
+    }
+    return {
+      cloud: {
+        version: 'v2',
+        connectorId,
+        remoteModelCatalogId,
+        providerModelId,
+        ...(optionalString(targetRef.provider) ? { provider: optionalString(targetRef.provider) } : {}),
+      },
+    };
+  }
+  runtimeAgentInputError(
+    'runtime agent turn request execution binding targetRef kind is unsupported',
+    'provide_runtime_route_target_ref',
+  );
 }
 
 function normalizeExecutionBindings(request: NimiRuntimeAgentTurnRequest): JsonObject {

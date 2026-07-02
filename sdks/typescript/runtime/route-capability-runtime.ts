@@ -91,6 +91,7 @@ export function createNimiRuntimeRouteCapabilityRuntimeWithHost(
       const describeHost = deps.getDescribeHost();
       return describeNimiRuntimeRouteWithHost({
         appId: describeHost.appId,
+        subjectUserId: describeHost.subjectUserId,
         targetId: deps.describeTargetId,
         capability,
         resolvedBindingRef,

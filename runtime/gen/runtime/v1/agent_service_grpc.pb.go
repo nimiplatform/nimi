@@ -62,6 +62,7 @@ const (
 	RuntimeAgentService_WriteAgentMemory_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
 	RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus"
 	RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind"
+	RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus"
 	RuntimeAgentService_DescribeParticipationProfiles_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles"
 	RuntimeAgentService_DescribeParticipationContextBlocks_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks"
 	RuntimeAgentService_ValidateParticipation_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation"
@@ -120,6 +121,7 @@ type RuntimeAgentServiceClient interface {
 	WriteAgentMemory(ctx context.Context, in *WriteAgentMemoryRequest, opts ...grpc.CallOption) (*WriteAgentMemoryResponse, error)
 	GetAgentCanonicalMemoryBankStatus(ctx context.Context, in *GetAgentCanonicalMemoryBankStatusRequest, opts ...grpc.CallOption) (*GetAgentCanonicalMemoryBankStatusResponse, error)
 	RequestAgentCanonicalMemoryBankBind(ctx context.Context, in *RequestAgentCanonicalMemoryBankBindRequest, opts ...grpc.CallOption) (*RequestAgentCanonicalMemoryBankBindResponse, error)
+	GetAgentCanonicalMemoryReviewStatus(ctx context.Context, in *GetAgentCanonicalMemoryReviewStatusRequest, opts ...grpc.CallOption) (*GetAgentCanonicalMemoryReviewStatusResponse, error)
 	// Runtime Agent Participation surface (K-AGCORE-061..088, K-PROTO-012).
 	DescribeParticipationProfiles(ctx context.Context, in *DescribeParticipationProfilesRequest, opts ...grpc.CallOption) (*DescribeParticipationProfilesResponse, error)
 	DescribeParticipationContextBlocks(ctx context.Context, in *DescribeParticipationContextBlocksRequest, opts ...grpc.CallOption) (*DescribeParticipationContextBlocksResponse, error)
@@ -570,6 +572,16 @@ func (c *runtimeAgentServiceClient) RequestAgentCanonicalMemoryBankBind(ctx cont
 	return out, nil
 }
 
+func (c *runtimeAgentServiceClient) GetAgentCanonicalMemoryReviewStatus(ctx context.Context, in *GetAgentCanonicalMemoryReviewStatusRequest, opts ...grpc.CallOption) (*GetAgentCanonicalMemoryReviewStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAgentCanonicalMemoryReviewStatusResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAgentServiceClient) DescribeParticipationProfiles(ctx context.Context, in *DescribeParticipationProfilesRequest, opts ...grpc.CallOption) (*DescribeParticipationProfilesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DescribeParticipationProfilesResponse)
@@ -716,6 +728,7 @@ type RuntimeAgentServiceServer interface {
 	WriteAgentMemory(context.Context, *WriteAgentMemoryRequest) (*WriteAgentMemoryResponse, error)
 	GetAgentCanonicalMemoryBankStatus(context.Context, *GetAgentCanonicalMemoryBankStatusRequest) (*GetAgentCanonicalMemoryBankStatusResponse, error)
 	RequestAgentCanonicalMemoryBankBind(context.Context, *RequestAgentCanonicalMemoryBankBindRequest) (*RequestAgentCanonicalMemoryBankBindResponse, error)
+	GetAgentCanonicalMemoryReviewStatus(context.Context, *GetAgentCanonicalMemoryReviewStatusRequest) (*GetAgentCanonicalMemoryReviewStatusResponse, error)
 	// Runtime Agent Participation surface (K-AGCORE-061..088, K-PROTO-012).
 	DescribeParticipationProfiles(context.Context, *DescribeParticipationProfilesRequest) (*DescribeParticipationProfilesResponse, error)
 	DescribeParticipationContextBlocks(context.Context, *DescribeParticipationContextBlocksRequest) (*DescribeParticipationContextBlocksResponse, error)
@@ -863,6 +876,9 @@ func (UnimplementedRuntimeAgentServiceServer) GetAgentCanonicalMemoryBankStatus(
 }
 func (UnimplementedRuntimeAgentServiceServer) RequestAgentCanonicalMemoryBankBind(context.Context, *RequestAgentCanonicalMemoryBankBindRequest) (*RequestAgentCanonicalMemoryBankBindResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RequestAgentCanonicalMemoryBankBind not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetAgentCanonicalMemoryReviewStatus(context.Context, *GetAgentCanonicalMemoryReviewStatusRequest) (*GetAgentCanonicalMemoryReviewStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAgentCanonicalMemoryReviewStatus not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) DescribeParticipationProfiles(context.Context, *DescribeParticipationProfilesRequest) (*DescribeParticipationProfilesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DescribeParticipationProfiles not implemented")
@@ -1685,6 +1701,24 @@ func _RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_Handler(srv interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentCanonicalMemoryReviewStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetAgentCanonicalMemoryReviewStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetAgentCanonicalMemoryReviewStatus(ctx, req.(*GetAgentCanonicalMemoryReviewStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAgentService_DescribeParticipationProfiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DescribeParticipationProfilesRequest)
 	if err := dec(in); err != nil {
@@ -2018,6 +2052,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RequestAgentCanonicalMemoryBankBind",
 			Handler:    _RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_Handler,
+		},
+		{
+			MethodName: "GetAgentCanonicalMemoryReviewStatus",
+			Handler:    _RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_Handler,
 		},
 		{
 			MethodName: "DescribeParticipationProfiles",

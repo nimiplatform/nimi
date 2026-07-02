@@ -20,6 +20,7 @@ import type {
   NimiRuntimeRouteHostProviderHealth,
 } from './route-capability-types';
 import type { NimiRuntimeRouteSource } from './route-options';
+import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 
 export type NimiRuntimeRouteHostAccessClient = {
   readonly connectors: Pick<RuntimeTypedClient, 'testConnector'>;
@@ -85,6 +86,7 @@ export interface NimiHostRuntimeRouteAccessSurfaceOptions {
   readonly callerKind: string;
   readonly surfaceId: string;
   readonly callerIdPrefix?: string;
+  readonly identityMetadataMode?: 'renderer' | 'host';
   readonly warmCache?: NimiRuntimeRouteLocalWarmCache;
   readonly emitWarmMetric?: (metric: NimiRuntimeRouteLocalWarmMetric) => void;
 }
@@ -171,18 +173,22 @@ export function buildNimiRuntimeRouteTargetCallOptions(input: {
   readonly callerIdPrefix?: string;
   readonly connectorId?: string;
   readonly signal?: AbortSignal;
+  readonly identityMetadataMode?: 'renderer' | 'host';
 }): RuntimeTypedCallOptions {
   const callerIdPrefix = normalizeText(input.callerIdPrefix) || 'target';
   const traceId = createNimiRuntimeTraceId('runtime-call');
+  const hostOwnsIdentity = input.identityMetadataMode === 'host';
   return {
     timeoutMs: input.timeoutMs,
     signal: input.signal,
     metadata: {
       traceId,
       'x-nimi-trace-id': traceId,
-      callerKind: normalizeText(input.callerKind),
-      callerId: `${callerIdPrefix}:${normalizeText(input.targetId) || 'unknown'}`,
       surfaceId: normalizeText(input.surfaceId),
+      ...(!hostOwnsIdentity ? {
+        callerKind: normalizeText(input.callerKind),
+        callerId: `${callerIdPrefix}:${normalizeText(input.targetId) || 'unknown'}`,
+      } : {}),
       ...(normalizeText(input.connectorId) ? { keySource: 'managed' } : {}),
     },
   };
@@ -237,12 +243,13 @@ async function checkRouteHealth(
   runtime: NimiRuntimeRouteHostAccessClient,
   appId: string,
   input: NimiRuntimeRouteHealthInput,
+  options?: RuntimeTypedCallOptions,
 ): Promise<NimiRuntimeRouteHostProviderHealth> {
   if (normalizeText(input.connectorId)) {
     try {
       return providerHealthFromConnectorResult(
         input,
-        await runtime.connectors.testConnector({ connectorId: normalizeText(input.connectorId) }),
+        await runtime.connectors.testConnector({ connectorId: normalizeText(input.connectorId) }, options),
       );
     } catch (error) {
       return {
@@ -269,7 +276,10 @@ async function checkRouteHealth(
   try {
     return providerHealthFromLocalAsset(
       input,
-      await runtime.local.checkLocalAssetHealth({ localAssetId } satisfies CheckLocalAssetHealthRequest),
+      await runtime.local.checkLocalAssetHealth(
+        { localAssetId } satisfies CheckLocalAssetHealthRequest,
+        options,
+      ),
     );
   } catch (error) {
     return {
@@ -421,17 +431,33 @@ export function createNimiHostRuntimeRouteAccessSurface(
   ): Promise<RuntimeTypedCallOptions> => buildNimiRuntimeRouteTargetCallOptions({
     targetId: input.targetId,
     timeoutMs: input.timeoutMs,
-    callerKind: options.callerKind,
-    surfaceId: options.surfaceId,
-    callerIdPrefix: options.callerIdPrefix,
-    connectorId: input.connectorId,
-    signal: input.signal,
-  });
+      callerKind: options.callerKind,
+      surfaceId: options.surfaceId,
+      callerIdPrefix: options.callerIdPrefix,
+      connectorId: input.connectorId,
+      signal: input.signal,
+      identityMetadataMode: options.identityMetadataMode,
+    });
 
   return {
     getRuntimeClient,
     async checkLocalHealth(input) {
-      return checkRouteHealth(getRuntimeClient(), options.appId, input);
+      const targetId = normalizeText(input.connectorId)
+        || normalizeText(input.localAssetId)
+        || normalizeText(input.localProviderModel)
+        || normalizeText(input.provider)
+        || 'unknown';
+      const callOptions = withNimiRuntimeIdempotencyMetadata(
+        await buildCallOptions({
+          targetId: `route-health:${targetId}`,
+          timeoutMs: 15_000,
+          source: normalizeText(input.connectorId) ? 'cloud-connector' : 'local-runtime',
+          connectorId: normalizeText(input.connectorId) || undefined,
+          providerEndpoint: normalizeText(input.localProviderEndpoint || input.localOpenAiEndpoint) || undefined,
+        }),
+        createNimiRuntimeTraceId('route-health'),
+      );
+      return checkRouteHealth(getRuntimeClient(), options.appId, input, callOptions);
     },
     async buildRequestMetadata(input) {
       return buildNimiRuntimeRouteRequestMetadata({ connectorId: input.connectorId });

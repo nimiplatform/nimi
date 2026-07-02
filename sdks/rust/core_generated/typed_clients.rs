@@ -200,16 +200,24 @@ impl Default for AgentCanonicalMemoryBankMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentCanonicalMemoryReviewReadiness {
+    AGENTCANONICALMEMORYREVIEWREADINESSUNSPECIFIED,
+    AGENTCANONICALMEMORYREVIEWREADINESSELIGIBLE,
+    AGENTCANONICALMEMORYREVIEWREADINESSWAITINGFORWINDOW,
+    AGENTCANONICALMEMORYREVIEWREADINESSEXECUTORUNAVAILABLE,
+    AGENTCANONICALMEMORYREVIEWREADINESSRECOVERABLERUNBLOCKING,
+    AGENTCANONICALMEMORYREVIEWREADINESSBANKUNAVAILABLE,
+}
+
+impl Default for AgentCanonicalMemoryReviewReadiness {
+    fn default() -> Self {
+        Self::AGENTCANONICALMEMORYREVIEWREADINESSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentEventType {
     AGENTEVENTTYPEUNSPECIFIED,
-    AGENTEVENTTYPELIFECYCLE,
-    AGENTEVENTTYPEHOOK,
-    AGENTEVENTTYPEMEMORY,
-    AGENTEVENTTYPEBUDGET,
-    AGENTEVENTTYPEREPLICATION,
-    AGENTEVENTTYPESTATE,
-    AGENTEVENTTYPEPRESENTATION,
-    AGENTEVENTTYPEAVATARDEBUG,
 }
 
 impl Default for AgentEventType {
@@ -221,11 +229,6 @@ impl Default for AgentEventType {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentExecutionState {
     AGENTEXECUTIONSTATEUNSPECIFIED,
-    AGENTEXECUTIONSTATEIDLE,
-    AGENTEXECUTIONSTATECHATACTIVE,
-    AGENTEXECUTIONSTATELIFEPENDING,
-    AGENTEXECUTIONSTATELIFERUNNING,
-    AGENTEXECUTIONSTATESUSPENDED,
 }
 
 impl Default for AgentExecutionState {
@@ -237,11 +240,6 @@ impl Default for AgentExecutionState {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentLifecycleStatus {
     AGENTLIFECYCLESTATUSUNSPECIFIED,
-    AGENTLIFECYCLESTATUSINITIALIZING,
-    AGENTLIFECYCLESTATUSACTIVE,
-    AGENTLIFECYCLESTATUSSUSPENDED,
-    AGENTLIFECYCLESTATUSTERMINATING,
-    AGENTLIFECYCLESTATUSTERMINATED,
 }
 
 impl Default for AgentLifecycleStatus {
@@ -269,12 +267,6 @@ impl Default for AgentPresentationBackendKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentPresentationEventFamily {
     AGENTPRESENTATIONEVENTFAMILYUNSPECIFIED,
-    AGENTPRESENTATIONEVENTFAMILYACTIVITYREQUESTED,
-    AGENTPRESENTATIONEVENTFAMILYMOTIONREQUESTED,
-    AGENTPRESENTATIONEVENTFAMILYEXPRESSIONREQUESTED,
-    AGENTPRESENTATIONEVENTFAMILYPOSEREQUESTED,
-    AGENTPRESENTATIONEVENTFAMILYPOSECLEARED,
-    AGENTPRESENTATIONEVENTFAMILYLOOKATREQUESTED,
 }
 
 impl Default for AgentPresentationEventFamily {
@@ -284,12 +276,96 @@ impl Default for AgentPresentationEventFamily {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentProactiveDeliveryChannel {
+    AGENTPROACTIVEDELIVERYCHANNELUNSPECIFIED,
+}
+
+impl Default for AgentProactiveDeliveryChannel {
+    fn default() -> Self {
+        Self::AGENTPROACTIVEDELIVERYCHANNELUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentProactiveEffectClass {
+    AGENTPROACTIVEEFFECTCLASSUNSPECIFIED,
+}
+
+impl Default for AgentProactiveEffectClass {
+    fn default() -> Self {
+        Self::AGENTPROACTIVEEFFECTCLASSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentProactiveEventFamily {
+    AGENTPROACTIVEEVENTFAMILYUNSPECIFIED,
+}
+
+impl Default for AgentProactiveEventFamily {
+    fn default() -> Self {
+        Self::AGENTPROACTIVEEVENTFAMILYUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentProactiveFrequencyCapState {
+    AGENTPROACTIVEFREQUENCYCAPSTATEUNSPECIFIED,
+}
+
+impl Default for AgentProactiveFrequencyCapState {
+    fn default() -> Self {
+        Self::AGENTPROACTIVEFREQUENCYCAPSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentProactiveOptInState {
+    AGENTPROACTIVEOPTINSTATEUNSPECIFIED,
+}
+
+impl Default for AgentProactiveOptInState {
+    fn default() -> Self {
+        Self::AGENTPROACTIVEOPTINSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentProactiveQuietHoursState {
+    AGENTPROACTIVEQUIETHOURSSTATEUNSPECIFIED,
+}
+
+impl Default for AgentProactiveQuietHoursState {
+    fn default() -> Self {
+        Self::AGENTPROACTIVEQUIETHOURSSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentProactiveSuppressionReason {
+    AGENTPROACTIVESUPPRESSIONREASONUNSPECIFIED,
+}
+
+impl Default for AgentProactiveSuppressionReason {
+    fn default() -> Self {
+        Self::AGENTPROACTIVESUPPRESSIONREASONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentProactiveTriggerSource {
+    AGENTPROACTIVETRIGGERSOURCEUNSPECIFIED,
+}
+
+impl Default for AgentProactiveTriggerSource {
+    fn default() -> Self {
+        Self::AGENTPROACTIVETRIGGERSOURCEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentStateEventFamily {
     AGENTSTATEEVENTFAMILYUNSPECIFIED,
-    AGENTSTATEEVENTFAMILYSTATUSTEXTCHANGED,
-    AGENTSTATEEVENTFAMILYEXECUTIONSTATECHANGED,
-    AGENTSTATEEVENTFAMILYEMOTIONCHANGED,
-    AGENTSTATEEVENTFAMILYPOSTURECHANGED,
 }
 
 impl Default for AgentStateEventFamily {
@@ -962,14 +1038,6 @@ impl Default for GpuMemoryModel {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HookAdmissionState {
     HOOKADMISSIONSTATEUNSPECIFIED,
-    HOOKADMISSIONSTATEPROPOSED,
-    HOOKADMISSIONSTATEPENDING,
-    HOOKADMISSIONSTATEREJECTED,
-    HOOKADMISSIONSTATERUNNING,
-    HOOKADMISSIONSTATECOMPLETED,
-    HOOKADMISSIONSTATEFAILED,
-    HOOKADMISSIONSTATECANCELED,
-    HOOKADMISSIONSTATERESCHEDULED,
 }
 
 impl Default for HookAdmissionState {
@@ -981,7 +1049,6 @@ impl Default for HookAdmissionState {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HookEffect {
     HOOKEFFECTUNSPECIFIED,
-    HOOKEFFECTFOLLOWUPTURN,
 }
 
 impl Default for HookEffect {
@@ -993,8 +1060,6 @@ impl Default for HookEffect {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HookTriggerFamily {
     HOOKTRIGGERFAMILYUNSPECIFIED,
-    HOOKTRIGGERFAMILYTIME,
-    HOOKTRIGGERFAMILYEVENT,
 }
 
 impl Default for HookTriggerFamily {
@@ -3258,6 +3323,54 @@ impl AgentCanonicalMemoryBankStatus {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentCanonicalMemoryReviewStatus {
+    pub bank: Option<Box<MemoryBankLocator>>,
+    pub readiness: Option<AgentCanonicalMemoryReviewReadiness>,
+    pub eligible_now: Option<bool>,
+    pub review_executor_available: Option<bool>,
+    pub last_review_run_id: Option<String>,
+    pub checkpoint_basis: Option<String>,
+    pub last_completed_at: Option<String>,
+    pub next_eligible_at: Option<String>,
+    pub recoverable_review_run_id: Option<String>,
+}
+
+impl AgentCanonicalMemoryReviewStatus {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.bank.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bank"); }
+        if let Some(value) = &self.readiness { pairs.push(format!("readiness={:?}", value)); }
+        if let Some(value) = &self.eligible_now { pairs.push(format!("eligible_now={}", value)); }
+        if let Some(value) = &self.review_executor_available { pairs.push(format!("review_executor_available={}", value)); }
+        if let Some(value) = &self.last_review_run_id { pairs.push(format!("last_review_run_id={}", value)); }
+        if let Some(value) = &self.checkpoint_basis { pairs.push(format!("checkpoint_basis={}", value)); }
+        if let Some(value) = &self.last_completed_at { pairs.push(format!("last_completed_at={}", value)); }
+        if let Some(value) = &self.next_eligible_at { pairs.push(format!("next_eligible_at={}", value)); }
+        if let Some(value) = &self.recoverable_review_run_id { pairs.push(format!("recoverable_review_run_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["bank", "readiness"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.eligible_now = pairs.get("eligible_now").and_then(|value| value.parse().ok());
+        out.review_executor_available = pairs.get("review_executor_available").and_then(|value| value.parse().ok());
+        out.last_review_run_id = pairs.get("last_review_run_id").cloned();
+        out.checkpoint_basis = pairs.get("checkpoint_basis").cloned();
+        out.last_completed_at = pairs.get("last_completed_at").cloned();
+        out.next_eligible_at = pairs.get("next_eligible_at").cloned();
+        out.recoverable_review_run_id = pairs.get("recoverable_review_run_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentConversationSummary {
     pub anchor: Option<Box<ConversationAnchor>>,
     pub title: Option<String>,
@@ -3359,6 +3472,7 @@ pub struct AgentEvent {
     pub state: Option<Box<AgentStateEventDetail>>,
     pub presentation: Option<Box<AgentPresentationEventDetail>>,
     pub avatar_debug: Option<Box<AgentAvatarDebugEventDetail>>,
+    pub proactive: Option<Box<AgentProactiveEventDetail>>,
     pub local_agent_ref: Option<String>,
     pub owner_user_id: Option<String>,
     pub runtime_source_ref: Option<String>,
@@ -3379,6 +3493,7 @@ impl AgentEvent {
         if self.state.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode state"); }
         if self.presentation.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode presentation"); }
         if self.avatar_debug.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode avatar_debug"); }
+        if self.proactive.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode proactive"); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
         if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
@@ -3388,7 +3503,7 @@ impl AgentEvent {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["event_type", "lifecycle", "hook", "memory", "budget", "replication", "state", "presentation", "avatar_debug"] {
+        for key in ["event_type", "lifecycle", "hook", "memory", "budget", "replication", "state", "presentation", "avatar_debug", "proactive"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -3655,6 +3770,131 @@ impl AgentPresentationProfile {
         out.idle_preset = pairs.get("idle_preset").cloned();
         out.interaction_policy_ref = pairs.get("interaction_policy_ref").cloned();
         out.default_voice_reference = pairs.get("default_voice_reference").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentProactiveEventDetail {
+    pub family: Option<AgentProactiveEventFamily>,
+    pub projection_id: Option<String>,
+    pub projection_kind: Option<String>,
+    pub owner_domain: Option<String>,
+    pub trigger_source: Option<AgentProactiveTriggerSource>,
+    pub effect_class: Option<AgentProactiveEffectClass>,
+    pub delivery_channel: Option<AgentProactiveDeliveryChannel>,
+    pub mode: Option<AgentAutonomyMode>,
+    pub opt_in_state: Option<AgentProactiveOptInState>,
+    pub quiet_hours: Option<AgentProactiveQuietHoursState>,
+    pub frequency_cap: Option<AgentProactiveFrequencyCapState>,
+    pub suppression_reason: Option<AgentProactiveSuppressionReason>,
+    pub reason_code: Option<String>,
+    pub audit_ref: Option<String>,
+    pub source_hook_id: Option<String>,
+    pub source_cadence_id: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub originating_turn_id: Option<String>,
+    pub originating_stream_id: Option<String>,
+    pub observed_at: Option<String>,
+}
+
+impl AgentProactiveEventDetail {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.family { pairs.push(format!("family={:?}", value)); }
+        if let Some(value) = &self.projection_id { pairs.push(format!("projection_id={}", value)); }
+        if let Some(value) = &self.projection_kind { pairs.push(format!("projection_kind={}", value)); }
+        if let Some(value) = &self.owner_domain { pairs.push(format!("owner_domain={}", value)); }
+        if let Some(value) = &self.trigger_source { pairs.push(format!("trigger_source={:?}", value)); }
+        if let Some(value) = &self.effect_class { pairs.push(format!("effect_class={:?}", value)); }
+        if let Some(value) = &self.delivery_channel { pairs.push(format!("delivery_channel={:?}", value)); }
+        if let Some(value) = &self.mode { pairs.push(format!("mode={:?}", value)); }
+        if let Some(value) = &self.opt_in_state { pairs.push(format!("opt_in_state={:?}", value)); }
+        if let Some(value) = &self.quiet_hours { pairs.push(format!("quiet_hours={:?}", value)); }
+        if let Some(value) = &self.frequency_cap { pairs.push(format!("frequency_cap={:?}", value)); }
+        if let Some(value) = &self.suppression_reason { pairs.push(format!("suppression_reason={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
+        if let Some(value) = &self.audit_ref { pairs.push(format!("audit_ref={}", value)); }
+        if let Some(value) = &self.source_hook_id { pairs.push(format!("source_hook_id={}", value)); }
+        if let Some(value) = &self.source_cadence_id { pairs.push(format!("source_cadence_id={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if let Some(value) = &self.originating_turn_id { pairs.push(format!("originating_turn_id={}", value)); }
+        if let Some(value) = &self.originating_stream_id { pairs.push(format!("originating_stream_id={}", value)); }
+        if let Some(value) = &self.observed_at { pairs.push(format!("observed_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["family", "trigger_source", "effect_class", "delivery_channel", "mode", "opt_in_state", "quiet_hours", "frequency_cap", "suppression_reason"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.projection_id = pairs.get("projection_id").cloned();
+        out.projection_kind = pairs.get("projection_kind").cloned();
+        out.owner_domain = pairs.get("owner_domain").cloned();
+        out.reason_code = pairs.get("reason_code").cloned();
+        out.audit_ref = pairs.get("audit_ref").cloned();
+        out.source_hook_id = pairs.get("source_hook_id").cloned();
+        out.source_cadence_id = pairs.get("source_cadence_id").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out.originating_turn_id = pairs.get("originating_turn_id").cloned();
+        out.originating_stream_id = pairs.get("originating_stream_id").cloned();
+        out.observed_at = pairs.get("observed_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentProactiveInterruptibilityProjection {
+    pub projection_id: Option<String>,
+    pub projection_kind: Option<String>,
+    pub mode: Option<AgentAutonomyMode>,
+    pub opt_in_state: Option<AgentProactiveOptInState>,
+    pub delivery_channel: Option<AgentProactiveDeliveryChannel>,
+    pub quiet_hours: Option<AgentProactiveQuietHoursState>,
+    pub frequency_cap: Option<AgentProactiveFrequencyCapState>,
+    pub audit_refs: Vec<String>,
+    pub suggested_event: Option<Box<AgentProactiveEventDetail>>,
+    pub last_delivered_event: Option<Box<AgentProactiveEventDetail>>,
+    pub last_suppressed_event: Option<Box<AgentProactiveEventDetail>>,
+    pub unsupported_fields: Vec<String>,
+}
+
+impl AgentProactiveInterruptibilityProjection {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.projection_id { pairs.push(format!("projection_id={}", value)); }
+        if let Some(value) = &self.projection_kind { pairs.push(format!("projection_kind={}", value)); }
+        if let Some(value) = &self.mode { pairs.push(format!("mode={:?}", value)); }
+        if let Some(value) = &self.opt_in_state { pairs.push(format!("opt_in_state={:?}", value)); }
+        if let Some(value) = &self.delivery_channel { pairs.push(format!("delivery_channel={:?}", value)); }
+        if let Some(value) = &self.quiet_hours { pairs.push(format!("quiet_hours={:?}", value)); }
+        if let Some(value) = &self.frequency_cap { pairs.push(format!("frequency_cap={:?}", value)); }
+        for value in &self.audit_refs { pairs.push(format!("audit_refs={}", value)); }
+        if self.suggested_event.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode suggested_event"); }
+        if self.last_delivered_event.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode last_delivered_event"); }
+        if self.last_suppressed_event.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode last_suppressed_event"); }
+        for value in &self.unsupported_fields { pairs.push(format!("unsupported_fields={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["mode", "opt_in_state", "delivery_channel", "quiet_hours", "frequency_cap", "suggested_event", "last_delivered_event", "last_suppressed_event"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.projection_id = pairs.get("projection_id").cloned();
+        out.projection_kind = pairs.get("projection_kind").cloned();
+        out.audit_refs = parse_repeated_string(raw, "audit_refs");
+        out.unsupported_fields = parse_repeated_string(raw, "unsupported_fields");
         out
     }
 }
@@ -3947,6 +4187,7 @@ pub struct AgentStateProjection {
     pub attributes: BTreeMap<String, String>,
     pub updated_at: Option<String>,
     pub current_emotion: Option<String>,
+    pub proactive_interruptibility: Option<Box<AgentProactiveInterruptibilityProjection>>,
 }
 
 impl AgentStateProjection {
@@ -3959,13 +4200,14 @@ impl AgentStateProjection {
         if !self.attributes.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode attributes"); }
         if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
         if let Some(value) = &self.current_emotion { pairs.push(format!("current_emotion={}", value)); }
+        if self.proactive_interruptibility.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode proactive_interruptibility"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["execution_state", "attributes"] {
+        for key in ["execution_state", "attributes", "proactive_interruptibility"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -10249,6 +10491,65 @@ pub struct GetAgentCanonicalMemoryBankStatusResponse {
 }
 
 impl GetAgentCanonicalMemoryBankStatusResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.status.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode status"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["status"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAgentCanonicalMemoryReviewStatusRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub agent_id: Option<String>,
+    pub bank: Option<Box<MemoryBankLocator>>,
+}
+
+impl GetAgentCanonicalMemoryReviewStatusRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
+        if self.bank.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bank"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context", "bank"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.agent_id = pairs.get("agent_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAgentCanonicalMemoryReviewStatusResponse {
+    pub status: Option<Box<AgentCanonicalMemoryReviewStatus>>,
+}
+
+impl GetAgentCanonicalMemoryReviewStatusResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if self.status.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode status"); }
@@ -31051,6 +31352,12 @@ impl From<Vec<u8>> for AgentCanonicalMemoryBankStatus {
     }
 }
 
+impl From<Vec<u8>> for AgentCanonicalMemoryReviewStatus {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for AgentConversationSummary {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -31106,6 +31413,18 @@ impl From<Vec<u8>> for AgentPresentationEventDetail {
 }
 
 impl From<Vec<u8>> for AgentPresentationProfile {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AgentProactiveEventDetail {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AgentProactiveInterruptibilityProjection {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -32222,6 +32541,18 @@ impl From<Vec<u8>> for GetAgentCanonicalMemoryBankStatusRequest {
 }
 
 impl From<Vec<u8>> for GetAgentCanonicalMemoryBankStatusResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAgentCanonicalMemoryReviewStatusRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAgentCanonicalMemoryReviewStatusResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36149,6 +36480,16 @@ where
             timeout,
         })?;
         Ok(GetAgentCanonicalMemoryBankStatusResponse::from_transport(&raw))
+    }
+
+    pub fn get_agent_canonical_memory_review_status(&self, request: GetAgentCanonicalMemoryReviewStatusRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentCanonicalMemoryReviewStatusResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetAgentCanonicalMemoryReviewStatusResponse::from_transport(&raw))
     }
 
     pub fn get_agent_state(&self, request: GetAgentStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentStateResponse, T::Error> {

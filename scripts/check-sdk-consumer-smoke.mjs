@@ -25,11 +25,32 @@ const KIT_PACKAGE = {
   dir: 'kit',
 };
 
-function runCommand(command, args, cwd) {
+function nestedPnpmEnv() {
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) {
+    const lower = key.toLowerCase();
+    if (
+      key === 'INIT_CWD'
+      || lower === 'npm_command'
+      || lower === 'npm_config_user_agent'
+      || lower === 'npm_execpath'
+      || lower === 'npm_node_execpath'
+      || lower === 'pnpm_package_name'
+      || lower.startsWith('npm_lifecycle_')
+      || lower.startsWith('npm_package_')
+      || lower.startsWith('pnpm_config_')
+    ) {
+      delete env[key];
+    }
+  }
+  return env;
+}
+
+function runCommand(command, args, cwd, options = {}) {
   const result = spawnSync(command, args, {
     cwd,
     stdio: 'inherit',
-    env: process.env,
+    env: options.env ?? process.env,
     shell: process.platform === 'win32',
   });
   if (result.status !== 0) {
@@ -38,7 +59,7 @@ function runCommand(command, args, cwd) {
 }
 
 function runPnpm(args, cwd) {
-  runCommand('corepack', ['pnpm', ...args], cwd);
+  runCommand('corepack', ['pnpm', ...args], cwd, { env: nestedPnpmEnv() });
 }
 
 function toPnpmFileSpec(filePath) {

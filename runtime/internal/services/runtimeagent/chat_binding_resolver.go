@@ -130,6 +130,10 @@ func (s *Service) resolvePublicChatTextBinding(
 	if modelID == "" {
 		return publicChatExecutionBinding{}, status.Error(codes.InvalidArgument, "public chat execution_bindings.text.generate.model_id is required")
 	}
+	targetRef, err := parsePublicChatTargetRef(payload.TargetRef, "public chat execution_bindings.text.generate")
+	if err != nil {
+		return publicChatExecutionBinding{}, err
+	}
 	routeHint, err := parseOptionalPublicChatRoutePolicy(payload.Route)
 	if err != nil {
 		return publicChatExecutionBinding{}, err
@@ -160,6 +164,7 @@ func (s *Service) resolvePublicChatTextBinding(
 		ModelID:     strings.TrimSpace(resolved.ModelID),
 		RoutePolicy: resolved.RoutePolicy,
 		ConnectorID: strings.TrimSpace(resolved.ConnectorID),
+		TargetRef:   clonePublicChatTargetRef(targetRef),
 	}, nil
 }
 
@@ -167,6 +172,10 @@ func parsePublicChatExplicitCapabilityBinding(payload publicChatExecutionBinding
 	modelID := strings.TrimSpace(payload.ModelID)
 	if modelID == "" {
 		return publicChatExecutionBinding{}, status.Errorf(codes.InvalidArgument, "%s.model_id is required", label)
+	}
+	targetRef, err := parsePublicChatTargetRef(payload.TargetRef, label)
+	if err != nil {
+		return publicChatExecutionBinding{}, err
 	}
 	routePolicy, err := parseOptionalPublicChatRoutePolicy(payload.Route)
 	if err != nil {
@@ -179,6 +188,7 @@ func parsePublicChatExplicitCapabilityBinding(payload publicChatExecutionBinding
 		ModelID:     modelID,
 		RoutePolicy: routePolicy,
 		ConnectorID: strings.TrimSpace(payload.ConnectorID),
+		TargetRef:   clonePublicChatTargetRef(targetRef),
 	}, nil
 }
 
@@ -192,7 +202,12 @@ func clonePublicChatExecutionBindings(input publicChatExecutionBindings) publicC
 		if trimmedCapability == "" {
 			continue
 		}
-		out[trimmedCapability] = binding
+		out[trimmedCapability] = publicChatExecutionBinding{
+			ModelID:     strings.TrimSpace(binding.ModelID),
+			RoutePolicy: binding.RoutePolicy,
+			ConnectorID: strings.TrimSpace(binding.ConnectorID),
+			TargetRef:   clonePublicChatTargetRef(binding.TargetRef),
+		}
 	}
 	return out
 }

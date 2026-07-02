@@ -533,3 +533,62 @@ Fixed rules:
   projected as progress or completion.
 - Desktop, Tester, Kit, and other apps may render SDK transfer projections but
   must not maintain a second transfer lifecycle state machine.
+
+## S-RUNTIME-124 Runtime Agent Memory Observatory Projection Helper Boundary
+
+> Upstream Runtime authority: `runtime-agent-service-contract.md`
+>
+> Consumer product driver: Zhiyu H5 Memory Observatory local companion surface.
+
+SDK Runtime Agent Memory Observatory helpers are typed read-only projections
+over admitted RuntimeAgentService memory read envelopes. They may compose the
+existing SDK canonical memory export helper, which itself reads
+`RuntimeAgentService.GetAgentState` and `RuntimeAgentService.QueryAgentMemory`,
+but they do not own memory truth, memory lifecycle truth, or app-local memory
+identity.
+
+Fixed rules:
+
+- SDK Memory Observatory helpers must project canonical agent memory as
+  `canonical-agent-memory` authority class and preserve Runtime-owned agent id,
+  memory id, bank key, canonical class, memory kind, summary, provenance,
+  timestamps, replication outcome, policy reason, and recall score from the
+  RuntimeAgentService read envelope.
+- SDK Memory Observatory helpers may expose product-readable state such as
+  `ready` or `empty`, record counts, bank counts, lineage, and semantic
+  confidence only when those values are directly available from the admitted
+  memory export envelope.
+- SDK Memory Observatory helpers must represent lifecycle fields not present on
+  the admitted read envelope as explicit `not_projected` states. This includes
+  review state, redaction state, and forget/retire intent.
+- SDK Memory Observatory helpers must not infer review, redaction, forget
+  intent, consent/grant state, provider/model facts, or app-local memory
+  identity from metadata, summaries, timestamps, confidence, UI state, or cache.
+- SDK Memory Observatory helpers must not call memory write/mutation paths,
+  `runtime.memory.*` as a canonical agent memory shortcut, provider APIs,
+  app-level REST, Desktop implementation modules, or Runtime private packages.
+
+## S-RUNTIME-125 Runtime Agent Canonical Review Status Projection
+
+> Upstream Runtime authority: `K-AGCORE-016a`
+>
+> Consumer product driver: Zhiyu Memory Observatory lifecycle transparency.
+
+SDK may expose a typed read-only projection over
+`RuntimeAgentService.GetAgentCanonicalMemoryReviewStatus` for canonical
+agent-facing memory banks.
+
+Fixed rules:
+
+- SDK review status helpers must preserve Runtime-owned bank identity,
+  readiness, executor availability, last review follow-up id, checkpoint basis,
+  completion time, next eligibility time, and recoverable review-run id as read
+  projection values.
+- SDK must not infer review readiness, redaction, forget, retire, or per-record
+  lifecycle state from memory records, metadata, summaries, confidence,
+  timestamps, UI state, app cache, or provider/model outputs.
+- SDK must not expose review execution, redaction, forget, or retire mutation
+  through this projection helper.
+- When Runtime does not project review status, SDK/app consumers must keep
+  lifecycle fields explicit as unavailable or `not_projected`; they must not
+  backfill product copy with synthetic lifecycle values.

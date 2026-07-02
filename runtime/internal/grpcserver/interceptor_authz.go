@@ -334,6 +334,8 @@ func routeDescribeExtensionNamespaceForScenarioType(scenarioType runtimev1.Scena
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
 		return "nimi.scenario.text_generate.route_describe"
+	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
+		return "nimi.scenario.text_embed.route_describe"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
 		return "nimi.scenario.speech_synthesize.route_describe"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:

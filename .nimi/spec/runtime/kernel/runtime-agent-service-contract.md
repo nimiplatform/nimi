@@ -143,6 +143,7 @@ Apps may not:
 - `WriteAgentMemory`
 - `GetAgentCanonicalMemoryBankStatus`
 - `RequestAgentCanonicalMemoryBankBind`
+- `GetAgentCanonicalMemoryReviewStatus`
 - `SubscribeAgentEvents`
 
 Primary semantic outputs on this surface must use Nimi-owned typed messages:
@@ -480,6 +481,37 @@ Fixed rules:
   executor output compatibility is not admitted
 - extracting review storage mechanics into a runtime-owned internal memory library does not transfer review ownership, scheduling, admission policy, or recovery semantics away from RuntimeAgentService
 - truth candidate admission and conflict handling remain RuntimeAgentService-owned even when Memory Service persists the resulting state
+
+## K-AGCORE-016a Canonical Review Status Projection
+
+`RuntimeAgentService` admits a narrow read-only canonical review status
+projection for agent-facing memory banks.
+
+It may project:
+
+- the validated canonical bank locator
+- whether the Runtime-owned canonical review executor is currently available
+- the last committed review follow-up id, checkpoint basis, and completion time
+- the next eligibility time derived from Runtime-owned review cadence policy
+- whether a recoverable runtime review run currently blocks fresh scheduling
+
+Fixed rules:
+
+- this projection is bank-level scheduler/follow-up observability, not a
+  per-memory-record review truth field
+- the projection must derive from RuntimeAgentService-owned review persistence,
+  committed follow-up rows, and review cadence constants; SDKs and apps must
+  not derive equivalent status from memory metadata, summaries, timestamps,
+  UI state, or app-local caches
+- the projection must not expose admitted truth state, narrative bodies,
+  prepared review outcomes, or model-facing canonical review input/output
+  payloads
+- no mutation, redaction, forget, retire, or review execution command is
+  admitted by this read surface
+- recoverable `prepared` / `memory_committed` review runs must be explicit
+  blocking state rather than hidden as ordinary eligibility or pseudo-success
+- missing canonical bank state must be explicit `BANK_UNAVAILABLE` readiness
+  rather than causing callers to synthesize lifecycle state
 
 ## K-AGCORE-017 Runtime-Private Chat Track Sidecar Contract
 
@@ -830,6 +862,10 @@ Creation trigger owner:
   LocalAgent. If provenance is unavailable, Runtime surfaces unavailable
   provenance instead of reconstructing, rebasing, or recreating a LocalAgent
   from deterministic source metadata.
+- Runtime local inventory/provenance is the only admitted discovery projection
+  for an existing materialized source. SDK/Kit/Electron consumers may expose
+  this projection, but must not convert environment variables, renderer cache,
+  source ids, or source metadata into a `local_agent_ref`.
 
 `MUST NOT`: Runtime must not create any LocalAgent — the guide source's or
 any other source's — as a standalone local-only agent, fake contact,
@@ -848,6 +884,10 @@ Source of truth:
 - the Nimi guide welcome copy and guide system prompt are ordinary source
   content carried on the admitted SourceMaterializationPacket, reached through
   the same source-core path used for any runtime source;
+- the Nimi guide / Archivist source is available only when admitted Realm
+  source-core data can produce a hash-bearing source reference and fresh
+  SourceMaterializationPacket, or when Runtime inventory/provenance already
+  contains a Runtime-owned LocalAgent for that source;
 - Runtime MUST NOT hold a runtime-local hardcoded guide welcome string, guide
   prompt, or guide identity constant as parallel product truth;
 - built-in Nimi usage documentation attached as context is product
@@ -958,3 +998,56 @@ profile/app configuration truth. It is product knowledge/context only,
 identical to the K-AGCORE-140 bound. The corpus may describe and direct the
 user to product surfaces, but it must not bypass setup confirmations,
 permissions, install plans, app admission, or ordinary LocalAgent mechanics.
+
+## K-AGCORE-143 Proactive Interruptibility Projection Boundary
+
+`RuntimeAgentService` owns `proactive_interruptibility_v1` as the bounded
+app-facing projection for proactive Life Track interruptibility. This is a
+Runtime-owned projection and event seam over Runtime autonomy, HookIntent
+admission, cadence, host scheduler admission, permission state, quiet-hours
+policy, spacing/frequency gates, delivery/suppression outcomes, and audit
+linkage. It is not a renderer scheduler, OS notification promise, or general
+automation surface.
+
+It owns:
+
+- default-off autonomy-derived interruptibility mode
+- trigger source classification for admitted Life Track cadence and HookIntent
+  evidence
+- `quiet_hours` state and owner/source metadata
+- `frequency_cap` state and owner/source metadata
+- `suppression_reason` values for typed fail-closed outcomes
+- Runtime/host audit reference lineage for every projected outcome
+- `runtime.agent.proactive.suggested`,
+  `runtime.agent.proactive.delivered`, and
+  `runtime.agent.proactive.suppressed` projection events
+
+It does not own:
+
+- renderer-local timers, polling loops, or scheduling logic
+- app-owned permission grant truth
+- OS notification delivery truth
+- broad reminders, appointments, deadlines, wakeups, or calendar semantics
+- proactive chat initiation beyond the admitted Runtime/host projection
+
+Fixed rules:
+
+- `proactive_interruptibility_v1` is default off. No app or SDK consumer may
+  enable it by rendering UI state or fabricating projection fields.
+- Every proactive suggested, delivered, or suppressed outcome must be projected
+  as one of the `runtime.agent.proactive.*` events admitted in
+  `tables/runtime-agent-event-projection.yaml` and must carry an `audit_ref`.
+- `delivery_channel` is exactly `in_app_surface` or
+  `notification.not_admitted`. `notification.not_admitted` is explicit
+  non-delivery for OS notifications and must not be treated as a fake
+  notification success.
+- `quiet_hours` and `frequency_cap` are owner-projected fields. SDKs and apps
+  may display or filter them, but must not infer them as authority.
+- Missing, denied, revoked, expired, or otherwise unavailable permission
+  evidence suppresses delivery with a typed `suppression_reason`.
+- `proactive_interruptibility_v1` may reference admitted HookIntent ids as
+  source evidence, but it does not widen HookIntent trigger/effect semantics
+  beyond `follow-up-turn`.
+- SDKs and apps must fail closed when required proactive projection fields are
+  absent. They must not backfill the projection with app-local timers,
+  permission guesses, or notification assumptions.

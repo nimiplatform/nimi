@@ -68,6 +68,81 @@ export interface NimiRuntimeAgentCanonicalMemoryInspect {
 
 export type NimiRuntimeAgentAutonomyMode = 'off' | 'low' | 'medium' | 'high';
 
+export type NimiRuntimeAgentProactiveEventFamily = 'suggested' | 'delivered' | 'suppressed';
+
+export type NimiRuntimeAgentProactiveTriggerSource = 'life-track-cadence' | 'hook-intent';
+
+export type NimiRuntimeAgentProactiveEffectClass = 'in-app-companion-surface';
+
+export type NimiRuntimeAgentProactiveDeliveryChannel = 'in-app-surface' | 'notification.not_admitted';
+
+export type NimiRuntimeAgentProactiveOptInState =
+  | 'off'
+  | 'pending'
+  | 'granted'
+  | 'denied'
+  | 'revoked'
+  | 'expired'
+  | 'missing';
+
+export type NimiRuntimeAgentProactiveQuietHoursState = 'inactive' | 'active' | 'not-configured';
+
+export type NimiRuntimeAgentProactiveFrequencyCapState = 'within-cap' | 'capped' | 'not-configured';
+
+export type NimiRuntimeAgentProactiveSuppressionReason =
+  | 'quiet-hours-active'
+  | 'frequency-cap-exceeded'
+  | 'permission-denied'
+  | 'permission-revoked'
+  | 'permission-missing'
+  | 'permission-expired'
+  | 'autonomy-off'
+  | 'budget-exhausted'
+  | 'scheduler-denied'
+  | 'hook-conflict'
+  | 'runtime-unavailable'
+  | 'unsupported-delivery-channel'
+  | 'missing-audit-ref';
+
+export interface NimiRuntimeAgentProactiveEventProjection {
+  readonly family: NimiRuntimeAgentProactiveEventFamily | null;
+  readonly projectionId: string | null;
+  readonly projectionKind: string | null;
+  readonly ownerDomain: string | null;
+  readonly triggerSource: NimiRuntimeAgentProactiveTriggerSource | null;
+  readonly effectClass: NimiRuntimeAgentProactiveEffectClass | null;
+  readonly deliveryChannel: NimiRuntimeAgentProactiveDeliveryChannel | null;
+  readonly mode: NimiRuntimeAgentAutonomyMode | null;
+  readonly optInState: NimiRuntimeAgentProactiveOptInState | null;
+  readonly quietHoursState: NimiRuntimeAgentProactiveQuietHoursState | null;
+  readonly frequencyCapState: NimiRuntimeAgentProactiveFrequencyCapState | null;
+  readonly suppressionReason: NimiRuntimeAgentProactiveSuppressionReason | null;
+  readonly reasonCode: string | null;
+  readonly auditRef: string | null;
+  readonly sourceHookId: string | null;
+  readonly sourceCadenceId: string | null;
+  readonly conversationAnchorId: string | null;
+  readonly originatingTurnId: string | null;
+  readonly originatingStreamId: string | null;
+  readonly observedAt: string | null;
+  readonly unsupportedFields: readonly string[];
+}
+
+export interface NimiRuntimeAgentProactiveInterruptibilityProjection {
+  readonly projectionId: string | null;
+  readonly projectionKind: string | null;
+  readonly mode: NimiRuntimeAgentAutonomyMode | null;
+  readonly optInState: NimiRuntimeAgentProactiveOptInState | null;
+  readonly deliveryChannel: NimiRuntimeAgentProactiveDeliveryChannel | null;
+  readonly quietHoursState: NimiRuntimeAgentProactiveQuietHoursState | null;
+  readonly frequencyCapState: NimiRuntimeAgentProactiveFrequencyCapState | null;
+  readonly suggestedEvent: NimiRuntimeAgentProactiveEventProjection | null;
+  readonly lastDeliveredEvent: NimiRuntimeAgentProactiveEventProjection | null;
+  readonly lastSuppressedEvent: NimiRuntimeAgentProactiveEventProjection | null;
+  readonly auditRefs: readonly string[];
+  readonly unsupportedFields: readonly string[];
+}
+
 export interface NimiRuntimeAgentPresentationProfileProjection {
   readonly backendKind: 'vrm' | 'live2d' | 'sprite2d' | 'canvas2d' | 'video';
   readonly avatarAssetRef: string;
@@ -93,6 +168,9 @@ export interface NimiRuntimeAgentStateSnapshot {
   readonly statusText: string | null;
   readonly activeWorldId: string | null;
   readonly activeUserId: string | null;
+  readonly updatedAt: string | null;
+  readonly currentEmotion: string | null;
+  readonly proactiveInterruptibility: NimiRuntimeAgentProactiveInterruptibilityProjection;
 }
 
 export interface NimiRuntimeAgentInspectSnapshot extends NimiRuntimeAgentStateSnapshot {

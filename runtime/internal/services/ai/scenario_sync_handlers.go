@@ -204,6 +204,32 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
+	describeProbe, hasDescribeProbe, err := textEmbedRouteDescribeProbeFromExtensions(req.GetExtensions())
+	if err != nil {
+		return nil, err
+	}
+	if hasDescribeProbe {
+		if err := s.writeTextEmbedRouteDescribeHeader(ctx, req.GetHead(), describeProbe, modelResolved, remoteTarget, selectedProvider); err != nil {
+			return nil, err
+		}
+		resolvedBinding, err := s.buildResolvedExecutionBinding(ctx, req.GetHead(), aicapabilities.TextEmbed, describeProbe.resolvedBindingRef, remoteTarget)
+		if err != nil {
+			return nil, err
+		}
+		return &runtimev1.ExecuteScenarioResponse{
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextEmbed{
+					TextEmbed: &runtimev1.TextEmbedOutput{},
+				},
+			},
+			FinishReason:             runtimev1.FinishReason_FINISH_REASON_STOP,
+			RouteDecision:            routeDecision,
+			ModelResolved:            modelResolved,
+			TraceId:                  ulid.Make().String(),
+			IgnoredExtensions:        ignored,
+			ResolvedExecutionBinding: resolvedBinding,
+		}, nil
+	}
 	s.recordRouteAutoSwitch(
 		req.GetHead().GetAppId(),
 		req.GetHead().GetSubjectUserId(),

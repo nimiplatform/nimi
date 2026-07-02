@@ -208,6 +208,14 @@ RUNTIME_METHODS = [
     "response_type": "GetAgentCanonicalMemoryBankStatusResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus",
+    "service": "RuntimeAgentService",
+    "method": "GetAgentCanonicalMemoryReviewStatus",
+    "kind": "unary",
+    "request_type": "GetAgentCanonicalMemoryReviewStatusRequest",
+    "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "service": "RuntimeAgentService",
     "method": "GetAgentState",

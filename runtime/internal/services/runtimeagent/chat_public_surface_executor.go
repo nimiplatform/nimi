@@ -124,6 +124,7 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     publicChatDefaultTurnTimeoutMs,
 			ConnectorId:   strings.TrimSpace(req.Binding.ConnectorID),
+			TargetRef:     clonePublicChatTargetRef(req.Binding.TargetRef),
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,

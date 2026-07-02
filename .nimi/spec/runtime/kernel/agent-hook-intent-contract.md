@@ -90,6 +90,10 @@ Fixed rules:
   process-local hidden timer behavior
 - widening beyond the admitted trigger/effect matrix requires a later dedicated
   runtime rule, not implicit expansion
+- `proactive_interruptibility_v1` may reference `HookIntent` ids as trigger
+  source evidence for suggested, delivered, and suppressed projections, but it
+  does not widen the admitted trigger/effect matrix, create notification
+  delivery, or authorize app/renderer scheduling
 
 ## Fact Sources
 

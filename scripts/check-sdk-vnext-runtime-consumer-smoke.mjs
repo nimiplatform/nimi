@@ -58,7 +58,6 @@ import {
   buildRuntimeAgentRequestContext,
   createRuntime,
   createRuntimeTauriIpcTransport,
-  parseRuntimeLocalAgentIdentity,
   productStateForNimiFirstRunMaterializationStatus,
   projectRuntimeLocalAgentIdentity,
 } from '@nimiplatform/sdk/runtime';
@@ -119,20 +118,18 @@ assert.equal('stream' in runtime, false);
 assert.deepEqual(projectRuntimeLocalAgentIdentity({
   ownerUserId: 'user-1',
   runtimeSourceRef: 'agent-1',
+  localAgentRef: 'local-agent:runtime-owned-1',
 }), {
   ownerUserId: 'user-1',
   runtimeSourceRef: 'agent-1',
-  localAgentRef: 'local-agent:user-1:agent-1',
-});
-assert.deepEqual(parseRuntimeLocalAgentIdentity('local-agent:user-1:agent-1'), {
-  ownerUserId: 'user-1',
-  runtimeSourceRef: 'agent-1',
-  localAgentRef: 'local-agent:user-1:agent-1',
+  localAgentRef: 'local-agent:runtime-owned-1',
 });
 assert.equal(buildRuntimeAgentRequestContext({
   runtimeAppId: 'consumer.app',
   subjectUserId: 'user-1',
-  localAgentRef: 'local-agent:user-1:agent-1',
+  ownerUserId: 'user-1',
+  runtimeSourceRef: 'agent-1',
+  localAgentRef: 'local-agent:runtime-owned-1',
 }).appId, 'consumer.app');
 const health = await runtime.ready({ metadata: { traceId: 'trace-consumer' } });
 assert.equal(health.status, 3);
@@ -231,7 +228,9 @@ const health: Promise<GetRuntimeHealthResponse> = runtime.ready();
 const localIdentity: RuntimeLocalAgentIdentityProjection = buildRuntimeAgentRequestContext({
   runtimeAppId: 'consumer.app',
   subjectUserId: 'user-1',
-  localAgentRef: 'local-agent:user-1:agent-1',
+  ownerUserId: 'user-1',
+  runtimeSourceRef: 'agent-1',
+  localAgentRef: 'local-agent:runtime-owned-1',
 });
 const firstRunMaterialization: NimiFirstRunMaterializationProjection = {
   status: 'local_ai_ready',

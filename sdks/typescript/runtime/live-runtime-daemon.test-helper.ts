@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import net from 'node:net';
@@ -11,7 +11,14 @@ import { createRuntime } from './index';
 
 export type RuntimeDaemonRunContext = {
   readonly endpoint: string;
+  readonly stateRoot: string;
   readonly localModelsPath: string;
+  readonly localStatePath: string;
+  readonly modelRegistryPath: string;
+};
+
+export type RuntimeDaemonPrepareStateContext = RuntimeDaemonRunContext & {
+  readonly httpEndpoint: string;
 };
 
 const DEFAULT_RUNTIME_READY_TIMEOUT_MS = 120_000;
@@ -165,6 +172,15 @@ async function waitForCloudProviderHealth(
 }
 
 async function terminateDaemon(daemon: ReturnType<typeof spawn>): Promise<void> {
+  if (process.platform === 'win32' && daemon.pid !== undefined) {
+    spawnSync('taskkill', ['/PID', String(daemon.pid), '/T', '/F'], { stdio: 'ignore' });
+    await Promise.race([
+      once(daemon, 'exit'),
+      new Promise((resolvePromise) => setTimeout(() => resolvePromise('timeout'), 8_000)),
+    ]);
+    return;
+  }
+
   const killGroup = (signal: NodeJS.Signals) => {
     if (daemon.pid === undefined) return;
     try {
@@ -189,10 +205,25 @@ async function terminateDaemon(daemon: ReturnType<typeof spawn>): Promise<void> 
   }
 }
 
+async function removeRuntimeStateRoot(stateRoot: string): Promise<void> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      rmSync(stateRoot, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 250 * (attempt + 1)));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
 export async function withRuntimeDaemon(
   input: {
     readonly appId: string;
     readonly runtimeEnv?: Readonly<Record<string, string>>;
+    readonly prepareState?: (context: RuntimeDaemonPrepareStateContext) => Promise<void> | void;
     readonly run: (context: RuntimeDaemonRunContext) => Promise<void>;
   },
 ): Promise<void> {
@@ -201,7 +232,19 @@ export async function withRuntimeDaemon(
   const grpcPort = await allocatePort();
   const httpPort = await allocatePort();
   const endpoint = `127.0.0.1:${grpcPort}`;
+  const httpEndpoint = `127.0.0.1:${httpPort}`;
   const localModelsPath = join(stateRoot, 'local-models');
+  const localStatePath = join(stateRoot, 'local-state.json');
+  const modelRegistryPath = join(stateRoot, 'model-registry.json');
+
+  await input.prepareState?.({
+    endpoint,
+    httpEndpoint,
+    stateRoot,
+    localModelsPath,
+    localStatePath,
+    modelRegistryPath,
+  });
 
   const daemon = spawn('go', ['run', './cmd/nimi', 'serve'], {
     cwd: runtimeDir,
@@ -209,12 +252,12 @@ export async function withRuntimeDaemon(
     env: {
       ...process.env,
       NIMI_RUNTIME_GRPC_ADDR: endpoint,
-      NIMI_RUNTIME_HTTP_ADDR: `127.0.0.1:${httpPort}`,
+      NIMI_RUNTIME_HTTP_ADDR: httpEndpoint,
       NIMI_RUNTIME_ENABLE_WORKERS: '0',
       NIMI_RUNTIME_LOCK_PATH: join(stateRoot, 'runtime.lock'),
       NIMI_RUNTIME_CONFIG_PATH: join(stateRoot, 'config.json'),
-      NIMI_RUNTIME_MODEL_REGISTRY_PATH: join(stateRoot, 'model-registry.json'),
-      NIMI_RUNTIME_LOCAL_STATE_PATH: join(stateRoot, 'local-state.json'),
+      NIMI_RUNTIME_MODEL_REGISTRY_PATH: modelRegistryPath,
+      NIMI_RUNTIME_LOCAL_STATE_PATH: localStatePath,
       NIMI_RUNTIME_LOCAL_MODELS_PATH: localModelsPath,
       NIMI_RUNTIME_AUTH_DEVELOPER_REGISTRATION_ENABLED: '1',
       NIMI_RUNTIME_CONNECTOR_STORE_PATH: join(stateRoot, 'connector-store.json'),
@@ -239,6 +282,8 @@ export async function withRuntimeDaemon(
     .then(([error]) => error as Error)
     .catch(() => null);
 
+  let primaryError: Error | null = null;
+  const cleanupErrors: string[] = [];
   try {
     const readyOrError = await Promise.race([
       waitForRuntimeReady(endpoint, input.appId).then(() => null),
@@ -250,13 +295,36 @@ export async function withRuntimeDaemon(
     }
 
     await waitForCloudProviderHealth(endpoint, input.appId, expectedCloudProviderHealthNames(input.runtimeEnv));
-    await input.run({ endpoint, localModelsPath });
+    await input.run({
+      endpoint,
+      stateRoot,
+      localModelsPath,
+      localStatePath,
+      modelRegistryPath,
+    });
   } catch (error) {
     const detail = formatRuntimeLiveError(error);
-    throw new Error(`${detail}\nstdout=${stdout}\nstderr=${stderr}`);
+    primaryError = new Error(`${detail}\nstdout=${stdout}\nstderr=${stderr}`);
   } finally {
-    await terminateDaemon(daemon);
-    rmSync(stateRoot, { recursive: true, force: true });
+    try {
+      await terminateDaemon(daemon);
+    } catch (error) {
+      cleanupErrors.push(`terminate=${formatRuntimeLiveError(error)}`);
+    }
+    try {
+      await removeRuntimeStateRoot(stateRoot);
+    } catch (error) {
+      cleanupErrors.push(`stateRoot=${formatRuntimeLiveError(error)}`);
+    }
+  }
+  if (primaryError) {
+    if (cleanupErrors.length > 0) {
+      primaryError.message += `\ncleanup=${cleanupErrors.join('\n')}`;
+    }
+    throw primaryError;
+  }
+  if (cleanupErrors.length > 0) {
+    throw new Error(`Runtime live smoke cleanup failed\n${cleanupErrors.join('\n')}`);
   }
 }
 

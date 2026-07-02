@@ -51,6 +51,9 @@ surfaces:
   - runtime.agent.hook.failed
   - runtime.agent.hook.canceled
   - runtime.agent.hook.rescheduled
+  - runtime.agent.proactive.suggested
+  - runtime.agent.proactive.delivered
+  - runtime.agent.proactive.suppressed
 
 turn_envelope:
   source_rule: K-AGCORE-037
@@ -122,6 +125,21 @@ hook_envelope:
     - conversation_anchor_id
     - originating_turn_id
     - originating_stream_id
+
+proactive_envelope:
+  source_rule: K-AGCORE-143
+  required_fields:
+    - agent_id
+    - projection_id
+    - owner_domain
+    - delivery_channel
+    - audit_ref
+  optional_origin_fields:
+    - conversation_anchor_id
+    - originating_turn_id
+    - originating_stream_id
+    - source_hook_id
+    - source_cadence_id
 
 schema_aliases:
   PostureProjection:
@@ -494,3 +512,52 @@ hook_events:
       trigger_detail: struct
       effect: string
       admission_state: string
+
+proactive_events:
+  - event: runtime.agent.proactive.suggested
+    source_rule: K-AGCORE-143
+    detail:
+      projection_kind: enum(proactive_interruptibility_v1)
+      trigger_source: enum(life_track_cadence|hook_intent)
+      effect_class: enum(in_app_companion_surface)
+      delivery_channel: enum(in_app_surface|notification.not_admitted)
+      mode: enum(off|low|medium|high)
+      opt_in_state: enum(off|pending|granted|denied|revoked|expired|missing)
+      quiet_hours: enum(inactive|active|not_configured)
+      frequency_cap: enum(within_cap|capped|not_configured)
+      reason_code: string
+      audit_ref: string
+      source_hook_id: string_optional
+      source_cadence_id: string_optional
+  - event: runtime.agent.proactive.delivered
+    source_rule: K-AGCORE-143
+    detail:
+      projection_kind: enum(proactive_interruptibility_v1)
+      trigger_source: enum(life_track_cadence|hook_intent)
+      effect_class: enum(in_app_companion_surface)
+      delivery_channel: enum(in_app_surface|notification.not_admitted)
+      mode: enum(low|medium|high)
+      opt_in_state: enum(granted)
+      quiet_hours: enum(inactive)
+      frequency_cap: enum(within_cap|not_configured)
+      delivered_at: string
+      reason_code: string
+      audit_ref: string
+      source_hook_id: string_optional
+      source_cadence_id: string_optional
+  - event: runtime.agent.proactive.suppressed
+    source_rule: K-AGCORE-143
+    detail:
+      projection_kind: enum(proactive_interruptibility_v1)
+      trigger_source: enum(life_track_cadence|hook_intent)
+      effect_class: enum(in_app_companion_surface)
+      delivery_channel: enum(in_app_surface|notification.not_admitted)
+      mode: enum(off|low|medium|high)
+      opt_in_state: enum(off|pending|granted|denied|revoked|expired|missing)
+      quiet_hours: enum(inactive|active|not_configured)
+      frequency_cap: enum(within_cap|capped|not_configured)
+      suppression_reason: enum(quiet_hours_active|frequency_cap_exceeded|permission_denied|permission_revoked|permission_missing|permission_expired|autonomy_off|budget_exhausted|scheduler_denied|hook_conflict|runtime_unavailable|unsupported_delivery_channel|missing_audit_ref)
+      reason_code: string
+      audit_ref: string
+      source_hook_id: string_optional
+      source_cadence_id: string_optional

@@ -209,6 +209,15 @@ export interface AgentStateProjection {
      * @generated from protobuf field: string current_emotion = 7
      */
     currentEmotion: string;
+    /**
+     * K-AGCORE-143: proactive_interruptibility is the bounded read-only
+     * proactive_interruptibility_v1 projection. Runtime owns the fields; apps
+     * and SDKs must not infer quiet hours, frequency caps, permission grants, or
+     * delivery truth when this projection is absent.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveInterruptibilityProjection proactive_interruptibility = 8
+     */
+    proactiveInterruptibility?: AgentProactiveInterruptibilityProjection;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentStateSetStatusText
@@ -903,6 +912,148 @@ export interface AgentPresentationEventDetail {
     lookatHasZ: boolean;
 }
 /**
+ * AgentProactiveEventDetail projects runtime.agent.proactive.* per K-AGCORE-143; required audit/origin fields must not be fabricated.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AgentProactiveEventDetail
+ */
+export interface AgentProactiveEventDetail {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveEventFamily family = 1
+     */
+    family: AgentProactiveEventFamily;
+    /**
+     * @generated from protobuf field: string projection_id = 2
+     */
+    projectionId: string;
+    /**
+     * @generated from protobuf field: string projection_kind = 3
+     */
+    projectionKind: string;
+    /**
+     * @generated from protobuf field: string owner_domain = 4
+     */
+    ownerDomain: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveTriggerSource trigger_source = 5
+     */
+    triggerSource: AgentProactiveTriggerSource;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveEffectClass effect_class = 6
+     */
+    effectClass: AgentProactiveEffectClass;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveDeliveryChannel delivery_channel = 7
+     */
+    deliveryChannel: AgentProactiveDeliveryChannel;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentAutonomyMode mode = 8
+     */
+    mode: AgentAutonomyMode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveOptInState opt_in_state = 9
+     */
+    optInState: AgentProactiveOptInState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveQuietHoursState quiet_hours = 10
+     */
+    quietHours: AgentProactiveQuietHoursState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveFrequencyCapState frequency_cap = 11
+     */
+    frequencyCap: AgentProactiveFrequencyCapState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveSuppressionReason suppression_reason = 12
+     */
+    suppressionReason: AgentProactiveSuppressionReason;
+    /**
+     * @generated from protobuf field: string reason_code = 13
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: string audit_ref = 14
+     */
+    auditRef: string;
+    /**
+     * @generated from protobuf field: string source_hook_id = 15
+     */
+    sourceHookId: string;
+    /**
+     * @generated from protobuf field: string source_cadence_id = 16
+     */
+    sourceCadenceId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 17
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string originating_turn_id = 18
+     */
+    originatingTurnId: string;
+    /**
+     * @generated from protobuf field: string originating_stream_id = 19
+     */
+    originatingStreamId: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp observed_at = 20
+     */
+    observedAt?: Timestamp;
+}
+/**
+ * AgentProactiveInterruptibilityProjection is read-only proactive_interruptibility_v1 state; unsupported_fields blocks consumer inference.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AgentProactiveInterruptibilityProjection
+ */
+export interface AgentProactiveInterruptibilityProjection {
+    /**
+     * @generated from protobuf field: string projection_id = 1
+     */
+    projectionId: string;
+    /**
+     * @generated from protobuf field: string projection_kind = 2
+     */
+    projectionKind: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentAutonomyMode mode = 3
+     */
+    mode: AgentAutonomyMode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveOptInState opt_in_state = 4
+     */
+    optInState: AgentProactiveOptInState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveDeliveryChannel delivery_channel = 5
+     */
+    deliveryChannel: AgentProactiveDeliveryChannel;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveQuietHoursState quiet_hours = 6
+     */
+    quietHours: AgentProactiveQuietHoursState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveFrequencyCapState frequency_cap = 7
+     */
+    frequencyCap: AgentProactiveFrequencyCapState;
+    /**
+     * @generated from protobuf field: repeated string audit_refs = 8
+     */
+    auditRefs: string[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveEventDetail suggested_event = 9
+     */
+    suggestedEvent?: AgentProactiveEventDetail;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveEventDetail last_delivered_event = 10
+     */
+    lastDeliveredEvent?: AgentProactiveEventDetail;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentProactiveEventDetail last_suppressed_event = 11
+     */
+    lastSuppressedEvent?: AgentProactiveEventDetail;
+    /**
+     * @generated from protobuf field: repeated string unsupported_fields = 12
+     */
+    unsupportedFields: string[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
  */
 export interface AvatarDebugProbeRequestEnvelope {
@@ -1125,6 +1276,12 @@ export interface AgentEvent {
          * @generated from protobuf field: nimi.runtime.v1.AgentAvatarDebugEventDetail avatar_debug = 17
          */
         avatarDebug: AgentAvatarDebugEventDetail;
+    } | {
+        oneofKind: "proactive";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AgentProactiveEventDetail proactive = 18
+         */
+        proactive: AgentProactiveEventDetail;
     } | {
         oneofKind: undefined;
     };
@@ -1671,6 +1828,73 @@ export interface RequestAgentCanonicalMemoryBankBindResponse {
      * @generated from protobuf field: nimi.runtime.v1.ReasonCode blocked_reason_code = 3
      */
     blockedReasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AgentCanonicalMemoryReviewStatus
+ */
+export interface AgentCanonicalMemoryReviewStatus {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MemoryBankLocator bank = 1
+     */
+    bank?: MemoryBankLocator;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentCanonicalMemoryReviewReadiness readiness = 2
+     */
+    readiness: AgentCanonicalMemoryReviewReadiness;
+    /**
+     * @generated from protobuf field: bool eligible_now = 3
+     */
+    eligibleNow: boolean;
+    /**
+     * @generated from protobuf field: bool review_executor_available = 4
+     */
+    reviewExecutorAvailable: boolean;
+    /**
+     * @generated from protobuf field: string last_review_run_id = 5
+     */
+    lastReviewRunId: string;
+    /**
+     * @generated from protobuf field: string checkpoint_basis = 6
+     */
+    checkpointBasis: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp last_completed_at = 7
+     */
+    lastCompletedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp next_eligible_at = 8
+     */
+    nextEligibleAt?: Timestamp;
+    /**
+     * @generated from protobuf field: string recoverable_review_run_id = 9
+     */
+    recoverableReviewRunId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest
+ */
+export interface GetAgentCanonicalMemoryReviewStatusRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.MemoryBankLocator bank = 3
+     */
+    bank?: MemoryBankLocator;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse
+ */
+export interface GetAgentCanonicalMemoryReviewStatusResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentCanonicalMemoryReviewStatus status = 1
+     */
+    status?: AgentCanonicalMemoryReviewStatus;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubscribeAgentEventsRequest
@@ -2736,7 +2960,11 @@ export enum AgentEventType {
     /**
      * @generated from protobuf enum value: AGENT_EVENT_TYPE_AVATAR_DEBUG = 8;
      */
-    AVATAR_DEBUG = 8
+    AVATAR_DEBUG = 8,
+    /**
+     * @generated from protobuf enum value: AGENT_EVENT_TYPE_PROACTIVE = 9;
+     */
+    PROACTIVE = 9
 }
 /**
  * K-AGCORE-037 AgentStateEventFamily discriminates runtime.agent.state.* event
@@ -2806,6 +3034,218 @@ export enum AgentPresentationEventFamily {
      * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6;
      */
     LOOKAT_REQUESTED = 6
+}
+/**
+ * K-AGCORE-143 AgentProactiveEventFamily discriminates
+ * runtime.agent.proactive.* event families. The family maps 1:1 to
+ * runtime.agent.proactive.{suggested|delivered|suppressed}.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AgentProactiveEventFamily
+ */
+export enum AgentProactiveEventFamily {
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_EVENT_FAMILY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_EVENT_FAMILY_SUGGESTED = 1;
+     */
+    SUGGESTED = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_EVENT_FAMILY_DELIVERED = 2;
+     */
+    DELIVERED = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_EVENT_FAMILY_SUPPRESSED = 3;
+     */
+    SUPPRESSED = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentProactiveTriggerSource
+ */
+export enum AgentProactiveTriggerSource {
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_TRIGGER_SOURCE_LIFE_TRACK_CADENCE = 1;
+     */
+    LIFE_TRACK_CADENCE = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_TRIGGER_SOURCE_HOOK_INTENT = 2;
+     */
+    HOOK_INTENT = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentProactiveEffectClass
+ */
+export enum AgentProactiveEffectClass {
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_EFFECT_CLASS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_EFFECT_CLASS_IN_APP_COMPANION_SURFACE = 1;
+     */
+    IN_APP_COMPANION_SURFACE = 1
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentProactiveDeliveryChannel
+ */
+export enum AgentProactiveDeliveryChannel {
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_DELIVERY_CHANNEL_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_DELIVERY_CHANNEL_IN_APP_SURFACE = 1;
+     */
+    IN_APP_SURFACE = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_DELIVERY_CHANNEL_NOTIFICATION_NOT_ADMITTED = 2;
+     */
+    NOTIFICATION_NOT_ADMITTED = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentProactiveOptInState
+ */
+export enum AgentProactiveOptInState {
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_OPT_IN_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_OPT_IN_STATE_OFF = 1;
+     */
+    OFF = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_OPT_IN_STATE_PENDING = 2;
+     */
+    PENDING = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_OPT_IN_STATE_GRANTED = 3;
+     */
+    GRANTED = 3,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_OPT_IN_STATE_DENIED = 4;
+     */
+    DENIED = 4,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_OPT_IN_STATE_REVOKED = 5;
+     */
+    REVOKED = 5,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_OPT_IN_STATE_EXPIRED = 6;
+     */
+    EXPIRED = 6,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_OPT_IN_STATE_MISSING = 7;
+     */
+    MISSING = 7
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentProactiveQuietHoursState
+ */
+export enum AgentProactiveQuietHoursState {
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_QUIET_HOURS_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_QUIET_HOURS_STATE_INACTIVE = 1;
+     */
+    INACTIVE = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_QUIET_HOURS_STATE_ACTIVE = 2;
+     */
+    ACTIVE = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_QUIET_HOURS_STATE_NOT_CONFIGURED = 3;
+     */
+    NOT_CONFIGURED = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentProactiveFrequencyCapState
+ */
+export enum AgentProactiveFrequencyCapState {
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_FREQUENCY_CAP_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_FREQUENCY_CAP_STATE_WITHIN_CAP = 1;
+     */
+    WITHIN_CAP = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_FREQUENCY_CAP_STATE_CAPPED = 2;
+     */
+    CAPPED = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_FREQUENCY_CAP_STATE_NOT_CONFIGURED = 3;
+     */
+    NOT_CONFIGURED = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentProactiveSuppressionReason
+ */
+export enum AgentProactiveSuppressionReason {
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_QUIET_HOURS_ACTIVE = 1;
+     */
+    QUIET_HOURS_ACTIVE = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_FREQUENCY_CAP_EXCEEDED = 2;
+     */
+    FREQUENCY_CAP_EXCEEDED = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_DENIED = 3;
+     */
+    PERMISSION_DENIED = 3,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_REVOKED = 4;
+     */
+    PERMISSION_REVOKED = 4,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_MISSING = 5;
+     */
+    PERMISSION_MISSING = 5,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_EXPIRED = 6;
+     */
+    PERMISSION_EXPIRED = 6,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_AUTONOMY_OFF = 7;
+     */
+    AUTONOMY_OFF = 7,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_BUDGET_EXHAUSTED = 8;
+     */
+    BUDGET_EXHAUSTED = 8,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_SCHEDULER_DENIED = 9;
+     */
+    SCHEDULER_DENIED = 9,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_HOOK_CONFLICT = 10;
+     */
+    HOOK_CONFLICT = 10,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_RUNTIME_UNAVAILABLE = 11;
+     */
+    RUNTIME_UNAVAILABLE = 11,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_UNSUPPORTED_DELIVERY_CHANNEL = 12;
+     */
+    UNSUPPORTED_DELIVERY_CHANNEL = 12,
+    /**
+     * @generated from protobuf enum value: AGENT_PROACTIVE_SUPPRESSION_REASON_MISSING_AUDIT_REF = 13;
+     */
+    MISSING_AUDIT_REF = 13
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AvatarDebugProbeKind
@@ -2985,6 +3425,35 @@ export enum AgentAutonomyMode {
      * @generated from protobuf enum value: AGENT_AUTONOMY_MODE_HIGH = 4;
      */
     HIGH = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentCanonicalMemoryReviewReadiness
+ */
+export enum AgentCanonicalMemoryReviewReadiness {
+    /**
+     * @generated from protobuf enum value: AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE = 1;
+     */
+    ELIGIBLE = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW = 2;
+     */
+    WAITING_FOR_WINDOW = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE = 3;
+     */
+    EXECUTOR_UNAVAILABLE = 3,
+    /**
+     * @generated from protobuf enum value: AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING = 4;
+     */
+    RECOVERABLE_RUN_BLOCKING = 4,
+    /**
+     * @generated from protobuf enum value: AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE = 5;
+     */
+    BANK_UNAVAILABLE = 5
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentPresentationBackendKind
@@ -3429,7 +3898,8 @@ class AgentStateProjection$Type extends MessageType<AgentStateProjection> {
             { no: 4, name: "active_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "attributes", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 6, name: "updated_at", kind: "message", T: () => Timestamp },
-            { no: 7, name: "current_emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "current_emotion", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "proactive_interruptibility", kind: "message", T: () => AgentProactiveInterruptibilityProjection }
         ]);
     }
     create(value?: PartialMessage<AgentStateProjection>): AgentStateProjection {
@@ -3469,6 +3939,9 @@ class AgentStateProjection$Type extends MessageType<AgentStateProjection> {
                     break;
                 case /* string current_emotion */ 7:
                     message.currentEmotion = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveInterruptibilityProjection proactive_interruptibility */ 8:
+                    message.proactiveInterruptibility = AgentProactiveInterruptibilityProjection.internalBinaryRead(reader, reader.uint32(), options, message.proactiveInterruptibility);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3519,6 +3992,9 @@ class AgentStateProjection$Type extends MessageType<AgentStateProjection> {
         /* string current_emotion = 7; */
         if (message.currentEmotion !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.currentEmotion);
+        /* nimi.runtime.v1.AgentProactiveInterruptibilityProjection proactive_interruptibility = 8; */
+        if (message.proactiveInterruptibility)
+            AgentProactiveInterruptibilityProjection.internalBinaryWrite(message.proactiveInterruptibility, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5515,6 +5991,336 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
  */
 export const AgentPresentationEventDetail = new AgentPresentationEventDetail$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AgentProactiveEventDetail$Type extends MessageType<AgentProactiveEventDetail> {
+    constructor() {
+        super("nimi.runtime.v1.AgentProactiveEventDetail", [
+            { no: 1, name: "family", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveEventFamily", AgentProactiveEventFamily, "AGENT_PROACTIVE_EVENT_FAMILY_"] },
+            { no: 2, name: "projection_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "projection_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "owner_domain", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "trigger_source", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveTriggerSource", AgentProactiveTriggerSource, "AGENT_PROACTIVE_TRIGGER_SOURCE_"] },
+            { no: 6, name: "effect_class", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveEffectClass", AgentProactiveEffectClass, "AGENT_PROACTIVE_EFFECT_CLASS_"] },
+            { no: 7, name: "delivery_channel", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveDeliveryChannel", AgentProactiveDeliveryChannel, "AGENT_PROACTIVE_DELIVERY_CHANNEL_"] },
+            { no: 8, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.AgentAutonomyMode", AgentAutonomyMode, "AGENT_AUTONOMY_MODE_"] },
+            { no: 9, name: "opt_in_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveOptInState", AgentProactiveOptInState, "AGENT_PROACTIVE_OPT_IN_STATE_"] },
+            { no: 10, name: "quiet_hours", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveQuietHoursState", AgentProactiveQuietHoursState, "AGENT_PROACTIVE_QUIET_HOURS_STATE_"] },
+            { no: 11, name: "frequency_cap", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveFrequencyCapState", AgentProactiveFrequencyCapState, "AGENT_PROACTIVE_FREQUENCY_CAP_STATE_"] },
+            { no: 12, name: "suppression_reason", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveSuppressionReason", AgentProactiveSuppressionReason, "AGENT_PROACTIVE_SUPPRESSION_REASON_"] },
+            { no: 13, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "audit_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 15, name: "source_hook_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "source_cadence_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 18, name: "originating_turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "originating_stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "observed_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<AgentProactiveEventDetail>): AgentProactiveEventDetail {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.family = 0;
+        message.projectionId = "";
+        message.projectionKind = "";
+        message.ownerDomain = "";
+        message.triggerSource = 0;
+        message.effectClass = 0;
+        message.deliveryChannel = 0;
+        message.mode = 0;
+        message.optInState = 0;
+        message.quietHours = 0;
+        message.frequencyCap = 0;
+        message.suppressionReason = 0;
+        message.reasonCode = "";
+        message.auditRef = "";
+        message.sourceHookId = "";
+        message.sourceCadenceId = "";
+        message.conversationAnchorId = "";
+        message.originatingTurnId = "";
+        message.originatingStreamId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AgentProactiveEventDetail>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentProactiveEventDetail): AgentProactiveEventDetail {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentProactiveEventFamily family */ 1:
+                    message.family = reader.int32();
+                    break;
+                case /* string projection_id */ 2:
+                    message.projectionId = reader.string();
+                    break;
+                case /* string projection_kind */ 3:
+                    message.projectionKind = reader.string();
+                    break;
+                case /* string owner_domain */ 4:
+                    message.ownerDomain = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveTriggerSource trigger_source */ 5:
+                    message.triggerSource = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveEffectClass effect_class */ 6:
+                    message.effectClass = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveDeliveryChannel delivery_channel */ 7:
+                    message.deliveryChannel = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentAutonomyMode mode */ 8:
+                    message.mode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveOptInState opt_in_state */ 9:
+                    message.optInState = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveQuietHoursState quiet_hours */ 10:
+                    message.quietHours = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveFrequencyCapState frequency_cap */ 11:
+                    message.frequencyCap = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveSuppressionReason suppression_reason */ 12:
+                    message.suppressionReason = reader.int32();
+                    break;
+                case /* string reason_code */ 13:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* string audit_ref */ 14:
+                    message.auditRef = reader.string();
+                    break;
+                case /* string source_hook_id */ 15:
+                    message.sourceHookId = reader.string();
+                    break;
+                case /* string source_cadence_id */ 16:
+                    message.sourceCadenceId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 17:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string originating_turn_id */ 18:
+                    message.originatingTurnId = reader.string();
+                    break;
+                case /* string originating_stream_id */ 19:
+                    message.originatingStreamId = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp observed_at */ 20:
+                    message.observedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.observedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentProactiveEventDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentProactiveEventFamily family = 1; */
+        if (message.family !== 0)
+            writer.tag(1, WireType.Varint).int32(message.family);
+        /* string projection_id = 2; */
+        if (message.projectionId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.projectionId);
+        /* string projection_kind = 3; */
+        if (message.projectionKind !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.projectionKind);
+        /* string owner_domain = 4; */
+        if (message.ownerDomain !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.ownerDomain);
+        /* nimi.runtime.v1.AgentProactiveTriggerSource trigger_source = 5; */
+        if (message.triggerSource !== 0)
+            writer.tag(5, WireType.Varint).int32(message.triggerSource);
+        /* nimi.runtime.v1.AgentProactiveEffectClass effect_class = 6; */
+        if (message.effectClass !== 0)
+            writer.tag(6, WireType.Varint).int32(message.effectClass);
+        /* nimi.runtime.v1.AgentProactiveDeliveryChannel delivery_channel = 7; */
+        if (message.deliveryChannel !== 0)
+            writer.tag(7, WireType.Varint).int32(message.deliveryChannel);
+        /* nimi.runtime.v1.AgentAutonomyMode mode = 8; */
+        if (message.mode !== 0)
+            writer.tag(8, WireType.Varint).int32(message.mode);
+        /* nimi.runtime.v1.AgentProactiveOptInState opt_in_state = 9; */
+        if (message.optInState !== 0)
+            writer.tag(9, WireType.Varint).int32(message.optInState);
+        /* nimi.runtime.v1.AgentProactiveQuietHoursState quiet_hours = 10; */
+        if (message.quietHours !== 0)
+            writer.tag(10, WireType.Varint).int32(message.quietHours);
+        /* nimi.runtime.v1.AgentProactiveFrequencyCapState frequency_cap = 11; */
+        if (message.frequencyCap !== 0)
+            writer.tag(11, WireType.Varint).int32(message.frequencyCap);
+        /* nimi.runtime.v1.AgentProactiveSuppressionReason suppression_reason = 12; */
+        if (message.suppressionReason !== 0)
+            writer.tag(12, WireType.Varint).int32(message.suppressionReason);
+        /* string reason_code = 13; */
+        if (message.reasonCode !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.reasonCode);
+        /* string audit_ref = 14; */
+        if (message.auditRef !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.auditRef);
+        /* string source_hook_id = 15; */
+        if (message.sourceHookId !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.sourceHookId);
+        /* string source_cadence_id = 16; */
+        if (message.sourceCadenceId !== "")
+            writer.tag(16, WireType.LengthDelimited).string(message.sourceCadenceId);
+        /* string conversation_anchor_id = 17; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(17, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string originating_turn_id = 18; */
+        if (message.originatingTurnId !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.originatingTurnId);
+        /* string originating_stream_id = 19; */
+        if (message.originatingStreamId !== "")
+            writer.tag(19, WireType.LengthDelimited).string(message.originatingStreamId);
+        /* google.protobuf.Timestamp observed_at = 20; */
+        if (message.observedAt)
+            Timestamp.internalBinaryWrite(message.observedAt, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentProactiveEventDetail
+ */
+export const AgentProactiveEventDetail = new AgentProactiveEventDetail$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentProactiveInterruptibilityProjection$Type extends MessageType<AgentProactiveInterruptibilityProjection> {
+    constructor() {
+        super("nimi.runtime.v1.AgentProactiveInterruptibilityProjection", [
+            { no: 1, name: "projection_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "projection_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.AgentAutonomyMode", AgentAutonomyMode, "AGENT_AUTONOMY_MODE_"] },
+            { no: 4, name: "opt_in_state", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveOptInState", AgentProactiveOptInState, "AGENT_PROACTIVE_OPT_IN_STATE_"] },
+            { no: 5, name: "delivery_channel", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveDeliveryChannel", AgentProactiveDeliveryChannel, "AGENT_PROACTIVE_DELIVERY_CHANNEL_"] },
+            { no: 6, name: "quiet_hours", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveQuietHoursState", AgentProactiveQuietHoursState, "AGENT_PROACTIVE_QUIET_HOURS_STATE_"] },
+            { no: 7, name: "frequency_cap", kind: "enum", T: () => ["nimi.runtime.v1.AgentProactiveFrequencyCapState", AgentProactiveFrequencyCapState, "AGENT_PROACTIVE_FREQUENCY_CAP_STATE_"] },
+            { no: 8, name: "audit_refs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "suggested_event", kind: "message", T: () => AgentProactiveEventDetail },
+            { no: 10, name: "last_delivered_event", kind: "message", T: () => AgentProactiveEventDetail },
+            { no: 11, name: "last_suppressed_event", kind: "message", T: () => AgentProactiveEventDetail },
+            { no: 12, name: "unsupported_fields", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentProactiveInterruptibilityProjection>): AgentProactiveInterruptibilityProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.projectionId = "";
+        message.projectionKind = "";
+        message.mode = 0;
+        message.optInState = 0;
+        message.deliveryChannel = 0;
+        message.quietHours = 0;
+        message.frequencyCap = 0;
+        message.auditRefs = [];
+        message.unsupportedFields = [];
+        if (value !== undefined)
+            reflectionMergePartial<AgentProactiveInterruptibilityProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentProactiveInterruptibilityProjection): AgentProactiveInterruptibilityProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string projection_id */ 1:
+                    message.projectionId = reader.string();
+                    break;
+                case /* string projection_kind */ 2:
+                    message.projectionKind = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AgentAutonomyMode mode */ 3:
+                    message.mode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveOptInState opt_in_state */ 4:
+                    message.optInState = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveDeliveryChannel delivery_channel */ 5:
+                    message.deliveryChannel = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveQuietHoursState quiet_hours */ 6:
+                    message.quietHours = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveFrequencyCapState frequency_cap */ 7:
+                    message.frequencyCap = reader.int32();
+                    break;
+                case /* repeated string audit_refs */ 8:
+                    message.auditRefs.push(reader.string());
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveEventDetail suggested_event */ 9:
+                    message.suggestedEvent = AgentProactiveEventDetail.internalBinaryRead(reader, reader.uint32(), options, message.suggestedEvent);
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveEventDetail last_delivered_event */ 10:
+                    message.lastDeliveredEvent = AgentProactiveEventDetail.internalBinaryRead(reader, reader.uint32(), options, message.lastDeliveredEvent);
+                    break;
+                case /* nimi.runtime.v1.AgentProactiveEventDetail last_suppressed_event */ 11:
+                    message.lastSuppressedEvent = AgentProactiveEventDetail.internalBinaryRead(reader, reader.uint32(), options, message.lastSuppressedEvent);
+                    break;
+                case /* repeated string unsupported_fields */ 12:
+                    message.unsupportedFields.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentProactiveInterruptibilityProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string projection_id = 1; */
+        if (message.projectionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.projectionId);
+        /* string projection_kind = 2; */
+        if (message.projectionKind !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.projectionKind);
+        /* nimi.runtime.v1.AgentAutonomyMode mode = 3; */
+        if (message.mode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.mode);
+        /* nimi.runtime.v1.AgentProactiveOptInState opt_in_state = 4; */
+        if (message.optInState !== 0)
+            writer.tag(4, WireType.Varint).int32(message.optInState);
+        /* nimi.runtime.v1.AgentProactiveDeliveryChannel delivery_channel = 5; */
+        if (message.deliveryChannel !== 0)
+            writer.tag(5, WireType.Varint).int32(message.deliveryChannel);
+        /* nimi.runtime.v1.AgentProactiveQuietHoursState quiet_hours = 6; */
+        if (message.quietHours !== 0)
+            writer.tag(6, WireType.Varint).int32(message.quietHours);
+        /* nimi.runtime.v1.AgentProactiveFrequencyCapState frequency_cap = 7; */
+        if (message.frequencyCap !== 0)
+            writer.tag(7, WireType.Varint).int32(message.frequencyCap);
+        /* repeated string audit_refs = 8; */
+        for (let i = 0; i < message.auditRefs.length; i++)
+            writer.tag(8, WireType.LengthDelimited).string(message.auditRefs[i]);
+        /* nimi.runtime.v1.AgentProactiveEventDetail suggested_event = 9; */
+        if (message.suggestedEvent)
+            AgentProactiveEventDetail.internalBinaryWrite(message.suggestedEvent, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentProactiveEventDetail last_delivered_event = 10; */
+        if (message.lastDeliveredEvent)
+            AgentProactiveEventDetail.internalBinaryWrite(message.lastDeliveredEvent, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentProactiveEventDetail last_suppressed_event = 11; */
+        if (message.lastSuppressedEvent)
+            AgentProactiveEventDetail.internalBinaryWrite(message.lastSuppressedEvent, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string unsupported_fields = 12; */
+        for (let i = 0; i < message.unsupportedFields.length; i++)
+            writer.tag(12, WireType.LengthDelimited).string(message.unsupportedFields[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentProactiveInterruptibilityProjection
+ */
+export const AgentProactiveInterruptibilityProjection = new AgentProactiveInterruptibilityProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class AvatarDebugProbeRequestEnvelope$Type extends MessageType<AvatarDebugProbeRequestEnvelope> {
     constructor() {
         super("nimi.runtime.v1.AvatarDebugProbeRequestEnvelope", [
@@ -5921,7 +6727,8 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
             { no: 14, name: "replication", kind: "message", oneof: "detail", T: () => AgentReplicationEventDetail },
             { no: 15, name: "state", kind: "message", oneof: "detail", T: () => AgentStateEventDetail },
             { no: 16, name: "presentation", kind: "message", oneof: "detail", T: () => AgentPresentationEventDetail },
-            { no: 17, name: "avatar_debug", kind: "message", oneof: "detail", T: () => AgentAvatarDebugEventDetail }
+            { no: 17, name: "avatar_debug", kind: "message", oneof: "detail", T: () => AgentAvatarDebugEventDetail },
+            { no: 18, name: "proactive", kind: "message", oneof: "detail", T: () => AgentProactiveEventDetail }
         ]);
     }
     create(value?: PartialMessage<AgentEvent>): AgentEvent {
@@ -6011,6 +6818,12 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
                         avatarDebug: AgentAvatarDebugEventDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).avatarDebug)
                     };
                     break;
+                case /* nimi.runtime.v1.AgentProactiveEventDetail proactive */ 18:
+                    message.detail = {
+                        oneofKind: "proactive",
+                        proactive: AgentProactiveEventDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).proactive)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6059,6 +6872,9 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
         /* nimi.runtime.v1.AgentAvatarDebugEventDetail avatar_debug = 17; */
         if (message.detail.oneofKind === "avatarDebug")
             AgentAvatarDebugEventDetail.internalBinaryWrite(message.detail.avatarDebug, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentProactiveEventDetail proactive = 18; */
+        if (message.detail.oneofKind === "proactive")
+            AgentProactiveEventDetail.internalBinaryWrite(message.detail.proactive, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
         /* string local_agent_ref = 20; */
         if (message.localAgentRef !== "")
             writer.tag(20, WireType.LengthDelimited).string(message.localAgentRef);
@@ -8088,6 +8904,221 @@ class RequestAgentCanonicalMemoryBankBindResponse$Type extends MessageType<Reque
  * @generated MessageType for protobuf message nimi.runtime.v1.RequestAgentCanonicalMemoryBankBindResponse
  */
 export const RequestAgentCanonicalMemoryBankBindResponse = new RequestAgentCanonicalMemoryBankBindResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentCanonicalMemoryReviewStatus$Type extends MessageType<AgentCanonicalMemoryReviewStatus> {
+    constructor() {
+        super("nimi.runtime.v1.AgentCanonicalMemoryReviewStatus", [
+            { no: 1, name: "bank", kind: "message", T: () => MemoryBankLocator },
+            { no: 2, name: "readiness", kind: "enum", T: () => ["nimi.runtime.v1.AgentCanonicalMemoryReviewReadiness", AgentCanonicalMemoryReviewReadiness, "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_"] },
+            { no: 3, name: "eligible_now", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "review_executor_available", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "last_review_run_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "checkpoint_basis", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "last_completed_at", kind: "message", T: () => Timestamp },
+            { no: 8, name: "next_eligible_at", kind: "message", T: () => Timestamp },
+            { no: 9, name: "recoverable_review_run_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentCanonicalMemoryReviewStatus>): AgentCanonicalMemoryReviewStatus {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.readiness = 0;
+        message.eligibleNow = false;
+        message.reviewExecutorAvailable = false;
+        message.lastReviewRunId = "";
+        message.checkpointBasis = "";
+        message.recoverableReviewRunId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AgentCanonicalMemoryReviewStatus>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentCanonicalMemoryReviewStatus): AgentCanonicalMemoryReviewStatus {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.MemoryBankLocator bank */ 1:
+                    message.bank = MemoryBankLocator.internalBinaryRead(reader, reader.uint32(), options, message.bank);
+                    break;
+                case /* nimi.runtime.v1.AgentCanonicalMemoryReviewReadiness readiness */ 2:
+                    message.readiness = reader.int32();
+                    break;
+                case /* bool eligible_now */ 3:
+                    message.eligibleNow = reader.bool();
+                    break;
+                case /* bool review_executor_available */ 4:
+                    message.reviewExecutorAvailable = reader.bool();
+                    break;
+                case /* string last_review_run_id */ 5:
+                    message.lastReviewRunId = reader.string();
+                    break;
+                case /* string checkpoint_basis */ 6:
+                    message.checkpointBasis = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp last_completed_at */ 7:
+                    message.lastCompletedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.lastCompletedAt);
+                    break;
+                case /* google.protobuf.Timestamp next_eligible_at */ 8:
+                    message.nextEligibleAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.nextEligibleAt);
+                    break;
+                case /* string recoverable_review_run_id */ 9:
+                    message.recoverableReviewRunId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentCanonicalMemoryReviewStatus, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.MemoryBankLocator bank = 1; */
+        if (message.bank)
+            MemoryBankLocator.internalBinaryWrite(message.bank, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentCanonicalMemoryReviewReadiness readiness = 2; */
+        if (message.readiness !== 0)
+            writer.tag(2, WireType.Varint).int32(message.readiness);
+        /* bool eligible_now = 3; */
+        if (message.eligibleNow !== false)
+            writer.tag(3, WireType.Varint).bool(message.eligibleNow);
+        /* bool review_executor_available = 4; */
+        if (message.reviewExecutorAvailable !== false)
+            writer.tag(4, WireType.Varint).bool(message.reviewExecutorAvailable);
+        /* string last_review_run_id = 5; */
+        if (message.lastReviewRunId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.lastReviewRunId);
+        /* string checkpoint_basis = 6; */
+        if (message.checkpointBasis !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.checkpointBasis);
+        /* google.protobuf.Timestamp last_completed_at = 7; */
+        if (message.lastCompletedAt)
+            Timestamp.internalBinaryWrite(message.lastCompletedAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp next_eligible_at = 8; */
+        if (message.nextEligibleAt)
+            Timestamp.internalBinaryWrite(message.nextEligibleAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* string recoverable_review_run_id = 9; */
+        if (message.recoverableReviewRunId !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.recoverableReviewRunId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentCanonicalMemoryReviewStatus
+ */
+export const AgentCanonicalMemoryReviewStatus = new AgentCanonicalMemoryReviewStatus$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAgentCanonicalMemoryReviewStatusRequest$Type extends MessageType<GetAgentCanonicalMemoryReviewStatusRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "bank", kind: "message", T: () => MemoryBankLocator }
+        ]);
+    }
+    create(value?: PartialMessage<GetAgentCanonicalMemoryReviewStatusRequest>): GetAgentCanonicalMemoryReviewStatusRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetAgentCanonicalMemoryReviewStatusRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentCanonicalMemoryReviewStatusRequest): GetAgentCanonicalMemoryReviewStatusRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.MemoryBankLocator bank */ 3:
+                    message.bank = MemoryBankLocator.internalBinaryRead(reader, reader.uint32(), options, message.bank);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAgentCanonicalMemoryReviewStatusRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* nimi.runtime.v1.MemoryBankLocator bank = 3; */
+        if (message.bank)
+            MemoryBankLocator.internalBinaryWrite(message.bank, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusRequest
+ */
+export const GetAgentCanonicalMemoryReviewStatusRequest = new GetAgentCanonicalMemoryReviewStatusRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAgentCanonicalMemoryReviewStatusResponse$Type extends MessageType<GetAgentCanonicalMemoryReviewStatusResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse", [
+            { no: 1, name: "status", kind: "message", T: () => AgentCanonicalMemoryReviewStatus }
+        ]);
+    }
+    create(value?: PartialMessage<GetAgentCanonicalMemoryReviewStatusResponse>): GetAgentCanonicalMemoryReviewStatusResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetAgentCanonicalMemoryReviewStatusResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentCanonicalMemoryReviewStatusResponse): GetAgentCanonicalMemoryReviewStatusResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentCanonicalMemoryReviewStatus status */ 1:
+                    message.status = AgentCanonicalMemoryReviewStatus.internalBinaryRead(reader, reader.uint32(), options, message.status);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAgentCanonicalMemoryReviewStatusResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentCanonicalMemoryReviewStatus status = 1; */
+        if (message.status)
+            AgentCanonicalMemoryReviewStatus.internalBinaryWrite(message.status, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentCanonicalMemoryReviewStatusResponse
+ */
+export const GetAgentCanonicalMemoryReviewStatusResponse = new GetAgentCanonicalMemoryReviewStatusResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class SubscribeAgentEventsRequest$Type extends MessageType<SubscribeAgentEventsRequest> {
     constructor() {

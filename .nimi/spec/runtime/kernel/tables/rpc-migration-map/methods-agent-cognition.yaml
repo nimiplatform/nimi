@@ -13,7 +13,7 @@ surfaces:
 services:
   - RuntimeCognitionService
   - RuntimeAgentService
-method_count: 82
+method_count: 83
 method_mappings:
   - design_service: RuntimeCognitionService
     design_method: CreateKnowledgeBank
@@ -364,6 +364,11 @@ method_mappings:
     design_method: GetAgentCanonicalMemoryBankStatus
     proto_service: RuntimeAgentService
     proto_method: GetAgentCanonicalMemoryBankStatus
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetAgentCanonicalMemoryReviewStatus
+    proto_service: RuntimeAgentService
+    proto_method: GetAgentCanonicalMemoryReviewStatus
     mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: RequestAgentCanonicalMemoryBankBind

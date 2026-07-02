@@ -51,6 +51,9 @@ The admitted runtime-owned stable projection families are:
 - `runtime.agent.state.execution_state_changed`
 - `runtime.agent.state.emotion_changed`
 - `runtime.agent.state.posture_changed`
+- `runtime.agent.proactive.suggested`
+- `runtime.agent.proactive.delivered`
+- `runtime.agent.proactive.suppressed`
 
 Family-specific envelope requirements are pinned in
 `tables/runtime-agent-event-projection.yaml`:
@@ -67,6 +70,11 @@ Family-specific envelope requirements are pinned in
   `conversation_anchor_id` / `originating_turn_id` / `originating_stream_id`
   remains optional and is present only when the hook projection is traceable to
   a specific continuity branch
+- `runtime.agent.proactive.*` requires `agent_id`, `projection_id`,
+  `owner_domain`, `delivery_channel`, and `audit_ref`; origin linkage back to
+  `conversation_anchor_id`, `originating_turn_id`, `originating_stream_id`,
+  `source_hook_id`, or `source_cadence_id` remains optional and is present only
+  when the proactive projection is traceable to a specific continuity branch
 
 `runtime.agent.turn.message_committed` must additionally carry `message_id`.
 Playable voice projection events (`voice_playback_requested` and
@@ -104,6 +112,9 @@ Fixed rules:
   `runtime.agent.state.posture_changed.detail.current_posture`
 - `runtime.agent.turn.post_turn.detail.hook_intent` is only a turn-close
   indication; the canonical hook lifecycle seam remains `runtime.agent.hook.*`
+- `runtime.agent.proactive.*` is the app-facing projection family for
+  `proactive_interruptibility_v1`; it must not be treated as a broad event bus,
+  OS notification delivery promise, or app scheduler admission
 - `tables/runtime-agent-event-projection.yaml` is the stable projection payload
   schema SSOT; breaking changes must pass runtime consistency and runtime
   derived-doc checks before admission
@@ -179,7 +190,8 @@ than the historical platform event design.
 Active owner map:
 
 - Runtime owns the admitted Layer A public projection families listed in
-  K-AGCORE-037, K-AGCORE-042, and `tables/runtime-agent-event-projection.yaml`
+  K-AGCORE-037, K-AGCORE-042, K-AGCORE-143, and
+  `tables/runtime-agent-event-projection.yaml`
 - APML parser events remain runtime-internal diagnostics and must not be exposed
   as durable app-facing `apml.*` product events
 - Desktop owns only chat shell bridge / handoff semantics under

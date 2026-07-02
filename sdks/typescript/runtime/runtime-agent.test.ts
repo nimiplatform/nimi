@@ -8,7 +8,9 @@ import {
   buildNimiSetRuntimeAgentPresentationProfileRequest,
   createNimiHostRuntimeAgentPresentationProfileSurface,
   projectNimiRuntimeAgentInspectSnapshot,
+  projectNimiRuntimeAgentStateSnapshot,
   readNimiRuntimeAgentPresentationProfile,
+  RUNTIME_AGENT_METHODS,
   toNimiRuntimeProtoStruct,
   toNimiRuntimeTimestamp,
 } from './index';
@@ -17,6 +19,14 @@ import {
   AgentEventType,
   AgentExecutionState,
   AgentLifecycleStatus,
+  AgentProactiveDeliveryChannel,
+  AgentProactiveEffectClass,
+  AgentProactiveEventFamily,
+  AgentProactiveFrequencyCapState,
+  AgentProactiveOptInState,
+  AgentProactiveQuietHoursState,
+  AgentProactiveSuppressionReason,
+  AgentProactiveTriggerSource,
   AgentPresentationBackendKind,
   HookAdmissionState,
   HookTriggerFamily,
@@ -36,6 +46,10 @@ const AGENT_IDENTITY = {
   runtimeSourceRef: RUNTIME_SOURCE_REF,
   localAgentRef: LOCAL_AGENT_REF,
 } as const;
+
+test('Runtime Agent facade exposes canonical review status read projection', () => {
+  assert.equal(RUNTIME_AGENT_METHODS.includes('getAgentCanonicalMemoryReviewStatus'), true);
+});
 
 test('Runtime Agent projection reads presentation metadata and state snapshots', () => {
   const metadata = toNimiRuntimeProtoStruct({
@@ -71,6 +85,7 @@ test('Runtime Agent projection reads presentation metadata and state snapshots',
       activeWorldId: 'world-1',
       activeUserId: 'user-2',
       attributes: {},
+      updatedAt: toNimiRuntimeTimestamp('2026-06-05T00:10:00.000Z'),
       currentEmotion: 'focused',
     },
     activeHooks: [{
@@ -117,11 +132,129 @@ test('Runtime Agent projection reads presentation metadata and state snapshots',
   });
   assert.equal(snapshot.lifecycleStatus, 'active');
   assert.equal(snapshot.executionState, 'chat-active');
+  assert.equal(snapshot.currentEmotion, 'focused');
+  assert.equal(snapshot.updatedAt, '2026-06-05T00:10:00.000Z');
   assert.equal(snapshot.autonomyMode, 'high');
   assert.equal(snapshot.autonomyDailyTokenBudget, 1200);
   assert.equal(snapshot.pendingHooksCount, 1);
   assert.equal(snapshot.recentCanonicalMemories[0]?.summary, 'MingSim uses Runtime Agent');
   assert.equal(snapshot.recentCanonicalMemories[0]?.canonicalClass, 'dyadic');
+});
+
+test('Runtime Agent state snapshot projects proactive interruptibility fail-closed', () => {
+  const absent = projectNimiRuntimeAgentStateSnapshot({
+    executionState: AgentExecutionState.IDLE,
+    attributes: {},
+  });
+
+  assert.deepEqual(absent.proactiveInterruptibility, {
+    projectionId: null,
+    projectionKind: null,
+    mode: null,
+    optInState: null,
+    deliveryChannel: null,
+    quietHoursState: null,
+    frequencyCapState: null,
+    suggestedEvent: null,
+    lastDeliveredEvent: null,
+    lastSuppressedEvent: null,
+    auditRefs: [],
+    unsupportedFields: ['proactive_interruptibility'],
+  });
+
+  const delivered = projectNimiRuntimeAgentStateSnapshot({
+    executionState: AgentExecutionState.LIFE_PENDING,
+    attributes: {},
+    proactiveInterruptibility: {
+      projectionId: 'proactive-1',
+      projectionKind: 'proactive_interruptibility_v1',
+      mode: AgentAutonomyMode.MEDIUM,
+      optInState: AgentProactiveOptInState.GRANTED,
+      deliveryChannel: AgentProactiveDeliveryChannel.IN_APP_SURFACE,
+      quietHours: AgentProactiveQuietHoursState.INACTIVE,
+      frequencyCap: AgentProactiveFrequencyCapState.WITHIN_CAP,
+      auditRefs: ['runtime.audit.proactive/deliver'],
+      suggestedEvent: {
+        family: AgentProactiveEventFamily.SUGGESTED,
+        projectionId: 'proactive-1',
+        projectionKind: 'proactive_interruptibility_v1',
+        ownerDomain: 'runtime',
+        triggerSource: AgentProactiveTriggerSource.LIFE_TRACK_CADENCE,
+        effectClass: AgentProactiveEffectClass.IN_APP_COMPANION_SURFACE,
+        deliveryChannel: AgentProactiveDeliveryChannel.IN_APP_SURFACE,
+        mode: AgentAutonomyMode.MEDIUM,
+        optInState: AgentProactiveOptInState.GRANTED,
+        quietHours: AgentProactiveQuietHoursState.INACTIVE,
+        frequencyCap: AgentProactiveFrequencyCapState.WITHIN_CAP,
+        reasonCode: 'cadence_due',
+        auditRef: 'runtime.audit.proactive/deliver',
+        sourceCadenceId: 'cadence-1',
+        observedAt: toNimiRuntimeTimestamp('2026-07-02T01:00:00.000Z'),
+      },
+      lastDeliveredEvent: {
+        family: AgentProactiveEventFamily.DELIVERED,
+        projectionId: 'proactive-1',
+        projectionKind: 'proactive_interruptibility_v1',
+        ownerDomain: 'runtime',
+        triggerSource: AgentProactiveTriggerSource.LIFE_TRACK_CADENCE,
+        effectClass: AgentProactiveEffectClass.IN_APP_COMPANION_SURFACE,
+        deliveryChannel: AgentProactiveDeliveryChannel.IN_APP_SURFACE,
+        mode: AgentAutonomyMode.MEDIUM,
+        optInState: AgentProactiveOptInState.GRANTED,
+        quietHours: AgentProactiveQuietHoursState.INACTIVE,
+        frequencyCap: AgentProactiveFrequencyCapState.WITHIN_CAP,
+        reasonCode: 'cadence_due',
+        auditRef: 'runtime.audit.proactive/deliver',
+        sourceCadenceId: 'cadence-1',
+        observedAt: toNimiRuntimeTimestamp('2026-07-02T01:00:01.000Z'),
+      },
+    },
+  });
+
+  assert.equal(delivered.proactiveInterruptibility.mode, 'medium');
+  assert.equal(delivered.proactiveInterruptibility.optInState, 'granted');
+  assert.equal(delivered.proactiveInterruptibility.deliveryChannel, 'in-app-surface');
+  assert.equal(delivered.proactiveInterruptibility.quietHoursState, 'inactive');
+  assert.equal(delivered.proactiveInterruptibility.frequencyCapState, 'within-cap');
+  assert.equal(delivered.proactiveInterruptibility.suggestedEvent?.family, 'suggested');
+  assert.equal(delivered.proactiveInterruptibility.lastDeliveredEvent?.auditRef, 'runtime.audit.proactive/deliver');
+  assert.deepEqual(delivered.proactiveInterruptibility.unsupportedFields, []);
+
+  const suppressed = projectNimiRuntimeAgentStateSnapshot({
+    executionState: AgentExecutionState.LIFE_PENDING,
+    attributes: {},
+    proactiveInterruptibility: {
+      projectionId: 'proactive-2',
+      projectionKind: 'proactive_interruptibility_v1',
+      mode: AgentAutonomyMode.LOW,
+      optInState: AgentProactiveOptInState.REVOKED,
+      deliveryChannel: AgentProactiveDeliveryChannel.NOTIFICATION_NOT_ADMITTED,
+      quietHours: AgentProactiveQuietHoursState.ACTIVE,
+      frequencyCap: AgentProactiveFrequencyCapState.CAPPED,
+      auditRefs: ['runtime.audit.proactive/suppressed'],
+      lastSuppressedEvent: {
+        family: AgentProactiveEventFamily.SUPPRESSED,
+        projectionId: 'proactive-2',
+        projectionKind: 'proactive_interruptibility_v1',
+        ownerDomain: 'runtime',
+        triggerSource: AgentProactiveTriggerSource.HOOK_INTENT,
+        effectClass: AgentProactiveEffectClass.IN_APP_COMPANION_SURFACE,
+        deliveryChannel: AgentProactiveDeliveryChannel.NOTIFICATION_NOT_ADMITTED,
+        mode: AgentAutonomyMode.LOW,
+        optInState: AgentProactiveOptInState.REVOKED,
+        quietHours: AgentProactiveQuietHoursState.ACTIVE,
+        frequencyCap: AgentProactiveFrequencyCapState.CAPPED,
+        suppressionReason: AgentProactiveSuppressionReason.PERMISSION_REVOKED,
+        reasonCode: 'permission_revoked',
+        auditRef: 'runtime.audit.proactive/suppressed',
+        sourceHookId: 'hook-1',
+      },
+    },
+  });
+
+  assert.equal(suppressed.proactiveInterruptibility.lastSuppressedEvent?.family, 'suppressed');
+  assert.equal(suppressed.proactiveInterruptibility.lastSuppressedEvent?.suppressionReason, 'permission-revoked');
+  assert.equal(suppressed.proactiveInterruptibility.deliveryChannel, 'notification.not_admitted');
 });
 
 test('Runtime Agent builders produce generated Runtime requests without old aliases', () => {
