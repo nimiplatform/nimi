@@ -41,6 +41,8 @@
  *       runNimiTextTurn, streamNimiTextResponse, and event/handler types
  *   @nimiplatform/sdk/features/conversation — conversation primitives
  *     - history windows, text accumulation, and stream snapshots
+ *   @nimiplatform/sdk/features/generation — Runtime media generation helpers
+ *     - image parameter coercion and Runtime image.generate scenario runner
  *
  * Re-export strategy
  * ------------------
@@ -58,9 +60,10 @@
  *    `@nimiplatform/sdk/features/conversation` for non-authoritative text
  *    generate/stream helpers and text-turn stream assembly; Kit maps the
  *    resulting events into reusable conversation headless events.
- *  - Kit generation uses `@nimiplatform/sdk/runtime` only for
- *    non-authoritative media scenario job consumption; Kit maps the
- *    resulting Runtime job projection into reusable generation UI state.
+ *  - Kit generation uses `@nimiplatform/sdk/features/generation` and
+ *    `@nimiplatform/sdk/runtime` only for non-authoritative media scenario job
+ *    consumption; Kit maps the resulting Runtime job projection into reusable
+ *    generation UI state.
  *
  * Dynamic-import rule
  * -------------------
@@ -83,7 +86,7 @@ export type { NimiClientConfig } from '@nimiplatform/sdk';
 // `Runtime`, `ScenarioJobStatus`, catalog enums, and catalog client factories
 // are runtime values, not type-only — keep their value-side export.
 export { Runtime, createNimiRuntimeModelCatalogClient, getNimiRuntimeReasonCodeMessage, listNimiRuntimeRouteOptions, NIMI_RUNTIME_REASON_CODES, runNimiRuntimeScenarioJob, runtimeNimiRouteCapabilitiesMatch } from '@nimiplatform/sdk/runtime';
-export { ExecutionMode, ScenarioJobStatus, ScenarioType, CatalogModelSource, ModelCatalogProviderSource } from '@nimiplatform/sdk/runtime/generated';
+export { ExecutionMode, ScenarioJobEventType, ScenarioJobStatus, ScenarioType, CatalogModelSource, ModelCatalogProviderSource } from '@nimiplatform/sdk/runtime/generated';
 export type { NimiRuntimeCatalogModelDetail, NimiRuntimeCatalogModelDetailResponse, NimiRuntimeCatalogModelSource, NimiRuntimeCatalogOverlayWarning, NimiRuntimeCatalogPricing, NimiRuntimeCatalogProviderModelsResponse, NimiRuntimeCatalogSourceRef, NimiRuntimeCatalogVideoGeneration, NimiRuntimeCatalogVoiceEntry, NimiRuntimeCatalogWorkflowBinding, NimiRuntimeCatalogWorkflowModel, NimiRuntimeCatalogModelSummary, NimiRuntimeModelCatalogClient, NimiRuntimeModelCatalogConnectorClient, NimiRuntimeModelCatalogProvider, NimiRuntimeModelCatalogProviderSource, NimiListRuntimeRouteOptionsInput, NimiRuntimeCanonicalCapability, NimiRuntimeRouteOptionsClient, NimiRuntimeRouteOptionsSnapshot, NimiRuntimeRouteTargetRef, NimiRuntimeTargetInventoryItem, RuntimeTargetInventoryProjection, NimiRuntimeScenarioArtifact, NimiRuntimeScenarioJob, NimiRuntimeScenarioJobClient, NimiRuntimeScenarioJobResult, NimiRuntimeScenarioJobSubmitRequest, NimiRuntimeSpeechVoiceReference } from '@nimiplatform/sdk/runtime';
 export type { CatalogModelDetail, CatalogOverlayWarning, CatalogPricing, CatalogSourceRef, CatalogVideoGenerationCapability, CatalogVoiceEntry, CatalogWorkflowModel, CatalogModelWorkflowBinding, CatalogModelSummary, ModelCatalogProviderEntry } from '@nimiplatform/sdk/runtime/generated';
 
@@ -138,17 +141,27 @@ export type {
 // --- Nimi AI developer-experience primitives --------------------------------
 export {
   NIMI_RUNTIME_IMAGE_MODEL_FAMILY_OPTIONS,
+  coerceNimiAITextGenerationParams,
+  createNimiRuntimeEmbeddingClient,
+  createNimiRuntimeAISchedulingClient,
   normalizeNimiRuntimeImageModelFamily,
   resolveNimiRuntimeImageCompanionSlots,
+  resolveNimiAIConfigRuntimeBinding,
   createNimiRuntimeAIModel,
   runNimiTextGenerate,
   runNimiTextTurn,
   streamNimiTextResponse,
+  toRuntimeDurableTargetRef,
 } from '@nimiplatform/sdk/ai';
 export type {
+  NimiAIConfigRuntimeBinding,
+  NimiAITextGenerationParameterSet,
   NimiAiModel,
   NimiGenerateTextRequest,
   NimiGenerateTextResult,
+  NimiRuntimeAIScenarioClient,
+  NimiRuntimeEmbeddingScenarioClient,
+  NimiRuntimeAISchedulingClient,
   NimiRuntimeImageCompanionSlotContract,
   NimiRuntimeAIModelOptions,
   NimiRuntimeAIRoutePolicy,
@@ -162,6 +175,15 @@ export type {
   NimiTextTurnEvent,
   NimiTextTurnInput,
 } from '@nimiplatform/sdk/ai';
+export {
+  coerceNimiImageGenerationParams,
+  runNimiRuntimeImageGeneration,
+} from '@nimiplatform/sdk/features/generation';
+export type {
+  NimiImageGenerationCoercedParams,
+  NimiRuntimeImageGenerationInput,
+  NimiRuntimeImageGenerationResult,
+} from '@nimiplatform/sdk/features/generation';
 export type {
   NimiJsonObject,
   NimiJsonValue,
@@ -175,6 +197,20 @@ export {
   dataPart,
   textPart,
 } from '@nimiplatform/sdk/contracts';
+export {
+  fromNimiRuntimeProtoStruct,
+  toNimiRuntimeProtoStruct,
+} from '@nimiplatform/sdk/runtime';
+export type {
+  RuntimeDurableTargetRef,
+} from '@nimiplatform/sdk/runtime';
+export type {
+  ReadArtifactBytesResponse,
+  RuntimeTypedCallOptions,
+  ScenarioArtifact,
+  ScenarioExtension,
+  ScenarioJob,
+} from '@nimiplatform/sdk/runtime/generated';
 export {
   NIMI_CONVERSATION_SESSION_COMPLETION_RESERVE,
   NIMI_CONVERSATION_SESSION_HISTORY_BUDGET,

@@ -23,6 +23,25 @@ function invokeRawGrpcUnary(
 ): Promise<RuntimeGrpcBridgeUnaryResponse> {
   return new Promise((resolve, reject) => {
     let responseMetadata: Record<string, string> = {};
+    let callbackReceived = false;
+    let statusReceived = false;
+    let callbackError: Error | null = null;
+    let callbackResponse: Buffer | null | undefined;
+    let settled = false;
+    const settleIfComplete = () => {
+      if (settled || !callbackReceived || !statusReceived) {
+        return;
+      }
+      settled = true;
+      if (callbackError) {
+        reject(callbackError);
+        return;
+      }
+      resolve({
+        responseBytes: Uint8Array.from(callbackResponse ?? Buffer.alloc(0)),
+        responseMetadata,
+      });
+    };
     const call = client.makeUnaryRequest(
       request.methodId,
       identityBuffer,
@@ -31,14 +50,10 @@ function invokeRawGrpcUnary(
       toGrpcMetadata(grpc, request.metadata),
       toGrpcCallOptions(request.timeoutMs),
       (error, response) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve({
-          responseBytes: Uint8Array.from(response ?? Buffer.alloc(0)),
-          responseMetadata,
-        });
+        callbackReceived = true;
+        callbackError = error ?? null;
+        callbackResponse = response;
+        settleIfComplete();
       },
     );
     call.on('metadata', (metadata) => {
@@ -52,6 +67,8 @@ function invokeRawGrpcUnary(
         ...responseMetadata,
         ...fromGrpcMetadata(status.metadata),
       };
+      statusReceived = true;
+      settleIfComplete();
     });
   });
 }

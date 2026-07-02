@@ -3,12 +3,14 @@ import {
   Runtime,
   createNimiDesktopLaunchedNimiAppRuntimeAccountCaller,
   createNimiRuntimeAppSessionMetadataProvider,
+  createNimiRuntimeFullAppRegistration,
   NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
   toNimiRuntimeTimestamp,
   withNimiRuntimeIdempotencyMetadata,
   type NimiRuntimeAccountCaller,
 } from '@nimiplatform/sdk/runtime';
 import {
+  AccountCallerMode,
   AccountSessionState,
   AuthorizationPreset,
   ExternalPrincipalType,
@@ -111,14 +113,36 @@ export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
     transport: { endpoint: runtimeEndpoint },
   });
   const accountCaller = input.accountCaller;
+  const appSessionAppInstanceId = requireText(input.appSession.appInstanceId, 'appSession.appInstanceId');
+  const appSessionDeviceId = requireText(input.appSession.deviceId, 'appSession.deviceId');
+  const appSessionCapabilities = normalizeStrings(input.appSession.capabilities);
+  const appSessionDeveloperRegistration = input.appSession.developerRegistration === true;
   const protectedAccess = normalizeProtectedAccessInput(appId, input.protectedAccess);
+  const accountCallerMode = accountCaller.mode;
+  const accountCallerDeveloperRegistration = accountCallerMode === AccountCallerMode.LOCAL_DEVELOPER_APP;
+  const ensureAccountCallerRegistered = shouldRegisterAccountCaller(accountCallerMode)
+    ? createNimiRuntimeFullAppRegistration(
+      () => ({ auth: accountRuntime.auth }),
+      {
+        appId: requireText(accountCaller.appId, 'accountCaller.appId'),
+        appInstanceId: requireText(accountCaller.appInstanceId, 'accountCaller.appInstanceId'),
+        deviceId: requireText(accountCaller.deviceId, 'accountCaller.deviceId'),
+        appVersion: input.appSession.appVersion,
+        capabilities: normalizeStrings([
+          ...(accountCaller.scopes ?? []),
+          ...appSessionCapabilities,
+        ]),
+        developerRegistration: accountCallerDeveloperRegistration,
+      },
+    )
+    : undefined;
   const appSessionMetadataProvider = createNimiRuntimeAppSessionMetadataProvider({
     appId,
-    appInstanceId: requireText(input.appSession.appInstanceId, 'appSession.appInstanceId'),
-    deviceId: requireText(input.appSession.deviceId, 'appSession.deviceId'),
+    appInstanceId: appSessionAppInstanceId,
+    deviceId: appSessionDeviceId,
     appVersion: input.appSession.appVersion,
-    capabilities: normalizeStrings(input.appSession.capabilities),
-    developerRegistration: input.appSession.developerRegistration === true,
+    capabilities: appSessionCapabilities,
+    developerRegistration: appSessionDeveloperRegistration,
     ttlSeconds: input.appSession.ttlSeconds,
     refreshSkewMs: input.appSession.refreshSkewMs,
     auth: accountRuntime.auth,
@@ -143,6 +167,7 @@ export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
   let protectedAccessInflightKey = '';
 
   async function trustedMetadata(): Promise<ElectronRuntimeBridgeTrustedMetadata | undefined> {
+    await ensureAccountCallerRegistered?.();
     const subjectUserId = await readRuntimeSubjectUserIdIfAvailable(accountRuntime, accountCaller);
     if (!subjectUserId) {
       return undefined;
@@ -261,6 +286,11 @@ export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
   }
 
   return trustedMetadata;
+}
+
+function shouldRegisterAccountCaller(mode: AccountCallerMode | undefined): boolean {
+  return mode === AccountCallerMode.LOCAL_FIRST_PARTY_APP
+    || mode === AccountCallerMode.LOCAL_DEVELOPER_APP;
 }
 
 export function createNimiElectronInstalledAppRuntimeAccountTrustedMetadataProvider(

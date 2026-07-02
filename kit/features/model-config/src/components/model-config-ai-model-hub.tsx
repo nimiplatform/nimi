@@ -289,6 +289,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
       <button
         key={section}
         type="button"
+        data-nimi-model-config-section={section}
         onClick={() => setActiveSection(section)}
         className={`flex items-start gap-3 rounded-xl border p-3.5 text-left transition-all ${cardToneClass}`}
       >
@@ -411,12 +412,16 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
       );
     };
     return (
-      <div className={className ? `min-w-0 ${className}` : 'min-w-0 space-y-5'}>
+      <div
+        className={className ? `min-w-0 ${className}` : 'min-w-0 space-y-5'}
+        data-nimi-model-config-detail-section={activeSection}
+      >
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {!detailOnly ? (
             <button
               type="button"
               onClick={() => setActiveSection(null)}
+              data-nimi-model-config-back="true"
               aria-label={t('ModelConfig.hub.backLabel')}
               className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[var(--nimi-text-secondary,#475569)] transition-colors hover:bg-slate-100 hover:text-[var(--nimi-text-primary,#0f172a)]"
             >
@@ -484,6 +489,7 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
             <button
               key={section}
               type="button"
+              data-nimi-model-config-section={section}
               onClick={() => setActiveSection(section)}
               className="flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--nimi-border-subtle,#e2e8f0)] bg-white px-4 py-3 text-left transition-colors hover:border-[var(--nimi-border-strong,#cbd5e1)]"
             >

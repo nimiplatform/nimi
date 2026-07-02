@@ -141,6 +141,15 @@ export {
   type CreateRuntimeAccountBrowserBrokerInput,
   type RuntimeAccountBrowserBrokerClient,
 } from './logic/runtime-account-browser-broker.js';
+export {
+  createRuntimeAccountDesktopBrowserAuth,
+  type RuntimeAccountDesktopBrowserAuth,
+  type RuntimeAccountDesktopBrowserAuthCaller,
+  type RuntimeAccountDesktopBrowserAuthClient,
+  type RuntimeAccountDesktopBrowserAuthInput,
+  type RuntimeAccountDesktopBrowserAuthProjection,
+  type RuntimeAccountDesktopBrowserAuthUser,
+} from './logic/runtime-account-desktop-auth.js';
 
 // Handlers
 export type { AuthMenuSetters } from './logic/auth-menu-handlers.js';

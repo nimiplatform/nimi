@@ -120,6 +120,17 @@ export function validateCanonicalCapabilityCatalog(doc) {
     if (!ALLOWED_EVIDENCE_CLASSES.has(runtimeEvidenceClass)) {
       errors.push(`${prefix} ${capabilityId}: runtimeEvidenceClass ${runtimeEvidenceClass || '<empty>'} not allowed`);
     }
+    const governance = row.governance;
+    if (!governance || typeof governance !== 'object') {
+      errors.push(`${prefix} ${capabilityId}: governance is required`);
+    } else {
+      for (const key of ['owner', 'dataMovement', 'retention', 'revocation', 'auditSource']) {
+        const value = typeof governance[key] === 'string' ? governance[key].trim() : '';
+        if (!value) {
+          errors.push(`${prefix} ${capabilityId}: governance.${key} is required`);
+        }
+      }
+    }
   }
 
   for (const [index, entry] of deferred.entries()) {
@@ -198,7 +209,7 @@ export function renderCanonicalCapabilityCatalogModule(doc) {
   lines.push('// GENERATED FILE — DO NOT EDIT.');
   lines.push('// Source: .nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml');
   lines.push('// Emitter: scripts/gen-canonical-capability-catalog.mjs');
-  lines.push('// Authority: P-CAPCAT-001 / P-CAPCAT-002 / P-CAPCAT-003');
+  lines.push('// Authority: P-CAPCAT-001 / P-CAPCAT-002 / P-CAPCAT-003 / P-CAPCAT-004');
   lines.push('');
   lines.push('export type CanonicalCapabilitySectionId =');
   const sections = CATALOG_CONSTANTS.ALLOWED_SECTIONS.map((value) => `  | '${value}'`);
@@ -229,6 +240,14 @@ export function renderCanonicalCapabilityCatalogModule(doc) {
   lines.push('  readonly detail: string;');
   lines.push('}');
   lines.push('');
+  lines.push('export interface CanonicalCapabilityGovernance {');
+  lines.push('  readonly owner: string;');
+  lines.push('  readonly dataMovement: string;');
+  lines.push('  readonly retention: string;');
+  lines.push('  readonly revocation: string;');
+  lines.push('  readonly auditSource: string;');
+  lines.push('}');
+  lines.push('');
   lines.push('export interface CanonicalCapabilityDescriptor {');
   lines.push('  readonly capabilityId: string;');
   lines.push('  readonly section: CanonicalCapabilitySectionId;');
@@ -237,6 +256,7 @@ export function renderCanonicalCapabilityCatalogModule(doc) {
   lines.push('  readonly additionalRuntimeTables: ReadonlyArray<CanonicalCapabilitySourceRef>;');
   lines.push('  readonly i18nKeys: CanonicalCapabilityI18nKeys;');
   lines.push('  readonly runtimeEvidenceClass: CanonicalCapabilityRuntimeEvidenceClass;');
+  lines.push('  readonly governance: CanonicalCapabilityGovernance;');
   lines.push('}');
   lines.push('');
   lines.push('export interface CanonicalCapabilityDeferredEntry {');
@@ -275,6 +295,13 @@ export function renderCanonicalCapabilityCatalogModule(doc) {
     lines.push(`      detail: ${tsStringLiteral(row.i18nKeys.detail)},`);
     lines.push('    }),');
     lines.push(`    runtimeEvidenceClass: ${tsStringLiteral(row.runtimeEvidenceClass)},`);
+    lines.push('    governance: Object.freeze({');
+    lines.push(`      owner: ${tsStringLiteral(row.governance.owner)},`);
+    lines.push(`      dataMovement: ${tsStringLiteral(row.governance.dataMovement)},`);
+    lines.push(`      retention: ${tsStringLiteral(row.governance.retention)},`);
+    lines.push(`      revocation: ${tsStringLiteral(row.governance.revocation)},`);
+    lines.push(`      auditSource: ${tsStringLiteral(row.governance.auditSource)},`);
+    lines.push('    }),');
     lines.push('  }),');
   }
   lines.push(']);');

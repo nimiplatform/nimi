@@ -1,7 +1,7 @@
 // GENERATED FILE — DO NOT EDIT.
 // Source: .nimi/spec/platform/kernel/tables/canonical-capability-catalog.yaml
 // Emitter: scripts/gen-canonical-capability-catalog.mjs
-// Authority: P-CAPCAT-001 / P-CAPCAT-002 / P-CAPCAT-003
+// Authority: P-CAPCAT-001 / P-CAPCAT-002 / P-CAPCAT-003 / P-CAPCAT-004
 
 export type CanonicalCapabilitySectionId =
   | 'chat'
@@ -42,6 +42,14 @@ export interface CanonicalCapabilityI18nKeys {
   readonly detail: string;
 }
 
+export interface CanonicalCapabilityGovernance {
+  readonly owner: string;
+  readonly dataMovement: string;
+  readonly retention: string;
+  readonly revocation: string;
+  readonly auditSource: string;
+}
+
 export interface CanonicalCapabilityDescriptor {
   readonly capabilityId: string;
   readonly section: CanonicalCapabilitySectionId;
@@ -50,6 +58,7 @@ export interface CanonicalCapabilityDescriptor {
   readonly additionalRuntimeTables: ReadonlyArray<CanonicalCapabilitySourceRef>;
   readonly i18nKeys: CanonicalCapabilityI18nKeys;
   readonly runtimeEvidenceClass: CanonicalCapabilityRuntimeEvidenceClass;
+  readonly governance: CanonicalCapabilityGovernance;
 }
 
 export interface CanonicalCapabilityDeferredEntry {
@@ -80,6 +89,13 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       detail: 'ModelConfig.capability.audioSynthesize.detail',
     }),
     runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-audio-route',
+      dataMovement: 'local-or-cloud-by-selected-route',
+      retention: 'runtime-audio-policy',
+      revocation: 'route-or-connector-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
   }),
   Object.freeze({
     capabilityId: 'audio.transcribe',
@@ -101,6 +117,13 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       detail: 'ModelConfig.capability.audioTranscribe.detail',
     }),
     runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-audio-route',
+      dataMovement: 'local-or-cloud-by-selected-route',
+      retention: 'runtime-audio-policy',
+      revocation: 'route-or-connector-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
   }),
   Object.freeze({
     capabilityId: 'image.edit',
@@ -117,6 +140,13 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       detail: 'ModelConfig.capability.imageEdit.detail',
     }),
     runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-media-route',
+      dataMovement: 'local-or-cloud-by-selected-route',
+      retention: 'runtime-artifact-policy',
+      revocation: 'route-or-artifact-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
   }),
   Object.freeze({
     capabilityId: 'image.generate',
@@ -138,6 +168,13 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       detail: 'ModelConfig.capability.imageGenerate.detail',
     }),
     runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-media-route',
+      dataMovement: 'local-or-cloud-by-selected-route',
+      retention: 'runtime-artifact-policy',
+      revocation: 'route-or-artifact-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
   }),
   Object.freeze({
     capabilityId: 'text.embed',
@@ -159,6 +196,13 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       detail: 'ModelConfig.capability.textEmbed.detail',
     }),
     runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-memory-route',
+      dataMovement: 'local-or-cloud-by-embedding-route',
+      retention: 'runtime-memory-policy',
+      revocation: 'memory-policy-or-route-owner',
+      auditSource: 'runtime-memory-evidence',
+    }),
   }),
   Object.freeze({
     capabilityId: 'text.generate',
@@ -180,6 +224,13 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       detail: 'ModelConfig.capability.textGenerate.detail',
     }),
     runtimeEvidenceClass: 'turn',
+    governance: Object.freeze({
+      owner: 'runtime-route',
+      dataMovement: 'local-or-cloud-by-selected-route',
+      retention: 'zhiyu-retains-no-provider-payload',
+      revocation: 'change-runtime-route-or-revoke-connector',
+      auditSource: 'runtime-route-evidence',
+    }),
   }),
   Object.freeze({
     capabilityId: 'text.generate.vision',
@@ -196,6 +247,13 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       detail: 'ModelConfig.capability.textGenerateVision.detail',
     }),
     runtimeEvidenceClass: 'turn',
+    governance: Object.freeze({
+      owner: 'runtime-route',
+      dataMovement: 'local-or-cloud-by-selected-route',
+      retention: 'zhiyu-retains-no-provider-payload',
+      revocation: 'change-runtime-route-or-revoke-connector',
+      auditSource: 'runtime-route-evidence',
+    }),
   }),
   Object.freeze({
     capabilityId: 'video.generate',
@@ -217,6 +275,13 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       detail: 'ModelConfig.capability.videoGenerate.detail',
     }),
     runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-media-route',
+      dataMovement: 'local-or-cloud-by-selected-route',
+      retention: 'runtime-artifact-policy',
+      revocation: 'route-or-artifact-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
   }),
   Object.freeze({
     capabilityId: 'voice_workflow.voice_clone',
@@ -233,6 +298,13 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       detail: 'ModelConfig.capability.voiceWorkflowVoiceClone.detail',
     }),
     runtimeEvidenceClass: 'workflow',
+    governance: Object.freeze({
+      owner: 'runtime-voice-workflow',
+      dataMovement: 'local-or-cloud-by-workflow-route',
+      retention: 'runtime-voice-asset-policy',
+      revocation: 'runtime-voice-asset-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
   }),
   Object.freeze({
     capabilityId: 'voice_workflow.voice_design',
@@ -249,6 +321,13 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       detail: 'ModelConfig.capability.voiceWorkflowVoiceDesign.detail',
     }),
     runtimeEvidenceClass: 'workflow',
+    governance: Object.freeze({
+      owner: 'runtime-voice-workflow',
+      dataMovement: 'local-or-cloud-by-workflow-route',
+      retention: 'runtime-voice-asset-policy',
+      revocation: 'runtime-voice-asset-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
   }),
   Object.freeze({
     capabilityId: 'world.generate',
@@ -265,6 +344,13 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
       detail: 'ModelConfig.capability.worldGenerate.detail',
     }),
     runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-world-route',
+      dataMovement: 'local-or-cloud-by-selected-route',
+      retention: 'runtime-artifact-policy',
+      revocation: 'route-or-artifact-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
   }),
 ]);
 

@@ -110,6 +110,21 @@ export {
   buildCanonicalTranscriptMessageGroups,
 } from './headless/transcript-groups.js';
 export type {
+  RuntimeAgentArtifactPreviewInput,
+  RuntimeAgentConversationProjectionInitialInput,
+  RuntimeAgentConversationProjectionReduceOptions,
+  RuntimeAgentConversationProjectionState,
+  RuntimeAgentConversationProjectionStatus,
+  RuntimeAgentTurnRunnerMessageEnvelopeLike,
+  RuntimeAgentTurnRunnerPartLike,
+  RuntimeAgentTurnRunnerProjectionOptions,
+} from './headless/runtime-agent-turn-projection.js';
+export {
+  createRuntimeAgentConversationProjectionState,
+  reduceRuntimeAgentConversationProjectionEvent,
+  streamRuntimeAgentTurnRunnerPartsAsConversationEvents,
+} from './headless/runtime-agent-turn-projection.js';
+export type {
   BrowserDataUrlAttachment,
   BrowserDataUrlAttachmentAdapterOptions,
   BrowserDataUrlAttachmentKind,

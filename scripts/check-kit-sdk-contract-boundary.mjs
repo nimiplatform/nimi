@@ -15,6 +15,7 @@ const allowedSdkContractSpecifiers = new Set([
   '@nimiplatform/sdk/ai',
   '@nimiplatform/sdk/contracts',
   '@nimiplatform/sdk/features/conversation',
+  '@nimiplatform/sdk/features/generation',
   '@nimiplatform/sdk/realm',
   '@nimiplatform/sdk/realm/generated',
   '@nimiplatform/sdk/runtime',

@@ -5,8 +5,9 @@
 > values referenced by `AIConfig.capabilities` (D-AIPC-003, D-AIPC-010),
 > `ConversationCapabilitySelectionStore` keys (D-LLM-015..021), `AppModelConfigSurface`
 > consumers, and runtime route registry lookups. Codegen output lives in the
-> `kit/core/runtime-capabilities` module per P-KIT-043; this contract owns the identity set
-> and its resolver semantics, not the presentation or routing layers.
+> `kit/core/runtime-capabilities` module per P-KIT-043; this contract owns the identity set,
+> resolver semantics, and read-only governance display projection, not the presentation,
+> routing, permission mutation, or provider layers.
 
 ## P-CAPCAT-001 — Canonical Capability Identity Authority
 
@@ -65,6 +66,24 @@
   runtime consumers must not emit or accept `deferred:` tokens as canonical catalog
   values; they exist only to acknowledge the runtime-admitted token and to record why it
   has not yet entered the canonical identity set.
+
+## P-CAPCAT-004 鈥?Capability Governance Display Projection
+
+- Every active row in `canonical-capability-catalog.yaml` must carry a `governance`
+  mapping with non-empty `owner`, `dataMovement`, `retention`, `revocation`, and
+  `auditSource` fields.
+- These fields are canonical display labels for user-facing capability explanation
+  surfaces such as Capability Room. They may explain which authority owns the capability,
+  whether data may move locally or through a selected provider route, which retention
+  policy family applies, where revocation/control belongs, and which evidence family
+  backs the projection.
+- `governance` fields do not admit app-local permission state, provider/model/API-key
+  truth, route readiness, grant lifecycle mutation, retention mutation, or revoke
+  commands. Those remain owned by Runtime, Realm/Permission, Connector, AIConfig,
+  Cognition, Avatar, and their admitted SDK projections.
+- Apps and kit modules may render the fields as read-only explanation, but must not use
+  them to infer an enabled state, execute a tool, bypass route/permission checks, or
+  synthesize audit evidence.
 
 ## Fact Sources
 

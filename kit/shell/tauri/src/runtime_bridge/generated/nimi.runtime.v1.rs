@@ -18891,6 +18891,14 @@ pub struct AgentStateProjection {
     /// emotion truth.
     #[prost(string, tag = "7")]
     pub current_emotion: ::prost::alloc::string::String,
+    /// K-AGCORE-143: proactive_interruptibility is the bounded read-only
+    /// proactive_interruptibility_v1 projection. Runtime owns the fields; apps
+    /// and SDKs must not infer quiet hours, frequency caps, permission grants, or
+    /// delivery truth when this projection is absent.
+    #[prost(message, optional, tag = "8")]
+    pub proactive_interruptibility: ::core::option::Option<
+        AgentProactiveInterruptibilityProjection,
+    >,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AgentStateSetStatusText {
@@ -19268,6 +19276,78 @@ pub struct AgentPresentationEventDetail {
     #[prost(bool, tag = "56")]
     pub lookat_has_z: bool,
 }
+/// AgentProactiveEventDetail projects runtime.agent.proactive.\* per K-AGCORE-143; required audit/origin fields must not be fabricated.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentProactiveEventDetail {
+    #[prost(enumeration = "AgentProactiveEventFamily", tag = "1")]
+    pub family: i32,
+    #[prost(string, tag = "2")]
+    pub projection_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub projection_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub owner_domain: ::prost::alloc::string::String,
+    #[prost(enumeration = "AgentProactiveTriggerSource", tag = "5")]
+    pub trigger_source: i32,
+    #[prost(enumeration = "AgentProactiveEffectClass", tag = "6")]
+    pub effect_class: i32,
+    #[prost(enumeration = "AgentProactiveDeliveryChannel", tag = "7")]
+    pub delivery_channel: i32,
+    #[prost(enumeration = "AgentAutonomyMode", tag = "8")]
+    pub mode: i32,
+    #[prost(enumeration = "AgentProactiveOptInState", tag = "9")]
+    pub opt_in_state: i32,
+    #[prost(enumeration = "AgentProactiveQuietHoursState", tag = "10")]
+    pub quiet_hours: i32,
+    #[prost(enumeration = "AgentProactiveFrequencyCapState", tag = "11")]
+    pub frequency_cap: i32,
+    #[prost(enumeration = "AgentProactiveSuppressionReason", tag = "12")]
+    pub suppression_reason: i32,
+    #[prost(string, tag = "13")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "14")]
+    pub audit_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "15")]
+    pub source_hook_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "16")]
+    pub source_cadence_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "17")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "18")]
+    pub originating_turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "19")]
+    pub originating_stream_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "20")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// AgentProactiveInterruptibilityProjection is read-only proactive_interruptibility_v1 state; unsupported_fields blocks consumer inference.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentProactiveInterruptibilityProjection {
+    #[prost(string, tag = "1")]
+    pub projection_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub projection_kind: ::prost::alloc::string::String,
+    #[prost(enumeration = "AgentAutonomyMode", tag = "3")]
+    pub mode: i32,
+    #[prost(enumeration = "AgentProactiveOptInState", tag = "4")]
+    pub opt_in_state: i32,
+    #[prost(enumeration = "AgentProactiveDeliveryChannel", tag = "5")]
+    pub delivery_channel: i32,
+    #[prost(enumeration = "AgentProactiveQuietHoursState", tag = "6")]
+    pub quiet_hours: i32,
+    #[prost(enumeration = "AgentProactiveFrequencyCapState", tag = "7")]
+    pub frequency_cap: i32,
+    #[prost(string, repeated, tag = "8")]
+    pub audit_refs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "9")]
+    pub suggested_event: ::core::option::Option<AgentProactiveEventDetail>,
+    #[prost(message, optional, tag = "10")]
+    pub last_delivered_event: ::core::option::Option<AgentProactiveEventDetail>,
+    #[prost(message, optional, tag = "11")]
+    pub last_suppressed_event: ::core::option::Option<AgentProactiveEventDetail>,
+    #[prost(string, repeated, tag = "12")]
+    pub unsupported_fields: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AvatarDebugProbeRequestEnvelope {
     #[prost(string, tag = "1")]
@@ -19356,7 +19436,7 @@ pub struct AgentEvent {
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "22")]
     pub runtime_source_ref: ::prost::alloc::string::String,
-    #[prost(oneof = "agent_event::Detail", tags = "10, 11, 12, 13, 14, 15, 16, 17")]
+    #[prost(oneof = "agent_event::Detail", tags = "10, 11, 12, 13, 14, 15, 16, 17, 18")]
     pub detail: ::core::option::Option<agent_event::Detail>,
 }
 /// Nested message and enum types in `AgentEvent`.
@@ -19379,6 +19459,8 @@ pub mod agent_event {
         Presentation(super::AgentPresentationEventDetail),
         #[prost(message, tag = "17")]
         AvatarDebug(super::AgentAvatarDebugEventDetail),
+        #[prost(message, tag = "18")]
+        Proactive(super::AgentProactiveEventDetail),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -19673,6 +19755,41 @@ pub struct RequestAgentCanonicalMemoryBankBindResponse {
     pub outcome: ::prost::alloc::string::String,
     #[prost(enumeration = "ReasonCode", tag = "3")]
     pub blocked_reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentCanonicalMemoryReviewStatus {
+    #[prost(message, optional, tag = "1")]
+    pub bank: ::core::option::Option<MemoryBankLocator>,
+    #[prost(enumeration = "AgentCanonicalMemoryReviewReadiness", tag = "2")]
+    pub readiness: i32,
+    #[prost(bool, tag = "3")]
+    pub eligible_now: bool,
+    #[prost(bool, tag = "4")]
+    pub review_executor_available: bool,
+    #[prost(string, tag = "5")]
+    pub last_review_run_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub checkpoint_basis: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "7")]
+    pub last_completed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "8")]
+    pub next_eligible_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "9")]
+    pub recoverable_review_run_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAgentCanonicalMemoryReviewStatusRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub bank: ::core::option::Option<MemoryBankLocator>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAgentCanonicalMemoryReviewStatusResponse {
+    #[prost(message, optional, tag = "1")]
+    pub status: ::core::option::Option<AgentCanonicalMemoryReviewStatus>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SubscribeAgentEventsRequest {
@@ -20357,6 +20474,7 @@ pub enum AgentEventType {
     State = 6,
     Presentation = 7,
     AvatarDebug = 8,
+    Proactive = 9,
 }
 impl AgentEventType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -20374,6 +20492,7 @@ impl AgentEventType {
             Self::State => "AGENT_EVENT_TYPE_STATE",
             Self::Presentation => "AGENT_EVENT_TYPE_PRESENTATION",
             Self::AvatarDebug => "AGENT_EVENT_TYPE_AVATAR_DEBUG",
+            Self::Proactive => "AGENT_EVENT_TYPE_PROACTIVE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -20388,6 +20507,7 @@ impl AgentEventType {
             "AGENT_EVENT_TYPE_STATE" => Some(Self::State),
             "AGENT_EVENT_TYPE_PRESENTATION" => Some(Self::Presentation),
             "AGENT_EVENT_TYPE_AVATAR_DEBUG" => Some(Self::AvatarDebug),
+            "AGENT_EVENT_TYPE_PROACTIVE" => Some(Self::Proactive),
             _ => None,
         }
     }
@@ -20490,6 +20610,355 @@ impl AgentPresentationEventFamily {
             "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED" => Some(Self::PoseCleared),
             "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED" => {
                 Some(Self::LookatRequested)
+            }
+            _ => None,
+        }
+    }
+}
+/// K-AGCORE-143 AgentProactiveEventFamily discriminates
+/// runtime.agent.proactive.\* event families. The family maps 1:1 to
+/// runtime.agent.proactive.{suggested|delivered|suppressed}.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentProactiveEventFamily {
+    Unspecified = 0,
+    Suggested = 1,
+    Delivered = 2,
+    Suppressed = 3,
+}
+impl AgentProactiveEventFamily {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PROACTIVE_EVENT_FAMILY_UNSPECIFIED",
+            Self::Suggested => "AGENT_PROACTIVE_EVENT_FAMILY_SUGGESTED",
+            Self::Delivered => "AGENT_PROACTIVE_EVENT_FAMILY_DELIVERED",
+            Self::Suppressed => "AGENT_PROACTIVE_EVENT_FAMILY_SUPPRESSED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PROACTIVE_EVENT_FAMILY_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PROACTIVE_EVENT_FAMILY_SUGGESTED" => Some(Self::Suggested),
+            "AGENT_PROACTIVE_EVENT_FAMILY_DELIVERED" => Some(Self::Delivered),
+            "AGENT_PROACTIVE_EVENT_FAMILY_SUPPRESSED" => Some(Self::Suppressed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentProactiveTriggerSource {
+    Unspecified = 0,
+    LifeTrackCadence = 1,
+    HookIntent = 2,
+}
+impl AgentProactiveTriggerSource {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED",
+            Self::LifeTrackCadence => "AGENT_PROACTIVE_TRIGGER_SOURCE_LIFE_TRACK_CADENCE",
+            Self::HookIntent => "AGENT_PROACTIVE_TRIGGER_SOURCE_HOOK_INTENT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PROACTIVE_TRIGGER_SOURCE_LIFE_TRACK_CADENCE" => {
+                Some(Self::LifeTrackCadence)
+            }
+            "AGENT_PROACTIVE_TRIGGER_SOURCE_HOOK_INTENT" => Some(Self::HookIntent),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentProactiveEffectClass {
+    Unspecified = 0,
+    InAppCompanionSurface = 1,
+}
+impl AgentProactiveEffectClass {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PROACTIVE_EFFECT_CLASS_UNSPECIFIED",
+            Self::InAppCompanionSurface => {
+                "AGENT_PROACTIVE_EFFECT_CLASS_IN_APP_COMPANION_SURFACE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PROACTIVE_EFFECT_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PROACTIVE_EFFECT_CLASS_IN_APP_COMPANION_SURFACE" => {
+                Some(Self::InAppCompanionSurface)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentProactiveDeliveryChannel {
+    Unspecified = 0,
+    InAppSurface = 1,
+    NotificationNotAdmitted = 2,
+}
+impl AgentProactiveDeliveryChannel {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PROACTIVE_DELIVERY_CHANNEL_UNSPECIFIED",
+            Self::InAppSurface => "AGENT_PROACTIVE_DELIVERY_CHANNEL_IN_APP_SURFACE",
+            Self::NotificationNotAdmitted => {
+                "AGENT_PROACTIVE_DELIVERY_CHANNEL_NOTIFICATION_NOT_ADMITTED"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PROACTIVE_DELIVERY_CHANNEL_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PROACTIVE_DELIVERY_CHANNEL_IN_APP_SURFACE" => Some(Self::InAppSurface),
+            "AGENT_PROACTIVE_DELIVERY_CHANNEL_NOTIFICATION_NOT_ADMITTED" => {
+                Some(Self::NotificationNotAdmitted)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentProactiveOptInState {
+    Unspecified = 0,
+    Off = 1,
+    Pending = 2,
+    Granted = 3,
+    Denied = 4,
+    Revoked = 5,
+    Expired = 6,
+    Missing = 7,
+}
+impl AgentProactiveOptInState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PROACTIVE_OPT_IN_STATE_UNSPECIFIED",
+            Self::Off => "AGENT_PROACTIVE_OPT_IN_STATE_OFF",
+            Self::Pending => "AGENT_PROACTIVE_OPT_IN_STATE_PENDING",
+            Self::Granted => "AGENT_PROACTIVE_OPT_IN_STATE_GRANTED",
+            Self::Denied => "AGENT_PROACTIVE_OPT_IN_STATE_DENIED",
+            Self::Revoked => "AGENT_PROACTIVE_OPT_IN_STATE_REVOKED",
+            Self::Expired => "AGENT_PROACTIVE_OPT_IN_STATE_EXPIRED",
+            Self::Missing => "AGENT_PROACTIVE_OPT_IN_STATE_MISSING",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PROACTIVE_OPT_IN_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PROACTIVE_OPT_IN_STATE_OFF" => Some(Self::Off),
+            "AGENT_PROACTIVE_OPT_IN_STATE_PENDING" => Some(Self::Pending),
+            "AGENT_PROACTIVE_OPT_IN_STATE_GRANTED" => Some(Self::Granted),
+            "AGENT_PROACTIVE_OPT_IN_STATE_DENIED" => Some(Self::Denied),
+            "AGENT_PROACTIVE_OPT_IN_STATE_REVOKED" => Some(Self::Revoked),
+            "AGENT_PROACTIVE_OPT_IN_STATE_EXPIRED" => Some(Self::Expired),
+            "AGENT_PROACTIVE_OPT_IN_STATE_MISSING" => Some(Self::Missing),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentProactiveQuietHoursState {
+    Unspecified = 0,
+    Inactive = 1,
+    Active = 2,
+    NotConfigured = 3,
+}
+impl AgentProactiveQuietHoursState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PROACTIVE_QUIET_HOURS_STATE_UNSPECIFIED",
+            Self::Inactive => "AGENT_PROACTIVE_QUIET_HOURS_STATE_INACTIVE",
+            Self::Active => "AGENT_PROACTIVE_QUIET_HOURS_STATE_ACTIVE",
+            Self::NotConfigured => "AGENT_PROACTIVE_QUIET_HOURS_STATE_NOT_CONFIGURED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PROACTIVE_QUIET_HOURS_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PROACTIVE_QUIET_HOURS_STATE_INACTIVE" => Some(Self::Inactive),
+            "AGENT_PROACTIVE_QUIET_HOURS_STATE_ACTIVE" => Some(Self::Active),
+            "AGENT_PROACTIVE_QUIET_HOURS_STATE_NOT_CONFIGURED" => {
+                Some(Self::NotConfigured)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentProactiveFrequencyCapState {
+    Unspecified = 0,
+    WithinCap = 1,
+    Capped = 2,
+    NotConfigured = 3,
+}
+impl AgentProactiveFrequencyCapState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PROACTIVE_FREQUENCY_CAP_STATE_UNSPECIFIED",
+            Self::WithinCap => "AGENT_PROACTIVE_FREQUENCY_CAP_STATE_WITHIN_CAP",
+            Self::Capped => "AGENT_PROACTIVE_FREQUENCY_CAP_STATE_CAPPED",
+            Self::NotConfigured => "AGENT_PROACTIVE_FREQUENCY_CAP_STATE_NOT_CONFIGURED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PROACTIVE_FREQUENCY_CAP_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PROACTIVE_FREQUENCY_CAP_STATE_WITHIN_CAP" => Some(Self::WithinCap),
+            "AGENT_PROACTIVE_FREQUENCY_CAP_STATE_CAPPED" => Some(Self::Capped),
+            "AGENT_PROACTIVE_FREQUENCY_CAP_STATE_NOT_CONFIGURED" => {
+                Some(Self::NotConfigured)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentProactiveSuppressionReason {
+    Unspecified = 0,
+    QuietHoursActive = 1,
+    FrequencyCapExceeded = 2,
+    PermissionDenied = 3,
+    PermissionRevoked = 4,
+    PermissionMissing = 5,
+    PermissionExpired = 6,
+    AutonomyOff = 7,
+    BudgetExhausted = 8,
+    SchedulerDenied = 9,
+    HookConflict = 10,
+    RuntimeUnavailable = 11,
+    UnsupportedDeliveryChannel = 12,
+    MissingAuditRef = 13,
+}
+impl AgentProactiveSuppressionReason {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PROACTIVE_SUPPRESSION_REASON_UNSPECIFIED",
+            Self::QuietHoursActive => {
+                "AGENT_PROACTIVE_SUPPRESSION_REASON_QUIET_HOURS_ACTIVE"
+            }
+            Self::FrequencyCapExceeded => {
+                "AGENT_PROACTIVE_SUPPRESSION_REASON_FREQUENCY_CAP_EXCEEDED"
+            }
+            Self::PermissionDenied => {
+                "AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_DENIED"
+            }
+            Self::PermissionRevoked => {
+                "AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_REVOKED"
+            }
+            Self::PermissionMissing => {
+                "AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_MISSING"
+            }
+            Self::PermissionExpired => {
+                "AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_EXPIRED"
+            }
+            Self::AutonomyOff => "AGENT_PROACTIVE_SUPPRESSION_REASON_AUTONOMY_OFF",
+            Self::BudgetExhausted => {
+                "AGENT_PROACTIVE_SUPPRESSION_REASON_BUDGET_EXHAUSTED"
+            }
+            Self::SchedulerDenied => {
+                "AGENT_PROACTIVE_SUPPRESSION_REASON_SCHEDULER_DENIED"
+            }
+            Self::HookConflict => "AGENT_PROACTIVE_SUPPRESSION_REASON_HOOK_CONFLICT",
+            Self::RuntimeUnavailable => {
+                "AGENT_PROACTIVE_SUPPRESSION_REASON_RUNTIME_UNAVAILABLE"
+            }
+            Self::UnsupportedDeliveryChannel => {
+                "AGENT_PROACTIVE_SUPPRESSION_REASON_UNSUPPORTED_DELIVERY_CHANNEL"
+            }
+            Self::MissingAuditRef => {
+                "AGENT_PROACTIVE_SUPPRESSION_REASON_MISSING_AUDIT_REF"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_QUIET_HOURS_ACTIVE" => {
+                Some(Self::QuietHoursActive)
+            }
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_FREQUENCY_CAP_EXCEEDED" => {
+                Some(Self::FrequencyCapExceeded)
+            }
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_DENIED" => {
+                Some(Self::PermissionDenied)
+            }
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_REVOKED" => {
+                Some(Self::PermissionRevoked)
+            }
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_MISSING" => {
+                Some(Self::PermissionMissing)
+            }
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_EXPIRED" => {
+                Some(Self::PermissionExpired)
+            }
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_AUTONOMY_OFF" => Some(Self::AutonomyOff),
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_BUDGET_EXHAUSTED" => {
+                Some(Self::BudgetExhausted)
+            }
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_SCHEDULER_DENIED" => {
+                Some(Self::SchedulerDenied)
+            }
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_HOOK_CONFLICT" => {
+                Some(Self::HookConflict)
+            }
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_RUNTIME_UNAVAILABLE" => {
+                Some(Self::RuntimeUnavailable)
+            }
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_UNSUPPORTED_DELIVERY_CHANNEL" => {
+                Some(Self::UnsupportedDeliveryChannel)
+            }
+            "AGENT_PROACTIVE_SUPPRESSION_REASON_MISSING_AUDIT_REF" => {
+                Some(Self::MissingAuditRef)
             }
             _ => None,
         }
@@ -20753,6 +21222,62 @@ impl AgentAutonomyMode {
             "AGENT_AUTONOMY_MODE_LOW" => Some(Self::Low),
             "AGENT_AUTONOMY_MODE_MEDIUM" => Some(Self::Medium),
             "AGENT_AUTONOMY_MODE_HIGH" => Some(Self::High),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentCanonicalMemoryReviewReadiness {
+    Unspecified = 0,
+    Eligible = 1,
+    WaitingForWindow = 2,
+    ExecutorUnavailable = 3,
+    RecoverableRunBlocking = 4,
+    BankUnavailable = 5,
+}
+impl AgentCanonicalMemoryReviewReadiness {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED",
+            Self::Eligible => "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE",
+            Self::WaitingForWindow => {
+                "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW"
+            }
+            Self::ExecutorUnavailable => {
+                "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE"
+            }
+            Self::RecoverableRunBlocking => {
+                "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING"
+            }
+            Self::BankUnavailable => {
+                "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE" => Some(Self::Eligible),
+            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW" => {
+                Some(Self::WaitingForWindow)
+            }
+            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE" => {
+                Some(Self::ExecutorUnavailable)
+            }
+            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING" => {
+                Some(Self::RecoverableRunBlocking)
+            }
+            "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE" => {
+                Some(Self::BankUnavailable)
+            }
             _ => None,
         }
     }
@@ -22344,6 +22869,37 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "RequestAgentCanonicalMemoryBankBind",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_agent_canonical_memory_review_status(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetAgentCanonicalMemoryReviewStatusRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAgentCanonicalMemoryReviewStatusResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetAgentCanonicalMemoryReviewStatus",
                     ),
                 );
             self.inner.unary(req, path, codec).await

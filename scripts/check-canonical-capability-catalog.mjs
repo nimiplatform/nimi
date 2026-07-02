@@ -2,8 +2,8 @@
 // Drift gate for the spec-resident canonical capability catalog.
 // Predicates (P-CAPCAT-001..003):
 //   1. field legality: every active row has legal capabilityId, section, editorKind,
-//      sourceRef, i18nKeys, runtimeEvidenceClass; every deferred entry has reason +
-//      source_rule.
+//      sourceRef, i18nKeys, runtimeEvidenceClass, governance; every deferred entry has
+//      reason + source_rule.
 //   2. consistency: each active row's sourceRef resolves via the table-specific
 //      resolver against runtime kernel tables.
 //   3. completeness: the union of capability tokens admitted by

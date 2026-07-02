@@ -16,9 +16,15 @@ Discipline.
   ownership into Kit.
 - Exported `emitRendererLog` from `@nimiplatform/kit/telemetry` so renderer
   bridge code can use the shared telemetry normalizer directly.
+- Added `createRuntimeAccountDesktopBrowserAuth` to `@nimiplatform/kit/auth`
+  so Electron/Tauri app shells can consume RuntimeAccountService browser login
+  without app-owned token custody.
 
 ### Fixed
 
+- Electron Runtime account metadata now pre-registers local first-party and
+  developer account callers before account projection lookup, while preserving
+  launch-bound installed app caller handling.
 - Renderer telemetry now forwards through the installed Nimi shell runtime
   bridge/test hook when available, without importing Tauri bridge code from
   `kit/telemetry`.

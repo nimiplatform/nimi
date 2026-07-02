@@ -237,7 +237,11 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
   );
 
   return (
-    <div className="min-w-0 max-w-full space-y-2 overflow-hidden">
+    <div
+      className="min-w-0 max-w-full space-y-2 overflow-hidden"
+      data-nimi-model-config-capability={item.capabilityId}
+      data-nimi-model-config-route-capability={item.routeCapability}
+    >
       <div className={headerLabel ? 'grid min-w-0 gap-0.5' : 'flex min-w-0 items-center gap-2'}>
         {labelNode}
         {headerLabel && item.activeModelHint ? (

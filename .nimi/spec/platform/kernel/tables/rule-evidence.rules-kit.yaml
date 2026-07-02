@@ -90,7 +90,7 @@ rules:
       - platform_kernel_consistency
       - nimi_kit_gate
     evidence_requirement: required
-    note: Installed Nimi App standard shell capability-set policy; implementation evidence lands with Kit Electron and Desktop installed-app launch negative tests.
+    note: Installed Nimi App standard shell capability-set policy; evidence binds Kit Electron and Desktop installed-app launch negative tests.
     test_files:
       - kit/shell/electron/test/electron-shell.test.ts
       - apps/desktop/test/desktop-installed-app-launcher.test.ts

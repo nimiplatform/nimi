@@ -27,6 +27,7 @@ entries:
   - P-CAPCAT-001
   - P-CAPCAT-002
   - P-CAPCAT-003
+  - P-CAPCAT-004
   - P-GOV-001
   - P-GOV-002
   - P-GOV-003
@@ -53,6 +54,12 @@ rules:
     evidence_refs:
       - canonical_capability_catalog_gate
     evidence_requirement: required
+  - rule_id: P-CAPCAT-004
+    evidence_refs:
+      - canonical_capability_catalog_gate
+    evidence_requirement: structural_required
+    evidence_scope_note: structural only; the catalog gate validates required
+      read-only governance projection fields and generated Kit drift
   - rule_id: P-GOV-001
     evidence_refs:
       - platform_kernel_consistency

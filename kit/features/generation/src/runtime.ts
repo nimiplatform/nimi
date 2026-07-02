@@ -9,6 +9,8 @@ import {
 } from '@nimiplatform/kit/core/sdk-contract';
 import { useGenerationPanel, type UseGenerationPanelResult } from './hooks/use-generation-panel.js';
 import type { GenerationRunItem } from './types.js';
+export * from './runtime-ai-consume.js';
+export * from './runtime-image-generate.js';
 export type RuntimeGenerationMappedStatus = 'pending' | 'running' | 'completed' | 'failed' | 'timeout' | 'canceled';
 
 export type RuntimeGenerationRequestContext<TInput> = {

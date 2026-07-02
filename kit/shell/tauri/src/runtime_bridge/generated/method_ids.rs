@@ -27,6 +27,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
+    "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
     "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",

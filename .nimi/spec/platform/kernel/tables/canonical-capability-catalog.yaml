@@ -26,7 +26,7 @@ entries:
   - deferred_10
   - deferred_11
 # Canonical capability catalog — spec-resident cross-layer identity authority.
-# See capability-catalog-contract.md (P-CAPCAT-001..003).
+# See capability-catalog-contract.md (P-CAPCAT-001..004).
 # Codegen output: kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts
 capabilities:
   - capabilityId: text.generate
@@ -43,6 +43,12 @@ capabilities:
       subtitle: ModelConfig.capability.textGenerate.subtitle
       detail: ModelConfig.capability.textGenerate.detail
     runtimeEvidenceClass: turn
+    governance:
+      owner: runtime-route
+      dataMovement: local-or-cloud-by-selected-route
+      retention: zhiyu-retains-no-provider-payload
+      revocation: change-runtime-route-or-revoke-connector
+      auditSource: runtime-route-evidence
     source_rule: P-CAPCAT-001
   - capabilityId: text.generate.vision
     section: chat
@@ -55,6 +61,12 @@ capabilities:
       subtitle: ModelConfig.capability.textGenerateVision.subtitle
       detail: ModelConfig.capability.textGenerateVision.detail
     runtimeEvidenceClass: turn
+    governance:
+      owner: runtime-route
+      dataMovement: local-or-cloud-by-selected-route
+      retention: zhiyu-retains-no-provider-payload
+      revocation: change-runtime-route-or-revoke-connector
+      auditSource: runtime-route-evidence
     source_rule: P-CAPCAT-001
   - capabilityId: text.embed
     section: embed
@@ -70,6 +82,12 @@ capabilities:
       subtitle: ModelConfig.capability.textEmbed.subtitle
       detail: ModelConfig.capability.textEmbed.detail
     runtimeEvidenceClass: job
+    governance:
+      owner: runtime-memory-route
+      dataMovement: local-or-cloud-by-embedding-route
+      retention: runtime-memory-policy
+      revocation: memory-policy-or-route-owner
+      auditSource: runtime-memory-evidence
     source_rule: P-CAPCAT-001
   - capabilityId: audio.synthesize
     section: tts
@@ -85,6 +103,12 @@ capabilities:
       subtitle: ModelConfig.capability.audioSynthesize.subtitle
       detail: ModelConfig.capability.audioSynthesize.detail
     runtimeEvidenceClass: job
+    governance:
+      owner: runtime-audio-route
+      dataMovement: local-or-cloud-by-selected-route
+      retention: runtime-audio-policy
+      revocation: route-or-connector-owner
+      auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
   - capabilityId: audio.transcribe
     section: stt
@@ -100,6 +124,12 @@ capabilities:
       subtitle: ModelConfig.capability.audioTranscribe.subtitle
       detail: ModelConfig.capability.audioTranscribe.detail
     runtimeEvidenceClass: job
+    governance:
+      owner: runtime-audio-route
+      dataMovement: local-or-cloud-by-selected-route
+      retention: runtime-audio-policy
+      revocation: route-or-connector-owner
+      auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
   - capabilityId: voice_workflow.voice_clone
     section: tts
@@ -112,6 +142,12 @@ capabilities:
       subtitle: ModelConfig.capability.voiceWorkflowVoiceClone.subtitle
       detail: ModelConfig.capability.voiceWorkflowVoiceClone.detail
     runtimeEvidenceClass: workflow
+    governance:
+      owner: runtime-voice-workflow
+      dataMovement: local-or-cloud-by-workflow-route
+      retention: runtime-voice-asset-policy
+      revocation: runtime-voice-asset-owner
+      auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
   - capabilityId: voice_workflow.voice_design
     section: tts
@@ -124,6 +160,12 @@ capabilities:
       subtitle: ModelConfig.capability.voiceWorkflowVoiceDesign.subtitle
       detail: ModelConfig.capability.voiceWorkflowVoiceDesign.detail
     runtimeEvidenceClass: workflow
+    governance:
+      owner: runtime-voice-workflow
+      dataMovement: local-or-cloud-by-workflow-route
+      retention: runtime-voice-asset-policy
+      revocation: runtime-voice-asset-owner
+      auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
   - capabilityId: image.generate
     section: image
@@ -139,6 +181,12 @@ capabilities:
       subtitle: ModelConfig.capability.imageGenerate.subtitle
       detail: ModelConfig.capability.imageGenerate.detail
     runtimeEvidenceClass: job
+    governance:
+      owner: runtime-media-route
+      dataMovement: local-or-cloud-by-selected-route
+      retention: runtime-artifact-policy
+      revocation: route-or-artifact-owner
+      auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
   - capabilityId: image.edit
     section: image
@@ -151,6 +199,12 @@ capabilities:
       subtitle: ModelConfig.capability.imageEdit.subtitle
       detail: ModelConfig.capability.imageEdit.detail
     runtimeEvidenceClass: job
+    governance:
+      owner: runtime-media-route
+      dataMovement: local-or-cloud-by-selected-route
+      retention: runtime-artifact-policy
+      revocation: route-or-artifact-owner
+      auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
   - capabilityId: video.generate
     section: video
@@ -166,6 +220,12 @@ capabilities:
       subtitle: ModelConfig.capability.videoGenerate.subtitle
       detail: ModelConfig.capability.videoGenerate.detail
     runtimeEvidenceClass: job
+    governance:
+      owner: runtime-media-route
+      dataMovement: local-or-cloud-by-selected-route
+      retention: runtime-artifact-policy
+      revocation: route-or-artifact-owner
+      auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
   - capabilityId: world.generate
     section: world
@@ -178,6 +238,12 @@ capabilities:
       subtitle: ModelConfig.capability.worldGenerate.subtitle
       detail: ModelConfig.capability.worldGenerate.detail
     runtimeEvidenceClass: job
+    governance:
+      owner: runtime-world-route
+      dataMovement: local-or-cloud-by-selected-route
+      retention: runtime-artifact-policy
+      revocation: route-or-artifact-owner
+      auditSource: runtime-scenario-job-evidence
     source_rule: P-CAPCAT-001
 
 # Runtime-admitted capability tokens that are intentionally not yet canonical.
