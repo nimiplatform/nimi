@@ -1,0 +1,229 @@
+import {
+  Button,
+  StatusBadge,
+  Surface,
+  TextareaField,
+} from '@nimiplatform/kit/ui';
+import {
+  AudioLines,
+  Sparkles,
+} from 'lucide-react';
+import type { ZhiyuEvidence } from './evidence';
+import type { ZhiyuCapabilityStudioCapabilityId } from '../capability-studio/zhiyu-ai-consume';
+import type { ZhiyuCapabilityRoomState } from './capability-room-state';
+import { HomeCapabilitySetupSection } from './home-capability-setup-section';
+import { formatProjectionValue } from './home-surface-sections';
+
+export type DeveloperBackstageSurfaceProps = {
+  readonly evidence: ZhiyuEvidence;
+  readonly capabilityRoom: ZhiyuCapabilityRoomState;
+  readonly capabilityPrompt: string;
+  readonly capabilityStudioDisabled: boolean;
+  readonly showCapabilityStudio: boolean;
+  readonly hasCurrentPartner: boolean;
+  readonly onCapabilityPromptChange: (value: string) => void;
+  readonly onCapabilityStudioRun: (capabilityId: ZhiyuCapabilityStudioCapabilityId) => void;
+  readonly onOpenModelConfig: () => void;
+  readonly onSelectPartner: () => void;
+};
+
+const CAPABILITY_ACTIONS = [
+  'text.generate',
+  'chat.stream',
+  'text.embed',
+  'audio.synthesize',
+] as const;
+
+export function DeveloperBackstageSurface({
+  evidence,
+  capabilityRoom,
+  capabilityPrompt,
+  capabilityStudioDisabled,
+  showCapabilityStudio,
+  hasCurrentPartner,
+  onCapabilityPromptChange,
+  onCapabilityStudioRun,
+  onOpenModelConfig,
+  onSelectPartner,
+}: DeveloperBackstageSurfaceProps) {
+  return (
+    <div
+      className="zhiyu-home__developer-backstage"
+      data-zhiyu-developer-backstage="open"
+      data-zhiyu-devmode-ai-consume="kit-generation"
+      data-zhiyu-devmode-audio-synthesize="kit-generation"
+    >
+      <Surface
+        as="section"
+        className="zhiyu-home__developer-overview"
+        data-zhiyu-region="developer-backstage"
+        material="glass-thin"
+        elevation="base"
+        padding="md"
+      >
+        <div className="zhiyu-home__section-heading">
+          <Sparkles size={18} aria-hidden="true" />
+          <div>
+            <h2>开发者后台</h2>
+            <p>能力消费、链路状态和失败原因保留在这里；主界面只呈现伙伴体验。</p>
+          </div>
+        </div>
+        <div className="zhiyu-home__developer-route-grid" aria-label="开发者后台链路摘要">
+          <span>伙伴：{formatProjectionValue(evidence.localAgent.localAgentRef)}</span>
+          <span>对话：{formatProjectionValue(evidence.conversation.conversationAnchorId)}</span>
+          <span>文字：{formatProjectionValue(evidence.route.targetRefKinds['text.generate'])}</span>
+          <span>图片：{formatProjectionValue(evidence.route.targetRefKinds['image.generate'])}</span>
+          <span>语音：{formatProjectionValue(evidence.route.targetRefKinds['audio.synthesize'])}</span>
+          <span>{capabilityRoom.catalogCount} 项能力目录</span>
+        </div>
+      </Surface>
+
+      {showCapabilityStudio ? (
+        <Surface
+          as="section"
+          className="zhiyu-home__capability-studio"
+          data-zhiyu-region="capability-studio"
+          data-zhiyu-capability-studio={evidence.capabilityStudio.state}
+          data-zhiyu-capability-studio-disabled={String(capabilityStudioDisabled)}
+          data-zhiyu-capability-studio-last-capability={evidence.capabilityStudio.lastCapabilityId ?? 'none'}
+          data-zhiyu-capability-studio-result-kind={evidence.capabilityStudio.resultKind}
+          data-zhiyu-capability-studio-ready={String(evidence.capabilityStudio.ready)}
+          material="glass-thin"
+          elevation="base"
+          padding="md"
+        >
+          <div className="zhiyu-home__section-heading">
+            <Sparkles size={18} aria-hidden="true" />
+            <div>
+              <h2>能力探针</h2>
+              <p>通过 Kit generation 共享 helper 验证文字、嵌入、流式回复和语音合成。</p>
+            </div>
+          </div>
+          <TextareaField
+            aria-label="能力探针输入"
+            value={capabilityPrompt}
+            onChange={(event) => onCapabilityPromptChange(event.currentTarget.value)}
+            rows={3}
+            placeholder="输入一段用于开发者后台验证的内容。"
+            textareaClassName="zhiyu-home__capability-studio-input"
+          />
+          <div className="zhiyu-home__capability-studio-actions">
+            {CAPABILITY_ACTIONS.map((capabilityId) => (
+              <Button
+                key={capabilityId}
+                type="button"
+                tone="secondary"
+                size="sm"
+                disabled={capabilityStudioDisabled}
+                data-zhiyu-capability-studio-run={capabilityId}
+                onClick={() => onCapabilityStudioRun(capabilityId)}
+              >
+                {capabilityLabel(capabilityId)}
+              </Button>
+            ))}
+          </div>
+          <div
+            className="zhiyu-home__capability-studio-result"
+            data-zhiyu-capability-studio-result-kind={evidence.capabilityStudio.resultKind}
+            data-zhiyu-capability-studio-result-reason={evidence.capabilityStudio.reasonCode}
+            data-zhiyu-capability-studio-result-trace={evidence.capabilityStudio.traceId ?? 'not_projected'}
+          >
+            <StatusBadge tone={evidence.capabilityStudio.ready ? 'success' : evidence.capabilityStudio.state === 'failed' ? 'danger' : 'neutral'} shape="dot">
+              {capabilityStudioStatusLabel(evidence, capabilityPrompt)}
+            </StatusBadge>
+            <p>{formatCapabilityStudioProductText(evidence)}</p>
+            {evidence.capabilityStudio.resultKind === 'embedding' ? (
+              <div
+                className="zhiyu-home__capability-studio-embedding"
+                data-zhiyu-capability-studio-vector-count={String(evidence.capabilityStudio.vectorCount ?? 0)}
+                data-zhiyu-capability-studio-dimensions={String(evidence.capabilityStudio.dimensions ?? 0)}
+                data-zhiyu-capability-studio-sample={evidence.capabilityStudio.sample.join(',')}
+              >
+                <span>向量组 {evidence.capabilityStudio.vectorCount ?? 0}</span>
+                <span>维度 {evidence.capabilityStudio.dimensions ?? 0}</span>
+                <span>样本 {evidence.capabilityStudio.sample.join(', ')}</span>
+              </div>
+            ) : null}
+            {evidence.capabilityStudio.resultKind === 'audio' ? (
+              <div
+                className="zhiyu-home__capability-studio-audio"
+                data-zhiyu-capability-studio-audio-job-id={evidence.capabilityStudio.audioJobId ?? 'not_projected'}
+                data-zhiyu-capability-studio-audio-artifact-count={String(evidence.capabilityStudio.audioArtifactCount ?? 0)}
+                data-zhiyu-capability-studio-audio-mime={evidence.capabilityStudio.audioMimeType ?? 'not_projected'}
+              >
+                <AudioLines size={16} aria-hidden="true" />
+                <span>{evidence.capabilityStudio.audioArtifactCount ?? 0} 个音频产物</span>
+                <span>{formatProjectionValue(evidence.capabilityStudio.audioMimeType)}</span>
+              </div>
+            ) : null}
+          </div>
+        </Surface>
+      ) : (
+        <HomeCapabilitySetupSection
+          hasCurrentPartner={hasCurrentPartner}
+          onConfigureModel={onOpenModelConfig}
+          onSelectPartner={onSelectPartner}
+        />
+      )}
+
+    </div>
+  );
+}
+
+function capabilityLabel(capabilityId: ZhiyuCapabilityStudioCapabilityId): string {
+  if (capabilityId === 'text.generate') return '生成文本';
+  if (capabilityId === 'chat.stream') return '流式对话';
+  if (capabilityId === 'text.embed') return '生成嵌入';
+  return '语音合成';
+}
+
+function capabilityStudioStatusLabel(evidence: ZhiyuEvidence, capabilityPrompt: string): string {
+  const studio = evidence.capabilityStudio;
+  if (studio.ready) {
+    return '已完成';
+  }
+  if (studio.state === 'running') {
+    return '处理中';
+  }
+  if (studio.state === 'failed') {
+    return '需要处理';
+  }
+  return capabilityPrompt.trim() ? '待开始' : '等待输入';
+}
+
+function formatCapabilityStudioProductText(evidence: ZhiyuEvidence): string {
+  const studio = evidence.capabilityStudio;
+  if (studio.resultKind === 'text') {
+    return productGeneratedText(stripRuntimeTextEnvelope(studio.streamingText || studio.text || studio.message));
+  }
+  if (studio.resultKind === 'embedding') {
+    return `嵌入已生成：${studio.vectorCount ?? 0} 组向量，${studio.dimensions ?? 0} 维。`;
+  }
+  if (studio.resultKind === 'audio') {
+    return `语音合成已完成：${studio.audioArtifactCount ?? 0} 个音频产物。`;
+  }
+  if (studio.state === 'failed') {
+    return '能力探针需要先完成模型配置；详细原因可在诊断中查看。';
+  }
+  if (studio.state === 'running') {
+    return '正在处理这次能力请求。';
+  }
+  return '选择一个能力并输入内容后，结果会显示在这里。';
+}
+
+function stripRuntimeTextEnvelope(value: string | null | undefined): string {
+  const text = String(value ?? '').trim();
+  const messageMatch = text.match(/<message\b[^>]*>([\s\S]*?)<\/message>/i);
+  if (messageMatch?.[1]) {
+    return messageMatch[1].trim();
+  }
+  return text;
+}
+
+function productGeneratedText(value: string | null | undefined): string {
+  const text = String(value ?? '').trim();
+  if (/^Hello from the Runtime Agent live fixture\.$/.test(text)) {
+    return '当前伙伴已完成本地对话校验，并返回一条可追踪的回复。';
+  }
+  return text;
+}

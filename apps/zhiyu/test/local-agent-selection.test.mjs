@@ -59,7 +59,7 @@ function inventoryAgent(overrides = {}) {
   };
 }
 
-test('selects the only Runtime-owned LocalAgent from inventory without source constants', async () => {
+test('does not promote bare Runtime inventory into the current partner without Realm materialization source', async () => {
   const { resolveZhiyuRuntimeLocalAgentSelection } = await loadSelectionModule();
 
   const selected = resolveZhiyuRuntimeLocalAgentSelection({
@@ -67,12 +67,16 @@ test('selects the only Runtime-owned LocalAgent from inventory without source co
     inventory: inventory([inventoryAgent()]),
   });
 
-  assert.equal(selected.ready, true);
-  assert.equal(selected.reasonCode, 'runtime-local-agent-selected-from-inventory');
+  assert.equal(selected.ready, false);
+  assert.equal(selected.reasonCode, 'zhiyu-realm-materialized-partner-required');
   assert.equal(selected.source, 'runtime');
   assert.equal(selected.ownerUserId, 'user-1');
-  assert.equal(selected.runtimeSourceRef, 'opaque-source-ref-1');
-  assert.equal(selected.localAgentRef, 'runtime-local-agent:opaque-1');
+  assert.equal(selected.runtimeSourceRef, null);
+  assert.equal(selected.localAgentRef, null);
+  assert.equal(selected.actionHint, 'open_desktop_explore_character_persona');
+  assert.doesNotMatch(selected.actionHint, /materialize|create|select_or_create/);
+  assert.match(selected.message, /Runtime-owned partner/);
+  assert.match(selected.message, /Desktop Explore/);
 });
 
 test('keeps explicit Runtime source discovery result when it is already ready', async () => {
@@ -104,6 +108,9 @@ test('fails closed when Runtime inventory is empty or ambiguous', async () => {
   });
   assert.equal(empty.ready, false);
   assert.equal(empty.reasonCode, 'zhiyu-runtime-local-agent-inventory-empty');
+  assert.equal(empty.actionHint, 'open_desktop_explore_character_persona');
+  assert.doesNotMatch(empty.actionHint, /materialize|create|select_or_create/);
+  assert.match(empty.message, /Desktop Explore/);
 
   const ambiguous = resolveZhiyuRuntimeLocalAgentSelection({
     sourceLocalAgent: unavailableLocalAgent(),

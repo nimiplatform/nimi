@@ -1,0 +1,72 @@
+version: 1
+table_family: product_catalog
+owner: zhiyu
+catalog_id: zhiyu_storybook_trace
+entries:
+  - story_01_first_open_partner_selection
+  - story_02_select_existing_partner
+  - story_03_configure_model
+  - story_04_first_conversation
+  - story_05_revisit_continuity
+  - story_06_relationship_state_summary
+  - story_07_avatar_config_launch
+  - story_08_voice_deferred
+  - story_09_creation_artifact_boundary
+  - story_10_local_service_offline
+  - story_11_diagnostics
+stories:
+  - id: story_01_first_open_partner_selection
+    source_story: 1
+    intent: first_open_requires_local_partner_selection_or_desktop_handoff
+    states: [no_partner, partner_candidates_unselected]
+    authority_refs: [product-authority-contract.md, partner-selection-handoff-contract.md, local-partner-center-state-contract.md]
+  - id: story_02_select_existing_partner
+    source_story: 2
+    intent: select_current_partner_from_desktop_realm_projection
+    states: [partner_candidates_unselected, partner_ready]
+    authority_refs: [partner-selection-handoff-contract.md]
+  - id: story_03_configure_model
+    source_story: 3
+    intent: configure_runtime_ai_model_before_conversation
+    states: [model_config_not_ready, partner_ready]
+    authority_refs: [configuration-surface-contract.md]
+  - id: story_04_first_conversation
+    source_story: 4
+    intent: start_runtime_agent_turn_with_current_partner
+    states: [partner_ready, partner_responding]
+    authority_refs: [conversation-surface-contract.md]
+  - id: story_05_revisit_continuity
+    source_story: 5
+    intent: show_read_only_revisit_continuity_projection
+    states: [partner_ready]
+    authority_refs: [memory-state-projection-contract.md, local-persistence-boundary-contract.md]
+  - id: story_06_relationship_state_summary
+    source_story: 6
+    intent: show_read_only_relationship_state_summary_projection
+    states: [partner_ready]
+    authority_refs: [memory-state-projection-contract.md]
+  - id: story_07_avatar_config_launch
+    source_story: 7
+    intent: configure_and_launch_avatar_through_admitted_facades
+    states: [partner_ready]
+    authority_refs: [configuration-surface-contract.md, avatar-voice-surface-contract.md]
+  - id: story_08_voice_deferred
+    source_story: 8
+    intent: show_voice_status_and_future_entry_without_v1_voice_render_path
+    states: [partner_ready]
+    authority_refs: [avatar-voice-surface-contract.md]
+  - id: story_09_creation_artifact_boundary
+    source_story: 9
+    intent: remove_zhiyu_image_creation_and_allow_runtime_artifact_display_only
+    states: [partner_responding, partner_ready]
+    authority_refs: [conversation-surface-contract.md, creation-activity-contract.md]
+  - id: story_10_local_service_offline
+    source_story: 10
+    intent: recover_from_local_service_unavailable_or_owner_aware_failure
+    states: [local_service_unavailable, recoverable_failure]
+    authority_refs: [local-partner-center-state-contract.md, diagnostics-dev-mode-contract.md]
+  - id: story_11_diagnostics
+    source_story: 11
+    intent: developer_secondary_diagnostics_without_defining_first_screen
+    states: [local_service_unavailable, recoverable_failure]
+    authority_refs: [diagnostics-dev-mode-contract.md]

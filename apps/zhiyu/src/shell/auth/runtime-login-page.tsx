@@ -53,7 +53,7 @@ export function RuntimeLoginPage({
       {errorMessage ? (
         <InlineAlert className="runtime-login-alert" tone="warning">
           <div className="runtime-alert-copy">
-            <strong>Runtime account required</strong>
+            <strong>需要本地账户</strong>
             <span>{errorMessage}</span>
           </div>
         </InlineAlert>

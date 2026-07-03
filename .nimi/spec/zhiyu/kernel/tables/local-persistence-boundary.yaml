@@ -1,0 +1,29 @@
+version: 1
+table_family: owner_matrix
+owner: zhiyu
+matrix_id: zhiyu_local_persistence_boundary
+allowed:
+  - key: current_partner_ref
+    owner: zhiyu_projection_cache
+    constraints: [must_reference_upstream_partner_projection, not_identity_truth]
+    source_rule: Z-PERSIST-001
+  - key: ui_preferences
+    owner: zhiyu
+    constraints: [non_authoritative, no_runtime_config_truth]
+    source_rule: Z-PERSIST-001
+  - key: diagnostics_projection_cache
+    owner: zhiyu
+    constraints: [cache_only, owner_aware, not_raw_upstream_truth]
+    source_rule: Z-PERSIST-001
+forbidden:
+  - canonical_transcript
+  - turn_truth
+  - session_recovery_truth
+  - memory_truth
+  - agent_state_truth
+  - provider_model_route
+  - runtime_ai_config_truth
+  - avatar_resource_config_truth
+  - voice_artifact_truth
+  - image_artifact_truth
+  - runtime_snapshot_truth

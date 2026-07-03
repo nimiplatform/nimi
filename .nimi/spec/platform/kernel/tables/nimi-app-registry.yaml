@@ -298,7 +298,7 @@ apps:
     admission_status: admitted
     source_rule: P-NAPP-011
   - app_id: nimi.zhiyu
-    display_label: Zhiyu
+    display_label: 织羽 Zhiyu
     publisher: nimi-first-party
     trust_tier_ref: nimi-first-party
     package_kind: nimi-app

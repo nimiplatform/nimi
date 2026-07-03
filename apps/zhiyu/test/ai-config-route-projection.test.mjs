@@ -32,6 +32,7 @@ test('Zhiyu route projection reads selected NimiAIConfig target refs for require
         'text.generate': targetRef,
         'text.embed': targetRef,
         'image.generate': targetRef,
+        'audio.synthesize': targetRef,
       },
       selectedParams: {},
     },
@@ -91,18 +92,26 @@ test('Zhiyu route projection reads selected NimiAIConfig target refs for require
   assert.equal(route.reasonCode, 'runtime-route-ready');
   assert.equal(route.capability, 'text.generate');
   assert.equal(route.aiConfigScopeOwnerId, 'nimi.zhiyu');
-  assert.deepEqual(route.enabledCapabilities, ['text.generate', 'chat.stream', 'text.embed', 'image.generate']);
+  assert.deepEqual(route.enabledCapabilities, [
+    'text.generate',
+    'chat.stream',
+    'text.embed',
+    'image.generate',
+    'audio.synthesize',
+  ]);
   assert.deepEqual(route.bindingCapabilities, {
     'text.generate': 'text.generate',
     'chat.stream': 'text.generate',
     'text.embed': 'text.embed',
     'image.generate': 'image.generate',
+    'audio.synthesize': 'audio.synthesize',
   });
   assert.deepEqual(route.targetRefKinds, {
     'text.generate': 'local-runtime',
     'chat.stream': 'local-runtime',
     'text.embed': 'local-runtime',
     'image.generate': 'local-runtime',
+    'audio.synthesize': 'local-runtime',
   });
   assert.equal(route.executionBinding.route, 'local');
   assert.equal(route.executionBinding.modelId, 'runtime-text-model');
@@ -148,6 +157,7 @@ test('Zhiyu route projection fails closed until AIConfig text target is selected
   assert.equal(route.targetRefKinds['text.generate'], null);
   assert.equal(route.targetRefKinds['chat.stream'], null);
   assert.equal(route.targetRefKinds['image.generate'], 'local-runtime');
+  assert.equal(route.targetRefKinds['audio.synthesize'], null);
 });
 
 async function importRouteModule() {

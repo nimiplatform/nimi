@@ -26,19 +26,21 @@ export function RuntimeUnavailablePage({
     >
       <Surface className="runtime-unavailable-panel" material="glass-thick" tone="panel" elevation="floating">
         <div className="runtime-unavailable-heading">
-          <StatusBadge tone="warning" shape="dot">需要 Runtime</StatusBadge>
+          <StatusBadge tone="warning" shape="dot">需要本地服务</StatusBadge>
           <h1>{appTitle}</h1>
           <p>{runtimeUnavailablePrimaryCopy(reasonCode)}</p>
         </div>
         <InlineAlert tone="warning">
           <div className="runtime-alert-copy">
-            <strong>本地 Runtime 暂未连接</strong>
-            <span>请先启动 Nimi Runtime，然后重新检查连接状态。</span>
+            <strong>本地运行服务暂未连接</strong>
+            <span>请先启动 Nimi 本地运行服务，然后重新检查连接状态。</span>
           </div>
         </InlineAlert>
         <div className="runtime-unavailable-actions">
-          <Button type="button" tone="primary" onClick={onRetry}>重新检查 Runtime</Button>
-          {offlineTier ? <span>离线层级 {offlineTier}</span> : null}
+          <Button type="button" tone="primary" onClick={onRetry}>重新检查本地服务</Button>
+          {offlineTier ? (
+            <span data-zhiyu-runtime-offline-tier={offlineTier}>连接可恢复</span>
+          ) : null}
         </div>
         <details className="runtime-unavailable-diagnostic-detail">
           <summary>查看技术诊断</summary>
@@ -64,7 +66,7 @@ export function RuntimeUnavailablePage({
 
 function runtimeUnavailablePrimaryCopy(reasonCode: string): string {
   if (/permission|forbidden|scope/i.test(reasonCode)) {
-    return '当前应用还没有获得 Runtime 会话权限，请在诊断中确认授权状态。';
+    return '当前应用还没有获得本地会话权限，请在诊断中确认授权状态。';
   }
-  return '知遇需要本地 Runtime 提供账户、模型路由和 Agent 投影；连接恢复后会自动回到工作区。';
+  return '织羽需要本地运行服务提供账户、模型配置和伙伴投影；连接恢复后会自动回到工作区。';
 }

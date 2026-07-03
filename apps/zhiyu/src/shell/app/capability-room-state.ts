@@ -82,7 +82,7 @@ export type ZhiyuCapabilityRoomOwnerCard = {
 };
 
 export type ZhiyuCapabilityRoomState = {
-  readonly title: '能力房间';
+  readonly title: '能力面板';
   readonly activeCapabilityId: string;
   readonly catalogCount: number;
   readonly deferredCount: number;
@@ -107,7 +107,7 @@ export function projectZhiyuCapabilityRoomState(input: {
   const blockedCount = items.filter((item) => item.state !== 'ready' && item.state !== 'catalog-only').length;
 
   return {
-    title: '能力房间',
+    title: '能力面板',
     activeCapabilityId,
     catalogCount: input.catalog.length,
     deferredCount: input.deferred.length,
@@ -286,28 +286,28 @@ function ownerCards(evidence: ZhiyuEvidence): readonly ZhiyuCapabilityRoomOwnerC
     {
       key: 'catalog',
       title: '能力身份',
-      owner: 'Platform capability catalog',
+      owner: '能力目录',
       state: 'ready',
       reasonCode: 'P-CAPCAT-001',
     },
     {
       key: 'route',
       title: '出站路由',
-      owner: 'Runtime/SDK route projection',
+      owner: '模型通路',
       state: routeReady ? 'ready' : 'blocked',
       reasonCode: evidence.route.reasonCode,
     },
     {
       key: 'model',
       title: '模型绑定',
-      owner: 'AIConfig and Runtime route binding',
+      owner: '模型配置',
       state: evidence.route.executionBinding ? 'ready' : 'blocked',
       reasonCode: evidence.route.executionBinding ? 'runtime-route-binding-ready' : evidence.route.reasonCode,
     },
     {
       key: 'memory',
       title: '记忆使用',
-      owner: 'Cognition memory projection',
+      owner: '记忆投影',
       state: 'not-admitted',
       reasonCode: 'zhiyu-memory-observability-projection-not-admitted',
     },
@@ -321,7 +321,7 @@ function routeIsReady(evidence: ZhiyuEvidence): boolean {
 function executionBindingLabel(evidence: ZhiyuEvidence): string {
   const binding = evidence.route.executionBinding;
   if (!evidence.route.ready || !binding) {
-    return '等待 Runtime/SDK route projection';
+    return '等待模型配置';
   }
-  return `${binding.route}:${binding.modelId}`;
+  return binding.route === 'local' ? '本地模型已绑定' : '云端模型已绑定';
 }

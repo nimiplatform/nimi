@@ -11,6 +11,7 @@ Nimi product authority is organized by active domain. Kernel markdown files and 
 - `platform`
 - `runtime`
 - `sdks`
+- `zhiyu`
 
 ## External Authority Anchors
 

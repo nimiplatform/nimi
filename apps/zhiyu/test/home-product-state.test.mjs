@@ -242,23 +242,23 @@ test('projects no-runtime home stage without inventing success', async () => {
   assert.equal(product.readyCount, 0);
   assert.equal(product.totalCount, 8);
   assert.equal(product.readinessScore, '0/8');
-  assert.equal(product.primaryTitle, '织羽正在等待本地 Runtime');
-  assert.equal(product.primaryActionHint, 'restart_zhiyu_electron_shell');
+  assert.equal(product.primaryTitle, '需要先连接本地服务');
+  assert.equal(product.primaryActionHint, '先确认桌面本地服务已经启动。');
   assert.equal(product.statusCards.length, 8);
   assert.equal(product.statusCards[0]?.key, 'runtime');
   assert.equal(product.statusCards[0]?.tone, 'danger');
   assert.equal(product.gatedSurfaces.length, 8);
   assert.equal(product.gatedSurfaces[0]?.title, '记忆观测');
-  assert.equal(product.gatedSurfaces[1]?.title, '能力房间');
-  assert.equal(product.gatedSurfaces[2]?.title, 'Proposal Intake');
+  assert.equal(product.gatedSurfaces[1]?.title, '能力面板');
+  assert.equal(product.gatedSurfaces[2]?.title, '能力申请');
   assert.equal(product.gatedSurfaces[2]?.reasonCode, 'not-probed');
-  assert.equal(product.gatedSurfaces[3]?.title, 'Delegation UX');
+  assert.equal(product.gatedSurfaces[3]?.title, '委托审批');
   assert.equal(product.gatedSurfaces[3]?.reasonCode, 'not-probed');
-  assert.equal(product.gatedSurfaces[4]?.title, '身份地板');
+  assert.equal(product.gatedSurfaces[4]?.title, '身份安全');
   assert.equal(product.gatedSurfaces[5]?.title, '相处状态');
-  assert.equal(product.gatedSurfaces[6]?.title, 'Diary & Reflection');
+  assert.equal(product.gatedSurfaces[6]?.title, '日记与回顾');
   assert.equal(product.gatedSurfaces[6]?.reasonCode, 'zhiyu-diary-reflection-artifact-authority-not-admitted');
-  assert.equal(product.gatedSurfaces[7]?.title, 'Avatar Presence');
+  assert.equal(product.gatedSurfaces[7]?.title, '形象状态');
 });
 
 test('projects ready stage only when Runtime Agent turn is ready', async () => {
@@ -328,7 +328,7 @@ test('projects ready stage only when Runtime Agent turn is ready', async () => {
   assert.equal(product.stage, 'ready');
   assert.equal(product.readyCount, 8);
   assert.equal(product.readinessScore, '8/8');
-  assert.equal(product.primaryTitle, '织羽已准备好与本地 Agent 交互');
+  assert.equal(product.primaryTitle, '当前伙伴已准备好');
   assert.equal(product.statusCards.every((card) => card.tone === 'success'), true);
 });
 

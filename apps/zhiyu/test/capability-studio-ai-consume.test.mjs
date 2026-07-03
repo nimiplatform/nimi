@@ -90,11 +90,26 @@ async function buildCapabilityStudioConsume() {
     target: 'es2022',
     sourcemap: false,
     logLevel: 'silent',
+    plugins: [workspaceKitSourcePlugin()],
   }).catch(async (error) => {
     const source = await readFile(path.join(root, 'src/shell/capability-studio/zhiyu-ai-consume.ts'), 'utf8').catch(() => '');
     throw new Error(`failed to build Zhiyu Capability Studio consume wrapper: ${error.message}\nsource length=${source.length}`);
   });
   return buildDir;
+}
+
+function workspaceKitSourcePlugin() {
+  return {
+    name: 'workspace-kit-source',
+    setup(buildContext) {
+      buildContext.onResolve({ filter: /^@nimiplatform\/kit\/features\/generation\/runtime$/ }, () => ({
+        path: path.resolve(root, '..', '..', 'kit', 'features', 'generation', 'src', 'runtime.ts'),
+      }));
+      buildContext.onResolve({ filter: /^@nimiplatform\/kit\/core\/sdk-contract$/ }, () => ({
+        path: path.resolve(root, '..', '..', 'kit', 'core', 'src', 'sdk-contract.ts'),
+      }));
+    },
+  };
 }
 
 function createAIConfig() {

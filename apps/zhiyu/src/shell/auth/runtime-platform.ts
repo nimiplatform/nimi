@@ -5,6 +5,7 @@ import {
   type NimiRuntimeAccountCaller,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electron-runtime-unavailable';
 
 export const appId = 'nimi.zhiyu';
 export const appTitle = '织羽 Zhiyu';
@@ -108,6 +109,16 @@ async function createFirstPartyRuntimeProjection(
 }
 
 function unavailableFromError(mode: RuntimeAuthMode, error: unknown): RuntimePlatformUnavailableProjection {
+  const unavailable = normalizeZhiyuElectronRuntimeUnavailableError(error);
+  if (unavailable) {
+    return {
+      status: 'action-required',
+      mode,
+      reasonCode: unavailable.reasonCode,
+      actionHint: unavailable.actionHint,
+      message: error instanceof Error ? error.message : 'Zhiyu Runtime account setup is required.',
+    };
+  }
   const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   const reasonCode = normalizeText(record.reasonCode)
     || normalizeText(record.code)

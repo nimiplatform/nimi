@@ -60,7 +60,7 @@ function conversationUnavailable() {
     ...conversationReady(),
     ready: false,
     reasonCode: 'zhiyu-local-agent-required',
-    actionHint: 'materialize_runtime_owned_local_agent',
+    actionHint: 'select_runtime_owned_partner',
     ownerUserId: null,
     runtimeSourceRef: null,
     localAgentRef: null,
@@ -168,6 +168,34 @@ test('projects Runtime pending approval as candidate intent and preview without 
   assert.equal(status.outputFirewall.firewallVerdict, 'approval_required');
   assert.equal(status.audit.state, 'approval-linked');
   assert.equal(status.audit.policySnapshotId, 'policy-snapshot:approval-1');
+});
+
+test('separates required delegation scopes from granted and admitted scope evidence', async () => {
+  const { probeZhiyuRuntimeDelegationUx } = await loadModule();
+  const status = await probeZhiyuRuntimeDelegationUx(conversationReady(), {
+    loadSnapshot: async () => snapshot({
+      grantedScopes: ['runtime.agent.delegation.read'],
+      admittedScopes: ['runtime.agent.delegation.read'],
+    }),
+  });
+
+  assert.deepEqual(status.requiredScopes, [
+    'runtime.agent.delegation.read',
+    'runtime.agent.delegation.write',
+  ]);
+  assert.deepEqual(status.grantedScopes, ['runtime.agent.delegation.read']);
+  assert.deepEqual(status.admittedScopes, ['runtime.agent.delegation.read']);
+  assert.deepEqual(status.scopeEvidence, {
+    requiredScopes: [
+      'runtime.agent.delegation.read',
+      'runtime.agent.delegation.write',
+    ],
+    grantedScopes: ['runtime.agent.delegation.read'],
+    admittedScopes: ['runtime.agent.delegation.read'],
+    evidenceState: 'partial',
+    reasonCode: 'runtime-delegation-scope-grant-partial',
+  });
+  assert.notDeepEqual(status.requiredScopes, status.grantedScopes);
 });
 
 test('submits Runtime-owned deny decision without resuming delegated execution', async () => {

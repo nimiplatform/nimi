@@ -79,6 +79,9 @@ export type DelegationControlSurfaceSnapshot = {
   readonly providerProfiles?: readonly unknown[];
   readonly approvalRequests?: readonly DelegationApprovalRequest[];
   readonly diagnostics?: readonly DelegationDiagnostic[];
+  readonly requiredScopes?: readonly unknown[];
+  readonly grantedScopes?: readonly unknown[];
+  readonly admittedScopes?: readonly unknown[];
   readonly observedAt?: unknown;
 };
 

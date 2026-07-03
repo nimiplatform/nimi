@@ -34,10 +34,37 @@ import type {
 
 export function formatProjectionValue(value: string | null | undefined): string {
   if (!value || value === 'not_projected') {
-    return '等待投影';
+    return '尚未准备';
   }
   if (value === 'not_admitted') {
-    return '尚未准入';
+    return '尚未开放';
+  }
+  if (value === 'runtime' || value === 'sdk-fixture') {
+    return '本地服务';
+  }
+  if (value === 'renderer') {
+    return '本地界面';
+  }
+  if (value === 'electron') {
+    return '桌面壳';
+  }
+  if (value === 'blocked') {
+    return '等待授权';
+  }
+  if (value === 'projected') {
+    return '已准备';
+  }
+  if (value === 'ready') {
+    return '已就绪';
+  }
+  if (value === 'live2d') {
+    return 'Live2D';
+  }
+  if (/zhiyu-avatar-blocked/i.test(value)) {
+    return '等待授权';
+  }
+  if (/zhiyu-avatar-projected/i.test(value)) {
+    return '已投影';
   }
   return value;
 }
@@ -47,7 +74,13 @@ export function formatReasonLabel(ready: boolean, reasonCode: string): string {
     return '已就绪';
   }
   if (/missing|required|unavailable|blocked|not[_-]projected|not[_-]admitted/i.test(reasonCode)) {
-    return '等待上游投影';
+    if (/route|model|ai-config/i.test(reasonCode)) {
+      return '需要模型';
+    }
+    if (/local-agent|agent|required|source/i.test(reasonCode)) {
+      return '需要伙伴';
+    }
+    return '需要处理';
   }
   if (/failed|error|denied|revoked/i.test(reasonCode)) {
     return '需要处理';
@@ -69,7 +102,7 @@ export function AvatarPresenceSection({
   const backendKind = avatar.backendKind ?? 'live2d';
   const avatarSnapshot = createAvatarStageSnapshot({
     backendKind,
-    avatarAssetRef: `fallback://zhiyu-avatar-${avatar.ready ? 'projected' : 'blocked'}`,
+    avatarAssetRef: `fallback://${avatar.ready ? '形象已就绪' : '当前伙伴形象'}`,
     expressionProfileRef: null,
     idlePreset: null,
     interactionPolicyRef: null,
@@ -113,9 +146,9 @@ export function AvatarPresenceSection({
       <div className="zhiyu-home__avatar-product">
         <AvatarStage
           snapshot={avatarSnapshot}
-          label="知遇 Avatar"
+          label="当前伙伴形象"
           fallbackLabel="知"
-          statusLabel={avatar.ready ? 'Projected' : 'Blocked'}
+          statusLabel={avatar.ready ? '已准备' : '等待授权'}
           size="md"
           showStatusBadge
           className="zhiyu-home__avatar-stage"
@@ -123,11 +156,10 @@ export function AvatarPresenceSection({
         <div className="zhiyu-home__avatar-copy">
           <div className="zhiyu-home__avatar-summary">
             <StatusBadge tone={avatar.ready ? 'success' : 'warning'} shape="dot">
-              {avatar.ready ? 'Avatar projection ready' : 'Avatar blocked'}
+              {avatar.ready ? '形象已准备' : '等待形象授权'}
             </StatusBadge>
-            <span>{formatReasonLabel(avatar.ready, avatar.reasonCode)}</span>
           </div>
-          <p>{avatar.ready ? avatar.message : 'Avatar 启动和管理只在 Runtime/Avatar facade 投影明确授权后出现。'}</p>
+          <p>{avatar.ready ? avatar.message : '形象启动和管理会在获得授权后出现。'}</p>
           <div className="zhiyu-home__avatar-actions" data-zhiyu-avatar-actions={controlState}>
             {avatar.launchAvailable ? (
               <Button
@@ -138,7 +170,7 @@ export function AvatarPresenceSection({
                 onClick={onLaunch}
                 data-zhiyu-avatar-launch-action="available"
               >
-                Launch Avatar
+                启动形象
               </Button>
             ) : null}
             {avatar.manageAvailable ? (
@@ -150,26 +182,23 @@ export function AvatarPresenceSection({
                 onClick={onManage}
                 data-zhiyu-avatar-manage-action="available"
               >
-                Manage Avatar
+                管理形象
               </Button>
             ) : null}
             {!avatar.launchAvailable && !avatar.manageAvailable ? (
-              <span data-zhiyu-avatar-actions-hidden="true">
-                Launch / manage controls hidden until facade authorization.
-              </span>
+              <span data-zhiyu-avatar-actions-hidden="true" aria-hidden="true" />
             ) : null}
           </div>
         </div>
       </div>
-      <div className="zhiyu-home__avatar-grid" aria-label="Avatar facade projection">
-        <AvatarPresenceField label="Projection" value={avatar.projectionRef} />
-        <AvatarPresenceField label="Configuration" value={avatar.configurationRef} />
-        <AvatarPresenceField label="Backend" value={avatar.backendKind} />
-        <AvatarPresenceField label="Visual" value={avatar.visualReadiness} />
-        <AvatarPresenceField label="Voice" value={avatar.voiceReadiness} />
-        <AvatarPresenceField label="Source" value={avatar.source} />
-      </div>
-      <p className="zhiyu-home__action-hint">{avatar.actionHint}</p>
+      {avatar.ready ? (
+        <div className="zhiyu-home__avatar-grid" aria-label="形象状态">
+          <AvatarPresenceField label="配置" value={avatar.configurationRef} />
+          <AvatarPresenceField label="后端" value={avatar.backendKind} />
+          <AvatarPresenceField label="视觉" value={avatar.visualReadiness} />
+          <AvatarPresenceField label="声音" value={avatar.voiceReadiness} />
+        </div>
+      ) : null}
     </Surface>
   );
 }
@@ -225,31 +254,31 @@ export function IdentityFloorSection({
       </div>
       <div className="zhiyu-home__identity-summary">
         <StatusBadge tone={identityFloor.state === 'ready' ? 'success' : 'warning'} shape="dot">
-          {identityFloor.summaryReasonCode}
+          {identityFloor.state === 'ready' ? '已就绪' : '等待投影'}
         </StatusBadge>
-        <span>{identityFloor.readyCount} ready</span>
-        <span>{identityFloor.blockedCount} blocked</span>
-        <span>{identityFloor.notAdmittedCount} not admitted</span>
+        <span>{identityFloor.readyCount} 项就绪</span>
+        <span>{identityFloor.blockedCount} 项等待</span>
+        <span>{identityFloor.notAdmittedCount} 项尚未开放</span>
       </div>
       <p
         className="zhiyu-home__identity-note"
         data-zhiyu-identity-overwrite-policy="runtime-owned"
       >
-        Identity cannot be overwritten by one message or by a stored memory conflict.
+        身份不会被单条消息或一条记忆冲突覆盖。
       </p>
-      <div className="zhiyu-home__identity-grid" aria-label="identity floor projection">
+      <div className="zhiyu-home__identity-grid" aria-label="身份地板投影">
         {identityFloor.items.map((item) => (
           <IdentityFloorItemRow key={item.key} item={item} />
         ))}
       </div>
-      <div className="zhiyu-home__identity-unsupported" aria-label="identity floor unsupported projections">
+      <div className="zhiyu-home__identity-unsupported" aria-label="身份地板未开放投影">
         {identityFloor.unsupportedProjectionFields.map((field) => (
           <span
             key={field}
             data-zhiyu-identity-unsupported-field={field}
             data-zhiyu-identity-unsupported-state="not_admitted"
           >
-            {field}: not_admitted
+            {identityUnsupportedLabel(field)}：尚未开放
           </span>
         ))}
       </div>
@@ -273,10 +302,23 @@ function IdentityFloorItemRow({ item }: { readonly item: ZhiyuIdentityFloorItem 
         <small>{item.owner}</small>
       </div>
       <StatusBadge tone={toneForIdentityItemState(item.state)} shape="dot">
-        {item.reasonCode}
+        {identityItemStateLabel(item.state)}
       </StatusBadge>
     </div>
   );
+}
+
+function identityItemStateLabel(state: ZhiyuIdentityFloorItemState): string {
+  if (state === 'ready') return '已就绪';
+  if (state === 'not-admitted') return '尚未开放';
+  return '等待投影';
+}
+
+function identityUnsupportedLabel(field: string): string {
+  if (field === 'identityConflictEvent') return '身份冲突事件';
+  if (field === 'firewallThreatIndicators') return '防护威胁指标';
+  if (field === 'firewallNormalizedOutputDiff') return '防护输出差异';
+  return field.replaceAll('_', ' ');
 }
 
 export function CapabilityRoomSection({ capabilityRoom }: { readonly capabilityRoom: ZhiyuCapabilityRoomState }) {
@@ -299,15 +341,15 @@ export function CapabilityRoomSection({ capabilityRoom }: { readonly capabilityR
         <ShieldCheck size={18} aria-hidden="true" />
         <div>
           <h2>{capabilityRoom.title}</h2>
-          <p>只读展示 canonical capability catalog、Runtime/SDK route projection 与尚未准入的记忆使用边界。</p>
+          <p>只读展示已准入能力、模型通路与尚未开放的记忆使用边界。</p>
         </div>
       </div>
       <div className="zhiyu-home__capability-summary">
         <StatusBadge tone={capabilityRoom.routeReady ? 'success' : 'warning'} shape="dot">
-          {capabilityRoom.routeReasonCode}
+          {capabilityRoom.routeReady ? '模型已配置' : '等待模型配置'}
         </StatusBadge>
-        <span>{capabilityRoom.catalogCount} canonical capabilities</span>
-        <span>{capabilityRoom.deferredCount} deferred runtime aliases</span>
+        <span>{capabilityRoom.catalogCount} 项能力</span>
+        <span>{capabilityRoom.deferredCount} 项待开放</span>
         <span>{capabilityRoom.executionBindingLabel}</span>
       </div>
       <div className="zhiyu-home__owner-grid" aria-label="能力边界 owner">
@@ -315,7 +357,7 @@ export function CapabilityRoomSection({ capabilityRoom }: { readonly capabilityR
           <OwnerCard key={owner.key} owner={owner} />
         ))}
       </div>
-      <div className="zhiyu-home__capability-list" aria-label="canonical capability catalog">
+      <div className="zhiyu-home__capability-list" aria-label="能力目录">
         {capabilityRoom.items.map((item) => (
           <div
             key={item.capabilityId}
@@ -332,32 +374,36 @@ export function CapabilityRoomSection({ capabilityRoom }: { readonly capabilityR
             data-zhiyu-capability-unsupported-reason={item.matrix.unsupportedReason}
             data-zhiyu-capability-setup-requirement={item.matrix.setupRequirement}
           >
-            <div>
-              <strong>{item.capabilityId}</strong>
-              <small>{item.section} / {item.runtimeEvidenceClass}</small>
-              <div
-                className="zhiyu-home__capability-governance"
-                data-zhiyu-capability-governance-owner={item.governance.owner}
-                data-zhiyu-capability-governance-data-movement={item.governance.dataMovement}
-                data-zhiyu-capability-governance-retention={item.governance.retention}
-                data-zhiyu-capability-governance-revocation={item.governance.revocation}
-                data-zhiyu-capability-governance-audit-source={item.governance.auditSource}
-                data-zhiyu-capability-governance-source={item.governance.source}
-              >
-                <span>{item.matrix.currentState}</span>
-                <span>{item.governance.owner}</span>
-                <span>{item.governance.dataMovement}</span>
-                <span>{item.governance.retention}</span>
-                <span>{item.matrix.revocationPath}</span>
-                <span>{item.matrix.auditSource}</span>
-                <span>{item.matrix.auditRef}</span>
-                <span>{item.matrix.unsupportedReason}</span>
-                <span>{item.matrix.setupRequirement}</span>
+            <div className="zhiyu-home__capability-item-header">
+              <div className="zhiyu-home__capability-item-title">
+                <strong>{capabilityDisplayLabel(item.capabilityId)}</strong>
+                <small>{capabilitySectionLabel(item.section)} / {formatCapabilityState(item.state)}</small>
               </div>
+              <span className="zhiyu-home__capability-item-status" data-zhiyu-capability-status-badge={item.state}>
+                <StatusBadge tone={toneForCapabilityState(item.state)} shape="dot">
+                  {formatCapabilityState(item.state)}
+                </StatusBadge>
+              </span>
             </div>
-            <StatusBadge tone={toneForCapabilityState(item.state)} shape="dot">
-              {item.active ? item.reasonCode : item.state}
-            </StatusBadge>
+            <div
+              className="zhiyu-home__capability-governance"
+              data-zhiyu-capability-governance-owner={item.governance.owner}
+              data-zhiyu-capability-governance-data-movement={item.governance.dataMovement}
+              data-zhiyu-capability-governance-retention={item.governance.retention}
+              data-zhiyu-capability-governance-revocation={item.governance.revocation}
+              data-zhiyu-capability-governance-audit-source={item.governance.auditSource}
+              data-zhiyu-capability-governance-source={item.governance.source}
+            >
+              <span data-zhiyu-capability-governance-chip="current-state">{formatCapabilityState(item.matrix.currentState)}</span>
+              <span data-zhiyu-capability-governance-chip="owner">{ownerDisplayLabel(item.governance.owner)}</span>
+              <span data-zhiyu-capability-governance-chip="data-movement">{capabilityPolicyLabel(item.governance.dataMovement, '数据使用待投影')}</span>
+              <span data-zhiyu-capability-governance-chip="retention">{capabilityPolicyLabel(item.governance.retention, '留存策略待投影')}</span>
+              <span data-zhiyu-capability-governance-chip="revocation">{capabilityPolicyLabel(item.matrix.revocationPath, '撤回路径待投影')}</span>
+              <span data-zhiyu-capability-governance-chip="audit-source">{capabilityPolicyLabel(item.matrix.auditSource, '审计来源待投影')}</span>
+              <span data-zhiyu-capability-governance-chip="audit-ref">{capabilityPolicyLabel(item.matrix.auditRef, '审计引用待投影')}</span>
+              <span data-zhiyu-capability-governance-chip="unsupported-reason">{capabilityPolicyLabel(item.matrix.unsupportedReason, '可用性已确认')}</span>
+              <span data-zhiyu-capability-governance-chip="setup-requirement">{capabilityPolicyLabel(item.matrix.setupRequirement, '无需设置')}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -374,12 +420,81 @@ function OwnerCard({ owner }: { readonly owner: ZhiyuCapabilityRoomOwnerCard }) 
       data-zhiyu-capability-owner-state={owner.state}
     >
       <span>{owner.title}</span>
-      <strong>{owner.owner}</strong>
+      <strong>{ownerDisplayLabel(owner.owner)}</strong>
       <StatusBadge tone={toneForOwnerState(owner.state)} shape="dot">
-        {owner.reasonCode}
+        {ownerStateLabel(owner.state)}
       </StatusBadge>
     </div>
   );
+}
+
+function capabilityDisplayLabel(capabilityId: string): string {
+  if (capabilityId === 'text.generate') return '文本生成';
+  if (capabilityId === 'chat.stream') return '连续回复';
+  if (capabilityId === 'text.embed') return '文本嵌入';
+  if (capabilityId === 'image.generate') return '图片生成';
+  return capabilityId;
+}
+
+function capabilitySectionLabel(section: string): string {
+  if (section === 'chat') return '对话';
+  if (section === 'embed') return '嵌入';
+  if (section === 'image') return '图片';
+  if (section === 'voice') return '声音';
+  if (section === 'video') return '视频';
+  return section;
+}
+
+function capabilityPolicyLabel(value: string, fallback: string): string {
+  if (!value || value === 'not_projected' || value === 'not_evaluated') {
+    return fallback;
+  }
+  if (value === 'not_unsupported') {
+    return '可用性已确认';
+  }
+  if (value === 'none') {
+    return '无需设置';
+  }
+  return value.replaceAll('_', ' ');
+}
+
+function ownerDisplayLabel(owner: string): string {
+  if (owner === 'not_projected') return '等待投影';
+  if (owner === '能力目录') return owner;
+  if (owner === '模型通路') return owner;
+  if (owner === '模型配置') return owner;
+  if (owner === '记忆投影') return owner;
+  if (/Platform capability catalog/i.test(owner)) return '能力目录';
+  if (/Runtime\/SDK route projection|Runtime route projection/i.test(owner)) return '模型通路';
+  if (/AIConfig/i.test(owner)) return '模型配置';
+  if (/Cognition memory projection/i.test(owner)) return '记忆投影';
+  return owner;
+}
+
+function ownerStateLabel(state: ZhiyuCapabilityRoomOwnerCard['state']): string {
+  if (state === 'ready') return '已就绪';
+  if (state === 'not-admitted') return '尚未开放';
+  return '等待就绪';
+}
+
+function formatCapabilityState(state: ZhiyuCapabilityRoomItemState): string {
+  switch (state) {
+    case 'ready':
+      return '已就绪';
+    case 'catalog-only':
+      return '目录内';
+    case 'needs-setup':
+      return '需要设置';
+    case 'denied':
+      return '未授权';
+    case 'revoked':
+      return '已撤回';
+    case 'unsupported':
+      return '不支持';
+    case 'unavailable':
+    default:
+      return '暂不可用';
+  }
 }
 
 export function DiagnosticSurface({ diagnostics }: { readonly diagnostics: ZhiyuDiagnosticState }) {
@@ -508,13 +623,6 @@ export function HiddenEvidenceStatus({ evidence }: { readonly evidence: ZhiyuEvi
         data-zhiyu-local-agent-state={evidence.localAgent.reasonCode}
         data-zhiyu-local-agent-source={evidence.localAgent.source}
         data-zhiyu-local-agent-ready={String(evidence.localAgent.ready)}
-      />
-      <p
-        data-zhiyu-image-studio-state={evidence.imageStudio.state}
-        data-zhiyu-image-studio-reason={evidence.imageStudio.reasonCode}
-        data-zhiyu-image-studio-ready={String(evidence.imageStudio.ready)}
-        data-zhiyu-image-studio-artifact-count={String(evidence.imageStudio.artifactCount)}
-        data-zhiyu-image-studio-preview-source={evidence.imageStudio.firstArtifact?.previewSource ?? 'none'}
       />
     </div>
   );

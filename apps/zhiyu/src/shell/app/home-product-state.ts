@@ -52,14 +52,14 @@ type EvidenceStatus = {
 
 export function projectZhiyuHomeProductState(evidence: ZhiyuEvidence): ZhiyuHomeProductState {
   const statusCards = [
-    statusCard('runtime', 'Runtime', evidence.runtime, '本地运行时'),
+    statusCard('runtime', '本地服务', evidence.runtime, '桌面连接'),
     statusCard('auth', '账户', evidence.auth, '身份与权限'),
-    statusCard('source', '来源投影', evidence.source, '准入来源'),
-    statusCard('inventory', 'Agent 清单', evidence.inventory, 'Runtime inventory'),
-    statusCard('localAgent', 'LocalAgent', evidence.localAgent, '本地身份'),
-    statusCard('conversation', '会话锚点', evidence.conversation, 'Runtime anchor'),
-    statusCard('route', '模型路由', evidence.route, 'text.generate'),
-    statusCard('turn', '回合通路', evidence.turn, 'turn readiness'),
+    statusCard('source', '伙伴来源', evidence.source, 'Realm 角色资料'),
+    statusCard('inventory', '伙伴清单', evidence.inventory, '可用伙伴'),
+    statusCard('localAgent', '当前伙伴', evidence.localAgent, '本地身份'),
+    statusCard('conversation', '会话', evidence.conversation, '对话入口'),
+    statusCard('route', '模型配置', evidence.route, '文字模型'),
+    statusCard('turn', '回复', evidence.turn, '消息发送'),
   ] as const;
   const totalCount = statusCards.length;
   const readyCount = statusCards.filter((card) => card.ready).length;
@@ -71,7 +71,7 @@ export function projectZhiyuHomeProductState(evidence: ZhiyuEvidence): ZhiyuHome
     stage,
     primaryTitle: primary.title,
     primaryDescription: primary.description,
-    primaryActionHint: blocking?.actionHint ?? 'send_runtime_agent_turn',
+    primaryActionHint: primary.actionHint,
     readyCount,
     totalCount,
     readinessScore: `${readyCount}/${totalCount}`,
@@ -136,42 +136,50 @@ function resolveStage(evidence: ZhiyuEvidence): ZhiyuHomeProductStage {
 function primaryCopy(stage: ZhiyuHomeProductStage): {
   readonly title: string;
   readonly description: string;
+  readonly actionHint: string;
 } {
   switch (stage) {
     case 'runtime-unavailable':
       return {
-        title: '织羽正在等待本地 Runtime',
-        description: '本地运行时还没有连上，织羽不会伪造 Agent、会话或回复。',
+        title: '需要先连接本地服务',
+        description: '连接后，织羽会读取 Realm 角色资料，并打开对应的本地伙伴。',
+        actionHint: '先确认桌面本地服务已经启动。',
       };
     case 'account-required':
       return {
-        title: '织羽正在确认账户身份',
-        description: '账户投影未就绪前，Home 只展示只读状态和修复方向。',
+        title: '需要先登录账户',
+        description: '账户确认后，才可以读取你的 Realm 伙伴资料。',
+        actionHint: '请完成账户登录或重新检查账户状态。',
       };
     case 'source-required':
       return {
-        title: '织羽正在等待准入来源',
-        description: 'LocalAgent 必须来自 Runtime/SDK 准入投影，不能在应用内写死来源。',
+        title: '选择已存在伙伴',
+        description: '当前没有可打开的伙伴。请到 Desktop Explore 的角色/人格页选择来源；等本地伙伴出现在清单后，织羽会打开它。',
+        actionHint: '打开 Desktop Explore 的角色/人格语境；织羽只读取已在本地清单中的伙伴。',
       };
     case 'agent-required':
       return {
-        title: '织羽正在寻找 Runtime-owned LocalAgent',
-        description: '当 Runtime inventory 或 source provenance 命中后，才会进入会话。',
+        title: '选择已存在伙伴',
+        description: '已经连接到账户，但当前没有可打开的伙伴。请从 Desktop Explore 的角色/人格页确认来源后返回。',
+        actionHint: '打开 Desktop Explore 的角色/人格语境；织羽只读取已在本地清单中的伙伴。',
       };
     case 'conversation-required':
       return {
-        title: '织羽正在打开会话锚点',
-        description: '提交回合前必须先获得 Runtime-owned conversation anchor。',
+        title: '正在打开当前伙伴会话',
+        description: '当前伙伴已选定，正在准备对话入口。',
+        actionHint: '稍候片刻，或打开诊断查看阻塞原因。',
       };
     case 'route-required':
       return {
-        title: '织羽正在等待模型路由',
-        description: '没有已准入的 text.generate 绑定时，输入会保持禁用。',
+        title: '需要先配置模型',
+        description: '当前伙伴已经选定；配置文字模型后，就可以开始对话。',
+        actionHint: '打开模型配置，选择用于对话的本地或云端模型。',
       };
     case 'ready':
       return {
-        title: '织羽已准备好与本地 Agent 交互',
-        description: '当前会话、路由和回合通路均来自 Runtime/SDK 投影。',
+        title: '当前伙伴已准备好',
+        description: '可以开始对话，并查看记忆、形象和可用能力摘要。',
+        actionHint: '直接输入消息，或查看本地环境状态。',
       };
   }
 }
@@ -181,42 +189,42 @@ function gatedSurfaces(evidence: ZhiyuEvidence): readonly ZhiyuHomeGatedSurface[
     {
       key: 'memory',
       title: '记忆观测',
-      description: '只显示未来 Cognition/Runtime 准入的只读记忆投影；当前不写入、不缓存、不伪造记忆。',
-      stateLabel: evidence.conversation.ready ? '等待记忆投影准入' : '等待会话锚点',
+      description: '只读展示当前伙伴的记忆摘要；没有数据时不会伪造记忆。',
+      stateLabel: evidence.conversation.ready ? '等待记忆摘要' : '等待当前伙伴会话',
       reasonCode: evidence.conversation.reasonCode,
       actionHint: evidence.conversation.actionHint,
     },
     {
       key: 'capability',
-      title: '能力房间',
-      description: '能力、权限、模型出站和本地动作都必须来自 canonical projection；当前只展示门禁状态。',
-      stateLabel: evidence.route.ready ? '等待能力目录准入' : '等待模型路由',
+      title: '能力面板',
+      description: '用于诊断当前可用能力、模型配置和权限边界。',
+      stateLabel: evidence.route.ready ? '能力目录可查看' : '等待模型配置',
       reasonCode: evidence.route.reasonCode,
       actionHint: evidence.route.actionHint,
     },
     {
       key: 'proposal',
-      title: 'Proposal Intake',
-      description: 'Conversation-originated capability requests become Platform-owned non-executing proposals through the SDK. Zhiyu never stores proposal truth locally.',
-      stateLabel: evidence.proposal.ready ? 'Proposal submitted to Platform intake' : 'Waiting for Platform proposal intake',
+      title: '能力申请',
+      description: '对话中产生的新能力请求会进入受控申请流程。',
+      stateLabel: evidence.proposal.ready ? '申请已提交' : '申请入口未开放',
       reasonCode: evidence.proposal.reasonCode,
       actionHint: evidence.proposal.actionHint,
     },
     {
       key: 'delegation',
-      title: 'Delegation UX',
-      description: 'Runtime-owned delegated approval, output firewall, and replay audit surface. Zhiyu reviews and submits typed decisions only.',
+      title: '委托审批',
+      description: '只显示受控委托、输出防护和回放审计。',
       stateLabel: evidence.delegation.ready
-        ? 'Runtime delegation control projected'
-        : 'Waiting for Runtime delegation control',
+        ? '委托控制可用'
+        : '等待委托控制开放',
       reasonCode: evidence.delegation.reasonCode,
       actionHint: evidence.delegation.actionHint,
     },
     {
       key: 'identity',
-      title: '身份地板',
-      description: '只读展示 agent identity floor、conversation anchor 连续性，以及尚未准入的身份冲突、防火墙和记忆准入解释投影。',
-      stateLabel: evidence.localAgent.ready ? '等待用户可见身份安全投影准入' : '等待 Runtime-owned LocalAgent',
+      title: '身份安全',
+      description: '只读展示伙伴身份、会话连续性和安全边界。',
+      stateLabel: evidence.localAgent.ready ? '等待身份安全说明' : '等待当前伙伴',
       reasonCode: evidence.localAgent.ready
         ? 'zhiyu-identity-floor-user-visible-projection-not-admitted'
         : evidence.localAgent.reasonCode,
@@ -225,28 +233,28 @@ function gatedSurfaces(evidence: ZhiyuEvidence): readonly ZhiyuHomeGatedSurface[
     {
       key: 'companion',
       title: '相处状态',
-      description: '只读展示 Runtime Agent state projection；emotion、posture、relationship、why-now、user adjustment 和 history 未准入时明确标记。',
+      description: '展示当前伙伴的状态、情绪和参与方式摘要。',
       stateLabel: evidence.companion.ready
-        ? 'Runtime Agent state 已投影'
-        : '等待 Runtime Agent state projection',
+        ? '伙伴状态已更新'
+        : '等待伙伴状态',
       reasonCode: evidence.companion.reasonCode,
       actionHint: evidence.companion.actionHint,
     },
     {
       key: 'diary',
-      title: 'Diary & Reflection',
-      description: 'Read-only long-term artifact lane. Zhiyu shows the missing owner, storage policy, and SDK projection instead of creating a local diary store.',
+      title: '日记与回顾',
+      description: '长期内容与回顾能力尚在受控开放中，不在本地创建日记仓库。',
       stateLabel: evidence.diaryReflection.ready
-        ? 'Diary reflection artifacts projected'
-        : 'Waiting for diary reflection artifact authority',
+        ? '日记与回顾已可用'
+        : '等待日记与回顾授权',
       reasonCode: evidence.diaryReflection.reasonCode,
       actionHint: evidence.diaryReflection.actionHint,
     },
     {
       key: 'avatar',
-      title: 'Avatar Presence',
-      description: '只读展示 admitted Avatar facade projection；配置 ref、启动入口和管理入口均必须由上游 facade 提供。',
-      stateLabel: evidence.avatar.ready ? 'Avatar facade 已投影' : '等待 Avatar facade projection',
+      title: '形象状态',
+      description: '展示当前伙伴形象是否可启动、可管理。',
+      stateLabel: evidence.avatar.ready ? '形象已就绪' : '等待形象授权',
       reasonCode: evidence.avatar.reasonCode,
       actionHint: evidence.avatar.actionHint,
     },

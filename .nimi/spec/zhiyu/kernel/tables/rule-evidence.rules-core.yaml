@@ -1,0 +1,16 @@
+version: 1
+table_family: support_registry
+owner: zhiyu
+rules:
+  - rule_id: Z-PROD-001
+    evidence_requirement: product-authority-contract.md
+  - rule_id: Z-AUTH-002
+    evidence_requirement: authority-owner-matrix.yaml and registry-scope-posture.yaml
+  - rule_id: Z-CHAT-003
+    evidence_requirement: sdk-kit-consumption-surface.yaml forbidden_surfaces
+  - rule_id: Z-CONFIG-001
+    evidence_requirement: config-consumption-surface.yaml
+  - rule_id: Z-MEM-002
+    evidence_requirement: memory-state-projection-contract.md and sdk-kit forbidden writeMemory
+  - rule_id: Z-GATE-001
+    evidence_requirement: test-quarantine-policy.yaml

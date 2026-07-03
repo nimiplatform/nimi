@@ -45,7 +45,7 @@ export async function probeZhiyuRuntimeCompanionState(
   if (localAgent.ready && stringOr(localAgent.source, '') !== 'runtime') {
     return companionUnavailable({
       reasonCode: 'zhiyu-runtime-owned-local-agent-required',
-      actionHint: 'materialize_runtime_owned_local_agent',
+      actionHint: 'select_runtime_owned_partner',
       source: localAgent.source,
       message: 'Zhiyu requires Runtime-owned LocalAgent evidence before reading companion state.',
       ownerUserId: localAgent.ownerUserId,
@@ -57,7 +57,7 @@ export async function probeZhiyuRuntimeCompanionState(
   if (!identity) {
     return companionUnavailable({
       reasonCode: 'zhiyu-local-agent-required',
-      actionHint: 'materialize_runtime_owned_local_agent',
+      actionHint: 'select_runtime_owned_partner',
       source: localAgent.source,
       message: 'Zhiyu requires a Runtime-owned LocalAgent before reading companion state.',
       ownerUserId: localAgent.ownerUserId,

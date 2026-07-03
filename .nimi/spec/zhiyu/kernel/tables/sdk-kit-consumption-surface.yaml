@@ -1,0 +1,50 @@
+version: 1
+table_family: owner_matrix
+owner: zhiyu
+matrix_id: zhiyu_sdk_kit_consumption_surface
+required_surfaces:
+  - symbol: createNimiRuntimeAgentClient
+    package: "@nimiplatform/sdk/runtime"
+    allowed_use: runtime_agent_client_factory
+    required_binding: ScopedRuntimeBindingAttachment
+    source_rule: Z-CHAT-001
+  - symbol: runNimiRuntimeAgentTurn
+    package: "@nimiplatform/sdk/runtime"
+    allowed_use: turn_runner
+    required_binding: ScopedRuntimeBindingAttachment
+    source_rule: Z-CHAT-001
+  - symbol: createNimiRuntimeAgentTurnsModule
+    package: "@nimiplatform/sdk/runtime"
+    allowed_use: turns_module_consume_only
+    required_binding: ScopedRuntimeBindingAttachment
+    source_rule: Z-CHAT-001
+  - symbol: streamRuntimeAgentTurnRunnerPartsAsConversationEvents
+    package: "@nimiplatform/kit/features/chat/headless"
+    allowed_use: projection_to_conversation_events
+    source_rule: Z-CHAT-001
+  - symbol: reduceRuntimeAgentConversationProjectionEvent
+    package: "@nimiplatform/kit/features/chat/headless"
+    allowed_use: projection_state_reducer
+    source_rule: Z-CHAT-001
+forbidden_surfaces:
+  - symbol: useAppAiChatSession
+    reason: direct_text_generate_bypasses_runtime_agent
+    source_rule: Z-CHAT-003
+  - symbol: createAppAiChatComposerAdapter
+    reason: direct_text_generate_bypasses_runtime_agent
+    source_rule: Z-CHAT-003
+  - symbol: streamNimiTextResponse
+    reason: direct_text_generate_bypasses_runtime_agent
+    source_rule: Z-CHAT-003
+  - symbol: runNimiTextGenerate
+    reason: direct_text_generate_bypasses_runtime_agent
+    source_rule: Z-CHAT-003
+  - symbol: sendAppMessage_to_runtime_agent_raw
+    reason: raw_runtime_agent_target_bypasses_sdk_turn_surface
+    source_rule: Z-CHAT-003
+  - symbol: client.writeMemory
+    reason: memory_write_not_zhiyu_user_feature
+    source_rule: Z-MEM-003
+  - symbol: renderVoice
+    reason: voice_render_deferred_and_not_runtime_admitted_for_zhiyu
+    source_rule: Z-AV-003

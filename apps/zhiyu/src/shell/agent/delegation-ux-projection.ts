@@ -7,9 +7,8 @@ import type {
   ZhiyuDelegationUxStatus,
 } from '../app/evidence';
 import type { ZhiyuConversationHomeStatus } from './conversation-home';
+import { requiredOnlyScopeEvidence, scopeEvidenceFromSnapshot } from './delegation-scope-evidence';
 import {
-  DELEGATION_READ_SCOPE,
-  DELEGATION_WRITE_SCOPE,
   type DelegationControlSurfaceSnapshot,
   type DelegationDiagnostic,
   type DelegationIdentity,
@@ -61,6 +60,7 @@ export function projectDelegationStatus(input: {
   const pendingApprovalCount = approvals.filter((approval) => approval.state === 'pending').length;
   const state = stateFromProjection(candidateIntent, outputFirewall, diagnostics.length, providerCount);
   const reasonCode = reasonCodeFromState(state, primaryApproval, diagnostic);
+  const scopeEvidence = scopeEvidenceFromSnapshot(snapshot);
   return {
     transport: 'electron-ipc',
     ready: true,
@@ -88,7 +88,10 @@ export function projectDelegationStatus(input: {
       reasonCode: 'no-delegation-decision-submitted',
       message: 'No delegated approval decision has been submitted from Zhiyu.',
     },
-    scopeEvidence: [DELEGATION_READ_SCOPE, DELEGATION_WRITE_SCOPE],
+    requiredScopes: scopeEvidence.requiredScopes,
+    grantedScopes: scopeEvidence.grantedScopes,
+    admittedScopes: scopeEvidence.admittedScopes,
+    scopeEvidence,
     unsupportedFields: [],
   };
 }
@@ -418,6 +421,7 @@ export function normalizeDelegationError(
 }
 
 export function delegationUnavailable(input: DelegationUnavailableInput): ZhiyuDelegationUxStatus {
+  const scopeEvidence = requiredOnlyScopeEvidence();
   return {
     transport: 'electron-ipc',
     ready: false,
@@ -488,7 +492,10 @@ export function delegationUnavailable(input: DelegationUnavailableInput): ZhiyuD
       reasonCode: 'no-delegation-decision-submitted',
       message: 'No delegated approval decision has been submitted from Zhiyu.',
     },
-    scopeEvidence: [DELEGATION_READ_SCOPE, DELEGATION_WRITE_SCOPE],
+    requiredScopes: scopeEvidence.requiredScopes,
+    grantedScopes: scopeEvidence.grantedScopes,
+    admittedScopes: scopeEvidence.admittedScopes,
+    scopeEvidence,
     unsupportedFields: ['runtime_delegation_control_surface'],
   };
 }

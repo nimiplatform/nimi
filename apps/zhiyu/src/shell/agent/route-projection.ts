@@ -30,6 +30,7 @@ export const ZHIYU_AI_CONFIG_ENABLED_CAPABILITIES = [
   'chat.stream',
   'text.embed',
   'image.generate',
+  'audio.synthesize',
 ] as const;
 
 export type ZhiyuAIConfigEnabledCapability = (typeof ZHIYU_AI_CONFIG_ENABLED_CAPABILITIES)[number];
@@ -39,6 +40,7 @@ export const ZHIYU_AI_CONFIG_BINDING_CAPABILITIES: Readonly<Record<ZhiyuAIConfig
   'chat.stream': 'text.generate',
   'text.embed': 'text.embed',
   'image.generate': 'image.generate',
+  'audio.synthesize': 'audio.synthesize',
 };
 
 export type ZhiyuRuntimeRouteProjectionInput = {
@@ -106,7 +108,7 @@ export async function probeZhiyuRuntimeRouteProjection(
 
 function selectionStoreFromAIConfig(config: NimiAIConfig): NimiRuntimeRouteCapabilitySelectionStore {
   let store = createDefaultNimiRuntimeRouteCapabilitySelectionStore();
-  for (const capability of ['text.generate', 'text.embed', 'image.generate'] as const) {
+  for (const capability of ['text.generate', 'text.embed', 'image.generate', 'audio.synthesize'] as const) {
     const targetRef = routeTargetRefFromAIConfig(config.capabilities.targetRefs[capability] || null);
     if (targetRef) {
       store = updateNimiRuntimeRouteCapabilityTargetRef(store, capability, targetRef);

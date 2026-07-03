@@ -39,7 +39,7 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
     {
       key: 'platform',
       title: '平台身份规则',
-      owner: 'Platform Agent Identity Floor',
+      owner: '平台身份规则',
       state: 'ready',
       reasonCode: 'P-AGID-001..P-AGID-008',
       actionHint: 'consume_platform_identity_floor_contract',
@@ -48,8 +48,8 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
     },
     {
       key: 'local-agent',
-      title: '本地 Agent 身份',
-      owner: 'RuntimeAgentService',
+      title: '本地伙伴身份',
+      owner: '本地伙伴服务',
       state: evidence.localAgent.ready ? 'ready' : 'blocked',
       reasonCode: evidence.localAgent.reasonCode,
       actionHint: evidence.localAgent.actionHint,
@@ -59,7 +59,7 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
     {
       key: 'conversation-anchor',
       title: '会话连续性锚点',
-      owner: 'RuntimeAgentService',
+      owner: '本地伙伴服务',
       state: evidence.conversation.ready ? 'ready' : 'blocked',
       reasonCode: evidence.conversation.reasonCode,
       actionHint: evidence.conversation.actionHint,
@@ -68,8 +68,8 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
     },
     {
       key: 'identity-conflict',
-      title: 'Identity conflict',
-      owner: 'Platform + Runtime',
+      title: '身份冲突',
+      owner: '平台与本地服务',
       state: safety?.identityConflict?.state === 'detected' ? 'blocked' : 'not-admitted',
       reasonCode: safety?.identityConflict?.reasonCode ?? 'runtime-agent-identity-conflict-event-not-projected',
       actionHint: safety?.identityConflict?.state === 'detected'
@@ -81,7 +81,7 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
     {
       key: 'memory-admission',
       title: '记忆准入拒绝解释',
-      owner: 'RuntimeAgentService + Cognition',
+      owner: '本地伙伴服务与记忆系统',
       state: safety?.memoryAdmission?.state === 'rejected' ? 'blocked' : 'not-admitted',
       reasonCode: safety?.memoryAdmission?.reasonCode ?? 'runtime-agent-memory-admission-rejection-not-projected',
       actionHint: safety?.memoryAdmission?.state === 'rejected'
@@ -93,7 +93,7 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
     {
       key: 'output-firewall',
       title: '输出防火墙解释',
-      owner: 'Runtime Delegation Firewall',
+      owner: '委托输出防护',
       state: outputFirewallItemState(safety?.outputFirewall?.state),
       reasonCode: safety?.outputFirewall?.reasonCode ?? 'runtime-agent-output-firewall-verdict-not-projected',
       actionHint: safety?.outputFirewall?.state && safety.outputFirewall.state !== 'not_projected'
@@ -105,7 +105,7 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
     {
       key: 'prompt-injection',
       title: '指令注入冲突状态',
-      owner: 'Platform + Runtime',
+      owner: '平台与本地服务',
       state: safety?.promptInjection?.state === 'suppressed' ? 'blocked' : 'not-admitted',
       reasonCode: safety?.promptInjection?.reasonCode ?? 'runtime-agent-firewall-threat-indicators-not-projected',
       actionHint: safety?.promptInjection?.state === 'suppressed'

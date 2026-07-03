@@ -1,0 +1,50 @@
+version: 1
+table_family: owner_matrix
+owner: zhiyu
+matrix_id: zhiyu_authority_owner_matrix
+entries:
+  - surface: product_promise
+    zhiyu_role: owns_product_surface
+    canonical_owner: zhiyu
+    forbidden_local_truth: []
+    source_rule: Z-PROD-001
+  - surface: partner_creation_profile
+    zhiyu_role: handoff_only
+    canonical_owner: desktop_realm
+    forbidden_local_truth: [partner_creation, profile_schema, persona_truth, local_agent_creation]
+    source_rule: Z-PARTNER-001
+  - surface: runtime_agent_turns
+    zhiyu_role: binding_only_consumer
+    canonical_owner: runtime_sdk
+    forbidden_local_truth: [turn_execution, prompt_assembly, event_stream_reducer, snapshot_replay, terminal_success]
+    source_rule: Z-CHAT-001
+  - surface: auth_token_custody
+    zhiyu_role: trusted_bridge_consumer
+    canonical_owner: runtime_sdk_kit_shell
+    forbidden_local_truth: [token_custody, credential_store, access_token_persistence, refresh_token_persistence]
+    source_rule: Z-AUTH-004
+  - surface: runtime_ai_config
+    zhiyu_role: display_and_operate_via_facade
+    canonical_owner: runtime_sdk_platform
+    forbidden_local_truth: [runtime_ai_config_store, provider_route, model_hardcode, credential_custody, spend_truth]
+    source_rule: Z-CONFIG-001
+  - surface: avatar_config
+    zhiyu_role: display_import_select_launch_via_facade
+    canonical_owner: avatar_runtime_kit
+    forbidden_local_truth: [avatar_resource_truth, avatar_config_store, carrier_lifecycle, avatar_runtime_truth]
+    source_rule: Z-CONFIG-003
+  - surface: memory_projection
+    zhiyu_role: read_only_projection
+    canonical_owner: runtime_cognition_realm
+    forbidden_local_truth: [memory_store, memory_write_feature, relationship_truth, emotion_conclusion]
+    source_rule: Z-MEM-001
+  - surface: relationship_state_projection
+    zhiyu_role: read_only_projection
+    canonical_owner: runtime_cognition_realm
+    forbidden_local_truth: [relationship_truth, state_summary_synthesis, emotion_conclusion]
+    source_rule: Z-MEM-001
+  - surface: conversation_image_artifact
+    zhiyu_role: display_projection_only
+    canonical_owner: runtime_sdk_kit
+    forbidden_local_truth: [image_generation_route, artifact_fetch_seam, retry_truth, provider_model_control]
+    source_rule: Z-CHAT-005

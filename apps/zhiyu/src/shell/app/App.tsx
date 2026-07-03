@@ -6,30 +6,25 @@ import {
 import type {
   RuntimeAgentConversationProjectionState,
 } from '@nimiplatform/kit/features/chat/headless';
-import { projectNimiRuntimeAgentIdentitySafety, Runtime } from '@nimiplatform/sdk/runtime';
-import { ScenarioJobStatus, type ScenarioJob } from '@nimiplatform/sdk/runtime/generated';
+import { Runtime } from '@nimiplatform/sdk/runtime';
 import {
   createInitialZhiyuEvidence,
   type ZhiyuCapabilityStudioStatus,
   type ZhiyuEvidence,
-  type ZhiyuImageStudioArtifact,
-  type ZhiyuImageStudioStatus,
   type ZhiyuRuntimeAgentChatStatus,
 } from './evidence';
 import { HomeSurface } from './HomeSurface';
 import { projectZhiyuCapabilityRoomState } from './capability-room-state';
 import { projectZhiyuDiagnosticState } from './diagnostic-state';
 import { projectZhiyuHomeProductState } from './home-product-state';
+import { projectZhiyuIdentitySafetyEvidence } from './identity-safety-evidence';
 import { projectZhiyuIdentityFloorState } from './identity-floor-state';
+import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import { probeZhiyuAvatarPresence } from '../avatar/avatar-presence';
 import {
   runZhiyuCapabilityStudioAIConsume,
   type ZhiyuCapabilityStudioCapabilityId,
 } from '../capability-studio/zhiyu-ai-consume';
-import {
-  runZhiyuImageStudioGenerate,
-  type ZhiyuImageGenerateResult,
-} from '../image-studio/zhiyu-image-generate';
 import { ZhiyuAiConfigSettings } from '../ai-config/zhiyu-ai-config-settings';
 import {
   createZhiyuAgentHomeAIScopeRef,
@@ -70,7 +65,6 @@ export function App() {
   const [evidence, setEvidence] = useState<ZhiyuEvidence>(() => createInitialZhiyuEvidence());
   const [draft, setDraft] = useState('');
   const [capabilityPrompt, setCapabilityPrompt] = useState('');
-  const [imagePrompt, setImagePrompt] = useState('');
   const renderEvidence = useMemo(() => projectZhiyuIdentitySafetyEvidence(evidence), [evidence]);
 
   useEffect(() => {
@@ -145,6 +139,7 @@ export function App() {
   }), [renderEvidence]);
   const diagnostics = useMemo(() => projectZhiyuDiagnosticState(renderEvidence), [renderEvidence]);
   const identityFloor = useMemo(() => projectZhiyuIdentityFloorState(renderEvidence), [renderEvidence]);
+  const avatarLaunchAction = useMemo(() => projectZhiyuAvatarLaunchAction(renderEvidence), [renderEvidence]);
 
   const submitEnabled = renderEvidence.conversation.ready
     && Boolean(renderEvidence.route.executionBinding)
@@ -160,10 +155,6 @@ export function App() {
     || !renderEvidence.auth.ready
     || !capabilityPrompt.trim()
     || renderEvidence.capabilityStudio.state === 'running';
-  const imageStudioDisabled = !renderEvidence.runtime.ready
-    || !renderEvidence.auth.ready
-    || !imagePrompt.trim()
-    || renderEvidence.imageStudio.state === 'running';
 
   async function handleSubmit(textInput: string) {
     const text = textInput.trim();
@@ -290,6 +281,11 @@ export function App() {
         vectorCount: null,
         dimensions: null,
         sample: [],
+        audioJobId: null,
+        audioJobStatus: null,
+        audioArtifactCount: null,
+        audioMimeType: null,
+        audioPreviewUrl: null,
         traceId: null,
       },
     }));
@@ -323,78 +319,6 @@ export function App() {
     }));
   }
 
-  async function handleImageStudioRun() {
-    const prompt = imagePrompt.trim();
-    if (!prompt) {
-      setEvidence((current) => ({
-        ...current,
-        imageStudio: imageStudioUnavailable({
-          promptLength: 0,
-          reasonCode: 'zhiyu-image-studio-prompt-required',
-          actionHint: 'enter_image_generation_prompt',
-          source: 'renderer',
-          message: 'Image Studio prompt is required before dispatch.',
-        }),
-      }));
-      return;
-    }
-    const scenarioId = `zhiyu-image-studio-image-generate-${Date.now().toString(36)}`;
-    setEvidence((current) => ({
-      ...current,
-      imageStudio: {
-        transport: 'electron-ipc',
-        ready: false,
-        state: 'running',
-        reasonCode: 'zhiyu-image-studio-running',
-        actionHint: 'wait_runtime_image_job_result',
-        source: 'renderer',
-        message: 'Runtime image.generate job is being submitted.',
-        promptLength: prompt.length,
-        jobId: null,
-        jobStatus: null,
-        artifactCount: 0,
-        firstArtifact: null,
-        artifacts: [],
-        traceId: null,
-      },
-    }));
-    const runtime = new Runtime({
-      appId: 'nimi.zhiyu',
-      transport: { type: 'electron-ipc' },
-    });
-    try {
-      const result = await runZhiyuImageStudioGenerate({
-        runtime,
-        config: aiConfig,
-        prompt,
-        scenarioId,
-        subjectUserId: renderEvidence.auth.accountId ?? undefined,
-        withScopes: withZhiyuElectronRuntimeProtectedScopes,
-        onJobUpdate: (job) => {
-          setEvidence((current) => ({
-            ...current,
-            imageStudio: imageStudioFromJobUpdate(current.imageStudio, job, prompt.length),
-          }));
-        },
-      });
-      setEvidence((current) => ({
-        ...current,
-        imageStudio: imageStudioFromResult(result, prompt.length),
-      }));
-    } catch (error) {
-      setEvidence((current) => ({
-        ...current,
-        imageStudio: imageStudioUnavailable({
-          promptLength: prompt.length,
-          reasonCode: 'runtime-call-failed',
-          actionHint: 'inspect_runtime_image_generate_failure',
-          source: 'runtime',
-          message: describeError(error),
-        }),
-      }));
-    }
-  }
-
   return (
     <>
     <HomeSurface
@@ -405,20 +329,15 @@ export function App() {
       identityFloor={identityFloor}
       draft={draft}
       capabilityPrompt={capabilityPrompt}
-      imagePrompt={imagePrompt}
       submitEnabled={submitEnabled}
       composerState={composerState}
       capabilityStudioDisabled={capabilityStudioDisabled}
-      imageStudioDisabled={imageStudioDisabled}
+      avatarLaunchAction={avatarLaunchAction}
       onDraftChange={setDraft}
       onCapabilityPromptChange={setCapabilityPrompt}
-      onImagePromptChange={setImagePrompt}
       onSubmit={handleSubmit}
       onCapabilityStudioRun={(capabilityId) => {
         void handleCapabilityStudioRun(capabilityId);
-      }}
-      onImageStudioRun={() => {
-        void handleImageStudioRun();
       }}
       onProposalSubmit={() => {
         void handleProposalSubmit();
@@ -427,6 +346,17 @@ export function App() {
         void handleDelegationDecision(approvalRequestId, decision);
       }}
       onOpenModelConfig={() => setAiConfigOpen(true)}
+      onAvatarLaunch={() => {
+        setEvidence((current) => ({
+          ...current,
+          avatar: {
+            ...current.avatar,
+            reasonCode: 'zhiyu-avatar-public-handoff-not-admitted',
+            actionHint: 'admit_public_avatar_handoff',
+            message: avatarLaunchAction.message,
+          },
+        }));
+      }}
     />
     {aiConfigOpen ? (
       <ZhiyuAiConfigSettings
@@ -471,6 +401,36 @@ function capabilityStudioFromResult(
       vectorCount: result.output.vectorCount,
       dimensions: result.output.dimensions,
       sample: result.output.sample,
+      audioJobId: null,
+      audioJobStatus: null,
+      audioArtifactCount: null,
+      audioMimeType: null,
+      audioPreviewUrl: null,
+      traceId: result.trace?.traceId ?? null,
+    };
+  }
+  if (result.output.kind === 'audio-artifacts') {
+    return {
+      transport: 'electron-ipc',
+      ready: true,
+      state: 'succeeded',
+      reasonCode: 'zhiyu-capability-studio-audio-ready',
+      actionHint: 'review_runtime_audio_artifacts',
+      source: 'runtime',
+      message: result.message,
+      lastCapabilityId: capabilityId,
+      resultKind: 'audio',
+      text: null,
+      streamingText: null,
+      finishReason: null,
+      vectorCount: null,
+      dimensions: null,
+      sample: [],
+      audioJobId: result.output.jobId,
+      audioJobStatus: result.output.jobStatus,
+      audioArtifactCount: result.output.artifactCount,
+      audioMimeType: result.output.firstArtifact?.mimeType ?? null,
+      audioPreviewUrl: result.output.firstArtifact?.previewUrl ?? null,
       traceId: result.trace?.traceId ?? null,
     };
   }
@@ -492,6 +452,11 @@ function capabilityStudioFromResult(
     vectorCount: null,
     dimensions: null,
     sample: [],
+    audioJobId: null,
+    audioJobStatus: null,
+    audioArtifactCount: null,
+    audioMimeType: null,
+    audioPreviewUrl: null,
     traceId: result.trace?.traceId ?? null,
   };
 }
@@ -604,147 +569,11 @@ function capabilityStudioUnavailable(input: {
     vectorCount: null,
     dimensions: null,
     sample: [],
+    audioJobId: null,
+    audioJobStatus: null,
+    audioArtifactCount: null,
+    audioMimeType: null,
+    audioPreviewUrl: null,
     traceId: null,
-  };
-}
-
-function imageStudioFromJobUpdate(
-  current: ZhiyuImageStudioStatus,
-  job: ScenarioJob,
-  promptLength: number,
-): ZhiyuImageStudioStatus {
-  const jobStatus = imageJobStatusText(job.status);
-  return {
-    ...current,
-    ready: false,
-    state: 'running',
-    reasonCode: 'zhiyu-image-studio-job-running',
-    actionHint: 'wait_runtime_image_job_result',
-    source: 'runtime',
-    message: `Runtime image job ${job.jobId || 'pending'} is ${jobStatus}.`,
-    promptLength,
-    jobId: job.jobId || current.jobId,
-    jobStatus,
-  };
-}
-
-function imageStudioFromResult(
-  result: ZhiyuImageGenerateResult,
-  promptLength: number,
-): ZhiyuImageStudioStatus {
-  if (result.ok === false) {
-    return imageStudioUnavailable({
-      promptLength,
-      reasonCode: result.reason,
-      actionHint: 'inspect_runtime_image_generate_failure',
-      source: 'runtime',
-      message: result.message,
-    });
-  }
-  const artifacts = result.output.artifacts.map(imageStudioArtifactFromSummary);
-  return {
-    transport: 'electron-ipc',
-    ready: true,
-    state: 'succeeded',
-    reasonCode: 'zhiyu-image-studio-artifacts-ready',
-    actionHint: 'review_runtime_image_artifacts',
-    source: 'runtime',
-    message: result.message,
-    promptLength,
-    jobId: result.output.jobId,
-    jobStatus: result.output.jobStatus,
-    artifactCount: result.output.artifactCount,
-    firstArtifact: artifacts[0] ?? null,
-    artifacts,
-    traceId: result.trace?.traceId ?? null,
-  };
-}
-
-function imageStudioUnavailable(input: {
-  readonly promptLength: number;
-  readonly reasonCode: string;
-  readonly actionHint: string;
-  readonly source: string;
-  readonly message: string;
-}): ZhiyuImageStudioStatus {
-  return {
-    transport: 'electron-ipc',
-    ready: false,
-    state: 'failed',
-    reasonCode: input.reasonCode,
-    actionHint: input.actionHint,
-    source: input.source,
-    message: input.message,
-    promptLength: input.promptLength,
-    jobId: null,
-    jobStatus: null,
-    artifactCount: 0,
-    firstArtifact: null,
-    artifacts: [],
-    traceId: null,
-  };
-}
-
-function imageStudioArtifactFromSummary(artifact: {
-  readonly artifactId?: string;
-  readonly mimeType: string;
-  readonly previewSource: ZhiyuImageStudioArtifact['previewSource'];
-  readonly previewUrl?: string;
-  readonly width?: number;
-  readonly height?: number;
-  readonly sizeBytes?: number;
-}): ZhiyuImageStudioArtifact {
-  return {
-    artifactId: normalizeNullableText(artifact.artifactId),
-    mimeType: artifact.mimeType,
-    previewSource: artifact.previewSource,
-    previewUrl: normalizeNullableText(artifact.previewUrl),
-    width: positiveIntegerOrNull(artifact.width),
-    height: positiveIntegerOrNull(artifact.height),
-    sizeBytes: positiveIntegerOrNull(artifact.sizeBytes),
-  };
-}
-
-function imageJobStatusText(status: ScenarioJob['status']): string {
-  if (typeof status === 'number') {
-    return ScenarioJobStatus[status] || String(status);
-  }
-  return String(status || 'unknown');
-}
-
-function normalizeNullableText(value: unknown): string | null {
-  const text = String(value ?? '').trim();
-  return text || null;
-}
-
-function positiveIntegerOrNull(value: unknown): number | null {
-  const parsed = typeof value === 'number' ? value : Number(String(value ?? '').trim());
-  return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
-}
-
-function describeError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message || error.name;
-  }
-  return String(error || 'Runtime image generation failed.');
-}
-
-function projectZhiyuIdentitySafetyEvidence(evidence: ZhiyuEvidence): ZhiyuEvidence {
-  const ownerUserId = evidence.localAgent.ownerUserId;
-  const runtimeSourceRef = evidence.localAgent.runtimeSourceRef;
-  const localAgentRef = evidence.localAgent.localAgentRef;
-  if (!evidence.localAgent.ready || !ownerUserId || !runtimeSourceRef || !localAgentRef) {
-    return evidence.identitySafety ? { ...evidence, identitySafety: undefined } : evidence;
-  }
-  return {
-    ...evidence,
-    identitySafety: projectNimiRuntimeAgentIdentitySafety({
-      identity: {
-        ownerUserId,
-        runtimeSourceRef,
-        localAgentRef,
-      },
-      conversationAnchorId: evidence.conversation.conversationAnchorId,
-    }),
   };
 }

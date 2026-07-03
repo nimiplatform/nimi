@@ -35,8 +35,8 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
       {
         await page.waitForSelector('.runtime-unavailable-screen');
         await assertVisibleText(page, '织羽 Zhiyu');
-        await assertVisibleText(page, '本地 Runtime 暂未连接');
-        await assertVisibleText(page, '重新检查 Runtime');
+        await assertVisibleText(page, '本地运行服务暂未连接');
+        await assertVisibleText(page, '重新检查本地服务');
         const unavailableText = await page.locator('.runtime-unavailable-screen').innerText();
         assert.doesNotMatch(unavailableText, /缁囩窘|缂佸洨|绐/);
         assert.doesNotMatch(unavailableText, /ECONNREFUSED|start_external_runtime_daemon/);
@@ -112,16 +112,16 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
       assert.equal(productStage, 'runtime-unavailable');
       assert.equal(readinessScore, '0/8');
       await assertVisibleText(page, '织羽');
-      await assertVisibleText(page, '本地 Agent 家园');
-      await assertVisibleText(page, '等待本地 Runtime');
+      await assertVisibleText(page, '织羽工作台');
+      await assertVisibleText(page, '等待本地运行服务');
       await assertVisibleText(page, '记忆观测');
-      await assertVisibleText(page, '能力房间');
+      await assertVisibleText(page, '能力面板');
       await assertVisibleText(page, '身份地板');
       await assertVisibleText(page, '相处状态');
-      await assertVisibleText(page, 'Diary & Reflection');
-      await assertVisibleText(page, 'Proposal Intake');
-      await assertVisibleText(page, 'Delegation UX');
-      await assertVisibleText(page, 'Avatar Presence');
+      await assertVisibleText(page, '日记与回顾');
+      await assertVisibleText(page, '需求入口');
+      await assertVisibleText(page, '委托审批');
+      await assertVisibleText(page, '形象陪伴');
       assert.equal(await page.locator('[data-zhiyu-status-card]').count(), 8);
       assert.equal(await page.locator('[data-zhiyu-gated-surface]').count(), 8);
       await page.waitForSelector('[data-zhiyu-memory-observatory]');
@@ -150,9 +150,9 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
       assert.equal(await page.locator('[data-zhiyu-capability-item="text.generate"]').count(), 1);
       assert.equal(await page.locator('[data-zhiyu-capability-owner]').count(), 4);
       await assertVisibleText(page, 'text.generate');
-      await assertVisibleText(page, 'Platform capability catalog');
-      await assertVisibleText(page, 'Runtime/SDK route projection');
-      await assertVisibleText(page, 'Cognition memory projection');
+      await assertVisibleText(page, '能力目录');
+      await assertVisibleText(page, '模型通路');
+      await assertVisibleText(page, '记忆投影');
       await page.waitForSelector('[data-zhiyu-identity-floor]');
       const identityState = await page
         .locator('[data-zhiyu-identity-floor]')
@@ -176,7 +176,7 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
         await page.locator('[data-zhiyu-identity-item="prompt-injection"][data-zhiyu-identity-item-state="not-admitted"]').count(),
         1,
       );
-      await assertVisibleText(page, 'Identity cannot be overwritten by one message or by a stored memory conflict.');
+      await assertVisibleText(page, '身份不会被单条消息或一条记忆冲突覆盖。');
       await page.waitForSelector('[data-zhiyu-companion-state]');
       const companionState = await page
         .locator('[data-zhiyu-companion-state]')
@@ -302,7 +302,7 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
       assert.equal(evidence.appId, 'nimi.zhiyu');
       assert.equal(evidence.phase, 'electron-bootstrap');
       assert.equal(evidence.screen, 'home');
-      assert.deepEqual(evidence.productRegions, ['presence', 'conversation', 'capability-studio', 'image-studio', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'diary', 'avatar', 'diagnostics']);
+      assert.deepEqual(evidence.productRegions, ['presence', 'conversation', 'capability-studio', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'diary', 'avatar', 'diagnostics']);
       await page.waitForFunction(() =>
         globalThis.window.__nimiZhiyuEvidence?.auth?.reasonCode === 'electron-runtime-endpoint-unavailable',
       );
@@ -536,6 +536,7 @@ async function captureProductHomeEvidence(page, pageProblems, extra = {}) {
     path: path.join(evidenceRoot, 'product-home-desktop.png'),
     fullPage: true,
   });
+  const panelScreenshots = await captureNoRuntimePanelScreenshots(page, evidenceRoot);
   await page.setViewportSize({ width: 390, height: 900 });
   await page.screenshot({
     path: path.join(evidenceRoot, 'product-home-narrow.png'),
@@ -556,11 +557,30 @@ async function captureProductHomeEvidence(page, pageProblems, extra = {}) {
       checkpoint,
       scenario: 'no-runtime',
       pageProblems: [...pageProblems],
+      panelScreenshots: panelScreenshots,
       ...extra,
       domEvidence,
     }, null, 2)}\n`,
     'utf8',
   );
+}
+
+async function captureNoRuntimePanelScreenshots(page, evidenceRoot) {
+  const targets = [
+    ['.runtime-unavailable-panel', 'product-home-runtime-unavailable-panel.png'],
+    ['[data-zhiyu-region="diagnostics"]', 'product-home-diagnostics-panel.png'],
+  ];
+  const captured = [];
+  await page.setViewportSize({ width: 1280, height: 900 });
+  for (const [selector, filename] of targets) {
+    const locator = page.locator(selector).first();
+    if (await locator.count() && await locator.isVisible()) {
+      await locator.scrollIntoViewIfNeeded().catch(() => undefined);
+      await locator.screenshot({ path: path.join(evidenceRoot, filename) });
+      captured.push(filename);
+    }
+  }
+  return captured;
 }
 
 function evidenceCheckpoint(fallback) {

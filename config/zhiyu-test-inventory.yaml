@@ -1,0 +1,168 @@
+version: 1
+inventory_id: zhiyu_test_quarantine_inventory
+owner: zhiyu
+authority_class: non_authoritative_inventory
+spec_policy_ref: .nimi/spec/zhiyu/kernel/tables/test-quarantine-policy.yaml
+default_status: non_authoritative_until_inventory
+note: File-name-level inventory only. Old tests, old e2e, and old release evidence are not product authority.
+tests:
+  - path: apps/zhiyu/test/ai-config-route-projection.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-CONFIG-001, Z-CONFIG-004, Z-GATE-001]
+  - path: apps/zhiyu/test/ai-config-store.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-CONFIG-002, Z-PERSIST-002, Z-GATE-001]
+  - path: apps/zhiyu/test/avatar-presence.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-AV-001, Z-CONFIG-003, Z-GATE-001]
+  - path: apps/zhiyu/test/capability-room-state.test.mjs
+    classification: legacy_drift_quarantine
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-AUTH-004, Z-GATE-001]
+  - path: apps/zhiyu/test/capability-studio-ai-consume.test.mjs
+    classification: legacy_drift_quarantine
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-CHAT-003, Z-GATE-001]
+  - path: apps/zhiyu/test/companion-state.test.mjs
+    classification: story_regression_candidate
+    may_enter_release_gate: after_spec_ref_and_rewrite
+    authority_claim: false
+    spec_refs: [Z-PROD-001, Z-STATE-001, Z-GATE-001]
+  - path: apps/zhiyu/test/delegation-ux.test.mjs
+    classification: legacy_drift_quarantine
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-AUTH-004, Z-GATE-001]
+  - path: apps/zhiyu/test/diagnostic-state.test.mjs
+    classification: diagnostics_regression_candidate
+    may_enter_release_gate: after_spec_ref_and_scope_limit
+    authority_claim: false
+    spec_refs: [Z-DIAG-001, Z-DIAG-002, Z-GATE-001]
+  - path: apps/zhiyu/test/diary-reflection.test.mjs
+    classification: story_regression_candidate
+    may_enter_release_gate: after_spec_ref_and_rewrite
+    authority_claim: false
+    spec_refs: [Z-ACT-001, Z-MEM-001, Z-GATE-001]
+  - path: apps/zhiyu/test/electron-acceptance.mjs
+    classification: legacy_drift_quarantine
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-GATE-001, Z-GATE-003]
+  - path: apps/zhiyu/test/electron-host-contract.quarantine.mjs
+    classification: legacy_drift_quarantine
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-GATE-001, Z-GATE-003]
+  - path: apps/zhiyu/test/electron-live-runtime-acceptance.mjs
+    classification: legacy_drift_quarantine
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-GATE-001, Z-GATE-003]
+  - path: apps/zhiyu/test/home-product-state.test.mjs
+    classification: story_regression_candidate
+    may_enter_release_gate: after_spec_ref_and_rewrite
+    authority_claim: false
+    spec_refs: [Z-STATE-001, Z-COPY-001, Z-GATE-001]
+  - path: apps/zhiyu/test/home-surface-design.quarantine.mjs
+    classification: story_regression_candidate
+    may_enter_release_gate: after_spec_ref_and_rewrite
+    authority_claim: false
+    spec_refs: [Z-COPY-001, Z-GATE-003, Z-GATE-001]
+  - path: apps/zhiyu/test/identity-floor-state.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-PARTNER-003, Z-MEM-001, Z-GATE-001]
+  - path: apps/zhiyu/test/image-studio-generate.quarantine.mjs
+    classification: legacy_drift_quarantine
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-ACT-002, Z-CHAT-005, Z-GATE-001]
+  - path: apps/zhiyu/test/image-studio-state.quarantine.mjs
+    classification: legacy_drift_quarantine
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-ACT-002, Z-CHAT-005, Z-GATE-001]
+  - path: apps/zhiyu/test/live-runtime-fixture-adapter.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-CHAT-001, Z-AUTH-002, Z-GATE-001]
+  - path: apps/zhiyu/test/live-runtime-fixture-projection.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-CHAT-001, Z-CHAT-005, Z-GATE-001]
+  - path: apps/zhiyu/test/local-agent-discovery-input.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-PARTNER-001, Z-PARTNER-002, Z-GATE-001]
+  - path: apps/zhiyu/test/local-agent-selection.test.mjs
+    classification: story_regression_candidate
+    may_enter_release_gate: after_spec_ref_and_rewrite
+    authority_claim: false
+    spec_refs: [Z-PARTNER-002, Z-PARTNER-003, Z-GATE-001]
+  - path: apps/zhiyu/test/memory-observatory.test.mjs
+    classification: diagnostics_regression_candidate
+    may_enter_release_gate: after_spec_ref_and_scope_limit
+    authority_claim: false
+    spec_refs: [Z-MEM-001, Z-MEM-002, Z-GATE-001]
+  - path: apps/zhiyu/test/proactive-interruptibility.test.mjs
+    classification: legacy_drift_quarantine
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-AUTH-003, Z-GATE-001]
+  - path: apps/zhiyu/test/product-format.test.mjs
+    classification: story_regression_candidate
+    may_enter_release_gate: after_spec_ref_and_rewrite
+    authority_claim: false
+    spec_refs: [Z-COPY-001, Z-GATE-001]
+  - path: apps/zhiyu/test/product-storybook-devmode.test.mjs
+    classification: story_regression_candidate
+    may_enter_release_gate: after_spec_ref_and_rewrite
+    authority_claim: false
+    spec_refs: [Z-DIAG-001, Z-GATE-001]
+  - path: apps/zhiyu/test/product-surface-migration-boundary.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-AUTH-004, Z-GATE-001]
+  - path: apps/zhiyu/test/proposal-intake.test.mjs
+    classification: legacy_drift_quarantine
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-ACT-001, Z-GATE-001]
+  - path: apps/zhiyu/test/release-evidence.test.mjs
+    classification: legacy_drift_quarantine
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-GATE-001, Z-REL-003]
+  - path: apps/zhiyu/test/runtime-agent-chat.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-CHAT-001, Z-CHAT-002, Z-GATE-001]
+  - path: apps/zhiyu/test/runtime-agent-scopes.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-AUTH-003, Z-CHAT-002, Z-GATE-001]
+  - path: apps/zhiyu/test/runtime-auth-migration.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-AUTH-001, Z-AUTH-004, Z-GATE-001]
+  - path: apps/zhiyu/test/runtime-status-error-normalization.test.mjs
+    classification: diagnostics_regression_candidate
+    may_enter_release_gate: after_spec_ref_and_scope_limit
+    authority_claim: false
+    spec_refs: [Z-STATE-004, Z-DIAG-002, Z-GATE-001]

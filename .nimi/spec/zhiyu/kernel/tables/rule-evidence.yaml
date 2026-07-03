@@ -1,0 +1,30 @@
+version: 1
+table_family: support_registry
+registry_id: zhiyu_rule_evidence_requirements
+owner: zhiyu
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - evidence_catalog
+  - rules
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+entries:
+  - evidence_catalog
+  - rules
+fragments:
+  evidence_catalog: rule-evidence.catalog.yaml
+  rules:
+    - rule-evidence.rules-core.yaml

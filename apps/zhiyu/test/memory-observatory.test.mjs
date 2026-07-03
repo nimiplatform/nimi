@@ -198,7 +198,7 @@ test('fails closed before Memory Observatory read when LocalAgent is unavailable
   assert.equal(memory.ready, false);
   assert.equal(memory.state, 'blocked');
   assert.equal(memory.reasonCode, 'zhiyu-local-agent-required');
-  assert.equal(memory.actionHint, 'materialize_runtime_owned_local_agent');
+  assert.equal(memory.actionHint, 'select_runtime_owned_partner');
   assert.equal(memory.recordCount, 0);
   assert.deepEqual(memory.records, []);
 });

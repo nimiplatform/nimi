@@ -27,6 +27,7 @@ export type {
   ZhiyuDelegationPreviewState,
   ZhiyuDelegationReplayStage,
   ZhiyuDelegationRetryState,
+  ZhiyuDelegationScopeEvidence,
   ZhiyuDelegationUxState,
   ZhiyuDelegationUxStatus,
 } from './delegation-evidence';
@@ -133,40 +134,18 @@ export type ZhiyuCapabilityStudioStatus = {
   readonly source: string;
   readonly message: string;
   readonly lastCapabilityId: ZhiyuCapabilityStudioCapabilityId | null;
-  readonly resultKind: 'none' | 'text' | 'embedding' | 'unavailable';
+  readonly resultKind: 'none' | 'text' | 'embedding' | 'audio' | 'unavailable';
   readonly text: string | null;
   readonly streamingText: string | null;
   readonly finishReason: string | null;
   readonly vectorCount: number | null;
   readonly dimensions: number | null;
   readonly sample: readonly number[];
-  readonly traceId: string | null;
-};
-
-export type ZhiyuImageStudioArtifact = {
-  readonly artifactId: string | null;
-  readonly mimeType: string;
-  readonly previewSource: 'hosted-uri' | 'inline-bytes' | 'runtime-artifact-read' | 'metadata-only';
-  readonly previewUrl: string | null;
-  readonly width: number | null;
-  readonly height: number | null;
-  readonly sizeBytes: number | null;
-};
-
-export type ZhiyuImageStudioStatus = {
-  readonly transport: 'electron-ipc';
-  readonly ready: boolean;
-  readonly state: 'idle' | 'blocked' | 'running' | 'succeeded' | 'failed';
-  readonly reasonCode: string;
-  readonly actionHint: string;
-  readonly source: string;
-  readonly message: string;
-  readonly promptLength: number;
-  readonly jobId: string | null;
-  readonly jobStatus: string | null;
-  readonly artifactCount: number;
-  readonly firstArtifact: ZhiyuImageStudioArtifact | null;
-  readonly artifacts: readonly ZhiyuImageStudioArtifact[];
+  readonly audioJobId: string | null;
+  readonly audioJobStatus: string | null;
+  readonly audioArtifactCount: number | null;
+  readonly audioMimeType: string | null;
+  readonly audioPreviewUrl: string | null;
   readonly traceId: string | null;
 };
 
@@ -396,7 +375,6 @@ export type ZhiyuEvidence = {
     readonly unsupportedFields: readonly string[];
   };
   readonly capabilityStudio: ZhiyuCapabilityStudioStatus;
-  readonly imageStudio: ZhiyuImageStudioStatus;
   readonly chat: ZhiyuRuntimeAgentChatStatus;
   readonly route: {
     readonly transport: 'electron-ipc';
@@ -691,22 +669,11 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       vectorCount: null,
       dimensions: null,
       sample: [],
-      traceId: null,
-    },
-    imageStudio: {
-      transport: 'electron-ipc',
-      ready: false,
-      state: 'idle',
-      reasonCode: 'zhiyu-image-studio-idle',
-      actionHint: 'enter_image_generation_prompt',
-      source: 'renderer',
-      message: 'Image Studio has not run a Runtime image job.',
-      promptLength: 0,
-      jobId: null,
-      jobStatus: null,
-      artifactCount: 0,
-      firstArtifact: null,
-      artifacts: [],
+      audioJobId: null,
+      audioJobStatus: null,
+      audioArtifactCount: null,
+      audioMimeType: null,
+      audioPreviewUrl: null,
       traceId: null,
     },
     chat: {
@@ -736,18 +703,20 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       capability: 'text.generate',
       aiConfigScopeOwnerId: 'nimi.zhiyu',
       aiConfigScopeSurfaceId: 'zhiyu-agent-home',
-      enabledCapabilities: ['text.generate', 'chat.stream', 'text.embed', 'image.generate'],
+      enabledCapabilities: ['text.generate', 'chat.stream', 'text.embed', 'image.generate', 'audio.synthesize'],
       bindingCapabilities: {
         'text.generate': 'text.generate',
         'chat.stream': 'text.generate',
         'text.embed': 'text.embed',
         'image.generate': 'image.generate',
+        'audio.synthesize': 'audio.synthesize',
       },
       targetRefKinds: {
         'text.generate': null,
         'chat.stream': null,
         'text.embed': null,
         'image.generate': null,
+        'audio.synthesize': null,
       },
       reasonCode: 'not-probed',
       actionHint: 'select_runtime_agent_route',
@@ -779,12 +748,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       source: 'renderer',
       message: 'Runtime Agent composer has not been used.',
     },
-    productRegions: ['presence', 'conversation', 'capability-studio', 'image-studio', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'diary', 'avatar', 'diagnostics'],
+    productRegions: ['presence', 'conversation', 'capability-studio', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'diary', 'avatar', 'diagnostics'],
   };
-}
-
-declare global {
-  interface Window {
-    __nimiZhiyuEvidence?: ZhiyuEvidence;
-  }
 }

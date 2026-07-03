@@ -39,6 +39,39 @@ test('leaves non-transport Runtime errors available to the caller', async () => 
   );
 });
 
+test('does not normalize wrapped Runtime permission denied as a daemon outage', async () => {
+  const { normalizeZhiyuElectronRuntimeUnavailableError } = await loadModule();
+
+  assert.equal(
+    normalizeZhiyuElectronRuntimeUnavailableError({
+      code: 'external-daemon-required',
+      reasonCode: 'electron-runtime-endpoint-unavailable',
+      actionHint: 'start_external_runtime_daemon',
+      source: 'electron',
+      details: {
+        command: 'nimi.shell.runtime.unary',
+        runtimeEndpoint: '127.0.0.1:46371',
+        cause: '7 PERMISSION_DENIED: {"actionHint":"authorize_missing_protected_scope","reasonCode":"APP_SCOPE_FORBIDDEN"}',
+      },
+    }),
+    null,
+  );
+});
+
+test('auth platform unavailable projection uses the canonical Runtime outage normalization', () => {
+  const sourcePath = path.join(root, 'src/shell/auth/runtime-platform.ts');
+  const source = readFileSync(sourcePath, 'utf8');
+  const normalizeIndex = source.indexOf('normalizeZhiyuElectronRuntimeUnavailableError(error)');
+  const rawReasonIndex = source.indexOf('const record = error && typeof error ===');
+
+  assert.ok(normalizeIndex > 0, 'runtime-platform must call the canonical unavailable normalizer');
+  assert.ok(rawReasonIndex > 0, 'runtime-platform raw fallback block must remain visible to the guard');
+  assert.ok(
+    normalizeIndex < rawReasonIndex,
+    'runtime-platform must normalize Runtime outage errors before falling back to raw reason codes',
+  );
+});
+
 async function loadModule() {
   const sourcePath = path.join(root, 'src/shell/runtime/electron-runtime-unavailable.ts');
   const source = readFileSync(sourcePath, 'utf8');

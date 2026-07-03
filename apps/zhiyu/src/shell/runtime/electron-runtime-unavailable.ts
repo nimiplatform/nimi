@@ -21,6 +21,11 @@ export function normalizeZhiyuElectronRuntimeUnavailableError(
   const message = error instanceof Error
     ? error.message
     : stringOr(record.message ?? error);
+  const cause = stringOr(details.cause);
+
+  if (isRuntimeAuthorizationOrAuthenticationFailure(reasonCode, message, cause)) {
+    return null;
+  }
 
   if (
     ELECTRON_RUNTIME_UNAVAILABLE_REASON_CODES.has(reasonCode)
@@ -36,6 +41,19 @@ export function normalizeZhiyuElectronRuntimeUnavailableError(
   }
 
   return null;
+}
+
+function isRuntimeAuthorizationOrAuthenticationFailure(
+  reasonCode: string,
+  message: string,
+  cause: string,
+): boolean {
+  const normalized = `${reasonCode} ${message} ${cause}`.toLowerCase();
+  return normalized.includes('permission_denied')
+    || normalized.includes('permission denied')
+    || normalized.includes('app_scope_forbidden')
+    || normalized.includes('unauthenticated')
+    || normalized.includes('principal_unauthenticated');
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

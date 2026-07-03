@@ -110,12 +110,29 @@ test('Zhiyu Electron acceptance writes checkpoint-scoped screenshot and runtime 
   assert.match(liveRuntimeAcceptance, /NIMI_ZHIYU_EVIDENCE_CHECKPOINT/);
   assert.match(liveRuntimeAcceptance, /trackPageProblems/);
   assert.match(liveRuntimeAcceptance, /assertNoPageProblems/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-model-config-desktop\.png/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-model-config-evidence\.json/);
+  assert.match(liveRuntimeAcceptance, /live-runtime-model-unconfigured-desktop\.png/);
+  assert.match(liveRuntimeAcceptance, /live-runtime-model-unconfigured-evidence\.json/);
+  assert.match(liveRuntimeAcceptance, /live-runtime-model-configured-desktop\.png/);
+  assert.match(liveRuntimeAcceptance, /live-runtime-model-configured-evidence\.json/);
   assert.match(liveRuntimeAcceptance, /live-runtime-ready-desktop\.png/);
   assert.match(liveRuntimeAcceptance, /live-runtime-ready-evidence\.json/);
   assert.match(liveRuntimeAcceptance, /live-runtime-agent-chat-completed-desktop\.png/);
   assert.match(liveRuntimeAcceptance, /live-runtime-agent-chat-completed-evidence\.json/);
+});
+
+test('zhiyu active product source does not expose legacy surface names', async () => {
+  const files = await collectProductionFiles(productionRoot);
+  const violations = [];
+
+  for (const file of files) {
+    const source = await readFile(file, 'utf8');
+    const relativePath = path.relative(appRoot, file).replaceAll(path.sep, '/');
+    if (/\bzhiyu-[a-z0-9_-]*legacy|data-zhiyu-[a-z0-9_-]*legacy|__legacy/i.test(source)) {
+      violations.push(relativePath);
+    }
+  }
+
+  assert.deepEqual(violations, []);
 });
 
 async function collectProductionFiles(root) {

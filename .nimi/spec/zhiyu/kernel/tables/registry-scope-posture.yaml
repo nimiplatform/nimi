@@ -1,0 +1,50 @@
+version: 1
+table_family: product_record_schema
+owner: zhiyu
+schema_id: zhiyu_registry_scope_posture
+registry_ref: .nimi/spec/platform/kernel/tables/nimi-app-registry.yaml#nimi.zhiyu
+source_rule: Z-AUTH-003
+scopes:
+  account.session.read:
+    allowed_interpretation: account_session_projection_support
+    forbidden_interpretations: [turn_authority, binding_proof, identity_truth]
+    owner: platform_runtime
+  agent.identity.project:
+    allowed_interpretation: partner_local_agent_identity_projection_support
+    forbidden_interpretations: [app_local_agent_identity_truth, turn_authority, binding_proof]
+    owner: runtime_realm
+  ai.spend.meter:
+    allowed_interpretation: upstream_spend_projection_for_runtime_mediated_consumption
+    forbidden_interpretations: [zhiyu_spend_truth, provider_execution]
+    owner: platform_runtime
+  ai_profile.selection.consume:
+    allowed_interpretation: runtime_owned_ai_config_operation_support
+    forbidden_interpretations: [zhiyu_runtime_ai_config_truth, provider_route_truth]
+    owner: platform_runtime_sdk
+  memory.read.bounded:
+    allowed_interpretation: persona_scoped_read_only_projection
+    forbidden_interpretations: [memory_truth, memory_write]
+    owner: runtime_cognition_realm
+  memory.write.admitted:
+    allowed_interpretation: upstream_non_user_visible_conversation_derived_projection_or_future_registry_contraction
+    forbidden_interpretations: [zhiyu_user_memory_write_feature, app_local_memory_store]
+    owner: platform_runtime_cognition
+  notification.subscribe:
+    allowed_interpretation: deferred_future_in_app_readiness_subscription
+    forbidden_interpretations: [os_notification, scheduler_ownership, proactive_v1_journey]
+    owner: platform_runtime_notification
+  audit.read.scoped:
+    allowed_interpretation: zhiyu_own_audit_projection_for_diagnostics
+    forbidden_interpretations: [raw_upstream_audit_truth, release_evidence_authority]
+    owner: zhiyu_upstream_owners
+capability_refs:
+  text.generate:
+    allowed_interpretation: runtime_agent_mediated_conversation_support
+    forbidden_interpretations: [direct_zhiyu_ai_chat, kit_direct_text_generate_partner_path]
+  local-text:
+    allowed_interpretation: local_runtime_compute_pack_support
+    forbidden_interpretations: [provider_route_truth]
+runtime_turn_authority:
+  source: runtime_scoped_binding
+  required_scopes: [runtime.agent.turn.read, runtime.agent.turn.write]
+  forbidden_sources: [platform_registry_permission_scope, account_session, subject_user_id, partner_id]

@@ -34,7 +34,7 @@ type GateState =
     };
 
 function toMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error || 'Runtime check failed');
+  return error instanceof Error ? error.message : String(error || '本地服务检查失败');
 }
 
 async function resolveGateState(): Promise<GateState> {
@@ -98,7 +98,7 @@ export function AuthGate({ children }: { readonly children: ReactNode }) {
   if (state.kind === 'checking') {
     return (
       <main className="runtime-check-screen">
-        <StatusBadge tone="neutral" shape="dot">Runtime check</StatusBadge>
+        <StatusBadge tone="neutral" shape="dot">检查本地服务</StatusBadge>
       </main>
     );
   }

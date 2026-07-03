@@ -67,6 +67,14 @@ test('zhiyu Electron host uses canonical app identity and secure standard shell'
   assert.match(mainSource, /nodeIntegration:\s*false/);
   assert.match(mainSource, /sandbox:\s*true/);
   assert.doesNotMatch(mainSource, /sandbox:\s*false/);
+  assert.match(
+    mainSource,
+    /let mainWindow: BrowserWindow \| undefined;/,
+    'Zhiyu Electron dev must retain the main BrowserWindow so startup does not exit after renderer readiness',
+  );
+  assert.match(mainSource, /mainWindow = window;/);
+  assert.match(mainSource, /window\.on\('closed'/);
+  assert.match(mainSource, /mainWindow === window/);
   assert.match(mainSource, /setWindowOpenHandler/);
   assert.match(mainSource, /will-navigate/);
   assert.doesNotMatch(mainSource, /runtime\/internal/);
@@ -85,8 +93,11 @@ test('zhiyu renderer exposes deterministic evidence without product truth', () =
   const mainRendererSource = read('src/main.tsx');
   const appSource = read('src/shell/app/App.tsx');
   const homeSurfaceSource = [
+    read('src/shell/app/home-desktop-chat-shell-chrome.tsx'),
     read('src/shell/app/HomeSurface.tsx'),
+    read('src/shell/app/home-developer-backstage.tsx'),
     read('src/shell/app/home-surface-sections.tsx'),
+    read('src/shell/app/home-image-studio-section.tsx'),
   ].join('\n');
   const homeMemorySurfaceSource = read('src/shell/app/home-memory-observatory-section.tsx');
   const homeCompanionSurfaceSource = read('src/shell/app/home-companion-state-section.tsx');
@@ -96,6 +107,7 @@ test('zhiyu renderer exposes deterministic evidence without product truth', () =
   const capabilityStudioSource = read('src/shell/capability-studio/zhiyu-ai-consume.ts');
   const runtimeAgentChatSource = read('src/shell/agent/runtime-agent-chat.ts');
   const homeProductStateSource = read('src/shell/app/home-product-state.ts');
+  const identitySafetyEvidenceSource = read('src/shell/app/identity-safety-evidence.ts');
   const capabilityRoomSource = read('src/shell/app/capability-room-state.ts');
   const identityFloorSource = read('src/shell/app/identity-floor-state.ts');
   const diagnosticStateSource = read('src/shell/app/diagnostic-state.ts');
@@ -110,7 +122,10 @@ test('zhiyu renderer exposes deterministic evidence without product truth', () =
   const aiConfigStoreSource = read('src/shell/ai-config/zhiyu-ai-config-store.ts');
   const aiConfigSettingsSource = read('src/shell/ai-config/zhiyu-ai-config-settings.tsx');
   const runtimeModelProviderSource = read('src/shell/ai-config/zhiyu-runtime-model-provider.ts');
-  const liveFixtureSource = read('src/shell/agent/live-runtime-fixture.ts');
+  const liveFixtureAdapterPath = path.join(root, 'test/live-runtime-fixture-adapter.mjs');
+  const liveFixtureAdapterSource = existsSync(liveFixtureAdapterPath)
+    ? read('test/live-runtime-fixture-adapter.mjs')
+    : '';
   const rendererSurfaceSource = [
     appSource,
     homeSurfaceSource,
@@ -154,7 +169,7 @@ test('zhiyu renderer exposes deterministic evidence without product truth', () =
   assert.match(rendererSurfaceSource, /data-zhiyu-gated-surface="capability"/);
   assert.match(rendererSurfaceSource, /data-zhiyu-region="capability-studio"/);
   assert.match(rendererSurfaceSource, /data-zhiyu-capability-studio/);
-  assert.match(rendererSurfaceSource, /'text\.generate', 'chat\.stream', 'text\.embed'/);
+  assert.match(rendererSurfaceSource, /'text\.generate',\s*'chat\.stream',\s*'text\.embed',\s*'audio\.synthesize'/);
   assert.match(rendererSurfaceSource, /data-zhiyu-capability-studio-run=\{capabilityId\}/);
   assert.match(rendererSurfaceSource, /data-zhiyu-capability-studio-result-kind/);
   assert.match(rendererSurfaceSource, /data-zhiyu-region="proposal"/);
@@ -189,7 +204,8 @@ test('zhiyu renderer exposes deterministic evidence without product truth', () =
   assert.match(appSource, /projectZhiyuCapabilityRoomState/);
   assert.match(appSource, /projectZhiyuDiagnosticState/);
   assert.match(appSource, /projectZhiyuIdentityFloorState/);
-  assert.match(appSource, /projectNimiRuntimeAgentIdentitySafety/);
+  assert.match(appSource, /projectZhiyuIdentitySafetyEvidence/);
+  assert.match(identitySafetyEvidenceSource, /projectNimiRuntimeAgentIdentitySafety/);
   assert.match(appSource, /probeZhiyuRuntimeCompanionState/);
   assert.match(appSource, /probeZhiyuRuntimeDelegationUx/);
   assert.match(appSource, /submitZhiyuRuntimeDelegationApproval/);
@@ -210,9 +226,18 @@ test('zhiyu renderer exposes deterministic evidence without product truth', () =
   assert.match(rendererSurfaceSource, /data-zhiyu-agent-chat-event-types/);
   assert.match(rendererSurfaceSource, /data-zhiyu-composer-state/);
   assert.match(rendererSurfaceSource, /data-zhiyu-submit-enabled/);
-  assert.match(mainRendererSource, /@nimiplatform\/kit\/ui\/styles\.css/);
-  assert.match(mainRendererSource, /@nimiplatform\/kit\/ui\/themes\/light\.css/);
-  assert.match(mainRendererSource, /@nimiplatform\/kit\/ui\/themes\/nimi-accent\.css/);
+  assert.match(mainRendererSource, /import '\.\/styles\.css';/);
+  const rendererStylesSource = read('src/styles.css');
+  assert.match(rendererStylesSource, /@nimiplatform\/kit\/ui\/styles\.css/);
+  assert.match(rendererStylesSource, /@nimiplatform\/kit\/ui\/themes\/light\.css/);
+  assert.match(rendererStylesSource, /@nimiplatform\/kit\/ui\/themes\/nimi-accent\.css/);
+  assert.match(rendererStylesSource, /@import "tailwindcss";/);
+  const packageJson = readJson('package.json');
+  assert.match(
+    packageJson.devDependencies.tailwindcss,
+    /^\^4\./,
+    'Zhiyu must declare tailwindcss directly because src/styles.css imports it in dev server CSS resolution',
+  );
   assert.match(mainRendererSource, /NimiThemeProvider/);
   assert.match(mainRendererSource, /accentPack="nimi-accent"/);
   assert.match(mainRendererSource, /defaultScheme="light"/);
@@ -283,7 +308,7 @@ test('zhiyu renderer exposes deterministic evidence without product truth', () =
   assert.match(homeSurfaceSource, /data-zhiyu-identity-item/);
   assert.match(homeSurfaceSource, /data-zhiyu-identity-unsupported-field/);
   assert.match(homeSurfaceSource, /data-zhiyu-identity-overwrite-policy/);
-  assert.match(homeSurfaceSource, /Identity cannot be overwritten by one message or by a stored memory conflict\./);
+  assert.match(homeSurfaceSource, /身份不会被单条消息或一条记忆冲突覆盖。/);
   assert.match(rendererSurfaceSource, /data-zhiyu-companion-state/);
   assert.match(rendererSurfaceSource, /data-zhiyu-companion-status-text/);
   assert.match(rendererSurfaceSource, /data-zhiyu-companion-state-updated-at/);
@@ -422,9 +447,11 @@ test('zhiyu renderer exposes deterministic evidence without product truth', () =
   const routeSource = read('src/shell/agent/route-projection.ts');
   const turnSource = read('src/shell/agent/turn-readiness.ts');
   const runtimeAgentScopesSource = read('src/shell/agent/runtime-agent-scopes.ts');
+  const forbiddenZhiyuMaterializationPath = /SourceMaterializationPacket|sourceMaterializationPacket|createNimiRealmSourceMaterializationPacket|initializeLocalAgent|materialize_runtime_owned_local_agent|select_or_create_realm_materialized_partner|选择或创建|创建本地伙伴|成为我的伙伴|Create local agent/;
   assert.match(sourceProjectionSource, /zhiyu-admitted-source-projection-required/);
-  assert.match(sourceProjectionSource, /readZhiyuLiveRuntimeFixtureProjection/);
+  assert.doesNotMatch(sourceProjectionSource, /readZhiyuLiveRuntimeFixtureProjection/);
   assert.match(sourceProjectionSource, /await_admitted_runtime_source_projection/);
+  assert.doesNotMatch(sourceProjectionSource, /nimiZhiyuLiveRuntimeFixture|decodeBase64UrlText|sourceContentHash/);
   assert.doesNotMatch(sourceProjectionSource, /nimi-guide-archivist|runtime-source:|SourceMaterializationPacket/);
   assert.doesNotMatch(sourceProjectionSource, /local-agent\.identity|NIMI_STANDARD_SHELL_COMMANDS/);
   assert.match(agentInventorySource, /createNimiRuntimeAgentClient/);
@@ -440,7 +467,8 @@ test('zhiyu renderer exposes deterministic evidence without product truth', () =
   assert.match(localAgentSource, /zhiyu-runtime-source-required/);
   assert.doesNotMatch(localAgentSource, /local-agent\.identity/);
   assert.doesNotMatch(localAgentSource, /NIMI_STANDARD_SHELL_COMMANDS/);
-  assert.match(localAgentSelectionSource, /runtime-local-agent-selected-from-inventory/);
+  assert.match(localAgentSelectionSource, /zhiyu-realm-materialized-partner-required/);
+  assert.doesNotMatch(localAgentSelectionSource, /runtime-local-agent-selected-from-inventory/);
   assert.match(localAgentSelectionSource, /zhiyu-runtime-local-agent-inventory-empty/);
   assert.match(localAgentSelectionSource, /zhiyu-runtime-local-agent-selection-required/);
   assert.doesNotMatch(localAgentSelectionSource, /nimi-guide-archivist|runtime-source:|SourceMaterializationPacket/);
@@ -514,9 +542,11 @@ test('zhiyu renderer exposes deterministic evidence without product truth', () =
   assert.doesNotMatch(runtimeAgentChatSource, /modelId:\s*['"]/);
   assert.doesNotMatch(runtimeAgentChatSource, /nimi-guide-archivist|runtime-source:|SourceMaterializationPacket/);
   assert.doesNotMatch(runtimeAgentChatSource, /queryMemory|writeMemory|getCanonicalMemoryStatus|bindCanonicalMemoryStandard/);
-  assert.match(liveFixtureSource, /nimiElectronSdkAcceptance/);
-  assert.match(liveFixtureSource, /nimiZhiyuLiveRuntimeFixture/);
-  assert.doesNotMatch(liveFixtureSource, /SourceMaterializationPacket|runtime-source:|apps\/desktop|runtime\/internal|apiKey|providerId/);
+  assert.equal(existsSync(path.join(root, 'src/shell/agent/live-runtime-fixture.ts')), false);
+  assert.match(liveFixtureAdapterSource, /createZhiyuLiveRuntimeFixtureAcceptanceInitScript/);
+  assert.match(liveFixtureAdapterSource, /nimiElectronSdkAcceptance/);
+  assert.match(liveFixtureAdapterSource, /sourceContentHash/);
+  assert.doesNotMatch(liveFixtureAdapterSource, /SourceMaterializationPacket|apps\/desktop|runtime\/internal|apiKey|providerId/);
   assert.match(runtimeAgentScopesSource, /withZhiyuElectronRuntimeProtectedScopes/);
   assert.match(runtimeAgentScopesSource, /register_zhiyu_runtime_protected_scope/);
   assert.doesNotMatch(runtimeAgentScopesSource, /SourceMaterializationPacket|runtime-source:|apps\/desktop|runtime\/internal|apiKey|providerId|modelId/);
@@ -539,4 +569,23 @@ test('zhiyu renderer exposes deterministic evidence without product truth', () =
   }
   assert.doesNotMatch(routeSource, /apiKey|providerId|runtime\/internal|apps\/desktop/);
   assert.doesNotMatch(turnSource, /apiKey|providerId|runtime\/internal|apps\/desktop/);
+  for (const [label, source] of [
+    ['home surface', homeSurfaceSource],
+    ['home product state', homeProductStateSource],
+    ['source projection', sourceProjectionSource],
+    ['agent inventory', agentInventorySource],
+    ['local agent discovery', localAgentSource],
+    ['local agent selection', localAgentSelectionSource],
+    ['conversation home', conversationSource],
+    ['memory observatory', memoryObservatorySource],
+    ['companion state', companionStateSource],
+    ['avatar presence', avatarPresenceSource],
+    ['runtime agent chat', runtimeAgentChatSource],
+  ]) {
+    assert.doesNotMatch(
+      source,
+      forbiddenZhiyuMaterializationPath,
+      `${label} must not expose Zhiyu-owned LocalAgent creation or character/persona materialization`,
+    );
+  }
 });

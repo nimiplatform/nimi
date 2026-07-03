@@ -1,0 +1,22 @@
+version: 1
+table_family: owner_matrix
+owner: zhiyu
+matrix_id: zhiyu_agent_conversation_anchor_surface
+entries:
+  - surface: conversation_anchor_obtain
+    zhiyu_role: consume_admitted_runtime_sdk_surface
+    forbidden_sources: [subjectUserId, partner_id, app_local_state, account_session]
+    owner: runtime_sdk
+    source_rule: Z-CHAT-002
+  - surface: conversation_snapshot
+    zhiyu_role: display_recovery_projection
+    required_source: RuntimeAgentService_public_chat_session_snapshot
+    forbidden_sources: [local_transcript_cache, test_fixture, app_local_replay]
+    owner: runtime_sdk
+    source_rule: Z-PERSIST-003
+  - surface: terminal_recovery
+    zhiyu_role: show_retry_or_failure
+    required_source: sdk_runner_and_runtime_snapshot
+    forbidden_sources: [synthetic_terminal_success, app_local_status_inference]
+    owner: runtime_sdk
+    source_rule: Z-CHAT-001

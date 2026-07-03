@@ -1,0 +1,22 @@
+version: 1
+table_family: product_record_schema
+owner: zhiyu
+schema_id: zhiyu_conversation_artifact_projection
+source_rule: Z-CHAT-005
+allowed_projection_families:
+  - runtime.agent.turn.artifact_ready
+  - runtime.agent.turn.action_started
+  - runtime.agent.turn.action_completed
+  - runtime.agent.turn.action_failed
+artifact_types:
+  image:
+    posture: display_projection_only
+    owner: runtime_sdk_kit
+    allowed_operations: [render_projected_artifact, show_loading_state, show_load_failure, provide_accessible_label]
+    forbidden_operations: [request_image_generate, edit_prompt, select_image_model, call_provider, own_retry_semantics, persist_artifact_truth]
+forbidden_local_seams:
+  - app_local_artifact_fetch
+  - image_provider_route
+  - image_studio
+  - prompt_tool
+  - artifact_truth_store

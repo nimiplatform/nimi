@@ -149,7 +149,7 @@ test('fails closed before Avatar facade read when LocalAgent is unavailable', as
   assert.equal(avatar.ready, false);
   assert.equal(avatar.state, 'blocked');
   assert.equal(avatar.reasonCode, 'zhiyu-local-agent-required');
-  assert.equal(avatar.actionHint, 'materialize_runtime_owned_local_agent');
+  assert.equal(avatar.actionHint, 'select_runtime_owned_partner');
   assert.equal(avatar.configurationRef, null);
   assert.equal(avatar.projectionRef, null);
   assert.equal(avatar.backendKind, null);

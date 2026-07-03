@@ -29,9 +29,9 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
   if (localAgents.length === 0) {
     return localAgentUnavailable({
       reasonCode: 'zhiyu-runtime-local-agent-inventory-empty',
-      actionHint: 'materialize_runtime_owned_local_agent',
+      actionHint: 'open_desktop_explore_character_persona',
       source: 'runtime',
-      message: 'Runtime inventory has no active LocalAgent for Zhiyu to open.',
+      message: 'Runtime inventory has no active Runtime-owned partner for Zhiyu to open. Use Desktop Explore character/persona context and return after Runtime reports an available partner.',
       ownerUserId: input.inventory.ownerUserId,
     });
   }
@@ -45,31 +45,13 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
     });
   }
 
-  const agent = localAgents[0];
-  const ownerUserId = stringOr(agent.ownerUserId, '');
-  const runtimeSourceRef = stringOr(agent.runtimeSourceRef, '');
-  const localAgentRef = stringOr(agent.localAgentRef, '');
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef) {
-    return localAgentUnavailable({
-      reasonCode: 'zhiyu-runtime-local-agent-inventory-invalid',
-      actionHint: 'refresh_runtime_local_agent_inventory',
-      source: 'runtime',
-      message: 'Runtime LocalAgent inventory returned an incomplete opaque identity projection.',
-      ownerUserId: input.inventory.ownerUserId,
-    });
-  }
-
-  return {
-    transport: 'electron-ipc',
-    ready: true,
-    reasonCode: 'runtime-local-agent-selected-from-inventory',
-    actionHint: 'open_runtime_agent_home',
+  return localAgentUnavailable({
+    reasonCode: 'zhiyu-realm-materialized-partner-required',
+    actionHint: 'open_desktop_explore_character_persona',
     source: 'runtime',
-    message: 'Runtime-owned LocalAgent was selected from the single-agent inventory projection.',
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
-  };
+    message: 'Zhiyu requires a Runtime-owned partner selected from Desktop Explore character/persona context before opening chat.',
+    ownerUserId: input.inventory.ownerUserId,
+  });
 }
 
 function localAgentUnavailable(input: {
@@ -91,8 +73,4 @@ function localAgentUnavailable(input: {
     runtimeSourceRef: input.runtimeSourceRef ?? null,
     localAgentRef: null,
   };
-}
-
-function stringOr(value: unknown, fallback: string): string {
-  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }

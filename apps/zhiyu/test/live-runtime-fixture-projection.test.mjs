@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { Buffer } from 'node:buffer';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { transformSync } from 'esbuild';
-
-const root = path.resolve(import.meta.dirname, '..');
+import {
+  createZhiyuLiveRuntimeAcceptanceRendererUrl,
+  createZhiyuLiveRuntimeFixtureAcceptanceInitScript,
+} from './live-runtime-fixture-adapter.mjs';
 
 const fixture = {
   ownerUserId: 'user-live',
@@ -27,63 +25,25 @@ const fixture = {
   },
 };
 
-test('acceptance fixture projection is ignored outside the Electron SDK acceptance gate', async () => {
-  installWindow(`file:///zhiyu/index.html?${fixtureParam()}`);
-  const { readZhiyuLiveRuntimeFixtureProjection } = await loadModule();
+test('live Runtime fixture adapter injects source evidence only through test init script', () => {
+  globalThis.window = {};
 
-  assert.equal(readZhiyuLiveRuntimeFixtureProjection(), null);
+  const script = createZhiyuLiveRuntimeFixtureAcceptanceInitScript(fixture);
+  Function(script)();
+
+  assert.equal(window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__.ready, true);
+  assert.equal(window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__.source, 'sdk-fixture');
+  assert.equal(window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__.ownerUserId, fixture.ownerUserId);
+  assert.equal(window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__.runtimeSourceRef, fixture.runtimeSourceRef);
+  assert.deepEqual(window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__.sourceRef, fixture.sourceRef);
+  assert.doesNotMatch(script, /executionBinding|resolvedBindingRef|selectedTargetRefKind|modelId/);
+  assert.doesNotMatch(script, /SourceMaterializationPacket|apps\/desktop|runtime\/internal|apiKey|providerId/);
 });
 
-test('source and route probes consume acceptance fixture projection without app-local truth', async () => {
-  installWindow(`file:///zhiyu/index.html?nimiElectronSdkAcceptance=1&${fixtureParam()}`);
-  const {
-    readZhiyuLiveRuntimeFixtureProjection,
-    sourceStatusFromZhiyuLiveRuntimeFixture,
-    routeStatusFromZhiyuLiveRuntimeFixture,
-  } = await loadModule();
+test('live Runtime fixture adapter renderer URL carries acceptance gate but no fixture truth', () => {
+  const url = new URL(createZhiyuLiveRuntimeAcceptanceRendererUrl('/tmp/zhiyu'));
 
-  const projection = readZhiyuLiveRuntimeFixtureProjection();
-  const source = sourceStatusFromZhiyuLiveRuntimeFixture(projection);
-  assert.equal(source.ready, true);
-  assert.equal(source.reasonCode, 'runtime-source-projected');
-  assert.equal(source.source, 'sdk-fixture');
-  assert.equal(source.ownerUserId, fixture.ownerUserId);
-  assert.equal(source.runtimeSourceRef, fixture.runtimeSourceRef);
-  assert.deepEqual(source.sourceRef, fixture.sourceRef);
-
-  const route = routeStatusFromZhiyuLiveRuntimeFixture(projection);
-  assert.equal(route.ready, true);
-  assert.equal(route.reasonCode, 'runtime-route-ready');
-  assert.equal(route.source, 'sdk-fixture');
-  assert.equal(route.selectedTargetRefKind, 'local-runtime');
-  assert.equal(route.resolvedBindingRef, fixture.route.resolvedBindingRef);
-  assert.deepEqual(route.executionBinding, fixture.route.executionBinding);
+  assert.equal(url.searchParams.get('nimiElectronSdkAcceptance'), '1');
+  assert.equal(url.searchParams.has('nimiZhiyuLiveRuntimeFixture'), false);
+  assert.doesNotMatch(url.href, /source-live|hash-live|runtime-agent-live-e2e|resolvedBindingRef/);
 });
-
-async function loadModule() {
-  const sourcePath = path.join(root, 'src/shell/agent/live-runtime-fixture.ts');
-  const source = readFileSync(sourcePath, 'utf8');
-  const output = transformSync(source, {
-    loader: 'ts',
-    format: 'esm',
-    target: 'es2022',
-  });
-  return import(`data:text/javascript;base64,${Buffer.from(output.code).toString('base64')}`);
-}
-
-function installWindow(url) {
-  globalThis.window = {
-    location: {
-      href: url,
-    },
-    __NIMI_ELECTRON_RUNTIME__: {
-      invoke() {
-        throw new Error('fixture projection test does not invoke Electron Runtime');
-      },
-    },
-  };
-}
-
-function fixtureParam() {
-  return `nimiZhiyuLiveRuntimeFixture=${Buffer.from(JSON.stringify(fixture), 'utf8').toString('base64url')}`;
-}

@@ -41,7 +41,7 @@ test('projects canonical catalog into fail-closed capability room state', async 
     deferred,
   });
 
-  assert.equal(room.title, '能力房间');
+  assert.equal(room.title, '能力面板');
   assert.equal(room.activeCapabilityId, 'text.generate');
   assert.equal(room.catalogCount, 3);
   assert.equal(room.deferredCount, 1);
@@ -50,7 +50,7 @@ test('projects canonical catalog into fail-closed capability room state', async 
   assert.equal(room.routeReady, false);
   assert.equal(room.routeReasonCode, 'zhiyu-ai-config-route-selection-required');
   assert.equal(room.routeActionHint, 'select_runtime_agent_route');
-  assert.equal(room.executionBindingLabel, '等待 Runtime/SDK route projection');
+  assert.equal(room.executionBindingLabel, '等待模型配置');
 
   const active = room.items.find((item) => item.capabilityId === 'text.generate');
   assert.equal(active?.active, true);
@@ -68,8 +68,8 @@ test('projects canonical catalog into fail-closed capability room state', async 
   assert.equal(catalogOnly?.sourceCapability, 'image.generate');
 
   assert.deepEqual(room.owners.map((owner) => owner.key), ['catalog', 'route', 'model', 'memory']);
-  assert.equal(room.owners[0]?.owner, 'Platform capability catalog');
-  assert.equal(room.owners[1]?.owner, 'Runtime/SDK route projection');
+  assert.equal(room.owners[0]?.owner, '能力目录');
+  assert.equal(room.owners[1]?.owner, '模型通路');
   assert.equal(room.owners[2]?.state, 'blocked');
   assert.equal(room.owners[3]?.state, 'not-admitted');
 });
@@ -101,7 +101,7 @@ test('marks only the active routed capability ready when execution binding exist
 
   assert.equal(room.readyCount, 1);
   assert.equal(room.blockedCount, 0);
-  assert.equal(room.executionBindingLabel, 'local:runtime-model:1');
+  assert.equal(room.executionBindingLabel, '本地模型已绑定');
   assert.equal(active?.state, 'ready');
   assert.equal(active?.bindingRoute, 'local');
   assert.equal(active?.bindingModelId, 'runtime-model:1');

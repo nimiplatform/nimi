@@ -45,6 +45,10 @@ export function DelegationUxSection({
       data-zhiyu-delegation-output-firewall-state={delegation.outputFirewall.state}
       data-zhiyu-delegation-audit-state={delegation.audit.state}
       data-zhiyu-delegation-audit-decision-id={delegation.audit.decisionId ?? 'not_projected'}
+      data-zhiyu-delegation-required-scopes={delegation.requiredScopes.join(',')}
+      data-zhiyu-delegation-granted-scopes={delegation.grantedScopes.join(',')}
+      data-zhiyu-delegation-admitted-scopes={delegation.admittedScopes.join(',')}
+      data-zhiyu-delegation-scope-evidence-state={delegation.scopeEvidence.evidenceState}
       material="glass-thin"
       elevation="base"
       padding="md"
@@ -58,21 +62,21 @@ export function DelegationUxSection({
       </div>
       <div className="zhiyu-home__delegation-summary">
         <StatusBadge tone={toneForDelegationState(delegation.state)} shape="dot">
-          {delegation.reasonCode}
+          {delegationStateLabel(delegation.state)}
         </StatusBadge>
-        <span>{delegation.providerCount} providers</span>
-        <span>{delegation.pendingApprovalCount} pending</span>
-        <span>{delegation.diagnosticCount} diagnostics</span>
+        <span>{delegation.providerCount} 个服务</span>
+        <span>{delegation.pendingApprovalCount} 个待审批</span>
+        <span>{delegation.diagnosticCount} 条诊断</span>
       </div>
-      <div className="zhiyu-home__delegation-grid" aria-label="delegation control projection">
-        <DelegationField label="candidate" value={delegation.candidateIntent.state} />
-        <DelegationField label="preview" value={delegation.preview.state} />
-        <DelegationField label="firewall" value={delegation.outputFirewall.state} />
-        <DelegationField label="audit" value={delegation.audit.state} />
-        <DelegationField label="summaryRef" value={delegation.preview.summaryRef} />
-        <DelegationField label="policySnapshot" value={delegation.preview.policySnapshotId} />
+      <div className="zhiyu-home__delegation-grid" aria-label="委托控制投影">
+        <DelegationField label="候选请求" value={delegationProjectionLabel(delegation.candidateIntent.state)} />
+        <DelegationField label="预览" value={delegationProjectionLabel(delegation.preview.state)} />
+        <DelegationField label="防护" value={delegationProjectionLabel(delegation.outputFirewall.state)} />
+        <DelegationField label="审计" value={delegationProjectionLabel(delegation.audit.state)} />
+        <DelegationField label="摘要" value={delegation.preview.summaryRef ? '已投影' : null} />
+        <DelegationField label="策略快照" value={delegation.preview.policySnapshotId ? '已投影' : null} />
       </div>
-      <div className="zhiyu-home__delegation-approvals" aria-label="delegation approvals">
+      <div className="zhiyu-home__delegation-approvals" aria-label="委托审批">
         {delegation.approvalItems.length > 0 ? delegation.approvalItems.map((approval) => (
           <div
             key={approval.approvalRequestId}
@@ -99,7 +103,7 @@ export function DelegationUxSection({
                   leadingIcon={<CircleX size={15} aria-hidden="true" />}
                   onClick={() => onDecision(approval.approvalRequestId, 'reject')}
                 >
-                  Deny
+                  拒绝
                 </Button>
                 <Button
                   type="button"
@@ -108,12 +112,12 @@ export function DelegationUxSection({
                   leadingIcon={<CircleCheck size={15} aria-hidden="true" />}
                   onClick={() => onDecision(approval.approvalRequestId, 'approve')}
                 >
-                  Approve
+                  同意
                 </Button>
               </div>
             ) : (
               <StatusBadge tone={approval.state === 'rejected' ? 'danger' : 'info'} shape="dot">
-                {approval.state}
+                {delegationProjectionLabel(approval.state)}
               </StatusBadge>
             )}
           </div>
@@ -122,12 +126,12 @@ export function DelegationUxSection({
             className="zhiyu-home__delegation-empty"
             data-zhiyu-delegation-approval="not_projected"
           >
-            <strong>no pending approval</strong>
-            <small>{delegation.candidateIntent.reasonCode}</small>
+            <strong>暂无待审批请求</strong>
+            <small>出现需要你确认的委托动作后，会显示在这里。</small>
           </div>
         )}
       </div>
-      <div className="zhiyu-home__delegation-diagnostics" aria-label="delegation diagnostics">
+      <div className="zhiyu-home__delegation-diagnostics" aria-label="委托诊断">
         {delegation.diagnosticItems.map((item) => (
           <div
             key={item.diagnosticId}
@@ -150,9 +154,9 @@ export function DelegationUxSection({
         data-zhiyu-delegation-audit-action-disposition={delegation.audit.actionDisposition ?? 'not_projected'}
         data-zhiyu-delegation-audit-stage-count={String(delegation.audit.stageCount)}
       >
-        <span>{delegation.audit.state}</span>
-        <span>{delegation.audit.replayOutcome ?? 'not_projected'}</span>
-        <span>{delegation.audit.actionDisposition ?? 'not_projected'}</span>
+        <span>{delegationProjectionLabel(delegation.audit.state)}</span>
+        <span>{delegation.audit.replayOutcome ? '回放已记录' : '回放待投影'}</span>
+        <span>{delegation.audit.actionDisposition ? '处置已记录' : '处置待投影'}</span>
       </div>
       <p className="zhiyu-home__action-hint">{delegation.actionHint}</p>
     </Surface>
@@ -169,9 +173,38 @@ function DelegationField({
   return (
     <div className="zhiyu-home__delegation-field">
       <span>{label}</span>
-      <strong>{value ?? 'not_projected'}</strong>
+      <strong>{value ?? '等待投影'}</strong>
     </div>
   );
+}
+
+function delegationStateLabel(state: ZhiyuDelegationUxState): string {
+  switch (state) {
+    case 'diagnostic':
+      return '有诊断';
+    case 'idle':
+      return '已就绪';
+    case 'firewall-blocked':
+      return '防护拦截';
+    case 'denied':
+      return '已拒绝';
+    case 'pending-approval':
+      return '等待审批';
+    case 'blocked':
+    default:
+      return '等待开放';
+  }
+}
+
+function delegationProjectionLabel(value: string | null): string {
+  if (!value || value === 'not_projected') return '等待投影';
+  if (value === 'not_available') return '暂不可用';
+  if (value === 'ready') return '已就绪';
+  if (value === 'blocked') return '等待开放';
+  if (value === 'pending') return '待审批';
+  if (value === 'rejected') return '已拒绝';
+  if (value === 'approved') return '已同意';
+  return value.replaceAll('_', ' ');
 }
 
 function toneForDelegationState(state: ZhiyuDelegationUxState) {

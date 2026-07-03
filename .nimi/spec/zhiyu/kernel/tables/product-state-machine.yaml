@@ -1,0 +1,42 @@
+version: 1
+table_family: product_state_machine
+owner: zhiyu
+state_machine_id: zhiyu_local_partner_center_state_machine
+source_rule: Z-STATE-001
+states:
+  - id: local_service_unavailable
+    user_visible_copy_floor: "本地服务暂时不可用"
+    entry_conditions: [runtime_or_auth_or_sdk_bridge_unavailable]
+    primary_actions: [check_local_service, open_diagnostics]
+    exit_conditions: [runtime_auth_sdk_bridge_healthy]
+  - id: no_partner
+    user_visible_copy_floor: "还没有本地伙伴"
+    entry_conditions: [no_desktop_realm_partner_projection]
+    primary_actions: [go_to_desktop_partner_creation]
+    exit_conditions: [partner_projection_available]
+  - id: partner_candidates_unselected
+    user_visible_copy_floor: "选择一个本地伙伴"
+    entry_conditions: [partner_candidates_available, no_current_partner_selected]
+    primary_actions: [select_partner]
+    exit_conditions: [current_partner_selected]
+  - id: model_config_not_ready
+    user_visible_copy_floor: "需要先配置伙伴使用的模型"
+    entry_conditions: [current_partner_selected, runtime_ai_config_missing_or_invalid]
+    primary_actions: [open_ai_model_config]
+    exit_conditions: [runtime_ai_config_ready]
+  - id: partner_ready
+    user_visible_copy_floor: "可以和伙伴开始对话"
+    entry_conditions: [current_partner_ready, runtime_agent_turn_surface_available]
+    primary_actions: [send_message, configure_ai_model, configure_avatar, launch_avatar]
+    exit_conditions: [turn_started, upstream_failure]
+  - id: partner_responding
+    user_visible_copy_floor: "伙伴正在回应"
+    entry_conditions: [runtime_agent_turn_in_progress]
+    primary_actions: [edit_draft, wait_for_response]
+    disabled_actions: [send_message]
+    exit_conditions: [turn_completed, turn_failed]
+  - id: recoverable_failure
+    user_visible_copy_floor: "刚才没有成功，可以重试"
+    entry_conditions: [owner_aware_recoverable_failure]
+    primary_actions: [retry, open_diagnostics]
+    exit_conditions: [retry_started, user_changes_state]

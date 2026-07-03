@@ -1,0 +1,41 @@
+version: 1
+table_family: product_catalog
+owner: zhiyu
+catalog_id: zhiyu_diagnostics_surface_registry
+entries:
+  - runtime_health
+  - sdk_binding
+  - partner_projection
+  - ai_config_projection
+  - avatar_config_projection
+  - memory_projection
+  - artifact_projection
+diagnostics:
+  - id: runtime_health
+    owner: runtime_sdk
+    required_fields: [owner, reason, trace, next_step]
+    source_rule: Z-DIAG-002
+  - id: sdk_binding
+    owner: runtime_sdk
+    required_fields: [owner, reason, trace, next_step]
+    source_rule: Z-DIAG-002
+  - id: partner_projection
+    owner: desktop_realm_runtime
+    required_fields: [owner, reason, trace, next_step]
+    source_rule: Z-DIAG-002
+  - id: ai_config_projection
+    owner: runtime_sdk_platform
+    required_fields: [owner, reason, trace, next_step]
+    source_rule: Z-DIAG-002
+  - id: avatar_config_projection
+    owner: avatar_runtime_kit
+    required_fields: [owner, reason, trace, next_step]
+    source_rule: Z-DIAG-002
+  - id: memory_projection
+    owner: runtime_cognition_realm
+    required_fields: [owner, reason, trace, next_step]
+    source_rule: Z-DIAG-002
+  - id: artifact_projection
+    owner: runtime_sdk_kit
+    required_fields: [owner, reason, trace, next_step]
+    source_rule: Z-DIAG-002

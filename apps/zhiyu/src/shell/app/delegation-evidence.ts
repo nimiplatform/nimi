@@ -72,6 +72,14 @@ export type ZhiyuDelegationAuditState = {
   readonly stages: readonly ZhiyuDelegationReplayStage[];
 };
 
+export type ZhiyuDelegationScopeEvidence = {
+  readonly requiredScopes: readonly string[];
+  readonly grantedScopes: readonly string[];
+  readonly admittedScopes: readonly string[];
+  readonly evidenceState: 'required-only' | 'partial' | 'granted';
+  readonly reasonCode: string;
+};
+
 export type ZhiyuDelegationUxStatus = {
   readonly transport: 'electron-ipc';
   readonly ready: boolean;
@@ -154,7 +162,10 @@ export type ZhiyuDelegationUxStatus = {
     readonly reasonCode: string;
     readonly message: string;
   };
-  readonly scopeEvidence: readonly string[];
+  readonly requiredScopes: readonly string[];
+  readonly grantedScopes: readonly string[];
+  readonly admittedScopes: readonly string[];
+  readonly scopeEvidence: ZhiyuDelegationScopeEvidence;
   readonly unsupportedFields: readonly string[];
 };
 
@@ -229,10 +240,22 @@ export function createInitialZhiyuDelegationEvidence(): ZhiyuDelegationUxStatus 
       reasonCode: 'no-delegation-decision-submitted',
       message: 'No delegated approval decision has been submitted from Zhiyu.',
     },
-    scopeEvidence: [
+    requiredScopes: [
       'runtime.agent.delegation.read',
       'runtime.agent.delegation.write',
     ],
+    grantedScopes: [],
+    admittedScopes: [],
+    scopeEvidence: {
+      requiredScopes: [
+        'runtime.agent.delegation.read',
+        'runtime.agent.delegation.write',
+      ],
+      grantedScopes: [],
+      admittedScopes: [],
+      evidenceState: 'required-only',
+      reasonCode: 'runtime-delegation-scope-grant-not-projected',
+    },
     unsupportedFields: ['runtime_delegation_control_surface'],
   };
 }

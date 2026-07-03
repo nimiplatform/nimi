@@ -61,7 +61,7 @@ export async function probeZhiyuAvatarPresence(
   if (localAgent.ready && stringOr(localAgent.source, '') !== 'runtime') {
     return avatarUnavailable({
       reasonCode: 'zhiyu-runtime-owned-local-agent-required',
-      actionHint: 'materialize_runtime_owned_local_agent',
+      actionHint: 'select_runtime_owned_partner',
       source: localAgent.source,
       message: 'Zhiyu requires Runtime-owned LocalAgent evidence before reading Avatar presence.',
       ownerUserId: localAgent.ownerUserId,
@@ -73,7 +73,7 @@ export async function probeZhiyuAvatarPresence(
   if (!identity) {
     return avatarUnavailable({
       reasonCode: 'zhiyu-local-agent-required',
-      actionHint: 'materialize_runtime_owned_local_agent',
+      actionHint: 'select_runtime_owned_partner',
       source: localAgent.source,
       message: 'Zhiyu requires a Runtime-owned LocalAgent before reading Avatar presence.',
       ownerUserId: localAgent.ownerUserId,

@@ -1,0 +1,29 @@
+version: 1
+table_family: owner_matrix
+owner: zhiyu
+matrix_id: zhiyu_config_consumption_surface
+entries:
+  - surface: runtime_ai_model_config
+    required_in_zhiyu: true
+    allowed_operations: [display_current_config, choose_available_profile_or_model_config, submit_change_via_facade, show_validation_failure]
+    forbidden_operations: [persist_runtime_ai_config_locally, hardcode_provider_model, store_api_key, own_spend_truth, call_provider_directly]
+    owner: runtime_sdk_kit_platform
+    source_rule: Z-CONFIG-001
+  - surface: live2d_vrm_resource_import
+    required_in_zhiyu: true
+    allowed_operations: [open_import_facade, display_import_status, show_validation_failure]
+    forbidden_operations: [store_avatar_resource_truth, bypass_avatar_validator, own_resource_lifecycle]
+    owner: avatar_runtime_kit
+    source_rule: Z-CONFIG-003
+  - surface: live2d_vrm_selection
+    required_in_zhiyu: true
+    allowed_operations: [display_available_resources, submit_selection_via_facade, show_selected_avatar_projection]
+    forbidden_operations: [persist_avatar_config_truth_locally, mutate_carrier_runtime_directly]
+    owner: avatar_runtime_kit
+    source_rule: Z-CONFIG-003
+  - surface: avatar_launch
+    required_in_zhiyu: true
+    allowed_operations: [launch_avatar_surface, show_launch_unavailable_state]
+    forbidden_operations: [embed_carrier_without_admission, own_carrier_lifecycle]
+    owner: avatar_runtime_kit_desktop_if_needed
+    source_rule: Z-AV-002

@@ -128,7 +128,7 @@ test('fails closed before companion state read when LocalAgent is unavailable', 
   assert.equal(companion.ready, false);
   assert.equal(companion.state, 'blocked');
   assert.equal(companion.reasonCode, 'zhiyu-local-agent-required');
-  assert.equal(companion.actionHint, 'materialize_runtime_owned_local_agent');
+  assert.equal(companion.actionHint, 'select_runtime_owned_partner');
   assert.equal(companion.executionState, null);
   assert.equal(companion.statusText, null);
   assert.equal(companion.proactiveInterruptibility.ready, false);
@@ -149,7 +149,7 @@ test('fails closed before companion state read when LocalAgent source is not Run
   assert.equal(companion.ready, false);
   assert.equal(companion.state, 'blocked');
   assert.equal(companion.reasonCode, 'zhiyu-runtime-owned-local-agent-required');
-  assert.equal(companion.actionHint, 'materialize_runtime_owned_local_agent');
+  assert.equal(companion.actionHint, 'select_runtime_owned_partner');
   assert.equal(companion.stateUpdatedAt, null);
   assert.equal(companion.currentEmotion, null);
   assert.equal(companion.participationMode, 'not_projected');

@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import {
+  createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   type NimiElectronRuntimeTrustedCallerMode,
@@ -20,11 +21,13 @@ const rendererUrl = normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RENDERER_URL);
 const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
   || normalizeText(process.env.NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT)
   || '127.0.0.1:46371';
+let mainWindow: BrowserWindow | undefined;
 
 app.setName('织羽 Zhiyu');
 configureZhiyuElectronChromiumRuntime();
 
 void app.whenReady().then(async () => {
+  const standardDataRoot = resolveStandardDataRoot();
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
     runtimeEndpoint,
@@ -36,11 +39,15 @@ void app.whenReady().then(async () => {
       runtimeEndpoint,
     }),
     standardShellHost: {
-      dataRoot: resolveStandardDataRoot(),
+      dataRoot: standardDataRoot,
       localAssetRoots: [],
       runtimeTrustedCaller: {
         mode: resolveRuntimeTrustedCallerMode(),
       },
+      aiConfigStore: createNimiElectronFileAIConfigStore({
+        dataRoot: standardDataRoot,
+        storeLabel: 'zhiyu AI Config',
+      }),
     },
   });
 
@@ -76,6 +83,12 @@ async function createMainWindow(): Promise<BrowserWindow> {
       nodeIntegration: false,
       sandbox: true,
     },
+  });
+  mainWindow = window;
+  window.on('closed', () => {
+    if (mainWindow === window) {
+      mainWindow = undefined;
+    }
   });
   secureZhiyuWindow(window);
   await loadRendererRoute(window);

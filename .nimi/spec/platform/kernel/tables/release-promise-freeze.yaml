@@ -243,7 +243,7 @@ capabilities:
       ui_event: pending
       audit: pending
     verification_refs:
-      - .nimi/local/plans/zhiyu/40-pp6-proactive-interruptibility-unblock-plan.md
+      - pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency
     source_rule: P-GOV-026
 
   - id: runtime.agent.delegated-approval-resume
