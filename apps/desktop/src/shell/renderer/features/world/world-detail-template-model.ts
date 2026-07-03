@@ -1,4 +1,4 @@
-import type { WorldCharacter, WorldDetailData, WorldPublicAssetsData, WorldSceneItem, WorldSemanticData, WorldSemanticRule } from './world-detail-types.js';
+import type { WorldAssetExternalRef, WorldCharacter, WorldDetailData, WorldPublicAssetsData, WorldSceneItem, WorldSemanticData, WorldSemanticRule } from './world-detail-types.js';
 
 export const DETAIL_MEDIA_PLACEHOLDER =
   'linear-gradient(135deg, rgba(95,201,234,0.84), rgba(143,115,255,0.78))';
@@ -144,14 +144,74 @@ export function withTimeFlowRule(rules: readonly WorldSemanticRule[]): WorldSema
     : [...rules, timeFlowRule];
 }
 
-export function derivedScenes(publicAssets: WorldPublicAssetsData, semantic: WorldSemanticData): WorldSceneItem[] {
-  if (publicAssets.scenes.length > 0) {
-    return [...publicAssets.scenes];
-  }
-  return (semantic.topology?.realms ?? []).slice(0, 4).map((realm, index) => ({
+export function derivedScenes(
+  publicAssets: WorldPublicAssetsData,
+  semantic: WorldSemanticData,
+  characters: readonly WorldCharacter[] = [],
+): WorldSceneItem[] {
+  const scenes = publicAssets.scenes.length > 0
+    ? [...publicAssets.scenes]
+    : (semantic.topology?.realms ?? []).slice(0, 4).map((realm, index) => ({
     id: `realm-${index + 1}`,
     name: realm.name,
     description: realm.description ?? realm.accessibility ?? '',
     activeEntities: [],
+    relatedCharacters: [],
+    relatedEvents: [],
+    relatedResources: [],
+    counts: {
+      activeEntityCount: 0,
+      relatedCharacterCount: 0,
+      relatedEventCount: 0,
+      relatedResourceCount: 0,
+    },
+    media: [],
   }));
+  return scenes.map((scene) => withPlacementTaggedCharacters(scene, characters));
+}
+
+function withPlacementTaggedCharacters(
+  scene: WorldSceneItem,
+  characters: readonly WorldCharacter[],
+): WorldSceneItem {
+  const existingIds = new Set(scene.relatedCharacters.map((character) => character.id));
+  const placementCharacters = characters.filter((character) => {
+    if (existingIds.has(character.id)) {
+      return false;
+    }
+    return character.tags?.some((tag) => tag.trim() === scene.id) ?? false;
+  });
+  if (placementCharacters.length === 0) {
+    return scene;
+  }
+  const relatedCharacters = [...scene.relatedCharacters, ...placementCharacters];
+  return {
+    ...scene,
+    relatedCharacters,
+    counts: {
+      ...scene.counts,
+      relatedCharacterCount: Math.max(scene.counts.relatedCharacterCount, relatedCharacters.length),
+    },
+  };
+}
+
+export function sceneImageRef(
+  scene: WorldSceneItem,
+  fallbackRefs: readonly WorldAssetExternalRef[],
+  index: number,
+): WorldAssetExternalRef | null {
+  const sceneMedia = scene.media.find((asset) => asset.url);
+  if (sceneMedia) {
+    return {
+      refId: sceneMedia.id,
+      kind: sceneMedia.kind,
+      purpose: 'scene',
+      label: null,
+      uri: sceneMedia.url,
+    };
+  }
+  if (fallbackRefs.length === 0) {
+    return null;
+  }
+  return fallbackRefs[index % fallbackRefs.length] ?? null;
 }

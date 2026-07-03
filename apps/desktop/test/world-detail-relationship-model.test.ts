@@ -163,6 +163,38 @@ test('relationship evidence graph does not split zi-ending kinship names into ro
   assert.equal(graph.summary.linkedEvidenceCount, 2);
 });
 
+test('relationship evidence graph resolves the longest kinship term before extracting the name', () => {
+  const characters = [
+    character('li-shang-yin', '李商隐', [
+      'kinship：父亲李嗣。李商隐早年丧父，家境贫寒，这段经历塑造了他敏感的性格和对家族的责任感。',
+      'kinship：李商隐娶王茂元之女，卷入牛李党争。',
+    ]),
+  ];
+
+  const graph = buildWorldRelationshipEvidenceGraph({
+    world: world(),
+    characters,
+    history: history(),
+    preferredCenterId: 'li-shang-yin',
+  });
+
+  // 父亲李嗣 must yield exactly 李嗣 — not a second 亲李嗣 node from the
+  // single-character 父 term, and no narrative fragments as pseudo-people.
+  assert.deepEqual(
+    graph.edges.map((edge) => edge.targetName),
+    ['李嗣'],
+  );
+  assert.equal(
+    graph.edges.some((edge) => /亲李嗣|李商隐早年丧|李商隐娶王茂元之/.test(edge.targetName)),
+    false,
+  );
+  // The fullwidth-colon kind prefix is stripped from displayed evidence text.
+  assert.equal(
+    graph.edges.some((edge) => edge.evidenceTexts.some((text) => text.startsWith('kinship'))),
+    false,
+  );
+});
+
 test('relationship evidence graph separates linked, clue-only, and empty characters', () => {
   const characters = [
     character('wu-cheng', '吴澄', ['核心人物', '文学']),

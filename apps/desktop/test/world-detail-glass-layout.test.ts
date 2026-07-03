@@ -20,12 +20,18 @@ const worldTemplateSource = [
   'world-detail-paper-model.ts',
   'world-detail-template-model.ts',
 ].map(readWorldSource).join('\n');
+const worldDetailTemplateSource = readWorldSource('world-detail-template.tsx');
 const paperPrimitiveSource = readWorldSource('world-detail-paper-primitives.tsx');
 const paperSectionsSource = readWorldSource('world-detail-paper-sections.tsx');
 const glassSectionsSource = readWorldSource('world-detail-glass-sections.tsx');
+const peopleGallerySource = readWorldSource('world-detail-people-gallery.tsx');
 const relationshipExplorerSource = readWorldSource('world-detail-relationship-explorer.tsx');
 const relationshipExplorerModelSource = readWorldSource('world-detail-relationship-explorer-model.ts');
 const relationshipNetworkSource = readWorldSource('world-detail-relationship-network.tsx');
+const loreLibrarySource = readWorldSource('world-detail-lore-library.tsx');
+const resourceReferencesSource = readWorldSource('world-detail-resource-references.tsx');
+const sceneDetailSource = readWorldSource('world-detail-scene-detail-page.tsx');
+const skeletonSource = readWorldSource('world-detail-skeletons.tsx');
 const relationshipExplorerLocaleSource = ['zh', 'en'].map((locale) => {
   const localeJson = JSON.parse(readFileSync(
     resolve(import.meta.dirname, `../src/shell/renderer/locales/${locale}/41-WorldDetail.json`),
@@ -61,8 +67,9 @@ test('world detail product semantics stay record-first and source-first', () => 
   assert.match(worldTemplateSource, /WorldDetail\.paper\.paths\.title/);
   assert.match(worldTemplateSource, /WorldDetail\.paper\.characters\.title/);
   assert.match(worldTemplateSource, /WorldDetail\.paper\.materials\.title/);
-  assert.match(worldTemplateSource, /WorldDetail\.paper\.timeline\.title/);
   assert.match(worldTemplateSource, /WorldDetail\.paper\.scenes\.title/);
+  assert.doesNotMatch(worldDetailTemplateSource, /PaperTimelineSection/);
+  assert.doesNotMatch(worldDetailTemplateSource, /world-detail-timeline/);
   // World follow stays in the hero; low-value banner chips are omitted.
   assert.match(worldTemplateSource, /data-testid="world-detail-hero-world-follow"/);
   assert.match(worldTemplateSource, /onMaterializeSource/);
@@ -96,6 +103,11 @@ test('world detail paper and hero surfaces consume Nimi kit primitives', () => {
   assert.doesNotMatch(glassSectionsSource, /function IconFollow/);
 });
 
+test('world detail paper metric strip does not squeeze labels into the icon column', () => {
+  assert.doesNotMatch(paperSectionsSource, /grid-cols-\[46px_minmax\(0,1fr\)\]/);
+  assert.doesNotMatch(paperSectionsSource, /items-center gap-x-3 border-0 bg-transparent p-\[18px\]/);
+});
+
 test('world detail hero does not render banner tags', () => {
   assert.doesNotMatch(worldTemplateSource, /data-testid="world-detail-hero-tags"/);
   assert.doesNotMatch(worldTemplateSource, /const tags = displayTags\(world\)/);
@@ -125,13 +137,36 @@ test('world detail scrolls the in-page drill-down into view after opening it', (
   assert.match(worldTemplateSource, /scrollIntoView\(\{ behavior: 'auto', block: 'start' \}\)/);
 });
 
+test('world detail drill-down pages share the root paper top safe area', () => {
+  assert.match(worldTemplateSource, /worldDetailPaperContentFrameStyle/);
+  assert.match(peopleGallerySource, /worldDetailPaperContentFrameStyle/);
+  assert.match(relationshipExplorerSource, /WORLD_DETAIL_PAPER_CONTENT_PADDING/);
+  assert.match(loreLibrarySource, /worldDetailPaperContentFrameStyle/);
+  assert.match(resourceReferencesSource, /worldDetailPaperContentFrameStyle/);
+  assert.match(sceneDetailSource, /worldDetailPaperContentFrameStyle/);
+  assert.match(skeletonSource, /WORLD_DETAIL_PAPER_CONTENT_PADDING/);
+  assert.match(skeletonSource, /worldDetailPaperContentFrameStyle/);
+  assert.doesNotMatch(peopleGallerySource, /padding: '22px 28px 80px'/);
+  assert.doesNotMatch(loreLibrarySource, /padding: '22px 28px 80px'/);
+  assert.doesNotMatch(resourceReferencesSource, /padding: '22px 28px 80px'/);
+  assert.doesNotMatch(sceneDetailSource, /padding: '22px 28px 80px'/);
+  assert.doesNotMatch(peopleGallerySource, /calc\(100vh - 154px\)/);
+  assert.doesNotMatch(sceneDetailSource, /calc\(100vh-154px\)/);
+  assert.doesNotMatch(skeletonSource, /SUBPAGE_CONTENT_PADDING = '22px 28px 80px'/);
+  assert.doesNotMatch(relationshipExplorerSource, /EXPLORER_TOP_OFFSET_PX = 154/);
+});
+
+test('world scene detail page uses page scroll instead of a capped internal viewport', () => {
+  assert.doesNotMatch(sceneDetailSource, /max-h-\[720px\]/);
+});
+
 test('world detail resolves the people material card to the people archive page', async () => {
   const mod = await import('../src/shell/renderer/features/world/world-detail-template.js');
   assert.equal(mod.resolveWorldMaterialSubpage('people'), 'people-archive');
   assert.equal(mod.resolveWorldMaterialSubpage('scenes'), null);
   assert.equal(mod.resolveWorldMaterialSubpage('events'), null);
-  assert.equal(mod.resolveWorldMaterialSubpage('resources'), null);
-  assert.equal(mod.resolveWorldMaterialSubpage('lore'), null);
+  assert.equal(mod.resolveWorldMaterialSubpage('resources'), 'resource-references');
+  assert.equal(mod.resolveWorldMaterialSubpage('lore'), 'lore-library');
 });
 
 test('world relationship explorer is a three-column user-facing exploration page', () => {
@@ -147,10 +182,13 @@ test('world relationship explorer is a three-column user-facing exploration page
   assert.match(relationshipExplorerModelSource, /relationshipExplorer\.kinds\.\$\{kind\}/);
   assert.match(relationshipExplorerSource, /data-testid="world-relationship-person-title-row"/);
   assert.match(relationshipExplorerSource, /data-testid="world-relationship-person-count"/);
-  assert.match(relationshipExplorerSource, /padding: '9px 16px 9px 10px'/);
-  assert.match(relationshipExplorerModelSource, /const FILTER_KEYS[^=]*=\s*\['all', 'featured', 'literati', 'academy', 'open'\]/);
+  assert.match(relationshipExplorerSource, /padding: '9px 10px'/);
+  assert.match(relationshipExplorerModelSource, /const FILTER_KEYS[^=]*=\s*\['all', 'literati', 'academy'\]/);
   assert.match(relationshipExplorerModelSource, /const RELATION_FILTER_KEYS[^=]*=\s*\['all', \.\.\.KIND_ORDER\]/);
-  assert.match(relationshipExplorerLocaleSource, /元代文人书院世界/);
+  // The topbar title binds the live world name; locale copy must not hardcode a world name.
+  assert.match(relationshipExplorerSource, /\{world\.name\}/);
+  assert.doesNotMatch(relationshipExplorerLocaleSource, /元代文人书院世界/);
+  assert.doesNotMatch(relationshipExplorerSource, /relationshipExplorer\.title/);
   assert.match(relationshipExplorerLocaleSource, /关系网络/);
   assert.match(relationshipExplorerLocaleSource, /人物档案/);
   assert.match(relationshipExplorerLocaleSource, /静态历史世界/);
@@ -160,10 +198,17 @@ test('world relationship explorer is a three-column user-facing exploration page
   assert.match(relationshipNetworkSource, /data-testid="world-relationship-graph-toolbar"/);
   assert.match(relationshipExplorerSource, /data-testid="world-relationship-detail-panel"/);
   assert.match(relationshipExplorerModelSource, /const GRAPH_DEFAULT_ZOOM = 1\.1/);
-  assert.match(relationshipNetworkSource, /minHeight: 720/);
-  assert.match(relationshipNetworkSource, /aspectRatio: '1 \/ 1'/);
+  // The graph column and side panels use one fixed exploration height instead
+  // of recomputing a parallel titlebar offset with viewport-height arithmetic.
+  assert.match(relationshipExplorerModelSource, /const EXPLORER_PANEL_HEIGHT_PX = 1100/);
+  assert.match(relationshipExplorerSource, /height: EXPLORER_PANEL_HEIGHT_PX,\s*minHeight: EXPLORER_PANEL_HEIGHT_PX/);
+  assert.doesNotMatch(relationshipExplorerSource, /calc\(100vh - 92px\)/);
+  // The graph canvas fills the remaining column height instead of a fixed square aspect ratio.
+  assert.match(relationshipExplorerModelSource, /const EXPLORER_GRAPH_CANVAS_MIN_HEIGHT_PX = 360/);
+  assert.match(relationshipNetworkSource, /flex: '1 1 360px',\s*minHeight: EXPLORER_GRAPH_CANVAS_MIN_HEIGHT_PX,\s*border/);
+  assert.doesNotMatch(relationshipNetworkSource, /flex: 1, minHeight: 0, border/);
   assert.match(relationshipNetworkSource, /viewBox="0 0 1000 1000"/);
-  assert.match(relationshipNetworkSource, /height: '100%', display: 'block'/);
+  assert.match(relationshipNetworkSource, /height: '100%', minHeight: EXPLORER_GRAPH_CANVAS_MIN_HEIGHT_PX, display: 'block'/);
   assert.match(relationshipExplorerSource, /setZoomScale\(GRAPH_DEFAULT_ZOOM\)/);
   assert.match(relationshipExplorerSource, /gridTemplateColumns: 'minmax\(212px,244px\) minmax\(0,1fr\) minmax\(300px,340px\)'/);
   assert.match(relationshipExplorerSource, /zoomScale/);
@@ -193,4 +238,54 @@ test('world relationship explorer is a three-column user-facing exploration page
   assert.doesNotMatch(relationshipExplorerLocaleSource, /"peopleList":\{[^}]*"clueCount":"\{\{count\}\} 条"/);
   assert.doesNotMatch(relationshipExplorerSource, /relation\.confidence|relation\.source/);
   assert.doesNotMatch(relationshipExplorerLocaleSource, /可信程度|来源说明|Confidence|Source explanation/);
+});
+
+test('world relationship explorer right profile action is a single white primary action', () => {
+  const profileSummaryStart = relationshipExplorerSource.indexOf('function ProfileSummary');
+  const profileSummaryEnd = relationshipExplorerSource.indexOf('function RelationshipDetailPanel');
+  const profileSummarySource = relationshipExplorerSource.slice(profileSummaryStart, profileSummaryEnd);
+
+  assert.match(profileSummarySource, /style=\{\{ \.\.\.paperPrimaryButton, flex: 1, color: '#fff' \}\}/);
+  assert.match(profileSummarySource, /displayRelationshipEvidenceText\(clue\.text\)/);
+  assert.doesNotMatch(profileSummarySource, /onBrowsePeers/);
+  assert.doesNotMatch(profileSummarySource, /profile\.peers/);
+});
+
+test('world relationship explorer profile action routes to source detail character profile', () => {
+  const explorerPropsStart = relationshipExplorerSource.indexOf('type WorldRelationshipExplorerProps = {');
+  const explorerPropsEnd = relationshipExplorerSource.indexOf('};', explorerPropsStart);
+  const explorerPropsSource = relationshipExplorerSource.slice(explorerPropsStart, explorerPropsEnd);
+
+  assert.match(explorerPropsSource, /readonly onViewCharacter\?: \(character: WorldCharacter\) => void;/);
+  assert.match(
+    worldDetailTemplateSource,
+    /<WorldRelationshipExplorer[\s\S]*?onSelectCharacter=\{setSelectedCharacterId\}[\s\S]*?onViewCharacter=\{props\.onViewCharacter\}/,
+  );
+  assert.match(
+    relationshipExplorerSource,
+    /const openCharacterProfile = \(characterId: string\) => \{[\s\S]*?const character = characters\.find\(\(item\) => item\.id === characterId\) \?\? null;[\s\S]*?if \(character && onViewCharacter\) \{[\s\S]*?onViewCharacter\(character\);[\s\S]*?return;[\s\S]*?\}[\s\S]*?onSelectCharacter\?\.\(characterId\);[\s\S]*?\};/,
+  );
+  assert.match(relationshipExplorerSource, /<ProfileFallback[\s\S]*?onOpenProfile=\{openCharacterProfile\}/);
+  assert.match(relationshipExplorerSource, /<RelationshipDetail[\s\S]*?onOpenCharacter=\{openCharacterProfile\}/);
+  assert.match(relationshipExplorerSource, /<ProfileSummary[\s\S]*?onOpenCharacter=\{openCharacterProfile\}/);
+});
+
+test('world relationship explorer cleans evidence prefixes across side details', () => {
+  const relationshipDetailStart = relationshipExplorerSource.indexOf('function RelationshipDetail');
+  const relationshipDetailEnd = relationshipExplorerSource.indexOf('function ClueDetail');
+  const relationshipDetailSource = relationshipExplorerSource.slice(relationshipDetailStart, relationshipDetailEnd);
+  const clueDetailStart = relationshipExplorerSource.indexOf('function ClueDetail');
+  const clueDetailEnd = relationshipExplorerSource.indexOf('function ProfileSummary');
+  const clueDetailSource = relationshipExplorerSource.slice(clueDetailStart, clueDetailEnd);
+
+  assert.match(relationshipDetailSource, /displayRelationshipEvidenceText\(edge\.evidenceTexts\[0\] \?\? t\('WorldDetail\.paper\.relationshipExplorer\.relation\.noEvidence'\)\)/);
+  assert.match(relationshipDetailSource, /style=\{\{ \.\.\.paperPrimaryButton, width: '100%', marginTop: 16, color: '#fff' \}\}/);
+  assert.match(clueDetailSource, /displayRelationshipEvidenceText\(clue\.evidenceText\)/);
+});
+
+test('world relationship graph person nodes do not cast card drop shadows', () => {
+  assert.doesNotMatch(relationshipNetworkSource, /0 18px 36px rgba\(25,70,45,\.22\)/);
+  assert.doesNotMatch(relationshipNetworkSource, /0 14px 28px rgba\(42,77,58,\.16\)/);
+  assert.doesNotMatch(relationshipNetworkSource, /0 8px 20px rgba\(86,75,52,\.09\)/);
+  assert.match(relationshipNetworkSource, /boxShadow: '0 0 0 2px rgba\(37,99,77,\.20\)'/);
 });

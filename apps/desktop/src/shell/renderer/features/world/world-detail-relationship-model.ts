@@ -153,8 +153,10 @@ const KINSHIP_TARGET_STOP_WORDS = new Set([
 
 const KINSHIP_ROLE_PREFIX_TERMS = KINSHIP_TERMS.filter((term) => term.length > 1);
 
+const EVIDENCE_KIND_PREFIX = /^(?:kinship|association|office|text|entry|address|status|topic)\s*[:：]\s*/i;
+
 function normalizeEvidenceText(value: string): string {
-  return value.replace(/\s+/g, ' ').trim();
+  return value.replace(EVIDENCE_KIND_PREFIX, '').replace(/\s+/g, ' ').trim();
 }
 
 function relationshipEvidenceTexts(character: WorldCharacter): string[] {
@@ -186,39 +188,50 @@ function normalizeKinshipTargetName(value: string, source: WorldCharacter): stri
   if (/[是为其的他她]/.test(candidate)) {
     return null;
   }
+  // Narrative verbs never appear in person names; a candidate containing one is
+  // a sentence fragment ("早年丧父", "娶王茂元之女"), not an extracted name.
+  if (/[丧娶嫁逝卒亡病殁早]/.test(candidate)) {
+    return null;
+  }
   if (KINSHIP_ROLE_PREFIX_TERMS.some((term) => candidate.startsWith(term))) {
     return null;
   }
-  if (candidate === source.name || KINSHIP_TARGET_STOP_WORDS.has(candidate)) {
+  // A candidate that still contains the source's own name is a narrative
+  // fragment about the source, not a kinship target.
+  if (candidate.includes(source.name) || KINSHIP_TARGET_STOP_WORDS.has(candidate)) {
     return null;
   }
   return candidate;
 }
 
+// One alternation ordered longest-first so "父亲李嗣" resolves the term as
+// 父亲 → 李嗣 instead of also matching 父 → 亲李嗣.
+const KINSHIP_TERM_ALTERNATION = [...KINSHIP_TERMS]
+  .sort((left, right) => right.length - left.length)
+  .map(escapeRegExp)
+  .join('|');
+
 function extractKinshipTargetNames(text: string, source: WorldCharacter): string[] {
   const names = new Set<string>();
-  for (const term of KINSHIP_TERMS) {
-    const escapedTerm = escapeRegExp(term);
-    const relationBeforeName = new RegExp(
-      `(?:^|[\\s:：，。；、（(]|其|其之|他的|她的)${escapedTerm}(?:为|是)?(${HAN_PERSON_NAME_PATTERN})`,
-      'g',
-    );
-    for (const match of text.matchAll(relationBeforeName)) {
-      const name = normalizeKinshipTargetName(match[1] ?? '', source);
-      if (name) {
-        names.add(name);
-      }
+  const relationBeforeName = new RegExp(
+    `(?:^|[\\s:：，。；、（(]|其|其之|他的|她的)(?:${KINSHIP_TERM_ALTERNATION})(?:为|是)?(${HAN_PERSON_NAME_PATTERN})`,
+    'g',
+  );
+  for (const match of text.matchAll(relationBeforeName)) {
+    const name = normalizeKinshipTargetName(match[1] ?? '', source);
+    if (name) {
+      names.add(name);
     }
+  }
 
-    const nameBeforeRelation = new RegExp(
-      `(${HAN_PERSON_NAME_PATTERN})(?:是|为)?(?:其|其之|他的|她的)?${escapedTerm}`,
-      'g',
-    );
-    for (const match of text.matchAll(nameBeforeRelation)) {
-      const name = normalizeKinshipTargetName(match[1] ?? '', source);
-      if (name) {
-        names.add(name);
-      }
+  const nameBeforeRelation = new RegExp(
+    `(${HAN_PERSON_NAME_PATTERN})(?:是|为)?(?:其|其之|他的|她的)?(?:${KINSHIP_TERM_ALTERNATION})`,
+    'g',
+  );
+  for (const match of text.matchAll(nameBeforeRelation)) {
+    const name = normalizeKinshipTargetName(match[1] ?? '', source);
+    if (name) {
+      names.add(name);
     }
   }
   return [...names];

@@ -80,13 +80,6 @@
     "timeflowValue": "{{value}}x timeflow",
     "notSpecified": "Not specified",
     "openEra": "Open era",
-    "nav": {
-      "lore": "Lore",
-      "rules": "Rules",
-      "characters": "Characters",
-      "scenes": "Scenes",
-      "timeline": "Timeline"
-    },
     "stats": {
       "sources": "Sources",
       "worldOwned": "World Owned",
@@ -110,9 +103,7 @@
     "characters": {
       "title": "Characters and Personas",
       "subtitle": "Browse public sources from this world and create a local agent when you need chat surfaces.",
-      "empty": "This world has no public character or persona sources yet.",
-      "persona": "Persona",
-      "character": "Character"
+      "empty": "This world has no public character or persona sources yet."
     },
     "timeline": {
       "title": "Major Events",
@@ -466,7 +457,6 @@
     "paths": {
       "title": "Recommended paths",
       "subtitle": "Not sure where to start? Follow one of these routes.",
-      "enter": "Start exploring",
       "lead": {
         "titleNamed": "Start with {{name}}",
         "title": "Start with a key figure",
@@ -566,12 +556,67 @@
         "resources": {
           "tag": "Resources",
           "title": "Resource references",
-          "desc": "Canonical resources and external references this world declares."
+          "desc": "Canonical resources, external references, and asset intents this world declares."
         },
         "lore": {
           "tag": "Lore",
           "title": "Setting compendium",
           "desc": "Rules, power systems, taboos, and languages."
+        }
+      }
+    },
+    "loreLibrary": {
+      "title": "Setting compendium",
+      "subtitle": "Structured semantic records for world rules, systems, taboos, and languages.",
+      "records": "records",
+      "empty": "This world has not published structured lore yet.",
+      "kind": {
+        "rule": "Rule",
+        "system": "System",
+        "taboo": "Taboo",
+        "language": "Language"
+      },
+      "group": {
+        "rule": {
+          "title": "Operating rules",
+          "subtitle": "Baseline rules that define how this world works."
+        },
+        "system": {
+          "title": "Systems",
+          "subtitle": "Structured organizations, powers, offices, or relationship systems."
+        },
+        "taboo": {
+          "title": "Taboos and boundaries",
+          "subtitle": "Explicit restrictions, prohibitions, or behavioral boundaries."
+        },
+        "language": {
+          "title": "Languages and expression",
+          "subtitle": "Languages, writing modes, and expression rules used inside this world."
+        }
+      }
+    },
+    "resourceReferences": {
+      "title": "Resource references",
+      "subtitle": "WorldCore-declared canonical resources, external references, and asset intent records.",
+      "records": "records",
+      "empty": "This world has not published resource references yet.",
+      "kind": {
+        "resource": "Canonical resources",
+        "external": "External references",
+        "intent": "Asset intents"
+      },
+      "group": {
+        "resource": {
+          "title": "Canonical resources",
+          "subtitle": "Internal resource references declared by the world, without ownership semantics."
+        },
+        "external": {
+          "title": "External references",
+          "subtitle": "External URIs or generated outputs referenced by the world."
+        },
+        "intent": {
+          "title": "Asset intents",
+          "subtitle": "WorldCore intent records for future resource production, replacement, or completion."
         }
       }
     },
@@ -586,15 +631,12 @@
       "enter": "Enter scene",
       "empty": "No scenes are published for this world yet.",
       "detailCard": "Scene detail card",
-      "image": "Image",
-      "public": "PUBLIC · explorable",
-      "sceneResolved": "sceneId resolved",
       "activeEntities": "Active entities",
       "relatedCharacters": "Related characters",
       "relatedEvents": "Related events",
-      "fromEntityRefs": "from entityRefs",
-      "fromCharacters": "from character placement",
+      "relatedResources": "Related resources",
       "fromEvents": "from locationRefs and summaries",
+      "fromResources": "from scene resources",
       "sceneId": "Scene ID",
       "imageAssetRef": "Image Asset Ref",
       "noImage": "No image",
@@ -627,9 +669,6 @@
     },
     "relationshipExplorer": {
       "back": "Back to detail",
-      "eyebrow": "Character relationship exploration",
-      "title": "Yuan Literati Academy World",
-      "subtitle": "Explore Yuan literati, work clues, social ties, and historical threads. Start with people, inspect relationships, then continue through source materials.",
       "noTargetMeta": "No public identity metadata",
       "openCharacter": "Open character profile",
       "graphLabel": "Character relationship network",
@@ -731,10 +770,8 @@
         "empty": "No people match the current filter.",
         "filters": {
           "all": "All",
-          "featured": "Key",
           "literati": "Circle",
-          "academy": "Academy",
-          "open": "To explore"
+          "academy": "Academy"
         }
       },
       "controls": {

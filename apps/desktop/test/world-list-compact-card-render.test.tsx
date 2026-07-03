@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 (globalThis as { React?: typeof React }).React = React;
 
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
+import { AtlasCategoryTabs } from '../src/shell/renderer/features/world/world-list-catalog-controls';
 import { CompactWorldCard } from '../src/shell/renderer/features/world/world-list-compact-card';
 import type { WorldListItem } from '../src/shell/renderer/features/world/world-list-model';
 
@@ -74,7 +75,7 @@ test.before(async () => {
   await changeLocale('zh');
 });
 
-test('compact world card renders short localized taxonomy labels', () => {
+test('compact world card renders only dynasty tags without public/source metadata', () => {
   const markup = renderToStaticMarkup(
     React.createElement(CompactWorldCard, {
       world,
@@ -85,10 +86,58 @@ test('compact world card renders short localized taxonomy labels', () => {
     }),
   );
 
-  assert.match(markup, />历史<\/span>/);
-  assert.match(markup, />朝代<\/span>/);
+  assert.match(markup, />唐代<\/span>/);
+  assert.doesNotMatch(markup, /\bPublic\b/);
+  assert.doesNotMatch(markup, /\bsources?\b/i);
+  assert.doesNotMatch(markup, />历史<\/span>/);
+  assert.doesNotMatch(markup, />朝代<\/span>/);
   assert.doesNotMatch(markup, />历史世界<\/span>/);
-  assert.doesNotMatch(markup, />唐代<\/span>/);
   assert.doesNotMatch(markup, />学术<\/span>/);
   assert.doesNotMatch(markup, />学术资料<\/span>/);
+});
+
+test('compact world card suppresses non-era preview badges derived from world identity or timeline', () => {
+  const markup = renderToStaticMarkup(
+    React.createElement(CompactWorldCard, {
+      world: {
+        ...world,
+        id: 'world-song-continuum',
+        name: 'Song Continuum',
+        era: 'Song Continuum Foundation',
+        computed: {
+          ...world.computed,
+          time: {
+            ...world.computed.time,
+            eraLabel: null,
+          },
+        },
+      },
+      selected: false,
+      view: 'grid',
+      onSelect: () => {},
+      onOpen: () => {},
+    }),
+  );
+
+  assert.match(markup, /Song Continuum/);
+  assert.doesNotMatch(markup, /Song Continuum Foundation/);
+  assert.doesNotMatch(markup, />Foundation<\/span>/);
+});
+
+test('world atlas category toolbar does not render the extra more action', () => {
+  const markup = renderToStaticMarkup(
+    React.createElement(AtlasCategoryTabs, {
+      active: 'all',
+      onChange: () => {},
+      followedCount: 3,
+      view: 'grid',
+      onViewChange: () => {},
+      sort: 'active',
+      onSortChange: () => {},
+    }),
+  );
+
+  assert.match(markup, /全部世界/);
+  assert.match(markup, /视图模式/);
+  assert.doesNotMatch(markup, /更多/);
 });

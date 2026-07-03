@@ -5,12 +5,12 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import type { WorldCharacter } from './world-detail-types.js';
 import { characterMeta, formatNum } from './world-detail-template-model';
 import { PAPER, PAPER_RADIUS, PAPER_SERIF } from './world-detail-paper-model';
+import { worldDetailPaperContentFrameStyle } from './world-detail-layout.js';
 import {
   IconChat,
   IconChevron,
   IconUsers,
   PaperAvatar,
-  PaperTag,
   paperGhostButton,
   paperPrimaryButton,
 } from './world-detail-paper-primitives';
@@ -57,6 +57,7 @@ const PEOPLE_GALLERY_TITLEBAR_GAP_PX = 16;
 const PEOPLE_GALLERY_TOP_OFFSET_PX = PEOPLE_GALLERY_SHELL_TITLEBAR_HEIGHT_PX + PEOPLE_GALLERY_TITLEBAR_GAP_PX;
 const PEOPLE_GALLERY_BOTTOM_GUTTER_PX = 24;
 const PEOPLE_GALLERY_SIDE_GUTTER_PX = 20;
+const PEOPLE_ARCHIVE_PANEL_MIN_HEIGHT_PX = 560;
 
 function PeopleCard({
   character,
@@ -71,7 +72,6 @@ function PeopleCard({
 }) {
   const { t } = useTranslation();
   const connectable = character.relation?.state === 'connectable';
-  const isPersona = character.ownership === 'userOwned' || character.sourceKind === 'realmPersona';
   const tier = tierBadgeTone[character.importance];
   const cardStyle: CSSProperties = {
     background: PAPER.cardSoft,
@@ -109,7 +109,6 @@ function PeopleCard({
             >
               {character.name}
             </button>
-            <PaperTag>{isPersona ? t('WorldDetail.glass.characters.persona') : t('WorldDetail.glass.characters.character')}</PaperTag>
           </div>
           <div style={{ fontSize: 12, color: PAPER.bodySoft, lineHeight: 1.5, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {characterMeta(character)}
@@ -253,7 +252,7 @@ function PeopleArchiveShell({
   subtitle,
   title,
 }: {
-  actionLabel: string;
+  actionLabel?: string;
   axes: readonly PeopleGroupBy[];
   effectiveGroupBy: PeopleGroupBy;
   groups: readonly PeopleGroup[];
@@ -277,7 +276,7 @@ function PeopleArchiveShell({
         width: '100%',
         maxWidth: 1080,
         maxHeight: modal ? `calc(100vh - ${PEOPLE_GALLERY_TOP_OFFSET_PX}px - ${PEOPLE_GALLERY_BOTTOM_GUTTER_PX}px)` : undefined,
-        minHeight: modal ? undefined : 'calc(100vh - 154px)',
+        minHeight: modal ? undefined : PEOPLE_ARCHIVE_PANEL_MIN_HEIGHT_PX,
         display: 'flex',
         flexDirection: 'column',
         background: PAPER.card,
@@ -300,13 +299,15 @@ function PeopleArchiveShell({
               {subtitle}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onAction}
-            style={{ flexShrink: 0, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, padding: '7px 14px', borderRadius: 999, border: `1px solid ${PAPER.borderSoft}`, background: PAPER.cardSoft, color: PAPER.bodySoft, cursor: 'pointer' }}
-          >
-            {actionLabel}
-          </button>
+          {actionLabel ? (
+            <button
+              type="button"
+              onClick={onAction}
+              style={{ flexShrink: 0, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, padding: '7px 14px', borderRadius: 999, border: `1px solid ${PAPER.borderSoft}`, background: PAPER.cardSoft, color: PAPER.bodySoft, cursor: 'pointer' }}
+            >
+              {actionLabel}
+            </button>
+          ) : null}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
@@ -435,7 +436,7 @@ export function WorldPeopleArchivePage({
       data-testid="world-detail-people-archive-page"
       style={{ position: 'relative', minHeight: '100%', fontFamily: 'var(--nimi-font-sans)' }}
     >
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1180, margin: '0 auto', padding: '22px 28px 80px' }}>
+      <div style={worldDetailPaperContentFrameStyle()}>
         <button
           type="button"
           onClick={onBack}
@@ -459,7 +460,6 @@ export function WorldPeopleArchivePage({
           axes={axes}
           title={t('WorldDetail.paper.materials.cat.people.title')}
           subtitle={t('WorldDetail.paper.gallery.subtitle', { total: formatNum(characters.length), connectable: formatNum(connectable) })}
-          actionLabel={t('WorldDetail.paper.gallery.backToWorld')}
         />
       </div>
     </div>

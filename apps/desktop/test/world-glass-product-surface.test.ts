@@ -10,15 +10,26 @@ function readWorldSource(fileName: string): string {
   );
 }
 
+function readOptionalWorldSource(fileName: string): string {
+  try {
+    return readWorldSource(fileName);
+  } catch {
+    return '';
+  }
+}
+
 const worldListSource = [
   'world-list.tsx',
   'world-list-catalog-controls.tsx',
   'world-list-featured-strip.tsx',
   'world-list-compact-card.tsx',
   'world-list-selected-panel.tsx',
-].map(readWorldSource).join('\n');
+].map(readWorldSource).join('\n') + '\n' + readOptionalWorldSource('world-list-cover.tsx');
 
 const selectedPanelSource = readWorldSource('world-list-selected-panel.tsx');
+const compactCardSource = readWorldSource('world-list-compact-card.tsx');
+const worldExplorerThemeSource = readOptionalWorldSource('world-list-theme.ts');
+const worldCoverSource = readOptionalWorldSource('world-list-cover.tsx');
 
 const worldDetailTemplateSource = [
   'world-detail-template.tsx',
@@ -42,7 +53,7 @@ const exploreViewSource = readFileSync(
   'utf8',
 );
 
-test('world atlas page exposes the glass atlas product surface', () => {
+test('world atlas page exposes the World Explorer product surface', () => {
   assert.match(worldListSource, /data-testid="world-atlas-glass-layout"/);
   assert.match(worldListSource, /data-testid="world-atlas-category-tabs"/);
   assert.match(worldListSource, /data-testid="world-atlas-featured-strip"/);
@@ -53,6 +64,31 @@ test('world atlas page exposes the glass atlas product surface', () => {
   assert.doesNotMatch(worldListSource, /onSearchQueryChange/);
   assert.match(worldListSource, /<AtlasCategoryTabs[\s\S]*view=\{view\}[\s\S]*sort=\{sort\}/);
   assert.doesNotMatch(worldListSource, /WorldCatalogSidebar/);
+});
+
+test('world atlas declares one restrained World Explorer theme instead of inline color drift', () => {
+  assert.match(worldExplorerThemeSource, /WORLD_EXPLORER_COLORS/);
+  assert.match(worldExplorerThemeSource, /background:\s*'#F6F8FB'/);
+  assert.match(worldExplorerThemeSource, /surface:\s*'#FFFFFF'/);
+  assert.match(worldExplorerThemeSource, /weakSurface:\s*'#F8FAFC'/);
+  assert.match(worldExplorerThemeSource, /brand:\s*'#24C6A4'/);
+  assert.match(worldExplorerThemeSource, /brandSoft:\s*'#EAFBF6'/);
+  assert.match(worldExplorerThemeSource, /text:\s*'#17202A'/);
+  assert.match(worldExplorerThemeSource, /textSecondary:\s*'#6B7280'/);
+  assert.match(worldExplorerThemeSource, /textMuted:\s*'#9AA4B2'/);
+  assert.match(worldExplorerThemeSource, /border:\s*'#E5EAF0'/);
+  assert.match(worldExplorerThemeSource, /favorite:\s*'#E95C5C'/);
+  assert.match(worldExplorerThemeSource, /WORLD_EXPLORER_SHADOWS/);
+});
+
+test('world atlas removes glass-heavy, blue-gradient, and pink favorite styling from the explorer surface', () => {
+  assert.doesNotMatch(worldListSource, /material="glass-/);
+  assert.doesNotMatch(worldListSource, /var\(--nimi-status-info\)/);
+  assert.doesNotMatch(worldListSource, /bg-\[linear-gradient\(135deg,var\(--nimi-status-info\),var\(--nimi-action-primary-bg\)\)\]/);
+  assert.doesNotMatch(worldListSource, /status-danger-soft-bg/);
+  assert.match(worldListSource, /WORLD_EXPLORER_THEME/);
+  assert.match(worldListSource, /world-card--selected/);
+  assert.match(worldListSource, /world-panel-primary-action/);
 });
 
 test('world atlas selected panel is a user-facing quick preview, not a data panel', () => {
@@ -67,6 +103,8 @@ test('world atlas selected panel is a user-facing quick preview, not a data pane
   assert.match(selectedPanelSource, /World\.card\.view/);
   assert.match(selectedPanelSource, /const \{ t, i18n \} = useTranslation\(\)/);
   assert.match(selectedPanelSource, /displayTags\(world, 2, i18n\.language\)/);
+  assert.doesNotMatch(worldListSource, /World\.atlas\.sourceCount/);
+  assert.doesNotMatch(worldListSource, /World\.atlas\.preview\.chatableTag/);
 });
 
 test('world atlas selected panel loads recommended people through the shared display-detail query', () => {
@@ -98,15 +136,32 @@ test('world atlas default-width layout reserves room for browsing before preview
   assert.match(worldListSource, /gridTemplateColumns: 'minmax\(760px,1fr\) minmax\(288px,clamp\(288px,24vw,320px\)\)'/);
   assert.match(worldListSource, /gap: 18/);
   assert.match(worldListSource, /repeat\(auto-fill, minmax\(250px, 1fr\)\)/);
-  assert.match(worldListSource, /gridTemplateColumns: '112px minmax\(0, 1fr\)'/);
-  assert.match(worldListSource, /repeat\(3, minmax\(190px, 1fr\)\)/);
+  assert.doesNotMatch(worldListSource, /gridTemplateColumns: '112px minmax\(0, 1fr\)'/);
+  assert.match(worldListSource, /gridTemplateColumns: 'repeat\(3, minmax\(0, 1fr\)\)'/);
+  assert.doesNotMatch(worldListSource, /World\.atlas\.featured\.title/);
+  assert.doesNotMatch(worldListSource, /World\.atlas\.featured\.body/);
+  assert.doesNotMatch(worldListSource, /World\.atlas\.featured\.viewAll/);
 });
 
-test('world atlas sits directly on the base glass without secondary card shadows', () => {
-  assert.match(worldListSource, /boxShadow:\s*'none'/);
+test('world atlas uses restrained library elevation instead of the old glass surface shadows', () => {
+  assert.match(worldListSource, /WORLD_EXPLORER_SHADOWS\.card/);
+  assert.match(worldListSource, /WORLD_EXPLORER_SHADOWS\.selected/);
   assert.doesNotMatch(worldListSource, /0 16px 42px rgba\(54,80,125,0\.08\)/);
   assert.doesNotMatch(worldListSource, /0 18px 34px rgba\(39,55,94,0\.14\)/);
   assert.doesNotMatch(worldListSource, /0 10px 22px rgba\(54,80,125,0\.08\)/);
+});
+
+test('world atlas uses complete abstract covers instead of visible initial placeholders', () => {
+  assert.match(worldCoverSource, /export function WorldCover/);
+  assert.match(worldCoverSource, /data-world-cover-tone/);
+  assert.match(worldCoverSource, /worldAbstractCoverBackground/);
+  assert.doesNotMatch(compactCardSource, /fallback=\{worldInitial\(world\.name\)\}/);
+  assert.doesNotMatch(selectedPanelSource, /text-\[76px\][\s\S]*worldInitial\(world\.name\)/);
+});
+
+test('world atlas featured covers fill the card without position-class conflicts', () => {
+  assert.match(worldCoverSource, /featured:\s*'absolute inset-0 block overflow-hidden rounded-\[16px\]'/);
+  assert.doesNotMatch(worldCoverSource, /relative block shrink-0 overflow-hidden \$\{variantClassName\[variant\]\}/);
 });
 
 test('world atlas hard-cuts local chrome primitives in favor of Nimi Kit', () => {

@@ -253,11 +253,39 @@ export type WorldAuditItem = {
   readonly freezeReason?: string | null;
 };
 
+export type WorldSceneEntity = {
+  readonly id: string;
+  readonly kind: string;
+  readonly label: string | null;
+  readonly summary: string | null;
+};
+
+export type WorldSceneResource = {
+  readonly id: string;
+  readonly kind: string;
+  readonly title: string;
+  readonly summary: string | null;
+  readonly entityRefs: readonly string[];
+  readonly eventRefs: readonly string[];
+};
+
+export type WorldSceneCounts = {
+  readonly activeEntityCount: number;
+  readonly relatedCharacterCount: number;
+  readonly relatedEventCount: number;
+  readonly relatedResourceCount: number;
+};
+
 export type WorldSceneItem = {
   readonly id: string;
   readonly name: string;
   readonly description: string;
-  readonly activeEntities: readonly string[];
+  readonly activeEntities: readonly WorldSceneEntity[];
+  readonly relatedCharacters: readonly WorldCharacter[];
+  readonly relatedEvents: readonly WorldHistoryItem[];
+  readonly relatedResources: readonly WorldSceneResource[];
+  readonly counts: WorldSceneCounts;
+  readonly media: readonly WorldPublicMediaAsset[];
 };
 
 export type WorldAssetResourceRef = {

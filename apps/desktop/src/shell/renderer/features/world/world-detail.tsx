@@ -23,9 +23,10 @@ import { useFollowedWorlds } from './world-follow-store';
 type WorldDetailProps = {
   world: WorldListItem;
   onBack: () => void;
+  initialSubpage?: 'relationship-explorer' | null;
 };
 
-export function WorldDetail({ world, onBack }: WorldDetailProps) {
+export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps) {
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
@@ -223,6 +224,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onMaterializeSource={handleMaterializeSource}
           onFollowWorld={handleFollowWorld}
           worldFollowed={worldFollowed}
+          initialSubpage={initialSubpage}
         />
       ) : (
         <NarrativeWorldDetailPage
@@ -244,6 +246,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           onMaterializeSource={handleMaterializeSource}
           onFollowWorld={handleFollowWorld}
           worldFollowed={worldFollowed}
+          initialSubpage={initialSubpage}
         />
       )}
     </ScrollArea>

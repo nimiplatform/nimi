@@ -6,7 +6,10 @@ import {
   loadWorldAssets,
   loadWorldList,
 } from '../src/shell/renderer/features/world/data/realm-world-data.js';
-import { displayTags } from '../src/shell/renderer/features/world/world-list-catalog-model.js';
+import {
+  displayTags,
+  isWorldVisibleInAtlas,
+} from '../src/shell/renderer/features/world/world-list-catalog-model.js';
 import {
   toWorldDisplayFallback,
   worldPublicHighlightImages,
@@ -44,6 +47,25 @@ function publicTime() {
   };
 }
 
+function publicScene(sceneId: string, name: string, summary: string) {
+  return {
+    sceneId,
+    name,
+    summary,
+    media: [],
+    activeEntities: [],
+    relatedCharacters: [],
+    relatedEvents: [],
+    relatedResources: [],
+    counts: {
+      activeEntityCount: 0,
+      relatedCharacterCount: 0,
+      relatedEventCount: 0,
+      relatedResourceCount: 0,
+    },
+  };
+}
+
 function publicWorld(overrides: PublicWorld = {}) {
   return {
     id: 'world-1',
@@ -73,7 +95,10 @@ function publicWorld(overrides: PublicWorld = {}) {
     relationshipTypes: ['serves', 'authored', 'locatedIn'],
     rules: ['Magic has an observable cost.'],
     systems: ['High Magic'],
-    scenes: ['Sky Citadel', 'Lower Market'],
+    scenes: [
+      publicScene('sky-citadel', 'Sky Citadel', 'Sky Citadel'),
+      publicScene('lower-market', 'Lower Market', 'Lower Market'),
+    ],
     timeline: ['Citadel founded', 'Market treaty signed'],
     createdAt: '2026-06-18T00:00:00.000Z',
     updatedAt: '2026-06-19T00:00:00.000Z',
@@ -161,7 +186,7 @@ function createWorldPublicCallApi(payload: {
 test('World Atlas list consumes public product DTOs without raw WorldCore requirements', async () => {
   const errors: RealmWorldDataError[] = [];
   const { callApi, calls } = createWorldPublicCallApi({
-    worlds: [publicWorld()],
+    worlds: [publicWorld({ era: '元代' })],
   });
 
   const result = await loadWorldList(callApi as never, createEmitter(errors));
@@ -178,6 +203,7 @@ test('World Atlas list consumes public product DTOs without raw WorldCore requir
   assert.equal(result[0]?.name, 'Eldoria');
   assert.equal(result[0]?.description, 'A kingdom-scale fantasy setting for source discovery.');
   assert.equal(result[0]?.tagline, 'High Magic Frontier');
+  assert.equal(result[0]?.era, '元代');
   assert.equal(result[0]?.bannerUrl, 'https://cdn.example.com/world-banner.png');
   assert.equal(result[0]?.entityCount, 8);
   assert.equal(result[0]?.relationshipCount, 12);
@@ -238,13 +264,20 @@ test('World detail list-item fallback consumes the already projected world list 
   assert.equal(fallback.currentWorldTime, '2026-06-19T00:00:00.000Z');
 });
 
-test('World Atlas preview tags project public taxonomy into user-facing labels', () => {
+test('World Atlas preview tags expose only the dynasty label', () => {
   const item = toWorldListItem(publicWorld({
+    era: '元代',
     tags: ['historical', 'cbdb-yuan-literati-academy-world'],
   }));
 
-  assert.deepEqual(displayTags(item, 2, 'zh-CN'), ['历史世界', '学术资料']);
-  assert.deepEqual(displayTags(item, 2, 'en-US'), ['Historical', 'Scholarly sources']);
+  assert.deepEqual(displayTags(item, 2, 'zh-CN'), ['元代']);
+  assert.deepEqual(displayTags(item, 2, 'en-US'), ['元代']);
+});
+
+test('World Atlas excludes Beijing and Northern Song scholar-official worlds from the visible catalog', () => {
+  assert.equal(isWorldVisibleInAtlas(toWorldListItem(publicWorld({ name: '北京士大夫世界' }))), false);
+  assert.equal(isWorldVisibleInAtlas(toWorldListItem(publicWorld({ name: '北宋士大夫世界' }))), false);
+  assert.equal(isWorldVisibleInAtlas(toWorldListItem(publicWorld({ name: '唐代文人世界' }))), true);
 });
 
 test('World detail consumes public source sections for characters and personas', async () => {

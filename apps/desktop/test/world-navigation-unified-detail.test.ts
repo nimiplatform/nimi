@@ -7,6 +7,10 @@ const worldListSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-list.tsx'),
   'utf8',
 );
+const selectedWorldPanelSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-list-selected-panel.tsx'),
+  'utf8',
+);
 const mainLayoutSource = [
   fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/app-shell/layouts/main-layout-view.tsx'),
@@ -48,6 +52,14 @@ test('Explore-owned World list routes detail entry through navigateToWorld unifi
   assert.doesNotMatch(worldListSource, /export function WorldList\b/);
   assert.match(explorePanelSource, /const navigateToWorld = useAppStore\(\(state\) => state\.navigateToWorld\)/);
   assert.match(explorePanelSource, /navigateToWorld\(worldId\)/);
+});
+
+test('World Atlas quick people graph routes directly to relationship explorer subpage', () => {
+  assert.match(worldListSource, /onOpenRelationshipGraph=\{\(\) => onOpenWorld\(selectedWorld\.id, \{ initialSubpage: 'relationship-explorer' \}\)\}/);
+  assert.match(selectedWorldPanelSource, /onOpenRelationshipGraph/);
+  assert.match(selectedWorldPanelSource, /action: 'relationship-explorer'/);
+  assert.match(selectedWorldPanelSource, /entry\.action === 'relationship-explorer'\s*\?\s*onOpenRelationshipGraph\s*:\s*onOpen/);
+  assert.match(explorePanelSource, /navigateToWorld\(worldId, options\)/);
 });
 
 test('world detail tab renders active world detail panel through route-state loader', () => {
@@ -103,6 +115,7 @@ test('source detail open world keeps world detail preload out of source detail p
 test('world navigation uses a transition to open detail with selected world state', () => {
   assert.match(uiSliceSource, /startTransition\(\(\) => \{/);
   assert.match(uiSliceSource, /selectedWorldId: normalizedWorldId/);
+  assert.match(uiSliceSource, /selectedWorldInitialSubpage: options\?\.initialSubpage \?\? null/);
   assert.match(uiSliceSource, /worldId: normalizedWorldId/);
   assert.match(uiSliceSource, /activeTab: 'world-detail'/);
 });

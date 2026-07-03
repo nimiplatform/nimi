@@ -27,6 +27,7 @@ export function WorldDetailActivePanel() {
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedWorldId = useAppStore((state) => state.selectedWorldId);
+  const selectedWorldInitialSubpage = useAppStore((state) => state.selectedWorldInitialSubpage);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const cachedWorlds = queryClient.getQueryData<WorldListItem[]>(worldListQueryKey());
   const cachedSelectedWorld = selectedWorldId
@@ -108,5 +109,5 @@ export function WorldDetailActivePanel() {
     );
   }
 
-  return <WorldDetail world={selectedWorld} onBack={navigateBack} />;
+  return <WorldDetail world={selectedWorld} onBack={navigateBack} initialSubpage={selectedWorldInitialSubpage} />;
 }

@@ -83,51 +83,46 @@ export function categoryMatches(world: WorldListItem, category: CategoryId): boo
   return tags.includes(needle);
 }
 
-type WorldTagLanguage = 'en' | 'zh';
-
-const WORLD_TAG_LABELS: Record<string, Record<WorldTagLanguage, string>> = {
-  historical: { en: 'Historical', zh: '历史世界' },
-  fantasy: { en: 'Fantasy', zh: '奇幻' },
-  'sci-fi': { en: 'Sci-Fi', zh: '科幻' },
-  scifi: { en: 'Sci-Fi', zh: '科幻' },
-  nature: { en: 'Nature', zh: '自然' },
-  steampunk: { en: 'Steampunk', zh: '蒸汽朋克' },
-  mystery: { en: 'Mystery', zh: '悬疑' },
-  anime: { en: 'Anime', zh: '动画' },
-};
-
-const WORLD_TAG_PREFIX_LABELS: ReadonlyArray<{
-  prefix: string;
-  labels: Record<WorldTagLanguage, string>;
-}> = [
-  { prefix: 'cbdb', labels: { en: 'Scholarly sources', zh: '学术资料' } },
-];
-
-function resolveWorldTagLanguage(language?: string): WorldTagLanguage {
-  return language?.toLocaleLowerCase().startsWith('zh') ? 'zh' : 'en';
-}
-
-function normalizeWorldDisplayTag(value: string | null | undefined, language?: string): string | null {
+function normalizeWorldDisplayTag(value: string | null | undefined): string | null {
   const tag = value?.trim().replace(/\s+/g, ' ');
   if (!tag) {
     return null;
-  }
-  const locale = resolveWorldTagLanguage(language);
-  const key = tag.toLocaleLowerCase();
-  const directLabel = WORLD_TAG_LABELS[key];
-  if (directLabel) {
-    return directLabel[locale];
-  }
-  const prefixLabel = WORLD_TAG_PREFIX_LABELS.find(({ prefix }) =>
-    key === prefix || key.startsWith(`${prefix}-`) || key.startsWith(`${prefix}_`),
-  );
-  if (prefixLabel) {
-    return prefixLabel.labels[locale];
   }
   if (isTechnicalWorldTag(tag)) {
     return null;
   }
   return tag;
+}
+
+function normalizeComputedEraTag(value: string | null | undefined): string | null {
+  const tag = normalizeWorldDisplayTag(value);
+  if (!tag) {
+    return null;
+  }
+  if (/^\d{4}(?:[-年/]|$)/.test(tag)) {
+    return null;
+  }
+  if (/\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|day|time)\b/i.test(tag)) {
+    return null;
+  }
+  return /(?:朝|代|时期|纪元|dynasty|era|period|tang|song|yuan|ming|qing|han|qin|sui|jin|liao)/i.test(tag)
+    ? tag
+    : null;
+}
+
+function normalizeComparableTag(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+
+function normalizeEraPreviewTag(value: string | null | undefined, worldName: string): string | null {
+  const tag = normalizeComputedEraTag(value);
+  if (!tag) {
+    return null;
+  }
+  const normalizedWorldName = normalizeComparableTag(worldName);
+  return normalizedWorldName && normalizeComparableTag(tag).includes(normalizedWorldName)
+    ? null
+    : tag;
 }
 
 function isTechnicalWorldTag(tag: string): boolean {
@@ -155,8 +150,8 @@ function isTechnicalWorldTag(tag: string): boolean {
 
 export function displayTags(world: WorldListItem, limit = 4, language?: string): string[] {
   const values: string[] = [];
-  const pushTag = (value: string | null | undefined) => {
-    const tag = normalizeWorldDisplayTag(value, language);
+  const pushTag = (value: string | null | undefined, normalize = normalizeWorldDisplayTag) => {
+    const tag = normalize(value);
     if (!tag) {
       return;
     }
@@ -166,12 +161,16 @@ export function displayTags(world: WorldListItem, limit = 4, language?: string):
     }
     values.push(tag);
   };
-  pushTag(world.genre);
-  pushTag(world.era);
-  for (const theme of world.themes) {
-    pushTag(theme);
+  pushTag(world.era, (value) => normalizeEraPreviewTag(value, world.name));
+  if (values.length === 0) {
+    pushTag(world.computed.time.eraLabel, (value) => normalizeEraPreviewTag(value, world.name));
   }
-  return values.slice(0, limit);
+  return values.slice(0, Math.max(0, limit));
+}
+
+export function isWorldVisibleInAtlas(world: Pick<WorldListItem, 'id' | 'name'>): boolean {
+  const identity = `${world.id} ${world.name}`.toLocaleLowerCase();
+  return !/(?:北京|beijing|北宋)士大夫世界/.test(identity);
 }
 
 export function worldSummary(world: WorldListItem): string {

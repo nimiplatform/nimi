@@ -1,7 +1,8 @@
 import { Grid2X2, Heart, List } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, SegmentedControl, SelectField, Surface } from '@nimiplatform/kit/ui';
+import { SegmentedControl, SelectField, Surface } from '@nimiplatform/kit/ui';
 import { CATEGORY_TABS, type CategoryId, type SortId, type ViewMode } from './world-list-catalog-model';
+import { WORLD_EXPLORER_THEME } from './world-list-theme';
 
 export function AtlasCategoryTabs({
   active,
@@ -30,7 +31,7 @@ export function AtlasCategoryTabs({
         <span className="inline-flex min-w-0 items-center gap-1.5">
           <span className="truncate">{t(`World.atlas.category.${category.id}`)}</span>
           {isFollowed && followedCount > 0 ? (
-            <span className="inline-grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--nimi-surface-active)] px-1 text-[length:var(--nimi-type-caption-size)] font-bold text-[var(--nimi-action-primary-bg)]">
+            <span className="inline-grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--world-explorer-brand-soft)] px-1 text-[length:var(--nimi-type-caption-size)] font-bold text-[var(--world-explorer-brand)]">
               {followedCount}
             </span>
           ) : null}
@@ -44,16 +45,16 @@ export function AtlasCategoryTabs({
       aria-label={t('World.atlas.categories')}
       data-testid="world-atlas-category-tabs"
       tone="panel"
-      material="glass-regular"
+      material="solid"
       elevation="base"
       padding="sm"
-      className="min-h-[54px] rounded-[var(--nimi-radius-xl)] shadow-none"
-      style={{ boxShadow: 'none' }}
+      className="min-h-[54px] rounded-[24px]"
+      style={WORLD_EXPLORER_THEME.nav}
     >
       <div className="flex min-w-0 items-center gap-2">
         <SegmentedControl
           ariaLabel={t('World.atlas.categories')}
-          className="min-w-0 flex-1 overflow-x-auto border-transparent bg-transparent shadow-none [&_.nimi-segmented-control__item]:min-h-9 [&_.nimi-segmented-control__item]:px-4 [&_.nimi-segmented-control__item--selected]:bg-[var(--nimi-surface-card)] [&_.nimi-segmented-control__item--selected]:text-[var(--nimi-status-info)] [&_.nimi-segmented-control__item--selected]:shadow-none"
+          className="min-w-0 flex-1 overflow-x-auto border-transparent bg-transparent shadow-none [&_.nimi-segmented-control__item]:min-h-9 [&_.nimi-segmented-control__item]:px-4 [&_.nimi-segmented-control__item]:font-semibold [&_.nimi-segmented-control__item]:text-[var(--world-explorer-text-secondary)] [&_.nimi-segmented-control__item--selected]:bg-[var(--world-explorer-brand-soft)] [&_.nimi-segmented-control__item--selected]:text-[var(--world-explorer-brand)] [&_.nimi-segmented-control__item--selected]:shadow-none"
           items={categoryItems}
           size="sm"
           value={active}
@@ -62,7 +63,7 @@ export function AtlasCategoryTabs({
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <SegmentedControl
             ariaLabel={t('World.toolbar.viewMode')}
-            className="rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-card)] shadow-none [&_.nimi-segmented-control__item]:aspect-square [&_.nimi-segmented-control__item]:px-2 [&_.nimi-segmented-control__item--selected]:text-[var(--nimi-status-info)]"
+            className="rounded-[16px] border border-[var(--world-explorer-border)] bg-[var(--world-explorer-surface)] shadow-none [&_.nimi-segmented-control__item]:aspect-square [&_.nimi-segmented-control__item]:px-2 [&_.nimi-segmented-control__item]:text-[var(--world-explorer-text-secondary)] [&_.nimi-segmented-control__item--selected]:bg-[var(--world-explorer-brand-soft)] [&_.nimi-segmented-control__item--selected]:text-[var(--world-explorer-brand)]"
             items={[
               { value: 'grid', label: <span className="sr-only">{t('World.toolbar.gridView')}</span>, icon: <Grid2X2 size={14} aria-hidden="true" /> },
               { value: 'list', label: <span className="sr-only">{t('World.toolbar.listView')}</span>, icon: <List size={14} aria-hidden="true" /> },
@@ -73,7 +74,7 @@ export function AtlasCategoryTabs({
           />
           <SelectField
             aria-label={t('World.toolbar.sortLabel')}
-            className="min-w-[124px] rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-card)]"
+            className="min-w-[124px] rounded-[16px] border-[var(--world-explorer-border)] bg-[var(--world-explorer-surface)] text-[var(--world-explorer-text)]"
             options={[
               { value: 'active', label: t('World.atlas.sort.active') },
               { value: 'recent', label: t('World.atlas.sort.recent') },
@@ -83,9 +84,6 @@ export function AtlasCategoryTabs({
             value={sort}
             onValueChange={(value) => onSortChange(value as SortId)}
           />
-          <Button tone="ghost" size="sm">
-            {t('World.atlas.more')}
-          </Button>
         </div>
       </div>
     </Surface>

@@ -38,6 +38,7 @@ type UiSlice = Pick<AppStoreState,
   | 'selectedProfileIsSource'
   | 'selectedSourceRef'
   | 'selectedWorldId'
+  | 'selectedWorldInitialSubpage'
   | 'selectedGiftTransactionId'
   | 'profileDetailOverlayOpen'
   | 'chatProfilePanelTarget'
@@ -100,6 +101,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     selectedProfileIsSource: null,
     selectedSourceRef: null,
     selectedWorldId: null,
+    selectedWorldInitialSubpage: null,
     selectedGiftTransactionId: null,
     profileDetailOverlayOpen: false,
     chatProfilePanelTarget: null,
@@ -199,7 +201,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
     setSelectedProfileIsSource: (isSource) => set({ selectedProfileIsSource: isSource }),
     setSelectedSourceRef: (sourceRef) => set({ selectedSourceRef: sourceRef }),
-    setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId }),
+    setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId, selectedWorldInitialSubpage: null }),
     setSelectedGiftTransactionId: (giftTransactionId) => set({ selectedGiftTransactionId: giftTransactionId }),
     setProfileDetailOverlayOpen: (open) => set({ profileDetailOverlayOpen: open }),
     setChatProfilePanelTarget: (target) => set({ chatProfilePanelTarget: target }),
@@ -221,7 +223,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         selectedGiftTransactionId: null,
         activeTab: 'source-detail',
       })),
-    navigateToWorld: (worldId) => {
+    navigateToWorld: (worldId, options) => {
       const normalizedWorldId = String(worldId || '').trim();
       if (!normalizedWorldId) {
         return;
@@ -231,6 +233,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
           previousTab: state.activeTab,
           selectedSourceRef: null,
           selectedWorldId: normalizedWorldId,
+          selectedWorldInitialSubpage: options?.initialSubpage ?? null,
           selectedGiftTransactionId: null,
           runtimeFields: {
             ...state.runtimeFields,
@@ -270,6 +273,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
           selectedProfileIsSource: keepProfile ? state.selectedProfileIsSource : null,
           selectedSourceRef: keepProfile ? state.selectedSourceRef : null,
           selectedWorldId: target === 'world-detail' ? state.selectedWorldId : null,
+          selectedWorldInitialSubpage: target === 'world-detail' ? state.selectedWorldInitialSubpage : null,
           selectedGiftTransactionId: null,
         };
       }),

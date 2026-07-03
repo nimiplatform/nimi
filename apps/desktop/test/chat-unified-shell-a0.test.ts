@@ -120,6 +120,23 @@ test('A0 world navigation opens world detail instead of chat', () => {
   assert.equal(harness.getState().runtimeFields.worldId, 'world-alpha');
 });
 
+test('A0 world navigation can request the relationship explorer as the initial detail subpage', () => {
+  const harness = createUiSliceHarness();
+  const state = harness.getState();
+
+  state.setActiveTab('explore');
+  state.navigateToWorld(' world-alpha ', { initialSubpage: 'relationship-explorer' });
+
+  assert.equal(harness.getState().activeTab, 'world-detail');
+  assert.equal(harness.getState().selectedWorldId, 'world-alpha');
+  assert.equal(harness.getState().selectedWorldInitialSubpage, 'relationship-explorer');
+
+  harness.getState().navigateToWorld('world-beta');
+
+  assert.equal(harness.getState().selectedWorldId, 'world-beta');
+  assert.equal(harness.getState().selectedWorldInitialSubpage, null);
+});
+
 test('A0 AI setup is ready only when text.generate projection is supported', () => {
   const result = resolveAiConversationSetupStateFromProjection(createProjection({
     supported: true,

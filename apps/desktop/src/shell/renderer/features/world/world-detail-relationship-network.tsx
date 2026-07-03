@@ -3,9 +3,10 @@ import { BookOpen, Minus, PanelRightClose, PanelRightOpen, Plus, RotateCcw, User
 import type { WorldRelationshipEvidenceEdge, WorldRelationshipEvidenceKind } from './world-detail-relationship-model.js';
 import type { WorldCharacter } from './world-detail-types.js';
 import { PAPER, PAPER_SERIF } from './world-detail-paper-model.js';
-import { IconArrow } from './world-detail-paper-primitives.js';
 import {
   EDGE_LABEL_SIZE,
+  EXPLORER_GRAPH_CANVAS_MIN_HEIGHT_PX,
+  EXPLORER_PANEL_HEIGHT_PX,
   GRAPH_CENTER,
   graphPath,
   graphPosition,
@@ -22,7 +23,6 @@ import {
 export function RelationshipNetwork({
   center,
   edges,
-  allEdgeCount,
   relationKindFilter,
   relationKindOptions,
   zoomScale,
@@ -38,7 +38,6 @@ export function RelationshipNetwork({
 }: {
   readonly center: WorldCharacter;
   readonly edges: readonly WorldRelationshipEvidenceEdge[];
-  readonly allEdgeCount: number;
   readonly relationKindFilter: RelationFilterKey;
   readonly relationKindOptions: readonly RelationFilterKey[];
   readonly zoomScale: number;
@@ -63,12 +62,16 @@ export function RelationshipNetwork({
       data-testid="world-relationship-story-panel"
       style={{
         ...panelStyle(),
-        minHeight: 720,
+        height: EXPLORER_PANEL_HEIGHT_PX,
+        minHeight: EXPLORER_PANEL_HEIGHT_PX,
+        boxSizing: 'border-box',
         padding: 22,
         overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
         background:
           'radial-gradient(55% 42% at 52% 8%, rgba(65,111,79,.10), transparent 60%),'
-          + 'linear-gradient(135deg, rgba(255,253,247,.96), rgba(249,247,240,.93) 48%, rgba(251,249,243,.96))',
+          + 'var(--nimi-surface-card, #ffffff)',
       }}
     >
       <div data-testid="world-relationship-graph-toolbar" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
@@ -111,12 +114,22 @@ export function RelationshipNetwork({
           </div>
         </div>
       </div>
-      <div style={{ aspectRatio: '1 / 1', border: `1px solid ${PAPER.borderSoft}`, borderRadius: 22, overflow: 'hidden', background: 'linear-gradient(180deg, rgba(255,253,248,.74), rgba(250,247,238,.62))' }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-start', marginBottom: 16 }}>
+        {relationKindOptions.map((kind) => {
+          const active = kind === relationKindFilter;
+          return (
+            <button key={kind} type="button" onClick={() => onRelationKindFilterChange(kind)} style={storyFilterChipStyle(active, kind)}>
+              {relationFilterLabel(t, kind)}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ flex: '1 1 360px', minHeight: EXPLORER_GRAPH_CANVAS_MIN_HEIGHT_PX, border: `1px solid ${PAPER.borderSoft}`, borderRadius: 22, overflow: 'hidden', background: 'linear-gradient(180deg, rgba(255,255,255,.72), rgba(248,250,252,.6))' }}>
         <svg
           viewBox="0 0 1000 1000"
           role="img"
           aria-label={t('WorldDetail.paper.relationshipExplorer.graphLabel')}
-          style={{ width: '100%', height: '100%', display: 'block' }}
+          style={{ width: '100%', height: '100%', minHeight: EXPLORER_GRAPH_CANVAS_MIN_HEIGHT_PX, display: 'block' }}
         >
           <g transform={`translate(${GRAPH_CENTER.x} ${GRAPH_CENTER.y}) scale(${zoomScale}) translate(${-GRAPH_CENTER.x} ${-GRAPH_CENTER.y})`}>
             <circle cx={GRAPH_CENTER.x} cy={GRAPH_CENTER.y} r="138" fill="none" stroke="rgba(34,93,62,.16)" />
@@ -152,7 +165,7 @@ export function RelationshipNetwork({
             ) : null}
             <foreignObject x={GRAPH_CENTER.x - 92} y={GRAPH_CENTER.y - 92} width="184" height="184">
               <button type="button" onClick={() => onSelectCharacter(center.id)} style={{ width: '100%', height: '100%', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', display: 'grid', placeItems: 'center' }}>
-                <div style={{ width: 136, height: 136, borderRadius: '50%', background: 'radial-gradient(circle at 50% 35%, #2f8257, #145033 72%)', border: '6px solid rgba(255,253,247,.92)', boxShadow: '0 0 0 2px rgba(37,99,77,.20), 0 18px 36px rgba(25,70,45,.22)', display: 'grid', placeItems: 'center', color: '#fffef8', textAlign: 'center' }}>
+                <div style={{ width: 136, height: 136, borderRadius: '50%', background: 'radial-gradient(circle at 50% 35%, #2f8257, #145033 72%)', border: '6px solid rgba(255,253,247,.92)', boxShadow: '0 0 0 2px rgba(37,99,77,.20)', display: 'grid', placeItems: 'center', color: '#fffef8', textAlign: 'center' }}>
                   <span style={{ maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: PAPER_SERIF, fontSize: 29, fontWeight: 950 }}>{center.name}</span>
                 </div>
               </button>
@@ -176,7 +189,7 @@ export function RelationshipNetwork({
                       color: PAPER.inkStrong,
                       cursor: 'pointer',
                       fontFamily: 'inherit',
-                      boxShadow: selected ? '0 14px 28px rgba(42,77,58,.16)' : '0 8px 20px rgba(86,75,52,.09)',
+                      boxShadow: 'none',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 10,
@@ -197,23 +210,6 @@ export function RelationshipNetwork({
             })}
           </g>
         </svg>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
-        {relationKindOptions.map((kind) => {
-          const active = kind === relationKindFilter;
-          return (
-            <button key={kind} type="button" onClick={() => onRelationKindFilterChange(kind)} style={storyFilterChipStyle(active, kind)}>
-              {relationFilterLabel(t, kind)}
-            </button>
-          );
-        })}
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-        <button type="button" onClick={onResetView} style={{ border: 'none', background: 'transparent', color: PAPER.green, fontSize: 12.5, fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit' }}>
-          {t('WorldDetail.paper.relationshipExplorer.story.viewAllSystem', { count: allEdgeCount })} <IconArrow size={13} />
-        </button>
       </div>
     </section>
   );

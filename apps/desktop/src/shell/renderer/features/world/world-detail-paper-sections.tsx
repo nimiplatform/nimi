@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, NimiText, Statistic, Surface, cn } from '@nimiplatform/kit/ui';
 import type { WorldAssetExternalRef, WorldCharacter, WorldHistoryBundle, WorldSceneItem } from './world-detail-types.js';
-import { characterMeta } from './world-detail-template-model';
+import { characterMeta, sceneImageRef } from './world-detail-template-model';
 import {
   PAPER,
   PAPER_RADIUS,
@@ -25,7 +25,6 @@ import {
   IconUsers,
   PaperAvatar,
   PaperSection,
-  PaperTag,
   PaperViewAll,
 } from './world-detail-paper-primitives';
 
@@ -115,7 +114,7 @@ export function PaperMetricStrip({ metrics }: { metrics: readonly PaperMetric[] 
           )}
           tone="neutral"
           className={cn(
-            'grid-cols-[46px_minmax(0,1fr)] items-center gap-x-3 border-0 bg-transparent p-[18px] shadow-none',
+            'min-h-[126px] border-0 bg-transparent p-[18px] shadow-none [&_.nimi-statistic__helper]:leading-relaxed [&_.nimi-statistic__label]:normal-case [&_.nimi-statistic__value]:gap-2',
             index < metrics.length - 1 && 'border-r border-[color:var(--nimi-border-subtle)]',
           )}
         />
@@ -149,13 +148,16 @@ export function PaperPathsSection({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 13 }}>
         {paths.map((path, index) => (
           <Surface
-            as="article"
+            as="button"
             key={path.key}
+            type="button"
             tone="card"
             material="solid"
             elevation="base"
             padding="none"
-            className="relative flex min-h-[200px] flex-col justify-end overflow-hidden"
+            interactive
+            onClick={() => onEnterPath(path)}
+            className="relative flex min-h-[200px] flex-col justify-end overflow-hidden text-left"
             style={{
               borderRadius: PAPER_RADIUS.md,
               borderColor: PAPER.borderSoft,
@@ -189,24 +191,12 @@ export function PaperPathsSection({
                   ? t('WorldDetail.paper.paths.lead.titleNamed', { name: path.leadName })
                   : t(`WorldDetail.paper.paths.${path.key}.title`)}
               </div>
-              <p style={{ margin: '0 0 13px', fontSize: 12.5, lineHeight: 1.6, color: PAPER.bodySoft }}>
+              <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.6, color: PAPER.bodySoft }}>
                 {t(`WorldDetail.paper.paths.${path.key}.desc`)}
               </p>
-              <Button
-                type="button"
-                tone="primary"
-                size="sm"
-                onClick={() => onEnterPath(path)}
-                trailingIcon={<IconArrow size={13} color="currentColor" />}
-                className="shadow-none"
-                style={{
-                  background: PAPER.green,
-                  borderColor: PAPER.green,
-                  color: 'var(--nimi-action-primary-text)',
-                }}
-              >
-                {t('WorldDetail.paper.paths.enter')}
-              </Button>
+              <span aria-hidden="true" style={{ display: 'inline-flex', marginTop: 13 }}>
+                <IconArrow size={15} color={PAPER.green} />
+              </span>
             </div>
           </Surface>
         ))}
@@ -281,7 +271,6 @@ export function PaperCharactersSection({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(232px,1fr))', gap: 13 }}>
           {featured.map((character) => {
             const connectable = character.relation?.state === 'connectable';
-            const isPersona = character.ownership === 'userOwned' || character.sourceKind === 'realmPersona';
             return (
               <PaperCardSurface key={character.id} className="p-4">
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -309,7 +298,6 @@ export function PaperCharactersSection({
                       >
                         {character.name}
                       </button>
-                      <PaperTag>{isPersona ? t('WorldDetail.glass.characters.persona') : t('WorldDetail.glass.characters.character')}</PaperTag>
                     </div>
                     <NimiText as="div" role="helper" className="mt-1 truncate" style={{ color: PAPER.bodySoft }}>
                       {characterMeta(character)}
@@ -500,16 +488,6 @@ export function PaperTimelineSection({
 // Scenes
 // ---------------------------------------------------------------------------
 
-function sceneImageForIndex(
-  highlightRefs: readonly WorldAssetExternalRef[],
-  index: number,
-): WorldAssetExternalRef | null {
-  if (highlightRefs.length === 0) {
-    return null;
-  }
-  return highlightRefs[index % highlightRefs.length] ?? null;
-}
-
 export function PaperScenesSection({
   scenes,
   highlightRefs,
@@ -537,7 +515,7 @@ export function PaperScenesSection({
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 13 }}>
           {scenes.slice(0, 4).map((scene, index) => {
-            const highlightRef = sceneImageForIndex(highlightRefs, index);
+            const highlightRef = sceneImageRef(scene, highlightRefs, index);
             return (
               <Surface
                 as="button"

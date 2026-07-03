@@ -47,18 +47,16 @@ export type PaperMaterial = {
 
 /**
  * Browseable record collections derived from real world aggregates. Each entry
- * points at a sub-surface that already exists (people / scenes / timeline /
- * resources / lore) and only surfaces when it has at least one real record.
+ * points at a sub-surface that already exists (people / scenes / resources /
+ * lore) and only surfaces when it has at least one real record.
  */
 export function derivedMaterials(
   characters: readonly WorldCharacter[],
   scenes: readonly WorldSceneItem[],
-  history: WorldHistoryBundle,
   publicAssets: WorldPublicAssetsData,
   semantic: WorldSemanticData,
 ): PaperMaterial[] {
-  const eventCount = history.summary?.totalCount ?? history.items.length;
-  const resourceCount = publicAssets.resourceRefs.length + publicAssets.externalRefs.length;
+  const resourceCount = publicAssets.resourceRefs.length + publicAssets.externalRefs.length + publicAssets.intents.length;
   const loreCount = semantic.operationRules.length
     + semantic.powerSystems.length
     + semantic.taboos.length
@@ -66,7 +64,6 @@ export function derivedMaterials(
   const candidates: PaperMaterial[] = [
     { key: 'people', count: characters.length },
     { key: 'scenes', count: scenes.length },
-    { key: 'events', count: eventCount },
     { key: 'resources', count: resourceCount },
     { key: 'lore', count: loreCount },
   ];
@@ -81,6 +78,7 @@ export type PaperPathKey = 'lead' | 'relations' | 'scenes';
 
 export type PaperPath = {
   readonly key: PaperPathKey;
+  readonly leadId?: string;
   readonly leadName?: string;
 };
 
@@ -98,7 +96,7 @@ export function derivedPaths(
   }
   const lead = characters.find((character) => character.importance === 'PRIMARY') ?? characters[0];
   const paths: PaperPath[] = [
-    { key: 'lead', leadName: lead?.name },
+    { key: 'lead', leadId: lead?.id, leadName: lead?.name },
     { key: 'relations' },
   ];
   if (scenes.length > 0) {

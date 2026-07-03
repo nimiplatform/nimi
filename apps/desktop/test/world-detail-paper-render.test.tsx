@@ -18,11 +18,21 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
 import { worldTimeDisplay } from '../src/shell/renderer/features/world/world-detail-paper-model';
+import { derivedScenes } from '../src/shell/renderer/features/world/world-detail-template-model';
+import {
+  WorldLoreLibraryPage,
+  buildWorldLoreEntries,
+} from '../src/shell/renderer/features/world/world-detail-lore-library';
+import {
+  WorldResourceReferencesPage,
+  buildWorldResourceReferenceEntries,
+} from '../src/shell/renderer/features/world/world-detail-resource-references';
 import {
   WorldRelationshipExplorer,
+  displayRelationshipEvidenceText,
   relationshipGraphEdgeLabelPosition,
 } from '../src/shell/renderer/features/world/world-detail-relationship-explorer';
-import { NarrativeWorldDetailPage } from '../src/shell/renderer/features/world/world-detail-template';
+import { NarrativeWorldDetailPage, resolveWorldMaterialSubpage } from '../src/shell/renderer/features/world/world-detail-template';
 import { WorldSceneDetailPage } from '../src/shell/renderer/features/world/world-detail-scene-detail-page';
 import type { WorldCharacter, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from '../src/shell/renderer/features/world/world-detail-types';
 
@@ -59,7 +69,12 @@ const world: WorldDetailData = {
   commonLanguages: ['古典汉语'],
 };
 
-function character(id: string, name: string, connectable: boolean): WorldCharacter {
+function character(
+  id: string,
+  name: string,
+  connectable: boolean,
+  tags: readonly string[] = [],
+): WorldCharacter {
   return {
     id,
     name,
@@ -73,6 +88,7 @@ function character(id: string, name: string, connectable: boolean): WorldCharact
     faction: '文人交游圈',
     sceneName: '书院讲堂',
     location: '洛阳',
+    tags,
     createdAt: '2026-01-01T00:00:00.000Z',
     avatarUrl: null,
     importance: 'PRIMARY',
@@ -108,7 +124,12 @@ const semantic: WorldSemanticData = {
   operationTitle: null,
   operationDescription: null,
   operationRules: [{ key: 'r1', title: '书院讲学', value: '以书院为核心组织讲学与交游。' }],
-  powerSystems: [],
+  powerSystems: [{
+    name: '文人交游体系',
+    description: '人物之间通过书信、拜访、诗文唱和形成关系网络。',
+    levels: [],
+    rules: ['交游关系必须来自公开资料。'],
+  }],
   standaloneLevels: [],
   taboos: [],
   topology: null,
@@ -119,15 +140,73 @@ const semantic: WorldSemanticData = {
   hasContent: true,
 };
 
-const publicAssets: WorldPublicAssetsData = {
+const publicAssets = {
   resourceRefs: [{ refId: 'res1', kind: 'image', purpose: 'highlight', label: '书院图' }],
   externalRefs: [{ refId: 'world-media-highlight-1', kind: 'highlight-1', uri: 'file:///tmp/nimi-forge/world/highlight-1.png' }],
-  intents: [],
+  intents: [{ intentId: 'intent-map', kind: 'map', summary: '世界地图与场景定位用图。' }],
   scenes: [
-    { id: 's1', name: '书院讲堂', description: '走进书院，了解讲学与学术交流。', activeEntities: ['姚燧'] },
-    { id: 's2', name: '文人雅集', description: '参与诗会雅集。', activeEntities: [] },
+    {
+      id: 's1',
+      name: '书院讲堂',
+      description: '走进书院，了解讲学与学术交流。',
+      activeEntities: [
+        { id: 'entity-yao', kind: 'person', label: '姚燧', summary: '讲学主持者。' },
+        { id: 'entity-ni', kind: 'person', label: '倪瓒', summary: '参与雅集者。' },
+      ],
+      relatedCharacters: [characters[0], characters[2]],
+      relatedEvents: [{
+        id: 'ev2',
+        timelineSeq: 2,
+        time: '1260',
+        title: '书院讲堂讲会',
+        tag: '场景',
+        description: '书院讲堂成为士人讲学、研讨和诗文唱和的公共场景。',
+        level: 'PRIMARY',
+        eventHorizon: 'PAST',
+        summary: '书院讲堂承载讲学与雅集。',
+        cause: null,
+        process: null,
+        result: null,
+        locationRefs: ['书院讲堂'],
+        characterRefs: ['姚燧', '倪瓒'],
+        evidenceRefs: [],
+        confidence: 1,
+        needsEvidence: false,
+      }],
+      relatedResources: [{
+        id: 'resource-academy',
+        kind: 'entity',
+        title: '书院讲堂',
+        summary: '讲学与雅集发生的地点。',
+        entityRefs: ['entity-yao', 'entity-ni'],
+        eventRefs: ['ev2'],
+      }],
+      counts: {
+        activeEntityCount: 2,
+        relatedCharacterCount: 2,
+        relatedEventCount: 1,
+        relatedResourceCount: 1,
+      },
+      media: [],
+    },
+    {
+      id: 's2',
+      name: '文人雅集',
+      description: '参与诗会雅集。',
+      activeEntities: [],
+      relatedCharacters: [],
+      relatedEvents: [],
+      relatedResources: [],
+      counts: {
+        activeEntityCount: 0,
+        relatedCharacterCount: 0,
+        relatedEventCount: 0,
+        relatedResourceCount: 0,
+      },
+      media: [],
+    },
   ],
-};
+} as unknown as WorldPublicAssetsData;
 
 type TestRect = {
   readonly left: number;
@@ -156,6 +235,44 @@ test.before(async () => {
   await initI18n();
 });
 
+test('world relationship explorer displays clue text without evidence kind prefixes', () => {
+  assert.equal(displayRelationshipEvidenceText('kinship: 祖父马世昌，家族渊源。'), '祖父马世昌，家族渊源。');
+  assert.equal(displayRelationshipEvidenceText('kinship：次子马文子，家族传承。'), '次子马文子，家族传承。');
+});
+
+test('derived scenes supplement related characters from exact placement scene tags', () => {
+  const sceneCharacters = [
+    character('wu-cheng', '吴澄', true, ['yuan-literati-network', '理学']),
+    character('ma-zu-chang', '马祖常', true, ['yuan-official-court']),
+    character('unplaced', '未入场角色', true, ['literati-network']),
+  ];
+  const sceneAssets = {
+    ...publicAssets,
+    scenes: [{
+      id: 'yuan-literati-network',
+      name: '文人交游网络',
+      description: '呈现元代文人之间通过书信、拜访、诗文酬唱等方式建立的广泛社会联系。',
+      activeEntities: [],
+      relatedCharacters: [],
+      relatedEvents: [],
+      relatedResources: [],
+      counts: {
+        activeEntityCount: 0,
+        relatedCharacterCount: 0,
+        relatedEventCount: 0,
+        relatedResourceCount: 0,
+      },
+      media: [],
+    }],
+  } as unknown as WorldPublicAssetsData;
+
+  const scenes = derivedScenes(sceneAssets, semantic, sceneCharacters);
+
+  assert.equal(scenes[0]?.relatedCharacters.length, 1);
+  assert.equal(scenes[0]?.relatedCharacters[0]?.name, '吴澄');
+  assert.equal(scenes[0]?.counts.relatedCharacterCount, 1);
+});
+
 test('paper world detail renders narrative sections without the duplicate settings block', () => {
   const markup = renderToStaticMarkup(
     React.createElement(NarrativeWorldDetailPage, {
@@ -173,12 +290,13 @@ test('paper world detail renders narrative sections without the duplicate settin
 
   // Layout + sections present.
   assert.match(markup, /data-testid="world-detail-paper-layout"/);
+  assert.match(markup, /padding:calc\(3\.5rem \+ 1\.75rem \+ 22px\) 28px 80px/);
   assert.doesNotMatch(markup, /pointer-events:none;background:radial-gradient\(60% 50% at 0% 0%/);
   assert.match(markup, /data-testid="world-detail-paper-characters"/);
   assert.match(markup, /data-testid="world-detail-paper-materials"/);
-  assert.match(markup, /data-testid="world-detail-paper-timeline"/);
   assert.match(markup, /data-testid="world-detail-paper-scenes"/);
   assert.match(markup, /data-testid="world-detail-paper-paths"/);
+  assert.doesNotMatch(markup, /data-testid="world-detail-paper-timeline"/);
   // The right rail is removed — world detail is a single left column.
   assert.doesNotMatch(markup, /data-testid="world-detail-paper-rail"/);
   assert.doesNotMatch(markup, /data-testid="world-detail-paper-settings"/);
@@ -187,7 +305,7 @@ test('paper world detail renders narrative sections without the duplicate settin
   assert.match(markup, /Recommended paths/);
   assert.match(markup, /People you can meet/);
   assert.match(markup, /Popular records/);
-  assert.match(markup, /River of time/);
+  assert.doesNotMatch(markup, /River of time/);
   assert.match(markup, /Start with 姚燧/);
   assert.doesNotMatch(markup, /Primary language/);
   assert.doesNotMatch(markup, /Everything is traceable/);
@@ -195,9 +313,93 @@ test('paper world detail renders narrative sections without the duplicate settin
 
   // Real data wired in (names, event year, scene title).
   assert.match(markup, /姚燧/);
-  assert.match(markup, /1238/);
+  assert.doesNotMatch(markup, /1238/);
   assert.match(markup, /书院讲堂/);
   assert.match(markup, /aria-label="Open 姚燧 profile"/);
+});
+
+test('semantic lore library derives grouped entries from world semantic data', () => {
+  const entries = buildWorldLoreEntries(semantic);
+
+  assert.deepEqual(entries.map((entry) => entry.kind), ['rule', 'system', 'language']);
+  assert.equal(entries[0]?.title, '书院讲学');
+  assert.equal(entries[0]?.body, '以书院为核心组织讲学与交游。');
+  assert.equal(entries[1]?.title, '文人交游体系');
+  assert.equal(entries[1]?.body, '人物之间通过书信、拜访、诗文唱和形成关系网络。');
+  assert.deepEqual(entries[1]?.details, ['交游关系必须来自公开资料。']);
+  assert.equal(entries[2]?.title, '古典汉语');
+});
+
+test('paper world detail routes lore material into the semantic lore library', () => {
+  assert.equal(resolveWorldMaterialSubpage('lore'), 'lore-library');
+});
+
+test('paper world detail routes resources material into the resource references page', () => {
+  assert.equal(resolveWorldMaterialSubpage('resources'), 'resource-references');
+});
+
+test('world lore library page renders semantic groups as browseable records', async () => {
+  await changeLocale('zh');
+  try {
+    const markup = renderToStaticMarkup(
+      React.createElement(WorldLoreLibraryPage, {
+        world,
+        semantic,
+        onBack: () => {},
+      }),
+    );
+
+    assert.match(markup, /data-testid="world-detail-lore-library-page"/);
+    assert.match(markup, /世界设定集/);
+    assert.match(markup, /运行规则/);
+    assert.match(markup, /制度与体系/);
+    assert.match(markup, /语言与表达/);
+    assert.match(markup, /书院讲学/);
+    assert.match(markup, /以书院为核心组织讲学与交游。/);
+    assert.match(markup, /文人交游体系/);
+    assert.match(markup, /交游关系必须来自公开资料。/);
+    assert.match(markup, /古典汉语/);
+    assert.doesNotMatch(markup, /WorldDetail\.paper\.loreLibrary/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('resource references page derives and renders all declared resource records', async () => {
+  const entries = buildWorldResourceReferenceEntries(publicAssets);
+
+  assert.deepEqual(entries.map((entry) => entry.kind), ['resource', 'external', 'intent']);
+  assert.equal(entries[0]?.title, '书院图');
+  assert.equal(entries[0]?.subtitle, 'image / highlight');
+  assert.equal(entries[1]?.title, 'world-media-highlight-1');
+  assert.equal(entries[1]?.uri, 'file:///tmp/nimi-forge/world/highlight-1.png');
+  assert.equal(entries[2]?.title, 'intent-map');
+  assert.equal(entries[2]?.body, '世界地图与场景定位用图。');
+
+  await changeLocale('zh');
+  try {
+    const markup = renderToStaticMarkup(
+      React.createElement(WorldResourceReferencesPage, {
+        world,
+        publicAssets,
+        onBack: () => {},
+      }),
+    );
+
+    assert.match(markup, /data-testid="world-detail-resource-references-page"/);
+    assert.match(markup, /资源引用集/);
+    assert.match(markup, /规范资源/);
+    assert.match(markup, /外部引用/);
+    assert.match(markup, /资产意图/);
+    assert.match(markup, /书院图/);
+    assert.match(markup, /res1/);
+    assert.match(markup, /world-media-highlight-1/);
+    assert.match(markup, /file:\/\/\/tmp\/nimi-forge\/world\/highlight-1\.png/);
+    assert.match(markup, /世界地图与场景定位用图。/);
+    assert.doesNotMatch(markup, /WorldDetail\.paper\.resourceReferences/);
+  } finally {
+    await changeLocale('en');
+  }
 });
 
 test('world relationship explorer dedupes repeated material clues and renders kinship in the network', async () => {
@@ -233,7 +435,8 @@ test('world relationship explorer dedupes repeated material clues and renders ki
 
     assert.match(markup, /data-testid="world-relationship-story-panel"/);
     assert.match(markup, /data-testid="world-relationship-kind-legend"/);
-    assert.match(markup, /查看全部关系系统/);
+    assert.match(markup, /style="width:100%;box-sizing:border-box;padding:9px 10px;display:flex/);
+    assert.match(markup, /全部关系/);
     assert.match(markup, /亲属/);
     assert.match(markup, /马世昌/);
     assert.match(markup, /马武子/);
@@ -281,7 +484,7 @@ test('paper world detail renders scene entry cards without inline detail-page da
   assert.doesNotMatch(markup, /Related events/);
 });
 
-test('world scene detail page renders real scene, image, character, and event data after entry without modal chrome', () => {
+test('world scene detail page renders structured scene DTO data after entry without modal chrome', () => {
   const page = WorldSceneDetailPage as React.ComponentType<Record<string, unknown>>;
   const markup = renderToStaticMarkup(
     React.createElement(page, {
@@ -291,8 +494,8 @@ test('world scene detail page renders real scene, image, character, and event da
       onSelectCharacter: () => {},
       onViewCharacters: () => {},
       onViewEvents: () => {},
-      relatedCharacters: [characters[0], characters[2]],
-      relatedEvents: [history.items[1]],
+      relatedCharacters: [],
+      relatedEvents: [],
       scene: publicAssets.scenes[0],
       sceneImageRef: publicAssets.externalRefs[0],
     }),
@@ -311,6 +514,7 @@ test('world scene detail page renders real scene, image, character, and event da
   assert.match(markup, /姚燧/);
   assert.match(markup, /倪瓒/);
   assert.match(markup, /书院讲堂讲会/);
+  assert.match(markup, /讲学与雅集发生的地点。/);
 });
 
 test('paper world detail hero hosts the world follow CTA without banner tags', () => {

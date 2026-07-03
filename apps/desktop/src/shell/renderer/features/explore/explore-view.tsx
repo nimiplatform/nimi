@@ -3,6 +3,7 @@ import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import type { WorldDetailNavigationOptions } from '@renderer/app-shell/providers/store-types';
 import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';
 import { usePostCardActionAdapter } from '../home/post-card-action-adapter';
 import { PostFeed } from '../home/post-feed';
@@ -41,7 +42,7 @@ type ExploreViewProps = {
   onPersonaSourceSendGift?: (sourceId: string) => void;
   onPersonaSourceOpen?: (sourceId: string) => void;
   onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
-  onWorldOpen?: (worldId: string) => void;
+  onWorldOpen?: (worldId: string, options?: WorldDetailNavigationOptions) => void;
 };
 
 function ExploreSkeletonBlock({ className }: { className: string }) {
@@ -169,7 +170,7 @@ export function ExploreView(props: ExploreViewProps) {
             ) : (
               <WorldCatalogContent
                 worlds={props.worldCatalogItems}
-                onOpenWorld={(worldId) => props.onWorldOpen?.(worldId)}
+                onOpenWorld={(worldId, options) => props.onWorldOpen?.(worldId, options)}
                 searchQuery={props.worldSearchText}
                 embedded
               />

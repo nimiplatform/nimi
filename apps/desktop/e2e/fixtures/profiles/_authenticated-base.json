@@ -167,7 +167,22 @@
           "Fixture World System"
         ],
         "scenes": [
-          "Fixture Plaza"
+          {
+            "sceneId": "fixture-plaza",
+            "name": "Fixture Plaza",
+            "summary": "Fixture Plaza",
+            "media": [],
+            "activeEntities": [],
+            "relatedCharacters": [],
+            "relatedEvents": [],
+            "relatedResources": [],
+            "counts": {
+              "activeEntityCount": 0,
+              "relatedCharacterCount": 0,
+              "relatedEventCount": 0,
+              "relatedResourceCount": 0
+            }
+          }
         ],
         "timeline": [
           "Fixture World founded"

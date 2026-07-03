@@ -1,19 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { WorldCharacterQuickSheet } from './world-detail-quick-sheets.js';
+import { WorldLoreLibraryPage } from './world-detail-lore-library.js';
 import { WorldPeopleArchivePage } from './world-detail-people-gallery.js';
 import { WorldRelationshipExplorer } from './world-detail-relationship-explorer.js';
+import { WorldResourceReferencesPage } from './world-detail-resource-references.js';
 import { WorldSceneDetailPage } from './world-detail-scene-detail-page.js';
 import { worldPublicHighlightRefs } from './world-detail-queries.js';
 import { IconArrowLeft } from './world-detail-glass-primitives';
 import { DetailHero } from './world-detail-glass-sections';
+import { worldDetailPaperContentFrameStyle } from './world-detail-layout.js';
 import {
   PaperCharactersSection,
   PaperMaterialsSection,
   PaperMetricStrip,
   PaperPathsSection,
   PaperScenesSection,
-  PaperTimelineSection,
 } from './world-detail-paper-sections';
 import {
   derivedMaterials,
@@ -23,7 +25,14 @@ import {
   type PaperMaterialKey,
   type PaperPath,
 } from './world-detail-paper-model';
-import { derivedScenes } from './world-detail-template-model';
+import { derivedScenes, sceneImageRef } from './world-detail-template-model';
+import {
+  WorldDetailPageSkeleton,
+  WorldLoreLibrarySkeleton,
+  WorldPeopleArchiveSkeleton,
+  WorldRelationshipExplorerSkeleton,
+  WorldResourceReferencesSkeleton,
+} from './world-detail-skeletons';
 import type { WorldCharacter, WorldAuditItem, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from './world-detail-types.js';
 
 export type WorldDetailPageProps = {
@@ -46,31 +55,33 @@ export type WorldDetailPageProps = {
   onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
   onFollowWorld?: (world: WorldDetailData) => Promise<void> | void;
   worldFollowed?: boolean;
+  initialSubpage?: InitialPaperSubpage | null;
 };
 
 export type XianxiaWorldTemplateProps = WorldDetailPageProps;
 export type XianxiaWorldData = WorldDetailData;
-type ActivePaperSubpage = 'root' | 'people-archive' | 'relationship-explorer' | 'scene-detail';
+type ActivePaperSubpage = 'root' | 'people-archive' | 'relationship-explorer' | 'scene-detail' | 'lore-library' | 'resource-references';
+type InitialPaperSubpage = Extract<ActivePaperSubpage, 'relationship-explorer'>;
+
+function resolveInitialPaperSubpage(value: InitialPaperSubpage | null | undefined): ActivePaperSubpage {
+  return value === 'relationship-explorer' ? value : 'root';
+}
 
 export function resolveWorldMaterialSubpage(materialKey: PaperMaterialKey): ActivePaperSubpage | null {
   if (materialKey === 'people') {
     return 'people-archive';
   }
+  if (materialKey === 'lore') {
+    return 'lore-library';
+  }
+  if (materialKey === 'resources') {
+    return 'resource-references';
+  }
   return null;
 }
 
 export function WorldDetailLoadingState() {
-  return (
-    <div style={{ position: 'relative', minHeight: '100%' }}>
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1180, margin: '0 auto', padding: '22px 28px 80px' }}>
-        <div className="space-y-[18px]">
-          <div className="h-[316px] animate-pulse rounded-[24px] bg-[#fbf8f1]" />
-          <div className="h-20 animate-pulse rounded-[16px] bg-[#fbf8f1]" />
-          <div className="h-80 animate-pulse rounded-[16px] bg-[#fbf8f1]" />
-        </div>
-      </div>
-    </div>
-  );
+  return <WorldDetailPageSkeleton />;
 }
 
 function WorldDetailErrorState({ onBack }: { onBack?: () => void }) {
@@ -97,7 +108,7 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   const world = props.world;
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
-  const [activePaperSubpage, setActivePaperSubpage] = useState<ActivePaperSubpage>('root');
+  const [activePaperSubpage, setActivePaperSubpage] = useState<ActivePaperSubpage>(() => resolveInitialPaperSubpage(props.initialSubpage));
   const [pendingRootScrollId, setPendingRootScrollId] = useState<string | null>(null);
 
   const selectedCharacter = selectedCharacterId
@@ -105,8 +116,8 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
     : null;
 
   const scenes = useMemo(
-    () => derivedScenes(props.publicAssets, props.semantic),
-    [props.publicAssets, props.semantic],
+    () => derivedScenes(props.publicAssets, props.semantic, props.characters),
+    [props.publicAssets, props.semantic, props.characters],
   );
   const highlightRefs = useMemo(
     () => worldPublicHighlightRefs(props.publicAssets),
@@ -114,8 +125,8 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   );
 
   const materials = useMemo(
-    () => derivedMaterials(props.characters, scenes, props.history, props.publicAssets, props.semantic),
-    [props.characters, scenes, props.history, props.publicAssets, props.semantic],
+    () => derivedMaterials(props.characters, scenes, props.publicAssets, props.semantic),
+    [props.characters, scenes, props.publicAssets, props.semantic],
   );
   const metrics = useMemo(
     () => derivedMetrics(props.characters, scenes, props.history, materials),
@@ -132,25 +143,16 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   const selectedSceneIndex = selectedScene
     ? scenes.findIndex((scene) => scene.id === selectedScene.id)
     : -1;
-  const selectedSceneImageRef = selectedSceneIndex >= 0 && highlightRefs.length > 0
-    ? highlightRefs[selectedSceneIndex % highlightRefs.length] ?? null
+  const selectedSceneImageRef = selectedScene && selectedSceneIndex >= 0
+    ? sceneImageRef(selectedScene, highlightRefs, selectedSceneIndex)
     : null;
 
-  const selectedSceneRelatedCharacters = selectedScene
-    ? props.characters.filter((character) => (
-      selectedScene.activeEntities.includes(character.name)
-      || character.sceneName === selectedScene.name
-      || character.location?.includes(selectedScene.name)
-    )).slice(0, 4)
-    : [];
-
-  const selectedSceneRelatedEvents = selectedScene
-    ? props.history.items.filter((event) => (
-      event.locationRefs.includes(selectedScene.name)
-      || event.description.includes(selectedScene.name)
-      || (event.summary?.includes(selectedScene.name) ?? false)
-    )).slice(0, 4)
-    : [];
+  useEffect(() => {
+    setSelectedCharacterId(null);
+    setSelectedSceneId(null);
+    setPendingRootScrollId(null);
+    setActivePaperSubpage(resolveInitialPaperSubpage(props.initialSubpage));
+  }, [props.initialSubpage, world.id]);
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -162,6 +164,8 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
         'people-archive': 'world-detail-people-archive-page',
         'relationship-explorer': 'world-relationship-explorer',
         'scene-detail': 'world-detail-scene-detail-page',
+        'lore-library': 'world-detail-lore-library-page',
+        'resource-references': 'world-detail-resource-references-page',
       }[activePaperSubpage];
       window.requestAnimationFrame(() => {
         document.querySelector(`[data-testid="${subpageTestId}"]`)?.scrollIntoView({ behavior: 'auto', block: 'start' });
@@ -184,7 +188,6 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
     onBrowsePeople: () => scrollToSection('world-detail-characters'),
     onViewAllPeople: () => setActivePaperSubpage('people-archive'),
     onOpenLibrary: () => scrollToSection('world-detail-materials'),
-    onGoTimeline: () => scrollToSection('world-detail-timeline'),
     onGoScenes: () => scrollToSection('world-detail-scenes'),
   };
 
@@ -197,6 +200,17 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
       nav.onGoScenes();
       return;
     }
+    const lead = path.leadId
+      ? props.characters.find((character) => character.id === path.leadId) ?? null
+      : null;
+    if (lead) {
+      if (props.onViewCharacter) {
+        props.onViewCharacter(lead);
+      } else {
+        setSelectedCharacterId(lead.id);
+      }
+      return;
+    }
     nav.onBrowsePeople();
   };
 
@@ -206,8 +220,6 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
       setActivePaperSubpage(subpage);
     } else if (material.key === 'scenes') {
       nav.onGoScenes();
-    } else if (material.key === 'events') {
-      nav.onGoTimeline();
     } else {
       scrollToSection('world-detail-materials');
     }
@@ -229,6 +241,9 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   };
 
   if (activePaperSubpage === 'relationship-explorer') {
+    if (props.charactersLoading || props.historyLoading) {
+      return <WorldRelationshipExplorerSkeleton />;
+    }
     return (
       <>
         <WorldRelationshipExplorer
@@ -237,6 +252,7 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
           history={props.history}
           onBack={() => setActivePaperSubpage('root')}
           onSelectCharacter={setSelectedCharacterId}
+          onViewCharacter={props.onViewCharacter}
         />
 
         {selectedCharacter ? (
@@ -252,6 +268,9 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   }
 
   if (activePaperSubpage === 'people-archive') {
+    if (props.charactersLoading) {
+      return <WorldPeopleArchiveSkeleton />;
+    }
     return (
       <>
         <WorldPeopleArchivePage
@@ -274,6 +293,32 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
     );
   }
 
+  if (activePaperSubpage === 'lore-library') {
+    if (props.semanticLoading) {
+      return <WorldLoreLibrarySkeleton />;
+    }
+    return (
+      <WorldLoreLibraryPage
+        world={world}
+        semantic={props.semantic}
+        onBack={() => setActivePaperSubpage('root')}
+      />
+    );
+  }
+
+  if (activePaperSubpage === 'resource-references') {
+    if (props.publicAssetsLoading) {
+      return <WorldResourceReferencesSkeleton />;
+    }
+    return (
+      <WorldResourceReferencesPage
+        world={world}
+        publicAssets={props.publicAssets}
+        onBack={() => setActivePaperSubpage('root')}
+      />
+    );
+  }
+
   if (activePaperSubpage === 'scene-detail' && selectedScene) {
     return (
       <>
@@ -283,9 +328,6 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
           onBack={returnToRoot}
           onSelectCharacter={setSelectedCharacterId}
           onViewCharacters={() => returnToRootAndScroll('world-detail-characters')}
-          onViewEvents={() => returnToRootAndScroll('world-detail-timeline')}
-          relatedCharacters={selectedSceneRelatedCharacters}
-          relatedEvents={selectedSceneRelatedEvents}
           scene={selectedScene}
           sceneImageRef={selectedSceneImageRef}
         />
@@ -305,13 +347,12 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   return (
     <>
       <div style={{ position: 'relative', minHeight: '100%', fontFamily: 'var(--nimi-font-sans)' }} data-testid="world-detail-paper-layout">
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1180, margin: '0 auto', padding: '22px 28px 80px' }}>
+        <div style={worldDetailPaperContentFrameStyle()}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
             <DetailHero
               world={world}
               characters={props.characters}
               onBack={props.onBack}
-              onScrollTo={scrollToSection}
               onFollowWorld={props.onFollowWorld}
               worldFollowed={props.worldFollowed}
             />
@@ -330,7 +371,6 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
               onOpen={handleOpenMaterial}
               onOpenLibrary={nav.onBrowsePeople}
             />
-            <PaperTimelineSection history={props.history} loading={props.historyLoading} />
             <PaperScenesSection
               scenes={scenes}
               highlightRefs={highlightRefs}

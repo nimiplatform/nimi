@@ -4,7 +4,7 @@ import type { WorldRelationshipEvidenceCharacterBucket, WorldRelationshipEvidenc
 import type { WorldCharacter } from './world-detail-types.js';
 import { PAPER, PAPER_RADIUS } from './world-detail-paper-model.js';
 
-export type PeopleFilterKey = 'all' | 'featured' | 'literati' | 'academy' | 'open';
+export type PeopleFilterKey = 'all' | 'literati' | 'academy';
 export type RelationFilterKey = 'all' | WorldRelationshipEvidenceKind;
 
 export type GraphPosition = {
@@ -41,7 +41,9 @@ export type RelationshipKindTheme = {
   readonly dash: string;
 };
 
-export const FILTER_KEYS: readonly PeopleFilterKey[] = ['all', 'featured', 'literati', 'academy', 'open'];
+export const FILTER_KEYS: readonly PeopleFilterKey[] = ['all', 'literati', 'academy'];
+export const EXPLORER_PANEL_HEIGHT_PX = 1100;
+export const EXPLORER_GRAPH_CANVAS_MIN_HEIGHT_PX = 360;
 export const GRAPH_MIN_ZOOM = .72;
 export const GRAPH_MAX_ZOOM = 1.36;
 export const GRAPH_DEFAULT_ZOOM = 1.1;
@@ -213,6 +215,12 @@ export function relationFilterLabel(t: ReturnType<typeof useTranslation>['t'], k
   return key === 'all'
     ? t('WorldDetail.paper.relationshipExplorer.allKinds')
     : t(`WorldDetail.paper.relationshipExplorer.kinds.${key}`);
+}
+
+const DISPLAY_EVIDENCE_KIND_PREFIX = /^(?:kinship|association|office|text|entry|address|status|topic)\s*[:：]\s*/i;
+
+export function displayRelationshipEvidenceText(value: string): string {
+  return value.replace(DISPLAY_EVIDENCE_KIND_PREFIX, '').replace(/\s+/g, ' ').trim();
 }
 
 export function clampZoom(value: number): number {
@@ -387,16 +395,12 @@ export function bucketMatchesFilter(bucket: WorldRelationshipEvidenceCharacterBu
   switch (key) {
     case 'all':
       return true;
-    case 'featured':
-      return bucket.character.importance === 'PRIMARY' || bucket.linkedEvidenceCount > 0;
     case 'literati':
       return bucket.primaryKind === 'association'
         || bucket.primaryKind === 'text'
         || String(bucket.character.role ?? '').includes('文');
     case 'academy':
       return isAcademyOrScholar(bucket.character);
-    case 'open':
-      return bucket.status !== 'linked';
     default:
       return true;
   }

@@ -5,6 +5,7 @@ export type WorldPublicItemDto = RealmModel<'WorldPublicItemDto'>;
 export type WorldPublicDetailDto = RealmModel<'WorldPublicDetailDto'>;
 export type WorldPublicDetailWithCharactersDto = RealmModel<'WorldPublicDetailWithCharactersDto'>;
 export type WorldPublicAssetDto = RealmModel<'WorldPublicAssetDto'>;
+export type WorldPublicSceneDto = RealmModel<'WorldPublicSceneDto'>;
 export type WorldPublicSourceCardDto = RealmModel<'WorldPublicSourceCardDto'>;
 
 export type CoreRecord = Record<string, unknown>;
@@ -161,6 +162,112 @@ function readPublicAssetFromRecord(record: CoreRecord, key: string): WorldPublic
   return readPublicAssetDto(record[key]);
 }
 
+function requirePublicAssetDto(value: unknown, context: string): WorldPublicAssetDto {
+  const asset = readPublicAssetDto(value);
+  if (!asset) {
+    failRealmWorldContract(
+      'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+      `${context} must be a public asset with id, kind, and url`,
+    );
+  }
+  return asset;
+}
+
+function projectWorldPublicEntityCard(value: unknown, context: string): CoreRecord {
+  const record = requireRecord(
+    value,
+    'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+    `${context} must be an object`,
+  );
+  const id = requireStringField(
+    record,
+    'id',
+    'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+    `${context} is missing id`,
+  );
+  const kind = requireStringField(
+    record,
+    'kind',
+    'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+    `${context} is missing kind`,
+  );
+  return {
+    ...record,
+    id,
+    kind,
+    label: readString(record, 'label'),
+    summary: readString(record, 'summary'),
+  };
+}
+
+function projectWorldPublicScene(value: unknown, index: number): CoreRecord {
+  const context = `World public scene ${index + 1}`;
+  const record = requireRecord(
+    value,
+    'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+    `${context} must be an object`,
+  );
+  const sceneId = requireStringField(
+    record,
+    'sceneId',
+    'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+    `${context} is missing sceneId`,
+  );
+  const name = requireStringField(
+    record,
+    'name',
+    'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+    `${context} ${sceneId} is missing name`,
+  );
+  const summary = requireStringField(
+    record,
+    'summary',
+    'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+    `${context} ${sceneId} is missing summary`,
+  );
+  return {
+    ...record,
+    sceneId,
+    name,
+    summary,
+    media: requireArrayField(
+      record,
+      'media',
+      'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+      `${context} ${sceneId} is missing media`,
+    ).map((asset, assetIndex) => requirePublicAssetDto(asset, `${context} ${sceneId} media ${assetIndex + 1}`)),
+    activeEntities: requireArrayField(
+      record,
+      'activeEntities',
+      'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+      `${context} ${sceneId} is missing activeEntities`,
+    ).map((entity, entityIndex) => projectWorldPublicEntityCard(entity, `${context} ${sceneId} activeEntities ${entityIndex + 1}`)),
+    relatedCharacters: requireArrayField(
+      record,
+      'relatedCharacters',
+      'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+      `${context} ${sceneId} is missing relatedCharacters`,
+    ),
+    relatedEvents: requireArrayField(
+      record,
+      'relatedEvents',
+      'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+      `${context} ${sceneId} is missing relatedEvents`,
+    ),
+    relatedResources: requireArrayField(
+      record,
+      'relatedResources',
+      'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+      `${context} ${sceneId} is missing relatedResources`,
+    ),
+    counts: requireRecord(
+      record.counts,
+      'SDK_REALM_WORLD_PUBLIC_SCENE_CONTRACT_INVALID',
+      `${context} ${sceneId} is missing counts`,
+    ),
+  };
+}
+
 export function requireWorldPublicItemDto(value: unknown, expectedWorldId?: string): WorldPublicItemDto {
   const record = requireRecord(
     value,
@@ -291,6 +398,7 @@ export function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDt
     tags,
     themes: tags,
     genre: tags[0] ?? null,
+    era: readString(record, 'era'),
     entityKinds: readArray<string>(record, 'entityKinds').filter((item) => typeof item === 'string'),
     relationshipTypes: readArray<string>(record, 'relationshipTypes').filter((item) => typeof item === 'string'),
     iconUrl,
@@ -328,12 +436,15 @@ export function projectWorldPublicItem(world: WorldPublicItemDto): WorldDetailDt
 }
 
 export function projectWorldPublicDetail(world: WorldPublicDetailDto): WorldDetailDto {
+  const record = world as unknown as CoreRecord;
   return {
     ...projectWorldPublicItem(world),
-    rules: readArray<string>(world as unknown as CoreRecord, 'rules').filter((item) => typeof item === 'string'),
-    systems: readArray<string>(world as unknown as CoreRecord, 'systems').filter((item) => typeof item === 'string'),
-    scenes: readArray<string>(world as unknown as CoreRecord, 'scenes').filter((item) => typeof item === 'string'),
-    timeline: readArray<string>(world as unknown as CoreRecord, 'timeline').filter((item) => typeof item === 'string'),
+    rules: readArray<string>(record, 'rules').filter((item) => typeof item === 'string'),
+    systems: readArray<string>(record, 'systems').filter((item) => typeof item === 'string'),
+    scenes: readArray<unknown>(record, 'scenes').map(projectWorldPublicScene),
+    timeline: readArray<unknown>(record, 'timeline').map((item) => (
+      typeof item === 'string' ? item : asRecord(item)
+    )),
   };
 }
 
@@ -438,15 +549,31 @@ export function attachWorldEntryRecommendations(
 
 export function buildWorldPublicHistoryItems(world: CoreRecord): WorldHistoryPayload {
   return {
-    items: readArray<string>(world, 'timeline').map((item, index) => ({
-      id: `world-timeline-${index + 1}`,
-      eventId: `world-timeline-${index + 1}`,
-      sequence: index + 1,
-      title: item,
-      summary: item,
-      time: readString(asRecord(world.time), 'currentWorldTime') ?? world.updatedAt,
-      eventType: 'worldSetting',
-    })),
+    items: readArray<unknown>(world, 'timeline').map((item, index) => {
+      if (typeof item === 'string') {
+        return {
+          id: `world-timeline-${index + 1}`,
+          eventId: `world-timeline-${index + 1}`,
+          sequence: index + 1,
+          title: item,
+          summary: item,
+          time: readString(asRecord(world.time), 'currentWorldTime') ?? world.updatedAt,
+          eventType: 'worldSetting',
+        };
+      }
+      const event = asRecord(item);
+      const eventId = readString(event, 'eventId', 'id') || `world-timeline-${index + 1}`;
+      return {
+        ...event,
+        id: eventId,
+        eventId,
+        sequence: readNumber(event, 'sequence') ?? index + 1,
+        title: readString(event, 'title', 'name', 'summary') || eventId,
+        summary: readString(event, 'summary') || null,
+        time: readString(event, 'time', 'timestamp', 'startsAt') || readString(asRecord(world.time), 'currentWorldTime') || world.updatedAt,
+        eventType: readString(event, 'eventType', 'type') || 'worldSetting',
+      };
+    }),
   };
 }
 
@@ -524,11 +651,6 @@ export function buildWorldPublicAssets(world: CoreRecord): WorldAssetListPayload
 
 export function buildWorldPublicScenes(world: CoreRecord): WorldSceneListPayload {
   return {
-    items: readArray<string>(world, 'scenes').map((scene, index) => ({
-      sceneId: `world-scene-${index + 1}`,
-      name: scene,
-      summary: scene,
-      entityRefs: [],
-    })),
+    items: readArray<unknown>(world, 'scenes').map(projectWorldPublicScene),
   };
 }

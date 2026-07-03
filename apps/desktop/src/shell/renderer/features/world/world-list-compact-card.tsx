@@ -1,30 +1,10 @@
 import { Heart, MoreHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Avatar, IconButton, NimiText, StatusBadge, Surface } from '@nimiplatform/kit/ui';
-import { formatNum, worldInitial } from './world-list-atoms';
-import { displayTags, sourceCount, statusLabel, type ViewMode } from './world-list-catalog-model';
+import { IconButton, NimiText, StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { displayTags, type ViewMode } from './world-list-catalog-model';
+import { WorldCover } from './world-list-cover';
+import { WORLD_EXPLORER_SHADOWS, WORLD_EXPLORER_THEME } from './world-list-theme';
 import type { WorldListItem } from './world-list-model';
-
-const COMPACT_WORLD_TAG_LABELS: Record<string, string | null> = {
-  Historical: 'Historical',
-  'Scholarly sources': null,
-  历史世界: '历史',
-  学术资料: null,
-};
-
-function isChineseWorldTagLanguage(language?: string): boolean {
-  return language?.toLocaleLowerCase().startsWith('zh') ?? false;
-}
-
-function compactWorldTagLabel(tag: string, world: WorldListItem, language?: string): string | null {
-  if (world.era && tag === world.era) {
-    return isChineseWorldTagLanguage(language) ? '朝代' : 'Era';
-  }
-  if (Object.prototype.hasOwnProperty.call(COMPACT_WORLD_TAG_LABELS, tag)) {
-    return COMPACT_WORLD_TAG_LABELS[tag] ?? null;
-  }
-  return tag;
-}
 
 export function CompactWorldCard({
   world,
@@ -52,14 +32,17 @@ export function CompactWorldCard({
     <Surface
       as="article"
       tone="card"
-      material="glass-regular"
+      material="solid"
       elevation="base"
       padding="sm"
       className={[
-        'relative min-h-[88px] rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-material-glass-regular-bg)] shadow-none',
-        selected ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))]' : 'border-transparent',
+        'relative min-h-[96px] rounded-[20px] transition duration-200 hover:-translate-y-0.5',
+        selected ? 'world-card--selected' : '',
       ].join(' ')}
-      style={{ boxShadow: 'none' }}
+      style={{
+        ...(selected ? WORLD_EXPLORER_THEME.selectedCard : WORLD_EXPLORER_THEME.card),
+        boxShadow: selected ? WORLD_EXPLORER_SHADOWS.selected : WORLD_EXPLORER_SHADOWS.card,
+      }}
     >
       {onToggleFollow ? (
         <IconButton
@@ -72,7 +55,9 @@ export function CompactWorldCard({
           icon={<Heart size={15} fill={followed ? 'currentColor' : 'none'} aria-hidden="true" />}
           tone="ghost"
           size="sm"
-          className={followed ? 'absolute top-2 right-2 z-10 text-[var(--nimi-status-danger-soft-text)]' : 'absolute top-2 right-2 z-10 text-[var(--nimi-text-muted)]'}
+          className={followed
+            ? 'absolute top-2.5 right-2.5 z-10 rounded-full text-[var(--world-explorer-favorite)] hover:bg-[var(--world-explorer-surface-weak)]'
+            : 'absolute top-2.5 right-2.5 z-10 rounded-full text-[var(--world-explorer-text-muted)] hover:bg-[var(--world-explorer-surface-weak)]'}
           onClick={(event) => {
             event.stopPropagation();
             onToggleFollow();
@@ -83,42 +68,24 @@ export function CompactWorldCard({
         type="button"
         aria-pressed={selected}
         className="grid w-full min-w-0 cursor-pointer items-center gap-3 border-0 bg-transparent p-0 pr-8 text-left"
-        style={{ gridTemplateColumns: listMode ? '72px minmax(0,1fr)' : '78px minmax(0,1fr)' }}
+        style={{ gridTemplateColumns: listMode ? '86px minmax(0,1fr)' : '86px minmax(0,1fr)' }}
         onClick={onSelect}
         onDoubleClick={onOpen}
       >
-        <Avatar
-          alt={world.name}
-          src={world.bannerUrl}
-          shape="rounded"
-          size="lg"
-          fallback={worldInitial(world.name)}
-          fallbackClassName="bg-[image:var(--nimi-surface-hero)] text-[var(--nimi-action-primary-text)] text-2xl font-bold"
-          className={listMode ? 'h-[68px] w-[72px]' : 'h-[68px] w-[78px]'}
-        />
+        <WorldCover world={world} variant="thumb" className={listMode ? 'h-[72px]' : ''} />
         <span className="grid min-w-0 gap-1.5">
-          <NimiText as="span" role="card-title" className="truncate" title={world.name}>
+          <NimiText as="span" role="card-title" className="truncate text-[15px] font-bold text-[var(--world-explorer-text)]" title={world.name}>
             {world.name}
           </NimiText>
-          <span className="flex min-w-0 items-center gap-2">
-            <StatusBadge tone={world.status === 'FROZEN' ? 'warning' : 'success'} shape="dot" className="px-0 bg-transparent font-bold">
-              {statusLabel(world)}
-            </StatusBadge>
-            <NimiText as="span" role="caption">{formatNum(sourceCount(world))}</NimiText>
-          </span>
-          <span className="flex min-w-0 flex-wrap gap-1.5 overflow-hidden">
-            {tags.map((tag) => {
-              const label = compactWorldTagLabel(tag, world, i18n.language);
-              if (!label) {
-                return null;
-              }
-              return (
-                <StatusBadge key={tag} title={tag} tone="neutral" shape="outline" className="h-[18px] min-w-0 max-w-full justify-center border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-1.5 text-[length:var(--nimi-type-caption-size)]">
-                  {label}
+          {tags.length > 0 ? (
+            <span className="flex min-w-0 flex-wrap gap-1.5 overflow-hidden">
+              {tags.map((tag) => (
+                <StatusBadge key={tag} title={tag} tone="neutral" shape="outline" className="h-[20px] min-w-0 max-w-full justify-center border-[var(--world-explorer-border)] bg-[var(--world-explorer-surface-weak)] px-2 text-[length:var(--nimi-type-caption-size)] text-[var(--world-explorer-text-secondary)]">
+                  {tag}
                 </StatusBadge>
-              );
-            })}
-          </span>
+              ))}
+            </span>
+          ) : null}
         </span>
       </button>
       <IconButton
@@ -127,7 +94,7 @@ export function CompactWorldCard({
         icon={<MoreHorizontal size={17} aria-hidden="true" />}
         tone="ghost"
         size="sm"
-        className="absolute right-2 bottom-2"
+        className="absolute right-2.5 bottom-2.5 rounded-full text-[var(--world-explorer-text-muted)] hover:bg-[var(--world-explorer-surface-weak)] hover:text-[var(--world-explorer-text)]"
         onClick={(event) => {
           event.stopPropagation();
           onOpen();

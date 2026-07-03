@@ -1,21 +1,24 @@
 import { useTranslation } from 'react-i18next';
-import { ScrollArea } from '@nimiplatform/kit/ui';
 import {
   PAPER,
   PAPER_RADIUS,
   PAPER_SERIF,
   formatNum,
 } from './world-detail-paper-model.js';
+import { worldDetailPaperContentFrameStyle } from './world-detail-layout.js';
 import {
   IconArrow,
   IconChevron,
   PaperAvatar,
-  PaperTag,
   paperGhostButton,
   paperPrimaryButton,
 } from './world-detail-paper-primitives.js';
 import { detailSceneBackground } from './world-detail-template-model.js';
-import type { WorldAssetExternalRef, WorldCharacter, WorldHistoryItem, WorldSceneItem } from './world-detail-types.js';
+import type { WorldAssetExternalRef, WorldSceneEntity, WorldSceneItem } from './world-detail-types.js';
+
+function sceneEntityLabel(entity: WorldSceneEntity): string {
+  return entity.label || entity.id;
+}
 
 export function WorldSceneDetailPage({
   isOasisWorld,
@@ -24,8 +27,6 @@ export function WorldSceneDetailPage({
   onSelectCharacter,
   onViewCharacters,
   onViewEvents,
-  relatedCharacters,
-  relatedEvents,
   scene,
   sceneImageRef,
 }: {
@@ -34,14 +35,15 @@ export function WorldSceneDetailPage({
   onBack: () => void;
   onSelectCharacter: (characterId: string) => void;
   onViewCharacters: () => void;
-  onViewEvents: () => void;
-  relatedCharacters: readonly WorldCharacter[];
-  relatedEvents: readonly WorldHistoryItem[];
+  onViewEvents?: () => void;
   scene: WorldSceneItem;
   sceneImageRef?: WorldAssetExternalRef | null;
 }) {
   const { t } = useTranslation();
   const activeEntities = scene.activeEntities.slice(0, 8);
+  const relatedCharacters = scene.relatedCharacters;
+  const relatedEvents = scene.relatedEvents;
+  const relatedResources = scene.relatedResources;
   const imageLabel = sceneImageRef?.refId ?? t('WorldDetail.paper.scenes.noImage');
 
   return (
@@ -49,7 +51,7 @@ export function WorldSceneDetailPage({
       data-testid="world-detail-scene-detail-page"
       style={{ position: 'relative', minHeight: '100%', fontFamily: 'var(--nimi-font-sans)' }}
     >
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1180, margin: '0 auto', padding: '22px 28px 80px' }}>
+      <div style={worldDetailPaperContentFrameStyle()}>
         <button
           type="button"
           onClick={onBack}
@@ -73,17 +75,9 @@ export function WorldSceneDetailPage({
             boxShadow: PAPER.cardShadowStrong,
           }}
         >
-          <ScrollArea className="max-h-[calc(100vh-154px)]" viewportClassName="pb-0">
+          <>
             <div style={{ position: 'relative', minHeight: 246, background: sceneImageRef ? detailSceneBackground(sceneImageRef.uri) : 'linear-gradient(135deg,#e9e0cb,#d8ccae)' }}>
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(28,24,18,.03),rgba(28,24,18,.66))' }} />
-              <div style={{ position: 'absolute', left: 24, right: 24, top: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', minHeight: 30, maxWidth: '100%', borderRadius: 999, padding: '6px 11px', color: '#fffaf0', fontSize: 12, fontWeight: 900, background: 'rgba(38,32,23,.56)', border: '1px solid rgba(255,250,240,.24)', backdropFilter: 'blur(10px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {t('WorldDetail.paper.scenes.image')} · {imageLabel}
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', minHeight: 30, borderRadius: 999, padding: '6px 11px', color: '#fffaf0', fontSize: 12, fontWeight: 900, background: 'rgba(38,32,23,.56)', border: '1px solid rgba(255,250,240,.24)', backdropFilter: 'blur(10px)' }}>
-                  {t('WorldDetail.paper.scenes.public')}
-                </span>
-              </div>
               <div style={{ position: 'absolute', left: 24, right: 24, bottom: 22 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, color: '#e9f4e8', fontSize: 13, fontWeight: 900 }}>
                   <span style={{ width: 4, height: 19, borderRadius: 6, background: '#e9f4e8' }} />
@@ -96,18 +90,16 @@ export function WorldSceneDetailPage({
             </div>
 
             <div style={{ padding: '22px 24px 24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18, flexWrap: 'wrap' }}>
-                <p style={{ margin: 0, maxWidth: 760, fontSize: 14, lineHeight: 1.75, color: PAPER.muted }}>
-                  {scene.description || t('WorldDetail.xianxia.v2.scenes.noDescription')}
-                </p>
-                <PaperTag>{t('WorldDetail.paper.scenes.sceneResolved')}</PaperTag>
-              </div>
+              <p style={{ margin: '0 0 18px', maxWidth: 760, fontSize: 14, lineHeight: 1.75, color: PAPER.muted }}>
+                {scene.description || t('WorldDetail.xianxia.v2.scenes.noDescription')}
+              </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 20 }}>
                 {[
-                  { value: activeEntities.length, label: t('WorldDetail.paper.scenes.activeEntities') },
-                  { value: relatedCharacters.length, label: t('WorldDetail.paper.scenes.relatedCharacters') },
-                  { value: relatedEvents.length, label: t('WorldDetail.paper.scenes.relatedEvents') },
+                  { value: scene.counts.activeEntityCount, label: t('WorldDetail.paper.scenes.activeEntities') },
+                  { value: scene.counts.relatedCharacterCount, label: t('WorldDetail.paper.scenes.relatedCharacters') },
+                  { value: scene.counts.relatedEventCount, label: t('WorldDetail.paper.scenes.relatedEvents') },
+                  { value: scene.counts.relatedResourceCount, label: t('WorldDetail.paper.scenes.relatedResources') },
                 ].map((metric) => (
                   <div key={metric.label} style={{ border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, padding: '13px 14px', background: 'rgba(255,253,248,.72)', minWidth: 0 }}>
                     <div style={{ fontFamily: PAPER_SERIF, fontSize: 24, lineHeight: 1, fontWeight: 800, color: PAPER.inkStrong }}>{formatNum(metric.value)}</div>
@@ -118,16 +110,14 @@ export function WorldSceneDetailPage({
 
               <div style={{ display: 'grid', gap: 18 }}>
                 <section>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.activeEntities')}</h3>
-                    <span style={{ fontSize: 11.5, fontWeight: 800, color: PAPER.faint }}>{t('WorldDetail.paper.scenes.fromEntityRefs')}</span>
-                  </div>
+                  <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.activeEntities')}</h3>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', minHeight: 30 }}>
                     {activeEntities.length > 0 ? activeEntities.map((entity) => {
-                      const character = relatedCharacters.find((item) => item.name === entity) ?? null;
+                      const label = sceneEntityLabel(entity);
+                      const character = relatedCharacters.find((item) => item.id === entity.id || item.name === label) ?? null;
                       return (
                         <button
-                          key={`${scene.id}-active-${entity}`}
+                          key={`${scene.id}-active-${entity.id}`}
                           type="button"
                           onClick={() => {
                             if (character) {
@@ -149,7 +139,7 @@ export function WorldSceneDetailPage({
                             cursor: character ? 'pointer' : 'default',
                           }}
                         >
-                          {entity}
+                          {label}
                         </button>
                       );
                     }) : (
@@ -159,10 +149,7 @@ export function WorldSceneDetailPage({
                 </section>
 
                 <section>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.relatedCharacters')}</h3>
-                    <span style={{ fontSize: 11.5, fontWeight: 800, color: PAPER.faint }}>{t('WorldDetail.paper.scenes.fromCharacters')}</span>
-                  </div>
+                  <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.relatedCharacters')}</h3>
                   {relatedCharacters.length > 0 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10 }}>
                       {relatedCharacters.map((character) => (
@@ -207,6 +194,28 @@ export function WorldSceneDetailPage({
                   )}
                 </section>
 
+                <section>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.relatedResources')}</h3>
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: PAPER.faint }}>{t('WorldDetail.paper.scenes.fromResources')}</span>
+                  </div>
+                  {relatedResources.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 9 }}>
+                      {relatedResources.map((resource) => (
+                        <div key={`${scene.id}-resource-${resource.id}`} style={{ border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, padding: 10, background: 'rgba(255,253,248,.62)', minWidth: 0 }}>
+                          <span style={{ display: 'block', fontSize: 11, fontWeight: 900, color: PAPER.green, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resource.kind}</span>
+                          <span style={{ display: 'block', marginTop: 4, fontSize: 13, fontWeight: 900, color: PAPER.inkStrong, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resource.title}</span>
+                          {resource.summary ? (
+                            <span style={{ display: 'block', marginTop: 4, fontSize: 12, lineHeight: 1.5, color: PAPER.muted }}>{resource.summary}</span>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span style={{ color: PAPER.faint, fontSize: 13 }}>{t('WorldDetail.paper.scenes.none')}</span>
+                  )}
+                </section>
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 10 }}>
                   {[
                     { label: t('WorldDetail.paper.scenes.sceneId'), value: scene.id },
@@ -236,13 +245,15 @@ export function WorldSceneDetailPage({
                   <button type="button" onClick={onViewCharacters} style={paperGhostButton}>
                     {t('WorldDetail.xianxia.v2.scenes.quickSheetViewCharacters')}
                   </button>
-                  <button type="button" onClick={onViewEvents} style={paperGhostButton}>
-                    {t('WorldDetail.xianxia.v2.scenes.quickSheetViewEvents')}
-                  </button>
+                  {onViewEvents ? (
+                    <button type="button" onClick={onViewEvents} style={paperGhostButton}>
+                      {t('WorldDetail.xianxia.v2.scenes.quickSheetViewEvents')}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>
-          </ScrollArea>
+          </>
         </section>
       </div>
     </div>

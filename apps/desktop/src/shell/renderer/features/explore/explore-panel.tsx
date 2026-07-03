@@ -3,6 +3,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useQuery } from '@tanstack/react-query';
 import { realmExploreData } from './data/realm-explore-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import type { WorldDetailNavigationOptions } from '@renderer/app-shell/providers/store-types';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { i18n } from '@renderer/i18n';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
@@ -125,7 +126,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
     return Array.from(new Set(combined)).slice(0, 16);
   }, [personaSources]);
 
-  // fetchPostPage for PostFeed â€?PostFeed manages its own pagination internally
+  // fetchPostPage for PostFeed --PostFeed manages its own pagination internally
   const fetchPostPage = useCallback(
     async (cursor: string | null) => {
       const tag = selectedCategory || undefined;
@@ -211,7 +212,11 @@ export function ExplorePanel(props: ExplorePanelProps) {
   );
 
   const onWorldOpen = useCallback(
-    (worldId: string) => {
+    (worldId: string, options?: WorldDetailNavigationOptions) => {
+      if (options) {
+        navigateToWorld(worldId, options);
+        return;
+      }
       navigateToWorld(worldId);
     },
     [navigateToWorld],

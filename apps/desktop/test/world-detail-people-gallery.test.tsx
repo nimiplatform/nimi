@@ -143,3 +143,16 @@ test('archive page renders as an in-page drill-down without the modal backdrop',
   assert.doesNotMatch(markup, /position:fixed;inset:0/);
   assert.doesNotMatch(markup, /background:rgba\(38,32,23,.5\)/);
 });
+
+test('archive page keeps only the leading back control', () => {
+  const markup = renderToStaticMarkup(
+    React.createElement(WorldPeopleArchivePage, {
+      characters: roster,
+      onBack: () => {},
+      onSelect: () => {},
+      onMaterializeSource: () => {},
+    }),
+  );
+
+  assert.equal(markup.match(/Back to world detail/g)?.length, 1);
+});

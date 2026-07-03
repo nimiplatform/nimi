@@ -9,26 +9,17 @@ import { worldInitial } from './world-list-atoms';
 export function DetailHero({
   world,
   onBack,
-  onScrollTo,
   onFollowWorld,
   worldFollowed = false,
 }: {
   world: WorldDetailData;
   characters: readonly WorldCharacter[];
   onBack?: () => void;
-  onScrollTo: (id: string) => void;
   onFollowWorld?: (world: WorldDetailData) => Promise<void> | void;
   worldFollowed?: boolean;
 }) {
   const { t } = useTranslation();
   const banner = world.bannerUrl;
-  const tabs = [
-    { id: 'world-detail-lore', label: t('WorldDetail.glass.nav.lore') },
-    { id: 'world-detail-rules', label: t('WorldDetail.glass.nav.rules') },
-    { id: 'world-detail-characters', label: t('WorldDetail.glass.nav.characters') },
-    { id: 'world-detail-scenes', label: t('WorldDetail.glass.nav.scenes') },
-    { id: 'world-detail-timeline', label: t('WorldDetail.glass.nav.timeline') },
-  ];
   return (
     <Surface
       as="section"
@@ -75,21 +66,6 @@ export function DetailHero({
               }}
             />
           ) : null}
-          {tabs.map((tab) => (
-            <Button
-              key={tab.id}
-              type="button"
-              tone="ghost"
-              size="sm"
-              onClick={() => onScrollTo(tab.id)}
-              className="h-[38px] min-h-0 border border-white/20 bg-[rgba(8,23,36,0.42)] px-[14px] font-extrabold text-white hover:bg-[rgba(8,23,36,0.55)] hover:text-white"
-              style={{
-                borderColor: 'rgba(255,255,255,0.18)',
-              }}
-            >
-              {tab.label}
-            </Button>
-          ))}
         </div>
         <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
           {onFollowWorld ? (

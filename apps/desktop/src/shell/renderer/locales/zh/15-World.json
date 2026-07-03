@@ -64,8 +64,8 @@
     "categories": "世界分类",
     "more": "更多",
     "featured": {
-      "title": "精选",
-      "body": "精选公共世界，用于 Source 发现与设定上下文。",
+      "title": "精选世界",
+      "body": "公共世界精选，用于 Source 发现与设定上下文。",
       "viewAll": "查看全部",
       "open": "打开 {{name}}"
     },
@@ -113,10 +113,10 @@
       },
       "quick": {
         "title": "快速入口",
-        "people": { "title": "浏览人物", "sub": "世界中所有人物" },
-        "library": { "title": "打开资料馆", "sub": "搜索与查阅" },
-        "timeline": { "title": "查看时间长河", "sub": "探索时间脉络" },
-        "scenes": { "title": "进入场景探索", "sub": "沉浸式探索" }
+        "people": { "title": "人物图谱", "sub": "查看人物关系" },
+        "library": { "title": "资料馆", "sub": "搜索原始资料" },
+        "timeline": { "title": "时间线", "sub": "按时间探索" },
+        "scenes": { "title": "场景漫游", "sub": "进入历史场景" }
       },
       "status": {
         "friends": "已添加好友 {{count}} 位",

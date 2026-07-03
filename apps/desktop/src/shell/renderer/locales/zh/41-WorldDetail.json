@@ -80,13 +80,6 @@
     "timeflowValue": "{{value}}x 时间流速",
     "notSpecified": "未指定",
     "openEra": "开放纪元",
-    "nav": {
-      "lore": "设定",
-      "rules": "规则",
-      "characters": "Character",
-      "scenes": "场景",
-      "timeline": "时间线"
-    },
     "stats": {
       "sources": "Sources",
       "worldOwned": "World Owned",
@@ -110,9 +103,7 @@
     "characters": {
       "title": "Character 与 Persona",
       "subtitle": "浏览这个世界的公开 Source；需要对话表面时创建本地 Agent。",
-      "empty": "这个世界还没有公开 Character 或 Persona Source。",
-      "persona": "Persona",
-      "character": "Character"
+      "empty": "这个世界还没有公开 Character 或 Persona Source。"
     },
     "timeline": {
       "title": "重大事件",
@@ -466,7 +457,6 @@
     "paths": {
       "title": "推荐探索路径",
       "subtitle": "不知道从哪里开始？跟着这几条路线走一遍。",
-      "enter": "开始探索",
       "lead": {
         "titleNamed": "从 {{name}} 开始",
         "title": "从核心人物开始",
@@ -566,12 +556,67 @@
         "resources": {
           "tag": "资源",
           "title": "资源引用集",
-          "desc": "世界声明的规范资源与外部引用。"
+          "desc": "世界声明的规范资源、外部引用与资产意图。"
         },
         "lore": {
           "tag": "设定",
           "title": "世界设定集",
           "desc": "规则、力量体系、禁忌与语言设定。"
+        }
+      }
+    },
+    "loreLibrary": {
+      "title": "世界设定集",
+      "subtitle": "把世界运行规则、制度体系、禁忌与语言设定整理成可浏览的语义资料。",
+      "records": "条记录",
+      "empty": "这个世界还没有发布结构化设定。",
+      "kind": {
+        "rule": "规则",
+        "system": "体系",
+        "taboo": "禁忌",
+        "language": "语言"
+      },
+      "group": {
+        "rule": {
+          "title": "运行规则",
+          "subtitle": "决定世界默认如何运转的基础规则。"
+        },
+        "system": {
+          "title": "制度与体系",
+          "subtitle": "组织、力量、官制或关系网络的结构化设定。"
+        },
+        "taboo": {
+          "title": "禁忌与边界",
+          "subtitle": "世界明确禁止、限制或必须规避的行为。"
+        },
+        "language": {
+          "title": "语言与表达",
+          "subtitle": "世界内通用语言、书写方式与表达规则。"
+        }
+      }
+    },
+    "resourceReferences": {
+      "title": "资源引用集",
+      "subtitle": "展示 WorldCore 声明的规范资源、外部引用与资产意图记录。",
+      "records": "条记录",
+      "empty": "这个世界还没有发布资源引用。",
+      "kind": {
+        "resource": "规范资源",
+        "external": "外部引用",
+        "intent": "资产意图"
+      },
+      "group": {
+        "resource": {
+          "title": "规范资源",
+          "subtitle": "世界内部声明的资源引用，不代表资产所有权。"
+        },
+        "external": {
+          "title": "外部引用",
+          "subtitle": "世界引用的外部 URI 或生成产物地址。"
+        },
+        "intent": {
+          "title": "资产意图",
+          "subtitle": "WorldCore 对未来资源生产、替换或补全的意图记录。"
         }
       }
     },
@@ -586,15 +631,12 @@
       "enter": "进入场景",
       "empty": "这个世界还没有发布场景。",
       "detailCard": "详细场景卡",
-      "image": "图片",
-      "public": "PUBLIC · 可探索",
-      "sceneResolved": "sceneId 已解析",
       "activeEntities": "活跃实体",
       "relatedCharacters": "相关人物",
       "relatedEvents": "相关事件",
-      "fromEntityRefs": "来自 entityRefs",
-      "fromCharacters": "来自人物 placement",
+      "relatedResources": "相关资源",
       "fromEvents": "来自 locationRefs 与摘要",
+      "fromResources": "来自场景资源",
       "sceneId": "Scene ID",
       "imageAssetRef": "Image Asset Ref",
       "noImage": "暂无图片",
@@ -627,9 +669,6 @@
     },
     "relationshipExplorer": {
       "back": "返回详情",
-      "eyebrow": "人物关系探索",
-      "title": "元代文人书院世界",
-      "subtitle": "在这里认识元代文人、作品线索、交往关系与时代脉络，先读人物，再看关系，再沿资料继续探索。",
       "noTargetMeta": "暂无公开身份信息",
       "openCharacter": "查看人物档案",
       "graphLabel": "人物关系网络",
@@ -731,10 +770,8 @@
         "empty": "没有符合条件的人物。",
         "filters": {
           "all": "全部",
-          "featured": "重点",
           "literati": "交往圈",
-          "academy": "书院学术",
-          "open": "待探索"
+          "academy": "书院学术"
         }
       },
       "controls": {
