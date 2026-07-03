@@ -156,6 +156,7 @@ function resolveSpeakingEmotion(input: {
 
 export function resolveAgentConversationSurfaceState(input: {
   composerReady: boolean;
+  routeDisabledReason?: string | null;
   activeTarget: AgentLocalTargetSnapshot | null;
   submittingThreadId: string | null;
   activeConversationAnchorId: string | null;
@@ -187,6 +188,8 @@ export function resolveAgentConversationSurfaceState(input: {
   };
 }): AgentConversationSurfaceState {
   const isSubmitting = Boolean(input.submittingThreadId);
+  const routeDisabledReason = input.routeDisabledReason?.trim() || null;
+  const composerDisabled = isSubmitting || Boolean(routeDisabledReason);
   const displayName = input.activeTarget?.displayName || input.labels.title;
   const activeVoiceCapture = input.voiceCaptureState?.active
     ? input.voiceCaptureState
@@ -262,8 +265,8 @@ export function resolveAgentConversationSurfaceState(input: {
   return {
     composer: input.composerReady
       ? {
-        disabled: isSubmitting,
-        disabledReason: isSubmitting ? input.labels.sendingDisabledReason : null,
+        disabled: composerDisabled,
+        disabledReason: isSubmitting ? input.labels.sendingDisabledReason : routeDisabledReason,
         placeholder: input.activeTarget
           ? input.labels.composerPlaceholderWithTarget
           : input.labels.composerPlaceholderWithoutTarget,

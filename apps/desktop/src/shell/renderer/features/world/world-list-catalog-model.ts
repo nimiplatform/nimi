@@ -148,7 +148,7 @@ function isTechnicalWorldTag(tag: string): boolean {
   return /^[a-z0-9]+(?:[-_][a-z0-9]+){2,}$/i.test(tag) && tag.length > 20;
 }
 
-export function displayTags(world: WorldListItem, limit = 4, language?: string): string[] {
+export function displayTags(world: WorldListItem, limit = 4, _language?: string): string[] {
   const values: string[] = [];
   const pushTag = (value: string | null | undefined, normalize = normalizeWorldDisplayTag) => {
     const tag = normalize(value);

@@ -2,6 +2,7 @@ import type { NimiRuntimeAppOpenProjection, NimiRuntimeAppInstallStorage } from 
 import type {
   ElectronRuntimeBridgeTrustedMetadataProvider,
   NimiElectronCommandHandler,
+  NimiElectronAIConfigStore,
 } from '@nimiplatform/kit/shell/electron/main';
 
 import {
@@ -69,6 +70,7 @@ export type DesktopInstalledAppLaunchResolution = {
 export type DesktopInstalledAppLauncherDeps = {
   readonly runtimeEndpoint: string;
   readonly preloadPath: string;
+  readonly createAIConfigStore?: (dataRoot: string) => NimiElectronAIConfigStore;
   readonly registerProtocol?: (
     input: DesktopInstalledAppProtocolBindingInput,
   ) => Promise<DesktopInstalledAppProtocolBinding> | DesktopInstalledAppProtocolBinding;
@@ -114,6 +116,9 @@ export function createDesktopInstalledAppLauncher(deps: DesktopInstalledAppLaunc
           capabilitySetRef: INSTALLED_APP_STANDARD_SHELL_CAPABILITY_SET_REF,
           dataRoot: resolution.storage.durableDataRoot,
           localAssetRoots: [resolution.activeReleaseRoot],
+          ...(deps.createAIConfigStore
+            ? { aiConfigStore: deps.createAIConfigStore(resolution.storage.durableDataRoot) }
+            : {}),
         },
       });
       return {

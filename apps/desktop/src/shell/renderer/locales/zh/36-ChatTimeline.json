@@ -27,7 +27,7 @@
   "showImagePrompt": "显示提示词",
   "hideImagePrompt": "隐藏提示词",
   "streamInterrupted": "回复已中断",
-  "agent": "localAgent",
+  "agent": "伙伴",
   "source": "Source",
   "human": "真人",
   "resizeInputArea": "调整输入区域大小",

@@ -60,6 +60,18 @@ const productControlAdmissionSource = readFileSync(
   resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control_admission.rs'),
   'utf8',
 );
+const productControlRootSource = readFileSync(
+  resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control.rs'),
+  'utf8',
+);
+const productControlOperationsSource = readFileSync(
+  resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control/operations.rs'),
+  'utf8',
+);
+const productControlRecordStoreSource = readFileSync(
+  resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control/record_store.rs'),
+  'utf8',
+);
 
 test('Gate 7: Desktop root route is guarded by auth and product ready_for_use', () => {
   assert.match(appRoutesSource, /function DesktopOrdinaryShellGate/);
@@ -161,6 +173,37 @@ test('Wave 7: Desktop admission adapter does not mirror Runtime ready authority 
   assert.doesNotMatch(productControlAdmissionSource, /compose_admission/);
   assert.doesNotMatch(productControlAdmissionSource, /ReadyAdmissionEvidence/);
   assert.doesNotMatch(productControlAdmissionSource, /#\[cfg\(test\)\]/);
+});
+
+test('Wave 7: Desktop product-control source keeps Runtime as authority', () => {
+  assert.match(productControlRootSource, /Runtime-owned product-control projection adapter/);
+  assert.match(productControlRootSource, /Desktop Tauri commands forward reads and mutations to RuntimeLocalService/);
+  assert.doesNotMatch(productControlRootSource, /lifecycle truth surface/);
+  assert.match(productControlRootSource, /RUNTIME_LOCAL_GET_PRODUCT_CONTROL_RECORD_METHOD_ID/);
+  assert.match(productControlRootSource, /RUNTIME_LOCAL_SELECT_PRODUCT_CONTROL_DATA_ROOT_METHOD_ID/);
+
+  for (const helperName of [
+    'ensure_product_control_record_created',
+    'select_product_data_root',
+    'set_first_run_install_level',
+    'complete_first_run_device_environment_scan_with_profile',
+  ]) {
+    assert.match(
+      productControlOperationsSource,
+      new RegExp(
+        [
+          'Test-only local product-control record mutator\\.',
+          'Production code must route product-control state changes through RuntimeLocalService\\.',
+          '#\\[cfg\\(test\\)\\]',
+          `(?:pub(?:\\(crate\\))?\\s+)?fn ${helperName}`,
+        ].join('[\\s\\S]*?'),
+      ),
+    );
+  }
+  assert.match(
+    productControlRecordStoreSource,
+    /Test-only local product-control record writer\.[\s\S]*?Production code must not write product-control authority outside RuntimeLocalService\.[\s\S]*?#\[cfg\(test\)\][\s\S]*?fn write_record/,
+  );
 });
 
 test('Wave 7: first-run finalization requests admission and routes on the projection', () => {

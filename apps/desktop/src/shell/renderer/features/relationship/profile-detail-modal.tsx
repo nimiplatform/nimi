@@ -26,6 +26,8 @@ import { startChatWithTarget } from '@renderer/features/chat/data/realm-human-ch
 import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import {
   describeRealmPersonaPrimaryAction,
+  discoverRealmSourceLocalAgents,
+  realmPersonaSourceMaterializationFailureMessage,
   realmPersonaSourceMaterializationMessage,
   realmSourceRefKey,
   resolveRealmPersonaSourceState,
@@ -160,12 +162,30 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     defaultValue: 'Profile details and relationship actions.',
   });
   const isBlockedProfile = Boolean(profile && realmSocialData.isBlockedUser(profile.id));
+  const profileSourceLocalAgentsQuery = useQuery({
+    queryKey: [
+      'profile-source-local-agents',
+      ownerUserId,
+      profile?.sourceRef ? realmSourceRefKey(profile.sourceRef) : sourceRefKey,
+      profile?.runtimeSourceRef ?? '',
+    ],
+    queryFn: async () => (profile ? discoverRealmSourceLocalAgents(profile, ownerUserId) : []),
+    enabled: props.open && Boolean(profile?.isSource) && Boolean(ownerUserId),
+    staleTime: 10_000,
+  });
   const sourceAction = profile?.isSource
-    ? describeRealmPersonaPrimaryAction(resolveRealmPersonaSourceState(profile))
+    ? describeRealmPersonaPrimaryAction(resolveRealmPersonaSourceState(
+        profile,
+        profileSourceLocalAgentsQuery.data ?? [],
+        {
+          runtimeInventoryPending: Boolean(ownerUserId && profileSourceLocalAgentsQuery.isPending),
+          runtimeInventoryUnavailable: !ownerUserId || profileSourceLocalAgentsQuery.isError,
+        },
+      ))
     : null;
   const sourceMaterializationUnavailable = sourceAction?.disabled === true;
   const sourceMaterializationHint = sourceMaterializationUnavailable
-    ? realmPersonaSourceMaterializationMessage()
+    ? sourceAction?.hint ?? realmPersonaSourceMaterializationMessage()
     : null;
 
   const handleConnectSource = useCallback(async () => {
@@ -173,21 +193,47 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
       return;
     }
     try {
+      if (sourceMaterializationUnavailable) {
+        throw new Error(sourceMaterializationHint || realmPersonaSourceMaterializationMessage());
+      }
       const target = await materializeSourceContactLaunchTarget(profile, ownerUserId);
       await ensureRuntimeAgentExists(target);
+      await queryClient.invalidateQueries({ queryKey: ['profile-source-local-agents'], exact: false });
+      await launchAgentConversationFromDisplay({
+        target,
+        setActiveTab,
+        setChatMode,
+        setSelectedTargetForSource,
+        setAgentConversationSelection,
+        setAgentConversationTargetSnapshot,
+      });
       setFeedback({
         kind: 'success',
         message: t('Explore.realmPersonaSourceMaterializedFeedback', {
-          defaultValue: 'Local agent created on this device.',
+          defaultValue: 'Your partner is ready. Opening chat.',
         }),
       });
+      props.onClose();
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: error instanceof Error ? error.message : realmPersonaSourceMaterializationMessage(),
+        message: realmPersonaSourceMaterializationFailureMessage(error),
       });
     }
-  }, [ownerUserId, profile, t]);
+  }, [
+    ownerUserId,
+    profile,
+    props,
+    queryClient,
+    setActiveTab,
+    setAgentConversationSelection,
+    setAgentConversationTargetSnapshot,
+    setChatMode,
+    setSelectedTargetForSource,
+    sourceMaterializationHint,
+    sourceMaterializationUnavailable,
+    t,
+  ]);
 
   const handleMessage = useCallback(async () => {
     if (!profile) {
@@ -235,7 +281,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: toChatErrorMessage(error),
+        message: profile.isSource ? realmPersonaSourceMaterializationFailureMessage(error) : toChatErrorMessage(error),
       });
     }
   }, [
@@ -364,7 +410,7 @@ export function ProfileDetailModal(props: ProfileDetailModalProps) {
                 void handleConnectSource();
               } : undefined}
               addFriendLabel={profile.isSource
-                ? sourceAction?.label ?? t('Relationship.createLocalAgent', { defaultValue: 'Create local agent' })
+                ? sourceAction?.label ?? t('Relationship.createLocalAgent', { defaultValue: 'Become my partner' })
                 : undefined}
               canAddFriend={profile.isSource
                 ? !sourceMaterializationUnavailable

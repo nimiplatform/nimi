@@ -191,11 +191,6 @@ commands:
     description: Execute an admitted Nimi data-directory cleanup plan
     source_rule: D-IPC-011
 
-  - command: desktop_agent_memory_export_save
-    module: support-export
-    description: Save a desktop agent memory export bundle through the native host
-    source_rule: D-IPC-011
-
   - command: desktop_logs_export
     module: support-export
     description: Export desktop support logs through the native host
@@ -254,11 +249,6 @@ commands:
     description: Listen for OAuth callback code on redirect URI
     source_rule: D-IPC-006
 
-  - command: confirm_private_sync
-    module: ui
-    description: Confirm private data sync for agent/session
-    source_rule: D-IPC-005
-
   - command: confirm_dialog
     module: ui
     description: Show an admitted native confirmation dialog and return the user decision
@@ -292,27 +282,27 @@ commands:
   # macOS smoke / renderer acceptance helpers
   - command: desktop_macos_smoke_context_get
     module: macos-smoke
-    description: Read macOS smoke-test context for renderer acceptance instrumentation
+    description: Fixture-gated macOS smoke instrumentation; read renderer acceptance context
     source_rule: D-IPC-009
 
   - command: desktop_macos_smoke_avatar_evidence_read
     module: macos-smoke
-    description: Read avatar evidence for macOS smoke-test instrumentation
+    description: Fixture-gated macOS smoke instrumentation; read avatar evidence
     source_rule: D-IPC-009
 
   - command: desktop_macos_smoke_avatar_product_local_asset_fault_apply
     module: macos-smoke
-    description: Apply an admitted avatar product local-asset fault for macOS smoke-test instrumentation
+    description: Fixture-gated macOS smoke instrumentation; apply an admitted avatar product local-asset fault
     source_rule: D-IPC-009
 
   - command: desktop_macos_smoke_report_write
     module: macos-smoke
-    description: Write macOS smoke-test report evidence from renderer instrumentation
+    description: Fixture-gated macOS smoke instrumentation; write renderer acceptance report evidence
     source_rule: D-IPC-009
 
   - command: desktop_macos_smoke_ping
     module: macos-smoke
-    description: Ping the macOS smoke-test backend from renderer instrumentation
+    description: Fixture-gated macOS smoke instrumentation; ping the acceptance backend from renderer instrumentation
     source_rule: D-IPC-009
 
   # Chat local AI store

@@ -87,6 +87,9 @@ export function useAgentConversationPresentation(
   }, [input.runtimeInspect]);
   const surfaceState = useMemo(() => resolveAgentConversationSurfaceState({
     composerReady: input.composerReady,
+    routeDisabledReason: input.activeTarget && !input.agentRouteReady
+      ? input.agentRouteDisabledReason
+      : null,
     activeTarget: input.activeTarget,
     activeThreadId: input.activeThreadId,
     activeConversationAnchorId: input.activeConversationAnchorId,
@@ -120,7 +123,7 @@ export function useAgentConversationPresentation(
         defaultValue: 'Transcribing…',
       }),
     },
-  }), [footerViewState, input.activeTarget, input.activeThreadId, input.composerReady, input.submittingThreadId, input.t, input.voiceCaptureState, input.voicePlaybackState, input.voiceSessionState, latestStatusCue, runtimeCommittedStatus]);
+  }), [footerViewState, input.activeTarget, input.activeThreadId, input.agentRouteDisabledReason, input.agentRouteReady, input.composerReady, input.submittingThreadId, input.t, input.voiceCaptureState, input.voicePlaybackState, input.voiceSessionState, latestStatusCue, runtimeCommittedStatus]);
   const localAvatar = useAgentConversationLocalAvatarControls(input);
   const characterData = useMemo(() => ({
     ...surfaceState.character,
@@ -307,7 +310,10 @@ export function useAgentConversationPresentation(
           <AgentCanonicalComposer
             composerKey={input.activeThreadId || 'none'}
             initialText={input.currentComposerTextRef.current}
-            disabled={Boolean(input.submittingThreadId) || schedulingGuard.disabled}
+            disabled={Boolean(surfaceState.composer?.disabled) || schedulingGuard.disabled}
+            runtimeHint={surfaceState.composer?.disabledReason && !input.submittingThreadId
+              ? surfaceState.composer.disabledReason
+              : null}
             pendingAttachments={input.pendingAttachments}
             onAttachmentsChange={input.onAttachmentsChange}
             onSubmit={input.handleSubmit}
@@ -384,6 +390,7 @@ export function useAgentConversationPresentation(
     input.activeConversationAnchorId,
     input.activeThreadId,
     input.agentRouteReady,
+    input.agentRouteDisabledReason,
     input.mutationPendingAction,
     input.behaviorSettings,
     input.currentComposerTextRef,
@@ -409,6 +416,7 @@ export function useAgentConversationPresentation(
     input.pendingAttachments,
     selectedTargetId,
     schedulingGuard.disabled,
+    surfaceState.composer,
     resolvedAgentDisplayName,
     input.cognitionContent,
     input.onOpenAgentCenter,

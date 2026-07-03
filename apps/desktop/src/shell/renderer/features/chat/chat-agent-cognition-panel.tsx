@@ -1,10 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { AppCardSurface, cn, CompactAction } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { confirmDialog } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { NimiRuntimeAgentCanonicalMemoryInspect } from '@nimiplatform/sdk/runtime';
 import type { CanonicalMemoryBankStatus } from '@renderer/infra/runtime-agent-memory';
-import type { DesktopAgentMemoryExportOutcome } from '@renderer/infra/runtime-agent-memory-export';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 type ChatAgentCognitionPanelProps = {
@@ -15,35 +14,12 @@ type ChatAgentCognitionPanelProps = {
   onUpgradeStandardMemory?: () => unknown;
   allowMemoryUpgrade?: boolean;
   recentMemories?: readonly NimiRuntimeAgentCanonicalMemoryInspect[] | null;
-  onExportMemory?: () => Promise<DesktopAgentMemoryExportOutcome>;
 };
-
-type MemoryExportState =
-  | { status: 'idle' }
-  | { status: 'exporting' }
-  | { status: 'done'; result: DesktopAgentMemoryExportOutcome }
-  | { status: 'error'; message: string };
 
 const MEMORY_PREVIEW_LIMIT = 8;
 
 export function ChatAgentCognitionPanel(props: ChatAgentCognitionPanelProps) {
   const { t } = useTranslation();
-  const [exportState, setExportState] = useState<MemoryExportState>({ status: 'idle' });
-
-  const onExportMemory = props.onExportMemory;
-  const handleExportMemory = useCallback(() => {
-    if (!onExportMemory) {
-      return;
-    }
-    setExportState({ status: 'exporting' });
-    onExportMemory().then(
-      (result) => setExportState({ status: 'done', result }),
-      (error: unknown) => setExportState({
-        status: 'error',
-        message: error instanceof Error ? error.message : String(error),
-      }),
-    );
-  }, [onExportMemory]);
 
   const handleUpgradeStandardMemory = useCallback(() => {
     void (async () => {
@@ -166,7 +142,7 @@ export function ChatAgentCognitionPanel(props: ChatAgentCognitionPanelProps) {
           </div>
           <p className="mt-2 text-[12px] leading-6 text-slate-500">
             {t('Chat.memorySovereigntyHint', {
-              defaultValue: 'Canonical memories live on your machine. Inspect recent records and export the full set as a JSON artifact you own.',
+              defaultValue: 'Canonical memories live on your machine. Inspect recent records from the Runtime-owned memory projection.',
             })}
           </p>
           {props.recentMemories.length > 0 ? (
@@ -190,42 +166,6 @@ export function ChatAgentCognitionPanel(props: ChatAgentCognitionPanelProps) {
               {t('Chat.memorySovereigntyEmpty', { defaultValue: 'No canonical memories recorded yet.' })}
             </p>
           )}
-          {props.onExportMemory ? (
-            <div className="mt-4 flex flex-col gap-2">
-              <CompactAction
-                data-testid={E2E_IDS.chatMemoryExportButton}
-                disabled={props.disabled || exportState.status === 'exporting'}
-                onClick={handleExportMemory}
-                tone="neutral"
-                fullWidth
-              >
-                {exportState.status === 'exporting'
-                  ? t('Chat.memoryExportRunning', { defaultValue: 'Exporting...' })
-                  : t('Chat.memoryExportAction', { defaultValue: 'Export memory as JSON' })}
-              </CompactAction>
-              {exportState.status === 'done' ? (
-                <p
-                  data-testid={E2E_IDS.chatMemoryExportResult}
-                  className="break-words text-[11px] leading-5 text-[var(--nimi-status-positive)]"
-                >
-                  {t('Chat.memoryExportDone', {
-                    defaultValue: 'Exported {{records}} records across {{banks}} banks to {{path}}',
-                    records: exportState.result.recordCount,
-                    banks: exportState.result.bankCount,
-                    path: exportState.result.artifactPath,
-                  })}
-                </p>
-              ) : null}
-              {exportState.status === 'error' ? (
-                <p
-                  data-testid={E2E_IDS.chatMemoryExportResult}
-                  className="break-words text-[11px] leading-5 text-[var(--nimi-status-warning)]"
-                >
-                  {exportState.message}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
         </AppCardSurface>
       ) : null}
     </div>

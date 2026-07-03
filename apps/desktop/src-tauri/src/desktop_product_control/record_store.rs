@@ -182,6 +182,8 @@ pub(crate) fn selected_data_root_path(record: &ProductControlRecord) -> Option<P
     Some(normalize_desktop_absolute_path(&path))
 }
 
+// Test-only local product-control record writer.
+// Production code must not write product-control authority outside RuntimeLocalService.
 #[cfg(test)]
 pub(crate) fn write_record(path: &Path, record: &ProductControlRecord) -> Result<(), String> {
     validate_record(record)?;

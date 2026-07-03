@@ -8,6 +8,7 @@ import type {
 import {
   ensureAgentConversationSubmitRouteReady,
   ensureAiConversationSubmitRouteReady,
+  resolveAgentSubmitRouteUnavailableDetails,
 } from '../src/shell/renderer/features/chat/conversation-submit-readiness.js';
 
 function createTextProjection(
@@ -204,4 +205,83 @@ test('conversation submit readiness: agent submit still fails after refresh when
       return true;
     },
   );
+});
+
+test('conversation submit readiness: agent submit preserves unhealthy route issue details', async () => {
+  const unhealthyProjection = createTextProjection({
+    selectedTargetRef: {
+      kind: 'local-runtime' as const,
+      version: 'v2' as const,
+      profileBindingId: 'local-runtime:unhealthy',
+    },
+    resolvedBinding: {
+      capability: 'text.generate',
+      source: 'local-runtime',
+      targetRef: {
+        kind: 'local-runtime' as const,
+        version: 'v2' as const,
+        profileBindingId: 'local-runtime:unhealthy',
+      },
+      provider: 'llama',
+      connectorId: '',
+      model: 'gemma',
+      modelId: 'gemma',
+      localAssetId: 'local-gemma',
+      resolvedBindingRef: 'binding:agent:unhealthy',
+    },
+    health: {
+      healthy: false,
+      status: 'unhealthy',
+      provider: 'llama',
+      detail: 'health check failed',
+      actionHint: 'repair local model',
+    },
+    reasonCode: 'route_unhealthy',
+  });
+
+  await assert.rejects(
+    () => ensureAgentConversationSubmitRouteReady({
+      t,
+      deps: {
+        refreshConversationCapabilityProjections: async () => undefined,
+        refreshAgentEffectiveCapabilityResolution: () => undefined,
+        getTextCapabilityProjection: () => unhealthyProjection,
+        getAgentResolution: () => createAgentResolution({
+          ready: false,
+          reason: 'route_unresolved',
+          textProjection: unhealthyProjection,
+        }),
+      },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_PROVIDER_UNAVAILABLE');
+      assert.equal((error as { actionHint?: string }).actionHint, 'repair_runtime_route_binding');
+      assert.match(String((error as Error).message), /failed its latest health check/);
+      return true;
+    },
+  );
+});
+
+test('conversation submit readiness: route issue details distinguish selection, not-ready, and host-denied states', () => {
+  assert.deepEqual(resolveAgentSubmitRouteUnavailableDetails(t, createTextProjection({
+    reasonCode: 'selection_missing',
+  })), {
+    message: 'Choose a local or cloud runtime route before sending a message.',
+    reasonCode: 'AI_INPUT_INVALID',
+    actionHint: 'select_runtime_route_binding',
+  });
+  assert.deepEqual(resolveAgentSubmitRouteUnavailableDetails(t, createTextProjection({
+    reasonCode: 'route_not_ready',
+  })), {
+    message: 'The selected runtime route is not ready yet. Finish setup or warm the local model before sending.',
+    reasonCode: 'AI_MODEL_NOT_READY',
+    actionHint: 'warm_runtime_route_binding',
+  });
+  assert.deepEqual(resolveAgentSubmitRouteUnavailableDetails(t, createTextProjection({
+    reasonCode: 'host_denied',
+  })), {
+    message: 'This device is not allowed to use the selected Runtime route for this conversation.',
+    reasonCode: 'ACTION_PERMISSION_DENIED',
+    actionHint: 'request_runtime_route_permission',
+  });
 });

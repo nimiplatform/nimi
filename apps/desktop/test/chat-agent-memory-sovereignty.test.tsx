@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -23,22 +25,53 @@ function memoryFixture(overrides: Partial<NimiRuntimeAgentCanonicalMemoryInspect
   } as NimiRuntimeAgentCanonicalMemoryInspect;
 }
 
-test('memory sovereignty card renders records, count, and export action', () => {
-  const html = renderToStaticMarkup(
+function renderPanel(element: React.ReactElement): string {
+  const originalWarn = console.warn;
+  console.warn = (...args: unknown[]) => {
+    if (String(args[0] || '').startsWith('react-i18next:: useTranslation')) {
+      return;
+    }
+    originalWarn(...args);
+  };
+  try {
+    return renderToStaticMarkup(element);
+  } finally {
+    console.warn = originalWarn;
+  }
+}
+
+test('memory sovereignty card renders records and count without Desktop-private export action', () => {
+  const html = renderPanel(
     <ChatAgentCognitionPanel
       targetTitle="Companion"
       recentMemories={[memoryFixture(), memoryFixture({ memoryId: 'memory-2', summary: 'Second memory record.' })]}
-      onExportMemory={() => Promise.reject(new Error('not invoked in static render'))}
     />,
   );
   assert.ok(html.includes('data-testid="chat-memory-sovereignty-card"'), 'sovereignty card must render');
   assert.ok(html.includes('User prefers dark roast coffee'), 'memory summary must render');
   assert.ok(html.includes('Second memory record.'), 'second memory must render');
-  assert.ok(html.includes('data-testid="chat-memory-export-button"'), 'export button must render');
+  assert.ok(!html.includes('data-testid="chat-memory-export-button"'), 'Desktop-private memory export action must not render');
+});
+
+test('Chat Agent cognition has no Desktop-private memory export bridge', () => {
+  const root = resolve(import.meta.dirname, '..');
+  const sources = [
+    'src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx',
+    'src/shell/renderer/features/chat/chat-agent-cognition-panel.tsx',
+    'src/shell/renderer/testability/e2e-ids.ts',
+  ].map((file) => readFileSync(join(root, file), 'utf8')).join('\n');
+  const forbidden = [
+    ['export', 'Desktop', 'Agent', 'Memory'].join(''),
+    ['on', 'Export', 'Memory'].join(''),
+    ['chat', 'Memory', 'Export', 'Button'].join(''),
+    ['chat', 'Memory', 'Export', 'Result'].join(''),
+    ['runtime-agent', 'memory', 'export'].join('-'),
+  ];
+  assert.doesNotMatch(sources, new RegExp(forbidden.join('|')));
 });
 
 test('memory sovereignty card shows the honest empty state', () => {
-  const html = renderToStaticMarkup(
+  const html = renderPanel(
     <ChatAgentCognitionPanel targetTitle="Companion" recentMemories={[]} />,
   );
   assert.ok(html.includes('data-testid="chat-memory-sovereignty-card"'), 'card renders for empty memory');
@@ -47,7 +80,7 @@ test('memory sovereignty card shows the honest empty state', () => {
 });
 
 test('memory sovereignty card stays absent without inspect data', () => {
-  const html = renderToStaticMarkup(
+  const html = renderPanel(
     <ChatAgentCognitionPanel targetTitle="Companion" recentMemories={null} />,
   );
   assert.ok(!html.includes('data-testid="chat-memory-sovereignty-card"'), 'card must not render without data');

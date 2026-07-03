@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
-import { ArrowLeft, CirclePlus, MessageCircle } from 'lucide-react';
+import { ArrowLeft, CirclePlus } from 'lucide-react';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { describeRealmPersonaPrimaryAction } from '@renderer/features/explore/realm-persona-source-materialization';
 import type { SourceDetailData } from './source-detail-model.js';
@@ -26,7 +26,6 @@ type WorldCharacterSourceDetailPageProps = {
   onBack: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
-  onStartChat?: () => void;
   onSendGift: () => void;
 };
 
@@ -434,23 +433,14 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
                   </p>
                 </div>
               ) : null}
-              <div className={`grid grid-cols-2 gap-4 max-[420px]:grid-cols-1 ${props.stats ? 'mt-5' : ''}`}>
-                <button
-                  type="button"
-                  onClick={props.onStartChat}
-                  disabled={primaryAction.disabled || !props.onStartChat}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-[12px] bg-[#078a55] px-4 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(7,138,85,.24)] transition hover:bg-[#067a4c] disabled:cursor-default disabled:opacity-60"
-                >
-                  <MessageCircle aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
-                  {t('SourceDetail.worldCharacter.chatNow', { defaultValue: 'Chat now' })}
-                </button>
+              <div className={`grid gap-4 ${props.stats ? 'mt-5' : ''}`}>
                 <button
                   type="button"
                   onClick={props.onPrimaryAction}
                   disabled={primaryAction.disabled}
                   data-source-state={source.sourceState}
                   data-primary-action={primaryAction.action}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-[12px] border border-white/70 bg-white/78 px-4 text-[15px] font-semibold text-[#1d5f43] shadow-[0_8px_20px_rgba(34,26,18,.08)] transition hover:bg-white disabled:cursor-default disabled:opacity-60"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-[12px] bg-[#078a55] px-4 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(7,138,85,.24)] transition hover:bg-[#067a4c] disabled:cursor-default disabled:opacity-60"
                 >
                   <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
                   {worldCharacterPrimaryActionLabel(primaryAction, t)}

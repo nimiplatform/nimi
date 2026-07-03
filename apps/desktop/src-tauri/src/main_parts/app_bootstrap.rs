@@ -81,6 +81,9 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
                 Some(&details),
             );
             if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                // Production builds register the renderer-entry probe, but the probe must stay
+                // side-effect-free unless `desktop_macos_smoke_context_get` reports an enabled
+                // fixture. Any write/report path must route through fixture-gated smoke commands.
                 let probe_script =
                     match build_renderer_entry_probe_script(&RendererEntryProbeScriptConfig {
                         started_flag: "__NIMI_MACOS_SMOKE_EVAL_STARTED__".to_string(),
@@ -285,7 +288,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::desktop_product_control_admission::product_control_record_admit_ready_for_use,
             crate::nimi_data_directory::nimi_data_cleanup_plan,
             crate::nimi_data_directory::nimi_data_cleanup_execute,
-            crate::desktop_agent_memory_export::desktop_agent_memory_export_save,
             crate::desktop_logs_export::desktop_logs_export,
             crate::apps_bridge_projection::apps_bridge_projection_get,
             crate::apps_local_app_commands::apps_pick_local_app_root_directory,
@@ -300,7 +302,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_report_write,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_ping,
             super::defaults_and_commands::window_and_logs::confirm_dialog,
-            super::defaults_and_commands::window_and_logs::confirm_private_sync,
             super::defaults_and_commands::window_and_logs::focus_main_window,
             super::defaults_and_commands::window_and_logs::start_window_drag,
             menu_bar_shell::menu_bar_sync_runtime_health,

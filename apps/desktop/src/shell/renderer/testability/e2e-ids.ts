@@ -44,8 +44,6 @@ export const E2E_IDS = {
   chatMemoryModeStatus: 'chat-memory-mode-status',
   chatMemoryModeUpgradeButton: 'chat-memory-mode-upgrade-button',
   chatMemorySovereigntyCard: 'chat-memory-sovereignty-card',
-  chatMemoryExportButton: 'chat-memory-export-button',
-  chatMemoryExportResult: 'chat-memory-export-result',
   chatAvatarLaunchCard: 'chat-avatar-launch-card',
   chatAvatarLaunchCurrentButton: 'chat-avatar-launch-current-button',
   chatAvatarLaunchNewButton: 'chat-avatar-launch-new-button',

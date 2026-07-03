@@ -128,7 +128,8 @@ test('Worlds and World Detail use source discovery semantics instead of runtime 
   assert.doesNotMatch(worldDetailTemplateSource, /onEnterEdit|onCreateSubWorld/);
   assert.doesNotMatch(worldSurfaceSources, /Enter world|Enter Editor|Create Sub World/);
   assert.doesNotMatch(worldSurfaceSources, /Active Now|Online Scenes|World Flow|Transit In|Sub World/);
-  assert.match(worldSurfaceSources, /Explore Sources|Create Local Agent|View World/);
+  assert.match(worldSurfaceSources, /Explore Sources|Become my partner|View World/);
+  assert.doesNotMatch(worldSurfaceSources, /Create Local Agent|Create local agent|创建本地 Agent/);
 });
 
 test('World Detail materializes sources through the packet-backed Runtime handoff only', () => {

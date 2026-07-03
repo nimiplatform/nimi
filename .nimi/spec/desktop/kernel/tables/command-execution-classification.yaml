@@ -213,7 +213,6 @@ registered_command_families:
         - desktop_avatar_instance_registry_list
         - focus_main_window
         - start_window_drag
-        - open_world_tour_window
         - runtime_local_assets_reveal_in_folder
         - runtime_local_assets_reveal_root_folder
     origin_crate: mixed
@@ -231,7 +230,6 @@ registered_command_families:
     match:
       exact:
         - confirm_dialog
-        - confirm_private_sync
         - runtime_local_pick_asset_manifest_path
         - runtime_local_pick_asset_file
         - runtime_local_pick_asset_directory
@@ -265,9 +263,21 @@ registered_command_families:
 
   - family: telemetry_and_menu_projection
     match:
-      regex: "^(log_renderer_event|menu_bar_.*|desktop_macos_smoke_.*)$"
+      regex: "^(log_renderer_event|menu_bar_.*)$"
     origin_crate: mixed
     owner_domain: desktop-telemetry-and-menu
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: macos_smoke_acceptance_instrumentation
+    match:
+      prefix: desktop_macos_smoke_
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-smoke-instrumentation
     execution_class: bounded_blocking_with_admission
     remediation_required: false
     admitted_risks:
@@ -424,20 +434,6 @@ registered_command_families:
       - spawn_blocking
     source_rule: D-GATE-092
 
-  - family: desktop_agent_memory_export
-    match:
-      exact:
-        - desktop_agent_memory_export_save
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-agent-memory-export
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - process_command
-      - spawn_blocking
-    source_rule: D-GATE-092
-
   - family: apps_projection
     match:
       exact:
@@ -476,18 +472,6 @@ registered_command_families:
       - spawn_blocking
       - runtime_bridge_block_on
       - block_on_variants
-      - sync_lock_contention
-    source_rule: D-GATE-092
-
-  - family: world_tour_launch_and_acceptance
-    match:
-      regex: "^(claim_world_tour_viewer_launch|world_tour_render_acceptance_load|world_tour_render_acceptance_save)$"
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-test-fixtures
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
       - sync_lock_contention
     source_rule: D-GATE-092
 

@@ -5,6 +5,7 @@ import {
 } from '@nimiplatform/sdk/realm';
 import {
   createNimiHostRuntimeAgentLifecycleSurface,
+  isRuntimeLocalAgentRef,
   normalizeNimiRuntimeAgentText,
   type NimiRuntimeAgentDiscoveredLocalAgent,
 } from '@nimiplatform/sdk/runtime';
@@ -28,24 +29,101 @@ export const DESKTOP_SOURCE_MATERIALIZATION_AUDIENCE = 'nimi.desktop.local-agent
 export type RealmPersonaSourceState =
   | 'source_materialization_available'
   | 'local_agent_available'
+  | 'local_agent_ambiguous'
+  | 'runtime_agent_inventory_pending'
+  | 'runtime_agent_inventory_unavailable'
   | 'source_materialization_unavailable';
 
 export type RealmPersonaPrimaryAction =
-  | 'materialize_source'
-  | 'open_local_agent'
+  | 'become_partner'
+  | 'open_partner'
+  | 'partner_ambiguous'
+  | 'partner_runtime_pending'
+  | 'partner_runtime_unavailable'
   | 'source_materialization_unavailable';
+
+export type RealmPersonaSourceStateOptions = {
+  readonly runtimeInventoryPending?: boolean;
+  readonly runtimeInventoryUnavailable?: boolean;
+};
 
 export type RealmPersonaPrimaryActionLabel = {
   state: RealmPersonaSourceState;
   action: RealmPersonaPrimaryAction;
   label: string;
   disabled: boolean;
+  hint?: string;
 };
 
+function translate(key: string, defaultValue: string): string {
+  const translated = i18n.t(key, { defaultValue });
+  return typeof translated === 'string' && translated.trim() ? translated : defaultValue;
+}
+
 export function realmPersonaSourceMaterializationMessage(): string {
-  return i18n.t('Explore.realmPersonaSourceMaterializationUnavailable', {
-    defaultValue: 'This source requires a current hash-bearing sourceRef before it can become a local agent.',
-  });
+  return translate(
+    'Explore.realmPersonaSourceMaterializationUnavailable',
+    'This character is missing a current hash-bearing sourceRef, so it cannot become your partner yet.',
+  );
+}
+
+export function realmPersonaSourceAmbiguousMessage(): string {
+  return translate(
+    'Explore.realmPersonaSourceAmbiguous',
+    'More than one partner already exists for this character. Open the partner from your relationship list.',
+  );
+}
+
+export function realmPersonaRuntimeUnavailableMessage(): string {
+  return translate(
+    'Explore.realmPersonaRuntimeUnavailable',
+    'Runtime is unavailable, so this character cannot become your partner right now.',
+  );
+}
+
+export function realmPersonaRuntimePendingMessage(): string {
+  return translate(
+    'Explore.realmPersonaRuntimePending',
+    'Checking whether this character is already your partner.',
+  );
+}
+
+export function realmPersonaSourceMaterializationVerifierUnavailableMessage(): string {
+  return translate(
+    'Explore.realmPersonaSourceMaterializationVerifierUnavailable',
+    'Runtime materialization verification is not configured, so this character cannot become your partner on this device yet.',
+  );
+}
+
+export function realmPersonaSourceMaterializationRejectedMessage(): string {
+  return translate(
+    'Explore.realmPersonaSourceMaterializationRejected',
+    'Runtime rejected this partner handoff. Refresh the character and try again.',
+  );
+}
+
+export function realmPersonaSourceMaterializationFailureMessage(error: unknown): string {
+  const message = error instanceof Error
+    ? error.message.trim()
+    : typeof error === 'string'
+      ? error.trim()
+      : '';
+  const normalized = message.toLowerCase();
+  if (
+    message.includes('SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET')
+    || normalized.includes('source materialization packet verifier is not configured')
+  ) {
+    return realmPersonaSourceMaterializationVerifierUnavailableMessage();
+  }
+  if (
+    normalized.includes('source materialization packet is expired')
+    || normalized.includes('source materialization packet proof mismatch')
+    || normalized.includes('source materialization packet hash mismatch')
+    || normalized.includes('source materialization packet nonce was already consumed')
+  ) {
+    return realmPersonaSourceMaterializationRejectedMessage();
+  }
+  return message || realmPersonaSourceMaterializationMessage();
 }
 
 export async function createRealmSourceMaterializationPacket(input: unknown): Promise<NimiRealmSourceMaterializationPacket> {
@@ -102,21 +180,21 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function hasRuntimeOwnedLocalAgentForSource(
+function runtimeOwnedLocalAgentsForSource(
   sourceInput: unknown,
   localAgents: readonly RealmSourceDiscoveredLocalAgent[],
-): boolean {
+): RealmSourceDiscoveredLocalAgent[] {
   const sourceRef = resolveRealmCoreSourceRef(sourceInput);
   if (!sourceRef) {
-    return false;
+    return [];
   }
   const sourceRecord = typeof sourceInput === 'object' && sourceInput !== null
     ? sourceInput as Readonly<Record<string, unknown>>
     : {};
   const runtimeSourceRef = normalizeText(sourceRecord.runtimeSourceRef);
-  return localAgents.some((agent) => {
+  return localAgents.filter((agent) => {
     const localAgentRef = normalizeText(agent.localAgentRef);
-    if (!localAgentRef.startsWith('local-agent:')) {
+    if (!isRuntimeLocalAgentRef(localAgentRef)) {
       return false;
     }
     return (!runtimeSourceRef || normalizeText(agent.runtimeSourceRef) === runtimeSourceRef)
@@ -130,13 +208,25 @@ function hasRuntimeOwnedLocalAgentForSource(
 export function resolveRealmPersonaSourceState(
   sourceInput: unknown,
   localAgents: readonly RealmSourceDiscoveredLocalAgent[] = [],
+  options: RealmPersonaSourceStateOptions = {},
 ): RealmPersonaSourceState {
   if (!resolveRealmCoreSourceRef(sourceInput)) {
     return 'source_materialization_unavailable';
   }
-  return hasRuntimeOwnedLocalAgentForSource(sourceInput, localAgents)
-    ? 'local_agent_available'
-    : 'source_materialization_available';
+  if (options.runtimeInventoryUnavailable) {
+    return 'runtime_agent_inventory_unavailable';
+  }
+  if (options.runtimeInventoryPending) {
+    return 'runtime_agent_inventory_pending';
+  }
+  const matchingAgents = runtimeOwnedLocalAgentsForSource(sourceInput, localAgents);
+  if (matchingAgents.length === 1) {
+    return 'local_agent_available';
+  }
+  if (matchingAgents.length > 1) {
+    return 'local_agent_ambiguous';
+  }
+  return 'source_materialization_available';
 }
 
 export function describeRealmPersonaPrimaryAction(
@@ -146,22 +236,50 @@ export function describeRealmPersonaPrimaryAction(
     return {
       state,
       action: 'source_materialization_unavailable',
-      label: i18n.t('Explore.realmPersonaSourceUnavailable', { defaultValue: 'Unavailable' }),
+      label: translate('Explore.realmPersonaSourceUnavailable', 'Unavailable'),
       disabled: true,
+      hint: realmPersonaSourceMaterializationMessage(),
+    };
+  }
+  if (state === 'runtime_agent_inventory_unavailable') {
+    return {
+      state,
+      action: 'partner_runtime_unavailable',
+      label: translate('Explore.realmPersonaRuntimeUnavailableLabel', 'Runtime unavailable'),
+      disabled: true,
+      hint: realmPersonaRuntimeUnavailableMessage(),
+    };
+  }
+  if (state === 'runtime_agent_inventory_pending') {
+    return {
+      state,
+      action: 'partner_runtime_pending',
+      label: translate('Explore.realmPersonaRuntimePendingLabel', 'Checking partner'),
+      disabled: true,
+      hint: realmPersonaRuntimePendingMessage(),
+    };
+  }
+  if (state === 'local_agent_ambiguous') {
+    return {
+      state,
+      action: 'partner_ambiguous',
+      label: translate('Explore.realmPersonaSourceAmbiguousLabel', 'Open from partners'),
+      disabled: true,
+      hint: realmPersonaSourceAmbiguousMessage(),
     };
   }
   if (state === 'local_agent_available') {
     return {
       state,
-      action: 'open_local_agent',
-      label: i18n.t('Explore.realmPersonaSourceOpenLocalAgent', { defaultValue: 'Open local agent' }),
+      action: 'open_partner',
+      label: translate('Explore.realmPersonaSourceOpenLocalAgent', 'Open partner'),
       disabled: false,
     };
   }
   return {
     state,
-    action: 'materialize_source',
-    label: i18n.t('Explore.realmPersonaSourceMaterialize', { defaultValue: 'Create local agent' }),
+    action: 'become_partner',
+    label: translate('Explore.realmPersonaSourceMaterialize', 'Become my partner'),
     disabled: false,
   };
 }

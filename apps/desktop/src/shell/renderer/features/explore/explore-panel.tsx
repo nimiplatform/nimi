@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { realmExploreData } from './data/realm-explore-data';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { WorldDetailNavigationOptions } from '@renderer/app-shell/providers/store-types';
@@ -21,7 +21,7 @@ import {
 } from '../world/world-detail-queries.js';
 import {
   discoverRealmSourceLocalAgents,
-  realmPersonaSourceMaterializationMessage,
+  realmPersonaSourceMaterializationFailureMessage,
   realmSourceRefKey,
   resolveRealmPersonaSourceState,
 } from './realm-persona-source-materialization';
@@ -44,6 +44,7 @@ type ExplorePanelProps = {
 };
 
 export function ExplorePanel(props: ExplorePanelProps) {
+  const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
@@ -101,15 +102,34 @@ export function ExplorePanel(props: ExplorePanelProps) {
     staleTime: 10_000,
   });
 
+  const personaSourceRuntimeInventoryPending = Boolean(
+    ownerUserId
+    && personaSourceBase.length > 0
+    && personaSourceLocalAgentsQuery.isPending,
+  );
+  const personaSourceRuntimeInventoryUnavailable = Boolean(
+    personaSourceBase.length > 0
+    && (!ownerUserId || personaSourceLocalAgentsQuery.isError),
+  );
+
   const personaSources = useMemo(
     () => personaSourceBase.map((personaSource) => ({
       ...personaSource,
       sourceState: resolveRealmPersonaSourceState(
         personaSource,
         personaSourceLocalAgentsQuery.data ?? [],
+        {
+          runtimeInventoryPending: personaSourceRuntimeInventoryPending,
+          runtimeInventoryUnavailable: personaSourceRuntimeInventoryUnavailable,
+        },
       ),
     })),
-    [personaSourceBase, personaSourceLocalAgentsQuery.data],
+    [
+      personaSourceBase,
+      personaSourceLocalAgentsQuery.data,
+      personaSourceRuntimeInventoryPending,
+      personaSourceRuntimeInventoryUnavailable,
+    ],
   );
 
   const categories = useMemo(() => {
@@ -155,6 +175,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
     try {
       const target = await materializeSourceContactLaunchTarget(source, ownerUserId);
       await ensureRuntimeAgentExists(target);
+      await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false });
       await launchAgentConversationFromDisplay({
         target,
         setActiveTab,
@@ -166,22 +187,23 @@ export function ExplorePanel(props: ExplorePanelProps) {
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.realmPersonaSourceMaterializedFeedback', {
-          defaultValue: 'Local agent opened on this device.',
+          defaultValue: 'Your partner is ready. Opening chat.',
         }),
       });
       logRendererEvent({
         level: 'info',
         area: 'explore',
-        message: 'action:realm-source-materialization:local-agent-created',
+        message: 'action:realm-source-materialization:partner-opened',
       });
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: error instanceof Error ? error.message : realmPersonaSourceMaterializationMessage(),
+        message: realmPersonaSourceMaterializationFailureMessage(error),
       });
     }
   }, [
     ownerUserId,
+    queryClient,
     setActiveTab,
     setAgentConversationSelection,
     setAgentConversationTargetSnapshot,

@@ -123,6 +123,37 @@ test('confirmDialog invokes the standard shell UI command and payload shape', as
   }
 });
 
+test('Desktop auth custody stays RuntimeAccountService-owned', () => {
+  const authAdapterSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/features/auth/desktop-auth-adapter.ts'),
+    'utf8',
+  );
+  const authSessionCommandsSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../../../kit/shell/tauri/src/auth_session_commands.rs'),
+    'utf8',
+  );
+
+  assert.doesNotMatch(authAdapterSource, /loadAuthSession|saveAuthSession/);
+  assert.doesNotMatch(authAdapterSource, /shell\/renderer\/bridge\/auth-session|runtime-bridge\/auth-session/);
+  assert.doesNotMatch(authAdapterSource, /auth_session_load|auth_session_save|auth_session_clear/);
+  assert.match(authAdapterSource, /RuntimeAccountService/);
+  assert.match(authAdapterSource, /createRuntimeAccountBrowserBroker/);
+  assert.match(authAdapterSource, /getAccountSessionStatus/);
+  assert.match(authAdapterSource, /getAccessToken/);
+
+  for (const commandName of ['auth_session_load', 'auth_session_save', 'auth_session_clear']) {
+    const commandPattern = new RegExp(
+      [
+        'Local first-party account custody is RuntimeAccountService-owned\\.',
+        'This command remains registered only as a compatibility fail-closed stub\\.',
+        'Do not re-enable the legacy keyring/encrypted-file implementation below\\.',
+        `pub fn ${commandName}`,
+      ].join('[\\s\\S]*?'),
+    );
+    assert.match(authSessionCommandsSource, commandPattern);
+  }
+});
+
 test('proxyHttp fallback blocks private-network absolute URLs outside the app origin', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (async () => {

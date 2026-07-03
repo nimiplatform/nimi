@@ -272,12 +272,9 @@ export function workStatusLabel(
 
 export function worldCharacterPrimaryActionLabel(
   action: ReturnType<typeof describeRealmPersonaPrimaryAction>,
-  t: ReturnType<typeof useTranslation>['t'],
+  _t: ReturnType<typeof useTranslation>['t'],
 ): string {
-  if (action.disabled) {
-    return t('SourceDetail.worldCharacter.primaryActionUnavailable', { defaultValue: 'Unavailable' });
-  }
-  return t('SourceDetail.worldCharacter.primaryActionMaterialize', { defaultValue: 'Add to my characters' });
+  return action.label;
 }
 
 export function uniqueStrings(values: readonly (string | null | undefined)[]): string[] {

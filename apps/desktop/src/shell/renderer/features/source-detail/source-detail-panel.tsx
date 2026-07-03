@@ -1,11 +1,15 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
-import { realmPersonaSourceMaterializationMessage } from '@renderer/features/explore/realm-persona-source-materialization';
+import {
+  discoverRealmSourceLocalAgents,
+  realmPersonaSourceMaterializationFailureMessage,
+  realmPersonaSourceMaterializationMessage,
+  resolveRealmPersonaSourceState,
+} from '@renderer/features/explore/realm-persona-source-materialization';
 import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
-import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import {
   sourceDisplayDetailQueryKey,
@@ -15,17 +19,13 @@ import { SourceDetailView } from './source-detail-view.js';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 export function SourceDetailPanel() {
+  const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const selectedSourceRef = useAppStore((state) => state.selectedSourceRef);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setChatMode = useAppStore((state) => state.setChatMode);
-  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
-  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
@@ -42,6 +42,43 @@ export function SourceDetailPanel() {
     return profileQuery.data.source;
   }, [profileQuery.data]);
 
+  const sourceLocalAgentsQuery = useQuery({
+    queryKey: [
+      'source-detail-local-agents',
+      ownerUserId,
+      source?.sourceRef
+        ? `${source.sourceRef.kind}:${source.sourceRef.worldId}:${source.sourceRef.sourceId}:${source.sourceRef.sourceContentHash}`
+        : source?.id ?? 'missing-source-ref',
+      source?.runtimeSourceRef ?? '',
+    ],
+    queryFn: async () => (source ? discoverRealmSourceLocalAgents(source, ownerUserId) : []),
+    enabled: authStatus === 'authenticated' && Boolean(source) && Boolean(ownerUserId),
+    staleTime: 10_000,
+  });
+
+  const sourceForView = useMemo(() => {
+    if (!source) {
+      return null;
+    }
+    return {
+      ...source,
+      sourceState: resolveRealmPersonaSourceState(
+        source,
+        sourceLocalAgentsQuery.data ?? [],
+        {
+          runtimeInventoryPending: Boolean(ownerUserId && sourceLocalAgentsQuery.isPending),
+          runtimeInventoryUnavailable: !ownerUserId || sourceLocalAgentsQuery.isError,
+        },
+      ),
+    };
+  }, [
+    ownerUserId,
+    source,
+    sourceLocalAgentsQuery.data,
+    sourceLocalAgentsQuery.isError,
+    sourceLocalAgentsQuery.isPending,
+  ]);
+
   const stats = useMemo(() => {
     if (!profileQuery.data) return null;
     return profileQuery.data.stats;
@@ -52,45 +89,28 @@ export function SourceDetailPanel() {
     return profileQuery.data.worldScore;
   }, [profileQuery.data]);
 
-  const handlePrimaryAction = async () => {
-    if (!source) return;
+  const handleMaterializeSource = async () => {
+    if (!source) {
+      setFeedback({
+        kind: 'error',
+        message: realmPersonaSourceMaterializationMessage(),
+      });
+      return;
+    }
     try {
       const target = await materializeSourceContactLaunchTarget(source, ownerUserId);
       await ensureRuntimeAgentExists(target);
+      await queryClient.invalidateQueries({ queryKey: ['source-detail-local-agents'], exact: false });
       setFeedback({
         kind: 'success',
-        message: i18n.t('Explore.realmPersonaSourceMaterializedFeedback', {
-          defaultValue: 'Local agent created on this device.',
+        message: i18n.t('SourceDetail.worldCharacter.partnerReadyFeedback', {
+          defaultValue: 'Your partner is ready.',
         }),
       });
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: error instanceof Error ? error.message : realmPersonaSourceMaterializationMessage(),
-      });
-    }
-  };
-
-  const handleStartChat = async () => {
-    if (!source) return;
-    try {
-      const target = await materializeSourceContactLaunchTarget(source, ownerUserId);
-      await ensureRuntimeAgentExists(target);
-      await launchAgentConversationFromDisplay({
-        target,
-        setActiveTab,
-        setChatMode,
-        setSelectedTargetForSource,
-        setAgentConversationSelection,
-        setAgentConversationTargetSnapshot,
-      });
-      setFeedback(null);
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error
-          ? error.message
-          : i18n.t('Relationship.openChatFailed', { defaultValue: 'Failed to open chat' }),
+        message: realmPersonaSourceMaterializationFailureMessage(error),
       });
     }
   };
@@ -119,7 +139,7 @@ export function SourceDetailPanel() {
         </div>
       ) : null}
       <SourceDetailView
-        source={source!}
+        source={sourceForView!}
         stats={stats}
         worldScore={worldScore}
         loading={profileQuery.isPending}
@@ -132,10 +152,7 @@ export function SourceDetailPanel() {
           navigateToWorld(source.worldId);
         }}
         onPrimaryAction={() => {
-          void handlePrimaryAction();
-        }}
-        onStartChat={() => {
-          void handleStartChat();
+          void handleMaterializeSource();
         }}
         onSendGift={() => setGiftModalOpen(true)}
       />

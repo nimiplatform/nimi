@@ -1,11 +1,11 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { appendFile, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, realpath } from 'node:fs/promises';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell, type MessageBoxOptions } from 'electron';
 import {
+  createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
-  type NimiElectronAIConfigStore,
 } from '@nimiplatform/kit/shell/electron/main';
 import { createDesktopElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 import {
@@ -65,6 +65,7 @@ void app.whenReady().then(async () => {
   const installedAppLauncher = createDesktopInstalledAppLauncher({
     runtimeEndpoint,
     preloadPath,
+    createAIConfigStore: createDesktopAiConfigStore,
     registerProtocol: createDesktopInstalledAppProtocolRegistrar({ protocol }),
     createHostWindow: (input) => createDesktopInstalledAppHostWindow(input, {
       BrowserWindow,
@@ -209,39 +210,11 @@ function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
     .map((filePath) => path.resolve(filePath));
 }
 
-function createDesktopAiConfigStore(dataRoot: string): NimiElectronAIConfigStore {
-  return {
-    get: async ({ scopeRef }) => {
-      const filePath = desktopAiConfigPath(dataRoot, scopeRef);
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
-      } catch (error) {
-        if (isNotFoundError(error)) {
-          return undefined;
-        }
-        throw error;
-      }
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error(`desktop AI Config store record is invalid: ${filePath}`);
-      }
-      const record = parsed as Record<string, unknown>;
-      if (record.scopeRef !== scopeRef || !record.config || typeof record.config !== 'object' || Array.isArray(record.config)) {
-        throw new Error(`desktop AI Config store record does not match requested scope: ${filePath}`);
-      }
-      return record.config as Readonly<Record<string, unknown>>;
-    },
-    set: async ({ scopeRef, config }) => {
-      const filePath = desktopAiConfigPath(dataRoot, scopeRef);
-      await mkdir(path.dirname(filePath), { recursive: true });
-      await writeFile(filePath, JSON.stringify({
-        schemaVersion: 1,
-        scopeRef,
-        config,
-      }, null, 2), 'utf8');
-      return config;
-    },
-  };
+function createDesktopAiConfigStore(dataRoot: string) {
+  return createNimiElectronFileAIConfigStore({
+    dataRoot,
+    storeLabel: 'desktop AI Config',
+  });
 }
 
 function createDesktopRuntimeConfigReader(dataRoot: string): () => Promise<{
@@ -259,15 +232,6 @@ function createDesktopRuntimeConfigReader(dataRoot: string): () => Promise<{
       config: parsed as Readonly<Record<string, unknown>>,
     };
   };
-}
-
-function desktopAiConfigPath(dataRoot: string, scopeRef: string): string {
-  const encoded = Buffer.from(scopeRef, 'utf8').toString('base64url');
-  return path.join(dataRoot, 'ai-config', `${encoded}.json`);
-}
-
-function isNotFoundError(error: unknown): boolean {
-  return Boolean(error && typeof error === 'object' && (error as { code?: unknown }).code === 'ENOENT');
 }
 
 async function resolveDesktopLocalAssetUrl(filePath: string): Promise<string> {

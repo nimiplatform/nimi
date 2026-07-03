@@ -18,7 +18,6 @@ type SourceDetailViewProps = {
   onBack: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
-  onStartChat?: () => void;
   onSendGift: () => void;
 };
 

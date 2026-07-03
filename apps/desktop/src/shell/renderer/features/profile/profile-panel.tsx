@@ -18,11 +18,15 @@ import {
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import {
   describeRealmPersonaPrimaryAction,
+  discoverRealmSourceLocalAgents,
+  realmPersonaSourceMaterializationFailureMessage,
   realmPersonaSourceMaterializationMessage,
+  realmSourceRefKey,
   resolveRealmPersonaSourceState,
 } from '@renderer/features/explore/realm-persona-source-materialization';
 import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
+import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { toProfileData, type ProfileSource } from './profile-model.js';
 import { toFriendContact, type ContactRecord } from '@renderer/features/relationship/relationship-model';
@@ -51,7 +55,11 @@ export function ProfilePanel() {
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const queryClient = useQueryClient();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
@@ -126,22 +134,47 @@ export function ProfilePanel() {
     }
     return null;
   }, [isOwnProfile, currentUser, profileQuery.data]);
+  const profileSourceRefKey = profile?.sourceRef ? realmSourceRefKey(profile.sourceRef) : 'missing-source-ref';
+  const profileSourceLocalAgentsQuery = useQuery({
+    queryKey: [
+      'profile-source-local-agents',
+      ownerUserId,
+      profileSourceRefKey,
+      profile?.runtimeSourceRef ?? '',
+    ],
+    queryFn: async () => (profile ? discoverRealmSourceLocalAgents(profile, ownerUserId) : []),
+    enabled: authStatus === 'authenticated' && Boolean(profile?.isSource) && Boolean(ownerUserId),
+    staleTime: 10_000,
+  });
   const sourceAction = useMemo(() => {
     if (!profile?.isSource) {
       return null;
     }
-    return describeRealmPersonaPrimaryAction(resolveRealmPersonaSourceState(profile));
-  }, [profile]);
+    return describeRealmPersonaPrimaryAction(resolveRealmPersonaSourceState(
+      profile,
+      profileSourceLocalAgentsQuery.data ?? [],
+      {
+        runtimeInventoryPending: Boolean(ownerUserId && profileSourceLocalAgentsQuery.isPending),
+        runtimeInventoryUnavailable: !ownerUserId || profileSourceLocalAgentsQuery.isError,
+      },
+    ));
+  }, [
+    ownerUserId,
+    profile,
+    profileSourceLocalAgentsQuery.data,
+    profileSourceLocalAgentsQuery.isError,
+    profileSourceLocalAgentsQuery.isPending,
+  ]);
 
   const loading = !isOwnProfile && profileQuery.isPending;
   const error = !isOwnProfile && profileQuery.isError;
   const isBlockedProfile = Boolean(!isOwnProfile && profile && realmSocialData.isBlockedUser(profile.id));
   const addFriendBlocked = Boolean(profile?.isSource && sourceAction?.disabled);
   const addFriendHint = profile?.isSource && sourceAction?.disabled
-    ? sourceAction.label
+    ? sourceAction.hint ?? realmPersonaSourceMaterializationMessage()
     : null;
   const addFriendLabel = profile?.isSource
-    ? sourceAction?.label || i18n.t('Explore.realmPersonaSourceMaterialize', { defaultValue: 'Create local agent' })
+    ? sourceAction?.label || i18n.t('Explore.realmPersonaSourceMaterialize', { defaultValue: 'Become my partner' })
     : undefined;
 
   const onMessage = async () => {
@@ -180,10 +213,19 @@ export function ProfilePanel() {
         }
         const target = await materializeSourceContactLaunchTarget(profile, ownerUserId);
         await ensureRuntimeAgentExists(target);
+        await queryClient.invalidateQueries({ queryKey: ['profile-source-local-agents'], exact: false });
+        await launchAgentConversationFromDisplay({
+          target,
+          setActiveTab,
+          setChatMode,
+          setSelectedTargetForSource,
+          setAgentConversationSelection,
+          setAgentConversationTargetSnapshot,
+        });
         setFeedback({
           kind: 'success',
           message: i18n.t('Explore.realmPersonaSourceMaterializedFeedback', {
-            defaultValue: 'Local agent created on this device.',
+            defaultValue: 'Your partner is ready. Opening chat.',
           }),
         });
         return;
@@ -201,7 +243,9 @@ export function ProfilePanel() {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: toErrorMessage(error, i18n.t('Relationship.addContactFailed', { defaultValue: 'Failed to add contact' })),
+        message: profile.isSource
+          ? realmPersonaSourceMaterializationFailureMessage(error)
+          : toErrorMessage(error, i18n.t('Relationship.addContactFailed', { defaultValue: 'Failed to add contact' })),
       });
     }
   };

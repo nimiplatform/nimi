@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import test from 'node:test';
+import { requireWorldPublicDetailDto } from '../src/shell/renderer/features/world/data/world-public-projection.js';
+import { startRealmFixtureServer } from '../e2e/fixtures/realm-fixture-server.mjs';
 
 const fixtureServerSource = readFileSync(
   resolve(import.meta.dirname, '../e2e/fixtures/realm-fixture-server.mjs'),
@@ -60,4 +64,27 @@ test('authenticated base fixture includes public source discovery fields', () =>
   assert.ok(firstCharacter?.sourceRef?.sourceContentHash);
   assert.ok(!('runtimeSourceRef' in (firstCharacter?.relation ?? {})));
   assert.equal(firstCharacter?.summary, 'Fixture character profile used for desktop contract coverage.');
+});
+
+test('detail-with-characters fixture response preserves scene object contract', async () => {
+  const tempDir = await mkdtemp(resolve(tmpdir(), 'nimi-desktop-world-fixture-'));
+  const manifestPath = resolve(tempDir, 'manifest.json');
+  await writeFile(manifestPath, JSON.stringify(authenticatedBaseProfile), 'utf8');
+  const server = await startRealmFixtureServer({ manifestPath });
+
+  try {
+    const response = await fetch(`${server.origin}/api/world/by-id/world-e2e-1/detail-with-characters`);
+    assert.equal(response.status, 200);
+    const payload = await response.json() as {
+      world?: unknown;
+    };
+    const world = requireWorldPublicDetailDto(payload.world, 'world-e2e-1');
+    const scenes = world.scenes as unknown[];
+    assert.equal(scenes.length, 1);
+    assert.equal(typeof scenes[0], 'object');
+    assert.equal((scenes[0] as Record<string, unknown>).sceneId, 'fixture-plaza');
+  } finally {
+    await server.close();
+    await rm(tempDir, { force: true, recursive: true });
+  }
 });

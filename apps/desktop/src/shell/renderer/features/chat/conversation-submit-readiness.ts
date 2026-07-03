@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 import {
+  getNimiRuntimeRouteCapabilityProjectionIssueKind,
   isNimiRuntimeRouteCapabilityProjectionReady,
   isNimiRuntimeRouteCapabilityProjectionSelectionRequired,
 } from '@nimiplatform/sdk/runtime';
@@ -27,6 +28,12 @@ type EnsureAgentConversationSubmitRouteReadyDeps = {
   refreshAgentEffectiveCapabilityResolution: typeof refreshAgentEffectiveCapabilityResolution;
   getTextCapabilityProjection: () => ConversationCapabilityProjection | null;
   getAgentResolution: () => AgentEffectiveCapabilityResolution | null;
+};
+
+type AgentSubmitRouteUnavailableDetails = {
+  message: string;
+  reasonCode: (typeof ReasonCode)[keyof typeof ReasonCode];
+  actionHint: string;
 };
 
 function resolveAiSubmitRouteUnavailableMessage(
@@ -59,13 +66,85 @@ const DEFAULT_AGENT_DEPS: EnsureAgentConversationSubmitRouteReadyDeps = {
   getAgentResolution: () => useAppStore.getState().agentEffectiveCapabilityResolution,
 };
 
-function routeUnavailableError(t: TFunction): Error {
+export function resolveAgentSubmitRouteUnavailableDetails(
+  t: TFunction,
+  projection: ConversationCapabilityProjection | null | undefined,
+): AgentSubmitRouteUnavailableDetails {
+  switch (getNimiRuntimeRouteCapabilityProjectionIssueKind(projection)) {
+    case 'needs_selection':
+      return {
+        message: t('Chat.agentSubmitRouteNeedsSelection', {
+          defaultValue: 'Choose a local or cloud runtime route before sending a message.',
+        }),
+        reasonCode: ReasonCode.AI_INPUT_INVALID,
+        actionHint: 'select_runtime_route_binding',
+      };
+    case 'binding_unresolved':
+      return {
+        message: t('Chat.agentSubmitRouteUnresolved', {
+          defaultValue: 'The selected runtime route can no longer be resolved. Choose another model route before sending.',
+        }),
+        reasonCode: ReasonCode.AI_ROUTE_UNSUPPORTED,
+        actionHint: 'repair_runtime_route_binding',
+      };
+    case 'route_not_ready':
+      return {
+        message: t('Chat.agentSubmitRouteNotReady', {
+          defaultValue: 'The selected runtime route is not ready yet. Finish setup or warm the local model before sending.',
+        }),
+        reasonCode: ReasonCode.AI_MODEL_NOT_READY,
+        actionHint: 'warm_runtime_route_binding',
+      };
+    case 'route_unhealthy':
+      return {
+        message: t('Chat.agentSubmitRouteUnhealthy', {
+          defaultValue: 'The selected runtime route failed its latest health check. Check the model route in Agent Center before sending.',
+        }),
+        reasonCode: ReasonCode.AI_PROVIDER_UNAVAILABLE,
+        actionHint: 'repair_runtime_route_binding',
+      };
+    case 'metadata_missing':
+      return {
+        message: t('Chat.agentSubmitRouteMetadataUnavailable', {
+          defaultValue: 'The selected runtime route is missing describe metadata. Refresh Runtime or choose another route before sending.',
+        }),
+        reasonCode: ReasonCode.AI_ROUTE_UNSUPPORTED,
+        actionHint: 'refresh_runtime_route_metadata',
+      };
+    case 'capability_unsupported':
+      return {
+        message: t('Chat.agentSubmitCapabilityUnsupported', {
+          defaultValue: 'This Runtime route does not expose text chat for partner conversations.',
+        }),
+        reasonCode: ReasonCode.AI_ROUTE_UNSUPPORTED,
+        actionHint: 'select_runtime_route_binding',
+      };
+    case 'host_denied':
+      return {
+        message: t('Chat.agentSubmitCapabilityDenied', {
+          defaultValue: 'This device is not allowed to use the selected Runtime route for this conversation.',
+        }),
+        reasonCode: ReasonCode.ACTION_PERMISSION_DENIED,
+        actionHint: 'request_runtime_route_permission',
+      };
+    case 'unknown':
+    default:
+      return {
+        message: t('Chat.agentSubmitRouteUnavailable', {
+          defaultValue: 'A local or cloud runtime route is required before sending a message.',
+        }),
+        reasonCode: ReasonCode.AI_INPUT_INVALID,
+        actionHint: 'select_runtime_route_binding',
+      };
+  }
+}
+
+function routeUnavailableError(t: TFunction, projection: ConversationCapabilityProjection | null | undefined): Error {
+  const details = resolveAgentSubmitRouteUnavailableDetails(t, projection);
   return createNimiError({
-    message: t('Chat.agentSubmitRouteUnavailable', {
-      defaultValue: 'A local or cloud runtime route is required before sending a message.',
-    }),
-    reasonCode: ReasonCode.AI_INPUT_INVALID,
-    actionHint: 'select_runtime_route_binding',
+    message: details.message,
+    reasonCode: details.reasonCode,
+    actionHint: details.actionHint,
     source: 'sdk',
   });
 }
@@ -113,5 +192,5 @@ export async function ensureAgentConversationSubmitRouteReady(input: {
       return rebuilt;
     }
   }
-  throw routeUnavailableError(input.t);
+  throw routeUnavailableError(input.t, resolution?.textProjection || textProjection);
 }

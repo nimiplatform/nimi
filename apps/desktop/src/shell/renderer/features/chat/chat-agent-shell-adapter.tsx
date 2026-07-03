@@ -16,7 +16,6 @@ import {
 } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { exportDesktopAgentMemory } from '@renderer/infra/runtime-agent-memory-export';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
 import {
@@ -51,6 +50,7 @@ import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
 import { useSchedulingFeasibility } from './chat-shared-execution-scheduling-guard';
 import { useAgentConversationHostActions } from './chat-agent-shell-host-actions';
+import { resolveAgentSubmitRouteUnavailableDetails } from './conversation-submit-readiness';
 import { ChatAgentCognitionPanel } from './chat-agent-cognition-panel';
 import { useAgentConversationVoiceSession } from './chat-agent-shell-adapter-voice';
 import { useAgentConversationShellState } from './chat-agent-shell-adapter-state';
@@ -279,6 +279,14 @@ export function useAgentConversationModeHost(
   const composerReady = setupState.status === 'ready'
     && !isBundleLoading
     && !bundleError;
+  const agentRouteDisabledReason = useMemo(() => (
+    activeTarget && !agentRouteReady
+      ? resolveAgentSubmitRouteUnavailableDetails(
+        t,
+        agentResolution?.textProjection || textCapabilityProjection,
+      ).message
+      : null
+  ), [activeTarget, agentResolution?.textProjection, agentRouteReady, t, textCapabilityProjection]);
 
   const {
     applyDriverEffects,
@@ -482,7 +490,6 @@ export function useAgentConversationModeHost(
         onUpgradeStandardMemory={handleUpgradeStandardMemory}
         allowMemoryUpgrade
         recentMemories={runtimeInspect?.recentCanonicalMemories ?? null}
-        onExportMemory={() => exportDesktopAgentMemory(activeTarget)}
       />
     ) : null
   ), [
@@ -555,6 +562,7 @@ export function useAgentConversationModeHost(
     thinkingSupported: thinkingSupport.supported,
     thinkingUnsupportedReason,
     agentRouteReady,
+    agentRouteDisabledReason,
   });
 
   return useMemo<DesktopConversationModeHost>(() => ({

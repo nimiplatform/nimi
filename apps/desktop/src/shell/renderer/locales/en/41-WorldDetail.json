@@ -64,7 +64,7 @@
   "characterTiles": "Character tiles",
   "charactersLoading": "Loading characters...",
   "noPersonaSourcesYet": "No personas in this world yet",
-  "startChat": "Create Local Agent",
+  "startChat": "Become my partner",
   "voiceInteraction": "Source",
   "createdAt": "Created at",
   "timeline": "Timeline",
@@ -102,7 +102,7 @@
     },
     "characters": {
       "title": "Characters and Personas",
-      "subtitle": "Browse public sources from this world and create a local agent when you need chat surfaces.",
+      "subtitle": "Browse public sources from this world and become partners when you want to keep talking.",
       "empty": "This world has no public character or persona sources yet."
     },
     "timeline": {
@@ -122,7 +122,7 @@
       "empty": "No public sources are available yet.",
       "featuredSources": "Featured Sources",
       "settingHighlights": "Setting Highlights",
-      "note": "Worlds are public setting backgrounds. Source materialization creates the Runtime-owned local agent used by later chat surfaces."
+      "note": "Worlds are public setting backgrounds. Becoming partners materializes the Runtime-owned identity used by later chat surfaces."
     }
   },
   "section": {
@@ -173,7 +173,7 @@
       "voiceCall": "Source",
       "enterChat": "View Source",
       "chat": "Source",
-      "addFriend": "Create Local Agent",
+      "addFriend": "Become my partner",
       "createdAt": "Created",
       "noData": "No data available"
     },
@@ -385,16 +385,16 @@
         "title": "Sources",
         "subtitle": "Characters and personas in this world",
         "totalCount": "{{count}} Sources",
-        "createCharacter": "Create Local Agent",
+        "createCharacter": "Become my partner",
         "loading": "Loading sources...",
         "empty": "This world has no sources yet.",
         "vitality": "Vitality",
         "chat": "Open",
-        "chatOpensInConversation": "Creates a Runtime-owned local agent for later conversation surfaces.",
+        "chatOpensInConversation": "Opens the partner conversation after Runtime materialization.",
         "voice": "Source",
-        "voiceOpensInConversation": "Voice belongs to the later Runtime-owned local agent surface.",
-        "materializeSource": "Create Local Agent",
-        "sourceMaterialized": "Local Agent Ready",
+        "voiceOpensInConversation": "Voice belongs to the later Runtime-owned partner surface.",
+        "materializeSource": "Become my partner",
+        "sourceMaterialized": "Partner ready",
         "sourceUnavailable": "Unavailable",
         "worldOwned": "World Owned",
         "userOwned": "User Owned",

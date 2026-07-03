@@ -5,6 +5,7 @@ import { i18n } from '@renderer/i18n';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { realmPersonaSourceMaterializationFailureMessage } from '@renderer/features/explore/realm-persona-source-materialization';
 import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import {
@@ -189,10 +190,10 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
       await ensureRuntimeAgentExists(target);
       setFeedback({
         kind: 'success',
-        message: `${character.name} created as a local agent on this device.`,
+        message: `${character.name} is ready as your partner.`,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create local agent.';
+      const message = realmPersonaSourceMaterializationFailureMessage(error);
       setFeedback({ kind: 'error', message });
     }
   };

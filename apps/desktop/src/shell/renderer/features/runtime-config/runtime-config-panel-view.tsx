@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ScrollArea,
@@ -96,8 +96,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   if (!state) {
     return (
-      <div className="flex min-h-0 flex-1 gap-3 px-4 pb-4 pt-3">
-        <aside className="flex w-[216px] shrink-0 flex-col bg-white px-4 py-3">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 px-4 pb-4 pt-3 xl:flex-row">
+        <aside className="flex max-h-[min(44vh,360px)] w-full shrink-0 flex-col bg-white px-4 py-3 xl:max-h-none xl:w-[216px]">
           <RuntimeSkeletonBlock className="h-9 w-32 rounded-xl" />
           <div className="mt-5 space-y-3">
             {Array.from({ length: 8 }).map((_, index) => (
@@ -110,7 +110,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           tone="panel"
           material="glass-regular"
           padding="none"
-          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border-white/60 shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
+          className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-white/60 shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
         >
           <div className="flex h-14 shrink-0 items-center justify-between px-6">
             <RuntimeSkeletonBlock className="h-8 w-40 rounded-xl" />
@@ -119,7 +119,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               <RuntimeSkeletonBlock className="h-7 w-20 rounded-full" />
             </div>
           </div>
-          <ScrollArea className="flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto w-full max-w-5xl space-y-5 px-4 py-4">
+          <ScrollArea className="min-w-0 flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto min-w-0 w-full max-w-5xl space-y-5 px-4 py-4">
             <RuntimeSkeletonBlock className="h-36 w-full" />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <RuntimeSkeletonBlock className="h-48 w-full" />
@@ -135,6 +135,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   const runtimeStatus = model.runtimeStatus || state.local.status;
   const activePage = model.activePage;
   const pageMeta = RUNTIME_PAGE_META[activePage] || RUNTIME_PAGE_META.overview;
+  const pageTitle = t(`runtimeConfig.sidebar.${activePage}`, { defaultValue: pageMeta.name });
+  const sidebarStyle = { '--runtime-sidebar-width': `${sidebarWidth}px` } as CSSProperties;
   const sidebarSections = RUNTIME_SIDEBAR_ITEMS.reduce<Record<string, typeof RUNTIME_SIDEBAR_ITEMS>>((acc, item) => {
     if (!acc[item.section]) {
       acc[item.section] = [];
@@ -144,9 +146,10 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   }, {});
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 gap-3 px-4 pb-4 pt-3">
+    <div ref={containerRef} className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 px-4 pb-4 pt-3 xl:flex-row">
       <SidebarShell
-        width={sidebarWidth}
+        className="max-h-[min(44vh,360px)] w-full xl:max-h-none xl:w-[var(--runtime-sidebar-width)]"
+        style={sidebarStyle}
         data-testid={E2E_IDS.panel('runtime-sidebar')}
       >
         <SidebarHeader title={<h1 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{t('runtimeConfig.panel.title', { defaultValue: 'Runtime' })}</h1>} className="px-5" />
@@ -179,6 +182,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         <SidebarResizeHandle
           ariaLabel={t('runtimeConfig.panel.resizeSidebar', { defaultValue: 'Resize runtime sidebar' })}
           onMouseDown={startResize}
+          className="hidden xl:block"
         />
       </SidebarShell>
 
@@ -187,11 +191,11 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border-white/60 shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
+        className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-white/60 shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
       >
         <div className="flex h-12 shrink-0 items-center px-5">
           <div className="flex w-full items-center justify-between">
-            <h2 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{pageMeta.name}</h2>
+            <h2 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">{pageTitle}</h2>
             <div className="flex items-center gap-2">
               {(model.discovering || model.checkingHealth) && (
                 <span className="flex items-center gap-1.5 text-xs text-[var(--nimi-text-muted)]">
@@ -206,9 +210,9 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           </div>
         </div>
 
-        <ScrollArea className="flex-1" viewportClassName="bg-transparent">
+        <ScrollArea className="min-w-0 flex-1" viewportClassName="bg-transparent [&>div]:!block [&>div]:!min-w-0 [&>div]:!w-full [&>div]:!max-w-full" contentClassName="min-w-0 w-full max-w-full overflow-x-hidden">
           {model.pageFeedback ? (
-            <div className="mx-auto max-w-5xl px-4 pt-3">
+            <div className="mx-auto min-w-0 w-full max-w-5xl px-4 pt-3">
               <InlineFeedback
                 feedback={model.pageFeedback}
                 title={t('runtimeConfig.panel.statusTitle', { defaultValue: 'Runtime status' })}
@@ -217,22 +221,22 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             </div>
           ) : null}
           {activePage === 'overview' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('overview')}>
+            <div data-testid={E2E_IDS.runtimePageRoot('overview')} className="min-w-0">
               <OverviewPage model={model} state={state} />
             </div>
           )}
           {activePage === 'profiles' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('profiles')}>
+            <div data-testid={E2E_IDS.runtimePageRoot('profiles')} className="min-w-0">
               <ProfileCatalogPage />
             </div>
           )}
           {activePage === 'models' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('models')} className="flex min-h-0 flex-1 flex-col">
+            <div data-testid={E2E_IDS.runtimePageRoot('models')} className="flex min-h-0 min-w-0 flex-1 flex-col">
               <ModelsPage model={model} state={state} />
             </div>
           )}
           {activePage === 'cloud' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('cloud')}>
+            <div data-testid={E2E_IDS.runtimePageRoot('cloud')} className="min-w-0">
               <CloudPage model={model} state={state} />
             </div>
           )}
@@ -242,7 +246,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             </div>
           )}
           {activePage === 'advanced' && (
-            <div data-testid={E2E_IDS.runtimePageRoot('advanced')} className="flex min-h-0 flex-1 flex-col">
+            <div data-testid={E2E_IDS.runtimePageRoot('advanced')} className="flex min-h-0 min-w-0 flex-1 flex-col">
               <AdvancedPage />
             </div>
           )}

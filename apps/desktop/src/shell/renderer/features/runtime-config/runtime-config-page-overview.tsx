@@ -81,9 +81,9 @@ function StatTile({
 }) {
   const content = (
     <>
-      <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{title}</p>
-      <p className={cn('mt-2 text-2xl font-bold', TOKEN_TEXT_PRIMARY)}>{value}</p>
-      <p className={cn('mt-1 text-xs', TOKEN_TEXT_MUTED)}>{subtitle}</p>
+      <p className={cn('text-xs break-words [overflow-wrap:anywhere]', TOKEN_TEXT_MUTED)}>{title}</p>
+      <p className={cn('mt-2 text-2xl font-bold break-words [overflow-wrap:anywhere]', TOKEN_TEXT_PRIMARY)}>{value}</p>
+      <p className={cn('mt-1 text-xs break-words [overflow-wrap:anywhere]', TOKEN_TEXT_MUTED)}>{subtitle}</p>
     </>
   );
 
@@ -94,7 +94,7 @@ function StatTile({
         type="button"
         tone="card"
         interactive
-        className={cn(TOKEN_PANEL_CARD, 'w-full p-5 text-center')}
+        className={cn(TOKEN_PANEL_CARD, 'w-full min-w-0 p-5 text-center')}
         onClick={onClick}
       >
         {content}
@@ -103,7 +103,7 @@ function StatTile({
   }
 
   return (
-    <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-5 text-center')}>
+    <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'w-full min-w-0 p-5 text-center')}>
       {content}
     </Surface>
   );
@@ -124,11 +124,11 @@ function QuickLinkCard({
       type="button"
       tone="card"
       interactive
-      className="w-full rounded-2xl p-4 text-left"
+      className="w-full min-w-0 rounded-2xl p-4 text-left"
       onClick={onClick}
     >
-      <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{title}</p>
-      <p className={cn('mt-1 text-xs', TOKEN_TEXT_MUTED)}>{description}</p>
+      <p className={cn('text-sm font-semibold break-words [overflow-wrap:anywhere]', TOKEN_TEXT_PRIMARY)}>{title}</p>
+      <p className={cn('mt-1 text-xs break-words [overflow-wrap:anywhere]', TOKEN_TEXT_MUTED)}>{description}</p>
     </Surface>
   );
 }
@@ -153,7 +153,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         <SectionTitle>
           {t('runtimeConfig.overview.snapshotTitle', { defaultValue: 'Overview Snapshot' })}
         </SectionTitle>
-        <div className="mt-3 grid grid-cols-3 gap-4">
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatTile
             title={t('runtimeConfig.overview.installedModels', { defaultValue: 'Installed Models' })}
             value={installedModelCount}
@@ -199,11 +199,11 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                 <Surface
                   key={`capability-overview-${item.capability}`}
                   tone="card"
-                  className={cn('flex items-center justify-between rounded-xl p-3', toneStyle.surface)}
+                  className={cn('flex min-w-0 flex-col gap-2 rounded-xl p-3 sm:flex-row sm:items-center sm:justify-between', toneStyle.surface)}
                 >
                   <div className="min-w-0">
-                    <p className={cn('text-sm font-medium', TOKEN_TEXT_PRIMARY)}>{item.capability}</p>
-                    <p className={cn('text-xs', toneStyle.subtleText)}>{source}</p>
+                    <p className={cn('text-sm font-medium break-words [overflow-wrap:anywhere]', TOKEN_TEXT_PRIMARY)}>{item.capability}</p>
+                    <p className={cn('text-xs break-words [overflow-wrap:anywhere]', toneStyle.subtleText)}>{source}</p>
                   </div>
                   {available ? (
                     <KitStatusBadge tone={toneStyle.badge}>
@@ -228,8 +228,8 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
           {t('runtimeConfig.overview.runtimeDaemonTitle', { defaultValue: 'Runtime Daemon' })}
         </SectionTitle>
         <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-3 p-5')}>
-          <div className="flex items-center justify-between">
-            <div className={cn('text-sm', TOKEN_TEXT_SECONDARY)}>{t('runtimeConfig.overview.runtimeDaemonStatus', { defaultValue: 'Local AI runtime daemon status' })}</div>
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className={cn('min-w-0 text-sm break-words [overflow-wrap:anywhere]', TOKEN_TEXT_SECONDARY)}>{t('runtimeConfig.overview.runtimeDaemonStatus', { defaultValue: 'Local AI runtime daemon status' })}</div>
             <DaemonStatusBadge running={daemonRunning} />
           </div>
 
@@ -256,10 +256,10 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                 <Surface
                   key={entry.key}
                   tone="card"
-                  className={cn('rounded-xl p-3', toneStyle.surface)}
+                  className={cn('min-w-0 rounded-xl p-3', toneStyle.surface)}
                 >
                   <p className={cn('text-xs', toneStyle.subtleText)}>{entry.label}</p>
-                  <p className={cn('text-sm font-medium', TOKEN_TEXT_PRIMARY)}>{entry.value}</p>
+                  <p className={cn('text-sm font-medium break-words [overflow-wrap:anywhere]', TOKEN_TEXT_PRIMARY)}>{entry.value}</p>
                 </Surface>
               );
             })}
@@ -269,7 +269,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             <div className="mt-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] px-3 py-3">
               <p className="text-sm font-medium text-[var(--nimi-status-warning)]">{daemonIssue.title}</p>
               <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--nimi-status-warning)_80%,var(--nimi-text-secondary))]">{daemonIssue.message}</p>
-              <p className="mt-2 text-[11px] text-[color-mix(in_srgb,var(--nimi-status-warning)_75%,var(--nimi-text-secondary))]">{daemonIssue.rawError}</p>
+              <p className="mt-2 text-[11px] break-words [overflow-wrap:anywhere] text-[color-mix(in_srgb,var(--nimi-status-warning)_75%,var(--nimi-text-secondary))]">{daemonIssue.rawError}</p>
             </div>
           ) : model.runtimeDaemonError ? (
             <p className="mt-3 text-xs text-[var(--nimi-status-danger)]">{model.runtimeDaemonError}</p>

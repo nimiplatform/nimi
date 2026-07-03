@@ -3,10 +3,12 @@ import type { ProfileData } from '@renderer/features/profile/profile-model';
 import type { ContactRecord } from './relationship-model';
 import {
   createNimiHostRuntimeAgentLifecycleSurface,
+  isRuntimeLocalAgentRef,
   normalizeNimiRuntimeAgentText,
 } from '@nimiplatform/sdk/runtime';
 import {
   createRealmSourceMaterializationPacket,
+  realmPersonaSourceAmbiguousMessage,
   resolveRealmCoreSourceRef,
 } from '@renderer/features/explore/realm-persona-source-materialization';
 import {
@@ -70,6 +72,9 @@ async function discoverSourceContactLaunchTarget(
     runtimeSourceRef,
     sourceRef,
   });
+  if (existing.length > 1) {
+    throw new Error(realmPersonaSourceAmbiguousMessage());
+  }
   const first = existing[0];
   if (!first) {
     return null;
@@ -101,6 +106,9 @@ export function toSourceContactLaunchTarget(
     source.localAgentRef,
     'localAgentRef',
   );
+  if (!isRuntimeLocalAgentRef(localAgentRef)) {
+    throw new Error('source conversation launch requires Runtime-owned localAgentRef');
+  }
   return {
     ownerUserId,
     runtimeSourceRef,

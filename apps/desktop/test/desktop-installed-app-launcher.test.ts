@@ -32,9 +32,17 @@ describe('Desktop installed app launcher', () => {
     const protocolInputs: unknown[] = [];
     const authInputs: unknown[] = [];
     const hostInputs: unknown[] = [];
+    const aiConfigStore = {
+      get: async () => null,
+      set: async ({ config }: { readonly config: Readonly<Record<string, unknown>> }) => config,
+    };
     const launcher = createDesktopInstalledAppLauncher({
       runtimeEndpoint: '127.0.0.1:46371',
       preloadPath: 'D:/nimi/desktop/preload.cjs',
+      createAIConfigStore: (dataRoot) => {
+        assert.equal(dataRoot, projection.storage?.durableDataRoot);
+        return aiConfigStore;
+      },
       registerProtocol: async (input) => {
         protocolInputs.push(input);
         return {
@@ -102,6 +110,7 @@ describe('Desktop installed app launcher', () => {
         readonly capabilitySetRef?: string;
         readonly dataRoot?: string;
         readonly localAssetRoots?: readonly string[];
+        readonly aiConfigStore?: unknown;
       };
     };
     assert.equal(hostInput.appId, projection.appId);
@@ -113,6 +122,7 @@ describe('Desktop installed app launcher', () => {
     assert.equal(hostInput.standardShell?.capabilitySetRef, INSTALLED_APP_STANDARD_SHELL_CAPABILITY_SET_REF);
     assert.equal(hostInput.standardShell?.dataRoot, projection.storage?.durableDataRoot);
     assert.deepEqual(hostInput.standardShell?.localAssetRoots, [projection.activeReleaseRoot]);
+    assert.equal(hostInput.standardShell?.aiConfigStore, aiConfigStore);
   });
 
   test('rejects blocked Runtime OpenApp projections without creating a host', async () => {
@@ -237,6 +247,7 @@ describe('Desktop installed app host window/protocol/auth plans', () => {
     assert.match(mainSource, /registerDesktopInstalledAppLaunchIpc/);
     assert.match(mainSource, /DESKTOP_INSTALLED_APP_LAUNCH_COMMAND/);
     assert.match(mainSource, /DESKTOP_INSTALLED_APP_PROTOCOL_SCHEME/);
+    assert.match(mainSource, /createAIConfigStore:\s*createDesktopAiConfigStore/);
     assert.match(mainSource, /protocol\.registerSchemesAsPrivileged/);
     assert.equal(DESKTOP_INSTALLED_APP_LAUNCH_COMMAND, 'desktop.installedApp.launch');
   });

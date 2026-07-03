@@ -31,6 +31,8 @@ error_envelope:
   codes:
     - capability-unavailable
     - external-daemon-required
+    - runtime-permission-denied
+    - runtime-unauthenticated
     - forbidden-renderer-access
     - invalid-path
     - not-found
@@ -113,6 +115,8 @@ capabilities:
         negative_states:
           - capability-unavailable
           - external-daemon-required
+          - runtime-permission-denied
+          - runtime-unauthenticated
           - invalid-payload
           - host-internal-error
       - id: streamOpen
@@ -120,6 +124,8 @@ capabilities:
         negative_states:
           - capability-unavailable
           - external-daemon-required
+          - runtime-permission-denied
+          - runtime-unauthenticated
           - invalid-payload
           - host-internal-error
       - id: streamClose
@@ -137,6 +143,8 @@ capabilities:
         negative_states:
           - capability-unavailable
           - external-daemon-required
+          - runtime-permission-denied
+          - runtime-unauthenticated
       - id: start
         command: nimi.shell.runtimeLifecycle.start
         negative_states:

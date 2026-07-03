@@ -161,6 +161,7 @@ export function ExploreSearchField({
   placeholder?: string;
 }) {
   const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, personas, posts...' });
   return (
     <div
       className="nimi-material-glass-regular group relative mx-auto flex h-11 w-full max-w-[480px] items-center rounded-xl border border-white/60 bg-white/45 pl-4 pr-3 shadow-[0_2px_10px_rgba(0,0,0,0.02)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] transition-all duration-200 focus-within:border-white/90 focus-within:bg-white/70 focus-within:shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
@@ -174,7 +175,8 @@ export function ExploreSearchField({
         type="search"
         className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[color:var(--nimi-fg-1)] outline-none placeholder:text-[color:var(--nimi-fg-3)] focus:ring-0"
         style={{ fontFamily: 'var(--nimi-font-sans)' }}
-        placeholder={placeholder ?? t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, personas, posts...' })}
+        aria-label={resolvedPlaceholder}
+        placeholder={resolvedPlaceholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />

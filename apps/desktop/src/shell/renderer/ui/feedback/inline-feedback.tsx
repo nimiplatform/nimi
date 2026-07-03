@@ -62,7 +62,7 @@ export function InlineFeedback(props: {
         </div>
         <div className="min-w-0 flex-1">
           {title ? <p className={cn('text-xs font-semibold uppercase tracking-[0.06em]', tone.title)}>{title}</p> : null}
-          <p className={cn(title ? 'mt-1 text-sm' : 'text-sm', tone.body)}>{feedback.message}</p>
+          <p className={cn(title ? 'mt-1 text-sm' : 'text-sm', 'break-words [overflow-wrap:anywhere]', tone.body)}>{feedback.message}</p>
           {feedback.actionLabel && feedback.onAction ? (
             <button
               type="button"

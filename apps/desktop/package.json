@@ -36,6 +36,7 @@
     "test:unit": "pnpm run test:unit:i18n && pnpm run test:unit:rest",
     "test:e2e:electron": "corepack pnpm run build:renderer && corepack pnpm run build:electron && node --test test/electron-acceptance.mjs",
     "test:e2e:electron:live-runtime": "corepack pnpm run build:renderer && corepack pnpm run build:electron && node scripts/run-electron-live-runtime-acceptance.mjs",
+    "test:e2e:electron:explore-materialization": "corepack pnpm run build:renderer && corepack pnpm run build:electron && node scripts/run-electron-explore-materialization-acceptance.mjs",
     "test:e2e:smoke": "node scripts/run-e2e.mjs --suite smoke",
     "test:e2e:journeys": "node scripts/run-e2e.mjs --suite journeys",
     "test:e2e:nimi-app-platform-sandbox": "node scripts/run-e2e.mjs --suite nimi-app-platform-sandbox",

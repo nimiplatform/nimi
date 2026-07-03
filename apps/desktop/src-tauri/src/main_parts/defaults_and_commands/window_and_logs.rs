@@ -554,35 +554,6 @@ fn open_avatar_handoff_uri_or_binary(uri: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub(crate) fn confirm_private_sync(payload: ConfirmPrivateSyncPayload) -> ConfirmPrivateSyncResult {
-    let target_label = payload
-        .agent_id
-        .as_deref()
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or("私有智能体");
-
-    let session_detail = payload
-        .session_id
-        .as_deref()
-        .filter(|value| !value.trim().is_empty())
-        .map(|value| format!("\n会话：{value}"))
-        .unwrap_or_default();
-
-    let confirmed = rfd::MessageDialog::new()
-        .set_title("PRIVATE 同步确认")
-        .set_description(format!(
-            "是否为 {target_label} 同步 PRIVATE 内容？{session_detail}\n\n这会将本地 PRIVATE 运行时内容上传到平台治理链。仅在你明确同意时继续。"
-        ))
-        .set_level(rfd::MessageLevel::Warning)
-        .set_buttons(rfd::MessageButtons::YesNo)
-        .show();
-
-    ConfirmPrivateSyncResult {
-        confirmed: matches!(confirmed, rfd::MessageDialogResult::Yes),
-    }
-}
-
-#[tauri::command]
 pub(crate) fn confirm_dialog(payload: ConfirmDialogPayload) -> ConfirmDialogResult {
     if let Ok(Some(confirmed)) = crate::desktop_e2e_fixture::next_confirm_dialog_override() {
         return ConfirmDialogResult { confirmed };

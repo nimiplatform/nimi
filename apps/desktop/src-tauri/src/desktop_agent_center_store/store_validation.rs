@@ -43,6 +43,13 @@ pub(crate) fn validate_local_agent_scope(
     if !local_agent_ref.starts_with(LOCAL_AGENT_REF_PREFIX) {
         return Err("localAgentRef must start with local-agent:".to_string());
     }
+    let expected_local_agent_ref =
+        format!("{LOCAL_AGENT_REF_PREFIX}{owner_user_id}:{runtime_source_ref}");
+    if local_agent_ref != expected_local_agent_ref {
+        return Err(format!(
+            "localAgentRef must equal {LOCAL_AGENT_REF_PREFIX}<ownerUserId>:<runtimeSourceRef>"
+        ));
+    }
     Ok(LocalAgentScope {
         owner_user_id,
         runtime_source_ref,

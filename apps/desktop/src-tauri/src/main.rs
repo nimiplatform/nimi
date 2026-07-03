@@ -11,7 +11,6 @@ mod apps_packages_projection;
 mod apps_registry_projection;
 mod chat_ai_store;
 mod desktop_agent_center_store;
-mod desktop_agent_memory_export;
 mod desktop_ai_config_library;
 mod desktop_avatar_instance_registry;
 mod desktop_e2e_fixture;

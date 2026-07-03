@@ -2,6 +2,7 @@ import type { BrowserWindowConstructorOptions } from 'electron';
 import type {
   ElectronRuntimeBridgeTrustedMetadataProvider,
   NimiElectronIpcMain,
+  NimiElectronAIConfigStore,
   RegisteredNimiElectronRuntimeBridge,
   RegisterNimiElectronRuntimeBridgeInput,
 } from '@nimiplatform/kit/shell/electron/main';
@@ -10,6 +11,7 @@ export type DesktopInstalledAppStandardShellPlan = {
   readonly capabilitySetRef: string;
   readonly dataRoot?: string;
   readonly localAssetRoots: readonly string[];
+  readonly aiConfigStore?: NimiElectronAIConfigStore;
 };
 
 export type DesktopInstalledAppHostWindowInput = {
@@ -94,6 +96,7 @@ export async function createDesktopInstalledAppHostWindow(
       capabilitySetRef: input.standardShell.capabilitySetRef,
       dataRoot: input.standardShell.dataRoot,
       localAssetRoots: input.standardShell.localAssetRoots,
+      aiConfigStore: input.standardShell.aiConfigStore,
     },
   });
   await window.loadURL(input.entryUrl);

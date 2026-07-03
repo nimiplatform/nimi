@@ -105,6 +105,56 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
   assert.match(live2dRuntimeHookSource, /action:live2d-model-rebuilt/);
 });
 
+test('desktop macos smoke commands are fixture-gated instrumentation only', () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const macosSmokeSource = fs.readFileSync(
+    path.join(root, 'src-tauri/src/main_parts/defaults_and_commands/macos_smoke.rs'),
+    'utf8',
+  );
+  const bootstrapRsSource = fs.readFileSync(
+    path.join(root, 'src-tauri/src/main_parts/app_bootstrap.rs'),
+    'utf8',
+  );
+  const ipcSpecSource = fs.readFileSync(
+    path.join(root, '../../.nimi/spec/desktop/kernel/tables/ipc-commands.yaml'),
+    'utf8',
+  );
+  const classificationSource = fs.readFileSync(
+    path.join(root, '../../.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml'),
+    'utf8',
+  );
+
+  assert.match(macosSmokeSource, /^\/\/! Desktop macOS smoke instrumentation\./);
+  for (const commandName of [
+    'desktop_macos_smoke_avatar_evidence_read',
+    'desktop_macos_smoke_avatar_product_local_asset_fault_apply',
+    'desktop_macos_smoke_report_write',
+  ]) {
+    assert.match(
+      macosSmokeSource,
+      new RegExp(`pub\\(crate\\) fn ${commandName}[\\s\\S]*?require_enabled_macos_smoke_override\\(\\)\\?;`),
+    );
+  }
+  assert.match(
+    macosSmokeSource,
+    /desktop_macos_smoke_context_get[\s\S]*?macos_smoke_override\(\)\?[\s\S]*?enabled: false/,
+  );
+  assert.match(
+    macosSmokeSource,
+    /desktop_macos_smoke_ping[\s\S]*?append_macos_smoke_backend_stage\(payload\.stage\.as_str\(\), payload\.details\.as_ref\(\)\)/,
+  );
+  assert.match(
+    bootstrapRsSource,
+    /Production builds register the renderer-entry probe[\s\S]*?desktop_macos_smoke_context_get/,
+  );
+  assert.doesNotMatch(
+    ipcSpecSource,
+    /description: (?!Fixture-gated macOS smoke instrumentation;)[^\n]*macOS smoke/,
+  );
+  assert.match(classificationSource, /family: macos_smoke_acceptance_instrumentation/);
+  assert.match(classificationSource, /owner_domain: desktop-smoke-instrumentation/);
+});
+
 test('desktop macos smoke builds fixture-enabled app bundles explicitly', () => {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const processSource = fs.readFileSync(

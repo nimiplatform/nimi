@@ -63,6 +63,17 @@ function parseBody(request) {
   });
 }
 
+function readRawBody(request) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    request.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    request.on('end', () => {
+      resolve(Buffer.concat(chunks).toString('utf8'));
+    });
+    request.on('error', reject);
+  });
+}
+
 function lookupUser(manifest, idOrHandle, mode) {
   const fixture = manifest.realmFixture || {};
   const users = [];
@@ -191,13 +202,62 @@ function normalizeSourceMedia(source) {
   };
 }
 
+function projectPublicScene(scene, index) {
+  const fallbackId = `scene-${index + 1}`;
+  if (!scene || typeof scene !== 'object' || Array.isArray(scene)) {
+    const name = text(scene, `Scene ${index + 1}`);
+    return {
+      sceneId: fallbackId,
+      name,
+      summary: name,
+      media: [],
+      activeEntities: [],
+      relatedCharacters: [],
+      relatedEvents: [],
+      relatedResources: [],
+      counts: {
+        activeEntityCount: 0,
+        relatedCharacterCount: 0,
+        relatedEventCount: 0,
+        relatedResourceCount: 0,
+      },
+    };
+  }
+
+  const activeEntities = asArray(scene.activeEntities);
+  const relatedCharacters = asArray(scene.relatedCharacters);
+  const relatedEvents = asArray(scene.relatedEvents);
+  const relatedResources = asArray(scene.relatedResources);
+  const sceneId = text(scene.sceneId || scene.id, fallbackId);
+  const name = text(scene.name || scene.title || scene.summary, `Scene ${index + 1}`);
+  return {
+    ...scene,
+    sceneId,
+    name,
+    summary: text(scene.summary || scene.description, name),
+    media: asArray(scene.media),
+    activeEntities,
+    relatedCharacters,
+    relatedEvents,
+    relatedResources,
+    counts: scene.counts && typeof scene.counts === 'object' && !Array.isArray(scene.counts)
+      ? scene.counts
+      : {
+          activeEntityCount: activeEntities.length,
+          relatedCharacterCount: relatedCharacters.length,
+          relatedEventCount: relatedEvents.length,
+          relatedResourceCount: relatedResources.length,
+        },
+  };
+}
+
 function projectPublicWorld(world) {
   const tags = asArray(world?.tags).length ? asArray(world.tags) : asArray(world?.themes);
   const computedTime = world?.computed?.time || {};
   const media = normalizeWorldMedia(world);
   const characters = asArray(world?.characters);
   const personas = asArray(world?.personas);
-  const scenes = asArray(world?.scenes).map((item) => typeof item === 'string' ? item : text(item?.name || item?.title || item?.summary, 'Scene'));
+  const scenes = asArray(world?.scenes).map(projectPublicScene);
   const systems = asArray(world?.systems).map((item) => typeof item === 'string' ? item : text(item?.name || item?.title || item?.summary, 'System'));
   const timeline = asArray(world?.timeline).length
     ? asArray(world.timeline)
@@ -280,6 +340,116 @@ function projectPublicSource(world, source, sourceKind) {
     },
     updatedAt: text(source?.updatedAt || source?.createdAt || world?.updatedAt, '2026-03-15T00:00:00.000Z'),
   };
+}
+
+function asRecord(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+}
+
+function explicitSourceContentHash(source, id) {
+  const sourceRef = asRecord(source?.sourceRef);
+  const candidates = [
+    sourceRef && Object.prototype.hasOwnProperty.call(sourceRef, 'sourceContentHash')
+      ? sourceRef.sourceContentHash
+      : undefined,
+    source && Object.prototype.hasOwnProperty.call(source, 'sourceContentHash')
+      ? source.sourceContentHash
+      : undefined,
+    source && Object.prototype.hasOwnProperty.call(source, 'contentHash')
+      ? source.contentHash
+      : undefined,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string') {
+      return candidate.trim();
+    }
+  }
+  if (source?.omitContentHash === true || source?.materializationUnavailable === true) {
+    return '';
+  }
+  return `hash-${id}`;
+}
+
+function realmCoreOrigin(value, id, contentHash) {
+  const origin = asRecord(value);
+  const kind = text(origin?.kind || value, 'manual');
+  if (['manual', 'forge', 'worldCharacterDerivation', 'import', 'system'].includes(kind)) {
+    return {
+      kind,
+      sourceId: text(origin?.sourceId, id),
+      sourceContentHash: text(origin?.sourceContentHash, contentHash),
+      ...(origin?.parentWorldId ? { parentWorldId: String(origin.parentWorldId) } : {}),
+      ...(origin?.parentCharacterId ? { parentCharacterId: String(origin.parentCharacterId) } : {}),
+      ...(origin?.sourceVersion ? { sourceVersion: String(origin.sourceVersion) } : {}),
+    };
+  }
+  return {
+    kind: 'manual',
+    sourceId: id,
+    sourceContentHash: contentHash,
+  };
+}
+
+function projectRealmPersonaCore(world, source) {
+  const worldId = text(world?.id, 'world-e2e-1');
+  const id = text(source?.id, 'persona-fixture');
+  const contentHash = explicitSourceContentHash(source, id);
+  const displayName = text(source?.displayName || source?.name, id);
+  const handle = text(source?.handle, displayName);
+  const summary = text(source?.summary || source?.bio, 'Fixture Realm persona used for desktop Explore materialization coverage.');
+  const tags = asArray(source?.tags).map(String).filter(Boolean);
+  const media = normalizeSourceMedia(source);
+  const core = asRecord(source?.core) || {
+    identity: {
+      name: displayName,
+      handle,
+      summary,
+    },
+    presentation: {
+      displayName,
+      profileLine: summary,
+      shortBio: summary,
+      avatarResourceRef: media.avatarUrl ?? media.portraitUrl ?? null,
+    },
+    interactionProfile: {
+      homeWorldId: worldId,
+    },
+    contentProfile: {
+      topics: tags,
+    },
+    personaStyle: {
+      archetype: text(source?.archetype || source?.role, 'partner'),
+      voice: text(source?.voice || source?.archetype || source?.role, 'partner'),
+      pacing: text(source?.pacing, 'steady'),
+    },
+    assets: {
+      externalRefs: [
+        media.avatarUrl ? { kind: 'avatar', uri: media.avatarUrl } : null,
+        media.referenceImageUrl ? { kind: 'referenceImage', uri: media.referenceImageUrl } : null,
+      ].filter(Boolean),
+    },
+  };
+  const visibility = ['private', 'unlisted', 'public', 'system'].includes(source?.visibility)
+    ? source.visibility
+    : 'public';
+  return {
+    id,
+    contentHash,
+    contentRevision: Number.isFinite(Number(source?.contentRevision)) ? Number(source.contentRevision) : 1,
+    core,
+    createdAt: text(source?.createdAt || world?.createdAt, '2026-03-15T00:00:00.000Z'),
+    homeWorldId: worldId,
+    origin: realmCoreOrigin(source?.origin, id, contentHash),
+    ownerId: text(source?.ownerId || world?.ownerId, 'user-e2e-primary'),
+    schemaVersion: text(source?.schemaVersion, 'realm.persona/v1'),
+    updatedAt: text(source?.updatedAt || world?.updatedAt || source?.createdAt, '2026-03-15T00:00:00.000Z'),
+    visibility,
+  };
+}
+
+function listRealmPersonaCores(manifest) {
+  const worlds = Array.isArray(manifest.realmFixture?.worlds) ? manifest.realmFixture.worlds : [];
+  return worlds.flatMap((world) => asArray(world?.personas).map((source) => projectRealmPersonaCore(world, source)));
 }
 
 function resolveFixtureSourceHash(manifest, source) {
@@ -413,6 +583,29 @@ function runtimeAccessTokenFromFixture(manifest) {
   return nullableString(manifest.tauriFixture?.runtimeDefaults?.realm?.accessToken);
 }
 
+function canonicalWorkspaceMemberships(fixture, now) {
+  const realmEnvironmentId = String(fixture.realmEnvironmentId || 'realm-e2e-local');
+  const defaultMembership = {
+    workspaceId: String(fixture.workspaceId || 'workspace-e2e-local'),
+    membershipState: 'active',
+    realmEnvironmentId,
+    observedAt: now,
+    displayMetadata: {
+      name: String(fixture.workspaceName || 'E2E Workspace'),
+    },
+  };
+  const memberships = Array.isArray(fixture.workspaceMemberships)
+    ? fixture.workspaceMemberships
+    : [defaultMembership];
+  return memberships.map((item) => ({
+    workspace_id: String(item?.workspace_id || item?.workspaceId || defaultMembership.workspaceId),
+    membership_state: String(item?.membership_state || item?.membershipState || 'active'),
+    realm_environment_id: String(item?.realm_environment_id || item?.realmEnvironmentId || realmEnvironmentId),
+    observed_at: String(item?.observed_at || item?.observedAt || now),
+    display_metadata: item?.display_metadata || item?.displayMetadata || defaultMembership.displayMetadata,
+  }));
+}
+
 function runtimeAccountTokenResponse(manifest) {
   const fixture = manifest.realmFixture || {};
   const currentUser = fixture.currentUser || {};
@@ -420,21 +613,12 @@ function runtimeAccountTokenResponse(manifest) {
   return {
     access_token: runtimeAccessTokenFromFixture(manifest) || 'e2e-runtime-access-token',
     refresh_token: `e2e-runtime-refresh-${String(currentUser.id || 'user-e2e-primary')}`,
+    token_type: 'Bearer',
     expires_in: 3600,
     account_id: String(currentUser.id || 'user-e2e-primary'),
     display_name: String(currentUser.displayName || currentUser.handle || 'E2E User'),
     realm_environment_id: String(fixture.realmEnvironmentId || 'realm-e2e-local'),
-    workspace_memberships: Array.isArray(fixture.workspaceMemberships)
-      ? fixture.workspaceMemberships
-      : [{
-          workspaceId: String(fixture.workspaceId || 'workspace-e2e-local'),
-          membershipState: 'active',
-          realmEnvironmentId: String(fixture.realmEnvironmentId || 'realm-e2e-local'),
-          observedAt: now,
-          displayMetadata: {
-            name: String(fixture.workspaceName || 'E2E Workspace'),
-          },
-        }],
+    workspace_memberships: canonicalWorkspaceMemberships(fixture, now),
   };
 }
 
@@ -550,6 +734,23 @@ async function handleApi(request, response, manifestPath) {
     request.method === 'POST'
     && (pathname === '/api/auth/oauth/token' || pathname === '/api/auth/refresh')
   ) {
+    const rawBody = await readRawBody(request);
+    const form = new URLSearchParams(rawBody);
+    manifest.realmFixture = manifest.realmFixture || {};
+    manifest.realmFixture.runtimeAccountTokenRequests = [
+      ...(Array.isArray(manifest.realmFixture.runtimeAccountTokenRequests)
+        ? manifest.realmFixture.runtimeAccountTokenRequests
+        : []),
+      {
+        path: pathname,
+        contentType: String(request.headers['content-type'] || ''),
+        grantType: form.get('grant_type') || null,
+        clientId: form.get('client_id') || null,
+        redirectUri: form.get('redirect_uri') || null,
+        hasCodeVerifier: Boolean(form.get('code_verifier')),
+      },
+    ];
+    writeJsonFile(manifestPath, manifest);
     json(response, 200, runtimeAccountTokenResponse(manifest));
     return undefined;
   }
@@ -646,7 +847,43 @@ async function handleApi(request, response, manifestPath) {
       return undefined;
     }
     const packet = buildSourceMaterializationPacket(manifest, sourceRef, body?.intendedRuntimeAudience);
+    manifest.realmFixture = manifest.realmFixture || {};
+    manifest.realmFixture.sourceMaterializationPacketRequests = [
+      ...(Array.isArray(manifest.realmFixture.sourceMaterializationPacketRequests)
+        ? manifest.realmFixture.sourceMaterializationPacketRequests
+        : []),
+      {
+        sourceRef,
+        intendedRuntimeAudience: text(body?.intendedRuntimeAudience, ''),
+        packetId: packet.packetId,
+        runtimeSourceRef: packet.runtimeSourceRef,
+        issuedAt: packet.issuedAt,
+      },
+    ];
+    writeJsonFile(manifestPath, manifest);
     json(response, 201, packet);
+    return undefined;
+  }
+
+  if (request.method === 'GET' && pathname === '/api/realm/core/personas') {
+    const visibility = nullableString(requestUrl.searchParams.get('visibility'));
+    const take = positiveInt(requestUrl.searchParams.get('take'), 100);
+    const rows = listRealmPersonaCores(manifest)
+      .filter((row) => !visibility || row.visibility === visibility)
+      .slice(0, take);
+    json(response, 200, rows);
+    return undefined;
+  }
+
+  const realmPersonaMatch = pathname.match(/^\/api\/realm\/core\/personas\/([^/]+)$/u);
+  if (request.method === 'GET' && realmPersonaMatch) {
+    const personaId = decodeURIComponent(realmPersonaMatch[1]);
+    const row = listRealmPersonaCores(manifest).find((item) => String(item.id || '') === personaId);
+    if (!row) {
+      notFound(response, pathname);
+      return undefined;
+    }
+    json(response, 200, row);
     return undefined;
   }
 

@@ -1,12 +1,12 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { appendFile, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, realpath } from 'node:fs/promises';
 import { app, BrowserWindow, ipcMain, protocol, shell } from 'electron';
 import {
   assertOpaqueElectronLocalAgentRef,
+  createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
-  type NimiElectronAIConfigStore,
   type NimiElectronRuntimeTrustedCallerMode,
 } from '@nimiplatform/kit/shell/electron/main';
 import { createTesterElectronCommandHandlers } from './commands/tester-commands.js';
@@ -221,39 +221,11 @@ function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
     .map((filePath) => path.resolve(filePath));
 }
 
-function createTesterAiConfigStore(dataRoot: string): NimiElectronAIConfigStore {
-  return {
-    get: async ({ scopeRef }) => {
-      const filePath = testerAiConfigPath(dataRoot, scopeRef);
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
-      } catch (error) {
-        if (isNotFoundError(error)) {
-          return undefined;
-        }
-        throw error;
-      }
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error(`tester AI Config store record is invalid: ${filePath}`);
-      }
-      const record = parsed as Record<string, unknown>;
-      if (record.scopeRef !== scopeRef || !record.config || typeof record.config !== 'object' || Array.isArray(record.config)) {
-        throw new Error(`tester AI Config store record does not match requested scope: ${filePath}`);
-      }
-      return record.config as Readonly<Record<string, unknown>>;
-    },
-    set: async ({ scopeRef, config }) => {
-      const filePath = testerAiConfigPath(dataRoot, scopeRef);
-      await mkdir(path.dirname(filePath), { recursive: true });
-      await writeFile(filePath, JSON.stringify({
-        schemaVersion: 1,
-        scopeRef,
-        config,
-      }, null, 2), 'utf8');
-      return config;
-    },
-  };
+function createTesterAiConfigStore(dataRoot: string) {
+  return createNimiElectronFileAIConfigStore({
+    dataRoot,
+    storeLabel: 'tester AI Config',
+  });
 }
 
 function createTesterRuntimeConfigReader(dataRoot: string): () => Promise<{
@@ -271,15 +243,6 @@ function createTesterRuntimeConfigReader(dataRoot: string): () => Promise<{
       config: parsed as Readonly<Record<string, unknown>>,
     };
   };
-}
-
-function testerAiConfigPath(dataRoot: string, scopeRef: string): string {
-  const encoded = Buffer.from(scopeRef, 'utf8').toString('base64url');
-  return path.join(dataRoot, 'ai-config', `${encoded}.json`);
-}
-
-function isNotFoundError(error: unknown): boolean {
-  return Boolean(error && typeof error === 'object' && (error as { code?: unknown }).code === 'ENOENT');
 }
 
 function resolveRuntimeTrustedCallerMode(): NimiElectronRuntimeTrustedCallerMode {

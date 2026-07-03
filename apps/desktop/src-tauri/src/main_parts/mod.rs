@@ -79,19 +79,6 @@ struct HttpResponsePayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ConfirmPrivateSyncPayload {
-    agent_id: Option<String>,
-    session_id: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ConfirmPrivateSyncResult {
-    confirmed: bool,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct ConfirmDialogPayload {
     title: String,
     description: String,

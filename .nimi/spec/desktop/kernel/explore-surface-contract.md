@@ -112,12 +112,18 @@ truth.
 
 | Source state | Primary action | Result |
 |---|---|---|
-| `source_materialization_available` | `Create local agent` | Request a fresh SourceMaterializationPacket, ask Runtime to materialize an opaque LocalAgent, then open local chat by Runtime-owned localAgentRef. |
-| `local_agent_available` | `Open local agent` | Open an existing Runtime-owned LocalAgent discovered from Runtime inventory/provenance. |
+| `source_materialization_available` | `Become my partner` | Request a fresh SourceMaterializationPacket, ask Runtime to materialize the opaque LocalAgent, then open the partner/chat surface by Runtime-owned localAgentRef. |
+| `local_agent_available` | `Open partner` | Open an existing Runtime-owned LocalAgent discovered from Runtime inventory/provenance. |
+| `local_agent_ambiguous` | `Open from partners` | Fail closed because Runtime inventory/provenance returned more than one matching partner. |
+| `runtime_agent_inventory_pending` | `Checking partner` | Disable the action while Desktop is checking Runtime inventory/provenance. |
+| `runtime_agent_inventory_unavailable` | `Runtime unavailable` | Disable the action because Runtime/SDK/auth inventory is unavailable. |
 
 `MUST`: unavailable source or stale hash states are real fail-closed product
 states, not loading placeholders. A new materialization attempt must request a
 fresh packet and must not synthesize LocalAgent identity from source metadata.
+`MUST`: user-facing materialization language is a character/persona
+relationship action such as `Become my partner`. Desktop must not present
+`Create LocalAgent` or `Create local agent` as the user action.
 `MUST`: an existing local-agent state requires Runtime inventory/provenance
 read through the SDK/host projection. Desktop may pass the Runtime-owned opaque
 `localAgentRef` to Agent Chat, but it must not store token/session custody in

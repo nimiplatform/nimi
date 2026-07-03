@@ -95,6 +95,7 @@ pub(super) fn runtime_agent_idle_state(
         active_world_id,
         active_user_id: owner_user_id,
         attributes: Default::default(),
+        proactive_interruptibility: None,
         updated_at: Some(fixture_timestamp()),
         current_emotion: String::new(),
     }

@@ -1,5 +1,8 @@
-//! Product-control record (`~/.nimi/nimi.json`) — the first-run / Apps
-//! lifecycle truth surface.
+//! Runtime-owned product-control projection adapter.
+//!
+//! Desktop Tauri commands forward reads and mutations to RuntimeLocalService;
+//! Desktop may render projections and request admission, but it does not own
+//! product-control state authority.
 //!
 //! Split by responsibility into cohesive submodules; this module root composes
 //! them and exposes the stable Tauri command surface. The backend

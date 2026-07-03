@@ -43,6 +43,28 @@ test('CBDB RealmPersona source materialization uses sourceRef packet materializa
   assert.doesNotMatch(materializationSurface, new RegExp(['Agent', 'Friend'].join('')));
 });
 
+test('CBDB RealmPersona source materialization maps runtime failures before showing UI feedback', () => {
+  const materialization = readDesktopSource('features/explore/realm-persona-source-materialization.ts');
+  assert.match(materialization, /realmPersonaSourceMaterializationFailureMessage/);
+  assert.match(materialization, /realmPersonaSourceMaterializationVerifierUnavailableMessage/);
+  assert.match(materialization, /realmPersonaSourceMaterializationRejectedMessage/);
+
+  const uiSources = [
+    'features/explore/explore-panel.tsx',
+    'features/source-detail/source-detail-panel.tsx',
+    'features/relationship/profile-detail-modal.tsx',
+    'features/profile/profile-panel.tsx',
+    'features/world/world-detail.tsx',
+  ].map((path) => readDesktopSource(path));
+  for (const source of uiSources) {
+    assert.match(source, /realmPersonaSourceMaterializationFailureMessage/);
+  }
+  assert.doesNotMatch(
+    uiSources.join('\n'),
+    /message:\s*error instanceof Error \? error\.message : realmPersonaSourceMaterializationMessage\(\)/,
+  );
+});
+
 test('CBDB runtime anchor metadata uses source-core owner scope, not Forge import scope', () => {
   const hostActions = readDesktopSource('features/chat/chat-agent-shell-host-actions-helpers.ts');
 

@@ -826,8 +826,9 @@ test('world character hero uses dynasty subtitle, no bottom white mask, and refe
     assert.match(markup, /元代/);
     assert.doesNotMatch(markup, /<p class="[^"]*">同恕<\/p>/);
     assert.doesNotMatch(markup, /linear-gradient\(to top, rgba\(255,255,255,0\.32\)/);
-    assert.match(markup, /立即对话/);
-    assert.match(markup, /加入我的角色/);
+    assert.doesNotMatch(markup, /立即对话/);
+    assert.match(markup, /data-primary-action="become_partner"/);
+    assert.match(markup, /成为我的伙伴/);
     assert.match(markup, /加入后可在本地持续对话/);
     assert.doesNotMatch(markup, /添加到我的角色/);
   } finally {

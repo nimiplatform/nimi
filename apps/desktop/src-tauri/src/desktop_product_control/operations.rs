@@ -51,6 +51,8 @@ fn selected_data_root_for(record: &ProductControlRecord, action: &str) -> Result
         .ok_or_else(|| format!("selected nimi_data is required before {action}"))
 }
 
+// Test-only local product-control record mutator.
+// Production code must route product-control state changes through RuntimeLocalService.
 #[cfg(test)]
 pub fn ensure_product_control_record_created() -> Result<ProductControlRecordProjection, String> {
     let control_path = product_control_record_path()?;
@@ -73,6 +75,8 @@ pub fn ensure_product_control_record_created() -> Result<ProductControlRecordPro
     }
 }
 
+// Test-only local product-control record mutator.
+// Production code must route product-control state changes through RuntimeLocalService.
 #[cfg(test)]
 pub fn select_product_data_root(path: &str) -> Result<ProductControlRecordProjection, String> {
     let trimmed = path.trim();
@@ -154,6 +158,8 @@ fn ensure_first_run_data_root_selection_allowed(
     Ok(())
 }
 
+// Test-only local product-control record mutator.
+// Production code must route product-control state changes through RuntimeLocalService.
 #[cfg(test)]
 pub fn set_first_run_install_level(
     install_level: &str,
@@ -208,6 +214,8 @@ fn validate_first_run_device_profile(
     Ok(())
 }
 
+// Test-only local product-control record mutator.
+// Production code must route product-control state changes through RuntimeLocalService.
 #[cfg(test)]
 pub(crate) fn complete_first_run_device_environment_scan_with_profile(
     host_profile: crate::runtime_bridge::generated::LocalDeviceProfile,

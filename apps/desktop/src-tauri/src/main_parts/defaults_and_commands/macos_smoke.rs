@@ -1,3 +1,9 @@
+//! Desktop macOS smoke instrumentation.
+//!
+//! These commands are registered in the product shell only so the acceptance
+//! harness can observe renderer/bootstrap stages. They must fail closed unless
+//! the explicit desktop e2e macOS smoke fixture is enabled.
+
 use super::*;
 use std::fs;
 
