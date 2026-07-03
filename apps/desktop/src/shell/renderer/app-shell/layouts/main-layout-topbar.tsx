@@ -14,6 +14,7 @@ const SHELL_TOPBAR_GHOST_ICON_CLASS =
 
 type MainLayoutTopBarProps = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
+  titlebarTopInsetClass: string;
   titlebarLeftInsetClass: string;
   titlebarContent?: ReactNode;
   unreadCount: number;
@@ -38,7 +39,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
 
   return (
     <div
-      className={`absolute inset-x-0 top-0 z-[11000] flex h-14 items-center nimi-material-glass-regular bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_12%,transparent)] px-3 backdrop-blur-[var(--nimi-backdrop-blur-regular)] ${props.titlebarLeftInsetClass}`}
+      className={`absolute inset-x-0 ${props.titlebarTopInsetClass} z-[11000] flex h-14 items-center nimi-material-glass-regular bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_12%,transparent)] px-3 backdrop-blur-[var(--nimi-backdrop-blur-regular)] ${props.titlebarLeftInsetClass}`}
       onMouseDown={props.onMouseDown}
     >
       <div className="flex h-full w-full items-center border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_78%,white)] px-1">

@@ -58,6 +58,17 @@ test('shell chrome retune: account menu is anchored to the titlebar avatar trigg
   assert.doesNotMatch(mainLayoutSettingsMenuSource, /bottom-4|left-\[72px\]/u);
 });
 
+test('shell chrome retune: mac titlebar safe area moves ordinary shell below traffic lights', () => {
+  assert.match(mainLayoutViewSource, /MACOS_TITLEBAR_TOP_INSET_CLASS = 'top-7'/u);
+  assert.match(mainLayoutViewSource, /MACOS_SHELL_CONTENT_TOP_PADDING_CLASS = 'pt-\[calc\(3\.5rem\+1\.75rem\)\]'/u);
+  assert.match(mainLayoutViewSource, /const usesMacTrafficLightTitlebar = flags\.enableMenuBarShell/u);
+  assert.match(mainLayoutViewSource, /titlebarTopInsetClass=\{titlebarTopInsetClass\}/u);
+  assert.match(mainLayoutViewSource, /className=\{`relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 \$\{shellContentTopPaddingClass\}`\}/u);
+  assert.match(mainLayoutTopbarSource, /titlebarTopInsetClass: string/u);
+  assert.match(mainLayoutTopbarSource, /\$\{props\.titlebarTopInsetClass\}/u);
+  assert.doesNotMatch(mainLayoutViewSource, /className="relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 pt-14"/u);
+});
+
 test('shell chrome retune: account menu Support uses a help glyph, not the old lifebuoy glyph', () => {
   const supportIconBlock = navConfigSource.slice(
     navConfigSource.indexOf('const ICON_SUPPORT'),

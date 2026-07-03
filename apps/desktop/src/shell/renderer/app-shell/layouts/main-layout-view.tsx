@@ -50,6 +50,13 @@ import {
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { getDesktopRealm } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
+const DEFAULT_TITLEBAR_TOP_INSET_CLASS = 'top-0';
+const MACOS_TITLEBAR_TOP_INSET_CLASS = 'top-7';
+const DEFAULT_SHELL_CONTENT_TOP_PADDING_CLASS = 'pt-14';
+const MACOS_SHELL_CONTENT_TOP_PADDING_CLASS = 'pt-[calc(3.5rem+1.75rem)]';
+const DEFAULT_SETTINGS_MENU_TOP_PX = 64;
+const MACOS_SETTINGS_MENU_TOP_PX = 92;
+
 /** Track window focus so polling queries can pause when the app is not focused. */
 function useWindowFocused(): boolean {
   const [focused, setFocused] = useState(() => typeof document !== 'undefined' && document.hasFocus());
@@ -81,6 +88,16 @@ type MainLayoutViewProps = {
 export function MainLayoutView(props: MainLayoutViewProps) {
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
+  const usesMacTrafficLightTitlebar = flags.enableMenuBarShell;
+  const titlebarTopInsetClass = usesMacTrafficLightTitlebar
+    ? MACOS_TITLEBAR_TOP_INSET_CLASS
+    : DEFAULT_TITLEBAR_TOP_INSET_CLASS;
+  const shellContentTopPaddingClass = usesMacTrafficLightTitlebar
+    ? MACOS_SHELL_CONTENT_TOP_PADDING_CLASS
+    : DEFAULT_SHELL_CONTENT_TOP_PADDING_CLASS;
+  const settingsMenuFallbackTop = usesMacTrafficLightTitlebar
+    ? MACOS_SETTINGS_MENU_TOP_PX
+    : DEFAULT_SETTINGS_MENU_TOP_PX;
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
   const authUser = useAppStore((state) => state.auth.user);
@@ -107,7 +124,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   }, []);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [settingsMenuPosition, setSettingsMenuPosition] = useState<SettingsMenuAnchorPosition>({
-    top: 64,
+    top: settingsMenuFallbackTop,
     right: 16,
   });
   const settingsTriggerRef = useRef<HTMLDivElement>(null);
@@ -147,7 +164,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const updateSettingsMenuPosition = useCallback(() => {
     const triggerRect = settingsTriggerRef.current?.getBoundingClientRect();
     if (!triggerRect) {
-      setSettingsMenuPosition({ top: 64, right: 16 });
+      setSettingsMenuPosition({ top: settingsMenuFallbackTop, right: 16 });
       return;
     }
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
@@ -155,7 +172,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       top: Math.max(12, Math.round(triggerRect.bottom + 12)),
       right: Math.max(12, Math.round(viewportWidth - triggerRect.right)),
     });
-  }, []);
+  }, [settingsMenuFallbackTop]);
 
   useLayoutEffect(() => {
     if (settingsMenuOpen) {
@@ -287,6 +304,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     >
       <MainLayoutTopBar
         authStatus={props.authStatus}
+        titlebarTopInsetClass={titlebarTopInsetClass}
         titlebarLeftInsetClass={titlebarLeftInsetClass}
         titlebarContent={(
           <MainLayoutTitlebarContent
@@ -313,7 +331,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         onMouseDown={props.onTitlebarMouseDown}
       />
 
-      <div className="relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 pt-14">
+      <div className={`relative z-10 flex min-h-0 flex-1 gap-3 px-3 pb-3 ${shellContentTopPaddingClass}`}>
         {hidePrimaryRail || isAnonymousShell ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
