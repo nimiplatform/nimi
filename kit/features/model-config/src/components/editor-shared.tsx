@@ -120,11 +120,13 @@ export function PlainSelect(props: {
   value: string;
   onChange: (value: string) => void;
   options: ReadonlyArray<{ value: string; label: string }>;
+  'aria-label'?: string;
 }) {
   return (
     <select
       value={props.value}
       onChange={(event) => props.onChange(event.target.value)}
+      aria-label={props['aria-label']}
       className={PLAIN_SELECT_CLASS}
     >
       {props.options.map((option) => (

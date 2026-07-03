@@ -1,8 +1,5 @@
-import { SelectField } from '@nimiplatform/kit/ui';
 import type { TextGenerateParamsState } from '../types.js';
 import {
-  TEXT_GENERATE_DEFAULT_LENGTH,
-  TEXT_GENERATE_DEFAULT_TONE,
   TEXT_GENERATE_LENGTH_OPTIONS,
   TEXT_GENERATE_TONE_OPTIONS,
   TEXT_RESPONSE_STOP_SEQUENCES_MAX,
@@ -15,6 +12,7 @@ import {
   AdvancedRow,
   EditorSectionTitle,
   PlainNumberInput,
+  PlainSelect,
   SliderRow,
 } from './editor-shared.js';
 
@@ -105,9 +103,6 @@ function stopSequencesFromText(text: string): string[] {
     .slice(0, TEXT_RESPONSE_STOP_SEQUENCES_MAX);
 }
 
-const PROMPT_CONTROL_SELECT_CLASS = 'text-[13px] font-medium text-slate-800';
-const PROMPT_CONTROL_SELECT_CONTENT_CLASS = '[&_[role=option]]:text-[13px] [&_[role=option]]:font-medium';
-
 export function TextGenerateParamsEditor(props: TextGenerateParamsEditorProps) {
   const { copy, params } = props;
 
@@ -124,14 +119,21 @@ export function TextGenerateParamsEditor(props: TextGenerateParamsEditorProps) {
   const promptControlsLabel = copy.promptControlsLabel ?? 'Prompt Controls';
   const toneOptions = copy.toneOptions ?? TEXT_GENERATE_TONE_OPTIONS;
   const lengthOptions = copy.lengthOptions ?? TEXT_GENERATE_LENGTH_OPTIONS;
-  const toneSelectOptions = toneOptions.map((option) => ({
-    value: option.value,
-    label: option.label,
-  }));
-  const lengthSelectOptions = lengthOptions.map((option) => ({
-    value: option.value,
-    label: option.label,
-  }));
+  const defaultOption = { value: '', label: copy.defaultPlaceholder ?? 'Default' };
+  const toneSelectOptions = [
+    defaultOption,
+    ...toneOptions.map((option) => ({
+      value: option.value,
+      label: option.label,
+    })),
+  ];
+  const lengthSelectOptions = [
+    defaultOption,
+    ...lengthOptions.map((option) => ({
+      value: option.value,
+      label: option.label,
+    })),
+  ];
 
   return (
     <div className="space-y-6">
@@ -139,23 +141,19 @@ export function TextGenerateParamsEditor(props: TextGenerateParamsEditorProps) {
         <EditorSectionTitle label={promptControlsLabel} />
         <div className="grid grid-cols-2 gap-3">
           <FieldRow label={copy.toneLabel}>
-            <SelectField
+            <PlainSelect
               aria-label={copy.toneLabel}
-              value={params.tone || TEXT_GENERATE_DEFAULT_TONE}
-              onValueChange={(value) => updateParam('tone', value)}
+              value={params.tone}
+              onChange={(value) => updateParam('tone', value)}
               options={toneSelectOptions}
-              selectClassName={PROMPT_CONTROL_SELECT_CLASS}
-              contentClassName={PROMPT_CONTROL_SELECT_CONTENT_CLASS}
             />
           </FieldRow>
           <FieldRow label={copy.lengthLabel}>
-            <SelectField
+            <PlainSelect
               aria-label={copy.lengthLabel}
-              value={params.length || TEXT_GENERATE_DEFAULT_LENGTH}
-              onValueChange={(value) => updateParam('length', value)}
+              value={params.length}
+              onChange={(value) => updateParam('length', value)}
               options={lengthSelectOptions}
-              selectClassName={PROMPT_CONTROL_SELECT_CLASS}
-              contentClassName={PROMPT_CONTROL_SELECT_CONTENT_CLASS}
             />
           </FieldRow>
         </div>

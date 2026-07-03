@@ -19,6 +19,12 @@ export type CanonicalTranscriptVirtualItem =
       isGroupStart: boolean;
     };
 
+export type CanonicalTranscriptDateLabelFormatter = (input: {
+  readonly timestamp: string;
+  readonly date: Date;
+  readonly diffDays: number;
+}) => string;
+
 export function toCanonicalTranscriptRenderContext(input: {
   item: CanonicalTranscriptMessageVisualItem;
   focused: boolean;
@@ -41,7 +47,10 @@ function isSameDay(left: Date, right: Date): boolean {
     && left.getDate() === right.getDate();
 }
 
-function formatDateLabel(input: string): string {
+function formatDateLabel(
+  input: string,
+  formatDateLabelOverride?: CanonicalTranscriptDateLabelFormatter,
+): string {
   const date = new Date(input);
   if (Number.isNaN(date.getTime())) {
     return input;
@@ -50,6 +59,10 @@ function formatDateLabel(input: string): string {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const messageDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diffDays = Math.round((today.getTime() - messageDay.getTime()) / 86400000);
+  const override = formatDateLabelOverride?.({ timestamp: input, date, diffDays });
+  if (override) {
+    return override;
+  }
   if (diffDays === 0) {
     return 'Today';
   }
@@ -61,6 +74,7 @@ function formatDateLabel(input: string): string {
 
 export function buildCanonicalTranscriptVirtualItems(
   messages: readonly ConversationCanonicalMessage[],
+  formatDateLabelOverride?: CanonicalTranscriptDateLabelFormatter,
 ): CanonicalTranscriptVirtualItem[] {
   const groups = buildCanonicalTranscriptMessageGroups(messages);
   const focusGroupIndex = groups.length > 0 && groups[groups.length - 1]?.role === 'assistant'
@@ -74,7 +88,11 @@ export function buildCanonicalTranscriptVirtualItems(
     for (const item of group.items) {
       const messageDate = new Date(item.message.createdAt);
       if (!lastDate || !isSameDay(lastDate, messageDate)) {
-        items.push({ type: 'date', key: `date-${item.message.id}`, label: formatDateLabel(item.message.createdAt) });
+        items.push({
+          type: 'date',
+          key: `date-${item.message.id}`,
+          label: formatDateLabel(item.message.createdAt, formatDateLabelOverride),
+        });
         lastDate = messageDate;
       }
       items.push({ type: 'message', key: item.message.id, item, focused: isFocused, isGroupStart: item.isGroupStart });

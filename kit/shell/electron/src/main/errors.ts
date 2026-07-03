@@ -73,6 +73,10 @@ export function createElectronRuntimeEndpointUnavailableError(
   runtimeEndpoint: string,
   error: unknown,
 ): NimiElectronShellHostError {
+  const runtimeError = classifyRuntimeEndpointError(command, runtimeEndpoint, error);
+  if (runtimeError) {
+    return runtimeError;
+  }
   return new NimiElectronShellHostError({
     code: 'external-daemon-required',
     message: `Electron Runtime endpoint is unavailable for ${normalizeErrorToken(command, 'command')}: ${errorMessage(error)}`,
@@ -84,6 +88,97 @@ export function createElectronRuntimeEndpointUnavailableError(
       cause: errorMessage(error),
     },
   });
+}
+
+function classifyRuntimeEndpointError(
+  command: string,
+  runtimeEndpoint: string,
+  error: unknown,
+): NimiElectronShellHostError | null {
+  const grpcCode = runtimeGrpcCode(error);
+  const message = errorMessage(error);
+  const embedded = parseRuntimeErrorPayload(message);
+  const record = asOptionalRecord(error) ?? {};
+  const reasonCode = normalizeErrorText(
+    embedded.reasonCode
+    ?? embedded.reason_code
+    ?? record.reasonCode
+    ?? record.reason_code,
+  );
+  const actionHint = normalizeErrorText(
+    embedded.actionHint
+    ?? embedded.action_hint
+    ?? record.actionHint
+    ?? record.action_hint,
+  );
+  const normalized = `${grpcCode} ${reasonCode} ${message}`.toLowerCase();
+
+  if (
+    grpcCode === 7
+    || normalized.includes('permission_denied')
+    || normalized.includes('permission denied')
+    || normalized.includes('app_scope_forbidden')
+  ) {
+    return new NimiElectronShellHostError({
+      code: 'runtime-permission-denied',
+      message: `Electron Runtime permission was denied for ${normalizeErrorToken(command, 'command')}: ${message}`,
+      reasonCode: reasonCode || 'RUNTIME_GRPC_PERMISSION_DENIED',
+      actionHint: actionHint || 'authorize_missing_runtime_permission',
+      source: 'runtime',
+      details: {
+        command,
+        runtimeEndpoint,
+        cause: message,
+        grpcCode: Number.isFinite(grpcCode) ? grpcCode : 7,
+      },
+    });
+  }
+
+  if (
+    grpcCode === 16
+    || normalized.includes('unauthenticated')
+    || normalized.includes('principal_unauthenticated')
+  ) {
+    return new NimiElectronShellHostError({
+      code: 'runtime-unauthenticated',
+      message: `Electron Runtime authentication is required for ${normalizeErrorToken(command, 'command')}: ${message}`,
+      reasonCode: reasonCode || 'RUNTIME_GRPC_UNAUTHENTICATED',
+      actionHint: actionHint || 'authenticate_runtime_account',
+      source: 'runtime',
+      details: {
+        command,
+        runtimeEndpoint,
+        cause: message,
+        grpcCode: Number.isFinite(grpcCode) ? grpcCode : 16,
+      },
+    });
+  }
+
+  return null;
+}
+
+function runtimeGrpcCode(error: unknown): number {
+  const record = asOptionalRecord(error);
+  const rawCode = record?.code ?? record?.grpcCode ?? record?.grpc_code;
+  const direct = typeof rawCode === 'number' ? rawCode : Number(rawCode);
+  if (Number.isFinite(direct)) {
+    return direct;
+  }
+  const match = errorMessage(error).match(/^\s*(\d+)\s+(?:[A-Z_]+):/u);
+  return match ? Number(match[1]) : NaN;
+}
+
+function parseRuntimeErrorPayload(message: string): Record<string, unknown> {
+  const start = message.indexOf('{');
+  const end = message.lastIndexOf('}');
+  if (start < 0 || end <= start) {
+    return {};
+  }
+  try {
+    return asOptionalRecord(JSON.parse(message.slice(start, end + 1))) ?? {};
+  } catch {
+    return {};
+  }
 }
 export function normalizeElectronShellAppId(appId: unknown): string {
   const normalized = normalizeErrorText(appId);

@@ -10,6 +10,7 @@ import type {
 import {
   buildCanonicalTranscriptVirtualItems,
   toCanonicalTranscriptRenderContext,
+  type CanonicalTranscriptDateLabelFormatter,
   type CanonicalTranscriptVirtualItem,
 } from './canonical-transcript-virtual-items.js';
 import { CanonicalMessageBubble } from './canonical-message-bubble.js';
@@ -28,6 +29,7 @@ type TranscriptMessageGroupsProps = {
   onPlayVoiceMessage?: (message: ConversationCanonicalMessage) => void;
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: MouseEvent<HTMLButtonElement>) => void;
   onMessageContextMenu?: (message: ConversationCanonicalMessage, event: MouseEvent<HTMLDivElement>) => void;
+  formatDateLabel?: CanonicalTranscriptDateLabelFormatter;
 };
 
 function DateSeparatorRow({ label }: { label: string }) {
@@ -94,7 +96,10 @@ function renderMessageItem(
 }
 
 function NonVirtualizedTranscript(props: TranscriptMessageGroupsProps) {
-  const flatItems = useMemo(() => buildCanonicalTranscriptVirtualItems(props.messages), [props.messages]);
+  const flatItems = useMemo(
+    () => buildCanonicalTranscriptVirtualItems(props.messages, props.formatDateLabel),
+    [props.formatDateLabel, props.messages],
+  );
   return (
     <>
       {flatItems.map((vi) => {
@@ -112,7 +117,10 @@ function NonVirtualizedTranscript(props: TranscriptMessageGroupsProps) {
 }
 
 function VirtualizedTranscript(props: TranscriptMessageGroupsProps) {
-  const flatItems = useMemo(() => buildCanonicalTranscriptVirtualItems(props.messages), [props.messages]);
+  const flatItems = useMemo(
+    () => buildCanonicalTranscriptVirtualItems(props.messages, props.formatDateLabel),
+    [props.formatDateLabel, props.messages],
+  );
 
   const estimateSize = useCallback((index: number) => {
     const item = flatItems[index];

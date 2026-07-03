@@ -257,6 +257,7 @@ describe('ChatComposer', () => {
 
     expect(container.querySelector('[data-chat-composer-layout="stacked"]')).toBeTruthy();
     expect(container.querySelector('[data-chat-composer-textarea-row="true"]')).toBeTruthy();
+    expect(container.querySelector('[data-chat-composer-textarea="true"]')?.getAttribute('aria-label')).toBe('Type a message...');
     expect(container.querySelector('[data-chat-composer-toolbar="true"]')).toBeTruthy();
     expect(container.querySelector('[data-chat-composer-toolbar-actions="true"]')).toBeTruthy();
     expect(container.querySelector('[data-chat-composer-toolbar-slot="true"]')).toBeTruthy();

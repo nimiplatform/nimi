@@ -184,6 +184,7 @@ export function ChatComposer<TAttachment = never>({
         isStacked ? 'disabled:bg-transparent' : 'disabled:bg-slate-100',
       )}
       placeholder={placeholder}
+      aria-label={placeholder}
       value={state.text}
       onChange={handleChange}
       onCompositionStart={handleCompositionStart}
@@ -296,17 +297,18 @@ export function ChatComposer<TAttachment = never>({
             </div>
             <div
               data-chat-composer-toolbar="true"
-              className="flex items-center gap-3 px-1"
+              data-chat-composer-toolbar-mode="compact-horizontal"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-1"
             >
               <div
                 data-chat-composer-toolbar-leading="true"
-                className="flex min-w-0 flex-1 items-center gap-2.5"
+                className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1"
               >
-                {leadingSlot ? <div className="flex items-center">{leadingSlot}</div> : null}
+                {leadingSlot ? <div className="flex min-w-0 shrink-0 items-center">{leadingSlot}</div> : null}
                 {hasStackedLeadingActions ? (
                   <div
                     data-chat-composer-toolbar-actions="true"
-                    className="flex min-w-0 items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/75 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]"
+                    className="flex min-w-0 shrink-0 items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/75 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]"
                   >
                     {voiceButtonNode}
                     {toolbarSlot ? (
@@ -316,19 +318,19 @@ export function ChatComposer<TAttachment = never>({
                     ) : null}
                   </div>
                 ) : null}
+                {hasMeta ? (
+                  <div
+                    data-chat-composer-toolbar-meta="true"
+                    className="flex min-w-[88px] flex-1 items-center gap-2 text-[11px] text-slate-400"
+                  >
+                    {modelLabel ? <span className="min-w-0 truncate">{modelLabel}</span> : null}
+                    {sendHint ? <span className="min-w-0 truncate">{sendHint}</span> : null}
+                  </div>
+                ) : null}
               </div>
-              {hasMeta ? (
-                <div
-                  data-chat-composer-toolbar-meta="true"
-                  className="flex min-w-0 flex-1 items-center justify-center gap-3 text-[11px] text-slate-400"
-                >
-                  {modelLabel ? <span className="truncate">{modelLabel}</span> : null}
-                  {sendHint ? <span className="truncate">{sendHint}</span> : null}
-                </div>
-              ) : null}
               <div
                 data-chat-composer-toolbar-trailing="true"
-                className="ml-auto flex shrink-0 items-center justify-end gap-1 rounded-full border border-slate-200/60 bg-white/75 p-1 shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
+                className="flex shrink-0 items-center justify-end gap-1 rounded-full border border-slate-200/60 bg-white/75 p-1 shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
               >
                 {attachmentButtonNode}
                 {sendButtonNode}

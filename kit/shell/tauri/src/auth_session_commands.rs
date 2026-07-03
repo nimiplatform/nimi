@@ -491,6 +491,9 @@ fn clear_legacy_plaintext_dev_session_file() -> Result<(), String> {
     clear_session_file(path.as_path())
 }
 
+// Local first-party account custody is RuntimeAccountService-owned.
+// This command remains registered only as a compatibility fail-closed stub.
+// Do not re-enable the legacy keyring/encrypted-file implementation below.
 pub fn auth_session_load() -> Result<Option<AuthSessionLoadResult>, String> {
     return Err("auth_session_load is disabled for local first-party account truth; use RuntimeAccountService".to_string());
     #[allow(unreachable_code)]
@@ -518,6 +521,9 @@ pub fn auth_session_load() -> Result<Option<AuthSessionLoadResult>, String> {
     }
 }
 
+// Local first-party account custody is RuntimeAccountService-owned.
+// This command remains registered only as a compatibility fail-closed stub.
+// Do not re-enable the legacy keyring/encrypted-file implementation below.
 pub fn auth_session_save(_payload: AuthSessionSavePayload) -> Result<(), String> {
     return Err("auth_session_save is disabled for local first-party account truth; Runtime owns account custody".to_string());
     #[allow(unreachable_code)]
@@ -538,6 +544,9 @@ pub fn auth_session_save(_payload: AuthSessionSavePayload) -> Result<(), String>
     }
 }
 
+// Local first-party account custody is RuntimeAccountService-owned.
+// This command remains registered only as a compatibility fail-closed stub.
+// Do not re-enable the legacy keyring/encrypted-file implementation below.
 pub fn auth_session_clear() -> Result<(), String> {
     return Err("auth_session_clear is disabled for local first-party account truth; use RuntimeAccountService.Logout".to_string());
     #[allow(unreachable_code)]

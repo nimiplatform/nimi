@@ -261,6 +261,8 @@ const requiredStandardShellCapabilityIds = [
 const requiredStandardShellErrorCodes = [
   'capability-unavailable',
   'external-daemon-required',
+  'runtime-permission-denied',
+  'runtime-unauthenticated',
   'forbidden-renderer-access',
   'invalid-path',
   'not-found',

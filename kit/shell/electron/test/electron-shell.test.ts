@@ -4,6 +4,7 @@ import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import {
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
+  createNimiElectronFileAIConfigStore,
   getElectronStandardShellCapabilityIds,
   registerNimiElectronRuntimeBridge,
   type ElectronRuntimeBridgeUnaryRequest,
@@ -1288,6 +1289,33 @@ describe('registerNimiElectronRuntimeBridge', () => {
     })).rejects.toMatchObject({
       code: 'invalid-payload',
       reasonCode: 'electron-ai-config-value-required',
+    });
+  });
+
+  it('provides a file-backed AI Config store for standard shell hosts', async () => {
+    await withTempDir('ai-config-store', async (root) => {
+      const store = createNimiElectronFileAIConfigStore({ dataRoot: root });
+      const scopeRef = 'app:nimi.zhiyu:zhiyu-agent-home';
+      const config = {
+        scopeRef: {
+          kind: 'app',
+          ownerId: 'nimi.zhiyu',
+          surfaceId: 'zhiyu-agent-home',
+        },
+        capabilities: {
+          targetRefs: {
+            'text.generate': { kind: 'local-runtime', profileBindingId: 'local-runtime:text' },
+          },
+          selectedParams: {},
+        },
+        profileOrigin: null,
+      };
+      const encoded = Buffer.from(scopeRef, 'utf8').toString('base64url');
+
+      await expect(store.get({ scopeRef })).resolves.toBeUndefined();
+      await expect(store.set({ scopeRef, config })).resolves.toEqual(config);
+      await expect(store.get({ scopeRef })).resolves.toEqual(config);
+      await expect(readFile(path.join(root, 'ai-config', `${encoded}.json`), 'utf8')).resolves.toContain(scopeRef);
     });
   });
 

@@ -328,6 +328,49 @@ describe('ModelConfigAiModelHub', () => {
     expect(statusPill?.className).toContain('whitespace-nowrap');
   });
 
+  it('normalizes CJK detail titles and exposes a readable back label in section detail chrome', async () => {
+    const service = stubService();
+    const surface: AppModelConfigSurface = {
+      ...makeSurface(service),
+      requirementDeclaration: requirementDeclaration(['image.generate']),
+      i18n: {
+        t: (key, vars) => {
+          const copy: Record<string, string> = {
+            'ModelConfig.section.image.title': '图像',
+            'ModelConfig.hub.detailTitleFormat': '{{section}} 配置',
+            'ModelConfig.hub.backLabel': '返回模型配置',
+            'ModelConfig.hub.activeModelLabel': '当前模型',
+            'ModelConfig.hub.activeModelHint': '点击更换模型',
+          };
+          const value = copy[key] || (typeof vars?.defaultValue === 'string' ? vars.defaultValue : key);
+          return vars
+            ? Object.entries(vars).reduce(
+              (current, [name, replacement]) => current.replaceAll(`{{${name}}}`, String(replacement)),
+              value,
+            )
+            : value;
+        },
+      },
+    };
+    await render(
+      wrap(
+        <ModelConfigAiModelHub
+          surface={surface}
+          profile={emptyProfileController}
+          initialSection="image"
+        />,
+      ),
+    );
+
+    const heading = container?.querySelector('h2');
+    expect(heading?.textContent).toBe('图像配置');
+    expect(container?.textContent).not.toContain('图像 配置');
+
+    const backButton = container?.querySelector('[data-nimi-model-config-back="true"]') as HTMLButtonElement | null;
+    expect(backButton?.textContent).toContain('返回');
+    expect(backButton?.className).toContain('gap-1.5');
+  });
+
   it('labels multiple capability cards in one section by capability instead of a generic active model label', async () => {
     const service = stubService();
     const surface: AppModelConfigSurface = {

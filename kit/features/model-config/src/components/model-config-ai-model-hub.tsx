@@ -76,6 +76,16 @@ function statusToneDotMicroClass(tone: ModelConfigStatusTone): string {
   return 'bg-slate-400';
 }
 
+function normalizeModelConfigDetailTitle(title: string): string {
+  return title.replace(/([\u3400-\u9fff])\s+(配置|設定|设定|組態|组态)/gu, '$1$2');
+}
+
+function shortBackLabel(label: string): string {
+  if (/返回/u.test(label)) return '返回';
+  if (/back/i.test(label)) return 'Back';
+  return label;
+}
+
 function sectionIconPath(section: CanonicalCapabilitySectionId): string {
   switch (section) {
     case 'chat':
@@ -373,10 +383,11 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
         : 'bg-slate-400';
     const showDetailStatusPill = detailTone !== 'ready';
     const sectionTitle = t(`ModelConfig.section.${activeSection}.title`);
-    const detailTitle = t('ModelConfig.hub.detailTitleFormat', {
+    const detailTitle = normalizeModelConfigDetailTitle(t('ModelConfig.hub.detailTitleFormat', {
       section: sectionTitle,
       defaultValue: `${sectionTitle} Configuration`,
-    });
+    }));
+    const detailBackLabel = t('ModelConfig.hub.backLabel');
     const renderDetailDescriptor = (descriptor: CanonicalCapabilityDescriptor, index: number) => {
       const card = (
         <ModelConfigCapabilityDetail
@@ -422,12 +433,13 @@ export function ModelConfigAiModelHub(props: ModelConfigAiModelHubProps) {
               type="button"
               onClick={() => setActiveSection(null)}
               data-nimi-model-config-back="true"
-              aria-label={t('ModelConfig.hub.backLabel')}
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[var(--nimi-text-secondary,#475569)] transition-colors hover:bg-slate-100 hover:text-[var(--nimi-text-primary,#0f172a)]"
+              aria-label={detailBackLabel}
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[12px] font-medium text-[var(--nimi-text-secondary,#475569)] transition-colors hover:bg-slate-100 hover:text-[var(--nimi-text-primary,#0f172a)]"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 19l-7-7 7-7" />
               </svg>
+              <span>{shortBackLabel(detailBackLabel)}</span>
             </button>
           ) : null}
           <h2 className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight text-[var(--nimi-text-primary,#0f172a)]">

@@ -233,3 +233,23 @@ test('Tester product-local persistence consumes Kit core storage helpers', () =>
   assert.doesNotMatch(testerAiConfigStore, /createScopedAISnapshotStore/);
   assert.match(testerContract, /tester product-local persistence consumes Kit core storage helpers/);
 });
+
+test('Tester Electron shell host consumes Kit Electron AI config store', () => {
+  const testerElectronMain = read('apps/tester/src-electron/main.ts');
+
+  assert.match(
+    testerElectronMain,
+    /createNimiElectronFileAIConfigStore/,
+    'Tester Electron main must consume the shared Kit Electron AI config file store',
+  );
+  assert.match(
+    testerElectronMain,
+    /from '@nimiplatform\/kit\/shell\/electron\/main'/,
+    'Tester Electron main must import shell host AI config support from Kit',
+  );
+  assert.doesNotMatch(
+    testerElectronMain,
+    /type NimiElectronAIConfigStore|testerAiConfigPath|isNotFoundError/,
+    'Tester Electron main must not keep a duplicate AI config file-store implementation',
+  );
+});

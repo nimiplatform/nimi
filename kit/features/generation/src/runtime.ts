@@ -11,6 +11,7 @@ import { useGenerationPanel, type UseGenerationPanelResult } from './hooks/use-g
 import type { GenerationRunItem } from './types.js';
 export * from './runtime-ai-consume.js';
 export * from './runtime-image-generate.js';
+export * from './runtime-speech-synthesize.js';
 export type RuntimeGenerationMappedStatus = 'pending' | 'running' | 'completed' | 'failed' | 'timeout' | 'canceled';
 
 export type RuntimeGenerationRequestContext<TInput> = {

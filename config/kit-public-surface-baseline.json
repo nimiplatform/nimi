@@ -193,7 +193,7 @@
         "export type { NimiClientConfig} from '@nimiplatform/sdk';",
         "export type { NimiConversationHistoryBudget, NimiConversationHistoryMessageInput, NimiConversationHistoryTokenCounter, NimiConversationHistoryWindowMeasurement, NimiConversationHistoryWindowResult, NimiConversationMessage, NimiConversationTextAccumulatorSnapshot, } from '@nimiplatform/sdk/features/conversation';",
         "export type { NimiError} from '@nimiplatform/sdk/types';",
-        "export type { NimiImageGenerationCoercedParams, NimiRuntimeImageGenerationInput, NimiRuntimeImageGenerationResult, } from '@nimiplatform/sdk/features/generation';",
+        "export type { NimiImageGenerationCoercedParams, NimiRuntimeImageGenerationInput, NimiRuntimeImageGenerationResult, NimiRuntimeSpeechSynthesisInput, NimiRuntimeSpeechSynthesisResult, } from '@nimiplatform/sdk/features/generation';",
         "export type { NimiJsonObject, NimiJsonValue, NimiMessage, NimiMessagePart, NimiMessageRole, NimiModelRef, NimiRunEvent, } from '@nimiplatform/sdk/contracts';",
         "export type { NimiRuntimeCatalogModelDetail, NimiRuntimeCatalogModelDetailResponse, NimiRuntimeCatalogModelSource, NimiRuntimeCatalogOverlayWarning, NimiRuntimeCatalogPricing, NimiRuntimeCatalogProviderModelsResponse, NimiRuntimeCatalogSourceRef, NimiRuntimeCatalogVideoGeneration, NimiRuntimeCatalogVoiceEntry, NimiRuntimeCatalogWorkflowBinding, NimiRuntimeCatalogWorkflowModel, NimiRuntimeCatalogModelSummary, NimiRuntimeModelCatalogClient, NimiRuntimeModelCatalogConnectorClient, NimiRuntimeModelCatalogProvider, NimiRuntimeModelCatalogProviderSource, NimiListRuntimeRouteOptionsInput, NimiRuntimeCanonicalCapability, NimiRuntimeRouteOptionsClient, NimiRuntimeRouteOptionsSnapshot, NimiRuntimeRouteTargetRef, NimiRuntimeTargetInventoryItem, RuntimeTargetInventoryProjection, NimiRuntimeScenarioArtifact, NimiRuntimeScenarioJob, NimiRuntimeScenarioJobClient, NimiRuntimeScenarioJobResult, NimiRuntimeScenarioJobSubmitRequest, NimiRuntimeSpeechVoiceReference} from '@nimiplatform/sdk/runtime';",
         "export type { ReadArtifactBytesResponse, RuntimeTypedCallOptions, ScenarioArtifact, ScenarioExtension, ScenarioJob, } from '@nimiplatform/sdk/runtime/generated';",
@@ -207,9 +207,9 @@
         "export { NimiClient, createNimiClient} from '@nimiplatform/sdk';",
         "export { Runtime, createNimiRuntimeModelCatalogClient, getNimiRuntimeReasonCodeMessage, listNimiRuntimeRouteOptions, NIMI_RUNTIME_REASON_CODES, runNimiRuntimeScenarioJob, runtimeNimiRouteCapabilitiesMatch} from '@nimiplatform/sdk/runtime';",
         "export { asNimiError, createNimiError, isNimiError, ReasonCode} from '@nimiplatform/sdk/types';",
-        "export { coerceNimiImageGenerationParams, runNimiRuntimeImageGeneration, } from '@nimiplatform/sdk/features/generation';",
+        "export { coerceNimiImageGenerationParams, requireNimiRuntimeVoiceReferenceForLocalTts, runNimiRuntimeImageGeneration, runNimiRuntimeSpeechSynthesis, toNimiRuntimeVoiceReferenceFromInput, } from '@nimiplatform/sdk/features/generation';",
         "export { dataPart, textPart, } from '@nimiplatform/sdk/contracts';",
-        "export { fromNimiRuntimeProtoStruct, toNimiRuntimeProtoStruct, } from '@nimiplatform/sdk/runtime';"
+        "export { fromNimiRuntimeProtoStruct, toNimiRuntimeVoiceReference, toNimiRuntimeProtoStruct, } from '@nimiplatform/sdk/runtime';"
       ]
     },
     {
@@ -529,6 +529,7 @@
       "exportKey": "./features/chat/components/canonical-composer",
       "source": "kit/features/chat/src/components/canonical-composer.tsx",
       "exports": [
+        "const CANONICAL_COMPOSER_SURFACE_WIDTH_CLASS",
         "function CanonicalComposer",
         "type CanonicalComposerProps"
       ]
@@ -1019,6 +1020,7 @@
       "exports": [
         "export * from './runtime-ai-consume.js';",
         "export * from './runtime-image-generate.js';",
+        "export * from './runtime-speech-synthesize.js';",
         "function copyArtifactBytesToArrayBuffer",
         "function scenarioJobStatusLabel",
         "function scenarioJobStatusToGenerationStatus",
@@ -1034,6 +1036,7 @@
         "function copyArtifactBytesToArrayBuffer",
         "function runRuntimeAIConsumeCapability",
         "function runRuntimeImageGenerate",
+        "function runRuntimeSpeechSynthesize",
         "function scenarioJobStatusLabel",
         "function scenarioJobStatusToGenerationStatus",
         "function useRuntimeGenerationPanel",
@@ -1063,6 +1066,16 @@
         "type RuntimeImageGenerateTrace",
         "type RuntimeImageGenerateUnavailable",
         "type RuntimeImageGenerateUnavailableReason",
+        "type RuntimeSpeechSynthesizeArtifactSummary",
+        "type RuntimeSpeechSynthesizeInput",
+        "type RuntimeSpeechSynthesizeOutput",
+        "type RuntimeSpeechSynthesizeResult",
+        "type RuntimeSpeechSynthesizeRuntime",
+        "type RuntimeSpeechSynthesizeScopeRunner",
+        "type RuntimeSpeechSynthesizeSuccess",
+        "type RuntimeSpeechSynthesizeTrace",
+        "type RuntimeSpeechSynthesizeUnavailable",
+        "type RuntimeSpeechSynthesizeUnavailableReason",
         "type UseRuntimeGenerationPanelOptions",
         "type UseRuntimeGenerationPanelResult"
       ]
@@ -1368,6 +1381,7 @@
       "exportKey": "./shell/electron/main",
       "source": "kit/shell/electron/src/main/index.ts",
       "exports": [
+        "export * from './ai-config-store.js';",
         "export * from './host.js';",
         "export * from './runtime-account-auth.js';",
         "export * from './types.js';"
@@ -1375,6 +1389,7 @@
       "expandedExports": [
         "class NimiElectronShellHostError",
         "export { assertAllowedElectronRendererOrigin, assertAllowedElectronRendererUrl, createElectronCapabilityUnavailableError, createElectronExternalDaemonRequiredError, createElectronRuntimeBridgeCommandNames, createElectronRuntimeBridgeEventName, createElectronRuntimeEndpointUnavailableError, getElectronStandardShellCapabilityIds, isAllowedElectronRendererOrigin, isAllowedElectronRendererUrl, normalizeElectronShellAppId, assertOpaqueElectronLocalAgentRef, };",
+        "function createNimiElectronFileAIConfigStore",
         "function createNimiElectronInstalledAppRuntimeAccountTrustedMetadataProvider",
         "function createNimiElectronRuntimeAccountTrustedMetadataProvider",
         "function registerNimiElectronRuntimeBridge",
@@ -1400,6 +1415,7 @@
         "type NimiElectronCommandHandlerInput",
         "type NimiElectronConfirmDialogPayload",
         "type NimiElectronConfirmDialogResult",
+        "type NimiElectronFileAIConfigStoreOptions",
         "type NimiElectronInstalledAppLaunchBinding",
         "type NimiElectronInstalledAppRuntimeAccountTrustedMetadataProviderInput",
         "type NimiElectronInstalledAppSessionInput",

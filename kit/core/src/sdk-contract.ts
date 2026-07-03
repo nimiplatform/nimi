@@ -177,12 +177,17 @@ export type {
 } from '@nimiplatform/sdk/ai';
 export {
   coerceNimiImageGenerationParams,
+  requireNimiRuntimeVoiceReferenceForLocalTts,
   runNimiRuntimeImageGeneration,
+  runNimiRuntimeSpeechSynthesis,
+  toNimiRuntimeVoiceReferenceFromInput,
 } from '@nimiplatform/sdk/features/generation';
 export type {
   NimiImageGenerationCoercedParams,
   NimiRuntimeImageGenerationInput,
   NimiRuntimeImageGenerationResult,
+  NimiRuntimeSpeechSynthesisInput,
+  NimiRuntimeSpeechSynthesisResult,
 } from '@nimiplatform/sdk/features/generation';
 export type {
   NimiJsonObject,
@@ -199,6 +204,7 @@ export {
 } from '@nimiplatform/sdk/contracts';
 export {
   fromNimiRuntimeProtoStruct,
+  toNimiRuntimeVoiceReference,
   toNimiRuntimeProtoStruct,
 } from '@nimiplatform/sdk/runtime';
 export type {

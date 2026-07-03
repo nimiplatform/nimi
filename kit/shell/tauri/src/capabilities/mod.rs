@@ -23,6 +23,8 @@ pub const STANDARD_SHELL_CAPABILITY_IDS: &[&str] = &[
 pub const STANDARD_SHELL_ERROR_CODES: &[&str] = &[
     "capability-unavailable",
     "external-daemon-required",
+    "runtime-permission-denied",
+    "runtime-unauthenticated",
     "forbidden-renderer-access",
     "invalid-path",
     "not-found",
@@ -53,6 +55,8 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 negative_states: &[
                     "capability-unavailable",
                     "external-daemon-required",
+                    "runtime-permission-denied",
+                    "runtime-unauthenticated",
                     "invalid-payload",
                     "host-internal-error",
                 ],
@@ -63,6 +67,8 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 negative_states: &[
                     "capability-unavailable",
                     "external-daemon-required",
+                    "runtime-permission-denied",
+                    "runtime-unauthenticated",
                     "invalid-payload",
                     "host-internal-error",
                 ],
@@ -85,7 +91,12 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
             StandardShellOperation {
                 id: "status",
                 command: "nimi.shell.runtimeLifecycle.status",
-                negative_states: &["capability-unavailable", "external-daemon-required"],
+                negative_states: &[
+                    "capability-unavailable",
+                    "external-daemon-required",
+                    "runtime-permission-denied",
+                    "runtime-unauthenticated",
+                ],
             },
             StandardShellOperation {
                 id: "start",

@@ -1,6 +1,8 @@
 export const NIMI_STANDARD_SHELL_ERROR_CODES = [
   'capability-unavailable',
   'external-daemon-required',
+  'runtime-permission-denied',
+  'runtime-unauthenticated',
   'forbidden-renderer-access',
   'invalid-path',
   'not-found',

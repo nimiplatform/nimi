@@ -81,34 +81,15 @@ function setInputValue(input: HTMLInputElement, next: string) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-async function chooseSelectOption(ariaLabel: string, optionText: string) {
-  const trigger = Array.from(container?.querySelectorAll('button') || [])
-    .find((button) => button.getAttribute('aria-label') === ariaLabel);
-  expect(trigger).toBeTruthy();
-
-  await act(async () => {
-    trigger?.focus();
-    trigger?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }));
-    trigger?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-    await flush();
-    await flush();
-  });
-
-  const option = Array.from(document.querySelectorAll('[role="option"]'))
-    .find((node) => node.textContent?.includes(optionText));
-  expect(option).toBeTruthy();
-
-  await act(async () => {
-    option?.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0 }));
-    option?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    await flush();
-    await flush();
-  });
+function setSelectValue(select: HTMLSelectElement, next: string) {
+  select.value = next;
+  select.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 describe('TextGenerateParamsEditor', () => {
   it('propagates temperature updates and renders required field labels', async () => {
     let next: TextGenerateParamsState = { ...DEFAULT_TEXT_GENERATE_PARAMS };
+    let updateCount = 0;
     await render(
       <TextGenerateParamsEditor
         copy={{
@@ -124,17 +105,29 @@ describe('TextGenerateParamsEditor', () => {
           stopSequencesLabel: 'Stop sequences',
           presencePenaltyLabel: 'Presence penalty',
           frequencyPenaltyLabel: 'Frequency penalty',
+          defaultPlaceholder: 'Default',
         }}
         params={next}
-        onParamsChange={(value) => { next = value; }}
+        onParamsChange={(value) => {
+          updateCount += 1;
+          next = value;
+        }}
       />,
     );
+    expect(updateCount).toBe(0);
     expect(container?.textContent).toContain('Tone');
+    const toneSelect = container?.querySelector('select[aria-label="Tone"]') as HTMLSelectElement | null;
+    expect(toneSelect).toBeTruthy();
+    expect(toneSelect?.value).toBe('');
+    expect(toneSelect?.textContent).toContain('Default');
+    expect(toneSelect?.textContent).not.toContain('Invalid empty option');
     const toneTrigger = Array.from(container?.querySelectorAll('button') || [])
       .find((button) => button.getAttribute('aria-label') === 'Tone');
-    expect(toneTrigger).toBeTruthy();
-    expect(toneTrigger?.textContent).toContain('Clear');
-    await chooseSelectOption('Tone', 'Warm');
+    expect(toneTrigger).toBeFalsy();
+    await act(async () => {
+      setSelectValue(toneSelect!, 'warm');
+      await flush();
+    });
     expect(next.tone).toBe('warm');
     expect(container?.textContent).toContain('Temperature');
     expect(container?.textContent).toContain('Stop sequences');

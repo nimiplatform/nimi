@@ -9,6 +9,7 @@ import type {
 import { TranscriptMessageGroups } from './canonical-transcript-message-groups.js';
 import { CanonicalTypingBubble } from './canonical-typing-bubble.js';
 import { CANONICAL_STAGE_SURFACE_WIDTH_CLASS } from './canonical-conversation-pane.js';
+import type { CanonicalTranscriptDateLabelFormatter } from './canonical-transcript-virtual-items.js';
 
 const TRANSCRIPT_SWITCH_DELTA_THRESHOLD = 300;
 const TRANSCRIPT_SWITCH_WINDOW_MS = 600;
@@ -48,6 +49,7 @@ export type CanonicalTranscriptViewProps = {
   renderMessageContent?: CanonicalMessageContentSlot;
   renderMessageAvatar?: CanonicalMessageAvatarSlot;
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
+  formatDateLabel?: CanonicalTranscriptDateLabelFormatter;
   voicePlayingMessageId?: string | null;
   isVoiceTranscriptVisible?: (message: ConversationCanonicalMessage) => boolean;
   disableRpContent?: boolean;
@@ -88,6 +90,7 @@ export function CanonicalTranscriptView({
   renderMessageContent,
   renderMessageAvatar,
   renderMessageAccessory,
+  formatDateLabel,
   voicePlayingMessageId = null,
   isVoiceTranscriptVisible,
   disableRpContent,
@@ -275,14 +278,15 @@ export function CanonicalTranscriptView({
 
         {!loading && !error && !content && messages.length > 0 ? (
           <section>
-            <TranscriptMessageGroups
-              messages={messages}
-              scrollRef={scrollRootRef}
-              renderMessageContent={renderMessageContent}
-              renderMessageAvatar={renderMessageAvatar}
-              renderMessageAccessory={renderMessageAccessory}
-              voicePlayingMessageId={voicePlayingMessageId}
-              isVoiceTranscriptVisible={isVoiceTranscriptVisible}
+          <TranscriptMessageGroups
+            messages={messages}
+            scrollRef={scrollRootRef}
+            renderMessageContent={renderMessageContent}
+            renderMessageAvatar={renderMessageAvatar}
+            renderMessageAccessory={renderMessageAccessory}
+            formatDateLabel={formatDateLabel}
+            voicePlayingMessageId={voicePlayingMessageId}
+            isVoiceTranscriptVisible={isVoiceTranscriptVisible}
               disableRpContent={disableRpContent}
               onPlayVoiceMessage={onPlayVoiceMessage}
               onVoiceContextMenu={onVoiceContextMenu}

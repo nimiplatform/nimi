@@ -227,14 +227,15 @@ export function AvatarStage({
       </div>
       {showStatusBadge && badgeLabel ? (
         <span
+          data-avatar-stage-status-badge="true"
           className={cn(
-            'absolute bottom-[-10px] left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full border font-semibold shadow-[0_10px_24px_rgba(15,23,42,0.08)]',
+            'absolute bottom-[-10px] left-1/2 inline-flex max-w-[calc(100%+2rem)] min-w-0 -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border font-semibold shadow-[0_10px_24px_rgba(15,23,42,0.08)]',
             toneStyle.badge,
             sizeClass.badge,
           )}
         >
-          <span className={cn('inline-block h-2 w-2 rounded-full bg-current opacity-70', phase === 'thinking' || phase === 'speaking' ? 'animate-pulse' : '')} />
-          <span className={sizeClass.title}>{badgeLabel}</span>
+          <span className={cn('inline-block h-2 w-2 shrink-0 rounded-full bg-current opacity-70', phase === 'thinking' || phase === 'speaking' ? 'animate-pulse' : '')} />
+          <span data-avatar-stage-status-label="true" className={cn(sizeClass.title, 'min-w-0 truncate leading-none')}>{badgeLabel}</span>
         </span>
       ) : null}
     </div>
