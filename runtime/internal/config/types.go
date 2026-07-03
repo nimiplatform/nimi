@@ -18,18 +18,18 @@ const (
 
 // Config defines daemon boot configuration. (K-DAEMON-009)
 type Config struct {
-	GRPCAddr              string
-	HTTPAddr              string
-	ShutdownTimeout       time.Duration
-	LocalStatePath        string
-	LocalModelsPath       string
+	GRPCAddr        string
+	HTTPAddr        string
+	ShutdownTimeout time.Duration
+	LocalStatePath  string
+	LocalModelsPath string
 
 	// RuntimeID is the stable local Runtime daemon identity, generated once at
 	// config init and immutable thereafter. (K-CFG-018)
 	RuntimeID string
 
-	DataRootRef           string
-	ManagedRoots          ManagedRootsConfig
+	DataRootRef  string
+	ManagedRoots ManagedRootsConfig
 
 	// LocalService declares the Runtime local service posture. (K-CFG-018)
 	LocalService LocalServiceConfig
@@ -126,6 +126,11 @@ type Config struct {
 	// AccountTokenURL is an explicit RuntimeAccountService OAuth token endpoint
 	// override for staging/test environments.
 	AccountTokenURL string
+
+	// SourceMaterializationPacketHMACSecret is the Runtime-owned verifier
+	// secret for Realm-issued source materialization packet proofs. Empty means
+	// Runtime rejects source materialization fail-closed.
+	SourceMaterializationPacketHMACSecret string
 
 	// Providers holds the parsed config.json providers section for cloud connector
 	// auto-registration at startup.
@@ -242,21 +247,22 @@ type FileConfig struct {
 	DefaultLocalTextModel  string                  `json:"defaultLocalTextModel,omitempty"`
 	DefaultCloudProvider   string                  `json:"defaultCloudProvider,omitempty"`
 
-	AIHealthIntervalSeconds *int   `json:"aiHealthIntervalSeconds,omitempty"`
-	AIHTTPTimeoutSeconds    *int   `json:"aiHttpTimeoutSeconds,omitempty"`
-	GlobalConcurrencyLimit  *int   `json:"globalConcurrencyLimit,omitempty"`
-	PerAppConcurrencyLimit  *int   `json:"perAppConcurrencyLimit,omitempty"`
-	IdempotencyCapacity     *int   `json:"idempotencyCapacity,omitempty"`
-	MaxDelegationDepth      *int   `json:"maxDelegationDepth,omitempty"`
-	AuditRingBufferSize     *int   `json:"auditRingBufferSize,omitempty"`
-	UsageStatsBufferSize    *int   `json:"usageStatsBufferSize,omitempty"`
-	LocalAuditCapacity      *int   `json:"localAuditCapacity,omitempty"`
-	SessionTTLMinSeconds    *int   `json:"sessionTtlMinSeconds,omitempty"`
-	SessionTTLMaxSeconds    *int   `json:"sessionTtlMaxSeconds,omitempty"`
-	ModelCatalogCustomDir   string `json:"modelCatalogCustomDir,omitempty"`
-	AppRegistryPath         string `json:"appRegistryPath,omitempty"`
-	AppBundledArtifactsRoot string `json:"appBundledArtifactsRoot,omitempty"`
-	LogLevel                string `json:"logLevel,omitempty"`
+	AIHealthIntervalSeconds               *int   `json:"aiHealthIntervalSeconds,omitempty"`
+	AIHTTPTimeoutSeconds                  *int   `json:"aiHttpTimeoutSeconds,omitempty"`
+	GlobalConcurrencyLimit                *int   `json:"globalConcurrencyLimit,omitempty"`
+	PerAppConcurrencyLimit                *int   `json:"perAppConcurrencyLimit,omitempty"`
+	IdempotencyCapacity                   *int   `json:"idempotencyCapacity,omitempty"`
+	MaxDelegationDepth                    *int   `json:"maxDelegationDepth,omitempty"`
+	AuditRingBufferSize                   *int   `json:"auditRingBufferSize,omitempty"`
+	UsageStatsBufferSize                  *int   `json:"usageStatsBufferSize,omitempty"`
+	LocalAuditCapacity                    *int   `json:"localAuditCapacity,omitempty"`
+	SessionTTLMinSeconds                  *int   `json:"sessionTtlMinSeconds,omitempty"`
+	SessionTTLMaxSeconds                  *int   `json:"sessionTtlMaxSeconds,omitempty"`
+	ModelCatalogCustomDir                 string `json:"modelCatalogCustomDir,omitempty"`
+	AppRegistryPath                       string `json:"appRegistryPath,omitempty"`
+	AppBundledArtifactsRoot               string `json:"appBundledArtifactsRoot,omitempty"`
+	LogLevel                              string `json:"logLevel,omitempty"`
+	SourceMaterializationPacketHMACSecret string `json:"sourceMaterializationPacketHmacSecret,omitempty"`
 
 	Auth       *FileConfigAuth              `json:"auth,omitempty"`
 	Providers  map[string]RuntimeFileTarget `json:"providers,omitempty"`

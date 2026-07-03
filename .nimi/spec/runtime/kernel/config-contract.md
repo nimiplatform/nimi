@@ -50,6 +50,13 @@ provider 对应 `baseUrl/apiKey` 的环境变量绑定以 `provider-probe-target
 
 对 public CLI first-run 而言，interactive credential capture 若发生，用户粘贴的 provider key 必须立即写入 canonical machine config，使同一条 onboarding `run` 不以“仅本次 inline memory credential”作为成功条件。该路径仍必须提示 inline secret 风险并继续推荐 `apiKeyEnv` / secure-store；写入失败必须 fail-close，不得继续执行 cloud generation。当前 invocation 可继续携带 inline metadata 给已运行 daemon，以避免假定 daemon 已热重载配置，但持久化结果必须以 canonical config 为准。
 
+The top-level `sourceMaterializationPacketHmacSecret` field is Runtime-owned
+verifier material for Realm-issued source materialization packet HMAC proofs.
+RuntimeAgent may consume only the resolved Runtime config value; Desktop, SDK,
+and app callers must not read, derive, or transmit this secret as
+materialization payload. Empty verifier material rejects source materialization
+fail-closed.
+
 ## K-CFG-012 Default Value Governance
 
 默认值必须在 kernel 表格中有可追溯来源，不允许散落在实现层文档。

@@ -33,6 +33,7 @@ surfaces:
   - auth.jwt.jwksUrl
   - auth.jwt.revocationUrl
   - auth.developerRegistration.enabled
+  - sourceMaterializationPacketHmacSecret
   - providers
   - engines.llama.enabled
   - engines.llama.version
@@ -283,6 +284,14 @@ fields:
     reload: restart
     description: 本地开发者注册门（K-AUTHSVC-014）；为 true 时 RegisterApp 才放行带 developer_registration 标记的未准入本地 app，默认 false fail-close。由 Desktop「本地 app 测试」开关经配置同步写入
     source_rule: K-AUTHSVC-014
+
+  - key: sourceMaterializationPacketHmacSecret
+    type: string
+    default: ""
+    reload: restart
+    description: Runtime-owned verifier secret for Realm-issued source materialization packet HMAC proofs; empty means source materialization rejects fail-closed
+    source_rule: K-CFG-011
+    authority_note: Desktop and SDK callers must not read, derive, or transmit this secret as product payload; RuntimeAgent consumes the resolved Runtime config value only.
 
   - key: providers
     type: map

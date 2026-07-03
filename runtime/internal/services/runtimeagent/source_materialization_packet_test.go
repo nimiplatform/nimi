@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -66,6 +67,56 @@ func TestInitializeAgentConsumesSourceMaterializationPacketWithoutPersistingPayl
 	}
 	if got := sourceMaterialization.GetFields()["runtimeSourceRef"].GetStringValue(); got != runtimeSourceRef {
 		t.Fatalf("runtimeSourceRef provenance = %q, want %q", got, runtimeSourceRef)
+	}
+}
+
+func TestInitializeAgentUsesConfiguredSourceMaterializationPacketSecretWithoutEnv(t *testing.T) {
+	signingSecret := "unit-test-source-packet-secret"
+	t.Setenv(sourceMaterializationHMACSecretEnv, signingSecret)
+	svc := newRuntimeAgentTestService(t)
+	svc.SetSourceMaterializationPacketHMACSecret(signingSecret)
+	ownerID := "user-source"
+	runtimeSourceRef := "runtime-source:worldCharacter:world-1:source-1:hash-1"
+	packet := testSourceMaterializationPacket(t, ownerID, runtimeSourceRef, "nonce-configured-secret", time.Now().UTC().Add(5*time.Minute), sourceMaterializationAudienceDesktop)
+	t.Setenv(sourceMaterializationHMACSecretEnv, "")
+
+	resp, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
+		OwnerUserId:      ownerID,
+		RuntimeSourceRef: runtimeSourceRef,
+		DisplayName:      "Configured Source Fork",
+		Metadata:         testSourceMaterializationMetadata(t, packet),
+	})
+	if err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	localAgentRef := resp.GetAgent().GetLocalAgentRef()
+	if !strings.HasPrefix(localAgentRef, localAgentRefPrefix) {
+		t.Fatalf("localAgentRef = %q, want Runtime local-agent prefix", localAgentRef)
+	}
+}
+
+func TestInitializeAgentRejectsSourceMaterializationWithoutConfiguredVerifierSecret(t *testing.T) {
+	signingSecret := "unit-test-source-packet-secret"
+	t.Setenv(sourceMaterializationHMACSecretEnv, signingSecret)
+	ownerID := "user-source"
+	runtimeSourceRef := "runtime-source:worldCharacter:world-1:source-1:hash-1"
+	packet := testSourceMaterializationPacket(t, ownerID, runtimeSourceRef, "nonce-missing-configured-secret", time.Now().UTC().Add(5*time.Minute), sourceMaterializationAudienceDesktop)
+	t.Setenv(sourceMaterializationHMACSecretEnv, "")
+	svc := newRuntimeAgentTestService(t)
+
+	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
+		OwnerUserId:      ownerID,
+		RuntimeSourceRef: runtimeSourceRef,
+		DisplayName:      "Missing Configured Source Fork",
+		Metadata:         testSourceMaterializationMetadata(t, packet),
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("status.Code = %s, want %s (%v)", status.Code(err), codes.FailedPrecondition, err)
+	}
+	if strings.Contains(err.Error(), sourceMaterializationHMACSecretEnv) {
+		t.Fatalf("verifier configuration error exposed env key: %v", err)
 	}
 }
 
@@ -342,7 +393,7 @@ func testSourceMaterializationPacket(
 	if err != nil {
 		t.Fatalf("hashCanonicalJSON(packet): %v", err)
 	}
-	packetProof, err := signSourceMaterializationPacketProof(packetHash, ownerID, nonce, audience)
+	packetProof, err := signSourceMaterializationPacketProof(testSourceMaterializationHMACSecret(t), packetHash, ownerID, nonce, audience)
 	if err != nil {
 		t.Fatalf("signSourceMaterializationPacketProof: %v", err)
 	}
@@ -376,10 +427,19 @@ func refreshTestSourceMaterializationPacketSignature(t *testing.T, packet map[st
 	if !ok {
 		t.Fatalf("nonce must be a string")
 	}
-	packetProof, err := signSourceMaterializationPacketProof(packetHash, ownerID, nonce, audience)
+	packetProof, err := signSourceMaterializationPacketProof(testSourceMaterializationHMACSecret(t), packetHash, ownerID, nonce, audience)
 	if err != nil {
 		t.Fatalf("signSourceMaterializationPacketProof: %v", err)
 	}
 	packet["packetHash"] = packetHash
 	packet["packetProof"] = packetProof
+}
+
+func testSourceMaterializationHMACSecret(t *testing.T) string {
+	t.Helper()
+	secret := strings.TrimSpace(os.Getenv(sourceMaterializationHMACSecretEnv))
+	if secret == "" {
+		t.Fatalf("%s test signing secret is required", sourceMaterializationHMACSecretEnv)
+	}
+	return secret
 }

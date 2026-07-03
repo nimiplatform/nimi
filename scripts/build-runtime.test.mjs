@@ -19,6 +19,15 @@ test('build-runtime signs only the current runtime binary', () => {
   assert.doesNotMatch(buildRuntimeSource, /signTargets/);
 });
 
+test('build-runtime reports a running Windows runtime binary before signing', () => {
+  assert.match(buildRuntimeSource, /findWindowsRuntimeBinaryOwners/);
+  assert.match(buildRuntimeSource, /Get-CimInstance Win32_Process/);
+  assert.match(buildRuntimeSource, /assertWindowsRuntimeBinaryNotRunning\(outputPath\)/);
+  assert.match(buildRuntimeSource, /cannot rebuild runtime binary/);
+  assert.match(buildRuntimeSource, /Stop the running runtime first/);
+  assert.match(buildRuntimeSource, /pnpm dev:runtime/);
+});
+
 test('windows go test signer shares the runtime development signing helper', () => {
   assert.match(goTestSignerSource, /windows-dev-signing\.ps1/);
   assert.match(goTestSignerSource, /-Mode Sign/);

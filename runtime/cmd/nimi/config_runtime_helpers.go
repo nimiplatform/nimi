@@ -84,6 +84,9 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if v := strings.TrimSpace(raw.AppRegistryPath); v != "" {
 		merged.AppRegistryPath = v
 	}
+	if v := strings.TrimSpace(raw.SourceMaterializationPacketHMACSecret); v != "" {
+		merged.SourceMaterializationPacketHMACSecret = v
+	}
 	if raw.Auth != nil && raw.Auth.JWT != nil {
 		if merged.Auth == nil {
 			merged.Auth = &config.FileConfigAuth{}

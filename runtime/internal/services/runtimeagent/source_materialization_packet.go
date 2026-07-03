@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -58,6 +57,7 @@ func verifySourceMaterializationPacketForInitialize(
 	reqMetadata *structpb.Struct,
 	identity localAgentIdentity,
 	now time.Time,
+	sourceMaterializationPacketHMACSecret string,
 ) (*verifiedSourceMaterializationPacket, error) {
 	if !runtimeSourceRequiresMaterializationPacket(identity.RuntimeSourceRef) {
 		return nil, nil
@@ -71,7 +71,7 @@ func verifySourceMaterializationPacketForInitialize(
 		return nil, status.Error(codes.InvalidArgument, "source materialization packet must be an object")
 	}
 	packet := packetStruct.AsMap()
-	verified, err := verifySourceMaterializationPacketObject(packet, identity, now)
+	verified, err := verifySourceMaterializationPacketObject(packet, identity, now, sourceMaterializationPacketHMACSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +82,7 @@ func verifySourceMaterializationPacketObject(
 	packet map[string]any,
 	identity localAgentIdentity,
 	now time.Time,
+	sourceMaterializationPacketHMACSecret string,
 ) (*verifiedSourceMaterializationPacket, error) {
 	schemaVersion, err := requiredPacketString(packet, "packetSchemaVersion")
 	if err != nil {
@@ -191,7 +192,13 @@ func verifySourceMaterializationPacketObject(
 	if computedHash != packetHash {
 		return nil, status.Error(codes.PermissionDenied, "source materialization packet hash mismatch")
 	}
-	expectedProof, err := signSourceMaterializationPacketProof(packetHash, identity.OwnerUserID, nonce, audience)
+	expectedProof, err := signSourceMaterializationPacketProof(
+		sourceMaterializationPacketHMACSecret,
+		packetHash,
+		identity.OwnerUserID,
+		nonce,
+		audience,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -267,10 +274,10 @@ func parsePacketTime(raw string, field string) (time.Time, error) {
 	return parsed.UTC(), nil
 }
 
-func signSourceMaterializationPacketProof(packetHash string, ownerID string, nonce string, audience string) (string, error) {
-	secret := strings.TrimSpace(os.Getenv(sourceMaterializationHMACSecretEnv))
+func signSourceMaterializationPacketProof(secret string, packetHash string, ownerID string, nonce string, audience string) (string, error) {
+	secret = strings.TrimSpace(secret)
 	if secret == "" {
-		return "", status.Error(codes.FailedPrecondition, sourceMaterializationHMACSecretEnv+" is required")
+		return "", status.Error(codes.FailedPrecondition, "source materialization packet verifier is not configured")
 	}
 	proofPayloadHash, err := hashCanonicalJSON(map[string]any{
 		"packetHash":              packetHash,

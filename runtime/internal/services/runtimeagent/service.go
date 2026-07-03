@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -46,25 +47,26 @@ type scopedBindingValidator interface {
 type Service struct {
 	runtimev1.UnimplementedRuntimeAgentServiceServer
 
-	logger                    *slog.Logger
-	memorySvc                 *memoryservice.Service
-	backend                   *runtimepersistence.Backend
-	stateRepo                 *runtimeAgentStateRepository
-	chatStateRepo             *publicChatSurfaceStateRepository
-	reviews                   reviewPersistence
-	postures                  behavioralPosturePersistence
-	chatAppEmit               publicChatAppMessageEmitter
-	bindingValidator          scopedBindingValidator
-	aiBridgeMu                sync.RWMutex
-	aiBridge                  *RuntimePrivateAIBridge
-	auditStore                *auditlog.Store
-	delegatedMu               sync.RWMutex
-	delegatedGateway          delegatedCapabilityGateway
-	delegatedFirewall         delegatedOutputFirewall
-	delegatedTransportFactory delegation.TransportFactory
-	delegatedProviderProfiles map[string]*runtimev1.DelegatedProviderProfile
-	delegatedApprovalRequests map[string]*runtimev1.DelegatedApprovalRequest
-	delegatedPausedRequests   map[string]*runtimeAgentPausedDelegatedCapabilityRequest
+	logger                                *slog.Logger
+	memorySvc                             *memoryservice.Service
+	backend                               *runtimepersistence.Backend
+	stateRepo                             *runtimeAgentStateRepository
+	chatStateRepo                         *publicChatSurfaceStateRepository
+	reviews                               reviewPersistence
+	postures                              behavioralPosturePersistence
+	chatAppEmit                           publicChatAppMessageEmitter
+	bindingValidator                      scopedBindingValidator
+	aiBridgeMu                            sync.RWMutex
+	aiBridge                              *RuntimePrivateAIBridge
+	auditStore                            *auditlog.Store
+	delegatedMu                           sync.RWMutex
+	delegatedGateway                      delegatedCapabilityGateway
+	delegatedFirewall                     delegatedOutputFirewall
+	delegatedTransportFactory             delegation.TransportFactory
+	delegatedProviderProfiles             map[string]*runtimev1.DelegatedProviderProfile
+	delegatedApprovalRequests             map[string]*runtimev1.DelegatedApprovalRequest
+	delegatedPausedRequests               map[string]*runtimeAgentPausedDelegatedCapabilityRequest
+	sourceMaterializationPacketHMACSecret string
 	// voiceLipsync is the K-AGCORE-051/K-VOICE-018 synthesizer path. Default
 	// synthetic output is frame-only and cannot become a playable voice event.
 	voiceLipsync voiceLipsyncSynthesizer
@@ -219,6 +221,13 @@ func (s *Service) SetRealmGroupMessageCandidateExecutor(executor RealmGroupMessa
 	s.realmGroupCandidateMu.Lock()
 	defer s.realmGroupCandidateMu.Unlock()
 	s.realmGroupCandidateExecutor = executor
+}
+
+func (s *Service) SetSourceMaterializationPacketHMACSecret(secret string) {
+	if s == nil {
+		return
+	}
+	s.sourceMaterializationPacketHMACSecret = strings.TrimSpace(secret)
 }
 
 func (s *Service) StartLifeTrackLoop(parent context.Context) error {

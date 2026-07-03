@@ -44,7 +44,12 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 	r.svc.mu.RUnlock()
 
 	now := time.Now().UTC()
-	verifiedPacket, err := verifySourceMaterializationPacketForInitialize(req.GetMetadata(), identity, now)
+	verifiedPacket, err := verifySourceMaterializationPacketForInitialize(
+		req.GetMetadata(),
+		identity,
+		now,
+		r.svc.sourceMaterializationPacketHMACSecret,
+	)
 	if err != nil {
 		return nil, err
 	}
