@@ -18,6 +18,10 @@ const ExplorePanel = lazy(async () => {
   const mod = await import('@renderer/features/explore/explore-panel');
   return { default: mod.ExplorePanel };
 });
+const AgentsPanel = lazy(async () => {
+  const mod = await import('@renderer/features/agents/agents-panel');
+  return { default: mod.AgentsPanel };
+});
 const AppsPanel = lazy(async () => {
   const mod = await import('@renderer/features/apps/apps-panel');
   return { default: mod.AppsPanel };
@@ -145,6 +149,12 @@ export function MainLayoutPanelStack({
         {activeTab === 'chat' ? (
           <MotionPanelFrame panelId="chat" className="flex min-h-0 flex-1">
             <ChatPage />
+          </MotionPanelFrame>
+        ) : null}
+
+        {activeTab === 'agents' ? (
+          <MotionPanelFrame panelId="agents">
+            <AgentsPanel />
           </MotionPanelFrame>
         ) : null}
 

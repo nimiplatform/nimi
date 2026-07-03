@@ -10,7 +10,7 @@
  *   - D-SUP-008: Support (repair + recovery) is reachable from the degraded
  *     first-run / repair gate.
  *
- * The ordinary primary nav (`Home | Chat | Explore | Apps
+ * The ordinary primary nav (`Home | Chat | Characters | Explore | Apps
  * | Runtime`) must stay unchanged — this file also re-guards that floor.
  */
 
@@ -67,7 +67,7 @@ test('D-SUP-001: support is NOT in the ordinary core nav', () => {
     navConfig.indexOf('export function getQuickNavItems'),
   );
   const coreIds = [...coreNavBlock.matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1]);
-  assert.deepEqual(coreIds, ['home', 'chat', 'explore', 'apps', 'runtime']);
+  assert.deepEqual(coreIds, ['home', 'chat', 'agents', 'explore', 'apps', 'runtime']);
   assert.equal(coreIds.includes('support'), false);
 });
 

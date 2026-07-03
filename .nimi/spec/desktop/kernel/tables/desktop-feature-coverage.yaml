@@ -57,6 +57,7 @@ features:
     covers_tabs:
       - home
       - chat
+      - agents
       - explore
       - apps
       - runtime

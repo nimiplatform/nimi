@@ -11,12 +11,16 @@ Desktop UI Shell 契约。定义导航 Tab 体系、布局结构、路由映射�
 导航由 `navigation-config.tsx` 定义。普通用户 primary navigation 固定为：
 
 ```text
-Home | Chat | Explore | Apps | Runtime
+Home | Chat | Characters | Explore | Apps | Runtime
 ```
 
 Tab 分组：
 
-1. **Core Nav**（`getCoreNavItems()`）：home、chat、explore、apps、runtime。
+1. **Core Nav**（`getCoreNavItems()`）：home、chat、agents、explore、apps、runtime。
+   `agents`（产品 label `Characters` / 「我的角色」）是本地 LocalAgent 列表
+   surface：只投影 runtime `ListAgents` 权威（source-materialized、当前账号
+   拥有的 ACTIVE agent），点击进入既有 `source-detail` dossier。它不得引入
+   renderer-local 的并行 agent 真相。
 2. **Secondary/System**：settings 等系统入口。它们可由菜单、账户区或设置入口打开，
    但不得作为普通 primary nav 项。
 3. **Developer/Internal**：developer mode、diagnostics。这些 surface 不得作为

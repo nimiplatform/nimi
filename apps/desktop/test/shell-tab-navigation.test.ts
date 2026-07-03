@@ -34,6 +34,10 @@ test('D-CONTACTS-000: AppTab type excludes retired contacts page', () => {
   assert.doesNotMatch(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'contacts'/);
 });
 
+test('D-SHELL-001: AppTab type includes agents', () => {
+  assert.match(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'agents'/);
+});
+
 test('D-SHELL-001: AppTab type includes explore', () => {
   assert.match(storeTypesSource, /\bAppTab\b[\s\S]*?\|\s*'explore'/);
 });
@@ -62,10 +66,11 @@ test('D-SHELL-001: core nav source is the product primary order', () => {
   const itemMatches = [...navigationConfigSource.matchAll(/\{\s*id:\s*'([^']+)',\s*label:\s*'([^']+)'/g)];
   const coreIds = itemMatches.map((match) => match[1]);
   const labelsById = new Map(itemMatches.map((match) => [match[1], match[2]]));
-  assert.deepEqual(coreIds, ['home', 'chat', 'explore', 'apps', 'runtime']);
+  assert.deepEqual(coreIds, ['home', 'chat', 'agents', 'explore', 'apps', 'runtime']);
   assert.equal(coreIds.includes('world'), false);
   assert.equal(labelsById.get('runtime'), 'Runtime');
   assert.equal(labelsById.get('apps'), 'Apps');
+  assert.equal(labelsById.get('agents'), 'Characters');
 });
 
 test('D-SHELL-001: core nav is not gated by runtime flag', () => {

@@ -8,9 +8,9 @@
 表面，承载 repair、updates、diagnostics、logs/export、recovery help 五个子区。
 
 `Support` 不是 ordinary primary navigation tab。普通用户 primary navigation 固定
-为 `Home | Chat | Explore | Apps | Runtime`（`D-SHELL-001`）。
+为 `Home | Chat | Characters | Explore | Apps | Runtime`（`D-SHELL-001`）。
 `Support` 与 `Settings` 一样属于 Secondary/System 分组：可由菜单、账户区或
-Settings 入口打开，但不得作为第 7 个 primary nav 项。
+Settings 入口打开，但不得作为额外的 primary nav 项。
 
 `Support` 是一个**独立 surface**（与 Settings 平级），不是 Settings 内的一组
 section。manual 将 `Support` 与 `Settings` 列为平级 §-级标题，acceptance

@@ -165,6 +165,7 @@ export function renderShellNavIcon(icon: string): ReactNode {
 const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: renderShellNavIcon('home') },
   { id: 'chat', label: 'Chat', icon: renderShellNavIcon('chat') },
+  { id: 'agents', label: 'Characters', icon: renderShellNavIcon('agents') },
   { id: 'explore', label: 'Explore', icon: renderShellNavIcon('explore') },
   { id: 'apps', label: 'Apps', icon: renderShellNavIcon('apps') },
   { id: 'runtime', label: 'Runtime', icon: renderShellNavIcon('runtime') },

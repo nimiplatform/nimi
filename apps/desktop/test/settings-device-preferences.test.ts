@@ -213,13 +213,13 @@ test('appearance theme options are exactly system/light/dark', () => {
 /*  Secondary-surface / primary-nav regression guard                  */
 /* ------------------------------------------------------------------ */
 
-test('Settings stays a secondary surface and primary nav stays 5 core items', () => {
+test('Settings stays a secondary surface and primary nav stays 6 core items', () => {
   const appTabsSource = readFileSync(
     path.resolve(desktopDir, '../../.nimi/spec/desktop/kernel/tables/app-tabs.yaml'),
     'utf8',
   );
   const coreMatches = appTabsSource.match(/nav_group:\s*core/g) ?? [];
-  assert.equal(coreMatches.length, 5, 'primary (core) nav must remain exactly 5 items');
+  assert.equal(coreMatches.length, 6, 'primary (core) nav must remain exactly 6 items');
 
   const settingsBlock = appTabsSource.slice(appTabsSource.indexOf('- id: settings'));
   assert.match(

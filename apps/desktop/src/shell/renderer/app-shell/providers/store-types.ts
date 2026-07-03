@@ -32,6 +32,7 @@ export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
 export type AppTab =
   | 'home'
   | 'chat'
+  | 'agents'
   | 'explore'
   | 'apps'
   | 'runtime'
@@ -46,6 +47,10 @@ export type AppTab =
   | 'privacy-policy'
   | 'terms-of-service';
 export type StatusKind = 'info' | 'success' | 'warning' | 'error';
+export type WorldDetailInitialSubpage = 'relationship-explorer';
+export type WorldDetailNavigationOptions = {
+  initialSubpage?: WorldDetailInitialSubpage | null;
+};
 
 export type RuntimeFieldMap = {
   targetType: string;
@@ -97,6 +102,7 @@ export type AppStoreState = {
   selectedProfileIsSource: boolean | null;
   selectedSourceRef: NimiRealmCoreSourceRef | null;
   selectedWorldId: string | null;
+  selectedWorldInitialSubpage: WorldDetailInitialSubpage | null;
   selectedGiftTransactionId: string | null;
   profileDetailOverlayOpen: boolean;
   chatProfilePanelTarget: 'self' | 'other' | null;
@@ -144,7 +150,7 @@ export type AppStoreState = {
   setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
   navigateToProfile: (profileId: string | null, tab: 'profile' | 'source-detail') => void;
   navigateToSourceDetail: (sourceRef: NimiRealmCoreSourceRef) => void;
-  navigateToWorld: (worldId: string) => void;
+  navigateToWorld: (worldId: string, options?: WorldDetailNavigationOptions) => void;
   navigateToGiftInbox: (giftTransactionId?: string | null) => void;
   navigateBack: () => void;
   setStatusBanner: (banner: StatusBanner | null) => void;

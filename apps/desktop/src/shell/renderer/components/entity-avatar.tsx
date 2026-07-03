@@ -11,6 +11,7 @@ type EntityAvatarProps = {
   radiusClassName?: string;
   innerRadiusClassName?: string;
   textClassName?: string;
+  shape?: 'circle' | 'rounded';
 };
 
 const SYNTHETIC_ENTITY_BORDER_STYLE = {
@@ -22,10 +23,11 @@ const SYNTHETIC_ENTITY_BORDER_STYLE = {
 export function EntityAvatar(props: EntityAvatarProps) {
   const sizeClassName = props.sizeClassName || 'h-10 w-10';
   const usesSourceShape = props.kind === 'agent' || props.kind === 'source';
+  const usesRoundedShape = usesSourceShape || props.shape === 'rounded';
   const radiusClassName =
-    props.radiusClassName || (usesSourceShape ? 'rounded-[12px]' : 'rounded-full');
+    props.radiusClassName || (usesRoundedShape ? 'rounded-[12px]' : 'rounded-full');
   const innerRadiusClassName =
-    props.innerRadiusClassName || (usesSourceShape ? 'rounded-[10px]' : 'rounded-full');
+    props.innerRadiusClassName || (usesRoundedShape ? 'rounded-[10px]' : 'rounded-full');
 
   if (usesSourceShape) {
     return (
@@ -49,7 +51,7 @@ export function EntityAvatar(props: EntityAvatarProps) {
     <Avatar
       src={props.imageUrl}
       alt={props.name}
-      shape="circle"
+      shape={props.shape ?? 'circle'}
       tone="neutral"
       className={`${sizeClassName} ${radiusClassName} ${props.className || ''} ${props.imageClassName || ''}`.trim()}
       fallbackClassName={`${props.fallbackClassName || ''} ${props.textClassName || ''}`.trim() || undefined}

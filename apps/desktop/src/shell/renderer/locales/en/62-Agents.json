@@ -1,0 +1,14 @@
+{
+  "title": "My Characters",
+  "subtitle": "Characters you joined, running as local agents on this device.",
+  "searchPlaceholder": "Search characters by name or world...",
+  "signedOutTitle": "Sign in to see your characters",
+  "signedOutDescription": "Your local characters are tied to your account.",
+  "loadErrorTitle": "Failed to load your characters",
+  "loadErrorDescription": "The local runtime did not return your character list.",
+  "emptyTitle": "No characters yet",
+  "emptyDescription": "Join characters from Explore or a world page and they will appear here.",
+  "emptyAction": "Browse Explore",
+  "searchEmptyTitle": "No matching characters",
+  "searchEmptyDescription": "Try a different name or world."
+}

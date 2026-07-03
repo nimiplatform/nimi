@@ -4,6 +4,7 @@ catalog_id: desktop_app_tabs
 entries:
   - home
   - chat
+  - agents
   - explore
   - apps
   - runtime
@@ -23,7 +24,7 @@ entries:
 
 tabs:
   # Ordinary primary navigation. Product target:
-  # Home | Chat | Explore | Apps | Runtime
+  # Home | Chat | Characters | Explore | Apps | Runtime
   - id: home
     nav_group: core
     label: Home
@@ -33,6 +34,12 @@ tabs:
   - id: chat
     nav_group: core
     label: Chat
+    gated_by: null
+    source_rule: D-SHELL-001
+
+  - id: agents
+    nav_group: core
+    label: Characters
     gated_by: null
     source_rule: D-SHELL-001
 
