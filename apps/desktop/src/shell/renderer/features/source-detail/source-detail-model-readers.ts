@@ -117,8 +117,10 @@ export function readExplicitTimeLabel(record: JsonObject | null | undefined): st
     return year;
   }
 
-  const startYear = readYearLabel(record.startYear ?? record.fromYear ?? record.beginYear);
-  const endYear = readYearLabel(record.endYear ?? record.toYear);
+  const startYear = readYearLabel(
+    record.startYear ?? record.fromYear ?? record.beginYear ?? record.firstYear,
+  );
+  const endYear = readYearLabel(record.endYear ?? record.toYear ?? record.lastYear);
   if (startYear && endYear && startYear !== endYear) {
     return `${startYear}-${endYear}`;
   }

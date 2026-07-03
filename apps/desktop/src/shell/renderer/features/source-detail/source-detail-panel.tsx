@@ -5,6 +5,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { realmPersonaSourceMaterializationMessage } from '@renderer/features/explore/realm-persona-source-materialization';
 import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
+import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import {
   sourceDisplayDetailQueryKey,
@@ -20,6 +21,11 @@ export function SourceDetailPanel() {
   const selectedSourceRef = useAppStore((state) => state.selectedSourceRef);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
@@ -65,6 +71,30 @@ export function SourceDetailPanel() {
     }
   };
 
+  const handleStartChat = async () => {
+    if (!source) return;
+    try {
+      const target = await materializeSourceContactLaunchTarget(source, ownerUserId);
+      await ensureRuntimeAgentExists(target);
+      await launchAgentConversationFromDisplay({
+        target,
+        setActiveTab,
+        setChatMode,
+        setSelectedTargetForSource,
+        setAgentConversationSelection,
+        setAgentConversationTargetSnapshot,
+      });
+      setFeedback(null);
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: error instanceof Error
+          ? error.message
+          : i18n.t('Relationship.openChatFailed', { defaultValue: 'Failed to open chat' }),
+      });
+    }
+  };
+
   if (!selectedSourceRef && !sourceIdentifier) {
     return (
       <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
@@ -103,6 +133,9 @@ export function SourceDetailPanel() {
         }}
         onPrimaryAction={() => {
           void handlePrimaryAction();
+        }}
+        onStartChat={() => {
+          void handleStartChat();
         }}
         onSendGift={() => setGiftModalOpen(true)}
       />

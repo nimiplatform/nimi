@@ -5,9 +5,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 (globalThis as { React?: typeof React }).React = React;
 
-import { initI18n } from '../src/shell/renderer/i18n';
+import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
 import { SourceDetailView } from '../src/shell/renderer/features/source-detail/source-detail-view';
 import { toSourceDetailData } from '../src/shell/renderer/features/source-detail/source-detail-model';
+import { simplifySourceDetailChineseText } from '../src/shell/renderer/features/source-detail/source-detail-simplified-chinese';
 
 const liBaiRaw = {
   id: 'cbdb-person-32540',
@@ -49,6 +50,13 @@ const liBaiRaw = {
 
 test.before(async () => {
   await initI18n();
+});
+
+test('world character source detail simplifier covers CBDB relationship prose from character dossier', () => {
+  assert.equal(
+    simplifySourceDetailChineseText('墓誌銘由劉智所作；墓表由毛憲所作；爲王璋所作詩文作序；其生祠由王道清作記；為吳善所著書作序；臨別得到李京所作贈言（送別詩、序）'),
+    '墓志铭由刘智所作；墓表由毛宪所作；为王璋所作诗文作序；其生祠由王道清作记；为吴善所著书作序；临别得到李京所作赠言（送别诗、序）',
+  );
 });
 
 test('world character source detail maps source text rows as works collections only', () => {
@@ -279,17 +287,15 @@ test('world character source detail projects admitted character dossier fields',
   assert.deepEqual(detail.worldCharacter?.sceneRefs, ['ming-literati-network', 'ming-official-career', 'ming-kinship-clan']);
   assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), [
     '嘉靖二年（1523）中进士',
-    '欧阳南野先生文集',
     '官至礼部尚书',
   ]);
   assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.timeLabel), [
     '1523',
-    '1545',
     '1554',
   ]);
-  assert.equal(detail.worldCharacter?.milestones[2]?.kind, 'office');
-  assert.equal(detail.worldCharacter?.milestones[2]?.derived, true);
-  assert.match(detail.worldCharacter?.milestones[2]?.summary ?? '', /掌管国家礼仪与科举事务/);
+  assert.equal(detail.worldCharacter?.milestones[1]?.kind, 'office');
+  assert.equal(detail.worldCharacter?.milestones[1]?.derived, true);
+  assert.match(detail.worldCharacter?.milestones[1]?.summary ?? '', /掌管国家礼仪与科举事务/);
   assert.equal(detail.worldCharacter?.relationshipNotes[0]?.summary, '欧阳德被明确标识为阳明学派理学家，这是其最核心的学术身份。');
   assert.match(detail.worldCharacter?.conversationAnchors.join('\n') ?? '', /想问诗文、仕途还是人生起落/);
 });
@@ -305,12 +311,654 @@ test('world character source detail uses Realm relationship neighborhood for wor
   ]);
   assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), [
     '嘉靖二年（1523）中进士',
-    '欧阳南野先生文集',
     '官至礼部尚书',
   ]);
-  assert.equal(detail.worldCharacter?.milestones[1]?.kind, 'work');
-  assert.equal(detail.worldCharacter?.milestones[1]?.derived, true);
-  assert.match(detail.worldCharacter?.milestones[1]?.summary ?? '', /思想与文学成就/);
+  assert.equal(detail.worldCharacter?.milestones.some((milestone) => milestone.kind === 'work'), false);
+});
+
+test('world character career milestones read CBDB first and last year attributes', () => {
+  const detail = toSourceDetailData({
+    ...ouYangDeRaw,
+    relationships: [
+      {
+        id: 'cbdb-rel-99984-office-1314-academy-1',
+        type: 'postedToOffice',
+        sourceEntityId: 'cbdb-person-99984',
+        targetEntityId: 'cbdb-office-academy',
+        contentHash: 'rel-office-academy-hash',
+        core: {
+          presentation: {
+            summary: '曾任书院山长，主持书院讲学。',
+          },
+          attributes: {
+            firstYear: 1314,
+            lastYear: 1316,
+            officeLabel: '书院山长',
+            rowRef: 'cbdb:POSTED_TO_OFFICE_DATA:99984:1314:1',
+            joinStatus: 'resolved',
+          },
+        },
+      },
+    ],
+  }, 'source_materialization_available');
+
+  const milestone = detail.worldCharacter?.milestones.find((item) => item.title === '书院山长');
+
+  assert.equal(milestone?.kind, 'office');
+  assert.equal(milestone?.timeLabel, '1314-1316');
+});
+
+test('world character career milestones keep repeated office rows while work rows stay in works', () => {
+  const detail = toSourceDetailData({
+    ...ouYangDeRaw,
+    source: {
+      ...ouYangDeRaw.source,
+      biography: {
+        milestones: [],
+      },
+      relationships: [],
+    },
+    relationships: [
+      {
+        id: 'cbdb-rel-office-hanlin-1275-1',
+        type: 'postedToOffice',
+        sourceEntityId: 'cbdb-person-yao-sui',
+        targetEntityId: 'cbdb-office-hanlin',
+        contentHash: 'rel-office-hanlin-1275-1-hash',
+        core: {
+          presentation: {
+            summary: '1275年姚燧入翰林学士院，承担朝廷文字事务。',
+          },
+          attributes: {
+            year: 1275,
+            officeLabel: '翰林学士',
+            rowRef: 'cbdb:POSTED_TO_OFFICE_DATA:yao-sui:hanlin:1',
+            joinStatus: 'resolved',
+          },
+        },
+      },
+      {
+        id: 'cbdb-rel-office-hanlin-1275-2',
+        type: 'postedToOffice',
+        sourceEntityId: 'cbdb-person-yao-sui',
+        targetEntityId: 'cbdb-office-hanlin',
+        contentHash: 'rel-office-hanlin-1275-2-hash',
+        core: {
+          presentation: {
+            summary: '翰林学士任内参与国史院修撰，并与元代文人网络相连。',
+          },
+          attributes: {
+            year: 1275,
+            officeLabel: '翰林学士',
+            rowRef: 'cbdb:POSTED_TO_OFFICE_DATA:yao-sui:hanlin:2',
+            joinStatus: 'resolved',
+          },
+        },
+      },
+      {
+        id: 'cbdb-rel-text-muan-1',
+        type: 'text',
+        sourceEntityId: 'cbdb-person-yao-sui',
+        targetEntityId: 'cbdb-text-muan',
+        contentHash: 'rel-text-muan-1-hash',
+        core: {
+          presentation: {
+            summary: '姚燧著有《牧庵集》，保存其文章与碑志。',
+          },
+          attributes: {
+            year: 1301,
+            textCode: 'muan',
+            titleChn: '牧庵集',
+            rowRef: 'cbdb:BIOG_TEXT_DATA:yao-sui:muan:1',
+            joinStatus: 'resolved',
+          },
+        },
+      },
+      {
+        id: 'cbdb-rel-text-muan-2',
+        type: 'text',
+        sourceEntityId: 'cbdb-person-yao-sui',
+        targetEntityId: 'cbdb-text-muan',
+        contentHash: 'rel-text-muan-2-hash',
+        core: {
+          presentation: {
+            summary: '《牧庵集》也是理解其文学地位的重要作品。',
+          },
+          attributes: {
+            year: 1301,
+            textCode: 'muan',
+            titleChn: '牧庵文集',
+            rowRef: 'cbdb:BIOG_TEXT_DATA:yao-sui:muan:2',
+            joinStatus: 'resolved',
+          },
+        },
+      },
+    ],
+  }, 'source_materialization_available');
+  const milestones = detail.worldCharacter?.milestones ?? [];
+  const officeMilestones = milestones.filter((milestone) => milestone.kind === 'office' && milestone.title === '翰林学士');
+  const workMilestones = milestones.filter((milestone) => milestone.kind === 'work' && milestone.title === '牧庵集');
+
+  assert.equal(officeMilestones.length, 1);
+  assert.equal(workMilestones.length, 0);
+  assert.match(officeMilestones[0]?.summary ?? '', /承担朝廷文字事务/);
+  assert.match(officeMilestones[0]?.summary ?? '', /参与国史院修撰/);
+  assert.deepEqual(detail.works.map((work) => work.title), ['牧庵集']);
+  assert.equal(detail.works[0]?.textId, 'muan');
+  assert.deepEqual(milestones.map((milestone) => milestone.title), ['翰林学士']);
+});
+
+test('world character works collapse duplicated biography and relationship evidence into the best collection card', () => {
+  const detail = toSourceDetailData({
+    ...ouYangDeRaw,
+    source: {
+      ...ouYangDeRaw.source,
+      biography: {
+        milestones: [
+          {
+            milestoneId: 'bio-muan-work',
+            title: '著有《牧庵集》',
+            summary: '著有《牧庵集》',
+            rowRef: 'cbdb:BIOG_WORK:yao-sui:muan:bio',
+            sequence: 1,
+          },
+        ],
+      },
+      relationships: [
+        {
+          relationType: 'text',
+          summary: '姚燧与著作「牧菴集」有关。',
+          attributes: {
+            targetLabel: '牧菴集',
+            rowRef: 'cbdb:TEXT_REL:yao-sui:muan:generic',
+            joinStatus: 'resolved',
+          },
+        },
+      ],
+    },
+    relationships: [
+      {
+        id: 'cbdb-rel-text-muan-best',
+        type: 'text',
+        sourceEntityId: 'cbdb-person-yao-sui',
+        targetEntityId: 'cbdb-text-muan-best',
+        contentHash: 'rel-text-muan-best-hash',
+        core: {
+          presentation: {
+            summary: '《牧庵集》是其文学成就的结晶，奠定了他在元代文坛的领袖地位。',
+          },
+          attributes: {
+            titleChn: '牧庵集',
+            rowRef: 'cbdb:BIOG_TEXT_DATA:yao-sui:muan:best',
+            joinStatus: 'unresolved',
+          },
+        },
+      },
+    ],
+  }, 'source_materialization_available');
+
+  assert.deepEqual(detail.works.map((work) => ({
+    title: work.title,
+    summary: work.summary,
+    status: work.status,
+  })), [
+    {
+      title: '牧庵集',
+      summary: '《牧庵集》是其文学成就的结晶，奠定了他在元代文坛的领袖地位。',
+      status: 'unresolved',
+    },
+  ]);
+});
+
+test('world character source relationships move text works into works instead of career milestones', () => {
+  const detail = toSourceDetailData({
+    ...ouYangDeRaw,
+    source: {
+      ...ouYangDeRaw.source,
+      biography: {
+        milestones: [],
+      },
+      relationships: [
+        {
+          targetRef: 'cbdb-text-xueneng-poems',
+          targetLabel: '薛能诗集',
+          relationType: 'text',
+          relationLabel: '著作',
+          summary: '《薛能诗集》是其诗歌创作的重要结集，是其文学成就的直接体现。',
+        },
+        {
+          targetRef: 'cbdb-text-fancheng',
+          relationType: 'text',
+          relationLabel: '著作',
+          summary: '薛能与著作「繁城集」有关。',
+        },
+      ],
+    },
+    relationships: [],
+  }, 'source_materialization_available');
+
+  assert.deepEqual(detail.works.map((work) => work.title), ['薛能诗集', '繁城集']);
+  assert.match(detail.works[0]?.summary ?? '', /文学成就/);
+  assert.equal(detail.worldCharacter?.milestones.some((milestone) => milestone.kind === 'work'), false);
+  assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), []);
+});
+
+test('world character work-like biography milestones move into works instead of life milestones', () => {
+  const detail = toSourceDetailData({
+    ...ouYangDeRaw,
+    source: {
+      ...ouYangDeRaw.source,
+      biography: {
+        milestones: [
+          {
+            milestoneId: 'xueneng-poems',
+            title: '薛能诗集',
+            summary: '《薛能诗集》是其诗歌创作的重要结集，是其文学成就的直接体现。',
+            sequence: 1,
+          },
+          {
+            milestoneId: 'xueneng-office',
+            title: '咸通年间任同州刺史',
+            summary: '咸通年间任同州刺史。',
+            sequence: 2,
+            timeLabel: '咸通',
+          },
+        ],
+      },
+      relationships: [],
+    },
+    relationships: [],
+  }, 'source_materialization_available');
+
+  assert.deepEqual(detail.works.map((work) => work.title), ['薛能诗集']);
+  assert.match(detail.works[0]?.summary ?? '', /诗歌创作/);
+  assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), [
+    '咸通年间任同州刺史',
+  ]);
+});
+
+test('world character life milestones omit unknown time placeholder', () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    source: {
+      ...ouYangDeRaw.source,
+      biography: {
+        milestones: [
+          {
+            milestoneId: 'untimed-biography-milestone',
+            title: '拜访故友',
+            summary: '与故友重逢。',
+            sequence: 1,
+          },
+        ],
+      },
+      relationships: [],
+    },
+    relationships: [],
+  }, 'source_materialization_available');
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      worldScore: 0,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+      onSendGift: () => {},
+    }),
+  );
+
+  assert.match(markup, /拜访故友/);
+  assert.doesNotMatch(markup, /Time unknown|未标注/);
+});
+
+test('world character relationship map keeps factual clue text out of graph nodes', () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    relationships: [
+      ...ouYangDeRaw.relationships,
+      {
+        id: 'cbdb-rel-99984-association-liu-zhi-1',
+        type: 'association',
+        sourceEntityId: 'cbdb-person-99984',
+        targetEntityId: 'cbdb-person-liu-zhi',
+        contentHash: 'rel-association-liu-zhi-hash',
+        core: {
+          presentation: {
+            summary: '刘智与欧阳德存在交游或关联记录。',
+          },
+          attributes: {
+            sourceRelationLabelChn: '墓誌銘由劉智所作',
+            rowRef: 'cbdb:ASSOC_DATA:99984:liu-zhi:1',
+            joinStatus: 'resolved',
+          },
+        },
+      },
+    ],
+  }, 'source_materialization_available');
+
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      worldScore: 0,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+      onSendGift: () => {},
+    }),
+  );
+
+  const associationClue = source.relationshipClues.find((clue) => clue.id === 'cbdb-rel-99984-association-liu-zhi-1');
+  assert.equal(associationClue?.label, '墓志铭由刘智所作');
+
+  const mapStart = markup.indexOf('data-testid="world-character-relationship-map"');
+  const mapEnd = markup.indexOf('<div class="mt-4 flex flex-wrap gap-2">', mapStart);
+  const mapMarkup = markup.slice(mapStart, mapEnd);
+
+  assert.match(mapMarkup, /刘智/);
+  assert.doesNotMatch(mapMarkup, /墓志铭由刘智所作/);
+  assert.doesNotMatch(markup, /墓誌銘|劉智/);
+  assert.doesNotMatch(mapMarkup, /truncate text-xs leading-4 opacity-75/);
+  assert.match(markup, /<h3 class="text-sm font-semibold leading-6 text-\[#262017\]">墓志铭由刘智所作<\/h3>/);
+});
+
+test('world character relationship map renders posted address clues with location icons', () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    source: {
+      ...ouYangDeRaw.source,
+      relationships: [],
+    },
+    relationships: [
+      {
+        id: 'cbdb-rel-99984-posted-address-jingzhao-1',
+        type: 'postedAddress',
+        sourceEntityId: 'cbdb-person-99984',
+        targetEntityId: 'cbdb-place-jingzhao',
+        contentHash: 'rel-posted-address-jingzhao-hash',
+        core: {
+          presentation: {
+            summary: '欧阳德任官或活动记录关联地点「京兆府」。',
+          },
+          attributes: {
+            addressLabel: '京兆府',
+            officeLabel: '翰林学士',
+            firstYear: 1086,
+            lastYear: null,
+            rowRef: 'cbdb:POSTED_ADDRESS_DATA:99984:jingzhao:1',
+            joinStatus: 'resolved',
+          },
+        },
+      },
+    ],
+  }, 'source_materialization_available');
+
+  assert.deepEqual(source.relationshipClues.map((clue) => [clue.type, clue.label]), [
+    ['postedAddress', '京兆府'],
+  ]);
+
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      worldScore: 0,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+      onSendGift: () => {},
+    }),
+  );
+  const mapStart = markup.indexOf('data-testid="world-character-relationship-map"');
+  const mapEnd = markup.indexOf('<div class="mt-4 flex flex-wrap gap-2">', mapStart);
+  const mapMarkup = markup.slice(mapStart, mapEnd);
+  const cardStart = markup.indexOf('data-testid="world-character-relationship-clue-postedAddress"');
+  const cardEnd = markup.indexOf('</article>', cardStart);
+  const cardMarkup = markup.slice(cardStart, cardEnd);
+
+  assert.match(mapMarkup, /京兆府/);
+  assert.match(mapMarkup, /lucide-map-pin/);
+  assert.doesNotMatch(mapMarkup, /lucide-user-round/);
+  assert.match(cardMarkup, /lucide-map-pin/);
+  assert.match(cardMarkup, /1086/);
+  assert.match(cardMarkup, /翰林学士/);
+  assert.match(cardMarkup, /京兆府/);
+  assert.doesNotMatch(cardMarkup, /lucide-user-round/);
+});
+
+test('world character source detail hides generic system and affordance tags from the hero', () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    tags: ['可交互身份'],
+  }, 'source_materialization_available');
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      worldScore: 0,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+      onSendGift: () => {},
+    }),
+  );
+
+  assert.doesNotMatch(markup, /世界实体/);
+  assert.doesNotMatch(markup, />人物<\/span>/);
+  assert.doesNotMatch(markup, /可交互身份/);
+  assert.doesNotMatch(markup, /Interactive character/);
+});
+
+test('world character source detail renders rounded-square avatar and simplified Chinese scene labels', () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    source: {
+      ...ouYangDeRaw.source,
+      placement: {
+        ...ouYangDeRaw.source.placement,
+        sceneRefs: ['yuan-literati-network', 'yuan-academy-gathering', 'yuan-official-court'],
+      },
+    },
+  }, 'source_materialization_available');
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      worldScore: 0,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+      onSendGift: () => {},
+    }),
+  );
+
+  assert.match(markup, /data-testid="world-character-hero-avatar"[^>]*rounded-\[20px\]/);
+  assert.match(markup, /元代文人网络 \/ 元代书院雅集 \/ 元代朝廷官场/);
+  assert.doesNotMatch(markup, /yuan-literati-network/);
+  assert.doesNotMatch(markup, /yuan-academy-gathering/);
+  assert.doesNotMatch(markup, /yuan-official-court/);
+  assert.doesNotMatch(markup, /書|學|與|為|從|處|臺|傳/);
+});
+
+test('world character hero uses dynasty subtitle, no bottom white mask, and reference action card copy', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      displayName: '同恕',
+      handle: '同恕',
+      entity: {
+        ...ouYangDeRaw.entity,
+        name: '同恕',
+      },
+      source: {
+        ...ouYangDeRaw.source,
+        placement: {
+          ...ouYangDeRaw.source.placement,
+          sceneRefs: ['yuan-literati-network'],
+        },
+      },
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: { friendsCount: 0, postsCount: 0, likesCount: 0 },
+        worldScore: 0,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+        onSendGift: () => {},
+      }),
+    );
+
+    assert.match(markup, /元代/);
+    assert.doesNotMatch(markup, /<p class="[^"]*">同恕<\/p>/);
+    assert.doesNotMatch(markup, /linear-gradient\(to top, rgba\(255,255,255,0\.32\)/);
+    assert.match(markup, /立即对话/);
+    assert.match(markup, /加入我的角色/);
+    assert.match(markup, /加入后可在本地持续对话/);
+    assert.doesNotMatch(markup, /添加到我的角色/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('world character source detail renders admitted CBDB dossier prose in simplified Chinese', () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    displayName: '蘇軾',
+    handle: 'su-shi',
+    entity: {
+      ...ouYangDeRaw.entity,
+      name: '蘇軾',
+      summary: '元代文學與關係網核心人物，後歷任翰林學士承旨，舊友往來甚廣。',
+    },
+    source: {
+      ...ouYangDeRaw.source,
+      placement: {
+        ...ouYangDeRaw.source.placement,
+        role: '文學領袖與朝廷重臣',
+        faction: '元代文人關係網',
+        rank: '翰林學士承旨',
+      },
+      biography: {
+        milestones: [
+          {
+            milestoneId: 'cbdb-person-traditional-milestone-1',
+            title: '後入翰林學士院',
+            summary: '舊臣推舉入翰林學士院，聲名甚廣。',
+            sequence: 1,
+            timeLabel: '1275',
+          },
+        ],
+      },
+      knowledge: {
+        topics: ['文學與關係網', '舊友往來甚廣'],
+        constraints: ['語氣沉穩，少談臺閣舊事'],
+      },
+      interactionProfile: {
+        tone: '沉穩含蓄，談吐帶有舊學氣息',
+        cadence: '語速平緩，聽感莊重',
+        scenario: '元代文人關係網中的會面。',
+        greeting: '吾乃蘇軾，願與諸君談文學與舊事。',
+      },
+    },
+    relationships: [
+      {
+        id: 'cbdb-rel-traditional-status-1',
+        type: 'status',
+        sourceEntityId: 'cbdb-person-traditional',
+        targetEntityId: 'cbdb-status-traditional',
+        contentHash: 'rel-traditional-status-hash',
+        core: {
+          presentation: {
+            summary: '蘇軾被標識為文學領袖，與元代文人關係網密切。',
+          },
+          attributes: {
+            statusLabel: '文學領袖與關係網',
+            rowRef: 'cbdb:STATUS_DATA:traditional:1',
+            joinStatus: 'resolved',
+          },
+        },
+      },
+    ],
+  }, 'source_materialization_available');
+
+  assert.equal(source.displayName, '苏轼');
+  assert.equal(source.entity?.summary, '元代文学与关系网核心人物，后历任翰林学士承旨，旧友往来甚广。');
+  assert.equal(source.worldCharacter?.faction, '元代文人关系网');
+  assert.equal(source.worldCharacter?.milestones[0]?.title, '后入翰林学士院');
+
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      worldScore: 0,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+      onSendGift: () => {},
+    }),
+  );
+  const visibleMarkup = markup.replace(/\sdata-[^=]+="[^"]*"/gu, '');
+
+  assert.match(visibleMarkup, /苏轼/);
+  assert.match(visibleMarkup, /元代文学与关系网核心人物，后历任翰林学士承旨，旧友往来甚广。/);
+  assert.match(visibleMarkup, /文学领袖与朝廷重臣/);
+  assert.match(visibleMarkup, /元代文人关系网/);
+  assert.match(visibleMarkup, /后入翰林学士院/);
+  assert.match(visibleMarkup, /旧臣推举入翰林学士院，声名甚广。/);
+  assert.match(visibleMarkup, /语速平缓，听感庄重/);
+  assert.doesNotMatch(visibleMarkup, /蘇|軾|學|與|關|係|後|歷|舊|廣|領|聲|語|聽|莊|會/);
+});
+
+test('world character source detail removes facts panel and replaces breadcrumbs with back button', () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    entity: {
+      ...ouYangDeRaw.entity,
+      facts: [
+        { label: 'CBDB person id', value: '34968' },
+        { label: 'source entity id', value: 'cbdb-person-34968' },
+      ],
+    },
+  }, 'source_materialization_available');
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      worldScore: 0,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+      onSendGift: () => {},
+    }),
+  );
+
+  assert.match(markup, /data-testid="world-character-back-button"/);
+  assert.doesNotMatch(markup, /aria-label="Breadcrumb"/);
+  assert.doesNotMatch(markup, /World atlas/);
+  assert.doesNotMatch(markup, /People<\/button>/);
+  assert.doesNotMatch(markup, /Additional notes/);
+  assert.doesNotMatch(markup, /CBDB person id/);
+  assert.doesNotMatch(markup, /source entity id/);
+  assert.doesNotMatch(markup, /cbdb-person-34968/);
 });
 
 test('world character source detail renders dossier sections without exposing raw relationship source fields', () => {

@@ -19,6 +19,7 @@ import {
   readYearLabel,
   slug,
 } from './source-detail-model-readers.js';
+import { simplifySourceDetailChineseText } from './source-detail-simplified-chinese.js';
 
 function normalizeWorkStatus(value: unknown): SourceDetailWorkCollection['status'] {
   const status = readScalarString(value)?.toLocaleLowerCase();
@@ -113,18 +114,24 @@ function readRelationshipType(record: JsonObject): string | null {
     ?? readOptionalString(record, 'kind');
 }
 
-const CAREER_RELATIONSHIP_TYPES = new Set(['entry', 'postedToOffice', 'text']);
+const CAREER_RELATIONSHIP_TYPES = new Set(['entry', 'postedToOffice']);
+const WORK_RELATIONSHIP_TYPES = new Set(['text', 'authoredText']);
+
+type CareerMilestoneCandidate = SourceDetailWorldCharacterMilestone & {
+  mergeKey: string;
+};
 
 function isCareerRelationshipType(type: string | null): type is string {
   return Boolean(type && CAREER_RELATIONSHIP_TYPES.has(type));
 }
 
+function isWorkRelationshipType(type: string | null): type is string {
+  return Boolean(type && WORK_RELATIONSHIP_TYPES.has(type));
+}
+
 function careerMilestoneKind(type: string): SourceDetailWorldCharacterMilestone['kind'] {
   if (type === 'postedToOffice') {
     return 'office';
-  }
-  if (type === 'text') {
-    return 'work';
   }
   return 'entry';
 }
@@ -146,8 +153,13 @@ export function readRelationshipRows(value: unknown): JsonObject[] {
   return readRecordArray(value);
 }
 
-function readTextTitleFromSummary(summary: string | null): string | null {
-  const match = summary?.match(/《([^》]+)》/u);
+function readWorkTitleFromText(value: string | null): string | null {
+  const text = value?.trim();
+  if (!text) {
+    return null;
+  }
+  const match = text.match(/《([^》]+)》/u)
+    ?? text.match(/[「『]([^」』]+)[」』]/u);
   return match?.[1]?.trim() || null;
 }
 
@@ -157,21 +169,61 @@ function readOfficeTitleFromSummary(summary: string | null): string | null {
   return match?.[1]?.trim() || null;
 }
 
+function normalizedCareerMergeText(value: string | null | undefined): string {
+  return simplifySourceDetailChineseText(String(value || ''))
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[《》「」『』（）()[\]\s,，。;；:：、·・\-_/]+/gu, '');
+}
+
+function readRelationshipTargetEntityId(row: JsonObject): string | null {
+  const core = relationshipCore(row);
+  return readScalarString(row.targetEntityId)
+    ?? readScalarString(core.targetEntityId);
+}
+
+function readCareerMilestoneMergeKey(row: JsonObject, type: string, title: string, summary: string | null): string {
+  const attributes = relationshipAttributes(row);
+  const targetEntityId = readRelationshipTargetEntityId(row);
+  if (targetEntityId) {
+    return `${type}:target:${targetEntityId}`;
+  }
+  if (type === 'postedToOffice') {
+    const officeId = readScalarString(attributes.officeId)
+      ?? readScalarString(attributes.officeCode);
+    if (officeId) {
+      return `${type}:office:${officeId}`;
+    }
+    const officeLabel = readOptionalString(attributes, 'officeLabel') ?? title;
+    const normalizedOfficeLabel = normalizedCareerMergeText(officeLabel);
+    if (normalizedOfficeLabel) {
+      return `${type}:office-label:${normalizedOfficeLabel}`;
+    }
+  }
+  return `${type}:title:${normalizedCareerMergeText(title) || normalizedCareerMergeText(summary)}`;
+}
+
 function toWorkCollectionFromRelationship(row: JsonObject, index: number): SourceDetailWorkCollection | null {
   const type = readRelationshipType(row);
-  if (type !== 'text') {
+  if (!isWorkRelationshipType(type)) {
     return null;
   }
   const attributes = relationshipAttributes(row);
   const presentation = relationshipPresentation(row);
+  const core = relationshipCore(row);
   const summary = readRelationshipSummary(row);
-  const targetTextId = readScalarString(row.targetEntityId)?.replace(/^cbdb-text-/u, '') ?? null;
+  const targetTextRef = readScalarString(row.targetEntityId)
+    ?? readScalarString(row.targetRef)
+    ?? readScalarString(core.targetEntityId);
+  const targetTextId = targetTextRef?.replace(/^cbdb-text-/u, '') ?? null;
   const textId = readScalarString(attributes.textId)
     ?? readScalarString(attributes.textCode)
     ?? targetTextId;
   const title = readWorkTitle(attributes)
     ?? readOptionalString(presentation, 'title')
-    ?? readTextTitleFromSummary(summary);
+    ?? readRelationshipTargetLabel(row)
+    ?? readRelationshipLabel(row)
+    ?? readWorkTitleFromText(summary);
   if (!title) {
     return null;
   }
@@ -184,19 +236,152 @@ function toWorkCollectionFromRelationship(row: JsonObject, index: number): Sourc
     rowRef: readScalarString(attributes.rowRef),
     role: readOptionalString(attributes, 'role') ?? readOptionalString(attributes, 'relationRole'),
     status: normalizeWorkStatus(attributes.joinStatus ?? row.joinStatus ?? attributes.status),
+    summary,
+    timeLabel: readMilestoneTimeLabel([attributes, presentation, core, row], [title, summary]),
+  };
+}
+
+function normalizedWorkMergeText(value: string | null | undefined): string {
+  return simplifySourceDetailChineseText(String(value || ''))
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[《》「」『』（）()[\]\s,，。;；:：、·・\-_/]+/gu, '');
+}
+
+function worksHaveConflictingTextIds(
+  left: SourceDetailWorkCollection,
+  right: SourceDetailWorkCollection,
+): boolean {
+  return Boolean(left.textId && right.textId && left.textId !== right.textId);
+}
+
+function worksReferToSameCollection(
+  left: SourceDetailWorkCollection,
+  right: SourceDetailWorkCollection,
+): boolean {
+  if (left.textId && right.textId) {
+    return left.textId === right.textId;
+  }
+  if (left.rowRef && right.rowRef && left.rowRef === right.rowRef) {
+    return true;
+  }
+  const leftTitle = normalizedWorkMergeText(left.title);
+  const rightTitle = normalizedWorkMergeText(right.title);
+  return Boolean(
+    leftTitle
+      && rightTitle
+      && leftTitle === rightTitle
+      && !worksHaveConflictingTextIds(left, right),
+  );
+}
+
+function isGenericWorkSummary(title: string, summary: string | null | undefined): boolean {
+  const normalizedTitle = normalizedWorkMergeText(title);
+  const normalizedSummary = normalizedWorkMergeText(summary);
+  if (!normalizedTitle || !normalizedSummary) {
+    return false;
+  }
+  return normalizedSummary === normalizedTitle
+    || normalizedSummary === `著有${normalizedTitle}`
+    || normalizedSummary === `撰有${normalizedTitle}`
+    || normalizedSummary === `著作${normalizedTitle}`
+    || normalizedSummary === `${normalizedTitle}有关`
+    || normalizedSummary.endsWith(`与著作${normalizedTitle}有关`)
+    || normalizedSummary.endsWith(`与作品${normalizedTitle}有关`);
+}
+
+function workDisplayScore(work: SourceDetailWorkCollection): number {
+  const normalizedSummary = normalizedWorkMergeText(work.summary);
+  let score = normalizedWorkMergeText(work.title) ? 1 : 0;
+  if (normalizedSummary) {
+    score += 8 + Math.min(normalizedSummary.length, 80) / 10;
+    if (isGenericWorkSummary(work.title, work.summary)) {
+      score -= 7;
+    }
+  }
+  if (work.romanizedTitle) {
+    score += 0.25;
+  }
+  if (work.timeLabel) {
+    score += 0.25;
+  }
+  return score;
+}
+
+function chooseWorkDisplayBase(
+  left: SourceDetailWorkCollection,
+  right: SourceDetailWorkCollection,
+): SourceDetailWorkCollection {
+  const leftScore = workDisplayScore(left);
+  const rightScore = workDisplayScore(right);
+  return rightScore >= leftScore ? right : left;
+}
+
+function workTitleEvidenceScore(work: SourceDetailWorkCollection): number {
+  const normalizedTitle = normalizedWorkMergeText(work.title);
+  const normalizedSummary = normalizedWorkMergeText(work.summary);
+  if (!normalizedTitle) {
+    return 0;
+  }
+  let score = 1;
+  if (normalizedSummary.includes(normalizedTitle)) {
+    score += 4;
+  }
+  score += 1 / Math.max(normalizedTitle.length, 1);
+  return score;
+}
+
+function chooseWorkTitle(
+  left: SourceDetailWorkCollection,
+  right: SourceDetailWorkCollection,
+  display: SourceDetailWorkCollection,
+): string {
+  const leftTitle = normalizedWorkMergeText(left.title);
+  const rightTitle = normalizedWorkMergeText(right.title);
+  if (leftTitle && rightTitle && leftTitle === rightTitle) {
+    return display.title;
+  }
+  const leftScore = workTitleEvidenceScore(left);
+  const rightScore = workTitleEvidenceScore(right);
+  if (leftScore === rightScore) {
+    return display.title;
+  }
+  return rightScore > leftScore ? right.title : left.title;
+}
+
+function mergeWorkCollection(
+  left: SourceDetailWorkCollection,
+  right: SourceDetailWorkCollection,
+): SourceDetailWorkCollection {
+  const display = chooseWorkDisplayBase(left, right);
+  const fallback = display === left ? right : left;
+  return {
+    ...display,
+    title: chooseWorkTitle(left, right, display),
+    romanizedTitle: display.romanizedTitle ?? fallback.romanizedTitle,
+    textId: display.textId ?? fallback.textId,
+    rowRef: display.rowRef ?? fallback.rowRef,
+    role: mergeDistinctText(display.role, fallback.role),
+    status: display.status,
+    summary: display.summary ?? fallback.summary,
+    timeLabel: mergeTimeLabel(display.timeLabel ?? null, fallback.timeLabel ?? null),
   };
 }
 
 export function dedupeWorks(works: SourceDetailWorkCollection[]): SourceDetailWorkCollection[] {
-  const seen = new Set<string>();
-  return works.filter((work) => {
-    const key = work.textId ?? work.rowRef ?? work.title;
-    if (seen.has(key)) {
-      return false;
+  const result: SourceDetailWorkCollection[] = [];
+  for (const work of works) {
+    const existingIndex = result.findIndex((candidate) => worksReferToSameCollection(candidate, work));
+    if (existingIndex >= 0) {
+      const existing = result[existingIndex];
+      if (existing) {
+        result[existingIndex] = mergeWorkCollection(existing, work);
+      }
+      continue;
     }
-    seen.add(key);
-    return true;
-  });
+    result.push(work);
+  }
+  return result;
 }
 
 export function readWorldCharacterWorksFromRelationships(relationships: JsonObject[]): SourceDetailWorkCollection[] {
@@ -205,9 +390,82 @@ export function readWorldCharacterWorksFromRelationships(relationships: JsonObje
     .filter((work): work is SourceDetailWorkCollection => Boolean(work));
 }
 
+function isWorkLikeBiographyMilestone(
+  row: JsonObject,
+  title: string | null,
+  summary: string | null,
+): boolean {
+  const explicitKind = readOptionalString(row, 'kind')?.toLocaleLowerCase();
+  if (explicitKind === 'work' || explicitKind === 'text') {
+    return true;
+  }
+  const text = [title, summary]
+    .map((value) => value?.trim() ?? '')
+    .filter(Boolean)
+    .join('\n');
+  return /《[^》]+》/u.test(text)
+    || /著作|著述|著有|撰有|作品|诗集|詩集|文集|词集|詞集|全集|\btext\b|\bwork\b|\bwriting\b|\bauthored\b/iu.test(text);
+}
+
+function toWorkCollectionFromBiographyMilestone(
+  row: JsonObject,
+  index: number,
+): SourceDetailWorkCollection | null {
+  const rawTitle = readOptionalString(row, 'title');
+  const summary = readOptionalString(row, 'summary');
+  if (!isWorkLikeBiographyMilestone(row, rawTitle, summary)) {
+    return null;
+  }
+  const title = readWorkTitleFromText(rawTitle)
+    ?? readWorkTitleFromText(summary)
+    ?? readOptionalString(row, 'titleChn')
+    ?? readOptionalString(row, 'titleZh')
+    ?? readOptionalString(row, 'chineseTitle')
+    ?? readOptionalString(row, 'displayTitle')
+    ?? readOptionalString(row, 'name')
+    ?? rawTitle
+    ?? summary;
+  if (!title) {
+    return null;
+  }
+  const textId = readScalarString(row.textId) ?? readScalarString(row.textCode);
+  return {
+    id: readOptionalString(row, 'workId')
+      ?? readOptionalString(row, 'milestoneId')
+      ?? readOptionalString(row, 'id')
+      ?? (textId ? `text-${textId}` : null)
+      ?? slug(title, String(index + 1)),
+    title,
+    romanizedTitle: readOptionalString(row, 'romanizedTitle'),
+    textId,
+    rowRef: readScalarString(row.rowRef),
+    role: readOptionalString(row, 'role') ?? readOptionalString(row, 'relationRole'),
+    status: normalizeWorkStatus(row.joinStatus ?? row.status),
+    summary,
+    timeLabel: readMilestoneTimeLabel([row], [rawTitle, summary]),
+  };
+}
+
+export function readWorldCharacterWorksFromBiography(
+  sourceCore: JsonObject | null | undefined,
+): SourceDetailWorkCollection[] {
+  const biography = parseOptionalJsonObject(sourceCore?.biography);
+  return readRecordArray(biography?.milestones)
+    .map(toWorkCollectionFromBiographyMilestone)
+    .filter((work): work is SourceDetailWorkCollection => Boolean(work));
+}
+
 function readRelationshipLabel(row: JsonObject): string | null {
   const attributes = relationshipAttributes(row);
   const presentation = relationshipPresentation(row);
+  const type = readRelationshipType(row);
+  if (type === 'postedAddress' || type === 'biogAddress') {
+    return readOptionalString(attributes, 'addressLabel')
+      ?? readOptionalString(attributes, 'placeLabel')
+      ?? readOptionalString(attributes, 'targetLabel')
+      ?? readOptionalString(attributes, 'label')
+      ?? readOptionalString(presentation, 'title');
+  }
   return readOptionalString(attributes, 'officeLabel')
     ?? readOptionalString(attributes, 'statusLabel')
     ?? readOptionalString(attributes, 'entryLabel')
@@ -221,12 +479,54 @@ function readRelationshipLabel(row: JsonObject): string | null {
     ?? readOptionalString(presentation, 'title');
 }
 
+function formatRelationshipTimePhrase(timeLabel: string | null): string | null {
+  if (!timeLabel) {
+    return null;
+  }
+  return /[年月日）)]$/u.test(timeLabel) ? timeLabel : `${timeLabel}年`;
+}
+
+function readPostedAddressDetail(row: JsonObject, label: string, summary: string | null): string | null {
+  const attributes = relationshipAttributes(row);
+  const presentation = relationshipPresentation(row);
+  const core = relationshipCore(row);
+  const officeLabel = readOptionalString(attributes, 'officeLabel');
+  const timeLabel = readMilestoneTimeLabel([attributes, presentation, core, row], [summary, label]);
+  const timePhrase = formatRelationshipTimePhrase(timeLabel);
+  if (officeLabel && timePhrase) {
+    return `${timePhrase}任${officeLabel}，地点「${label}」。`;
+  }
+  if (officeLabel) {
+    return `任${officeLabel}，地点「${label}」。`;
+  }
+  if (timePhrase) {
+    return `${timePhrase}任官或活动记录关联地点「${label}」。`;
+  }
+  return null;
+}
+
+function readRelationshipDetail(row: JsonObject, type: string, label: string, summary: string | null): string | null {
+  if (type === 'postedAddress') {
+    return readPostedAddressDetail(row, label, summary);
+  }
+  return null;
+}
+
+function readRelationshipTargetLabel(row: JsonObject): string | null {
+  const attributes = relationshipAttributes(row);
+  const presentation = relationshipPresentation(row);
+  return readOptionalString(attributes, 'targetLabel')
+    ?? readOptionalString(attributes, 'targetName')
+    ?? readOptionalString(presentation, 'targetLabel')
+    ?? readOptionalString(presentation, 'targetName');
+}
+
 export function readRelationshipClues(relationships: JsonObject[]): SourceDetailRelationshipClue[] {
   const seen = new Set<string>();
   return relationships
     .map((row, index): SourceDetailRelationshipClue | null => {
       const type = readRelationshipType(row);
-      if (!type || isCareerRelationshipType(type)) {
+      if (!type || isCareerRelationshipType(type) || isWorkRelationshipType(type)) {
         return null;
       }
       const label = readRelationshipLabel(row);
@@ -238,7 +538,9 @@ export function readRelationshipClues(relationships: JsonObject[]): SourceDetail
         id: readRelationshipId(row, `${type}-${index + 1}`),
         type,
         label: label ?? summary ?? type,
+        targetLabel: readRelationshipTargetLabel(row),
         summary,
+        detail: readRelationshipDetail(row, type, label ?? summary ?? type, summary),
       };
     })
     .filter((clue): clue is SourceDetailRelationshipClue => Boolean(clue))
@@ -255,7 +557,7 @@ export function readRelationshipClues(relationships: JsonObject[]): SourceDetail
 
 export function readCareerMilestonesFromRelationships(relationships: JsonObject[]): SourceDetailWorldCharacterMilestone[] {
   const milestones = relationships
-    .map((row, index): SourceDetailWorldCharacterMilestone | null => {
+    .map((row, index): CareerMilestoneCandidate | null => {
       const type = readRelationshipType(row);
       if (!isCareerRelationshipType(type)) {
         return null;
@@ -265,7 +567,6 @@ export function readCareerMilestonesFromRelationships(relationships: JsonObject[
       const core = relationshipCore(row);
       const summary = readRelationshipSummary(row);
       const label = readRelationshipLabel(row)
-        ?? (type === 'text' ? readTextTitleFromSummary(summary) : null)
         ?? (type === 'postedToOffice' ? readOfficeTitleFromSummary(summary) : null);
       const title = label ?? summary;
       if (!title) {
@@ -274,6 +575,7 @@ export function readCareerMilestonesFromRelationships(relationships: JsonObject[
       const kind = careerMilestoneKind(type);
       return {
         id: `career-${readRelationshipId(row, `${type}-${index + 1}`)}`,
+        mergeKey: readCareerMilestoneMergeKey(row, type, title, summary),
         title,
         summary,
         sequence: null,
@@ -282,7 +584,7 @@ export function readCareerMilestonesFromRelationships(relationships: JsonObject[
         derived: true,
       };
     })
-    .filter((milestone): milestone is SourceDetailWorldCharacterMilestone => Boolean(milestone))
+    .filter((milestone): milestone is CareerMilestoneCandidate => Boolean(milestone))
     .sort((left, right) => {
       const order: Record<SourceDetailWorldCharacterMilestone['kind'], number> = {
         biography: 0,
@@ -292,7 +594,7 @@ export function readCareerMilestonesFromRelationships(relationships: JsonObject[
       };
       return order[left.kind] - order[right.kind];
     });
-  return dedupeMilestones(milestones);
+  return dedupeCareerMilestones(milestones).map(stripCareerMilestoneMergeKey);
 }
 
 function milestoneTexts(milestone: SourceDetailWorldCharacterMilestone): string[] {
@@ -318,18 +620,95 @@ function milestoneTitlesOverlap(
   ));
 }
 
+function mergeDistinctText(left: string | null, right: string | null): string | null {
+  const values: string[] = [];
+  for (const value of [left, right]) {
+    const normalized = value?.trim();
+    if (!normalized) {
+      continue;
+    }
+    const existingIndex = values.findIndex((candidate) => (
+      candidate.includes(normalized) || normalized.includes(candidate)
+    ));
+    if (existingIndex >= 0) {
+      if (normalized.length > values[existingIndex]!.length) {
+        values[existingIndex] = normalized;
+      }
+      continue;
+    }
+    values.push(normalized);
+  }
+  return values.length > 0 ? values.join(' ') : null;
+}
+
+function readYearsFromLabel(value: string | null | undefined): number[] {
+  return [...String(value || '').matchAll(/\d{3,4}/gu)]
+    .map((match) => Number(match[0]))
+    .filter((year) => Number.isFinite(year));
+}
+
+function mergeTimeLabel(left: string | null, right: string | null): string | null {
+  const normalizedLeft = left?.trim() || null;
+  const normalizedRight = right?.trim() || null;
+  if (!normalizedLeft) {
+    return normalizedRight;
+  }
+  if (!normalizedRight || normalizedLeft === normalizedRight) {
+    return normalizedLeft;
+  }
+  const years = [...readYearsFromLabel(normalizedLeft), ...readYearsFromLabel(normalizedRight)];
+  if (years.length > 0) {
+    const min = Math.min(...years);
+    const max = Math.max(...years);
+    return min === max ? String(min) : `${min}-${max}`;
+  }
+  return mergeDistinctText(normalizedLeft, normalizedRight);
+}
+
 function mergeMilestone(
   left: SourceDetailWorldCharacterMilestone,
   right: SourceDetailWorldCharacterMilestone,
 ): SourceDetailWorldCharacterMilestone {
   return {
     ...left,
-    summary: left.summary ?? right.summary,
+    summary: mergeDistinctText(left.summary, right.summary),
     sequence: left.sequence ?? right.sequence,
-    timeLabel: left.timeLabel ?? right.timeLabel,
+    timeLabel: mergeTimeLabel(left.timeLabel, right.timeLabel),
     kind: left.kind === 'biography' && right.kind !== 'biography' ? right.kind : left.kind,
     derived: left.derived || right.derived,
   };
+}
+
+function stripCareerMilestoneMergeKey(
+  candidate: CareerMilestoneCandidate,
+): SourceDetailWorldCharacterMilestone {
+  const { mergeKey: _mergeKey, ...milestone } = candidate;
+  return milestone;
+}
+
+function dedupeCareerMilestones(
+  milestones: readonly CareerMilestoneCandidate[],
+): CareerMilestoneCandidate[] {
+  const result: CareerMilestoneCandidate[] = [];
+  for (const milestone of milestones) {
+    const existingIndex = result.findIndex((candidate) => (
+      candidate.mergeKey === milestone.mergeKey
+        || `${candidate.kind}:${candidate.title}` === `${milestone.kind}:${milestone.title}`
+        || milestoneTitlesOverlap(candidate, milestone)
+    ));
+    if (existingIndex >= 0) {
+      const existing = result[existingIndex];
+      if (existing) {
+        result[existingIndex] = {
+          ...mergeMilestone(existing, milestone),
+          mergeKey: existing.mergeKey || milestone.mergeKey,
+        };
+      }
+      continue;
+    }
+    result.push(milestone);
+  }
+  return result;
 }
 
 function dedupeMilestones(
@@ -413,6 +792,9 @@ function readWorldCharacterMilestones(
         return null;
       }
       const summary = readOptionalString(row, 'summary');
+      if (isWorkLikeBiographyMilestone(row, title, summary)) {
+        return null;
+      }
       const sequence = readFiniteNumber(row.sequence);
       return {
         id: readOptionalString(row, 'milestoneId')
@@ -462,7 +844,7 @@ function readWorldCharacterRelationshipNotes(sourceCore: JsonObject | null | und
       const summary = readOptionalString(row, 'summary');
       const type = readOptionalString(row, 'relationType')
         ?? readOptionalString(row, 'type');
-      if (!summary || !type || isCareerRelationshipType(type)) {
+      if (!summary || !type || isCareerRelationshipType(type) || isWorkRelationshipType(type)) {
         return null;
       }
       const targetRef = readOptionalString(row, 'targetRef');

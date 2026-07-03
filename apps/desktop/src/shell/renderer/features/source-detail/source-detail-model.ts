@@ -17,8 +17,10 @@ import {
   readRelationshipRows,
   readWorldCharacter,
   readWorldCharacterWorks,
+  readWorldCharacterWorksFromBiography,
   readWorldCharacterWorksFromRelationships,
 } from './source-detail-world-character-model.js';
+import { simplifySourceDetailChineseText } from './source-detail-simplified-chinese.js';
 
 
 export type SourceDetailData = {
@@ -65,6 +67,8 @@ export type SourceDetailWorkCollection = {
   rowRef: string | null;
   role: string | null;
   status: 'resolved' | 'unresolved' | 'unknown';
+  summary?: string | null;
+  timeLabel?: string | null;
 };
 
 export type SourceDetailEntity = {
@@ -116,7 +120,9 @@ export type SourceDetailRelationshipClue = {
   id: string;
   type: string;
   label: string;
+  targetLabel: string | null;
   summary: string | null;
+  detail: string | null;
 };
 
 export type SourceDetailVoiceDesign = {
@@ -170,6 +176,145 @@ function readSourceDetailEntity(value: unknown): SourceDetailEntity | null {
   };
 }
 
+function simplifyNullableText(value: string | null): string | null {
+  return value ? simplifySourceDetailChineseText(value) : value;
+}
+
+function simplifyTextArray(values: string[]): string[] {
+  return values.map(simplifySourceDetailChineseText);
+}
+
+function simplifySourceDetailEntity(entity: SourceDetailEntity | null): SourceDetailEntity | null {
+  if (!entity) {
+    return null;
+  }
+  return {
+    ...entity,
+    name: simplifySourceDetailChineseText(entity.name),
+    summary: simplifyNullableText(entity.summary),
+    tags: simplifyTextArray(entity.tags),
+  };
+}
+
+function simplifySourceDetailWorks(works: SourceDetailWorkCollection[]): SourceDetailWorkCollection[] {
+  return works.map((work) => ({
+    ...work,
+    title: simplifySourceDetailChineseText(work.title),
+    romanizedTitle: simplifyNullableText(work.romanizedTitle),
+    role: simplifyNullableText(work.role),
+    ...(work.summary !== undefined ? { summary: simplifyNullableText(work.summary ?? null) } : {}),
+    ...(work.timeLabel !== undefined ? { timeLabel: simplifyNullableText(work.timeLabel ?? null) } : {}),
+  }));
+}
+
+function simplifyWorldCharacterMilestones(
+  milestones: SourceDetailWorldCharacterMilestone[],
+): SourceDetailWorldCharacterMilestone[] {
+  return milestones.map((milestone) => ({
+    ...milestone,
+    title: simplifySourceDetailChineseText(milestone.title),
+    summary: simplifyNullableText(milestone.summary),
+    timeLabel: simplifyNullableText(milestone.timeLabel),
+  }));
+}
+
+function simplifyWorldCharacterRelationshipNotes(
+  notes: SourceDetailWorldCharacterRelationshipNote[],
+): SourceDetailWorldCharacterRelationshipNote[] {
+  return notes.map((note) => ({
+    ...note,
+    summary: simplifySourceDetailChineseText(note.summary),
+  }));
+}
+
+function simplifyWorldCharacterInteraction(
+  interaction: SourceDetailWorldCharacterInteraction | null,
+): SourceDetailWorldCharacterInteraction | null {
+  if (!interaction) {
+    return null;
+  }
+  return {
+    tone: simplifyNullableText(interaction.tone),
+    cadence: simplifyNullableText(interaction.cadence),
+    scenario: simplifyNullableText(interaction.scenario),
+    greeting: simplifyNullableText(interaction.greeting),
+  };
+}
+
+function simplifySourceDetailWorldCharacter(
+  character: SourceDetailWorldCharacter | null,
+): SourceDetailWorldCharacter | null {
+  if (!character) {
+    return null;
+  }
+  return {
+    ...character,
+    role: simplifyNullableText(character.role),
+    faction: simplifyNullableText(character.faction),
+    rank: simplifyNullableText(character.rank),
+    milestones: simplifyWorldCharacterMilestones(character.milestones),
+    relationshipNotes: simplifyWorldCharacterRelationshipNotes(character.relationshipNotes),
+    conversationAnchors: simplifyTextArray(character.conversationAnchors),
+    interaction: simplifyWorldCharacterInteraction(character.interaction),
+  };
+}
+
+function simplifySourceDetailRelationshipClues(
+  clues: SourceDetailRelationshipClue[],
+): SourceDetailRelationshipClue[] {
+  return clues.map((clue) => ({
+    ...clue,
+    label: simplifySourceDetailChineseText(clue.label),
+    targetLabel: simplifyNullableText(clue.targetLabel),
+    summary: simplifyNullableText(clue.summary),
+    detail: simplifyNullableText(clue.detail),
+  }));
+}
+
+function simplifySourceDetailVoiceDesign(
+  voiceDesign: SourceDetailVoiceDesign | null,
+): SourceDetailVoiceDesign | null {
+  if (!voiceDesign) {
+    return null;
+  }
+  return {
+    ...voiceDesign,
+    prompt: simplifySourceDetailChineseText(voiceDesign.prompt),
+    transcript: simplifySourceDetailChineseText(voiceDesign.transcript),
+    previewText: simplifySourceDetailChineseText(voiceDesign.previewText),
+  };
+}
+
+function simplifySourceDetailVoiceSample(
+  voiceSample: SourceDetailVoiceSample | null,
+): SourceDetailVoiceSample | null {
+  if (!voiceSample) {
+    return null;
+  }
+  return {
+    ...voiceSample,
+    transcript: simplifyNullableText(voiceSample.transcript),
+    previewText: simplifyNullableText(voiceSample.previewText),
+  };
+}
+
+function simplifyWorldCharacterSourceDetailData(detail: SourceDetailData): SourceDetailData {
+  return {
+    ...detail,
+    displayName: simplifySourceDetailChineseText(detail.displayName),
+    bio: simplifyNullableText(detail.bio),
+    tags: simplifyTextArray(detail.tags),
+    archetype: simplifyNullableText(detail.archetype),
+    pacing: simplifyNullableText(detail.pacing),
+    voiceSample: simplifySourceDetailVoiceSample(detail.voiceSample),
+    voiceDesign: simplifySourceDetailVoiceDesign(detail.voiceDesign),
+    entity: simplifySourceDetailEntity(detail.entity),
+    worldCharacter: simplifySourceDetailWorldCharacter(detail.worldCharacter),
+    relationshipClues: simplifySourceDetailRelationshipClues(detail.relationshipClues),
+    works: simplifySourceDetailWorks(detail.works),
+  };
+}
+
 export function toSourceDetailData(
   raw: JsonObject,
   sourceState: RealmPersonaSourceState,
@@ -215,6 +360,8 @@ export function toSourceDetailData(
   const works = sourceKind === 'worldCharacter'
     ? dedupeWorks([
         ...readWorldCharacterWorks(sourceRecord),
+        ...readWorldCharacterWorksFromBiography(sourceRecord),
+        ...readWorldCharacterWorksFromRelationships(sourceRelationships),
         ...readWorldCharacterWorksFromRelationships(relationships),
       ])
     : [];
@@ -228,7 +375,7 @@ export function toSourceDetailData(
     ?? readExternalAssetUri(sourceRecord, ['referenceImage']);
   const voiceSample = readVoiceSample(raw);
 
-  return {
+  const detail: SourceDetailData = {
     id: String(raw.id || ''),
     displayName,
     handle: String(raw.handle || ''),
@@ -280,6 +427,7 @@ export function toSourceDetailData(
       || readOptionalString(world, 'bannerUrl')
     ),
   };
+  return sourceKind === 'worldCharacter' ? simplifyWorldCharacterSourceDetailData(detail) : detail;
 }
 
 export function getSourceInitial(name: string): string {

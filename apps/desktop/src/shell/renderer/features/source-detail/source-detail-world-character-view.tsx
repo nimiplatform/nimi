@@ -1,17 +1,20 @@
 import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
+import { ArrowLeft, CirclePlus, MessageCircle } from 'lucide-react';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { describeRealmPersonaPrimaryAction } from '@renderer/features/explore/realm-persona-source-materialization';
 import type { SourceDetailData } from './source-detail-model.js';
-import { ScoreProgressBar, SourceDetailPrimaryActionIcon } from './source-detail-view-primitives.js';
+import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
+import { ScoreProgressBar } from './source-detail-view-primitives.js';
 import {
   milestoneKindLabel,
   milestoneTheme,
-  sourceFactText,
+  sceneRefLabel,
   topicChips,
   uniqueStrings,
   workStatusLabel,
+  worldCharacterHeroSubtitle,
   worldCharacterPrimaryActionLabel,
   WorldCharacterRelationshipCluesSection,
 } from './source-detail-world-character-presentation.js';
@@ -23,6 +26,7 @@ type WorldCharacterSourceDetailPageProps = {
   onBack: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
+  onStartChat?: () => void;
   onSendGift: () => void;
 };
 
@@ -47,7 +51,7 @@ function WorldCharacterIdentityCoordinates({ source }: { source: SourceDetailDat
     },
     {
       label: t('SourceDetail.worldCharacter.identityScenes', { defaultValue: 'Scenes' }),
-      value: character.sceneRefs.length > 0 ? character.sceneRefs.join(' / ') : null,
+      value: character.sceneRefs.length > 0 ? character.sceneRefs.map(sceneRefLabel).join(' / ') : null,
     },
   ].filter((item): item is { label: string; value: string } => Boolean(item.value));
 
@@ -64,7 +68,7 @@ function WorldCharacterIdentityCoordinates({ source }: { source: SourceDetailDat
         {coordinates.map((item) => (
           <div key={item.label} className="rounded-[12px] border border-[#e9e1d0] bg-[#fffdf8] px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-normal text-[#7a7060]">{item.label}</p>
-            <p className="mt-1 text-sm font-semibold leading-6 text-[#262017]">{item.value}</p>
+            <p className="mt-1 text-sm font-semibold leading-6 text-[#262017]">{simplifyDisplayText(item.value)}</p>
           </div>
         ))}
       </div>
@@ -106,15 +110,21 @@ function WorldCharacterWorksSection({ source }: { source: SourceDetailData }) {
             <article key={work.id} className="rounded-[14px] border border-[#e9e1d0] bg-[#fffdf8] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="truncate text-base font-semibold text-[#262017]">{work.title}</h3>
+                  <h3 className="truncate text-base font-semibold text-[#262017]">{simplifyDisplayText(work.title)}</h3>
                   {work.romanizedTitle ? (
-                    <p className="mt-1 text-xs text-[#7a7060]">{work.romanizedTitle}</p>
+                    <p className="mt-1 text-xs text-[#7a7060]">{simplifyDisplayText(work.romanizedTitle)}</p>
+                  ) : null}
+                  {work.timeLabel ? (
+                    <p className="mt-1 text-xs font-semibold text-[#1d5f43]">{simplifyDisplayText(work.timeLabel)}</p>
                   ) : null}
                 </div>
                 <span className="shrink-0 rounded-full bg-[#f1eee6] px-2 py-0.5 text-[11px] font-medium text-[#7a7060]">
                   {workStatusLabel(work.status, t)}
                 </span>
               </div>
+              {work.summary ? (
+                <p className="mt-3 text-sm leading-6 text-[#7a7060]">{simplifyDisplayText(work.summary)}</p>
+              ) : null}
             </article>
           ))}
         </div>
@@ -157,9 +167,11 @@ function WorldCharacterMilestonesSection({ source }: { source: SourceDetailData 
               className="relative grid grid-cols-[88px_24px_minmax(0,1fr)] gap-3 py-3 max-[620px]:grid-cols-[70px_22px_minmax(0,1fr)]"
             >
               <div className="pt-3 text-right">
-                <span className="block text-sm font-semibold tabular-nums text-[#1d5f43]">
-                  {milestone.timeLabel ?? t('SourceDetail.worldCharacter.timeUnknown', { defaultValue: 'Time unknown' })}
-                </span>
+                {milestone.timeLabel ? (
+                  <span className="block text-sm font-semibold tabular-nums text-[#1d5f43]">
+                    {simplifyDisplayText(milestone.timeLabel)}
+                  </span>
+                ) : null}
               </div>
               <div className="relative z-10 flex justify-center pt-2">
                 <span style={dotStyle} className="grid h-7 w-7 place-items-center rounded-full text-[11px] font-semibold shadow-[0_0_0_4px_#fbf8f1]">
@@ -171,13 +183,13 @@ function WorldCharacterMilestonesSection({ source }: { source: SourceDetailData 
               <div className="min-w-0 rounded-[14px] border border-[#e9e1d0] bg-[#fffdf8] p-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-semibold leading-6 text-[#262017]">{milestone.title}</h3>
+                    <h3 className="text-sm font-semibold leading-6 text-[#262017]">{simplifyDisplayText(milestone.title)}</h3>
                     <span style={badgeStyle} className="rounded-full px-2 py-0.5 text-[11px] font-semibold">
                       {milestoneKindLabel(milestone, t)}
                     </span>
                   </div>
                   {milestone.summary && milestone.summary !== milestone.title ? (
-                    <p className="mt-1 text-sm leading-6 text-[#7a7060]">{milestone.summary}</p>
+                    <p className="mt-1 text-sm leading-6 text-[#7a7060]">{simplifyDisplayText(milestone.summary)}</p>
                   ) : null}
                 </div>
               </div>
@@ -196,7 +208,7 @@ function WorldCharacterConversationSection({ source }: { source: SourceDetailDat
     ...source.relationshipClues.map((clue) => clue.label),
     ...source.works.map((work) => work.title),
     ...topicChips(source),
-  ]).slice(0, 8);
+  ].map(simplifyDisplayText)).slice(0, 8);
 
   return (
     <section className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]">
@@ -229,15 +241,15 @@ function WorldCharacterInteractionSection({ source }: { source: SourceDetailData
   const items = [
     {
       label: t('SourceDetail.worldCharacter.greeting', { defaultValue: 'Greeting' }),
-      value: interaction.greeting,
+      value: interaction.greeting ? simplifyDisplayText(interaction.greeting) : null,
     },
     {
       label: t('SourceDetail.worldCharacter.tone', { defaultValue: 'Tone' }),
-      value: interaction.tone,
+      value: interaction.tone ? simplifyDisplayText(interaction.tone) : null,
     },
     {
       label: t('SourceDetail.worldCharacter.cadence', { defaultValue: 'Cadence' }),
-      value: interaction.cadence,
+      value: interaction.cadence ? simplifyDisplayText(interaction.cadence) : null,
     },
   ].filter((item): item is { label: string; value: string } => Boolean(item.value));
   if (items.length === 0) {
@@ -323,10 +335,7 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
   const bannerUrl = source.profileCoverUrl ?? source.worldBannerUrl ?? source.referenceImageUrl;
   const primaryAction = describeRealmPersonaPrimaryAction(source.sourceState);
   const chips = topicChips(source);
-  const facts = (source.entity?.facts ?? [])
-    .map((fact) => sourceFactText(fact))
-    .filter((fact): fact is string => Boolean(fact))
-    .slice(0, 6);
+  const subtitle = worldCharacterHeroSubtitle(source);
 
   return (
     <div data-testid="world-character-source-detail-page" className="flex min-h-0 flex-1 flex-col bg-gray-50">
@@ -336,96 +345,120 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
         contentClassName="mx-auto max-w-[1180px] px-5 py-6"
       >
         <div className="grid gap-5">
-          <section className="relative overflow-hidden rounded-[24px] border border-[#e7dfce] bg-[#fbf8f1] shadow-[0_10px_28px_rgba(60,50,30,.08)]">
-            <div
-              className="absolute inset-0"
-              style={{
-                background: bannerUrl
-                  ? `linear-gradient(90deg, rgba(22,34,26,.78), rgba(22,34,26,.18)), url(${bannerUrl}) center/cover no-repeat`
-                  : 'linear-gradient(135deg, #1d5f43 0%, #738868 48%, #d6c8a8 100%)',
-              }}
-            />
-            <div className="relative grid min-h-[310px] grid-cols-[minmax(0,1fr)_auto] gap-8 p-6 text-white max-[820px]:grid-cols-1">
-              <div className="flex min-w-0 flex-col justify-between gap-7">
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={props.onBack}
-                    className="grid h-10 w-10 place-items-center rounded-full border border-white/35 bg-white/15 text-white transition hover:bg-white/24"
-                    title={t('Common.back', { defaultValue: 'Back' })}
-                  >
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 12H5" /><path d="m12 5-7 7 7 7" />
-                    </svg>
-                  </button>
-                  <span className="rounded-full bg-white/16 px-3 py-1 text-xs font-semibold backdrop-blur">
-                    {t('SourceDetail.worldCharacter.eyebrow', { defaultValue: 'World character detail' })}
-                  </span>
-                </div>
+          <section
+            className="relative h-[410px] overflow-hidden rounded-[24px] border border-[#e8eae7] shadow-[0_10px_30px_rgba(30,41,38,.10)] max-[900px]:h-[440px] max-[720px]:h-[560px]"
+            style={{
+              backgroundImage: bannerUrl
+                ? `url(${bannerUrl})`
+                : 'linear-gradient(135deg, #cfe3d6 0%, #bacfc0 52%, #e7ede6 100%)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          >
+            <button
+              type="button"
+              data-testid="world-character-back-button"
+              onClick={props.onBack}
+              aria-label={t('Common.back', { defaultValue: 'Back' })}
+              className="absolute left-14 top-7 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/68 text-[#33423b] shadow-[0_10px_24px_rgba(30,41,38,.10)] backdrop-blur-[4px] transition hover:bg-white/86 hover:text-[#1f6844] max-[900px]:left-8"
+            >
+              <ArrowLeft aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />
+            </button>
 
-                <div className="max-w-2xl">
-                  <div className="flex items-end gap-4 max-[620px]:items-start">
-                    <EntityAvatar
-                      imageUrl={source.avatarUrl}
-                      name={source.displayName}
-                      kind="source"
-                      sizeClassName="h-24 w-24"
-                      textClassName="text-2xl font-semibold"
-                    />
-                    <div className="min-w-0 pb-1">
-                      <h1 className="truncate text-5xl font-semibold leading-tight tracking-normal max-[620px]:text-3xl">
-                        {source.displayName}
-                      </h1>
-                      {source.handle ? (
-                        <p className="mt-2 text-sm text-white/78">{source.handle}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                  {source.bio ? (
-                    <p className="mt-5 max-w-2xl text-base leading-8 text-white/88">{source.bio}</p>
-                  ) : null}
-                  {chips.length > 0 ? (
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {chips.slice(0, 6).map((chip) => (
-                        <span key={chip} className="rounded-full border border-white/22 bg-white/13 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur">
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
+            <div className="absolute bottom-12 left-14 z-10 max-w-[620px] max-[1040px]:left-8 max-[1040px]:bottom-9 max-[1040px]:max-w-[430px] max-[720px]:bottom-[184px] max-[720px]:right-8">
+              <div className="flex items-end gap-5">
+                <div
+                  data-testid="world-character-hero-avatar"
+                  className="relative h-[104px] w-[104px] shrink-0 overflow-hidden rounded-[20px] bg-white"
+                  style={{ boxShadow: '0 0 0 4px #ffffff, 0 0 0 5px rgba(47,157,120,.30), 0 12px 26px rgba(32,52,45,.16)' }}
+                >
+                  <EntityAvatar
+                    imageUrl={source.avatarUrl}
+                    name={simplifyDisplayText(source.displayName)}
+                    kind="human"
+                    shape="rounded"
+                    sizeClassName="h-full w-full"
+                    radiusClassName="rounded-[18px]"
+                    fallbackClassName="bg-[#e7f2ec] text-[#1d7a4f]"
+                    textClassName="text-3xl font-semibold"
+                  />
+                </div>
+                <div className="min-w-0 pb-1">
+                  <h1 className="text-[52px] font-semibold leading-[1.04] tracking-normal text-[#1b211d] [text-shadow:0_1px_3px_rgba(255,255,255,.5)] max-[900px]:text-[40px]">
+                    {simplifyDisplayText(source.displayName)}
+                  </h1>
+                  {subtitle ? (
+                    <p className="mt-2 max-w-[440px] truncate text-[15px] text-[#5b645e] [text-shadow:0_1px_2px_rgba(255,255,255,.5)]">{simplifyDisplayText(subtitle)}</p>
                   ) : null}
                 </div>
               </div>
 
-              <div className="w-[250px] self-end rounded-[18px] border border-white/18 bg-white/16 p-4 backdrop-blur-md max-[820px]:w-full">
-                <p className="text-xs font-semibold text-white/72">{t('SourceDetail.worldCharacter.primaryAction', { defaultValue: 'Next step' })}</p>
+              {chips.length > 0 ? (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {chips.slice(0, 6).map((chip) => (
+                    <span
+                      key={chip}
+                      className="rounded-full bg-white/65 px-3 py-1 text-xs font-medium text-[#4c554f] backdrop-blur-[2px]"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div
+              className="absolute bottom-14 right-12 z-10 w-[370px] rounded-[18px] border border-white/62 px-5 py-4 max-[1040px]:bottom-9 max-[1040px]:right-8 max-[1040px]:w-[342px] max-[720px]:bottom-6 max-[720px]:left-8 max-[720px]:right-8 max-[720px]:w-auto"
+              style={{
+                background: 'rgba(244,237,224,0.76)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                boxShadow: '0 16px 36px rgba(34,26,18,0.18), inset 0 1px 0 rgba(255,255,255,0.52)',
+              }}
+            >
+              {props.stats ? (
+                <div className="flex items-center justify-center gap-4 text-center">
+                  <p className="text-[13px] font-semibold text-[#20342d]">
+                    <span className="text-[16px]">{props.stats.friendsCount}</span>
+                    <span className="ml-1 text-[#2f3a34]">{t('SourceDetail.friends', { defaultValue: 'Friends' })}</span>
+                  </p>
+                  <span className="h-1 w-1 rounded-full bg-white/78" aria-hidden />
+                  <p className="text-[13px] font-semibold text-[#20342d]">
+                    <span className="text-[16px]">{props.stats.postsCount}</span>
+                    <span className="ml-1 text-[#2f3a34]">{t('SourceDetail.posts', { defaultValue: 'Posts' })}</span>
+                  </p>
+                  <span className="h-1 w-1 rounded-full bg-white/78" aria-hidden />
+                  <p className="text-[13px] font-semibold text-[#20342d]">
+                    <span className="text-[16px]">{props.stats.likesCount}</span>
+                    <span className="ml-1 text-[#2f3a34]">{t('SourceDetail.likes', { defaultValue: 'Likes' })}</span>
+                  </p>
+                </div>
+              ) : null}
+              <div className={`grid grid-cols-2 gap-4 max-[420px]:grid-cols-1 ${props.stats ? 'mt-5' : ''}`}>
+                <button
+                  type="button"
+                  onClick={props.onStartChat}
+                  disabled={primaryAction.disabled || !props.onStartChat}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-[12px] bg-[#078a55] px-4 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(7,138,85,.24)] transition hover:bg-[#067a4c] disabled:cursor-default disabled:opacity-60"
+                >
+                  <MessageCircle aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
+                  {t('SourceDetail.worldCharacter.chatNow', { defaultValue: 'Chat now' })}
+                </button>
                 <button
                   type="button"
                   onClick={props.onPrimaryAction}
                   disabled={primaryAction.disabled}
                   data-source-state={source.sourceState}
                   data-primary-action={primaryAction.action}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[12px] bg-white px-4 py-3 text-sm font-semibold text-[#1d5f43] shadow-sm disabled:cursor-default disabled:opacity-60"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-[12px] border border-white/70 bg-white/78 px-4 text-[15px] font-semibold text-[#1d5f43] shadow-[0_8px_20px_rgba(34,26,18,.08)] transition hover:bg-white disabled:cursor-default disabled:opacity-60"
                 >
-                  <SourceDetailPrimaryActionIcon action={primaryAction.action} />
+                  <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
                   {worldCharacterPrimaryActionLabel(primaryAction, t)}
                 </button>
-                {props.stats ? (
-                  <div className="mt-4 grid grid-cols-3 gap-2 text-center text-white/90">
-                    <div className="rounded-[12px] bg-white/12 px-2 py-2">
-                      <p className="text-lg font-semibold">{props.stats.friendsCount}</p>
-                      <p className="text-[10px] text-white/66">{t('SourceDetail.friends', { defaultValue: 'Friends' })}</p>
-                    </div>
-                    <div className="rounded-[12px] bg-white/12 px-2 py-2">
-                      <p className="text-lg font-semibold">{props.stats.postsCount}</p>
-                      <p className="text-[10px] text-white/66">{t('SourceDetail.posts', { defaultValue: 'Posts' })}</p>
-                    </div>
-                    <div className="rounded-[12px] bg-white/12 px-2 py-2">
-                      <p className="text-lg font-semibold">{props.stats.likesCount}</p>
-                      <p className="text-[10px] text-white/66">{t('SourceDetail.likes', { defaultValue: 'Likes' })}</p>
-                    </div>
-                  </div>
-                ) : null}
               </div>
+              <p className="mt-3 text-center text-xs font-medium text-[#7a7060]">
+                {t('SourceDetail.worldCharacter.joinLocalHint', { defaultValue: 'Join to keep chatting locally.' })}
+              </p>
             </div>
           </section>
 
@@ -448,7 +481,7 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
                   ) : null}
                 </div>
                 {source.entity?.summary ? (
-                  <p className="mt-4 text-sm leading-7 text-[#4a4336]">{source.entity.summary}</p>
+                  <p className="mt-4 text-sm leading-7 text-[#4a4336]">{simplifyDisplayText(source.entity.summary)}</p>
                 ) : null}
                 <WorldCharacterIdentityCoordinates source={source} />
               </section>
@@ -456,19 +489,6 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
               <WorldCharacterMilestonesSection source={source} />
               <WorldCharacterWorksSection source={source} />
               <WorldCharacterRelationshipCluesSection source={source} />
-
-              {facts.length > 0 ? (
-                <section className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]">
-                  <h2 className="text-xl font-semibold text-[#262017]">{t('SourceDetail.worldCharacter.factsTitle', { defaultValue: 'Additional notes' })}</h2>
-                  <div className="mt-4 grid gap-3">
-                    {facts.map((fact) => (
-                      <div key={fact} className="rounded-[14px] border border-[#e9e1d0] bg-[#fffdf8] p-4 text-sm leading-6 text-[#4a4336]">
-                        {fact}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
             </main>
 
             <aside className="grid content-start gap-5">

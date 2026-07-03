@@ -7,6 +7,7 @@ import type { SourceDetailData } from './source-detail-model.js';
 import { getStateBadgeColor } from './source-detail-model.js';
 import { ScoreProgressBar, SourceDetailPrimaryActionIcon } from './source-detail-view-primitives.js';
 import { WorldCharacterSourceDetailPage } from './source-detail-world-character-view.js';
+import { SourceDetailSkeleton } from './source-detail-skeleton.js';
 
 type SourceDetailViewProps = {
   source: SourceDetailData;
@@ -17,6 +18,7 @@ type SourceDetailViewProps = {
   onBack: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
+  onStartChat?: () => void;
   onSendGift: () => void;
 };
 
@@ -81,11 +83,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
   const { t } = useTranslation();
 
   if (props.loading) {
-    return (
-      <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
-        {t('SourceDetail.loading')}
-      </div>
-    );
+    return <SourceDetailSkeleton />;
   }
 
   if (props.error) {
