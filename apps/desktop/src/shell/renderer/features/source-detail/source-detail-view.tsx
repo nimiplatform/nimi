@@ -5,20 +5,19 @@ import { ScrollArea } from '@nimiplatform/kit/ui';
 import { describeRealmPersonaPrimaryAction } from '@renderer/features/explore/realm-persona-source-materialization';
 import type { SourceDetailData } from './source-detail-model.js';
 import { getStateBadgeColor } from './source-detail-model.js';
-import { ScoreProgressBar, SourceDetailPrimaryActionIcon } from './source-detail-view-primitives.js';
+import { SourceDetailPrimaryActionIcon } from './source-detail-view-primitives.js';
 import { WorldCharacterSourceDetailPage } from './source-detail-world-character-view.js';
 import { SourceDetailSkeleton } from './source-detail-skeleton.js';
 
 type SourceDetailViewProps = {
   source: SourceDetailData;
   stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
-  worldScore?: number;
   loading: boolean;
   error: boolean;
   onBack: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
-  onSendGift: () => void;
+  onStartChat?: (initialComposerText?: string) => void;
 };
 
 // Source state badge
@@ -243,16 +242,6 @@ export function SourceDetailView(props: SourceDetailViewProps) {
                 </div>
               ) : null}
 
-              {/* Score Progress Bar */}
-              <div className="mt-5 w-full px-4">
-                <div className="flex items-center gap-3">
-                    <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
-                      {t('SourceDetail.score', { defaultValue: 'Score' })}
-                    </span>
-                  <ScoreProgressBar score={props.worldScore} />
-                </div>
-              </div>
-
               {/* Stats - Friends / Posts / Likes */}
               <div className="mt-5 flex w-full items-center justify-around px-4 py-4 bg-gray-50 rounded-2xl">
                 <div className="text-center">
@@ -284,21 +273,8 @@ export function SourceDetailView(props: SourceDetailViewProps) {
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-6 flex items-center justify-center gap-4 pb-6">
-                <button
-                  type="button"
-                  onClick={props.onSendGift}
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                  title={t('SourceDetail.sendGift')}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="8" width="18" height="4" rx="1" />
-                    <path d="M12 8v13" />
-                    <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
-                    <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" />
-                  </svg>
-                </button>
-                {source.worldId ? (
+              {source.worldId ? (
+                <div className="mt-6 flex items-center justify-center gap-4 pb-6">
                   <button
                     type="button"
                     onClick={props.onOpenWorld}
@@ -311,8 +287,8 @@ export function SourceDetailView(props: SourceDetailViewProps) {
                       <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                     </svg>
                   </button>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
             </div>
           </div>
 

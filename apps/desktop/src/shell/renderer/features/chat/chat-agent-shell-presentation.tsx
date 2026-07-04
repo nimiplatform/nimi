@@ -308,7 +308,7 @@ export function useAgentConversationPresentation(
         <div className="space-y-3">
           {hostFeedbackNode}
           <AgentCanonicalComposer
-            composerKey={input.activeThreadId || 'none'}
+            composerKey={`${input.activeThreadId || 'none'}:${input.composerPrefillRequestId ?? 0}`}
             initialText={input.currentComposerTextRef.current}
             disabled={Boolean(surfaceState.composer?.disabled) || schedulingGuard.disabled}
             runtimeHint={surfaceState.composer?.disabledReason && !input.submittingThreadId
@@ -389,6 +389,7 @@ export function useAgentConversationPresentation(
     input.activeTarget,
     input.activeConversationAnchorId,
     input.activeThreadId,
+    input.composerPrefillRequestId,
     input.agentRouteReady,
     input.agentRouteDisabledReason,
     input.mutationPendingAction,

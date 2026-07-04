@@ -272,8 +272,13 @@ export function workStatusLabel(
 
 export function worldCharacterPrimaryActionLabel(
   action: ReturnType<typeof describeRealmPersonaPrimaryAction>,
-  _t: ReturnType<typeof useTranslation>['t'],
+  t: ReturnType<typeof useTranslation>['t'],
 ): string {
+  if (action.action === 'become_partner') {
+    return t('SourceDetail.worldCharacter.primaryActionMaterialize', {
+      defaultValue: action.label,
+    });
+  }
   return action.label;
 }
 

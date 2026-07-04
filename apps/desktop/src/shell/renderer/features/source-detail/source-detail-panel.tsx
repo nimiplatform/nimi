@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import {
   discoverRealmSourceLocalAgents,
   realmPersonaSourceMaterializationFailureMessage,
@@ -41,7 +40,7 @@ export function SourceDetailPanel() {
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
-  const [giftModalOpen, setGiftModalOpen] = useState(false);
+  const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   const sourceIdentifier = String(selectedProfileId || '').trim();
@@ -128,33 +127,48 @@ export function SourceDetailPanel() {
     return profileQuery.data.stats;
   }, [profileQuery.data]);
 
-  const worldScore = useMemo(() => {
-    if (!profileQuery.data) return 0;
-    return profileQuery.data.worldScore;
-  }, [profileQuery.data]);
-
-  const handleMaterializeSource = async () => {
+  const resolveSourceContactTarget = async () => {
     if (!source) {
+      throw new Error(realmPersonaSourceMaterializationMessage());
+    }
+
+    const existingAgent = sourceRuntimeLocalAgents.length === 1 ? sourceRuntimeLocalAgents[0] : null;
+    const target = existingAgent
+      ? toSourceContactLaunchTarget({
+        ...source,
+        runtimeSourceRef: existingAgent.runtimeSourceRef,
+        localAgentRef: existingAgent.localAgentRef,
+      }, ownerUserId)
+      : await materializeSourceContactLaunchTarget(source, ownerUserId);
+
+    if (!existingAgent) {
+      await ensureRuntimeAgentExists(target);
+    }
+    await queryClient.invalidateQueries({ queryKey: ['source-detail-local-agents'], exact: false });
+    await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
+    return target;
+  };
+
+  const handlePrimaryAction = async () => {
+    try {
+      await resolveSourceContactTarget();
+      setFeedback({
+        kind: 'success',
+        message: i18n.t('Explore.realmPersonaSourceMaterializedFeedback', {
+          defaultValue: 'Local agent created on this device.',
+        }),
+      });
+    } catch (error) {
       setFeedback({
         kind: 'error',
-        message: realmPersonaSourceMaterializationMessage(),
+        message: realmPersonaSourceMaterializationFailureMessage(error),
       });
-      return;
     }
+  };
+
+  const handleStartChat = async (initialComposerText?: string) => {
     try {
-      const existingAgent = sourceRuntimeLocalAgents.length === 1 ? sourceRuntimeLocalAgents[0] : null;
-      const target = existingAgent
-        ? toSourceContactLaunchTarget({
-          ...source,
-          runtimeSourceRef: existingAgent.runtimeSourceRef,
-          localAgentRef: existingAgent.localAgentRef,
-        }, ownerUserId)
-        : await materializeSourceContactLaunchTarget(source, ownerUserId);
-      if (!existingAgent) {
-        await ensureRuntimeAgentExists(target);
-      }
-      await queryClient.invalidateQueries({ queryKey: ['source-detail-local-agents'], exact: false });
-      await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
+      const target = await resolveSourceContactTarget();
       await launchAgentConversationFromDisplay({
         target,
         setActiveTab,
@@ -162,13 +176,10 @@ export function SourceDetailPanel() {
         setSelectedTargetForSource,
         setAgentConversationSelection,
         setAgentConversationTargetSnapshot,
+        setPendingAgentComposerPrefill,
+        initialComposerText,
       });
-      setFeedback({
-        kind: 'success',
-        message: i18n.t('SourceDetail.worldCharacter.partnerReadyFeedback', {
-          defaultValue: 'Your partner is ready. Opening chat.',
-        }),
-      });
+      setFeedback(null);
     } catch (error) {
       setFeedback({
         kind: 'error',
@@ -203,7 +214,6 @@ export function SourceDetailPanel() {
       <SourceDetailView
         source={sourceForView!}
         stats={stats}
-        worldScore={worldScore}
         loading={profileQuery.isPending}
         error={profileQuery.isError}
         onBack={navigateBack}
@@ -214,20 +224,10 @@ export function SourceDetailPanel() {
           navigateToWorld(source.worldId);
         }}
         onPrimaryAction={() => {
-          void handleMaterializeSource();
+          void handlePrimaryAction();
         }}
-        onSendGift={() => setGiftModalOpen(true)}
-      />
-      <SendGiftModal
-        open={giftModalOpen}
-        receiverId={source?.id || ''}
-        receiverName={source?.displayName || ''}
-        receiverHandle={source?.handle}
-        receiverIsSource
-        receiverAvatarUrl={source?.avatarUrl}
-        onClose={() => setGiftModalOpen(false)}
-        onSent={() => {
-          setFeedback(null);
+        onStartChat={(initialComposerText) => {
+          void handleStartChat(initialComposerText);
         }}
       />
     </>

@@ -88,7 +88,6 @@ test('source detail view renders the dossier skeleton while loading', () => {
       onBack={() => {}}
       onOpenWorld={() => {}}
       onPrimaryAction={() => {}}
-      onSendGift={() => {}}
     />,
   );
   assert.match(markup, /data-testid="source-detail-skeleton"/);

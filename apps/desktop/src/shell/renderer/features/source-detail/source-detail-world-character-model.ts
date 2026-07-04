@@ -1,4 +1,3 @@
-
 import { parseOptionalJsonObject, type JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 import type {
   SourceDetailWorldCharacter,

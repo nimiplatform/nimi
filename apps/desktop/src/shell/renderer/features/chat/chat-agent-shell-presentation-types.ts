@@ -31,6 +31,7 @@ export type UseAgentConversationPresentationInput = {
   activeConversationAnchorId: string | null;
   bundle: AgentLocalThreadBundle | null;
   bundleError: unknown;
+  composerPrefillRequestId: number | null;
   composerReady: boolean;
   currentComposerTextRef: { current: string };
   currentFooterHostState: {

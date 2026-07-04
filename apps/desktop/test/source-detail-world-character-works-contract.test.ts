@@ -82,13 +82,11 @@ test('source detail renders works collections without inventing individual poems
     React.createElement(SourceDetailView, {
       source,
       stats: null,
-      worldScore: 0,
       loading: false,
       error: false,
       onBack: () => {},
       onOpenWorld: () => {},
       onPrimaryAction: () => {},
-      onSendGift: () => {},
     }),
   );
   const visibleMarkup = markup.replace(/\sdata-[^=]+="[^"]*"/gu, '');
@@ -117,20 +115,43 @@ test('world character source detail uses the dedicated world character page surf
     React.createElement(SourceDetailView, {
       source,
       stats: { friendsCount: 2, postsCount: 3, likesCount: 5 },
-      worldScore: 72,
       loading: false,
       error: false,
       onBack: () => {},
       onOpenWorld: () => {},
       onPrimaryAction: () => {},
-      onSendGift: () => {},
     }),
   );
 
   assert.match(markup, /data-testid="world-character-source-detail-page"/);
   assert.match(markup, /data-testid="world-character-works-section"/);
+  assert.match(markup, /data-testid="world-character-hero-stats"/);
+  assert.match(markup, /data-testid="world-character-hero-actions"/);
+  assert.ok(
+    markup.indexOf('data-testid="world-character-hero-actions"') > markup.indexOf('data-testid="world-character-hero-stats"'),
+    'world character hero actions should render in the right-side rail below stats',
+  );
+  assert.doesNotMatch(markup, /data-testid="world-character-bottom-stats"/);
   assert.doesNotMatch(markup, /data-testid="world-character-source-boundary"/);
   assert.doesNotMatch(markup, /data-testid="source-detail-compact-profile-card"/);
+});
+
+test('world character source detail hides paused score and gift controls', () => {
+  const source = toSourceDetailData(liBaiRaw, 'source_materialization_available');
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+    }),
+  );
+
+  assert.doesNotMatch(markup, />Score</);
+  assert.doesNotMatch(markup, />Send Gift</);
 });
 
 test('world character source detail fails closed when source text rows are absent', () => {
@@ -298,6 +319,115 @@ test('world character source detail projects admitted character dossier fields',
   assert.match(detail.worldCharacter?.milestones[1]?.summary ?? '', /掌管国家礼仪与科举事务/);
   assert.equal(detail.worldCharacter?.relationshipNotes[0]?.summary, '欧阳德被明确标识为阳明学派理学家，这是其最核心的学术身份。');
   assert.match(detail.worldCharacter?.conversationAnchors.join('\n') ?? '', /想问诗文、仕途还是人生起落/);
+});
+
+test('world character conversation rail renders direct questions instead of raw clue list', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: null,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+        onStartChat: () => {},
+      }),
+    );
+    const askStart = markup.indexOf('data-testid="world-character-ask-section"');
+    const askMarkup = markup.slice(askStart, markup.indexOf('</section>', askStart));
+
+    assert.match(markup, /你可以问他/);
+    assert.doesNotMatch(markup, /可聊线索/);
+    assert.match(askMarkup, /<button[^>]*type="button"[^>]*data-testid="world-character-question"/);
+    assert.doesNotMatch(askMarkup, /<p[^>]*data-testid="world-character-question"/);
+    assert.doesNotMatch(markup, /你可以讲讲/);
+    assert.doesNotMatch(markup, /欧阳德会先请你说明想问诗文、仕途还是人生起落/);
+    assert.match(markup, /他为什么被称为阳明学派思想家与朝廷重臣？/);
+    assert.match(markup, /阳明学派怎样影响了他的一生？/);
+    assert.match(markup, /担任礼部尚书时，他经历了什么？/);
+    assert.match(markup, /他在明代文人网络里经历了什么？/);
+    assert.match(markup, /欧阳南野先生文集为什么重要？/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('world character conversation rail filters raw CBDB relationship templates from suggestions', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      displayName: '同恕',
+      entity: {
+        ...ouYangDeRaw.entity,
+        name: '同恕',
+      },
+      source: {
+        ...ouYangDeRaw.source,
+        placement: {
+          ...ouYangDeRaw.source.placement,
+          role: '思想家、书院山长',
+          faction: '元代文人书院网络',
+          rank: '书院山长、太子左赞善',
+          sceneRefs: ['yuan-academy-gathering', 'yuan-official-court', 'yuan-literati-network'],
+        },
+      },
+      relationships: [
+        {
+          id: 'raw-association-farewell',
+          type: 'association',
+          core: {
+            attributes: {
+              sourceRelationLabelChn: '临别得到Y所作赠言（送别诗、序）',
+            },
+          },
+        },
+        {
+          id: 'raw-association-occasion',
+          type: 'association',
+          core: {
+            attributes: {
+              sourceRelationLabel: '从Y处收到贺词（occasion）',
+            },
+          },
+        },
+        {
+          id: 'raw-association-image-record',
+          type: 'association',
+          core: {
+            attributes: {
+              sourceRelationLabelChn: '画赞（图像记）由Y所作',
+            },
+          },
+        },
+      ],
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: null,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+      }),
+    );
+    const askStart = markup.indexOf('data-testid="world-character-ask-section"');
+    const askMarkup = markup.slice(askStart, markup.indexOf('</section>', askStart));
+
+    assert.match(askMarkup, /他为什么被称为思想家、书院山长？/);
+    assert.match(askMarkup, /元代文人书院网络怎样影响了他的一生？/);
+    assert.match(askMarkup, /担任书院山长、太子左赞善时，他经历了什么？/);
+    assert.match(askMarkup, /他在元代书院雅集里经历了什么？/);
+    assert.doesNotMatch(askMarkup, /Y所作|occasion|图像记|送别诗、序|他和临别|他和从Y处|他和画赞/);
+  } finally {
+    await changeLocale('en');
+  }
 });
 
 test('world character source detail uses Realm relationship neighborhood for works and clues', () => {
@@ -505,9 +635,178 @@ test('world character works collapse duplicated biography and relationship evide
     {
       title: '牧庵集',
       summary: '《牧庵集》是其文学成就的结晶，奠定了他在元代文坛的领袖地位。',
-      status: 'unresolved',
+      status: 'resolved',
     },
   ]);
+});
+
+test('world character works collapse source text rows and generic biography text-code evidence', () => {
+  const detail = toSourceDetailData({
+    ...ouYangDeRaw,
+    displayName: '同憕',
+    source: {
+      ...ouYangDeRaw.source,
+      authoring: {
+        extensions: {
+          sourcePerson: {
+            texts: [
+              {
+                textId: 43210,
+                titleChn: '庵集',
+                title: 'an ji',
+                rowRef: 'cbdb:BIOG_TEXT_DATA:tong-cheng:an-ji:1',
+                joinStatus: 'resolved',
+              },
+            ],
+          },
+        },
+      },
+      biography: {
+        milestones: [
+          {
+            milestoneId: 'bio-an-ji-work',
+            title: '同憕著有《庵集》',
+            summary: '同憕著有《庵集》。',
+            textCode: 'an-ji',
+            sequence: 1,
+          },
+        ],
+      },
+      relationships: [],
+    },
+    relationships: [],
+  }, 'source_materialization_available');
+
+  assert.deepEqual(detail.works.map((work) => ({
+    title: work.title,
+    romanizedTitle: work.romanizedTitle,
+    textId: work.textId,
+    summary: work.summary ?? null,
+    status: work.status,
+  })), [
+    {
+      title: '庵集',
+      romanizedTitle: 'an ji',
+      textId: '43210',
+      summary: null,
+      status: 'resolved',
+    },
+  ]);
+  assert.deepEqual(detail.worldCharacter?.milestones.map((milestone) => milestone.title), []);
+});
+
+test('world character works hide ingestion status badges from profile cards', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      source: {
+        ...ouYangDeRaw.source,
+        biography: {
+          milestones: [
+            {
+              milestoneId: 'bio-muan-work',
+              title: '著有《牧庵集》',
+              summary: '著有《牧庵集》',
+              rowRef: 'cbdb:BIOG_WORK:yao-sui:muan:bio',
+              sequence: 1,
+            },
+          ],
+        },
+        relationships: [
+          {
+            relationType: 'text',
+            summary: '姚燧与著作「牧菴集」有关。',
+            attributes: {
+              targetLabel: '牧菴集',
+              rowRef: 'cbdb:TEXT_REL:yao-sui:muan:generic',
+              joinStatus: 'resolved',
+            },
+          },
+        ],
+      },
+      relationships: [
+        {
+          id: 'cbdb-rel-text-muan-best',
+          type: 'text',
+          sourceEntityId: 'cbdb-person-yao-sui',
+          targetEntityId: 'cbdb-text-muan-best',
+          contentHash: 'rel-text-muan-best-hash',
+          core: {
+            presentation: {
+              summary: '《牧庵集》是其文学成就的结晶，奠定了他在元代文坛的领袖地位。',
+            },
+            attributes: {
+              titleChn: '牧庵集',
+              rowRef: 'cbdb:BIOG_TEXT_DATA:yao-sui:muan:best',
+              joinStatus: 'unresolved',
+            },
+          },
+        },
+      ],
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: null,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+      }),
+    );
+
+    assert.match(markup, /牧庵集/);
+    assert.match(markup, /文学成就的结晶/);
+    assert.doesNotMatch(markup, /姚燧与著作/);
+    assert.doesNotMatch(markup, /待确认|已收录/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('world character works do not render generic relationship summaries as evidence copy', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      source: {
+        ...ouYangDeRaw.source,
+        biography: {
+          milestones: [],
+        },
+        relationships: [
+          {
+            relationType: 'text',
+            summary: '姚燧与著作「牧庵集」有关。',
+            attributes: {
+              targetLabel: '牧庵集',
+              rowRef: 'cbdb:TEXT_REL:yao-sui:muan:generic',
+              joinStatus: 'resolved',
+            },
+          },
+        ],
+      },
+      relationships: [],
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: null,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+      }),
+    );
+
+    assert.match(markup, /牧庵集/);
+    assert.doesNotMatch(markup, /姚燧与著作/);
+  } finally {
+    await changeLocale('en');
+  }
 });
 
 test('world character source relationships move text works into works instead of career milestones', () => {
@@ -600,18 +899,168 @@ test('world character life milestones omit unknown time placeholder', () => {
     React.createElement(SourceDetailView, {
       source,
       stats: null,
-      worldScore: 0,
       loading: false,
       error: false,
       onBack: () => {},
       onOpenWorld: () => {},
       onPrimaryAction: () => {},
-      onSendGift: () => {},
     }),
   );
 
   assert.match(markup, /拜访故友/);
   assert.doesNotMatch(markup, /Time unknown|未标注/);
+});
+
+test('world character biographical timeline keeps untimed career clues in one reading flow', () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    source: {
+      ...ouYangDeRaw.source,
+      biography: {
+        milestones: [
+          {
+            milestoneId: 'birth-1254',
+            title: '1254年出生',
+            summary: '1254年出生。',
+            sequence: 1,
+          },
+          {
+            milestoneId: 'academy-1314',
+            title: '1314年任书院山长',
+            summary: '1314年任书院山长，主持书院讲学。',
+            sequence: 2,
+          },
+          {
+            milestoneId: 'death-1331',
+            title: '1331年去世',
+            summary: '1331年去世。',
+            sequence: 3,
+          },
+          {
+            milestoneId: 'untimed-biography-clue',
+            title: '拜访故友',
+            summary: '与故友重逢。',
+            sequence: 4,
+          },
+        ],
+      },
+      relationships: [],
+    },
+    relationships: [
+      {
+        id: 'career-entry-untimed',
+        type: 'entry',
+        sourceEntityId: 'cbdb-person-99984',
+        targetEntityId: 'cbdb-entry-huibi',
+        contentHash: 'entry-huibi-hash',
+        core: {
+          presentation: {
+            summary: '同怨与入仕记录「徽辟」有关。',
+          },
+          attributes: {
+            entryLabel: '徽辟',
+            rowRef: 'cbdb:ENTRY_DATA:99984:1',
+          },
+        },
+      },
+      {
+        id: 'career-office-untimed',
+        type: 'postedToOffice',
+        sourceEntityId: 'cbdb-person-99984',
+        targetEntityId: 'cbdb-office-taizi',
+        contentHash: 'office-taizi-hash',
+        core: {
+          presentation: {
+            summary: '同怨曾任太子左赞善一职。',
+          },
+          attributes: {
+            officeLabel: '太子左赞善',
+            rowRef: 'cbdb:POSTED_TO_OFFICE_DATA:99984:2',
+          },
+        },
+      },
+    ],
+  }, 'source_materialization_available');
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+    }),
+  );
+  const visibleMarkup = markup.replace(/\sdata-[^=]+="[^"]*"/gu, '');
+
+  assert.match(markup, /data-testid="world-character-biography-primary-node"/);
+  assert.match(markup, /data-testid="world-character-biography-secondary-clue"/);
+  assert.match(markup, /data-testid="world-character-biography-unmatched-clues"/);
+  assert.match(markup, /1314年任书院山长/);
+  assert.match(markup, /徽辟/);
+  assert.match(markup, /太子左赞善/);
+  assert.match(markup, /Undated clues/);
+  assert.match(markup, /拜访故友/);
+  assert.doesNotMatch(visibleMarkup, />1<\/span>/u);
+  assert.doesNotMatch(visibleMarkup, />2<\/span>/u);
+  assert.doesNotMatch(visibleMarkup, />3<\/span>/u);
+  assert.doesNotMatch(visibleMarkup, /未知时间|未标注/);
+});
+
+test('world character biographical timeline without timed events renders one clues list', () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    source: {
+      ...ouYangDeRaw.source,
+      biography: {
+        milestones: [
+          {
+            milestoneId: 'untimed-biography',
+            title: '拜访故友',
+            summary: '与故友重逢。',
+            sequence: 1,
+          },
+        ],
+      },
+      relationships: [],
+    },
+    relationships: [
+      {
+        id: 'career-office-untimed-only',
+        type: 'postedToOffice',
+        sourceEntityId: 'cbdb-person-99984',
+        targetEntityId: 'cbdb-office-hanlin',
+        contentHash: 'office-hanlin-hash',
+        core: {
+          presentation: {
+            summary: '曾任翰林学士。',
+          },
+          attributes: {
+            officeLabel: '翰林学士',
+            rowRef: 'cbdb:POSTED_TO_OFFICE_DATA:99984:4',
+          },
+        },
+      },
+    ],
+  }, 'source_materialization_available');
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+    }),
+  );
+
+  assert.match(markup, /data-testid="world-character-biography-clue-list"/);
+  assert.match(markup, /Biography clues/);
+  assert.match(markup, /拜访故友/);
+  assert.match(markup, /翰林学士/);
+  assert.doesNotMatch(markup, /data-testid="world-character-biography-primary-node"/);
 });
 
 test('world character relationship map keeps factual clue text out of graph nodes', () => {
@@ -643,13 +1092,11 @@ test('world character relationship map keeps factual clue text out of graph node
     React.createElement(SourceDetailView, {
       source,
       stats: null,
-      worldScore: 0,
       loading: false,
       error: false,
       onBack: () => {},
       onOpenWorld: () => {},
       onPrimaryAction: () => {},
-      onSendGift: () => {},
     }),
   );
 
@@ -706,13 +1153,11 @@ test('world character relationship map renders posted address clues with locatio
     React.createElement(SourceDetailView, {
       source,
       stats: null,
-      worldScore: 0,
       loading: false,
       error: false,
       onBack: () => {},
       onOpenWorld: () => {},
       onPrimaryAction: () => {},
-      onSendGift: () => {},
     }),
   );
   const mapStart = markup.indexOf('data-testid="world-character-relationship-map"');
@@ -741,13 +1186,11 @@ test('world character source detail hides generic system and affordance tags fro
     React.createElement(SourceDetailView, {
       source,
       stats: null,
-      worldScore: 0,
       loading: false,
       error: false,
       onBack: () => {},
       onOpenWorld: () => {},
       onPrimaryAction: () => {},
-      onSendGift: () => {},
     }),
   );
 
@@ -757,7 +1200,7 @@ test('world character source detail hides generic system and affordance tags fro
   assert.doesNotMatch(markup, /Interactive character/);
 });
 
-test('world character source detail renders rounded-square avatar and simplified Chinese scene labels', () => {
+test('world character source detail renders circular banner-overlap avatar and simplified Chinese scene labels', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
     source: {
@@ -772,17 +1215,16 @@ test('world character source detail renders rounded-square avatar and simplified
     React.createElement(SourceDetailView, {
       source,
       stats: null,
-      worldScore: 0,
       loading: false,
       error: false,
       onBack: () => {},
       onOpenWorld: () => {},
       onPrimaryAction: () => {},
-      onSendGift: () => {},
     }),
   );
 
-  assert.match(markup, /data-testid="world-character-hero-avatar"[^>]*rounded-\[20px\]/);
+  assert.match(markup, /data-testid="world-character-hero-avatar"[^>]*rounded-full/);
+  assert.match(markup, /data-testid="world-character-hero-banner"/);
   assert.match(markup, /元代文人网络 \/ 元代书院雅集 \/ 元代朝廷官场/);
   assert.doesNotMatch(markup, /yuan-literati-network/);
   assert.doesNotMatch(markup, /yuan-academy-gathering/);
@@ -790,7 +1232,7 @@ test('world character source detail renders rounded-square avatar and simplified
   assert.doesNotMatch(markup, /書|學|與|為|從|處|臺|傳/);
 });
 
-test('world character hero uses dynasty subtitle, no bottom white mask, and reference action card copy', async () => {
+test('world character hero uses dynasty subtitle, no bottom white mask, and hides removed hero metadata copy', async () => {
   await changeLocale('zh');
   try {
     const source = toSourceDetailData({
@@ -813,23 +1255,24 @@ test('world character hero uses dynasty subtitle, no bottom white mask, and refe
       React.createElement(SourceDetailView, {
         source,
         stats: { friendsCount: 0, postsCount: 0, likesCount: 0 },
-        worldScore: 0,
         loading: false,
         error: false,
         onBack: () => {},
         onOpenWorld: () => {},
         onPrimaryAction: () => {},
-        onSendGift: () => {},
       }),
     );
 
     assert.match(markup, /元代/);
+    assert.match(markup, /data-testid="world-character-hero-title-row"[^>]*class="[^"]*flex[^"]*items-baseline[^"]*gap-3/);
+    assert.match(markup, /data-testid="world-character-hero-title-row"[\s\S]*同恕[\s\S]*元代/);
     assert.doesNotMatch(markup, /<p class="[^"]*">同恕<\/p>/);
     assert.doesNotMatch(markup, /linear-gradient\(to top, rgba\(255,255,255,0\.32\)/);
-    assert.doesNotMatch(markup, /立即对话/);
-    assert.match(markup, /data-primary-action="become_partner"/);
-    assert.match(markup, /成为我的伙伴/);
-    assert.match(markup, /加入后可在本地持续对话/);
+    assert.match(markup, /立即对话/);
+    assert.match(markup, /加入我的角色/);
+    assert.doesNotMatch(markup, /加入后可在本地持续对话/);
+    assert.doesNotMatch(markup, /当前身份/);
+    assert.doesNotMatch(markup, /身份标签/);
     assert.doesNotMatch(markup, /添加到我的角色/);
   } finally {
     await changeLocale('en');
@@ -906,13 +1349,11 @@ test('world character source detail renders admitted CBDB dossier prose in simpl
     React.createElement(SourceDetailView, {
       source,
       stats: null,
-      worldScore: 0,
       loading: false,
       error: false,
       onBack: () => {},
       onOpenWorld: () => {},
       onPrimaryAction: () => {},
-      onSendGift: () => {},
     }),
   );
   const visibleMarkup = markup.replace(/\sdata-[^=]+="[^"]*"/gu, '');
@@ -942,13 +1383,11 @@ test('world character source detail removes facts panel and replaces breadcrumbs
     React.createElement(SourceDetailView, {
       source,
       stats: null,
-      worldScore: 0,
       loading: false,
       error: false,
       onBack: () => {},
       onOpenWorld: () => {},
       onPrimaryAction: () => {},
-      onSendGift: () => {},
     }),
   );
 
@@ -968,13 +1407,11 @@ test('world character source detail renders dossier sections without exposing ra
     React.createElement(SourceDetailView, {
       source,
       stats: null,
-      worldScore: 0,
       loading: false,
       error: false,
       onBack: () => {},
       onOpenWorld: () => {},
       onPrimaryAction: () => {},
-      onSendGift: () => {},
     }),
   );
   const visibleMarkup = markup.replace(/\sdata-[^=]+="[^"]*"/gu, '');

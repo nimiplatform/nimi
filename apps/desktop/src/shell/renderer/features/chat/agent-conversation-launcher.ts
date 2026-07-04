@@ -6,11 +6,13 @@ import { isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 
 type AgentConversationLauncherInput = {
   target: AgentLocalTargetSnapshot;
+  initialComposerText?: string | null;
   setActiveTab: AppStoreState['setActiveTab'];
   setChatMode: AppStoreState['setChatMode'];
   setSelectedTargetForSource: (source: ConversationMode, targetId: string | null) => void;
   setAgentConversationSelection: (selection: AgentConversationSelection) => void;
   setAgentConversationTargetSnapshot: AppStoreState['setAgentConversationTargetSnapshot'];
+  setPendingAgentComposerPrefill?: AppStoreState['setPendingAgentComposerPrefill'];
 };
 
 export type AgentInteractionLaunchKind = 'chat' | 'voice';
@@ -62,6 +64,13 @@ async function launchAgentInteractionFromDisplay(
     localAgentRef,
     targetId: localAgentRef,
   });
+  const initialComposerText = String(input.initialComposerText || '').trim();
+  if (initialComposerText) {
+    input.setPendingAgentComposerPrefill?.({
+      localAgentRef,
+      text: initialComposerText,
+    });
+  }
   input.setChatMode('agent');
   input.setActiveTab('chat');
 

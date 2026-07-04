@@ -91,6 +91,8 @@ export function useAgentConversationModeHost(
   const queryClient = useQueryClient();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const pendingAgentComposerPrefill = useAppStore((state) => state.pendingAgentComposerPrefill);
+  const clearPendingAgentComposerPrefill = useAppStore((state) => state.clearPendingAgentComposerPrefill);
   const agentAdapterAiConfig = useAppStore((state) => state.aiConfig);
   const textCapabilityProjection = useAppStore(
     (state) => state.conversationCapabilityProjectionByCapability['text.generate'] || null,
@@ -116,6 +118,7 @@ export function useAgentConversationModeHost(
     }>
   >({});
   const currentComposerTextRef = useRef('');
+  const [composerPrefillRequestId, setComposerPrefillRequestId] = useState<number | null>(null);
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
     nextRegistry.register(createRuntimeAgentChatConversationProvider());
@@ -242,6 +245,22 @@ export function useAgentConversationModeHost(
     }),
     [agentCenterLocalConfigQuery.data?.modules.voice.avatar_autoplay, baseActiveTarget],
   );
+
+  useEffect(() => {
+    if (!activeTarget?.localAgentRef || !pendingAgentComposerPrefill) {
+      return;
+    }
+    if (pendingAgentComposerPrefill.localAgentRef !== activeTarget.localAgentRef) {
+      return;
+    }
+    currentComposerTextRef.current = pendingAgentComposerPrefill.text;
+    setComposerPrefillRequestId(pendingAgentComposerPrefill.requestId);
+    clearPendingAgentComposerPrefill(pendingAgentComposerPrefill.requestId);
+  }, [
+    activeTarget?.localAgentRef,
+    clearPendingAgentComposerPrefill,
+    pendingAgentComposerPrefill,
+  ]);
 
   useAgentRuntimeSessionSnapshotHydration({
     activeLocalAgentRef: activeTarget?.localAgentRef || null,
@@ -508,6 +527,7 @@ export function useAgentConversationModeHost(
     activeConversationAnchorId,
     bundle,
     bundleError,
+    composerPrefillRequestId,
     composerReady,
     currentComposerTextRef,
     currentFooterHostState,

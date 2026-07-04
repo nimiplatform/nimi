@@ -223,6 +223,47 @@ test('T3-3 proof: agent-conversation-launcher hard-requires localAgentRef and th
   assert.equal(setChatModeCalls, 0);
 });
 
+test('T3-3 proof: agent conversation launcher can prefill composer without authoring a thread', async () => {
+  const { launchAgentConversationFromDisplay } = await import(
+    '../src/shell/renderer/features/chat/agent-conversation-launcher.js'
+  );
+  const calls: string[] = [];
+  let pendingPrefill: { localAgentRef: string; text: string } | null = null;
+
+  await launchAgentConversationFromDisplay({
+    target: {
+      ownerUserId: 'user-1',
+      runtimeSourceRef: 'runtime-source-1',
+      localAgentRef: 'local-agent:user-1:agent-7',
+      displayName: 'Runtime Source',
+      handle: 'runtime-source',
+      avatarUrl: null,
+      worldId: 'world-1',
+      worldName: 'World',
+      bio: null,
+      ownershipType: null,
+      greeting: null,
+      builtinDocsContext: null,
+    },
+    initialComposerText: '  他为什么被称为阳明学派思想家与朝廷重臣？  ',
+    setPendingAgentComposerPrefill: (input) => {
+      calls.push('prefill');
+      pendingPrefill = input;
+    },
+    setActiveTab: () => { calls.push('tab'); },
+    setChatMode: () => { calls.push('mode'); },
+    setSelectedTargetForSource: () => { calls.push('target'); },
+    setAgentConversationSelection: () => { calls.push('selection'); },
+    setAgentConversationTargetSnapshot: () => { calls.push('snapshot'); },
+  });
+
+  assert.deepEqual(pendingPrefill, {
+    localAgentRef: 'local-agent:user-1:agent-7',
+    text: '他为什么被称为阳明学派思想家与朝廷重臣？',
+  });
+  assert.deepEqual(calls, ['snapshot', 'target', 'selection', 'prefill', 'mode', 'tab']);
+});
+
 test('T3-3 proof: Agent Chat always means LocalAgent Chat — no bare-source direct-chat code path', () => {
   // `agent-conversation-launcher.ts` is the SOLE module that opens an Agent
   // Chat session. Every consumer routes through it, and it only selects the

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -9,9 +10,20 @@ import { SourceDetailView } from '../src/shell/renderer/features/source-detail/s
 
 (globalThis as { React?: typeof React }).React = React;
 
+type SourceDetailLocaleProbe = {
+  worldCharacter?: {
+    mediaEyebrow?: unknown;
+    mediaTitle?: unknown;
+  };
+};
+
 test.before(async () => {
   await initI18n();
 });
+
+function readSourceDetailZhLocale(): SourceDetailLocaleProbe {
+  return JSON.parse(readFileSync(new URL('../src/shell/renderer/locales/zh/22-SourceDetail.json', import.meta.url), 'utf8')) as SourceDetailLocaleProbe;
+}
 
 function sourceDetailRaw() {
   return {
@@ -94,6 +106,11 @@ function sourceDetailRaw() {
       ],
     },
     source: {
+      interactionProfile: {
+        tone: 'A measured Song dynasty scholar voice.',
+        cadence: 'Deliberate cadence with quiet pauses.',
+        greeting: 'The archives are quiet; ask, and I will open them.',
+      },
       authoring: {
         extensions: {
           worldStudioSettings: {
@@ -133,6 +150,12 @@ test('source detail consumes public world character media and voice resources', 
     previewText: null,
   });
   assert.equal(detail.voiceDesign, null);
+  assert.deepEqual(detail.worldCharacter?.interaction, {
+    tone: 'A measured Song dynasty scholar voice.',
+    cadence: 'Deliberate cadence with quiet pauses.',
+    scenario: null,
+    greeting: 'The archives are quiet; ask, and I will open them.',
+  });
   assert.deepEqual(detail.entity, {
     id: 'entity-song-scholar',
     kind: 'person',
@@ -158,16 +181,42 @@ test('world character detail renders reference image and voice sample controls',
       loading: false,
       error: false,
       stats: null,
-      worldScore: 75,
       onBack: () => undefined,
       onOpenWorld: () => undefined,
       onPrimaryAction: () => undefined,
-      onSendGift: () => undefined,
     }),
   );
 
   assert.match(markup, /data-testid="world-character-reference-image"/);
+  assert.match(markup, /data-testid="world-character-opening-line"/);
+  assert.match(markup, /data-testid="world-character-speech-profile-trigger"/);
   assert.match(markup, /data-testid="world-character-voice-sample-audio"/);
+  assert.match(markup, />Presence<\/p>/);
+  assert.match(markup, />Look and voice<\/h2>/);
+  assert.doesNotMatch(markup, /Character media/);
+  assert.match(markup, /data-testid="world-character-media-frame"[\s\S]*data-testid="world-character-reference-image"[\s\S]*data-testid="world-character-opening-line"[\s\S]*data-testid="world-character-voice-sample-audio"/);
+  assert.match(markup, /data-testid="world-character-opening-line"[\s\S]*data-testid="world-character-speech-profile-trigger"[\s\S]*>i<\/button>[\s\S]*The archives are quiet; ask, and I will open them\./);
+  assert.match(markup, /The archives are quiet; ask, and I will open them\./);
+  assert.match(markup, /A measured Song dynasty scholar voice\./);
+  assert.match(markup, /Deliberate cadence with quiet pauses\./);
+  const openingLineTag = markup.match(/<div data-testid="world-character-opening-line"[^>]*>/)?.[0] ?? '';
+  const speechProfileTriggerTag = markup.match(/<button[^>]*data-testid="world-character-speech-profile-trigger"[^>]*>/)?.[0] ?? '';
+  assert.doesNotMatch(openingLineTag, /border|rounded|bg-\[/);
+  assert.match(speechProfileTriggerTag, /aria-label="Tone: A measured Song dynasty scholar voice\. · Cadence: Deliberate cadence with quiet pauses\."/);
+  assert.match(speechProfileTriggerTag, /h-\[14px\]/);
+  assert.match(speechProfileTriggerTag, /w-\[14px\]/);
+  assert.match(speechProfileTriggerTag, /text-\[8px\]/);
+  assert.doesNotMatch(speechProfileTriggerTag, /\bh-5\b|\bw-5\b|text-\[9px\]|text-\[12px\]/);
+  assert.match(speechProfileTriggerTag, /rounded-full/);
+  assert.match(speechProfileTriggerTag, /border/);
+  assert.match(speechProfileTriggerTag, /bg-\[#fffdf8\]/);
+  assert.doesNotMatch(speechProfileTriggerTag, /\bitalic\b/);
+  assert.doesNotMatch(speechProfileTriggerTag, /\stitle=/);
+  assert.doesNotMatch(markup, />Greeting<\/p>/);
+  assert.equal(markup.match(/The archives are quiet; ask, and I will open them\./gu)?.length, 1);
+  assert.doesNotMatch(markup, /lucide-info/);
+  assert.doesNotMatch(markup, /data-testid="world-character-voice-sample"/);
+  assert.doesNotMatch(markup, /Voice sample|audio\/wav/);
   assert.match(markup, /https:\/\/cdn\.example\.test\/character\/reference\.png/);
   assert.match(markup, /https:\/\/cdn\.example\.test\/character\/voice-sample\.wav/);
   assert.match(markup, /data-testid="world-character-reference-image"[^>]*aspect-\[2\/3\]/);
@@ -175,4 +224,11 @@ test('world character detail renders reference image and voice sample controls',
   assert.doesNotMatch(markup, /src="https:\/\/cdn\.example\.test\/character\/reference\.png" alt="" class="[^"]*object-cover/);
   assert.doesNotMatch(markup, /bg-\[#f3eee3\]/);
   assert.doesNotMatch(markup, /\/tmp\/nimi-forge/);
+});
+
+test('world character zh media section names presence instead of internal media assets', () => {
+  const locale = readSourceDetailZhLocale();
+
+  assert.equal(locale.worldCharacter?.mediaEyebrow, '形象');
+  assert.equal(locale.worldCharacter?.mediaTitle, '形象与声音');
 });

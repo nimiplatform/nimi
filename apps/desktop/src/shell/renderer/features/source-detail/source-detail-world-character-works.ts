@@ -114,7 +114,7 @@ function toWorkCollectionFromRelationship(row: JsonObject, index: number): Sourc
     rowRef: readScalarString(attributes.rowRef),
     role: readOptionalString(attributes, 'role') ?? readOptionalString(attributes, 'relationRole'),
     status: normalizeWorkStatus(attributes.joinStatus ?? row.joinStatus ?? attributes.status),
-    summary,
+    summary: isGenericWorkSummary(title, summary) ? null : summary,
     timeLabel: readMilestoneTimeLabel([attributes, presentation, core, row], [title, summary]),
   };
 }
@@ -157,8 +157,24 @@ function isGenericWorkSummary(title: string, summary: string | null | undefined)
     || normalizedSummary === `撰有${normalizedTitle}`
     || normalizedSummary === `著作${normalizedTitle}`
     || normalizedSummary === `${normalizedTitle}有关`
+    || normalizedSummary.endsWith(`著有${normalizedTitle}`)
+    || normalizedSummary.endsWith(`撰有${normalizedTitle}`)
+    || normalizedSummary.endsWith(`著作${normalizedTitle}`)
     || normalizedSummary.endsWith(`与著作${normalizedTitle}有关`)
     || normalizedSummary.endsWith(`与作品${normalizedTitle}有关`);
+}
+
+function mergeWorkStatus(
+  left: SourceDetailWorkCollection['status'],
+  right: SourceDetailWorkCollection['status'],
+): SourceDetailWorkCollection['status'] {
+  if (left === 'resolved' || right === 'resolved') {
+    return 'resolved';
+  }
+  if (left === 'unresolved' || right === 'unresolved') {
+    return 'unresolved';
+  }
+  return 'unknown';
 }
 
 function workDisplayScore(work: SourceDetailWorkCollection): number {
@@ -233,7 +249,7 @@ function mergeWorkCollection(
     textId: display.textId ?? fallback.textId,
     rowRef: display.rowRef ?? fallback.rowRef,
     role: mergeDistinctText(display.role, fallback.role),
-    status: display.status,
+    status: mergeWorkStatus(display.status, fallback.status),
     summary: display.summary ?? fallback.summary,
     timeLabel: mergeTimeLabel(display.timeLabel ?? null, fallback.timeLabel ?? null),
   };
@@ -282,7 +298,7 @@ function toWorkCollectionFromBiographyMilestone(
   if (!title) {
     return null;
   }
-  const textId = readScalarString(row.textId) ?? readScalarString(row.textCode);
+  const textId = readScalarString(row.textId);
   return {
     id: readOptionalString(row, 'workId')
       ?? readOptionalString(row, 'milestoneId')
@@ -295,7 +311,7 @@ function toWorkCollectionFromBiographyMilestone(
     rowRef: readScalarString(row.rowRef),
     role: readOptionalString(row, 'role') ?? readOptionalString(row, 'relationRole'),
     status: normalizeWorkStatus(row.joinStatus ?? row.status),
-    summary,
+    summary: isGenericWorkSummary(title, summary) ? null : summary,
     timeLabel: readMilestoneTimeLabel([row], [rawTitle, summary]),
   };
 }
