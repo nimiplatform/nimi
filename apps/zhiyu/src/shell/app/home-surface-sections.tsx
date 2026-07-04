@@ -1,6 +1,4 @@
 import { Button, StatusBadge, Surface } from '@nimiplatform/kit/ui';
-import { createAvatarStageSnapshot } from '@nimiplatform/kit/features/avatar/headless';
-import { AvatarStage } from '@nimiplatform/kit/features/avatar/ui';
 import {
   Bot,
   Fingerprint,
@@ -99,21 +97,12 @@ export function AvatarPresenceSection({
   readonly onLaunch?: () => void;
   readonly onManage?: () => void;
 }) {
-  const backendKind = avatar.backendKind ?? 'live2d';
-  const avatarSnapshot = createAvatarStageSnapshot({
-    backendKind,
-    avatarAssetRef: `fallback://${avatar.ready ? '形象已就绪' : '当前伙伴形象'}`,
-    expressionProfileRef: null,
-    idlePreset: null,
-    interactionPolicyRef: null,
-    defaultVoiceReference: null,
-  }, {
-    phase: avatar.ready ? 'idle' : 'transitioning',
-    emotion: avatar.ready ? 'calm' : 'concerned',
-    attentionTarget: 'camera',
-    actionCue: avatar.ready ? 'projected' : 'blocked',
-  });
   const controlState = avatar.launchAvailable || avatar.manageAvailable ? 'authorized' : 'blocked';
+  const resourceState = avatar.ready ? 'runtime-profile-projected' : 'blocked';
+  const avatarStatusLabel = avatar.ready ? '形象投影已连接' : '等待形象授权';
+  const avatarMessage = avatar.ready
+    ? `${avatar.message} 本地形象资源仍需在外观配置中导入和管理。`
+    : '形象启动和管理会在获得授权后出现。';
   return (
     <Surface
       as="section"
@@ -144,22 +133,21 @@ export function AvatarPresenceSection({
         </div>
       </div>
       <div className="zhiyu-home__avatar-product">
-        <AvatarStage
-          snapshot={avatarSnapshot}
-          label="当前伙伴形象"
-          fallbackLabel="知"
-          statusLabel={avatar.ready ? '已准备' : '等待授权'}
-          size="md"
-          showStatusBadge
-          className="zhiyu-home__avatar-stage"
-        />
+        <div
+          className="zhiyu-home__avatar-status-token"
+          data-zhiyu-avatar-resource-state={resourceState}
+          data-zhiyu-avatar-resource-ref="not-owned-by-zhiyu"
+          aria-hidden="true"
+        >
+          <Bot size={22} />
+        </div>
         <div className="zhiyu-home__avatar-copy">
           <div className="zhiyu-home__avatar-summary">
             <StatusBadge tone={avatar.ready ? 'success' : 'warning'} shape="dot">
-              {avatar.ready ? '形象已准备' : '等待形象授权'}
+              {avatarStatusLabel}
             </StatusBadge>
           </div>
-          <p>{avatar.ready ? avatar.message : '形象启动和管理会在获得授权后出现。'}</p>
+          <p>{avatarMessage}</p>
           <div className="zhiyu-home__avatar-actions" data-zhiyu-avatar-actions={controlState}>
             {avatar.launchAvailable ? (
               <Button

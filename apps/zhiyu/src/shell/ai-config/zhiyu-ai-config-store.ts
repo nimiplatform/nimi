@@ -53,6 +53,17 @@ export function loadZhiyuAIConfig(scopeRef: NimiAIScopeRef = createZhiyuAgentHom
   return fallback;
 }
 
+export async function refreshZhiyuAIConfig(scopeRef: NimiAIScopeRef = createZhiyuAgentHomeAIScopeRef()): Promise<NimiAIConfig> {
+  const key = scopeKey(scopeRef);
+  const fromFacade = await getZhiyuAIConfigFromFacade(scopeRef);
+  if (fromFacade) {
+    configCache.set(key, fromFacade);
+    configSubscriptions.notify(fromFacade);
+    return fromFacade;
+  }
+  return loadZhiyuAIConfig(scopeRef);
+}
+
 export function createZhiyuAIConfigService(): SharedAIConfigService {
   serviceSingleton ??= {
     aiConfig: {

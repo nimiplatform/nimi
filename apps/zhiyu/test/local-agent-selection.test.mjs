@@ -99,6 +99,36 @@ test('keeps explicit Runtime source discovery result when it is already ready', 
   assert.equal(selected.reasonCode, 'local-agent-discovered');
 });
 
+test('promotes an explicitly selected Runtime inventory partner projection without creating identity truth', async () => {
+  const { resolveZhiyuRuntimeLocalAgentSelection } = await loadSelectionModule();
+
+  const selected = resolveZhiyuRuntimeLocalAgentSelection({
+    sourceLocalAgent: unavailableLocalAgent(),
+    inventory: inventory([
+      inventoryAgent({
+        localAgentRef: 'runtime-local-agent:yan-zhenqing',
+        runtimeSourceRef: 'runtime-source:yan-zhenqing',
+        displayName: '颜真卿',
+      }),
+      inventoryAgent({
+        localAgentRef: 'runtime-local-agent:second',
+        runtimeSourceRef: 'runtime-source:second',
+        displayName: 'Second Partner',
+      }),
+    ]),
+    selectedLocalAgentRef: 'runtime-local-agent:yan-zhenqing',
+  });
+
+  assert.equal(selected.ready, true);
+  assert.equal(selected.reasonCode, 'runtime-local-agent-selected');
+  assert.equal(selected.source, 'runtime');
+  assert.equal(selected.ownerUserId, 'user-1');
+  assert.equal(selected.runtimeSourceRef, 'runtime-source:yan-zhenqing');
+  assert.equal(selected.localAgentRef, 'runtime-local-agent:yan-zhenqing');
+  assert.equal(selected.actionHint, 'open_runtime_agent_home');
+  assert.doesNotMatch(selected.message, /create|materialize|profile/i);
+});
+
 test('fails closed when Runtime inventory is empty or ambiguous', async () => {
   const { resolveZhiyuRuntimeLocalAgentSelection } = await loadSelectionModule();
 

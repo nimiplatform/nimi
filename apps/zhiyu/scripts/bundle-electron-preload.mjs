@@ -8,6 +8,7 @@ await build({
   entryPoints: [path.join(appRoot, 'src-electron/preload.cts')],
   outfile: path.join(appRoot, 'dist-electron/preload.cjs'),
   bundle: true,
+  packages: 'bundle',
   platform: 'node',
   target: 'node22',
   format: 'cjs',

@@ -3,8 +3,9 @@
 ## Z-PROD-001 Product Promise
 
 Zhiyu is the local partner center for Nimi. Its primary product surface is the
-current local partner: availability, readiness, conversation, configuration,
-recoverable failure, and developer diagnostics as a secondary surface.
+current local partner: availability, readiness, Desktop Agent Chat parity
+conversation, configuration, recoverable failure, and developer diagnostics as a
+secondary surface.
 
 ## Z-PROD-002 First-Party Bundled Incubation
 
@@ -23,7 +24,13 @@ Zhiyu is not:
 - an Avatar carrier runtime
 - a memory editor
 - a Runtime dashboard
-- a Desktop clone
+- a private Desktop clone or Desktop private-source dependency
+
+Zhiyu may migrate Desktop Agent Chat product behavior and UI/UX into a bounded
+app-local parity implementation when SDK/Kit upstreaming is intentionally
+deferred until real app acceptance stabilizes. That migration is product parity,
+not ownership of Desktop, Runtime, SDK, Kit, memory, avatar, voice, provider, or
+model truth.
 
 ## Z-PROD-004 Product Authority Source
 

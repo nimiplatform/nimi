@@ -217,7 +217,7 @@ for (const [optInState, suppressionReason, expectedState] of [
 
 test('home surface exposes proactive interruptibility audit data attributes', () => {
   const source = [
-    readFileSync(path.join(root, 'src/shell/app/HomeSurface.tsx'), 'utf8'),
+    readFileSync(path.join(root, 'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx'), 'utf8'),
     readFileSync(path.join(root, 'src/shell/app/home-companion-state-section.tsx'), 'utf8'),
     readFileSync(path.join(root, 'src/shell/agent/companion-state.ts'), 'utf8'),
   ].join('\n');

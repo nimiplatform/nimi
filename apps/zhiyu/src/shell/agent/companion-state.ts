@@ -94,8 +94,8 @@ async function readRuntimeAgentState(
     projectNimiRuntimeAgentStateSnapshot,
   } = await import('@nimiplatform/sdk/runtime');
   const {
-    withZhiyuElectronRuntimeProtectedScopes,
-  } = await import('./runtime-agent-scopes');
+    withZhiyuRuntimeAgentBindingRequired,
+  } = await import('../agent-chat/runtime-agent-binding');
   const runtime = new Runtime({
     appId: APP_ID,
     transport: { type: 'electron-ipc' },
@@ -105,7 +105,7 @@ async function readRuntimeAgentState(
     subjectUserId: input.ownerUserId,
     ...input,
   });
-  const response = await withZhiyuElectronRuntimeProtectedScopes(['runtime.agent.read'], (callOptions) => runtime.agents.getAgentState({
+  const response = await withZhiyuRuntimeAgentBindingRequired(['runtime.agent.read'], (callOptions) => runtime.agents.getAgentState({
     context,
     agentId: input.localAgentRef,
   }, callOptions));

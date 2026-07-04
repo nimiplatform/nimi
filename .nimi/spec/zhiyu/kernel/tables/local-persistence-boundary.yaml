@@ -15,6 +15,10 @@ allowed:
     owner: zhiyu
     constraints: [cache_only, owner_aware, not_raw_upstream_truth]
     source_rule: Z-PERSIST-001
+  - key: agent_center_local_config_hardcut
+    owner: zhiyu_bounded_parity
+    constraints: [bounded_hardcut_parity, scoped_to_runtime_local_agent_ref, noncanonical, fail_closed_manifest_validation, no_runtime_ai_config_truth, no_transcript_memory_or_runtime_snapshot_truth]
+    source_rule: Z-CONFIG-005
 forbidden:
   - canonical_transcript
   - turn_truth

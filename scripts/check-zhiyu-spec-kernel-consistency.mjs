@@ -46,6 +46,7 @@ const tableFiles = [
   `${tablesRoot}/diagnostics-surface-registry.yaml`,
   `${tablesRoot}/acceptance-gates.yaml`,
   `${tablesRoot}/implementation-acceptance-matrix.yaml`,
+  `${tablesRoot}/desktop-agent-chat-hardcut-checkpoint.yaml`,
   `${tablesRoot}/rule-evidence.yaml`,
   `${tablesRoot}/rule-evidence.catalog.yaml`,
   `${tablesRoot}/rule-evidence.rules-core.yaml`,

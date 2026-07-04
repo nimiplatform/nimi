@@ -7,6 +7,7 @@ import {
   useModelConfigProfileController,
   type AppModelConfigSurface,
   type ModelConfigProjectionStatus,
+  type ModelConfigSuperSection,
   type SharedAIConfigService,
 } from '@nimiplatform/kit/features/model-config';
 import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
@@ -21,7 +22,12 @@ import {
   ZHIYU_AI_CONFIG_BINDING_CAPABILITIES,
   ZHIYU_AI_CONFIG_ENABLED_CAPABILITIES,
   type ZhiyuAIConfigEnabledCapability,
-} from '../agent/route-projection';
+} from './zhiyu-ai-config-capabilities';
+import {
+  createZhiyuModelConfigLocalAssetSource,
+  listZhiyuRuntimeModelConfigLocalAssets,
+  type ZhiyuModelConfigLocalAssetSourceState,
+} from './zhiyu-runtime-model-provider';
 
 export type ZhiyuAiConfigSettingsProps = {
   readonly scopeRef: NimiAIScopeRef;
@@ -30,13 +36,20 @@ export type ZhiyuAiConfigSettingsProps = {
   readonly runtimeReady: boolean;
   readonly runtimeDetail: string | null;
   readonly initialSection?: CanonicalCapabilitySectionId | null;
-  readonly onClose: () => void;
+  readonly variant?: 'drawer' | 'embedded';
+  readonly onClose?: () => void;
 };
 
 const MODEL_CONFIG_COPY: Record<string, string> = {
   'Zhiyu.aiConfig.title': '模型配置',
   'Zhiyu.aiConfig.subtitle': '选择织羽对话、嵌入和对话图像产物所需的模型',
   'Zhiyu.aiConfig.close': '关闭模型配置',
+  'ModelConfig.hub.title': 'AI 模型',
+  'ModelConfig.hub.aggregateReady': '{{count}} 已就绪',
+  'ModelConfig.hub.aggregateAttention': '{{count}} 需要配置',
+  'ModelConfig.hub.aggregateNeutral': '{{count}} 未设置',
+  'ModelConfig.hub.aggregateEmpty': '未配置任何能力',
+  'ModelConfig.hub.importProfileLabel': '导入 AI 预设',
   'ModelConfig.section.chat.title': '对话',
   'ModelConfig.section.chat.subtitle': '文本与流式对话',
   'ModelConfig.section.chat.detail': '用于织羽对话、文本生成和连续回复。',
@@ -46,6 +59,9 @@ const MODEL_CONFIG_COPY: Record<string, string> = {
   'ModelConfig.section.image.title': '图像',
   'ModelConfig.section.image.subtitle': '对话图像产物',
   'ModelConfig.section.image.detail': '用于伙伴对话中返回的图像产物。',
+  'ModelConfig.section.audio.title': '语音',
+  'ModelConfig.section.audio.subtitle': '语音合成',
+  'ModelConfig.section.audio.detail': '用于伙伴语音与朗读产物。',
   'ModelConfig.capability.textGenerate.title': '文本生成',
   'ModelConfig.capability.textGenerate.subtitle': '文字模型',
   'ModelConfig.capability.textGenerate.detail': '织羽对话与连续回复共用此文字模型绑定。',
@@ -111,6 +127,24 @@ const MODEL_CONFIG_COPY: Record<string, string> = {
   'ModelConfig.editor.image.customOptionsHint': '每行一个运行参数。',
   'ModelConfig.editor.image.oneOptionPerLinePlaceholder': '每行一个选项',
 };
+
+const ZHIYU_MODEL_CONFIG_SUPER_SECTIONS: readonly ModelConfigSuperSection[] = [
+  {
+    id: 'conversation',
+    label: '对话',
+    sections: ['chat', 'embed'],
+  },
+  {
+    id: 'voice',
+    label: '语音',
+    sections: ['tts', 'stt', 'voice'],
+  },
+  {
+    id: 'media',
+    label: '媒体',
+    sections: ['image'],
+  },
+];
 
 function makeTranslator(copy: Record<string, string>) {
   return (key: string, vars?: Readonly<Record<string, string | number>>): string => {
@@ -210,22 +244,59 @@ export function ZhiyuAiConfigSettings({
   providerResolver,
   runtimeReady,
   runtimeDetail,
-  initialSection = 'chat',
+  initialSection = null,
+  variant = 'drawer',
   onClose,
 }: ZhiyuAiConfigSettingsProps) {
   const t = useMemo(() => makeTranslator(MODEL_CONFIG_COPY), []);
   const config = useLiveAIConfig(service, scopeRef);
+  const [localAssetState, setLocalAssetState] = useState<ZhiyuModelConfigLocalAssetSourceState>({
+    loading: false,
+    assets: [],
+  });
   const requirementDeclaration = useMemo(() => createRequirementDeclaration(scopeRef), [scopeRef]);
+  useEffect(() => {
+    let active = true;
+    if (!runtimeReady) {
+      setLocalAssetState({ loading: false, assets: [] });
+      return () => {
+        active = false;
+      };
+    }
+    setLocalAssetState((current) => ({
+      loading: true,
+      assets: current.assets,
+    }));
+    void listZhiyuRuntimeModelConfigLocalAssets()
+      .then((assets) => {
+        if (active) {
+          setLocalAssetState({ loading: false, assets });
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setLocalAssetState({ loading: false, assets: [] });
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [runtimeReady]);
+  const localAssetSource = useMemo(
+    () => createZhiyuModelConfigLocalAssetSource(localAssetState),
+    [localAssetState],
+  );
   const surface: AppModelConfigSurface = useMemo(() => ({
     scopeRef,
     aiConfigService: service,
     requirementDeclaration,
     providerResolver: (capabilityId: string) => (runtimeReady ? providerResolver(capabilityId) : null),
-    projectionResolver: (capabilityId: string) => bindingStatus(config, capabilityId, runtimeReady, runtimeDetail),
+    projectionResolver: (capabilityId: string) => bindingStatus(config, capabilityId, runtimeReady, runtimeDetail, localAssetSource),
+    localAssetSource,
     runtimeNotReadyLabel: runtimeDetail || '本地服务不可用',
     capabilityOverrides: createZhiyuCapabilityOverrides(),
     i18n: { t },
-  }), [config, providerResolver, requirementDeclaration, runtimeDetail, runtimeReady, scopeRef, service, t]);
+  }), [config, localAssetSource, providerResolver, requirementDeclaration, runtimeDetail, runtimeReady, scopeRef, service, t]);
   const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
   const currentOrigin = useMemo(
     () => (config.profileOrigin
@@ -240,6 +311,29 @@ export function ZhiyuAiConfigSettings({
     copy: profileCopy,
     currentOrigin,
   });
+
+  const modelHub = (
+    <ModelConfigAiModelHub
+      surface={surface}
+      profile={profileController}
+      initialSection={initialSection}
+      detailActiveModelHint={null}
+      className={variant === 'embedded' ? 'zhiyu-ai-config-embedded__model-hub' : 'zhiyu-ai-config-drawer__model-hub'}
+      superSections={ZHIYU_MODEL_CONFIG_SUPER_SECTIONS}
+    />
+  );
+
+  if (variant === 'embedded') {
+    return (
+      <div
+        className="zhiyu-ai-config-embedded"
+        data-zhiyu-ai-config-embedded="agent-center"
+        data-zhiyu-ai-config-drawer="embedded"
+      >
+        {modelHub}
+      </div>
+    );
+  }
 
   return (
     <div className="zhiyu-ai-config-drawer" role="dialog" aria-modal="true" aria-label={t('Zhiyu.aiConfig.title')}>
@@ -261,23 +355,19 @@ export function ZhiyuAiConfigSettings({
           {!runtimeReady ? (
             <StatusBadge tone="warning" shape="dot">本地服务不可用</StatusBadge>
           ) : null}
-          <IconButton
-            aria-label={t('Zhiyu.aiConfig.close')}
-            tone="ghost"
-            size="sm"
-            icon={<X size={16} />}
-            onClick={onClose}
-          />
+          {onClose ? (
+            <IconButton
+              aria-label={t('Zhiyu.aiConfig.close')}
+              tone="ghost"
+              size="sm"
+              icon={<X size={16} />}
+              onClick={onClose}
+            />
+          ) : null}
         </header>
         <ScrollArea className="zhiyu-ai-config-drawer__scroll">
           <div className="zhiyu-ai-config-drawer__body">
-            <ModelConfigAiModelHub
-              surface={surface}
-              profile={profileController}
-              initialSection={initialSection}
-              detailActiveModelHint={null}
-              className="zhiyu-ai-config-drawer__model-hub"
-            />
+            {modelHub}
           </div>
         </ScrollArea>
       </Surface>

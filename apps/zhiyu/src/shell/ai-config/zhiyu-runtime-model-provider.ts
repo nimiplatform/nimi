@@ -11,13 +11,20 @@ import {
   createNimiHostRuntimeRouteAccessSurface,
   createNimiRuntimeRouteCapabilityRuntimeWithHost,
   createNimiRuntimeRouteOptionsHostDeps,
+  listNimiRuntimeLocalAssetEntries,
   listNimiRuntimeRouteOptionsWithHost,
   withNimiRuntimeIdempotencyMetadata,
+  type NimiRuntimeLocalAssetEntry,
+  type NimiRuntimeLocalAssetListClient,
   type NimiListRuntimeRouteOptionsInput,
   type NimiRuntimeRouteCapabilityRuntime,
   type NimiRuntimeRouteOptionsHostRuntime,
   type NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
+import type {
+  ModelConfigLocalAssetDescriptor,
+  ModelConfigLocalAssetSource,
+} from '@nimiplatform/kit/core/model-config';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
 import {
   appId,
@@ -27,6 +34,11 @@ import {
 
 type ZhiyuRuntimeRouteOptionsHostClient = {
   readonly runtime: NimiRuntimeRouteOptionsHostRuntime;
+};
+
+export type ZhiyuModelConfigLocalAssetSourceState = {
+  readonly loading: boolean;
+  readonly assets: readonly ModelConfigLocalAssetDescriptor[];
 };
 
 async function loadZhiyuRuntimeRouteOptions(
@@ -69,6 +81,28 @@ export function createZhiyuRuntimeModelPickerProviderCache(): (
   return createRuntimeRouteModelPickerProviderCache({
     loadOptions: loadZhiyuRuntimeRouteOptionsFromProjection,
   });
+}
+
+export async function listZhiyuRuntimeModelConfigLocalAssetsFromRuntime(
+  runtime: NimiRuntimeLocalAssetListClient,
+): Promise<ModelConfigLocalAssetDescriptor[]> {
+  const entries = await listNimiRuntimeLocalAssetEntries(runtime);
+  return entries.map(projectRuntimeLocalAssetForModelConfig);
+}
+
+export async function listZhiyuRuntimeModelConfigLocalAssets(): Promise<ModelConfigLocalAssetDescriptor[]> {
+  const projection = await readyProjection();
+  return listZhiyuRuntimeModelConfigLocalAssetsFromRuntime(projection.client.runtime);
+}
+
+export function createZhiyuModelConfigLocalAssetSource(
+  state: ZhiyuModelConfigLocalAssetSourceState,
+): ModelConfigLocalAssetSource {
+  const assets = [...state.assets];
+  return {
+    loading: state.loading,
+    list: () => assets,
+  };
 }
 
 export async function createZhiyuRuntimeRouteCapabilityRuntime(): Promise<NimiRuntimeRouteCapabilityRuntime | null> {
@@ -115,4 +149,20 @@ export async function createZhiyuRuntimeRouteCapabilityRuntime(): Promise<NimiRu
       executeScenario: (request, options) => projection.client.runtime.ai.executeScenario(request, options),
     }),
   });
+}
+
+function projectRuntimeLocalAssetForModelConfig(
+  asset: NimiRuntimeLocalAssetEntry,
+): ModelConfigLocalAssetDescriptor {
+  return {
+    localAssetId: asset.localAssetId,
+    assetId: asset.assetId,
+    kind: asset.kind,
+    engine: asset.engine,
+    status: asset.status,
+    ...(asset.family ? { family: asset.family } : {}),
+    ...(asset.modelFamily ? { modelFamily: asset.modelFamily } : {}),
+    ...(asset.artifactRoles ? { artifactRoles: [...asset.artifactRoles] } : {}),
+    ...(asset.metadata ? { metadata: asset.metadata } : {}),
+  };
 }

@@ -13,6 +13,12 @@ Runtime Agent turn read/write authority comes from Runtime-issued scoped
 binding, including `runtime.agent.turn.read` and `runtime.agent.turn.write`, not
 from Platform registry permission scopes.
 
+If a Runtime/SDK-authority-admitted first-party Electron host equivalence is
+later used for Zhiyu Runtime Agent consumption, this consumer-mode classification
+must be updated in this file and backed by Runtime/SDK authority evidence. Zhiyu
+must not use a Zhiyu-local spec clause, account session, subject user id, or
+Platform registry scope as a substitute for `K-AGCORE-052`.
+
 ## Z-AUTH-003 Registry Scope Interpretation
 
 `account.session.read`, `agent.identity.project`, `text.generate`,
@@ -39,3 +45,10 @@ App-local code may adapt upstream projections to Zhiyu copy, layout, failure
 mapping, and diagnostics entries. It must not become a second Runtime Agent
 turn module, stream reducer, snapshot replay engine, memory writer, config
 store, provider router, or Avatar resource owner.
+
+A thin Zhiyu adapter is limited to app id, product copy, scope selection,
+layout placement, fail-closed reason projection, and diagnostics presentation.
+`apps/zhiyu/src/shell/agent-chat/**` is admitted only as a temporary hardcut
+presentation boundary for Desktop Agent Chat parity. It remains subject to
+post-acceptance SDK/Kit upstream or deletion review and must not become a
+parallel Runtime/SDK/Kit authority surface.

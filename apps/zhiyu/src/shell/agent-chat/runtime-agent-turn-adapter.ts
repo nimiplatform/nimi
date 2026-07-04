@@ -3,18 +3,25 @@ import {
   createRuntimeAgentConversationProjectionState,
   reduceRuntimeAgentConversationProjectionEvent,
   streamRuntimeAgentTurnRunnerPartsAsConversationEvents,
+  type ConversationTurnEvent,
   type RuntimeAgentConversationProjectionState,
   type RuntimeAgentTurnRunnerPartLike,
 } from '@nimiplatform/kit/features/chat/headless';
 import {
-  createNimiRuntimeAgentClient,
+  createNimiRuntimeAgentTurnsModule,
+  runNimiRuntimeAgentTurn,
   Runtime,
   type NimiRuntimeAgentTurnRequest,
 } from '@nimiplatform/sdk/runtime';
-import type { ConversationTurnEvent } from '@nimiplatform/kit/features/chat/headless';
-import type { ZhiyuConversationHomeStatus } from './conversation-home';
-import type { ZhiyuRuntimeRouteStatus } from './route-projection';
-import { withZhiyuElectronRuntimeProtectedScopes } from './runtime-agent-scopes';
+import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
+import type { ZhiyuRuntimeRouteStatus } from './agent-route-readiness';
+import {
+  createZhiyuRuntimeAgentBindingScopeRunner,
+  resolveZhiyuRuntimeAgentBindingDecision,
+  resolveZhiyuRuntimeAgentBindingDecisionFromHost,
+  scopedBindingForRuntimeAgentRequest,
+  type ZhiyuRuntimeAgentBindingDecision,
+} from './runtime-agent-binding';
 
 type ZhiyuRuntimeTurnExecutionBinding = NonNullable<ZhiyuRuntimeRouteStatus['executionBinding']>;
 
@@ -57,6 +64,7 @@ export type ZhiyuRuntimeAgentChatStreamTurn = (
 export type ZhiyuRuntimeAgentChatTurnInput = {
   readonly conversation: ZhiyuConversationHomeStatus;
   readonly route: ZhiyuRuntimeRouteStatus;
+  readonly runtimeBinding?: ZhiyuRuntimeAgentBindingDecision;
   readonly text: unknown;
   readonly requestId?: unknown;
   readonly attachments?: readonly unknown[];
@@ -69,7 +77,11 @@ export type ZhiyuRuntimeAgentChatTurnInput = {
   ) => void;
 };
 
-export async function runZhiyuRuntimeAgentChatTurn(
+export {
+  resolveZhiyuRuntimeAgentBindingDecision,
+};
+
+export async function runZhiyuAgentChatTurn(
   input: ZhiyuRuntimeAgentChatTurnInput,
 ): Promise<ZhiyuRuntimeAgentChatTurnResult> {
   const identity = conversationIdentity(input.conversation);
@@ -134,14 +146,28 @@ export async function runZhiyuRuntimeAgentChatTurn(
     });
   }
 
+  const runtimeBinding = input.runtimeBinding ?? resolveZhiyuRuntimeAgentBindingDecisionFromHost();
+  if (runtimeBinding.kind === 'missing') {
+    return chatUnavailable({
+      reasonCode: runtimeBinding.reasonCode,
+      actionHint: runtimeBinding.actionHint,
+      source: 'runtime',
+      message: runtimeBinding.message,
+      ...identity,
+      requestId: stringOr(input.requestId, null),
+    });
+  }
+
   const requestId = stringOr(input.requestId, createTurnRequestId());
   const request = buildRuntimeAgentTurnRequest({
     ...identity,
     requestId,
     text,
     executionBinding,
+    executionBindings: turnExecutionBindings(input.route, executionBinding),
+    runtimeBinding,
   });
-  const streamTurn = input.streamTurn ?? createElectronRuntimeAgentStreamTurn(identity.ownerUserId);
+  const streamTurn = input.streamTurn ?? createElectronRuntimeAgentStreamTurn(identity.ownerUserId, runtimeBinding);
   const initialProjection = createRuntimeAgentConversationProjectionState({
     modeId: 'runtime-agent-chat-v1',
     threadId: identity.conversationAnchorId,
@@ -196,26 +222,45 @@ function buildRuntimeAgentTurnRequest(input: {
   readonly requestId: string;
   readonly text: string;
   readonly executionBinding: ZhiyuRuntimeTurnExecutionBinding;
+  readonly executionBindings: NimiRuntimeAgentTurnRequest['executionBindings'];
+  readonly runtimeBinding: Exclude<ZhiyuRuntimeAgentBindingDecision, { readonly kind: 'missing' }>;
 }): NimiRuntimeAgentTurnRequest {
-  const executionBindings: NimiRuntimeAgentTurnRequest['executionBindings'] = {};
-  executionBindings['text.generate'] = input.executionBinding;
+  const scopedBinding = scopedBindingForRuntimeAgentRequest(input.runtimeBinding);
   return {
     ownerUserId: input.ownerUserId,
     runtimeSourceRef: input.runtimeSourceRef,
     localAgentRef: input.localAgentRef,
     conversationAnchorId: input.conversationAnchorId,
     requestId: input.requestId,
-    executionBindings,
+    threadId: input.conversationAnchorId,
+    executionBindings: input.executionBindings,
     messages: [
       {
         role: 'user',
         content: input.text,
       },
     ],
+    ...(scopedBinding ? { scopedBinding } : {}),
   };
 }
 
-function createElectronRuntimeAgentStreamTurn(ownerUserId: string): ZhiyuRuntimeAgentChatStreamTurn {
+function turnExecutionBindings(
+  route: ZhiyuRuntimeRouteStatus,
+  textBinding: ZhiyuRuntimeTurnExecutionBinding,
+): NimiRuntimeAgentTurnRequest['executionBindings'] {
+  const executionBindings: NimiRuntimeAgentTurnRequest['executionBindings'] = {};
+  executionBindings['text.generate'] = textBinding;
+  const imageBinding = normalizeExecutionBinding(route.executionBindings?.['image.generate']);
+  if (imageBinding) {
+    executionBindings['image.generate'] = imageBinding;
+  }
+  return executionBindings;
+}
+
+function createElectronRuntimeAgentStreamTurn(
+  ownerUserId: string,
+  runtimeBinding: Exclude<ZhiyuRuntimeAgentBindingDecision, { readonly kind: 'missing' }>,
+): ZhiyuRuntimeAgentChatStreamTurn {
   return async (request, options) => {
     if (typeof window === 'undefined' || !hasElectronRuntime()) {
       throw Object.assign(new Error('Electron Runtime bridge is not available.'), {
@@ -228,14 +273,33 @@ function createElectronRuntimeAgentStreamTurn(ownerUserId: string): ZhiyuRuntime
       appId: 'nimi.zhiyu',
       transport: { type: 'electron-ipc' },
     });
-    const client = createNimiRuntimeAgentClient({
-      runtime,
-      appId: 'nimi.zhiyu',
+    const turns = createNimiRuntimeAgentTurnsModule({
+      runtime: {
+        appId: 'nimi.zhiyu',
+        auth: runtime.auth,
+        appAuth: runtime.grants,
+        agents: runtime.agents,
+        appMessages: runtime.appMessages,
+      },
       getSubjectUserId: () => ownerUserId,
-      withScopes: withZhiyuElectronRuntimeProtectedScopes,
+      withScopes: createZhiyuRuntimeAgentBindingScopeRunner(() => runtimeBinding),
     });
-    return client.streamTurn(request, {
+    return runNimiRuntimeAgentTurn({
+      turns,
+      subscribe: {
+        ownerUserId: request.ownerUserId,
+        runtimeSourceRef: request.runtimeSourceRef,
+        localAgentRef: request.localAgentRef,
+        conversationAnchorId: request.conversationAnchorId,
+        includeAgentEvents: false,
+        ...(request.scopedBinding ? { scopedBinding: request.scopedBinding } : {}),
+      },
+      request,
       signal: options?.signal,
+      interruptReason: 'zhiyu_agent_chat_abort',
+      route: request.executionBindings['text.generate']?.route,
+      ...runtimeTurnModelOption(request.executionBindings['text.generate']?.modelId),
+      connectorId: request.executionBindings['text.generate']?.connectorId,
     });
   };
 }
@@ -271,16 +335,21 @@ function normalizeExecutionBinding(
     return null;
   }
   const route = value.route;
-  const model = stringOr(value['modelId'], '');
+  const model = stringOr(value.modelId, '');
   if ((route !== 'local' && route !== 'cloud') || !model) {
     return null;
   }
+  const modelId = model;
   return {
     route,
-    ['modelId']: model,
+    modelId,
     targetRef: value.targetRef,
     ...(stringOr(value.connectorId, '') ? { connectorId: stringOr(value.connectorId, '') } : {}),
   };
+}
+
+function runtimeTurnModelOption(selectedModel: string | undefined): { readonly modelId?: string } {
+  return selectedModel ? { ['modelId']: selectedModel } : {};
 }
 
 function chatResultFromProjection(

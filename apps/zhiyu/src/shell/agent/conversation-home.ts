@@ -3,11 +3,24 @@ import {
   createNimiRuntimeAgentClient,
   Runtime,
 } from '@nimiplatform/sdk/runtime';
+import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
 import type { ZhiyuEvidence } from '../app/evidence';
+import {
+  clearZhiyuAgentConversationAnchorBinding,
+  getZhiyuAgentConversationAnchorBinding,
+  hydrateZhiyuAgentConversationAnchorBindingsFromStorage,
+  persistZhiyuAgentConversationAnchorBinding,
+  persistZhiyuAgentConversationAnchorBindingsToStorage,
+  type ZhiyuAgentConversationAnchorBinding,
+} from './conversation-anchor-binding-storage';
 import type { ZhiyuLocalAgentStatus } from './local-agent-discovery';
-import { withZhiyuElectronRuntimeProtectedScopes } from './runtime-agent-scopes';
 
 export type ZhiyuConversationHomeStatus = ZhiyuEvidence['conversation'];
+type LocalAgentIdentity = {
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef: string;
+};
 
 export async function probeZhiyuRuntimeConversationHome(
   localAgent: ZhiyuLocalAgentStatus,
@@ -43,17 +56,27 @@ export async function probeZhiyuRuntimeConversationHome(
     runtime,
     appId: 'nimi.zhiyu',
     getSubjectUserId: () => identity.ownerUserId,
-    withScopes: withZhiyuElectronRuntimeProtectedScopes,
+    withScopes: withZhiyuRuntimeAgentBindingRequired,
   });
 
   try {
-    const snapshot = await client.openConversation({
-      ...identity,
-      metadata: {
-        appId: 'nimi.zhiyu',
-        surface: 'zhiyu.home',
-      },
-    });
+    await hydrateZhiyuAgentConversationAnchorBindingsFromStorage();
+    const existingBinding = getZhiyuAgentConversationAnchorBinding(identity.localAgentRef);
+    if (bindingMatchesIdentity(existingBinding, identity)) {
+      const upstreamBinding = await ensureConversationAnchorBindingUpstream({
+        client,
+        identity,
+        binding: existingBinding,
+      });
+      if (upstreamBinding) {
+        return conversationReady(identity, upstreamBinding.conversationAnchorId);
+      }
+    } else if (existingBinding) {
+      clearZhiyuAgentConversationAnchorBinding(identity.localAgentRef);
+      await persistZhiyuAgentConversationAnchorBindingsToStorage();
+    }
+
+    const snapshot = await client.openConversation(openConversationRequest(identity));
     const conversationAnchorId = stringOr(snapshot.anchor?.conversationAnchorId, '');
     if (!conversationAnchorId) {
       return conversationUnavailable({
@@ -64,26 +87,90 @@ export async function probeZhiyuRuntimeConversationHome(
         ...identity,
       });
     }
-    return {
-      transport: 'electron-ipc',
-      ready: true,
-      reasonCode: 'conversation-anchor-open',
-      actionHint: 'send_runtime_agent_turn',
-      source: 'runtime',
-      message: 'Runtime-owned conversation anchor is open.',
+    const binding = persistZhiyuAgentConversationAnchorBinding({
       ...identity,
       conversationAnchorId,
-    };
+      updatedAtMs: Date.now(),
+    });
+    await persistZhiyuAgentConversationAnchorBindingsToStorage();
+    return conversationReady(identity, binding.conversationAnchorId);
   } catch (error) {
     return normalizeConversationError(error, identity);
   }
 }
 
-function localAgentIdentity(localAgent: ZhiyuLocalAgentStatus): {
+function openConversationRequest(identity: LocalAgentIdentity): {
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
-} | null {
+  readonly metadata: {
+    readonly appId: 'nimi.zhiyu';
+    readonly surface: 'zhiyu.home';
+  };
+} {
+  return {
+    ...identity,
+    metadata: {
+      appId: 'nimi.zhiyu',
+      surface: 'zhiyu.home',
+    },
+  };
+}
+
+async function ensureConversationAnchorBindingUpstream(input: {
+  readonly client: {
+    readonly getSessionSnapshot: (request: LocalAgentIdentity & {
+      readonly conversationAnchorId: string;
+    }) => Promise<unknown>;
+  };
+  readonly identity: LocalAgentIdentity;
+  readonly binding: ZhiyuAgentConversationAnchorBinding;
+}): Promise<ZhiyuAgentConversationAnchorBinding | null> {
+  try {
+    await input.client.getSessionSnapshot({
+      ...input.identity,
+      conversationAnchorId: input.binding.conversationAnchorId,
+    });
+    return input.binding;
+  } catch (error) {
+    if (!isRecoverableRuntimeAnchorError(error)) {
+      throw error;
+    }
+    clearZhiyuAgentConversationAnchorBinding(input.identity.localAgentRef);
+    await persistZhiyuAgentConversationAnchorBindingsToStorage();
+    return null;
+  }
+}
+
+function bindingMatchesIdentity(
+  binding: ZhiyuAgentConversationAnchorBinding | null,
+  identity: LocalAgentIdentity,
+): binding is ZhiyuAgentConversationAnchorBinding {
+  if (!binding) {
+    return false;
+  }
+  return binding.ownerUserId === identity.ownerUserId
+    && binding.runtimeSourceRef === identity.runtimeSourceRef
+    && binding.localAgentRef === identity.localAgentRef;
+}
+
+function conversationReady(
+  identity: LocalAgentIdentity,
+  conversationAnchorId: string,
+): ZhiyuConversationHomeStatus {
+  return {
+    transport: 'electron-ipc',
+    ready: true,
+    reasonCode: 'conversation-anchor-open',
+    actionHint: 'send_runtime_agent_turn',
+    source: 'runtime',
+    message: 'Runtime-owned conversation anchor is open.',
+    ...identity,
+    conversationAnchorId,
+  };
+}
+
+function localAgentIdentity(localAgent: ZhiyuLocalAgentStatus): LocalAgentIdentity | null {
   if (!localAgent.ready) {
     return null;
   }
@@ -102,11 +189,7 @@ function localAgentIdentity(localAgent: ZhiyuLocalAgentStatus): {
 
 function normalizeConversationError(
   error: unknown,
-  identity: {
-    readonly ownerUserId: string;
-    readonly runtimeSourceRef: string;
-    readonly localAgentRef: string;
-  },
+  identity: LocalAgentIdentity,
 ): ZhiyuConversationHomeStatus {
   const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   return conversationUnavailable({
@@ -118,6 +201,19 @@ function normalizeConversationError(
       : 'Runtime conversation anchor is unavailable.',
     ...identity,
   });
+}
+
+function isRecoverableRuntimeAnchorError(error: unknown): boolean {
+  const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+  const reasonCode = stringOr(record.reasonCode, '');
+  const message = error instanceof Error
+    ? error.message.trim().toLowerCase()
+    : stringOr(record.message, '').toLowerCase();
+  return reasonCode === 'RUNTIME_GRPC_NOT_FOUND'
+    || reasonCode === 'RUNTIME_GRPC_FAILED_PRECONDITION'
+    || message.includes('conversation anchor not found')
+    || message.includes('conversation anchor is closed')
+    || message.includes('conversation anchor agent_id mismatch');
 }
 
 function conversationUnavailable(input: {

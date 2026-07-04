@@ -18,6 +18,10 @@ const appShellRoots = [
   'apps/zhiyu/src-electron',
 ];
 const tablesRoot = '.nimi/spec/zhiyu/kernel/tables';
+const agentCenterLocalConfigHardcutFiles = new Set([
+  'apps/zhiyu/src-electron/agent-center-local-config.ts',
+  'apps/zhiyu/src-electron/live2d-source.ts',
+]);
 
 const gates = new Map([
   ['binding-only-consumption', checkBindingOnlyConsumption],
@@ -131,9 +135,16 @@ function requireFileIncludes(rel, tokens) {
 }
 
 function checkBindingOnlyConsumption() {
-  requireFileIncludes('apps/zhiyu/src/shell/agent/runtime-agent-chat.ts', [
-    'createNimiRuntimeAgentClient',
-    'withZhiyuElectronRuntimeProtectedScopes',
+  requireFileIncludes('apps/zhiyu/src/shell/agent-chat/runtime-agent-binding.ts', [
+    'resolveZhiyuRuntimeAgentBindingDecision',
+    'runtime-sdk-authority-admitted-first-party-electron-host-equivalence',
+    'ZHIYU_RUNTIME_AGENT_BINDING_REQUIRED',
+    'x-nimi-runtime-scoped-binding-id',
+    'x-nimi-runtime-host-equivalence',
+  ]);
+  requireFileIncludes('apps/zhiyu/src/shell/agent-chat/runtime-agent-turn-adapter.ts', [
+    'createNimiRuntimeAgentTurnsModule',
+    'createZhiyuRuntimeAgentBindingScopeRunner',
     'executionBinding',
     'conversationAnchorId',
   ]);
@@ -145,10 +156,11 @@ function checkBindingOnlyConsumption() {
 }
 
 function checkSdkKitTurnConsumption() {
-  requireFileIncludes('apps/zhiyu/src/shell/agent/runtime-agent-chat.ts', [
+  requireFileIncludes('apps/zhiyu/src/shell/agent-chat/runtime-agent-turn-adapter.ts', [
     '@nimiplatform/sdk/runtime',
     '@nimiplatform/kit/features/chat/headless',
-    'createNimiRuntimeAgentClient',
+    'createNimiRuntimeAgentTurnsModule',
+    'runNimiRuntimeAgentTurn',
     'streamRuntimeAgentTurnRunnerPartsAsConversationEvents',
     'reduceRuntimeAgentConversationProjectionEvent',
     'createRuntimeAgentConversationProjectionState',
@@ -171,6 +183,23 @@ function checkConfigBoundary() {
     ...walkFiles('apps/zhiyu/src/shell/avatar'),
     ...walkFiles('apps/zhiyu/src-electron'),
   ];
+  requireFileIncludes('.nimi/spec/zhiyu/kernel/configuration-surface-contract.md', [
+    'Z-CONFIG-005',
+    'apps/zhiyu/src-electron/agent-center-local-config.ts',
+    'noncanonical local parity state',
+  ]);
+  requireFileIncludes(`${tablesRoot}/local-persistence-boundary.yaml`, [
+    'agent_center_local_config_hardcut',
+    'bounded_hardcut_parity',
+    'source_rule: Z-CONFIG-005',
+  ]);
+  requireFileIncludes('apps/zhiyu/src-electron/agent-center-local-config.ts', [
+    'agent_center_local_config',
+    'parseScope',
+    'safeSegment',
+    'validateAvatarAsset',
+    'assertLive2dSource',
+  ]);
   const hits = scan([
     { label: 'app-local AI config store', pattern: /createNimiAIConfigStore/u },
     { label: 'app-local AI snapshot store', pattern: /createNimiAISnapshotStore/u },
@@ -182,10 +211,12 @@ function checkConfigBoundary() {
     { label: 'app-local Avatar config store', pattern: /(?:create\w*Avatar\w*Store|avatarConfigStore|avatar_configuration_store|ZHIYU_AVATAR_CONFIG_STORAGE)/u },
     { label: 'app-local Avatar resource store', pattern: /(?:avatarResourceStore|avatar_resource_store|ZHIYU_AVATAR_RESOURCE_STORAGE|live2dResourceStore|vrmResourceStore)/u },
     { label: 'Avatar browser storage truth', pattern: /(?:avatar|live2d|vrm)[\s\S]{0,80}(?:localStorage|sessionStorage|indexedDB)|(?:localStorage|sessionStorage|indexedDB)[\s\S]{0,80}(?:avatar|live2d|vrm)/iu },
-    { label: 'Avatar filesystem truth in app shell', pattern: /(?:avatar|live2d|vrm)[\s\S]{0,120}(?:writeFile|appendFile)|(?:writeFile|appendFile)[\s\S]{0,120}(?:avatar|live2d|vrm)/iu },
     { label: 'app-local Avatar carrier lifecycle truth', pattern: /(?:carrierLifecycleStore|carrier_lifecycle_store|avatarCarrierTruth|avatar_carrier_truth)/u },
   ], files);
-  reportHits('config boundary gate', hits);
+  const avatarFilesystemHits = scan([
+    { label: 'Avatar filesystem truth in app shell', pattern: /(?:avatar|live2d|vrm)[\s\S]{0,120}(?:writeFile|appendFile)|(?:writeFile|appendFile)[\s\S]{0,120}(?:avatar|live2d|vrm)/iu },
+  ], files.filter((rel) => !agentCenterLocalConfigHardcutFiles.has(rel)));
+  reportHits('config boundary gate', [...hits, ...avatarFilesystemHits]);
 }
 
 function checkNoDirectAIConsumption() {

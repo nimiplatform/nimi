@@ -118,7 +118,7 @@ function resolveStage(evidence: ZhiyuEvidence): ZhiyuHomeProductStage {
   if (!evidence.auth.ready) {
     return 'account-required';
   }
-  if (!evidence.source.ready) {
+  if (!evidence.source.ready && !evidence.localAgent.ready) {
     return 'source-required';
   }
   if (!evidence.localAgent.ready) {

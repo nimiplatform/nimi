@@ -14,6 +14,27 @@ function readRepo(relativePath) {
   return readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
+function readAll(relativePaths) {
+  return relativePaths.map((relativePath) => read(relativePath)).join('\n');
+}
+
+function readAgentChatSource() {
+  return readAll([
+    'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx',
+    'src/shell/agent-chat/ZhiyuAgentRightPanel.tsx',
+    'src/shell/agent-chat/ZhiyuAgentAppearancePanel.tsx',
+    'src/shell/agent-chat/ZhiyuAgentChatPieces.tsx',
+    'src/shell/agent-chat/ZhiyuAgentChatLabels.ts',
+  ]);
+}
+
+function readLiveRuntimeAcceptanceSource() {
+  return readAll([
+    'test/electron-live-runtime-acceptance.mjs',
+    'test/electron-live-runtime-acceptance-helpers.mjs',
+  ]);
+}
+
 test('ZM16 product storybook is a first-class acceptance map, not an e2e script narrative', () => {
   const storybookPath = path.join(root, 'src/shell/app/zhiyu-product-storybook.ts');
   assert.equal(existsSync(storybookPath), true, 'product storybook source must exist');
@@ -35,7 +56,7 @@ test('ZM16 product storybook is a first-class acceptance map, not an e2e script 
 });
 
 test('ZM16 product shell keeps capability probes in backstage and removes image workbench ownership', () => {
-  const home = read('src/shell/app/HomeSurface.tsx');
+  const home = read('src/shell/agent-chat/ZhiyuAgentChatSurface.tsx');
   const backstage = read('src/shell/app/home-developer-backstage.tsx');
   const css = read('src/shell/app/home-surface.css');
   const primary = home.slice(0, home.indexOf('id="zhiyu-diagnostics-drawer"'));
@@ -58,7 +79,7 @@ test('ZM16 product shell keeps capability probes in backstage and removes image 
 
 test('ZM16 AI config presents image.generate as conversation artifact support, not image creation', () => {
   const settings = read('src/shell/ai-config/zhiyu-ai-config-settings.tsx');
-  const liveRuntimeAcceptance = read('test/electron-live-runtime-acceptance.mjs');
+  const liveRuntimeAcceptance = readLiveRuntimeAcceptanceSource();
 
   assert.match(settings, /对话图像产物/);
   assert.doesNotMatch(settings, /图片创作|图像创作|image studio|prompt tool/i);
@@ -71,7 +92,7 @@ test('ZM16 TTS consume uses Kit generation owner surface, not tester-private inv
   const kitRuntime = readRepo('kit/features/generation/src/runtime.ts');
   const kitSpeech = readRepo('kit/features/generation/src/runtime-speech-synthesize.ts');
   const zhiyuConsume = read('src/shell/capability-studio/zhiyu-ai-consume.ts');
-  const routeProjection = read('src/shell/agent/route-projection.ts');
+  const routeProjection = read('src/shell/agent-chat/agent-route-readiness.ts');
 
   assert.match(kitRuntime, /runtime-speech-synthesize/);
   assert.match(kitSpeech, /runRuntimeSpeechSynthesize/);
@@ -86,8 +107,7 @@ test('ZM16 TTS consume uses Kit generation owner surface, not tester-private inv
 
 test('ZM16 avatar launch migration is owner-safe and fail-closed without a public handoff bridge', () => {
   const avatarLaunch = read('src/shell/avatar/avatar-launch.ts');
-  const home = read('src/shell/app/HomeSurface.tsx');
-  const chrome = read('src/shell/app/home-desktop-chat-shell-chrome.tsx');
+  const home = readAgentChatSource();
   const app = read('src/shell/app/App.tsx');
 
   assert.match(avatarLaunch, /@nimiplatform\/kit\/features\/avatar\/headless/);
@@ -96,6 +116,6 @@ test('ZM16 avatar launch migration is owner-safe and fail-closed without a publi
   assert.doesNotMatch(avatarLaunch, /apps\/desktop|@renderer\/|desktop_avatar_launch_handoff|runtime\/internal/);
 
   assert.match(home, /avatarLaunchAction=/);
-  assert.match(chrome, /data-zhiyu-avatar-launch-entry/);
+  assert.match(home, /data-zhiyu-avatar-launch-entry/);
   assert.match(app, /projectZhiyuAvatarLaunchAction/);
 });

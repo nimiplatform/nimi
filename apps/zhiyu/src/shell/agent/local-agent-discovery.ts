@@ -5,12 +5,12 @@ import {
   type NimiRuntimeAgentDiscoveredLocalAgent,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence } from '../app/evidence';
+import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
 import {
   normalizeZhiyuLocalAgentDiscoveryInput,
   type ZhiyuLocalAgentDiscoveryInput,
   type ZhiyuLocalAgentDiscoveryProjection,
 } from './local-agent-discovery-input';
-import { withZhiyuElectronRuntimeProtectedScopes } from './runtime-agent-scopes';
 
 export type ZhiyuLocalAgentStatus = ZhiyuEvidence['localAgent'];
 
@@ -44,7 +44,7 @@ export async function probeZhiyuLocalAgentDiscovery(
     runtime,
     appId: 'nimi.zhiyu',
     getSubjectUserId: () => projection.ownerUserId,
-    withScopes: withZhiyuElectronRuntimeProtectedScopes,
+    withScopes: withZhiyuRuntimeAgentBindingRequired,
   });
 
   try {

@@ -80,8 +80,8 @@ async function readRuntimeMemoryObservatory(
     createNimiRuntimeAgentMemoryObservatory,
   } = await import('@nimiplatform/sdk/runtime');
   const {
-    withZhiyuElectronRuntimeProtectedScopes,
-  } = await import('./runtime-agent-scopes');
+    withZhiyuRuntimeAgentBindingRequired,
+  } = await import('../agent-chat/runtime-agent-binding');
   const runtime = new Runtime({
     appId: APP_ID,
     transport: { type: 'electron-ipc' },
@@ -98,7 +98,7 @@ async function readRuntimeMemoryObservatory(
     exportedAt: input.exportedAt,
     maxRecords: input.maxRecords,
     getSubjectUserId: () => input.ownerUserId,
-    withScopes: withZhiyuElectronRuntimeProtectedScopes,
+    withScopes: withZhiyuRuntimeAgentBindingRequired,
   });
 }
 

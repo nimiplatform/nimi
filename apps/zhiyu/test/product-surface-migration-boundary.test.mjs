@@ -7,14 +7,14 @@ import test from 'node:test';
 const appRoot = path.resolve(import.meta.dirname, '..');
 const repoRoot = path.resolve(appRoot, '..', '..');
 const productionRoot = path.join(appRoot, 'src');
-const inventoryPath = path.join(
+const hardcutCheckpointPath = path.join(
   repoRoot,
   '.nimi',
-  'local',
-  'evidence',
+  'spec',
   'zhiyu',
-  'zm0',
-  'source-target-migration-map.json',
+  'kernel',
+  'tables',
+  'desktop-agent-chat-hardcut-checkpoint.yaml',
 );
 
 const productionFilePattern = /\.(?:c|m)?(?:ts|tsx|js|jsx)$/;
@@ -42,7 +42,7 @@ test('zhiyu production source has no private app/runtime imports or runtime shor
     if (/\bruntime\/internal\b/.test(source)) {
       violations.push(`${relativePath}: runtime/internal reference`);
     }
-    if (/\bapps\/(?:tester|desktop)\b/.test(source)) {
+    if (/\bapps\/(?:tester|desktop)\b/.test(source) && relativePath !== 'src/shell/agent-chat/desktop-source-map.ts') {
       violations.push(`${relativePath}: private app path reference`);
     }
     if (/\bfetch\s*\(/.test(source)) {
@@ -59,49 +59,40 @@ test('zhiyu production source has no private app/runtime imports or runtime shor
   assert.deepEqual(violations, []);
 });
 
-test('ZM0 source-to-target migration inventory is present and maps audited sources to shared APIs', async () => {
-  assert.equal(existsSync(inventoryPath), true, `${inventoryPath} should exist`);
+test('hardcut checkpoint replaces ZM0 shared-API-only migration assumptions', async () => {
+  assert.equal(existsSync(hardcutCheckpointPath), true, `${hardcutCheckpointPath} should exist`);
 
-  const inventory = JSON.parse(await readFile(inventoryPath, 'utf8'));
-  assert.equal(inventory.checkpoint, 'ZM0');
-  assert.equal(inventory.specStatus, 'alignment');
-  assert.equal(inventory.workType, 'boundary-lock-and-inventory');
-  assert.equal(inventory.parallelTruth, 'forbidden');
-  assert.ok(Array.isArray(inventory.entries), 'inventory.entries must be an array');
+  const checkpoint = await readFile(hardcutCheckpointPath, 'utf8');
+  assert.match(checkpoint, /checkpoint_id:\s*ZHIYU_DESKTOP_AGENT_CHAT_HARDCUT/i);
+  assert.match(checkpoint, /work_type:\s*redesign/i);
+  assert.match(checkpoint, /no_new_sdk_kit_upstreaming_this_phase:\s*true/i);
+  assert.match(checkpoint, /bounded_zhiyu_local_parity_implementation:\s*true/i);
+  assert.match(checkpoint, /runtime_sdk_authority_admitted_first_party_electron_host_equivalence/i);
+  assert.match(checkpoint, /runtime-agent-scopes\.ts/);
+  assert.match(checkpoint, /operation\(\{\}\)/);
 
   const requiredSources = [
-    'apps/tester/src/tester/tester-ai-config-store.ts',
-    'apps/tester/src/tester/tester-runtime-model-provider.ts',
-    'apps/tester/src/tester/tester-runtime-invokers-core.ts',
-    'apps/tester/src/tester/tester-runtime-invokers-media.ts',
-    'apps/tester/src/tester/tester-runtime-media-generation-runner.ts',
-    'apps/tester/src/tester/tester-history.ts',
-    'apps/tester/src/tester/tester-artifact-persistence.ts',
     'apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-agent.ts',
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-provider.ts',
     'apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx',
-    'apps/desktop/src/shell/renderer/infra/runtime-agent-inspect.ts',
-    'apps/desktop/src/shell/renderer/infra/runtime-agent-memory.ts',
-    'apps/desktop/src/shell/renderer/infra/runtime-agent-presentation-profile.ts',
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx',
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx',
+    'apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx',
+    'apps/desktop/src/shell/renderer/features/chat/conversation-submit-readiness.ts',
     'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts',
   ];
 
   for (const sourcePath of requiredSources) {
-    const entry = inventory.entries.find((candidate) => candidate.sourcePath === sourcePath);
-    assert.ok(entry, `missing inventory entry for ${sourcePath}`);
-    assert.ok(
-      typeof entry.targetApi === 'string'
-        && (/^@nimiplatform\/(?:kit|sdk)\//.test(entry.targetApi) || entry.targetApi === '@nimiplatform/kit'),
-      `${sourcePath} must target a shared Kit/SDK API`,
-    );
-    assert.notEqual(entry.targetApi.includes('apps/zhiyu'), true, `${sourcePath} must not target Zhiyu-local truth`);
-    assert.notEqual(entry.targetApi.includes('apps/tester'), true, `${sourcePath} must not target Tester private code`);
-    assert.notEqual(entry.targetApi.includes('apps/desktop'), true, `${sourcePath} must not target Desktop private code`);
+    assert.match(checkpoint, new RegExp(escapeRegExp(sourcePath)), `${sourcePath} must be in hardcut checkpoint`);
   }
 });
 
 test('Zhiyu Electron acceptance writes checkpoint-scoped screenshot and runtime evidence', async () => {
   const noRuntimeAcceptance = await readFile(path.join(appRoot, 'test', 'electron-acceptance.mjs'), 'utf8');
-  const liveRuntimeAcceptance = await readFile(path.join(appRoot, 'test', 'electron-live-runtime-acceptance.mjs'), 'utf8');
+  const liveRuntimeAcceptance = await readAppFiles([
+    'test/electron-live-runtime-acceptance.mjs',
+    'test/electron-live-runtime-acceptance-helpers.mjs',
+  ]);
 
   assert.match(noRuntimeAcceptance, /NIMI_ZHIYU_EVIDENCE_CHECKPOINT/);
   assert.match(noRuntimeAcceptance, /trackPageProblems/);
@@ -135,6 +126,37 @@ test('zhiyu active product source does not expose legacy surface names', async (
   assert.deepEqual(violations, []);
 });
 
+test('zhiyu hardcut leaves no transition wrapper, hidden fallback composer, or quarantined legacy tests', async () => {
+  const forbiddenPaths = [
+    'src/shell/app/HomeSurface.tsx',
+    'test/electron-host-contract.quarantine.mjs',
+    'test/home-surface-design.quarantine.mjs',
+    'test/image-studio-generate.quarantine.mjs',
+    'test/image-studio-state.quarantine.mjs',
+  ];
+  const violations = [];
+
+  for (const relativePath of forbiddenPaths) {
+    if (existsSync(path.join(appRoot, relativePath))) {
+      violations.push(`${relativePath}: legacy transition or quarantined path still exists`);
+    }
+  }
+
+  const files = await collectProductionFiles(productionRoot);
+  for (const file of files) {
+    const source = await readFile(file, 'utf8');
+    const relativePath = path.relative(appRoot, file).replaceAll(path.sep, '/');
+    if (/fallback-composer-hidden|data-zhiyu-fallback-composer/.test(source)) {
+      violations.push(`${relativePath}: hidden fallback composer keeps the old HomeSurface input path alive`);
+    }
+    if (/from\s+['"]\.\/HomeSurface['"]|<HomeSurface\b/.test(source)) {
+      violations.push(`${relativePath}: HomeSurface forwarding shell is still used`);
+    }
+  }
+
+  assert.deepEqual(violations, []);
+});
+
 async function collectProductionFiles(root) {
   const entries = await readdir(root, { withFileTypes: true });
   const files = [];
@@ -151,10 +173,22 @@ async function collectProductionFiles(root) {
   return files.sort();
 }
 
+async function readAppFiles(relativePaths) {
+  const chunks = [];
+  for (const relativePath of relativePaths) {
+    chunks.push(await readFile(path.join(appRoot, relativePath), 'utf8'));
+  }
+  return chunks.join('\n');
+}
+
 function importSpecifiers(source) {
   const specifiers = [];
   for (const match of source.matchAll(importSpecifierPattern)) {
     specifiers.push(match[1]);
   }
   return specifiers;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

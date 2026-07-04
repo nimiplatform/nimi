@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -10,6 +9,19 @@ import {
   createZhiyuLiveRuntimeAcceptanceRendererUrl,
   createZhiyuLiveRuntimeFixtureAcceptanceInitScript,
 } from './live-runtime-fixture-adapter.mjs';
+import {
+  assertAvatarPanelProjection,
+  assertChatCompletedNarrowComposerUsable,
+  assertNoPageProblems,
+  assertProductShellPrimaryView,
+  assertUniqueStageScreenshots,
+  captureLiveRuntimeInteractionEvidence,
+  captureLiveRuntimeEvidence,
+  escapeRegExp,
+  resetAcceptanceInputs,
+  resetLiveRuntimeEvidenceRoot,
+  trackPageProblems,
+} from './electron-live-runtime-acceptance-helpers.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
@@ -26,6 +38,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
   await resetLiveRuntimeEvidenceRoot();
 
   await withRuntimeAgentLiveE2EFixture({
+    localChatCompletionStreamDelayMs: 4_000,
     run: async (fixture) => {
       await fixture.admitLocalFirstPartyRuntimeAccountCaller({
         appId: zhiyuAppId,
@@ -38,19 +51,12 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
         const dataRoot = path.join(tmpRoot, 'data');
         await mkdir(dataRoot, { recursive: true });
 
-        const app = await electron.launch({
-          args: [mainEntry],
-          env: {
-            ...process.env,
-            NIMI_RUNTIME_GRPC_ADDR: '',
-            NIMI_ZHIYU_ELECTRON_RENDERER_URL: createZhiyuLiveRuntimeAcceptanceRendererUrl(root),
-            NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT: fixture.endpoint,
-            NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
-          },
-        });
+        const app = await launchLiveRuntimeZhiyuApp({ fixture, dataRoot });
+        let appClosed = false;
 
         try {
           const page = await app.firstWindow();
+          await assertElectronChromeParity(app);
           const pageProblems = trackPageProblems(page);
           await page.waitForLoadState('domcontentloaded');
           await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
@@ -108,22 +114,23 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             'audio.synthesize',
           ]);
           assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
-          assert.equal(await page.locator('[data-zhiyu-ai-config-chip]').getAttribute('data-zhiyu-ai-config-binding-label'), '未绑定模型');
           await assertPartnerSelectedProductState(page);
           await captureLiveRuntimeEvidence(page, 'partnerSelected', pageProblems, {
             preConfigEvidence,
           });
           await assertModelUnconfiguredProductState(page);
 
-          await page.locator('[data-zhiyu-model-config-entry="conversation"]').click();
-          await page.waitForSelector('[data-zhiyu-ai-config-drawer="open"]');
-          const drawer = page.locator('[data-zhiyu-ai-config-drawer="open"]');
-          await assertModelConfigDrawerProductQuality(page);
+          await page.locator('[data-zhiyu-composer-tool="model"]').click();
+          await page.waitForSelector('[data-zhiyu-agent-panel-tab="model"]');
+          const modelConfig = page.locator('[data-zhiyu-ai-config-embedded="agent-center"]');
+          await modelConfig.waitFor({ timeout: 15_000 });
+          assert.equal(await page.locator('[data-zhiyu-ai-config-drawer="open"]').count(), 0);
+          await assertModelConfigEmbeddedProductQuality(page);
           const modelUnconfiguredEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
           await captureLiveRuntimeEvidence(page, 'modelUnconfigured', pageProblems, {
             modelUnconfiguredEvidence,
           });
-          await drawer
+          await modelConfig
             .locator('button')
             .filter({ hasText: /Setup required|Select a model|选择.*模型|需要模型目标|未配置/i })
             .first()
@@ -132,12 +139,12 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await picker.waitFor();
           await picker.getByRole('button', { name: /runtime-agent-live-e2e/i }).first().click();
           await picker.waitFor({ state: 'detached', timeout: 15_000 }).catch(() => undefined);
-          await selectRuntimeModelForCapability(page, drawer, {
+          await selectRuntimeModelForCapability(page, modelConfig, {
             section: 'embed',
             capabilityId: 'text.embed',
             modelName: /runtime-agent-live-e2e-embedding/i,
           });
-          await selectRuntimeModelForCapability(page, drawer, {
+          await selectRuntimeModelForCapability(page, modelConfig, {
             section: 'image',
             capabilityId: 'image.generate',
             modelName: /gpt-image-1\.5/i,
@@ -156,10 +163,10 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await captureLiveRuntimeEvidence(page, 'modelConfigured', pageProblems, {
             modelConfiguredEvidence,
           });
-          await page.getByRole('button', { name: '关闭模型配置' }).click();
-          await page.waitForSelector('[data-zhiyu-ai-config-drawer="open"]', { state: 'detached' });
+          await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
+          await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
 
-          const readyEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+          let readyEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
           assert.equal(readyEvidence.route.reasonCode, 'runtime-route-ready');
           assert.equal(readyEvidence.route.aiConfigScopeOwnerId, zhiyuAppId);
           assert.equal(readyEvidence.route.aiConfigScopeSurfaceId, 'zhiyu-agent-home');
@@ -171,7 +178,6 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.match(readyEvidence.route.executionBinding.modelId, /runtime-agent-live-e2e/);
           assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
           assert.equal(await page.locator('[data-zhiyu-readiness-score]').getAttribute('data-zhiyu-readiness-score'), '8/8');
-          assert.match(await page.locator('[data-zhiyu-ai-config-chip]').getAttribute('data-zhiyu-ai-config-binding-label'), /runtime-agent-live-e2e/);
           assert.equal(await page.locator('[data-zhiyu-memory-observatory]').getAttribute('data-zhiyu-memory-ready'), 'true');
           assert.equal(await page.locator('[data-zhiyu-memory-graph-state]').getAttribute('data-zhiyu-memory-graph-state'), 'not_projected');
           assert.equal(
@@ -186,14 +192,40 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.equal(await page.locator('[data-zhiyu-labeled-chip="conversation"]').count(), 1);
           assert.equal(await page.locator('[data-zhiyu-labeled-chip="route"]').count(), 1);
           assert.equal(await page.locator('[data-zhiyu-labeled-chip="chat"]').count(), 1);
+          await assertAgentCenterHeaderParity(page, readyEvidence);
+          await assertAppearanceConfigParity(page);
+          await captureLiveRuntimeEvidence(page, 'appearanceConfig', pageProblems, {
+            readyEvidence,
+          });
+          await assertBehaviorConfigParity(page);
+          await captureLiveRuntimeEvidence(page, 'behaviorConfig', pageProblems, {
+            readyEvidence,
+          });
+          await assertCognitionConfigParity(page);
+          await captureLiveRuntimeEvidence(page, 'cognitionConfig', pageProblems, {
+            readyEvidence,
+          });
+          await assertAdvancedConfigParity(page);
+          await captureLiveRuntimeEvidence(page, 'advancedConfig', pageProblems, {
+            readyEvidence,
+          });
+          await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
+          await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
+          await assertDesktopShellTopbarParity(page, pageProblems);
+          await assertAgentCenterKeyboardAccessibility(page);
+          await closeAgentCenter(page);
           await assertProductShellPrimaryView(page);
           await assertLongTextNarrowChineseAndControls(page);
           await resetAcceptanceInputs(page);
           await captureLiveRuntimeEvidence(page, 'ready', pageProblems, {
             readyEvidence,
           });
+          readyEvidence = await assertSubmitTimeStaleRouteFlow(page, pageProblems, readyEvidence);
 
-          await page.locator('[data-chat-composer-textarea="true"]').fill('请用一句话确认织羽本地对话可用。');
+          await assertStopChatFlow(page, pageProblems, readyEvidence);
+
+          const completedPrompt = '请用一句话确认织羽本地对话可用。';
+          await page.locator('[data-chat-composer-textarea="true"]').fill(completedPrompt);
           assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'true');
           await page.locator('[data-chat-composer-send="true"]').click();
           await waitForEvidence(page, () =>
@@ -213,6 +245,15 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.equal(chatCompletedEvidence.chat.localAgentRef, fixture.localAgentRef);
           assert.equal(chatCompletedEvidence.chat.conversationAnchorId, readyEvidence.conversation.conversationAnchorId);
           assert.match(chatCompletedEvidence.chat.requestId, /^zhiyu-turn-/);
+          assert.equal(
+            chatCompletedEvidence.chat.messages.some((message) =>
+              message?.role === 'user'
+              && message?.text === completedPrompt
+              && message?.metadata?.turnId === chatCompletedEvidence.chat.requestId,
+            ),
+            true,
+            'completed chat evidence must retain the submitted user prompt for the same Runtime turn',
+          );
           assert.equal(chatCompletedEvidence.chat.messageCount >= 2, true);
           assert.match(chatCompletedEvidence.chat.outputText, /Hello from the Runtime Agent live fixture/);
           assert.equal(chatCompletedEvidence.turn.ready, true);
@@ -224,24 +265,205 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             await page.locator('[data-zhiyu-agent-chat-event-types]').getAttribute('data-zhiyu-agent-chat-event-types'),
             /message-sealed/,
           );
-          await page.getByText(/当前伙伴已完成本地对话校验/).first().waitFor({ timeout: 15_000 });
+          await page.getByText(/Hello from the Runtime Agent live fixture/).first().waitFor({ timeout: 15_000 });
           const conversationText = await page.locator('[data-zhiyu-region="conversation"]').innerText();
           assert.match(conversationText, /今天/);
-          assert.doesNotMatch(conversationText, /Today|Hello from the Runtime Agent live fixture|hello from Zhiyu live Runtime acceptance|Runtime acceptance/i);
+          assert.match(conversationText, /Hello from the Runtime Agent live fixture/);
+          assert.match(conversationText, /请用一句话确认织羽本地对话可用/);
+          assert.doesNotMatch(conversationText, /Today/);
           await assertChatCompletedNarrowComposerUsable(page);
           await captureLiveRuntimeEvidence(page, 'chatCompleted', pageProblems, {
             readyEvidence,
             chatCompletedEvidence,
           });
+          const firstRequestId = chatCompletedEvidence.chat.requestId;
+          const firstOutputText = chatCompletedEvidence.chat.outputText;
+
+          await assertMidStreamFailureFlow(page, pageProblems, readyEvidence);
+
+          const actionArtifactPrompt = 'Please make an image artifact for Zhiyu action artifact.';
+          await page.locator('[data-chat-composer-textarea="true"]').fill(actionArtifactPrompt);
+          await page.waitForFunction(() =>
+            document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
+            && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false
+            && document.querySelector('[data-chat-composer-textarea="true"]')?.value.length > 0,
+          );
+          await page.locator('[data-chat-composer-send="true"]').click();
+          await waitForEvidence(page, ({ conversationAnchorId, actionArtifactPrompt }) =>
+            globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode === 'runtime-agent-turn-completed'
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'completed'
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.conversationAnchorId === conversationAnchorId
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === actionArtifactPrompt)
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('beat-planned')
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('beat-delivery-started')
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('artifact-ready')
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('beat-delivered'),
+            'Runtime action artifact evidence',
+            {
+              conversationAnchorId: readyEvidence.conversation.conversationAnchorId,
+              actionArtifactPrompt,
+            },
+          );
+          const actionArtifactEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+          const actionArtifactSummary = page.locator('[data-zhiyu-runtime-action-artifact-summary="true"]').last();
+          await actionArtifactSummary.waitFor({ timeout: 15_000 });
+          assert.equal(await actionArtifactSummary.getAttribute('data-zhiyu-runtime-action-count'), '3');
+          assert.equal(await actionArtifactSummary.getAttribute('data-zhiyu-runtime-artifact-count'), '1');
+          assert.equal(await actionArtifactSummary.getAttribute('data-zhiyu-runtime-action-artifact-preview'), 'deferred');
+          assert.equal(
+            await actionArtifactSummary.getAttribute('data-zhiyu-runtime-action-artifact-preview-reason'),
+            'zhiyu-runtime-artifact-preview-uri-not-admitted',
+          );
+          assert.equal(await actionArtifactSummary.locator('[data-zhiyu-runtime-action-artifact-event="beat-planned"]').count(), 1);
+          assert.equal(await actionArtifactSummary.locator('[data-zhiyu-runtime-action-artifact-event="artifact-ready"]').count(), 1);
+          assert.equal(await actionArtifactSummary.locator('[data-zhiyu-runtime-action-artifact-id]').count(), 1);
+          assert.match(
+            await actionArtifactSummary.locator('[data-zhiyu-runtime-action-artifact-mime]').first().getAttribute('data-zhiyu-runtime-action-artifact-mime'),
+            /^image\//,
+          );
+          await captureLiveRuntimeEvidence(page, 'actionArtifact', pageProblems, {
+            readyEvidence,
+            chatCompletedEvidence,
+            actionArtifactEvidence,
+          });
+
+          const secondPrompt = '请继续用一句话确认这是同一个对话线程。';
+          await page.locator('[data-chat-composer-textarea="true"]').fill(secondPrompt);
+          await page.waitForFunction(() =>
+            document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
+            && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false
+            && document.querySelector('[data-chat-composer-textarea="true"]')?.value.length > 0,
+          );
+          assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'true');
+          await page.locator('[data-chat-composer-send="true"]').click();
+          await waitForEvidence(page, ({ requestId: firstRequestId, conversationAnchorId, firstOutputText, secondPrompt }) =>
+            globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode === 'runtime-agent-turn-completed'
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'completed'
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.requestId !== firstRequestId
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.conversationAnchorId === conversationAnchorId
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.messageCount >= 4
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === firstOutputText)
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === secondPrompt),
+            'multi-turn Runtime Agent chat evidence',
+            {
+              requestId: firstRequestId,
+              conversationAnchorId: readyEvidence.conversation.conversationAnchorId,
+              firstOutputText,
+              secondPrompt,
+            },
+          );
+          const multiTurnEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+          assert.equal(multiTurnEvidence.chat.ready, true);
+          assert.equal(multiTurnEvidence.chat.source, 'runtime');
+          assert.notEqual(multiTurnEvidence.chat.requestId, firstRequestId);
+          assert.equal(multiTurnEvidence.chat.conversationAnchorId, readyEvidence.conversation.conversationAnchorId);
+          assert.equal(multiTurnEvidence.chat.messageCount >= 4, true);
+          assert.equal(multiTurnEvidence.chat.messages.some((message) => message?.text === firstOutputText), true);
+          assert.equal(multiTurnEvidence.chat.messages.some((message) => message?.text === secondPrompt), true);
+          const multiTurnConversationText = await page.locator('[data-zhiyu-region="conversation"]').innerText();
+          assert.match(multiTurnConversationText, /请用一句话确认织羽本地对话可用/);
+          assert.match(multiTurnConversationText, /请继续用一句话确认这是同一个对话线程/);
+          assert.match(multiTurnConversationText, /Hello from the Runtime Agent live fixture/);
+          await assertChatCompletedNarrowComposerUsable(page);
+          await captureLiveRuntimeEvidence(page, 'chatMultiTurn', pageProblems, {
+            readyEvidence,
+            chatCompletedEvidence,
+            multiTurnEvidence,
+          });
+
+          await app.close();
+          appClosed = true;
+
+          const relaunchedApp = await launchLiveRuntimeZhiyuApp({ fixture, dataRoot });
+          try {
+            const relaunchedPage = await relaunchedApp.firstWindow();
+            const relaunchProblems = trackPageProblems(relaunchedPage);
+            await relaunchedPage.waitForLoadState('domcontentloaded');
+            await relaunchedPage.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
+            await relaunchedPage.waitForSelector('[data-zhiyu-screen="home"]');
+            await relaunchedPage.addInitScript(createZhiyuLiveRuntimeFixtureAcceptanceInitScript(fixture));
+            await relaunchedPage.reload({ waitUntil: 'domcontentloaded' });
+            await relaunchedPage.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
+            await relaunchedPage.waitForSelector('[data-zhiyu-screen="home"]');
+            await waitForEvidence(relaunchedPage, ({ conversationAnchorId, firstOutputText, secondPrompt }) =>
+              globalThis.window.__nimiZhiyuEvidence?.conversation?.conversationAnchorId === conversationAnchorId
+              && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode === 'runtime-agent-session-snapshot-hydrated'
+              && globalThis.window.__nimiZhiyuEvidence?.chat?.conversationAnchorId === conversationAnchorId
+              && globalThis.window.__nimiZhiyuEvidence?.chat?.messageCount >= 4
+              && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('session-snapshot-hydrated')
+              && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === firstOutputText)
+              && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === secondPrompt),
+              'restart hydrated Runtime Agent chat snapshot',
+              {
+                conversationAnchorId: readyEvidence.conversation.conversationAnchorId,
+                firstOutputText,
+                secondPrompt,
+              },
+            );
+            const restartHydratedEvidence = await relaunchedPage.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+            assert.equal(restartHydratedEvidence.conversation.conversationAnchorId, readyEvidence.conversation.conversationAnchorId);
+            assert.equal(restartHydratedEvidence.chat.source, 'runtime');
+            assert.equal(restartHydratedEvidence.chat.state, 'completed');
+            assert.equal(restartHydratedEvidence.chat.ready, true);
+            assert.equal(restartHydratedEvidence.chat.messages.some((message) => message?.text === firstOutputText), true);
+            assert.equal(restartHydratedEvidence.chat.messages.some((message) => message?.text === secondPrompt), true);
+            const restartedConversationText = await relaunchedPage.locator('[data-zhiyu-region="conversation"]').innerText();
+            assert.match(restartedConversationText, /Hello from the Runtime Agent live fixture/);
+            assert.equal(restartedConversationText.includes(secondPrompt), true);
+            await assertChatCompletedNarrowComposerUsable(relaunchedPage);
+            await captureLiveRuntimeEvidence(relaunchedPage, 'chatRestartHydrated', relaunchProblems, {
+              readyEvidence,
+              chatCompletedEvidence,
+              multiTurnEvidence,
+              restartHydratedEvidence,
+            });
+            assertNoPageProblems(relaunchProblems);
+          } finally {
+            await relaunchedApp.close();
+          }
+
           await assertUniqueStageScreenshots();
           assertNoPageProblems(pageProblems);
         } finally {
-          await app.close();
+          if (!appClosed) {
+            await app.close();
+          }
         }
       });
     },
   });
 });
+
+async function launchLiveRuntimeZhiyuApp({ fixture, dataRoot }) {
+  return electron.launch({
+    args: [mainEntry],
+    env: {
+      ...process.env,
+      NIMI_RUNTIME_GRPC_ADDR: '',
+      NIMI_ZHIYU_ELECTRON_RENDERER_URL: createZhiyuLiveRuntimeAcceptanceRendererUrl(root),
+      NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT: fixture.endpoint,
+      NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
+    },
+  });
+}
+
+async function assertElectronChromeParity(app) {
+  const chrome = await app.evaluate(({ BrowserWindow, Menu }) => {
+    const window = BrowserWindow.getAllWindows()[0] ?? null;
+    return {
+      applicationMenuPresent: Boolean(Menu.getApplicationMenu()),
+      menuBarVisible: window && typeof window.isMenuBarVisible === 'function'
+        ? window.isMenuBarVisible()
+        : null,
+      menuBarAutoHide: window && typeof window.isMenuBarAutoHide === 'function'
+        ? window.isMenuBarAutoHide()
+        : null,
+    };
+  });
+  assert.equal(chrome.applicationMenuPresent, false, 'Zhiyu must not show the default Electron application menu');
+  assert.notEqual(chrome.menuBarVisible, true, 'Zhiyu must hide the native menu bar to match Desktop agent chat chrome');
+  assert.notEqual(chrome.menuBarAutoHide, false, 'Zhiyu native menu bar must remain auto-hidden when the platform reports the state');
+}
 
 async function withTempDir(prefix, run) {
   const dir = await mkdtemp(path.join(tmpdir(), `nimi-zhiyu-electron-${prefix}-`));
@@ -252,9 +474,9 @@ async function withTempDir(prefix, run) {
   }
 }
 
-async function waitForEvidence(page, predicate, label) {
+async function waitForEvidence(page, predicate, label, argument) {
   try {
-    await page.waitForFunction(predicate, undefined, { timeout: 45_000 });
+    await page.waitForFunction(predicate, argument, { timeout: 45_000 });
   } catch (error) {
     const evidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence).catch((evalError) => ({
       evaluationError: evalError instanceof Error ? evalError.message : String(evalError),
@@ -287,16 +509,18 @@ async function assertNoPartnerProductState(page) {
 async function assertPartnerSelectedProductState(page) {
   assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'route-required');
   assert.equal(await page.locator('[data-zhiyu-primary-action]').getAttribute('data-zhiyu-primary-action'), 'configure-model');
+  assert.equal(await page.locator('[data-zhiyu-side-panel-state]').getAttribute('data-zhiyu-side-panel-state'), 'closed');
+  assert.equal(await page.locator('[data-zhiyu-region="agent-panel"]').count(), 0);
   const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
-  assert.match(shellText, /当前伙伴/);
+  assert.match(shellText, /开始一段对话|当前伙伴/);
   assert.match(shellText, /未绑定模型|请先完成模型配置/);
-  assert.match(shellText, /模型配置/);
+  assert.match(shellText, /模型|本地对话模型已绑定/);
   assert.doesNotMatch(shellText, /Runtime Live Source/);
   assertPrimaryWorkspaceHasNoEngineeringCopy(shellText);
 }
 
 async function assertModelUnconfiguredProductState(page) {
-  assert.equal(await page.locator('[data-zhiyu-ai-config-chip]').getAttribute('data-zhiyu-ai-config-binding-label'), '未绑定模型');
+  assert.equal(await page.locator('[data-zhiyu-composer-tool="model"]').count(), 1);
   assert.equal(await page.locator('[data-zhiyu-capability-setup-action="configure-model"]').count(), 1);
   assert.equal(await page.locator('[data-zhiyu-image-studio-setup-action="configure-model"]').count(), 0);
   assert.equal(await page.locator('[data-zhiyu-region="image-studio"]').count(), 0);
@@ -318,11 +542,12 @@ async function assertModelConfiguredProductState(page) {
   assert.equal(evidence.route.targetRefKinds['text.embed'], 'local-runtime');
   assert.equal(evidence.route.targetRefKinds['image.generate'], 'cloud-connector');
   assert.match(evidence.route.executionBinding.modelId, /runtime-agent-live-e2e/i);
-  const drawer = page.locator('[data-zhiyu-ai-config-drawer="open"]');
-  await drawer.waitFor({ timeout: 15_000 });
-  const drawerText = await drawer.innerText();
-  assert.match(drawerText, /模型目标已绑定/);
-  assert.doesNotMatch(drawerText, /等待上游投影|not_projected|sourceRef|localAgentRef|回显通路|身份地板|graph-lite/);
+  const modelConfig = page.locator('[data-zhiyu-ai-config-embedded="agent-center"]');
+  await modelConfig.waitFor({ timeout: 15_000 });
+  const modelConfigText = await modelConfig.innerText();
+  assert.match(modelConfigText, /模型目标已绑定|已绑定|已就绪/);
+  assert.doesNotMatch(modelConfigText, /等待上游投影|not_projected|sourceRef|localAgentRef|回显通路|身份地板|graph-lite/);
+  await assertVoiceControlsDeferred(page);
 }
 
 function assertPrimaryWorkspaceHasNoEngineeringCopy(text) {
@@ -330,6 +555,26 @@ function assertPrimaryWorkspaceHasNoEngineeringCopy(text) {
     text,
     /上游投影|准入来源|等待投影|not_projected|Runtime\b|SDK\b|sourceRef|localAgentRef|回显通路|身份地板|graph-lite|Runtime Agent|LocalAgent|Runtime Live Source|Capability Studio|Image Studio|Avatar Presence/,
   );
+}
+
+async function assertVoiceControlsDeferred(page) {
+  const captureTool = page.locator('[data-zhiyu-composer-tool="voice-capture"]').first();
+  await captureTool.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await captureTool.getAttribute('data-zhiyu-chat-voice-capture-state'), 'deferred');
+  assert.equal(
+    await captureTool.getAttribute('data-zhiyu-chat-voice-capture-reason'),
+    'zhiyu-chat-voice-capture-runtime-surface-deferred',
+  );
+  assert.equal(await captureTool.isDisabled(), true);
+
+  const voiceTool = page.locator('[data-zhiyu-composer-tool="hands-free"]').first();
+  await voiceTool.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-state'), 'deferred');
+  assert.equal(
+    await voiceTool.getAttribute('data-zhiyu-chat-voice-reason'),
+    'zhiyu-chat-voice-runtime-surface-deferred',
+  );
+  assert.equal(await voiceTool.isDisabled(), true);
 }
 
 async function selectRuntimeModelForCapability(page, drawer, input) {
@@ -373,13 +618,13 @@ async function openModelConfigSection(drawer, section) {
   await drawer.locator(`[data-nimi-model-config-detail-section="${section}"]`).waitFor({ timeout: 15_000 });
 }
 
-async function assertModelConfigDrawerProductQuality(page) {
-  const drawer = page.locator('[data-zhiyu-ai-config-drawer="open"]');
-  await drawer.waitFor({ timeout: 15_000 });
-  assert.equal(await drawer.getAttribute('data-zhiyu-ai-config-drawer-panel'), 'kit-glass');
-  await drawer.locator('.zhiyu-ai-config-drawer__model-hub').waitFor({ timeout: 15_000 });
+async function assertModelConfigEmbeddedProductQuality(page) {
+  const modelConfig = page.locator('[data-zhiyu-ai-config-embedded="agent-center"]');
+  await modelConfig.waitFor({ timeout: 15_000 });
+  await page.locator('[data-zhiyu-agent-model-route-card="true"]').waitFor({ timeout: 15_000 });
+  await modelConfig.locator('.zhiyu-ai-config-embedded__model-hub').waitFor({ timeout: 15_000 });
 
-  const unlabeledOrTinyButtons = await drawer.locator('button').evaluateAll((buttons) => buttons
+  const unlabeledOrTinyButtons = await modelConfig.locator('button').evaluateAll((buttons) => buttons
     .map((button, index) => {
       const label = `${button.getAttribute('aria-label') || button.textContent || ''}`.replace(/\s+/g, ' ').trim();
       const rect = button.getBoundingClientRect();
@@ -391,13 +636,17 @@ async function assertModelConfigDrawerProductQuality(page) {
     .filter(Boolean));
   assert.deepEqual(unlabeledOrTinyButtons, []);
 
-  const back = drawer.locator('[data-nimi-model-config-back="true"]').first();
+  const chatSection = modelConfig.locator('[data-nimi-model-config-section="chat"]').first();
+  await chatSection.waitFor({ timeout: 15_000 });
+  await chatSection.click();
+  await modelConfig.locator('[data-nimi-model-config-detail-section="chat"]').waitFor({ timeout: 15_000 });
+  const back = modelConfig.locator('[data-nimi-model-config-back="true"]').first();
   await back.waitFor({ timeout: 15_000 });
   const backBox = await back.boundingBox();
   assert.ok(backBox && backBox.width >= 60 && backBox.height >= 28, `model config back control is too small: ${JSON.stringify(backBox)}`);
   assert.match(await back.evaluate((button) => `${button.getAttribute('aria-label') || button.textContent || ''}`), /返回|Back/i);
 
-  const capabilityButton = drawer.locator('[data-nimi-model-config-capability] > button').first();
+  const capabilityButton = modelConfig.locator('[data-nimi-model-config-capability] > button').first();
   await capabilityButton.waitFor({ timeout: 15_000 });
   const capabilityStyle = await capabilityButton.evaluate((button) => {
     const style = globalThis.getComputedStyle(button);
@@ -412,7 +661,7 @@ async function assertModelConfigDrawerProductQuality(page) {
   assert.notEqual(capabilityStyle.backgroundColor, 'rgba(0, 0, 0, 0)');
   assert.notEqual(capabilityStyle.borderRadius, '0px');
 
-  const drawerPanelStyle = await drawer.evaluate((panel) => {
+  const drawerPanelStyle = await modelConfig.evaluate((panel) => {
     const style = globalThis.getComputedStyle(panel);
     return {
       backgroundColor: style.backgroundColor,
@@ -423,13 +672,524 @@ async function assertModelConfigDrawerProductQuality(page) {
   assert.notEqual(drawerPanelStyle.boxShadow, 'none');
 }
 
+async function assertStopChatFlow(page, pageProblems, readyEvidence) {
+  await page.locator('[data-chat-composer-textarea="true"]').fill('请开始一段可以被我停止的回复。');
+  assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'true');
+  await page.locator('[data-chat-composer-send="true"]').click();
+  const stopButton = page.locator('[data-zhiyu-chat-stop-action="true"]');
+  await stopButton.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await stopButton.getAttribute('aria-label'), '停止当前回复');
+  assert.equal(
+    await stopButton.getAttribute('data-zhiyu-agent-chat-stop-state'),
+    'available',
+  );
+  await waitForEvidence(page, () =>
+    globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'streaming'
+    && document.querySelector('[data-zhiyu-chat-stop-action="true"]') !== null,
+    'streaming Runtime Agent chat evidence before product stop',
+  );
+  const streamingEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+  assert.equal(streamingEvidence.chat.state, 'streaming');
+  assert.equal(streamingEvidence.chat.ready, false);
+  assert.equal(
+    await page.locator('[data-zhiyu-agent-chat-state]').getAttribute('data-zhiyu-agent-chat-state'),
+    'streaming',
+  );
+  const streamingConversationText = await page.locator('[data-zhiyu-region="conversation"]').innerText();
+  assert.doesNotMatch(
+    streamingConversationText,
+    /Streaming/i,
+    'Zhiyu must mirror Desktop Agent Chat and hide the generic Kit streaming placeholder from the primary transcript',
+  );
+  await captureLiveRuntimeEvidence(page, 'chatStreaming', pageProblems, {
+    readyEvidence,
+    streamingEvidence,
+  });
+  await stopButton.waitFor({ state: 'visible', timeout: 15_000 });
+  await stopButton.click();
+  await waitForEvidence(page, () =>
+    globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'canceled'
+    && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode === 'runtime-agent-chat-user-canceled',
+    'canceled Runtime Agent chat evidence after product stop',
+  );
+  const canceledEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+  assert.equal(canceledEvidence.chat.ready, false);
+  assert.equal(canceledEvidence.chat.state, 'canceled');
+  assert.equal(canceledEvidence.chat.reasonCode, 'runtime-agent-chat-user-canceled');
+  assert.equal(
+    canceledEvidence.chat.messages.some((message) =>
+      message?.status === 'streaming' || message?.kind === 'streaming',
+    ),
+    false,
+    'canceled chat must not leave a visual Streaming bubble in the transcript',
+  );
+  assert.equal(await page.locator('[data-zhiyu-agent-chat-state]').getAttribute('data-zhiyu-agent-chat-state'), 'canceled');
+  assert.equal(await page.locator('[data-zhiyu-chat-stop-action="true"]').count(), 0);
+  await captureLiveRuntimeEvidence(page, 'chatCanceled', pageProblems, {
+    readyEvidence,
+    canceledEvidence,
+  });
+  await page.locator('[data-chat-composer-textarea="true"]').fill('');
+}
+
+async function assertSubmitTimeStaleRouteFlow(page, pageProblems, readyEvidence) {
+  const scopeRef = 'app:nimi.zhiyu:zhiyu-agent-home';
+  const stalePrompt = 'Please verify Zhiyu stale route submit blocking.';
+  const original = await page.evaluate(async ({ scopeRef }) =>
+    globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke('nimi.shell.aiConfig.get', { scopeRef }),
+    { scopeRef },
+  );
+  assert.equal(original.scopeRef, scopeRef);
+  assert.ok(original.config?.capabilities?.targetRefs?.['text.generate'], 'stale-route guard requires an initially configured text route');
+
+  await page.locator('[data-chat-composer-textarea="true"]').fill(stalePrompt);
+  await page.waitForFunction(() =>
+    document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
+    && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false
+    && document.querySelector('[data-chat-composer-textarea="true"]')?.value.length > 0,
+  );
+  assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'true');
+
+  try {
+    await page.evaluate(async ({ scopeRef, original }) => {
+      const staleConfig = {
+        ...original.config,
+        capabilities: {
+          ...original.config.capabilities,
+          targetRefs: {},
+        },
+      };
+      await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke('nimi.shell.aiConfig.set', {
+        scopeRef,
+        config: staleConfig,
+      });
+    }, { scopeRef, original });
+    await page.locator('[data-chat-composer-send="true"]').click();
+    await waitForEvidence(page, () =>
+      globalThis.window.__nimiZhiyuEvidence?.route?.ready === false
+      && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'zhiyu-ai-config-route-selection-required'
+      && globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'failed'
+      && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode === 'zhiyu-submit-route-refresh-stale'
+      && globalThis.window.__nimiZhiyuEvidence?.chat?.messageCount === 0
+      && globalThis.window.__nimiZhiyuEvidence?.composer?.submitState === 'failed',
+      'submit-time stale route block evidence',
+    );
+    const staleRouteEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+    assert.equal(staleRouteEvidence.chat.requestId, null);
+    assert.equal(staleRouteEvidence.chat.eventTypes.length, 0);
+    assert.equal(await page.locator('[data-zhiyu-agent-chat-state]').getAttribute('data-zhiyu-agent-chat-state'), 'failed');
+    const failureNotice = page.locator('[data-zhiyu-agent-chat-failure="true"]').last();
+    await failureNotice.waitFor({ state: 'visible', timeout: 15_000 });
+    assert.equal(await failureNotice.getAttribute('data-zhiyu-agent-chat-failure-reason'), 'zhiyu-submit-route-refresh-stale');
+    assert.match(await failureNotice.innerText(), /zhiyu-submit-route-refresh-stale/);
+    await captureLiveRuntimeEvidence(page, 'staleRoute', pageProblems, {
+      readyEvidence,
+      staleRouteEvidence,
+    });
+  } finally {
+    await page.evaluate(async ({ scopeRef, original }) =>
+      globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke('nimi.shell.aiConfig.set', {
+        scopeRef,
+        config: original.config,
+      }),
+      { scopeRef, original },
+    ).catch(() => undefined);
+  }
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
+  await page.waitForSelector('[data-zhiyu-screen="home"]');
+  await waitForEvidence(page, ({ conversationAnchorId }) =>
+    globalThis.window.__nimiZhiyuEvidence?.conversation?.conversationAnchorId === conversationAnchorId
+    && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-route-ready'
+    && Boolean(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding)
+    && globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'idle',
+    'ready evidence after restoring stale route config',
+    { conversationAnchorId: readyEvidence.conversation.conversationAnchorId },
+  );
+  await resetAcceptanceInputs(page);
+  return await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+}
+
+async function assertMidStreamFailureFlow(page, pageProblems, readyEvidence) {
+  const failurePrompt = 'Please trigger Zhiyu mid-stream failure after committed text.';
+  const expectedPartialText = 'Committed before induced action failure.';
+  await page.locator('[data-chat-composer-textarea="true"]').fill(failurePrompt);
+  await page.waitForFunction(() =>
+    document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
+    && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false
+    && document.querySelector('[data-chat-composer-textarea="true"]')?.value.length > 0,
+  );
+  await page.locator('[data-chat-composer-send="true"]').click();
+  await waitForEvidence(page, ({ expectedPartialText, failurePrompt }) =>
+    globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'failed'
+    && globalThis.window.__nimiZhiyuEvidence?.chat?.ready === false
+    && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode !== 'runtime-agent-turn-completed'
+    && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode !== 'runtime-turn-request-accepted'
+    && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('text-delta')
+    && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('turn-failed')
+    && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === failurePrompt)
+    && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) =>
+      message?.text === expectedPartialText
+      && message?.status === 'error'
+      && typeof message?.error === 'string'
+      && message.error.length > 0
+    ),
+    'mid-stream failed Runtime Agent chat evidence',
+    {
+      expectedPartialText,
+      failurePrompt,
+    },
+  );
+  const failedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+  assert.equal(failedEvidence.chat.ready, false);
+  assert.equal(failedEvidence.chat.state, 'failed');
+  assert.notEqual(failedEvidence.chat.reasonCode, 'runtime-agent-turn-completed');
+  assert.notEqual(failedEvidence.chat.reasonCode, 'runtime-turn-request-accepted');
+  assert.equal(failedEvidence.chat.eventTypes.includes('text-delta'), true);
+  assert.equal(failedEvidence.chat.eventTypes.includes('turn-failed'), true);
+  assert.equal(
+    failedEvidence.chat.messages.some((message) =>
+      message?.text === expectedPartialText
+      && message?.status === 'error'
+      && typeof message?.error === 'string'
+      && message.error.length > 0
+    ),
+    true,
+  );
+  assert.equal(await page.locator('[data-zhiyu-agent-chat-state]').getAttribute('data-zhiyu-agent-chat-state'), 'failed');
+  assert.equal(await page.locator('[data-zhiyu-agent-chat-ready]').getAttribute('data-zhiyu-agent-chat-ready'), 'false');
+  const failureNotice = page.locator('[data-zhiyu-agent-chat-failure="true"]').last();
+  await failureNotice.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await failureNotice.getAttribute('data-zhiyu-agent-chat-failure-reason'), failedEvidence.chat.reasonCode);
+  assert.equal(await failureNotice.getAttribute('data-zhiyu-agent-chat-failure-action'), failedEvidence.chat.actionHint);
+  assert.match(await failureNotice.innerText(), new RegExp(escapeRegExp(failedEvidence.chat.reasonCode)));
+  assert.match(await failureNotice.innerText(), /failed|failure|失败|处理/i);
+  const failedConversationText = await page.locator('[data-zhiyu-region="conversation"]').innerText();
+  assert.match(failedConversationText, new RegExp(escapeRegExp(expectedPartialText)));
+  assert.doesNotMatch(failedConversationText, /runtime-agent-turn-completed|runtime-turn-request-accepted/);
+  await page.locator('[data-chat-composer-textarea="true"]').fill('follow up after failure');
+  await page.waitForFunction(() =>
+    document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
+    && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false,
+  );
+  await captureLiveRuntimeEvidence(page, 'chatFailed', pageProblems, {
+    readyEvidence,
+    failedEvidence,
+  });
+  await page.locator('[data-chat-composer-textarea="true"]').fill('');
+}
+
+async function assertAgentCenterHeaderParity(page, evidence) {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const header = page.locator('[data-zhiyu-agent-center-header="true"]').first();
+  await header.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await header.locator('[data-zhiyu-agent-center-eyebrow]').innerText(), 'AGENT CENTER');
+  const localAgentRef = evidence.localAgent.localAgentRef;
+  assert.ok(localAgentRef, 'ready evidence must include a Runtime LocalAgent ref');
+  const refLine = header.locator('[data-zhiyu-agent-center-local-agent-ref]').first();
+  await refLine.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await refLine.getAttribute('title'), localAgentRef);
+  assert.equal(await refLine.innerText(), localAgentRef);
+  const currentAgent = evidence.inventory.localAgents.find((agent) => agent.localAgentRef === localAgentRef);
+  if (currentAgent?.sourceKind === 'worldCharacter') {
+    const chip = header.locator('[data-zhiyu-agent-center-world-chip]').first();
+    await chip.waitFor({ state: 'visible', timeout: 15_000 });
+    assert.match(await chip.innerText(), /世界|World|唐代/);
+  }
+}
+
+async function closeAgentCenter(page) {
+  const closeButton = page.locator('[data-zhiyu-agent-panel-close="true"]').first();
+  if (await closeButton.count() === 0) {
+    await page.locator('[data-zhiyu-side-panel-state="closed"]').waitFor({ state: 'attached', timeout: 15_000 });
+    return;
+  }
+  await closeButton.click();
+  await page.locator('[data-zhiyu-region="agent-panel"]').waitFor({ state: 'detached', timeout: 15_000 });
+  assert.equal(
+    await page.locator('[data-zhiyu-side-panel-state]').getAttribute('data-zhiyu-side-panel-state'),
+    'closed',
+    'Agent Center must collapse back to the closed primary chat layout',
+  );
+}
+
+async function assertAppearanceConfigParity(page) {
+  await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
+  await page.locator('[data-zhiyu-agent-panel-tab="overview"]').waitFor({ timeout: 15_000 });
+  await page.locator('[data-zhiyu-agent-panel-tab="overview"] [data-zhiyu-panel-row="形象"]').click();
+  await page.locator('[data-zhiyu-agent-panel-tab="appearance"]').waitFor({ timeout: 15_000 });
+  const panel = page.locator('[data-zhiyu-agent-appearance-panel="true"]');
+  await panel.waitFor({ timeout: 15_000 });
+  const layout = await page.evaluate(() => {
+    const sideSheet = document.querySelector('[data-zhiyu-region="agent-panel"]');
+    const tabButtons = Array.from(document.querySelectorAll('[data-zhiyu-agent-center-tab-button]'));
+    const activeTab = document.querySelector('[data-zhiyu-agent-center-tab-button="appearance"]');
+    const inactiveTab = document.querySelector('[data-zhiyu-agent-center-tab-button="overview"]');
+    const rightRail = document.querySelector('.zhiyu-home__right-rail');
+    const appearancePanel = document.querySelector('[data-zhiyu-agent-appearance-panel="true"]');
+    const sideRect = sideSheet?.getBoundingClientRect();
+    const activeRect = activeTab?.getBoundingClientRect();
+    const inactiveRect = inactiveTab?.getBoundingClientRect();
+    const railRect = rightRail?.getBoundingClientRect();
+    const appearanceRect = appearancePanel?.getBoundingClientRect();
+    return {
+      sideWidth: sideRect?.width ?? 0,
+      sideRight: sideRect?.right ?? 0,
+      tabCount: tabButtons.length,
+      activeTabAria: activeTab?.getAttribute('aria-current') ?? null,
+      activeTabWidth: activeRect?.width ?? 0,
+      inactiveTabWidth: inactiveRect?.width ?? 0,
+      rightRailVisible: Boolean(railRect && railRect.width > 0 && railRect.height > 0),
+      rightRailLeft: railRect?.left ?? 0,
+      appearanceTop: appearanceRect?.top ?? 0,
+      appearanceBottom: appearanceRect?.bottom ?? 0,
+      viewportHeight: globalThis.innerHeight,
+    };
+  });
+  assert.equal(layout.tabCount, 6, `Agent Center must expose the six Desktop tabs: ${JSON.stringify(layout)}`);
+  assert.equal(layout.activeTabAria, 'page', `Appearance tab must be the active Desktop section: ${JSON.stringify(layout)}`);
+  assert.ok(layout.activeTabWidth > layout.inactiveTabWidth, `active Appearance tab must expand beyond icon-only tabs: ${JSON.stringify(layout)}`);
+  assert.ok(layout.sideWidth >= 440, `Agent Center side sheet is too narrow for Desktop parity: ${JSON.stringify(layout)}`);
+  assert.equal(layout.rightRailVisible, true, `Desktop relationship rail must remain visible with Appearance open: ${JSON.stringify(layout)}`);
+  assert.ok(layout.rightRailLeft >= layout.sideRight - 2, `relationship rail must sit to the right of the Agent Center: ${JSON.stringify(layout)}`);
+  assert.ok(layout.appearanceTop >= 0 && layout.appearanceTop < layout.viewportHeight, `Appearance panel must be visible in the viewport: ${JSON.stringify(layout)}`);
+
+  const panelText = await panel.innerText();
+  for (const label of ['Avatar 设置', '导入来源', '证据', 'Live2D 工作台', '背景', '动效', '高级诊断']) {
+    assert.match(panelText, new RegExp(label), `Appearance panel must include Desktop ${label} structure`);
+  }
+
+  for (const action of ['live2d', 'vrm']) {
+    const control = panel.locator(`[data-zhiyu-avatar-import-action="${action}"]`).first();
+    await control.waitFor({ timeout: 15_000 });
+    assert.equal(await control.getAttribute('data-zhiyu-avatar-import-state'), 'available');
+    assert.equal(await control.isDisabled(), false, `${action} import control must use Zhiyu Electron local config bridge`);
+  }
+  for (const action of ['live2d-adapter', 'clear']) {
+    const control = panel.locator(`[data-zhiyu-avatar-import-action="${action}"]`).first();
+    await control.waitFor({ timeout: 15_000 });
+    assert.equal(await control.getAttribute('data-zhiyu-avatar-import-state'), 'blocked');
+    assert.ok(await control.getAttribute('data-zhiyu-avatar-import-reason'), `${action} blocked import control must expose a concrete reason`);
+    assert.equal(await control.isDisabled(), true, `${action} import control must stay blocked until an Avatar asset is selected`);
+  }
+
+  await panel.locator('[data-zhiyu-avatar-evidence="true"]').waitFor({ timeout: 15_000 });
+  assert.equal(await panel.locator('[data-zhiyu-avatar-evidence-row]').count(), 4);
+  await panel.locator('[data-zhiyu-live2d-workbench="true"]').waitFor({ timeout: 15_000 });
+  assert.equal(await panel.locator('[data-zhiyu-live2d-review-item]').count(), 5);
+  assert.equal(await panel.locator('[data-zhiyu-live2d-review-item="adapter_manifest"]').count(), 1);
+  await panel.locator('[data-zhiyu-avatar-launch-card]').waitFor({ timeout: 15_000 });
+  await panel.locator('[data-zhiyu-agent-background-card="electron-local-config"]').waitFor({ timeout: 15_000 });
+  assert.equal(await panel.locator('[data-zhiyu-background-import-action]').count(), 2);
+  const backgroundImport = panel.locator('[data-zhiyu-background-import-action="import"]').first();
+  assert.equal(await backgroundImport.getAttribute('data-zhiyu-background-import-state'), 'available');
+  assert.equal(await backgroundImport.isDisabled(), false);
+  const backgroundClear = panel.locator('[data-zhiyu-background-import-action="clear"]').first();
+  assert.equal(await backgroundClear.getAttribute('data-zhiyu-background-import-state'), 'blocked');
+  assert.ok(await backgroundClear.getAttribute('data-zhiyu-background-import-reason'), 'clear background control must expose a concrete blocked reason');
+  assert.equal(await backgroundClear.isDisabled(), true);
+  await panel.locator('[data-zhiyu-agent-motion-card="read-only"]').waitFor({ timeout: 15_000 });
+  assert.equal(await panel.locator('[data-zhiyu-avatar-policy-row]').count(), 4);
+  assert.equal(await panel.locator('[data-zhiyu-avatar-debug-shortcut]').count(), 7);
+  await panel.locator('[data-zhiyu-avatar-advanced-diagnostics="deferred"]').waitFor({ timeout: 15_000 });
+}
+
+async function assertBehaviorConfigParity(page) {
+  await page.locator('[data-zhiyu-agent-center-tab-button="behavior"]').click();
+  await page.locator('[data-zhiyu-agent-panel-tab="behavior"]').waitFor({ timeout: 15_000 });
+  const panel = page.locator('[data-zhiyu-agent-behavior-panel="true"]');
+  await panel.waitFor({ timeout: 15_000 });
+
+  const panelText = await panel.innerText();
+  assert.match(panelText, /聊天行为/);
+  assert.match(panelText, /行为模式/);
+  assert.match(panelText, /主动沟通/);
+  assert.match(panelText, /Avatar/);
+
+  assert.equal(await panel.locator('[data-zhiyu-agent-behavior-mode-option]').count(), 4);
+  assert.equal(await panel.locator('[data-zhiyu-agent-behavior-mode-option][data-zhiyu-agent-behavior-mode-selected="true"]').count(), 1);
+  assert.equal(await panel.locator('[data-zhiyu-agent-behavior-control]').count(), 3);
+  const disabledControls = await panel.locator('[data-zhiyu-agent-behavior-control-disabled="true"]').evaluateAll((buttons) =>
+    buttons.every((button) => button instanceof HTMLButtonElement && button.disabled),
+  );
+  assert.equal(disabledControls, true, 'behavior controls must fail closed until a Runtime/SDK mutation surface is admitted');
+  await panel.locator('[data-zhiyu-agent-behavior-service="runtime-managed"]').waitFor({ timeout: 15_000 });
+}
+
+async function assertCognitionConfigParity(page) {
+  await page.locator('[data-zhiyu-agent-center-tab-button="cognition"]').click();
+  await page.locator('[data-zhiyu-agent-panel-tab="cognition"]').waitFor({ timeout: 15_000 });
+  const panel = page.locator('[data-zhiyu-agent-cognition-panel="true"]');
+  await panel.waitFor({ timeout: 15_000 });
+
+  const panelText = await panel.innerText();
+  assert.match(panelText, /来源详情/);
+  assert.match(panelText, /认知状态/);
+  assert.match(panelText, /Memory/);
+  await panel.locator('[data-zhiyu-agent-cognition-source="true"]').waitFor({ timeout: 15_000 });
+  await panel.locator('[data-zhiyu-agent-cognition-status="true"]').waitFor({ timeout: 15_000 });
+  await panel.locator('[data-zhiyu-agent-cognition-projections="true"]').waitFor({ timeout: 15_000 });
+  assert.equal(await page.locator('[data-zhiyu-memory-observatory]').count(), 1);
+}
+
+async function assertAdvancedConfigParity(page) {
+  await page.locator('[data-zhiyu-agent-center-tab-button="advanced"]').click();
+  await page.locator('[data-zhiyu-agent-panel-tab="advanced"]').waitFor({ timeout: 15_000 });
+  const panel = page.locator('[data-zhiyu-agent-advanced-panel="true"]');
+  await panel.waitFor({ timeout: 15_000 });
+
+  const panelText = await panel.innerText();
+  assert.match(panelText, /诊断/);
+  assert.match(panelText, /Runtime|SDK/);
+  await panel.locator('[data-zhiyu-agent-advanced-warning="true"]').waitFor({ timeout: 15_000 });
+  await panel.locator('[data-zhiyu-agent-advanced-technical-surfaces="true"]').waitFor({ timeout: 15_000 });
+  await panel.locator('[data-zhiyu-diagnostic-mode]').waitFor({ timeout: 15_000 });
+}
+
+async function assertAgentCenterKeyboardAccessibility(page) {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const tabs = [
+    ['overview', '概览', '[data-zhiyu-memory-observatory]'],
+    ['appearance', '外观', '[data-zhiyu-agent-appearance-panel="true"]'],
+    ['model', '模型', '[data-zhiyu-agent-panel-tab="model"]'],
+    ['cognition', '认知', '[data-zhiyu-agent-cognition-panel="true"]'],
+  ];
+
+  for (const [tab, name, targetSelector] of tabs) {
+    const button = page.locator(`[data-zhiyu-agent-center-tab-button="${tab}"]`).first();
+    await button.waitFor({ state: 'visible', timeout: 15_000 });
+    assert.equal((await button.innerText()).includes(name), true, `${name} tab must have readable accessible name source`);
+    await button.focus();
+    assert.equal(
+      await button.evaluate((element) => element === globalThis.document.activeElement),
+      true,
+      `${name} tab must be keyboard focusable`,
+    );
+    await page.keyboard.press('Enter');
+    await page.locator(targetSelector).first().waitFor({ state: 'visible', timeout: 15_000 });
+    assert.equal(
+      await button.getAttribute('aria-current'),
+      'page',
+      `${name} tab must expose active page semantics after keyboard activation`,
+    );
+  }
+
+  const composer = page.getByRole('textbox', { name: /和这个伙伴聊点什么/ }).first();
+  await composer.waitFor({ state: 'visible', timeout: 15_000 });
+  await composer.focus();
+  assert.equal(
+    await composer.evaluate((element) => element === globalThis.document.activeElement),
+    true,
+    'composer textarea must be keyboard focusable by accessible textbox role/name',
+  );
+  assert.equal(await composer.isEditable(), true);
+
+  const sendButton = page.getByRole('button', { name: /Send|发送/ }).first();
+  await sendButton.waitFor({ state: 'visible', timeout: 15_000 });
+  await composer.fill('键盘可达性检查');
+  await page.waitForFunction(() => document.querySelector('[data-chat-composer-send="true"]')?.disabled === false);
+  await sendButton.focus();
+  assert.equal(
+    await sendButton.evaluate((element) => element === globalThis.document.activeElement),
+    true,
+    'send button must be keyboard focusable by accessible button role/name',
+  );
+  await composer.fill('');
+
+  const voiceCapture = page.getByRole('button', { name: '语音输入暂未接入' }).first();
+  await voiceCapture.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await voiceCapture.isDisabled(), true);
+  const handsFree = page.getByRole('button', { name: '语音模式暂未接入' }).first();
+  await handsFree.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await handsFree.isDisabled(), true);
+
+  await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
+  await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
+}
+
+async function assertDesktopShellTopbarParity(page, pageProblems) {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const viewport = page.viewportSize();
+  assert.ok(viewport, 'viewport must be available for topbar clipping checks');
+  const railSettings = page.locator('[data-zhiyu-settings-entry="relationship-rail"]').first();
+  await railSettings.waitFor({ state: 'visible', timeout: 15_000 });
+  await assertControlInsideViewport(railSettings, viewport, 'Desktop rail settings action');
+  await railSettings.click();
+  await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await page.locator('[data-zhiyu-agent-center-tab-button="advanced"][aria-current="page"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await page.locator('[data-zhiyu-agent-advanced-panel="true"]').waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(
+    await page.locator('[data-zhiyu-settings-panel="right"]').count(),
+    0,
+    'Desktop rail settings action must route to Agent Center advanced tab, not a second settings panel',
+  );
+  await captureLiveRuntimeInteractionEvidence(page, 'rail-settings-advanced', pageProblems, {
+    route: 'relationship-rail-settings',
+  });
+  await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
+  await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
+
+  const notifications = page.locator('[data-zhiyu-topbar-notifications="true"]').first();
+  await notifications.waitFor({ state: 'visible', timeout: 15_000 });
+  await assertControlInsideViewport(notifications, viewport, 'Desktop shell notification button');
+  assert.match(await notifications.getAttribute('aria-label'), /通知/);
+  await notifications.focus();
+  assert.equal(
+    await notifications.evaluate((element) => element === globalThis.document.activeElement),
+    true,
+    'Desktop shell notification button must be keyboard focusable',
+  );
+  await page.keyboard.press('Enter');
+  const notificationPopover = page.locator('[data-zhiyu-notification-popover="true"]');
+  await notificationPopover.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await notificationPopover.getAttribute('data-zhiyu-notification-state'), 'deferred');
+  assert.match(await notificationPopover.innerText(), /通知中心/);
+
+  const account = page.locator('[data-zhiyu-topbar-account="true"]').first();
+  await account.waitFor({ state: 'visible', timeout: 15_000 });
+  await assertControlInsideViewport(account, viewport, 'Desktop shell account button');
+  assert.match(await account.getAttribute('aria-label'), /账户|设置/);
+  await account.focus();
+  assert.equal(
+    await account.evaluate((element) => element === globalThis.document.activeElement),
+    true,
+    'Desktop shell account button must be keyboard focusable',
+  );
+  await page.keyboard.press('Enter');
+  const accountMenu = page.locator('[data-zhiyu-account-menu="true"]');
+  await accountMenu.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.match(await accountMenu.innerText(), /账户|设置/);
+  await accountMenu.locator('[data-zhiyu-account-menu-action="settings"]').click();
+  await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await page.locator('[data-zhiyu-agent-center-tab-button="advanced"][aria-current="page"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await page.locator('[data-zhiyu-agent-advanced-panel="true"]').waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(
+    await page.locator('[data-zhiyu-settings-panel="right"]').count(),
+    0,
+    'Desktop topbar account settings action must route to Agent Center advanced tab, not a second settings panel',
+  );
+  await page.locator('[data-zhiyu-composer-tool="agent"]').click();
+  await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
+  await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
+}
+
+async function assertControlInsideViewport(locator, viewport, label) {
+  const box = await locator.boundingBox();
+  assert.ok(box, `${label} must have a rendered bounding box`);
+  assert.ok(box.x >= 0, `${label} is clipped on the left: ${JSON.stringify(box)}`);
+  assert.ok(box.y >= 0, `${label} is clipped on the top: ${JSON.stringify(box)}`);
+  assert.ok(box.x + box.width <= viewport.width, `${label} is clipped on the right: ${JSON.stringify({ box, viewport })}`);
+  assert.ok(box.y + box.height <= viewport.height, `${label} is clipped on the bottom: ${JSON.stringify({ box, viewport })}`);
+}
+
 async function assertLongTextNarrowChineseAndControls(page) {
   await page.setViewportSize({ width: 390, height: 900 });
   const shell = page.locator('[data-zhiyu-product-shell="workspace"]');
   await shell.waitFor({ timeout: 15_000 });
   const shellText = await shell.innerText();
-  assert.match(shellText, /当前伙伴|选择本地伙伴/);
-  assert.match(shellText, /模型配置/);
+  assert.match(shellText, /开始一段对话|当前伙伴|选择本地伙伴/);
+  assert.match(shellText, /模型|本地对话模型已绑定/);
   assert.doesNotMatch(shellText, /文字能力|图片创作|本地伙伴工作台/);
   assert.doesNotMatch(shellText, /缁囩窘|缂佸洨|绐|�/);
 
@@ -439,7 +1199,7 @@ async function assertLongTextNarrowChineseAndControls(page) {
   assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'true');
 
   const controls = [
-    page.locator('[data-zhiyu-model-config-entry="conversation"]'),
+    page.locator('[data-zhiyu-composer-tool="model"]'),
     page.locator('[data-chat-composer-send="true"]'),
     page.locator('[data-zhiyu-diagnostics-entry="nav"]'),
   ];
@@ -467,451 +1227,4 @@ async function runCapabilityStudio(page, pageProblems, input) {
     capabilityStudioEvidence: evidence,
   });
   return evidence;
-}
-
-const stageScreenshotRegistry = new Map();
-const extraReadyPanelScreenshots = [];
-
-function resolveEvidenceRoot() {
-  const checkpoint = evidenceCheckpoint('live-runtime');
-  return {
-    checkpoint,
-    evidenceRoot: path.resolve(root, '..', '..', '.nimi', 'local', 'evidence', 'zhiyu', checkpoint),
-  };
-}
-
-async function resetLiveRuntimeEvidenceRoot() {
-  const { evidenceRoot } = resolveEvidenceRoot();
-  stageScreenshotRegistry.clear();
-  extraReadyPanelScreenshots.splice(0);
-  await mkdir(evidenceRoot, { recursive: true });
-  for (const entry of await readdir(evidenceRoot, { withFileTypes: true })) {
-    if (!entry.isFile() || !/^live-runtime-.*\.(?:png|json)$/u.test(entry.name)) {
-      continue;
-    }
-    await rm(path.join(evidenceRoot, entry.name), { force: true });
-  }
-}
-
-async function resetAcceptanceInputs(page) {
-  await page.locator('[data-chat-composer-textarea="true"]').fill('');
-}
-
-async function assertUniqueStageScreenshots() {
-  const seen = new Map();
-  for (const [file, hash] of stageScreenshotRegistry) {
-    const existing = seen.get(hash);
-    assert.equal(
-      existing,
-      undefined,
-      `stage screenshots must not be byte-identical: ${existing} == ${file}`,
-    );
-    seen.set(hash, file);
-  }
-}
-
-async function registerStageScreenshot(filePath) {
-  const digest = createHash('md5').update(await readFile(filePath)).digest('hex');
-  stageScreenshotRegistry.set(path.basename(filePath), digest);
-}
-
-async function captureLiveRuntimeEvidence(page, stage, pageProblems, evidence) {
-  const { checkpoint, evidenceRoot } = resolveEvidenceRoot();
-  const sectionCaptureSelectors = {
-    avatarBlocked: '[data-zhiyu-region="avatar"]',
-  };
-  const screenshotNames = {
-    noPartner: {
-      desktop: 'live-runtime-no-partner-desktop.png',
-      narrow: 'live-runtime-no-partner-narrow.png',
-      evidence: 'live-runtime-no-partner-evidence.json',
-    },
-    partnerSelected: {
-      desktop: 'live-runtime-partner-selected-desktop.png',
-      narrow: 'live-runtime-partner-selected-narrow.png',
-      evidence: 'live-runtime-partner-selected-evidence.json',
-    },
-    modelUnconfigured: {
-      desktop: 'live-runtime-model-unconfigured-desktop.png',
-      narrow: 'live-runtime-model-unconfigured-narrow.png',
-      evidence: 'live-runtime-model-unconfigured-evidence.json',
-    },
-    modelConfigured: {
-      desktop: 'live-runtime-model-configured-desktop.png',
-      narrow: 'live-runtime-model-configured-narrow.png',
-      evidence: 'live-runtime-model-configured-evidence.json',
-    },
-    ready: {
-      desktop: 'live-runtime-ready-desktop.png',
-      narrow: 'live-runtime-ready-narrow.png',
-      evidence: 'live-runtime-ready-evidence.json',
-    },
-    chatCompleted: {
-      desktop: 'live-runtime-agent-chat-completed-desktop.png',
-      narrow: 'live-runtime-agent-chat-completed-narrow.png',
-      evidence: 'live-runtime-agent-chat-completed-evidence.json',
-    },
-    capabilityText: {
-      desktop: 'live-runtime-capability-text-desktop.png',
-      narrow: 'live-runtime-capability-text-narrow.png',
-      evidence: 'live-runtime-capability-text-evidence.json',
-    },
-    capabilityStream: {
-      desktop: 'live-runtime-capability-stream-desktop.png',
-      narrow: 'live-runtime-capability-stream-narrow.png',
-      evidence: 'live-runtime-capability-stream-evidence.json',
-    },
-    capabilityEmbed: {
-      desktop: 'live-runtime-capability-embed-desktop.png',
-      narrow: 'live-runtime-capability-embed-narrow.png',
-      evidence: 'live-runtime-capability-embed-evidence.json',
-    },
-    avatarBlocked: {
-      desktop: 'live-runtime-avatar-blocked-desktop.png',
-      narrow: 'live-runtime-avatar-blocked-narrow.png',
-      evidence: 'live-runtime-avatar-blocked-evidence.json',
-    },
-  }[stage];
-  assert.ok(screenshotNames, `unsupported live Runtime evidence stage: ${stage}`);
-  await mkdir(evidenceRoot, { recursive: true });
-  const sectionSelector = sectionCaptureSelectors[stage] ?? null;
-  const captureStageScreenshot = async (screenshotPath) => {
-    if (sectionSelector) {
-      const section = page.locator(sectionSelector).first();
-      await section.waitFor({ timeout: 15_000 });
-      await section.scrollIntoViewIfNeeded();
-      await page.screenshot({ path: screenshotPath, fullPage: false });
-      return;
-    }
-    await page.screenshot({ path: screenshotPath, fullPage: true });
-  };
-  await page.setViewportSize({ width: 1280, height: 900 });
-  const desktopPath = path.join(evidenceRoot, screenshotNames.desktop);
-  await captureStageScreenshot(desktopPath);
-  await registerStageScreenshot(desktopPath);
-  const panelScreenshots = await capturePanelScreenshots(page, stage, evidenceRoot);
-  if (stage === 'ready' && extraReadyPanelScreenshots.length > 0) {
-    panelScreenshots.push(...extraReadyPanelScreenshots.splice(0));
-  }
-  await page.setViewportSize({ width: 390, height: 900 });
-  const narrowPath = path.join(evidenceRoot, screenshotNames.narrow);
-  await captureStageScreenshot(narrowPath);
-  await registerStageScreenshot(narrowPath);
-  await page.setViewportSize({ width: 1280, height: 900 });
-  const domEvidence = await page.evaluate(() => ({
-    url: globalThis.location.href,
-    title: globalThis.document.title,
-    bodyText: globalThis.document.body?.innerText ?? '',
-    zhiyuEvidence: globalThis.window.__nimiZhiyuEvidence ?? null,
-  })).catch((error) => ({
-    evaluationError: error instanceof Error ? error.message : String(error),
-  }));
-  await writeFile(
-    path.join(evidenceRoot, screenshotNames.evidence),
-    `${JSON.stringify({
-      checkpoint,
-      scenario: 'live-runtime',
-      stage,
-      pageProblems: [...pageProblems],
-      panelScreenshots: panelScreenshots,
-      ...evidence,
-      domEvidence,
-    }, null, 2)}\n`,
-    'utf8',
-  );
-}
-
-async function capturePanelScreenshots(page, stage, evidenceRoot) {
-  const panelTargets = {
-    noPartner: [
-      ['[data-zhiyu-region="conversation"]', 'live-runtime-no-partner-conversation-panel.png'],
-      ['[data-zhiyu-region="relationship-rail"]', 'live-runtime-no-partner-relationship-panel.png'],
-    ],
-    partnerSelected: [
-      ['[data-zhiyu-region="conversation"]', 'live-runtime-partner-selected-conversation-panel.png'],
-      ['[data-zhiyu-region="relationship-rail"]', 'live-runtime-partner-selected-relationship-panel.png'],
-    ],
-    modelUnconfigured: [
-      ['[data-zhiyu-ai-config-drawer="open"]', 'live-runtime-model-unconfigured-panel.png'],
-      [null, 'live-runtime-model-unconfigured-viewport.png'],
-    ],
-    modelConfigured: [
-      ['[data-zhiyu-ai-config-drawer="open"]', 'live-runtime-model-configured-panel.png'],
-      [null, 'live-runtime-model-configured-viewport.png'],
-    ],
-    ready: [
-      ['[data-zhiyu-region="conversation"]', 'live-runtime-ready-conversation-panel.png'],
-      ['[data-zhiyu-region="relationship-rail"]', 'live-runtime-ready-relationship-panel.png'],
-    ],
-    chatCompleted: [
-      ['[data-zhiyu-region="conversation"]', 'live-runtime-agent-chat-panel.png'],
-    ],
-  }[stage] || [];
-  const captured = [];
-  await page.setViewportSize({ width: 1280, height: 900 });
-  for (const [selector, filename] of panelTargets) {
-    if (selector === null) {
-      await page.screenshot({ path: path.join(evidenceRoot, filename), fullPage: false });
-      captured.push(filename);
-      continue;
-    }
-    const locator = page.locator(selector).first();
-    await locator.waitFor({ timeout: 15_000 });
-    await locator.scrollIntoViewIfNeeded();
-    await locator.screenshot({ path: path.join(evidenceRoot, filename) });
-    captured.push(filename);
-  }
-  return captured;
-}
-
-function evidenceCheckpoint(fallback) {
-  return process.env.NIMI_ZHIYU_EVIDENCE_CHECKPOINT?.trim() || fallback;
-}
-
-function trackPageProblems(page) {
-  const problems = [];
-  page.on('console', (message) => {
-    if (message.type() === 'error') {
-      problems.push(`console error: ${message.text()}`);
-    }
-  });
-  page.on('pageerror', (error) => {
-    problems.push(`pageerror: ${error instanceof Error ? error.message : String(error)}`);
-  });
-  return problems;
-}
-
-function assertNoPageProblems(problems) {
-  assert.deepEqual(problems, []);
-}
-
-async function assertProductShellPrimaryView(page) {
-  const shell = page.locator('[data-zhiyu-product-shell="workspace"]');
-  await shell.waitFor({ timeout: 15_000 });
-  assert.equal(await shell.getAttribute('data-zhiyu-primary-ui'), 'true');
-
-  const drawer = page.locator('#zhiyu-diagnostics-drawer');
-  assert.equal(await drawer.getAttribute('data-zhiyu-diagnostics-drawer'), 'closed');
-  assert.equal(await drawer.isHidden(), true);
-
-  assert.equal(await shell.locator('[data-zhiyu-region="conversation"]').count(), 1);
-  assert.equal(await shell.locator('[data-zhiyu-region="relationship-rail"]').count(), 1);
-
-  const primaryText = await shell.innerText();
-  assert.match(primaryText, /当前伙伴|选择本地伙伴/);
-  assert.match(primaryText, /模型配置/);
-  assert.doesNotMatch(
-    primaryText,
-    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/,
-    'primary product copy must not render raw ISO timestamps',
-  );
-  assert.doesNotMatch(
-    primaryText,
-    /本地伙伴工作台|文字能力|图片创作|上游投影|准入来源|等待投影|not_projected|Runtime\b|SDK\b|sourceRef|localAgentRef|回显通路|身份地板|graph-lite|Runtime Agent Chat|Capability Studio|Image Studio|Avatar Presence|\bempty\b|local:runtime-agent-live-e2e|runtime-agent-live-e2e|Hello from the Runtime Agent live fixture|Today|hello from Zhiyu live Runtime acceptance|Runtime acceptance|zhiyu-avatar-blocked|canonical capabilities|Runtime\/SDK route projection|Platform capability catalog|runtime-route-ready|runtime-agent-memory-graph-relations-not-admitted|zhiyu-ai-config-route-selection-required|ai-config-binding-missing|AIConfig targetRef|required for image\.generate|failed closed before request dispatch|Capability Studio has not run|Run core Runtime AI capabilities|configurationId|avatarDiagnosticCode|assetManifestPath|unsupportedFields/,
-  );
-
-  await page.locator('[data-zhiyu-diagnostics-entry="nav"]').click();
-  await page.waitForSelector('[data-zhiyu-diagnostics-drawer="open"]', { state: 'visible' });
-  const openDrawer = page.locator('[data-zhiyu-diagnostics-drawer="open"]');
-  const drawerText = await openDrawer.innerText();
-  assert.match(drawerText, /Runtime 诊断/);
-  assert.equal(await openDrawer.locator('[data-zhiyu-region="diagnostics"]').count(), 1);
-  assert.equal(await openDrawer.locator('[data-zhiyu-diagnostic-item]').count() > 0, true);
-  await assertDiagnosticsCapabilityMatrixReadable(openDrawer);
-
-  const { evidenceRoot } = resolveEvidenceRoot();
-  await mkdir(evidenceRoot, { recursive: true });
-  await openDrawer.locator('.zhiyu-home__diagnostics-drawer').screenshot({
-    path: path.join(evidenceRoot, 'live-runtime-diagnostics-open-panel.png'),
-  });
-  await page.screenshot({
-    path: path.join(evidenceRoot, 'live-runtime-diagnostics-open-desktop.png'),
-    fullPage: false,
-  });
-  await page.setViewportSize({ width: 390, height: 900 });
-  await openDrawer.waitFor({ timeout: 15_000 });
-  await assertDiagnosticsCapabilityMatrixReadable(openDrawer);
-  await page.screenshot({
-    path: path.join(evidenceRoot, 'live-runtime-diagnostics-open-narrow.png'),
-    fullPage: false,
-  });
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await openDrawer.waitFor({ timeout: 15_000 });
-  extraReadyPanelScreenshots.push(
-    'live-runtime-diagnostics-open-panel.png',
-    'live-runtime-diagnostics-open-desktop.png',
-    'live-runtime-diagnostics-open-narrow.png',
-  );
-
-  await page.locator('[data-zhiyu-diagnostics-toggle="close"]').click();
-  await page.waitForSelector('[data-zhiyu-diagnostics-drawer="closed"]', { state: 'attached' });
-  assert.equal(await drawer.isHidden(), true);
-}
-
-async function assertDiagnosticsCapabilityMatrixReadable(openDrawer) {
-  await openDrawer.locator('[data-zhiyu-capability-governance-chip]').first().waitFor({ timeout: 15_000 });
-  const issues = await openDrawer.locator('.zhiyu-home__capability-governance').evaluateAll((rows) => {
-    const out = [];
-    for (const [rowIndex, row] of rows.entries()) {
-      const rowRect = row.getBoundingClientRect();
-      const cells = Array.from(row.querySelectorAll('[data-zhiyu-capability-governance-chip]'));
-      if (cells.length === 0) {
-        out.push({ rowIndex, issue: 'empty matrix row' });
-        continue;
-      }
-      const rects = cells.map((cell, cellIndex) => {
-        const rect = cell.getBoundingClientRect();
-        const style = globalThis.getComputedStyle(cell);
-        if (style.whiteSpace === 'nowrap') {
-          out.push({ rowIndex, cellIndex, issue: 'nowrap cell', text: cell.textContent });
-        }
-        if (!/anywhere|break-word/.test(style.overflowWrap) && !/break-word|break-all/.test(style.wordBreak)) {
-          out.push({ rowIndex, cellIndex, issue: 'missing long-token wrap policy', text: cell.textContent });
-        }
-        if (rect.left < rowRect.left - 1 || rect.right > rowRect.right + 1) {
-          out.push({
-            rowIndex,
-            cellIndex,
-            issue: 'cell overflows matrix row',
-            cell: { left: rect.left, right: rect.right },
-            row: { left: rowRect.left, right: rowRect.right },
-          });
-        }
-        return { cellIndex, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
-      });
-      for (let index = 0; index < rects.length; index += 1) {
-        for (let nextIndex = index + 1; nextIndex < rects.length; nextIndex += 1) {
-          const left = Math.max(rects[index].left, rects[nextIndex].left);
-          const right = Math.min(rects[index].right, rects[nextIndex].right);
-          const top = Math.max(rects[index].top, rects[nextIndex].top);
-          const bottom = Math.min(rects[index].bottom, rects[nextIndex].bottom);
-          if (right - left > 0.5 && bottom - top > 0.5) {
-            out.push({
-              rowIndex,
-              issue: 'overlapping matrix cells',
-              cells: [rects[index].cellIndex, rects[nextIndex].cellIndex],
-            });
-          }
-        }
-      }
-    }
-    return out;
-  });
-  assert.deepEqual(issues, []);
-
-  const itemIssues = await openDrawer.locator('[data-zhiyu-capability-item]').evaluateAll((items) => items
-    .map((item, itemIndex) => {
-      const style = globalThis.getComputedStyle(item);
-      const itemRect = item.getBoundingClientRect();
-      const content = item.querySelector('.zhiyu-home__capability-item-title');
-      const status = item.querySelector('[data-zhiyu-capability-status-badge]');
-      const governance = item.querySelector('.zhiyu-home__capability-governance');
-      const contentRect = content?.getBoundingClientRect();
-      const statusRect = status?.getBoundingClientRect();
-      const governanceRect = governance?.getBoundingClientRect();
-      const failures = [];
-      if (style.display !== 'grid') {
-        failures.push('item is not grid');
-      }
-      if (governanceRect && governanceRect.bottom > itemRect.bottom + 1) {
-        failures.push({
-          issue: 'governance matrix escapes item height',
-          itemRect: { top: itemRect.top, bottom: itemRect.bottom, height: itemRect.height },
-          governanceRect: { top: governanceRect.top, bottom: governanceRect.bottom, height: governanceRect.height },
-          gridTemplateRows: style.gridTemplateRows,
-        });
-      }
-      if (contentRect && statusRect) {
-        const overlapX = Math.min(contentRect.right, statusRect.right) - Math.max(contentRect.left, statusRect.left);
-        const overlapY = Math.min(contentRect.bottom, statusRect.bottom) - Math.max(contentRect.top, statusRect.top);
-        if (overlapX > 0.5 && overlapY > 0.5) {
-          failures.push('status badge overlaps capability content');
-        }
-      }
-      return failures.length ? { itemIndex, failures } : null;
-    })
-    .filter(Boolean));
-  assert.deepEqual(itemIssues, []);
-}
-
-async function assertChatCompletedNarrowComposerUsable(page) {
-  await page.setViewportSize({ width: 390, height: 900 });
-  const composer = page.locator('[data-canonical-composer-root="true"]').first();
-  await composer.waitFor({ timeout: 15_000 });
-  const metrics = await composer.evaluate((root) => {
-    const shell = root.querySelector('[data-canonical-composer-width]');
-    const textarea = root.querySelector('[data-chat-composer-textarea="true"]');
-    const toolbar = root.querySelector('[data-chat-composer-toolbar="true"]');
-    const trailing = root.querySelector('[data-chat-composer-toolbar-trailing="true"]');
-    const send = root.querySelector('[data-chat-composer-send="true"]');
-    if (!shell || !textarea || !toolbar || !trailing || !send) {
-      return { missing: true };
-    }
-    const rootRect = root.getBoundingClientRect();
-    const shellRect = shell.getBoundingClientRect();
-    const textareaRect = textarea.getBoundingClientRect();
-    const toolbarRect = toolbar.getBoundingClientRect();
-    const trailingRect = trailing.getBoundingClientRect();
-    const sendRect = send.getBoundingClientRect();
-    return {
-      missing: false,
-      widthClass: shell.getAttribute('data-canonical-composer-width'),
-      responsiveFloor: shell.getAttribute('data-canonical-composer-responsive-floor'),
-      toolbarMode: toolbar.getAttribute('data-chat-composer-toolbar-mode'),
-      rootWidth: rootRect.width,
-      shellWidth: shellRect.width,
-      textareaWidth: textareaRect.width,
-      textareaLeft: textareaRect.left,
-      textareaRight: textareaRect.right,
-      toolbarLeft: toolbarRect.left,
-      toolbarRight: toolbarRect.right,
-      trailingLeft: trailingRect.left,
-      trailingTop: trailingRect.top,
-      trailingBottom: trailingRect.bottom,
-      sendWidth: sendRect.width,
-      sendHeight: sendRect.height,
-      documentOverflow: globalThis.document.documentElement.scrollWidth - globalThis.document.documentElement.clientWidth,
-    };
-  });
-
-  assert.equal(metrics.missing, false, 'narrow composer is missing required DOM controls');
-  assert.match(metrics.widthClass || '', /max\(320px,calc\(100vw-520px\)\)/);
-  assert.equal(metrics.responsiveFloor, '320');
-  assert.equal(metrics.toolbarMode, 'compact-horizontal');
-  assert.ok(metrics.shellWidth >= 320, `composer shell is too narrow at 390px: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.textareaWidth >= 250, `composer textarea collapsed at 390px: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.sendWidth >= 34 && metrics.sendHeight >= 34, `composer send button is not usable at 390px: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.toolbarLeft >= metrics.textareaLeft - 1, `composer toolbar escapes left edge: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.toolbarRight <= metrics.textareaRight + 1, `composer toolbar escapes textarea row width: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.trailingLeft > metrics.toolbarLeft, `composer trailing controls are not laid out horizontally: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.documentOverflow <= 2, `completed narrow composer overflows horizontally: ${JSON.stringify(metrics)}`);
-  await page.setViewportSize({ width: 1280, height: 900 });
-}
-
-async function assertAvatarPanelProjection(page) {
-  const avatar = page.locator('[data-zhiyu-region="avatar"]');
-  await avatar.waitFor({ timeout: 15_000 });
-  assert.equal(await avatar.getAttribute('data-zhiyu-avatar-ready'), 'false');
-  assert.equal(await avatar.getAttribute('data-zhiyu-avatar-control-state'), 'blocked');
-  assert.equal(await avatar.getAttribute('data-zhiyu-avatar-launch-available'), 'false');
-  assert.equal(await avatar.getAttribute('data-zhiyu-avatar-manage-available'), 'false');
-  assert.equal(await avatar.getAttribute('data-zhiyu-avatar-unsupported-count'), '10');
-  assert.equal(await avatar.locator('[data-avatar-backend-kind]').count(), 1);
-  assert.equal(await avatar.locator('[data-zhiyu-avatar-launch-action]').count(), 0);
-  assert.equal(await avatar.locator('[data-zhiyu-avatar-manage-action]').count(), 0);
-  assert.equal(await avatar.locator('[data-zhiyu-avatar-unsupported-field]').count(), 0);
-  const avatarText = await avatar.innerText();
-  assert.match(avatarText, /形象启动和管理会在获得授权后出现。/);
-  assert.doesNotMatch(avatarText, /上游明确授权/);
-  assert.doesNotMatch(
-    avatarText,
-    /启动和管理入口会在授权后出现。/,
-    'duplicate avatar authorization copy must not render',
-  );
-  const waitingAuthorizationCount = (avatarText.match(/等待授权/g) || []).length;
-  assert.ok(
-    waitingAuthorizationCount <= 1,
-    `等待授权 must render at most once in the avatar panel, saw ${waitingAuthorizationCount}`,
-  );
-  assert.doesNotMatch(avatarText, /configurationId|avatarDiagnosticCode|assetManifestPath|motionState|expressionState|zhiyu-avatar|not_projected|\bruntime\b/);
 }

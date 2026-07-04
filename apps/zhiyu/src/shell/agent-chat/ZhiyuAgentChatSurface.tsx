@@ -2,9 +2,8 @@ import {
   Button,
   StatusBadge,
   Surface,
-  TextareaField,
 } from '@nimiplatform/kit/ui';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ChatComposerAdapter } from '@nimiplatform/kit/features/chat/headless';
 import {
   CanonicalComposer,
@@ -12,43 +11,60 @@ import {
   ChatStreamStatus,
 } from '@nimiplatform/kit/features/chat/ui';
 import {
-  Bell,
-  CircleUserRound,
-  Send,
-  SlidersHorizontal,
   X,
 } from 'lucide-react';
-import type { ZhiyuDelegationApprovalDecision, ZhiyuEvidence } from './evidence';
+import type { ZhiyuDelegationApprovalDecision, ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
-import type { ZhiyuCapabilityStudioCapabilityId } from '../capability-studio/zhiyu-ai-consume';
-import type { ZhiyuCapabilityRoomState } from './capability-room-state';
-import type { ZhiyuDiagnosticState } from './diagnostic-state';
+import type { ZhiyuCapabilityStudioCapabilityId } from '../app/developer-capability-studio';
+import type { ZhiyuCapabilityRoomState } from '../app/capability-room-state';
+import type { ZhiyuDiagnosticState } from '../app/diagnostic-state';
 import type {
   ZhiyuHomeGatedSurface,
   ZhiyuHomeProductState,
-} from './home-product-state';
-import type { ZhiyuIdentityFloorState } from './identity-floor-state';
-import { CompanionStateSection } from './home-companion-state-section';
-import { DeveloperBackstageSurface } from './home-developer-backstage';
-import { DelegationUxSection } from './home-delegation-ux-section';
-import { DiaryReflectionSection } from './home-diary-reflection-section';
+} from '../app/home-product-state';
+import type { ZhiyuIdentityFloorState } from '../app/identity-floor-state';
+import { CompanionStateSection } from '../app/home-companion-state-section';
+import { DeveloperBackstageSurface } from '../app/home-developer-backstage';
+import { DelegationUxSection } from '../app/home-delegation-ux-section';
+import { DiaryReflectionSection } from '../app/home-diary-reflection-section';
 import {
   DesktopPresenceRail,
   RelationshipRail,
-} from './home-desktop-chat-shell-chrome';
-import { MemoryObservatorySection } from './home-memory-observatory-section';
-import { ProposalIntakeSection } from './home-proposal-intake-section';
+} from './ZhiyuAgentPanel';
+import {
+  chatBlockedHint,
+  chatPrimaryBindingLabel,
+  chatReplyChipLabel,
+  conversationMessagesForDisplay,
+  currentPartnerDisplayName,
+  formatZhiyuTranscriptDateLabel,
+  primaryActionForStage,
+} from './ZhiyuAgentChatLabels';
+import {
+  ComposerAvatarButton,
+  ComposerModeTools,
+  RuntimeActionArtifactSummary,
+  RuntimeChatFailureNotice,
+  runtimeActionArtifactSummary,
+} from './ZhiyuAgentChatPieces';
+import {
+  RightAgentPanel,
+  type AgentPanelTab,
+  type RightPanelMode,
+} from './ZhiyuAgentRightPanel';
+import { MemoryObservatorySection } from '../app/home-memory-observatory-section';
+import { ProposalIntakeSection } from '../app/home-proposal-intake-section';
 import {
   AvatarPresenceSection,
   CapabilityRoomSection,
   DiagnosticSurface,
   IdentityFloorSection,
   formatReasonLabel,
-} from './home-surface-sections';
-import { ZHIYU_PRODUCT_STORYBOOK_VERSION } from './zhiyu-product-storybook';
-import './home-surface.css';
+} from '../app/home-surface-sections';
+import { ZHIYU_PRODUCT_STORYBOOK_VERSION } from '../app/zhiyu-product-storybook';
+import '../app/home-surface.css';
 
-type HomeSurfaceProps = {
+export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
   readonly product: ZhiyuHomeProductState;
   readonly capabilityRoom: ZhiyuCapabilityRoomState;
@@ -60,21 +76,23 @@ type HomeSurfaceProps = {
   readonly composerState: string;
   readonly capabilityStudioDisabled: boolean;
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
+  readonly modelConfigContent?: ReactNode;
   readonly onDraftChange: (value: string) => void;
   readonly onCapabilityPromptChange: (value: string) => void;
   readonly onSubmit: (text: string) => Promise<void> | void;
+  readonly onStopChat: () => void;
   readonly onCapabilityStudioRun: (capabilityId: ZhiyuCapabilityStudioCapabilityId) => void;
   readonly onProposalSubmit: () => void;
   readonly onDelegationDecision: (
     approvalRequestId: string,
     decision: ZhiyuDelegationApprovalDecision,
   ) => void;
-  readonly onOpenModelConfig: () => void;
+  readonly onSelectLocalAgent: (localAgentRef: string) => void;
   readonly onAvatarLaunch?: () => void;
   readonly onAvatarManage?: () => void;
 };
 
-export function HomeSurface({
+export function ZhiyuAgentChatSurface({
   evidence,
   product,
   capabilityRoom,
@@ -86,22 +104,25 @@ export function HomeSurface({
   composerState,
   capabilityStudioDisabled,
   avatarLaunchAction,
+  modelConfigContent,
   onDraftChange,
   onCapabilityPromptChange,
   onSubmit,
+  onStopChat,
   onCapabilityStudioRun,
   onProposalSubmit,
   onDelegationDecision,
-  onOpenModelConfig,
+  onSelectLocalAgent,
   onAvatarLaunch,
   onAvatarManage,
-}: HomeSurfaceProps) {
-  const rawModelConfigLabel = routeModelBindingLabel(evidence);
+}: ZhiyuAgentChatSurfaceProps) {
   const modelConfigLabel = chatPrimaryBindingLabel(evidence);
   const currentPartnerName = currentPartnerDisplayName(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
+  const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
   const modelConfigured = Boolean(evidence.route.executionBinding);
   const showCapabilityStudio = hasCurrentPartner && modelConfigured;
+  const actionArtifactSummary = runtimeActionArtifactSummary(evidence.chat);
   const chatComposerAdapter: ChatComposerAdapter<never> = {
     submit: async (input) => {
       await onSubmit(input.text);
@@ -118,33 +139,67 @@ export function HomeSurface({
     )
     : null;
   const chatFooter = evidence.chat.state === 'streaming' ? (
-    <ChatStreamStatus
-      mode="streaming"
-      partialText={evidence.chat.latestAssistantText || '等待当前伙伴回复...'}
-      reasoningText={evidence.chat.reasoningText}
-      reasoningLabel="思考片段"
-    />
+    <div
+      className="zhiyu-home__chat-stream-footer"
+      data-zhiyu-agent-chat-stop-state="available"
+    >
+      <ChatStreamStatus
+        mode="streaming"
+        partialText={evidence.chat.latestAssistantText || '等待当前伙伴回复...'}
+        reasoningText={evidence.chat.reasoningText}
+        reasoningLabel="思考片段"
+      />
+      <button
+        type="button"
+        className="zhiyu-home__chat-stop-button"
+        data-zhiyu-chat-stop-action="true"
+        data-zhiyu-agent-chat-stop-state="available"
+        aria-label="停止当前回复"
+        onClick={onStopChat}
+      >
+        <X size={16} aria-hidden="true" />
+        <span>停止回复</span>
+      </button>
+    </div>
   ) : null;
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
+  const [activeAgentTab, setActiveAgentTab] = useState<AgentPanelTab>('overview');
+  const chatTranscriptViewportRef = useRef<HTMLDivElement>(null);
   const composerRootRef = useRef<HTMLDivElement>(null);
+  const getChatTranscriptRoot = useCallback(() => (
+    chatTranscriptViewportRef.current?.querySelector<HTMLElement>('[data-canonical-transcript-root="true"]') ?? null
+  ), []);
+  const scrollChatTranscriptToLatest = useCallback(() => {
+    const root = getChatTranscriptRoot();
+    if (!root) {
+      return;
+    }
+    root.scrollTop = root.scrollHeight;
+  }, [getChatTranscriptRoot]);
   const primaryMemorySurface = product.gatedSurfaces.find((surface) => surface.key === 'memory');
   const primaryAvatarSurface = product.gatedSurfaces.find((surface) => surface.key === 'avatar');
   const primaryCompanionSurface = product.gatedSurfaces.find((surface) => surface.key === 'companion');
-  const partnerRailAgents = evidence.inventory.localAgents.length > 0
-    ? evidence.inventory.localAgents.slice(0, 3).map((agent) => ({
-        itemKey: agent.localAgentRef,
-        localAgentRef: agent.localAgentRef,
-        displayName: agent.displayName,
-      }))
-    : [{
-        itemKey: 'partner-required',
-        localAgentRef: null,
-        displayName: currentPartnerName,
-      }];
   const primaryAction = primaryActionForStage(product.stage);
+  const openModelConfig = () => {
+    setRightPanelMode('agent');
+    setActiveAgentTab('model');
+  };
+  const openAppearanceConfig = () => {
+    setRightPanelMode('agent');
+    setActiveAgentTab('appearance');
+  };
+  const openBehaviorConfig = () => {
+    setRightPanelMode('agent');
+    setActiveAgentTab('behavior');
+  };
+  const openAdvancedSettings = () => {
+    setRightPanelMode('agent');
+    setActiveAgentTab('advanced');
+  };
   const handlePrimaryAction = () => {
     if (primaryAction.kind === 'configure-model') {
-      onOpenModelConfig();
+      openModelConfig();
       return;
     }
     if (primaryAction.kind === 'start-chat') {
@@ -155,6 +210,55 @@ export function HomeSurface({
     }
     setDiagnosticsOpen(true);
   };
+  useLayoutEffect(() => {
+    if (evidence.chat.messageCount <= 0) {
+      return;
+    }
+    scrollChatTranscriptToLatest();
+  }, [
+    evidence.chat.latestAssistantText,
+    evidence.chat.messageCount,
+    evidence.chat.requestId,
+    evidence.chat.state,
+    scrollChatTranscriptToLatest,
+  ]);
+  useEffect(() => {
+    if (evidence.chat.messageCount <= 0) {
+      return undefined;
+    }
+    let frameId: number | null = null;
+    const scheduleScroll = () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        scrollChatTranscriptToLatest();
+      });
+    };
+    const root = getChatTranscriptRoot();
+    const content = root?.querySelector<HTMLElement>('[data-canonical-transcript-width]') ?? null;
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(scheduleScroll) : null;
+    if (root && observer) {
+      observer.observe(root);
+    }
+    if (content && observer) {
+      observer.observe(content);
+    }
+    window.addEventListener('resize', scheduleScroll);
+    scheduleScroll();
+    return () => {
+      window.removeEventListener('resize', scheduleScroll);
+      observer?.disconnect();
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [
+    evidence.chat.messageCount,
+    getChatTranscriptRoot,
+    scrollChatTranscriptToLatest,
+  ]);
   const technicalSurfaces = product.gatedSurfaces.filter((surface) => (
     surface.key !== 'memory' && surface.key !== 'avatar' && surface.key !== 'companion'
   ));
@@ -217,7 +321,10 @@ export function HomeSurface({
         data-zhiyu-product-shell="workspace"
         data-zhiyu-primary-ui="true"
       >
-      <div className="zhiyu-home__layout zhiyu-home__shell-grid">
+      <div
+        className={`zhiyu-home__layout zhiyu-home__shell-grid${rightPanelMode === 'closed' ? ' is-side-closed' : ''}`}
+        data-zhiyu-side-panel-state={rightPanelMode}
+      >
         <DesktopPresenceRail
           evidence={evidence}
           product={product}
@@ -233,43 +340,6 @@ export function HomeSurface({
           elevation="base"
           padding="md"
         >
-          <div className="zhiyu-home__stage-topbar">
-            <div>
-              <span className="zhiyu-home__stage-kicker">织羽 Zhiyu</span>
-              <h1>{hasCurrentPartner ? currentPartnerName : '选择本地伙伴'}</h1>
-            </div>
-            <div className="zhiyu-home__stage-actions" aria-label="对话操作">
-              <button type="button" aria-label="通知">
-                <Bell size={21} aria-hidden="true" />
-              </button>
-              <button type="button" aria-label="账户">
-                <CircleUserRound size={23} aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-          <div
-            className="zhiyu-home__model-config-row"
-            data-zhiyu-ai-config-chip="agent-home"
-            data-zhiyu-ai-config-ready={String(Boolean(evidence.route.executionBinding))}
-            data-zhiyu-ai-config-enabled-capabilities={evidence.route.enabledCapabilities.join(',')}
-            data-zhiyu-ai-config-binding-label={rawModelConfigLabel}
-            data-zhiyu-ai-config-raw-binding-label={rawModelConfigLabel}
-            data-zhiyu-ai-config-user-label={modelConfigLabel}
-            data-zhiyu-ai-config-button-disabled={String(!evidence.runtime.ready)}
-          >
-            <Button
-              type="button"
-              tone="secondary"
-              size="sm"
-              data-zhiyu-model-config-entry="conversation"
-              leadingIcon={<SlidersHorizontal size={15} aria-hidden="true" />}
-              disabled={!evidence.runtime.ready}
-              onClick={onOpenModelConfig}
-            >
-              模型配置
-            </Button>
-            <span>{modelConfigLabel}</span>
-          </div>
           <div
             className="zhiyu-home__chat-shell"
             data-zhiyu-agent-chat-state={evidence.chat.state}
@@ -280,15 +350,15 @@ export function HomeSurface({
             data-zhiyu-agent-chat-request-id={evidence.chat.requestId ?? 'not_projected'}
             data-zhiyu-agent-chat-anchor-id={evidence.chat.conversationAnchorId ?? 'not_projected'}
           >
-            <div className="zhiyu-home__chat-transcript">
+            <div ref={chatTranscriptViewportRef} className="zhiyu-home__chat-transcript">
               <CanonicalTranscriptView
-                messages={productConversationMessages(evidence.chat.messages, currentPartnerName)}
+                messages={conversationMessagesForDisplay(evidence.chat.messages, primaryPartnerName)}
                 activeConversationId={evidence.conversation.conversationAnchorId}
-                agentName={currentPartnerName}
+                agentName={primaryPartnerName}
                 formatDateLabel={formatZhiyuTranscriptDateLabel}
                 emptyEyebrow="ZH IYU"
-                emptyTitle={hasCurrentPartner ? `和 ${currentPartnerName} 开始对话` : '选择本地伙伴开始对话'}
-                emptyDescription={hasCurrentPartner ? '发送一条消息，开始这次本地对话。' : '当前没有可打开的伙伴；请先到 Desktop Explore 的角色/人格页确认伙伴来源。织羽只承载真实伙伴，不伪造身份。'}
+                emptyTitle={hasCurrentPartner ? '开始一段对话' : '选择本地伙伴开始对话'}
+                emptyDescription={hasCurrentPartner ? '提个问题、分享想法，或者告诉这个伙伴你想探索什么。' : '当前没有可打开的伙伴；请先到 Desktop Explore 的角色/人格页确认伙伴来源。织羽只承载真实伙伴，不伪造身份。'}
                 footerContent={chatFooter}
                 widthClassName="w-full max-w-none"
                 widthPositionClassName="mx-0"
@@ -297,6 +367,12 @@ export function HomeSurface({
                 disableRpContent
               />
             </div>
+            {actionArtifactSummary ? (
+              <RuntimeActionArtifactSummary summary={actionArtifactSummary} />
+            ) : null}
+            {evidence.chat.state === 'failed' ? (
+              <RuntimeChatFailureNotice chat={evidence.chat} />
+            ) : null}
             <div
               ref={composerRootRef}
               className="zhiyu-home__composer"
@@ -308,39 +384,34 @@ export function HomeSurface({
                 text={draft}
                 onTextChange={onDraftChange}
                 disabled={chatDisabled}
-                placeholder={hasCurrentPartner ? `向 ${currentPartnerName} 发送消息...` : '先选择本地伙伴...'}
+                placeholder={hasCurrentPartner ? '和这个伙伴聊点什么...' : '先选择本地伙伴...'}
                 runtimeHint={chatRuntimeHint}
                 modelLabel={<span>{modelConfigLabel}</span>}
-                sendHint={evidence.chat.state === 'streaming' ? 'Streaming' : undefined}
+                sendHint={evidence.chat.state === 'streaming' ? '回复中' : undefined}
+                leadingSlot={(
+                  <ComposerAvatarButton
+                    currentPartnerName={currentPartnerName}
+                    hasCurrentPartner={hasCurrentPartner}
+                    avatarLaunchAction={avatarLaunchAction}
+                    onAvatarLaunch={onAvatarLaunch}
+                    onOpenSettings={openAppearanceConfig}
+                  />
+                )}
+                toolbarSlot={(
+                  <ComposerModeTools
+                    evidence={evidence}
+                    onOpenModelConfig={openModelConfig}
+                    onOpenAgentPanel={() => {
+                      setRightPanelMode('agent');
+                      setActiveAgentTab('overview');
+                    }}
+                    onOpenSettings={openBehaviorConfig}
+                  />
+                )}
                 layout="stacked"
                 className="zhiyu-home__canonical-composer"
               />
             </div>
-          </div>
-          <div
-            className="zhiyu-home__fallback-composer-hidden"
-            aria-hidden="true"
-            data-zhiyu-fallback-composer-state={composerState}
-            data-zhiyu-fallback-submit-enabled={String(submitEnabled)}
-          >
-            <TextareaField
-              aria-label="当前伙伴消息"
-              value={draft}
-              onChange={(event) => onDraftChange(event.currentTarget.value)}
-              disabled={!evidence.conversation.ready || !evidence.route.executionBinding}
-              rows={4}
-              placeholder="等当前伙伴准备好后，在这里开始第一句话。"
-              textareaClassName="zhiyu-home__composer-input"
-            />
-            <Button
-              type="submit"
-              disabled={!submitEnabled}
-              tone="primary"
-              size="md"
-              leadingIcon={<Send size={16} aria-hidden="true" />}
-            >
-              发送
-            </Button>
           </div>
           <div className="zhiyu-home__conversation-status">
             <span className="zhiyu-home__labeled-chip" data-zhiyu-labeled-chip="conversation">
@@ -388,23 +459,47 @@ export function HomeSurface({
           </p>
         </Surface>
 
+        {rightPanelMode !== 'closed' ? (
+          <RightAgentPanel
+            mode={rightPanelMode}
+            evidence={evidence}
+            currentPartnerName={currentPartnerName}
+            hasCurrentPartner={hasCurrentPartner}
+            modelConfigLabel={modelConfigLabel}
+            modelConfigContent={modelConfigContent}
+            diagnostics={diagnostics}
+            technicalSurfaces={technicalSurfaces}
+            primaryMemorySurface={primaryMemorySurface}
+            primaryCompanionSurface={primaryCompanionSurface}
+            primaryAvatarSurface={primaryAvatarSurface}
+            avatarLaunchAction={avatarLaunchAction}
+            activeTab={activeAgentTab}
+            onActiveTabChange={setActiveAgentTab}
+            onClose={() => setRightPanelMode('closed')}
+            onOpenModelConfig={openModelConfig}
+            onAvatarLaunch={onAvatarLaunch}
+            renderGatedSurface={renderGatedSurface}
+          />
+        ) : null}
         <RelationshipRail
-          agents={partnerRailAgents}
+          agents={evidence.inventory.localAgents.map((agent) => ({
+            itemKey: agent.localAgentRef,
+            localAgentRef: agent.localAgentRef,
+            displayName: agent.displayName,
+          }))}
+          currentLocalAgentRef={evidence.localAgent.localAgentRef}
           currentPartnerName={currentPartnerName}
           hasCurrentPartner={hasCurrentPartner}
           primaryActionKind={primaryAction.kind}
-          avatarLaunchAction={avatarLaunchAction}
           runtimeReady={evidence.runtime.ready}
           onPrimaryAction={handlePrimaryAction}
-          onAvatarLaunch={onAvatarLaunch}
           onOpenDiagnostics={() => setDiagnosticsOpen(true)}
-          onOpenModelConfig={onOpenModelConfig}
+          onOpenSettings={openAdvancedSettings}
+          onSelectLocalAgent={(localAgentRef) => {
+            setActiveAgentTab('overview');
+            onSelectLocalAgent(localAgentRef);
+          }}
         />
-        <div className="zhiyu-home__primary-side-evidence" aria-hidden="true">
-          {primaryMemorySurface ? renderGatedSurface(primaryMemorySurface) : null}
-          {primaryCompanionSurface ? renderGatedSurface(primaryCompanionSurface) : null}
-          {primaryAvatarSurface ? renderGatedSurface(primaryAvatarSurface) : null}
-        </div>
       </div>
       </div>
       <div
@@ -445,7 +540,7 @@ export function HomeSurface({
               hasCurrentPartner={hasCurrentPartner}
               onCapabilityPromptChange={onCapabilityPromptChange}
               onCapabilityStudioRun={onCapabilityStudioRun}
-              onOpenModelConfig={onOpenModelConfig}
+              onOpenModelConfig={openModelConfig}
               onSelectPartner={() => setDiagnosticsOpen(true)}
             />
             {technicalSurfaces.map(renderGatedSurface)}
@@ -455,145 +550,4 @@ export function HomeSurface({
       </div>
     </main>
   );
-}
-
-function routeModelBindingLabel(evidence: ZhiyuEvidence): string {
-  const binding = evidence.route.executionBinding;
-  if (!binding) {
-    return '未绑定模型';
-  }
-  return `${binding.route}:${binding.modelId}`;
-}
-
-function chatPrimaryBindingLabel(evidence: ZhiyuEvidence): string {
-  const binding = evidence.route.executionBinding;
-  if (!binding) {
-    return '未绑定模型';
-  }
-  if (binding.route === 'local') {
-    return '本地对话模型已绑定';
-  }
-  return '模型已绑定';
-}
-
-function chatReplyChipLabel(evidence: ZhiyuEvidence): string {
-  if (evidence.chat.ready) {
-    return '已就绪';
-  }
-  if (evidence.chat.state === 'streaming') {
-    return '回复中';
-  }
-  if (evidence.chat.state === 'failed') {
-    return '需要处理';
-  }
-  return '等待开始';
-}
-
-function chatBlockedHint(evidence: ZhiyuEvidence): string {
-  if (!evidence.localAgent.ready) {
-    return '请先选择已存在的本地伙伴。';
-  }
-  if (!evidence.conversation.ready) {
-    return '正在打开会话，请稍候。';
-  }
-  if (!evidence.route.executionBinding) {
-    return '请先完成模型配置后再发送。';
-  }
-  return '当前暂时不能发送，请稍后重试。';
-}
-
-function currentPartnerDisplayName(evidence: ZhiyuEvidence): string {
-  const selectedRef = evidence.localAgent.localAgentRef;
-  const fromInventory = evidence.inventory.localAgents.find((agent) => agent.localAgentRef === selectedRef);
-  const displayName = productPartnerDisplayName(fromInventory?.displayName);
-  if (displayName) {
-    return displayName;
-  }
-  if (evidence.localAgent.ready) {
-    return '当前伙伴';
-  }
-  return '本地伙伴';
-}
-
-function productPartnerDisplayName(value: string | null | undefined): string | null {
-  const displayName = value?.trim();
-  if (!displayName) {
-    return null;
-  }
-  if (/runtime|localagent|local agent|fixture|e2e|source/i.test(displayName)) {
-    return null;
-  }
-  return displayName;
-}
-
-function primaryActionForStage(stage: ZhiyuHomeProductState['stage']): {
-  readonly kind: 'connect-service' | 'select-partner' | 'configure-model' | 'start-chat';
-  readonly label: string;
-  readonly badgeLabel: string;
-  readonly tone: 'primary' | 'secondary';
-} {
-  if (stage === 'route-required') {
-    return {
-      kind: 'configure-model',
-      label: '配置模型',
-      badgeLabel: '需要模型',
-      tone: 'primary',
-    };
-  }
-  if (stage === 'ready') {
-    return {
-      kind: 'start-chat',
-      label: '开始对话',
-      badgeLabel: '伙伴可对话',
-      tone: 'secondary',
-    };
-  }
-  if (stage === 'source-required' || stage === 'agent-required') {
-    return {
-      kind: 'select-partner',
-      label: '查看伙伴入口',
-      badgeLabel: '需要伙伴',
-      tone: 'primary',
-    };
-  }
-  return {
-    kind: 'connect-service',
-    label: '查看本地环境状态',
-    badgeLabel: '需要连接',
-    tone: 'secondary',
-  };
-}
-
-function productConversationMessages(
-  messages: ZhiyuEvidence['chat']['messages'],
-  currentPartnerName: string,
-): ZhiyuEvidence['chat']['messages'] {
-  return messages.map((message) => ({
-    ...message,
-    senderName: productSenderName(message.senderName, currentPartnerName),
-    text: productGeneratedText(message.text),
-  }));
-}
-
-function productSenderName(value: string | null | undefined, currentPartnerName: string): string | null | undefined {
-  if (value === 'You') return '你';
-  if (value === 'Zhiyu Agent') return currentPartnerName;
-  return value;
-}
-
-function productGeneratedText(value: string | null | undefined): string {
-  const text = String(value ?? '').trim();
-  if (/^Hello from the Runtime Agent live fixture\.$/.test(text)) {
-    return '当前伙伴已完成本地对话校验，并返回一条可追踪的回复。';
-  }
-  return text;
-}
-
-function formatZhiyuTranscriptDateLabel({ date, diffDays }: { readonly date: Date; readonly diffDays: number }): string {
-  if (diffDays === 0) return '今天';
-  if (diffDays === 1) return '昨天';
-  return new Intl.DateTimeFormat('zh-CN', {
-    month: 'long',
-    day: 'numeric',
-  }).format(date);
 }

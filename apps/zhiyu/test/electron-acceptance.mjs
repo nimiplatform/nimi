@@ -14,6 +14,7 @@ const rendererAcceptanceUrl = withAcceptanceQuery(pathToFileURL(path.join(root, 
 test('zhiyu Electron host boots sandboxed renderer and fails closed without Runtime', { timeout: 90_000 }, async () => {
   await withTempDir('acceptance', async (tmpRoot) => {
     const dataRoot = path.join(tmpRoot, 'data');
+    const nestedLive2dSource = await writeNestedLive2dSource(tmpRoot);
     await mkdir(dataRoot, { recursive: true });
 
     const app = await electron.launch({
@@ -83,6 +84,23 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
         );
         assert.equal(trustedCallerSpoof.code, 'forbidden-renderer-access');
         assert.equal(trustedCallerSpoof.reasonCode, 'electron-renderer-local-agent-caller-field-forbidden');
+
+        await page.waitForFunction(() => Boolean(globalThis.window?.__nimiZhiyuAgentCenterLocalConfig));
+        const live2dImportResult = await page.evaluate((sourcePath) =>
+          globalThis.window.__nimiZhiyuAgentCenterLocalConfig.invoke('avatar.import', {
+            accountId: 'account_1',
+            ownerUserId: 'owner_1',
+            runtimeSourceRef: 'runtime-source:ren',
+            localAgentRef: 'local-agent:ren',
+            kind: 'live2d',
+            sourcePath,
+            select: true,
+          }),
+        nestedLive2dSource);
+        assert.equal(live2dImportResult.backend_kind, 'live2d');
+        assert.equal(live2dImportResult.selected, true);
+        assert.equal(live2dImportResult.validation.status, 'valid');
+        assert.equal(live2dImportResult.validation.errors.length, 0);
 
         await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__));
         const runtimeReady = await page.evaluate(() =>
@@ -486,6 +504,20 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
     }
   });
 });
+
+async function writeNestedLive2dSource(rootDir) {
+  const live2dRoot = path.join(rootDir, 'ren_pro_zh');
+  const runtimeDir = path.join(live2dRoot, 'runtime');
+  const textureDir = path.join(runtimeDir, 'textures');
+  await mkdir(textureDir, { recursive: true });
+  await writeFile(
+    path.join(runtimeDir, 'ren.model3.json'),
+    '{"Version":3,"FileReferences":{"Moc":"ren.moc3","Textures":["textures/texture_00.png"]}}\n',
+  );
+  await writeFile(path.join(runtimeDir, 'ren.moc3'), 'MOC3\u0005moc-bytes');
+  await writeFile(path.join(textureDir, 'texture_00.png'), 'png-bytes');
+  return live2dRoot;
+}
 
 async function withTempDir(prefix, run) {
   const dir = await mkdtemp(path.join(tmpdir(), `nimi-zhiyu-electron-${prefix}-`));

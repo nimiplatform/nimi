@@ -4,6 +4,7 @@ import type { ZhiyuLocalAgentStatus } from './local-agent-discovery';
 export type ZhiyuRuntimeLocalAgentSelectionInput = {
   readonly sourceLocalAgent: ZhiyuLocalAgentStatus;
   readonly inventory: ZhiyuRuntimeAgentInventoryStatus;
+  readonly selectedLocalAgentRef?: string | null;
 };
 
 export function resolveZhiyuRuntimeLocalAgentSelection(
@@ -23,6 +24,20 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
       actionHint: 'refresh_runtime_local_agent_inventory',
       source: input.inventory.source,
       message: 'Runtime LocalAgent inventory count does not match the listed projection.',
+      ownerUserId: input.inventory.ownerUserId,
+    });
+  }
+  const selectedLocalAgentRef = stringOr(input.selectedLocalAgentRef, '');
+  if (selectedLocalAgentRef) {
+    const selected = localAgents.find((agent) => agent.localAgentRef === selectedLocalAgentRef);
+    if (selected) {
+      return localAgentSelected(selected);
+    }
+    return localAgentUnavailable({
+      reasonCode: 'zhiyu-runtime-local-agent-selection-not-found',
+      actionHint: 'refresh_runtime_local_agent_inventory',
+      source: input.inventory.source,
+      message: 'The selected Runtime LocalAgent is no longer available in the current upstream projection.',
       ownerUserId: input.inventory.ownerUserId,
     });
   }
@@ -73,4 +88,24 @@ function localAgentUnavailable(input: {
     runtimeSourceRef: input.runtimeSourceRef ?? null,
     localAgentRef: null,
   };
+}
+
+function localAgentSelected(
+  agent: ZhiyuRuntimeAgentInventoryStatus['localAgents'][number],
+): ZhiyuLocalAgentStatus {
+  return {
+    transport: 'electron-ipc',
+    ready: true,
+    reasonCode: 'runtime-local-agent-selected',
+    actionHint: 'open_runtime_agent_home',
+    source: 'runtime',
+    message: 'Runtime-owned LocalAgent was selected from the upstream inventory projection.',
+    ownerUserId: agent.ownerUserId,
+    runtimeSourceRef: agent.runtimeSourceRef,
+    localAgentRef: agent.localAgentRef,
+  };
+}
+
+function stringOr(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 }

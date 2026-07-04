@@ -16,7 +16,7 @@ import {
   createInitialZhiyuDelegationEvidence,
   type ZhiyuDelegationUxStatus,
 } from './delegation-evidence';
-import type { ZhiyuCapabilityStudioCapabilityId } from '../capability-studio/zhiyu-ai-consume';
+import type { ZhiyuCapabilityStudioCapabilityId } from './developer-capability-studio';
 
 export type {
   ZhiyuDelegationApprovalDecision,
@@ -392,6 +392,7 @@ export type ZhiyuEvidence = {
     readonly selectedTargetRefKind: string | null;
     readonly resolvedBindingRef: string | null;
     readonly executionBinding: NimiRuntimeAgentExecutionBinding | null;
+    readonly executionBindings?: Readonly<Record<string, NimiRuntimeAgentExecutionBinding | null>>;
   };
   readonly turn: {
     readonly transport: 'electron-ipc';
@@ -725,6 +726,10 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       selectedTargetRefKind: null,
       resolvedBindingRef: null,
       executionBinding: null,
+      executionBindings: {
+        'text.generate': null,
+        'image.generate': null,
+      },
     },
     turn: {
       transport: 'electron-ipc',

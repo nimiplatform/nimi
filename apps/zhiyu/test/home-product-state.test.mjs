@@ -332,6 +332,59 @@ test('projects ready stage only when Runtime Agent turn is ready', async () => {
   assert.equal(product.statusCards.every((card) => card.tone === 'success'), true);
 });
 
+test('projects explicit Runtime inventory selection as current partner without source projection', async () => {
+  const { projectZhiyuHomeProductState } = await loadModule();
+  const product = projectZhiyuHomeProductState(evidence({
+    runtime: status('runtime-ready', true, 'runtime'),
+    auth: {
+      ...status('runtime-account-ready', true, 'runtime'),
+      state: 'authenticated',
+      accountReasonCode: 'OK',
+      accountId: 'account-1',
+      displayName: 'User',
+      productionInert: false,
+    },
+    source: {
+      ...status('zhiyu-admitted-source-projection-required', false, 'renderer'),
+      ownerUserId: null,
+      runtimeSourceRef: null,
+      sourceRef: null,
+    },
+    inventory: {
+      ...status('runtime-local-agent-inventory-ready', true, 'runtime'),
+      ownerUserId: 'user-1',
+      count: 1,
+      localAgents: [{
+        localAgentRef: 'local-agent:1',
+        ownerUserId: 'user-1',
+        runtimeSourceRef: 'runtime-source:1',
+        displayName: '颜真卿',
+        sourceKind: 'worldCharacter',
+        sourceWorldId: 'world-1',
+        sourceId: 'source-1',
+        sourceContentHash: 'hash-1',
+      }],
+    },
+    localAgent: {
+      ...status('runtime-local-agent-selected', true, 'runtime'),
+      ownerUserId: 'user-1',
+      runtimeSourceRef: 'runtime-source:1',
+      localAgentRef: 'local-agent:1',
+    },
+    conversation: {
+      ...status('conversation-ready', true, 'runtime'),
+      ownerUserId: 'user-1',
+      runtimeSourceRef: 'runtime-source:1',
+      localAgentRef: 'local-agent:1',
+      conversationAnchorId: 'conversation:1',
+    },
+  }));
+
+  assert.equal(product.stage, 'route-required');
+  assert.equal(product.statusCards.find((card) => card.key === 'source')?.ready, false);
+  assert.equal(product.statusCards.find((card) => card.key === 'localAgent')?.ready, true);
+});
+
 test('state projection does not contain forbidden product truth', () => {
   const source = readFileSync(path.join(root, 'src/shell/app/home-product-state.ts'), 'utf8');
   assert.doesNotMatch(source, /runtime-source:|SourceMaterializationPacket|nimi-guide-archivist/);

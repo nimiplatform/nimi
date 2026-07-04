@@ -9,7 +9,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { ZhiyuEvidence } from './evidence';
-import type { ZhiyuCapabilityStudioCapabilityId } from '../capability-studio/zhiyu-ai-consume';
+import type { ZhiyuCapabilityStudioCapabilityId } from './developer-capability-studio';
 import type { ZhiyuCapabilityRoomState } from './capability-room-state';
 import { HomeCapabilitySetupSection } from './home-capability-setup-section';
 import { formatProjectionValue } from './home-surface-sections';
@@ -194,7 +194,7 @@ function capabilityStudioStatusLabel(evidence: ZhiyuEvidence, capabilityPrompt: 
 function formatCapabilityStudioProductText(evidence: ZhiyuEvidence): string {
   const studio = evidence.capabilityStudio;
   if (studio.resultKind === 'text') {
-    return productGeneratedText(stripRuntimeTextEnvelope(studio.streamingText || studio.text || studio.message));
+    return runtimeTextForDisplay(stripRuntimeTextEnvelope(studio.streamingText || studio.text || studio.message));
   }
   if (studio.resultKind === 'embedding') {
     return `嵌入已生成：${studio.vectorCount ?? 0} 组向量，${studio.dimensions ?? 0} 维。`;
@@ -220,10 +220,7 @@ function stripRuntimeTextEnvelope(value: string | null | undefined): string {
   return text;
 }
 
-function productGeneratedText(value: string | null | undefined): string {
+function runtimeTextForDisplay(value: string | null | undefined): string {
   const text = String(value ?? '').trim();
-  if (/^Hello from the Runtime Agent live fixture\.$/.test(text)) {
-    return '当前伙伴已完成本地对话校验，并返回一条可追踪的回复。';
-  }
   return text;
 }

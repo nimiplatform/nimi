@@ -25,3 +25,16 @@ truth, carrier lifecycle, or runtime truth.
 Configuration surfaces must fail closed on missing upstream facade, permission,
 binding, validation, or owner admission. A local UI control is not proof that
 the config change is admitted or persisted.
+
+## Z-CONFIG-005 Agent Center Local Config Hardcut
+
+During the Desktop Agent Chat parity hardcut, Zhiyu may host a bounded Electron
+local config/import bridge at `apps/zhiyu/src-electron/agent-center-local-config.ts`
+and `apps/zhiyu/src-electron/live2d-source.ts` until real app acceptance
+stabilizes and SDK/Kit/Avatar owners decide the upstream surface. This bridge is
+limited to user-selected Agent Center appearance/avatar package copies, scoped
+to account id, owner user id, runtime source ref, and Runtime-owned local agent
+ref. It must remain noncanonical local parity state, fail closed on invalid
+scope/path/manifest, and must not claim Avatar resource truth, Avatar carrier
+lifecycle truth, Runtime AI config truth, provider/model route truth,
+transcript/session recovery truth, memory truth, or Runtime snapshot truth.

@@ -1,12 +1,13 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain } from 'electron';
 import {
   createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   type NimiElectronRuntimeTrustedCallerMode,
 } from '@nimiplatform/kit/shell/electron/main';
+import { registerZhiyuAgentCenterLocalConfigBridge } from './agent-center-local-config.js';
 import { createZhiyuElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 
 const APP_ID = 'nimi.zhiyu';
@@ -24,10 +25,17 @@ const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
 let mainWindow: BrowserWindow | undefined;
 
 app.setName('织羽 Zhiyu');
+Menu.setApplicationMenu(null);
 configureZhiyuElectronChromiumRuntime();
 
 void app.whenReady().then(async () => {
   const standardDataRoot = resolveStandardDataRoot();
+  registerZhiyuAgentCenterLocalConfigBridge({
+    ipcMain,
+    dataRoot: standardDataRoot,
+    isAllowedRendererUrl: isZhiyuRendererUrl,
+    mainWindow: () => mainWindow,
+  });
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
     runtimeEndpoint,
@@ -77,6 +85,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     minWidth: 980,
     minHeight: 720,
     title: '织羽 Zhiyu',
+    autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -85,6 +94,9 @@ async function createMainWindow(): Promise<BrowserWindow> {
     },
   });
   mainWindow = window;
+  window.setAutoHideMenuBar(true);
+  window.setMenuBarVisibility(false);
+  window.removeMenu();
   window.on('closed', () => {
     if (mainWindow === window) {
       mainWindow = undefined;

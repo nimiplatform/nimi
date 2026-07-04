@@ -192,8 +192,8 @@ async function resolveDelegationSurface(
     createNimiHostRuntimeAgentDelegatedCapabilitySurface,
   } = await import('@nimiplatform/sdk/runtime');
   const {
-    withZhiyuElectronRuntimeProtectedScopes,
-  } = await import('./runtime-agent-scopes');
+    withZhiyuRuntimeAgentBindingRequired,
+  } = await import('../agent-chat/runtime-agent-binding');
   const runtime = new Runtime({
     appId: APP_ID,
     transport: { type: 'electron-ipc' },
@@ -206,7 +206,7 @@ async function resolveDelegationSurface(
       agent: runtime.agents,
     }),
     getSubjectUserId: () => identity.ownerUserId,
-    withScopes: withZhiyuElectronRuntimeProtectedScopes,
+    withScopes: withZhiyuRuntimeAgentBindingRequired,
   });
 
   return {

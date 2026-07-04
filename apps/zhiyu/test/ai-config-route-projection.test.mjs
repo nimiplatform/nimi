@@ -17,7 +17,7 @@ test.after(async () => {
   }
 });
 
-test('Zhiyu route projection reads selected NimiAIConfig target refs for required product capabilities', async () => {
+test('Zhiyu agent route readiness reads selected NimiAIConfig target refs for required product capabilities', async () => {
   const module = await importRouteModule();
   const scopeRef = module.createZhiyuAgentHomeAIScopeRef();
   const targetRef = {
@@ -83,7 +83,7 @@ test('Zhiyu route projection reads selected NimiAIConfig target refs for require
     },
   };
 
-  const route = await module.probeZhiyuRuntimeRouteProjection({
+  const route = await module.probeZhiyuAgentRouteReadiness({
     config,
     routeRuntime,
   });
@@ -119,7 +119,7 @@ test('Zhiyu route projection reads selected NimiAIConfig target refs for require
   assert.deepEqual(seen.find((entry) => entry[0] === 'resolve' && entry[1] === 'text.generate')?.[2], targetRef);
 });
 
-test('Zhiyu route projection fails closed until AIConfig text target is selected', async () => {
+test('Zhiyu agent route readiness fails closed until AIConfig text target is selected', async () => {
   const module = await importRouteModule();
   const config = {
     scopeRef: module.createZhiyuAgentHomeAIScopeRef(),
@@ -136,7 +136,7 @@ test('Zhiyu route projection fails closed until AIConfig text target is selected
     profileOrigin: null,
   };
 
-  const route = await module.probeZhiyuRuntimeRouteProjection({
+  const route = await module.probeZhiyuAgentRouteReadiness({
     config,
     routeRuntime: {
       async resolve() {
@@ -160,8 +160,41 @@ test('Zhiyu route projection fails closed until AIConfig text target is selected
   assert.equal(route.targetRefKinds['audio.synthesize'], null);
 });
 
+test('Zhiyu agent turn readiness requires both execution binding and Runtime authority binding evidence', async () => {
+  const module = await importRouteModule();
+  const missingBinding = module.probeZhiyuAgentTurnReadiness(
+    conversationReady(),
+    executionBindingReady(),
+    module.resolveZhiyuRuntimeAgentBindingDecision(),
+  );
+
+  assert.equal(missingBinding.ready, false);
+  assert.equal(missingBinding.reasonCode, 'ZHIYU_RUNTIME_AGENT_BINDING_REQUIRED');
+  assert.equal(missingBinding.actionHint, 'attach_runtime_scoped_binding_or_admitted_host_equivalence');
+
+  const ready = module.probeZhiyuAgentTurnReadiness(
+    conversationReady(),
+    executionBindingReady(),
+    module.resolveZhiyuRuntimeAgentBindingDecision({
+      scopedBinding: {
+        bindingId: 'binding-ready',
+        bindingHandle: 'runtime.binding/binding-ready',
+        runtimeAppId: 'runtime.agent',
+        appInstanceId: 'nimi.zhiyu.local',
+        windowId: 'window-ready',
+        agentId: 'runtime-local-agent:opaque',
+        conversationAnchorId: 'conversation-anchor:opaque',
+        worldId: 'world-ready',
+      },
+    }),
+  );
+
+  assert.equal(ready.ready, true);
+  assert.equal(ready.reasonCode, 'runtime-turn-ready');
+});
+
 async function importRouteModule() {
-  const outputPath = path.join(await buildRouteModule(), 'route-projection.mjs');
+  const outputPath = path.join(await buildRouteModule(), 'agent-route-readiness.mjs');
   return import(pathToFileURL(outputPath).href);
 }
 
@@ -170,8 +203,8 @@ async function buildRouteModule() {
   mkdirSync(path.join(root, '.tmp'), { recursive: true });
   buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-zhiyu-ai-config-route-'));
   await build({
-    entryPoints: [path.join(root, 'src/shell/agent/route-projection.ts')],
-    outfile: path.join(buildDir, 'route-projection.mjs'),
+    entryPoints: [path.join(root, 'src/shell/agent-chat/agent-route-readiness.ts')],
+    outfile: path.join(buildDir, 'agent-route-readiness.mjs'),
     bundle: true,
     platform: 'node',
     format: 'esm',
@@ -179,8 +212,36 @@ async function buildRouteModule() {
     sourcemap: false,
     logLevel: 'silent',
   }).catch(async (error) => {
-    const text = await readFile(path.join(root, 'src/shell/agent/route-projection.ts'), 'utf8').catch(() => '');
-    throw new Error(`failed to build Zhiyu route projection: ${error.message}\nsource length=${text.length}`);
+    const text = await readFile(path.join(root, 'src/shell/agent-chat/agent-route-readiness.ts'), 'utf8').catch(() => '');
+    throw new Error(`failed to build Zhiyu agent route readiness: ${error.message}\nsource length=${text.length}`);
   });
   return buildDir;
+}
+
+function conversationReady(overrides = {}) {
+  return {
+    transport: 'electron-ipc',
+    ready: true,
+    reasonCode: 'conversation-anchor-open',
+    actionHint: 'send_runtime_agent_turn',
+    source: 'runtime',
+    message: 'Runtime-owned conversation anchor is open.',
+    ownerUserId: 'user-1',
+    runtimeSourceRef: 'runtime-source:opaque',
+    localAgentRef: 'runtime-local-agent:opaque',
+    conversationAnchorId: 'conversation-anchor:opaque',
+    ...overrides,
+  };
+}
+
+function executionBindingReady() {
+  return {
+    route: 'local',
+    modelId: 'runtime-model:opaque',
+    targetRef: {
+      kind: 'local-runtime',
+      version: 'v2',
+      profileBindingId: 'local-runtime:runtime-model-opaque',
+    },
+  };
 }

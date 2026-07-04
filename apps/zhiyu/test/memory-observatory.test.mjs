@@ -288,7 +288,7 @@ test('classifies Memory Observatory blocked states without pseudo records', asyn
 
 test('home surface exposes admitted memory explainability and blocked graph-lite evidence', () => {
   const source = [
-    readFileSync(path.join(root, 'src/shell/app/HomeSurface.tsx'), 'utf8'),
+    readFileSync(path.join(root, 'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx'), 'utf8'),
     readFileSync(path.join(root, 'src/shell/app/home-memory-observatory-section.tsx'), 'utf8'),
   ].join('\n');
 

@@ -124,8 +124,8 @@ async function readRuntimeAgentPresentationProfile(
     readNimiRuntimeAgentPresentationProfile,
   } = await import('@nimiplatform/sdk/runtime');
   const {
-    withZhiyuElectronRuntimeProtectedScopes,
-  } = await import('../agent/runtime-agent-scopes');
+    withZhiyuRuntimeAgentBindingRequired,
+  } = await import('../agent-chat/runtime-agent-binding');
   const runtime = new Runtime({
     appId: APP_ID,
     transport: { type: 'electron-ipc' },
@@ -135,7 +135,7 @@ async function readRuntimeAgentPresentationProfile(
     subjectUserId: input.ownerUserId,
     ...input,
   });
-  const response = await withZhiyuElectronRuntimeProtectedScopes(['runtime.agent.read'], (callOptions) => runtime.agents.getAgent({
+  const response = await withZhiyuRuntimeAgentBindingRequired(['runtime.agent.read'], (callOptions) => runtime.agents.getAgent({
     context,
     agentId: input.localAgentRef,
   }, callOptions));

@@ -16,7 +16,9 @@ thin navigation only. Normative authority lives under `kernel/*.md` and
 
 ## Authority Boundary
 
-Zhiyu is the local partner center. It does not create partners, own Runtime
-Agent execution, own memory truth, own Runtime AI config, own Avatar resource
-truth, or directly consume AI provider/model routes. Zhiyu presents and operates
+Zhiyu is the local partner center. Its primary conversation product targets
+Desktop Agent Chat parity for local partner interaction while remaining an
+independent Zhiyu app surface. It does not create partners, own Runtime Agent
+execution, own memory truth, own Runtime AI config, own Avatar resource truth,
+or directly consume AI provider/model routes. Zhiyu presents and operates
 admitted upstream surfaces.

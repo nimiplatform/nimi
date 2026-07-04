@@ -48,3 +48,24 @@ forbidden_surfaces:
   - symbol: renderVoice
     reason: voice_render_deferred_and_not_runtime_admitted_for_zhiyu
     source_rule: Z-AV-003
+local_parity_modules:
+  - path: apps/zhiyu/src/shell/agent-chat/runtime-agent-binding.ts
+    posture: bounded_zhiyu_local_parity_implementation
+    upstream: candidate_after_real_app_acceptance
+    source_rule: Z-CHAT-002
+  - path: apps/zhiyu/src/shell/agent-chat/runtime-agent-turn-adapter.ts
+    posture: bounded_zhiyu_local_parity_implementation
+    upstream: candidate_after_real_app_acceptance
+    source_rule: Z-CHAT-001
+  - path: apps/zhiyu/src/shell/agent-chat/agent-route-readiness.ts
+    posture: bounded_zhiyu_local_parity_implementation
+    upstream: candidate_after_real_app_acceptance
+    source_rule: Z-CHAT-001
+  - path: apps/zhiyu/src/shell/agent-chat/agent-conversation-state.ts
+    posture: bounded_zhiyu_local_parity_implementation
+    upstream: candidate_after_real_app_acceptance
+    source_rule: Z-CHAT-001
+  - path: apps/zhiyu/src/shell/agent-chat/ZhiyuAgentChatSurface.tsx
+    posture: bounded_zhiyu_local_parity_implementation
+    upstream: candidate_after_real_app_acceptance
+    source_rule: Z-PROD-001

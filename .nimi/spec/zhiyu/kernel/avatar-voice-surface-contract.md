@@ -23,3 +23,12 @@ TTS as a v1 journey.
 SDK voice render surface exists, but current Runtime app-facing ingress
 admission confirms only turn request and interrupt. Runtime/SDK/Avatar owners
 must resolve that drift before Zhiyu can consume voice render.
+
+## Z-AV-005 Avatar Launch Parity Gate
+
+If Zhiyu enables Desktop Agent Chat equivalent avatar launch behavior, the
+`start_with_chat` gate, live instance policy, and public handoff evidence must
+be admitted here for Zhiyu. Desktop avatar rules are provenance for migration,
+not direct Zhiyu authority. Without admitted public handoff, Zhiyu must present
+avatar launch as disabled/deferred with a reason code and no ready-looking local
+instance fabrication.
