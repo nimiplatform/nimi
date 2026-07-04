@@ -73,9 +73,12 @@ const PLATFORM_APP_REGISTRY_PATH = resolve(
 
 export async function withRuntimeAgentLiveE2EFixture(input: {
   readonly runtimeEnv?: Readonly<Record<string, string>>;
+  readonly localChatCompletionStreamDelayMs?: number;
   readonly run: (context: RuntimeAgentLiveE2EFixtureContext) => Promise<void>;
 }): Promise<void> {
-  await withRealmFixtureServer(async ({ baseUrl, requests }) => {
+  await withRealmFixtureServer({
+    localChatCompletionStreamDelayMs: input.localChatCompletionStreamDelayMs,
+    run: async ({ baseUrl, requests }) => {
     await withRuntimeDaemon({
       appId: DESKTOP_APP_ID,
       runtimeEnv: {
@@ -190,5 +193,6 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
         }
       },
     });
+    },
   });
 }

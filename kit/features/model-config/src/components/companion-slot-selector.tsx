@@ -188,17 +188,22 @@ export function CompanionSlotSelector(props: {
   ) : null;
 
   return (
-    <FieldRow label={props.slot.label} requirementLabel={isRequiredMissing ? (props.requiredLabel || 'Required') : undefined}>
-      <ModelSelectorTrigger
-        source={selectedAsset ? 'local' : null}
-        modelLabel={selectedAsset ? (selectedAsset.assetId || selectedAsset.localAssetId) : null}
-        detail={selectedAsset ? [selectedAsset.engine, selectedAsset.status].filter(Boolean).join(' / ') : null}
-        detailStatus={selectedNeedsSetup ? (props.setupPendingLabel || 'setup pending') : null}
-        detailTone={selectedNeedsSetup ? 'warning' : 'neutral'}
-        placeholder={isRequiredMissing ? (props.requiredSetupPlaceholder || 'Required setup') : (props.noneLabel || 'None')}
-        onClick={() => setModalOpen(true)}
-      />
-      {modal ? (typeof document === 'undefined' ? modal : createPortal(modal, document.body)) : null}
-    </FieldRow>
+    <div
+      data-nimi-model-config-companion-slot={props.slot.slot}
+      data-nimi-model-config-companion-kind={props.slot.kind}
+    >
+      <FieldRow label={props.slot.label} requirementLabel={isRequiredMissing ? (props.requiredLabel || 'Required') : undefined}>
+        <ModelSelectorTrigger
+          source={selectedAsset ? 'local' : null}
+          modelLabel={selectedAsset ? (selectedAsset.assetId || selectedAsset.localAssetId) : null}
+          detail={selectedAsset ? [selectedAsset.engine, selectedAsset.status].filter(Boolean).join(' / ') : null}
+          detailStatus={selectedNeedsSetup ? (props.setupPendingLabel || 'setup pending') : null}
+          detailTone={selectedNeedsSetup ? 'warning' : 'neutral'}
+          placeholder={isRequiredMissing ? (props.requiredSetupPlaceholder || 'Required setup') : (props.noneLabel || 'None')}
+          onClick={() => setModalOpen(true)}
+        />
+        {modal ? (typeof document === 'undefined' ? modal : createPortal(modal, document.body)) : null}
+      </FieldRow>
+    </div>
   );
 }

@@ -21,15 +21,27 @@ import {
 } from './runtime-agent-live-e2e-fixture-shared.test-helper';
 
 export async function withRealmFixtureServer(
-  run: (context: {
+  input: {
+    readonly localChatCompletionStreamDelayMs?: number;
+    readonly run: (context: {
+      readonly baseUrl: string;
+      readonly requests: RuntimeAgentLiveE2ERealmRequest[];
+    }) => Promise<void>;
+  } | ((context: {
     readonly baseUrl: string;
     readonly requests: RuntimeAgentLiveE2ERealmRequest[];
-  }) => Promise<void>,
+  }) => Promise<void>),
 ): Promise<void> {
   const requests: RuntimeAgentLiveE2ERealmRequest[] = [];
+  const run = typeof input === 'function' ? input : input.run;
+  const options = {
+    localChatCompletionStreamDelayMs: typeof input === 'function'
+      ? 0
+      : Math.max(0, Math.trunc(Number(input.localChatCompletionStreamDelayMs || 0))),
+  };
   const server = createServer(async (request, response) => {
     try {
-      await handleRealmFixtureRequest(request, response, requests);
+      await handleRealmFixtureRequest(request, response, requests, options);
     } catch (error) {
       writeJSON(response, 500, {
         message: error instanceof Error ? error.message : String(error),
@@ -66,6 +78,9 @@ async function handleRealmFixtureRequest(
   request: IncomingMessage,
   response: ServerResponse,
   requests: RuntimeAgentLiveE2ERealmRequest[],
+  options: {
+    readonly localChatCompletionStreamDelayMs: number;
+  },
 ): Promise<void> {
   const url = new URL(request.url || '/', 'http://127.0.0.1');
   const rawBody = await readRequestBody(request);
@@ -159,7 +174,7 @@ async function handleRealmFixtureRequest(
   }
 
   if (request.method === 'POST' && url.pathname === '/v1/chat/completions') {
-    writeLocalChatCompletion(response, asRecord(body));
+    await writeLocalChatCompletion(response, asRecord(body), options);
     return;
   }
 
@@ -192,8 +207,28 @@ async function handleRealmFixtureRequest(
   writeJSON(response, 404, { message: `unhandled Realm fixture route ${request.method || ''} ${url.pathname}` });
 }
 
-function writeLocalChatCompletion(response: ServerResponse, body: Record<string, unknown>): void {
-  const content = '<message id="message-0">Hello from the Runtime Agent live fixture.</message>';
+async function writeLocalChatCompletion(
+  response: ServerResponse,
+  body: Record<string, unknown>,
+  options: {
+    readonly localChatCompletionStreamDelayMs: number;
+  },
+): Promise<void> {
+  const content = shouldEmitMidStreamFailureAction(body)
+    ? [
+      '<message id="message-mid-stream-failure">Committed before induced action failure.</message>',
+      '<action id="action-mid-stream-failure" kind="image">',
+      '<prompt-payload kind="image"><prompt-text>zhiyu induced action failure</prompt-text></prompt-payload>',
+      '</action>',
+    ].join('')
+    : shouldEmitImageAction(body)
+    ? [
+      '<message id="message-image-action">I will create an image artifact.</message>',
+      '<action id="action-image-1" kind="image">',
+      '<prompt-payload kind="image"><prompt-text>studio portrait of the current local agent</prompt-text></prompt-payload>',
+      '</action>',
+    ].join('')
+    : '<message id="message-0">Hello from the Runtime Agent live fixture.</message>';
   if (body.stream === true) {
     response.statusCode = 200;
     response.setHeader('content-type', 'text/event-stream');
@@ -206,6 +241,12 @@ function writeLocalChatCompletion(response: ServerResponse, body: Record<string,
         finish_reason: null,
       }],
     })}\n\n`);
+    if (options.localChatCompletionStreamDelayMs > 0) {
+      await delay(options.localChatCompletionStreamDelayMs);
+      if (response.destroyed || response.writableEnded) {
+        return;
+      }
+    }
     response.write(`data: ${JSON.stringify({
       choices: [{
         delta: {},
@@ -236,8 +277,44 @@ function writeLocalChatCompletion(response: ServerResponse, body: Record<string,
   });
 }
 
+function shouldEmitMidStreamFailureAction(body: Record<string, unknown>): boolean {
+  return promptTextFromChatCompletionBody(body).includes('trigger zhiyu mid-stream failure');
+}
+
+function shouldEmitImageAction(body: Record<string, unknown>): boolean {
+  const promptText = promptTextFromChatCompletionBody(body);
+  return promptText.includes('zhiyu action artifact')
+    || promptText.includes('make an image artifact');
+}
+
+function promptTextFromChatCompletionBody(body: Record<string, unknown>): string {
+  const messages = Array.isArray(body.messages) ? body.messages : [];
+  return messages
+    .map((message) => {
+      const record = message && typeof message === 'object' ? message as Record<string, unknown> : {};
+      return normalizeText(record.content);
+    })
+    .join('\n')
+    .toLowerCase();
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolvePromise) => {
+    setTimeout(resolvePromise, ms);
+  });
+}
+
 function writeOpenAIImageGeneration(response: ServerResponse, body: Record<string, unknown>): void {
   const prompt = normalizeText(body.prompt);
+  if (prompt.toLowerCase().includes('zhiyu induced action failure')) {
+    writeJSON(response, 500, {
+      error: {
+        code: 'ZHIYU_FIXTURE_INDUCED_IMAGE_ACTION_FAILURE',
+        message: 'Zhiyu live fixture induced image action failure after committed text.',
+      },
+    });
+    return;
+  }
   writeJSON(response, 200, {
     data: [{
       b64_json: LOCAL_IMAGE_PNG_BASE64,

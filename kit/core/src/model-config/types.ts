@@ -115,6 +115,7 @@ export interface ModelConfigLocalAssetDescriptor {
   readonly status: string;
   readonly family?: string;
   readonly modelFamily?: string;
+  readonly artifactRoles?: readonly string[];
   readonly metadata?: Readonly<Record<string, unknown>>;
 }
 
