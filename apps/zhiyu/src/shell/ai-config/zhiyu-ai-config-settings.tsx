@@ -50,27 +50,86 @@ const MODEL_CONFIG_COPY: Record<string, string> = {
   'ModelConfig.hub.aggregateNeutral': '{{count}} 未设置',
   'ModelConfig.hub.aggregateEmpty': '未配置任何能力',
   'ModelConfig.hub.importProfileLabel': '导入 AI 预设',
+  'ModelConfig.profile.importLabel': '导入 AI 预设',
+  'ModelConfig.profile.summaryLabel': 'AI 预设',
+  'ModelConfig.profile.emptySummaryLabel': '未选择预设',
+  'ModelConfig.profile.sectionTitle': 'AI 预设',
+  'ModelConfig.profile.applyButtonLabel': '应用',
+  'ModelConfig.profile.changeButtonLabel': '更换',
+  'ModelConfig.profile.manageButtonTitle': '管理 AI 预设',
+  'ModelConfig.profile.modalTitle': '导入 AI 预设',
+  'ModelConfig.profile.modalHint': '从账户预设库导入模型配置。',
+  'ModelConfig.profile.loadingLabel': '正在加载',
+  'ModelConfig.profile.emptyLabel': '暂无可导入的 AI 预设',
+  'ModelConfig.profile.currentBadgeLabel': '当前',
+  'ModelConfig.profile.cancelLabel': '取消',
+  'ModelConfig.profile.confirmLabel': '预览',
+  'ModelConfig.profile.applyingLabel': '正在应用',
+  'ModelConfig.profile.reloadLabel': '刷新',
+  'ModelConfig.profile.previewTitle': '预览 AI 预设',
+  'ModelConfig.profile.previewHint': '确认预设将如何覆盖当前模型配置。',
+  'ModelConfig.profile.previewingLabel': '正在预览',
+  'ModelConfig.profile.previewFirstApplyLabel': '这是第一次应用该预设。',
+  'ModelConfig.profile.previewNoChangeLabel': '当前配置与该预设一致。',
+  'ModelConfig.profile.previewBeforeLabel': '当前',
+  'ModelConfig.profile.previewAfterLabel': '预设',
+  'ModelConfig.profile.previewWarningsLabel': '注意',
+  'ModelConfig.profile.previewConfirmLabel': '应用预设',
+  'ModelConfig.profile.previewBackLabel': '返回',
   'ModelConfig.section.chat.title': '对话',
   'ModelConfig.section.chat.subtitle': '文本与流式对话',
   'ModelConfig.section.chat.detail': '用于织羽对话、文本生成和连续回复。',
   'ModelConfig.section.embed.title': '嵌入',
   'ModelConfig.section.embed.subtitle': '文本向量',
   'ModelConfig.section.embed.detail': '用于记忆召回和文本嵌入预览。',
+  'ModelConfig.section.tts.title': '文本转语音',
+  'ModelConfig.section.tts.subtitle': '语音合成与声音工作流',
+  'ModelConfig.section.tts.detail': '用于伙伴语音、朗读和声音生成工作流。',
+  'ModelConfig.section.stt.title': '语音转文本',
+  'ModelConfig.section.stt.subtitle': '语音识别',
+  'ModelConfig.section.stt.detail': '用于把用户语音转换为文本输入。',
   'ModelConfig.section.image.title': '图像',
   'ModelConfig.section.image.subtitle': '对话图像产物',
   'ModelConfig.section.image.detail': '用于伙伴对话中返回的图像产物。',
+  'ModelConfig.section.video.title': '视频',
+  'ModelConfig.section.video.subtitle': '视频生成',
+  'ModelConfig.section.video.detail': '用于伙伴对话中返回的视频产物。',
+  'ModelConfig.section.voice.title': '声音',
+  'ModelConfig.section.voice.subtitle': '声音工作流',
+  'ModelConfig.section.voice.detail': '用于声音克隆、声音设计等工作流。',
+  'ModelConfig.section.world.title': '世界',
+  'ModelConfig.section.world.subtitle': '世界生成',
+  'ModelConfig.section.world.detail': '用于世界与叙事上下文生成。',
   'ModelConfig.section.audio.title': '语音',
   'ModelConfig.section.audio.subtitle': '语音合成',
   'ModelConfig.section.audio.detail': '用于伙伴语音与朗读产物。',
   'ModelConfig.capability.textGenerate.title': '文本生成',
   'ModelConfig.capability.textGenerate.subtitle': '文字模型',
   'ModelConfig.capability.textGenerate.detail': '织羽对话与连续回复共用此文字模型绑定。',
+  'ModelConfig.capability.audioSynthesize.title': '文本转语音',
+  'ModelConfig.capability.audioSynthesize.subtitle': '语音合成模型',
+  'ModelConfig.capability.audioSynthesize.detail': '为伙伴朗读和语音回复选择语音合成模型。',
+  'ModelConfig.capability.audioTranscribe.title': '语音转文本',
+  'ModelConfig.capability.audioTranscribe.subtitle': '语音识别模型',
+  'ModelConfig.capability.audioTranscribe.detail': '为语音输入选择转写模型。',
+  'ModelConfig.capability.voiceWorkflowVoiceClone.title': '声音克隆',
+  'ModelConfig.capability.voiceWorkflowVoiceClone.subtitle': '声音工作流',
+  'ModelConfig.capability.voiceWorkflowVoiceClone.detail': '为声音克隆工作流选择模型或服务。',
+  'ModelConfig.capability.voiceWorkflowVoiceDesign.title': '声音设计',
+  'ModelConfig.capability.voiceWorkflowVoiceDesign.subtitle': '声音工作流',
+  'ModelConfig.capability.voiceWorkflowVoiceDesign.detail': '为声音设计工作流选择模型或服务。',
   'ModelConfig.capability.textEmbed.title': '文本嵌入',
   'ModelConfig.capability.textEmbed.subtitle': '嵌入模型',
   'ModelConfig.capability.textEmbed.detail': '为记忆与相似度召回选择嵌入模型。',
   'ModelConfig.capability.imageGenerate.title': '对话图像产物',
   'ModelConfig.capability.imageGenerate.subtitle': '图像模型',
   'ModelConfig.capability.imageGenerate.detail': '为伙伴对话中返回的图像产物选择上游模型。',
+  'ModelConfig.capability.imageEdit.title': '图像编辑',
+  'ModelConfig.capability.imageEdit.subtitle': '图像模型',
+  'ModelConfig.capability.imageEdit.detail': '为图像编辑和二次生成选择模型。',
+  'ModelConfig.capability.videoGenerate.title': '视频生成',
+  'ModelConfig.capability.videoGenerate.subtitle': '视频模型',
+  'ModelConfig.capability.videoGenerate.detail': '为伙伴对话中返回的视频产物选择模型。',
   'ModelConfig.hub.detailTitleFormat': '{{section}} 配置',
   'ModelConfig.hub.backLabel': '返回模型配置',
   'ModelConfig.hub.activeModelLabel': '当前模型',
@@ -142,7 +201,12 @@ const ZHIYU_MODEL_CONFIG_SUPER_SECTIONS: readonly ModelConfigSuperSection[] = [
   {
     id: 'media',
     label: '媒体',
-    sections: ['image'],
+    sections: ['image', 'video'],
+  },
+  {
+    id: 'world',
+    label: '世界',
+    sections: ['world'],
   },
 ];
 
@@ -318,7 +382,7 @@ export function ZhiyuAiConfigSettings({
       profile={profileController}
       initialSection={initialSection}
       detailActiveModelHint={null}
-      className={variant === 'embedded' ? 'zhiyu-ai-config-embedded__model-hub' : 'zhiyu-ai-config-drawer__model-hub'}
+      className={variant === 'embedded' ? 'zhiyu-ai-config-embedded__model-hub space-y-5' : 'zhiyu-ai-config-drawer__model-hub space-y-5'}
       superSections={ZHIYU_MODEL_CONFIG_SUPER_SECTIONS}
     />
   );
@@ -378,16 +442,26 @@ export function ZhiyuAiConfigSettings({
 function createZhiyuCapabilityOverrides(): AppModelConfigSurface['capabilityOverrides'] {
   return {
     'text.generate': { placeholder: '选择文字模型' },
-    'chat.stream': { placeholder: '选择对话模型' },
+    'audio.synthesize': { placeholder: '选择语音合成模型' },
+    'audio.transcribe': { placeholder: '选择语音识别模型' },
+    'voice_workflow.voice_clone': { placeholder: '选择声音克隆工作流' },
+    'voice_workflow.voice_design': { placeholder: '选择声音设计工作流' },
     'text.embed': { placeholder: '选择嵌入模型' },
     'image.generate': { placeholder: '选择图像模型' },
+    'image.edit': { placeholder: '选择图像编辑模型' },
+    'video.generate': { placeholder: '选择视频模型' },
   };
 }
 
 function capabilityTitle(capabilityId: string): string {
   if (capabilityId === 'text.generate') return '文本生成';
-  if (capabilityId === 'chat.stream') return '连续回复';
+  if (capabilityId === 'audio.synthesize') return '文本转语音';
+  if (capabilityId === 'audio.transcribe') return '语音转文本';
+  if (capabilityId === 'voice_workflow.voice_clone') return '声音克隆';
+  if (capabilityId === 'voice_workflow.voice_design') return '声音设计';
   if (capabilityId === 'text.embed') return '文本嵌入';
   if (capabilityId === 'image.generate') return '对话图像产物';
+  if (capabilityId === 'image.edit') return '图像编辑';
+  if (capabilityId === 'video.generate') return '视频生成';
   return capabilityId;
 }

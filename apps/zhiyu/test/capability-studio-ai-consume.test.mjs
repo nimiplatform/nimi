@@ -59,7 +59,7 @@ test('Zhiyu Capability Studio delegates core AI consume to the shared Kit helper
   assert.equal(delegated.surfaceId, 'zhiyu.capability-studio.chat.stream');
   assert.deepEqual(delegated.metadata, {
     productSurface: 'capability-studio',
-    zhiyuSurface: 'agent-home',
+    zhiyuSurface: 'agent-chat',
   });
   assert.equal(typeof delegated.onPartial, 'function');
   assert.deepEqual(captured[1], ['partial', 'shared partial']);

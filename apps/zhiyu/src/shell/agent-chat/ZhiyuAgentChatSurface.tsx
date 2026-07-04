@@ -1,5 +1,4 @@
 import {
-  Button,
   StatusBadge,
   Surface,
 } from '@nimiplatform/kit/ui';
@@ -24,12 +23,10 @@ import type {
 } from '../app/home-product-state';
 import type { ZhiyuIdentityFloorState } from '../app/identity-floor-state';
 import { CompanionStateSection } from '../app/home-companion-state-section';
-import { DeveloperBackstageSurface } from '../app/home-developer-backstage';
 import { DelegationUxSection } from '../app/home-delegation-ux-section';
 import { DiaryReflectionSection } from '../app/home-diary-reflection-section';
 import {
   DesktopPresenceRail,
-  RelationshipRail,
 } from './ZhiyuAgentPanel';
 import {
   chatBlockedHint,
@@ -38,7 +35,6 @@ import {
   conversationMessagesForDisplay,
   currentPartnerDisplayName,
   formatZhiyuTranscriptDateLabel,
-  primaryActionForStage,
 } from './ZhiyuAgentChatLabels';
 import {
   ComposerAvatarButton,
@@ -53,15 +49,14 @@ import {
   type RightPanelMode,
 } from './ZhiyuAgentRightPanel';
 import { MemoryObservatorySection } from '../app/home-memory-observatory-section';
-import { ProposalIntakeSection } from '../app/home-proposal-intake-section';
 import {
   AvatarPresenceSection,
   CapabilityRoomSection,
-  DiagnosticSurface,
   IdentityFloorSection,
   formatReasonLabel,
 } from '../app/home-surface-sections';
 import { ZHIYU_PRODUCT_STORYBOOK_VERSION } from '../app/zhiyu-product-storybook';
+import { AgentCenterProposalSection } from './AgentCenterProposalSection';
 import '../app/home-surface.css';
 
 export type ZhiyuAgentChatSurfaceProps = {
@@ -140,7 +135,7 @@ export function ZhiyuAgentChatSurface({
     : null;
   const chatFooter = evidence.chat.state === 'streaming' ? (
     <div
-      className="zhiyu-home__chat-stream-footer"
+      className="zhiyu-chat-canvas__stream-footer"
       data-zhiyu-agent-chat-stop-state="available"
     >
       <ChatStreamStatus
@@ -151,7 +146,7 @@ export function ZhiyuAgentChatSurface({
       />
       <button
         type="button"
-        className="zhiyu-home__chat-stop-button"
+        className="zhiyu-chat-canvas__stop-button"
         data-zhiyu-chat-stop-action="true"
         data-zhiyu-agent-chat-stop-state="available"
         aria-label="停止当前回复"
@@ -162,7 +157,6 @@ export function ZhiyuAgentChatSurface({
       </button>
     </div>
   ) : null;
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
   const [activeAgentTab, setActiveAgentTab] = useState<AgentPanelTab>('overview');
   const chatTranscriptViewportRef = useRef<HTMLDivElement>(null);
@@ -180,7 +174,6 @@ export function ZhiyuAgentChatSurface({
   const primaryMemorySurface = product.gatedSurfaces.find((surface) => surface.key === 'memory');
   const primaryAvatarSurface = product.gatedSurfaces.find((surface) => surface.key === 'avatar');
   const primaryCompanionSurface = product.gatedSurfaces.find((surface) => surface.key === 'companion');
-  const primaryAction = primaryActionForStage(product.stage);
   const openModelConfig = () => {
     setRightPanelMode('agent');
     setActiveAgentTab('model');
@@ -193,22 +186,13 @@ export function ZhiyuAgentChatSurface({
     setRightPanelMode('agent');
     setActiveAgentTab('behavior');
   };
+  const openAgentOverview = () => {
+    setRightPanelMode('agent');
+    setActiveAgentTab('overview');
+  };
   const openAdvancedSettings = () => {
     setRightPanelMode('agent');
     setActiveAgentTab('advanced');
-  };
-  const handlePrimaryAction = () => {
-    if (primaryAction.kind === 'configure-model') {
-      openModelConfig();
-      return;
-    }
-    if (primaryAction.kind === 'start-chat') {
-      const textarea = composerRootRef.current?.querySelector<HTMLTextAreaElement>('textarea');
-      textarea?.focus();
-      composerRootRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      return;
-    }
-    setDiagnosticsOpen(true);
   };
   useLayoutEffect(() => {
     if (evidence.chat.messageCount <= 0) {
@@ -268,7 +252,7 @@ export function ZhiyuAgentChatSurface({
     }
     if (surface.key === 'proposal') {
       return (
-        <ProposalIntakeSection
+        <AgentCenterProposalSection
           key={surface.key}
           surface={surface}
           proposal={evidence.proposal}
@@ -310,38 +294,54 @@ export function ZhiyuAgentChatSurface({
   };
   return (
     <main
-      className="zhiyu-home"
+      className="zhiyu-agent-chat"
       data-zhiyu-screen="home"
       data-zhiyu-product-stage={product.stage}
       data-zhiyu-readiness-score={product.readinessScore}
+      data-zhiyu-agent-chat-shell="primary"
       data-zhiyu-storybook-version={ZHIYU_PRODUCT_STORYBOOK_VERSION}
     >
       <div
-        className="zhiyu-home__workspace"
+        className="zhiyu-agent-chat__workspace"
         data-zhiyu-product-shell="workspace"
         data-zhiyu-primary-ui="true"
       >
       <div
-        className={`zhiyu-home__layout zhiyu-home__shell-grid${rightPanelMode === 'closed' ? ' is-side-closed' : ''}`}
+        className={`zhiyu-agent-chat__layout${rightPanelMode === 'closed' ? ' is-side-closed' : ''}`}
         data-zhiyu-side-panel-state={rightPanelMode}
+        data-zhiyu-relationship-rail-state={evidence.inventory.localAgents.length > 0 ? 'available' : 'empty'}
       >
         <DesktopPresenceRail
           evidence={evidence}
-          product={product}
-          diagnosticsOpen={diagnosticsOpen}
-          onOpenDiagnostics={() => setDiagnosticsOpen(true)}
+          agents={evidence.inventory.localAgents.map((agent) => ({
+            itemKey: agent.localAgentRef,
+            localAgentRef: agent.localAgentRef,
+            displayName: agent.displayName,
+          }))}
+          currentLocalAgentRef={evidence.localAgent.localAgentRef}
+          currentPartnerName={currentPartnerName}
+          hasCurrentPartner={hasCurrentPartner}
+          onOpenCurrentAgent={() => {
+            setRightPanelMode('agent');
+            setActiveAgentTab('overview');
+          }}
+          onOpenSettings={openAdvancedSettings}
+          onSelectLocalAgent={(localAgentRef) => {
+            setActiveAgentTab('overview');
+            onSelectLocalAgent(localAgentRef);
+          }}
         />
 
         <Surface
           as="section"
-          className="zhiyu-home__conversation"
+          className="zhiyu-chat-canvas"
           data-zhiyu-region="conversation"
           material="glass-thin"
           elevation="base"
           padding="md"
         >
           <div
-            className="zhiyu-home__chat-shell"
+            className="zhiyu-chat-canvas__shell"
             data-zhiyu-agent-chat-state={evidence.chat.state}
             data-zhiyu-agent-chat-ready={String(evidence.chat.ready)}
             data-zhiyu-agent-chat-reason={evidence.chat.reasonCode}
@@ -350,7 +350,7 @@ export function ZhiyuAgentChatSurface({
             data-zhiyu-agent-chat-request-id={evidence.chat.requestId ?? 'not_projected'}
             data-zhiyu-agent-chat-anchor-id={evidence.chat.conversationAnchorId ?? 'not_projected'}
           >
-            <div ref={chatTranscriptViewportRef} className="zhiyu-home__chat-transcript">
+            <div ref={chatTranscriptViewportRef} className="zhiyu-chat-canvas__transcript">
               <CanonicalTranscriptView
                 messages={conversationMessagesForDisplay(evidence.chat.messages, primaryPartnerName)}
                 activeConversationId={evidence.conversation.conversationAnchorId}
@@ -375,7 +375,7 @@ export function ZhiyuAgentChatSurface({
             ) : null}
             <div
               ref={composerRootRef}
-              className="zhiyu-home__composer"
+              className="zhiyu-chat-canvas__composer"
               data-zhiyu-composer-state={composerState}
               data-zhiyu-submit-enabled={String(submitEnabled)}
             >
@@ -409,25 +409,25 @@ export function ZhiyuAgentChatSurface({
                   />
                 )}
                 layout="stacked"
-                className="zhiyu-home__canonical-composer"
+                className="zhiyu-chat-canvas__canonical-composer"
               />
             </div>
           </div>
-          <div className="zhiyu-home__conversation-status">
-            <span className="zhiyu-home__labeled-chip" data-zhiyu-labeled-chip="conversation">
-              <span className="zhiyu-home__chip-label">会话</span>
+          <div className="zhiyu-chat-canvas__status">
+            <span className="zhiyu-chat-canvas__labeled-chip" data-zhiyu-labeled-chip="conversation">
+              <span className="zhiyu-chat-canvas__chip-label">会话</span>
               <StatusBadge tone={evidence.conversation.ready ? 'success' : 'warning'} shape="dot">
                 {formatReasonLabel(evidence.conversation.ready, evidence.conversation.reasonCode)}
               </StatusBadge>
             </span>
-            <span className="zhiyu-home__labeled-chip" data-zhiyu-labeled-chip="route">
-              <span className="zhiyu-home__chip-label">模型</span>
+            <span className="zhiyu-chat-canvas__labeled-chip" data-zhiyu-labeled-chip="route">
+              <span className="zhiyu-chat-canvas__chip-label">模型</span>
               <StatusBadge tone={evidence.route.ready ? 'success' : 'warning'} shape="dot">
                 {formatReasonLabel(evidence.route.ready, evidence.route.reasonCode)}
               </StatusBadge>
             </span>
-            <span className="zhiyu-home__labeled-chip" data-zhiyu-labeled-chip="chat">
-              <span className="zhiyu-home__chip-label">回复</span>
+            <span className="zhiyu-chat-canvas__labeled-chip" data-zhiyu-labeled-chip="chat">
+              <span className="zhiyu-chat-canvas__chip-label">回复</span>
               <StatusBadge tone={evidence.chat.ready ? 'success' : evidence.chat.state === 'failed' ? 'danger' : evidence.chat.state === 'idle' ? 'neutral' : 'warning'} shape="dot">
                 {chatReplyChipLabel(evidence)}
               </StatusBadge>
@@ -437,7 +437,7 @@ export function ZhiyuAgentChatSurface({
             data-zhiyu-conversation-state={evidence.conversation.reasonCode}
             data-zhiyu-conversation-source={evidence.conversation.source}
             data-zhiyu-conversation-ready={String(evidence.conversation.ready)}
-            className="zhiyu-home__evidence-line"
+            className="zhiyu-agent-chat__evidence-line"
           >
             {evidence.conversation.message}
           </p>
@@ -445,7 +445,7 @@ export function ZhiyuAgentChatSurface({
             data-zhiyu-route-state={evidence.route.reasonCode}
             data-zhiyu-route-source={evidence.route.source}
             data-zhiyu-route-ready={String(evidence.route.ready)}
-            className="zhiyu-home__evidence-line"
+            className="zhiyu-agent-chat__evidence-line"
           >
             {evidence.route.message}
           </p>
@@ -453,7 +453,7 @@ export function ZhiyuAgentChatSurface({
             data-zhiyu-turn-state={evidence.chat.reasonCode}
             data-zhiyu-turn-source={evidence.chat.source}
             data-zhiyu-turn-ready={String(evidence.chat.ready)}
-            className="zhiyu-home__evidence-line"
+            className="zhiyu-agent-chat__evidence-line"
           >
             {evidence.chat.message}
           </p>
@@ -468,6 +468,10 @@ export function ZhiyuAgentChatSurface({
             modelConfigLabel={modelConfigLabel}
             modelConfigContent={modelConfigContent}
             diagnostics={diagnostics}
+            capabilityRoom={capabilityRoom}
+            capabilityPrompt={capabilityPrompt}
+            capabilityStudioDisabled={capabilityStudioDisabled}
+            showCapabilityStudio={showCapabilityStudio}
             technicalSurfaces={technicalSurfaces}
             primaryMemorySurface={primaryMemorySurface}
             primaryCompanionSurface={primaryCompanionSurface}
@@ -477,76 +481,14 @@ export function ZhiyuAgentChatSurface({
             onActiveTabChange={setActiveAgentTab}
             onClose={() => setRightPanelMode('closed')}
             onOpenModelConfig={openModelConfig}
+            onCapabilityPromptChange={onCapabilityPromptChange}
+            onCapabilityStudioRun={onCapabilityStudioRun}
+            onSelectPartner={() => setActiveAgentTab('overview')}
             onAvatarLaunch={onAvatarLaunch}
             renderGatedSurface={renderGatedSurface}
           />
         ) : null}
-        <RelationshipRail
-          agents={evidence.inventory.localAgents.map((agent) => ({
-            itemKey: agent.localAgentRef,
-            localAgentRef: agent.localAgentRef,
-            displayName: agent.displayName,
-          }))}
-          currentLocalAgentRef={evidence.localAgent.localAgentRef}
-          currentPartnerName={currentPartnerName}
-          hasCurrentPartner={hasCurrentPartner}
-          primaryActionKind={primaryAction.kind}
-          runtimeReady={evidence.runtime.ready}
-          onPrimaryAction={handlePrimaryAction}
-          onOpenDiagnostics={() => setDiagnosticsOpen(true)}
-          onOpenSettings={openAdvancedSettings}
-          onSelectLocalAgent={(localAgentRef) => {
-            setActiveAgentTab('overview');
-            onSelectLocalAgent(localAgentRef);
-          }}
-        />
       </div>
-      </div>
-      <div
-        id="zhiyu-diagnostics-drawer"
-        className="zhiyu-home__diagnostics-layer"
-        data-zhiyu-diagnostics-drawer={diagnosticsOpen ? 'open' : 'closed'}
-        hidden={!diagnosticsOpen}
-      >
-        <aside
-          className="zhiyu-home__diagnostics-drawer"
-          role="dialog"
-          aria-modal="false"
-          aria-label="Runtime diagnostics"
-        >
-          <div className="zhiyu-home__diagnostics-header">
-            <div>
-              <strong>Runtime 诊断</strong>
-              <span>技术投影和未开放能力保留在这里，不污染主工作区。</span>
-            </div>
-            <Button
-              type="button"
-              tone="secondary"
-              size="sm"
-              leadingIcon={<X size={15} aria-hidden="true" />}
-              data-zhiyu-diagnostics-toggle="close"
-              onClick={() => setDiagnosticsOpen(false)}
-            >
-              关闭
-            </Button>
-          </div>
-          <div className="zhiyu-home__diagnostics-content">
-            <DeveloperBackstageSurface
-              evidence={evidence}
-              capabilityRoom={capabilityRoom}
-              capabilityPrompt={capabilityPrompt}
-              capabilityStudioDisabled={capabilityStudioDisabled}
-              showCapabilityStudio={showCapabilityStudio}
-              hasCurrentPartner={hasCurrentPartner}
-              onCapabilityPromptChange={onCapabilityPromptChange}
-              onCapabilityStudioRun={onCapabilityStudioRun}
-              onOpenModelConfig={openModelConfig}
-              onSelectPartner={() => setDiagnosticsOpen(true)}
-            />
-            {technicalSurfaces.map(renderGatedSurface)}
-            <DiagnosticSurface diagnostics={diagnostics} />
-          </div>
-        </aside>
       </div>
     </main>
   );

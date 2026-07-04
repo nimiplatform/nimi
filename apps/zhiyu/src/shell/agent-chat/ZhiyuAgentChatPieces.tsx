@@ -325,13 +325,13 @@ export function RightPanelRow({
   readonly onClick?: () => void;
 }) {
   return (
-    <button type="button" className="zhiyu-home__panel-row" data-zhiyu-panel-row={title} onClick={onClick}>
-      <span className={`zhiyu-home__panel-row-index is-${tone}`}>{tone === 'ready' ? '✓' : index}</span>
-      <span className="zhiyu-home__panel-row-copy">
+    <button type="button" className="zhiyu-agent-center__panel-row" data-zhiyu-panel-row={title} onClick={onClick}>
+      <span className={`zhiyu-agent-center__panel-row-index is-${tone}`}>{tone === 'ready' ? '✓' : index}</span>
+      <span className="zhiyu-agent-center__panel-row-copy">
         <strong>{title}</strong>
         {detail ? <small>{detail}</small> : null}
       </span>
-      <span className={`zhiyu-home__panel-row-status is-${tone}`}>{status}</span>
+      <span className={`zhiyu-agent-center__panel-row-status is-${tone}`}>{status}</span>
     </button>
   );
 }
@@ -346,7 +346,7 @@ export function KeyValue({
   readonly badge?: string;
 }) {
   return (
-    <div className="zhiyu-home__kv-row">
+    <div className="zhiyu-agent-center__kv-row">
       <span>{label}</span>
       <strong>{String(value ?? '未投影')}</strong>
       {badge ? <em>{badge}</em> : null}

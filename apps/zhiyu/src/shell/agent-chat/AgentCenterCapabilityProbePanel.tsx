@@ -8,13 +8,13 @@ import {
   AudioLines,
   Sparkles,
 } from 'lucide-react';
-import type { ZhiyuEvidence } from './evidence';
-import type { ZhiyuCapabilityStudioCapabilityId } from './developer-capability-studio';
-import type { ZhiyuCapabilityRoomState } from './capability-room-state';
-import { HomeCapabilitySetupSection } from './home-capability-setup-section';
-import { formatProjectionValue } from './home-surface-sections';
+import type { ZhiyuEvidence } from '../app/evidence';
+import type { ZhiyuCapabilityStudioCapabilityId } from '../app/developer-capability-studio';
+import type { ZhiyuCapabilityRoomState } from '../app/capability-room-state';
+import { formatProjectionValue } from '../app/home-surface-sections';
+import { AgentCenterCapabilitySetupSection } from './AgentCenterCapabilitySetupSection';
 
-export type DeveloperBackstageSurfaceProps = {
+export type AgentCenterCapabilityProbePanelProps = {
   readonly evidence: ZhiyuEvidence;
   readonly capabilityRoom: ZhiyuCapabilityRoomState;
   readonly capabilityPrompt: string;
@@ -34,7 +34,7 @@ const CAPABILITY_ACTIONS = [
   'audio.synthesize',
 ] as const;
 
-export function DeveloperBackstageSurface({
+export function AgentCenterCapabilityProbePanel({
   evidence,
   capabilityRoom,
   capabilityPrompt,
@@ -45,30 +45,30 @@ export function DeveloperBackstageSurface({
   onCapabilityStudioRun,
   onOpenModelConfig,
   onSelectPartner,
-}: DeveloperBackstageSurfaceProps) {
+}: AgentCenterCapabilityProbePanelProps) {
   return (
     <div
-      className="zhiyu-home__developer-backstage"
-      data-zhiyu-developer-backstage="open"
+      className="zhiyu-agent-center__capability-probe"
+      data-zhiyu-agent-center-capability-probe="open"
       data-zhiyu-devmode-ai-consume="kit-generation"
       data-zhiyu-devmode-audio-synthesize="kit-generation"
     >
       <Surface
         as="section"
-        className="zhiyu-home__developer-overview"
-        data-zhiyu-region="developer-backstage"
+        className="zhiyu-agent-center__capability-overview"
+        data-zhiyu-region="agent-center-capability-probe"
         material="glass-thin"
         elevation="base"
         padding="md"
       >
-        <div className="zhiyu-home__section-heading">
+        <div className="zhiyu-agent-center__section-heading">
           <Sparkles size={18} aria-hidden="true" />
           <div>
             <h2>开发者后台</h2>
             <p>能力消费、链路状态和失败原因保留在这里；主界面只呈现伙伴体验。</p>
           </div>
         </div>
-        <div className="zhiyu-home__developer-route-grid" aria-label="开发者后台链路摘要">
+        <div className="zhiyu-agent-center__capability-route-grid" aria-label="能力探针链路摘要">
           <span>伙伴：{formatProjectionValue(evidence.localAgent.localAgentRef)}</span>
           <span>对话：{formatProjectionValue(evidence.conversation.conversationAnchorId)}</span>
           <span>文字：{formatProjectionValue(evidence.route.targetRefKinds['text.generate'])}</span>
@@ -81,7 +81,7 @@ export function DeveloperBackstageSurface({
       {showCapabilityStudio ? (
         <Surface
           as="section"
-          className="zhiyu-home__capability-studio"
+          className="zhiyu-agent-center__capability-studio"
           data-zhiyu-region="capability-studio"
           data-zhiyu-capability-studio={evidence.capabilityStudio.state}
           data-zhiyu-capability-studio-disabled={String(capabilityStudioDisabled)}
@@ -92,7 +92,7 @@ export function DeveloperBackstageSurface({
           elevation="base"
           padding="md"
         >
-          <div className="zhiyu-home__section-heading">
+          <div className="zhiyu-agent-center__section-heading">
             <Sparkles size={18} aria-hidden="true" />
             <div>
               <h2>能力探针</h2>
@@ -105,9 +105,9 @@ export function DeveloperBackstageSurface({
             onChange={(event) => onCapabilityPromptChange(event.currentTarget.value)}
             rows={3}
             placeholder="输入一段用于开发者后台验证的内容。"
-            textareaClassName="zhiyu-home__capability-studio-input"
+            textareaClassName="zhiyu-agent-center__capability-studio-input"
           />
-          <div className="zhiyu-home__capability-studio-actions">
+          <div className="zhiyu-agent-center__capability-studio-actions">
             {CAPABILITY_ACTIONS.map((capabilityId) => (
               <Button
                 key={capabilityId}
@@ -123,7 +123,7 @@ export function DeveloperBackstageSurface({
             ))}
           </div>
           <div
-            className="zhiyu-home__capability-studio-result"
+            className="zhiyu-agent-center__capability-studio-result"
             data-zhiyu-capability-studio-result-kind={evidence.capabilityStudio.resultKind}
             data-zhiyu-capability-studio-result-reason={evidence.capabilityStudio.reasonCode}
             data-zhiyu-capability-studio-result-trace={evidence.capabilityStudio.traceId ?? 'not_projected'}
@@ -134,7 +134,7 @@ export function DeveloperBackstageSurface({
             <p>{formatCapabilityStudioProductText(evidence)}</p>
             {evidence.capabilityStudio.resultKind === 'embedding' ? (
               <div
-                className="zhiyu-home__capability-studio-embedding"
+                className="zhiyu-agent-center__capability-studio-embedding"
                 data-zhiyu-capability-studio-vector-count={String(evidence.capabilityStudio.vectorCount ?? 0)}
                 data-zhiyu-capability-studio-dimensions={String(evidence.capabilityStudio.dimensions ?? 0)}
                 data-zhiyu-capability-studio-sample={evidence.capabilityStudio.sample.join(',')}
@@ -146,7 +146,7 @@ export function DeveloperBackstageSurface({
             ) : null}
             {evidence.capabilityStudio.resultKind === 'audio' ? (
               <div
-                className="zhiyu-home__capability-studio-audio"
+                className="zhiyu-agent-center__capability-studio-audio"
                 data-zhiyu-capability-studio-audio-job-id={evidence.capabilityStudio.audioJobId ?? 'not_projected'}
                 data-zhiyu-capability-studio-audio-artifact-count={String(evidence.capabilityStudio.audioArtifactCount ?? 0)}
                 data-zhiyu-capability-studio-audio-mime={evidence.capabilityStudio.audioMimeType ?? 'not_projected'}
@@ -159,7 +159,7 @@ export function DeveloperBackstageSurface({
           </div>
         </Surface>
       ) : (
-        <HomeCapabilitySetupSection
+        <AgentCenterCapabilitySetupSection
           hasCurrentPartner={hasCurrentPartner}
           onConfigureModel={onOpenModelConfig}
           onSelectPartner={onSelectPartner}

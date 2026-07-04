@@ -4,10 +4,10 @@ import {
   Surface,
 } from '@nimiplatform/kit/ui';
 import { FilePlus2 } from 'lucide-react';
-import type { ZhiyuEvidence } from './evidence';
-import type { ZhiyuHomeGatedSurface } from './home-product-state';
+import type { ZhiyuEvidence } from '../app/evidence';
+import type { ZhiyuHomeGatedSurface } from '../app/home-product-state';
 
-export function ProposalIntakeSection({
+export function AgentCenterProposalSection({
   surface,
   proposal,
   onSubmit,
@@ -19,7 +19,7 @@ export function ProposalIntakeSection({
   return (
     <Surface
       as="section"
-      className="zhiyu-home__gated zhiyu-home__proposal-intake"
+      className="zhiyu-agent-center__gated zhiyu-agent-center__proposal"
       data-zhiyu-region="proposal"
       data-zhiyu-gated-surface="proposal"
       data-zhiyu-proposal-ready={String(proposal.ready)}
@@ -33,21 +33,21 @@ export function ProposalIntakeSection({
       elevation="base"
       padding="md"
     >
-      <div className="zhiyu-home__section-heading">
+      <div className="zhiyu-agent-center__section-heading">
         <FilePlus2 size={18} aria-hidden="true" />
         <div>
           <h2>{surface.title}</h2>
           <p>{surface.description}</p>
         </div>
       </div>
-      <div className="zhiyu-home__proposal-summary">
+      <div className="zhiyu-agent-center__proposal-summary">
         <StatusBadge tone={proposal.ready ? 'success' : 'warning'} shape="dot">
           {proposal.ready ? '已提交' : '等待入口'}
         </StatusBadge>
         <span>{proposalKindLabel(proposal.proposalKind)}</span>
         <span>{proposalStateLabel(proposal.state)}</span>
       </div>
-      <div className="zhiyu-home__proposal-grid" aria-label="需求入口投影">
+      <div className="zhiyu-agent-center__proposal-grid" aria-label="需求入口投影">
         <ProposalField label="归属" value={proposalOwnerLabel(proposal.ownerDomain)} />
         <ProposalField label="能力" value={proposalCapabilityLabel(proposal.requestedCapabilityRef)} />
         <ProposalField label="风险" value={riskLabel(proposal.riskTier)} />
@@ -65,7 +65,7 @@ export function ProposalIntakeSection({
       >
         提交需求
       </Button>
-      <p className="zhiyu-home__action-hint">{proposal.actionHint}</p>
+      <p className="zhiyu-agent-center__action-hint">{proposal.actionHint}</p>
     </Surface>
   );
 }
@@ -113,7 +113,7 @@ function ProposalField({
   readonly value: string;
 }) {
   return (
-    <div className="zhiyu-home__proposal-field">
+    <div className="zhiyu-agent-center__proposal-field">
       <span>{label}</span>
       <strong>{value}</strong>
     </div>

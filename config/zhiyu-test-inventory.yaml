@@ -6,6 +6,16 @@ spec_policy_ref: .nimi/spec/zhiyu/kernel/tables/test-quarantine-policy.yaml
 default_status: non_authoritative_until_inventory
 note: File-name-level inventory only. Old tests, old e2e, and old release evidence are not product authority.
 tests:
+  - path: apps/zhiyu/test/agent-chat-layout-boundary.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-PROD-001, Z-CHAT-001, Z-DIAG-001, Z-GATE-001, Z-GATE-005]
+  - path: apps/zhiyu/test/agent-chat-rescue-boundary.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-PROD-001, Z-CHAT-001, Z-DIAG-001, Z-GATE-001, Z-GATE-005]
   - path: apps/zhiyu/test/agent-conversation-state.test.mjs
     classification: owner_boundary_guard_candidate
     may_enter_release_gate: after_upstream_and_zhiyu_refs

@@ -94,24 +94,36 @@ test('Zhiyu agent route readiness reads selected NimiAIConfig target refs for re
   assert.equal(route.aiConfigScopeOwnerId, 'nimi.zhiyu');
   assert.deepEqual(route.enabledCapabilities, [
     'text.generate',
-    'chat.stream',
-    'text.embed',
-    'image.generate',
     'audio.synthesize',
+    'audio.transcribe',
+    'voice_workflow.voice_clone',
+    'voice_workflow.voice_design',
+    'image.generate',
+    'image.edit',
+    'video.generate',
+    'text.embed',
   ]);
   assert.deepEqual(route.bindingCapabilities, {
     'text.generate': 'text.generate',
-    'chat.stream': 'text.generate',
-    'text.embed': 'text.embed',
-    'image.generate': 'image.generate',
     'audio.synthesize': 'audio.synthesize',
+    'audio.transcribe': 'audio.transcribe',
+    'voice_workflow.voice_clone': 'voice_workflow.voice_clone',
+    'voice_workflow.voice_design': 'voice_workflow.voice_design',
+    'image.generate': 'image.generate',
+    'image.edit': 'image.edit',
+    'video.generate': 'video.generate',
+    'text.embed': 'text.embed',
   });
   assert.deepEqual(route.targetRefKinds, {
     'text.generate': 'local-runtime',
-    'chat.stream': 'local-runtime',
-    'text.embed': 'local-runtime',
-    'image.generate': 'local-runtime',
     'audio.synthesize': 'local-runtime',
+    'audio.transcribe': null,
+    'voice_workflow.voice_clone': null,
+    'voice_workflow.voice_design': null,
+    'image.generate': 'local-runtime',
+    'image.edit': null,
+    'video.generate': null,
+    'text.embed': 'local-runtime',
   });
   assert.equal(route.executionBinding.route, 'local');
   assert.equal(route.executionBinding.modelId, 'runtime-text-model');
@@ -155,9 +167,14 @@ test('Zhiyu agent route readiness fails closed until AIConfig text target is sel
   assert.equal(route.reasonCode, 'zhiyu-ai-config-route-selection-required');
   assert.equal(route.executionBinding, null);
   assert.equal(route.targetRefKinds['text.generate'], null);
-  assert.equal(route.targetRefKinds['chat.stream'], null);
   assert.equal(route.targetRefKinds['image.generate'], 'local-runtime');
   assert.equal(route.targetRefKinds['audio.synthesize'], null);
+  assert.equal(route.targetRefKinds['audio.transcribe'], null);
+  assert.equal(route.targetRefKinds['voice_workflow.voice_clone'], null);
+  assert.equal(route.targetRefKinds['voice_workflow.voice_design'], null);
+  assert.equal(route.targetRefKinds['image.edit'], null);
+  assert.equal(route.targetRefKinds['video.generate'], null);
+  assert.equal(route.targetRefKinds['text.embed'], null);
 });
 
 test('Zhiyu agent turn readiness requires both execution binding and Runtime authority binding evidence', async () => {

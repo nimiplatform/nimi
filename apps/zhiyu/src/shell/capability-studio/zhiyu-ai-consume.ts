@@ -46,8 +46,8 @@ export async function runZhiyuCapabilityStudioAIConsume(
       subjectUserId: input.subjectUserId,
       surfaceId: 'zhiyu.capability-studio.audio.synthesize',
       metadata: {
-        productSurface: 'developer-backstage',
-        zhiyuSurface: 'agent-home',
+        productSurface: 'agent-center-advanced',
+        zhiyuSurface: 'agent-chat',
       },
       withScopes: input.withScopes,
     });
@@ -66,7 +66,7 @@ export async function runZhiyuCapabilityStudioAIConsume(
     surfaceId: `zhiyu.capability-studio.${input.capabilityId}`,
     metadata: {
       productSurface: 'capability-studio',
-      zhiyuSurface: 'agent-home',
+      zhiyuSurface: 'agent-chat',
     },
     onPartial: input.onPartial,
     withScopes: input.withScopes,

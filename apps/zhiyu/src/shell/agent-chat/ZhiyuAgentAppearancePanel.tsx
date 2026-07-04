@@ -287,19 +287,19 @@ export function AgentCenterAppearancePanel({
   ] as const;
   return (
     <div
-      className="zhiyu-home__agent-appearance-tab"
+      className="zhiyu-agent-center__appearance-tab"
       data-zhiyu-agent-appearance-panel="true"
       data-zhiyu-agent-center-local-config={localConfig.ready ? 'electron' : 'blocked'}
       data-zhiyu-agent-center-local-config-reason={localConfigBlockReason}
       data-zhiyu-avatar-appearance-ready={String(assetConfigured)}
       data-zhiyu-avatar-appearance-reason={avatar.reasonCode}
     >
-      <section className="zhiyu-home__agent-section">
-        <div className="zhiyu-home__agent-section-head">
+      <section className="zhiyu-agent-center__section">
+        <div className="zhiyu-agent-center__section-head">
           <span>外观</span>
           <div>
             <h2>Avatar 设置</h2>
-            <em className={`zhiyu-home__agent-model-status is-${assetConfigured ? 'ready' : 'attention'}`}>
+            <em className={`zhiyu-agent-center__status is-${assetConfigured ? 'ready' : 'attention'}`}>
               {avatarStatusLabel}
             </em>
           </div>
@@ -316,7 +316,7 @@ export function AgentCenterAppearancePanel({
               </div>
               <small>{avatarAssetRef ?? '缺失'}</small>
             </div>
-            <em className={`zhiyu-home__panel-row-status is-${assetConfigured ? 'ready' : 'attention'}`}>
+            <em className={`zhiyu-agent-center__panel-row-status is-${assetConfigured ? 'ready' : 'attention'}`}>
               {avatarStatusLabel}
             </em>
           </div>

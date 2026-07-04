@@ -135,6 +135,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       const modelConfig = page.locator('[data-zhiyu-ai-config-embedded="agent-center"]');
       await modelConfig.waitFor({ timeout: 15_000 });
       assert.equal(await page.locator('[data-zhiyu-ai-config-drawer="open"]').count(), 0);
+      await assertAgentCenterModelPanelLayout(page, 'real local agent model panel');
       await captureRealLocalAgentEvidence(page, 'model-panel', pageProblems, {
         targetAgent,
         selectedEvidence,
@@ -226,7 +227,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
 });
 
 async function assertProductDesignRegions(page) {
-  for (const region of ['presence', 'conversation', 'relationship-rail']) {
+  for (const region of ['presence', 'conversation']) {
     await page.locator(`[data-zhiyu-region="${region}"]`).first().waitFor({ state: 'visible', timeout: 15_000 });
   }
   assert.equal(
@@ -269,18 +270,19 @@ async function assertRelationshipRail(page, expectedCount) {
     expectedCount,
     'Desktop relationship rail must render every Runtime LocalAgent returned by listAgents',
   );
-  await page.locator('[data-zhiyu-settings-entry="relationship-rail"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await page.locator('[data-zhiyu-settings-entry="presence-rail"]').waitFor({ state: 'visible', timeout: 15_000 });
 }
 
 async function assertSettingsEntryRoutesToAgentCenter(page, pageProblems, evidence) {
-  await page.locator('[data-zhiyu-settings-entry="relationship-rail"]').click();
+  await page.locator('[data-zhiyu-settings-entry="presence-rail"]').click();
   await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
   await page.locator('[data-zhiyu-agent-center-tab-button="advanced"][aria-current="page"]').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-advanced-panel="true"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await page.locator('[data-zhiyu-agent-panel-tab="advanced"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await page.locator('[data-zhiyu-agent-center-capability-probe="open"]').waitFor({ state: 'visible', timeout: 15_000 });
   assert.equal(
     await page.locator('[data-zhiyu-settings-panel="right"]').count(),
     0,
-    'relationship rail settings entry must route to Agent Center advanced tab, not a second settings panel',
+    'presence rail settings entry must route to Agent Center advanced tab, not a second settings panel',
   );
   assert.equal(
     await page.locator('[data-zhiyu-agent-panel-footer-tab]').count(),
@@ -424,6 +426,89 @@ async function assertComposerModeTools(page) {
   assert.equal(await voiceTool.isDisabled(), true);
 }
 
+async function assertAgentCenterModelPanelLayout(page, label) {
+  await page.setViewportSize({ width: 1900, height: 1280 });
+  const metrics = await page.evaluate(() => {
+    const box = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return null;
+      }
+      const rect = element.getBoundingClientRect();
+      return {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+        right: rect.right,
+        bottom: rect.bottom,
+      };
+    };
+    const embedded = document.querySelector('[data-zhiyu-ai-config-embedded="agent-center"]');
+    const embeddedStyle = embedded ? getComputedStyle(embedded) : null;
+    const modelCard = document.querySelector('.zhiyu-agent-center__model-config-card');
+    const modelCardStyle = modelCard ? getComputedStyle(modelCard) : null;
+    return {
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+      panel: box('[data-zhiyu-region="agent-panel"]'),
+      header: box('[data-zhiyu-agent-center-header="true"]'),
+      tabs: box('.zhiyu-agent-center__tabs'),
+      modelCard: box('.zhiyu-agent-center__model-config-card'),
+      embedded: box('[data-zhiyu-ai-config-embedded="agent-center"]'),
+      routeCard: box('[data-zhiyu-agent-model-route-card="true"]'),
+      composer: box('.zhiyu-chat-canvas__composer [data-canonical-composer-width]'),
+      textarea: box('[data-chat-composer-textarea="true"]'),
+      embeddedOverflowY: embeddedStyle?.overflowY ?? null,
+      embeddedBackgroundColor: embeddedStyle?.backgroundColor ?? null,
+      embeddedBoxShadow: embeddedStyle?.boxShadow ?? null,
+      embeddedBorderStyle: embeddedStyle?.borderStyle ?? null,
+      embeddedPadding: embeddedStyle?.padding ?? null,
+      modelCardBackgroundColor: modelCardStyle?.backgroundColor ?? null,
+      modelCardBorderStyle: modelCardStyle?.borderStyle ?? null,
+      modelCardBorderRadius: modelCardStyle?.borderRadius ?? null,
+      visibleSections: [...document.querySelectorAll('[data-zhiyu-ai-config-embedded="agent-center"] [data-nimi-model-config-section]')]
+        .map((element) => element.getAttribute('data-nimi-model-config-section')),
+    };
+  });
+  assert.ok(metrics.panel, `${label}: Agent Center panel must render on wide desktop`);
+  assert.ok(metrics.header, `${label}: Agent Center header must render`);
+  assert.ok(metrics.tabs, `${label}: Agent Center tabs must render`);
+  assert.ok(metrics.routeCard, `${label}: model route card must render before embedded config`);
+  assert.ok(metrics.modelCard, `${label}: model config card must render`);
+  assert.ok(metrics.embedded, `${label}: embedded model config must render`);
+  assert.ok(metrics.composer, `${label}: composer must render`);
+  assert.ok(metrics.textarea, `${label}: composer textarea must render`);
+  assert.ok(metrics.panel.y <= 64, `${label}: Agent Center is vertically detached from desktop side-sheet rhythm: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.panel.height >= metrics.viewport.height - 112, `${label}: Agent Center should use the available desktop side-sheet height: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.tabs.y - metrics.header.bottom <= 80, `${label}: Agent Center tabs are detached from the header: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.routeCard.y - metrics.tabs.bottom <= 100, `${label}: Agent Center model content is detached from the tabs: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.modelCard.height <= 760, `${label}: embedded model config is stretching beyond the Desktop Agent Center model card: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.embedded.height <= metrics.modelCard.height + 2, `${label}: embedded model config must stay inside its card: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.embeddedOverflowY, 'visible', `${label}: embedded ModelConfig must not create a second scroll/card surface: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.embeddedBackgroundColor, 'rgba(0, 0, 0, 0)', `${label}: embedded ModelConfig must be transparent inside the Desktop card: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.embeddedBoxShadow, 'none', `${label}: embedded ModelConfig must not add a second shadow: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.embeddedBorderStyle, 'none', `${label}: embedded ModelConfig must not add a second border: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.embeddedPadding, '0px', `${label}: embedded ModelConfig must not add a second padding layer: ${JSON.stringify(metrics)}`);
+  assert.notEqual(metrics.modelCardBackgroundColor, 'rgba(0, 0, 0, 0)', `${label}: Desktop model card must own the visible background: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.modelCardBorderStyle, 'solid', `${label}: Desktop model card must own the visible border: ${JSON.stringify(metrics)}`);
+  assert.match(metrics.modelCardBorderRadius || '', /^14px\b/, `${label}: Desktop model card must use the Agent Center 14px radius: ${JSON.stringify(metrics)}`);
+  for (const section of ['chat', 'embed', 'tts', 'stt', 'image', 'video']) {
+    assert.ok(metrics.visibleSections.includes(section), `${label}: Desktop ModelConfig section ${section} is missing: ${JSON.stringify(metrics)}`);
+  }
+  assert.ok(metrics.textarea.height <= 80, `${label}: composer textarea should keep Kit compact auto-height when empty: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.composer.height <= 190, `${label}: composer surface is too tall for desktop agent chat: ${JSON.stringify(metrics)}`);
+  const { evidenceRoot } = resolveEvidenceRoot();
+  await mkdir(evidenceRoot, { recursive: true });
+  await page.screenshot({
+    path: path.join(evidenceRoot, 'real-local-agent-model-panel-wide.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+}
+
 async function assertConversationTopStripRemoved(page) {
   const conversation = page.locator('[data-zhiyu-region="conversation"]').first();
   assert.equal(await conversation.locator('.zhiyu-home__stage-topbar').count(), 0);
@@ -431,25 +516,33 @@ async function assertConversationTopStripRemoved(page) {
   assert.equal(await conversation.locator('[data-zhiyu-ai-config-chip]').count(), 0);
   assert.equal(await conversation.locator('[data-zhiyu-model-config-entry="conversation"]').count(), 0);
   assert.equal(await conversation.locator('button[aria-label="通知"], button[aria-label="账户"]').count(), 0);
+  assert.equal(await page.locator('[data-zhiyu-topbar-chrome="true"]').count(), 0);
+  assert.equal(await page.locator('[data-zhiyu-topbar-notifications="true"]').count(), 0);
+  assert.equal(await page.locator('[data-zhiyu-topbar-account="true"]').count(), 0);
+  assert.equal(await page.locator('[data-zhiyu-primary-action]').count(), 0);
 }
 
 async function assertProductDesignLayout(page, label) {
   await page.setViewportSize({ width: 1280, height: 900 });
+  await assertDesktopAgentChatVisualFidelity(page, label);
   const presence = await visibleBox(page.locator('[data-zhiyu-region="presence"]').first(), `${label} presence rail`);
   const conversation = await visibleBox(page.locator('[data-zhiyu-region="conversation"]').first(), `${label} conversation`);
   const relationship = await visibleBox(page.locator('[data-zhiyu-region="relationship-rail"]').first(), `${label} relationship rail`);
   const sidePanelState = await page.locator('[data-zhiyu-side-panel-state]').getAttribute('data-zhiyu-side-panel-state');
   assert.ok(presence.x < conversation.x, `${label}: presence rail should be left of conversation`);
-  assert.ok(relationship.width <= 76, `${label}: relationship rail should remain compact like Desktop`);
+  assert.ok(relationship.width <= presence.width, `${label}: contacts rail should remain inside the left presence rail`);
+  assert.ok(
+    relationship.x >= presence.x - 1 && relationship.x + relationship.width <= presence.x + presence.width + 1,
+    `${label}: contacts rail must be contained by the left presence rail`,
+  );
   assert.ok(conversation.width >= 520, `${label}: conversation should remain the primary desktop work area`);
   await assertDesktopRelationshipRailDensity(page, label);
   if (sidePanelState === 'closed') {
     assert.equal(await page.locator('[data-zhiyu-region="agent-panel"]').count(), 0, `${label}: Agent Center must be detached in closed layout`);
-    assert.ok(conversation.x + conversation.width <= relationship.x + 1, `${label}: closed conversation track should end before relationship rail`);
     const centered = await page.evaluate(() => {
       const conversationNode = document.querySelector('[data-zhiyu-region="conversation"]');
-      const transcript = document.querySelector('.zhiyu-home__chat-transcript [data-canonical-transcript-width]');
-      const composer = document.querySelector('.zhiyu-home__composer [data-canonical-composer-width]');
+      const transcript = document.querySelector('.zhiyu-chat-canvas__transcript [data-canonical-transcript-width]');
+      const composer = document.querySelector('.zhiyu-chat-canvas__composer [data-canonical-composer-width]');
       const conversationRect = conversationNode?.getBoundingClientRect();
       const transcriptRect = transcript?.getBoundingClientRect();
       const composerRect = composer?.getBoundingClientRect();
@@ -474,26 +567,108 @@ async function assertProductDesignLayout(page, label) {
   } else {
     const side = await visibleBox(page.locator('[data-zhiyu-region="agent-panel"]').first(), `${label} agent panel`);
     assert.ok(conversation.x < side.x, `${label}: conversation should be left of right agent panel`);
-    assert.ok(side.x < relationship.x, `${label}: relationship rail should sit to the right of Agent Center`);
     assert.ok(side.width >= 300, `${label}: right agent panel should have usable desktop width`);
     await assertDesktopAgentCenterSideSheetDensity(page, label);
   }
 
   await page.setViewportSize({ width: 390, height: 900 });
+  const narrowPresence = await visibleBox(page.locator('[data-zhiyu-region="presence"]').first(), `${label} narrow presence rail`);
   const narrowConversation = await visibleBox(page.locator('[data-zhiyu-region="conversation"]').first(), `${label} narrow conversation`);
   const narrowRelationship = await visibleBox(page.locator('[data-zhiyu-region="relationship-rail"]').first(), `${label} narrow relationship rail`);
   assert.ok(narrowConversation.width <= 390, `${label}: narrow conversation should not overflow the viewport`);
-  assert.ok(narrowRelationship.width <= 390, `${label}: narrow relationship rail should not overflow the viewport`);
+  assert.ok(narrowRelationship.width <= narrowPresence.width, `${label}: narrow contacts rail should stay inside the presence rail`);
+  assert.ok(narrowRelationship.x >= narrowPresence.x - 1 && narrowRelationship.x + narrowRelationship.width <= narrowPresence.x + narrowPresence.width + 1, `${label}: narrow contacts rail must be contained by the left presence rail`);
   if (sidePanelState === 'closed') {
     assert.equal(await page.locator('[data-zhiyu-region="agent-panel"]').count(), 0, `${label}: narrow closed layout must not render Agent Center`);
-    assert.ok(narrowRelationship.y > narrowConversation.y, `${label}: relationship rail should stack below conversation on narrow closed viewports`);
+    assert.ok(
+      narrowPresence.x < narrowConversation.x || narrowPresence.y < narrowConversation.y,
+      `${label}: narrow contacts rail should stay before the conversation`,
+    );
   } else {
     const narrowSide = await visibleBox(page.locator('[data-zhiyu-region="agent-panel"]').first(), `${label} narrow agent panel`);
-    assert.ok(narrowSide.y > narrowConversation.y, `${label}: agent panel should stack below conversation on narrow viewports`);
-    assert.ok(narrowRelationship.y > narrowSide.y, `${label}: relationship rail should stack below Agent Center on narrow viewports`);
+    const narrowGridDebug = await page.evaluate(() => {
+      const layout = document.querySelector('[data-zhiyu-side-panel-state]');
+      if (!layout) {
+        return { missing: true };
+      }
+      const style = getComputedStyle(layout);
+      return {
+        missing: false,
+        className: layout.getAttribute('class'),
+        state: layout.getAttribute('data-zhiyu-side-panel-state'),
+        gridTemplateAreas: style.gridTemplateAreas,
+        gridTemplateColumns: style.gridTemplateColumns,
+        gridTemplateRows: style.gridTemplateRows,
+        display: style.display,
+      };
+    });
+    assert.ok(
+      narrowSide.y > narrowConversation.y,
+      `${label}: agent panel should stack below conversation on narrow viewports: ${JSON.stringify({ narrowGridDebug, narrowPresence, narrowConversation, narrowRelationship, narrowSide })}`,
+    );
+    assert.ok(
+      narrowPresence.x < narrowConversation.x || narrowPresence.y < narrowConversation.y,
+      `${label}: narrow contacts rail should stay before the conversation when Agent Center is open`,
+    );
     assert.ok(narrowSide.width <= 390, `${label}: narrow agent panel should not overflow the viewport`);
   }
+  const horizontalOverflow = await page.evaluate(() =>
+    globalThis.document.documentElement.scrollWidth - globalThis.document.documentElement.clientWidth,
+  );
+  assert.ok(horizontalOverflow <= 2, `${label}: narrow layout overflows horizontally by ${horizontalOverflow}px`);
   await page.setViewportSize({ width: 1280, height: 900 });
+}
+
+async function assertDesktopAgentChatVisualFidelity(page, label) {
+  const metrics = await page.evaluate(() => {
+    const root = document.querySelector('[data-zhiyu-agent-chat-shell="primary"]');
+    const workspace = document.querySelector('[data-zhiyu-product-shell="workspace"]');
+    const layout = document.querySelector('[data-zhiyu-side-panel-state]');
+    const conversation = document.querySelector('[data-zhiyu-region="conversation"]');
+    const side = document.querySelector('[data-zhiyu-region="agent-panel"]');
+    const readStyle = (node) => {
+      if (!node) {
+        return null;
+      }
+      const style = getComputedStyle(node);
+      const rect = node.getBoundingClientRect();
+      return {
+        backgroundColor: style.backgroundColor,
+        backgroundImage: style.backgroundImage,
+        borderTopWidth: style.borderTopWidth,
+        borderRadius: style.borderRadius,
+        boxShadow: style.boxShadow,
+        columnGap: style.columnGap,
+        height: rect.height,
+        marginTop: style.marginTop,
+        paddingLeft: style.paddingLeft,
+        paddingTop: style.paddingTop,
+        rowGap: style.rowGap,
+        width: rect.width,
+        x: rect.x,
+        y: rect.y,
+      };
+    };
+    return {
+      root: readStyle(root),
+      workspace: readStyle(workspace),
+      layout: readStyle(layout),
+      conversation: readStyle(conversation),
+      side: readStyle(side),
+    };
+  });
+  assert.ok(metrics.root?.backgroundImage?.includes('radial-gradient'), `${label}: shell must preserve the misty multi-layer Desktop Agent Chat background: ${JSON.stringify(metrics.root)}`);
+  assert.equal(metrics.workspace?.paddingLeft, '0px', `${label}: workspace must not introduce an outer white-card gutter: ${JSON.stringify(metrics.workspace)}`);
+  assert.equal(metrics.workspace?.paddingTop, '0px', `${label}: workspace must not introduce an outer white-card gutter: ${JSON.stringify(metrics.workspace)}`);
+  assert.equal(metrics.layout?.columnGap, '0px', `${label}: desktop shell grid should preserve Desktop Agent Chat track rhythm without card gaps: ${JSON.stringify(metrics.layout)}`);
+  assert.equal(metrics.layout?.rowGap, '0px', `${label}: desktop shell grid should preserve Desktop Agent Chat track rhythm without card gaps: ${JSON.stringify(metrics.layout)}`);
+  assert.equal(metrics.conversation?.borderTopWidth, '0px', `${label}: conversation canvas must remain visually transparent, not become a bordered white panel: ${JSON.stringify(metrics.conversation)}`);
+  assert.equal(metrics.conversation?.borderRadius, '0px', `${label}: conversation canvas must not become a rounded outer card: ${JSON.stringify(metrics.conversation)}`);
+  if (metrics.side) {
+    assert.equal(metrics.side.width, 500, `${label}: Agent Center should keep the 500px Desktop side-sheet width: ${JSON.stringify(metrics.side)}`);
+    assert.ok(metrics.side.y >= 48, `${label}: Agent Center should float inside the shell, not fill the entire height: ${JSON.stringify(metrics.side)}`);
+    assert.ok(metrics.side.height <= 804, `${label}: Agent Center should keep the target side-sheet vertical inset: ${JSON.stringify(metrics.side)}`);
+  }
 }
 
 async function assertDesktopRelationshipRailDensity(page, label) {
@@ -509,29 +684,13 @@ async function assertDesktopRelationshipRailDensity(page, label) {
   assert.ok(currentAgentBubble.width <= 44, `${label}: active relationship avatar should use Desktop 40px density`);
   assert.ok(currentAgentBubble.height <= 44, `${label}: active relationship avatar should use Desktop 40px density`);
 
-  const addBubble = await visibleBox(
-    page.locator('[data-zhiyu-primary-action]').first(),
-    `${label} relationship add action`,
-  );
-  assert.ok(addBubble.width <= 44, `${label}: relationship add action should use Desktop 40px density`);
-  assert.ok(addBubble.height <= 44, `${label}: relationship add action should use Desktop 40px density`);
-
-  const topbarButton = await visibleBox(
-    page.locator('[data-zhiyu-topbar-notifications="true"]').first(),
-    `${label} Desktop topbar notification button`,
-  );
-  const accountButton = await visibleBox(
-    page.locator('[data-zhiyu-topbar-account="true"]').first(),
-    `${label} Desktop topbar account button`,
-  );
-  assert.ok(topbarButton.width <= 40, `${label}: notification topbar button should use Desktop 36px density`);
-  assert.ok(topbarButton.height <= 40, `${label}: notification topbar button should use Desktop 36px density`);
-  const viewport = page.viewportSize();
-  assert.ok(viewport, `${label}: viewport size should be available for topbar clipping checks`);
-  assert.ok(accountButton.x + accountButton.width <= viewport.width - 4, `${label}: account topbar button must not be clipped by the right viewport edge`);
+  assert.equal(await page.locator('[data-zhiyu-primary-action]').count(), 0, `${label}: relationship rail must not render the removed add action`);
+  assert.equal(await page.locator('[data-zhiyu-topbar-chrome="true"]').count(), 0, `${label}: relationship rail must not render migrated topbar chrome`);
+  assert.equal(await page.locator('[data-zhiyu-topbar-notifications="true"]').count(), 0, `${label}: relationship rail must not render notification chrome`);
+  assert.equal(await page.locator('[data-zhiyu-topbar-account="true"]').count(), 0, `${label}: relationship rail must not render account chrome`);
 
   const railTool = await visibleBox(
-    page.locator('[data-zhiyu-settings-entry="relationship-rail"]').first(),
+    page.locator('[data-zhiyu-settings-entry="presence-rail"]').first(),
     `${label} Desktop rail settings action`,
   );
   assert.ok(railTool.width <= 44, `${label}: rail tool action should use Desktop 40px density`);
@@ -550,7 +709,7 @@ async function assertDesktopAgentCenterSideSheetDensity(page, label) {
     `${label} Agent Center header`,
   );
   const avatar = await visibleBox(
-    page.locator('.zhiyu-home__agent-panel-avatar').first(),
+    page.locator('.zhiyu-agent-center__avatar').first(),
     `${label} Agent Center avatar`,
   );
   assert.ok(avatar.width <= 58, `${label}: Agent Center avatar should use Desktop 56px side-sheet density`);

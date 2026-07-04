@@ -1,5 +1,4 @@
 import type { ZhiyuEvidence } from '../app/evidence';
-import type { ZhiyuHomeProductState } from '../app/home-product-state';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 
 export function chatPrimaryBindingLabel(evidence: ZhiyuEvidence): string {
@@ -135,44 +134,6 @@ export function partnerInitial(value: string | null | undefined): string {
     return firstLetter.toUpperCase();
   }
   return Array.from(displayName)[0] || '本';
-}
-
-export function primaryActionForStage(stage: ZhiyuHomeProductState['stage']): {
-  readonly kind: 'connect-service' | 'select-partner' | 'configure-model' | 'start-chat';
-  readonly label: string;
-  readonly badgeLabel: string;
-  readonly tone: 'primary' | 'secondary';
-} {
-  if (stage === 'route-required') {
-    return {
-      kind: 'configure-model',
-      label: '配置模型',
-      badgeLabel: '需要模型',
-      tone: 'primary',
-    };
-  }
-  if (stage === 'ready') {
-    return {
-      kind: 'start-chat',
-      label: '开始对话',
-      badgeLabel: '伙伴可对话',
-      tone: 'secondary',
-    };
-  }
-  if (stage === 'source-required' || stage === 'agent-required') {
-    return {
-      kind: 'select-partner',
-      label: '查看伙伴入口',
-      badgeLabel: '需要伙伴',
-      tone: 'primary',
-    };
-  }
-  return {
-    kind: 'connect-service',
-    label: '查看本地环境状态',
-    badgeLabel: '需要连接',
-    tone: 'secondary',
-  };
 }
 
 export function conversationMessagesForDisplay(

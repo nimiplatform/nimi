@@ -108,10 +108,14 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.equal(preConfigEvidence.route.executionBinding, null);
           assert.deepEqual(preConfigEvidence.route.enabledCapabilities, [
             'text.generate',
-            'chat.stream',
-            'text.embed',
-            'image.generate',
             'audio.synthesize',
+            'audio.transcribe',
+            'voice_workflow.voice_clone',
+            'voice_workflow.voice_design',
+            'image.generate',
+            'image.edit',
+            'video.generate',
+            'text.embed',
           ]);
           assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
           await assertPartnerSelectedProductState(page);
@@ -171,9 +175,14 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.equal(readyEvidence.route.aiConfigScopeOwnerId, zhiyuAppId);
           assert.equal(readyEvidence.route.aiConfigScopeSurfaceId, 'zhiyu-agent-home');
           assert.equal(readyEvidence.route.targetRefKinds['text.generate'], 'local-runtime');
-          assert.equal(readyEvidence.route.targetRefKinds['chat.stream'], 'local-runtime');
           assert.equal(readyEvidence.route.targetRefKinds['text.embed'], 'local-runtime');
           assert.equal(readyEvidence.route.targetRefKinds['image.generate'], 'cloud-connector');
+          assert.equal(readyEvidence.route.targetRefKinds['audio.synthesize'], null);
+          assert.equal(readyEvidence.route.targetRefKinds['audio.transcribe'], null);
+          assert.equal(readyEvidence.route.targetRefKinds['voice_workflow.voice_clone'], null);
+          assert.equal(readyEvidence.route.targetRefKinds['voice_workflow.voice_design'], null);
+          assert.equal(readyEvidence.route.targetRefKinds['image.edit'], null);
+          assert.equal(readyEvidence.route.targetRefKinds['video.generate'], null);
           assert.equal(readyEvidence.route.executionBinding.route, 'local');
           assert.match(readyEvidence.route.executionBinding.modelId, /runtime-agent-live-e2e/);
           assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
@@ -185,9 +194,9 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             'runtime-agent-memory-graph-relations-not-admitted',
           );
           assert.equal(
-            await page.locator('[data-zhiyu-status-collapsed]').first().getAttribute('data-zhiyu-status-collapsed'),
-            'true',
-            'ready stage must collapse the readiness checklist into a summary',
+            await page.locator('[data-zhiyu-status-collapsed]').count(),
+            0,
+            'primary chat must not render the legacy readiness checklist chrome',
           );
           assert.equal(await page.locator('[data-zhiyu-labeled-chip="conversation"]').count(), 1);
           assert.equal(await page.locator('[data-zhiyu-labeled-chip="route"]').count(), 1);
@@ -487,20 +496,23 @@ async function waitForEvidence(page, predicate, label, argument) {
 
 async function assertNoPartnerProductState(page) {
   assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'source-required');
-  assert.equal(await page.locator('[data-zhiyu-primary-action]').getAttribute('data-zhiyu-primary-action'), 'select-partner');
-  assert.equal(await page.locator('[data-zhiyu-capability-setup-action="select-partner"]').count(), 1);
+  const candidateCount = await page.locator('[data-zhiyu-local-agent-candidate="true"]').count();
+  assert.equal(await page.locator('[data-zhiyu-relationship-rail-state]').getAttribute('data-zhiyu-relationship-rail-state'), candidateCount > 0 ? 'available' : 'empty');
+  assert.equal(await page.locator('[data-zhiyu-region="relationship-rail"]').count(), 1);
+  assert.equal(await page.locator('[data-zhiyu-primary-action]').count(), 0);
+  assert.equal(await page.locator('[data-zhiyu-capability-setup-action="select-partner"]').count(), 0, 'primary chat must not expose backstage partner setup actions');
   assert.equal(await page.locator('[data-zhiyu-image-studio-setup-action="select-partner"]').count(), 0);
   assert.equal(await page.locator('[data-zhiyu-region="image-studio"]').count(), 0);
   assert.equal(await page.locator('[data-zhiyu-capability-studio-run]').count(), 0);
   assert.equal(await page.locator('[data-zhiyu-image-generate-run]').count(), 0);
   assert.equal(
-    await page.locator('[data-zhiyu-status-collapsed]').first().getAttribute('data-zhiyu-status-collapsed'),
-    'true',
+    await page.locator('[data-zhiyu-status-collapsed]').count(),
+    0,
+    'primary chat must not render the legacy readiness/status checklist',
   );
   const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
   assert.match(shellText, /选择本地伙伴/);
   assert.match(shellText, /选择本地伙伴开始对话/);
-  assert.match(shellText, /本地环境状态/);
   assert.doesNotMatch(shellText, /8 项 checklist|checklist dashboard/i);
   assert.doesNotMatch(shellText, /本地伙伴工作台|character\/persona|文字能力|图片创作/);
   assertPrimaryWorkspaceHasNoEngineeringCopy(shellText);
@@ -508,7 +520,9 @@ async function assertNoPartnerProductState(page) {
 
 async function assertPartnerSelectedProductState(page) {
   assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'route-required');
-  assert.equal(await page.locator('[data-zhiyu-primary-action]').getAttribute('data-zhiyu-primary-action'), 'configure-model');
+  assert.equal(await page.locator('[data-zhiyu-primary-action]').count(), 0);
+  assert.equal(await page.locator('[data-zhiyu-relationship-rail-state]').getAttribute('data-zhiyu-relationship-rail-state'), 'available');
+  assert.equal(await page.locator('[data-zhiyu-region="relationship-rail"]').count(), 1);
   assert.equal(await page.locator('[data-zhiyu-side-panel-state]').getAttribute('data-zhiyu-side-panel-state'), 'closed');
   assert.equal(await page.locator('[data-zhiyu-region="agent-panel"]').count(), 0);
   const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
@@ -521,7 +535,7 @@ async function assertPartnerSelectedProductState(page) {
 
 async function assertModelUnconfiguredProductState(page) {
   assert.equal(await page.locator('[data-zhiyu-composer-tool="model"]').count(), 1);
-  assert.equal(await page.locator('[data-zhiyu-capability-setup-action="configure-model"]').count(), 1);
+  assert.equal(await page.locator('[data-zhiyu-capability-setup-action="configure-model"]').count(), 0, 'primary chat must not expose backstage model setup actions');
   assert.equal(await page.locator('[data-zhiyu-image-studio-setup-action="configure-model"]').count(), 0);
   assert.equal(await page.locator('[data-zhiyu-region="image-studio"]').count(), 0);
   assert.equal(await page.locator('[data-zhiyu-capability-studio-run]').count(), 0);
@@ -623,6 +637,7 @@ async function assertModelConfigEmbeddedProductQuality(page) {
   await modelConfig.waitFor({ timeout: 15_000 });
   await page.locator('[data-zhiyu-agent-model-route-card="true"]').waitFor({ timeout: 15_000 });
   await modelConfig.locator('.zhiyu-ai-config-embedded__model-hub').waitFor({ timeout: 15_000 });
+  await assertAgentCenterModelPanelLayout(page, 'live Runtime model configured panel');
 
   const unlabeledOrTinyButtons = await modelConfig.locator('button').evaluateAll((buttons) => buttons
     .map((button, index) => {
@@ -638,6 +653,13 @@ async function assertModelConfigEmbeddedProductQuality(page) {
 
   const chatSection = modelConfig.locator('[data-nimi-model-config-section="chat"]').first();
   await chatSection.waitFor({ timeout: 15_000 });
+  for (const section of ['chat', 'embed', 'tts', 'stt', 'image', 'video']) {
+    await modelConfig.locator(`[data-nimi-model-config-section="${section}"]`).first().waitFor({ timeout: 15_000 });
+  }
+  assert.ok(
+    await modelConfig.getByRole('button', { name: /导入 AI 预设/ }).first().isVisible(),
+    'embedded ModelConfig hub must use the Desktop import profile label instead of falling back to "import"',
+  );
   await chatSection.click();
   await modelConfig.locator('[data-nimi-model-config-detail-section="chat"]').waitFor({ timeout: 15_000 });
   const back = modelConfig.locator('[data-nimi-model-config-back="true"]').first();
@@ -661,15 +683,103 @@ async function assertModelConfigEmbeddedProductQuality(page) {
   assert.notEqual(capabilityStyle.backgroundColor, 'rgba(0, 0, 0, 0)');
   assert.notEqual(capabilityStyle.borderRadius, '0px');
 
-  const drawerPanelStyle = await modelConfig.evaluate((panel) => {
+  const embeddedStyle = await modelConfig.evaluate((panel) => {
     const style = globalThis.getComputedStyle(panel);
     return {
       backgroundColor: style.backgroundColor,
       boxShadow: style.boxShadow,
+      borderStyle: style.borderStyle,
+      padding: style.padding,
     };
   });
-  assert.notEqual(drawerPanelStyle.backgroundColor, 'rgba(0, 0, 0, 0)');
-  assert.notEqual(drawerPanelStyle.boxShadow, 'none');
+  assert.equal(embeddedStyle.backgroundColor, 'rgba(0, 0, 0, 0)');
+  assert.equal(embeddedStyle.boxShadow, 'none');
+  assert.equal(embeddedStyle.borderStyle, 'none');
+  assert.equal(embeddedStyle.padding, '0px');
+}
+
+async function assertAgentCenterModelPanelLayout(page, label) {
+  await page.setViewportSize({ width: 1900, height: 1280 });
+  const metrics = await page.evaluate(() => {
+    const box = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return null;
+      }
+      const rect = element.getBoundingClientRect();
+      return {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+        right: rect.right,
+        bottom: rect.bottom,
+      };
+    };
+    const embedded = document.querySelector('[data-zhiyu-ai-config-embedded="agent-center"]');
+    const embeddedStyle = embedded ? getComputedStyle(embedded) : null;
+    const modelCard = document.querySelector('.zhiyu-agent-center__model-config-card');
+    const modelCardStyle = modelCard ? getComputedStyle(modelCard) : null;
+    return {
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+      panel: box('[data-zhiyu-region="agent-panel"]'),
+      header: box('[data-zhiyu-agent-center-header="true"]'),
+      tabs: box('.zhiyu-agent-center__tabs'),
+      modelCard: box('.zhiyu-agent-center__model-config-card'),
+      embedded: box('[data-zhiyu-ai-config-embedded="agent-center"]'),
+      routeCard: box('[data-zhiyu-agent-model-route-card="true"]'),
+      composer: box('.zhiyu-chat-canvas__composer [data-canonical-composer-width]'),
+      textarea: box('[data-chat-composer-textarea="true"]'),
+      embeddedOverflowY: embeddedStyle?.overflowY ?? null,
+      embeddedBackgroundColor: embeddedStyle?.backgroundColor ?? null,
+      embeddedBoxShadow: embeddedStyle?.boxShadow ?? null,
+      embeddedBorderStyle: embeddedStyle?.borderStyle ?? null,
+      embeddedPadding: embeddedStyle?.padding ?? null,
+      modelCardBackgroundColor: modelCardStyle?.backgroundColor ?? null,
+      modelCardBorderStyle: modelCardStyle?.borderStyle ?? null,
+      modelCardBorderRadius: modelCardStyle?.borderRadius ?? null,
+      visibleSections: [...document.querySelectorAll('[data-zhiyu-ai-config-embedded="agent-center"] [data-nimi-model-config-section]')]
+        .map((element) => element.getAttribute('data-nimi-model-config-section')),
+    };
+  });
+  assert.ok(metrics.panel, `${label}: Agent Center panel must render on wide desktop`);
+  assert.ok(metrics.header, `${label}: Agent Center header must render`);
+  assert.ok(metrics.tabs, `${label}: Agent Center tabs must render`);
+  assert.ok(metrics.routeCard, `${label}: model route card must render before embedded config`);
+  assert.ok(metrics.modelCard, `${label}: model config card must render`);
+  assert.ok(metrics.embedded, `${label}: embedded model config must render`);
+  assert.ok(metrics.composer, `${label}: composer must render`);
+  assert.ok(metrics.textarea, `${label}: composer textarea must render`);
+  assert.ok(metrics.panel.y <= 64, `${label}: Agent Center is vertically detached from desktop side-sheet rhythm: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.panel.height >= metrics.viewport.height - 112, `${label}: Agent Center should use the available desktop side-sheet height: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.tabs.y - metrics.header.bottom <= 80, `${label}: Agent Center tabs are detached from the header: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.routeCard.y - metrics.tabs.bottom <= 100, `${label}: Agent Center model content is detached from the tabs: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.modelCard.height <= 760, `${label}: embedded model config is stretching beyond the Desktop Agent Center model card: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.embedded.height <= metrics.modelCard.height + 2, `${label}: embedded model config must stay inside its card: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.embeddedOverflowY, 'visible', `${label}: embedded ModelConfig must not create a second scroll/card surface: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.embeddedBackgroundColor, 'rgba(0, 0, 0, 0)', `${label}: embedded ModelConfig must be transparent inside the Desktop card: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.embeddedBoxShadow, 'none', `${label}: embedded ModelConfig must not add a second shadow: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.embeddedBorderStyle, 'none', `${label}: embedded ModelConfig must not add a second border: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.embeddedPadding, '0px', `${label}: embedded ModelConfig must not add a second padding layer: ${JSON.stringify(metrics)}`);
+  assert.notEqual(metrics.modelCardBackgroundColor, 'rgba(0, 0, 0, 0)', `${label}: Desktop model card must own the visible background: ${JSON.stringify(metrics)}`);
+  assert.equal(metrics.modelCardBorderStyle, 'solid', `${label}: Desktop model card must own the visible border: ${JSON.stringify(metrics)}`);
+  assert.match(metrics.modelCardBorderRadius || '', /^14px\b/, `${label}: Desktop model card must use the Agent Center 14px radius: ${JSON.stringify(metrics)}`);
+  for (const section of ['chat', 'embed', 'tts', 'stt', 'image', 'video']) {
+    assert.ok(metrics.visibleSections.includes(section), `${label}: Desktop ModelConfig section ${section} is missing: ${JSON.stringify(metrics)}`);
+  }
+  assert.ok(metrics.textarea.height <= 80, `${label}: composer textarea should keep Kit compact auto-height when empty: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.composer.height <= 190, `${label}: composer surface is too tall for desktop agent chat: ${JSON.stringify(metrics)}`);
+  const checkpoint = process.env.NIMI_ZHIYU_EVIDENCE_CHECKPOINT?.trim() || 'live-runtime';
+  const evidenceRoot = path.resolve(root, '..', '..', '.nimi', 'local', 'evidence', 'zhiyu', checkpoint);
+  await mkdir(evidenceRoot, { recursive: true });
+  await page.screenshot({
+    path: path.join(evidenceRoot, 'live-runtime-model-configured-wide.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
 }
 
 async function assertStopChatFlow(page, pageProblems, readyEvidence) {
@@ -926,22 +1036,28 @@ async function assertAppearanceConfigParity(page) {
     const tabButtons = Array.from(document.querySelectorAll('[data-zhiyu-agent-center-tab-button]'));
     const activeTab = document.querySelector('[data-zhiyu-agent-center-tab-button="appearance"]');
     const inactiveTab = document.querySelector('[data-zhiyu-agent-center-tab-button="overview"]');
-    const rightRail = document.querySelector('.zhiyu-home__right-rail');
+    const presenceRail = document.querySelector('[data-zhiyu-region="presence"]');
+    const relationshipRail = document.querySelector('[data-zhiyu-region="relationship-rail"]');
     const appearancePanel = document.querySelector('[data-zhiyu-agent-appearance-panel="true"]');
     const sideRect = sideSheet?.getBoundingClientRect();
     const activeRect = activeTab?.getBoundingClientRect();
     const inactiveRect = inactiveTab?.getBoundingClientRect();
-    const railRect = rightRail?.getBoundingClientRect();
+    const presenceRect = presenceRail?.getBoundingClientRect();
+    const railRect = relationshipRail?.getBoundingClientRect();
     const appearanceRect = appearancePanel?.getBoundingClientRect();
     return {
       sideWidth: sideRect?.width ?? 0,
+      sideLeft: sideRect?.left ?? 0,
       sideRight: sideRect?.right ?? 0,
+      presenceLeft: presenceRect?.left ?? 0,
+      presenceRight: presenceRect?.right ?? 0,
       tabCount: tabButtons.length,
       activeTabAria: activeTab?.getAttribute('aria-current') ?? null,
       activeTabWidth: activeRect?.width ?? 0,
       inactiveTabWidth: inactiveRect?.width ?? 0,
-      rightRailVisible: Boolean(railRect && railRect.width > 0 && railRect.height > 0),
-      rightRailLeft: railRect?.left ?? 0,
+      contactsRailVisible: Boolean(railRect && railRect.width > 0 && railRect.height > 0),
+      contactsRailLeft: railRect?.left ?? 0,
+      contactsRailRight: railRect?.right ?? 0,
       appearanceTop: appearanceRect?.top ?? 0,
       appearanceBottom: appearanceRect?.bottom ?? 0,
       viewportHeight: globalThis.innerHeight,
@@ -951,8 +1067,9 @@ async function assertAppearanceConfigParity(page) {
   assert.equal(layout.activeTabAria, 'page', `Appearance tab must be the active Desktop section: ${JSON.stringify(layout)}`);
   assert.ok(layout.activeTabWidth > layout.inactiveTabWidth, `active Appearance tab must expand beyond icon-only tabs: ${JSON.stringify(layout)}`);
   assert.ok(layout.sideWidth >= 440, `Agent Center side sheet is too narrow for Desktop parity: ${JSON.stringify(layout)}`);
-  assert.equal(layout.rightRailVisible, true, `Desktop relationship rail must remain visible with Appearance open: ${JSON.stringify(layout)}`);
-  assert.ok(layout.rightRailLeft >= layout.sideRight - 2, `relationship rail must sit to the right of the Agent Center: ${JSON.stringify(layout)}`);
+  assert.equal(layout.contactsRailVisible, true, `Desktop contacts rail must remain visible with Appearance open: ${JSON.stringify(layout)}`);
+  assert.ok(layout.contactsRailLeft >= layout.presenceLeft - 2 && layout.contactsRailRight <= layout.presenceRight + 2, `contacts rail must stay inside the left presence rail: ${JSON.stringify(layout)}`);
+  assert.ok(layout.presenceRight <= layout.sideLeft - 2, `left contacts rail must not sit to the right of the Agent Center: ${JSON.stringify(layout)}`);
   assert.ok(layout.appearanceTop >= 0 && layout.appearanceTop < layout.viewportHeight, `Appearance panel must be visible in the viewport: ${JSON.stringify(layout)}`);
 
   const panelText = await panel.innerText();
@@ -1109,69 +1226,36 @@ async function assertAgentCenterKeyboardAccessibility(page) {
 }
 
 async function assertDesktopShellTopbarParity(page, pageProblems) {
-  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.setViewportSize({ width: 1920, height: 1080 });
   const viewport = page.viewportSize();
   assert.ok(viewport, 'viewport must be available for topbar clipping checks');
-  const railSettings = page.locator('[data-zhiyu-settings-entry="relationship-rail"]').first();
+  assert.equal(await page.locator('[data-zhiyu-topbar-chrome="true"]').count(), 0, 'Zhiyu must not render migrated Desktop topbar chrome');
+  assert.equal(await page.locator('[data-zhiyu-topbar-notifications="true"]').count(), 0, 'Zhiyu must not render the removed notification chrome');
+  assert.equal(await page.locator('[data-zhiyu-topbar-account="true"]').count(), 0, 'Zhiyu must not render the removed account chrome');
+  assert.equal(await page.locator('[data-zhiyu-primary-action]').count(), 0, 'Zhiyu must not render the removed add-partner action chrome');
+  const railSettings = page.locator('[data-zhiyu-settings-entry="presence-rail"]').first();
   await railSettings.waitFor({ state: 'visible', timeout: 15_000 });
   await assertControlInsideViewport(railSettings, viewport, 'Desktop rail settings action');
   await railSettings.click();
   await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
   await page.locator('[data-zhiyu-agent-center-tab-button="advanced"][aria-current="page"]').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-advanced-panel="true"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await page.locator('[data-zhiyu-agent-panel-tab="advanced"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await page.locator('[data-zhiyu-agent-center-capability-probe="open"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await assertOpenAgentPanelChatTrackCentering(page);
   assert.equal(
     await page.locator('[data-zhiyu-settings-panel="right"]').count(),
     0,
-    'Desktop rail settings action must route to Agent Center advanced tab, not a second settings panel',
+    'Desktop rail settings action must route to the merged Agent Center advanced tab, not a second settings panel',
   );
   await captureLiveRuntimeInteractionEvidence(page, 'rail-settings-advanced', pageProblems, {
-    route: 'relationship-rail-settings',
+    route: 'presence-rail-settings',
   });
   await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
   await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
-
-  const notifications = page.locator('[data-zhiyu-topbar-notifications="true"]').first();
-  await notifications.waitFor({ state: 'visible', timeout: 15_000 });
-  await assertControlInsideViewport(notifications, viewport, 'Desktop shell notification button');
-  assert.match(await notifications.getAttribute('aria-label'), /通知/);
-  await notifications.focus();
-  assert.equal(
-    await notifications.evaluate((element) => element === globalThis.document.activeElement),
-    true,
-    'Desktop shell notification button must be keyboard focusable',
-  );
-  await page.keyboard.press('Enter');
-  const notificationPopover = page.locator('[data-zhiyu-notification-popover="true"]');
-  await notificationPopover.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await notificationPopover.getAttribute('data-zhiyu-notification-state'), 'deferred');
-  assert.match(await notificationPopover.innerText(), /通知中心/);
-
-  const account = page.locator('[data-zhiyu-topbar-account="true"]').first();
-  await account.waitFor({ state: 'visible', timeout: 15_000 });
-  await assertControlInsideViewport(account, viewport, 'Desktop shell account button');
-  assert.match(await account.getAttribute('aria-label'), /账户|设置/);
-  await account.focus();
-  assert.equal(
-    await account.evaluate((element) => element === globalThis.document.activeElement),
-    true,
-    'Desktop shell account button must be keyboard focusable',
-  );
-  await page.keyboard.press('Enter');
-  const accountMenu = page.locator('[data-zhiyu-account-menu="true"]');
-  await accountMenu.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.match(await accountMenu.innerText(), /账户|设置/);
-  await accountMenu.locator('[data-zhiyu-account-menu-action="settings"]').click();
-  await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-center-tab-button="advanced"][aria-current="page"]').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-advanced-panel="true"]').waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(
-    await page.locator('[data-zhiyu-settings-panel="right"]').count(),
-    0,
-    'Desktop topbar account settings action must route to Agent Center advanced tab, not a second settings panel',
-  );
   await page.locator('[data-zhiyu-composer-tool="agent"]').click();
   await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
   await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
+  await page.setViewportSize({ width: 1280, height: 900 });
 }
 
 async function assertControlInsideViewport(locator, viewport, label) {
@@ -1181,6 +1265,27 @@ async function assertControlInsideViewport(locator, viewport, label) {
   assert.ok(box.y >= 0, `${label} is clipped on the top: ${JSON.stringify(box)}`);
   assert.ok(box.x + box.width <= viewport.width, `${label} is clipped on the right: ${JSON.stringify({ box, viewport })}`);
   assert.ok(box.y + box.height <= viewport.height, `${label} is clipped on the bottom: ${JSON.stringify({ box, viewport })}`);
+}
+
+async function assertOpenAgentPanelChatTrackCentering(page) {
+  const conversation = await page.locator('[data-zhiyu-region="conversation"]').first().boundingBox();
+  const composer = await page.locator('[data-zhiyu-region="conversation"] [data-canonical-composer-width]').first().boundingBox();
+  const transcript = await page.locator('[data-zhiyu-region="conversation"] [data-canonical-transcript-width]').first().boundingBox();
+  assert.ok(conversation, 'open Agent Center conversation track must be visible');
+  assert.ok(composer, 'open Agent Center composer width track must be visible');
+  assert.ok(transcript, 'open Agent Center transcript width track must be visible');
+
+  const conversationCenter = conversation.x + conversation.width / 2;
+  for (const [label, box] of [
+    ['composer', composer],
+    ['transcript', transcript],
+  ]) {
+    const delta = Math.abs((box.x + box.width / 2) - conversationCenter);
+    assert.ok(
+      delta <= 32,
+      `open Agent Center ${label} is not centered in the conversation track: ${JSON.stringify({ delta, box, conversation })}`,
+    );
+  }
 }
 
 async function assertLongTextNarrowChineseAndControls(page) {
@@ -1201,7 +1306,7 @@ async function assertLongTextNarrowChineseAndControls(page) {
   const controls = [
     page.locator('[data-zhiyu-composer-tool="model"]'),
     page.locator('[data-chat-composer-send="true"]'),
-    page.locator('[data-zhiyu-diagnostics-entry="nav"]'),
+    page.locator('[data-zhiyu-settings-entry="presence-rail"]'),
   ];
   for (const control of controls) {
     const box = await control.first().boundingBox();

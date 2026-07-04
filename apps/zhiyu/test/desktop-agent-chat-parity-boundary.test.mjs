@@ -482,21 +482,62 @@ test('Agent Center header mirrors Desktop side-sheet identity metadata', async (
   );
 });
 
-test('Desktop shell topbar notification and account affordances are present in Zhiyu chat chrome', async () => {
+test('Agent Center model settings use Desktop Chat ModelConfig capability matrix and card shell', async () => {
+  const desktopSettingsSource = await readFile(path.join(repoRoot, 'apps', 'desktop', 'src', 'shell', 'renderer', 'features', 'chat', 'chat-shared-settings-panel.tsx'), 'utf8');
+  const zhiyuCapabilitiesSource = await readFile(path.join(appRoot, 'src', 'shell', 'ai-config', 'zhiyu-ai-config-capabilities.ts'), 'utf8');
+  const zhiyuSettingsSource = await readFile(path.join(appRoot, 'src', 'shell', 'ai-config', 'zhiyu-ai-config-settings.tsx'), 'utf8');
+  const rightPanelSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'ZhiyuAgentRightPanel.tsx'), 'utf8');
+  const css = await readFile(path.join(appRoot, 'src', 'shell', 'app', 'home-surface.css'), 'utf8');
+
+  const desktopCapabilities = stringArrayLiteralAfter(desktopSettingsSource, 'const CHAT_ENABLED_CAPABILITIES =');
+  const zhiyuCapabilities = stringArrayLiteralAfter(zhiyuCapabilitiesSource, 'export const ZHIYU_AI_CONFIG_ENABLED_CAPABILITIES =');
+
+  assert.deepEqual(
+    zhiyuCapabilities,
+    desktopCapabilities,
+    'Zhiyu Agent Center model settings must feed the same canonical capability matrix as Desktop ChatSettingsPanel',
+  );
+  assert.doesNotMatch(zhiyuCapabilitiesSource, /['"]chat\.stream['"]/, 'chat.stream must not be reintroduced into Agent Center ModelConfig input');
+  assert.match(zhiyuSettingsSource, /sections:\s*\['image',\s*'video'\]/, 'Zhiyu ModelConfig super sections must keep Desktop media grouping');
+  assert.match(zhiyuSettingsSource, /'ModelConfig\.profile\.importLabel':\s*'导入 AI 预设'/, 'Profile import label must not fall back to raw "import"');
+  assert.match(rightPanelSource, /<span>该 Agent 使用工作区的默认路由。<\/span>/, 'Model route card must keep Desktop shared-route copy');
+  assert.match(rightPanelSource, /<button type="button" onClick=\{onOpenModelConfig\}>[\s\S]*?覆盖[\s\S]*?<\/button>/, 'Model route override must remain an actionable Desktop-style control');
+  assert.match(
+    css,
+    /\.zhiyu-agent-center__model-config-card\s*\{[\s\S]*?padding:\s*16px;[\s\S]*?border-radius:\s*14px;[\s\S]*?background:\s*#fff;[\s\S]*?box-shadow:\s*none;/,
+    'Embedded ModelConfig must sit in the Desktop single white 14px model card shell',
+  );
+  assert.match(
+    css,
+    /\.zhiyu-ai-config-embedded\s*\{[\s\S]*?padding:\s*0;[\s\S]*?border:\s*0;[\s\S]*?background:\s*transparent;[\s\S]*?box-shadow:\s*none;/,
+    'Embedded ModelConfig wrapper must not add a second Zhiyu card surface',
+  );
+}
+);
+
+test('Zhiyu presence rail does not keep migrated Desktop topbar, nav, or add chrome', async () => {
   const railSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'ZhiyuAgentPanel.tsx'), 'utf8');
 
-  for (const marker of [
+  for (const forbidden of [
     'data-zhiyu-topbar-chrome="true"',
     'data-zhiyu-topbar-notifications="true"',
     'data-zhiyu-topbar-account="true"',
     'data-zhiyu-notification-state="deferred"',
     'data-zhiyu-account-menu="true"',
+    'data-zhiyu-primary-action',
+    'data-zhiyu-diagnostics-entry',
+    'data-zhiyu-diagnostics-toggle',
+    'zhiyu-home__desktop-nav',
+    'zhiyu-home__agent-bubble--add',
   ]) {
-    assert.match(railSource, new RegExp(escapeRegExp(marker)), `${marker} missing from Zhiyu Desktop shell chrome`);
+    assert.doesNotMatch(railSource, new RegExp(escapeRegExp(forbidden)), `${forbidden} must not remain in Zhiyu presence rail`);
   }
 
-  assert.match(railSource, /Bell/, 'Zhiyu shell chrome must expose the Desktop notification icon affordance');
-  assert.match(railSource, /onOpenSettings/, 'Account menu must connect back to the existing Agent Center settings tab instead of being static chrome');
+  assert.doesNotMatch(railSource, /\bBell\b/, 'Zhiyu must not keep the removed notification icon affordance');
+  assert.doesNotMatch(railSource, /\bPlus\b/, 'Zhiyu must not keep the removed add-partner action chrome');
+  assert.doesNotMatch(railSource, /\bMessageSquare\b|\bDatabase\b|\bImage\b|\bPanelRightOpen\b/, 'Zhiyu must not keep the deleted left navigation chrome');
+  assert.match(railSource, /data-zhiyu-settings-entry="presence-rail"/, 'Presence rail must keep the Agent Center settings entry');
+  assert.match(railSource, /onOpenSettings/, 'Presence rail settings must connect back to the merged Agent Center settings tab');
 });
 
 test('Desktop settings entry does not keep a second Zhiyu-only right panel implementation', async () => {
@@ -521,7 +562,12 @@ test('Desktop settings entry does not keep a second Zhiyu-only right panel imple
   assert.match(
     surfaceSource,
     /const openAdvancedSettings = \(\) => \{[\s\S]{0,160}setRightPanelMode\('agent'\);[\s\S]{0,160}setActiveAgentTab\('advanced'\);[\s\S]{0,160}\};/,
-    'Desktop rail/account settings entry must route into the existing Agent Center advanced tab',
+    'Desktop rail settings entry must route into the merged Agent Center advanced/settings tab',
+  );
+  assert.match(
+    surfaceSource,
+    /onOpenSettings=\{openAdvancedSettings\}/,
+    'Presence rail settings entry must use the merged Agent Center settings route',
   );
   assert.match(
     surfaceSource,
@@ -550,25 +596,26 @@ test('Desktop shell left rail uses migrated Nimi logo asset instead of a placeho
   );
 });
 
-test('Desktop relationship rail and topbar chrome keep Desktop compact density', async () => {
+test('Desktop contacts rail keeps compact density inside the left presence rail', async () => {
   const railSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'ZhiyuAgentPanel.tsx'), 'utf8');
   const css = await readFile(path.join(appRoot, 'src', 'shell', 'app', 'home-surface.css'), 'utf8');
-  const shellGridRule = lastCssRule(css, '.zhiyu-home__layout.zhiyu-home__shell-grid');
-  const topbarButtonRule = lastCssRule(css, '.zhiyu-home .zhiyu-home__topbar-button');
-  const agentBubbleRule = lastCssRule(css, '.zhiyu-home .zhiyu-home__agent-bubble');
-  const railToolRule = lastCssRule(css, '.zhiyu-home .zhiyu-home__rail-tools button');
+  const shellGridRule = lastCssRule(css, '.zhiyu-agent-chat__layout');
 
   assert.match(railSource, /data-zhiyu-relationship-rail-density="desktop"/);
-  assert.match(railSource, /data-zhiyu-settings-entry="relationship-rail"/);
+  assert.match(railSource, /data-zhiyu-settings-entry="presence-rail"/);
   assert.doesNotMatch(railSource, /data-zhiyu-model-config-entry="rail"/);
   assert.doesNotMatch(railSource, /data-zhiyu-diagnostics-entry="rail"/);
   assert.doesNotMatch(railSource, /data-zhiyu-avatar-launch-entry=\{avatarLaunchAction\.state\}/);
-  assert.match(shellGridRule, /grid-template-columns:\s*76px minmax\(0,\s*1fr\) 500px 76px;/);
-  assert.match(topbarButtonRule, /width:\s*36px;[\s\S]*height:\s*36px;/);
-  assert.match(agentBubbleRule, /width:\s*40px;[\s\S]*height:\s*40px;/);
-  assert.match(railToolRule, /width:\s*40px;[\s\S]*height:\s*40px;/);
-  assert.doesNotMatch(agentBubbleRule, /width:\s*56px;[\s\S]*height:\s*56px;/);
-  assert.doesNotMatch(topbarButtonRule, /width:\s*50px;[\s\S]*height:\s*50px;/);
+  assert.match(shellGridRule, /grid-template-columns:\s*76px minmax\(0,\s*1fr\) 500px;/);
+  assert.match(shellGridRule, /gap:\s*0;/);
+  assert.doesNotMatch(css, /zhiyu-home__right-rail|zhiyu-home__desktop-nav|zhiyu-home__agents-rail|grid-template-areas:\s*"[^"]*relationship/);
+  assert.match(
+    css,
+    /\.zhiyu-agent-rail__agent,\s*\.zhiyu-agent-rail__tools button\s*\{[\s\S]*?width:\s*40px;[\s\S]*?height:\s*40px;/,
+  );
+  assert.doesNotMatch(css, /\.zhiyu-agent-rail__agent\s*\{[^}]*width:\s*56px;[^}]*height:\s*56px;/);
+  assert.doesNotMatch(css, /zhiyu-home__topbar-(?:chrome|button|popover)/);
+  assert.doesNotMatch(css, /zhiyu-home__agent-bubble--add/);
 });
 
 test('Desktop Agent Center is closed by default and closed layout centers the chat track', async () => {
@@ -582,57 +629,78 @@ test('Desktop Agent Center is closed by default and closed layout centers the ch
   );
   assert.match(
     css,
-    /\.zhiyu-home__layout\.zhiyu-home__shell-grid\.is-side-closed\s*\{\s*grid-template-columns:\s*76px minmax\(820px,\s*1fr\) minmax\(420px,\s*500px\) 76px;/,
-    'closed layout must keep a Desktop side spacer so the chat track remains centered instead of stretching across the app',
+    /\.zhiyu-agent-chat__layout\.is-side-closed\s*\{\s*grid-template-columns:\s*76px minmax\(0,\s*1fr\);[\s\S]*grid-template-areas:\s*"presence conversation";/,
+    'closed layout must only keep the presence rail and centered conversation track',
   );
-  assert.match(
+  assert.doesNotMatch(
     css,
-    /\.zhiyu-home__layout\.zhiyu-home__shell-grid\.is-side-closed\s*\{[\s\S]*?grid-template-areas:\s*"presence conversation \. relationship";/,
+    /\.zhiyu-agent-chat__layout\.is-side-closed\s*\{[\s\S]*?grid-template-areas:\s*"presence conversation \. relationship";/,
     'closed layout must not reserve an Agent Center grid area when the panel is closed',
   );
   assert.match(
     css,
-    /\.zhiyu-home__layout\.zhiyu-home__shell-grid\.is-side-closed\s+\.zhiyu-home__chat-transcript\s+\[data-canonical-transcript-width\][\s\S]*?margin-left:\s*auto;[\s\S]*?margin-right:\s*auto;/,
-    'closed layout must center the transcript content inside the conversation track',
+    /\.zhiyu-chat-canvas__transcript\s+\[data-canonical-transcript-width\][\s\S]*?\.zhiyu-chat-canvas__composer\s+\[data-canonical-composer-width\][\s\S]*?\{[\s\S]*?margin-right:\s*auto;[\s\S]*?margin-left:\s*auto;/,
+    'closed layout must center transcript and composer content inside the conversation track',
   );
   assert.match(
     css,
-    /\.zhiyu-home__layout\.zhiyu-home__shell-grid\.is-side-closed\s+\.zhiyu-home__composer\s+\[data-canonical-composer-width\][\s\S]*?margin-left:\s*auto;[\s\S]*?margin-right:\s*auto;/,
-    'closed layout must center the composer inside the conversation track',
+    /\.zhiyu-chat-canvas__composer\s*\{[\s\S]*?width:\s*100%;[\s\S]*?min-width:\s*0;/,
+    'composer container must keep the Kit canonical composer responsive inside the chat canvas',
   );
   assert.match(
     css,
-    /\.zhiyu-home__composer\s*\{[\s\S]*?width:\s*100%;[\s\S]*?min-width:\s*0;/,
-    'composer container must not shrink below the Kit canonical 320px narrow floor',
+    /@media \(max-width:\s*980px\)[\s\S]*?\.zhiyu-agent-chat__layout,\s*\.zhiyu-agent-chat__layout\.is-side-closed\s*\{[\s\S]*?grid-template-columns:\s*58px minmax\(0,\s*1fr\);[\s\S]*?"presence conversation"[\s\S]*?"presence side";[\s\S]*?\.zhiyu-agent-chat__layout\.is-side-closed\s*\{[\s\S]*?grid-template-areas:\s*"presence conversation";/,
+    'narrow layout must keep the compact relationship rail and remove the side sheet from the closed primary grid',
   );
   assert.match(
     css,
-    /@media \(max-width:\s*980px\)[\s\S]*?\.zhiyu-home__layout\.zhiyu-home__shell-grid\.is-side-closed\s+\.zhiyu-home__conversation\s*\{[\s\S]*?padding-right:\s*0 !important;[\s\S]*?padding-left:\s*0 !important;/,
-    'narrow closed layout must remove desktop side padding so the canonical composer can keep its 320px floor',
+    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout,\s*\.zhiyu-agent-chat__layout\.is-side-closed\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\);[\s\S]*?grid-template-rows:\s*52px auto;[\s\S]*?grid-template-areas:\s*"presence"\s*"conversation";[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\)\s*\{[\s\S]*?grid-template-rows:\s*52px auto auto;[\s\S]*?grid-template-areas:\s*"presence"\s*"conversation"\s*"side";/,
+    'phone layout must move the relationship rail above the chat canvas so the canonical composer keeps its width floor',
   );
   assert.match(
     css,
-    /@media \(max-width:\s*980px\)[\s\S]*?\.zhiyu-home__layout\.zhiyu-home__shell-grid\.is-side-closed\s+\.zhiyu-home__canonical-composer\[data-canonical-composer-root="true"\]\s*\{[\s\S]*?width:\s*100%;[\s\S]*?min-width:\s*0;/,
-    'narrow closed layout must let the Kit canonical composer fill the available track before its internal max-width applies',
+    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-chat-canvas\s*\{[\s\S]*?height:\s*calc\(100vh - 52px\);[\s\S]*?min-height:\s*calc\(100vh - 52px\);/,
+    'phone chat canvas height must subtract the top relationship rail instead of inheriting desktop 100vh and clipping the composer',
   );
 });
 
 test('Desktop Agent Center side sheet uses Desktop shared side-sheet density', async () => {
   const surfaceSource = await readAgentChatSource();
   const css = await readFile(path.join(appRoot, 'src', 'shell', 'app', 'home-surface.css'), 'utf8');
-  const headerRule = lastCssRule(css, '.zhiyu-home__agent-panel-header');
-  const avatarRule = lastCssRule(css, '.zhiyu-home__agent-panel-avatar');
-  const tabsRule = lastCssRule(css, '.zhiyu-home__agent-tabs');
-  const tabButtonRule = lastCssRule(css, '.zhiyu-home .zhiyu-home__agent-tabs button');
-  const scrollRule = lastCssRule(css, '.zhiyu-home__agent-panel-scroll');
 
   assert.match(surfaceSource, /data-zhiyu-agent-center-side-sheet="desktop"/);
-  assert.match(headerRule, /grid-template-columns:\s*56px minmax\(0,\s*1fr\) 36px;[\s\S]*padding:\s*28px 16px 14px;/);
-  assert.match(avatarRule, /width:\s*56px;[\s\S]*height:\s*56px;/);
-  assert.match(tabsRule, /gap:\s*4px;[\s\S]*padding:\s*10px 16px 4px;/);
-  assert.match(tabButtonRule, /min-height:\s*36px;/);
-  assert.match(scrollRule, /gap:\s*12px;[\s\S]*padding:\s*12px 12px 24px;/);
-  assert.doesNotMatch(avatarRule, /width:\s*72px;[\s\S]*height:\s*72px;/);
+  assert.match(
+    surfaceSource,
+    /<AppCardSurface[\s\S]*?kind="promoted-glass"[\s\S]*?className="flex min-h-0 flex-1 flex-col overflow-hidden"/,
+    'Agent Center must use the desktop shared promoted-glass card surface instead of a Zhiyu-only CSS shell',
+  );
+  assert.match(
+    surfaceSource,
+    /className="zhiyu-agent-center mr-2 my-12 flex h-\[calc\(100vh-96px\)\][\s\S]*?w-\[min\(500px,calc\(100vw-96px\)\)\][\s\S]*?\[grid-area:side\]/,
+    'Agent Center side-sheet dimensions must live on the TSX structure that mirrors Desktop ChatSideSheet density',
+  );
+  assert.doesNotMatch(surfaceSource, /my-\[72px\]|h-\[calc\(100vh-144px\)\]/);
+  assert.match(
+    surfaceSource,
+    /function agentCenterTabClassName[\s\S]*?min-w-\[76px\][\s\S]*?text-\[13px\][\s\S]*?text-\[0px\]/,
+    'Agent Center tabs must use the desktop compact active-page density from source classes, not CSS selector overrides',
+  );
+  assert.match(
+    surfaceSource,
+    /<ScrollShell[\s\S]*?className="zhiyu-agent-center__body grid flex-1 content-start gap-3 px-5 py-3"/,
+    'Agent Center body must use the shared desktop scroll shell structure',
+  );
+  assert.match(
+    css,
+    /\.zhiyu-agent-center > \[data-nimi-app-card-surface\]\s*\{[\s\S]*?display:\s*flex;[\s\S]*?flex-direction:\s*column;/,
+    'Agent Center AppCardSurface must keep the desktop flex column sheet root even though nested section cards use grid',
+  );
+  assert.doesNotMatch(css, /\.zhiyu-agent-center__header\s*\{/);
+  assert.doesNotMatch(css, /\.zhiyu-agent-center__tabs(?:\s|,|\{)/);
+  assert.doesNotMatch(css, /\.zhiyu-agent-center__body\s*\{/);
+  assert.match(css, /:where\(\.zhiyu-agent-chat\)\s+:where\(button\)\s*\{/);
+  assert.doesNotMatch(css, /\.zhiyu-agent-chat\s+:where\(button\)\s*\{/);
+  assert.doesNotMatch(css, /\.zhiyu-agent-center__avatar\s*\{[\s\S]*?width:\s*72px;[\s\S]*?height:\s*72px;/);
 });
 
 async function collectProductionFiles(root) {
@@ -687,4 +755,14 @@ function lastCssRule(source, selector) {
   const matches = [...source.matchAll(new RegExp(`${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'g'))];
   assert.ok(matches.length > 0, `${selector} rule missing`);
   return matches.at(-1)[1];
+}
+
+function stringArrayLiteralAfter(source, marker) {
+  const start = source.indexOf(marker);
+  assert.notEqual(start, -1, `${marker} missing`);
+  const arrayStart = source.indexOf('[', start);
+  assert.notEqual(arrayStart, -1, `${marker} array start missing`);
+  const arrayEnd = source.indexOf(']', arrayStart);
+  assert.notEqual(arrayEnd, -1, `${marker} array end missing`);
+  return [...source.slice(arrayStart, arrayEnd + 1).matchAll(/['"]([^'"]+)['"]/g)].map((match) => match[1]);
 }

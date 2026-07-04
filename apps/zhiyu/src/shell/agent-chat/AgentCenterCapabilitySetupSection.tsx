@@ -1,22 +1,22 @@
 import { Button, StatusBadge, Surface } from '@nimiplatform/kit/ui';
 import { SlidersHorizontal, Sparkles } from 'lucide-react';
 
-type HomeCapabilitySetupSectionProps = {
+type AgentCenterCapabilitySetupSectionProps = {
   readonly hasCurrentPartner: boolean;
   readonly onConfigureModel: () => void;
   readonly onSelectPartner: () => void;
 };
 
-export function HomeCapabilitySetupSection({
+export function AgentCenterCapabilitySetupSection({
   hasCurrentPartner,
   onConfigureModel,
   onSelectPartner,
-}: HomeCapabilitySetupSectionProps) {
+}: AgentCenterCapabilitySetupSectionProps) {
   const action = hasCurrentPartner ? 'configure-model' : 'select-partner';
   return (
     <Surface
       as="section"
-      className="zhiyu-home__capability-studio zhiyu-home__capability-setup"
+      className="zhiyu-agent-center__capability-studio zhiyu-agent-center__capability-setup"
       data-zhiyu-region="capability-studio"
       data-zhiyu-capability-studio="setup"
       data-zhiyu-capability-studio-disabled="true"
@@ -24,14 +24,14 @@ export function HomeCapabilitySetupSection({
       elevation="base"
       padding="md"
     >
-      <div className="zhiyu-home__section-heading">
+      <div className="zhiyu-agent-center__section-heading">
         <Sparkles size={18} aria-hidden="true" />
         <div>
           <h2>文字能力</h2>
           <p>{hasCurrentPartner ? '配置模型后，文字能力会在这里开放。' : '选择本地伙伴后，再配置模型使用文字能力。'}</p>
         </div>
       </div>
-      <div className="zhiyu-home__setup-card">
+      <div className="zhiyu-agent-center__setup-card">
         <StatusBadge tone="warning" shape="dot">
           {hasCurrentPartner ? '需要模型' : '需要伙伴'}
         </StatusBadge>

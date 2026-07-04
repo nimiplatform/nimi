@@ -37,19 +37,50 @@ export async function captureLiveRuntimeInteractionEvidence(page, stage, pagePro
   assert.match(stage, /^[a-z][A-Za-z0-9-]*$/u, 'interaction evidence stage must be a stable filename token');
   const { checkpoint, evidenceRoot } = resolveEvidenceRoot();
   await mkdir(evidenceRoot, { recursive: true });
-  await page.setViewportSize({ width: 1280, height: 900 });
   const screenshotPath = path.join(evidenceRoot, `live-runtime-${stage}.png`);
-  await page.locator('[data-zhiyu-region="agent-panel"]').first().screenshot({ path: screenshotPath });
-  const domEvidence = await page.evaluate(() => ({
-    activeAgentPanelMode: globalThis.document
-      .querySelector('[data-zhiyu-agent-panel-mode]')
-      ?.getAttribute('data-zhiyu-agent-panel-mode') ?? null,
-    activeAgentPanelTab: globalThis.document
-      .querySelector('[data-zhiyu-agent-panel-tab]')
-      ?.getAttribute('data-zhiyu-agent-panel-tab') ?? null,
-    settingsPanelCount: globalThis.document.querySelectorAll('[data-zhiyu-settings-panel="right"]').length,
-    advancedPanelVisible: Boolean(globalThis.document.querySelector('[data-zhiyu-agent-advanced-panel="true"]')),
-  })).catch((error) => ({
+  await page.screenshot({ path: screenshotPath });
+  const domEvidence = await page.evaluate(() => {
+    const rectFor = (selector) => {
+      const element = globalThis.document.querySelector(selector);
+      if (!element) {
+        return null;
+      }
+      const rect = element.getBoundingClientRect();
+      return {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+      };
+    };
+    const measureChatCentering = () => {
+      const conversation = rectFor('[data-zhiyu-region="conversation"]');
+      const composer = rectFor('[data-zhiyu-region="conversation"] [data-canonical-composer-width]');
+      const transcript = rectFor('[data-zhiyu-region="conversation"] [data-canonical-transcript-width]');
+      if (!conversation || !composer || !transcript) {
+        return { conversation, composer, transcript };
+      }
+      const conversationCenter = conversation.x + conversation.width / 2;
+      return {
+        conversation,
+        composer,
+        transcript,
+        composerCenterDelta: (composer.x + composer.width / 2) - conversationCenter,
+        transcriptCenterDelta: (transcript.x + transcript.width / 2) - conversationCenter,
+      };
+    };
+    return {
+      activeAgentPanelMode: globalThis.document
+        .querySelector('[data-zhiyu-agent-panel-mode]')
+        ?.getAttribute('data-zhiyu-agent-panel-mode') ?? null,
+      activeAgentPanelTab: globalThis.document
+        .querySelector('[data-zhiyu-agent-panel-tab]')
+        ?.getAttribute('data-zhiyu-agent-panel-tab') ?? null,
+      settingsPanelCount: globalThis.document.querySelectorAll('[data-zhiyu-settings-panel="right"]').length,
+      advancedPanelVisible: Boolean(globalThis.document.querySelector('[data-zhiyu-agent-advanced-panel="true"]')),
+      chatCentering: measureChatCentering(),
+    };
+  }).catch((error) => ({
     evaluationError: error instanceof Error ? error.message : String(error),
   }));
   await writeFile(
@@ -358,7 +389,7 @@ async function capturePanelScreenshots(page, stage, evidenceRoot) {
     captured.push(filename);
   }
   if (stage === 'appearanceConfig' || stage === 'cognitionConfig' || stage === 'advancedConfig') {
-    const scrollPane = page.locator('[data-zhiyu-region="agent-panel"] .zhiyu-home__agent-panel-scroll').first();
+    const scrollPane = page.locator('[data-zhiyu-region="agent-panel"] .zhiyu-agent-center__body').first();
     await scrollPane.waitFor({ timeout: 15_000 });
     await scrollPane.evaluate((node) => {
       node.scrollTop = node.scrollHeight;
@@ -407,14 +438,13 @@ export async function assertProductShellPrimaryView(page) {
   await shell.waitFor({ timeout: 15_000 });
   assert.equal(await shell.getAttribute('data-zhiyu-primary-ui'), 'true');
 
-  const drawer = page.locator('#zhiyu-diagnostics-drawer');
-  assert.equal(await drawer.getAttribute('data-zhiyu-diagnostics-drawer'), 'closed');
-  assert.equal(await drawer.isHidden(), true);
+  assert.equal(await page.locator('#zhiyu-diagnostics-drawer').count(), 0, 'legacy diagnostics drawer must not exist');
+  assert.equal(await shell.locator('[data-zhiyu-diagnostics-entry]').count(), 0, 'legacy diagnostics nav entries must not exist');
 
-  assert.equal(await shell.locator('[data-zhiyu-side-panel-state]').getAttribute('data-zhiyu-side-panel-state'), 'closed');
-  assert.equal(await shell.locator('[data-zhiyu-region="conversation"]').count(), 1);
-  assert.equal(await shell.locator('[data-zhiyu-region="agent-panel"]').count(), 0);
-  assert.equal(await shell.locator('[data-zhiyu-region="relationship-rail"]').count(), 1);
+  assert.equal(await shell.locator('[data-zhiyu-side-panel-state]').getAttribute('data-zhiyu-side-panel-state'), 'closed', 'primary shell must start with Agent Center closed');
+  assert.equal(await shell.locator('[data-zhiyu-region="conversation"]').count(), 1, 'primary shell must render one conversation region');
+  assert.equal(await shell.locator('[data-zhiyu-region="agent-panel"]').count(), 0, 'primary shell must not render Agent Center before explicit open');
+  assert.equal(await shell.locator('[data-zhiyu-region="relationship-rail"]').count(), 1, 'left presence rail must contain one contacts rail');
 
   const primaryText = await shell.innerText();
   assert.match(primaryText, /开始一段对话|当前伙伴|选择本地伙伴/);
@@ -429,42 +459,42 @@ export async function assertProductShellPrimaryView(page) {
     /本地伙伴工作台|文字能力|图片创作|上游投影|准入来源|等待投影|not_projected|Runtime\b|SDK\b|sourceRef|localAgentRef|回显通路|身份地板|graph-lite|Runtime Agent Chat|Capability Studio|Image Studio|Avatar Presence|\bempty\b|local:runtime-agent-live-e2e|runtime-agent-live-e2e|Hello from the Runtime Agent live fixture|Today|hello from Zhiyu live Runtime acceptance|Runtime acceptance|zhiyu-avatar-blocked|canonical capabilities|Runtime\/SDK route projection|Platform capability catalog|runtime-route-ready|runtime-agent-memory-graph-relations-not-admitted|zhiyu-ai-config-route-selection-required|ai-config-binding-missing|AIConfig targetRef|required for image\.generate|failed closed before request dispatch|Capability Studio has not run|Run core Runtime AI capabilities|configurationId|avatarDiagnosticCode|assetManifestPath|unsupportedFields/,
   );
 
-  await page.locator('[data-zhiyu-diagnostics-entry="nav"]').click();
-  await page.waitForSelector('[data-zhiyu-diagnostics-drawer="open"]', { state: 'visible' });
-  const openDrawer = page.locator('[data-zhiyu-diagnostics-drawer="open"]');
-  const drawerText = await openDrawer.innerText();
-  assert.match(drawerText, /Runtime 诊断/);
-  assert.equal(await openDrawer.locator('[data-zhiyu-region="diagnostics"]').count(), 1);
-  assert.equal(await openDrawer.locator('[data-zhiyu-diagnostic-item]').count() > 0, true);
-  await assertDiagnosticsCapabilityMatrixReadable(openDrawer);
+  await page.locator('[data-zhiyu-settings-entry="presence-rail"]').click();
+  await page.waitForSelector('[data-zhiyu-agent-center-tab-button="advanced"][aria-current="page"]', { state: 'visible' });
+  const advancedPanel = page.locator('[data-zhiyu-agent-advanced-panel="true"]');
+  await advancedPanel.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await advancedPanel.locator('[data-zhiyu-agent-center-capability-probe="open"]').count(), 1, 'Agent Center advanced tab must contain capability probe');
+  assert.equal(await advancedPanel.locator('[data-zhiyu-agent-advanced-technical-surfaces="true"]').count(), 1, 'Agent Center advanced tab must contain technical surfaces');
+  assert.equal(await advancedPanel.locator('[data-zhiyu-region="diagnostics"]').count(), 1, 'Agent Center advanced tab must contain Runtime diagnostics');
+  assert.equal(await advancedPanel.locator('[data-zhiyu-diagnostic-item]').count() > 0, true, 'Agent Center advanced diagnostics must contain diagnostic items');
+  await assertDiagnosticsCapabilityMatrixReadable(advancedPanel);
 
   const { evidenceRoot } = resolveEvidenceRoot();
   await mkdir(evidenceRoot, { recursive: true });
-  await openDrawer.locator('.zhiyu-home__diagnostics-drawer').screenshot({
-    path: path.join(evidenceRoot, 'live-runtime-diagnostics-open-panel.png'),
+  await page.locator('[data-zhiyu-region="agent-panel"]').screenshot({
+    path: path.join(evidenceRoot, 'live-runtime-advanced-settings-panel.png'),
   });
   await page.screenshot({
-    path: path.join(evidenceRoot, 'live-runtime-diagnostics-open-desktop.png'),
+    path: path.join(evidenceRoot, 'live-runtime-advanced-settings-desktop.png'),
     fullPage: false,
   });
   await page.setViewportSize({ width: 390, height: 900 });
-  await openDrawer.waitFor({ timeout: 15_000 });
-  await assertDiagnosticsCapabilityMatrixReadable(openDrawer);
+  await advancedPanel.waitFor({ timeout: 15_000 });
+  await assertDiagnosticsCapabilityMatrixReadable(advancedPanel);
   await page.screenshot({
-    path: path.join(evidenceRoot, 'live-runtime-diagnostics-open-narrow.png'),
+    path: path.join(evidenceRoot, 'live-runtime-advanced-settings-narrow.png'),
     fullPage: false,
   });
   await page.setViewportSize({ width: 1280, height: 900 });
-  await openDrawer.waitFor({ timeout: 15_000 });
+  await advancedPanel.waitFor({ timeout: 15_000 });
   extraReadyPanelScreenshots.push(
-    'live-runtime-diagnostics-open-panel.png',
-    'live-runtime-diagnostics-open-desktop.png',
-    'live-runtime-diagnostics-open-narrow.png',
+    'live-runtime-advanced-settings-panel.png',
+    'live-runtime-advanced-settings-desktop.png',
+    'live-runtime-advanced-settings-narrow.png',
   );
 
-  await page.locator('[data-zhiyu-diagnostics-toggle="close"]').click();
-  await page.waitForSelector('[data-zhiyu-diagnostics-drawer="closed"]', { state: 'attached' });
-  assert.equal(await drawer.isHidden(), true);
+  await page.locator('[data-zhiyu-agent-panel-close="true"]').click();
+  await page.locator('[data-zhiyu-region="agent-panel"]').waitFor({ state: 'detached', timeout: 15_000 });
 }
 
 export async function assertDiagnosticsCapabilityMatrixReadable(openDrawer) {
