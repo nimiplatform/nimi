@@ -21,6 +21,7 @@ const worldTemplateSource = [
   'world-detail-template-model.ts',
 ].map(readWorldSource).join('\n');
 const worldDetailTemplateSource = readWorldSource('world-detail-template.tsx');
+const worldDetailLayoutSource = readWorldSource('world-detail-layout.ts');
 const paperPrimitiveSource = readWorldSource('world-detail-paper-primitives.tsx');
 const paperSectionsSource = readWorldSource('world-detail-paper-sections.tsx');
 const glassSectionsSource = readWorldSource('world-detail-glass-sections.tsx');
@@ -41,6 +42,10 @@ const relationshipExplorerLocaleSource = ['zh', 'en'].map((locale) => {
 }).join('\n');
 const desktopFeatureCoverageSource = readFileSync(
   resolve(import.meta.dirname, '../../../.nimi/spec/desktop/kernel/tables/desktop-feature-coverage.yaml'),
+  'utf8',
+);
+const exploreViewSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/features/explore/explore-view.tsx'),
   'utf8',
 );
 
@@ -66,8 +71,9 @@ test('world detail hard-cuts to the paper setting discovery surface', () => {
 test('world detail product semantics stay record-first and source-first', () => {
   assert.match(worldTemplateSource, /WorldDetail\.paper\.paths\.title/);
   assert.match(worldTemplateSource, /WorldDetail\.paper\.characters\.title/);
-  assert.match(worldTemplateSource, /WorldDetail\.paper\.materials\.title/);
+  assert.match(worldTemplateSource, /WorldDetail\.paper\.loreOverview\.title/);
   assert.match(worldTemplateSource, /WorldDetail\.paper\.scenes\.title/);
+  assert.doesNotMatch(worldTemplateSource, /WorldDetail\.paper\.materials\.title/);
   assert.doesNotMatch(worldDetailTemplateSource, /PaperTimelineSection/);
   assert.doesNotMatch(worldDetailTemplateSource, /world-detail-timeline/);
   // World follow stays in the hero; low-value banner chips are omitted.
@@ -156,17 +162,21 @@ test('world detail drill-down pages share the root paper top safe area', () => {
   assert.doesNotMatch(relationshipExplorerSource, /EXPLORER_TOP_OFFSET_PX = 154/);
 });
 
+test('world detail root content aligns with the atlas top content offset', () => {
+  assert.match(exploreViewSource, /props\.activeSection === 'worlds'\s*\?\s*'w-full px-5 py-5'/);
+  assert.match(worldDetailLayoutSource, /WORLD_DETAIL_PAPER_TOP_PADDING = '20px'/);
+  assert.match(worldDetailLayoutSource, /WORLD_DETAIL_PAPER_CONTENT_PADDING = `\$\{WORLD_DETAIL_PAPER_TOP_PADDING\} 28px 80px`/);
+  assert.doesNotMatch(worldDetailLayoutSource, /3\.5rem \+ 1\.75rem \+ 22px|calc\(3\.5rem\+1\.75rem\)/);
+});
+
 test('world scene detail page uses page scroll instead of a capped internal viewport', () => {
   assert.doesNotMatch(sceneDetailSource, /max-h-\[720px\]/);
 });
 
-test('world detail resolves the people material card to the people archive page', async () => {
-  const mod = await import('../src/shell/renderer/features/world/world-detail-template.js');
-  assert.equal(mod.resolveWorldMaterialSubpage('people'), 'people-archive');
-  assert.equal(mod.resolveWorldMaterialSubpage('scenes'), null);
-  assert.equal(mod.resolveWorldMaterialSubpage('events'), null);
-  assert.equal(mod.resolveWorldMaterialSubpage('resources'), 'resource-references');
-  assert.equal(mod.resolveWorldMaterialSubpage('lore'), 'lore-library');
+test('world detail does not expose the retired material card router', () => {
+  assert.doesNotMatch(worldTemplateSource, /resolveWorldMaterialSubpage/);
+  assert.doesNotMatch(worldTemplateSource, /PaperMaterialsSection/);
+  assert.doesNotMatch(worldTemplateSource, /world-detail-materials/);
 });
 
 test('world relationship explorer is a three-column user-facing exploration page', () => {

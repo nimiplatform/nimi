@@ -17,6 +17,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 (globalThis as { React?: typeof React }).React = React;
 
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
+import { WORLD_DETAIL_PAPER_CONTENT_PADDING } from '../src/shell/renderer/features/world/world-detail-layout';
 import { worldTimeDisplay } from '../src/shell/renderer/features/world/world-detail-paper-model';
 import { derivedScenes } from '../src/shell/renderer/features/world/world-detail-template-model';
 import {
@@ -32,9 +33,13 @@ import {
   displayRelationshipEvidenceText,
   relationshipGraphEdgeLabelPosition,
 } from '../src/shell/renderer/features/world/world-detail-relationship-explorer';
-import { NarrativeWorldDetailPage, resolveWorldMaterialSubpage } from '../src/shell/renderer/features/world/world-detail-template';
+import { NarrativeWorldDetailPage } from '../src/shell/renderer/features/world/world-detail-template';
 import { WorldSceneDetailPage } from '../src/shell/renderer/features/world/world-detail-scene-detail-page';
 import type { WorldCharacter, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from '../src/shell/renderer/features/world/world-detail-types';
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 const world: WorldDetailData = {
   id: 'world-1',
@@ -120,6 +125,11 @@ const history: WorldHistoryBundle = {
   summary: { primaryCount: 2, secondaryCount: 0, totalCount: 2, eventCharacterCoverage: 1, eventLocationCoverage: 1 },
 };
 
+const emptyHistory: WorldHistoryBundle = {
+  items: [],
+  summary: null,
+};
+
 const semantic: WorldSemanticData = {
   operationTitle: null,
   operationDescription: null,
@@ -137,6 +147,43 @@ const semantic: WorldSemanticData = {
   languages: [{ name: '古典汉语', isCommon: true }],
   worldviewEvents: [],
   worldviewSnapshots: [],
+  hasContent: true,
+};
+
+const emptySemantic: WorldSemanticData = {
+  ...semantic,
+  operationRules: [],
+  powerSystems: [],
+  standaloneLevels: [],
+  taboos: [],
+  languages: [],
+  hasContent: false,
+};
+
+const institutionSemantic: WorldSemanticData = {
+  ...emptySemantic,
+  powerSystems: [
+    {
+      name: '官制结构',
+      description: '中央与地方官职体系',
+      rules: ['涵盖元代中央与地方各级官职，帮助理解文人的仕宦经历与身份位置。'],
+      levels: [
+        { name: '官职' },
+        { name: '仕宦' },
+        { name: '地方治理' },
+      ],
+    },
+    {
+      name: '入仕制度',
+      description: '士人如何进入官场',
+      rules: ['记录科举、荐举、荫补等方式，帮助理解人物的上升路径与社会流动。'],
+      levels: [
+        { name: '科举' },
+        { name: '荐举' },
+        { name: '荫补' },
+      ],
+    },
+  ],
   hasContent: true,
 };
 
@@ -290,10 +337,10 @@ test('paper world detail renders narrative sections without the duplicate settin
 
   // Layout + sections present.
   assert.match(markup, /data-testid="world-detail-paper-layout"/);
-  assert.match(markup, /padding:calc\(3\.5rem \+ 1\.75rem \+ 22px\) 28px 80px/);
+  assert.match(markup, new RegExp(`padding:${escapeRegExp(WORLD_DETAIL_PAPER_CONTENT_PADDING)}`));
   assert.doesNotMatch(markup, /pointer-events:none;background:radial-gradient\(60% 50% at 0% 0%/);
   assert.match(markup, /data-testid="world-detail-paper-characters"/);
-  assert.match(markup, /data-testid="world-detail-paper-materials"/);
+  assert.doesNotMatch(markup, /data-testid="world-detail-paper-materials"/);
   assert.match(markup, /data-testid="world-detail-paper-scenes"/);
   assert.match(markup, /data-testid="world-detail-paper-paths"/);
   assert.doesNotMatch(markup, /data-testid="world-detail-paper-timeline"/);
@@ -304,7 +351,7 @@ test('paper world detail renders narrative sections without the duplicate settin
   // Resolved copy from the active locale — no raw i18n keys leak through.
   assert.match(markup, /Recommended paths/);
   assert.match(markup, /People you can meet/);
-  assert.match(markup, /Popular records/);
+  assert.doesNotMatch(markup, /Popular records/);
   assert.doesNotMatch(markup, /River of time/);
   assert.match(markup, /Start with 姚燧/);
   assert.doesNotMatch(markup, /Primary language/);
@@ -318,6 +365,27 @@ test('paper world detail renders narrative sections without the duplicate settin
   assert.match(markup, /aria-label="Open 姚燧 profile"/);
 });
 
+test('paper world detail hides the major events metric when history has no events', () => {
+  const markup = renderToStaticMarkup(
+    React.createElement(NarrativeWorldDetailPage, {
+      world,
+      characters,
+      history: emptyHistory,
+      semantic,
+      audits: [],
+      publicAssets,
+      onBack: () => {},
+      onViewCharacter: () => {},
+      onMaterializeSource: () => {},
+    }),
+  );
+
+  assert.doesNotMatch(markup, /Major events/);
+  assert.doesNotMatch(markup, /Key moments of this world/);
+  assert.match(markup, /People you can meet/);
+  assert.match(markup, /Explorable scenes/);
+});
+
 test('semantic lore library derives grouped entries from world semantic data', () => {
   const entries = buildWorldLoreEntries(semantic);
 
@@ -325,17 +393,118 @@ test('semantic lore library derives grouped entries from world semantic data', (
   assert.equal(entries[0]?.title, '书院讲学');
   assert.equal(entries[0]?.body, '以书院为核心组织讲学与交游。');
   assert.equal(entries[1]?.title, '文人交游体系');
-  assert.equal(entries[1]?.body, '人物之间通过书信、拜访、诗文唱和形成关系网络。');
-  assert.deepEqual(entries[1]?.details, ['交游关系必须来自公开资料。']);
+  assert.equal((entries[1] as { subtitle?: string } | undefined)?.subtitle, '人物之间通过书信、拜访、诗文唱和形成关系网络。');
+  assert.equal(entries[1]?.body, '交游关系必须来自公开资料。');
+  assert.deepEqual(entries[1]?.details, []);
   assert.equal(entries[2]?.title, '古典汉语');
 });
 
-test('paper world detail routes lore material into the semantic lore library', () => {
-  assert.equal(resolveWorldMaterialSubpage('lore'), 'lore-library');
+test('semantic lore overview derives reusable card fields from world systems', () => {
+  const entries = buildWorldLoreEntries(institutionSemantic);
+
+  assert.deepEqual(entries.map((entry) => entry.kind), ['system', 'system']);
+  assert.equal(entries[0]?.title, '官制结构');
+  assert.equal((entries[0] as { subtitle?: string } | undefined)?.subtitle, '中央与地方官职体系');
+  assert.equal(entries[0]?.body, '涵盖元代中央与地方各级官职，帮助理解文人的仕宦经历与身份位置。');
+  assert.deepEqual((entries[0] as { keywords?: readonly string[] } | undefined)?.keywords, ['官职', '仕宦', '地方治理']);
+  assert.equal(entries[1]?.title, '入仕制度');
+  assert.equal((entries[1] as { subtitle?: string } | undefined)?.subtitle, '士人如何进入官场');
+  assert.equal(entries[1]?.body, '记录科举、荐举、荫补等方式，帮助理解人物的上升路径与社会流动。');
+  assert.deepEqual((entries[1] as { keywords?: readonly string[] } | undefined)?.keywords, ['科举', '荐举', '荫补']);
 });
 
-test('paper world detail routes resources material into the resource references page', () => {
-  assert.equal(resolveWorldMaterialSubpage('resources'), 'resource-references');
+test('paper world detail surfaces semantic lore on the root page', async () => {
+  await changeLocale('zh');
+  try {
+    const markup = renderToStaticMarkup(
+      React.createElement(NarrativeWorldDetailPage, {
+        world,
+        characters,
+        history,
+        semantic,
+        audits: [],
+        publicAssets,
+        onBack: () => {},
+        onViewCharacter: () => {},
+        onMaterializeSource: () => {},
+      }),
+    );
+
+    assert.match(markup, /data-testid="world-detail-paper-lore-overview"/);
+    assert.match(markup, /世界设定概览/);
+    assert.doesNotMatch(markup, /查看全部设定/);
+    assert.doesNotMatch(markup, /制度与体系/);
+    assert.match(markup, /文人交游体系/);
+    assert.doesNotMatch(markup, /人物之间通过书信、拜访、诗文唱和形成关系网络。/);
+    assert.doesNotMatch(markup, /交游关系必须来自公开资料。/);
+    assert.match(markup, /书院讲学/);
+    assert.doesNotMatch(markup, /data-testid="world-detail-lore-library-page"/);
+    assert.doesNotMatch(markup, /WorldDetail\.paper\.loreOverview/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('paper world detail renders lore overview as title-only two-column cards', async () => {
+  await changeLocale('zh');
+  try {
+    const markup = renderToStaticMarkup(
+      React.createElement(NarrativeWorldDetailPage, {
+        world,
+        characters,
+        history,
+        semantic: institutionSemantic,
+        audits: [],
+        publicAssets,
+        onBack: () => {},
+        onViewCharacter: () => {},
+        onMaterializeSource: () => {},
+      }),
+    );
+
+    assert.match(markup, /世界设定概览/);
+    assert.match(markup, /理解这个世界如何运转，以及人物、事件和关系背后的规则。/);
+    assert.match(markup, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+    assert.match(markup, /官制结构/);
+    assert.match(markup, /lucide-stamp/);
+    assert.doesNotMatch(markup, /中央与地方官职体系/);
+    assert.doesNotMatch(markup, /涵盖元代中央与地方各级官职，帮助理解文人的仕宦经历与身份位置。/);
+    assert.doesNotMatch(markup, /官职 · 仕宦 · 地方治理/);
+    assert.match(markup, /入仕制度/);
+    assert.match(markup, /lucide-milestone/);
+    assert.doesNotMatch(markup, /士人如何进入官场/);
+    assert.doesNotMatch(markup, /记录科举、荐举、荫补等方式，帮助理解人物的上升路径与社会流动。/);
+    assert.doesNotMatch(markup, /科举 · 荐举 · 荫补/);
+    assert.doesNotMatch(markup, /制度与体系/);
+    assert.doesNotMatch(markup, /WorldDetail\.paper\.loreOverview/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('paper world detail hides semantic lore overview when there are no lore records', async () => {
+  await changeLocale('zh');
+  try {
+    const markup = renderToStaticMarkup(
+      React.createElement(NarrativeWorldDetailPage, {
+        world,
+        characters,
+        history,
+        semantic: emptySemantic,
+        audits: [],
+        publicAssets,
+        onBack: () => {},
+        onViewCharacter: () => {},
+        onMaterializeSource: () => {},
+      }),
+    );
+
+    assert.doesNotMatch(markup, /data-testid="world-detail-paper-lore-overview"/);
+    assert.doesNotMatch(markup, /世界设定概览/);
+    assert.match(markup, /data-testid="world-detail-paper-paths"/);
+  } finally {
+    await changeLocale('en');
+  }
 });
 
 test('world lore library page renders semantic groups as browseable records', async () => {
@@ -365,15 +534,18 @@ test('world lore library page renders semantic groups as browseable records', as
   }
 });
 
-test('resource references page derives and renders all declared resource records', async () => {
+test('resource references page reorganizes resource data around user-ready assets', async () => {
   const entries = buildWorldResourceReferenceEntries(publicAssets);
 
-  assert.deepEqual(entries.map((entry) => entry.kind), ['resource', 'external', 'intent']);
+  assert.deepEqual(entries.map((entry) => entry.kind), ['material', 'material', 'intent']);
+  assert.deepEqual(entries.map((entry) => entry.status), ['registered', 'external', 'planned']);
   assert.equal(entries[0]?.title, '书院图');
-  assert.equal(entries[0]?.subtitle, 'image / highlight');
-  assert.equal(entries[1]?.title, 'world-media-highlight-1');
-  assert.equal(entries[1]?.uri, 'file:///tmp/nimi-forge/world/highlight-1.png');
-  assert.equal(entries[2]?.title, 'intent-map');
+  assert.equal(entries[0]?.subtitle, 'highlight / image');
+  assert.equal(entries[1]?.role, 'highlight');
+  assert.equal(entries[1]?.roleIndex, 1);
+  assert.equal(entries[1]?.externalUri, 'file:///tmp/nimi-forge/world/highlight-1.png');
+  assert.equal(entries[2]?.title, '');
+  assert.equal(entries[2]?.role, 'map');
   assert.equal(entries[2]?.body, '世界地图与场景定位用图。');
 
   await changeLocale('zh');
@@ -387,15 +559,22 @@ test('resource references page derives and renders all declared resource records
     );
 
     assert.match(markup, /data-testid="world-detail-resource-references-page"/);
-    assert.match(markup, /资源引用集/);
-    assert.match(markup, /规范资源/);
-    assert.match(markup, /外部引用/);
-    assert.match(markup, /资产意图/);
+    assert.match(markup, /世界素材清单/);
+    assert.match(markup, /可打开素材/);
+    assert.match(markup, /已接入素材/);
+    assert.match(markup, /待补齐计划/);
+    assert.match(markup, /仅有内部记录/);
+    assert.match(markup, /仅有来源链接/);
     assert.match(markup, /书院图/);
+    assert.match(markup, /亮点图 1/);
+    assert.match(markup, /地图\/定位图/);
     assert.match(markup, /res1/);
     assert.match(markup, /world-media-highlight-1/);
+    assert.match(markup, /intent-map/);
     assert.match(markup, /file:\/\/\/tmp\/nimi-forge\/world\/highlight-1\.png/);
     assert.match(markup, /世界地图与场景定位用图。/);
+    assert.doesNotMatch(markup, /资源引用集/);
+    assert.doesNotMatch(markup, /规范资源/);
     assert.doesNotMatch(markup, /WorldDetail\.paper\.resourceReferences/);
   } finally {
     await changeLocale('en');
@@ -505,8 +684,6 @@ test('world scene detail page renders structured scene DTO data after entry with
   assert.doesNotMatch(markup, /class="fixed inset-0/);
   assert.doesNotMatch(markup, /bg-black\/55/);
   assert.match(markup, /Scene detail card/);
-  assert.match(markup, /s1/);
-  assert.match(markup, /world-media-highlight-1/);
   assert.match(markup, /file:\/\/\/tmp\/nimi-forge\/world\/highlight-1\.png/);
   assert.match(markup, /Active entities/);
   assert.match(markup, /Related characters/);
@@ -515,6 +692,53 @@ test('world scene detail page renders structured scene DTO data after entry with
   assert.match(markup, /倪瓒/);
   assert.match(markup, /书院讲堂讲会/);
   assert.match(markup, /讲学与雅集发生的地点。/);
+  assert.doesNotMatch(markup, /Scene ID/);
+  assert.doesNotMatch(markup, /Image Asset Ref/);
+  assert.doesNotMatch(markup, /world-media-highlight-1/);
+  assert.doesNotMatch(markup, /from locationRefs and summaries/);
+  assert.doesNotMatch(markup, /from scene resources/);
+  assert.doesNotMatch(markup, /View related sources/);
+});
+
+test('world scene detail page hides empty counters, provenance and resource chrome', () => {
+  const page = WorldSceneDetailPage as React.ComponentType<Record<string, unknown>>;
+  const sparseScene = {
+    ...publicAssets.scenes[1],
+    relatedCharacters: characters,
+    counts: {
+      activeEntityCount: 0,
+      relatedCharacterCount: characters.length,
+      relatedEventCount: 0,
+      relatedResourceCount: 0,
+    },
+  };
+  const markup = renderToStaticMarkup(
+    React.createElement(page, {
+      isOasisWorld: false,
+      oasisSceneActionLabel: 'View related sources',
+      onBack: () => {},
+      onSelectCharacter: () => {},
+      onViewCharacters: () => {},
+      onViewEvents: () => {},
+      scene: sparseScene,
+      sceneImageRef: publicAssets.externalRefs[0],
+    }),
+  );
+
+  assert.match(markup, /Related characters/);
+  assert.match(markup, /姚燧/);
+  assert.doesNotMatch(markup, /Active entities/);
+  assert.doesNotMatch(markup, /Related events/);
+  assert.doesNotMatch(markup, /Related resources/);
+  assert.doesNotMatch(markup, /from locationRefs and summaries/);
+  assert.doesNotMatch(markup, /from scene resources/);
+  assert.doesNotMatch(markup, /Scene ID/);
+  assert.doesNotMatch(markup, /Image Asset Ref/);
+  assert.doesNotMatch(markup, /s2/);
+  assert.doesNotMatch(markup, /world-media-highlight-1/);
+  assert.doesNotMatch(markup, /View related sources/);
+  assert.doesNotMatch(markup, /View related characters/);
+  assert.doesNotMatch(markup, /Before entering, note what is here/);
 });
 
 test('paper world detail hero hosts the world follow CTA without banner tags', () => {

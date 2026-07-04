@@ -533,37 +533,9 @@
         }
       }
     },
-    "materials": {
-      "title": "Popular records",
-      "subtitle": "Source records for people, scenes, events, and lore — browse anytime.",
-      "records": "records",
-      "cat": {
-        "people": {
-          "tag": "People",
-          "title": "People archive",
-          "desc": "Lives and connections of the people in this world."
-        },
-        "scenes": {
-          "tag": "Scenes",
-          "title": "Scene library",
-          "desc": "Locations and scene anchors to explore immersively."
-        },
-        "events": {
-          "tag": "Events",
-          "title": "Event chronicle",
-          "desc": "Key world moments arranged in time."
-        },
-        "resources": {
-          "tag": "Resources",
-          "title": "Resource references",
-          "desc": "Canonical resources, external references, and asset intents this world declares."
-        },
-        "lore": {
-          "tag": "Lore",
-          "title": "Setting compendium",
-          "desc": "Rules, power systems, taboos, and languages."
-        }
-      }
+    "loreOverview": {
+      "title": "Setting overview",
+      "subtitle": "Understand how this world works, and the rules behind its people, events, and relationships."
     },
     "loreLibrary": {
       "title": "Setting compendium",
@@ -596,27 +568,61 @@
       }
     },
     "resourceReferences": {
-      "title": "Resource references",
-      "subtitle": "WorldCore-declared canonical resources, external references, and asset intent records.",
+      "title": "World asset checklist",
+      "subtitle": "Organized by use: connected visual assets, openable sources, and asset plans that still need completion.",
+      "readerHint": "Start with what can be used now, then inspect where it comes from, then review what is still missing.",
       "records": "records",
-      "empty": "This world has not published resource references yet.",
+      "empty": "This world has not connected display assets or asset plans yet.",
       "kind": {
         "resource": "Canonical resources",
         "external": "External references",
         "intent": "Asset intents"
       },
+      "summary": {
+        "usable": "Openable assets",
+        "registered": "Realm records",
+        "planned": "Pending plans"
+      },
+      "status": {
+        "ready": "Ready to use",
+        "external": "Source link only",
+        "registered": "Internal record only",
+        "planned": "Pending"
+      },
+      "description": {
+        "ready": "This asset is both registered in Realm and backed by an openable source, so it can be used in world presentation.",
+        "external": "This asset is referenced through an external source and does not yet have a matching Realm asset record.",
+        "registered": "This asset is registered by the world, but no openable external source is currently available.",
+        "planned": "This is a future production, replacement, or completion request, not an image that is ready to use."
+      },
+      "field": {
+        "usage": "Used as",
+        "resourceId": "Asset ID",
+        "sourceLink": "Source link",
+        "sourceId": "Source ID",
+        "planType": "Plan type",
+        "rawName": "Raw name"
+      },
+      "role": {
+        "icon": "World icon",
+        "banner": "Top banner",
+        "hero": "Hero visual",
+        "highlight": "Highlight {{index}}",
+        "map": "Map / locator",
+        "other": "World asset"
+      },
+      "action": {
+        "openAsset": "Open asset"
+      },
+      "ownershipNote": "Asset IDs only show that content is referenced by this world; ownership, authorship, and binding truth still come from Realm asset and binding records.",
       "group": {
-        "resource": {
-          "title": "Canonical resources",
-          "subtitle": "Internal resource references declared by the world, without ownership semantics."
-        },
-        "external": {
-          "title": "External references",
-          "subtitle": "External URIs or generated outputs referenced by the world."
+        "material": {
+          "title": "Connected assets",
+          "subtitle": "Use this section for the world icon, banner, hero visual, highlights, and other display slots."
         },
         "intent": {
-          "title": "Asset intents",
-          "subtitle": "WorldCore intent records for future resource production, replacement, or completion."
+          "title": "Pending asset plans",
+          "subtitle": "These are asset needs that still require production, replacement, or completion."
         }
       }
     },

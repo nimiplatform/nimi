@@ -458,7 +458,7 @@ export function WorldPeopleArchivePage({
           onSelect={onSelect}
           query={query}
           axes={axes}
-          title={t('WorldDetail.paper.materials.cat.people.title')}
+          title={t('WorldDetail.paper.gallery.title')}
           subtitle={t('WorldDetail.paper.gallery.subtitle', { total: formatNum(characters.length), connectable: formatNum(connectable) })}
         />
       </div>

@@ -138,7 +138,7 @@ test('archive page renders as an in-page drill-down without the modal backdrop',
   );
 
   assert.match(markup, /data-testid="world-detail-people-archive-page"/);
-  assert.match(markup, /People archive/);
+  assert.match(markup, /People you can meet/);
   assert.match(markup, /Back to world detail/);
   assert.doesNotMatch(markup, /position:fixed;inset:0/);
   assert.doesNotMatch(markup, /background:rgba\(38,32,23,.5\)/);

@@ -19,12 +19,16 @@ import {
 import type { WorldDetailData, WorldSemanticData } from './world-detail-types.js';
 
 export type WorldLoreKind = 'rule' | 'system' | 'taboo' | 'language';
+export type WorldLoreIconKind = 'rule' | 'institution' | 'pathway' | 'system' | 'taboo' | 'language';
 
 export type WorldLoreEntry = {
   readonly id: string;
   readonly kind: WorldLoreKind;
+  readonly icon: WorldLoreIconKind;
   readonly title: string;
+  readonly subtitle: string;
   readonly body: string;
+  readonly keywords: readonly string[];
   readonly details: readonly string[];
 };
 
@@ -55,6 +59,20 @@ function uniqueDetails(values: readonly (string | null | undefined)[]): string[]
   return details;
 }
 
+function inferLoreIcon(kind: WorldLoreKind, values: readonly string[]): WorldLoreIconKind {
+  if (kind === 'taboo' || kind === 'language' || kind === 'rule') {
+    return kind;
+  }
+  const haystack = values.join(' ').toLocaleLowerCase();
+  if (/(入仕|科举|荐举|荫补|路径|上升|流动|考试|选拔|晋升|career|entry|exam|promotion|mobility|pathway)/u.test(haystack)) {
+    return 'pathway';
+  }
+  if (/(官制|官职|官场|治理|行政|中央|地方|制度|机构|bureaucracy|office|official|governance|administration|institution)/u.test(haystack)) {
+    return 'institution';
+  }
+  return 'system';
+}
+
 export function buildWorldLoreEntries(semantic: WorldSemanticData): WorldLoreEntry[] {
   const entries: WorldLoreEntry[] = [];
   semantic.operationRules.forEach((rule, index) => {
@@ -66,30 +84,40 @@ export function buildWorldLoreEntries(semantic: WorldSemanticData): WorldLoreEnt
     entries.push({
       id: loreEntryId('rule', rule.key || title, index),
       kind: 'rule',
+      icon: 'rule',
       title,
+      subtitle: '',
       body,
+      keywords: [],
       details: [],
     });
   });
 
   semantic.powerSystems.forEach((system, index) => {
     const title = normalizeLoreText(system.name);
-    const body = normalizeLoreText(system.description) || title;
+    const ruleDetails = uniqueDetails(system.rules);
+    const levelKeywords = uniqueDetails(system.levels.map((level) => level.name)).slice(0, 4);
+    const levelDetails = uniqueDetails(system.levels.map((level) => [
+      normalizeLoreText(level.name),
+      normalizeLoreText(level.description),
+      normalizeLoreText(level.extra),
+    ].filter(Boolean).join(' - ')));
+    const subtitle = normalizeLoreText(system.description) || ruleDetails[0] || levelDetails[0] || title;
+    const body = ruleDetails[0] || normalizeLoreText(system.description) || levelDetails[0] || title;
     if (!title || !body) {
       return;
     }
     entries.push({
       id: loreEntryId('system', title, index),
       kind: 'system',
+      icon: inferLoreIcon('system', [title, subtitle, body, ...levelKeywords, ...ruleDetails]),
       title,
+      subtitle,
       body,
+      keywords: levelKeywords,
       details: uniqueDetails([
-        ...system.rules,
-        ...system.levels.map((level) => [
-          normalizeLoreText(level.name),
-          normalizeLoreText(level.description),
-          normalizeLoreText(level.extra),
-        ].filter(Boolean).join(' - ')),
+        ...ruleDetails.slice(1),
+        ...levelDetails.filter((detail) => !levelKeywords.includes(detail)),
       ]),
     });
   });
@@ -103,8 +131,11 @@ export function buildWorldLoreEntries(semantic: WorldSemanticData): WorldLoreEnt
     entries.push({
       id: loreEntryId('taboo', title, index),
       kind: 'taboo',
+      icon: 'taboo',
       title,
+      subtitle: normalizeLoreText(taboo.severity),
       body,
+      keywords: uniqueDetails([taboo.severity]),
       details: uniqueDetails([taboo.severity]),
     });
   });
@@ -120,8 +151,11 @@ export function buildWorldLoreEntries(semantic: WorldSemanticData): WorldLoreEnt
     entries.push({
       id: loreEntryId('language', title, index),
       kind: 'language',
+      icon: 'language',
       title,
+      subtitle: normalizeLoreText(language.category),
       body,
+      keywords: uniqueDetails([language.category]),
       details: uniqueDetails([
         language.category,
         language.writingSample,
@@ -133,7 +167,7 @@ export function buildWorldLoreEntries(semantic: WorldSemanticData): WorldLoreEnt
   return entries;
 }
 
-function groupLoreEntries(entries: readonly WorldLoreEntry[]): Record<WorldLoreKind, WorldLoreEntry[]> {
+export function groupWorldLoreEntries(entries: readonly WorldLoreEntry[]): Record<WorldLoreKind, WorldLoreEntry[]> {
   return {
     rule: entries.filter((entry) => entry.kind === 'rule'),
     system: entries.filter((entry) => entry.kind === 'system'),
@@ -248,7 +282,7 @@ export function WorldLoreLibraryPage({
 }) {
   const { t } = useTranslation();
   const entries = useMemo(() => buildWorldLoreEntries(semantic), [semantic]);
-  const groups = useMemo(() => groupLoreEntries(entries), [entries]);
+  const groups = useMemo(() => groupWorldLoreEntries(entries), [entries]);
 
   return (
     <div

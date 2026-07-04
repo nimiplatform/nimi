@@ -12,7 +12,7 @@ import { DetailHero } from './world-detail-glass-sections';
 import { worldDetailPaperContentFrameStyle } from './world-detail-layout.js';
 import {
   PaperCharactersSection,
-  PaperMaterialsSection,
+  PaperLoreOverviewSection,
   PaperMetricStrip,
   PaperPathsSection,
   PaperScenesSection,
@@ -21,8 +21,6 @@ import {
   derivedMaterials,
   derivedMetrics,
   derivedPaths,
-  type PaperMaterial,
-  type PaperMaterialKey,
   type PaperPath,
 } from './world-detail-paper-model';
 import { derivedScenes, sceneImageRef } from './world-detail-template-model';
@@ -65,19 +63,6 @@ type InitialPaperSubpage = Extract<ActivePaperSubpage, 'relationship-explorer'>;
 
 function resolveInitialPaperSubpage(value: InitialPaperSubpage | null | undefined): ActivePaperSubpage {
   return value === 'relationship-explorer' ? value : 'root';
-}
-
-export function resolveWorldMaterialSubpage(materialKey: PaperMaterialKey): ActivePaperSubpage | null {
-  if (materialKey === 'people') {
-    return 'people-archive';
-  }
-  if (materialKey === 'lore') {
-    return 'lore-library';
-  }
-  if (materialKey === 'resources') {
-    return 'resource-references';
-  }
-  return null;
 }
 
 export function WorldDetailLoadingState() {
@@ -187,7 +172,6 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   const nav = {
     onBrowsePeople: () => scrollToSection('world-detail-characters'),
     onViewAllPeople: () => setActivePaperSubpage('people-archive'),
-    onOpenLibrary: () => scrollToSection('world-detail-materials'),
     onGoScenes: () => scrollToSection('world-detail-scenes'),
   };
 
@@ -212,17 +196,6 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
       return;
     }
     nav.onBrowsePeople();
-  };
-
-  const handleOpenMaterial = (material: PaperMaterial) => {
-    const subpage = resolveWorldMaterialSubpage(material.key);
-    if (subpage) {
-      setActivePaperSubpage(subpage);
-    } else if (material.key === 'scenes') {
-      nav.onGoScenes();
-    } else {
-      scrollToSection('world-detail-materials');
-    }
   };
 
   const openSceneDetail = (sceneId: string) => {
@@ -357,6 +330,10 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
               worldFollowed={props.worldFollowed}
             />
             <PaperMetricStrip metrics={metrics} />
+            <PaperLoreOverviewSection
+              semantic={props.semantic}
+              loading={props.semanticLoading}
+            />
             <PaperPathsSection paths={paths} onEnterPath={handleEnterPath} />
             <PaperCharactersSection
               characters={props.characters}
@@ -365,11 +342,6 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
               onViewCharacter={props.onViewCharacter}
               onMaterializeSource={props.onMaterializeSource}
               onViewAll={nav.onViewAllPeople}
-            />
-            <PaperMaterialsSection
-              materials={materials}
-              onOpen={handleOpenMaterial}
-              onOpenLibrary={nav.onBrowsePeople}
             />
             <PaperScenesSection
               scenes={scenes}

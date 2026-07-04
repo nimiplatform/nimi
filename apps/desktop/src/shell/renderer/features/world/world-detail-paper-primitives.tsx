@@ -10,8 +10,12 @@ import {
   FileText,
   Images,
   Layers,
+  Languages,
+  Milestone,
   MessageSquare,
   Shield,
+  Stamp,
+  ScrollText,
   Users,
 } from 'lucide-react';
 import { PAPER, PAPER_RADIUS, PAPER_SERIF } from './world-detail-paper-model';
@@ -47,12 +51,28 @@ export function IconLayers(props: IconProps) {
   return kitIcon(Layers, props);
 }
 
+export function IconStamp(props: IconProps) {
+  return kitIcon(Stamp, props);
+}
+
+export function IconMilestone(props: IconProps) {
+  return kitIcon(Milestone, props);
+}
+
 export function IconFile(props: IconProps) {
   return kitIcon(FileText, props);
 }
 
+export function IconScrollText(props: IconProps) {
+  return kitIcon(ScrollText, props);
+}
+
 export function IconShield(props: IconProps) {
   return kitIcon(Shield, props);
+}
+
+export function IconLanguages(props: IconProps) {
+  return kitIcon(Languages, props);
 }
 
 export function IconChat(props: IconProps) {

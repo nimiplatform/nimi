@@ -16,17 +16,33 @@ import {
   IconShield,
   PaperTag,
 } from './world-detail-paper-primitives.js';
-import type { WorldDetailData, WorldPublicAssetsData } from './world-detail-types.js';
+import type {
+  WorldAssetExternalRef,
+  WorldAssetIntent,
+  WorldAssetResourceRef,
+  WorldDetailData,
+  WorldPublicAssetsData,
+} from './world-detail-types.js';
 
-export type WorldResourceReferenceKind = 'resource' | 'external' | 'intent';
+export type WorldResourceReferenceKind = 'material' | 'intent';
+export type WorldResourceReferenceStatus = 'ready' | 'external' | 'registered' | 'planned';
+export type WorldResourceReferenceRole = 'icon' | 'banner' | 'hero' | 'highlight' | 'map' | 'other';
 
 export type WorldResourceReferenceEntry = {
   readonly id: string;
   readonly kind: WorldResourceReferenceKind;
+  readonly status: WorldResourceReferenceStatus;
+  readonly role: WorldResourceReferenceRole;
+  readonly roleIndex?: number;
   readonly title: string;
   readonly subtitle: string;
   readonly body: string;
-  readonly uri?: string | null;
+  readonly purpose: string;
+  readonly systemKind: string;
+  readonly resourceRefId?: string | null;
+  readonly externalRefId?: string | null;
+  readonly externalUri?: string | null;
+  readonly rawName?: string | null;
 };
 
 function normalizeReferenceText(value: string | null | undefined): string {
@@ -34,66 +50,231 @@ function normalizeReferenceText(value: string | null | undefined): string {
 }
 
 function joinParts(values: readonly (string | null | undefined)[]): string {
-  return values.map(normalizeReferenceText).filter(Boolean).join(' / ');
+  const seen = new Set<string>();
+  const parts: string[] = [];
+  for (const value of values) {
+    const text = normalizeReferenceText(value);
+    const key = text.toLocaleLowerCase();
+    if (!text || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    parts.push(text);
+  }
+  return parts.join(' / ');
+}
+
+function aliasKey(value: string | null | undefined): string {
+  return normalizeReferenceText(value).toLocaleLowerCase();
+}
+
+function referenceAliases(ref: Pick<WorldAssetResourceRef, 'refId' | 'label'>): string[] {
+  return [aliasKey(ref.refId), aliasKey(ref.label)].filter(Boolean);
+}
+
+function looksLikeTechnicalIdentifier(value: string): boolean {
+  const text = normalizeReferenceText(value);
+  if (!text) {
+    return false;
+  }
+  if (/^https?:\/\//i.test(text) || /^file:\/\//i.test(text)) {
+    return true;
+  }
+  if (/^(forge|world|asset|resource|res|intent)[-_]/i.test(text)) {
+    return true;
+  }
+  const separatorCount = (text.match(/[-_:]/g) ?? []).length;
+  if (separatorCount >= 2 && /^[a-z0-9._:-]+$/i.test(text)) {
+    return true;
+  }
+  return text.length > 36 && !/[\u4e00-\u9fff]/.test(text);
+}
+
+function inferReferenceRole(values: readonly (string | null | undefined)[]): {
+  readonly role: WorldResourceReferenceRole;
+  readonly roleIndex?: number;
+} {
+  const source = values.map(normalizeReferenceText).join(' ').toLocaleLowerCase();
+  const highlightMatch = source.match(/highlight[-_\s]*(\d+)?/);
+  if (highlightMatch) {
+    const parsed = Number.parseInt(highlightMatch[1] ?? '', 10);
+    return Number.isFinite(parsed) ? { role: 'highlight', roleIndex: parsed } : { role: 'highlight' };
+  }
+  if (/\bicon\b|world-icon/.test(source)) {
+    return { role: 'icon' };
+  }
+  if (/\bbanner\b|world-banner/.test(source)) {
+    return { role: 'banner' };
+  }
+  if (/\bhero\b|world-hero/.test(source)) {
+    return { role: 'hero' };
+  }
+  if (/\bmap\b|地图/.test(source)) {
+    return { role: 'map' };
+  }
+  return { role: 'other' };
+}
+
+type MaterialDraft = {
+  readonly id: string;
+  resource?: WorldAssetResourceRef;
+  external?: WorldAssetExternalRef;
+};
+
+function resolveMaterialTitle(resource?: WorldAssetResourceRef, external?: WorldAssetExternalRef): string {
+  const labels = [resource?.label, external?.label].map(normalizeReferenceText).filter(Boolean);
+  return labels.find((label) => !looksLikeTechnicalIdentifier(label)) ?? '';
+}
+
+function buildMaterialEntry(draft: MaterialDraft): WorldResourceReferenceEntry {
+  const resource = draft.resource;
+  const external = draft.external;
+  const { role, roleIndex } = inferReferenceRole([
+    resource?.label,
+    resource?.refId,
+    resource?.kind,
+    resource?.purpose,
+    external?.label,
+    external?.refId,
+    external?.kind,
+    external?.purpose,
+  ]);
+  const title = resolveMaterialTitle(resource, external);
+  const subtitle = joinParts([resource?.purpose, external?.purpose, resource?.kind, external?.kind]);
+  const rawName = joinParts([resource?.label, external?.label]);
+  const status: WorldResourceReferenceStatus = external?.uri
+    ? resource
+      ? 'ready'
+      : 'external'
+    : 'registered';
+  return {
+    id: draft.id,
+    kind: 'material',
+    status,
+    role,
+    roleIndex,
+    title,
+    subtitle,
+    body: external?.uri ?? resource?.refId ?? '',
+    purpose: subtitle,
+    systemKind: joinParts([resource?.kind, external?.kind]),
+    resourceRefId: resource?.refId ?? null,
+    externalRefId: external?.refId ?? null,
+    externalUri: external?.uri ?? null,
+    rawName: rawName || null,
+  };
+}
+
+function buildIntentEntry(intent: WorldAssetIntent): WorldResourceReferenceEntry {
+  const { role, roleIndex } = inferReferenceRole([intent.intentId, intent.kind, intent.summary]);
+  const summary = normalizeReferenceText(intent.summary);
+  const title = looksLikeTechnicalIdentifier(intent.intentId) ? '' : intent.intentId;
+  return {
+    id: `intent-${intent.intentId}`,
+    kind: 'intent',
+    status: 'planned',
+    role,
+    roleIndex,
+    title,
+    subtitle: normalizeReferenceText(intent.kind),
+    body: summary || intent.kind,
+    purpose: normalizeReferenceText(intent.kind),
+    systemKind: normalizeReferenceText(intent.kind),
+    resourceRefId: null,
+    externalRefId: null,
+    externalUri: null,
+    rawName: intent.intentId,
+  };
 }
 
 export function buildWorldResourceReferenceEntries(publicAssets: WorldPublicAssetsData): WorldResourceReferenceEntry[] {
-  const resources = publicAssets.resourceRefs.map((resource) => {
-    const title = normalizeReferenceText(resource.label) || resource.refId;
-    const subtitle = joinParts([resource.kind, resource.purpose]);
-    return {
-      id: `resource-${resource.refId}`,
-      kind: 'resource',
-      title,
-      subtitle,
-      body: resource.refId,
-      uri: null,
-    } satisfies WorldResourceReferenceEntry;
-  });
+  const materialDrafts = new Map<string, MaterialDraft>();
+  const aliases = new Map<string, string>();
 
-  const externalRefs = publicAssets.externalRefs.map((ref) => {
-    const title = normalizeReferenceText(ref.label) || ref.refId;
-    const subtitle = joinParts([ref.kind, ref.purpose]);
-    return {
-      id: `external-${ref.refId}`,
-      kind: 'external',
-      title,
-      subtitle,
-      body: ref.uri,
-      uri: ref.uri,
-    } satisfies WorldResourceReferenceEntry;
-  });
+  const rememberAliases = (id: string, ref: Pick<WorldAssetResourceRef, 'refId' | 'label'>) => {
+    for (const alias of referenceAliases(ref)) {
+      if (!aliases.has(alias)) {
+        aliases.set(alias, id);
+      }
+    }
+  };
 
-  const intents = publicAssets.intents.map((intent) => ({
-    id: `intent-${intent.intentId}`,
-    kind: 'intent',
-    title: intent.intentId,
-    subtitle: normalizeReferenceText(intent.kind),
-    body: normalizeReferenceText(intent.summary) || intent.kind,
-    uri: null,
-  } satisfies WorldResourceReferenceEntry));
+  for (const resource of publicAssets.resourceRefs) {
+    const id = `material-${resource.refId}`;
+    materialDrafts.set(id, { id, resource });
+    rememberAliases(id, resource);
+  }
 
-  return [...resources, ...externalRefs, ...intents];
+  for (const external of publicAssets.externalRefs) {
+    const matchedId = referenceAliases(external)
+      .map((alias) => aliases.get(alias))
+      .find((id): id is string => Boolean(id));
+    const id = matchedId ?? `material-${external.refId}`;
+    const existing = materialDrafts.get(id);
+    materialDrafts.set(id, { id, resource: existing?.resource, external });
+    rememberAliases(id, external);
+  }
+
+  const materials = [...materialDrafts.values()].map(buildMaterialEntry);
+  const intents = publicAssets.intents.map(buildIntentEntry);
+
+  return [...materials, ...intents];
 }
 
 function groupResourceReferences(
   entries: readonly WorldResourceReferenceEntry[],
 ): Record<WorldResourceReferenceKind, WorldResourceReferenceEntry[]> {
   return {
-    resource: entries.filter((entry) => entry.kind === 'resource'),
-    external: entries.filter((entry) => entry.kind === 'external'),
+    material: entries.filter((entry) => entry.kind === 'material'),
     intent: entries.filter((entry) => entry.kind === 'intent'),
   };
 }
 
 const RESOURCE_REFERENCE_ICON = {
-  resource: <IconLayers size={15} color={PAPER.green} strokeWidth={1.8} />,
+  ready: <IconLayers size={15} color={PAPER.green} strokeWidth={1.8} />,
   external: <IconFile size={15} color={PAPER.green} strokeWidth={1.8} />,
-  intent: <IconShield size={15} color={PAPER.green} strokeWidth={1.8} />,
-} satisfies Record<WorldResourceReferenceKind, ReactNode>;
+  registered: <IconLayers size={15} color={PAPER.green} strokeWidth={1.8} />,
+  planned: <IconShield size={15} color={PAPER.green} strokeWidth={1.8} />,
+} satisfies Record<WorldResourceReferenceStatus, ReactNode>;
+
+function referenceRoleTitle(entry: WorldResourceReferenceEntry, t: ReturnType<typeof useTranslation>['t']): string {
+  if (entry.title) {
+    return entry.title;
+  }
+  return t(`WorldDetail.paper.resourceReferences.role.${entry.role}`, {
+    index: entry.roleIndex,
+    defaultValue: entry.role === 'highlight' && entry.roleIndex
+      ? `Highlight ${entry.roleIndex}`
+      : 'Asset',
+  });
+}
+
+function ReferenceMetaRow({ label, value }: { label: string; value?: string | null }) {
+  if (!value) {
+    return null;
+  }
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '86px minmax(0,1fr)',
+        gap: 10,
+        alignItems: 'baseline',
+        fontSize: 12.5,
+        lineHeight: 1.55,
+      }}
+    >
+      <span style={{ color: PAPER.faint }}>{label}</span>
+      <span style={{ minWidth: 0, color: PAPER.ink, overflowWrap: 'anywhere' }}>{value}</span>
+    </div>
+  );
+}
 
 function WorldResourceReferenceCard({ entry }: { entry: WorldResourceReferenceEntry }) {
   const { t } = useTranslation();
+  const title = referenceRoleTitle(entry, t);
+  const statusCopy = t(`WorldDetail.paper.resourceReferences.status.${entry.status}`);
+  const description = t(`WorldDetail.paper.resourceReferences.description.${entry.status}`);
   return (
     <Surface
       tone="card"
@@ -109,7 +290,7 @@ function WorldResourceReferenceCard({ entry }: { entry: WorldResourceReferenceEn
         boxShadow: 'none',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <span
           aria-hidden="true"
           style={{
@@ -121,26 +302,56 @@ function WorldResourceReferenceCard({ entry }: { entry: WorldResourceReferenceEn
             background: PAPER.greenSoftBg,
           }}
         >
-          {RESOURCE_REFERENCE_ICON[entry.kind]}
+          {RESOURCE_REFERENCE_ICON[entry.status]}
         </span>
-        <PaperTag>{t(`WorldDetail.paper.resourceReferences.kind.${entry.kind}`)}</PaperTag>
+        <PaperTag>{statusCopy}</PaperTag>
       </div>
-      <h3 style={{ margin: '0 0 7px', fontFamily: PAPER_SERIF, fontSize: 17, lineHeight: 1.3, fontWeight: 900, color: PAPER.inkStrong }}>
-        {entry.title}
+      <h3 style={{ margin: '0 0 8px', fontFamily: PAPER_SERIF, fontSize: 18, lineHeight: 1.28, fontWeight: 900, color: PAPER.inkStrong }}>
+        {title}
       </h3>
-      {entry.subtitle ? (
-        <p style={{ margin: '0 0 9px', fontSize: 12.5, lineHeight: 1.55, color: PAPER.faint }}>
-          {entry.subtitle}
-        </p>
-      ) : null}
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: PAPER.muted, overflowWrap: 'anywhere' }}>
-        {entry.body}
+      <p style={{ margin: '0 0 14px', fontSize: 13, lineHeight: 1.65, color: PAPER.muted }}>
+        {entry.kind === 'intent' && entry.body ? entry.body : description}
       </p>
-      {entry.uri ? (
+      <div style={{ display: 'grid', gap: 7, paddingTop: 12, borderTop: `1px solid ${PAPER.borderInner}` }}>
+        <ReferenceMetaRow
+          label={t('WorldDetail.paper.resourceReferences.field.usage')}
+          value={t(`WorldDetail.paper.resourceReferences.role.${entry.role}`, {
+            index: entry.roleIndex,
+            defaultValue: entry.purpose,
+          })}
+        />
+        <ReferenceMetaRow
+          label={t('WorldDetail.paper.resourceReferences.field.resourceId')}
+          value={entry.resourceRefId}
+        />
+        <ReferenceMetaRow
+          label={t('WorldDetail.paper.resourceReferences.field.sourceLink')}
+          value={entry.externalUri}
+        />
+        <ReferenceMetaRow
+          label={t('WorldDetail.paper.resourceReferences.field.sourceId')}
+          value={entry.externalRefId && entry.externalRefId !== entry.resourceRefId ? entry.externalRefId : null}
+        />
+        <ReferenceMetaRow
+          label={t('WorldDetail.paper.resourceReferences.field.planType')}
+          value={entry.kind === 'intent' ? entry.systemKind : null}
+        />
+        {entry.rawName && entry.rawName !== title ? (
+          <ReferenceMetaRow
+            label={t('WorldDetail.paper.resourceReferences.field.rawName')}
+            value={entry.rawName}
+          />
+        ) : null}
+      </div>
+      {entry.externalUri ? (
         <a
-          href={entry.uri}
+          href={entry.externalUri}
+          target="_blank"
+          rel="noreferrer"
           style={{
             display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
             marginTop: 12,
             fontSize: 12.5,
             fontWeight: 800,
@@ -149,7 +360,8 @@ function WorldResourceReferenceCard({ entry }: { entry: WorldResourceReferenceEn
             overflowWrap: 'anywhere',
           }}
         >
-          {entry.uri}
+          {t('WorldDetail.paper.resourceReferences.action.openAsset')}
+          <IconChevron size={12} color={PAPER.green} />
         </a>
       ) : null}
     </Surface>
@@ -203,6 +415,11 @@ export function WorldResourceReferencesPage({
   const { t } = useTranslation();
   const entries = useMemo(() => buildWorldResourceReferenceEntries(publicAssets), [publicAssets]);
   const groups = useMemo(() => groupResourceReferences(entries), [entries]);
+  const summary = useMemo(() => ({
+    usable: entries.filter((entry) => Boolean(entry.externalUri)).length,
+    registered: entries.filter((entry) => Boolean(entry.resourceRefId)).length,
+    planned: groups.intent.length,
+  }), [entries, groups.intent.length]);
 
   return (
     <div
@@ -246,12 +463,15 @@ export function WorldResourceReferencesPage({
               <p style={{ margin: '12px 0 0', maxWidth: 760, fontSize: 13.5, lineHeight: 1.75, color: PAPER.muted }}>
                 {t('WorldDetail.paper.resourceReferences.subtitle')}
               </p>
+              <p style={{ margin: '8px 0 0', maxWidth: 760, fontSize: 12.5, lineHeight: 1.65, color: PAPER.faint }}>
+                {t('WorldDetail.paper.resourceReferences.readerHint')}
+              </p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(82px,1fr))', gap: 8, minWidth: 272 }}>
-              {(['resource', 'external', 'intent'] as const).map((kind) => (
-                <div key={kind} style={{ border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, background: 'rgba(255,253,248,.68)', padding: '11px 12px' }}>
-                  <div style={{ fontFamily: PAPER_SERIF, fontSize: 22, lineHeight: 1, fontWeight: 900, color: PAPER.inkStrong }}>{formatNum(groups[kind].length)}</div>
-                  <div style={{ marginTop: 6, fontSize: 11.5, color: PAPER.faint }}>{t(`WorldDetail.paper.resourceReferences.kind.${kind}`)}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(104px,1fr))', gap: 8, width: 'min(100%, 380px)', minWidth: 0 }}>
+              {(['usable', 'registered', 'planned'] as const).map((key) => (
+                <div key={key} style={{ border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, background: 'rgba(255,253,248,.68)', padding: '11px 12px' }}>
+                  <div style={{ fontFamily: PAPER_SERIF, fontSize: 22, lineHeight: 1, fontWeight: 900, color: PAPER.inkStrong }}>{formatNum(summary[key])}</div>
+                  <div style={{ marginTop: 6, fontSize: 11.5, color: PAPER.faint }}>{t(`WorldDetail.paper.resourceReferences.summary.${key}`)}</div>
                 </div>
               ))}
             </div>
@@ -278,9 +498,11 @@ export function WorldResourceReferencesPage({
           </Surface>
         ) : (
           <div style={{ display: 'grid', gap: 22 }}>
-            <WorldResourceReferenceGroup kind="resource" entries={groups.resource} />
-            <WorldResourceReferenceGroup kind="external" entries={groups.external} />
+            <WorldResourceReferenceGroup kind="material" entries={groups.material} />
             <WorldResourceReferenceGroup kind="intent" entries={groups.intent} />
+            <p style={{ margin: '-4px 0 0', fontSize: 12, lineHeight: 1.65, color: PAPER.faint }}>
+              {t('WorldDetail.paper.resourceReferences.ownershipNote')}
+            </p>
           </div>
         )}
       </div>

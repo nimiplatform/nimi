@@ -1,14 +1,16 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, NimiText, Statistic, Surface, cn } from '@nimiplatform/kit/ui';
-import type { WorldAssetExternalRef, WorldCharacter, WorldHistoryBundle, WorldSceneItem } from './world-detail-types.js';
+import type { WorldAssetExternalRef, WorldCharacter, WorldHistoryBundle, WorldSceneItem, WorldSemanticData } from './world-detail-types.js';
 import { characterMeta, sceneImageRef } from './world-detail-template-model';
+import {
+  buildWorldLoreEntries,
+  type WorldLoreEntry,
+} from './world-detail-lore-library';
 import {
   PAPER,
   PAPER_RADIUS,
   PAPER_SERIF,
-  type PaperMaterial,
-  type PaperMaterialKey,
   type PaperMetric,
   type PaperPath,
   formatNum,
@@ -17,11 +19,14 @@ import {
   IconArrow,
   IconBook,
   IconChat,
-  IconClock,
   IconCompass,
-  IconFile,
+  IconLanguages,
   IconLayers,
+  IconMilestone,
   IconScene,
+  IconScrollText,
+  IconShield,
+  IconStamp,
   IconUsers,
   PaperAvatar,
   PaperSection,
@@ -350,83 +355,79 @@ export function PaperCharactersSection({
 }
 
 // ---------------------------------------------------------------------------
-// Materials
+// Lore overview
 // ---------------------------------------------------------------------------
 
-const MATERIAL_ICON: Record<PaperMaterialKey, ReactNode> = {
-  people: <IconUsers size={16} color="#fbf8f1" strokeWidth={1.7} />,
-  scenes: <IconScene size={16} color="#fbf8f1" strokeWidth={1.7} />,
-  events: <IconClock size={16} color="#fbf8f1" strokeWidth={1.7} />,
-  resources: <IconLayers size={16} color="#fbf8f1" strokeWidth={1.7} />,
-  lore: <IconFile size={16} color="#fbf8f1" strokeWidth={1.7} />,
+const LORE_OVERVIEW_ICON: Record<WorldLoreEntry['icon'], ReactNode> = {
+  rule: <IconScrollText size={19} color={PAPER.green} strokeWidth={1.75} />,
+  institution: <IconStamp size={19} color={PAPER.green} strokeWidth={1.75} />,
+  pathway: <IconMilestone size={19} color={PAPER.green} strokeWidth={1.75} />,
+  system: <IconLayers size={19} color={PAPER.green} strokeWidth={1.75} />,
+  taboo: <IconShield size={19} color={PAPER.green} strokeWidth={1.75} />,
+  language: <IconLanguages size={19} color={PAPER.green} strokeWidth={1.75} />,
 };
 
-export function PaperMaterialsSection({
-  materials,
-  onOpen,
-  onOpenLibrary,
+function PaperLoreOverviewCard({ entry }: { entry: WorldLoreEntry }) {
+  return (
+    <PaperCardSurface className="p-4">
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0 }}>
+        <span
+          aria-hidden="true"
+          style={{
+            display: 'inline-grid',
+            placeItems: 'center',
+            width: 36,
+            height: 36,
+            flex: '0 0 auto',
+            borderRadius: 'var(--nimi-radius-sm)',
+            background: PAPER.greenSoftBg,
+            border: `1px solid ${PAPER.avatarBorder}`,
+          }}
+        >
+          {LORE_OVERVIEW_ICON[entry.icon]}
+        </span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h3 style={{ margin: 0, fontFamily: PAPER_SERIF, fontSize: 18, lineHeight: 1.28, fontWeight: 900, color: PAPER.inkStrong }}>
+            {entry.title}
+          </h3>
+        </div>
+      </div>
+    </PaperCardSurface>
+  );
+}
+
+export function PaperLoreOverviewSection({
+  semantic,
+  loading,
 }: {
-  materials: readonly PaperMaterial[];
-  onOpen: (material: PaperMaterial) => void;
-  onOpenLibrary: () => void;
+  semantic: WorldSemanticData;
+  loading?: boolean;
 }) {
   const { t } = useTranslation();
-  if (materials.length === 0) {
+  const entries = useMemo(() => buildWorldLoreEntries(semantic), [semantic]);
+  if (!loading && entries.length === 0) {
     return null;
   }
   return (
     <PaperSection
-      id="world-detail-materials"
-      testId="world-detail-paper-materials"
-      title={t('WorldDetail.paper.materials.title')}
-      subtitle={t('WorldDetail.paper.materials.subtitle')}
-      action={<PaperViewAll label={t('WorldDetail.paper.viewAll')} onClick={onOpenLibrary} />}
+      id="world-detail-lore-overview"
+      testId="world-detail-paper-lore-overview"
+      title={t('WorldDetail.paper.loreOverview.title')}
+      subtitle={t('WorldDetail.paper.loreOverview.subtitle')}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 13 }}>
-        {materials.map((material) => (
-          <Surface
-            as="button"
-            key={material.key}
-            type="button"
-            tone="card"
-            material="solid"
-            elevation="base"
-            padding="none"
-            interactive
-            onClick={() => onOpen(material)}
-            className="overflow-hidden text-left"
-            style={{
-              background: PAPER.cardSoft,
-              borderColor: PAPER.borderSoft,
-              borderRadius: PAPER_RADIUS.md,
-              boxShadow: 'none',
-            }}
-          >
-            <div style={{ position: 'relative', height: 96, background: WARM_PANEL_BG, display: 'flex', alignItems: 'flex-end', padding: 10 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: PAPER.green, color: '#f6f2e7' }}>
-                {MATERIAL_ICON[material.key]}
-                {t(`WorldDetail.paper.materials.cat.${material.key}.tag`)}
-              </span>
-            </div>
-            <div style={{ padding: '13px 14px' }}>
-              <div style={{ fontFamily: PAPER_SERIF, fontSize: 15, fontWeight: 700, color: PAPER.inkStrong, marginBottom: 4 }}>
-                {t(`WorldDetail.paper.materials.cat.${material.key}.title`)}
-              </div>
-              <div style={{ fontSize: 12, color: PAPER.muted, lineHeight: 1.5, minHeight: 34 }}>
-                {t(`WorldDetail.paper.materials.cat.${material.key}.desc`)}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 9, borderTop: `1px solid ${PAPER.borderInner}` }}>
-                <span style={{ fontSize: 12, color: PAPER.faint }}>
-                  <span style={{ fontFamily: PAPER_SERIF, fontWeight: 700, color: PAPER.ink }}>{formatNum(material.count)}</span>
-                  {' '}
-                  {t('WorldDetail.paper.materials.records')}
-                </span>
-                <IconArrow size={15} color={PAPER.green} />
-              </div>
-            </div>
-          </Surface>
-        ))}
-      </div>
+      {loading ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 13 }}>
+          {Array.from({ length: 2 }).map((_, index) => (
+            <div key={index} style={{ height: 70, borderRadius: 14, background: 'rgba(255,255,255,0.5)' }} className="animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 13 }}>
+          {entries.map((entry) => (
+            <PaperLoreOverviewCard key={entry.id} entry={entry} />
+          ))}
+        </div>
+      )}
     </PaperSection>
   );
 }

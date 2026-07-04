@@ -533,37 +533,9 @@
         }
       }
     },
-    "materials": {
-      "title": "热门资料",
-      "subtitle": "人物、场景、事件与设定的原始记录，随时可以翻阅。",
-      "records": "条记录",
-      "cat": {
-        "people": {
-          "tag": "人物",
-          "title": "人物档案集",
-          "desc": "世界中可结识人物的生平与交游记录。"
-        },
-        "scenes": {
-          "tag": "场景",
-          "title": "场景资料集",
-          "desc": "可沉浸探索的地点与场景锚点。"
-        },
-        "events": {
-          "tag": "事件",
-          "title": "事件编年",
-          "desc": "按时间排列的世界关键节点。"
-        },
-        "resources": {
-          "tag": "资源",
-          "title": "资源引用集",
-          "desc": "世界声明的规范资源、外部引用与资产意图。"
-        },
-        "lore": {
-          "tag": "设定",
-          "title": "世界设定集",
-          "desc": "规则、力量体系、禁忌与语言设定。"
-        }
-      }
+    "loreOverview": {
+      "title": "世界设定概览",
+      "subtitle": "理解这个世界如何运转，以及人物、事件和关系背后的规则。"
     },
     "loreLibrary": {
       "title": "世界设定集",
@@ -596,27 +568,61 @@
       }
     },
     "resourceReferences": {
-      "title": "资源引用集",
-      "subtitle": "展示 WorldCore 声明的规范资源、外部引用与资产意图记录。",
+      "title": "世界素材清单",
+      "subtitle": "按使用场景整理这个世界已经接入的图片素材、可打开来源，以及仍待补齐的资产计划。",
+      "readerHint": "先看哪些素材现在能用，再看它们来自哪里，最后看还有哪些缺口。",
       "records": "条记录",
-      "empty": "这个世界还没有发布资源引用。",
+      "empty": "这个世界还没有接入可展示素材或资产计划。",
       "kind": {
         "resource": "规范资源",
         "external": "外部引用",
         "intent": "资产意图"
       },
+      "summary": {
+        "usable": "可打开素材",
+        "registered": "Realm 记录",
+        "planned": "待补齐计划"
+      },
+      "status": {
+        "ready": "可直接使用",
+        "external": "仅有来源链接",
+        "registered": "仅有内部记录",
+        "planned": "待补齐"
+      },
+      "description": {
+        "ready": "这项素材已经同时进入 Realm 记录并拥有可打开来源，可以用于世界展示位。",
+        "external": "这项素材当前以外部来源进入世界，还没有对应的 Realm 内部素材记录。",
+        "registered": "这项素材已被世界登记引用，但当前没有可打开的外部来源地址。",
+        "planned": "这是未来要制作、替换或补齐的素材需求，不是已经可用的图片。"
+      },
+      "field": {
+        "usage": "用在",
+        "resourceId": "素材 ID",
+        "sourceLink": "来源链接",
+        "sourceId": "来源 ID",
+        "planType": "计划类型",
+        "rawName": "原始名称"
+      },
+      "role": {
+        "icon": "世界图标",
+        "banner": "顶部横幅",
+        "hero": "主视觉",
+        "highlight": "亮点图 {{index}}",
+        "map": "地图/定位图",
+        "other": "世界素材"
+      },
+      "action": {
+        "openAsset": "打开素材"
+      },
+      "ownershipNote": "素材 ID 只说明内容被这个世界引用；资产所有权、作者与绑定关系仍以 Realm 的正式资产与绑定记录为准。",
       "group": {
-        "resource": {
-          "title": "规范资源",
-          "subtitle": "世界内部声明的资源引用，不代表资产所有权。"
-        },
-        "external": {
-          "title": "外部引用",
-          "subtitle": "世界引用的外部 URI 或生成产物地址。"
+        "material": {
+          "title": "已接入素材",
+          "subtitle": "世界图标、横幅、主视觉、亮点图等展示位会优先在这里查看。"
         },
         "intent": {
-          "title": "资产意图",
-          "subtitle": "WorldCore 对未来资源生产、替换或补全的意图记录。"
+          "title": "待补齐计划",
+          "subtitle": "这些是未来要制作、替换或补完的素材需求。"
         }
       }
     },
@@ -770,7 +776,7 @@
         "empty": "没有符合条件的人物。",
         "filters": {
           "all": "全部",
-          "literati": "交往圈",
+          "literati": "文人交游",
           "academy": "书院学术"
         }
       },

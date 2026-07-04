@@ -3,30 +3,18 @@ import {
   PAPER,
   PAPER_RADIUS,
   PAPER_SERIF,
-  formatNum,
 } from './world-detail-paper-model.js';
 import { worldDetailPaperContentFrameStyle } from './world-detail-layout.js';
 import {
-  IconArrow,
   IconChevron,
   PaperAvatar,
-  paperGhostButton,
-  paperPrimaryButton,
 } from './world-detail-paper-primitives.js';
 import { detailSceneBackground } from './world-detail-template-model.js';
-import type { WorldAssetExternalRef, WorldSceneEntity, WorldSceneItem } from './world-detail-types.js';
-
-function sceneEntityLabel(entity: WorldSceneEntity): string {
-  return entity.label || entity.id;
-}
+import type { WorldAssetExternalRef, WorldSceneItem } from './world-detail-types.js';
 
 export function WorldSceneDetailPage({
-  isOasisWorld,
-  oasisSceneActionLabel,
   onBack,
   onSelectCharacter,
-  onViewCharacters,
-  onViewEvents,
   scene,
   sceneImageRef,
 }: {
@@ -44,7 +32,6 @@ export function WorldSceneDetailPage({
   const relatedCharacters = scene.relatedCharacters;
   const relatedEvents = scene.relatedEvents;
   const relatedResources = scene.relatedResources;
-  const imageLabel = sceneImageRef?.refId ?? t('WorldDetail.paper.scenes.noImage');
 
   return (
     <div
@@ -94,26 +81,13 @@ export function WorldSceneDetailPage({
                 {scene.description || t('WorldDetail.xianxia.v2.scenes.noDescription')}
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 20 }}>
-                {[
-                  { value: scene.counts.activeEntityCount, label: t('WorldDetail.paper.scenes.activeEntities') },
-                  { value: scene.counts.relatedCharacterCount, label: t('WorldDetail.paper.scenes.relatedCharacters') },
-                  { value: scene.counts.relatedEventCount, label: t('WorldDetail.paper.scenes.relatedEvents') },
-                  { value: scene.counts.relatedResourceCount, label: t('WorldDetail.paper.scenes.relatedResources') },
-                ].map((metric) => (
-                  <div key={metric.label} style={{ border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, padding: '13px 14px', background: 'rgba(255,253,248,.72)', minWidth: 0 }}>
-                    <div style={{ fontFamily: PAPER_SERIF, fontSize: 24, lineHeight: 1, fontWeight: 800, color: PAPER.inkStrong }}>{formatNum(metric.value)}</div>
-                    <div style={{ marginTop: 7, fontSize: 12, color: PAPER.faint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{metric.label}</div>
-                  </div>
-                ))}
-              </div>
-
               <div style={{ display: 'grid', gap: 18 }}>
+                {activeEntities.length > 0 ? (
                 <section>
                   <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.activeEntities')}</h3>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', minHeight: 30 }}>
-                    {activeEntities.length > 0 ? activeEntities.map((entity) => {
-                      const label = sceneEntityLabel(entity);
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {activeEntities.map((entity) => {
+                      const label = entity.label || entity.id;
                       const character = relatedCharacters.find((item) => item.id === entity.id || item.name === label) ?? null;
                       return (
                         <button
@@ -142,115 +116,66 @@ export function WorldSceneDetailPage({
                           {label}
                         </button>
                       );
-                    }) : (
-                      <span style={{ color: PAPER.faint, fontSize: 13 }}>{t('WorldDetail.paper.scenes.none')}</span>
-                    )}
+                    })}
                   </div>
                 </section>
+                ) : null}
 
+                {relatedCharacters.length > 0 ? (
                 <section>
                   <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.relatedCharacters')}</h3>
-                  {relatedCharacters.length > 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10 }}>
-                      {relatedCharacters.map((character) => (
-                        <button
-                          key={`${scene.id}-character-${character.id}`}
-                          type="button"
-                          onClick={() => onSelectCharacter(character.id)}
-                          style={{ display: 'grid', gridTemplateColumns: '34px 1fr', alignItems: 'center', gap: 9, minWidth: 0, minHeight: 52, border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, background: 'rgba(255,253,248,.68)', padding: 9, textAlign: 'left', cursor: 'pointer' }}
-                        >
-                          <PaperAvatar name={character.name} imageUrl={character.avatarUrl} size={34} />
-                          <span style={{ minWidth: 0 }}>
-                            <span style={{ display: 'block', fontSize: 13, fontWeight: 900, color: PAPER.inkStrong, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{character.name}</span>
-                            <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: PAPER.faint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{character.role || character.faction || character.handle}</span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <span style={{ color: PAPER.faint, fontSize: 13 }}>{t('WorldDetail.paper.scenes.none')}</span>
-                  )}
-                </section>
-
-                <section>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.relatedEvents')}</h3>
-                    <span style={{ fontSize: 11.5, fontWeight: 800, color: PAPER.faint }}>{t('WorldDetail.paper.scenes.fromEvents')}</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10 }}>
+                    {relatedCharacters.map((character) => (
+                      <button
+                        key={`${scene.id}-character-${character.id}`}
+                        type="button"
+                        onClick={() => onSelectCharacter(character.id)}
+                        style={{ display: 'grid', gridTemplateColumns: '34px 1fr', alignItems: 'center', gap: 9, minWidth: 0, minHeight: 52, border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, background: 'rgba(255,253,248,.68)', padding: 9, textAlign: 'left', cursor: 'pointer' }}
+                      >
+                        <PaperAvatar name={character.name} imageUrl={character.avatarUrl} size={34} />
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ display: 'block', fontSize: 13, fontWeight: 900, color: PAPER.inkStrong, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{character.name}</span>
+                          <span style={{ display: 'block', marginTop: 2, fontSize: 11, color: PAPER.faint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{character.role || character.faction || character.handle}</span>
+                        </span>
+                      </button>
+                    ))}
                   </div>
-                  {relatedEvents.length > 0 ? (
-                    <div style={{ display: 'grid', gap: 9 }}>
-                      {relatedEvents.map((event, index) => (
-                        <div key={`${scene.id}-event-${event.id}`} style={{ display: 'grid', gridTemplateColumns: '30px 1fr', gap: 10, alignItems: 'start', border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, padding: 10, background: 'rgba(255,253,248,.62)' }}>
-                          <span style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 9, background: index === 0 ? '#bd8138' : index === 1 ? '#6f8795' : '#b36b5f', color: '#fffaf0', fontSize: 12, fontWeight: 900 }}>{index + 1}</span>
-                          <span style={{ minWidth: 0 }}>
-                            <span style={{ display: 'block', fontSize: 13, fontWeight: 900, color: PAPER.inkStrong }}>{event.title}</span>
-                            <span style={{ display: 'block', marginTop: 4, fontSize: 12, color: PAPER.muted, lineHeight: 1.5 }}>{event.summary || event.description}</span>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span style={{ color: PAPER.faint, fontSize: 13 }}>{t('WorldDetail.paper.scenes.none')}</span>
-                  )}
                 </section>
+                ) : null}
 
+                {relatedEvents.length > 0 ? (
                 <section>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.relatedResources')}</h3>
-                    <span style={{ fontSize: 11.5, fontWeight: 800, color: PAPER.faint }}>{t('WorldDetail.paper.scenes.fromResources')}</span>
+                  <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.relatedEvents')}</h3>
+                  <div style={{ display: 'grid', gap: 9 }}>
+                    {relatedEvents.map((event, index) => (
+                      <div key={`${scene.id}-event-${event.id}`} style={{ display: 'grid', gridTemplateColumns: '30px 1fr', gap: 10, alignItems: 'start', border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, padding: 10, background: 'rgba(255,253,248,.62)' }}>
+                        <span style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, borderRadius: 9, background: index === 0 ? '#bd8138' : index === 1 ? '#6f8795' : '#b36b5f', color: '#fffaf0', fontSize: 12, fontWeight: 900 }}>{index + 1}</span>
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ display: 'block', fontSize: 13, fontWeight: 900, color: PAPER.inkStrong }}>{event.title}</span>
+                          <span style={{ display: 'block', marginTop: 4, fontSize: 12, color: PAPER.muted, lineHeight: 1.5 }}>{event.summary || event.description}</span>
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  {relatedResources.length > 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 9 }}>
-                      {relatedResources.map((resource) => (
-                        <div key={`${scene.id}-resource-${resource.id}`} style={{ border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, padding: 10, background: 'rgba(255,253,248,.62)', minWidth: 0 }}>
-                          <span style={{ display: 'block', fontSize: 11, fontWeight: 900, color: PAPER.green, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resource.kind}</span>
-                          <span style={{ display: 'block', marginTop: 4, fontSize: 13, fontWeight: 900, color: PAPER.inkStrong, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resource.title}</span>
-                          {resource.summary ? (
-                            <span style={{ display: 'block', marginTop: 4, fontSize: 12, lineHeight: 1.5, color: PAPER.muted }}>{resource.summary}</span>
-                          ) : null}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span style={{ color: PAPER.faint, fontSize: 13 }}>{t('WorldDetail.paper.scenes.none')}</span>
-                  )}
                 </section>
+                ) : null}
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 10 }}>
-                  {[
-                    { label: t('WorldDetail.paper.scenes.sceneId'), value: scene.id },
-                    { label: t('WorldDetail.paper.scenes.imageAssetRef'), value: imageLabel },
-                  ].map((item) => (
-                    <div key={item.label} style={{ borderRadius: PAPER_RADIUS.md, border: `1px solid ${PAPER.borderSoft}`, background: 'rgba(248,242,231,.68)', padding: '10px 11px', minWidth: 0 }}>
-                      <span style={{ display: 'block', color: PAPER.faint, fontSize: 11, marginBottom: 5 }}>{item.label}</span>
-                      <code style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: PAPER.ink, fontFamily: 'var(--nimi-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)', fontSize: 12 }}>{item.value}</code>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTop: `1px solid ${PAPER.borderInner}`, margin: '20px -24px -24px', padding: '14px 24px', background: 'rgba(246,238,222,.62)', flexWrap: 'wrap' }}>
-                <div style={{ minWidth: 220, flex: '1 1 260px' }}>
-                  <div style={{ fontSize: 13, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.enterHintTitle')}</div>
-                  <div style={{ marginTop: 3, color: PAPER.faint, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t('WorldDetail.paper.scenes.enterHintDesc')}</div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  <button type="button" disabled={isOasisWorld} style={{ ...paperPrimaryButton, opacity: isOasisWorld ? 0.55 : 1, cursor: isOasisWorld ? 'default' : 'pointer' }}>
-                    {oasisSceneActionLabel}
-                    <IconArrow size={13} color="#f6f2e7" />
-                  </button>
-                  {isOasisWorld ? (
-                    <span style={{ ...paperGhostButton, cursor: 'default' }}>{t('WorldDetail.xianxia.v2.scenes.comingSoon')}</span>
-                  ) : null}
-                  <button type="button" onClick={onViewCharacters} style={paperGhostButton}>
-                    {t('WorldDetail.xianxia.v2.scenes.quickSheetViewCharacters')}
-                  </button>
-                  {onViewEvents ? (
-                    <button type="button" onClick={onViewEvents} style={paperGhostButton}>
-                      {t('WorldDetail.xianxia.v2.scenes.quickSheetViewEvents')}
-                    </button>
-                  ) : null}
-                </div>
+                {relatedResources.length > 0 ? (
+                <section>
+                  <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 900, color: PAPER.inkStrong }}>{t('WorldDetail.paper.scenes.relatedResources')}</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 9 }}>
+                    {relatedResources.map((resource) => (
+                      <div key={`${scene.id}-resource-${resource.id}`} style={{ border: `1px solid ${PAPER.borderSoft}`, borderRadius: PAPER_RADIUS.md, padding: 10, background: 'rgba(255,253,248,.62)', minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 11, fontWeight: 900, color: PAPER.green, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resource.kind}</span>
+                        <span style={{ display: 'block', marginTop: 4, fontSize: 13, fontWeight: 900, color: PAPER.inkStrong, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resource.title}</span>
+                        {resource.summary ? (
+                          <span style={{ display: 'block', marginTop: 4, fontSize: 12, lineHeight: 1.5, color: PAPER.muted }}>{resource.summary}</span>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                ) : null}
               </div>
             </div>
           </>

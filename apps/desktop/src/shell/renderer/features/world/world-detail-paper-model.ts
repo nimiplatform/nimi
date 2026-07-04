@@ -119,12 +119,15 @@ export function derivedMetrics(
   materials: readonly PaperMaterial[],
 ): PaperMetric[] {
   const eventCount = history.summary?.totalCount ?? history.items.length;
-  return [
+  const metrics: PaperMetric[] = [
     { key: 'people', value: formatNum(characters.length) },
     { key: 'materials', value: formatNum(materialsTotal(materials)) },
     { key: 'scenes', value: formatNum(scenes.length) },
-    { key: 'events', value: formatNum(eventCount) },
   ];
+  if (eventCount > 0) {
+    metrics.push({ key: 'events', value: formatNum(eventCount) });
+  }
+  return metrics;
 }
 
 const ISO_DATE_TIME_LABEL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
