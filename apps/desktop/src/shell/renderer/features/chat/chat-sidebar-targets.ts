@@ -6,7 +6,16 @@ import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/
 import { isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import {
+  fetchLocalAgentList,
+  localAgentListQueryKey,
+  type LocalAgentListItem,
+} from '@renderer/features/agents/local-agent-list-model';
 import { toSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target';
+import {
+  fetchWorldListItems,
+  worldListQueryKey,
+} from '@renderer/features/world/world-detail-queries';
 import {
   collapseRealmHumanChatsToTargets,
   compareRealmHumanChatsByRecency,
@@ -138,6 +147,28 @@ function toAgentTargetSummary(snapshot: AgentLocalTargetSnapshot): ConversationT
   };
 }
 
+export function toAgentTargetsFromLocalAgentList(
+  agents: readonly LocalAgentListItem[],
+  worldNameById: ReadonlyMap<string, string> = new Map(),
+): ConversationTargetSummary[] {
+  return agents
+    .map((agent) => toAgentTargetSummary({
+      ownerUserId: agent.ownerUserId,
+      runtimeSourceRef: agent.runtimeSourceRef,
+      localAgentRef: agent.localAgentRef,
+      displayName: agent.displayName,
+      handle: agent.sourceRef.sourceId,
+      avatarUrl: null,
+      worldId: agent.sourceRef.worldId,
+      worldName: worldNameById.get(agent.sourceRef.worldId) || null,
+      bio: null,
+      ownershipType: null,
+      greeting: null,
+      builtinDocsContext: null,
+    }))
+    .sort((left, right) => left.title.localeCompare(right.title));
+}
+
 export function toAgentTargetsFromSocialSnapshot(
   snapshot: { friends?: readonly unknown[] } | null | undefined,
   ownerUserId: string | null | undefined,
@@ -163,6 +194,34 @@ export function toAgentTargetsFromSocialSnapshot(
     })
     .filter((target): target is ConversationTargetSummary => Boolean(target))
     .sort((left, right) => left.title.localeCompare(right.title));
+}
+
+function summaryLocalAgentRef(target: ConversationTargetSummary): string {
+  if (target.source !== 'agent') {
+    return '';
+  }
+  const metadataRef = normalizeText(target.metadata?.localAgentRef);
+  return metadataRef || normalizeText(target.id);
+}
+
+export function mergeAgentTargetSummaries(
+  runtimeTargets: readonly ConversationTargetSummary[],
+  sourceContactTargets: readonly ConversationTargetSummary[],
+): ConversationTargetSummary[] {
+  const byLocalAgentRef = new Map<string, ConversationTargetSummary>();
+  for (const target of runtimeTargets) {
+    const localAgentRef = summaryLocalAgentRef(target);
+    if (isRuntimeLocalAgentRef(localAgentRef)) {
+      byLocalAgentRef.set(localAgentRef, target);
+    }
+  }
+  for (const target of sourceContactTargets) {
+    const localAgentRef = summaryLocalAgentRef(target);
+    if (isRuntimeLocalAgentRef(localAgentRef)) {
+      byLocalAgentRef.set(localAgentRef, target);
+    }
+  }
+  return [...byLocalAgentRef.values()].sort((left, right) => left.title.localeCompare(right.title));
 }
 
 export function toAgentTargetSnapshotFromSummary(
@@ -228,6 +287,25 @@ export function useChatTargetsForSidebar(
     staleTime: 30_000,
   });
 
+  const worldsQuery = useQuery({
+    queryKey: worldListQueryKey(),
+    queryFn: async () => fetchWorldListItems(),
+    enabled: authStatus === 'authenticated',
+    staleTime: 30_000,
+  });
+
+  const localAgentsQuery = useQuery({
+    queryKey: localAgentListQueryKey(ownerUserId),
+    queryFn: async () => fetchLocalAgentList(ownerUserId),
+    enabled: authStatus === 'authenticated' && Boolean(ownerUserId),
+    staleTime: 15_000,
+  });
+
+  const worldNameById = useMemo(() => {
+    const worlds = worldsQuery.data ?? [];
+    return new Map(worlds.map((world) => [world.id, world.name]));
+  }, [worldsQuery.data]);
+
   const humanTargets = useMemo(() => {
     const allChats = ((humanChatsQuery.data as { items?: RealmChatViewDto[] } | undefined)?.items || []) as RealmChatViewDto[];
     const sorted = [...allChats].sort(compareRealmHumanChatsByRecency);
@@ -242,10 +320,11 @@ export function useChatTargetsForSidebar(
     return mergeHumanChatTargetsWithFriendTargets(chatTargets, friendTargets);
   }, [humanChatsQuery.data, socialSnapshotQuery.data, t]);
 
-  const agentTargets = useMemo(
-    () => toAgentTargetsFromSocialSnapshot(socialSnapshotQuery.data, ownerUserId),
-    [ownerUserId, socialSnapshotQuery.data],
-  );
+  const agentTargets = useMemo(() => {
+    const runtimeTargets = toAgentTargetsFromLocalAgentList(localAgentsQuery.data ?? [], worldNameById);
+    const sourceContactTargets = toAgentTargetsFromSocialSnapshot(socialSnapshotQuery.data, ownerUserId);
+    return mergeAgentTargetSummaries(runtimeTargets, sourceContactTargets);
+  }, [localAgentsQuery.data, ownerUserId, socialSnapshotQuery.data, worldNameById]);
 
   const groupTargets = useMemo(() => {
     const items = ((groupChatsQuery.data as { items?: GroupChatViewDto[] } | undefined)?.items || []) as GroupChatViewDto[];

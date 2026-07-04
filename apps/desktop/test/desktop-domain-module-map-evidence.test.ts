@@ -63,13 +63,24 @@ test('Source Detail materializes Realm source through sourceRef packet admission
   const panelSource = readRepo('apps/desktop/src/shell/renderer/features/source-detail/source-detail-panel.tsx');
   const viewSource = readRepo('apps/desktop/src/shell/renderer/features/source-detail/source-detail-view.tsx');
 
-  assert.doesNotMatch(panelSource, /launchAgentConversationFromDisplay/);
+  assert.match(panelSource, /launchAgentConversationFromDisplay/);
   const legacyLaunchPattern = new RegExp(`launch${['Realm', 'Agent'].join('')}Chat|launch${['Realm', 'Agent'].join('')}Conversation`);
   const legacyOpenPattern = new RegExp(`open${['Realm', 'Agent'].join('')}LocalChat`);
   assert.doesNotMatch(panelSource, legacyLaunchPattern);
   assert.doesNotMatch(panelSource, legacyOpenPattern);
   assert.match(panelSource, /materializeSourceContactLaunchTarget/);
   assert.match(panelSource, /ensureRuntimeAgentExists/);
+  assert.match(panelSource, /localAgentListQueryKey/);
+  assert.match(panelSource, /toSourceContactLaunchTarget/);
+  assert.match(panelSource, /const existingAgent = sourceRuntimeLocalAgents\.length === 1 \? sourceRuntimeLocalAgents\[0\] : null/);
+  assert.match(panelSource, /existingAgent\s*\?\s*toSourceContactLaunchTarget/);
+  assert.match(panelSource, /if \(!existingAgent\) \{\s*await ensureRuntimeAgentExists\(target\);\s*\}/);
+  assert.match(panelSource, /invalidateQueries\(\{\s*queryKey:\s*localAgentListQueryKey\(ownerUserId\),\s*exact:\s*true\s*\}\)/);
+  assert.match(panelSource, /setAgentConversationTargetSnapshot/);
+  assert.match(panelSource, /setAgentConversationSelection/);
+  assert.match(panelSource, /setSelectedTargetForSource/);
+  assert.match(panelSource, /setChatMode/);
+  assert.match(panelSource, /setActiveTab/);
   assert.match(panelSource, /realmPersonaSourceMaterializationMessage/);
   assert.doesNotMatch(panelSource, /realmPersonaSourceHandoffMessage/);
   assert.doesNotMatch(panelSource, new RegExp(`connect${['Realm', 'Persona', 'Source'].join('')}`));

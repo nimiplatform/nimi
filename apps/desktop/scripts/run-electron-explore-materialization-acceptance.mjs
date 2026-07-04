@@ -63,6 +63,7 @@ const runtimeStderrPath = path.join(artifactsDir, 'runtime-stderr.log');
 const desktopScreenshotPath = path.join(artifactsDir, 'desktop-explore-persona.png');
 const narrowScreenshotPath = path.join(artifactsDir, 'narrow-explore-persona.png');
 const chatScreenshotPath = path.join(artifactsDir, 'desktop-chat-consumption.png');
+const sourceDetailOpenPartnerScreenshotPath = path.join(artifactsDir, 'desktop-source-detail-open-partner.png');
 const chatSendAttemptScreenshotPath = path.join(artifactsDir, 'desktop-chat-send-after-model-selection.png');
 const agentModelSettingsScreenshotPath = path.join(artifactsDir, 'desktop-agent-model-settings.png');
 const agentModelChatDetailScreenshotPath = path.join(artifactsDir, 'desktop-agent-model-chat-detail.png');
@@ -228,6 +229,51 @@ try {
   await captureScreenshot(page, chatScreenshotPath);
   observations.agentChatInitialAIConfigStorage = await readAIConfigStorageSnapshot(page);
 
+  const discovered = await agentClient.discoverBySource({
+    ownerUserId: OWNER_USER_ID,
+    sourceRef: VALID_SOURCE_REF,
+  });
+  assert.equal(discovered.length, 1, `expected one Runtime-owned local agent, got ${discovered.length}`);
+  const localAgentRef = discovered[0].localAgentRef;
+  assert.match(localAgentRef, /^local-agent:runtime-/u, `localAgentRef is not Runtime-owned opaque ref: ${localAgentRef}`);
+  assert.ok(!localAgentRef.includes(VALID_PERSONA_ID), `localAgentRef leaks app source id: ${localAgentRef}`);
+  observations.localAgentRef = localAgentRef;
+  observations.runtimeSourceRef = discovered[0].runtimeSourceRef;
+
+  const agentRailTarget = page.getByTestId(`chat-target:${localAgentRef}`);
+  await agentRailTarget.waitFor({ state: 'visible', timeout: 30_000 });
+  observations.agentChatLocalAgentRailTargetVisible = await agentRailTarget.isVisible();
+  assert.equal(observations.agentChatLocalAgentRailTargetVisible, true, 'Agent Chat rail must list Runtime ListAgents localAgent targets.');
+
+  await page.getByTestId('nav-tab:agents').click();
+  await page.getByTestId('panel:agents').waitFor({ state: 'visible', timeout: 30_000 });
+  const localAgentCard = page.getByTestId(`agents-card:${localAgentRef}`);
+  await localAgentCard.waitFor({ state: 'visible', timeout: 30_000 });
+  await localAgentCard.click();
+  await page.waitForFunction(() => {
+    const worldCharacterDetail = document.querySelector('[data-testid="world-character-source-detail-page"]');
+    const compactDetail = document.querySelector('[data-testid="source-detail-compact-profile-card"]');
+    return Boolean(worldCharacterDetail || compactDetail);
+  }, null, { timeout: 30_000 });
+  observations.sourceDetailSurface = await page.evaluate(() => {
+    if (document.querySelector('[data-testid="world-character-source-detail-page"]')) {
+      return 'world-character';
+    }
+    if (document.querySelector('[data-testid="source-detail-compact-profile-card"]')) {
+      return 'compact-source';
+    }
+    return 'missing';
+  });
+  const openPartnerAction = page.locator('[data-primary-action="open_partner"]').first();
+  await openPartnerAction.waitFor({ state: 'visible', timeout: 30_000 });
+  await waitForAttribute(openPartnerAction, 'data-source-state', 'local_agent_available');
+  assert.equal(await openPartnerAction.isEnabled(), true, 'Source Detail Open partner action must be enabled for existing Runtime localAgent.');
+  await captureScreenshot(page, sourceDetailOpenPartnerScreenshotPath);
+  await openPartnerAction.click();
+  await page.getByTestId('chat-page').waitFor({ state: 'visible', timeout: 30_000 });
+  await page.getByTestId(`chat-target:${localAgentRef}`).waitFor({ state: 'visible', timeout: 30_000 });
+  observations.sourceDetailOpenPartnerRoutedToAgentChat = true;
+
   const composerTextarea = page.locator('[data-chat-composer-textarea="true"]').first();
   await composerTextarea.waitFor({ state: 'visible', timeout: 30_000 });
   observations.agentComposerInitiallyDisabled = await composerTextarea.isDisabled();
@@ -318,17 +364,6 @@ try {
     assert.equal(observations.agentChatSendRouteErrorVisible, 0, 'Agent Chat must not report missing route after selecting a model.');
   }
 
-  const discovered = await agentClient.discoverBySource({
-    ownerUserId: OWNER_USER_ID,
-    sourceRef: VALID_SOURCE_REF,
-  });
-  assert.equal(discovered.length, 1, `expected one Runtime-owned local agent, got ${discovered.length}`);
-  const localAgentRef = discovered[0].localAgentRef;
-  assert.match(localAgentRef, /^local-agent:runtime-/u, `localAgentRef is not Runtime-owned opaque ref: ${localAgentRef}`);
-  assert.ok(!localAgentRef.includes(VALID_PERSONA_ID), `localAgentRef leaks app source id: ${localAgentRef}`);
-  observations.localAgentRef = localAgentRef;
-  observations.runtimeSourceRef = discovered[0].runtimeSourceRef;
-
   const fixtureManifest = await fetchJson(`${fixtureServer.origin}/__fixture/control/manifest`);
   const packetRequests = fixtureManifest.realmFixture?.sourceMaterializationPacketRequests || [];
   const packetRequest = packetRequests.find((item) =>
@@ -354,6 +389,7 @@ try {
       desktopExplore: desktopScreenshotPath,
       narrowExplore: narrowScreenshotPath,
       desktopChat: chatScreenshotPath,
+      sourceDetailOpenPartner: sourceDetailOpenPartnerScreenshotPath,
       chatSendAfterModelSelection: chatSendAttemptScreenshotPath,
       agentModelSettings: agentModelSettingsScreenshotPath,
       agentModelChatDetail: agentModelChatDetailScreenshotPath,
@@ -367,7 +403,7 @@ try {
   console.log(JSON.stringify({
     ok: true,
     resultPath,
-    screenshots: [desktopScreenshotPath, narrowScreenshotPath, chatScreenshotPath],
+    screenshots: [desktopScreenshotPath, narrowScreenshotPath, chatScreenshotPath, sourceDetailOpenPartnerScreenshotPath],
     localAgentRef,
   }, null, 2));
 } catch (error) {
@@ -380,6 +416,7 @@ try {
       desktopExplore: fs.existsSync(desktopScreenshotPath) ? desktopScreenshotPath : null,
       narrowExplore: fs.existsSync(narrowScreenshotPath) ? narrowScreenshotPath : null,
       desktopChat: fs.existsSync(chatScreenshotPath) ? chatScreenshotPath : null,
+      sourceDetailOpenPartner: fs.existsSync(sourceDetailOpenPartnerScreenshotPath) ? sourceDetailOpenPartnerScreenshotPath : null,
       chatSendAfterModelSelection: fs.existsSync(chatSendAttemptScreenshotPath) ? chatSendAttemptScreenshotPath : null,
       agentModelSettings: fs.existsSync(agentModelSettingsScreenshotPath) ? agentModelSettingsScreenshotPath : null,
       agentModelChatDetail: fs.existsSync(agentModelChatDetailScreenshotPath) ? agentModelChatDetailScreenshotPath : null,

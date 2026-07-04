@@ -8,9 +8,19 @@ import {
   realmPersonaSourceMaterializationFailureMessage,
   realmPersonaSourceMaterializationMessage,
   resolveRealmPersonaSourceState,
+  type RealmSourceDiscoveredLocalAgent,
 } from '@renderer/features/explore/realm-persona-source-materialization';
-import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
+import {
+  materializeSourceContactLaunchTarget,
+  toSourceContactLaunchTarget,
+} from '@renderer/features/relationship/source-contact-launch-target.js';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
+import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
+import {
+  fetchLocalAgentList,
+  localAgentListQueryKey,
+  toLocalAgentSourceDiscoveryProjections,
+} from '@renderer/features/agents/local-agent-list-model';
 import {
   sourceDisplayDetailQueryKey,
   fetchSourceDisplayDetail,
@@ -26,6 +36,11 @@ export function SourceDetailPanel() {
   const selectedSourceRef = useAppStore((state) => state.selectedSourceRef);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
@@ -56,6 +71,29 @@ export function SourceDetailPanel() {
     staleTime: 10_000,
   });
 
+  const localAgentListQuery = useQuery({
+    queryKey: localAgentListQueryKey(ownerUserId),
+    queryFn: async () => fetchLocalAgentList(ownerUserId),
+    enabled: authStatus === 'authenticated' && Boolean(ownerUserId),
+    staleTime: 15_000,
+  });
+
+  const sourceRuntimeLocalAgents = useMemo(() => {
+    const byLocalAgentRef = new Map<string, RealmSourceDiscoveredLocalAgent>();
+    for (const agent of sourceLocalAgentsQuery.data ?? []) {
+      if (agent.localAgentRef) {
+        byLocalAgentRef.set(agent.localAgentRef, agent);
+      }
+    }
+    for (const agent of toLocalAgentSourceDiscoveryProjections(
+      localAgentListQuery.data ?? [],
+      source?.sourceRef,
+    )) {
+      byLocalAgentRef.set(agent.localAgentRef, agent);
+    }
+    return [...byLocalAgentRef.values()];
+  }, [localAgentListQuery.data, source?.sourceRef, sourceLocalAgentsQuery.data]);
+
   const sourceForView = useMemo(() => {
     if (!source) {
       return null;
@@ -64,19 +102,25 @@ export function SourceDetailPanel() {
       ...source,
       sourceState: resolveRealmPersonaSourceState(
         source,
-        sourceLocalAgentsQuery.data ?? [],
+        sourceRuntimeLocalAgents,
         {
-          runtimeInventoryPending: Boolean(ownerUserId && sourceLocalAgentsQuery.isPending),
-          runtimeInventoryUnavailable: !ownerUserId || sourceLocalAgentsQuery.isError,
+          runtimeInventoryPending: Boolean(
+            ownerUserId
+            && sourceLocalAgentsQuery.isPending
+            && localAgentListQuery.isPending
+          ),
+          runtimeInventoryUnavailable: !ownerUserId || (sourceLocalAgentsQuery.isError && localAgentListQuery.isError),
         },
       ),
     };
   }, [
+    localAgentListQuery.isError,
+    localAgentListQuery.isPending,
     ownerUserId,
     source,
-    sourceLocalAgentsQuery.data,
     sourceLocalAgentsQuery.isError,
     sourceLocalAgentsQuery.isPending,
+    sourceRuntimeLocalAgents,
   ]);
 
   const stats = useMemo(() => {
@@ -98,13 +142,31 @@ export function SourceDetailPanel() {
       return;
     }
     try {
-      const target = await materializeSourceContactLaunchTarget(source, ownerUserId);
-      await ensureRuntimeAgentExists(target);
+      const existingAgent = sourceRuntimeLocalAgents.length === 1 ? sourceRuntimeLocalAgents[0] : null;
+      const target = existingAgent
+        ? toSourceContactLaunchTarget({
+          ...source,
+          runtimeSourceRef: existingAgent.runtimeSourceRef,
+          localAgentRef: existingAgent.localAgentRef,
+        }, ownerUserId)
+        : await materializeSourceContactLaunchTarget(source, ownerUserId);
+      if (!existingAgent) {
+        await ensureRuntimeAgentExists(target);
+      }
       await queryClient.invalidateQueries({ queryKey: ['source-detail-local-agents'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
+      await launchAgentConversationFromDisplay({
+        target,
+        setActiveTab,
+        setChatMode,
+        setSelectedTargetForSource,
+        setAgentConversationSelection,
+        setAgentConversationTargetSnapshot,
+      });
       setFeedback({
         kind: 'success',
         message: i18n.t('SourceDetail.worldCharacter.partnerReadyFeedback', {
-          defaultValue: 'Your partner is ready.',
+          defaultValue: 'Your partner is ready. Opening chat.',
         }),
       });
     } catch (error) {

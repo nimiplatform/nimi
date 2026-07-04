@@ -22,6 +22,16 @@ export type LocalAgentListItem = {
   sourceKey: string;
 };
 
+export type LocalAgentSourceDiscoveryProjection = {
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef: string;
+  readonly sourceKind: NimiRealmCoreSourceRef['kind'];
+  readonly sourceWorldId: string;
+  readonly sourceId: string;
+  readonly sourceContentHash: string;
+};
+
 const LIST_PAGE_SIZE = 200;
 const LIST_MAX_PAGES = 10;
 
@@ -84,6 +94,30 @@ export function toLocalAgentListItem(
 
 export function localAgentListQueryKey(ownerUserId: string) {
   return ['local-agent-list', normalizeText(ownerUserId)] as const;
+}
+
+export function toLocalAgentSourceDiscoveryProjections(
+  agents: readonly LocalAgentListItem[],
+  sourceRef: NimiRealmCoreSourceRef | null | undefined,
+): LocalAgentSourceDiscoveryProjection[] {
+  if (!sourceRef) {
+    return [];
+  }
+  return agents
+    .filter((agent) =>
+      agent.sourceRef.kind === sourceRef.kind
+      && agent.sourceRef.worldId === sourceRef.worldId
+      && agent.sourceRef.sourceId === sourceRef.sourceId
+      && agent.sourceRef.sourceContentHash === sourceRef.sourceContentHash)
+    .map((agent) => ({
+      ownerUserId: agent.ownerUserId,
+      runtimeSourceRef: agent.runtimeSourceRef,
+      localAgentRef: agent.localAgentRef,
+      sourceKind: agent.sourceRef.kind,
+      sourceWorldId: agent.sourceRef.worldId,
+      sourceId: agent.sourceRef.sourceId,
+      sourceContentHash: agent.sourceRef.sourceContentHash,
+    }));
 }
 
 export async function fetchLocalAgentList(ownerUserIdInput: string): Promise<LocalAgentListItem[]> {

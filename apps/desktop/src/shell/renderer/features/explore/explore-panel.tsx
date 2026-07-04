@@ -28,6 +28,7 @@ import {
 import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
 import { ensureRuntimeAgentExists } from '@renderer/features/chat/chat-agent-shell-host-actions-helpers';
 import { launchAgentConversationFromDisplay } from '@renderer/features/chat/agent-conversation-launcher.js';
+import { localAgentListQueryKey } from '@renderer/features/agents/local-agent-list-model';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -176,6 +177,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
       const target = await materializeSourceContactLaunchTarget(source, ownerUserId);
       await ensureRuntimeAgentExists(target);
       await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
       await launchAgentConversationFromDisplay({
         target,
         setActiveTab,
