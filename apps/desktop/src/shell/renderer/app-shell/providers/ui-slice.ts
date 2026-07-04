@@ -11,9 +11,25 @@ import {
 } from '@renderer/features/chat/chat-shell-types';
 import { loadStoredChatThinkingPreference, persistStoredChatThinkingPreference } from '@renderer/features/chat/chat-settings-storage';
 import { setActiveScopeForMode } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
-import type { AppStoreSet, AppStoreState } from './store-types';
+import type { AppStoreSet, AppStoreState, AppTab } from './store-types';
 
 const initialChatThinkingPreference = loadStoredChatThinkingPreference();
+
+function pushNavigationBackStack(
+  stack: readonly AppTab[],
+  activeTab: AppTab,
+  targetTab: AppTab,
+): AppTab[] {
+  if (activeTab === targetTab) {
+    return [...stack];
+  }
+
+  const nextStack = [...stack];
+  if (nextStack[nextStack.length - 1] !== activeTab) {
+    nextStack.push(activeTab);
+  }
+  return nextStack;
+}
 
 type UiSlice = Pick<AppStoreState,
   | 'bootstrapReady'
@@ -22,7 +38,7 @@ type UiSlice = Pick<AppStoreState,
   | 'desktopReleaseError'
   | 'desktopUpdateState'
   | 'activeTab'
-  | 'previousTab'
+  | 'navigationBackStack'
   | 'chatMode'
   | 'chatThinkingPreference'
   | 'chatSourceFilter'
@@ -32,6 +48,8 @@ type UiSlice = Pick<AppStoreState,
   | 'nimiConversationSelection'
   | 'agentConversationSelection'
   | 'agentConversationTargetByLocalRef'
+  | 'pendingAgentComposerPrefill'
+  | 'agentComposerPrefillSerial'
   | 'chatSetupState'
   | 'selectedChatId'
   | 'selectedProfileId'
@@ -60,6 +78,8 @@ type UiSlice = Pick<AppStoreState,
   | 'setNimiConversationSelection'
   | 'setAgentConversationSelection'
   | 'setAgentConversationTargetSnapshot'
+  | 'setPendingAgentComposerPrefill'
+  | 'clearPendingAgentComposerPrefill'
   | 'setChatSetupState'
   | 'setSelectedChatId'
   | 'setSelectedProfileId'
@@ -85,7 +105,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     desktopReleaseError: null,
     desktopUpdateState: null,
     activeTab: 'chat',
-    previousTab: null,
+    navigationBackStack: [],
     chatMode: 'ai',
     chatThinkingPreference: initialChatThinkingPreference,
     chatSourceFilter: DEFAULT_CHAT_SOURCE_FILTER,
@@ -95,6 +115,8 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     nimiConversationSelection: { ...EMPTY_NIMI_CONVERSATION_SELECTION },
     agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
     agentConversationTargetByLocalRef: {},
+    pendingAgentComposerPrefill: null,
+    agentComposerPrefillSerial: 0,
     chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
     selectedChatId: null,
     selectedProfileId: null,
@@ -115,7 +137,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     setDesktopUpdateState: (state) => set({ desktopUpdateState: state }),
     setActiveTab: (tab) => {
       startTransition(() => {
-        set({ activeTab: tab });
+        set({ activeTab: tab, navigationBackStack: [] });
       });
     },
     setChatMode: (mode) => {
@@ -183,6 +205,24 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
           [target.localAgentRef]: target,
         },
       })),
+    setPendingAgentComposerPrefill: (input) =>
+      set((state) => {
+        const localAgentRef = String(input.localAgentRef || '').trim();
+        const text = String(input.text || '').trim();
+        const requestId = state.agentComposerPrefillSerial + 1;
+        return {
+          agentComposerPrefillSerial: requestId,
+          pendingAgentComposerPrefill: localAgentRef && text
+            ? { localAgentRef, text, requestId }
+            : null,
+        };
+      }),
+    clearPendingAgentComposerPrefill: (requestId) =>
+      set((state) => (
+        state.pendingAgentComposerPrefill?.requestId === requestId
+          ? { pendingAgentComposerPrefill: null }
+          : {}
+      )),
     setChatSetupState: (mode, setupState) =>
       set((state) => ({
         chatSetupState: {
@@ -207,7 +247,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     setChatProfilePanelTarget: (target) => set({ chatProfilePanelTarget: target }),
     navigateToProfile: (profileId, tab) =>
       set((state) => ({
-        previousTab: state.activeTab,
+        navigationBackStack: pushNavigationBackStack(state.navigationBackStack, state.activeTab, tab),
         selectedProfileId: profileId,
         selectedProfileIsSource: tab === 'source-detail',
         selectedSourceRef: null,
@@ -216,7 +256,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       })),
     navigateToSourceDetail: (sourceRef) =>
       set((state) => ({
-        previousTab: state.activeTab,
+        navigationBackStack: pushNavigationBackStack(state.navigationBackStack, state.activeTab, 'source-detail'),
         selectedProfileId: sourceRef.sourceId,
         selectedProfileIsSource: true,
         selectedSourceRef: sourceRef,
@@ -230,7 +270,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       }
       startTransition(() => {
         set((state) => ({
-          previousTab: state.activeTab,
+          navigationBackStack: pushNavigationBackStack(state.navigationBackStack, state.activeTab, 'world-detail'),
           selectedSourceRef: null,
           selectedWorldId: normalizedWorldId,
           selectedWorldInitialSubpage: options?.initialSubpage ?? null,
@@ -247,9 +287,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       const normalizedGiftTransactionId = String(giftTransactionId || '').trim() || null;
       startTransition(() => {
         set((state) => ({
-          previousTab: state.activeTab === 'gift-inbox'
-            ? state.previousTab
-            : state.activeTab,
+          navigationBackStack: pushNavigationBackStack(state.navigationBackStack, state.activeTab, 'gift-inbox'),
           selectedGiftTransactionId: normalizedGiftTransactionId,
           selectedSourceRef: null,
           activeTab: 'gift-inbox',
@@ -264,11 +302,15 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
           };
         }
 
-        const target = state.previousTab || 'chat';
-        const keepProfile = target === 'home' || target === 'explore';
+        const target = state.navigationBackStack[state.navigationBackStack.length - 1] ?? 'chat';
+        const navigationBackStack = state.navigationBackStack.slice(0, -1);
+        const keepProfile = target === 'home'
+          || target === 'explore'
+          || target === 'profile'
+          || target === 'source-detail';
         return {
           activeTab: target,
-          previousTab: null,
+          navigationBackStack,
           selectedProfileId: keepProfile ? state.selectedProfileId : null,
           selectedProfileIsSource: keepProfile ? state.selectedProfileIsSource : null,
           selectedSourceRef: keepProfile ? state.selectedSourceRef : null,

@@ -14,6 +14,12 @@ export type AgentConversationSelection = {
   targetId: string | null;
 };
 
+export type AgentComposerPrefill = {
+  localAgentRef: string;
+  text: string;
+  requestId: number;
+};
+
 export type LastSelectedThreadByMode = Partial<Record<ConversationMode, string | null>>;
 export type ChatSetupStateByMode = Partial<Record<ConversationMode, ConversationSetupState | null>>;
 export type SelectedTargetBySource = Partial<Record<ConversationMode, string | null>>;

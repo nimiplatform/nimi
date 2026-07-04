@@ -60,13 +60,17 @@ thread/anchor metadata 升格成递归 continuation chain 的 owner。
 
 `createUiSlice` 管理 UI 导航状态：
 
-- `activeTab: AppTab`、`previousTab: AppTab | null`
+- `activeTab: AppTab`、`navigationBackStack: AppTab[]`
 - `selectedChatId`、`selectedProfileId`、`selectedProfileIsSource`
 - `profileDetailOverlayOpen`：共享资料详情弹层占据主内容区时为 `true`，shell 左 rail 需要隐藏
 - `statusBanner: StatusBanner | null`
 - `bootstrapReady: boolean`、`bootstrapError: string | null`
 
 导航操作：`setActiveTab`、`navigateToProfile`、`navigateToWorld`、`navigateBack`。
+`navigationBackStack` 是 Desktop detail route 返回链的唯一 process-local truth：
+detail 跳转 push 当前 `activeTab`，同一 detail tab 内切换不自我入栈，
+`navigateBack` pop 栈顶，栈空时才回到默认 `chat`。不得恢复单槽
+`previousTab` 或在 detail panel 内另建返回来源字段。
 
 ## D-STATE-005 — Store 组合
 

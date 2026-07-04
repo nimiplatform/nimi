@@ -12,6 +12,7 @@ import type {
 import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
 import type {
   NimiConversationSelection,
+  AgentComposerPrefill,
   AgentConversationSelection,
   ChatSetupStateByMode,
   LastSelectedThreadByMode,
@@ -86,7 +87,7 @@ export type AppStoreState = {
   conversationCapabilityProjectionByCapability: Partial<Record<ConversationCapability, ConversationCapabilityProjection>>;
   agentEffectiveCapabilityResolution: AgentEffectiveCapabilityResolution | null;
   activeTab: AppTab;
-  previousTab: AppTab | null;
+  navigationBackStack: AppTab[];
   chatMode: ConversationMode;
   chatThinkingPreference: ChatThinkingPreference;
   chatSourceFilter: ConversationSourceFilter;
@@ -96,6 +97,8 @@ export type AppStoreState = {
   nimiConversationSelection: NimiConversationSelection;
   agentConversationSelection: AgentConversationSelection;
   agentConversationTargetByLocalRef: Record<string, AgentLocalTargetSnapshot>;
+  pendingAgentComposerPrefill: AgentComposerPrefill | null;
+  agentComposerPrefillSerial: number;
   chatSetupState: ChatSetupStateByMode;
   selectedChatId: string | null;
   selectedProfileId: string | null;
@@ -139,6 +142,8 @@ export type AppStoreState = {
   setNimiConversationSelection: (selection: NimiConversationSelection) => void;
   setAgentConversationSelection: (selection: AgentConversationSelection) => void;
   setAgentConversationTargetSnapshot: (target: AgentLocalTargetSnapshot) => void;
+  setPendingAgentComposerPrefill: (input: { localAgentRef: string; text: string }) => void;
+  clearPendingAgentComposerPrefill: (requestId: number) => void;
   setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
   setSelectedChatId: (chatId: string | null) => void;
   setSelectedProfileId: (profileId: string | null) => void;

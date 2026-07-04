@@ -108,6 +108,30 @@ test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
   assert.deepEqual(harness.getState().chatSetupState.ai, createReadyConversationSetupState('ai'));
 });
 
+test('A0 ui slice stages agent composer prefill as one-shot local UI state', () => {
+  const harness = createUiSliceHarness();
+  const state = harness.getState();
+
+  assert.equal(state.pendingAgentComposerPrefill, null);
+
+  state.setPendingAgentComposerPrefill({
+    localAgentRef: ' local-agent:user-1:agent-7 ',
+    text: '  他为什么被称为阳明学派思想家与朝廷重臣？  ',
+  });
+
+  assert.deepEqual(harness.getState().pendingAgentComposerPrefill, {
+    localAgentRef: 'local-agent:user-1:agent-7',
+    text: '他为什么被称为阳明学派思想家与朝廷重臣？',
+    requestId: 1,
+  });
+
+  harness.getState().clearPendingAgentComposerPrefill(99);
+  assert.equal(harness.getState().pendingAgentComposerPrefill?.requestId, 1);
+
+  harness.getState().clearPendingAgentComposerPrefill(1);
+  assert.equal(harness.getState().pendingAgentComposerPrefill, null);
+});
+
 test('A0 world navigation opens world detail instead of chat', () => {
   const harness = createUiSliceHarness();
   const state = harness.getState();
@@ -116,7 +140,7 @@ test('A0 world navigation opens world detail instead of chat', () => {
   state.navigateToWorld(' world-alpha ');
 
   assert.equal(harness.getState().activeTab, 'world-detail');
-  assert.equal(harness.getState().previousTab, 'explore');
+  assert.deepEqual(harness.getState().navigationBackStack, ['explore']);
   assert.equal(harness.getState().runtimeFields.worldId, 'world-alpha');
 });
 
@@ -135,6 +159,30 @@ test('A0 world navigation can request the relationship explorer as the initial d
 
   assert.equal(harness.getState().selectedWorldId, 'world-beta');
   assert.equal(harness.getState().selectedWorldInitialSubpage, null);
+});
+
+test('A0 nested world character detail back returns to the world list origin', () => {
+  const harness = createUiSliceHarness();
+  const state = harness.getState();
+
+  state.setActiveTab('explore');
+  state.navigateToWorld('world-alpha');
+  harness.getState().navigateToSourceDetail({
+    kind: 'worldCharacter',
+    worldId: 'world-alpha',
+    sourceId: 'character-alpha',
+    sourceContentHash: 'character-alpha-hash',
+  });
+
+  harness.getState().navigateBack();
+
+  assert.equal(harness.getState().activeTab, 'world-detail');
+  assert.equal(harness.getState().selectedWorldId, 'world-alpha');
+
+  harness.getState().navigateBack();
+
+  assert.equal(harness.getState().activeTab, 'explore');
+  assert.equal(harness.getState().selectedWorldId, null);
 });
 
 test('A0 AI setup is ready only when text.generate projection is supported', () => {

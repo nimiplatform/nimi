@@ -14,7 +14,7 @@ const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.t
 
 test('Gate 7 ready entry: default app tab is Chat', () => {
   assert.match(uiSliceSource, /activeTab: 'chat',/);
-  assert.match(uiSliceSource, /const target = state\.previousTab \|\| 'chat';/);
+  assert.match(uiSliceSource, /const target = state\.navigationBackStack\[state\.navigationBackStack\.length - 1\] \?\? 'chat';/);
 });
 
 test('Gate 7 ready entry: desktop router gates root ordinary shell', () => {
