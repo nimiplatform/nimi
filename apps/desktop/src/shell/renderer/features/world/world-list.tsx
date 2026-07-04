@@ -200,7 +200,6 @@ export function WorldCatalogContent({
           <SelectedWorldPanel
             world={selectedWorld}
             onOpen={() => onOpenWorld(selectedWorld.id)}
-            onOpenRelationshipGraph={() => onOpenWorld(selectedWorld.id, { initialSubpage: 'relationship-explorer' })}
             followed={followed.isFollowed(selectedWorld.id)}
             followAvailable={followed.available}
             onToggleFollow={() => followed.toggle(selectedWorld.id)}

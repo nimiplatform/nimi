@@ -111,13 +111,6 @@
         "empty": "This world has no people to meet yet.",
         "unavailable": "People data could not be loaded yet."
       },
-      "quick": {
-        "title": "Quick entries",
-        "people": { "title": "People graph", "sub": "View relationships" },
-        "library": { "title": "Archive", "sub": "Search source materials" },
-        "timeline": { "title": "Timeline", "sub": "Explore by time" },
-        "scenes": { "title": "Scene roaming", "sub": "Enter historical scenes" }
-      },
       "status": {
         "friends": "{{count}} friends added",
         "recent": "Meet first: {{names}}"

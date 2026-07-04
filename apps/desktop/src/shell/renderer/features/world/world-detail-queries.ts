@@ -54,6 +54,9 @@ export type WorldDisplayDetail = {
   };
 };
 
+export type WorldPrimaryDisplayDetail = Pick<WorldDisplayDetail, 'primary' | 'world' | 'characters'>;
+export type WorldSupplementalDisplayDetail = Pick<WorldDisplayDetail, 'history' | 'semantic' | 'audits' | 'publicAssets' | 'sections'>;
+
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT = 4;
 
 const EMPTY_WORLD_HISTORY: WorldHistoryBundle = {
@@ -292,6 +295,18 @@ export function worldDisplayDetailQueryKey(worldId: string) {
     normalizeWorldId(worldId),
     DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT,
   ] as const;
+}
+
+export function worldPrimaryDisplayDetailQueryKey(worldId: string) {
+  return [
+    'world-primary-display-detail',
+    normalizeWorldId(worldId),
+    DEFAULT_WORLD_DETAIL_RECOMMENDED_CHARACTER_LIMIT,
+  ] as const;
+}
+
+export function worldSupplementalDisplayDetailQueryKey(worldId: string) {
+  return ['world-supplemental-display-detail', normalizeWorldId(worldId)] as const;
 }
 
 export function worldHistoryQueryKey(worldId: string) {
@@ -715,20 +730,60 @@ function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string
   };
 }
 
-export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDisplayDetail> {
-  const primary = await fetchWorldDetailWithCharacters(worldId);
+function projectWorldPrimaryDisplayDetail(primary: WorldPrimaryDetailRecord): WorldPrimaryDisplayDetail {
   const world = toWorldDisplayData(primary);
   const characterRecords = Array.isArray(primary.characters) ? primary.characters : [];
-  const projectedCharacters = characterRecords.map((character) => toWorldDisplayCharacter(character, world.createdAt));
+  return {
+    primary,
+    world,
+    characters: characterRecords.map((character) => toWorldDisplayCharacter(character, world.createdAt)),
+  };
+}
+
+export function toWorldPrimaryDisplayDetail(display: WorldDisplayDetail): WorldPrimaryDisplayDetail {
+  return {
+    primary: display.primary,
+    world: display.world,
+    characters: display.characters,
+  };
+}
+
+export function toWorldSupplementalDisplayDetail(display: WorldDisplayDetail): WorldSupplementalDisplayDetail {
+  return {
+    history: display.history,
+    semantic: display.semantic,
+    audits: display.audits,
+    publicAssets: display.publicAssets,
+    sections: display.sections,
+  };
+}
+
+export function mergeWorldDisplayDetail(
+  primary: WorldPrimaryDisplayDetail,
+  supplemental: WorldSupplementalDisplayDetail,
+): WorldDisplayDetail {
+  return {
+    ...primary,
+    history: supplemental.history,
+    semantic: supplemental.semantic,
+    audits: supplemental.audits,
+    publicAssets: supplemental.publicAssets,
+    sections: supplemental.sections,
+  };
+}
+
+export async function fetchWorldPrimaryDisplayDetail(worldId: string): Promise<WorldPrimaryDisplayDetail> {
+  const primary = await fetchWorldDetailWithCharacters(worldId);
+  return projectWorldPrimaryDisplayDetail(primary);
+}
+
+export async function fetchWorldSupplementalDisplayDetail(worldId: string): Promise<WorldSupplementalDisplayDetail> {
   const [historyResult, semanticResult, publicAssetsResult] = await Promise.allSettled([
     fetchWorldHistory(worldId),
     fetchWorldSemanticBundle(worldId),
     fetchWorldPublicAssets(worldId),
   ]);
   return {
-    primary,
-    world,
-    characters: projectedCharacters,
     history: historyResult.status === 'fulfilled' ? historyResult.value : EMPTY_WORLD_HISTORY,
     semantic: semanticResult.status === 'fulfilled' ? semanticResult.value : EMPTY_WORLD_SEMANTIC,
     audits: [],
@@ -740,4 +795,10 @@ export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDis
       publicAssets: publicAssetsResult.status === 'fulfilled' ? 'success' : 'error',
     },
   };
+}
+
+export async function fetchWorldDisplayDetail(worldId: string): Promise<WorldDisplayDetail> {
+  const primary = await fetchWorldPrimaryDisplayDetail(worldId);
+  const supplemental = await fetchWorldSupplementalDisplayDetail(worldId);
+  return mergeWorldDisplayDetail(primary, supplemental);
 }

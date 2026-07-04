@@ -91,12 +91,13 @@ test('world atlas removes glass-heavy, blue-gradient, and pink favorite styling 
   assert.match(worldListSource, /world-panel-primary-action/);
 });
 
-test('world atlas selected panel is a user-facing quick preview, not a data panel', () => {
+test('world atlas selected panel is a user-facing preview without quick entries', () => {
   assert.match(selectedPanelSource, /data-testid="world-atlas-hero-title"/);
   assert.match(selectedPanelSource, /data-testid="world-atlas-preview-intro"/);
   assert.match(selectedPanelSource, /data-testid="world-atlas-preview-overview"/);
   assert.match(selectedPanelSource, /data-testid="world-atlas-preview-people"/);
-  assert.match(selectedPanelSource, /data-testid="world-atlas-preview-quick-entries"/);
+  assert.doesNotMatch(selectedPanelSource, /data-testid="world-atlas-preview-quick-entries"/);
+  assert.doesNotMatch(selectedPanelSource, /World\.atlas\.preview\.quick/);
   assert.match(selectedPanelSource, /World\.atlas\.preview\.metrics/);
   assert.match(selectedPanelSource, /World\.atlas\.preview\.people\.addFriend/);
   assert.match(selectedPanelSource, /World\.atlas\.preview\.people\.unavailable/);
@@ -107,10 +108,12 @@ test('world atlas selected panel is a user-facing quick preview, not a data pane
   assert.doesNotMatch(worldListSource, /World\.atlas\.preview\.chatableTag/);
 });
 
-test('world atlas selected panel loads recommended people through the shared display-detail query', () => {
-  assert.match(selectedPanelSource, /fetchWorldDisplayDetail/);
-  assert.match(selectedPanelSource, /worldDisplayDetailQueryKey/);
+test('world atlas selected panel loads recommended people through the primary display-detail query', () => {
+  assert.match(selectedPanelSource, /fetchWorldPrimaryDisplayDetail/);
+  assert.match(selectedPanelSource, /worldPrimaryDisplayDetailQueryKey/);
   assert.match(selectedPanelSource, /peopleQuery\.data\?\.characters/);
+  assert.doesNotMatch(selectedPanelSource, /fetchWorldDisplayDetail/);
+  assert.doesNotMatch(selectedPanelSource, /worldDisplayDetailQueryKey/);
   assert.doesNotMatch(selectedPanelSource, /fetchWorldDetailWithCharacters/);
   assert.doesNotMatch(selectedPanelSource, /worldPreviewPeopleQueryKey/);
 });

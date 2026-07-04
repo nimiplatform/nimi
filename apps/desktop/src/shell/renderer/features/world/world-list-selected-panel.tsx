@@ -1,11 +1,10 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import {
   Archive,
   ArrowRight,
   Check,
-  Clock3,
   Heart,
   Image,
   MoreHorizontal,
@@ -31,7 +30,7 @@ import { formatNum, worldInitial } from './world-list-atoms';
 import { displayTags, sourceCount } from './world-list-catalog-model';
 import { WorldCover } from './world-list-cover';
 import { WORLD_EXPLORER_THEME } from './world-list-theme';
-import { fetchWorldDisplayDetail, worldDisplayDetailQueryKey } from './world-detail-queries.js';
+import { fetchWorldPrimaryDisplayDetail, worldPrimaryDisplayDetailQueryKey } from './world-detail-queries.js';
 import type { WorldListItem } from './world-list-model';
 
 type PreviewPerson = {
@@ -87,14 +86,12 @@ function friendCount(world: WorldListItem): number {
 export function SelectedWorldPanel({
   world,
   onOpen,
-  onOpenRelationshipGraph,
   followed = false,
   followAvailable = false,
   onToggleFollow,
 }: {
   world: WorldListItem;
   onOpen: () => void;
-  onOpenRelationshipGraph: () => void;
   followed?: boolean;
   followAvailable?: boolean;
   onToggleFollow?: () => void;
@@ -105,8 +102,8 @@ export function SelectedWorldPanel({
   const relationships = world.relationshipCount;
 
   const peopleQuery = useQuery({
-    queryKey: worldDisplayDetailQueryKey(world.id),
-    queryFn: () => fetchWorldDisplayDetail(world.id),
+    queryKey: worldPrimaryDisplayDetailQueryKey(world.id),
+    queryFn: () => fetchWorldPrimaryDisplayDetail(world.id),
     enabled: peopleCount > 0,
     staleTime: 30_000,
   });
@@ -121,13 +118,6 @@ export function SelectedWorldPanel({
 
   const friends = friendCount(world);
   const intro = world.description || world.tagline || world.overview || t('World.atlas.preview.introFallback');
-
-  const quickEntries: { action: 'relationship-explorer' | 'world-detail'; icon: ReactNode; title: string; sub: string }[] = [
-    { action: 'relationship-explorer', icon: <Users size={16} aria-hidden="true" />, title: t('World.atlas.preview.quick.people.title'), sub: t('World.atlas.preview.quick.people.sub') },
-    { action: 'world-detail', icon: <Archive size={16} aria-hidden="true" />, title: t('World.atlas.preview.quick.library.title'), sub: t('World.atlas.preview.quick.library.sub') },
-    { action: 'world-detail', icon: <Clock3 size={16} aria-hidden="true" />, title: t('World.atlas.preview.quick.timeline.title'), sub: t('World.atlas.preview.quick.timeline.sub') },
-    { action: 'world-detail', icon: <Image size={16} aria-hidden="true" />, title: t('World.atlas.preview.quick.scenes.title'), sub: t('World.atlas.preview.quick.scenes.sub') },
-  ];
 
   const peopleItems = people.map((person) => ({
     id: person.id,
@@ -248,34 +238,6 @@ export function SelectedWorldPanel({
             ) : (
               <EmptyState title={peopleEmptyTitle} className="py-4" />
             )}
-          </div>
-        </section>
-
-        <section data-testid="world-atlas-preview-quick-entries" className="mt-5">
-          <PanelHeading title={t('World.atlas.preview.quick.title')} />
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {quickEntries.map((entry) => (
-              <Button
-                key={entry.title}
-                type="button"
-                tone="secondary"
-                size="md"
-                fullWidth
-                className="min-h-[74px] justify-start rounded-[16px] border-[var(--world-explorer-border)] bg-[var(--world-explorer-surface)] px-3 text-left shadow-none hover:bg-[var(--world-explorer-brand-soft)] hover:shadow-none [&>span]:w-full [&>span]:justify-start [&>span]:overflow-visible [&>span]:whitespace-normal"
-                onClick={entry.action === 'relationship-explorer' ? onOpenRelationshipGraph : onOpen}
-                title={entry.sub}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--world-explorer-brand-soft)] text-[var(--world-explorer-brand)]">
-                    {entry.icon}
-                  </span>
-                  <span className="grid min-w-0 gap-1 text-left">
-                    <span className="text-[13px] font-bold leading-tight text-[var(--world-explorer-text)]">{entry.title}</span>
-                    <span className="text-[12px] font-medium leading-snug text-[var(--world-explorer-text-secondary)]">{entry.sub}</span>
-                  </span>
-                </span>
-              </Button>
-            ))}
           </div>
         </section>
 

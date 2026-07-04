@@ -54,11 +54,11 @@ test('Explore-owned World list routes detail entry through navigateToWorld unifi
   assert.match(explorePanelSource, /navigateToWorld\(worldId\)/);
 });
 
-test('World Atlas quick people graph routes directly to relationship explorer subpage', () => {
-  assert.match(worldListSource, /onOpenRelationshipGraph=\{\(\) => onOpenWorld\(selectedWorld\.id, \{ initialSubpage: 'relationship-explorer' \}\)\}/);
-  assert.match(selectedWorldPanelSource, /onOpenRelationshipGraph/);
-  assert.match(selectedWorldPanelSource, /action: 'relationship-explorer'/);
-  assert.match(selectedWorldPanelSource, /entry\.action === 'relationship-explorer'\s*\?\s*onOpenRelationshipGraph\s*:\s*onOpen/);
+test('World Atlas selected panel no longer exposes quick people graph routing', () => {
+  assert.doesNotMatch(worldListSource, /onOpenRelationshipGraph=/);
+  assert.doesNotMatch(selectedWorldPanelSource, /onOpenRelationshipGraph/);
+  assert.doesNotMatch(selectedWorldPanelSource, /action: 'relationship-explorer'/);
+  assert.doesNotMatch(selectedWorldPanelSource, /entry\.action === 'relationship-explorer'\s*\?\s*onOpenRelationshipGraph\s*:\s*onOpen/);
   assert.match(explorePanelSource, /navigateToWorld\(worldId, options\)/);
 });
 
@@ -73,8 +73,9 @@ test('world detail route handoff does not flash the retired standalone skeleton 
   assert.doesNotMatch(worldDetailRouteStateSource, /#0a0f0c|#4ECCA3|radial-gradient/);
 });
 
-test('world detail uses explicit initial loading state to avoid first-render flicker', () => {
-  assert.match(worldDetailSource, /const initialLoading = worldCompositeQuery\.isPending && !display/);
+test('world detail uses primary loading for page readiness and keeps fallback world chrome visible', () => {
+  assert.match(worldDetailSource, /const primaryLoading = worldPrimaryQuery\.isPending && !primaryDisplay/);
+  assert.match(worldDetailSource, /const initialLoading = primaryLoading && !world\.id/);
   assert.match(worldDetailSource, /loading=\{initialLoading\}/);
 });
 
@@ -85,8 +86,9 @@ test('world detail cache fallback cannot synchronously crash before list project
   assert.match(worldDetailActivePanelSource, /const selectedWorldFromList =/);
   assert.match(
     worldDetailActivePanelSource,
-    /selectedWorldFromList\s*\?\?\s*readCachedWorldDetailListItem\(cachedWorldDetail\)/,
+    /selectedWorldFromList\s*\?\?\s*readCachedWorldDetailListItem\(cachedWorldDetail\)\s*\?\?\s*readCachedWorldDetailListItem\(cachedWorldPrimaryDetail\)/,
   );
+  assert.match(worldDetailActivePanelSource, /worldPrimaryDisplayDetailQueryKey\(selectedWorldId\)/);
   assert.doesNotMatch(
     worldDetailActivePanelSource,
     /const selectedWorldFromDetailCache = cachedWorldDetail \? toWorldListItem\(cachedWorldDetail\.primary\) : null/,

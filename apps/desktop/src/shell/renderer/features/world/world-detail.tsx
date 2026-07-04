@@ -4,6 +4,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { i18n } from '@renderer/i18n';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
+import { queryClient } from '@renderer/infra/query-client/query-client';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { realmPersonaSourceMaterializationFailureMessage } from '@renderer/features/explore/realm-persona-source-materialization';
 import { materializeSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target.js';
@@ -15,9 +16,15 @@ import {
 import type { WorldCharacter } from './world-detail-types';
 import type { WorldListItem } from './world-list-model';
 import {
-  fetchWorldDisplayDetail,
+  fetchWorldPrimaryDisplayDetail,
+  fetchWorldSupplementalDisplayDetail,
+  toWorldPrimaryDisplayDetail,
+  toWorldSupplementalDisplayDetail,
+  type WorldDisplayDetail,
   toWorldDisplayFallback,
   worldDisplayDetailQueryKey,
+  worldPrimaryDisplayDetailQueryKey,
+  worldSupplementalDisplayDetailQueryKey,
 } from './world-detail-queries';
 import { useFollowedWorlds } from './world-follow-store';
 
@@ -38,23 +45,39 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   const primaryReadyLoggedRef = useRef(false);
   const historySemanticReadyLoggedRef = useRef(false);
   const extendedReadyLoggedRef = useRef(false);
+  const cachedCompositeDisplay = isReady
+    ? queryClient.getQueryData<WorldDisplayDetail>(worldDisplayDetailQueryKey(world.id))
+    : undefined;
 
-  const worldCompositeQuery = useQuery({
-    queryKey: worldDisplayDetailQueryKey(world.id),
-    queryFn: () => fetchWorldDisplayDetail(world.id),
+  const worldPrimaryQuery = useQuery({
+    queryKey: worldPrimaryDisplayDetailQueryKey(world.id),
+    queryFn: () => fetchWorldPrimaryDisplayDetail(world.id),
     enabled: isReady,
+    initialData: cachedCompositeDisplay ? () => toWorldPrimaryDisplayDetail(cachedCompositeDisplay) : undefined,
     staleTime: 30_000,
   });
 
-  const display = worldCompositeQuery.data;
-  const initialLoading = worldCompositeQuery.isPending && !display;
+  const primaryDisplay = worldPrimaryQuery.data;
+  const worldSupplementalQuery = useQuery({
+    queryKey: worldSupplementalDisplayDetailQueryKey(world.id),
+    queryFn: () => fetchWorldSupplementalDisplayDetail(world.id),
+    enabled: isReady && Boolean(primaryDisplay),
+    initialData: cachedCompositeDisplay ? () => toWorldSupplementalDisplayDetail(cachedCompositeDisplay) : undefined,
+    staleTime: 30_000,
+  });
+
+  const supplementalDisplay = worldSupplementalQuery.data;
+  const primaryLoading = worldPrimaryQuery.isPending && !primaryDisplay;
+  const supplementalLoading = Boolean(primaryDisplay) && worldSupplementalQuery.isPending && !supplementalDisplay;
+  const initialLoading = primaryLoading && !world.id;
   const initialError = !initialLoading
-    && (worldCompositeQuery.isError || (worldCompositeQuery.isSuccess && !display));
+    && !primaryDisplay
+    && worldPrimaryQuery.isError;
   const pageError = initialError;
-  const worldData = display?.world ?? toWorldDisplayFallback(world);
-  const characters: WorldCharacter[] = display?.characters ?? [];
-  const safeHistory = display?.history ?? { items: [], summary: null };
-  const safeSemantic = display?.semantic ?? {
+  const worldData = primaryDisplay?.world ?? toWorldDisplayFallback(world);
+  const characters: WorldCharacter[] = primaryDisplay?.characters ?? [];
+  const safeHistory = supplementalDisplay?.history ?? { items: [], summary: null };
+  const safeSemantic = supplementalDisplay?.semantic ?? {
     operationTitle: null,
     operationDescription: null,
     operationRules: [],
@@ -68,8 +91,8 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
     worldviewSnapshots: [],
     hasContent: false,
   };
-  const safeAudits = display?.audits ?? [];
-  const safePublicAssets = display?.publicAssets ?? {
+  const safeAudits = supplementalDisplay?.audits ?? [];
+  const safePublicAssets = supplementalDisplay?.publicAssets ?? {
     resourceRefs: [],
     externalRefs: [],
     intents: [],
@@ -98,7 +121,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   }, [isReady, world.id]);
 
   useEffect(() => {
-    if (!worldCompositeQuery.isSuccess || !display || primaryReadyLoggedRef.current) {
+    if (!worldPrimaryQuery.isSuccess || !primaryDisplay || primaryReadyLoggedRef.current) {
       return;
     }
     primaryReadyLoggedRef.current = true;
@@ -113,10 +136,10 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         stage: 'primary',
       },
     });
-  }, [display, world.id, worldCompositeQuery.isSuccess]);
+  }, [primaryDisplay, world.id, worldPrimaryQuery.isSuccess]);
 
   useEffect(() => {
-    if (!display || historySemanticReadyLoggedRef.current) {
+    if (!supplementalDisplay || !worldSupplementalQuery.isSuccess || historySemanticReadyLoggedRef.current) {
       return;
     }
     historySemanticReadyLoggedRef.current = true;
@@ -129,14 +152,14 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
       details: {
         worldId: world.id,
         stage: 'secondary',
-        historyStatus: display.sections.history,
-        semanticStatus: display.sections.semantic,
+        historyStatus: supplementalDisplay.sections.history,
+        semanticStatus: supplementalDisplay.sections.semantic,
       },
     });
-  }, [display, world.id]);
+  }, [supplementalDisplay, world.id, worldSupplementalQuery.isSuccess]);
 
   useEffect(() => {
-    if (!display || extendedReadyLoggedRef.current) {
+    if (!supplementalDisplay || !worldSupplementalQuery.isSuccess || extendedReadyLoggedRef.current) {
       return;
     }
     extendedReadyLoggedRef.current = true;
@@ -149,11 +172,11 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
       details: {
         worldId: world.id,
         stage: 'non-critical',
-        auditStatus: display.sections.audits,
-        publicAssetsStatus: display.sections.publicAssets,
+        auditStatus: supplementalDisplay.sections.audits,
+        publicAssetsStatus: supplementalDisplay.sections.publicAssets,
       },
     });
-  }, [display, world.id]);
+  }, [supplementalDisplay, world.id, worldSupplementalQuery.isSuccess]);
 
   // World characters are not chat-reachable until Runtime creates a localAgent
   // from a fresh Realm materialization packet on this device.
@@ -215,11 +238,11 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
           publicAssets={safePublicAssets}
           loading={initialLoading}
           error={pageError}
-          charactersLoading={worldCompositeQuery.isPending}
-          historyLoading={worldCompositeQuery.isPending}
-          semanticLoading={worldCompositeQuery.isPending}
-          auditsLoading={worldCompositeQuery.isPending}
-          publicAssetsLoading={worldCompositeQuery.isPending}
+          charactersLoading={primaryLoading}
+          historyLoading={supplementalLoading}
+          semanticLoading={supplementalLoading}
+          auditsLoading={false}
+          publicAssetsLoading={supplementalLoading}
           onBack={onBack}
           onViewCharacter={handleViewCharacter}
           onMaterializeSource={handleMaterializeSource}
@@ -237,11 +260,11 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
           publicAssets={safePublicAssets}
           loading={initialLoading}
           error={pageError}
-          charactersLoading={worldCompositeQuery.isPending}
-          historyLoading={worldCompositeQuery.isPending}
-          semanticLoading={worldCompositeQuery.isPending}
-          auditsLoading={worldCompositeQuery.isPending}
-          publicAssetsLoading={worldCompositeQuery.isPending}
+          charactersLoading={primaryLoading}
+          historyLoading={supplementalLoading}
+          semanticLoading={supplementalLoading}
+          auditsLoading={false}
+          publicAssetsLoading={supplementalLoading}
           onBack={onBack}
           onViewCharacter={handleViewCharacter}
           onMaterializeSource={handleMaterializeSource}

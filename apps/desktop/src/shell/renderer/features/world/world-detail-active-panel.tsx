@@ -7,12 +7,16 @@ import { WorldDetailLoadingState } from './world-detail-template';
 import {
   fetchWorldListItems,
   type WorldDisplayDetail,
+  type WorldPrimaryDisplayDetail,
   worldDisplayDetailQueryKey,
+  worldPrimaryDisplayDetailQueryKey,
   worldListQueryKey,
 } from './world-detail-queries';
 import { toWorldListItem, type WorldListItem } from './world-list-model';
 
-function readCachedWorldDetailListItem(detail: WorldDisplayDetail | null | undefined): WorldListItem | null {
+function readCachedWorldDetailListItem(
+  detail: WorldDisplayDetail | WorldPrimaryDisplayDetail | null | undefined,
+): WorldListItem | null {
   if (!detail) {
     return null;
   }
@@ -38,6 +42,11 @@ export function WorldDetailActivePanel() {
       worldDisplayDetailQueryKey(selectedWorldId),
     )
     : null;
+  const cachedWorldPrimaryDetail = selectedWorldId
+    ? queryClient.getQueryData<WorldPrimaryDisplayDetail>(
+      worldPrimaryDisplayDetailQueryKey(selectedWorldId),
+    )
+    : null;
 
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
@@ -58,7 +67,9 @@ export function WorldDetailActivePanel() {
   const selectedWorldFromList = worldsQuery.data?.find((item) => item.id === selectedWorldId)
     ?? cachedSelectedWorld
     ?? null;
-  const selectedWorld = selectedWorldFromList ?? readCachedWorldDetailListItem(cachedWorldDetail);
+  const selectedWorld = selectedWorldFromList
+    ?? readCachedWorldDetailListItem(cachedWorldDetail)
+    ?? readCachedWorldDetailListItem(cachedWorldPrimaryDetail);
 
   if (!selectedWorld && worldsQuery.isPending) {
     return <WorldDetailLoadingState />;
