@@ -102,6 +102,9 @@ func (s *publicChatScenarioStreamServer) Send(event *runtimev1.StreamScenarioEve
 	if s == nil || s.send == nil || event == nil {
 		return nil
 	}
+	if err := s.Context().Err(); err != nil {
+		return err
+	}
 	return s.send(proto.Clone(event).(*runtimev1.StreamScenarioEvent))
 }
 func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
@@ -114,6 +117,9 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 	}
 	if req == nil {
 		return status.Error(codes.InvalidArgument, "public chat turn request is required")
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	streamReq := &runtimev1.StreamScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -139,7 +145,7 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 			},
 		},
 	}
-	return e.ai.StreamScenario(streamReq, &publicChatScenarioStreamServer{
+	stream := &publicChatScenarioStreamServer{
 		ctx: ctx,
 		send: func(event *runtimev1.StreamScenarioEvent) error {
 			if emit == nil {
@@ -147,5 +153,20 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 			}
 			return emit(event)
 		},
-	})
+	}
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- e.ai.StreamScenario(streamReq, stream)
+	}()
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		select {
+		case err := <-errCh:
+			return err
+		default:
+			return ctx.Err()
+		}
+	}
 }

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -72,6 +74,45 @@ func emitPublicChatImageActionStream(traceID string, rawAPML string) func(contex
 				},
 			},
 		})
+	}
+}
+
+func TestPublicChatImageActionSubmitRequestCarriesRuntimeTargetRef(t *testing.T) {
+	t.Parallel()
+	targetRef := &runtimev1.RuntimeDurableTargetRef{
+		Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
+			Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
+				Version:              "v2",
+				ConnectorId:          "connector-image",
+				RemoteModelCatalogId: "remote-catalog-image",
+				ProviderModelId:      "gpt-image-1.5",
+				Provider:             "openai",
+			},
+		},
+	}
+
+	req := buildPublicChatImageActionSubmitRequest(publicChatExecutionBinding{
+		ModelID:     "gpt-image-1.5",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		ConnectorID: "connector-image",
+		TargetRef:   targetRef,
+	}, map[string]any{
+		"size":           "1024x1024",
+		"responseFormat": "b64_json",
+	}, "studio portrait of the current local agent", "runtime-agent-image-action:test", time.Second)
+
+	head := req.GetHead()
+	if head == nil {
+		t.Fatal("expected image action submit request head")
+	}
+	if !proto.Equal(head.GetTargetRef(), targetRef) {
+		t.Fatalf("image action submit request lost target_ref: got=%v want=%v", head.GetTargetRef(), targetRef)
+	}
+	if head.GetConnectorId() != "connector-image" {
+		t.Fatalf("expected connector id to stay aligned with target_ref, got %q", head.GetConnectorId())
+	}
+	if head.GetModelId() != "gpt-image-1.5" {
+		t.Fatalf("expected model id to stay aligned with target_ref, got %q", head.GetModelId())
 	}
 }
 
