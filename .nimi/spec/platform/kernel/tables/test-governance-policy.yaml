@@ -1,0 +1,217 @@
+version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_test_governance_policy
+source_rule: P-TEST-001
+entries:
+  - classification_vocabulary
+  - gate_eligibility_enum
+  - hard_blocks
+  - census
+  - module_owner_map
+classification_vocabulary:
+  - classification: authority_boundary_guard
+    tier: T3
+    meaning: forbidden-import / forbidden-API / forbidden-copy sentinel; boundary gate
+    default_gate_eligibility:
+      regression: allowed
+      release: allowed
+      product_acceptance: never
+    authority_refs: [P-TEST-002, P-TEST-004]
+  - classification: behavior_unit
+    tier: T4
+    meaning: deterministic logic / state machine / fail-closed asserted via real calls
+    default_gate_eligibility:
+      regression: allowed
+    authority_refs: [P-TEST-002]
+  - classification: contract_conformance
+    tier: T5
+    meaning: public contract / adapter / conformance / typed-core
+    default_gate_eligibility:
+      regression: allowed
+      release: allowed
+    authority_refs: [P-TEST-002]
+  - classification: generated_drift_guard
+    tier: T2
+    meaning: asserts a generated artifact equals its source-of-truth input
+    default_gate_eligibility:
+      release: allowed
+    authority_refs: [P-TEST-002]
+  - classification: product_acceptance
+    tier: T6
+    meaning: real app-shell / e2e / real user path
+    default_gate_eligibility:
+      release: after_real_shell_evidence
+    authority_refs: [P-TEST-002, P-TEST-006]
+  - classification: live_provider_proof
+    tier: T7
+    meaning: requires a real provider/env
+    default_gate_eligibility:
+      release: after_env_evidence
+    authority_refs: [P-TEST-002, P-TEST-006]
+  - classification: source_regex_sentinel
+    tier: T3
+    tier_marker: T3-flagged
+    meaning: asserts by scanning source text with regex/string match
+    sentinel_purpose_values: [forbidden_import, forbidden_api, forbidden_copy]
+    authority_refs: [P-TEST-002, P-TEST-004]
+  - classification: evidence_only
+    tier: T10
+    meaning: closeout / proof / screenshot / wave / phase artifact
+    default_gate_eligibility:
+      regression: never
+      release: never
+      product_acceptance: never
+    authority_refs: [P-TEST-002, P-TEST-006]
+  - classification: legacy_drift_quarantine
+    tier: null
+    meaning: acknowledged drift fossil, pending rewrite/removal
+    default_gate_eligibility:
+      regression: never
+      release: never
+      product_acceptance: never
+    required_fields: [removal_condition]
+    authority_refs: [P-TEST-002, P-TEST-005]
+  - classification: redundant_candidate
+    tier: null
+    meaning: invariant already covered by a stronger gate, pending dedup
+    default_gate_eligibility:
+      regression: never
+      release: never
+      product_acceptance: never
+    required_fields: [removal_condition, supersede_ref]
+    authority_refs: [P-TEST-002, P-TEST-005]
+  - classification: remove_after_replacement
+    tier: null
+    meaning: scheduled removal once a named replacement lands
+    default_gate_eligibility:
+      regression: never
+      release: never
+      product_acceptance: never
+    required_fields: [removal_condition, supersede_ref]
+    authority_refs: [P-TEST-002, P-TEST-005]
+  - classification: quarantine_unreviewed
+    tier: null
+    meaning: on disk, registered, not yet human-classified (bootstrap-only)
+    default_gate_eligibility:
+      regression: never
+      release: never
+      product_acceptance: never
+    required_fields: [removal_condition]
+    authority_refs: [P-TEST-002, P-TEST-003, P-TEST-005, P-TEST-006]
+gate_eligibility_enum:
+  values:
+    - allowed
+    - never
+    - after_rewrite
+    - after_scope_limit
+    - after_real_shell_evidence
+    - after_env_evidence
+  authority_refs: [P-TEST-002, P-TEST-006]
+hard_blocks:
+  - id: unclassified_test_file
+    condition: test file on disk with no row
+    authority_refs: [P-TEST-003]
+  - id: test_file_without_spec_ref
+    condition: "empty `spec_refs` or undefined rule ref"
+    authority_refs: [P-TEST-001]
+  - id: authority_claim_true
+    condition: "any row with `authority_claim != false`"
+    authority_refs: [P-TEST-001]
+  - id: quarantine_without_removal_condition
+    condition: "non-trusted class, no `removal_condition`"
+    authority_refs: [P-TEST-005]
+  - id: source_regex_sentinel_not_forbidden_purpose
+    condition: source-regex test not in forbidden-* purpose
+    authority_refs: [P-TEST-004]
+  - id: evidence_only_in_gate
+    condition: "`evidence_only` with any gate eligibility `!= never`"
+    authority_refs: [P-TEST-006]
+  - id: live_proof_without_env_evidence
+    condition: "`live_provider_proof` counted for release without env evidence"
+    authority_refs: [P-TEST-006]
+  - id: unreviewed_in_release_gate
+    condition: "`quarantine_unreviewed` reachable by the release gate"
+    authority_refs: [P-TEST-006]
+  - id: owner_mismatch
+    condition: "row `owner` does not equal module root's mapped owner"
+    authority_refs: [P-TEST-008]
+  - id: tier_classification_mismatch
+    condition: "`tier` does not equal classification's canonical tier"
+    authority_refs: [P-TEST-002]
+census:
+  include_globs:
+    - '**/*.test.ts'
+    - '**/*.test.tsx'
+    - '**/*.test.mts'
+    - '**/*.test.mjs'
+    - '**/*.test.cts'
+    - '**/*.test.cjs'
+    - '**/*.test.js'
+    - '**/*.test.jsx'
+    - '**/*.spec.ts'
+    - '**/*.spec.tsx'
+    - '**/*.spec.mjs'
+    - '**/*.spec.js'
+    - '**/*_test.go'
+  helper_globs:
+    - '**/*-helpers.mjs'
+    - '**/*.test-helper.ts'
+  exclude_dirs: [archive, _external, node_modules, dist, generated, .next, .cache, .iterate]
+  authority_refs: [P-TEST-007]
+module_owner_map:
+  - domain: runtime
+    owner: runtime
+    root: runtime
+    inventory: config/runtime-test-inventory.yaml
+    authority_refs: [P-TEST-008]
+  - domain: desktop
+    owner: desktop
+    root: apps/desktop
+    inventory: config/desktop-test-inventory.yaml
+    authority_refs: [P-TEST-008]
+  - domain: kit
+    owner: platform
+    root: kit
+    inventory: config/kit-test-inventory.yaml
+    authority_refs: [P-TEST-008]
+  - domain: sdks-typescript
+    owner: sdks
+    root: sdks/typescript
+    inventory: config/sdks-typescript-test-inventory.yaml
+    authority_refs: [P-TEST-008]
+  - domain: avatar
+    owner: avatar
+    root: apps/avatar
+    inventory: config/avatar-test-inventory.yaml
+    authority_refs: [P-TEST-008]
+  - domain: scripts
+    owner: platform
+    root: scripts
+    inventory: config/scripts-test-inventory.yaml
+    authority_refs: [P-TEST-008]
+  - domain: zhiyu
+    owner: zhiyu
+    root: apps/zhiyu/test
+    inventory: config/zhiyu-test-inventory.yaml
+    authority_refs: [P-TEST-008]
+  - domain: nimi-cognition
+    owner: cognition
+    root: nimi-cognition
+    inventory: config/nimi-cognition-test-inventory.yaml
+    authority_refs: [P-TEST-008]
+  - domain: tester
+    owner: tester
+    root: apps/tester
+    inventory: config/tester-test-inventory.yaml
+    authority_refs: [P-TEST-008]
+  - domain: web
+    owner: web
+    root: apps/web
+    inventory: config/web-test-inventory.yaml
+    authority_refs: [P-TEST-008]
+  - domain: install-gateway
+    owner: web
+    root: apps/install-gateway
+    inventory: config/install-gateway-test-inventory.yaml
+    authority_refs: [P-TEST-008]

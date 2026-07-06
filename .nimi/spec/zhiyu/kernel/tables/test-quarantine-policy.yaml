@@ -10,18 +10,14 @@ entries:
       apps/zhiyu/test: non_authoritative_until_inventory
       check:zhiyu-bootstrap: non_authoritative_until_inventory
       release_evidence: non_authoritative_until_inventory
-  - id: classification
+  - id: classification_vocabulary_ref
     semantics:
-      - id: story_regression_candidate
-        may_enter_release_gate: after_spec_ref_and_rewrite
-      - id: diagnostics_regression_candidate
-        may_enter_release_gate: after_spec_ref_and_scope_limit
-      - id: owner_boundary_guard_candidate
-        may_enter_release_gate: after_upstream_and_zhiyu_refs
-      - id: legacy_drift_quarantine
-        may_enter_release_gate: false
-      - id: remove_after_replacement
-        may_enter_release_gate: false
+      source_policy: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+      source_catalog_id: platform_test_governance_policy
+      source_entry: classification_vocabulary
+      source_rule: P-TEST-002
+      inventory_support_input: config/zhiyu-test-inventory.yaml
+      local_classification_values: forbidden
   - id: hard_blocks
     semantics:
       - unclassified_zhiyu_test_in_release_gate

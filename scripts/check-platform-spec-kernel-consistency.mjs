@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { checkNimiDesignTables } from './lib/platform-spec-design-table-checks.mjs';
+import { checkTestGovernanceTables } from './lib/platform-spec-test-governance-checks.mjs';
 import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const cwd = process.cwd();
@@ -50,6 +51,8 @@ const delegatedProjectionAdmissionsTable = readYaml('.nimi/spec/platform/kernel/
 const aiProfileFactoryCatalogTable = readYaml('.nimi/spec/platform/kernel/tables/ai-profile-factory-catalog.yaml');
 const nimiAppRegistryTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml');
 const nimiAppTrustTiersTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml');
+const testGovernancePolicyTable = readYaml('.nimi/spec/platform/kernel/tables/test-governance-policy.yaml');
+const testGovernanceRuleEvidenceFragment = readYaml('.nimi/spec/platform/kernel/tables/rule-evidence.rules-test-governance.yaml');
 const ruleEvidenceTable = readYaml('.nimi/spec/platform/kernel/tables/rule-evidence.yaml');
 const structuralOnlyCoverageRuleIds = new Set(
   (Array.isArray(complianceTable?.layers) ? complianceTable.layers : [])
@@ -354,6 +357,7 @@ const requiredKernelFiles = [
   'nimi-app-developer-workflow-contract.md',
   'nimi-app-scaffolding-contract.md',
   'nimi-proposal-intake-contract.md',
+  'test-governance-contract.md',
   'mod-extension-retirement-contract.md',
   'agent-identity-floor-contract.md',
   'app-permission-contract.md',
@@ -370,6 +374,7 @@ const requiredKernelFiles = [
   'tables/ai-profile-factory-catalog.yaml',
   'tables/nimi-app-registry.yaml',
   'tables/nimi-app-trust-tiers.yaml',
+  'tables/test-governance-policy.yaml',
   'tables/error-code-mapping.yaml',
   'tables/nimi-ui-tokens.yaml',
   'tables/nimi-ui-primitives.yaml',
@@ -378,6 +383,7 @@ const requiredKernelFiles = [
   'tables/nimi-ui-compositions.yaml',
   'tables/nimi-ui-allowlists.yaml',
   'tables/rule-evidence.yaml',
+  'tables/rule-evidence.rules-test-governance.yaml',
 ];
 
 for (const file of requiredKernelFiles) {
@@ -412,6 +418,7 @@ const kernelContracts = [
   'nimi-app-developer-workflow-contract.md',
   'nimi-app-scaffolding-contract.md',
   'nimi-proposal-intake-contract.md',
+  'test-governance-contract.md',
   'mod-extension-retirement-contract.md',
   'agent-identity-floor-contract.md',
   'app-permission-contract.md',
@@ -481,6 +488,7 @@ const yamlTables = [
   { name: 'ai-profile-factory-catalog.yaml', data: aiProfileFactoryCatalogTable },
   { name: 'nimi-app-registry.yaml', data: nimiAppRegistryTable },
   { name: 'nimi-app-trust-tiers.yaml', data: nimiAppTrustTiersTable },
+  { name: 'test-governance-policy.yaml', data: testGovernancePolicyTable },
 ];
 
 for (const table of yamlTables) {
@@ -511,6 +519,16 @@ checkAppSliceAdmissions(definedRuleIds);
 checkAuditEvidenceRoots(definedRuleIds);
 checkPackageAuthorityAdmissions(definedRuleIds);
 checkDelegatedProjectionAdmissions(definedRuleIds);
+checkTestGovernanceTables({
+  cwd,
+  definedRuleIds,
+  fail,
+  fs,
+  path,
+  read,
+  testGovernancePolicyTable,
+  testGovernanceRuleEvidenceFragment,
+});
 checkRuleEvidenceTraceability(definedRuleIds);
 
 // ========================================================
@@ -761,6 +779,13 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
     seen.add(ruleId);
     if (!definedRuleIds.has(ruleId)) {
       fail(`${rel} references unknown platform kernel rule: ${ruleId}`);
+    }
+    if (/^[a-z0-9._-]+\.ya?ml$/u.test(requirement)) {
+      const requiredPath = path.join(cwd, '.nimi/spec/platform/kernel/tables', requirement);
+      if (!fs.existsSync(requiredPath)) {
+        fail(`${rel} ${ruleId} evidence_requirement file does not exist: ${requirement}`);
+      }
+      continue;
     }
     if (requirement !== 'required' && requirement !== 'structural_required' && requirement !== 'not_applicable') {
       fail(`${rel} ${ruleId} has invalid evidence_requirement: ${requirement || '<empty>'}`);

@@ -50,3 +50,4 @@ fragments:
     - rule-evidence.rules-app-permission.yaml
     - rule-evidence.rules-first-party.yaml
     - rule-evidence.rules-ecosystem.yaml
+    - rule-evidence.rules-test-governance.yaml

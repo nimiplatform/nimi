@@ -1,0 +1,51 @@
+table_family: support_registry
+registry_id: platform_rule_evidence_requirement_rules_test_governance
+owner: platform
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+  - evidence_refs
+  - note
+  - na_reason
+  - evidence_scope_note
+  - test_files
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
+  - P-TEST-001
+  - P-TEST-002
+  - P-TEST-003
+  - P-TEST-004
+  - P-TEST-005
+  - P-TEST-006
+  - P-TEST-007
+  - P-TEST-008
+rules:
+  - rule_id: P-TEST-001
+    evidence_requirement: test-governance-policy.yaml
+  - rule_id: P-TEST-002
+    evidence_requirement: test-governance-policy.yaml
+  - rule_id: P-TEST-003
+    evidence_requirement: test-governance-policy.yaml
+  - rule_id: P-TEST-004
+    evidence_requirement: test-governance-policy.yaml
+  - rule_id: P-TEST-005
+    evidence_requirement: test-governance-policy.yaml
+  - rule_id: P-TEST-006
+    evidence_requirement: test-governance-policy.yaml
+  - rule_id: P-TEST-007
+    evidence_requirement: test-governance-policy.yaml
+  - rule_id: P-TEST-008
+    evidence_requirement: test-governance-policy.yaml

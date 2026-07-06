@@ -268,14 +268,28 @@ function checkTestQuarantine() {
       fail(`${rel} entries[id=default_status].semantics.${key} must be non_authoritative_until_inventory`);
     }
   }
-  const classifications = catalogEntry(parsed, 'classification')?.semantics || [];
-  expectSetContains(rel, classifications.map((row) => row?.id), [
-    'story_regression_candidate',
-    'diagnostics_regression_candidate',
-    'owner_boundary_guard_candidate',
-    'legacy_drift_quarantine',
-    'remove_after_replacement',
-  ], 'entries[id=classification].semantics.id');
+  if (catalogEntry(parsed, 'classification')) {
+    fail(`${rel} must not define a local classification vocabulary`);
+  }
+  const vocabularyRef = catalogEntry(parsed, 'classification_vocabulary_ref')?.semantics || {};
+  if (vocabularyRef.source_policy !== '.nimi/spec/platform/kernel/tables/test-governance-policy.yaml') {
+    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.source_policy must reference the platform test-governance policy`);
+  }
+  if (vocabularyRef.source_catalog_id !== 'platform_test_governance_policy') {
+    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.source_catalog_id must be platform_test_governance_policy`);
+  }
+  if (vocabularyRef.source_entry !== 'classification_vocabulary') {
+    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.source_entry must be classification_vocabulary`);
+  }
+  if (vocabularyRef.source_rule !== 'P-TEST-002') {
+    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.source_rule must be P-TEST-002`);
+  }
+  if (vocabularyRef.inventory_support_input !== 'config/zhiyu-test-inventory.yaml') {
+    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.inventory_support_input must be config/zhiyu-test-inventory.yaml`);
+  }
+  if (vocabularyRef.local_classification_values !== 'forbidden') {
+    fail(`${rel} entries[id=classification_vocabulary_ref].semantics.local_classification_values must be forbidden`);
+  }
 }
 
 function checkAcceptanceGates() {

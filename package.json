@@ -134,6 +134,7 @@
     "check:zhiyu-no-direct-ai-consumption": "node scripts/check-zhiyu-app-boundaries.mjs no-direct-ai-consumption",
     "check:zhiyu-conversation-artifact-boundary": "node scripts/check-zhiyu-app-boundaries.mjs conversation-artifact-boundary",
     "check:zhiyu-local-persistence-boundary": "node scripts/check-zhiyu-app-boundaries.mjs local-persistence-boundary",
+    "check:test-inventory": "node scripts/check-test-inventory.mjs",
     "check:zhiyu-test-inventory": "node scripts/check-zhiyu-test-inventory.mjs",
     "check:zhiyu": "pnpm check:zhiyu-spec-consistency && pnpm check:zhiyu-spec-negative-fixtures && pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope zhiyu --check && pnpm check:zhiyu-acceptance-matrix && pnpm check:zhiyu-binding-only-consumption && pnpm check:zhiyu-sdk-kit-turn-consumption && pnpm check:zhiyu-no-duplicate-turn-reducer && pnpm check:zhiyu-config-boundary && pnpm check:zhiyu-no-direct-ai-consumption && pnpm check:zhiyu-conversation-artifact-boundary && pnpm check:zhiyu-local-persistence-boundary && pnpm check:zhiyu-test-inventory",
     "check:zhiyu-bootstrap": "pnpm --filter @nimiplatform/zhiyu test && pnpm --filter @nimiplatform/zhiyu build && pnpm --filter @nimiplatform/zhiyu build:electron && pnpm --filter @nimiplatform/zhiyu test:e2e:electron",
