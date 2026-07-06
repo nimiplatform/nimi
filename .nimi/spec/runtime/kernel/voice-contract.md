@@ -36,6 +36,13 @@ Voice 工作流类型以 `tables/voice-enums.yaml` `workflow_types` 为唯一事
 
 引用类型以 `tables/voice-enums.yaml` `reference_kinds` 为事实源。
 
+公共绑定面（ordinary profile binding / SDK input / app-facing surface）只允许
+`preset_voice_id` 或 `voice_asset_id`。`provider_voice_ref` 仅限 Runtime 内部、
+明确 privileged、或 debug 面消费，不得作为 ordinary assistant 语音的公共绑定输入。
+ordinary profile/SDK input 若收到裸 `provider_voice_ref` 或未显式判别的自由字符串
+音色引用，必须 fail-close，不得静默升格为公共 provider handle 绑定。此限制与
+`K-VOICE-014`（runtime-owned asset truth vs provider-owned handle truth）同源。
+
 `VoiceReference` may be embedded by runtime-owned `AgentPresentationProfile` as a default voice binding. That reuse does not transfer voice workflow, discovery, or asset ownership out of `K-VOICE-*`.
 
 ## K-VOICE-004 VoiceAsset Contract
@@ -56,8 +63,28 @@ Voice 工作流类型以 `tables/voice-enums.yaml` `workflow_types` 为唯一事
 `persistence` 取值以 `tables/voice-enums.yaml` `persistence_types` 为事实源。
 `status` 取值以 `tables/voice-enums.yaml` `asset_statuses` 为事实源。
 
+`target_ref` 与 `voice_asset_target_ref` 是 durable v2 target identity，取 `K-RTARGET-002`
+/ `K-RTARGET-008` grammar。`VoiceAsset` 的 durable identity 由 `voice_asset_id` +
+`voice_asset_target_ref` 承担，不得由 `model_id` / `target_model_id` 充当。若
+`model_id` / `target_model_id` 出现，只能是 post-resolve provider / catalog / audit /
+voice asset compatibility 的 `allowed_non_identity_fact`，并必须受守卫，不得 mint 或
+persist durable target ref（见 `K-VOICE-000`）。
+
 `VoiceAsset` 的 `persistence` 只表达逻辑生命周期与 handle policy，不自动承诺 runtime 已拥有 durable local substrate。
 在 durable local substrate 被单独 admitted 前，local-generated `VoiceAsset` 允许保持 session-local orchestration object 语义。
+
+Durability boundary（profile binding 前置条件）：
+
+- 被 assistant profile 通过 `VoiceReference(voice_asset_id)` 绑定的 `VoiceAsset`
+  必须具备 durable persistence class，且必须能在其创建来源 voice-workflow
+  `ScenarioJob` 的终态 retention 被 prune 后继续存活（`VoiceAsset` 生命周期与
+  voice workflow job retention 解耦）。
+- 未 admitted durable local substrate 前，`persistence = session_ephemeral` 的
+  local-generated `VoiceAsset` 不是 profile-bindable durable identity；把它作为
+  ordinary assistant profile 的持久绑定必须 fail-close，而不是伪装成 durable。
+- 具体 persistence class 的 cross-restart 行为、delete 语义与 provider handle
+  cleanup 由 `K-VOICE-015` `voice_handle_policy` 与 `K-RPC-022` `DeleteVoiceAsset`
+  边界共同约束。
 
 ## K-VOICE-005 Voice ScenarioJob Lifecycle
 
@@ -252,17 +279,86 @@ Fixed rules:
 
 Runtime owns voice stream lifecycle for active agent turns.
 
+### Three-axis truth model
+
+Agent voice must be described by three orthogonal axes. No axis may absorb
+another.
+
+- `execution_mode` (`ai.proto` `ExecutionMode`): `sync | stream | async_job`.
+  This is transport/execution shape only.
+- `voice_output_mode` (`tables/voice-enums.yaml` `output_modes`):
+  `native_stream | simulated_stream | batch_final_artifact | text_only`. This is
+  the positive, authoritative selected output-truth. A consumer must read this
+  field, not infer realtime from event shape.
+- `voice_playback_state` (`tables/voice-enums.yaml` `playback_states`):
+  `active | completed | failed | interrupted | canceled`. This is the playback
+  lifecycle axis.
+
 Fixed rules:
 
+- `voice_output_mode` is the single authoritative output-mode field. `failed`,
+  `interrupted`, and `canceled` are `voice_playback_state` values and must never
+  be encoded as `voice_output_mode`.
+- Realtime acceptance requires positive `voice_output_mode = native_stream`.
+  Absence of a boolean, or `stream_simulated = false` alone, is insufficient.
+- `native_stream` means the provider/route emits playable non-final audio before
+  full synthesis completion. Slicing a completed payload into chunks is
+  `simulated_stream`, not native.
+- `simulated_stream` must be positively marked as `voice_output_mode =
+  simulated_stream`. Where the underlying scenario stream sets the compatibility
+  boolean `stream_simulated = true` (`ai.proto` `ScenarioStreamCompleted`) or the
+  local-engine audit tag `stream_fallback_simulated` (`K-LENG-011`), those remain
+  compatibility metadata / audit tags only and must never be the primary realtime
+  acceptance truth.
+- `batch_final_artifact` and `text_only` are non-stream output modes.
+  `text_only` must not emit a playable voice request or synthesize fake audio
+  bytes (see `K-VOICE-018`).
+
+### Identity and data plane
+
 - Voice stream identity must stay tied to the same `agent_id`,
-  `conversation_anchor_id`, `turn_id`, and `stream_id` as the text turn.
-- Runtime may emit ordered chunk artifacts or expose a typed SDK voice stream, but
-  raw audio bytes must not be embedded directly in app messages.
-- A final durable audio artifact must be persisted for replay/export when a voice
-  stream completes successfully.
+  `conversation_anchor_id`, `turn_id`, `stream_id`, and committed `message_id` as
+  the text turn.
+- Native realtime chunks use an admitted typed SDK voice-stream transport for
+  transient non-final audio chunks. The current admitted Runtime data-plane is
+  `RuntimeAgentService.SubscribeAgentVoiceStream`, surfaced by SDK as a typed
+  agent voice stream consumer. Raw audio bytes must not be embedded directly in
+  Runtime Agent app messages or presentation projection events; consumers read
+  chunk bytes through that admitted streaming transport or Runtime artifact.
+- Voice playback interruption uses
+  `RuntimeAgentService.InterruptAgentVoicePlayback`. The command targets an
+  active `voice_stream_id` and must cancel the provider stream / transient
+  broker, then emit `runtime.agent.presentation.voice_playback_terminal` with
+  `voice_playback_state = interrupted` while preserving
+  `voice_output_mode = native_stream`. It must not be represented by local
+  playback stop alone or by `runtime.agent.turn.interrupted`.
+- Exactly one final durable audio artifact is persisted for replay/export when a
+  voice stream completes successfully; it is owned by `RuntimeArtifactService`
+  (`K-AGCORE-053`). Per-chunk durable artifact ids are NOT the default and require
+  a separately admitted retention / cleanup / retrieval authority before use;
+  until then Runtime must not mint one durable artifact per chunk.
+- The final replay artifact must be `audio/*` with non-empty bytes and must obey
+  the `ReadArtifactBytes` 32 MiB inline retrieval cap; oversized replay fails
+  closed with `ARTIFACT_TOO_LARGE` unless chunked retrieval is separately admitted
+  (`K-AGCORE-053`).
+
+### Realtime-session boundary
+
+- Ordinary agent custom-voice speech output is a scenario-layer `audio.synthesize`
+  streaming path. It must not be produced by driving `RuntimeAiRealtimeService`
+  directly as agent voice output. `RealtimeAudioChunk` (`ai_realtime.proto`) is a
+  realtime-session field only and is not the agent voice stream chunk field or the
+  scenario-stream delta field (`K-MMPROV-031`, `K-STREAM-004`).
+
+### Interruption
+
 - Runtime cancellation of an active turn must cancel the LLM stream, the TTS
   stream, queued voice chunks, and terminal playback projection as one accepted
-  interruption truth.
+  interruption truth, projected as `voice_playback_state = interrupted` while
+  preserving the selected `voice_output_mode`.
+- Voice-playback interruption is distinct from chat-turn interruption
+  (`runtime.agent.turn.interrupted`); the latter alone does not prove voice
+  playback was interrupted.
 - Avatar interrupt is a request to Runtime. Avatar must not locally synthesize
   successful interruption; it may only stop local playback in response to
   Runtime terminal projection or an accepted Runtime cancellation response.

@@ -7,11 +7,41 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "runtime/v1/common.proto";
+import "runtime/v1/runtime_target_identity.proto";
 
 enum VoiceWorkflowType {
   VOICE_WORKFLOW_TYPE_UNSPECIFIED = 0;
   VOICE_WORKFLOW_TYPE_VOICE_CLONE = 1;
   VOICE_WORKFLOW_TYPE_VOICE_DESIGN = 2;
+}
+
+// VoiceOutputMode is the positive, authoritative selected output-truth axis for
+// speech execution and agent voice projection (K-VOICE-019, K-STREAM-004,
+// K-AGCORE-133; tokens: tables/voice-enums.yaml output_modes). It is distinct
+// from ExecutionMode (sync|stream|async_job) and from voice playback lifecycle.
+// NATIVE_STREAM and SIMULATED_STREAM are the only values reachable at the
+// SPEECH_SYNTHESIZE scenario-stream layer; BATCH_FINAL_ARTIFACT and TEXT_ONLY are
+// additionally reachable as Runtime Agent orchestration outcomes. Consumers must
+// read this field and must not infer native realtime from event shape or from an
+// omitted boolean.
+enum VoiceOutputMode {
+  VOICE_OUTPUT_MODE_UNSPECIFIED = 0;
+  VOICE_OUTPUT_MODE_NATIVE_STREAM = 1;
+  VOICE_OUTPUT_MODE_SIMULATED_STREAM = 2;
+  VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT = 3;
+  VOICE_OUTPUT_MODE_TEXT_ONLY = 4;
+}
+
+// VoicePlaybackState is the runtime-owned lifecycle axis for agent voice
+// playback (K-VOICE-019). It is deliberately separate from VoiceOutputMode:
+// failed/interrupted/canceled are terminal outcomes, not output modes.
+enum VoicePlaybackState {
+  VOICE_PLAYBACK_STATE_UNSPECIFIED = 0;
+  VOICE_PLAYBACK_STATE_ACTIVE = 1;
+  VOICE_PLAYBACK_STATE_COMPLETED = 2;
+  VOICE_PLAYBACK_STATE_FAILED = 3;
+  VOICE_PLAYBACK_STATE_INTERRUPTED = 4;
+  VOICE_PLAYBACK_STATE_CANCELED = 5;
 }
 
 enum VoiceReferenceKind {
@@ -40,6 +70,11 @@ message VoiceReference {
   oneof reference {
     string preset_voice_id = 2;
     string voice_asset_id = 3;
+    // provider_voice_ref is provider-owned handle truth. It is restricted to
+    // Runtime-internal / privileged / debug consumption (K-VOICE-003,
+    // K-VOICE-014). Ordinary profile / SDK public binding input accepts only
+    // preset_voice_id or voice_asset_id and must fail-close on a bare
+    // provider_voice_ref.
     string provider_voice_ref = 4;
   }
 }
@@ -60,6 +95,11 @@ message VoiceAsset {
   string subject_user_id = 3;
   VoiceWorkflowType workflow_type = 4;
   string provider = 5;
+  // model_id / target_model_id are post-resolve provider / catalog / audit /
+  // voice asset compatibility facts only (allowed_non_identity_fact,
+  // K-RTARGET-008, K-VOICE-000). They must be guarded so they cannot mint or
+  // persist durable target identity. Durable identity is target_ref /
+  // voice_asset_target_ref below.
   string model_id = 6;
   string target_model_id = 7;
   string provider_voice_ref = 8;
@@ -69,6 +109,13 @@ message VoiceAsset {
   google.protobuf.Timestamp updated_at = 12;
   google.protobuf.Timestamp expires_at = 13;
   google.protobuf.Struct metadata = 14;
+  // Durable v2 target identity for the resolved synthesis route the asset
+  // executes against (K-VOICE-004, K-RTARGET-002/008).
+  RuntimeDurableTargetRef target_ref = 15;
+  // Durable v2 target identity bound to the voice asset at creation
+  // (voice_asset_target_ref, K-VOICE-004/K-VOICE-007). tts_synthesize requests
+  // whose target ref conflicts fail with AI_VOICE_TARGET_MODEL_MISMATCH.
+  RuntimeDurableTargetRef voice_asset_target_ref = 16;
 }
 
 message VoiceV2VInput {

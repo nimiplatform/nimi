@@ -2,9 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  ExecutionMode,
   LocalAssetKind,
   LocalAssetStatus,
+  RoutePolicy,
   ScenarioJobStatus,
+  ScenarioType,
+  SpeechTimingMode,
+  VoiceOutputMode,
+  VoiceReferenceKind,
 } from '../core-generated/runtime-typed-client';
 import { createNimiRuntimeEmbeddingClient, toRuntimeDurableTargetRef } from '../core/ai';
 import { runNimiRuntimeImageGeneration } from '../features/generation';
@@ -232,6 +238,122 @@ test('runtime agent live e2e fixture returns SDK-owned image route projection an
       assert.equal(result.artifacts.length, 1);
       assert.equal(result.artifacts[0]?.mimeType, 'image/png');
       assert.ok((result.artifacts[0]?.bytes?.byteLength ?? 0) > 0);
+    },
+  });
+});
+
+test('runtime agent live e2e fixture returns SDK-owned native voice route projection and streams speech', {
+  timeout: 180_000,
+}, async () => {
+  await withRuntimeAgentLiveE2EFixture({
+    run: async (fixture) => {
+      assert.equal(fixture.voiceRoute.capability, 'audio.synthesize');
+      assert.equal(fixture.voiceRoute.selectedTargetRefKind, 'cloud-connector');
+      assert.match(fixture.voiceRoute.resolvedBindingRef, /^cloud:audio\.synthesize:/);
+      assert.equal(fixture.voiceRoute.executionBinding.route, 'cloud');
+      assert.equal(fixture.voiceRoute.executionBinding.modelId, 'qwen3-tts-runtime-live-native-stream');
+      assert.ok(fixture.voiceRoute.executionBinding.connectorId, 'voice route must expose connector execution binding');
+      assert.match(fixture.voiceAsset.voiceAssetId, /^[0-9A-HJKMNP-TV-Z]{26}$/u);
+      assert.equal(fixture.voiceAsset.providerVoiceRef, 'runtime-live-voice');
+      assert.equal(fixture.voiceAsset.defaultVoiceReference, `voice_asset_id:${fixture.voiceAsset.voiceAssetId}`);
+
+      const appSessionMetadata = await createNimiRuntimeAppSessionMetadataProvider({
+        appId: 'nimi.desktop',
+        appInstanceId: 'nimi.desktop.local-first-party',
+        deviceId: 'desktop-shell',
+        capabilities: ['ai.spend.meter'],
+        auth: fixture.runtime.auth,
+      })();
+      const events = await withNimiRuntimeAgentScopes({
+        runtime: {
+          appId: 'nimi.desktop',
+          auth: fixture.runtime.auth,
+          appAuth: fixture.runtime.grants,
+        },
+        subjectUserId: fixture.ownerUserId,
+      }, ['ai.spend.meter'], async (callOptions) => {
+        const collected = [];
+        for await (const event of fixture.runtime.ai.streamScenario({
+          head: {
+            appId: 'nimi.desktop',
+            subjectUserId: fixture.ownerUserId,
+            routePolicy: RoutePolicy.CLOUD,
+            modelId: fixture.voiceRoute.executionBinding.modelId,
+            fallback: 0,
+            timeoutMs: 60_000,
+            connectorId: '',
+            targetRef: toRuntimeDurableTargetRef(fixture.voiceRoute.targetRef),
+          },
+          scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
+          executionMode: ExecutionMode.STREAM,
+          spec: {
+            spec: {
+              oneofKind: 'speechSynthesize',
+              speechSynthesize: {
+                text: 'hello from the native voice live fixture',
+                language: 'zh',
+                audioFormat: 'wav',
+                sampleRateHz: 16_000,
+                speed: 0,
+                pitch: 0,
+                volume: 0,
+                emotion: '',
+                timingMode: SpeechTimingMode.WORD,
+                voiceRef: {
+                  kind: VoiceReferenceKind.VOICE_ASSET,
+                  reference: {
+                    oneofKind: 'voiceAssetId',
+                    voiceAssetId: fixture.voiceAsset.voiceAssetId,
+                  },
+                },
+              },
+            },
+          },
+          extensions: [],
+        }, {
+          ...callOptions,
+          metadata: {
+            ...appSessionMetadata,
+            ...(callOptions.metadata ?? {}),
+          },
+        })) {
+          collected.push(event);
+        }
+        return collected;
+      });
+
+      const started = events.find((event) => event.payload.oneofKind === 'started')?.payload;
+      assert.equal(started?.oneofKind, 'started');
+      assert.equal(started.started.voiceOutputMode, VoiceOutputMode.NATIVE_STREAM);
+      const artifactDeltas = events
+        .filter((event) => event.payload.oneofKind === 'delta')
+        .map((event) => event.payload.oneofKind === 'delta' ? event.payload.delta.delta : { oneofKind: undefined })
+        .filter((delta) => delta.oneofKind === 'artifact');
+      assert.equal(artifactDeltas.length > 0, true, 'native voice stream must emit artifact audio deltas');
+      assert.equal(artifactDeltas.every((delta) => delta.oneofKind === 'artifact' && delta.artifact.mimeType === 'audio/wav' && delta.artifact.chunk.byteLength > 0), true);
+      const completed = events.find((event) => event.payload.oneofKind === 'completed')?.payload;
+      assert.equal(completed?.oneofKind, 'completed');
+      assert.equal(completed.completed.streamSimulated, false);
+      assert.equal(
+        fixture.realmRequests.some((request) =>
+          request.method === 'POST'
+          && request.path === '/v1/audio/speech'
+          && request?.body?.stream === true
+          && request?.body?.model === fixture.voiceRoute.executionBinding.modelId
+          && request?.body?.voice === 'runtime-live-voice'
+        ),
+        true,
+        'voice fixture must resolve Runtime VoiceAsset to provider handle only inside Runtime',
+      );
+      assert.equal(
+        fixture.realmRequests.some((request) =>
+          request.method === 'POST'
+          && request.path === '/api/v1/services/audio/tts/customization'
+          && request?.body?.input?.target_model === fixture.voiceRoute.executionBinding.modelId
+        ),
+        true,
+        'voice fixture must create custom voice through Runtime voice workflow before synthesis',
+      );
     },
   });
 });

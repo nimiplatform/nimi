@@ -98,7 +98,7 @@ AgentAutonomyMode = Literal["AGENT_AUTONOMY_MODE_UNSPECIFIED", "AGENT_AUTONOMY_M
 AgentCanonicalMemoryBankMode = Literal["AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED", "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE", "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD", "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE"]
 AgentCanonicalMemoryReviewReadiness = Literal["AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE"]
 AgentEventType = Literal["AGENT_EVENT_TYPE_UNSPECIFIED"]
-AgentExecutionReadinessState = Literal["AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED", "AGENT_EXECUTION_READINESS_STATE_READY", "AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED", "AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE"]
+AgentExecutionReadinessState = Literal["AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED"]
 AgentExecutionState = Literal["AGENT_EXECUTION_STATE_UNSPECIFIED"]
 AgentLifecycleStatus = Literal["AGENT_LIFECYCLE_STATUS_UNSPECIFIED"]
 AgentPresentationBackendKind = Literal["AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED", "AGENT_PRESENTATION_BACKEND_KIND_VRM", "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D", "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D", "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D", "AGENT_PRESENTATION_BACKEND_KIND_VIDEO"]
@@ -241,6 +241,8 @@ VideoContentType = Literal["VIDEO_CONTENT_TYPE_UNSPECIFIED", "VIDEO_CONTENT_TYPE
 VideoMode = Literal["VIDEO_MODE_UNSPECIFIED", "VIDEO_MODE_T2V", "VIDEO_MODE_I2V_FIRST_FRAME", "VIDEO_MODE_I2V_FIRST_LAST", "VIDEO_MODE_I2V_REFERENCE"]
 VoiceAssetPersistence = Literal["VOICE_ASSET_PERSISTENCE_UNSPECIFIED", "VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT", "VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL"]
 VoiceAssetStatus = Literal["VOICE_ASSET_STATUS_UNSPECIFIED", "VOICE_ASSET_STATUS_ACTIVE", "VOICE_ASSET_STATUS_EXPIRED", "VOICE_ASSET_STATUS_DELETED", "VOICE_ASSET_STATUS_FAILED"]
+VoiceOutputMode = Literal["VOICE_OUTPUT_MODE_UNSPECIFIED", "VOICE_OUTPUT_MODE_NATIVE_STREAM", "VOICE_OUTPUT_MODE_SIMULATED_STREAM", "VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT", "VOICE_OUTPUT_MODE_TEXT_ONLY"]
+VoicePlaybackState = Literal["VOICE_PLAYBACK_STATE_UNSPECIFIED", "VOICE_PLAYBACK_STATE_ACTIVE", "VOICE_PLAYBACK_STATE_COMPLETED", "VOICE_PLAYBACK_STATE_FAILED", "VOICE_PLAYBACK_STATE_INTERRUPTED", "VOICE_PLAYBACK_STATE_CANCELED"]
 VoiceReferenceKind = Literal["VOICE_REFERENCE_KIND_UNSPECIFIED", "VOICE_REFERENCE_KIND_PRESET", "VOICE_REFERENCE_KIND_VOICE_ASSET", "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF"]
 VoiceWorkflowType = Literal["VOICE_WORKFLOW_TYPE_UNSPECIFIED", "VOICE_WORKFLOW_TYPE_VOICE_CLONE", "VOICE_WORKFLOW_TYPE_VOICE_DESIGN"]
 WorkflowEventType = Literal["WORKFLOW_EVENT_TYPE_UNSPECIFIED", "WORKFLOW_EVENT_STARTED", "WORKFLOW_EVENT_NODE_STARTED", "WORKFLOW_EVENT_NODE_PROGRESS", "WORKFLOW_EVENT_NODE_COMPLETED", "WORKFLOW_EVENT_NODE_SKIPPED", "WORKFLOW_EVENT_COMPLETED", "WORKFLOW_EVENT_FAILED", "WORKFLOW_EVENT_CANCELED", "WORKFLOW_EVENT_NODE_EXTERNAL_SUBMITTED", "WORKFLOW_EVENT_NODE_EXTERNAL_RUNNING", "WORKFLOW_EVENT_NODE_EXTERNAL_COMPLETED", "WORKFLOW_EVENT_NODE_EXTERNAL_FAILED"]
@@ -515,6 +517,22 @@ class AgentPresentationEventDetail:
     lookat_has_x: bool | None = None
     lookat_has_y: bool | None = None
     lookat_has_z: bool | None = None
+    audio_artifact_id: str | None = None
+    audio_mime_type: str | None = None
+    voice_stream_id: str | None = None
+    chunk_transport_ref: str | None = None
+    message_id: str | None = None
+    chunk_sequence: int | None = None
+    final_chunk: bool | None = None
+    voice_output_mode: VoiceOutputMode | None = None
+    voice_playback_state: VoicePlaybackState | None = None
+    playback_target: str | None = None
+    final_artifact: bool | None = None
+    terminal_reason: str | None = None
+    reason: str | None = None
+    duration_ms: int | None = None
+    deadline_offset_ms: int | None = None
+    final_artifact_id: str | None = None
 
 @dataclass(frozen=True)
 class AgentPresentationProfile:
@@ -524,6 +542,9 @@ class AgentPresentationProfile:
     idle_preset: str | None = None
     interaction_policy_ref: str | None = None
     default_voice_reference: str | None = None
+    avatar_autoplay: bool | None = None
+    speech_model_id: str | None = None
+    speech_route_policy: RoutePolicy | None = None
 
 @dataclass(frozen=True)
 class AgentProactiveEventDetail:
@@ -661,6 +682,23 @@ class AgentStateSetStatusText:
 @dataclass(frozen=True)
 class AgentStateSetWorldContext:
     world_id: str | None = None
+
+@dataclass(frozen=True)
+class AgentVoiceStreamEvent:
+    voice_stream_id: str | None = None
+    conversation_anchor_id: str | None = None
+    turn_id: str | None = None
+    stream_id: str | None = None
+    message_id: str | None = None
+    chunk_sequence: int | None = None
+    chunk: bytes | None = None
+    mime_type: str | None = None
+    voice_output_mode: VoiceOutputMode | None = None
+    playback_target: str | None = None
+    terminal: bool | None = None
+    voice_playback_state: VoicePlaybackState | None = None
+    terminal_reason: str | None = None
+    replay_truncated: bool | None = None
 
 @dataclass(frozen=True)
 class AiEmbedNodeConfig:
@@ -2591,6 +2629,21 @@ class InstallVerifiedAssetRequest:
 @dataclass(frozen=True)
 class InstallVerifiedAssetResponse:
     asset: LocalAssetRecord | None = None
+
+@dataclass(frozen=True)
+class InterruptAgentVoicePlaybackRequest:
+    context: AgentRequestContext | None = None
+    voice_stream_id: str | None = None
+    conversation_anchor_id: str | None = None
+    turn_id: str | None = None
+    reason: str | None = None
+
+@dataclass(frozen=True)
+class InterruptAgentVoicePlaybackResponse:
+    voice_stream_id: str | None = None
+    voice_output_mode: VoiceOutputMode | None = None
+    voice_playback_state: VoicePlaybackState | None = None
+    terminal_reason: str | None = None
 
 @dataclass(frozen=True)
 class InvokeRealmUnaryRequest:
@@ -5475,6 +5528,7 @@ class ScenarioStreamStarted:
     model_resolved: str | None = None
     route_decision: RoutePolicy | None = None
     resolved_execution_binding: RuntimeResolvedExecutionBinding | None = None
+    voice_output_mode: VoiceOutputMode | None = None
 
 @dataclass(frozen=True)
 class SchedulingEvaluationTarget:
@@ -5872,6 +5926,13 @@ class SubscribeAgentEventsRequest:
 @dataclass(frozen=True)
 class SubscribeAgentExecutionReadinessRequest:
     context: AgentRequestContext | None = None
+
+@dataclass(frozen=True)
+class SubscribeAgentVoiceStreamRequest:
+    context: AgentRequestContext | None = None
+    voice_stream_id: str | None = None
+    conversation_anchor_id: str | None = None
+    turn_id: str | None = None
 
 @dataclass(frozen=True)
 class SubscribeAppMessagesRequest:
@@ -6306,6 +6367,8 @@ class VoiceAsset:
     updated_at: str | None = None
     expires_at: str | None = None
     metadata: Mapping[str, object] | None = None
+    target_ref: RuntimeDurableTargetRef | None = None
+    voice_asset_target_ref: RuntimeDurableTargetRef | None = None
 
 @dataclass(frozen=True)
 class VoiceCloneScenarioSpec:
@@ -6728,6 +6791,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InitializeAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InitializeAgentResponse, raw)
 
+    async def interrupt_agent_voice_playback(self, request: InterruptAgentVoicePlaybackRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptAgentVoicePlaybackResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(InterruptAgentVoicePlaybackResponse, raw)
+
     async def list_agent_conversation_summaries(self, request: ListAgentConversationSummariesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAgentConversationSummariesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAgentConversationSummariesResponse, raw)
@@ -6821,6 +6888,9 @@ class RuntimeTypedClient:
 
     def subscribe_agent_execution_readiness(self, request: SubscribeAgentExecutionReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AgentExecutionReadinessSnapshot]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness", _model_body(request), AgentExecutionReadinessSnapshot, metadata=metadata, timeout_ms=timeout_ms)
+
+    def subscribe_agent_voice_stream(self, request: SubscribeAgentVoiceStreamRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AgentVoiceStreamEvent]:
+        return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream", _model_body(request), AgentVoiceStreamEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     async def terminate_agent(self, request: TerminateAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TerminateAgentResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TerminateAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

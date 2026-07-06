@@ -545,6 +545,12 @@ message ScenarioStreamStarted {
   string model_resolved = 1;
   RoutePolicy route_decision = 2;
   RuntimeResolvedExecutionBinding resolved_execution_binding = 3;
+  // Positive selected output-truth for SPEECH_SYNTHESIZE streams
+  // (K-STREAM-004, K-VOICE-019). Populated only for speech scenario streams,
+  // where it declares NATIVE_STREAM vs SIMULATED_STREAM at route decision;
+  // UNSPECIFIED for non-speech scenario streams. Consumers must not infer
+  // native realtime from event shape or from ScenarioStreamCompleted.stream_simulated.
+  VoiceOutputMode voice_output_mode = 4;
 }
 
 message TextStreamDelta {
@@ -573,6 +579,10 @@ message ScenarioStreamDelta {
 message ScenarioStreamCompleted {
   FinishReason finish_reason = 1;
   UsageStats usage = 2;
+  // Derived compatibility / audit metadata only (K-STREAM-004, K-LENG-011,
+  // K-VOICE-019). It is NOT the primary realtime acceptance truth; the
+  // authoritative selected output mode is ScenarioStreamStarted.voice_output_mode.
+  // stream_simulated=false alone is insufficient to prove native realtime.
   bool stream_simulated = 3;
 }
 

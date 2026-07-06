@@ -558,6 +558,10 @@ services:
         type: unary
       - name: SubscribeAgentEvents
         type: server_stream
+      - name: SubscribeAgentVoiceStream
+        type: server_stream
+      - name: InterruptAgentVoicePlayback
+        type: unary
       - name: GetAgentExecutionConfig
         type: unary
       - name: UpsertAgentExecutionConfig

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -16,10 +17,37 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"golang.org/x/net/websocket"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
+
+type fakeScenarioStreamingSpeechProvider struct{}
+
+func (fakeScenarioStreamingSpeechProvider) StreamSynthesizeSpeech(
+	_ context.Context,
+	_ string,
+	_ *runtimev1.SpeechSynthesizeScenarioSpec,
+	_ map[string]any,
+	onChunk func(scenarioSpeechStreamChunk) error,
+) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if onChunk == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED, errors.New("missing chunk callback")
+	}
+	if err := onChunk(scenarioSpeechStreamChunk{
+		Sequence:     1,
+		MIMEType:     "audio/mpeg",
+		SampleRateHz: 24000,
+		TraceID:      "trace-001",
+		Bytes:        []byte("chunk"),
+	}); err != nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED, err
+	}
+	return &runtimev1.UsageStats{}, runtimev1.FinishReason_FINISH_REASON_STOP, nil
+}
+
+var _ scenarioStreamingSpeechProvider = fakeScenarioStreamingSpeechProvider{}
 
 func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 	payload := []byte("speech-audio-payload")
@@ -70,10 +98,17 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 	if stream.events[0].GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_STARTED {
 		t.Fatalf("first event should be started, got=%v", stream.events[0].GetEventType())
 	}
+	if got := stream.events[0].GetStarted().GetVoiceOutputMode(); got != runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_SIMULATED_STREAM {
+		t.Fatalf("speech payload-slicing stream voice_output_mode = %v, want simulated_stream", got)
+	}
 
 	var sawDelta bool
 	var completed *runtimev1.ScenarioStreamCompleted
+	var sawNativeMode bool
 	for _, event := range stream.events {
+		if event.GetStarted().GetVoiceOutputMode() == runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM {
+			sawNativeMode = true
+		}
 		switch event.GetEventType() {
 		case runtimev1.StreamEventType_STREAM_EVENT_DELTA:
 			if len(deltaArtifactChunk(event.GetDelta())) == 0 {
@@ -101,6 +136,308 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 	}
 	if completed.GetUsage().GetInputTokens() < 0 || completed.GetUsage().GetOutputTokens() < 0 || completed.GetUsage().GetComputeMs() < 0 {
 		t.Fatalf("expected non-negative usage without sentinel values, got=%#v", completed.GetUsage())
+	}
+	if !completed.GetStreamSimulated() {
+		t.Fatal("speech payload-slicing stream completed event must carry stream_simulated=true")
+	}
+	if sawNativeMode {
+		t.Fatal("current speech payload-slicing path must not emit native_stream")
+	}
+}
+
+func TestStreamScenarioSpeechSynthesizeNativeRouteUsesProviderStream(t *testing.T) {
+	var capturedStreamFlag bool
+	nativeChunks := [][]byte{
+		bytes.Repeat([]byte("a"), 20*1024),
+		bytes.Repeat([]byte("b"), 20*1024),
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/models" || r.URL.Path == "/models" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data":[{"id":"tts-1"}]}`))
+			return
+		}
+		if r.URL.Path != "/v1/audio/speech" {
+			http.NotFound(w, r)
+			return
+		}
+		defer func() { _ = r.Body.Close() }()
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode speech request: %v", err)
+		}
+		capturedStreamFlag, _ = payload["stream"].(bool)
+		w.Header().Set("Content-Type", "audio/mpeg")
+		w.WriteHeader(http.StatusOK)
+		for _, chunk := range nativeChunks {
+			_, _ = w.Write(chunk)
+			if flusher, ok := w.(http.Flusher); ok {
+				flusher.Flush()
+			}
+		}
+	}))
+	defer func() { server.Close() }()
+
+	fixture := newManagedCloudScenarioTestFixture(t, "openai", "tts-1", server.URL, Config{AllowLoopbackEndpoint: true})
+	nativeStreamCatalog := speechCatalogWithNativeStreamOpenAI(t)
+	fixture.service.speechCatalog = nativeStreamCatalog
+	fixture.connectorService.SetModelCatalogResolver(nativeStreamCatalog)
+	descriptor := connectorModelDescriptorForAITest(t, fixture.connectorService, fixture.context, fixture.connectorID, "tts-1")
+	targetRef := cloudScenarioTargetRefForDescriptor(fixture.connectorID, descriptor)
+
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     targetRef,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text:        "hello native stream",
+					AudioFormat: "mp3",
+				},
+			},
+		},
+	}
+
+	if err := fixture.service.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario speech native synthesize: %v", err)
+	}
+	if len(stream.events) < 4 {
+		t.Fatalf("expected started, native deltas, completed; got=%d events=%s", len(stream.events), describeScenarioStreamEvents(stream.events))
+	}
+	if got := stream.events[0].GetStarted().GetVoiceOutputMode(); got != runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM {
+		t.Fatalf("native route voice_output_mode=%v, want native_stream", got)
+	}
+	if !capturedStreamFlag {
+		t.Fatalf("native provider stream request must include stream=true")
+	}
+	deltaCount := 0
+	totalBytes := 0
+	for _, event := range stream.events {
+		switch event.GetEventType() {
+		case runtimev1.StreamEventType_STREAM_EVENT_DELTA:
+			deltaCount++
+			totalBytes += len(deltaArtifactChunk(event.GetDelta()))
+			if got := deltaArtifactMimeType(event.GetDelta()); got != "audio/mpeg" {
+				t.Fatalf("native chunk mime=%q, want audio/mpeg", got)
+			}
+		case runtimev1.StreamEventType_STREAM_EVENT_COMPLETED:
+			if event.GetCompleted().GetStreamSimulated() {
+				t.Fatalf("native stream completed must not set stream_simulated=true")
+			}
+		}
+	}
+	if deltaCount < 2 {
+		t.Fatalf("native stream must emit provider chunks, got %d delta(s)", deltaCount)
+	}
+	if totalBytes != len(nativeChunks[0])+len(nativeChunks[1]) {
+		t.Fatalf("native stream byte count=%d", totalBytes)
+	}
+}
+
+func TestStreamScenarioSpeechSynthesizeDashScopeCosyVoiceNativeWebSocketRoute(t *testing.T) {
+	var capturedActions []string
+	nativeChunks := [][]byte{
+		[]byte("dashscope-cosyvoice-native-1"),
+		[]byte("dashscope-cosyvoice-native-2"),
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/compatible-mode/v1/models", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"id":"cosyvoice-v3-flash"}]}`))
+	})
+	mux.Handle("/api-ws/v1/inference", websocket.Handler(func(conn *websocket.Conn) {
+		receive := func(label string) map[string]any {
+			var payload map[string]any
+			if err := websocket.JSON.Receive(conn, &payload); err != nil {
+				t.Errorf("receive %s: %v", label, err)
+				return nil
+			}
+			header, _ := payload["header"].(map[string]any)
+			capturedActions = append(capturedActions, strings.TrimSpace(nimillm.ValueAsString(header["action"])))
+			return payload
+		}
+		run := receive("run-task")
+		runHeader, _ := run["header"].(map[string]any)
+		taskID := strings.TrimSpace(nimillm.ValueAsString(runHeader["task_id"]))
+		if taskID == "" {
+			t.Errorf("run-task missing task_id")
+			return
+		}
+		if err := websocket.JSON.Send(conn, map[string]any{
+			"header":  map[string]any{"task_id": taskID, "event": "task-started"},
+			"payload": map[string]any{},
+		}); err != nil {
+			t.Errorf("send task-started: %v", err)
+			return
+		}
+		_ = receive("continue-task")
+		if err := websocket.JSON.Send(conn, map[string]any{
+			"header":  map[string]any{"task_id": taskID, "event": "result-generated"},
+			"payload": map[string]any{"output": map[string]any{"type": "sentence-synthesis"}},
+		}); err != nil {
+			t.Errorf("send result-generated: %v", err)
+			return
+		}
+		if err := websocket.Message.Send(conn, nativeChunks[0]); err != nil {
+			t.Errorf("send binary audio 1: %v", err)
+			return
+		}
+		_ = receive("finish-task")
+		if err := websocket.JSON.Send(conn, map[string]any{
+			"header":  map[string]any{"task_id": taskID, "event": "result-generated"},
+			"payload": map[string]any{"output": map[string]any{"type": "sentence-synthesis"}},
+		}); err != nil {
+			t.Errorf("send final result-generated: %v", err)
+			return
+		}
+		if err := websocket.Message.Send(conn, nativeChunks[1]); err != nil {
+			t.Errorf("send binary audio 2: %v", err)
+			return
+		}
+		if err := websocket.JSON.Send(conn, map[string]any{
+			"header":  map[string]any{"task_id": taskID, "event": "task-finished"},
+			"payload": map[string]any{"usage": map[string]any{"characters": 9}},
+		}); err != nil {
+			t.Errorf("send task-finished: %v", err)
+			return
+		}
+	}))
+	server := httptest.NewServer(mux)
+	defer func() { server.Close() }()
+
+	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "cosyvoice-v3-flash", server.URL+"/compatible-mode/v1", Config{AllowLoopbackEndpoint: true})
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       fixture.descriptor.GetProviderModelId(),
+			ConnectorId:   fixture.connectorID,
+			TargetRef:     fixture.targetRef,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text:         "DashScope native stream",
+					AudioFormat:  "mp3",
+					SampleRateHz: 24000,
+					VoiceRef: &runtimev1.VoiceReference{
+						Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
+						Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
+							ProviderVoiceRef: "dashscope-custom-voice",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err := fixture.service.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario dashscope cosyvoice native synthesize: %v", err)
+	}
+	if len(stream.events) < 4 {
+		t.Fatalf("expected started, native deltas, completed; got=%d events=%s", len(stream.events), describeScenarioStreamEvents(stream.events))
+	}
+	if got := stream.events[0].GetStarted().GetVoiceOutputMode(); got != runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM {
+		t.Fatalf("dashscope cosyvoice voice_output_mode=%v, want native_stream", got)
+	}
+	if strings.Join(capturedActions, ",") != "run-task,continue-task,finish-task" {
+		t.Fatalf("dashscope websocket actions=%v", capturedActions)
+	}
+	deltaCount := 0
+	totalBytes := 0
+	for _, event := range stream.events {
+		switch event.GetEventType() {
+		case runtimev1.StreamEventType_STREAM_EVENT_DELTA:
+			deltaCount++
+			totalBytes += len(deltaArtifactChunk(event.GetDelta()))
+			if got := deltaArtifactMimeType(event.GetDelta()); got != "audio/mpeg" {
+				t.Fatalf("dashscope native chunk mime=%q, want audio/mpeg", got)
+			}
+		case runtimev1.StreamEventType_STREAM_EVENT_COMPLETED:
+			if event.GetCompleted().GetStreamSimulated() {
+				t.Fatalf("dashscope native stream completed must not set stream_simulated=true")
+			}
+		}
+	}
+	if deltaCount != 2 {
+		t.Fatalf("dashscope native stream must emit two provider chunks, got %d", deltaCount)
+	}
+	if totalBytes != len(nativeChunks[0])+len(nativeChunks[1]) {
+		t.Fatalf("dashscope native stream byte count=%d", totalBytes)
+	}
+}
+
+func TestSpeechStreamNativeRequiredFailsClosedWithoutNativeSubstrate(t *testing.T) {
+	_, err := speechStreamVoiceOutputMode(true)
+	if err == nil {
+		t.Fatal("native-required speech stream must fail closed when only simulated stream is available")
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED {
+		t.Fatalf("expected AI_ROUTE_UNSUPPORTED, got reason=%v ok=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestStreamScenarioTextGenerateDoesNotSetSpeechVoiceOutputMode(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"hello from stream"},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":2}}`))
+	}))
+	defer func() { server.Close() }()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
+	})
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/qwen2.5",
+			TargetRef:     localScenarioTargetRefForModel("local/qwen2.5"),
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+				},
+			},
+		},
+	}
+
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario text generate: %v", err)
+	}
+	if len(stream.events) == 0 || stream.events[0].GetStarted() == nil {
+		t.Fatalf("expected started event, got %#v", stream.events)
+	}
+	if got := stream.events[0].GetStarted().GetVoiceOutputMode(); got != runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_UNSPECIFIED {
+		t.Fatalf("text stream voice_output_mode = %v, want unspecified", got)
 	}
 }
 

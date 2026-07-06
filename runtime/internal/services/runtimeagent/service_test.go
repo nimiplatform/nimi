@@ -452,6 +452,9 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 				IdlePreset:            " idle.soft ",
 				InteractionPolicyRef:  " interaction://airi/v1 ",
 				DefaultVoiceReference: " preset_voice_id:airi-default ",
+				AvatarAutoplay:        true,
+				SpeechModelId:         " speech/qwen3-tts-realtime ",
+				SpeechRoutePolicy:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			},
 		},
 	})
@@ -460,6 +463,12 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 	}
 	if got := resp.GetProfile().GetAvatarAssetRef(); got != "avatar://airi/live2d/main" {
 		t.Fatalf("unexpected normalized avatar_asset_ref: %q", got)
+	}
+	if got := resp.GetProfile().GetSpeechModelId(); got != "speech/qwen3-tts-realtime" {
+		t.Fatalf("unexpected normalized speech_model_id: %q", got)
+	}
+	if got := resp.GetProfile().GetSpeechRoutePolicy(); got != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+		t.Fatalf("unexpected speech_route_policy: %s", got.String())
 	}
 
 	agentResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{
@@ -476,6 +485,15 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 	}
 	if got := presentation["defaultVoiceReference"].GetStringValue(); got != "preset_voice_id:airi-default" {
 		t.Fatalf("unexpected defaultVoiceReference metadata: %q", got)
+	}
+	if got := presentation["avatarAutoplay"].GetBoolValue(); !got {
+		t.Fatalf("unexpected avatarAutoplay metadata: %v", got)
+	}
+	if got := presentation["speechModelId"].GetStringValue(); got != "speech/qwen3-tts-realtime" {
+		t.Fatalf("unexpected speechModelId metadata: %q", got)
+	}
+	if got := presentation["speechRoutePolicy"].GetStringValue(); got != "cloud" {
+		t.Fatalf("unexpected speechRoutePolicy metadata: %q", got)
 	}
 
 	clearResp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
@@ -571,6 +589,21 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected empty VoiceReference id to fail with InvalidArgument, got %v", err)
+	}
+
+	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
+		AgentId: "agent-presentation-profile-invalid",
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
+			Profile: &runtimev1.AgentPresentationProfile{
+				BackendKind:           runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
+				AvatarAssetRef:        "avatar://valid",
+				DefaultVoiceReference: "provider_voice_ref:dashscope/raw-voice-handle",
+			},
+		},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected provider voice reference profile binding to fail with InvalidArgument, got %v", err)
 	}
 }
 

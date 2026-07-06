@@ -150,6 +150,9 @@ export interface NimiRuntimeAgentPresentationProfileProjection {
   readonly idlePreset: string | null;
   readonly interactionPolicyRef: string | null;
   readonly defaultVoiceReference: string | null;
+  readonly avatarAutoplay: boolean;
+  readonly speechModelId: string | null;
+  readonly speechRoutePolicy: 'local' | 'cloud' | null;
 }
 
 export interface NimiRuntimeAgentAutonomySnapshot {

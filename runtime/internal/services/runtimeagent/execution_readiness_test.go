@@ -69,6 +69,10 @@ func TestExecutionReadinessSeededProjection(t *testing.T) {
 	if image.GetState() != runtimev1.AgentExecutionReadinessState_AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED {
 		t.Fatalf("expected absent image.generate NOT_CONFIGURED, got %v (%q)", image.GetState(), image.GetReasonCode())
 	}
+	audio := requireExecutionCapabilityReadiness(t, snapshot, executionCapabilityAudioSynthesize)
+	if audio.GetState() != runtimev1.AgentExecutionReadinessState_AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED {
+		t.Fatalf("expected absent audio.synthesize NOT_CONFIGURED, got %v (%q)", audio.GetState(), audio.GetReasonCode())
+	}
 }
 
 func TestExecutionReadinessTransitionsOnImageBindingUpsert(t *testing.T) {

@@ -19,8 +19,9 @@ import (
 // capability set, readiness vocabulary, and scope names are fixed by
 // .nimi/spec/runtime/kernel/tables/agent-execution-config.yaml.
 const (
-	executionCapabilityTextGenerate  = "text.generate"
-	executionCapabilityImageGenerate = "image.generate"
+	executionCapabilityTextGenerate    = "text.generate"
+	executionCapabilityImageGenerate   = "image.generate"
+	executionCapabilityAudioSynthesize = "audio.synthesize"
 
 	executionConfigSeedAppID = "runtime"
 
@@ -39,6 +40,7 @@ const (
 var admittedExecutionCapabilities = []string{
 	executionCapabilityTextGenerate,
 	executionCapabilityImageGenerate,
+	executionCapabilityAudioSynthesize,
 }
 
 func isAdmittedExecutionCapability(capability string) bool {

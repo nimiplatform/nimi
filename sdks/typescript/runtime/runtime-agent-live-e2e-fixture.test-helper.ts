@@ -6,14 +6,27 @@ import { Realm } from '../realm';
 import {
   createNimiRealmSourceMaterializationPacket,
 } from '../realm/social';
+import {
+  ExecutionMode,
+  RoutePolicy,
+  ScenarioJobStatus,
+  ScenarioType,
+} from '../core-generated/runtime-typed-client';
+import { toRuntimeDurableTargetRef } from '../core/ai';
 import { Runtime } from './index';
+import { createNimiRuntimeAppSessionMetadataProvider } from './app-session';
 import { withRuntimeDaemon } from './live-runtime-daemon.test-helper';
+import { withNimiRuntimeAgentScopes } from './runtime-agent-protected';
 import { withRealmFixtureServer } from './runtime-agent-live-e2e-fixture-realm-server.test-helper';
 import {
   createFixtureImageConnector,
   createFixtureRouteProjection,
+  createFixtureVoiceConnector,
   resolveFixtureImageConnectorModel,
+  resolveFixtureVoiceConnectorModel,
+  seedRuntimeAgentLiveImageCatalogProvider,
   seedRuntimeAgentLiveLocalRouteState,
+  seedRuntimeAgentLiveVoiceCatalogProvider,
 } from './runtime-agent-live-e2e-fixture-routes.test-helper';
 import {
   admitDeveloperRegisteredRuntimeAccountCaller,
@@ -31,6 +44,7 @@ import {
   requireConversationAnchorId,
   sendFixtureTurn,
 } from './runtime-agent-live-e2e-fixture-runtime.test-helper';
+import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import {
   DESKTOP_APP_ID,
   DESKTOP_APP_INSTANCE_ID,
@@ -48,6 +62,8 @@ import {
 } from './runtime-agent-live-e2e-fixture-shared.test-helper';
 import type {
   RuntimeAgentLiveE2EFixtureContext,
+  RuntimeAgentLiveE2ERouteProjection,
+  RuntimeAgentLiveE2EVoiceAssetProjection,
 } from './runtime-agent-live-e2e-fixture-shared.test-helper';
 
 export {
@@ -74,10 +90,12 @@ const PLATFORM_APP_REGISTRY_PATH = resolve(
 export async function withRuntimeAgentLiveE2EFixture(input: {
   readonly runtimeEnv?: Readonly<Record<string, string>>;
   readonly localChatCompletionStreamDelayMs?: number;
+  readonly voiceSpeechStreamDelayMs?: number;
   readonly run: (context: RuntimeAgentLiveE2EFixtureContext) => Promise<void>;
 }): Promise<void> {
   await withRealmFixtureServer({
     localChatCompletionStreamDelayMs: input.localChatCompletionStreamDelayMs,
+    voiceSpeechStreamDelayMs: input.voiceSpeechStreamDelayMs,
     run: async ({ baseUrl, requests }) => {
     await withRuntimeDaemon({
       appId: DESKTOP_APP_ID,
@@ -94,8 +112,11 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
         SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET: SOURCE_PACKET_HMAC_SECRET,
         ...(input.runtimeEnv || {}),
       },
-      prepareState: ({ localStatePath }) => {
+      prepareState: ({ localStatePath, stateRoot }) => {
+        const catalogCustomDir = resolve(stateRoot, 'model-catalog-custom');
         seedRuntimeAgentLiveLocalRouteState(localStatePath, `${baseUrl}/v1`);
+        seedRuntimeAgentLiveImageCatalogProvider(catalogCustomDir);
+        seedRuntimeAgentLiveVoiceCatalogProvider(catalogCustomDir);
       },
       run: async ({ endpoint, localModelsPath }) => {
         const runtime = createRuntimeForEndpoint(endpoint, DESKTOP_APP_ID);
@@ -143,6 +164,13 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
           connectorId: imageConnectorId,
           connectorModel: imageModelDescriptor,
         });
+        const voiceConnectorId = await createFixtureVoiceConnector(runtime, baseUrl);
+        const voiceModelDescriptor = await resolveFixtureVoiceConnectorModel(runtime, voiceConnectorId);
+        const voiceRoute = await createFixtureRouteProjection(runtime, 'audio.synthesize', {
+          connectorId: voiceConnectorId,
+          connectorModel: voiceModelDescriptor,
+        });
+        const voiceAsset = await createFixtureVoiceAsset(runtime, voiceRoute);
 
         try {
           await input.run({
@@ -161,6 +189,8 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
             route,
             embeddingRoute,
             imageRoute,
+            voiceRoute,
+            voiceAsset,
             sourceRef: SOURCE_REF,
             sourceMaterializationPacket,
             createSourceMaterializationPacket: () =>
@@ -194,4 +224,111 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
     });
     },
   });
+}
+
+async function createFixtureVoiceAsset(
+  runtime: Runtime,
+  voiceRoute: RuntimeAgentLiveE2ERouteProjection,
+): Promise<RuntimeAgentLiveE2EVoiceAssetProjection> {
+  const appSessionMetadata = await createNimiRuntimeAppSessionMetadataProvider({
+    appId: DESKTOP_APP_ID,
+    appInstanceId: DESKTOP_APP_INSTANCE_ID,
+    deviceId: DESKTOP_DEVICE_ID,
+    capabilities: ['ai.spend.meter'],
+    auth: runtime.auth,
+  })();
+  return withNimiRuntimeAgentScopes({
+    runtime: {
+      appId: DESKTOP_APP_ID,
+      auth: runtime.auth,
+      appAuth: runtime.grants,
+    },
+    subjectUserId: OWNER_USER_ID,
+  }, ['ai.spend.meter'], async (callOptions) => {
+    const submit = await runtime.ai.submitScenarioJob({
+      head: {
+        appId: DESKTOP_APP_ID,
+        subjectUserId: OWNER_USER_ID,
+        routePolicy: RoutePolicy.CLOUD,
+        modelId: voiceRoute.executionBinding.modelId,
+        fallback: 0,
+        timeoutMs: 60_000,
+        connectorId: voiceRoute.executionBinding.connectorId ?? '',
+        targetRef: toRuntimeDurableTargetRef(voiceRoute.targetRef),
+      },
+      scenarioType: ScenarioType.VOICE_CLONE,
+      executionMode: ExecutionMode.ASYNC_JOB,
+      spec: {
+        spec: {
+          oneofKind: 'voiceClone',
+          voiceClone: {
+            targetModelId: voiceRoute.executionBinding.modelId,
+            input: {
+              referenceAudioUri: 'https://example.invalid/nimi-runtime-live-reference.wav',
+              referenceAudioMime: 'audio/wav',
+              text: 'Runtime live fixture custom voice reference.',
+              preferredName: 'runtime-live-voice',
+            },
+          },
+        },
+      },
+    }, withNimiRuntimeIdempotencyMetadata({
+      ...callOptions,
+      metadata: {
+        ...appSessionMetadata,
+        ...(callOptions.metadata ?? {}),
+      },
+    }, `runtime-agent-live-e2e-voice-asset:${voiceRoute.executionBinding.modelId}`));
+    const jobId = requireText(submit.job?.jobId, 'voice workflow job id');
+    const assetId = requireText(submit.asset?.voiceAssetId, 'voice asset id');
+    const terminalJob = await waitFixtureScenarioJobTerminal(runtime, jobId, 60_000, {
+      ...callOptions,
+      metadata: {
+        ...appSessionMetadata,
+        ...(callOptions.metadata ?? {}),
+      },
+    });
+    if (terminalJob?.status !== ScenarioJobStatus.COMPLETED) {
+      throw new Error(`Runtime live fixture VoiceAsset workflow failed: status=${terminalJob?.status} reason=${terminalJob?.reasonCode} detail=${terminalJob?.reasonDetail || ''}`);
+    }
+    const asset = await runtime.ai.getVoiceAsset({ voiceAssetId: assetId }, {
+      ...callOptions,
+      metadata: {
+        ...appSessionMetadata,
+        ...(callOptions.metadata ?? {}),
+      },
+    });
+    const providerVoiceRef = requireText(asset.asset?.providerVoiceRef, 'voice asset provider voice ref');
+    return {
+      voiceAssetId: assetId,
+      providerVoiceRef,
+      defaultVoiceReference: `voice_asset_id:${assetId}`,
+    };
+  });
+}
+
+async function waitFixtureScenarioJobTerminal(
+  runtime: Runtime,
+  jobId: string,
+  timeoutMs: number,
+  callOptions: Parameters<Runtime['ai']['getScenarioJob']>[1],
+) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const response = await runtime.ai.getScenarioJob({ jobId }, callOptions);
+    const job = response.job;
+    const status = job?.status ?? ScenarioJobStatus.UNSPECIFIED;
+    if (
+      status === ScenarioJobStatus.COMPLETED
+      || status === ScenarioJobStatus.FAILED
+      || status === ScenarioJobStatus.CANCELED
+      || status === ScenarioJobStatus.TIMEOUT
+    ) {
+      return job;
+    }
+    if (Date.now() > deadline) {
+      throw new Error(`Runtime live fixture voice workflow timed out: ${jobId}`);
+    }
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
+  }
 }

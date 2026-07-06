@@ -12,6 +12,7 @@ import "runtime/v1/common.proto";
 import "runtime/v1/delegated_control.proto";
 import "runtime/v1/memory.proto";
 import "runtime/v1/runtime_target_identity.proto";
+import "runtime/v1/voice.proto";
 enum AgentLifecycleStatus { AGENT_LIFECYCLE_STATUS_UNSPECIFIED = 0; AGENT_LIFECYCLE_STATUS_INITIALIZING = 1; AGENT_LIFECYCLE_STATUS_ACTIVE = 2; AGENT_LIFECYCLE_STATUS_SUSPENDED = 3; AGENT_LIFECYCLE_STATUS_TERMINATING = 4; AGENT_LIFECYCLE_STATUS_TERMINATED = 5; }
 enum AgentExecutionState { AGENT_EXECUTION_STATE_UNSPECIFIED = 0; AGENT_EXECUTION_STATE_IDLE = 1; AGENT_EXECUTION_STATE_CHAT_ACTIVE = 2; AGENT_EXECUTION_STATE_LIFE_PENDING = 3; AGENT_EXECUTION_STATE_LIFE_RUNNING = 4; AGENT_EXECUTION_STATE_SUSPENDED = 5; }
 enum AgentTrackType { AGENT_TRACK_TYPE_UNSPECIFIED = 0; AGENT_TRACK_TYPE_CHAT = 1; AGENT_TRACK_TYPE_LIFE = 2; }
@@ -36,8 +37,10 @@ enum AgentStateEventFamily { AGENT_STATE_EVENT_FAMILY_UNSPECIFIED = 0; AGENT_STA
 // K-AGCORE-037 AgentPresentationEventFamily discriminates
 // runtime.agent.presentation.* families. Mapping is 1:1 to
 // runtime.agent.presentation.{activity_requested|motion_requested|
-// expression_requested|pose_requested|pose_cleared|lookat_requested}.
-enum AgentPresentationEventFamily { AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED = 0; AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED = 1; AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED = 2; AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED = 3; AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED = 4; AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED = 5; AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6; }
+// expression_requested|pose_requested|pose_cleared|lookat_requested|
+// voice_playback_requested|voice_stream_chunk_available|
+// voice_playback_terminal}.
+enum AgentPresentationEventFamily { AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED = 0; AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED = 1; AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED = 2; AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED = 3; AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED = 4; AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED = 5; AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED = 7; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE = 8; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL = 9; }
 // K-AGCORE-143 AgentProactiveEventFamily discriminates
 // runtime.agent.proactive.* event families. The family maps 1:1 to
 // runtime.agent.proactive.{suggested|delivered|suppressed}.
@@ -165,6 +168,9 @@ message AgentPresentationProfile {
   string idle_preset = 4;
   string interaction_policy_ref = 5;
   string default_voice_reference = 6;
+  bool avatar_autoplay = 7;
+  string speech_model_id = 8;
+  RoutePolicy speech_route_policy = 9;
 }
 message ClearAgentPresentationProfile {}
 message AgentStateMutation {
@@ -360,6 +366,25 @@ message AgentPresentationEventDetail {
   bool lookat_has_x = 54;
   bool lookat_has_y = 55;
   bool lookat_has_z = 56;
+  // voice_playback_requested / voice_stream_chunk_available /
+  // voice_playback_terminal. Non-final native stream chunks carry only
+  // transient stream identity; final replay bytes remain Runtime artifacts.
+  string audio_artifact_id = 60;
+  string audio_mime_type = 61;
+  string voice_stream_id = 62;
+  string chunk_transport_ref = 63;
+  string message_id = 64;
+  uint64 chunk_sequence = 65;
+  bool final_chunk = 66;
+  VoiceOutputMode voice_output_mode = 67;
+  VoicePlaybackState voice_playback_state = 68;
+  string playback_target = 69;
+  bool final_artifact = 70;
+  string terminal_reason = 71;
+  string reason = 72;
+  int64 duration_ms = 73;
+  int64 deadline_offset_ms = 74;
+  string final_artifact_id = 75;
 }
 // AgentProactiveEventDetail projects runtime.agent.proactive.* per K-AGCORE-143; required audit/origin fields must not be fabricated.
 message AgentProactiveEventDetail {
@@ -589,6 +614,41 @@ message SubscribeAgentEventsRequest {
   string agent_id = 2;
   string cursor = 3;
   repeated AgentEventType event_filters = 4;
+}
+message SubscribeAgentVoiceStreamRequest {
+  AgentRequestContext context = 1;
+  string voice_stream_id = 2;
+  string conversation_anchor_id = 3;
+  string turn_id = 4;
+}
+message InterruptAgentVoicePlaybackRequest {
+  AgentRequestContext context = 1;
+  string voice_stream_id = 2;
+  string conversation_anchor_id = 3;
+  string turn_id = 4;
+  string reason = 5;
+}
+message InterruptAgentVoicePlaybackResponse {
+  string voice_stream_id = 1;
+  VoiceOutputMode voice_output_mode = 2;
+  VoicePlaybackState voice_playback_state = 3;
+  string terminal_reason = 4;
+}
+message AgentVoiceStreamEvent {
+  string voice_stream_id = 1;
+  string conversation_anchor_id = 2;
+  string turn_id = 3;
+  string stream_id = 4;
+  string message_id = 5;
+  uint64 chunk_sequence = 6;
+  bytes chunk = 7;
+  string mime_type = 8;
+  VoiceOutputMode voice_output_mode = 9;
+  string playback_target = 10;
+  bool terminal = 11;
+  VoicePlaybackState voice_playback_state = 12;
+  string terminal_reason = 13;
+  bool replay_truncated = 14;
 }
 // K-AGCORE-034 ConversationAnchor boundary: runtime-owned continuity anchor.
 // `conversation_anchor_id` is the only admitted cross-surface continuity
@@ -887,6 +947,8 @@ service RuntimeAgentService {
   rpc ListParticipationAuditEvents(ListParticipationAuditEventsRequest) returns (ListParticipationAuditEventsResponse);
   rpc GetParticipationReplay(GetParticipationReplayRequest) returns (GetParticipationReplayResponse);
   rpc SubscribeAgentEvents(SubscribeAgentEventsRequest) returns (stream AgentEvent);
+  rpc SubscribeAgentVoiceStream(SubscribeAgentVoiceStreamRequest) returns (stream AgentVoiceStreamEvent);
+  rpc InterruptAgentVoicePlayback(InterruptAgentVoicePlaybackRequest) returns (InterruptAgentVoicePlaybackResponse);
   // K-AGCORE-144..150 Runtime Agent execution config surface.
   rpc GetAgentExecutionConfig(GetAgentExecutionConfigRequest) returns (GetAgentExecutionConfigResponse);
   rpc UpsertAgentExecutionConfig(UpsertAgentExecutionConfigRequest) returns (UpsertAgentExecutionConfigResponse);

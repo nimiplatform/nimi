@@ -41,6 +41,29 @@ func TestResolveVoicesDashScopeModel(t *testing.T) {
 	}
 }
 
+func TestDashScopeCosyVoiceCatalogAdmitsNativeStreamTTSOnlyForRealtimeCapableRoutes(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	cosyVoice, err := resolver.ResolveModelEntry("dashscope", "cosyvoice-v3-flash")
+	if err != nil {
+		t.Fatalf("ResolveModelEntry(cosyvoice-v3-flash): %v", err)
+	}
+	if cosyVoice.VoiceRequestOptions == nil || !cosyVoice.VoiceRequestOptions.SupportsNativeStreamTTS {
+		t.Fatalf("cosyvoice-v3-flash must advertise native WebSocket TTS stream support")
+	}
+
+	batchQwen, err := resolver.ResolveModelEntry("dashscope", "qwen3-tts-vc")
+	if err != nil {
+		t.Fatalf("ResolveModelEntry(qwen3-tts-vc): %v", err)
+	}
+	if batchQwen.VoiceRequestOptions != nil && batchQwen.VoiceRequestOptions.SupportsNativeStreamTTS {
+		t.Fatalf("non-realtime qwen3-tts-vc must not advertise native stream support")
+	}
+}
+
 func TestResolveAPIModelIDVolcengineAliasesUseCanonical(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {

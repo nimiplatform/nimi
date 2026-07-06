@@ -54,6 +54,10 @@ type scenarioRichStreamingTextProvider interface {
 	) (*runtimev1.UsageStats, runtimev1.FinishReason, error)
 }
 
+type scenarioSpeechStreamChunk = nimillm.SpeechStreamChunk
+
+type scenarioStreamingSpeechProvider = nimillm.StreamingSpeechProvider
+
 // Config controls local/cloud provider connectivity.
 type Config struct {
 	LocalProviders        map[string]nimillm.ProviderCredentials // "llama", "media", "speech", "sidecar"

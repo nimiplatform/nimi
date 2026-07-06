@@ -235,6 +235,7 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
+		"/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
 		"/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
 		"/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
 		"/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",

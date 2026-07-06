@@ -21,9 +21,9 @@ export function toNimiRuntimeVoiceReferenceFromInput(input: unknown): NimiRuntim
     return { kind: 'voice_asset_id', voiceAssetId: requireVoicePayload(payload, prefix) };
   }
   if (prefix === 'provider_voice_ref') {
-    return { kind: 'provider_voice_ref', providerVoiceRef: requireVoicePayload(payload, prefix) };
+    throw providerVoiceRefRejectedError();
   }
-  return { kind: 'provider_voice_ref', providerVoiceRef: text };
+  throw publicVoiceReferenceError();
 }
 
 export function requireNimiRuntimeVoiceReferenceForLocalTts<TVoiceRef = NimiRuntimeSpeechVoiceReference>(input: {
@@ -35,7 +35,7 @@ export function requireNimiRuntimeVoiceReferenceForLocalTts<TVoiceRef = NimiRunt
   }
   throw voiceReferenceError(
     'SDK_GENERATION_LOCAL_TTS_VOICE_REFERENCE_REQUIRED',
-    'audio.synthesize local model requires an explicit admitted Voice reference. Select a voice asset, enter provider_voice_ref:<id>, or run a voice clone/design workflow before using Default.',
+    'audio.synthesize local model requires an explicit preset_voice_id or voice_asset_id reference. Select a preset voice or bind a Runtime VoiceAsset before using Default.',
     'select_admitted_voice_reference',
   );
 }
@@ -49,10 +49,13 @@ function voiceReferenceFromRecord(record: Readonly<Record<string, unknown>>): Ni
     return { kind, voiceAssetId: requireVoicePayload(record.voiceAssetId ?? record.voice_asset_id, kind) };
   }
   if (kind === 'provider_voice_ref') {
-    return { kind, providerVoiceRef: requireVoicePayload(record.providerVoiceRef ?? record.provider_voice_ref, kind) };
+    throw providerVoiceRefRejectedError();
+  }
+  if (kind) {
+    throw publicVoiceReferenceError();
   }
   const providerVoiceRef = normalizedText(record.providerVoiceRef ?? record.provider_voice_ref);
-  if (providerVoiceRef) return { kind: 'provider_voice_ref', providerVoiceRef };
+  if (providerVoiceRef) throw providerVoiceRefRejectedError();
   const presetVoiceId = normalizedText(record.presetVoiceId ?? record.preset_voice_id);
   if (presetVoiceId) return { kind: 'preset_voice_id', presetVoiceId };
   const voiceAssetId = normalizedText(record.voiceAssetId ?? record.voice_asset_id);
@@ -74,6 +77,22 @@ function requireVoicePayload(value: unknown, kind: string): string {
 
 function normalizedText(value: unknown): string {
   return String(value ?? '').trim();
+}
+
+function publicVoiceReferenceError(): Error {
+  return voiceReferenceError(
+    'SDK_GENERATION_VOICE_REFERENCE_KIND_UNSUPPORTED',
+    'Ordinary SDK voice reference input must use explicit preset_voice_id or voice_asset_id.',
+    'use_preset_or_voice_asset_reference',
+  );
+}
+
+function providerVoiceRefRejectedError(): Error {
+  return voiceReferenceError(
+    'SDK_GENERATION_PROVIDER_VOICE_REF_FORBIDDEN',
+    'provider_voice_ref is not accepted on ordinary SDK voice reference input; bind a Runtime VoiceAsset and pass voice_asset_id instead.',
+    'bind_runtime_voice_asset',
+  );
 }
 
 function voiceReferenceError(code: string, message: string, actionHint: string): Error {

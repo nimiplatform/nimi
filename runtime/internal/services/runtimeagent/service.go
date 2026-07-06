@@ -73,7 +73,8 @@ type Service struct {
 	voiceLipsync voiceLipsyncSynthesizer
 	// runtimeArtifacts is the runtime-owned by-id artifact byte store. Any
 	// runtime event carrying an artifact id must put bytes here before emit.
-	runtimeArtifacts runtimeartifact.Store
+	runtimeArtifacts  runtimeartifact.Store
+	agentVoiceStreams *agentVoiceStreamBroker
 
 	mu               sync.RWMutex
 	agents           map[string]*agentEntry
@@ -186,6 +187,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		memoryPromotionEvidence:        make(map[string]runtimeMemoryPromotionEvidence),
 		voiceLipsync:                   newSyntheticVoiceLipsyncSynthesizer(),
 		runtimeArtifacts:               runtimeartifact.NewMemoryStore(),
+		agentVoiceStreams:              newAgentVoiceStreamBroker(),
 		delegatedProviderProfiles:      make(map[string]*runtimev1.DelegatedProviderProfile),
 		delegatedApprovalRequests:      make(map[string]*runtimev1.DelegatedApprovalRequest),
 		delegatedPausedRequests:        make(map[string]*runtimeAgentPausedDelegatedCapabilityRequest),

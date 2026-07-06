@@ -38,6 +38,7 @@ surfaces:
   - runtime.agent.presentation.lookat_requested
   - runtime.agent.presentation.voice_playback_requested
   - runtime.agent.presentation.voice_stream_chunk_available
+  - runtime.agent.presentation.voice_playback_terminal
   - runtime.agent.presentation.lipsync_frame_batch
   - runtime.agent.state.status_text_changed
   - runtime.agent.state.execution_state_changed
@@ -366,19 +367,27 @@ presentation_events:
     detail:
       audio_artifact_id: string
       audio_mime_type: string
+      voice_stream_id: string_optional
       message_id: string
-      playback_state: enum(requested|started|completed|interrupted|canceled|failed)
+      voice_output_mode: enum(native_stream|simulated_stream|batch_final_artifact|text_only)
+      voice_playback_state: enum(active|completed|failed|interrupted|canceled)
       duration_ms: int_optional
       deadline_offset_ms: int_optional
       reason: string_optional
       playback_target: enum(avatar_autoplay|desktop_manual|replay)_optional
       final_artifact: bool_optional
     notes:
-      - audio_artifact_id is runtime-owned artifact identity; provider/model
-        timing metadata is not timeline authority.
+      - audio_artifact_id is runtime-owned final/replay artifact identity;
+        provider/model timing metadata is not timeline authority.
       - timeline must use turn_envelope.timeline fixed values and channel=voice.
-      - requested/started/completed states that ask a consumer to play audio must
-        reference a playable audio/* artifact; text-only fallback must not emit a
+      - voice_output_mode is the positive selected output-truth axis
+        (tables/voice-enums.yaml output_modes, K-VOICE-019); consumers must not
+        infer native realtime from event shape or from an omitted boolean.
+      - voice_playback_state is the separate lifecycle axis
+        (tables/voice-enums.yaml playback_states); failed/interrupted/canceled are
+        playback lifecycle outcomes and must never be encoded as voice_output_mode.
+      - active/completed states that ask a consumer to play audio must reference a
+        playable audio/* artifact; voice_output_mode=text_only must not emit a
         pseudo playable request.
       - playback_target records Runtime-owned target policy, not app-owned route
         selection.
@@ -386,9 +395,13 @@ presentation_events:
     source_rule: K-AGCORE-133
     timeline_channel: voice
     detail:
-      audio_artifact_id: string
+      audio_artifact_id: string_optional
       audio_mime_type: string
+      voice_stream_id: string_optional
+      chunk_transport_ref: string_optional
       message_id: string
+      voice_output_mode: enum(native_stream|simulated_stream|batch_final_artifact|text_only)
+      voice_playback_state: enum(active|completed|failed|interrupted|canceled)
       chunk_sequence: positive_int
       final_chunk: bool
       duration_ms: int_optional
@@ -397,10 +410,42 @@ presentation_events:
     notes:
       - chunk_sequence must be monotonic within the turn_id/stream_id voice
         stream.
-      - audio_artifact_id must reference playable audio bytes for this chunk and
+      - native non-final chunks must set voice_stream_id and chunk_transport_ref
+        and must not mint per-chunk durable audio_artifact_id. Consumers read
+        non-final bytes through RuntimeAgentService.SubscribeAgentVoiceStream or
+        an admitted SDK wrapper over that transport.
+      - audio_artifact_id is allowed only when the event represents an admitted
+        durable final/replay artifact; it must reference playable audio bytes and
         must not be reused for lipsync metadata.
       - raw audio bytes are not embedded in this event; consumers read bytes
-        through Runtime artifact or an admitted SDK streaming surface.
+        through Runtime artifact or the admitted SDK streaming surface.
+      - voice_output_mode must be native_stream for non-final chunks that claim
+        realtime; simulated_stream chunks are honest degradation and must not
+        satisfy native realtime acceptance (K-VOICE-019, K-STREAM-004).
+      - voice_playback_state carries chunk-stream lifecycle
+        (active|completed|failed|interrupted|canceled) and must not be conflated
+        with voice_output_mode.
+  - event: runtime.agent.presentation.voice_playback_terminal
+    source_rule: K-AGCORE-133
+    timeline_channel: voice
+    detail:
+      voice_stream_id: string
+      final_artifact_id: string_optional
+      audio_mime_type: string_optional
+      message_id: string_optional
+      voice_output_mode: enum(native_stream|simulated_stream|batch_final_artifact|text_only)
+      voice_playback_state: enum(completed|failed|interrupted|canceled)
+      terminal_reason: string
+      playback_target: enum(avatar_autoplay|desktop_manual|replay)_optional
+    notes:
+      - terminal truth is the Runtime-owned playback lifecycle closeout for a
+        voice stream and must preserve the selected voice_output_mode.
+      - success may reference the single final durable replay artifact; failed,
+        interrupted, and canceled terminal states must not be represented by
+        overwriting voice_output_mode.
+      - chat-turn interruption alone does not satisfy this event; voice playback
+        interruption requires this terminal projection or the matching typed
+        RuntimeAgentService voice stream terminal event.
   - event: runtime.agent.presentation.lipsync_frame_batch
     source_rule: K-AGCORE-051
     timeline_channel: lipsync

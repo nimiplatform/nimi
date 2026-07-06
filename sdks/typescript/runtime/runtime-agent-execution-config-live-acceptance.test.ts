@@ -46,16 +46,18 @@ test('runtime agent execution config live acceptance matrix v1', {
       assert.equal(seededText.modelId, 'local/default');
       assert.equal(seededText.route, 'local');
       assert.equal(seeded.bindings['image.generate'], undefined, 'seed must leave image.generate absent');
+      assert.equal(seeded.bindings['audio.synthesize'], undefined, 'seed must leave audio.synthesize absent');
 
-      // 2. Readiness projection: text ready, image not_configured.
+      // 2. Readiness projection: text ready, optional media capabilities not_configured.
       const seededReadiness = await executionConfig.readiness();
       assert.equal(seededReadiness.configRevision, seeded.revision);
       assert.equal(readinessState(seededReadiness, 'text.generate'), 'ready');
       assert.equal(readinessState(seededReadiness, 'image.generate'), 'not_configured');
+      assert.equal(readinessState(seededReadiness, 'audio.synthesize'), 'not_configured');
 
       // 3. Upsert with the correct expectedRevision adds the fixture cloud
-      // image binding: revision advances by exactly one and image readiness
-      // leaves not_configured.
+      // image and voice bindings: revision advances by exactly one and both
+      // media readiness projections leave not_configured.
       const imageBinding = {
         route: 'cloud' as const,
         modelId: fixture.imageRoute.executionBinding.modelId,
@@ -64,11 +66,20 @@ test('runtime agent execution config live acceptance matrix v1', {
           : {}),
         targetRef: fixture.imageRoute.targetRef,
       };
+      const voiceBinding = {
+        route: 'cloud' as const,
+        modelId: fixture.voiceRoute.executionBinding.modelId,
+        ...(fixture.voiceRoute.executionBinding.connectorId
+          ? { connectorId: fixture.voiceRoute.executionBinding.connectorId }
+          : {}),
+        targetRef: fixture.voiceRoute.targetRef,
+      };
       const committed = await executionConfig.upsert({
         expectedRevision: seeded.revision,
         bindings: {
           'text.generate': seededText,
           'image.generate': imageBinding,
+          'audio.synthesize': voiceBinding,
         },
       });
       assert.equal(committed.revision, seeded.revision + 1);
@@ -80,6 +91,13 @@ test('runtime agent execution config live acceptance matrix v1', {
         fixture.imageRoute.executionBinding.connectorId,
       );
       assert.deepEqual(committed.bindings['image.generate']?.targetRef, fixture.imageRoute.targetRef);
+      assert.equal(committed.bindings['audio.synthesize']?.route, 'cloud');
+      assert.equal(committed.bindings['audio.synthesize']?.modelId, fixture.voiceRoute.executionBinding.modelId);
+      assert.equal(
+        committed.bindings['audio.synthesize']?.connectorId,
+        fixture.voiceRoute.executionBinding.connectorId,
+      );
+      assert.deepEqual(committed.bindings['audio.synthesize']?.targetRef, fixture.voiceRoute.targetRef);
       assert.equal(committed.bindings['text.generate']?.modelId, 'local/default');
 
       const committedReadiness = await executionConfig.readiness();
@@ -88,6 +106,11 @@ test('runtime agent execution config live acceptance matrix v1', {
         readinessState(committedReadiness, 'image.generate'),
         'not_configured',
         'a committed image binding must leave not_configured',
+      );
+      assert.notEqual(
+        readinessState(committedReadiness, 'audio.synthesize'),
+        'not_configured',
+        'a committed voice binding must leave not_configured',
       );
       assert.equal(readinessState(committedReadiness, 'text.generate'), 'ready');
 
@@ -147,6 +170,7 @@ test('runtime agent execution config live acceptance matrix v1', {
         assert.ok(advanced, 'subscription must deliver a snapshot with the advanced configRevision');
         assert.equal(advanced.configRevision, reverted.revision);
         assert.equal(readinessState(advanced, 'image.generate'), 'not_configured');
+        assert.equal(readinessState(advanced, 'audio.synthesize'), 'not_configured');
       } finally {
         await iterator.return?.();
       }
@@ -192,6 +216,7 @@ test('runtime agent turn execution cutover live acceptance matrix v2', {
       const seededText = seeded.bindings['text.generate'];
       assert.ok(seededText, 'seed must commit the text.generate binding');
       assert.equal(seeded.bindings['image.generate'], undefined, 'seed must leave image.generate absent');
+      assert.equal(seeded.bindings['audio.synthesize'], undefined, 'seed must leave audio.synthesize absent');
 
       // The fixture daemon serves its own live local text model, not the
       // bundled default the seeded local/default alias resolves to. Commit

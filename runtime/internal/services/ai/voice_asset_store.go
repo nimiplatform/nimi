@@ -53,9 +53,10 @@ type voiceWorkflowSubmitInput struct {
 }
 
 type voiceAssetStore struct {
-	mu     sync.RWMutex
-	jobs   map[string]*voiceScenarioJobRecord
-	assets map[string]*runtimev1.VoiceAsset
+	mu          sync.RWMutex
+	jobs        map[string]*voiceScenarioJobRecord
+	assets      map[string]*runtimev1.VoiceAsset
+	durablePath string
 }
 
 type voiceAssetDeleteResult struct {
@@ -199,7 +200,9 @@ func (s *voiceAssetStore) deleteJobLocked(jobID string) {
 		return
 	}
 	if strings.TrimSpace(record.assetID) != "" {
-		delete(s.assets, record.assetID)
+		if asset := s.assets[record.assetID]; asset == nil || asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
+			delete(s.assets, record.assetID)
+		}
 	}
 	for subID, ch := range record.subscribers {
 		delete(record.subscribers, subID)

@@ -15,11 +15,12 @@ import (
 )
 
 type managedCloudScenarioTestFixture struct {
-	service     *Service
-	context     context.Context
-	connectorID string
-	descriptor  *runtimev1.ConnectorModelDescriptor
-	targetRef   *runtimev1.RuntimeDurableTargetRef
+	service          *Service
+	connectorService *connector.Service
+	context          context.Context
+	connectorID      string
+	descriptor       *runtimev1.ConnectorModelDescriptor
+	targetRef        *runtimev1.RuntimeDurableTargetRef
 }
 
 func localScenarioTargetRef(ref string) *runtimev1.RuntimeDurableTargetRef {
@@ -99,11 +100,12 @@ func newManagedCloudScenarioTestFixture(t *testing.T, providerID string, modelID
 		t.Fatalf("new managed cloud ai service: %v", err)
 	}
 	return managedCloudScenarioTestFixture{
-		service:     svc,
-		context:     ctx,
-		connectorID: created.ConnectorID,
-		descriptor:  descriptor,
-		targetRef:   cloudScenarioTargetRefForDescriptor(created.ConnectorID, descriptor),
+		service:          svc,
+		connectorService: connectorSvc,
+		context:          ctx,
+		connectorID:      created.ConnectorID,
+		descriptor:       descriptor,
+		targetRef:        cloudScenarioTargetRefForDescriptor(created.ConnectorID, descriptor),
 	}
 }
 
@@ -142,4 +144,23 @@ func deltaArtifactMimeType(delta *runtimev1.ScenarioStreamDelta) string {
 		return value.Artifact.GetMimeType()
 	}
 	return ""
+}
+
+func describeScenarioStreamEvents(events []*runtimev1.StreamScenarioEvent) string {
+	parts := make([]string, 0, len(events))
+	for _, event := range events {
+		if event == nil {
+			parts = append(parts, "<nil>")
+			continue
+		}
+		part := event.GetEventType().String()
+		if started := event.GetStarted(); started != nil {
+			part += ":" + started.GetVoiceOutputMode().String()
+		}
+		if failed := event.GetFailed(); failed != nil {
+			part += ":" + failed.GetReasonCode().String() + ":" + failed.GetActionHint()
+		}
+		parts = append(parts, part)
+	}
+	return strings.Join(parts, ",")
 }

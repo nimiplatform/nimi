@@ -2,11 +2,13 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"sync/atomic"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
@@ -20,6 +22,34 @@ import (
 const (
 	defaultSpeechStreamChunkSize = 32 * 1024 // 32 KB per speech chunk
 )
+
+func speechStreamVoiceOutputMode(nativeRequired bool) (runtimev1.VoiceOutputMode, error) {
+	if nativeRequired {
+		return runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_UNSPECIFIED,
+			grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	}
+	return runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_SIMULATED_STREAM, nil
+}
+
+func (s *Service) speechSynthesizeRouteSupportsNativeStreamTTS(
+	ctx context.Context,
+	modelResolved string,
+	remoteTarget *nimillm.RemoteTarget,
+	selected provider,
+) (bool, error) {
+	if s == nil || s.speechCatalog == nil {
+		return false, nil
+	}
+	providerType := speechCatalogProviderType(runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, modelResolved, remoteTarget, selected)
+	model, err := s.speechCatalog.ResolveModelEntryForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved)
+	if err != nil {
+		if errors.Is(err, catalog.ErrModelNotFound) {
+			return false, nil
+		}
+		return false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	return model.VoiceRequestOptions != nil && model.VoiceRequestOptions.SupportsNativeStreamTTS, nil
+}
 
 func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error {
 	spec := req.GetSpec().GetSpeechSynthesize()
@@ -136,12 +166,21 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		})
 	}
 
+	nativeStreamSupported, err := s.speechSynthesizeRouteSupportsNativeStreamTTS(stream.Context(), modelResolved, remoteTarget, selectedProvider)
+	if err != nil {
+		return err
+	}
+	voiceOutputMode := runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_SIMULATED_STREAM
+	if nativeStreamSupported {
+		voiceOutputMode = runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM
+	}
 	if err := send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 		Payload: &runtimev1.StreamScenarioEvent_Started{
 			Started: &runtimev1.ScenarioStreamStarted{
-				ModelResolved: modelResolved,
-				RouteDecision: routeDecision,
+				ModelResolved:   modelResolved,
+				RouteDecision:   routeDecision,
+				VoiceOutputMode: voiceOutputMode,
 			},
 		},
 	}); err != nil {
@@ -194,6 +233,58 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		return failAndStop(err)
 	}
 	scenarioExtensions := nimillm.ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
+	if voiceOutputMode == runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM {
+		usage, finishReason, streamErr := backend.StreamSynthesizeSpeech(requestCtx, backendModelID, effectiveSpeechSpec, scenarioExtensions, func(chunk scenarioSpeechStreamChunk) error {
+			if chunk.FailureReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+				return grpcerr.WithReasonCode(codes.Internal, chunk.FailureReason)
+			}
+			if len(chunk.Bytes) == 0 {
+				return nil
+			}
+			firstPacketSeen.Store(true)
+			mimeType := strings.TrimSpace(chunk.MIMEType)
+			if mimeType == "" {
+				mimeType = nimillm.ResolveSpeechArtifactMIME(speechSpec, chunk.Bytes)
+			}
+			return send(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				Payload: &runtimev1.StreamScenarioEvent_Delta{
+					Delta: &runtimev1.ScenarioStreamDelta{
+						Delta: &runtimev1.ScenarioStreamDelta_Artifact{
+							Artifact: &runtimev1.ArtifactStreamDelta{
+								Chunk:    append([]byte(nil), chunk.Bytes...),
+								MimeType: mimeType,
+							},
+						},
+					},
+				},
+			})
+		})
+		if streamErr != nil {
+			return failAndStop(streamErr)
+		}
+		if usage != nil {
+			if err := send(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_USAGE,
+				Payload:   &runtimev1.StreamScenarioEvent_Usage{Usage: usage},
+			}); err != nil {
+				return err
+			}
+		}
+		if finishReason == runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED {
+			finishReason = runtimev1.FinishReason_FINISH_REASON_STOP
+		}
+		return send(&runtimev1.StreamScenarioEvent{
+			EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+			Payload: &runtimev1.StreamScenarioEvent_Completed{
+				Completed: &runtimev1.ScenarioStreamCompleted{
+					FinishReason:    finishReason,
+					Usage:           usage,
+					StreamSimulated: false,
+				},
+			},
+		})
+	}
 	payload, usage, synthErr := backend.SynthesizeSpeech(requestCtx, backendModelID, effectiveSpeechSpec, scenarioExtensions)
 	if synthErr != nil {
 		return failAndStop(synthErr)
@@ -235,8 +326,9 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
 		Payload: &runtimev1.StreamScenarioEvent_Completed{
 			Completed: &runtimev1.ScenarioStreamCompleted{
-				FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
-				Usage:        usage,
+				FinishReason:    runtimev1.FinishReason_FINISH_REASON_STOP,
+				Usage:           usage,
+				StreamSimulated: voiceOutputMode == runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_SIMULATED_STREAM,
 			},
 		},
 	})

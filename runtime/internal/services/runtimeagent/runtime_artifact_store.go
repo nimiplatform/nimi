@@ -15,6 +15,48 @@ func (s *Service) SetRuntimeArtifactStore(store runtimeartifact.Store) {
 	s.runtimeArtifacts = store
 }
 
+func (s *Service) putGeneratedVoiceArtifactBytes(artifactID string, payload []byte, mimeType string, input voiceLipsyncSynthesisInput, session publicChatAnchorState, retentionScope string) error {
+	if s == nil || s.runtimeArtifacts == nil {
+		return fmt.Errorf("runtime artifact store is required")
+	}
+	artifactID = strings.TrimSpace(artifactID)
+	mimeType = strings.TrimSpace(mimeType)
+	if artifactID == "" {
+		return fmt.Errorf("runtime voice audio artifact id is required")
+	}
+	if !isPlayableAudioMimeType(mimeType) {
+		return fmt.Errorf("runtime voice audio artifact mime type must be audio/*")
+	}
+	if len(payload) == 0 {
+		return fmt.Errorf("runtime voice audio artifact bytes are required")
+	}
+	if len(payload) > runtimeartifact.MaxInlineBytes {
+		return fmt.Errorf("runtime voice audio artifact %s exceeds inline replay cap", artifactID)
+	}
+	scope := strings.TrimSpace(retentionScope)
+	if scope == "" {
+		scope = "generated_agent_voice"
+	}
+	if err := s.runtimeArtifacts.Put(artifactID, runtimeartifact.ArtifactRecord{
+		Bytes:     payload,
+		MimeType:  mimeType,
+		SizeBytes: int64(len(payload)),
+		GeneratedVoice: &runtimeartifact.GeneratedVoiceArtifactMetadata{
+			AgentID:              firstNonEmpty(strings.TrimSpace(session.AgentID), strings.TrimSpace(input.AgentID)),
+			ConversationAnchorID: strings.TrimSpace(session.ConversationAnchorID),
+			TurnID:               strings.TrimSpace(input.TurnID),
+			MessageID:            strings.TrimSpace(input.MessageID),
+			VoiceReference:       strings.TrimSpace(input.DefaultVoiceReference),
+			SpeechModelID:        strings.TrimSpace(input.SpeechModelID),
+			RoutePolicy:          voiceArtifactRoutePolicy(input.SpeechRoutePolicy),
+			RetentionScope:       scope,
+		},
+	}); err != nil {
+		return fmt.Errorf("store runtime voice audio artifact %s: %w", artifactID, err)
+	}
+	return nil
+}
+
 func (s *Service) verifyVoiceAudioArtifact(output voiceLipsyncSynthesisOutput) error {
 	if s == nil || s.runtimeArtifacts == nil {
 		return fmt.Errorf("runtime artifact store is required")

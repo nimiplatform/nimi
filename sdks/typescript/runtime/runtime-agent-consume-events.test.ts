@@ -625,6 +625,8 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
       audio_artifact_id: 'artifact-1',
       audio_mime_type: 'audio/wav',
       playback_state: 'queued',
+      voice_output_mode: 'batch_final_artifact',
+      voice_playback_state: 'active',
       playback_target: 'avatar_autoplay',
       final_artifact: true,
       default_voice_reference: 'preset_voice_id:zh_narrator',
@@ -667,6 +669,8 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
   assert.deepEqual(hook?.detail.triggerDetail, { tool: 'search' });
   assert.equal(voice?.detail.audioArtifactId, 'artifact-1');
   assert.equal(voice?.detail.messageId, 'message-1');
+  assert.equal(voice?.detail.voiceOutputMode, 'batch_final_artifact');
+  assert.equal(voice?.detail.voicePlaybackState, 'active');
   assert.equal(voice?.detail.playbackTarget, 'avatar_autoplay');
   assert.equal(voice?.detail.finalArtifact, true);
   assert.deepEqual(voice?.detail.voiceRouteBinding, {
@@ -701,6 +705,8 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
       audio_mime_type: 'audio/wav',
       chunk_sequence: 1,
       final_chunk: true,
+      voice_output_mode: 'batch_final_artifact',
+      voice_playback_state: 'active',
       duration_ms: 1200,
       reason: 'final_artifact_available',
       playback_target: 'avatar_autoplay',
@@ -725,11 +731,99 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
   assert.equal(voiceChunk?.detail.messageId, 'message-1');
   assert.equal(voiceChunk?.detail.chunkSequence, 1);
   assert.equal(voiceChunk?.detail.finalChunk, true);
+  assert.equal(voiceChunk?.detail.voiceOutputMode, 'batch_final_artifact');
+  assert.equal(voiceChunk?.detail.voicePlaybackState, 'active');
   assert.equal(voiceChunk?.detail.playbackTarget, 'avatar_autoplay');
   assert.equal(voiceChunk?.timeline?.projectionRuleId, 'K-AGCORE-133');
-  assert.equal(projectNimiRuntimeAgentAppMessageEvent({
+  const nativeVoiceChunk = projectNimiRuntimeAgentAppMessageEvent({
     eventType: 0,
     sequence: '5',
+    fromAppId: 'runtime.agent',
+    toAppId: 'nimi.avatar',
+    subjectUserId: 'owner-1',
+    messageType: 'runtime.agent.presentation.voice_stream_chunk_available',
+    payload: toNimiRuntimeProtoStruct({
+      local_agent_ref: 'local-agent:owner-1:agent-1',
+      conversation_anchor_id: 'anchor-1',
+      turn_id: 'turn-1',
+      stream_id: 'stream-1',
+      message_id: 'message-1',
+      audio_mime_type: 'audio/wav',
+      voice_stream_id: 'voice-stream-1',
+      chunk_transport_ref: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
+      chunk_sequence: 1,
+      final_chunk: false,
+      voice_output_mode: 'native_stream',
+      voice_playback_state: 'active',
+      reason: 'native_stream_chunk_available',
+      playback_target: 'avatar_autoplay',
+      runtime_timeline: {
+        turn_id: 'turn-1',
+        stream_id: 'stream-1',
+        channel: 'voice',
+        offset_ms: 14,
+        sequence: 3,
+        started_at_wall: '2026-06-05T00:00:00.000Z',
+        observed_at_wall: '2026-06-05T00:00:00.014Z',
+        timebase_owner: 'runtime',
+        projection_rule_id: 'K-AGCORE-133',
+        clock_basis: 'monotonic_with_wall_anchor',
+        provider_neutral: true,
+        app_local_authority: false,
+      },
+    }),
+  });
+  assert.equal(nativeVoiceChunk?.detail.audioArtifactId, undefined);
+  assert.equal(nativeVoiceChunk?.detail.voiceStreamId, 'voice-stream-1');
+  assert.equal(nativeVoiceChunk?.detail.chunkTransportRef, 'runtime-agent-voice-stream://voice-stream-1/chunks/000001');
+  assert.equal(nativeVoiceChunk?.detail.finalChunk, false);
+  assert.equal(nativeVoiceChunk?.detail.voiceOutputMode, 'native_stream');
+  const voiceTerminal = projectNimiRuntimeAgentAppMessageEvent({
+    eventType: 0,
+    sequence: '6',
+    fromAppId: 'runtime.agent',
+    toAppId: 'nimi.avatar',
+    subjectUserId: 'owner-1',
+    messageType: 'runtime.agent.presentation.voice_playback_terminal',
+    payload: toNimiRuntimeProtoStruct({
+      local_agent_ref: 'local-agent:owner-1:agent-1',
+      conversation_anchor_id: 'anchor-1',
+      turn_id: 'turn-1',
+      stream_id: 'stream-1',
+      detail: {},
+      voice_stream_id: 'voice-stream-1',
+      final_artifact_id: 'artifact-final-1',
+      audio_mime_type: 'audio/wav',
+      message_id: 'message-1',
+      voice_output_mode: 'native_stream',
+      voice_playback_state: 'completed',
+      terminal_reason: 'native_stream_completed',
+      playback_target: 'avatar_autoplay',
+      runtime_timeline: {
+        turn_id: 'turn-1',
+        stream_id: 'stream-1',
+        channel: 'voice',
+        offset_ms: 15,
+        sequence: 4,
+        started_at_wall: '2026-06-05T00:00:00.000Z',
+        observed_at_wall: '2026-06-05T00:00:00.015Z',
+        timebase_owner: 'runtime',
+        projection_rule_id: 'K-AGCORE-133',
+        clock_basis: 'monotonic_with_wall_anchor',
+        provider_neutral: true,
+        app_local_authority: false,
+      },
+    }),
+  });
+  assert.equal(voiceTerminal?.eventName, 'runtime.agent.presentation.voice_playback_terminal');
+  assert.equal(voiceTerminal?.detail.voiceStreamId, 'voice-stream-1');
+  assert.equal(voiceTerminal?.detail.finalArtifactId, 'artifact-final-1');
+  assert.equal(voiceTerminal?.detail.voiceOutputMode, 'native_stream');
+  assert.equal(voiceTerminal?.detail.voicePlaybackState, 'completed');
+  assert.equal(voiceTerminal?.detail.terminalReason, 'native_stream_completed');
+  assert.equal(projectNimiRuntimeAgentAppMessageEvent({
+    eventType: 0,
+    sequence: '7',
     fromAppId: 'runtime.agent',
     toAppId: 'nimi.avatar',
     subjectUserId: 'owner-1',

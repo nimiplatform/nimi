@@ -53,6 +53,23 @@ func (s *Service) broadcast(events []*runtimev1.AgentEvent, targetsByEvent [][]*
 	s.eventStreamRuntime().broadcast(events, targetsByEvent)
 }
 
+func (s *Service) commitAgentEvents(events ...*runtimev1.AgentEvent) error {
+	s.mu.Lock()
+	previousEvents := append([]*runtimev1.AgentEvent(nil), s.events...)
+	previousSequence := s.sequence
+	committedEvents := s.eventStreamRuntime().appendEventsLocked(events...)
+	if err := s.saveStateLocked(); err != nil {
+		s.events = previousEvents
+		s.sequence = previousSequence
+		s.mu.Unlock()
+		return err
+	}
+	targetsByEvent := s.eventStreamRuntime().matchingSubscribersLocked(committedEvents)
+	s.mu.Unlock()
+	s.eventStreamRuntime().broadcast(committedEvents, targetsByEvent)
+	return nil
+}
+
 func (s *Service) removeSubscriber(id uint64) {
 	s.eventStreamRuntime().removeSubscriber(id)
 }

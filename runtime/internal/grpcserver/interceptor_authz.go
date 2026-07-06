@@ -215,6 +215,8 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":
 		return "runtime.agent.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback":
+		return "runtime.agent.turn.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection":
 		return "runtime.agent.companion_participation.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation":
@@ -392,6 +394,8 @@ func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness":
 		return "runtime.agent.execution_config.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream":
+		return "runtime.agent.turn.read", true
 	case "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":
 		return deferredStreamCapability, true
 	default:

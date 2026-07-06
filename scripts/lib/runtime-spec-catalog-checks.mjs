@@ -642,6 +642,7 @@ export function createCatalogChecks(context) {
         'supports_voice_clone',
         'supports_voice_design',
         'supports_timing_alignment',
+        'supports_native_stream_tts',
       ]) {
         if (typeof entry?.[field] !== 'boolean') {
           fail(`${tablePath} provider ${providerID} must use boolean ${field}`);

@@ -31,6 +31,8 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 		DefaultVoiceReference: policy.DefaultVoiceReference,
 		SpeechModelID:         policy.SpeechModelID,
 		SpeechRoutePolicy:     policy.SpeechRoutePolicy,
+		SpeechConnectorID:     policy.SpeechConnectorID,
+		SpeechTargetRef:       clonePublicChatTargetRef(policy.SpeechTargetRef),
 		AgentID:               session.AgentID,
 		IdempotencyKey:        runtimeAgentManualVoiceLipsyncIdempotencyKey(turn.TurnID, req.MessageID, event.GetMessageId()),
 	}
@@ -78,14 +80,16 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 		playbackTarget = "desktop_manual"
 	}
 	if err := r.emitVoiceStreamChunkTimelineEventForSnapshot(session, turn, publicChatVoiceStreamChunkProjection{
-		AudioArtifactID: out.AudioArtifactID,
-		AudioMimeType:   out.AudioMimeType,
-		MessageID:       strings.TrimSpace(req.MessageID),
-		ChunkSequence:   1,
-		FinalChunk:      true,
-		DurationMs:      out.DurationMs,
-		Reason:          "manual_render_final_artifact_available",
-		PlaybackTarget:  playbackTarget,
+		AudioArtifactID:    out.AudioArtifactID,
+		AudioMimeType:      out.AudioMimeType,
+		MessageID:          strings.TrimSpace(req.MessageID),
+		ChunkSequence:      1,
+		FinalChunk:         true,
+		VoiceOutputMode:    "batch_final_artifact",
+		VoicePlaybackState: "active",
+		DurationMs:         out.DurationMs,
+		Reason:             "manual_render_final_artifact_available",
+		PlaybackTarget:     playbackTarget,
 	}); err != nil {
 		return err
 	}
@@ -97,6 +101,8 @@ func (r publicChatRuntime) handleTurnVoiceRender(ctx context.Context, event *run
 		DefaultVoiceReference: out.DefaultVoiceReference,
 		VoiceRouteBinding:     out.VoiceRouteBinding,
 		PlaybackState:         "requested",
+		VoiceOutputMode:       "batch_final_artifact",
+		VoicePlaybackState:    "active",
 		PlaybackTarget:        playbackTarget,
 		FinalArtifact:         true,
 		Reason:                "manual_render_requested",

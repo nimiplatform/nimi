@@ -62,6 +62,14 @@ mapping 只由 `tables/rpc-methods.yaml` 和 `tables/rpc-migration-map.yaml`
 - v1 realtime session 只为 text/audio 双向会话预留 contract，不承担 `video + audio -> video + audio`
 - `ReadRealtimeEvents` 为 server-stream；duplex 语义通过 `Open + Append + Read + Close` 组合实现
 - v1 provider-backed 实现范围固定为 llama text+audio session；其他 provider 未实现时必须 fail-close，不得伪装成 `AIService` 普通 scenario
+- `RuntimeAiRealtimeService` 是独立 realtime multimodal session 面，不是 ordinary
+  Runtime Agent voice output。agent 自定义音色语音输出必须走 scenario-layer
+  `audio.synthesize`（`RuntimeAiService`）语义，不得直接把该 realtime session RPC
+  当 agent voice output（边界见 `K-MMPROV-031`、`K-VOICE-019`、`K-AGCORE-133`）。
+  其 `RealtimeAudioChunk` 只属于 realtime session 事件流，不是 scenario 语音流
+  delta 或 agent voice stream chunk。
+- `RuntimeVoiceService` 不是公共契约面（`K-VOICE-008`）；voice 对外方法收归
+  `RuntimeAiService`。任何以 `RuntimeVoiceService` 命名的独立公共 service 均越界。
 
 ## K-RPC-003 ConnectorService 方法集合（design 权威）
 
@@ -320,6 +328,15 @@ agent memory, group-message candidate, and event family boundaries.
 - app-facing reactive chat consumption does not add a second
   `RuntimeAgentService` RPC method family; the admitted transport seam is the
   reserved `runtime.agent` app-message target governed by `K-APP-008`
+- agent voice native non-final chunk bytes use
+  `RuntimeAgentService.SubscribeAgentVoiceStream` as the admitted typed
+  data-plane for `K-VOICE-019`; presentation projection events only carry
+  stream identity / transport refs and must not embed raw chunk bytes or mint
+  per-chunk durable artifacts.
+- agent voice playback interruption uses
+  `RuntimeAgentService.InterruptAgentVoicePlayback`; it is a voice-stream
+  lifecycle command and must not be collapsed into `runtime.agent.turn.interrupt`
+  or app-local playback stop.
 - current multi-agent admission is limited to durable delegation lifecycle and
   attribution visibility; it does not by itself admit delegated-authority trust
   semantics
@@ -692,7 +709,8 @@ fail-close 时不得：
 
 `GetVoiceAsset` / `ListVoiceAssets` / `DeleteVoiceAsset` 只操作 runtime-managed `VoiceAsset` truth，不直接操作 provider-native handle truth。
 
-- `provider_voice_ref` 可以作为 `VoiceAsset` 的内部字段或 `VoiceReference` 的一种来源存在
+- `provider_voice_ref` 可以作为 `VoiceAsset` 的内部字段或 `VoiceReference` 的一种来源存在，但仅限 Runtime 内部 / privileged / debug 面
+- ordinary profile / SDK 公共绑定输入只接受 `preset_voice_id` 或 `voice_asset_id`；不得接受裸 `provider_voice_ref` 或未判别的自由字符串音色引用（`K-VOICE-003`）
 - 但对外公共资产生命周期主对象固定为 `VoiceAsset`
 - 调用方不得绕过 `VoiceAsset` 把 provider-native handle 当作公共资产主键
 

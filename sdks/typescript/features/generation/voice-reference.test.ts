@@ -6,10 +6,10 @@ import {
   toNimiRuntimeVoiceReferenceFromInput,
 } from './index';
 
-test('voice reference parser accepts prefixed strings and objects', () => {
+test('voice reference parser accepts ordinary public preset and asset references', () => {
   assert.deepEqual(
-    toNimiRuntimeVoiceReferenceFromInput('provider_voice_ref:alice'),
-    { kind: 'provider_voice_ref', providerVoiceRef: 'alice' },
+    toNimiRuntimeVoiceReferenceFromInput('preset_voice_id:alice'),
+    { kind: 'preset_voice_id', presetVoiceId: 'alice' },
   );
   assert.deepEqual(
     toNimiRuntimeVoiceReferenceFromInput({ kind: 'voice_asset_id', voiceAssetId: 'asset-1' }),
@@ -17,9 +17,24 @@ test('voice reference parser accepts prefixed strings and objects', () => {
   );
 });
 
-test('voice reference parser treats default and auto as no explicit voice', () => {
+test('voice reference parser treats default and blank object refs as no explicit voice', () => {
   assert.equal(toNimiRuntimeVoiceReferenceFromInput('default'), undefined);
   assert.equal(toNimiRuntimeVoiceReferenceFromInput({ providerVoiceRef: '  ' }), undefined);
+});
+
+test('voice reference parser rejects provider handles and unprefixed strings on ordinary SDK input', () => {
+  assert.throws(
+    () => toNimiRuntimeVoiceReferenceFromInput('provider_voice_ref:alice'),
+    /provider_voice_ref is not accepted/u,
+  );
+  assert.throws(
+    () => toNimiRuntimeVoiceReferenceFromInput('alice'),
+    /preset_voice_id or voice_asset_id/u,
+  );
+  assert.throws(
+    () => toNimiRuntimeVoiceReferenceFromInput({ providerVoiceRef: 'alice' }),
+    /provider_voice_ref is not accepted/u,
+  );
 });
 
 test('local TTS requires an explicit admitted voice reference', () => {
@@ -32,6 +47,6 @@ test('local TTS requires an explicit admitted voice reference', () => {
   );
   assert.throws(
     () => requireNimiRuntimeVoiceReferenceForLocalTts({ routePolicy: 'local', voiceRef: undefined }),
-    /explicit admitted Voice reference/,
+    /explicit preset_voice_id or voice_asset_id/u,
   );
 });

@@ -229,9 +229,6 @@ impl Default for AgentEventType {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentExecutionReadinessState {
     AGENTEXECUTIONREADINESSSTATEUNSPECIFIED,
-    AGENTEXECUTIONREADINESSSTATEREADY,
-    AGENTEXECUTIONREADINESSSTATENOTCONFIGURED,
-    AGENTEXECUTIONREADINESSSTATEUNAVAILABLE,
 }
 
 impl Default for AgentExecutionReadinessState {
@@ -2462,6 +2459,37 @@ impl Default for VoiceAssetStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum VoiceOutputMode {
+    VOICEOUTPUTMODEUNSPECIFIED,
+    VOICEOUTPUTMODENATIVESTREAM,
+    VOICEOUTPUTMODESIMULATEDSTREAM,
+    VOICEOUTPUTMODEBATCHFINALARTIFACT,
+    VOICEOUTPUTMODETEXTONLY,
+}
+
+impl Default for VoiceOutputMode {
+    fn default() -> Self {
+        Self::VOICEOUTPUTMODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum VoicePlaybackState {
+    VOICEPLAYBACKSTATEUNSPECIFIED,
+    VOICEPLAYBACKSTATEACTIVE,
+    VOICEPLAYBACKSTATECOMPLETED,
+    VOICEPLAYBACKSTATEFAILED,
+    VOICEPLAYBACKSTATEINTERRUPTED,
+    VOICEPLAYBACKSTATECANCELED,
+}
+
+impl Default for VoicePlaybackState {
+    fn default() -> Self {
+        Self::VOICEPLAYBACKSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum VoiceReferenceKind {
     VOICEREFERENCEKINDUNSPECIFIED,
     VOICEREFERENCEKINDPRESET,
@@ -3710,6 +3738,22 @@ pub struct AgentPresentationEventDetail {
     pub lookat_has_x: Option<bool>,
     pub lookat_has_y: Option<bool>,
     pub lookat_has_z: Option<bool>,
+    pub audio_artifact_id: Option<String>,
+    pub audio_mime_type: Option<String>,
+    pub voice_stream_id: Option<String>,
+    pub chunk_transport_ref: Option<String>,
+    pub message_id: Option<String>,
+    pub chunk_sequence: Option<u64>,
+    pub final_chunk: Option<bool>,
+    pub voice_output_mode: Option<VoiceOutputMode>,
+    pub voice_playback_state: Option<VoicePlaybackState>,
+    pub playback_target: Option<String>,
+    pub final_artifact: Option<bool>,
+    pub terminal_reason: Option<String>,
+    pub reason: Option<String>,
+    pub duration_ms: Option<i64>,
+    pub deadline_offset_ms: Option<i64>,
+    pub final_artifact_id: Option<String>,
 }
 
 impl AgentPresentationEventDetail {
@@ -3738,13 +3782,29 @@ impl AgentPresentationEventDetail {
         if let Some(value) = &self.lookat_has_x { pairs.push(format!("lookat_has_x={}", value)); }
         if let Some(value) = &self.lookat_has_y { pairs.push(format!("lookat_has_y={}", value)); }
         if let Some(value) = &self.lookat_has_z { pairs.push(format!("lookat_has_z={}", value)); }
+        if let Some(value) = &self.audio_artifact_id { pairs.push(format!("audio_artifact_id={}", value)); }
+        if let Some(value) = &self.audio_mime_type { pairs.push(format!("audio_mime_type={}", value)); }
+        if let Some(value) = &self.voice_stream_id { pairs.push(format!("voice_stream_id={}", value)); }
+        if let Some(value) = &self.chunk_transport_ref { pairs.push(format!("chunk_transport_ref={}", value)); }
+        if let Some(value) = &self.message_id { pairs.push(format!("message_id={}", value)); }
+        if let Some(value) = &self.chunk_sequence { pairs.push(format!("chunk_sequence={}", value)); }
+        if let Some(value) = &self.final_chunk { pairs.push(format!("final_chunk={}", value)); }
+        if let Some(value) = &self.voice_output_mode { pairs.push(format!("voice_output_mode={:?}", value)); }
+        if let Some(value) = &self.voice_playback_state { pairs.push(format!("voice_playback_state={:?}", value)); }
+        if let Some(value) = &self.playback_target { pairs.push(format!("playback_target={}", value)); }
+        if let Some(value) = &self.final_artifact { pairs.push(format!("final_artifact={}", value)); }
+        if let Some(value) = &self.terminal_reason { pairs.push(format!("terminal_reason={}", value)); }
+        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
+        if let Some(value) = &self.duration_ms { pairs.push(format!("duration_ms={}", value)); }
+        if let Some(value) = &self.deadline_offset_ms { pairs.push(format!("deadline_offset_ms={}", value)); }
+        if let Some(value) = &self.final_artifact_id { pairs.push(format!("final_artifact_id={}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["family"] {
+        for key in ["family", "voice_output_mode", "voice_playback_state"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -3772,6 +3832,20 @@ impl AgentPresentationEventDetail {
         out.lookat_has_x = pairs.get("lookat_has_x").and_then(|value| value.parse().ok());
         out.lookat_has_y = pairs.get("lookat_has_y").and_then(|value| value.parse().ok());
         out.lookat_has_z = pairs.get("lookat_has_z").and_then(|value| value.parse().ok());
+        out.audio_artifact_id = pairs.get("audio_artifact_id").cloned();
+        out.audio_mime_type = pairs.get("audio_mime_type").cloned();
+        out.voice_stream_id = pairs.get("voice_stream_id").cloned();
+        out.chunk_transport_ref = pairs.get("chunk_transport_ref").cloned();
+        out.message_id = pairs.get("message_id").cloned();
+        out.chunk_sequence = pairs.get("chunk_sequence").and_then(|value| value.parse().ok());
+        out.final_chunk = pairs.get("final_chunk").and_then(|value| value.parse().ok());
+        out.playback_target = pairs.get("playback_target").cloned();
+        out.final_artifact = pairs.get("final_artifact").and_then(|value| value.parse().ok());
+        out.terminal_reason = pairs.get("terminal_reason").cloned();
+        out.reason = pairs.get("reason").cloned();
+        out.duration_ms = pairs.get("duration_ms").and_then(|value| value.parse().ok());
+        out.deadline_offset_ms = pairs.get("deadline_offset_ms").and_then(|value| value.parse().ok());
+        out.final_artifact_id = pairs.get("final_artifact_id").cloned();
         out
     }
 }
@@ -3784,6 +3858,9 @@ pub struct AgentPresentationProfile {
     pub idle_preset: Option<String>,
     pub interaction_policy_ref: Option<String>,
     pub default_voice_reference: Option<String>,
+    pub avatar_autoplay: Option<bool>,
+    pub speech_model_id: Option<String>,
+    pub speech_route_policy: Option<RoutePolicy>,
 }
 
 impl AgentPresentationProfile {
@@ -3795,13 +3872,16 @@ impl AgentPresentationProfile {
         if let Some(value) = &self.idle_preset { pairs.push(format!("idle_preset={}", value)); }
         if let Some(value) = &self.interaction_policy_ref { pairs.push(format!("interaction_policy_ref={}", value)); }
         if let Some(value) = &self.default_voice_reference { pairs.push(format!("default_voice_reference={}", value)); }
+        if let Some(value) = &self.avatar_autoplay { pairs.push(format!("avatar_autoplay={}", value)); }
+        if let Some(value) = &self.speech_model_id { pairs.push(format!("speech_model_id={}", value)); }
+        if let Some(value) = &self.speech_route_policy { pairs.push(format!("speech_route_policy={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["backend_kind"] {
+        for key in ["backend_kind", "speech_route_policy"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -3812,6 +3892,8 @@ impl AgentPresentationProfile {
         out.idle_preset = pairs.get("idle_preset").cloned();
         out.interaction_policy_ref = pairs.get("interaction_policy_ref").cloned();
         out.default_voice_reference = pairs.get("default_voice_reference").cloned();
+        out.avatar_autoplay = pairs.get("avatar_autoplay").and_then(|value| value.parse().ok());
+        out.speech_model_id = pairs.get("speech_model_id").cloned();
         out
     }
 }
@@ -4368,6 +4450,68 @@ impl AgentStateSetWorldContext {
         let mut out = Self::default();
 
         out.world_id = pairs.get("world_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentVoiceStreamEvent {
+    pub voice_stream_id: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub turn_id: Option<String>,
+    pub stream_id: Option<String>,
+    pub message_id: Option<String>,
+    pub chunk_sequence: Option<u64>,
+    pub chunk: Option<Vec<u8>>,
+    pub mime_type: Option<String>,
+    pub voice_output_mode: Option<VoiceOutputMode>,
+    pub playback_target: Option<String>,
+    pub terminal: Option<bool>,
+    pub voice_playback_state: Option<VoicePlaybackState>,
+    pub terminal_reason: Option<String>,
+    pub replay_truncated: Option<bool>,
+}
+
+impl AgentVoiceStreamEvent {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.voice_stream_id { pairs.push(format!("voice_stream_id={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        if let Some(value) = &self.stream_id { pairs.push(format!("stream_id={}", value)); }
+        if let Some(value) = &self.message_id { pairs.push(format!("message_id={}", value)); }
+        if let Some(value) = &self.chunk_sequence { pairs.push(format!("chunk_sequence={}", value)); }
+        if self.chunk.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode chunk"); }
+        if let Some(value) = &self.mime_type { pairs.push(format!("mime_type={}", value)); }
+        if let Some(value) = &self.voice_output_mode { pairs.push(format!("voice_output_mode={:?}", value)); }
+        if let Some(value) = &self.playback_target { pairs.push(format!("playback_target={}", value)); }
+        if let Some(value) = &self.terminal { pairs.push(format!("terminal={}", value)); }
+        if let Some(value) = &self.voice_playback_state { pairs.push(format!("voice_playback_state={:?}", value)); }
+        if let Some(value) = &self.terminal_reason { pairs.push(format!("terminal_reason={}", value)); }
+        if let Some(value) = &self.replay_truncated { pairs.push(format!("replay_truncated={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["chunk", "voice_output_mode", "voice_playback_state"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.voice_stream_id = pairs.get("voice_stream_id").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out.turn_id = pairs.get("turn_id").cloned();
+        out.stream_id = pairs.get("stream_id").cloned();
+        out.message_id = pairs.get("message_id").cloned();
+        out.chunk_sequence = pairs.get("chunk_sequence").and_then(|value| value.parse().ok());
+        out.mime_type = pairs.get("mime_type").cloned();
+        out.playback_target = pairs.get("playback_target").cloned();
+        out.terminal = pairs.get("terminal").and_then(|value| value.parse().ok());
+        out.terminal_reason = pairs.get("terminal_reason").cloned();
+        out.replay_truncated = pairs.get("replay_truncated").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -13546,6 +13690,76 @@ impl InstallVerifiedAssetResponse {
         }
 
 
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InterruptAgentVoicePlaybackRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub voice_stream_id: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub turn_id: Option<String>,
+    pub reason: Option<String>,
+}
+
+impl InterruptAgentVoicePlaybackRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.voice_stream_id { pairs.push(format!("voice_stream_id={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        if let Some(value) = &self.reason { pairs.push(format!("reason={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.voice_stream_id = pairs.get("voice_stream_id").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out.turn_id = pairs.get("turn_id").cloned();
+        out.reason = pairs.get("reason").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InterruptAgentVoicePlaybackResponse {
+    pub voice_stream_id: Option<String>,
+    pub voice_output_mode: Option<VoiceOutputMode>,
+    pub voice_playback_state: Option<VoicePlaybackState>,
+    pub terminal_reason: Option<String>,
+}
+
+impl InterruptAgentVoicePlaybackResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.voice_stream_id { pairs.push(format!("voice_stream_id={}", value)); }
+        if let Some(value) = &self.voice_output_mode { pairs.push(format!("voice_output_mode={:?}", value)); }
+        if let Some(value) = &self.voice_playback_state { pairs.push(format!("voice_playback_state={:?}", value)); }
+        if let Some(value) = &self.terminal_reason { pairs.push(format!("terminal_reason={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["voice_output_mode", "voice_playback_state"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.voice_stream_id = pairs.get("voice_stream_id").cloned();
+        out.terminal_reason = pairs.get("terminal_reason").cloned();
         out
     }
 }
@@ -26403,6 +26617,7 @@ pub struct ScenarioStreamStarted {
     pub model_resolved: Option<String>,
     pub route_decision: Option<RoutePolicy>,
     pub resolved_execution_binding: Option<Box<RuntimeResolvedExecutionBinding>>,
+    pub voice_output_mode: Option<VoiceOutputMode>,
 }
 
 impl ScenarioStreamStarted {
@@ -26411,13 +26626,14 @@ impl ScenarioStreamStarted {
         if let Some(value) = &self.model_resolved { pairs.push(format!("model_resolved={}", value)); }
         if let Some(value) = &self.route_decision { pairs.push(format!("route_decision={:?}", value)); }
         if self.resolved_execution_binding.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode resolved_execution_binding"); }
+        if let Some(value) = &self.voice_output_mode { pairs.push(format!("voice_output_mode={:?}", value)); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["route_decision", "resolved_execution_binding"] {
+        for key in ["route_decision", "resolved_execution_binding", "voice_output_mode"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -28392,6 +28608,40 @@ impl SubscribeAgentExecutionReadinessRequest {
         }
 
 
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeAgentVoiceStreamRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub voice_stream_id: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub turn_id: Option<String>,
+}
+
+impl SubscribeAgentVoiceStreamRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.voice_stream_id { pairs.push(format!("voice_stream_id={}", value)); }
+        if let Some(value) = &self.conversation_anchor_id { pairs.push(format!("conversation_anchor_id={}", value)); }
+        if let Some(value) = &self.turn_id { pairs.push(format!("turn_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.voice_stream_id = pairs.get("voice_stream_id").cloned();
+        out.conversation_anchor_id = pairs.get("conversation_anchor_id").cloned();
+        out.turn_id = pairs.get("turn_id").cloned();
         out
     }
 }
@@ -30417,6 +30667,8 @@ pub struct VoiceAsset {
     pub updated_at: Option<String>,
     pub expires_at: Option<String>,
     pub metadata: Option<BTreeMap<String, String>>,
+    pub target_ref: Option<Box<RuntimeDurableTargetRef>>,
+    pub voice_asset_target_ref: Option<Box<RuntimeDurableTargetRef>>,
 }
 
 impl VoiceAsset {
@@ -30436,13 +30688,15 @@ impl VoiceAsset {
         if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
         if let Some(value) = &self.expires_at { pairs.push(format!("expires_at={}", value)); }
         if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
+        if self.target_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode target_ref"); }
+        if self.voice_asset_target_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode voice_asset_target_ref"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["workflow_type", "persistence", "status", "metadata"] {
+        for key in ["workflow_type", "persistence", "status", "metadata", "target_ref", "voice_asset_target_ref"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -31865,6 +32119,12 @@ impl From<Vec<u8>> for AgentStateSetStatusText {
 }
 
 impl From<Vec<u8>> for AgentStateSetWorldContext {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AgentVoiceStreamEvent {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -33503,6 +33763,18 @@ impl From<Vec<u8>> for InstallVerifiedAssetRequest {
 }
 
 impl From<Vec<u8>> for InstallVerifiedAssetResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for InterruptAgentVoicePlaybackRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for InterruptAgentVoicePlaybackResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36046,6 +36318,12 @@ impl From<Vec<u8>> for SubscribeAgentExecutionReadinessRequest {
     }
 }
 
+impl From<Vec<u8>> for SubscribeAgentVoiceStreamRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for SubscribeAppMessagesRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -37058,6 +37336,16 @@ where
         Ok(InitializeAgentResponse::from_transport(&raw))
     }
 
+    pub fn interrupt_agent_voice_playback(&self, request: InterruptAgentVoicePlaybackRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InterruptAgentVoicePlaybackResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(InterruptAgentVoicePlaybackResponse::from_transport(&raw))
+    }
+
     pub fn list_agent_conversation_summaries(&self, request: ListAgentConversationSummariesRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ListAgentConversationSummariesResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries".to_string(),
@@ -37297,6 +37585,19 @@ where
     {
         let inner = self.core.server_stream(CoreStreamRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
+    }
+
+    pub fn subscribe_agent_voice_stream(&self, request: SubscribeAgentVoiceStreamRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, AgentVoiceStreamEvent>, T::Error>
+    where
+        T::Stream: CoreTypedStream,
+    {
+        let inner = self.core.server_stream(CoreStreamRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,

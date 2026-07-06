@@ -97,6 +97,54 @@ func TestRouteSelectorResolvesDefaultAliases(t *testing.T) {
 	}
 }
 
+func TestResolvePublicChatTextBindingAllowsColdLocalBackend(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
+
+	route, modelResolved, err := svc.ResolvePublicChatTextBinding(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		"local/gemma-4-26B-A4B-it-Q8_0",
+	)
+	if err != nil {
+		t.Fatalf("ResolvePublicChatTextBinding should not require warm local backend: %v", err)
+	}
+	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || modelResolved != "gemma-4-26B-A4B-it-Q8_0" {
+		t.Fatalf("unexpected public chat binding resolution: route=%v model=%q", route, modelResolved)
+	}
+}
+
+func TestResolveProviderStillRequiresColdLocalBackendAvailability(t *testing.T) {
+	selector := newRouteSelector(Config{})
+
+	_, _, _, _, err := selector.resolveProvider(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		"local/gemma-4-26B-A4B-it-Q8_0",
+	)
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("execution route resolution must still require local availability, got err=%v reason=%v", err, reason)
+	}
+}
+
+func TestResolvePublicChatTextBindingResolvesLocalDefaultAlias(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		DefaultLocalTextModel: "gemma-default",
+	})
+
+	route, modelResolved, err := svc.ResolvePublicChatTextBinding(
+		context.Background(),
+		runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		"local/default",
+	)
+	if err != nil {
+		t.Fatalf("ResolvePublicChatTextBinding local/default: %v", err)
+	}
+	if route != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL || modelResolved != "gemma-default" {
+		t.Fatalf("unexpected public chat default binding resolution: route=%v model=%q", route, modelResolved)
+	}
+}
+
 func TestPreferredRouteUsesProviderRegistryRuntimePlane(t *testing.T) {
 	tests := []struct {
 		name  string

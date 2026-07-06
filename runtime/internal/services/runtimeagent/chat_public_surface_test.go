@@ -105,6 +105,26 @@ func upsertPublicChatTestExecutionConfig(t *testing.T, svc *Service, extra ...*r
 	}
 }
 
+func publicChatTestLocalRuntimeTargetRef(ref string) *runtimev1.RuntimeDurableTargetRef {
+	return &runtimev1.RuntimeDurableTargetRef{
+		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
+			LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+				Version: "v2",
+				Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: ref},
+			},
+		},
+	}
+}
+
+func publicChatTestAudioSynthesizeBinding() *runtimev1.RuntimeAgentExecutionCapabilityBinding {
+	return &runtimev1.RuntimeAgentExecutionCapabilityBinding{
+		Capability:  executionCapabilityAudioSynthesize,
+		ModelId:     "speech/qwen3tts",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:   publicChatTestLocalRuntimeTargetRef("local-runtime:speech/qwen3tts"),
+	}
+}
+
 // TestPublicChatTurnRequestImageActionPromptFollowsExecutionConfig proves the
 // K-AGCORE-148 tri-state APML output contract: the image action affordance
 // derives from committed config presence plus readiness, with distinct

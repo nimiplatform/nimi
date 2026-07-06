@@ -32,6 +32,7 @@ models:
         - wav
         - opus
       supports_language: true
+      supports_native_stream_tts: true
       provider_extensions:
         namespace: nimi.scenario.speech_synthesize.request
         schema_version: dashscope-cosyvoice-v1
@@ -66,6 +67,7 @@ models:
         - wav
         - opus
       supports_language: true
+      supports_native_stream_tts: true
       provider_extensions:
         namespace: nimi.scenario.speech_synthesize.request
         schema_version: dashscope-cosyvoice-v1
@@ -101,6 +103,7 @@ models:
         - wav
         - opus
       supports_language: true
+      supports_native_stream_tts: true
       provider_extensions:
         namespace: nimi.scenario.speech_synthesize.request
         schema_version: dashscope-cosyvoice-v1
@@ -137,6 +140,7 @@ models:
         - wav
         - opus
       supports_language: true
+      supports_native_stream_tts: true
       provider_extensions:
         namespace: nimi.scenario.speech_synthesize.request
         schema_version: dashscope-cosyvoice-v1

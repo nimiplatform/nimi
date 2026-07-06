@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import type {
   ConnectorModelDescriptor,
@@ -40,6 +40,11 @@ import {
   FIXTURE_IMAGE_CONNECTOR_LABEL,
   FIXTURE_IMAGE_MODEL_ID,
   FIXTURE_IMAGE_PROVIDER,
+  FIXTURE_VOICE_CONNECTOR_LABEL,
+  FIXTURE_VOICE_ID,
+  FIXTURE_VOICE_MODEL_ID,
+  FIXTURE_VOICE_PROVIDER,
+  FIXTURE_VOICE_SET_ID,
   LOCAL_EMBED_ASSET_ID,
   LOCAL_EMBED_DIMENSIONS,
   LOCAL_EMBED_MODEL_ID,
@@ -231,8 +236,8 @@ export async function createFixtureRouteProjection(
       describeError,
     })}`);
   }
-  const modelId = capability === 'image.generate'
-    ? normalizeText(projection.resolvedBinding.providerModelId || projection.resolvedBinding.modelId || FIXTURE_IMAGE_MODEL_ID)
+  const modelId = selectedTargetRef.kind === 'cloud-connector'
+    ? normalizeText(projection.resolvedBinding.providerModelId || projection.resolvedBinding.modelId || selectedTargetRef.providerModelId)
     : normalizeLocalModelRef(projection.resolvedBinding.modelId || localModelRefForCapability(capability));
   return {
     capability,
@@ -240,9 +245,9 @@ export async function createFixtureRouteProjection(
     resolvedBindingRef: projection.resolvedBinding.resolvedBindingRef,
     targetRef: selectedTargetRef,
     executionBinding: {
-      route: capability === 'image.generate' ? 'cloud' : 'local',
+      route: selectedTargetRef.kind === 'cloud-connector' ? 'cloud' : 'local',
       modelId,
-      ...(capability === 'image.generate' && selectedTargetRef.kind === 'cloud-connector'
+      ...(selectedTargetRef.kind === 'cloud-connector'
         ? { connectorId: selectedTargetRef.connectorId }
         : {}),
     },
@@ -290,6 +295,189 @@ export async function resolveFixtureImageConnectorModel(
   return descriptor;
 }
 
+export function seedRuntimeAgentLiveImageCatalogProvider(customDir: string): void {
+  mkdirSync(customDir, { recursive: true });
+  writeFileSync(join(customDir, `${FIXTURE_IMAGE_PROVIDER}.yaml`), fixtureImageCatalogProviderYaml());
+}
+
+export function seedRuntimeAgentLiveVoiceCatalogProvider(customDir: string): void {
+  mkdirSync(customDir, { recursive: true });
+  writeFileSync(join(customDir, `${FIXTURE_VOICE_PROVIDER}.yaml`), fixtureVoiceCatalogProviderYaml());
+}
+
+export async function createFixtureVoiceConnector(runtime: Runtime, baseUrl: string): Promise<string> {
+  const response = await runtime.connectors.createConnector({
+    provider: FIXTURE_VOICE_PROVIDER,
+    endpoint: baseUrl,
+    label: FIXTURE_VOICE_CONNECTOR_LABEL,
+    apiKey: 'runtime-agent-live-e2e-voice-key',
+    authKind: ConnectorAuthKind.API_KEY,
+    providerAuthProfile: '',
+    credentialJson: '',
+  }, liveIdempotencyOptions('create-voice-connector'));
+  const connectorId = normalizeText(response.connector?.connectorId);
+  if (!connectorId) {
+    throw new Error(`Runtime Agent live voice connector creation returned no connector id: ${JSON.stringify(response)}`);
+  }
+  return connectorId;
+}
+
+export async function resolveFixtureVoiceConnectorModel(
+  runtime: Runtime,
+  connectorId: string,
+): Promise<ConnectorModelDescriptor> {
+  const response = await runtime.connectors.listConnectorModels({
+    connectorId,
+    forceRefresh: false,
+    pageSize: 200,
+    pageToken: '',
+  }, liveIdempotencyOptions('list-voice-connector-models'));
+  const descriptor = (response.models || []).find((model) =>
+    normalizeText(model.modelId) === FIXTURE_VOICE_MODEL_ID
+    && normalizeText(model.providerModelId) === FIXTURE_VOICE_MODEL_ID
+    && (model.capabilities || []).some((capability) => normalizeText(capability) === 'audio.synthesize')
+  );
+  if (!descriptor) {
+    throw new Error(`Runtime Agent live voice connector model missing: ${JSON.stringify(response.models || [])}`);
+  }
+  if (!normalizeText(descriptor.remoteModelCatalogId)) {
+    throw new Error(`Runtime Agent live voice connector model has no remote catalog id: ${JSON.stringify(descriptor)}`);
+  }
+  return descriptor;
+}
+
+function fixtureImageCatalogProviderYaml(): string {
+  return `version: 1
+provider: ${FIXTURE_IMAGE_PROVIDER}
+catalog_version: runtime-agent-live-e2e-image
+models:
+  - model_id: ${FIXTURE_IMAGE_MODEL_ID}
+    provider: ${FIXTURE_IMAGE_PROVIDER}
+    model_type: image
+    updated_at: "2026-07-06"
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: USD
+      as_of: "2026-07-06"
+      notes: Runtime Agent live fixture image generation.
+    source_ref:
+      url: http://127.0.0.1/runtime-agent-live-e2e/image-catalog
+      retrieved_at: "2026-07-06"
+      note: Runtime Agent live fixture image generation.
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
+`;
+}
+
+function fixtureVoiceCatalogProviderYaml(): string {
+  return `version: 1
+provider: ${FIXTURE_VOICE_PROVIDER}
+catalog_version: runtime-agent-live-e2e-native-voice
+models:
+  - model_id: ${FIXTURE_VOICE_MODEL_ID}
+    provider: ${FIXTURE_VOICE_PROVIDER}
+    model_type: tts
+    updated_at: "2026-07-06"
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: USD
+      as_of: "2026-07-06"
+      notes: Runtime Agent live fixture native TTS stream.
+    source_ref:
+      url: http://127.0.0.1/runtime-agent-live-e2e/voice-catalog
+      retrieved_at: "2026-07-06"
+      note: Runtime Agent live fixture native TTS stream.
+    voice_set_id: ${FIXTURE_VOICE_SET_ID}
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+        - word
+      audio_formats:
+        - wav
+      supports_native_stream_tts: true
+    voice_ref_kinds:
+      - preset_voice_id
+      - voice_asset_id
+voices:
+  - voice_set_id: ${FIXTURE_VOICE_SET_ID}
+    provider: ${FIXTURE_VOICE_PROVIDER}
+    voice_id: ${FIXTURE_VOICE_ID}
+    name: Runtime Live Voice
+    langs:
+      - zh
+      - en
+    model_ids:
+      - ${FIXTURE_VOICE_MODEL_ID}
+    source_ref:
+      url: http://127.0.0.1/runtime-agent-live-e2e/voice-catalog
+      retrieved_at: "2026-07-06"
+      note: Runtime Agent live fixture native TTS stream.
+voice_workflow_models:
+  - workflow_model_id: runtime-live-voice-clone
+    workflow_type: voice_clone
+    input_contract_ref: dashscope_fixture.voice_clone.v1
+    output_persistence: provider_persistent
+    target_model_refs:
+      - ${FIXTURE_VOICE_MODEL_ID}
+    langs:
+      - zh
+      - en
+    request_options:
+      text_prompt_mode: optional
+      supports_language_hints: true
+      supports_preferred_name: true
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types:
+        - audio/wav
+        - audio/mpeg
+    source_ref:
+      url: http://127.0.0.1/runtime-agent-live-e2e/voice-workflow
+      retrieved_at: "2026-07-06"
+      note: Runtime Agent live fixture custom VoiceAsset workflow.
+model_workflow_bindings:
+  - model_id: ${FIXTURE_VOICE_MODEL_ID}
+    workflow_model_refs:
+      - runtime-live-voice-clone
+    workflow_types:
+      - voice_clone
+voice_handle_policies:
+  - policy_id: runtime_live_provider_persistent_default
+    provider: ${FIXTURE_VOICE_PROVIDER}
+    applies_to_workflow_types:
+      - voice_clone
+    persistence: provider_persistent
+    default_ttl: durable_until_user_cleanup
+    scope: user_scoped
+    delete_semantics: best_effort_provider_delete
+    runtime_reconciliation_required: false
+    source_ref:
+      url: http://127.0.0.1/runtime-agent-live-e2e/voice-workflow
+      retrieved_at: "2026-07-06"
+      note: Runtime Agent live fixture custom VoiceAsset workflow.
+`;
+}
+
 function localAssetIdForCapability(capability: RuntimeAgentLiveE2ERouteProjection['capability']): string {
   if (capability === 'text.embed') {
     return LOCAL_EMBED_ASSET_ID;
@@ -311,19 +499,21 @@ function selectedTargetRefForFixtureCapability(
     readonly connectorModel?: ConnectorModelDescriptor;
   },
 ): NimiRuntimeRouteTargetRef {
-  if (capability === 'image.generate') {
-    const connectorId = requireText(input.connectorId, 'image connector id');
+  if (capability === 'image.generate' || capability === 'audio.synthesize') {
+    const provider = capability === 'image.generate' ? FIXTURE_IMAGE_PROVIDER : FIXTURE_VOICE_PROVIDER;
+    const label = capability === 'image.generate' ? 'image' : 'voice';
+    const connectorId = requireText(input.connectorId, `${label} connector id`);
     const model = input.connectorModel;
     if (!model) {
-      throw new Error('Runtime Agent live image route requires a connector model descriptor');
+      throw new Error(`Runtime Agent live ${label} route requires a connector model descriptor`);
     }
     return {
       kind: 'cloud-connector',
       version: 'v2',
       connectorId,
-      remoteModelCatalogId: requireText(model.remoteModelCatalogId, 'image remote model catalog id'),
-      providerModelId: requireText(model.providerModelId, 'image provider model id'),
-      provider: normalizeText(model.provider) || FIXTURE_IMAGE_PROVIDER,
+      remoteModelCatalogId: requireText(model.remoteModelCatalogId, `${label} remote model catalog id`),
+      providerModelId: requireText(model.providerModelId, `${label} provider model id`),
+      provider: normalizeText(model.provider) || provider,
     };
   }
   const localAssetId = localAssetIdForCapability(capability);

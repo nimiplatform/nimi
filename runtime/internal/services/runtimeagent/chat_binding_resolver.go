@@ -153,12 +153,15 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 	}
 	var textBinding *runtimev1.RuntimeAgentExecutionCapabilityBinding
 	var imageBinding *runtimev1.RuntimeAgentExecutionCapabilityBinding
+	var audioBinding *runtimev1.RuntimeAgentExecutionCapabilityBinding
 	for _, binding := range config.GetBindings() {
 		switch strings.TrimSpace(binding.GetCapability()) {
 		case executionCapabilityTextGenerate:
 			textBinding = binding
 		case executionCapabilityImageGenerate:
 			imageBinding = binding
+		case executionCapabilityAudioSynthesize:
+			audioBinding = binding
 		}
 	}
 	if textBinding == nil || strings.TrimSpace(textBinding.GetModelId()) == "" {
@@ -197,7 +200,35 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 	if imageBinding != nil {
 		out[executionCapabilityImageGenerate] = executionBindingFromConfigProto(imageBinding)
 	}
+	if audioBinding != nil {
+		out[executionCapabilityAudioSynthesize] = executionBindingFromConfigProto(audioBinding)
+	}
 	return out, config.GetRevision(), nil
+}
+
+func (s *Service) committedOptionalExecutionBinding(capability string) (publicChatExecutionBinding, bool, error) {
+	config, err := s.committedExecutionConfig()
+	if err != nil {
+		return publicChatExecutionBinding{}, false, err
+	}
+	trimmedCapability := strings.TrimSpace(capability)
+	if trimmedCapability == "" {
+		return publicChatExecutionBinding{}, false, nil
+	}
+	for _, binding := range config.GetBindings() {
+		if strings.TrimSpace(binding.GetCapability()) != trimmedCapability {
+			continue
+		}
+		resolved := executionBindingFromConfigProto(binding)
+		if strings.TrimSpace(resolved.ModelID) == "" ||
+			resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED ||
+			resolved.TargetRef == nil ||
+			resolved.TargetRef.GetTarget() == nil {
+			return publicChatExecutionBinding{}, true, status.Errorf(codes.FailedPrecondition, "runtime agent execution config %s binding is structurally invalid", trimmedCapability)
+		}
+		return resolved, true, nil
+	}
+	return publicChatExecutionBinding{}, false, nil
 }
 
 // deriveImageActionAvailability computes the K-AGCORE-148 tri-state for the

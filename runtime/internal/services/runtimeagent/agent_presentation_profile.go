@@ -25,6 +25,11 @@ func normalizeAgentPresentationProfile(input *runtimev1.AgentPresentationProfile
 	if err != nil {
 		return nil, err
 	}
+	speechModelID := strings.TrimSpace(input.GetSpeechModelId())
+	speechRoutePolicy := input.GetSpeechRoutePolicy()
+	if speechRoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED && agentRoutePolicyLabel(speechRoutePolicy) == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 	return &runtimev1.AgentPresentationProfile{
 		BackendKind:           backendKind,
 		AvatarAssetRef:        avatarAssetRef,
@@ -32,6 +37,9 @@ func normalizeAgentPresentationProfile(input *runtimev1.AgentPresentationProfile
 		IdlePreset:            strings.TrimSpace(input.GetIdlePreset()),
 		InteractionPolicyRef:  strings.TrimSpace(input.GetInteractionPolicyRef()),
 		DefaultVoiceReference: defaultVoiceReference,
+		AvatarAutoplay:        input.GetAvatarAutoplay(),
+		SpeechModelId:         speechModelID,
+		SpeechRoutePolicy:     speechRoutePolicy,
 	}, nil
 }
 
@@ -45,7 +53,7 @@ func normalizeDefaultVoiceReference(input string) (string, error) {
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	switch kind {
-	case "preset_voice_id", "voice_asset_id", "provider_voice_ref":
+	case "preset_voice_id", "voice_asset_id":
 		return kind + ":" + strings.TrimSpace(ref), nil
 	default:
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -91,6 +99,11 @@ func agentPresentationProfileMetadataValue(profile *runtimev1.AgentPresentationP
 		"idlePreset":            structValueString(profile.GetIdlePreset()),
 		"interactionPolicyRef":  structValueString(profile.GetInteractionPolicyRef()),
 		"defaultVoiceReference": structValueString(profile.GetDefaultVoiceReference()),
+		"speechModelId":         structValueString(profile.GetSpeechModelId()),
+		"speechRoutePolicy":     structValueString(agentRoutePolicyLabel(profile.GetSpeechRoutePolicy())),
+	}
+	if profile.GetAvatarAutoplay() {
+		fields["avatarAutoplay"] = structpb.NewBoolValue(true)
 	}
 	for key, value := range fields {
 		if value == nil {
@@ -98,6 +111,17 @@ func agentPresentationProfileMetadataValue(profile *runtimev1.AgentPresentationP
 		}
 	}
 	return structpb.NewStructValue(&structpb.Struct{Fields: fields}), nil
+}
+
+func agentRoutePolicyLabel(policy runtimev1.RoutePolicy) string {
+	switch policy {
+	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
+		return "local"
+	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
+		return "cloud"
+	default:
+		return ""
+	}
 }
 
 func mergeAgentPresentationProfileMetadata(metadata *structpb.Struct, profile *runtimev1.AgentPresentationProfile) (*structpb.Struct, error) {

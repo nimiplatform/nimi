@@ -60,7 +60,7 @@ func TestPublicChatTurnEventsCarryRuntimeTimelineEnvelope(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"request_id":             "timeline-request-1",
 			"messages": []any{
@@ -138,11 +138,13 @@ func TestPublicChatVoiceAndLipsyncTimelineEventsRequireRuntimeOwnedPayload(t *te
 	svc.chatSurfaceMu.Unlock()
 
 	if err := svc.publicChatRuntime().emitVoicePlaybackTimelineEvent(session, turn, publicChatVoicePlaybackProjection{
-		AudioArtifactID:  "artifact-voice-1",
-		AudioMimeType:    "audio/wav",
-		DurationMs:       1200,
-		DeadlineOffsetMs: 1500,
-		PlaybackState:    "requested",
+		AudioArtifactID:    "artifact-voice-1",
+		AudioMimeType:      "audio/wav",
+		DurationMs:         1200,
+		DeadlineOffsetMs:   1500,
+		PlaybackState:      "requested",
+		VoiceOutputMode:    "batch_final_artifact",
+		VoicePlaybackState: "active",
 	}); err != nil {
 		t.Fatalf("emitVoicePlaybackTimelineEvent: %v", err)
 	}

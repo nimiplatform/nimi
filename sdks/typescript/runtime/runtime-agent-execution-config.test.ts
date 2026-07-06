@@ -85,6 +85,24 @@ function committedConfig(): RuntimeAgentExecutionConfig {
           },
         },
       },
+      {
+        capability: 'audio.synthesize',
+        modelId: 'qwen3-tts-runtime-live-native-stream',
+        routePolicy: RoutePolicy.CLOUD,
+        connectorId: 'connector-voice-1',
+        targetRef: {
+          target: {
+            oneofKind: 'cloud',
+            cloud: {
+              version: 'v2',
+              connectorId: 'connector-voice-1',
+              remoteModelCatalogId: 'catalog-voice-1',
+              providerModelId: 'qwen3-tts-runtime-live-native-stream',
+              provider: 'dashscope',
+            },
+          },
+        },
+      },
     ],
     updatedAt: { seconds: '1700000000', nanos: 0 },
     updatedByAppId: 'runtime',
@@ -129,6 +147,19 @@ test('execution config get projects the committed config into the app-facing sna
       remoteModelCatalogId: 'catalog-1',
       providerModelId: 'gpt-image-1.5',
       provider: 'openai',
+    },
+  });
+  assert.deepEqual(snapshot.bindings['audio.synthesize'], {
+    route: 'cloud',
+    modelId: 'qwen3-tts-runtime-live-native-stream',
+    connectorId: 'connector-voice-1',
+    targetRef: {
+      kind: 'cloud-connector',
+      version: 'v2',
+      connectorId: 'connector-voice-1',
+      remoteModelCatalogId: 'catalog-voice-1',
+      providerModelId: 'qwen3-tts-runtime-live-native-stream',
+      provider: 'dashscope',
     },
   });
 });
@@ -341,6 +372,12 @@ test('execution readiness projects typed states and fails closed on unknown stat
               reasonCode: '',
               probedAt: { seconds: '1700000000', nanos: 0 },
             },
+            {
+              capability: 'audio.synthesize',
+              state: AgentExecutionReadinessState.NOT_CONFIGURED,
+              reasonCode: '',
+              probedAt: { seconds: '1700000000', nanos: 0 },
+            },
           ],
         },
       };
@@ -353,6 +390,7 @@ test('execution readiness projects typed states and fails closed on unknown stat
   assert.deepEqual(readiness.capabilities.map((entry) => [entry.capability, entry.state]), [
     ['text.generate', 'ready'],
     ['image.generate', 'not_configured'],
+    ['audio.synthesize', 'not_configured'],
   ]);
   assert.equal(readiness.capabilities[0]?.probedAt, new Date(1700000000000).toISOString());
 

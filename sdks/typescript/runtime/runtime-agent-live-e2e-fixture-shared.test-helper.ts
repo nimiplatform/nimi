@@ -41,6 +41,8 @@ export type RuntimeAgentLiveE2EFixtureContext = {
   readonly route: RuntimeAgentLiveE2ERouteProjection;
   readonly embeddingRoute: RuntimeAgentLiveE2ERouteProjection;
   readonly imageRoute: RuntimeAgentLiveE2ERouteProjection;
+  readonly voiceRoute: RuntimeAgentLiveE2ERouteProjection;
+  readonly voiceAsset: RuntimeAgentLiveE2EVoiceAssetProjection;
   readonly sourceRef: NimiRealmCoreSourceRef;
   readonly sourceMaterializationPacket: NimiRealmSourceMaterializationPacket;
   readonly createSourceMaterializationPacket: () => Promise<NimiRealmSourceMaterializationPacket>;
@@ -54,7 +56,7 @@ export type RuntimeAgentLiveE2EFixtureContext = {
 };
 
 export type RuntimeAgentLiveE2ERouteProjection = {
-  readonly capability: 'text.generate' | 'text.embed' | 'image.generate';
+  readonly capability: 'text.generate' | 'text.embed' | 'image.generate' | 'audio.synthesize';
   readonly selectedTargetRefKind: string;
   readonly resolvedBindingRef: string;
   readonly targetRef: NimiRuntimeRouteTargetRef;
@@ -63,6 +65,12 @@ export type RuntimeAgentLiveE2ERouteProjection = {
     readonly modelId: string;
     readonly connectorId?: string;
   };
+};
+
+export type RuntimeAgentLiveE2EVoiceAssetProjection = {
+  readonly voiceAssetId: string;
+  readonly providerVoiceRef: string;
+  readonly defaultVoiceReference: string;
 };
 
 export type RuntimeAgentLiveE2EDeveloperRegisteredAccountInput = {
@@ -103,6 +111,11 @@ export const LOCAL_EMBED_DIMENSIONS = 4;
 export const FIXTURE_IMAGE_PROVIDER = 'openai';
 export const FIXTURE_IMAGE_MODEL_ID = 'gpt-image-1.5';
 export const FIXTURE_IMAGE_CONNECTOR_LABEL = 'Runtime Agent live image fixture';
+export const FIXTURE_VOICE_PROVIDER = 'dashscope';
+export const FIXTURE_VOICE_MODEL_ID = 'qwen3-tts-runtime-live-native-stream';
+export const FIXTURE_VOICE_CONNECTOR_LABEL = 'Runtime Agent live voice fixture';
+export const FIXTURE_VOICE_ID = 'runtime-live-voice';
+export const FIXTURE_VOICE_SET_ID = 'dashscope:runtime-agent-live-e2e-voice-set';
 export const LOCAL_IMAGE_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
 

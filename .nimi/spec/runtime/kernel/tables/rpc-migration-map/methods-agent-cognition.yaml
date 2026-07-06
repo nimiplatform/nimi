@@ -13,7 +13,7 @@ surfaces:
 services:
   - RuntimeCognitionService
   - RuntimeAgentService
-method_count: 87
+method_count: 89
 method_mappings:
   - design_service: RuntimeCognitionService
     design_method: CreateKnowledgeBank
@@ -434,6 +434,16 @@ method_mappings:
     design_method: SubscribeAgentEvents
     proto_service: RuntimeAgentService
     proto_method: SubscribeAgentEvents
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: SubscribeAgentVoiceStream
+    proto_service: RuntimeAgentService
+    proto_method: SubscribeAgentVoiceStream
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: InterruptAgentVoicePlayback
+    proto_service: RuntimeAgentService
+    proto_method: InterruptAgentVoicePlayback
     mapping_posture: aligned
   - design_service: RuntimeAgentService
     design_method: GetAgentExecutionConfig

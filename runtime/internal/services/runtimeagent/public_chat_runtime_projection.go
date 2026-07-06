@@ -111,7 +111,20 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 		DefaultVoiceReference: policy.DefaultVoiceReference,
 		SpeechModelID:         policy.SpeechModelID,
 		SpeechRoutePolicy:     policy.SpeechRoutePolicy,
+		SpeechConnectorID:     policy.SpeechConnectorID,
+		SpeechTargetRef:       clonePublicChatTargetRef(policy.SpeechTargetRef),
 		AgentID:               session.AgentID,
+	}
+	if streamed, err := r.projectCommittedNativeVoiceStream(session, turn, synthesisInput); streamed {
+		if err != nil && r.svc.logger != nil {
+			r.svc.logger.Warn("native voice stream synthesis failed",
+				"agent_id", session.AgentID,
+				"turn_id", turnID,
+				"message_id", messageID,
+				"error", err,
+			)
+		}
+		return
 	}
 	out, err := r.svc.voiceLipsync.synthesize(synthesisInput)
 	if err != nil {
@@ -151,14 +164,16 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 		return
 	}
 	if err := r.emitVoiceStreamChunkTimelineEvent(session, turn, publicChatVoiceStreamChunkProjection{
-		AudioArtifactID: out.AudioArtifactID,
-		AudioMimeType:   out.AudioMimeType,
-		MessageID:       messageID,
-		ChunkSequence:   1,
-		FinalChunk:      true,
-		DurationMs:      out.DurationMs,
-		Reason:          "final_artifact_available",
-		PlaybackTarget:  "avatar_autoplay",
+		AudioArtifactID:    out.AudioArtifactID,
+		AudioMimeType:      out.AudioMimeType,
+		MessageID:          messageID,
+		ChunkSequence:      1,
+		FinalChunk:         true,
+		VoiceOutputMode:    "batch_final_artifact",
+		VoicePlaybackState: "active",
+		DurationMs:         out.DurationMs,
+		Reason:             "final_artifact_available",
+		PlaybackTarget:     "avatar_autoplay",
 	}); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit voice_stream_chunk_available failed",
 			"agent_id", session.AgentID,
@@ -176,6 +191,8 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 		DefaultVoiceReference: out.DefaultVoiceReference,
 		VoiceRouteBinding:     out.VoiceRouteBinding,
 		PlaybackState:         "requested",
+		VoiceOutputMode:       "batch_final_artifact",
+		VoicePlaybackState:    "active",
 		PlaybackTarget:        "avatar_autoplay",
 		FinalArtifact:         true,
 	}); err != nil && r.svc.logger != nil {
@@ -201,11 +218,141 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 	}
 }
 
+func (r publicChatRuntime) projectCommittedNativeVoiceStream(session publicChatAnchorState, turn publicChatTurnState, input voiceLipsyncSynthesisInput) (bool, error) {
+	if r.svc == nil || r.svc.voiceLipsync == nil {
+		return false, nil
+	}
+	streamer, ok := r.svc.voiceLipsync.(voiceLipsyncNativeStreamSynthesizer)
+	if !ok {
+		return false, nil
+	}
+	messageID := strings.TrimSpace(input.MessageID)
+	voiceStreamID := runtimeAgentVoiceStreamID(input.TurnID, input.MessageID)
+	parentCtx := input.Context
+	if parentCtx == nil {
+		parentCtx = context.Background()
+	}
+	streamCtx, cancel := context.WithCancel(parentCtx)
+	defer cancel()
+	unregisterCancel := r.svc.registerAgentVoiceStreamCancel(voiceStreamID, cancel)
+	defer unregisterCancel()
+	streamInput := input
+	streamInput.Context = streamCtx
+	var emittedChunks uint64
+	out, streamed, err := streamer.synthesizeNativeStream(streamInput, func(chunk voiceLipsyncNativeStreamChunk) error {
+		r.svc.publishAgentVoiceStreamEvent(&runtimev1.AgentVoiceStreamEvent{
+			VoiceStreamId:        voiceStreamID,
+			ConversationAnchorId: session.ConversationAnchorID,
+			TurnId:               turn.TurnID,
+			StreamId:             turn.StreamID,
+			MessageId:            messageID,
+			ChunkSequence:        chunk.Sequence,
+			Chunk:                append([]byte(nil), chunk.Bytes...),
+			MimeType:             chunk.MimeType,
+			VoiceOutputMode:      runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
+			PlaybackTarget:       "avatar_autoplay",
+			VoicePlaybackState:   runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_ACTIVE,
+		})
+		if err := r.emitVoiceStreamChunkTimelineEvent(session, turn, publicChatVoiceStreamChunkProjection{
+			AudioMimeType:      chunk.MimeType,
+			VoiceStreamID:      voiceStreamID,
+			ChunkTransportRef:  runtimeAgentVoiceStreamChunkTransportRef(voiceStreamID, chunk.Sequence),
+			MessageID:          messageID,
+			ChunkSequence:      chunk.Sequence,
+			FinalChunk:         false,
+			VoiceOutputMode:    "native_stream",
+			VoicePlaybackState: "active",
+			Reason:             "native_stream_chunk_available",
+			PlaybackTarget:     "avatar_autoplay",
+		}); err != nil {
+			return err
+		}
+		emittedChunks = chunk.Sequence
+		return nil
+	})
+	if !streamed {
+		return false, nil
+	}
+	if err != nil {
+		if r.svc.agentVoiceStreamTerminalState(voiceStreamID) == runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_INTERRUPTED {
+			return true, nil
+		}
+		return true, err
+	}
+	if emittedChunks == 0 {
+		return true, nil
+	}
+	if err := r.svc.putGeneratedVoiceArtifactBytes(
+		out.AudioArtifactID,
+		out.AudioBytes,
+		out.AudioMimeType,
+		input,
+		session,
+		"generated_agent_voice",
+	); err != nil {
+		return true, err
+	}
+	if err := r.svc.verifyVoiceAudioArtifact(out); err != nil {
+		return true, err
+	}
+	if err := r.emitVoicePlaybackTimelineEvent(session, turn, publicChatVoicePlaybackProjection{
+		AudioArtifactID:       out.AudioArtifactID,
+		AudioMimeType:         out.AudioMimeType,
+		VoiceStreamID:         voiceStreamID,
+		MessageID:             messageID,
+		DurationMs:            out.DurationMs,
+		DefaultVoiceReference: out.DefaultVoiceReference,
+		VoiceRouteBinding:     out.VoiceRouteBinding,
+		PlaybackState:         "requested",
+		VoiceOutputMode:       "native_stream",
+		VoicePlaybackState:    "active",
+		PlaybackTarget:        "avatar_autoplay",
+		FinalArtifact:         true,
+		Reason:                "native_stream_final_artifact_available",
+	}); err != nil {
+		return true, err
+	}
+	if err := r.emitLipsyncFrameBatchTimelineEvent(session, turn, publicChatLipsyncFrameBatchProjection{
+		AudioArtifactID: out.AudioArtifactID,
+		Frames:          out.Frames,
+	}); err != nil {
+		return true, err
+	}
+	if err := r.emitVoicePlaybackTerminalTimelineEvent(session, turn, publicChatVoicePlaybackTerminalProjection{
+		VoiceStreamID:      voiceStreamID,
+		AudioArtifactID:    out.AudioArtifactID,
+		AudioMimeType:      out.AudioMimeType,
+		MessageID:          messageID,
+		VoiceOutputMode:    "native_stream",
+		VoicePlaybackState: "completed",
+		PlaybackTarget:     "avatar_autoplay",
+		TerminalReason:     "native_stream_completed",
+	}); err != nil {
+		return true, err
+	}
+	r.svc.publishAgentVoiceStreamEvent(&runtimev1.AgentVoiceStreamEvent{
+		VoiceStreamId:        voiceStreamID,
+		ConversationAnchorId: session.ConversationAnchorID,
+		TurnId:               turn.TurnID,
+		StreamId:             turn.StreamID,
+		MessageId:            messageID,
+		MimeType:             out.AudioMimeType,
+		VoiceOutputMode:      runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
+		PlaybackTarget:       "avatar_autoplay",
+		Terminal:             true,
+		VoicePlaybackState:   runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_COMPLETED,
+		TerminalReason:       "native_stream_completed",
+	})
+	return true, nil
+}
+
 type agentVoiceOutputPolicy struct {
 	AvatarAutoplay        bool
 	DefaultVoiceReference string
 	SpeechModelID         string
 	SpeechRoutePolicy     runtimev1.RoutePolicy
+	SpeechConnectorID     string
+	SpeechTargetRef       *runtimev1.RuntimeDurableTargetRef
 }
 
 func (r publicChatRuntime) agentVoiceOutputPolicyForSession(session publicChatAnchorState) (agentVoiceOutputPolicy, bool) {
@@ -217,12 +364,20 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(session publicChatAn
 	if err != nil || voiceRef == "" {
 		return agentVoiceOutputPolicy{}, false
 	}
-	modelID := strings.TrimSpace(profileString(profile, "speechModelId", "speech_model_id"))
-	if modelID == "" {
+	audioBinding, ok, err := r.svc.committedOptionalExecutionBinding(executionCapabilityAudioSynthesize)
+	if err != nil || !ok {
 		return agentVoiceOutputPolicy{}, false
 	}
-	routePolicy := speechRoutePolicyFromProfile(profile)
-	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+	modelID := strings.TrimSpace(audioBinding.ModelID)
+	routePolicy := audioBinding.RoutePolicy
+	if modelID == "" || routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED ||
+		audioBinding.TargetRef == nil || audioBinding.TargetRef.GetTarget() == nil {
+		return agentVoiceOutputPolicy{}, false
+	}
+	if profileModelID := strings.TrimSpace(profileString(profile, "speechModelId", "speech_model_id")); profileModelID != "" && profileModelID != modelID {
+		return agentVoiceOutputPolicy{}, false
+	}
+	if profileRoutePolicy := speechRoutePolicyFromProfile(profile); profileRoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED && profileRoutePolicy != routePolicy {
 		return agentVoiceOutputPolicy{}, false
 	}
 	return agentVoiceOutputPolicy{
@@ -230,6 +385,8 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(session publicChatAn
 		DefaultVoiceReference: voiceRef,
 		SpeechModelID:         modelID,
 		SpeechRoutePolicy:     routePolicy,
+		SpeechConnectorID:     audioBinding.ConnectorID,
+		SpeechTargetRef:       clonePublicChatTargetRef(audioBinding.TargetRef),
 	}, true
 }
 
@@ -253,22 +410,6 @@ func (r publicChatRuntime) defaultVoiceReferenceForSession(session publicChatAnc
 	return normalized
 }
 
-func (r publicChatRuntime) speechModelIDForSession(session publicChatAnchorState) string {
-	profile := r.profileContextForSession(session)
-	if profile == nil {
-		return ""
-	}
-	return strings.TrimSpace(profileString(profile, "speechModelId", "speech_model_id"))
-}
-
-func (r publicChatRuntime) speechRoutePolicyForSession(session publicChatAnchorState) runtimev1.RoutePolicy {
-	profile := r.profileContextForSession(session)
-	if profile == nil {
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED
-	}
-	return speechRoutePolicyFromProfile(profile)
-}
-
 func speechRoutePolicyFromProfile(profile map[string]*structpb.Value) runtimev1.RoutePolicy {
 	switch strings.ToLower(strings.TrimSpace(profileString(profile, "speechRoutePolicy", "speech_route_policy"))) {
 	case "local":
@@ -281,6 +422,9 @@ func speechRoutePolicyFromProfile(profile map[string]*structpb.Value) runtimev1.
 }
 
 func (r publicChatRuntime) profileContextForSession(session publicChatAnchorState) map[string]*structpb.Value {
+	if profile := r.agentPresentationProfileContextForSession(session); profile != nil {
+		return profile
+	}
 	if r.svc == nil || r.svc.chatStateRepo == nil {
 		return nil
 	}
@@ -289,6 +433,25 @@ func (r publicChatRuntime) profileContextForSession(session publicChatAnchorStat
 		return nil
 	}
 	return conversationAnchorProfileContext(metadata)
+}
+
+func (r publicChatRuntime) agentPresentationProfileContextForSession(session publicChatAnchorState) map[string]*structpb.Value {
+	if r.svc == nil {
+		return nil
+	}
+	entry, err := r.svc.agentByID(strings.TrimSpace(session.AgentID))
+	if err != nil || entry == nil || entry.Agent == nil {
+		return nil
+	}
+	metadata := entry.Agent.GetMetadata()
+	if metadata == nil {
+		return nil
+	}
+	profile := metadata.GetFields()["presentationProfile"].GetStructValue()
+	if profile == nil || len(profile.GetFields()) == 0 {
+		return nil
+	}
+	return profile.GetFields()
 }
 
 // emitTurnEvent composes the runtime.agent.turn.* envelope per

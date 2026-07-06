@@ -74,6 +74,7 @@ func (s *voiceAssetStore) deleteAssetWithResult(voiceAssetID string, result voic
 	nowTime := time.Now().UTC()
 	asset.UpdatedAt = timestamppb.New(nowTime)
 	applyVoiceAssetDeleteResultMetadata(asset, result, nowTime)
+	_ = s.persistDurableAssetsLocked()
 	s.mu.Unlock()
 	return true
 }
@@ -92,6 +93,7 @@ func (s *voiceAssetStore) updateAssetDeleteResult(voiceAssetID string, result vo
 	nowTime := time.Now().UTC()
 	asset.UpdatedAt = timestamppb.New(nowTime)
 	applyVoiceAssetDeleteResultMetadata(asset, result, nowTime)
+	_ = s.persistDurableAssetsLocked()
 	s.mu.Unlock()
 	return true
 }
@@ -110,6 +112,7 @@ func (s *voiceAssetStore) updateDeletedAssetReconciliationResult(voiceAssetID st
 	nowTime := time.Now().UTC()
 	asset.UpdatedAt = timestamppb.New(nowTime)
 	applyVoiceAssetDeleteResultMetadata(asset, result, nowTime)
+	_ = s.persistDurableAssetsLocked()
 	s.mu.Unlock()
 	return true
 }

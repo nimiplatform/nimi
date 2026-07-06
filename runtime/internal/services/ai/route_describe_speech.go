@@ -43,6 +43,7 @@ type speechSynthesizeRouteDescribeMetadataPayload struct {
 	SupportedTimingModes           []string                                         `json:"supportedTimingModes"`
 	SupportsLanguage               bool                                             `json:"supportsLanguage"`
 	SupportsEmotion                bool                                             `json:"supportsEmotion"`
+	SupportsNativeStreamTTS        bool                                             `json:"supportsNativeStreamTts"`
 	VoiceRenderHints               *speechSynthesizeVoiceRenderHintsMetadataPayload `json:"voiceRenderHints,omitempty"`
 	ProviderExtensionNamespace     string                                           `json:"providerExtensionNamespace,omitempty"`
 	ProviderExtensionSchemaVersion string                                           `json:"providerExtensionSchemaVersion,omitempty"`
@@ -230,10 +231,11 @@ func (s *Service) describeSpeechSynthesizeRouteMetadata(
 	}
 
 	metadataPayload := speechSynthesizeRouteDescribeMetadataPayload{
-		SupportedAudioFormats: append([]string(nil), model.VoiceRequestOptions.AudioFormats...),
-		SupportedTimingModes:  append([]string(nil), model.VoiceRequestOptions.TimingModes...),
-		SupportsLanguage:      model.VoiceRequestOptions.SupportsLanguage,
-		SupportsEmotion:       model.VoiceRequestOptions.SupportsEmotion,
+		SupportedAudioFormats:   append([]string(nil), model.VoiceRequestOptions.AudioFormats...),
+		SupportedTimingModes:    append([]string(nil), model.VoiceRequestOptions.TimingModes...),
+		SupportsLanguage:        model.VoiceRequestOptions.SupportsLanguage,
+		SupportsEmotion:         model.VoiceRequestOptions.SupportsEmotion,
+		SupportsNativeStreamTTS: model.VoiceRequestOptions.SupportsNativeStreamTTS,
 	}
 	if len(metadataPayload.SupportedAudioFormats) > 0 {
 		metadataPayload.DefaultAudioFormat = strings.TrimSpace(metadataPayload.SupportedAudioFormats[0])

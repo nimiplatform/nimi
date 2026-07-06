@@ -1,4 +1,5 @@
 import {
+  AgentEventType,
   ReasonCode as RuntimeGeneratedReasonCode,
   type AppMessageEvent,
   type GetPublicChatSessionSnapshotRequest,
@@ -447,7 +448,12 @@ export function createNimiRuntimeAgentTurnsModule(
           runtime.agents.subscribeAgentEvents({
             agentId: '',
             cursor,
-            eventFilters: [1, 2, 3],
+            eventFilters: [
+              AgentEventType.HOOK,
+              AgentEventType.STATE,
+              AgentEventType.PRESENTATION,
+              AgentEventType.AVATAR_DEBUG,
+            ],
             context: requestContext({
               runtimeAppId: runtime.appId,
               subjectUserId,

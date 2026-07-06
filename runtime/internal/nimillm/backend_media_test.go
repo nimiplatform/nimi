@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,6 +17,55 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+type fakeStreamingSpeechProvider struct{}
+
+func (fakeStreamingSpeechProvider) StreamSynthesizeSpeech(
+	_ context.Context,
+	_ string,
+	_ *runtimev1.SpeechSynthesizeScenarioSpec,
+	_ map[string]any,
+	onChunk func(SpeechStreamChunk) error,
+) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if onChunk == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED, errors.New("missing chunk callback")
+	}
+	if err := onChunk(SpeechStreamChunk{
+		Sequence:     42,
+		MIMEType:     "audio/mpeg",
+		SampleRateHz: 24000,
+		TraceID:      "trace-native-tts",
+		Bytes:        []byte("native-audio"),
+	}); err != nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED, err
+	}
+	return &runtimev1.UsageStats{OutputTokens: 7}, runtimev1.FinishReason_FINISH_REASON_STOP, nil
+}
+
+var _ StreamingSpeechProvider = fakeStreamingSpeechProvider{}
+
+func TestSpeechStreamChunkContractCarriesNativeMetadata(t *testing.T) {
+	var got SpeechStreamChunk
+	usage, finish, err := fakeStreamingSpeechProvider{}.StreamSynthesizeSpeech(
+		context.Background(),
+		"tts-native",
+		&runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello"},
+		map[string]any{"fixture": true},
+		func(chunk SpeechStreamChunk) error {
+			got = chunk
+			return nil
+		},
+	)
+	if err != nil {
+		t.Fatalf("StreamSynthesizeSpeech: %v", err)
+	}
+	if usage.GetOutputTokens() != 7 || finish != runtimev1.FinishReason_FINISH_REASON_STOP {
+		t.Fatalf("unexpected terminal metadata: usage=%v finish=%v", usage, finish)
+	}
+	if got.Sequence != 42 || got.MIMEType != "audio/mpeg" || got.SampleRateHz != 24000 || got.TraceID != "trace-native-tts" || string(got.Bytes) != "native-audio" {
+		t.Fatalf("speech stream chunk metadata mismatch: %#v", got)
+	}
+}
 
 func TestBackendGenerateImageForwardsScenarioExtensions(t *testing.T) {
 	var captured map[string]any

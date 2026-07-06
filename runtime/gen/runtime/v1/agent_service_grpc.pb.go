@@ -72,6 +72,8 @@ const (
 	RuntimeAgentService_ListParticipationAuditEvents_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents"
 	RuntimeAgentService_GetParticipationReplay_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay"
 	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
+	RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream"
+	RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback"
 	RuntimeAgentService_GetAgentExecutionConfig_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig"
 	RuntimeAgentService_UpsertAgentExecutionConfig_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig"
 	RuntimeAgentService_GetAgentExecutionReadiness_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness"
@@ -136,6 +138,8 @@ type RuntimeAgentServiceClient interface {
 	ListParticipationAuditEvents(ctx context.Context, in *ListParticipationAuditEventsRequest, opts ...grpc.CallOption) (*ListParticipationAuditEventsResponse, error)
 	GetParticipationReplay(ctx context.Context, in *GetParticipationReplayRequest, opts ...grpc.CallOption) (*GetParticipationReplayResponse, error)
 	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
+	SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error)
+	InterruptAgentVoicePlayback(ctx context.Context, in *InterruptAgentVoicePlaybackRequest, opts ...grpc.CallOption) (*InterruptAgentVoicePlaybackResponse, error)
 	// K-AGCORE-144..150 Runtime Agent execution config surface.
 	GetAgentExecutionConfig(ctx context.Context, in *GetAgentExecutionConfigRequest, opts ...grpc.CallOption) (*GetAgentExecutionConfigResponse, error)
 	UpsertAgentExecutionConfig(ctx context.Context, in *UpsertAgentExecutionConfigRequest, opts ...grpc.CallOption) (*UpsertAgentExecutionConfigResponse, error)
@@ -690,6 +694,35 @@ func (c *runtimeAgentServiceClient) SubscribeAgentEvents(ctx context.Context, in
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAgentService_SubscribeAgentEventsClient = grpc.ServerStreamingClient[AgentEvent]
 
+func (c *runtimeAgentServiceClient) SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[1], RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SubscribeAgentVoiceStreamRequest, AgentVoiceStreamEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAgentService_SubscribeAgentVoiceStreamClient = grpc.ServerStreamingClient[AgentVoiceStreamEvent]
+
+func (c *runtimeAgentServiceClient) InterruptAgentVoicePlayback(ctx context.Context, in *InterruptAgentVoicePlaybackRequest, opts ...grpc.CallOption) (*InterruptAgentVoicePlaybackResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InterruptAgentVoicePlaybackResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAgentServiceClient) GetAgentExecutionConfig(ctx context.Context, in *GetAgentExecutionConfigRequest, opts ...grpc.CallOption) (*GetAgentExecutionConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetAgentExecutionConfigResponse)
@@ -722,7 +755,7 @@ func (c *runtimeAgentServiceClient) GetAgentExecutionReadiness(ctx context.Conte
 
 func (c *runtimeAgentServiceClient) SubscribeAgentExecutionReadiness(ctx context.Context, in *SubscribeAgentExecutionReadinessRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentExecutionReadinessSnapshot], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[1], RuntimeAgentService_SubscribeAgentExecutionReadiness_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[2], RuntimeAgentService_SubscribeAgentExecutionReadiness_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -797,6 +830,8 @@ type RuntimeAgentServiceServer interface {
 	ListParticipationAuditEvents(context.Context, *ListParticipationAuditEventsRequest) (*ListParticipationAuditEventsResponse, error)
 	GetParticipationReplay(context.Context, *GetParticipationReplayRequest) (*GetParticipationReplayResponse, error)
 	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
+	SubscribeAgentVoiceStream(*SubscribeAgentVoiceStreamRequest, grpc.ServerStreamingServer[AgentVoiceStreamEvent]) error
+	InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error)
 	// K-AGCORE-144..150 Runtime Agent execution config surface.
 	GetAgentExecutionConfig(context.Context, *GetAgentExecutionConfigRequest) (*GetAgentExecutionConfigResponse, error)
 	UpsertAgentExecutionConfig(context.Context, *UpsertAgentExecutionConfigRequest) (*UpsertAgentExecutionConfigResponse, error)
@@ -969,6 +1004,12 @@ func (UnimplementedRuntimeAgentServiceServer) GetParticipationReplay(context.Con
 }
 func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAgentEvents not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentVoiceStream(*SubscribeAgentVoiceStreamRequest, grpc.ServerStreamingServer[AgentVoiceStreamEvent]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeAgentVoiceStream not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InterruptAgentVoicePlayback not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetAgentExecutionConfig(context.Context, *GetAgentExecutionConfigRequest) (*GetAgentExecutionConfigResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAgentExecutionConfig not implemented")
@@ -1949,6 +1990,35 @@ func _RuntimeAgentService_SubscribeAgentEvents_Handler(srv interface{}, stream g
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAgentService_SubscribeAgentEventsServer = grpc.ServerStreamingServer[AgentEvent]
 
+func _RuntimeAgentService_SubscribeAgentVoiceStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeAgentVoiceStreamRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeAgentServiceServer).SubscribeAgentVoiceStream(m, &grpc.GenericServerStream[SubscribeAgentVoiceStreamRequest, AgentVoiceStreamEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAgentService_SubscribeAgentVoiceStreamServer = grpc.ServerStreamingServer[AgentVoiceStreamEvent]
+
+func _RuntimeAgentService_InterruptAgentVoicePlayback_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InterruptAgentVoicePlaybackRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).InterruptAgentVoicePlayback(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).InterruptAgentVoicePlayback(ctx, req.(*InterruptAgentVoicePlaybackRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAgentService_GetAgentExecutionConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetAgentExecutionConfigRequest)
 	if err := dec(in); err != nil {
@@ -2230,6 +2300,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAgentService_GetParticipationReplay_Handler,
 		},
 		{
+			MethodName: "InterruptAgentVoicePlayback",
+			Handler:    _RuntimeAgentService_InterruptAgentVoicePlayback_Handler,
+		},
+		{
 			MethodName: "GetAgentExecutionConfig",
 			Handler:    _RuntimeAgentService_GetAgentExecutionConfig_Handler,
 		},
@@ -2246,6 +2320,11 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeAgentEvents",
 			Handler:       _RuntimeAgentService_SubscribeAgentEvents_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SubscribeAgentVoiceStream",
+			Handler:       _RuntimeAgentService_SubscribeAgentVoiceStream_Handler,
 			ServerStreams: true,
 		},
 		{

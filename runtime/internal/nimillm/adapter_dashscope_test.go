@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"golang.org/x/net/websocket"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -246,6 +249,174 @@ func TestExecuteAlibabaNativeCosyVoiceTTSUsesSpeechSynthesizerContract(t *testin
 	hints, ok := input["language_hints"].([]any)
 	if !ok || len(hints) != 1 || strings.TrimSpace(toString(hints[0])) != "zh" {
 		t.Fatalf("unexpected language_hints: %#v", input["language_hints"])
+	}
+}
+
+func TestBackendStreamSynthesizeSpeechDashScopeCosyVoiceUsesWebSocketProtocol(t *testing.T) {
+	type capture struct {
+		authHeader string
+		actions    []string
+		run        map[string]any
+		continue_  map[string]any
+		finish     map[string]any
+	}
+	captureCh := make(chan capture, 1)
+	errCh := make(chan error, 1)
+	server := httptest.NewServer(websocket.Handler(func(conn *websocket.Conn) {
+		var got capture
+		got.authHeader = strings.TrimSpace(conn.Request().Header.Get("Authorization"))
+		receive := func(label string) (map[string]any, bool) {
+			var payload map[string]any
+			if err := websocket.JSON.Receive(conn, &payload); err != nil {
+				errCh <- fmt.Errorf("receive %s: %w", label, err)
+				return nil, false
+			}
+			header, _ := payload["header"].(map[string]any)
+			got.actions = append(got.actions, strings.TrimSpace(ValueAsString(header["action"])))
+			return payload, true
+		}
+
+		var ok bool
+		if got.run, ok = receive("run-task"); !ok {
+			return
+		}
+		runHeader, _ := got.run["header"].(map[string]any)
+		if err := websocket.JSON.Send(conn, map[string]any{
+			"header": map[string]any{
+				"task_id": strings.TrimSpace(ValueAsString(runHeader["task_id"])),
+				"event":   "task-started",
+			},
+			"payload": map[string]any{},
+		}); err != nil {
+			errCh <- fmt.Errorf("send task-started: %w", err)
+			return
+		}
+		if got.continue_, ok = receive("continue-task"); !ok {
+			return
+		}
+		if err := websocket.JSON.Send(conn, map[string]any{
+			"header": map[string]any{"event": "result-generated"},
+			"payload": map[string]any{
+				"output": map[string]any{"type": "sentence-synthesis"},
+			},
+		}); err != nil {
+			errCh <- fmt.Errorf("send result-generated: %w", err)
+			return
+		}
+		if err := websocket.Message.Send(conn, []byte("dashscope-native-audio-1")); err != nil {
+			errCh <- fmt.Errorf("send binary audio 1: %w", err)
+			return
+		}
+		if got.finish, ok = receive("finish-task"); !ok {
+			return
+		}
+		if err := websocket.JSON.Send(conn, map[string]any{
+			"header": map[string]any{"event": "result-generated"},
+			"payload": map[string]any{
+				"output": map[string]any{"type": "sentence-synthesis"},
+			},
+		}); err != nil {
+			errCh <- fmt.Errorf("send final result-generated: %w", err)
+			return
+		}
+		if err := websocket.Message.Send(conn, []byte("dashscope-native-audio-2")); err != nil {
+			errCh <- fmt.Errorf("send binary audio 2: %w", err)
+			return
+		}
+		if err := websocket.JSON.Send(conn, map[string]any{
+			"header":  map[string]any{"event": "task-finished"},
+			"payload": map[string]any{"usage": map[string]any{"characters": 12}},
+		}); err != nil {
+			errCh <- fmt.Errorf("send task-finished: %w", err)
+			return
+		}
+		captureCh <- got
+	}))
+	defer func() { server.Close() }()
+
+	backend := newBackend("cloud-dashscope", server.URL, "test-api-key", nil, 10*time.Second, nil, false, true)
+	var chunks [][]byte
+	usage, finish, err := backend.StreamSynthesizeSpeech(context.Background(), "cosyvoice-v3-flash", &runtimev1.SpeechSynthesizeScenarioSpec{
+		Text:         "你好，Nimi。",
+		Language:     "zh",
+		AudioFormat:  "mp3",
+		SampleRateHz: 24000,
+		Speed:        0.9,
+		Pitch:        1.1,
+		Volume:       50,
+		VoiceRef: &runtimev1.VoiceReference{
+			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
+			Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
+				ProviderVoiceRef: "dashscope-custom-voice",
+			},
+		},
+	}, map[string]any{
+		"instruction": "温柔但清晰。",
+	}, func(chunk SpeechStreamChunk) error {
+		chunks = append(chunks, append([]byte(nil), chunk.Bytes...))
+		if chunk.MIMEType != "audio/mpeg" {
+			return fmt.Errorf("chunk MIME=%q, want audio/mpeg", chunk.MIMEType)
+		}
+		if chunk.SampleRateHz != 24000 {
+			return fmt.Errorf("chunk sample rate=%d, want 24000", chunk.SampleRateHz)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("StreamSynthesizeSpeech dashscope websocket: %v", err)
+	}
+	if finish != runtimev1.FinishReason_FINISH_REASON_STOP {
+		t.Fatalf("finish=%s, want STOP", finish.String())
+	}
+	if usage == nil || usage.GetInputTokens() <= 0 || usage.GetOutputTokens() <= 0 {
+		t.Fatalf("usage must include estimated input/output, got %#v", usage)
+	}
+	if len(chunks) != 2 || string(chunks[0]) != "dashscope-native-audio-1" || string(chunks[1]) != "dashscope-native-audio-2" {
+		t.Fatalf("unexpected chunks: %#v", chunks)
+	}
+
+	select {
+	case handlerErr := <-errCh:
+		t.Fatalf("websocket handler error: %v", handlerErr)
+	default:
+	}
+	var got capture
+	select {
+	case got = <-captureCh:
+	case <-time.After(2 * time.Second):
+		t.Fatal("websocket handler did not capture request")
+	}
+	if got.authHeader != "Bearer test-api-key" {
+		t.Fatalf("authorization header=%q", got.authHeader)
+	}
+	if strings.Join(got.actions, ",") != "run-task,continue-task,finish-task" {
+		t.Fatalf("actions=%v", got.actions)
+	}
+	runPayload, _ := got.run["payload"].(map[string]any)
+	params, _ := runPayload["parameters"].(map[string]any)
+	if gotModel := strings.TrimSpace(ValueAsString(runPayload["model"])); gotModel != "cosyvoice-v3-flash" {
+		t.Fatalf("run model=%q", gotModel)
+	}
+	if gotVoice := strings.TrimSpace(ValueAsString(params["voice"])); gotVoice != "dashscope-custom-voice" {
+		t.Fatalf("run voice=%q", gotVoice)
+	}
+	if gotFormat := strings.TrimSpace(ValueAsString(params["format"])); gotFormat != "mp3" {
+		t.Fatalf("run format=%q", gotFormat)
+	}
+	if gotRate := ValueAsInt64(params["sample_rate"]); gotRate != 24000 {
+		t.Fatalf("run sample_rate=%d", gotRate)
+	}
+	if gotInstruction := strings.TrimSpace(ValueAsString(params["instruction"])); gotInstruction != "温柔但清晰。" {
+		t.Fatalf("run instruction=%q", gotInstruction)
+	}
+	continuePayload, _ := got.continue_["payload"].(map[string]any)
+	continueInput, _ := continuePayload["input"].(map[string]any)
+	if gotText := strings.TrimSpace(ValueAsString(continueInput["text"])); gotText != "你好，Nimi。" {
+		t.Fatalf("continue text=%q", gotText)
+	}
+	finishHeader, _ := got.finish["header"].(map[string]any)
+	if gotAction := strings.TrimSpace(ValueAsString(finishHeader["action"])); gotAction != "finish-task" {
+		t.Fatalf("finish action=%q", gotAction)
 	}
 }
 

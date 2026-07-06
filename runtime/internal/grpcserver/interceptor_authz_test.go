@@ -55,6 +55,11 @@ func TestProtectedCapabilityForStream(t *testing.T) {
 	if !required || capability != "runtime.agent.turn.read" {
 		t.Fatalf("expected runtime.agent app stream to require runtime.agent.turn.read, got (%q,%v)", capability, required)
 	}
+
+	capability, required = protectedCapabilityForStream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream", nil)
+	if !required || capability != "runtime.agent.turn.read" {
+		t.Fatalf("expected Runtime Agent voice stream to require runtime.agent.turn.read, got (%q,%v)", capability, required)
+	}
 }
 
 func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
@@ -153,9 +158,9 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			},
 			capability: "runtime.app.send.cross_app",
 		},
-		// RuntimeAgentService RPC methods follow K-RPC-004b read/write scopes;
-		// runtime.agent.turn.* is reserved for RuntimeAppService app-message
-		// reactive chat transport.
+		// RuntimeAgentService state/admin RPC methods follow K-RPC-004b
+		// read/write scopes; admitted live turn data-plane methods use
+		// runtime.agent.turn.* because they consume or mutate an active turn.
 		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
 			request:    &runtimev1.OpenConversationAnchorRequest{AgentId: "agent-alpha"},
@@ -170,6 +175,11 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			method:     "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
 			request:    &runtimev1.GetPublicChatSessionSnapshotRequest{AgentId: "agent-alpha"},
 			capability: "runtime.agent.read",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
+			request:    &runtimev1.InterruptAgentVoicePlaybackRequest{},
+			capability: "runtime.agent.turn.write",
 		},
 		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",

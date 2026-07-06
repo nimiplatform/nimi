@@ -21,6 +21,17 @@ values:
   - asset_statuses_3
   - asset_statuses_4
   - asset_statuses_5
+  - output_modes_1
+  - output_modes_2
+  - output_modes_3
+  - output_modes_4
+  - output_modes_5
+  - playback_states_1
+  - playback_states_2
+  - playback_states_3
+  - playback_states_4
+  - playback_states_5
+  - playback_states_6
 workflow_types:
   - workflow_type: unspecified
     enum_name: VOICE_WORKFLOW_TYPE_UNSPECIFIED
@@ -127,3 +138,71 @@ asset_statuses:
     enum_value: 4
     description: asset creation failed or became unusable
     source_rule: K-VOICE-004
+
+# voice_output_mode is the positive, authoritative selected output-truth axis for
+# speech execution and agent voice projection. It is distinct from execution mode
+# (ai.proto ExecutionMode = sync|stream|async_job) and from voice_playback_state.
+# native_stream and simulated_stream are the only values reachable at the
+# SPEECH_SYNTHESIZE scenario-stream layer; batch_final_artifact and text_only are
+# additionally reachable as Runtime Agent orchestration outcomes.
+output_modes:
+  - output_mode: unspecified
+    enum_name: VOICE_OUTPUT_MODE_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel; also used by non-speech scenario streams
+    source_rule: K-VOICE-019
+  - output_mode: native_stream
+    enum_name: VOICE_OUTPUT_MODE_NATIVE_STREAM
+    enum_value: 1
+    description: provider/route natively streams playable non-final audio before full synthesis completion
+    source_rule: K-VOICE-019
+  - output_mode: simulated_stream
+    enum_name: VOICE_OUTPUT_MODE_SIMULATED_STREAM
+    enum_value: 2
+    description: chunks derived from a completed payload; honest degradation, never native realtime
+    source_rule: K-VOICE-019
+  - output_mode: batch_final_artifact
+    enum_name: VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT
+    enum_value: 3
+    description: synthesis produced a single final durable artifact with no live stream
+    source_rule: K-VOICE-019
+  - output_mode: text_only
+    enum_name: VOICE_OUTPUT_MODE_TEXT_ONLY
+    enum_value: 4
+    description: no playable audio; turn completed as text-only with no fake audio artifact
+    source_rule: K-VOICE-019
+
+# voice_playback_state is the separate lifecycle axis for agent voice playback.
+# failed / interrupted / canceled are lifecycle outcomes and must never be encoded
+# as voice_output_mode values.
+playback_states:
+  - state: unspecified
+    enum_name: VOICE_PLAYBACK_STATE_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel for unset playback lifecycle state
+    source_rule: K-VOICE-019
+  - state: active
+    enum_name: VOICE_PLAYBACK_STATE_ACTIVE
+    enum_value: 1
+    description: playback requested and/or in progress for the selected output mode
+    source_rule: K-VOICE-019
+  - state: completed
+    enum_name: VOICE_PLAYBACK_STATE_COMPLETED
+    enum_value: 2
+    description: playback finished naturally
+    source_rule: K-VOICE-019
+  - state: failed
+    enum_name: VOICE_PLAYBACK_STATE_FAILED
+    enum_value: 3
+    description: playback or synthesis failed with a terminal reason
+    source_rule: K-VOICE-019
+  - state: interrupted
+    enum_name: VOICE_PLAYBACK_STATE_INTERRUPTED
+    enum_value: 4
+    description: Runtime-owned voice-playback interruption truth for an active turn
+    source_rule: K-VOICE-019
+  - state: canceled
+    enum_name: VOICE_PLAYBACK_STATE_CANCELED
+    enum_value: 5
+    description: playback canceled before natural completion
+    source_rule: K-VOICE-019

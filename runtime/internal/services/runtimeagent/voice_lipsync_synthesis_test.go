@@ -7,6 +7,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc"
 )
 
 func TestSyntheticVoiceLipsyncSynthesizerProducesMonotonicFrames(t *testing.T) {
@@ -158,6 +159,7 @@ func TestAIBackedVoiceLipsyncSynthesizerSubmitsSpeechSynthesisJob(t *testing.T) 
 		MessageID:             "message-provider-voice",
 		Text:                  "Provider speech should own the audio artifact.",
 		DefaultVoiceReference: "preset_voice_id:zh_narrator",
+		SpeechTargetRef:       publicChatTestLocalRuntimeTargetRef("local-runtime:speech/qwen3tts"),
 		AgentID:               "agent-provider-voice",
 	})
 	if err != nil {
@@ -174,6 +176,9 @@ func TestAIBackedVoiceLipsyncSynthesizerSubmitsSpeechSynthesisJob(t *testing.T) 
 	}
 	if got := ai.submitReq.GetHead().GetRoutePolicy(); got != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		t.Fatalf("route policy = %v", got)
+	}
+	if got := ai.submitReq.GetHead().GetTargetRef().GetLocalRuntime().GetProfileBindingId(); got != "local-runtime:speech/qwen3tts" {
+		t.Fatalf("target_ref profile_binding_id = %q", got)
 	}
 	spec := ai.submitReq.GetSpec().GetSpeechSynthesize()
 	if spec == nil {
@@ -327,6 +332,9 @@ func TestServiceVoiceLipsyncScenarioExecutorRequiresExplicitModel(t *testing.T) 
 
 type fakeVoiceLipsyncScenarioExecutor struct {
 	submitReq     *runtimev1.SubmitScenarioJobRequest
+	streamReq     *runtimev1.StreamScenarioRequest
+	streamEvents  []*runtimev1.StreamScenarioEvent
+	streamErr     error
 	jobID         string
 	modelResolved string
 	artifact      *runtimev1.ScenarioArtifact
@@ -358,6 +366,16 @@ func (f *fakeVoiceLipsyncScenarioExecutor) GetScenarioArtifacts(context.Context,
 		JobId:     f.jobID,
 		Artifacts: []*runtimev1.ScenarioArtifact{f.artifact},
 	}, nil
+}
+
+func (f *fakeVoiceLipsyncScenarioExecutor) StreamScenario(req *runtimev1.StreamScenarioRequest, stream grpc.ServerStreamingServer[runtimev1.StreamScenarioEvent]) error {
+	f.streamReq = req
+	for _, event := range f.streamEvents {
+		if err := stream.Send(event); err != nil {
+			return err
+		}
+	}
+	return f.streamErr
 }
 
 func TestAIBackedVoiceLipsyncSynthesizerSkipsWithoutModel(t *testing.T) {
@@ -395,6 +413,8 @@ func TestProviderVoiceRouteBindingProjectsTimelineDetail(t *testing.T) {
 		AudioMimeType:         "audio/wav",
 		DurationMs:            int64(time.Second / time.Millisecond),
 		PlaybackState:         "requested",
+		VoiceOutputMode:       "batch_final_artifact",
+		VoicePlaybackState:    "active",
 		DefaultVoiceReference: "preset_voice_id:zh_narrator",
 		VoiceRouteBinding:     binding,
 	})

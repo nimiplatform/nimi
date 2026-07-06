@@ -3527,6 +3527,11 @@ pub mod voice_reference {
         PresetVoiceId(::prost::alloc::string::String),
         #[prost(string, tag = "3")]
         VoiceAssetId(::prost::alloc::string::String),
+        /// provider_voice_ref is provider-owned handle truth. It is restricted to
+        /// Runtime-internal / privileged / debug consumption (K-VOICE-003,
+        /// K-VOICE-014). Ordinary profile / SDK public binding input accepts only
+        /// preset_voice_id or voice_asset_id and must fail-close on a bare
+        /// provider_voice_ref.
         #[prost(string, tag = "4")]
         ProviderVoiceRef(::prost::alloc::string::String),
     }
@@ -3563,6 +3568,11 @@ pub struct VoiceAsset {
     pub workflow_type: i32,
     #[prost(string, tag = "5")]
     pub provider: ::prost::alloc::string::String,
+    /// model_id / target_model_id are post-resolve provider / catalog / audit /
+    /// voice asset compatibility facts only (allowed_non_identity_fact,
+    /// K-RTARGET-008, K-VOICE-000). They must be guarded so they cannot mint or
+    /// persist durable target identity. Durable identity is target_ref /
+    /// voice_asset_target_ref below.
     #[prost(string, tag = "6")]
     pub model_id: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
@@ -3581,6 +3591,15 @@ pub struct VoiceAsset {
     pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "14")]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
+    /// Durable v2 target identity for the resolved synthesis route the asset
+    /// executes against (K-VOICE-004, K-RTARGET-002/008).
+    #[prost(message, optional, tag = "15")]
+    pub target_ref: ::core::option::Option<RuntimeDurableTargetRef>,
+    /// Durable v2 target identity bound to the voice asset at creation
+    /// (voice_asset_target_ref, K-VOICE-004/K-VOICE-007). tts_synthesize requests
+    /// whose target ref conflicts fail with AI_VOICE_TARGET_MODEL_MISMATCH.
+    #[prost(message, optional, tag = "16")]
+    pub voice_asset_target_ref: ::core::option::Option<RuntimeDurableTargetRef>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VoiceV2vInput {
@@ -3703,6 +3722,91 @@ impl VoiceWorkflowType {
             "VOICE_WORKFLOW_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
             "VOICE_WORKFLOW_TYPE_VOICE_CLONE" => Some(Self::VoiceClone),
             "VOICE_WORKFLOW_TYPE_VOICE_DESIGN" => Some(Self::VoiceDesign),
+            _ => None,
+        }
+    }
+}
+/// VoiceOutputMode is the positive, authoritative selected output-truth axis for
+/// speech execution and agent voice projection (K-VOICE-019, K-STREAM-004,
+/// K-AGCORE-133; tokens: tables/voice-enums.yaml output_modes). It is distinct
+/// from ExecutionMode (sync|stream|async_job) and from voice playback lifecycle.
+/// NATIVE_STREAM and SIMULATED_STREAM are the only values reachable at the
+/// SPEECH_SYNTHESIZE scenario-stream layer; BATCH_FINAL_ARTIFACT and TEXT_ONLY are
+/// additionally reachable as Runtime Agent orchestration outcomes. Consumers must
+/// read this field and must not infer native realtime from event shape or from an
+/// omitted boolean.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VoiceOutputMode {
+    Unspecified = 0,
+    NativeStream = 1,
+    SimulatedStream = 2,
+    BatchFinalArtifact = 3,
+    TextOnly = 4,
+}
+impl VoiceOutputMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VOICE_OUTPUT_MODE_UNSPECIFIED",
+            Self::NativeStream => "VOICE_OUTPUT_MODE_NATIVE_STREAM",
+            Self::SimulatedStream => "VOICE_OUTPUT_MODE_SIMULATED_STREAM",
+            Self::BatchFinalArtifact => "VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT",
+            Self::TextOnly => "VOICE_OUTPUT_MODE_TEXT_ONLY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VOICE_OUTPUT_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "VOICE_OUTPUT_MODE_NATIVE_STREAM" => Some(Self::NativeStream),
+            "VOICE_OUTPUT_MODE_SIMULATED_STREAM" => Some(Self::SimulatedStream),
+            "VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT" => Some(Self::BatchFinalArtifact),
+            "VOICE_OUTPUT_MODE_TEXT_ONLY" => Some(Self::TextOnly),
+            _ => None,
+        }
+    }
+}
+/// VoicePlaybackState is the runtime-owned lifecycle axis for agent voice
+/// playback (K-VOICE-019). It is deliberately separate from VoiceOutputMode:
+/// failed/interrupted/canceled are terminal outcomes, not output modes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VoicePlaybackState {
+    Unspecified = 0,
+    Active = 1,
+    Completed = 2,
+    Failed = 3,
+    Interrupted = 4,
+    Canceled = 5,
+}
+impl VoicePlaybackState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VOICE_PLAYBACK_STATE_UNSPECIFIED",
+            Self::Active => "VOICE_PLAYBACK_STATE_ACTIVE",
+            Self::Completed => "VOICE_PLAYBACK_STATE_COMPLETED",
+            Self::Failed => "VOICE_PLAYBACK_STATE_FAILED",
+            Self::Interrupted => "VOICE_PLAYBACK_STATE_INTERRUPTED",
+            Self::Canceled => "VOICE_PLAYBACK_STATE_CANCELED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VOICE_PLAYBACK_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "VOICE_PLAYBACK_STATE_ACTIVE" => Some(Self::Active),
+            "VOICE_PLAYBACK_STATE_COMPLETED" => Some(Self::Completed),
+            "VOICE_PLAYBACK_STATE_FAILED" => Some(Self::Failed),
+            "VOICE_PLAYBACK_STATE_INTERRUPTED" => Some(Self::Interrupted),
+            "VOICE_PLAYBACK_STATE_CANCELED" => Some(Self::Canceled),
             _ => None,
         }
     }
@@ -4431,6 +4535,13 @@ pub struct ScenarioStreamStarted {
     pub resolved_execution_binding: ::core::option::Option<
         RuntimeResolvedExecutionBinding,
     >,
+    /// Positive selected output-truth for SPEECH_SYNTHESIZE streams
+    /// (K-STREAM-004, K-VOICE-019). Populated only for speech scenario streams,
+    /// where it declares NATIVE_STREAM vs SIMULATED_STREAM at route decision;
+    /// UNSPECIFIED for non-speech scenario streams. Consumers must not infer
+    /// native realtime from event shape or from ScenarioStreamCompleted.stream_simulated.
+    #[prost(enumeration = "VoiceOutputMode", tag = "4")]
+    pub voice_output_mode: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TextStreamDelta {
@@ -4476,6 +4587,10 @@ pub struct ScenarioStreamCompleted {
     pub finish_reason: i32,
     #[prost(message, optional, tag = "2")]
     pub usage: ::core::option::Option<UsageStats>,
+    /// Derived compatibility / audit metadata only (K-STREAM-004, K-LENG-011,
+    /// K-VOICE-019). It is NOT the primary realtime acceptance truth; the
+    /// authoritative selected output mode is ScenarioStreamStarted.voice_output_mode.
+    /// stream_simulated=false alone is insufficient to prove native realtime.
     #[prost(bool, tag = "3")]
     pub stream_simulated: bool,
 }
@@ -18948,6 +19063,12 @@ pub struct AgentPresentationProfile {
     pub interaction_policy_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
     pub default_voice_reference: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub avatar_autoplay: bool,
+    #[prost(string, tag = "8")]
+    pub speech_model_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "RoutePolicy", tag = "9")]
+    pub speech_route_policy: i32,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ClearAgentPresentationProfile {}
@@ -19275,6 +19396,41 @@ pub struct AgentPresentationEventDetail {
     pub lookat_has_y: bool,
     #[prost(bool, tag = "56")]
     pub lookat_has_z: bool,
+    /// voice_playback_requested / voice_stream_chunk_available /
+    /// voice_playback_terminal. Non-final native stream chunks carry only
+    /// transient stream identity; final replay bytes remain Runtime artifacts.
+    #[prost(string, tag = "60")]
+    pub audio_artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "61")]
+    pub audio_mime_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "62")]
+    pub voice_stream_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "63")]
+    pub chunk_transport_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "64")]
+    pub message_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "65")]
+    pub chunk_sequence: u64,
+    #[prost(bool, tag = "66")]
+    pub final_chunk: bool,
+    #[prost(enumeration = "VoiceOutputMode", tag = "67")]
+    pub voice_output_mode: i32,
+    #[prost(enumeration = "VoicePlaybackState", tag = "68")]
+    pub voice_playback_state: i32,
+    #[prost(string, tag = "69")]
+    pub playback_target: ::prost::alloc::string::String,
+    #[prost(bool, tag = "70")]
+    pub final_artifact: bool,
+    #[prost(string, tag = "71")]
+    pub terminal_reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "72")]
+    pub reason: ::prost::alloc::string::String,
+    #[prost(int64, tag = "73")]
+    pub duration_ms: i64,
+    #[prost(int64, tag = "74")]
+    pub deadline_offset_ms: i64,
+    #[prost(string, tag = "75")]
+    pub final_artifact_id: ::prost::alloc::string::String,
 }
 /// AgentProactiveEventDetail projects runtime.agent.proactive.\* per K-AGCORE-143; required audit/origin fields must not be fabricated.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -19801,6 +19957,72 @@ pub struct SubscribeAgentEventsRequest {
     pub cursor: ::prost::alloc::string::String,
     #[prost(enumeration = "AgentEventType", repeated, tag = "4")]
     pub event_filters: ::prost::alloc::vec::Vec<i32>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeAgentVoiceStreamRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub voice_stream_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub turn_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InterruptAgentVoicePlaybackRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub voice_stream_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InterruptAgentVoicePlaybackResponse {
+    #[prost(string, tag = "1")]
+    pub voice_stream_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "VoiceOutputMode", tag = "2")]
+    pub voice_output_mode: i32,
+    #[prost(enumeration = "VoicePlaybackState", tag = "3")]
+    pub voice_playback_state: i32,
+    #[prost(string, tag = "4")]
+    pub terminal_reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentVoiceStreamEvent {
+    #[prost(string, tag = "1")]
+    pub voice_stream_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub stream_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub message_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "6")]
+    pub chunk_sequence: u64,
+    #[prost(bytes = "vec", tag = "7")]
+    pub chunk: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "8")]
+    pub mime_type: ::prost::alloc::string::String,
+    #[prost(enumeration = "VoiceOutputMode", tag = "9")]
+    pub voice_output_mode: i32,
+    #[prost(string, tag = "10")]
+    pub playback_target: ::prost::alloc::string::String,
+    #[prost(bool, tag = "11")]
+    pub terminal: bool,
+    #[prost(enumeration = "VoicePlaybackState", tag = "12")]
+    pub voice_playback_state: i32,
+    #[prost(string, tag = "13")]
+    pub terminal_reason: ::prost::alloc::string::String,
+    #[prost(bool, tag = "14")]
+    pub replay_truncated: bool,
 }
 /// K-AGCORE-034 ConversationAnchor boundary: runtime-owned continuity anchor.
 /// `conversation_anchor_id` is the only admitted cross-surface continuity
@@ -20647,7 +20869,9 @@ impl AgentStateEventFamily {
 /// K-AGCORE-037 AgentPresentationEventFamily discriminates
 /// runtime.agent.presentation.\* families. Mapping is 1:1 to
 /// runtime.agent.presentation.{activity_requested|motion_requested|
-/// expression_requested|pose_requested|pose_cleared|lookat_requested}.
+/// expression_requested|pose_requested|pose_cleared|lookat_requested|
+/// voice_playback_requested|voice_stream_chunk_available|
+/// voice_playback_terminal}.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AgentPresentationEventFamily {
@@ -20658,6 +20882,9 @@ pub enum AgentPresentationEventFamily {
     PoseRequested = 4,
     PoseCleared = 5,
     LookatRequested = 6,
+    VoicePlaybackRequested = 7,
+    VoiceStreamChunkAvailable = 8,
+    VoicePlaybackTerminal = 9,
 }
 impl AgentPresentationEventFamily {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -20677,6 +20904,15 @@ impl AgentPresentationEventFamily {
             Self::PoseRequested => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED",
             Self::PoseCleared => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED",
             Self::LookatRequested => "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED",
+            Self::VoicePlaybackRequested => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED"
+            }
+            Self::VoiceStreamChunkAvailable => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE"
+            }
+            Self::VoicePlaybackTerminal => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -20696,6 +20932,15 @@ impl AgentPresentationEventFamily {
             "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED" => Some(Self::PoseCleared),
             "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED" => {
                 Some(Self::LookatRequested)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED" => {
+                Some(Self::VoicePlaybackRequested)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE" => {
+                Some(Self::VoiceStreamChunkAvailable)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL" => {
+                Some(Self::VoicePlaybackTerminal)
             }
             _ => None,
         }
@@ -23285,6 +23530,64 @@ pub mod runtime_agent_service_client {
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn subscribe_agent_voice_stream(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SubscribeAgentVoiceStreamRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::AgentVoiceStreamEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "SubscribeAgentVoiceStream",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn interrupt_agent_voice_playback(
+            &mut self,
+            request: impl tonic::IntoRequest<super::InterruptAgentVoicePlaybackRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::InterruptAgentVoicePlaybackResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "InterruptAgentVoicePlayback",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         /// K-AGCORE-144..150 Runtime Agent execution config surface.
         pub async fn get_agent_execution_config(

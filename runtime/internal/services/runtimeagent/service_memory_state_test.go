@@ -296,6 +296,42 @@ func (s *agentEventCaptureStream) Send(event *runtimev1.AgentEvent) error {
 	return nil
 }
 
+type agentVoiceStreamCaptureStream struct {
+	ctx        context.Context
+	cancel     context.CancelFunc
+	events     []*runtimev1.AgentVoiceStreamEvent
+	max        int
+	headerSent chan struct{}
+}
+
+func newAgentVoiceStreamCaptureStreamLimit(parent context.Context, max int) *agentVoiceStreamCaptureStream {
+	ctx, cancel := context.WithCancel(parent)
+	return &agentVoiceStreamCaptureStream{ctx: ctx, cancel: cancel, max: max}
+}
+
+func (s *agentVoiceStreamCaptureStream) SetHeader(metadata.MD) error { return nil }
+func (s *agentVoiceStreamCaptureStream) SendHeader(metadata.MD) error {
+	if s.headerSent != nil {
+		select {
+		case s.headerSent <- struct{}{}:
+		default:
+		}
+	}
+	return nil
+}
+func (s *agentVoiceStreamCaptureStream) SetTrailer(metadata.MD)   {}
+func (s *agentVoiceStreamCaptureStream) Context() context.Context { return s.ctx }
+func (s *agentVoiceStreamCaptureStream) SendMsg(any) error        { return nil }
+func (s *agentVoiceStreamCaptureStream) RecvMsg(any) error        { return nil }
+
+func (s *agentVoiceStreamCaptureStream) Send(event *runtimev1.AgentVoiceStreamEvent) error {
+	s.events = append(s.events, proto.Clone(event).(*runtimev1.AgentVoiceStreamEvent))
+	if s.max > 0 && len(s.events) >= s.max {
+		s.cancel()
+	}
+	return nil
+}
+
 type lifeTrackExecutorFunc func(context.Context, *lifeTurnRequest) (*lifeTurnResult, error)
 
 func (f lifeTrackExecutorFunc) ExecuteLifeTrackHook(ctx context.Context, req *lifeTurnRequest) (*lifeTurnResult, error) {

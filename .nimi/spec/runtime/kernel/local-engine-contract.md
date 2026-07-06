@@ -527,6 +527,11 @@ runtime 不得把任意 backend 名称直接透传给受管 `llama` 引擎 CLI�
 - 终帧 metadata 必须标识 `stream_simulated=true`。
 - 审计必须标记 `stream_fallback_simulated`。
 - 分片模拟的事件语义仍需满足 `K-STREAM-002` 与 `K-STREAM-003`。
+- 当降级发生在 SPEECH_SYNTHESIZE 场景时，必须同时正向投影
+  `voice_output_mode=simulated_stream`（`K-STREAM-004`、`K-VOICE-019`）。
+  `stream_simulated=true` 与 `stream_fallback_simulated` 只是 compatibility
+  metadata / audit tag，是本节唯一一份 stream 降级词汇，绝不能被当作 native
+  realtime 的主验收真相；分片模拟的语音流不满足 `native_stream` 验收。
 
 ## K-LENG-018 Llama Engine Config 参数空间
 

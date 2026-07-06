@@ -3,6 +3,8 @@ import {
   AgentPresentationEventFamily,
   AgentStateEventFamily,
   HookAdmissionState,
+  VoiceOutputMode,
+  VoicePlaybackState,
   type AgentEvent,
   type AppMessageEvent,
 } from '../core-generated/runtime-typed-client';
@@ -51,6 +53,7 @@ const TURN_EVENT_TYPES = new Set([
   'runtime.agent.turn.interrupt_ack',
   'runtime.agent.presentation.voice_playback_requested',
   'runtime.agent.presentation.voice_stream_chunk_available',
+  'runtime.agent.presentation.voice_playback_terminal',
   'runtime.agent.presentation.lipsync_frame_batch',
   'runtime.agent.state.status_text_changed',
   'runtime.agent.state.execution_state_changed',
@@ -394,8 +397,11 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
       return {
         audioArtifactId: optionalString(detail.audio_artifact_id, detail.audioArtifactId, payload.audio_artifact_id, payload.audioArtifactId) || '',
         audioMimeType: optionalString(detail.audio_mime_type, detail.audioMimeType, payload.audio_mime_type, payload.audioMimeType) || '',
+        voiceStreamId: optionalString(detail.voice_stream_id, detail.voiceStreamId, payload.voice_stream_id, payload.voiceStreamId),
         messageId: optionalString(detail.message_id, detail.messageId, payload.message_id, payload.messageId),
         playbackState: optionalString(detail.playback_state, detail.playbackState, payload.playback_state, payload.playbackState) || '',
+        voiceOutputMode: optionalString(detail.voice_output_mode, detail.voiceOutputMode, payload.voice_output_mode, payload.voiceOutputMode),
+        voicePlaybackState: optionalString(detail.voice_playback_state, detail.voicePlaybackState, payload.voice_playback_state, payload.voicePlaybackState),
         playbackTarget: optionalString(detail.playback_target, detail.playbackTarget, payload.playback_target, payload.playbackTarget),
         finalArtifact: optionalBoolean(detail.final_artifact ?? detail.finalArtifact ?? payload.final_artifact ?? payload.finalArtifact),
         durationMs: optionalNumber(detail.duration_ms ?? detail.durationMs ?? payload.duration_ms ?? payload.durationMs),
@@ -408,13 +414,28 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
       };
     case 'runtime.agent.presentation.voice_stream_chunk_available':
       return {
-        audioArtifactId: optionalString(detail.audio_artifact_id, detail.audioArtifactId, payload.audio_artifact_id, payload.audioArtifactId) || '',
+        audioArtifactId: optionalString(detail.audio_artifact_id, detail.audioArtifactId, payload.audio_artifact_id, payload.audioArtifactId),
         audioMimeType: optionalString(detail.audio_mime_type, detail.audioMimeType, payload.audio_mime_type, payload.audioMimeType) || '',
+        voiceStreamId: optionalString(detail.voice_stream_id, detail.voiceStreamId, payload.voice_stream_id, payload.voiceStreamId),
+        chunkTransportRef: optionalString(detail.chunk_transport_ref, detail.chunkTransportRef, payload.chunk_transport_ref, payload.chunkTransportRef),
         messageId: optionalString(detail.message_id, detail.messageId, payload.message_id, payload.messageId),
         chunkSequence: optionalNumber(detail.chunk_sequence ?? detail.chunkSequence ?? payload.chunk_sequence ?? payload.chunkSequence),
         finalChunk: optionalBoolean(detail.final_chunk ?? detail.finalChunk ?? payload.final_chunk ?? payload.finalChunk),
+        voiceOutputMode: optionalString(detail.voice_output_mode, detail.voiceOutputMode, payload.voice_output_mode, payload.voiceOutputMode),
+        voicePlaybackState: optionalString(detail.voice_playback_state, detail.voicePlaybackState, payload.voice_playback_state, payload.voicePlaybackState),
         durationMs: optionalNumber(detail.duration_ms ?? detail.durationMs ?? payload.duration_ms ?? payload.durationMs),
         reason: optionalString(detail.reason, payload.reason),
+        playbackTarget: optionalString(detail.playback_target, detail.playbackTarget, payload.playback_target, payload.playbackTarget),
+      };
+    case 'runtime.agent.presentation.voice_playback_terminal':
+      return {
+        voiceStreamId: optionalString(detail.voice_stream_id, detail.voiceStreamId, payload.voice_stream_id, payload.voiceStreamId) || '',
+        finalArtifactId: optionalString(detail.final_artifact_id, detail.finalArtifactId, payload.final_artifact_id, payload.finalArtifactId),
+        audioMimeType: optionalString(detail.audio_mime_type, detail.audioMimeType, payload.audio_mime_type, payload.audioMimeType),
+        messageId: optionalString(detail.message_id, detail.messageId, payload.message_id, payload.messageId),
+        voiceOutputMode: optionalString(detail.voice_output_mode, detail.voiceOutputMode, payload.voice_output_mode, payload.voiceOutputMode),
+        voicePlaybackState: optionalString(detail.voice_playback_state, detail.voicePlaybackState, payload.voice_playback_state, payload.voicePlaybackState),
+        terminalReason: optionalString(detail.terminal_reason, detail.terminalReason, payload.terminal_reason, payload.terminalReason),
         playbackTarget: optionalString(detail.playback_target, detail.playbackTarget, payload.playback_target, payload.playbackTarget),
       };
     default:
@@ -580,6 +601,22 @@ function projectPresentationEvent(
       ...(presentation.lookatHasX ? { x: presentation.lookatX } : {}),
       ...(presentation.lookatHasY ? { y: presentation.lookatY } : {}),
       ...(presentation.lookatHasZ ? { z: presentation.lookatZ } : {}),
+      audioArtifactId: presentation.audioArtifactId || undefined,
+      audioMimeType: presentation.audioMimeType || undefined,
+      voiceStreamId: presentation.voiceStreamId || undefined,
+      chunkTransportRef: presentation.chunkTransportRef || undefined,
+      messageId: presentation.messageId || undefined,
+      chunkSequence: optionalNumber(presentation.chunkSequence),
+      finalChunk: presentation.finalChunk,
+      voiceOutputMode: formatGeneratedVoiceOutputMode(presentation.voiceOutputMode),
+      voicePlaybackState: formatGeneratedVoicePlaybackState(presentation.voicePlaybackState),
+      playbackTarget: presentation.playbackTarget || undefined,
+      finalArtifact: presentation.finalArtifact,
+      terminalReason: presentation.terminalReason || undefined,
+      reason: presentation.reason || undefined,
+      durationMs: optionalNumber(presentation.durationMs),
+      deadlineOffsetMs: optionalNumber(presentation.deadlineOffsetMs),
+      finalArtifactId: presentation.finalArtifactId || undefined,
     },
   };
 }
@@ -629,6 +666,12 @@ function presentationEventName(family: AgentPresentationEventFamily): NimiRuntim
       return 'runtime.agent.presentation.pose_cleared';
     case AgentPresentationEventFamily.LOOKAT_REQUESTED:
       return 'runtime.agent.presentation.lookat_requested';
+    case AgentPresentationEventFamily.VOICE_PLAYBACK_REQUESTED:
+      return 'runtime.agent.presentation.voice_playback_requested';
+    case AgentPresentationEventFamily.VOICE_STREAM_CHUNK_AVAILABLE:
+      return 'runtime.agent.presentation.voice_stream_chunk_available';
+    case AgentPresentationEventFamily.VOICE_PLAYBACK_TERMINAL:
+      return 'runtime.agent.presentation.voice_playback_terminal';
     default:
       runtimeAgentError('Runtime Agent presentation event family is unsupported', 'SDK_RUNTIME_AGENT_EVENT_UNSUPPORTED', 'check_runtime_agent_event_family');
   }
@@ -676,6 +719,23 @@ function formatGeneratedAgentExecutionState(value: unknown): NimiRuntimeAgentExe
   if (value === 3) return 'life_pending';
   if (value === 4) return 'life_running';
   if (value === 5) return 'suspended';
+  return undefined;
+}
+
+function formatGeneratedVoiceOutputMode(value: unknown): string | undefined {
+  if (value === VoiceOutputMode.NATIVE_STREAM) return 'native_stream';
+  if (value === VoiceOutputMode.SIMULATED_STREAM) return 'simulated_stream';
+  if (value === VoiceOutputMode.BATCH_FINAL_ARTIFACT) return 'batch_final_artifact';
+  if (value === VoiceOutputMode.TEXT_ONLY) return 'text_only';
+  return undefined;
+}
+
+function formatGeneratedVoicePlaybackState(value: unknown): string | undefined {
+  if (value === VoicePlaybackState.ACTIVE) return 'active';
+  if (value === VoicePlaybackState.COMPLETED) return 'completed';
+  if (value === VoicePlaybackState.FAILED) return 'failed';
+  if (value === VoicePlaybackState.INTERRUPTED) return 'interrupted';
+  if (value === VoicePlaybackState.CANCELED) return 'canceled';
   return undefined;
 }
 
@@ -761,6 +821,9 @@ function timelineChannelForEvent(messageType: string): NimiRuntimeAgentTimelineC
   if (messageType === 'runtime.agent.presentation.voice_stream_chunk_available') {
     return 'voice';
   }
+  if (messageType === 'runtime.agent.presentation.voice_playback_terminal') {
+    return 'voice';
+  }
   if (messageType === 'runtime.agent.presentation.lipsync_frame_batch') {
     return 'lipsync';
   }
@@ -768,7 +831,10 @@ function timelineChannelForEvent(messageType: string): NimiRuntimeAgentTimelineC
 }
 
 function projectionRuleIdForEvent(messageType: string): NimiRuntimeAgentTimelineEnvelope['projectionRuleId'] {
-  if (messageType === 'runtime.agent.presentation.voice_stream_chunk_available') {
+  if (
+    messageType === 'runtime.agent.presentation.voice_stream_chunk_available'
+    || messageType === 'runtime.agent.presentation.voice_playback_terminal'
+  ) {
     return 'K-AGCORE-133';
   }
   return 'K-AGCORE-051';

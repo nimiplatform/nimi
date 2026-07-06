@@ -257,6 +257,7 @@ export async function withRuntimeDaemon(
       NIMI_RUNTIME_LOCK_PATH: join(stateRoot, 'runtime.lock'),
       NIMI_RUNTIME_CONFIG_PATH: join(stateRoot, 'config.json'),
       NIMI_RUNTIME_MODEL_REGISTRY_PATH: modelRegistryPath,
+      NIMI_RUNTIME_MODEL_CATALOG_CUSTOM_DIR: join(stateRoot, 'model-catalog-custom'),
       NIMI_RUNTIME_LOCAL_STATE_PATH: localStatePath,
       NIMI_RUNTIME_LOCAL_MODELS_PATH: localModelsPath,
       NIMI_RUNTIME_AUTH_DEVELOPER_REGISTRATION_ENABLED: '1',

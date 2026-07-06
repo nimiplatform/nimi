@@ -351,3 +351,123 @@ test('Runtime Agent turn runner projects Runtime action artifact events', async 
   assert.equal(artifact?.mimeType, 'image/png');
   assert.equal(artifact?.projectionMessageId, 'projection-message-1');
 });
+
+test('Runtime Agent turn runner preserves voice terminal projection diagnostics', async () => {
+  const requestIds: string[] = [];
+  const turns: NimiRuntimeAgentTurnsModule = {
+    async subscribe() {
+      return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
+        while (!requestIds[0]) {
+          await Promise.resolve();
+        }
+        const base = {
+          localAgentRef: 'local-agent:owner:agent',
+          conversationAnchorId: 'anchor',
+          turnId: 'turn',
+          streamId: 'stream',
+        };
+        yield {
+          eventName: 'runtime.agent.turn.accepted',
+          ...base,
+          detail: { requestId: requestIds[0] },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.turn.structured',
+          ...base,
+          detail: {
+            payload: structuredPayload('assistant-message', 'voice complete'),
+          },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.turn.message_committed',
+          ...base,
+          detail: {
+            messageId: 'assistant-message',
+            text: 'voice complete',
+          },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.presentation.voice_stream_chunk_available',
+          ...base,
+          detail: {
+            voiceStreamId: 'voice-stream-1',
+            chunkTransportRef: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
+            audioMimeType: 'audio/wav',
+            finalChunk: false,
+            voiceOutputMode: 'native_stream',
+            voicePlaybackState: 'active',
+            playbackTarget: 'avatar_autoplay',
+          },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.presentation.voice_playback_requested',
+          ...base,
+          detail: {
+            voiceStreamId: 'voice-stream-1',
+            audioArtifactId: 'artifact-final-1',
+            audioMimeType: 'audio/wav',
+            finalArtifact: true,
+            voiceOutputMode: 'native_stream',
+            voicePlaybackState: 'active',
+            playbackTarget: 'avatar_autoplay',
+          },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.presentation.voice_playback_terminal',
+          ...base,
+          detail: {
+            voiceStreamId: 'voice-stream-1',
+            finalArtifactId: 'artifact-final-1',
+            audioMimeType: 'audio/wav',
+            terminalReason: 'native_stream_completed',
+            voiceOutputMode: 'native_stream',
+            voicePlaybackState: 'completed',
+            playbackTarget: 'avatar_autoplay',
+          },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.turn.completed',
+          ...base,
+          detail: { terminalReason: 'stop' },
+        } as NimiRuntimeAgentConsumeEvent;
+      })();
+    },
+    async request(request) {
+      requestIds.push(request.requestId || '');
+      return { messageId: 'request-message', accepted: true, reasonCode: 0 as never };
+    },
+    async interrupt() {
+      return { messageId: 'interrupt-message', accepted: true, reasonCode: 0 as never };
+    },
+    async getSessionSnapshot() {
+      return {};
+    },
+  };
+
+  const result = await runNimiRuntimeAgentTurn({
+    turns,
+    request: {
+      ownerUserId: 'owner',
+      runtimeSourceRef: 'agent',
+      localAgentRef: 'local-agent:owner:agent',
+      conversationAnchorId: 'anchor',
+      threadId: 'thread',
+      requestId: 'request',
+      messages: [{ role: 'user', content: 'speak' }],
+    },
+  });
+
+  const parts = [];
+  for await (const part of result.stream) {
+    parts.push(part);
+  }
+  const completed = parts.find((part) => part.type === 'turn-completed');
+  const projectionEvents = completed?.diagnostics.runtimeProjectionEvents ?? [];
+  assert.deepEqual(projectionEvents.map((event) => event.eventName), [
+    'runtime.agent.presentation.voice_stream_chunk_available',
+    'runtime.agent.presentation.voice_playback_requested',
+    'runtime.agent.presentation.voice_playback_terminal',
+  ]);
+  assert.equal(projectionEvents.at(-1)?.detail.voicePlaybackState, 'completed');
+  assert.equal(projectionEvents.at(-1)?.detail.terminalReason, 'native_stream_completed');
+});

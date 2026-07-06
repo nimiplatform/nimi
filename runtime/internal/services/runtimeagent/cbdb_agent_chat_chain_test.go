@@ -13,26 +13,27 @@ import (
 )
 
 const (
-	cbdbChainVerifierOwnerID     = "cbdb-chain-agent-chat-verifier-user"
-	cbdbChainSuZheRuntimeSourceRef   = "cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
-	cbdbChainSuZheLocalAgentRef  = "local-agent:cbdb-chain-agent-chat-verifier-user:cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
-	cbdbChainDesktopCallerAppID  = "nimi.desktop.test.cbdb-agent-chat-runtime-chain"
-	cbdbChainValidationThreadID  = "cbdb-chain-validation-thread"
-	cbdbChainValidationRequestID = "cbdb-chain-validation-request"
+	cbdbChainVerifierOwnerID       = "cbdb-chain-agent-chat-verifier-user"
+	cbdbChainSuZheRuntimeSourceRef = "cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
+	cbdbChainSuZheLocalAgentRef    = "local-agent:cbdb-chain-agent-chat-verifier-user:cbdb-song-slice-real-20260614-agent-8af2c5ca8a"
+	cbdbChainDesktopCallerAppID    = "nimi.desktop.test.cbdb-agent-chat-runtime-chain"
+	cbdbChainValidationThreadID    = "cbdb-chain-validation-thread"
+	cbdbChainValidationRequestID   = "cbdb-chain-validation-request"
 )
 
 func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	upsertPublicChatTestExecutionConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	ctx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRuntimeSourceRef)
 	ctx.AppId = cbdbChainDesktopCallerAppID
 	ctx.LocalAgentRef = cbdbChainSuZheLocalAgentRef
 
 	initResp, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
-		Context:       ctx,
-		LocalAgentRef: cbdbChainSuZheLocalAgentRef,
-		OwnerUserId:   cbdbChainVerifierOwnerID,
-		RuntimeSourceRef:  cbdbChainSuZheRuntimeSourceRef,
-		DisplayName:   "CBDB Su Zhe",
+		Context:          ctx,
+		LocalAgentRef:    cbdbChainSuZheLocalAgentRef,
+		OwnerUserId:      cbdbChainVerifierOwnerID,
+		RuntimeSourceRef: cbdbChainSuZheRuntimeSourceRef,
+		DisplayName:      "CBDB Su Zhe",
 	})
 	if err != nil {
 		t.Fatalf("InitializeAgent(CBDB Su Zhe): %v", err)
@@ -75,12 +76,12 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 	anchorCtx.AppId = cbdbChainDesktopCallerAppID
 	anchorCtx.LocalAgentRef = cbdbChainSuZheLocalAgentRef
 	anchorResp, err := svc.OpenConversationAnchor(context.Background(), &runtimev1.OpenConversationAnchorRequest{
-		Context:       anchorCtx,
-		LocalAgentRef: cbdbChainSuZheLocalAgentRef,
-		OwnerUserId:   cbdbChainVerifierOwnerID,
-		RuntimeSourceRef:  cbdbChainSuZheRuntimeSourceRef,
-		SubjectUserId: cbdbChainVerifierOwnerID,
-		Metadata:      anchorMetadata,
+		Context:          anchorCtx,
+		LocalAgentRef:    cbdbChainSuZheLocalAgentRef,
+		OwnerUserId:      cbdbChainVerifierOwnerID,
+		RuntimeSourceRef: cbdbChainSuZheRuntimeSourceRef,
+		SubjectUserId:    cbdbChainVerifierOwnerID,
+		Metadata:         anchorMetadata,
 	})
 	if err != nil {
 		t.Fatalf("OpenConversationAnchor(CBDB profile context): %v", err)
@@ -189,7 +190,7 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        cbdbChainSuZheLocalAgentRef,
 			"owner_user_id":          cbdbChainVerifierOwnerID,
-			"runtime_source_ref":         cbdbChainSuZheRuntimeSourceRef,
+			"runtime_source_ref":     cbdbChainSuZheRuntimeSourceRef,
 			"conversation_anchor_id": anchorID,
 			"request_id":             cbdbChainValidationRequestID,
 			"thread_id":              cbdbChainValidationThreadID,

@@ -336,6 +336,14 @@ RUNTIME_METHODS = [
     "response_type": "InitializeAgentResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
+    "service": "RuntimeAgentService",
+    "method": "InterruptAgentVoicePlayback",
+    "kind": "unary",
+    "request_type": "InterruptAgentVoicePlaybackRequest",
+    "response_type": "InterruptAgentVoicePlaybackResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
     "service": "RuntimeAgentService",
     "method": "ListAgentConversationSummaries",
@@ -526,6 +534,14 @@ RUNTIME_METHODS = [
     "kind": "server_stream",
     "request_type": "SubscribeAgentExecutionReadinessRequest",
     "response_type": "AgentExecutionReadinessSnapshot"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
+    "service": "RuntimeAgentService",
+    "method": "SubscribeAgentVoiceStream",
+    "kind": "server_stream",
+    "request_type": "SubscribeAgentVoiceStreamRequest",
+    "response_type": "AgentVoiceStreamEvent"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",

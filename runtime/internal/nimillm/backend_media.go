@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,6 +18,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
+
+const defaultProviderStreamReadBufferBytes = 16 * 1024
 
 func (b *Backend) isMediaBackend() bool {
 	if b == nil {
@@ -540,4 +544,116 @@ func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *ru
 	}
 	usage := ArtifactUsage(text, payload, 120)
 	return payload, usage, nil
+}
+
+// StreamSynthesizeSpeech sends a provider-native streaming TTS request and
+// forwards response-body audio frames as they arrive. Callers must gate this
+// method with route metadata; this method does not infer native-stream support.
+func (b *Backend) StreamSynthesizeSpeech(
+	ctx context.Context,
+	modelID string,
+	spec *runtimev1.SpeechSynthesizeScenarioSpec,
+	scenarioExtensions map[string]any,
+	onChunk func(SpeechStreamChunk) error,
+) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	if b != nil && b.shouldUseDashScopeRealtimeTTS(modelID) {
+		return b.streamDashScopeRealtimeTTS(ctx, modelID, spec, scenarioExtensions, onChunk)
+	}
+	if spec == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if onChunk == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	type speechRequest struct {
+		Model        string         `json:"model"`
+		Input        string         `json:"input"`
+		Voice        string         `json:"voice,omitempty"`
+		Language     string         `json:"language,omitempty"`
+		AudioFormat  string         `json:"audio_format,omitempty"`
+		SampleRateHz int32          `json:"sample_rate_hz,omitempty"`
+		Speed        float32        `json:"speed,omitempty"`
+		Pitch        float32        `json:"pitch,omitempty"`
+		Volume       float32        `json:"volume,omitempty"`
+		Emotion      string         `json:"emotion,omitempty"`
+		Stream       bool           `json:"stream"`
+		Extensions   map[string]any `json:"extensions,omitempty"`
+	}
+	text := strings.TrimSpace(spec.GetText())
+	payload, err := json.Marshal(speechRequest{
+		Model:        modelID,
+		Input:        text,
+		Voice:        strings.TrimSpace(scenarioVoiceRef(spec)),
+		Language:     strings.TrimSpace(spec.GetLanguage()),
+		AudioFormat:  strings.TrimSpace(spec.GetAudioFormat()),
+		SampleRateHz: spec.GetSampleRateHz(),
+		Speed:        spec.GetSpeed(),
+		Pitch:        spec.GetPitch(),
+		Volume:       spec.GetVolume(),
+		Emotion:      strings.TrimSpace(spec.GetEmotion()),
+		Stream:       true,
+		Extensions:   scenarioExtensions,
+	})
+	if err != nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
+	}
+
+	endpoint := b.baseURL + "/v1/audio/speech"
+	request, err := b.newRequest(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
+	if err != nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Accept", "audio/*,application/octet-stream")
+
+	startedAt := time.Now()
+	response, err := b.do(request)
+	if err != nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
+	}
+	defer func() { _ = response.Body.Close() }()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		_, mappedErr := providerHTTPErrorFromResponse(response, endpoint)
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, mappedErr
+	}
+
+	mimeType := strings.TrimSpace(strings.Split(response.Header.Get("Content-Type"), ";")[0])
+	if mimeType == "" {
+		mimeType = ResolveSpeechArtifactMIME(spec, nil)
+	}
+	buffer := make([]byte, defaultProviderStreamReadBufferBytes)
+	var sequence uint64
+	var totalBytes int64
+	for {
+		n, readErr := response.Body.Read(buffer)
+		if n > 0 {
+			sequence++
+			chunk := append([]byte(nil), buffer[:n]...)
+			totalBytes += int64(n)
+			if err := onChunk(SpeechStreamChunk{
+				Sequence:     sequence,
+				MIMEType:     mimeType,
+				SampleRateHz: spec.GetSampleRateHz(),
+				Bytes:        chunk,
+			}); err != nil {
+				return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+			}
+		}
+		if readErr == nil {
+			continue
+		}
+		if readErr == io.EOF {
+			break
+		}
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(readErr)
+	}
+	if sequence == 0 {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	usage := &runtimev1.UsageStats{
+		InputTokens:  EstimateTokens(text),
+		OutputTokens: MaxInt64(1, (totalBytes+3)/4),
+		ComputeMs:    time.Since(startedAt).Milliseconds(),
+	}
+	return usage, runtimev1.FinishReason_FINISH_REASON_STOP, nil
 }

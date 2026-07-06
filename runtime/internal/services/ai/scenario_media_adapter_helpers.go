@@ -650,7 +650,7 @@ func (s *Service) resolveSynthesizeSpeechSpecVoiceRef(
 	if !ok || asset == nil || asset.GetStatus() == runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
-	if asset.GetStatus() == runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED {
+	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
 	if targetModelID := normalizeVoiceWorkflowProviderModelID(asset.GetTargetModelId(), asset.GetProvider()); targetModelID != "" && strings.TrimSpace(modelResolved) != "" && !strings.EqualFold(targetModelID, normalizeVoiceWorkflowProviderModelID(modelResolved, asset.GetProvider())) {

@@ -32,6 +32,7 @@ import {
   HookTriggerFamily,
   MemoryCanonicalClass,
   MemoryRecordKind,
+  RoutePolicy,
   RuntimeHealthStatus,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
@@ -60,6 +61,9 @@ test('Runtime Agent projection reads presentation metadata and state snapshots',
       idlePreset: 'idle',
       interactionPolicyRef: 'policy://default',
       defaultVoiceReference: 'preset_voice_id:nimi-default',
+      avatarAutoplay: true,
+      speechModelId: 'speech/qwen3-tts-realtime',
+      speechRoutePolicy: 'cloud',
     },
   });
 
@@ -129,6 +133,9 @@ test('Runtime Agent projection reads presentation metadata and state snapshots',
     idlePreset: 'idle',
     interactionPolicyRef: 'policy://default',
     defaultVoiceReference: 'preset_voice_id:nimi-default',
+    avatarAutoplay: true,
+    speechModelId: 'speech/qwen3-tts-realtime',
+    speechRoutePolicy: 'cloud',
   });
   assert.equal(snapshot.lifecycleStatus, 'active');
   assert.equal(snapshot.executionState, 'chat-active');
@@ -272,6 +279,9 @@ test('Runtime Agent builders produce generated Runtime requests without old alia
       backendKind: 'live2d',
       avatarAssetRef: 'avatar://agent/live2d',
       defaultVoiceReference: 'voice_asset_id:voice-1',
+      avatarAutoplay: true,
+      speechModelId: 'speech/qwen3-tts-realtime',
+      speechRoutePolicy: 'cloud',
     },
   });
   const mutations = buildNimiRuntimeAgentStateMutations({
@@ -285,11 +295,33 @@ test('Runtime Agent builders produce generated Runtime requests without old alia
   assert.equal(request.mutation.oneofKind, 'profile');
   assert.equal(request.mutation.profile.backendKind, AgentPresentationBackendKind.LIVE2D);
   assert.equal(request.mutation.profile.defaultVoiceReference, 'voice_asset_id:voice-1');
+  assert.equal(request.mutation.profile.avatarAutoplay, true);
+  assert.equal(request.mutation.profile.speechModelId, 'speech/qwen3-tts-realtime');
+  assert.equal(request.mutation.profile.speechRoutePolicy, RoutePolicy.CLOUD);
   assert.deepEqual(mutations.map((mutation) => mutation.mutation.oneofKind), [
     'setStatusText',
     'setWorldContext',
     'clearDyadicContext',
   ]);
+});
+
+test('Runtime Agent presentation profile rejects provider voice handles', () => {
+  assert.throws(() => buildNimiSetRuntimeAgentPresentationProfileRequest({
+    context: {
+      appId: 'sdk.test',
+      subjectUserId: OWNER_USER_ID,
+    },
+    identity: {
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: 'runtime-source-1',
+      localAgentRef: PRESENTATION_LOCAL_AGENT_REF,
+    },
+    profile: {
+      backendKind: 'live2d',
+      avatarAssetRef: 'avatar://agent/live2d',
+      defaultVoiceReference: 'provider_voice_ref:voice-1',
+    },
+  }), /preset_voice_id or voice_asset_id/u);
 });
 
 test('Runtime Agent protected presentation surface requests scoped Runtime access', async () => {
@@ -354,7 +386,7 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
   }, {
     backendKind: 'vrm',
     avatarAssetRef: 'avatar://agent/default',
-    defaultVoiceReference: 'provider_voice_ref:voice-1',
+    defaultVoiceReference: 'voice_asset_id:voice-1',
   });
 
   assert.deepEqual(issuedScopes, [['runtime.agent.write']]);

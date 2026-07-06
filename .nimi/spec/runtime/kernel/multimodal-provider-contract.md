@@ -218,6 +218,24 @@ TTS v2 在保持 provider 可扩展参数的同时，必须将跨 provider 高�
 - 若 source/catalog 未提供最小 speech metadata truth，`runtime.route.describe(audio.synthesize|audio.transcribe)` 必须 fail-close
 - Desktop/SDK 不得因为 provider/engine 共享同一 `speech` host 就推断另一 capability 的 metadata 存在
 
+Native streaming TTS support：
+
+- native streaming TTS support 是 `audio.synthesize` 下的一个 provider/route
+  metadata 事实，事实源为 `tables/tts-provider-capability-matrix.yaml`
+  `supports_native_stream_tts`。它不新增 canonical capability token；
+  `audio.synthesize` 仍是唯一 speech synthesis capability。
+- `runtime.route.describe(audio.synthesize)` 可以在 metadata 中暴露该 route 是否
+  支持 native streaming（可播放非终帧音频先于合成完成），但必须来自声明事实，
+  不得由 provider 名称、route kind、endpoint family、或 local/cloud 假设推断。
+- 未声明 `supports_native_stream_tts=true` 的 route 不得被 fallback 分片提升为
+  `native_stream`；此类 route 的流式路径只能是 `simulated_stream` 或按策略
+  fail-close（见 `K-VOICE-019`、`K-STREAM-004`）。
+- `tables/tts-provider-capability-matrix.yaml` 只可将 named provider route 置为
+  `supports_native_stream_tts=true`；DashScope CosyVoice WebSocket
+  SpeechSynthesizer 是当前 admitted contract/adapter route。`product-green`
+  readiness 仍必须通过 acceptance matrix 的 named live-provider proof 关闭；
+  未被命名和证明的 route 仍处于 blocked 状态，不得伪造 provider readiness。
+
 ## K-MMPROV-024 Video Mode/Role Matrix
 
 Video mode 与 content role 组合必须严格匹配：
@@ -315,6 +333,20 @@ TTS provider 纳入执行以下分层规则：
   - 输出允许 `RealtimeTextDelta`、`RealtimeAudioChunk`、`RealtimeCompleted`、`RealtimeFailed`
   - 单 session 只允许一个活跃 reader；冲突 reader 必须 fail-close
 - 其他 provider 若尚未实现 realtime，runtime 必须显式返回 unsupported / unimplemented，不得伪造成普通 `TEXT_GENERATE` 流式响应
+
+Agent voice output 边界：
+
+- `RuntimeAiRealtimeService` 是独立的 realtime multimodal session API，不是
+  ordinary agent voice output。它当前不承载 `VoiceReference` / `VoiceAsset` /
+  committed assistant text / turn·message identity / final replay artifact /
+  voice-playback interrupt 语义。
+- ordinary Runtime Agent 自定义音色语音输出必须走 scenario-layer
+  `audio.synthesize` 语义（含其 native/simulated streaming path），不得直接把
+  realtime session RPC 当作 agent voice output（见 `K-VOICE-019`、`K-AGCORE-133`）。
+- `RealtimeAudioChunk audio_chunk` 只属于 realtime session 事件流，不得被复用为
+  scenario 语音流 delta 字段或 agent voice stream chunk 字段。
+- 未来若要把 realtime 包装为内部 transport，必须先证明它能对 committed text 以
+  custom `VoiceReference(voice_asset_id)` 合成，否则保持 out of scope。
 
 ## K-MMPROV-032 AI Artifact Upload Ingress
 

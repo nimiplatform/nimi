@@ -149,9 +149,6 @@ type AgentExecutionReadinessState string
 
 const (
 	AGENTEXECUTIONREADINESSSTATEUNSPECIFIED AgentExecutionReadinessState = "AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED"
-	AGENTEXECUTIONREADINESSSTATEREADY AgentExecutionReadinessState = "AGENT_EXECUTION_READINESS_STATE_READY"
-	AGENTEXECUTIONREADINESSSTATENOTCONFIGURED AgentExecutionReadinessState = "AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED"
-	AGENTEXECUTIONREADINESSSTATEUNAVAILABLE AgentExecutionReadinessState = "AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE"
 )
 
 type AgentExecutionState string
@@ -1665,6 +1662,27 @@ const (
 	VOICEASSETSTATUSFAILED VoiceAssetStatus = "VOICE_ASSET_STATUS_FAILED"
 )
 
+type VoiceOutputMode string
+
+const (
+	VOICEOUTPUTMODEUNSPECIFIED VoiceOutputMode = "VOICE_OUTPUT_MODE_UNSPECIFIED"
+	VOICEOUTPUTMODENATIVESTREAM VoiceOutputMode = "VOICE_OUTPUT_MODE_NATIVE_STREAM"
+	VOICEOUTPUTMODESIMULATEDSTREAM VoiceOutputMode = "VOICE_OUTPUT_MODE_SIMULATED_STREAM"
+	VOICEOUTPUTMODEBATCHFINALARTIFACT VoiceOutputMode = "VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT"
+	VOICEOUTPUTMODETEXTONLY VoiceOutputMode = "VOICE_OUTPUT_MODE_TEXT_ONLY"
+)
+
+type VoicePlaybackState string
+
+const (
+	VOICEPLAYBACKSTATEUNSPECIFIED VoicePlaybackState = "VOICE_PLAYBACK_STATE_UNSPECIFIED"
+	VOICEPLAYBACKSTATEACTIVE VoicePlaybackState = "VOICE_PLAYBACK_STATE_ACTIVE"
+	VOICEPLAYBACKSTATECOMPLETED VoicePlaybackState = "VOICE_PLAYBACK_STATE_COMPLETED"
+	VOICEPLAYBACKSTATEFAILED VoicePlaybackState = "VOICE_PLAYBACK_STATE_FAILED"
+	VOICEPLAYBACKSTATEINTERRUPTED VoicePlaybackState = "VOICE_PLAYBACK_STATE_INTERRUPTED"
+	VOICEPLAYBACKSTATECANCELED VoicePlaybackState = "VOICE_PLAYBACK_STATE_CANCELED"
+)
+
 type VoiceReferenceKind string
 
 const (
@@ -2047,6 +2065,22 @@ type AgentPresentationEventDetail struct {
 	LookatHasX bool `json:"lookat_has_x,omitempty"`
 	LookatHasY bool `json:"lookat_has_y,omitempty"`
 	LookatHasZ bool `json:"lookat_has_z,omitempty"`
+	AudioArtifactId string `json:"audio_artifact_id,omitempty"`
+	AudioMimeType string `json:"audio_mime_type,omitempty"`
+	VoiceStreamId string `json:"voice_stream_id,omitempty"`
+	ChunkTransportRef string `json:"chunk_transport_ref,omitempty"`
+	MessageId string `json:"message_id,omitempty"`
+	ChunkSequence uint64 `json:"chunk_sequence,omitempty"`
+	FinalChunk bool `json:"final_chunk,omitempty"`
+	VoiceOutputMode VoiceOutputMode `json:"voice_output_mode,omitempty"`
+	VoicePlaybackState VoicePlaybackState `json:"voice_playback_state,omitempty"`
+	PlaybackTarget string `json:"playback_target,omitempty"`
+	FinalArtifact bool `json:"final_artifact,omitempty"`
+	TerminalReason string `json:"terminal_reason,omitempty"`
+	Reason string `json:"reason,omitempty"`
+	DurationMs int64 `json:"duration_ms,omitempty"`
+	DeadlineOffsetMs int64 `json:"deadline_offset_ms,omitempty"`
+	FinalArtifactId string `json:"final_artifact_id,omitempty"`
 }
 
 type AgentPresentationProfile struct {
@@ -2056,6 +2090,9 @@ type AgentPresentationProfile struct {
 	IdlePreset string `json:"idle_preset,omitempty"`
 	InteractionPolicyRef string `json:"interaction_policy_ref,omitempty"`
 	DefaultVoiceReference string `json:"default_voice_reference,omitempty"`
+	AvatarAutoplay bool `json:"avatar_autoplay,omitempty"`
+	SpeechModelId string `json:"speech_model_id,omitempty"`
+	SpeechRoutePolicy RoutePolicy `json:"speech_route_policy,omitempty"`
 }
 
 type AgentProactiveEventDetail struct {
@@ -2193,6 +2230,23 @@ type AgentStateSetStatusText struct {
 
 type AgentStateSetWorldContext struct {
 	WorldId string `json:"world_id,omitempty"`
+}
+
+type AgentVoiceStreamEvent struct {
+	VoiceStreamId string `json:"voice_stream_id,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	TurnId string `json:"turn_id,omitempty"`
+	StreamId string `json:"stream_id,omitempty"`
+	MessageId string `json:"message_id,omitempty"`
+	ChunkSequence uint64 `json:"chunk_sequence,omitempty"`
+	Chunk []byte `json:"chunk,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	VoiceOutputMode VoiceOutputMode `json:"voice_output_mode,omitempty"`
+	PlaybackTarget string `json:"playback_target,omitempty"`
+	Terminal bool `json:"terminal,omitempty"`
+	VoicePlaybackState VoicePlaybackState `json:"voice_playback_state,omitempty"`
+	TerminalReason string `json:"terminal_reason,omitempty"`
+	ReplayTruncated bool `json:"replay_truncated,omitempty"`
 }
 
 type AiEmbedNodeConfig struct {
@@ -4123,6 +4177,21 @@ type InstallVerifiedAssetRequest struct {
 
 type InstallVerifiedAssetResponse struct {
 	Asset *LocalAssetRecord `json:"asset,omitempty"`
+}
+
+type InterruptAgentVoicePlaybackRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	VoiceStreamId string `json:"voice_stream_id,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	TurnId string `json:"turn_id,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
+type InterruptAgentVoicePlaybackResponse struct {
+	VoiceStreamId string `json:"voice_stream_id,omitempty"`
+	VoiceOutputMode VoiceOutputMode `json:"voice_output_mode,omitempty"`
+	VoicePlaybackState VoicePlaybackState `json:"voice_playback_state,omitempty"`
+	TerminalReason string `json:"terminal_reason,omitempty"`
 }
 
 type InvokeRealmUnaryRequest struct {
@@ -7007,6 +7076,7 @@ type ScenarioStreamStarted struct {
 	ModelResolved string `json:"model_resolved,omitempty"`
 	RouteDecision RoutePolicy `json:"route_decision,omitempty"`
 	ResolvedExecutionBinding *RuntimeResolvedExecutionBinding `json:"resolved_execution_binding,omitempty"`
+	VoiceOutputMode VoiceOutputMode `json:"voice_output_mode,omitempty"`
 }
 
 type SchedulingEvaluationTarget struct {
@@ -7404,6 +7474,13 @@ type SubscribeAgentEventsRequest struct {
 
 type SubscribeAgentExecutionReadinessRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
+}
+
+type SubscribeAgentVoiceStreamRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	VoiceStreamId string `json:"voice_stream_id,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	TurnId string `json:"turn_id,omitempty"`
 }
 
 type SubscribeAppMessagesRequest struct {
@@ -7838,6 +7915,8 @@ type VoiceAsset struct {
 	UpdatedAt string `json:"updated_at,omitempty"`
 	ExpiresAt string `json:"expires_at,omitempty"`
 	Metadata map[string]any `json:"metadata,omitempty"`
+	TargetRef *RuntimeDurableTargetRef `json:"target_ref,omitempty"`
+	VoiceAssetTargetRef *RuntimeDurableTargetRef `json:"voice_asset_target_ref,omitempty"`
 }
 
 type VoiceCloneScenarioSpec struct {
@@ -8525,6 +8604,14 @@ func (c RuntimeTypedClient) InitializeAgent(ctx context.Context, request Initial
 	return decodeRuntimeTypedResponse[InitializeAgentResponse](raw, "InitializeAgentResponse")
 }
 
+func (c RuntimeTypedClient) InterruptAgentVoicePlayback(ctx context.Context, request InterruptAgentVoicePlaybackRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InterruptAgentVoicePlaybackResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback", request, metadata, timeoutMS)
+	if err != nil {
+		return InterruptAgentVoicePlaybackResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[InterruptAgentVoicePlaybackResponse](raw, "InterruptAgentVoicePlaybackResponse")
+}
+
 func (c RuntimeTypedClient) ListAgentConversationSummaries(ctx context.Context, request ListAgentConversationSummariesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAgentConversationSummariesResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries", request, metadata, timeoutMS)
 	if err != nil {
@@ -8715,6 +8802,14 @@ func (c RuntimeTypedClient) SubscribeAgentExecutionReadiness(ctx context.Context
 		return nil, err
 	}
 	return &RuntimeTypedStream[AgentExecutionReadinessSnapshot]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) SubscribeAgentVoiceStream(ctx context.Context, request SubscribeAgentVoiceStreamRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AgentVoiceStreamEvent], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[AgentVoiceStreamEvent]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) TerminateAgent(ctx context.Context, request TerminateAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TerminateAgentResponse, error) {

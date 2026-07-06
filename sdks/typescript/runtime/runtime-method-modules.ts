@@ -83,6 +83,8 @@ export const RUNTIME_AGENT_METHODS = [
   'listParticipationAuditEvents',
   'getParticipationReplay',
   'subscribeAgentEvents',
+  'subscribeAgentVoiceStream',
+  'interruptAgentVoicePlayback',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
 export const RUNTIME_AI_METHODS = [

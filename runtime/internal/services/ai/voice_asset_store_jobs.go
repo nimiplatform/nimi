@@ -46,18 +46,20 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 		persistence = runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT
 	}
 	asset := &runtimev1.VoiceAsset{
-		VoiceAssetId:     assetID,
-		AppId:            head.GetAppId(),
-		SubjectUserId:    head.GetSubjectUserId(),
-		WorkflowType:     workflowType,
-		Provider:         provider,
-		ModelId:          head.GetModelId(),
-		TargetModelId:    targetModelID,
-		ProviderVoiceRef: "",
-		Persistence:      persistence,
-		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
-		CreatedAt:        now,
-		UpdatedAt:        now,
+		VoiceAssetId:        assetID,
+		AppId:               head.GetAppId(),
+		SubjectUserId:       head.GetSubjectUserId(),
+		WorkflowType:        workflowType,
+		Provider:            provider,
+		ModelId:             head.GetModelId(),
+		TargetModelId:       targetModelID,
+		ProviderVoiceRef:    "",
+		Persistence:         persistence,
+		Status:              runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE,
+		CreatedAt:           now,
+		UpdatedAt:           now,
+		TargetRef:           cloneRuntimeDurableTargetRef(head.GetTargetRef()),
+		VoiceAssetTargetRef: cloneRuntimeDurableTargetRef(head.GetTargetRef()),
 	}
 	workflowFamily := strings.TrimSpace(input.WorkflowFamily)
 	if workflowFamily == "" {
@@ -277,9 +279,37 @@ func (s *voiceAssetStore) transitionJob(
 	if mutate != nil {
 		mutate(record)
 	}
-	s.publishLocked(record, eventType)
 	s.pruneLocked(nowTime)
+	if err := s.persistDurableAssetsLocked(); err != nil {
+		if status == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED && s.failProviderPersistentCompletionLocked(record, err, nowTime) {
+			s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED)
+			s.mu.Unlock()
+			return false
+		}
+	}
+	s.publishLocked(record, eventType)
 	s.mu.Unlock()
+	return true
+}
+
+func (s *voiceAssetStore) failProviderPersistentCompletionLocked(record *voiceScenarioJobRecord, persistErr error, nowTime time.Time) bool {
+	if record == nil || record.job == nil {
+		return false
+	}
+	asset := s.assets[record.assetID]
+	if asset == nil || asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
+		return false
+	}
+	asset.ProviderVoiceRef = ""
+	asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
+	asset.UpdatedAt = timestamppb.New(nowTime)
+	record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
+	record.job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+	if persistErr != nil {
+		record.job.ReasonDetail = strings.TrimSpace(persistErr.Error())
+	}
+	record.job.UpdatedAt = timestamppb.New(nowTime)
+	record.terminalAt = nowTime
 	return true
 }
 

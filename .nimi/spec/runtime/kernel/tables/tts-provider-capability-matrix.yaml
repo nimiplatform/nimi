@@ -5,6 +5,7 @@ matrix_id: runtime_tts_provider_capability_matrix
 rows:
   - runtime_tts_provider_capability_matrix
 # Voice capability columns map to K-VOICE-* workflow and discovery semantics, especially K-VOICE-005 (ScenarioJob lifecycle), K-VOICE-009 (dual discovery channel), and K-VOICE-013 (discovery mode responsibility boundary); provider rows remain catalog facts, not a second voice contract.
+# supports_native_stream_tts declares whether an admitted provider route can natively stream playable non-final audio before full synthesis completion under audio.synthesize (K-MMPROV-023a, K-VOICE-019). It is NOT a new capability token and must not be inferred from provider name, route kind, or endpoint family. DashScope true means the CosyVoice WebSocket SpeechSynthesizer route is admitted at contract/adapter level; product-green still requires named live-provider proof through the acceptance matrix.
 entries:
   - provider_id: aws_polly
     runtime_plane: remote
@@ -14,6 +15,7 @@ entries:
     supports_timing_alignment: true
     voice_discovery_mode: static_catalog
     activation_state: active
+    supports_native_stream_tts: false
     source_rule: K-MCAT-023
   - provider_id: azure_speech
     runtime_plane: remote
@@ -23,6 +25,7 @@ entries:
     supports_timing_alignment: false
     voice_discovery_mode: static_catalog
     activation_state: active
+    supports_native_stream_tts: false
     source_rule: K-MCAT-023
   - provider_id: dashscope
     runtime_plane: remote
@@ -32,6 +35,7 @@ entries:
     supports_timing_alignment: false
     voice_discovery_mode: mixed
     activation_state: active
+    supports_native_stream_tts: true
     source_rule: K-MCAT-023
   - provider_id: elevenlabs
     runtime_plane: remote
@@ -41,6 +45,7 @@ entries:
     supports_timing_alignment: true
     voice_discovery_mode: static_catalog
     activation_state: active
+    supports_native_stream_tts: false
     source_rule: K-MCAT-023
   - provider_id: fish_audio
     runtime_plane: remote
@@ -50,6 +55,7 @@ entries:
     supports_timing_alignment: false
     voice_discovery_mode: static_catalog
     activation_state: active
+    supports_native_stream_tts: false
     source_rule: K-MCAT-023
   - provider_id: google_cloud_tts
     runtime_plane: remote
@@ -59,6 +65,7 @@ entries:
     supports_timing_alignment: false
     voice_discovery_mode: static_catalog
     activation_state: active
+    supports_native_stream_tts: false
     source_rule: K-MCAT-023
   - provider_id: local
     runtime_plane: local
@@ -68,6 +75,7 @@ entries:
     supports_timing_alignment: false
     voice_discovery_mode: mixed
     activation_state: active
+    supports_native_stream_tts: false
     source_rule: K-MCAT-023
   - provider_id: mimo
     runtime_plane: remote
@@ -77,6 +85,7 @@ entries:
     supports_timing_alignment: false
     voice_discovery_mode: mixed
     activation_state: active
+    supports_native_stream_tts: false
     source_rule: K-MCAT-023
   - provider_id: openai
     runtime_plane: remote
@@ -86,6 +95,7 @@ entries:
     supports_timing_alignment: false
     voice_discovery_mode: static_catalog
     activation_state: active
+    supports_native_stream_tts: false
     source_rule: K-MCAT-023
   - provider_id: stepfun
     runtime_plane: remote
@@ -95,6 +105,7 @@ entries:
     supports_timing_alignment: false
     voice_discovery_mode: static_catalog
     activation_state: active
+    supports_native_stream_tts: false
     source_rule: K-MCAT-023
   - provider_id: volcengine_openspeech
     runtime_plane: remote
@@ -104,4 +115,5 @@ entries:
     supports_timing_alignment: false
     voice_discovery_mode: static_catalog
     activation_state: active
+    supports_native_stream_tts: false
     source_rule: K-MCAT-023

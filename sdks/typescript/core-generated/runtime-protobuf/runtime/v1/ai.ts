@@ -24,6 +24,7 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { VoiceAsset } from "./voice";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { ReasonCode } from "./common";
+import { VoiceOutputMode } from "./voice";
 import { RuntimeResolvedExecutionBinding } from "./runtime_target_identity";
 import { UsageStats } from "./common";
 import { VoiceT2VInput } from "./voice";
@@ -1232,6 +1233,16 @@ export interface ScenarioStreamStarted {
      * @generated from protobuf field: nimi.runtime.v1.RuntimeResolvedExecutionBinding resolved_execution_binding = 3
      */
     resolvedExecutionBinding?: RuntimeResolvedExecutionBinding;
+    /**
+     * Positive selected output-truth for SPEECH_SYNTHESIZE streams
+     * (K-STREAM-004, K-VOICE-019). Populated only for speech scenario streams,
+     * where it declares NATIVE_STREAM vs SIMULATED_STREAM at route decision;
+     * UNSPECIFIED for non-speech scenario streams. Consumers must not infer
+     * native realtime from event shape or from ScenarioStreamCompleted.stream_simulated.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.VoiceOutputMode voice_output_mode = 4
+     */
+    voiceOutputMode: VoiceOutputMode;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.TextStreamDelta
@@ -1318,6 +1329,11 @@ export interface ScenarioStreamCompleted {
      */
     usage?: UsageStats;
     /**
+     * Derived compatibility / audit metadata only (K-STREAM-004, K-LENG-011,
+     * K-VOICE-019). It is NOT the primary realtime acceptance truth; the
+     * authoritative selected output mode is ScenarioStreamStarted.voice_output_mode.
+     * stream_simulated=false alone is insufficient to prove native realtime.
+     *
      * @generated from protobuf field: bool stream_simulated = 3
      */
     streamSimulated: boolean;
@@ -6231,13 +6247,15 @@ class ScenarioStreamStarted$Type extends MessageType<ScenarioStreamStarted> {
         super("nimi.runtime.v1.ScenarioStreamStarted", [
             { no: 1, name: "model_resolved", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "route_decision", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
-            { no: 3, name: "resolved_execution_binding", kind: "message", T: () => RuntimeResolvedExecutionBinding }
+            { no: 3, name: "resolved_execution_binding", kind: "message", T: () => RuntimeResolvedExecutionBinding },
+            { no: 4, name: "voice_output_mode", kind: "enum", T: () => ["nimi.runtime.v1.VoiceOutputMode", VoiceOutputMode, "VOICE_OUTPUT_MODE_"] }
         ]);
     }
     create(value?: PartialMessage<ScenarioStreamStarted>): ScenarioStreamStarted {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.modelResolved = "";
         message.routeDecision = 0;
+        message.voiceOutputMode = 0;
         if (value !== undefined)
             reflectionMergePartial<ScenarioStreamStarted>(this, message, value);
         return message;
@@ -6255,6 +6273,9 @@ class ScenarioStreamStarted$Type extends MessageType<ScenarioStreamStarted> {
                     break;
                 case /* nimi.runtime.v1.RuntimeResolvedExecutionBinding resolved_execution_binding */ 3:
                     message.resolvedExecutionBinding = RuntimeResolvedExecutionBinding.internalBinaryRead(reader, reader.uint32(), options, message.resolvedExecutionBinding);
+                    break;
+                case /* nimi.runtime.v1.VoiceOutputMode voice_output_mode */ 4:
+                    message.voiceOutputMode = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6277,6 +6298,9 @@ class ScenarioStreamStarted$Type extends MessageType<ScenarioStreamStarted> {
         /* nimi.runtime.v1.RuntimeResolvedExecutionBinding resolved_execution_binding = 3; */
         if (message.resolvedExecutionBinding)
             RuntimeResolvedExecutionBinding.internalBinaryWrite(message.resolvedExecutionBinding, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VoiceOutputMode voice_output_mode = 4; */
+        if (message.voiceOutputMode !== 0)
+            writer.tag(4, WireType.Varint).int32(message.voiceOutputMode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -100,20 +100,21 @@ export function renderTtsProviderCapabilityMatrix(doc, sourceName) {
   const entries = Array.isArray(doc?.entries) ? doc.entries : [];
   let out = header('Generated TTS Provider Capability Matrix', sourceName);
 
-  out += '| Provider ID | Runtime Plane | Synthesize | Clone | Design | Timing Alignment | Voice Discovery Mode | Activation State | Source Rule |\n';
-  out += '|---|---|---|---|---|---|---|---|---|\n';
+  out += '| Provider ID | Runtime Plane | Synthesize | Native Stream TTS | Clone | Design | Timing Alignment | Voice Discovery Mode | Activation State | Source Rule |\n';
+  out += '|---|---|---|---|---|---|---|---|---|---|\n';
   for (const item of entries) {
     const providerID = String(item?.provider_id || '').trim();
     if (!providerID) continue;
     const runtimePlane = String(item?.runtime_plane || '').trim() || '-';
     const supportsSynthesize = mdBool(Boolean(item?.supports_tts_synthesize));
+    const supportsNativeStreamTTS = mdBool(Boolean(item?.supports_native_stream_tts));
     const supportsClone = mdBool(Boolean(item?.supports_voice_clone));
     const supportsDesign = mdBool(Boolean(item?.supports_voice_design));
     const supportsTimingAlignment = mdBool(Boolean(item?.supports_timing_alignment));
     const discoveryMode = String(item?.voice_discovery_mode || '').trim() || '-';
     const activationState = String(item?.activation_state || '').trim() || '-';
     const sourceRule = String(item?.source_rule || '').trim() || '-';
-    out += `| \`${providerID}\` | \`${runtimePlane}\` | \`${supportsSynthesize}\` | \`${supportsClone}\` | \`${supportsDesign}\` | \`${supportsTimingAlignment}\` | \`${discoveryMode}\` | \`${activationState}\` | \`${sourceRule}\` |\n`;
+    out += `| \`${providerID}\` | \`${runtimePlane}\` | \`${supportsSynthesize}\` | \`${supportsNativeStreamTTS}\` | \`${supportsClone}\` | \`${supportsDesign}\` | \`${supportsTimingAlignment}\` | \`${discoveryMode}\` | \`${activationState}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
 

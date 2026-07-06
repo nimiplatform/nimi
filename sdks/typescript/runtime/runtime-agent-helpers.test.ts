@@ -2,13 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type {
+  AgentVoiceStreamEvent,
   CreateRealmGroupMessageCandidateRequest,
   GetAgentRequest,
   GetRealmGroupMessageCandidateEvidenceRequest,
   InitializeAgentRequest,
+  InterruptAgentVoicePlaybackRequest,
+  InterruptAgentVoicePlaybackResponse,
+  ReadArtifactBytesRequest,
+  ReadArtifactBytesResponse,
   type AppMessageEvent,
   RuntimeTypedCallOptions,
   SendAppMessageRequest,
+  SubscribeAgentVoiceStreamRequest,
   TerminateAgentRequest,
 } from '../core-generated/runtime-typed-client';
 import {
@@ -27,6 +33,7 @@ import {
   buildNimiRuntimeAgentTurnPayload,
   createNimiRuntimeAgentTurnsModule,
 } from './runtime-agent-turns';
+import { createNimiRuntimeAgentVoiceModule } from './runtime-agent-voice';
 import { fromNimiRuntimeProtoStruct, toNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 const OWNER_USER_ID = 'user-1';
@@ -287,6 +294,108 @@ test('Runtime Agent turn helper reports text_only when Runtime emits no playable
     reason: 'voice_projection_unavailable',
   });
   assert.equal(appStream.returnCount, 1);
+});
+
+test('Runtime Agent voice helper consumes typed stream and replays only audio artifacts', async () => {
+  const scopes: readonly string[][] = [];
+  const streamRequests: SubscribeAgentVoiceStreamRequest[] = [];
+  const interruptRequests: InterruptAgentVoicePlaybackRequest[] = [];
+  const artifactReads: ReadArtifactBytesRequest[] = [];
+  const voiceEvents: AgentVoiceStreamEvent[] = [{
+    voiceStreamId: 'voice-stream-1',
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    streamId: 'stream-1',
+    messageId: 'message-1',
+    chunkSequence: '1',
+    chunk: new Uint8Array([1, 2, 3]),
+    mimeType: 'audio/wav',
+    voiceOutputMode: 1,
+    playbackTarget: 'avatar_autoplay',
+    terminal: false,
+    voicePlaybackState: 1,
+    terminalReason: '',
+    replayTruncated: false,
+  }];
+  const module = createNimiRuntimeAgentVoiceModule({
+    runtime: {
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agents: {
+        async *subscribeAgentVoiceStream(request) {
+          streamRequests.push(request);
+          yield* voiceEvents;
+        },
+        async interruptAgentVoicePlayback(request): Promise<InterruptAgentVoicePlaybackResponse> {
+          interruptRequests.push(request);
+          return {
+            voiceStreamId: request.voiceStreamId,
+            voiceOutputMode: 1,
+            voicePlaybackState: 3,
+            terminalReason: request.reason || 'runtime_voice_interrupt_requested',
+          };
+        },
+      },
+      artifacts: {
+        async readArtifactBytes(request): Promise<ReadArtifactBytesResponse> {
+          artifactReads.push(request);
+          return {
+            bytes: new Uint8Array([9, 8, 7]),
+            mimeType: request.artifactId === 'artifact-audio-1' ? 'audio/wav' : 'text/plain',
+            sizeBytes: '3',
+            mimeInferred: false,
+          };
+        },
+      },
+    },
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (nextScopes, operation) => {
+      scopes.push(nextScopes);
+      return operation({ metadata: { scoped: nextScopes.join(',') } });
+    },
+  });
+
+  const stream = await module.subscribeStream({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    voiceStreamId: 'voice-stream-1',
+  });
+  const received: AgentVoiceStreamEvent[] = [];
+  for await (const event of stream) {
+    received.push(event);
+  }
+  assert.deepEqual([...received[0]?.chunk ?? []], [1, 2, 3]);
+  assert.equal(streamRequests[0]?.voiceStreamId, 'voice-stream-1');
+  assert.equal(streamRequests[0]?.context?.localAgentRef, LOCAL_AGENT_REF);
+  assert.deepEqual(scopes[0], ['runtime.agent.turn.read']);
+
+  const replay = await module.replayFinalArtifact({ artifactId: 'artifact-audio-1' });
+  assert.deepEqual([...replay.bytes], [9, 8, 7]);
+  assert.equal(artifactReads[0]?.artifactId, 'artifact-audio-1');
+  await assert.rejects(
+    () => module.replayFinalArtifact({ artifactId: 'artifact-text-1' }),
+    /must be audio/,
+  );
+  const interrupt = await module.interruptPlayback({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    voiceStreamId: 'voice-stream-1',
+    reason: 'avatar_user_interrupt',
+  });
+  assert.equal(interrupt.voicePlaybackState, 3);
+  assert.equal(interrupt.terminalReason, 'avatar_user_interrupt');
+  assert.equal(interruptRequests[0]?.voiceStreamId, 'voice-stream-1');
+  assert.equal(interruptRequests[0]?.conversationAnchorId, 'anchor-1');
+  assert.equal(interruptRequests[0]?.turnId, 'turn-1');
+  assert.equal(interruptRequests[0]?.context?.localAgentRef, LOCAL_AGENT_REF);
+  assert.deepEqual(scopes[1], ['runtime.agent.turn.write']);
 });
 
 test('Runtime Agent turn subscription cancels sibling streams on early consumer exit', async () => {

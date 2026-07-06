@@ -52,19 +52,21 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { RuntimeDurableTargetRef } from "./runtime_target_identity";
-import { RoutePolicy } from "./ai";
 import { MemoryEmbeddingProfile } from "./memory";
 import { NarrativeRecallHit } from "./memory";
 import { MemoryRecordKind } from "./memory";
 import { Ack } from "./common";
 import { AgentRequestContext } from "./agent_common";
 import { ScopedRuntimeBindingAttachment } from "./common";
+import { VoicePlaybackState } from "./voice";
+import { VoiceOutputMode } from "./voice";
 import { MemoryReplicationState } from "./memory";
 import { MemoryRecord } from "./memory";
 import { MemoryRecordInput } from "./memory";
 import { MemoryBankLocator } from "./memory";
 import { MemoryCanonicalClass } from "./memory";
 import { ReasonCode } from "./common";
+import { RoutePolicy } from "./ai";
 import { Struct } from "../../google/protobuf/struct";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { Duration } from "../../google/protobuf/duration";
@@ -312,6 +314,18 @@ export interface AgentPresentationProfile {
      * @generated from protobuf field: string default_voice_reference = 6
      */
     defaultVoiceReference: string;
+    /**
+     * @generated from protobuf field: bool avatar_autoplay = 7
+     */
+    avatarAutoplay: boolean;
+    /**
+     * @generated from protobuf field: string speech_model_id = 8
+     */
+    speechModelId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy speech_route_policy = 9
+     */
+    speechRoutePolicy: RoutePolicy;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ClearAgentPresentationProfile
@@ -912,6 +926,74 @@ export interface AgentPresentationEventDetail {
      * @generated from protobuf field: bool lookat_has_z = 56
      */
     lookatHasZ: boolean;
+    /**
+     * voice_playback_requested / voice_stream_chunk_available /
+     * voice_playback_terminal. Non-final native stream chunks carry only
+     * transient stream identity; final replay bytes remain Runtime artifacts.
+     *
+     * @generated from protobuf field: string audio_artifact_id = 60
+     */
+    audioArtifactId: string;
+    /**
+     * @generated from protobuf field: string audio_mime_type = 61
+     */
+    audioMimeType: string;
+    /**
+     * @generated from protobuf field: string voice_stream_id = 62
+     */
+    voiceStreamId: string;
+    /**
+     * @generated from protobuf field: string chunk_transport_ref = 63
+     */
+    chunkTransportRef: string;
+    /**
+     * @generated from protobuf field: string message_id = 64
+     */
+    messageId: string;
+    /**
+     * @generated from protobuf field: uint64 chunk_sequence = 65
+     */
+    chunkSequence: string;
+    /**
+     * @generated from protobuf field: bool final_chunk = 66
+     */
+    finalChunk: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceOutputMode voice_output_mode = 67
+     */
+    voiceOutputMode: VoiceOutputMode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoicePlaybackState voice_playback_state = 68
+     */
+    voicePlaybackState: VoicePlaybackState;
+    /**
+     * @generated from protobuf field: string playback_target = 69
+     */
+    playbackTarget: string;
+    /**
+     * @generated from protobuf field: bool final_artifact = 70
+     */
+    finalArtifact: boolean;
+    /**
+     * @generated from protobuf field: string terminal_reason = 71
+     */
+    terminalReason: string;
+    /**
+     * @generated from protobuf field: string reason = 72
+     */
+    reason: string;
+    /**
+     * @generated from protobuf field: int64 duration_ms = 73
+     */
+    durationMs: string;
+    /**
+     * @generated from protobuf field: int64 deadline_offset_ms = 74
+     */
+    deadlineOffsetMs: string;
+    /**
+     * @generated from protobuf field: string final_artifact_id = 75
+     */
+    finalArtifactId: string;
 }
 /**
  * AgentProactiveEventDetail projects runtime.agent.proactive.* per K-AGCORE-143; required audit/origin fields must not be fabricated.
@@ -1918,6 +2000,134 @@ export interface SubscribeAgentEventsRequest {
      * @generated from protobuf field: repeated nimi.runtime.v1.AgentEventType event_filters = 4
      */
     eventFilters: AgentEventType[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubscribeAgentVoiceStreamRequest
+ */
+export interface SubscribeAgentVoiceStreamRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string voice_stream_id = 2
+     */
+    voiceStreamId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string turn_id = 4
+     */
+    turnId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.InterruptAgentVoicePlaybackRequest
+ */
+export interface InterruptAgentVoicePlaybackRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string voice_stream_id = 2
+     */
+    voiceStreamId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string turn_id = 4
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: string reason = 5
+     */
+    reason: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
+ */
+export interface InterruptAgentVoicePlaybackResponse {
+    /**
+     * @generated from protobuf field: string voice_stream_id = 1
+     */
+    voiceStreamId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceOutputMode voice_output_mode = 2
+     */
+    voiceOutputMode: VoiceOutputMode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoicePlaybackState voice_playback_state = 3
+     */
+    voicePlaybackState: VoicePlaybackState;
+    /**
+     * @generated from protobuf field: string terminal_reason = 4
+     */
+    terminalReason: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AgentVoiceStreamEvent
+ */
+export interface AgentVoiceStreamEvent {
+    /**
+     * @generated from protobuf field: string voice_stream_id = 1
+     */
+    voiceStreamId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string turn_id = 3
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: string stream_id = 4
+     */
+    streamId: string;
+    /**
+     * @generated from protobuf field: string message_id = 5
+     */
+    messageId: string;
+    /**
+     * @generated from protobuf field: uint64 chunk_sequence = 6
+     */
+    chunkSequence: string;
+    /**
+     * @generated from protobuf field: bytes chunk = 7
+     */
+    chunk: Uint8Array;
+    /**
+     * @generated from protobuf field: string mime_type = 8
+     */
+    mimeType: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoiceOutputMode voice_output_mode = 9
+     */
+    voiceOutputMode: VoiceOutputMode;
+    /**
+     * @generated from protobuf field: string playback_target = 10
+     */
+    playbackTarget: string;
+    /**
+     * @generated from protobuf field: bool terminal = 11
+     */
+    terminal: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VoicePlaybackState voice_playback_state = 12
+     */
+    voicePlaybackState: VoicePlaybackState;
+    /**
+     * @generated from protobuf field: string terminal_reason = 13
+     */
+    terminalReason: string;
+    /**
+     * @generated from protobuf field: bool replay_truncated = 14
+     */
+    replayTruncated: boolean;
 }
 /**
  * K-AGCORE-034 ConversationAnchor boundary: runtime-owned continuity anchor.
@@ -3160,7 +3370,9 @@ export enum AgentStateEventFamily {
  * K-AGCORE-037 AgentPresentationEventFamily discriminates
  * runtime.agent.presentation.* families. Mapping is 1:1 to
  * runtime.agent.presentation.{activity_requested|motion_requested|
- * expression_requested|pose_requested|pose_cleared|lookat_requested}.
+ * expression_requested|pose_requested|pose_cleared|lookat_requested|
+ * voice_playback_requested|voice_stream_chunk_available|
+ * voice_playback_terminal}.
  *
  * @generated from protobuf enum nimi.runtime.v1.AgentPresentationEventFamily
  */
@@ -3192,7 +3404,19 @@ export enum AgentPresentationEventFamily {
     /**
      * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6;
      */
-    LOOKAT_REQUESTED = 6
+    LOOKAT_REQUESTED = 6,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED = 7;
+     */
+    VOICE_PLAYBACK_REQUESTED = 7,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE = 8;
+     */
+    VOICE_STREAM_CHUNK_AVAILABLE = 8,
+    /**
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL = 9;
+     */
+    VOICE_PLAYBACK_TERMINAL = 9
 }
 /**
  * K-AGCORE-143 AgentProactiveEventFamily discriminates
@@ -4513,7 +4737,10 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
             { no: 3, name: "expression_profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "idle_preset", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "interaction_policy_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "default_voice_reference", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "default_voice_reference", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "avatar_autoplay", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "speech_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "speech_route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] }
         ]);
     }
     create(value?: PartialMessage<AgentPresentationProfile>): AgentPresentationProfile {
@@ -4524,6 +4751,9 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
         message.idlePreset = "";
         message.interactionPolicyRef = "";
         message.defaultVoiceReference = "";
+        message.avatarAutoplay = false;
+        message.speechModelId = "";
+        message.speechRoutePolicy = 0;
         if (value !== undefined)
             reflectionMergePartial<AgentPresentationProfile>(this, message, value);
         return message;
@@ -4550,6 +4780,15 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
                     break;
                 case /* string default_voice_reference */ 6:
                     message.defaultVoiceReference = reader.string();
+                    break;
+                case /* bool avatar_autoplay */ 7:
+                    message.avatarAutoplay = reader.bool();
+                    break;
+                case /* string speech_model_id */ 8:
+                    message.speechModelId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RoutePolicy speech_route_policy */ 9:
+                    message.speechRoutePolicy = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4581,6 +4820,15 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
         /* string default_voice_reference = 6; */
         if (message.defaultVoiceReference !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.defaultVoiceReference);
+        /* bool avatar_autoplay = 7; */
+        if (message.avatarAutoplay !== false)
+            writer.tag(7, WireType.Varint).bool(message.avatarAutoplay);
+        /* string speech_model_id = 8; */
+        if (message.speechModelId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.speechModelId);
+        /* nimi.runtime.v1.RoutePolicy speech_route_policy = 9; */
+        if (message.speechRoutePolicy !== 0)
+            writer.tag(9, WireType.Varint).int32(message.speechRoutePolicy);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5973,7 +6221,23 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
             { no: 53, name: "lookat_z", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
             { no: 54, name: "lookat_has_x", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 55, name: "lookat_has_y", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 56, name: "lookat_has_z", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 56, name: "lookat_has_z", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 60, name: "audio_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 61, name: "audio_mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 62, name: "voice_stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 63, name: "chunk_transport_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 64, name: "message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 65, name: "chunk_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 66, name: "final_chunk", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 67, name: "voice_output_mode", kind: "enum", T: () => ["nimi.runtime.v1.VoiceOutputMode", VoiceOutputMode, "VOICE_OUTPUT_MODE_"] },
+            { no: 68, name: "voice_playback_state", kind: "enum", T: () => ["nimi.runtime.v1.VoicePlaybackState", VoicePlaybackState, "VOICE_PLAYBACK_STATE_"] },
+            { no: 69, name: "playback_target", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 70, name: "final_artifact", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 71, name: "terminal_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 72, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 73, name: "duration_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 74, name: "deadline_offset_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 75, name: "final_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AgentPresentationEventDetail>): AgentPresentationEventDetail {
@@ -6001,6 +6265,22 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
         message.lookatHasX = false;
         message.lookatHasY = false;
         message.lookatHasZ = false;
+        message.audioArtifactId = "";
+        message.audioMimeType = "";
+        message.voiceStreamId = "";
+        message.chunkTransportRef = "";
+        message.messageId = "";
+        message.chunkSequence = "0";
+        message.finalChunk = false;
+        message.voiceOutputMode = 0;
+        message.voicePlaybackState = 0;
+        message.playbackTarget = "";
+        message.finalArtifact = false;
+        message.terminalReason = "";
+        message.reason = "";
+        message.durationMs = "0";
+        message.deadlineOffsetMs = "0";
+        message.finalArtifactId = "";
         if (value !== undefined)
             reflectionMergePartial<AgentPresentationEventDetail>(this, message, value);
         return message;
@@ -6078,6 +6358,54 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
                     break;
                 case /* bool lookat_has_z */ 56:
                     message.lookatHasZ = reader.bool();
+                    break;
+                case /* string audio_artifact_id */ 60:
+                    message.audioArtifactId = reader.string();
+                    break;
+                case /* string audio_mime_type */ 61:
+                    message.audioMimeType = reader.string();
+                    break;
+                case /* string voice_stream_id */ 62:
+                    message.voiceStreamId = reader.string();
+                    break;
+                case /* string chunk_transport_ref */ 63:
+                    message.chunkTransportRef = reader.string();
+                    break;
+                case /* string message_id */ 64:
+                    message.messageId = reader.string();
+                    break;
+                case /* uint64 chunk_sequence */ 65:
+                    message.chunkSequence = reader.uint64().toString();
+                    break;
+                case /* bool final_chunk */ 66:
+                    message.finalChunk = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.VoiceOutputMode voice_output_mode */ 67:
+                    message.voiceOutputMode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.VoicePlaybackState voice_playback_state */ 68:
+                    message.voicePlaybackState = reader.int32();
+                    break;
+                case /* string playback_target */ 69:
+                    message.playbackTarget = reader.string();
+                    break;
+                case /* bool final_artifact */ 70:
+                    message.finalArtifact = reader.bool();
+                    break;
+                case /* string terminal_reason */ 71:
+                    message.terminalReason = reader.string();
+                    break;
+                case /* string reason */ 72:
+                    message.reason = reader.string();
+                    break;
+                case /* int64 duration_ms */ 73:
+                    message.durationMs = reader.int64().toString();
+                    break;
+                case /* int64 deadline_offset_ms */ 74:
+                    message.deadlineOffsetMs = reader.int64().toString();
+                    break;
+                case /* string final_artifact_id */ 75:
+                    message.finalArtifactId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6160,6 +6488,54 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
         /* bool lookat_has_z = 56; */
         if (message.lookatHasZ !== false)
             writer.tag(56, WireType.Varint).bool(message.lookatHasZ);
+        /* string audio_artifact_id = 60; */
+        if (message.audioArtifactId !== "")
+            writer.tag(60, WireType.LengthDelimited).string(message.audioArtifactId);
+        /* string audio_mime_type = 61; */
+        if (message.audioMimeType !== "")
+            writer.tag(61, WireType.LengthDelimited).string(message.audioMimeType);
+        /* string voice_stream_id = 62; */
+        if (message.voiceStreamId !== "")
+            writer.tag(62, WireType.LengthDelimited).string(message.voiceStreamId);
+        /* string chunk_transport_ref = 63; */
+        if (message.chunkTransportRef !== "")
+            writer.tag(63, WireType.LengthDelimited).string(message.chunkTransportRef);
+        /* string message_id = 64; */
+        if (message.messageId !== "")
+            writer.tag(64, WireType.LengthDelimited).string(message.messageId);
+        /* uint64 chunk_sequence = 65; */
+        if (message.chunkSequence !== "0")
+            writer.tag(65, WireType.Varint).uint64(message.chunkSequence);
+        /* bool final_chunk = 66; */
+        if (message.finalChunk !== false)
+            writer.tag(66, WireType.Varint).bool(message.finalChunk);
+        /* nimi.runtime.v1.VoiceOutputMode voice_output_mode = 67; */
+        if (message.voiceOutputMode !== 0)
+            writer.tag(67, WireType.Varint).int32(message.voiceOutputMode);
+        /* nimi.runtime.v1.VoicePlaybackState voice_playback_state = 68; */
+        if (message.voicePlaybackState !== 0)
+            writer.tag(68, WireType.Varint).int32(message.voicePlaybackState);
+        /* string playback_target = 69; */
+        if (message.playbackTarget !== "")
+            writer.tag(69, WireType.LengthDelimited).string(message.playbackTarget);
+        /* bool final_artifact = 70; */
+        if (message.finalArtifact !== false)
+            writer.tag(70, WireType.Varint).bool(message.finalArtifact);
+        /* string terminal_reason = 71; */
+        if (message.terminalReason !== "")
+            writer.tag(71, WireType.LengthDelimited).string(message.terminalReason);
+        /* string reason = 72; */
+        if (message.reason !== "")
+            writer.tag(72, WireType.LengthDelimited).string(message.reason);
+        /* int64 duration_ms = 73; */
+        if (message.durationMs !== "0")
+            writer.tag(73, WireType.Varint).int64(message.durationMs);
+        /* int64 deadline_offset_ms = 74; */
+        if (message.deadlineOffsetMs !== "0")
+            writer.tag(74, WireType.Varint).int64(message.deadlineOffsetMs);
+        /* string final_artifact_id = 75; */
+        if (message.finalArtifactId !== "")
+            writer.tag(75, WireType.LengthDelimited).string(message.finalArtifactId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9377,6 +9753,376 @@ class SubscribeAgentEventsRequest$Type extends MessageType<SubscribeAgentEventsR
  * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeAgentEventsRequest
  */
 export const SubscribeAgentEventsRequest = new SubscribeAgentEventsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubscribeAgentVoiceStreamRequest$Type extends MessageType<SubscribeAgentVoiceStreamRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SubscribeAgentVoiceStreamRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "voice_stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SubscribeAgentVoiceStreamRequest>): SubscribeAgentVoiceStreamRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.voiceStreamId = "";
+        message.conversationAnchorId = "";
+        message.turnId = "";
+        if (value !== undefined)
+            reflectionMergePartial<SubscribeAgentVoiceStreamRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubscribeAgentVoiceStreamRequest): SubscribeAgentVoiceStreamRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string voice_stream_id */ 2:
+                    message.voiceStreamId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string turn_id */ 4:
+                    message.turnId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubscribeAgentVoiceStreamRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string voice_stream_id = 2; */
+        if (message.voiceStreamId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.voiceStreamId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string turn_id = 4; */
+        if (message.turnId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.turnId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeAgentVoiceStreamRequest
+ */
+export const SubscribeAgentVoiceStreamRequest = new SubscribeAgentVoiceStreamRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class InterruptAgentVoicePlaybackRequest$Type extends MessageType<InterruptAgentVoicePlaybackRequest> {
+    constructor() {
+        super("nimi.runtime.v1.InterruptAgentVoicePlaybackRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "voice_stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<InterruptAgentVoicePlaybackRequest>): InterruptAgentVoicePlaybackRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.voiceStreamId = "";
+        message.conversationAnchorId = "";
+        message.turnId = "";
+        message.reason = "";
+        if (value !== undefined)
+            reflectionMergePartial<InterruptAgentVoicePlaybackRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InterruptAgentVoicePlaybackRequest): InterruptAgentVoicePlaybackRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string voice_stream_id */ 2:
+                    message.voiceStreamId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string turn_id */ 4:
+                    message.turnId = reader.string();
+                    break;
+                case /* string reason */ 5:
+                    message.reason = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: InterruptAgentVoicePlaybackRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string voice_stream_id = 2; */
+        if (message.voiceStreamId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.voiceStreamId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string turn_id = 4; */
+        if (message.turnId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.turnId);
+        /* string reason = 5; */
+        if (message.reason !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.reason);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.InterruptAgentVoicePlaybackRequest
+ */
+export const InterruptAgentVoicePlaybackRequest = new InterruptAgentVoicePlaybackRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class InterruptAgentVoicePlaybackResponse$Type extends MessageType<InterruptAgentVoicePlaybackResponse> {
+    constructor() {
+        super("nimi.runtime.v1.InterruptAgentVoicePlaybackResponse", [
+            { no: 1, name: "voice_stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "voice_output_mode", kind: "enum", T: () => ["nimi.runtime.v1.VoiceOutputMode", VoiceOutputMode, "VOICE_OUTPUT_MODE_"] },
+            { no: 3, name: "voice_playback_state", kind: "enum", T: () => ["nimi.runtime.v1.VoicePlaybackState", VoicePlaybackState, "VOICE_PLAYBACK_STATE_"] },
+            { no: 4, name: "terminal_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<InterruptAgentVoicePlaybackResponse>): InterruptAgentVoicePlaybackResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.voiceStreamId = "";
+        message.voiceOutputMode = 0;
+        message.voicePlaybackState = 0;
+        message.terminalReason = "";
+        if (value !== undefined)
+            reflectionMergePartial<InterruptAgentVoicePlaybackResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InterruptAgentVoicePlaybackResponse): InterruptAgentVoicePlaybackResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string voice_stream_id */ 1:
+                    message.voiceStreamId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.VoiceOutputMode voice_output_mode */ 2:
+                    message.voiceOutputMode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.VoicePlaybackState voice_playback_state */ 3:
+                    message.voicePlaybackState = reader.int32();
+                    break;
+                case /* string terminal_reason */ 4:
+                    message.terminalReason = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: InterruptAgentVoicePlaybackResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string voice_stream_id = 1; */
+        if (message.voiceStreamId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.voiceStreamId);
+        /* nimi.runtime.v1.VoiceOutputMode voice_output_mode = 2; */
+        if (message.voiceOutputMode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.voiceOutputMode);
+        /* nimi.runtime.v1.VoicePlaybackState voice_playback_state = 3; */
+        if (message.voicePlaybackState !== 0)
+            writer.tag(3, WireType.Varint).int32(message.voicePlaybackState);
+        /* string terminal_reason = 4; */
+        if (message.terminalReason !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.terminalReason);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.InterruptAgentVoicePlaybackResponse
+ */
+export const InterruptAgentVoicePlaybackResponse = new InterruptAgentVoicePlaybackResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentVoiceStreamEvent$Type extends MessageType<AgentVoiceStreamEvent> {
+    constructor() {
+        super("nimi.runtime.v1.AgentVoiceStreamEvent", [
+            { no: 1, name: "voice_stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "chunk_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 7, name: "chunk", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 8, name: "mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "voice_output_mode", kind: "enum", T: () => ["nimi.runtime.v1.VoiceOutputMode", VoiceOutputMode, "VOICE_OUTPUT_MODE_"] },
+            { no: 10, name: "playback_target", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "terminal", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 12, name: "voice_playback_state", kind: "enum", T: () => ["nimi.runtime.v1.VoicePlaybackState", VoicePlaybackState, "VOICE_PLAYBACK_STATE_"] },
+            { no: 13, name: "terminal_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "replay_truncated", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentVoiceStreamEvent>): AgentVoiceStreamEvent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.voiceStreamId = "";
+        message.conversationAnchorId = "";
+        message.turnId = "";
+        message.streamId = "";
+        message.messageId = "";
+        message.chunkSequence = "0";
+        message.chunk = new Uint8Array(0);
+        message.mimeType = "";
+        message.voiceOutputMode = 0;
+        message.playbackTarget = "";
+        message.terminal = false;
+        message.voicePlaybackState = 0;
+        message.terminalReason = "";
+        message.replayTruncated = false;
+        if (value !== undefined)
+            reflectionMergePartial<AgentVoiceStreamEvent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentVoiceStreamEvent): AgentVoiceStreamEvent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string voice_stream_id */ 1:
+                    message.voiceStreamId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string turn_id */ 3:
+                    message.turnId = reader.string();
+                    break;
+                case /* string stream_id */ 4:
+                    message.streamId = reader.string();
+                    break;
+                case /* string message_id */ 5:
+                    message.messageId = reader.string();
+                    break;
+                case /* uint64 chunk_sequence */ 6:
+                    message.chunkSequence = reader.uint64().toString();
+                    break;
+                case /* bytes chunk */ 7:
+                    message.chunk = reader.bytes();
+                    break;
+                case /* string mime_type */ 8:
+                    message.mimeType = reader.string();
+                    break;
+                case /* nimi.runtime.v1.VoiceOutputMode voice_output_mode */ 9:
+                    message.voiceOutputMode = reader.int32();
+                    break;
+                case /* string playback_target */ 10:
+                    message.playbackTarget = reader.string();
+                    break;
+                case /* bool terminal */ 11:
+                    message.terminal = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.VoicePlaybackState voice_playback_state */ 12:
+                    message.voicePlaybackState = reader.int32();
+                    break;
+                case /* string terminal_reason */ 13:
+                    message.terminalReason = reader.string();
+                    break;
+                case /* bool replay_truncated */ 14:
+                    message.replayTruncated = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentVoiceStreamEvent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string voice_stream_id = 1; */
+        if (message.voiceStreamId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.voiceStreamId);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string turn_id = 3; */
+        if (message.turnId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.turnId);
+        /* string stream_id = 4; */
+        if (message.streamId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.streamId);
+        /* string message_id = 5; */
+        if (message.messageId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.messageId);
+        /* uint64 chunk_sequence = 6; */
+        if (message.chunkSequence !== "0")
+            writer.tag(6, WireType.Varint).uint64(message.chunkSequence);
+        /* bytes chunk = 7; */
+        if (message.chunk.length)
+            writer.tag(7, WireType.LengthDelimited).bytes(message.chunk);
+        /* string mime_type = 8; */
+        if (message.mimeType !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.mimeType);
+        /* nimi.runtime.v1.VoiceOutputMode voice_output_mode = 9; */
+        if (message.voiceOutputMode !== 0)
+            writer.tag(9, WireType.Varint).int32(message.voiceOutputMode);
+        /* string playback_target = 10; */
+        if (message.playbackTarget !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.playbackTarget);
+        /* bool terminal = 11; */
+        if (message.terminal !== false)
+            writer.tag(11, WireType.Varint).bool(message.terminal);
+        /* nimi.runtime.v1.VoicePlaybackState voice_playback_state = 12; */
+        if (message.voicePlaybackState !== 0)
+            writer.tag(12, WireType.Varint).int32(message.voicePlaybackState);
+        /* string terminal_reason = 13; */
+        if (message.terminalReason !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.terminalReason);
+        /* bool replay_truncated = 14; */
+        if (message.replayTruncated !== false)
+            writer.tag(14, WireType.Varint).bool(message.replayTruncated);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentVoiceStreamEvent
+ */
+export const AgentVoiceStreamEvent = new AgentVoiceStreamEvent$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ConversationAnchor$Type extends MessageType<ConversationAnchor> {
     constructor() {

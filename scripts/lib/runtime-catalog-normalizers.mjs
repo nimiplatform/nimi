@@ -449,6 +449,9 @@ export function normalizeVoiceRequestOptions(raw, provider, modelID) {
   if (Boolean(raw.supports_emotion)) {
     out.supports_emotion = true;
   }
+  if (Boolean(raw.supports_native_stream_tts)) {
+    out.supports_native_stream_tts = true;
+  }
   const hints = normalizeVoiceRenderHints(raw.voice_render_hints, provider, modelID);
   if (hints) {
     out.voice_render_hints = hints;

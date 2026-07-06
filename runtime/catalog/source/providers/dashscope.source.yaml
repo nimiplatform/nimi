@@ -88,6 +88,10 @@ sources:
     url: https://help.aliyun.com/zh/model-studio/non-realtime-cosyvoice-api/
     retrieved_at: 2026-06-06
     note: CosyVoice HTTP SpeechSynthesizer API covering current CosyVoice v3/v3.5 models.
+  - source_id: dashscope_cosyvoice_websocket_doc
+    url: https://help.aliyun.com/zh/model-studio/cosyvoice-websocket-api
+    retrieved_at: 2026-07-06
+    note: CosyVoice WebSocket SpeechSynthesizer API covering run-task/continue-task/finish-task realtime audio frames.
   - source_id: dashscope_cosyvoice_voice_list_doc
     url: https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list
     retrieved_at: 2026-06-06
@@ -302,7 +306,7 @@ models:
   - model_id: cosyvoice-v3.5-plus
     updated_at: 2026-03-02
     capabilities: [audio.synthesize]
-    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_clone_design_doc]
+    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_websocket_doc, dashscope_cosyvoice_clone_design_doc]
     voice:
       discovery_mode: dynamic_user_scoped
       supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
@@ -311,6 +315,7 @@ models:
         timing_modes: [none]
         audio_formats: [mp3, pcm, wav, opus]
         supports_language: true
+        supports_native_stream_tts: true
         provider_extensions:
           namespace: nimi.scenario.speech_synthesize.request
           schema_version: dashscope-cosyvoice-v1
@@ -318,7 +323,7 @@ models:
   - model_id: cosyvoice-v3.5-flash
     updated_at: 2026-03-02
     capabilities: [audio.synthesize]
-    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_clone_design_doc]
+    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_websocket_doc, dashscope_cosyvoice_clone_design_doc]
     voice:
       discovery_mode: dynamic_user_scoped
       supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
@@ -327,6 +332,7 @@ models:
         timing_modes: [none]
         audio_formats: [mp3, pcm, wav, opus]
         supports_language: true
+        supports_native_stream_tts: true
         provider_extensions:
           namespace: nimi.scenario.speech_synthesize.request
           schema_version: dashscope-cosyvoice-v1
@@ -334,7 +340,7 @@ models:
   - model_id: cosyvoice-v3-plus
     updated_at: 2025-12-11
     capabilities: [audio.synthesize]
-    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_voice_list_doc, dashscope_cosyvoice_clone_design_doc]
+    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_websocket_doc, dashscope_cosyvoice_voice_list_doc, dashscope_cosyvoice_clone_design_doc]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: cosyvoice_v3_plus_voice_set
@@ -344,6 +350,7 @@ models:
         timing_modes: [none, word]
         audio_formats: [mp3, pcm, wav, opus]
         supports_language: true
+        supports_native_stream_tts: true
         provider_extensions:
           namespace: nimi.scenario.speech_synthesize.request
           schema_version: dashscope-cosyvoice-v1
@@ -351,7 +358,7 @@ models:
   - model_id: cosyvoice-v3-flash
     updated_at: 2025-12-11
     capabilities: [audio.synthesize]
-    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_voice_list_doc, dashscope_cosyvoice_clone_design_doc]
+    source_ids: [dashscope_speech_synthesis_doc, dashscope_cosyvoice_http_doc, dashscope_cosyvoice_websocket_doc, dashscope_cosyvoice_voice_list_doc, dashscope_cosyvoice_clone_design_doc]
     voice:
       discovery_mode: static_catalog
       voice_set_ref: cosyvoice_v3_flash_voice_set
@@ -361,6 +368,7 @@ models:
         timing_modes: [none, word]
         audio_formats: [mp3, pcm, wav, opus]
         supports_language: true
+        supports_native_stream_tts: true
         provider_extensions:
           namespace: nimi.scenario.speech_synthesize.request
           schema_version: dashscope-cosyvoice-v1

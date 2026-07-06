@@ -108,6 +108,11 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 	if err != nil {
 		return nil, err
 	}
+	voiceAssets, err := newVoiceAssetStoreForLocalStatePath(daemonCfg.LocalStatePath)
+	if err != nil {
+		return nil, fmt.Errorf("init voice asset store: %w", err)
+	}
+	svc.voiceAssets = voiceAssets
 	svc.allowLoopback = daemonCfg.AllowLoopbackProviderEndpoint
 	customDir := strings.TrimSpace(daemonCfg.ModelCatalogCustomDir)
 	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{
@@ -225,11 +230,7 @@ func (s *Service) ResolvePublicChatTextBinding(
 	if s == nil || s.selector == nil {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	requested := routeHint
-	if requested == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		requested = preferredRoute(modelID)
-	}
-	_, routeDecision, modelResolved, _, err := s.selector.resolveProvider(ctx, requested, runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW, modelID)
+	routeDecision, modelResolved, err := s.selector.resolveBindingRouteModel(routeHint, runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW, modelID)
 	if err != nil {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", err
 	}

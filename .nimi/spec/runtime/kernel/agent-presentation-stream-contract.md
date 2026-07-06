@@ -273,16 +273,39 @@ envelope identity as text/presentation projection.
 
 Fixed rules:
 
-- `runtime.agent.presentation.voice_stream_chunk_available` may reference ordered
-  audio chunk artifacts for low-latency playback. Each chunk artifact id must
-  identify playable audio bytes and must not be reused for lipsync metadata.
+- `runtime.agent.presentation.voice_playback_requested` and
+  `runtime.agent.presentation.voice_stream_chunk_available` must carry the
+  positive `voice_output_mode` axis
+  (`native_stream | simulated_stream | batch_final_artifact | text_only`,
+  `tables/voice-enums.yaml` `output_modes`) and the separate `voice_playback_state`
+  axis (`active | completed | failed | interrupted | canceled`, `playback_states`).
+  Consumers must not infer native realtime from event shape, chunk presence, or an
+  omitted boolean; `failed`/`interrupted`/`canceled` must never be encoded as
+  `voice_output_mode`. See `K-VOICE-019`.
+- `native_stream` requires playable non-final chunks projected before the final
+  artifact. `simulated_stream` (payload-slice degradation) must be positively
+  marked and must not satisfy native realtime acceptance.
+- Voice chunk bytes travel over the admitted typed SDK voice-stream transport as
+  transient chunks. A per-chunk `audio_artifact_id`, when present, is a transient
+  reference to playable audio bytes for that chunk and must not be reused for
+  lipsync metadata; it must not imply a durable per-chunk retained artifact.
+  Raw audio bytes are never embedded in the projection event.
 - Each voice chunk must carry the committed assistant `message_id` in its detail
   payload.
-- A completed voice stream must materialize a final durable audio artifact for
-  replay/export and local retention under `K-VOICE-020`.
+- A completed voice stream must materialize exactly one final durable audio
+  artifact for replay/export and local retention under `K-VOICE-020`. Per-chunk
+  durable artifacts are not the default and require a separately admitted
+  retention / cleanup / retrieval authority. The final replay artifact obeys the
+  `ReadArtifactBytes` 32 MiB inline cap (`K-AGCORE-053`).
 - Chunk sequence must be monotonic per `turn_id` / `stream_id`.
 - Runtime terminal interruption/cancel/failure must stop further chunk projection
-  and must be observable by consumers through the same stream identity.
+  and must be observable by consumers through the same stream identity, projected
+  as `voice_playback_state = interrupted | canceled | failed` while preserving the
+  selected `voice_output_mode`.
+- Ordinary agent voice output is a scenario-layer `audio.synthesize` streaming
+  path. `RealtimeAudioChunk` (`ai_realtime.proto`) belongs to
+  `RuntimeAiRealtimeService` sessions only and is not the agent voice stream chunk
+  field (`K-MMPROV-031`).
 - Avatar may compute lipsync locally from streamed or final audio. Runtime must
   not own renderer mouth parameters.
 

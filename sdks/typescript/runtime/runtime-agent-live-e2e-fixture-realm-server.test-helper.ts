@@ -7,6 +7,8 @@ import { createFixtureSourceMaterializationPacket } from './runtime-agent-live-e
 import {
   FIXTURE_IMAGE_MODEL_ID,
   FIXTURE_IMAGE_PROVIDER,
+  FIXTURE_VOICE_ID,
+  FIXTURE_VOICE_MODEL_ID,
   LOCAL_EMBED_DIMENSIONS,
   LOCAL_EMBED_MODEL_ID,
   LOCAL_IMAGE_PNG_BASE64,
@@ -23,6 +25,7 @@ import {
 export async function withRealmFixtureServer(
   input: {
     readonly localChatCompletionStreamDelayMs?: number;
+    readonly voiceSpeechStreamDelayMs?: number;
     readonly run: (context: {
       readonly baseUrl: string;
       readonly requests: RuntimeAgentLiveE2ERealmRequest[];
@@ -38,6 +41,9 @@ export async function withRealmFixtureServer(
     localChatCompletionStreamDelayMs: typeof input === 'function'
       ? 0
       : Math.max(0, Math.trunc(Number(input.localChatCompletionStreamDelayMs || 0))),
+    voiceSpeechStreamDelayMs: typeof input === 'function'
+      ? 35
+      : Math.max(0, Math.trunc(Number(input.voiceSpeechStreamDelayMs ?? 35))),
   };
   const server = createServer(async (request, response) => {
     try {
@@ -80,6 +86,7 @@ async function handleRealmFixtureRequest(
   requests: RuntimeAgentLiveE2ERealmRequest[],
   options: {
     readonly localChatCompletionStreamDelayMs: number;
+    readonly voiceSpeechStreamDelayMs: number;
   },
 ): Promise<void> {
   const url = new URL(request.url || '/', 'http://127.0.0.1');
@@ -121,6 +128,8 @@ async function handleRealmFixtureRequest(
         id: LOCAL_EMBED_MODEL_ID,
       }, {
         id: FIXTURE_IMAGE_MODEL_ID,
+      }, {
+        id: FIXTURE_VOICE_MODEL_ID,
       }],
     });
     return;
@@ -185,6 +194,16 @@ async function handleRealmFixtureRequest(
 
   if (request.method === 'POST' && url.pathname === '/v1/images/generations') {
     writeOpenAIImageGeneration(response, asRecord(body));
+    return;
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/v1/services/audio/tts/customization') {
+    writeDashScopeVoiceCustomization(response, asRecord(body));
+    return;
+  }
+
+  if (request.method === 'POST' && url.pathname === '/v1/audio/speech') {
+    await writeOpenAISpeech(response, asRecord(body), options);
     return;
   }
 
@@ -325,6 +344,89 @@ function writeOpenAIImageGeneration(response: ServerResponse, body: Record<strin
       total_tokens: 2,
     },
   });
+}
+
+function writeDashScopeVoiceCustomization(response: ServerResponse, body: Record<string, unknown>): void {
+  const model = normalizeText(body.model);
+  const input = asRecord(body.input);
+  const targetModel = normalizeText(input.target_model);
+  const action = normalizeText(input.action);
+  if (model !== 'runtime-live-voice-clone' || targetModel !== FIXTURE_VOICE_MODEL_ID || action !== 'create') {
+    writeJSON(response, 400, {
+      error: {
+        code: 'ZHIYU_FIXTURE_VOICE_WORKFLOW_MISMATCH',
+        message: `Unexpected voice workflow model=${model} target=${targetModel} action=${action}`,
+      },
+    });
+    return;
+  }
+  writeJSON(response, 200, {
+    output: {
+      voice: FIXTURE_VOICE_ID,
+    },
+  });
+}
+
+async function writeOpenAISpeech(
+  response: ServerResponse,
+  body: Record<string, unknown>,
+  options: {
+    readonly voiceSpeechStreamDelayMs: number;
+  },
+): Promise<void> {
+  const model = normalizeText(body.model);
+  const voice = normalizeText(body.voice);
+  if (model !== FIXTURE_VOICE_MODEL_ID || voice !== FIXTURE_VOICE_ID) {
+    writeJSON(response, 400, {
+      error: {
+        code: 'ZHIYU_FIXTURE_VOICE_ROUTE_MISMATCH',
+        message: `Unexpected voice route model=${model} voice=${voice}`,
+      },
+    });
+    return;
+  }
+
+  const audio = createFixtureWavBuffer();
+  response.statusCode = 200;
+  response.setHeader('content-type', 'audio/wav');
+  if (body.stream === true) {
+    response.setHeader('cache-control', 'no-cache');
+    response.flushHeaders?.();
+    const firstChunkSize = Math.min(1024, audio.byteLength);
+    response.write(audio.subarray(0, firstChunkSize));
+    await delay(options.voiceSpeechStreamDelayMs);
+    if (response.destroyed || response.writableEnded) {
+      return;
+    }
+    response.end(audio.subarray(firstChunkSize));
+    return;
+  }
+  response.setHeader('content-length', String(audio.byteLength));
+  response.end(audio);
+}
+
+function createFixtureWavBuffer(): Buffer {
+  const sampleRate = 16_000;
+  const channels = 1;
+  const bitsPerSample = 16;
+  const seconds = 1;
+  const samples = sampleRate * seconds;
+  const dataSize = samples * channels * (bitsPerSample / 8);
+  const buffer = Buffer.alloc(44 + dataSize);
+  buffer.write('RIFF', 0, 'ascii');
+  buffer.writeUInt32LE(36 + dataSize, 4);
+  buffer.write('WAVE', 8, 'ascii');
+  buffer.write('fmt ', 12, 'ascii');
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(channels, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(sampleRate * channels * (bitsPerSample / 8), 28);
+  buffer.writeUInt16LE(channels * (bitsPerSample / 8), 32);
+  buffer.writeUInt16LE(bitsPerSample, 34);
+  buffer.write('data', 36, 'ascii');
+  buffer.writeUInt32LE(dataSize, 40);
+  return buffer;
 }
 
 function writeLocalEmbedding(response: ServerResponse, body: Record<string, unknown>): void {

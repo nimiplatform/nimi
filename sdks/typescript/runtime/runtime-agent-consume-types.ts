@@ -146,6 +146,7 @@ export interface NimiRuntimeAgentTurnConsumeEvent extends NimiRuntimeAgentBaseCo
     | 'runtime.agent.turn.interrupt_ack'
     | 'runtime.agent.presentation.voice_playback_requested'
     | 'runtime.agent.presentation.voice_stream_chunk_available'
+    | 'runtime.agent.presentation.voice_playback_terminal'
     | 'runtime.agent.presentation.lipsync_frame_batch';
   readonly conversationAnchorId: string;
   readonly turnId: string;
@@ -160,7 +161,10 @@ export interface NimiRuntimeAgentPresentationConsumeEvent extends NimiRuntimeAge
     | 'runtime.agent.presentation.expression_requested'
     | 'runtime.agent.presentation.pose_requested'
     | 'runtime.agent.presentation.pose_cleared'
-    | 'runtime.agent.presentation.lookat_requested';
+    | 'runtime.agent.presentation.lookat_requested'
+    | 'runtime.agent.presentation.voice_playback_requested'
+    | 'runtime.agent.presentation.voice_stream_chunk_available'
+    | 'runtime.agent.presentation.voice_playback_terminal';
   readonly conversationAnchorId: string;
   readonly turnId: string;
   readonly streamId: string;

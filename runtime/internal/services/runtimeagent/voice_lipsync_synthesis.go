@@ -56,6 +56,8 @@ type voiceLipsyncSynthesisInput struct {
 	DefaultVoiceReference string
 	SpeechModelID         string
 	SpeechRoutePolicy     runtimev1.RoutePolicy
+	SpeechConnectorID     string
+	SpeechTargetRef       *runtimev1.RuntimeDurableTargetRef
 	AgentID               string
 	IdempotencyKey        string
 }
@@ -63,6 +65,7 @@ type voiceLipsyncSynthesisInput struct {
 type voiceLipsyncSynthesisOutput struct {
 	AudioArtifactID       string
 	AudioMimeType         string
+	AudioBytes            []byte
 	DurationMs            int64
 	DefaultVoiceReference string
 	VoiceRouteBinding     *voiceRouteBindingProjection
@@ -102,6 +105,7 @@ type voiceLipsyncScenarioExecutor interface {
 
 type aiBackedVoiceLipsyncSynthesizer struct {
 	ai             voiceLipsyncScenarioExecutor
+	streamer       publicChatScenarioStreamer
 	modelID        string
 	routePolicy    runtimev1.RoutePolicy
 	fallbackPolicy runtimev1.FallbackPolicy
@@ -120,8 +124,10 @@ func newAIBackedVoiceLipsyncSynthesizer(ai voiceLipsyncScenarioExecutor, modelID
 	if routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
 		routePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
 	}
+	streamer, _ := ai.(publicChatScenarioStreamer)
 	return &aiBackedVoiceLipsyncSynthesizer{
 		ai:             ai,
+		streamer:       streamer,
 		modelID:        strings.TrimSpace(modelID),
 		routePolicy:    routePolicy,
 		fallbackPolicy: runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
@@ -219,6 +225,8 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 			SubjectUserId: runtimeAgentVoiceSynthesisSubjectID,
 			ModelId:       modelID,
 			RoutePolicy:   routePolicy,
+			ConnectorId:   strings.TrimSpace(input.SpeechConnectorID),
+			TargetRef:     cloneVoiceSynthesisTargetRef(input.SpeechTargetRef),
 			Fallback:      s.fallbackPolicy,
 			TimeoutMs:     int32(waitTimeout.Milliseconds()),
 		},
@@ -279,6 +287,17 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesize(input voiceLipsyncSynthesis
 		),
 		Frames: frames,
 	}, nil
+}
+
+func cloneVoiceSynthesisTargetRef(input *runtimev1.RuntimeDurableTargetRef) *runtimev1.RuntimeDurableTargetRef {
+	if input == nil {
+		return nil
+	}
+	cloned, ok := proto.Clone(input).(*runtimev1.RuntimeDurableTargetRef)
+	if !ok {
+		return nil
+	}
+	return cloned
 }
 
 func runtimeAgentVoiceLipsyncIdempotencyKey(input voiceLipsyncSynthesisInput) string {
@@ -346,6 +365,19 @@ func syntheticVoiceRouteBinding(defaultVoiceReference string) *voiceRouteBinding
 }
 
 func providerVoiceRouteBinding(defaultVoiceReference string, modelID string, modelResolved string, scenarioJobID string, audioArtifactID string, audioMimeType string) *voiceRouteBindingProjection {
+	return providerVoiceRouteBindingWithMode(
+		defaultVoiceReference,
+		modelID,
+		modelResolved,
+		scenarioJobID,
+		audioArtifactID,
+		audioMimeType,
+		"provider_audio_with_synthetic_lipsync",
+		"tts_provider_route_bound",
+	)
+}
+
+func providerVoiceRouteBindingWithMode(defaultVoiceReference string, modelID string, modelResolved string, scenarioJobID string, audioArtifactID string, audioMimeType string, synthesisMode string, reason string) *voiceRouteBindingProjection {
 	voiceReference := strings.TrimSpace(defaultVoiceReference)
 	if voiceReference == "" {
 		return nil
@@ -366,9 +398,9 @@ func providerVoiceRouteBinding(defaultVoiceReference string, modelID string, mod
 		ScenarioJobID:         strings.TrimSpace(scenarioJobID),
 		AudioArtifactID:       strings.TrimSpace(audioArtifactID),
 		AudioMimeType:         strings.TrimSpace(audioMimeType),
-		SynthesisMode:         "provider_audio_with_synthetic_lipsync",
+		SynthesisMode:         strings.TrimSpace(synthesisMode),
 		Status:                "bound",
-		Reason:                "tts_provider_route_bound",
+		Reason:                strings.TrimSpace(reason),
 	}
 }
 
@@ -396,13 +428,6 @@ func voiceReferenceProtoFromDefaultReference(defaultVoiceReference string) (*run
 			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
 			Reference: &runtimev1.VoiceReference_VoiceAssetId{
 				VoiceAssetId: ref,
-			},
-		}, nil
-	case "provider_voice_ref":
-		return &runtimev1.VoiceReference{
-			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
-			Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
-				ProviderVoiceRef: ref,
 			},
 		}, nil
 	default:

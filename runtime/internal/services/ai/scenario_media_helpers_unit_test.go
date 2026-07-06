@@ -480,6 +480,37 @@ func TestReasonCodeFromMediaErrorAndVoiceRef(t *testing.T) {
 	}
 }
 
+func TestResolveSynthesizeSpeechSpecVoiceRefRejectsExpiredVoiceAsset(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{})
+	const assetID = "voice-asset-expired"
+	svc.voiceAssets.assets[assetID] = &runtimev1.VoiceAsset{
+		VoiceAssetId:     assetID,
+		AppId:            "nimi.desktop",
+		SubjectUserId:    "user-1",
+		Provider:         "dashscope",
+		TargetModelId:    "dashscope/qwen3-tts-vc",
+		ProviderVoiceRef: "dashscope-provider-voice-ref",
+		Persistence:      runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT,
+		Status:           runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_EXPIRED,
+	}
+
+	_, err := svc.resolveSynthesizeSpeechSpecVoiceRef("dashscope/qwen3-tts-vc", &runtimev1.SpeechSynthesizeScenarioSpec{
+		Text: "should not synthesize with expired voice asset",
+		VoiceRef: &runtimev1.VoiceReference{
+			Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
+			Reference: &runtimev1.VoiceReference_VoiceAssetId{
+				VoiceAssetId: assetID,
+			},
+		},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expired voice asset resolve code=%v err=%v, want InvalidArgument", status.Code(err), err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID {
+		t.Fatalf("expired voice asset reason=%v ok=%v err=%v, want AI_VOICE_INPUT_INVALID", reason, ok, err)
+	}
+}
+
 func init() {
 	// Compile-time guard for timeout constants to ensure tests cover helper defaults.
 	_ = []time.Duration{defaultGenerateTimeout, defaultGenerateImageTimeout, defaultGenerateVideoTimeout, defaultSynthesizeTimeout, defaultTranscribeTimeout}

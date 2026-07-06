@@ -21,6 +21,41 @@ func (s *routeSelector) resolveProviderWithTarget(ctx context.Context, requested
 	return s.resolveProviderWithTargetAndModal(ctx, requested, fallback, modelID, remoteTarget, runtimev1.Modal_MODAL_UNSPECIFIED)
 }
 
+func (s *routeSelector) resolveBindingRouteModel(requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string) (runtimev1.RoutePolicy, string, error) {
+	rawModel := strings.TrimSpace(modelID)
+	resolvedModel, err := texttarget.ResolveInternalDefaultAlias(s.targetConfig, rawModel)
+	if err != nil {
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCodeOptions(
+			codes.FailedPrecondition,
+			runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID,
+			grpcerr.ReasonOptions{
+				ActionHint: "configure_runtime_default_target",
+				Message:    fmt.Sprintf("resolve default target for %q: %v", rawModel, err),
+			},
+		)
+	}
+	rawModel = strings.TrimSpace(resolvedModel)
+	preferred := preferredRoute(rawModel)
+	if requested == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		requested = preferred
+	}
+
+	target := s.local
+	routeDecision := runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+	if preferred == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
+		target = s.cloud
+		routeDecision = runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
+	}
+
+	if requested != preferred && fallback != runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW {
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_FALLBACK_DENIED)
+	}
+	if target == nil {
+		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	return routeDecision, target.ResolveModelID(rawModel), nil
+}
+
 func (s *routeSelector) resolveProviderWithTargetAndModal(ctx context.Context, requested runtimev1.RoutePolicy, fallback runtimev1.FallbackPolicy, modelID string, remoteTarget *nimillm.RemoteTarget, modal runtimev1.Modal) (provider, runtimev1.RoutePolicy, string, nimillm.RouteDecisionInfo, error) {
 	rawModel := strings.TrimSpace(modelID)
 	resolvedModel, err := texttarget.ResolveInternalDefaultAlias(s.targetConfig, rawModel)

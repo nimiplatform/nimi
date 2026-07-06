@@ -214,7 +214,7 @@ func InferCapabilities(modelID string) []string {
 	if strings.Contains(lower, "stt") || strings.Contains(lower, "whisper") {
 		add("audio.transcribe")
 	}
-	if strings.Contains(lower, "tts") {
+	if strings.Contains(lower, "tts") || strings.Contains(lower, "cosyvoice") {
 		add("audio.synthesize")
 	}
 	if strings.Contains(lower, "vision") || strings.Contains(lower, "vl") {

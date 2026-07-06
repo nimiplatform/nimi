@@ -343,6 +343,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "InitializeAgentResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
+    "service": "RuntimeAgentService",
+    "method": "InterruptAgentVoicePlayback",
+    "kind": "unary",
+    "requestType": "InterruptAgentVoicePlaybackRequest",
+    "responseType": "InterruptAgentVoicePlaybackResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
     "service": "RuntimeAgentService",
     "method": "ListAgentConversationSummaries",
@@ -533,6 +541,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "server_stream",
     "requestType": "SubscribeAgentExecutionReadinessRequest",
     "responseType": "AgentExecutionReadinessSnapshot"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
+    "service": "RuntimeAgentService",
+    "method": "SubscribeAgentVoiceStream",
+    "kind": "server_stream",
+    "requestType": "SubscribeAgentVoiceStreamRequest",
+    "responseType": "AgentVoiceStreamEvent"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",

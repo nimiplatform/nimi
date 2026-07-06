@@ -5,6 +5,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
@@ -160,6 +161,210 @@ func TestVoiceAssetStorePrunesExpiredTerminalJobsAndAssets(t *testing.T) {
 	}
 	if _, ok := store.getAsset(asset.GetVoiceAssetId()); ok {
 		t.Fatalf("expected expired terminal voice asset to be pruned")
+	}
+}
+
+func TestVoiceAssetStoreKeepsProviderPersistentAssetsAfterTerminalJobPrune(t *testing.T) {
+	store := newVoiceAssetStore()
+	job, asset := store.submit(&voiceWorkflowSubmitInput{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app-1",
+			SubjectUserId: "user-1",
+			ModelId:       "dashscope/qwen3-tts-vc",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+				TargetModelId: "dashscope/qwen3-tts-vc",
+				Input: &runtimev1.VoiceV2VInput{
+					ReferenceAudioUri:  "https://example.com/reference.wav",
+					ReferenceAudioMime: "audio/wav",
+				},
+			}},
+		},
+		Provider:          "dashscope",
+		OutputPersistence: "provider_persistent",
+	})
+	if job == nil || asset == nil {
+		t.Fatalf("expected submitted provider-persistent voice workflow")
+	}
+	if !store.completeJob(job.GetJobId(), "provider-job", "dashscope-provider-voice-ref", nil, nil) {
+		t.Fatalf("expected completed voice workflow")
+	}
+
+	store.mu.Lock()
+	store.jobs[job.GetJobId()].terminalAt = time.Now().UTC().Add(-voiceAssetStoreRetentionWindow - time.Minute)
+	store.mu.Unlock()
+
+	if nextJob, nextAsset := store.submit(&voiceWorkflowSubmitInput{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app-1",
+			SubjectUserId: "user-1",
+			ModelId:       "dashscope/qwen3-tts-vd",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+				TargetModelId: "dashscope/qwen3-tts-vd",
+				Input: &runtimev1.VoiceT2VInput{
+					InstructionText: "warm cinematic narrator",
+				},
+			}},
+		},
+		Provider: "dashscope",
+	}); nextJob == nil || nextAsset == nil {
+		t.Fatalf("expected fresh submitted voice workflow")
+	}
+
+	if _, ok := store.getJob(job.GetJobId()); ok {
+		t.Fatalf("expected expired terminal voice job to be pruned")
+	}
+	stored, ok := store.getAsset(asset.GetVoiceAssetId())
+	if !ok {
+		t.Fatalf("provider-persistent voice asset must outlive terminal job retention")
+	}
+	if stored.GetProviderVoiceRef() != "dashscope-provider-voice-ref" {
+		t.Fatalf("provider-persistent voice asset lost provider handle: %#v", stored)
+	}
+	if stored.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
+		t.Fatalf("unexpected persistence after prune: %v", stored.GetPersistence())
+	}
+}
+
+func TestVoiceAssetStoreSubmitCopiesDurableTargetRefToVoiceAsset(t *testing.T) {
+	store := newVoiceAssetStore()
+	targetRef := cloudScenarioTargetRef("connector-dashscope", "remote-catalog-dashscope-vc", "qwen3-tts-vc", "dashscope")
+	_, asset := store.submit(&voiceWorkflowSubmitInput{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app-1",
+			SubjectUserId: "user-1",
+			ModelId:       "dashscope/qwen3-tts-vc",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			TargetRef:     targetRef,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+				TargetModelId: "dashscope/qwen3-tts-vc",
+				Input: &runtimev1.VoiceV2VInput{
+					ReferenceAudioUri:  "https://example.com/reference.wav",
+					ReferenceAudioMime: "audio/wav",
+				},
+			}},
+		},
+		Provider:          "dashscope",
+		OutputPersistence: "provider_persistent",
+	})
+	if asset == nil {
+		t.Fatalf("submit should create voice asset")
+	}
+	if !proto.Equal(asset.GetTargetRef(), targetRef) {
+		t.Fatalf("asset target_ref mismatch: got=%#v want=%#v", asset.GetTargetRef(), targetRef)
+	}
+	if !proto.Equal(asset.GetVoiceAssetTargetRef(), targetRef) {
+		t.Fatalf("asset voice_asset_target_ref mismatch: got=%#v want=%#v", asset.GetVoiceAssetTargetRef(), targetRef)
+	}
+}
+
+func TestVoiceAssetStoreProviderPersistentAssetsSurviveStoreReopen(t *testing.T) {
+	localStatePath := t.TempDir() + "/local-state.json"
+	store, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatalf("newVoiceAssetStoreForLocalStatePath: %v", err)
+	}
+	targetRef := cloudScenarioTargetRef("connector-dashscope", "remote-catalog-dashscope-vc", "qwen3-tts-vc", "dashscope")
+	job, asset := store.submit(&voiceWorkflowSubmitInput{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app-1",
+			SubjectUserId: "user-1",
+			ModelId:       "dashscope/qwen3-tts-vc",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			TargetRef:     targetRef,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+				TargetModelId: "dashscope/qwen3-tts-vc",
+				Input: &runtimev1.VoiceV2VInput{
+					ReferenceAudioUri:  "https://example.com/reference.wav",
+					ReferenceAudioMime: "audio/wav",
+				},
+			}},
+		},
+		Provider:          "dashscope",
+		OutputPersistence: "provider_persistent",
+	})
+	if job == nil || asset == nil {
+		t.Fatalf("submit should create voice workflow and asset")
+	}
+	if !store.completeJob(job.GetJobId(), "provider-job", "dashscope-provider-voice-ref", nil, nil) {
+		t.Fatalf("completeJob should succeed")
+	}
+
+	reopened, err := newVoiceAssetStoreForLocalStatePath(localStatePath)
+	if err != nil {
+		t.Fatalf("reopen voice asset store: %v", err)
+	}
+	stored, ok := reopened.getAsset(asset.GetVoiceAssetId())
+	if !ok {
+		t.Fatalf("provider-persistent voice asset must survive store reopen")
+	}
+	if stored.GetProviderVoiceRef() != "dashscope-provider-voice-ref" {
+		t.Fatalf("provider voice ref after reopen=%q", stored.GetProviderVoiceRef())
+	}
+	if !proto.Equal(stored.GetVoiceAssetTargetRef(), targetRef) {
+		t.Fatalf("voice_asset_target_ref after reopen mismatch: got=%#v want=%#v", stored.GetVoiceAssetTargetRef(), targetRef)
+	}
+}
+
+func TestVoiceAssetStoreCompleteFailsClosedWhenProviderPersistentSnapshotCannotPersist(t *testing.T) {
+	store := newVoiceAssetStore()
+	store.durablePath = t.TempDir()
+	job, asset := store.submit(&voiceWorkflowSubmitInput{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app-1",
+			SubjectUserId: "user-1",
+			ModelId:       "dashscope/qwen3-tts-vc",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+				TargetModelId: "dashscope/qwen3-tts-vc",
+				Input: &runtimev1.VoiceV2VInput{
+					ReferenceAudioUri:  "https://example.com/reference.wav",
+					ReferenceAudioMime: "audio/wav",
+				},
+			}},
+		},
+		Provider:          "dashscope",
+		OutputPersistence: "provider_persistent",
+	})
+	if job == nil || asset == nil {
+		t.Fatalf("submit should create provider-persistent voice workflow")
+	}
+
+	if store.completeJob(job.GetJobId(), "provider-job", "dashscope-provider-voice-ref", nil, nil) {
+		t.Fatalf("provider-persistent completion must fail closed when durable snapshot cannot persist")
+	}
+	completedAsset, ok := store.getAsset(asset.GetVoiceAssetId())
+	if !ok {
+		t.Fatalf("asset should remain visible with failed status for diagnosis")
+	}
+	if completedAsset.GetProviderVoiceRef() != "" {
+		t.Fatalf("failed durable completion must not leave a usable provider voice ref, got %q", completedAsset.GetProviderVoiceRef())
+	}
+	if completedAsset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED {
+		t.Fatalf("failed durable completion status=%v, want FAILED", completedAsset.GetStatus())
+	}
+	completedJob, ok := store.getJob(job.GetJobId())
+	if !ok {
+		t.Fatalf("job should remain visible with failed status for diagnosis")
+	}
+	if completedJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
+		t.Fatalf("job status after failed durable completion=%v, want FAILED", completedJob.GetStatus())
 	}
 }
 

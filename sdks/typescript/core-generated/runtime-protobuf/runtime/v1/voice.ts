@@ -12,6 +12,7 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { Ack } from "./common";
+import { RuntimeDurableTargetRef } from "./runtime_target_identity";
 import { Struct } from "../../google/protobuf/struct";
 import { Timestamp } from "../../google/protobuf/timestamp";
 /**
@@ -40,6 +41,12 @@ export interface VoiceReference {
     } | {
         oneofKind: "providerVoiceRef";
         /**
+         * provider_voice_ref is provider-owned handle truth. It is restricted to
+         * Runtime-internal / privileged / debug consumption (K-VOICE-003,
+         * K-VOICE-014). Ordinary profile / SDK public binding input accepts only
+         * preset_voice_id or voice_asset_id and must fail-close on a bare
+         * provider_voice_ref.
+         *
          * @generated from protobuf field: string provider_voice_ref = 4
          */
         providerVoiceRef: string;
@@ -107,6 +114,12 @@ export interface VoiceAsset {
      */
     provider: string;
     /**
+     * model_id / target_model_id are post-resolve provider / catalog / audit /
+     * voice asset compatibility facts only (allowed_non_identity_fact,
+     * K-RTARGET-008, K-VOICE-000). They must be guarded so they cannot mint or
+     * persist durable target identity. Durable identity is target_ref /
+     * voice_asset_target_ref below.
+     *
      * @generated from protobuf field: string model_id = 6
      */
     modelId: string;
@@ -142,6 +155,21 @@ export interface VoiceAsset {
      * @generated from protobuf field: google.protobuf.Struct metadata = 14
      */
     metadata?: Struct;
+    /**
+     * Durable v2 target identity for the resolved synthesis route the asset
+     * executes against (K-VOICE-004, K-RTARGET-002/008).
+     *
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 15
+     */
+    targetRef?: RuntimeDurableTargetRef;
+    /**
+     * Durable v2 target identity bound to the voice asset at creation
+     * (voice_asset_target_ref, K-VOICE-004/K-VOICE-007). tts_synthesize requests
+     * whose target ref conflicts fail with AI_VOICE_TARGET_MODEL_MISMATCH.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeDurableTargetRef voice_asset_target_ref = 16
+     */
+    voiceAssetTargetRef?: RuntimeDurableTargetRef;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VoiceV2VInput
@@ -341,6 +369,74 @@ export enum VoiceWorkflowType {
      * @generated from protobuf enum value: VOICE_WORKFLOW_TYPE_VOICE_DESIGN = 2;
      */
     VOICE_DESIGN = 2
+}
+/**
+ * VoiceOutputMode is the positive, authoritative selected output-truth axis for
+ * speech execution and agent voice projection (K-VOICE-019, K-STREAM-004,
+ * K-AGCORE-133; tokens: tables/voice-enums.yaml output_modes). It is distinct
+ * from ExecutionMode (sync|stream|async_job) and from voice playback lifecycle.
+ * NATIVE_STREAM and SIMULATED_STREAM are the only values reachable at the
+ * SPEECH_SYNTHESIZE scenario-stream layer; BATCH_FINAL_ARTIFACT and TEXT_ONLY are
+ * additionally reachable as Runtime Agent orchestration outcomes. Consumers must
+ * read this field and must not infer native realtime from event shape or from an
+ * omitted boolean.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.VoiceOutputMode
+ */
+export enum VoiceOutputMode {
+    /**
+     * @generated from protobuf enum value: VOICE_OUTPUT_MODE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: VOICE_OUTPUT_MODE_NATIVE_STREAM = 1;
+     */
+    NATIVE_STREAM = 1,
+    /**
+     * @generated from protobuf enum value: VOICE_OUTPUT_MODE_SIMULATED_STREAM = 2;
+     */
+    SIMULATED_STREAM = 2,
+    /**
+     * @generated from protobuf enum value: VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT = 3;
+     */
+    BATCH_FINAL_ARTIFACT = 3,
+    /**
+     * @generated from protobuf enum value: VOICE_OUTPUT_MODE_TEXT_ONLY = 4;
+     */
+    TEXT_ONLY = 4
+}
+/**
+ * VoicePlaybackState is the runtime-owned lifecycle axis for agent voice
+ * playback (K-VOICE-019). It is deliberately separate from VoiceOutputMode:
+ * failed/interrupted/canceled are terminal outcomes, not output modes.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.VoicePlaybackState
+ */
+export enum VoicePlaybackState {
+    /**
+     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_ACTIVE = 1;
+     */
+    ACTIVE = 1,
+    /**
+     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_COMPLETED = 2;
+     */
+    COMPLETED = 2,
+    /**
+     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_FAILED = 3;
+     */
+    FAILED = 3,
+    /**
+     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_INTERRUPTED = 4;
+     */
+    INTERRUPTED = 4,
+    /**
+     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_CANCELED = 5;
+     */
+    CANCELED = 5
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.VoiceReferenceKind
@@ -611,7 +707,9 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
             { no: 13, name: "expires_at", kind: "message", T: () => Timestamp },
-            { no: 14, name: "metadata", kind: "message", T: () => Struct }
+            { no: 14, name: "metadata", kind: "message", T: () => Struct },
+            { no: 15, name: "target_ref", kind: "message", T: () => RuntimeDurableTargetRef },
+            { no: 16, name: "voice_asset_target_ref", kind: "message", T: () => RuntimeDurableTargetRef }
         ]);
     }
     create(value?: PartialMessage<VoiceAsset>): VoiceAsset {
@@ -677,6 +775,12 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
                 case /* google.protobuf.Struct metadata */ 14:
                     message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
                     break;
+                case /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref */ 15:
+                    message.targetRef = RuntimeDurableTargetRef.internalBinaryRead(reader, reader.uint32(), options, message.targetRef);
+                    break;
+                case /* nimi.runtime.v1.RuntimeDurableTargetRef voice_asset_target_ref */ 16:
+                    message.voiceAssetTargetRef = RuntimeDurableTargetRef.internalBinaryRead(reader, reader.uint32(), options, message.voiceAssetTargetRef);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -731,6 +835,12 @@ class VoiceAsset$Type extends MessageType<VoiceAsset> {
         /* google.protobuf.Struct metadata = 14; */
         if (message.metadata)
             Struct.internalBinaryWrite(message.metadata, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 15; */
+        if (message.targetRef)
+            RuntimeDurableTargetRef.internalBinaryWrite(message.targetRef, writer.tag(15, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.RuntimeDurableTargetRef voice_asset_target_ref = 16; */
+        if (message.voiceAssetTargetRef)
+            RuntimeDurableTargetRef.internalBinaryWrite(message.voiceAssetTargetRef, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

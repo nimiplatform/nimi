@@ -48,9 +48,30 @@
 
 ## K-STREAM-004 语音流事件约束
 
-- `done=false` 事件：`audio_chunk` 必须非空。
-- `done=true` 成功：`reason_code=REASON_CODE_UNSPECIFIED`，`audio_chunk` 为空。
-- `done=true` 失败：`reason_code` 必填，`audio_chunk` 为空。
+`StreamScenario`（SPEECH_SYNTHESIZE）的语音负载走 `ScenarioStreamDelta.artifact`
+（proto `ArtifactStreamDelta { bytes chunk; string mime_type }`），不使用
+`audio_chunk` 字段。`audio_chunk`（`ai_realtime.proto` `RealtimeAudioChunk audio_chunk = 12`）
+是 `RuntimeAiRealtimeService` duplex realtime session 的字段，不得被当作 scenario
+语音流字段。
+
+- 非终帧 delta 事件：`ScenarioStreamDelta.artifact.chunk` 必须非空，`mime_type`
+  必须为 `audio/*`。
+- `ScenarioStreamCompleted` 成功：`finish_reason` 表达成功终态，不再携带 artifact
+  delta。
+- `ScenarioStreamFailed` 失败：`reason_code` 必填。
+
+语音流输出真相（正向）：
+
+- SPEECH_SYNTHESIZE 流必须在 `ScenarioStreamStarted.voice_output_mode`
+  （proto `VoiceOutputMode`，取 `tables/voice-enums.yaml` `output_modes`）上正向声明
+  `native_stream` 或 `simulated_stream`。消费方不得从事件形状推断 realtime。
+- `native_stream` 要求在 full synthesis completion 之前已有可播放的非终帧
+  `ScenarioStreamDelta.artifact`；把完成后的完整 payload 切片下推只能是
+  `simulated_stream`。
+- `ScenarioStreamCompleted.stream_simulated` 是 compatibility metadata（并覆盖
+  `K-LENG-011` text/speech 降级审计），不是主验收真相；`stream_simulated=false`
+  单独不足以证明 native realtime。realtime 验收以正向
+  `voice_output_mode=native_stream` 为准（见 `K-VOICE-019`）。
 
 ## K-STREAM-005 状态事件流约束
 
@@ -78,7 +99,7 @@ Runtime 全部 server-streaming RPC 归入四种关闭模式（K-STREAM-001 分�
 | 模式 | 关闭信号 | 适用 RPC | 详细规则 |
 |---|---|---|---|
 | A — done=true 终帧 | 最后一帧 `done=true` + 可选 `reason_code` | StreamScenario(TEXT_GENERATE), StreamScenario(SPEECH_SYNTHESIZE) | K-STREAM-003, K-STREAM-004 |
-| B — 终态事件后 close | steady-state 下终态事件（COMPLETED/FAILED/CANCELED 等）发出后 server gRPC OK close；shutdown 可 `CANCELLED` 预empt | SubscribeScenarioJobEvents, SubscribeWorkflowEvents | K-STREAM-005, K-WF-004 |
+| B — 终态事件后 close | steady-state 下终态事件（COMPLETED/FAILED/CANCELED 等）发出后 server gRPC OK close；shutdown 可 `CANCELLED` 预empt | SubscribeScenarioJobEvents, SubscribeWorkflowEvents, SubscribeAgentVoiceStream | K-STREAM-005, K-WF-004, K-VOICE-019 |
 | C — eof=true 块后 close | `eof=true` 块发出后 server gRPC OK close | ExportAuditEvents | K-AUDIT-009 |
 | D — 长生命周期订阅 | 无终帧/eof 信号；server 在 daemon STOPPING 时以 `CANCELLED` 关闭 | SubscribeRuntimeHealthEvents, SubscribeAIProviderHealthEvents, SubscribeAccountSessionEvents, SubscribeMemoryEvents, SubscribeAgentEvents, SubscribeAgentExecutionReadiness, SubscribeAppMessages, WatchAppInstallJobEvents, ReadRealtimeEvents, WatchLocalTransfers, grpc.health.v1.Health/Watch | K-STREAM-010 |
 

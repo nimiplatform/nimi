@@ -505,6 +505,12 @@ func TestInferCapabilitiesVision(t *testing.T) {
 			wantFound: true,
 		},
 		{
+			name:      "cosyvoice model has audio.synthesize",
+			modelID:   "dashscope/cosyvoice-v3-flash",
+			wantCap:   "audio.synthesize",
+			wantFound: true,
+		},
+		{
 			name:      "embed model gets text.embed",
 			modelID:   "openai/text-embedding-ada-002",
 			wantCap:   "text.embed",

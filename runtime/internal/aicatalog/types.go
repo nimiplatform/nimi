@@ -88,12 +88,13 @@ type VoiceRenderHintsSchema struct {
 }
 
 type VoiceRequestOptions struct {
-	TimingModes        []string                   `yaml:"timing_modes,omitempty" json:"timing_modes,omitempty"`
-	AudioFormats       []string                   `yaml:"audio_formats,omitempty" json:"audio_formats,omitempty"`
-	SupportsLanguage   bool                       `yaml:"supports_language,omitempty" json:"supports_language,omitempty"`
-	SupportsEmotion    bool                       `yaml:"supports_emotion,omitempty" json:"supports_emotion,omitempty"`
-	VoiceRenderHints   *VoiceRenderHintsSchema    `yaml:"voice_render_hints,omitempty" json:"voice_render_hints,omitempty"`
-	ProviderExtensions *ProviderExtensionMetadata `yaml:"provider_extensions,omitempty" json:"provider_extensions,omitempty"`
+	TimingModes             []string                   `yaml:"timing_modes,omitempty" json:"timing_modes,omitempty"`
+	AudioFormats            []string                   `yaml:"audio_formats,omitempty" json:"audio_formats,omitempty"`
+	SupportsLanguage        bool                       `yaml:"supports_language,omitempty" json:"supports_language,omitempty"`
+	SupportsEmotion         bool                       `yaml:"supports_emotion,omitempty" json:"supports_emotion,omitempty"`
+	SupportsNativeStreamTTS bool                       `yaml:"supports_native_stream_tts,omitempty" json:"supports_native_stream_tts,omitempty"`
+	VoiceRenderHints        *VoiceRenderHintsSchema    `yaml:"voice_render_hints,omitempty" json:"voice_render_hints,omitempty"`
+	ProviderExtensions      *ProviderExtensionMetadata `yaml:"provider_extensions,omitempty" json:"provider_extensions,omitempty"`
 }
 
 type ImageRequestOptions struct {

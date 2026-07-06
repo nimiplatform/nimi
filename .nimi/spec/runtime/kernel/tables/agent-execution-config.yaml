@@ -42,6 +42,10 @@ admitted_capabilities:
     required: false
     seeded_default: null
     source_rule: K-AGCORE-148
+  audio.synthesize:
+    required: false
+    seeded_default: null
+    source_rule: K-VOICE-018
 readiness_states:
   - ready
   - not_configured
