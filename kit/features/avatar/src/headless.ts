@@ -381,6 +381,18 @@ export function inferAvatarToneFromEmotion(emotion: AvatarInteractionState['emot
 }
 
 export {
+  buildAvatarLaunchHandoffPayload,
+  buildAvatarLaunchInstanceId,
+  parseAvatarLaunchHandoffPayload,
+  parseAvatarLaunchHandoffResult,
+} from './launch-handoff.js';
+export type {
+  AvatarLaunchHandoffPayload,
+  AvatarLaunchHandoffPayloadInput,
+  AvatarLaunchHandoffResult,
+  AvatarLaunchInstanceIdInput,
+} from './launch-handoff.js';
+export {
   AVATAR_INSTANCE_POLICY_VALUES,
   arbitrateAvatarLaunch,
   evaluateStartWithChatGate,

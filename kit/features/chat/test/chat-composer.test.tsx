@@ -266,6 +266,38 @@ describe('ChatComposer', () => {
     expect(container.querySelector('[data-chat-composer-attach="true"]')).toBeTruthy();
   });
 
+  it('keeps stacked toolbar controls flat inside the composer shell', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <ChatComposer
+          layout="stacked"
+          adapter={{ submit: async () => {} }}
+          attachmentAdapter={{ openPicker: async () => [] }}
+          voiceState={{
+            status: 'idle',
+            onToggle: () => undefined,
+          }}
+          leadingSlot={<button type="button" data-testid="avatar-entry">A</button>}
+          toolbarSlot={<button type="button" data-testid="custom-tool">Tool</button>}
+          modelLabel="Local model ready"
+        />,
+      );
+      await flush();
+    });
+
+    const actions = container.querySelector('[data-chat-composer-toolbar-actions="true"]');
+    const trailing = container.querySelector('[data-chat-composer-toolbar-trailing="true"]');
+
+    expect(actions?.getAttribute('data-chat-composer-control-surface')).toBe('flat');
+    expect(trailing?.getAttribute('data-chat-composer-control-surface')).toBe('flat');
+    expect(actions?.className).not.toContain('rounded-full');
+    expect(trailing?.className).not.toContain('rounded-full');
+  });
+
   it('hides unavailable stacked controls when no voice or attachment capability exists', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

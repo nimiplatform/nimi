@@ -282,21 +282,10 @@ export function reduceRuntimeAgentConversationProjectionEvent(
       }));
     }
     case 'artifact-ready':
-      return updateAssistantMessage({
+      return reduceArtifactReadyEvent({
         ...state,
         events,
-      }, now, (message) => ({
-        ...message,
-        metadata: mergeMessageMetadata(message.metadata, {
-          artifacts: appendArtifact(message.metadata?.artifacts, {
-            artifactId: event.artifactId,
-            mimeType: event.mimeType,
-            uri: event.uri ?? null,
-            beatId: event.beatId,
-            projectionMessageId: event.projectionMessageId ?? null,
-          }),
-        }),
-      }));
+      }, event, now);
     case 'turn-completed':
       return updateAssistantMessage({
         ...state,
@@ -630,6 +619,141 @@ function appendArtifact(
   return [...existing, artifact];
 }
 
+function reduceArtifactReadyEvent(
+  state: RuntimeAgentConversationProjectionState,
+  event: Extract<ConversationTurnEvent, { type: 'artifact-ready' }>,
+  updatedAt: string,
+): RuntimeAgentConversationProjectionState {
+  const artifactRecord = {
+    artifactId: event.artifactId,
+    mimeType: event.mimeType,
+    uri: event.uri ?? null,
+    beatId: event.beatId,
+    projectionMessageId: event.projectionMessageId ?? null,
+  };
+  const withArtifactMetadata = updateAssistantMessage(state, updatedAt, (message) => ({
+    ...message,
+    metadata: mergeMessageMetadata(message.metadata, {
+      artifacts: appendArtifact(message.metadata?.artifacts, artifactRecord),
+    }),
+  }));
+
+  if (!isRenderableImageArtifact(event)) {
+    return withArtifactMetadata;
+  }
+
+  return appendImageArtifactMessage(withArtifactMetadata, event, updatedAt);
+}
+
+function isRenderableImageArtifact(
+  event: Extract<ConversationTurnEvent, { type: 'artifact-ready' }>,
+): boolean {
+  return Boolean(normalizeText(event.uri) && normalizeText(event.mimeType).toLowerCase().startsWith('image/'));
+}
+
+function appendImageArtifactMessage(
+  state: RuntimeAgentConversationProjectionState,
+  event: Extract<ConversationTurnEvent, { type: 'artifact-ready' }>,
+  createdAt: string,
+): RuntimeAgentConversationProjectionState {
+  const primaryAssistantIndex = primaryAssistantMessageIndex(state.messages, state.turnId);
+  const primaryAssistant = state.messages[primaryAssistantIndex];
+  const messageId = uniqueArtifactMessageId(state.messages, event);
+  if (state.messages.some((message) => message.id === messageId)) {
+    return state;
+  }
+
+  const artifactMessage: ConversationCanonicalMessage = {
+    id: messageId,
+    sessionId: state.sessionId,
+    targetId: state.targetId,
+    source: 'agent',
+    role: 'agent',
+    text: primaryAssistant?.text || 'Generated image',
+    createdAt,
+    updatedAt: createdAt,
+    status: 'complete',
+    kind: 'image',
+    senderName: primaryAssistant?.senderName ?? 'Agent',
+    senderKind: 'agent',
+    metadata: mergeMessageMetadata(runtimeAgentMessageMetadata(state), {
+      artifactProjection: 'runtime.agent.turn.artifact_ready',
+      artifactId: event.artifactId,
+      mimeType: event.mimeType,
+      mediaUrl: normalizeText(event.uri),
+      beatId: event.beatId,
+      projectionMessageId: event.projectionMessageId ?? null,
+      beatIndex: beatIndexFromUiBeatId(event.beatId),
+    }),
+  };
+
+  return {
+    ...state,
+    messages: [...state.messages, artifactMessage],
+  };
+}
+
+function primaryAssistantMessageIndex(
+  messages: readonly ConversationCanonicalMessage[],
+  turnId: string,
+): number {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (!message) {
+      continue;
+    }
+    if (!isAssistantLikeRole(message.role)) {
+      continue;
+    }
+    if (isMediaMessageKind(message.kind)) {
+      continue;
+    }
+    const messageTurnId = normalizeText(message.metadata?.turnId);
+    if (messageTurnId && messageTurnId !== turnId) {
+      continue;
+    }
+    return index;
+  }
+  return Math.max(0, messages.length - 1);
+}
+
+function isAssistantLikeRole(role: ConversationCanonicalMessage['role']): boolean {
+  return role === 'agent' || role === 'assistant';
+}
+
+function isMediaMessageKind(kind: ConversationCanonicalMessage['kind']): boolean {
+  return kind === 'image'
+    || kind === 'image-pending'
+    || kind === 'video'
+    || kind === 'video-pending'
+    || kind === 'voice';
+}
+
+function uniqueArtifactMessageId(
+  messages: readonly ConversationCanonicalMessage[],
+  event: Extract<ConversationTurnEvent, { type: 'artifact-ready' }>,
+): string {
+  const preferred = normalizeText(event.projectionMessageId);
+  if (preferred && !messages.some((message) => message.id === preferred)) {
+    return preferred;
+  }
+  const base = `${event.turnId}:artifact:${normalizeText(event.artifactId) || normalizeText(event.beatId) || 'image'}`;
+  if (!messages.some((message) => message.id === base)) {
+    return base;
+  }
+  let index = 2;
+  while (messages.some((message) => message.id === `${base}:${index}`)) {
+    index += 1;
+  }
+  return `${base}:${index}`;
+}
+
+function beatIndexFromUiBeatId(beatId: string): number {
+  const match = /:beat:(\d+)$/u.exec(beatId);
+  const parsed = match ? Number(match[1]) : 0;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
@@ -639,11 +763,11 @@ function updateAssistantMessage(
   updatedAt: string,
   update: (message: ConversationCanonicalMessage) => ConversationCanonicalMessage,
 ): RuntimeAgentConversationProjectionState {
-  const lastIndex = state.messages.length - 1;
+  const assistantIndex = primaryAssistantMessageIndex(state.messages, state.turnId);
   return {
     ...state,
     messages: state.messages.map((message, index) => (
-      index === lastIndex
+      index === assistantIndex
         ? update({ ...message, updatedAt })
         : message
     )),

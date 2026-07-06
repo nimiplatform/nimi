@@ -204,4 +204,64 @@ describe('Runtime Agent chat turn projection', () => {
       projectionMessageId: 'runtime-projection-message-1',
     });
   });
+
+  it('projects resolved image artifacts as canonical image messages without taking artifact truth', async () => {
+    const events = await collectEvents(streamRuntimeAgentTurnRunnerPartsAsConversationEvents({
+      modeId: 'runtime-agent-chat-v1',
+      threadId: 'thread-1',
+      turnId: 'turn-ui-1',
+      parts: parts([
+        {
+          type: 'message-sealed',
+          envelope: {
+            message: {
+              messageId: 'runtime-message-1',
+              text: 'I generated an image.',
+            },
+          },
+        },
+        {
+          type: 'artifact-ready',
+          beatId: 'action-0',
+          artifactId: 'runtime-artifact-1',
+          mimeType: 'image/png',
+          projectionMessageId: 'runtime-image-message-1',
+        },
+        { type: 'turn-completed', outputText: 'I generated an image.' },
+      ]),
+      resolveArtifactPreviewUri: async (artifact) => `runtime-preview://${artifact.artifactId}`,
+    }));
+
+    const state = reduceAll(events);
+    expect(state.status).toBe('completed');
+    expect(state.messages).toHaveLength(3);
+    expect(state.messages[1]).toEqual(expect.objectContaining({
+      id: 'runtime-message-1',
+      kind: 'text',
+      status: 'complete',
+      text: 'I generated an image.',
+    }));
+    expect(state.messages[1]?.metadata?.artifacts).toEqual([
+      expect.objectContaining({
+        artifactId: 'runtime-artifact-1',
+        mimeType: 'image/png',
+        uri: 'runtime-preview://runtime-artifact-1',
+        projectionMessageId: 'runtime-image-message-1',
+      }),
+    ]);
+    expect(state.messages[2]).toEqual(expect.objectContaining({
+      id: 'runtime-image-message-1',
+      role: 'agent',
+      kind: 'image',
+      status: 'complete',
+      text: 'I generated an image.',
+    }));
+    expect(state.messages[2]?.metadata).toEqual(expect.objectContaining({
+      artifactId: 'runtime-artifact-1',
+      mimeType: 'image/png',
+      mediaUrl: 'runtime-preview://runtime-artifact-1',
+      projectionMessageId: 'runtime-image-message-1',
+      artifactProjection: 'runtime.agent.turn.artifact_ready',
+    }));
+  });
 });

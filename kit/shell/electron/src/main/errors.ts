@@ -2,6 +2,11 @@ import { NIMI_STANDARD_SHELL_ERROR_CODES } from '@nimiplatform/kit/shell/capabil
 import { NimiElectronShellHostError } from './types.js';
 
 const STANDARD_SHELL_ERROR_CODE_SET: ReadonlySet<string> = new Set(NIMI_STANDARD_SHELL_ERROR_CODES);
+const RUNTIME_ENDPOINT_UNAVAILABLE_REASON_CODES: ReadonlySet<string> = new Set([
+  'RUNTIME_GRPC_UNAVAILABLE',
+  'RUNTIME_GRPC_DEADLINE_EXCEEDED',
+  'electron-runtime-endpoint-unavailable',
+]);
 
 function normalizeErrorText(value: unknown): string {
   return String(value ?? '').trim();
@@ -155,6 +160,29 @@ function classifyRuntimeEndpointError(
   }
 
   return null;
+}
+
+export function isRuntimeEndpointUnavailableLike(error: unknown): boolean {
+  const grpcCode = runtimeGrpcCode(error);
+  const message = errorMessage(error);
+  const embedded = parseRuntimeErrorPayload(message);
+  const record = asOptionalRecord(error) ?? {};
+  const details = asOptionalRecord(record.details);
+  const reasonCode = normalizeErrorText(
+    embedded.reasonCode
+    ?? embedded.reason_code
+    ?? record.reasonCode
+    ?? record.reason_code
+    ?? record.code,
+  );
+  const detailsGrpcCode = Number(details?.grpcCode ?? details?.grpc_code);
+  return grpcCode === 14
+    || grpcCode === 4
+    || detailsGrpcCode === 14
+    || detailsGrpcCode === 4
+    || RUNTIME_ENDPOINT_UNAVAILABLE_REASON_CODES.has(reasonCode)
+    || message.startsWith('14 UNAVAILABLE:')
+    || message.startsWith('4 DEADLINE_EXCEEDED:');
 }
 
 function runtimeGrpcCode(error: unknown): number {

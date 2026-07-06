@@ -1,5 +1,9 @@
 import { NIMI_STANDARD_SHELL_CAPABILITY_IDS, NIMI_STANDARD_SHELL_COMMANDS, type NimiStandardShellCapabilityId } from '@nimiplatform/kit/shell/capabilities';
-import { createElectronRuntimeEndpointUnavailableError, toElectronRuntimeBridgeError } from './errors.js';
+import {
+  createElectronRuntimeEndpointUnavailableError,
+  isRuntimeEndpointUnavailableLike,
+  toElectronRuntimeBridgeError,
+} from './errors.js';
 import { asRecord, normalizeRequiredToken, normalizeText, parseOptionalPositiveNumber } from './paths.js';
 import type {
   ElectronRuntimeBridgeAppSession,
@@ -251,13 +255,20 @@ export async function resolveTrustedRuntimeMetadata(input: {
   readonly appId: string;
   readonly runtimeEndpoint: string;
 }): Promise<ElectronRuntimeBridgeTrustedMetadata | undefined> {
-  return input.provider?.({
-    command: input.command,
-    methodId: input.methodId,
-    event: input.event,
-    appId: input.appId,
-    runtimeEndpoint: input.runtimeEndpoint,
-  });
+  try {
+    return await input.provider?.({
+      command: input.command,
+      methodId: input.methodId,
+      event: input.event,
+      appId: input.appId,
+      runtimeEndpoint: input.runtimeEndpoint,
+    });
+  } catch (error) {
+    if (isRuntimeEndpointUnavailableLike(error)) {
+      throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
+    }
+    throw error;
+  }
 }
 export async function probeElectronRuntimeStatus(input: {
   readonly client: RuntimeGrpcBridgeClient;

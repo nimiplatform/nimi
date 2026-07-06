@@ -308,7 +308,8 @@ export function ChatComposer<TAttachment = never>({
                 {hasStackedLeadingActions ? (
                   <div
                     data-chat-composer-toolbar-actions="true"
-                    className="flex min-w-0 shrink-0 items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/75 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]"
+                    data-chat-composer-control-surface="flat"
+                    className="flex min-w-0 shrink-0 items-center gap-1"
                   >
                     {voiceButtonNode}
                     {toolbarSlot ? (
@@ -330,7 +331,8 @@ export function ChatComposer<TAttachment = never>({
               </div>
               <div
                 data-chat-composer-toolbar-trailing="true"
-                className="flex shrink-0 items-center justify-end gap-1 rounded-full border border-slate-200/60 bg-white/75 p-1 shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
+                data-chat-composer-control-surface="flat"
+                className="flex shrink-0 items-center justify-end gap-1"
               >
                 {attachmentButtonNode}
                 {sendButtonNode}
