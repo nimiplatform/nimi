@@ -25,16 +25,18 @@ import {
 export function Card({
   children,
   className = '',
+  hoverMotion = true,
 }: {
   children: ReactNode;
   className?: string;
+  hoverMotion?: boolean;
 }) {
   const cardMotion = useDesktopCardMotion();
   return (
     <motion.div
       layout
-      whileHover={cardMotion.whileHover}
-      whileTap={cardMotion.whileTap}
+      whileHover={hoverMotion ? cardMotion.whileHover : undefined}
+      whileTap={hoverMotion ? cardMotion.whileTap : undefined}
       transition={cardMotion.transition}
       className={cn(className)}
     >

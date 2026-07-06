@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type {
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalEnvironmentPlanDependency,
@@ -7,6 +8,7 @@ import {
   isNimiRuntimeLocalEnvironmentDependencyJobCancelledState,
   isNimiRuntimeLocalEnvironmentDependencyJobFailedState,
   isNimiRuntimeLocalEnvironmentDependencyJobTransferringState,
+  isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState,
   isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
   isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
 } from '@nimiplatform/sdk/runtime';
@@ -171,6 +173,42 @@ function runtimeDependencyIsCUDARuntime(
   return String(dependency?.dependencyFamily || job?.dependencyFamily || '').trim() === 'accelerator.cuda.runtime';
 }
 
+export type RuntimeDependencyTone = 'info' | 'warning' | 'danger';
+
+// A runtime-managed dependency that is merely waiting for first-use setup or is
+// actively materializing is a normal, expected step — not an alarm. Only the
+// genuinely-stuck states (failed / cancelled / repair / unsupported) warrant a
+// warning tone. Callers can escalate to `danger` themselves for hard errors.
+export function runtimeDependencyTone(
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
+): RuntimeDependencyTone {
+  const state = runtimeDependencyCurrentState(dependency, job);
+  if (
+    isNimiRuntimeLocalEnvironmentDependencyJobFailedState(state)
+    || isNimiRuntimeLocalEnvironmentDependencyJobCancelledState(state)
+    || isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState(state)
+    || isNimiRuntimeLocalEnvironmentDependencyUnsupportedState(state)
+  ) {
+    return 'warning';
+  }
+  return 'info';
+}
+
+export function runtimeDependencyToneColor(tone: RuntimeDependencyTone): string {
+  if (tone === 'danger') {
+    return 'var(--nimi-status-danger)';
+  }
+  if (tone === 'warning') {
+    return 'var(--nimi-status-warning)';
+  }
+  return 'var(--nimi-status-info)';
+}
+
+export function runtimeDependencyToneStyle(tone: RuntimeDependencyTone): CSSProperties {
+  return { '--nimi-dep-tone': runtimeDependencyToneColor(tone) } as CSSProperties;
+}
+
 export function runtimeDependencyBannerTitle(
   dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
   job?: NimiRuntimeLocalEnvironmentDependencyJob,
@@ -205,7 +243,7 @@ export function runtimeDependencyBannerTitle(
     });
   }
   return i18n.t('runtimeConfig.localModelCenter.runtimeSetupTitle', {
-    defaultValue: 'Local image runtime setup',
+    defaultValue: 'Enable local image generation',
   });
 }
 
@@ -250,9 +288,17 @@ export function runtimeDependencyStatusDetail(
       defaultValue: 'Runtime setup was cancelled before the local image environment became ready.',
     });
   }
-  const dependencyDetail = String(dependency?.detail || dependency?.reasonCode || dependency?.state || '').trim();
-  if (dependencyDetail) {
-    return dependencyDetail;
+  // Runtime-authored human `detail` is safe to surface; the machine `reasonCode`
+  // / `state` never are — those stay in the collapsed technical section only.
+  const humanDetail = String(dependency?.detail || '').trim();
+  if (humanDetail) {
+    return humanDetail;
+  }
+  const currentState = runtimeDependencyCurrentState(dependency, displayJob);
+  if (isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState(currentState)) {
+    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupRequiredDetail', {
+      defaultValue: 'Before first use, Nimi downloads and installs the required local runtime components once. This runs in the background and only happens the first time.',
+    });
   }
   return i18n.t('runtimeConfig.localModelCenter.runtimeDependencyNotReady', {
     defaultValue: 'Runtime-managed local environment dependencies are not ready.',
@@ -308,47 +354,49 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
   const timingSummary = runtimeDependencyJobTimingSummary(displayJob);
   const stale = runtimeDependencyJobIsStale(displayJob);
   const technicalDetails = runtimeDependencyTechnicalDetails(props.dependency, displayJob);
+  const tone = runtimeDependencyTone(props.dependency, displayJob);
+  const toneStyle = runtimeDependencyToneStyle(tone);
 
   return (
-    <div className="border-b border-[color-mix(in_srgb,var(--nimi-status-warning)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,transparent)] px-5 py-4">
+    <div style={toneStyle} className="border-b border-[color-mix(in_srgb,var(--nimi-dep-tone)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-dep-tone)_8%,transparent)] px-5 py-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-[var(--nimi-status-warning)]">
+          <p className="text-sm font-semibold text-[var(--nimi-dep-tone)]">
             {runtimeDependencyBannerTitle(props.dependency, displayJob)}
           </p>
-          <p className="mt-1 text-xs leading-5 text-[color-mix(in_srgb,var(--nimi-status-warning)_82%,var(--nimi-text-secondary))]">
+          <p className="mt-1 text-xs leading-5 text-[color-mix(in_srgb,var(--nimi-dep-tone)_82%,var(--nimi-text-secondary))]">
             {runtimeDependencyStatusDetail(props.dependency, displayJob)}
           </p>
           {displayJob ? (
             <>
               {hasDeterminateProgress ? (
                 <div className="mt-3 max-w-xl">
-                  <div className="h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,white)]">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-dep-tone)_16%,white)]">
                     <div
-                      className="h-full rounded-full bg-[var(--nimi-status-warning)] transition-all"
+                      className="h-full rounded-full bg-[var(--nimi-dep-tone)] transition-all"
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
                   {progressSummary ? (
-                    <p className="mt-1 text-[10px] text-[color-mix(in_srgb,var(--nimi-status-warning)_82%,var(--nimi-text-secondary))]">
+                    <p className="mt-1 text-[10px] text-[color-mix(in_srgb,var(--nimi-dep-tone)_82%,var(--nimi-text-secondary))]">
                       {progressSummary}
                     </p>
                   ) : null}
                 </div>
               ) : isNimiRuntimeLocalEnvironmentDependencyJobActiveState(displayJob.state) ? (
                 <div className="mt-3 max-w-xl">
-                  <div className="h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,white)]">
-                    <div className="h-full w-1/3 animate-pulse rounded-full bg-[var(--nimi-status-warning)]" />
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-dep-tone)_16%,white)]">
+                    <div className="h-full w-1/3 animate-pulse rounded-full bg-[var(--nimi-dep-tone)]" />
                   </div>
                   {progressSummary ? (
-                    <p className="mt-1 text-[10px] text-[color-mix(in_srgb,var(--nimi-status-warning)_82%,var(--nimi-text-secondary))]">
+                    <p className="mt-1 text-[10px] text-[color-mix(in_srgb,var(--nimi-dep-tone)_82%,var(--nimi-text-secondary))]">
                       {progressSummary}
                     </p>
                   ) : null}
                 </div>
               ) : null}
               {timingSummary ? (
-                <p className="mt-2 text-[10px] font-medium text-[color-mix(in_srgb,var(--nimi-status-warning)_82%,var(--nimi-text-secondary))]">
+                <p className="mt-2 text-[10px] font-medium text-[color-mix(in_srgb,var(--nimi-dep-tone)_82%,var(--nimi-text-secondary))]">
                   {timingSummary}
                 </p>
               ) : null}
@@ -383,7 +431,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               type="button"
               onClick={() => props.onCancelJob(displayJob.jobId)}
               disabled={props.assetBusy}
-              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
             >
               {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
             </button>
@@ -393,7 +441,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               type="button"
               onClick={() => props.onRetryJob(displayJob.jobId)}
               disabled={props.assetBusy}
-              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
             >
               {i18n.t('runtimeConfig.localModelCenter.retry', { defaultValue: 'Retry' })}
             </button>
@@ -403,7 +451,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               type="button"
               onClick={props.onRepairDependency}
               disabled={props.assetBusy}
-              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
             >
               {i18n.t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
             </button>
@@ -414,7 +462,7 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
                 type="button"
                 onClick={props.onConfirmSetup}
                 disabled={props.assetBusy}
-                className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+                className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
               >
                 {i18n.t('runtimeConfig.localModelCenter.confirmSetup', { defaultValue: 'Confirm' })}
               </button>
@@ -431,9 +479,9 @@ export function RuntimeDependencyAttentionBanner(props: RuntimeDependencyAttenti
               type="button"
               onClick={props.onRequestSetupConfirm}
               disabled={props.assetBusy}
-              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-dep-tone)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] disabled:opacity-50"
             >
-              {i18n.t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Set Up' })}
+              {i18n.t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Download & Enable' })}
             </button>
           ) : null}
         </div>

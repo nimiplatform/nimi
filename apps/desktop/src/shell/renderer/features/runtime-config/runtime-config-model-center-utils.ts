@@ -14,6 +14,7 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
+  getNimiRuntimeReasonCodeMessage,
   NIMI_RUNTIME_LOCAL_ENGINE_IDS,
   NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS,
   normalizeNimiRuntimeLocalRunnableAssetKindId,
@@ -240,6 +241,19 @@ export function localSpeechReasonSummary(reasonCode: string | undefined): string
     default:
       return '';
   }
+}
+
+// Human-readable summary for an unhealthy asset's reason code. Prefers the
+// speech-specific copy, then falls back to the canonical Runtime reason-code
+// message catalog (covers provider / route / model / auth families). Returns ''
+// for an unmapped code so callers render a generic message instead of leaking
+// the raw machine identifier to the user.
+export function assetUnhealthyReasonSummary(reasonCode: string | undefined): string {
+  const speechSummary = localSpeechReasonSummary(reasonCode);
+  if (speechSummary) {
+    return speechSummary;
+  }
+  return getNimiRuntimeReasonCodeMessage(reasonCode)?.defaultMessage || '';
 }
 
 export function planBlocksCanonicalImageImport(plan: NimiRuntimeLocalInstallPlanDescriptor | null | undefined): boolean {

@@ -13,7 +13,7 @@ import {
   isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
 } from '@nimiplatform/sdk/runtime';
 import { i18n } from '@renderer/i18n';
-import { localSpeechReasonSummary } from './runtime-config-model-center-utils';
+import { localizedAssetUnhealthyReason } from './runtime-config-reason-messages';
 import {
   formatAssetKindLabel,
   ModelIcon,
@@ -25,6 +25,9 @@ import {
 import {
   runtimeDependencyShortStatusLabel,
   runtimeDependencyStatusDetail,
+  runtimeDependencyTone,
+  runtimeDependencyToneStyle,
+  type RuntimeDependencyTone,
 } from './runtime-config-local-model-center-runtime-dependency-banner';
 import {
   runtimeDependencyCurrentState,
@@ -139,7 +142,27 @@ function runtimeDependencyDetail(
   if (!dependency) {
     return '';
   }
-  return String(dependency.detail || dependency.reasonCode || dependency.state || '').trim();
+  // Only Runtime-authored human `detail` is user-facing; `reasonCode` / `state`
+  // are machine identifiers and must never render as copy.
+  return String(dependency.detail || '').trim();
+}
+
+function assetHasHardRuntimeDependencyError(
+  asset: NimiRuntimeLocalAssetRecord,
+): boolean {
+  const detail = String(asset.healthDetail || '').trim().toLowerCase();
+  return asset.kind === 'image' && asset.status === 'unhealthy' && detail.includes('local environment activation blocked');
+}
+
+function runtimeDependencyRowTone(
+  asset: NimiRuntimeLocalAssetRecord,
+  dependency?: NimiRuntimeLocalEnvironmentPlanDependency,
+  job?: NimiRuntimeLocalEnvironmentDependencyJob,
+): RuntimeDependencyTone {
+  if (assetHasHardRuntimeDependencyError(asset)) {
+    return 'danger';
+  }
+  return runtimeDependencyTone(dependency, job);
 }
 
 function runtimeDependencyReadinessLabel(
@@ -164,7 +187,7 @@ function runtimeDependencyReadinessLabel(
     return i18n.t('runtimeConfig.localModelCenter.runtimeUnsupportedBadge', { defaultValue: 'Runtime unsupported' });
   }
   if (dependency?.confirmationRequired && isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState(state)) {
-    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupRequiredBadge', { defaultValue: 'Runtime setup required' });
+    return i18n.t('runtimeConfig.localModelCenter.runtimeSetupRequiredBadge', { defaultValue: 'Setup needed' });
   }
   return i18n.t('runtimeConfig.localModelCenter.runtimeNotReadyBadge', { defaultValue: 'Runtime not ready' });
 }
@@ -217,14 +240,16 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
   const statusLabel = hasRuntimeDependencyWarning
     ? runtimeDependencyReadinessLabel(props.runtimeDependency, props.runtimeDependencyJob)
     : assetStatusLabel(props.asset);
+  const rowTone = runtimeDependencyRowTone(props.asset, props.runtimeDependency, props.runtimeDependencyJob);
+  const rowToneStyle = runtimeDependencyToneStyle(rowTone);
   const isRepairing = props.repairAssetId === props.asset.localAssetId;
   const supportsRescan = assetSupportsBundleRescan(props.asset);
   const unhealthyReasonSummary = props.asset.status === 'unhealthy'
-    ? localSpeechReasonSummary(props.asset.reasonCode)
+    ? localizedAssetUnhealthyReason(props.asset.reasonCode)
     : '';
 
   return (
-    <div className="px-5 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)]">
+    <div style={rowToneStyle} className="px-5 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)]">
       <div className="flex items-center gap-3">
         <ModelIcon engine={props.asset.engine} />
         <div className="min-w-0 flex-1">
@@ -249,15 +274,20 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
           {(props.asset.status === 'unhealthy' || hasRuntimeDependencyWarning) && dependencyDetail ? (
             <p className={`mt-1 line-clamp-3 text-[11px] ${
               hasRuntimeDependencyWarning
-                ? 'text-[var(--nimi-status-warning)]'
+                ? 'text-[var(--nimi-dep-tone)]'
                 : 'text-[var(--nimi-status-danger)]'
             }`}>
               {dependencyDetail}
             </p>
           ) : null}
           {props.asset.status === 'unhealthy' && String(props.asset.reasonCode || '').trim() ? (
-            <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-status-danger)]">
-              {unhealthyReasonSummary || `reason=${String(props.asset.reasonCode || '').trim()}`}
+            <p
+              className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-status-danger)]"
+              title={String(props.asset.reasonCode || '').trim()}
+            >
+              {unhealthyReasonSummary || i18n.t('runtimeConfig.localModelCenter.assetUnhealthyGeneric', {
+                defaultValue: 'This model is currently unavailable. Try re-scanning its bundle, or remove and re-import it.',
+              })}
             </p>
           ) : null}
           <div className="mt-1 flex flex-wrap gap-1">
@@ -269,7 +299,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
         <div className="flex items-center gap-2">
           <span className={`rounded px-2 py-0.5 text-[10px] ${
             hasRuntimeDependencyWarning
-              ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] text-[var(--nimi-status-warning)]'
+              ? 'bg-[color-mix(in_srgb,var(--nimi-dep-tone)_16%,transparent)] text-[var(--nimi-dep-tone)]'
               : assetStatusBadgeClass(props.asset)
           }`}>
             {statusLabel}
@@ -279,7 +309,7 @@ export function RunnableInstalledAssetRow(props: RunnableInstalledAssetRowProps)
               type="button"
               onClick={props.onSetupRuntimeDependency}
               disabled={props.assetBusy}
-              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-status-warning)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] disabled:opacity-50"
+              className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-dep-tone)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-dep-tone)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-dep-tone)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-dep-tone)_16%,transparent)] disabled:opacity-50"
             >
               {i18n.t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Set Up' })}
             </button>
@@ -390,7 +420,7 @@ type DependencyInstalledAssetRowProps = {
 
 export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowProps) {
   const unhealthyReasonSummary = props.asset.status === 'unhealthy'
-    ? localSpeechReasonSummary(props.asset.reasonCode)
+    ? localizedAssetUnhealthyReason(props.asset.reasonCode)
     : '';
 
   return (
@@ -414,8 +444,13 @@ export function DependencyInstalledAssetRow(props: DependencyInstalledAssetRowPr
           </p>
         ) : null}
         {props.asset.status === 'unhealthy' && String(props.asset.reasonCode || '').trim() ? (
-          <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-status-danger)]">
-            {unhealthyReasonSummary || `reason=${String(props.asset.reasonCode || '').trim()}`}
+          <p
+            className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-status-danger)]"
+            title={String(props.asset.reasonCode || '').trim()}
+          >
+            {unhealthyReasonSummary || i18n.t('runtimeConfig.localModelCenter.assetUnhealthyGeneric', {
+              defaultValue: 'This model is currently unavailable. Try re-scanning its bundle, or remove and re-import it.',
+            })}
           </p>
         ) : null}
       </div>

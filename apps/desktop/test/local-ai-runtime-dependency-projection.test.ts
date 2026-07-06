@@ -20,6 +20,9 @@ const installedSectionSource = readWorkspaceFile(
 const installedRowsSource = readWorkspaceFile(
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-installed-rows.tsx',
 );
+const reasonMessagesSource = readWorkspaceFile(
+  'src/shell/renderer/features/runtime-config/runtime-config-reason-messages.ts',
+);
 const runtimeDependencyBannerSource = readWorkspaceFile(
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-dependency-banner.tsx',
 );
@@ -118,12 +121,28 @@ test('local model center setup CTA projects shared dependency resolver truth at 
   assert.doesNotMatch(installedSectionProjectionSource, /dependency\?\.state === 'needs_confirmation'/);
   assert.match(installedSectionProjectionSource, /dependency\.confirmationRequired/);
   assert.doesNotMatch(installedSectionProjectionSource, /cudaModelWaitingForSetup/);
-  assert.match(installedSectionProjectionSource, /Local image runtime setup/);
+  assert.match(installedSectionProjectionSource, /Enable local image generation/);
   assert.match(installedSectionProjectionSource, /Local image runtime setup failed/);
   assert.doesNotMatch(installedSectionProjectionSource, /Nimi needs one local CUDA runtime package before local models can use GPU acceleration/);
   assert.doesNotMatch(installedSectionProjectionSource, /sharedRuntimeDependencyDetail/);
   assert.doesNotMatch(installedSectionProjectionSource, /dependency\.message \|\| props\.sharedRuntimeDependency/);
   assert.doesNotMatch(installedSectionProjectionSource, /materializable_requires_confirmation/);
+  // Regression: the machine reasonCode / state must never fall through into the
+  // user-facing detail copy (it stays in the collapsed technical section only).
+  assert.doesNotMatch(runtimeDependencyBannerSource, /dependency\?\.detail \|\| dependency\?\.reasonCode \|\| dependency\?\.state/);
+  assert.doesNotMatch(installedRowsSource, /dependency\.detail \|\| dependency\.reasonCode \|\| dependency\.state/);
+  assert.match(runtimeDependencyBannerSource, /runtimeConfig\.localModelCenter\.runtimeSetupRequiredDetail/);
+  assert.match(runtimeDependencyBannerSource, /isNimiRuntimeLocalEnvironmentDependencyNeedsConfirmationState/);
+  // Regression: unhealthy asset rows must humanize the reason code (never render
+  // the raw `reason=CODE` string); the raw code stays available on hover only.
+  assert.doesNotMatch(installedRowsSource, /reason=\$\{/);
+  assert.match(installedRowsSource, /localizedAssetUnhealthyReason/);
+  assert.match(installedRowsSource, /runtimeConfig\.localModelCenter\.assetUnhealthyGeneric/);
+  // The localized resolver keys off the canonical reason code and falls back to
+  // the SDK English default, never the raw machine code.
+  assert.match(reasonMessagesSource, /normalizeNimiRuntimeReasonCode/);
+  assert.match(reasonMessagesSource, /assetUnhealthyReasonSummary/);
+  assert.match(reasonMessagesSource, /runtimeConfig\.reasonMessages\.\$\{normalized\}/);
   assert.doesNotMatch(
     installedSectionProjectionSource,
     /props\.onSetupRuntimeDependency\(asset\.localAssetId\)/,
@@ -134,7 +153,7 @@ test('local model center setup CTA projects shared dependency resolver truth at 
 
 test('local image installed rows project runtime readiness instead of installed asset status', () => {
   assert.match(installedRowsSource, /function runtimeDependencyReadinessLabel/);
-  assert.match(installedRowsSource, /Runtime setup required/);
+  assert.match(installedRowsSource, /Setup needed/);
   assert.match(installedRowsSource, /runtimeDependencyShortStatusLabel/);
   assert.match(installedRowsSource, /Runtime setup failed/);
   assert.match(installedRowsSource, /const statusLabel = hasRuntimeDependencyWarning[\s\S]{0,160}runtimeDependencyReadinessLabel/);

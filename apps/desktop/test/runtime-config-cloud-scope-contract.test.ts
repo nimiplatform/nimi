@@ -11,6 +11,7 @@ const cloudPageSource = readWorkspaceFile('src/shell/renderer/features/runtime-c
 const cloudDetailPanelSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-page-cloud-detail-panel.tsx');
 const cloudPageSurfaceSource = `${cloudPageSource}\n${cloudDetailPanelSource}`;
 const cloudConnectorListSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-page-cloud-connector-list.tsx');
+const cloudPrimitivesSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-page-cloud-primitives.tsx');
 const runtimeConfigPrimitivesSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-primitives.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
 const e2eSelectorsSource = readWorkspaceFile('e2e/helpers/selectors.mjs');
@@ -63,6 +64,26 @@ test('runtime config cloud connector selection stays quiet like the runtime side
     /active\s*\?\s*'border-transparent bg-\[var\(--nimi-sidebar-item-active\)\] text-\[var\(--nimi-text-primary\)\]'/,
   );
   assert.doesNotMatch(cloudConnectorListSource, /ring-1|ring-mint|border-\[color-mix\(in_srgb,var\(--nimi-action-primary-bg\)_32%/);
+});
+
+test('runtime config cloud connector surface has no hover float motion', () => {
+  assert.match(runtimeConfigPrimitivesSource, /hoverMotion\?: boolean;/);
+  assert.match(
+    runtimeConfigPrimitivesSource,
+    /whileHover=\{hoverMotion \? cardMotion\.whileHover : undefined\}/,
+  );
+  assert.match(
+    cloudConnectorListSource,
+    /<PrimitiveCard className="h-\[600px\] overflow-hidden" hoverMotion=\{false\}>/,
+  );
+  assert.match(
+    cloudDetailPanelSource,
+    /<PrimitiveCard className="h-\[600px\] overflow-hidden" hoverMotion=\{false\}>/,
+  );
+  assert.doesNotMatch(
+    `${cloudPageSource}\n${cloudDetailPanelSource}\n${cloudConnectorListSource}\n${cloudPrimitivesSource}`,
+    /hover:(?:-|shadow)|group-hover:translate/,
+  );
 });
 
 test('runtime config cloud scope contract: vendor options are derived from runtime provider catalog', () => {

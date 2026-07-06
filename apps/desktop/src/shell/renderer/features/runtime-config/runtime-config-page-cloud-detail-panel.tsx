@@ -95,7 +95,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
   } = props;
 
   return (
-    <PrimitiveCard className="h-[600px] overflow-hidden">
+    <PrimitiveCard className="h-[600px] overflow-hidden" hoverMotion={false}>
       <ScrollArea className="h-full" contentClassName="p-5">
         {selectedConnector ? (
           <div className="space-y-4">

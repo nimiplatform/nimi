@@ -5,6 +5,7 @@ import type {
   NimiRuntimeLocalEnvironmentPlanDependency,
 } from '@nimiplatform/sdk/runtime';
 import { initI18n } from '../src/shell/renderer/i18n';
+import { localizedAssetUnhealthyReason } from '../src/shell/renderer/features/runtime-config/runtime-config-reason-messages';
 import {
   runtimeDependencyBannerTitle,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-runtime-dependency-banner';
@@ -83,11 +84,28 @@ test('runtime dependency setup title reserves GPU acceleration copy for CUDA run
     dependencyFamily: 'native-engine-package.stablediffusion-ggml',
     dependencyId: 'stable-diffusion.cpp.package',
     consumerScope: 'stable-diffusion.cpp.metal',
-  })), 'Local image runtime setup');
+  })), 'Enable local image generation');
 
   assert.equal(runtimeDependencyBannerTitle(dependency('needs_confirmation', {
     dependencyFamily: 'accelerator.cuda.runtime',
     dependencyId: 'nvidia-cuda-user-space-runtime',
     consumerScope: 'stable-diffusion.cpp.cuda',
   })), 'Optional local GPU acceleration');
+});
+
+test('unhealthy asset reason codes resolve to localized human copy, never the raw code', async () => {
+  await initI18n();
+
+  // Non-speech reason code resolves through the localized reasonMessages catalog.
+  assert.equal(
+    localizedAssetUnhealthyReason('AI_LOCAL_MODEL_UNAVAILABLE'),
+    'Local AI model is unavailable.',
+  );
+  // Speech reason codes resolve through the same localized catalog.
+  assert.equal(
+    localizedAssetUnhealthyReason('AI_LOCAL_SPEECH_BUNDLE_DEGRADED'),
+    'The Local Speech bundle is degraded and needs repair.',
+  );
+  // An unmapped code yields '' so the caller renders generic copy, never the code.
+  assert.equal(localizedAssetUnhealthyReason('SOME_UNMAPPED_INTERNAL_CODE'), '');
 });

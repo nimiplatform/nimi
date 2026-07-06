@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimePageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
@@ -32,12 +32,32 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     connectorModelQuery: panelState.connectorModelQuery,
   });
 
+  // Live refs so the command context reads the latest state/guard values at
+  // call time instead of capturing them in the useMemo dependency array.
+  // Keeping `commandInput` (and therefore `commands`, `refreshLocalSnapshot`,
+  // and the download-complete handler) referentially stable across state
+  // updates is what prevents the transfer-watch effect from re-subscribing on
+  // every render — the feedback loop that made the discovering/checking badge
+  // flicker. Assign in render body (not an effect) so reads are never stale.
+  const stateRef = useRef(panelState.state);
+  const discoveringRef = useRef(panelState.discovering);
+  const checkingHealthRef = useRef(panelState.checkingHealth);
+  const testingConnectorRef = useRef(panelState.testingConnector);
+  const applyingRef = useRef(panelState.applying);
+  const selectedConnectorRef = useRef(derived.selectedConnector);
+  stateRef.current = panelState.state;
+  discoveringRef.current = panelState.discovering;
+  checkingHealthRef.current = panelState.checkingHealth;
+  testingConnectorRef.current = panelState.testingConnector;
+  applyingRef.current = panelState.applying;
+  selectedConnectorRef.current = derived.selectedConnector;
+
   const commandInput = useMemo(() => ({
     guard: {
-      discovering: panelState.discovering,
-      testingConnector: panelState.testingConnector,
-      checkingHealth: panelState.checkingHealth,
-      applying: panelState.applying,
+      get discovering() { return discoveringRef.current; },
+      get testingConnector() { return testingConnectorRef.current; },
+      get checkingHealth() { return checkingHealthRef.current; },
+      get applying() { return applyingRef.current; },
       setDiscovering: panelState.setDiscovering,
       setTestingConnector: panelState.setTestingConnector,
       setCheckingHealth: panelState.setCheckingHealth,
@@ -45,37 +65,31 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     },
     provider: {
       discover: {
-        state: panelState.state,
-        discovering: panelState.discovering,
+        get state() { return stateRef.current; },
+        get discovering() { return discoveringRef.current; },
         updateState: panelState.updateState,
         setStatusBanner: setPageFeedback,
       },
       health: {
-        state: panelState.state,
-        checkingHealth: panelState.checkingHealth,
+        get state() { return stateRef.current; },
+        get checkingHealth() { return checkingHealthRef.current; },
         updateState: panelState.updateState,
         setStatusBanner: setPageFeedback,
       },
       testSelectedConnector: {
-        state: panelState.state,
-        selectedConnector: derived.selectedConnector,
-        testingConnector: panelState.testingConnector,
+        get state() { return stateRef.current; },
+        get selectedConnector() { return selectedConnectorRef.current; },
+        get testingConnector() { return testingConnectorRef.current; },
         updateState: panelState.updateState,
         setStatusBanner: setPageFeedback,
         setControlFeedback: setConnectorTestFeedback,
       },
     },
   }), [
-    derived.selectedConnector,
-    panelState.applying,
-    panelState.checkingHealth,
-    panelState.discovering,
     panelState.setApplying,
     panelState.setCheckingHealth,
     panelState.setDiscovering,
     panelState.setTestingConnector,
-    panelState.state,
-    panelState.testingConnector,
     panelState.updateState,
     setConnectorTestFeedback,
     setPageFeedback,

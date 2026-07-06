@@ -3,6 +3,7 @@ import test, { describe } from 'node:test';
 
 import {
   ASSET_ENGINE_OPTIONS,
+  assetUnhealthyReasonSummary,
   CAPABILITY_OPTIONS,
   filterInstalledModels,
   formatBytes,
@@ -165,6 +166,27 @@ describe('speech blocking summaries', () => {
       planBlockingHint(plan),
       'Local Speech host startup or probe failed.',
     );
+  });
+});
+
+describe('assetUnhealthyReasonSummary', () => {
+  test('prefers the speech-specific summary for a speech reason code', () => {
+    assert.equal(
+      assetUnhealthyReasonSummary(ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED),
+      'The Local Speech bundle is degraded and needs repair.',
+    );
+  });
+
+  test('falls back to the canonical reason-code catalog for non-speech codes', () => {
+    assert.equal(
+      assetUnhealthyReasonSummary(ReasonCode.AI_LOCAL_MODEL_UNAVAILABLE),
+      'Local AI model is unavailable.',
+    );
+  });
+
+  test('returns empty string for an unmapped code so the caller renders generic copy, never the raw code', () => {
+    assert.equal(assetUnhealthyReasonSummary('SOME_UNMAPPED_INTERNAL_CODE'), '');
+    assert.equal(assetUnhealthyReasonSummary(undefined), '');
   });
 });
 

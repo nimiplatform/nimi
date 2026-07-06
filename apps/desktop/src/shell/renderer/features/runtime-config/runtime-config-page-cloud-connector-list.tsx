@@ -18,7 +18,7 @@ export function CloudConnectorListPanel(props: {
 }) {
   const { connectors, t } = props;
   return (
-    <PrimitiveCard className="h-[600px] overflow-hidden">
+    <PrimitiveCard className="h-[600px] overflow-hidden" hoverMotion={false}>
       <ScrollArea className="h-full" contentClassName="p-4">
         {connectors.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center">

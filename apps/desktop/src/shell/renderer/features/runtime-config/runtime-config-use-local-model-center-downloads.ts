@@ -32,11 +32,35 @@ type UseLocalModelCenterDownloadsInput = {
 };
 
 export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloadsInput) {
+  const initialProgressBySessionIdRef = useRef<Record<string, ProgressSessionState> | null>(null);
+  if (initialProgressBySessionIdRef.current === null) {
+    initialProgressBySessionIdRef.current = getCachedProgressSessions();
+  }
   const [progressBySessionId, setProgressBySessionId] = useState<Record<string, ProgressSessionState>>(
-    () => getCachedProgressSessions(),
+    () => initialProgressBySessionIdRef.current ?? {},
   );
-  const progressBySessionIdRef = useRef<Record<string, ProgressSessionState>>(getCachedProgressSessions());
+  const progressBySessionIdRef = useRef<Record<string, ProgressSessionState>>(initialProgressBySessionIdRef.current ?? {});
   const dismissedSessionIdsRef = useRef<Set<string>>(getDismissedSessionIds());
+  // Sessions already observed in a terminal (done) state. WatchLocalTransfers
+  // replays every existing session on each subscribe, so terminal sessions
+  // arrive with done=true again and again; without this guard each replay would
+  // re-fire onDownloadComplete (→ a full snapshot refresh). Seed from cached
+  // terminal sessions only; listTransfers may race with a just-completed active
+  // transfer, so it may only mark terminals whose updatedAt predates this
+  // effect's subscription window.
+  const seenTerminalSessionIdsRef = useRef<Set<string>>(new Set(
+    Object.values(initialProgressBySessionIdRef.current ?? {})
+      .filter((session) => session.event.done)
+      .map((session) => session.event.installSessionId),
+  ));
+  // Read the completion handlers via refs so the watch effect below does not
+  // have to list them as dependencies. If it did, their identity churn (they
+  // are recreated whenever runtime-config state updates) would tear down and
+  // re-subscribe the transfer stream on every render.
+  const onDownloadCompleteRef = useRef(input.onDownloadComplete);
+  const onProgressSettledRef = useRef(input.onProgressSettled);
+  onDownloadCompleteRef.current = input.onDownloadComplete;
+  onProgressSettledRef.current = input.onProgressSettled;
 
   useEffect(() => {
     progressBySessionIdRef.current = progressBySessionId;
@@ -48,6 +72,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
     }
     let disposed = false;
     let unsubscribe: (() => void) | null = null;
+    const effectStartedMs = Date.now();
 
     void runtimeConfigLocalModelCenterClient.listTransfers()
       .then((sessions) => {
@@ -62,10 +87,15 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
             if (dismissedSessionIdsRef.current.has(session.installSessionId)) {
               continue;
             }
+            const sessionEvent = toProgressEventFromSummary(session);
+            const updatedAtMs = parseTimestamp(session.updatedAt);
+            if (sessionEvent.done && updatedAtMs > 0 && updatedAtMs < effectStartedMs) {
+              seenTerminalSessionIdsRef.current.add(session.installSessionId);
+            }
             const previous = next[session.installSessionId];
             merged[session.installSessionId] = {
-              event: toProgressEventFromSummary(session),
-              updatedAtMs: parseTimestamp(session.updatedAt) || nowMs,
+              event: sessionEvent,
+              updatedAtMs: updatedAtMs || nowMs,
               createdAtMs: previous?.createdAtMs || parseTimestamp(session.createdAt) || nowMs,
             };
           }
@@ -101,15 +131,16 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
           },
         });
       });
-      if (event.done) {
-        input.onDownloadComplete?.(
+      if (event.done && !seenTerminalSessionIdsRef.current.has(event.installSessionId)) {
+        seenTerminalSessionIdsRef.current.add(event.installSessionId);
+        onDownloadCompleteRef.current?.(
           event.installSessionId,
           event.success,
           event.message,
           event.localModelId,
           event.modelId,
         );
-        input.onProgressSettled?.(event);
+        onProgressSettledRef.current?.(event);
       }
     }).then((off) => {
       if (disposed) {
@@ -125,7 +156,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
         unsubscribe();
       }
     };
-  }, [input.isProfileTargetMode, input.onDownloadComplete, input.onProgressSettled]);
+  }, [input.isProfileTargetMode]);
 
   const mergeSessionSummary = useCallback((
     installSessionId: string,
