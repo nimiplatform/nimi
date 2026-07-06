@@ -28,11 +28,7 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
   const requestCalls: Array<{
     requestId?: string;
     threadId: string;
-    executionBindings?: Record<string, {
-      route?: string;
-      modelId?: string;
-      connectorId?: string;
-    }>;
+    executionBindings?: Record<string, unknown>;
   }> = [];
   (client as unknown as { runtime: unknown }).runtime = {
     local: {
@@ -110,7 +106,7 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
         request: async (request: {
           requestId?: string;
           threadId: string;
-          executionBindings?: Record<string, { route?: string; modelId?: string; connectorId?: string }>;
+          executionBindings?: Record<string, unknown>;
         }) => {
           calls.push('request');
           requestCalls.push(request);
@@ -152,18 +148,16 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
     }
 
     assert.deepEqual(calls, ['request']);
-    assert.deepEqual(requestCalls[0]?.executionBindings?.['text.generate'], {
-      route: 'local',
-      modelId: 'llama3',
-      connectorId: undefined,
-    });
+    // Atomic hard cut: the turn request carries NO execution bindings; the
+    // runtime resolves execution from the committed config (K-AGCORE-147).
+    assert.equal('executionBindings' in (requestCalls[0] ?? {}), false);
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();
     clearDesktopTestNimiClientSession();
   }
 });
 
-test('agent runtime turn request sends resolved route/model binding to Runtime', async () => {
+test('agent runtime turn request carries no execution bindings to Runtime', async () => {
   resetRuntimeLocalModelWarmCacheForTests();
   clearDesktopTestNimiClientSession();
   const client = await createDesktopTestNimiClientSession({
@@ -175,11 +169,7 @@ test('agent runtime turn request sends resolved route/model binding to Runtime',
   const requestCalls: Array<{
     requestId?: string;
     threadId: string;
-    executionBindings?: Record<string, {
-      route?: string;
-      modelId?: string;
-      connectorId?: string;
-    }>;
+    executionBindings?: Record<string, unknown>;
   }> = [];
   (client as unknown as { runtime: unknown }).runtime = {
     local: {
@@ -244,11 +234,7 @@ test('agent runtime turn request sends resolved route/model binding to Runtime',
         request: async (request: {
           requestId?: string;
           threadId: string;
-          executionBindings?: Record<string, {
-            route?: string;
-            modelId?: string;
-            connectorId?: string;
-          }>;
+          executionBindings?: Record<string, unknown>;
         }) => {
           requestCalls.push(request);
         },
@@ -289,11 +275,9 @@ test('agent runtime turn request sends resolved route/model binding to Runtime',
     }
 
     assert.equal(requestCalls.length, 1);
-    assert.deepEqual(requestCalls[0]?.executionBindings?.['text.generate'], {
-      route: 'cloud',
-      modelId: 'gpt-5.4-mini',
-      connectorId: 'connector-openai',
-    });
+    // Atomic hard cut: even with a resolved cloud route the request carries
+    // NO execution bindings (runtime execution config is authoritative).
+    assert.equal('executionBindings' in (requestCalls[0] ?? {}), false);
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();
     clearDesktopTestNimiClientSession();

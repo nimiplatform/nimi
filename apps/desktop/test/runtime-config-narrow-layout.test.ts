@@ -58,7 +58,7 @@ test('runtime page title uses the existing sidebar locale key', () => {
 test('runtime page scroll content stays min-width constrained on narrow viewports', () => {
   assert.match(
     panelViewSource,
-    /<ScrollArea className="min-w-0 flex-1" viewportClassName="bg-transparent \[\&>div\]:!block \[\&>div\]:!min-w-0 \[\&>div\]:!w-full \[\&>div\]:!max-w-full" contentClassName="min-w-0 w-full max-w-full overflow-x-hidden"/,
+    /<ScrollArea className="min-w-0 flex-1" viewportClassName="bg-transparent \[&>div\]:!block \[&>div\]:!min-w-0 \[&>div\]:!w-full \[&>div\]:!max-w-full" contentClassName="min-w-0 w-full max-w-full overflow-x-hidden"/,
     'runtime page scroll area must constrain the Radix content wrapper instead of letting it stretch to max content',
   );
 });

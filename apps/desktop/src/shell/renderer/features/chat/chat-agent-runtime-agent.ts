@@ -103,56 +103,6 @@ function resolveRuntimeAgentTextExecutionBinding(
   };
 }
 
-function resolveRuntimeAgentImageExecutionBinding(
-  request: AgentRuntimeChatTurnRequest,
-): NimiRuntimeAgentExecutionBinding | null {
-  if (!request.imageExecutionSnapshot) {
-    return null;
-  }
-  const slice = resolveExecutionSlice(request.imageExecutionSnapshot, 'image.generate');
-  const resolved = slice.resolvedTarget as AgentRuntimeResolvedBinding;
-  return bindingFromResolvedTarget(resolved, 'Runtime Agent image action requires resolved image.generate binding.', 'select_runtime_image_route_binding');
-}
-
-function bindingFromResolvedTarget(
-  resolved: AgentRuntimeResolvedBinding | ConversationExecutionSnapshot['resolvedBinding'],
-  missingMessage: string,
-  actionHint: string,
-): NimiRuntimeAgentExecutionBinding {
-  if (!resolved) {
-    throw createNimiError({
-      message: missingMessage,
-      reasonCode: ReasonCode.AI_INPUT_INVALID,
-      actionHint,
-      source: 'runtime',
-    });
-  }
-  const route = resolvedExecutionRoute(resolved);
-  if (!route) {
-    throw createNimiError({
-      message: `Runtime Agent route is unsupported: ${normalizeText(resolved.source) || 'missing'}.`,
-      reasonCode: ReasonCode.AI_INPUT_INVALID,
-      actionHint,
-      source: 'runtime',
-    });
-  }
-  const modelId = resolvedExecutionModelId(resolved);
-  if (!modelId) {
-    throw createNimiError({
-      message: 'Runtime Agent execution binding requires resolved model id.',
-      reasonCode: ReasonCode.AI_INPUT_INVALID,
-      actionHint,
-      source: 'runtime',
-    });
-  }
-  return {
-    route,
-    modelId,
-    ...(resolved.targetRef ? { targetRef: resolved.targetRef } : {}),
-    ...(normalizeText(resolved.connectorId) ? { connectorId: normalizeText(resolved.connectorId) } : {}),
-  };
-}
-
 function buildRuntimeAgentImageExecutionParams(
   request: AgentRuntimeChatTurnRequest,
 ): JsonObject | null {
@@ -286,8 +236,10 @@ export async function streamChatAgentRuntimeAgentTurn(
       requestId,
     },
   });
+  // The resolved text binding is display/diagnostics context only: the
+  // runtime resolves turn execution from its committed execution config
+  // (K-AGCORE-147); the turn request never carries execution bindings.
   const executionBinding = resolveRuntimeAgentTextExecutionBinding(request);
-  const imageExecutionBinding = resolveRuntimeAgentImageExecutionBinding(request);
   const imageExecutionParams = buildRuntimeAgentImageExecutionParams(request);
   const route = executionBinding.route;
   const modelId = executionBinding.modelId;
@@ -311,10 +263,6 @@ export async function streamChatAgentRuntimeAgentTurn(
       role: 'user' as const,
       content: normalizeText(request.userText),
     }],
-    executionBindings: {
-      'text.generate': executionBinding,
-      ...(imageExecutionBinding ? { 'image.generate': imageExecutionBinding } : {}),
-    },
     executionParams: {
       ...(imageExecutionParams ? { 'image.generate': imageExecutionParams } : {}),
     },

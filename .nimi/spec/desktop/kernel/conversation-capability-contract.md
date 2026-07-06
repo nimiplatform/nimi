@@ -24,7 +24,7 @@ Desktop 侧 conversation capability authority 固定拆分为四层：
 
 - `ConversationCapabilitySelectionStore`：唯一可持久化的 selection truth
 - `ConversationCapabilityProjection`：只读 app-facing projection
-- `AgentEffectiveCapabilityResolution`：agent chat 的 capability overlay。`text.generate` 决定 send readiness；`image.generate` 仅作为可选 media capability truth 暴露，不得反向阻断基础发送。
+- Agent Chat capability truth：已从本 overlay 切出（见 D-LLM-018 carve-out）。Agent Chat 的 binding/readiness truth 是 Runtime Agent execution config（K-AGCORE-144~150）；`text.generate` readiness 决定 send readiness，`image.generate` readiness 仅作为可选 media capability truth 暴露，不得反向阻断基础发送。
 - `ConversationExecutionSnapshot`：每次 turn/job 固化的执行证据
 
 Desktop host bootstrap 是 conversation capability shared builder 的唯一 authority home：
@@ -82,7 +82,7 @@ store codec / migration 不得把 key 缺失与 `null` 互相折叠；presence b
 ## D-LLM-016a — Memory Embedding Config Non-Owner Boundary
 
 `ConversationCapabilitySelectionStore`、`ConversationCapabilityProjection`、
-`AgentEffectiveCapabilityResolution`、以及 `ConversationExecutionSnapshot`
+以及 `ConversationExecutionSnapshot`
 不得吸收 memory embedding live config 或 runtime memory bank truth。
 
 固定边界：
@@ -149,50 +149,37 @@ producer -> projection 映射规则固定为：
 
 任一条件不满足时必须 fail-close 为 `supported=false`；不得静默生成 sendable route。
 
-## D-LLM-018 — Agent Effective Capability Resolution
+## D-LLM-018 — Agent Chat Capability Truth Carve-Out
 
-`AgentEffectiveCapabilityResolution` 依赖：
+Agent Chat capability truth is carved out of the Desktop conversation
+capability overlay. The committed binding and readiness truth for Agent Chat
+is the Runtime Agent execution config and its readiness projection
+(`K-AGCORE-144`~`K-AGCORE-150`), consumed through the admitted
+RuntimeAgentService / SDK execution-config surface.
 
-- `ConversationCapabilityProjection(capability='text.generate')`
-- `ConversationCapabilityProjection(capability='image.generate')`
+固定规则：
 
-Agent Chat execution is Runtime-owned. Desktop may use this projection only to
-show readiness and submit typed user intent through SDK / Runtime Agent surfaces.
-`data-api.core.agent.chat.route.resolve` 已移除（Realm v1 不拥有 agent chat 路由 authority）。
+- Desktop Agent Chat 的可发送性与图片能力状态只允许消费 Runtime execution
+  config readiness projection（`ready` / `not_configured` / `unavailable` 与
+  typed reason codes）；`ConversationCapabilitySelectionStore`、
+  `ConversationCapabilityProjection`、`runtimeFields`、UI 局部状态都不再是
+  Agent Chat 的 binding/readiness truth 来源。
+- Desktop 的模型配置界面在 Agent Chat 语境下是 Runtime execution config 的
+  编辑器：写入必须经 admitted execution-config mutation surface（含
+  revision 乐观并发），不得持久化平行的 agent chat route truth。
+- Agent Chat turn 提交不携带 execution binding payload（K-AGCORE-147）。
+- readiness `ready` 只表示 Runtime 报告可用 capability route。Desktop 不得
+  据此推断 Agent Chat action 存在、prompt payload 合法、workflow 已 admit、
+  或 voice playback/session 语义成功。
+- Agent Chat message/action/workflow/session 决策必须以 Runtime-owned Agent
+  Chat projection/output evidence 到达；Desktop 投影不得制造这些决策。
+- `data-api.core.agent.chat.route.resolve` 已移除（Realm v1 不拥有 agent
+  chat 路由 authority）。
+- 本契约其余规则（D-LLM-015~017、D-LLM-019~021）继续管辖非 Agent Chat 的
+  通用 app AI 消费（AI Chat、Runtime Config 的普通 capability 面）。
 
-`reason` 固定为封闭枚举，且只表达 agent chat 的基础可发送性：
-
-- `projection_unavailable`
-- `route_unresolved`
-- `ok`
-
-优先级固定为：
-
-1. `projection_unavailable`
-2. `route_unresolved`
-3. `ok`
-
-`ready=true` 仅当：
-
-- `text.generate` projection `supported=true`
-- `resolvedBinding` 存在
-
-同时满足时才允许成立。
-
-`image.generate` 对 Agent chat 是可选 capability。
-
-- `imageProjection` 可以为 `null`
-- `imageReady` 必须仅由 `image.generate` projection 是否 `supported=true` 且 `resolvedBinding` 存在决定
-- `imageReady=false` 不得改变 `reason`，也不得把已经可发送的 Agent chat 降级成 `ready=false`
-- Agent chat settings / submit / provider 若消费图片能力，必须统一读取这一份 `imageProjection` / `imageReady` truth，不得自行从 `runtimeFields` 或 UI 局部状态重算一份 image route truth
-- `imageReady=true`、`audio.synthesize` readiness, or `voice_workflow.*`
-  readiness only means Runtime reports a usable capability route. Desktop must
-  not infer that an Agent Chat action exists, that a prompt payload is valid,
-  that a workflow is admitted, or that voice playback/session semantics have
-  succeeded.
-- Agent Chat message/action/workflow/session decisions must arrive as
-  Runtime-owned Agent Chat projection/output evidence. Desktop capability
-  projection may not create those decisions.
+`AgentEffectiveCapabilityResolution` 作为 Desktop-owned agent chat capability
+overlay 已退役；其历史语义由本 carve-out 取代。
 
 ## D-LLM-019 — Conversation Execution Snapshot
 

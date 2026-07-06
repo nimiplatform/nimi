@@ -7,7 +7,6 @@ import {
   toNimiRuntimeProtoStruct,
   type NimiRuntimeAgentConsumeRequest,
   type NimiRuntimeAgentConsumeEvent,
-  type NimiRuntimeAgentExecutionBinding,
   type NimiRuntimeAgentMessage,
   type NimiRuntimeAgentSessionSnapshotRequest,
   type NimiRuntimeAgentTurnInterruptRequest,
@@ -111,22 +110,13 @@ function normalizeTestText(value: unknown): string {
 
 function decodeRuntimeAgentTurnRequestPayload(value: unknown): NimiRuntimeAgentTurnRequest {
   const payload = fromNimiRuntimeProtoStruct(value as Parameters<typeof fromNimiRuntimeProtoStruct>[0]);
-  const executionBindings = payload.execution_bindings && typeof payload.execution_bindings === 'object'
-    ? payload.execution_bindings as Record<string, unknown>
-    : {};
-  const normalizeBinding = (binding: unknown) => {
-    const record = binding && typeof binding === 'object' ? binding as Record<string, unknown> : null;
-    if (!record) {
-      return null;
-    }
-    return {
-      route: normalizeTestText(record.route) as NimiRuntimeAgentExecutionBinding['route'],
-      modelId: normalizeTestText(record.model_id),
-      connectorId: normalizeTestText(record.connector_id) || undefined,
-    };
-  };
-  const textBinding = normalizeBinding(executionBindings['text.generate']);
-  const imageBinding = normalizeBinding(executionBindings['image.generate']);
+  // Atomic hard cut: the runtime rejects request-level execution_bindings
+  // (K-AGCORE-147), so any payload carrying them is a contract violation.
+  assert.equal(
+    'execution_bindings' in payload,
+    false,
+    'runtime agent turn payload must not carry execution_bindings',
+  );
   const messages = Array.isArray(payload.messages)
     ? payload.messages.map((message) => {
       const record = message && typeof message === 'object' ? message as Record<string, unknown> : {};
@@ -144,10 +134,6 @@ function decodeRuntimeAgentTurnRequestPayload(value: unknown): NimiRuntimeAgentT
     requestId: normalizeTestText(payload.request_id) || undefined,
     threadId: normalizeTestText(payload.thread_id) || undefined,
     messages,
-    executionBindings: {
-      ...(textBinding ? { 'text.generate': textBinding } : {}),
-      ...(imageBinding ? { 'image.generate': imageBinding } : {}),
-    } as NimiRuntimeAgentTurnRequest['executionBindings'],
     ...(payload.execution_params && typeof payload.execution_params === 'object'
       ? { executionParams: payload.execution_params as NimiRuntimeAgentTurnRequest['executionParams'] }
       : {}),

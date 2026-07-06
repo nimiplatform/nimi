@@ -4,6 +4,7 @@ import type { AgentDataBundle, AgentDataDriver, DriverStatus } from '../driver/t
 import { useAvatarStore } from './app-store.js';
 
 let driverKind: 'sdk' | 'mock' = 'sdk';
+let runtimeBridgeHost: 'tauri' | 'electron' = 'tauri';
 const createDriverMock = vi.fn();
 const getAvatarLaunchContextMock = vi.fn();
 const getRuntimeDefaultsMock = vi.fn();
@@ -147,6 +148,14 @@ function protectedAccessOptionsMatcher() {
   });
 }
 
+function electronHostEquivalenceOptionsMatcher() {
+  return expect.objectContaining({
+    metadata: {
+      'x-nimi-runtime-host-equivalence': 'runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host',
+    },
+  });
+}
+
 function companionParticipationRequestMatcher(
   conversationAnchorId: string,
   extra: Record<string, unknown>,
@@ -219,11 +228,13 @@ vi.mock('@renderer/bridge', () => ({
   getDaemonStatus: (...args: unknown[]) => getDaemonStatusMock(...args),
   startDaemon: (...args: unknown[]) => startDaemonMock(...args),
   hasTauriInvoke: (...args: unknown[]) => hasTauriInvokeMock(...args),
-  installNimiShellRuntimeBridge: () => ({ installed: true }),
+  installNimiShellRuntimeBridge: () => runtimeBridgeHost === 'electron'
+    ? { installed: true, host: 'electron', reason: 'electron-preload-present' }
+    : { installed: true, host: 'tauri' },
 }));
 
 vi.mock('./tauri-lifecycle.js', () => ({
-  isTauriRuntime: () => true,
+  isTauriRuntime: () => runtimeBridgeHost === 'tauri',
   onShellReady: (...args: unknown[]) => onShellReadyMock(...args),
 }));
 
@@ -317,6 +328,7 @@ describe('bootstrapAvatar', () => {
   beforeEach(() => {
     useAvatarStore.setState(useAvatarStore.getInitialState(), true);
     driverKind = 'sdk';
+    runtimeBridgeHost = 'tauri';
     createDriverMock.mockReset();
     getAvatarLaunchContextMock.mockReset();
     getRuntimeDefaultsMock.mockReset();
@@ -641,6 +653,32 @@ describe('bootstrapAvatar', () => {
 
     await handle.shutdown();
     expect(carrierShutdownMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses Electron host equivalence for Runtime Agent scopes without renderer-owned auth metadata', async () => {
+    runtimeBridgeHost = 'electron';
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+
+    expect(createNimiClientMock).toHaveBeenCalledWith(expect.objectContaining({
+      appId: 'nimi.avatar',
+      runtime: expect.objectContaining({
+        appId: 'nimi.avatar',
+        transport: { type: 'electron-ipc' },
+      }),
+    }));
+    expect(openSessionMock).not.toHaveBeenCalled();
+    expect(authorizeExternalPrincipalMock).not.toHaveBeenCalled();
+    expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), electronHostEquivalenceOptionsMatcher());
+    const openAnchorOptions = openAnchorMock.mock.calls[0]?.[1] as { metadata?: Record<string, string> } | undefined;
+    expect(openAnchorOptions?.metadata).not.toHaveProperty('x-nimi-session-id');
+    expect(openAnchorOptions?.metadata).not.toHaveProperty('x-nimi-session-token');
+    expect(openAnchorOptions?.metadata).not.toHaveProperty('x-nimi-access-token-id');
+    expect(openAnchorOptions?.metadata).not.toHaveProperty('x-nimi-access-token-secret');
+    expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
+
+    await handle.shutdown();
   });
 
   it('routes Avatar companion controls through Runtime companion participation', async () => {

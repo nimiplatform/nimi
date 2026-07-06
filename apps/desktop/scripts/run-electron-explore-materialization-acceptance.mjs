@@ -167,7 +167,7 @@ try {
   });
   const context = electronApp.context();
   await context.addInitScript(() => {
-    window.localStorage.setItem('nimi.shell.locale', 'zh');
+    globalThis.localStorage.setItem('nimi.shell.locale', 'zh');
   });
   const page = await electronApp.firstWindow();
   page.on('console', (message) => {
@@ -188,7 +188,7 @@ try {
   });
   await page.waitForLoadState('domcontentloaded');
   await page.evaluate(() => {
-    window.localStorage.setItem('nimi.shell.locale', 'zh');
+    globalThis.localStorage.setItem('nimi.shell.locale', 'zh');
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__), null, { timeout: 30_000 });
@@ -251,15 +251,15 @@ try {
   await localAgentCard.waitFor({ state: 'visible', timeout: 30_000 });
   await localAgentCard.click();
   await page.waitForFunction(() => {
-    const worldCharacterDetail = document.querySelector('[data-testid="world-character-source-detail-page"]');
-    const compactDetail = document.querySelector('[data-testid="source-detail-compact-profile-card"]');
+    const worldCharacterDetail = globalThis.document.querySelector('[data-testid="world-character-source-detail-page"]');
+    const compactDetail = globalThis.document.querySelector('[data-testid="source-detail-compact-profile-card"]');
     return Boolean(worldCharacterDetail || compactDetail);
   }, null, { timeout: 30_000 });
   observations.sourceDetailSurface = await page.evaluate(() => {
-    if (document.querySelector('[data-testid="world-character-source-detail-page"]')) {
+    if (globalThis.document.querySelector('[data-testid="world-character-source-detail-page"]')) {
       return 'world-character';
     }
-    if (document.querySelector('[data-testid="source-detail-compact-profile-card"]')) {
+    if (globalThis.document.querySelector('[data-testid="source-detail-compact-profile-card"]')) {
       return 'compact-source';
     }
     return 'missing';

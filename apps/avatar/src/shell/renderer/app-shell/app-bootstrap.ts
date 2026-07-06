@@ -63,6 +63,9 @@ import {
 
 const AVATAR_FIRST_PARTY_APP_ID = 'nimi.avatar';
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
+const AVATAR_ELECTRON_RUNTIME_HOST_EQUIVALENCE_METADATA = {
+  'x-nimi-runtime-host-equivalence': 'runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host',
+} as const;
 
 export type { BootstrapHandle } from './app-bootstrap-types.js';
 
@@ -345,9 +348,16 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
         const avatarInstanceId = readNormalizedString(launchContext.avatarInstanceId) || `avatar-${Date.now()}`;
         currentAvatarInstanceId = avatarInstanceId;
-        const avatarRuntimeAppSessionMetadata = createAvatarRuntimeAppSessionMetadataProvider(runtime.auth, runtimeAppId);
+        const avatarRuntimeAppSessionMetadata = runtimeBridge.host === 'electron'
+          ? null
+          : createAvatarRuntimeAppSessionMetadataProvider(runtime.auth, runtimeAppId);
         const withAvatarRuntimeAgentScopes: NimiRuntimeAgentScopeRunner = async (scopes, operation) => {
-          const sessionMetadata = await avatarRuntimeAppSessionMetadata();
+          if (runtimeBridge.host === 'electron') {
+            return operation({
+              metadata: AVATAR_ELECTRON_RUNTIME_HOST_EQUIVALENCE_METADATA,
+            });
+          }
+          const sessionMetadata = avatarRuntimeAppSessionMetadata ? await avatarRuntimeAppSessionMetadata() : {};
           return withNimiRuntimeAgentScopes({
             runtime: {
               appId: runtimeAppId,

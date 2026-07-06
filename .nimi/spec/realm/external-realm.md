@@ -2,24 +2,20 @@
 
 ## External Authority
 
-This file records the external Realm authority pointer for Nimi.
-
-`<nimi-realm>` owns Realm server truth, Realm domain semantics, Realm OpenAPI
-generation, and Realm API compatibility promises.
+This file records the external Realm authority pointer for Nimi:
+`<nimi-realm>`.
 
 Realm server/domain product rules are not redefined in this repository.
 
 ## Nimi Consumer Boundary
 
-Nimi owns only consumer behavior:
+Nimi consumer behavior is documented in the SDK and downstream consumer
+contracts listed below.
 
 - SDK generated Realm core and typed facade behavior
 - Runtime/Desktop use of the Realm SDK
-- fail-closed handling of auth, transport, schema, and domain errors
-- local projection boundaries that must not become Realm canonical truth
-
-Nimi must not define, fork, or mirror Realm server/domain authority under
-`.nimi/spec/realm/**`.
+- auth, transport, schema, and domain error handling
+- local projection boundaries
 
 ## Canonical Nimi Reading Path
 

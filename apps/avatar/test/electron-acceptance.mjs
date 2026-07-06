@@ -112,9 +112,21 @@ test('Avatar Electron host boots renderer and exposes standard shell capability 
       );
       assert.deepEqual(launchContext, {
         agentId: 'local-agent:avatar-acceptance-agent',
+        ownerUserId: 'avatar-owner',
+        runtimeSourceRef: 'avatar-runtime',
+        localAgentRef: 'local-agent:avatar-acceptance-agent',
         avatarInstanceId: null,
         launchSource: 'electron',
       });
+      const unboundLocalAsset = await captureAvatarInvokeError(page, 'nimi_avatar_resolve_local_avatar_asset', {
+        payload: {
+          accountId: 'avatar-account',
+          ownerUserId: 'avatar-owner',
+          runtimeSourceRef: 'avatar-runtime',
+          localAgentRef: 'local-agent:avatar-acceptance-agent',
+        },
+      });
+      assert.match(unboundLocalAsset.message, /requires bound Runtime identity/);
       const boundIdentity = await page.evaluate((identityPayload) =>
         globalThis.window.__NIMI_AVATAR_ELECTRON__.invoke('nimi_avatar_bind_runtime_identity', { payload: identityPayload }),
         {
@@ -179,6 +191,26 @@ async function captureInvokeError(page, command, payload) {
   const errorPayload = await page.evaluate(async ({ command: commandName, payload: commandPayload }) => {
     try {
       await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(commandName, commandPayload);
+      return null;
+    } catch (error) {
+      return {
+        code: error?.code,
+        reasonCode: error?.reasonCode,
+        actionHint: error?.actionHint,
+        source: error?.source,
+        envelope: error?.envelope,
+        message: String(error?.message || error || ''),
+      };
+    }
+  }, { command, payload });
+  assert.notEqual(errorPayload, null);
+  return errorPayload;
+}
+
+async function captureAvatarInvokeError(page, command, payload) {
+  const errorPayload = await page.evaluate(async ({ command: commandName, payload: commandPayload }) => {
+    try {
+      await globalThis.window.__NIMI_AVATAR_ELECTRON__.invoke(commandName, commandPayload);
       return null;
     } catch (error) {
       return {

@@ -49,6 +49,7 @@ function toRuntimeLocalAssetProjection(asset: RuntimeLocalAssetRecord): NimiRunt
     endpoint: asset.endpoint,
     status: asset.status,
     capabilities: asset.capabilities,
+    updatedAt: asset.updatedAt,
   };
 }
 
