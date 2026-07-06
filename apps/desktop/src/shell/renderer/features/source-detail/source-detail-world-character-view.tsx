@@ -13,15 +13,17 @@ import {
   type SourceDetailBiographicalTimelineSection,
 } from './source-detail-world-character-biographical-timeline.js';
 import {
-  milestoneKindLabel,
-  milestoneTheme,
   sceneRefLabel,
   topicChips,
   worldCharacterHeroDescription,
   worldCharacterHeroSubtitle,
   worldCharacterPrimaryActionLabel,
-  WorldCharacterRelationshipCluesSection,
-} from './source-detail-world-character-presentation.js';
+} from './source-detail-world-character-labels.js';
+import { WorldCharacterRelationshipCluesSection } from './source-detail-world-character-relationship-map.js';
+import {
+  milestoneKindLabel,
+  milestoneTheme,
+} from './source-detail-world-character-theme.js';
 
 type WorldCharacterSourceDetailPageProps = {
   source: SourceDetailData;

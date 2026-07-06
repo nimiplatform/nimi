@@ -16,6 +16,10 @@ const worldDetailQueriesSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-queries.ts'),
   'utf8',
 );
+const worldDetailPrimaryProjectionSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-primary-projection.ts'),
+  'utf8',
+);
 const worldDetailSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail.tsx'),
   'utf8',
@@ -208,8 +212,9 @@ test('world entry no longer exposes eager world detail history prefetch', () => 
 
 test('world detail primary query adopts SDK public world DTO through a bounded adapter', () => {
   const oldRootSingletonPattern = new RegExp('get' + 'PlatformClient');
-  assert.match(worldDetailQueriesSource, /toWorldListItem\(asRecord\(detailValue\)\)/);
+  assert.match(worldDetailPrimaryProjectionSource, /toWorldListItem\(asRecord\(detailValue\)\)/);
   assert.doesNotMatch(worldDetailQueriesSource, oldRootSingletonPattern);
+  assert.doesNotMatch(worldDetailPrimaryProjectionSource, oldRootSingletonPattern);
   assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldSemanticBundle/);
   assert.match(worldDetailQueriesSource, /realmWorldData\.loadWorldDetailWithCharacters/);
   assert.doesNotMatch(worldDetailQueriesSource, /mergeNimiRealmWorldPrimaryDetailTruth/);
