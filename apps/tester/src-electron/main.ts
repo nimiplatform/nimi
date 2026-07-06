@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { appendFile, mkdir, readFile, realpath } from 'node:fs/promises';
-import { app, BrowserWindow, ipcMain, protocol, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, protocol, shell } from 'electron';
 import {
   assertOpaqueElectronLocalAgentRef,
   createNimiElectronFileAIConfigStore,
@@ -40,6 +40,7 @@ protocol.registerSchemesAsPrivileged([{
 }]);
 
 app.setName('Nimi Tester');
+Menu.setApplicationMenu(null);
 configureTesterElectronChromiumRuntime();
 
 void app.whenReady().then(async () => {
@@ -102,6 +103,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     minWidth: 1100,
     minHeight: 760,
     title: 'Nimi Tester',
+    autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -109,6 +111,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
       sandbox: true,
     },
   });
+  hardenTesterWindowChrome(window);
   secureTesterWindow(window);
   await loadRendererRoute(window, '/');
   return window;
@@ -136,6 +139,7 @@ async function openWorldTourWindow(input: {
     minWidth: input.minWidth,
     minHeight: input.minHeight,
     title: input.title,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
@@ -143,6 +147,7 @@ async function openWorldTourWindow(input: {
       sandbox: true,
     },
   });
+  hardenTesterWindowChrome(window);
   secureTesterWindow(window);
   worldTourWindows.set(windowLabel, window);
   window.on('closed', () => {
@@ -163,6 +168,12 @@ async function loadRendererRoute(window: BrowserWindow, route: string): Promise<
     return;
   }
   await window.loadURL(hash ? `${rendererDistUrl}#${hash}` : rendererDistUrl);
+}
+
+function hardenTesterWindowChrome(window: BrowserWindow): void {
+  window.setAutoHideMenuBar(true);
+  window.setMenuBarVisibility(false);
+  window.removeMenu();
 }
 
 function secureTesterWindow(window: BrowserWindow): void {

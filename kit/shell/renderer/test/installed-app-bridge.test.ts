@@ -22,6 +22,7 @@ describe('renderer installed app standard shell surface', () => {
         if (command === NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']) return { path: 'D:/Nimi/apps/fixture/data/settings.json' };
         if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']) return { path: 'settings/view.json', value: { zoom: 1 } };
         if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']) return { path: 'settings/view.json', value: { zoom: 2 } };
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']) return { path: 'settings/view.json', removed: true };
         if (command === NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']) return { path: 'dist/icon.png', url: 'nimi-installed-app://fixture/dist/icon.png' };
         throw new Error(`unexpected command ${command}`);
       },
@@ -35,6 +36,7 @@ describe('renderer installed app standard shell surface', () => {
       await expect(surface.data.resolvePath('settings/view.json')).resolves.toBe('D:/Nimi/apps/fixture/data/settings.json');
       await expect(surface.storage.readJson('settings/view.json')).resolves.toEqual({ zoom: 1 });
       await expect(surface.storage.writeJson('settings/view.json', { zoom: 2 })).resolves.toEqual({ zoom: 2 });
+      await expect(surface.storage.removeJson('settings/view.json')).resolves.toEqual({ path: 'settings/view.json', removed: true });
       await expect(surface.localAssets.resolveUrl('dist/icon.png')).resolves.toBe('nimi-installed-app://fixture/dist/icon.png');
     } finally {
       root.__NIMI_ELECTRON_TEST__ = previous;
@@ -46,9 +48,58 @@ describe('renderer installed app standard shell surface', () => {
       NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'],
       NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
       NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
+      NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
       NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl'],
     ]);
     expect(calls[1]?.payload).toEqual({ payload: { config: { density: 'compact' } } });
     expect(calls[4]?.payload).toEqual({ payload: { relativePath: 'settings/view.json', value: { zoom: 2 } } });
+    expect(calls[5]?.payload).toEqual({ payload: { relativePath: 'settings/view.json' } });
+  });
+
+  it('preserves Electron structured host errors instead of stringifying them', async () => {
+    const root = globalThis as RendererInstalledAppTestGlobal;
+    const previous = root.__NIMI_ELECTRON_TEST__;
+    root.__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => {
+        throw {
+          name: 'NimiElectronShellHostError',
+          message: 'Electron standard storage JSON was not found: /tmp/shijing-space.json',
+          code: 'not-found',
+          reasonCode: 'electron-standard-storage-json-not-found',
+          actionHint: 'write_storage_json_before_reading_it',
+          source: 'electron',
+          details: {
+            path: '/tmp/shijing-space.json',
+          },
+          envelope: {
+            code: 'not-found',
+            reasonCode: 'electron-standard-storage-json-not-found',
+            actionHint: 'write_storage_json_before_reading_it',
+            source: 'electron',
+            details: {
+              path: '/tmp/shijing-space.json',
+            },
+          },
+        };
+      },
+      listen: () => () => undefined,
+    };
+
+    try {
+      const surface = createInstalledNimiAppStandardShellSurface();
+      await expect(surface.storage.readJson('shijing-space/account.fixture.json')).rejects.toMatchObject({
+        message: 'Electron standard storage JSON was not found: /tmp/shijing-space.json',
+        code: 'not-found',
+        reasonCode: 'electron-standard-storage-json-not-found',
+        actionHint: 'write_storage_json_before_reading_it',
+        source: 'electron',
+        details: {
+          path: '/tmp/shijing-space.json',
+        },
+      });
+      await expect(surface.storage.readJson('shijing-space/account.fixture.json')).rejects.not.toThrow('[object Object]');
+    } finally {
+      root.__NIMI_ELECTRON_TEST__ = previous;
+    }
   });
 });

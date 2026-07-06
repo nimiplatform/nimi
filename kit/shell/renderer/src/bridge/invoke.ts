@@ -44,7 +44,7 @@ export async function invoke(command: string, payload: JsonValue = {}): Promise<
   try {
     return await shellInvoke(command, payload);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error || '');
+    const message = structuredErrorMessage(error);
     const envelope = standardEnvelopeFromError(error);
     throw new BridgeError(message || `invoke ${command} failed`, command, envelope);
   }
@@ -73,20 +73,47 @@ function standardEnvelopeFromError(error: unknown): NimiStandardShellErrorEnvelo
     return undefined;
   }
   const record = error as Record<string, unknown>;
-  const code = typeof record.code === 'string' ? record.code : '';
-  const reasonCode = typeof record.reasonCode === 'string' ? record.reasonCode : '';
-  const actionHint = typeof record.actionHint === 'string' ? record.actionHint : '';
-  const source = typeof record.source === 'string' ? record.source : 'host';
+  const envelope = optionalRecord(record.envelope);
+  const code = normalizeStructuredText(record.code) || normalizeStructuredText(envelope?.code);
+  const reasonCode = normalizeStructuredText(record.reasonCode) || normalizeStructuredText(envelope?.reasonCode);
+  const actionHint = normalizeStructuredText(record.actionHint) || normalizeStructuredText(envelope?.actionHint);
+  const source = normalizeStructuredText(record.source) || normalizeStructuredText(envelope?.source) || 'host';
   if (!code || !reasonCode || !actionHint) {
     return undefined;
   }
+  const details = optionalRecord(record.details) ?? optionalRecord(envelope?.details);
   return {
     code: code as NimiStandardShellErrorEnvelope['code'],
     reasonCode,
     actionHint,
     source: source as NimiStandardShellErrorEnvelope['source'],
-    details: record.details && typeof record.details === 'object'
-      ? record.details as Record<string, unknown>
-      : undefined,
+    details,
   };
+}
+
+function structuredErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return normalizeStructuredText(error.message);
+  }
+  if (!error || typeof error !== 'object') {
+    return normalizeStructuredText(error);
+  }
+  const record = error as Record<string, unknown>;
+  const envelope = optionalRecord(record.envelope);
+  const details = optionalRecord(record.details) ?? optionalRecord(envelope?.details);
+  return normalizeStructuredText(record.message)
+    || normalizeStructuredText(envelope?.message)
+    || normalizeStructuredText(details?.cause)
+    || normalizeStructuredText(details?.message);
+}
+
+function optionalRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function normalizeStructuredText(value: unknown): string {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return text === '[object Object]' ? '' : text;
 }

@@ -5,8 +5,10 @@ import {
   NIMI_PLATFORM_NIMI_APP_REGISTRY_ROWS,
   NIMI_PLATFORM_NIMI_APP_RELEASE_DESCRIPTOR_ROWS,
   NIMI_PLATFORM_AI_PROFILE_FACTORY_ROWS,
+  NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
   NIMI_STANDARD_SHELL_CAPABILITIES,
   NIMI_STANDARD_SHELL_CAPABILITY_IDS,
+  NIMI_STANDARD_SHELL_CAPABILITY_SETS,
   NIMI_STANDARD_SHELL_ERROR_CODES,
   buildNimiAppsBridgeProjection,
   buildNimiAppsPackagesRecordFromRows,
@@ -149,6 +151,24 @@ describe('standard shell capabilities', () => {
       expect(packageOperation?.negativeStates).toContain('external-daemon-required');
       expect(readCatalogNegativeStatesForCommand(catalog, command)).toContain('external-daemon-required');
     }
+  });
+
+  it('catalogs idempotent standard storage removal for installed apps', () => {
+    const catalog = readFileSync(catalogPath, 'utf8');
+    const command = getNimiStandardShellCommand('storage', 'removeJson');
+    const packageOperation = NIMI_STANDARD_SHELL_CAPABILITIES
+      .flatMap((capability) => capability.operations)
+      .find((operation) => operation.command === command);
+
+    expect(command).toBe('nimi.shell.storage.removeJson');
+    expect(packageOperation?.negativeStates).toEqual(['capability-unavailable', 'invalid-path', 'invalid-payload']);
+    expect(readCatalogNegativeStatesForCommand(catalog, command)).toEqual(['capability-unavailable', 'invalid-path', 'invalid-payload']);
+
+    const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
+      (set) => set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+    );
+    expect(installedSet?.allowedOperations).toContain('storage.removeJson');
+    expect(installedSet?.allowedCommands).toContain(command);
   });
 
   it('exports fail-closed error envelopes and catalog-sourced command lookup', () => {

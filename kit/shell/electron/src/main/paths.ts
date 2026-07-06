@@ -100,7 +100,8 @@ export async function resolveElectronStandardDataRootPath(
     throw createElectronCapabilityUnavailableError(command);
   }
   const root = await canonicalElectronStandardRoot(host.dataRoot, command, 'dataRoot');
-  const relativePath = normalizeStandardRelativePath(payload.relativePath ?? payload.path, command);
+  assertNoRendererStorageRootFields(payload, command);
+  const relativePath = normalizeStandardRelativePath(payload.relativePath, command);
   const target = path.resolve(root, relativePath);
   if (!isSameOrChildPath(root, target)) {
     throw new NimiElectronShellHostError({
@@ -188,6 +189,19 @@ export function normalizeStandardRelativePath(value: unknown, command: string): 
     });
   }
   return relativePath;
+}
+function assertNoRendererStorageRootFields(payload: Readonly<Record<string, unknown>>, command: string): void {
+  for (const field of ['path', 'root', 'storageRoot', 'absolutePath']) {
+    if (field in payload) {
+      throw new NimiElectronShellHostError({
+        code: 'invalid-payload',
+        message: `Electron standard storage renderer field is forbidden: ${field}`,
+        reasonCode: 'electron-standard-storage-renderer-field-forbidden',
+        actionHint: 'send_relative_path_only_for_standard_storage',
+        details: { command, field },
+      });
+    }
+  }
 }
 export function serializeElectronStandardJsonValue(value: unknown, command: string): string {
   if (value === undefined) {

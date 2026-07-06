@@ -84,9 +84,13 @@ test('installed app bootstrap composes host-owned Runtime account, Realm, and st
         get: async () => ({ theme: 'dark' }),
         set: async (config) => ({ saved: config }),
       },
+      data: {
+        resolvePath: async (relativePath) => `/runtime/app-storage/${relativePath}`,
+      },
       storage: {
         readJson: async (relativePath) => ({ relativePath }),
         writeJson: async (relativePath, value) => ({ relativePath, value }),
+        removeJson: async (relativePath) => ({ relativePath, removed: true }),
       },
       localAssets: {
         resolveUrl: async (relativePath) => `nimi-installed-app://fixture/${relativePath}`,
@@ -115,10 +119,15 @@ test('installed app bootstrap composes host-owned Runtime account, Realm, and st
   });
   assert.deepEqual(await bootstrap.standardShell.config.get(), { theme: 'dark' });
   assert.deepEqual(await bootstrap.standardShell.config.set({ compact: true }), { saved: { compact: true } });
+  assert.equal(await bootstrap.standardShell.data.resolvePath('settings/view.json'), '/runtime/app-storage/settings/view.json');
   assert.deepEqual(await bootstrap.standardShell.storage.readJson('settings/view.json'), { relativePath: 'settings/view.json' });
   assert.deepEqual(await bootstrap.standardShell.storage.writeJson('settings/view.json', { zoom: 1 }), {
     relativePath: 'settings/view.json',
     value: { zoom: 1 },
+  });
+  assert.deepEqual(await bootstrap.standardShell.storage.removeJson('settings/view.json'), {
+    relativePath: 'settings/view.json',
+    removed: true,
   });
   assert.equal(await bootstrap.standardShell.localAssets.resolveUrl('dist/icon.png'), 'nimi-installed-app://fixture/dist/icon.png');
 
@@ -156,9 +165,13 @@ test('installed app bootstrap rejects renderer-provided auth custody fields', ()
         get: async () => ({}),
         set: async (config) => config,
       },
+      data: {
+        resolvePath: async (relativePath) => relativePath,
+      },
       storage: {
         readJson: async () => ({}),
         writeJson: async (_relativePath, value) => value,
+        removeJson: async (relativePath) => ({ relativePath, removed: true }),
       },
       localAssets: {
         resolveUrl: async () => 'nimi-installed-app://fixture/dist/icon.png',
@@ -190,9 +203,13 @@ test('installed app bootstrap rejects renderer-provided auth custody fields', ()
         get: async () => ({}),
         set: async (config) => config,
       },
+      data: {
+        resolvePath: async (relativePath) => relativePath,
+      },
       storage: {
         readJson: async () => ({}),
         writeJson: async (_relativePath, value) => value,
+        removeJson: async (relativePath) => ({ relativePath, removed: true }),
       },
       localAssets: {
         resolveUrl: async () => 'nimi-installed-app://fixture/dist/icon.png',
@@ -201,5 +218,41 @@ test('installed app bootstrap rejects renderer-provided auth custody fields', ()
     authorization: 'Bearer renderer-owned-token',
   } as never), {
     reasonCode: 'SDK_INSTALLED_APP_BOOTSTRAP_HOST_METADATA_ONLY',
+  });
+});
+
+test('installed app bootstrap requires full standard data and storage lifecycle surfaces', () => {
+  assert.throws(() => createInstalledNimiAppBootstrap({
+    realmBaseUrl: 'https://realm.test',
+    runtime: {
+      account: {
+        getAccessToken: async () => ({ accepted: true, accessToken: 'runtime-token' }),
+        refreshAccountSession: async () => ({ accepted: true }),
+      },
+    },
+    launchBinding: {
+      appId: 'community.nimi.fixture.platform-proof',
+      appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
+      deviceId: 'desktop-installed-app-host-device',
+      bindingSource: NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
+      launchHostId: NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID,
+      launchNonce: 'launch-nonce-1',
+      releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
+    },
+    standardShell: {
+      config: {
+        get: async () => ({}),
+        set: async (config) => config,
+      },
+      storage: {
+        readJson: async () => ({}),
+        writeJson: async (_relativePath, value) => value,
+      },
+      localAssets: {
+        resolveUrl: async () => 'nimi-installed-app://fixture/dist/icon.png',
+      },
+    } as never,
+  }), {
+    reasonCode: 'SDK_INSTALLED_APP_BOOTSTRAP_STANDARD_SHELL_REQUIRED',
   });
 });

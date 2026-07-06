@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -53,6 +53,9 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     grpcAddr: '127.0.0.1:1',
     source: 'tester-electron-acceptance',
   }, null, 2), 'utf8');
+  const canonicalDataRoot = await realpath(dataRoot);
+  const canonicalAssetPath = await realpath(assetPath);
+  const expectedProfilePath = path.join(canonicalDataRoot, 'settings', 'profile.json');
 
   const app = await electron.launch({
     args: [mainEntry],
@@ -247,7 +250,7 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       }),
       NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'],
     );
-    assert.equal(dataPath.path, path.join(dataRoot, 'settings', 'profile.json'));
+    assert.equal(dataPath.path, expectedProfilePath);
 
     const storageWrite = await page.evaluate(
       (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {
@@ -256,7 +259,7 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       }),
       NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
     );
-    assert.equal(storageWrite.path, path.join(dataRoot, 'settings', 'profile.json'));
+    assert.equal(storageWrite.path, expectedProfilePath);
     assert.deepEqual(storageWrite.value, { schemaVersion: 1, host: 'electron' });
     assert.deepEqual(JSON.parse(await readFile(storageWrite.path, 'utf8')), { schemaVersion: 1, host: 'electron' });
 
@@ -267,7 +270,7 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
     );
     assert.deepEqual(storageRead, {
-      path: path.join(dataRoot, 'settings', 'profile.json'),
+      path: expectedProfilePath,
       value: { schemaVersion: 1, host: 'electron' },
     });
 
@@ -284,7 +287,7 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       command: NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl'],
       assetPath,
     });
-    assert.equal(assetResult.path, assetPath);
+    assert.equal(assetResult.path, canonicalAssetPath);
     assert.match(assetResult.url, /^nimi-shell-file:\//);
     assert.equal(assetResult.fetchOk, true);
     assert.equal(assetResult.body, 'tester asset preview');
@@ -302,6 +305,7 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       command: NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve'],
       assetPath,
     });
+    assert.equal(avatarAssetResult.path, canonicalAssetPath);
     assert.deepEqual(avatarAssetResult, assetResult);
 
     const aiProfile = await page.evaluate(
@@ -442,36 +446,16 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       /electron-runtime-endpoint-unavailable|unavailable/,
     );
 
-    const streamUnavailable = await page.evaluate(async (command) => {
-      const streamId = 'acceptance-stream-unavailable';
-      const eventName = `nimi.shell.runtime:stream:${streamId}`;
-      const eventPromise = new Promise((resolve) => {
-        const unsubscribe = globalThis.window.__NIMI_ELECTRON_RUNTIME__.listen(eventName, (event) => {
-          unsubscribe();
-          resolve(event.payload);
-        });
-        setTimeout(() => {
-          unsubscribe();
-          resolve({ eventType: 'timeout' });
-        }, 2_500);
-      });
-      const openResult = await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {
-        payload: {
-          methodId: '/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents',
-          streamId,
-          requestBytesBase64: '',
-          timeoutMs: 200,
-        },
-      });
-      return {
-        openResult,
-        event: await eventPromise,
-      };
-    }, NIMI_STANDARD_SHELL_COMMANDS['runtime.streamOpen']);
-    assert.equal(streamUnavailable.openResult.streamId, 'acceptance-stream-unavailable');
-    assert.equal(streamUnavailable.event.eventType, 'error');
-    assert.equal(streamUnavailable.event.error.code, 'external-daemon-required');
-    assert.equal(streamUnavailable.event.error.reasonCode, 'electron-runtime-endpoint-unavailable');
+    const streamUnavailable = await captureInvokeError(page, NIMI_STANDARD_SHELL_COMMANDS['runtime.streamOpen'], {
+      payload: {
+        methodId: '/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents',
+        streamId: 'acceptance-stream-unavailable',
+        requestBytesBase64: '',
+        timeoutMs: 200,
+      },
+    });
+    assert.equal(streamUnavailable.code, 'external-daemon-required');
+    assert.equal(streamUnavailable.reasonCode, 'electron-runtime-endpoint-unavailable');
 
     const streamCloseResult = await page.evaluate(
       (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {

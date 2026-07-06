@@ -1386,6 +1386,7 @@
       "source": "kit/shell/electron/src/main/index.ts",
       "exports": [
         "export * from './ai-config-store.js';",
+        "export * from './app-menu.js';",
         "export * from './host.js';",
         "export * from './runtime-account-auth.js';",
         "export * from './types.js';"
@@ -1396,6 +1397,8 @@
         "function createNimiElectronFileAIConfigStore",
         "function createNimiElectronInstalledAppRuntimeAccountTrustedMetadataProvider",
         "function createNimiElectronRuntimeAccountTrustedMetadataProvider",
+        "function createNimiElectronStandardApplicationMenuTemplate",
+        "function createNimiElectronStandardEditMenuTemplate",
         "function registerNimiElectronRuntimeBridge",
         "type ElectronRuntimeBridgeAppSession",
         "type ElectronRuntimeBridgeCommandNames",
@@ -1441,6 +1444,9 @@
         "type NimiElectronRuntimeTrustedCallerMode",
         "type NimiElectronShellUiCommandInput",
         "type NimiElectronShellUiLevel",
+        "type NimiElectronStandardApplicationMenuOptions",
+        "type NimiElectronStandardMenuItem",
+        "type NimiElectronStandardMenuRole",
         "type NimiElectronStandardShellHost",
         "type RegisterNimiElectronRuntimeBridgeInput",
         "type RegisteredNimiElectronRuntimeBridge",
@@ -1521,7 +1527,7 @@
       "exportKey": "./shell/renderer/bridge",
       "source": "kit/shell/renderer/src/bridge/index.ts",
       "exports": [
-        "export type { InstalledNimiAppStandardShellSurface, } from './installed-app.js';",
+        "export type { InstalledNimiAppStorageRemoveJsonResult, InstalledNimiAppStandardShellSurface, } from './installed-app.js';",
         "export type { JsonPrimitive, JsonValue, JsonObject, RuntimeDefaults, RealmDefaults, RuntimeExecutionDefaults, RuntimeBridgeDaemonStatus, RuntimeBridgeConfigGetResult, RuntimeBridgeConfigSetResult, ConfirmDialogPayload, ConfirmDialogResult, } from './types.js';",
         "export type { NimiShellRuntimeBridgeResult} from './tauri-api.js';",
         "export type { SharedDesktopAuthSessionWatchOptions} from './auth-session.js';",

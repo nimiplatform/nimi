@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
-import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
 import {
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
+  createNimiElectronStandardApplicationMenuTemplate,
   createNimiElectronFileAIConfigStore,
   getElectronStandardShellCapabilityIds,
   registerNimiElectronRuntimeBridge,
@@ -167,6 +168,27 @@ describe('installNimiElectronRuntimeBridge', () => {
 });
 
 describe('Electron standard shell capability catalog', () => {
+  it('provides a native application menu template with standard edit roles', () => {
+    const template = createNimiElectronStandardApplicationMenuTemplate({
+      appName: 'Fixture',
+      platform: 'darwin',
+    });
+    const editMenu = template.find((item) => item.label === 'Edit');
+    expect(editMenu).toBeDefined();
+    const submenu = editMenu?.submenu as Array<{ role?: string; type?: string }>;
+    expect(submenu.map((item) => item.role || item.type)).toEqual([
+      'undo',
+      'redo',
+      'separator',
+      'cut',
+      'copy',
+      'paste',
+      'pasteAndMatchStyle',
+      'delete',
+      'selectAll',
+    ]);
+  });
+
   it('exposes the admitted standard capability ids and command names', () => {
     expect(getElectronStandardShellCapabilityIds()).toEqual(NIMI_STANDARD_SHELL_CAPABILITY_IDS);
     expect(STANDARD_COMMANDS).toEqual({
@@ -201,6 +223,7 @@ describe('Electron standard shell capability catalog', () => {
       NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'],
       NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
       NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
+      NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
       NIMI_STANDARD_SHELL_COMMANDS['config.get'],
       NIMI_STANDARD_SHELL_COMMANDS['config.set'],
       NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
@@ -1356,6 +1379,13 @@ describe('registerNimiElectronRuntimeBridge', () => {
       })).resolves.toMatchObject({
         path: path.join(canonicalDataRoot, 'settings', 'profile.json'),
       });
+      await expect(invokeBridge(ipcMain, event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'],
+        payload: { path: 'settings/legacy-alias.json' },
+      })).rejects.toMatchObject({
+        code: 'invalid-payload',
+        reasonCode: 'electron-standard-storage-renderer-field-forbidden',
+      });
 
       const writeResult = await invokeBridge(ipcMain, event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
@@ -1366,6 +1396,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
       }) as { path: string; value: Record<string, unknown> };
       expect(writeResult.path).toBe(path.join(canonicalDataRoot, 'settings', 'profile.json'));
       expect(JSON.parse(await readFile(writeResult.path, 'utf8'))).toEqual({ schemaVersion: 1, enabled: true });
+      expect(await readdir(path.dirname(writeResult.path))).toEqual(['profile.json']);
 
       await expect(invokeBridge(ipcMain, event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
@@ -1376,6 +1407,34 @@ describe('registerNimiElectronRuntimeBridge', () => {
       });
 
       await expect(invokeBridge(ipcMain, event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
+        payload: { relativePath: 'settings/profile.json' },
+      })).resolves.toEqual({
+        path: path.join(canonicalDataRoot, 'settings', 'profile.json'),
+        removed: true,
+      });
+      await expect(invokeBridge(ipcMain, event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
+        payload: { relativePath: 'settings/profile.json' },
+      })).resolves.toEqual({
+        path: path.join(canonicalDataRoot, 'settings', 'profile.json'),
+        removed: false,
+      });
+      await expect(invokeBridge(ipcMain, event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
+        payload: { relativePath: 'settings/profile.json' },
+      })).rejects.toMatchObject({
+        code: 'not-found',
+        reasonCode: 'electron-standard-storage-json-not-found',
+      });
+      await expect(invokeBridge(ipcMain, event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
+        payload: { relativePath: '../escape.json' },
+      })).rejects.toMatchObject({
+        code: 'invalid-path',
+      });
+
+      await expect(invokeBridge(ipcMain, event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl'],
         payload: { path: assetPath },
       })).resolves.toEqual({
@@ -1383,6 +1442,53 @@ describe('registerNimiElectronRuntimeBridge', () => {
         url: `nimi-shell-file://${encodeURIComponent(canonicalAssetPath)}`,
       });
       expect(registeredAssets).toEqual([canonicalAssetPath]);
+    });
+  });
+
+  it('accepts renderer standard-shell nested payload envelopes for storage commands', async () => {
+    await withTempDir('standard-nested-storage', async (root) => {
+      const dataRoot = path.join(root, 'data');
+      await mkdir(dataRoot, { recursive: true });
+      const canonicalDataRoot = await realpath(dataRoot);
+      const ipcMain = new FakeIpcMain();
+      registerNimiElectronRuntimeBridge({
+        appId: 'nimi.tester',
+        runtimeEndpoint: '127.0.0.1:46371',
+        allowedOrigins: ['http://localhost:1430'],
+        ipcMain,
+        createGrpcClient: async () => {
+          throw new Error('not used');
+        },
+        standardShellHost: {
+          dataRoot,
+        },
+      });
+      const { event } = createInvokeEvent();
+
+      await expect(invokeBridge(ipcMain, event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
+        payload: {
+          payload: {
+            relativePath: 'shijing-space/account.fixture.json',
+            value: { user_id: 'fixture', readings: [1] },
+          },
+        },
+      })).resolves.toEqual({
+        path: path.join(canonicalDataRoot, 'shijing-space', 'account.fixture.json'),
+        value: { user_id: 'fixture', readings: [1] },
+      });
+
+      await expect(invokeBridge(ipcMain, event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
+        payload: {
+          payload: {
+            relativePath: 'shijing-space/account.fixture.json',
+          },
+        },
+      })).resolves.toEqual({
+        path: path.join(canonicalDataRoot, 'shijing-space', 'account.fixture.json'),
+        value: { user_id: 'fixture', readings: [1] },
+      });
     });
   });
 

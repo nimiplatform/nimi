@@ -166,9 +166,7 @@ mod tests {
         let descriptor = projection
             .release_descriptors
             .iter()
-            .find(|row| {
-                row.descriptor_id == "community.nimi.fixture.platform-proof.0.1.0-sandbox"
-            })
+            .find(|row| row.descriptor_id == "community.nimi.fixture.platform-proof.0.1.0-sandbox")
             .expect("sandbox fixture descriptor");
 
         assert_eq!(descriptor.source_kind, "admission-sandbox-https-artifact");

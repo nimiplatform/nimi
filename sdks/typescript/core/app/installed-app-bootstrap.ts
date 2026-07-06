@@ -16,13 +16,22 @@ export type InstalledNimiAppStandardShellSurface = {
     readonly get: () => Promise<JsonObject> | JsonObject;
     readonly set: (config: JsonObject) => Promise<JsonObject> | JsonObject;
   };
+  readonly data: {
+    readonly resolvePath: (relativePath: string) => Promise<string> | string;
+  };
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<JsonValue> | JsonValue;
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<JsonValue> | JsonValue;
+    readonly removeJson: (relativePath: string) => Promise<InstalledNimiAppStorageRemoveJsonResult> | InstalledNimiAppStorageRemoveJsonResult;
   };
   readonly localAssets: {
     readonly resolveUrl: (relativePath: string) => Promise<string> | string;
   };
+};
+
+export type InstalledNimiAppStorageRemoveJsonResult = {
+  readonly path: string;
+  readonly removed: boolean;
 };
 
 export type InstalledNimiAppBootstrapInput<
@@ -74,8 +83,10 @@ function requireInstalledStandardShell(
     !surface
     || typeof surface.config?.get !== 'function'
     || typeof surface.config?.set !== 'function'
+    || typeof surface.data?.resolvePath !== 'function'
     || typeof surface.storage?.readJson !== 'function'
     || typeof surface.storage?.writeJson !== 'function'
+    || typeof surface.storage?.removeJson !== 'function'
     || typeof surface.localAssets?.resolveUrl !== 'function'
   ) {
     throw createNimiError({

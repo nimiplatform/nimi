@@ -9,7 +9,12 @@ import { resolveElectronAvatarAssetUrl } from './avatar.js';
 import { getElectronAiConfig, setElectronAiConfig } from './ai-config.js';
 import { resolveElectronAiProfile } from './ai-profile.js';
 import { getElectronRuntimeConfig } from './config.js';
-import { readElectronStandardStorageJson, resolveElectronStandardDataPath, writeElectronStandardStorageJson } from './data-storage.js';
+import {
+  readElectronStandardStorageJson,
+  removeElectronStandardStorageJson,
+  resolveElectronStandardDataPath,
+  writeElectronStandardStorageJson,
+} from './data-storage.js';
 import { resolveElectronDiagnosticsRendererEntryProbe, resolveElectronRendererOrigin } from './diagnostics.js';
 import {
   assertAllowedElectronRendererOrigin,
@@ -34,7 +39,7 @@ import {
 import { exchangeElectronOauthToken, listenElectronOauthForCode, openElectronExternalUrl } from './oauth.js';
 import { resolveElectronPlatformProjection } from './platform-projection.js';
 import { confirmElectronShellDialog, focusElectronMainWindow, startElectronWindowDrag } from './shell-ui.js';
-import { asRecord, normalizeRequiredToken, normalizeText } from './paths.js';
+import { asRecord, normalizeRequiredToken, normalizeText, standardNestedPayload } from './paths.js';
 import {
   createElectronRuntimeBridgeCommandNames,
   createElectronRuntimeBridgeEventName,
@@ -174,14 +179,16 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['diagnostics.rendererEntryProbe']) return resolveElectronDiagnosticsRendererEntryProbe({ event, payload, appId });
     if (command === commandNames.config_get) return getElectronRuntimeConfig(input.standardShellHost, command);
     if (isElectronExternallyManagedRuntimeCommand(command, commandNames)) throw createElectronExternalDaemonRequiredError(command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']) return resolveElectronStandardDataPath(input.standardShellHost, payload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']) return readElectronStandardStorageJson(input.standardShellHost, payload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']) return writeElectronStandardStorageJson(input.standardShellHost, payload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return openElectronExternalUrl(input.standardShellHost, payload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange']) return exchangeElectronOauthToken(input.standardShellHost, payload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']) return listenElectronOauthForCode(payload, command);
+    const standardPayload = standardNestedPayload(payload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']) return resolveElectronStandardDataPath(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']) return readElectronStandardStorageJson(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']) return writeElectronStandardStorageJson(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']) return removeElectronStandardStorageJson(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return openElectronExternalUrl(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange']) return exchangeElectronOauthToken(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']) return listenElectronOauthForCode(standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']) {
-      return confirmElectronShellDialog({ host: input.standardShellHost, payload, command, event, appId, runtimeEndpoint });
+      return confirmElectronShellDialog({ host: input.standardShellHost, payload: standardPayload, command, event, appId, runtimeEndpoint });
     }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag']) {
       return startElectronWindowDrag({ host: input.standardShellHost, command, event, appId, runtimeEndpoint });
@@ -189,14 +196,14 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow']) {
       return focusElectronMainWindow({ host: input.standardShellHost, command, event, appId, runtimeEndpoint });
     }
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']) return resolveElectronStandardLocalAssetUrl(input.standardShellHost, payload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']) return resolveElectronAvatarAssetUrl(input.standardShellHost, payload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']) return resolveElectronStandardLocalAssetUrl(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']) return resolveElectronAvatarAssetUrl(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity']) return resolveElectronLocalAgentIdentity(input.standardShellHost, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']) return resolveElectronRuntimeTrustedCaller(input.standardShellHost, payload, appId, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-profile.get']) return resolveElectronAiProfile(payload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']) return resolveElectronPlatformProjection(payload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.get']) return getElectronAiConfig(input.standardShellHost, payload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.set']) return setElectronAiConfig(input.standardShellHost, payload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']) return resolveElectronRuntimeTrustedCaller(input.standardShellHost, standardPayload, appId, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-profile.get']) return resolveElectronAiProfile(standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']) return resolveElectronPlatformProjection(standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.get']) return getElectronAiConfig(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.set']) return setElectronAiConfig(input.standardShellHost, standardPayload, command);
     if (isElectronRuntimeAccountCustodyCommand(command)) throw createElectronRuntimeAccountCustodyExternalError(command);
     const commandHandler = input.commandHandlers?.[command];
     if (commandHandler) return await commandHandler({ command, payload, event, appId, runtimeEndpoint });

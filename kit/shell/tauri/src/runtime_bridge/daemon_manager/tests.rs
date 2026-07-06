@@ -296,11 +296,13 @@ fi
 mkdir -p "$(dirname "$out")"
 printf '%s\n' '#!/bin/sh' 'printf '\''{"nimi":"0.0.0-dev"}\n'\''' > "$out"
 chmod +x "$out"
-"#,
+    "#,
     );
+    let original_path = std::env::var("PATH").unwrap_or_default();
+    let fake_go_path = format!("{}:{}", dir.display(), original_path);
     with_env(
         &[
-            ("PATH", dir.to_str()),
+            ("PATH", Some(fake_go_path.as_str())),
             ("NIMI_RUNTIME_BINARY", None),
             ("NIMI_RUNTIME_BRIDGE_MODE", Some("RUNTIME")),
         ],

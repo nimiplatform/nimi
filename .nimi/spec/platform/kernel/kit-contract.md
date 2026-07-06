@@ -88,6 +88,14 @@
 - Active machine authority is `tables/standard-shell-capabilities.yaml`. Topic documents, acceptance matrices, and gates may consume or validate this table but must not become parallel truth.
 - Delivered as the `@nimiplatform/kit/shell/capabilities` package export for TypeScript consumers and mirrored into Rust host adapters through `nimi_shell_tauri::capabilities`.
 - Nimi ecosystem capabilities are standard, not optional: runtime, runtime lifecycle, runtime defaults, auth, OAuth, shell UI, diagnostics, data, storage, config, local assets, local agent, AI Profile, AI Config, avatar, and platform projection must be represented in this catalog.
+- Standard `data.pathResolve` and `storage.*` operations resolve under a
+  host-owned app data root. Renderer payloads must not carry absolute storage
+  roots; they may carry only `{ relativePath }` or `{ relativePath, value }`.
+  Hosts obtain the root from Runtime `GetAppStorage(app_id)` or a
+  Runtime-attested launch projection.
+- `storage.removeJson` is an idempotent app-storage lifecycle primitive. If
+  the file exists the host removes it; if it is already absent the operation
+  still succeeds. The result shape is `{ path, removed }`.
 - Standard host failures must use the envelope fields `code`, `reasonCode`, `actionHint`, `source`, and optional `details`. Browser/no-host fallbacks, raw `file://` conversion escape hatches, and silent no-op behavior are not standard shell behavior.
 - `renderer_entry_probe` is a diagnostics capability. Generic `runtime_account_caller`/trusted caller metadata belongs to the local-agent standard capability; Desktop-specific caller policy remains product-owned and must not be promoted into the standard catalog.
 - Tauri and Electron host adapters must implement the same capability ids and shared error envelope. Gaps must fail closed with catalogued standard error codes instead of returning pseudo-success.

@@ -224,7 +224,10 @@ mod tests {
             text.binding["runtime"]["runtimeBaselineRef"],
             "runtime-baseline:test"
         );
-        assert_eq!(text.binding["runtime"]["runtimeConsumerId"], "llama.cpp.cpu");
+        assert_eq!(
+            text.binding["runtime"]["runtimeConsumerId"],
+            "llama.cpp.cpu"
+        );
         assert_eq!(text.binding["runtime"]["boundAssetId"], "asset:text");
         assert_eq!(
             text.binding["runtime"]["runtimeLocalRouteTarget"],

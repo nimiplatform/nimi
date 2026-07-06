@@ -216,7 +216,7 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
         operations: &[StandardShellOperation {
             id: "pathResolve",
             command: "nimi.shell.data.pathResolve",
-            negative_states: &["capability-unavailable", "invalid-path"],
+            negative_states: &["capability-unavailable", "invalid-path", "invalid-payload"],
         }],
     },
     StandardShellCapability {
@@ -225,11 +225,21 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
             StandardShellOperation {
                 id: "readJson",
                 command: "nimi.shell.storage.readJson",
-                negative_states: &["capability-unavailable", "invalid-path", "not-found"],
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-path",
+                    "not-found",
+                    "invalid-payload",
+                ],
             },
             StandardShellOperation {
                 id: "writeJson",
                 command: "nimi.shell.storage.writeJson",
+                negative_states: &["capability-unavailable", "invalid-path", "invalid-payload"],
+            },
+            StandardShellOperation {
+                id: "removeJson",
+                command: "nimi.shell.storage.removeJson",
                 negative_states: &["capability-unavailable", "invalid-path", "invalid-payload"],
             },
         ],
@@ -540,10 +550,105 @@ pub mod data {
         CleanupClass, CleanupOutcome, CleanupPlan, DirectoryOwner, DirectoryUsage,
         NimiDataDirectoryRow, DESTRUCTIVE_CLEANUP_CONFIRMATION, NIMI_DATA_DIRECTORY_MATRIX,
     };
+    pub use crate::runtime_app_storage::{
+        data_path_resolve_for_root, StandardAppStorageRoot, StandardPathResolveResult,
+        StandardStoragePathPayload,
+    };
+
+    #[tauri::command]
+    pub fn data_path_resolve(
+        root: tauri::State<'_, StandardAppStorageRoot>,
+        payload: StandardStoragePathPayload,
+    ) -> Result<StandardPathResolveResult, String> {
+        crate::runtime_app_storage::data_path_resolve_for_root(root.inner(), payload)
+    }
 }
 
 pub mod storage {
-    pub use crate::runtime_app_storage::{canonical_storage_root, scoped_storage_child};
+    pub use crate::runtime_app_storage::{
+        canonical_storage_root, scoped_storage_child, storage_read_json_for_root,
+        storage_remove_json_for_root, storage_write_json_for_root, StandardAppStorageRoot,
+        StandardStorageJsonResult, StandardStoragePathPayload, StandardStorageRemoveJsonResult,
+        StandardStorageWriteJsonPayload,
+    };
+
+    #[tauri::command]
+    pub fn storage_read_json(
+        root: tauri::State<'_, StandardAppStorageRoot>,
+        payload: StandardStoragePathPayload,
+    ) -> Result<StandardStorageJsonResult, String> {
+        crate::runtime_app_storage::storage_read_json_for_root(root.inner(), payload)
+    }
+
+    #[tauri::command]
+    pub fn storage_write_json(
+        root: tauri::State<'_, StandardAppStorageRoot>,
+        payload: StandardStorageWriteJsonPayload,
+    ) -> Result<StandardStorageJsonResult, String> {
+        crate::runtime_app_storage::storage_write_json_for_root(root.inner(), payload)
+    }
+
+    #[tauri::command]
+    pub fn storage_remove_json(
+        root: tauri::State<'_, StandardAppStorageRoot>,
+        payload: StandardStoragePathPayload,
+    ) -> Result<StandardStorageRemoveJsonResult, String> {
+        crate::runtime_app_storage::storage_remove_json_for_root(root.inner(), payload)
+    }
+}
+
+pub mod shell_ui {
+    use serde_json::json;
+    use tauri::Manager;
+
+    #[tauri::command]
+    pub fn confirm_dialog(payload: serde_json::Value) -> Result<serde_json::Value, String> {
+        Err(crate::capabilities::standard_shell_error(
+            "capability-unavailable",
+            "tauri-standard-confirm-dialog-unavailable",
+            "provide_host_confirm_dialog_implementation",
+            "tauri",
+            Some(json!({ "command": "confirm_dialog", "payload": payload })),
+        ))
+    }
+
+    #[tauri::command]
+    pub fn start_window_drag(window: tauri::WebviewWindow) -> Result<(), String> {
+        window.start_dragging().map_err(|error| {
+            crate::capabilities::standard_shell_error(
+                "host-internal-error",
+                "tauri-standard-window-drag-failed",
+                "inspect_tauri_window_drag_support",
+                "tauri",
+                Some(json!({ "command": "start_window_drag", "cause": error.to_string() })),
+            )
+        })
+    }
+
+    #[tauri::command]
+    pub fn focus_main_window(app: tauri::AppHandle) -> Result<(), String> {
+        let window = app
+            .get_webview_window("main")
+            .or_else(|| app.webview_windows().into_values().next())
+            .ok_or_else(|| {
+                crate::capabilities::standard_shell_error(
+                    "capability-unavailable",
+                    "tauri-standard-main-window-unavailable",
+                    "create_main_webview_window_before_focus",
+                    "tauri",
+                    Some(json!({ "command": "focus_main_window" })),
+                )
+            })?;
+        window.set_focus().map_err(|error| {
+            crate::capabilities::standard_shell_error(
+                "host-internal-error",
+                "tauri-standard-main-window-focus-failed",
+                "inspect_tauri_window_focus_support",
+                "tauri",
+                Some(json!({ "command": "focus_main_window", "cause": error.to_string() })),
+            )
+        })
+    }
 }
 
 pub mod config {
@@ -643,6 +748,24 @@ mod tests {
                 .negative_states
                 .contains(&"external-daemon-required"));
         }
+    }
+
+    #[test]
+    fn storage_catalog_includes_idempotent_remove_json() {
+        let storage = STANDARD_SHELL_CAPABILITIES
+            .iter()
+            .find(|capability| capability.id == "storage")
+            .expect("storage capability");
+        let remove = storage
+            .operations
+            .iter()
+            .find(|operation| operation.id == "removeJson")
+            .expect("removeJson operation");
+        assert_eq!(remove.command, "nimi.shell.storage.removeJson");
+        assert_eq!(
+            remove.negative_states,
+            &["capability-unavailable", "invalid-path", "invalid-payload"]
+        );
     }
 
     #[test]

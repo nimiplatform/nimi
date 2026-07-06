@@ -17,10 +17,16 @@ export type InstalledNimiAppStandardShellSurface = {
   readonly storage: {
     readonly readJson: (relativePath: string) => Promise<JsonValue>;
     readonly writeJson: (relativePath: string, value: JsonValue) => Promise<JsonValue>;
+    readonly removeJson: (relativePath: string) => Promise<InstalledNimiAppStorageRemoveJsonResult>;
   };
   readonly localAssets: {
     readonly resolveUrl: (relativePath: string) => Promise<string>;
   };
+};
+
+export type InstalledNimiAppStorageRemoveJsonResult = {
+  readonly path: string;
+  readonly removed: boolean;
 };
 
 export function createInstalledNimiAppStandardShellSurface(): InstalledNimiAppStandardShellSurface {
@@ -55,6 +61,11 @@ export function createInstalledNimiAppStandardShellSurface(): InstalledNimiAppSt
         { payload: { relativePath, value } },
         (result) => parseStorageJsonResult(result, NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']),
       ),
+      removeJson: async (relativePath) => invokeChecked(
+        NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
+        { payload: { relativePath } },
+        (result) => parseStorageRemoveJsonResult(result, NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']),
+      ),
     },
     localAssets: {
       resolveUrl: async (relativePath) => invokeChecked(
@@ -79,6 +90,14 @@ function parsePathResult(value: unknown, command: string): string {
 function parseStorageJsonResult(value: unknown, command: string): JsonValue {
   const record = assertRecord(value, `${command} returned invalid payload`);
   return record.value;
+}
+
+function parseStorageRemoveJsonResult(value: unknown, command: string): InstalledNimiAppStorageRemoveJsonResult {
+  const record = assertRecord(value, `${command} returned invalid payload`);
+  return {
+    path: parseRequiredString(record.path, 'path', command),
+    removed: Boolean(record.removed),
+  };
 }
 
 function parseLocalAssetUrlResult(value: unknown, command: string): string {

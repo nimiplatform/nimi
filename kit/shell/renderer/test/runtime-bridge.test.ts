@@ -234,7 +234,34 @@ describe('installNimiShellRuntimeBridge', () => {
       command: 'runtime_defaults',
       payload: {},
     });
-    expect(invokeCalls).toEqual([{ command: 'runtime_defaults', payload: {} }]);
+    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'], { payload: { relativePath: 'a.json' } })).resolves.toEqual({
+      command: 'data_path_resolve',
+      payload: { payload: { relativePath: 'a.json' } },
+    });
+    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'], { payload: { relativePath: 'a.json' } })).resolves.toEqual({
+      command: 'storage_read_json',
+      payload: { payload: { relativePath: 'a.json' } },
+    });
+    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'], { payload: { relativePath: 'a.json', value: { ok: true } } })).resolves.toEqual({
+      command: 'storage_write_json',
+      payload: { payload: { relativePath: 'a.json', value: { ok: true } } },
+    });
+    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'], { payload: { relativePath: 'a.json' } })).resolves.toEqual({
+      command: 'storage_remove_json',
+      payload: { payload: { relativePath: 'a.json' } },
+    });
+    await expect(invokeTauri(NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog'], { payload: { title: 'Confirm' } })).resolves.toEqual({
+      command: 'confirm_dialog',
+      payload: { payload: { title: 'Confirm' } },
+    });
+    expect(invokeCalls).toEqual([
+      { command: 'runtime_defaults', payload: {} },
+      { command: 'data_path_resolve', payload: { payload: { relativePath: 'a.json' } } },
+      { command: 'storage_read_json', payload: { payload: { relativePath: 'a.json' } } },
+      { command: 'storage_write_json', payload: { payload: { relativePath: 'a.json', value: { ok: true } } } },
+      { command: 'storage_remove_json', payload: { payload: { relativePath: 'a.json' } } },
+      { command: 'confirm_dialog', payload: { payload: { title: 'Confirm' } } },
+    ]);
   });
 });
 

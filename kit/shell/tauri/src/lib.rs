@@ -16,9 +16,9 @@
 // - renderer_entry_probe: shared page-load renderer entry smoke probe script
 // - agent_center_avatar_asset: shared Agent Center Avatar local asset resolution
 
-pub mod capabilities;
 mod agent_center_avatar_asset;
 mod auth_session_commands;
+pub mod capabilities;
 pub mod command_registration;
 mod desktop_paths;
 mod governed_config;

@@ -39,6 +39,35 @@ error_envelope:
     - invalid-payload
     - host-internal-error
 
+storage_payload_policy:
+  root_source: host_owned_runtime_app_storage_root
+  host_resolution:
+    - runtime_get_app_storage
+    - runtime_attested_launch_projection
+  renderer_payloads:
+    data.pathResolve:
+      allowed_fields:
+        - relativePath
+    storage.readJson:
+      allowed_fields:
+        - relativePath
+    storage.writeJson:
+      allowed_fields:
+        - relativePath
+        - value
+    storage.removeJson:
+      allowed_fields:
+        - relativePath
+      result_shape:
+        - path
+        - removed
+      idempotent_missing_file: true
+  forbidden_renderer_fields:
+    - path
+    - storageRoot
+    - root
+    - absolutePath
+
 capability_set_schema:
   owner: platform_standard_shell_capabilities
   source_rule: P-KIT-044
@@ -66,6 +95,7 @@ capability_sets:
       - data.pathResolve
       - storage.readJson
       - storage.writeJson
+      - storage.removeJson
       - config.get
       - config.set
       - ai-config.get
@@ -240,6 +270,7 @@ capabilities:
         negative_states:
           - capability-unavailable
           - invalid-path
+          - invalid-payload
   - id: storage
     host_contract: NimiStandardShellCapabilityHost
     operations:
@@ -249,8 +280,15 @@ capabilities:
           - capability-unavailable
           - invalid-path
           - not-found
+          - invalid-payload
       - id: writeJson
         command: nimi.shell.storage.writeJson
+        negative_states:
+          - capability-unavailable
+          - invalid-path
+          - invalid-payload
+      - id: removeJson
+        command: nimi.shell.storage.removeJson
         negative_states:
           - capability-unavailable
           - invalid-path

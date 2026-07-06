@@ -7,6 +7,7 @@
 import type { SharedDesktopAuthSession } from '@nimiplatform/kit/auth';
 import {
   hasTauriInvoke,
+  hasShellHostInvoke,
   getDaemonStatus,
   startDaemon,
   stopDaemon,
@@ -316,6 +317,7 @@ export { proxyHttp, getSystemResourceSnapshot, startWindowDrag };
 
 export const desktopBridge = {
   hasTauriInvoke,
+  hasShellHostInvoke,
   getDesktopReleaseInfo,
   getDesktopUpdateState,
   desktopUpdateCheck,

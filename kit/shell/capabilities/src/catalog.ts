@@ -105,14 +105,15 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
   {
     id: 'data',
     operations: [
-      { id: 'pathResolve', command: 'nimi.shell.data.pathResolve', negativeStates: ['capability-unavailable', 'invalid-path'] },
+      { id: 'pathResolve', command: 'nimi.shell.data.pathResolve', negativeStates: ['capability-unavailable', 'invalid-path', 'invalid-payload'] },
     ],
   },
   {
     id: 'storage',
     operations: [
-      { id: 'readJson', command: 'nimi.shell.storage.readJson', negativeStates: ['capability-unavailable', 'invalid-path', 'not-found'] },
+      { id: 'readJson', command: 'nimi.shell.storage.readJson', negativeStates: ['capability-unavailable', 'invalid-path', 'not-found', 'invalid-payload'] },
       { id: 'writeJson', command: 'nimi.shell.storage.writeJson', negativeStates: ['capability-unavailable', 'invalid-path', 'invalid-payload'] },
+      { id: 'removeJson', command: 'nimi.shell.storage.removeJson', negativeStates: ['capability-unavailable', 'invalid-path', 'invalid-payload'] },
     ],
   },
   {
@@ -169,6 +170,7 @@ const INSTALLED_NIMI_APP_ALLOWED_OPERATIONS = [
   'data.pathResolve',
   'storage.readJson',
   'storage.writeJson',
+  'storage.removeJson',
   'config.get',
   'config.set',
   'ai-config.get',

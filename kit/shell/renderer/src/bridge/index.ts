@@ -56,6 +56,7 @@ export {
   createInstalledNimiAppStandardShellSurface,
 } from './installed-app.js';
 export type {
+  InstalledNimiAppStorageRemoveJsonResult,
   InstalledNimiAppStandardShellSurface,
 } from './installed-app.js';
 export type {

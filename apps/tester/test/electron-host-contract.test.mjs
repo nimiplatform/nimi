@@ -148,6 +148,8 @@ test('Electron host keeps Runtime bridge in Kit and app commands in tester', () 
   assert.match(mainSource, /registerNimiElectronRuntimeBridge/);
   assert.match(mainSource, /createTesterElectronCommandHandlers/);
   assert.match(mainSource, /BrowserWindow/);
+  assert.match(mainSource, /Menu\.setApplicationMenu\(null\)/);
+  assert.match(mainSource, /autoHideMenuBar:\s*true/);
   assert.match(mainSource, /contextIsolation:\s*true/);
   assert.match(mainSource, /nodeIntegration:\s*false/);
   assert.match(mainSource, /sandbox:\s*true/);
@@ -156,6 +158,9 @@ test('Electron host keeps Runtime bridge in Kit and app commands in tester', () 
   assert.match(mainSource, /setWindowOpenHandler/);
   assert.match(mainSource, /will-navigate/);
   assert.match(mainSource, /isTesterRendererUrl/);
+  assert.match(mainSource, /setMenuBarVisibility\(false\)/);
+  assert.match(mainSource, /removeMenu\(\)/);
+  assert.match(mainSource, /hardenTesterWindowChrome\(window\)/);
   assert.doesNotMatch(mainSource, /new Set\(\['file:\/\/'\]\)/);
   assert.match(preloadSource, /@nimiplatform\/kit\/shell\/electron\/preload-cjs/);
   assert.match(preloadSource, /installNimiElectronRuntimeBridge/);

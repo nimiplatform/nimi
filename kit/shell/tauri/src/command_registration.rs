@@ -6,6 +6,8 @@ pub enum ShellCommandBoundary {
     Runtime,
     RuntimeDefaults,
     SessionLogging,
+    ShellUi,
+    Storage,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -111,6 +113,47 @@ pub const SESSION_LOGGING_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDe
     boundary: ShellCommandBoundary::SessionLogging,
 }];
 
+pub const STANDARD_STORAGE_COMMANDS: &[ShellCommandDescriptor] = &[
+    ShellCommandDescriptor {
+        command_name: "data_path_resolve",
+        rust_path: "nimi_shell_tauri::capabilities::data::data_path_resolve",
+        boundary: ShellCommandBoundary::Storage,
+    },
+    ShellCommandDescriptor {
+        command_name: "storage_read_json",
+        rust_path: "nimi_shell_tauri::capabilities::storage::storage_read_json",
+        boundary: ShellCommandBoundary::Storage,
+    },
+    ShellCommandDescriptor {
+        command_name: "storage_write_json",
+        rust_path: "nimi_shell_tauri::capabilities::storage::storage_write_json",
+        boundary: ShellCommandBoundary::Storage,
+    },
+    ShellCommandDescriptor {
+        command_name: "storage_remove_json",
+        rust_path: "nimi_shell_tauri::capabilities::storage::storage_remove_json",
+        boundary: ShellCommandBoundary::Storage,
+    },
+];
+
+pub const STANDARD_SHELL_UI_COMMANDS: &[ShellCommandDescriptor] = &[
+    ShellCommandDescriptor {
+        command_name: "confirm_dialog",
+        rust_path: "nimi_shell_tauri::capabilities::shell_ui::confirm_dialog",
+        boundary: ShellCommandBoundary::ShellUi,
+    },
+    ShellCommandDescriptor {
+        command_name: "start_window_drag",
+        rust_path: "nimi_shell_tauri::capabilities::shell_ui::start_window_drag",
+        boundary: ShellCommandBoundary::ShellUi,
+    },
+    ShellCommandDescriptor {
+        command_name: "focus_main_window",
+        rust_path: "nimi_shell_tauri::capabilities::shell_ui::focus_main_window",
+        boundary: ShellCommandBoundary::ShellUi,
+    },
+];
+
 pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     let mut commands = Vec::new();
     commands.extend_from_slice(RUNTIME_DEFAULTS_COMMANDS);
@@ -118,6 +161,8 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     commands.extend_from_slice(AUTH_SESSION_COMMANDS);
     commands.extend_from_slice(OAUTH_COMMANDS);
     commands.extend_from_slice(SESSION_LOGGING_COMMANDS);
+    commands.extend_from_slice(STANDARD_STORAGE_COMMANDS);
+    commands.extend_from_slice(STANDARD_SHELL_UI_COMMANDS);
     commands
 }
 
@@ -135,6 +180,13 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
             $crate::capabilities::runtime::runtime_bridge_restart,
             $crate::capabilities::runtime::runtime_bridge_config_get,
             $crate::capabilities::runtime::runtime_bridge_config_set,
+            $crate::capabilities::data::data_path_resolve,
+            $crate::capabilities::storage::storage_read_json,
+            $crate::capabilities::storage::storage_write_json,
+            $crate::capabilities::storage::storage_remove_json,
+            $crate::capabilities::shell_ui::confirm_dialog,
+            $crate::capabilities::shell_ui::start_window_drag,
+            $crate::capabilities::shell_ui::focus_main_window,
             $($app_command),*
         ]
     };
@@ -167,6 +219,13 @@ macro_rules! nimi_shell_tauri_auth_oauth_runtime_bridge_handler {
             $crate::capabilities::runtime::runtime_bridge_config_get,
             $crate::capabilities::runtime::runtime_bridge_config_set,
             $crate::capabilities::session_logging::log_renderer_event,
+            $crate::capabilities::data::data_path_resolve,
+            $crate::capabilities::storage::storage_read_json,
+            $crate::capabilities::storage::storage_write_json,
+            $crate::capabilities::storage::storage_remove_json,
+            $crate::capabilities::shell_ui::confirm_dialog,
+            $crate::capabilities::shell_ui::start_window_drag,
+            $crate::capabilities::shell_ui::focus_main_window,
             $($app_command),*
         ]
     };
@@ -196,6 +255,13 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $crate::capabilities::runtime::runtime_bridge_config_get,
             $crate::capabilities::runtime::runtime_bridge_config_set,
             $crate::capabilities::session_logging::log_renderer_event,
+            $crate::capabilities::data::data_path_resolve,
+            $crate::capabilities::storage::storage_read_json,
+            $crate::capabilities::storage::storage_write_json,
+            $crate::capabilities::storage::storage_remove_json,
+            $crate::capabilities::shell_ui::confirm_dialog,
+            $crate::capabilities::shell_ui::start_window_drag,
+            $crate::capabilities::shell_ui::focus_main_window,
             $($app_command),*
         ]
     };
@@ -246,6 +312,13 @@ mod tests {
                 "oauth_token_exchange",
                 "oauth_listen_for_code",
                 "log_renderer_event",
+                "data_path_resolve",
+                "storage_read_json",
+                "storage_write_json",
+                "storage_remove_json",
+                "confirm_dialog",
+                "start_window_drag",
+                "focus_main_window",
             ]
         );
     }
@@ -269,6 +342,12 @@ mod tests {
         assert!(commands
             .iter()
             .any(|command| command.boundary == ShellCommandBoundary::SessionLogging));
+        assert!(commands
+            .iter()
+            .any(|command| command.boundary == ShellCommandBoundary::Storage));
+        assert!(commands
+            .iter()
+            .any(|command| command.boundary == ShellCommandBoundary::ShellUi));
     }
 
     #[test]

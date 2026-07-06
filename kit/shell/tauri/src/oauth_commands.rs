@@ -555,9 +555,8 @@ mod tests {
     use super::{
         normalize_oauth_callback_target, oauth_token_exchange_url,
         parse_oauth_callback_http_request, parse_oauth_token_exchange_provider,
-        render_oauth_callback_page,
-        redact_body_preview, redact_json_value, OauthTokenExchangePayload,
-        OauthTokenExchangeProvider,
+        redact_body_preview, redact_json_value, render_oauth_callback_page,
+        OauthTokenExchangePayload, OauthTokenExchangeProvider,
     };
 
     #[test]

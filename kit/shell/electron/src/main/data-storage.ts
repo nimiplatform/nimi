@@ -1,5 +1,6 @@
 import path from 'node:path';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { NimiElectronShellHostError, type NimiElectronStandardShellHost } from './types.js';
 import { errorMessage } from './errors.js';
 import { fileExists, resolveElectronStandardDataRootPath, serializeElectronStandardJsonValue } from './paths.js';
@@ -51,6 +52,42 @@ export async function writeElectronStandardStorageJson(
   const value = payload.value;
   const body = serializeElectronStandardJsonValue(value, command);
   await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, body, 'utf8');
+  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(tmpPath, body, 'utf8');
+    await rename(tmpPath, filePath);
+  } catch (error) {
+    await rm(tmpPath, { force: true }).catch(() => undefined);
+    throw new NimiElectronShellHostError({
+      code: 'host-internal-error',
+      message: `Electron standard storage JSON write failed: ${errorMessage(error)}`,
+      reasonCode: 'electron-standard-storage-json-write-failed',
+      actionHint: 'inspect_standard_storage_host_permissions',
+      details: { command, path: filePath, cause: errorMessage(error) },
+    });
+  }
   return { path: filePath, value };
+}
+
+export async function removeElectronStandardStorageJson(
+  host: NimiElectronStandardShellHost | undefined,
+  payload: Readonly<Record<string, unknown>>,
+  command: string,
+): Promise<{ readonly path: string; readonly removed: boolean }> {
+  const filePath = await resolveElectronStandardDataRootPath(host, payload, command);
+  if (!await fileExists(filePath)) {
+    return { path: filePath, removed: false };
+  }
+  try {
+    await rm(filePath, { force: true });
+    return { path: filePath, removed: true };
+  } catch (error) {
+    throw new NimiElectronShellHostError({
+      code: 'host-internal-error',
+      message: `Electron standard storage JSON remove failed: ${errorMessage(error)}`,
+      reasonCode: 'electron-standard-storage-json-remove-failed',
+      actionHint: 'inspect_standard_storage_host_permissions',
+      details: { command, path: filePath, cause: errorMessage(error) },
+    });
+  }
 }
