@@ -33,7 +33,10 @@ import {
   displayRelationshipEvidenceText,
   relationshipGraphEdgeLabelPosition,
 } from '../src/shell/renderer/features/world/world-detail-relationship-explorer';
-import { NarrativeWorldDetailPage } from '../src/shell/renderer/features/world/world-detail-template';
+import {
+  NarrativeWorldDetailPage,
+  worldDetailRootSectionScrollTop,
+} from '../src/shell/renderer/features/world/world-detail-template';
 import { WorldSceneDetailPage } from '../src/shell/renderer/features/world/world-detail-scene-detail-page';
 import type { WorldCharacter, WorldDetailData, WorldHistoryBundle, WorldPublicAssetsData, WorldSemanticData } from '../src/shell/renderer/features/world/world-detail-types';
 
@@ -351,6 +354,8 @@ test('paper world detail renders narrative sections without the duplicate settin
   // Resolved copy from the active locale — no raw i18n keys leak through.
   assert.match(markup, /Recommended paths/);
   assert.match(markup, /People you can meet/);
+  assert.match(markup, /Add character/);
+  assert.doesNotMatch(markup, /Say hi/);
   assert.doesNotMatch(markup, /Popular records/);
   assert.doesNotMatch(markup, /River of time/);
   assert.match(markup, /Start with 姚燧/);
@@ -663,6 +668,20 @@ test('paper world detail renders scene entry cards without inline detail-page da
   assert.doesNotMatch(markup, /Related events/);
 });
 
+test('world detail computes scene section centering inside the scroll viewport', () => {
+  const scrollTop = worldDetailRootSectionScrollTop({
+    placement: 'center',
+    viewportScrollTop: 300,
+    viewportTop: 0,
+    viewportHeight: 900,
+    targetTop: 1200,
+    targetHeight: 500,
+  });
+
+  assert.equal(scrollTop, 1300);
+  assert.equal(300 + 1200 - scrollTop + 250, 450);
+});
+
 test('world scene detail page renders structured scene DTO data after entry without modal chrome', () => {
   const page = WorldSceneDetailPage as React.ComponentType<Record<string, unknown>>;
   const markup = renderToStaticMarkup(
@@ -764,6 +783,9 @@ test('paper world detail hero hosts the world follow CTA without banner tags', (
   assert.doesNotMatch(markup, /data-testid="world-detail-paper-world-follow"/);
   // No recommended-friends rail CTA remains.
   assert.doesNotMatch(markup, /Suggested friends/);
+  // Nonfunctional hero actions must not be exposed as clickable controls.
+  assert.doesNotMatch(markup, /Share world/);
+  assert.doesNotMatch(markup, /More world actions/);
 });
 
 test('paper world detail hides the hero follow CTA when world follow is unavailable', () => {

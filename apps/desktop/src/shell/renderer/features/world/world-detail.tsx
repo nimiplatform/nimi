@@ -31,13 +31,14 @@ import { useFollowedWorlds } from './world-follow-store';
 type WorldDetailProps = {
   world: WorldListItem;
   onBack: () => void;
-  initialSubpage?: 'relationship-explorer' | null;
+  initialSubpage?: 'people-archive' | 'relationship-explorer' | null;
 };
 
 export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps) {
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
+  const detailViewportRef = useRef<HTMLDivElement | null>(null);
   const isReady = authStatus === 'authenticated' && !!world.id;
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const flowIdRef = useRef('');
@@ -222,7 +223,11 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   };
 
   return (
-    <ScrollArea className="h-full bg-transparent" viewportClassName="bg-transparent">
+    <ScrollArea
+      className="h-full bg-transparent"
+      viewportClassName="bg-transparent"
+      viewportRef={detailViewportRef}
+    >
       {feedback ? (
         <div className="mx-auto w-full max-w-[1400px] px-5 pt-5">
           <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
@@ -249,6 +254,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
           onFollowWorld={handleFollowWorld}
           worldFollowed={worldFollowed}
           initialSubpage={initialSubpage}
+          rootScrollViewportRef={detailViewportRef}
         />
       ) : (
         <NarrativeWorldDetailPage
@@ -271,6 +277,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
           onFollowWorld={handleFollowWorld}
           worldFollowed={worldFollowed}
           initialSubpage={initialSubpage}
+          rootScrollViewportRef={detailViewportRef}
         />
       )}
     </ScrollArea>

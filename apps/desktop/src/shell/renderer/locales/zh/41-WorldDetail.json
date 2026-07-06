@@ -473,25 +473,25 @@
     },
     "characters": {
       "title": "可结识的人物",
-      "subtitle": "把他们加为好友，随时和他们聊聊——每个人都带着自己的生平与交游。",
+      "subtitle": "先把人物加入本地成为本地 Agent，再进入聊天——每个人都带着自己的生平与交游。",
       "empty": "这个世界还没有公开 Character 或 Persona Source。",
       "chat": "和他聊聊",
       "openProfile": "打开 {{name}} 详情",
       "engagement": "互动",
       "vitality": "活力",
-      "connect": "加为好友",
-      "connected": "已连接",
+      "connect": "添加角色",
+      "connected": "已在本地",
       "unavailable": "暂不可用"
     },
     "gallery": {
       "title": "可结识的人物",
-      "subtitle": "共 {{total}} 位带着完整生平的人物，其中 {{connectable}} 位现在就能加为好友。换个排列方式，看看他们是如何聚成一张关系网的。",
+      "subtitle": "共 {{total}} 位带着完整生平的人物，其中 {{connectable}} 位现在就能加入本地。换个排列方式，看看他们是如何聚成一张关系网的。",
       "close": "关闭",
       "backToWorld": "返回世界详情",
       "searchPlaceholder": "按名字、身份或交游圈搜索",
       "count": "{{count}} 位",
       "empty": "没有匹配的人物。",
-      "footerHint": "点名字看生平，点「加为好友」即可随时和他聊聊。",
+      "footerHint": "点名字看生平；加入本地成为本地 Agent 后，才能进入聊天。",
       "groupBy": {
         "faction": "按交游圈",
         "tier": "按重要程度",
@@ -514,11 +514,11 @@
       "status": {
         "connectable": {
           "label": "现在可结识",
-          "caption": "加为好友后即可随时对话。"
+          "caption": "加入本地成为本地 Agent 后即可进入聊天。"
         },
         "connected": {
           "label": "已结识",
-          "caption": "你已经把他们加为好友。"
+          "caption": "你已经把他们加入本地。"
         },
         "unavailable": {
           "label": "暂不可用",
@@ -794,8 +794,8 @@
       "followWorld": "关注",
       "followingWorld": "已关注",
       "followWorldUnavailable": "登录后才能关注世界。",
-      "recFriends": "推荐好友",
-      "addFriend": "加好友",
+      "recFriends": "推荐认识",
+      "addFriend": "加入本地",
       "viewAllPeople": "查看全部人物",
       "quick": "快捷入口",
       "entries": {

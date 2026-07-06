@@ -473,25 +473,25 @@
     },
     "characters": {
       "title": "People you can meet",
-      "subtitle": "Add them as friends and talk anytime — each carries their own life and connections.",
+      "subtitle": "Add a person locally as a local agent before chatting — each carries their own life and connections.",
       "empty": "This world has no public character or persona sources yet.",
       "chat": "Say hi",
       "openProfile": "Open {{name}} profile",
       "engagement": "Activity",
       "vitality": "Vitality",
-      "connect": "Add friend",
-      "connected": "Connected",
+      "connect": "Add character",
+      "connected": "Local agent ready",
       "unavailable": "Unavailable"
     },
     "gallery": {
       "title": "People you can meet",
-      "subtitle": "{{total}} characters with full life stories — {{connectable}} you can add as friends right now. Switch the arrangement to see how they cluster into a web of relations.",
+      "subtitle": "{{total}} characters with full life stories — {{connectable}} can be added locally right now. Switch the arrangement to see how they cluster into a web of relations.",
       "close": "Close",
       "backToWorld": "Back to world detail",
       "searchPlaceholder": "Search by name, role or circle",
       "count": "{{count}}",
       "empty": "No matching characters.",
-      "footerHint": "Tap a name to read their story, or “Add friend” to chat anytime.",
+      "footerHint": "Tap a name to read their story. Add them as a local agent before chatting.",
       "groupBy": {
         "faction": "By circle",
         "tier": "By prominence",
@@ -514,11 +514,11 @@
       "status": {
         "connectable": {
           "label": "Available now",
-          "caption": "Add as a friend and chat anytime."
+          "caption": "Add locally as a local agent before chatting."
         },
         "connected": {
-          "label": "Connected",
-          "caption": "You've already added them as friends."
+          "label": "Local agent ready",
+          "caption": "You've already added them locally."
         },
         "unavailable": {
           "label": "Unavailable",
@@ -794,8 +794,8 @@
       "followWorld": "Follow",
       "followingWorld": "Following",
       "followWorldUnavailable": "Sign in to follow worlds.",
-      "recFriends": "Suggested friends",
-      "addFriend": "Add",
+      "recFriends": "Suggested people",
+      "addFriend": "Add locally",
       "viewAllPeople": "View all people",
       "quick": "Quick entries",
       "entries": {

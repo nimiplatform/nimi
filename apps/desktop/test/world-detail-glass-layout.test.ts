@@ -20,6 +20,7 @@ const worldTemplateSource = [
   'world-detail-paper-model.ts',
   'world-detail-template-model.ts',
 ].map(readWorldSource).join('\n');
+const worldDetailSource = readWorldSource('world-detail.tsx');
 const worldDetailTemplateSource = readWorldSource('world-detail-template.tsx');
 const worldDetailLayoutSource = readWorldSource('world-detail-layout.ts');
 const paperPrimitiveSource = readWorldSource('world-detail-paper-primitives.tsx');
@@ -141,6 +142,15 @@ test('world detail opens the people archive as an in-page drill-down, not a moda
 test('world detail scrolls the in-page drill-down into view after opening it', () => {
   assert.match(worldTemplateSource, /activePaperSubpage !== 'root'/);
   assert.match(worldTemplateSource, /scrollIntoView\(\{ behavior: 'auto', block: 'start' \}\)/);
+});
+
+test('world detail centers the scene exploration section when a scene path is entered', () => {
+  assert.match(worldDetailSource, /viewportRef=\{detailViewportRef\}/);
+  assert.match(worldDetailSource, /rootScrollViewportRef=\{detailViewportRef\}/);
+  assert.match(worldDetailTemplateSource, /WORLD_DETAIL_SCENES_SECTION_ID = 'world-detail-scenes'/);
+  assert.match(worldDetailTemplateSource, /worldDetailRootSectionScrollTop/);
+  assert.match(worldDetailTemplateSource, /scrollViewport\.scrollTo/);
+  assert.match(worldDetailTemplateSource, /onGoScenes:\s*\(\) => scrollToSection\(WORLD_DETAIL_SCENES_SECTION_ID\)/);
 });
 
 test('world detail drill-down pages share the root paper top safe area', () => {

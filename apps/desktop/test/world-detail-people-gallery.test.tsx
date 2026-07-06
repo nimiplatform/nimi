@@ -16,6 +16,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 (globalThis as { React?: typeof React }).React = React;
 
 import { initI18n } from '../src/shell/renderer/i18n';
+import worldDetailZh from '../src/shell/renderer/locales/zh/41-WorldDetail.json' with { type: 'json' };
 import { WorldPeopleArchivePage, WorldPeopleGallery } from '../src/shell/renderer/features/world/world-detail-people-gallery';
 import {
   availableGroupBys,
@@ -139,9 +140,14 @@ test('archive page renders as an in-page drill-down without the modal backdrop',
 
   assert.match(markup, /data-testid="world-detail-people-archive-page"/);
   assert.match(markup, /People you can meet/);
+  assert.match(markup, /Add character/);
   assert.match(markup, /Back to world detail/);
   assert.doesNotMatch(markup, /position:fixed;inset:0/);
   assert.doesNotMatch(markup, /background:rgba\(38,32,23,.5\)/);
+});
+
+test('people archive Chinese add action uses character language', () => {
+  assert.equal(worldDetailZh.paper.characters.connect, '添加角色');
 });
 
 test('archive page keeps only the leading back control', () => {

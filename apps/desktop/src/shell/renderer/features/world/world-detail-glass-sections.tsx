@@ -3,7 +3,7 @@ import { Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { WorldCharacter, WorldDetailData } from './world-detail-types.js';
 import { detailHeroBackground, worldSummary } from './world-detail-template-model';
-import { GLASS_STRONG_STYLE, GLASS_STRONG_SURFACE_CLASS, IconArrowLeft, IconDots, IconShare, Seal } from './world-detail-glass-primitives';
+import { GLASS_STRONG_STYLE, GLASS_STRONG_SURFACE_CLASS, IconArrowLeft, Seal } from './world-detail-glass-primitives';
 import { worldInitial } from './world-list-atoms';
 
 export function DetailHero({
@@ -67,8 +67,8 @@ export function DetailHero({
             />
           ) : null}
         </div>
-        <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
-          {onFollowWorld ? (
+        {onFollowWorld ? (
+          <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
             <Button
               type="button"
               tone="primary"
@@ -86,24 +86,8 @@ export function DetailHero({
             >
               {worldFollowed ? t('WorldDetail.paper.rail.followingWorld') : t('WorldDetail.paper.rail.followWorld')}
             </Button>
-          ) : null}
-          <IconButton
-            aria-label={t('World.atlas.actions.shareWorld')}
-            title={t('World.atlas.actions.shareWorld')}
-            icon={<IconShare />}
-            tone="ghost"
-            size="md"
-            className="h-[38px] w-[38px] border border-white/30 bg-[rgba(23,45,70,0.34)] text-white hover:bg-[rgba(23,45,70,0.48)] hover:text-white"
-          />
-          <IconButton
-            aria-label={t('World.atlas.actions.moreWorldActions')}
-            title={t('World.atlas.actions.moreWorldActions')}
-            icon={<IconDots />}
-            tone="ghost"
-            size="md"
-            className="h-[38px] w-[38px] border border-white/30 bg-[rgba(23,45,70,0.34)] text-white hover:bg-[rgba(23,45,70,0.48)] hover:text-white"
-          />
-        </div>
+          </div>
+        ) : null}
       </div>
       <div
         style={{

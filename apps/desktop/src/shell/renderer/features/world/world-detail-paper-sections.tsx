@@ -18,7 +18,6 @@ import {
 import {
   IconArrow,
   IconBook,
-  IconChat,
   IconCompass,
   IconLanguages,
   IconLayers,
@@ -310,7 +309,7 @@ export function PaperCharactersSection({
                   </div>
                 </div>
                 {characterStatRow(character, t) ?? <div style={{ height: 14 }} />}
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex' }}>
                   <Button
                     type="button"
                     tone="primary"
@@ -327,22 +326,6 @@ export function PaperCharactersSection({
                     }}
                   >
                     {paperRelationLabel(character, t)}
-                  </Button>
-                  <Button
-                    type="button"
-                    tone="secondary"
-                    size="sm"
-                    fullWidth
-                    onClick={() => onSelect(character.id)}
-                    leadingIcon={<IconChat size={14} color="currentColor" strokeWidth={1.7} />}
-                    className="flex-1"
-                    style={{
-                      background: PAPER.card,
-                      borderColor: PAPER.borderSoft,
-                      color: PAPER.ink,
-                    }}
-                  >
-                    {t('WorldDetail.paper.characters.chat')}
                   </Button>
                 </div>
               </PaperCardSurface>
@@ -490,11 +473,13 @@ export function PaperTimelineSection({
 // ---------------------------------------------------------------------------
 
 export function PaperScenesSection({
+  sectionId = 'world-detail-scenes',
   scenes,
   highlightRefs,
   onSelectScene,
   onGoScenes,
 }: {
+  sectionId?: string;
   scenes: readonly WorldSceneItem[];
   highlightRefs: readonly WorldAssetExternalRef[];
   onSelectScene: (sceneId: string) => void;
@@ -503,7 +488,7 @@ export function PaperScenesSection({
   const { t } = useTranslation();
   return (
     <PaperSection
-      id="world-detail-scenes"
+      id={sectionId}
       testId="world-detail-paper-scenes"
       title={t('WorldDetail.paper.scenes.title')}
       subtitle={t('WorldDetail.paper.scenes.subtitle')}

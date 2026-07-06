@@ -161,6 +161,18 @@ test('A0 world navigation can request the relationship explorer as the initial d
   assert.equal(harness.getState().selectedWorldInitialSubpage, null);
 });
 
+test('A0 world navigation can request the people archive as the initial detail subpage', () => {
+  const harness = createUiSliceHarness();
+  const state = harness.getState();
+
+  state.setActiveTab('explore');
+  state.navigateToWorld(' world-alpha ', { initialSubpage: 'people-archive' });
+
+  assert.equal(harness.getState().activeTab, 'world-detail');
+  assert.equal(harness.getState().selectedWorldId, 'world-alpha');
+  assert.equal(harness.getState().selectedWorldInitialSubpage, 'people-archive');
+});
+
 test('A0 nested world character detail back returns to the world list origin', () => {
   const harness = createUiSliceHarness();
   const state = harness.getState();

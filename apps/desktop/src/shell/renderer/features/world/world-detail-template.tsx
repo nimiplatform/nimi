@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { WorldCharacterQuickSheet } from './world-detail-quick-sheets.js';
 import { WorldLoreLibraryPage } from './world-detail-lore-library.js';
@@ -54,15 +54,66 @@ export type WorldDetailPageProps = {
   onFollowWorld?: (world: WorldDetailData) => Promise<void> | void;
   worldFollowed?: boolean;
   initialSubpage?: InitialPaperSubpage | null;
+  rootScrollViewportRef?: RefObject<HTMLDivElement | null>;
 };
 
 export type XianxiaWorldTemplateProps = WorldDetailPageProps;
 export type XianxiaWorldData = WorldDetailData;
 type ActivePaperSubpage = 'root' | 'people-archive' | 'relationship-explorer' | 'scene-detail' | 'lore-library' | 'resource-references';
-type InitialPaperSubpage = Extract<ActivePaperSubpage, 'relationship-explorer'>;
+type InitialPaperSubpage = Extract<ActivePaperSubpage, 'people-archive' | 'relationship-explorer'>;
+
+const WORLD_DETAIL_SCENES_SECTION_ID = 'world-detail-scenes';
+
+type RootSectionScrollPlacement = 'start' | 'center';
+
+type WorldDetailRootSectionScrollGeometry = {
+  placement: RootSectionScrollPlacement;
+  viewportScrollTop: number;
+  viewportTop: number;
+  viewportHeight: number;
+  targetTop: number;
+  targetHeight: number;
+};
 
 function resolveInitialPaperSubpage(value: InitialPaperSubpage | null | undefined): ActivePaperSubpage {
-  return value === 'relationship-explorer' ? value : 'root';
+  return value === 'people-archive' || value === 'relationship-explorer' ? value : 'root';
+}
+
+function rootSectionScrollPlacement(id: string): RootSectionScrollPlacement {
+  return id === WORLD_DETAIL_SCENES_SECTION_ID ? 'center' : 'start';
+}
+
+export function worldDetailRootSectionScrollTop(input: WorldDetailRootSectionScrollGeometry): number {
+  const targetTopInScrollContent = input.viewportScrollTop + input.targetTop - input.viewportTop;
+  const scrollTop = input.placement === 'center'
+    ? targetTopInScrollContent - ((input.viewportHeight - input.targetHeight) / 2)
+    : targetTopInScrollContent;
+  return Math.max(0, scrollTop);
+}
+
+function scrollRootSectionIntoView(id: string, scrollViewport: HTMLDivElement | null | undefined) {
+  const target = document.getElementById(id);
+  if (!target) {
+    return;
+  }
+  const placement = rootSectionScrollPlacement(id);
+  if (scrollViewport && scrollViewport.contains(target)) {
+    const targetRect = target.getBoundingClientRect();
+    const viewportRect = scrollViewport.getBoundingClientRect();
+    scrollViewport.scrollTo({
+      top: worldDetailRootSectionScrollTop({
+        placement,
+        viewportScrollTop: scrollViewport.scrollTop,
+        viewportTop: viewportRect.top,
+        viewportHeight: viewportRect.height,
+        targetTop: targetRect.top,
+        targetHeight: targetRect.height,
+      }),
+      behavior: 'smooth',
+    });
+    return;
+  }
+  target.scrollIntoView({ behavior: 'smooth', block: placement });
 }
 
 export function WorldDetailLoadingState() {
@@ -140,7 +191,7 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   }, [props.initialSubpage, world.id]);
 
   const scrollToSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scrollRootSectionIntoView(id, props.rootScrollViewportRef?.current);
   };
 
   useEffect(() => {
@@ -172,7 +223,7 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   const nav = {
     onBrowsePeople: () => scrollToSection('world-detail-characters'),
     onViewAllPeople: () => setActivePaperSubpage('people-archive'),
-    onGoScenes: () => scrollToSection('world-detail-scenes'),
+    onGoScenes: () => scrollToSection(WORLD_DETAIL_SCENES_SECTION_ID),
   };
 
   const handleEnterPath = (path: PaperPath) => {
@@ -344,6 +395,7 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
               onViewAll={nav.onViewAllPeople}
             />
             <PaperScenesSection
+              sectionId={WORLD_DETAIL_SCENES_SECTION_ID}
               scenes={scenes}
               highlightRefs={highlightRefs}
               onSelectScene={openSceneDetail}
