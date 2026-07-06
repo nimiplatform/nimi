@@ -136,6 +136,37 @@ test('world character source detail uses the dedicated world character page surf
   assert.doesNotMatch(markup, /data-testid="source-detail-compact-profile-card"/);
 });
 
+test('world character source detail keeps section titles without eyebrow labels', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: null,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+      }),
+    );
+
+    assert.match(markup, /人物速览/);
+    assert.match(markup, /生涯节点/);
+    assert.match(markup, /作品/);
+    assert.match(markup, /关系线索/);
+    assert.match(markup, /形象与声音/);
+    assert.doesNotMatch(markup, /人物档案/);
+    assert.doesNotMatch(markup, /相关阅读/);
+    assert.doesNotMatch(markup, /人物生平/);
+    assert.doesNotMatch(markup, /图谱证据/);
+    assert.doesNotMatch(markup, />形象<\/p>/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
 test('world character source detail hides paused score and gift controls', () => {
   const source = toSourceDetailData(liBaiRaw, 'source_materialization_available');
   const markup = renderToStaticMarkup(
@@ -578,6 +609,92 @@ test('world character career milestones keep repeated office rows while work row
   assert.deepEqual(milestones.map((milestone) => milestone.title), ['翰林学士']);
 });
 
+test('world character career milestones collapse authored career summaries with relationship office facts', () => {
+  const detail = toSourceDetailData({
+    ...ouYangDeRaw,
+    source: {
+      ...ouYangDeRaw.source,
+      biography: {
+        milestones: [
+          {
+            milestoneId: 'yao-sui-career-chain',
+            title: '历任翰林国史院直学士、学士、承旨',
+            summary: '历任翰林国史院直学士、学士、承旨。',
+            sequence: 1,
+          },
+          {
+            milestoneId: 'yao-sui-da-sinong',
+            title: '官至大司农司司农丞',
+            summary: '官至大司农司司农丞。',
+            sequence: 2,
+          },
+        ],
+      },
+      relationships: [],
+    },
+    relationships: [
+      {
+        id: 'cbdb-rel-office-hanlin-xueshi',
+        type: 'postedToOffice',
+        sourceEntityId: 'cbdb-person-yao-sui',
+        contentHash: 'rel-office-hanlin-xueshi-hash',
+        core: {
+          presentation: {
+            summary: '姚燧曾任或关联官职：翰林国史院学士。',
+          },
+          attributes: {
+            officeLabel: '翰林国史院学士',
+            rowRef: 'cbdb:POSTED_TO_OFFICE_DATA:yao-sui:hanlin-xueshi:1',
+          },
+        },
+      },
+      {
+        id: 'cbdb-rel-office-hanlin-zhi-xueshi',
+        type: 'postedToOffice',
+        sourceEntityId: 'cbdb-person-yao-sui',
+        contentHash: 'rel-office-hanlin-zhi-xueshi-hash',
+        core: {
+          presentation: {
+            summary: '姚燧曾任或关联官职：翰林国史院直学士。',
+          },
+          attributes: {
+            officeLabel: '翰林国史院直学士',
+            rowRef: 'cbdb:POSTED_TO_OFFICE_DATA:yao-sui:hanlin-zhi-xueshi:1',
+          },
+        },
+      },
+      {
+        id: 'cbdb-rel-office-da-sinong',
+        type: 'postedToOffice',
+        sourceEntityId: 'cbdb-person-yao-sui',
+        contentHash: 'rel-office-da-sinong-hash',
+        core: {
+          presentation: {
+            summary: '姚燧曾任或关联官职：大司农司大司农丞。',
+          },
+          attributes: {
+            officeLabel: '大司农司大司农丞',
+            rowRef: 'cbdb:POSTED_TO_OFFICE_DATA:yao-sui:da-sinong:1',
+          },
+        },
+      },
+    ],
+  }, 'source_materialization_available');
+  const milestones = detail.worldCharacter?.milestones ?? [];
+
+  assert.deepEqual(milestones.map((milestone) => milestone.title), [
+    '历任翰林国史院直学士、学士、承旨',
+    '官至大司农司司农丞',
+  ]);
+  assert.equal(milestones.every((milestone) => milestone.kind === 'office'), true);
+  assert.equal(milestones.every((milestone) => milestone.derived), true);
+  assert.match(milestones[0]?.summary ?? '', /历任翰林国史院直学士、学士、承旨/);
+  assert.match(milestones[0]?.summary ?? '', /翰林国史院学士/);
+  assert.match(milestones[0]?.summary ?? '', /翰林国史院直学士/);
+  assert.match(milestones[1]?.summary ?? '', /官至大司农司司农丞/);
+  assert.match(milestones[1]?.summary ?? '', /大司农司大司农丞/);
+});
+
 test('world character works collapse duplicated biography and relationship evidence into the best collection card', () => {
   const detail = toSourceDetailData({
     ...ouYangDeRaw,
@@ -634,6 +751,70 @@ test('world character works collapse duplicated biography and relationship evide
   })), [
     {
       title: '牧庵集',
+      summary: '《牧庵集》是其文学成就的结晶，奠定了他在元代文坛的领袖地位。',
+      status: 'resolved',
+    },
+  ]);
+});
+
+test('world character works collapse same-title source rows and relationship rows with conflicting upstream text ids', () => {
+  const detail = toSourceDetailData({
+    ...ouYangDeRaw,
+    source: {
+      ...ouYangDeRaw.source,
+      authoring: {
+        extensions: {
+          sourcePerson: {
+            texts: [
+              {
+                textId: 'source-muan',
+                titleChn: '牧庵集',
+                title: 'mu an ji',
+                rowRef: 'cbdb:BIOG_TEXT_DATA:yao-sui:muan:source',
+                joinStatus: 'resolved',
+              },
+            ],
+          },
+        },
+      },
+      biography: {
+        milestones: [],
+      },
+      relationships: [],
+    },
+    relationships: [
+      {
+        id: 'cbdb-rel-text-muan-conflicting-id',
+        type: 'text',
+        sourceEntityId: 'cbdb-person-yao-sui',
+        targetEntityId: 'cbdb-text-relationship-muan',
+        contentHash: 'rel-text-muan-conflicting-id-hash',
+        core: {
+          presentation: {
+            summary: '《牧庵集》是其文学成就的结晶，奠定了他在元代文坛的领袖地位。',
+          },
+          attributes: {
+            textCode: 'relationship-muan',
+            titleChn: '牧庵集',
+            rowRef: 'cbdb:BIOG_TEXT_DATA:yao-sui:muan:relationship',
+            joinStatus: 'unresolved',
+          },
+        },
+      },
+    ],
+  }, 'source_materialization_available');
+
+  assert.deepEqual(detail.works.map((work) => ({
+    title: work.title,
+    romanizedTitle: work.romanizedTitle,
+    textId: work.textId,
+    summary: work.summary ?? null,
+    status: work.status,
+  })), [
+    {
+      title: '牧庵集',
+      romanizedTitle: 'mu an ji',
+      textId: 'relationship-muan',
       summary: '《牧庵集》是其文学成就的结晶，奠定了他在元代文坛的领袖地位。',
       status: 'resolved',
     },
@@ -1223,8 +1404,8 @@ test('world character source detail renders circular banner-overlap avatar and s
     }),
   );
 
-  assert.match(markup, /data-testid="world-character-hero-avatar"[^>]*rounded-full/);
-  assert.match(markup, /data-testid="world-character-hero-banner"/);
+  assert.match(markup, /data-testid="world-character-hero-avatar"[^>]*-mt-\[54px\][^>]*rounded-full/);
+  assert.match(markup, /data-testid="world-character-hero-banner"[^>]*h-\[280px\]/);
   assert.match(markup, /元代文人网络 \/ 元代书院雅集 \/ 元代朝廷官场/);
   assert.doesNotMatch(markup, /yuan-literati-network/);
   assert.doesNotMatch(markup, /yuan-academy-gathering/);
@@ -1232,7 +1413,7 @@ test('world character source detail renders circular banner-overlap avatar and s
   assert.doesNotMatch(markup, /書|學|與|為|從|處|臺|傳/);
 });
 
-test('world character hero uses dynasty subtitle, no bottom white mask, and hides removed hero metadata copy', async () => {
+test('world character hero uses dynasty badge, no bottom white mask, and hides removed hero metadata copy', async () => {
   await changeLocale('zh');
   try {
     const source = toSourceDetailData({
@@ -1264,16 +1445,110 @@ test('world character hero uses dynasty subtitle, no bottom white mask, and hide
     );
 
     assert.match(markup, /元代/);
-    assert.match(markup, /data-testid="world-character-hero-title-row"[^>]*class="[^"]*flex[^"]*items-baseline[^"]*gap-3/);
-    assert.match(markup, /data-testid="world-character-hero-title-row"[\s\S]*同恕[\s\S]*元代/);
+    assert.match(markup, /data-testid="world-character-hero-title-row"[^>]*class="[^"]*flex[^"]*items-center[^"]*gap-4/);
+    assert.match(markup, /data-testid="world-character-hero-title-row"[\s\S]*同恕[\s\S]*data-testid="world-character-hero-dynasty-badge"[\s\S]*元代/);
     assert.doesNotMatch(markup, /<p class="[^"]*">同恕<\/p>/);
     assert.doesNotMatch(markup, /linear-gradient\(to top, rgba\(255,255,255,0\.32\)/);
-    assert.match(markup, /立即对话/);
     assert.match(markup, /加入我的角色/);
+    assert.doesNotMatch(markup, /立即对话/);
     assert.doesNotMatch(markup, /加入后可在本地持续对话/);
     assert.doesNotMatch(markup, /当前身份/);
     assert.doesNotMatch(markup, /身份标签/);
     assert.doesNotMatch(markup, /添加到我的角色/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('world character hero shows chat instead of join after the character is already in my roles', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      displayName: '同恕',
+      handle: '同恕',
+      entity: {
+        ...ouYangDeRaw.entity,
+        name: '同恕',
+      },
+      source: {
+        ...ouYangDeRaw.source,
+        placement: {
+          ...ouYangDeRaw.source.placement,
+          sceneRefs: ['yuan-literati-network'],
+        },
+      },
+    }, 'local_agent_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: { friendsCount: 0, postsCount: 0, likesCount: 0 },
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+        onStartChat: () => {},
+      }),
+    );
+
+    assert.match(markup, /立即对话/);
+    assert.doesNotMatch(markup, /加入我的角色/);
+    assert.doesNotMatch(markup, /打开伙伴/);
+    assert.doesNotMatch(markup, /data-primary-action="open_partner"/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('world character hero keeps banner and avatar placement while styling name badge and dossier line', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      displayName: '姚燧',
+      handle: 'yao-sui',
+      entity: {
+        ...ouYangDeRaw.entity,
+        id: 'cbdb-person-yao-sui',
+        name: '姚燧',
+        summary: '姚燧，字端甫，号牧庵，元代文学家、政治家。',
+        contentHash: 'entity-hash-yao-sui',
+      },
+      bio: '元代文学家、政治家。',
+      source: {
+        ...ouYangDeRaw.source,
+        placement: {
+          ...ouYangDeRaw.source.placement,
+          role: '文学家，政治家',
+          faction: '元代文人网络',
+          rank: '翰林学士',
+          sceneRefs: ['yuan-literati-network'],
+        },
+      },
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: { friendsCount: 0, postsCount: 0, likesCount: 0 },
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+      }),
+    );
+
+    assert.match(markup, /data-testid="world-character-hero-banner"[^>]*h-\[280px\]/);
+    assert.match(markup, /data-testid="world-character-hero-avatar"[^>]*-mt-\[54px\]/);
+    assert.doesNotMatch(markup, /data-testid="world-character-hero-identity"/);
+    assert.match(markup, /data-testid="world-character-hero-title-row"[^>]*class="[^"]*items-center/);
+    assert.match(markup, /data-testid="world-character-hero-title-row"[\s\S]*姚燧[\s\S]*data-testid="world-character-hero-dynasty-badge"[\s\S]*元代/);
+    assert.match(markup, /data-testid="world-character-hero-description"[\s\S]*元代文学家，政治家，字端甫，号牧庵/);
+    assert.ok(
+      markup.indexOf('data-testid="world-character-hero-avatar"') < markup.indexOf('data-testid="world-character-hero-title-row"'),
+      'avatar should keep its original stacked placement before the name row',
+    );
   } finally {
     await changeLocale('en');
   }

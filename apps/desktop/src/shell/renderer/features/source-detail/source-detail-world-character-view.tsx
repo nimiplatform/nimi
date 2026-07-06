@@ -17,6 +17,7 @@ import {
   milestoneTheme,
   sceneRefLabel,
   topicChips,
+  worldCharacterHeroDescription,
   worldCharacterHeroSubtitle,
   worldCharacterPrimaryActionLabel,
   WorldCharacterRelationshipCluesSection,
@@ -83,10 +84,7 @@ function WorldCharacterWorksSection({ source }: { source: SourceDetailData }) {
     <section data-testid="world-character-works-section" className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-normal text-[#1d5f43]">
-            {t('SourceDetail.worldCharacter.worksEyebrow', { defaultValue: 'Related reading' })}
-          </p>
-          <h2 className="mt-1 text-xl font-semibold text-[#262017]">
+          <h2 className="text-xl font-semibold text-[#262017]">
             {t('SourceDetail.works.title', { defaultValue: 'Works collections' })}
           </h2>
           <p className="mt-1 text-sm leading-6 text-[#7a7060]">
@@ -218,10 +216,7 @@ function WorldCharacterMilestonesSection({ source }: { source: SourceDetailData 
 
   return (
     <section data-testid="world-character-milestones-section" className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]">
-      <p className="text-xs font-semibold uppercase tracking-normal text-[#1d5f43]">
-        {t('SourceDetail.worldCharacter.milestonesEyebrow', { defaultValue: 'Biography' })}
-      </p>
-      <h2 className="mt-1 text-xl font-semibold text-[#262017]">
+      <h2 className="text-xl font-semibold text-[#262017]">
         {t('SourceDetail.worldCharacter.milestonesTitle', { defaultValue: 'Life milestones' })}
       </h2>
       <div data-testid="world-character-milestones-timeline" className="relative mt-5 grid gap-3">
@@ -494,10 +489,7 @@ function WorldCharacterMediaSection({ source }: { source: SourceDetailData }) {
 
   return (
     <section data-testid="world-character-media-section" className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]">
-      <p className="text-xs font-semibold uppercase tracking-normal text-[#1d5f43]">
-        {t('SourceDetail.worldCharacter.mediaEyebrow', { defaultValue: 'Presence' })}
-      </p>
-      <h2 className="mt-1 text-lg font-semibold text-[#262017]">
+      <h2 className="text-lg font-semibold text-[#262017]">
         {t('SourceDetail.worldCharacter.mediaTitle', { defaultValue: 'Look and voice' })}
       </h2>
 
@@ -546,7 +538,9 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
     source.profileCoverUrl ?? source.worldBannerUrl ?? source.referenceImageUrl,
   );
   const primaryAction = describeRealmPersonaPrimaryAction(source.sourceState);
-  const subtitle = worldCharacterHeroSubtitle(source);
+  const canStartChat = primaryAction.action === 'open_partner';
+  const dynastyLabel = worldCharacterHeroSubtitle(source);
+  const heroDescription = worldCharacterHeroDescription(source, dynastyLabel);
   const statItems = props.stats
     ? [
         {
@@ -616,14 +610,24 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
                       textClassName="text-3xl font-semibold"
                     />
                   </div>
-                  <div data-testid="world-character-hero-title-row" className="mt-4 flex flex-wrap items-baseline gap-3">
-                    <h1 className="text-[36px] font-bold leading-[1.1] tracking-normal text-[#1b211d] max-[900px]:text-[30px]">
+                  <div data-testid="world-character-hero-title-row" className="mt-4 flex flex-wrap items-center gap-4">
+                    <h1 className="text-[44px] font-bold leading-[1.04] tracking-normal text-[#1b211d] max-[900px]:text-[38px] max-[620px]:text-[34px]">
                       {simplifyDisplayText(source.displayName)}
                     </h1>
-                    {subtitle ? (
-                      <p className="shrink-0 text-[15px] text-[#5b645e]">{simplifyDisplayText(subtitle)}</p>
+                    {dynastyLabel ? (
+                      <span
+                        data-testid="world-character-hero-dynasty-badge"
+                        className="shrink-0 rounded-[10px] border border-[#bad6c5] bg-[#f2faf4] px-3 py-1 text-[15px] font-semibold leading-5 text-[#2c8758]"
+                      >
+                        {simplifyDisplayText(dynastyLabel)}
+                      </span>
                     ) : null}
                   </div>
+                  {heroDescription ? (
+                    <p data-testid="world-character-hero-description" className="mt-3 text-[16px] font-medium leading-6 text-[#4f5c55]">
+                      {simplifyDisplayText(heroDescription)}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="ml-auto mt-6 flex min-w-[360px] max-w-[430px] flex-col items-end gap-10 self-start max-[720px]:ml-0 max-[720px]:mt-0 max-[720px]:w-full max-[720px]:min-w-0 max-[720px]:max-w-none max-[720px]:items-start max-[720px]:gap-5">
@@ -641,26 +645,29 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
                     </div>
                   ) : null}
                   <div data-testid="world-character-hero-actions" className="flex flex-wrap items-center justify-end gap-3 max-[720px]:justify-start">
-                    <button
-                      type="button"
-                      onClick={() => props.onStartChat?.()}
-                      disabled={primaryAction.disabled || !props.onStartChat}
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#078a55] px-6 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(7,138,85,.24)] transition hover:bg-[#067a4c] disabled:cursor-default disabled:opacity-60"
-                    >
-                      <MessageCircle aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
-                      {t('SourceDetail.worldCharacter.chatNow', { defaultValue: 'Chat now' })}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={props.onPrimaryAction}
-                      disabled={primaryAction.disabled}
-                      data-source-state={source.sourceState}
-                      data-primary-action={primaryAction.action}
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#d7dcd8] bg-white px-6 text-[15px] font-semibold text-[#1d5f43] shadow-[0_6px_16px_rgba(34,26,18,.06)] transition hover:border-[#1d5f43] disabled:cursor-default disabled:opacity-60"
-                    >
-                      <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
-                      {worldCharacterPrimaryActionLabel(primaryAction, t)}
-                    </button>
+                    {canStartChat ? (
+                      <button
+                        type="button"
+                        onClick={() => props.onStartChat?.()}
+                        disabled={!props.onStartChat}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#078a55] px-6 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(7,138,85,.24)] transition hover:bg-[#067a4c] disabled:cursor-default disabled:opacity-60"
+                      >
+                        <MessageCircle aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
+                        {t('SourceDetail.worldCharacter.chatNow', { defaultValue: 'Chat now' })}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={props.onPrimaryAction}
+                        disabled={primaryAction.disabled}
+                        data-source-state={source.sourceState}
+                        data-primary-action={primaryAction.action}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#d7dcd8] bg-white px-6 text-[15px] font-semibold text-[#1d5f43] shadow-[0_6px_16px_rgba(34,26,18,.06)] transition hover:border-[#1d5f43] disabled:cursor-default disabled:opacity-60"
+                      >
+                        <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
+                        {worldCharacterPrimaryActionLabel(primaryAction, t)}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -672,8 +679,7 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
               <section className="rounded-[18px] border border-[#e7dfce] bg-[#fbf8f1] p-5 shadow-[0_8px_22px_rgba(60,50,30,.06)]">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-normal text-[#1d5f43]">{t('SourceDetail.worldCharacter.profileEyebrow', { defaultValue: 'Profile' })}</p>
-                    <h2 className="mt-1 text-xl font-semibold text-[#262017]">{t('SourceDetail.worldCharacter.overviewTitle', { defaultValue: 'Character overview' })}</h2>
+                    <h2 className="text-xl font-semibold text-[#262017]">{t('SourceDetail.worldCharacter.overviewTitle', { defaultValue: 'Character overview' })}</h2>
                   </div>
                   {source.worldId ? (
                     <button

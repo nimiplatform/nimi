@@ -119,19 +119,12 @@ function toWorkCollectionFromRelationship(row: JsonObject, index: number): Sourc
   };
 }
 
-function worksHaveConflictingTextIds(
-  left: SourceDetailWorkCollection,
-  right: SourceDetailWorkCollection,
-): boolean {
-  return Boolean(left.textId && right.textId && left.textId !== right.textId);
-}
-
 function worksReferToSameCollection(
   left: SourceDetailWorkCollection,
   right: SourceDetailWorkCollection,
 ): boolean {
-  if (left.textId && right.textId) {
-    return left.textId === right.textId;
+  if (left.textId && right.textId && left.textId === right.textId) {
+    return true;
   }
   if (left.rowRef && right.rowRef && left.rowRef === right.rowRef) {
     return true;
@@ -141,8 +134,7 @@ function worksReferToSameCollection(
   return Boolean(
     leftTitle
       && rightTitle
-      && leftTitle === rightTitle
-      && !worksHaveConflictingTextIds(left, right),
+      && leftTitle === rightTitle,
   );
 }
 

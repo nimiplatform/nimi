@@ -223,6 +223,101 @@ export function worldCharacterHeroSubtitle(source: SourceDetailData): string | n
   return null;
 }
 
+function firstTextValue(record: Record<string, unknown>, keys: readonly string[]): string | null {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return simplifyDisplayText(value.trim());
+    }
+  }
+  return null;
+}
+
+function factMatches(record: Record<string, unknown>, patterns: readonly RegExp[]): boolean {
+  const text = [
+    firstTextValue(record, ['key', 'name', 'label', 'title', 'type']),
+  ].filter(Boolean).join(' ');
+  return patterns.some((pattern) => pattern.test(text));
+}
+
+function readNamedFact(source: SourceDetailData, patterns: readonly RegExp[]): string | null {
+  for (const fact of source.entity?.facts ?? []) {
+    if (!factMatches(fact, patterns)) {
+      continue;
+    }
+    const value = firstTextValue(fact, ['value', 'summary', 'text', 'content', 'name', 'label', 'title']);
+    if (value) {
+      return value.replace(/^(?:字|号|號|courtesy name|style name|art name|hao|zi)\s*[:：]?\s*/iu, '').trim() || null;
+    }
+  }
+  return null;
+}
+
+function readDelimitedNamePart(values: readonly (string | null | undefined)[], marker: '字' | '号'): string | null {
+  const pattern = marker === '字'
+    ? /(?:^|[，,；;。]\s*)字\s*([^，,；;。]+)/u
+    : /(?:^|[，,；;。]\s*)号\s*([^，,；;。]+)/u;
+  for (const value of values) {
+    const normalized = simplifyDisplayText(String(value || '').trim());
+    const match = pattern.exec(normalized);
+    const part = match?.[1]?.trim();
+    if (part) {
+      return part;
+    }
+  }
+  return null;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
+function trimHeroPhrase(value: string): string {
+  return value.replace(/^[，,；;\s]+/u, '').replace(/[，,；;\s]+$/u, '').trim();
+}
+
+function conciseRoleText(source: SourceDetailData): string | null {
+  const role = simplifyDisplayText(String(source.worldCharacter?.role || '').trim()).replace(/、/gu, '，');
+  if (role) {
+    return role;
+  }
+  const fallback = simplifyDisplayText(String(source.bio || source.entity?.summary || '').trim())
+    .replace(new RegExp(`^${escapeRegExp(source.displayName)}[，,\\s]*`, 'u'), '')
+    .replace(/(?:^|[，,；;。])(?:字|号)\s*[^，,；;。]+/gu, '')
+    .split(/[。；;]/u)[0]
+    ?.trim()
+    .replace(/、/gu, '，');
+  return fallback ? trimHeroPhrase(fallback) || null : null;
+}
+
+function dynastyDescriptionPrefix(dynastyLabel: string | null): string | null {
+  return dynastyLabel?.split('/')[0]?.trim() || null;
+}
+
+export function worldCharacterHeroDescription(source: SourceDetailData, dynastyLabel: string | null): string | null {
+  const textSources = [
+    source.entity?.summary,
+    source.bio,
+    source.worldCharacter?.interaction?.greeting,
+    ...(source.worldCharacter?.conversationAnchors ?? []),
+  ];
+  const zi = readNamedFact(source, [/^(?:zi|courtesyName|courtesy_name|styleName|style_name)$/iu, /(?:^|[^一-龥])courtesy(?:\s+name)?/iu, /字/u])
+    ?? readDelimitedNamePart(textSources, '字');
+  const hao = readNamedFact(source, [/^(?:hao|artName|art_name)$/iu, /(?:^|[^一-龥])art(?:\s+name)?/iu, /号|號/u])
+    ?? readDelimitedNamePart(textSources, '号');
+  const role = conciseRoleText(source);
+  const dynastyPrefix = dynastyDescriptionPrefix(dynastyLabel);
+  const roleWithDynasty = role
+    ? dynastyPrefix && !role.includes(dynastyPrefix) ? `${dynastyPrefix}${role}` : role
+    : dynastyPrefix;
+  const parts = uniqueStrings([
+    roleWithDynasty,
+    zi ? `字${zi}` : null,
+    hao ? `号${hao}` : null,
+  ]);
+  return parts.length > 0 ? parts.join('，') : null;
+}
+
 export function sourceFactText(fact: Record<string, unknown>): string | null {
   const label = typeof fact.label === 'string'
     ? fact.label
@@ -551,13 +646,10 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
             <span className="grid h-7 w-7 place-items-center rounded-[8px] bg-[#eef5ef] text-[#1d5f43]">
               <Network size={15} strokeWidth={2.2} />
             </span>
-            <p className="text-xs font-semibold uppercase tracking-normal text-[#1d5f43]">
-              {t('SourceDetail.worldCharacter.relationshipEyebrow', { defaultValue: 'Graph evidence' })}
-            </p>
+            <h2 className="text-xl font-semibold text-[#262017]">
+              {t('SourceDetail.worldCharacter.relationshipTitle', { defaultValue: 'Relationship clues' })}
+            </h2>
           </div>
-          <h2 className="mt-2 text-xl font-semibold text-[#262017]">
-            {t('SourceDetail.worldCharacter.relationshipTitle', { defaultValue: 'Relationship clues' })}
-          </h2>
           <p className="mt-1 text-sm leading-6 text-[#7a7060]">
             {t('SourceDetail.worldCharacter.relationshipSummary', {
               name: simplifyDisplayText(source.displayName),
