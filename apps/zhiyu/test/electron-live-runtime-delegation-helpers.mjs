@@ -48,7 +48,8 @@ export async function assertPreConfigRuntimeEvidence(page, fixture, zhiyuAppId) 
   assert.match(preConfigEvidence.memory.state, /^(ready|empty)$/);
   // Pre-config route truth is the K-AGCORE-150 runtime-seeded execution
   // config: text.generate=local/default resolves ready on a fresh daemon and
-  // image.generate stays not_configured until an app commits it.
+  // optional media capabilities stay not_configured until an app or fixture
+  // commits them.
   assert.equal(preConfigEvidence.route.ready, true);
   assert.equal(preConfigEvidence.route.reasonCode, 'runtime-execution-config-ready');
   assert.equal(preConfigEvidence.route.capability, 'text.generate');
@@ -60,12 +61,14 @@ export async function assertPreConfigRuntimeEvidence(page, fixture, zhiyuAppId) 
   assert.equal(preConfigEvidence.route.executionBinding.modelId, 'local/default');
   assert.deepEqual(
     Object.keys(preConfigEvidence.route.capabilities).sort(),
-    ['image.generate', 'text.generate'],
+    ['audio.synthesize', 'image.generate', 'text.generate'],
   );
   assert.equal(preConfigEvidence.route.capabilities['text.generate'].state, 'ready');
   assert.equal(preConfigEvidence.route.capabilities['text.generate'].binding.modelId, 'local/default');
   assert.equal(preConfigEvidence.route.capabilities['image.generate'].state, 'not_configured');
   assert.equal(preConfigEvidence.route.capabilities['image.generate'].binding, null);
+  assert.equal(preConfigEvidence.route.capabilities['audio.synthesize'].state, 'not_configured');
+  assert.equal(preConfigEvidence.route.capabilities['audio.synthesize'].binding, null);
   return { preConfigEvidence, preConfigScopedBinding, renewedScopedBinding };
 }
 

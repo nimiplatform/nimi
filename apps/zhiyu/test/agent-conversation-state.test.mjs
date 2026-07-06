@@ -163,12 +163,20 @@ test('reactively projects Runtime Agent action, activity, voice, lipsync, and ho
       audioMimeType: 'audio/wav',
       playbackState: 'requested',
       playbackTarget: 'avatar_autoplay',
+      voiceOutputMode: 'native_stream',
+      voicePlaybackState: 'active',
     }),
   });
   assert.equal(companion.executionState, 'voice_requested');
   assert.equal(companion.statusText, 'avatar_autoplay');
+  assert.equal(companion.voiceOutputMode, 'native_stream');
+  assert.equal(companion.voicePlaybackState, 'active');
+  assert.equal(companion.voiceAudioArtifactId, 'artifact-audio-1');
+  assert.equal(companion.voicePlaybackTarget, 'avatar_autoplay');
   assert.ok(companion.projectedFields.includes('voicePlayback'));
   assert.ok(companion.projectedFields.includes('audioArtifactId'));
+  assert.ok(companion.projectedFields.includes('voiceOutputMode'));
+  assert.ok(companion.projectedFields.includes('voicePlaybackState'));
 
   companion = module.projectZhiyuCompanionFromRuntimeAgentEvent({
     ...base,
@@ -194,6 +202,96 @@ test('reactively projects Runtime Agent action, activity, voice, lipsync, and ho
   assert.equal(companion.executionState, 'hook_intent_proposed');
   assert.equal(companion.statusText, 'follow_up');
   assert.ok(companion.projectedFields.includes('hookIntent'));
+});
+
+test('projects Runtime Agent voice events embedded in chat projection diagnostics into companion evidence', async () => {
+  const module = await importConversationStateModule();
+  const chat = {
+    ...idleChat(),
+    ready: true,
+    state: 'completed',
+    ownerUserId: 'user-1',
+    runtimeSourceRef: 'runtime-source:opaque',
+    localAgentRef: 'local-agent:opaque',
+    conversationAnchorId: 'conversation-anchor:opaque',
+    diagnostics: {
+      runtimeProjectionEvents: [
+        {
+          eventName: 'runtime.agent.presentation.voice_stream_chunk_available',
+          localAgentRef: 'local-agent:opaque',
+          conversationAnchorId: 'conversation-anchor:opaque',
+          runtimeTurnId: 'turn-1',
+          runtimeStreamId: 'stream-1',
+          detail: {
+            audioMimeType: 'audio/wav',
+            chunkSequence: 1,
+            chunkTransportRef: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
+            finalChunk: false,
+            playbackTarget: 'avatar_autoplay',
+            voiceStreamId: 'voice-stream-1',
+            voiceOutputMode: 'native_stream',
+            voicePlaybackState: 'active',
+          },
+        },
+        {
+          eventName: 'runtime.agent.presentation.voice_playback_requested',
+          localAgentRef: 'local-agent:opaque',
+          conversationAnchorId: 'conversation-anchor:opaque',
+          runtimeTurnId: 'turn-1',
+          runtimeStreamId: 'stream-1',
+          detail: {
+            audioArtifactId: 'artifact-final-1',
+            audioMimeType: 'audio/wav',
+            finalArtifact: true,
+            playbackState: 'requested',
+            playbackTarget: 'avatar_autoplay',
+            voiceOutputMode: 'native_stream',
+            voicePlaybackState: 'active',
+          },
+        },
+        {
+          eventName: 'runtime.agent.presentation.voice_playback_terminal',
+          localAgentRef: 'local-agent:opaque',
+          conversationAnchorId: 'conversation-anchor:opaque',
+          runtimeTurnId: 'turn-1',
+          runtimeStreamId: 'stream-1',
+          detail: {
+            finalArtifactId: 'artifact-final-1',
+            audioMimeType: 'audio/wav',
+            playbackTarget: 'avatar_autoplay',
+            terminalReason: 'native_stream_completed',
+            voiceOutputMode: 'native_stream',
+            voicePlaybackState: 'completed',
+            voiceStreamId: 'voice-stream-1',
+          },
+        },
+      ],
+    },
+  };
+
+  const companion = module.projectZhiyuCompanionFromRuntimeProjectionEvents({
+    current: blockedCompanion(),
+    chat,
+    ownerUserId: 'user-1',
+    runtimeSourceRef: 'runtime-source:opaque',
+    observedAt: '2026-07-04T02:02:00.000Z',
+  });
+
+  assert.equal(companion.ready, true);
+  assert.equal(companion.reasonCode, 'runtime-agent-presentation-voice-event-projected');
+  assert.equal(companion.executionState, 'voice_completed');
+  assert.equal(companion.voiceOutputMode, 'native_stream');
+  assert.equal(companion.voicePlaybackState, 'completed');
+  assert.equal(companion.voiceAudioArtifactId, 'artifact-final-1');
+  assert.equal(companion.voiceAudioMimeType, 'audio/wav');
+  assert.equal(companion.voicePlaybackTarget, 'avatar_autoplay');
+  assert.equal(companion.voiceStreamId, 'voice-stream-1');
+  assert.ok(companion.projectedFields.includes('voiceStreamChunk'));
+  assert.ok(companion.projectedFields.includes('voicePlayback'));
+  assert.ok(companion.projectedFields.includes('voicePlaybackTerminal'));
+  assert.ok(companion.projectedFields.includes('voiceStreamId'));
+  assert.ok(companion.projectedFields.includes('voiceOutputMode'));
+  assert.ok(companion.projectedFields.includes('voicePlaybackState'));
 });
 
 async function importConversationStateModule() {

@@ -217,6 +217,70 @@ describe('avatar-voice-lipsync orchestrator (wave 0 hard-cut)', () => {
     expect(playSpy).not.toHaveBeenCalled();
   });
 
+  it('does not treat transient native stream chunk refs as artifact playback', async () => {
+    const driver = createDriver();
+    const audioPipeline = new AudioPipelineController({
+      audioContextFactory: () => null,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    audioPipeline.setRuntime(createRuntimeMock());
+    const playSpy = vi.spyOn(audioPipeline, 'play');
+    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
+
+    pipeline.handleEvent(createVoiceStreamChunkAvailableEvent({
+      audioArtifactId: undefined,
+      voiceStreamId: 'voice-stream-1',
+      chunkTransportRef: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
+      voiceOutputMode: 'native_stream',
+    }));
+    await Promise.resolve();
+
+    expect(playSpy).not.toHaveBeenCalled();
+    expect(driver.emitted).toEqual([
+      expect.objectContaining({
+        name: 'avatar.speak.stream_chunk_available',
+        detail: expect.objectContaining({
+          voice_stream_id: 'voice-stream-1',
+          chunk_transport_ref: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
+        }),
+      }),
+    ]);
+  });
+
+  it('plays typed native stream chunk bytes through transient audio pipeline input', async () => {
+    const driver = createDriver();
+    const audioPipeline = new AudioPipelineController({
+      audioContextFactory: () => null,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    audioPipeline.setRuntime(createRuntimeMock());
+    const playSpy = vi.spyOn(audioPipeline, 'play');
+    const playBytesSpy = vi.spyOn(audioPipeline, 'playBytes');
+    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
+
+    pipeline.handleEvent({
+      event_id: 'event-native-bytes-1',
+      name: 'avatar.speak.native_audio_chunk',
+      timestamp: '2026-04-25T00:00:00.019Z',
+      detail: {
+        voice_stream_id: 'voice-stream-1',
+        chunk_sequence: 1,
+        audio_mime_type: 'audio/wav',
+        playback_target: 'avatar_autoplay',
+        chunk_bytes: new Uint8Array([1, 2, 3]),
+      },
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(playSpy).not.toHaveBeenCalled();
+    expect(playBytesSpy).toHaveBeenCalledWith({
+      audioSourceId: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
+      audioMimeType: 'audio/wav',
+      bytes: new Uint8Array([1, 2, 3]),
+    });
+  });
+
   it('ignores voice stream chunks for non-avatar playback targets', async () => {
     const driver = createDriver();
     const audioPipeline = new AudioPipelineController({
@@ -324,5 +388,51 @@ describe('avatar-voice-lipsync orchestrator (wave 0 hard-cut)', () => {
 
     expect(stopSpy).toHaveBeenCalledWith('interrupted');
     expect(driver.emitted.map((event) => event.name)).toEqual(['avatar.speak.interrupt']);
+  });
+
+  it('voice_playback_terminal drives completed and interrupted voice truth', () => {
+    const driver = createDriver();
+    const audioPipeline = new AudioPipelineController({
+      audioContextFactory: () => null,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    const stopSpy = vi.spyOn(audioPipeline, 'stop');
+    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
+
+    pipeline.handleEvent({
+      event_id: 'event-terminal-completed',
+      name: 'runtime.agent.presentation.voice_playback_terminal',
+      timestamp: '2026-04-25T00:00:00.040Z',
+      detail: {
+        turn_id: 'turn-1',
+        stream_id: 'stream-1',
+        runtime_timeline: createRuntimeVoiceChunkTimeline({ sequence: 3 }),
+        voiceStreamId: 'voice-stream-1',
+        voiceOutputMode: 'native_stream',
+        voicePlaybackState: 'completed',
+        terminalReason: 'native_stream_completed',
+        playbackTarget: 'avatar_autoplay',
+      },
+    });
+    expect(stopSpy).not.toHaveBeenCalled();
+
+    pipeline.handleEvent({
+      event_id: 'event-terminal-interrupted',
+      name: 'runtime.agent.presentation.voice_playback_terminal',
+      timestamp: '2026-04-25T00:00:00.050Z',
+      detail: {
+        turn_id: 'turn-1',
+        stream_id: 'stream-1',
+        runtime_timeline: createRuntimeVoiceChunkTimeline({ sequence: 4 }),
+        voiceStreamId: 'voice-stream-1',
+        voiceOutputMode: 'native_stream',
+        voicePlaybackState: 'interrupted',
+        terminalReason: 'runtime_voice_interrupt_requested',
+        playbackTarget: 'avatar_autoplay',
+      },
+    });
+
+    expect(stopSpy).toHaveBeenCalledWith('interrupted');
+    expect(driver.emitted.some((event) => event.name === 'avatar.speak.interrupt')).toBe(true);
   });
 });

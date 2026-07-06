@@ -787,4 +787,108 @@ describe('SdkDriver', () => {
 
     await driver.stop();
   });
+
+  it('subscribes to typed Runtime voice stream for native transient chunk playback', async () => {
+    async function* stream() {
+      yield {
+        eventName: 'runtime.agent.presentation.voice_stream_chunk_available',
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-voice-raw-1',
+        streamId: 'stream-voice-raw-1',
+        timeline: {
+          turnId: 'turn-voice-raw-1',
+          streamId: 'stream-voice-raw-1',
+          channel: 'voice',
+          offsetMs: 0,
+          sequence: 1,
+          startedAtWall: '2026-04-25T00:00:00.000Z',
+          observedAtWall: '2026-04-25T00:00:00.015Z',
+          timebaseOwner: 'runtime',
+          projectionRuleId: 'K-AGCORE-133',
+          clockBasis: 'monotonic_with_wall_anchor',
+          providerNeutral: true,
+          appLocalAuthority: false,
+        },
+        detail: {
+          audioMimeType: 'audio/wav',
+          chunkSequence: 1,
+          finalChunk: false,
+          playbackTarget: 'avatar_autoplay',
+          voiceStreamId: 'voice-stream-raw-1',
+          chunkTransportRef: 'runtime-agent-voice-stream://voice-stream-raw-1/chunks/000001',
+          voiceOutputMode: 'native_stream',
+        },
+      };
+      await new Promise(() => {});
+    }
+    async function* voiceStream() {
+      yield {
+        voiceStreamId: 'voice-stream-raw-1',
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-voice-raw-1',
+        streamId: 'stream-voice-raw-1',
+        chunkSequence: 1,
+        chunk: new Uint8Array([1, 2, 3]),
+        mimeType: 'audio/wav',
+        voiceOutputMode: 1,
+        playbackTarget: 'avatar_autoplay',
+        terminal: false,
+      };
+      await new Promise(() => {});
+    }
+
+    const runtimeAgent = {
+      turns: {
+        getSessionSnapshot: async () => ({
+          sessionStatus: 'active',
+          transcriptMessageCount: 0,
+        }),
+        subscribe: async () => stream(),
+      },
+    } as const;
+    const runtimeVoice = {
+      subscribeStream: vi.fn(async () => voiceStream()),
+    };
+    const driver = new SdkDriver({
+      runtimeAgent: runtimeAgent as never,
+      runtimeVoice: runtimeVoice as never,
+      ...LOCAL_IDENTITY,
+      conversationAnchorId: 'anchor-1',
+      activeWorldId: 'world-1',
+      activeUserId: 'user-1',
+      locale: 'en-US',
+      now: () => 1_710_000_050_000,
+    });
+    const events: AgentEvent[] = [];
+    driver.onEvent((event) => events.push(event));
+
+    await driver.start();
+    await waitForTasks();
+    await waitForTasks();
+
+    expect(runtimeVoice.subscribeStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownerUserId: LOCAL_IDENTITY.ownerUserId,
+        runtimeSourceRef: LOCAL_IDENTITY.runtimeSourceRef,
+        localAgentRef: LOCAL_IDENTITY.localAgentRef,
+        conversationAnchorId: 'anchor-1',
+        turnId: 'turn-voice-raw-1',
+        voiceStreamId: 'voice-stream-raw-1',
+      }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    const rawChunk = events.find((event) => event.name === 'avatar.speak.native_audio_chunk');
+    expect(rawChunk?.detail).toEqual(expect.objectContaining({
+      voice_stream_id: 'voice-stream-raw-1',
+      chunk_sequence: 1,
+      audio_mime_type: 'audio/wav',
+      playback_target: 'avatar_autoplay',
+      turn_id: 'turn-voice-raw-1',
+      stream_id: 'stream-voice-raw-1',
+      chunk_bytes: new Uint8Array([1, 2, 3]),
+    }));
+
+    await driver.stop();
+  });
 });

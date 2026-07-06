@@ -177,8 +177,8 @@ deprecation remains owned by runtime event authority.
 | `avatar.audio.playback.requested` | voice_playback_requested mirrored；audioPipeline.play 入口 | Low | — |
 | `avatar.audio.playback.started` | source.start() 完成 | Low | — |
 | `avatar.audio.playback.completed` | source.onended 自然结束 | Low | — |
-| `avatar.audio.playback.interrupted` | runtime 端 `playback_state='interrupted'` | Low | — |
-| `avatar.audio.playback.canceled` | runtime 端 `playback_state='canceled'` | Low | — |
+| `avatar.audio.playback.interrupted` | runtime 端 `voice_playback_state='interrupted'` | Low | — |
+| `avatar.audio.playback.canceled` | runtime 端 `voice_playback_state='canceled'` | Low | — |
 | `avatar.audio.playback.failed` | mime / decode / fetch / readBytes 失败 | Low | — |
 | `avatar.audio.lifecycle.state_changed` | Presence capsule mapped local audio/voice lifecycle changed; state ids come from `wake-local-audio-lifecycle-contract.md` | Medium | — |
 | `avatar.audio.privacy.indicator_changed` | Visible microphone/audio privacy indicator changed in the foreground Avatar surface | Medium | — |

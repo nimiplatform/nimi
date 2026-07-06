@@ -2,6 +2,7 @@ import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/ava
 import {
   createNimiRuntimeAgentConsumeClient,
   createNimiRuntimeAgentTurnsModule,
+  createNimiRuntimeAgentVoiceModule,
   runNimiRuntimeScenarioJob,
   withNimiRuntimeAgentScopes,
   type NimiRuntimeAgentScopeRunner,
@@ -397,6 +398,17 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           getSubjectUserId: () => subjectUserId,
           withScopes: withAvatarRuntimeAgentScopes,
         });
+        const runtimeAgentVoice = createNimiRuntimeAgentVoiceModule({
+          runtime: {
+            appId: runtimeAppId,
+            auth: runtime.auth,
+            appAuth: runtime.grants,
+            agents: runtime.agents,
+            artifacts: runtime.artifacts,
+          },
+          getSubjectUserId: () => subjectUserId,
+          withScopes: withAvatarRuntimeAgentScopes,
+        });
         currentConversationAnchorId = conversationAnchorId;
         await runFirstPartyStage('runtime_identity_binding', () => bindAvatarRuntimeIdentity({
           avatarInstanceId,
@@ -421,6 +433,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           kind: 'sdk',
           sdk: {
             runtimeAgent,
+            runtimeVoice: runtimeAgentVoice,
             withScopes: withAvatarRuntimeAgentScopes,
             ownerUserId,
             runtimeSourceRef,

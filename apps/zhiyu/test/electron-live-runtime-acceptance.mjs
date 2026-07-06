@@ -5,11 +5,16 @@ import path from 'node:path';
 import test from 'node:test';
 import { _electron as electron } from 'playwright';
 import {
+  VoiceOutputMode,
+  VoicePlaybackState,
+} from '../../../sdks/typescript/core-generated/runtime-typed-client.ts';
+import {
   assertAvatarLaunchLiveHandoff,
   avatarAppId,
   avatarRuntimeProtectedScopes,
   importLiveRuntimeAvatarFixtureAsset,
   seedLiveRuntimeAvatarPresentationProfile,
+  waitForAvatarNativeVoiceChunkPlaybackEvidence,
 } from './electron-live-runtime-avatar-launch-helpers.mjs';
 import {
   assertPreConfigRuntimeEvidence,
@@ -26,7 +31,14 @@ import {
   closeAgentCenter,
 } from './electron-live-runtime-agent-center-helpers.mjs';
 import { withRuntimeAgentLiveE2EFixture } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test-helper.ts';
-import { createFixtureRuntimeAgentClient } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
+import {
+  createFixtureRuntimeAgentClient,
+  createRuntimeForEndpoint,
+} from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
+import { createNimiRuntimeAppSessionMetadataProvider } from '../../../sdks/typescript/runtime/app-session.ts';
+import { createNimiRuntimeAgentClient } from '../../../sdks/typescript/runtime/runtime-agent-client.ts';
+import { withNimiRuntimeAgentScopes } from '../../../sdks/typescript/runtime/runtime-agent-protected.ts';
+import { createNimiRuntimeAgentVoiceModule } from '../../../sdks/typescript/runtime/runtime-agent-voice.ts';
 import {
   createZhiyuLiveRuntimeAcceptanceRendererUrl,
   createZhiyuLiveRuntimeFixtureAcceptanceInitScript,
@@ -46,7 +58,10 @@ import {
 
 const root = path.resolve(import.meta.dirname, '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
+const desktopAppId = 'nimi.desktop';
 const zhiyuAppId = 'nimi.zhiyu';
+const zhiyuRuntimeVoiceObserverAppId = desktopAppId;
+const zhiyuRuntimeVoiceObserverAppInstanceId = `${zhiyuRuntimeVoiceObserverAppId}.live-runtime-voice-observer`;
 const zhiyuRuntimeProtectedScopes = [
   'runtime.agent.read',
   'runtime.agent.write',
@@ -64,11 +79,18 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
 
   await withRuntimeAgentLiveE2EFixture({
     localChatCompletionStreamDelayMs: 4_000,
+    voiceSpeechStreamDelayMs: 3_000,
     run: async (fixture) => {
       await fixture.admitLocalFirstPartyRuntimeAccountCaller({
         appId: zhiyuAppId,
         appInstanceId: `${zhiyuAppId}.local-first-party`,
         deviceId: 'nimi-zhiyu-local-first-party-device',
+        capabilities: zhiyuRuntimeProtectedScopes,
+      });
+      await fixture.admitLocalFirstPartyRuntimeAccountCaller({
+        appId: zhiyuRuntimeVoiceObserverAppId,
+        appInstanceId: zhiyuRuntimeVoiceObserverAppInstanceId,
+        deviceId: 'nimi-zhiyu-live-runtime-voice-observer-device',
         capabilities: zhiyuRuntimeProtectedScopes,
       });
       await fixture.admitLocalFirstPartyRuntimeAccountCaller({
@@ -89,9 +111,10 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
 
         const app = await launchLiveRuntimeZhiyuApp({ fixture, dataRoot });
         let appClosed = false;
+        let avatarLaunchEvidence = null;
 
         try {
-          const page = await app.firstWindow();
+          const page = await app.firstWindow({ timeout: 60_000 });
           await assertElectronChromeParity(app);
           const pageProblems = trackPageProblems(page);
           await page.waitForLoadState('domcontentloaded');
@@ -192,20 +215,40 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             capabilityId: 'image.generate',
             modelName: /gpt-image-1\.5/i,
             source: 'cloud',
+            connectorId: fixture.imageRoute.executionBinding.connectorId,
           });
           const imageCommitRevision = await waitForExecutionCommitCommitted(page, textCommitRevision);
-          await waitForEvidence(page, ({ imageCommitRevision }) =>
+          const imageCommittedConfig = await runtimeExecutionConfig.get();
+          assert.equal(imageCommittedConfig.revision, imageCommitRevision);
+          const voiceCommittedConfig = await runtimeExecutionConfig.upsert({
+            expectedRevision: imageCommittedConfig.revision,
+            bindings: {
+              ...imageCommittedConfig.bindings,
+              'audio.synthesize': {
+                route: 'cloud',
+                modelId: fixture.voiceRoute.executionBinding.modelId,
+                ...(fixture.voiceRoute.executionBinding.connectorId
+                  ? { connectorId: fixture.voiceRoute.executionBinding.connectorId }
+                  : {}),
+                targetRef: fixture.voiceRoute.targetRef,
+              },
+            },
+          });
+          const voiceCommitRevision = voiceCommittedConfig.revision;
+          await waitForEvidence(page, ({ voiceCommitRevision }) =>
             globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
-            && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === imageCommitRevision
+            && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === voiceCommitRevision
             && /runtime-agent-live-e2e/.test(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding?.modelId || '')
             && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['image.generate']?.state !== 'not_configured'
-            && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['image.generate']?.binding?.route === 'cloud',
+            && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['image.generate']?.binding?.route === 'cloud'
+            && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['audio.synthesize']?.state !== 'not_configured'
+            && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['audio.synthesize']?.binding?.route === 'cloud',
             'route ready after execution config commits',
-            { imageCommitRevision },
+            { voiceCommitRevision },
           );
           const modelConfiguredEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
-          assert.equal(modelConfiguredEvidence.route.configRevision, imageCommitRevision);
-          assert.equal(modelConfiguredEvidence.route.updatedByAppId, zhiyuAppId);
+          assert.equal(modelConfiguredEvidence.route.configRevision, voiceCommitRevision);
+          assert.equal(modelConfiguredEvidence.route.updatedByAppId, desktopAppId);
           await assertModelConfiguredProductState(page);
           await captureLiveRuntimeEvidence(page, 'modelConfigured', pageProblems, {
             modelConfiguredEvidence,
@@ -217,12 +260,12 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.equal(readyEvidence.route.ready, true);
           assert.equal(readyEvidence.route.reasonCode, 'runtime-execution-config-ready');
           assert.equal(readyEvidence.route.capability, 'text.generate');
-          assert.equal(readyEvidence.route.configRevision, imageCommitRevision);
-          assert.equal(readyEvidence.route.readinessRevision, imageCommitRevision);
-          assert.equal(readyEvidence.route.updatedByAppId, zhiyuAppId);
+          assert.equal(readyEvidence.route.configRevision, voiceCommitRevision);
+          assert.equal(readyEvidence.route.readinessRevision, voiceCommitRevision);
+          assert.equal(readyEvidence.route.updatedByAppId, desktopAppId);
           assert.deepEqual(
             Object.keys(readyEvidence.route.capabilities).sort(),
-            ['image.generate', 'text.generate'],
+            ['audio.synthesize', 'image.generate', 'text.generate'],
             'runtime execution readiness projects exactly the admitted capabilities',
           );
           assert.equal(readyEvidence.route.capabilities['text.generate'].state, 'ready');
@@ -232,11 +275,24 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.equal(readyEvidence.route.capabilities['image.generate'].binding.route, 'cloud');
           assert.match(readyEvidence.route.capabilities['image.generate'].binding.modelId, /gpt-image/);
           assert.ok(readyEvidence.route.capabilities['image.generate'].binding.connectorId, 'committed image binding must carry its cloud connector');
+          assert.notEqual(readyEvidence.route.capabilities['audio.synthesize'].state, 'not_configured');
+          assert.equal(readyEvidence.route.capabilities['audio.synthesize'].binding.route, 'cloud');
+          assert.equal(readyEvidence.route.capabilities['audio.synthesize'].binding.modelId, fixture.voiceRoute.executionBinding.modelId);
+          assert.ok(readyEvidence.route.capabilities['audio.synthesize'].binding.connectorId, 'committed voice binding must carry its cloud connector');
           assert.equal(readyEvidence.route.executionBinding.route, 'local');
           assert.match(readyEvidence.route.executionBinding.modelId, /runtime-agent-live-e2e/);
           assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
           assert.equal(await page.locator('[data-zhiyu-readiness-score]').getAttribute('data-zhiyu-readiness-score'), '8/8');
-          assert.equal(await page.locator('[data-zhiyu-memory-observatory]').getAttribute('data-zhiyu-memory-ready'), 'true');
+          await page.waitForFunction(() =>
+            document.querySelector('[data-zhiyu-memory-observatory]')?.getAttribute('data-zhiyu-memory-ready') === 'true',
+            undefined,
+            { timeout: 15_000 },
+          );
+          assert.equal(
+            await page.locator('[data-zhiyu-memory-observatory]').getAttribute('data-zhiyu-memory-ready'),
+            'true',
+            'memory observatory DOM projection must reach ready before route-ready acceptance continues',
+          );
           assert.equal(await page.locator('[data-zhiyu-memory-graph-state]').getAttribute('data-zhiyu-memory-graph-state'), 'not_projected');
           assert.equal(
             await page.locator('[data-zhiyu-memory-graph-state]').getAttribute('data-zhiyu-memory-graph-reason'),
@@ -280,6 +336,15 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await captureLiveRuntimeEvidence(page, 'ready', pageProblems, {
             readyEvidence,
           });
+          avatarLaunchEvidence = await assertAvatarLaunchLiveHandoff(
+            page,
+            fixture,
+            dataRoot,
+            pageProblems,
+            readyEvidence,
+            importedAvatarAsset,
+            { keepRunning: true },
+          );
           readyEvidence = await assertRouteUnavailableFlow(page, pageProblems, readyEvidence, runtimeExecutionConfig);
 
           await assertStopChatFlow(page, pageProblems, readyEvidence);
@@ -319,6 +384,125 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.equal(chatCompletedEvidence.turn.ready, true);
           assert.equal(chatCompletedEvidence.turn.reasonCode, 'runtime-agent-turn-completed');
           assert.equal(chatCompletedEvidence.composer.submitState, 'accepted');
+          await waitForEvidence(page, () => {
+            const evidence = globalThis.window.__nimiZhiyuEvidence;
+            const companion = evidence?.companion ?? {};
+            const projectedFields = companion.projectedFields ?? [];
+            const projectionEvents = evidence?.chat?.diagnostics?.runtimeProjectionEvents ?? [];
+            const nativeChunks = projectionEvents.filter((event) =>
+              event?.eventName === 'runtime.agent.presentation.voice_stream_chunk_available'
+              && event?.detail?.voiceOutputMode === 'native_stream'
+              && event?.detail?.voicePlaybackState === 'active'
+              && event?.detail?.playbackTarget === 'avatar_autoplay'
+              && event?.detail?.finalChunk === false
+              && Boolean(event?.detail?.voiceStreamId || event?.detail?.voice_stream_id)
+              && Boolean(event?.detail?.chunkTransportRef || event?.detail?.chunk_transport_ref)
+              && !Boolean(event?.detail?.audioArtifactId || event?.detail?.audio_artifact_id)
+            );
+            const voiceStreamId = nativeChunks[0]?.detail?.voiceStreamId || nativeChunks[0]?.detail?.voice_stream_id || '';
+            return companion.voiceOutputMode === 'native_stream'
+              && companion.voicePlaybackState === 'completed'
+              && companion.voiceStreamId === voiceStreamId
+              && Boolean(companion.voiceAudioArtifactId)
+              && companion.voiceAudioMimeType === 'audio/wav'
+              && companion.voicePlaybackTarget === 'avatar_autoplay'
+              && projectedFields.includes('voiceStreamChunk')
+              && projectedFields.includes('voicePlayback')
+              && projectedFields.includes('voicePlaybackTerminal')
+              && projectedFields.includes('voiceStreamId')
+              && nativeChunks.length > 0
+              && projectionEvents.some((event) =>
+                event?.eventName === 'runtime.agent.presentation.voice_playback_requested'
+                && event?.detail?.voiceOutputMode === 'native_stream'
+                && event?.detail?.voicePlaybackState === 'active'
+                && event?.detail?.finalArtifact === true
+                && event?.detail?.voiceStreamId === voiceStreamId
+              )
+              && projectionEvents.some((event) =>
+                event?.eventName === 'runtime.agent.presentation.voice_playback_terminal'
+                && event?.detail?.voiceOutputMode === 'native_stream'
+                && event?.detail?.voicePlaybackState === 'completed'
+                && event?.detail?.terminalReason === 'native_stream_completed'
+                && event?.detail?.voiceStreamId === voiceStreamId
+                && Boolean(event?.detail?.finalArtifactId || event?.detail?.final_artifact_id)
+              );
+          }, 'native Runtime voice projection');
+          const voiceProjectedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+          const voiceProjectionEvents = voiceProjectedEvidence.chat.diagnostics.runtimeProjectionEvents;
+          const voiceChunkEvents = voiceProjectionEvents.filter((event) =>
+            event?.eventName === 'runtime.agent.presentation.voice_stream_chunk_available'
+            && event?.detail?.voiceOutputMode === 'native_stream'
+            && event?.detail?.finalChunk === false
+          );
+          assert.equal(voiceChunkEvents.length > 0, true, 'native voice stream must project at least one non-final chunk');
+          const voiceStreamId = voiceChunkEvents[0]?.detail?.voiceStreamId || voiceChunkEvents[0]?.detail?.voice_stream_id;
+          assert.ok(voiceStreamId, 'native voice chunk must carry voice_stream_id');
+          for (const event of voiceChunkEvents) {
+            assert.equal(event?.detail?.voiceStreamId || event?.detail?.voice_stream_id, voiceStreamId);
+            assert.equal(event?.detail?.audioArtifactId || event?.detail?.audio_artifact_id || null, null);
+            assert.match(
+              String(event?.detail?.chunkTransportRef || event?.detail?.chunk_transport_ref || ''),
+              new RegExp(escapeRegExp(String(voiceStreamId))),
+              'native non-final chunks must point at transient stream transport, not durable chunk artifacts',
+            );
+          }
+          assert.match(fixture.voiceAsset.voiceAssetId, /^[0-9A-HJKMNP-TV-Z]{26}$/u);
+          assert.equal(fixture.voiceAsset.defaultVoiceReference, `voice_asset_id:${fixture.voiceAsset.voiceAssetId}`);
+          const voicePlaybackEvent = voiceProjectedEvidence.chat.diagnostics.runtimeProjectionEvents.find((event) =>
+            event?.eventName === 'runtime.agent.presentation.voice_playback_requested'
+            && event?.detail?.voiceOutputMode === 'native_stream'
+          );
+          const voiceTerminalEvent = voiceProjectedEvidence.chat.diagnostics.runtimeProjectionEvents.find((event) =>
+            event?.eventName === 'runtime.agent.presentation.voice_playback_terminal'
+            && event?.detail?.voiceOutputMode === 'native_stream'
+          );
+          assert.ok(voicePlaybackEvent, 'native voice must project final playback request');
+          assert.ok(voiceTerminalEvent, 'native voice must project terminal playback truth');
+          assert.equal(voicePlaybackEvent?.detail?.voiceStreamId, voiceStreamId);
+          assert.equal(voiceTerminalEvent?.detail?.voiceStreamId, voiceStreamId);
+          assert.equal(voiceTerminalEvent?.detail?.voicePlaybackState, 'completed');
+          assert.equal(voiceTerminalEvent?.detail?.terminalReason, 'native_stream_completed');
+          assert.equal(voicePlaybackEvent?.detail?.voiceRouteBinding?.defaultVoiceReference, fixture.voiceAsset.defaultVoiceReference);
+          assert.equal(voicePlaybackEvent?.detail?.voiceRouteBinding?.voiceReferenceKind, 'voice_asset_id');
+          assert.equal(voicePlaybackEvent?.detail?.voiceRouteBinding?.voiceReferenceValue, fixture.voiceAsset.voiceAssetId);
+          assert.notEqual(voicePlaybackEvent?.detail?.voiceRouteBinding?.voiceReferenceValue, fixture.voiceAsset.providerVoiceRef);
+          const finalVoiceArtifactId = String(
+            voiceTerminalEvent?.detail?.finalArtifactId
+              || voiceTerminalEvent?.detail?.final_artifact_id
+              || voicePlaybackEvent?.detail?.audioArtifactId
+              || '',
+          );
+          assert.equal(finalVoiceArtifactId.length > 0, true, 'native voice terminal must carry final replay artifact id');
+          const finalVoiceArtifact = await readLiveRuntimeFixtureArtifactBytes(fixture, finalVoiceArtifactId);
+          assert.match(finalVoiceArtifact.mimeType, /^audio\//);
+          assert.equal((finalVoiceArtifact.bytes?.byteLength ?? 0) > 0, true, 'final voice replay artifact must have readable audio bytes');
+          assert.ok(avatarLaunchEvidence?.resolvedAvatarBinding?.avatarInstanceId, 'Avatar must be running before native voice playback is accepted');
+          const avatarNativeVoicePlaybackEvidence = await waitForAvatarNativeVoiceChunkPlaybackEvidence({
+            dataRoot,
+            avatarInstanceId: avatarLaunchEvidence.resolvedAvatarBinding.avatarInstanceId,
+            voiceStreamId,
+          });
+          assert.equal(avatarNativeVoicePlaybackEvidence.detail?.voice_stream_id, voiceStreamId);
+          assert.equal(avatarNativeVoicePlaybackEvidence.detail?.playback_state, 'completed');
+          assert.equal(Number(avatarNativeVoicePlaybackEvidence.detail?.byte_length ?? 0) > 0, true);
+          const voiceTool = page.locator('[data-zhiyu-composer-tool="hands-free"]').first();
+          await voiceTool.waitFor({ state: 'visible', timeout: 15_000 });
+          assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-output-mode'), 'native_stream');
+          assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-playback-state'), 'completed');
+          assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-stream-id'), voiceStreamId);
+          assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-playback-target'), 'avatar_autoplay');
+          assert.notEqual(await voiceTool.getAttribute('data-zhiyu-chat-voice-state'), 'deferred');
+          assert.equal(await voiceTool.isDisabled(), true, 'voice projection must not become a fake local playback control');
+          const speechRequests = fixture.realmRequests.filter((request) => request.path === '/v1/audio/speech');
+          assert.equal(
+            speechRequests.some((request) =>
+              request?.body?.stream === true
+              && request?.body?.model === fixture.voiceRoute.executionBinding.modelId
+              && request?.body?.voice === 'runtime-live-voice'
+            ),
+            true,
+            'native voice fixture must be invoked through audio.synthesize stream=true',
+          );
           // K-AGCORE-147: the turn request carries no execution bindings and
           // the completed turn must not move the committed config revision.
           // (Zhiyu chat evidence does not re-project the session snapshot's
@@ -342,11 +526,20 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await captureLiveRuntimeEvidence(page, 'chatCompleted', pageProblems, {
             readyEvidence,
             chatCompletedEvidence,
+            voiceProjectedEvidence,
+            voiceRoute: fixture.voiceRoute,
+            finalVoiceArtifact: {
+              artifactId: finalVoiceArtifactId,
+              mimeType: finalVoiceArtifact.mimeType,
+              byteLength: finalVoiceArtifact.bytes?.byteLength ?? 0,
+            },
+            avatarNativeVoicePlaybackEvidence,
           });
           const firstRequestId = chatCompletedEvidence.chat.requestId;
           const firstOutputText = chatCompletedEvidence.chat.outputText;
 
           await assertMidStreamFailureFlow(page, pageProblems, readyEvidence);
+          await assertRuntimeNativeVoiceInterruptFlow(page, pageProblems, fixture, readyEvidence);
 
           const actionArtifactPrompt = 'Please make an image artifact for Zhiyu action artifact.';
           await page.locator('[data-chat-composer-textarea="true"]').fill(actionArtifactPrompt);
@@ -451,21 +644,15 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             multiTurnEvidence,
           });
 
-          const avatarLaunchEvidence = await assertAvatarLaunchLiveHandoff(
-            page,
-            fixture,
-            dataRoot,
-            pageProblems,
-            readyEvidence,
-            importedAvatarAsset,
-          );
+          assert.ok(avatarLaunchEvidence, 'Avatar launch handoff must be captured before native voice acceptance');
+          await avatarLaunchEvidence.closeAvatarProcess();
 
           await app.close();
           appClosed = true;
 
           const relaunchedApp = await launchLiveRuntimeZhiyuApp({ fixture, dataRoot });
           try {
-            const relaunchedPage = await relaunchedApp.firstWindow();
+            const relaunchedPage = await relaunchedApp.firstWindow({ timeout: 60_000 });
             const relaunchProblems = trackPageProblems(relaunchedPage);
             await relaunchedPage.waitForLoadState('domcontentloaded');
             await relaunchedPage.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
@@ -486,6 +673,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
               && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === configRevision
               && /runtime-agent-live-e2e/.test(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding?.modelId || '')
               && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['image.generate']?.binding?.route === 'cloud'
+              && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['audio.synthesize']?.binding?.route === 'cloud'
               && globalThis.window.__nimiZhiyuEvidence?.delegation?.ready === true
               && globalThis.window.__nimiZhiyuEvidence?.delegation?.reasonCode === 'runtime-delegation-control-surface-ready',
               'restart hydrated Runtime Agent chat snapshot and route',
@@ -515,6 +703,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             assert.equal(restartHydratedEvidence.route.capabilities['text.generate'].state, 'ready');
             assert.match(restartHydratedEvidence.route.capabilities['text.generate'].binding.modelId, /runtime-agent-live-e2e/);
             assert.equal(restartHydratedEvidence.route.capabilities['image.generate'].binding.route, 'cloud');
+            assert.equal(restartHydratedEvidence.route.capabilities['audio.synthesize'].binding.route, 'cloud');
             assert.ok(restartScopedBinding, 'Relaunched Zhiyu must reacquire a Runtime-issued scoped binding');
             assert.equal(restartScopedBinding.bindingSource, 'runtime-account-service');
             assert.equal(restartScopedBinding.runtimeAppId, zhiyuAppId);
@@ -541,6 +730,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await assertUniqueStageScreenshots();
           assertNoPageProblems(pageProblems);
         } finally {
+          await avatarLaunchEvidence?.closeAvatarProcess?.().catch(() => {});
           if (!appClosed) {
             await app.close();
           }
@@ -568,6 +758,7 @@ async function assertElectronChromeParity(app) {
   const chrome = await app.evaluate(({ BrowserWindow, Menu }) => {
     const window = BrowserWindow.getAllWindows()[0] ?? null;
     return {
+      platform: process.platform,
       applicationMenuPresent: Boolean(Menu.getApplicationMenu()),
       menuBarVisible: window && typeof window.isMenuBarVisible === 'function'
         ? window.isMenuBarVisible()
@@ -578,8 +769,10 @@ async function assertElectronChromeParity(app) {
     };
   });
   assert.equal(chrome.applicationMenuPresent, false, 'Zhiyu must not show the default Electron application menu');
-  assert.notEqual(chrome.menuBarVisible, true, 'Zhiyu must hide the native menu bar to match Desktop agent chat chrome');
-  assert.notEqual(chrome.menuBarAutoHide, false, 'Zhiyu native menu bar must remain auto-hidden when the platform reports the state');
+  if (chrome.platform !== 'darwin') {
+    assert.notEqual(chrome.menuBarVisible, true, 'Zhiyu must hide the native menu bar to match Desktop agent chat chrome');
+    assert.notEqual(chrome.menuBarAutoHide, false, 'Zhiyu native menu bar must remain auto-hidden when the platform reports the state');
+  }
 }
 
 async function withTempDir(prefix, run) {
@@ -666,6 +859,8 @@ async function assertSeededDefaultConfigProductState(page, preConfigEvidence) {
   assert.equal(preConfigEvidence.route.capabilities['text.generate'].state, 'ready');
   assert.equal(preConfigEvidence.route.capabilities['image.generate'].state, 'not_configured');
   assert.equal(preConfigEvidence.route.capabilities['image.generate'].binding, null);
+  assert.equal(preConfigEvidence.route.capabilities['audio.synthesize'].state, 'not_configured');
+  assert.equal(preConfigEvidence.route.capabilities['audio.synthesize'].binding, null);
 }
 
 async function assertModelConfiguredProductState(page, options = {}) {
@@ -679,9 +874,10 @@ async function assertModelConfiguredProductState(page, options = {}) {
   assert.match(evidence.route.capabilities['text.generate'].binding.modelId, /runtime-agent-live-e2e/i);
   assert.notEqual(evidence.route.capabilities['image.generate'].state, 'not_configured');
   assert.equal(evidence.route.capabilities['image.generate'].binding.route, 'cloud');
+  assert.notEqual(evidence.route.capabilities['audio.synthesize'].state, 'not_configured');
+  assert.equal(evidence.route.capabilities['audio.synthesize'].binding.route, 'cloud');
   assert.match(evidence.route.executionBinding.modelId, /runtime-agent-live-e2e/i);
   if (options.requireModelPanel === false) {
-    await assertVoiceControlsDeferred(page);
     return;
   }
   const modelConfig = page.locator('[data-zhiyu-ai-config-embedded="agent-center"]');
@@ -732,6 +928,9 @@ async function selectRuntimeModelForCapability(page, drawer, input) {
   await picker.waitFor({ timeout: 15_000 });
   if (input.source === 'cloud') {
     await picker.getByRole('button', { name: /^Cloud$/i }).click();
+    if (input.connectorId) {
+      await picker.getByLabel('Select connector').selectOption(input.connectorId);
+    }
   }
   const modelButton = picker.getByRole('button', { name: input.modelName }).first();
   try {
@@ -1218,6 +1417,144 @@ async function assertMidStreamFailureFlow(page, pageProblems, readyEvidence) {
   await page.locator('[data-chat-composer-textarea="true"]').fill('');
 }
 
+async function assertRuntimeNativeVoiceInterruptFlow(page, pageProblems, fixture, readyEvidence) {
+  const interruptedPrompt = '请开始一段会被 Runtime 中断的实时语音。';
+  const runtimeAuthBinding = await readZhiyuRuntimeAgentAuthBinding(page, readyEvidence);
+  const existingVoiceStreamIds = await page.evaluate(() => {
+    const events = globalThis.window.__nimiZhiyuEvidence?.chat?.diagnostics?.runtimeProjectionEvents ?? [];
+    return events
+      .map((event) => String(event?.detail?.voiceStreamId || event?.detail?.voice_stream_id || '').trim())
+      .filter(Boolean);
+  });
+  const observerReady = createDeferred();
+  const runtimeInterruptObserver = observeLiveRuntimeNativeVoiceInterrupt({
+    fixture,
+    conversationAnchorId: readyEvidence.conversation.conversationAnchorId,
+    prompt: interruptedPrompt,
+    existingVoiceStreamIds,
+    runtimeAuthBinding,
+    onReady: observerReady.resolve,
+  });
+  void runtimeInterruptObserver.catch((error) => observerReady.reject(error));
+  await promiseWithTimeout(
+    observerReady.promise,
+    15_000,
+    'Runtime native voice interrupt observer did not subscribe before submit',
+  );
+  await page.locator('[data-chat-composer-textarea="true"]').fill(interruptedPrompt, { timeout: 15_000 });
+  await page.waitForFunction(() =>
+    document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
+    && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false
+    && document.querySelector('[data-chat-composer-textarea="true"]')?.value.length > 0,
+    undefined,
+    { timeout: 15_000 },
+  );
+  await page.locator('[data-chat-composer-send="true"]').click({ timeout: 15_000 });
+  await waitForEvidence(page, ({ interruptedPrompt }) => {
+    const evidence = globalThis.window.__nimiZhiyuEvidence;
+    return evidence?.chat?.conversationAnchorId
+      && evidence?.chat?.messages?.some((message) => message?.text === interruptedPrompt)
+      && ['streaming', 'completed', 'failed'].includes(evidence?.chat?.state || '');
+  }, 'Runtime voice interrupt turn submitted through Zhiyu', { interruptedPrompt });
+  const runtimeInterrupt = await promiseWithTimeout(
+    runtimeInterruptObserver,
+    60_000,
+    'Runtime native voice interrupt observer/capture did not complete',
+  );
+  const {
+    nativeChunkEvent,
+    interruptRuntimeTurnId,
+    typedFirstChunk,
+    typedTerminalEvent,
+    interruptResponse,
+    voiceStreamId,
+  } = runtimeInterrupt;
+  assert.match(interruptRuntimeTurnId, /^agent_turn_/u, 'interrupt must target the Runtime public-chat turn id');
+  assert.equal(nativeChunkEvent.detail?.audioArtifactId || nativeChunkEvent.detail?.audio_artifact_id || null, null);
+  assert.match(
+    String(nativeChunkEvent.detail?.chunkTransportRef || nativeChunkEvent.detail?.chunk_transport_ref || ''),
+    new RegExp(escapeRegExp(voiceStreamId)),
+    'interrupt turn native chunk must point at transient stream transport',
+  );
+  assert.equal(typedFirstChunk.voiceStreamId, voiceStreamId);
+  assert.equal(typedFirstChunk.voiceOutputMode, VoiceOutputMode.NATIVE_STREAM);
+  assert.equal(typedFirstChunk.voicePlaybackState, VoicePlaybackState.ACTIVE);
+  assert.equal(typedFirstChunk.terminal, false);
+  assert.equal((typedFirstChunk.chunk?.byteLength ?? 0) > 0, true, 'typed voice stream must deliver playable non-final bytes before interrupt');
+  assert.equal(typedTerminalEvent.voiceStreamId, voiceStreamId);
+  assert.equal(typedTerminalEvent.voiceOutputMode, VoiceOutputMode.NATIVE_STREAM);
+  assert.equal(typedTerminalEvent.voicePlaybackState, VoicePlaybackState.INTERRUPTED);
+  assert.equal(typedTerminalEvent.terminalReason, 'zhiyu_electron_live_voice_interrupt');
+  assert.equal(interruptResponse.voiceStreamId, voiceStreamId);
+  assert.equal(interruptResponse.voiceOutputMode, VoiceOutputMode.NATIVE_STREAM);
+  assert.equal(interruptResponse.voicePlaybackState, VoicePlaybackState.INTERRUPTED);
+
+  await waitForEvidence(page, ({ interruptRuntimeTurnId, voiceStreamId }) => {
+    const evidence = globalThis.window.__nimiZhiyuEvidence;
+    const events = evidence?.chat?.diagnostics?.runtimeProjectionEvents ?? [];
+    const eventTurnId = (event) => String(
+      event?.runtimeTurnId
+        || event?.turnId
+        || event?.detail?.runtimeTurnId
+        || event?.detail?.turnId
+        || event?.detail?.turn_id
+        || '',
+    ).trim();
+    const terminal = events.find((event) =>
+      event?.eventName === 'runtime.agent.presentation.voice_playback_terminal'
+      && eventTurnId(event) === interruptRuntimeTurnId
+      && (event?.detail?.voiceStreamId || event?.detail?.voice_stream_id) === voiceStreamId
+    );
+    const finalPlaybackForInterruptedStream = events.some((event) =>
+      event?.eventName === 'runtime.agent.presentation.voice_playback_requested'
+      && (event?.detail?.voiceStreamId || event?.detail?.voice_stream_id) === voiceStreamId
+      && event?.detail?.finalArtifact === true
+    );
+    return terminal?.detail?.voiceOutputMode === 'native_stream'
+      && terminal?.detail?.voicePlaybackState === 'interrupted'
+      && terminal?.detail?.terminalReason === 'zhiyu_electron_live_voice_interrupt'
+      && !Boolean(terminal?.detail?.finalArtifactId || terminal?.detail?.final_artifact_id)
+      && finalPlaybackForInterruptedStream === false
+      && evidence?.companion?.voiceOutputMode === 'native_stream'
+      && evidence?.companion?.voicePlaybackState === 'interrupted'
+      && evidence?.companion?.voiceStreamId === voiceStreamId
+      && evidence?.companion?.projectedFields?.includes('voicePlaybackTerminal');
+  }, 'interrupted native voice terminal truth', { interruptRuntimeTurnId, voiceStreamId });
+
+  const interruptedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+  const terminalEvent = interruptedEvidence.chat.diagnostics.runtimeProjectionEvents.find((event) =>
+    event?.eventName === 'runtime.agent.presentation.voice_playback_terminal'
+    && runtimeProjectionEventTurnId(event) === interruptRuntimeTurnId
+    && (event?.detail?.voiceStreamId || event?.detail?.voice_stream_id) === voiceStreamId
+  );
+  assert.ok(terminalEvent, 'Runtime interrupt must project voice_playback_terminal');
+  assert.equal(terminalEvent.detail.voiceOutputMode, 'native_stream');
+  assert.equal(terminalEvent.detail.voicePlaybackState, 'interrupted');
+  assert.equal(terminalEvent.detail.terminalReason, 'zhiyu_electron_live_voice_interrupt');
+  assert.equal(terminalEvent.detail.finalArtifactId || terminalEvent.detail.final_artifact_id || null, null);
+  const voiceTool = page.locator('[data-zhiyu-composer-tool="hands-free"]').first();
+  await voiceTool.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-output-mode'), 'native_stream');
+  assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-playback-state'), 'interrupted');
+  assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-stream-id'), voiceStreamId);
+  assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-playback-target'), 'avatar_autoplay');
+  assert.equal(await voiceTool.isDisabled(), true, 'Runtime voice interrupt truth must not turn Zhiyu into a local playback controller');
+  const interruptedConversationText = await page.locator('[data-zhiyu-region="conversation"]').innerText();
+  assert.match(interruptedConversationText, /请开始一段会被 Runtime 中断的实时语音/);
+  await captureLiveRuntimeEvidence(page, 'voiceInterrupted', pageProblems, {
+    readyEvidence,
+    interruptedEvidence,
+    runtimeInterrupt: {
+      nativeChunkEvent,
+      typedFirstChunk: summarizeTypedVoiceStreamEvent(typedFirstChunk),
+      typedTerminalEvent: summarizeTypedVoiceStreamEvent(typedTerminalEvent),
+    },
+    interruptResponse,
+    voiceStreamId,
+    interruptRuntimeTurnId,
+  });
+}
+
 async function runCapabilityStudio(page, pageProblems, input) {
   const prompt = page.locator('textarea[aria-label="文字能力输入"]');
   await prompt.fill(input.prompt);
@@ -1230,4 +1567,413 @@ async function runCapabilityStudio(page, pageProblems, input) {
     capabilityStudioEvidence: evidence,
   });
   return evidence;
+}
+
+async function readZhiyuRuntimeAgentAuthBinding(page, readyEvidence) {
+  const binding = await page.evaluate(() => {
+    const host = globalThis.window?.__nimiZhiyuRuntimeAgentBinding
+      || globalThis.__nimiZhiyuRuntimeAgentBinding
+      || null;
+    const scopedBinding = typeof host?.getScopedBinding === 'function'
+      ? host.getScopedBinding()
+      : host?.scopedBinding;
+    const hostEquivalence = host?.hostEquivalence || null;
+    return JSON.parse(JSON.stringify({ scopedBinding: scopedBinding || null, hostEquivalence }));
+  });
+  const scopedBinding = binding?.scopedBinding;
+  const scopes = Array.isArray(scopedBinding?.scopes) ? scopedBinding.scopes : [];
+  if (
+    scopedBinding?.bindingId
+    && scopes.includes('runtime.agent.turn.read')
+    && scopes.includes('runtime.agent.turn.write')
+  ) {
+    return { kind: 'scopedBinding', bindingId: scopedBinding.bindingId };
+  }
+  const issued = await page.evaluate(async ({ readyEvidence }) => {
+    const invoke = globalThis.window?.__NIMI_ELECTRON_RUNTIME__?.invoke
+      || globalThis.window?.__NIMI_ELECTRON_TEST__?.invoke
+      || globalThis.__NIMI_ELECTRON_RUNTIME__?.invoke
+      || globalThis.__NIMI_ELECTRON_TEST__?.invoke
+      || null;
+    if (typeof invoke !== 'function') {
+      return { error: 'electron_runtime_invoke_unavailable' };
+    }
+    return invoke('zhiyu.runtimeAgent.issueScopedBinding', {
+      ownerUserId: readyEvidence?.conversation?.ownerUserId,
+      runtimeSourceRef: readyEvidence?.conversation?.runtimeSourceRef,
+      localAgentRef: readyEvidence?.conversation?.localAgentRef,
+      conversationAnchorId: readyEvidence?.conversation?.conversationAnchorId,
+      scopes: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
+      issueRequestId: `zhiyu-live-runtime-voice-interrupt:${Date.now()}`,
+      forceRenewal: true,
+    });
+  }, { readyEvidence });
+  const issuedScopedBinding = issued?.scopedBinding;
+  const issuedScopes = Array.isArray(issuedScopedBinding?.scopes) ? issuedScopedBinding.scopes : [];
+  if (
+    issuedScopedBinding?.bindingId
+    && issuedScopes.includes('runtime.agent.turn.read')
+    && issuedScopes.includes('runtime.agent.turn.write')
+  ) {
+    return { kind: 'scopedBinding', bindingId: issuedScopedBinding.bindingId };
+  }
+  const evidenceRef = String(binding?.hostEquivalence?.evidenceRef || '').trim();
+  if (evidenceRef) {
+    return { kind: 'hostEquivalence', evidenceRef };
+  }
+  assert.fail('Zhiyu live voice interrupt requires renderer Runtime scoped binding or admitted host equivalence');
+}
+
+async function observeLiveRuntimeNativeVoiceInterrupt(input) {
+  const agentClient = createZhiyuLiveRuntimeAgentClient(input.fixture);
+  const stream = await agentClient.subscribeEvents({
+    ownerUserId: input.fixture.ownerUserId,
+    runtimeSourceRef: input.fixture.runtimeSourceRef,
+    localAgentRef: input.fixture.localAgentRef,
+    conversationAnchorId: input.conversationAnchorId,
+    includeAgentEvents: true,
+  });
+  const iterator = stream[Symbol.asyncIterator]();
+  input.onReady?.();
+  const deadlineMs = Date.now() + 75_000;
+  const existingVoiceStreamIds = new Set(input.existingVoiceStreamIds || []);
+  let targetTurnId = '';
+  let targetStreamId = '';
+  let observedEvents = 0;
+  let observedNativeChunks = 0;
+  let skippedExistingNativeChunks = 0;
+  try {
+    for (;;) {
+      const next = await nextAsyncIteratorValue(iterator, deadlineMs, 'Runtime native voice interrupt observer');
+      if (next.done) {
+        break;
+      }
+      const event = next.value;
+      if (!event || typeof event !== 'object') {
+        continue;
+      }
+      observedEvents += 1;
+      if (event.eventName === 'runtime.agent.turn.accepted' && !targetTurnId && runtimeEventObservedAtOrAfter(event, input.notBeforeIso)) {
+        targetTurnId = String(event.turnId || '').trim();
+        targetStreamId = String(event.streamId || '').trim();
+        continue;
+      }
+      if (targetTurnId && event.turnId !== targetTurnId) {
+        continue;
+      }
+      if (!isRuntimeNativeNonFinalVoiceChunkEvent(event)) {
+        continue;
+      }
+      observedNativeChunks += 1;
+      const voiceStreamId = String(event.detail?.voiceStreamId || event.detail?.voice_stream_id || '').trim();
+      if (!voiceStreamId || existingVoiceStreamIds.has(voiceStreamId)) {
+        skippedExistingNativeChunks += 1;
+        continue;
+      }
+      targetTurnId = targetTurnId || String(event.turnId || '').trim();
+      targetStreamId = targetStreamId || String(event.streamId || '').trim();
+      if (!targetTurnId) {
+        continue;
+      }
+      const typed = await captureAndInterruptLiveRuntimeVoiceStream({
+        fixture: input.fixture,
+        conversationAnchorId: input.conversationAnchorId,
+        turnId: targetTurnId,
+        voiceStreamId,
+        runtimeAuthBinding: input.runtimeAuthBinding,
+      });
+      return {
+        nativeChunkEvent: event,
+        interruptRuntimeTurnId: targetTurnId,
+        interruptRuntimeStreamId: targetStreamId,
+        voiceStreamId,
+        ...typed,
+      };
+    }
+  } finally {
+    await iterator.return?.();
+  }
+  throw new Error(
+    `Runtime native voice interrupt observer ended before seeing a new native stream chunk for prompt ${JSON.stringify(input.prompt)}; `
+    + `events=${observedEvents} nativeChunks=${observedNativeChunks} skippedExistingNativeChunks=${skippedExistingNativeChunks} `
+    + `targetTurnId=${targetTurnId || '<none>'}`,
+  );
+}
+
+function createDeferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+function runtimeEventObservedAtOrAfter(event, notBeforeIso) {
+  if (!notBeforeIso) {
+    return true;
+  }
+  const observed = String(
+    event?.timeline?.observedAtWall
+      || event?.timeline?.observed_at_wall
+      || event?.observedAt
+      || event?.observed_at
+      || '',
+  ).trim();
+  if (!observed) {
+    return false;
+  }
+  const observedMs = Date.parse(observed);
+  const notBeforeMs = Date.parse(notBeforeIso);
+  return Number.isFinite(observedMs) && Number.isFinite(notBeforeMs) && observedMs >= notBeforeMs;
+}
+
+async function captureAndInterruptLiveRuntimeVoiceStream(input) {
+  const voice = createZhiyuLiveRuntimeAgentVoiceModule(input.fixture, input.runtimeAuthBinding);
+  const stream = await voice.subscribeStream({
+    ownerUserId: input.fixture.ownerUserId,
+    runtimeSourceRef: input.fixture.runtimeSourceRef,
+    localAgentRef: input.fixture.localAgentRef,
+    conversationAnchorId: input.conversationAnchorId,
+    turnId: input.turnId,
+    voiceStreamId: input.voiceStreamId,
+  });
+  const iterator = stream[Symbol.asyncIterator]();
+  const deadlineMs = Date.now() + 45_000;
+  try {
+    const first = await nextAsyncIteratorValue(iterator, deadlineMs, 'typed Runtime voice stream first chunk');
+    assert.equal(first.done, false, 'typed Runtime voice stream ended before first chunk');
+    const typedFirstChunk = first.value;
+    assert.equal(typedFirstChunk?.voiceStreamId, input.voiceStreamId);
+    assert.equal(typedFirstChunk?.terminal, false);
+    assert.equal((typedFirstChunk?.chunk?.byteLength ?? 0) > 0, true, 'typed Runtime voice stream must carry bytes in the non-final chunk');
+
+    const interruptResponse = await promiseWithTimeout(
+      interruptLiveRuntimeFixtureVoicePlayback(input.fixture, {
+        ownerUserId: input.fixture.ownerUserId,
+        runtimeSourceRef: input.fixture.runtimeSourceRef,
+        localAgentRef: input.fixture.localAgentRef,
+        conversationAnchorId: input.conversationAnchorId,
+        turnId: input.turnId,
+        voiceStreamId: input.voiceStreamId,
+        reason: 'zhiyu_electron_live_voice_interrupt',
+        runtimeAuthBinding: input.runtimeAuthBinding,
+      }),
+      10_000,
+      `Runtime voice interrupt RPC did not return for ${input.voiceStreamId}`,
+    );
+
+    for (;;) {
+      const next = await nextAsyncIteratorValue(iterator, deadlineMs, `typed Runtime voice stream interrupted terminal for ${input.voiceStreamId}`);
+      assert.equal(next.done, false, 'typed Runtime voice stream ended before interrupted terminal');
+      const event = next.value;
+      if (!event?.terminal) {
+        continue;
+      }
+      return {
+        typedFirstChunk,
+        typedTerminalEvent: event,
+        interruptResponse,
+      };
+    }
+  } finally {
+    await iterator.return?.();
+  }
+}
+
+function createZhiyuLiveRuntimeAgentClient(fixture) {
+  const runtime = createRuntimeForEndpoint(fixture.endpoint, zhiyuRuntimeVoiceObserverAppId);
+  return createNimiRuntimeAgentClient({
+    runtime: {
+      appId: zhiyuRuntimeVoiceObserverAppId,
+      auth: runtime.auth,
+      appAuth: runtime.grants,
+      agents: runtime.agents,
+      appMessages: runtime.appMessages,
+    },
+    appId: zhiyuRuntimeVoiceObserverAppId,
+    getSubjectUserId: () => fixture.ownerUserId,
+    withScopes: createZhiyuLiveRuntimeScopeRunner(fixture, runtime),
+  });
+}
+
+function createZhiyuLiveRuntimeAgentVoiceModule(fixture, runtimeAuthBinding) {
+  const runtime = createRuntimeForEndpoint(fixture.endpoint, zhiyuAppId);
+  return createNimiRuntimeAgentVoiceModule({
+    runtime: {
+      appId: zhiyuAppId,
+      auth: runtime.auth,
+      appAuth: runtime.grants,
+      agents: runtime.agents,
+      artifacts: runtime.artifacts,
+    },
+    getSubjectUserId: () => fixture.ownerUserId,
+    withScopes: createZhiyuRuntimeAuthBindingScopeRunner(runtimeAuthBinding),
+  });
+}
+
+function createZhiyuRuntimeAuthBindingScopeRunner(runtimeAuthBinding) {
+  return async (_scopes, operation) => operation({
+    metadata: zhiyuRuntimeAuthBindingMetadata(runtimeAuthBinding),
+  });
+}
+
+function createZhiyuLiveRuntimeScopeRunner(fixture, runtime) {
+  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
+    appId: zhiyuRuntimeVoiceObserverAppId,
+    appInstanceId: zhiyuRuntimeVoiceObserverAppInstanceId,
+    deviceId: 'nimi-zhiyu-live-runtime-voice-observer-device',
+    appVersion: 'zhiyu-electron-live-runtime-acceptance',
+    developerRegistration: false,
+    capabilities: zhiyuRuntimeProtectedScopes,
+    auth: runtime.auth,
+  });
+  return (scopes, operation) =>
+    withNimiRuntimeAgentScopes({
+      runtime: {
+        appId: zhiyuRuntimeVoiceObserverAppId,
+        auth: runtime.auth,
+        appAuth: runtime.grants,
+      },
+      subjectUserId: fixture.ownerUserId,
+    }, scopes, async (callOptions) => {
+      const metadata = await sessionMetadata();
+      return operation({
+        ...callOptions,
+        metadata: {
+          ...metadata,
+          ...(callOptions.metadata ?? {}),
+        },
+      });
+    });
+}
+
+function isRuntimeNativeNonFinalVoiceChunkEvent(event) {
+  return event?.eventName === 'runtime.agent.presentation.voice_stream_chunk_available'
+    && event?.detail?.voiceOutputMode === 'native_stream'
+    && event?.detail?.voicePlaybackState === 'active'
+    && event?.detail?.finalChunk === false
+    && Boolean(event?.detail?.voiceStreamId || event?.detail?.voice_stream_id)
+    && Boolean(event?.detail?.chunkTransportRef || event?.detail?.chunk_transport_ref)
+    && !Boolean(event?.detail?.audioArtifactId || event?.detail?.audio_artifact_id);
+}
+
+async function nextAsyncIteratorValue(iterator, deadlineMs, label) {
+  const remainingMs = Math.max(0, deadlineMs - Date.now());
+  if (remainingMs <= 0) {
+    throw new Error(`${label} timed out`);
+  }
+  let timeout = null;
+  try {
+    return await Promise.race([
+      iterator.next(),
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`${label} timed out`)), remainingMs);
+        timeout.unref?.();
+      }),
+    ]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+async function promiseWithTimeout(promise, timeoutMs, label) {
+  let timeout = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`${label} within ${timeoutMs}ms`)), timeoutMs);
+        timeout.unref?.();
+      }),
+    ]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+function summarizeTypedVoiceStreamEvent(event) {
+  return {
+    voiceStreamId: event?.voiceStreamId || '',
+    conversationAnchorId: event?.conversationAnchorId || '',
+    turnId: event?.turnId || '',
+    streamId: event?.streamId || '',
+    messageId: event?.messageId || '',
+    chunkSequence: Number(event?.chunkSequence ?? 0),
+    byteLength: Number(event?.chunk?.byteLength ?? 0),
+    mimeType: event?.mimeType || '',
+    voiceOutputMode: event?.voiceOutputMode,
+    voicePlaybackState: event?.voicePlaybackState,
+    terminal: event?.terminal === true,
+    terminalReason: event?.terminalReason || '',
+    replayTruncated: event?.replayTruncated === true,
+  };
+}
+
+async function readLiveRuntimeFixtureArtifactBytes(fixture, artifactId) {
+  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
+    appId: desktopAppId,
+    appInstanceId: `${desktopAppId}.live-runtime`,
+    deviceId: 'nimi-desktop-live-runtime-device',
+    appVersion: 'zhiyu-electron-live-runtime-acceptance',
+    developerRegistration: false,
+    auth: fixture.runtime.auth,
+  });
+  return fixture.runtime.artifacts.readArtifactBytes({ artifactId }, {
+    metadata: await sessionMetadata(),
+  });
+}
+
+async function interruptLiveRuntimeFixtureVoicePlayback(fixture, input) {
+  const runtime = createRuntimeForEndpoint(fixture.endpoint, zhiyuAppId);
+  const idempotencyKey = `zhiyu-live-runtime-voice-interrupt:${input.voiceStreamId}`;
+  return runtime.agents.interruptAgentVoicePlayback({
+    context: {
+      appId: zhiyuAppId,
+      subjectUserId: input.ownerUserId,
+      ownerUserId: input.ownerUserId,
+      runtimeSourceRef: input.runtimeSourceRef,
+      localAgentRef: input.localAgentRef,
+    },
+    conversationAnchorId: input.conversationAnchorId,
+    turnId: input.turnId,
+    voiceStreamId: input.voiceStreamId,
+    reason: input.reason,
+  }, {
+    metadata: {
+      ...zhiyuRuntimeAuthBindingMetadata(input.runtimeAuthBinding),
+      idempotencyKey,
+      'x-nimi-idempotency-key': idempotencyKey,
+    },
+  });
+}
+
+function zhiyuRuntimeAuthBindingMetadata(runtimeAuthBinding) {
+  if (runtimeAuthBinding?.kind === 'scopedBinding') {
+    const bindingId = String(runtimeAuthBinding.bindingId || '').trim();
+    assert.ok(bindingId, 'Zhiyu Runtime scoped binding id is required for owner-app voice operations');
+    return { 'x-nimi-runtime-scoped-binding-id': bindingId };
+  }
+  if (runtimeAuthBinding?.kind === 'hostEquivalence') {
+    const evidenceRef = String(runtimeAuthBinding.evidenceRef || '').trim();
+    assert.ok(evidenceRef, 'Zhiyu Runtime host equivalence evidence is required for owner-app voice operations');
+    return { 'x-nimi-runtime-host-equivalence': evidenceRef };
+  }
+  assert.fail('Zhiyu Runtime auth binding is required for owner-app voice operations');
+}
+
+function runtimeProjectionEventTurnId(event) {
+  return String(
+    event?.runtimeTurnId
+      || event?.turnId
+      || event?.detail?.runtimeTurnId
+      || event?.detail?.turnId
+      || event?.detail?.turn_id
+      || '',
+  ).trim();
 }

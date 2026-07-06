@@ -45,7 +45,17 @@ export async function assertAppearanceConfigParity(page, importedAvatarAsset) {
   await page.locator('[data-zhiyu-agent-panel-tab="appearance"]').waitFor({ timeout: 15_000 });
   const panel = page.locator('[data-zhiyu-agent-appearance-panel="true"]');
   await panel.waitFor({ timeout: 15_000 });
-  assert.equal(await panel.getAttribute('data-zhiyu-avatar-appearance-ready'), 'true');
+  await page.waitForFunction(() =>
+    document.querySelector('[data-zhiyu-agent-appearance-panel="true"]')
+      ?.getAttribute('data-zhiyu-avatar-appearance-ready') === 'true',
+    undefined,
+    { timeout: 15_000 },
+  );
+  assert.equal(
+    await panel.getAttribute('data-zhiyu-avatar-appearance-ready'),
+    'true',
+    'Appearance panel must project the imported Avatar local asset before parity assertions continue',
+  );
   const layout = await page.evaluate(() => {
     const sideSheet = document.querySelector('[data-zhiyu-region="agent-panel"]');
     const tabButtons = Array.from(document.querySelectorAll('[data-zhiyu-agent-center-tab-button]'));

@@ -79,6 +79,12 @@ export function projectZhiyuCompanionFromRuntimeAgentEvent(input: {
   const observedAt = normalizeText(input.observedAt) || new Date().toISOString();
   const statusText = projection.statusText || input.current.statusText;
   const executionState = projection.executionState || input.current.executionState;
+  const voiceOutputMode = projection.voiceOutputMode || input.current.voiceOutputMode;
+  const voicePlaybackState = projection.voicePlaybackState || input.current.voicePlaybackState;
+  const voiceAudioArtifactId = projection.voiceAudioArtifactId || input.current.voiceAudioArtifactId;
+  const voiceAudioMimeType = projection.voiceAudioMimeType || input.current.voiceAudioMimeType;
+  const voicePlaybackTarget = projection.voicePlaybackTarget || input.current.voicePlaybackTarget;
+  const voiceStreamId = projection.voiceStreamId || input.current.voiceStreamId;
   const currentEmotion = projection.currentEmotion || input.current.currentEmotion;
   const activeWorldId = projection.activeWorldId || input.current.activeWorldId;
   const activeUserId = projection.activeUserId || input.current.activeUserId;
@@ -88,6 +94,12 @@ export function projectZhiyuCompanionFromRuntimeAgentEvent(input: {
     ...projection.projectedFields,
     statusText ? 'statusText' : '',
     executionState ? 'executionState' : '',
+    voiceOutputMode ? 'voiceOutputMode' : '',
+    voicePlaybackState ? 'voicePlaybackState' : '',
+    voiceAudioArtifactId ? 'voiceAudioArtifactId' : '',
+    voiceAudioMimeType ? 'voiceAudioMimeType' : '',
+    voicePlaybackTarget ? 'voicePlaybackTarget' : '',
+    voiceStreamId ? 'voiceStreamId' : '',
     currentEmotion ? 'currentEmotion' : '',
     activeWorldId ? 'activeWorldId' : '',
     activeUserId ? 'activeUserId' : '',
@@ -108,6 +120,12 @@ export function projectZhiyuCompanionFromRuntimeAgentEvent(input: {
     stateUpdatedAt: observedAt,
     executionState,
     statusText,
+    voiceOutputMode,
+    voicePlaybackState,
+    voiceAudioArtifactId,
+    voiceAudioMimeType,
+    voicePlaybackTarget,
+    voiceStreamId,
     activeWorldId,
     activeUserId,
     currentEmotion,
@@ -117,11 +135,41 @@ export function projectZhiyuCompanionFromRuntimeAgentEvent(input: {
   };
 }
 
+export function projectZhiyuCompanionFromRuntimeProjectionEvents(input: {
+  readonly current: ZhiyuCompanionStatus;
+  readonly chat: ZhiyuAgentChatStatus;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly observedAt?: string;
+}): ZhiyuCompanionStatus {
+  const events = runtimeProjectionEventsFromChat(input.chat);
+  if (events.length === 0) {
+    return input.current;
+  }
+  let companion = input.current;
+  for (const event of events) {
+    companion = projectZhiyuCompanionFromRuntimeAgentEvent({
+      current: companion,
+      event,
+      ownerUserId: input.ownerUserId,
+      runtimeSourceRef: input.runtimeSourceRef,
+      observedAt: input.observedAt,
+    });
+  }
+  return companion;
+}
+
 type CompanionEventProjection = {
   readonly reasonCode: string;
   readonly message: string;
   readonly executionState: string | null;
   readonly statusText: string | null;
+  readonly voiceOutputMode?: string | null;
+  readonly voicePlaybackState?: string | null;
+  readonly voiceAudioArtifactId?: string | null;
+  readonly voiceAudioMimeType?: string | null;
+  readonly voicePlaybackTarget?: string | null;
+  readonly voiceStreamId?: string | null;
   readonly activeWorldId: string | null;
   readonly activeUserId: string | null;
   readonly currentEmotion: string | null;
@@ -157,6 +205,7 @@ function projectRuntimeAgentCompanionEvent(
   if (
     eventName === 'runtime.agent.presentation.voice_playback_requested'
     || eventName === 'runtime.agent.presentation.voice_stream_chunk_available'
+    || eventName === 'runtime.agent.presentation.voice_playback_terminal'
   ) {
     return projectRuntimeAgentVoiceEvent(eventName, detail, current);
   }
@@ -233,27 +282,47 @@ function projectRuntimeAgentVoiceEvent(
   detail: Record<string, unknown>,
   current: ZhiyuCompanionStatus,
 ): CompanionEventProjection {
-  const playbackState = detailText(detail, 'playbackState', 'playback_state') || 'streaming';
+  const isTerminal = eventName.endsWith('voice_playback_terminal');
+  const playbackState = detailText(detail, 'playbackState', 'playback_state')
+    || detailText(detail, 'voicePlaybackState', 'voice_playback_state')
+    || 'streaming';
   const isChunk = eventName.endsWith('voice_stream_chunk_available');
+  const voiceOutputMode = detailText(detail, 'voiceOutputMode', 'voice_output_mode');
+  const voicePlaybackState = detailText(detail, 'voicePlaybackState', 'voice_playback_state');
+  const voiceAudioArtifactId = detailText(detail, 'audioArtifactId', 'audio_artifact_id', 'finalArtifactId', 'final_artifact_id');
+  const voiceAudioMimeType = detailText(detail, 'audioMimeType', 'audio_mime_type');
+  const voicePlaybackTarget = detailText(detail, 'playbackTarget', 'playback_target');
+  const voiceStreamId = detailText(detail, 'voiceStreamId', 'voice_stream_id');
   return runtimeProjection({
     reasonCode: 'runtime-agent-presentation-voice-event-projected',
     message: 'Runtime Agent presentation voice event was projected through SDK event subscription.',
-    executionState: isChunk ? 'voice_stream_chunk_available' : `voice_${playbackState}`,
+    executionState: isTerminal ? `voice_${playbackState}` : (isChunk ? 'voice_stream_chunk_available' : `voice_${playbackState}`),
     statusText: firstText([
-      detailText(detail, 'playbackTarget', 'playback_target'),
+      voicePlaybackTarget,
+      voiceOutputMode,
       detailText(detail, 'defaultVoiceReference', 'default_voice_reference'),
       detailText(detail, 'reason'),
-      detailText(detail, 'audioMimeType', 'audio_mime_type'),
+      voiceAudioMimeType,
       current.statusText,
     ]),
     current,
     projectedFields: [
       isChunk ? 'voiceStreamChunk' : 'voicePlayback',
-      detailText(detail, 'audioArtifactId', 'audio_artifact_id') ? 'audioArtifactId' : '',
-      detailText(detail, 'audioMimeType', 'audio_mime_type') ? 'audioMimeType' : '',
-      detailText(detail, 'playbackTarget', 'playback_target') ? 'playbackTarget' : '',
+      isTerminal ? 'voicePlaybackTerminal' : '',
+      voiceStreamId ? 'voiceStreamId' : '',
+      voiceAudioArtifactId ? 'audioArtifactId' : '',
+      voiceAudioMimeType ? 'audioMimeType' : '',
+      voicePlaybackTarget ? 'playbackTarget' : '',
+      voiceOutputMode ? 'voiceOutputMode' : '',
+      voicePlaybackState ? 'voicePlaybackState' : '',
       detailRecord(detail, 'voiceRouteBinding', 'voice_route_binding') ? 'voiceRouteBinding' : '',
     ],
+    voiceOutputMode,
+    voicePlaybackState,
+    voiceAudioArtifactId,
+    voiceAudioMimeType,
+    voicePlaybackTarget,
+    voiceStreamId,
   });
 }
 
@@ -334,6 +403,12 @@ function runtimeProjection(input: {
   readonly executionState: string | null;
   readonly statusText: string | null;
   readonly currentEmotion?: string | null;
+  readonly voiceOutputMode?: string | null;
+  readonly voicePlaybackState?: string | null;
+  readonly voiceAudioArtifactId?: string | null;
+  readonly voiceAudioMimeType?: string | null;
+  readonly voicePlaybackTarget?: string | null;
+  readonly voiceStreamId?: string | null;
   readonly current: ZhiyuCompanionStatus;
   readonly projectedFields: readonly string[];
 }): CompanionEventProjection {
@@ -345,8 +420,64 @@ function runtimeProjection(input: {
     activeWorldId: input.current.activeWorldId,
     activeUserId: input.current.activeUserId,
     currentEmotion: input.currentEmotion ?? input.current.currentEmotion,
+    voiceOutputMode: input.voiceOutputMode ?? input.current.voiceOutputMode,
+    voicePlaybackState: input.voicePlaybackState ?? input.current.voicePlaybackState,
+    voiceAudioArtifactId: input.voiceAudioArtifactId ?? input.current.voiceAudioArtifactId,
+    voiceAudioMimeType: input.voiceAudioMimeType ?? input.current.voiceAudioMimeType,
+    voicePlaybackTarget: input.voicePlaybackTarget ?? input.current.voicePlaybackTarget,
+    voiceStreamId: input.voiceStreamId ?? input.current.voiceStreamId,
     projectedFields: input.projectedFields,
   };
+}
+
+function runtimeProjectionEventsFromChat(chat: ZhiyuAgentChatStatus): NimiRuntimeAgentConsumeEvent[] {
+  const events: NimiRuntimeAgentConsumeEvent[] = [];
+  const addEvents = (value: unknown) => {
+    if (!Array.isArray(value)) {
+      return;
+    }
+    for (const item of value) {
+      const event = runtimeProjectionEventFromUnknown(item, chat);
+      if (event) {
+        events.push(event);
+      }
+    }
+  };
+  if (isRecord(chat.diagnostics)) {
+    addEvents(chat.diagnostics.runtimeProjectionEvents);
+  }
+  for (const message of chat.messages) {
+    if (isRecord(message.metadata)) {
+      addEvents(message.metadata.runtimeProjectionEvents);
+    }
+  }
+  return events;
+}
+
+function runtimeProjectionEventFromUnknown(
+  value: unknown,
+  chat: ZhiyuAgentChatStatus,
+): NimiRuntimeAgentConsumeEvent | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const eventName = normalizeText(value.eventName);
+  const detail = isRecord(value.detail) ? value.detail : null;
+  if (!eventName || !detail) {
+    return null;
+  }
+  const localAgentRef = normalizeText(value.localAgentRef) || normalizeText(chat.localAgentRef);
+  if (!localAgentRef) {
+    return null;
+  }
+  return {
+    eventName,
+    localAgentRef,
+    conversationAnchorId: normalizeText(value.conversationAnchorId) || normalizeText(chat.conversationAnchorId),
+    turnId: normalizeText(value.runtimeTurnId) || normalizeText(value.turnId),
+    streamId: normalizeText(value.runtimeStreamId) || normalizeText(value.streamId),
+    detail,
+  } as NimiRuntimeAgentConsumeEvent;
 }
 
 function transcriptHasReplayEnvelope(
@@ -510,4 +641,8 @@ function uniqueTexts(values: readonly string[]): string[] {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }

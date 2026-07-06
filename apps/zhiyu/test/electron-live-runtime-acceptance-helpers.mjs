@@ -201,6 +201,11 @@ export async function captureLiveRuntimeEvidence(page, stage, pageProblems, evid
       narrow: 'live-runtime-agent-chat-completed-narrow.png',
       evidence: 'live-runtime-agent-chat-completed-evidence.json',
     },
+    voiceInterrupted: {
+      desktop: 'live-runtime-agent-voice-interrupted-desktop.png',
+      narrow: 'live-runtime-agent-voice-interrupted-narrow.png',
+      evidence: 'live-runtime-agent-voice-interrupted-evidence.json',
+    },
     actionArtifact: {
       desktop: 'live-runtime-action-artifact-desktop.png',
       narrow: 'live-runtime-action-artifact-narrow.png',
@@ -369,6 +374,9 @@ async function capturePanelScreenshots(page, stage, evidenceRoot) {
     ],
     chatFailed: [
       ['[data-zhiyu-region="conversation"]', 'live-runtime-agent-chat-failed-panel.png'],
+    ],
+    voiceInterrupted: [
+      ['[data-zhiyu-region="conversation"]', 'live-runtime-agent-voice-interrupted-panel.png'],
     ],
     actionArtifact: [
       ['[data-zhiyu-region="conversation"]', 'live-runtime-action-artifact-panel.png'],

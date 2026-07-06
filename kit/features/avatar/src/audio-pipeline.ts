@@ -59,6 +59,13 @@ export type AudioPipelinePlayInput = {
   durationMs?: number;
 };
 
+export type AudioPipelinePlayBytesInput = {
+  audioSourceId: string;
+  audioMimeType: string;
+  bytes: Uint8Array | ArrayBuffer;
+  durationMs?: number;
+};
+
 export type AudioPipelineListener = (snapshot: AudioPlaybackSnapshot) => void;
 
 type AudioPipelineLogger = Pick<typeof console, 'warn' | 'error'>;
@@ -247,6 +254,87 @@ export class AudioPipelineController {
       return;
     }
 
+    await this.startDecodedAudio({
+      playId,
+      audioArtifactId,
+      audioMimeType,
+      bytes: result.bytes,
+      logFields: { audio_artifact_id: audioArtifactId },
+    });
+  }
+
+  async playBytes(input: AudioPipelinePlayBytesInput): Promise<void> {
+    const audioArtifactId = input.audioSourceId.trim();
+    const audioMimeType = input.audioMimeType.trim();
+    const audioMimeTypeKey = audioMimeType.toLowerCase();
+    if (!audioArtifactId || !audioMimeType) {
+      this.sink?.silent();
+      this.publish({
+        state: 'failed',
+        audioArtifactId: audioArtifactId || null,
+        audioMimeType: audioMimeType || null,
+        reason: 'missing_audio_identity',
+      });
+      return;
+    }
+
+    this.cancelCurrentSource();
+    const playId = ++this.playId;
+
+    this.publish({
+      state: 'requested',
+      audioArtifactId,
+      audioMimeType,
+      reason: null,
+    });
+
+    if (audioMimeTypeKey === SYNTHETIC_AUDIO_MIME_TYPE) {
+      this.logger.warn('synthetic_audio_no_playback_no_lipsync', {
+        audio_source_id: audioArtifactId,
+        audio_mime_type: audioMimeType,
+      });
+      this.sink?.silent();
+      this.publish({
+        state: 'completed',
+        audioArtifactId,
+        audioMimeType,
+        reason: 'synthetic_audio_no_playback',
+      });
+      return;
+    }
+
+    if (!isPlayableMimeType(audioMimeTypeKey)) {
+      this.logger.warn('unsupported_audio_mime_type', {
+        audio_source_id: audioArtifactId,
+        audio_mime_type: audioMimeType,
+      });
+      this.sink?.silent();
+      this.publish({
+        state: 'failed',
+        audioArtifactId,
+        audioMimeType,
+        reason: 'unsupported_mime',
+      });
+      return;
+    }
+
+    await this.startDecodedAudio({
+      playId,
+      audioArtifactId,
+      audioMimeType,
+      bytes: input.bytes,
+      logFields: { audio_source_id: audioArtifactId },
+    });
+  }
+
+  private async startDecodedAudio(input: {
+    playId: number;
+    audioArtifactId: string;
+    audioMimeType: string;
+    bytes: Uint8Array | ArrayBuffer;
+    logFields: Record<string, string>;
+  }): Promise<void> {
+    const { playId, audioArtifactId, audioMimeType } = input;
     const context = this.ensureContext();
     if (!context) {
       this.sink?.silent();
@@ -261,10 +349,10 @@ export class AudioPipelineController {
 
     let buffer: AudioBuffer;
     try {
-      buffer = await context.decodeAudioData(arrayBufferFromBytes(result.bytes));
+      buffer = await context.decodeAudioData(arrayBufferFromBytes(input.bytes));
     } catch (err) {
       this.logger.warn('audio_decode_failed', {
-        audio_artifact_id: audioArtifactId,
+        ...input.logFields,
         error: errorMessage(err),
       });
       if (this.playId !== playId) return;
@@ -300,7 +388,7 @@ export class AudioPipelineController {
       source.start();
     } catch (err) {
       this.logger.warn('audio_start_failed', {
-        audio_artifact_id: audioArtifactId,
+        ...input.logFields,
         error: errorMessage(err),
       });
       this.currentSource = null;
@@ -327,7 +415,7 @@ export class AudioPipelineController {
       // playback continues unimpeded.
       void this.sink.attachAudioSource(source, context).catch((err) => {
         this.logger.warn('audio_sink_attach_failed', {
-          audio_artifact_id: audioArtifactId,
+          ...input.logFields,
           error: errorMessage(err),
         });
         this.sink?.silent();
@@ -392,7 +480,10 @@ function isPlayableMimeType(mime: string): boolean {
   return PLAYABLE_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix));
 }
 
-function arrayBufferFromBytes(bytes: Uint8Array): ArrayBuffer {
+function arrayBufferFromBytes(bytes: Uint8Array | ArrayBuffer): ArrayBuffer {
+  if (bytes instanceof ArrayBuffer) {
+    return bytes.slice(0);
+  }
   const copy = new Uint8Array(bytes.byteLength);
   copy.set(bytes);
   return copy.buffer;

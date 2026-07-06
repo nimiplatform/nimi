@@ -1,5 +1,6 @@
 import type {
   NimiRuntimeAgentConsumeClient,
+  NimiRuntimeAgentVoiceModule,
   NimiRuntimeAgentScopeRunner,
 } from '@nimiplatform/sdk/runtime';
 import type { RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
@@ -49,6 +50,7 @@ function errorMessage(error: unknown): string {
 
 export type SdkDriverOptions = {
   runtimeAgent: NimiRuntimeAgentConsumeClient;
+  runtimeVoice?: Pick<NimiRuntimeAgentVoiceModule, 'subscribeStream'>;
   withScopes?: NimiRuntimeAgentScopeRunner;
   ownerUserId: string;
   runtimeSourceRef: string;
@@ -67,6 +69,7 @@ export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
   private readonly runtimeAgent: NimiRuntimeAgentConsumeClient;
+  private readonly runtimeVoice?: Pick<NimiRuntimeAgentVoiceModule, 'subscribeStream'>;
   private readonly withScopes?: NimiRuntimeAgentScopeRunner;
   private readonly ownerUserId: string;
   private readonly runtimeSourceRef: string;
@@ -81,11 +84,13 @@ export class SdkDriver implements AgentDataDriver {
   private readonly cursorInfo: () => { x: number; y: number };
   private readonly bus = createEventBus<InternalEvents>();
   private streamAbort: AbortController | null = null;
+  private readonly nativeVoiceStreamSubscriptions = new Set<string>();
   private bundle: AgentDataBundle;
   private lastError: string | null = null;
 
   constructor(options: SdkDriverOptions) {
     this.runtimeAgent = options.runtimeAgent;
+    this.runtimeVoice = options.runtimeVoice;
     this.withScopes = options.withScopes;
     this.ownerUserId = options.ownerUserId;
     this.runtimeSourceRef = options.runtimeSourceRef;
@@ -167,6 +172,7 @@ export class SdkDriver implements AgentDataDriver {
     this.setStatus('stopping');
     this.streamAbort?.abort();
     this.streamAbort = null;
+    this.nativeVoiceStreamSubscriptions.clear();
     this.setStatus('stopped');
   }
 
@@ -672,6 +678,8 @@ export class SdkDriver implements AgentDataDriver {
       case 'runtime.agent.presentation.lookat_requested':
       case 'runtime.agent.presentation.voice_playback_requested':
       case 'runtime.agent.presentation.voice_stream_chunk_available':
+        this.startNativeVoiceStreamSubscription(event);
+        break;
       case 'runtime.agent.hook.intent_proposed':
       case 'runtime.agent.hook.pending':
       case 'runtime.agent.hook.rejected':
@@ -687,6 +695,107 @@ export class SdkDriver implements AgentDataDriver {
     this.touchRuntimeNow();
     this.publishBundle();
     this.emitAgentEvent(this.toPassthroughAgentEvent(event));
+  }
+
+  private startNativeVoiceStreamSubscription(event: RuntimeAgentConsumeEvent): void {
+    if (!this.runtimeVoice || event.eventName !== 'runtime.agent.presentation.voice_stream_chunk_available') {
+      return;
+    }
+    const detail = event.detail as Record<string, unknown>;
+    if (detail.finalChunk === true || detail.final_chunk === true) {
+      return;
+    }
+    if (optionalRuntimeDetailText(detail.audioArtifactId) || optionalRuntimeDetailText(detail.audio_artifact_id)) {
+      return;
+    }
+    const voiceStreamId = optionalRuntimeDetailText(detail.voiceStreamId)
+      ?? optionalRuntimeDetailText(detail.voice_stream_id);
+    if (!voiceStreamId || this.nativeVoiceStreamSubscriptions.has(voiceStreamId)) {
+      return;
+    }
+    const playbackTarget = optionalRuntimeDetailText(detail.playbackTarget)
+      ?? optionalRuntimeDetailText(detail.playback_target);
+    if (playbackTarget !== 'avatar_autoplay') {
+      return;
+    }
+    const abortController = this.streamAbort;
+    if (!abortController || abortController.signal.aborted) {
+      return;
+    }
+    this.nativeVoiceStreamSubscriptions.add(voiceStreamId);
+    void this.consumeNativeVoiceStream({
+      voiceStreamId,
+      conversationAnchorId: event.conversationAnchorId,
+      turnId: event.turnId,
+      streamId: event.streamId,
+      playbackTarget,
+      fallbackMimeType: optionalRuntimeDetailText(detail.audioMimeType)
+        ?? optionalRuntimeDetailText(detail.audio_mime_type)
+        ?? 'audio/wav',
+      runtimeTimeline: normalizeRuntimeTimelineForAvatar(event),
+      abortController,
+    }).finally(() => {
+      this.nativeVoiceStreamSubscriptions.delete(voiceStreamId);
+    });
+  }
+
+  private async consumeNativeVoiceStream(input: {
+    voiceStreamId: string;
+    conversationAnchorId: string;
+    turnId: string;
+    streamId: string;
+    playbackTarget: string;
+    fallbackMimeType: string;
+    runtimeTimeline: ReturnType<typeof normalizeRuntimeTimelineForAvatar>;
+    abortController: AbortController;
+  }): Promise<void> {
+    try {
+      const stream = await this.runtimeVoice?.subscribeStream({
+        ownerUserId: this.ownerUserId,
+        runtimeSourceRef: this.runtimeSourceRef,
+        localAgentRef: this.localAgentRef,
+        conversationAnchorId: input.conversationAnchorId,
+        turnId: input.turnId,
+        voiceStreamId: input.voiceStreamId,
+      }, { signal: input.abortController.signal });
+      if (!stream) {
+        return;
+      }
+      for await (const event of stream) {
+        if (input.abortController.signal.aborted) {
+          return;
+        }
+        if (event.terminal) {
+          return;
+        }
+        const bytes = bytesFromRuntimeVoiceChunk(event.chunk);
+        if (!bytes || bytes.byteLength === 0) {
+          continue;
+        }
+        this.emitAgentEvent(toRuntimeAgentEvent('avatar.speak.native_audio_chunk', {
+          voice_stream_id: event.voiceStreamId || input.voiceStreamId,
+          chunk_sequence: event.chunkSequence ?? 0,
+          audio_mime_type: event.mimeType || input.fallbackMimeType,
+          playback_target: event.playbackTarget || input.playbackTarget,
+          turn_id: event.turnId || input.turnId,
+          stream_id: event.streamId || input.streamId,
+          chunk_bytes: bytes,
+          ...(input.runtimeTimeline ? { runtime_timeline: input.runtimeTimeline } : {}),
+        }, this.now()));
+      }
+    } catch (error) {
+      if (input.abortController.signal.aborted) {
+        return;
+      }
+      this.lastError = errorMessage(error);
+      this.emitAgentEvent(toRuntimeAgentEvent('avatar.speak.native_audio_stream_failed', {
+        voice_stream_id: input.voiceStreamId,
+        turn_id: input.turnId,
+        stream_id: input.streamId,
+        reason: this.lastError,
+        ...(input.runtimeTimeline ? { runtime_timeline: input.runtimeTimeline } : {}),
+      }, this.now()));
+    }
   }
 
   private toPassthroughAgentEvent(event: RuntimeAgentConsumeEvent): AgentEvent {
@@ -706,4 +815,17 @@ export class SdkDriver implements AgentDataDriver {
   private emitAgentEvent(event: AgentEvent): void {
     this.bus.emit('agent-event', event);
   }
+}
+
+function bytesFromRuntimeVoiceChunk(value: unknown): Uint8Array | null {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  if (value instanceof ArrayBuffer) {
+    return new Uint8Array(value);
+  }
+  if (Array.isArray(value)) {
+    return new Uint8Array(value);
+  }
+  return null;
 }

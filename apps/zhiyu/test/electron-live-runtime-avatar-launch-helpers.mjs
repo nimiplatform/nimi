@@ -4,6 +4,7 @@ import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
   AgentPresentationBackendKind,
+  RoutePolicy,
 } from '../../../sdks/typescript/core-generated/runtime-typed-client.ts';
 import {
   buildRuntimeAgentRequestContext,
@@ -52,7 +53,10 @@ export async function seedLiveRuntimeAvatarPresentationProfile(fixture) {
           expressionProfileRef: 'expression://runtime-live/calm',
           idlePreset: 'idle-soft',
           interactionPolicyRef: 'policy://runtime-live/ambient',
-          defaultVoiceReference: 'preset_voice_id:runtime-live-voice',
+          defaultVoiceReference: fixture.voiceAsset.defaultVoiceReference,
+          avatarAutoplay: true,
+          speechModelId: fixture.voiceRoute.executionBinding.modelId,
+          speechRoutePolicy: RoutePolicy.CLOUD,
         },
       },
     },
@@ -98,8 +102,25 @@ export async function importLiveRuntimeAvatarFixtureAsset(page, evidence) {
   };
 }
 
-export async function assertAvatarLaunchLiveHandoff(page, fixture, dataRoot, pageProblems, readyEvidence, importedAvatarAsset) {
+export async function assertAvatarLaunchLiveHandoff(
+  page,
+  fixture,
+  dataRoot,
+  pageProblems,
+  readyEvidence,
+  importedAvatarAsset,
+  options = {},
+) {
   let launchPid = null;
+  let handoffSucceeded = false;
+  let avatarProcessClosed = false;
+  const closeAvatarProcess = async () => {
+    if (avatarProcessClosed) {
+      return;
+    }
+    avatarProcessClosed = true;
+    await closeSpawnedAvatarProcess(launchPid);
+  };
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.locator('[data-zhiyu-composer-tool="agent"]').click();
   await page.locator('[data-zhiyu-agent-center-tab-button="appearance"]').click();
@@ -167,17 +188,62 @@ export async function assertAvatarLaunchLiveHandoff(page, fixture, dataRoot, pag
       avatarElectronEvidence: runtimeBoundEvidence,
       avatarElectronEvidenceRecords: avatarEvidenceRecords,
     });
+    handoffSucceeded = true;
     return {
       zhiyuAvatarLaunchEvidence: zhiyuEvidence.avatar,
       resolvedAvatarBinding: resolvedBinding.binding,
       avatarElectronEvidence: runtimeBoundEvidence,
       avatarElectronEvidenceRecords: avatarEvidenceRecords,
+      closeAvatarProcess,
     };
   } finally {
-    await closeSpawnedAvatarProcess(launchPid);
+    if (options.keepRunning !== true || !handoffSucceeded) {
+      await closeAvatarProcess();
+    }
     await page.locator('[data-zhiyu-agent-panel-close="true"]').click().catch(() => {});
     await page.locator('[data-zhiyu-region="agent-panel"]').waitFor({ state: 'detached', timeout: 5_000 }).catch(() => {});
   }
+}
+
+export async function waitForAvatarNativeVoiceChunkPlaybackEvidence(input) {
+  const evidencePath = path.join(
+    input.dataRoot,
+    'avatar-launches',
+    safePathSegment(input.avatarInstanceId),
+    'evidence',
+    'avatar-electron-evidence.jsonl',
+  );
+  const deadline = Date.now() + 60_000;
+  let lastError = '';
+  while (Date.now() < deadline) {
+    try {
+      const records = await readAvatarEvidenceRecords(evidencePath);
+      const matched = records.find((record) =>
+        record.kind === 'avatar.audio.native_stream_chunk_played'
+        && record.detail?.voice_stream_id === input.voiceStreamId
+        && record.detail?.playback_state === 'completed'
+        && Number(record.detail?.chunk_sequence ?? 0) > 0
+        && Number(record.detail?.byte_length ?? 0) > 0
+      );
+      if (matched) {
+        return matched;
+      }
+      const failed = records.filter((record) =>
+        (record.kind === 'avatar.audio.native_stream_chunk_failed'
+          || record.kind === 'avatar.audio.native_stream_subscription_failed')
+        && record.detail?.voice_stream_id === input.voiceStreamId
+      );
+      const projections = records.filter((record) =>
+        record.kind === 'avatar.audio.native_stream_projection_received'
+        && record.detail?.voice_stream_id === input.voiceStreamId
+      );
+      lastError = `missing avatar.audio.native_stream_chunk_played for ${input.voiceStreamId}; projections=${JSON.stringify(projections.map((record) => record.detail))}; failures=${JSON.stringify(failed.map((record) => record.detail))}; records=${records.map((record) => record.kind).join(',')}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+    await sleep(500);
+  }
+  throw new Error(`Avatar Electron evidence did not contain native voice playback for ${input.voiceStreamId} at ${evidencePath}: ${lastError}`);
 }
 
 function buildLiveRuntimeAgentRequestContext(fixture, runtimeAppId) {
@@ -198,23 +264,23 @@ function requiredAvatarEvidenceRecord(records, kind) {
 
 async function resolveAvatarLiveInstanceBindingForZhiyuTest(fixture, avatarInstanceId) {
   const runtime = new Runtime({
-    appId: zhiyuAppId,
+    appId: desktopAppId,
     transport: {
       type: 'node-grpc',
       endpoint: fixture.endpoint,
     },
   });
   const appSessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
-    appId: zhiyuAppId,
-    appInstanceId: `${zhiyuAppId}.platform-runtime-session`,
-    deviceId: 'zhiyu-platform-runtime-session',
-    capabilities: zhiyuRuntimeProtectedScopes,
+    appId: desktopAppId,
+    appInstanceId: `${desktopAppId}.live-runtime-avatar-binding`,
+    deviceId: 'nimi-desktop-live-runtime-avatar-binding-device',
+    capabilities: ['runtime.agent.read'],
     developerRegistration: false,
     auth: runtime.auth,
   });
   return withNimiRuntimeAgentScopes({
     runtime: {
-      appId: zhiyuAppId,
+      appId: desktopAppId,
       auth: runtime.auth,
       appAuth: runtime.grants,
     },
@@ -222,7 +288,7 @@ async function resolveAvatarLiveInstanceBindingForZhiyuTest(fixture, avatarInsta
   }, ['runtime.agent.read'], async (options) => {
     const sessionMetadata = await appSessionMetadata();
     return runtime.agents.resolveAvatarLiveInstanceBinding({
-      context: buildLiveRuntimeAgentRequestContext(fixture, zhiyuAppId),
+      context: buildLiveRuntimeAgentRequestContext(fixture, desktopAppId),
       avatarInstanceId,
     }, {
       ...options,

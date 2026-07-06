@@ -120,6 +120,34 @@ describe('AudioPipelineController — synthetic mime fail-close', () => {
 });
 
 describe('AudioPipelineController — runtime.artifacts.readArtifactBytes path', () => {
+  it('decodes transient stream bytes without reading durable artifacts', async () => {
+    const fake = createFakeContext();
+    const runtime = createRuntimeMock(async () => {
+      throw new Error('durable artifact read must not be used for transient voice chunks');
+    });
+    const sink = createSinkMock();
+    const controller = new AudioPipelineController({
+      audioContextFactory: () => fake.context,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    controller.setRuntime(runtime as never);
+    controller.registerLipsyncSink(sink);
+    const { snapshots } = recordSnapshots(controller);
+
+    await controller.playBytes({
+      audioSourceId: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
+      audioMimeType: 'audio/wav',
+      bytes: bytesOf(256),
+    });
+
+    expect(runtime.artifacts.readArtifactBytes).not.toHaveBeenCalled();
+    expect(fake.decodeAudioData).toHaveBeenCalledTimes(1);
+    expect(fake.source.start).toHaveBeenCalledTimes(1);
+    expect(snapshots.map((s) => s.state)).toEqual(['idle', 'requested', 'started']);
+    await Promise.resolve();
+    expect(sink.attachAudioSource).toHaveBeenCalledTimes(1);
+  });
+
   it('decodes bytes from runtime, starts source, attaches sink, transitions to started → completed', async () => {
     const fake = createFakeContext();
     const runtime = createRuntimeMock(async () => ({

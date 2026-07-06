@@ -104,6 +104,23 @@ export function ComposerModeTools({
   readonly onOpenAgentPanel: () => void;
   readonly onOpenSettings: () => void;
 }) {
+  const voiceOutputMode = evidence.companion.voiceOutputMode || '';
+  const voicePlaybackState = evidence.companion.voicePlaybackState || '';
+  const voiceAudioArtifactId = evidence.companion.voiceAudioArtifactId || '';
+  const voicePlaybackTarget = evidence.companion.voicePlaybackTarget || '';
+  const voiceStreamId = evidence.companion.voiceStreamId || '';
+  const voiceProjected = voiceOutputMode.length > 0;
+  const voiceState = voiceProjected ? voicePlaybackState || 'projected' : 'deferred';
+  const voiceReason = voiceProjected
+    ? 'zhiyu-chat-voice-runtime-projected'
+    : 'zhiyu-chat-voice-runtime-surface-deferred';
+  const voiceLabel = voiceProjected
+    ? `语音模式：${voiceOutputMode}${voicePlaybackState ? ` / ${voicePlaybackState}` : ''}`
+    : '语音模式暂未接入';
+  const voiceTitle = voiceProjected
+    ? `Runtime 语音投影：${voiceOutputMode}${voicePlaybackState ? ` / ${voicePlaybackState}` : ''}`
+    : '语音模式暂未接入：等待 Runtime/SDK chat voice surface admission';
+
   return (
     <>
       <button
@@ -122,11 +139,16 @@ export function ComposerModeTools({
       </button>
       <button
         type="button"
-        aria-label="语音模式暂未接入"
-        title="语音模式暂未接入：等待 Runtime/SDK chat voice surface admission"
+        aria-label={voiceLabel}
+        title={voiceTitle}
         data-zhiyu-composer-tool="hands-free"
-        data-zhiyu-chat-voice-state="deferred"
-        data-zhiyu-chat-voice-reason="zhiyu-chat-voice-runtime-surface-deferred"
+        data-zhiyu-chat-voice-state={voiceState}
+        data-zhiyu-chat-voice-reason={voiceReason}
+        data-zhiyu-chat-voice-output-mode={voiceOutputMode}
+        data-zhiyu-chat-voice-playback-state={voicePlaybackState}
+        data-zhiyu-chat-voice-audio-artifact-id={voiceAudioArtifactId}
+        data-zhiyu-chat-voice-playback-target={voicePlaybackTarget}
+        data-zhiyu-chat-voice-stream-id={voiceStreamId}
         disabled
       >
         <Headphones size={15} aria-hidden="true" />

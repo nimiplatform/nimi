@@ -17,13 +17,14 @@
 //     accepts that the Live2D mouth is dormant until that driver lands.
 //
 // What this orchestrator still does:
-//   - Subscribe to `runtime.agent.presentation.voice_playback_requested`
-//     and ordered `voice_stream_chunk_available` events.
+//   - Subscribe to `runtime.agent.presentation.voice_playback_requested`,
+//     ordered `voice_stream_chunk_available`, and `voice_playback_terminal`
+//     events.
 //   - Mirror the runtime playback state machine (requested / started /
 //     completed / interrupted / canceled / failed) into the avatar voice
 //     state bus + the audio pipeline controller.
-//   - Stop / interrupt the audio pipeline on `runtime.agent.turn.interrupted`
-//     and `runtime.agent.turn.interrupt_ack`.
+//   - Stop / interrupt the audio pipeline on Runtime-owned voice terminal
+//     projection. Chat-turn interrupt remains a compatibility stop signal only.
 //
 // Optional `backend?: BackendBranch` argument: when supplied, this
 // orchestrator registers the backend's BackendAudioConsumer with the audio
@@ -44,11 +45,21 @@ import {
   type AudioPlaybackState,
   type VoiceLipsyncStateBus,
 } from '@nimiplatform/kit/features/avatar/headless';
+import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 
 type RuntimeTimelineDetail = NimiRuntimeAgentTimelineEnvelope;
 type VoicePlaybackInput = {
   audioArtifactId: string;
   audioMimeType: string;
+};
+type VoiceBytesInput = {
+  audioSourceId: string;
+  audioMimeType: string;
+  bytes: Uint8Array | ArrayBuffer;
+};
+type NativeVoiceChunkInput = VoiceBytesInput & {
+  voiceStreamId: string;
+  chunkSequence: number;
 };
 
 const AVATAR_AUTOPLAY_TARGET = 'avatar_autoplay';
@@ -199,6 +210,32 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     });
   }
 
+  function playVoiceBytesAndWait(voiceInput: VoiceBytesInput): Promise<AudioPlaybackState> {
+    return new Promise((resolve) => {
+      let settled = false;
+      let unsubscribe: () => void = () => {};
+      const settle = (state: AudioPlaybackState) => {
+        if (settled) return;
+        settled = true;
+        unsubscribe();
+        resolve(state);
+      };
+      unsubscribe = audioPipeline.subscribe((snapshot) => {
+        if (snapshot.audioArtifactId !== voiceInput.audioSourceId) return;
+        if (
+          snapshot.state === 'completed' ||
+          snapshot.state === 'failed' ||
+          snapshot.state === 'interrupted'
+        ) {
+          settle(snapshot.state);
+        }
+      });
+      void audioPipeline.playBytes(voiceInput).catch(() => {
+        settle('failed');
+      });
+    });
+  }
+
   function enqueueStreamingChunk(
     timeline: RuntimeTimelineDetail,
     voiceInput: VoicePlaybackInput,
@@ -221,6 +258,93 @@ export function createAvatarVoiceLipsyncPipeline(input: {
         }
       });
     streamingPlaybackChains.set(identity, next);
+  }
+
+  function enqueueNativeAudioChunk(
+    identity: string,
+    voiceInput: NativeVoiceChunkInput,
+  ): void {
+    const previous = streamingPlaybackChains.get(identity) ?? Promise.resolve();
+    let next: Promise<void>;
+    next = previous
+      .catch(() => undefined)
+      .then(async () => {
+        if (disposed || canceled.has(identity)) return;
+        stateBus.publish({ kind: 'activate', audioArtifactId: voiceInput.audioSourceId });
+        publishPlaybackState('requested');
+        const playbackState = await playVoiceBytesAndWait({
+          audioSourceId: voiceInput.audioSourceId,
+          audioMimeType: voiceInput.audioMimeType,
+          bytes: voiceInput.bytes,
+        });
+        recordAvatarEvidenceEventually({
+          kind: playbackState === 'completed'
+            ? 'avatar.audio.native_stream_chunk_played'
+            : 'avatar.audio.native_stream_chunk_failed',
+          detail: {
+            voice_stream_id: voiceInput.voiceStreamId,
+            chunk_sequence: voiceInput.chunkSequence,
+            audio_source_id: voiceInput.audioSourceId,
+            audio_mime_type: voiceInput.audioMimeType,
+            byte_length: voiceInput.bytes.byteLength,
+            playback_state: playbackState,
+          },
+        });
+      })
+      .finally(() => {
+        if (streamingPlaybackChains.get(identity) === next) {
+          streamingPlaybackChains.delete(identity);
+        }
+      });
+    streamingPlaybackChains.set(identity, next);
+  }
+
+  function handleNativeAudioChunk(
+    event: AgentEvent,
+    detail: Record<string, unknown>,
+  ): boolean {
+    if (event.name !== 'avatar.speak.native_audio_chunk') {
+      return false;
+    }
+    const voiceStreamId = readString(detail, 'voice_stream_id') ?? readString(detail, 'voiceStreamId');
+    const audioMimeType = readString(detail, 'audio_mime_type') ?? readString(detail, 'audioMimeType');
+    const bytes = readBytes(detail['chunk_bytes'] ?? detail['chunkBytes']);
+    const chunkSequence = Number(detail['chunk_sequence'] ?? detail['chunkSequence'] ?? 0);
+    if (!voiceStreamId || !audioMimeType || !bytes || !Number.isFinite(chunkSequence) || chunkSequence <= 0) {
+      return true;
+    }
+    const sourceId = `runtime-agent-voice-stream://${voiceStreamId}/chunks/${String(chunkSequence).padStart(6, '0')}`;
+    enqueueNativeAudioChunk(`native:${voiceStreamId}`, {
+      audioSourceId: sourceId,
+      audioMimeType,
+      bytes,
+      voiceStreamId,
+      chunkSequence,
+    });
+    return true;
+  }
+
+  function handleNativeAudioStreamFailed(
+    event: AgentEvent,
+    detail: Record<string, unknown>,
+  ): boolean {
+    if (event.name !== 'avatar.speak.native_audio_stream_failed') {
+      return false;
+    }
+    const voiceStreamId = readString(detail, 'voice_stream_id') ?? readString(detail, 'voiceStreamId');
+    if (!voiceStreamId) {
+      return true;
+    }
+    recordAvatarEvidenceEventually({
+      kind: 'avatar.audio.native_stream_subscription_failed',
+      detail: {
+        voice_stream_id: voiceStreamId,
+        turn_id: readString(detail, 'turn_id') ?? readString(detail, 'turnId') ?? null,
+        stream_id: readString(detail, 'stream_id') ?? readString(detail, 'streamId') ?? null,
+        reason: readString(detail, 'reason') ?? 'native_audio_stream_failed',
+      },
+    });
+    return true;
   }
 
   function handleVoicePlaybackRequested(
@@ -302,10 +426,80 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id');
     const audioMimeType =
       readString(detail, 'audioMimeType') ?? readString(detail, 'audio_mime_type');
-    if (!timeline || timeline.channel !== 'voice' || !audioArtifactId || !audioMimeType) {
+    const voiceStreamId =
+      readString(detail, 'voiceStreamId') ?? readString(detail, 'voice_stream_id');
+    const chunkTransportRef =
+      readString(detail, 'chunkTransportRef') ?? readString(detail, 'chunk_transport_ref');
+    if (!timeline || timeline.channel !== 'voice') {
+      return true;
+    }
+    if (!audioArtifactId || !audioMimeType) {
+      if (voiceStreamId && chunkTransportRef) {
+        recordAvatarEvidenceEventually({
+          kind: 'avatar.audio.native_stream_projection_received',
+          detail: {
+            voice_stream_id: voiceStreamId,
+            chunk_transport_ref: chunkTransportRef,
+            chunk_sequence: Number(detail['chunk_sequence'] ?? detail['chunkSequence'] ?? 0),
+            turn_id: timeline.turnId,
+            stream_id: timeline.streamId,
+            playback_target: readPlaybackTarget(detail),
+          },
+        });
+        streamingTimelines.add(timelineIdentity(timeline));
+        publishPlaybackState('requested');
+        emitDriverEvent(input.driver, 'avatar.speak.stream_chunk_available', timeline, {
+          source_event_name: event.name,
+          voice_stream_id: voiceStreamId,
+          chunk_transport_ref: chunkTransportRef,
+        });
+      }
       return true;
     }
     enqueueStreamingChunk(timeline, { audioArtifactId, audioMimeType });
+    return true;
+  }
+
+  function handleVoicePlaybackTerminal(
+    event: AgentEvent,
+    detail: Record<string, unknown>,
+  ): boolean {
+    if (event.name !== 'runtime.agent.presentation.voice_playback_terminal') {
+      return false;
+    }
+    if (readPlaybackTarget(detail) !== AVATAR_AUTOPLAY_TARGET) {
+      return true;
+    }
+    const timeline = parseRuntimeTimeline(detail, event.name);
+    if (!timeline || timeline.channel !== 'voice') {
+      return true;
+    }
+    const identity = timelineIdentity(timeline);
+    streamingTimelines.delete(identity);
+    const state =
+      readString(detail, 'voicePlaybackState') ?? readString(detail, 'voice_playback_state');
+    if (state === 'completed') {
+      publishPlaybackState('completed');
+      return true;
+    }
+    if (state === 'interrupted' || state === 'canceled' || state === 'failed') {
+      canceled.add(identity);
+      const terminalVoiceStreamId =
+        readString(detail, 'voiceStreamId') ?? readString(detail, 'voice_stream_id');
+      if (terminalVoiceStreamId) {
+        canceled.add(`native:${terminalVoiceStreamId}`);
+      }
+      audioPipeline.stop('interrupted');
+      stateBus.publish({ kind: 'deactivate' });
+      publishPlaybackState(state === 'failed' ? 'failed' : 'interrupted');
+      emitDriverEvent(input.driver, 'avatar.speak.interrupt', timeline, {
+        source_event_name: event.name,
+        playback_state: state,
+        voice_stream_id: terminalVoiceStreamId,
+        terminal_reason: readString(detail, 'terminalReason') ?? readString(detail, 'terminal_reason'),
+      });
+      return true;
+    }
     return true;
   }
 
@@ -314,6 +508,12 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       if (disposed) return;
       const detail = readRecord(event.detail);
       if (!detail) return;
+      if (handleNativeAudioChunk(event, detail)) {
+        return;
+      }
+      if (handleNativeAudioStreamFailed(event, detail)) {
+        return;
+      }
       if (
         event.name === 'runtime.agent.turn.interrupted' ||
         event.name === 'runtime.agent.turn.interrupt_ack'
@@ -322,6 +522,9 @@ export function createAvatarVoiceLipsyncPipeline(input: {
         return;
       }
       if (handleVoiceStreamChunkAvailable(event, detail)) {
+        return;
+      }
+      if (handleVoicePlaybackTerminal(event, detail)) {
         return;
       }
       handleVoicePlaybackRequested(event, detail);
@@ -337,6 +540,16 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       if (unregisterSink) unregisterSink();
     },
   };
+}
+
+function readBytes(value: unknown): Uint8Array | ArrayBuffer | null {
+  if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return new Uint8Array(value);
+  }
+  return null;
 }
 
 function getBackendAudioConsumer(backend: BackendBranch) {

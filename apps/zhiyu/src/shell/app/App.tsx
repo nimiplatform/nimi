@@ -85,6 +85,7 @@ import { probeZhiyuAgentTurnReadiness } from '../agent-chat/agent-turn-readiness
 import {
   hydrateZhiyuAgentChatFromRuntimeSessionSnapshot,
   projectZhiyuCompanionFromRuntimeAgentEvent,
+  projectZhiyuCompanionFromRuntimeProjectionEvents,
 } from '../agent-chat/agent-conversation-state';
 import { probeZhiyuRuntimeSourceProjection } from '../agent/source-projection';
 import { runZhiyuAgentChatTurn } from '../agent-chat/runtime-agent-turn-adapter';
@@ -494,9 +495,16 @@ export function App() {
             text,
           );
           const chat = mergeChatTranscript(current.chat, projectionChat);
+          const companion = projectZhiyuCompanionFromRuntimeProjectionEvents({
+            current: current.companion,
+            chat,
+            ownerUserId: submittedConversation.ownerUserId || current.conversation.ownerUserId || '',
+            runtimeSourceRef: submittedConversation.runtimeSourceRef || current.conversation.runtimeSourceRef || '',
+          });
           return {
             ...current,
             chat,
+            companion,
             turn: turnStatusFromChat(chat),
             composer: {
               ...current.composer,
@@ -534,9 +542,16 @@ export function App() {
         text,
       );
       const chat = mergeChatTranscript(current.chat, resultChat);
+      const companion = projectZhiyuCompanionFromRuntimeProjectionEvents({
+        current: current.companion,
+        chat,
+        ownerUserId: submittedConversation.ownerUserId || current.conversation.ownerUserId || '',
+        runtimeSourceRef: submittedConversation.runtimeSourceRef || current.conversation.runtimeSourceRef || '',
+      });
       return {
         ...current,
         chat,
+        companion,
         turn: turnStatusFromChat(chat),
         composer: {
           ...current.composer,

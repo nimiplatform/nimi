@@ -335,6 +335,12 @@ export type ZhiyuEvidence = {
     readonly stateUpdatedAt: string | null;
     readonly executionState: string | null;
     readonly statusText: string | null;
+    readonly voiceOutputMode: string | null;
+    readonly voicePlaybackState: string | null;
+    readonly voiceAudioArtifactId: string | null;
+    readonly voiceAudioMimeType: string | null;
+    readonly voicePlaybackTarget: string | null;
+    readonly voiceStreamId: string | null;
     readonly activeWorldId: string | null;
     readonly activeUserId: string | null;
     readonly currentEmotion: string | null;
@@ -538,6 +544,12 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       stateUpdatedAt: null,
       executionState: null,
       statusText: null,
+      voiceOutputMode: null,
+      voicePlaybackState: null,
+      voiceAudioArtifactId: null,
+      voiceAudioMimeType: null,
+      voicePlaybackTarget: null,
+      voiceStreamId: null,
       activeWorldId: null,
       activeUserId: null,
       currentEmotion: null,

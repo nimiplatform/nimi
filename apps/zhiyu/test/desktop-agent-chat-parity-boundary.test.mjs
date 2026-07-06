@@ -441,19 +441,25 @@ test('live Runtime acceptance verifies Runtime-issued delegation scoped binding 
   }
 });
 
-test('chat voice controls are disabled/deferred instead of settings-only pseudo affordances', async () => {
+test('chat voice controls project Runtime voice truth without settings-only pseudo affordances', async () => {
   const surfaceSource = await readAgentChatSource();
 
   for (const marker of [
     'data-zhiyu-composer-tool="voice-capture"',
     'data-zhiyu-chat-voice-capture-state="deferred"',
     'data-zhiyu-chat-voice-capture-reason="zhiyu-chat-voice-capture-runtime-surface-deferred"',
-    'data-zhiyu-chat-voice-state="deferred"',
-    'data-zhiyu-chat-voice-reason="zhiyu-chat-voice-runtime-surface-deferred"',
     'data-zhiyu-composer-tool="hands-free"',
+    'data-zhiyu-chat-voice-state={voiceState}',
+    'data-zhiyu-chat-voice-reason={voiceReason}',
+    'data-zhiyu-chat-voice-output-mode={voiceOutputMode}',
+    'data-zhiyu-chat-voice-playback-state={voicePlaybackState}',
+    'data-zhiyu-chat-voice-audio-artifact-id={voiceAudioArtifactId}',
+    'data-zhiyu-chat-voice-playback-target={voicePlaybackTarget}',
+    'zhiyu-chat-voice-runtime-projected',
+    'zhiyu-chat-voice-runtime-surface-deferred',
     'disabled',
   ]) {
-    assert.match(surfaceSource, new RegExp(escapeRegExp(marker)), `${marker} missing from deferred voice UI`);
+    assert.match(surfaceSource, new RegExp(escapeRegExp(marker)), `${marker} missing from Runtime voice UI`);
   }
 
   assert.doesNotMatch(
