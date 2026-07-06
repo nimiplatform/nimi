@@ -57,13 +57,14 @@ func (r publicChatRuntime) runTurn(
 		return
 	}
 	err := r.svc.currentPublicChatTurnExecutor().StreamChatTurn(ctx, &PublicChatTurnExecutionRequest{
-		AppID:         session.CallerAppID,
-		SubjectUserID: session.SubjectUserID,
-		Messages:      toProtoPublicChatMessages(req.Messages),
-		SystemPrompt:  assembledSystemPrompt,
-		MaxTokens:     req.MaxOutputTokens,
-		Binding:       session.Binding,
-		Reasoning:     normalizePublicChatReasoning(req.Reasoning),
+		AppID:            session.CallerAppID,
+		SubjectUserID:    session.SubjectUserID,
+		Messages:         toProtoPublicChatMessages(req.Messages),
+		SystemPrompt:     assembledSystemPrompt,
+		MaxTokens:        req.MaxOutputTokens,
+		Binding:          session.Binding,
+		AvailableActions: turn.AvailableActions,
+		Reasoning:        normalizePublicChatReasoning(req.Reasoning),
 	}, func(event *runtimev1.StreamScenarioEvent) error {
 		if event == nil {
 			return nil
@@ -281,7 +282,7 @@ func (r publicChatRuntime) runTurn(
 	if parseErr != nil {
 		originalParseErr := parseErr
 		if shouldAttemptPublicChatAPMLRepair(rawStructuredOutput, originalParseErr) {
-			repaired, repairedRaw, repairErr := r.repairPublicChatStructuredEnvelope(ctx, session, req, rawStructuredOutput, originalParseErr)
+			repaired, repairedRaw, repairErr := r.repairPublicChatStructuredEnvelope(ctx, session, turn, req, rawStructuredOutput, originalParseErr)
 			if repairErr == nil && repaired != nil {
 				structured = repaired
 				parseErr = nil

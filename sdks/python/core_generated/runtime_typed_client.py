@@ -98,6 +98,7 @@ AgentAutonomyMode = Literal["AGENT_AUTONOMY_MODE_UNSPECIFIED", "AGENT_AUTONOMY_M
 AgentCanonicalMemoryBankMode = Literal["AGENT_CANONICAL_MEMORY_BANK_MODE_UNSPECIFIED", "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE", "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD", "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE"]
 AgentCanonicalMemoryReviewReadiness = Literal["AGENT_CANONICAL_MEMORY_REVIEW_READINESS_UNSPECIFIED", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_ELIGIBLE", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_WAITING_FOR_WINDOW", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_EXECUTOR_UNAVAILABLE", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_RECOVERABLE_RUN_BLOCKING", "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE"]
 AgentEventType = Literal["AGENT_EVENT_TYPE_UNSPECIFIED"]
+AgentExecutionReadinessState = Literal["AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED", "AGENT_EXECUTION_READINESS_STATE_READY", "AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED", "AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE"]
 AgentExecutionState = Literal["AGENT_EXECUTION_STATE_UNSPECIFIED"]
 AgentLifecycleStatus = Literal["AGENT_LIFECYCLE_STATUS_UNSPECIFIED"]
 AgentPresentationBackendKind = Literal["AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED", "AGENT_PRESENTATION_BACKEND_KIND_VRM", "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D", "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D", "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D", "AGENT_PRESENTATION_BACKEND_KIND_VIDEO"]
@@ -459,6 +460,11 @@ class AgentEvent:
     local_agent_ref: str | None = None
     owner_user_id: str | None = None
     runtime_source_ref: str | None = None
+
+@dataclass(frozen=True)
+class AgentExecutionReadinessSnapshot:
+    config_revision: int | None = None
+    capabilities: tuple[RuntimeAgentExecutionCapabilityReadiness, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class AgentHookEventDetail:
@@ -2043,6 +2049,22 @@ class GetAgentCanonicalMemoryReviewStatusRequest:
 @dataclass(frozen=True)
 class GetAgentCanonicalMemoryReviewStatusResponse:
     status: AgentCanonicalMemoryReviewStatus | None = None
+
+@dataclass(frozen=True)
+class GetAgentExecutionConfigRequest:
+    context: AgentRequestContext | None = None
+
+@dataclass(frozen=True)
+class GetAgentExecutionConfigResponse:
+    config: RuntimeAgentExecutionConfig | None = None
+
+@dataclass(frozen=True)
+class GetAgentExecutionReadinessRequest:
+    context: AgentRequestContext | None = None
+
+@dataclass(frozen=True)
+class GetAgentExecutionReadinessResponse:
+    snapshot: AgentExecutionReadinessSnapshot | None = None
 
 @dataclass(frozen=True)
 class GetAgentRequest:
@@ -5177,6 +5199,28 @@ class RevokeWorkspaceBindingResponse:
     production_inert: bool | None = None
 
 @dataclass(frozen=True)
+class RuntimeAgentExecutionCapabilityBinding:
+    capability: str | None = None
+    model_id: str | None = None
+    route_policy: RoutePolicy | None = None
+    connector_id: str | None = None
+    target_ref: RuntimeDurableTargetRef | None = None
+
+@dataclass(frozen=True)
+class RuntimeAgentExecutionCapabilityReadiness:
+    capability: str | None = None
+    state: AgentExecutionReadinessState | None = None
+    reason_code: str | None = None
+    probed_at: str | None = None
+
+@dataclass(frozen=True)
+class RuntimeAgentExecutionConfig:
+    revision: int | None = None
+    bindings: tuple[RuntimeAgentExecutionCapabilityBinding, ...] = field(default_factory=tuple)
+    updated_at: str | None = None
+    updated_by_app_id: str | None = None
+
+@dataclass(frozen=True)
 class RuntimeBaselineActivationConsumerEvidence:
     consumer_id: str | None = None
     pack_id: str | None = None
@@ -5826,6 +5870,10 @@ class SubscribeAgentEventsRequest:
     event_filters: tuple[AgentEventType, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class SubscribeAgentExecutionReadinessRequest:
+    context: AgentRequestContext | None = None
+
+@dataclass(frozen=True)
 class SubscribeAppMessagesRequest:
     app_id: str | None = None
     subject_user_id: str | None = None
@@ -6086,6 +6134,16 @@ class UploadArtifactRequest:
 class UploadArtifactResponse:
     artifact: ScenarioArtifact | None = None
     trace_id: str | None = None
+
+@dataclass(frozen=True)
+class UpsertAgentExecutionConfigRequest:
+    context: AgentRequestContext | None = None
+    expected_revision: int | None = None
+    bindings: tuple[RuntimeAgentExecutionCapabilityBinding, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class UpsertAgentExecutionConfigResponse:
+    config: RuntimeAgentExecutionConfig | None = None
 
 @dataclass(frozen=True)
 class UpsertCatalogModelOverlayRequest:
@@ -6610,6 +6668,14 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAgentCanonicalMemoryReviewStatusResponse, raw)
 
+    async def get_agent_execution_config(self, request: GetAgentExecutionConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentExecutionConfigResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetAgentExecutionConfigResponse, raw)
+
+    async def get_agent_execution_readiness(self, request: GetAgentExecutionReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentExecutionReadinessResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetAgentExecutionReadinessResponse, raw)
+
     async def get_agent_state(self, request: GetAgentStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAgentStateResponse, raw)
@@ -6753,6 +6819,9 @@ class RuntimeTypedClient:
     def subscribe_agent_events(self, request: SubscribeAgentEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AgentEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents", _model_body(request), AgentEvent, metadata=metadata, timeout_ms=timeout_ms)
 
+    def subscribe_agent_execution_readiness(self, request: SubscribeAgentExecutionReadinessRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AgentExecutionReadinessSnapshot]:
+        return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness", _model_body(request), AgentExecutionReadinessSnapshot, metadata=metadata, timeout_ms=timeout_ms)
+
     async def terminate_agent(self, request: TerminateAgentRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> TerminateAgentResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/TerminateAgent", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TerminateAgentResponse, raw)
@@ -6760,6 +6829,10 @@ class RuntimeTypedClient:
     async def update_agent_state(self, request: UpdateAgentStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpdateAgentStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UpdateAgentStateResponse, raw)
+
+    async def upsert_agent_execution_config(self, request: UpsertAgentExecutionConfigRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpsertAgentExecutionConfigResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UpsertAgentExecutionConfigResponse, raw)
 
     async def upsert_delegated_provider_profile(self, request: UpsertDelegatedProviderProfileRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> UpsertDelegatedProviderProfileResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

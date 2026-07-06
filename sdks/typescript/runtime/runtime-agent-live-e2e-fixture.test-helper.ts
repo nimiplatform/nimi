@@ -174,7 +174,6 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
               agentClient,
               localAgent,
               conversationAnchorId,
-              route,
               text,
             }),
             admitDeveloperRegisteredRuntimeAccountCaller: (accountInput) =>

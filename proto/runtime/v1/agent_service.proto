@@ -7,9 +7,11 @@ import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
 import "runtime/v1/agent_group_message_candidate.proto";
 import "runtime/v1/agent_participation.proto";
+import "runtime/v1/ai.proto";
 import "runtime/v1/common.proto";
 import "runtime/v1/delegated_control.proto";
 import "runtime/v1/memory.proto";
+import "runtime/v1/runtime_target_identity.proto";
 enum AgentLifecycleStatus { AGENT_LIFECYCLE_STATUS_UNSPECIFIED = 0; AGENT_LIFECYCLE_STATUS_INITIALIZING = 1; AGENT_LIFECYCLE_STATUS_ACTIVE = 2; AGENT_LIFECYCLE_STATUS_SUSPENDED = 3; AGENT_LIFECYCLE_STATUS_TERMINATING = 4; AGENT_LIFECYCLE_STATUS_TERMINATED = 5; }
 enum AgentExecutionState { AGENT_EXECUTION_STATE_UNSPECIFIED = 0; AGENT_EXECUTION_STATE_IDLE = 1; AGENT_EXECUTION_STATE_CHAT_ACTIVE = 2; AGENT_EXECUTION_STATE_LIFE_PENDING = 3; AGENT_EXECUTION_STATE_LIFE_RUNNING = 4; AGENT_EXECUTION_STATE_SUSPENDED = 5; }
 enum AgentTrackType { AGENT_TRACK_TYPE_UNSPECIFIED = 0; AGENT_TRACK_TYPE_CHAT = 1; AGENT_TRACK_TYPE_LIFE = 2; }
@@ -813,6 +815,23 @@ message ListAvatarDebugProbeResultsRequest { AgentRequestContext context = 1; st
 message ListAvatarDebugProbeResultsResponse { repeated AvatarDebugProbeResultEnvelope probe_results = 1; }
 message GetAvatarDebugReplayRequest { AgentRequestContext context = 1; string agent_id = 2; string probe_id = 3; string conversation_anchor_id = 4; }
 message GetAvatarDebugReplayResponse { AvatarDebugProbeRequestEnvelope request = 1; AvatarDebugProbeResultEnvelope result = 2; AvatarDebugReplayRef replay_ref = 3; }
+// K-AGCORE-144..150 Runtime Agent execution config. One committed
+// capability-to-binding config per runtime instance with monotonic revision,
+// expected-revision optimistic concurrency, and a probe-backed readiness
+// projection. Capability, readiness-state, and reason vocabularies are
+// admitted in .nimi/spec/runtime/kernel/tables/agent-execution-config.yaml.
+message RuntimeAgentExecutionCapabilityBinding { string capability = 1; string model_id = 2; RoutePolicy route_policy = 3; string connector_id = 4; RuntimeDurableTargetRef target_ref = 5; }
+message RuntimeAgentExecutionConfig { uint64 revision = 1; repeated RuntimeAgentExecutionCapabilityBinding bindings = 2; google.protobuf.Timestamp updated_at = 3; string updated_by_app_id = 4; }
+enum AgentExecutionReadinessState { AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED = 0; AGENT_EXECUTION_READINESS_STATE_READY = 1; AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED = 2; AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE = 3; }
+message RuntimeAgentExecutionCapabilityReadiness { string capability = 1; AgentExecutionReadinessState state = 2; string reason_code = 3; google.protobuf.Timestamp probed_at = 4; }
+message AgentExecutionReadinessSnapshot { uint64 config_revision = 1; repeated RuntimeAgentExecutionCapabilityReadiness capabilities = 2; }
+message GetAgentExecutionConfigRequest { AgentRequestContext context = 1; }
+message GetAgentExecutionConfigResponse { RuntimeAgentExecutionConfig config = 1; }
+message UpsertAgentExecutionConfigRequest { AgentRequestContext context = 1; uint64 expected_revision = 2; repeated RuntimeAgentExecutionCapabilityBinding bindings = 3; }
+message UpsertAgentExecutionConfigResponse { RuntimeAgentExecutionConfig config = 1; }
+message GetAgentExecutionReadinessRequest { AgentRequestContext context = 1; }
+message GetAgentExecutionReadinessResponse { AgentExecutionReadinessSnapshot snapshot = 1; }
+message SubscribeAgentExecutionReadinessRequest { AgentRequestContext context = 1; }
 service RuntimeAgentService {
   rpc InitializeAgent(InitializeAgentRequest) returns (InitializeAgentResponse);
   rpc TerminateAgent(TerminateAgentRequest) returns (TerminateAgentResponse);
@@ -868,4 +887,9 @@ service RuntimeAgentService {
   rpc ListParticipationAuditEvents(ListParticipationAuditEventsRequest) returns (ListParticipationAuditEventsResponse);
   rpc GetParticipationReplay(GetParticipationReplayRequest) returns (GetParticipationReplayResponse);
   rpc SubscribeAgentEvents(SubscribeAgentEventsRequest) returns (stream AgentEvent);
+  // K-AGCORE-144..150 Runtime Agent execution config surface.
+  rpc GetAgentExecutionConfig(GetAgentExecutionConfigRequest) returns (GetAgentExecutionConfigResponse);
+  rpc UpsertAgentExecutionConfig(UpsertAgentExecutionConfigRequest) returns (UpsertAgentExecutionConfigResponse);
+  rpc GetAgentExecutionReadiness(GetAgentExecutionReadinessRequest) returns (GetAgentExecutionReadinessResponse);
+  rpc SubscribeAgentExecutionReadiness(SubscribeAgentExecutionReadinessRequest) returns (stream AgentExecutionReadinessSnapshot);
 }

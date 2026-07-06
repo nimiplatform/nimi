@@ -9,7 +9,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -79,6 +78,11 @@ func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPaylo
 	}
 	if strings.TrimSpace(decoded.SystemPrompt) != "" {
 		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat turn payload must not include system_prompt")
+	}
+	if len(decoded.ExecutionBindings) > 0 {
+		// K-AGCORE-147: request-carried execution_bindings are rejected on
+		// ingress; the committed execution config is the only binding truth.
+		return publicChatTurnRequestPayload{}, errPublicChatRequestExecutionBindingsNotAdmitted
 	}
 	if _, err := validateLocalAgentIdentity(decoded.OwnerUserID, decoded.RuntimeSourceRef, decoded.LocalAgentRef); err != nil {
 		return publicChatTurnRequestPayload{}, err
@@ -177,19 +181,6 @@ func parseOptionalPublicChatRoutePolicy(value string) (runtimev1.RoutePolicy, er
 	}
 	return parsePublicChatRoutePolicy(value)
 }
-func parsePublicChatTargetRef(raw json.RawMessage, label string) (*runtimev1.RuntimeDurableTargetRef, error) {
-	if len(bytes.TrimSpace(raw)) == 0 {
-		return nil, nil
-	}
-	var targetRef runtimev1.RuntimeDurableTargetRef
-	if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(raw, &targetRef); err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "%s.target_ref invalid", label)
-	}
-	if targetRef.GetTarget() == nil {
-		return nil, status.Errorf(codes.InvalidArgument, "%s.target_ref is required", label)
-	}
-	return &targetRef, nil
-}
 func clonePublicChatTargetRef(input *runtimev1.RuntimeDurableTargetRef) *runtimev1.RuntimeDurableTargetRef {
 	if input == nil {
 		return nil
@@ -199,12 +190,6 @@ func clonePublicChatTargetRef(input *runtimev1.RuntimeDurableTargetRef) *runtime
 		return nil
 	}
 	return cloned
-}
-func publicChatTargetRefsEqual(left *runtimev1.RuntimeDurableTargetRef, right *runtimev1.RuntimeDurableTargetRef) bool {
-	if left == nil || right == nil {
-		return left == nil && right == nil
-	}
-	return proto.Equal(left, right)
 }
 func parsePublicChatReasoningMode(value string) runtimev1.ReasoningMode {
 	switch strings.ToLower(strings.TrimSpace(value)) {
@@ -235,12 +220,6 @@ func publicChatRouteLabel(route runtimev1.RoutePolicy) string {
 	default:
 		return "unspecified"
 	}
-}
-func publicChatExecutionBindingMismatch(left publicChatExecutionBinding, right publicChatExecutionBinding) bool {
-	return strings.TrimSpace(left.ModelID) != strings.TrimSpace(right.ModelID) ||
-		left.RoutePolicy != right.RoutePolicy ||
-		strings.TrimSpace(left.ConnectorID) != strings.TrimSpace(right.ConnectorID) ||
-		!publicChatTargetRefsEqual(left.TargetRef, right.TargetRef)
 }
 func publicChatFinishReasonLabel(reason runtimev1.FinishReason) string {
 	switch reason {

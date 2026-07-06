@@ -8,7 +8,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -32,6 +31,9 @@ type ChatTrackSidecarExecutorRequest struct {
 	SourceEventID string
 	Messages      []*runtimev1.ChatMessage
 	PendingHooks  []*runtimev1.PendingHook
+	// ExecutionBinding is the committed execution config text.generate
+	// binding stamped by RuntimeAgentService (K-AGCORE-147).
+	ExecutionBinding publicChatExecutionBinding
 }
 
 type ChatTrackSidecarExecutor interface {
@@ -103,12 +105,17 @@ func buildChatTrackSidecarScenarioRequest(req *ChatTrackSidecarExecutorRequest) 
 	if subjectUserID == "" {
 		subjectUserID = strings.TrimSpace(req.Agent.GetAgentId())
 	}
+	if err := validateRuntimePrivateExecutorBinding("chat track sidecar", req.ExecutionBinding); err != nil {
+		return nil, err
+	}
 	return &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         firstNonEmpty(strings.TrimSpace(req.CallerAppID), chatTrackSidecarExecutorAppID),
 			SubjectUserId: subjectUserID,
-			ModelId:       texttarget.InternalDefaultLocalTextModelAlias,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED,
+			ModelId:       req.ExecutionBinding.ModelID,
+			RoutePolicy:   req.ExecutionBinding.RoutePolicy,
+			ConnectorId:   req.ExecutionBinding.ConnectorID,
+			TargetRef:     clonePublicChatTargetRef(req.ExecutionBinding.TargetRef),
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10_000,
 		},

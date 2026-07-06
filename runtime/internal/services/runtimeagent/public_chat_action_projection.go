@@ -38,8 +38,8 @@ func (r publicChatRuntime) executeCommittedActions(
 		}); err != nil {
 			return fmt.Errorf("emit public chat action_started failed: %w", err)
 		}
-		if err := validateImageActionExecutionBinding(session, action); err != nil {
-			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, err)
+		if reason, err := validateImageActionExecutionBinding(session, turn, action); err != nil {
+			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, reason, err)
 			return err
 		}
 		result, err := r.svc.currentPublicChatActionExecutor().ExecuteImageAction(ctx, PublicChatActionExecutionRequest{
@@ -48,11 +48,11 @@ func (r publicChatRuntime) executeCommittedActions(
 			Action:  action,
 		})
 		if err != nil {
-			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, err)
+			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, publicChatActionFailedReasonImageExecutionFailed, err)
 			return err
 		}
 		if err := r.validateRuntimeActionArtifact(result.ArtifactID); err != nil {
-			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, err)
+			_ = r.emitTurnActionFailed(session, turn, action, projectionMessageID, publicChatActionFailedReasonImageExecutionFailed, err)
 			return err
 		}
 		if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnArtifactReadyType, map[string]any{
@@ -78,16 +78,33 @@ func (r publicChatRuntime) executeCommittedActions(
 	return nil
 }
 
-func validateImageActionExecutionBinding(session publicChatAnchorState, action publicChatStructuredAction) error {
+// K-AGCORE-148 typed action_failed reason codes
+// (tables/agent-execution-config.yaml action_failed_reason_codes).
+const (
+	publicChatActionFailedReasonImageBindingMissing  = "image_binding_missing"
+	publicChatActionFailedReasonImageRouteUnhealthy  = "image_route_unhealthy"
+	publicChatActionFailedReasonImageExecutionFailed = "image_execution_failed"
+)
+
+// validateImageActionExecutionBinding gates a planned image action against
+// the admission-fixed availability tri-state (K-AGCORE-148). It returns the
+// typed reason for the failure branch; silent action drop or pseudo-success
+// is not admitted.
+func validateImageActionExecutionBinding(session publicChatAnchorState, turn publicChatTurnState, action publicChatStructuredAction) (string, error) {
 	actionID := strings.TrimSpace(action.ActionID)
 	if actionID == "" {
 		actionID = "image.generate"
 	}
 	binding, ok := session.Bindings["image.generate"]
 	if !ok || strings.TrimSpace(binding.ModelID) == "" || binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		return fmt.Errorf("runtime public chat image action %s requires execution_bindings.image.generate", actionID)
+		return publicChatActionFailedReasonImageBindingMissing,
+			fmt.Errorf("runtime public chat image action %s has no committed image.generate execution config binding", actionID)
 	}
-	return nil
+	if turn.AvailableActions.ImageGenerate == publicChatImageActionUnavailable {
+		return publicChatActionFailedReasonImageRouteUnhealthy,
+			fmt.Errorf("runtime public chat image action %s is bound to a configured image route that is currently unavailable", actionID)
+	}
+	return "", nil
 }
 
 func (r publicChatRuntime) validateRuntimeActionArtifact(artifactID string) error {
@@ -113,6 +130,7 @@ func (r publicChatRuntime) emitTurnActionFailed(
 	turn publicChatTurnState,
 	action publicChatStructuredAction,
 	projectionMessageID string,
+	reason string,
 	err error,
 ) error {
 	return r.emitTurnEvent(session, turn.TurnID, publicChatTurnActionFailedType, map[string]any{
@@ -120,8 +138,12 @@ func (r publicChatRuntime) emitTurnActionFailed(
 		"modality":              action.Modality,
 		"operation":             action.Operation,
 		"projection_message_id": projectionMessageID,
-		"reason_code":           publicChatReasonCodeLabel(reasonCodeFromError(err)),
-		"message":               strings.TrimSpace(err.Error()),
+		// `reason` carries the K-AGCORE-148 typed action failure vocabulary
+		// from tables/agent-execution-config.yaml; `reason_code` remains the
+		// generic runtime ReasonCode label.
+		"reason":      reason,
+		"reason_code": publicChatReasonCodeLabel(reasonCodeFromError(err)),
+		"message":     strings.TrimSpace(err.Error()),
 	})
 }
 

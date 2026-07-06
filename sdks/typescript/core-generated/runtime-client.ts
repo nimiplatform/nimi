@@ -223,6 +223,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAgentCanonicalMemoryReviewStatusResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
+    "service": "RuntimeAgentService",
+    "method": "GetAgentExecutionConfig",
+    "kind": "unary",
+    "requestType": "GetAgentExecutionConfigRequest",
+    "responseType": "GetAgentExecutionConfigResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
+    "service": "RuntimeAgentService",
+    "method": "GetAgentExecutionReadiness",
+    "kind": "unary",
+    "requestType": "GetAgentExecutionReadinessRequest",
+    "responseType": "GetAgentExecutionReadinessResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "service": "RuntimeAgentService",
     "method": "GetAgentState",
@@ -511,6 +527,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AgentEvent"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
+    "service": "RuntimeAgentService",
+    "method": "SubscribeAgentExecutionReadiness",
+    "kind": "server_stream",
+    "requestType": "SubscribeAgentExecutionReadinessRequest",
+    "responseType": "AgentExecutionReadinessSnapshot"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "service": "RuntimeAgentService",
     "method": "TerminateAgent",
@@ -525,6 +549,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "UpdateAgentStateRequest",
     "responseType": "UpdateAgentStateResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
+    "service": "RuntimeAgentService",
+    "method": "UpsertAgentExecutionConfig",
+    "kind": "unary",
+    "requestType": "UpsertAgentExecutionConfigRequest",
+    "responseType": "UpsertAgentExecutionConfigResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",

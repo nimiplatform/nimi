@@ -37,6 +37,9 @@ type CanonicalReviewExecutorRequest struct {
 	ExistingTruths  []memoryservice.TruthCandidate
 	Clusters        []memoryservice.ReviewTopicCluster
 	Leftovers       []*runtimev1.MemoryRecord
+	// ExecutionBinding is the committed execution config text.generate
+	// binding stamped by RuntimeAgentService (K-AGCORE-147).
+	ExecutionBinding publicChatExecutionBinding
 }
 
 type CanonicalReviewExecutorResult struct {

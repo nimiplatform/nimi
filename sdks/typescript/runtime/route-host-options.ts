@@ -266,6 +266,7 @@ async function defaultLoadLocalRouteMetadata(
         status: asset.status,
         capabilities: asset.capabilities,
         artifactRoles: asset.artifactRoles,
+        updatedAt: asset.updatedAt,
       });
     }
     pageToken = normalizeText(response.nextPageToken);

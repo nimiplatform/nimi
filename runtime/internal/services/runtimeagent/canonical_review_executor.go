@@ -9,7 +9,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
-	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -116,12 +115,17 @@ func buildCanonicalReviewScenarioRequest(req *CanonicalReviewExecutorRequest) (*
 	if subjectUserID == "" {
 		subjectUserID = strings.TrimSpace(req.Agent.GetAgentId())
 	}
+	if err := validateRuntimePrivateExecutorBinding("canonical review", req.ExecutionBinding); err != nil {
+		return nil, err
+	}
 	return &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         canonicalReviewExecutorAppID,
 			SubjectUserId: subjectUserID,
-			ModelId:       texttarget.InternalDefaultLocalTextModelAlias,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED,
+			ModelId:       req.ExecutionBinding.ModelID,
+			RoutePolicy:   req.ExecutionBinding.RoutePolicy,
+			ConnectorId:   req.ExecutionBinding.ConnectorID,
+			TargetRef:     clonePublicChatTargetRef(req.ExecutionBinding.TargetRef),
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10_000,
 		},

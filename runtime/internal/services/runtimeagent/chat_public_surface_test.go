@@ -77,6 +77,126 @@ func TestAIBackedPublicChatTurnExecutorPassesDurableTargetRef(t *testing.T) {
 	}
 }
 
+// upsertPublicChatTestExecutionConfig replaces the committed execution config
+// with the required text.generate binding plus any extra capability bindings
+// (K-AGCORE-147 config-driven test setup).
+func upsertPublicChatTestExecutionConfig(t *testing.T, svc *Service, extra ...*runtimev1.RuntimeAgentExecutionCapabilityBinding) {
+	t.Helper()
+	current, err := svc.GetAgentExecutionConfig(context.Background(), &runtimev1.GetAgentExecutionConfigRequest{
+		Context: &runtimev1.AgentRequestContext{AppId: "desktop.app"},
+	})
+	if err != nil {
+		t.Fatalf("GetAgentExecutionConfig: %v", err)
+	}
+	bindings := []*runtimev1.RuntimeAgentExecutionCapabilityBinding{
+		{
+			Capability:  executionCapabilityTextGenerate,
+			ModelId:     "local/default",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+	}
+	bindings = append(bindings, extra...)
+	if _, err := svc.UpsertAgentExecutionConfig(context.Background(), &runtimev1.UpsertAgentExecutionConfigRequest{
+		Context:          &runtimev1.AgentRequestContext{AppId: "desktop.app"},
+		ExpectedRevision: current.GetConfig().GetRevision(),
+		Bindings:         bindings,
+	}); err != nil {
+		t.Fatalf("UpsertAgentExecutionConfig: %v", err)
+	}
+}
+
+// TestPublicChatTurnRequestImageActionPromptFollowsExecutionConfig proves the
+// K-AGCORE-148 tri-state APML output contract: the image action affordance
+// derives from committed config presence plus readiness, with distinct
+// truthful copy for not_configured and unavailable.
+func TestPublicChatTurnRequestImageActionPromptFollowsExecutionConfig(t *testing.T) {
+	t.Parallel()
+	notConfigured := publicChatScenarioSystemPromptForImageConfig(t, nil)
+	if strings.Contains(notConfigured, `include exactly one sibling <action kind="image">`) {
+		t.Fatalf("image action routing rule must not be exposed without a committed image.generate binding, got %q", notConfigured)
+	}
+	if !strings.Contains(notConfigured, `Do not output <action kind="image">`) {
+		t.Fatalf("not_configured prompt must explicitly prohibit image actions, got %q", notConfigured)
+	}
+	if !strings.Contains(notConfigured, "image generation is not configured") {
+		t.Fatalf("not_configured prompt must state the not-configured truth, got %q", notConfigured)
+	}
+
+	available := publicChatScenarioSystemPromptForImageConfig(t, &runtimev1.RuntimeAgentExecutionCapabilityBinding{
+		Capability:  executionCapabilityImageGenerate,
+		ModelId:     "local/image",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+	})
+	if !strings.Contains(available, `include exactly one sibling <action kind="image">`) {
+		t.Fatalf("image action routing rule must be exposed when the committed image.generate binding is ready, got %q", available)
+	}
+	if strings.Contains(available, `Do not output <action kind="image">`) {
+		t.Fatalf("image-capable prompt must not prohibit image actions, got %q", available)
+	}
+
+	// A committed cloud image binding without a connector is structurally
+	// unusable: readiness reports UNAVAILABLE (connector_missing), which must
+	// project the distinct configured-but-unavailable truth, never the
+	// not-configured copy (K-AGCORE-148).
+	unavailable := publicChatScenarioSystemPromptForImageConfig(t, &runtimev1.RuntimeAgentExecutionCapabilityBinding{
+		Capability:  executionCapabilityImageGenerate,
+		ModelId:     "openai/gpt-image-1",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+	})
+	if strings.Contains(unavailable, `include exactly one sibling <action kind="image">`) {
+		t.Fatalf("image action routing rule must not be exposed when the configured image route is unavailable, got %q", unavailable)
+	}
+	if !strings.Contains(unavailable, `Do not output <action kind="image">`) {
+		t.Fatalf("unavailable prompt must explicitly prohibit image actions, got %q", unavailable)
+	}
+	if !strings.Contains(unavailable, "configured but currently unavailable") {
+		t.Fatalf("unavailable prompt must state the configured-but-unavailable truth, got %q", unavailable)
+	}
+	if strings.Contains(unavailable, "image generation is not configured") {
+		t.Fatalf("unavailable prompt must not collapse into the not-configured copy, got %q", unavailable)
+	}
+}
+
+func publicChatScenarioSystemPromptForImageConfig(t *testing.T, imageBinding *runtimev1.RuntimeAgentExecutionCapabilityBinding) string {
+	t.Helper()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	streamer := &capturePublicChatScenarioStreamer{}
+	svc.SetPublicChatTurnExecutor(NewAIBackedPublicChatTurnExecutor(streamer))
+	if imageBinding != nil {
+		upsertPublicChatTestExecutionConfig(t, svc, imageBinding)
+	}
+
+	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"runtime_source_ref":     "agent-alpha",
+			"conversation_anchor_id": anchorID,
+			"request_id":             "desktop-turn-image-prompt",
+			"thread_id":              "thread-image-prompt",
+			"messages": []any{
+				map[string]any{"role": "user", "content": "Can you generate a photo?"},
+			},
+		}),
+	})
+	if err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(image prompt request): %v", err)
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	_ = capture.waitForMessageType(t, publicChatTurnFailedType)
+	if streamer.request == nil || streamer.request.GetSpec().GetTextGenerate() == nil {
+		t.Fatalf("expected captured text generate stream request")
+	}
+	return streamer.request.GetSpec().GetTextGenerate().GetSystemPrompt()
+}
+
 type stubChatTrackSidecarExecutor struct {
 	result *ChatTrackSidecarResult
 	err    error
@@ -685,10 +805,6 @@ func TestPublicChatTurnRequestInjectsRuntimePreTurnMemoryContext(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "Can you help with cartography?"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -744,12 +860,6 @@ func TestPublicChatTurnRequestFailsClosedWhenPreTurnMemoryReadFails(t *testing.T
 		ThreadID:             "thread-memory-read-fails",
 		Messages: []publicChatMessagePayload{
 			{Role: "user", Content: "hello"},
-		},
-		ExecutionBindings: map[string]publicChatExecutionBindingPayload{
-			"text.generate": {
-				Route:   "local",
-				ModelID: "local/default",
-			},
 		},
 	}
 	runtime := publicChatRuntime{svc: svc}
@@ -864,10 +974,6 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -1056,10 +1162,6 @@ func TestPublicChatTurnMessageCommitFailureFailsClosed(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -1147,10 +1249,6 @@ func TestPublicChatCompletedEmissionFailureFinalizesFailed(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -1245,10 +1343,6 @@ func TestPublicChatTurnRequestDetachesExecutionFromIngressContext(t *testing.T) 
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {

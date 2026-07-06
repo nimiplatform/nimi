@@ -51,6 +51,8 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { RuntimeDurableTargetRef } from "./runtime_target_identity";
+import { RoutePolicy } from "./ai";
 import { MemoryEmbeddingProfile } from "./memory";
 import { NarrativeRecallHit } from "./memory";
 import { MemoryRecordKind } from "./memory";
@@ -2765,6 +2767,163 @@ export interface GetAvatarDebugReplayResponse {
     replayRef?: AvatarDebugReplayRef;
 }
 /**
+ * K-AGCORE-144..150 Runtime Agent execution config. One committed
+ * capability-to-binding config per runtime instance with monotonic revision,
+ * expected-revision optimistic concurrency, and a probe-backed readiness
+ * projection. Capability, readiness-state, and reason vocabularies are
+ * admitted in .nimi/spec/runtime/kernel/tables/agent-execution-config.yaml.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding
+ */
+export interface RuntimeAgentExecutionCapabilityBinding {
+    /**
+     * @generated from protobuf field: string capability = 1
+     */
+    capability: string;
+    /**
+     * @generated from protobuf field: string model_id = 2
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy route_policy = 3
+     */
+    routePolicy: RoutePolicy;
+    /**
+     * @generated from protobuf field: string connector_id = 4
+     */
+    connectorId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 5
+     */
+    targetRef?: RuntimeDurableTargetRef;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RuntimeAgentExecutionConfig
+ */
+export interface RuntimeAgentExecutionConfig {
+    /**
+     * @generated from protobuf field: uint64 revision = 1
+     */
+    revision: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings = 2
+     */
+    bindings: RuntimeAgentExecutionCapabilityBinding[];
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 3
+     */
+    updatedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: string updated_by_app_id = 4
+     */
+    updatedByAppId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness
+ */
+export interface RuntimeAgentExecutionCapabilityReadiness {
+    /**
+     * @generated from protobuf field: string capability = 1
+     */
+    capability: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentExecutionReadinessState state = 2
+     */
+    state: AgentExecutionReadinessState;
+    /**
+     * @generated from protobuf field: string reason_code = 3
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp probed_at = 4
+     */
+    probedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AgentExecutionReadinessSnapshot
+ */
+export interface AgentExecutionReadinessSnapshot {
+    /**
+     * @generated from protobuf field: uint64 config_revision = 1
+     */
+    configRevision: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness capabilities = 2
+     */
+    capabilities: RuntimeAgentExecutionCapabilityReadiness[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAgentExecutionConfigRequest
+ */
+export interface GetAgentExecutionConfigRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAgentExecutionConfigResponse
+ */
+export interface GetAgentExecutionConfigResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentExecutionConfig config = 1
+     */
+    config?: RuntimeAgentExecutionConfig;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpsertAgentExecutionConfigRequest
+ */
+export interface UpsertAgentExecutionConfigRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: uint64 expected_revision = 2
+     */
+    expectedRevision: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings = 3
+     */
+    bindings: RuntimeAgentExecutionCapabilityBinding[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.UpsertAgentExecutionConfigResponse
+ */
+export interface UpsertAgentExecutionConfigResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentExecutionConfig config = 1
+     */
+    config?: RuntimeAgentExecutionConfig;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAgentExecutionReadinessRequest
+ */
+export interface GetAgentExecutionReadinessRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAgentExecutionReadinessResponse
+ */
+export interface GetAgentExecutionReadinessResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentExecutionReadinessSnapshot snapshot = 1
+     */
+    snapshot?: AgentExecutionReadinessSnapshot;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SubscribeAgentExecutionReadinessRequest
+ */
+export interface SubscribeAgentExecutionReadinessRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.AgentLifecycleStatus
  */
 export enum AgentLifecycleStatus {
@@ -3604,6 +3763,27 @@ export enum CompanionParticipationStatus {
      * @generated from protobuf enum value: COMPANION_PARTICIPATION_STATUS_CANCELED = 8;
      */
     CANCELED = 8
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentExecutionReadinessState
+ */
+export enum AgentExecutionReadinessState {
+    /**
+     * @generated from protobuf enum value: AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_EXECUTION_READINESS_STATE_READY = 1;
+     */
+    READY = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED = 2;
+     */
+    NOT_CONFIGURED = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE = 3;
+     */
+    UNAVAILABLE = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
@@ -11845,3 +12025,614 @@ class GetAvatarDebugReplayResponse$Type extends MessageType<GetAvatarDebugReplay
  * @generated MessageType for protobuf message nimi.runtime.v1.GetAvatarDebugReplayResponse
  */
 export const GetAvatarDebugReplayResponse = new GetAvatarDebugReplayResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RuntimeAgentExecutionCapabilityBinding$Type extends MessageType<RuntimeAgentExecutionCapabilityBinding> {
+    constructor() {
+        super("nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding", [
+            { no: 1, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
+            { no: 4, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "target_ref", kind: "message", T: () => RuntimeDurableTargetRef }
+        ]);
+    }
+    create(value?: PartialMessage<RuntimeAgentExecutionCapabilityBinding>): RuntimeAgentExecutionCapabilityBinding {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capability = "";
+        message.modelId = "";
+        message.routePolicy = 0;
+        message.connectorId = "";
+        if (value !== undefined)
+            reflectionMergePartial<RuntimeAgentExecutionCapabilityBinding>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentExecutionCapabilityBinding): RuntimeAgentExecutionCapabilityBinding {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability */ 1:
+                    message.capability = reader.string();
+                    break;
+                case /* string model_id */ 2:
+                    message.modelId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RoutePolicy route_policy */ 3:
+                    message.routePolicy = reader.int32();
+                    break;
+                case /* string connector_id */ 4:
+                    message.connectorId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref */ 5:
+                    message.targetRef = RuntimeDurableTargetRef.internalBinaryRead(reader, reader.uint32(), options, message.targetRef);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RuntimeAgentExecutionCapabilityBinding, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability = 1; */
+        if (message.capability !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capability);
+        /* string model_id = 2; */
+        if (message.modelId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelId);
+        /* nimi.runtime.v1.RoutePolicy route_policy = 3; */
+        if (message.routePolicy !== 0)
+            writer.tag(3, WireType.Varint).int32(message.routePolicy);
+        /* string connector_id = 4; */
+        if (message.connectorId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.connectorId);
+        /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 5; */
+        if (message.targetRef)
+            RuntimeDurableTargetRef.internalBinaryWrite(message.targetRef, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding
+ */
+export const RuntimeAgentExecutionCapabilityBinding = new RuntimeAgentExecutionCapabilityBinding$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RuntimeAgentExecutionConfig$Type extends MessageType<RuntimeAgentExecutionConfig> {
+    constructor() {
+        super("nimi.runtime.v1.RuntimeAgentExecutionConfig", [
+            { no: 1, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 2, name: "bindings", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentExecutionCapabilityBinding },
+            { no: 3, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 4, name: "updated_by_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RuntimeAgentExecutionConfig>): RuntimeAgentExecutionConfig {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.revision = "0";
+        message.bindings = [];
+        message.updatedByAppId = "";
+        if (value !== undefined)
+            reflectionMergePartial<RuntimeAgentExecutionConfig>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentExecutionConfig): RuntimeAgentExecutionConfig {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint64 revision */ 1:
+                    message.revision = reader.uint64().toString();
+                    break;
+                case /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings */ 2:
+                    message.bindings.push(RuntimeAgentExecutionCapabilityBinding.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 3:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* string updated_by_app_id */ 4:
+                    message.updatedByAppId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RuntimeAgentExecutionConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint64 revision = 1; */
+        if (message.revision !== "0")
+            writer.tag(1, WireType.Varint).uint64(message.revision);
+        /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings = 2; */
+        for (let i = 0; i < message.bindings.length; i++)
+            RuntimeAgentExecutionCapabilityBinding.internalBinaryWrite(message.bindings[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 3; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string updated_by_app_id = 4; */
+        if (message.updatedByAppId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.updatedByAppId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentExecutionConfig
+ */
+export const RuntimeAgentExecutionConfig = new RuntimeAgentExecutionConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RuntimeAgentExecutionCapabilityReadiness$Type extends MessageType<RuntimeAgentExecutionCapabilityReadiness> {
+    constructor() {
+        super("nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness", [
+            { no: 1, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AgentExecutionReadinessState", AgentExecutionReadinessState, "AGENT_EXECUTION_READINESS_STATE_"] },
+            { no: 3, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "probed_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<RuntimeAgentExecutionCapabilityReadiness>): RuntimeAgentExecutionCapabilityReadiness {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capability = "";
+        message.state = 0;
+        message.reasonCode = "";
+        if (value !== undefined)
+            reflectionMergePartial<RuntimeAgentExecutionCapabilityReadiness>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentExecutionCapabilityReadiness): RuntimeAgentExecutionCapabilityReadiness {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability */ 1:
+                    message.capability = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AgentExecutionReadinessState state */ 2:
+                    message.state = reader.int32();
+                    break;
+                case /* string reason_code */ 3:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp probed_at */ 4:
+                    message.probedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.probedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RuntimeAgentExecutionCapabilityReadiness, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability = 1; */
+        if (message.capability !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capability);
+        /* nimi.runtime.v1.AgentExecutionReadinessState state = 2; */
+        if (message.state !== 0)
+            writer.tag(2, WireType.Varint).int32(message.state);
+        /* string reason_code = 3; */
+        if (message.reasonCode !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.reasonCode);
+        /* google.protobuf.Timestamp probed_at = 4; */
+        if (message.probedAt)
+            Timestamp.internalBinaryWrite(message.probedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness
+ */
+export const RuntimeAgentExecutionCapabilityReadiness = new RuntimeAgentExecutionCapabilityReadiness$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentExecutionReadinessSnapshot$Type extends MessageType<AgentExecutionReadinessSnapshot> {
+    constructor() {
+        super("nimi.runtime.v1.AgentExecutionReadinessSnapshot", [
+            { no: 1, name: "config_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 2, name: "capabilities", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentExecutionCapabilityReadiness }
+        ]);
+    }
+    create(value?: PartialMessage<AgentExecutionReadinessSnapshot>): AgentExecutionReadinessSnapshot {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.configRevision = "0";
+        message.capabilities = [];
+        if (value !== undefined)
+            reflectionMergePartial<AgentExecutionReadinessSnapshot>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentExecutionReadinessSnapshot): AgentExecutionReadinessSnapshot {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint64 config_revision */ 1:
+                    message.configRevision = reader.uint64().toString();
+                    break;
+                case /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness capabilities */ 2:
+                    message.capabilities.push(RuntimeAgentExecutionCapabilityReadiness.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentExecutionReadinessSnapshot, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint64 config_revision = 1; */
+        if (message.configRevision !== "0")
+            writer.tag(1, WireType.Varint).uint64(message.configRevision);
+        /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness capabilities = 2; */
+        for (let i = 0; i < message.capabilities.length; i++)
+            RuntimeAgentExecutionCapabilityReadiness.internalBinaryWrite(message.capabilities[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentExecutionReadinessSnapshot
+ */
+export const AgentExecutionReadinessSnapshot = new AgentExecutionReadinessSnapshot$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAgentExecutionConfigRequest$Type extends MessageType<GetAgentExecutionConfigRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetAgentExecutionConfigRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext }
+        ]);
+    }
+    create(value?: PartialMessage<GetAgentExecutionConfigRequest>): GetAgentExecutionConfigRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetAgentExecutionConfigRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentExecutionConfigRequest): GetAgentExecutionConfigRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAgentExecutionConfigRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentExecutionConfigRequest
+ */
+export const GetAgentExecutionConfigRequest = new GetAgentExecutionConfigRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAgentExecutionConfigResponse$Type extends MessageType<GetAgentExecutionConfigResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetAgentExecutionConfigResponse", [
+            { no: 1, name: "config", kind: "message", T: () => RuntimeAgentExecutionConfig }
+        ]);
+    }
+    create(value?: PartialMessage<GetAgentExecutionConfigResponse>): GetAgentExecutionConfigResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetAgentExecutionConfigResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentExecutionConfigResponse): GetAgentExecutionConfigResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.RuntimeAgentExecutionConfig config */ 1:
+                    message.config = RuntimeAgentExecutionConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAgentExecutionConfigResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RuntimeAgentExecutionConfig config = 1; */
+        if (message.config)
+            RuntimeAgentExecutionConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentExecutionConfigResponse
+ */
+export const GetAgentExecutionConfigResponse = new GetAgentExecutionConfigResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpsertAgentExecutionConfigRequest$Type extends MessageType<UpsertAgentExecutionConfigRequest> {
+    constructor() {
+        super("nimi.runtime.v1.UpsertAgentExecutionConfigRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "bindings", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentExecutionCapabilityBinding }
+        ]);
+    }
+    create(value?: PartialMessage<UpsertAgentExecutionConfigRequest>): UpsertAgentExecutionConfigRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.expectedRevision = "0";
+        message.bindings = [];
+        if (value !== undefined)
+            reflectionMergePartial<UpsertAgentExecutionConfigRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpsertAgentExecutionConfigRequest): UpsertAgentExecutionConfigRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* uint64 expected_revision */ 2:
+                    message.expectedRevision = reader.uint64().toString();
+                    break;
+                case /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings */ 3:
+                    message.bindings.push(RuntimeAgentExecutionCapabilityBinding.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpsertAgentExecutionConfigRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* uint64 expected_revision = 2; */
+        if (message.expectedRevision !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.expectedRevision);
+        /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings = 3; */
+        for (let i = 0; i < message.bindings.length; i++)
+            RuntimeAgentExecutionCapabilityBinding.internalBinaryWrite(message.bindings[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpsertAgentExecutionConfigRequest
+ */
+export const UpsertAgentExecutionConfigRequest = new UpsertAgentExecutionConfigRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpsertAgentExecutionConfigResponse$Type extends MessageType<UpsertAgentExecutionConfigResponse> {
+    constructor() {
+        super("nimi.runtime.v1.UpsertAgentExecutionConfigResponse", [
+            { no: 1, name: "config", kind: "message", T: () => RuntimeAgentExecutionConfig }
+        ]);
+    }
+    create(value?: PartialMessage<UpsertAgentExecutionConfigResponse>): UpsertAgentExecutionConfigResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<UpsertAgentExecutionConfigResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpsertAgentExecutionConfigResponse): UpsertAgentExecutionConfigResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.RuntimeAgentExecutionConfig config */ 1:
+                    message.config = RuntimeAgentExecutionConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpsertAgentExecutionConfigResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RuntimeAgentExecutionConfig config = 1; */
+        if (message.config)
+            RuntimeAgentExecutionConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpsertAgentExecutionConfigResponse
+ */
+export const UpsertAgentExecutionConfigResponse = new UpsertAgentExecutionConfigResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAgentExecutionReadinessRequest$Type extends MessageType<GetAgentExecutionReadinessRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetAgentExecutionReadinessRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext }
+        ]);
+    }
+    create(value?: PartialMessage<GetAgentExecutionReadinessRequest>): GetAgentExecutionReadinessRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetAgentExecutionReadinessRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentExecutionReadinessRequest): GetAgentExecutionReadinessRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAgentExecutionReadinessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentExecutionReadinessRequest
+ */
+export const GetAgentExecutionReadinessRequest = new GetAgentExecutionReadinessRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAgentExecutionReadinessResponse$Type extends MessageType<GetAgentExecutionReadinessResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetAgentExecutionReadinessResponse", [
+            { no: 1, name: "snapshot", kind: "message", T: () => AgentExecutionReadinessSnapshot }
+        ]);
+    }
+    create(value?: PartialMessage<GetAgentExecutionReadinessResponse>): GetAgentExecutionReadinessResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetAgentExecutionReadinessResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentExecutionReadinessResponse): GetAgentExecutionReadinessResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentExecutionReadinessSnapshot snapshot */ 1:
+                    message.snapshot = AgentExecutionReadinessSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.snapshot);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAgentExecutionReadinessResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentExecutionReadinessSnapshot snapshot = 1; */
+        if (message.snapshot)
+            AgentExecutionReadinessSnapshot.internalBinaryWrite(message.snapshot, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentExecutionReadinessResponse
+ */
+export const GetAgentExecutionReadinessResponse = new GetAgentExecutionReadinessResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SubscribeAgentExecutionReadinessRequest$Type extends MessageType<SubscribeAgentExecutionReadinessRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SubscribeAgentExecutionReadinessRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext }
+        ]);
+    }
+    create(value?: PartialMessage<SubscribeAgentExecutionReadinessRequest>): SubscribeAgentExecutionReadinessRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<SubscribeAgentExecutionReadinessRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubscribeAgentExecutionReadinessRequest): SubscribeAgentExecutionReadinessRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SubscribeAgentExecutionReadinessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeAgentExecutionReadinessRequest
+ */
+export const SubscribeAgentExecutionReadinessRequest = new SubscribeAgentExecutionReadinessRequest$Type();

@@ -31,6 +31,7 @@ export interface NimiRuntimeRouteLocalAssetProjectionInput {
   readonly artifactRoles?: readonly unknown[];
   readonly displayName?: unknown;
   readonly sourceFileName?: unknown;
+  readonly updatedAt?: unknown;
 }
 
 export interface NimiRuntimeRouteNodeCatalogProjectionInput {
@@ -212,6 +213,7 @@ function projectLocalTargetItems(input: NimiRuntimeRouteOptionsProjectionInput):
           engine: engine || undefined,
           endpoint: normalizeText(asset.endpoint || snapshot?.endpoint) || undefined,
           runtimeStatus,
+          updatedAt: normalizeText(asset.updatedAt || snapshot?.updatedAt) || undefined,
         },
       };
     })
@@ -314,6 +316,45 @@ function selectedTargetRefFromInventory(input: {
   return selected;
 }
 
+function routeOptionsSnapshotRevision(input: {
+  readonly capability: NimiRuntimeCanonicalCapability;
+  readonly targets: readonly NimiRuntimeTargetInventoryItem[];
+}): string {
+  const tokens = input.targets.map((item) => {
+    const targetKey = nimiRuntimeRouteTargetRefKey(item.targetRef);
+    const status = normalizeLower(item.readiness.status);
+    const capabilities = [...item.compatibility.capabilities].map(normalizeNimiRuntimeHostRouteCapability).sort().join(',');
+    if (item.evidence.source === 'cloud-connector') {
+      return [
+        'cloud',
+        targetKey,
+        status,
+        capabilities,
+        normalizeText(item.evidence.connectorSnapshotId),
+        normalizeText(item.evidence.endpointProfileId),
+        normalizeText(item.evidence.inventorySnapshotId),
+      ].join('|');
+    }
+    return [
+      'local',
+      targetKey,
+      status,
+      capabilities,
+      normalizeText(item.evidence.localAssetId),
+      normalizeText(item.evidence.resolvedModelId),
+      normalizeText(item.evidence.engine),
+      normalizeText(item.evidence.endpoint),
+      normalizeText(item.evidence.runtimeStatus),
+      normalizeText(item.evidence.updatedAt),
+    ].join('|');
+  }).sort();
+  return [
+    'route-options:v1',
+    normalizeNimiRuntimeHostRouteCapability(input.capability) || input.capability,
+    ...tokens,
+  ].join(':');
+}
+
 export function buildNimiRuntimeRouteOptionsProjection(
   input: NimiRuntimeRouteOptionsProjectionInput,
 ): NimiRuntimeRouteOptionsSnapshot {
@@ -323,6 +364,7 @@ export function buildNimiRuntimeRouteOptionsProjection(
   const targets = [...localTargets, ...cloudTargets];
   return {
     capability,
+    snapshotRevision: routeOptionsSnapshotRevision({ capability, targets }),
     selectedTargetRef: selectedTargetRefFromInventory({
       selectedTargetRef: input.selectedTargetRef,
       targets,

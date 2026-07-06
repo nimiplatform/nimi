@@ -72,7 +72,7 @@ func (s *Service) RequestCompanionParticipation(ctx context.Context, req *runtim
 			Content: text,
 		},
 	}
-	binding, err := s.resolveRuntimeDefaultPublicChatBinding(ctx, session.SubjectUserID, "", messages, req.GetMaxOutputTokens())
+	_, err = s.resolveRuntimeDefaultPublicChatBinding(ctx, session.SubjectUserID, "", messages, req.GetMaxOutputTokens())
 	if err != nil {
 		if status.Code(err) == codes.FailedPrecondition || status.Code(err) == codes.Unavailable {
 			return &runtimev1.RequestCompanionParticipationResponse{
@@ -94,9 +94,10 @@ func (s *Service) RequestCompanionParticipation(ctx context.Context, req *runtim
 		"messages": []any{
 			map[string]any{"role": "user", "content": text},
 		},
-		"execution_bindings": map[string]any{
-			"text.generate": publicChatExecutionBindingProjectionPayload(binding),
-		},
+		// K-AGCORE-147: no execution_bindings on the turn request payload;
+		// turn admission binds to the committed execution config. The
+		// resolveRuntimeDefaultPublicChatBinding call above remains a
+		// fail-closed availability precheck for the blocked projection path.
 	})
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "companion participation request payload invalid")

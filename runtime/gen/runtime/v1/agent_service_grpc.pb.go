@@ -72,6 +72,10 @@ const (
 	RuntimeAgentService_ListParticipationAuditEvents_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents"
 	RuntimeAgentService_GetParticipationReplay_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay"
 	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
+	RuntimeAgentService_GetAgentExecutionConfig_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig"
+	RuntimeAgentService_UpsertAgentExecutionConfig_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig"
+	RuntimeAgentService_GetAgentExecutionReadiness_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness"
+	RuntimeAgentService_SubscribeAgentExecutionReadiness_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness"
 )
 
 // RuntimeAgentServiceClient is the client API for RuntimeAgentService service.
@@ -132,6 +136,11 @@ type RuntimeAgentServiceClient interface {
 	ListParticipationAuditEvents(ctx context.Context, in *ListParticipationAuditEventsRequest, opts ...grpc.CallOption) (*ListParticipationAuditEventsResponse, error)
 	GetParticipationReplay(ctx context.Context, in *GetParticipationReplayRequest, opts ...grpc.CallOption) (*GetParticipationReplayResponse, error)
 	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
+	// K-AGCORE-144..150 Runtime Agent execution config surface.
+	GetAgentExecutionConfig(ctx context.Context, in *GetAgentExecutionConfigRequest, opts ...grpc.CallOption) (*GetAgentExecutionConfigResponse, error)
+	UpsertAgentExecutionConfig(ctx context.Context, in *UpsertAgentExecutionConfigRequest, opts ...grpc.CallOption) (*UpsertAgentExecutionConfigResponse, error)
+	GetAgentExecutionReadiness(ctx context.Context, in *GetAgentExecutionReadinessRequest, opts ...grpc.CallOption) (*GetAgentExecutionReadinessResponse, error)
+	SubscribeAgentExecutionReadiness(ctx context.Context, in *SubscribeAgentExecutionReadinessRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentExecutionReadinessSnapshot], error)
 }
 
 type runtimeAgentServiceClient struct {
@@ -681,6 +690,55 @@ func (c *runtimeAgentServiceClient) SubscribeAgentEvents(ctx context.Context, in
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAgentService_SubscribeAgentEventsClient = grpc.ServerStreamingClient[AgentEvent]
 
+func (c *runtimeAgentServiceClient) GetAgentExecutionConfig(ctx context.Context, in *GetAgentExecutionConfigRequest, opts ...grpc.CallOption) (*GetAgentExecutionConfigResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAgentExecutionConfigResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAgentExecutionConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) UpsertAgentExecutionConfig(ctx context.Context, in *UpsertAgentExecutionConfigRequest, opts ...grpc.CallOption) (*UpsertAgentExecutionConfigResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpsertAgentExecutionConfigResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_UpsertAgentExecutionConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) GetAgentExecutionReadiness(ctx context.Context, in *GetAgentExecutionReadinessRequest, opts ...grpc.CallOption) (*GetAgentExecutionReadinessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAgentExecutionReadinessResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAgentExecutionReadiness_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) SubscribeAgentExecutionReadiness(ctx context.Context, in *SubscribeAgentExecutionReadinessRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentExecutionReadinessSnapshot], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[1], RuntimeAgentService_SubscribeAgentExecutionReadiness_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SubscribeAgentExecutionReadinessRequest, AgentExecutionReadinessSnapshot]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAgentService_SubscribeAgentExecutionReadinessClient = grpc.ServerStreamingClient[AgentExecutionReadinessSnapshot]
+
 // RuntimeAgentServiceServer is the server API for RuntimeAgentService service.
 // All implementations should embed UnimplementedRuntimeAgentServiceServer
 // for forward compatibility.
@@ -739,6 +797,11 @@ type RuntimeAgentServiceServer interface {
 	ListParticipationAuditEvents(context.Context, *ListParticipationAuditEventsRequest) (*ListParticipationAuditEventsResponse, error)
 	GetParticipationReplay(context.Context, *GetParticipationReplayRequest) (*GetParticipationReplayResponse, error)
 	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
+	// K-AGCORE-144..150 Runtime Agent execution config surface.
+	GetAgentExecutionConfig(context.Context, *GetAgentExecutionConfigRequest) (*GetAgentExecutionConfigResponse, error)
+	UpsertAgentExecutionConfig(context.Context, *UpsertAgentExecutionConfigRequest) (*UpsertAgentExecutionConfigResponse, error)
+	GetAgentExecutionReadiness(context.Context, *GetAgentExecutionReadinessRequest) (*GetAgentExecutionReadinessResponse, error)
+	SubscribeAgentExecutionReadiness(*SubscribeAgentExecutionReadinessRequest, grpc.ServerStreamingServer[AgentExecutionReadinessSnapshot]) error
 }
 
 // UnimplementedRuntimeAgentServiceServer should be embedded to have
@@ -906,6 +969,18 @@ func (UnimplementedRuntimeAgentServiceServer) GetParticipationReplay(context.Con
 }
 func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAgentEvents not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetAgentExecutionConfig(context.Context, *GetAgentExecutionConfigRequest) (*GetAgentExecutionConfigResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAgentExecutionConfig not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) UpsertAgentExecutionConfig(context.Context, *UpsertAgentExecutionConfigRequest) (*UpsertAgentExecutionConfigResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertAgentExecutionConfig not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetAgentExecutionReadiness(context.Context, *GetAgentExecutionReadinessRequest) (*GetAgentExecutionReadinessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAgentExecutionReadiness not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentExecutionReadiness(*SubscribeAgentExecutionReadinessRequest, grpc.ServerStreamingServer[AgentExecutionReadinessSnapshot]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeAgentExecutionReadiness not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) testEmbeddedByValue() {}
 
@@ -1874,6 +1949,71 @@ func _RuntimeAgentService_SubscribeAgentEvents_Handler(srv interface{}, stream g
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAgentService_SubscribeAgentEventsServer = grpc.ServerStreamingServer[AgentEvent]
 
+func _RuntimeAgentService_GetAgentExecutionConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentExecutionConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetAgentExecutionConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetAgentExecutionConfig_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetAgentExecutionConfig(ctx, req.(*GetAgentExecutionConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_UpsertAgentExecutionConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertAgentExecutionConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).UpsertAgentExecutionConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_UpsertAgentExecutionConfig_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).UpsertAgentExecutionConfig(ctx, req.(*UpsertAgentExecutionConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_GetAgentExecutionReadiness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAgentExecutionReadinessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetAgentExecutionReadiness(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetAgentExecutionReadiness_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetAgentExecutionReadiness(ctx, req.(*GetAgentExecutionReadinessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_SubscribeAgentExecutionReadiness_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeAgentExecutionReadinessRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeAgentServiceServer).SubscribeAgentExecutionReadiness(m, &grpc.GenericServerStream[SubscribeAgentExecutionReadinessRequest, AgentExecutionReadinessSnapshot]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeAgentService_SubscribeAgentExecutionReadinessServer = grpc.ServerStreamingServer[AgentExecutionReadinessSnapshot]
+
 // RuntimeAgentService_ServiceDesc is the grpc.ServiceDesc for RuntimeAgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -2089,11 +2229,28 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetParticipationReplay",
 			Handler:    _RuntimeAgentService_GetParticipationReplay_Handler,
 		},
+		{
+			MethodName: "GetAgentExecutionConfig",
+			Handler:    _RuntimeAgentService_GetAgentExecutionConfig_Handler,
+		},
+		{
+			MethodName: "UpsertAgentExecutionConfig",
+			Handler:    _RuntimeAgentService_UpsertAgentExecutionConfig_Handler,
+		},
+		{
+			MethodName: "GetAgentExecutionReadiness",
+			Handler:    _RuntimeAgentService_GetAgentExecutionReadiness_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "SubscribeAgentEvents",
 			Handler:       _RuntimeAgentService_SubscribeAgentEvents_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SubscribeAgentExecutionReadiness",
+			Handler:       _RuntimeAgentService_SubscribeAgentExecutionReadiness_Handler,
 			ServerStreams: true,
 		},
 	},

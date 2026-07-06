@@ -139,12 +139,20 @@ func (c lifeTrackController) executePendingHook(ctx context.Context, agentID str
 	if err != nil {
 		return c.applyHookDecision(agentID, intentID, failedHookDecision(reasonCodeFromError(err), err.Error(), false, 0), now)
 	}
+	// K-AGCORE-147: the Life Track executor consumes the committed execution
+	// config text.generate binding; a missing binding is an observable
+	// terminal hook failure, never a silent constant fallback.
+	executionBinding, _, err := c.svc.committedTextGenerateExecutionBinding()
+	if err != nil {
+		return c.applyHookDecision(agentID, intentID, failedHookDecision(reasonCodeFromError(err), err.Error(), false, 0), now)
+	}
 	result, err := executor(ctx, &lifeTurnRequest{
-		Agent:    cloneAgentRecord(executionEntry.Agent),
-		State:    cloneAgentState(executionEntry.State),
-		Hook:     clonePendingHook(runningHook),
-		Recall:   cloneCanonicalMemoryViews(recall),
-		Autonomy: cloneAutonomy(executionEntry.Agent.GetAutonomy()),
+		Agent:            cloneAgentRecord(executionEntry.Agent),
+		State:            cloneAgentState(executionEntry.State),
+		Hook:             clonePendingHook(runningHook),
+		Recall:           cloneCanonicalMemoryViews(recall),
+		Autonomy:         cloneAutonomy(executionEntry.Agent.GetAutonomy()),
+		ExecutionBinding: executionBinding,
 	})
 	if err != nil {
 		if executionErr, ok := err.(*lifeTurnExecutionError); ok {

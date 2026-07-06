@@ -5,6 +5,7 @@ export interface RuntimeLocalAgentIdentityInput {
   readonly ownerUserId: unknown;
   readonly runtimeSourceRef: unknown;
   readonly localAgentRef: unknown;
+  readonly scopedBinding?: AgentRequestContext['scopedBinding'];
 }
 
 export interface RuntimeLocalAgentIdentityProjection {

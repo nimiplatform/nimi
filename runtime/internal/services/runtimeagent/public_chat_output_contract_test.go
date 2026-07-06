@@ -148,6 +148,7 @@ func TestAIBackedPublicChatTurnExecutorAddsAPMLOutputContract(t *testing.T) {
 			ModelID:     "local/default",
 			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		},
+		AvailableActions: publicChatAvailableActions{ImageGenerate: publicChatImageActionAvailable},
 	}, nil)
 	if err != nil {
 		t.Fatalf("StreamChatTurn: %v", err)
@@ -177,5 +178,37 @@ func TestAIBackedPublicChatTurnExecutorAddsAPMLOutputContract(t *testing.T) {
 	}
 	if strings.Index(prompt, "You are Alpha.") > strings.Index(prompt, "Return APML only") {
 		t.Fatalf("expected APML contract to follow base prompt for recency, got %q", prompt)
+	}
+}
+
+func TestAIBackedPublicChatTurnExecutorDisablesImageAPMLWhenImageActionUnavailable(t *testing.T) {
+	streamer := &capturePublicChatScenarioStreamer{}
+	executor := NewAIBackedPublicChatTurnExecutor(streamer)
+	err := executor.StreamChatTurn(context.Background(), &PublicChatTurnExecutionRequest{
+		AppID:         "desktop.app",
+		SubjectUserID: "user-1",
+		SystemPrompt:  "You are Alpha.",
+		Messages: []*runtimev1.ChatMessage{{
+			Role:    "user",
+			Content: "generate a photo",
+		}},
+		Binding: publicChatExecutionBinding{
+			ModelID:     "local/default",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+	}, nil)
+	if err != nil {
+		t.Fatalf("StreamChatTurn: %v", err)
+	}
+	spec := streamer.request.GetSpec().GetTextGenerate()
+	if spec == nil {
+		t.Fatalf("expected text generate spec")
+	}
+	prompt := strings.TrimSpace(spec.GetSystemPrompt())
+	if strings.Contains(prompt, `include exactly one sibling <action kind="image">`) {
+		t.Fatalf("default APML contract must not expose image action routing, got %q", prompt)
+	}
+	if !strings.Contains(prompt, `Do not output <action kind="image">`) {
+		t.Fatalf("default APML contract must explicitly prohibit image action output, got %q", prompt)
 	}
 }

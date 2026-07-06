@@ -196,10 +196,6 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "validate cbdb agent chat"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	}); err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(CBDB turn): %v", err)

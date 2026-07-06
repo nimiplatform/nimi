@@ -73,10 +73,6 @@ func TestWave2PublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "propose idle follow up"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	}); err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(turn): %v", err)

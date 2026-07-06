@@ -1,6 +1,7 @@
 import { createNimiError } from '../types';
 import {
   findNimiRuntimeTargetInventoryItem,
+  isNimiRuntimeTargetInventoryItemSelectable,
   normalizeNimiRuntimeRouteCapabilityToken,
   normalizeNimiRuntimeRouteTargetRef,
   runtimeNimiRouteCapabilitiesMatch,
@@ -172,6 +173,11 @@ export function resolveNimiRuntimeRouteTargetRefFromSnapshot(input: {
   const targetRef = normalizeNimiRuntimeRouteTargetRef(input.targetRef);
   const item = findNimiRuntimeTargetInventoryItem(input.snapshot.inventory, targetRef);
   if (!item) {
+    throw new Error(targetRef.kind === 'cloud-connector'
+      ? 'NIMI_RUNTIME_ROUTE_CLOUD_EVIDENCE_REQUIRED'
+      : 'NIMI_RUNTIME_ROUTE_LOCAL_EVIDENCE_REQUIRED');
+  }
+  if (!isNimiRuntimeTargetInventoryItemSelectable(item)) {
     throw new Error(targetRef.kind === 'cloud-connector'
       ? 'NIMI_RUNTIME_ROUTE_CLOUD_EVIDENCE_REQUIRED'
       : 'NIMI_RUNTIME_ROUTE_LOCAL_EVIDENCE_REQUIRED');

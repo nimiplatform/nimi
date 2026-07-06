@@ -123,6 +123,21 @@ function createRouteOptionsSnapshot(selectedTargetRef: NimiRuntimeRouteTargetRef
   };
 }
 
+function createRouteOptionsSnapshotWithCloudStatus(status: string): NimiRuntimeRouteOptionsSnapshot {
+  const snapshot = createRouteOptionsSnapshot(cloudTargetRef);
+  return {
+    ...snapshot,
+    inventory: {
+      ...snapshot.inventory,
+      targets: snapshot.inventory.targets.map((item) => (
+        item.targetRef.kind === 'cloud-connector'
+          ? { ...item, readiness: { ...item.readiness, status } }
+          : item
+      )),
+    },
+  };
+}
+
 test('Runtime route capability runtime resolves, checks health, and describes host metadata from v2 targetRefs', async () => {
   const snapshot = createRouteOptionsSnapshot(cloudTargetRef);
   const buildInputs: unknown[] = [];
@@ -252,6 +267,150 @@ test('Runtime route capability projection resolves selected target refs through 
   assert.equal(isNimiRuntimeRouteCapabilityProjectionReady(projection), true);
   assert.equal(projection.resolvedBinding?.resolvedBindingRef, 'cloud:text.generate:tester-cloud:remote-catalog%3Atester-model:tester-model');
   assert.deepEqual(projection.selectedTargetRef, cloudTargetRef);
+});
+
+test('Runtime route capability runtime reuses resolved target refs across health checks', async () => {
+  let optionsLoadCount = 0;
+  const routeRuntime = createNimiRuntimeRouteCapabilityRuntimeWithHost({
+    loadRuntimeRouteOptions: async () => {
+      optionsLoadCount += 1;
+      return createRouteOptionsSnapshot(cloudTargetRef);
+    },
+    checkHealth: async () => ({
+      provider: 'tester',
+      status: 'healthy',
+      detail: '',
+    }),
+    describeTargetId: 'tester.capability.route',
+    buildDescribeCallOptions: () => ({}),
+    getDescribeHost: () => ({
+      appId: 'nimi.tester',
+      executeScenario: async (_request, options) => {
+        options.responseMetadataObserver?.({
+          [NIMI_RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encodeRouteDescribePayload({
+            capability: 'text.generate',
+            metadataVersion: 'v1',
+            resolvedBindingRef: 'cloud:text.generate:tester-cloud:remote-catalog%3Atester-model:tester-model',
+            metadataKind: 'text.generate',
+            metadata: createTextGenerateRouteMetadata(),
+          }),
+        });
+        return {};
+      },
+    }),
+  });
+  const store = updateNimiRuntimeRouteCapabilityTargetRef(
+    createDefaultNimiRuntimeRouteCapabilitySelectionStore(),
+    'text.generate',
+    cloudTargetRef,
+  );
+
+  const projection = await buildNimiRuntimeRouteCapabilityProjection({
+    capability: 'text.generate',
+    selectionStore: store,
+    routeRuntime,
+  });
+
+  assert.equal(isNimiRuntimeRouteCapabilityProjectionReady(projection), true);
+  assert.equal(optionsLoadCount, 1);
+});
+
+test('Runtime route capability runtime uses canonical target ref cache keys', async () => {
+  let optionsLoadCount = 0;
+  const routeRuntime = createNimiRuntimeRouteCapabilityRuntimeWithHost({
+    loadRuntimeRouteOptions: async () => {
+      optionsLoadCount += 1;
+      return createRouteOptionsSnapshot(cloudTargetRef);
+    },
+    checkHealth: async () => ({
+      provider: 'tester',
+      status: 'healthy',
+      detail: '',
+    }),
+    describeTargetId: 'tester.capability.route',
+    buildDescribeCallOptions: () => ({}),
+    getDescribeHost: () => ({
+      appId: 'nimi.tester',
+      executeScenario: async () => ({}),
+    }),
+  });
+  const reorderedTargetRef: NimiRuntimeRouteTargetRef = {
+    provider: 'tester',
+    providerModelId: 'tester-model',
+    remoteModelCatalogId: 'remote-catalog:tester-model',
+    connectorId: 'tester-cloud',
+    version: 'v2',
+    kind: 'cloud-connector',
+  };
+
+  await routeRuntime.checkHealth({ capability: 'text.generate', targetRef: cloudTargetRef });
+  await routeRuntime.checkHealth({ capability: 'text.generate', targetRef: reorderedTargetRef });
+
+  assert.equal(optionsLoadCount, 1);
+});
+
+test('Runtime route capability runtime invalidates resolved targets when route options revision changes', async () => {
+  let optionsLoadCount = 0;
+  let routeOptionsRevision = 'ready';
+  const routeRuntime = createNimiRuntimeRouteCapabilityRuntimeWithHost({
+    getRouteOptionsCacheRevision: () => routeOptionsRevision,
+    loadRuntimeRouteOptions: async () => {
+      optionsLoadCount += 1;
+      return routeOptionsRevision === 'ready'
+        ? createRouteOptionsSnapshot(cloudTargetRef)
+        : createRouteOptionsSnapshotWithCloudStatus('removed');
+    },
+    checkHealth: async () => ({
+      provider: 'tester',
+      status: 'healthy',
+      detail: '',
+    }),
+    describeTargetId: 'tester.capability.route',
+    buildDescribeCallOptions: () => ({}),
+    getDescribeHost: () => ({
+      appId: 'nimi.tester',
+      executeScenario: async () => ({}),
+    }),
+  });
+
+  await routeRuntime.checkHealth({ capability: 'text.generate', targetRef: cloudTargetRef });
+  routeOptionsRevision = 'removed';
+  await assert.rejects(
+    () => routeRuntime.checkHealth({ capability: 'text.generate', targetRef: cloudTargetRef }),
+    /NIMI_RUNTIME_ROUTE_CLOUD_EVIDENCE_REQUIRED/,
+  );
+
+  assert.equal(optionsLoadCount, 2);
+});
+
+test('Runtime route capability runtime has a bounded default resolved target cache lifetime', async () => {
+  let optionsLoadCount = 0;
+  let nowMs = 0;
+  const routeRuntime = createNimiRuntimeRouteCapabilityRuntimeWithHost({
+    routeOptionsCacheNowMs: () => nowMs,
+    loadRuntimeRouteOptions: async () => {
+      optionsLoadCount += 1;
+      return createRouteOptionsSnapshot(cloudTargetRef);
+    },
+    checkHealth: async () => ({
+      provider: 'tester',
+      status: 'healthy',
+      detail: '',
+    }),
+    describeTargetId: 'tester.capability.route',
+    buildDescribeCallOptions: () => ({}),
+    getDescribeHost: () => ({
+      appId: 'nimi.tester',
+      executeScenario: async () => ({}),
+    }),
+  });
+
+  await routeRuntime.checkHealth({ capability: 'text.generate', targetRef: cloudTargetRef });
+  await routeRuntime.checkHealth({ capability: 'text.generate', targetRef: cloudTargetRef });
+  nowMs = 300_001;
+  await routeRuntime.checkHealth({ capability: 'text.generate', targetRef: cloudTargetRef });
+
+  assert.equal(optionsLoadCount, 2);
 });
 
 test('Runtime route capability projection classifies selection, health, and metadata failures', async () => {

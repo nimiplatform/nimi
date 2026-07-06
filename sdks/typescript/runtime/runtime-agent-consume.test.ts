@@ -348,6 +348,13 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
     ownerUserId: consumeContext.ownerUserId,
     runtimeSourceRef: consumeContext.runtimeSourceRef,
     localAgentRef: consumeContext.localAgentRef,
+    scopedBinding: {
+      bindingId: 'binding-delegation-1', bindingHandle: 'binding:binding-delegation-1',
+      runtimeAppId: 'nimi.avatar', appInstanceId: 'nimi.avatar.local-first-party',
+      windowId: 'window-1',
+      avatarInstanceId: '', worldId: '',
+      agentId: consumeContext.localAgentRef, conversationAnchorId: 'anchor-1',
+    },
   };
   assert.deepEqual(buildNimiRuntimeAgentDelegatedProviderProfileFromDraft({
     ...delegatedIdentity,
@@ -521,6 +528,7 @@ test('Runtime Agent delegated helpers build scoped provider, approval, and repla
   const stateCall = calls.find((call) => call.method === 'state') as { readonly request?: { readonly state?: number; readonly lifecycleReasonCode?: string } };
   assert.equal(stateCall.request?.state, DelegatedProviderState.DISABLED);
   assert.equal(stateCall.request?.lifecycleReasonCode, 'disabled_for_test');
+  assert.deepEqual((calls.find((call) => call.method === 'snapshot') as { readonly request?: { readonly context?: { readonly scopedBinding?: unknown } } }).request?.context?.scopedBinding, delegatedIdentity.scopedBinding);
   const approvalCall = calls.find((call) => call.method === 'approval') as { readonly request?: { readonly decision?: number; readonly decisionReason?: string } };
   assert.equal(approvalCall.request?.decision, DelegatedApprovalDecision.APPROVED_ONCE);
   assert.equal(approvalCall.request?.decisionReason, 'approved by user');

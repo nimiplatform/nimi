@@ -41,6 +41,7 @@ type persistedPublicChatAnchor struct {
 	ThreadID               string                                      `json:"threadId"`
 	Binding                publicChatExecutionBinding                  `json:"binding"`
 	Bindings               publicChatExecutionBindings                 `json:"bindings,omitempty"`
+	ConfigRevision         uint64                                      `json:"configRevision,omitempty"`
 	ExecutionParams        map[string]map[string]any                   `json:"executionParams,omitempty"`
 	SystemPrompt           string                                      `json:"systemPrompt"`
 	MaxTokens              int32                                       `json:"maxTokens"`
@@ -161,6 +162,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			ThreadID:               session.ThreadID,
 			Binding:                session.Binding,
 			Bindings:               clonePublicChatExecutionBindings(session.Bindings),
+			ConfigRevision:         session.ConfigRevision,
 			ExecutionParams:        clonePublicChatExecutionParams(session.ExecutionParams),
 			SystemPrompt:           session.SystemPrompt,
 			MaxTokens:              session.MaxTokens,
@@ -487,6 +489,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			ThreadID:               item.ThreadID,
 			Binding:                binding,
 			Bindings:               bindings,
+			ConfigRevision:         item.ConfigRevision,
 			ExecutionParams:        clonePublicChatExecutionParams(item.ExecutionParams),
 			ActiveTurnID:           "",
 			SystemPrompt:           item.SystemPrompt,

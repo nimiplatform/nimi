@@ -65,14 +65,21 @@ func (r reviewRuntime) execute(ctx context.Context, req CanonicalReviewRequest) 
 			LeftoverCount: len(leftovers),
 		}, nil
 	}
+	// K-AGCORE-147: the canonical review executor consumes the committed
+	// execution config text.generate binding; missing config fails closed.
+	executionBinding, _, err := r.svc.committedTextGenerateExecutionBinding()
+	if err != nil {
+		return nil, err
+	}
 	reviewResult, err := r.currentExecutor().ExecuteCanonicalReview(ctx, &CanonicalReviewExecutorRequest{
-		Agent:           cloneAgentRecord(entry.Agent),
-		State:           cloneAgentState(entry.State),
-		Bank:            cloneLocator(locator),
-		CheckpointBasis: checkpointBasis,
-		ExistingTruths:  cloneTruthCandidates(truths),
-		Clusters:        cloneReviewTopicClusters(clusters),
-		Leftovers:       cloneMemoryRecords(leftovers),
+		Agent:            cloneAgentRecord(entry.Agent),
+		State:            cloneAgentState(entry.State),
+		Bank:             cloneLocator(locator),
+		CheckpointBasis:  checkpointBasis,
+		ExistingTruths:   cloneTruthCandidates(truths),
+		Clusters:         cloneReviewTopicClusters(clusters),
+		Leftovers:        cloneMemoryRecords(leftovers),
+		ExecutionBinding: executionBinding,
 	})
 	if err != nil {
 		return nil, err

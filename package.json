@@ -76,6 +76,7 @@
     "check:sdk-connector-auth-acquisition-profile-drift": "node scripts/generate-sdk-connector-auth-acquisition-profiles.mjs --check",
     "check:runtime-video-capability-block-enforcement": "node scripts/check-runtime-video-capability-block-enforcement.mjs",
     "check:runtime-agent-center-local-config-boundary": "node scripts/check-runtime-agent-center-local-config-boundary.mjs",
+    "check:runtime-agent-execution-config-acceptance": "pnpm --dir sdks/typescript exec tsx --test --test-concurrency=1 runtime/runtime-agent-execution-config-live-acceptance.test.ts",
     "check:desktop-design-contract": "node scripts/check-desktop-design-contract.mjs",
     "check:desktop-tauri-command-execution": "node scripts/check-desktop-tauri-command-execution.mjs",
     "check:nimi-kit": "node scripts/check-nimi-kit.mjs && pnpm check:nimi-design-md && pnpm check:kit-sdk-contract-boundary && pnpm check:kit-feature-adapter-boundary && pnpm check:kit-feature-edge-boundary && pnpm check:kit-module-dependency-boundary && pnpm check:kit-contract-owner-boundary && pnpm check:kit-public-surface-snapshot && pnpm --filter @nimiplatform/kit build && node scripts/check-kit-package-dist.mjs && pnpm check:standard-shell && node scripts/check-canonical-capability-catalog.mjs",

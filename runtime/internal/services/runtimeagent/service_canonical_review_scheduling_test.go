@@ -389,8 +389,9 @@ func TestAIBackedCanonicalReviewExecutorDecodesValidOutput(t *testing.T) {
 	executor := NewAIBackedCanonicalReviewExecutor(fakeAI)
 
 	result, err := executor.ExecuteCanonicalReview(context.Background(), &CanonicalReviewExecutorRequest{
-		Agent: &runtimev1.AgentRecord{AgentId: "agent-review-ai"},
-		State: &runtimev1.AgentStateProjection{ActiveUserId: "user-1"},
+		ExecutionBinding: committedConfigTestBinding,
+		Agent:            &runtimev1.AgentRecord{AgentId: "agent-review-ai"},
+		State:            &runtimev1.AgentStateProjection{ActiveUserId: "user-1"},
 		Bank: &runtimev1.MemoryBankLocator{
 			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 			Owner: &runtimev1.MemoryBankLocator_AgentCore{
@@ -505,8 +506,9 @@ func TestAIBackedCanonicalReviewExecutorRejectsInvalidOutput(t *testing.T) {
 				},
 			})
 			_, err := executor.ExecuteCanonicalReview(context.Background(), &CanonicalReviewExecutorRequest{
-				Agent: &runtimev1.AgentRecord{AgentId: "agent-review-ai"},
-				State: &runtimev1.AgentStateProjection{ActiveUserId: "user-1"},
+				ExecutionBinding: committedConfigTestBinding,
+				Agent:            &runtimev1.AgentRecord{AgentId: "agent-review-ai"},
+				State:            &runtimev1.AgentStateProjection{ActiveUserId: "user-1"},
 				Bank: &runtimev1.MemoryBankLocator{
 					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 					Owner: &runtimev1.MemoryBankLocator_AgentCore{

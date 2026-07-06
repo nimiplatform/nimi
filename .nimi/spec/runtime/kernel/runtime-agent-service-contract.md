@@ -1051,3 +1051,157 @@ Fixed rules:
 - SDKs and apps must fail closed when required proactive projection fields are
   absent. They must not backfill the projection with app-local timers,
   permission guesses, or notification assumptions.
+
+## K-AGCORE-144 Runtime Agent Execution Config Authority Home
+
+`RuntimeAgentService` owns the committed Runtime Agent execution config: one
+runtime-owned capability-to-binding map that decides which model binding every
+agent execution track consumes. The admitted capability set, readiness states,
+and typed reason vocabularies live in `tables/agent-execution-config.yaml`.
+
+It owns:
+
+- the single committed execution config record for the runtime instance
+- per-capability binding truth (`model_id`, route policy, connector selector,
+  durable target ref)
+- config mutation admission, validation, and change event emission
+- the readiness projection derived from the committed config
+
+It does not own:
+
+- provider/model routing execution (`RuntimeAiService` per K-AGCORE-006)
+- connector custody, key-source legality, or model catalog truth
+- desktop `AIProfile`/`AIConfig` portable configuration authority for
+  non-agent app AI consume (D-AIPC-001)
+
+Fixed rules:
+
+- there is exactly one committed execution config per runtime instance; all
+  first-party and binding-only consumers read and mutate the same record
+  through the admitted RuntimeAgentService RPC surface
+- apps, SDKs, and hosts must not persist a parallel copy of agent execution
+  binding truth, re-derive it from `AIConfig` overlays at submit time, or
+  carry it as per-turn request payload once K-AGCORE-147 applies
+- binding values must use v2 durable target refs (`K-RTARGET-*`); descriptor
+  or evidence fields forbidden by K-AIEXEC-001 must be rejected fail-closed
+- this config is agent-domain committed state, not a runtime-global active
+  AI profile; K-AIEXEC-005 continues to hold for the generic profile
+  resolve/apply layer
+- mutation requires the `runtime.agent.execution_config.write` scope and read
+  requires `runtime.agent.execution_config.read` (or an admitted first-party
+  host equivalence); Platform registry scopes are not a substitute
+
+## K-AGCORE-145 Execution Config Revision And Persistence
+
+The committed execution config carries a monotonic `revision`, the mutating
+app id, and the commit timestamp, and persists in the runtime-owned store.
+
+Fixed rules:
+
+- every successful mutation increments `revision` by exactly one and commits
+  atomically through the runtime persistence write path
+- mutation requests must carry `expected_revision`; a mismatch is a typed
+  concurrent-modification rejection, never a silent last-writer win
+- the committed config must survive daemon restart; readiness is recomputed
+  after restart rather than restored as stale truth
+- every mutation emits an observable config-changed event before or together
+  with the first read that reflects it; hidden mutation is not admitted
+- config mutation and its evidence enter the audit trail (K-AUDIT-001)
+
+## K-AGCORE-146 Execution Config Readiness Projection
+
+`RuntimeAgentService` projects per-capability readiness for the committed
+execution config. Readiness is a projection, not an execution gate or a
+prepare/readiness substitute (K-AIEXEC-009).
+
+Fixed rules:
+
+- readiness state per capability is exactly one of `ready`, `not_configured`,
+  or `unavailable`, with typed reason codes from
+  `tables/agent-execution-config.yaml`
+- `not_configured` (no committed binding for the capability) and
+  `unavailable` (committed binding whose route is currently not usable) are
+  distinct truths and must never be collapsed
+- readiness recomputes at daemon start, on every config mutation, and on
+  provider/route health change evidence; a startup-only probe that is never
+  refreshed is not admitted
+- readiness carries `config_revision` and probe timestamps so consumers can
+  detect staleness; consumers must not cache readiness as their own truth
+- readiness success does not admit an action, validate a prompt payload, or
+  replace explicit profile prepare; execution-time enforcement remains
+  fail-closed
+
+## K-AGCORE-147 Turn Admission Consumes Committed Config Only
+
+Agent turn execution binds to the committed execution config at turn
+admission time.
+
+Fixed rules:
+
+- Chat Track public turn admission resolves execution bindings from the
+  committed config; request-carried `execution_bindings` payloads are not
+  admitted and must be rejected with a typed invalid-argument failure
+- turn admission fixes the resolved bindings and the `config_revision` into
+  the turn execution snapshot (K-AIEXEC-003); a config mutation during an
+  in-flight turn affects the next turn only
+- the conversation-anchor-sticky binding rule (anchor-committed bindings with
+  mismatch rejection) is retired; anchors do not own binding truth
+- Life Track, canonical review, chat-track sidecar, and companion
+  participation executors consume the same committed config `text.generate`
+  binding; runtime-private hardcoded model constants are not admitted as
+  execution binding truth
+- a missing required `text.generate` binding at admission is a typed
+  fail-closed rejection, never a silent fallback to another route
+
+## K-AGCORE-148 Available Actions Derive From Config And Readiness
+
+The action affordances offered to the model on a turn (including the APML
+output contract prompt) derive from committed config presence plus readiness,
+never from what a caller attached.
+
+Fixed rules:
+
+- image action availability on a turn is a tri-state derived at admission:
+  available (committed binding, readiness not `unavailable`),
+  `not_configured`, and `unavailable`
+- the model-facing output contract must state the matching truth for the
+  non-available states; telling the model an image route is unconfigured when
+  a committed binding exists is not admitted
+- planned actions whose capability is not available must fail as typed
+  `action_failed` events with reason codes from
+  `tables/agent-execution-config.yaml`; silent action drop or pseudo-success
+  is not admitted
+- apps map typed reasons to product copy only; they must not re-derive action
+  availability from app-local route state
+
+## K-AGCORE-149 Execution Config Event Seam
+
+Execution config change and readiness change reach apps through a dedicated
+runtime-owned subscription seam.
+
+Fixed rules:
+
+- config/readiness subscription delivers an initial snapshot followed by
+  change events carrying `config_revision`
+- the seam is domain-scoped; agent-scoped `AgentEvent` envelopes
+  (K-AGCORE-037) must not be widened to carry domain config events
+- subscription requires the same read authority as config read; events must
+  not leak connector secrets, key material, or runtime-private descriptor
+  evidence
+
+## K-AGCORE-150 Execution Config Bootstrap Seeding
+
+Runtime seeds the execution config exactly once at first service start when
+no committed record exists.
+
+Fixed rules:
+
+- the seed commits `text.generate` bound to the runtime-owned local default
+  alias (`local/default`, resolved per K-CFG-013 and `texttarget`
+  resolution); other capabilities are absent (`not_configured`)
+- seeding is a normal committed mutation: it produces revision `1`, an audit
+  record, and a change event
+- after seeding, a missing config row is an internal fail-closed error;
+  turn-time silent fallback to bundled defaults is not admitted
+- the seed must not overwrite an existing committed config, including after
+  daemon upgrade or restart

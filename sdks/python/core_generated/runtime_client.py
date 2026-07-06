@@ -216,6 +216,22 @@ RUNTIME_METHODS = [
     "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
+    "service": "RuntimeAgentService",
+    "method": "GetAgentExecutionConfig",
+    "kind": "unary",
+    "request_type": "GetAgentExecutionConfigRequest",
+    "response_type": "GetAgentExecutionConfigResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
+    "service": "RuntimeAgentService",
+    "method": "GetAgentExecutionReadiness",
+    "kind": "unary",
+    "request_type": "GetAgentExecutionReadinessRequest",
+    "response_type": "GetAgentExecutionReadinessResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "service": "RuntimeAgentService",
     "method": "GetAgentState",
@@ -504,6 +520,14 @@ RUNTIME_METHODS = [
     "response_type": "AgentEvent"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
+    "service": "RuntimeAgentService",
+    "method": "SubscribeAgentExecutionReadiness",
+    "kind": "server_stream",
+    "request_type": "SubscribeAgentExecutionReadinessRequest",
+    "response_type": "AgentExecutionReadinessSnapshot"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "service": "RuntimeAgentService",
     "method": "TerminateAgent",
@@ -518,6 +542,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "UpdateAgentStateRequest",
     "response_type": "UpdateAgentStateResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
+    "service": "RuntimeAgentService",
+    "method": "UpsertAgentExecutionConfig",
+    "kind": "unary",
+    "request_type": "UpsertAgentExecutionConfigRequest",
+    "response_type": "UpsertAgentExecutionConfigResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",

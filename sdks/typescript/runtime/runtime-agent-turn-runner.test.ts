@@ -17,12 +17,6 @@ function structuredPayload(messageId: string, text: string): Record<string, unkn
   };
 }
 
-function executionBindings() {
-  return {
-    'text.generate': { route: 'local' as const, modelId: 'local-model' },
-  };
-}
-
 test('Runtime Agent turn runner filters backlog and seals committed message', async () => {
   const requestIds: string[] = [];
   let snapshotQueryCount = 0;
@@ -110,7 +104,6 @@ test('Runtime Agent turn runner filters backlog and seals committed message', as
       threadId: 'thread',
       requestId: 'request',
       messages: [{ role: 'user', content: 'hello' }],
-      executionBindings: executionBindings(),
     },
     route: 'runtime-owned',
     modelId: 'runtime-owned',
@@ -165,7 +158,6 @@ test('Runtime Agent turn runner recovers terminal snapshot after subscription cl
       threadId: 'thread',
       requestId: 'request',
       messages: [{ role: 'user', content: 'hello' }],
-      executionBindings: executionBindings(),
     },
   });
 
@@ -228,7 +220,6 @@ test('Runtime Agent turn runner recovers terminal snapshot after active-turn sna
       threadId: 'thread',
       requestId: 'request',
       messages: [{ role: 'user', content: 'hello' }],
-      executionBindings: executionBindings(),
     },
     stallRecoveryIntervalMs: 1,
   });
@@ -340,7 +331,6 @@ test('Runtime Agent turn runner projects Runtime action artifact events', async 
       threadId: 'thread',
       requestId: 'request',
       messages: [{ role: 'user', content: 'make an image' }],
-      executionBindings: executionBindings(),
     },
   });
 

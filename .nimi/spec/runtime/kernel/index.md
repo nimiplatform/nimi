@@ -58,7 +58,7 @@
 | `knowledge-contract.md` | `K-KNOW-*` | runtime-local knowledge banks、page lifecycle、keyword search |
 | `runtime-memory-service-contract.md` | `K-MEM-*` | Runtime-owned memory substrate、bank scope、provider boundary、Realm replication |
 | `runtime-memory-substrate-contract.md` | `K-MEMSUB-*` | Runtime-private local memory substrate / Hindsight bridge、health、daemon boundary、runtime-owned typed overlay |
-| `runtime-agent-service-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、conversation continuity、agent memory policy |
+| `runtime-agent-service-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、conversation continuity、agent memory policy、committed agent execution config authority (K-AGCORE-144~150) |
 | `runtime-agent-participation-contract.md` | `K-AGCORE-*` | Runtime-owned non-canonical agent participation authority、closed axis/profile model、candidate output、memory/capability/concurrency policy、and public raw prompt boundary |
 | `multi-agent-room-orchestration-contract.md` | `K-AGCORE-*` | Runtime-owned same-room/session orchestration authority、closed room axis registry、domain matrix、trigger arbitration、budget/cancellation/status/external admission、and domain commit handoff boundary |
 | `realm-group-participation-consumer-contract.md` | `K-AGCORE-*` | Runtime-owned consumer boundary for Realm GROUP agent participation、typed context refs、candidate output、policy inheritance、room-orchestration binding、and no direct Realm commit |
@@ -127,6 +127,7 @@
 - `tables/knowledge-action-scope-matrix.yaml`
 - `tables/runtime-agent-service-typed-family.yaml`
 - `tables/runtime-agent-event-projection.yaml`
+- `tables/agent-execution-config.yaml`
 - `tables/agent-participation-axis-model.yaml`
 - `tables/agent-participation-profiles.yaml`
 - `tables/agent-participation-context-blocks.yaml`

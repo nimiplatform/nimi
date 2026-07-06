@@ -64,6 +64,7 @@ export type NimiRuntimeTargetInventoryEvidence =
     readonly engine?: string;
     readonly endpoint?: string;
     readonly runtimeStatus?: string;
+    readonly updatedAt?: string;
   }
   | {
     readonly source: 'cloud-connector';
@@ -108,6 +109,7 @@ export interface NimiRuntimeRouteModelProfile {
 
 export interface NimiRuntimeRouteOptionsSnapshot {
   readonly capability?: NimiRuntimeCanonicalCapability;
+  readonly snapshotRevision?: string;
   readonly selectedTargetRef: NimiRuntimeRouteTargetRef | null;
   readonly inventory: RuntimeTargetInventoryProjection;
 }
@@ -329,6 +331,7 @@ export function normalizeNimiRuntimeRouteOptionsSnapshot(
     : null;
   return {
     capability,
+    snapshotRevision: normalizeNimiRuntimeRouteText(snapshot.snapshotRevision) || undefined,
     selectedTargetRef,
     inventory: {
       capability,

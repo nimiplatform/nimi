@@ -21,7 +21,11 @@ export type {
   NimiRuntimeRouteResolvedBindingRef,
 } from './route-capability-types';
 
-import { listNimiRuntimeRouteOptions, type NimiRuntimeRouteTargetRef } from './route-options';
+import {
+  listNimiRuntimeRouteOptions,
+  nimiRuntimeRouteTargetRefKey,
+  type NimiRuntimeRouteTargetRef,
+} from './route-options';
 import {
   nimiRuntimeRouteHealthInputFromResolvedBinding,
   nimiRuntimeRouteHealthResultFromProviderHealth,
@@ -36,10 +40,45 @@ import type {
   NimiRuntimeRouteCapabilityRuntime,
 } from './route-capability-types';
 
+export const NIMI_RUNTIME_ROUTE_OPTIONS_CACHE_DEFAULT_TTL_MS = 300_000;
+
 export function createNimiRuntimeRouteCapabilityRuntimeWithHost(
   deps: NimiRuntimeRouteCapabilityHostRuntimeDeps,
 ): NimiRuntimeRouteCapabilityRuntime {
   const resolvedByRef = new Map<string, NimiRuntimeResolvedBinding>();
+  const resolvedByTarget = new Map<string, NimiRuntimeResolvedBinding>();
+  let cacheCreatedAtMs: number | null = null;
+  let cacheRevision = normalizeRouteOptionsCacheRevision(deps.getRouteOptionsCacheRevision?.());
+
+  function nowMs(): number {
+    const value = deps.routeOptionsCacheNowMs?.() ?? Date.now();
+    return Number.isFinite(value) ? value : Date.now();
+  }
+
+  function clearResolvedRouteTargets(): void {
+    resolvedByRef.clear();
+    resolvedByTarget.clear();
+    cacheCreatedAtMs = nowMs();
+  }
+
+  function refreshCacheBoundary(): void {
+    const nextRevision = normalizeRouteOptionsCacheRevision(deps.getRouteOptionsCacheRevision?.());
+    if (nextRevision !== cacheRevision) {
+      cacheRevision = nextRevision;
+      clearResolvedRouteTargets();
+      return;
+    }
+    const ttlMs = deps.routeOptionsCacheTtlMs ?? NIMI_RUNTIME_ROUTE_OPTIONS_CACHE_DEFAULT_TTL_MS;
+    if (typeof ttlMs === 'number' && Number.isFinite(ttlMs) && ttlMs >= 0) {
+      const currentMs = nowMs();
+      if (cacheCreatedAtMs === null) {
+        cacheCreatedAtMs = currentMs;
+      }
+      if (currentMs - cacheCreatedAtMs >= ttlMs) {
+        clearResolvedRouteTargets();
+      }
+    }
+  }
 
   async function resolve(input: {
     readonly capability: string;
@@ -49,6 +88,12 @@ export function createNimiRuntimeRouteCapabilityRuntimeWithHost(
       throw new Error('NIMI_RUNTIME_ROUTE_TARGET_REF_REQUIRED');
     }
     const capability = normalizeRequiredNimiRuntimeRouteCapability(input.capability);
+    refreshCacheBoundary();
+    const cacheKey = routeTargetCacheKey(capability, input.targetRef);
+    const cached = resolvedByTarget.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
     const snapshot = await listNimiRuntimeRouteOptions({
       listRuntimeRouteOptions(routeInput) {
         return deps.loadRuntimeRouteOptions({
@@ -68,6 +113,10 @@ export function createNimiRuntimeRouteCapabilityRuntimeWithHost(
       snapshot,
     });
     resolvedByRef.set(resolved.resolvedBindingRef, resolved);
+    resolvedByTarget.set(cacheKey, resolved);
+    if (cacheCreatedAtMs === null) {
+      cacheCreatedAtMs = nowMs();
+    }
     return resolved;
   }
 
@@ -83,6 +132,7 @@ export function createNimiRuntimeRouteCapabilityRuntimeWithHost(
     },
     describe: async (input) => {
       const capability = normalizeRequiredNimiRuntimeRouteCapability(input.capability);
+      refreshCacheBoundary();
       const resolvedBindingRef = normalizeText(input.resolvedBindingRef);
       const resolved = resolvedByRef.get(resolvedBindingRef);
       if (!resolved) {
@@ -101,5 +151,14 @@ export function createNimiRuntimeRouteCapabilityRuntimeWithHost(
         timeoutMs: deps.describeTimeoutMs,
       });
     },
+    invalidateResolvedRouteTargets: clearResolvedRouteTargets,
   };
+}
+
+function routeTargetCacheKey(capability: string, targetRef: NimiRuntimeRouteTargetRef): string {
+  return `${capability}:${nimiRuntimeRouteTargetRefKey(targetRef)}`;
+}
+
+function normalizeRouteOptionsCacheRevision(input: string | number | null | undefined): string {
+  return input === null || input === undefined ? '' : String(input);
 }

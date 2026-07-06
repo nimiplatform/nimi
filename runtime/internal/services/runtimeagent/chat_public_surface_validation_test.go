@@ -8,9 +8,15 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func TestPublicChatTurnRequestRejectsExecutionBindingOmission(t *testing.T) {
+// TestPublicChatTurnRequestRejectsRequestCarriedExecutionBindings is the
+// K-AGCORE-147 hard-cut proof: request-carried execution_bindings on
+// runtime.agent.turn.request fail closed with InvalidArgument; the committed
+// execution config is the only binding truth.
+func TestPublicChatTurnRequestRejectsRequestCarriedExecutionBindings(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -18,7 +24,7 @@ func TestPublicChatTurnRequestRejectsExecutionBindingOmission(t *testing.T) {
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(context.Context, *PublicChatTurnExecutionRequest, func(*runtimev1.StreamScenarioEvent) error) error {
-			t.Fatalf("turn executor must not run when execution_bindings.text.generate is omitted")
+			t.Fatalf("turn executor must not run when request carries execution_bindings")
 			return nil
 		},
 	})
@@ -30,16 +36,23 @@ func TestPublicChatTurnRequestRejectsExecutionBindingOmission(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
-			"thread_id":              "thread-route-omission",
+			"thread_id":              "thread-request-bindings-rejected",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
+			"execution_bindings": map[string]any{"text.generate": map[string]any{
+				"route":    "local",
+				"model_id": "local/default",
+			}},
 		}),
 	})
-	if err == nil || !strings.Contains(err.Error(), "requires execution_bindings.text.generate") {
-		t.Fatalf("expected execution_bindings.text.generate omission rejection, got %v", err)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for request-carried execution_bindings, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "public chat execution_bindings are not admitted; runtime agent execution config is authoritative (K-AGCORE-147)") {
+		t.Fatalf("expected K-AGCORE-147 rejection message, got %v", err)
 	}
 }
 
@@ -125,10 +138,6 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -227,10 +236,6 @@ func TestPublicChatTurnRepairsMalformedAPMLOnceBeforeFailClosed(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -322,10 +327,6 @@ func TestPublicChatTurnRequestPreservesCommittedTranscriptOnFailedTurn(t *testin
 				map[string]any{"role": "user", "content": "hello"},
 				map[string]any{"role": "user", "content": "new user message"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -431,10 +432,6 @@ func TestPublicChatTurnRequestFoldsCommittedLastTurnIntoTranscript(t *testing.T)
 				map[string]any{"role": "user", "content": "test"},
 				map[string]any{"role": "user", "content": "next"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -518,10 +515,6 @@ func TestPublicChatTurnRequestRejectsUnknownEmotionBeforeCommit(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -626,10 +619,6 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {

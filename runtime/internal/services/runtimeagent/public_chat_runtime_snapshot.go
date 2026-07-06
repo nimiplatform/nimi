@@ -77,6 +77,9 @@ func (r publicChatRuntime) buildSessionSnapshotFromState(
 		"transcript_message_count": len(session.Transcript),
 		"transcript":               publicChatMessageEnvelopePayloads(session.Transcript, session.ConversationAnchorID, session.CreatedAt, session.UpdatedAt),
 		"execution_bindings":       publicChatExecutionBindingsProjectionPayload(session.Bindings, session.Binding),
+		// config_revision is the committed execution config revision fixed at
+		// the most recent turn admission (K-AGCORE-147).
+		"config_revision": session.ConfigRevision,
 	}
 	if trimmed := strings.TrimSpace(requestID); trimmed != "" {
 		snapshotDetail["request_id"] = trimmed

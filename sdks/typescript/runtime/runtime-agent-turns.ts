@@ -32,7 +32,6 @@ import {
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
 import { normalizeNimiRuntimeAgentText, toNimiRuntimeProtoStruct } from './runtime-agent-values';
-import type { NimiRuntimeRouteTargetRef } from './route-options';
 import type {
   NimiRuntimeAgentConsumeRequest,
   NimiRuntimeAgentMessage,
@@ -50,7 +49,6 @@ const TURN_READ_SCOPE = 'runtime.agent.turn.read';
 const TURN_REQUEST_TYPE = 'runtime.agent.turn.request';
 const TURN_INTERRUPT_TYPE = 'runtime.agent.turn.interrupt';
 const TURN_VOICE_RENDER_TYPE = 'runtime.agent.turn.voice_render';
-const TURN_ROUTES = new Set(['local', 'cloud']);
 const VOICE_RENDER_TIMEOUT_MS = 1500;
 
 export interface NimiRuntimeAgentTurnsRuntime {
@@ -161,94 +159,6 @@ function normalizeTurnMessages(messages: readonly NimiRuntimeAgentMessage[]): Ni
     .filter((message) => Boolean(message.role && message.content));
 }
 
-function normalizeExecutionBinding(
-  binding: NimiRuntimeAgentTurnRequest['executionBindings'][keyof NimiRuntimeAgentTurnRequest['executionBindings']],
-  capability: string,
-): JsonObject {
-  const route = normalizeNimiRuntimeAgentText(binding?.route).toLowerCase();
-  if (!TURN_ROUTES.has(route)) {
-    runtimeAgentInputError(`runtime agent turn request executionBindings.${capability}.route must be local or cloud`, 'select_runtime_agent_route');
-  }
-  const modelId = normalizeNimiRuntimeAgentText(binding?.modelId);
-  if (!modelId) {
-    runtimeAgentInputError(`runtime agent turn request executionBindings.${capability}.modelId is required`, 'select_runtime_agent_model');
-  }
-  return {
-    route,
-    model_id: modelId,
-    ...(optionalString(binding?.connectorId)
-      ? { connector_id: optionalString(binding?.connectorId) }
-      : {}),
-    ...(runtimeAgentTargetRefPayload(binding?.targetRef)
-      ? { target_ref: runtimeAgentTargetRefPayload(binding?.targetRef) }
-      : {}),
-  };
-}
-
-function runtimeAgentTargetRefPayload(targetRef: NimiRuntimeRouteTargetRef | null | undefined): JsonObject | undefined {
-  if (!targetRef) {
-    return undefined;
-  }
-  if (targetRef.kind === 'local-runtime') {
-    const profileBindingId = optionalString(targetRef.profileBindingId);
-    const readinessRef = optionalString(targetRef.readinessRef);
-    if (targetRef.version !== 'v2' || Boolean(profileBindingId) === Boolean(readinessRef)) {
-      runtimeAgentInputError(
-        'runtime agent turn request execution binding local targetRef must use v2 and exactly one local ref',
-        'provide_runtime_route_target_ref',
-      );
-    }
-    return {
-      localRuntime: {
-        version: 'v2',
-        ...(profileBindingId ? { profileBindingId } : { readinessRef }),
-      },
-    };
-  }
-  if (targetRef.kind === 'cloud-connector') {
-    const connectorId = optionalString(targetRef.connectorId);
-    const remoteModelCatalogId = optionalString(targetRef.remoteModelCatalogId);
-    const providerModelId = optionalString(targetRef.providerModelId);
-    if (targetRef.version !== 'v2' || !connectorId || !remoteModelCatalogId || !providerModelId) {
-      runtimeAgentInputError(
-        'runtime agent turn request execution binding cloud targetRef must use v2 connector, catalog, and model ids',
-        'provide_runtime_route_target_ref',
-      );
-    }
-    return {
-      cloud: {
-        version: 'v2',
-        connectorId,
-        remoteModelCatalogId,
-        providerModelId,
-        ...(optionalString(targetRef.provider) ? { provider: optionalString(targetRef.provider) } : {}),
-      },
-    };
-  }
-  runtimeAgentInputError(
-    'runtime agent turn request execution binding targetRef kind is unsupported',
-    'provide_runtime_route_target_ref',
-  );
-}
-
-function normalizeExecutionBindings(request: NimiRuntimeAgentTurnRequest): JsonObject {
-  const bindings = request.executionBindings || {};
-  const textBinding = bindings['text.generate'];
-  if (!textBinding) {
-    runtimeAgentInputError('runtime agent turn request executionBindings.text.generate is required', 'select_runtime_agent_model');
-  }
-  const out: JsonObject = {
-    'text.generate': normalizeExecutionBinding(textBinding, 'text.generate'),
-  };
-  if (bindings['image.generate']) {
-    out['image.generate'] = normalizeExecutionBinding(bindings['image.generate'], 'image.generate');
-  }
-  if (bindings['audio.synthesize']) {
-    out['audio.synthesize'] = normalizeExecutionBinding(bindings['audio.synthesize'], 'audio.synthesize');
-  }
-  return out;
-}
-
 export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRequest): JsonObject {
   const identity = projectRuntimeLocalAgentIdentity(request);
   const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
@@ -256,7 +166,9 @@ export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRe
   if (messages.length === 0) {
     runtimeAgentInputError('runtime agent turn request requires at least one non-empty message', 'provide_runtime_agent_turn_message');
   }
-  const executionBindings = normalizeExecutionBindings(request);
+  // Turn requests never carry execution bindings: the runtime resolves the
+  // turn against the committed agent execution config (K-AGCORE-147) and
+  // rejects any request-level execution_bindings as InvalidArgument.
   const maxOutputTokens = optionalNumber(request.maxOutputTokens);
   if (maxOutputTokens !== undefined && maxOutputTokens < 0) {
     runtimeAgentInputError('runtime agent turn request maxOutputTokens must be non-negative', 'provide_non_negative_max_output_tokens');
@@ -276,7 +188,6 @@ export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRe
       content: message.content,
       ...(optionalString(message.name) ? { name: optionalString(message.name) } : {}),
     })),
-    execution_bindings: executionBindings,
     ...(request.executionParams ? { execution_params: request.executionParams as JsonObject } : {}),
     ...(request.reasoning ? {
       reasoning: {

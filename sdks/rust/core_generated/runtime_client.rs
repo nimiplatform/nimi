@@ -224,6 +224,22 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAgentCanonicalMemoryReviewStatusResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
+        service: "RuntimeAgentService",
+        method: "GetAgentExecutionConfig",
+        kind: "unary",
+        request_type: "GetAgentExecutionConfigRequest",
+        response_type: "GetAgentExecutionConfigResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
+        service: "RuntimeAgentService",
+        method: "GetAgentExecutionReadiness",
+        kind: "unary",
+        request_type: "GetAgentExecutionReadinessRequest",
+        response_type: "GetAgentExecutionReadinessResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
         service: "RuntimeAgentService",
         method: "GetAgentState",
@@ -512,6 +528,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "AgentEvent",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
+        service: "RuntimeAgentService",
+        method: "SubscribeAgentExecutionReadiness",
+        kind: "server_stream",
+        request_type: "SubscribeAgentExecutionReadinessRequest",
+        response_type: "AgentExecutionReadinessSnapshot",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
         service: "RuntimeAgentService",
         method: "TerminateAgent",
@@ -526,6 +550,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "UpdateAgentStateRequest",
         response_type: "UpdateAgentStateResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
+        service: "RuntimeAgentService",
+        method: "UpsertAgentExecutionConfig",
+        kind: "unary",
+        request_type: "UpsertAgentExecutionConfigRequest",
+        response_type: "UpsertAgentExecutionConfigResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",

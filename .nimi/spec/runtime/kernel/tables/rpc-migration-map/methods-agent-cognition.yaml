@@ -13,7 +13,7 @@ surfaces:
 services:
   - RuntimeCognitionService
   - RuntimeAgentService
-method_count: 83
+method_count: 87
 method_mappings:
   - design_service: RuntimeCognitionService
     design_method: CreateKnowledgeBank
@@ -434,4 +434,24 @@ method_mappings:
     design_method: SubscribeAgentEvents
     proto_service: RuntimeAgentService
     proto_method: SubscribeAgentEvents
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetAgentExecutionConfig
+    proto_service: RuntimeAgentService
+    proto_method: GetAgentExecutionConfig
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: UpsertAgentExecutionConfig
+    proto_service: RuntimeAgentService
+    proto_method: UpsertAgentExecutionConfig
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: GetAgentExecutionReadiness
+    proto_service: RuntimeAgentService
+    proto_method: GetAgentExecutionReadiness
+    mapping_posture: aligned
+  - design_service: RuntimeAgentService
+    design_method: SubscribeAgentExecutionReadiness
+    proto_service: RuntimeAgentService
+    proto_method: SubscribeAgentExecutionReadiness
     mapping_posture: aligned

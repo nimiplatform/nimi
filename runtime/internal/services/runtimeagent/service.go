@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
@@ -111,6 +112,29 @@ type Service struct {
 	participationOnce  sync.Once
 	participationState *participationStore
 
+	// K-AGCORE-144..150 Runtime Agent execution config domain. execConfigMu
+	// serializes mutations (the repository CAS re-checks inside the write tx);
+	// execReadiness holds the last computed K-AGCORE-146 projection.
+	execConfigMu   sync.Mutex
+	execConfigRepo *agentExecutionConfigRepository
+
+	execReadinessMu sync.RWMutex
+	execReadiness   *runtimev1.AgentExecutionReadinessSnapshot
+
+	execSubMu     sync.Mutex
+	execNextSubID uint64
+	execSubs      map[uint64]chan *runtimev1.AgentExecutionReadinessSnapshot
+
+	execHealthMu      sync.Mutex
+	execHealthTracker *providerhealth.Tracker
+	execHealthCancel  func()
+	execHealthDone    chan struct{}
+
+	// execPendingSeedAudit parks the K-AGCORE-150 seed audit record when the
+	// seed commits before the audit store attaches; SetAuditStore flushes it.
+	execAuditMu          sync.Mutex
+	execPendingSeedAudit *runtimev1.AuditEventRecord
+
 	lifeLoopMu     sync.Mutex
 	lifeLoopCancel context.CancelFunc
 	lifeLoopDone   chan struct{}
@@ -142,6 +166,8 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		backend:                        backend,
 		stateRepo:                      stateRepo,
 		chatStateRepo:                  newPublicChatSurfaceStateRepository(backend, stateRepo),
+		execConfigRepo:                 newAgentExecutionConfigRepository(backend),
+		execSubs:                       make(map[uint64]chan *runtimev1.AgentExecutionReadinessSnapshot),
 		reviews:                        newReviewPersistence(backend),
 		postures:                       newBehavioralPosturePersistence(backend),
 		aiBridge:                       newRuntimePrivateAIBridge(),
@@ -177,6 +203,11 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	if err := svc.recoverReviewRuns(context.Background()); err != nil {
 		return nil, err
 	}
+	// K-AGCORE-150: seed the execution config exactly once at service start
+	// and prime the K-AGCORE-146 readiness projection.
+	if err := svc.initExecutionConfig(); err != nil {
+		return nil, err
+	}
 	return svc, nil
 }
 
@@ -187,6 +218,7 @@ func (s *Service) Close() {
 	s.closeOnce.Do(func() {
 		s.closed.Store(true)
 		s.StopLifeTrackLoop()
+		s.stopExecutionReadinessHealthSubscription()
 		s.shutdownPublicChatSurface()
 	})
 }
@@ -207,7 +239,10 @@ func (s *Service) SetAuditStore(store *auditlog.Store) {
 	if s == nil {
 		return
 	}
+	s.execAuditMu.Lock()
 	s.auditStore = store
+	s.execAuditMu.Unlock()
+	s.flushPendingExecutionConfigAudit()
 }
 
 func (s *Service) SetLifeTrackExecutor(executor LifeTrackExecutor) {

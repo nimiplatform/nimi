@@ -116,30 +116,17 @@ func TestPublicChatImageActionSubmitRequestCarriesRuntimeTargetRef(t *testing.T)
 	}
 }
 
-func publicChatImageActionTurnPayload(t *testing.T, anchorID string, includeImageBinding bool) *structpb.Struct {
+func publicChatImageActionTurnPayload(t *testing.T, anchorID string) *structpb.Struct {
 	t.Helper()
-	bindings := map[string]any{
-		"text.generate": map[string]any{
-			"route":    "local",
-			"model_id": "local/default",
-		},
-	}
-	if includeImageBinding {
-		bindings["image.generate"] = map[string]any{
-			"route":    "local",
-			"model_id": "local/image",
-		}
-	}
 	return publicChatStructPayload(t, map[string]any{
 		"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 		"owner_user_id":          "user-1",
-		"runtime_source_ref":         "agent-alpha",
+		"runtime_source_ref":     "agent-alpha",
 		"conversation_anchor_id": anchorID,
 		"request_id":             "image-action-turn",
 		"messages": []any{
 			map[string]any{"role": "user", "content": "draw a studio portrait"},
 		},
-		"execution_bindings": bindings,
 		"execution_params": map[string]any{
 			"image.generate": map[string]any{
 				"size":      "512x512",
@@ -150,14 +137,23 @@ func publicChatImageActionTurnPayload(t *testing.T, anchorID string, includeImag
 	})
 }
 
+// submitPublicChatImageActionTurn commits the requested execution config
+// image state (K-AGCORE-147) and submits a turn that plans an image action.
 func submitPublicChatImageActionTurn(t *testing.T, svc *Service, anchorID string, includeImageBinding bool) {
 	t.Helper()
+	if includeImageBinding {
+		upsertPublicChatTestExecutionConfig(t, svc, &runtimev1.RuntimeAgentExecutionCapabilityBinding{
+			Capability:  executionCapabilityImageGenerate,
+			ModelId:     "local/image",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		})
+	}
 	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,
 		FromAppId:     "desktop.app",
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
-		Payload:       publicChatImageActionTurnPayload(t, anchorID, includeImageBinding),
+		Payload:       publicChatImageActionTurnPayload(t, anchorID),
 	})
 	if err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(image action request): %v", err)
@@ -252,13 +248,70 @@ func TestPublicChatImageActionFailsClosedWithoutImageBinding(t *testing.T) {
 	turnFailed := capture.waitForMessageType(t, publicChatTurnFailedType)
 
 	if actionExecutor.calls != 0 {
-		t.Fatalf("image action executor must not run without image.generate binding")
+		t.Fatalf("image action executor must not run without a committed image.generate binding")
+	}
+	actionFailedDetail := publicChatTurnDetail(t, actionFailed)
+	if got := actionFailedDetail["reason"]; got != publicChatActionFailedReasonImageBindingMissing {
+		t.Fatalf("expected action_failed.detail.reason=image_binding_missing, got=%v", actionFailedDetail)
 	}
 	for _, req := range []*runtimev1.SendAppMessageRequest{actionFailed, turnFailed} {
 		detail := publicChatTurnDetail(t, req)
-		if !strings.Contains(fmt.Sprint(detail["message"]), "execution_bindings.image.generate") {
+		if !strings.Contains(fmt.Sprint(detail["message"]), "no committed image.generate execution config binding") {
 			t.Fatalf("expected missing image binding failure, got=%v", detail)
 		}
+	}
+}
+
+// TestPublicChatImageActionFailsClosedWhenConfiguredRouteUnavailable proves
+// the K-AGCORE-148 image_route_unhealthy typed reason: a committed image
+// binding whose route is currently unavailable fails the planned action with
+// the distinct route-unhealthy reason, never image_binding_missing.
+func TestPublicChatImageActionFailsClosedWhenConfiguredRouteUnavailable(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	rawAPML := publicChatImageActionAPML("message-image", "I will create that image.", "action-image-1", "studio portrait")
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: emitPublicChatImageActionStream("trace-image-action-route-unavailable", rawAPML),
+	})
+	actionExecutor := &stubPublicChatActionExecutor{}
+	svc.SetPublicChatActionExecutor(actionExecutor)
+	// A committed cloud image binding without a connector is UNAVAILABLE
+	// (connector_missing) in the readiness projection.
+	upsertPublicChatTestExecutionConfig(t, svc, &runtimev1.RuntimeAgentExecutionCapabilityBinding{
+		Capability:  executionCapabilityImageGenerate,
+		ModelId:     "openai/gpt-image-1",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+	})
+	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload:       publicChatImageActionTurnPayload(t, anchorID),
+	})
+	if err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(image action request): %v", err)
+	}
+
+	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
+	_ = capture.waitForMessageType(t, publicChatTurnActionPlannedType)
+	_ = capture.waitForMessageType(t, publicChatTurnActionStartedType)
+	actionFailed := capture.waitForMessageType(t, publicChatTurnActionFailedType)
+	_ = capture.waitForMessageType(t, publicChatTurnFailedType)
+
+	if actionExecutor.calls != 0 {
+		t.Fatalf("image action executor must not run over an unavailable configured route")
+	}
+	detail := publicChatTurnDetail(t, actionFailed)
+	if got := detail["reason"]; got != publicChatActionFailedReasonImageRouteUnhealthy {
+		t.Fatalf("expected action_failed.detail.reason=image_route_unhealthy, got=%v", detail)
+	}
+	if !strings.Contains(fmt.Sprint(detail["message"]), "currently unavailable") {
+		t.Fatalf("expected route-unavailable failure message, got=%v", detail)
 	}
 }
 
@@ -287,6 +340,9 @@ func TestPublicChatImageActionFailsClosedWhenExecutorFails(t *testing.T) {
 
 	if !strings.Contains(fmt.Sprint(publicChatTurnDetail(t, actionFailed)["message"]), "image job failed") {
 		t.Fatalf("expected action_failed to preserve executor error, got=%v", publicChatTurnDetail(t, actionFailed))
+	}
+	if got := publicChatTurnDetail(t, actionFailed)["reason"]; got != publicChatActionFailedReasonImageExecutionFailed {
+		t.Fatalf("expected action_failed.detail.reason=image_execution_failed, got=%v", publicChatTurnDetail(t, actionFailed))
 	}
 	if !strings.Contains(fmt.Sprint(publicChatTurnDetail(t, turnFailed)["message"]), "image job failed") {
 		t.Fatalf("expected turn failed to preserve executor error, got=%v", publicChatTurnDetail(t, turnFailed))

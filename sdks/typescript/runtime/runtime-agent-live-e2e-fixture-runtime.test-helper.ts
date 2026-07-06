@@ -47,18 +47,20 @@ import {
   RUNTIME_ACCOUNT_REDIRECT_URI,
   RUNTIME_SOURCE_REF,
   type RuntimeAgentLiveE2EDeveloperRegisteredAccountInput,
-  type RuntimeAgentLiveE2ERouteProjection,
   liveIdempotencyOptions,
   normalizeStrings,
   normalizeText,
   requireText,
 } from './runtime-agent-live-e2e-fixture-shared.test-helper';
 
+// Fixture turns never carry execution bindings: the runtime resolves each
+// turn against the committed agent execution config (K-AGCORE-147). Flows
+// that need a non-default model must first commit it through
+// agentClient.executionConfig.upsert.
 export async function sendFixtureTurn(input: {
   readonly agentClient: ReturnType<typeof createNimiRuntimeAgentClient>;
   readonly localAgent: NimiRuntimeAgentInitializedLocalAgent;
   readonly conversationAnchorId: string;
-  readonly route: RuntimeAgentLiveE2ERouteProjection;
   readonly text: string;
 }): Promise<SendAppMessageResponse> {
   return input.agentClient.sendTurn({
@@ -67,9 +69,6 @@ export async function sendFixtureTurn(input: {
     localAgentRef: input.localAgent.localAgentRef,
     conversationAnchorId: input.conversationAnchorId,
     requestId: `runtime-agent-live-e2e-turn:${randomUUID()}`,
-    executionBindings: {
-      'text.generate': input.route.executionBinding,
-    },
     messages: [{
       role: 'user',
       content: normalizeText(input.text) || 'hello from runtime-agent-live-e2e',

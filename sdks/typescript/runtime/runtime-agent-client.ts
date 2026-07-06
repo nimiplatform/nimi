@@ -1,9 +1,14 @@
 import type {
   AgentEvent,
+  AgentExecutionReadinessSnapshot,
   AppMessageEvent,
   ConversationAnchorSnapshot,
   GetAgentCanonicalMemoryBankStatusRequest,
   GetAgentCanonicalMemoryBankStatusResponse,
+  GetAgentExecutionConfigRequest,
+  GetAgentExecutionConfigResponse,
+  GetAgentExecutionReadinessRequest,
+  GetAgentExecutionReadinessResponse,
   GetAgentRequest,
   GetAgentResponse,
   GetPublicChatSessionSnapshotRequest,
@@ -22,9 +27,12 @@ import type {
   SendAppMessageRequest,
   SendAppMessageResponse,
   SubscribeAgentEventsRequest,
+  SubscribeAgentExecutionReadinessRequest,
   SubscribeAppMessagesRequest,
   TerminateAgentRequest,
   TerminateAgentResponse,
+  UpsertAgentExecutionConfigRequest,
+  UpsertAgentExecutionConfigResponse,
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
 } from '../core-generated/runtime-typed-client';
@@ -50,6 +58,10 @@ import {
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
+import {
+  createNimiRuntimeAgentExecutionConfigModule,
+  type NimiRuntimeAgentExecutionConfigModule,
+} from './runtime-agent-execution-config';
 import {
   createNimiRuntimeAgentTurnsModule,
 } from './runtime-agent-turns';
@@ -102,6 +114,25 @@ export interface NimiRuntimeAgentClientAgentModule {
     request: RequestAgentCanonicalMemoryBankBindRequest,
     options?: RuntimeTypedCallOptions,
   ): Promise<RequestAgentCanonicalMemoryBankBindResponse>;
+  // Runtime Agent execution config projection (K-AGCORE-144~150). Optional on
+  // the module contract so pre-existing minimal projections stay valid; the
+  // executionConfig surface fails closed with a typed error when missing.
+  getAgentExecutionConfig?(
+    request: GetAgentExecutionConfigRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<GetAgentExecutionConfigResponse>;
+  upsertAgentExecutionConfig?(
+    request: UpsertAgentExecutionConfigRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<UpsertAgentExecutionConfigResponse>;
+  getAgentExecutionReadiness?(
+    request: GetAgentExecutionReadinessRequest,
+    options?: RuntimeTypedCallOptions,
+  ): Promise<GetAgentExecutionReadinessResponse>;
+  subscribeAgentExecutionReadiness?(
+    request: SubscribeAgentExecutionReadinessRequest,
+    options?: RuntimeTypedCallOptions,
+  ): AsyncIterable<AgentExecutionReadinessSnapshot>;
 }
 
 export interface NimiRuntimeAgentClientAppMessagesModule {
@@ -141,6 +172,7 @@ export interface NimiRuntimeAgentClient {
   writeMemory(input: NimiRuntimeAgentWriteMemoryInput): Promise<WriteAgentMemoryResponse>;
   getCanonicalMemoryStatus(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
   bindCanonicalMemoryStandard(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
+  readonly executionConfig: NimiRuntimeAgentExecutionConfigModule;
 }
 
 export interface NimiRuntimeAgentClientStreamTurnOptions
@@ -181,6 +213,16 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
       appAuth: runtime.appAuth,
       agent: runtime.agent,
     }),
+    getSubjectUserId: options.getSubjectUserId,
+    withScopes: options.withScopes,
+  });
+  const executionConfig = createNimiRuntimeAgentExecutionConfigModule({
+    runtime: {
+      appId: runtime.appId,
+      auth: runtime.auth,
+      appAuth: runtime.appAuth,
+      agent: runtime.agent,
+    },
     getSubjectUserId: options.getSubjectUserId,
     withScopes: options.withScopes,
   });
@@ -295,6 +337,7 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     },
     getCanonicalMemoryStatus: memory.getCanonicalBankStatus,
     bindCanonicalMemoryStandard: memory.bindCanonicalBankStandard,
+    executionConfig,
   };
 }
 

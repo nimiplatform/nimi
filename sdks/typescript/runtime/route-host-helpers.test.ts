@@ -29,6 +29,7 @@ function localAssetRecord(overrides: Partial<{
   status: LocalAssetStatus;
   capabilities: string[];
   artifactRoles: string[];
+  updatedAt: string;
 }> = {}) {
   return {
     localAssetId: overrides.localAssetId ?? 'asset-local-1',
@@ -41,7 +42,7 @@ function localAssetRecord(overrides: Partial<{
     hashes: {},
     status: overrides.status ?? LocalAssetStatus.ACTIVE,
     installedAt: '',
-    updatedAt: '',
+    updatedAt: overrides.updatedAt ?? '',
     healthDetail: '',
     capabilities: overrides.capabilities ?? ['text.generate'],
     logicalModelId: '',
@@ -56,6 +57,78 @@ function localAssetRecord(overrides: Partial<{
     reasonCode: 0,
   };
 }
+
+test('Runtime host route options expose a stable composite snapshot revision from Runtime inventory evidence', async () => {
+  const deps = createNimiRuntimeRouteOptionsHostDeps({
+    connectors: {
+      async listConnectors() {
+        return {
+          connectors: [{
+            connectorId: 'cloud-1',
+            kind: ConnectorKind.REMOTE_MANAGED,
+            ownerType: 0,
+            ownerId: '',
+            provider: 'tester',
+            endpoint: '',
+            label: 'Cloud',
+            status: ConnectorStatus.ACTIVE,
+            localCategory: 0,
+            hasCredential: true,
+            authKind: 0,
+            providerAuthProfile: '',
+          }],
+          nextPageToken: '',
+        };
+      },
+      async listConnectorModels() {
+        return {
+          models: [{
+            modelId: 'cloud-model',
+            modelLabel: 'Cloud Model',
+            available: true,
+            capabilities: ['text.generate'],
+            remoteModelCatalogId: 'remote-catalog:cloud-model',
+            providerModelId: 'cloud-model',
+            provider: 'tester',
+            connectorSnapshotId: 'connector-snapshot-1',
+            endpointProfileId: 'endpoint-profile-1',
+            inventorySnapshotId: 'inventory-snapshot-1',
+          }],
+          nextPageToken: '',
+        };
+      },
+    },
+    local: {
+      async listLocalAssets() {
+        return {
+          assets: [localAssetRecord({ updatedAt: '2026-07-05T00:00:00Z' })],
+          nextPageToken: '',
+        };
+      },
+    },
+  });
+
+  const first = await listNimiRuntimeRouteOptionsWithHost({ capability: 'text.generate' }, deps);
+  const second = await listNimiRuntimeRouteOptionsWithHost({ capability: 'text.generate' }, deps);
+
+  assert.match(first.snapshotRevision || '', /^route-options:v1:/);
+  assert.equal(second.snapshotRevision, first.snapshotRevision);
+});
+
+test('Runtime host route options snapshot revision changes when local Runtime inventory identity changes', () => {
+  const first = buildNimiRuntimeRouteOptionsProjection({
+    capability: 'text.generate',
+    connectors: [],
+    runtimeLocalModels: [localAssetRecord({ updatedAt: '2026-07-05T00:00:00Z' })],
+  });
+  const second = buildNimiRuntimeRouteOptionsProjection({
+    capability: 'text.generate',
+    connectors: [],
+    runtimeLocalModels: [localAssetRecord({ updatedAt: '2026-07-05T00:01:00Z' })],
+  });
+
+  assert.notEqual(second.snapshotRevision, first.snapshotRevision);
+});
 
 test('Runtime host route options project generated Runtime enums to SDK route strings', async () => {
   const selectedTargetRef = {

@@ -236,6 +236,9 @@ export interface NimiRuntimeRouteCapabilityHostRuntimeDeps {
   readonly buildDescribeCallOptions: NimiRuntimeRouteDescribeCallOptionsBuilder;
   readonly describeTargetId: string;
   readonly routeOptionsTargetId?: string;
+  readonly routeOptionsCacheTtlMs?: number;
+  readonly routeOptionsCacheNowMs?: () => number;
+  readonly getRouteOptionsCacheRevision?: () => string | number | null | undefined;
   readonly describeTimeoutMs?: number;
 }
 
@@ -252,4 +255,5 @@ export interface NimiRuntimeRouteCapabilityRuntime {
     readonly capability: NimiRuntimeCanonicalCapability;
     readonly resolvedBindingRef: string;
   }): Promise<NimiRuntimeRouteDescribeResult>;
+  invalidateResolvedRouteTargets?(): void;
 }

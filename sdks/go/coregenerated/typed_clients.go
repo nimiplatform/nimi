@@ -145,6 +145,15 @@ const (
 	AGENTEVENTTYPEUNSPECIFIED AgentEventType = "AGENT_EVENT_TYPE_UNSPECIFIED"
 )
 
+type AgentExecutionReadinessState string
+
+const (
+	AGENTEXECUTIONREADINESSSTATEUNSPECIFIED AgentExecutionReadinessState = "AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED"
+	AGENTEXECUTIONREADINESSSTATEREADY AgentExecutionReadinessState = "AGENT_EXECUTION_READINESS_STATE_READY"
+	AGENTEXECUTIONREADINESSSTATENOTCONFIGURED AgentExecutionReadinessState = "AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED"
+	AGENTEXECUTIONREADINESSSTATEUNAVAILABLE AgentExecutionReadinessState = "AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE"
+)
+
 type AgentExecutionState string
 
 const (
@@ -1985,6 +1994,11 @@ type AgentEvent struct {
 	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
 }
 
+type AgentExecutionReadinessSnapshot struct {
+	ConfigRevision uint64 `json:"config_revision,omitempty"`
+	Capabilities []RuntimeAgentExecutionCapabilityReadiness `json:"capabilities,omitempty"`
+}
+
 type AgentHookEventDetail struct {
 	Family HookAdmissionState `json:"family,omitempty"`
 	Intent *HookIntent `json:"intent,omitempty"`
@@ -3567,6 +3581,22 @@ type GetAgentCanonicalMemoryReviewStatusRequest struct {
 
 type GetAgentCanonicalMemoryReviewStatusResponse struct {
 	Status *AgentCanonicalMemoryReviewStatus `json:"status,omitempty"`
+}
+
+type GetAgentExecutionConfigRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+}
+
+type GetAgentExecutionConfigResponse struct {
+	Config *RuntimeAgentExecutionConfig `json:"config,omitempty"`
+}
+
+type GetAgentExecutionReadinessRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+}
+
+type GetAgentExecutionReadinessResponse struct {
+	Snapshot *AgentExecutionReadinessSnapshot `json:"snapshot,omitempty"`
 }
 
 type GetAgentRequest struct {
@@ -6701,6 +6731,28 @@ type RevokeWorkspaceBindingResponse struct {
 	ProductionInert bool `json:"production_inert,omitempty"`
 }
 
+type RuntimeAgentExecutionCapabilityBinding struct {
+	Capability string `json:"capability,omitempty"`
+	ModelId string `json:"model_id,omitempty"`
+	RoutePolicy RoutePolicy `json:"route_policy,omitempty"`
+	ConnectorId string `json:"connector_id,omitempty"`
+	TargetRef *RuntimeDurableTargetRef `json:"target_ref,omitempty"`
+}
+
+type RuntimeAgentExecutionCapabilityReadiness struct {
+	Capability string `json:"capability,omitempty"`
+	State AgentExecutionReadinessState `json:"state,omitempty"`
+	ReasonCode string `json:"reason_code,omitempty"`
+	ProbedAt string `json:"probed_at,omitempty"`
+}
+
+type RuntimeAgentExecutionConfig struct {
+	Revision uint64 `json:"revision,omitempty"`
+	Bindings []RuntimeAgentExecutionCapabilityBinding `json:"bindings,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+	UpdatedByAppId string `json:"updated_by_app_id,omitempty"`
+}
+
 type RuntimeBaselineActivationConsumerEvidence struct {
 	ConsumerId string `json:"consumer_id,omitempty"`
 	PackId string `json:"pack_id,omitempty"`
@@ -7350,6 +7402,10 @@ type SubscribeAgentEventsRequest struct {
 	EventFilters []AgentEventType `json:"event_filters,omitempty"`
 }
 
+type SubscribeAgentExecutionReadinessRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+}
+
 type SubscribeAppMessagesRequest struct {
 	AppId string `json:"app_id,omitempty"`
 	SubjectUserId string `json:"subject_user_id,omitempty"`
@@ -7610,6 +7666,16 @@ type UploadArtifactRequest struct {
 type UploadArtifactResponse struct {
 	Artifact *ScenarioArtifact `json:"artifact,omitempty"`
 	TraceId string `json:"trace_id,omitempty"`
+}
+
+type UpsertAgentExecutionConfigRequest struct {
+	Context *AgentRequestContext `json:"context,omitempty"`
+	ExpectedRevision uint64 `json:"expected_revision,omitempty"`
+	Bindings []RuntimeAgentExecutionCapabilityBinding `json:"bindings,omitempty"`
+}
+
+type UpsertAgentExecutionConfigResponse struct {
+	Config *RuntimeAgentExecutionConfig `json:"config,omitempty"`
 }
 
 type UpsertCatalogModelOverlayRequest struct {
@@ -8339,6 +8405,22 @@ func (c RuntimeTypedClient) GetAgentCanonicalMemoryReviewStatus(ctx context.Cont
 	return decodeRuntimeTypedResponse[GetAgentCanonicalMemoryReviewStatusResponse](raw, "GetAgentCanonicalMemoryReviewStatusResponse")
 }
 
+func (c RuntimeTypedClient) GetAgentExecutionConfig(ctx context.Context, request GetAgentExecutionConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentExecutionConfigResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAgentExecutionConfigResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetAgentExecutionConfigResponse](raw, "GetAgentExecutionConfigResponse")
+}
+
+func (c RuntimeTypedClient) GetAgentExecutionReadiness(ctx context.Context, request GetAgentExecutionReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentExecutionReadinessResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAgentExecutionReadinessResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetAgentExecutionReadinessResponse](raw, "GetAgentExecutionReadinessResponse")
+}
+
 func (c RuntimeTypedClient) GetAgentState(ctx context.Context, request GetAgentStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAgentStateResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAgentState", request, metadata, timeoutMS)
 	if err != nil {
@@ -8627,6 +8709,14 @@ func (c RuntimeTypedClient) SubscribeAgentEvents(ctx context.Context, request Su
 	return &RuntimeTypedStream[AgentEvent]{reader: reader}, nil
 }
 
+func (c RuntimeTypedClient) SubscribeAgentExecutionReadiness(ctx context.Context, request SubscribeAgentExecutionReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AgentExecutionReadinessSnapshot], error) {
+	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness", request, metadata, timeoutMS)
+	if err != nil {
+		return nil, err
+	}
+	return &RuntimeTypedStream[AgentExecutionReadinessSnapshot]{reader: reader}, nil
+}
+
 func (c RuntimeTypedClient) TerminateAgent(ctx context.Context, request TerminateAgentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (TerminateAgentResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent", request, metadata, timeoutMS)
 	if err != nil {
@@ -8641,6 +8731,14 @@ func (c RuntimeTypedClient) UpdateAgentState(ctx context.Context, request Update
 		return UpdateAgentStateResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UpdateAgentStateResponse](raw, "UpdateAgentStateResponse")
+}
+
+func (c RuntimeTypedClient) UpsertAgentExecutionConfig(ctx context.Context, request UpsertAgentExecutionConfigRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpsertAgentExecutionConfigResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig", request, metadata, timeoutMS)
+	if err != nil {
+		return UpsertAgentExecutionConfigResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UpsertAgentExecutionConfigResponse](raw, "UpsertAgentExecutionConfigResponse")
 }
 
 func (c RuntimeTypedClient) UpsertDelegatedProviderProfile(ctx context.Context, request UpsertDelegatedProviderProfileRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpsertDelegatedProviderProfileResponse, error) {

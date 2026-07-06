@@ -212,6 +212,9 @@
     "SDK_RUNTIME_AGENT_DELEGATED_INPUT_INVALID",
     "SDK_RUNTIME_AGENT_DELEGATED_RUNTIME_METHOD_UNAVAILABLE",
     "SDK_RUNTIME_AGENT_EVENT_UNSUPPORTED",
+    "SDK_RUNTIME_AGENT_EXECUTION_CONFIG_INPUT_INVALID",
+    "SDK_RUNTIME_AGENT_EXECUTION_CONFIG_RESPONSE_INVALID",
+    "SDK_RUNTIME_AGENT_EXECUTION_CONFIG_SURFACE_REQUIRED",
     "SDK_RUNTIME_AGENT_HOOK_ID_REQUIRED",
     "SDK_RUNTIME_AGENT_ID_REQUIRED",
     "SDK_RUNTIME_AGENT_INPUT_INVALID",
@@ -258,7 +261,8 @@
     "SDK_RUNTIME_VOICE_REF_INVALID",
     "OPERATION_ABORTED",
     "RUNTIME_UNAVAILABLE",
-    "RUNTIME_BRIDGE_DAEMON_UNAVAILABLE"
+    "RUNTIME_BRIDGE_DAEMON_UNAVAILABLE",
+    "RUNTIME_AGENT_EXECUTION_CONFIG_CONCURRENT_MODIFICATION"
   ],
   "codes": [
     {
@@ -1277,6 +1281,21 @@
       "source_rule": "S-ERROR-003"
     },
     {
+      "name": "SDK_RUNTIME_AGENT_EXECUTION_CONFIG_INPUT_INVALID",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_AGENT_EXECUTION_CONFIG_RESPONSE_INVALID",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
+      "name": "SDK_RUNTIME_AGENT_EXECUTION_CONFIG_SURFACE_REQUIRED",
+      "family": "SDK_RUNTIME",
+      "source_rule": "S-ERROR-003"
+    },
+    {
       "name": "SDK_RUNTIME_AGENT_HOOK_ID_REQUIRED",
       "family": "SDK_RUNTIME",
       "source_rule": "S-ERROR-003"
@@ -1513,6 +1532,12 @@
       "family": "SDK_SYNTHETIC_REASON",
       "source_rule": "S-ERROR-010",
       "note": "SDK 合成码；应用层可重试（S-ERROR-007）"
+    },
+    {
+      "name": "RUNTIME_AGENT_EXECUTION_CONFIG_CONCURRENT_MODIFICATION",
+      "family": "SDK_SYNTHETIC_REASON",
+      "source_rule": "S-ERROR-010",
+      "note": "K-AGCORE-145 revision CAS 冲突的 typed 投影；应用需重读 committed config 后重试"
     }
   ],
   "language": "rust",

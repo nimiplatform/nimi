@@ -148,6 +148,10 @@ Five-state scheduling judgement 由独立契约 `scheduling-contract.md`（K-SCH
 - runtime 不维护"当前全局生效 AI profile"概念。
 - `ResolveProfile` / `ApplyProfile` 是 per-call 操作，不建立持久 runtime-global profile binding。
 - 多个 scope 可并发执行不同 profile 的 resolve/apply，runtime 不做跨 scope 联动。
+- 本规则约束的是通用 profile resolve/apply 层。`RuntimeAgentService` 拥有的
+  committed agent execution config（K-AGCORE-144~150）是 agent 域的 scoped
+  committed 状态，不构成也不得被解释为 runtime-global active profile；两者
+  不得互相替代。
 
 ## K-AIEXEC-006 — Memory Embedding Binding Resolution Boundary
 

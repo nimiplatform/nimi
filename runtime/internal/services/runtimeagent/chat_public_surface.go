@@ -68,6 +68,21 @@ type publicChatReasoningConfig struct {
 	TraceMode    runtimev1.ReasoningTraceMode
 	BudgetTokens int32
 }
+// publicChatImageActionAvailability is the K-AGCORE-148 tri-state derived at
+// turn admission from committed execution config presence plus the current
+// readiness projection. Values match
+// tables/agent-execution-config.yaml turn_action_availability_states.
+type publicChatImageActionAvailability string
+
+const (
+	publicChatImageActionAvailable     publicChatImageActionAvailability = "available"
+	publicChatImageActionNotConfigured publicChatImageActionAvailability = "not_configured"
+	publicChatImageActionUnavailable   publicChatImageActionAvailability = "unavailable"
+)
+
+type publicChatAvailableActions struct {
+	ImageGenerate publicChatImageActionAvailability
+}
 
 type avatarLiveInstanceBindingState struct {
 	AvatarInstanceID     string
@@ -96,9 +111,14 @@ type publicChatAnchorState struct {
 	CallerAppID            string
 	SubjectUserID          string
 	ThreadID               string
-	Binding                publicChatExecutionBinding
-	Bindings               publicChatExecutionBindings
-	ExecutionParams        map[string]map[string]any
+	Binding  publicChatExecutionBinding
+	Bindings publicChatExecutionBindings
+	// ConfigRevision is the committed execution config revision fixed into
+	// the anchor at the most recent turn admission (K-AGCORE-147). It is
+	// per-turn admission truth projected on the session snapshot; the anchor
+	// does not own binding truth.
+	ConfigRevision  uint64
+	ExecutionParams map[string]map[string]any
 	ActiveTurnID           string
 	SystemPrompt           string
 	MaxTokens              int32
@@ -145,7 +165,12 @@ type publicChatTurnState struct {
 	MaxFollowUpTurns  int
 	SourceTurnID      string
 	SourceActionID    string
-	Projection        *publicChatTurnProjectionState
+	// ConfigRevision and AvailableActions are fixed at turn admission from
+	// the committed execution config plus readiness (K-AGCORE-147/148). A
+	// config mutation during an in-flight turn affects the next turn only.
+	ConfigRevision   uint64
+	AvailableActions publicChatAvailableActions
+	Projection       *publicChatTurnProjectionState
 }
 type publicChatMessagePayload struct {
 	Role    string `json:"role"`
@@ -198,13 +223,14 @@ type publicChatTurnVoiceRenderPayload struct {
 	PlaybackTarget       string `json:"playback_target,omitempty"`
 }
 type PublicChatTurnExecutionRequest struct {
-	AppID         string
-	SubjectUserID string
-	Messages      []*runtimev1.ChatMessage
-	SystemPrompt  string
-	MaxTokens     int32
-	Binding       publicChatExecutionBinding
-	Reasoning     *publicChatReasoningConfig
+	AppID            string
+	SubjectUserID    string
+	Messages         []*runtimev1.ChatMessage
+	SystemPrompt     string
+	MaxTokens        int32
+	Binding          publicChatExecutionBinding
+	AvailableActions publicChatAvailableActions
+	Reasoning        *publicChatReasoningConfig
 }
 type PublicChatTurnExecutor interface {
 	StreamChatTurn(context.Context, *PublicChatTurnExecutionRequest, func(*runtimev1.StreamScenarioEvent) error) error

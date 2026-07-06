@@ -654,6 +654,42 @@
           "response_type": "AgentEvent",
           "request_stream": false,
           "response_stream": true
+        },
+        {
+          "name": "GetAgentExecutionConfig",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
+          "kind": "unary",
+          "request_type": "GetAgentExecutionConfigRequest",
+          "response_type": "GetAgentExecutionConfigResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "UpsertAgentExecutionConfig",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
+          "kind": "unary",
+          "request_type": "UpsertAgentExecutionConfigRequest",
+          "response_type": "UpsertAgentExecutionConfigResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetAgentExecutionReadiness",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
+          "kind": "unary",
+          "request_type": "GetAgentExecutionReadinessRequest",
+          "response_type": "GetAgentExecutionReadinessResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SubscribeAgentExecutionReadiness",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
+          "kind": "server_stream",
+          "request_type": "SubscribeAgentExecutionReadinessRequest",
+          "response_type": "AgentExecutionReadinessSnapshot",
+          "request_stream": false,
+          "response_stream": true
         }
       ]
     },
@@ -2383,6 +2419,8 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus",
+    "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
+    "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
     "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
@@ -2419,8 +2457,10 @@
     "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
     "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
+    "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
     "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
+    "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
     "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
     "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
@@ -2815,6 +2855,22 @@
       "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
+      "service": "RuntimeAgentService",
+      "method": "GetAgentExecutionConfig",
+      "kind": "unary",
+      "request_type": "GetAgentExecutionConfigRequest",
+      "response_type": "GetAgentExecutionConfigResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
+      "service": "RuntimeAgentService",
+      "method": "GetAgentExecutionReadiness",
+      "kind": "unary",
+      "request_type": "GetAgentExecutionReadinessRequest",
+      "response_type": "GetAgentExecutionReadinessResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
       "service": "RuntimeAgentService",
       "method": "GetAgentState",
@@ -3103,6 +3159,14 @@
       "response_type": "AgentEvent"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
+      "service": "RuntimeAgentService",
+      "method": "SubscribeAgentExecutionReadiness",
+      "kind": "server_stream",
+      "request_type": "SubscribeAgentExecutionReadinessRequest",
+      "response_type": "AgentExecutionReadinessSnapshot"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
       "service": "RuntimeAgentService",
       "method": "TerminateAgent",
@@ -3117,6 +3181,14 @@
       "kind": "unary",
       "request_type": "UpdateAgentStateRequest",
       "response_type": "UpdateAgentStateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
+      "service": "RuntimeAgentService",
+      "method": "UpsertAgentExecutionConfig",
+      "kind": "unary",
+      "request_type": "UpsertAgentExecutionConfigRequest",
+      "response_type": "UpsertAgentExecutionConfigResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
@@ -4793,6 +4865,22 @@
       "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
+      "service": "RuntimeAgentService",
+      "method": "GetAgentExecutionConfig",
+      "kind": "unary",
+      "request_type": "GetAgentExecutionConfigRequest",
+      "response_type": "GetAgentExecutionConfigResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
+      "service": "RuntimeAgentService",
+      "method": "GetAgentExecutionReadiness",
+      "kind": "unary",
+      "request_type": "GetAgentExecutionReadinessRequest",
+      "response_type": "GetAgentExecutionReadinessResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
       "service": "RuntimeAgentService",
       "method": "GetAgentState",
@@ -5081,6 +5169,14 @@
       "response_type": "AgentEvent"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
+      "service": "RuntimeAgentService",
+      "method": "SubscribeAgentExecutionReadiness",
+      "kind": "server_stream",
+      "request_type": "SubscribeAgentExecutionReadinessRequest",
+      "response_type": "AgentExecutionReadinessSnapshot"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
       "service": "RuntimeAgentService",
       "method": "TerminateAgent",
@@ -5095,6 +5191,14 @@
       "kind": "unary",
       "request_type": "UpdateAgentStateRequest",
       "response_type": "UpdateAgentStateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
+      "service": "RuntimeAgentService",
+      "method": "UpsertAgentExecutionConfig",
+      "kind": "unary",
+      "request_type": "UpsertAgentExecutionConfigRequest",
+      "response_type": "UpsertAgentExecutionConfigResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
@@ -6587,6 +6691,7 @@
       "AgentCoreBankOwner",
       "AgentDyadicBankOwner",
       "AgentEvent",
+      "AgentExecutionReadinessSnapshot",
       "AgentHookEventDetail",
       "AgentLifecycleEventDetail",
       "AgentMemoryEventDetail",
@@ -6783,6 +6888,10 @@
       "GetAgentCanonicalMemoryBankStatusResponse",
       "GetAgentCanonicalMemoryReviewStatusRequest",
       "GetAgentCanonicalMemoryReviewStatusResponse",
+      "GetAgentExecutionConfigRequest",
+      "GetAgentExecutionConfigResponse",
+      "GetAgentExecutionReadinessRequest",
+      "GetAgentExecutionReadinessResponse",
       "GetAgentRequest",
       "GetAgentResponse",
       "GetAgentStateRequest",
@@ -7205,6 +7314,9 @@
       "RevokeSessionRequest",
       "RevokeWorkspaceBindingRequest",
       "RevokeWorkspaceBindingResponse",
+      "RuntimeAgentExecutionCapabilityBinding",
+      "RuntimeAgentExecutionCapabilityReadiness",
+      "RuntimeAgentExecutionConfig",
       "RuntimeBaselineActivationConsumerEvidence",
       "RuntimeBaselineActivationDependencyEvidence",
       "RuntimeBaselineConsumerBinding",
@@ -7297,6 +7409,7 @@
       "SubscribeAIProviderHealthEventsRequest",
       "SubscribeAccountSessionEventsRequest",
       "SubscribeAgentEventsRequest",
+      "SubscribeAgentExecutionReadinessRequest",
       "SubscribeAppMessagesRequest",
       "SubscribeMemoryEventsRequest",
       "SubscribeRuntimeHealthEventsRequest",
@@ -7337,6 +7450,8 @@
       "UploadArtifactMetadata",
       "UploadArtifactRequest",
       "UploadArtifactResponse",
+      "UpsertAgentExecutionConfigRequest",
+      "UpsertAgentExecutionConfigResponse",
       "UpsertCatalogModelOverlayRequest",
       "UpsertCatalogModelOverlayResponse",
       "UpsertDelegatedProviderProfileRequest",
@@ -7404,6 +7519,7 @@
       "AgentCanonicalMemoryBankMode",
       "AgentCanonicalMemoryReviewReadiness",
       "AgentEventType",
+      "AgentExecutionReadinessState",
       "AgentExecutionState",
       "AgentLifecycleStatus",
       "AgentPresentationBackendKind",
@@ -8486,6 +8602,26 @@
             "repeated": false,
             "optional": false,
             "number": 22
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "AgentExecutionReadinessSnapshot",
+        "fields": [
+          {
+            "name": "config_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "capabilities",
+            "type": "RuntimeAgentExecutionCapabilityReadiness",
+            "repeated": true,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -16734,6 +16870,58 @@
           {
             "name": "status",
             "type": "AgentCanonicalMemoryReviewStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetAgentExecutionConfigRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetAgentExecutionConfigResponse",
+        "fields": [
+          {
+            "name": "config",
+            "type": "RuntimeAgentExecutionConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetAgentExecutionReadinessRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetAgentExecutionReadinessResponse",
+        "fields": [
+          {
+            "name": "snapshot",
+            "type": "AgentExecutionReadinessSnapshot",
             "repeated": false,
             "optional": false,
             "number": 1
@@ -32242,6 +32430,115 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
+        "name": "RuntimeAgentExecutionCapabilityBinding",
+        "fields": [
+          {
+            "name": "capability",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "model_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "route_policy",
+            "type": "RoutePolicy",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "connector_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "target_ref",
+            "type": "RuntimeDurableTargetRef",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "RuntimeAgentExecutionCapabilityReadiness",
+        "fields": [
+          {
+            "name": "capability",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "state",
+            "type": "AgentExecutionReadinessState",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "probed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "RuntimeAgentExecutionConfig",
+        "fields": [
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "bindings",
+            "type": "RuntimeAgentExecutionCapabilityBinding",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "updated_by_app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "RuntimeBaselineActivationConsumerEvidence",
         "fields": [
           {
@@ -35385,6 +35682,19 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "SubscribeAgentExecutionReadinessRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "SubscribeAIProviderHealthEventsRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/audit.proto"
@@ -36614,6 +36924,46 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "UpsertAgentExecutionConfigRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "bindings",
+            "type": "RuntimeAgentExecutionCapabilityBinding",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "UpsertAgentExecutionConfigResponse",
+        "fields": [
+          {
+            "name": "config",
+            "type": "RuntimeAgentExecutionConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "UpsertCatalogModelOverlayRequest",
@@ -38805,6 +39155,16 @@
         "name": "AgentEventType",
         "values": [
           "AGENT_EVENT_TYPE_UNSPECIFIED"
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "AgentExecutionReadinessState",
+        "values": [
+          "AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED",
+          "AGENT_EXECUTION_READINESS_STATE_READY",
+          "AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED",
+          "AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE"
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
       },

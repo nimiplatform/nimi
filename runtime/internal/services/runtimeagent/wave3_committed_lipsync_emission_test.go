@@ -71,10 +71,6 @@ func TestPublicChatCommittedTurnSkipsVoiceLipsyncProjectionWithoutAvatarAutoplay
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	}); err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
@@ -175,10 +171,6 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	}); err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
@@ -372,10 +364,6 @@ func TestPublicChatManualVoiceRenderEmitsDesktopManualProjectionWithoutAvatarAut
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	}); err != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)

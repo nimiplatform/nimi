@@ -39,9 +39,18 @@ func (r publicChatRuntime) reserveTurn(
 	if entry.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "agent is not active")
 	}
-	explicitBindings, hasExplicitBindings, err := r.svc.resolvePublicChatBinding(parent, subjectUserID, req)
+	if len(req.ExecutionBindings) > 0 {
+		// K-AGCORE-147 hard cut: request-carried execution_bindings are not
+		// admitted; turn admission binds to the committed execution config.
+		return publicChatAnchorState{}, publicChatTurnState{}, nil, errPublicChatRequestExecutionBindingsNotAdmitted
+	}
+	resolvedBindings, configRevision, err := r.svc.resolveExecutionBindingsFromConfig(parent, subjectUserID, req)
 	if err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
+	}
+	_, hasImageBinding := resolvedBindings[executionCapabilityImageGenerate]
+	availableActions := publicChatAvailableActions{
+		ImageGenerate: r.svc.deriveImageActionAvailability(configRevision, hasImageBinding),
 	}
 	reasoning := normalizePublicChatReasoning(req.Reasoning)
 	transcript := cloneChatMessages(toProtoPublicChatMessages(req.Messages))
@@ -93,25 +102,14 @@ func (r publicChatRuntime) reserveTurn(
 			r.svc.chatSurfaceMu.Unlock()
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor thread_id mismatch")
 		}
-		if hasExplicitBindings {
-			explicitTextBinding := explicitBindings["text.generate"]
-			if session.Binding.ModelID != "" && publicChatExecutionBindingMismatch(session.Binding, explicitTextBinding) {
-				r.svc.chatSurfaceMu.Unlock()
-				return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.FailedPrecondition, "public chat anchor execution_bindings.text.generate mismatch")
-			}
-			session.Binding = explicitTextBinding
-			session.Bindings = clonePublicChatExecutionBindings(explicitBindings)
+		// K-AGCORE-147: the anchor no longer owns binding truth. Every turn
+		// admission overwrites the session projection fields with the
+		// admission-resolved bindings and the committed config revision.
+		session.Binding = resolvedBindings[executionCapabilityTextGenerate]
+		session.Bindings = clonePublicChatExecutionBindings(resolvedBindings)
+		session.ConfigRevision = configRevision
+		if len(req.ExecutionParams) > 0 {
 			session.ExecutionParams = clonePublicChatExecutionParams(req.ExecutionParams)
-		} else if session.Binding.ModelID == "" || session.Binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-			r.svc.chatSurfaceMu.Unlock()
-			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat turn request requires execution_bindings.text.generate")
-		}
-		if session.Binding.ModelID == "" || session.Binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-			r.svc.chatSurfaceMu.Unlock()
-			return publicChatAnchorState{}, publicChatTurnState{}, nil, status.Error(codes.InvalidArgument, "public chat anchor requires execution_bindings.text.generate")
-		}
-		if len(session.Bindings) == 0 {
-			session.Bindings = publicChatExecutionBindings{"text.generate": session.Binding}
 		}
 		if trimmed := strings.TrimSpace(subjectUserID); trimmed != "" {
 			session.SubjectUserID = trimmed
@@ -158,6 +156,8 @@ func (r publicChatRuntime) reserveTurn(
 			Cancel:               cancel,
 			TimelineStartedAt:    timelineStartedAt,
 			Origin:               publicChatTurnOriginUser,
+			ConfigRevision:       configRevision,
+			AvailableActions:     availableActions,
 		}
 		turn.Projection = newPublicChatTurnProjection(turn)
 		session.ActiveTurnID = turnID

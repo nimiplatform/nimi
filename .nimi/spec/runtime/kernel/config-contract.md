@@ -44,6 +44,14 @@ provider 对应 `baseUrl/apiKey` 的环境变量绑定以 `provider-probe-target
 
 配置变更的热生效与重启生效边界必须显式声明，不允许隐式生效。
 
+已声明的边界：
+
+- `~/.nimi/runtime/config.json`（本契约管辖的 machine config）为重启生效，
+  除非某条规则显式另行声明。
+- Runtime Agent execution config（K-AGCORE-144~150）不属于本契约的 machine
+  config plane。它经 RuntimeAgentService RPC 持久化于 runtime store，热生效，
+  粒度为 next-turn：变更不影响 in-flight turn 的 execution snapshot。
+
 ## K-CFG-011 Credential Plane Boundary
 
 配置层允许声明凭据引用，也允许在 canonical config file 中保留 fallback inline secret；更高层的安装与配置入口必须优先提供 env / secure-store path。

@@ -227,6 +227,9 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	}
 	agentSvc.SetScopedBindingValidator(accountSvc)
 	agentSvc.SetAuditStore(auditStore)
+	// K-AGCORE-146: execution config readiness recomputes on provider health
+	// change evidence.
+	agentSvc.SetProviderHealthTracker(aiHealth)
 	agentSvc.SetSourceMaterializationPacketHMACSecret(cfg.SourceMaterializationPacketHMACSecret)
 	agentSvc.SetRuntimeArtifactStore(artifactStore)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))

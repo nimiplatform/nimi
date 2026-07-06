@@ -8,7 +8,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -25,6 +24,10 @@ type lifeTurnRequest struct {
 	Hook     *runtimev1.PendingHook
 	Recall   []*runtimev1.CanonicalMemoryView
 	Autonomy *runtimev1.AgentAutonomyState
+	// ExecutionBinding is the committed execution config text.generate
+	// binding stamped by RuntimeAgentService when it builds the request
+	// (K-AGCORE-147). A missing binding fails closed.
+	ExecutionBinding publicChatExecutionBinding
 }
 
 type lifeTurnResult struct {
@@ -139,12 +142,17 @@ func buildLifeTurnScenarioRequest(req *lifeTurnRequest) (*runtimev1.ExecuteScena
 	if subjectUserID == "" {
 		subjectUserID = strings.TrimSpace(req.Agent.GetAgentId())
 	}
+	if err := validateRuntimePrivateExecutorBinding("life turn", req.ExecutionBinding); err != nil {
+		return nil, err
+	}
 	return &runtimev1.ExecuteScenarioRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         lifeTurnExecutorAppID,
 			SubjectUserId: subjectUserID,
-			ModelId:       texttarget.InternalDefaultLocalTextModelAlias,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED,
+			ModelId:       req.ExecutionBinding.ModelID,
+			RoutePolicy:   req.ExecutionBinding.RoutePolicy,
+			ConnectorId:   req.ExecutionBinding.ConnectorID,
+			TargetRef:     clonePublicChatTargetRef(req.ExecutionBinding.TargetRef),
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10_000,
 		},

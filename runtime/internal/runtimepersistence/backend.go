@@ -454,6 +454,13 @@ func (b *Backend) ensureSchema() error {
 			expires_at TEXT NOT NULL,
 			consumed_at TEXT NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_agent_execution_config (
+			singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+			revision INTEGER NOT NULL,
+			config_json TEXT NOT NULL,
+			updated_at TEXT NOT NULL,
+			updated_by_app_id TEXT NOT NULL
+		)`,
 	}
 	for _, stmt := range stmts {
 		if _, err := b.writeDB.Exec(stmt); err != nil {

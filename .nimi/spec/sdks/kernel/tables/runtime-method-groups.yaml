@@ -508,5 +508,9 @@ groups:
       - GetAgentCanonicalMemoryBankStatus
       - RequestAgentCanonicalMemoryBankBind
       - GetAgentCanonicalMemoryReviewStatus
+      - GetAgentExecutionConfig
+      - UpsertAgentExecutionConfig
+      - GetAgentExecutionReadiness
+      - SubscribeAgentExecutionReadiness
       - SubscribeAgentEvents
     source_rule: S-SURFACE-002

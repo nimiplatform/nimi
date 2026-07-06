@@ -48,10 +48,6 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
       { role: 'user' as const, content: 'hello', name: 'Human' },
       { role: 'assistant' as const, content: '' },
     ],
-    executionBindings: {
-      'text.generate': { route: 'local' as const, modelId: 'local-model', connectorId: 'local-connector' },
-      'image.generate': { route: 'local' as const, modelId: 'image-model' },
-    },
     executionParams: {
       'image.generate': { size: '512x512', steps: 15 },
     },
@@ -61,17 +57,10 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
   assert.equal(payload.local_agent_ref, LOCAL_AGENT_REF);
   assert.equal(payload.conversation_anchor_id, 'anchor-1');
   assert.deepEqual(payload.messages, [{ role: 'user', content: 'hello', name: 'Human' }]);
-  assert.deepEqual(payload.execution_bindings, {
-    'text.generate': {
-      route: 'local',
-      model_id: 'local-model',
-      connector_id: 'local-connector',
-    },
-    'image.generate': {
-      route: 'local',
-      model_id: 'image-model',
-    },
-  });
+  // Atomic hard cut: turn payloads never carry execution_bindings; the
+  // runtime resolves bindings from the committed execution config
+  // (K-AGCORE-147) and rejects any request-level bindings.
+  assert.equal('execution_bindings' in payload, false);
   assert.deepEqual(payload.execution_params, {
     'image.generate': {
       size: '512x512',
@@ -87,15 +76,6 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
   assert.throws(
     () => buildNimiRuntimeAgentTurnPayload({ ...baseTurn, messages: [] }),
     /requires at least one non-empty message/,
-  );
-  assert.throws(
-    () => buildNimiRuntimeAgentTurnPayload({
-      ...baseTurn,
-      executionBindings: {
-        'text.generate': { route: 'edge' as never, modelId: 'model' },
-      },
-    }),
-    /route must be local or cloud/,
   );
   assert.throws(
     () => buildNimiRuntimeAgentTurnPayload({ ...baseTurn, maxOutputTokens: -1 }),

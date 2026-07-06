@@ -61,13 +61,20 @@ func (c chatTrackRuntime) runSidecarExecution(ctx context.Context, req ChatTrack
 	if err != nil {
 		return nil, err
 	}
+	// K-AGCORE-147: the sidecar executor consumes the committed execution
+	// config text.generate binding; missing config fails closed.
+	executionBinding, _, err := c.svc.committedTextGenerateExecutionBinding()
+	if err != nil {
+		return nil, err
+	}
 	result, err := c.currentSidecarExecutor().ExecuteChatTrackSidecar(ctx, &ChatTrackSidecarExecutorRequest{
-		CallerAppID:   strings.TrimSpace(req.CallerAppID),
-		Agent:         cloneAgentRecord(entry.Agent),
-		State:         cloneAgentState(entry.State),
-		SourceEventID: strings.TrimSpace(req.SourceEventID),
-		Messages:      cloneChatMessages(req.Messages),
-		PendingHooks:  clonePendingHooksSorted(entry.Hooks),
+		CallerAppID:      strings.TrimSpace(req.CallerAppID),
+		Agent:            cloneAgentRecord(entry.Agent),
+		State:            cloneAgentState(entry.State),
+		SourceEventID:    strings.TrimSpace(req.SourceEventID),
+		Messages:         cloneChatMessages(req.Messages),
+		PendingHooks:     clonePendingHooksSorted(entry.Hooks),
+		ExecutionBinding: executionBinding,
 	})
 	if err != nil {
 		return nil, err

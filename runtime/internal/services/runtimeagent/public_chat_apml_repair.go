@@ -49,6 +49,7 @@ func publicChatAPMLRepairUserPayload(raw string) string {
 func (r publicChatRuntime) repairPublicChatStructuredEnvelope(
 	ctx context.Context,
 	session publicChatAnchorState,
+	turn publicChatTurnState,
 	req publicChatTurnRequestPayload,
 	raw string,
 	parseErr error,
@@ -67,10 +68,11 @@ func (r publicChatRuntime) repairPublicChatStructuredEnvelope(
 				Content: publicChatAPMLRepairUserPayload(raw),
 			},
 		},
-		SystemPrompt: publicChatAPMLRepairSystemPrompt(parseErr),
-		MaxTokens:    firstPositiveInt32(publicChatAPMLRepairMaxTokens, req.MaxOutputTokens),
-		Binding:      session.Binding,
-		Reasoning:    nil,
+		SystemPrompt:     publicChatAPMLRepairSystemPrompt(parseErr),
+		MaxTokens:        firstPositiveInt32(publicChatAPMLRepairMaxTokens, req.MaxOutputTokens),
+		Binding:          session.Binding,
+		AvailableActions: turn.AvailableActions,
+		Reasoning:        nil,
 	}, func(event *runtimev1.StreamScenarioEvent) error {
 		if event == nil {
 			return nil

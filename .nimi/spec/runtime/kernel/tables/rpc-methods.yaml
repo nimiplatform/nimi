@@ -558,3 +558,11 @@ services:
         type: unary
       - name: SubscribeAgentEvents
         type: server_stream
+      - name: GetAgentExecutionConfig
+        type: unary
+      - name: UpsertAgentExecutionConfig
+        type: unary
+      - name: GetAgentExecutionReadiness
+        type: unary
+      - name: SubscribeAgentExecutionReadiness
+        type: server_stream

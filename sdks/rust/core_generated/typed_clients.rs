@@ -227,6 +227,20 @@ impl Default for AgentEventType {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentExecutionReadinessState {
+    AGENTEXECUTIONREADINESSSTATEUNSPECIFIED,
+    AGENTEXECUTIONREADINESSSTATEREADY,
+    AGENTEXECUTIONREADINESSSTATENOTCONFIGURED,
+    AGENTEXECUTIONREADINESSSTATEUNAVAILABLE,
+}
+
+impl Default for AgentExecutionReadinessState {
+    fn default() -> Self {
+        Self::AGENTEXECUTIONREADINESSSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentExecutionState {
     AGENTEXECUTIONSTATEUNSPECIFIED,
 }
@@ -3515,6 +3529,34 @@ impl AgentEvent {
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
         out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentExecutionReadinessSnapshot {
+    pub config_revision: Option<u64>,
+    pub capabilities: Vec<Box<RuntimeAgentExecutionCapabilityReadiness>>,
+}
+
+impl AgentExecutionReadinessSnapshot {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.config_revision { pairs.push(format!("config_revision={}", value)); }
+        if !self.capabilities.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode capabilities"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["capabilities"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.config_revision = pairs.get("config_revision").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -10560,6 +10602,122 @@ impl GetAgentCanonicalMemoryReviewStatusResponse {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
         for key in ["status"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAgentExecutionConfigRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+}
+
+impl GetAgentExecutionConfigRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAgentExecutionConfigResponse {
+    pub config: Option<Box<RuntimeAgentExecutionConfig>>,
+}
+
+impl GetAgentExecutionConfigResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["config"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAgentExecutionReadinessRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+}
+
+impl GetAgentExecutionReadinessRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAgentExecutionReadinessResponse {
+    pub snapshot: Option<Box<AgentExecutionReadinessSnapshot>>,
+}
+
+impl GetAgentExecutionReadinessResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.snapshot.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode snapshot"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["snapshot"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -25059,6 +25217,110 @@ impl RevokeWorkspaceBindingResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeAgentExecutionCapabilityBinding {
+    pub capability: Option<String>,
+    pub model_id: Option<String>,
+    pub route_policy: Option<RoutePolicy>,
+    pub connector_id: Option<String>,
+    pub target_ref: Option<Box<RuntimeDurableTargetRef>>,
+}
+
+impl RuntimeAgentExecutionCapabilityBinding {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.capability { pairs.push(format!("capability={}", value)); }
+        if let Some(value) = &self.model_id { pairs.push(format!("model_id={}", value)); }
+        if let Some(value) = &self.route_policy { pairs.push(format!("route_policy={:?}", value)); }
+        if let Some(value) = &self.connector_id { pairs.push(format!("connector_id={}", value)); }
+        if self.target_ref.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode target_ref"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["route_policy", "target_ref"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.capability = pairs.get("capability").cloned();
+        out.model_id = pairs.get("model_id").cloned();
+        out.connector_id = pairs.get("connector_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeAgentExecutionCapabilityReadiness {
+    pub capability: Option<String>,
+    pub state: Option<AgentExecutionReadinessState>,
+    pub reason_code: Option<String>,
+    pub probed_at: Option<String>,
+}
+
+impl RuntimeAgentExecutionCapabilityReadiness {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.capability { pairs.push(format!("capability={}", value)); }
+        if let Some(value) = &self.state { pairs.push(format!("state={:?}", value)); }
+        if let Some(value) = &self.reason_code { pairs.push(format!("reason_code={}", value)); }
+        if let Some(value) = &self.probed_at { pairs.push(format!("probed_at={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["state"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.capability = pairs.get("capability").cloned();
+        out.reason_code = pairs.get("reason_code").cloned();
+        out.probed_at = pairs.get("probed_at").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeAgentExecutionConfig {
+    pub revision: Option<u64>,
+    pub bindings: Vec<Box<RuntimeAgentExecutionCapabilityBinding>>,
+    pub updated_at: Option<String>,
+    pub updated_by_app_id: Option<String>,
+}
+
+impl RuntimeAgentExecutionConfig {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
+        if !self.bindings.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bindings"); }
+        if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
+        if let Some(value) = &self.updated_by_app_id { pairs.push(format!("updated_by_app_id={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["bindings"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.revision = pairs.get("revision").and_then(|value| value.parse().ok());
+        out.updated_at = pairs.get("updated_at").cloned();
+        out.updated_by_app_id = pairs.get("updated_by_app_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RuntimeBaselineActivationConsumerEvidence {
     pub consumer_id: Option<String>,
     pub pack_id: Option<String>,
@@ -28106,6 +28368,35 @@ impl SubscribeAgentEventsRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct SubscribeAgentExecutionReadinessRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+}
+
+impl SubscribeAgentExecutionReadinessRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubscribeAppMessagesRequest {
     pub app_id: Option<String>,
     pub subject_user_id: Option<String>,
@@ -29365,6 +29656,65 @@ impl UploadArtifactResponse {
         }
 
         out.trace_id = pairs.get("trace_id").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpsertAgentExecutionConfigRequest {
+    pub context: Option<Box<AgentRequestContext>>,
+    pub expected_revision: Option<u64>,
+    pub bindings: Vec<Box<RuntimeAgentExecutionCapabilityBinding>>,
+}
+
+impl UpsertAgentExecutionConfigRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.context.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode context"); }
+        if let Some(value) = &self.expected_revision { pairs.push(format!("expected_revision={}", value)); }
+        if !self.bindings.is_empty() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode bindings"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["context", "bindings"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.expected_revision = pairs.get("expected_revision").and_then(|value| value.parse().ok());
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpsertAgentExecutionConfigResponse {
+    pub config: Option<Box<RuntimeAgentExecutionConfig>>,
+}
+
+impl UpsertAgentExecutionConfigResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if self.config.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode config"); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["config"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+        if !pairs.is_empty() {
+            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
+        }
+
+
         out
     }
 }
@@ -31382,6 +31732,12 @@ impl From<Vec<u8>> for AgentEvent {
     }
 }
 
+impl From<Vec<u8>> for AgentExecutionReadinessSnapshot {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for AgentHookEventDetail {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -32553,6 +32909,30 @@ impl From<Vec<u8>> for GetAgentCanonicalMemoryReviewStatusRequest {
 }
 
 impl From<Vec<u8>> for GetAgentCanonicalMemoryReviewStatusResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAgentExecutionConfigRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAgentExecutionConfigResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAgentExecutionReadinessRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for GetAgentExecutionReadinessResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -35090,6 +35470,24 @@ impl From<Vec<u8>> for RevokeWorkspaceBindingResponse {
     }
 }
 
+impl From<Vec<u8>> for RuntimeAgentExecutionCapabilityBinding {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RuntimeAgentExecutionCapabilityReadiness {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for RuntimeAgentExecutionConfig {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for RuntimeBaselineActivationConsumerEvidence {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -35642,6 +36040,12 @@ impl From<Vec<u8>> for SubscribeAgentEventsRequest {
     }
 }
 
+impl From<Vec<u8>> for SubscribeAgentExecutionReadinessRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for SubscribeAppMessagesRequest {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -35877,6 +36281,18 @@ impl From<Vec<u8>> for UploadArtifactRequest {
 }
 
 impl From<Vec<u8>> for UploadArtifactResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for UpsertAgentExecutionConfigRequest {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for UpsertAgentExecutionConfigResponse {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }
@@ -36492,6 +36908,26 @@ where
         Ok(GetAgentCanonicalMemoryReviewStatusResponse::from_transport(&raw))
     }
 
+    pub fn get_agent_execution_config(&self, request: GetAgentExecutionConfigRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentExecutionConfigResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetAgentExecutionConfigResponse::from_transport(&raw))
+    }
+
+    pub fn get_agent_execution_readiness(&self, request: GetAgentExecutionReadinessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentExecutionReadinessResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetAgentExecutionReadinessResponse::from_transport(&raw))
+    }
+
     pub fn get_agent_state(&self, request: GetAgentStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetAgentStateResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/GetAgentState".to_string(),
@@ -36855,6 +37291,19 @@ where
         Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
     }
 
+    pub fn subscribe_agent_execution_readiness(&self, request: SubscribeAgentExecutionReadinessRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, AgentExecutionReadinessSnapshot>, T::Error>
+    where
+        T::Stream: CoreTypedStream,
+    {
+        let inner = self.core.server_stream(CoreStreamRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(RuntimeTypedStream { inner, _response: std::marker::PhantomData })
+    }
+
     pub fn terminate_agent(&self, request: TerminateAgentRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<TerminateAgentResponse, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent".to_string(),
@@ -36873,6 +37322,16 @@ where
             timeout,
         })?;
         Ok(UpdateAgentStateResponse::from_transport(&raw))
+    }
+
+    pub fn upsert_agent_execution_config(&self, request: UpsertAgentExecutionConfigRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpsertAgentExecutionConfigResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(UpsertAgentExecutionConfigResponse::from_transport(&raw))
     }
 
     pub fn upsert_delegated_provider_profile(&self, request: UpsertDelegatedProviderProfileRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UpsertDelegatedProviderProfileResponse, T::Error> {

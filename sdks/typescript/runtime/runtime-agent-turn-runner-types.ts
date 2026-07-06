@@ -45,11 +45,6 @@ export type NimiRuntimeAgentExecutionBinding = {
   readonly targetRef?: NimiRuntimeRouteTargetRef;
 };
 
-export type NimiRuntimeAgentExecutionBindings = Partial<Record<
-  'text.generate' | 'image.generate' | 'audio.synthesize',
-  NimiRuntimeAgentExecutionBinding
->>;
-
 export type NimiRuntimeAgentReasoningRequest = {
   readonly mode?: string;
   readonly traceMode?: string;
@@ -64,7 +59,6 @@ export type NimiRuntimeAgentTurnRequest = RuntimeLocalAgentIdentityInput & {
   readonly worldId?: string;
   readonly maxOutputTokens?: number;
   readonly messages: readonly NimiRuntimeAgentMessage[];
-  readonly executionBindings: NimiRuntimeAgentExecutionBindings;
   readonly executionParams?: Partial<Record<'image.generate' | 'audio.synthesize', JsonObject>>;
   readonly reasoning?: NimiRuntimeAgentReasoningRequest;
   readonly scopedBinding?: ScopedRuntimeBindingAttachment;

@@ -154,6 +154,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
 		"/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
 		"/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
+		"/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
 		"/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
 		"/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
 		"/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",

@@ -73,10 +73,6 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -97,10 +93,6 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "second turn"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if status.Code(err) != codes.FailedPrecondition {
@@ -172,10 +164,6 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -208,7 +196,11 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 		t.Fatalf("expected thread identity drift rejection, got err=%v code=%v", err, status.Code(err))
 	}
 }
-func TestPublicChatSessionRejectsExecutionBindingDrift(t *testing.T) {
+// TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation proves
+// K-AGCORE-147 turn admission truth: every turn binds to the committed
+// execution config at admission and fixes the config_revision into the
+// session snapshot projection; a config mutation applies to the next turn.
+func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -267,10 +259,6 @@ func TestPublicChatSessionRejectsExecutionBindingDrift(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err != nil {
@@ -283,6 +271,34 @@ func TestPublicChatSessionRejectsExecutionBindingDrift(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+
+	firstSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-config-revision-first")
+	firstDetail := publicChatSessionSnapshotDetail(t, firstSnapshot)
+	if got := firstDetail["config_revision"]; got != float64(1) {
+		t.Fatalf("expected first turn to stamp seeded config_revision=1, got=%v", firstDetail)
+	}
+	firstBindings := firstDetail["execution_bindings"].(map[string]any)
+	firstText := firstBindings["text.generate"].(map[string]any)
+	if got := firstText["model_id"]; got != "local/default" {
+		t.Fatalf("expected first turn to bind seeded text model, got=%v", firstText)
+	}
+
+	// Mutate the committed config; the next turn must bind to the new
+	// committed truth and stamp the new revision.
+	if _, err := svc.UpsertAgentExecutionConfig(context.Background(), &runtimev1.UpsertAgentExecutionConfigRequest{
+		Context:          &runtimev1.AgentRequestContext{AppId: "desktop.app"},
+		ExpectedRevision: 1,
+		Bindings: []*runtimev1.RuntimeAgentExecutionCapabilityBinding{
+			{
+				Capability:  executionCapabilityTextGenerate,
+				ModelId:     "local/qwen3-chat",
+				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			},
+		},
+	}); err != nil {
+		t.Fatalf("UpsertAgentExecutionConfig: %v", err)
+	}
+
 	err = svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,
 		FromAppId:     "desktop.app",
@@ -291,20 +307,30 @@ func TestPublicChatSessionRejectsExecutionBindingDrift(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-1",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello again"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "cloud",
-				"model_id": "cloud/gpt-5.4-mini",
-			}},
 		}),
 	})
-	if status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("expected execution binding drift rejection, got err=%v code=%v", err, status.Code(err))
+	if err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(post-mutation turn): %v", err)
+	}
+	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
+	waitForPublicChatAgentIdle(t, svc, "agent-alpha")
+
+	secondSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-config-revision-second")
+	secondDetail := publicChatSessionSnapshotDetail(t, secondSnapshot)
+	if got := secondDetail["config_revision"]; got != float64(2) {
+		t.Fatalf("expected post-mutation turn to stamp config_revision=2, got=%v", secondDetail)
+	}
+	secondBindings := secondDetail["execution_bindings"].(map[string]any)
+	secondText := secondBindings["text.generate"].(map[string]any)
+	if got := secondText["model_id"]; got != "local/qwen3-chat" {
+		t.Fatalf("expected post-mutation turn to bind committed model, got=%v", secondText)
 	}
 }
 
@@ -335,10 +361,6 @@ func TestPublicChatTurnRequestRejectsMissingConversationAnchorID(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err == nil {
@@ -377,10 +399,6 @@ func TestPublicChatTurnRequestRejectsUnknownConversationAnchorID(t *testing.T) {
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
-			"execution_bindings": map[string]any{"text.generate": map[string]any{
-				"route":    "local",
-				"model_id": "local/default",
-			}},
 		}),
 	})
 	if err == nil {

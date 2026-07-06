@@ -84,6 +84,9 @@ function parseNimiRuntimeAgentSessionSnapshot(value?: Struct): NimiRuntimeAgentS
       ? { transcriptMessageCount: optionalNumber(payload.transcript_message_count ?? payload.transcriptMessageCount) }
       : {}),
     ...(transcript ? { transcript } : {}),
+    ...(optionalNumber(payload.config_revision ?? payload.configRevision) !== undefined
+      ? { configRevision: optionalNumber(payload.config_revision ?? payload.configRevision) }
+      : {}),
     ...(asRecord(payload.execution_bindings ?? payload.executionBindings) ? { executionBindings: asRecord(payload.execution_bindings ?? payload.executionBindings) } : {}),
     ...(parseTurnSnapshot(payload.active_turn ?? payload.activeTurn) ? { activeTurn: parseTurnSnapshot(payload.active_turn ?? payload.activeTurn) } : {}),
     ...(parseTurnSnapshot(payload.last_turn ?? payload.lastTurn) ? { lastTurn: parseTurnSnapshot(payload.last_turn ?? payload.lastTurn) } : {}),
@@ -365,6 +368,9 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
         operation: optionalString(detail.operation, payload.operation) || '',
         projectionMessageId: optionalString(detail.projection_message_id, detail.projectionMessageId, payload.projection_message_id, payload.projectionMessageId),
         reasonCode: optionalString(detail.reason_code, detail.reasonCode, payload.reason_code, payload.reasonCode),
+        // K-AGCORE-147 admission-resolution failure class:
+        // image_binding_missing | image_route_unhealthy | image_execution_failed.
+        reason: optionalString(detail.reason, payload.reason),
         message: optionalString(detail.message, payload.message),
       };
     case 'runtime.agent.turn.failed':
