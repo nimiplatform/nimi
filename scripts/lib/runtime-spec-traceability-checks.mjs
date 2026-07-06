@@ -16,7 +16,7 @@ export function collectReferencedRuntimeRuleIds(content, kernelRuleSet) {
     }
   }
 
-  for (const match of content.matchAll(/\b(K-[A-Z]+)-(\d{3})[~鈥?](\d{3})\b/g)) {
+  for (const match of content.matchAll(/\b(K-[A-Z]+)-(\d{3})(?:~|\u2013)(\d{3})\b/g)) {
     const prefix = `${match[1]}-`;
     const start = Number.parseInt(match[2], 10);
     const end = Number.parseInt(match[3], 10);

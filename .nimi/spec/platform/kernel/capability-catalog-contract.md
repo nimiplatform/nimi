@@ -67,7 +67,7 @@
   values; they exist only to acknowledge the runtime-admitted token and to record why it
   has not yet entered the canonical identity set.
 
-## P-CAPCAT-004 鈥?Capability Governance Display Projection
+## P-CAPCAT-004 - Capability Governance Display Projection
 
 - Every active row in `canonical-capability-catalog.yaml` must carry a `governance`
   mapping with non-empty `owner`, `dataMovement`, `retention`, `revocation`, and

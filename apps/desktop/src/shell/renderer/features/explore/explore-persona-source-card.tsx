@@ -11,7 +11,7 @@ import {
 } from './realm-persona-source-materialization';
 
 // Hash an identifier into a stable 12-point curve in [0.3, 1]. This powers the
-// decorative activity sparkline on the persona source card 鈥?we have no time-series
+// decorative activity sparkline on the persona source card - we have no time-series
 // engagement data, so the curve is deterministic per-source rather than
 // synthesized per render (which would flicker) or mocked as uniform fake data.
 function deterministicPulse(seed: string, points = 12): number[] {
@@ -80,7 +80,7 @@ type RealmPersonaPrimaryActionGlyph = ReturnType<typeof describeRealmPersonaPrim
 // Layout: rank kicker + Public pill 路 aurora blob 路 glyph tile + name/role 路
 // Origin meta row 路 footer (sparkline + count + source action). Every
 // color uses fg-*/accent-*/border-* tokens, every font uses the three font
-// tokens. The sparkline is decorative 鈥?see deterministicPulse comment.
+// tokens. The sparkline is decorative - see deterministicPulse comment.
 export function PersonaSourceCard({
   source,
   onPrimaryAction,

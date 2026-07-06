@@ -83,7 +83,7 @@ export function ProfilePanel() {
       try {
         const result = await realmSocialData.loadUserProfile(selectedProfileId!);
         const data: ProfileSource = result;
-        // API may not return isFriend â€?check local contacts
+        // API may not return isFriend - check local contacts
         if (data.isFriend !== true && (realmSocialData.isFriend(selectedProfileId!) || Boolean(getContactFromCache(selectedProfileId!)))) {
           return { ...data, isFriend: true };
         }

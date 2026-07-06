@@ -14,10 +14,10 @@ func TestPeekConfigDrivenThresholds(t *testing.T) {
 
 	// Set a very high VRAM threshold that triggers slowdown
 	s.SetRiskThresholds(RiskThresholds{
-		SlowdownVRAMBytes:        4_000_000_000, // 4 GB 鈥?snap has 3 GB
+		SlowdownVRAMBytes:        4_000_000_000, // 4 GB - snap has 3 GB
 		SlowdownRAMBytes:         1,             // minimal
 		SlowdownDiskBytes:        1,             // minimal
-		PreemptionOccupancyRatio: 0.99,          // very high 鈥?won't trigger
+		PreemptionOccupancyRatio: 0.99,          // very high - won't trigger
 	})
 
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{})
@@ -27,7 +27,7 @@ func TestPeekConfigDrivenThresholds(t *testing.T) {
 
 	// Lower threshold: now it's healthy
 	s.SetRiskThresholds(RiskThresholds{
-		SlowdownVRAMBytes:        2_000_000_000, // 2 GB 鈥?snap has 3 GB, OK
+		SlowdownVRAMBytes:        2_000_000_000, // 2 GB - snap has 3 GB, OK
 		SlowdownRAMBytes:         1,
 		SlowdownDiskBytes:        1,
 		PreemptionOccupancyRatio: 0.99,
@@ -108,7 +108,7 @@ func TestPeekDependencyDenialSkippedWithoutChecker(t *testing.T) {
 		TargetID:     "core:runtime",
 		ProfileID: "some-profile",
 	})
-	// Without checker, profile identity is ignored 鈥?should not deny
+	// Without checker, profile identity is ignored - should not deny
 	if j.State == StateDenied {
 		t.Fatal("should not deny without a dependency checker")
 	}
@@ -119,7 +119,7 @@ func TestPeekDependencyDenialFeasibleContinuesToRiskAssessment(t *testing.T) {
 	s.SetResourceAssessor(func() *ResourceSnapshot { return healthyResourceSnapshot() })
 	s.SetRiskThresholds(defaultRiskThresholds())
 	s.SetDependencyFeasibilityChecker(func(targetID, profileID, capability string) (bool, string) {
-		return true, "" // feasible 鈥?continue to risk assessment
+		return true, "" // feasible - continue to risk assessment
 	})
 
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{
