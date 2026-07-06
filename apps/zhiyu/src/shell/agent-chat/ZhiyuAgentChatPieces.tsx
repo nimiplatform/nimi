@@ -144,6 +144,8 @@ export function ComposerModeTools({
 type RuntimeActionArtifactSummaryModel = {
   readonly actionEventCount: number;
   readonly artifactCount: number;
+  readonly previewState: 'rendered' | 'deferred';
+  readonly previewReason: string;
   readonly eventTypes: readonly string[];
   readonly artifacts: readonly RuntimeArtifactProjection[];
 };
@@ -194,8 +196,8 @@ export function RuntimeActionArtifactSummary({
       data-zhiyu-runtime-action-artifact-summary="true"
       data-zhiyu-runtime-action-count={String(summary.actionEventCount)}
       data-zhiyu-runtime-artifact-count={String(summary.artifactCount)}
-      data-zhiyu-runtime-action-artifact-preview="deferred"
-      data-zhiyu-runtime-action-artifact-preview-reason="zhiyu-runtime-artifact-preview-uri-not-admitted"
+      data-zhiyu-runtime-action-artifact-preview={summary.previewState}
+      data-zhiyu-runtime-action-artifact-preview-reason={summary.previewReason}
       aria-label="Runtime action and artifact summary"
     >
       <div className="zhiyu-home__runtime-action-artifact-head">
@@ -222,7 +224,9 @@ export function RuntimeActionArtifactSummary({
         ))}
       </div>
       <p>
-        Artifact preview bytes are not opened in Zhiyu until a Runtime/SDK preview URI handoff is admitted.
+        {summary.previewState === 'rendered'
+          ? 'Image artifact preview is rendered from the Runtime artifact projection.'
+          : 'Artifact preview bytes are not opened in Zhiyu until a Runtime/SDK preview URI handoff is admitted.'}
       </p>
     </section>
   );
@@ -240,6 +244,10 @@ export function runtimeActionArtifactSummary(
   return {
     actionEventCount: eventTypes.filter((eventType) => eventType !== 'artifact-ready').length,
     artifactCount: Math.max(artifactEventCount, artifacts.length),
+    previewState: artifacts.some((artifact) => isRenderableImageArtifact(artifact)) ? 'rendered' : 'deferred',
+    previewReason: artifacts.some((artifact) => isRenderableImageArtifact(artifact))
+      ? 'runtime-agent-turn-artifact-ready-image-rendered'
+      : 'zhiyu-runtime-artifact-preview-uri-not-admitted',
     eventTypes: [...new Set(eventTypes)],
     artifacts,
   };
@@ -280,6 +288,11 @@ function runtimeArtifactProjection(value: unknown): RuntimeArtifactProjection | 
     projectionMessageId: stringValue(record.projectionMessageId) || null,
     uri: stringValue(record.uri) || null,
   };
+}
+
+function isRenderableImageArtifact(artifact: RuntimeArtifactProjection): boolean {
+  return stringValue(artifact.uri).startsWith('data:image/')
+    || (stringValue(artifact.uri).length > 0 && stringValue(artifact.mimeType).toLowerCase().startsWith('image/'));
 }
 
 function isRuntimeActionArtifactEvent(eventType: string): boolean {

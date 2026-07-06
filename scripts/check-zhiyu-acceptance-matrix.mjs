@@ -137,7 +137,7 @@ for (const row of matrix.decision_acceptance || []) {
   }
 }
 
-const acceptedGateNames = idSet((gates.gates || []).map((row) => row?.gate));
+const acceptedGateNames = idSet((gates.gates || []).map((row) => row?.id));
 const matrixGateRefs = new Set();
 for (const row of matrix.story_acceptance || []) {
   for (const gate of row.gates || []) matrixGateRefs.add(String(gate));

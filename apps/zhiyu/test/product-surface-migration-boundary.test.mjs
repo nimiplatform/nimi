@@ -101,8 +101,8 @@ test('Zhiyu Electron acceptance writes checkpoint-scoped screenshot and runtime 
   assert.match(liveRuntimeAcceptance, /NIMI_ZHIYU_EVIDENCE_CHECKPOINT/);
   assert.match(liveRuntimeAcceptance, /trackPageProblems/);
   assert.match(liveRuntimeAcceptance, /assertNoPageProblems/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-model-unconfigured-desktop\.png/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-model-unconfigured-evidence\.json/);
+  assert.match(liveRuntimeAcceptance, /live-runtime-seeded-default-config-desktop\.png/);
+  assert.match(liveRuntimeAcceptance, /live-runtime-seeded-default-config-evidence\.json/);
   assert.match(liveRuntimeAcceptance, /live-runtime-model-configured-desktop\.png/);
   assert.match(liveRuntimeAcceptance, /live-runtime-model-configured-evidence\.json/);
   assert.match(liveRuntimeAcceptance, /live-runtime-ready-desktop\.png/);

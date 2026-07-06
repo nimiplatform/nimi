@@ -191,8 +191,9 @@ function avatarPresenceFromPresentationProfile(
     backendKind,
     visualReadiness: 'projected',
     voiceReadiness: stringOr(profile.defaultVoiceReference, '') ? 'projected' : 'not_projected',
-    launchAvailable: false,
+    launchAvailable: true,
     manageAvailable: false,
+    launchHandoff: null,
     unsupportedFields: [...UNSUPPORTED_AVATAR_FIELDS],
   };
 }
@@ -234,6 +235,7 @@ function avatarAvailable(
     voiceReadiness: 'not_projected',
     launchAvailable: projection?.launchAvailable === true,
     manageAvailable: projection?.manageAvailable === true,
+    launchHandoff: null,
     unsupportedFields: [...UNSUPPORTED_AVATAR_FIELDS],
   };
 }
@@ -285,6 +287,7 @@ function avatarUnavailable(input: {
     voiceReadiness: 'not_projected',
     launchAvailable: false,
     manageAvailable: false,
+    launchHandoff: null,
     unsupportedFields: [...UNSUPPORTED_AVATAR_FIELDS],
   };
 }

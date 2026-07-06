@@ -2,7 +2,7 @@ version: 1
 table_family: owner_matrix
 owner: zhiyu
 matrix_id: zhiyu_authority_owner_matrix
-entries:
+rows:
   - surface: product_promise
     zhiyu_role: owns_product_surface
     canonical_owner: zhiyu

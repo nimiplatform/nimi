@@ -52,3 +52,21 @@ layout placement, fail-closed reason projection, and diagnostics presentation.
 presentation boundary for Desktop Agent Chat parity. It remains subject to
 post-acceptance SDK/Kit upstream or deletion review and must not become a
 parallel Runtime/SDK/Kit authority surface.
+
+## Z-AUTH-006 Runtime AI Consumption Projection Posture
+
+Zhiyu agent chat is a projection and edit surface of Runtime's own AI
+consumption, not another app that consumes AI through Runtime. The
+distinction is normative:
+
+- Runtime executes agent turns and decides model routing against its
+  committed agent execution config (K-AGCORE-144~150). Zhiyu displays turn
+  event projections, edits the execution config through
+  `runtime.agent.executionConfig.*` with the scopes admitted in
+  `tables/registry-scope-posture.yaml`, and projects readiness tri-state
+  (`ready` / `not_configured` / `unavailable`) with typed reason copy.
+- Zhiyu must not probe, warm, cache, merge, or re-derive execution bindings,
+  route readiness, or capability availability from `AIConfig` overlays,
+  route projections, or app-local state. Readiness truth arrives only as the
+  Runtime execution config readiness projection.
+- Zhiyu must not carry execution bindings on turn requests (K-AGCORE-147).

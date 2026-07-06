@@ -1,33 +1,27 @@
 import {
-  createNimiClientId,
-} from '@nimiplatform/sdk';
-import {
   createRuntimeRouteModelPickerProvider,
   createRuntimeRouteModelPickerProviderCache,
   type RouteModelPickerDataProvider,
 } from '@nimiplatform/kit/features/model-picker/runtime';
 import {
-  NIMI_RUNTIME_ROUTE_DESCRIBE_TIMEOUT_MS,
-  createNimiHostRuntimeRouteAccessSurface,
-  createNimiRuntimeRouteCapabilityRuntimeWithHost,
   createNimiRuntimeRouteOptionsHostDeps,
+  findNimiRuntimeTargetInventoryItem,
   listNimiRuntimeLocalAssetEntries,
   listNimiRuntimeRouteOptionsWithHost,
-  withNimiRuntimeIdempotencyMetadata,
+  normalizeNimiRuntimeRouteTargetRef,
+  type NimiRuntimeAgentExecutionBinding,
   type NimiRuntimeLocalAssetEntry,
   type NimiRuntimeLocalAssetListClient,
   type NimiListRuntimeRouteOptionsInput,
-  type NimiRuntimeRouteCapabilityRuntime,
   type NimiRuntimeRouteOptionsHostRuntime,
   type NimiRuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/runtime';
+import type { NimiAIConfigTargetRef } from '@nimiplatform/sdk/ai';
 import type {
   ModelConfigLocalAssetDescriptor,
   ModelConfigLocalAssetSource,
 } from '@nimiplatform/kit/core/model-config';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
 import {
-  appId,
   getRuntimePlatformProjection,
   type RuntimePlatformReadyProjection,
 } from '../auth/runtime-platform';
@@ -105,50 +99,57 @@ export function createZhiyuModelConfigLocalAssetSource(
   };
 }
 
-export async function createZhiyuRuntimeRouteCapabilityRuntime(): Promise<NimiRuntimeRouteCapabilityRuntime | null> {
-  const projection = await getRuntimePlatformProjection();
-  if (projection.status !== 'ready') {
-    return null;
+// Builds the runtime agent execution config binding for a picker-selected
+// AIConfig target ref. Cloud target refs already carry their execution
+// identity; local target refs are matched against the same route OPTION
+// LISTING the picker consumes (this is selection plumbing, not route truth —
+// the runtime validates and probes the committed binding itself).
+export async function resolveZhiyuExecutionBindingForTargetRef(
+  capability: 'text.generate' | 'image.generate',
+  targetRef: NimiAIConfigTargetRef,
+): Promise<NimiRuntimeAgentExecutionBinding> {
+  if (targetRef.kind === 'profile-slice') {
+    throw Object.assign(new Error(`Profile-slice target refs are not admitted for the ${capability} execution config binding.`), {
+      reasonCode: 'zhiyu-execution-config-target-ref-not-admitted',
+      actionHint: 'select_runtime_route_target',
+      source: 'renderer',
+    });
   }
-  const accountStatus = await projection.accountRuntime.account.getAccountSessionStatus({
-    caller: projection.accountCaller,
-  });
-  const subjectUserId = accountStatus.state === AccountSessionState.AUTHENTICATED
-    ? String(accountStatus.accountProjection?.accountId || '').trim()
+  const normalized = normalizeNimiRuntimeRouteTargetRef(targetRef);
+  if (normalized.kind === 'cloud-connector') {
+    const modelId = normalized.providerModelId.trim();
+    const connectorId = normalized.connectorId.trim();
+    if (!modelId || !connectorId) {
+      throw Object.assign(new Error(`Cloud target ref for ${capability} is missing its execution identity.`), {
+        reasonCode: 'zhiyu-execution-config-cloud-target-incomplete',
+        actionHint: 'select_runtime_route_target',
+        source: 'renderer',
+      });
+    }
+    return {
+      route: 'cloud',
+      modelId,
+      connectorId,
+      targetRef: normalized,
+    };
+  }
+  const snapshot = await loadZhiyuRuntimeRouteOptionsFromProjection({ capability });
+  const item = findNimiRuntimeTargetInventoryItem(snapshot.inventory, normalized);
+  const modelId = item?.evidence.source === 'local-runtime'
+    ? String(item.evidence.resolvedModelId || '').trim()
     : '';
-  const routeOptionsDeps = createNimiRuntimeRouteOptionsHostDeps(projection.client.runtime, {
-    scope: projection.client,
-  });
-  const routeAccess = createNimiHostRuntimeRouteAccessSurface({
-    appId,
-    callerKind: 'first-party-app',
-    surfaceId: 'zhiyu.agent-home.ai-config',
-    callerIdPrefix: 'zhiyu-ai-config',
-    identityMetadataMode: 'host',
-    getRuntime: () => projection.client.runtime,
-  });
-  return createNimiRuntimeRouteCapabilityRuntimeWithHost({
-    routeOptionsTargetId: 'zhiyu.agent-home.route-options',
-    describeTargetId: 'zhiyu.agent-home.route-describe',
-    describeTimeoutMs: NIMI_RUNTIME_ROUTE_DESCRIBE_TIMEOUT_MS,
-    loadRuntimeRouteOptions: (input) => listNimiRuntimeRouteOptionsWithHost(input, routeOptionsDeps),
-    checkHealth: (input) => routeAccess.checkLocalHealth(input),
-    buildDescribeCallOptions: async (input) => withNimiRuntimeIdempotencyMetadata(
-      await routeAccess.buildCallOptions({
-        targetId: input.targetId,
-        timeoutMs: input.timeoutMs,
-        source: input.source,
-        connectorId: input.connectorId,
-        providerEndpoint: input.providerEndpoint,
-      }),
-      createNimiClientId('zhiyu-route-describe'),
-    ),
-    getDescribeHost: () => ({
-      appId,
-      subjectUserId,
-      executeScenario: (request, options) => projection.client.runtime.ai.executeScenario(request, options),
-    }),
-  });
+  if (!modelId) {
+    throw Object.assign(new Error(`Runtime route option listing does not resolve a model id for the selected local ${capability} target.`), {
+      reasonCode: 'zhiyu-execution-config-model-id-unresolved',
+      actionHint: 'reload_runtime_route_options',
+      source: 'runtime',
+    });
+  }
+  return {
+    route: 'local',
+    modelId,
+    targetRef: normalized,
+  };
 }
 
 function projectRuntimeLocalAssetForModelConfig(

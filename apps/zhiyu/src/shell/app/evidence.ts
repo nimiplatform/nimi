@@ -2,6 +2,9 @@ import type {
   RuntimeAgentConversationProjectionState,
 } from '@nimiplatform/kit/features/chat/headless';
 import type {
+  AvatarLaunchHandoffResult,
+} from '@nimiplatform/kit/features/avatar/headless';
+import type {
   NimiRuntimeAgentExecutionBinding,
   NimiRuntimeAgentAutonomyMode,
   NimiRuntimeAgentIdentitySafetyProjection,
@@ -147,6 +150,15 @@ export type ZhiyuCapabilityStudioStatus = {
   readonly audioMimeType: string | null;
   readonly audioPreviewUrl: string | null;
   readonly traceId: string | null;
+};
+
+export type ZhiyuExecutionReadinessState = 'ready' | 'not_configured' | 'unavailable';
+
+export type ZhiyuExecutionCapabilityEvidence = {
+  readonly state: ZhiyuExecutionReadinessState;
+  readonly reasonCode: string;
+  readonly probedAt: string | null;
+  readonly binding: NimiRuntimeAgentExecutionBinding | null;
 };
 
 export type ZhiyuRuntimeAgentChatStatus = {
@@ -372,27 +384,29 @@ export type ZhiyuEvidence = {
     readonly voiceReadiness: 'not_projected' | 'projected';
     readonly launchAvailable: boolean;
     readonly manageAvailable: boolean;
+    readonly launchHandoff: AvatarLaunchHandoffResult | null;
     readonly unsupportedFields: readonly string[];
   };
   readonly capabilityStudio: ZhiyuCapabilityStudioStatus;
   readonly chat: ZhiyuRuntimeAgentChatStatus;
   readonly route: {
     readonly transport: 'electron-ipc';
+    // Send readiness: runtime-projected text.generate readiness === 'ready'.
     readonly ready: boolean;
     readonly capability: 'text.generate';
-    readonly aiConfigScopeOwnerId: string;
-    readonly aiConfigScopeSurfaceId: string;
-    readonly enabledCapabilities: readonly string[];
-    readonly bindingCapabilities: Readonly<Record<string, string>>;
-    readonly targetRefKinds: Readonly<Record<string, string | null>>;
+    // Committed runtime agent execution config projection (K-AGCORE-144~150).
+    readonly configRevision: number | null;
+    readonly readinessRevision: number | null;
+    readonly updatedAt: string | null;
+    readonly updatedByAppId: string | null;
+    readonly capabilities: Readonly<Record<string, ZhiyuExecutionCapabilityEvidence>>;
+    // Committed text.generate binding projection (display evidence only; the
+    // runtime resolves every turn against its own committed config).
+    readonly executionBinding: NimiRuntimeAgentExecutionBinding | null;
     readonly reasonCode: string;
     readonly actionHint: string;
     readonly source: string;
     readonly message: string;
-    readonly selectedTargetRefKind: string | null;
-    readonly resolvedBindingRef: string | null;
-    readonly executionBinding: NimiRuntimeAgentExecutionBinding | null;
-    readonly executionBindings?: Readonly<Record<string, NimiRuntimeAgentExecutionBinding | null>>;
   };
   readonly turn: {
     readonly transport: 'electron-ipc';
@@ -641,6 +655,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       voiceReadiness: 'not_projected',
       launchAvailable: false,
       manageAvailable: false,
+      launchHandoff: null,
       unsupportedFields: [
         'configurationId',
         'displayName',
@@ -702,58 +717,22 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       transport: 'electron-ipc',
       ready: false,
       capability: 'text.generate',
-      aiConfigScopeOwnerId: 'nimi.zhiyu',
-      aiConfigScopeSurfaceId: 'zhiyu-agent-home',
-      enabledCapabilities: [
-        'text.generate',
-        'audio.synthesize',
-        'audio.transcribe',
-        'voice_workflow.voice_clone',
-        'voice_workflow.voice_design',
-        'image.generate',
-        'image.edit',
-        'video.generate',
-        'text.embed',
-      ],
-      bindingCapabilities: {
-        'text.generate': 'text.generate',
-        'audio.synthesize': 'audio.synthesize',
-        'audio.transcribe': 'audio.transcribe',
-        'voice_workflow.voice_clone': 'voice_workflow.voice_clone',
-        'voice_workflow.voice_design': 'voice_workflow.voice_design',
-        'image.generate': 'image.generate',
-        'image.edit': 'image.edit',
-        'video.generate': 'video.generate',
-        'text.embed': 'text.embed',
-      },
-      targetRefKinds: {
-        'text.generate': null,
-        'audio.synthesize': null,
-        'audio.transcribe': null,
-        'voice_workflow.voice_clone': null,
-        'voice_workflow.voice_design': null,
-        'image.generate': null,
-        'image.edit': null,
-        'video.generate': null,
-        'text.embed': null,
-      },
-      reasonCode: 'not-probed',
-      actionHint: 'select_runtime_agent_route',
-      source: 'renderer',
-      message: 'Runtime route projection has not been probed.',
-      selectedTargetRefKind: null,
-      resolvedBindingRef: null,
+      configRevision: null,
+      readinessRevision: null,
+      updatedAt: null,
+      updatedByAppId: null,
+      capabilities: {},
       executionBinding: null,
-      executionBindings: {
-        'text.generate': null,
-        'image.generate': null,
-      },
+      reasonCode: 'not-probed',
+      actionHint: 'fetch_runtime_agent_execution_config',
+      source: 'renderer',
+      message: 'Runtime agent execution config has not been fetched.',
     },
     turn: {
       transport: 'electron-ipc',
       ready: false,
       reasonCode: 'not-probed',
-      actionHint: 'select_runtime_agent_route',
+      actionHint: 'configure_runtime_agent_execution_model',
       source: 'renderer',
       message: 'Runtime turn readiness has not been probed.',
       ownerUserId: null,

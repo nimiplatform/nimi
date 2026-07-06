@@ -1,5 +1,6 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import { Runtime } from '@nimiplatform/sdk/runtime';
+import { resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost } from '../agent-chat/runtime-agent-binding';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electron-runtime-unavailable';
 
 type ZhiyuElectronSdkAcceptanceProbeResult =
@@ -23,6 +24,7 @@ type ZhiyuElectronSdkAcceptanceProbeResult =
 
 type ZhiyuElectronSdkAcceptanceProbe = {
   runtimeReady(): Promise<ZhiyuElectronSdkAcceptanceProbeResult>;
+  renewDelegationScopedBinding(): Promise<ZhiyuElectronSdkAcceptanceProbeResult>;
 };
 
 const ELECTRON_SDK_ACCEPTANCE_QUERY = 'nimiElectronSdkAcceptance';
@@ -55,7 +57,55 @@ export function installZhiyuElectronSdkAcceptanceProbe(): void {
         return serializeSdkAcceptanceError(error);
       }
     },
+    async renewDelegationScopedBinding() {
+      try {
+        const evidence = window.__nimiZhiyuEvidence;
+        const ownerUserId = requiredEvidenceText(evidence?.auth?.accountId, 'auth.accountId');
+        const runtimeSourceRef = requiredEvidenceText(evidence?.source?.runtimeSourceRef, 'source.runtimeSourceRef');
+        const localAgentRef = requiredEvidenceText(evidence?.localAgent?.localAgentRef, 'localAgent.localAgentRef');
+        const conversationAnchorId = requiredEvidenceText(evidence?.conversation?.conversationAnchorId, 'conversation.conversationAnchorId');
+        const decision = await resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost({
+          ownerUserId,
+          runtimeSourceRef,
+          localAgentRef,
+          conversationAnchorId,
+          scopes: [
+            'runtime.agent.delegation.read',
+            'runtime.agent.delegation.write',
+          ],
+          issueRequestId: `acceptance-renew-${Date.now().toString(36)}`,
+          forceRenewal: true,
+        });
+        if (decision.kind !== 'runtime-issued-scoped-binding') {
+          throw Object.assign(new Error('Runtime-issued scoped binding was not returned by renewal probe.'), {
+            reasonCode: 'zhiyu-delegation-scoped-binding-required',
+            actionHint: 'attach_runtime_scoped_delegation_binding',
+            source: 'renderer',
+          });
+        }
+        return {
+          ok: true,
+          transport: 'electron-ipc',
+          status: decision.scopedBinding,
+          reason: 'zhiyu-runtime-agent-scoped-binding-renewed',
+        };
+      } catch (error) {
+        return serializeSdkAcceptanceError(error);
+      }
+    },
   };
+}
+
+function requiredEvidenceText(value: unknown, field: string): string {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (normalized) {
+    return normalized;
+  }
+  throw Object.assign(new Error(`Zhiyu scoped binding renewal acceptance requires ${field}.`), {
+    reasonCode: 'zhiyu-scoped-binding-renewal-evidence-incomplete',
+    actionHint: 'wait_for_runtime_agent_identity_evidence',
+    source: 'renderer',
+  });
 }
 
 function shouldInstallZhiyuElectronSdkAcceptanceProbe(): boolean {

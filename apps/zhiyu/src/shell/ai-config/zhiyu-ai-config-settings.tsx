@@ -28,6 +28,7 @@ import {
   listZhiyuRuntimeModelConfigLocalAssets,
   type ZhiyuModelConfigLocalAssetSourceState,
 } from './zhiyu-runtime-model-provider';
+import type { ZhiyuExecutionConfigCommitState } from './zhiyu-execution-config-commit';
 
 export type ZhiyuAiConfigSettingsProps = {
   readonly scopeRef: NimiAIScopeRef;
@@ -35,6 +36,8 @@ export type ZhiyuAiConfigSettingsProps = {
   readonly providerResolver: (capabilityId: string) => RouteModelPickerDataProvider | null;
   readonly runtimeReady: boolean;
   readonly runtimeDetail: string | null;
+  readonly executionCommitState?: ZhiyuExecutionConfigCommitState;
+  readonly onDismissExecutionCommitState?: () => void;
   readonly initialSection?: CanonicalCapabilitySectionId | null;
   readonly variant?: 'drawer' | 'embedded';
   readonly onClose?: () => void;
@@ -308,6 +311,8 @@ export function ZhiyuAiConfigSettings({
   providerResolver,
   runtimeReady,
   runtimeDetail,
+  executionCommitState,
+  onDismissExecutionCommitState,
   initialSection = null,
   variant = 'drawer',
   onClose,
@@ -376,6 +381,50 @@ export function ZhiyuAiConfigSettings({
     currentOrigin,
   });
 
+  const commitBanner = executionCommitState && executionCommitState.status !== 'idle' ? (
+    <div
+      className="zhiyu-ai-config-execution-commit"
+      role="status"
+      data-zhiyu-execution-commit-state={executionCommitState.status}
+      data-zhiyu-execution-commit-reason={
+        executionCommitState.status === 'conflict' || executionCommitState.status === 'failed'
+          ? executionCommitState.reasonCode
+          : 'none'
+      }
+      data-zhiyu-execution-commit-revision={
+        executionCommitState.status === 'committed'
+          ? String(executionCommitState.revision)
+          : executionCommitState.status === 'conflict'
+            ? String(executionCommitState.committedRevision ?? 'unknown')
+            : 'none'
+      }
+    >
+      <StatusBadge
+        tone={executionCommitState.status === 'committed'
+          ? 'success'
+          : executionCommitState.status === 'committing'
+            ? 'neutral'
+            : executionCommitState.status === 'conflict'
+              ? 'warning'
+              : 'danger'}
+        shape="dot"
+      >
+        {executionCommitStatusLabel(executionCommitState)}
+      </StatusBadge>
+      <span>{executionCommitStatusDetail(executionCommitState)}</span>
+      {executionCommitState.status !== 'committing' && onDismissExecutionCommitState ? (
+        <IconButton
+          aria-label="关闭模型配置提交提示"
+          tone="ghost"
+          size="sm"
+          icon={<X size={14} />}
+          data-zhiyu-execution-commit-dismiss="true"
+          onClick={onDismissExecutionCommitState}
+        />
+      ) : null}
+    </div>
+  ) : null;
+
   const modelHub = (
     <ModelConfigAiModelHub
       surface={surface}
@@ -394,6 +443,7 @@ export function ZhiyuAiConfigSettings({
         data-zhiyu-ai-config-embedded="agent-center"
         data-zhiyu-ai-config-drawer="embedded"
       >
+        {commitBanner}
         {modelHub}
       </div>
     );
@@ -431,12 +481,45 @@ export function ZhiyuAiConfigSettings({
         </header>
         <ScrollArea className="zhiyu-ai-config-drawer__scroll">
           <div className="zhiyu-ai-config-drawer__body">
+            {commitBanner}
             {modelHub}
           </div>
         </ScrollArea>
       </Surface>
     </div>
   );
+}
+
+function executionCommitStatusLabel(state: ZhiyuExecutionConfigCommitState): string {
+  if (state.status === 'committing') {
+    return '正在提交';
+  }
+  if (state.status === 'committed') {
+    return '已提交';
+  }
+  if (state.status === 'conflict') {
+    return '需要重试';
+  }
+  return '提交失败';
+}
+
+function executionCommitStatusDetail(state: ZhiyuExecutionConfigCommitState): string {
+  if (state.status === 'committing') {
+    return '正在把模型选择提交到本地运行服务…';
+  }
+  if (state.status === 'committed') {
+    return `模型配置已提交（版本 ${state.revision}）。`;
+  }
+  if (state.status === 'conflict') {
+    return '模型配置刚被其他会话更新，已重新读取最新配置；请确认后重新选择并再次提交。';
+  }
+  if (state.status === 'failed' && state.reasonCode === 'zhiyu-execution-config-text-binding-required') {
+    return '请先选择文字模型，再配置其他能力。';
+  }
+  if (state.status === 'failed' && state.reasonCode === 'zhiyu-agent-execution-config-auth-required') {
+    return '请先登录本地运行服务账户，再提交模型配置。';
+  }
+  return `模型配置提交失败：${state.status === 'failed' ? state.message : ''}`;
 }
 
 function createZhiyuCapabilityOverrides(): AppModelConfigSurface['capabilityOverrides'] {

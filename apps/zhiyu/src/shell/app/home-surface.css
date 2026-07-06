@@ -246,11 +246,30 @@
   font-size: 16px;
 }
 
+.zhiyu-home__composer-avatar,
 .zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  min-height: 38px;
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  place-items: center;
+  padding: 0;
+  border-color: rgba(226, 232, 240, 0.86);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #334155;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+.zhiyu-home__composer-avatar {
+  background: rgba(218, 246, 235, 0.82);
+  color: #23755f;
+  font-weight: 850;
+}
+
+.zhiyu-agent-chat [data-chat-composer-toolbar-slot="true"] button:disabled {
+  box-shadow: none;
 }
 
 .zhiyu-chat-canvas__stream-footer {
@@ -286,6 +305,114 @@
   color: var(--nimi-text-muted, #64748b);
   font-size: 12px;
   font-weight: 650;
+}
+
+.zhiyu-home__runtime-action-artifact-summary {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(226, 232, 240, 0.76);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.62);
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.zhiyu-home__runtime-action-artifact-head {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.zhiyu-home__runtime-action-artifact-head span {
+  color: #64748b;
+  font-weight: 650;
+}
+
+.zhiyu-home__runtime-action-artifact-head strong {
+  color: #1f2937;
+  font-size: 12px;
+}
+
+.zhiyu-home__runtime-action-artifact-grid {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.zhiyu-home__runtime-action-artifact-grid span {
+  max-width: 100%;
+  padding: 3px 7px;
+  overflow-wrap: anywhere;
+  border-radius: 999px;
+  background: rgba(241, 245, 249, 0.88);
+  color: #475569;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.zhiyu-home__runtime-action-artifact-summary p {
+  margin: 0;
+  color: #64748b;
+  overflow-wrap: anywhere;
+}
+
+.zhiyu-home__chat-failure-notice {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px 14px;
+  border: 1px solid rgba(248, 113, 113, 0.24);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #334155;
+  font-size: 12px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.zhiyu-home__chat-failure-mark {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(254, 226, 226, 0.86);
+  color: #b91c1c;
+}
+
+.zhiyu-home__chat-failure-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.zhiyu-home__chat-failure-copy :where(span, strong, p, small) {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.zhiyu-home__chat-failure-copy span {
+  color: #991b1b;
+  font-weight: 800;
+}
+
+.zhiyu-home__chat-failure-copy strong {
+  color: #1f2937;
+  font-size: 12px;
+}
+
+.zhiyu-home__chat-failure-copy p,
+.zhiyu-home__chat-failure-copy small {
+  color: #64748b;
+  line-height: 1.45;
 }
 
 .zhiyu-agent-center :where(section, .zhiyu-agent-center__gated, .zhiyu-agent-center__projections, .zhiyu-home__gated, .zhiyu-home__diagnostics) {

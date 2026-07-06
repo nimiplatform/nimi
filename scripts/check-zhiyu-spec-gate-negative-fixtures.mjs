@@ -24,7 +24,7 @@ const fixtures = [
     expectedOutput: 'runNimiTextGenerate',
     mutate(root) {
       const rel = path.join(root, 'kernel', 'tables', 'sdk-kit-consumption-surface.yaml');
-      replaceInFile(rel, /  - symbol: runNimiTextGenerate\n    reason: direct_text_generate_bypasses_runtime_agent\n    source_rule: Z-CHAT-003\n/u, '');
+      replaceInFile(rel, /  - kind: forbidden_surface\n    symbol: runNimiTextGenerate\n    reason: direct_text_generate_bypasses_runtime_agent\n    source_rule: Z-CHAT-003\n/u, '');
     },
   },
   {
@@ -44,11 +44,11 @@ const fixtures = [
     },
   },
   {
-    name: 'acceptance gate entry without gate',
-    expectedOutput: 'entries includes fixture_gate',
+    name: 'acceptance gate id missing',
+    expectedOutput: 'gates.id must include test_quarantine',
     mutate(root) {
       const rel = path.join(root, 'kernel', 'tables', 'acceptance-gates.yaml');
-      replaceInFile(rel, '  - test_quarantine\n', '  - test_quarantine\n  - fixture_gate\n');
+      replaceInFile(rel, '  - id: test_quarantine\n', '  - id: fixture_gate\n');
     },
   },
 ];

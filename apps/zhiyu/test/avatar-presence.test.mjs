@@ -80,7 +80,7 @@ test('reads Runtime Agent presentation profile without exposing asset ownership'
   assert.equal(avatar.backendKind, 'live2d');
   assert.equal(avatar.visualReadiness, 'projected');
   assert.equal(avatar.voiceReadiness, 'projected');
-  assert.equal(avatar.launchAvailable, false);
+  assert.equal(avatar.launchAvailable, true);
   assert.equal(avatar.manageAvailable, false);
   const serialized = JSON.stringify(avatar);
   assert.doesNotMatch(serialized, /avatarAssetRef|profile_media_url|cdn\.nimi\.test|voice:\/\/agent-1\/default/);

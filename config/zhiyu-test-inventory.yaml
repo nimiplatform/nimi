@@ -21,11 +21,11 @@ tests:
     may_enter_release_gate: after_upstream_and_zhiyu_refs
     authority_claim: false
     spec_refs: [Z-CHAT-001, Z-CHAT-002, Z-GATE-001]
-  - path: apps/zhiyu/test/ai-config-route-projection.test.mjs
+  - path: apps/zhiyu/test/agent-execution-config.test.mjs
     classification: owner_boundary_guard_candidate
     may_enter_release_gate: after_upstream_and_zhiyu_refs
     authority_claim: false
-    spec_refs: [Z-CONFIG-001, Z-CONFIG-004, Z-GATE-001]
+    spec_refs: [Z-AUTH-006, Z-CHAT-001, Z-GATE-001]
   - path: apps/zhiyu/test/ai-config-local-assets.test.mjs
     classification: owner_boundary_guard_candidate
     may_enter_release_gate: after_upstream_and_zhiyu_refs
@@ -41,6 +41,11 @@ tests:
     may_enter_release_gate: after_upstream_and_zhiyu_refs
     authority_claim: false
     spec_refs: [Z-AV-001, Z-CONFIG-003, Z-GATE-001]
+  - path: apps/zhiyu/test/avatar-launch-handoff.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-AV-001, Z-CHAT-001, Z-GATE-001]
   - path: apps/zhiyu/test/capability-room-state.test.mjs
     classification: legacy_drift_quarantine
     may_enter_release_gate: false
@@ -51,6 +56,11 @@ tests:
     may_enter_release_gate: false
     authority_claim: false
     spec_refs: [Z-CHAT-003, Z-GATE-001]
+  - path: apps/zhiyu/test/chat-turn-apply-guard.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-CHAT-001, Z-CHAT-002, Z-GATE-001]
   - path: apps/zhiyu/test/companion-state.test.mjs
     classification: story_regression_candidate
     may_enter_release_gate: after_spec_ref_and_rewrite
@@ -87,15 +97,29 @@ tests:
     authority_claim: false
     spec_refs: [Z-GATE-001, Z-GATE-003]
   - path: apps/zhiyu/test/electron-live-runtime-acceptance.mjs
-    classification: legacy_drift_quarantine
+    # Rewritten 2026-07 for the runtime agent execution config cutover
+    # (K-AGCORE-144~150): route/readiness evidence and model-config commits
+    # now assert the runtime-owned executionConfig projection. Story-level
+    # e2e; the acceptance-path hard block keeps it out of the release gate.
+    classification: story_regression_candidate
     may_enter_release_gate: false
     authority_claim: false
-    spec_refs: [Z-GATE-001, Z-GATE-003]
+    spec_refs: [Z-CHAT-001, Z-CHAT-005, Z-AUTH-006, Z-GATE-001]
   - path: apps/zhiyu/test/electron-live-runtime-acceptance-helpers.mjs
     classification: owner_boundary_guard_candidate
     may_enter_release_gate: false
     authority_claim: false
     spec_refs: [Z-GATE-001, Z-GATE-005, Z-CHAT-001, Z-CONFIG-005]
+  - path: apps/zhiyu/test/electron-live-runtime-avatar-launch-helpers.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-GATE-001, Z-GATE-005, Z-AV-001, Z-CHAT-001]
+  - path: apps/zhiyu/test/electron-live-runtime-delegation-helpers.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: false
+    authority_claim: false
+    spec_refs: [Z-GATE-001, Z-GATE-005, Z-CHAT-001, Z-CONFIG-005, Z-AUTH-006]
   - path: apps/zhiyu/test/electron-real-local-agent-acceptance.mjs
     classification: story_regression_candidate
     may_enter_release_gate: after_real_runtime_environment_available
@@ -166,6 +190,11 @@ tests:
     may_enter_release_gate: false
     authority_claim: false
     spec_refs: [Z-GATE-001, Z-REL-003]
+  - path: apps/zhiyu/test/execution-config-commit.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-AUTH-006, Z-CONFIG-001, Z-GATE-001]
   - path: apps/zhiyu/test/runtime-agent-binding.test.mjs
     classification: owner_boundary_guard_candidate
     may_enter_release_gate: after_upstream_and_zhiyu_refs
@@ -176,11 +205,21 @@ tests:
     may_enter_release_gate: after_upstream_and_zhiyu_refs
     authority_claim: false
     spec_refs: [Z-CHAT-001, Z-CHAT-002, Z-GATE-001]
+  - path: apps/zhiyu/test/runtime-agent-scoped-binding.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-AUTH-002, Z-CHAT-002, Z-GATE-001]
   - path: apps/zhiyu/test/runtime-auth-migration.test.mjs
     classification: owner_boundary_guard_candidate
     may_enter_release_gate: after_upstream_and_zhiyu_refs
     authority_claim: false
     spec_refs: [Z-AUTH-001, Z-AUTH-004, Z-GATE-001]
+  - path: apps/zhiyu/test/runtime-startup-matrix.test.mjs
+    classification: owner_boundary_guard_candidate
+    may_enter_release_gate: after_upstream_and_zhiyu_refs
+    authority_claim: false
+    spec_refs: [Z-STATE-004, Z-GATE-001]
   - path: apps/zhiyu/test/runtime-status-error-normalization.test.mjs
     classification: diagnostics_regression_candidate
     may_enter_release_gate: after_spec_ref_and_scope_limit

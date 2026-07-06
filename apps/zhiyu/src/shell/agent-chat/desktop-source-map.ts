@@ -10,7 +10,7 @@ export interface ZhiyuDesktopAgentChatSourceMapEntry {
 const surfaceTarget = 'apps/zhiyu/src/shell/agent-chat/ZhiyuAgentChatSurface.tsx';
 const panelTarget = 'apps/zhiyu/src/shell/agent-chat/ZhiyuAgentPanel.tsx';
 const stateTarget = 'apps/zhiyu/src/shell/agent-chat/agent-conversation-state.ts';
-const routeTarget = 'apps/zhiyu/src/shell/agent-chat/agent-route-readiness.ts';
+const routeTarget = 'apps/zhiyu/src/shell/agent-chat/agent-execution-config.ts';
 const turnTarget = 'apps/zhiyu/src/shell/agent-chat/runtime-agent-turn-adapter.ts';
 const anchorBindingTarget = 'apps/zhiyu/src/shell/agent/conversation-anchor-binding-storage.ts';
 
@@ -181,7 +181,7 @@ export const ZHIYU_DESKTOP_AGENT_CHAT_SOURCE_MAP: readonly ZhiyuDesktopAgentChat
     desktopSource: 'apps/desktop/src/shell/renderer/features/chat/conversation-capability.ts',
     zhiyuTarget: routeTarget,
     status: 'adapted',
-    note: 'Capability readiness resolves from Zhiyu AIConfig target refs without provider truth.',
+    note: 'Capability readiness is a pure projection of the runtime agent execution config + readiness (K-AGCORE-144~150).',
   },
   {
     desktopSource: 'apps/desktop/src/shell/renderer/features/chat/conversation-capability-projection.ts',
@@ -193,7 +193,7 @@ export const ZHIYU_DESKTOP_AGENT_CHAT_SOURCE_MAP: readonly ZhiyuDesktopAgentChat
     desktopSource: 'apps/desktop/src/shell/renderer/features/chat/conversation-submit-readiness.ts',
     zhiyuTarget: routeTarget,
     status: 'adapted',
-    note: 'Submit-time route refresh, stale-route fail-closed behavior, and action hints.',
+    note: 'Submit-time execution config + readiness re-read, stale-readiness fail-closed behavior, and action hints.',
   },
   {
     desktopSource: 'apps/desktop/src/shell/renderer/features/chat/chat-shared-settings-panel.tsx',

@@ -7,9 +7,9 @@ export function chatPrimaryBindingLabel(evidence: ZhiyuEvidence): string {
     return '未绑定模型';
   }
   if (binding.route === 'local') {
-    return '本地对话模型已绑定';
+    return '本地对话已就绪';
   }
-  return '模型已绑定';
+  return '对话已就绪';
 }
 
 export function chatReplyChipLabel(evidence: ZhiyuEvidence): string {
@@ -32,10 +32,49 @@ export function chatBlockedHint(evidence: ZhiyuEvidence): string {
   if (!evidence.conversation.ready) {
     return '正在打开会话，请稍候。';
   }
-  if (!evidence.route.executionBinding) {
-    return '请先完成模型配置后再发送。';
+  if (!evidence.route.ready) {
+    return executionReadinessHint(evidence.route);
   }
   return '当前暂时不能发送，请稍后重试。';
+}
+
+// Readiness tri-state product copy for the composer gate. The unavailable
+// reason codes come from the runtime execution readiness projection
+// (.nimi/spec/runtime/kernel/tables/agent-execution-config.yaml).
+export function executionReadinessHint(route: ZhiyuEvidence['route']): string {
+  if (route.reasonCode === 'zhiyu-agent-execution-config-auth-required') {
+    return '请先登录本地运行服务账户。';
+  }
+  if (route.reasonCode === 'zhiyu-agent-execution-config-unavailable') {
+    return '本地运行服务暂时不可用，请稍后重试。';
+  }
+  const text = route.capabilities['text.generate'] ?? null;
+  if (!text || text.state === 'not_configured' || route.reasonCode === 'zhiyu-agent-execution-config-not-configured') {
+    return '请先在伙伴中心完成模型配置。';
+  }
+  if (text.state === 'unavailable') {
+    return executionUnavailableReasonCopy(text.reasonCode);
+  }
+  return '模型配置暂时不可用，请稍后重试。';
+}
+
+function executionUnavailableReasonCopy(reasonCode: string): string {
+  if (reasonCode === 'route_unhealthy') {
+    return '模型通路暂不可用，请检查本地模型服务或云端连接。';
+  }
+  if (reasonCode === 'connector_missing') {
+    return '云端连接器缺失，请重新完成模型配置。';
+  }
+  if (reasonCode === 'model_missing') {
+    return '所选模型不可用，请重新选择模型。';
+  }
+  if (reasonCode === 'target_missing') {
+    return '模型目标缺失，请重新完成模型配置。';
+  }
+  if (reasonCode === 'probe_failed') {
+    return '模型可用性检查失败，请稍后重试。';
+  }
+  return '模型暂时不可用，请稍后重试。';
 }
 
 export function currentPartnerDisplayName(evidence: ZhiyuEvidence): string {

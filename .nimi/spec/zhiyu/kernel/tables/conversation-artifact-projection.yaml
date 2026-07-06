@@ -1,8 +1,18 @@
 version: 1
 table_family: product_record_schema
 owner: zhiyu
-schema_id: zhiyu_conversation_artifact_projection
+record_id: zhiyu_conversation_artifact_projection
+path: .nimi/spec/zhiyu/kernel/tables/conversation-artifact-projection.yaml
+schema_version: 1
 source_rule: Z-CHAT-005
+required_top_level_fields:
+  - allowed_projection_families
+  - artifact_types
+  - forbidden_local_seams
+invariants:
+  - zhiyu_displays_runtime_artifact_projection_only
+  - zhiyu_does_not_call_image_provider_or_runtime_image_generate
+  - zhiyu_does_not_store_artifact_truth
 allowed_projection_families:
   - runtime.agent.turn.artifact_ready
   - runtime.agent.turn.action_started

@@ -135,7 +135,7 @@ function composerReady(evidence: ZhiyuEvidence): boolean {
   }
   return (
     evidence.conversation.ready
-    && Boolean(evidence.route.executionBinding)
+    && evidence.route.ready
     && (evidence.composer.submitState === 'ready' || evidence.composer.submitState === 'accepted')
   );
 }

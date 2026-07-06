@@ -28,6 +28,7 @@ test('zhiyu runtime auth migrates to shared SDK/Kit account gate surfaces', () =
   const runtimeAccountAuthSource = read('src/shell/auth/runtime-account-auth.ts');
   const runtimeLoginSource = read('src/shell/auth/runtime-login-page.tsx');
   const runtimePlatformSource = read('src/shell/auth/runtime-platform.ts');
+  const hostAccountCallerSource = read('src-electron/runtime-account-caller.ts');
   const hostAuthSource = read('src-electron/runtime-auth.ts');
   const liveAcceptanceSource = read('test/electron-live-runtime-acceptance.mjs');
 
@@ -45,11 +46,17 @@ test('zhiyu runtime auth migrates to shared SDK/Kit account gate surfaces', () =
   assert.match(runtimeAccountAuthSource, /getRuntimeAccountCaller/);
   assert.match(runtimePlatformSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
   assert.match(runtimePlatformSource, /deviceId:\s*runtimeAccountDeviceId/);
-  assert.match(hostAuthSource, /deviceId:\s*runtimeAccountDeviceId/);
-  assert.match(hostAuthSource, /const runtimeAccountDeviceId = `\$\{clientIdPrefix\}-local-first-party-device`/);
+  assert.match(hostAuthSource, /createZhiyuElectronRuntimeAccountCaller\(appId\)/);
+  assert.match(hostAccountCallerSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
+  assert.match(hostAccountCallerSource, /deviceId:\s*runtimeAccountDeviceId/);
+  assert.match(hostAccountCallerSource, /const runtimeAccountDeviceId = `\$\{clientIdPrefix\}-local-first-party-device`/);
+  assert.match(hostAuthSource, /'runtime\.agent\.delegation\.read'/);
+  assert.match(hostAuthSource, /'runtime\.agent\.delegation\.write'/);
   assert.match(liveAcceptanceSource, /admitLocalFirstPartyRuntimeAccountCaller/);
   assert.match(liveAcceptanceSource, /appInstanceId:\s*`\$\{zhiyuAppId\}\.local-first-party`/);
   assert.match(liveAcceptanceSource, /deviceId:\s*'nimi-zhiyu-local-first-party-device'/);
+  assert.match(liveAcceptanceSource, /'runtime\.agent\.delegation\.read'/);
+  assert.match(liveAcceptanceSource, /'runtime\.agent\.delegation\.write'/);
 
   for (const source of [authGateSource, runtimeAccountAuthSource, runtimeLoginSource, runtimePlatformSource]) {
     assert.doesNotMatch(source, /getAccessToken|persistAccessToken|loadPersistedAccessToken|localStorage|sessionStorage|indexedDB/);

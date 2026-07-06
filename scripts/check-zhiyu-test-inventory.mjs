@@ -82,8 +82,11 @@ function collectRuleDefinitions() {
 const policy = readYaml(policyRel);
 const inventory = readYaml(inventoryRel);
 const definedRules = collectRuleDefinitions();
+const classificationEntry = (Array.isArray(policy?.entries) ? policy.entries : []).find(
+  (row) => row?.id === 'classification',
+);
 const allowedClassifications = new Set(
-  (policy?.classification || [])
+  (classificationEntry?.semantics || [])
     .map((row) => String(row?.id || '').trim())
     .filter(Boolean),
 );

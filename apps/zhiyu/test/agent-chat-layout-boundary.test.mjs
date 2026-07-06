@@ -94,6 +94,21 @@ test('settings-open chat layout centers conversation tracks', () => {
     /\.zhiyu-chat-canvas__composer\s*\{[\s\S]*?width:\s*100%;[\s\S]*?min-width:\s*0;/,
     'composer container must keep the Kit canonical composer responsive inside the chat canvas',
   );
+  assert.match(
+    css,
+    /\.zhiyu-home__runtime-action-artifact-summary\s*\{[\s\S]*?display:\s*grid;[\s\S]*?gap:\s*8px;/,
+    'Runtime action summaries must be readable compact cards, not unspaced inline text',
+  );
+  assert.match(
+    css,
+    /\.zhiyu-home__runtime-action-artifact-head\s*\{[\s\S]*?display:\s*flex;[\s\S]*?gap:\s*8px;/,
+    'Runtime action summary headings must separate the label from the status',
+  );
+  assert.match(
+    css,
+    /\.zhiyu-home__runtime-action-artifact-grid\s*\{[\s\S]*?display:\s*flex;[\s\S]*?gap:\s*6px;/,
+    'Runtime action summary event chips must wrap with visible spacing',
+  );
 });
 
 function readSource(relativePath) {

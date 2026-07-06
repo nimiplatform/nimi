@@ -1,9 +1,20 @@
 version: 1
 table_family: product_record_schema
 owner: zhiyu
-schema_id: zhiyu_registry_scope_posture
+record_id: zhiyu_registry_scope_posture
+path: .nimi/spec/zhiyu/kernel/tables/registry-scope-posture.yaml
+schema_version: 1
 registry_ref: .nimi/spec/platform/kernel/tables/nimi-app-registry.yaml#nimi.zhiyu
 source_rule: Z-AUTH-003
+required_top_level_fields:
+  - scopes
+  - capability_refs
+  - runtime_turn_authority
+  - runtime_execution_config_authority
+invariants:
+  - platform_registry_scopes_are_not_runtime_turn_authority
+  - execution_config_scopes_only_admit_runtime_config_edit_and_readiness_projection
+  - zhiyu_must_not_recompute_execution_readiness_or_author_per_turn_bindings
 scopes:
   account.session.read:
     allowed_interpretation: account_session_projection_support
@@ -47,4 +58,11 @@ capability_refs:
 runtime_turn_authority:
   source: runtime_scoped_binding
   required_scopes: [runtime.agent.turn.read, runtime.agent.turn.write]
+  forbidden_sources: [platform_registry_permission_scope, account_session, subject_user_id, partner_id]
+runtime_execution_config_authority:
+  source: runtime_scoped_binding
+  source_rule: K-AGCORE-144
+  required_scopes: [runtime.agent.execution_config.read, runtime.agent.execution_config.write]
+  allowed_interpretation: runtime_owned_agent_execution_config_edit_and_readiness_projection
+  forbidden_interpretations: [app_local_route_truth, per_turn_binding_authoring, readiness_recomputation]
   forbidden_sources: [platform_registry_permission_scope, account_session, subject_user_id, partner_id]

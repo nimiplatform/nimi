@@ -112,7 +112,7 @@ export function chatStatusFromSubmitRefreshFailure({
   readonly route: ZhiyuEvidence['route'];
   readonly turn: ZhiyuEvidence['turn'];
 }): ZhiyuRuntimeAgentChatStatus {
-  const routeBlocked = !route.ready || !route.executionBinding;
+  const routeBlocked = !route.ready;
   return {
     transport: 'electron-ipc',
     ready: false,
@@ -121,7 +121,7 @@ export function chatStatusFromSubmitRefreshFailure({
       ? 'zhiyu-submit-route-refresh-stale'
       : 'zhiyu-submit-turn-refresh-blocked',
     actionHint: routeBlocked
-      ? route.actionHint || 'select_runtime_agent_route'
+      ? route.actionHint || 'configure_runtime_agent_execution_model'
       : turn.actionHint || 'resolve_runtime_agent_binding',
     source: routeBlocked ? route.source : turn.source,
     message: routeBlocked

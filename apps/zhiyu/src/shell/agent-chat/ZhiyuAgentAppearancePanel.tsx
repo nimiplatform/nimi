@@ -423,7 +423,12 @@ export function AgentCenterAppearancePanel({
           <p>{avatarStatusMessage(avatarLaunchAction)}</p>
         </div>
         {avatarLaunchAction.state === 'ready' ? (
-          <button type="button" onClick={onAvatarLaunch} disabled={!onAvatarLaunch}>
+          <button
+            type="button"
+            data-zhiyu-avatar-launch-action="launch"
+            onClick={onAvatarLaunch}
+            disabled={!onAvatarLaunch}
+          >
             启动
           </button>
         ) : null}

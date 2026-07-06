@@ -8,7 +8,12 @@ import {
   type NimiElectronRuntimeTrustedCallerMode,
 } from '@nimiplatform/kit/shell/electron/main';
 import { registerZhiyuAgentCenterLocalConfigBridge } from './agent-center-local-config.js';
+import { registerZhiyuAvatarLaunchHandoffBridge } from './avatar-launch-handoff.js';
 import { createZhiyuElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
+import {
+  ZHIYU_RUNTIME_AGENT_SCOPED_BINDING_COMMAND,
+  createZhiyuRuntimeAgentScopedBindingCommandHandler,
+} from './runtime-agent-scoped-binding.js';
 
 const APP_ID = 'nimi.zhiyu';
 
@@ -36,6 +41,12 @@ void app.whenReady().then(async () => {
     isAllowedRendererUrl: isZhiyuRendererUrl,
     mainWindow: () => mainWindow,
   });
+  registerZhiyuAvatarLaunchHandoffBridge({
+    ipcMain,
+    dataRoot: standardDataRoot,
+    runtimeEndpoint,
+    isAllowedRendererUrl: isZhiyuRendererUrl,
+  });
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
     runtimeEndpoint,
@@ -55,6 +66,12 @@ void app.whenReady().then(async () => {
       aiConfigStore: createNimiElectronFileAIConfigStore({
         dataRoot: standardDataRoot,
         storeLabel: 'zhiyu AI Config',
+      }),
+    },
+    commandHandlers: {
+      [ZHIYU_RUNTIME_AGENT_SCOPED_BINDING_COMMAND]: createZhiyuRuntimeAgentScopedBindingCommandHandler({
+        appId: APP_ID,
+        runtimeEndpoint,
       }),
     },
   });

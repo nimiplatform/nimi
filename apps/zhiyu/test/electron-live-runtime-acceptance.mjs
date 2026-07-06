@@ -4,7 +4,29 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { _electron as electron } from 'playwright';
+import {
+  assertAvatarLaunchLiveHandoff,
+  avatarAppId,
+  avatarRuntimeProtectedScopes,
+  importLiveRuntimeAvatarFixtureAsset,
+  seedLiveRuntimeAvatarPresentationProfile,
+} from './electron-live-runtime-avatar-launch-helpers.mjs';
+import {
+  assertPreConfigRuntimeEvidence,
+} from './electron-live-runtime-delegation-helpers.mjs';
+import {
+  assertAdvancedConfigParity,
+  assertAgentCenterHeaderParity,
+  assertAgentCenterKeyboardAccessibility,
+  assertAppearanceConfigParity,
+  assertBehaviorConfigParity,
+  assertCognitionConfigParity,
+  assertDesktopShellTopbarParity,
+  assertLongTextNarrowChineseAndControls,
+  closeAgentCenter,
+} from './electron-live-runtime-agent-center-helpers.mjs';
 import { withRuntimeAgentLiveE2EFixture } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test-helper.ts';
+import { createFixtureRuntimeAgentClient } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
 import {
   createZhiyuLiveRuntimeAcceptanceRendererUrl,
   createZhiyuLiveRuntimeFixtureAcceptanceInitScript,
@@ -15,7 +37,6 @@ import {
   assertNoPageProblems,
   assertProductShellPrimaryView,
   assertUniqueStageScreenshots,
-  captureLiveRuntimeInteractionEvidence,
   captureLiveRuntimeEvidence,
   escapeRegExp,
   resetAcceptanceInputs,
@@ -31,6 +52,10 @@ const zhiyuRuntimeProtectedScopes = [
   'runtime.agent.write',
   'runtime.agent.turn.read',
   'runtime.agent.turn.write',
+  'runtime.agent.delegation.read',
+  'runtime.agent.delegation.write',
+  'runtime.agent.execution_config.read',
+  'runtime.agent.execution_config.write',
   'ai.spend.meter',
 ];
 
@@ -46,6 +71,17 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
         deviceId: 'nimi-zhiyu-local-first-party-device',
         capabilities: zhiyuRuntimeProtectedScopes,
       });
+      await fixture.admitLocalFirstPartyRuntimeAccountCaller({
+        appId: avatarAppId,
+        appInstanceId: `${avatarAppId}.local-first-party`,
+        deviceId: 'nimi-avatar-local-first-party-device',
+        capabilities: avatarRuntimeProtectedScopes,
+      });
+      await seedLiveRuntimeAvatarPresentationProfile(fixture);
+      // Node-side view of the runtime-owned execution config: used to drive
+      // an honest external config mutation (second admitted writer) for the
+      // unavailable-readiness stage. Never used to fake Zhiyu UI state.
+      const runtimeExecutionConfig = createFixtureRuntimeAgentClient(fixture.runtime).executionConfig;
 
       await withTempDir('live-runtime', async (tmpRoot) => {
         const dataRoot = path.join(tmpRoot, 'data');
@@ -91,38 +127,37 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             && globalThis.window.__nimiZhiyuEvidence?.source?.ready === true
             && globalThis.window.__nimiZhiyuEvidence?.localAgent?.ready === true
             && globalThis.window.__nimiZhiyuEvidence?.conversation?.ready === true
-            && globalThis.window.__nimiZhiyuEvidence?.memory?.ready === true,
+            && globalThis.window.__nimiZhiyuEvidence?.memory?.ready === true
+            && globalThis.window.__nimiZhiyuEvidence?.delegation?.ready === true
+            && globalThis.window.__nimiZhiyuEvidence?.delegation?.reasonCode === 'runtime-delegation-control-surface-ready'
+            && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
+            && globalThis.window.__nimiZhiyuEvidence?.turn?.ready === true,
             'pre-config runtime evidence',
           );
 
-          const preConfigEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
-          assert.equal(preConfigEvidence.runtime.reasonCode, 'ready');
-          assert.equal(preConfigEvidence.auth.accountId, fixture.ownerUserId);
-          assert.equal(preConfigEvidence.source.source, 'sdk-fixture');
-          assert.equal(preConfigEvidence.source.runtimeSourceRef, fixture.runtimeSourceRef);
-          assert.equal(preConfigEvidence.localAgent.localAgentRef, fixture.localAgentRef);
-          assert.match(preConfigEvidence.conversation.conversationAnchorId, /^agent_anchor_/);
-          assert.equal(preConfigEvidence.memory.ready, true);
-          assert.match(preConfigEvidence.memory.state, /^(ready|empty)$/);
-          assert.equal(preConfigEvidence.route.reasonCode, 'zhiyu-ai-config-route-selection-required');
-          assert.equal(preConfigEvidence.route.executionBinding, null);
-          assert.deepEqual(preConfigEvidence.route.enabledCapabilities, [
-            'text.generate',
-            'audio.synthesize',
-            'audio.transcribe',
-            'voice_workflow.voice_clone',
-            'voice_workflow.voice_design',
-            'image.generate',
-            'image.edit',
-            'video.generate',
-            'text.embed',
-          ]);
+          const {
+            preConfigEvidence,
+            preConfigScopedBinding,
+            renewedScopedBinding,
+          } = await assertPreConfigRuntimeEvidence(page, fixture, zhiyuAppId);
+          const seededConfigRevision = preConfigEvidence.route.configRevision;
           assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
           await assertPartnerSelectedProductState(page);
+          // K-AGCORE-150: the runtime seeds text.generate=local/default, so a
+          // fresh daemon is send-ready before any Zhiyu model configuration.
+          await page.locator('[data-chat-composer-textarea="true"]').fill('先确认种子默认配置可以直接发送。');
+          await waitForEvidence(page, () =>
+            document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
+            && document.querySelector('[data-chat-composer-textarea="true"]')?.value.length > 0,
+            'seeded default config send-ready composer',
+          );
           await captureLiveRuntimeEvidence(page, 'partnerSelected', pageProblems, {
             preConfigEvidence,
+            preConfigScopedBinding,
+            renewedScopedBinding,
           });
-          await assertModelUnconfiguredProductState(page);
+          await resetAcceptanceInputs(page);
+          await assertSeededDefaultConfigProductState(page, preConfigEvidence);
 
           await page.locator('[data-zhiyu-composer-tool="model"]').click();
           await page.waitForSelector('[data-zhiyu-agent-panel-tab="model"]');
@@ -130,10 +165,13 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await modelConfig.waitFor({ timeout: 15_000 });
           assert.equal(await page.locator('[data-zhiyu-ai-config-drawer="open"]').count(), 0);
           await assertModelConfigEmbeddedProductQuality(page);
-          const modelUnconfiguredEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
-          await captureLiveRuntimeEvidence(page, 'modelUnconfigured', pageProblems, {
-            modelUnconfiguredEvidence,
+          const seededDefaultConfigEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+          await captureLiveRuntimeEvidence(page, 'seededDefaultConfig', pageProblems, {
+            seededDefaultConfigEvidence,
           });
+          // Model tab commits text.generate / image.generate through
+          // runtime.agent.executionConfig.upsert; wait for the committed
+          // banner (revision advance) after each managed pick.
           await modelConfig
             .locator('button')
             .filter({ hasText: /Setup required|Select a model|选择.*模型|需要模型目标|未配置/i })
@@ -143,6 +181,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await picker.waitFor();
           await picker.getByRole('button', { name: /runtime-agent-live-e2e/i }).first().click();
           await picker.waitFor({ state: 'detached', timeout: 15_000 }).catch(() => undefined);
+          const textCommitRevision = await waitForExecutionCommitCommitted(page, seededConfigRevision);
           await selectRuntimeModelForCapability(page, modelConfig, {
             section: 'embed',
             capabilityId: 'text.embed',
@@ -154,15 +193,19 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             modelName: /gpt-image-1\.5/i,
             source: 'cloud',
           });
-          await waitForEvidence(page, () =>
-            globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-route-ready'
-            && Boolean(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding)
-            && globalThis.window.__nimiZhiyuEvidence?.route?.targetRefKinds?.['text.generate'] === 'local-runtime'
-            && globalThis.window.__nimiZhiyuEvidence?.route?.targetRefKinds?.['text.embed'] === 'local-runtime'
-            && globalThis.window.__nimiZhiyuEvidence?.route?.targetRefKinds?.['image.generate'] === 'cloud-connector',
-            'route ready after model picker selections',
+          const imageCommitRevision = await waitForExecutionCommitCommitted(page, textCommitRevision);
+          await waitForEvidence(page, ({ imageCommitRevision }) =>
+            globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
+            && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === imageCommitRevision
+            && /runtime-agent-live-e2e/.test(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding?.modelId || '')
+            && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['image.generate']?.state !== 'not_configured'
+            && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['image.generate']?.binding?.route === 'cloud',
+            'route ready after execution config commits',
+            { imageCommitRevision },
           );
           const modelConfiguredEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+          assert.equal(modelConfiguredEvidence.route.configRevision, imageCommitRevision);
+          assert.equal(modelConfiguredEvidence.route.updatedByAppId, zhiyuAppId);
           await assertModelConfiguredProductState(page);
           await captureLiveRuntimeEvidence(page, 'modelConfigured', pageProblems, {
             modelConfiguredEvidence,
@@ -171,18 +214,24 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
 
           let readyEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
-          assert.equal(readyEvidence.route.reasonCode, 'runtime-route-ready');
-          assert.equal(readyEvidence.route.aiConfigScopeOwnerId, zhiyuAppId);
-          assert.equal(readyEvidence.route.aiConfigScopeSurfaceId, 'zhiyu-agent-home');
-          assert.equal(readyEvidence.route.targetRefKinds['text.generate'], 'local-runtime');
-          assert.equal(readyEvidence.route.targetRefKinds['text.embed'], 'local-runtime');
-          assert.equal(readyEvidence.route.targetRefKinds['image.generate'], 'cloud-connector');
-          assert.equal(readyEvidence.route.targetRefKinds['audio.synthesize'], null);
-          assert.equal(readyEvidence.route.targetRefKinds['audio.transcribe'], null);
-          assert.equal(readyEvidence.route.targetRefKinds['voice_workflow.voice_clone'], null);
-          assert.equal(readyEvidence.route.targetRefKinds['voice_workflow.voice_design'], null);
-          assert.equal(readyEvidence.route.targetRefKinds['image.edit'], null);
-          assert.equal(readyEvidence.route.targetRefKinds['video.generate'], null);
+          assert.equal(readyEvidence.route.ready, true);
+          assert.equal(readyEvidence.route.reasonCode, 'runtime-execution-config-ready');
+          assert.equal(readyEvidence.route.capability, 'text.generate');
+          assert.equal(readyEvidence.route.configRevision, imageCommitRevision);
+          assert.equal(readyEvidence.route.readinessRevision, imageCommitRevision);
+          assert.equal(readyEvidence.route.updatedByAppId, zhiyuAppId);
+          assert.deepEqual(
+            Object.keys(readyEvidence.route.capabilities).sort(),
+            ['image.generate', 'text.generate'],
+            'runtime execution readiness projects exactly the admitted capabilities',
+          );
+          assert.equal(readyEvidence.route.capabilities['text.generate'].state, 'ready');
+          assert.equal(readyEvidence.route.capabilities['text.generate'].binding.route, 'local');
+          assert.match(readyEvidence.route.capabilities['text.generate'].binding.modelId, /runtime-agent-live-e2e/);
+          assert.notEqual(readyEvidence.route.capabilities['image.generate'].state, 'not_configured');
+          assert.equal(readyEvidence.route.capabilities['image.generate'].binding.route, 'cloud');
+          assert.match(readyEvidence.route.capabilities['image.generate'].binding.modelId, /gpt-image/);
+          assert.ok(readyEvidence.route.capabilities['image.generate'].binding.connectorId, 'committed image binding must carry its cloud connector');
           assert.equal(readyEvidence.route.executionBinding.route, 'local');
           assert.match(readyEvidence.route.executionBinding.modelId, /runtime-agent-live-e2e/);
           assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
@@ -201,10 +250,12 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.equal(await page.locator('[data-zhiyu-labeled-chip="conversation"]').count(), 1);
           assert.equal(await page.locator('[data-zhiyu-labeled-chip="route"]').count(), 1);
           assert.equal(await page.locator('[data-zhiyu-labeled-chip="chat"]').count(), 1);
+          const importedAvatarAsset = await importLiveRuntimeAvatarFixtureAsset(page, readyEvidence);
           await assertAgentCenterHeaderParity(page, readyEvidence);
-          await assertAppearanceConfigParity(page);
+          await assertAppearanceConfigParity(page, importedAvatarAsset);
           await captureLiveRuntimeEvidence(page, 'appearanceConfig', pageProblems, {
             readyEvidence,
+            importedAvatarAsset,
           });
           await assertBehaviorConfigParity(page);
           await captureLiveRuntimeEvidence(page, 'behaviorConfig', pageProblems, {
@@ -229,7 +280,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await captureLiveRuntimeEvidence(page, 'ready', pageProblems, {
             readyEvidence,
           });
-          readyEvidence = await assertSubmitTimeStaleRouteFlow(page, pageProblems, readyEvidence);
+          readyEvidence = await assertRouteUnavailableFlow(page, pageProblems, readyEvidence, runtimeExecutionConfig);
 
           await assertStopChatFlow(page, pageProblems, readyEvidence);
 
@@ -268,6 +319,13 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.equal(chatCompletedEvidence.turn.ready, true);
           assert.equal(chatCompletedEvidence.turn.reasonCode, 'runtime-agent-turn-completed');
           assert.equal(chatCompletedEvidence.composer.submitState, 'accepted');
+          // K-AGCORE-147: the turn request carries no execution bindings and
+          // the completed turn must not move the committed config revision.
+          // (Zhiyu chat evidence does not re-project the session snapshot's
+          // config_revision, so config truth is asserted via the route
+          // projection consistency instead of new app code.)
+          assert.equal(chatCompletedEvidence.route.reasonCode, 'runtime-execution-config-ready');
+          assert.equal(chatCompletedEvidence.route.configRevision, readyEvidence.route.configRevision);
           assert.equal(await page.locator('[data-zhiyu-agent-chat-state]').getAttribute('data-zhiyu-agent-chat-state'), 'completed');
           assert.equal(await page.locator('[data-zhiyu-agent-chat-ready]').getAttribute('data-zhiyu-agent-chat-ready'), 'true');
           assert.match(
@@ -306,7 +364,11 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('beat-planned')
             && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('beat-delivery-started')
             && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('artifact-ready')
-            && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('beat-delivered'),
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('beat-delivered')
+            && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) =>
+              message?.kind === 'image'
+              && message?.metadata?.artifactProjection === 'runtime.agent.turn.artifact_ready'
+              && String(message?.metadata?.mediaUrl || '').startsWith('data:image/')),
             'Runtime action artifact evidence',
             {
               conversationAnchorId: readyEvidence.conversation.conversationAnchorId,
@@ -318,10 +380,10 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await actionArtifactSummary.waitFor({ timeout: 15_000 });
           assert.equal(await actionArtifactSummary.getAttribute('data-zhiyu-runtime-action-count'), '3');
           assert.equal(await actionArtifactSummary.getAttribute('data-zhiyu-runtime-artifact-count'), '1');
-          assert.equal(await actionArtifactSummary.getAttribute('data-zhiyu-runtime-action-artifact-preview'), 'deferred');
+          assert.equal(await actionArtifactSummary.getAttribute('data-zhiyu-runtime-action-artifact-preview'), 'rendered');
           assert.equal(
             await actionArtifactSummary.getAttribute('data-zhiyu-runtime-action-artifact-preview-reason'),
-            'zhiyu-runtime-artifact-preview-uri-not-admitted',
+            'runtime-agent-turn-artifact-ready-image-rendered',
           );
           assert.equal(await actionArtifactSummary.locator('[data-zhiyu-runtime-action-artifact-event="beat-planned"]').count(), 1);
           assert.equal(await actionArtifactSummary.locator('[data-zhiyu-runtime-action-artifact-event="artifact-ready"]').count(), 1);
@@ -330,6 +392,15 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             await actionArtifactSummary.locator('[data-zhiyu-runtime-action-artifact-mime]').first().getAttribute('data-zhiyu-runtime-action-artifact-mime'),
             /^image\//,
           );
+          const actionArtifactImageMessage = actionArtifactEvidence.chat.messages.find((message) =>
+            message?.kind === 'image'
+            && message?.metadata?.artifactProjection === 'runtime.agent.turn.artifact_ready'
+          );
+          assert.ok(actionArtifactImageMessage, 'Runtime artifact_ready must project a canonical image message');
+          assert.match(String(actionArtifactImageMessage.metadata?.mediaUrl || ''), /^data:image\//);
+          const renderedArtifactImage = page.locator('[data-zhiyu-region="conversation"] img[src^="data:image/"]').last();
+          await renderedArtifactImage.waitFor({ timeout: 15_000 });
+          assert.match(await renderedArtifactImage.getAttribute('src'), /^data:image\//);
           await captureLiveRuntimeEvidence(page, 'actionArtifact', pageProblems, {
             readyEvidence,
             chatCompletedEvidence,
@@ -380,6 +451,15 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             multiTurnEvidence,
           });
 
+          const avatarLaunchEvidence = await assertAvatarLaunchLiveHandoff(
+            page,
+            fixture,
+            dataRoot,
+            pageProblems,
+            readyEvidence,
+            importedAvatarAsset,
+          );
+
           await app.close();
           appClosed = true;
 
@@ -394,37 +474,64 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             await relaunchedPage.reload({ waitUntil: 'domcontentloaded' });
             await relaunchedPage.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
             await relaunchedPage.waitForSelector('[data-zhiyu-screen="home"]');
-            await waitForEvidence(relaunchedPage, ({ conversationAnchorId, firstOutputText, secondPrompt }) =>
+            await waitForEvidence(relaunchedPage, ({ conversationAnchorId, firstOutputText, secondPrompt, configRevision }) =>
               globalThis.window.__nimiZhiyuEvidence?.conversation?.conversationAnchorId === conversationAnchorId
               && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode === 'runtime-agent-session-snapshot-hydrated'
               && globalThis.window.__nimiZhiyuEvidence?.chat?.conversationAnchorId === conversationAnchorId
               && globalThis.window.__nimiZhiyuEvidence?.chat?.messageCount >= 4
               && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('session-snapshot-hydrated')
               && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === firstOutputText)
-              && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === secondPrompt),
-              'restart hydrated Runtime Agent chat snapshot',
+              && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === secondPrompt)
+              && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
+              && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === configRevision
+              && /runtime-agent-live-e2e/.test(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding?.modelId || '')
+              && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['image.generate']?.binding?.route === 'cloud'
+              && globalThis.window.__nimiZhiyuEvidence?.delegation?.ready === true
+              && globalThis.window.__nimiZhiyuEvidence?.delegation?.reasonCode === 'runtime-delegation-control-surface-ready',
+              'restart hydrated Runtime Agent chat snapshot and route',
               {
                 conversationAnchorId: readyEvidence.conversation.conversationAnchorId,
                 firstOutputText,
                 secondPrompt,
+                configRevision: readyEvidence.route.configRevision,
               },
             );
             const restartHydratedEvidence = await relaunchedPage.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+            const restartScopedBinding = await relaunchedPage.evaluate(() =>
+              globalThis.window.__nimiZhiyuRuntimeAgentBinding?.getScopedBinding?.()
+                ?? globalThis.window.__nimiZhiyuRuntimeAgentBinding?.scopedBinding
+                ?? null,
+            );
             assert.equal(restartHydratedEvidence.conversation.conversationAnchorId, readyEvidence.conversation.conversationAnchorId);
             assert.equal(restartHydratedEvidence.chat.source, 'runtime');
             assert.equal(restartHydratedEvidence.chat.state, 'completed');
             assert.equal(restartHydratedEvidence.chat.ready, true);
             assert.equal(restartHydratedEvidence.chat.messages.some((message) => message?.text === firstOutputText), true);
             assert.equal(restartHydratedEvidence.chat.messages.some((message) => message?.text === secondPrompt), true);
+            assert.equal(restartHydratedEvidence.route.reasonCode, 'runtime-execution-config-ready');
+            // The committed execution config is daemon-owned truth: an app
+            // restart must re-project the same committed revision + bindings.
+            assert.equal(restartHydratedEvidence.route.configRevision, readyEvidence.route.configRevision);
+            assert.equal(restartHydratedEvidence.route.capabilities['text.generate'].state, 'ready');
+            assert.match(restartHydratedEvidence.route.capabilities['text.generate'].binding.modelId, /runtime-agent-live-e2e/);
+            assert.equal(restartHydratedEvidence.route.capabilities['image.generate'].binding.route, 'cloud');
+            assert.ok(restartScopedBinding, 'Relaunched Zhiyu must reacquire a Runtime-issued scoped binding');
+            assert.equal(restartScopedBinding.bindingSource, 'runtime-account-service');
+            assert.equal(restartScopedBinding.runtimeAppId, zhiyuAppId);
+            assert.equal(restartScopedBinding.agentId, fixture.localAgentRef);
+            assert.equal(restartScopedBinding.conversationAnchorId, readyEvidence.conversation.conversationAnchorId);
             const restartedConversationText = await relaunchedPage.locator('[data-zhiyu-region="conversation"]').innerText();
             assert.match(restartedConversationText, /Hello from the Runtime Agent live fixture/);
             assert.equal(restartedConversationText.includes(secondPrompt), true);
+            await assertModelConfiguredProductState(relaunchedPage, { requireModelPanel: false });
             await assertChatCompletedNarrowComposerUsable(relaunchedPage);
             await captureLiveRuntimeEvidence(relaunchedPage, 'chatRestartHydrated', relaunchProblems, {
               readyEvidence,
               chatCompletedEvidence,
               multiTurnEvidence,
+              avatarLaunchEvidence,
               restartHydratedEvidence,
+              restartScopedBinding,
             });
             assertNoPageProblems(relaunchProblems);
           } finally {
@@ -452,6 +559,7 @@ async function launchLiveRuntimeZhiyuApp({ fixture, dataRoot }) {
       NIMI_ZHIYU_ELECTRON_RENDERER_URL: createZhiyuLiveRuntimeAcceptanceRendererUrl(root),
       NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT: fixture.endpoint,
       NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
+      NIMI_ZHIYU_AVATAR_ELECTRON_MAIN_PATH: path.join(root, '..', 'avatar', 'dist-electron', 'main.js'),
     },
   });
 }
@@ -519,7 +627,10 @@ async function assertNoPartnerProductState(page) {
 }
 
 async function assertPartnerSelectedProductState(page) {
-  assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'route-required');
+  // The K-AGCORE-150 seeded execution config (text.generate=local/default)
+  // resolves ready on a fresh daemon, so partner selection lands directly in
+  // the conversational-ready product stage — there is no route-required gate.
+  assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
   assert.equal(await page.locator('[data-zhiyu-primary-action]').count(), 0);
   assert.equal(await page.locator('[data-zhiyu-relationship-rail-state]').getAttribute('data-zhiyu-relationship-rail-state'), 'available');
   assert.equal(await page.locator('[data-zhiyu-region="relationship-rail"]').count(), 1);
@@ -527,13 +638,18 @@ async function assertPartnerSelectedProductState(page) {
   assert.equal(await page.locator('[data-zhiyu-region="agent-panel"]').count(), 0);
   const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
   assert.match(shellText, /开始一段对话|当前伙伴/);
-  assert.match(shellText, /未绑定模型|请先完成模型配置/);
-  assert.match(shellText, /模型|本地对话模型已绑定/);
+  assert.match(shellText, /本地对话已就绪|对话已就绪/);
+  assert.match(shellText, /模型|本地对话模型已绑定|本地对话已就绪/);
   assert.doesNotMatch(shellText, /Runtime Live Source/);
   assertPrimaryWorkspaceHasNoEngineeringCopy(shellText);
 }
 
-async function assertModelUnconfiguredProductState(page) {
+// Replaces the pre-cutover "model unconfigured blocks send" stage: the
+// runtime seeds text.generate=local/default (rev 1) as committed config, so
+// the honest stage is "seeded default config visible" — Zhiyu projects the
+// runtime-owned config it did not author, while the fixture text model still
+// must be committed through the model tab before turns run.
+async function assertSeededDefaultConfigProductState(page, preConfigEvidence) {
   assert.equal(await page.locator('[data-zhiyu-composer-tool="model"]').count(), 1);
   assert.equal(await page.locator('[data-zhiyu-capability-setup-action="configure-model"]').count(), 0, 'primary chat must not expose backstage model setup actions');
   assert.equal(await page.locator('[data-zhiyu-image-studio-setup-action="configure-model"]').count(), 0);
@@ -541,21 +657,33 @@ async function assertModelUnconfiguredProductState(page) {
   assert.equal(await page.locator('[data-zhiyu-capability-studio-run]').count(), 0);
   assert.equal(await page.locator('[data-zhiyu-image-generate-run]').count(), 0);
   const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
-  assert.match(shellText, /未绑定模型|请先完成模型配置/);
   assertPrimaryWorkspaceHasNoEngineeringCopy(shellText);
+  assert.equal(preConfigEvidence.route.ready, true);
+  assert.equal(preConfigEvidence.route.reasonCode, 'runtime-execution-config-ready');
+  assert.equal(preConfigEvidence.route.updatedByAppId, 'runtime');
+  assert.equal(preConfigEvidence.route.executionBinding.route, 'local');
+  assert.equal(preConfigEvidence.route.executionBinding.modelId, 'local/default');
+  assert.equal(preConfigEvidence.route.capabilities['text.generate'].state, 'ready');
+  assert.equal(preConfigEvidence.route.capabilities['image.generate'].state, 'not_configured');
+  assert.equal(preConfigEvidence.route.capabilities['image.generate'].binding, null);
 }
 
-async function assertModelConfiguredProductState(page) {
+async function assertModelConfiguredProductState(page, options = {}) {
   await waitForEvidence(page, () =>
-    globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-route-ready'
+    globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
     && Boolean(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding),
     'model configured product state',
   );
   const evidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
-  assert.equal(evidence.route.targetRefKinds['text.generate'], 'local-runtime');
-  assert.equal(evidence.route.targetRefKinds['text.embed'], 'local-runtime');
-  assert.equal(evidence.route.targetRefKinds['image.generate'], 'cloud-connector');
+  assert.equal(evidence.route.capabilities['text.generate'].state, 'ready');
+  assert.match(evidence.route.capabilities['text.generate'].binding.modelId, /runtime-agent-live-e2e/i);
+  assert.notEqual(evidence.route.capabilities['image.generate'].state, 'not_configured');
+  assert.equal(evidence.route.capabilities['image.generate'].binding.route, 'cloud');
   assert.match(evidence.route.executionBinding.modelId, /runtime-agent-live-e2e/i);
+  if (options.requireModelPanel === false) {
+    await assertVoiceControlsDeferred(page);
+    return;
+  }
   const modelConfig = page.locator('[data-zhiyu-ai-config-embedded="agent-center"]');
   await modelConfig.waitFor({ timeout: 15_000 });
   const modelConfigText = await modelConfig.innerText();
@@ -842,80 +970,180 @@ async function assertStopChatFlow(page, pageProblems, readyEvidence) {
   await page.locator('[data-chat-composer-textarea="true"]').fill('');
 }
 
-async function assertSubmitTimeStaleRouteFlow(page, pageProblems, readyEvidence) {
-  const scopeRef = 'app:nimi.zhiyu:zhiyu-agent-home';
-  const stalePrompt = 'Please verify Zhiyu stale route submit blocking.';
-  const original = await page.evaluate(async ({ scopeRef }) =>
-    globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke('nimi.shell.aiConfig.get', { scopeRef }),
-    { scopeRef },
-  );
-  assert.equal(original.scopeRef, scopeRef);
-  assert.ok(original.config?.capabilities?.targetRefs?.['text.generate'], 'stale-route guard requires an initially configured text route');
+// Waits for the model tab's runtime execution config commit banner to reach
+// "committed" with a revision advanced past `afterRevision`, and returns the
+// committed revision. A conflict/failed banner surfaces in the timeout
+// diagnostics instead of being silently retried.
+async function waitForExecutionCommitCommitted(page, afterRevision) {
+  try {
+    await page.waitForFunction((afterRevision) => {
+      const banner = document.querySelector('[data-zhiyu-execution-commit-state]');
+      if (!banner || banner.getAttribute('data-zhiyu-execution-commit-state') !== 'committed') {
+        return false;
+      }
+      const revision = Number(banner.getAttribute('data-zhiyu-execution-commit-revision'));
+      return Number.isFinite(revision) && revision > afterRevision;
+    }, afterRevision, { timeout: 30_000 });
+  } catch (error) {
+    const banner = await page.evaluate(() => {
+      const element = document.querySelector('[data-zhiyu-execution-commit-state]');
+      return element
+        ? {
+          state: element.getAttribute('data-zhiyu-execution-commit-state'),
+          reason: element.getAttribute('data-zhiyu-execution-commit-reason'),
+          revision: element.getAttribute('data-zhiyu-execution-commit-revision'),
+          text: element.textContent,
+        }
+        : null;
+    }).catch(() => null);
+    throw new Error(`execution config commit did not reach committed past revision ${afterRevision}: ${JSON.stringify(banner)}`, { cause: error });
+  }
+  const revision = Number(await page
+    .locator('[data-zhiyu-execution-commit-state="committed"]')
+    .getAttribute('data-zhiyu-execution-commit-revision'));
+  assert.ok(Number.isFinite(revision) && revision > afterRevision, `committed revision must advance past ${afterRevision}, got ${revision}`);
+  return revision;
+}
 
-  await page.locator('[data-chat-composer-textarea="true"]').fill(stalePrompt);
-  await page.waitForFunction(() =>
+// Replaces the pre-cutover app-local "stale AIConfig" stage: route truth is
+// now the runtime-owned execution config, so the honest blocked state is an
+// external admitted writer committing a text.generate binding the runtime
+// readiness prober reports as unavailable (cloud route without a connector →
+// connector_missing). Zhiyu must project the unavailable readiness fail-closed
+// and gate the composer; the submit-time refresh guard
+// (zhiyu-submit-route-refresh-stale) is exercised best-effort by racing the
+// send click against the readiness subscription refresh.
+async function assertRouteUnavailableFlow(page, pageProblems, readyEvidence, runtimeExecutionConfig) {
+  const blockedPrompt = 'Please verify Zhiyu blocks send on unavailable execution readiness.';
+  const committed = await runtimeExecutionConfig.get();
+  assert.match(committed.bindings['text.generate']?.modelId || '', /runtime-agent-live-e2e/);
+
+  await page.locator('[data-chat-composer-textarea="true"]').fill(blockedPrompt);
+  await waitForEvidence(page, () =>
     document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
     && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false
     && document.querySelector('[data-chat-composer-textarea="true"]')?.value.length > 0,
+    'send-ready composer before external execution config degrade',
   );
-  assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'true');
 
+  let restoredRevision = null;
   try {
-    await page.evaluate(async ({ scopeRef, original }) => {
-      const staleConfig = {
-        ...original.config,
-        capabilities: {
-          ...original.config.capabilities,
-          targetRefs: {},
+    const degraded = await runtimeExecutionConfig.upsert({
+      expectedRevision: committed.revision,
+      bindings: {
+        ...committed.bindings,
+        'text.generate': {
+          route: 'cloud',
+          modelId: 'zhiyu-live-acceptance-degraded-text-model',
         },
-      };
-      await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke('nimi.shell.aiConfig.set', {
-        scopeRef,
-        config: staleConfig,
-      });
-    }, { scopeRef, original });
-    await page.locator('[data-chat-composer-send="true"]').click();
-    await waitForEvidence(page, () =>
-      globalThis.window.__nimiZhiyuEvidence?.route?.ready === false
-      && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'zhiyu-ai-config-route-selection-required'
-      && globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'failed'
-      && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode === 'zhiyu-submit-route-refresh-stale'
-      && globalThis.window.__nimiZhiyuEvidence?.chat?.messageCount === 0
-      && globalThis.window.__nimiZhiyuEvidence?.composer?.submitState === 'failed',
-      'submit-time stale route block evidence',
-    );
-    const staleRouteEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
-    assert.equal(staleRouteEvidence.chat.requestId, null);
-    assert.equal(staleRouteEvidence.chat.eventTypes.length, 0);
-    assert.equal(await page.locator('[data-zhiyu-agent-chat-state]').getAttribute('data-zhiyu-agent-chat-state'), 'failed');
-    const failureNotice = page.locator('[data-zhiyu-agent-chat-failure="true"]').last();
-    await failureNotice.waitFor({ state: 'visible', timeout: 15_000 });
-    assert.equal(await failureNotice.getAttribute('data-zhiyu-agent-chat-failure-reason'), 'zhiyu-submit-route-refresh-stale');
-    assert.match(await failureNotice.innerText(), /zhiyu-submit-route-refresh-stale/);
-    await captureLiveRuntimeEvidence(page, 'staleRoute', pageProblems, {
-      readyEvidence,
-      staleRouteEvidence,
+      },
     });
+    assert.equal(degraded.revision, committed.revision + 1);
+    // Best-effort mid-submit race: if the composer is still enabled the click
+    // drives handleSubmit's config+readiness re-read against the already
+    // degraded config (deterministic block); if the readiness subscription
+    // refresh landed first, the disabled send button makes the click a no-op
+    // and only the steady-state gate is asserted.
+    const midSubmitClicked = await page.evaluate(() => {
+      const send = document.querySelector('[data-chat-composer-send="true"]');
+      if (send instanceof HTMLButtonElement && !send.disabled) {
+        send.click();
+        return true;
+      }
+      return false;
+    });
+    await waitForEvidence(page, ({ degradedRevision }) =>
+      globalThis.window.__nimiZhiyuEvidence?.route?.ready === false
+      && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'zhiyu-agent-execution-readiness-unavailable'
+      && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === degradedRevision
+      && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['text.generate']?.state === 'unavailable',
+      'unavailable execution readiness route evidence',
+      { degradedRevision: degraded.revision },
+    );
+    if (midSubmitClicked) {
+      await waitForEvidence(page, () =>
+        globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'failed'
+        && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode === 'zhiyu-submit-route-refresh-stale'
+        && globalThis.window.__nimiZhiyuEvidence?.composer?.submitState === 'failed',
+        'submit-time execution readiness refresh block evidence',
+      );
+    }
+    const routeUnavailableEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+    assert.equal(routeUnavailableEvidence.route.ready, false);
+    assert.equal(routeUnavailableEvidence.route.reasonCode, 'zhiyu-agent-execution-readiness-unavailable');
+    assert.equal(routeUnavailableEvidence.route.capabilities['text.generate'].state, 'unavailable');
+    assert.equal(routeUnavailableEvidence.route.capabilities['text.generate'].reasonCode, 'connector_missing');
+    assert.equal(routeUnavailableEvidence.route.updatedByAppId, 'nimi.desktop');
+    assert.equal(routeUnavailableEvidence.turn.ready, false);
+    assert.equal(routeUnavailableEvidence.chat.messageCount, 0, 'blocked submit must not enqueue transcript messages');
+    if (midSubmitClicked) {
+      assert.equal(routeUnavailableEvidence.chat.state, 'failed');
+      assert.equal(routeUnavailableEvidence.chat.reasonCode, 'zhiyu-submit-route-refresh-stale');
+      assert.equal(routeUnavailableEvidence.chat.requestId, null);
+      assert.equal(routeUnavailableEvidence.chat.eventTypes.length, 0);
+      assert.equal(await page.locator('[data-zhiyu-agent-chat-state]').getAttribute('data-zhiyu-agent-chat-state'), 'failed');
+      const failureNotice = page.locator('[data-zhiyu-agent-chat-failure="true"]').last();
+      await failureNotice.waitFor({ state: 'visible', timeout: 15_000 });
+      assert.equal(await failureNotice.getAttribute('data-zhiyu-agent-chat-failure-reason'), 'zhiyu-submit-route-refresh-stale');
+      assert.match(await failureNotice.innerText(), /zhiyu-submit-route-refresh-stale/);
+    } else {
+      assert.equal(routeUnavailableEvidence.chat.state, 'idle');
+    }
+    // Composer gate on the unavailable readiness. When the mid-submit guard
+    // fired, the Kit composer already cleared its textarea on send, so the
+    // failed-chat evidence above is the fail-closed proof; otherwise the
+    // draft is still visible and the disabled submit is the route readiness
+    // gate, not the empty-draft gate.
+    if (midSubmitClicked) {
+      assert.equal(
+        await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'),
+        'false',
+      );
+    } else {
+      await waitForEvidence(page, () =>
+        document.querySelector('[data-chat-composer-textarea="true"]')?.value.length > 0
+        && document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'false',
+        'composer gated on unavailable execution readiness',
+      );
+    }
+    assert.equal(
+      await page.locator('[data-zhiyu-route-state]').getAttribute('data-zhiyu-route-state'),
+      'zhiyu-agent-execution-readiness-unavailable',
+    );
+    await captureLiveRuntimeEvidence(page, 'routeUnavailable', pageProblems, {
+      readyEvidence,
+      routeUnavailableEvidence,
+      midSubmitGuardObserved: midSubmitClicked,
+    });
+    const restored = await runtimeExecutionConfig.upsert({
+      expectedRevision: degraded.revision,
+      bindings: committed.bindings,
+    });
+    restoredRevision = restored.revision;
   } finally {
-    await page.evaluate(async ({ scopeRef, original }) =>
-      globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke('nimi.shell.aiConfig.set', {
-        scopeRef,
-        config: original.config,
-      }),
-      { scopeRef, original },
-    ).catch(() => undefined);
+    if (restoredRevision === null) {
+      // Fail-safe restore so a mid-stage assertion failure does not leave the
+      // shared daemon config degraded for unrelated diagnostics.
+      await runtimeExecutionConfig.get()
+        .then((current) => runtimeExecutionConfig.upsert({
+          expectedRevision: current.revision,
+          bindings: committed.bindings,
+        }))
+        .catch(() => undefined);
+    }
   }
 
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
   await page.waitForSelector('[data-zhiyu-screen="home"]');
-  await waitForEvidence(page, ({ conversationAnchorId }) =>
+  await waitForEvidence(page, ({ conversationAnchorId, restoredRevision }) =>
     globalThis.window.__nimiZhiyuEvidence?.conversation?.conversationAnchorId === conversationAnchorId
-    && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-route-ready'
-    && Boolean(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding)
+    && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
+    && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === restoredRevision
+    && /runtime-agent-live-e2e/.test(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding?.modelId || '')
     && globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'idle',
-    'ready evidence after restoring stale route config',
-    { conversationAnchorId: readyEvidence.conversation.conversationAnchorId },
+    'ready evidence after restoring the committed execution config',
+    { conversationAnchorId: readyEvidence.conversation.conversationAnchorId, restoredRevision },
   );
   await resetAcceptanceInputs(page);
   return await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
@@ -988,336 +1216,6 @@ async function assertMidStreamFailureFlow(page, pageProblems, readyEvidence) {
     failedEvidence,
   });
   await page.locator('[data-chat-composer-textarea="true"]').fill('');
-}
-
-async function assertAgentCenterHeaderParity(page, evidence) {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  const header = page.locator('[data-zhiyu-agent-center-header="true"]').first();
-  await header.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await header.locator('[data-zhiyu-agent-center-eyebrow]').innerText(), 'AGENT CENTER');
-  const localAgentRef = evidence.localAgent.localAgentRef;
-  assert.ok(localAgentRef, 'ready evidence must include a Runtime LocalAgent ref');
-  const refLine = header.locator('[data-zhiyu-agent-center-local-agent-ref]').first();
-  await refLine.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await refLine.getAttribute('title'), localAgentRef);
-  assert.equal(await refLine.innerText(), localAgentRef);
-  const currentAgent = evidence.inventory.localAgents.find((agent) => agent.localAgentRef === localAgentRef);
-  if (currentAgent?.sourceKind === 'worldCharacter') {
-    const chip = header.locator('[data-zhiyu-agent-center-world-chip]').first();
-    await chip.waitFor({ state: 'visible', timeout: 15_000 });
-    assert.match(await chip.innerText(), /世界|World|唐代/);
-  }
-}
-
-async function closeAgentCenter(page) {
-  const closeButton = page.locator('[data-zhiyu-agent-panel-close="true"]').first();
-  if (await closeButton.count() === 0) {
-    await page.locator('[data-zhiyu-side-panel-state="closed"]').waitFor({ state: 'attached', timeout: 15_000 });
-    return;
-  }
-  await closeButton.click();
-  await page.locator('[data-zhiyu-region="agent-panel"]').waitFor({ state: 'detached', timeout: 15_000 });
-  assert.equal(
-    await page.locator('[data-zhiyu-side-panel-state]').getAttribute('data-zhiyu-side-panel-state'),
-    'closed',
-    'Agent Center must collapse back to the closed primary chat layout',
-  );
-}
-
-async function assertAppearanceConfigParity(page) {
-  await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
-  await page.locator('[data-zhiyu-agent-panel-tab="overview"]').waitFor({ timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-panel-tab="overview"] [data-zhiyu-panel-row="形象"]').click();
-  await page.locator('[data-zhiyu-agent-panel-tab="appearance"]').waitFor({ timeout: 15_000 });
-  const panel = page.locator('[data-zhiyu-agent-appearance-panel="true"]');
-  await panel.waitFor({ timeout: 15_000 });
-  const layout = await page.evaluate(() => {
-    const sideSheet = document.querySelector('[data-zhiyu-region="agent-panel"]');
-    const tabButtons = Array.from(document.querySelectorAll('[data-zhiyu-agent-center-tab-button]'));
-    const activeTab = document.querySelector('[data-zhiyu-agent-center-tab-button="appearance"]');
-    const inactiveTab = document.querySelector('[data-zhiyu-agent-center-tab-button="overview"]');
-    const presenceRail = document.querySelector('[data-zhiyu-region="presence"]');
-    const relationshipRail = document.querySelector('[data-zhiyu-region="relationship-rail"]');
-    const appearancePanel = document.querySelector('[data-zhiyu-agent-appearance-panel="true"]');
-    const sideRect = sideSheet?.getBoundingClientRect();
-    const activeRect = activeTab?.getBoundingClientRect();
-    const inactiveRect = inactiveTab?.getBoundingClientRect();
-    const presenceRect = presenceRail?.getBoundingClientRect();
-    const railRect = relationshipRail?.getBoundingClientRect();
-    const appearanceRect = appearancePanel?.getBoundingClientRect();
-    return {
-      sideWidth: sideRect?.width ?? 0,
-      sideLeft: sideRect?.left ?? 0,
-      sideRight: sideRect?.right ?? 0,
-      presenceLeft: presenceRect?.left ?? 0,
-      presenceRight: presenceRect?.right ?? 0,
-      tabCount: tabButtons.length,
-      activeTabAria: activeTab?.getAttribute('aria-current') ?? null,
-      activeTabWidth: activeRect?.width ?? 0,
-      inactiveTabWidth: inactiveRect?.width ?? 0,
-      contactsRailVisible: Boolean(railRect && railRect.width > 0 && railRect.height > 0),
-      contactsRailLeft: railRect?.left ?? 0,
-      contactsRailRight: railRect?.right ?? 0,
-      appearanceTop: appearanceRect?.top ?? 0,
-      appearanceBottom: appearanceRect?.bottom ?? 0,
-      viewportHeight: globalThis.innerHeight,
-    };
-  });
-  assert.equal(layout.tabCount, 6, `Agent Center must expose the six Desktop tabs: ${JSON.stringify(layout)}`);
-  assert.equal(layout.activeTabAria, 'page', `Appearance tab must be the active Desktop section: ${JSON.stringify(layout)}`);
-  assert.ok(layout.activeTabWidth > layout.inactiveTabWidth, `active Appearance tab must expand beyond icon-only tabs: ${JSON.stringify(layout)}`);
-  assert.ok(layout.sideWidth >= 440, `Agent Center side sheet is too narrow for Desktop parity: ${JSON.stringify(layout)}`);
-  assert.equal(layout.contactsRailVisible, true, `Desktop contacts rail must remain visible with Appearance open: ${JSON.stringify(layout)}`);
-  assert.ok(layout.contactsRailLeft >= layout.presenceLeft - 2 && layout.contactsRailRight <= layout.presenceRight + 2, `contacts rail must stay inside the left presence rail: ${JSON.stringify(layout)}`);
-  assert.ok(layout.presenceRight <= layout.sideLeft - 2, `left contacts rail must not sit to the right of the Agent Center: ${JSON.stringify(layout)}`);
-  assert.ok(layout.appearanceTop >= 0 && layout.appearanceTop < layout.viewportHeight, `Appearance panel must be visible in the viewport: ${JSON.stringify(layout)}`);
-
-  const panelText = await panel.innerText();
-  for (const label of ['Avatar 设置', '导入来源', '证据', 'Live2D 工作台', '背景', '动效', '高级诊断']) {
-    assert.match(panelText, new RegExp(label), `Appearance panel must include Desktop ${label} structure`);
-  }
-
-  for (const action of ['live2d', 'vrm']) {
-    const control = panel.locator(`[data-zhiyu-avatar-import-action="${action}"]`).first();
-    await control.waitFor({ timeout: 15_000 });
-    assert.equal(await control.getAttribute('data-zhiyu-avatar-import-state'), 'available');
-    assert.equal(await control.isDisabled(), false, `${action} import control must use Zhiyu Electron local config bridge`);
-  }
-  for (const action of ['live2d-adapter', 'clear']) {
-    const control = panel.locator(`[data-zhiyu-avatar-import-action="${action}"]`).first();
-    await control.waitFor({ timeout: 15_000 });
-    assert.equal(await control.getAttribute('data-zhiyu-avatar-import-state'), 'blocked');
-    assert.ok(await control.getAttribute('data-zhiyu-avatar-import-reason'), `${action} blocked import control must expose a concrete reason`);
-    assert.equal(await control.isDisabled(), true, `${action} import control must stay blocked until an Avatar asset is selected`);
-  }
-
-  await panel.locator('[data-zhiyu-avatar-evidence="true"]').waitFor({ timeout: 15_000 });
-  assert.equal(await panel.locator('[data-zhiyu-avatar-evidence-row]').count(), 4);
-  await panel.locator('[data-zhiyu-live2d-workbench="true"]').waitFor({ timeout: 15_000 });
-  assert.equal(await panel.locator('[data-zhiyu-live2d-review-item]').count(), 5);
-  assert.equal(await panel.locator('[data-zhiyu-live2d-review-item="adapter_manifest"]').count(), 1);
-  await panel.locator('[data-zhiyu-avatar-launch-card]').waitFor({ timeout: 15_000 });
-  await panel.locator('[data-zhiyu-agent-background-card="electron-local-config"]').waitFor({ timeout: 15_000 });
-  assert.equal(await panel.locator('[data-zhiyu-background-import-action]').count(), 2);
-  const backgroundImport = panel.locator('[data-zhiyu-background-import-action="import"]').first();
-  assert.equal(await backgroundImport.getAttribute('data-zhiyu-background-import-state'), 'available');
-  assert.equal(await backgroundImport.isDisabled(), false);
-  const backgroundClear = panel.locator('[data-zhiyu-background-import-action="clear"]').first();
-  assert.equal(await backgroundClear.getAttribute('data-zhiyu-background-import-state'), 'blocked');
-  assert.ok(await backgroundClear.getAttribute('data-zhiyu-background-import-reason'), 'clear background control must expose a concrete blocked reason');
-  assert.equal(await backgroundClear.isDisabled(), true);
-  await panel.locator('[data-zhiyu-agent-motion-card="read-only"]').waitFor({ timeout: 15_000 });
-  assert.equal(await panel.locator('[data-zhiyu-avatar-policy-row]').count(), 4);
-  assert.equal(await panel.locator('[data-zhiyu-avatar-debug-shortcut]').count(), 7);
-  await panel.locator('[data-zhiyu-avatar-advanced-diagnostics="deferred"]').waitFor({ timeout: 15_000 });
-}
-
-async function assertBehaviorConfigParity(page) {
-  await page.locator('[data-zhiyu-agent-center-tab-button="behavior"]').click();
-  await page.locator('[data-zhiyu-agent-panel-tab="behavior"]').waitFor({ timeout: 15_000 });
-  const panel = page.locator('[data-zhiyu-agent-behavior-panel="true"]');
-  await panel.waitFor({ timeout: 15_000 });
-
-  const panelText = await panel.innerText();
-  assert.match(panelText, /聊天行为/);
-  assert.match(panelText, /行为模式/);
-  assert.match(panelText, /主动沟通/);
-  assert.match(panelText, /Avatar/);
-
-  assert.equal(await panel.locator('[data-zhiyu-agent-behavior-mode-option]').count(), 4);
-  assert.equal(await panel.locator('[data-zhiyu-agent-behavior-mode-option][data-zhiyu-agent-behavior-mode-selected="true"]').count(), 1);
-  assert.equal(await panel.locator('[data-zhiyu-agent-behavior-control]').count(), 3);
-  const disabledControls = await panel.locator('[data-zhiyu-agent-behavior-control-disabled="true"]').evaluateAll((buttons) =>
-    buttons.every((button) => button instanceof HTMLButtonElement && button.disabled),
-  );
-  assert.equal(disabledControls, true, 'behavior controls must fail closed until a Runtime/SDK mutation surface is admitted');
-  await panel.locator('[data-zhiyu-agent-behavior-service="runtime-managed"]').waitFor({ timeout: 15_000 });
-}
-
-async function assertCognitionConfigParity(page) {
-  await page.locator('[data-zhiyu-agent-center-tab-button="cognition"]').click();
-  await page.locator('[data-zhiyu-agent-panel-tab="cognition"]').waitFor({ timeout: 15_000 });
-  const panel = page.locator('[data-zhiyu-agent-cognition-panel="true"]');
-  await panel.waitFor({ timeout: 15_000 });
-
-  const panelText = await panel.innerText();
-  assert.match(panelText, /来源详情/);
-  assert.match(panelText, /认知状态/);
-  assert.match(panelText, /Memory/);
-  await panel.locator('[data-zhiyu-agent-cognition-source="true"]').waitFor({ timeout: 15_000 });
-  await panel.locator('[data-zhiyu-agent-cognition-status="true"]').waitFor({ timeout: 15_000 });
-  await panel.locator('[data-zhiyu-agent-cognition-projections="true"]').waitFor({ timeout: 15_000 });
-  assert.equal(await page.locator('[data-zhiyu-memory-observatory]').count(), 1);
-}
-
-async function assertAdvancedConfigParity(page) {
-  await page.locator('[data-zhiyu-agent-center-tab-button="advanced"]').click();
-  await page.locator('[data-zhiyu-agent-panel-tab="advanced"]').waitFor({ timeout: 15_000 });
-  const panel = page.locator('[data-zhiyu-agent-advanced-panel="true"]');
-  await panel.waitFor({ timeout: 15_000 });
-
-  const panelText = await panel.innerText();
-  assert.match(panelText, /诊断/);
-  assert.match(panelText, /Runtime|SDK/);
-  await panel.locator('[data-zhiyu-agent-advanced-warning="true"]').waitFor({ timeout: 15_000 });
-  await panel.locator('[data-zhiyu-agent-advanced-technical-surfaces="true"]').waitFor({ timeout: 15_000 });
-  await panel.locator('[data-zhiyu-diagnostic-mode]').waitFor({ timeout: 15_000 });
-}
-
-async function assertAgentCenterKeyboardAccessibility(page) {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  const tabs = [
-    ['overview', '概览', '[data-zhiyu-memory-observatory]'],
-    ['appearance', '外观', '[data-zhiyu-agent-appearance-panel="true"]'],
-    ['model', '模型', '[data-zhiyu-agent-panel-tab="model"]'],
-    ['cognition', '认知', '[data-zhiyu-agent-cognition-panel="true"]'],
-  ];
-
-  for (const [tab, name, targetSelector] of tabs) {
-    const button = page.locator(`[data-zhiyu-agent-center-tab-button="${tab}"]`).first();
-    await button.waitFor({ state: 'visible', timeout: 15_000 });
-    assert.equal((await button.innerText()).includes(name), true, `${name} tab must have readable accessible name source`);
-    await button.focus();
-    assert.equal(
-      await button.evaluate((element) => element === globalThis.document.activeElement),
-      true,
-      `${name} tab must be keyboard focusable`,
-    );
-    await page.keyboard.press('Enter');
-    await page.locator(targetSelector).first().waitFor({ state: 'visible', timeout: 15_000 });
-    assert.equal(
-      await button.getAttribute('aria-current'),
-      'page',
-      `${name} tab must expose active page semantics after keyboard activation`,
-    );
-  }
-
-  const composer = page.getByRole('textbox', { name: /和这个伙伴聊点什么/ }).first();
-  await composer.waitFor({ state: 'visible', timeout: 15_000 });
-  await composer.focus();
-  assert.equal(
-    await composer.evaluate((element) => element === globalThis.document.activeElement),
-    true,
-    'composer textarea must be keyboard focusable by accessible textbox role/name',
-  );
-  assert.equal(await composer.isEditable(), true);
-
-  const sendButton = page.getByRole('button', { name: /Send|发送/ }).first();
-  await sendButton.waitFor({ state: 'visible', timeout: 15_000 });
-  await composer.fill('键盘可达性检查');
-  await page.waitForFunction(() => document.querySelector('[data-chat-composer-send="true"]')?.disabled === false);
-  await sendButton.focus();
-  assert.equal(
-    await sendButton.evaluate((element) => element === globalThis.document.activeElement),
-    true,
-    'send button must be keyboard focusable by accessible button role/name',
-  );
-  await composer.fill('');
-
-  const voiceCapture = page.getByRole('button', { name: '语音输入暂未接入' }).first();
-  await voiceCapture.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await voiceCapture.isDisabled(), true);
-  const handsFree = page.getByRole('button', { name: '语音模式暂未接入' }).first();
-  await handsFree.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await handsFree.isDisabled(), true);
-
-  await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
-  await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
-}
-
-async function assertDesktopShellTopbarParity(page, pageProblems) {
-  await page.setViewportSize({ width: 1920, height: 1080 });
-  const viewport = page.viewportSize();
-  assert.ok(viewport, 'viewport must be available for topbar clipping checks');
-  assert.equal(await page.locator('[data-zhiyu-topbar-chrome="true"]').count(), 0, 'Zhiyu must not render migrated Desktop topbar chrome');
-  assert.equal(await page.locator('[data-zhiyu-topbar-notifications="true"]').count(), 0, 'Zhiyu must not render the removed notification chrome');
-  assert.equal(await page.locator('[data-zhiyu-topbar-account="true"]').count(), 0, 'Zhiyu must not render the removed account chrome');
-  assert.equal(await page.locator('[data-zhiyu-primary-action]').count(), 0, 'Zhiyu must not render the removed add-partner action chrome');
-  const railSettings = page.locator('[data-zhiyu-settings-entry="presence-rail"]').first();
-  await railSettings.waitFor({ state: 'visible', timeout: 15_000 });
-  await assertControlInsideViewport(railSettings, viewport, 'Desktop rail settings action');
-  await railSettings.click();
-  await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-center-tab-button="advanced"][aria-current="page"]').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-panel-tab="advanced"]').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-center-capability-probe="open"]').waitFor({ state: 'visible', timeout: 15_000 });
-  await assertOpenAgentPanelChatTrackCentering(page);
-  assert.equal(
-    await page.locator('[data-zhiyu-settings-panel="right"]').count(),
-    0,
-    'Desktop rail settings action must route to the merged Agent Center advanced tab, not a second settings panel',
-  );
-  await captureLiveRuntimeInteractionEvidence(page, 'rail-settings-advanced', pageProblems, {
-    route: 'presence-rail-settings',
-  });
-  await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
-  await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
-  await page.locator('[data-zhiyu-composer-tool="agent"]').click();
-  await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
-  await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
-  await page.setViewportSize({ width: 1280, height: 900 });
-}
-
-async function assertControlInsideViewport(locator, viewport, label) {
-  const box = await locator.boundingBox();
-  assert.ok(box, `${label} must have a rendered bounding box`);
-  assert.ok(box.x >= 0, `${label} is clipped on the left: ${JSON.stringify(box)}`);
-  assert.ok(box.y >= 0, `${label} is clipped on the top: ${JSON.stringify(box)}`);
-  assert.ok(box.x + box.width <= viewport.width, `${label} is clipped on the right: ${JSON.stringify({ box, viewport })}`);
-  assert.ok(box.y + box.height <= viewport.height, `${label} is clipped on the bottom: ${JSON.stringify({ box, viewport })}`);
-}
-
-async function assertOpenAgentPanelChatTrackCentering(page) {
-  const conversation = await page.locator('[data-zhiyu-region="conversation"]').first().boundingBox();
-  const composer = await page.locator('[data-zhiyu-region="conversation"] [data-canonical-composer-width]').first().boundingBox();
-  const transcript = await page.locator('[data-zhiyu-region="conversation"] [data-canonical-transcript-width]').first().boundingBox();
-  assert.ok(conversation, 'open Agent Center conversation track must be visible');
-  assert.ok(composer, 'open Agent Center composer width track must be visible');
-  assert.ok(transcript, 'open Agent Center transcript width track must be visible');
-
-  const conversationCenter = conversation.x + conversation.width / 2;
-  for (const [label, box] of [
-    ['composer', composer],
-    ['transcript', transcript],
-  ]) {
-    const delta = Math.abs((box.x + box.width / 2) - conversationCenter);
-    assert.ok(
-      delta <= 32,
-      `open Agent Center ${label} is not centered in the conversation track: ${JSON.stringify({ delta, box, conversation })}`,
-    );
-  }
-}
-
-async function assertLongTextNarrowChineseAndControls(page) {
-  await page.setViewportSize({ width: 390, height: 900 });
-  const shell = page.locator('[data-zhiyu-product-shell="workspace"]');
-  await shell.waitFor({ timeout: 15_000 });
-  const shellText = await shell.innerText();
-  assert.match(shellText, /开始一段对话|当前伙伴|选择本地伙伴/);
-  assert.match(shellText, /模型|本地对话模型已绑定/);
-  assert.doesNotMatch(shellText, /文字能力|图片创作|本地伙伴工作台/);
-  assert.doesNotMatch(shellText, /缁囩窘|缂佸洨|绐|�/);
-
-  const longChineseText = '这是一段用于窄屏验收的长中文输入，包含连续描述、标点和产品语义，目标是确认输入框不会溢出，按钮仍可点击，布局不会互相遮挡。'.repeat(2);
-  await page.locator('[data-chat-composer-textarea="true"]').fill(longChineseText);
-
-  assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'true');
-
-  const controls = [
-    page.locator('[data-zhiyu-composer-tool="model"]'),
-    page.locator('[data-chat-composer-send="true"]'),
-    page.locator('[data-zhiyu-settings-entry="presence-rail"]'),
-  ];
-  for (const control of controls) {
-    const box = await control.first().boundingBox();
-    assert.ok(box && box.width >= 34 && box.height >= 30, `control is not usable on narrow viewport: ${JSON.stringify(box)}`);
-  }
-
-  const horizontalOverflow = await page.evaluate(() =>
-    globalThis.document.documentElement.scrollWidth - globalThis.document.documentElement.clientWidth,
-  );
-  assert.ok(horizontalOverflow <= 2, `narrow layout overflows horizontally by ${horizontalOverflow}px`);
-  await page.setViewportSize({ width: 1280, height: 900 });
 }
 
 async function runCapabilityStudio(page, pageProblems, input) {

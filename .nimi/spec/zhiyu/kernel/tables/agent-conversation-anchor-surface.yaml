@@ -2,7 +2,7 @@ version: 1
 table_family: owner_matrix
 owner: zhiyu
 matrix_id: zhiyu_agent_conversation_anchor_surface
-entries:
+rows:
   - surface: conversation_anchor_obtain
     zhiyu_role: consume_admitted_runtime_sdk_surface
     forbidden_sources: [subjectUserId, partner_id, app_local_state, account_session]

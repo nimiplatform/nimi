@@ -4,6 +4,7 @@ import {
   reduceRuntimeAgentConversationProjectionEvent,
   streamRuntimeAgentTurnRunnerPartsAsConversationEvents,
   type ConversationTurnEvent,
+  type RuntimeAgentArtifactPreviewInput,
   type RuntimeAgentConversationProjectionState,
   type RuntimeAgentTurnRunnerPartLike,
 } from '@nimiplatform/kit/features/chat/headless';
@@ -14,16 +15,25 @@ import {
   type NimiRuntimeAgentTurnRequest,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
-import type { ZhiyuRuntimeRouteStatus } from './agent-route-readiness';
+import type { ZhiyuEvidence } from '../app/evidence';
 import {
   createZhiyuRuntimeAgentBindingScopeRunner,
   resolveZhiyuRuntimeAgentBindingDecision,
   resolveZhiyuRuntimeAgentBindingDecisionFromHost,
   scopedBindingForRuntimeAgentRequest,
+  withZhiyuRuntimeAgentBindingScopes,
   type ZhiyuRuntimeAgentBindingDecision,
 } from './runtime-agent-binding';
 
-type ZhiyuRuntimeTurnExecutionBinding = NonNullable<ZhiyuRuntimeRouteStatus['executionBinding']>;
+const ZHIYU_RUNTIME_AGENT_TURN_SCOPES = [
+  'runtime.agent.turn.read',
+  'runtime.agent.turn.write',
+] as const;
+
+export type ZhiyuRuntimeAgentChatRouteEvidence = Pick<
+  ZhiyuEvidence['route'],
+  'ready' | 'reasonCode' | 'actionHint' | 'source' | 'message'
+>;
 
 export type ZhiyuRuntimeAgentChatState =
   | 'idle'
@@ -63,7 +73,7 @@ export type ZhiyuRuntimeAgentChatStreamTurn = (
 
 export type ZhiyuRuntimeAgentChatTurnInput = {
   readonly conversation: ZhiyuConversationHomeStatus;
-  readonly route: ZhiyuRuntimeRouteStatus;
+  readonly route: ZhiyuRuntimeAgentChatRouteEvidence;
   readonly runtimeBinding?: ZhiyuRuntimeAgentBindingDecision;
   readonly text: unknown;
   readonly requestId?: unknown;
@@ -71,6 +81,9 @@ export type ZhiyuRuntimeAgentChatTurnInput = {
   readonly expectedConversationAnchorId?: unknown;
   readonly signal?: AbortSignal;
   readonly streamTurn?: ZhiyuRuntimeAgentChatStreamTurn;
+  readonly resolveArtifactPreviewUri?: (
+    artifact: RuntimeAgentArtifactPreviewInput,
+  ) => Promise<string | null | undefined> | string | null | undefined;
   readonly onEvent?: (
     event: ConversationTurnEvent,
     state: RuntimeAgentConversationProjectionState,
@@ -111,13 +124,17 @@ export async function runZhiyuAgentChatTurn(
     });
   }
 
-  const executionBinding = normalizeExecutionBinding(input.route.executionBinding);
-  if (!executionBinding) {
+  // Display-evidence gate only: the runtime resolves each turn against its
+  // committed execution config (K-AGCORE-147); Zhiyu just refuses to submit
+  // while the projected text.generate readiness is not 'ready'.
+  if (!input.route.ready) {
     return chatUnavailable({
-      reasonCode: 'zhiyu-runtime-route-required',
-      actionHint: 'select_runtime_agent_route',
+      reasonCode: input.route.reasonCode === 'not-probed'
+        ? 'zhiyu-runtime-execution-readiness-required'
+        : input.route.reasonCode,
+      actionHint: input.route.actionHint || 'configure_runtime_agent_execution_model',
       source: input.route.source,
-      message: 'Zhiyu requires an admitted Runtime execution binding before sending a chat turn.',
+      message: input.route.message,
       ...identity,
       requestId: stringOr(input.requestId, null),
     });
@@ -146,7 +163,7 @@ export async function runZhiyuAgentChatTurn(
     });
   }
 
-  const runtimeBinding = input.runtimeBinding ?? resolveZhiyuRuntimeAgentBindingDecisionFromHost();
+  const runtimeBinding = input.runtimeBinding ?? resolveZhiyuRuntimeAgentBindingDecisionFromHost(ZHIYU_RUNTIME_AGENT_TURN_SCOPES);
   if (runtimeBinding.kind === 'missing') {
     return chatUnavailable({
       reasonCode: runtimeBinding.reasonCode,
@@ -157,17 +174,28 @@ export async function runZhiyuAgentChatTurn(
       requestId: stringOr(input.requestId, null),
     });
   }
+  try {
+    await withZhiyuRuntimeAgentBindingScopes(runtimeBinding, ZHIYU_RUNTIME_AGENT_TURN_SCOPES, async () => undefined);
+  } catch (error) {
+    return chatUnavailable({
+      reasonCode: errorReasonCode(error),
+      actionHint: errorActionHint(error),
+      source: errorSource(error),
+      message: errorMessage(error),
+      ...identity,
+      requestId: stringOr(input.requestId, null),
+    });
+  }
 
   const requestId = stringOr(input.requestId, createTurnRequestId());
   const request = buildRuntimeAgentTurnRequest({
     ...identity,
     requestId,
     text,
-    executionBinding,
-    executionBindings: turnExecutionBindings(input.route, executionBinding),
     runtimeBinding,
   });
-  const streamTurn = input.streamTurn ?? createElectronRuntimeAgentStreamTurn(identity.ownerUserId, runtimeBinding);
+  const streamTurn = input.streamTurn
+    ?? createElectronRuntimeAgentStreamTurn(identity.ownerUserId, runtimeBinding);
   const initialProjection = createRuntimeAgentConversationProjectionState({
     modeId: 'runtime-agent-chat-v1',
     threadId: identity.conversationAnchorId,
@@ -186,12 +214,15 @@ export async function runZhiyuAgentChatTurn(
 
   try {
     const streamed = await streamTurn(request, { signal: input.signal });
+    const resolveArtifactPreviewUri = input.resolveArtifactPreviewUri
+      ?? (input.streamTurn ? undefined : createElectronRuntimeArtifactPreviewResolver(runtimeBinding));
     let projection = initialProjection;
     for await (const event of streamRuntimeAgentTurnRunnerPartsAsConversationEvents({
       modeId: 'runtime-agent-chat-v1',
       threadId: identity.conversationAnchorId,
       turnId: requestId,
       parts: streamed.stream,
+      resolveArtifactPreviewUri,
     })) {
       projection = reduceRuntimeAgentConversationProjectionEvent(projection, event);
       input.onEvent?.(event, projection);
@@ -214,6 +245,9 @@ export async function runZhiyuAgentChatTurn(
   }
 }
 
+// Turn requests never carry execution bindings: the runtime resolves each
+// turn against its committed agent execution config (K-AGCORE-147). The local
+// text binding gate above is route-readiness display evidence only.
 function buildRuntimeAgentTurnRequest(input: {
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
@@ -221,8 +255,6 @@ function buildRuntimeAgentTurnRequest(input: {
   readonly conversationAnchorId: string;
   readonly requestId: string;
   readonly text: string;
-  readonly executionBinding: ZhiyuRuntimeTurnExecutionBinding;
-  readonly executionBindings: NimiRuntimeAgentTurnRequest['executionBindings'];
   readonly runtimeBinding: Exclude<ZhiyuRuntimeAgentBindingDecision, { readonly kind: 'missing' }>;
 }): NimiRuntimeAgentTurnRequest {
   const scopedBinding = scopedBindingForRuntimeAgentRequest(input.runtimeBinding);
@@ -233,7 +265,6 @@ function buildRuntimeAgentTurnRequest(input: {
     conversationAnchorId: input.conversationAnchorId,
     requestId: input.requestId,
     threadId: input.conversationAnchorId,
-    executionBindings: input.executionBindings,
     messages: [
       {
         role: 'user',
@@ -242,19 +273,6 @@ function buildRuntimeAgentTurnRequest(input: {
     ],
     ...(scopedBinding ? { scopedBinding } : {}),
   };
-}
-
-function turnExecutionBindings(
-  route: ZhiyuRuntimeRouteStatus,
-  textBinding: ZhiyuRuntimeTurnExecutionBinding,
-): NimiRuntimeAgentTurnRequest['executionBindings'] {
-  const executionBindings: NimiRuntimeAgentTurnRequest['executionBindings'] = {};
-  executionBindings['text.generate'] = textBinding;
-  const imageBinding = normalizeExecutionBinding(route.executionBindings?.['image.generate']);
-  if (imageBinding) {
-    executionBindings['image.generate'] = imageBinding;
-  }
-  return executionBindings;
 }
 
 function createElectronRuntimeAgentStreamTurn(
@@ -297,11 +315,84 @@ function createElectronRuntimeAgentStreamTurn(
       request,
       signal: options?.signal,
       interruptReason: 'zhiyu_agent_chat_abort',
-      route: request.executionBindings['text.generate']?.route,
-      ...runtimeTurnModelOption(request.executionBindings['text.generate']?.modelId),
-      connectorId: request.executionBindings['text.generate']?.connectorId,
     });
   };
+}
+
+function createElectronRuntimeArtifactPreviewResolver(
+  runtimeBinding: Exclude<ZhiyuRuntimeAgentBindingDecision, { readonly kind: 'missing' }>,
+): (artifact: RuntimeAgentArtifactPreviewInput) => Promise<string | null> {
+  return async (artifact) => {
+    const artifactId = stringOr(artifact.artifactId, '');
+    const declaredMimeType = stringOr(artifact.mimeType, '');
+    if (!artifactId || !declaredMimeType.toLowerCase().startsWith('image/')) {
+      return null;
+    }
+    if (typeof window === 'undefined' || !hasElectronRuntime()) {
+      throw Object.assign(new Error('Electron Runtime bridge is not available for Runtime artifact preview.'), {
+        reasonCode: 'electron-runtime-bridge-unavailable',
+        actionHint: 'restart_zhiyu_electron_shell',
+        source: 'renderer',
+      });
+    }
+    const runtime = new Runtime({
+      appId: 'nimi.zhiyu',
+      transport: { type: 'electron-ipc' },
+    });
+    const response = await withZhiyuRuntimeAgentBindingScopes(
+      runtimeBinding,
+      ['runtime.artifact.read-bytes'],
+      (options) => runtime.artifacts.readArtifactBytes({ artifactId }, options),
+    );
+    const mimeType = stringOr(response.mimeType, declaredMimeType);
+    if (!mimeType.toLowerCase().startsWith('image/')) {
+      return null;
+    }
+    const bytes = byteArray(response.bytes);
+    if (bytes.byteLength === 0) {
+      return null;
+    }
+    return `data:${mimeType};base64,${bytesToBase64(bytes)}`;
+  };
+}
+
+function byteArray(value: unknown): Uint8Array {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  if (value instanceof ArrayBuffer) {
+    return new Uint8Array(value);
+  }
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+  if (Array.isArray(value)) {
+    return Uint8Array.from(value.filter((item): item is number => Number.isInteger(item) && item >= 0 && item <= 255));
+  }
+  return new Uint8Array();
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  const bufferCtor = (globalThis as typeof globalThis & {
+    readonly Buffer?: {
+      readonly from: (input: Uint8Array) => { toString: (encoding: 'base64') => string };
+    };
+  }).Buffer;
+  if (bufferCtor) {
+    return bufferCtor.from(bytes).toString('base64');
+  }
+  if (typeof btoa !== 'function') {
+    throw Object.assign(new Error('Browser base64 encoder is not available for Runtime artifact preview.'), {
+      reasonCode: 'zhiyu-runtime-artifact-preview-encoder-unavailable',
+      actionHint: 'retry_in_browser_runtime',
+      source: 'renderer',
+    });
+  }
+  let binary = '';
+  for (let index = 0; index < bytes.byteLength; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return btoa(binary);
 }
 
 function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {
@@ -326,30 +417,6 @@ function conversationIdentity(conversation: ZhiyuConversationHomeStatus): {
     localAgentRef,
     conversationAnchorId,
   };
-}
-
-function normalizeExecutionBinding(
-  value: ZhiyuRuntimeTurnExecutionBinding | null | undefined,
-): ZhiyuRuntimeTurnExecutionBinding | null {
-  if (!value) {
-    return null;
-  }
-  const route = value.route;
-  const model = stringOr(value.modelId, '');
-  if ((route !== 'local' && route !== 'cloud') || !model) {
-    return null;
-  }
-  const modelId = model;
-  return {
-    route,
-    modelId,
-    targetRef: value.targetRef,
-    ...(stringOr(value.connectorId, '') ? { connectorId: stringOr(value.connectorId, '') } : {}),
-  };
-}
-
-function runtimeTurnModelOption(selectedModel: string | undefined): { readonly modelId?: string } {
-  return selectedModel ? { ['modelId']: selectedModel } : {};
 }
 
 function chatResultFromProjection(
@@ -426,6 +493,10 @@ function errorReasonCode(error: unknown): string {
 
 function errorSource(error: unknown): string {
   return stringOr(errorRecord(error).source, 'sdk');
+}
+
+function errorActionHint(error: unknown): string {
+  return stringOr(errorRecord(error).actionHint, 'inspect_runtime_agent_chat_stream');
 }
 
 function errorMessage(error: unknown): string {

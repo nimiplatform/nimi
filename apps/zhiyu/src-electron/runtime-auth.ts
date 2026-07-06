@@ -1,8 +1,11 @@
-import { createNimiLocalFirstPartyRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
 import {
   createNimiElectronRuntimeAccountTrustedMetadataProvider,
   type ElectronRuntimeBridgeTrustedMetadataProvider,
 } from '@nimiplatform/kit/shell/electron/main';
+import {
+  createZhiyuElectronRuntimeAccountCaller,
+  normalizeZhiyuElectronRuntimeClientIdPrefix,
+} from './runtime-account-caller.js';
 
 const runtimeDeveloperRegistrationRequested = false;
 const runtimeProtectedScopes = [
@@ -10,6 +13,12 @@ const runtimeProtectedScopes = [
   'runtime.agent.write',
   'runtime.agent.turn.read',
   'runtime.agent.turn.write',
+  'runtime.agent.delegation.read',
+  'runtime.agent.delegation.write',
+  // K-AGCORE-144~150 / Z-AUTH-006: the renderer's runtime.agent.executionConfig
+  // projection + model-tab commits require the execution config scopes.
+  'runtime.agent.execution_config.read',
+  'runtime.agent.execution_config.write',
   'ai.spend.meter',
 ] as const;
 const runtimeProtectedScopeCatalogVersion = 'sdk-v2';
@@ -25,16 +34,11 @@ export function createZhiyuElectronTrustedRuntimeMetadataProvider(input: {
 }): ElectronRuntimeBridgeTrustedMetadataProvider {
   const appId = requireText(input.appId, 'appId');
   const runtimeEndpoint = requireText(input.runtimeEndpoint, 'runtimeEndpoint');
-  const clientIdPrefix = normalizeClientIdPrefix(appId);
-  const runtimeAccountDeviceId = `${clientIdPrefix}-local-first-party-device`;
+  const clientIdPrefix = normalizeZhiyuElectronRuntimeClientIdPrefix(appId);
   return createNimiElectronRuntimeAccountTrustedMetadataProvider({
     appId,
     runtimeEndpoint,
-    accountCaller: createNimiLocalFirstPartyRuntimeAccountCaller({
-      appId,
-      appInstanceId: `${appId}.local-first-party`,
-      deviceId: runtimeAccountDeviceId,
-    }),
+    accountCaller: createZhiyuElectronRuntimeAccountCaller(appId),
     appSession: {
       appInstanceId: `${appId}.platform-runtime-session`,
       deviceId: runtimeAppSessionDeviceId,
@@ -54,10 +58,6 @@ export function createZhiyuElectronTrustedRuntimeMetadataProvider(input: {
       idempotencyKey: ({ normalizedSubjectUserId }) => `${clientIdPrefix}-runtime-protected-${normalizedSubjectUserId}`,
     },
   });
-}
-
-function normalizeClientIdPrefix(value: string): string {
-  return value.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'nimi-app';
 }
 
 function requireText(value: unknown, field: string): string {

@@ -98,7 +98,7 @@ test('ZM16 TTS consume uses Kit generation owner surface, not tester-private inv
   const kitRuntime = readRepo('kit/features/generation/src/runtime.ts');
   const kitSpeech = readRepo('kit/features/generation/src/runtime-speech-synthesize.ts');
   const zhiyuConsume = read('src/shell/capability-studio/zhiyu-ai-consume.ts');
-  const routeProjection = read('src/shell/agent-chat/agent-route-readiness.ts');
+  const aiConfigCapabilities = read('src/shell/ai-config/zhiyu-ai-config-capabilities.ts');
 
   assert.match(kitRuntime, /runtime-speech-synthesize/);
   assert.match(kitSpeech, /runRuntimeSpeechSynthesize/);
@@ -108,7 +108,7 @@ test('ZM16 TTS consume uses Kit generation owner surface, not tester-private inv
   assert.match(zhiyuConsume, /runRuntimeSpeechSynthesize/);
   assert.match(zhiyuConsume, /audio\.synthesize/);
   assert.doesNotMatch(zhiyuConsume, /apps\/tester|tester-runtime/);
-  assert.match(routeProjection, /audio\.synthesize/);
+  assert.match(aiConfigCapabilities, /audio\.synthesize/);
 });
 
 test('ZM16 avatar launch migration is owner-safe and fail-closed without a public handoff bridge', () => {

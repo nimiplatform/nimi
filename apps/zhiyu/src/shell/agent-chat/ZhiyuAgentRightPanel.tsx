@@ -104,7 +104,7 @@ export function RightAgentPanel({
   readonly onAvatarLaunch?: () => void;
   readonly renderGatedSurface: (surface: ZhiyuHomeGatedSurface) => ReactNode;
 }) {
-  const routeReady = Boolean(evidence.route.executionBinding);
+  const routeReady = evidence.route.ready;
   const avatarReady = evidence.avatar.ready || avatarLaunchAction.state === 'ready';
   const cognitionReady = evidence.memory.ready || evidence.companion.ready;
   const setupTotal = 5;
@@ -277,7 +277,7 @@ function AgentCenterModelPanel({
   readonly modelConfigContent?: ReactNode;
   readonly onOpenModelConfig: () => void;
 }) {
-  const routeReady = Boolean(evidence.route.executionBinding);
+  const routeReady = evidence.route.ready;
   return (
     <div className="zhiyu-agent-center__model-tab" data-zhiyu-agent-model-tab="true">
       <section className="zhiyu-agent-center__section zhiyu-agent-center__model-route-section">

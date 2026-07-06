@@ -16,6 +16,8 @@ import {
 } from './delegation-ux-projection';
 import {
   APP_ID,
+  DELEGATION_READ_SCOPE,
+  DELEGATION_WRITE_SCOPE,
   type DelegationControlSurface,
   type DelegationDiagnostic,
   type DelegationIdentity,
@@ -50,7 +52,7 @@ export async function probeZhiyuRuntimeDelegationUx(
   }
 
   try {
-    const surface = await resolveDelegationSurface(options, 'read');
+    const surface = await resolveDelegationSurface(options, 'read', identity);
     const snapshot = await surface.loadSnapshot(identity);
     const diagnostic = primaryDiagnostic(snapshot);
     const replayTrace = diagnostic?.diagnosticId
@@ -100,7 +102,7 @@ export async function submitZhiyuRuntimeDelegationApproval(
   }
 
   try {
-    const surface = await resolveDelegationSurface(options, 'write');
+    const surface = await resolveDelegationSurface(options, 'write', identity);
     await surface.submitApprovalDecision({
       ...identity,
       approvalRequestId,
@@ -166,6 +168,7 @@ export async function submitZhiyuRuntimeDelegationApproval(
 async function resolveDelegationSurface(
   options: ZhiyuDelegationUxProbeOptions,
   mode: 'read' | 'write',
+  identity: DelegationIdentity,
 ): Promise<DelegationControlSurface> {
   if (
     options.loadSnapshot
@@ -192,8 +195,28 @@ async function resolveDelegationSurface(
     createNimiHostRuntimeAgentDelegatedCapabilitySurface,
   } = await import('@nimiplatform/sdk/runtime');
   const {
-    withZhiyuRuntimeAgentBindingRequired,
+    createZhiyuRuntimeAgentBindingScopeRunner,
+    resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost,
+    scopedBindingForRuntimeAgentRequest,
   } = await import('../agent-chat/runtime-agent-binding');
+  const requiredScopes = mode === 'read'
+    ? [DELEGATION_READ_SCOPE]
+    : [DELEGATION_READ_SCOPE, DELEGATION_WRITE_SCOPE];
+  const scopedBindingDecision = await resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost({
+    ownerUserId: identity.ownerUserId,
+    runtimeSourceRef: identity.runtimeSourceRef,
+    localAgentRef: identity.localAgentRef,
+    conversationAnchorId: identity.conversationAnchorId,
+    scopes: requiredScopes,
+  });
+  const scopedBinding = scopedBindingForRuntimeAgentRequest(scopedBindingDecision);
+  if (!scopedBinding) {
+    throw Object.assign(new Error('Runtime delegation control requires a Runtime-issued scoped binding.'), {
+      reasonCode: 'zhiyu-delegation-scoped-binding-required',
+      actionHint: 'attach_runtime_scoped_delegation_binding',
+      source: 'renderer',
+    });
+  }
   const runtime = new Runtime({
     appId: APP_ID,
     transport: { type: 'electron-ipc' },
@@ -206,14 +229,14 @@ async function resolveDelegationSurface(
       agent: runtime.agents,
     }),
     getSubjectUserId: () => identity.ownerUserId,
-    withScopes: withZhiyuRuntimeAgentBindingRequired,
+    withScopes: createZhiyuRuntimeAgentBindingScopeRunner(() => scopedBindingDecision),
   });
 
   return {
-    loadSnapshot: async (input) => sdkSurface(input).loadSnapshot(input),
-    submitApprovalDecision: async (input) => sdkSurface(input).submitApprovalDecision(input),
-    resumeApprovedCapability: async (input) => sdkSurface(input).resumeApprovedCapability(input),
-    loadReplayTrace: async (input) => sdkSurface(input).loadReplayTrace(input),
+    loadSnapshot: async (input) => sdkSurface(input).loadSnapshot({ ...input, scopedBinding }),
+    submitApprovalDecision: async (input) => sdkSurface(input).submitApprovalDecision({ ...input, scopedBinding }),
+    resumeApprovedCapability: async (input) => sdkSurface(input).resumeApprovedCapability({ ...input, scopedBinding }),
+    loadReplayTrace: async (input) => sdkSurface(input).loadReplayTrace({ ...input, scopedBinding }),
   };
 }
 

@@ -145,7 +145,8 @@ function checkBindingOnlyConsumption() {
   requireFileIncludes('apps/zhiyu/src/shell/agent-chat/runtime-agent-turn-adapter.ts', [
     'createNimiRuntimeAgentTurnsModule',
     'createZhiyuRuntimeAgentBindingScopeRunner',
-    'executionBinding',
+    'scopedBinding',
+    'K-AGCORE-147',
     'conversationAnchorId',
   ]);
   const rawRuntimeTurnHits = scan([
@@ -221,7 +222,8 @@ function checkConfigBoundary() {
 
 function checkNoDirectAIConsumption() {
   const table = readYaml(`${tablesRoot}/sdk-kit-consumption-surface.yaml`);
-  const symbolPatterns = (table?.forbidden_surfaces || [])
+  const symbolPatterns = (Array.isArray(table?.rows) ? table.rows : [])
+    .filter((row) => row?.kind === 'forbidden_surface')
     .map((row) => String(row?.symbol || '').trim())
     .filter(Boolean)
     .filter((symbol) => !symbol.includes('sendAppMessage_to_runtime_agent_raw'))

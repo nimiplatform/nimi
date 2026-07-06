@@ -69,18 +69,11 @@ test('Zhiyu Runtime Agent chat delegates streaming turns through Desktop-parity 
     agentId: 'runtime-local-agent:opaque',
     conversationAnchorId: 'conversation-anchor:opaque',
     worldId: 'world-turn-ready',
+    scopes: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
   });
-  assert.deepEqual(captured[0].request.executionBindings, {
-    'text.generate': {
-      route: 'local',
-      modelId: 'runtime-model:opaque',
-      targetRef: {
-        kind: 'local-runtime',
-        version: 'v2',
-        profileBindingId: 'local-runtime:runtime-model-opaque',
-      },
-    },
-  });
+  // Atomic hard cut: turn requests never carry execution bindings; the
+  // runtime resolves execution from its committed config (K-AGCORE-147).
+  assert.equal('executionBindings' in captured[0].request, false);
   assert.deepEqual(captured[0].request.messages, [
     { role: 'user', content: 'hello from Zhiyu chat' },
   ]);
@@ -107,6 +100,98 @@ test('Zhiyu Runtime Agent chat delegates streaming turns through Desktop-parity 
   assert.equal(result.messages.at(-1).text, 'Hello Zhiyu');
   assert.equal(result.messages.at(-1).status, 'complete');
   assert.equal(result.messages.at(-1).metadata.reasoningText, 'checking runtime');
+});
+
+test('Zhiyu Runtime Agent chat does not attach delegation-only scoped binding to turn requests', async () => {
+  const module = await importRuntimeAgentChat();
+  const previousBinding = globalThis.__nimiZhiyuRuntimeAgentBinding;
+  const captured = [];
+  globalThis.__nimiZhiyuRuntimeAgentBinding = {
+    scopedBinding: {
+      bindingId: 'binding-delegation-only',
+      bindingHandle: 'runtime.binding/binding-delegation-only',
+      runtimeAppId: 'nimi.zhiyu',
+      appInstanceId: 'nimi.zhiyu.local-first-party',
+      agentId: 'runtime-local-agent:opaque',
+      conversationAnchorId: 'conversation-anchor:opaque',
+      bindingSource: 'runtime-account-service',
+      scopes: ['runtime.agent.delegation.read', 'runtime.agent.delegation.write'],
+    },
+    hostEquivalence: {
+      evidenceRef: 'runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host',
+      authority: 'runtime-sdk',
+      failureSemantics: 'fail-closed',
+    },
+  };
+
+  try {
+    const result = await module.runZhiyuAgentChatTurn({
+      conversation: conversationReady(),
+      route: routeReady(),
+      text: 'hello with delegation-only binding present',
+      requestId: 'zhiyu-turn-test-delegation-binding-not-reused',
+      streamTurn: async (request) => {
+        captured.push(request);
+        return {
+          stream: parts([
+            { type: 'text-delta', textDelta: 'Hello' },
+            {
+              type: 'message-sealed',
+              envelope: {
+                message: {
+                  messageId: 'runtime-message-delegation-binding-not-reused',
+                  text: 'Hello',
+                },
+              },
+            },
+            { type: 'turn-completed', outputText: 'Hello', finishReason: 'stop' },
+          ]),
+        };
+      },
+    });
+
+    assert.equal(result.ready, true);
+    assert.equal(captured.length, 1);
+    assert.equal(captured[0].scopedBinding, undefined);
+  } finally {
+    if (previousBinding === undefined) {
+      delete globalThis.__nimiZhiyuRuntimeAgentBinding;
+    } else {
+      globalThis.__nimiZhiyuRuntimeAgentBinding = previousBinding;
+    }
+  }
+});
+
+test('Zhiyu Runtime Agent chat rejects injected scoped binding without turn scopes before streaming', async () => {
+  const module = await importRuntimeAgentChat();
+  let called = false;
+
+  const result = await module.runZhiyuAgentChatTurn({
+    conversation: conversationReady(),
+    route: routeReady(),
+    runtimeBinding: module.resolveZhiyuRuntimeAgentBindingDecision({
+      scopedBinding: {
+        bindingId: 'binding-without-turn-scopes',
+        bindingHandle: 'runtime.binding/binding-without-turn-scopes',
+        runtimeAppId: 'runtime.agent',
+        appInstanceId: 'nimi.zhiyu.local',
+        agentId: 'runtime-local-agent:opaque',
+        conversationAnchorId: 'conversation-anchor:opaque',
+        scopes: ['runtime.agent.delegation.read', 'runtime.agent.delegation.write'],
+      },
+    }),
+    text: 'must not stream with delegation-only injected binding',
+    requestId: 'zhiyu-turn-test-injected-binding-scope-missing',
+    streamTurn: async () => {
+      called = true;
+      throw new Error('streamTurn must not be called');
+    },
+  });
+
+  assert.equal(called, false);
+  assert.equal(result.ready, false);
+  assert.equal(result.reasonCode, 'zhiyu-runtime-agent-scoped-binding-scope-missing');
+  assert.equal(result.actionHint, 'issue_runtime_scoped_binding_for_required_scopes');
 });
 
 test('Zhiyu Runtime Agent chat exposes mid-stream failure as failed, not accepted success', async () => {
@@ -210,18 +295,54 @@ test('Zhiyu Runtime Agent chat preserves Runtime action and artifact projection 
   assert.equal(artifacts?.[0]?.uri ?? null, null);
 });
 
-test('Zhiyu Runtime Agent chat forwards image execution binding for Runtime action artifacts', async () => {
+test('Zhiyu Runtime Agent chat renders resolved Runtime image artifacts as chat image messages', async () => {
+  const module = await importRuntimeAgentChat();
+
+  const result = await module.runZhiyuAgentChatTurn({
+    conversation: conversationReady(),
+    route: routeReady(),
+    runtimeBinding: runtimeScopedBinding(module),
+    text: 'make a visual artifact',
+    requestId: 'zhiyu-turn-test-artifact-image',
+    resolveArtifactPreviewUri: async (artifact) => `runtime-preview://${artifact.artifactId}`,
+    streamTurn: async () => ({
+      stream: parts([
+        {
+          type: 'message-sealed',
+          envelope: {
+            message: {
+              messageId: 'runtime-message-artifact-image',
+              text: 'I prepared an image.',
+            },
+          },
+        },
+        {
+          type: 'artifact-ready',
+          beatId: 'runtime-action-image-1',
+          artifactId: 'artifact-image-1',
+          mimeType: 'image/png',
+          projectionMessageId: 'runtime-message-image-1',
+        },
+        { type: 'turn-completed', outputText: 'I prepared an image.', finishReason: 'stop' },
+      ]),
+    }),
+  });
+
+  assert.equal(result.ready, true);
+  const imageMessage = result.messages.find((message) => message.kind === 'image');
+  assert.equal(imageMessage?.id, 'runtime-message-image-1');
+  assert.equal(imageMessage?.text, 'I prepared an image.');
+  assert.equal(imageMessage?.metadata?.mediaUrl, 'runtime-preview://artifact-image-1');
+  assert.equal(imageMessage?.metadata?.artifactProjection, 'runtime.agent.turn.artifact_ready');
+});
+
+test('Zhiyu Runtime Agent chat turn requests never carry execution bindings', async () => {
   const module = await importRuntimeAgentChat();
   const captured = [];
 
   await module.runZhiyuAgentChatTurn({
     conversation: conversationReady(),
-    route: routeReady({
-      executionBindings: {
-        'text.generate': textExecutionBinding(),
-        'image.generate': imageExecutionBinding(),
-      },
-    }),
+    route: routeReady(),
     runtimeBinding: runtimeScopedBinding(module),
     text: 'make an image',
     requestId: 'zhiyu-turn-test-image-binding',
@@ -244,10 +365,30 @@ test('Zhiyu Runtime Agent chat forwards image execution binding for Runtime acti
     },
   });
 
-  assert.deepEqual(captured[0].executionBindings, {
-    'text.generate': textExecutionBinding(),
-    'image.generate': imageExecutionBinding(),
+  // Atomic hard cut: even with local route evidence for text+image, the turn
+  // request never carries execution bindings (K-AGCORE-147).
+  assert.equal('executionBindings' in captured[0], false);
+});
+
+test('Zhiyu Runtime Agent chat fails closed before streaming when execution readiness is not ready', async () => {
+  const module = await importRuntimeAgentChat();
+  let called = false;
+
+  const result = await module.runZhiyuAgentChatTurn({
+    conversation: conversationReady(),
+    route: routeNotReady(),
+    runtimeBinding: runtimeScopedBinding(module),
+    text: 'must not stream while text.generate is not configured',
+    streamTurn: async () => {
+      called = true;
+      throw new Error('streamTurn must not be called');
+    },
   });
+
+  assert.equal(called, false);
+  assert.equal(result.ready, false);
+  assert.equal(result.reasonCode, 'zhiyu-agent-execution-config-not-configured');
+  assert.equal(result.actionHint, 'configure_runtime_agent_execution_model');
 });
 
 test('Zhiyu Runtime Agent chat fails closed before streaming without Runtime binding evidence', async () => {
@@ -420,55 +561,57 @@ function conversationReady(overrides = {}) {
   };
 }
 
+// evidence.route projects the runtime-owned execution config + readiness
+// (K-AGCORE-144~150): committed revision, per-capability binding summary,
+// readiness tri-state, and send-readiness from text.generate === 'ready'.
 function routeReady(overrides = {}) {
   return {
     transport: 'electron-ipc',
     ready: true,
     capability: 'text.generate',
-    aiConfigScopeOwnerId: 'nimi.zhiyu',
-    aiConfigScopeSurfaceId: 'zhiyu-agent-home',
-    enabledCapabilities: [
-      'text.generate',
-      'audio.synthesize',
-      'audio.transcribe',
-      'voice_workflow.voice_clone',
-      'voice_workflow.voice_design',
-      'image.generate',
-      'image.edit',
-      'video.generate',
-      'text.embed',
-    ],
-    bindingCapabilities: {
-      'text.generate': 'text.generate',
-      'audio.synthesize': 'audio.synthesize',
-      'audio.transcribe': 'audio.transcribe',
-      'voice_workflow.voice_clone': 'voice_workflow.voice_clone',
-      'voice_workflow.voice_design': 'voice_workflow.voice_design',
-      'image.generate': 'image.generate',
-      'image.edit': 'image.edit',
-      'video.generate': 'video.generate',
-      'text.embed': 'text.embed',
+    configRevision: 3,
+    readinessRevision: 3,
+    updatedAt: '2026-07-06T00:00:00.000Z',
+    updatedByAppId: 'nimi.zhiyu',
+    capabilities: {
+      'text.generate': {
+        state: 'ready',
+        reasonCode: '',
+        probedAt: '2026-07-06T00:00:01.000Z',
+        binding: textExecutionBinding(),
+      },
+      'image.generate': {
+        state: 'ready',
+        reasonCode: '',
+        probedAt: '2026-07-06T00:00:01.000Z',
+        binding: imageExecutionBinding(),
+      },
     },
-    targetRefKinds: {
-      'text.generate': 'local-runtime',
-      'audio.synthesize': null,
-      'audio.transcribe': null,
-      'voice_workflow.voice_clone': null,
-      'voice_workflow.voice_design': null,
-      'image.generate': 'cloud-connector',
-      'image.edit': null,
-      'video.generate': null,
-      'text.embed': 'local-runtime',
-    },
-    reasonCode: 'runtime-route-ready',
-    actionHint: 'send_runtime_agent_turn',
-    source: 'sdk',
-    message: 'Runtime route projection resolved a text.generate execution binding.',
-    selectedTargetRefKind: 'runtime-target',
-    resolvedBindingRef: 'runtime-binding:opaque',
     executionBinding: textExecutionBinding(),
+    reasonCode: 'runtime-execution-config-ready',
+    actionHint: 'send_runtime_agent_turn',
+    source: 'runtime',
+    message: 'Runtime agent execution config projects text.generate as ready.',
     ...overrides,
   };
+}
+
+function routeNotReady() {
+  return routeReady({
+    ready: false,
+    capabilities: {
+      'text.generate': {
+        state: 'not_configured',
+        reasonCode: '',
+        probedAt: null,
+        binding: null,
+      },
+    },
+    executionBinding: null,
+    reasonCode: 'zhiyu-agent-execution-config-not-configured',
+    actionHint: 'configure_runtime_agent_execution_model',
+    message: 'Runtime agent execution config has no ready text.generate binding yet.',
+  });
 }
 
 function textExecutionBinding() {
@@ -507,6 +650,7 @@ function runtimeScopedBinding(module) {
       agentId: 'runtime-local-agent:opaque',
       conversationAnchorId: 'conversation-anchor:opaque',
       worldId: 'world-turn-ready',
+      scopes: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
     },
   });
 }

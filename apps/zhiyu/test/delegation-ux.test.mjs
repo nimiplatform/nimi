@@ -198,6 +198,44 @@ test('separates required delegation scopes from granted and admitted scope evide
   assert.notDeepEqual(status.requiredScopes, status.grantedScopes);
 });
 
+test('fails closed before Runtime delegation RPC when only host equivalence is available', async () => {
+  const { probeZhiyuRuntimeDelegationUx } = await loadModule();
+  globalThis.__nimiZhiyuRuntimeAgentBinding = {
+    hostEquivalence: {
+      evidenceRef: 'runtime-sdk-authority:test-host',
+      authority: 'runtime-sdk',
+      failureSemantics: 'fail-closed',
+    },
+  };
+  const calls = [];
+  globalThis.__NIMI_ELECTRON_TEST__ = {
+    invoke: async (command, payload) => {
+      calls.push({ command, payload });
+      return {
+        scopedBinding: {
+          bindingId: 'binding-host-equivalence-only',
+          bindingSource: 'runtime-sdk-host-equivalence',
+        },
+      };
+    },
+  };
+  try {
+    const status = await probeZhiyuRuntimeDelegationUx(conversationReady(), {
+      hasRuntimeBridge: async () => true,
+    });
+
+    assert.equal(status.ready, false);
+    assert.equal(status.state, 'blocked');
+    assert.equal(status.reasonCode, 'zhiyu-delegation-scoped-binding-required');
+    assert.equal(status.actionHint, 'attach_runtime_scoped_delegation_binding');
+    assert.deepEqual(calls.map((call) => call.command), ['zhiyu.runtimeAgent.issueScopedBinding']);
+    assert.deepEqual(calls[0].payload.scopes, ['runtime.agent.delegation.read']);
+  } finally {
+    delete globalThis.__nimiZhiyuRuntimeAgentBinding;
+    delete globalThis.__NIMI_ELECTRON_TEST__;
+  }
+});
+
 test('submits Runtime-owned deny decision without resuming delegated execution', async () => {
   const { submitZhiyuRuntimeDelegationApproval } = await loadModule();
   const calls = [];

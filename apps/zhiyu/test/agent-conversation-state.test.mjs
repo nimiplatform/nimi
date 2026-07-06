@@ -111,6 +111,91 @@ test('reactively projects Runtime Agent state events into companion evidence', a
   assert.ok(companion.projectedFields.includes('currentPosture'));
 });
 
+test('reactively projects Runtime Agent action, activity, voice, lipsync, and hook events into companion evidence', async () => {
+  const module = await importConversationStateModule();
+  let companion = blockedCompanion();
+  const base = {
+    ownerUserId: 'user-1',
+    runtimeSourceRef: 'runtime-source:opaque',
+    observedAt: '2026-07-04T02:01:00.000Z',
+  };
+  const event = (eventName, detail) => ({
+    eventName,
+    localAgentRef: 'local-agent:opaque',
+    conversationAnchorId: 'conversation-anchor:opaque',
+    detail,
+  });
+
+  companion = module.projectZhiyuCompanionFromRuntimeAgentEvent({
+    ...base,
+    current: companion,
+    event: event('runtime.agent.turn.action_started', {
+      actionId: 'action-image-1',
+      modality: 'image',
+      operation: 'image.generate',
+    }),
+  });
+  assert.equal(companion.executionState, 'image_action_started');
+  assert.equal(companion.statusText, 'image.generate');
+  assert.ok(companion.projectedFields.includes('turnActionEvent'));
+  assert.ok(companion.projectedFields.includes('actionOperation'));
+
+  companion = module.projectZhiyuCompanionFromRuntimeAgentEvent({
+    ...base,
+    current: companion,
+    event: event('runtime.agent.presentation.activity_requested', {
+      activityName: 'happy',
+      category: 'emotion',
+      intensity: 'medium',
+      source: 'apml',
+    }),
+  });
+  assert.equal(companion.executionState, 'activity_requested');
+  assert.equal(companion.statusText, 'happy');
+  assert.equal(companion.currentEmotion, 'happy');
+  assert.ok(companion.projectedFields.includes('presentationActivity'));
+
+  companion = module.projectZhiyuCompanionFromRuntimeAgentEvent({
+    ...base,
+    current: companion,
+    event: event('runtime.agent.presentation.voice_playback_requested', {
+      audioArtifactId: 'artifact-audio-1',
+      audioMimeType: 'audio/wav',
+      playbackState: 'requested',
+      playbackTarget: 'avatar_autoplay',
+    }),
+  });
+  assert.equal(companion.executionState, 'voice_requested');
+  assert.equal(companion.statusText, 'avatar_autoplay');
+  assert.ok(companion.projectedFields.includes('voicePlayback'));
+  assert.ok(companion.projectedFields.includes('audioArtifactId'));
+
+  companion = module.projectZhiyuCompanionFromRuntimeAgentEvent({
+    ...base,
+    current: companion,
+    event: event('runtime.agent.presentation.lipsync_frame_batch', {
+      audioArtifactId: 'artifact-audio-1',
+      frames: [{ frameSequence: 1, mouthOpenY: 0.5 }],
+    }),
+  });
+  assert.equal(companion.executionState, 'lipsync_frame_batch');
+  assert.ok(companion.projectedFields.includes('lipsyncFrameBatch'));
+
+  companion = module.projectZhiyuCompanionFromRuntimeAgentEvent({
+    ...base,
+    current: companion,
+    event: event('runtime.agent.hook.intent_proposed', {
+      intentId: 'hook-1',
+      triggerFamily: 'time',
+      effect: 'follow_up',
+      admissionState: 'proposed',
+    }),
+  });
+  assert.equal(companion.executionState, 'hook_intent_proposed');
+  assert.equal(companion.statusText, 'follow_up');
+  assert.ok(companion.projectedFields.includes('hookIntent'));
+});
+
 async function importConversationStateModule() {
   const outputPath = path.join(await buildConversationStateModule(), 'agent-conversation-state.mjs');
   return import(pathToFileURL(outputPath).href);

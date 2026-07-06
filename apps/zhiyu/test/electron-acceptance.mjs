@@ -164,7 +164,7 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
         .locator('[data-zhiyu-capability-route-state]')
         .getAttribute('data-zhiyu-capability-route-state');
       assert.notEqual(capabilityCatalogCount, '0');
-      assert.equal(capabilityRouteState, 'zhiyu-ai-config-route-selection-required');
+      assert.equal(capabilityRouteState, 'zhiyu-agent-execution-config-auth-required');
       assert.equal(await page.locator('[data-zhiyu-capability-item="text.generate"]').count(), 1);
       assert.equal(await page.locator('[data-zhiyu-capability-owner]').count(), 4);
       await assertVisibleText(page, 'text.generate');
@@ -346,7 +346,7 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
         globalThis.window.__nimiZhiyuEvidence?.avatar?.reasonCode === 'zhiyu-local-agent-required',
       );
       await page.waitForFunction(() =>
-        globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'zhiyu-ai-config-route-selection-required',
+        globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'zhiyu-agent-execution-config-auth-required',
       );
       await page.waitForFunction(() =>
         globalThis.window.__nimiZhiyuEvidence?.turn?.reasonCode === 'zhiyu-conversation-anchor-required',
@@ -435,7 +435,7 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
         'expressionState',
       ]);
       assert.equal(unavailableEvidence.route.ready, false);
-      assert.equal(unavailableEvidence.route.reasonCode, 'zhiyu-ai-config-route-selection-required');
+      assert.equal(unavailableEvidence.route.reasonCode, 'zhiyu-agent-execution-config-auth-required');
       assert.equal(unavailableEvidence.route.executionBinding, null);
       assert.equal(unavailableEvidence.turn.ready, false);
       assert.equal(unavailableEvidence.turn.reasonCode, 'zhiyu-conversation-anchor-required');

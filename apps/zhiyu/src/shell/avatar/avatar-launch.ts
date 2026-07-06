@@ -1,5 +1,6 @@
 import {
   arbitrateAvatarLaunch,
+  buildAvatarLaunchInstanceId,
   type AvatarLaunchArbitrationResult,
 } from '@nimiplatform/kit/features/avatar/headless';
 import type { ZhiyuEvidence } from '../app/evidence';
@@ -23,7 +24,18 @@ export type ZhiyuAvatarLaunchAction =
     };
 
 export function projectZhiyuAvatarLaunchAction(evidence: ZhiyuEvidence): ZhiyuAvatarLaunchAction {
-  if (!evidence.localAgent.ready || !evidence.localAgent.localAgentRef || !evidence.conversation.conversationAnchorId) {
+  const ownerUserId = evidence.conversation.ownerUserId ?? evidence.localAgent.ownerUserId;
+  const runtimeSourceRef = evidence.conversation.runtimeSourceRef ?? evidence.localAgent.runtimeSourceRef;
+  const localAgentRef = evidence.conversation.localAgentRef ?? evidence.localAgent.localAgentRef;
+  const conversationAnchorId = evidence.conversation.conversationAnchorId;
+  if (
+    !evidence.localAgent.ready
+    || !evidence.conversation.ready
+    || !ownerUserId
+    || !runtimeSourceRef
+    || !localAgentRef
+    || !conversationAnchorId
+  ) {
     return {
       state: 'hidden',
       reasonCode: 'zhiyu-avatar-launch-current-partner-required',
@@ -38,15 +50,24 @@ export function projectZhiyuAvatarLaunchAction(evidence: ZhiyuEvidence): ZhiyuAv
     };
   }
 
-  const avatarInstanceId = stableAvatarInstanceId({
-    localAgentRef: evidence.localAgent.localAgentRef,
-    conversationAnchorId: evidence.conversation.conversationAnchorId,
-  });
+  let avatarInstanceId: string;
+  try {
+    avatarInstanceId = buildAvatarLaunchInstanceId({
+      localAgentRef,
+      sourceSurface: 'zhiyu',
+    });
+  } catch {
+    return {
+      state: 'blocked',
+      reasonCode: 'zhiyu-avatar-local-agent-identity-invalid',
+      message: 'Avatar launch requires an admitted Runtime-owned local-agent identity.',
+    };
+  }
   const arbitration = arbitrateAvatarLaunch({
     avatarInstancePolicy: 'reuse_active_instance',
     trigger: 'explicit_user_action',
-    localAgentRef: evidence.localAgent.localAgentRef,
-    conversationAnchorId: evidence.conversation.conversationAnchorId,
+    localAgentRef,
+    conversationAnchorId,
     reuseInstanceId: avatarInstanceId,
     newInstanceId: `${avatarInstanceId}-new`,
     liveInstances: [],
@@ -79,15 +100,4 @@ function avatarActionFromArbitration(
     reasonCode: `zhiyu-avatar-${arbitration.state}`,
     message: 'Avatar launch arbitration failed closed.',
   };
-}
-
-function stableAvatarInstanceId(input: {
-  readonly localAgentRef: string;
-  readonly conversationAnchorId: string;
-}): string {
-  return `zhiyu-avatar-${sanitize(input.localAgentRef)}-${sanitize(input.conversationAnchorId)}`;
-}
-
-function sanitize(value: string): string {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'unknown';
 }

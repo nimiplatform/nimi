@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CANONICAL_CAPABILITY_CATALOG,
   CANONICAL_CAPABILITY_DEFERRED,
@@ -7,6 +7,7 @@ import {
   createNimiRuntimeAgentClient,
   Runtime,
   type NimiRuntimeAgentConsumeEvent,
+  type NimiRuntimeAgentExecutionReadinessSnapshotProjection,
 } from '@nimiplatform/sdk/runtime';
 import {
   createInitialZhiyuEvidence,
@@ -26,6 +27,12 @@ import {
   mergeChatTranscript,
   turnStatusFromChat,
 } from './app-evidence-transitions';
+import {
+  shouldApplyZhiyuRuntimeChatUpdate,
+  shouldContinueZhiyuRuntimeChatSubmit,
+  zhiyuRuntimeChatApplyIdentity,
+  type ZhiyuRuntimeChatApplyIdentity,
+} from './chat-turn-apply-guard';
 import { ZhiyuAgentChatSurface } from '../agent-chat/ZhiyuAgentChatSurface';
 import { projectZhiyuCapabilityRoomState } from './capability-room-state';
 import { projectZhiyuDiagnosticState } from './diagnostic-state';
@@ -33,6 +40,7 @@ import { projectZhiyuHomeProductState } from './home-product-state';
 import { projectZhiyuIdentitySafetyEvidence } from './identity-safety-evidence';
 import { projectZhiyuIdentityFloorState } from './identity-floor-state';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
+import { launchZhiyuAvatar } from '../avatar/avatar-launch-handoff';
 import { probeZhiyuAvatarPresence } from '../avatar/avatar-presence';
 import {
   runZhiyuDeveloperCapabilityStudioAIConsume,
@@ -42,9 +50,22 @@ import { ZhiyuAiConfigSettings } from '../ai-config/zhiyu-ai-config-settings';
 import {
   createZhiyuAgentHomeAIScopeRef,
   createZhiyuAIConfigService,
-  refreshZhiyuAIConfig,
 } from '../ai-config/zhiyu-ai-config-store';
-import { createZhiyuRuntimeModelPickerProviderCache } from '../ai-config/zhiyu-runtime-model-provider';
+import {
+  createZhiyuRuntimeModelPickerProviderCache,
+  resolveZhiyuExecutionBindingForTargetRef,
+} from '../ai-config/zhiyu-runtime-model-provider';
+import {
+  createZhiyuExecutionConfigCommitService,
+  type ZhiyuExecutionConfigCommitState,
+} from '../ai-config/zhiyu-execution-config-commit';
+import {
+  fetchZhiyuAgentExecutionRouteEvidence,
+  getZhiyuAgentExecutionConfig,
+  subscribeZhiyuAgentExecutionReadiness,
+  upsertZhiyuAgentExecutionConfig,
+  zhiyuAgentExecutionRouteAuthRequired,
+} from '../agent-chat/agent-execution-config';
 import { probeZhiyuRuntimeAgentInventory } from '../agent/agent-inventory';
 import { probeZhiyuRuntimeCompanionState } from '../agent/companion-state';
 import { probeZhiyuRuntimeConversationHome } from '../agent/conversation-home';
@@ -60,10 +81,7 @@ import {
   projectZhiyuProposalIntakeStatus,
   submitZhiyuCapabilityProposal,
 } from '../agent/proposal-intake';
-import {
-  probeZhiyuAgentRouteReadiness,
-  probeZhiyuAgentTurnReadiness,
-} from '../agent-chat/agent-route-readiness';
+import { probeZhiyuAgentTurnReadiness } from '../agent-chat/agent-turn-readiness';
 import {
   hydrateZhiyuAgentChatFromRuntimeSessionSnapshot,
   projectZhiyuCompanionFromRuntimeAgentEvent,
@@ -83,8 +101,13 @@ export function App() {
   const [selectedLocalAgentRef, setSelectedLocalAgentRef] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [capabilityPrompt, setCapabilityPrompt] = useState('');
+  const [executionCommit, setExecutionCommit] = useState<ZhiyuExecutionConfigCommitState>({ status: 'idle' });
   const activeChatAbortRef = useRef<AbortController | null>(null);
+  const executionSubjectRef = useRef<string>('');
   const renderEvidence = useMemo(() => projectZhiyuIdentitySafetyEvidence(evidence), [evidence]);
+  const latestConversationIdentityRef = useRef<ZhiyuRuntimeChatApplyIdentity>(
+    zhiyuRuntimeChatApplyIdentity(evidence.conversation),
+  );
 
   useEffect(() => {
     setAiConfig(aiConfigService.aiConfig.get(aiConfigScopeRef));
@@ -92,7 +115,14 @@ export function App() {
   }, [aiConfigScopeRef, aiConfigService]);
 
   useEffect(() => {
+    executionSubjectRef.current = renderEvidence.auth.ready
+      ? (renderEvidence.auth.accountId ?? '').trim()
+      : '';
+  }, [renderEvidence.auth.ready, renderEvidence.auth.accountId]);
+
+  useEffect(() => {
     window.__nimiZhiyuEvidence = renderEvidence;
+    latestConversationIdentityRef.current = zhiyuRuntimeChatApplyIdentity(renderEvidence.conversation);
   }, [renderEvidence]);
 
   useEffect(() => {
@@ -128,41 +158,98 @@ export function App() {
         selectedLocalAgentRef,
       });
       const diaryReflection = projectZhiyuDiaryReflectionArtifacts(localAgent);
-      const [conversation, memory, route, companion, avatar] = await Promise.all([
+      const [conversation, memory, companion, avatar] = await Promise.all([
         probeZhiyuRuntimeConversationHome(localAgent),
         probeZhiyuRuntimeMemoryObservatory(localAgent),
-        probeZhiyuAgentRouteReadiness({ config: aiConfig }),
         probeZhiyuRuntimeCompanionState(localAgent),
         probeZhiyuAvatarPresence(localAgent),
       ]);
       const delegation = await probeZhiyuRuntimeDelegationUx(conversation);
       const proposal = projectZhiyuProposalIntakeStatus({ conversation });
-      const turn = probeZhiyuAgentTurnReadiness(conversation, route.executionBinding);
       if (!active) {
         return;
       }
-      setEvidence((current) => ({
-        ...current,
-        runtime,
-        auth,
-        source,
-        inventory,
-        localAgent,
-        conversation,
-        memory,
-        companion,
-        diaryReflection,
-        delegation,
-        proposal,
-        avatar,
-        route,
-        turn,
-      }));
+      setEvidence((current) => {
+        const turn = probeZhiyuAgentTurnReadiness(conversation, current.route);
+        return {
+          ...current,
+          runtime,
+          auth,
+          source,
+          inventory,
+          localAgent,
+          conversation,
+          memory,
+          companion,
+          diaryReflection,
+          delegation,
+          proposal,
+          avatar,
+          turn,
+        };
+      });
     })();
     return () => {
       active = false;
     };
-  }, [aiConfig, selectedLocalAgentRef]);
+  }, [selectedLocalAgentRef]);
+
+  const applyExecutionRoute = useCallback((route: ZhiyuEvidence['route']) => {
+    setEvidence((current) => ({
+      ...current,
+      route,
+      turn: probeZhiyuAgentTurnReadiness(current.conversation, route),
+    }));
+  }, []);
+
+  const applyFreshExecutionRoute = useCallback(async () => {
+    applyExecutionRoute(await fetchZhiyuAgentExecutionRouteEvidence(executionSubjectRef.current));
+  }, [applyExecutionRoute]);
+
+  // Route evidence is a pure projection of the runtime-owned execution
+  // config + readiness (K-AGCORE-144~150). Startup fetch is isolated from
+  // the core Runtime bootstrap matrix; live updates arrive over the
+  // readiness subscription and re-read the committed config on each change.
+  useEffect(() => {
+    const subjectUserId = evidence.auth.ready ? (evidence.auth.accountId ?? '').trim() : '';
+    if (!subjectUserId) {
+      applyExecutionRoute(zhiyuAgentExecutionRouteAuthRequired());
+      return undefined;
+    }
+    let active = true;
+    let readinessIterator: AsyncIterator<NimiRuntimeAgentExecutionReadinessSnapshotProjection> | null = null;
+    void (async () => {
+      const route = await fetchZhiyuAgentExecutionRouteEvidence(subjectUserId);
+      if (!active) {
+        return;
+      }
+      applyExecutionRoute(route);
+      try {
+        // Readiness subscription is best-effort after the fail-closed
+        // initial fetch, mirroring the agent event subscription pattern.
+        const stream = subscribeZhiyuAgentExecutionReadiness({ subjectUserId });
+        readinessIterator = stream[Symbol.asyncIterator]();
+        while (active) {
+          const next = await readinessIterator.next();
+          if (next.done) {
+            break;
+          }
+          const refreshed = await fetchZhiyuAgentExecutionRouteEvidence(subjectUserId);
+          if (!active) {
+            return;
+          }
+          applyExecutionRoute(refreshed);
+        }
+      } catch {
+        // Live readiness updates degrade to explicit refresh on config edits
+        // and submit; the fetched evidence above remains fail-closed truth.
+      }
+    })();
+    return () => {
+      active = false;
+      void readinessIterator?.return?.();
+    };
+  }, [applyExecutionRoute, evidence.auth.ready, evidence.auth.accountId]);
 
   useEffect(() => {
     const ownerUserId = renderEvidence.conversation.ownerUserId;
@@ -263,6 +350,23 @@ export function App() {
   const diagnostics = useMemo(() => projectZhiyuDiagnosticState(renderEvidence), [renderEvidence]);
   const identityFloor = useMemo(() => projectZhiyuIdentityFloorState(renderEvidence), [renderEvidence]);
   const avatarLaunchAction = useMemo(() => projectZhiyuAvatarLaunchAction(renderEvidence), [renderEvidence]);
+  // The Agent Center model tab commits text.generate / image.generate through
+  // runtime.agent.executionConfig.upsert; the AIConfig facade stays the commit
+  // target for every other capability and the picker's listing/display store.
+  const executionCommitService = useMemo(() => createZhiyuExecutionConfigCommitService({
+    base: aiConfigService,
+    getSubjectUserId: () => executionSubjectRef.current,
+    getCommittedConfig: (input) => getZhiyuAgentExecutionConfig(input),
+    upsertConfig: (input) => upsertZhiyuAgentExecutionConfig(input),
+    buildBindingForTargetRef: (capability, targetRef) =>
+      resolveZhiyuExecutionBindingForTargetRef(capability, targetRef),
+    onCommitState: (state) => {
+      setExecutionCommit(state);
+      if (state.status === 'committed' || state.status === 'conflict') {
+        void applyFreshExecutionRoute();
+      }
+    },
+  }), [aiConfigService, applyFreshExecutionRoute]);
 
   const recoverableFailedTurn = renderEvidence.chat.state === 'failed'
     && renderEvidence.chat.source === 'runtime'
@@ -277,7 +381,7 @@ export function App() {
     && renderEvidence.chat.requestId === renderEvidence.turn.requestId;
   const turnSubmitReady = renderEvidence.turn.ready || recoverableFailedTurn || recoverableCanceledTurn;
   const submitEnabled = renderEvidence.conversation.ready
-    && Boolean(renderEvidence.route.executionBinding)
+    && renderEvidence.route.ready
     && turnSubmitReady
     && renderEvidence.chat.state !== 'streaming'
     && renderEvidence.composer.submitState !== 'submitting'
@@ -295,11 +399,26 @@ export function App() {
   async function handleSubmit(textInput: string) {
     const text = textInput.trim();
     activeChatAbortRef.current?.abort('zhiyu_chat_turn_superseded');
-    const refreshedConfig = await refreshZhiyuAIConfig(aiConfigScopeRef);
-    setAiConfig(refreshedConfig);
-    const refreshedRoute = await probeZhiyuAgentRouteReadiness({ config: refreshedConfig });
-    const refreshedTurn = probeZhiyuAgentTurnReadiness(evidence.conversation, refreshedRoute.executionBinding);
-    if (!refreshedRoute.ready || !refreshedRoute.executionBinding || !refreshedTurn.ready) {
+    const activeChatAbort = new AbortController();
+    activeChatAbortRef.current = activeChatAbort;
+    const submittedConversation = zhiyuRuntimeChatApplyIdentity(evidence.conversation);
+    const submitStillCurrent = () => activeChatAbortRef.current === activeChatAbort
+      && shouldContinueZhiyuRuntimeChatSubmit({
+        currentConversation: latestConversationIdentityRef.current,
+        submittedConversation,
+        signal: activeChatAbort.signal,
+      });
+    // Submit refresh re-reads the runtime execution config + readiness; the
+    // turn itself carries no bindings (K-AGCORE-147).
+    const refreshedRoute = await fetchZhiyuAgentExecutionRouteEvidence(executionSubjectRef.current);
+    const refreshedTurn = probeZhiyuAgentTurnReadiness(evidence.conversation, refreshedRoute);
+    if (!submitStillCurrent()) {
+      if (activeChatAbortRef.current === activeChatAbort) {
+        activeChatAbortRef.current = null;
+      }
+      return;
+    }
+    if (!refreshedRoute.ready || !refreshedTurn.ready) {
       setEvidence((current) => {
         const chat = chatStatusFromSubmitRefreshFailure({
           current: current.chat,
@@ -327,8 +446,6 @@ export function App() {
       return;
     }
     const requestId = createZhiyuTurnRequestId();
-    const activeChatAbort = new AbortController();
-    activeChatAbortRef.current = activeChatAbort;
     setEvidence((current) => ({
       ...current,
       route: refreshedRoute,
@@ -357,13 +474,19 @@ export function App() {
       route: refreshedRoute,
       text,
       requestId,
-      expectedConversationAnchorId: evidence.conversation.conversationAnchorId,
+      expectedConversationAnchorId: submittedConversation.conversationAnchorId,
       signal: activeChatAbort.signal,
       onEvent: (_event, projection) => {
         if (activeChatAbort.signal.aborted || activeChatAbortRef.current !== activeChatAbort) {
           return;
         }
         setEvidence((current) => {
+          if (!shouldApplyZhiyuRuntimeChatUpdate({
+            currentConversation: current.conversation,
+            submittedConversation,
+          })) {
+            return current;
+          }
           const projectionChat = ensureSubmittedUserMessageInChat(
             chatStatusFromProjection(projection, current.conversation),
             current.conversation,
@@ -398,6 +521,12 @@ export function App() {
       activeChatAbortRef.current = null;
     }
     setEvidence((current) => {
+      if (!shouldApplyZhiyuRuntimeChatUpdate({
+        currentConversation: current.conversation,
+        submittedConversation,
+      })) {
+        return current;
+      }
       const resultChat = ensureSubmittedUserMessageInChat(
         chatStatusFromResult(submitted),
         current.conversation,
@@ -420,7 +549,13 @@ export function App() {
         },
       };
     });
-    if (submitted.ready) {
+    if (
+      submitted.ready
+      && shouldApplyZhiyuRuntimeChatUpdate({
+        currentConversation: latestConversationIdentityRef.current,
+        submittedConversation,
+      })
+    ) {
       setDraft('');
     }
   }
@@ -466,6 +601,7 @@ export function App() {
     if (!selected) {
       return;
     }
+    activeChatAbortRef.current?.abort('zhiyu_chat_turn_local_agent_changed');
     const initial = createInitialZhiyuEvidence();
     setSelectedLocalAgentRef(selected);
     setDraft('');
@@ -499,6 +635,35 @@ export function App() {
     setEvidence((current) => ({
       ...current,
       proposal,
+    }));
+  }
+
+  async function handleAvatarLaunch() {
+    setEvidence((current) => ({
+      ...current,
+      avatar: {
+        ...current.avatar,
+        reasonCode: 'zhiyu-avatar-launch-registering-live-instance',
+        actionHint: 'wait_avatar_launch_handoff',
+        message: 'Registering the Avatar live instance with Runtime before launch.',
+        launchHandoff: null,
+      },
+    }));
+    const result = await launchZhiyuAvatar({
+      evidence: renderEvidence,
+      action: avatarLaunchAction,
+    });
+    setEvidence((current) => ({
+      ...current,
+      avatar: {
+        ...current.avatar,
+        ready: result.state === 'opened' ? current.avatar.ready : false,
+        state: result.state === 'opened' ? current.avatar.state : 'blocked',
+        reasonCode: result.reasonCode,
+        actionHint: result.actionHint,
+        message: result.message,
+        launchHandoff: result.state === 'opened' ? result.handoff : null,
+      },
     }));
   }
 
@@ -588,10 +753,12 @@ export function App() {
       modelConfigContent={(
         <ZhiyuAiConfigSettings
           scopeRef={aiConfigScopeRef}
-          service={aiConfigService}
+          service={executionCommitService}
           providerResolver={modelPickerProviderResolver}
           runtimeReady={renderEvidence.runtime.ready}
           runtimeDetail={renderEvidence.runtime.ready ? null : renderEvidence.runtime.message}
+          executionCommitState={executionCommit}
+          onDismissExecutionCommitState={() => setExecutionCommit({ status: 'idle' })}
           variant="embedded"
         />
       )}
@@ -610,15 +777,7 @@ export function App() {
       }}
       onSelectLocalAgent={handleSelectLocalAgent}
       onAvatarLaunch={() => {
-        setEvidence((current) => ({
-          ...current,
-          avatar: {
-            ...current.avatar,
-            reasonCode: 'zhiyu-avatar-public-handoff-not-admitted',
-            actionHint: 'admit_public_avatar_handoff',
-            message: avatarLaunchAction.message,
-          },
-        }));
+        void handleAvatarLaunch();
       }}
     />
   );

@@ -122,12 +122,13 @@ export async function captureLiveRuntimeEvidence(page, stage, pageProblems, evid
     avatarBlocked: '[data-zhiyu-region="avatar"]',
   };
   const narrowSectionCaptureSelectors = {
-    modelUnconfigured: '[data-zhiyu-region="agent-panel"]',
+    seededDefaultConfig: '[data-zhiyu-region="agent-panel"]',
     modelConfigured: '[data-zhiyu-region="agent-panel"]',
     appearanceConfig: '[data-zhiyu-region="agent-panel"]',
     behaviorConfig: '[data-zhiyu-region="agent-panel"]',
     cognitionConfig: '[data-zhiyu-region="agent-panel"]',
     advancedConfig: '[data-zhiyu-region="agent-panel"]',
+    avatarLaunch: '[data-zhiyu-region="agent-panel"]',
   };
   const screenshotNames = {
     noPartner: {
@@ -140,10 +141,10 @@ export async function captureLiveRuntimeEvidence(page, stage, pageProblems, evid
       narrow: 'live-runtime-partner-selected-narrow.png',
       evidence: 'live-runtime-partner-selected-evidence.json',
     },
-    modelUnconfigured: {
-      desktop: 'live-runtime-model-unconfigured-desktop.png',
-      narrow: 'live-runtime-model-unconfigured-narrow.png',
-      evidence: 'live-runtime-model-unconfigured-evidence.json',
+    seededDefaultConfig: {
+      desktop: 'live-runtime-seeded-default-config-desktop.png',
+      narrow: 'live-runtime-seeded-default-config-narrow.png',
+      evidence: 'live-runtime-seeded-default-config-evidence.json',
     },
     modelConfigured: {
       desktop: 'live-runtime-model-configured-desktop.png',
@@ -175,10 +176,10 @@ export async function captureLiveRuntimeEvidence(page, stage, pageProblems, evid
       narrow: 'live-runtime-ready-narrow.png',
       evidence: 'live-runtime-ready-evidence.json',
     },
-    staleRoute: {
-      desktop: 'live-runtime-stale-route-desktop.png',
-      narrow: 'live-runtime-stale-route-narrow.png',
-      evidence: 'live-runtime-stale-route-evidence.json',
+    routeUnavailable: {
+      desktop: 'live-runtime-route-unavailable-desktop.png',
+      narrow: 'live-runtime-route-unavailable-narrow.png',
+      evidence: 'live-runtime-route-unavailable-evidence.json',
     },
     chatStreaming: {
       desktop: 'live-runtime-agent-chat-streaming-desktop.png',
@@ -204,6 +205,11 @@ export async function captureLiveRuntimeEvidence(page, stage, pageProblems, evid
       desktop: 'live-runtime-action-artifact-desktop.png',
       narrow: 'live-runtime-action-artifact-narrow.png',
       evidence: 'live-runtime-action-artifact-evidence.json',
+    },
+    avatarLaunch: {
+      desktop: 'live-runtime-avatar-launch-desktop.png',
+      narrow: 'live-runtime-avatar-launch-narrow.png',
+      evidence: 'live-runtime-avatar-launch-evidence.json',
     },
     chatMultiTurn: {
       desktop: 'live-runtime-agent-chat-multi-turn-desktop.png',
@@ -327,9 +333,9 @@ async function capturePanelScreenshots(page, stage, evidenceRoot) {
       ['[data-zhiyu-region="conversation"]', 'live-runtime-partner-selected-conversation-panel.png'],
       ['[data-zhiyu-region="relationship-rail"]', 'live-runtime-partner-selected-relationship-rail.png'],
     ],
-    modelUnconfigured: [
-      ['[data-zhiyu-region="agent-panel"]', 'live-runtime-model-unconfigured-panel.png'],
-      [null, 'live-runtime-model-unconfigured-viewport.png'],
+    seededDefaultConfig: [
+      ['[data-zhiyu-region="agent-panel"]', 'live-runtime-seeded-default-config-panel.png'],
+      [null, 'live-runtime-seeded-default-config-viewport.png'],
     ],
     modelConfigured: [
       ['[data-zhiyu-region="agent-panel"]', 'live-runtime-model-configured-panel.png'],
@@ -355,8 +361,8 @@ async function capturePanelScreenshots(page, stage, evidenceRoot) {
       ['[data-zhiyu-region="conversation"]', 'live-runtime-ready-conversation-panel.png'],
       ['[data-zhiyu-region="relationship-rail"]', 'live-runtime-ready-relationship-rail.png'],
     ],
-    staleRoute: [
-      ['[data-zhiyu-region="conversation"]', 'live-runtime-stale-route-conversation-panel.png'],
+    routeUnavailable: [
+      ['[data-zhiyu-region="conversation"]', 'live-runtime-route-unavailable-conversation-panel.png'],
     ],
     chatCompleted: [
       ['[data-zhiyu-region="conversation"]', 'live-runtime-agent-chat-panel.png'],
@@ -366,6 +372,10 @@ async function capturePanelScreenshots(page, stage, evidenceRoot) {
     ],
     actionArtifact: [
       ['[data-zhiyu-region="conversation"]', 'live-runtime-action-artifact-panel.png'],
+    ],
+    avatarLaunch: [
+      ['[data-zhiyu-region="agent-panel"]', 'live-runtime-avatar-launch-panel.png'],
+      [null, 'live-runtime-avatar-launch-viewport.png'],
     ],
     chatMultiTurn: [
       ['[data-zhiyu-region="conversation"]', 'live-runtime-agent-chat-multi-turn-panel.png'],
@@ -448,7 +458,7 @@ export async function assertProductShellPrimaryView(page) {
 
   const primaryText = await shell.innerText();
   assert.match(primaryText, /开始一段对话|当前伙伴|选择本地伙伴/);
-  assert.match(primaryText, /模型|本地对话模型已绑定/);
+  assert.match(primaryText, /模型|本地对话模型已绑定|本地对话已就绪/);
   assert.doesNotMatch(
     primaryText,
     /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/,

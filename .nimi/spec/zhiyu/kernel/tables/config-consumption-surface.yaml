@@ -2,7 +2,7 @@ version: 1
 table_family: owner_matrix
 owner: zhiyu
 matrix_id: zhiyu_config_consumption_surface
-entries:
+rows:
   - surface: runtime_ai_model_config
     required_in_zhiyu: true
     allowed_operations: [display_current_config, choose_available_profile_or_model_config, submit_change_via_facade, show_validation_failure]

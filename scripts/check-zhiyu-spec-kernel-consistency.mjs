@@ -163,10 +163,18 @@ function expectSetContains(rel, values, requiredValues, label) {
   }
 }
 
+function rowsOfKind(parsed, kind) {
+  return (Array.isArray(parsed?.rows) ? parsed.rows : []).filter((row) => row?.kind === kind);
+}
+
+function catalogEntry(parsed, id) {
+  return (Array.isArray(parsed?.entries) ? parsed.entries : []).find((row) => row?.id === id);
+}
+
 function checkConfigConsumption() {
   const rel = `${tablesRoot}/config-consumption-surface.yaml`;
   const parsed = readYaml(rel);
-  const surfaces = (parsed?.entries || []).map((row) => row?.surface);
+  const surfaces = (parsed?.rows || []).map((row) => row?.surface);
   expectSetContains(rel, surfaces, [
     'runtime_ai_model_config',
     'live2d_vrm_resource_import',
@@ -178,15 +186,15 @@ function checkConfigConsumption() {
 function checkSdkKitConsumption() {
   const rel = `${tablesRoot}/sdk-kit-consumption-surface.yaml`;
   const parsed = readYaml(rel);
-  const requiredSymbols = (parsed?.required_surfaces || []).map((row) => row?.symbol);
-  const forbiddenSymbols = (parsed?.forbidden_surfaces || []).map((row) => row?.symbol);
+  const requiredSymbols = rowsOfKind(parsed, 'required_surface').map((row) => row?.symbol);
+  const forbiddenSymbols = rowsOfKind(parsed, 'forbidden_surface').map((row) => row?.symbol);
   expectSetContains(rel, requiredSymbols, [
     'createNimiRuntimeAgentClient',
     'runNimiRuntimeAgentTurn',
     'createNimiRuntimeAgentTurnsModule',
     'streamRuntimeAgentTurnRunnerPartsAsConversationEvents',
     'reduceRuntimeAgentConversationProjectionEvent',
-  ], 'required_surfaces.symbol');
+  ], 'rows[kind=required_surface].symbol');
   expectSetContains(rel, forbiddenSymbols, [
     'useAppAiChatSession',
     'createAppAiChatComposerAdapter',
@@ -195,7 +203,7 @@ function checkSdkKitConsumption() {
     'sendAppMessage_to_runtime_agent_raw',
     'client.writeMemory',
     'renderVoice',
-  ], 'forbidden_surfaces.symbol');
+  ], 'rows[kind=forbidden_surface].symbol');
 }
 
 function checkRegistryScopePosture() {
@@ -254,27 +262,55 @@ function checkCapabilityPosture() {
 function checkTestQuarantine() {
   const rel = `${tablesRoot}/test-quarantine-policy.yaml`;
   const parsed = readYaml(rel);
-  const defaults = parsed?.default_status || {};
+  const defaults = catalogEntry(parsed, 'default_status')?.semantics || {};
   for (const key of ['apps/zhiyu/test', 'check:zhiyu-bootstrap', 'release_evidence']) {
     if (defaults[key] !== 'non_authoritative_until_inventory') {
-      fail(`${rel} default_status.${key} must be non_authoritative_until_inventory`);
+      fail(`${rel} entries[id=default_status].semantics.${key} must be non_authoritative_until_inventory`);
     }
   }
+  const classifications = catalogEntry(parsed, 'classification')?.semantics || [];
+  expectSetContains(rel, classifications.map((row) => row?.id), [
+    'story_regression_candidate',
+    'diagnostics_regression_candidate',
+    'owner_boundary_guard_candidate',
+    'legacy_drift_quarantine',
+    'remove_after_replacement',
+  ], 'entries[id=classification].semantics.id');
 }
 
 function checkAcceptanceGates() {
   const rel = `${tablesRoot}/acceptance-gates.yaml`;
   const parsed = readYaml(rel);
-  const entries = new Set((parsed?.entries || []).map((entry) => String(entry).trim()).filter(Boolean));
-  const gates = new Set((parsed?.gates || []).map((row) => String(row?.gate || '').trim()).filter(Boolean));
-  for (const entry of entries) {
-    if (!gates.has(entry)) {
-      fail(`${rel} entries includes ${entry} but gates does not define it`);
+  const requiredGates = [
+    'spec_consistency',
+    'spec_negative_fixture',
+    'docs_drift',
+    'acceptance_matrix',
+    'binding_only_consumption',
+    'sdk_kit_turn_consumption',
+    'no_duplicate_turn_reducer',
+    'config_boundary',
+    'no_direct_ai_consumption',
+    'artifact_boundary',
+    'local_persistence_boundary',
+    'test_quarantine',
+  ];
+  const gates = new Set();
+  for (const row of parsed?.gates || []) {
+    const gate = String(row?.id || '').trim();
+    if (!gate) {
+      fail(`${rel} gates row must declare id`);
+      continue;
     }
+    if (gates.has(gate)) {
+      fail(`${rel} gates duplicate id ${gate}`);
+    }
+    gates.add(gate);
   }
+  expectSetContains(rel, [...gates], requiredGates, 'gates.id');
   for (const gate of gates) {
-    if (!entries.has(gate)) {
-      fail(`${rel} gates defines ${gate} but entries does not include it`);
+    if (!requiredGates.includes(gate)) {
+      fail(`${rel} gates includes unexpected id ${gate}`);
     }
   }
 }

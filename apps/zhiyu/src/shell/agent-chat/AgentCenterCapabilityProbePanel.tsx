@@ -71,9 +71,9 @@ export function AgentCenterCapabilityProbePanel({
         <div className="zhiyu-agent-center__capability-route-grid" aria-label="能力探针链路摘要">
           <span>伙伴：{formatProjectionValue(evidence.localAgent.localAgentRef)}</span>
           <span>对话：{formatProjectionValue(evidence.conversation.conversationAnchorId)}</span>
-          <span>文字：{formatProjectionValue(evidence.route.targetRefKinds['text.generate'])}</span>
-          <span>图片：{formatProjectionValue(evidence.route.targetRefKinds['image.generate'])}</span>
-          <span>语音：{formatProjectionValue(evidence.route.targetRefKinds['audio.synthesize'])}</span>
+          <span>文字：{formatProjectionValue(executionCapabilitySummary(evidence, 'text.generate'))}</span>
+          <span>图片：{formatProjectionValue(executionCapabilitySummary(evidence, 'image.generate'))}</span>
+          <span>配置版本：{formatProjectionValue(evidence.route.configRevision === null ? null : String(evidence.route.configRevision))}</span>
           <span>{capabilityRoom.catalogCount} 项能力目录</span>
         </div>
       </Surface>
@@ -168,6 +168,17 @@ export function AgentCenterCapabilityProbePanel({
 
     </div>
   );
+}
+
+function executionCapabilitySummary(evidence: ZhiyuEvidence, capability: string): string | null {
+  const projection = evidence.route.capabilities[capability];
+  if (!projection) {
+    return null;
+  }
+  const bindingLabel = projection.binding
+    ? `${projection.binding.route === 'local' ? '本地' : '云端'} ${projection.binding.modelId}`
+    : '未绑定';
+  return `${bindingLabel} · ${projection.state}`;
 }
 
 function capabilityLabel(capabilityId: ZhiyuCapabilityStudioCapabilityId): string {

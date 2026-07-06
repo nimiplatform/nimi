@@ -39,6 +39,8 @@ const agentChatParitySourceFiles = [
 const liveRuntimeAcceptanceSourceFiles = [
   'test/electron-live-runtime-acceptance.mjs',
   'test/electron-live-runtime-acceptance-helpers.mjs',
+  'test/electron-live-runtime-delegation-helpers.mjs',
+  'src/shell/auth/electron-sdk-acceptance.ts',
 ];
 
 const requiredDesktopSources = [
@@ -320,8 +322,10 @@ test('Runtime action and artifact events are product-visible or explicitly defer
     'data-zhiyu-runtime-action-artifact-summary="true"',
     'data-zhiyu-runtime-action-count',
     'data-zhiyu-runtime-artifact-count',
-    'data-zhiyu-runtime-action-artifact-preview="deferred"',
-    'data-zhiyu-runtime-action-artifact-preview-reason="zhiyu-runtime-artifact-preview-uri-not-admitted"',
+    'data-zhiyu-runtime-action-artifact-preview={summary.previewState}',
+    'data-zhiyu-runtime-action-artifact-preview-reason={summary.previewReason}',
+    'runtime-agent-turn-artifact-ready-image-rendered',
+    'zhiyu-runtime-artifact-preview-uri-not-admitted',
     'metadata?.artifacts',
   ]) {
     assert.match(`${surfaceSource}\n${acceptanceSource}`, new RegExp(escapeRegExp(marker)), `${marker} missing from Runtime action/artifact visible parity`);
@@ -416,6 +420,25 @@ test('live Runtime acceptance captures restart snapshot hydration continuity', a
   assert.match(acceptanceSource, /await app\.close\(\);/);
   assert.match(acceptanceSource, /conversationAnchorId:\s*readyEvidence\.conversation\.conversationAnchorId/);
   assert.match(acceptanceSource, /messageCount\s*>=\s*4/);
+});
+
+test('live Runtime acceptance verifies Runtime-issued delegation scoped binding renewal', async () => {
+  const acceptanceSource = await readLiveRuntimeAcceptanceSource();
+
+  for (const marker of [
+    'renewDelegationScopedBinding',
+    'zhiyu-runtime-agent-scoped-binding-renewed',
+    'Runtime scoped binding renewal must issue a fresh binding instead of replaying the initial idempotency key',
+    'renewedScopedBinding',
+    'bindingSource, \'runtime-account-service\'',
+    'preConfigScopedBinding.bindingId',
+  ]) {
+    assert.match(
+      acceptanceSource,
+      new RegExp(escapeRegExp(marker)),
+      `${marker} missing from live Runtime scoped-binding renewal acceptance`,
+    );
+  }
 });
 
 test('chat voice controls are disabled/deferred instead of settings-only pseudo affordances', async () => {

@@ -72,36 +72,35 @@ export function projectZhiyuCompanionFromRuntimeAgentEvent(input: {
   readonly runtimeSourceRef: string;
   readonly observedAt?: string;
 }): ZhiyuCompanionStatus {
-  if (!input.event.eventName.startsWith('runtime.agent.state.')) {
+  const projection = projectRuntimeAgentCompanionEvent(input.event, input.current);
+  if (!projection) {
     return input.current;
   }
   const observedAt = normalizeText(input.observedAt) || new Date().toISOString();
-  const detail = input.event.detail || {};
-  const statusText = normalizeText(detail.currentStatusText) || input.current.statusText;
-  const executionState = normalizeText(detail.currentExecutionState) || input.current.executionState;
-  const currentEmotion = normalizeText(detail.currentEmotion) || input.current.currentEmotion;
-  const activeWorldId = normalizeText(detail.activeWorldId) || input.current.activeWorldId;
-  const activeUserId = normalizeText(detail.activeUserId) || input.current.activeUserId;
-  const hasPosture = Boolean(detail.currentPosture && typeof detail.currentPosture === 'object');
+  const statusText = projection.statusText || input.current.statusText;
+  const executionState = projection.executionState || input.current.executionState;
+  const currentEmotion = projection.currentEmotion || input.current.currentEmotion;
+  const activeWorldId = projection.activeWorldId || input.current.activeWorldId;
+  const activeUserId = projection.activeUserId || input.current.activeUserId;
   const projectedFields = uniqueTexts([
     ...input.current.projectedFields,
     'runtimeAgentEventSubscription',
+    ...projection.projectedFields,
     statusText ? 'statusText' : '',
     executionState ? 'executionState' : '',
     currentEmotion ? 'currentEmotion' : '',
     activeWorldId ? 'activeWorldId' : '',
     activeUserId ? 'activeUserId' : '',
-    hasPosture ? 'currentPosture' : '',
   ]);
   return {
     ...input.current,
     transport: 'electron-ipc',
     ready: true,
     state: 'projected',
-    reasonCode: 'runtime-agent-state-event-projected',
+    reasonCode: projection.reasonCode,
     actionHint: 'inspect_runtime_agent_state_event_subscription',
     source: 'runtime',
-    message: 'Runtime Agent state event was projected through SDK event subscription.',
+    message: projection.message,
     ownerUserId: input.ownerUserId,
     runtimeSourceRef: input.runtimeSourceRef,
     localAgentRef: input.event.localAgentRef || input.current.localAgentRef,
@@ -115,6 +114,238 @@ export function projectZhiyuCompanionFromRuntimeAgentEvent(input: {
     participationMode: activeWorldId ? 'world' : activeUserId ? 'dyadic' : 'idle',
     participationSource: activeWorldId || activeUserId || 'runtime-agent-event',
     projectedFields,
+  };
+}
+
+type CompanionEventProjection = {
+  readonly reasonCode: string;
+  readonly message: string;
+  readonly executionState: string | null;
+  readonly statusText: string | null;
+  readonly activeWorldId: string | null;
+  readonly activeUserId: string | null;
+  readonly currentEmotion: string | null;
+  readonly projectedFields: readonly string[];
+};
+
+function projectRuntimeAgentCompanionEvent(
+  event: NimiRuntimeAgentConsumeEvent,
+  current: ZhiyuCompanionStatus,
+): CompanionEventProjection | null {
+  const eventName = normalizeText(event.eventName);
+  const detail = event.detail || {};
+  if (eventName.startsWith('runtime.agent.state.')) {
+    return {
+      reasonCode: 'runtime-agent-state-event-projected',
+      message: 'Runtime Agent state event was projected through SDK event subscription.',
+      statusText: detailText(detail, 'currentStatusText', 'current_status_text') || current.statusText,
+      executionState: detailText(detail, 'currentExecutionState', 'current_execution_state') || current.executionState,
+      currentEmotion: detailText(detail, 'currentEmotion', 'current_emotion') || current.currentEmotion,
+      activeWorldId: detailText(detail, 'activeWorldId', 'active_world_id') || current.activeWorldId,
+      activeUserId: detailText(detail, 'activeUserId', 'active_user_id') || current.activeUserId,
+      projectedFields: [
+        detailRecord(detail, 'currentPosture', 'current_posture') ? 'currentPosture' : '',
+      ],
+    };
+  }
+  if (eventName.startsWith('runtime.agent.turn.action_') || eventName === 'runtime.agent.turn.artifact_ready') {
+    return projectRuntimeAgentTurnActionEvent(eventName, detail, current);
+  }
+  if (eventName === 'runtime.agent.presentation.activity_requested') {
+    return projectRuntimeAgentActivityEvent(detail, current);
+  }
+  if (
+    eventName === 'runtime.agent.presentation.voice_playback_requested'
+    || eventName === 'runtime.agent.presentation.voice_stream_chunk_available'
+  ) {
+    return projectRuntimeAgentVoiceEvent(eventName, detail, current);
+  }
+  if (eventName === 'runtime.agent.presentation.lipsync_frame_batch') {
+    return projectRuntimeAgentLipsyncEvent(detail, current);
+  }
+  if (eventName.startsWith('runtime.agent.presentation.')) {
+    return projectRuntimeAgentGenericPresentationEvent(eventName, detail, current);
+  }
+  if (eventName.startsWith('runtime.agent.hook.')) {
+    return projectRuntimeAgentHookEvent(eventName, detail, current);
+  }
+  return null;
+}
+
+function projectRuntimeAgentTurnActionEvent(
+  eventName: string,
+  detail: Record<string, unknown>,
+  current: ZhiyuCompanionStatus,
+): CompanionEventProjection {
+  const modality = detailText(detail, 'modality') || mimeModality(detailText(detail, 'mimeType', 'mime_type')) || 'action';
+  const phase = eventName.slice('runtime.agent.turn.'.length);
+  return runtimeProjection({
+    reasonCode: 'runtime-agent-turn-action-event-projected',
+    message: 'Runtime Agent turn action event was projected through SDK event subscription.',
+    executionState: `${modality}_${phase}`,
+    statusText: firstText([
+      detailText(detail, 'operation'),
+      detailText(detail, 'mimeType', 'mime_type'),
+      detailText(detail, 'reasonCode', 'reason_code'),
+      detailText(detail, 'message'),
+      detailText(detail, 'actionId', 'action_id'),
+      current.statusText,
+    ]),
+    current,
+    projectedFields: [
+      'turnActionEvent',
+      detailText(detail, 'actionId', 'action_id') ? 'actionId' : '',
+      detailText(detail, 'modality') ? 'actionModality' : '',
+      detailText(detail, 'operation') ? 'actionOperation' : '',
+      detailText(detail, 'artifactId', 'artifact_id') ? 'artifactId' : '',
+      detailText(detail, 'mimeType', 'mime_type') ? 'mimeType' : '',
+      detailText(detail, 'jobId', 'job_id') ? 'jobId' : '',
+      detailText(detail, 'reasonCode', 'reason_code') ? 'reasonCode' : '',
+    ],
+  });
+}
+
+function projectRuntimeAgentActivityEvent(
+  detail: Record<string, unknown>,
+  current: ZhiyuCompanionStatus,
+): CompanionEventProjection {
+  const activityName = detailText(detail, 'activityName', 'activity_name');
+  const category = detailText(detail, 'category');
+  return runtimeProjection({
+    reasonCode: 'runtime-agent-presentation-activity-event-projected',
+    message: 'Runtime Agent presentation activity event was projected through SDK event subscription.',
+    executionState: 'activity_requested',
+    statusText: activityName || category || current.statusText,
+    currentEmotion: category === 'emotion' ? activityName || current.currentEmotion : current.currentEmotion,
+    current,
+    projectedFields: [
+      'presentationActivity',
+      activityName ? 'activityName' : '',
+      category ? 'activityCategory' : '',
+      detailText(detail, 'intensity') ? 'activityIntensity' : '',
+      detailText(detail, 'source') ? 'activitySource' : '',
+    ],
+  });
+}
+
+function projectRuntimeAgentVoiceEvent(
+  eventName: string,
+  detail: Record<string, unknown>,
+  current: ZhiyuCompanionStatus,
+): CompanionEventProjection {
+  const playbackState = detailText(detail, 'playbackState', 'playback_state') || 'streaming';
+  const isChunk = eventName.endsWith('voice_stream_chunk_available');
+  return runtimeProjection({
+    reasonCode: 'runtime-agent-presentation-voice-event-projected',
+    message: 'Runtime Agent presentation voice event was projected through SDK event subscription.',
+    executionState: isChunk ? 'voice_stream_chunk_available' : `voice_${playbackState}`,
+    statusText: firstText([
+      detailText(detail, 'playbackTarget', 'playback_target'),
+      detailText(detail, 'defaultVoiceReference', 'default_voice_reference'),
+      detailText(detail, 'reason'),
+      detailText(detail, 'audioMimeType', 'audio_mime_type'),
+      current.statusText,
+    ]),
+    current,
+    projectedFields: [
+      isChunk ? 'voiceStreamChunk' : 'voicePlayback',
+      detailText(detail, 'audioArtifactId', 'audio_artifact_id') ? 'audioArtifactId' : '',
+      detailText(detail, 'audioMimeType', 'audio_mime_type') ? 'audioMimeType' : '',
+      detailText(detail, 'playbackTarget', 'playback_target') ? 'playbackTarget' : '',
+      detailRecord(detail, 'voiceRouteBinding', 'voice_route_binding') ? 'voiceRouteBinding' : '',
+    ],
+  });
+}
+
+function projectRuntimeAgentLipsyncEvent(
+  detail: Record<string, unknown>,
+  current: ZhiyuCompanionStatus,
+): CompanionEventProjection {
+  const frames = Array.isArray(detail.frames) ? detail.frames : [];
+  return runtimeProjection({
+    reasonCode: 'runtime-agent-presentation-lipsync-event-projected',
+    message: 'Runtime Agent presentation lipsync event was projected through SDK event subscription.',
+    executionState: 'lipsync_frame_batch',
+    statusText: frames.length > 0 ? `lipsync_frames:${frames.length}` : current.statusText,
+    current,
+    projectedFields: [
+      'lipsyncFrameBatch',
+      detailText(detail, 'audioArtifactId', 'audio_artifact_id') ? 'audioArtifactId' : '',
+      frames.length > 0 ? 'lipsyncFrames' : '',
+    ],
+  });
+}
+
+function projectRuntimeAgentGenericPresentationEvent(
+  eventName: string,
+  detail: Record<string, unknown>,
+  current: ZhiyuCompanionStatus,
+): CompanionEventProjection {
+  const phase = eventName.slice('runtime.agent.presentation.'.length);
+  return runtimeProjection({
+    reasonCode: 'runtime-agent-presentation-event-projected',
+    message: 'Runtime Agent presentation event was projected through SDK event subscription.',
+    executionState: phase,
+    statusText: firstText([
+      detailText(detail, 'activityName', 'activity_name'),
+      detailText(detail, 'expressionName', 'expression_name'),
+      detailText(detail, 'motionName', 'motion_name'),
+      detailText(detail, 'poseName', 'pose_name'),
+      current.statusText,
+    ]),
+    current,
+    projectedFields: ['presentationEvent', phase],
+  });
+}
+
+function projectRuntimeAgentHookEvent(
+  eventName: string,
+  detail: Record<string, unknown>,
+  current: ZhiyuCompanionStatus,
+): CompanionEventProjection {
+  const phase = eventName.slice('runtime.agent.hook.'.length);
+  return runtimeProjection({
+    reasonCode: 'runtime-agent-hook-event-projected',
+    message: 'Runtime Agent hook event was projected through SDK event subscription.',
+    executionState: `hook_${phase}`,
+    statusText: firstText([
+      detailText(detail, 'effect'),
+      detailText(detail, 'triggerFamily', 'trigger_family'),
+      detailText(detail, 'reasonCode', 'reason_code'),
+      detailText(detail, 'message'),
+      detailText(detail, 'intentId', 'intent_id'),
+      current.statusText,
+    ]),
+    current,
+    projectedFields: [
+      'hookIntent',
+      detailText(detail, 'intentId', 'intent_id') ? 'intentId' : '',
+      detailText(detail, 'triggerFamily', 'trigger_family') ? 'triggerFamily' : '',
+      detailText(detail, 'effect') ? 'hookEffect' : '',
+      detailText(detail, 'admissionState', 'admission_state') ? 'hookAdmissionState' : '',
+      detailText(detail, 'reasonCode', 'reason_code') ? 'reasonCode' : '',
+    ],
+  });
+}
+
+function runtimeProjection(input: {
+  readonly reasonCode: string;
+  readonly message: string;
+  readonly executionState: string | null;
+  readonly statusText: string | null;
+  readonly currentEmotion?: string | null;
+  readonly current: ZhiyuCompanionStatus;
+  readonly projectedFields: readonly string[];
+}): CompanionEventProjection {
+  return {
+    reasonCode: input.reasonCode,
+    message: input.message,
+    executionState: input.executionState || input.current.executionState,
+    statusText: input.statusText || input.current.statusText,
+    activeWorldId: input.current.activeWorldId,
+    activeUserId: input.current.activeUserId,
+    currentEmotion: input.currentEmotion ?? input.current.currentEmotion,
+    projectedFields: input.projectedFields,
   };
 }
 
@@ -220,6 +451,50 @@ function latestAssistantMessage(messages: readonly ConversationCanonicalMessage[
     }
   }
   return null;
+}
+
+function detailText(detail: Record<string, unknown>, ...keys: readonly string[]): string {
+  for (const key of keys) {
+    const value = normalizeText(detail[key]);
+    if (value) {
+      return value;
+    }
+  }
+  return '';
+}
+
+function detailRecord(detail: Record<string, unknown>, ...keys: readonly string[]): Record<string, unknown> | null {
+  for (const key of keys) {
+    const value = detail[key];
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+  }
+  return null;
+}
+
+function firstText(values: readonly (string | null | undefined)[]): string | null {
+  for (const value of values) {
+    const normalized = normalizeText(value);
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return null;
+}
+
+function mimeModality(mimeType: string): string {
+  const normalized = normalizeText(mimeType).toLowerCase();
+  if (normalized.startsWith('image/')) {
+    return 'image';
+  }
+  if (normalized.startsWith('audio/')) {
+    return 'voice';
+  }
+  if (normalized.startsWith('video/')) {
+    return 'video';
+  }
+  return '';
 }
 
 function uniqueTexts(values: readonly string[]): string[] {

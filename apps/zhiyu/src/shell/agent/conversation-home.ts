@@ -60,6 +60,10 @@ export async function probeZhiyuRuntimeConversationHome(
   });
 
   try {
+    await client.ensureInitialized({
+      ...identity,
+      displayName: identity.localAgentRef,
+    });
     await hydrateZhiyuAgentConversationAnchorBindingsFromStorage();
     const existingBinding = getZhiyuAgentConversationAnchorBinding(identity.localAgentRef);
     if (bindingMatchesIdentity(existingBinding, identity)) {

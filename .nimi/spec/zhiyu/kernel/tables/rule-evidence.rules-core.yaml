@@ -1,7 +1,25 @@
 version: 1
 table_family: support_registry
 owner: zhiyu
-rules:
+registry_id: zhiyu_rule_evidence_rules_core
+schema_ref: .nimi/contracts/table-family.schema.yaml#support_registry
+allowed_fields:
+  - rule_id
+  - evidence_requirement
+forbidden_state_fields:
+  - done
+  - covered
+  - coverage_status
+  - audit_date
+  - evidence_report
+  - current
+  - proposed
+  - backlog_status
+  - migration_status
+  - mapping_status
+  - run_id
+  - ledger_ref
+entries:
   - rule_id: Z-PROD-001
     evidence_requirement: product-authority-contract.md
   - rule_id: Z-AUTH-002

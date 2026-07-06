@@ -124,7 +124,7 @@ export function ZhiyuAgentChatSurface({
     },
   };
   const chatDisabled = !evidence.conversation.ready
-    || !evidence.route.executionBinding
+    || !evidence.route.ready
     || evidence.chat.state === 'streaming';
   const chatRuntimeHint = chatDisabled
     ? (

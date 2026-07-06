@@ -1,37 +1,41 @@
 version: 1
-table_family: closed_enum
+table_family: product_catalog
 owner: zhiyu
-enum_id: zhiyu_main_ui_vocabulary
+catalog_id: zhiyu_main_ui_vocabulary
 source_rule: Z-COPY-002
-allowed_main_ui_terms:
-  - 本地伙伴
-  - 伙伴
-  - 对话
-  - 设置模型
-  - 设置形象
-  - 启动形象
-  - 检查本地服务
-  - 打开诊断
-diagnostics_only_terms:
-  - Runtime
-  - SDK
-  - scope
-  - targetRef
-  - reasonCode
-  - not_admitted
-  - fixture
-  - gRPC
-  - local agent ref
-forbidden_main_ui_patterns:
-  - Runtime
-  - SDK
-  - scope
-  - targetRef
-  - reasonCode
-  - not_projected
-  - not_admitted
-  - fixture
-  - gRPC
-  - 上游投影
-  - 材料化失败
-  - 路由未解析
+entries:
+  - id: allowed_main_ui_terms
+    semantics:
+      - 本地伙伴
+      - 伙伴
+      - 对话
+      - 设置模型
+      - 设置形象
+      - 启动形象
+      - 检查本地服务
+      - 打开诊断
+  - id: diagnostics_only_terms
+    semantics:
+      - Runtime
+      - SDK
+      - scope
+      - targetRef
+      - reasonCode
+      - not_admitted
+      - fixture
+      - gRPC
+      - local agent ref
+  - id: forbidden_main_ui_patterns
+    semantics:
+      - Runtime
+      - SDK
+      - scope
+      - targetRef
+      - reasonCode
+      - not_projected
+      - not_admitted
+      - fixture
+      - gRPC
+      - 上游投影
+      - 材料化失败
+      - 路由未解析
