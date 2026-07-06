@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useTranslation } from 'react-i18next';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -12,6 +13,7 @@ import {
   WorldsLoadError,
   WorldsLoadingSkeleton,
 } from '../world/world-list';
+import type { WorldCharacter } from '../world/world-detail-types';
 import type { WorldListItem } from '../world/world-list-model';
 import {
   PersonaSourceCard,
@@ -43,6 +45,8 @@ type ExploreViewProps = {
   onPersonaSourceOpen?: (sourceId: string) => void;
   onPostAuthorOpen?: (target: PostCardAuthorProfileTarget) => void;
   onWorldOpen?: (worldId: string, options?: WorldDetailNavigationOptions) => void;
+  onWorldCharacterOpen?: (sourceRef: NimiRealmCoreSourceRef) => void;
+  onWorldCharacterMaterialize?: (character: WorldCharacter) => Promise<void> | void;
 };
 
 function ExploreSkeletonBlock({ className }: { className: string }) {
@@ -171,6 +175,8 @@ export function ExploreView(props: ExploreViewProps) {
               <WorldCatalogContent
                 worlds={props.worldCatalogItems}
                 onOpenWorld={(worldId, options) => props.onWorldOpen?.(worldId, options)}
+                onOpenPerson={props.onWorldCharacterOpen}
+                onMaterializePerson={props.onWorldCharacterMaterialize}
                 searchQuery={props.worldSearchText}
                 embedded
               />

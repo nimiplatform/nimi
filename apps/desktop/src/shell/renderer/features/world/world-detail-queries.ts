@@ -686,6 +686,9 @@ function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string
   }
   const relation = asRecord(character.relation);
   const relationState = readString(relation, 'state');
+  const projectedRelationState = relationState === 'connected'
+    ? 'connected'
+    : relationState === 'unavailable' ? 'unavailable' : 'connectable';
   const ownership = readString(character, 'ownership');
   const mediaAssets = readCharacterMediaAssets(character);
   return {
@@ -702,11 +705,9 @@ function toWorldDisplayCharacter(characterValue: unknown, worldCreatedAt: string
     sourceKind,
     ownership: ownership === 'userOwned' ? 'userOwned' : 'worldOwned',
     relation: {
-      state: relationState === 'unavailable'
-          ? 'unavailable'
-          : 'connectable',
-      connectionId: null,
-      runtimeSourceRef: null,
+      state: projectedRelationState,
+      connectionId: readString(relation, 'connectionId') || null,
+      runtimeSourceRef: readString(relation, 'runtimeSourceRef') || null,
     },
     role: readString(display, 'role') || null,
     faction: readString(display, 'faction') || null,

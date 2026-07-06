@@ -39,3 +39,8 @@ test('ExplorePanel passes topbar search state into the Worlds catalog without an
   assert.doesNotMatch(explorePanelSource, /onWorldSearchTextChange/);
   assert.doesNotMatch(explorePanelSource, /onSearchTextChange/);
 });
+
+test('ExplorePanel waits for Desktop bootstrap before loading the Worlds catalog', () => {
+  assert.match(explorePanelSource, /const bootstrapReady = useAppStore\(\(state\) => state\.bootstrapReady\);/);
+  assert.match(explorePanelSource, /enabled: bootstrapReady,/);
+});

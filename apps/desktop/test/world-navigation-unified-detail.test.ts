@@ -62,6 +62,17 @@ test('World Atlas selected panel no longer exposes quick people graph routing', 
   assert.match(explorePanelSource, /navigateToWorld\(worldId, options\)/);
 });
 
+test('World Atlas selected panel routes people through Source profiles and local-agent materialization', () => {
+  assert.doesNotMatch(worldListSource, /initialSubpage: 'people-archive'/);
+  assert.match(selectedWorldPanelSource, /onOpenPerson/);
+  assert.match(selectedWorldPanelSource, /onMaterializePerson/);
+  assert.match(selectedWorldPanelSource, /World\.atlas\.preview\.people\.joinLocalAgent/);
+  assert.doesNotMatch(selectedWorldPanelSource, /World\.atlas\.preview\.people\.addFriend/);
+  assert.match(explorePanelSource, /onWorldCharacterOpen/);
+  assert.match(explorePanelSource, /onWorldCharacterMaterialize/);
+  assert.match(explorePanelSource, /navigateToSourceDetail\(sourceRef\)/);
+});
+
 test('world detail tab renders active world detail panel through route-state loader', () => {
   assert.match(mainLayoutSource, /loadWorldDetailPanelModule\(\)/);
   assert.match(mainLayoutSource, /WorldDetailRouteLoading/);

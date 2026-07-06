@@ -52,6 +52,10 @@ const exploreViewSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/explore/explore-view.tsx'),
   'utf8',
 );
+const worldLocaleZhSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/locales/zh/15-World.json'),
+  'utf8',
+);
 
 test('world atlas page exposes the World Explorer product surface', () => {
   assert.match(worldListSource, /data-testid="world-atlas-glass-layout"/);
@@ -99,13 +103,55 @@ test('world atlas selected panel is a user-facing preview without quick entries'
   assert.doesNotMatch(selectedPanelSource, /data-testid="world-atlas-preview-quick-entries"/);
   assert.doesNotMatch(selectedPanelSource, /World\.atlas\.preview\.quick/);
   assert.match(selectedPanelSource, /World\.atlas\.preview\.metrics/);
-  assert.match(selectedPanelSource, /World\.atlas\.preview\.people\.addFriend/);
+  assert.match(selectedPanelSource, /World\.atlas\.preview\.people\.joinLocalAgent/);
+  assert.match(worldLocaleZhSource, /"joinLocalAgent": "添加角色"/);
+  assert.doesNotMatch(selectedPanelSource, /World\.atlas\.preview\.people\.addFriend/);
   assert.match(selectedPanelSource, /World\.atlas\.preview\.people\.unavailable/);
+  assert.doesNotMatch(selectedPanelSource, /World\.atlas\.preview\.people\.viewAll/);
+  assert.doesNotMatch(selectedPanelSource, /action=\{t\('World\.atlas\.preview\.people\.viewAll'\)\}/);
   assert.match(selectedPanelSource, /World\.card\.view/);
   assert.match(selectedPanelSource, /const \{ t, i18n \} = useTranslation\(\)/);
   assert.match(selectedPanelSource, /displayTags\(world, 2, i18n\.language\)/);
   assert.doesNotMatch(worldListSource, /World\.atlas\.sourceCount/);
   assert.doesNotMatch(worldListSource, /World\.atlas\.preview\.chatableTag/);
+});
+
+test('world atlas selected panel places metrics between title and description', () => {
+  const titleIndex = selectedPanelSource.indexOf('data-testid="world-atlas-hero-title"');
+  const metricsIndex = selectedPanelSource.indexOf('data-testid="world-atlas-preview-overview"');
+  const introIndex = selectedPanelSource.indexOf('data-testid="world-atlas-preview-intro"');
+  assert.ok(titleIndex >= 0, 'selected panel title marker must exist');
+  assert.ok(metricsIndex >= 0, 'selected panel metrics marker must exist');
+  assert.ok(introIndex >= 0, 'selected panel intro marker must exist');
+  assert.ok(titleIndex < metricsIndex, 'metrics must render below the selected world title');
+  assert.ok(metricsIndex < introIndex, 'description must render below the metrics block');
+});
+
+test('world atlas selected panel keeps preview metrics and people action compact', () => {
+  assert.doesNotMatch(selectedPanelSource, /\b(?:Archive|Image|Network|Users)\b/);
+  assert.match(selectedPanelSource, /function PanelMetric/);
+  assert.match(selectedPanelSource, /value=\{formatPanelMetric\(peopleCount\)\}/);
+  assert.match(selectedPanelSource, /value=\{formatPanelMetric\(world\.entityCount\)\}/);
+  assert.match(selectedPanelSource, /value=\{formatPanelMetric\(world\.sceneCount\)\}/);
+  assert.match(selectedPanelSource, /value=\{relationships > 0 \? formatPanelMetric\(relationships\) : '0'\}/);
+  assert.match(selectedPanelSource, /Math\.round\(n \/ 1000\)/);
+  assert.doesNotMatch(selectedPanelSource, /<Statistic\b/);
+  assert.doesNotMatch(selectedPanelSource, /label=\{t\('World\.atlas\.preview\.metrics/);
+  assert.doesNotMatch(selectedPanelSource, /className="mt-4 grid-cols-4 gap-1 rounded-\[16px\] border/);
+  assert.doesNotMatch(selectedPanelSource, /nimi-statistic__label/);
+});
+
+test('world atlas selected panel moves follow into hero chrome and removes share menu icons', () => {
+  assert.doesNotMatch(selectedPanelSource, /\bShare2\b/);
+  assert.doesNotMatch(selectedPanelSource, /\bMoreHorizontal\b/);
+  assert.doesNotMatch(selectedPanelSource, /World\.atlas\.actions\.shareWorld/);
+  assert.doesNotMatch(selectedPanelSource, /World\.atlas\.actions\.moreWorldActions/);
+  assert.doesNotMatch(selectedPanelSource, /grid-cols-\[minmax\(0,1fr\)_52px\]/);
+  assert.match(selectedPanelSource, /absolute right-3 top-3/);
+  assert.match(selectedPanelSource, /data-testid="world-panel-follow-toggle"/);
+  assert.match(selectedPanelSource, /icon=\{<Heart size=\{16\}/);
+  assert.match(selectedPanelSource, /size="sm"/);
+  assert.match(selectedPanelSource, /className=\{followed\s*\?\s*'rounded-full text-\[var\(--world-explorer-favorite\)\]'/);
 });
 
 test('world atlas selected panel loads recommended people through the primary display-detail query', () => {
@@ -177,7 +223,6 @@ test('world atlas hard-cuts local chrome primitives in favor of Nimi Kit', () =>
     'SelectField',
     'Avatar',
     'StatusBadge',
-    'Statistic',
     'StatisticGroup',
     'DataList',
     'EmptyState',

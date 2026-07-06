@@ -107,12 +107,16 @@
       "people": {
         "title": "People to meet",
         "viewAll": "View all people",
-        "addFriend": "Add friend",
+        "joinLocalAgent": "Add character",
+        "localAgentReady": "Local agent ready",
+        "localAgentUnavailable": "Unavailable",
+        "openProfile": "Open {{name}} profile",
+        "materializedFeedback": "{{name}} is now available as a local agent.",
         "empty": "This world has no people to meet yet.",
         "unavailable": "People data could not be loaded yet."
       },
       "status": {
-        "friends": "{{count}} friends added",
+        "friends": "{{count}} local agents added",
         "recent": "Meet first: {{names}}"
       }
     }

@@ -1,17 +1,12 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import {
-  Archive,
   ArrowRight,
   Check,
   Heart,
-  Image,
-  MoreHorizontal,
-  Network,
   Plus,
-  Share2,
-  Users,
 } from 'lucide-react';
 import {
   Avatar,
@@ -21,51 +16,46 @@ import {
   IconButton,
   LoadingSkeleton,
   NimiText,
-  Statistic,
   StatisticGroup,
   StatusBadge,
   Surface,
 } from '@nimiplatform/kit/ui';
-import { formatNum, worldInitial } from './world-list-atoms';
+import { worldInitial } from './world-list-atoms';
 import { displayTags, sourceCount } from './world-list-catalog-model';
 import { WorldCover } from './world-list-cover';
 import { WORLD_EXPLORER_THEME } from './world-list-theme';
 import { fetchWorldPrimaryDisplayDetail, worldPrimaryDisplayDetailQueryKey } from './world-detail-queries.js';
-import type { WorldListItem } from './world-list-model';
+import type { WorldCharacter } from './world-detail-types';
+import type { WorldCharacterItem, WorldListItem } from './world-list-model';
 
 type PreviewPerson = {
   id: string;
   name: string;
   blurb: string;
   avatarUrl: string | null;
+  sourceRef: NimiRealmCoreSourceRef | null;
+  character: WorldCharacter | null;
 };
 
-type LoadedPerson = {
-  id: string;
-  name?: string;
-  bio?: string | null;
-  avatarUrl?: string | null;
-  role?: string | null;
-  display?: {
-    role?: string | null;
-  } | null;
-};
-
-function previewPeople(world: WorldListItem, loaded: LoadedPerson[] | undefined): PreviewPerson[] {
+function previewPeople(world: WorldListItem, loaded: readonly WorldCharacter[] | undefined): PreviewPerson[] {
   const fromLoaded = (loaded ?? []).filter((character) => Boolean(character.name)).map((character) => ({
-    id: character.id,
-    name: character.name ?? '',
-    blurb: character.bio ?? character.role ?? character.display?.role ?? '',
-    avatarUrl: character.avatarUrl ?? null,
-  }));
-  if (fromLoaded.length > 0) {
-    return fromLoaded.slice(0, 3);
-  }
-  const fromCharacters = (world.characters ?? []).map((character) => ({
     id: character.id,
     name: character.name,
     blurb: character.bio ?? character.role ?? '',
     avatarUrl: character.avatarUrl ?? null,
+    sourceRef: character.sourceRef,
+    character,
+  }));
+  if (fromLoaded.length > 0) {
+    return fromLoaded.slice(0, 3);
+  }
+  const fromCharacters = (world.characters ?? []).map((character: WorldCharacterItem) => ({
+    id: character.id,
+    name: character.name,
+    blurb: character.bio ?? character.role ?? '',
+    avatarUrl: character.avatarUrl ?? null,
+    sourceRef: character.sourceRef ?? null,
+    character: null,
   }));
   if (fromCharacters.length > 0) {
     return fromCharacters.slice(0, 3);
@@ -75,6 +65,8 @@ function previewPeople(world: WorldListItem, loaded: LoadedPerson[] | undefined)
     name: character.name,
     blurb: '',
     avatarUrl: character.avatarUrl ?? null,
+    sourceRef: null,
+    character: null,
   }));
   return fromRecommended.slice(0, 3);
 }
@@ -83,15 +75,36 @@ function friendCount(world: WorldListItem): number {
   return (world.characters ?? []).filter((character) => character.ownership === 'userOwned').length;
 }
 
+function localAgentActionLabel(person: PreviewPerson, t: ReturnType<typeof useTranslation>['t']): string {
+  const state = person.character?.relation?.state;
+  if (state === 'connected') {
+    return t('World.atlas.preview.people.localAgentReady');
+  }
+  if (state === 'unavailable' || !person.character) {
+    return t('World.atlas.preview.people.localAgentUnavailable');
+  }
+  return t('World.atlas.preview.people.joinLocalAgent');
+}
+
+function formatPanelMetric(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return '0';
+  if (n >= 1000) return `${Math.round(n / 1000)}k`;
+  return String(Math.round(n));
+}
+
 export function SelectedWorldPanel({
   world,
   onOpen,
+  onOpenPerson,
+  onMaterializePerson,
   followed = false,
   followAvailable = false,
   onToggleFollow,
 }: {
   world: WorldListItem;
   onOpen: () => void;
+  onOpenPerson?: (sourceRef: NimiRealmCoreSourceRef) => void;
+  onMaterializePerson?: (character: WorldCharacter) => Promise<void> | void;
   followed?: boolean;
   followAvailable?: boolean;
   onToggleFollow?: () => void;
@@ -108,7 +121,7 @@ export function SelectedWorldPanel({
     staleTime: 30_000,
   });
   const people = useMemo(
-    () => previewPeople(world, peopleQuery.data?.characters as LoadedPerson[] | undefined),
+    () => previewPeople(world, peopleQuery.data?.characters),
     [world, peopleQuery.data],
   );
   const peopleLoading = peopleCount > 0 && people.length === 0 && (peopleQuery.isPending || peopleQuery.isFetching);
@@ -121,8 +134,32 @@ export function SelectedWorldPanel({
 
   const peopleItems = people.map((person) => ({
     id: person.id,
-    title: person.name,
-    leading: (
+    title: person.sourceRef && onOpenPerson ? (
+      <button
+        type="button"
+        className="max-w-full truncate text-left text-sm font-semibold text-[var(--world-explorer-text)] hover:text-[var(--world-explorer-brand)]"
+        aria-label={t('World.atlas.preview.people.openProfile', { name: person.name })}
+        onClick={() => onOpenPerson(person.sourceRef as NimiRealmCoreSourceRef)}
+      >
+        {person.name}
+      </button>
+    ) : person.name,
+    leading: person.sourceRef && onOpenPerson ? (
+      <button
+        type="button"
+        className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--world-explorer-brand)] focus-visible:ring-offset-2"
+        aria-label={t('World.atlas.preview.people.openProfile', { name: person.name })}
+        onClick={() => onOpenPerson(person.sourceRef as NimiRealmCoreSourceRef)}
+      >
+        <Avatar
+          alt={person.name}
+          src={person.avatarUrl}
+          size="md"
+          fallback={worldInitial(person.name)}
+          fallbackClassName="bg-[image:var(--nimi-surface-hero)] text-[var(--nimi-action-primary-text)]"
+        />
+      </button>
+    ) : (
       <Avatar
         alt={person.name}
         src={person.avatarUrl}
@@ -136,10 +173,16 @@ export function SelectedWorldPanel({
         type="button"
         tone="secondary"
         size="sm"
+        disabled={!person.character || person.character.relation?.state !== 'connectable' || !onMaterializePerson}
+        onClick={() => {
+          if (person.character) {
+            void onMaterializePerson?.(person.character);
+          }
+        }}
         leadingIcon={<Plus size={14} aria-hidden="true" />}
         className="rounded-full border-[var(--world-explorer-border)] bg-[var(--world-explorer-surface)] text-[var(--world-explorer-brand)] hover:bg-[var(--world-explorer-brand-soft)]"
       >
-        {t('World.atlas.preview.people.addFriend')}
+        {localAgentActionLabel(person, t)}
       </Button>
     ),
   }));
@@ -157,22 +200,22 @@ export function SelectedWorldPanel({
     >
       <div className="p-4 pb-0">
         <WorldCover world={world} variant="panel" overlay>
-          <div className="absolute right-3 top-3 flex gap-2">
+          <div className="absolute right-3 top-3">
             <IconButton
-              aria-label={t('World.atlas.actions.shareWorld')}
-              icon={<Share2 size={16} aria-hidden="true" />}
+              type="button"
+              data-testid="world-panel-follow-toggle"
+              aria-label={followed ? t('World.atlas.followed.unfollow') : t('World.atlas.followed.follow')}
+              aria-pressed={followed}
+              title={followAvailable ? undefined : t('World.atlas.followed.unavailable')}
+              disabled={!followAvailable || !onToggleFollow}
+              icon={<Heart size={16} fill={followed ? 'currentColor' : 'none'} aria-hidden="true" />}
               tone="secondary"
               size="sm"
-              className="rounded-full text-[var(--world-explorer-text-secondary)]"
+              className={followed
+                ? 'rounded-full text-[var(--world-explorer-favorite)]'
+                : 'rounded-full text-[var(--world-explorer-text-muted)]'}
               style={WORLD_EXPLORER_THEME.iconButton}
-            />
-            <IconButton
-              aria-label={t('World.atlas.actions.moreWorldActions')}
-              icon={<MoreHorizontal size={16} aria-hidden="true" />}
-              tone="secondary"
-              size="sm"
-              className="rounded-full text-[var(--world-explorer-text-secondary)]"
-              style={WORLD_EXPLORER_THEME.iconButton}
+              onClick={() => onToggleFollow?.()}
             />
           </div>
           <div className="absolute right-4 bottom-4 left-4 flex flex-wrap gap-1.5">
@@ -197,31 +240,30 @@ export function SelectedWorldPanel({
         >
           {world.name}
         </NimiText>
+
+        <StatisticGroup
+          data-testid="world-atlas-preview-overview"
+          className="mt-4 grid-cols-4 gap-1"
+        >
+          <PanelMetric value={formatPanelMetric(peopleCount)} helper={t('World.atlas.preview.metrics.people')} />
+          <PanelMetric value={formatPanelMetric(world.entityCount)} helper={t('World.atlas.preview.metrics.materials')} />
+          <PanelMetric value={formatPanelMetric(world.sceneCount)} helper={t('World.atlas.preview.metrics.scenes')} />
+          <PanelMetric
+            value={relationships > 0 ? formatPanelMetric(relationships) : '0'}
+            helper={t('World.atlas.preview.metrics.networkCompact')}
+          />
+        </StatisticGroup>
         <NimiText
           data-testid="world-atlas-preview-intro"
           role="body"
-          className="mt-2 text-[13.5px] font-medium leading-[1.65] text-[var(--world-explorer-text-secondary)]"
+          className="mt-3 text-[13.5px] font-medium leading-[1.65] text-[var(--world-explorer-text-secondary)]"
           style={WORLD_EXPLORER_THEME.introClamp}
         >
           {intro}
         </NimiText>
 
-        <StatisticGroup
-          data-testid="world-atlas-preview-overview"
-          className="mt-4 grid-cols-4 gap-1 rounded-[16px] border border-[var(--world-explorer-border)] bg-[var(--world-explorer-surface)] p-2 [&_.nimi-statistic]:min-h-[58px] [&_.nimi-statistic]:content-center [&_.nimi-statistic]:justify-items-center [&_.nimi-statistic]:gap-1 [&_.nimi-statistic]:rounded-none [&_.nimi-statistic]:border-0 [&_.nimi-statistic]:bg-transparent [&_.nimi-statistic]:px-0 [&_.nimi-statistic]:py-1 [&_.nimi-statistic]:text-center [&_.nimi-statistic__label]:flex [&_.nimi-statistic__label]:justify-center [&_.nimi-statistic__label]:tracking-normal [&_.nimi-statistic__label]:normal-case [&_.nimi-statistic__label]:text-[var(--world-explorer-text-muted)] [&_.nimi-statistic__value]:max-w-full [&_.nimi-statistic__value]:justify-center [&_.nimi-statistic__value]:gap-0 [&_.nimi-statistic__value]:text-[17px] [&_.nimi-statistic__value]:leading-5 [&_.nimi-statistic__value]:font-extrabold [&_.nimi-statistic__value]:!text-[var(--world-explorer-text)] [&_.nimi-statistic__value>.truncate]:!overflow-visible [&_.nimi-statistic__value>.truncate]:!text-clip [&_.nimi-statistic__value>.truncate]:!whitespace-nowrap [&_.nimi-statistic__helper]:!overflow-visible [&_.nimi-statistic__helper]:!text-clip [&_.nimi-statistic__helper]:!whitespace-normal [&_.nimi-statistic__helper]:text-[11px] [&_.nimi-statistic__helper]:font-semibold [&_.nimi-statistic__helper]:text-[var(--world-explorer-text-secondary)]"
-        >
-          <Statistic value={formatNum(peopleCount)} label={<Users size={15} aria-hidden="true" />} helper={t('World.atlas.preview.metrics.people')} />
-          <Statistic value={formatNum(world.entityCount)} label={<Archive size={15} aria-hidden="true" />} helper={t('World.atlas.preview.metrics.materials')} />
-          <Statistic value={formatNum(world.sceneCount)} label={<Image size={15} aria-hidden="true" />} helper={t('World.atlas.preview.metrics.scenes')} />
-          <Statistic
-            value={relationships > 0 ? formatNum(relationships) : '0'}
-            label={<Network size={15} aria-hidden="true" />}
-            helper={t('World.atlas.preview.metrics.networkCompact')}
-          />
-        </StatisticGroup>
-
         <section data-testid="world-atlas-preview-people" className="mt-5">
-          <PanelHeading title={t('World.atlas.preview.people.title')} action={t('World.atlas.preview.people.viewAll')} />
+          <PanelHeading title={t('World.atlas.preview.people.title')} />
           <div className="mt-3">
             {peopleLoading ? (
               <Surface tone="card" material="solid" padding="md" className="grid gap-3 rounded-[16px]" style={WORLD_EXPLORER_THEME.weakBlock}>
@@ -258,7 +300,7 @@ export function SelectedWorldPanel({
           </Surface>
         ) : null}
 
-        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_52px] gap-3">
+        <div className="mt-4">
           <Button
             type="button"
             tone="primary"
@@ -271,37 +313,29 @@ export function SelectedWorldPanel({
           >
             {t('World.card.view')}
           </Button>
-          <IconButton
-            type="button"
-            data-testid="world-panel-follow-toggle"
-            aria-label={followed ? t('World.atlas.followed.unfollow') : t('World.atlas.followed.follow')}
-            aria-pressed={followed}
-            title={followAvailable ? undefined : t('World.atlas.followed.unavailable')}
-            disabled={!followAvailable || !onToggleFollow}
-            icon={<Heart size={19} fill={followed ? 'currentColor' : 'none'} aria-hidden="true" />}
-            tone="secondary"
-            size="lg"
-            className={followed
-              ? 'rounded-[16px] text-[var(--world-explorer-favorite)]'
-              : 'rounded-[16px] text-[var(--world-explorer-text-muted)]'}
-            style={WORLD_EXPLORER_THEME.iconButton}
-            onClick={() => onToggleFollow?.()}
-          />
         </div>
       </div>
     </Surface>
   );
 }
 
-function PanelHeading({ title, action }: { title: string; action?: string }) {
+function PanelMetric({ value, helper }: { value: string; helper: string }) {
+  return (
+    <div className="grid min-w-0 justify-items-center gap-1 py-1 text-center">
+      <span className="max-w-full overflow-visible text-clip whitespace-nowrap text-[17px] font-extrabold leading-5 text-[var(--world-explorer-text)]">
+        {value}
+      </span>
+      <span className="overflow-visible text-clip whitespace-normal text-[11px] font-semibold text-[var(--world-explorer-text-secondary)]">
+        {helper}
+      </span>
+    </div>
+  );
+}
+
+function PanelHeading({ title }: { title: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
       <NimiText as="h3" role="card-title" className="text-[15px] font-bold text-[var(--world-explorer-text)]">{title}</NimiText>
-      {action ? (
-        <Button type="button" tone="ghost" size="sm" className="px-0 text-[var(--world-explorer-text-secondary)] hover:bg-transparent hover:text-[var(--world-explorer-brand)]">
-          {action}
-        </Button>
-      ) : null}
     </div>
   );
 }

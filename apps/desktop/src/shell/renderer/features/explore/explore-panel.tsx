@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { realmExploreData } from './data/realm-explore-data';
@@ -17,8 +18,10 @@ import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { parsePersonaSources, toProfileTargetFromPersonaSource } from './explore-persona-source-projection';
 import {
   fetchWorldListItems,
+  worldPrimaryDisplayDetailQueryKey,
   worldListQueryKey,
 } from '../world/world-detail-queries.js';
+import type { WorldCharacter } from '../world/world-detail-types.js';
 import {
   discoverRealmSourceLocalAgents,
   realmPersonaSourceMaterializationFailureMessage,
@@ -46,9 +49,11 @@ type ExplorePanelProps = {
 
 export function ExplorePanel(props: ExplorePanelProps) {
   const queryClient = useQueryClient();
+  const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
+  const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
@@ -62,6 +67,7 @@ export function ExplorePanel(props: ExplorePanelProps) {
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
     queryFn: async () => fetchWorldListItems(),
+    enabled: bootstrapReady,
     staleTime: 30_000,
   });
 
@@ -246,6 +252,45 @@ export function ExplorePanel(props: ExplorePanelProps) {
     [navigateToWorld],
   );
 
+  const onWorldCharacterOpen = useCallback(
+    (sourceRef: NimiRealmCoreSourceRef) => {
+      navigateToSourceDetail(sourceRef);
+    },
+    [navigateToSourceDetail],
+  );
+
+  const onWorldCharacterMaterialize = useCallback(async (character: WorldCharacter) => {
+    try {
+      const target = await materializeSourceContactLaunchTarget({
+        ...character,
+        isSource: true,
+        displayName: character.name,
+        sourceWorldId: character.sourceRef.worldId,
+        sourceKind: character.sourceRef.kind,
+        sourceId: character.sourceRef.sourceId,
+        sourceContentHash: character.sourceRef.sourceContentHash,
+      }, ownerUserId);
+      await ensureRuntimeAgentExists(target);
+      await queryClient.invalidateQueries({
+        queryKey: worldPrimaryDisplayDetailQueryKey(character.sourceRef.worldId),
+        exact: true,
+      });
+      await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
+      setFeedback({
+        kind: 'success',
+        message: i18n.t('World.atlas.preview.people.materializedFeedback', {
+          name: character.name,
+          defaultValue: '{{name}} is now available as a local agent.',
+        }),
+      });
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: realmPersonaSourceMaterializationFailureMessage(error),
+      });
+    }
+  }, [ownerUserId, queryClient]);
+
   const onPersonaSourceOpen = useCallback(
     (sourceId: string) => {
       const target = personaSources.find((item) => item.id === sourceId) || null;
@@ -283,6 +328,8 @@ export function ExplorePanel(props: ExplorePanelProps) {
         onPersonaSourceOpen={onPersonaSourceOpen}
         onPostAuthorOpen={setSelectedProfileTarget}
         onWorldOpen={onWorldOpen}
+        onWorldCharacterOpen={onWorldCharacterOpen}
+        onWorldCharacterMaterialize={onWorldCharacterMaterialize}
       />
       <SendGiftModal
         open={giftModalOpen}

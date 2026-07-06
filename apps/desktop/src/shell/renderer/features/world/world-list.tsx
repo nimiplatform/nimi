@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, LoadingSkeleton, NimiText, ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import type { WorldDetailNavigationOptions } from '@renderer/app-shell/providers/store-types';
 import { formatNum } from './world-list-atoms';
 import { categoryMatches, isWorldVisibleInAtlas, matchesQuery, selectFeaturedWorlds, selectInitialWorld, sortWorlds, type CategoryId, type SortId, type ViewMode } from './world-list-catalog-model';
@@ -11,6 +12,7 @@ import { FeaturedStrip } from './world-list-featured-strip';
 import { SelectedWorldPanel } from './world-list-selected-panel';
 import { useFollowedWorlds } from './world-follow-store';
 import { WORLD_EXPLORER_THEME } from './world-list-theme';
+import type { WorldCharacter } from './world-detail-types';
 import type { WorldListItem } from './world-list-model';
 
 export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean }) {
@@ -59,11 +61,15 @@ export function WorldsLoadError({ embedded = false }: { embedded?: boolean }) {
 export function WorldCatalogContent({
   worlds,
   onOpenWorld,
+  onOpenPerson,
+  onMaterializePerson,
   embedded = false,
   searchQuery,
 }: {
   worlds: WorldListItem[];
   onOpenWorld: (worldId: string, options?: WorldDetailNavigationOptions) => void;
+  onOpenPerson?: (sourceRef: NimiRealmCoreSourceRef) => void;
+  onMaterializePerson?: (character: WorldCharacter) => Promise<void> | void;
   embedded?: boolean;
   searchQuery?: string;
 }) {
@@ -200,6 +206,8 @@ export function WorldCatalogContent({
           <SelectedWorldPanel
             world={selectedWorld}
             onOpen={() => onOpenWorld(selectedWorld.id)}
+            onOpenPerson={onOpenPerson}
+            onMaterializePerson={onMaterializePerson}
             followed={followed.isFollowed(selectedWorld.id)}
             followAvailable={followed.available}
             onToggleFollow={() => followed.toggle(selectedWorld.id)}

@@ -107,12 +107,16 @@
       "people": {
         "title": "推荐认识",
         "viewAll": "查看全部人物",
-        "addFriend": "加好友",
+        "joinLocalAgent": "添加角色",
+        "localAgentReady": "已在本地",
+        "localAgentUnavailable": "暂不可加入",
+        "openProfile": "打开 {{name}} 资料",
+        "materializedFeedback": "{{name}} 已加入本地，可在我的角色中打开聊天。",
         "empty": "这个世界还没有可结识的人物。",
         "unavailable": "人物数据暂时无法加载。"
       },
       "status": {
-        "friends": "已添加好友 {{count}} 位",
+        "friends": "已加入本地 {{count}} 位",
         "recent": "可先认识：{{names}}"
       }
     }

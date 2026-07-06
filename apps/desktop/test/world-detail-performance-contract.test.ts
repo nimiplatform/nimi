@@ -165,6 +165,32 @@ test('world primary display detail resolves without waiting for supplemental sec
   }
 });
 
+test('world primary display detail preserves connected local-agent relation state', async () => {
+  const originalLoadWorldDetailWithCharacters = realmWorldData.loadWorldDetailWithCharacters;
+  realmWorldData.loadWorldDetailWithCharacters = async () => ({
+    ...primaryWorldFixture,
+    characters: primaryWorldFixture.characters.map((character) => ({
+      ...character,
+      relation: {
+        state: 'connected',
+        connectionId: 'local-agent-primary',
+        runtimeSourceRef: 'realm-source:world-primary:character-primary',
+      },
+    })),
+  });
+
+  try {
+    const detail = await fetchWorldPrimaryDisplayDetail('world-primary');
+    const relation = detail.characters[0]?.relation;
+
+    assert.equal(relation?.state, 'connected');
+    assert.equal(relation?.connectionId, 'local-agent-primary');
+    assert.equal(relation?.runtimeSourceRef, 'realm-source:world-primary:character-primary');
+  } finally {
+    realmWorldData.loadWorldDetailWithCharacters = originalLoadWorldDetailWithCharacters;
+  }
+});
+
 test('world semantic bundle projects public world detail without raw core fallback', () => {
   const semanticStart = worldFlowSource.indexOf('export async function loadWorldSemanticBundle');
   const semanticEnd = worldFlowSource.indexOf('\nexport const realmWorldData', semanticStart);
