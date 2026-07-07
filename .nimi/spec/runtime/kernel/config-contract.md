@@ -48,7 +48,7 @@ provider 对应 `baseUrl/apiKey` 的环境变量绑定以 `provider-probe-target
 
 - `~/.nimi/runtime/config.json`（本契约管辖的 machine config）为重启生效，
   除非某条规则显式另行声明。
-- Runtime Agent execution config（K-AGCORE-144~150）不属于本契约的 machine
+- Runtime Agent AI Config（K-AGCORE-144~150）不属于本契约的 machine
   config plane。它经 RuntimeAgentService RPC 持久化于 runtime store，热生效，
   粒度为 next-turn：变更不影响 in-flight turn 的 execution snapshot。
 

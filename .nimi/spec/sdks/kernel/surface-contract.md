@@ -81,7 +81,7 @@ surface 必须维持 runtime-owned authority cut：
 - SDK may expose typed request builders and projections for
   `runtime.agent.getAgentCanonicalMemoryBankStatus` and
   `runtime.agent.requestAgentCanonicalMemoryBankBind`, but must not synthesize
-  canonical bank mode/status from memory embedding editable config,
+  canonical bank mode/status from Runtime Agent AI Config `text.embed` form state,
   runtime-private inspect state, or raw `GetBank`
 - `@nimiplatform/sdk/realm` 不再承载 canonical agent-memory public helper；runtime-era app path 只能消费 `runtime.agent.*`
 

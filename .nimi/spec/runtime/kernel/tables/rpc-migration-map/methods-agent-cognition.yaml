@@ -13,7 +13,7 @@ surfaces:
 services:
   - RuntimeCognitionService
   - RuntimeAgentService
-method_count: 89
+method_count: 91
 method_mappings:
   - design_service: RuntimeCognitionService
     design_method: CreateKnowledgeBank
@@ -144,16 +144,6 @@ method_mappings:
     design_method: SubscribeMemoryEvents
     proto_service: RuntimeCognitionService
     proto_method: SubscribeMemoryEvents
-    mapping_posture: aligned
-  - design_service: RuntimeCognitionService
-    design_method: GetMemoryEmbeddingRuntimeIntent
-    proto_service: RuntimeCognitionService
-    proto_method: GetMemoryEmbeddingRuntimeIntent
-    mapping_posture: aligned
-  - design_service: RuntimeCognitionService
-    design_method: SetMemoryEmbeddingRuntimeIntent
-    proto_service: RuntimeCognitionService
-    proto_method: SetMemoryEmbeddingRuntimeIntent
     mapping_posture: aligned
   - design_service: RuntimeCognitionService
     design_method: InspectMemoryEmbeddingRuntime
@@ -446,22 +436,22 @@ method_mappings:
     proto_method: InterruptAgentVoicePlayback
     mapping_posture: aligned
   - design_service: RuntimeAgentService
-    design_method: GetAgentExecutionConfig
+    design_method: GetRuntimeAgentAIConfig
     proto_service: RuntimeAgentService
-    proto_method: GetAgentExecutionConfig
+    proto_method: GetRuntimeAgentAIConfig
     mapping_posture: aligned
   - design_service: RuntimeAgentService
-    design_method: UpsertAgentExecutionConfig
+    design_method: UpsertRuntimeAgentAIConfig
     proto_service: RuntimeAgentService
-    proto_method: UpsertAgentExecutionConfig
+    proto_method: UpsertRuntimeAgentAIConfig
     mapping_posture: aligned
   - design_service: RuntimeAgentService
-    design_method: GetAgentExecutionReadiness
+    design_method: GetRuntimeAgentAIConfigReadiness
     proto_service: RuntimeAgentService
-    proto_method: GetAgentExecutionReadiness
+    proto_method: GetRuntimeAgentAIConfigReadiness
     mapping_posture: aligned
   - design_service: RuntimeAgentService
-    design_method: SubscribeAgentExecutionReadiness
+    design_method: SubscribeRuntimeAgentAIConfigReadiness
     proto_service: RuntimeAgentService
-    proto_method: SubscribeAgentExecutionReadiness
+    proto_method: SubscribeRuntimeAgentAIConfigReadiness
     mapping_posture: aligned

@@ -24,7 +24,7 @@ Desktop 侧 conversation capability authority 固定拆分为四层：
 
 - `ConversationCapabilitySelectionStore`：唯一可持久化的 selection truth
 - `ConversationCapabilityProjection`：只读 app-facing projection
-- Agent Chat capability truth：已从本 overlay 切出（见 D-LLM-018 carve-out）。Agent Chat 的 binding/readiness truth 是 Runtime Agent execution config（K-AGCORE-144~150）；`text.generate` readiness 决定 send readiness，`image.generate` readiness 仅作为可选 media capability truth 暴露，不得反向阻断基础发送。
+- Agent Chat capability truth：已从本 overlay 切出（见 D-LLM-018 carve-out）。Agent Chat 的 binding/readiness truth 是 Runtime Agent AI Config（K-AGCORE-144~150）；`text.generate` readiness 决定 send readiness，`image.generate` readiness 仅作为可选 media capability truth 暴露，不得反向阻断基础发送。
 - `ConversationExecutionSnapshot`：每次 turn/job 固化的执行证据
 
 Desktop host bootstrap 是 conversation capability shared builder 的唯一 authority home：
@@ -153,19 +153,19 @@ producer -> projection 映射规则固定为：
 
 Agent Chat capability truth is carved out of the Desktop conversation
 capability overlay. The committed binding and readiness truth for Agent Chat
-is the Runtime Agent execution config and its readiness projection
+is Runtime Agent AI Config and its readiness projection
 (`K-AGCORE-144`~`K-AGCORE-150`), consumed through the admitted
-RuntimeAgentService / SDK execution-config surface.
+RuntimeAgentService / SDK ai-config surface.
 
 固定规则：
 
-- Desktop Agent Chat 的可发送性与图片能力状态只允许消费 Runtime execution
-  config readiness projection（`ready` / `not_configured` / `unavailable` 与
+- Desktop Agent Chat 的可发送性与图片能力状态只允许消费 Runtime Agent AI Config
+  readiness projection（`ready` / `not_configured` / `unavailable` 与
   typed reason codes）；`ConversationCapabilitySelectionStore`、
   `ConversationCapabilityProjection`、`runtimeFields`、UI 局部状态都不再是
   Agent Chat 的 binding/readiness truth 来源。
-- Desktop 的模型配置界面在 Agent Chat 语境下是 Runtime execution config 的
-  编辑器：写入必须经 admitted execution-config mutation surface（含
+- Desktop 的模型配置界面在 Agent Chat 语境下是 Runtime Agent AI Config 的
+  编辑器：写入必须经 admitted ai-config mutation surface（含
   revision 乐观并发），不得持久化平行的 agent chat route truth。
 - Agent Chat turn 提交不携带 execution binding payload（K-AGCORE-147）。
 - readiness `ready` 只表示 Runtime 报告可用 capability route。Desktop 不得
@@ -200,11 +200,11 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
 
 ## D-LLM-020 — Voice Workflow Capability Semantics
 
-`voice_workflow.voice_clone` 与 `voice_workflow.voice_design` 在 Desktop projection 中必须与 `audio.synthesize` 保持独立 capability key、独立 selected binding、独立 resolved binding、独立 health、独立 describe metadata。
+`voice_workflow.voice_clone` 与 `voice_workflow.voice_design` intent 归属 Runtime Agent AI Config；Runtime voice owns workflow execution/artifact projection。Desktop projection 只能消费 Runtime/SDK readiness 与结果，不得生成 voice 或独立决定 workflow model/provider。
 
 - `audio.synthesize` healthy 不得自动使 `voice_workflow.*` projection `supported=true`
 - workflow capability 缺独立 binding/metadata/compatibility proof 时必须映射为 `binding_unresolved`、`route_unhealthy`、`metadata_missing` 或 `capability_unsupported`
-- Runtime Config、AI/Agent setup、submit path 都必须消费同一 workflow projection，不得在某一消费点把 workflow 当作 `audio.synthesize` 的隐式附属面
+- Runtime Config、AI/Agent setup、submit path 都必须消费同一 Runtime Agent AI Config / Runtime voice workflow projection，不得在某一消费点把 workflow 当作 `audio.synthesize` 的隐式附属面
 
 ## D-LLM-021 — RuntimeFields And Runtime Config Boundary
 
@@ -212,7 +212,7 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
 
 - Runtime Config 的角色是 authority editor：只编辑 SelectionStore/default refs
 - Runtime Config 不得持久化 resolved binding、health、metadata 或 projection reason
-- Runtime Config 可以承载 Desktop-host-owned memory embedding adjacent live config，但该 config 只表达 user-selected source / binding intent，不表达 resolved profile、bind success、bank identity、migration readiness 或 cutover completion。
+- Runtime Config 不得承载 Desktop-host-owned Runtime Local Agent memory embedding truth；Agent Center 的 embedding intent must go through Runtime Agent AI Config, while resolved profile、bind success、bank identity、migration readiness、cutover completion remain Runtime memory / RuntimeCognitionService projections.
 - Runtime Config 对 runtime memory resolved state、bank availability、bind / rebuild / cutover readiness 的读取只消费 admitted typed host/runtime boundary；renderer-local form state、private loopback HTTP、本地资产启发式或 `canonical-bind` 类 convenience endpoint 不构成正式产品 contract。
 - AI / Agent submit path 只允许消费 `ConversationCapabilityProjection` 与 `ConversationExecutionSnapshot`；不得重新从可写 `runtimeFields` 拼装 capability truth
 - AI / Agent submit path must submit typed user intent through admitted SDK /
@@ -230,21 +230,21 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
   transcript/caption semantics. Those are Runtime-owned projection/output truth
   for Desktop.
 
-## D-LLM-022 Agent Center Runtime Execution Config Consumer Boundary
+## D-LLM-022 Agent Center Runtime Agent AI Config Consumer Boundary
 
 Agent Center product UI for Agent Chat belongs to Kit Agent Center after
 `kit.features.agent-center` admission. Desktop may place the Kit surface and
 provide typed host adapters, but the model/readiness editor inside Agent Center
-must read and mutate Runtime Agent execution config with `expected_revision`.
+must read and mutate Runtime Agent AI Config with `expected_revision`.
 Desktop generic AIConfig settings remain outside Agent Center.
 
 Desktop diagnostics for Agent Chat may display route/model/provider identity
 only when Runtime projects it as accepted turn/config projection; otherwise the
 diagnostic field is absent. Desktop AIConfig, conversation capability bindings,
-route cache, `runtimeFields`, and `AISnapshot` are not Agent Chat execution
+route cache, `runtimeFields`, and `AISnapshot` are not Agent Chat AI consume
 truth.
 
-Agent Chat optional `audio.synthesize` is read-only Runtime readiness
-projection for this wave. Desktop conversation capability `audio.synthesize`
-or voice workflow capability state must not be reinterpreted as Runtime Agent
-audio binding truth.
+Agent Chat `audio.synthesize` and `voice_workflow.*` intent are Runtime Agent
+AI Config-owned. Desktop conversation capability `audio.synthesize` or voice
+workflow capability state must not be reinterpreted as Runtime Agent audio
+binding truth, generation policy, or workflow ownership.

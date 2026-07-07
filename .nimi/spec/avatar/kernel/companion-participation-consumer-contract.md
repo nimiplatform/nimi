@@ -169,7 +169,7 @@ or local fallback execution.
 Avatar may consume Agent Center appearance inputs only as admitted local asset
 references and Runtime/SDK presentation projection. This boundary admits local
 Live2D/VRM/background refs, validation evidence, and launch bridge inputs, but
-does not admit any Agent Center model, provider, Runtime execution config,
+does not admit any Agent Center model, provider, Runtime Agent AI Config,
 memory, transcript, Runtime snapshot, route, or turn execution truth.
 
 Avatar package resolvers and bridge payload parsers must reject Runtime AI

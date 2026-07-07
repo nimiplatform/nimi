@@ -105,6 +105,8 @@ surfaces:
   - methods_92
   - methods_93
   - methods_94
+  - methods_95
+  - methods_96
 description: Agent, AI, realtime, and cognition posture entries.
 services:
   - RuntimeAgentService
@@ -383,6 +385,34 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
       - K-AGCORE-016a
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig
+    posture: protected_or_scoped_binding_read
+    rationale: Runtime Agent AI Config read requires runtime.agent.ai_config.read capability
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-144
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig
+    posture: protected_or_scoped_binding_write
+    rationale: Runtime Agent AI Config mutation requires runtime.agent.ai_config.write capability and expected_revision
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-145
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness
+    posture: protected_or_scoped_binding_read
+    rationale: Runtime Agent AI Config readiness projection requires runtime.agent.ai_config.read capability
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-146
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness
+    posture: protected_or_scoped_binding_read
+    rationale: Runtime Agent AI Config readiness stream requires runtime.agent.ai_config.read capability and must not leak secrets
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+      - K-AGCORE-149
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents
     posture: anonymous_read
     rationale: agent event stream; no JWT validation
@@ -554,23 +584,9 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
-  - method_id: /nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent
-    posture: protected_or_scoped_binding_read
-    rationale: runtime-owned memory embedding binding intent projection requires runtime.memory.read capability
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTH-001
-      - K-MEM-006b
-  - method_id: /nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent
-    posture: protected_or_scoped_binding_write
-    rationale: runtime-owned memory embedding binding intent mutation requires runtime.memory.write capability
-    kernel_refs:
-      - K-AUTHN-001
-      - K-AUTH-001
-      - K-MEM-006b
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime
     posture: protected_or_scoped_binding_read
-    rationale: runtime-owned memory embedding readiness and canonical bank state projection requires runtime.memory.read capability
+    rationale: runtime-owned memory embedding readiness and canonical bank state projection requires runtime.memory.read capability; committed text.embed intent is read from Runtime Agent AI Config, not this service
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001

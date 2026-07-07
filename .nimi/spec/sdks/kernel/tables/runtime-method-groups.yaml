@@ -422,8 +422,6 @@ groups:
       - Recall
       - History
       - DeleteMemory
-      - GetMemoryEmbeddingRuntimeIntent
-      - SetMemoryEmbeddingRuntimeIntent
       - InspectMemoryEmbeddingRuntime
       - RequestMemoryEmbeddingRuntimeBind
       - RequestMemoryEmbeddingRuntimeCutover
@@ -508,9 +506,9 @@ groups:
       - GetAgentCanonicalMemoryBankStatus
       - RequestAgentCanonicalMemoryBankBind
       - GetAgentCanonicalMemoryReviewStatus
-      - GetAgentExecutionConfig
-      - UpsertAgentExecutionConfig
-      - GetAgentExecutionReadiness
-      - SubscribeAgentExecutionReadiness
+      - GetRuntimeAgentAIConfig
+      - UpsertRuntimeAgentAIConfig
+      - GetRuntimeAgentAIConfigReadiness
+      - SubscribeRuntimeAgentAIConfigReadiness
       - SubscribeAgentEvents
     source_rule: S-SURFACE-002

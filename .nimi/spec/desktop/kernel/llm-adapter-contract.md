@@ -31,7 +31,7 @@ cloud connector 路径必须保持 runtime-only：Desktop 不得恢复 legacy pr
 
 - Desktop core product 不拥有 Agent chat route API，也不得在 DataSync / launcher / fallback policy 中内建 Agent 聊天路由。
 - `data-api.core.agent.chat.route.resolve` 必须 fail-close：缺少 `agentId`、控制面请求失败、或返回 payload 非法时直接报错；Desktop host 不得合成本地 `LOCAL/AGENT_LOCAL` 成功路由。
-- Agent Chat 的 binding/readiness truth 是 Runtime Agent execution config（K-AGCORE-144~150，经 D-LLM-018 carve-out 消费）；setup / submit / runtime 不得各自重算一份 agent route truth。历史 `AgentEffectiveCapabilityResolution` overlay 已退役。
+- Agent Chat 的 binding/readiness truth 是 Runtime Agent AI Config（K-AGCORE-144~150，经 D-LLM-018 carve-out 消费）；setup / submit / runtime 不得各自重算一份 agent route truth。历史 `AgentEffectiveCapabilityResolution` overlay 已退役。
 - Desktop LLM execution adapter 必须消费 SDK route facade 返回的 resolved route
   projection；不得从 provider/model/endpoint/runtimeFields/connector 默认模型
   重新推断 `source`、engine、resolved model id、warm candidate、或 fallback policy。

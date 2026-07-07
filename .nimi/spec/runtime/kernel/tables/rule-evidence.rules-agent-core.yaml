@@ -862,13 +862,13 @@ rules:
       - runtime_kernel_consistency
       - runtime_go_test
       - sdk_runtime_test
-    note: One committed runtime-owned agent execution config per runtime instance; apps read/write only through the admitted RuntimeAgentService RPC surface with execution_config scopes; no app-local shadow copy or per-turn binding authoring once K-AGCORE-147 applies.
+    note: One committed Runtime Agent AI Config per Runtime Local Agent instance; apps read/write only through the admitted RuntimeAgentService RPC surface with runtime.agent.ai_config scopes; no app-local, cognition-local, or per-turn AI consume binding authoring once K-AGCORE-147 applies.
     evidence_requirement: required
   - rule_id: K-AGCORE-145
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
-    note: Execution config carries a monotonic revision with expected_revision optimistic concurrency, persists in the runtime store across daemon restart, emits observable change events for every mutation, and writes mutation evidence to the audit trail.
+    note: Runtime Agent AI Config carries an agent_instance_id and monotonic revision with expected_revision optimistic concurrency, persists in the runtime store across daemon restart, emits observable change events for every mutation, and writes mutation evidence to the audit trail.
     evidence_requirement: required
   - rule_id: K-AGCORE-146
     evidence_refs:
@@ -882,13 +882,13 @@ rules:
       - runtime_kernel_consistency
       - runtime_go_test
       - sdk_runtime_test
-    note: Turn admission resolves execution bindings from the committed config only; request-carried execution_bindings are rejected typed; the execution snapshot stamps config_revision and resolved bindings; anchor-sticky binding truth is retired; Life Track, canonical review, sidecar, and companion executors consume the same config text.generate binding.
+    note: Turn admission resolves AI consume bindings from Runtime Agent AI Config only; request-carried execution_bindings/runtimeFields/app AIConfig/provider-model payloads are rejected typed; the execution snapshot stamps config_revision and resolved bindings; anchor-sticky binding truth is retired; Life Track, canonical review, sidecar, and companion executors consume the same config text.generate binding.
     evidence_requirement: required
   - rule_id: K-AGCORE-148
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
-    note: Model-facing action availability derives from committed config presence plus readiness as a tri-state; the APML output contract states the matching truth for not_configured versus unavailable; planned actions on non-available capabilities fail as typed action_failed reasons from the agent-execution-config table.
+    note: Model-facing action availability derives from Runtime Agent AI Config presence plus readiness as a tri-state; the APML output contract states the matching truth for not_configured versus unavailable; planned actions on non-available capabilities fail as typed action_failed reasons from the runtime-agent-ai-config table.
     evidence_requirement: required
   - rule_id: K-AGCORE-149
     evidence_refs:

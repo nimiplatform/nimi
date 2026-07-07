@@ -10,10 +10,10 @@ required_top_level_fields:
   - scopes
   - capability_refs
   - runtime_turn_authority
-  - runtime_execution_config_authority
+  - runtime_agent_ai_config_authority
 invariants:
   - platform_registry_scopes_are_not_runtime_turn_authority
-  - execution_config_scopes_only_admit_runtime_config_edit_and_readiness_projection
+  - ai_config_scopes_only_admit_runtime_config_edit_and_readiness_projection
   - zhiyu_must_not_recompute_execution_readiness_or_author_per_turn_bindings
 scopes:
   account.session.read:
@@ -59,10 +59,10 @@ runtime_turn_authority:
   source: runtime_scoped_binding
   required_scopes: [runtime.agent.turn.read, runtime.agent.turn.write]
   forbidden_sources: [platform_registry_permission_scope, account_session, subject_user_id, partner_id]
-runtime_execution_config_authority:
+runtime_agent_ai_config_authority:
   source: runtime_scoped_binding
   source_rule: K-AGCORE-144
-  required_scopes: [runtime.agent.execution_config.read, runtime.agent.execution_config.write]
-  allowed_interpretation: runtime_owned_agent_execution_config_edit_and_readiness_projection
+  required_scopes: [runtime.agent.ai_config.read, runtime.agent.ai_config.write]
+  allowed_interpretation: runtime_owned_agent_ai_config_edit_and_readiness_projection
   forbidden_interpretations: [app_local_route_truth, per_turn_binding_authoring, readiness_recomputation]
   forbidden_sources: [platform_registry_permission_scope, account_session, subject_user_id, partner_id]

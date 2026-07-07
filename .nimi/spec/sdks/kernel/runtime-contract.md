@@ -46,11 +46,11 @@ Runtime 子路径公开方法集合由 `runtime-method-groups.yaml` 约束，必
 - `runtime.memory.*` 不得被 app 误用为 canonical agent memory 直写捷径
 - current-thread avatar interaction state must stay above runtime and must not be promoted into a new `runtime.avatar.*` truth surface
 
-Runtime Agent execution config（K-AGCORE-144~150）的 app-facing 面固定为
-`runtime.agent.executionConfig.*` 逻辑模块：
+Runtime Agent AI Config（K-AGCORE-144~150）的 app-facing 面固定为
+`runtime.agent.aiConfig.*` 逻辑模块：
 
 - `get()` / `readiness()` / `subscribeReadiness()` 消费 committed config 与
-  readiness projection；`upsert({ expectedRevision, bindings })` 是唯一的
+  readiness projection；`upsert({ expectedRevision, intents })` 是唯一的
   mutation 入口，revision 冲突必须以 typed concurrent-modification 失败浮出，
   不得静默重试覆盖。
 - SDK 不得缓存 readiness 作为自有 truth，不得从 `AIConfig` overlay、route

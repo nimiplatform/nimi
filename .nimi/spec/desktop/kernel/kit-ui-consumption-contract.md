@@ -47,13 +47,15 @@ inventory, retained app-owned compositions, and controlled exceptions.
 
 ## D-SHELL-095 — Local Avatar Binding Consumer Boundary
 
-- Desktop may pass already-resolved local avatar presentation overrides into
-  `kit/features/avatar`.
-- Desktop owns local avatar import, storage, registry, and per-agent binding
-  semantics. `kit/features/avatar` must not become the canonical home for those
-  Desktop product truths.
-- Local VRM or Live2D file refs must arrive at kit surfaces as resolved
-  Desktop-owned inputs, not as arbitrary file-system product truth.
+- Desktop may pass already-resolved Avatar/Runtime avatar presentation
+  projections into `kit/features/avatar`.
+- Desktop owns local avatar file picker/copy transport only. Avatar/Runtime
+  resource service owns import custody, materialization, registry, and per-agent
+  resource truth. `kit/features/avatar` must not become the canonical home for
+  those resource truths.
+- Local VRM or Live2D refs must arrive at kit surfaces as Avatar/Runtime
+  projections or typed host-transport callbacks, not as arbitrary file-system
+  product truth.
 
 ## D-SHELL-096 — Live2D Viewport Consumer Boundary
 
@@ -83,7 +85,7 @@ Desktop owns only:
 - Agent Center placement in Desktop shell chrome
 - close/open settings callbacks and other Desktop navigation outside Kit core
 - scoped Runtime SDK adapter attachment
-- typed host-local Avatar/background file custody adapter
+- typed host-local Avatar/background file picker/copy transport adapter
 - typed Avatar launch bridge when admitted by Avatar/Desktop contracts
 - evidence hooks for real app acceptance
 
@@ -106,13 +108,14 @@ Local config module ownership for Desktop Agent Center:
 
 | Module | Owner Decision |
 | --- | --- |
-| `appearance` / `avatar_asset` | Bounded Desktop host-local asset custody only; Avatar consumes validated local refs through admitted boundary. |
+| `appearance` / `avatar_asset` | Bounded Desktop host-local picker/copy transport only; Avatar/Runtime resource service owns custody/materialization truth and projects validated refs through admitted boundary. |
 | `local_history` | Non-semantic UI recents only; no transcript, message, turn, session, or memory content. |
 | `voice.avatar_autoplay` | Host-local playback UI preference only; not `audio.synthesize` readiness, binding, generation, or policy truth. |
 | `ui.last_section` | Host-local UI preference only; no Runtime or product authority. |
 
-`audio.synthesize` is read-only Runtime readiness projection in this wave.
-Desktop must not render an editable audio binding surface or a playable pseudo
+`audio.synthesize` and `voice_workflow.*` are editable only through Kit Agent
+Center typed Runtime Agent AI Config controls. Desktop must not render an
+app-local audio binding surface, generate voice, or present a playable pseudo
 voice artifact as Agent Center truth.
 
 ## Fact Sources

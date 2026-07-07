@@ -60,13 +60,18 @@ consumption, not another app that consumes AI through Runtime. The
 distinction is normative:
 
 - Runtime executes agent turns and decides model routing against its
-  committed agent execution config (K-AGCORE-144~150). Zhiyu displays turn
-  event projections, edits the execution config through
-  `runtime.agent.executionConfig.*` with the scopes admitted in
+  committed Runtime Agent AI Config (K-AGCORE-144~150). Zhiyu displays turn
+  event projections, edits the AI config through
+  `runtime.agent.ai_config.*` with the scopes admitted in
   `tables/registry-scope-posture.yaml`, and projects readiness tri-state
   (`ready` / `not_configured` / `unavailable`) with typed reason copy.
 - Zhiyu must not probe, warm, cache, merge, or re-derive execution bindings,
   route readiness, or capability availability from `AIConfig` overlays,
   route projections, or app-local state. Readiness truth arrives only as the
-  Runtime execution config readiness projection.
+  Runtime Agent AI Config readiness projection.
 - Zhiyu must not carry execution bindings on turn requests (K-AGCORE-147).
+- Zhiyu product shell must not persist app-scope AIConfig, register Electron
+  AIConfig stores, call direct Runtime AI consume helpers, or keep Capability
+  Studio as a product runtime path. Developer harnesses, if reintroduced, must
+  live outside the product shell and outside product app-level persisted
+  AIConfig.

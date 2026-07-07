@@ -4,10 +4,10 @@
 
 ## K-MEM-000 Runtime Target Identity v2 Hard Cut
 
-Memory embedding durable binding intent uses v2 target refs from
-`K-RTARGET-*`. Provider/model facts may appear only after resolution as bank
-profile facts. Any older `provider + model_id` durable memory identity in this
-file is retired.
+Runtime Agent AI Config `text.embed` intent uses v2 target refs from
+`K-RTARGET-*` or another spec-admitted typed binding reference. Provider/model
+facts may appear only after resolution as bank profile facts. Any older
+`provider + model_id` durable memory identity in this file is retired.
 
 ## K-MEM-001 RuntimeCognitionService Authority Home And Retained Memory Depth
 
@@ -132,27 +132,33 @@ Fixed rules:
   observed length
 - when the default `Hindsight` substrate runs in supervised mode, runtime must inject the substrate's embedding path onto a runtime-owned llama OpenAI-compatible loopback rather than allowing direct external embedding provider configuration
 
-## K-MEM-004a Desktop Live Config And Runtime Resolved Truth Split
+## K-MEM-004a Runtime Agent AI Config And Runtime Resolved Truth Split
 
-Editable memory embedding config may exist as Desktop-host-owned live config
-truth, but runtime remains the sole owner of resolved retained-memory execution
-truth.
+Memory embedding consume intent for Runtime Local Agent belongs to Runtime Agent
+AI Config, not Desktop, Zhiyu, standalone cognition, or a memory-local intent
+store. Runtime memory and RuntimeCognitionService own only resolved retained
+memory execution truth and bank lifecycle state.
 
 Fixed rules:
 
-- Desktop host may own user-editable memory embedding source / binding intent as
-  canonical host-local persistence truth
-- runtime does not become a second canonical persistence owner for that editable
-  config
+- Runtime Agent AI Config owns the agent-instance committed `text.embed` intent
+  for memory, cognition, activity/query, knowledge/retrieval, and future local
+  agent consume paths
+- Desktop and Zhiyu may render Kit controls and submit typed mutations through
+  Runtime/SDK only; they must not own user-editable memory embedding source or
+  binding persistence
+- standalone cognition may retain standalone profile/config authority for
+  non-runtime use, but RuntimeCognitionService must not persist an independent
+  runtime embedding intent
 - runtime is the only admitted owner of resolved embedding profile, binding
   legality/readiness, bank identity, rebuild state, migration state, and
   cutover result
-- runtime must consume host-provided memory embedding intent through an admitted
-  typed boundary and fail-close when the requested binding cannot resolve to an
-  admitted runtime execution path
+- runtime must consume the committed `text.embed` intent through the admitted
+  RuntimeAgentService boundary and fail-close when the binding cannot resolve to
+  an admitted runtime execution path
 - resolved memory embedding profile identity must preserve the typed runtime
-  execution binding that was admitted from the host intent. For cloud source,
-  the resolved profile must carry `connector_id`, `remote_model_catalog_id`,
+  execution binding consumed from Runtime Agent AI Config. For cloud source, the
+  resolved profile must carry `connector_id`, `remote_model_catalog_id`,
   `provider_model_id`, and `provider` as a typed cloud binding in addition to
   provider/model/dimension facts. For local source, the resolved profile must
   carry the v2 local binding (`profile_binding_id` or `readiness_ref`) in
@@ -161,10 +167,9 @@ Fixed rules:
   execution binding. It must not reconstruct a cloud execution target from
   `version`, raw `model_id`, or the retired connector/model pair, and must
   fail-close when the typed binding is absent for a cloud profile.
-- if host config scope identity does not uniquely determine the runtime
-  canonical bank lifecycle target, the admitted typed boundary must carry an
-  explicit runtime target identity rather than inferring one from host-local UI
-  state
+- Runtime Agent AI Config `text.embed` is keyed once per Runtime Local Agent
+  instance; per-bank resolved profile, bind status, rebuild, migration, and
+  cutover remain Runtime memory / RuntimeCognitionService state
 - renderer-local heuristics, local-asset presence checks, or host convenience
   projections must not be reinterpreted as runtime bank truth
 
@@ -227,11 +232,11 @@ Fixed rules:
 
 - the current private loopback HTTP convenience path for canonical bind is not
   the admitted steady-state product contract
-- Desktop/app consumers may read/write editable memory embedding config only
-  through admitted typed host-owned config surfaces
+- Desktop/app consumers may read/write Runtime Local Agent memory embedding
+  consume intent only through Runtime Agent AI Config typed SDK surfaces
 - Desktop/app consumers may inspect resolved memory embedding state and request
-  canonical bank bind / rebuild / cutover only through an admitted typed
-  host/runtime boundary
+  canonical bank bind / rebuild / cutover only through admitted Runtime memory /
+  RuntimeCognitionService typed surfaces
 - `RuntimeCognitionService` public memory family remains fixed by `K-MEM-006`;
   migration convenience must not expand that public family just to expose
   canonical agent-facing bank control
@@ -244,29 +249,25 @@ Fixed rules:
 操作时，retained runtime-private memory depth 必须提供最小的 typed logical
 operation family。
 
-该 family 是 runtime-private typed boundary，不是新的 public RPC family。
+该 family 是 runtime-private typed boundary，不是新的 public RPC family，也不是
+新的 embedding intent owner。
 
 最小 logical operations 固定为：
 
-- `GetMemoryEmbeddingBindingIntent`
-- `SetMemoryEmbeddingBindingIntent`
 - `InspectMemoryEmbeddingState`
 - `RequestCanonicalMemoryEmbeddingBind`
 - `RequestMemoryEmbeddingCutover`
 
 固定规则：
 
-- memory embedding binding intent 是 Runtime-owned durable local memory
-  authority，按 explicit `MemoryBankLocator` 归属；Desktop / Web / Tester
-  不得通过 localStorage、renderer store、app-local config file、或每次请求夹带的
-  snapshot 持久化或重放该 intent
-- `GetMemoryEmbeddingBindingIntent` 必须只返回 Runtime 持久化的当前 intent；
-  未配置时返回 typed absent state，不得合成默认 provider / model
-- `SetMemoryEmbeddingBindingIntent` 必须 normalize 并持久化 explicit cloud/local
-  binding intent；空 intent 表示 explicit clear；非法 source / binding 组合必须
-  fail-close，不得 silently coerce 到另一个 provider/model
+- Runtime Agent AI Config owns the agent-instance committed `text.embed` intent;
+  retained runtime-private memory depth must consume it and must not persist a
+  second memory-local binding intent
+- Desktop / Web / Tester 不得通过 localStorage、renderer store、app-local config
+  file、或每次请求夹带的 snapshot 持久化或重放 `text.embed` intent
 - `InspectMemoryEmbeddingState` 必须返回 typed runtime contract data，至少覆盖：
-  - 当前 Runtime-owned binding intent 的 resolution verdict
+  - 当前 Runtime Agent AI Config `text.embed` intent 的 resolution verdict 与
+    `config_revision`
   - resolved embedding profile identity 或 fail-close unavailable result
   - 当前 canonical bank binding status
   - 是否存在 rebuild / generation / cutover pending state
@@ -277,7 +278,7 @@ operation family。
   推断目标
 - `RequestCanonicalMemoryEmbeddingBind` 只允许做 runtime-owned bind admission；
   它不得把 material profile change 解释成 in-place bank mutation
-- 当当前 bank 未绑定且 binding intent 可解析时，
+- 当当前 bank 未绑定且 Runtime Agent AI Config `text.embed` intent 可解析时，
   `RequestCanonicalMemoryEmbeddingBind` 可执行首次 canonical bind
 - 当当前 bank 已绑定且 resolved profile 与既有 bank identity 等价时，
   `RequestCanonicalMemoryEmbeddingBind` 必须是 idempotent no-op 或 typed

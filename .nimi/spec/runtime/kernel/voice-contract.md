@@ -236,11 +236,11 @@ workflow-capable speech family 的验收必须保持 family-level 边界，不�
 
 ## K-VOICE-018 Agent Voice Output Policy
 
-Agent voice output is Runtime-owned presentation policy projected from the local
-agent config / runtime profile. Desktop and Avatar may render controls and
-consume projections, but they must not decide provider route, model binding,
-voice workflow choice, or whether a committed assistant message has voice
-semantics.
+Agent voice output is Runtime-owned presentation policy whose AI consume intent
+comes from Runtime Agent AI Config and whose stream/artifact execution belongs
+to Runtime voice. Desktop, Zhiyu, and Avatar may render controls and consume
+projections, but they must not decide provider route, model binding, voice
+workflow choice, or whether a committed assistant message has voice semantics.
 
 Minimum policy fields:
 
@@ -251,10 +251,9 @@ Minimum policy fields:
   request, not autoplay.
 - `default_voice_reference`: agent-owned `VoiceReference` used by ordinary speech
   synthesis.
-- `speech_model_id` or resolved `audio.synthesize` binding: runtime-owned TTS
-  model route.
+- `audio.synthesize` intent: Runtime Agent AI Config-owned TTS model route.
 - `speech_route_policy`: local/cloud/unspecified route intent projected from
-  local agent config.
+  Runtime Agent AI Config.
 - `voice_artifact_retention`: durable local retention with user cleanup for
   generated turn audio.
 
@@ -268,8 +267,9 @@ Fixed rules:
   text-only output unless another hard turn error exists.
 - Text-only fallback must not emit fake `voice_playback_requested` success and
   must not materialize synthetic non-audio bytes under an audio artifact id.
-- `voice_workflow.voice_clone` / `voice_workflow.voice_design` may create or
-  update a `VoiceAsset` / `VoiceReference`, but ordinary assistant speech uses
+- Runtime Agent AI Config owns `voice_workflow.voice_clone` /
+  `voice_workflow.voice_design` intent. Runtime voice may create or update a
+  `VoiceAsset` / `VoiceReference`, but ordinary assistant speech uses
   `audio.synthesize` with the effective `VoiceReference` unless a future runtime
   authority admits a provider-specific combined workflow.
 - Voice identity follows the agent profile. Avatar asset, Avatar instance, and

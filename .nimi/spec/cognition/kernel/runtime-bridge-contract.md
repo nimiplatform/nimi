@@ -51,3 +51,22 @@ Fixed rules:
 - runtime must not treat cognition internal storage layout as runtime-owned truth
 - runtime and cognition must not silently share one semantic owner database, backlog, or review lane
 - cognition authority remains in cognition even when runtime is the current consumer
+
+## C-COG-061 Runtime Agent Embedding Intent Boundary
+
+Runtime Local Agent embedding intent is not cognition-owned. RuntimeCognitionService
+consumes RuntimeAgentService-owned Runtime Agent AI Config `text.embed` intent and
+owns only resolved memory/knowledge projection and execution state on the runtime
+path.
+
+Fixed rules:
+
+- cognition must not persist a runtime-facing embedding intent, binding config,
+  or derived cache that can outlive or override Runtime Agent AI Config
+- RuntimeCognitionService may inspect resolved embedding readiness, bank bind
+  state, rebuild state, and cutover state, but those projections must carry or
+  trace to the Runtime Agent AI Config `config_revision`
+- standalone cognition may keep standalone configuration for non-runtime use, but
+  that configuration is not imported as Runtime Local Agent truth
+- runtime bridge adapters must fail closed when the committed `text.embed` intent
+  cannot resolve to an admitted embedding execution path

@@ -1,16 +1,20 @@
 # Agent Avatar Configuration Contract
 
-> Authority: Desktop Kernel
+> Authority: Desktop Kernel host-transport boundary
 
 ## Scope
 
-This contract owns the Desktop Agent Chat Settings Avatar configuration product
-surface. It defines what Desktop may store and present as a user-facing control
-record for an agent avatar.
+This contract owns only the Desktop Agent Chat Settings Avatar host-transport
+surface. It defines what Desktop may present and temporarily cache while the
+Avatar/Runtime resource service owns imported asset custody, materialization,
+calibration refs, backend capability profiles, preview artifacts, and final
+resource truth.
 
 It does not own Avatar carrier truth, remote package descriptor resolution,
 backend capability facts, Runtime probe semantics, Runtime authorization
-semantics, or SDK transport shape.
+semantics, SDK transport shape, imported resource custody, materialization
+truth, calibration payloads, preview artifacts, launch decision truth, or
+lipsync/render state.
 
 ## D-LLM-078 — Avatar Configuration Authority Home
 
@@ -19,15 +23,17 @@ reviewing avatar configuration.
 
 Fixed rules:
 
-- configuration is a Desktop product control record, not a launch payload
-- `local_avatar_asset_ref` and `backend_capability_profile_ref` are opaque refs
-- Desktop MUST validate local Avatar asset materialization before launch, but
-  MUST NOT dereference remote package descriptors or own backend capability
-  profile truth
+- configuration is a Desktop host-transport/control cache, not final Avatar or
+  Runtime presentation truth and not a launch payload
+- `local_avatar_asset_ref` and `backend_capability_profile_ref` are opaque
+  Avatar/Runtime projection refs when present, not Desktop-owned refs
+- Desktop MAY validate selected file shape before handoff, but Avatar/Runtime
+  resource service owns materialization, backend capability profile truth, and
+  final admission
 - Desktop MUST NOT create a local avatar carrier registry or per-agent local
   avatar binding truth
-- local asset resolver execution belongs to Avatar after Runtime validates the
-  launch agent selector
+- local asset resolver execution belongs to Avatar/Runtime resource service
+  after Runtime validates the launch agent selector
 
 ## D-LLM-079 — Closed Configuration Record
 
@@ -64,12 +70,12 @@ Forbidden fields:
   model framing calibration, render scale, target FPS, performance policy, or
   expression inventory as persisted Desktop configuration truth
 
-`live2d_calibration_ref` is admitted only as an opaque Desktop control-record
-ref. It MUST NOT be copied into launch payload, dereferenced as calibration
-payload, treated as Avatar carrier truth, or used to affect Avatar. Avatar local
-asset resolver may project the ref as read-only evidence; calibration payloads,
-values, and effects remain blocked until an explicit Runtime/SDK/Avatar effect
-projection is admitted.
+`live2d_calibration_ref` is admitted only as an opaque Avatar-domain projection
+ref. It MUST NOT be copied into launch payload, dereferenced by Desktop as
+calibration payload, treated as Desktop truth, or used by Desktop to affect
+Avatar. Avatar/Runtime resource service may project the ref as read-only
+evidence; calibration payloads, values, and effects remain Avatar-domain truth
+unless an explicit Runtime/SDK/Avatar effect projection is admitted.
 
 ## D-LLM-079a Cross-Reference — `launch_mode` Actuation Authority
 
@@ -99,18 +105,21 @@ fallback carrier truth when resolver evidence is missing.
 
 Resolver ownership is single-cut:
 
-- Desktop stores local asset refs and renders validation status.
+- Desktop supplies file picker/copy transport and renders Runtime/Avatar
+  projection status.
 - Runtime/SDK provide authorized account, agent, optional secondary package,
   and probe projection.
-- Avatar performs local asset resolver execution and emits backend evidence.
+- Avatar/Runtime resource service performs local asset resolver execution,
+  materialization, calibration/profile projection, and emits backend evidence.
 
 No Desktop or Runtime contract admitted by this scope may become a second
 Avatar backend file resolver.
 
-External Live2D adapter sidecar custody is a Desktop storage operation only:
+External Live2D adapter sidecar handoff is a Desktop host-transport operation
+only:
 
-- Desktop MAY copy an explicitly selected JSON file into the host-local Agent
-  Center store and persist an opaque `live2d_adapter_manifest_ref`.
+- Desktop MAY copy an explicitly selected JSON file into a host-local transport
+  location and submit it to the Avatar/Runtime resource service for custody.
 - Desktop MAY verify that the file is a JSON object with
   `manifest_kind: "nimi.avatar.live2d.adapter"` and `schema_version: 1` for
   storage classification.
@@ -152,7 +161,8 @@ motion, local binding, or static carrier proof.
 ## D-LLM-099 — Avatar Local Asset Control Surface Boundary
 
 Desktop MAY present local Avatar asset controls for private Live2D / VRM import,
-selection, and status. Local import is the primary Avatar asset path.
+selection, and status. Local import is admitted only as host picker/copy
+transport into Avatar/Runtime resource service.
 
 Desktop MUST NOT become a package registry, package lifecycle authority,
 package inventory authority, activation authority, review authority, or local
@@ -163,13 +173,12 @@ Avatar 启动只保留本地资产路径；远程 marketplace package 来源已�
 
 ## D-LLM-100 — Opaque Ref Storage
 
-Desktop persisted configuration may store only local Avatar asset refs, source
+Desktop transport cache may store only local Avatar asset refs, source
 provenance, and bounded status summaries:
 
 - `local_avatar_asset_ref` or current storage-equivalent local selection ref
-- `live2d_calibration_ref` as an opaque control ref that Avatar local asset
-  resolver may project as read-only evidence
-- `backend_capability_profile_ref`
+- `live2d_calibration_ref` as an opaque Avatar-domain projection ref
+- `backend_capability_profile_ref` as an opaque Avatar-domain projection ref
 - selected `backend_kind`
 - readiness/status summary
 - typed diagnostic ids
@@ -182,17 +191,18 @@ truth.
 
 ## D-LLM-101 — Acquisition And Import UX
 
-Desktop MAY initiate private local Live2D / VRM import into the local Avatar
-asset store. Remote marketplace acquisition surfaces are retired (Asset Market
-withdrawn); Desktop must not reintroduce them.
+Desktop MAY initiate private local Live2D / VRM import through host picker/copy
+transport into Avatar/Runtime resource service. Remote marketplace acquisition
+surfaces are retired (Asset Market withdrawn); Desktop must not reintroduce
+them.
 
-Desktop MAY validate local import materialization shape before admitting a local
-Avatar asset ref. For Live2D imports this local readiness validation may inspect
+Desktop MAY validate selected import shape before submitting a transport payload.
+For Live2D imports this preflight validation may inspect
 the selected `.model3.json` entry, package-relative `FileReferences`, referenced
 file existence, exact path casing, MOC3 file header readability, byte/file caps,
 and portability warnings such as basename collision or non-ASCII package paths.
 
-These validation issues are Desktop import-readiness evidence only. They MUST
+These validation issues are Desktop transport preflight evidence only. They MUST
 NOT be emitted as `AVATAR_LIVE2D_COMPAT_*`, compatibility tiers, Avatar carrier
 proof, backend capability truth, or launch-ready success.
 

@@ -52,8 +52,10 @@ SDK AI config surface 固定分为以下 logical operation 类别：
   - `memoryEmbeddingConfig.subscribe(input, callback)` — 订阅 SDK consumer
     lifecycle 内的非权威刷新通知；不得伪装为 Runtime event stream
 - 该 family 不拥有 host-local editable config truth；不得返回或持久化 resolved
-  embedding profile、bank bind result、migration state、或 cutover outcome。Durable
-  binding intent authority belongs to Runtime memory per `K-MEM-006b`.
+  embedding profile、bank bind result、migration state、或 cutover outcome。
+  Runtime Local Agent `text.embed` intent belongs to Runtime Agent AI Config per
+  `K-AGCORE-144` / `K-MEM-004a`; resolved memory operation state remains Runtime
+  memory / RuntimeCognitionService projection per `K-MEM-006b`.
 
 ### Runtime-owned memory state / operation projection
 
@@ -163,8 +165,10 @@ SDK AI config surface 在 Phase 1 是 host-local surface（数据存储与 proje
   record, install/materialization evidence, workflow binding id, local path,
   backend environment evidence, provider health, scheduler state, or credential
   payload before persistence.
-- adjacent live config（例如 memory embedding config）同样走 host-local
-  persistence / subscription surface，不走 runtime daemon config CRUD RPC
+- generic adjacent live config may use host-local persistence / subscription
+  surface, but Runtime Local Agent memory embedding is excluded: committed
+  `text.embed` intent belongs to Runtime Agent AI Config and is mutated through
+  Runtime/SDK ai-config surfaces
 - memory embedding 的 runtime-resolved state 与 canonical bind / rebuild /
   cutover 请求，可由 host typed surface 暴露为 logical methods，但其 runtime 侧承载面必须是 admitted typed boundary，不得退化成 private loopback convenience HTTP 的产品化包装
 ## S-AICONF-006 — Subscription Surface

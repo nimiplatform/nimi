@@ -363,10 +363,6 @@ services:
         type: unary
       - name: SubscribeMemoryEvents
         type: server_stream
-      - name: GetMemoryEmbeddingRuntimeIntent
-        type: unary
-      - name: SetMemoryEmbeddingRuntimeIntent
-        type: unary
       - name: InspectMemoryEmbeddingRuntime
         type: unary
       - name: RequestMemoryEmbeddingRuntimeBind
@@ -562,11 +558,11 @@ services:
         type: server_stream
       - name: InterruptAgentVoicePlayback
         type: unary
-      - name: GetAgentExecutionConfig
+      - name: GetRuntimeAgentAIConfig
         type: unary
-      - name: UpsertAgentExecutionConfig
+      - name: UpsertRuntimeAgentAIConfig
         type: unary
-      - name: GetAgentExecutionReadiness
+      - name: GetRuntimeAgentAIConfigReadiness
         type: unary
-      - name: SubscribeAgentExecutionReadiness
+      - name: SubscribeRuntimeAgentAIConfigReadiness
         type: server_stream

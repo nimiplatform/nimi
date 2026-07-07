@@ -149,18 +149,19 @@ Five-state scheduling judgement 由独立契约 `scheduling-contract.md`（K-SCH
 - `ResolveProfile` / `ApplyProfile` 是 per-call 操作，不建立持久 runtime-global profile binding。
 - 多个 scope 可并发执行不同 profile 的 resolve/apply，runtime 不做跨 scope 联动。
 - 本规则约束的是通用 profile resolve/apply 层。`RuntimeAgentService` 拥有的
-  committed agent execution config（K-AGCORE-144~150）是 agent 域的 scoped
+  Runtime Agent AI Config（K-AGCORE-144~150）是 agent 域的 scoped
   committed 状态，不构成也不得被解释为 runtime-global active profile；两者
   不得互相替代。
 
 ## K-AIEXEC-006 — Memory Embedding Binding Resolution Boundary
 
-memory embedding 的 editable binding intent 可以由 Desktop host 持有，但 runtime
-负责把该 intent 解析为真正的 execution/bank truth。
+Runtime Local Agent memory embedding 的 committed `text.embed` intent 由
+Runtime Agent AI Config 持有；runtime 负责把该 intent 解析为真正的
+execution/bank truth。
 
 固定规则：
 
-- runtime 必须把 host 提供的 memory embedding binding intent 解析成
+- runtime 必须把 Runtime Agent AI Config `text.embed` intent 解析成
   runtime-owned resolved embedding profile 或 fail-close result
 - `cloud` binding 的 legality 继续消费 connector / key-source authority：
   admitted shape 必须是 v2 cloud target ref，至少包含
@@ -169,8 +170,9 @@ memory embedding 的 editable binding intent 可以由 Desktop host 持有，但
   admitted shape 必须是可由 runtime authoritative local inventory 解析的 typed
   local embedding target reference
 - Desktop/SDK 不得自行计算 resolved embedding profile、profile identity、或
-  canonical bank binding truth；它们只能持有 user intent 与 runtime projection
-- 若 binding intent 不能解析到 admitted embedding-capable execution path，
+  canonical bank binding truth；它们只能通过 Runtime/SDK ai-config mutation
+  提交 intent，并消费 runtime projection
+- 若 `text.embed` intent 不能解析到 admitted embedding-capable execution path，
   runtime 必须返回 fail-close result，不得静默回退到别的 connector、provider、
   或本地默认 embedding target
 
