@@ -23,7 +23,7 @@ import {
   resolveAgentComposerVoiceState,
 } from './chat-agent-voice-session';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
-import { AgentConversationDiagnosticsContent, AgentConversationSettingsContent } from './chat-agent-shell-presentation-settings';
+import { AgentConversationSettingsContent } from './chat-agent-shell-presentation-settings';
 import { useAgentConversationLocalAvatarControls } from './chat-agent-shell-local-avatar-controls';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
 import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-shared-content-layout';
@@ -235,9 +235,6 @@ export function useAgentConversationPresentation(
     characterData,
     hostView,
   }), [canonicalMessages, characterData, hostView, input.activeThreadId, targetSummaries]);
-  const diagnosticsContent = input.developerModeEnabled
-    ? <AgentConversationDiagnosticsContent input={input} />
-    : null;
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;
@@ -274,30 +271,13 @@ export function useAgentConversationPresentation(
     settingsContent: (
       <AgentConversationSettingsContent
         input={input}
-        diagnosticsContent={diagnosticsContent}
         avatarAssetValid={localAvatar.avatarAssetValid}
         backgroundValid={localAvatar.backgroundValid}
         avatarAssetChecking={localAvatar.avatarAssetChecking}
         avatarAssetConfig={localAvatar.avatarAssetConfig}
         avatarVoicePolicy={localAvatar.avatarVoicePolicy}
-        avatarAssetValidationPresentation={localAvatar.avatarAssetValidationPresentation}
-        avatarConfigMutation={localAvatar.avatarConfigMutation}
-        voicePolicyMutation={localAvatar.voicePolicyMutation}
-        voiceArtifactCleanupMutation={localAvatar.voiceArtifactCleanupMutation}
-        avatarAssetImportMutation={localAvatar.avatarAssetImportMutation}
-        avatarAssetLibraryQuery={localAvatar.avatarAssetLibraryQuery}
-        avatarAssetSelectMutation={localAvatar.avatarAssetSelectMutation}
-        avatarImportDisabled={localAvatar.avatarImportDisabled}
-        avatarImportError={localAvatar.avatarImportError}
-        clearAvatarAssetMutation={localAvatar.clearAvatarAssetMutation}
-        live2dAdapterManifestImportMutation={localAvatar.live2dAdapterManifestImportMutation}
         selectedBackgroundAssetId={localAvatar.selectedBackgroundAssetId}
-        backgroundAssetQuery={localAvatar.backgroundAssetQuery}
         backgroundValidation={localAvatar.backgroundValidation}
-        backgroundImportError={localAvatar.backgroundImportError}
-        clearBackgroundMutation={localAvatar.clearBackgroundMutation}
-        backgroundImportDisabled={localAvatar.backgroundImportDisabled}
-        backgroundImportMutation={localAvatar.backgroundImportMutation}
       />
     ),
     settingsDrawerTitle: input.t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' }),
@@ -378,7 +358,6 @@ export function useAgentConversationPresentation(
     }),
   }), [
     adapter,
-    diagnosticsContent,
     hostFeedbackNode,
     schedulingFeedbackNode,
     hostSnapshot,
@@ -419,7 +398,6 @@ export function useAgentConversationPresentation(
     schedulingGuard.disabled,
     surfaceState.composer,
     resolvedAgentDisplayName,
-    input.cognitionContent,
     input.onOpenAgentCenter,
   ]);
 }

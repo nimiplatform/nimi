@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, useCallback, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
+import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import type { ConversationSetupAction } from '@nimiplatform/kit/features/chat/headless';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -195,7 +195,7 @@ export function ChatPage() {
     setSelectedTargetForSource(chatMode, null);
   }, [allTargets, authStatus, chatMode, setChatMode, setSelectedTargetForSource, storeSelectedTargetId]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setChatSettingsOpen(false);
   }, [chatMode, storeSelectedTargetId]);
 

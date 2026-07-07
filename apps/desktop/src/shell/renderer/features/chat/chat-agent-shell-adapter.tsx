@@ -34,7 +34,7 @@ import {
 } from './chat-shared-runtime-stream-ui';
 import {
   getChatThinkingUnsupportedCopy,
-  resolveAgentThinkingSupportFromProjection,
+  resolveAgentChatThinkingSupport,
 } from './chat-shared-thinking';
 import {
   createDefaultAgentChatExperienceSettings,
@@ -50,11 +50,8 @@ import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
 import { useSchedulingFeasibility } from './chat-shared-execution-scheduling-guard';
 import { useAgentConversationHostActions } from './chat-agent-shell-host-actions';
-import { resolveAgentSubmitRouteUnavailableDetails } from './conversation-submit-readiness';
-import { ChatAgentCognitionPanel } from './chat-agent-cognition-panel';
 import { useAgentConversationVoiceSession } from './chat-agent-shell-adapter-voice';
 import { useAgentConversationShellState } from './chat-agent-shell-adapter-state';
-import { resolveAgentChatRequestedMaxOutputTokens } from './chat-nimi-route-view';
 import {
   mergeAgentTargetWithPresentationProfile,
   mergeAgentTargetWithLocalVoicePolicy,
@@ -135,8 +132,8 @@ export function useAgentConversationModeHost(
     setHostFeedback,
   } = useAgentConversationHostFeedback();
   const thinkingSupport = useMemo(
-    () => resolveAgentThinkingSupportFromProjection(textCapabilityProjection),
-    [textCapabilityProjection],
+    () => resolveAgentChatThinkingSupport(),
+    [],
   );
   const setBehaviorSettings = useCallback((nextSettings: AgentChatExperienceSettings) => {
     setBehaviorSettingsState(normalizeAgentChatExperienceSettings(nextSettings));
@@ -166,7 +163,6 @@ export function useAgentConversationModeHost(
     activeThreadId,
     activeConversationAnchorId,
     agentResolution,
-    agentRouteReady,
     bundle,
     bundleError,
     handleModelSelectionChange,
@@ -180,7 +176,6 @@ export function useAgentConversationModeHost(
     targets,
     targetsPending,
     targetsReady,
-    textRouteModelProfile,
     threads,
     threadsReady,
   } = useAgentConversationShellState({
@@ -190,15 +185,19 @@ export function useAgentConversationModeHost(
     selection: input.selection,
   });
   const {
-    canonicalMemoryLoading,
-    canonicalMemoryStatus,
     mutationPendingAction,
     recentRuntimeEvents,
+    runtimeAgentExecutionConfig,
+    runtimeAgentExecutionReadiness,
+    runtimeAgentExecutionLoading,
+    runtimeAgentExecutionError,
+    runtimeAgentTextReady,
+    runtimeAgentTextDisabledReason,
     runtimeInspect,
     runtimeInspectLoading,
     runtimePresentationProfile,
+    refreshRuntimeAgentExecutionReadiness,
     handleCancelPendingHook,
-    handleUpgradeStandardMemory,
     handleClearDyadicContext,
     handleClearWorldContext,
     handleDisableAutonomy,
@@ -299,13 +298,10 @@ export function useAgentConversationModeHost(
     && !isBundleLoading
     && !bundleError;
   const agentRouteDisabledReason = useMemo(() => (
-    activeTarget && !agentRouteReady
-      ? resolveAgentSubmitRouteUnavailableDetails(
-        t,
-        agentResolution?.textProjection || textCapabilityProjection,
-      ).message
+    activeTarget && !runtimeAgentTextReady
+      ? runtimeAgentTextDisabledReason
       : null
-  ), [activeTarget, agentResolution?.textProjection, agentRouteReady, t, textCapabilityProjection]);
+  ), [activeTarget, runtimeAgentTextDisabledReason, runtimeAgentTextReady]);
 
   const {
     applyDriverEffects,
@@ -424,6 +420,7 @@ export function useAgentConversationModeHost(
   ), [activeConversationAnchorId, activeTarget, developerModeEnabled, handleVoicePlaybackStateChange, reportHostError, t]);
   const currentFooterHostState = activeThreadId ? footerHostStateByThreadId[activeThreadId] || null : null;
   const { activePendingAttachments, setPendingAttachmentsForThread } = useAgentConversationPendingAttachments(activeThreadId);
+  const textMaxOutputTokensRequested = behaviorSettings.maxOutputTokensOverride;
   const applyVoiceTranscriptComposerText = useCallback(async (input: { text: string; conversationAnchorId: string }) => {
     if (!activeThreadId || !activeConversationAnchorId || input.conversationAnchorId !== activeConversationAnchorId) {
       throw new Error('Voice input is unavailable because no active thread is selected.');
@@ -472,13 +469,12 @@ export function useAgentConversationModeHost(
         runtimeSourceRef: turnInput.target.runtimeSourceRef,
         localAgentRef: turnInput.target.localAgentRef,
         conversationAnchorId: turnInput.conversationAnchorId,
-        textExecutionSnapshot: turnInput.textExecutionSnapshot,
-        imageExecutionSnapshot: turnInput.imageExecutionSnapshot,
-        imageParams: turnInput.imageParams,
         reasoningPreference: behaviorSettings.thinkingPreference,
-        textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile, behaviorSettings.maxOutputTokensOverride),
+        textMaxOutputTokensRequested,
       },
     }),
+    getRuntimeAgentExecutionReadiness: refreshRuntimeAgentExecutionReadiness,
+    runtimeAgentTextDisabledReason,
     selectedLocalAgentRef: input.selection.localAgentRef,
     selectedThreadRecord,
     setBundleCache,
@@ -496,30 +492,9 @@ export function useAgentConversationModeHost(
     targetsReady,
     threads,
     threadsReady,
-    textModelContextTokens: textRouteModelProfile?.maxContextTokens ?? null,
-    textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile, behaviorSettings.maxOutputTokensOverride),
+    textModelContextTokens: null,
+    textMaxOutputTokensRequested,
   });
-  const cognitionContent = useMemo(() => (
-    activeTarget ? (
-      <ChatAgentCognitionPanel
-        targetTitle={activeTarget.displayName}
-        disabled={Boolean(submittingThreadId)}
-        memoryStatus={canonicalMemoryStatus}
-        memoryLoading={canonicalMemoryLoading}
-        onUpgradeStandardMemory={handleUpgradeStandardMemory}
-        allowMemoryUpgrade
-        recentMemories={runtimeInspect?.recentCanonicalMemories ?? null}
-      />
-    ) : null
-  ), [
-    activeTarget,
-    canonicalMemoryLoading,
-    canonicalMemoryStatus,
-    handleUpgradeStandardMemory,
-    runtimeInspect,
-    submittingThreadId,
-  ]);
-
   const presentation = useAgentConversationPresentation({
     activeTarget,
     accountId,
@@ -554,14 +529,19 @@ export function useAgentConversationModeHost(
     reasoningLabel,
     renderMessageAccessory,
     renderMessageContent,
-    routeReady: !activeTarget || agentRouteReady,
+    routeReady: !activeTarget || runtimeAgentTextReady,
+    runtimeAgentExecutionConfig,
+    runtimeAgentExecutionReadiness,
+    runtimeAgentExecutionLoading,
+    runtimeAgentExecutionError,
+    runtimeAgentTextReady,
+    runtimeAgentTextDisabledReason,
     runtimeInspect,
     runtimeInspectLoading,
     schedulingJudgement,
     selectedTargetId: activeTarget?.localAgentRef || null,
     behaviorSettings,
     setBehaviorSettings,
-    cognitionContent,
     developerModeEnabled,
     onDiagnosticsVisibilityChange: input.onDiagnosticsVisibilityChange,
     onOpenAgentCenter: input.onOpenAgentCenter,
@@ -581,7 +561,7 @@ export function useAgentConversationModeHost(
     thinkingPreference: behaviorSettings.thinkingPreference,
     thinkingSupported: thinkingSupport.supported,
     thinkingUnsupportedReason,
-    agentRouteReady,
+    agentRouteReady: runtimeAgentTextReady,
     agentRouteDisabledReason,
   });
 

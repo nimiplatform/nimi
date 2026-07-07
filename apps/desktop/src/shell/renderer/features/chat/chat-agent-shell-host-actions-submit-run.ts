@@ -37,10 +37,6 @@ export async function runActiveAgentSubmit(input: {
     attachments: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['userMessage']['attachments'];
   };
   signal: AbortSignal;
-  agentResolution: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['agentResolution'];
-  textExecutionSnapshot: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['textExecutionSnapshot'];
-  imageExecutionSnapshot: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['imageExecutionSnapshot'];
-  imageParams: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['imageParams'];
   textModelContextTokens: number | null;
   textMaxOutputTokensRequested: number | null;
   target: Parameters<UseAgentConversationHostActionsInput['runAgentTurn']>[0]['target'];
@@ -57,10 +53,6 @@ export async function runActiveAgentSubmit(input: {
     turnId: input.turnId,
     userMessage: input.userMessage,
     signal: input.signal,
-    agentResolution: input.agentResolution,
-    textExecutionSnapshot: input.textExecutionSnapshot,
-    imageExecutionSnapshot: input.imageExecutionSnapshot,
-    imageParams: input.imageParams,
     textModelContextTokens: input.textModelContextTokens,
     textMaxOutputTokensRequested: input.textMaxOutputTokensRequested,
     target: input.target,

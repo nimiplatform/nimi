@@ -145,29 +145,37 @@ test('phase 3: AI runtime adapter does not pass routeSnapshot to streamChatAiRun
 });
 
 
-test('phase 3: agent adapter passes resolution to host actions, not separate readiness', () => {
+test('RLA3: agent submit uses Runtime execution readiness, not conversation capability resolution', () => {
   const hostActionsTypesSource = fs.readFileSync(
     path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-host-actions-types.ts'),
+    'utf8',
+  );
+  const hostActionsSubmitSource = fs.readFileSync(
+    path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-host-actions-submit.ts'),
     'utf8',
   );
   const hostActionsSubmitRunSource = fs.readFileSync(
     path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-host-actions-submit-run.ts'),
     'utf8',
   );
-  // Host actions input type must have agentResolution, not agentRouteReady
   assert.ok(
-    /agentResolution:\s*AgentEffectiveCapabilityResolution/.test(hostActionsTypesSource),
-    'host actions input must have agentResolution field typed as AgentEffectiveCapabilityResolution',
+    /getRuntimeAgentExecutionReadiness:\s*\(\)\s*=>\s*Promise<NimiRuntimeAgentExecutionReadinessSnapshotProjection>/.test(hostActionsTypesSource),
+    'host actions input must load Runtime Agent execution readiness from Runtime/SDK',
   );
   assert.equal(
-    /agentRouteReady:\s*boolean/.test(hostActionsTypesSource),
+    /agentResolution:\s*AgentEffectiveCapabilityResolution/.test(hostActionsTypesSource),
     false,
-    'host actions input must not have agentRouteReady boolean field',
+    'host actions input must not carry conversation capability agentResolution as submit truth',
   );
-  assert.match(
-    hostActionsSubmitRunSource,
-    /agentResolution:\s*input\.agentResolution/,
-    'submit runner must pass agentResolution through to runAgentTurn',
+  assert.equal(
+    /ensureAgentConversationSubmitRouteReady|resolvedBinding|textExecutionSnapshot|imageExecutionSnapshot|imageParams/.test(hostActionsSubmitSource),
+    false,
+    'submit must not derive execution truth from conversation capability snapshots',
+  );
+  assert.equal(
+    /agentResolution:|textExecutionSnapshot:|imageExecutionSnapshot:|imageParams:/.test(hostActionsSubmitRunSource),
+    false,
+    'submit runner must not pass app-derived execution inputs through to runAgentTurn',
   );
 });
 

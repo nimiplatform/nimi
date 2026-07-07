@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import type { useTranslation } from 'react-i18next';
 import type {
   CanonicalMessageAccessorySlot,
@@ -21,6 +20,10 @@ import type {
   NimiRuntimeAgentInspectEventSummary,
   NimiRuntimeAgentInspectSnapshot,
 } from '@renderer/infra/runtime-agent-inspect';
+import type {
+  NimiRuntimeAgentExecutionConfigSnapshot,
+  NimiRuntimeAgentExecutionReadinessSnapshotProjection,
+} from '@renderer/infra/runtime-agent-execution-config';
 import type { AgentVoiceSessionShellState } from './chat-agent-voice-session';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 
@@ -62,13 +65,18 @@ export type UseAgentConversationPresentationInput = {
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   renderMessageContent: CanonicalMessageContentSlot;
   routeReady: boolean;
+  runtimeAgentExecutionConfig: NimiRuntimeAgentExecutionConfigSnapshot | null;
+  runtimeAgentExecutionReadiness: NimiRuntimeAgentExecutionReadinessSnapshotProjection | null;
+  runtimeAgentExecutionLoading: boolean;
+  runtimeAgentExecutionError: string | null;
+  runtimeAgentTextReady: boolean;
+  runtimeAgentTextDisabledReason: string | null;
   runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
   schedulingJudgement: NimiAISchedulingJudgement | null;
   selectedTargetId: string | null;
   behaviorSettings: AgentChatExperienceSettings;
   setBehaviorSettings: (value: AgentChatExperienceSettings) => void;
-  cognitionContent?: ReactNode;
   developerModeEnabled: boolean;
   onDiagnosticsVisibilityChange?: (visible: boolean) => void;
   onOpenAgentCenter?: () => void;

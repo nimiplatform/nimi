@@ -145,6 +145,7 @@ function RelationshipAvatar({
           onMouseLeave={scheduleHide}
           onFocus={handleFocus}
           onBlur={scheduleHide}
+          aria-current={selected ? 'page' : undefined}
           className={`relative ml-0.5 flex h-10 w-10 items-center justify-center overflow-hidden transition-all duration-200 ${
             selected ? 'rounded-2xl' : 'rounded-full hover:rounded-2xl'
           }`}
@@ -331,6 +332,7 @@ export function ChatRelationshipRail({
               </svg>
             )}
             active={nimiThreadListOpen}
+            aria-pressed={nimiThreadListOpen}
             aria-label={t('Chat.toggleNimiThreadList', { defaultValue: 'Toggle Nimi conversations' })}
             title={t('Chat.toggleNimiThreadList', { defaultValue: 'Toggle Nimi conversations' })}
             onClick={onToggleNimiThreadList}
@@ -346,6 +348,7 @@ export function ChatRelationshipRail({
             </svg>
           )}
           active={settingsOpen}
+          aria-pressed={settingsOpen}
           aria-label={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
           title={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
           onClick={onToggleSettings}

@@ -1,6 +1,27 @@
-import { AdvBlock } from './chat-agent-center-panel';
+import type { ReactNode } from 'react';
 import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
+
+function DiagnosticsBlock(props: {
+  title: string;
+  defaultOpen?: boolean;
+  dirty?: boolean;
+  headerAction?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <details
+      className="rounded-lg border border-slate-200 bg-white p-3"
+      open={props.defaultOpen}
+    >
+      <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-semibold text-slate-900">
+        <span>{props.title}{props.dirty ? ' *' : ''}</span>
+        {props.headerAction}
+      </summary>
+      <div className="mt-3">{props.children}</div>
+    </details>
+  );
+}
 
 export function AgentConversationDiagnosticsContent({
   input,
@@ -29,7 +50,7 @@ export function AgentConversationDiagnosticsContent({
       renderShell={(sections) => (
         <div>
           {sections.map((section, index) => (
-            <AdvBlock
+            <DiagnosticsBlock
               key={section.id}
               title={section.title}
               defaultOpen={index === 0}
@@ -37,7 +58,7 @@ export function AgentConversationDiagnosticsContent({
               headerAction={section.headerAction}
             >
               {section.body}
-            </AdvBlock>
+            </DiagnosticsBlock>
           ))}
         </div>
       )}

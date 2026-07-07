@@ -314,23 +314,8 @@ export function RuntimeAgentDebugMessageAccessory(props: {
                     debugMetadata.runtimeAgentTurns.runtimeStreamId
                       ? `runtimeStreamId=${debugMetadata.runtimeAgentTurns.runtimeStreamId}`
                       : null,
-                    debugMetadata.runtimeAgentTurns.route
-                      ? `route=${debugMetadata.runtimeAgentTurns.route}`
-                      : null,
-                    debugMetadata.runtimeAgentTurns.modelId
-                      ? `modelId=${debugMetadata.runtimeAgentTurns.modelId}`
-                      : null,
-                    debugMetadata.runtimeAgentTurns.connectorId
-                      ? `connectorId=${debugMetadata.runtimeAgentTurns.connectorId}`
-                      : null,
                     debugMetadata.runtimeAgentTurns.traceId
                       ? `traceId=${debugMetadata.runtimeAgentTurns.traceId}`
-                      : null,
-                    debugMetadata.runtimeAgentTurns.modelResolved
-                      ? `modelResolved=${debugMetadata.runtimeAgentTurns.modelResolved}`
-                      : null,
-                    debugMetadata.runtimeAgentTurns.routeDecision
-                      ? `routeDecision=${debugMetadata.runtimeAgentTurns.routeDecision}`
                       : null,
                   ].filter(Boolean).join('\n')}
                 </pre>

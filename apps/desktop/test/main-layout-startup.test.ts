@@ -116,7 +116,9 @@ test('model config does not block default chat import', () => {
 
 test('human and agent mode chunks do not synchronously import settings or chat barrels', () => {
   assert.match(CHAT_HUMAN_ADAPTER_SOURCE, /const ChatSettingsPanel = lazy\(async \(\) => \{/);
-  assert.match(CHAT_AGENT_SETTINGS_SOURCE, /const ChatSettingsPanel = lazy\(async \(\) => \{/);
+  assert.match(CHAT_AGENT_SETTINGS_SOURCE, /from '@nimiplatform\/kit\/features\/agent-center'/);
+  assert.match(CHAT_AGENT_SETTINGS_SOURCE, /<AgentCenter/);
+  assert.doesNotMatch(CHAT_AGENT_SETTINGS_SOURCE, /ChatSettingsPanel/);
   assert.doesNotMatch(CHAT_HUMAN_ADAPTER_SOURCE, /import \{ ChatSettingsPanel \} from '\.\/chat-shared-settings-panel'/);
   assert.doesNotMatch(CHAT_AGENT_SETTINGS_SOURCE, /import \{ ChatSettingsPanel \} from '\.\/chat-shared-settings-panel'/);
 

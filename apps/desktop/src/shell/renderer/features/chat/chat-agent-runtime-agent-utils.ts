@@ -69,9 +69,6 @@ export function toDebugMetadata(input: {
   conversationAnchorId: string;
   runtimeTurnId: string;
   runtimeStreamId: string;
-  route: string;
-  modelId: string;
-  connectorId?: string;
   trace?: ConversationRuntimeTrace;
   envelope: NimiRuntimeAgentResolvedMessageActionEnvelope;
   latestTimeline?: NimiRuntimeAgentTimelineSummary | null;
@@ -96,12 +93,7 @@ export function toDebugMetadata(input: {
       conversationAnchorId: input.conversationAnchorId,
       runtimeTurnId: input.runtimeTurnId,
       runtimeStreamId: input.runtimeStreamId,
-      route: input.route,
-      modelId: input.modelId,
-      connectorId: input.connectorId || null,
       traceId: input.trace?.traceId || null,
-      modelResolved: input.trace?.modelResolved || null,
-      routeDecision: input.trace?.routeDecision || null,
       presentationTimeline: input.latestTimeline || null,
     },
   } satisfies JsonObject;
@@ -111,9 +103,6 @@ export function buildRuntimeAgentDiagnostics(input: {
   conversationAnchorId: string;
   runtimeTurnId: string;
   runtimeStreamId: string;
-  route: string;
-  modelId: string;
-  connectorId?: string;
   trace?: ConversationRuntimeTrace;
   extra?: JsonObject;
 }): JsonObject {
@@ -122,12 +111,7 @@ export function buildRuntimeAgentDiagnostics(input: {
     conversationAnchorId: input.conversationAnchorId,
     runtimeTurnId: input.runtimeTurnId,
     runtimeStreamId: input.runtimeStreamId,
-    route: input.route,
-    modelId: input.modelId,
-    connectorId: input.connectorId || null,
     traceId: input.trace?.traceId || null,
-    modelResolved: input.trace?.modelResolved || null,
-    routeDecision: input.trace?.routeDecision || null,
     ...(input.extra || {}),
   } as JsonObject;
 }

@@ -185,6 +185,10 @@ test('runtime agent debug accessory renders runtime.agent.turns anchor evidence'
   assert.match(markup, /conversationAnchorId=anchor-rt-1/u);
   assert.match(markup, /runtimeTurnId=turn-rt-1/u);
   assert.match(markup, /runtimeStreamId=stream-rt-1/u);
-  assert.match(markup, /modelId=kimi-k2/u);
   assert.match(markup, /traceId=trace-rt-1/u);
+  assert.doesNotMatch(markup, /route=/u);
+  assert.doesNotMatch(markup, /modelId=/u);
+  assert.doesNotMatch(markup, /connectorId=/u);
+  assert.doesNotMatch(markup, /modelResolved=/u);
+  assert.doesNotMatch(markup, /routeDecision=/u);
 });

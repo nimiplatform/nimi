@@ -4,10 +4,6 @@ import {
   clearDesktopTestNimiClientSession,
   createDesktopTestNimiClientSession,
   streamChatAgentRuntimeAgentTurn,
-  buildAgentEffectiveCapabilityResolution,
-  createNimiConversationAISnapshot,
-  createEmptyNimiAIConfig,
-  createLocalTextProjection,
 } from './chat-agent-local-mode-test-utils.js';
 import { createRuntimeAgentChatConversationProvider } from '../src/shell/renderer/features/chat/chat-agent-runtime-provider.js';
 
@@ -62,17 +58,6 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
   };
 
   try {
-    const projection = createLocalTextProjection();
-    const agentResolution = buildAgentEffectiveCapabilityResolution({
-      textProjection: projection,
-    });
-    const executionSnapshot = createNimiConversationAISnapshot({
-      config: createEmptyNimiAIConfig(),
-      capability: 'text.generate',
-      projection,
-      agentResolution,
-    });
-
     const anchorAController = new AbortController();
     const anchorBController = new AbortController();
     await streamChatAgentRuntimeAgentTurn({
@@ -84,9 +69,6 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
       userMessageId: 'user-anchor-a',
       userText: 'hello anchor a',
       reasoningPreference: 'off',
-      textExecutionSnapshot: executionSnapshot,
-      imageExecutionSnapshot: null,
-      imageParams: null,
       signal: anchorAController.signal,
     });
     await streamChatAgentRuntimeAgentTurn({
@@ -98,9 +80,6 @@ test('agent runtime turns interrupt stays bound to the aborted anchor and does n
       userMessageId: 'user-anchor-b',
       userText: 'hello anchor b',
       reasoningPreference: 'off',
-      textExecutionSnapshot: executionSnapshot,
-      imageExecutionSnapshot: null,
-      imageParams: null,
       signal: anchorBController.signal,
     });
 
@@ -247,17 +226,6 @@ test('agent runtime turn stream binds to the current request_id and ignores back
   };
 
   try {
-    const projection = createLocalTextProjection();
-    const agentResolution = buildAgentEffectiveCapabilityResolution({
-      textProjection: projection,
-    });
-    const executionSnapshot = createNimiConversationAISnapshot({
-      config: createEmptyNimiAIConfig(),
-      capability: 'text.generate',
-      projection,
-      agentResolution,
-    });
-
     const result = await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
@@ -267,9 +235,6 @@ test('agent runtime turn stream binds to the current request_id and ignores back
       userMessageId: 'user-anchor-1',
       userText: 'hello',
       reasoningPreference: 'off',
-      textExecutionSnapshot: executionSnapshot,
-      imageExecutionSnapshot: null,
-      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{
@@ -415,17 +380,6 @@ test('agent runtime turn starts consuming subscription events before request ack
   };
 
   try {
-    const projection = createLocalTextProjection();
-    const agentResolution = buildAgentEffectiveCapabilityResolution({
-      textProjection: projection,
-    });
-    const executionSnapshot = createNimiConversationAISnapshot({
-      config: createEmptyNimiAIConfig(),
-      capability: 'text.generate',
-      projection,
-      agentResolution,
-    });
-
     const result = await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
@@ -435,9 +389,6 @@ test('agent runtime turn starts consuming subscription events before request ack
       userMessageId: 'user-eager-1',
       userText: 'hello eager',
       reasoningPreference: 'off',
-      textExecutionSnapshot: executionSnapshot,
-      imageExecutionSnapshot: null,
-      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{
@@ -551,9 +502,6 @@ test('agent runtime provider projects Runtime image action artifact events as im
         runtimeSourceRef: 'agent-1',
         localAgentRef: 'local-agent:user-1:agent-1',
         conversationAnchorId: 'anchor-image',
-        textExecutionSnapshot: null,
-        imageExecutionSnapshot: null,
-        imageParams: null,
         reasoningPreference: 'off',
         textMaxOutputTokensRequested: null,
       },

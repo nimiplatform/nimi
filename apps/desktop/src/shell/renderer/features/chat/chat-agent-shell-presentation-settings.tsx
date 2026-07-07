@@ -1,49 +1,17 @@
-import { Suspense, lazy, type ReactNode } from 'react';
-import { AgentCenterPanel } from './chat-agent-center-panel';
+import {
+  AgentCenter,
+  type AgentCenterAppearanceProjection,
+  type AgentCenterStateInput,
+} from '@nimiplatform/kit/features/agent-center';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import type {
-  AgentCenterAvatarConfigPatch,
-  AgentCenterAvatarAssetKind,
   AgentCenterAvatarAssetModule,
 } from './chat-agent-center-avatar-config-types';
 import type {
   AgentCenterVoiceModule,
 } from './chat-agent-center-local-config';
-import type {
-  AvatarAssetValidationPresentation,
-  DecommissionedAvatarAssetLibraryResult,
-} from './chat-agent-shell-avatar-asset-diagnostics';
-import { AgentConversationBackgroundSettingsContent } from './chat-agent-shell-background-settings-content';
-import { AgentConversationAvatarSettingsContent } from './chat-agent-shell-avatar-settings-content';
-
-const ChatSettingsPanel = lazy(async () => {
-  const mod = await import('./chat-shared-settings-panel');
-  return { default: mod.ChatSettingsPanel };
-});
 
 export { AgentConversationDiagnosticsContent } from './chat-agent-shell-diagnostics-content';
-
-type MutationLike<TArg = void> = {
-  error: unknown;
-  isPending: boolean;
-  mutate: [TArg] extends [void] ? () => void : (arg: TArg) => void;
-};
-
-type BackgroundQueryLike = {
-  data?: {
-    validation?: {
-      status?: string;
-      errors?: Array<{ message?: string }>;
-    } | null;
-  } | null;
-  isFetching: boolean;
-};
-
-type AvatarAssetLibraryQueryLike = {
-  data?: DecommissionedAvatarAssetLibraryResult | null;
-  error?: unknown;
-  isFetching: boolean;
-};
 
 type BackgroundValidation = {
   status?: string;
@@ -52,129 +20,70 @@ type BackgroundValidation = {
 
 type AgentConversationSettingsContentProps = {
   input: UseAgentConversationPresentationInput;
-  diagnosticsContent: ReactNode;
   avatarAssetValid: boolean;
   backgroundValid: boolean;
   avatarAssetChecking: boolean;
   avatarAssetConfig: AgentCenterAvatarAssetModule | null;
   avatarVoicePolicy: AgentCenterVoiceModule | null;
-  avatarAssetValidationPresentation: AvatarAssetValidationPresentation;
-  avatarConfigMutation: MutationLike<AgentCenterAvatarConfigPatch>;
-  voicePolicyMutation: MutationLike<{ avatar_autoplay: boolean }>;
-  voiceArtifactCleanupMutation: MutationLike;
-  avatarAssetImportMutation: MutationLike<AgentCenterAvatarAssetKind>;
-  avatarAssetLibraryQuery: AvatarAssetLibraryQueryLike;
-  avatarAssetSelectMutation: MutationLike<string>;
-  avatarImportDisabled: boolean;
-  avatarImportError: string | null;
-  clearAvatarAssetMutation: MutationLike;
-  live2dAdapterManifestImportMutation: MutationLike;
   selectedBackgroundAssetId: string | null | undefined;
-  backgroundAssetQuery: BackgroundQueryLike;
   backgroundValidation: BackgroundValidation;
-  backgroundImportError: string | null;
-  clearBackgroundMutation: MutationLike;
-  backgroundImportDisabled: boolean;
-  backgroundImportMutation: MutationLike;
 };
 
+function buildAppearanceProjection(input: {
+  avatarAssetValid: boolean;
+  backgroundValid: boolean;
+  avatarAssetChecking: boolean;
+  avatarAssetConfig: AgentCenterAvatarAssetModule | null;
+  avatarVoicePolicy: AgentCenterVoiceModule | null;
+  selectedBackgroundAssetId: string | null | undefined;
+  backgroundValidation: BackgroundValidation;
+}): AgentCenterAppearanceProjection {
+  const avatarAssetRef = input.avatarAssetConfig?.local_avatar_asset_ref || null;
+  const backgroundRef = input.selectedBackgroundAssetId || null;
+  const avatarStatus = input.avatarAssetChecking
+    ? 'loading'
+    : input.avatarAssetValid
+      ? 'ready'
+      : avatarAssetRef
+        ? 'invalid'
+        : 'not_configured';
+  const backgroundStatus = input.backgroundValid
+    ? 'ready'
+    : backgroundRef && input.backgroundValidation?.status
+      ? 'invalid'
+      : 'not_configured';
+  const status: AgentCenterAppearanceProjection['status'] = avatarStatus === 'ready' && backgroundStatus !== 'invalid'
+    ? 'ready'
+    : avatarStatus;
+  return {
+    status,
+    backendKind: input.avatarAssetConfig?.backend_kind || null,
+    avatarAssetRef,
+    backgroundRef,
+    defaultVoiceReference: null,
+    avatarAutoplay: input.avatarVoicePolicy?.avatar_autoplay === true,
+    disabledReason: status === 'ready'
+      ? null
+      : avatarStatus === 'invalid'
+        ? 'Avatar asset is not admitted for launch.'
+        : 'Avatar asset is not configured.',
+  };
+}
+
 export function AgentConversationSettingsContent(props: AgentConversationSettingsContentProps) {
-  const {
-    input,
-    diagnosticsContent,
-    avatarAssetValid,
-    backgroundValid,
-    avatarAssetChecking,
-    avatarAssetConfig,
-    avatarVoicePolicy,
-    avatarAssetValidationPresentation,
-    avatarConfigMutation,
-    voicePolicyMutation,
-    voiceArtifactCleanupMutation,
-    avatarAssetImportMutation,
-    avatarAssetLibraryQuery,
-    avatarAssetSelectMutation,
-    avatarImportDisabled,
-    avatarImportError,
-    clearAvatarAssetMutation,
-    live2dAdapterManifestImportMutation,
-    selectedBackgroundAssetId,
-    backgroundAssetQuery,
-    backgroundValidation,
-    backgroundImportError,
-    clearBackgroundMutation,
-    backgroundImportDisabled,
-    backgroundImportMutation,
-  } = props;
+  const { input } = props;
+  const state = {
+    executionConfig: input.runtimeAgentExecutionConfig,
+    readiness: input.runtimeAgentExecutionReadiness,
+    inspect: input.runtimeInspect,
+    runtimeError: input.runtimeAgentExecutionError,
+    autonomyMutationAvailable: Boolean(input.onUpdateAutonomyConfig),
+    appearance: buildAppearanceProjection(props),
+  } satisfies AgentCenterStateInput;
   return (
-    <AgentCenterPanel
-        activeTarget={input.activeTarget}
-        runtimeInspect={input.runtimeInspect}
-        runtimeInspectLoading={input.runtimeInspectLoading}
-        routeReady={input.agentRouteReady}
-        mutationPendingAction={input.mutationPendingAction}
-        avatarConfigured={avatarAssetValid}
-        backgroundConfigured={Boolean(backgroundValid)}
-        avatarAutoplay={avatarVoicePolicy?.avatar_autoplay === true}
-        voicePolicyPending={voicePolicyMutation.isPending}
-        voicePolicyError={voicePolicyMutation.error instanceof Error ? voicePolicyMutation.error.message : null}
-        onAvatarAutoplayChange={(avatar_autoplay) => voicePolicyMutation.mutate({ avatar_autoplay })}
-        voiceCleanupPending={voiceArtifactCleanupMutation.isPending}
-        voiceCleanupError={voiceArtifactCleanupMutation.error instanceof Error ? voiceArtifactCleanupMutation.error.message : null}
-        onCleanupGeneratedVoiceArtifacts={() => voiceArtifactCleanupMutation.mutate()}
-        avatarContent={(
-          <AgentConversationAvatarSettingsContent
-            input={input}
-            avatarAssetValid={avatarAssetValid}
-            avatarAssetChecking={avatarAssetChecking}
-            avatarAssetConfig={avatarAssetConfig}
-            avatarAssetValidationPresentation={avatarAssetValidationPresentation}
-            avatarConfigMutation={avatarConfigMutation}
-            avatarAssetImportMutation={avatarAssetImportMutation}
-            avatarAssetLibraryQuery={avatarAssetLibraryQuery}
-            avatarAssetSelectMutation={avatarAssetSelectMutation}
-            avatarImportDisabled={avatarImportDisabled}
-            avatarImportError={avatarImportError}
-            clearAvatarAssetMutation={clearAvatarAssetMutation}
-            live2dAdapterManifestImportMutation={live2dAdapterManifestImportMutation}
-          />
-        )}
-        localAppearanceContent={(
-          <AgentConversationBackgroundSettingsContent
-            input={input}
-            backgroundValid={backgroundValid}
-            selectedBackgroundAssetId={selectedBackgroundAssetId}
-            backgroundAssetQuery={backgroundAssetQuery}
-            backgroundValidation={backgroundValidation}
-            backgroundImportError={backgroundImportError}
-            clearBackgroundMutation={clearBackgroundMutation}
-            backgroundImportDisabled={backgroundImportDisabled}
-            backgroundImportMutation={backgroundImportMutation}
-          />
-        )}
-        modelContent={(
-          <Suspense fallback={null}>
-            <ChatSettingsPanel
-              onDiagnosticsVisibilityChange={input.onDiagnosticsVisibilityChange}
-              onModelSelectionChange={input.onModelSelectionChange}
-              initialModelSelection={input.initialModelSelection}
-              diagnosticsContent={diagnosticsContent}
-              showPresenceContent={false}
-              showDiagnosticsFooter={false}
-              superSections={[
-                { id: 'conversation', label: input.t('Chat.agentCenterSuperSectionConversation', { defaultValue: 'Conversation' }), sections: ['chat', 'embed'] },
-                { id: 'voice', label: input.t('Chat.agentCenterSuperSectionVoice', { defaultValue: 'Voice' }), sections: ['tts', 'stt', 'voice'] },
-                { id: 'media', label: input.t('Chat.agentCenterSuperSectionMedia', { defaultValue: 'Media' }), sections: ['image', 'video'] },
-                { id: 'world', label: input.t('Chat.agentCenterSuperSectionWorld', { defaultValue: 'World' }), sections: ['world'] },
-              ]}
-            />
-          </Suspense>
-        )}
-        cognitionContent={input.cognitionContent}
-        diagnosticsContent={diagnosticsContent}
-        onEnableAutonomy={input.onEnableAutonomy}
-        onDisableAutonomy={input.onDisableAutonomy}
-        onUpdateAutonomyConfig={input.onUpdateAutonomyConfig}
-      />
+    <AgentCenter
+      ariaLabel={input.t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' })}
+      state={state}
+    />
   );
 }

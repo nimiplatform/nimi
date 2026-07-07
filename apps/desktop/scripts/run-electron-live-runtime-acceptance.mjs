@@ -6,6 +6,12 @@ import { pathToFileURL } from 'node:url';
 import { _electron as electron } from 'playwright';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
+if (normalizeText(process.env.NIMI_RLA_EVIDENCE_ROOT)) {
+  const { runDesktopRuntimeLocalAgentCenterAcceptance } = await import('./lib/runtime-local-agent-center-runner.mjs');
+  await runDesktopRuntimeLocalAgentCenterAcceptance();
+  process.exit(0);
+}
+
 const appRoot = path.resolve(import.meta.dirname, '..');
 const require = createRequire(import.meta.url);
 const electronExecutablePath = require('electron');

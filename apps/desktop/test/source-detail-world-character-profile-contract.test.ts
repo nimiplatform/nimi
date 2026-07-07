@@ -9,7 +9,6 @@ import {
   liBaiRaw,
   ouYangDeRaw,
   renderToStaticMarkup,
-  simplifySourceDetailChineseText,
   toSourceDetailData,
 } from './source-detail-world-character-test-utils.js';
 

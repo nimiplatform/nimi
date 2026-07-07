@@ -87,7 +87,10 @@ test('conversation capability UI contract: agent bootstrap prioritizes text.gene
   assert.match(agentAdapterSource, /return createReadyConversationSetupState\('agent'\);/);
   assert.match(agentAdapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleError/);
   assert.doesNotMatch(agentAdapterSource, /resolveAiConversationSetupStateFromProjection/);
-  assert.match(agentHostActionsSource, /ensureAgentConversationSubmitRouteReady/);
+  assert.match(agentHostActionsSource, /await input\.hostInput\.getRuntimeAgentExecutionReadiness\(\)/);
+  assert.match(agentHostActionsSource, /isRuntimeAgentTextReadinessReady\(runtimeReadiness\)/);
+  assert.match(agentHostActionsSource, /assertAgentSubmitSchedulingAllowed/);
+  assert.doesNotMatch(agentHostActionsSource, /ensureAgentConversationSubmitRouteReady/);
 });
 
 test('conversation capability UI contract: projection refresh also refreshes derived agent execution resolution', () => {

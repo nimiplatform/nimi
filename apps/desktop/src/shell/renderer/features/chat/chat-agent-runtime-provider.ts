@@ -28,9 +28,6 @@ type AgentRuntimeChatProviderMetadata = {
   runtimeSourceRef: string;
   localAgentRef: string;
   conversationAnchorId: string;
-  textExecutionSnapshot: import('./conversation-capability').NimiAISnapshot | null;
-  imageExecutionSnapshot: import('./conversation-capability').NimiAISnapshot | null;
-  imageParams: Record<string, unknown> | null;
   reasoningPreference: import('./chat-shared-thinking').ChatThinkingPreference;
   textMaxOutputTokensRequested: number | null;
 };
@@ -51,21 +48,11 @@ function requireProviderMetadata(value: unknown): AgentRuntimeChatProviderMetada
     runtimeSourceRef: normalizeText(record.runtimeSourceRef),
     localAgentRef: normalizeText(record.localAgentRef),
     conversationAnchorId: normalizeText(record.conversationAnchorId),
-    textExecutionSnapshot: (record.textExecutionSnapshot || null) as AgentRuntimeChatProviderMetadata['textExecutionSnapshot'],
-    imageExecutionSnapshot: (record.imageExecutionSnapshot || null) as AgentRuntimeChatProviderMetadata['imageExecutionSnapshot'],
-    imageParams: requireOptionalRecord(record.imageParams, 'agent runtime image params'),
     reasoningPreference: (record.reasoningPreference || 'auto') as AgentRuntimeChatProviderMetadata['reasoningPreference'],
     textMaxOutputTokensRequested: Number.isFinite(Number(record.textMaxOutputTokensRequested))
       ? Math.floor(Number(record.textMaxOutputTokensRequested))
       : null,
   };
-}
-
-function requireOptionalRecord(value: unknown, label: string): Record<string, unknown> | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-  return requireRecord(value, label);
 }
 
 function isAbortLikeError(error: unknown): boolean {
@@ -131,9 +118,6 @@ async function* runRuntimeOwnedAgentTurn(input: {
     userText: input.userText,
     userAttachments: input.userAttachments,
     maxOutputTokensRequested: input.metadata.textMaxOutputTokensRequested,
-    textExecutionSnapshot: input.metadata.textExecutionSnapshot,
-    imageExecutionSnapshot: input.metadata.imageExecutionSnapshot,
-    imageParams: input.metadata.imageParams,
     reasoningPreference: input.metadata.reasoningPreference,
     signal: input.baseInput.signal,
   });

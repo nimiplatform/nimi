@@ -8,7 +8,6 @@ import { toWorldListItem, type WorldListItem } from './world-list-model.js';
 import type { WorldPrimaryDetailRecord, WorldPrimaryDisplayDetail } from './world-detail-query-types.js';
 import {
   asRecord,
-  readNumber,
   readPublicMediaAsset,
   readPublicUrlValue,
   readString,

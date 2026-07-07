@@ -18,6 +18,7 @@ const chatAiPresentationSource = readWorkspaceFile('src/shell/renderer/features/
 const chatAgentAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
 const chatAgentCanonicalComposerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx');
 const chatAgentPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
+const chatAgentPresentationSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.tsx');
 const chatAgentLocalAvatarControlsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts');
 const chatHumanAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-adapter.tsx');
 const canonicalHumanComposerProfileSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-canonical-composer-profile.tsx');
@@ -184,7 +185,9 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.doesNotMatch(chatAgentPresentationSource, /chat-agent-avatar-store/);
   assert.match(chatAgentLocalAvatarControlsSource, /importAgentCenterBackground/);
   assert.match(chatAgentPresentationSource, /settingsContent:/);
-  assert.match(chatAgentPresentationSource, /diagnosticsContent=/);
+  assert.doesNotMatch(chatAgentPresentationSource, /diagnosticsContent=/);
+  assert.match(chatAgentPresentationSettingsSource, /@nimiplatform\/kit\/features\/agent-center/);
+  assert.match(chatAgentPresentationSettingsSource, /export \{ AgentConversationDiagnosticsContent \}/);
   assert.match(chatAgentPresentationSource, /composerContent:/);
   assert.doesNotMatch(chatAgentPresentationSource, /rightSidebarContent:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderTranscript:/);

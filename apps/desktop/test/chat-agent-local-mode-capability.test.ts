@@ -413,16 +413,17 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(hostActionSubmitSource, /setSubmittingThreadId\(effectiveThreadId\)/);
   assert.match(hostActionSubmitSource, /setFooterHostState\(effectiveThreadId,\s*null\)/);
   assert.match(hostActionSubmitSource, /releaseSubmittingIfCurrent/);
+  const readinessGate = 'const runtimeReadiness = await input.hostInput.getRuntimeAgentExecutionReadiness();';
   assert.ok(
-    hostActionSubmitSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({')
+    hostActionSubmitSource.indexOf(readinessGate)
     < hostActionSubmitSource.indexOf('const threadContext = await ensureThreadAnchorBindingForTarget({'),
-    'agent host actions must verify Runtime route readiness before creating local projection cache rows',
+    'agent host actions must verify Runtime Agent execution readiness before creating local projection cache rows',
   );
-  const readinessIndex = hostActionSubmitSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({');
+  const readinessIndex = hostActionSubmitSource.indexOf(readinessGate);
   const finalUserProjectionIndex = hostActionSubmitSource.indexOf('const userProjection = buildAgentUserProjection({');
   assert.ok(
     readinessIndex < finalUserProjectionIndex,
-    'agent host actions must verify Runtime route readiness before applying in-memory user projection messages',
+    'agent host actions must verify Runtime Agent execution readiness before applying in-memory user projection messages',
   );
   assert.match(hostActionSubmitSource, /userProjectionApplied = true/);
   assert.match(hostActionSubmitSource, /setAgentVisibleProjection\(effectiveThreadId,\s*userBundle\)/);
@@ -447,7 +448,8 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.doesNotMatch(hostActionSubmitSource, /latestVoiceCapture\?\.conversationAnchorId === conversationAnchorId/);
   assert.match(adapterSource, /return createReadyConversationSetupState\('agent'\);/);
   assert.match(adapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleError/);
-  assert.match(hostActionSubmitSource, /ensureAgentConversationSubmitRouteReady/);
+  assert.match(hostActionSubmitSource, /getRuntimeAgentExecutionReadiness/);
+  assert.doesNotMatch(hostActionSubmitSource, /ensureAgentConversationSubmitRouteReady/);
   assert.match(runtimeProviderSource, /case 'text-delta':/);
   assert.match(runtimeProviderSource, /feedStreamEvent\(input\.baseInput\.threadId,\s*\{\s*type:\s*'keepalive'\s*\}\)/);
   assert.doesNotMatch(runtimeProviderSource, /chat-agent-continuity|commitProviderOutcome|createAgentLocalChatContinuityAdapter/);

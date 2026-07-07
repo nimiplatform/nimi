@@ -7,11 +7,6 @@ import {
   ReasonCode,
   resetRuntimeLocalModelWarmCacheForTests,
   streamChatAgentRuntimeAgentTurn,
-  buildAgentEffectiveCapabilityResolution,
-  createNimiConversationAISnapshot,
-  createEmptyNimiAIConfig,
-  createLocalTextProjection,
-  createCloudTextProjection,
 } from './chat-agent-local-mode-test-utils.js';
 
 
@@ -117,17 +112,6 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
   };
 
   try {
-    const projection = createLocalTextProjection();
-    const agentResolution = buildAgentEffectiveCapabilityResolution({
-      textProjection: projection,
-    });
-    const executionSnapshot = createNimiConversationAISnapshot({
-      config: createEmptyNimiAIConfig(),
-      capability: 'text.generate',
-      projection,
-      agentResolution,
-    });
-
     const result = await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
@@ -137,9 +121,6 @@ test('agent runtime turn requests runtime without desktop local warm on local ro
       userMessageId: 'user-local-1',
       userText: 'hello local',
       reasoningPreference: 'off',
-      textExecutionSnapshot: executionSnapshot,
-      imageExecutionSnapshot: null,
-      imageParams: null,
       signal: new AbortController().signal,
     });
     for await (const ignoredPart of result.stream) {
@@ -244,17 +225,6 @@ test('agent runtime turn request carries no execution bindings to Runtime', asyn
   };
 
   try {
-    const projection = createCloudTextProjection();
-    const agentResolution = buildAgentEffectiveCapabilityResolution({
-      textProjection: projection,
-    });
-    const executionSnapshot = createNimiConversationAISnapshot({
-      config: createEmptyNimiAIConfig(),
-      capability: 'text.generate',
-      projection,
-      agentResolution,
-    });
-
     const result = await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
@@ -264,9 +234,6 @@ test('agent runtime turn request carries no execution bindings to Runtime', asyn
       userMessageId: 'user-cloud-1',
       userText: 'hello cloud',
       reasoningPreference: 'off',
-      textExecutionSnapshot: executionSnapshot,
-      imageExecutionSnapshot: null,
-      imageParams: null,
       signal: new AbortController().signal,
     });
     for await (const ignoredPart of result.stream) {
@@ -382,17 +349,6 @@ test('agent runtime turn fails closed when runtime rejects request_id in turn pa
   };
 
   try {
-    const projection = createLocalTextProjection();
-    const agentResolution = buildAgentEffectiveCapabilityResolution({
-      textProjection: projection,
-    });
-    const executionSnapshot = createNimiConversationAISnapshot({
-      config: createEmptyNimiAIConfig(),
-      capability: 'text.generate',
-      projection,
-      agentResolution,
-    });
-
     await assert.rejects(() => streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
@@ -402,9 +358,6 @@ test('agent runtime turn fails closed when runtime rejects request_id in turn pa
       userMessageId: 'user-legacy-1',
       userText: 'hello legacy',
       reasoningPreference: 'off',
-      textExecutionSnapshot: executionSnapshot,
-      imageExecutionSnapshot: null,
-      imageParams: null,
       signal: new AbortController().signal,
     }), {
       reasonCode: ReasonCode.PROTOCOL_ENVELOPE_INVALID,
@@ -492,17 +445,6 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
   };
 
   try {
-    const projection = createLocalTextProjection();
-    const agentResolution = buildAgentEffectiveCapabilityResolution({
-      textProjection: projection,
-    });
-    const executionSnapshot = createNimiConversationAISnapshot({
-      config: createEmptyNimiAIConfig(),
-      capability: 'text.generate',
-      projection,
-      agentResolution,
-    });
-
     const result = await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
@@ -512,9 +454,6 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
       userMessageId: 'user-failed-1',
       userText: 'hello failed',
       reasoningPreference: 'off',
-      textExecutionSnapshot: executionSnapshot,
-      imageExecutionSnapshot: null,
-      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{

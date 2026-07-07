@@ -4,11 +4,7 @@ import {
   clearDesktopTestNimiClientSession,
   createDesktopTestNimiClientSession,
   streamChatAgentRuntimeAgentTurn,
-  buildAgentEffectiveCapabilityResolution,
-  createNimiConversationAISnapshot,
-  createEmptyNimiAIConfig,
   createRuntimeTurnTimeline,
-  createLocalTextProjection,
 } from './chat-agent-local-mode-test-utils.js';
 
 test('agent runtime turn recovers terminal projection from authoritative runtime snapshot when subscription misses commit events', async () => {
@@ -112,17 +108,6 @@ test('agent runtime turn recovers terminal projection from authoritative runtime
   };
 
   try {
-    const projection = createLocalTextProjection();
-    const agentResolution = buildAgentEffectiveCapabilityResolution({
-      textProjection: projection,
-    });
-    const executionSnapshot = createNimiConversationAISnapshot({
-      config: createEmptyNimiAIConfig(),
-      capability: 'text.generate',
-      projection,
-      agentResolution,
-    });
-
     const result = await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
@@ -132,9 +117,6 @@ test('agent runtime turn recovers terminal projection from authoritative runtime
       userMessageId: 'user-snapshot-1',
       userText: 'hello snapshot',
       reasoningPreference: 'off',
-      textExecutionSnapshot: executionSnapshot,
-      imageExecutionSnapshot: null,
-      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{
@@ -267,17 +249,6 @@ test('agent runtime turn binds current active turn from snapshot when accepted e
   };
 
   try {
-    const projection = createLocalTextProjection();
-    const agentResolution = buildAgentEffectiveCapabilityResolution({
-      textProjection: projection,
-    });
-    const executionSnapshot = createNimiConversationAISnapshot({
-      config: createEmptyNimiAIConfig(),
-      capability: 'text.generate',
-      projection,
-      agentResolution,
-    });
-
     const result = await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
@@ -287,9 +258,6 @@ test('agent runtime turn binds current active turn from snapshot when accepted e
       userMessageId: 'user-active-bind-1',
       userText: 'hello active bind',
       reasoningPreference: 'off',
-      textExecutionSnapshot: executionSnapshot,
-      imageExecutionSnapshot: null,
-      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{
@@ -496,17 +464,6 @@ test('agent runtime turn consumes runtime-owned projection events from anchor ap
   };
 
   try {
-    const projection = createLocalTextProjection();
-    const agentResolution = buildAgentEffectiveCapabilityResolution({
-      textProjection: projection,
-    });
-    const executionSnapshot = createNimiConversationAISnapshot({
-      config: createEmptyNimiAIConfig(),
-      capability: 'text.generate',
-      projection,
-      agentResolution,
-    });
-
     const result = await streamChatAgentRuntimeAgentTurn({
       ownerUserId: 'user-1',
       runtimeSourceRef: 'agent-1',
@@ -516,9 +473,6 @@ test('agent runtime turn consumes runtime-owned projection events from anchor ap
       userMessageId: 'user-projection-1',
       userText: 'hello projection',
       reasoningPreference: 'off',
-      textExecutionSnapshot: executionSnapshot,
-      imageExecutionSnapshot: null,
-      imageParams: null,
       signal: new AbortController().signal,
     });
     const parts: Array<{

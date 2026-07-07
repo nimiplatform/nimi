@@ -577,6 +577,9 @@ test('runtime agent inspect adapter projects public state and pending hook summa
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,
     defaultVoiceReference: 'voice://agent-1/default',
+    avatarAutoplay: false,
+    speechModelId: null,
+    speechRoutePolicy: null,
   });
   assert.equal(snapshot.executionState, 'life-pending');
   assert.equal(snapshot.statusText, 'waiting to follow up');
@@ -664,6 +667,9 @@ test('runtime agent inspect adapter projects persistent presentation profile wit
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,
     defaultVoiceReference: 'voice://agent-1/default',
+    avatarAutoplay: false,
+    speechModelId: null,
+    speechRoutePolicy: null,
   });
   assert.equal(calls.getAgent.length, 1);
   assert.equal(calls.getAgentState.length, 0);
@@ -729,6 +735,9 @@ test('runtime agent inspect adapter accepts live2d presentation profiles', async
     idlePreset: null,
     interactionPolicyRef: null,
     defaultVoiceReference: null,
+    avatarAutoplay: false,
+    speechModelId: null,
+    speechRoutePolicy: null,
   });
 });
 

@@ -4,13 +4,7 @@ import type {
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { createNimiClientId } from '@nimiplatform/sdk';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-import {
-  peekDesktopAISchedulingForEvidence,
-  recordDesktopAISnapshot,
-  resolveNimiAIConfigRuntimeSchedulingTargetForCapability,
-} from '@renderer/app-shell/providers/desktop-ai-config-service';
 import {
   createInitialAgentSubmitDriverState,
   resolveInterruptedAgentSubmitDriverCheckpoint,
@@ -24,14 +18,6 @@ import {
   toChatAgentRuntimeError,
 } from './chat-agent-runtime';
 import {
-  createNimiConversationAISnapshot,
-  resolveAgentImageProjectionForExecution,
-} from './conversation-capability';
-import {
-  refreshAgentEffectiveCapabilityResolution,
-  refreshConversationCapabilityProjections,
-} from './conversation-capability-projection';
-import {
   bundleQueryKey,
   normalizeText,
 } from './chat-agent-shell-core';
@@ -40,7 +26,10 @@ import {
   startStream,
 } from '../turns/stream-controller';
 import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
-import { ensureAgentConversationSubmitRouteReady } from './conversation-submit-readiness';
+import {
+  describeRuntimeAgentTextReadiness,
+  isRuntimeAgentTextReadinessReady,
+} from '@renderer/infra/runtime-agent-execution-config';
 import { buildAgentUserProjection } from './chat-agent-user-projection';
 import {
   assertAgentSubmitSchedulingAllowed,
@@ -119,18 +108,19 @@ export async function submitAgentConversationTurn(input: {
       },
     });
 
-    const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({
-      t: input.hostInput.t,
-    });
+    const runtimeReadiness = await input.hostInput.getRuntimeAgentExecutionReadiness();
+    if (!isRuntimeAgentTextReadinessReady(runtimeReadiness)) {
+      throw new Error(
+        input.hostInput.runtimeAgentTextDisabledReason
+          || describeRuntimeAgentTextReadiness(runtimeReadiness, input.hostInput.t('Chat.agentSubmitRuntimeTextUnavailable', {
+            defaultValue: 'Runtime Agent text execution is not ready.',
+          })),
+      );
+    }
     await assertAgentSubmitSchedulingAllowed({
       aiConfig: input.hostInput.aiConfig,
       t: input.hostInput.t,
     });
-    if (!refreshedAgentResolution.textProjection?.resolvedBinding) {
-      throw new Error(input.hostInput.t('Chat.agentSubmitRouteUnavailable', {
-        defaultValue: 'Choose a ready AI route before sending a message.',
-      }));
-    }
 
     let effectiveThreadRecord: AgentLocalThreadSummary | AgentLocalThreadRecord | null = input.hostInput.selectedThreadRecord;
     let effectiveThreadId = input.hostInput.activeThreadId;
@@ -276,56 +266,6 @@ export async function submitAgentConversationTurn(input: {
       workingBundle: userBundle,
     });
 
-    const runtimeEvidence = await peekDesktopAISchedulingForEvidence({
-      scopeRef: input.hostInput.aiConfig.scopeRef,
-      target: resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.hostInput.aiConfig, 'text.generate'),
-    });
-    const textExecutionSnapshot = createNimiConversationAISnapshot({
-      config: input.hostInput.aiConfig,
-      capability: 'text.generate',
-      projection: refreshedAgentResolution.textProjection!,
-      agentResolution: refreshedAgentResolution,
-      runtimeEvidence,
-    });
-    recordDesktopAISnapshot(textExecutionSnapshot);
-
-    let effectiveAgentResolution = refreshedAgentResolution;
-    const staleCapabilities: Array<'image.generate' | 'audio.synthesize'> = [];
-    if (effectiveAgentResolution.imageProjection?.selectedTargetRef && !effectiveAgentResolution.imageReady) {
-      staleCapabilities.push('image.generate');
-    }
-    if (effectiveAgentResolution.voiceProjection?.selectedTargetRef && !effectiveAgentResolution.voiceReady) {
-      staleCapabilities.push('audio.synthesize');
-    }
-    if (staleCapabilities.length > 0) {
-      await refreshConversationCapabilityProjections(staleCapabilities);
-      refreshAgentEffectiveCapabilityResolution();
-      effectiveAgentResolution = useAppStore.getState().agentEffectiveCapabilityResolution || effectiveAgentResolution;
-    }
-    const imageProjectionForExecution = resolveAgentImageProjectionForExecution(effectiveAgentResolution);
-    const imageRuntimeEvidence = imageProjectionForExecution
-      ? await peekDesktopAISchedulingForEvidence({
-        scopeRef: input.hostInput.aiConfig.scopeRef,
-        target: resolveNimiAIConfigRuntimeSchedulingTargetForCapability(input.hostInput.aiConfig, 'image.generate'),
-      })
-      : null;
-    const imageExecutionSnapshot = imageProjectionForExecution
-      ? createNimiConversationAISnapshot({
-        config: input.hostInput.aiConfig,
-        capability: 'image.generate',
-        projection: imageProjectionForExecution,
-        agentResolution: effectiveAgentResolution,
-        runtimeEvidence: imageRuntimeEvidence,
-      })
-      : null;
-    if (imageExecutionSnapshot) {
-      recordDesktopAISnapshot(imageExecutionSnapshot);
-    }
-    const imageParamsCandidate = input.hostInput.aiConfig.capabilities.selectedParams['image.generate'];
-    const imageParams = imageParamsCandidate && typeof imageParamsCandidate === 'object' && !Array.isArray(imageParamsCandidate)
-      ? imageParamsCandidate as Record<string, unknown>
-      : null;
-
     const abortController = startStream(
       effectiveThreadId,
       resolveAgentTurnTotalTimeoutMs(input.hostInput.aiConfig),
@@ -351,10 +291,6 @@ export async function submitAgentConversationTurn(input: {
         attachments: uploadedAttachments,
       },
       signal: abortController.signal,
-      agentResolution: effectiveAgentResolution,
-      textExecutionSnapshot,
-      imageExecutionSnapshot,
-      imageParams,
       textModelContextTokens: input.hostInput.textModelContextTokens,
       textMaxOutputTokensRequested: input.hostInput.textMaxOutputTokensRequested,
       target: activeTarget,

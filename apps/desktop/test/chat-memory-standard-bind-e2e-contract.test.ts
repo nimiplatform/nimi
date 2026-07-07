@@ -24,16 +24,20 @@ const cognitionPanelSource = fs.readFileSync(
   path.join(desktopRoot, 'src/shell/renderer/features/chat/chat-agent-cognition-panel.tsx'),
   'utf8',
 );
+const kitCognitionSectionSource = fs.readFileSync(
+  path.join(desktopRoot, '../../kit/features/agent-center/src/components/AgentCenterCognitionSection.tsx'),
+  'utf8',
+);
 const memoryStandardBindSpecSource = fs.readFileSync(
   path.join(desktopRoot, 'e2e/specs/chat.memory-standard-bind.e2e.mjs'),
   'utf8',
 );
-const agentCenterPanelSource = fs.readFileSync(
-  path.join(desktopRoot, 'src/shell/renderer/features/chat/chat-agent-center-panel.tsx'),
-  'utf8',
-);
 const agentShellAdapterSource = fs.readFileSync(
   path.join(desktopRoot, 'src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx'),
+  'utf8',
+);
+const agentCenterPlacementSource = fs.readFileSync(
+  path.join(desktopRoot, 'src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.tsx'),
   'utf8',
 );
 
@@ -81,7 +85,6 @@ test('chat memory standard bind journey exposes stable Memory Mode test ids', ()
   assert.match(e2eSelectorsSource, /chatMemoryModeCard: 'chat-memory-mode-card',/);
   assert.match(e2eSelectorsSource, /chatMemoryModeStatus: 'chat-memory-mode-status',/);
   assert.match(e2eSelectorsSource, /chatMemoryModeUpgradeButton: 'chat-memory-mode-upgrade-button',/);
-  assert.match(agentCenterPanelSource, /data-testid=\{E2E_IDS\.chatAgentCenterSection\(section\.id\)\}/);
   assert.match(cognitionPanelSource, /data-testid=\{E2E_IDS\.chatMemoryModeCard\}/);
   assert.match(cognitionPanelSource, /data-testid=\{E2E_IDS\.chatMemoryModeStatus\}/);
   assert.match(cognitionPanelSource, /data-memory-mode=\{memoryModeValue\}/);
@@ -91,8 +94,9 @@ test('chat memory standard bind journey exposes stable Memory Mode test ids', ()
   assert.match(e2eAppHelperSource, /export async function clickByTestIdAtStart/);
 });
 
-test('Agent Center wires Standard memory upgrade to the runtime memory projection surface', () => {
-  assert.match(agentShellAdapterSource, /handleUpgradeStandardMemory/);
-  assert.match(agentShellAdapterSource, /onUpgradeStandardMemory=\{handleUpgradeStandardMemory\}/);
-  assert.match(agentShellAdapterSource, /allowMemoryUpgrade/);
+test('RLA3 Agent Center memory projection is owned by Kit, not Desktop slots', () => {
+  assert.match(agentCenterPlacementSource, /@nimiplatform\/kit\/features\/agent-center/);
+  assert.doesNotMatch(agentShellAdapterSource, /ChatAgentCognitionPanel/);
+  assert.match(kitCognitionSectionSource, /Recent canonical memories/);
+  assert.match(kitCognitionSectionSource, /cognition\.recentCanonicalMemories/);
 });

@@ -24,12 +24,7 @@ export type AgentTextTurnDebugMetadata = {
     conversationAnchorId: string | null;
     runtimeTurnId: string | null;
     runtimeStreamId: string | null;
-    route: string | null;
-    modelId: string | null;
-    connectorId: string | null;
     traceId: string | null;
-    modelResolved: string | null;
-    routeDecision: string | null;
   } | null;
 };
 
@@ -78,12 +73,7 @@ function parseRuntimeAgentTurns(value: unknown): AgentTextTurnDebugMetadata['run
     conversationAnchorId: normalizeNullableText(record.conversationAnchorId),
     runtimeTurnId: normalizeNullableText(record.runtimeTurnId),
     runtimeStreamId: normalizeNullableText(record.runtimeStreamId),
-    route: normalizeNullableText(record.route),
-    modelId: normalizeNullableText(record.modelId),
-    connectorId: normalizeNullableText(record.connectorId),
     traceId: normalizeNullableText(record.traceId),
-    modelResolved: normalizeNullableText(record.modelResolved),
-    routeDecision: normalizeNullableText(record.routeDecision),
   };
 }
 

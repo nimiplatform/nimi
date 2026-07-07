@@ -124,6 +124,70 @@ test('Agent Center local config bridge rejects retired selected package truth', 
   assert.match(result.errors.join('\n'), /selected_package: unknown field/u);
 });
 
+test('Agent Center local config bridge rejects Runtime execution and transcript truth in store payloads', () => {
+  const result = validateAgentCenterLocalConfig({
+    schema_version: 1,
+    config_kind: 'agent_center_local_config',
+    ...CONFIG_IDENTITY,
+    execution_config: { revision: 'runtime-revision-1' },
+    provider_route: { provider: 'runtime-provider', model: 'runtime-model' },
+    runtime_snapshot: { ready: true },
+    modules: {
+      appearance: {
+        schema_version: 1,
+        background_asset_id: null,
+        motion: 'system',
+        provider: 'runtime-provider',
+      },
+      avatar_asset: {
+        schema_version: 1,
+        conversation_anchor_scope: 'current_anchor',
+        local_avatar_asset_ref: null,
+        live2d_adapter_manifest_source: 'none',
+        live2d_adapter_manifest_ref: null,
+        live2d_calibration_ref: null,
+        avatar_instance_policy: 'reuse_active_instance',
+        backend_kind: 'live2d',
+        backend_capability_profile_ref: null,
+        generated_motion_provider_policy: 'require_profile_support',
+        launch_mode: 'manual',
+        debug_profile: 'standard',
+        updated_at: '2026-04-27T00:00:00Z',
+        provenance: {
+          source: 'runtime_projection',
+          evidence_ref: 'agent-center-avatar-config-default',
+        },
+        memory: { records: [] },
+      },
+      local_history: {
+        schema_version: 1,
+        last_cleared_at: null,
+        transcript: [{ role: 'assistant', content: 'owned elsewhere' }],
+      },
+      voice: {
+        schema_version: 1,
+        avatar_autoplay: false,
+        audio_synthesize: { route: 'runtime-audio' },
+      },
+      ui: {
+        schema_version: 1,
+        last_section: 'overview',
+        model: 'runtime-model',
+      },
+    },
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /config\.execution_config: unknown field/u);
+  assert.match(result.errors.join('\n'), /config\.provider_route: unknown field/u);
+  assert.match(result.errors.join('\n'), /config\.runtime_snapshot: unknown field/u);
+  assert.match(result.errors.join('\n'), /modules\.appearance\.provider: unknown field/u);
+  assert.match(result.errors.join('\n'), /modules\.avatar_asset\.memory: unknown field/u);
+  assert.match(result.errors.join('\n'), /modules\.local_history\.transcript: unknown field/u);
+  assert.match(result.errors.join('\n'), /modules\.voice\.audio_synthesize: unknown field/u);
+  assert.match(result.errors.join('\n'), /modules\.ui\.model: unknown field/u);
+});
+
 test('Agent Center local config bridge exposes stable query key shape', () => {
   assert.deepEqual(agentCenterLocalConfigQueryKey('account_1', 'local-agent:owner_1:agent_1'), [
     'agent-center-local-config',

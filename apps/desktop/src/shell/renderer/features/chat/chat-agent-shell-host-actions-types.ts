@@ -13,10 +13,11 @@ import type {
   AgentSubmitDriverState,
 } from './chat-agent-shell-submit-driver';
 import type {
-  AgentEffectiveCapabilityResolution,
   NimiAIConfig,
-  NimiAISnapshot,
 } from './conversation-capability';
+import type {
+  NimiRuntimeAgentExecutionReadinessSnapshotProjection,
+} from '@renderer/infra/runtime-agent-execution-config';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-agent-runtime-turn-types';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
@@ -31,10 +32,6 @@ export type AgentRunTurn = (input: {
     attachments: readonly AgentChatUserAttachment[];
   };
   signal: AbortSignal;
-  agentResolution: AgentEffectiveCapabilityResolution;
-  textExecutionSnapshot: NimiAISnapshot;
-  imageExecutionSnapshot: NimiAISnapshot | null;
-  imageParams: Record<string, unknown> | null;
   textModelContextTokens: number | null;
   textMaxOutputTokensRequested: number | null;
   target: AgentLocalTargetSnapshot;
@@ -47,9 +44,11 @@ export type UseAgentConversationHostActionsInput = {
   applyDriverEffects: (threadId: string, effects: ReturnType<typeof import('./chat-agent-shell-submit-driver').reduceAgentSubmitDriverEvent>) => AgentSubmitDriverState;
   bundle: AgentLocalThreadBundle | null;
   currentComposerTextRef: { current: string };
+  getRuntimeAgentExecutionReadiness: () => Promise<NimiRuntimeAgentExecutionReadinessSnapshotProjection>;
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
   runAgentTurn: AgentRunTurn;
+  runtimeAgentTextDisabledReason: string | null;
   selectedLocalAgentRef: string | null;
   selectedThreadRecord: AgentLocalThreadSummary | null;
   setBundleCache: (

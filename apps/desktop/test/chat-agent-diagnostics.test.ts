@@ -437,9 +437,6 @@ test('agent diagnostics view model shows runtime turn evidence when lifecycle ca
         conversationAnchorId: 'anchor-runtime-1',
         runtimeTurnId: 'runtime-turn-1',
         runtimeStreamId: 'runtime-stream-1',
-        route: 'local',
-        modelId: 'kimi-k2',
-        connectorId: null,
       },
       diagnostics: {
         classification: 'runtime-structured',
@@ -472,8 +469,8 @@ test('agent diagnostics view model shows runtime turn evidence when lifecycle ca
   assert.equal(runtimeChatCard?.value, 'anchor-runtime-1');
   assert.match(runtimeChatCard?.detail || '', /runtimeTurnId=runtime-turn-1/);
   assert.match(runtimeChatCard?.detail || '', /runtimeStreamId=runtime-stream-1/);
-  assert.match(runtimeChatCard?.detail || '', /route=local/);
-  assert.match(runtimeChatCard?.detail || '', /modelId=kimi-k2/);
+  assert.doesNotMatch(runtimeChatCard?.detail || '', /route=/);
+  assert.doesNotMatch(runtimeChatCard?.detail || '', /modelId=/);
 });
 
 test('agent diagnostics view model shows runtime agent state and pending hook inspect when available', () => {

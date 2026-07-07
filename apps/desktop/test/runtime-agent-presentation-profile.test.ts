@@ -48,14 +48,17 @@ test('runtime agent presentation profile keeps admitted runtime voice references
     normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(' voice_asset_id:voice-asset-1 '),
     'voice_asset_id:voice-asset-1',
   );
-  assert.equal(
-    normalizeNimiRuntimeAgentPresentationDefaultVoiceReference('provider_voice_ref:openai:verse'),
-    'provider_voice_ref:openai:verse',
-  );
 });
 
-test('runtime agent presentation profile drops UI-only voice URIs before Runtime RPC', () => {
-  assert.equal(normalizeNimiRuntimeAgentPresentationDefaultVoiceReference('voice://agent-1/default'), '');
+test('runtime agent presentation profile rejects non-runtime voice references before Runtime RPC', () => {
+  assert.throws(
+    () => normalizeNimiRuntimeAgentPresentationDefaultVoiceReference('provider_voice_ref:openai:verse'),
+    /preset_voice_id or voice_asset_id/,
+  );
+  assert.throws(
+    () => normalizeNimiRuntimeAgentPresentationDefaultVoiceReference('voice://agent-1/default'),
+    /preset_voice_id or voice_asset_id/,
+  );
   assert.equal(normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(''), '');
   assert.equal(normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(null), '');
 });

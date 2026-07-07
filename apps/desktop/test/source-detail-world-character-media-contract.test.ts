@@ -191,8 +191,8 @@ test('world character detail renders reference image and voice sample controls',
   assert.match(markup, /data-testid="world-character-opening-line"/);
   assert.match(markup, /data-testid="world-character-speech-profile-trigger"/);
   assert.match(markup, /data-testid="world-character-voice-sample-audio"/);
-  assert.match(markup, />Presence<\/p>/);
   assert.match(markup, />Look and voice<\/h2>/);
+  assert.doesNotMatch(markup, />Presence<\/p>/);
   assert.doesNotMatch(markup, /Character media/);
   assert.match(markup, /data-testid="world-character-media-frame"[\s\S]*data-testid="world-character-reference-image"[\s\S]*data-testid="world-character-opening-line"[\s\S]*data-testid="world-character-voice-sample-audio"/);
   assert.match(markup, /data-testid="world-character-opening-line"[\s\S]*data-testid="world-character-speech-profile-trigger"[\s\S]*>i<\/button>[\s\S]*The archives are quiet; ask, and I will open them\./);

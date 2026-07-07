@@ -17,9 +17,6 @@ export type AgentRuntimeChatLifecycleEvidence = {
   conversationAnchorId: string | null;
   runtimeTurnId: string | null;
   runtimeStreamId: string | null;
-  route: string | null;
-  modelId: string | null;
-  connectorId: string | null;
 };
 
 export type AgentTurnLifecycleState = {
@@ -59,9 +56,6 @@ function parseRuntimeAgentTurnsLifecycleEvidence(value: unknown): AgentRuntimeCh
     conversationAnchorId: normalizeText(nested.conversationAnchorId) || null,
     runtimeTurnId: normalizeText(nested.runtimeTurnId) || null,
     runtimeStreamId: normalizeText(nested.runtimeStreamId) || null,
-    route: normalizeText(nested.route) || null,
-    modelId: normalizeText(nested.modelId) || null,
-    connectorId: normalizeText(nested.connectorId) || null,
   };
 }
 

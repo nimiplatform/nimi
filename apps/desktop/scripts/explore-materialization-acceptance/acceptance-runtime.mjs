@@ -54,6 +54,8 @@ export async function startRuntimeDaemon({ fixtureOrigin, homeDir, stateRoot, ru
       NIMI_RUNTIME_MODEL_REGISTRY_PATH: modelRegistryPath,
       NIMI_RUNTIME_LOCAL_STATE_PATH: localStatePath,
       NIMI_RUNTIME_CONNECTOR_STORE_PATH: path.join(stateRoot, 'connector-store.json'),
+      NIMI_RUNTIME_CONNECTOR_TEST_MEMORY_SECRETS: '1',
+      NIMI_RUNTIME_ACCOUNT_TEST_CUSTODY_FILE_PATH: path.join(stateRoot, 'account-custody.json'),
       NIMI_RUNTIME_AUTH_DEVELOPER_REGISTRATION_ENABLED: '1',
       NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL: fixtureOrigin,
       NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL: `${fixtureOrigin}/api/auth/oauth/authorize`,
@@ -194,6 +196,7 @@ export async function prepareRuntimeProductControl(runtime, dataRoot) {
 }
 
 export function createAcceptanceAgentClient(runtime) {
+  let agentCallIndex = 0;
   const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
     appId: APP_ID,
     appInstanceId: `${APP_ID}.acceptance-agent-session`,
@@ -220,7 +223,8 @@ export function createAcceptanceAgentClient(runtime) {
         subjectUserId: OWNER_USER_ID,
       }, scopes, async (options) => {
         const metadata = await sessionMetadata();
-        return operation(idempotency(`agent:${scopes.join(',')}`, {
+        agentCallIndex += 1;
+        return operation(idempotency(`agent:${scopes.join(',')}:${agentCallIndex}`, {
           ...options,
           metadata: {
             ...metadata,

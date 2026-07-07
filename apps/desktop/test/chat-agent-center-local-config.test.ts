@@ -110,12 +110,60 @@ test('Agent Center local config rejects unknown modules and arbitrary key growth
 test('Agent Center local config rejects runtime-owned truth fields', () => {
   const config = createConfig() as unknown as Record<string, unknown>;
   config.personality = 'friendly';
+  config.execution_config = { revision: 'rev-1' };
+  config.provider = 'openai';
+  config.model = 'gpt-runtime';
+  config.memory = { records: [] };
+  config.transcript = [{ role: 'user', content: 'hello' }];
+  config.runtime_snapshot = { status: 'ready' };
 
   const result = validateAgentCenterLocalConfig(config);
 
   assert.equal(result.ok, false);
   if (!result.ok) {
     assert.ok(result.errors.some((error) => error.includes('config.personality: unknown field')));
+    for (const field of ['execution_config', 'provider', 'model', 'memory', 'transcript', 'runtime_snapshot']) {
+      assert.ok(
+        result.errors.some((error) => error.includes(`config.${field}: unknown field`)),
+        `expected ${field} to be rejected`,
+      );
+    }
+  }
+});
+
+test('Agent Center local config rejects unadmitted retained module semantics', () => {
+  const config = createConfig() as unknown as Record<string, unknown>;
+  const modules = config.modules as Record<string, Record<string, unknown>>;
+  const localHistory = modules.local_history;
+  const voice = modules.voice;
+  const ui = modules.ui;
+  assert.ok(localHistory);
+  assert.ok(voice);
+  assert.ok(ui);
+  localHistory.transcript_replay = [{ id: 'turn-1' }];
+  localHistory.session_snapshot = { sessionId: 'session-1' };
+  voice.audio_synthesize = { provider: 'tts-provider', model: 'tts-model' };
+  voice.route = 'runtime-route:audio';
+  ui.provider_route = { provider: 'openai', model: 'gpt-runtime' };
+  ui.runtime_snapshot = { ready: true };
+
+  const result = validateAgentCenterLocalConfig(config);
+
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    for (const field of [
+      'modules.local_history.transcript_replay',
+      'modules.local_history.session_snapshot',
+      'modules.voice.audio_synthesize',
+      'modules.voice.route',
+      'modules.ui.provider_route',
+      'modules.ui.runtime_snapshot',
+    ]) {
+      assert.ok(
+        result.errors.some((error) => error.includes(`${field}: unknown field`)),
+        `expected ${field} to be rejected`,
+      );
+    }
   }
 });
 

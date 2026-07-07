@@ -147,15 +147,6 @@ function buildRuntimeAgentTurnsCard(lifecycle: AgentTurnLifecycleState): AgentDi
       lifecycle.runtimeAgentTurns.runtimeStreamId
         ? `runtimeStreamId=${lifecycle.runtimeAgentTurns.runtimeStreamId}`
         : null,
-      lifecycle.runtimeAgentTurns.route
-        ? `route=${lifecycle.runtimeAgentTurns.route}`
-        : null,
-      lifecycle.runtimeAgentTurns.modelId
-        ? `modelId=${lifecycle.runtimeAgentTurns.modelId}`
-        : null,
-      lifecycle.runtimeAgentTurns.connectorId
-        ? `connectorId=${lifecycle.runtimeAgentTurns.connectorId}`
-        : null,
     ]),
   };
 }

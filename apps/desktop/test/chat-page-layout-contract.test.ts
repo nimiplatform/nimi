@@ -83,10 +83,12 @@ test('chat page startup keeps agent mode lazy-loaded while removing the desktop-
   assert.match(chatCanonicalModeFrameSource, /CanonicalConversationShell/);
 });
 
-test('agent shell presentation disables stage panel props so desktop chat cannot present a co-equal local avatar carrier route', () => {
+test('agent shell presentation disables stage panel props and consumes the Kit Agent Center', () => {
   assert.match(chatAgentPresentationSource, /stagePanelProps:\s*undefined/);
   assert.match(chatAgentPresentationSource, /topContent:\s*schedulingFeedbackNode/);
-  assert.match(chatAgentPresentationSettingsSource, /AgentCenterPanel/);
+  assert.match(chatAgentPresentationSettingsSource, /from '@nimiplatform\/kit\/features\/agent-center'/);
+  assert.match(chatAgentPresentationSettingsSource, /<AgentCenter/);
+  assert.doesNotMatch(chatAgentPresentationSettingsSource, /AgentCenterPanel/);
   assert.match(chatAgentLocalAvatarControlsSource, /importAgentCenterAvatarAsset/);
   assert.match(chatAgentLocalAvatarControlsSource, /validateAgentCenterAvatarAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /chat-agent-avatar-store/);

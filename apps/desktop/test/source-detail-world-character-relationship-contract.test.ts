@@ -4,12 +4,9 @@ import test from 'node:test';
 import {
   React,
   SourceDetailView,
-  changeLocale,
   initI18n,
-  liBaiRaw,
   ouYangDeRaw,
   renderToStaticMarkup,
-  simplifySourceDetailChineseText,
   toSourceDetailData,
 } from './source-detail-world-character-test-utils.js';
 

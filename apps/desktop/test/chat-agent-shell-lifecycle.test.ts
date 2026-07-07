@@ -56,9 +56,6 @@ test('agent shell lifecycle ignores local projection version and keeps completed
     conversationAnchorId: 'anchor-1',
     runtimeTurnId: 'runtime-turn-1',
     runtimeStreamId: 'runtime-stream-1',
-    route: 'local',
-    modelId: 'kimi-k2',
-    connectorId: null,
   });
   assert.deepEqual(completed.usage, {
     inputTokens: 11,
@@ -157,18 +154,12 @@ test('agent shell lifecycle preserves runtime.agent.turns anchor evidence on fai
     conversationAnchorId: 'anchor-runtime-fail',
     runtimeTurnId: 'runtime-turn-fail',
     runtimeStreamId: 'runtime-stream-fail',
-    route: 'cloud',
-    modelId: 'gpt-5.4-mini',
-    connectorId: 'connector-openai',
   });
   assert.deepEqual(canceledState.runtimeAgentTurns, {
     transport: 'runtime.agent.turns',
     conversationAnchorId: 'anchor-runtime-cancel',
     runtimeTurnId: 'runtime-turn-cancel',
     runtimeStreamId: 'runtime-stream-cancel',
-    route: 'local',
-    modelId: 'kimi-k2',
-    connectorId: null,
   });
 });
 

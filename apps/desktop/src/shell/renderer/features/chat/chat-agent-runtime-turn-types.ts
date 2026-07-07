@@ -35,9 +35,6 @@ export type AgentRuntimeChatTurnRequest = {
   userAttachments?: readonly AgentChatUserAttachment[];
   maxOutputTokensRequested?: number | null;
   reasoningPreference: import('./chat-shared-thinking').ChatThinkingPreference;
-  textExecutionSnapshot: import('./conversation-capability').NimiAISnapshot | null;
-  imageExecutionSnapshot: import('./conversation-capability').NimiAISnapshot | null;
-  imageParams: Record<string, unknown> | null;
   signal?: AbortSignal;
 };
 
