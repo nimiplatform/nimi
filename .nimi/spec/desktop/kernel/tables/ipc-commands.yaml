@@ -23,6 +23,7 @@ surfaces:
   - macos-smoke
   - chat-ai
   - agent-center
+  - storage
 # Desktop IPC Commands (Tauri invoke)
 # Source of truth: apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
 # Synced: 2026-03-09
@@ -219,27 +220,6 @@ commands:
     description: Fail-closed shell network helper for admitted Runtime/Realm origins and generated SDK connector-auth acquisition endpoints
     source_rule: D-IPC-004
 
-  # Standard shell storage/data helpers
-  - command: data_path_resolve
-    module: storage
-    description: Resolve a scoped runtime app storage child path from host-owned standard shell storage root
-    source_rule: D-IPC-012
-
-  - command: storage_read_json
-    module: storage
-    description: Read scoped JSON from host-owned standard shell runtime app storage without exposing renderer path/root custody
-    source_rule: D-IPC-012
-
-  - command: storage_write_json
-    module: storage
-    description: Write scoped JSON to host-owned standard shell runtime app storage without exposing renderer path/root custody
-    source_rule: D-IPC-012
-
-  - command: storage_remove_json
-    module: storage
-    description: Remove scoped JSON from host-owned standard shell runtime app storage with idempotent missing-file behavior
-    source_rule: D-IPC-012
-
   # UI
   - command: open_external_url
     module: ui
@@ -273,7 +253,7 @@ commands:
 
   - command: confirm_dialog
     module: ui
-    description: Show an admitted native confirmation dialog and return the user decision
+    description: Standard shell-ui confirmDialog (platform P-KIT-041C); kit-owned command, desktop injects the native dialog host adapter
     source_rule: D-IPC-005
 
   - command: log_renderer_event
@@ -283,13 +263,55 @@ commands:
 
   - command: focus_main_window
     module: ui
-    description: Focus the main desktop window through the native shell
+    description: Standard shell-ui focusMainWindow (platform P-KIT-041C); kit-owned command, desktop injects the focus target host adapter
     source_rule: D-IPC-005
 
   - command: start_window_drag
     module: ui
-    description: Start native window drag operation
+    description: Standard shell-ui startWindowDrag (platform P-KIT-041C); kit-owned command, desktop injects the drag policy host adapter
     source_rule: D-IPC-005
+
+  # Standard shell data/storage (kit-owned, platform P-KIT-041C)
+  - command: data_path_resolve
+    module: storage
+    description: Standard shell data.pathResolve (platform P-KIT-041C); kit-owned command resolving relative paths under the host-owned app data root
+    source_rule: D-IPC-016
+
+  - command: storage_read_json
+    module: storage
+    description: Standard shell storage.readJson (platform P-KIT-041C); kit-owned command over the host-owned app data root
+    source_rule: D-IPC-016
+
+  - command: storage_write_json
+    module: storage
+    description: Standard shell storage.writeJson (platform P-KIT-041C); kit-owned command over the host-owned app data root
+    source_rule: D-IPC-016
+
+  - command: storage_remove_json
+    module: storage
+    description: Standard shell storage.removeJson (platform P-KIT-041C); kit-owned idempotent removal over the host-owned app data root
+    source_rule: D-IPC-016
+
+  # Standard shell file & export surfaces (kit-owned, platform P-KIT-041F)
+  - command: file_dialog_open
+    module: storage
+    description: Standard shell fileDialog.open (platform P-KIT-041F); kit-owned OS open dialog returning host-validated paths
+    source_rule: D-IPC-016
+
+  - command: file_reveal_reveal
+    module: storage
+    description: Standard shell fileReveal.reveal (platform P-KIT-041F); kit-owned reveal of host-validated paths in the OS file manager
+    source_rule: D-IPC-016
+
+  - command: export_save_file
+    module: storage
+    description: Standard shell export.saveFile (platform P-KIT-041F); kit-owned user-facing export write with sanitized collision-free naming
+    source_rule: D-IPC-016
+
+  - command: artifacts_write
+    module: storage
+    description: Standard shell artifacts.write (platform P-KIT-041F); kit-owned binary artifact write under the artifacts/ subtree of the app data root
+    source_rule: D-IPC-016
 
   - command: menu_bar_sync_runtime_health
     module: ui

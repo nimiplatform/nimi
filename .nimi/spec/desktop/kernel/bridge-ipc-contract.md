@@ -105,7 +105,13 @@ renderer-supplied Authorization header through this command.
 
 - `open_external_url`：在系统浏览器打开外部 URL。
 - Private or governance-chain data publication must be implemented through a Runtime/Realm-owned workflow with an explicit product spec, not a Desktop-only native dialog.
-- `start_window_drag`：原生窗口拖拽。
+- `confirm_dialog` / `start_window_drag` / `focus_main_window` 是 platform 标准
+  shell-ui 能力（`P-KIT-041C` `shell-ui.confirmDialog` /
+  `shell-ui.startWindowDrag` / `shell-ui.focusMainWindow`）的消费面。命令名与
+  语义权威归 platform `tables/standard-shell-capabilities.yaml`；Desktop 不得
+  注册同名 app-local Tauri command fork，只能通过 kit 提供的 host adapter
+  hooks 注入 Desktop 策略（confirm 的原生对话框实现与 E2E override、focus 的
+  目标窗口策略、drag 的 fullscreen 保护）。
 - `menu_bar_sync_runtime_health`：renderer 向 Tauri backend 同步 menu bar 所需的 runtime/provider 健康摘要。
 - `menu_bar_complete_quit`：renderer 在完成 shell cleanup 后确认执行 app quit。
 
@@ -176,7 +182,7 @@ Desktop 自更新命令集：
 ## D-IPC-016 — Shared Tauri Bridge Authority
 
 - `kit/shell/tauri/**` (P-KIT-041) is the single shared implementation authority for app-agnostic Tauri host glue.
-- D-IPC-001 (auth session), D-IPC-002 (daemon lifecycle), D-IPC-004 (HTTP proxy), D-IPC-005 (UI commands `open_external_url`), D-IPC-006 (OAuth), D-IPC-009 (invoke infrastructure, `log_renderer_event`) shared implementations live in `kit/shell/tauri/**`.
+- D-IPC-001 (auth session), D-IPC-002 (daemon lifecycle), D-IPC-004 (HTTP proxy), D-IPC-005 (UI commands `open_external_url`, `confirm_dialog`, `start_window_drag`, `focus_main_window`), D-IPC-006 (OAuth), D-IPC-009 (invoke infrastructure, `log_renderer_event`) shared implementations live in `kit/shell/tauri/**`.
 - Apps must not duplicate these shared command implementations in app-local Rust code.
 - Apps must not use `#[path = "..."]` to compile another app's Rust source for shared bridge functionality.
 - App-specific Tauri commands for desktop menu bar and desktop self-update remain app-local.

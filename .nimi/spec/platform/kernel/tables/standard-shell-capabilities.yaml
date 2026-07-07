@@ -62,11 +62,19 @@ storage_payload_policy:
         - path
         - removed
       idempotent_missing_file: true
+    artifacts.write:
+      allowed_fields:
+        - relativePath
+        - mimeType
+        - dataBase64
   forbidden_renderer_fields:
     - path
     - storageRoot
     - root
     - absolutePath
+    - dataRoot
+    - cacheRoot
+    - tempRoot
 
 capability_set_schema:
   owner: platform_standard_shell_capabilities
@@ -122,6 +130,18 @@ capability_sets:
       - ai-profile.get
       - avatar.assetResolve
       - platform-projection.get
+      - file-dialog.open
+      - file-reveal.reveal
+      - export.saveFile
+      - artifacts.write
+      - floating-window.setBounds
+      - floating-window.setIgnoreCursorEvents
+      - floating-window.setAlwaysOnTop
+      - floating-window.hide
+      - floating-window.close
+      - floating-window.beginManualDrag
+      - floating-window.moveManualDrag
+      - floating-window.constrainToVisibleArea
       - desktop-private.product-control
       - tauri-only.commands
       - electron.raw-ipc
@@ -134,6 +154,8 @@ capability_sets:
       - desktop-installed-app-denies-platform-projection
       - desktop-installed-app-denies-desktop-private-bridge
       - desktop-installed-app-denies-tauri-only-commands
+      - desktop-installed-app-denies-file-system-handoff
+      - desktop-installed-app-denies-floating-window
     source_rule: P-KIT-044
 
 capabilities:
@@ -366,3 +388,89 @@ capabilities:
         negative_states:
           - capability-unavailable
           - not-found
+  - id: file-dialog
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: open
+        command: nimi.shell.fileDialog.open
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
+  - id: file-reveal
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: reveal
+        command: nimi.shell.fileReveal.reveal
+        negative_states:
+          - capability-unavailable
+          - invalid-path
+          - not-found
+          - host-internal-error
+  - id: export
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: saveFile
+        command: nimi.shell.export.saveFile
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
+  - id: artifacts
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: write
+        command: nimi.shell.artifacts.write
+        negative_states:
+          - capability-unavailable
+          - invalid-path
+          - invalid-payload
+          - host-internal-error
+  - id: floating-window
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: setBounds
+        command: nimi.shell.floatingWindow.setBounds
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
+      - id: setIgnoreCursorEvents
+        command: nimi.shell.floatingWindow.setIgnoreCursorEvents
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
+      - id: setAlwaysOnTop
+        command: nimi.shell.floatingWindow.setAlwaysOnTop
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
+      - id: hide
+        command: nimi.shell.floatingWindow.hide
+        negative_states:
+          - capability-unavailable
+          - host-internal-error
+      - id: close
+        command: nimi.shell.floatingWindow.close
+        negative_states:
+          - capability-unavailable
+          - host-internal-error
+      - id: beginManualDrag
+        command: nimi.shell.floatingWindow.beginManualDrag
+        negative_states:
+          - capability-unavailable
+          - host-internal-error
+      - id: moveManualDrag
+        command: nimi.shell.floatingWindow.moveManualDrag
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
+      - id: constrainToVisibleArea
+        command: nimi.shell.floatingWindow.constrainToVisibleArea
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error

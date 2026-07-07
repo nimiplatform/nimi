@@ -46,11 +46,11 @@ Window 必须以如下 config 启动（不可 runtime 改变）：
 
 Window 尺寸**必须**默认跟随当前 embodiment backend 产出的 surface bounds。Transient overlay 不是默认 ready window footprint 的一部分，除非对应 wave 显式 admission 为 window-contained overlay：
 
-- Model 加载完成（`avatar.model.load`）→ renderer 计算 `embodiment_bounds`（model alpha bounding box）→ 调用 Tauri `set_size` 同步 window
+- Model 加载完成（`avatar.model.load`）→ renderer 计算 `embodiment_bounds`（model alpha bounding box）→ 调用 kit 标准 `floatingWindow.setBounds({ width, height })` 同步 window
 - Model 切换（`avatar.model.switch`）→ 同上
-- Avatar scale changes → recompute `embodiment_bounds * scale` + `set_size`
+- Avatar scale changes → recompute `embodiment_bounds * scale` + `floatingWindow.setBounds`
 - Transient overlay open/close → default 不改变 ready window bounds；overlay 自身按 floating layer 定位和 click-through 区域参与 hit-region
-- User 手动 resize 不允许（通过 `resizable: false` 在 runtime 效果上禁止 drag-handle；程序化 set_size 仍然可用）
+- User 手动 resize 不允许（通过 `resizable: false` 在 runtime 效果上禁止 drag-handle；程序化 `floatingWindow.setBounds` 仍然可用）
 
 详细 sizing policy 见 `kernel/tables/window-bounds-policy.yaml`。
 
@@ -79,12 +79,12 @@ hit_region = union of:
   - degraded-surface 矩形（degraded 状态下替代 embodiment + transient overlays）
 ```
 
-渲染器把 hit region 以 mask 形式通过 Tauri API（`set_ignore_cursor_events` + per-region 切换，或 `window.setShape`）应用到 window。
+渲染器把 hit region 以 mask 形式通过 kit 标准 `floatingWindow.setIgnoreCursorEvents` + per-region 切换应用到 window。cursor 位置查询是 avatar app-local hit-testing（与 alpha-mask click-through 决策紧耦合，app-owned），不属于 kit 标准 floating-window primitive。
 
 ### 2.3 Click-through 边界规则
 
 - **In-region**（surface 像素 / active transient overlays / degraded-surface）：鼠标事件属于 avatar
-- **Out-of-region**（透明区域）：`set_ignore_cursor_events(true)` 状态，事件穿透到下层 app
+- **Out-of-region**（透明区域）：`floatingWindow.setIgnoreCursorEvents({ ignore: true })` 状态，事件穿透到下层 app
 - **State transition**：mouse move 跨越 region 边界 → immediate switch；不做 hysteresis
 
 ## K-NAV-SHELL-COMPOSITION-006 Hit Region 双层结构
@@ -104,7 +104,7 @@ Hit region 由 **两层** 数据组成：
 2. **bbox snapshot**（粗粒度 rect，throttled 上报）
    - 来自 `BackendHitRegion.body` / `BackendHitRegion.drag`
    - 100ms minimum throttle 上报到 `embodiment-stage`；coalesce frequent
-     bbox 变化以避免刷爆 IPC `set_ignore_cursor_events` 调用
+     bbox 变化以避免刷爆 `floatingWindow.setIgnoreCursorEvents` 调用
    - 是 OS-level click-through fallback：alpha-mask 失败 / device 不支持
      时单独工作
 
@@ -114,16 +114,16 @@ Hit region 由 **两层** 数据组成：
 pointermove(clientX, clientY)
   ↓
 backend.hitRegion.isOpaqueAtClientPoint(x, y)
-  ├── true  → set_ignore_cursor_events(false)（事件归 avatar）
+  ├── true  → floatingWindow.setIgnoreCursorEvents({ ignore: false })（事件归 avatar）
   ├── false → guard by body bbox
-  │           ├── inside  → set_ignore_cursor_events(false)（alpha probe 可能误读；保交互入口）
-  │           └── outside → set_ignore_cursor_events(true)（穿透到下层 app）
+  │           ├── inside  → floatingWindow.setIgnoreCursorEvents({ ignore: false })（alpha probe 可能误读；保交互入口）
+  │           └── outside → floatingWindow.setIgnoreCursorEvents({ ignore: true })（穿透到下层 app）
   └── null  → fallback to body bbox check
-              ├── inside  → set_ignore_cursor_events(false)
-              └── outside → set_ignore_cursor_events(true)
+              ├── inside  → floatingWindow.setIgnoreCursorEvents({ ignore: false })
+              └── outside → floatingWindow.setIgnoreCursorEvents({ ignore: true })
 ```
 
-`set_ignore_cursor_events` IPC 调用频率约束 ≤ 60Hz（节流强制；log assert）。
+`floatingWindow.setIgnoreCursorEvents` 调用频率约束 ≤ 60Hz（avatar 侧节流纪律强制；log assert）。
 
 ## K-NAV-SHELL-COMPOSITION-007 Device Tier Baseline
 
@@ -170,7 +170,7 @@ Move N pixels
 
 ### 3.2 Drag 实现
 
-通过 Tauri command `nimi_avatar_start_window_drag` 调用系统 window drag API。拖动期间：
+通过 kit 标准 `floatingWindow.beginManualDrag`（返回当前 window origin，`mode = manual`）+ `floatingWindow.moveManualDrag`（origin + 总位移）实现 manual 拖动。透明悬浮窗不依赖系统级 `start_dragging`。拖动期间：
 
 - Emit `avatar.user.drag.start` at drag begin
 - Emit `avatar.user.drag.move` at 30 Hz during drag
@@ -189,7 +189,7 @@ Avatar window movement must preserve the visible-area invariant defined by
 `kernel/tables/window-bounds-policy.yaml`: at least 20% of the active
 `embodiment_bounds` area remains inside the current monitor work area. Transient
 overlay footprint is excluded from the ratio so the visible avatar body, not
-auxiliary UI, remains recoverable by drag.
+auxiliary UI, remains recoverable by drag. The invariant is enforced via the kit standard `floatingWindow.constrainToVisibleArea({ minVisibleRatio })` primitive (called after drag end); the 20% visible-area policy remains avatar authority.
 
 ---
 
@@ -204,12 +204,8 @@ auxiliary UI, remains recoverable by drag.
 
 The avatar-local context menu may expose shell-owned lifecycle actions:
 
-- `Hide avatar` calls the Avatar Tauri shell to hide the current window. It does
-  not destroy runtime/agent authority and does not mutate conversation state.
-  Desktop/Runtime launch or reveal flows may show the same instance window again.
-- `Close this avatar` calls the Avatar Tauri shell to close the current avatar
-  instance window. Registry cleanup and durable instance truth remain owned by
-  the Tauri/Desktop launch substrate, not the renderer.
+- `Hide avatar` calls the kit standard `floatingWindow.hide` to hide the current window. It does not destroy runtime/agent authority and does not mutate conversation state. Desktop/Runtime launch or reveal flows may show the same instance window again.
+- `Close this avatar` calls the kit standard `floatingWindow.close` to close the current avatar instance window. Registry cleanup and durable instance truth remain owned by the Tauri/Desktop launch substrate, not the renderer.
 - Both actions must record explicit request evidence before invoking shell
   lifecycle commands.
 - These actions must not be implemented as renderer-only CSS visibility,
@@ -664,13 +660,12 @@ avatar.app.shutdown:
 
 ## 11. Tauri Permission Requirements
 
-Minimum permission set for industrial baseline shell：
+Minimum permission set for industrial baseline shell。窗口控制走 kit 标准 `nimi_shell_tauri` floating-window 命令，这些命令在 Rust 侧直接调用 window API，仍需要下列 window 权限（manual drag 用 `set_position`，不再依赖 `start_dragging`）：
 
 - `core:window:allow-set-size`
 - `core:window:allow-set-position`
 - `core:window:allow-set-always-on-top`
 - `core:window:allow-set-ignore-cursor-events`
-- `core:window:allow-start-dragging`
 - `fs:allow-read-dir` / `fs:allow-read-text-file`（scoped to model folders + `mock.json`）
 - `dialog:allow-open`（model folder picker, settings 中的 model swap）
 

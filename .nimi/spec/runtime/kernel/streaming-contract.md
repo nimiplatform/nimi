@@ -13,7 +13,7 @@
 **模式 B — 终态事件后 gRPC OK close**（K-STREAM-005）：
 - `SubscribeScenarioJobEvents`（状态事件流）
 - `SubscribeWorkflowEvents`（K-WF-004：终态事件后 server 正常关闭流）
-- `SubscribeAgentVoiceStream`（K-VOICE-019：agent voice playback terminal event 后 server 正常关闭流）
+- `SubscribeAgentVoiceStream`（K-VOICE-019：agent voice playback terminal event 后 server 正常关闭流；非 final chunks 仅 transient transport，final replay authority 来自唯一 durable audio artifact）
 
 **模式 C — eof=true 块后 gRPC OK close**（K-STREAM-009）：
 - `ExportAuditEvents`（K-AUDIT-009：`eof=true` 后 server 关闭流）

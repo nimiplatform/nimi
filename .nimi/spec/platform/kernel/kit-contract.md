@@ -87,7 +87,7 @@
 - `shell/capabilities` is the standard contract surface for Nimi shell hosts. It owns standard capability ids, operation ids, command names, operation-level negative states, and the standard shell error envelope.
 - Active machine authority is `tables/standard-shell-capabilities.yaml`. Topic documents, acceptance matrices, and gates may consume or validate this table but must not become parallel truth.
 - Delivered as the `@nimiplatform/kit/shell/capabilities` package export for TypeScript consumers and mirrored into Rust host adapters through `nimi_shell_tauri::capabilities`.
-- Nimi ecosystem capabilities are standard, not optional: runtime, runtime lifecycle, runtime defaults, auth, OAuth, shell UI, diagnostics, data, storage, config, local assets, local agent, AI Profile, AI Config, avatar, and platform projection must be represented in this catalog.
+- Nimi ecosystem capabilities are standard, not optional: runtime, runtime lifecycle, runtime defaults, auth, OAuth, shell UI, diagnostics, data, storage, config, local assets, local agent, AI Profile, AI Config, avatar, platform projection, file dialog, file reveal, export, artifacts, and floating window must be represented in this catalog.
 - Standard `data.pathResolve` and `storage.*` operations resolve under a
   host-owned app data root. Renderer payloads must not carry absolute storage
   roots; they may carry only `{ relativePath }` or `{ relativePath, value }`.
@@ -99,6 +99,40 @@
 - Standard host failures must use the envelope fields `code`, `reasonCode`, `actionHint`, `source`, and optional `details`. Browser/no-host fallbacks, raw `file://` conversion escape hatches, and silent no-op behavior are not standard shell behavior.
 - `renderer_entry_probe` is a diagnostics capability. Generic `runtime_account_caller`/trusted caller metadata belongs to the local-agent standard capability; Desktop-specific caller policy remains product-owned and must not be promoted into the standard catalog.
 - Tauri and Electron host adapters must implement the same capability ids and shared error envelope. Gaps must fail closed with catalogued standard error codes instead of returning pseudo-success.
+
+## P-KIT-041F - Standard Shell File & Window Capabilities
+
+- The standard catalog additionally owns file-dialog (OS open dialogs),
+  file-reveal (reveal a host-validated path in the OS file manager), export
+  (user-facing file export writes), artifacts (binary artifact writes under the
+  app data root), and floating-window (companion-window control for
+  transparent floating embodiment surfaces). Apps must consume these standard
+  operations instead of registering parallel app-local shell commands for the
+  same semantics.
+- `file-dialog.open` returns host-selected absolute paths; the host validates
+  and registers returned paths for subsequent read access. Renderer-supplied
+  absolute paths remain forbidden inputs.
+- `file-reveal.reveal` accepts only paths inside the host-owned app data root,
+  admitted local asset roots, or paths previously returned by host file
+  selection; anything else fails closed as `invalid-path`.
+- `export.saveFile` writes renderer-supplied `dataBase64` bytes into the
+  host-owned export directory with sanitized, collision-free naming. Empty or
+  undecodable payloads fail closed as `invalid-payload`.
+- `artifacts.write` writes binary artifacts only under the `artifacts/`
+  subtree of the host-owned app data root with
+  `{ relativePath, mimeType?, dataBase64 }`; subtree escape fails closed as
+  `invalid-path`. Written artifact paths are eligible inputs to
+  `local-assets.resolveUrl`.
+- `floating-window.*` operations act on the invoking window only.
+  `beginManualDrag` is manual-only: it returns the current window origin with
+  `mode: "manual"` so renderers can apply pointer-driven moves through
+  `moveManualDrag`. System-level window dragging remains owned by
+  `shell-ui.startWindowDrag`, not by floating-window manual drag. Hosts that
+  cannot support an operation must fail closed with `capability-unavailable`,
+  never simulate success.
+- Installed-app capability sets forbid all P-KIT-041F operations by default;
+  granting any of them to installed apps requires a separate capability-set
+  admission.
 
 ## P-KIT-042 — Renderer Shell Module
 
@@ -128,7 +162,7 @@
 - Preload must expose only the narrowed Nimi bridge API needed by renderer code. It must not expose raw `ipcRenderer`, `electron`, `fs`, `child_process`, arbitrary channel senders, or unrestricted event listeners.
 - Main-process IPC must enforce catalog-sourced command namespaces, app identity, and an explicit renderer origin allowlist. A missing app id or disallowed origin is a fail-closed host error.
 - Standard Electron acceptance windows must enable `sandbox: true`, `contextIsolation: true`, and `nodeIntegration: false`.
-- Local artifact URLs must be served through a registered protocol or same-origin host handler with path/root validation. Electron renderer code must not receive raw `file://` escape hatches for artifact inspection.
+- Local artifact URLs must be served through a registered protocol or same-origin host handler with path/root validation. The protocol registration, path/root validation, and readable-file registry are owned by `shell/electron`; consumer apps must not register parallel per-app file protocols or app-local URL resolvers for standard local-asset serving. Electron renderer code must not receive raw `file://` escape hatches for artifact inspection.
 
 ## P-KIT-044 - Installed App Standard Shell Capability Sets
 
