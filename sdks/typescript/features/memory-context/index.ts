@@ -1,12 +1,9 @@
 import type {
-  GetMemoryEmbeddingRuntimeIntentRequest,
-  GetMemoryEmbeddingRuntimeIntentResponse,
   HistoryRequest,
   HistoryResponse,
   InspectMemoryEmbeddingRuntimeRequest,
   InspectMemoryEmbeddingRuntimeResponse,
   MemoryBankLocator,
-  MemoryEmbeddingBindingIntentSnapshot,
   MemoryEvent,
   MemoryRecord,
   MemoryRecallHit,
@@ -16,8 +13,6 @@ import type {
   RequestMemoryEmbeddingRuntimeBindResponse,
   RequestMemoryEmbeddingRuntimeCutoverRequest,
   RequestMemoryEmbeddingRuntimeCutoverResponse,
-  SetMemoryEmbeddingRuntimeIntentRequest,
-  SetMemoryEmbeddingRuntimeIntentResponse,
   SubscribeMemoryEventsRequest,
 } from '../../core-generated/runtime-typed-client';
 import { MemoryBankScope as RuntimeMemoryBankScope } from '../../core-generated/runtime-typed-client';
@@ -65,16 +60,15 @@ export interface NimiRuntimeMemoryHistoryOptions {
 }
 
 export interface NimiMemoryEmbeddingRuntimeProjection {
-  readonly bindingIntentPresent: boolean;
-  readonly bindingIntent?: MemoryEmbeddingBindingIntentSnapshot;
-  readonly bindingSourceKind: string;
+  readonly textEmbedIntentPresent: boolean;
+  readonly textEmbedSourceKind: string;
+  readonly configRevision: number;
   readonly resolutionState: string;
   readonly canonicalBankStatus: string;
   readonly bindAllowed: boolean;
   readonly cutoverAllowed: boolean;
   readonly blockedReasonCode: number;
   readonly raw: {
-    readonly intent: GetMemoryEmbeddingRuntimeIntentResponse;
     readonly inspection: InspectMemoryEmbeddingRuntimeResponse;
   };
 }
@@ -82,14 +76,6 @@ export interface NimiMemoryEmbeddingRuntimeProjection {
 export interface NimiRuntimeMemoryClient {
   recall(request: RecallRequest, options?: RuntimeTypedCallOptions): Promise<RecallResponse>;
   history(request: HistoryRequest, options?: RuntimeTypedCallOptions): Promise<HistoryResponse>;
-  getMemoryEmbeddingRuntimeIntent(
-    request: GetMemoryEmbeddingRuntimeIntentRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<GetMemoryEmbeddingRuntimeIntentResponse>;
-  setMemoryEmbeddingRuntimeIntent(
-    request: SetMemoryEmbeddingRuntimeIntentRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<SetMemoryEmbeddingRuntimeIntentResponse>;
   inspectMemoryEmbeddingRuntime(
     request: InspectMemoryEmbeddingRuntimeRequest,
     options?: RuntimeTypedCallOptions,
@@ -119,9 +105,6 @@ export interface NimiRuntimeMemoryContextClient {
   recall(options: NimiRuntimeMemoryRecallOptions): Promise<NimiMemoryContextWindow>;
   history(options?: NimiRuntimeMemoryHistoryOptions): Promise<NimiMemoryContextWindow & { readonly nextPageToken: string }>;
   getEmbeddingRuntimeProjection(): Promise<NimiMemoryEmbeddingRuntimeProjection>;
-  setEmbeddingRuntimeIntent(
-    bindingIntent: MemoryEmbeddingBindingIntentSnapshot | null,
-  ): Promise<SetMemoryEmbeddingRuntimeIntentResponse>;
   requestEmbeddingRuntimeBind(): Promise<RequestMemoryEmbeddingRuntimeBindResponse>;
   requestEmbeddingRuntimeCutover(): Promise<RequestMemoryEmbeddingRuntimeCutoverResponse>;
   subscribeEvents?(cursor?: string): AsyncIterable<MemoryEvent>;
@@ -218,18 +201,8 @@ export function createNimiRuntimeMemoryContextClient(
     },
     async getEmbeddingRuntimeProjection() {
       const request = { context, locator: bank };
-      const [intent, inspection] = await Promise.all([
-        client.getMemoryEmbeddingRuntimeIntent(request, options.callOptions),
-        client.inspectMemoryEmbeddingRuntime(request, options.callOptions),
-      ]);
-      return projectNimiMemoryEmbeddingRuntime(intent, inspection);
-    },
-    setEmbeddingRuntimeIntent(bindingIntent) {
-      return client.setMemoryEmbeddingRuntimeIntent({
-        context,
-        locator: bank,
-        bindingIntent: bindingIntent ?? undefined,
-      }, options.callOptions);
+      const inspection = await client.inspectMemoryEmbeddingRuntime(request, options.callOptions);
+      return projectNimiMemoryEmbeddingRuntime(inspection);
     },
     requestEmbeddingRuntimeBind() {
       return client.requestMemoryEmbeddingRuntimeBind({ context, locator: bank }, options.callOptions);
@@ -305,19 +278,19 @@ export function createNimiWorkspacePrivateMemoryBankLocator(input: {
 }
 
 export function projectNimiMemoryEmbeddingRuntime(
-  intent: GetMemoryEmbeddingRuntimeIntentResponse,
   inspection: InspectMemoryEmbeddingRuntimeResponse,
 ): NimiMemoryEmbeddingRuntimeProjection {
+  const revision = Number(normalizeText(inspection.configRevision));
   return {
-    bindingIntentPresent: intent.bindingIntentPresent || inspection.bindingIntentPresent,
-    bindingIntent: intent.bindingIntent,
-    bindingSourceKind: normalizeText(inspection.bindingSourceKind),
+    textEmbedIntentPresent: inspection.textEmbedIntentPresent,
+    textEmbedSourceKind: normalizeText(inspection.textEmbedSourceKind),
+    configRevision: Number.isSafeInteger(revision) && revision >= 0 ? revision : 0,
     resolutionState: normalizeText(inspection.resolutionState),
     canonicalBankStatus: normalizeText(inspection.canonicalBankStatus),
     bindAllowed: inspection.operationReadiness?.bindAllowed === true,
     cutoverAllowed: inspection.operationReadiness?.cutoverAllowed === true,
     blockedReasonCode: inspection.blockedReasonCode,
-    raw: { intent, inspection },
+    raw: { inspection },
   };
 }
 

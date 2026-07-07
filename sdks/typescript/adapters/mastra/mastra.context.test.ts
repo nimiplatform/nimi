@@ -49,9 +49,6 @@ test('Nimi Runtime memory and knowledge context feed a Mastra Agent without Mast
     async getEmbeddingRuntimeProjection() {
       return unexpectedCall('memory.getEmbeddingRuntimeProjection');
     },
-    async setEmbeddingRuntimeIntent() {
-      return unexpectedCall('memory.setEmbeddingRuntimeIntent');
-    },
     async requestEmbeddingRuntimeBind() {
       return unexpectedCall('memory.requestEmbeddingRuntimeBind');
     },

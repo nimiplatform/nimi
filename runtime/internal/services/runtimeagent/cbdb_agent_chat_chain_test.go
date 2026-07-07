@@ -23,7 +23,6 @@ const (
 
 func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	upsertPublicChatTestExecutionConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	ctx := testLocalAgentContext(cbdbChainVerifierOwnerID, cbdbChainSuZheRuntimeSourceRef)
 	ctx.AppId = cbdbChainDesktopCallerAppID
 	ctx.LocalAgentRef = cbdbChainSuZheLocalAgentRef
@@ -47,6 +46,7 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 	if got := initResp.GetAgent().GetOwnerUserId(); got != cbdbChainVerifierOwnerID {
 		t.Fatalf("expected CBDB owner_user_id %q, got %q", cbdbChainVerifierOwnerID, got)
 	}
+	upsertPublicChatTestAgentAIConfigForContext(t, svc, ctx, publicChatTestAudioSynthesizeBinding())
 
 	anchorMetadata, err := structpb.NewStruct(map[string]any{
 		"surface": "desktop-agent-chat",
@@ -61,8 +61,6 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 			"avatar_url":                    "https://cdn.example.com/cbdb/su-zhe-reviewed-portrait.png",
 			"avatar_autoplay":               true,
 			"default_voice_reference":       "preset_voice_id:zh_narrator",
-			"speech_model_id":               "speech/qwen3tts",
-			"speech_route_policy":           "local",
 			"description":                   "Reviewed sparse CBDB profile for Runtime prompt validation.",
 			"greeting":                      "Ask what the record supports before imagining.",
 			"communication_style":           "Uses reviewed Song-literati register.",

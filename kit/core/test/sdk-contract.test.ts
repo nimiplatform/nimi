@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createNimiHostRuntimeAgentInspectSurface,
-  type NimiRuntimeAgentExecutionConfigModule,
-  type NimiRuntimeAgentExecutionReadinessSnapshotProjection,
+  type NimiRuntimeAgentAIConfigModule,
+  type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
   type NimiRuntimeAgentInspectSnapshot,
   type NimiRuntimeAgentInspectSurface,
   type NimiRuntimeAgentMemoryObservatorySnapshot,
@@ -19,14 +19,14 @@ describe('kit sdk-contract', () => {
       runtimeSourceRef: 'agent',
       localAgentRef: 'local-agent:owner:agent',
     };
-    const executionConfig = null as unknown as NimiRuntimeAgentExecutionConfigModule;
-    const readiness = null as unknown as NimiRuntimeAgentExecutionReadinessSnapshotProjection;
+    const agentAIConfig = null as unknown as NimiRuntimeAgentAIConfigModule;
+    const readiness = null as unknown as NimiRuntimeAgentAIConfigReadinessSnapshotProjection;
     const inspect = null as unknown as NimiRuntimeAgentInspectSnapshot;
     const inspectSurface = null as unknown as NimiRuntimeAgentInspectSurface;
     const memory = null as unknown as NimiRuntimeAgentMemoryObservatorySnapshot;
 
     expect(identity.localAgentRef).toBe('local-agent:owner:agent');
-    expect(executionConfig).toBeNull();
+    expect(agentAIConfig).toBeNull();
     expect(readiness).toBeNull();
     expect(inspect).toBeNull();
     expect(inspectSurface).toBeNull();

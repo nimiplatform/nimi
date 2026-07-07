@@ -157,10 +157,6 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.memory.read", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/DeleteMemory":
 		return "runtime.memory.write", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent":
-		return "runtime.memory.read", true
-	case "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent":
-		return "runtime.memory.write", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/InspectMemoryEmbeddingRuntime":
 		return "runtime.memory.read", true
 	case "/nimi.runtime.v1.RuntimeCognitionService/RequestMemoryEmbeddingRuntimeBind":
@@ -291,12 +287,12 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind":
 		return "runtime.agent.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig":
-		return "runtime.agent.execution_config.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig":
-		return "runtime.agent.execution_config.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness":
-		return "runtime.agent.execution_config.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig":
+		return "runtime.agent.ai_config.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig":
+		return "runtime.agent.ai_config.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness":
+		return "runtime.agent.ai_config.read", true
 	case "/nimi.runtime.v1.RuntimeAppService/SendAppMessage":
 		message, ok := req.(*runtimev1.SendAppMessageRequest)
 		if !ok {
@@ -410,8 +406,8 @@ func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {
 		return "runtime.memory.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents":
 		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness":
-		return "runtime.agent.execution_config.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness":
+		return "runtime.agent.ai_config.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream":
 		return "runtime.agent.turn.read", true
 	case "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":

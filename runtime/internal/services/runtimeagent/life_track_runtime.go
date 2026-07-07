@@ -142,7 +142,7 @@ func (c lifeTrackController) executePendingHook(ctx context.Context, agentID str
 	// K-AGCORE-147: the Life Track executor consumes the committed execution
 	// config text.generate binding; a missing binding is an observable
 	// terminal hook failure, never a silent constant fallback.
-	executionBinding, _, err := c.svc.committedTextGenerateExecutionBinding()
+	executionBinding, _, err := c.svc.committedTextGenerateExecutionBinding(executionEntry.Agent.GetLocalAgentRef())
 	if err != nil {
 		return c.applyHookDecision(agentID, intentID, failedHookDecision(reasonCodeFromError(err), err.Error(), false, 0), now)
 	}

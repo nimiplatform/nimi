@@ -77,34 +77,6 @@ func TestAIBackedPublicChatTurnExecutorPassesDurableTargetRef(t *testing.T) {
 	}
 }
 
-// upsertPublicChatTestExecutionConfig replaces the committed execution config
-// with the required text.generate binding plus any extra capability bindings
-// (K-AGCORE-147 config-driven test setup).
-func upsertPublicChatTestExecutionConfig(t *testing.T, svc *Service, extra ...*runtimev1.RuntimeAgentExecutionCapabilityBinding) {
-	t.Helper()
-	current, err := svc.GetAgentExecutionConfig(context.Background(), &runtimev1.GetAgentExecutionConfigRequest{
-		Context: &runtimev1.AgentRequestContext{AppId: "desktop.app"},
-	})
-	if err != nil {
-		t.Fatalf("GetAgentExecutionConfig: %v", err)
-	}
-	bindings := []*runtimev1.RuntimeAgentExecutionCapabilityBinding{
-		{
-			Capability:  executionCapabilityTextGenerate,
-			ModelId:     "local/default",
-			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		},
-	}
-	bindings = append(bindings, extra...)
-	if _, err := svc.UpsertAgentExecutionConfig(context.Background(), &runtimev1.UpsertAgentExecutionConfigRequest{
-		Context:          &runtimev1.AgentRequestContext{AppId: "desktop.app"},
-		ExpectedRevision: current.GetConfig().GetRevision(),
-		Bindings:         bindings,
-	}); err != nil {
-		t.Fatalf("UpsertAgentExecutionConfig: %v", err)
-	}
-}
-
 func publicChatTestLocalRuntimeTargetRef(ref string) *runtimev1.RuntimeDurableTargetRef {
 	return &runtimev1.RuntimeDurableTargetRef{
 		Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{
@@ -116,20 +88,20 @@ func publicChatTestLocalRuntimeTargetRef(ref string) *runtimev1.RuntimeDurableTa
 	}
 }
 
-func publicChatTestAudioSynthesizeBinding() *runtimev1.RuntimeAgentExecutionCapabilityBinding {
-	return &runtimev1.RuntimeAgentExecutionCapabilityBinding{
-		Capability:  executionCapabilityAudioSynthesize,
+func publicChatTestAudioSynthesizeBinding() *runtimev1.RuntimeAgentAIConfigIntent {
+	return &runtimev1.RuntimeAgentAIConfigIntent{
+		Capability:  runtimeAgentAIConfigCapabilityAudioSynthesize,
 		ModelId:     "speech/qwen3tts",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		TargetRef:   publicChatTestLocalRuntimeTargetRef("local-runtime:speech/qwen3tts"),
 	}
 }
 
-// TestPublicChatTurnRequestImageActionPromptFollowsExecutionConfig proves the
+// TestPublicChatTurnRequestImageActionPromptFollowsAgentAIConfig proves the
 // K-AGCORE-148 tri-state APML output contract: the image action affordance
 // derives from committed config presence plus readiness, with distinct
 // truthful copy for not_configured and unavailable.
-func TestPublicChatTurnRequestImageActionPromptFollowsExecutionConfig(t *testing.T) {
+func TestPublicChatTurnRequestImageActionPromptFollowsAgentAIConfig(t *testing.T) {
 	t.Parallel()
 	notConfigured := publicChatScenarioSystemPromptForImageConfig(t, nil)
 	if strings.Contains(notConfigured, `include exactly one sibling <action kind="image">`) {
@@ -142,8 +114,8 @@ func TestPublicChatTurnRequestImageActionPromptFollowsExecutionConfig(t *testing
 		t.Fatalf("not_configured prompt must state the not-configured truth, got %q", notConfigured)
 	}
 
-	available := publicChatScenarioSystemPromptForImageConfig(t, &runtimev1.RuntimeAgentExecutionCapabilityBinding{
-		Capability:  executionCapabilityImageGenerate,
+	available := publicChatScenarioSystemPromptForImageConfig(t, &runtimev1.RuntimeAgentAIConfigIntent{
+		Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 		ModelId:     "local/image",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 	})
@@ -158,8 +130,8 @@ func TestPublicChatTurnRequestImageActionPromptFollowsExecutionConfig(t *testing
 	// unusable: readiness reports UNAVAILABLE (connector_missing), which must
 	// project the distinct configured-but-unavailable truth, never the
 	// not-configured copy (K-AGCORE-148).
-	unavailable := publicChatScenarioSystemPromptForImageConfig(t, &runtimev1.RuntimeAgentExecutionCapabilityBinding{
-		Capability:  executionCapabilityImageGenerate,
+	unavailable := publicChatScenarioSystemPromptForImageConfig(t, &runtimev1.RuntimeAgentAIConfigIntent{
+		Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 		ModelId:     "openai/gpt-image-1",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 	})
@@ -177,7 +149,7 @@ func TestPublicChatTurnRequestImageActionPromptFollowsExecutionConfig(t *testing
 	}
 }
 
-func publicChatScenarioSystemPromptForImageConfig(t *testing.T, imageBinding *runtimev1.RuntimeAgentExecutionCapabilityBinding) string {
+func publicChatScenarioSystemPromptForImageConfig(t *testing.T, imageBinding *runtimev1.RuntimeAgentAIConfigIntent) string {
 	t.Helper()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -186,7 +158,7 @@ func publicChatScenarioSystemPromptForImageConfig(t *testing.T, imageBinding *ru
 	streamer := &capturePublicChatScenarioStreamer{}
 	svc.SetPublicChatTurnExecutor(NewAIBackedPublicChatTurnExecutor(streamer))
 	if imageBinding != nil {
-		upsertPublicChatTestExecutionConfig(t, svc, imageBinding)
+		upsertPublicChatTestAgentAIConfig(t, svc, imageBinding)
 	}
 
 	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{

@@ -84,94 +84,95 @@ func (s *Service) HasPublicChatBindingResolver() bool {
 
 // errPublicChatRequestExecutionBindingsNotAdmitted is the K-AGCORE-147 hard
 // cut: request-carried execution_bindings are rejected on the public chat
-// turn ingress; the committed runtime agent execution config is the only
+// turn ingress; the committed Runtime Agent AI Config is the only
 // binding truth.
 var errPublicChatRequestExecutionBindingsNotAdmitted = status.Error(
 	codes.InvalidArgument,
-	"public chat execution_bindings are not admitted; runtime agent execution config is authoritative (K-AGCORE-147)",
+	"public chat execution_bindings are not admitted; Runtime Agent AI Config is authoritative (K-AGCORE-147)",
 )
 
 // validateRuntimePrivateExecutorBinding fails closed when a runtime-private
-// executor request lacks the committed config text.generate binding
+// executor request lacks the committed Runtime Agent AI Config text.generate intent
 // (K-AGCORE-147); a silent fallback to a hardcoded model constant is not
 // admitted as execution binding truth.
 func validateRuntimePrivateExecutorBinding(label string, binding publicChatExecutionBinding) error {
 	if strings.TrimSpace(binding.ModelID) == "" || binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		return fmt.Errorf("%s executor requires the committed execution config text.generate binding (K-AGCORE-147)", label)
+		return fmt.Errorf("%s executor requires the committed Runtime Agent AI Config text.generate intent (K-AGCORE-147)", label)
 	}
 	return nil
 }
 
-// executionBindingFromConfigProto converts a committed config capability
-// binding into the runtime-private execution binding shape.
-func executionBindingFromConfigProto(binding *runtimev1.RuntimeAgentExecutionCapabilityBinding) publicChatExecutionBinding {
-	if binding == nil {
+// runtimeAgentAIConfigIntentToPublicChatBinding converts a committed config
+// intent into the runtime-private execution binding shape.
+func runtimeAgentAIConfigIntentToPublicChatBinding(intent *runtimev1.RuntimeAgentAIConfigIntent) publicChatExecutionBinding {
+	if intent == nil {
 		return publicChatExecutionBinding{}
 	}
 	return publicChatExecutionBinding{
-		ModelID:     strings.TrimSpace(binding.GetModelId()),
-		RoutePolicy: binding.GetRoutePolicy(),
-		ConnectorID: strings.TrimSpace(binding.GetConnectorId()),
-		TargetRef:   clonePublicChatTargetRef(binding.GetTargetRef()),
+		ModelID:     strings.TrimSpace(intent.GetModelId()),
+		RoutePolicy: intent.GetRoutePolicy(),
+		ConnectorID: strings.TrimSpace(intent.GetConnectorId()),
+		TargetRef:   clonePublicChatTargetRef(intent.GetTargetRef()),
 	}
 }
 
-// committedTextGenerateExecutionBinding loads the committed config and
-// returns its required text.generate binding plus the config revision. A
-// missing binding after seed is a typed fail-closed rejection (K-AGCORE-147);
+// committedTextGenerateExecutionBinding loads the committed Runtime Agent AI
+// Config and returns its required text.generate intent plus the config
+// revision. A missing intent after seed is a typed fail-closed rejection (K-AGCORE-147);
 // there is no silent fallback to another route or bundled constant.
-func (s *Service) committedTextGenerateExecutionBinding() (publicChatExecutionBinding, uint64, error) {
-	config, err := s.committedExecutionConfig()
+func (s *Service) committedTextGenerateExecutionBinding(agentInstanceID string) (publicChatExecutionBinding, uint64, error) {
+	config, err := s.committedRuntimeAgentAIConfigByAgentInstanceID(agentInstanceID)
 	if err != nil {
 		return publicChatExecutionBinding{}, 0, err
 	}
-	for _, binding := range config.GetBindings() {
-		if strings.TrimSpace(binding.GetCapability()) == executionCapabilityTextGenerate {
-			resolved := executionBindingFromConfigProto(binding)
+	for _, intent := range config.GetIntents() {
+		if strings.TrimSpace(intent.GetCapability()) == runtimeAgentAIConfigCapabilityTextGenerate {
+			resolved := runtimeAgentAIConfigIntentToPublicChatBinding(intent)
 			if resolved.ModelID == "" || resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-				return publicChatExecutionBinding{}, 0, status.Error(codes.FailedPrecondition, "runtime agent execution config text.generate binding is structurally invalid (K-AGCORE-147)")
+				return publicChatExecutionBinding{}, 0, status.Error(codes.FailedPrecondition, "Runtime Agent AI Config text.generate intent is structurally invalid (K-AGCORE-147)")
 			}
 			return resolved, config.GetRevision(), nil
 		}
 	}
-	return publicChatExecutionBinding{}, 0, status.Error(codes.FailedPrecondition, "runtime agent execution config is missing the required text.generate binding (K-AGCORE-147)")
+	return publicChatExecutionBinding{}, 0, status.Error(codes.FailedPrecondition, "Runtime Agent AI Config is missing the required text.generate intent (K-AGCORE-147)")
 }
 
 // resolveExecutionBindingsFromConfig binds a public chat turn to the
-// committed execution config at admission time (K-AGCORE-147). The
-// text.generate binding is refined through the runtime binding resolver
-// (model alias resolution, e.g. local/default); the image.generate binding is
+// committed Runtime Agent AI Config at admission time (K-AGCORE-147). The
+// text.generate intent is refined through the runtime binding resolver
+// (model alias resolution, e.g. local/default); optional action intents are
 // carried from the committed config as-is.
 func (s *Service) resolveExecutionBindingsFromConfig(
 	ctx context.Context,
+	agentInstanceID string,
 	subjectUserID string,
 	req publicChatTurnRequestPayload,
 ) (publicChatExecutionBindings, uint64, error) {
-	config, err := s.committedExecutionConfig()
+	config, err := s.committedRuntimeAgentAIConfigByAgentInstanceID(agentInstanceID)
 	if err != nil {
 		return nil, 0, err
 	}
-	var textBinding *runtimev1.RuntimeAgentExecutionCapabilityBinding
-	var imageBinding *runtimev1.RuntimeAgentExecutionCapabilityBinding
-	var audioBinding *runtimev1.RuntimeAgentExecutionCapabilityBinding
-	for _, binding := range config.GetBindings() {
+	var textBinding *runtimev1.RuntimeAgentAIConfigIntent
+	var imageBinding *runtimev1.RuntimeAgentAIConfigIntent
+	var audioBinding *runtimev1.RuntimeAgentAIConfigIntent
+	for _, binding := range config.GetIntents() {
 		switch strings.TrimSpace(binding.GetCapability()) {
-		case executionCapabilityTextGenerate:
+		case runtimeAgentAIConfigCapabilityTextGenerate:
 			textBinding = binding
-		case executionCapabilityImageGenerate:
+		case runtimeAgentAIConfigCapabilityImageGenerate:
 			imageBinding = binding
-		case executionCapabilityAudioSynthesize:
+		case runtimeAgentAIConfigCapabilityAudioSynthesize:
 			audioBinding = binding
 		}
 	}
 	if textBinding == nil || strings.TrimSpace(textBinding.GetModelId()) == "" {
-		return nil, 0, status.Error(codes.FailedPrecondition, "runtime agent execution config is missing the required text.generate binding (K-AGCORE-147)")
+		return nil, 0, status.Error(codes.FailedPrecondition, "Runtime Agent AI Config is missing the required text.generate intent (K-AGCORE-147)")
 	}
 	if s == nil || !s.HasPublicChatBindingResolver() {
 		return nil, 0, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver unavailable")
 	}
 	resolved, err := s.currentPublicChatBindingResolver().ResolvePublicChatBinding(ctx, PublicChatBindingResolutionRequest{
-		Capability:      executionCapabilityTextGenerate,
+		Capability:      runtimeAgentAIConfigCapabilityTextGenerate,
 		ModelID:         strings.TrimSpace(textBinding.GetModelId()),
 		RouteHint:       textBinding.GetRoutePolicy(),
 		ConnectorID:     strings.TrimSpace(textBinding.GetConnectorId()),
@@ -190,7 +191,7 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		return nil, 0, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver returned unspecified route")
 	}
 	out := publicChatExecutionBindings{
-		executionCapabilityTextGenerate: {
+		runtimeAgentAIConfigCapabilityTextGenerate: {
 			ModelID:     strings.TrimSpace(resolved.ModelID),
 			RoutePolicy: resolved.RoutePolicy,
 			ConnectorID: strings.TrimSpace(resolved.ConnectorID),
@@ -198,16 +199,16 @@ func (s *Service) resolveExecutionBindingsFromConfig(
 		},
 	}
 	if imageBinding != nil {
-		out[executionCapabilityImageGenerate] = executionBindingFromConfigProto(imageBinding)
+		out[runtimeAgentAIConfigCapabilityImageGenerate] = runtimeAgentAIConfigIntentToPublicChatBinding(imageBinding)
 	}
 	if audioBinding != nil {
-		out[executionCapabilityAudioSynthesize] = executionBindingFromConfigProto(audioBinding)
+		out[runtimeAgentAIConfigCapabilityAudioSynthesize] = runtimeAgentAIConfigIntentToPublicChatBinding(audioBinding)
 	}
 	return out, config.GetRevision(), nil
 }
 
-func (s *Service) committedOptionalExecutionBinding(capability string) (publicChatExecutionBinding, bool, error) {
-	config, err := s.committedExecutionConfig()
+func (s *Service) committedOptionalExecutionBinding(agentInstanceID string, capability string) (publicChatExecutionBinding, bool, error) {
+	config, err := s.committedRuntimeAgentAIConfigByAgentInstanceID(agentInstanceID)
 	if err != nil {
 		return publicChatExecutionBinding{}, false, err
 	}
@@ -215,16 +216,16 @@ func (s *Service) committedOptionalExecutionBinding(capability string) (publicCh
 	if trimmedCapability == "" {
 		return publicChatExecutionBinding{}, false, nil
 	}
-	for _, binding := range config.GetBindings() {
+	for _, binding := range config.GetIntents() {
 		if strings.TrimSpace(binding.GetCapability()) != trimmedCapability {
 			continue
 		}
-		resolved := executionBindingFromConfigProto(binding)
+		resolved := runtimeAgentAIConfigIntentToPublicChatBinding(binding)
 		if strings.TrimSpace(resolved.ModelID) == "" ||
 			resolved.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED ||
 			resolved.TargetRef == nil ||
 			resolved.TargetRef.GetTarget() == nil {
-			return publicChatExecutionBinding{}, true, status.Errorf(codes.FailedPrecondition, "runtime agent execution config %s binding is structurally invalid", trimmedCapability)
+			return publicChatExecutionBinding{}, true, status.Errorf(codes.FailedPrecondition, "Runtime Agent AI Config %s intent is structurally invalid", trimmedCapability)
 		}
 		return resolved, true, nil
 	}
@@ -236,11 +237,11 @@ func (s *Service) committedOptionalExecutionBinding(capability string) (publicCh
 // projection. `not_configured` (no committed binding) and `unavailable`
 // (committed binding whose route is currently not usable) are distinct
 // truths and are never collapsed.
-func (s *Service) deriveImageActionAvailability(configRevision uint64, hasImageBinding bool) publicChatImageActionAvailability {
+func (s *Service) deriveImageActionAvailability(agentInstanceID string, configRevision uint64, hasImageBinding bool) publicChatImageActionAvailability {
 	if !hasImageBinding {
 		return publicChatImageActionNotConfigured
 	}
-	snapshot, err := s.currentExecutionReadinessSnapshot()
+	snapshot, err := s.currentRuntimeAgentAIConfigReadinessSnapshot(agentInstanceID)
 	if err != nil {
 		// Readiness cannot be evaluated: the committed binding exists but
 		// its route state is unknown; fail toward unavailable, never toward
@@ -248,22 +249,22 @@ func (s *Service) deriveImageActionAvailability(configRevision uint64, hasImageB
 		return publicChatImageActionUnavailable
 	}
 	if snapshot.GetConfigRevision() != configRevision {
-		if err := s.refreshExecutionReadiness(); err != nil {
+		if err := s.refreshRuntimeAgentAIConfigReadiness(agentInstanceID); err != nil {
 			return publicChatImageActionUnavailable
 		}
-		snapshot, err = s.currentExecutionReadinessSnapshot()
+		snapshot, err = s.currentRuntimeAgentAIConfigReadinessSnapshot(agentInstanceID)
 		if err != nil {
 			return publicChatImageActionUnavailable
 		}
 	}
 	for _, capability := range snapshot.GetCapabilities() {
-		if capability.GetCapability() != executionCapabilityImageGenerate {
+		if capability.GetCapability() != runtimeAgentAIConfigCapabilityImageGenerate {
 			continue
 		}
 		switch capability.GetState() {
-		case runtimev1.AgentExecutionReadinessState_AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE:
+		case runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE:
 			return publicChatImageActionUnavailable
-		case runtimev1.AgentExecutionReadinessState_AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED:
+		case runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED:
 			return publicChatImageActionNotConfigured
 		default:
 			return publicChatImageActionAvailable
@@ -312,11 +313,12 @@ func clonePublicChatExecutionParams(input map[string]map[string]any) map[string]
 }
 
 // resolveRuntimeDefaultPublicChatBinding resolves the runtime-owned default
-// public chat text binding from the committed execution config text.generate
-// binding (K-AGCORE-147); runtime-private hardcoded model constants are not
+// public chat text binding from the committed Runtime Agent AI Config
+// text.generate intent (K-AGCORE-147); runtime-private hardcoded model constants are not
 // admitted as execution binding truth.
 func (s *Service) resolveRuntimeDefaultPublicChatBinding(
 	ctx context.Context,
+	agentInstanceID string,
 	subjectUserID string,
 	systemPrompt string,
 	messages []*runtimev1.ChatMessage,
@@ -325,12 +327,12 @@ func (s *Service) resolveRuntimeDefaultPublicChatBinding(
 	if s == nil || !s.HasPublicChatBindingResolver() {
 		return publicChatExecutionBinding{}, status.Error(codes.FailedPrecondition, "runtime public chat binding resolver unavailable")
 	}
-	configBinding, _, err := s.committedTextGenerateExecutionBinding()
+	configBinding, _, err := s.committedTextGenerateExecutionBinding(agentInstanceID)
 	if err != nil {
 		return publicChatExecutionBinding{}, err
 	}
 	resolved, err := s.currentPublicChatBindingResolver().ResolvePublicChatBinding(ctx, PublicChatBindingResolutionRequest{
-		Capability:      executionCapabilityTextGenerate,
+		Capability:      runtimeAgentAIConfigCapabilityTextGenerate,
 		ModelID:         configBinding.ModelID,
 		RouteHint:       configBinding.RoutePolicy,
 		ConnectorID:     configBinding.ConnectorID,

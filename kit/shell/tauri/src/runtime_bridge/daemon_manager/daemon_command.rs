@@ -62,6 +62,43 @@ fn runtime_dev_binary_path(runtime_dir: &Path) -> Result<PathBuf, String> {
     Ok(repo_root.join("dist").join(binary_name))
 }
 
+pub(super) fn prepare_runtime_dev_binary_output(binary_path: &Path) -> Result<(), String> {
+    match fs::symlink_metadata(binary_path) {
+        Ok(metadata) => {
+            if !metadata.file_type().is_file() {
+                return Err(bridge_error(
+                    "RUNTIME_BRIDGE_RUNTIME_BUILD_OUTPUT_NOT_FILE",
+                    format!(
+                        "runtime dev binary output {} already exists and is not a regular file; remove it or choose a clean dist directory",
+                        binary_path.display()
+                    )
+                    .as_str(),
+                ));
+            }
+            fs::remove_file(binary_path).map_err(|error| {
+                bridge_error(
+                    "RUNTIME_BRIDGE_RUNTIME_BUILD_OUTPUT_CLEAN_FAILED",
+                    format!(
+                        "remove stale runtime dev binary {} failed: {error}",
+                        binary_path.display()
+                    )
+                    .as_str(),
+                )
+            })?;
+            Ok(())
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(bridge_error(
+            "RUNTIME_BRIDGE_RUNTIME_BUILD_OUTPUT_STAT_FAILED",
+            format!(
+                "inspect runtime dev binary output {} failed: {error}",
+                binary_path.display()
+            )
+            .as_str(),
+        )),
+    }
+}
+
 fn build_runtime_dev_binary(runtime_dir: &Path, binary_path: &Path) -> Result<(), String> {
     let parent = binary_path.parent().ok_or_else(|| {
         bridge_error(
@@ -83,6 +120,7 @@ fn build_runtime_dev_binary(runtime_dir: &Path, binary_path: &Path) -> Result<()
             .as_str(),
         )
     })?;
+    prepare_runtime_dev_binary_output(binary_path)?;
 
     let output = Command::new("go")
         .args(["build", "-o"])

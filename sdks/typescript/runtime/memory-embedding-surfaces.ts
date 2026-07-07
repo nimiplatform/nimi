@@ -10,28 +10,19 @@ import {
 import { createNimiError } from '../types';
 import {
   buildNimiMemoryEmbeddingAgentCoreLocator,
-  buildNimiMemoryEmbeddingBindingIntentSnapshot,
   projectNimiMemoryEmbeddingBindResult,
-  projectNimiMemoryEmbeddingConfigFromRuntimeIntent,
   projectNimiMemoryEmbeddingCutoverResult,
   projectNimiMemoryEmbeddingRuntimeState,
   projectUnavailableNimiMemoryEmbeddingRuntimeState,
 } from './memory-embedding-projection';
 import type {
-  NimiHostMemoryEmbeddingConfigClient,
-  NimiHostMemoryEmbeddingConfigSurfaceOptions,
   NimiHostMemoryEmbeddingRuntimeClient,
   NimiHostMemoryEmbeddingRuntimeSurfaceOptions,
   NimiMemoryEmbeddingBindResult,
-  NimiMemoryEmbeddingConfig,
-  NimiMemoryEmbeddingConfigInput,
-  NimiMemoryEmbeddingConfigSurface,
   NimiMemoryEmbeddingCutoverResult,
   NimiMemoryEmbeddingRuntimeInput,
   NimiMemoryEmbeddingRuntimeState,
   NimiMemoryEmbeddingRuntimeSurface,
-  NimiProtectedHostMemoryEmbeddingConfigClient,
-  NimiProtectedHostMemoryEmbeddingConfigSurfaceOptions,
   NimiProtectedHostMemoryEmbeddingRuntimeClient,
   NimiProtectedHostMemoryEmbeddingRuntimeSurfaceOptions,
 } from './memory-embedding-types';
@@ -69,7 +60,7 @@ async function callWithNimiMemoryEmbeddingScopes<T>(
 }
 
 async function issueNimiMemoryEmbeddingCallOptions(input: {
-  readonly runtime: NimiProtectedHostMemoryEmbeddingRuntimeClient | NimiProtectedHostMemoryEmbeddingConfigClient;
+  readonly runtime: NimiProtectedHostMemoryEmbeddingRuntimeClient;
   readonly subjectUserId: string;
   readonly scopes: readonly string[];
 }): Promise<RuntimeTypedCallOptions> {
@@ -141,7 +132,7 @@ async function issueNimiMemoryEmbeddingCallOptions(input: {
   };
 }
 
-async function resolveRuntimeContext<T extends NimiHostMemoryEmbeddingRuntimeClient | NimiHostMemoryEmbeddingConfigClient>(
+async function resolveRuntimeContext<T extends NimiHostMemoryEmbeddingRuntimeClient>(
   runtime: () => T | Promise<T>,
   getSubjectUserId: () => string | Promise<string>,
 ): Promise<{ readonly runtime: T; readonly subjectUserId: string }> {
@@ -221,58 +212,6 @@ export function createNimiHostMemoryEmbeddingRuntimeSurface(
   };
 }
 
-export function createNimiHostMemoryEmbeddingConfigSurface(
-  options: NimiHostMemoryEmbeddingConfigSurfaceOptions,
-): NimiMemoryEmbeddingConfigSurface {
-  const subscriptions = new Map<string, Set<(config: NimiMemoryEmbeddingConfig) => void>>();
-
-  function subscriptionKey(input: NimiMemoryEmbeddingConfigInput): string {
-    return `${input.scopeRef.kind}:${input.scopeRef.ownerId}:${input.scopeRef.surfaceId || ''}:${input.targetRef.kind}:${input.targetRef.localAgentRef}`;
-  }
-
-  function notify(input: NimiMemoryEmbeddingConfigInput, config: NimiMemoryEmbeddingConfig): void {
-    for (const callback of subscriptions.get(subscriptionKey(input)) || []) {
-      callback(config);
-    }
-  }
-
-  return {
-    async get(input) {
-      const context = await resolveRuntimeContext(options.runtime, options.getSubjectUserId);
-      const result = await callWithNimiMemoryEmbeddingScopes(options, ['runtime.memory.read'], (callOptions) => (
-        context.runtime.memory.getMemoryEmbeddingRuntimeIntent({
-          context: { appId: context.runtime.appId, subjectUserId: context.subjectUserId },
-          locator: buildNimiMemoryEmbeddingAgentCoreLocator(input.targetRef),
-        }, callOptions)
-      ));
-      return projectNimiMemoryEmbeddingConfigFromRuntimeIntent(input, result);
-    },
-    async update(input, config) {
-      const context = await resolveRuntimeContext(options.runtime, options.getSubjectUserId);
-      const result = await callWithNimiMemoryEmbeddingScopes(options, ['runtime.memory.write'], (callOptions) => (
-        context.runtime.memory.setMemoryEmbeddingRuntimeIntent({
-          context: { appId: context.runtime.appId, subjectUserId: context.subjectUserId },
-          locator: buildNimiMemoryEmbeddingAgentCoreLocator(input.targetRef),
-          bindingIntent: buildNimiMemoryEmbeddingBindingIntentSnapshot(config),
-        }, callOptions)
-      ));
-      const projected = projectNimiMemoryEmbeddingConfigFromRuntimeIntent(input, result);
-      notify(input, projected);
-      return projected;
-    },
-    subscribe(input, callback) {
-      const key = subscriptionKey(input);
-      const callbacks = subscriptions.get(key) || new Set<(config: NimiMemoryEmbeddingConfig) => void>();
-      callbacks.add(callback);
-      subscriptions.set(key, callbacks);
-      return () => {
-        callbacks.delete(callback);
-        if (callbacks.size === 0) subscriptions.delete(key);
-      };
-    },
-  };
-}
-
 export function createNimiProtectedHostMemoryEmbeddingRuntimeSurface(
   options: NimiProtectedHostMemoryEmbeddingRuntimeSurfaceOptions,
 ): NimiMemoryEmbeddingRuntimeSurface {
@@ -282,24 +221,6 @@ export function createNimiProtectedHostMemoryEmbeddingRuntimeSurface(
     return protectedRuntime;
   }
   return createNimiHostMemoryEmbeddingRuntimeSurface({
-    ...options,
-    runtime,
-    withScopes: async (scopes, operation) => {
-      const context = await resolveRuntimeContext(runtime, options.getSubjectUserId);
-      return operation(await issueNimiMemoryEmbeddingCallOptions({ ...context, scopes }));
-    },
-  });
-}
-
-export function createNimiProtectedHostMemoryEmbeddingConfigSurface(
-  options: NimiProtectedHostMemoryEmbeddingConfigSurfaceOptions,
-): NimiMemoryEmbeddingConfigSurface {
-  let protectedRuntime: NimiProtectedHostMemoryEmbeddingConfigClient | null = null;
-  async function runtime() {
-    protectedRuntime ||= await options.runtime();
-    return protectedRuntime;
-  }
-  return createNimiHostMemoryEmbeddingConfigSurface({
     ...options,
     runtime,
     withScopes: async (scopes, operation) => {

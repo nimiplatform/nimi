@@ -1,8 +1,8 @@
 #[cfg(unix)]
 use super::{config_get, config_set};
 use super::{
-    grpc_addr, runtime_cli_command_spec, runtime_config_path, source_dev_app_registry_path, start,
-    status, stop, DEFAULT_GRPC_ADDR,
+    grpc_addr, prepare_runtime_dev_binary_output, runtime_cli_command_spec, runtime_config_path,
+    source_dev_app_registry_path, start, status, stop, DEFAULT_GRPC_ADDR,
 };
 use crate::test_support::{test_guard, with_env};
 use std::fs;
@@ -317,6 +317,59 @@ chmod +x "$out"
             assert!(current_dir.ends_with("runtime"));
         },
     );
+
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
+fn runtime_dev_binary_output_rejects_existing_directory() {
+    let _guard = test_guard();
+    let dir = make_temp_dir("runtime-dev-output-directory");
+    let output = dir.join("nimi-dev");
+    fs::create_dir_all(&output).expect("create output directory");
+
+    let error = prepare_runtime_dev_binary_output(output.as_path())
+        .err()
+        .unwrap_or_default();
+    assert!(error.contains("RUNTIME_BRIDGE_RUNTIME_BUILD_OUTPUT_NOT_FILE"));
+    assert!(output.is_dir());
+
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[test]
+fn runtime_dev_binary_output_removes_stale_regular_file() {
+    let _guard = test_guard();
+    let dir = make_temp_dir("runtime-dev-output-stale-file");
+    let output = dir.join("nimi-dev");
+    fs::write(&output, "stale previous build").expect("write stale file");
+
+    prepare_runtime_dev_binary_output(output.as_path()).expect("prepare output");
+    assert!(!output.exists());
+
+    let _ = fs::remove_dir_all(dir);
+}
+
+#[cfg(unix)]
+#[test]
+fn runtime_dev_binary_output_rejects_existing_symlink() {
+    use std::os::unix::fs as unix_fs;
+
+    let _guard = test_guard();
+    let dir = make_temp_dir("runtime-dev-output-symlink");
+    let target = dir.join("target");
+    let output = dir.join("nimi-dev");
+    fs::write(&target, "target").expect("write target");
+    unix_fs::symlink(&target, &output).expect("create symlink");
+
+    let error = prepare_runtime_dev_binary_output(output.as_path())
+        .err()
+        .unwrap_or_default();
+    assert!(error.contains("RUNTIME_BRIDGE_RUNTIME_BUILD_OUTPUT_NOT_FILE"));
+    assert!(fs::symlink_metadata(&output)
+        .expect("symlink metadata")
+        .file_type()
+        .is_symlink());
 
     let _ = fs::remove_dir_all(dir);
 }

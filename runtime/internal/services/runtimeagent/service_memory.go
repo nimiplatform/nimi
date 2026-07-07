@@ -127,7 +127,7 @@ func (s *Service) agentCanonicalMemoryBankStatusForTarget(ctx context.Context, i
 		Mode:                agentCanonicalMemoryBankMode(state),
 		BankId:              bankID,
 		EmbeddingProfile:    cloneMemoryEmbeddingProfile(profile),
-		BindingSourceKind:   strings.TrimSpace(string(state.BindingSourceKind)),
+		BindingSourceKind:   strings.TrimSpace(string(state.TextEmbedSourceKind)),
 		BlockedReasonCode:   state.BlockedReasonCode,
 		PendingCutover:      state.CanonicalBankStatus == "rebuild_pending" || state.CanonicalBankStatus == "cutover_ready",
 		CanonicalBankStatus: strings.TrimSpace(state.CanonicalBankStatus),
@@ -144,7 +144,7 @@ func agentCanonicalMemoryBankMode(state *memoryservice.MemoryEmbeddingRuntimePri
 	case "bound_equivalent", "bound_profile_mismatch", "rebuild_pending", "cutover_ready":
 		return runtimev1.AgentCanonicalMemoryBankMode_AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD
 	default:
-		if state.ResolutionState == "resolved" && state.BindingIntentPresent {
+		if state.ResolutionState == "resolved" && state.TextEmbedIntentPresent {
 			return runtimev1.AgentCanonicalMemoryBankMode_AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE
 		}
 		return runtimev1.AgentCanonicalMemoryBankMode_AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE

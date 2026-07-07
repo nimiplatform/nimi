@@ -10,12 +10,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type MemoryEmbeddingBindingSourceKind string
+type MemoryEmbeddingTextEmbedSourceKind string
 
 const (
-	MemoryEmbeddingBindingSourceKindUnspecified MemoryEmbeddingBindingSourceKind = ""
-	MemoryEmbeddingBindingSourceKindCloud       MemoryEmbeddingBindingSourceKind = "cloud"
-	MemoryEmbeddingBindingSourceKindLocal       MemoryEmbeddingBindingSourceKind = "local"
+	MemoryEmbeddingTextEmbedSourceKindUnspecified MemoryEmbeddingTextEmbedSourceKind = ""
+	MemoryEmbeddingTextEmbedSourceKindCloud       MemoryEmbeddingTextEmbedSourceKind = "cloud"
+	MemoryEmbeddingTextEmbedSourceKindLocal       MemoryEmbeddingTextEmbedSourceKind = "local"
 )
 
 type MemoryEmbeddingCloudBindingRef struct {
@@ -30,11 +30,12 @@ type MemoryEmbeddingLocalBindingRef struct {
 	ReadinessRef     string
 }
 
-type MemoryEmbeddingBindingIntentSnapshot struct {
-	SourceKind    MemoryEmbeddingBindingSourceKind
-	CloudBinding  *MemoryEmbeddingCloudBindingRef
-	LocalBinding  *MemoryEmbeddingLocalBindingRef
-	RevisionToken string
+type MemoryEmbeddingTextEmbedIntentSnapshot struct {
+	SourceKind     MemoryEmbeddingTextEmbedSourceKind
+	CloudBinding   *MemoryEmbeddingCloudBindingRef
+	LocalBinding   *MemoryEmbeddingLocalBindingRef
+	ConfigRevision uint64
+	RevisionToken  string
 }
 
 type MemoryEmbeddingOperationReadiness struct {
@@ -43,13 +44,14 @@ type MemoryEmbeddingOperationReadiness struct {
 }
 
 type MemoryEmbeddingRuntimePrivateState struct {
-	BindingIntentPresent    bool
-	BindingSourceKind       MemoryEmbeddingBindingSourceKind
+	TextEmbedIntentPresent  bool
+	TextEmbedSourceKind     MemoryEmbeddingTextEmbedSourceKind
 	ResolutionState         string
 	ResolvedProfileIdentity *runtimev1.MemoryEmbeddingProfile
 	CanonicalBankStatus     string
 	BlockedReasonCode       runtimev1.ReasonCode
 	OperationReadiness      MemoryEmbeddingOperationReadiness
+	ConfigRevision          uint64
 }
 
 type InspectMemoryEmbeddingStateRequest struct {
@@ -100,28 +102,28 @@ func validateMemoryEmbeddingLocator(locator *runtimev1.MemoryBankLocator) error 
 	return nil
 }
 
-func bindingIntentPresent(snapshot *MemoryEmbeddingBindingIntentSnapshot) bool {
+func textEmbedIntentPresent(snapshot *MemoryEmbeddingTextEmbedIntentSnapshot) bool {
 	if snapshot == nil {
 		return false
 	}
 	switch snapshot.SourceKind {
-	case MemoryEmbeddingBindingSourceKindCloud:
+	case MemoryEmbeddingTextEmbedSourceKindCloud:
 		return snapshot.CloudBinding != nil
-	case MemoryEmbeddingBindingSourceKindLocal:
+	case MemoryEmbeddingTextEmbedSourceKindLocal:
 		return snapshot.LocalBinding != nil
 	default:
 		return false
 	}
 }
 
-func normalizeMemoryEmbeddingSourceKind(value MemoryEmbeddingBindingSourceKind) MemoryEmbeddingBindingSourceKind {
+func normalizeMemoryEmbeddingSourceKind(value MemoryEmbeddingTextEmbedSourceKind) MemoryEmbeddingTextEmbedSourceKind {
 	switch strings.ToLower(strings.TrimSpace(string(value))) {
-	case string(MemoryEmbeddingBindingSourceKindCloud):
-		return MemoryEmbeddingBindingSourceKindCloud
-	case string(MemoryEmbeddingBindingSourceKindLocal):
-		return MemoryEmbeddingBindingSourceKindLocal
+	case string(MemoryEmbeddingTextEmbedSourceKindCloud):
+		return MemoryEmbeddingTextEmbedSourceKindCloud
+	case string(MemoryEmbeddingTextEmbedSourceKindLocal):
+		return MemoryEmbeddingTextEmbedSourceKindLocal
 	default:
-		return MemoryEmbeddingBindingSourceKindUnspecified
+		return MemoryEmbeddingTextEmbedSourceKindUnspecified
 	}
 }
 
@@ -159,15 +161,16 @@ func normalizeMemoryEmbeddingLocalBinding(input *MemoryEmbeddingLocalBindingRef)
 	}
 }
 
-func normalizeMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingBindingIntentSnapshot) *MemoryEmbeddingBindingIntentSnapshot {
+func normalizeMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingTextEmbedIntentSnapshot) *MemoryEmbeddingTextEmbedIntentSnapshot {
 	if input == nil {
 		return nil
 	}
-	return &MemoryEmbeddingBindingIntentSnapshot{
-		SourceKind:    normalizeMemoryEmbeddingSourceKind(input.SourceKind),
-		CloudBinding:  normalizeMemoryEmbeddingCloudBinding(input.CloudBinding),
-		LocalBinding:  normalizeMemoryEmbeddingLocalBinding(input.LocalBinding),
-		RevisionToken: strings.TrimSpace(input.RevisionToken),
+	return &MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind:     normalizeMemoryEmbeddingSourceKind(input.SourceKind),
+		CloudBinding:   normalizeMemoryEmbeddingCloudBinding(input.CloudBinding),
+		LocalBinding:   normalizeMemoryEmbeddingLocalBinding(input.LocalBinding),
+		ConfigRevision: input.ConfigRevision,
+		RevisionToken:  strings.TrimSpace(input.RevisionToken),
 	}
 }
 
@@ -181,15 +184,15 @@ func memoryEmbeddingLocalBindingToken(input *MemoryEmbeddingLocalBindingRef) str
 	return strings.TrimSpace(input.ReadinessRef)
 }
 
-func memoryEmbeddingBlockedReasonForResolutionState(state string, sourceKind MemoryEmbeddingBindingSourceKind) runtimev1.ReasonCode {
+func memoryEmbeddingBlockedReasonForResolutionState(state string, sourceKind MemoryEmbeddingTextEmbedSourceKind) runtimev1.ReasonCode {
 	switch state {
 	case memoryEmbeddingResolutionStateUnavailable:
 		return runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE
 	case memoryEmbeddingResolutionStateUnresolved:
-		if sourceKind == MemoryEmbeddingBindingSourceKindLocal {
+		if sourceKind == MemoryEmbeddingTextEmbedSourceKindLocal {
 			return runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
 		}
-		if sourceKind == MemoryEmbeddingBindingSourceKindCloud {
+		if sourceKind == MemoryEmbeddingTextEmbedSourceKindCloud {
 			return runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
 		}
 		return runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
@@ -198,11 +201,11 @@ func memoryEmbeddingBlockedReasonForResolutionState(state string, sourceKind Mem
 	}
 }
 
-func cloneMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingBindingIntentSnapshot) *MemoryEmbeddingBindingIntentSnapshot {
+func cloneMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingTextEmbedIntentSnapshot) *MemoryEmbeddingTextEmbedIntentSnapshot {
 	if input == nil {
 		return nil
 	}
-	return &MemoryEmbeddingBindingIntentSnapshot{
+	return &MemoryEmbeddingTextEmbedIntentSnapshot{
 		SourceKind: input.SourceKind,
 		CloudBinding: func() *MemoryEmbeddingCloudBindingRef {
 			if input.CloudBinding == nil {
@@ -224,7 +227,8 @@ func cloneMemoryEmbeddingIntentSnapshot(input *MemoryEmbeddingBindingIntentSnaps
 				ReadinessRef:     input.LocalBinding.ReadinessRef,
 			}
 		}(),
-		RevisionToken: input.RevisionToken,
+		ConfigRevision: input.ConfigRevision,
+		RevisionToken:  input.RevisionToken,
 	}
 }
 
@@ -246,9 +250,9 @@ func memoryEmbeddingProfileIdentity(profile *runtimev1.MemoryEmbeddingProfile) s
 	return strings.Join(filtered, ":")
 }
 
-func (s *Service) resolveMemoryEmbeddingProfile(ctx context.Context, snapshot *MemoryEmbeddingBindingIntentSnapshot) (*runtimev1.MemoryEmbeddingProfile, string, runtimev1.ReasonCode) {
+func (s *Service) resolveMemoryEmbeddingProfile(ctx context.Context, snapshot *MemoryEmbeddingTextEmbedIntentSnapshot) (*runtimev1.MemoryEmbeddingProfile, string, runtimev1.ReasonCode) {
 	normalized := normalizeMemoryEmbeddingIntentSnapshot(snapshot)
-	if !bindingIntentPresent(normalized) {
+	if !textEmbedIntentPresent(normalized) {
 		return nil, memoryEmbeddingResolutionStateMissing, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	}
 	if resolver := s.runtimeEmbeddingProfileResolver(); resolver != nil {
@@ -262,7 +266,7 @@ func (s *Service) resolveMemoryEmbeddingProfile(ctx context.Context, snapshot *M
 		return nil, memoryEmbeddingResolutionStateUnavailable, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE
 	}
 	switch normalized.SourceKind {
-	case MemoryEmbeddingBindingSourceKindLocal:
+	case MemoryEmbeddingTextEmbedSourceKindLocal:
 		if normalized.LocalBinding == nil {
 			return nil, memoryEmbeddingResolutionStateUnresolved, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
 		}
@@ -273,7 +277,7 @@ func (s *Service) resolveMemoryEmbeddingProfile(ctx context.Context, snapshot *M
 			return nil, memoryEmbeddingResolutionStateUnresolved, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
 		}
 		return managed, memoryEmbeddingResolutionStateResolved, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
-	case MemoryEmbeddingBindingSourceKindCloud:
+	case MemoryEmbeddingTextEmbedSourceKindCloud:
 		if normalized.CloudBinding == nil {
 			return nil, memoryEmbeddingResolutionStateUnresolved, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
 		}
@@ -287,6 +291,18 @@ func (s *Service) resolveMemoryEmbeddingProfile(ctx context.Context, snapshot *M
 	default:
 		return nil, memoryEmbeddingResolutionStateMissing, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	}
+}
+
+func (s *Service) runtimeTextEmbedIntentForLocator(ctx context.Context, reqContext *runtimev1.MemoryRequestContext, locator *runtimev1.MemoryBankLocator) (*MemoryEmbeddingTextEmbedIntentSnapshot, error) {
+	resolver := s.runtimeEmbeddingIntentResolver()
+	if resolver == nil {
+		return nil, nil
+	}
+	snapshot, err := resolver(ctx, reqContext, cloneLocator(locator))
+	if err != nil {
+		return nil, err
+	}
+	return normalizeMemoryEmbeddingIntentSnapshot(snapshot), nil
 }
 
 func memoryEmbeddingCanonicalBankStatus(bank *runtimev1.MemoryBank, pending *pendingEmbeddingCutoverState, resolved *runtimev1.MemoryEmbeddingProfile) string {
@@ -379,15 +395,11 @@ func (s *Service) inspectMemoryEmbeddingState(ctx context.Context, req InspectMe
 	if err := s.authorizeMemoryEmbeddingTarget(ctx, req.Context, req.Locator); err != nil {
 		return nil, err
 	}
-	intent, err := s.GetMemoryEmbeddingBindingIntent(ctx, GetMemoryEmbeddingBindingIntentRequest{
-		Context: req.Context,
-		Locator: cloneLocator(req.Locator),
-	})
+	textEmbedIntent, err := s.runtimeTextEmbedIntentForLocator(ctx, req.Context, req.Locator)
 	if err != nil {
 		return nil, err
 	}
-	bindingIntent := intent.BindingIntent
-	resolvedProfile, resolutionState, blockedReasonCode := s.resolveMemoryEmbeddingProfile(ctx, bindingIntent)
+	resolvedProfile, resolutionState, blockedReasonCode := s.resolveMemoryEmbeddingProfile(ctx, textEmbedIntent)
 	bankState, err := s.bankForLocator(req.Locator)
 	if err != nil && status.Code(err) != codes.NotFound {
 		return nil, err
@@ -417,13 +429,13 @@ func (s *Service) inspectMemoryEmbeddingState(ctx context.Context, req InspectMe
 	bindAllowed := resolutionState == memoryEmbeddingResolutionStateResolved &&
 		(canonicalBankStatus == memoryEmbeddingCanonicalBankStatusUnbound || canonicalBankStatus == memoryEmbeddingCanonicalBankStatusBoundProfileMismatch)
 	cutoverAllowed := resolutionState == memoryEmbeddingResolutionStateResolved && canonicalBankStatus == memoryEmbeddingCanonicalBankStatusCutoverReady
-	bindingSourceKind := MemoryEmbeddingBindingSourceKindUnspecified
-	if bindingIntent != nil {
-		bindingSourceKind = normalizeMemoryEmbeddingSourceKind(bindingIntent.SourceKind)
+	textEmbedSourceKind := MemoryEmbeddingTextEmbedSourceKindUnspecified
+	if textEmbedIntent != nil {
+		textEmbedSourceKind = normalizeMemoryEmbeddingSourceKind(textEmbedIntent.SourceKind)
 	}
 	return &MemoryEmbeddingRuntimePrivateState{
-		BindingIntentPresent:    bindingIntentPresent(bindingIntent),
-		BindingSourceKind:       bindingSourceKind,
+		TextEmbedIntentPresent:  textEmbedIntentPresent(textEmbedIntent),
+		TextEmbedSourceKind:     textEmbedSourceKind,
 		ResolutionState:         resolutionState,
 		ResolvedProfileIdentity: cloneEmbeddingProfile(resolvedProfile),
 		CanonicalBankStatus:     canonicalBankStatus,
@@ -432,6 +444,12 @@ func (s *Service) inspectMemoryEmbeddingState(ctx context.Context, req InspectMe
 			BindAllowed:    bindAllowed,
 			CutoverAllowed: cutoverAllowed,
 		},
+		ConfigRevision: func() uint64 {
+			if textEmbedIntent == nil {
+				return 0
+			}
+			return textEmbedIntent.ConfigRevision
+		}(),
 	}, nil
 }
 
@@ -443,10 +461,7 @@ func (s *Service) RequestCanonicalMemoryEmbeddingBind(ctx context.Context, req R
 	if err := s.authorizeMemoryEmbeddingTarget(ctx, req.Context, req.Locator); err != nil {
 		return nil, err
 	}
-	intent, err := s.GetMemoryEmbeddingBindingIntent(ctx, GetMemoryEmbeddingBindingIntentRequest{
-		Context: req.Context,
-		Locator: cloneLocator(req.Locator),
-	})
+	textEmbedIntent, err := s.runtimeTextEmbedIntentForLocator(ctx, req.Context, req.Locator)
 	if err != nil {
 		return nil, err
 	}
@@ -494,8 +509,8 @@ func (s *Service) RequestCanonicalMemoryEmbeddingBind(ctx context.Context, req R
 	}
 	if state.CanonicalBankStatus == memoryEmbeddingCanonicalBankStatusBoundProfileMismatch {
 		revisionToken := ""
-		if intent.BindingIntent != nil {
-			revisionToken = strings.TrimSpace(intent.BindingIntent.RevisionToken)
+		if textEmbedIntent != nil {
+			revisionToken = strings.TrimSpace(textEmbedIntent.RevisionToken)
 		}
 		if _, err := s.StageCanonicalBankEmbeddingCutover(ctx, cloneLocator(req.Locator), state.ResolvedProfileIdentity, revisionToken); err != nil {
 			return nil, err
@@ -550,7 +565,7 @@ func (s *Service) RequestMemoryEmbeddingCutover(ctx context.Context, req Request
 	if state.ResolutionState != memoryEmbeddingResolutionStateResolved {
 		return &RequestMemoryEmbeddingCutoverResult{
 			Outcome:                  "rejected",
-			BlockedReasonCode:        memoryEmbeddingBlockedReasonForResolutionState(state.ResolutionState, state.BindingSourceKind),
+			BlockedReasonCode:        memoryEmbeddingBlockedReasonForResolutionState(state.ResolutionState, state.TextEmbedSourceKind),
 			CanonicalBankStatusAfter: state.CanonicalBankStatus,
 		}, nil
 	}

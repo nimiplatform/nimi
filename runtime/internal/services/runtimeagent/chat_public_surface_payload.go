@@ -81,7 +81,7 @@ func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPaylo
 	}
 	if len(decoded.ExecutionBindings) > 0 {
 		// K-AGCORE-147: request-carried execution_bindings are rejected on
-		// ingress; the committed execution config is the only binding truth.
+		// ingress; the committed Runtime Agent AI Config is the only binding truth.
 		return publicChatTurnRequestPayload{}, errPublicChatRequestExecutionBindingsNotAdmitted
 	}
 	if _, err := validateLocalAgentIdentity(decoded.OwnerUserID, decoded.RuntimeSourceRef, decoded.LocalAgentRef); err != nil {

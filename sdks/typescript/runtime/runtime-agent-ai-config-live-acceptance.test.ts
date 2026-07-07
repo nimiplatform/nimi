@@ -16,11 +16,11 @@ import { withNimiRuntimeAgentScopes } from './runtime-agent-protected';
 import { toNimiRuntimeProtoStruct } from './runtime-agent-values';
 import type { NimiRuntimeAgentTurnRunnerPart } from './runtime-agent-turn-runner-types';
 import type {
-  NimiRuntimeAgentExecutionReadinessSnapshotProjection,
-} from './runtime-agent-execution-config';
+  NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
+} from './runtime-agent-ai-config';
 
-// Live acceptance matrix v1 for the Runtime Agent execution config SDK
-// surface (K-AGCORE-144~150, S-RUNTIME-011 runtime.agent.executionConfig.*).
+// Live acceptance matrix v1 for the Runtime Agent AI Config SDK
+// surface (K-AGCORE-144~150, S-RUNTIME-011 runtime.agent.ai_config.*).
 // Config domain only: no agent turns are exercised here.
 //
 // Deferred (not faked): daemon-restart persistence of the committed config
@@ -28,35 +28,45 @@ import type {
 // the state root on teardown, so an in-fixture restart against the same
 // persistence root is not cleanly supported yet. Runtime-side restart
 // persistence is covered by runtime/internal/services/runtimeagent tests.
-test('runtime agent execution config live acceptance matrix v1', {
+test('runtime agent AI Config live acceptance matrix v1', {
   timeout: 300_000,
 }, async () => {
   await withRuntimeAgentLiveE2EFixture({
     run: async (fixture) => {
       const agentClient = createFixtureRuntimeAgentClient(fixture.runtime);
-      const executionConfig = agentClient.executionConfig;
+      const agentAIConfig = agentClient.agentAIConfig;
+      const identity = {
+        ownerUserId: fixture.ownerUserId,
+        runtimeSourceRef: fixture.runtimeSourceRef,
+        localAgentRef: fixture.localAgentRef,
+      };
 
       // 1. Fresh daemon exposes the K-AGCORE-150 seeded config.
-      const seeded = await executionConfig.get();
+      const seeded = await agentAIConfig.get(identity);
       assert.ok(seeded.revision >= 1, `seeded revision must be >= 1, got ${seeded.revision}`);
       assert.equal(seeded.updatedByAppId, 'runtime');
       assert.ok(seeded.updatedAt, 'seeded config must carry a commit timestamp');
-      const seededText = seeded.bindings['text.generate'];
-      assert.ok(seededText, 'seed must commit the text.generate binding');
+      const seededText = seeded.intents['text.generate'];
+      assert.ok(seededText, 'seed must commit the text.generate intent');
       assert.equal(seededText.modelId, 'local/default');
       assert.equal(seededText.route, 'local');
-      assert.equal(seeded.bindings['image.generate'], undefined, 'seed must leave image.generate absent');
-      assert.equal(seeded.bindings['audio.synthesize'], undefined, 'seed must leave audio.synthesize absent');
+      const seededEmbed = seeded.intents['text.embed'];
+      assert.ok(seededEmbed, 'seed must commit the text.embed intent');
+      assert.equal(seededEmbed.modelId, 'local/default-embedding');
+      assert.equal(seededEmbed.route, 'local');
+      assert.equal(seeded.intents['image.generate'], undefined, 'seed must leave image.generate absent');
+      assert.equal(seeded.intents['audio.synthesize'], undefined, 'seed must leave audio.synthesize absent');
 
       // 2. Readiness projection: text ready, optional media capabilities not_configured.
-      const seededReadiness = await executionConfig.readiness();
+      const seededReadiness = await agentAIConfig.readiness(identity);
       assert.equal(seededReadiness.configRevision, seeded.revision);
       assert.equal(readinessState(seededReadiness, 'text.generate'), 'ready');
+      assert.equal(readinessState(seededReadiness, 'text.embed'), 'ready');
       assert.equal(readinessState(seededReadiness, 'image.generate'), 'not_configured');
       assert.equal(readinessState(seededReadiness, 'audio.synthesize'), 'not_configured');
 
       // 3. Upsert with the correct expectedRevision adds the fixture cloud
-      // image and voice bindings: revision advances by exactly one and both
+      // image and voice intents: revision advances by exactly one and both
       // media readiness projections leave not_configured.
       const imageBinding = {
         route: 'cloud' as const,
@@ -74,92 +84,102 @@ test('runtime agent execution config live acceptance matrix v1', {
           : {}),
         targetRef: fixture.voiceRoute.targetRef,
       };
-      const committed = await executionConfig.upsert({
+      const committed = await agentAIConfig.upsert({
+        ...identity,
         expectedRevision: seeded.revision,
-        bindings: {
+        intents: {
           'text.generate': seededText,
+          'text.embed': seededEmbed,
           'image.generate': imageBinding,
           'audio.synthesize': voiceBinding,
         },
       });
       assert.equal(committed.revision, seeded.revision + 1);
       assert.equal(committed.updatedByAppId, 'nimi.desktop');
-      assert.equal(committed.bindings['image.generate']?.route, 'cloud');
-      assert.equal(committed.bindings['image.generate']?.modelId, fixture.imageRoute.executionBinding.modelId);
+      assert.equal(committed.intents['image.generate']?.route, 'cloud');
+      assert.equal(committed.intents['image.generate']?.modelId, fixture.imageRoute.executionBinding.modelId);
       assert.equal(
-        committed.bindings['image.generate']?.connectorId,
+        committed.intents['image.generate']?.connectorId,
         fixture.imageRoute.executionBinding.connectorId,
       );
-      assert.deepEqual(committed.bindings['image.generate']?.targetRef, fixture.imageRoute.targetRef);
-      assert.equal(committed.bindings['audio.synthesize']?.route, 'cloud');
-      assert.equal(committed.bindings['audio.synthesize']?.modelId, fixture.voiceRoute.executionBinding.modelId);
+      assert.deepEqual(committed.intents['image.generate']?.targetRef, fixture.imageRoute.targetRef);
+      assert.equal(committed.intents['audio.synthesize']?.route, 'cloud');
+      assert.equal(committed.intents['audio.synthesize']?.modelId, fixture.voiceRoute.executionBinding.modelId);
       assert.equal(
-        committed.bindings['audio.synthesize']?.connectorId,
+        committed.intents['audio.synthesize']?.connectorId,
         fixture.voiceRoute.executionBinding.connectorId,
       );
-      assert.deepEqual(committed.bindings['audio.synthesize']?.targetRef, fixture.voiceRoute.targetRef);
-      assert.equal(committed.bindings['text.generate']?.modelId, 'local/default');
+      assert.deepEqual(committed.intents['audio.synthesize']?.targetRef, fixture.voiceRoute.targetRef);
+      assert.equal(committed.intents['text.generate']?.modelId, 'local/default');
+      assert.equal(committed.intents['text.embed']?.modelId, 'local/default-embedding');
 
-      const committedReadiness = await executionConfig.readiness();
+      const committedReadiness = await agentAIConfig.readiness(identity);
       assert.equal(committedReadiness.configRevision, committed.revision);
       assert.notEqual(
         readinessState(committedReadiness, 'image.generate'),
         'not_configured',
-        'a committed image binding must leave not_configured',
+        'a committed image intent must leave not_configured',
       );
       assert.notEqual(
         readinessState(committedReadiness, 'audio.synthesize'),
         'not_configured',
-        'a committed voice binding must leave not_configured',
+        'a committed voice intent must leave not_configured',
       );
       assert.equal(readinessState(committedReadiness, 'text.generate'), 'ready');
+      assert.equal(readinessState(committedReadiness, 'text.embed'), 'ready');
 
       // 4. A stale expectedRevision is a typed concurrent-modification
       // rejection, never a silent last-writer win.
-      await assert.rejects(executionConfig.upsert({
+      await assert.rejects(agentAIConfig.upsert({
+        ...identity,
         expectedRevision: seeded.revision,
-        bindings: {
+        intents: {
           'text.generate': seededText,
+          'text.embed': seededEmbed,
         },
       }), (error: { readonly reasonCode?: string; readonly actionHint?: string }) => {
-        assert.equal(error.reasonCode, 'RUNTIME_AGENT_EXECUTION_CONFIG_CONCURRENT_MODIFICATION');
-        assert.equal(error.actionHint, 'reload_committed_execution_config_and_retry');
+        assert.equal(error.reasonCode, 'RUNTIME_AGENT_AI_CONFIG_CONCURRENT_MODIFICATION');
+        assert.equal(error.actionHint, 'reload_committed_agent_ai_config_and_retry');
         return true;
       });
-      const afterConflict = await executionConfig.get();
+      const afterConflict = await agentAIConfig.get(identity);
       assert.equal(afterConflict.revision, committed.revision, 'conflicting upsert must not mutate the config');
 
-      // 5. Removing the required text.generate binding is a typed
+      // 5. Removing the required text.generate intent is a typed
       // invalid-argument failure (SDK fail-closed pre-check).
-      await assert.rejects(executionConfig.upsert({
+      await assert.rejects(agentAIConfig.upsert({
+        ...identity,
         expectedRevision: committed.revision,
-        bindings: {
+        intents: {
+          'text.embed': seededEmbed,
           'image.generate': imageBinding,
         },
       }), (error: { readonly reasonCode?: string }) => {
-        assert.equal(error.reasonCode, 'SDK_RUNTIME_AGENT_EXECUTION_CONFIG_INPUT_INVALID');
+        assert.equal(error.reasonCode, 'SDK_RUNTIME_AGENT_AI_CONFIG_INPUT_INVALID');
         return true;
       });
 
       // 6. subscribeReadiness delivers the initial snapshot, then a change
       // snapshot whose configRevision advances after the next mutation.
-      const stream = executionConfig.subscribeReadiness();
+      const stream = agentAIConfig.subscribeReadiness(identity);
       const iterator = stream[Symbol.asyncIterator]();
       try {
         const initial = await nextSnapshot(iterator, 'initial readiness snapshot');
         assert.equal(initial.configRevision, committed.revision);
         assert.equal(readinessState(initial, 'text.generate'), 'ready');
 
-        const reverted = await executionConfig.upsert({
+        const reverted = await agentAIConfig.upsert({
+          ...identity,
           expectedRevision: committed.revision,
-          bindings: {
+          intents: {
             'text.generate': seededText,
+            'text.embed': seededEmbed,
           },
         });
         assert.equal(reverted.revision, committed.revision + 1);
 
         const deadline = Date.now() + 30_000;
-        let advanced: NimiRuntimeAgentExecutionReadinessSnapshotProjection | null = null;
+        let advanced: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null = null;
         while (Date.now() < deadline) {
           const snapshot = await nextSnapshot(iterator, 'post-upsert readiness snapshot');
           if (snapshot.configRevision >= reverted.revision) {
@@ -169,6 +189,7 @@ test('runtime agent execution config live acceptance matrix v1', {
         }
         assert.ok(advanced, 'subscription must deliver a snapshot with the advanced configRevision');
         assert.equal(advanced.configRevision, reverted.revision);
+        assert.equal(readinessState(advanced, 'text.embed'), 'ready');
         assert.equal(readinessState(advanced, 'image.generate'), 'not_configured');
         assert.equal(readinessState(advanced, 'audio.synthesize'), 'not_configured');
       } finally {
@@ -179,8 +200,7 @@ test('runtime agent execution config live acceptance matrix v1', {
 });
 
 // Live acceptance matrix v2 for the atomic turn cutover (K-AGCORE-147):
-// public chat turns never carry execution bindings, the committed execution
-// config is the only binding truth, and the session snapshot carries the
+// public chat turns never carry execution bindings, the committed Runtime Agent AI Config is the only AI consume truth, and the session snapshot carries the
 // admission-resolved bindings plus the config revision fixed at admission.
 test('runtime agent turn execution cutover live acceptance matrix v2', {
   timeout: 300_000,
@@ -192,7 +212,7 @@ test('runtime agent turn execution cutover live acceptance matrix v2', {
     localChatCompletionStreamDelayMs: 1_500,
     run: async (fixture) => {
       const agentClient = createFixtureRuntimeAgentClient(fixture.runtime);
-      const executionConfig = agentClient.executionConfig;
+      const agentAIConfig = agentClient.agentAIConfig;
       const identity = {
         ownerUserId: fixture.ownerUserId,
         runtimeSourceRef: fixture.runtimeSourceRef,
@@ -212,11 +232,13 @@ test('runtime agent turn execution cutover live acceptance matrix v2', {
         }
       };
 
-      const seeded = await executionConfig.get();
-      const seededText = seeded.bindings['text.generate'];
-      assert.ok(seededText, 'seed must commit the text.generate binding');
-      assert.equal(seeded.bindings['image.generate'], undefined, 'seed must leave image.generate absent');
-      assert.equal(seeded.bindings['audio.synthesize'], undefined, 'seed must leave audio.synthesize absent');
+      const seeded = await agentAIConfig.get(identity);
+      const seededText = seeded.intents['text.generate'];
+      assert.ok(seededText, 'seed must commit the text.generate intent');
+      const seededEmbed = seeded.intents['text.embed'];
+      assert.ok(seededEmbed, 'seed must commit the text.embed intent');
+      assert.equal(seeded.intents['image.generate'], undefined, 'seed must leave image.generate absent');
+      assert.equal(seeded.intents['audio.synthesize'], undefined, 'seed must leave audio.synthesize absent');
 
       // The fixture daemon serves its own live local text model, not the
       // bundled default the seeded local/default alias resolves to. Commit
@@ -230,10 +252,12 @@ test('runtime agent turn execution cutover live acceptance matrix v2', {
           : {}),
         targetRef: fixture.route.targetRef,
       };
-      const textCommitted = await executionConfig.upsert({
+      const textCommitted = await agentAIConfig.upsert({
+        ...identity,
         expectedRevision: seeded.revision,
-        bindings: {
+        intents: {
           'text.generate': fixtureTextBinding,
+          'text.embed': seededEmbed,
         },
       });
       assert.equal(textCommitted.revision, seeded.revision + 1);
@@ -241,7 +265,7 @@ test('runtime agent turn execution cutover live acceptance matrix v2', {
       // 1. Text turn happy path: the request carries NO execution bindings
       // and resolves against the committed config (the fixture live local
       // text model committed above).
-      const textTurn = await runTurn('hello from the execution config cutover');
+      const textTurn = await runTurn('hello from the AI Config cutover');
       assert.equal(textTurn.terminal.type, 'turn-completed', turnDiagnostics(textTurn));
       assert.ok(
         textTurn.terminal.type === 'turn-completed'
@@ -273,21 +297,21 @@ test('runtime agent turn execution cutover live acceptance matrix v2', {
         (error: Error) => {
           assert.match(
             String(error.message || ''),
-            /execution_bindings are not admitted; runtime agent execution config is authoritative \(K-AGCORE-147\)/,
+            /execution_bindings are not admitted; Runtime Agent AI Config is authoritative \(K-AGCORE-147\)/,
           );
           return true;
         },
       );
 
-      // 4. Image action with NO committed image binding: the APML branch
+      // 4. Image action with NO committed image intent: the APML branch
       // tells the model image generation is not configured, so the turn must
       // complete without any image artifact. The typed action_failed
       // reason=image_binding_missing branch is covered by the runtime Go
       // tests (public_chat_action_projection_test.go).
       const missingImageTurn = await runTurn('please make an image artifact for me');
-      assertNoImageArtifacts(missingImageTurn.parts, 'image turn without committed image binding');
+      assertNoImageArtifacts(missingImageTurn.parts, 'image turn without committed image intent');
 
-      // 5. Upsert the fixture cloud image binding through the executionConfig
+      // 5. Upsert the fixture cloud image binding through the agentAIConfig
       // module: revision advances by exactly one.
       const imageBinding = {
         route: 'cloud' as const,
@@ -297,10 +321,12 @@ test('runtime agent turn execution cutover live acceptance matrix v2', {
           : {}),
         targetRef: fixture.imageRoute.targetRef,
       };
-      const committed = await executionConfig.upsert({
+      const committed = await agentAIConfig.upsert({
+        ...identity,
         expectedRevision: textCommitted.revision,
-        bindings: {
+        intents: {
           'text.generate': fixtureTextBinding,
+          'text.embed': seededEmbed,
           'image.generate': imageBinding,
         },
       });
@@ -416,7 +442,7 @@ async function sendLegacyExecutionBindingsTurn(
     owner_user_id: fixture.ownerUserId,
     runtime_source_ref: fixture.runtimeSourceRef,
     conversation_anchor_id: fixture.conversationAnchorId,
-    request_id: `runtime-agent-live-legacy-bindings:${randomUUID()}`,
+    request_id: `runtime-agent-live-legacy-intents:${randomUUID()}`,
     messages: [{ role: 'user', content: 'legacy execution bindings must be rejected' }],
     execution_bindings: {
       'text.generate': {
@@ -437,7 +463,7 @@ async function sendLegacyExecutionBindingsTurn(
       ...callOptions,
       metadata: {
         ...(callOptions.metadata ?? {}),
-        'x-nimi-idempotency-key': `runtime-agent-live-legacy-bindings:${randomUUID()}`,
+        'x-nimi-idempotency-key': `runtime-agent-live-legacy-intents:${randomUUID()}`,
         'x-nimi-caller-kind': 'sdk-test-fixture',
         'x-nimi-caller-id': DESKTOP_APP_ID,
       },
@@ -535,7 +561,7 @@ async function nextPartWithTimeout(
 }
 
 function readinessState(
-  snapshot: NimiRuntimeAgentExecutionReadinessSnapshotProjection,
+  snapshot: NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
   capability: string,
 ): string {
   const entry = snapshot.capabilities.find((candidate) => candidate.capability === capability);
@@ -545,10 +571,10 @@ function readinessState(
 }
 
 async function nextSnapshot(
-  iterator: AsyncIterator<NimiRuntimeAgentExecutionReadinessSnapshotProjection>,
+  iterator: AsyncIterator<NimiRuntimeAgentAIConfigReadinessSnapshotProjection>,
   label: string,
   timeoutMs = 30_000,
-): Promise<NimiRuntimeAgentExecutionReadinessSnapshotProjection> {
+): Promise<NimiRuntimeAgentAIConfigReadinessSnapshotProjection> {
   let timeout: ReturnType<typeof setTimeout> | null = null;
   const timeoutPromise = new Promise<'timeout'>((resolve) => {
     timeout = setTimeout(() => resolve('timeout'), timeoutMs);

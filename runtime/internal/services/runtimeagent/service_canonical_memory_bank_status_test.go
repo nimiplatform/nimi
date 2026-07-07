@@ -37,6 +37,7 @@ func TestRuntimeAgentOwnsCanonicalMemoryBankStatusAndBind(t *testing.T) {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
 	closeRuntimeAgentServiceForTest(t, svc)
+	memorySvc.SetRuntimeEmbeddingIntentResolver(svc.ResolveMemoryEmbeddingIntent)
 	memorySvc.SetMemoryEmbeddingTargetAuthorizer(svc.AuthorizeMemoryEmbeddingTarget)
 
 	agentCtx := testRuntimeAgentIdentityContext("agent-memory-bank")
@@ -58,27 +59,23 @@ func TestRuntimeAgentOwnsCanonicalMemoryBankStatusAndBind(t *testing.T) {
 		t.Fatalf("initial mode = %s, want unavailable", initial.GetStatus().GetMode())
 	}
 
-	locator := &runtimev1.MemoryBankLocator{
-		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
-		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: agentCtx.GetLocalAgentRef()},
-		},
-	}
-	if _, err := memorySvc.SetMemoryEmbeddingBindingIntent(ctx, memoryservice.SetMemoryEmbeddingBindingIntentRequest{
-		Context: &runtimev1.MemoryRequestContext{
-			AppId:         agentCtx.GetAppId(),
-			SubjectUserId: agentCtx.GetOwnerUserId(),
-		},
-		Locator: locator,
-		BindingIntent: &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
-			SourceKind: memoryservice.MemoryEmbeddingBindingSourceKindLocal,
-			LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{
-				ProfileBindingID: "nimi-embed",
+	if _, err := svc.UpsertRuntimeAgentAIConfig(ctx, &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          agentCtx,
+		ExpectedRevision: 1,
+		Intents: []*runtimev1.RuntimeAgentAIConfigIntent{
+			{
+				Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
+				ModelId:     "local/default",
+				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			},
-			RevisionToken: "rev-memory-bank",
+			{
+				Capability:  runtimeAgentAIConfigCapabilityTextEmbed,
+				ModelId:     "nimi-embed",
+				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			},
 		},
 	}); err != nil {
-		t.Fatalf("SetMemoryEmbeddingBindingIntent: %v", err)
+		t.Fatalf("UpsertRuntimeAgentAIConfig(text.embed): %v", err)
 	}
 
 	baseline, err := svc.GetAgentCanonicalMemoryBankStatus(ctx, &runtimev1.GetAgentCanonicalMemoryBankStatusRequest{

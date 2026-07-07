@@ -1,12 +1,9 @@
 import type {
   AuthorizeExternalPrincipalRequest,
   AuthorizeExternalPrincipalResponse,
-  GetMemoryEmbeddingRuntimeIntentRequest,
-  GetMemoryEmbeddingRuntimeIntentResponse,
   InspectMemoryEmbeddingRuntimeRequest,
   InspectMemoryEmbeddingRuntimeResponse,
   MemoryBankLocator,
-  MemoryEmbeddingBindingIntentSnapshot,
   RegisterAppRequest,
   RegisterAppResponse,
   RequestMemoryEmbeddingRuntimeBindRequest,
@@ -14,8 +11,6 @@ import type {
   RequestMemoryEmbeddingRuntimeCutoverRequest,
   RequestMemoryEmbeddingRuntimeCutoverResponse,
   RuntimeTypedCallOptions,
-  SetMemoryEmbeddingRuntimeIntentRequest,
-  SetMemoryEmbeddingRuntimeIntentResponse,
 } from '../core-generated/runtime-typed-client';
 
 export type NimiMemoryEmbeddingSourceKind = 'cloud' | 'local';
@@ -63,21 +58,8 @@ export interface NimiMemoryEmbeddingRuntimeTargetRef {
   readonly localAgentRef: string;
 }
 
-export interface NimiMemoryEmbeddingConfigInput {
-  readonly scopeRef: NimiMemoryEmbeddingScopeRef;
+export interface NimiMemoryEmbeddingRuntimeInput {
   readonly targetRef: NimiMemoryEmbeddingRuntimeTargetRef;
-}
-
-export interface NimiMemoryEmbeddingConfigSurface {
-  get(input: NimiMemoryEmbeddingConfigInput): Promise<NimiMemoryEmbeddingConfig>;
-  update(
-    input: NimiMemoryEmbeddingConfigInput,
-    config: NimiMemoryEmbeddingConfig,
-  ): Promise<NimiMemoryEmbeddingConfig>;
-  subscribe(
-    input: NimiMemoryEmbeddingConfigInput,
-    callback: (config: NimiMemoryEmbeddingConfig) => void,
-  ): () => void;
 }
 
 export type NimiMemoryEmbeddingResolutionState = 'missing' | 'resolved' | 'unresolved' | 'unavailable';
@@ -89,8 +71,9 @@ export type NimiMemoryEmbeddingCanonicalBankStatus =
   | 'cutover_ready';
 
 export interface NimiMemoryEmbeddingRuntimeState {
-  readonly bindingIntentPresent: boolean;
-  readonly bindingSourceKind: NimiMemoryEmbeddingSourceKind | null;
+  readonly textEmbedIntentPresent: boolean;
+  readonly textEmbedSourceKind: NimiMemoryEmbeddingSourceKind | null;
+  readonly configRevision: number;
   readonly resolutionState: NimiMemoryEmbeddingResolutionState;
   readonly resolvedProfileIdentity: string | null;
   readonly canonicalBankStatus: NimiMemoryEmbeddingCanonicalBankStatus;
@@ -101,7 +84,6 @@ export interface NimiMemoryEmbeddingRuntimeState {
   };
 }
 
-export type NimiMemoryEmbeddingRuntimeInput = NimiMemoryEmbeddingConfigInput;
 export type NimiMemoryEmbeddingBindOutcome = 'bound' | 'already_bound' | 'staged_rebuild' | 'rejected';
 export type NimiMemoryEmbeddingCutoverOutcome = 'cutover_committed' | 'already_current' | 'not_ready' | 'rejected';
 
@@ -139,17 +121,6 @@ export interface NimiMemoryEmbeddingRuntimeClient {
   ): Promise<RequestMemoryEmbeddingRuntimeCutoverResponse>;
 }
 
-export interface NimiMemoryEmbeddingConfigClient {
-  getMemoryEmbeddingRuntimeIntent(
-    request: GetMemoryEmbeddingRuntimeIntentRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<GetMemoryEmbeddingRuntimeIntentResponse>;
-  setMemoryEmbeddingRuntimeIntent(
-    request: SetMemoryEmbeddingRuntimeIntentRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<SetMemoryEmbeddingRuntimeIntentResponse>;
-}
-
 export interface NimiMemoryEmbeddingAuthClient {
   registerApp(request: RegisterAppRequest, options?: RuntimeTypedCallOptions): Promise<RegisterAppResponse>;
 }
@@ -166,11 +137,6 @@ export interface NimiHostMemoryEmbeddingRuntimeClient {
   readonly memory: NimiMemoryEmbeddingRuntimeClient;
 }
 
-export interface NimiHostMemoryEmbeddingConfigClient {
-  readonly appId: string;
-  readonly memory: NimiMemoryEmbeddingConfigClient;
-}
-
 export type NimiMemoryEmbeddingAwaitable<T> = T | Promise<T>;
 
 export interface NimiHostMemoryEmbeddingRuntimeSurfaceOptions {
@@ -183,21 +149,7 @@ export interface NimiHostMemoryEmbeddingRuntimeSurfaceOptions {
   readonly unavailableReasonCode?: string;
 }
 
-export interface NimiHostMemoryEmbeddingConfigSurfaceOptions {
-  readonly runtime: () => NimiMemoryEmbeddingAwaitable<NimiHostMemoryEmbeddingConfigClient>;
-  readonly getSubjectUserId: () => NimiMemoryEmbeddingAwaitable<string>;
-  readonly withScopes?: <T>(
-    scopes: readonly string[],
-    operation: (options: RuntimeTypedCallOptions) => Promise<T>,
-  ) => Promise<T>;
-}
-
 export interface NimiProtectedHostMemoryEmbeddingRuntimeClient extends NimiHostMemoryEmbeddingRuntimeClient {
-  readonly auth: NimiMemoryEmbeddingAuthClient;
-  readonly appAuth: NimiMemoryEmbeddingAppAuthClient;
-}
-
-export interface NimiProtectedHostMemoryEmbeddingConfigClient extends NimiHostMemoryEmbeddingConfigClient {
   readonly auth: NimiMemoryEmbeddingAuthClient;
   readonly appAuth: NimiMemoryEmbeddingAppAuthClient;
 }
@@ -206,11 +158,4 @@ export interface NimiProtectedHostMemoryEmbeddingRuntimeSurfaceOptions
   extends Omit<NimiHostMemoryEmbeddingRuntimeSurfaceOptions, 'runtime' | 'withScopes'> {
   readonly runtime: () => NimiMemoryEmbeddingAwaitable<NimiProtectedHostMemoryEmbeddingRuntimeClient>;
 }
-
-export interface NimiProtectedHostMemoryEmbeddingConfigSurfaceOptions
-  extends Omit<NimiHostMemoryEmbeddingConfigSurfaceOptions, 'runtime' | 'withScopes'> {
-  readonly runtime: () => NimiMemoryEmbeddingAwaitable<NimiProtectedHostMemoryEmbeddingConfigClient>;
-}
-
-export type NimiMemoryEmbeddingIntentSnapshot = MemoryEmbeddingBindingIntentSnapshot;
 export type NimiMemoryEmbeddingBankLocator = MemoryBankLocator;

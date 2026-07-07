@@ -66,7 +66,7 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
   assert.equal(payload.conversation_anchor_id, 'anchor-1');
   assert.deepEqual(payload.messages, [{ role: 'user', content: 'hello', name: 'Human' }]);
   // Atomic hard cut: turn payloads never carry execution_bindings; the
-  // runtime resolves bindings from the committed execution config
+  // runtime resolves bindings from the committed Runtime Agent AI Config
   // (K-AGCORE-147) and rejects any request-level bindings.
   assert.equal('execution_bindings' in payload, false);
   assert.deepEqual(payload.execution_params, {

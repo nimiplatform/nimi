@@ -168,7 +168,7 @@ export function buildNimiRuntimeAgentTurnPayload(request: NimiRuntimeAgentTurnRe
     runtimeAgentInputError('runtime agent turn request requires at least one non-empty message', 'provide_runtime_agent_turn_message');
   }
   // Turn requests never carry execution bindings: the runtime resolves the
-  // turn against the committed agent execution config (K-AGCORE-147) and
+  // turn against the committed Runtime Agent AI Config (K-AGCORE-147) and
   // rejects any request-level execution_bindings as InvalidArgument.
   const maxOutputTokens = optionalNumber(request.maxOutputTokens);
   if (maxOutputTokens !== undefined && maxOutputTokens < 0) {

@@ -405,12 +405,18 @@ test('runtime agent live e2e fixture exposes native Runtime Agent voice chunks t
       const progress: Record<string, unknown> = { stage: 'start' };
       try {
         const agentClient = createFixtureRuntimeAgentClient(fixture.runtime);
+        const identity = {
+          ownerUserId: fixture.ownerUserId,
+          runtimeSourceRef: fixture.runtimeSourceRef,
+          localAgentRef: fixture.localAgentRef,
+        };
         progress.stage = 'commit_execution_config';
-        const seeded = await agentClient.executionConfig.get();
-        await agentClient.executionConfig.upsert({
+        const seeded = await agentClient.agentAIConfig.get(identity);
+        await agentClient.agentAIConfig.upsert({
+          ...identity,
           expectedRevision: seeded.revision,
-          bindings: {
-            ...seeded.bindings,
+          intents: {
+            ...seeded.intents,
             'text.generate': {
               route: fixture.route.executionBinding.route,
               modelId: fixture.route.executionBinding.modelId,
@@ -446,8 +452,6 @@ test('runtime agent live e2e fixture exposes native Runtime Agent voice chunks t
               interactionPolicyRef: 'policy://runtime-live/ambient',
               defaultVoiceReference: fixture.voiceAsset.defaultVoiceReference,
               avatarAutoplay: true,
-              speechModelId: fixture.voiceRoute.executionBinding.modelId,
-              speechRoutePolicy: RoutePolicy.CLOUD,
             },
           },
         }, {

@@ -137,13 +137,13 @@ func publicChatImageActionTurnPayload(t *testing.T, anchorID string) *structpb.S
 	})
 }
 
-// submitPublicChatImageActionTurn commits the requested execution config
+// submitPublicChatImageActionTurn commits the requested Runtime Agent AI Config
 // image state (K-AGCORE-147) and submits a turn that plans an image action.
 func submitPublicChatImageActionTurn(t *testing.T, svc *Service, anchorID string, includeImageBinding bool) {
 	t.Helper()
 	if includeImageBinding {
-		upsertPublicChatTestExecutionConfig(t, svc, &runtimev1.RuntimeAgentExecutionCapabilityBinding{
-			Capability:  executionCapabilityImageGenerate,
+		upsertPublicChatTestAgentAIConfig(t, svc, &runtimev1.RuntimeAgentAIConfigIntent{
+			Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 			ModelId:     "local/image",
 			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		})
@@ -256,7 +256,7 @@ func TestPublicChatImageActionFailsClosedWithoutImageBinding(t *testing.T) {
 	}
 	for _, req := range []*runtimev1.SendAppMessageRequest{actionFailed, turnFailed} {
 		detail := publicChatTurnDetail(t, req)
-		if !strings.Contains(fmt.Sprint(detail["message"]), "no committed image.generate execution config binding") {
+		if !strings.Contains(fmt.Sprint(detail["message"]), "no committed image.generate Runtime Agent AI Config binding") {
 			t.Fatalf("expected missing image binding failure, got=%v", detail)
 		}
 	}
@@ -280,8 +280,8 @@ func TestPublicChatImageActionFailsClosedWhenConfiguredRouteUnavailable(t *testi
 	svc.SetPublicChatActionExecutor(actionExecutor)
 	// A committed cloud image binding without a connector is UNAVAILABLE
 	// (connector_missing) in the readiness projection.
-	upsertPublicChatTestExecutionConfig(t, svc, &runtimev1.RuntimeAgentExecutionCapabilityBinding{
-		Capability:  executionCapabilityImageGenerate,
+	upsertPublicChatTestAgentAIConfig(t, svc, &runtimev1.RuntimeAgentAIConfigIntent{
+		Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
 		ModelId:     "openai/gpt-image-1",
 		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 	})

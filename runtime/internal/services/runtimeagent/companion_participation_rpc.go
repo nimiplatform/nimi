@@ -72,7 +72,7 @@ func (s *Service) RequestCompanionParticipation(ctx context.Context, req *runtim
 			Content: text,
 		},
 	}
-	_, err = s.resolveRuntimeDefaultPublicChatBinding(ctx, session.SubjectUserID, "", messages, req.GetMaxOutputTokens())
+	_, err = s.resolveRuntimeDefaultPublicChatBinding(ctx, session.LocalAgentRef, session.SubjectUserID, "", messages, req.GetMaxOutputTokens())
 	if err != nil {
 		if status.Code(err) == codes.FailedPrecondition || status.Code(err) == codes.Unavailable {
 			return &runtimev1.RequestCompanionParticipationResponse{
@@ -85,7 +85,7 @@ func (s *Service) RequestCompanionParticipation(ctx context.Context, req *runtim
 	payload, err := structpb.NewStruct(map[string]any{
 		"local_agent_ref":        session.LocalAgentRef,
 		"owner_user_id":          session.OwnerUserID,
-		"runtime_source_ref":         session.RuntimeSourceRef,
+		"runtime_source_ref":     session.RuntimeSourceRef,
 		"conversation_anchor_id": session.ConversationAnchorID,
 		"request_id":             firstNonEmpty(strings.TrimSpace(req.GetRequestId()), "companion-participation-"+session.ConversationAnchorID),
 		"thread_id":              strings.TrimSpace(req.GetThreadId()),
@@ -95,7 +95,7 @@ func (s *Service) RequestCompanionParticipation(ctx context.Context, req *runtim
 			map[string]any{"role": "user", "content": text},
 		},
 		// K-AGCORE-147: no execution_bindings on the turn request payload;
-		// turn admission binds to the committed execution config. The
+		// turn admission binds to the committed Runtime Agent AI Config. The
 		// resolveRuntimeDefaultPublicChatBinding call above remains a
 		// fail-closed availability precheck for the blocked projection path.
 	})

@@ -25,11 +25,6 @@ func normalizeAgentPresentationProfile(input *runtimev1.AgentPresentationProfile
 	if err != nil {
 		return nil, err
 	}
-	speechModelID := strings.TrimSpace(input.GetSpeechModelId())
-	speechRoutePolicy := input.GetSpeechRoutePolicy()
-	if speechRoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED && agentRoutePolicyLabel(speechRoutePolicy) == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
 	return &runtimev1.AgentPresentationProfile{
 		BackendKind:           backendKind,
 		AvatarAssetRef:        avatarAssetRef,
@@ -38,8 +33,6 @@ func normalizeAgentPresentationProfile(input *runtimev1.AgentPresentationProfile
 		InteractionPolicyRef:  strings.TrimSpace(input.GetInteractionPolicyRef()),
 		DefaultVoiceReference: defaultVoiceReference,
 		AvatarAutoplay:        input.GetAvatarAutoplay(),
-		SpeechModelId:         speechModelID,
-		SpeechRoutePolicy:     speechRoutePolicy,
 	}, nil
 }
 
@@ -99,8 +92,6 @@ func agentPresentationProfileMetadataValue(profile *runtimev1.AgentPresentationP
 		"idlePreset":            structValueString(profile.GetIdlePreset()),
 		"interactionPolicyRef":  structValueString(profile.GetInteractionPolicyRef()),
 		"defaultVoiceReference": structValueString(profile.GetDefaultVoiceReference()),
-		"speechModelId":         structValueString(profile.GetSpeechModelId()),
-		"speechRoutePolicy":     structValueString(agentRoutePolicyLabel(profile.GetSpeechRoutePolicy())),
 	}
 	if profile.GetAvatarAutoplay() {
 		fields["avatarAutoplay"] = structpb.NewBoolValue(true)

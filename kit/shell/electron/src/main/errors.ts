@@ -1,3 +1,4 @@
+import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import { NIMI_STANDARD_SHELL_ERROR_CODES } from '@nimiplatform/kit/shell/capabilities';
 import { NimiElectronShellHostError } from './types.js';
 
@@ -198,7 +199,7 @@ export function isRuntimeAppGrantInvalidLike(error: unknown): boolean {
     ?? details?.reasonCode
     ?? details?.reason_code,
   );
-  return reasonCode === 'APP_GRANT_INVALID' || message.includes('APP_GRANT_INVALID');
+  return reasonCode === ReasonCode.APP_GRANT_INVALID || message.includes(ReasonCode.APP_GRANT_INVALID);
 }
 
 function runtimeGrpcCode(error: unknown): number {

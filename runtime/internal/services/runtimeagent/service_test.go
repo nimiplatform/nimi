@@ -495,8 +495,6 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 				InteractionPolicyRef:  " interaction://airi/v1 ",
 				DefaultVoiceReference: " preset_voice_id:airi-default ",
 				AvatarAutoplay:        true,
-				SpeechModelId:         " speech/qwen3-tts-realtime ",
-				SpeechRoutePolicy:     runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 			},
 		},
 	})
@@ -505,12 +503,6 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 	}
 	if got := resp.GetProfile().GetAvatarAssetRef(); got != "avatar://airi/live2d/main" {
 		t.Fatalf("unexpected normalized avatar_asset_ref: %q", got)
-	}
-	if got := resp.GetProfile().GetSpeechModelId(); got != "speech/qwen3-tts-realtime" {
-		t.Fatalf("unexpected normalized speech_model_id: %q", got)
-	}
-	if got := resp.GetProfile().GetSpeechRoutePolicy(); got != runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
-		t.Fatalf("unexpected speech_route_policy: %s", got.String())
 	}
 
 	agentResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{
@@ -531,11 +523,11 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 	if got := presentation["avatarAutoplay"].GetBoolValue(); !got {
 		t.Fatalf("unexpected avatarAutoplay metadata: %v", got)
 	}
-	if got := presentation["speechModelId"].GetStringValue(); got != "speech/qwen3-tts-realtime" {
-		t.Fatalf("unexpected speechModelId metadata: %q", got)
+	if _, ok := presentation["speechModelId"]; ok {
+		t.Fatal("presentation metadata must not carry speechModelId; audio.synthesize owns voice model truth")
 	}
-	if got := presentation["speechRoutePolicy"].GetStringValue(); got != "cloud" {
-		t.Fatalf("unexpected speechRoutePolicy metadata: %q", got)
+	if _, ok := presentation["speechRoutePolicy"]; ok {
+		t.Fatal("presentation metadata must not carry speechRoutePolicy; audio.synthesize owns voice route truth")
 	}
 
 	clearResp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{

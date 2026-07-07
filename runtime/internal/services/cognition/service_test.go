@@ -200,18 +200,7 @@ func TestRuntimeCognitionMemoryEmbeddingRuntimeProjectionIsPrivate(t *testing.T)
 		}
 	}
 
-	_, err := svc.SetMemoryEmbeddingRuntimeIntent(ctx, &runtimev1.SetMemoryEmbeddingRuntimeIntentRequest{
-		Context:       &runtimev1.MemoryRequestContext{AppId: "desktop"},
-		Locator:       locator,
-		BindingIntent: testRuntimeLocalEmbeddingIntent("local/embed-old"),
-	})
-	checkDenied("SetMemoryEmbeddingRuntimeIntent", err)
-	_, err = svc.GetMemoryEmbeddingRuntimeIntent(ctx, &runtimev1.GetMemoryEmbeddingRuntimeIntentRequest{
-		Context: &runtimev1.MemoryRequestContext{AppId: "desktop"},
-		Locator: locator,
-	})
-	checkDenied("GetMemoryEmbeddingRuntimeIntent", err)
-	_, err = svc.InspectMemoryEmbeddingRuntime(ctx, &runtimev1.InspectMemoryEmbeddingRuntimeRequest{
+	_, err := svc.InspectMemoryEmbeddingRuntime(ctx, &runtimev1.InspectMemoryEmbeddingRuntimeRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "desktop"},
 		Locator: locator,
 	})
@@ -425,16 +414,6 @@ func testRuntimeEmbeddingProfile(modelID string) *runtimev1.MemoryEmbeddingProfi
 		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
 		Version:         modelID + "@v1",
 		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
-	}
-}
-
-func testRuntimeLocalEmbeddingIntent(modelID string) *runtimev1.MemoryEmbeddingBindingIntentSnapshot {
-	return &runtimev1.MemoryEmbeddingBindingIntentSnapshot{
-		SourceKind: "local",
-		LocalBinding: &runtimev1.MemoryEmbeddingLocalBindingRef{
-			Ref: &runtimev1.MemoryEmbeddingLocalBindingRef_ProfileBindingId{ProfileBindingId: modelID},
-		},
-		RevisionToken: "test-revision",
 	}
 }
 

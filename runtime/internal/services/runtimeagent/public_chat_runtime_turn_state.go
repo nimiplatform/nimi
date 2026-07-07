@@ -41,16 +41,16 @@ func (r publicChatRuntime) reserveTurn(
 	}
 	if len(req.ExecutionBindings) > 0 {
 		// K-AGCORE-147 hard cut: request-carried execution_bindings are not
-		// admitted; turn admission binds to the committed execution config.
+		// admitted; turn admission binds to the committed Runtime Agent AI Config.
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, errPublicChatRequestExecutionBindingsNotAdmitted
 	}
-	resolvedBindings, configRevision, err := r.svc.resolveExecutionBindingsFromConfig(parent, subjectUserID, req)
+	resolvedBindings, configRevision, err := r.svc.resolveExecutionBindingsFromConfig(parent, localAgentRef, subjectUserID, req)
 	if err != nil {
 		return publicChatAnchorState{}, publicChatTurnState{}, nil, err
 	}
-	_, hasImageBinding := resolvedBindings[executionCapabilityImageGenerate]
+	_, hasImageBinding := resolvedBindings[runtimeAgentAIConfigCapabilityImageGenerate]
 	availableActions := publicChatAvailableActions{
-		ImageGenerate: r.svc.deriveImageActionAvailability(configRevision, hasImageBinding),
+		ImageGenerate: r.svc.deriveImageActionAvailability(localAgentRef, configRevision, hasImageBinding),
 	}
 	reasoning := normalizePublicChatReasoning(req.Reasoning)
 	transcript := cloneChatMessages(toProtoPublicChatMessages(req.Messages))
@@ -105,7 +105,7 @@ func (r publicChatRuntime) reserveTurn(
 		// K-AGCORE-147: the anchor no longer owns binding truth. Every turn
 		// admission overwrites the session projection fields with the
 		// admission-resolved bindings and the committed config revision.
-		session.Binding = resolvedBindings[executionCapabilityTextGenerate]
+		session.Binding = resolvedBindings[runtimeAgentAIConfigCapabilityTextGenerate]
 		session.Bindings = clonePublicChatExecutionBindings(resolvedBindings)
 		session.ConfigRevision = configRevision
 		if len(req.ExecutionParams) > 0 {

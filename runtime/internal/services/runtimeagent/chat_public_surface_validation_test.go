@@ -14,8 +14,8 @@ import (
 
 // TestPublicChatTurnRequestRejectsRequestCarriedExecutionBindings is the
 // K-AGCORE-147 hard-cut proof: request-carried execution_bindings on
-// runtime.agent.turn.request fail closed with InvalidArgument; the committed
-// execution config is the only binding truth.
+// runtime.agent.turn.request fail closed with InvalidArgument; Runtime Agent AI
+// Config is the only binding truth.
 func TestPublicChatTurnRequestRejectsRequestCarriedExecutionBindings(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -51,7 +51,7 @@ func TestPublicChatTurnRequestRejectsRequestCarriedExecutionBindings(t *testing.
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument for request-carried execution_bindings, got %v", err)
 	}
-	if !strings.Contains(err.Error(), "public chat execution_bindings are not admitted; runtime agent execution config is authoritative (K-AGCORE-147)") {
+	if !strings.Contains(err.Error(), "public chat execution_bindings are not admitted; Runtime Agent AI Config is authoritative (K-AGCORE-147)") {
 		t.Fatalf("expected K-AGCORE-147 rejection message, got %v", err)
 	}
 }
@@ -68,7 +68,7 @@ func TestPublicChatTurnRequestRejectsCallerSystemPrompt(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-reject-system-prompt",
 			"system_prompt":          "caller supplied raw prompt",
@@ -133,7 +133,7 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -231,7 +231,7 @@ func TestPublicChatTurnRepairsMalformedAPMLOnceBeforeFailClosed(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -321,7 +321,7 @@ func TestPublicChatTurnRequestPreservesCommittedTranscriptOnFailedTurn(t *testin
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -426,7 +426,7 @@ func TestPublicChatTurnRequestFoldsCommittedLastTurnIntoTranscript(t *testing.T)
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "test"},
@@ -510,7 +510,7 @@ func TestPublicChatTurnRequestRejectsUnknownEmotionBeforeCommit(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -613,7 +613,7 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-follow-up",
 			"messages": []any{

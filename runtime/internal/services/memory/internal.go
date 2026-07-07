@@ -58,6 +58,18 @@ func (s *Service) SetRuntimeEmbeddingProfileResolver(resolver MemoryEmbeddingPro
 	s.mu.Unlock()
 }
 
+func (s *Service) SetRuntimeEmbeddingIntentResolver(resolver MemoryEmbeddingIntentResolver) {
+	s.mu.Lock()
+	s.runtimeEmbeddingIntent = resolver
+	s.mu.Unlock()
+}
+
+func (s *Service) runtimeEmbeddingIntentResolver() MemoryEmbeddingIntentResolver {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.runtimeEmbeddingIntent
+}
+
 func (s *Service) runtimeEmbeddingProfileResolver() MemoryEmbeddingProfileResolver {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

@@ -174,23 +174,11 @@ test('Runtime-bound memory and knowledge context clients project Runtime-owned d
         async history() {
           return { records: [], nextPageToken: '' };
         },
-        async getMemoryEmbeddingRuntimeIntent() {
-          return {
-            bindingIntentPresent: true,
-            bindingIntent: {
-              sourceKind: 'local',
-              localBinding: { targetId: 'embedder-local' },
-              revisionToken: 'rev-1',
-            },
-          };
-        },
-        async setMemoryEmbeddingRuntimeIntent(_request) {
-          return { accepted: true };
-        },
         async inspectMemoryEmbeddingRuntime() {
           return {
-            bindingIntentPresent: true,
-            bindingSourceKind: 'local',
+            textEmbedIntentPresent: true,
+            textEmbedSourceKind: 'local',
+            configRevision: '1',
             resolutionState: 'resolved',
             canonicalBankStatus: 'bound',
             blockedReasonCode: 0,
@@ -221,7 +209,7 @@ test('Runtime-bound memory and knowledge context clients project Runtime-owned d
   assert.equal((memoryWindow.snippets[0]?.metadata as { matchReason?: string }).matchReason, 'semantic');
   assert.equal((memoryRequests[0] as { query?: { query?: string } }).query?.query, 'tea');
   const embedding = await memory.getEmbeddingRuntimeProjection();
-  assert.equal(embedding.bindingSourceKind, 'local');
+  assert.equal(embedding.textEmbedSourceKind, 'local');
   assert.equal(embedding.bindAllowed, true);
   assert.equal((await memory.requestEmbeddingRuntimeBind()).pendingCutover, true);
 

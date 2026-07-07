@@ -59,17 +59,6 @@ function parseAvatarBackendKind(value: unknown): NimiRuntimeAgentPresentationPro
   return null;
 }
 
-function parseSpeechRoutePolicy(value: unknown): NimiRuntimeAgentPresentationProfileProjection['speechRoutePolicy'] {
-  switch (normalizeNimiRuntimeAgentText(value).toLowerCase()) {
-    case 'local':
-      return 'local';
-    case 'cloud':
-      return 'cloud';
-    default:
-      return null;
-  }
-}
-
 function parseAvatarPresentationProfile(value: unknown): NimiRuntimeAgentPresentationProfileProjection | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
@@ -88,8 +77,6 @@ function parseAvatarPresentationProfile(value: unknown): NimiRuntimeAgentPresent
     interactionPolicyRef: normalizeNimiRuntimeAgentText(record.interactionPolicyRef) || null,
     defaultVoiceReference: normalizeNimiRuntimeAgentText(record.defaultVoiceReference) || null,
     avatarAutoplay: record.avatarAutoplay === true,
-    speechModelId: normalizeNimiRuntimeAgentText(record.speechModelId) || null,
-    speechRoutePolicy: parseSpeechRoutePolicy(record.speechRoutePolicy),
   };
 }
 

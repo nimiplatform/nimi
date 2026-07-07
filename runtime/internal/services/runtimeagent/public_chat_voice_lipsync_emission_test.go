@@ -102,7 +102,7 @@ func TestPublicChatCommittedTurnSkipsVoiceLipsyncProjectionWithoutAvatarAutoplay
 func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	upsertPublicChatTestExecutionConfig(t, svc, publicChatTestAudioSynthesizeBinding())
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", true)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
@@ -309,7 +309,7 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 func TestPublicChatCommittedTurnEmitsNativeVoiceStreamChunksBeforeFinalArtifact(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	upsertPublicChatTestExecutionConfig(t, svc, publicChatTestAudioSynthesizeBinding())
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	metadata := publicChatVoicePolicyMetadata(t, true)
 	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, "agent-alpha", "desktop.app", "user-1", metadata)
 	capture := newPublicChatEmitCapture()
@@ -553,7 +553,7 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceStreamChunksBeforeFinalArtifact(
 func TestPublicChatNativeVoicePlaybackInterruptCancelsStreamAndEmitsTerminalTruth(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	upsertPublicChatTestExecutionConfig(t, svc, publicChatTestAudioSynthesizeBinding())
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	metadata := publicChatVoicePolicyMetadata(t, true)
 	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, "agent-alpha", "desktop.app", "user-1", metadata)
 	capture := newPublicChatEmitCapture()
@@ -1136,12 +1136,10 @@ func (f *idempotentVoiceLipsyncScenarioExecutor) GetScenarioArtifacts(_ context.
 func publicChatVoicePolicyMetadata(t *testing.T, avatarAutoplay bool) *structpb.Struct {
 	t.Helper()
 	metadata, err := structpb.NewStruct(map[string]any{
-		"realm_profile_context": map[string]any{
-			"avatar_autoplay":         avatarAutoplay,
-			"default_voice_reference": "preset_voice_id:nimi-default",
-			"speech_model_id":         "speech/qwen3tts",
-			"speech_route_policy":     "local",
-		},
+			"realm_profile_context": map[string]any{
+				"avatar_autoplay":         avatarAutoplay,
+				"default_voice_reference": "preset_voice_id:nimi-default",
+			},
 	})
 	if err != nil {
 		t.Fatalf("structpb.NewStruct(voice policy metadata): %v", err)
@@ -1165,8 +1163,6 @@ func setPublicChatTestPresentationProfile(t *testing.T, svc *Service, agentID st
 				InteractionPolicyRef:  "policy://test/ambient",
 				DefaultVoiceReference: "preset_voice_id:nimi-default",
 				AvatarAutoplay:        avatarAutoplay,
-				SpeechModelId:         "speech/qwen3tts",
-				SpeechRoutePolicy:     runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			},
 		},
 	})

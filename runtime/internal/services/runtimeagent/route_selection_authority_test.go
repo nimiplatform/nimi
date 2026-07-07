@@ -9,8 +9,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
-// committedConfigTestBinding is the committed execution config text.generate
-// binding runtime stamps into runtime-private executor requests
+// committedConfigTestBinding is the committed Runtime Agent AI Config
+// text.generate binding runtime stamps into runtime-private executor requests
 // (K-AGCORE-147).
 var committedConfigTestBinding = publicChatExecutionBinding{
 	ModelID:     "local/qwen3-chat",
@@ -61,11 +61,11 @@ func TestAIBackedLifeTrackExecutorFailsClosedWithoutConfigBinding(t *testing.T) 
 		State: &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
 		Hook:  &runtimev1.PendingHook{Intent: &runtimev1.HookIntent{IntentId: "hook-route"}},
 	})
-	if err == nil || !strings.Contains(err.Error(), "committed execution config text.generate binding") {
-		t.Fatalf("expected fail-closed missing config binding rejection, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "committed Runtime Agent AI Config text.generate intent") {
+		t.Fatalf("expected fail-closed missing Runtime Agent AI Config text.generate intent rejection, got %v", err)
 	}
 	if len(fakeAI.requests) != 0 {
-		t.Fatalf("life-track executor must not execute without the committed config binding")
+		t.Fatalf("life-track executor must not execute without the committed Runtime Agent AI Config binding")
 	}
 }
 
@@ -126,11 +126,11 @@ func TestAIBackedCanonicalReviewExecutorFailsClosedWithoutConfigBinding(t *testi
 			},
 		},
 	})
-	if err == nil || !strings.Contains(err.Error(), "committed execution config text.generate binding") {
-		t.Fatalf("expected fail-closed missing config binding rejection, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "committed Runtime Agent AI Config text.generate intent") {
+		t.Fatalf("expected fail-closed missing Runtime Agent AI Config text.generate intent rejection, got %v", err)
 	}
 	if len(fakeAI.requests) != 0 {
-		t.Fatalf("canonical review executor must not execute without the committed config binding")
+		t.Fatalf("canonical review executor must not execute without the committed Runtime Agent AI Config binding")
 	}
 }
 
@@ -182,16 +182,16 @@ func TestAIBackedChatTrackSidecarExecutorFailsClosedWithoutConfigBinding(t *test
 			{Role: "user", Content: "hello"},
 		},
 	})
-	if err == nil || !strings.Contains(err.Error(), "committed execution config text.generate binding") {
-		t.Fatalf("expected fail-closed missing config binding rejection, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "committed Runtime Agent AI Config text.generate intent") {
+		t.Fatalf("expected fail-closed missing Runtime Agent AI Config text.generate intent rejection, got %v", err)
 	}
 	if len(fakeAI.requests) != 0 {
-		t.Fatalf("chat-track sidecar executor must not execute without the committed config binding")
+		t.Fatalf("chat-track sidecar executor must not execute without the committed Runtime Agent AI Config binding")
 	}
 }
 
 // TestChatTrackSidecarServiceStampsCommittedConfigModel proves the service
-// path stamps the committed (upserted) execution config text.generate model
+// path stamps the committed (upserted) Runtime Agent AI Config text.generate model
 // into the runtime-private sidecar scenario head (K-AGCORE-147).
 func TestChatTrackSidecarServiceStampsCommittedConfigModel(t *testing.T) {
 	t.Parallel()
@@ -206,19 +206,24 @@ func TestChatTrackSidecarServiceStampsCommittedConfigModel(t *testing.T) {
 		},
 	}
 	svc.SetChatTrackSidecarExecutor(NewAIBackedChatTrackSidecarExecutor(fakeAI))
-	upsertPublicChatTestExecutionConfig(t, svc)
-	if _, err := svc.UpsertAgentExecutionConfig(context.Background(), &runtimev1.UpsertAgentExecutionConfigRequest{
-		Context:          &runtimev1.AgentRequestContext{AppId: "desktop.app"},
+	upsertPublicChatTestAgentAIConfig(t, svc)
+	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          publicChatTestAIConfigContext(t, svc),
 		ExpectedRevision: 2,
-		Bindings: []*runtimev1.RuntimeAgentExecutionCapabilityBinding{
+		Intents: []*runtimev1.RuntimeAgentAIConfigIntent{
 			{
-				Capability:  executionCapabilityTextGenerate,
+				Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
 				ModelId:     "local/qwen3-chat",
+				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			},
+			{
+				Capability:  runtimeAgentAIConfigCapabilityTextEmbed,
+				ModelId:     runtimeAgentAIConfigDefaultEmbeddingModelID,
 				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			},
 		},
 	}); err != nil {
-		t.Fatalf("UpsertAgentExecutionConfig: %v", err)
+		t.Fatalf("UpsertRuntimeAgentAIConfig: %v", err)
 	}
 	if err := svc.ExecuteChatTrackSidecar(context.Background(), ChatTrackSidecarExecutionRequest{
 		CallerAppID:   "desktop.app",

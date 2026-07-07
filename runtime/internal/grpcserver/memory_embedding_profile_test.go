@@ -75,8 +75,8 @@ func TestResolveCatalogEmbeddingDimensionFailsClosedWithoutAdmittedDimension(t *
 // The cloud resolve path must source the resolved dimension from the catalog
 // row rather than emitting a hardcoded constant.
 func TestResolveCloudRuntimeMemoryEmbeddingProfileFailsClosedWithoutCatalog(t *testing.T) {
-	snapshot := &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
-		SourceKind: memoryservice.MemoryEmbeddingBindingSourceKindCloud,
+	snapshot := &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind: memoryservice.MemoryEmbeddingTextEmbedSourceKindCloud,
 		CloudBinding: &memoryservice.MemoryEmbeddingCloudBindingRef{
 			ConnectorID:          "conn-1",
 			RemoteModelCatalogID: "remote-catalog:conn-1:text-embedding-3-large",
@@ -130,8 +130,8 @@ func TestResolveCloudRuntimeMemoryEmbeddingProfileProjectsCloudBinding(t *testin
 		t.Fatal("text-embedding-3-small descriptor not found")
 	}
 
-	resolved := resolveCloudRuntimeMemoryEmbeddingProfile(context.Background(), &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
-		SourceKind: memoryservice.MemoryEmbeddingBindingSourceKindCloud,
+	resolved := resolveCloudRuntimeMemoryEmbeddingProfile(context.Background(), &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind: memoryservice.MemoryEmbeddingTextEmbedSourceKindCloud,
 		CloudBinding: &memoryservice.MemoryEmbeddingCloudBindingRef{
 			ConnectorID:          created.ConnectorID,
 			RemoteModelCatalogID: descriptor.GetRemoteModelCatalogId(),
@@ -163,8 +163,8 @@ func TestResolveCloudRuntimeMemoryEmbeddingProfileProjectsCloudBinding(t *testin
 // The local resolve path must fail-close when the catalog authority is absent
 // rather than minting a profile from the local asset record alone.
 func TestResolveLocalRuntimeMemoryEmbeddingProfileFailsClosedWithoutCatalog(t *testing.T) {
-	snapshot := &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
-		SourceKind: memoryservice.MemoryEmbeddingBindingSourceKindLocal,
+	snapshot := &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind: memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal,
 		LocalBinding: &memoryservice.MemoryEmbeddingLocalBindingRef{
 			ProfileBindingID: "nomic-embed-text-local",
 		},

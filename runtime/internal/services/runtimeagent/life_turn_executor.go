@@ -24,7 +24,7 @@ type lifeTurnRequest struct {
 	Hook     *runtimev1.PendingHook
 	Recall   []*runtimev1.CanonicalMemoryView
 	Autonomy *runtimev1.AgentAutonomyState
-	// ExecutionBinding is the committed execution config text.generate
+	// ExecutionBinding is the committed Runtime Agent AI Config text.generate
 	// binding stamped by RuntimeAgentService when it builds the request
 	// (K-AGCORE-147). A missing binding fails closed.
 	ExecutionBinding publicChatExecutionBinding

@@ -1,7 +1,8 @@
 import {
-  ReasonCode,
+  ReasonCode as RuntimeReasonCode,
   type CanonicalMemoryRejection,
 } from '../core-generated/runtime-typed-client';
+import { ReasonCode } from '../types';
 import {
   projectRuntimeLocalAgentIdentity,
   type RuntimeLocalAgentIdentityInput,
@@ -213,7 +214,7 @@ function projectMemoryAdmission(
 }
 
 function isIdentityConflictRelatedRejection(reasonCode: string, message: string | null): boolean {
-  if (reasonCode !== 'PROTOCOL_DOMAIN_FIELD_CONFLICT') {
+  if (reasonCode !== ReasonCode.PROTOCOL_DOMAIN_FIELD_CONFLICT) {
     return false;
   }
   return /\b(identity|owner|local agent|agent identity|agent_id|local_agent_ref)\b/i.test(message ?? '');
@@ -288,12 +289,12 @@ function firewallState(verdict: unknown): NimiRuntimeAgentIdentitySafetyOutputFi
   }
 }
 
-function reasonCodeLabel(value: ReasonCode | string | number | undefined): string {
+function reasonCodeLabel(value: RuntimeReasonCode | string | number | undefined): string {
   if (typeof value === 'string') {
     return normalizeNimiRuntimeAgentText(value) || 'REASON_CODE_UNSPECIFIED';
   }
   if (typeof value === 'number') {
-    return ReasonCode[value] || 'REASON_CODE_UNSPECIFIED';
+    return RuntimeReasonCode[value] || 'REASON_CODE_UNSPECIFIED';
   }
   return 'REASON_CODE_UNSPECIFIED';
 }

@@ -1,0 +1,295 @@
+package runtimeagent
+
+import (
+	"context"
+	"path/filepath"
+	"testing"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/config"
+	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
+	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+const (
+	runtimeAgentAIConfigTestOwner      = "user-ai-config"
+	runtimeAgentAIConfigTestSource     = "runtime-source-ai-config"
+	runtimeAgentAIConfigTestLocalRef   = "local-agent:test-user-ai-config-runtime-source-ai-config"
+	runtimeAgentAIConfigSecondSource   = "runtime-source-ai-config-second"
+	runtimeAgentAIConfigSecondLocalRef = "local-agent:test-user-ai-config-runtime-source-ai-config-second"
+)
+
+func agentAIConfigTestContext(appID string) *runtimev1.AgentRequestContext {
+	return &runtimev1.AgentRequestContext{
+		AppId:            appID,
+		SubjectUserId:    runtimeAgentAIConfigTestOwner,
+		OwnerUserId:      runtimeAgentAIConfigTestOwner,
+		RuntimeSourceRef: runtimeAgentAIConfigTestSource,
+		LocalAgentRef:    runtimeAgentAIConfigTestLocalRef,
+	}
+}
+
+func agentAIConfigTestContextFor(appID string, sourceRef string, localRef string) *runtimev1.AgentRequestContext {
+	return &runtimev1.AgentRequestContext{
+		AppId:            appID,
+		SubjectUserId:    runtimeAgentAIConfigTestOwner,
+		OwnerUserId:      runtimeAgentAIConfigTestOwner,
+		RuntimeSourceRef: sourceRef,
+		LocalAgentRef:    localRef,
+	}
+}
+
+func newAgentAIConfigTestServiceWithClose(t *testing.T, localStatePath string) (*Service, func()) {
+	t.Helper()
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	var svc *Service
+	closeFn := func() {
+		if svc != nil {
+			svc.Close()
+		}
+		_ = memorySvc.Close()
+	}
+	svc, err = New(nil, localStatePath, memorySvc)
+	if err != nil {
+		closeFn()
+		t.Fatalf("runtimeagent.New: %v", err)
+	}
+	initializeAgentAIConfigTestAgent(t, svc, agentAIConfigTestContext("runtime-agent-ai-config-test"))
+	return svc, closeFn
+}
+
+func newAgentAIConfigTestService(t *testing.T) *Service {
+	t.Helper()
+	svc, closeFn := newAgentAIConfigTestServiceWithClose(t, filepath.Join(t.TempDir(), "local-state.json"))
+	t.Cleanup(closeFn)
+	return svc
+}
+
+func initializeAgentAIConfigTestAgent(t *testing.T, svc *Service, ctx *runtimev1.AgentRequestContext) {
+	t.Helper()
+	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          ctx,
+		LocalAgentRef:    ctx.GetLocalAgentRef(),
+		OwnerUserId:      ctx.GetOwnerUserId(),
+		RuntimeSourceRef: ctx.GetRuntimeSourceRef(),
+		DisplayName:      ctx.GetRuntimeSourceRef(),
+	}); err != nil {
+		t.Fatalf("InitializeAgent(%s): %v", ctx.GetLocalAgentRef(), err)
+	}
+}
+
+func requireAgentAIConfigIntent(t *testing.T, config *runtimev1.RuntimeAgentAIConfig, capability string) *runtimev1.RuntimeAgentAIConfigIntent {
+	t.Helper()
+	for _, intent := range config.GetIntents() {
+		if intent.GetCapability() == capability {
+			return intent
+		}
+	}
+	t.Fatalf("expected %q intent in config %+v", capability, config)
+	return nil
+}
+
+func requiredRuntimeAgentAIConfigTestIntents(extra ...*runtimev1.RuntimeAgentAIConfigIntent) []*runtimev1.RuntimeAgentAIConfigIntent {
+	intents := []*runtimev1.RuntimeAgentAIConfigIntent{
+		{
+			Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
+			ModelId:     "local/default",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+		{
+			Capability:  runtimeAgentAIConfigCapabilityTextEmbed,
+			ModelId:     runtimeAgentAIConfigDefaultEmbeddingModelID,
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+	}
+	return append(intents, extra...)
+}
+
+func TestRuntimeAgentAIConfigSeedOnInitializeAndGet(t *testing.T) {
+	t.Parallel()
+	svc := newAgentAIConfigTestService(t)
+
+	resp, err := svc.GetRuntimeAgentAIConfig(context.Background(), &runtimev1.GetRuntimeAgentAIConfigRequest{
+		Context: agentAIConfigTestContext("nimi.desktop"),
+	})
+	if err != nil {
+		t.Fatalf("GetRuntimeAgentAIConfig: %v", err)
+	}
+	config := resp.GetConfig()
+	if config.GetAgentInstanceId() != runtimeAgentAIConfigTestLocalRef {
+		t.Fatalf("agent_instance_id = %q, want %q", config.GetAgentInstanceId(), runtimeAgentAIConfigTestLocalRef)
+	}
+	if config.GetRevision() != 1 {
+		t.Fatalf("expected seeded revision 1, got %d", config.GetRevision())
+	}
+	if config.GetUpdatedByAppId() != runtimeAgentAIConfigSeedAppID {
+		t.Fatalf("expected seed updated_by_app_id %q, got %q", runtimeAgentAIConfigSeedAppID, config.GetUpdatedByAppId())
+	}
+	if len(config.GetIntents()) != 2 {
+		t.Fatalf("expected text.generate and text.embed seed intents, got %d", len(config.GetIntents()))
+	}
+	text := requireAgentAIConfigIntent(t, config, runtimeAgentAIConfigCapabilityTextGenerate)
+	if text.GetModelId() != texttarget.InternalDefaultLocalTextModelAlias {
+		t.Fatalf("expected seeded text model %q, got %q", texttarget.InternalDefaultLocalTextModelAlias, text.GetModelId())
+	}
+	embed := requireAgentAIConfigIntent(t, config, runtimeAgentAIConfigCapabilityTextEmbed)
+	if embed.GetModelId() != runtimeAgentAIConfigDefaultEmbeddingModelID {
+		t.Fatalf("expected seeded embed model %q, got %q", runtimeAgentAIConfigDefaultEmbeddingModelID, embed.GetModelId())
+	}
+}
+
+func TestRuntimeAgentAIConfigPerAgentIsolation(t *testing.T) {
+	t.Parallel()
+	svc := newAgentAIConfigTestService(t)
+	secondCtx := agentAIConfigTestContextFor("runtime-agent-ai-config-test", runtimeAgentAIConfigSecondSource, runtimeAgentAIConfigSecondLocalRef)
+	initializeAgentAIConfigTestAgent(t, svc, secondCtx)
+
+	resp, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          agentAIConfigTestContext("nimi.desktop"),
+		ExpectedRevision: 1,
+		Intents: requiredRuntimeAgentAIConfigTestIntents(&runtimev1.RuntimeAgentAIConfigIntent{
+			Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
+			ModelId:     "openai/gpt-image-1",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			ConnectorId: "cloud-openai",
+		}),
+	})
+	if err != nil {
+		t.Fatalf("UpsertRuntimeAgentAIConfig(agent A): %v", err)
+	}
+	if resp.GetConfig().GetAgentInstanceId() != runtimeAgentAIConfigTestLocalRef {
+		t.Fatalf("mutated wrong agent config: %q", resp.GetConfig().GetAgentInstanceId())
+	}
+
+	second, err := svc.GetRuntimeAgentAIConfig(context.Background(), &runtimev1.GetRuntimeAgentAIConfigRequest{Context: secondCtx})
+	if err != nil {
+		t.Fatalf("GetRuntimeAgentAIConfig(agent B): %v", err)
+	}
+	if second.GetConfig().GetRevision() != 1 {
+		t.Fatalf("agent B revision changed, got %d", second.GetConfig().GetRevision())
+	}
+	for _, intent := range second.GetConfig().GetIntents() {
+		if intent.GetCapability() == runtimeAgentAIConfigCapabilityImageGenerate {
+			t.Fatalf("agent B observed agent A image intent")
+		}
+	}
+}
+
+func TestRuntimeAgentAIConfigUpsertRequiresTextGenerateAndTextEmbed(t *testing.T) {
+	t.Parallel()
+	svc := newAgentAIConfigTestService(t)
+
+	_, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          agentAIConfigTestContext("nimi.desktop"),
+		ExpectedRevision: 1,
+		Intents: []*runtimev1.RuntimeAgentAIConfigIntent{
+			{
+				Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
+				ModelId:     "local/qwen3-chat",
+				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			},
+		},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument when text.embed is removed, got %v", err)
+	}
+}
+
+func TestRuntimeAgentAIConfigUpsertBumpsRevision(t *testing.T) {
+	t.Parallel()
+	svc := newAgentAIConfigTestService(t)
+
+	resp, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          agentAIConfigTestContext("nimi.desktop"),
+		ExpectedRevision: 1,
+		Intents: requiredRuntimeAgentAIConfigTestIntents(&runtimev1.RuntimeAgentAIConfigIntent{
+			Capability:  runtimeAgentAIConfigCapabilityAudioSynthesize,
+			ModelId:     "speech/qwen3tts",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		}),
+	})
+	if err != nil {
+		t.Fatalf("UpsertRuntimeAgentAIConfig: %v", err)
+	}
+	if resp.GetConfig().GetRevision() != 2 {
+		t.Fatalf("expected revision 2 after mutation, got %d", resp.GetConfig().GetRevision())
+	}
+	if resp.GetConfig().GetUpdatedByAppId() != "nimi.desktop" {
+		t.Fatalf("expected updated_by_app_id nimi.desktop, got %q", resp.GetConfig().GetUpdatedByAppId())
+	}
+}
+
+func TestRuntimeAgentAIConfigUpsertStaleRevisionAborted(t *testing.T) {
+	t.Parallel()
+	svc := newAgentAIConfigTestService(t)
+
+	_, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          agentAIConfigTestContext("nimi.desktop"),
+		ExpectedRevision: 7,
+		Intents:          requiredRuntimeAgentAIConfigTestIntents(),
+	})
+	if status.Code(err) != codes.Aborted {
+		t.Fatalf("expected Aborted for stale expected_revision, got %v", err)
+	}
+}
+
+func TestRuntimeAgentAIConfigSurvivesRestartWithoutReseed(t *testing.T) {
+	t.Parallel()
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+
+	svc, closeFirst := newAgentAIConfigTestServiceWithClose(t, localStatePath)
+	_, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          agentAIConfigTestContext("nimi.desktop"),
+		ExpectedRevision: 1,
+		Intents: requiredRuntimeAgentAIConfigTestIntents(&runtimev1.RuntimeAgentAIConfigIntent{
+			Capability:  runtimeAgentAIConfigCapabilityImageGenerate,
+			ModelId:     "openai/gpt-image-1",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			ConnectorId: "cloud-openai",
+		}),
+	})
+	if err != nil {
+		closeFirst()
+		t.Fatalf("UpsertRuntimeAgentAIConfig: %v", err)
+	}
+	closeFirst()
+
+	restarted, closeRestarted := newAgentAIConfigTestServiceWithClose(t, localStatePath)
+	defer closeRestarted()
+	resp, err := restarted.GetRuntimeAgentAIConfig(context.Background(), &runtimev1.GetRuntimeAgentAIConfigRequest{
+		Context: agentAIConfigTestContext("nimi.desktop"),
+	})
+	if err != nil {
+		t.Fatalf("GetRuntimeAgentAIConfig after restart: %v", err)
+	}
+	if resp.GetConfig().GetRevision() != 2 {
+		t.Fatalf("expected committed revision 2 to survive restart, got %d", resp.GetConfig().GetRevision())
+	}
+	image := requireAgentAIConfigIntent(t, resp.GetConfig(), runtimeAgentAIConfigCapabilityImageGenerate)
+	if image.GetConnectorId() != "cloud-openai" {
+		t.Fatalf("expected committed image connector to survive restart, got %q", image.GetConnectorId())
+	}
+}
+
+func TestRuntimeAgentAIConfigMissingRowAfterSeedFailsClosed(t *testing.T) {
+	t.Parallel()
+	svc := newAgentAIConfigTestService(t)
+
+	if _, err := svc.backend.DB().Exec(`DELETE FROM runtime_agent_ai_config WHERE agent_instance_id = ?`, runtimeAgentAIConfigTestLocalRef); err != nil {
+		t.Fatalf("delete runtime agent ai config row: %v", err)
+	}
+	_, err := svc.GetRuntimeAgentAIConfig(context.Background(), &runtimev1.GetRuntimeAgentAIConfigRequest{
+		Context: agentAIConfigTestContext("nimi.desktop"),
+	})
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected Internal for missing committed row after seed, got %v", err)
+	}
+}

@@ -39,6 +39,9 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 		if err := validateAgentRecordIdentity(agent, identity); err != nil {
 			return nil, err
 		}
+		if _, err := r.svc.ensureRuntimeAgentAIConfigForIdentity(identity); err != nil {
+			return nil, err
+		}
 		return &runtimev1.InitializeAgentResponse{Agent: agent}, nil
 	}
 	r.svc.mu.RUnlock()
@@ -112,6 +115,9 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 		}))
 	}
 	if err := r.svc.insertAgent(entry, events...); err != nil {
+		return nil, err
+	}
+	if _, err := r.svc.ensureRuntimeAgentAIConfigForIdentity(identity); err != nil {
 		return nil, err
 	}
 	return &runtimev1.InitializeAgentResponse{

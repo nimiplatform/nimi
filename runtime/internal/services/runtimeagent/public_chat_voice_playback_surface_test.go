@@ -248,7 +248,7 @@ func TestPublicChatNativeVoiceStreamSubscribeAllowsBoundAvatarPlaybackSurface(t 
 func TestPublicChatManualVoiceRenderEmitsDesktopManualProjectionWithoutAvatarAutoplay(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	upsertPublicChatTestExecutionConfig(t, svc, publicChatTestAudioSynthesizeBinding())
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	metadata := publicChatVoicePolicyMetadata(t, false)
 	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, "agent-alpha", "desktop.app", "user-1", metadata)
 	capture := newPublicChatEmitCapture()
@@ -395,7 +395,7 @@ func TestPublicChatManualVoiceRenderEmitsDesktopManualProjectionWithoutAvatarAut
 func TestPublicChatManualVoiceRenderSupportsHistoricalTurnAndRerendersAfterCleanup(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	upsertPublicChatTestExecutionConfig(t, svc, publicChatTestAudioSynthesizeBinding())
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	metadata := publicChatVoicePolicyMetadata(t, false)
 	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, "agent-alpha", "desktop.app", "user-1", metadata)
 	capture := newPublicChatEmitCapture()
@@ -547,7 +547,7 @@ func TestPublicChatCommittedTurnSkipsLipsyncProjectionOnEmptyText(t *testing.T) 
 func TestPublicChatCommittedTurnSkipsLipsyncProjectionWithoutArtifactStore(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
-	upsertPublicChatTestExecutionConfig(t, svc, publicChatTestAudioSynthesizeBinding())
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	metadata := publicChatVoicePolicyMetadata(t, true)
 	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, "agent-alpha", "desktop.app", "user-1", metadata)
 	svc.SetVoiceLipsyncScenarioExecutor(&fakeVoiceLipsyncScenarioExecutor{

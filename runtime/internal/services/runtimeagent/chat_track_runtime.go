@@ -63,7 +63,7 @@ func (c chatTrackRuntime) runSidecarExecution(ctx context.Context, req ChatTrack
 	}
 	// K-AGCORE-147: the sidecar executor consumes the committed execution
 	// config text.generate binding; missing config fails closed.
-	executionBinding, _, err := c.svc.committedTextGenerateExecutionBinding()
+	executionBinding, _, err := c.svc.committedTextGenerateExecutionBinding(entry.Agent.GetLocalAgentRef())
 	if err != nil {
 		return nil, err
 	}

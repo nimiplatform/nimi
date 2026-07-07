@@ -283,16 +283,17 @@ func (s *Service) inspectMemoryEmbeddingRuntimePrivate(ctx context.Context, req 
 		return nil, err
 	}
 	return &runtimev1.InspectMemoryEmbeddingRuntimeResponse{
-		BindingIntentPresent: state.BindingIntentPresent,
-		BindingSourceKind:    strings.TrimSpace(string(state.BindingSourceKind)),
-		ResolutionState:      strings.TrimSpace(state.ResolutionState),
-		ResolvedProfile:      cloneMemoryEmbeddingProfile(state.ResolvedProfileIdentity),
-		CanonicalBankStatus:  strings.TrimSpace(state.CanonicalBankStatus),
-		BlockedReasonCode:    state.BlockedReasonCode,
+		TextEmbedIntentPresent: state.TextEmbedIntentPresent,
+		TextEmbedSourceKind:    strings.TrimSpace(string(state.TextEmbedSourceKind)),
+		ResolutionState:        strings.TrimSpace(state.ResolutionState),
+		ResolvedProfile:        cloneMemoryEmbeddingProfile(state.ResolvedProfileIdentity),
+		CanonicalBankStatus:    strings.TrimSpace(state.CanonicalBankStatus),
+		BlockedReasonCode:      state.BlockedReasonCode,
 		OperationReadiness: &runtimev1.MemoryEmbeddingOperationReadiness{
 			BindAllowed:    state.OperationReadiness.BindAllowed,
 			CutoverAllowed: state.OperationReadiness.CutoverAllowed,
 		},
+		ConfigRevision: state.ConfigRevision,
 	}, nil
 }
 
@@ -333,101 +334,6 @@ func (s *Service) requestMemoryEmbeddingRuntimeCutoverPrivate(ctx context.Contex
 		BlockedReasonCode:        result.BlockedReasonCode,
 		CanonicalBankStatusAfter: strings.TrimSpace(result.CanonicalBankStatusAfter),
 	}, nil
-}
-
-func (s *Service) GetMemoryEmbeddingRuntimeIntent(ctx context.Context, req *runtimev1.GetMemoryEmbeddingRuntimeIntentRequest) (*runtimev1.GetMemoryEmbeddingRuntimeIntentResponse, error) {
-	return nil, status.Error(codes.PermissionDenied, "runtime memory embedding lifecycle is runtime-private")
-}
-
-func (s *Service) getMemoryEmbeddingRuntimeIntentPrivate(ctx context.Context, req *runtimev1.GetMemoryEmbeddingRuntimeIntentRequest) (*runtimev1.GetMemoryEmbeddingRuntimeIntentResponse, error) {
-	result, err := s.memorySvc.GetMemoryEmbeddingBindingIntent(ctx, memoryservice.GetMemoryEmbeddingBindingIntentRequest{
-		Context: req.GetContext(),
-		Locator: cloneMemoryLocator(req.GetLocator()),
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &runtimev1.GetMemoryEmbeddingRuntimeIntentResponse{
-		BindingIntentPresent: result.BindingIntentPresent,
-		BindingIntent:        memoryEmbeddingIntentSnapshotToProto(result.BindingIntent),
-	}, nil
-}
-
-func (s *Service) SetMemoryEmbeddingRuntimeIntent(ctx context.Context, req *runtimev1.SetMemoryEmbeddingRuntimeIntentRequest) (*runtimev1.SetMemoryEmbeddingRuntimeIntentResponse, error) {
-	return nil, status.Error(codes.PermissionDenied, "runtime memory embedding lifecycle is runtime-private")
-}
-
-func (s *Service) setMemoryEmbeddingRuntimeIntentPrivate(ctx context.Context, req *runtimev1.SetMemoryEmbeddingRuntimeIntentRequest) (*runtimev1.SetMemoryEmbeddingRuntimeIntentResponse, error) {
-	result, err := s.memorySvc.SetMemoryEmbeddingBindingIntent(ctx, memoryservice.SetMemoryEmbeddingBindingIntentRequest{
-		Context:       req.GetContext(),
-		Locator:       cloneMemoryLocator(req.GetLocator()),
-		BindingIntent: memoryEmbeddingIntentSnapshotFromProto(req.GetBindingIntent()),
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &runtimev1.SetMemoryEmbeddingRuntimeIntentResponse{
-		Accepted:      result.Accepted,
-		BindingIntent: memoryEmbeddingIntentSnapshotToProto(result.BindingIntent),
-	}, nil
-}
-
-func memoryEmbeddingIntentSnapshotFromProto(input *runtimev1.MemoryEmbeddingBindingIntentSnapshot) *memoryservice.MemoryEmbeddingBindingIntentSnapshot {
-	if input == nil {
-		return nil
-	}
-	return &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
-		SourceKind: memoryservice.MemoryEmbeddingBindingSourceKind(strings.TrimSpace(input.GetSourceKind())),
-		CloudBinding: func() *memoryservice.MemoryEmbeddingCloudBindingRef {
-			if input.GetCloudBinding() == nil {
-				return nil
-			}
-			return &memoryservice.MemoryEmbeddingCloudBindingRef{
-				ConnectorID:          strings.TrimSpace(input.GetCloudBinding().GetConnectorId()),
-				RemoteModelCatalogID: strings.TrimSpace(input.GetCloudBinding().GetRemoteModelCatalogId()),
-				ProviderModelID:      strings.TrimSpace(input.GetCloudBinding().GetProviderModelId()),
-				Provider:             strings.TrimSpace(input.GetCloudBinding().GetProvider()),
-			}
-		}(),
-		LocalBinding: func() *memoryservice.MemoryEmbeddingLocalBindingRef {
-			if input.GetLocalBinding() == nil {
-				return nil
-			}
-			return &memoryservice.MemoryEmbeddingLocalBindingRef{
-				ProfileBindingID: strings.TrimSpace(input.GetLocalBinding().GetProfileBindingId()),
-				ReadinessRef:     strings.TrimSpace(input.GetLocalBinding().GetReadinessRef()),
-			}
-		}(),
-		RevisionToken: strings.TrimSpace(input.GetRevisionToken()),
-	}
-}
-
-func memoryEmbeddingIntentSnapshotToProto(input *memoryservice.MemoryEmbeddingBindingIntentSnapshot) *runtimev1.MemoryEmbeddingBindingIntentSnapshot {
-	if input == nil {
-		return nil
-	}
-	out := &runtimev1.MemoryEmbeddingBindingIntentSnapshot{
-		SourceKind:    strings.TrimSpace(string(input.SourceKind)),
-		RevisionToken: strings.TrimSpace(input.RevisionToken),
-	}
-	if input.CloudBinding != nil {
-		out.CloudBinding = &runtimev1.MemoryEmbeddingCloudBindingRef{
-			ConnectorId:          strings.TrimSpace(input.CloudBinding.ConnectorID),
-			RemoteModelCatalogId: strings.TrimSpace(input.CloudBinding.RemoteModelCatalogID),
-			ProviderModelId:      strings.TrimSpace(input.CloudBinding.ProviderModelID),
-			Provider:             strings.TrimSpace(input.CloudBinding.Provider),
-		}
-	}
-	if input.LocalBinding != nil {
-		localBinding := &runtimev1.MemoryEmbeddingLocalBindingRef{}
-		if profileBindingID := strings.TrimSpace(input.LocalBinding.ProfileBindingID); profileBindingID != "" {
-			localBinding.Ref = &runtimev1.MemoryEmbeddingLocalBindingRef_ProfileBindingId{ProfileBindingId: profileBindingID}
-		} else if readinessRef := strings.TrimSpace(input.LocalBinding.ReadinessRef); readinessRef != "" {
-			localBinding.Ref = &runtimev1.MemoryEmbeddingLocalBindingRef_ReadinessRef{ReadinessRef: readinessRef}
-		}
-		out.LocalBinding = localBinding
-	}
-	return out
 }
 
 func cloneMemoryEmbeddingProfile(value *runtimev1.MemoryEmbeddingProfile) *runtimev1.MemoryEmbeddingProfile {

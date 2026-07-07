@@ -54,9 +54,9 @@ import {
 } from './runtime-agent-live-e2e-fixture-shared.test-helper';
 
 // Fixture turns never carry execution bindings: the runtime resolves each
-// turn against the committed agent execution config (K-AGCORE-147). Flows
+// turn against the committed agent AI Config (K-AGCORE-147). Flows
 // that need a non-default model must first commit it through
-// agentClient.executionConfig.upsert.
+// agentClient.agentAIConfig.upsert.
 export async function sendFixtureTurn(input: {
   readonly agentClient: ReturnType<typeof createNimiRuntimeAgentClient>;
   readonly localAgent: NimiRuntimeAgentInitializedLocalAgent;

@@ -47,11 +47,11 @@ func (r publicChatRuntime) queryPublicChatPreTurnMemory(
 	}
 	return r.svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
 		Context: &runtimev1.AgentRequestContext{
-			AppId:         strings.TrimSpace(session.CallerAppID),
-			SubjectUserId: strings.TrimSpace(session.SubjectUserID),
-			OwnerUserId:   strings.TrimSpace(session.OwnerUserID),
-			RuntimeSourceRef:  strings.TrimSpace(session.RuntimeSourceRef),
-			LocalAgentRef: strings.TrimSpace(session.LocalAgentRef),
+			AppId:            strings.TrimSpace(session.CallerAppID),
+			SubjectUserId:    strings.TrimSpace(session.SubjectUserID),
+			OwnerUserId:      strings.TrimSpace(session.OwnerUserID),
+			RuntimeSourceRef: strings.TrimSpace(session.RuntimeSourceRef),
+			LocalAgentRef:    strings.TrimSpace(session.LocalAgentRef),
 		},
 		AgentId:          strings.TrimSpace(session.AgentID),
 		Query:            publicChatPreTurnMemoryQuery(req.Messages),

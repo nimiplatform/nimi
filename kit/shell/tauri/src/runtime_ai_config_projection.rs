@@ -116,12 +116,8 @@ pub fn project_first_run_execution_evidence_to_ai_config_bindings(
                 "version": "v2",
                 "readinessRef": execution_evidence_ref,
                 "runtime": {
-                    "runtimeBaselineRef": runtime_baseline_ref,
                     "runtimeConsumerId": bound_consumer_id,
-                    "boundAssetId": bound_asset_id,
-                    "runtimeLocalRouteTarget": local_route_target,
                     "modelResolved": model_resolved,
-                    "runtimeExecutionTraceId": trace_id,
                 },
             }),
         });
@@ -221,24 +217,21 @@ mod tests {
         assert_eq!(text.binding["version"], "v2");
         assert_eq!(text.binding["readinessRef"], "execution_evidence_test");
         assert_eq!(
-            text.binding["runtime"]["runtimeBaselineRef"],
-            "runtime-baseline:test"
-        );
-        assert_eq!(
             text.binding["runtime"]["runtimeConsumerId"],
             "llama.cpp.cpu"
         );
-        assert_eq!(text.binding["runtime"]["boundAssetId"], "asset:text");
-        assert_eq!(
-            text.binding["runtime"]["runtimeLocalRouteTarget"],
-            "route:llama.cpp.cpu"
-        );
         assert_eq!(text.binding["runtime"]["modelResolved"], "asset:text");
-        assert_eq!(
-            text.binding["runtime"]["runtimeExecutionTraceId"],
-            "trace:llama.cpp.cpu"
-        );
-        assert!(text.binding.get("boundAssetId").is_none());
+        for forbidden in [
+            "runtimeBaselineRef",
+            "boundAssetId",
+            "runtimeLocalRouteTarget",
+            "runtimeExecutionTraceId",
+        ] {
+            assert!(
+                text.binding["runtime"].get(forbidden).is_none(),
+                "{forbidden}"
+            );
+        }
     }
 
     #[test]

@@ -32,7 +32,6 @@ import {
   HookTriggerFamily,
   MemoryCanonicalClass,
   MemoryRecordKind,
-  RoutePolicy,
   RuntimeHealthStatus,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
@@ -62,8 +61,6 @@ test('Runtime Agent projection reads presentation metadata and state snapshots',
       interactionPolicyRef: 'policy://default',
       defaultVoiceReference: 'preset_voice_id:nimi-default',
       avatarAutoplay: true,
-      speechModelId: 'speech/qwen3-tts-realtime',
-      speechRoutePolicy: 'cloud',
     },
   });
 
@@ -134,8 +131,6 @@ test('Runtime Agent projection reads presentation metadata and state snapshots',
     interactionPolicyRef: 'policy://default',
     defaultVoiceReference: 'preset_voice_id:nimi-default',
     avatarAutoplay: true,
-    speechModelId: 'speech/qwen3-tts-realtime',
-    speechRoutePolicy: 'cloud',
   });
   assert.equal(snapshot.lifecycleStatus, 'active');
   assert.equal(snapshot.executionState, 'chat-active');
@@ -280,8 +275,6 @@ test('Runtime Agent builders produce generated Runtime requests without old alia
       avatarAssetRef: 'avatar://agent/live2d',
       defaultVoiceReference: 'voice_asset_id:voice-1',
       avatarAutoplay: true,
-      speechModelId: 'speech/qwen3-tts-realtime',
-      speechRoutePolicy: 'cloud',
     },
   });
   const mutations = buildNimiRuntimeAgentStateMutations({
@@ -296,8 +289,6 @@ test('Runtime Agent builders produce generated Runtime requests without old alia
   assert.equal(request.mutation.profile.backendKind, AgentPresentationBackendKind.LIVE2D);
   assert.equal(request.mutation.profile.defaultVoiceReference, 'voice_asset_id:voice-1');
   assert.equal(request.mutation.profile.avatarAutoplay, true);
-  assert.equal(request.mutation.profile.speechModelId, 'speech/qwen3-tts-realtime');
-  assert.equal(request.mutation.profile.speechRoutePolicy, RoutePolicy.CLOUD);
   assert.deepEqual(mutations.map((mutation) => mutation.mutation.oneofKind), [
     'setStatusText',
     'setWorldContext',

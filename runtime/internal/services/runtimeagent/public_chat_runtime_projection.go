@@ -367,7 +367,7 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(session publicChatAn
 	if err != nil || voiceRef == "" {
 		return agentVoiceOutputPolicy{}, false
 	}
-	audioBinding, ok, err := r.svc.committedOptionalExecutionBinding(executionCapabilityAudioSynthesize)
+	audioBinding, ok, err := r.svc.committedOptionalExecutionBinding(session.LocalAgentRef, runtimeAgentAIConfigCapabilityAudioSynthesize)
 	if err != nil || !ok {
 		return agentVoiceOutputPolicy{}, false
 	}
@@ -375,12 +375,6 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(session publicChatAn
 	routePolicy := audioBinding.RoutePolicy
 	if modelID == "" || routePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED ||
 		audioBinding.TargetRef == nil || audioBinding.TargetRef.GetTarget() == nil {
-		return agentVoiceOutputPolicy{}, false
-	}
-	if profileModelID := strings.TrimSpace(profileString(profile, "speechModelId", "speech_model_id")); profileModelID != "" && profileModelID != modelID {
-		return agentVoiceOutputPolicy{}, false
-	}
-	if profileRoutePolicy := speechRoutePolicyFromProfile(profile); profileRoutePolicy != runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED && profileRoutePolicy != routePolicy {
 		return agentVoiceOutputPolicy{}, false
 	}
 	return agentVoiceOutputPolicy{
@@ -411,17 +405,6 @@ func (r publicChatRuntime) defaultVoiceReferenceForSession(session publicChatAnc
 		return ""
 	}
 	return normalized
-}
-
-func speechRoutePolicyFromProfile(profile map[string]*structpb.Value) runtimev1.RoutePolicy {
-	switch strings.ToLower(strings.TrimSpace(profileString(profile, "speechRoutePolicy", "speech_route_policy"))) {
-	case "local":
-		return runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	case "cloud":
-		return runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD
-	default:
-		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED
-	}
 }
 
 func (r publicChatRuntime) profileContextForSession(session publicChatAnchorState) map[string]*structpb.Value {

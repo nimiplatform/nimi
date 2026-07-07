@@ -93,7 +93,7 @@ func (e *aiBackedPublicChatActionExecutor) ExecuteImageAction(ctx context.Contex
 	}
 	binding, ok := req.Session.Bindings["image.generate"]
 	if !ok || strings.TrimSpace(binding.ModelID) == "" || binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		return PublicChatActionExecutionResult{}, fmt.Errorf("runtime public chat image action %s has no committed image.generate execution config binding", actionID)
+		return PublicChatActionExecutionResult{}, fmt.Errorf("runtime public chat image action %s has no committed image.generate Runtime Agent AI Config binding", actionID)
 	}
 	params := req.Session.ExecutionParams["image.generate"]
 	waitTimeout := e.waitTimeout

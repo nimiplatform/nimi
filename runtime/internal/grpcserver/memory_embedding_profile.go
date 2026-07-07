@@ -16,22 +16,22 @@ import (
 
 func resolveRuntimeMemoryEmbeddingProfile(
 	ctx context.Context,
-	snapshot *memoryservice.MemoryEmbeddingBindingIntentSnapshot,
+	snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot,
 	localSvc *localservice.Service,
 	connStore *connectorservice.ConnectorStore,
 	modelCatalog *catalog.Resolver,
 ) memoryservice.MemoryEmbeddingResolvedProfile {
-	normalized := normalizeMemoryEmbeddingBindingIntentSnapshot(snapshot)
-	if !memoryEmbeddingBindingIntentPresent(normalized) {
+	normalized := normalizeMemoryEmbeddingTextEmbedIntentSnapshot(snapshot)
+	if !memoryEmbeddingTextEmbedIntentPresent(normalized) {
 		return memoryservice.MemoryEmbeddingResolvedProfile{
 			ResolutionState:   "missing",
 			BlockedReasonCode: runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED,
 		}
 	}
 	switch normalized.SourceKind {
-	case memoryservice.MemoryEmbeddingBindingSourceKindLocal:
+	case memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal:
 		return resolveLocalRuntimeMemoryEmbeddingProfile(ctx, normalized, localSvc, modelCatalog)
-	case memoryservice.MemoryEmbeddingBindingSourceKindCloud:
+	case memoryservice.MemoryEmbeddingTextEmbedSourceKindCloud:
 		return resolveCloudRuntimeMemoryEmbeddingProfile(ctx, normalized, connStore, modelCatalog)
 	default:
 		return memoryservice.MemoryEmbeddingResolvedProfile{
@@ -41,12 +41,12 @@ func resolveRuntimeMemoryEmbeddingProfile(
 	}
 }
 
-func normalizeMemoryEmbeddingBindingIntentSnapshot(input *memoryservice.MemoryEmbeddingBindingIntentSnapshot) *memoryservice.MemoryEmbeddingBindingIntentSnapshot {
+func normalizeMemoryEmbeddingTextEmbedIntentSnapshot(input *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot) *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot {
 	if input == nil {
 		return nil
 	}
-	out := &memoryservice.MemoryEmbeddingBindingIntentSnapshot{
-		SourceKind:    memoryservice.MemoryEmbeddingBindingSourceKind(strings.ToLower(strings.TrimSpace(string(input.SourceKind)))),
+	out := &memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind:    memoryservice.MemoryEmbeddingTextEmbedSourceKind(strings.ToLower(strings.TrimSpace(string(input.SourceKind)))),
 		RevisionToken: strings.TrimSpace(input.RevisionToken),
 	}
 	if input.CloudBinding != nil {
@@ -72,14 +72,14 @@ func normalizeMemoryEmbeddingBindingIntentSnapshot(input *memoryservice.MemoryEm
 	return out
 }
 
-func memoryEmbeddingBindingIntentPresent(snapshot *memoryservice.MemoryEmbeddingBindingIntentSnapshot) bool {
+func memoryEmbeddingTextEmbedIntentPresent(snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot) bool {
 	if snapshot == nil {
 		return false
 	}
 	switch snapshot.SourceKind {
-	case memoryservice.MemoryEmbeddingBindingSourceKindCloud:
+	case memoryservice.MemoryEmbeddingTextEmbedSourceKindCloud:
 		return snapshot.CloudBinding != nil
-	case memoryservice.MemoryEmbeddingBindingSourceKindLocal:
+	case memoryservice.MemoryEmbeddingTextEmbedSourceKindLocal:
 		return snapshot.LocalBinding != nil
 	default:
 		return false
@@ -88,7 +88,7 @@ func memoryEmbeddingBindingIntentPresent(snapshot *memoryservice.MemoryEmbedding
 
 func resolveLocalRuntimeMemoryEmbeddingProfile(
 	ctx context.Context,
-	snapshot *memoryservice.MemoryEmbeddingBindingIntentSnapshot,
+	snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot,
 	localSvc *localservice.Service,
 	modelCatalog *catalog.Resolver,
 ) memoryservice.MemoryEmbeddingResolvedProfile {
@@ -179,7 +179,7 @@ func resolveLocalRuntimeMemoryEmbeddingProfile(
 
 func resolveCloudRuntimeMemoryEmbeddingProfile(
 	ctx context.Context,
-	snapshot *memoryservice.MemoryEmbeddingBindingIntentSnapshot,
+	snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot,
 	connStore *connectorservice.ConnectorStore,
 	modelCatalog *catalog.Resolver,
 ) memoryservice.MemoryEmbeddingResolvedProfile {

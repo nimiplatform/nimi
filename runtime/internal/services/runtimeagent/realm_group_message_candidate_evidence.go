@@ -77,20 +77,20 @@ func (s *Service) appendRealmGroupMessageCandidateAudit(record *realmGroupMessag
 		return status.Error(codes.FailedPrecondition, "runtime audit store is required for realm group message candidate evidence")
 	}
 	payload, err := structpb.NewStruct(map[string]any{
-		"candidate_id":              record.CandidateID,
-		"candidate_kind":            record.CandidateKind,
-		"candidate_evidence_ref":    record.CandidateEvidenceRef,
-		"evidence_hash":             record.EvidenceHash,
-		"realm_group_thread_id":     record.RealmGroupThreadID,
+		"candidate_id":             record.CandidateID,
+		"candidate_kind":           record.CandidateKind,
+		"candidate_evidence_ref":   record.CandidateEvidenceRef,
+		"evidence_hash":            record.EvidenceHash,
+		"realm_group_thread_id":    record.RealmGroupThreadID,
 		"runtime_participant_slot": record.RuntimeParticipantSlot,
-		"runtime_source_ref":            record.RuntimeSourceRef,
-		"local_agent_ref":           record.LocalAgentRef,
-		"trigger_ref":               record.TriggerRef,
-		"policy_verdict_ref":        record.PolicyVerdictRef,
-		"memory_read_verdict":       record.MemoryReadVerdict,
-		"memory_write_verdict":      record.MemoryWriteVerdict,
-		"capability_scope_verdict":  record.CapabilityScopeVerdict,
-		"commit_disposition":        record.CommitDisposition,
+		"runtime_source_ref":       record.RuntimeSourceRef,
+		"local_agent_ref":          record.LocalAgentRef,
+		"trigger_ref":              record.TriggerRef,
+		"policy_verdict_ref":       record.PolicyVerdictRef,
+		"memory_read_verdict":      record.MemoryReadVerdict,
+		"memory_write_verdict":     record.MemoryWriteVerdict,
+		"capability_scope_verdict": record.CapabilityScopeVerdict,
+		"commit_disposition":       record.CommitDisposition,
 	})
 	if err != nil {
 		return status.Errorf(codes.Internal, "marshal realm group message candidate audit payload: %v", err)

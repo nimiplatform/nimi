@@ -84,7 +84,7 @@ func (s *Service) launchPublicChatFollowUp(followUpID string) {
 	req := publicChatTurnRequestPayload{
 		LocalAgentRef:        session.LocalAgentRef,
 		OwnerUserID:          session.OwnerUserID,
-		RuntimeSourceRef:         session.RuntimeSourceRef,
+		RuntimeSourceRef:     session.RuntimeSourceRef,
 		ConversationAnchorID: session.ConversationAnchorID,
 		ThreadID:             session.ThreadID,
 		SystemPrompt:         buildPublicChatFollowUpSystemPrompt(session.SystemPrompt, followUp.Instruction, followUp.FollowUpDepth, followUp.MaxFollowUpTurns),

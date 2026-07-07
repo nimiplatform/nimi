@@ -79,7 +79,7 @@ func (r publicChatRuntime) executeCommittedActions(
 }
 
 // K-AGCORE-148 typed action_failed reason codes
-// (tables/agent-execution-config.yaml action_failed_reason_codes).
+// (tables/runtime-agent-ai-config.yaml action_failed_reason_codes).
 const (
 	publicChatActionFailedReasonImageBindingMissing  = "image_binding_missing"
 	publicChatActionFailedReasonImageRouteUnhealthy  = "image_route_unhealthy"
@@ -98,7 +98,7 @@ func validateImageActionExecutionBinding(session publicChatAnchorState, turn pub
 	binding, ok := session.Bindings["image.generate"]
 	if !ok || strings.TrimSpace(binding.ModelID) == "" || binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
 		return publicChatActionFailedReasonImageBindingMissing,
-			fmt.Errorf("runtime public chat image action %s has no committed image.generate execution config binding", actionID)
+			fmt.Errorf("runtime public chat image action %s has no committed image.generate Runtime Agent AI Config binding", actionID)
 	}
 	if turn.AvailableActions.ImageGenerate == publicChatImageActionUnavailable {
 		return publicChatActionFailedReasonImageRouteUnhealthy,
@@ -139,7 +139,7 @@ func (r publicChatRuntime) emitTurnActionFailed(
 		"operation":             action.Operation,
 		"projection_message_id": projectionMessageID,
 		// `reason` carries the K-AGCORE-148 typed action failure vocabulary
-		// from tables/agent-execution-config.yaml; `reason_code` remains the
+		// from tables/runtime-agent-ai-config.yaml; `reason_code` remains the
 		// generic runtime ReasonCode label.
 		"reason":      reason,
 		"reason_code": publicChatReasonCodeLabel(reasonCodeFromError(err)),

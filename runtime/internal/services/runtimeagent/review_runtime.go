@@ -66,8 +66,8 @@ func (r reviewRuntime) execute(ctx context.Context, req CanonicalReviewRequest) 
 		}, nil
 	}
 	// K-AGCORE-147: the canonical review executor consumes the committed
-	// execution config text.generate binding; missing config fails closed.
-	executionBinding, _, err := r.svc.committedTextGenerateExecutionBinding()
+	// Runtime Agent AI Config text.generate binding; missing config fails closed.
+	executionBinding, _, err := r.svc.committedTextGenerateExecutionBinding(entry.Agent.GetLocalAgentRef())
 	if err != nil {
 		return nil, err
 	}

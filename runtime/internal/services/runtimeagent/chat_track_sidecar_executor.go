@@ -31,7 +31,7 @@ type ChatTrackSidecarExecutorRequest struct {
 	SourceEventID string
 	Messages      []*runtimev1.ChatMessage
 	PendingHooks  []*runtimev1.PendingHook
-	// ExecutionBinding is the committed execution config text.generate
+	// ExecutionBinding is the committed Runtime Agent AI Config text.generate
 	// binding stamped by RuntimeAgentService (K-AGCORE-147).
 	ExecutionBinding publicChatExecutionBinding
 }

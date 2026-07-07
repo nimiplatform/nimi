@@ -13,6 +13,8 @@ mod helpers;
 #[cfg(test)]
 mod tests;
 use cli::{probe_runtime_version, run_runtime_cli_json};
+#[cfg(test)]
+use daemon_command::prepare_runtime_dev_binary_output;
 use daemon_command::{
     runtime_bridge_availability_error, runtime_bridge_mode_for_status, runtime_bridge_mode_label,
     runtime_cli_command_spec,

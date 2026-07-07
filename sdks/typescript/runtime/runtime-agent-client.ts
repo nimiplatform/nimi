@@ -1,14 +1,14 @@
 import type {
   AgentEvent,
-  AgentExecutionReadinessSnapshot,
+  RuntimeAgentAIConfigReadinessSnapshot,
   AppMessageEvent,
   ConversationAnchorSnapshot,
   GetAgentCanonicalMemoryBankStatusRequest,
   GetAgentCanonicalMemoryBankStatusResponse,
-  GetAgentExecutionConfigRequest,
-  GetAgentExecutionConfigResponse,
-  GetAgentExecutionReadinessRequest,
-  GetAgentExecutionReadinessResponse,
+  GetRuntimeAgentAIConfigRequest,
+  GetRuntimeAgentAIConfigResponse,
+  GetRuntimeAgentAIConfigReadinessRequest,
+  GetRuntimeAgentAIConfigReadinessResponse,
   GetAgentRequest,
   GetAgentResponse,
   GetPublicChatSessionSnapshotRequest,
@@ -27,12 +27,12 @@ import type {
   SendAppMessageRequest,
   SendAppMessageResponse,
   SubscribeAgentEventsRequest,
-  SubscribeAgentExecutionReadinessRequest,
+  SubscribeRuntimeAgentAIConfigReadinessRequest,
   SubscribeAppMessagesRequest,
   TerminateAgentRequest,
   TerminateAgentResponse,
-  UpsertAgentExecutionConfigRequest,
-  UpsertAgentExecutionConfigResponse,
+  UpsertRuntimeAgentAIConfigRequest,
+  UpsertRuntimeAgentAIConfigResponse,
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
 } from '../core-generated/runtime-typed-client';
@@ -59,9 +59,9 @@ import {
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
 import {
-  createNimiRuntimeAgentExecutionConfigModule,
-  type NimiRuntimeAgentExecutionConfigModule,
-} from './runtime-agent-execution-config';
+  createNimiRuntimeAgentAIConfigModule,
+  type NimiRuntimeAgentAIConfigModule,
+} from './runtime-agent-ai-config';
 import {
   createNimiRuntimeAgentTurnsModule,
 } from './runtime-agent-turns';
@@ -114,25 +114,25 @@ export interface NimiRuntimeAgentClientAgentModule {
     request: RequestAgentCanonicalMemoryBankBindRequest,
     options?: RuntimeTypedCallOptions,
   ): Promise<RequestAgentCanonicalMemoryBankBindResponse>;
-  // Runtime Agent execution config projection (K-AGCORE-144~150). Optional on
-  // the module contract so pre-existing minimal projections stay valid; the
-  // executionConfig surface fails closed with a typed error when missing.
-  getAgentExecutionConfig?(
-    request: GetAgentExecutionConfigRequest,
+  // Runtime Agent AI Config projection (K-AGCORE-144~150). Host projections
+  // may omit this optional transport surface, but agentAIConfig fails closed
+  // with a typed error when the surface is missing.
+  getRuntimeAgentAIConfig?(
+    request: GetRuntimeAgentAIConfigRequest,
     options?: RuntimeTypedCallOptions,
-  ): Promise<GetAgentExecutionConfigResponse>;
-  upsertAgentExecutionConfig?(
-    request: UpsertAgentExecutionConfigRequest,
+  ): Promise<GetRuntimeAgentAIConfigResponse>;
+  upsertRuntimeAgentAIConfig?(
+    request: UpsertRuntimeAgentAIConfigRequest,
     options?: RuntimeTypedCallOptions,
-  ): Promise<UpsertAgentExecutionConfigResponse>;
-  getAgentExecutionReadiness?(
-    request: GetAgentExecutionReadinessRequest,
+  ): Promise<UpsertRuntimeAgentAIConfigResponse>;
+  getRuntimeAgentAIConfigReadiness?(
+    request: GetRuntimeAgentAIConfigReadinessRequest,
     options?: RuntimeTypedCallOptions,
-  ): Promise<GetAgentExecutionReadinessResponse>;
-  subscribeAgentExecutionReadiness?(
-    request: SubscribeAgentExecutionReadinessRequest,
+  ): Promise<GetRuntimeAgentAIConfigReadinessResponse>;
+  subscribeRuntimeAgentAIConfigReadiness?(
+    request: SubscribeRuntimeAgentAIConfigReadinessRequest,
     options?: RuntimeTypedCallOptions,
-  ): AsyncIterable<AgentExecutionReadinessSnapshot>;
+  ): AsyncIterable<RuntimeAgentAIConfigReadinessSnapshot>;
 }
 
 export interface NimiRuntimeAgentClientAppMessagesModule {
@@ -172,7 +172,7 @@ export interface NimiRuntimeAgentClient {
   writeMemory(input: NimiRuntimeAgentWriteMemoryInput): Promise<WriteAgentMemoryResponse>;
   getCanonicalMemoryStatus(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
   bindCanonicalMemoryStandard(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentCanonicalMemoryBankStatus>;
-  readonly executionConfig: NimiRuntimeAgentExecutionConfigModule;
+  readonly agentAIConfig: NimiRuntimeAgentAIConfigModule;
 }
 
 export interface NimiRuntimeAgentClientStreamTurnOptions
@@ -216,7 +216,7 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     getSubjectUserId: options.getSubjectUserId,
     withScopes: options.withScopes,
   });
-  const executionConfig = createNimiRuntimeAgentExecutionConfigModule({
+  const agentAIConfig = createNimiRuntimeAgentAIConfigModule({
     runtime: {
       appId: runtime.appId,
       auth: runtime.auth,
@@ -337,7 +337,7 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
     },
     getCanonicalMemoryStatus: memory.getCanonicalBankStatus,
     bindCanonicalMemoryStandard: memory.bindCanonicalBankStandard,
-    executionConfig,
+    agentAIConfig,
   };
 }
 

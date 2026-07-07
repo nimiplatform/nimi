@@ -119,7 +119,7 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
   assert.equal((calls[2]?.request as SendAppMessageRequest).messageType, 'runtime.agent.turn.request');
   assert.equal(calls[2]?.options?.metadata?.scopes, 'runtime.agent.turn.write');
   // Atomic hard cut: turn requests never carry execution_bindings; the
-  // runtime resolves the committed execution config (K-AGCORE-147).
+  // runtime resolves the committed Runtime Agent AI Config (K-AGCORE-147).
   assert.equal(
     'execution_bindings' in fromNimiRuntimeProtoStruct((calls[2]?.request as SendAppMessageRequest).payload),
     false,

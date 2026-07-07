@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import { registerNimiElectronRuntimeBridge } from '../src/main/index.js';
 import {
   FakeIpcMain,
@@ -37,7 +38,7 @@ describe('Electron Runtime error classification', () => {
       },
     })).rejects.toMatchObject({
       code: 'runtime-permission-denied',
-      reasonCode: 'APP_SCOPE_FORBIDDEN',
+      reasonCode: ReasonCode.APP_SCOPE_FORBIDDEN,
       actionHint: 'authorize_missing_protected_scope',
       source: 'runtime',
       details: {

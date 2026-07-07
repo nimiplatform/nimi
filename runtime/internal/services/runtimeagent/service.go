@@ -119,28 +119,30 @@ type Service struct {
 	participationOnce  sync.Once
 	participationState *participationStore
 
-	// K-AGCORE-144..150 Runtime Agent execution config domain. execConfigMu
+	// K-AGCORE-144..150 Runtime Agent AI Config domain. agentAIConfigMu
 	// serializes mutations (the repository CAS re-checks inside the write tx);
-	// execReadiness holds the last computed K-AGCORE-146 projection.
-	execConfigMu   sync.Mutex
-	execConfigRepo *agentExecutionConfigRepository
+	// agentAIConfigReadiness holds the last computed K-AGCORE-146 projection per
+	// Runtime Local Agent instance.
+	agentAIConfigMu   sync.Mutex
+	agentAIConfigRepo *agentAgentAIConfigRepository
 
-	execReadinessMu sync.RWMutex
-	execReadiness   *runtimev1.AgentExecutionReadinessSnapshot
+	agentAIConfigReadinessMu sync.RWMutex
+	agentAIConfigReadiness   map[string]*runtimev1.RuntimeAgentAIConfigReadinessSnapshot
 
 	execSubMu     sync.Mutex
 	execNextSubID uint64
-	execSubs      map[uint64]chan *runtimev1.AgentExecutionReadinessSnapshot
+	execSubs      map[uint64]runtimeAgentAIConfigReadinessSubscriber
 
 	execHealthMu      sync.Mutex
 	execHealthTracker *providerhealth.Tracker
 	execHealthCancel  func()
 	execHealthDone    chan struct{}
 
-	// execPendingSeedAudit parks the K-AGCORE-150 seed audit record when the
-	// seed commits before the audit store attaches; SetAuditStore flushes it.
-	execAuditMu          sync.Mutex
-	execPendingSeedAudit *runtimev1.AuditEventRecord
+	// execPendingAIConfigAudits parks Runtime Agent AI Config audit records
+	// when a seed or mutation commits before the audit store attaches;
+	// SetAuditStore flushes them in commit order.
+	execAuditMu               sync.Mutex
+	execPendingAIConfigAudits []*runtimev1.AuditEventRecord
 
 	lifeLoopMu     sync.Mutex
 	lifeLoopCancel context.CancelFunc
@@ -173,8 +175,9 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		backend:                        backend,
 		stateRepo:                      stateRepo,
 		chatStateRepo:                  newPublicChatSurfaceStateRepository(backend, stateRepo),
-		execConfigRepo:                 newAgentExecutionConfigRepository(backend),
-		execSubs:                       make(map[uint64]chan *runtimev1.AgentExecutionReadinessSnapshot),
+		agentAIConfigRepo:              newAgentAgentAIConfigRepository(backend),
+		agentAIConfigReadiness:         make(map[string]*runtimev1.RuntimeAgentAIConfigReadinessSnapshot),
+		execSubs:                       make(map[uint64]runtimeAgentAIConfigReadinessSubscriber),
 		reviews:                        newReviewPersistence(backend),
 		postures:                       newBehavioralPosturePersistence(backend),
 		aiBridge:                       newRuntimePrivateAIBridge(),
@@ -201,6 +204,9 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	if err := svc.loadState(); err != nil {
 		return nil, err
 	}
+	if err := svc.seedRuntimeAgentAIConfigsForLoadedAgents(); err != nil {
+		return nil, err
+	}
 	if err := svc.loadRealmGroupMessageCandidateStateFromDB(); err != nil {
 		return nil, err
 	}
@@ -209,11 +215,6 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	}
 	svc.memorySvc.RegisterReplicationObserver(svc.handleCommittedMemoryReplication)
 	if err := svc.recoverReviewRuns(context.Background()); err != nil {
-		return nil, err
-	}
-	// K-AGCORE-150: seed the execution config exactly once at service start
-	// and prime the K-AGCORE-146 readiness projection.
-	if err := svc.initExecutionConfig(); err != nil {
 		return nil, err
 	}
 	return svc, nil
@@ -226,7 +227,7 @@ func (s *Service) Close() {
 	s.closeOnce.Do(func() {
 		s.closed.Store(true)
 		s.StopLifeTrackLoop()
-		s.stopExecutionReadinessHealthSubscription()
+		s.stopAgentAIConfigReadinessHealthSubscription()
 		s.shutdownPublicChatSurface()
 	})
 }
@@ -250,7 +251,7 @@ func (s *Service) SetAuditStore(store *auditlog.Store) {
 	s.execAuditMu.Lock()
 	s.auditStore = store
 	s.execAuditMu.Unlock()
-	s.flushPendingExecutionConfigAudit()
+	s.flushPendingAgentAIConfigAudit()
 }
 
 func (s *Service) SetLifeTrackExecutor(executor LifeTrackExecutor) {

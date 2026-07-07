@@ -72,7 +72,7 @@ func (s *Service) RegisterAvatarLiveInstanceBinding(_ context.Context, req *runt
 		AgentID:              identity.LocalAgentRef,
 		LocalAgentRef:        identity.LocalAgentRef,
 		OwnerUserID:          identity.OwnerUserID,
-		RuntimeSourceRef:         identity.RuntimeSourceRef,
+		RuntimeSourceRef:     identity.RuntimeSourceRef,
 		CallerAppID:          callerAppID,
 		SubjectUserID:        subjectUserID,
 		RegisteredAt:         registeredAt,
@@ -205,7 +205,7 @@ func runtimeAvatarLiveInstanceBinding(binding *avatarLiveInstanceBindingState) *
 		AgentId:              binding.AgentID,
 		LocalAgentRef:        binding.LocalAgentRef,
 		OwnerUserId:          binding.OwnerUserID,
-		RuntimeSourceRef:         binding.RuntimeSourceRef,
+		RuntimeSourceRef:     binding.RuntimeSourceRef,
 		CallerAppId:          binding.CallerAppID,
 		SubjectUserId:        binding.SubjectUserID,
 	}

@@ -68,10 +68,11 @@ type publicChatReasoningConfig struct {
 	TraceMode    runtimev1.ReasoningTraceMode
 	BudgetTokens int32
 }
+
 // publicChatImageActionAvailability is the K-AGCORE-148 tri-state derived at
-// turn admission from committed execution config presence plus the current
-// readiness projection. Values match
-// tables/agent-execution-config.yaml turn_action_availability_states.
+// turn admission from committed Runtime Agent AI Config presence plus the
+// current readiness projection. Values match
+// tables/runtime-agent-ai-config.yaml turn_action_availability_states.
 type publicChatImageActionAvailability string
 
 const (
@@ -103,22 +104,22 @@ type avatarLiveInstanceBindingState struct {
 // `subject_user_id` is captured at anchor-open time and is runtime truth.
 // ActiveTurn / LastTurn remain anchor-scoped per K-AGCORE-035.
 type publicChatAnchorState struct {
-	ConversationAnchorID   string
-	AgentID                string
-	LocalAgentRef          string
-	OwnerUserID            string
-	RuntimeSourceRef       string
-	CallerAppID            string
-	SubjectUserID          string
-	ThreadID               string
-	Binding  publicChatExecutionBinding
-	Bindings publicChatExecutionBindings
-	// ConfigRevision is the committed execution config revision fixed into
+	ConversationAnchorID string
+	AgentID              string
+	LocalAgentRef        string
+	OwnerUserID          string
+	RuntimeSourceRef     string
+	CallerAppID          string
+	SubjectUserID        string
+	ThreadID             string
+	Binding              publicChatExecutionBinding
+	Bindings             publicChatExecutionBindings
+	// ConfigRevision is the committed Runtime Agent AI Config revision fixed into
 	// the anchor at the most recent turn admission (K-AGCORE-147). It is
 	// per-turn admission truth projected on the session snapshot; the anchor
 	// does not own binding truth.
-	ConfigRevision  uint64
-	ExecutionParams map[string]map[string]any
+	ConfigRevision         uint64
+	ExecutionParams        map[string]map[string]any
 	ActiveTurnID           string
 	SystemPrompt           string
 	MaxTokens              int32
@@ -166,8 +167,8 @@ type publicChatTurnState struct {
 	SourceTurnID      string
 	SourceActionID    string
 	// ConfigRevision and AvailableActions are fixed at turn admission from
-	// the committed execution config plus readiness (K-AGCORE-147/148). A
-	// config mutation during an in-flight turn affects the next turn only.
+	// the committed Runtime Agent AI Config plus readiness (K-AGCORE-147/148).
+	// A config mutation during an in-flight turn affects the next turn only.
 	ConfigRevision   uint64
 	AvailableActions publicChatAvailableActions
 	Projection       *publicChatTurnProjectionState

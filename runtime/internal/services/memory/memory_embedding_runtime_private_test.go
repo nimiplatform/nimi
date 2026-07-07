@@ -71,9 +71,9 @@ func setManagedEmbeddingProfileForTest(svc *Service, profile *runtimev1.MemoryEm
 	})
 }
 
-func testLocalBindingSnapshot(modelID string) *MemoryEmbeddingBindingIntentSnapshot {
-	return &MemoryEmbeddingBindingIntentSnapshot{
-		SourceKind: MemoryEmbeddingBindingSourceKindLocal,
+func testLocalBindingSnapshot(modelID string) *MemoryEmbeddingTextEmbedIntentSnapshot {
+	return &MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind: MemoryEmbeddingTextEmbedSourceKindLocal,
 		LocalBinding: &MemoryEmbeddingLocalBindingRef{
 			ProfileBindingID: modelID,
 		},
@@ -81,9 +81,9 @@ func testLocalBindingSnapshot(modelID string) *MemoryEmbeddingBindingIntentSnaps
 	}
 }
 
-func testCloudBindingSnapshot(connectorID string, modelID string) *MemoryEmbeddingBindingIntentSnapshot {
-	return &MemoryEmbeddingBindingIntentSnapshot{
-		SourceKind: MemoryEmbeddingBindingSourceKindCloud,
+func testCloudBindingSnapshot(connectorID string, modelID string) *MemoryEmbeddingTextEmbedIntentSnapshot {
+	return &MemoryEmbeddingTextEmbedIntentSnapshot{
+		SourceKind: MemoryEmbeddingTextEmbedSourceKindCloud,
 		CloudBinding: &MemoryEmbeddingCloudBindingRef{
 			ConnectorID:          connectorID,
 			RemoteModelCatalogID: "remote-catalog:" + connectorID + ":" + modelID,
@@ -94,14 +94,15 @@ func testCloudBindingSnapshot(connectorID string, modelID string) *MemoryEmbeddi
 	}
 }
 
-func setMemoryEmbeddingIntentForTest(t *testing.T, svc *Service, locator *runtimev1.MemoryBankLocator, intent *MemoryEmbeddingBindingIntentSnapshot) {
+func setMemoryEmbeddingIntentForTest(t *testing.T, svc *Service, locator *runtimev1.MemoryBankLocator, intent *MemoryEmbeddingTextEmbedIntentSnapshot) {
 	t.Helper()
-	if _, err := svc.SetMemoryEmbeddingBindingIntent(context.Background(), SetMemoryEmbeddingBindingIntentRequest{
-		Locator:       locator,
-		BindingIntent: intent,
-	}); err != nil {
-		t.Fatalf("SetMemoryEmbeddingBindingIntent: %v", err)
-	}
+	key := locatorKey(locator)
+	svc.SetRuntimeEmbeddingIntentResolver(func(_ context.Context, _ *runtimev1.MemoryRequestContext, got *runtimev1.MemoryBankLocator) (*MemoryEmbeddingTextEmbedIntentSnapshot, error) {
+		if locatorKey(got) != key {
+			return nil, nil
+		}
+		return cloneMemoryEmbeddingIntentSnapshot(intent), nil
+	})
 }
 
 func TestInspectMemoryEmbeddingStateMissingWhenIntentAbsent(t *testing.T) {
@@ -114,8 +115,8 @@ func TestInspectMemoryEmbeddingStateMissingWhenIntentAbsent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InspectMemoryEmbeddingState: %v", err)
 	}
-	if state.BindingIntentPresent {
-		t.Fatal("expected no binding intent")
+	if state.TextEmbedIntentPresent {
+		t.Fatal("expected no text.embed intent")
 	}
 	if state.ResolutionState != memoryEmbeddingResolutionStateMissing {
 		t.Fatalf("expected missing resolution state, got %s", state.ResolutionState)
@@ -243,7 +244,7 @@ func TestRequestCanonicalMemoryEmbeddingBindUsesRuntimeResolverProfile(t *testin
 	ctx := context.Background()
 	svc := newMemoryEmbeddingRuntimePrivateService(t)
 	locator := testMemoryEmbeddingLocator("agent-cloud-bind")
-	svc.SetRuntimeEmbeddingProfileResolver(func(_ context.Context, snapshot *MemoryEmbeddingBindingIntentSnapshot) MemoryEmbeddingResolvedProfile {
+	svc.SetRuntimeEmbeddingProfileResolver(func(_ context.Context, snapshot *MemoryEmbeddingTextEmbedIntentSnapshot) MemoryEmbeddingResolvedProfile {
 		if snapshot == nil || snapshot.CloudBinding == nil || snapshot.CloudBinding.ProviderModelID != "gemini-embedding-001" {
 			return MemoryEmbeddingResolvedProfile{
 				ResolutionState:   memoryEmbeddingResolutionStateUnresolved,
@@ -449,6 +450,7 @@ func TestPendingMemoryEmbeddingCutoverPersistsAcrossRestart(t *testing.T) {
 	}
 	defer func() { _ = restarted.Close() }()
 	setManagedEmbeddingProfileForTest(restarted, testManagedEmbeddingProfile("local/embed-new"))
+	setMemoryEmbeddingIntentForTest(t, restarted, locator, testLocalBindingSnapshot("local/embed-new"))
 
 	state, err := restarted.InspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{
 		Locator: locator,

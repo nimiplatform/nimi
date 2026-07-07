@@ -1,12 +1,9 @@
 import {
   MemoryBankScope,
-  type GetMemoryEmbeddingRuntimeIntentResponse,
   type MemoryBankLocator,
-  type MemoryEmbeddingBindingIntentSnapshot,
   type MemoryEmbeddingProfile,
   type RequestMemoryEmbeddingRuntimeBindResponse,
   type RequestMemoryEmbeddingRuntimeCutoverResponse,
-  type SetMemoryEmbeddingRuntimeIntentResponse,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError } from '../types';
 import { normalizeNimiRuntimeReasonCode } from './reason-messages';
@@ -17,7 +14,6 @@ import type {
   NimiMemoryEmbeddingBindResult,
   NimiMemoryEmbeddingCanonicalBankStatus,
   NimiMemoryEmbeddingConfig,
-  NimiMemoryEmbeddingConfigInput,
   NimiMemoryEmbeddingCutoverOutcome,
   NimiMemoryEmbeddingCutoverResult,
   NimiMemoryEmbeddingResolutionState,
@@ -47,75 +43,6 @@ export interface NimiMemoryEmbeddingRouteAvailabilityProjection {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function assertExplicitNimiMemoryEmbeddingScopeRef(
-  scopeRef: NimiMemoryEmbeddingScopeRef | null | undefined,
-): NimiMemoryEmbeddingScopeRef {
-  if (!scopeRef || !normalizeText(scopeRef.kind) || !normalizeText(scopeRef.ownerId)) {
-    throw createNimiError({
-      message: 'Memory embedding config requires an explicit scope ref.',
-      reasonCode: 'SDK_MEMORY_EMBEDDING_SCOPE_INVALID',
-      actionHint: 'provide_memory_embedding_scope_ref',
-      source: 'sdk',
-    });
-  }
-  const surfaceId = scopeRef.surfaceId === undefined ? undefined : normalizeText(scopeRef.surfaceId);
-  if (scopeRef.surfaceId !== undefined && !surfaceId) {
-    throw createNimiError({
-      message: 'Memory embedding scope surfaceId must be omitted or non-empty.',
-      reasonCode: 'SDK_MEMORY_EMBEDDING_SCOPE_INVALID',
-      actionHint: 'provide_memory_embedding_scope_ref',
-      source: 'sdk',
-    });
-  }
-  return surfaceId === undefined
-    ? { kind: normalizeText(scopeRef.kind), ownerId: normalizeText(scopeRef.ownerId) }
-    : { kind: normalizeText(scopeRef.kind), ownerId: normalizeText(scopeRef.ownerId), surfaceId };
-}
-
-export function createEmptyNimiMemoryEmbeddingConfig(
-  scopeRef: NimiMemoryEmbeddingScopeRef,
-): NimiMemoryEmbeddingConfig {
-  const now = new Date().toISOString();
-  return {
-    scopeRef: assertExplicitNimiMemoryEmbeddingScopeRef(scopeRef),
-    sourceKind: null,
-    bindingRef: null,
-    revisionToken: now,
-    updatedAt: now,
-  };
-}
-
-export function buildNimiMemoryEmbeddingBindingIntentSnapshot(
-  config: NimiMemoryEmbeddingConfig,
-): MemoryEmbeddingBindingIntentSnapshot | undefined {
-  if (!config.sourceKind || !config.bindingRef) {
-    return undefined;
-  }
-  if (config.sourceKind === 'cloud' && config.bindingRef.kind === 'cloud') {
-    return {
-      sourceKind: 'cloud',
-      cloudBinding: {
-        connectorId: config.bindingRef.connectorId,
-        remoteModelCatalogId: config.bindingRef.remoteModelCatalogId,
-        providerModelId: config.bindingRef.providerModelId,
-        provider: config.bindingRef.provider,
-      },
-      revisionToken: config.revisionToken,
-    };
-  }
-  if (config.sourceKind === 'local' && config.bindingRef.kind === 'local') {
-    const ref = normalizeText(config.bindingRef.profileBindingId)
-      ? { oneofKind: 'profileBindingId' as const, profileBindingId: normalizeText(config.bindingRef.profileBindingId) }
-      : { oneofKind: 'readinessRef' as const, readinessRef: normalizeText(config.bindingRef.readinessRef) };
-    return {
-      sourceKind: 'local',
-      localBinding: { ref },
-      revisionToken: config.revisionToken,
-    };
-  }
-  return undefined;
 }
 
 export function buildNimiMemoryEmbeddingAgentCoreLocator(
@@ -209,59 +136,21 @@ export function nimiMemoryEmbeddingProfileIdentity(profile: MemoryEmbeddingProfi
   return parts.length > 0 ? parts.join(':') : null;
 }
 
-export function projectNimiMemoryEmbeddingConfigFromRuntimeIntent(
-  input: NimiMemoryEmbeddingConfigInput,
-  result: GetMemoryEmbeddingRuntimeIntentResponse | SetMemoryEmbeddingRuntimeIntentResponse,
-): NimiMemoryEmbeddingConfig {
-  const now = new Date().toISOString();
-  const intent = result.bindingIntent;
-  if (!intent || ('bindingIntentPresent' in result && !result.bindingIntentPresent)) {
-    return { scopeRef: input.scopeRef, sourceKind: null, bindingRef: null, revisionToken: now, updatedAt: now };
-  }
-  const sourceKind = normalizeNimiMemoryEmbeddingSourceKind(intent.sourceKind);
-  if (sourceKind === 'cloud' && intent.cloudBinding) {
-    return {
-      scopeRef: input.scopeRef,
-      sourceKind,
-      bindingRef: {
-        kind: 'cloud',
-        connectorId: normalizeText(intent.cloudBinding.connectorId),
-        remoteModelCatalogId: normalizeText(intent.cloudBinding.remoteModelCatalogId),
-        providerModelId: normalizeText(intent.cloudBinding.providerModelId),
-        provider: normalizeText(intent.cloudBinding.provider),
-      },
-      revisionToken: normalizeText(intent.revisionToken) || now,
-      updatedAt: now,
-    };
-  }
-  if (sourceKind === 'local' && intent.localBinding) {
-    const ref = intent.localBinding.ref;
-    const bindingRef = ref.oneofKind === 'profileBindingId'
-      ? { kind: 'local' as const, profileBindingId: normalizeText(ref.profileBindingId) }
-      : { kind: 'local' as const, readinessRef: normalizeText(ref.oneofKind === 'readinessRef' ? ref.readinessRef : '') };
-    return {
-      scopeRef: input.scopeRef,
-      sourceKind,
-      bindingRef,
-      revisionToken: normalizeText(intent.revisionToken) || now,
-      updatedAt: now,
-    };
-  }
-  return { scopeRef: input.scopeRef, sourceKind: null, bindingRef: null, revisionToken: now, updatedAt: now };
-}
-
 export function projectNimiMemoryEmbeddingRuntimeState(result: {
-  readonly bindingIntentPresent: boolean;
-  readonly bindingSourceKind: string;
+  readonly textEmbedIntentPresent: boolean;
+  readonly textEmbedSourceKind: string;
+  readonly configRevision?: string | number;
   readonly resolutionState: string;
   readonly resolvedProfile?: MemoryEmbeddingProfile;
   readonly canonicalBankStatus: string;
   readonly blockedReasonCode: unknown;
   readonly operationReadiness?: { readonly bindAllowed?: boolean; readonly cutoverAllowed?: boolean };
 }): NimiMemoryEmbeddingRuntimeState {
+  const revision = Number(normalizeText(result.configRevision));
   return {
-    bindingIntentPresent: result.bindingIntentPresent,
-    bindingSourceKind: normalizeNimiMemoryEmbeddingSourceKind(result.bindingSourceKind),
+    textEmbedIntentPresent: result.textEmbedIntentPresent,
+    textEmbedSourceKind: normalizeNimiMemoryEmbeddingSourceKind(result.textEmbedSourceKind),
+    configRevision: Number.isSafeInteger(revision) && revision >= 0 ? revision : 0,
     resolutionState: normalizeNimiMemoryEmbeddingResolutionState(result.resolutionState),
     resolvedProfileIdentity: nimiMemoryEmbeddingProfileIdentity(result.resolvedProfile),
     canonicalBankStatus: normalizeNimiMemoryEmbeddingCanonicalBankStatus(result.canonicalBankStatus),
@@ -298,8 +187,9 @@ export function projectUnavailableNimiMemoryEmbeddingRuntimeState(
   blockedReasonCode = 'RUNTIME_UNAVAILABLE',
 ): NimiMemoryEmbeddingRuntimeState {
   return {
-    bindingIntentPresent: false,
-    bindingSourceKind: null,
+    textEmbedIntentPresent: false,
+    textEmbedSourceKind: null,
+    configRevision: 0,
     resolutionState: 'unavailable',
     resolvedProfileIdentity: null,
     canonicalBankStatus: 'unbound',

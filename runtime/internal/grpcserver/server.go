@@ -216,7 +216,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	if err != nil {
 		return nil, fmt.Errorf("init memory service: %w", err)
 	}
-	memorySvc.SetRuntimeEmbeddingProfileResolver(func(ctx context.Context, snapshot *memoryservice.MemoryEmbeddingBindingIntentSnapshot) memoryservice.MemoryEmbeddingResolvedProfile {
+	memorySvc.SetRuntimeEmbeddingProfileResolver(func(ctx context.Context, snapshot *memoryservice.MemoryEmbeddingTextEmbedIntentSnapshot) memoryservice.MemoryEmbeddingResolvedProfile {
 		return resolveRuntimeMemoryEmbeddingProfile(ctx, snapshot, localSvc, connStore, aiSvc.SpeechCatalogResolver())
 	})
 	memorySvc.SetRuntimeEmbeddingVectorExecutor(aiSvc.EmbedTextsForMemory)
@@ -227,13 +227,14 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	}
 	agentSvc.SetScopedBindingValidator(accountSvc)
 	agentSvc.SetAuditStore(auditStore)
-	// K-AGCORE-146: execution config readiness recomputes on provider health
+	// K-AGCORE-146: Runtime Agent AI Config readiness recomputes on provider health
 	// change evidence.
 	agentSvc.SetProviderHealthTracker(aiHealth)
 	agentSvc.SetSourceMaterializationPacketHMACSecret(cfg.SourceMaterializationPacketHMACSecret)
 	agentSvc.SetRuntimeArtifactStore(artifactStore)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
 	agentSvc.SetVoiceLipsyncScenarioExecutor(aiSvc, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
+	memorySvc.SetRuntimeEmbeddingIntentResolver(agentSvc.ResolveMemoryEmbeddingIntent)
 	memorySvc.SetMemoryEmbeddingTargetAuthorizer(agentSvc.AuthorizeMemoryEmbeddingTarget)
 	runtimev1.RegisterRuntimeAgentServiceServer(g, agentSvc)
 

@@ -82,7 +82,8 @@ type MemoryEmbeddingResolvedProfile struct {
 	BlockedReasonCode runtimev1.ReasonCode
 }
 
-type MemoryEmbeddingProfileResolver func(context.Context, *MemoryEmbeddingBindingIntentSnapshot) MemoryEmbeddingResolvedProfile
+type MemoryEmbeddingIntentResolver func(context.Context, *runtimev1.MemoryRequestContext, *runtimev1.MemoryBankLocator) (*MemoryEmbeddingTextEmbedIntentSnapshot, error)
+type MemoryEmbeddingProfileResolver func(context.Context, *MemoryEmbeddingTextEmbedIntentSnapshot) MemoryEmbeddingResolvedProfile
 type MemoryEmbeddingVectorExecutor func(context.Context, *runtimev1.MemoryEmbeddingProfile, []string) ([][]float64, error)
 type MemoryEmbeddingTargetAuthorizer func(context.Context, *runtimev1.MemoryRequestContext, *runtimev1.MemoryBankLocator) error
 
@@ -110,6 +111,7 @@ type Service struct {
 	acceleratorCleanupMu       sync.Mutex
 	lastAcceleratorCleanupAt   time.Time
 	acceleratorCleanupCooldown time.Duration
+	runtimeEmbeddingIntent     MemoryEmbeddingIntentResolver
 	runtimeEmbeddingResolver   MemoryEmbeddingProfileResolver
 	runtimeEmbeddingExecutor   MemoryEmbeddingVectorExecutor
 	embeddingTargetAuthorizer  MemoryEmbeddingTargetAuthorizer

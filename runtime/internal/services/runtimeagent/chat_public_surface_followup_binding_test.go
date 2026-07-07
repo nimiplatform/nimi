@@ -199,7 +199,7 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 
 // TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation proves
 // K-AGCORE-147 turn admission truth: every turn binds to the committed
-// execution config at admission and fixes the config_revision into the
+// Runtime Agent AI Config at admission and fixes the config_revision into the
 // session snapshot projection; a config mutation applies to the next turn.
 func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testing.T) {
 	t.Parallel()
@@ -286,18 +286,23 @@ func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testin
 
 	// Mutate the committed config; the next turn must bind to the new
 	// committed truth and stamp the new revision.
-	if _, err := svc.UpsertAgentExecutionConfig(context.Background(), &runtimev1.UpsertAgentExecutionConfigRequest{
-		Context:          &runtimev1.AgentRequestContext{AppId: "desktop.app"},
+	if _, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          publicChatTestAIConfigContext(t, svc),
 		ExpectedRevision: 1,
-		Bindings: []*runtimev1.RuntimeAgentExecutionCapabilityBinding{
+		Intents: []*runtimev1.RuntimeAgentAIConfigIntent{
 			{
-				Capability:  executionCapabilityTextGenerate,
+				Capability:  runtimeAgentAIConfigCapabilityTextGenerate,
 				ModelId:     "local/qwen3-chat",
+				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			},
+			{
+				Capability:  runtimeAgentAIConfigCapabilityTextEmbed,
+				ModelId:     runtimeAgentAIConfigDefaultEmbeddingModelID,
 				RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			},
 		},
 	}); err != nil {
-		t.Fatalf("UpsertAgentExecutionConfig: %v", err)
+		t.Fatalf("UpsertRuntimeAgentAIConfig: %v", err)
 	}
 
 	err = svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{

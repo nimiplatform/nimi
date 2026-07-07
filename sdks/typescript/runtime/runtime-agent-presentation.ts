@@ -1,6 +1,5 @@
 import {
   AgentPresentationBackendKind,
-  RoutePolicy,
   type RuntimeTypedCallOptions,
   type SetAgentPresentationProfileRequest,
   type SetAgentPresentationProfileResponse,
@@ -28,8 +27,6 @@ export interface NimiRuntimeAgentPresentationProfileInput {
   readonly interactionPolicyRef?: unknown;
   readonly defaultVoiceReference?: unknown;
   readonly avatarAutoplay?: unknown;
-  readonly speechModelId?: unknown;
-  readonly speechRoutePolicy?: unknown;
 }
 
 export interface NimiRuntimeAgentPresentationProfileContext {
@@ -96,23 +93,6 @@ export function normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(value
     'SDK_RUNTIME_AGENT_PRESENTATION_VOICE_REFERENCE_INVALID',
     'provide_runtime_owned_voice_reference',
   );
-}
-
-export function normalizeNimiRuntimeAgentPresentationSpeechRoutePolicy(value: unknown): RoutePolicy {
-  switch (normalizeNimiRuntimeAgentText(value).toLowerCase()) {
-    case '':
-      return RoutePolicy.UNSPECIFIED;
-    case 'local':
-      return RoutePolicy.LOCAL;
-    case 'cloud':
-      return RoutePolicy.CLOUD;
-    default:
-      presentationError(
-        'Runtime Agent presentation profile speech route policy must be local or cloud.',
-        'SDK_RUNTIME_AGENT_PRESENTATION_SPEECH_ROUTE_POLICY_INVALID',
-        'provide_runtime_agent_speech_route_policy',
-      );
-  }
 }
 
 function presentationError(message: string, reasonCode: string, actionHint: string): never {
@@ -182,8 +162,6 @@ export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
         interactionPolicyRef: normalizeNimiRuntimeAgentText(input.profile.interactionPolicyRef),
         defaultVoiceReference: normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(input.profile.defaultVoiceReference),
         avatarAutoplay: input.profile.avatarAutoplay === true,
-        speechModelId: normalizeNimiRuntimeAgentText(input.profile.speechModelId),
-        speechRoutePolicy: normalizeNimiRuntimeAgentPresentationSpeechRoutePolicy(input.profile.speechRoutePolicy),
       },
     },
   };

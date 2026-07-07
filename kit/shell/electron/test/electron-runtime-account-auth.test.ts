@@ -230,7 +230,7 @@ describe('Electron Runtime account trusted metadata provider', () => {
         consentId: 'zhiyu-runtime-account',
         authorizationVersion: 'zhiyu-runtime-account-v1',
         scopeCatalogVersion: 'sdk-v2',
-        scopes: ['runtime.agent.turn.read', 'runtime.agent.execution_config.read'],
+        scopes: ['runtime.agent.turn.read', 'runtime.agent.ai_config.read'],
         idempotencyKey: (input) => {
           idempotencyInput = input;
           return `zhiyu-runtime-protected-${input.normalizedSubjectUserId}-${input.scopesSignature}`;
@@ -239,7 +239,7 @@ describe('Electron Runtime account trusted metadata provider', () => {
       appSession: {
         appInstanceId: 'nimi.zhiyu.platform-runtime-session',
         deviceId: 'zhiyu-platform-runtime-session',
-        capabilities: ['runtime.agent.turn.read', 'runtime.agent.execution_config.read'],
+        capabilities: ['runtime.agent.turn.read', 'runtime.agent.ai_config.read'],
       },
       runtime: {
         account: {

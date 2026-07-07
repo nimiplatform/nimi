@@ -244,6 +244,15 @@ func (b *Backend) ensureHealthyOrRestore() error {
 }
 
 func (b *Backend) ensureSchema() error {
+	preflightStmts := []string{
+		"DROP TABLE IF EXISTS " + "memory_embedding_" + "intent",
+		"DROP TABLE IF EXISTS " + "runtime_agent_" + "execution_" + "config",
+	}
+	for _, stmt := range preflightStmts {
+		if _, err := b.writeDB.Exec(stmt); err != nil {
+			return fmt.Errorf("ensure sqlite schema preflight: %w", err)
+		}
+	}
 	stmts := []string{
 		`CREATE TABLE IF NOT EXISTS memory_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS memory_bank (
@@ -283,12 +292,6 @@ func (b *Backend) ensureSchema() error {
 			memory_id TEXT NOT NULL,
 			enqueued_at TEXT NOT NULL,
 			item_json TEXT NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS memory_embedding_intent (
-			locator_key TEXT PRIMARY KEY,
-			locator_json TEXT NOT NULL,
-			intent_json TEXT NOT NULL,
-			updated_at TEXT NOT NULL
 		)`,
 		`CREATE TABLE IF NOT EXISTS memory_narrative (
 			narrative_id TEXT PRIMARY KEY,
@@ -454,8 +457,8 @@ func (b *Backend) ensureSchema() error {
 			expires_at TEXT NOT NULL,
 			consumed_at TEXT NOT NULL
 		)`,
-		`CREATE TABLE IF NOT EXISTS runtime_agent_execution_config (
-			singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+		`CREATE TABLE IF NOT EXISTS runtime_agent_ai_config (
+			agent_instance_id TEXT PRIMARY KEY,
 			revision INTEGER NOT NULL,
 			config_json TEXT NOT NULL,
 			updated_at TEXT NOT NULL,
