@@ -12,7 +12,7 @@
     "check:bundle-runtime-imports": "node scripts/check-avatar-bundle-runtime-imports.mjs",
     "check:acceptance-recording-matrix": "node scripts/record-avatar-acceptance-matrix.mjs --check-only",
     "smoke:agent-center-live2d": "node scripts/smoke-agent-center-live2d.mjs",
-    "smoke:vrm-wave5": "node scripts/run-vrm-wave5-smoke.mjs",
+    "smoke:vrm-real-sample": "node scripts/run-vrm-real-sample-smoke.mjs",
     "record:acceptance-matrix": "node scripts/record-avatar-acceptance-matrix.mjs",
     "record:acceptance-matrix:automated": "node scripts/record-avatar-acceptance-matrix.mjs --automated-only --allow-manual-pending",
     "typecheck": "tsc --noEmit",

@@ -5,9 +5,9 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 import {
-  buildDesktopVrmWave4Evidence,
-  writeDesktopVrmWave4Evidence,
-} from './lib/desktop-vrm-wave4-evidence.mjs';
+  buildDesktopVrmRepresentativeEvidence,
+  writeDesktopVrmRepresentativeEvidence,
+} from './lib/desktop-vrm-representative-evidence.mjs';
 
 function parseArgs(argv) {
   const args = {
@@ -34,16 +34,15 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv.slice(2));
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptDir, '..');
-const outputDir = path.resolve(args.outputDir || path.join(desktopRoot, 'reports', 'vrm-wave4'));
-const evidence = buildDesktopVrmWave4Evidence({
+const outputDir = path.resolve(args.outputDir || path.join(desktopRoot, 'reports', 'vrm-representative'));
+const evidence = buildDesktopVrmRepresentativeEvidence({
   desktopRoot,
   smokeRoot: args.smokeRoot || undefined,
 });
-const jsonPath = path.join(outputDir, 'desktop-vrm-wave4-evidence.json');
-const markdownPath = path.join(outputDir, 'desktop-vrm-wave4-evidence.md');
-writeDesktopVrmWave4Evidence(jsonPath, markdownPath, evidence);
+const jsonPath = path.join(outputDir, 'desktop-vrm-representative-evidence.json');
+const markdownPath = path.join(outputDir, 'desktop-vrm-representative-evidence.md');
+writeDesktopVrmRepresentativeEvidence(jsonPath, markdownPath, evidence);
 
 process.stdout.write(
-  `[generate-desktop-vrm-wave4-evidence] wrote ${path.relative(desktopRoot, jsonPath)} and ${path.relative(desktopRoot, markdownPath)}\n`,
+  `[generate-desktop-vrm-representative-evidence] wrote ${path.relative(desktopRoot, jsonPath)} and ${path.relative(desktopRoot, markdownPath)}\n`,
 );
-

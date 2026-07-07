@@ -5,10 +5,10 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
-  buildDesktopVrmWave4Evidence,
-  renderDesktopVrmWave4EvidenceMarkdown,
-  writeDesktopVrmWave4Evidence,
-} from '../scripts/lib/desktop-vrm-wave4-evidence.mjs';
+  buildDesktopVrmRepresentativeEvidence,
+  renderDesktopVrmRepresentativeEvidenceMarkdown,
+  writeDesktopVrmRepresentativeEvidence,
+} from '../scripts/lib/desktop-vrm-representative-evidence.mjs';
 
 function createTempDir(prefix: string): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), `${prefix}-`));
@@ -105,9 +105,9 @@ function writeScenario(runRoot: string, directory: string, input: {
   }, null, 2));
 }
 
-test('desktop vrm wave4 evidence collects the latest artifact per representative scenario across runs', () => {
-  const desktopRoot = createTempDir('desktop-vrm-wave4-desktop-root');
-  const smokeRoot = path.join(createTempDir('desktop-vrm-wave4-smoke-root'), 'desktop-macos-smoke');
+test('desktop vrm representative evidence collects the latest artifact per representative scenario across runs', () => {
+  const desktopRoot = createTempDir('desktop-vrm-representative-desktop-root');
+  const smokeRoot = path.join(createTempDir('desktop-vrm-representative-smoke-root'), 'desktop-macos-smoke');
   const olderRunRoot = path.join(smokeRoot, '2026-04-18T09-00-00-000Z');
   const newerRunRoot = path.join(smokeRoot, '2026-04-18T10-00-00-000Z');
 
@@ -161,7 +161,7 @@ test('desktop vrm wave4 evidence collects the latest artifact per representative
     framingMode: 'broad-portrait',
   });
 
-  const evidence = buildDesktopVrmWave4Evidence({
+  const evidence = buildDesktopVrmRepresentativeEvidence({
     desktopRoot,
     smokeRoot,
   });
@@ -175,25 +175,25 @@ test('desktop vrm wave4 evidence collects the latest artifact per representative
   assert.equal(evidence.scenarios[0]?.generated_at, '2026-04-18T10:00:00.000Z');
   assert.equal(evidence.lifecyclePerformanceScenarioCount, 3);
   assert.match(
-    renderDesktopVrmWave4EvidenceMarkdown(evidence),
+    renderDesktopVrmRepresentativeEvidenceMarkdown(evidence),
     /chat\.vrm-speaking-smoke: PASS/,
   );
   assert.match(
-    renderDesktopVrmWave4EvidenceMarkdown(evidence),
+    renderDesktopVrmRepresentativeEvidenceMarkdown(evidence),
     /Lifecycle disposal\/resource\/headroom checks: 3\/3/,
   );
   assert.match(
-    renderDesktopVrmWave4EvidenceMarkdown(evidence),
+    renderDesktopVrmRepresentativeEvidenceMarkdown(evidence),
     /Renderer memory: geometries 7→7, textures 3→3, programs 4→4/,
   );
   assert.match(
-    renderDesktopVrmWave4EvidenceMarkdown(evidence),
+    renderDesktopVrmRepresentativeEvidenceMarkdown(evidence),
     /representative live framing breadth still resolves only to broad-portrait/,
   );
 });
 
-test('desktop vrm wave4 evidence writer emits json and markdown outputs', () => {
-  const outputRoot = createTempDir('desktop-vrm-wave4-evidence-output');
+test('desktop vrm representative evidence writer emits json and markdown outputs', () => {
+  const outputRoot = createTempDir('desktop-vrm-representative-evidence-output');
   const jsonPath = path.join(outputRoot, 'evidence.json');
   const markdownPath = path.join(outputRoot, 'evidence.md');
   const evidence = {
@@ -210,10 +210,10 @@ test('desktop vrm wave4 evidence writer emits json and markdown outputs', () => 
     observedPhaseScenarios: [],
     lifecyclePerformanceScenarioCount: 0,
     scenarios: [],
-    residualRisks: ['human acceptance notes are not yet recorded in the Wave 4 evidence line'],
+    residualRisks: ['human acceptance notes are not yet recorded in the representative VRM evidence line'],
   };
 
-  writeDesktopVrmWave4Evidence(jsonPath, markdownPath, evidence);
+  writeDesktopVrmRepresentativeEvidence(jsonPath, markdownPath, evidence);
 
   assert.equal(fs.existsSync(jsonPath), true);
   assert.equal(fs.existsSync(markdownPath), true);

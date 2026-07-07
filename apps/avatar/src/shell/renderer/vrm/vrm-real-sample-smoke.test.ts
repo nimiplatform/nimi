@@ -123,8 +123,8 @@ type ScenarioCase = {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const APP_ROOT = path.resolve(__dirname, '../../../..');
-const REPORT_ROOT = path.join(APP_ROOT, 'reports/vrm-wave5');
-const WRITE_REPORTS = process.env.NIMI_AVATAR_VRM_WAVE5_REPORTS === '1';
+const REPORT_ROOT = path.join(APP_ROOT, 'reports/vrm-real-sample-smoke');
+const WRITE_REPORTS = process.env.NIMI_AVATAR_VRM_REAL_SAMPLE_REPORTS === '1';
 
 let samples: SampleCase[] = [];
 
@@ -139,13 +139,13 @@ function readSampleCase(sampleId: string): SampleCase {
   const { filePath, definition } = resolveSamplePath(sampleId);
   if (!existsSync(filePath)) {
     throw new Error(
-      `wave5-smoke: sample ${sampleId} is missing at ${filePath}; run node apps/avatar/scripts/fetch-vrm-models.mjs first`,
+      `vrm-real-sample-smoke: sample ${sampleId} is missing at ${filePath}; run node apps/avatar/scripts/fetch-vrm-models.mjs first`,
     );
   }
   const buffer = readFileSync(filePath);
   if (buffer.length < definition.expectedMinBytes) {
     throw new Error(
-      `wave5-smoke: sample ${sampleId} is too small: ${buffer.length} < ${definition.expectedMinBytes}`,
+      `vrm-real-sample-smoke: sample ${sampleId} is too small: ${buffer.length} < ${definition.expectedMinBytes}`,
     );
   }
   return {
@@ -158,11 +158,11 @@ function readSampleCase(sampleId: string): SampleCase {
 
 function parseGlbJson(buffer: Buffer): GltfJson {
   if (buffer.subarray(0, 4).toString('utf8') !== 'glTF') {
-    throw new Error('wave5-smoke: sample is not binary glTF');
+    throw new Error('vrm-real-sample-smoke: sample is not binary glTF');
   }
   const version = buffer.readUInt32LE(4);
   if (version !== 2) {
-    throw new Error(`wave5-smoke: unsupported glTF version ${version}`);
+    throw new Error(`vrm-real-sample-smoke: unsupported glTF version ${version}`);
   }
   let offset = 12;
   while (offset + 8 <= buffer.length) {
@@ -175,7 +175,7 @@ function parseGlbJson(buffer: Buffer): GltfJson {
     }
     offset = chunkEnd;
   }
-  throw new Error('wave5-smoke: binary glTF JSON chunk not found');
+  throw new Error('vrm-real-sample-smoke: binary glTF JSON chunk not found');
 }
 
 function makeVrmFromRealSample(gltf: GltfJson, setValueSpy = vi.fn(), missingBones: string[] = []): VRM {
@@ -183,7 +183,7 @@ function makeVrmFromRealSample(gltf: GltfJson, setValueSpy = vi.fn(), missingBon
   const humanBones = readHumanBones(gltf);
   const nodes = gltf.nodes ?? [];
   return {
-    scene: { name: 'wave5-real-vrm-sample-scene' },
+    scene: { name: 'vrm-real-sample-smoke-scene' },
     expressionManager: { setValue: setValueSpy },
     humanoid: {
       getNormalizedBoneNode(name: string) {
@@ -452,7 +452,7 @@ const SCENARIOS: readonly ScenarioCase[] = [
   { id: 'vrm-emote-cycle', run: runEmoteCycle },
 ];
 
-describe('wave-5 real VRM sample smoke matrix', () => {
+describe('real VRM sample smoke matrix', () => {
   it('parses every admitted sample and exposes generated route capability', () => {
     expect(samples.map((sample) => sample.id).sort()).toEqual([
       'vrm1-constraint-twist',

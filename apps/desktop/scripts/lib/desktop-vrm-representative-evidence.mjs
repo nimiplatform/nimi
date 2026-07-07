@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const VRM_WAVE4_SCENARIOS = [
+const VRM_REPRESENTATIVE_SCENARIOS = [
   'chat.vrm-lifecycle-smoke',
   'chat.vrm-lifecycle-smoke-avatar-sample-a',
   'chat.vrm-lifecycle-smoke-avatar-sample-b',
@@ -100,7 +100,7 @@ function parseScenarioArtifact(scenarioDir) {
   };
 }
 
-function collectLatestWave4ScenarioArtifacts(smokeRoot) {
+function collectLatestRepresentativeScenarioArtifacts(smokeRoot) {
   const results = new Map();
   for (const runRoot of listRunRoots(smokeRoot)) {
     const scenarioDirs = fs.readdirSync(runRoot, { withFileTypes: true })
@@ -109,26 +109,26 @@ function collectLatestWave4ScenarioArtifacts(smokeRoot) {
       .sort((left, right) => path.basename(left).localeCompare(path.basename(right)));
     for (const scenarioDir of scenarioDirs) {
       const artifact = parseScenarioArtifact(scenarioDir);
-      if (!VRM_WAVE4_SCENARIOS.includes(artifact.scenario_id) || results.has(artifact.scenario_id)) {
+      if (!VRM_REPRESENTATIVE_SCENARIOS.includes(artifact.scenario_id) || results.has(artifact.scenario_id)) {
         continue;
       }
       results.set(artifact.scenario_id, artifact);
-      if (results.size === VRM_WAVE4_SCENARIOS.length) {
-        return VRM_WAVE4_SCENARIOS.map((scenarioId) => results.get(scenarioId));
+      if (results.size === VRM_REPRESENTATIVE_SCENARIOS.length) {
+        return VRM_REPRESENTATIVE_SCENARIOS.map((scenarioId) => results.get(scenarioId));
       }
     }
   }
-  return VRM_WAVE4_SCENARIOS
+  return VRM_REPRESENTATIVE_SCENARIOS
     .filter((scenarioId) => results.has(scenarioId))
     .map((scenarioId) => results.get(scenarioId));
 }
 
-export function buildDesktopVrmWave4Evidence(input) {
+export function buildDesktopVrmRepresentativeEvidence(input) {
   const desktopRoot = path.resolve(String(input.desktopRoot));
   const smokeRoot = path.resolve(String(input.smokeRoot || path.join(desktopRoot, '..', '..', '.local', 'report', 'desktop-macos-smoke')));
-  const scenarios = collectLatestWave4ScenarioArtifacts(smokeRoot);
+  const scenarios = collectLatestRepresentativeScenarioArtifacts(smokeRoot);
   const scenarioMap = new Map(scenarios.map((scenario) => [scenario.scenario_id, scenario]));
-  const missingScenarios = VRM_WAVE4_SCENARIOS.filter((scenarioId) => !scenarioMap.has(scenarioId));
+  const missingScenarios = VRM_REPRESENTATIVE_SCENARIOS.filter((scenarioId) => !scenarioMap.has(scenarioId));
   const failedScenarios = scenarios.filter((scenario) => !scenario.ok).map((scenario) => scenario.scenario_id);
   const observedFramingModes = Array.from(new Set(
     scenarios
@@ -164,10 +164,10 @@ export function buildDesktopVrmWave4Evidence(input) {
   const ok = missingScenarios.length === 0 && failedScenarios.length === 0;
   const residualRisks = [];
   if (missingScenarios.length > 0) {
-    residualRisks.push(`missing representative Wave 4 scenarios: ${missingScenarios.join(', ')}`);
+    residualRisks.push(`missing representative VRM scenarios: ${missingScenarios.join(', ')}`);
   }
   if (failedScenarios.length > 0) {
-    residualRisks.push(`one or more representative Wave 4 scenarios failed: ${failedScenarios.join(', ')}`);
+    residualRisks.push(`one or more representative VRM scenarios failed: ${failedScenarios.join(', ')}`);
   }
   if (observedFramingModes.length === 1 && observedFramingModes[0] === 'broad-portrait') {
     residualRisks.push('representative live framing breadth still resolves only to broad-portrait across the admitted sample set');
@@ -175,16 +175,16 @@ export function buildDesktopVrmWave4Evidence(input) {
   if (lifecyclePerformanceScenarios.length !== 3) {
     residualRisks.push('bounded disposal / resource-stability checks are not yet complete across the admitted lifecycle sample set');
   }
-  residualRisks.push('human acceptance notes are not yet recorded in the Wave 4 evidence line');
+  residualRisks.push('human acceptance notes are not yet recorded in the representative VRM evidence line');
 
   return {
     generatedAt: new Date().toISOString(),
     platform: 'macos',
     ok,
     smokeRoot,
-    expectedScenarioCount: VRM_WAVE4_SCENARIOS.length,
+    expectedScenarioCount: VRM_REPRESENTATIVE_SCENARIOS.length,
     scenarioCount: scenarios.length,
-    expectedScenarios: VRM_WAVE4_SCENARIOS,
+    expectedScenarios: VRM_REPRESENTATIVE_SCENARIOS,
     missingScenarios,
     failedScenarios,
     observedFramingModes,
@@ -195,9 +195,9 @@ export function buildDesktopVrmWave4Evidence(input) {
   };
 }
 
-export function renderDesktopVrmWave4EvidenceMarkdown(evidence) {
+export function renderDesktopVrmRepresentativeEvidenceMarkdown(evidence) {
   const lines = [
-    '# Desktop VRM Wave 4 Evidence',
+    '# Desktop VRM Representative Evidence',
     '',
     `- Generated at: ${evidence.generatedAt}`,
     `- Platform: ${evidence.platform}`,
@@ -254,9 +254,9 @@ export function renderDesktopVrmWave4EvidenceMarkdown(evidence) {
   return `${lines.join('\n')}\n`;
 }
 
-export function writeDesktopVrmWave4Evidence(outputJsonPath, outputMarkdownPath, evidence) {
+export function writeDesktopVrmRepresentativeEvidence(outputJsonPath, outputMarkdownPath, evidence) {
   fs.mkdirSync(path.dirname(outputJsonPath), { recursive: true });
   fs.mkdirSync(path.dirname(outputMarkdownPath), { recursive: true });
   fs.writeFileSync(outputJsonPath, `${JSON.stringify(evidence, null, 2)}\n`, 'utf8');
-  fs.writeFileSync(outputMarkdownPath, renderDesktopVrmWave4EvidenceMarkdown(evidence), 'utf8');
+  fs.writeFileSync(outputMarkdownPath, renderDesktopVrmRepresentativeEvidenceMarkdown(evidence), 'utf8');
 }
