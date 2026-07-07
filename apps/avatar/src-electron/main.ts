@@ -5,14 +5,17 @@ import { createHash } from 'node:crypto';
 import { app, BrowserWindow, ipcMain, protocol, screen, shell, type IpcMainInvokeEvent } from 'electron';
 import {
   assertOpaqueElectronLocalAgentRef,
+  createElectronShellFileProtocolHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   type NimiElectronRuntimeTrustedCallerMode,
+  type NimiElectronShellFileProtocolHost,
+  type NimiElectronShellUiCommandInput,
+  type NimiElectronStandardDataRootBinding,
 } from '@nimiplatform/kit/shell/electron/main';
 import { createAvatarElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 
 const APP_ID = 'nimi.avatar';
-const FILE_PROTOCOL = 'nimi-avatar-file';
 const AVATAR_PRODUCT_INVOKE_CHANNEL = 'nimi:avatar:invoke';
 
 const currentFilePath = fileURLToPath(import.meta.url);
@@ -25,24 +28,15 @@ const rendererUrl = normalizeText(process.env.NIMI_AVATAR_ELECTRON_RENDERER_URL)
 const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
   || normalizeText(process.env.NIMI_AVATAR_ELECTRON_RUNTIME_ENDPOINT)
   || '127.0.0.1:46371';
-const readableFiles = new Set<string>();
 let boundRuntimeIdentity: Readonly<Record<string, string | null>> | undefined;
 
-protocol.registerSchemesAsPrivileged([{
-  scheme: FILE_PROTOCOL,
-  privileges: {
-    standard: true,
-    secure: true,
-    corsEnabled: true,
-    supportFetchAPI: true,
-    stream: true,
-  },
-}]);
+const localAssetProtocolHost = createLocalAssetProtocolHost();
+localAssetProtocolHost.registerPrivilegedSchemes();
 
 app.setName('Nimi Avatar');
 
 void app.whenReady().then(async () => {
-  registerReadableFileProtocol();
+  localAssetProtocolHost.registerProtocolHandler();
   const standardDataRoot = resolveStandardDataRoot();
   const localAgentIdentity = resolveOptionalAvatarElectronLocalAgentIdentity();
   await mkdir(standardDataRoot, { recursive: true });
@@ -58,10 +52,36 @@ void app.whenReady().then(async () => {
       runtimeEndpoint,
     }),
     standardShellHost: {
-      dataRoot: standardDataRoot,
+      standardDataRootBinding: resolveStandardDataRootBinding(),
       localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
-      resolveLocalAssetUrl: resolveAvatarLocalAssetUrl,
+      localAssetProtocolHost,
       openExternalUrl: (url) => shell.openExternal(url),
+      // Kit standard floating-window host hooks. These operate on the
+      // invoking BrowserWindow and back the renderer's kit standard
+      // floating-window bridge (drag / size / ignore-cursor / constrain /
+      // always-on-top / hide / close). Manual drag reads getPosition at start
+      // and setPosition(origin+delta) per move; the window-control primitive
+      // is now kit-owned, avatar keeps only the product semantics.
+      floatingWindow: {
+        // The kit hook types `input.event` as its structural
+        // `NimiElectronIpcMainInvokeEvent` subset; at runtime it is the real
+        // Electron `IpcMainInvokeEvent`, so `floatingWindowSenderEvent`
+        // narrows it back for `senderWindow`.
+        setBounds: (payload, input) =>
+          setAvatarElectronFloatingWindowBounds(floatingWindowSenderEvent(input), payload),
+        setIgnoreCursorEvents: (payload, input) =>
+          setAvatarElectronFloatingWindowIgnoreCursorEvents(floatingWindowSenderEvent(input), payload),
+        setAlwaysOnTop: (payload, input) =>
+          setAvatarElectronFloatingWindowAlwaysOnTop(floatingWindowSenderEvent(input), payload),
+        hide: (_payload, input) => hideAvatarElectronFloatingWindow(floatingWindowSenderEvent(input)),
+        close: (_payload, input) => closeAvatarElectronFloatingWindow(floatingWindowSenderEvent(input)),
+        beginManualDrag: (_payload, input) =>
+          beginAvatarElectronFloatingWindowManualDrag(floatingWindowSenderEvent(input)),
+        moveManualDrag: (payload, input) =>
+          moveAvatarElectronFloatingWindowManualDrag(floatingWindowSenderEvent(input), payload),
+        constrainToVisibleArea: (payload, input) =>
+          constrainAvatarElectronFloatingWindow(floatingWindowSenderEvent(input), payload),
+      },
       ...(localAgentIdentity ? { localAgentIdentity } : {}),
       runtimeTrustedCaller: {
         mode: resolveRuntimeTrustedCallerMode(),
@@ -95,26 +115,14 @@ function registerAvatarElectronProductCommands(dataRoot: string): void {
         return writeAvatarElectronEvidenceArtifact(dataRoot, payload);
       case 'nimi_avatar_resolve_local_avatar_asset':
         return resolveAvatarElectronLocalAvatarAsset(payload);
-      case 'nimi_avatar_start_window_drag':
-        return { started: false, reasonCode: 'electron-programmatic-window-drag-not-supported' };
-      case 'nimi_avatar_begin_manual_drag_window':
-        return beginAvatarElectronManualDragWindow(event);
-      case 'nimi_avatar_move_manual_drag_window':
-        return moveAvatarElectronManualDragWindow(event, payload);
-      case 'nimi_avatar_set_window_size':
-        return setAvatarElectronWindowSize(event, payload);
-      case 'nimi_avatar_set_ignore_cursor_events':
-        return setAvatarElectronIgnoreCursorEvents(event, payload);
+      // Window control (drag / size / ignore-cursor / constrain /
+      // always-on-top / hide / close) is migrated to the kit standard
+      // floating-window commands, routed through the standard shell runtime
+      // bridge to the `standardShellHost.floatingWindow` hooks below. Only
+      // cursor hit-testing stays on this avatar product channel because it is
+      // tightly coupled to the alpha-mask click-through decision.
       case 'nimi_avatar_get_cursor_client_position':
         return getAvatarElectronCursorClientPosition(event);
-      case 'nimi_avatar_constrain_window_to_visible_area':
-        return constrainAvatarElectronWindowToVisibleArea(event, payload);
-      case 'nimi_avatar_set_always_on_top':
-        return setAvatarElectronAlwaysOnTop(event, payload);
-      case 'nimi_avatar_hide_window':
-        return hideAvatarElectronWindow(event);
-      case 'nimi_avatar_close_window':
-        return closeAvatarElectronWindow(event);
       default:
         throw new Error(`Unsupported Avatar Electron product command: ${command}`);
     }
@@ -437,45 +445,92 @@ function normalizeAgentCenterAdapterManifestPath(assetDir: string, manifestRef: 
   return path.join(assetDir, `${ref}.json`);
 }
 
-function beginAvatarElectronManualDragWindow(event: IpcMainInvokeEvent): Record<string, number> {
+// Kit standard floating-window host hooks (Electron). Each acts on the
+// invoking BrowserWindow. Payloads are the kit camelCase wire shapes; return
+// shapes match the kit renderer bridge parsers (beginManualDrag →
+// {mode,originX,originY}; constrain → {constrained}; others → {}).
+
+function beginAvatarElectronFloatingWindowManualDrag(
+  event: IpcMainInvokeEvent,
+): Record<string, unknown> {
   const window = senderWindow(event);
   const [x, y] = window.getPosition();
   return {
-    x: normalizeNumber(x, 'window.x'),
-    y: normalizeNumber(y, 'window.y'),
+    mode: 'manual',
+    originX: Math.round(normalizeNumber(x, 'window.x')),
+    originY: Math.round(normalizeNumber(y, 'window.y')),
   };
 }
 
-function moveAvatarElectronManualDragWindow(
+function moveAvatarElectronFloatingWindowManualDrag(
   event: IpcMainInvokeEvent,
   payload: Readonly<Record<string, unknown>>,
-): Record<string, true> {
+): void {
   const window = senderWindow(event);
-  const origin = asRecord(payload.origin, 'Avatar manual drag origin must be an object');
-  const x = Math.round(normalizeNumber(origin.x, 'origin.x') + normalizeNumber(payload.totalDeltaX, 'totalDeltaX'));
-  const y = Math.round(normalizeNumber(origin.y, 'origin.y') + normalizeNumber(payload.totalDeltaY, 'totalDeltaY'));
+  const x = Math.round(normalizeNumber(payload.originX, 'originX') + normalizeNumber(payload.totalDeltaX, 'totalDeltaX'));
+  const y = Math.round(normalizeNumber(payload.originY, 'originY') + normalizeNumber(payload.totalDeltaY, 'totalDeltaY'));
   window.setPosition(x, y);
-  return { moved: true };
 }
 
-function setAvatarElectronWindowSize(
+function setAvatarElectronFloatingWindowBounds(
   event: IpcMainInvokeEvent,
   payload: Readonly<Record<string, unknown>>,
-): Record<string, true> {
-  senderWindow(event).setSize(
-    Math.round(normalizeNumber(payload.width, 'width')),
-    Math.round(normalizeNumber(payload.height, 'height')),
-  );
-  return { resized: true };
+): void {
+  const window = senderWindow(event);
+  const width = normalizeOptionalNumber(payload.width);
+  const height = normalizeOptionalNumber(payload.height);
+  const x = normalizeOptionalNumber(payload.x);
+  const y = normalizeOptionalNumber(payload.y);
+  if (width !== undefined && height !== undefined) {
+    window.setSize(Math.round(width), Math.round(height));
+  }
+  if (x !== undefined && y !== undefined) {
+    window.setPosition(Math.round(x), Math.round(y));
+  }
 }
 
-function setAvatarElectronIgnoreCursorEvents(
+function setAvatarElectronFloatingWindowIgnoreCursorEvents(
+  event: IpcMainInvokeEvent,
+  payload: Readonly<Record<string, unknown>>,
+): void {
+  const ignore = Boolean(payload.ignore);
+  const forward = payload.forward === undefined ? true : Boolean(payload.forward);
+  senderWindow(event).setIgnoreMouseEvents(ignore, { forward });
+}
+
+function setAvatarElectronFloatingWindowAlwaysOnTop(
+  event: IpcMainInvokeEvent,
+  payload: Readonly<Record<string, unknown>>,
+): void {
+  senderWindow(event).setAlwaysOnTop(Boolean(payload.alwaysOnTop));
+}
+
+function hideAvatarElectronFloatingWindow(event: IpcMainInvokeEvent): void {
+  senderWindow(event).hide();
+}
+
+function closeAvatarElectronFloatingWindow(event: IpcMainInvokeEvent): void {
+  senderWindow(event).close();
+}
+
+function constrainAvatarElectronFloatingWindow(
   event: IpcMainInvokeEvent,
   payload: Readonly<Record<string, unknown>>,
 ): Record<string, boolean> {
-  const ignore = Boolean(payload.ignore);
-  senderWindow(event).setIgnoreMouseEvents(ignore, { forward: true });
-  return { ignore };
+  const window = senderWindow(event);
+  const bounds = window.getBounds();
+  const display = screen.getDisplayMatching(bounds);
+  const minVisibleRatio = Math.min(1, Math.max(0.05, normalizeOptionalNumber(payload.minVisibleRatio) ?? 0.2));
+  const minVisibleWidth = Math.ceil(bounds.width * minVisibleRatio);
+  const minVisibleHeight = Math.ceil(bounds.height * minVisibleRatio);
+  const area = display.workArea;
+  const nextX = Math.min(Math.max(bounds.x, area.x - bounds.width + minVisibleWidth), area.x + area.width - minVisibleWidth);
+  const nextY = Math.min(Math.max(bounds.y, area.y - bounds.height + minVisibleHeight), area.y + area.height - minVisibleHeight);
+  const constrained = nextX !== bounds.x || nextY !== bounds.y;
+  if (constrained) {
+    window.setBounds({ ...bounds, x: nextX, y: nextY });
+  }
+  return { constrained };
 }
 
 function getAvatarElectronCursorClientPosition(event: IpcMainInvokeEvent): Record<string, number> {
@@ -492,40 +547,12 @@ function getAvatarElectronCursorClientPosition(event: IpcMainInvokeEvent): Recor
   };
 }
 
-function constrainAvatarElectronWindowToVisibleArea(
-  event: IpcMainInvokeEvent,
-  payload: Readonly<Record<string, unknown>>,
-): Record<string, true> {
-  const window = senderWindow(event);
-  const bounds = window.getBounds();
-  const display = screen.getDisplayMatching(bounds);
-  const minVisibleRatio = Math.min(1, Math.max(0.05, normalizeOptionalNumber(payload.minVisibleRatio) ?? 0.2));
-  const minVisibleWidth = Math.round(bounds.width * minVisibleRatio);
-  const minVisibleHeight = Math.round(bounds.height * minVisibleRatio);
-  const area = display.workArea;
-  const nextX = Math.min(Math.max(bounds.x, area.x - bounds.width + minVisibleWidth), area.x + area.width - minVisibleWidth);
-  const nextY = Math.min(Math.max(bounds.y, area.y - bounds.height + minVisibleHeight), area.y + area.height - minVisibleHeight);
-  window.setBounds({ ...bounds, x: nextX, y: nextY });
-  return { constrained: true };
-}
-
-function setAvatarElectronAlwaysOnTop(
-  event: IpcMainInvokeEvent,
-  payload: Readonly<Record<string, unknown>>,
-): Record<string, boolean> {
-  const alwaysOnTop = Boolean(payload.alwaysOnTop);
-  senderWindow(event).setAlwaysOnTop(alwaysOnTop);
-  return { alwaysOnTop };
-}
-
-function hideAvatarElectronWindow(event: IpcMainInvokeEvent): Record<string, true> {
-  senderWindow(event).hide();
-  return { hidden: true };
-}
-
-function closeAvatarElectronWindow(event: IpcMainInvokeEvent): Record<string, true> {
-  senderWindow(event).close();
-  return { closed: true };
+function floatingWindowSenderEvent(input: NimiElectronShellUiCommandInput): IpcMainInvokeEvent {
+  // The kit floating-window hook exposes the invoking IPC event through its
+  // structural `NimiElectronIpcMainInvokeEvent` subset; at runtime it is the
+  // real Electron `IpcMainInvokeEvent`, so `senderWindow` can resolve the
+  // BrowserWindow from `event.sender`.
+  return input.event as unknown as IpcMainInvokeEvent;
 }
 
 function senderWindow(event: IpcMainInvokeEvent): BrowserWindow {
@@ -648,6 +675,18 @@ function resolveStandardDataRoot(): string {
   return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
 }
 
+function resolveStandardDataRootBinding(): NimiElectronStandardDataRootBinding {
+  const fromEnv = normalizeText(process.env.NIMI_AVATAR_ELECTRON_STANDARD_DATA_ROOT);
+  if (fromEnv) {
+    return {
+      source: 'runtime-launch-projection',
+      durableDataRoot: path.resolve(fromEnv),
+      projectionRef: 'avatar-electron-acceptance-fixture',
+    };
+  }
+  return { source: 'runtime-get-app-storage' };
+}
+
 function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
   const fromEnv = normalizeText(process.env.NIMI_AVATAR_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS);
   if (!fromEnv) {
@@ -672,64 +711,14 @@ function resolveRuntimeTrustedCallerMode(): NimiElectronRuntimeTrustedCallerMode
   throw new Error(`unsupported Avatar Electron Runtime trusted caller mode: ${mode}`);
 }
 
-async function resolveAvatarLocalAssetUrl(filePath: string): Promise<string> {
-  await registerReadableFile(filePath);
-  return encodeReadableFileUrl(filePath);
-}
-
-async function registerReadableFile(filePath: string): Promise<void> {
-  const canonical = await realpath(filePath).catch(() => path.resolve(filePath));
-  readableFiles.add(canonical);
-}
-
-function encodeReadableFileUrl(filePath: string): string {
-  return `${FILE_PROTOCOL}://local/${encodeURIComponent(path.resolve(filePath))}`;
-}
-
-function registerReadableFileProtocol(): void {
-  protocol.handle(FILE_PROTOCOL, async (request) => {
-    try {
-      const filePath = decodeReadableFileUrl(request.url);
-      const canonical = await realpath(filePath);
-      if (!readableFiles.has(canonical)) {
-        return new Response('file is not registered for Avatar preview', { status: 403 });
-      }
-      return new Response(await readFile(canonical), {
-        headers: {
-          'content-type': contentTypeForPath(canonical),
-          'cache-control': 'no-store',
-          'access-control-allow-origin': '*',
-        },
-      });
-    } catch (error) {
-      return new Response(error instanceof Error ? error.message : String(error || 'file read failed'), {
-        status: 404,
-        headers: {
-          'access-control-allow-origin': '*',
-        },
-      });
-    }
+function createLocalAssetProtocolHost(): NimiElectronShellFileProtocolHost {
+  return createElectronShellFileProtocolHost({
+    protocol: {
+      registerSchemesAsPrivileged: (schemes) => protocol.registerSchemesAsPrivileged([...schemes]),
+      handle: (scheme, handler) => protocol.handle(scheme, (request) => handler(request) as Promise<Response>),
+    },
+    roots: resolveStandardLocalAssetRoots(resolveStandardDataRoot()),
   });
-}
-
-function decodeReadableFileUrl(value: string): string {
-  const url = new URL(value);
-  if (url.protocol !== `${FILE_PROTOCOL}:`) {
-    throw new Error(`unsupported Avatar file protocol: ${url.protocol}`);
-  }
-  const encoded = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
-  return decodeURIComponent(encoded);
-}
-
-function contentTypeForPath(filePath: string): string {
-  const ext = path.extname(filePath).toLowerCase();
-  if (ext === '.png') return 'image/png';
-  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
-  if (ext === '.webp') return 'image/webp';
-  if (ext === '.gif') return 'image/gif';
-  if (ext === '.json') return 'application/json; charset=utf-8';
-  if (ext === '.txt') return 'text/plain; charset=utf-8';
-  return 'application/octet-stream';
 }
 
 function normalizeText(value: unknown): string {

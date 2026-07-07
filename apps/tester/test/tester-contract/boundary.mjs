@@ -485,18 +485,24 @@ test('tester product-local persistence consumes Kit core storage helpers', () =>
 
 test('tester app-owned Tauri commands are registered in standalone shell', () => {
   const main = read('src-tauri/src/main.rs');
-  assert.match(main, /tester_run_history_load/);
-  assert.match(main, /tester_image_history_save/);
-  assert.match(main, /tester_artifact_save/);
-  assert.match(main, /tester_export_save/);
+  assert.match(main, /resolve_world_tour_fixture/);
+  assert.match(main, /save_world_tour_viewer_preset/);
   assert.match(main, /open_world_tour_window/);
   assert.match(main, /claim_world_tour_viewer_launch/);
+  // Run/image history, export, and artifact save now flow through the kit
+  // standard storage/export/artifact commands, not app-owned Tauri commands.
+  assert.doesNotMatch(main, /tester_run_history_load/);
+  assert.doesNotMatch(main, /tester_image_history_save/);
+  assert.doesNotMatch(main, /tester_artifact_save/);
+  assert.doesNotMatch(main, /tester_export_save/);
+  assert.match(main, /StandardAppStorageRootSlot/);
 });
 
 test('tester scaffold boundary expands beyond the product route', () => {
   const agents = read('AGENTS.md');
   assert.match(agents, /src\/shell\/routes\/product-area\.tsx/);
   assert.match(agents, /src\/tester\/\*\*/);
-  assert.match(agents, /src-tauri\/src\/\{tester_storage\.rs,world_tour\.rs\}/);
+  assert.match(agents, /src-tauri\/src\/world_tour\.rs/);
+  assert.doesNotMatch(agents, /tester_storage\.rs/);
   assert.match(agents, /tester contract tests/);
 });

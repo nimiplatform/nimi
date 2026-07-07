@@ -28,7 +28,6 @@ const recordAvatarEvidenceEventuallyMock = vi.fn();
 const setIgnoreCursorEventsMock = vi.fn();
 const getCursorClientPositionMock = vi.fn();
 const registerLipsyncSinkMock = vi.fn();
-const startWindowDragMock = vi.fn();
 const beginManualDragWindowMock = vi.fn();
 const moveManualDragWindowMock = vi.fn();
 const constrainWindowToVisibleAreaMock = vi.fn();
@@ -42,7 +41,6 @@ vi.mock('../app-shell/avatar-evidence.js', () => ({
 }));
 
 vi.mock('../app-shell/tauri-commands.js', () => ({
-  startWindowDrag: (...args: unknown[]) => startWindowDragMock(...args),
   beginManualDragWindow: (...args: unknown[]) => beginManualDragWindowMock(...args),
   moveManualDragWindow: (...args: unknown[]) => moveManualDragWindowMock(...args),
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
@@ -54,6 +52,13 @@ vi.mock('../app-shell/tauri-commands.js', () => ({
 vi.mock('../app-shell/tauri-lifecycle.js', () => ({
   isTauriRuntime: () => runtimeFlags.tauriRuntime,
   onLaunchContextUpdated: () => Promise.resolve(() => {}),
+}));
+
+vi.mock('../app-shell/avatar-host-bridge.js', () => ({
+  // Manual drag now runs whenever an avatar host runtime is present; the test
+  // toggles it via the same `runtimeFlags.tauriRuntime` seam used for
+  // click-through gating.
+  hasAvatarHostRuntime: () => runtimeFlags.tauriRuntime,
 }));
 
 vi.mock('@nimiplatform/kit/features/avatar/headless', async (importOriginal) => {
@@ -164,8 +169,6 @@ beforeEach(() => {
   recordAvatarEvidenceEventuallyMock.mockReset();
   setIgnoreCursorEventsMock.mockReset();
   getCursorClientPositionMock.mockReset();
-  startWindowDragMock.mockReset();
-  startWindowDragMock.mockResolvedValue(undefined);
   beginManualDragWindowMock.mockReset();
   beginManualDragWindowMock.mockResolvedValue({ x: 1000, y: 700 });
   moveManualDragWindowMock.mockReset();
@@ -744,7 +747,12 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     });
   });
 
-  it('non-macOS drag uses native Tauri startDragging instead of manual movement', async () => {
+  it('drag is unified to manual movement on every platform (no system start-dragging)', async () => {
+    // Window drag now uses the kit standard manual drag primitive
+    // (`beginManualDragWindow` → `moveManualDragWindow`) on every host and
+    // platform; the retired system-level start-dragging OS-sniff branch is
+    // gone. A Win32 platform (which used to take the system-drag path) now
+    // takes the manual path too.
     runtimeFlags.tauriRuntime = true;
     Object.defineProperty(window.navigator, 'platform', {
       value: 'Win32',
@@ -769,6 +777,10 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
       screenX: 800,
       screenY: 500,
     });
+    await Promise.resolve();
+
+    expect(beginManualDragWindowMock).toHaveBeenCalledTimes(1);
+
     fireEvent.pointerMove(stage, {
       button: 0,
       buttons: 1,
@@ -778,46 +790,15 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
       screenX: 810,
       screenY: 500,
     });
-    await Promise.resolve();
-
-    expect(startWindowDragMock).toHaveBeenCalledTimes(1);
-    expect(beginManualDragWindowMock).not.toHaveBeenCalled();
-    expect(moveManualDragWindowMock).not.toHaveBeenCalled();
-  });
-
-  it('unknown Tauri platform defaults to manual drag fallback for macOS WKWebView safety', async () => {
-    runtimeFlags.tauriRuntime = true;
-    Object.defineProperty(window.navigator, 'platform', {
-      value: '',
-      configurable: true,
+    act(() => {
+      vi.advanceTimersByTime(100);
     });
-    Object.defineProperty(window.navigator, 'userAgent', {
-      value: 'Mozilla/5.0',
-      configurable: true,
-    });
-    const backend = createMockBackend({
-      hitRegion: {
-        body: { left: 0, top: 0, right: 1, bottom: 1 },
-        drag: { left: 0, top: 0, right: 1, bottom: 1 },
-        isOpaqueAtClientPoint: () => true,
-      },
-    });
-    render(<EmbodimentStage {...baseProps} backend={backend} />);
-    const stage = screen.getByTestId('avatar-embodiment-stage');
 
-    fireEvent.pointerDown(stage, {
-      button: 0,
-      buttons: 1,
-      pointerId: 12,
-      clientX: 120,
-      clientY: 220,
-      screenX: 800,
-      screenY: 500,
+    expect(moveManualDragWindowMock).toHaveBeenCalledWith({
+      origin: { x: 1000, y: 700 },
+      totalDeltaX: 10,
+      totalDeltaY: 0,
     });
-    await Promise.resolve();
-
-    expect(beginManualDragWindowMock).toHaveBeenCalledTimes(1);
-    expect(startWindowDragMock).not.toHaveBeenCalled();
   });
 
   it('zero-delta pointermove while armed does not consume a click as drag', async () => {

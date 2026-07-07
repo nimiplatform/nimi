@@ -1,4 +1,4 @@
-import { invokeTesterCommand } from './tester-tauri.js';
+import { exportShellSaveFile } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type TesterExportSaveResult = {
   artifactPath: string;
@@ -26,11 +26,10 @@ export async function saveTesterExport(input: {
     ? new Blob([input.body], { type: input.mimeType || 'text/plain;charset=utf-8' })
     : input.body;
   const dataBase64 = arrayBufferToBase64(await blob.arrayBuffer());
-  return invokeTesterCommand<TesterExportSaveResult>('tester_export_save', {
-    payload: {
-      filename: input.filename,
-      mimeType: input.mimeType || blob.type || undefined,
-      dataBase64,
-    },
+  return exportShellSaveFile({
+    filename: input.filename,
+    mimeType: input.mimeType || blob.type || undefined,
+    dataBase64,
+    reveal: true,
   });
 }

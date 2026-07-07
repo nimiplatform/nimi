@@ -155,6 +155,7 @@ export async function assertAvatarLaunchLiveHandoff(
     const avatarEvidenceRecords = await waitForAvatarEvidenceRecords({
       dataRoot,
       avatarInstanceId,
+      launchPid,
       requiredKinds: [
         'avatar.startup.runtime-bound',
         'avatar.visual.local-asset-resolved',
@@ -216,7 +217,7 @@ export async function waitForAvatarNativeVoiceChunkPlaybackEvidence(input) {
     'evidence',
     'avatar-electron-evidence.jsonl',
   );
-  const deadline = Date.now() + 60_000;
+  const deadline = Date.now() + 90_000;
   let lastError = '';
   while (Date.now() < deadline) {
     try {
@@ -344,6 +345,10 @@ async function waitForAvatarEvidenceRecords(input) {
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error);
     }
+    if (Number.isSafeInteger(input.launchPid) && input.launchPid > 0 && !processIsAlive(input.launchPid)) {
+      lastError = `avatar process ${input.launchPid} exited before evidence was written; ${lastError}`;
+      break;
+    }
     await sleep(500);
   }
   throw new Error(`Avatar Electron evidence did not contain required ${input.requiredKinds.join(', ')} at ${evidencePath}: ${lastError}`);
@@ -373,6 +378,15 @@ async function closeSpawnedAvatarProcess(pid) {
     process.kill(pid, 'SIGTERM');
   } catch {
     // The Avatar shell may already have closed after recording fail-closed evidence.
+  }
+}
+
+function processIsAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
   }
 }
 

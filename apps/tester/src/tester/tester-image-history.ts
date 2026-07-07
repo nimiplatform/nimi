@@ -1,6 +1,6 @@
-import { invokeTesterCommand } from './tester-tauri.js';
 import type { TesterCapabilityId } from './tester-capabilities.js';
-import { withTesterDataStorageRoot } from './tester-app-storage.js';
+import { readTesterStandardStorageJson, writeTesterStandardStorageJson } from './tester-standard-storage.js';
+import type { JsonValue } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type TesterImageHistoryRecord = {
   id: string;
@@ -30,24 +30,27 @@ function normalizeRecord(record: TesterImageHistoryRecord): TesterImageHistoryRe
   };
 }
 
-function parseRecords(raw: string): TesterImageHistoryRecord[] {
-  const parsed = JSON.parse(raw || '[]');
-  if (!Array.isArray(parsed)) {
+const TESTER_IMAGE_HISTORY_STORAGE_PATH = 'tester-image-history.json';
+
+function parseRecords(value: JsonValue | undefined): TesterImageHistoryRecord[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
     throw new Error('Tester image history payload must be an array.');
   }
-  return (parsed as TesterImageHistoryRecord[]).map(normalizeRecord);
+  return (value as TesterImageHistoryRecord[]).map(normalizeRecord);
 }
 
 export async function loadTesterImageHistory(): Promise<TesterImageHistoryRecord[]> {
-  return parseRecords(await invokeTesterCommand<string>('tester_image_history_load', {
-    payload: await withTesterDataStorageRoot({}),
-  }));
+  return parseRecords(await readTesterStandardStorageJson(TESTER_IMAGE_HISTORY_STORAGE_PATH));
 }
 
 export async function saveTesterImageHistory(records: TesterImageHistoryRecord[]): Promise<void> {
-  await invokeTesterCommand('tester_image_history_save', {
-    payload: await withTesterDataStorageRoot({ recordsJson: JSON.stringify(records.slice(0, 80)) }),
-  });
+  await writeTesterStandardStorageJson(
+    TESTER_IMAGE_HISTORY_STORAGE_PATH,
+    records.slice(0, 80) as unknown as JsonValue,
+  );
 }
 
 export async function appendTesterImageHistoryRecord(record: TesterImageHistoryRecord): Promise<TesterImageHistoryRecord[]> {

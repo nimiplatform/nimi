@@ -1,11 +1,14 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { appendFile, mkdir, readFile, realpath } from 'node:fs/promises';
+import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell, type MessageBoxOptions } from 'electron';
 import {
+  createElectronShellFileProtocolHost,
   createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
+  type NimiElectronShellFileProtocolHost,
+  type NimiElectronStandardDataRootBinding,
 } from '@nimiplatform/kit/shell/electron/main';
 import { createDesktopElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 import {
@@ -20,7 +23,6 @@ import { createDesktopInstalledAppHostWindow } from './app-launch/installed-app-
 import { DESKTOP_INSTALLED_APP_LAUNCH_COMMAND } from '../src/shell/shared/installed-app-launch-contract.js';
 
 const APP_ID = 'nimi.desktop';
-const FILE_PROTOCOL = 'nimi-shell-file';
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
@@ -32,19 +34,29 @@ const rendererUrl = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL
 const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
   || normalizeText(process.env.NIMI_DESKTOP_ELECTRON_RUNTIME_ENDPOINT)
   || '127.0.0.1:46371';
-const readableFiles = new Set<string>();
+
+// Standard shell local-asset protocol host. Serves only files explicitly
+// registered readable (kit host also allows configured `roots`; desktop keeps
+// the historical registered-only serving gate by passing no roots). The
+// path-allow gate for which absolute paths may be resolved stays on the
+// standard shell host via `localAssetRoots`.
+//
+// The kit `NimiElectronShellFileProtocolApi` declares its scheme list param as
+// `readonly`, while Electron's `Protocol.registerSchemesAsPrivileged` expects a
+// mutable array, so the raw `protocol` object is not structurally assignable.
+// Forward through a thin adapter that copies the list into a mutable array.
+const localAssetProtocolHost: NimiElectronShellFileProtocolHost = createElectronShellFileProtocolHost({
+  protocol: {
+    registerSchemesAsPrivileged: (customSchemes) =>
+      protocol.registerSchemesAsPrivileged([...customSchemes]),
+    handle: (scheme, handler) =>
+      protocol.handle(scheme, async (request) => (await handler(request)) as Response),
+  },
+});
 let mainWindow: BrowserWindow | undefined;
 
+localAssetProtocolHost.registerPrivilegedSchemes();
 protocol.registerSchemesAsPrivileged([{
-  scheme: FILE_PROTOCOL,
-  privileges: {
-    standard: true,
-    secure: true,
-    corsEnabled: true,
-    supportFetchAPI: true,
-    stream: true,
-  },
-}, {
   scheme: DESKTOP_INSTALLED_APP_PROTOCOL_SCHEME,
   privileges: {
     standard: true,
@@ -59,7 +71,7 @@ app.setName('Nimi Desktop');
 configureDesktopElectronChromiumRuntime();
 
 void app.whenReady().then(async () => {
-  registerReadableFileProtocol();
+  localAssetProtocolHost.registerProtocolHandler();
   const standardDataRoot = resolveStandardDataRoot();
   await mkdir(standardDataRoot, { recursive: true });
   const installedAppLauncher = createDesktopInstalledAppLauncher({
@@ -89,9 +101,9 @@ void app.whenReady().then(async () => {
       runtimeEndpoint,
     }),
     standardShellHost: {
-      dataRoot: standardDataRoot,
+      standardDataRootBinding: resolveStandardDataRootBinding(),
       localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
-      resolveLocalAssetUrl: resolveDesktopLocalAssetUrl,
+      localAssetProtocolHost,
       openExternalUrl: openDesktopExternalUrl,
       confirmDialog: confirmDesktopDialog,
       focusMainWindow: focusDesktopMainWindow,
@@ -198,6 +210,18 @@ function resolveStandardDataRoot(): string {
   return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
 }
 
+function resolveStandardDataRootBinding(): NimiElectronStandardDataRootBinding {
+  const fromEnv = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_DATA_ROOT);
+  if (fromEnv) {
+    return {
+      source: 'runtime-launch-projection',
+      durableDataRoot: path.resolve(fromEnv),
+      projectionRef: 'desktop-electron-acceptance-fixture',
+    };
+  }
+  return { source: 'runtime-get-app-storage' };
+}
+
 function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
   const fromEnv = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS);
   if (!fromEnv) {
@@ -232,11 +256,6 @@ function createDesktopRuntimeConfigReader(dataRoot: string): () => Promise<{
       config: parsed as Readonly<Record<string, unknown>>,
     };
   };
-}
-
-async function resolveDesktopLocalAssetUrl(filePath: string): Promise<string> {
-  await registerReadableFile(filePath);
-  return encodeReadableFileUrl(filePath);
 }
 
 async function openDesktopExternalUrl(url: string): Promise<void> {
@@ -281,61 +300,6 @@ async function focusDesktopMainWindow(): Promise<void> {
   }
   window.show();
   window.focus();
-}
-
-async function registerReadableFile(filePath: string): Promise<void> {
-  const canonical = await realpath(filePath).catch(() => path.resolve(filePath));
-  readableFiles.add(canonical);
-}
-
-function encodeReadableFileUrl(filePath: string): string {
-  return `${FILE_PROTOCOL}://local/${encodeURIComponent(path.resolve(filePath))}`;
-}
-
-function registerReadableFileProtocol(): void {
-  protocol.handle(FILE_PROTOCOL, async (request) => {
-    try {
-      const filePath = decodeReadableFileUrl(request.url);
-      const canonical = await realpath(filePath);
-      if (!readableFiles.has(canonical)) {
-        return new Response('file is not registered for desktop preview', { status: 403 });
-      }
-      return new Response(await readFile(canonical), {
-        headers: {
-          'content-type': contentTypeForPath(canonical),
-          'cache-control': 'no-store',
-          'access-control-allow-origin': '*',
-        },
-      });
-    } catch (error) {
-      return new Response(error instanceof Error ? error.message : String(error || 'file read failed'), {
-        status: 404,
-        headers: {
-          'access-control-allow-origin': '*',
-        },
-      });
-    }
-  });
-}
-
-function decodeReadableFileUrl(value: string): string {
-  const url = new URL(value);
-  if (url.protocol !== `${FILE_PROTOCOL}:`) {
-    throw new Error(`unsupported desktop file protocol: ${url.protocol}`);
-  }
-  const encoded = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
-  return decodeURIComponent(encoded);
-}
-
-function contentTypeForPath(filePath: string): string {
-  const ext = path.extname(filePath).toLowerCase();
-  if (ext === '.png') return 'image/png';
-  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
-  if (ext === '.webp') return 'image/webp';
-  if (ext === '.gif') return 'image/gif';
-  if (ext === '.json') return 'application/json; charset=utf-8';
-  if (ext === '.txt') return 'text/plain; charset=utf-8';
-  return 'application/octet-stream';
 }
 
 function normalizeText(value: unknown): string {

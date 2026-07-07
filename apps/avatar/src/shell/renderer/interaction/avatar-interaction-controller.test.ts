@@ -3,7 +3,7 @@ import type { AppOriginEvent } from '../driver/types.js';
 import { createAvatarHitRegionSnapshot } from '@nimiplatform/kit/features/avatar/headless';
 import { AvatarInteractionController } from './avatar-interaction-controller.js';
 
-function createController(input: { tauri?: boolean; dragRejects?: boolean; clickThroughRejectsOnce?: boolean } = {}) {
+function createController(input: { tauri?: boolean; clickThroughRejectsOnce?: boolean } = {}) {
   let now = 1000;
   const emitted: AppOriginEvent[] = [];
   const clickThrough: boolean[] = [];
@@ -11,11 +11,6 @@ function createController(input: { tauri?: boolean; dragRejects?: boolean; click
   const pointerInside: boolean[] = [];
   const pointerContact: boolean[] = [];
   const constrainWindowToVisibleArea = vi.fn();
-  const startWindowDrag = input.dragRejects
-    ? vi.fn(async () => {
-      throw new Error('native drag failed');
-    })
-    : vi.fn(async () => {});
   const controller = new AvatarInteractionController({
     getHitRegionSnapshot: () => createAvatarHitRegionSnapshot({
       body: { x: 10, y: 20, width: 100, height: 200, region: 'body' },
@@ -37,7 +32,6 @@ function createController(input: { tauri?: boolean; dragRejects?: boolean; click
         throw new Error('native click-through failed');
       }
     },
-    startWindowDrag,
     constrainWindowToVisibleArea,
     nowMs: () => now,
     isTauriRuntime: () => input.tauri ?? false,
@@ -48,7 +42,6 @@ function createController(input: { tauri?: boolean; dragRejects?: boolean; click
     clickThrough,
     pointerInside,
     pointerContact,
-    startWindowDrag,
     constrainWindowToVisibleArea,
     tick(ms: number) {
       now += ms;
@@ -127,7 +120,6 @@ describe('AvatarInteractionController', () => {
       client_x: 60,
       client_y: 180,
     });
-    expect(fixture.startWindowDrag).not.toHaveBeenCalled();
   });
 
   it('cancels long press timer when movement starts drag', () => {
@@ -161,17 +153,24 @@ describe('AvatarInteractionController', () => {
     expect(fixture.constrainWindowToVisibleArea).not.toHaveBeenCalled();
   });
 
-  it('does not emit drag success when native drag handoff rejects', async () => {
-    const fixture = createController({ tauri: true, dragRejects: true });
+  it('confirms drag immediately on the Tauri host (unified manual drag, no system handoff)', () => {
+    // Drag is unified to the kit standard manual drag primitive; the retired
+    // system-level `start_dragging` handoff is gone. Drag start is confirmed
+    // synchronously on every host, so the drag events emit without awaiting a
+    // native drag session.
+    const fixture = createController({ tauri: true });
 
     fixture.controller.pointerDown({ clientX: 60, clientY: 180, button: 0 });
     fixture.controller.pointerMove({ clientX: 66, clientY: 180, button: 0, buttons: 1 });
-    await Promise.resolve();
     fixture.controller.pointerUp({ clientX: 66, clientY: 180, button: 0 });
 
-    expect(fixture.startWindowDrag).toHaveBeenCalledTimes(1);
-    expect(fixture.emitted.map((event) => event.name)).toEqual(['avatar.user.hover']);
-    expect(fixture.constrainWindowToVisibleArea).not.toHaveBeenCalled();
+    expect(fixture.emitted.map((event) => event.name)).toEqual([
+      'avatar.user.hover',
+      'avatar.user.drag.start',
+      'avatar.user.drag.move',
+      'avatar.user.drag.end',
+    ]);
+    expect(fixture.constrainWindowToVisibleArea).toHaveBeenCalledTimes(1);
   });
 
   it('restores cursor handling during teardown instead of leaving click-through active', () => {

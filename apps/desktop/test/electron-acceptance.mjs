@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -346,7 +346,10 @@ async function waitForDesktopRendererBootstrapSurface(page) {
 }
 
 async function withTempDir(prefix, run) {
-  const dir = await mkdtemp(path.join(tmpdir(), `nimi-desktop-electron-${prefix}-`));
+  // Canonicalize the temp root so assertions match the kit standard shell host,
+  // which resolves the Runtime-attested data root through realpath (on macOS
+  // tmpdir() is the /var -> /private/var symlink).
+  const dir = await realpath(await mkdtemp(path.join(tmpdir(), `nimi-desktop-electron-${prefix}-`)));
   try {
     return await run(dir);
   } finally {

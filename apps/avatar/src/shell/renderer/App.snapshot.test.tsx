@@ -36,7 +36,6 @@ vi.mock('./app-shell/avatar-evidence.js', () => ({
 }));
 
 vi.mock('./app-shell/tauri-commands.js', () => ({
-  startWindowDrag: vi.fn(),
   setIgnoreCursorEvents: vi.fn(),
   constrainWindowToVisibleArea: vi.fn(),
   setAlwaysOnTop: vi.fn(async () => undefined),

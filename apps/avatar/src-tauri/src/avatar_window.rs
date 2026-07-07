@@ -21,13 +21,6 @@ pub(crate) struct AvatarCursorClientPosition {
     pub(crate) scale_factor: f64,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct AvatarManualDragWindowOrigin {
-    pub(crate) x: i32,
-    pub(crate) y: i32,
-}
-
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct AvatarRuntimeIdentityBindingPayload {

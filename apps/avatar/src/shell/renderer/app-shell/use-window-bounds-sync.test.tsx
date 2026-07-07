@@ -1,6 +1,6 @@
 // Wave 4 chunk 4-D — verifies useWindowBoundsSync consumes
 // `BackendBranch.nominalBounds` and forwards the derived window size to the
-// Tauri `nimi_avatar_set_window_size` IPC.
+// Tauri `floatingWindow.setBounds` IPC.
 //
 // Source-of-truth defaults (per
 // .nimi/spec/avatar/kernel/tables/window-bounds-policy.yaml backends.*):
@@ -26,7 +26,6 @@ let tauriRuntime = true;
 
 vi.mock('./tauri-commands.js', () => ({
   setWindowSize: (...args: unknown[]) => setWindowSizeMock(...args),
-  startWindowDrag: vi.fn(),
   beginManualDragWindow: vi.fn(),
   moveManualDragWindow: vi.fn(),
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
@@ -94,7 +93,7 @@ afterEach(() => {
 });
 
 describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size IPC', () => {
-  it('forwards VRM 360x720 nominalBounds to nimi_avatar_set_window_size on model_load', async () => {
+  it('forwards VRM 360x720 nominalBounds to floatingWindow.setBounds on model_load', async () => {
     const vrmBounds: BackendNominalBounds = {
       width: 360,
       height: 720,
@@ -116,7 +115,7 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
   });
 
-  it('forwards Live2D 400x600 nominalBounds to nimi_avatar_set_window_size on model_load', async () => {
+  it('forwards Live2D 400x600 nominalBounds to floatingWindow.setBounds on model_load', async () => {
     const live2dBounds: BackendNominalBounds = {
       width: 400,
       height: 600,

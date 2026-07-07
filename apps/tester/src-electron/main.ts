@@ -1,19 +1,23 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { appendFile, mkdir, readFile, realpath } from 'node:fs/promises';
+import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import { app, BrowserWindow, ipcMain, Menu, protocol, shell } from 'electron';
 import {
   assertOpaqueElectronLocalAgentRef,
+  createElectronShellFileProtocolHost,
   createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
+  resolveElectronStandardStorageRoots,
   type NimiElectronRuntimeTrustedCallerMode,
+  type NimiElectronShellFileProtocolHost,
+  type NimiElectronStandardDataRootBinding,
+  type NimiElectronStandardShellHost,
 } from '@nimiplatform/kit/shell/electron/main';
 import { createTesterElectronCommandHandlers } from './commands/tester-commands.js';
 import { createTesterElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 
 const APP_ID = 'nimi.tester';
-const FILE_PROTOCOL = 'nimi-shell-file';
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
@@ -25,28 +29,40 @@ const rendererUrl = normalizeText(process.env.NIMI_TESTER_ELECTRON_RENDERER_URL)
 const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
   || normalizeText(process.env.NIMI_TESTER_ELECTRON_RUNTIME_ENDPOINT)
   || '127.0.0.1:46371';
-const readableFiles = new Set<string>();
 const worldTourWindows = new Map<string, BrowserWindow>();
 
-protocol.registerSchemesAsPrivileged([{
-  scheme: FILE_PROTOCOL,
-  privileges: {
-    standard: true,
-    secure: true,
-    corsEnabled: true,
-    supportFetchAPI: true,
-    stream: true,
+const fileProtocolHost: NimiElectronShellFileProtocolHost = createElectronShellFileProtocolHost({
+  protocol: {
+    registerSchemesAsPrivileged: (customSchemes) => protocol.registerSchemesAsPrivileged([...customSchemes]),
+    handle: (scheme, handler) => protocol.handle(scheme, (request) => handler(request) as Promise<Response>),
   },
-}]);
+  roots: resolveStandardLocalAssetRoots(resolveStandardDataRoot()),
+});
+
+fileProtocolHost.registerPrivilegedSchemes();
 
 app.setName('Nimi Tester');
 Menu.setApplicationMenu(null);
 configureTesterElectronChromiumRuntime();
 
 void app.whenReady().then(async () => {
-  registerReadableFileProtocol();
+  fileProtocolHost.registerProtocolHandler();
   const standardDataRoot = resolveStandardDataRoot();
   const localAgentIdentity = resolveTesterElectronLocalAgentIdentity();
+  const standardShellHost: NimiElectronStandardShellHost = {
+    standardDataRootBinding: resolveStandardDataRootBinding(),
+    localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
+    localAssetProtocolHost: fileProtocolHost,
+    revealInOs: (filePath) => shell.showItemInFolder(filePath),
+    exportDirectory: () => app.getPath('downloads'),
+    openExternalUrl: openTesterExternalUrl,
+    ...(localAgentIdentity ? { localAgentIdentity } : {}),
+    runtimeTrustedCaller: {
+      mode: resolveRuntimeTrustedCallerMode(),
+    },
+    aiConfigStore: createTesterAiConfigStore(standardDataRoot),
+    runtimeConfigGet: createTesterRuntimeConfigReader(standardDataRoot),
+  };
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
     runtimeEndpoint,
@@ -58,23 +74,11 @@ void app.whenReady().then(async () => {
       runtimeEndpoint,
     }),
     commandHandlers: createTesterElectronCommandHandlers({
-      downloadsDir: app.getPath('downloads'),
-      revealInOs: (filePath) => shell.showItemInFolder(filePath),
-      registerReadableFile,
+      registerReadableFile: (filePath) => fileProtocolHost.registerReadableFile(filePath).then(() => undefined),
+      resolveWorldTourStorageRoots: () => resolveWorldTourStorageRoots(standardShellHost),
       openWorldTourWindow,
     }),
-    standardShellHost: {
-      dataRoot: standardDataRoot,
-      localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
-      resolveLocalAssetUrl: resolveTesterLocalAssetUrl,
-      openExternalUrl: openTesterExternalUrl,
-      ...(localAgentIdentity ? { localAgentIdentity } : {}),
-      runtimeTrustedCaller: {
-        mode: resolveRuntimeTrustedCallerMode(),
-      },
-      aiConfigStore: createTesterAiConfigStore(standardDataRoot),
-      runtimeConfigGet: createTesterRuntimeConfigReader(standardDataRoot),
-    },
+    standardShellHost,
   });
 
   await createMainWindow();
@@ -220,6 +224,18 @@ function resolveStandardDataRoot(): string {
   return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
 }
 
+function resolveStandardDataRootBinding(): NimiElectronStandardDataRootBinding {
+  const fromEnv = normalizeText(process.env.NIMI_TESTER_ELECTRON_STANDARD_DATA_ROOT);
+  if (fromEnv) {
+    return {
+      source: 'runtime-launch-projection',
+      durableDataRoot: path.resolve(fromEnv),
+      projectionRef: 'tester-electron-acceptance-fixture',
+    };
+  }
+  return { source: 'runtime-get-app-storage' };
+}
+
 function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
   const fromEnv = normalizeText(process.env.NIMI_TESTER_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS);
   if (!fromEnv) {
@@ -313,11 +329,6 @@ function isTesterRendererUrl(url: string): boolean {
   return isAllowedElectronRendererUrl(url, allowedRendererUrls());
 }
 
-async function resolveTesterLocalAssetUrl(filePath: string): Promise<string> {
-  await registerReadableFile(filePath);
-  return encodeReadableFileUrl(filePath);
-}
-
 async function openTesterExternalUrl(url: string): Promise<void> {
   const capturePath = normalizeText(process.env.NIMI_TESTER_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE);
   if (capturePath) {
@@ -329,59 +340,20 @@ async function openTesterExternalUrl(url: string): Promise<void> {
   await shell.openExternal(url);
 }
 
-async function registerReadableFile(filePath: string): Promise<void> {
-  const canonical = await realpath(filePath).catch(() => path.resolve(filePath));
-  readableFiles.add(canonical);
-}
-
-function encodeReadableFileUrl(filePath: string): string {
-  return `${FILE_PROTOCOL}://local/${encodeURIComponent(path.resolve(filePath))}`;
-}
-
-function registerReadableFileProtocol(): void {
-  protocol.handle(FILE_PROTOCOL, async (request) => {
-    try {
-      const filePath = decodeReadableFileUrl(request.url);
-      const canonical = await realpath(filePath);
-      if (!readableFiles.has(canonical)) {
-        return new Response('file is not registered for tester preview', { status: 403 });
-      }
-      return new Response(await readFile(canonical), {
-        headers: {
-          'content-type': contentTypeForPath(canonical),
-          'cache-control': 'no-store',
-          'access-control-allow-origin': '*',
-        },
-      });
-    } catch (error) {
-      return new Response(error instanceof Error ? error.message : String(error || 'file read failed'), {
-        status: 404,
-        headers: {
-          'access-control-allow-origin': '*',
-        },
-      });
-    }
-  });
-}
-
-function decodeReadableFileUrl(value: string): string {
-  const url = new URL(value);
-  if (url.protocol !== `${FILE_PROTOCOL}:`) {
-    throw new Error(`unsupported tester file protocol: ${url.protocol}`);
-  }
-  const encoded = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
-  return decodeURIComponent(encoded);
-}
-
-function contentTypeForPath(filePath: string): string {
-  const ext = path.extname(filePath).toLowerCase();
-  if (ext === '.png') return 'image/png';
-  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
-  if (ext === '.webp') return 'image/webp';
-  if (ext === '.gif') return 'image/gif';
-  if (ext === '.json') return 'application/json; charset=utf-8';
-  if (ext === '.txt') return 'text/plain; charset=utf-8';
-  return 'application/octet-stream';
+/**
+ * Resolves the Runtime-attested cache/temp roots for the app-owned world-tour
+ * fixture cache and launch-token temp handles from the standard data root
+ * binding. Falls back to the resolved data root when the binding does not carry
+ * explicit cache/temp roots (e.g. the acceptance launch projection).
+ */
+async function resolveWorldTourStorageRoots(
+  host: NimiElectronStandardShellHost,
+): Promise<{ readonly cacheRoot: string; readonly tempRoot: string }> {
+  const roots = await resolveElectronStandardStorageRoots(host, 'world_tour_storage_roots');
+  return {
+    cacheRoot: roots.cacheRoot ?? roots.dataRoot,
+    tempRoot: roots.tempRoot ?? roots.dataRoot,
+  };
 }
 
 function hashFromRoute(route: string): string {

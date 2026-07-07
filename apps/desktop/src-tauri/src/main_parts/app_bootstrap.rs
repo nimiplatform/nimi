@@ -4,10 +4,14 @@ use crate::{
     menu_bar_shell,
 };
 use nimi_shell_tauri::{
+    capabilities::data::{
+        resolve_standard_app_storage_roots, StandardAppStorageRootSlot, StandardDataRootBinding,
+    },
     capabilities::diagnostics::{
         build_renderer_entry_probe_script, RendererEntryProbeScriptConfig,
     },
     capabilities::runtime::RuntimeBridgeHostHooks,
+    capabilities::shell_ui::{StandardConfirmDialogPayload, StandardShellUiHostHooks},
 };
 use std::sync::Arc;
 
@@ -54,6 +58,63 @@ fn install_shared_runtime_bridge_hooks() {
         resolve_nimi_data_dir: Some(Arc::new(crate::desktop_paths::resolve_nimi_data_dir)),
     };
     let _ = nimi_shell_tauri::capabilities::runtime::set_runtime_bridge_host_hooks(hooks);
+}
+
+/// Inject the desktop host adapters behind the standard shell-ui commands. Kit
+/// registers `confirm_dialog` / `start_window_drag` / `focus_main_window`; the
+/// behavior lives here so the desktop no longer forks the same command names.
+fn install_standard_shell_ui_host_hooks() {
+    use super::defaults_and_commands::window_and_logs;
+    let hooks = StandardShellUiHostHooks {
+        confirm_dialog: Some(Arc::new(|payload: &StandardConfirmDialogPayload| {
+            window_and_logs::confirm_dialog_host_provider(super::ConfirmDialogPayload {
+                title: payload.title.clone(),
+                description: payload.description.clone(),
+                level: payload.level.clone(),
+            })
+        })),
+        focus_main_window: Some(Arc::new(|app| {
+            window_and_logs::focus_main_window_host_provider(app)
+        })),
+        start_window_drag: Some(Arc::new(|window| {
+            window_and_logs::start_window_drag_host_provider(window)
+        })),
+    };
+    let _ = nimi_shell_tauri::capabilities::shell_ui::set_standard_shell_ui_host_hooks(hooks);
+}
+
+/// Resolve and manage the standard app storage slot. Desktop's renderer does
+/// not yet consume the standard storage commands, but the kit macro registers
+/// them with `State<StandardAppStorageRootSlot>`, so the slot must be managed
+/// for those commands to remain fail-closed instead of panicking on a missing
+/// binding. Roots come from Runtime `GetAppStorage` for the desktop app id; if
+/// resolution fails (e.g. Runtime not ready) the slot stays unbound and the
+/// storage commands fail closed with `tauri-standard-storage-binding-missing`.
+fn install_standard_app_storage_slot(app: &tauri::App<tauri::Wry>) {
+    let slot = StandardAppStorageRootSlot::empty();
+    match tauri::async_runtime::block_on(resolve_standard_app_storage_roots(
+        StandardDataRootBinding::RuntimeGetAppStorage {
+            app_id: "nimi.desktop".to_string(),
+        },
+    )) {
+        Ok(roots) => {
+            if let Err(error) = slot.bind(roots) {
+                eprintln!(
+                    "[boot:{:}] standard app storage slot bind failed: {}",
+                    now_ms(),
+                    error
+                );
+            }
+        }
+        Err(error) => {
+            eprintln!(
+                "[boot:{:}] standard app storage slot left unbound (fail-closed): {}",
+                now_ms(),
+                error
+            );
+        }
+    }
+    app.manage(slot);
 }
 
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
@@ -125,6 +186,8 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
         .setup(|app| {
             eprintln!("[boot:{:}] setup entered", now_ms());
             install_shared_runtime_bridge_hooks();
+            install_standard_shell_ui_host_hooks();
+            install_standard_app_storage_slot(app);
             app.manage(crate::menu_bar_shell::MenuBarShellStore::new());
             match crate::desktop_release::initialize(app.handle()) {
                 Ok(info) => {
@@ -301,9 +364,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_avatar_product_local_asset_fault_apply,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_report_write,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_ping,
-            super::defaults_and_commands::window_and_logs::confirm_dialog,
-            super::defaults_and_commands::window_and_logs::focus_main_window,
-            super::defaults_and_commands::window_and_logs::start_window_drag,
             menu_bar_shell::menu_bar_sync_runtime_health,
             menu_bar_shell::menu_bar_complete_quit,
             chat_ai_store::chat_ai_list_threads,

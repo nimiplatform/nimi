@@ -1,7 +1,7 @@
-import { invokeTesterCommand } from './tester-tauri.js';
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
-import { withTesterDataStorageRoot } from './tester-app-storage.js';
+import { readTesterStandardStorageJson, writeTesterStandardStorageJson } from './tester-standard-storage.js';
 import { isJsonObject } from '@nimiplatform/sdk/types';
+import type { JsonValue } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { TesterCapabilityRunResult } from './tester-runtime.js';
 import type { TesterRunTargetSummary } from './tester-run-target.js';
 
@@ -574,24 +574,24 @@ export function getTesterRunResultTags(record: TesterRunHistoryRecord): string[]
   return [`${result.voiceCount} voices`, result.modelResolved].filter(Boolean);
 }
 
-function parseHistory(raw: string): TesterRunHistory {
-  const parsed = JSON.parse(raw || '{}');
-  if (!isJsonObject(parsed)) {
+const TESTER_RUN_HISTORY_STORAGE_PATH = 'tester-run-history.json';
+
+function parseHistory(value: JsonValue | undefined): TesterRunHistory {
+  if (value === undefined) {
+    return {};
+  }
+  if (!isJsonObject(value)) {
     throw new Error('Tester run history payload must be an object.');
   }
-  return parsed as TesterRunHistory;
+  return value as TesterRunHistory;
 }
 
 export async function loadTesterRunHistory(): Promise<TesterRunHistory> {
-  return parseHistory(await invokeTesterCommand<string>('tester_run_history_load', {
-    payload: await withTesterDataStorageRoot({}),
-  }));
+  return parseHistory(await readTesterStandardStorageJson(TESTER_RUN_HISTORY_STORAGE_PATH));
 }
 
 export async function saveTesterRunHistory(history: TesterRunHistory): Promise<void> {
-  await invokeTesterCommand('tester_run_history_save', {
-    payload: await withTesterDataStorageRoot({ recordsJson: JSON.stringify(history) }),
-  });
+  await writeTesterStandardStorageJson(TESTER_RUN_HISTORY_STORAGE_PATH, history as JsonValue);
 }
 
 export async function appendTesterRunHistory(record: TesterRunHistoryRecord): Promise<TesterRunHistory> {

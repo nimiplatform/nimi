@@ -108,7 +108,13 @@ describe('Desktop installed app launcher', () => {
       readonly trustedRuntimeMetadataProvider?: unknown;
       readonly standardShell?: {
         readonly capabilitySetRef?: string;
-        readonly dataRoot?: string;
+        readonly standardDataRootBinding?: {
+          readonly source?: string;
+          readonly durableDataRoot?: string;
+          readonly cacheRoot?: string;
+          readonly tempRoot?: string;
+          readonly projectionRef?: string;
+        };
         readonly localAssetRoots?: readonly string[];
         readonly aiConfigStore?: unknown;
       };
@@ -120,7 +126,13 @@ describe('Desktop installed app launcher', () => {
     assert.equal(hostInput.runtimeEndpoint, '127.0.0.1:46371');
     assert.equal(typeof hostInput.trustedRuntimeMetadataProvider, 'function');
     assert.equal(hostInput.standardShell?.capabilitySetRef, INSTALLED_APP_STANDARD_SHELL_CAPABILITY_SET_REF);
-    assert.equal(hostInput.standardShell?.dataRoot, projection.storage?.durableDataRoot);
+    assert.deepEqual(hostInput.standardShell?.standardDataRootBinding, {
+      source: 'runtime-launch-projection',
+      durableDataRoot: projection.storage?.durableDataRoot,
+      cacheRoot: projection.storage?.cacheRoot,
+      tempRoot: projection.storage?.tempRoot,
+      projectionRef: projection.releaseDescriptorRef,
+    });
     assert.deepEqual(hostInput.standardShell?.localAssetRoots, [projection.activeReleaseRoot]);
     assert.equal(hostInput.standardShell?.aiConfigStore, aiConfigStore);
   });

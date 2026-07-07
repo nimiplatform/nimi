@@ -126,7 +126,7 @@ export async function readZhiyuRuntimeAgentAuthBinding(page, readyEvidence) {
     && scopes.includes('runtime.agent.turn.read')
     && scopes.includes('runtime.agent.turn.write')
   ) {
-    return { kind: 'scopedBinding', bindingId: scopedBinding.bindingId };
+    return { kind: 'scopedBinding', scopedBinding };
   }
   const issued = await page.evaluate(async ({ readyEvidence }) => {
     const invoke = globalThis.window?.__NIMI_ELECTRON_RUNTIME__?.invoke
@@ -154,7 +154,7 @@ export async function readZhiyuRuntimeAgentAuthBinding(page, readyEvidence) {
     && issuedScopes.includes('runtime.agent.turn.read')
     && issuedScopes.includes('runtime.agent.turn.write')
   ) {
-    return { kind: 'scopedBinding', bindingId: issuedScopedBinding.bindingId };
+    return { kind: 'scopedBinding', scopedBinding: issuedScopedBinding };
   }
   const evidenceRef = String(binding?.hostEquivalence?.evidenceRef || '').trim();
   if (evidenceRef) {
@@ -164,7 +164,7 @@ export async function readZhiyuRuntimeAgentAuthBinding(page, readyEvidence) {
 }
 
 export async function observeLiveRuntimeNativeVoiceInterrupt(input) {
-  const agentClient = createZhiyuLiveRuntimeAgentClient(input.fixture);
+  const agentClient = createZhiyuLiveRuntimeAgentClient(input.fixture, input.runtimeAuthBinding);
   const stream = await agentClient.subscribeEvents({
     ownerUserId: input.fixture.ownerUserId,
     runtimeSourceRef: input.fixture.runtimeSourceRef,
@@ -181,7 +181,32 @@ export async function observeLiveRuntimeNativeVoiceInterrupt(input) {
   let observedEvents = 0;
   let observedNativeChunks = 0;
   let skippedExistingNativeChunks = 0;
+  const updateProgress = (patch) => {
+    if (input.progress && typeof input.progress === 'object') {
+      Object.assign(input.progress, patch);
+    }
+  };
   try {
+    updateProgress({ stage: 'observer_waiting_for_target_request' });
+    const targetRequestId = await promiseWithTimeout(
+      input.targetRequestIdPromise,
+      20_000,
+      () => `Runtime native voice interrupt observer did not receive target request; progress=${JSON.stringify(input.progress || {})}`,
+    );
+    updateProgress({ stage: 'observer_waiting_for_target_snapshot', targetRequestId });
+    const target = await waitForRuntimeNativeVoiceInterruptTargetTurn({
+      agentClient,
+      fixture: input.fixture,
+      conversationAnchorId: input.conversationAnchorId,
+      targetRequestId,
+      runtimeAuthBinding: input.runtimeAuthBinding,
+      deadlineMs,
+      progress: input.progress,
+      updateProgress,
+    });
+    targetTurnId = target.turnId;
+    targetStreamId = target.streamId;
+    updateProgress({ stage: 'observer_waiting_for_events', targetRequestId, targetTurnId, targetStreamId });
     for (;;) {
       const next = await nextAsyncIteratorValue(iterator, deadlineMs, 'Runtime native voice interrupt observer');
       if (next.done) {
@@ -192,12 +217,12 @@ export async function observeLiveRuntimeNativeVoiceInterrupt(input) {
         continue;
       }
       observedEvents += 1;
-      if (event.eventName === 'runtime.agent.turn.accepted' && !targetTurnId && runtimeEventObservedAtOrAfter(event, input.notBeforeIso)) {
-        targetTurnId = String(event.turnId || '').trim();
-        targetStreamId = String(event.streamId || '').trim();
-        continue;
-      }
-      if (targetTurnId && event.turnId !== targetTurnId) {
+      updateProgress({
+        observedEvents,
+        lastEventName: String(event.eventName || ''),
+        lastTurnId: String(event.turnId || ''),
+      });
+      if (!targetTurnId || event.turnId !== targetTurnId) {
         continue;
       }
       if (!isRuntimeNativeNonFinalVoiceChunkEvent(event)) {
@@ -205,21 +230,28 @@ export async function observeLiveRuntimeNativeVoiceInterrupt(input) {
       }
       observedNativeChunks += 1;
       const voiceStreamId = String(event.detail?.voiceStreamId || event.detail?.voice_stream_id || '').trim();
+      updateProgress({
+        observedNativeChunks,
+        lastVoiceStreamId: voiceStreamId,
+      });
       if (!voiceStreamId || existingVoiceStreamIds.has(voiceStreamId)) {
         skippedExistingNativeChunks += 1;
+        updateProgress({ skippedExistingNativeChunks });
         continue;
       }
-      targetTurnId = targetTurnId || String(event.turnId || '').trim();
-      targetStreamId = targetStreamId || String(event.streamId || '').trim();
-      if (!targetTurnId) {
-        continue;
-      }
+      updateProgress({
+        stage: 'observer_native_chunk_selected',
+        targetTurnId,
+        targetStreamId,
+        lastVoiceStreamId: voiceStreamId,
+      });
       const typed = await captureAndInterruptLiveRuntimeVoiceStream({
         fixture: input.fixture,
         conversationAnchorId: input.conversationAnchorId,
         turnId: targetTurnId,
         voiceStreamId,
         runtimeAuthBinding: input.runtimeAuthBinding,
+        progress: input.progress,
       });
       return {
         nativeChunkEvent: event,
@@ -239,6 +271,59 @@ export async function observeLiveRuntimeNativeVoiceInterrupt(input) {
   );
 }
 
+async function waitForRuntimeNativeVoiceInterruptTargetTurn(input) {
+  let lastSnapshotRequestId = '';
+  let lastActiveTurnId = '';
+  let lastActiveStatus = '';
+  let lastSnapshotError = '';
+  while (Date.now() < input.deadlineMs) {
+    try {
+      const snapshot = await input.agentClient.getSessionSnapshot({
+        ownerUserId: input.fixture.ownerUserId,
+        runtimeSourceRef: input.fixture.runtimeSourceRef,
+        localAgentRef: input.fixture.localAgentRef,
+        conversationAnchorId: input.conversationAnchorId,
+        requestId: input.targetRequestId,
+        scopedBinding: zhiyuRuntimeAuthScopedBinding(input.runtimeAuthBinding, input),
+      });
+      lastSnapshotRequestId = String(snapshot?.requestId || '').trim();
+      const activeTurn = snapshot?.activeTurn || null;
+      const lastTurn = snapshot?.lastTurn || null;
+      const candidate = activeTurn?.turnId ? activeTurn : (
+        lastSnapshotRequestId === input.targetRequestId && lastTurn?.turnId ? lastTurn : null
+      );
+      lastActiveTurnId = String(candidate?.turnId || activeTurn?.turnId || '').trim();
+      lastActiveStatus = String(candidate?.status || activeTurn?.status || '').trim();
+      input.updateProgress?.({
+        stage: 'observer_waiting_for_target_snapshot',
+        snapshotRequestId: lastSnapshotRequestId,
+        snapshotTurnId: lastActiveTurnId,
+        snapshotTurnStatus: lastActiveStatus,
+      });
+      const turnId = String(candidate?.turnId || '').trim();
+      const streamId = String(candidate?.streamId || '').trim();
+      if (turnId && streamId && lastSnapshotRequestId === input.targetRequestId) {
+        assert.match(turnId, /^agent_turn_/u, 'Runtime native voice interrupt snapshot target turn id invalid');
+        assert.match(streamId, /^agent_stream_/u, 'Runtime native voice interrupt snapshot target stream id invalid');
+        return { turnId, streamId };
+      }
+    } catch (error) {
+      lastSnapshotError = error instanceof Error ? error.message : String(error);
+      input.updateProgress?.({
+        stage: 'observer_waiting_for_target_snapshot',
+        snapshotError: lastSnapshotError,
+      });
+    }
+    await delay(100);
+  }
+  throw new Error(
+    `Runtime native voice interrupt target snapshot timed out for request ${input.targetRequestId}; `
+    + `snapshotRequestId=${lastSnapshotRequestId || '<none>'} `
+    + `turnId=${lastActiveTurnId || '<none>'} status=${lastActiveStatus || '<none>'} `
+    + `error=${lastSnapshotError || '<none>'} progress=${JSON.stringify(input.progress || {})}`,
+  );
+}
+
 export function createDeferred() {
   let resolve;
   let reject;
@@ -247,6 +332,10 @@ export function createDeferred() {
     reject = rejectPromise;
   });
   return { promise, resolve, reject };
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function runtimeEventObservedAtOrAfter(event, notBeforeIso) {
@@ -270,17 +359,45 @@ function runtimeEventObservedAtOrAfter(event, notBeforeIso) {
 
 async function captureAndInterruptLiveRuntimeVoiceStream(input) {
   const voice = createZhiyuLiveRuntimeAgentVoiceModule(input.fixture, input.runtimeAuthBinding);
-  const stream = await voice.subscribeStream({
-    ownerUserId: input.fixture.ownerUserId,
-    runtimeSourceRef: input.fixture.runtimeSourceRef,
-    localAgentRef: input.fixture.localAgentRef,
-    conversationAnchorId: input.conversationAnchorId,
-    turnId: input.turnId,
-    voiceStreamId: input.voiceStreamId,
-  });
+  if (input.progress && typeof input.progress === 'object') {
+    input.progress.stage = 'typed_stream_subscribe_start';
+  }
+  const scopedBinding = zhiyuRuntimeAuthScopedBinding(input.runtimeAuthBinding, input);
+  let stream;
+  try {
+    stream = await voice.subscribeStream({
+      ownerUserId: input.fixture.ownerUserId,
+      runtimeSourceRef: input.fixture.runtimeSourceRef,
+      localAgentRef: input.fixture.localAgentRef,
+      conversationAnchorId: input.conversationAnchorId,
+      turnId: input.turnId,
+      voiceStreamId: input.voiceStreamId,
+      scopedBinding,
+    });
+  } catch (error) {
+    if (input.progress && typeof input.progress === 'object') {
+      input.progress.stage = 'typed_stream_subscribe_error';
+      input.progress.typedStreamSubscribeError = error instanceof Error ? error.message : String(error);
+      input.progress.typedStreamSubscribeRequest = {
+        ownerUserId: input.fixture.ownerUserId,
+        runtimeSourceRef: input.fixture.runtimeSourceRef,
+        localAgentRef: input.fixture.localAgentRef,
+        conversationAnchorId: input.conversationAnchorId,
+        turnId: input.turnId,
+        voiceStreamId: input.voiceStreamId,
+        scopedBinding: summarizeScopedBinding(scopedBinding),
+      };
+    }
+    throw new Error(`typed Runtime voice stream subscribe failed; progress=${JSON.stringify(input.progress || {})}`, {
+      cause: error,
+    });
+  }
   const iterator = stream[Symbol.asyncIterator]();
   const deadlineMs = Date.now() + 45_000;
   try {
+    if (input.progress && typeof input.progress === 'object') {
+      input.progress.stage = 'typed_stream_waiting_first_chunk';
+    }
     const first = await nextAsyncIteratorValue(iterator, deadlineMs, 'typed Runtime voice stream first chunk');
     assert.equal(first.done, false, 'typed Runtime voice stream ended before first chunk');
     const typedFirstChunk = first.value;
@@ -288,27 +405,49 @@ async function captureAndInterruptLiveRuntimeVoiceStream(input) {
     assert.equal(typedFirstChunk?.terminal, false);
     assert.equal((typedFirstChunk?.chunk?.byteLength ?? 0) > 0, true, 'typed Runtime voice stream must carry bytes in the non-final chunk');
 
-    const interruptResponse = await promiseWithTimeout(
-      interruptLiveRuntimeFixtureVoicePlayback(input.fixture, {
-        ownerUserId: input.fixture.ownerUserId,
-        runtimeSourceRef: input.fixture.runtimeSourceRef,
-        localAgentRef: input.fixture.localAgentRef,
-        conversationAnchorId: input.conversationAnchorId,
-        turnId: input.turnId,
-        voiceStreamId: input.voiceStreamId,
-        reason: 'zhiyu_electron_live_voice_interrupt',
-        runtimeAuthBinding: input.runtimeAuthBinding,
-      }),
-      10_000,
-      `Runtime voice interrupt RPC did not return for ${input.voiceStreamId}`,
-    );
+    if (input.progress && typeof input.progress === 'object') {
+      input.progress.stage = 'interrupt_rpc_start';
+    }
+    let interruptResponse;
+    try {
+      interruptResponse = await promiseWithTimeout(
+        voice.interruptPlayback({
+          ownerUserId: input.fixture.ownerUserId,
+          runtimeSourceRef: input.fixture.runtimeSourceRef,
+          localAgentRef: input.fixture.localAgentRef,
+          conversationAnchorId: input.conversationAnchorId,
+          turnId: input.turnId,
+          voiceStreamId: input.voiceStreamId,
+          reason: 'zhiyu_electron_live_voice_interrupt',
+          scopedBinding,
+        }),
+        10_000,
+        `Runtime voice interrupt RPC did not return for ${input.voiceStreamId}`,
+      );
+      if (input.progress && typeof input.progress === 'object') {
+        input.progress.stage = 'interrupt_rpc_response_received';
+        input.progress.interruptResponse = summarizeInterruptResponse(interruptResponse);
+      }
+    } catch (error) {
+      if (input.progress && typeof input.progress === 'object') {
+        input.progress.stage = 'interrupt_rpc_error';
+        input.progress.interruptError = error instanceof Error ? error.message : String(error);
+      }
+      throw error;
+    }
 
+    if (input.progress && typeof input.progress === 'object') {
+      input.progress.stage = 'typed_stream_waiting_terminal';
+    }
     for (;;) {
       const next = await nextAsyncIteratorValue(iterator, deadlineMs, `typed Runtime voice stream interrupted terminal for ${input.voiceStreamId}`);
       assert.equal(next.done, false, 'typed Runtime voice stream ended before interrupted terminal');
       const event = next.value;
       if (!event?.terminal) {
         continue;
+      }
+      if (input.progress && typeof input.progress === 'object') {
+        input.progress.stage = 'typed_stream_terminal_received';
       }
       return {
         typedFirstChunk,
@@ -317,23 +456,41 @@ async function captureAndInterruptLiveRuntimeVoiceStream(input) {
       };
     }
   } finally {
-    await iterator.return?.();
+    if (input.progress && typeof input.progress === 'object') {
+      input.progress.typedStreamReturnStarted = true;
+    }
+    await promiseWithTimeout(
+      Promise.resolve(iterator.return?.()).catch((error) => {
+        if (input.progress && typeof input.progress === 'object') {
+          input.progress.typedStreamReturnError = error instanceof Error ? error.message : String(error);
+        }
+      }),
+      1_000,
+      'typed Runtime voice stream cleanup did not return',
+    ).catch((error) => {
+      if (input.progress && typeof input.progress === 'object') {
+        input.progress.typedStreamReturnError = error instanceof Error ? error.message : String(error);
+      }
+    });
+    if (input.progress && typeof input.progress === 'object') {
+      input.progress.typedStreamReturnFinished = true;
+    }
   }
 }
 
-function createZhiyuLiveRuntimeAgentClient(fixture) {
-  const runtime = createRuntimeForEndpoint(fixture.endpoint, zhiyuRuntimeVoiceObserverAppId);
+function createZhiyuLiveRuntimeAgentClient(fixture, runtimeAuthBinding) {
+  const runtime = createRuntimeForEndpoint(fixture.endpoint, zhiyuAppId);
   return createNimiRuntimeAgentClient({
     runtime: {
-      appId: zhiyuRuntimeVoiceObserverAppId,
+      appId: zhiyuAppId,
       auth: runtime.auth,
       appAuth: runtime.grants,
       agents: runtime.agents,
       appMessages: runtime.appMessages,
     },
-    appId: zhiyuRuntimeVoiceObserverAppId,
+    appId: zhiyuAppId,
     getSubjectUserId: () => fixture.ownerUserId,
-    withScopes: createZhiyuLiveRuntimeScopeRunner(fixture, runtime),
+    withScopes: createZhiyuRuntimeAuthBindingScopeRunner(fixture, runtime, runtimeAuthBinding),
   });
 }
 
@@ -348,44 +505,32 @@ function createZhiyuLiveRuntimeAgentVoiceModule(fixture, runtimeAuthBinding) {
       artifacts: runtime.artifacts,
     },
     getSubjectUserId: () => fixture.ownerUserId,
-    withScopes: createZhiyuRuntimeAuthBindingScopeRunner(runtimeAuthBinding),
+    withScopes: createZhiyuRuntimeAuthBindingScopeRunner(fixture, runtime, runtimeAuthBinding),
   });
 }
 
-function createZhiyuRuntimeAuthBindingScopeRunner(runtimeAuthBinding) {
-  return async (_scopes, operation) => operation({
-    metadata: zhiyuRuntimeAuthBindingMetadata(runtimeAuthBinding),
-  });
-}
-
-function createZhiyuLiveRuntimeScopeRunner(fixture, runtime) {
-  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
-    appId: zhiyuRuntimeVoiceObserverAppId,
-    appInstanceId: zhiyuRuntimeVoiceObserverAppInstanceId,
-    deviceId: 'nimi-zhiyu-live-runtime-voice-observer-device',
-    appVersion: 'zhiyu-electron-live-runtime-acceptance',
-    developerRegistration: false,
-    capabilities: zhiyuRuntimeProtectedScopes,
-    auth: runtime.auth,
+function createZhiyuRuntimeAuthBindingScopeRunner(fixture, runtime, runtimeAuthBinding) {
+  const sessionMetadata = createZhiyuRuntimeAppSessionMetadataProvider(runtime, {
+    appInstanceId: `${zhiyuAppId}.live-runtime-observer`,
+    deviceId: 'nimi-zhiyu-live-runtime-observer-device',
   });
   return (scopes, operation) =>
     withNimiRuntimeAgentScopes({
       runtime: {
-        appId: zhiyuRuntimeVoiceObserverAppId,
+        appId: zhiyuAppId,
         auth: runtime.auth,
         appAuth: runtime.grants,
       },
       subjectUserId: fixture.ownerUserId,
-    }, scopes, async (callOptions) => {
-      const metadata = await sessionMetadata();
-      return operation({
+    }, scopes, async (callOptions) =>
+      operation({
         ...callOptions,
         metadata: {
-          ...metadata,
+          ...await sessionMetadata(),
           ...(callOptions.metadata ?? {}),
+          ...zhiyuRuntimeAuthBindingMetadata(runtimeAuthBinding),
         },
-      });
-    });
+      }));
 }
 
 function isRuntimeNativeNonFinalVoiceChunkEvent(event) {
@@ -425,7 +570,10 @@ export async function promiseWithTimeout(promise, timeoutMs, label) {
     return await Promise.race([
       promise,
       new Promise((_, reject) => {
-        timeout = setTimeout(() => reject(new Error(`${label} within ${timeoutMs}ms`)), timeoutMs);
+        timeout = setTimeout(() => {
+          const message = typeof label === 'function' ? label() : label;
+          reject(new Error(`${message} within ${timeoutMs}ms`));
+        }, timeoutMs);
         timeout.unref?.();
       }),
     ]);
@@ -492,9 +640,45 @@ async function interruptLiveRuntimeFixtureVoicePlayback(fixture, input) {
   });
 }
 
+function summarizeInterruptResponse(response) {
+  return {
+    voiceStreamId: response?.voiceStreamId || '',
+    voiceOutputMode: response?.voiceOutputMode,
+    voicePlaybackState: response?.voicePlaybackState,
+    terminalReason: response?.terminalReason || '',
+  };
+}
+
+function summarizeScopedBinding(scopedBinding) {
+  if (!scopedBinding) {
+    return null;
+  }
+  return {
+    bindingId: scopedBinding.bindingId ? '<present>' : '',
+    runtimeAppId: scopedBinding.runtimeAppId || '',
+    appInstanceId: scopedBinding.appInstanceId || '',
+    avatarInstanceId: scopedBinding.avatarInstanceId || '',
+    agentId: scopedBinding.agentId || '',
+    conversationAnchorId: scopedBinding.conversationAnchorId || '',
+    worldId: scopedBinding.worldId || '',
+  };
+}
+
+function createZhiyuRuntimeAppSessionMetadataProvider(runtime, overrides = {}) {
+  return createNimiRuntimeAppSessionMetadataProvider({
+    appId: zhiyuAppId,
+    appInstanceId: normalizeRuntimeVoiceText(overrides.appInstanceId) || `${zhiyuAppId}.local-first-party`,
+    deviceId: normalizeRuntimeVoiceText(overrides.deviceId) || 'nimi-zhiyu-local-first-party-device',
+    appVersion: 'zhiyu-electron-live-runtime-acceptance',
+    developerRegistration: false,
+    capabilities: zhiyuRuntimeProtectedScopes,
+    auth: runtime.auth,
+  });
+}
+
 function zhiyuRuntimeAuthBindingMetadata(runtimeAuthBinding) {
   if (runtimeAuthBinding?.kind === 'scopedBinding') {
-    const bindingId = String(runtimeAuthBinding.bindingId || '').trim();
+    const bindingId = String(runtimeAuthBinding.scopedBinding?.bindingId || '').trim();
     assert.ok(bindingId, 'Zhiyu Runtime scoped binding id is required for owner-app voice operations');
     return { 'x-nimi-runtime-scoped-binding-id': bindingId };
   }
@@ -504,6 +688,31 @@ function zhiyuRuntimeAuthBindingMetadata(runtimeAuthBinding) {
     return { 'x-nimi-runtime-host-equivalence': evidenceRef };
   }
   assert.fail('Zhiyu Runtime auth binding is required for owner-app voice operations');
+}
+
+function zhiyuRuntimeAuthScopedBinding(runtimeAuthBinding, input) {
+  if (runtimeAuthBinding?.kind !== 'scopedBinding') {
+    return undefined;
+  }
+  const scopedBinding = runtimeAuthBinding.scopedBinding || {};
+  const bindingId = normalizeRuntimeVoiceText(scopedBinding.bindingId);
+  assert.ok(bindingId, 'Zhiyu Runtime scoped binding id is required for owner-app voice operations');
+  return {
+    bindingId,
+    bindingHandle: normalizeRuntimeVoiceText(scopedBinding.bindingHandle),
+    runtimeAppId: normalizeRuntimeVoiceText(scopedBinding.runtimeAppId) || zhiyuAppId,
+    appInstanceId: normalizeRuntimeVoiceText(scopedBinding.appInstanceId),
+    windowId: normalizeRuntimeVoiceText(scopedBinding.windowId),
+    avatarInstanceId: normalizeRuntimeVoiceText(scopedBinding.avatarInstanceId),
+    agentId: normalizeRuntimeVoiceText(scopedBinding.agentId) || normalizeRuntimeVoiceText(input?.fixture?.localAgentRef) || normalizeRuntimeVoiceText(input?.localAgentRef),
+    conversationAnchorId: normalizeRuntimeVoiceText(scopedBinding.conversationAnchorId)
+      || normalizeRuntimeVoiceText(input?.conversationAnchorId),
+    worldId: normalizeRuntimeVoiceText(scopedBinding.worldId),
+  };
+}
+
+function normalizeRuntimeVoiceText(value) {
+  return typeof value === 'string' ? value.trim() : '';
 }
 
 export function runtimeProjectionEventTurnId(event) {

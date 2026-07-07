@@ -2696,6 +2696,7 @@ dependencies = [
  "prost-types",
  "protoc-bin-vendored",
  "reqwest 0.12.28",
+ "rfd",
  "serde",
  "serde_json",
  "sha2",

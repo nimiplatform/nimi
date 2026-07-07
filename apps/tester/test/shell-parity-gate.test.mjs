@@ -22,7 +22,7 @@ test('tester exposes a first-class shell parity gate', () => {
   assert.match(source, /src-tauri\/src\/main\.rs/);
   assert.match(source, /createTesterElectronCommandHandlers/);
   assert.match(source, /nimi_shell_tauri_runtime_bridge_handler/);
-  assert.match(source, /tester_run_history_load/);
+  assert.match(source, /resolve_world_tour_fixture/);
   assert.match(source, /open_world_tour_window/);
   assert.equal(existsSync(path.join(root, 'scripts/run-tauri-acceptance.mjs')), true);
   const tauriAcceptance = read('scripts/run-tauri-acceptance.mjs');
@@ -31,7 +31,7 @@ test('tester exposes a first-class shell parity gate', () => {
     'runtime_bridge_status',
     'runtime_defaults',
     'runtime_bridge_config_get',
-    'tester_run_history_load',
+    'storage_read_json',
     'auth_session_load',
     'unsupported-standard-command',
   ]) {
@@ -39,6 +39,6 @@ test('tester exposes a first-class shell parity gate', () => {
   }
   const tauriMain = read('src-tauri/src/main.rs');
   assert.match(tauriMain, /commandChecks/);
-  assert.match(tauriMain, /storageRoot/);
+  assert.match(tauriMain, /relativePath/);
   assert.match(tauriMain, /expectError/);
 });

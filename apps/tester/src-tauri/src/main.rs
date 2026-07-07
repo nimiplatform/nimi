@@ -1,6 +1,10 @@
-mod tester_storage;
 mod world_tour;
 
+use nimi_shell_tauri::capabilities::data::{
+    resolve_standard_app_storage_roots, StandardAppStorageRootSlot, StandardDataRootBinding,
+};
+
+const TESTER_APP_ID: &str = "nimi.tester";
 const ACCEPTANCE_PROBE_PATH_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_PROBE_PATH";
 const ACCEPTANCE_SCENARIO_ID_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_SCENARIO_ID";
 const ACCEPTANCE_STORAGE_ROOT_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_STORAGE_ROOT";
@@ -52,23 +56,7 @@ fn acceptance_probe_path() -> Option<std::path::PathBuf> {
         .map(std::path::PathBuf::from)
 }
 
-fn acceptance_storage_root() -> String {
-    if let Some(value) = std::env::var(ACCEPTANCE_STORAGE_ROOT_ENV)
-        .ok()
-        .map(|raw| raw.trim().to_string())
-        .filter(|value| !value.is_empty())
-    {
-        return value;
-    }
-    acceptance_probe_path()
-        .and_then(|path| path.parent().map(std::path::Path::to_path_buf))
-        .unwrap_or_else(|| std::env::temp_dir().join("nimi-tester-tauri-acceptance"))
-        .display()
-        .to_string()
-}
-
 fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value> {
-    let storage_root = acceptance_storage_root();
     vec![
         serde_json::json!({
             "id": "runtime-lifecycle.status",
@@ -84,11 +72,11 @@ fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value> {
             "expectError": true,
         }),
         serde_json::json!({
-            "id": "tester-storage.runHistory.load",
-            "command": "tester_run_history_load",
+            "id": "standard-storage.runHistory.read",
+            "command": "storage_read_json",
             "payload": {
                 "payload": {
-                    "storageRoot": storage_root,
+                    "relativePath": "tester-run-history.json",
                 },
             },
         }),
@@ -105,10 +93,7 @@ fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value> {
     ]
 }
 
-fn write_acceptance_probe_event(
-    kind: &str,
-    payload: serde_json::Value,
-) -> Result<(), String> {
+fn write_acceptance_probe_event(kind: &str, payload: serde_json::Value) -> Result<(), String> {
     let Some(path) = acceptance_probe_path() else {
         return Ok(());
     };
@@ -127,8 +112,56 @@ fn write_acceptance_probe_event(
         .map_err(|error| format!("write Tauri acceptance probe event: {error}"))
 }
 
+/// Resolves and manages the Runtime-attested standard app storage slot that
+/// backs the kit standard storage/data commands and the app-owned world-tour
+/// cache/temp roots. Under the Tauri acceptance harness the roots come from the
+/// acceptance storage root as a Runtime launch projection; otherwise they are
+/// resolved from Runtime `GetAppStorage` for the tester app id. If resolution
+/// fails the slot stays unbound and dependent commands fail closed.
+fn install_standard_app_storage_slot(app: &tauri::App<tauri::Wry>) {
+    use tauri::Manager;
+    let slot = StandardAppStorageRootSlot::empty();
+    let binding = if let Some(root) = acceptance_storage_root_override() {
+        let root = std::path::PathBuf::from(root);
+        StandardDataRootBinding::RuntimeLaunchProjection {
+            durable_data_root: root.clone(),
+            cache_root: Some(root.clone()),
+            temp_root: Some(root),
+            projection_ref: "tester-tauri-acceptance-fixture".to_string(),
+        }
+    } else {
+        StandardDataRootBinding::RuntimeGetAppStorage {
+            app_id: TESTER_APP_ID.to_string(),
+        }
+    };
+    match tauri::async_runtime::block_on(resolve_standard_app_storage_roots(binding)) {
+        Ok(roots) => {
+            if let Err(error) = slot.bind(roots) {
+                eprintln!("[tester-tauri] standard app storage slot bind failed: {error}");
+            }
+        }
+        Err(error) => {
+            eprintln!(
+                "[tester-tauri] standard app storage slot left unbound (fail-closed): {error}"
+            );
+        }
+    }
+    app.manage(slot);
+}
+
+fn acceptance_storage_root_override() -> Option<String> {
+    std::env::var(ACCEPTANCE_STORAGE_ROOT_ENV)
+        .ok()
+        .map(|raw| raw.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
 fn main() {
     tauri::Builder::default()
+        .setup(|app| {
+            install_standard_app_storage_slot(app);
+            Ok(())
+        })
         .on_page_load(|webview, payload| {
             if !matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 return;
@@ -141,17 +174,9 @@ fn main() {
             tester_renderer_probe_ping,
             tester_renderer_probe_report_write,
             tester_renderer_probe_context_get,
-            tester_storage::tester_image_history_load,
-            tester_storage::tester_image_history_save,
-            tester_storage::tester_artifact_save,
-            tester_storage::tester_export_save,
-            tester_storage::tester_run_history_load,
-            tester_storage::tester_run_history_save,
             world_tour::resolve_world_tour_fixture,
             world_tour::claim_world_tour_viewer_launch,
             world_tour::save_world_tour_viewer_preset,
-            world_tour::world_tour_render_acceptance_load,
-            world_tour::world_tour_render_acceptance_save,
             world_tour::open_world_tour_window,
         ])
         .run(tauri::generate_context!())
@@ -202,7 +227,9 @@ mod tests {
                     Some(false)
                 );
                 assert_eq!(
-                    context.get("scenarioId").and_then(serde_json::Value::as_str),
+                    context
+                        .get("scenarioId")
+                        .and_then(serde_json::Value::as_str),
                     Some("tester.tauri.acceptance")
                 );
                 assert_eq!(
@@ -227,8 +254,14 @@ mod tests {
         let probe_path_string = probe_path.to_string_lossy().into_owned();
         with_env_vars(
             &[
-                (super::ACCEPTANCE_PROBE_PATH_ENV, Some(probe_path_string.as_str())),
-                (super::ACCEPTANCE_SCENARIO_ID_ENV, Some("tester.tauri.acceptance.test")),
+                (
+                    super::ACCEPTANCE_PROBE_PATH_ENV,
+                    Some(probe_path_string.as_str()),
+                ),
+                (
+                    super::ACCEPTANCE_SCENARIO_ID_ENV,
+                    Some("tester.tauri.acceptance.test"),
+                ),
             ],
             || {
                 let context = super::tester_renderer_probe_context_get();
@@ -237,31 +270,27 @@ mod tests {
                     Some(true)
                 );
                 assert_eq!(
-                    context.get("scenarioId").and_then(serde_json::Value::as_str),
+                    context
+                        .get("scenarioId")
+                        .and_then(serde_json::Value::as_str),
                     Some("tester.tauri.acceptance.test")
                 );
                 let command_checks = context
                     .get("commandChecks")
                     .and_then(serde_json::Value::as_array)
                     .expect("command checks");
-                assert!(
-                    command_checks
-                        .iter()
-                        .any(|row| row.get("command").and_then(serde_json::Value::as_str)
-                            == Some("runtime_bridge_status"))
-                );
-                assert!(
-                    command_checks
-                        .iter()
-                        .any(|row| row.get("command").and_then(serde_json::Value::as_str)
-                            == Some("tester_run_history_load"))
-                );
-                assert!(
-                    command_checks
-                        .iter()
-                        .any(|row| row.get("expectError").and_then(serde_json::Value::as_bool)
-                            == Some(true))
-                );
+                assert!(command_checks
+                    .iter()
+                    .any(|row| row.get("command").and_then(serde_json::Value::as_str)
+                        == Some("runtime_bridge_status")));
+                assert!(command_checks
+                    .iter()
+                    .any(|row| row.get("command").and_then(serde_json::Value::as_str)
+                        == Some("storage_read_json")));
+                assert!(command_checks.iter().any(|row| row
+                    .get("expectError")
+                    .and_then(serde_json::Value::as_bool)
+                    == Some(true)));
 
                 super::tester_renderer_probe_ping(serde_json::json!({
                     "stage": "window-dynamic-import-ok",
@@ -483,14 +512,18 @@ mod tests {
             "~/.nimi/tester/probe.json",
             1,
         );
-        let outcome =
-            nimi_shell_tauri::capabilities::config::read_governed_config(&file, &path, |document| {
-                Ok(document.clone())
-            })
-            .expect("read governed config");
+        let outcome = nimi_shell_tauri::capabilities::config::read_governed_config(
+            &file,
+            &path,
+            |document| Ok(document.clone()),
+        )
+        .expect("read governed config");
 
         match outcome {
-            nimi_shell_tauri::capabilities::config::ConfigReadOutcome::Repair { severity, reason } => {
+            nimi_shell_tauri::capabilities::config::ConfigReadOutcome::Repair {
+                severity,
+                reason,
+            } => {
                 assert_eq!(
                     severity,
                     nimi_shell_tauri::capabilities::config::ConfigRepairSeverity::RepairRequired
@@ -572,9 +605,10 @@ mod tests {
 
     #[test]
     fn tester_consumes_shared_runtime_bridge_unary_codec_helpers() {
-        let request = nimi_shell_tauri::capabilities::runtime::generated::GetAccountSessionStatusRequest {
-            caller: None,
-        };
+        let request =
+            nimi_shell_tauri::capabilities::runtime::generated::GetAccountSessionStatusRequest {
+                caller: None,
+            };
         let payload = nimi_shell_tauri::capabilities::runtime::build_unary_payload(
             nimi_shell_tauri::capabilities::runtime::RUNTIME_ACCOUNT_GET_ACCOUNT_SESSION_STATUS_METHOD_ID,
             request,
@@ -603,7 +637,8 @@ mod tests {
             .expect("decode response");
         assert_eq!(
             decoded_response.state,
-            nimi_shell_tauri::capabilities::runtime::generated::AccountSessionState::Unspecified as i32
+            nimi_shell_tauri::capabilities::runtime::generated::AccountSessionState::Unspecified
+                as i32
         );
     }
 
@@ -660,10 +695,11 @@ mod tests {
             .expect("time")
             .as_nanos();
         let data_root = std::env::temp_dir().join(format!("nimi-tester-model-root-{unique}"));
-        let models_root = nimi_shell_tauri::capabilities::local_assets::runtime_models_dir(&data_root);
+        let models_root =
+            nimi_shell_tauri::capabilities::local_assets::runtime_models_dir(&data_root);
         std::fs::create_dir_all(&models_root).expect("create models root");
-        let manifest =
-            models_root.join(nimi_shell_tauri::capabilities::local_assets::ASSET_MANIFEST_FILE_NAME);
+        let manifest = models_root
+            .join(nimi_shell_tauri::capabilities::local_assets::ASSET_MANIFEST_FILE_NAME);
         std::fs::write(&manifest, "{}").expect("write manifest");
 
         let resolved = nimi_shell_tauri::capabilities::local_assets::canonical_asset_manifest_path(
@@ -678,8 +714,8 @@ mod tests {
 
         let outside_dir = data_root.join("outside");
         std::fs::create_dir_all(&outside_dir).expect("create outside dir");
-        let outside_manifest =
-            outside_dir.join(nimi_shell_tauri::capabilities::local_assets::ASSET_MANIFEST_FILE_NAME);
+        let outside_manifest = outside_dir
+            .join(nimi_shell_tauri::capabilities::local_assets::ASSET_MANIFEST_FILE_NAME);
         std::fs::write(&outside_manifest, "{}").expect("write outside manifest");
         let error = nimi_shell_tauri::capabilities::local_assets::canonical_asset_manifest_path(
             &outside_manifest,

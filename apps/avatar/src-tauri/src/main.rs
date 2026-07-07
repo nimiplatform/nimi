@@ -33,6 +33,7 @@ use avatar_window::*;
 use avatar_window_commands::*;
 #[cfg(test)]
 use nimi_shell_tauri::capabilities::avatar::AgentCenterAvatarAssetResolvePayload;
+use nimi_shell_tauri::capabilities::data::StandardAppStorageRootSlot;
 use nimi_shell_tauri::capabilities::runtime as runtime_bridge;
 use serde_json::json;
 #[cfg(test)]
@@ -81,6 +82,11 @@ fn main() {
     tauri::Builder::default()
         .manage(AvatarInstanceRegistry::new())
         .manage(NasWatcherRegistry::default())
+        // The shared kit runtime-bridge macro registers standard storage/file
+        // commands. Avatar does not bind app storage roots today, so keep the
+        // slot intentionally empty: those commands fail closed with the
+        // standard binding-missing envelope instead of missing Tauri state.
+        .manage(StandardAppStorageRootSlot::empty())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
@@ -103,16 +109,24 @@ fn main() {
             }
         })
         .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler![
-            nimi_avatar_start_window_drag,
-            nimi_avatar_begin_manual_drag_window,
-            nimi_avatar_move_manual_drag_window,
-            nimi_avatar_set_window_size,
-            nimi_avatar_set_ignore_cursor_events,
+            // Kit standard floating-window commands (window control primitive).
+            // These act on the invoking WebviewWindow and replace the retired
+            // avatar-local window commands. Passed as extra app commands into
+            // the runtime-bridge handler so Avatar keeps its single
+            // generate_handler with runtime bridge + floating-window +
+            // avatar product commands.
+            nimi_shell_tauri::standard_floating_window::floating_window_set_bounds,
+            nimi_shell_tauri::standard_floating_window::floating_window_set_ignore_cursor_events,
+            nimi_shell_tauri::standard_floating_window::floating_window_set_always_on_top,
+            nimi_shell_tauri::standard_floating_window::floating_window_hide,
+            nimi_shell_tauri::standard_floating_window::floating_window_close,
+            nimi_shell_tauri::standard_floating_window::floating_window_begin_manual_drag,
+            nimi_shell_tauri::standard_floating_window::floating_window_move_manual_drag,
+            nimi_shell_tauri::standard_floating_window::floating_window_constrain_to_visible_area,
+            // Avatar app-owned cursor hit-testing (tightly coupled to the
+            // alpha-mask click-through decision; not a kit floating-window
+            // primitive).
             nimi_avatar_get_cursor_client_position,
-            nimi_avatar_constrain_window_to_visible_area,
-            nimi_avatar_set_always_on_top,
-            nimi_avatar_hide_window,
-            nimi_avatar_close_window,
             nimi_avatar_get_launch_context,
             nimi_avatar_bind_runtime_identity,
             nimi_avatar_record_evidence,

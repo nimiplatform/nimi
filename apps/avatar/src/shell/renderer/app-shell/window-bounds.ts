@@ -8,8 +8,8 @@
 //
 // The renderer holds the source-of-truth for embodiment_bounds (from the
 // active embodiment projection) and avatar_scale (per avatar instance). This
-// module turns those inputs into the physical pixel size handed to Tauri
-// `nimi_avatar_set_window_size`.
+// module turns those inputs into the physical pixel size handed to the kit
+// standard `floatingWindow.setBounds` primitive.
 //
 // Why this is a separate module:
 // - Pure computation (computeWindowBounds) is deterministic + unit-testable
@@ -88,7 +88,7 @@ export type WindowBoundsRecomputerDeps = {
   // wheel-driven persistent avatar instance scale.
   getAvatarScale?: () => number;
   // Apply the result to the OS window. In production this is the Tauri
-  // `nimi_avatar_set_window_size` invoker; in tests a spy.
+  // `floatingWindow.setBounds` invoker; in tests a spy.
   applySize: (size: { width: number; height: number }) => void | Promise<void>;
   // Optional evidence sink. When provided, every successful recompute emits
   // `avatar.shell.window-bounds-changed` so the projection layer can record

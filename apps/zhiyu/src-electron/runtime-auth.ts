@@ -55,7 +55,8 @@ export function createZhiyuElectronTrustedRuntimeMetadataProvider(input: {
       scopes: [...runtimeProtectedScopes],
       ttlSeconds: runtimeProtectedTokenTtlSeconds,
       refreshSkewMs: runtimeProtectedTokenRefreshSkewMs,
-      idempotencyKey: ({ normalizedSubjectUserId }) => `${clientIdPrefix}-runtime-protected-${normalizedSubjectUserId}`,
+      idempotencyKey: ({ normalizedSubjectUserId, scopesSignature }) =>
+        `${clientIdPrefix}-runtime-protected-${normalizedSubjectUserId}-${scopesSignature}`,
     },
   });
 }

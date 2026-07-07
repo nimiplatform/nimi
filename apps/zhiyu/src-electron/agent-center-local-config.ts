@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import type { BrowserWindow, IpcMain } from 'electron';
 import { dialog } from 'electron';
 import { findLive2dModelEntries } from './live2d-source.js';
@@ -25,6 +24,13 @@ import {
   type ValidationIssue,
 } from './agent-center-local-config-schema.js';
 
+/**
+ * Resolves an absolute local asset path to a shell-served asset URL. Injected by
+ * `main.ts` from the kit `nimi-shell-file` protocol host so that renderer-facing
+ * asset URLs never expose a raw `file://` scheme (P-KIT-041C).
+ */
+export type ZhiyuLocalAssetUrlResolver = (absolutePath: string) => Promise<string> | string;
+
 const CHANNEL = 'zhiyu:agent-center-local-config';
 const ALLOWED_AVATAR_COMMANDS = new Set([
   'config.get',
@@ -46,6 +52,7 @@ export function registerZhiyuAgentCenterLocalConfigBridge(input: {
   dataRoot: string;
   isAllowedRendererUrl: (url: string) => boolean;
   mainWindow: () => BrowserWindow | undefined;
+  resolveLocalAssetUrl: ZhiyuLocalAssetUrlResolver;
 }): void {
   input.ipcMain.handle(CHANNEL, async (event, message) => {
     const senderUrl = event.senderFrame?.url || event.sender.getURL();
@@ -63,6 +70,7 @@ export function registerZhiyuAgentCenterLocalConfigBridge(input: {
       payload,
       dataRoot: input.dataRoot,
       window: input.mainWindow(),
+      resolveLocalAssetUrl: input.resolveLocalAssetUrl,
     });
   });
 }
@@ -72,6 +80,7 @@ async function dispatchAgentCenterCommand(input: {
   payload: Record<string, unknown>;
   dataRoot: string;
   window: BrowserWindow | undefined;
+  resolveLocalAssetUrl: ZhiyuLocalAssetUrlResolver;
 }): Promise<unknown> {
   if (input.command === 'config.get') {
     return getConfig(input.dataRoot, parseScope(input.payload));
@@ -110,7 +119,7 @@ async function dispatchAgentCenterCommand(input: {
   if (input.command === 'background.get') {
     const scope = parseScope(input.payload);
     const backgroundAssetId = parseBackgroundAssetId(input.payload.backgroundAssetId, 'backgroundAssetId');
-    return getBackgroundAsset(input.dataRoot, scope, backgroundAssetId);
+    return getBackgroundAsset(input.dataRoot, scope, backgroundAssetId, input.resolveLocalAssetUrl);
   }
   if (input.command === 'background.remove') {
     return removeBackground(input.dataRoot, input.payload);
@@ -323,7 +332,12 @@ async function removeBackground(dataRoot: string, payload: Record<string, unknow
   };
 }
 
-async function getBackgroundAsset(dataRoot: string, scope: LocalConfigScope, backgroundAssetId: string): Promise<unknown> {
+async function getBackgroundAsset(
+  dataRoot: string,
+  scope: LocalConfigScope,
+  backgroundAssetId: string,
+  resolveLocalAssetUrl: ZhiyuLocalAssetUrlResolver,
+): Promise<unknown> {
   const validation = await validateBackgroundAsset(dataRoot, scope, backgroundAssetId);
   const filePath = await findBackgroundFile(backgroundDir(dataRoot, scope, backgroundAssetId));
   if (!filePath) {
@@ -331,7 +345,7 @@ async function getBackgroundAsset(dataRoot: string, scope: LocalConfigScope, bac
   }
   return {
     background_asset_id: backgroundAssetId,
-    file_url: pathToFileURL(filePath).toString(),
+    file_url: await resolveLocalAssetUrl(filePath),
     validation,
   };
 }

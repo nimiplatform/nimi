@@ -18,7 +18,6 @@ import {
 import { readAvatarShellSettings } from './settings-state.js';
 
 const bootstrapAvatarMock = vi.fn<() => Promise<BootstrapHandle>>();
-const startWindowDragMock = vi.fn();
 const setIgnoreCursorEventsMock = vi.fn();
 const constrainWindowToVisibleAreaMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
@@ -63,7 +62,6 @@ vi.mock('./app-shell/avatar-evidence.js', () => ({
 }));
 
 vi.mock('./app-shell/tauri-commands.js', () => ({
-  startWindowDrag: () => startWindowDragMock(),
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
   constrainWindowToVisibleArea: (...args: unknown[]) => constrainWindowToVisibleAreaMock(...args),
   setAlwaysOnTop: (...args: unknown[]) => setAlwaysOnTopMock(...args),
@@ -390,7 +388,6 @@ function emitLaunchContextUpdated(payload: Partial<AvatarLaunchContextForTest>):
 beforeEach(() => {
   useAvatarStore.setState(useAvatarStore.getInitialState(), true);
   bootstrapAvatarMock.mockReset();
-  startWindowDragMock.mockReset();
   setIgnoreCursorEventsMock.mockReset();
   constrainWindowToVisibleAreaMock.mockReset();
   recordAvatarEvidenceEventuallyMock.mockReset();

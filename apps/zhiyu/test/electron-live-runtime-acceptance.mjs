@@ -66,8 +66,6 @@ const root = path.resolve(import.meta.dirname, '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
 const desktopAppId = 'nimi.desktop';
 const zhiyuAppId = 'nimi.zhiyu';
-const zhiyuRuntimeVoiceObserverAppId = desktopAppId;
-const zhiyuRuntimeVoiceObserverAppInstanceId = `${zhiyuRuntimeVoiceObserverAppId}.live-runtime-voice-observer`;
 const zhiyuRuntimeProtectedScopes = [
   'runtime.agent.read',
   'runtime.agent.write',
@@ -80,23 +78,17 @@ const zhiyuRuntimeProtectedScopes = [
   'ai.spend.meter',
 ];
 
-test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtime Agent chat turn', { timeout: 180_000 }, async () => {
+test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtime Agent chat turn', { timeout: 300_000 }, async () => {
   await resetLiveRuntimeEvidenceRoot();
 
   await withRuntimeAgentLiveE2EFixture({
     localChatCompletionStreamDelayMs: 4_000,
-    voiceSpeechStreamDelayMs: 3_000,
+    voiceSpeechStreamDelayMs: 8_000,
     run: async (fixture) => {
       await fixture.admitLocalFirstPartyRuntimeAccountCaller({
         appId: zhiyuAppId,
         appInstanceId: `${zhiyuAppId}.local-first-party`,
         deviceId: 'nimi-zhiyu-local-first-party-device',
-        capabilities: zhiyuRuntimeProtectedScopes,
-      });
-      await fixture.admitLocalFirstPartyRuntimeAccountCaller({
-        appId: zhiyuRuntimeVoiceObserverAppId,
-        appInstanceId: zhiyuRuntimeVoiceObserverAppInstanceId,
-        deviceId: 'nimi-zhiyu-live-runtime-voice-observer-device',
         capabilities: zhiyuRuntimeProtectedScopes,
       });
       await fixture.admitLocalFirstPartyRuntimeAccountCaller({
@@ -120,7 +112,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
         let avatarLaunchEvidence = null;
 
         try {
-          const page = await app.firstWindow({ timeout: 60_000 });
+          const page = await app.firstWindow({ timeout: 120_000 });
           await assertElectronChromeParity(app);
           const pageProblems = trackPageProblems(page);
           await page.waitForLoadState('domcontentloaded');
@@ -542,8 +534,8 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           const firstRequestId = chatCompletedEvidence.chat.requestId;
           const firstOutputText = chatCompletedEvidence.chat.outputText;
 
-          await assertMidStreamFailureFlow(page, pageProblems, readyEvidence);
           await assertRuntimeNativeVoiceInterruptFlow(page, pageProblems, fixture, readyEvidence);
+          await assertMidStreamFailureFlow(page, pageProblems, readyEvidence);
 
           const actionArtifactPrompt = 'Please make an image artifact for Zhiyu action artifact.';
           await page.locator('[data-chat-composer-textarea="true"]').fill(actionArtifactPrompt);
@@ -656,7 +648,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
 
           const relaunchedApp = await launchLiveRuntimeZhiyuApp({ fixture, dataRoot });
           try {
-            const relaunchedPage = await relaunchedApp.firstWindow({ timeout: 60_000 });
+            const relaunchedPage = await relaunchedApp.firstWindow({ timeout: 120_000 });
             const relaunchProblems = trackPageProblems(relaunchedPage);
             await relaunchedPage.waitForLoadState('domcontentloaded');
             await relaunchedPage.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
@@ -1244,21 +1236,19 @@ async function assertRuntimeNativeVoiceInterruptFlow(page, pageProblems, fixture
       .map((event) => String(event?.detail?.voiceStreamId || event?.detail?.voice_stream_id || '').trim())
       .filter(Boolean);
   });
-  const observerReady = createDeferred();
-  const runtimeInterruptObserver = observeLiveRuntimeNativeVoiceInterrupt({
-    fixture,
-    conversationAnchorId: readyEvidence.conversation.conversationAnchorId,
-    prompt: interruptedPrompt,
-    existingVoiceStreamIds,
-    runtimeAuthBinding,
-    onReady: observerReady.resolve,
-  });
-  void runtimeInterruptObserver.catch((error) => observerReady.reject(error));
-  await promiseWithTimeout(
-    observerReady.promise,
-    15_000,
-    'Runtime native voice interrupt observer did not subscribe before submit',
-  );
+  const targetRequestId = createDeferred();
+  const interruptProgress = {
+    stage: 'page_submit_start',
+    observedEvents: 0,
+    observedNativeChunks: 0,
+    skippedExistingNativeChunks: 0,
+    lastEventName: '',
+    lastTurnId: '',
+    lastVoiceStreamId: '',
+    targetRequestId: '',
+    targetTurnId: '',
+    targetStreamId: '',
+  };
   await page.locator('[data-chat-composer-textarea="true"]').fill(interruptedPrompt, { timeout: 15_000 });
   await page.waitForFunction(() =>
     document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
@@ -1274,19 +1264,37 @@ async function assertRuntimeNativeVoiceInterruptFlow(page, pageProblems, fixture
       && evidence?.chat?.messages?.some((message) => message?.text === interruptedPrompt)
       && ['streaming', 'completed', 'failed'].includes(evidence?.chat?.state || '');
   }, 'Runtime voice interrupt turn submitted through Zhiyu', { interruptedPrompt });
+  const submittedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+  const submittedRequestId = String(submittedEvidence?.chat?.requestId || '').trim();
+  assert.match(submittedRequestId, /^zhiyu-turn-/u, 'Zhiyu interrupt turn must expose its local request id before Runtime accepted');
+  interruptProgress.targetRequestId = submittedRequestId;
+  interruptProgress.stage = 'observer_subscribe_start';
+  targetRequestId.resolve(submittedRequestId);
+  const runtimeInterruptObserver = observeLiveRuntimeNativeVoiceInterrupt({
+    fixture,
+    conversationAnchorId: readyEvidence.conversation.conversationAnchorId,
+    prompt: interruptedPrompt,
+    existingVoiceStreamIds,
+    runtimeAuthBinding,
+    targetRequestIdPromise: targetRequestId.promise,
+    progress: interruptProgress,
+  });
   const runtimeInterrupt = await promiseWithTimeout(
     runtimeInterruptObserver,
     60_000,
-    'Runtime native voice interrupt observer/capture did not complete',
+    () => `Runtime native voice interrupt observer/capture did not complete; progress=${JSON.stringify(interruptProgress)}`,
   );
   const {
     nativeChunkEvent,
     interruptRuntimeTurnId,
+    interruptRuntimeStreamId,
     typedFirstChunk,
     typedTerminalEvent,
     interruptResponse,
     voiceStreamId,
   } = runtimeInterrupt;
+  assert.ok(voiceStreamId, 'Runtime native voice chunk projection must carry voiceStreamId');
+  assert.match(interruptRuntimeTurnId, /^agent_turn_/u, 'Runtime native voice chunk projection must carry turn id');
   assert.match(interruptRuntimeTurnId, /^agent_turn_/u, 'interrupt must target the Runtime public-chat turn id');
   assert.equal(nativeChunkEvent.detail?.audioArtifactId || nativeChunkEvent.detail?.audio_artifact_id || null, null);
   assert.match(

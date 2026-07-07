@@ -7,17 +7,9 @@ const root = path.resolve(import.meta.dirname, '..');
 const repoRoot = path.resolve(root, '..', '..');
 
 const STATIC_TESTER_SHELL_COMMANDS = [
-  'tester_run_history_load',
-  'tester_run_history_save',
-  'tester_image_history_load',
-  'tester_image_history_save',
-  'tester_export_save',
-  'tester_artifact_save',
   'resolve_world_tour_fixture',
   'claim_world_tour_viewer_launch',
   'save_world_tour_viewer_preset',
-  'world_tour_render_acceptance_save',
-  'world_tour_render_acceptance_load',
   'open_world_tour_window',
 ];
 

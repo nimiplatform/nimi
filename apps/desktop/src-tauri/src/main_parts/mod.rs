@@ -87,12 +87,6 @@ struct ConfirmDialogPayload {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct ConfirmDialogResult {
-    confirmed: bool,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
 struct DesktopMacosSmokeContextResult {
     enabled: bool,
     scenario_id: Option<String>,

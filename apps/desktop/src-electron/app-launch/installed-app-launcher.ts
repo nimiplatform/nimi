@@ -114,7 +114,13 @@ export function createDesktopInstalledAppLauncher(deps: DesktopInstalledAppLaunc
         trustedRuntimeMetadataProvider,
         standardShell: {
           capabilitySetRef: INSTALLED_APP_STANDARD_SHELL_CAPABILITY_SET_REF,
-          dataRoot: resolution.storage.durableDataRoot,
+          standardDataRootBinding: {
+            source: 'runtime-launch-projection',
+            durableDataRoot: resolution.storage.durableDataRoot,
+            cacheRoot: resolution.storage.cacheRoot,
+            tempRoot: resolution.storage.tempRoot,
+            projectionRef: resolution.releaseDescriptorRef,
+          },
           localAssetRoots: [resolution.activeReleaseRoot],
           ...(deps.createAIConfigStore
             ? { aiConfigStore: deps.createAIConfigStore(resolution.storage.durableDataRoot) }

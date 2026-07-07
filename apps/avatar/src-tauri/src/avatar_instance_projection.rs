@@ -104,6 +104,15 @@ pub fn projection_record_from_launch_context(
     if local_agent_ref != context.local_agent_ref.trim() {
         return None;
     }
+    if nimi_shell_tauri::capabilities::local_agent::project_runtime_local_agent_identity(
+        owner_user_id,
+        runtime_source_ref,
+        Some(local_agent_ref),
+    )
+    .is_err()
+    {
+        return None;
+    }
     let avatar_instance_id = context
         .avatar_instance_id
         .as_deref()

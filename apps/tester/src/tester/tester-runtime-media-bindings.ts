@@ -355,16 +355,17 @@ export function imageProfileExtensions(binding: ImageRuntimeBinding, providerOpt
 
 function voiceReferenceFromParams(resolved: ResolvedLLMBinding) {
   const params = selectedParamRecord(resolved);
-  return toNimiRuntimeVoiceReference(toNimiRuntimeVoiceReferenceFromInput(
-    params.voiceRef
-    ?? params.voice_ref
-    ?? params.providerVoiceRef
-    ?? params.provider_voice_ref
-    ?? params.presetVoiceId
-    ?? params.preset_voice_id
-    ?? params.voiceAssetId
-    ?? params.voice_asset_id,
-  ));
+  return toNimiRuntimeVoiceReference(toNimiRuntimeVoiceReferenceFromInput(voiceReferenceInputFromParams(params)));
+}
+
+function voiceReferenceInputFromParams(params: Record<string, unknown>): unknown {
+  if (params.voiceRef !== undefined) return params.voiceRef;
+  if (params.voice_ref !== undefined) return params.voice_ref;
+  if (params.presetVoiceId !== undefined) return { presetVoiceId: params.presetVoiceId };
+  if (params.preset_voice_id !== undefined) return { preset_voice_id: params.preset_voice_id };
+  if (params.voiceAssetId !== undefined) return { voiceAssetId: params.voiceAssetId };
+  if (params.voice_asset_id !== undefined) return { voice_asset_id: params.voice_asset_id };
+  return params;
 }
 
 function activeVoiceAssetReference(asset: RuntimeVoiceAsset | undefined): ReturnType<typeof toNimiRuntimeVoiceReference> | undefined {

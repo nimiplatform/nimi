@@ -24,7 +24,13 @@ export async function assertPreConfigRuntimeEvidence(page, fixture, zhiyuAppId) 
   assert.equal(preConfigEvidence.delegation.ownerUserId, fixture.ownerUserId);
   assert.equal(preConfigEvidence.delegation.localAgentRef, fixture.localAgentRef);
   assert.equal(preConfigEvidence.delegation.conversationAnchorId, preConfigEvidence.conversation.conversationAnchorId);
-  assertRuntimeScopedBinding({ scopedBinding: preConfigScopedBinding, fixture, zhiyuAppId, preConfigEvidence });
+  assertRuntimeScopedBinding({
+    scopedBinding: preConfigScopedBinding,
+    fixture,
+    zhiyuAppId,
+    preConfigEvidence,
+    expectedScopes: ['runtime.agent.delegation.read'],
+  });
 
   const scopedBindingRenewal = await page.evaluate(() =>
     globalThis.window.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__.renewDelegationScopedBinding(),
@@ -32,7 +38,13 @@ export async function assertPreConfigRuntimeEvidence(page, fixture, zhiyuAppId) 
   assert.equal(scopedBindingRenewal.ok, true);
   assert.equal(scopedBindingRenewal.reason, 'zhiyu-runtime-agent-scoped-binding-renewed');
   const renewedScopedBinding = scopedBindingRenewal.status;
-  assertRuntimeScopedBinding({ scopedBinding: renewedScopedBinding, fixture, zhiyuAppId, preConfigEvidence });
+  assertRuntimeScopedBinding({
+    scopedBinding: renewedScopedBinding,
+    fixture,
+    zhiyuAppId,
+    preConfigEvidence,
+    expectedScopes: delegationScopes,
+  });
   assert.notEqual(
     renewedScopedBinding.bindingId,
     preConfigScopedBinding.bindingId,
@@ -72,7 +84,7 @@ export async function assertPreConfigRuntimeEvidence(page, fixture, zhiyuAppId) 
   return { preConfigEvidence, preConfigScopedBinding, renewedScopedBinding };
 }
 
-function assertRuntimeScopedBinding({ scopedBinding, fixture, zhiyuAppId, preConfigEvidence }) {
+function assertRuntimeScopedBinding({ scopedBinding, fixture, zhiyuAppId, preConfigEvidence, expectedScopes }) {
   assert.ok(scopedBinding, 'Zhiyu must expose Runtime-issued scoped binding evidence after delegation probe');
   assert.equal(scopedBinding.bindingSource, 'runtime-account-service');
   assert.match(scopedBinding.bindingId, /^[0-9A-HJKMNP-TV-Z]{26}$/);
@@ -80,5 +92,5 @@ function assertRuntimeScopedBinding({ scopedBinding, fixture, zhiyuAppId, preCon
   assert.equal(scopedBinding.appInstanceId, `${zhiyuAppId}.local-first-party`);
   assert.equal(scopedBinding.agentId, fixture.localAgentRef);
   assert.equal(scopedBinding.conversationAnchorId, preConfigEvidence.conversation.conversationAnchorId);
-  assert.deepEqual(scopedBinding.scopes, delegationScopes);
+  assert.deepEqual(scopedBinding.scopes, expectedScopes);
 }

@@ -3,13 +3,14 @@ import type {
   ElectronRuntimeBridgeTrustedMetadataProvider,
   NimiElectronIpcMain,
   NimiElectronAIConfigStore,
+  NimiElectronStandardDataRootBinding,
   RegisteredNimiElectronRuntimeBridge,
   RegisterNimiElectronRuntimeBridgeInput,
 } from '@nimiplatform/kit/shell/electron/main';
 
 export type DesktopInstalledAppStandardShellPlan = {
   readonly capabilitySetRef: string;
-  readonly dataRoot?: string;
+  readonly standardDataRootBinding: NimiElectronStandardDataRootBinding;
   readonly localAssetRoots: readonly string[];
   readonly aiConfigStore?: NimiElectronAIConfigStore;
 };
@@ -94,7 +95,7 @@ export async function createDesktopInstalledAppHostWindow(
     trustedRuntimeMetadataProvider: input.trustedRuntimeMetadataProvider,
     standardShellHost: {
       capabilitySetRef: input.standardShell.capabilitySetRef,
-      dataRoot: input.standardShell.dataRoot,
+      standardDataRootBinding: input.standardShell.standardDataRootBinding,
       localAssetRoots: input.standardShell.localAssetRoots,
       aiConfigStore: input.standardShell.aiConfigStore,
     },

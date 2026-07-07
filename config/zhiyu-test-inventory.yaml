@@ -54,6 +54,20 @@ tests:
       - Z-CHAT-001
       - Z-CHAT-002
       - Z-GATE-001
+  - path: apps/zhiyu/test/agent-center-local-config.test.mjs
+    owner: zhiyu
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+      - Z-CONFIG-002
+      - Z-CONFIG-005
+      - Z-GATE-001
   - path: apps/zhiyu/test/agent-execution-config.test.mjs
     owner: zhiyu
     classification: behavior_unit
@@ -319,6 +333,21 @@ tests:
       - Z-CHAT-001
       - Z-CONFIG-005
       - Z-AUTH-006
+  - path: apps/zhiyu/test/electron-live-runtime-native-voice-helpers.mjs
+    owner: zhiyu
+    classification: product_acceptance
+    tier: T6
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: after_real_shell_evidence
+    spec_refs:
+      - P-TEST-001
+      - Z-GATE-001
+      - Z-GATE-005
+      - Z-CHAT-001
+      - Z-CONFIG-005
   - path: apps/zhiyu/test/execution-config-commit.test.mjs
     owner: zhiyu
     classification: behavior_unit

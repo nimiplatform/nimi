@@ -11,7 +11,7 @@ const commandMatrix = [
   { id: 'runtime-lifecycle.status', command: 'runtime_bridge_status' },
   { id: 'runtime-defaults.get', command: 'runtime_defaults' },
   { id: 'config.get.negative', command: 'runtime_bridge_config_get', expectError: true },
-  { id: 'tester-storage.runHistory.load', command: 'tester_run_history_load' },
+  { id: 'standard-storage.runHistory.read', command: 'storage_read_json' },
   { id: 'auth.sessionLoad.negative', command: 'auth_session_load', expectError: true },
   { id: 'unsupported-standard-command.negative', command: 'unsupported-standard-command', expectError: true },
 ];

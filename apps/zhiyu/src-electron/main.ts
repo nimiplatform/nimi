@@ -1,11 +1,14 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { app, BrowserWindow, Menu, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain, protocol } from 'electron';
 import {
+  createElectronShellFileProtocolHost,
   createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   type NimiElectronRuntimeTrustedCallerMode,
+  type NimiElectronShellFileProtocolHost,
+  type NimiElectronStandardDataRootBinding,
 } from '@nimiplatform/kit/shell/electron/main';
 import { registerZhiyuAgentCenterLocalConfigBridge } from './agent-center-local-config.js';
 import { registerZhiyuAvatarLaunchHandoffBridge } from './avatar-launch-handoff.js';
@@ -33,13 +36,18 @@ app.setName('织羽 Zhiyu');
 Menu.setApplicationMenu(null);
 configureZhiyuElectronChromiumRuntime();
 
+const localAssetProtocolHost = createLocalAssetProtocolHost();
+localAssetProtocolHost.registerPrivilegedSchemes();
+
 void app.whenReady().then(async () => {
   const standardDataRoot = resolveStandardDataRoot();
+  localAssetProtocolHost.registerProtocolHandler();
   registerZhiyuAgentCenterLocalConfigBridge({
     ipcMain,
     dataRoot: standardDataRoot,
     isAllowedRendererUrl: isZhiyuRendererUrl,
     mainWindow: () => mainWindow,
+    resolveLocalAssetUrl: resolveZhiyuLocalAssetUrl,
   });
   registerZhiyuAvatarLaunchHandoffBridge({
     ipcMain,
@@ -58,8 +66,9 @@ void app.whenReady().then(async () => {
       runtimeEndpoint,
     }),
     standardShellHost: {
-      dataRoot: standardDataRoot,
-      localAssetRoots: [],
+      standardDataRootBinding: resolveStandardDataRootBinding(),
+      localAssetRoots: resolveLocalAssetRoots(standardDataRoot),
+      localAssetProtocolHost,
       runtimeTrustedCaller: {
         mode: resolveRuntimeTrustedCallerMode(),
       },
@@ -171,9 +180,48 @@ function isZhiyuRendererUrl(url: string): boolean {
   return isAllowedElectronRendererUrl(url, allowedRendererUrls());
 }
 
+function createLocalAssetProtocolHost(): NimiElectronShellFileProtocolHost {
+  return createElectronShellFileProtocolHost({
+    protocol: {
+      registerSchemesAsPrivileged: (schemes) => protocol.registerSchemesAsPrivileged([...schemes]),
+      handle: (scheme, handler) => protocol.handle(scheme, (request) => handler(request) as Promise<Response>),
+    },
+    roots: resolveLocalAssetRoots(resolveStandardDataRoot()),
+  });
+}
+
+async function resolveZhiyuLocalAssetUrl(filePath: string): Promise<string> {
+  await localAssetProtocolHost.registerReadableFile(filePath);
+  return localAssetProtocolHost.resolveLocalAssetUrl(filePath);
+}
+
+function resolveLocalAssetRoots(dataRoot: string): string[] {
+  const fromEnv = normalizeText(process.env.NIMI_ZHIYU_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS);
+  if (!fromEnv) {
+    return [path.resolve(dataRoot)];
+  }
+  return fromEnv
+    .split(path.delimiter)
+    .map((filePath) => normalizeText(filePath))
+    .filter(Boolean)
+    .map((filePath) => path.resolve(filePath));
+}
+
 function resolveStandardDataRoot(): string {
   const fromEnv = normalizeText(process.env.NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT);
   return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
+}
+
+function resolveStandardDataRootBinding(): NimiElectronStandardDataRootBinding {
+  const fromEnv = normalizeText(process.env.NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT);
+  if (fromEnv) {
+    return {
+      source: 'runtime-launch-projection',
+      durableDataRoot: path.resolve(fromEnv),
+      projectionRef: 'zhiyu-electron-acceptance-fixture',
+    };
+  }
+  return { source: 'runtime-get-app-storage' };
 }
 
 function resolveRuntimeTrustedCallerMode(): NimiElectronRuntimeTrustedCallerMode {

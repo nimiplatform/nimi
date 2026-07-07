@@ -1,5 +1,6 @@
 import { invokeTesterCommand } from '../tester-tauri.js';
-import { withTesterAppStorageRoots, type TesterAppStorageRoots } from '../tester-app-storage.js';
+import { readTesterStandardStorageJson, writeTesterStandardStorageJson } from '../tester-standard-storage.js';
+import type { JsonValue } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type ResolveWorldTourFixtureInput = {
   manifestPath?: string;
@@ -34,42 +35,43 @@ export type WorldTourRenderAcceptance = {
   note?: string;
 };
 
-async function withStorageRoots<T extends Record<string, unknown>>(payload: T): Promise<T & TesterAppStorageRoots> {
-  return withTesterAppStorageRoots(payload);
-}
+const WORLD_TOUR_RENDER_ACCEPTANCE_STORAGE_PATH = 'world-tour-render-acceptance.json';
 
 export async function resolveWorldTourFixture(payload: ResolveWorldTourFixtureInput): Promise<ResolvedWorldTourFixture> {
   return invokeTesterCommand<ResolvedWorldTourFixture>('resolve_world_tour_fixture', {
-    payload: await withStorageRoots({ manifestPath: payload.manifestPath }),
+    payload: { manifestPath: payload.manifestPath },
   });
 }
 
 export async function openWorldTourWindow(payload: OpenWorldTourWindowInput): Promise<OpenWorldTourWindowResponse> {
   return invokeTesterCommand<OpenWorldTourWindowResponse>('open_world_tour_window', {
-    payload: await withStorageRoots(payload),
+    payload: { manifestPath: payload.manifestPath },
   });
 }
 
 export async function claimWorldTourViewerLaunch(payload: ClaimWorldTourViewerLaunchInput): Promise<ResolvedWorldTourFixture> {
   return invokeTesterCommand<ResolvedWorldTourFixture>('claim_world_tour_viewer_launch', {
-    payload: await withStorageRoots(payload),
+    payload: { manifestPath: payload.manifestPath, launchToken: payload.launchToken },
   });
 }
 
 export async function saveWorldTourViewerPreset(payload: { manifestPath: string; presetJson: string }): Promise<{ manifestPath: string; presetPath: string }> {
   return invokeTesterCommand('save_world_tour_viewer_preset', {
-    payload: await withStorageRoots(payload),
+    payload: { manifestPath: payload.manifestPath, presetJson: payload.presetJson },
   });
 }
 
 export async function saveWorldTourRenderAcceptance(record: WorldTourRenderAcceptance): Promise<void> {
-  return invokeTesterCommand('world_tour_render_acceptance_save', {
-    payload: await withStorageRoots(record),
-  });
+  await writeTesterStandardStorageJson(
+    WORLD_TOUR_RENDER_ACCEPTANCE_STORAGE_PATH,
+    record as unknown as JsonValue,
+  );
 }
 
 export async function loadWorldTourRenderAcceptance(): Promise<WorldTourRenderAcceptance | null> {
-  return invokeTesterCommand('world_tour_render_acceptance_load', {
-    payload: await withStorageRoots({}),
-  });
+  const value = await readTesterStandardStorageJson(WORLD_TOUR_RENDER_ACCEPTANCE_STORAGE_PATH);
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return value as unknown as WorldTourRenderAcceptance;
 }

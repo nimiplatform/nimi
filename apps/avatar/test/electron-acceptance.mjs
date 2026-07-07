@@ -169,7 +169,7 @@ test('Avatar Electron host boots renderer and exposes standard shell capability 
         },
       );
       assert.equal(avatarAsset.path, assetPath);
-      assert.match(avatarAsset.url, /^nimi-avatar-file:\//);
+      assert.match(avatarAsset.url, /^nimi-shell-file:\//);
       const fetchedAssetBody = await page.evaluate(async (url) => {
         const response = await fetch(url);
         return response.ok ? response.text() : `HTTP ${response.status}`;

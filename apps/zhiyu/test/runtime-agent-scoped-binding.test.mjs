@@ -75,6 +75,7 @@ test('Zhiyu Electron scoped binding bridge issues Runtime account binding after 
       runtimeSourceRef: 'runtime-source:opaque',
       localAgentRef: 'local-agent:opaque',
       conversationAnchorId: 'agent_anchor_1',
+      scopes: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
       issueRequestId: 'issue-request-1',
     },
   });
@@ -91,14 +92,18 @@ test('Zhiyu Electron scoped binding bridge issues Runtime account binding after 
   assert.equal(calls[1].request.relation.conversationAnchorId, 'agent_anchor_1');
   assert.equal(calls[1].request.relation.purpose, 2);
   assert.deepEqual(calls[1].request.relation.scopes, [
-    'runtime.agent.delegation.read',
-    'runtime.agent.delegation.write',
+    'runtime.agent.turn.read',
+    'runtime.agent.turn.write',
   ]);
   assert.equal(result.scopedBinding.bindingId, 'binding-1');
   assert.equal(result.scopedBinding.bindingSource, 'runtime-account-service');
   assert.equal(result.scopedBinding.agentId, 'local-agent:opaque');
   assert.equal(result.scopedBinding.conversationAnchorId, 'agent_anchor_1');
   assert.equal(result.scopedBinding.expiresAtMs, 200_000);
+  assert.deepEqual(result.scopedBinding.scopes, [
+    'runtime.agent.turn.read',
+    'runtime.agent.turn.write',
+  ]);
 });
 
 test('Zhiyu Electron scoped binding bridge honors admitted requested Runtime Agent scopes', async () => {

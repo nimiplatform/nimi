@@ -2,48 +2,56 @@ use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use nimi_shell_tauri::capabilities::data::{
+    require_bound_standard_storage_roots, StandardAppStorageRootSlot,
+};
+use nimi_shell_tauri::capabilities::storage;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{Manager, State, WebviewUrl, WebviewWindowBuilder};
 use url::form_urlencoded::Serializer;
-
-use crate::tester_storage::{canonical_storage_root, scoped_storage_child};
 
 const DEFAULT_WORLD_TOUR_MANIFEST_REL: &str = "latest/fixture-manifest.json";
 const VIEWER_PRESET_FILE_NAME: &str = "viewer-preset.json";
 const WORLD_TOUR_WINDOW_LABEL_PREFIX: &str = "world-tour";
 const WORLD_TOUR_LAUNCH_TOKEN_PREFIX: &str = "world-tour-viewer-launch";
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResolveWorldTourFixturePayload {
-    manifest_path: Option<String>,
-    cache_root: String,
+fn canonical_storage_root(root: &str, label: &str) -> Result<PathBuf, String> {
+    storage::canonical_storage_root(root, label)
+}
+
+fn scoped_storage_child(root: &str, label: &str, child: &str) -> Result<PathBuf, String> {
+    storage::scoped_storage_child(root, label, child)
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
+pub struct ResolveWorldTourFixturePayload {
+    manifest_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct ClaimWorldTourViewerLaunchPayload {
     manifest_path: String,
     launch_token: String,
-    cache_root: String,
-    temp_root: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct SaveWorldTourViewerPresetPayload {
     manifest_path: String,
     preset_json: String,
-    cache_root: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct OpenWorldTourWindowPayload {
     manifest_path: String,
-    cache_root: String,
-    temp_root: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -69,22 +77,36 @@ pub struct SaveWorldTourViewerPresetResponse {
     preset_path: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WorldTourRenderAcceptance {
-    manifest_path: String,
-    renderer: String,
-    status: String,
-    accepted_at: String,
-    note: Option<String>,
-    #[serde(default, skip_serializing)]
-    data_root: String,
+/// Resolves the tester cache root from the Runtime-attested managed storage
+/// slot. World Tour caches fixtures/manifests under `<cache_root>/world-tour`.
+fn slot_cache_root(slot: &StandardAppStorageRootSlot, command: &str) -> Result<String, String> {
+    let roots = require_bound_standard_storage_roots(slot, command)?;
+    let cache_root = roots.cache_root().ok_or_else(|| {
+        nimi_shell_tauri::capabilities::standard_shell_error(
+            "capability-unavailable",
+            "tauri-standard-storage-cache-root-missing",
+            "bind_runtime_projected_cache_root_for_world_tour",
+            "tauri",
+            None,
+        )
+    })?;
+    Ok(cache_root.to_string_lossy().to_string())
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WorldTourStoragePayload {
-    data_root: String,
+/// Resolves the tester temp root from the Runtime-attested managed storage
+/// slot. World Tour launch tokens live under `<temp_root>/world-tour`.
+fn slot_temp_root(slot: &StandardAppStorageRootSlot, command: &str) -> Result<String, String> {
+    let roots = require_bound_standard_storage_roots(slot, command)?;
+    let temp_root = roots.temp_root().ok_or_else(|| {
+        nimi_shell_tauri::capabilities::standard_shell_error(
+            "capability-unavailable",
+            "tauri-standard-storage-temp-root-missing",
+            "bind_runtime_projected_temp_root_for_world_tour",
+            "tauri",
+            None,
+        )
+    })?;
+    Ok(temp_root.to_string_lossy().to_string())
 }
 
 fn fixture_manifest_path(input: Option<&str>) -> String {
@@ -205,27 +227,24 @@ fn route_for_viewer(manifest_path: &str, launch_token: &str) -> String {
     format!("/#/world-tour-viewer?{}", serializer.finish())
 }
 
-fn acceptance_path(data_root: &str) -> Result<PathBuf, String> {
-    scoped_storage_child(
-        data_root,
-        "tester data root",
-        "world-tour-render-acceptance.json",
-    )
-}
-
 #[tauri::command]
 pub fn resolve_world_tour_fixture(
+    slot: State<'_, StandardAppStorageRootSlot>,
     payload: ResolveWorldTourFixturePayload,
 ) -> Result<ResolvedWorldTourFixture, String> {
+    let cache_root = slot_cache_root(&slot, "resolve_world_tour_fixture")?;
     let manifest = fixture_manifest_path(payload.manifest_path.as_deref());
-    resolve_fixture_from_manifest(&payload.cache_root, &manifest)
+    resolve_fixture_from_manifest(&cache_root, &manifest)
 }
 
 #[tauri::command]
 pub fn claim_world_tour_viewer_launch(
+    slot: State<'_, StandardAppStorageRootSlot>,
     payload: ClaimWorldTourViewerLaunchPayload,
 ) -> Result<ResolvedWorldTourFixture, String> {
-    let raw = fs::read_to_string(launch_token_path(&payload.temp_root)?)
+    let cache_root = slot_cache_root(&slot, "claim_world_tour_viewer_launch")?;
+    let temp_root = slot_temp_root(&slot, "claim_world_tour_viewer_launch")?;
+    let raw = fs::read_to_string(launch_token_path(&temp_root)?)
         .map_err(|error| format!("read world-tour launch token failed: {error}"))?;
     let token_payload: Value = serde_json::from_str(&raw)
         .map_err(|error| format!("world-tour launch token JSON invalid: {error}"))?;
@@ -237,18 +256,20 @@ pub fn claim_world_tour_viewer_launch(
         .get("launchToken")
         .and_then(Value::as_str)
         .unwrap_or("");
-    let canonical = resolve_manifest_path(&payload.cache_root, &payload.manifest_path)?;
+    let canonical = resolve_manifest_path(&cache_root, &payload.manifest_path)?;
     if expected_manifest != canonical.to_string_lossy() || expected_token != payload.launch_token {
         return Err("world-tour launch token rejected".to_string());
     }
-    resolve_fixture_from_manifest(&payload.cache_root, &payload.manifest_path)
+    resolve_fixture_from_manifest(&cache_root, &payload.manifest_path)
 }
 
 #[tauri::command]
 pub fn save_world_tour_viewer_preset(
+    slot: State<'_, StandardAppStorageRootSlot>,
     payload: SaveWorldTourViewerPresetPayload,
 ) -> Result<SaveWorldTourViewerPresetResponse, String> {
-    let manifest = resolve_manifest_path(&payload.cache_root, &payload.manifest_path)?;
+    let cache_root = slot_cache_root(&slot, "save_world_tour_viewer_preset")?;
+    let manifest = resolve_manifest_path(&cache_root, &payload.manifest_path)?;
     let parsed: Value = serde_json::from_str(&payload.preset_json)
         .map_err(|error| format!("world-tour viewer preset JSON invalid: {error}"))?;
     let preset_path = manifest
@@ -272,55 +293,19 @@ pub fn save_world_tour_viewer_preset(
 }
 
 #[tauri::command]
-pub fn world_tour_render_acceptance_save(payload: WorldTourRenderAcceptance) -> Result<(), String> {
-    if payload.manifest_path.trim().is_empty() {
-        return Err("world-tour render acceptance manifestPath is required".to_string());
-    }
-    if payload.renderer != "spark-2.0" {
-        return Err("world-tour render acceptance renderer must be spark-2.0".to_string());
-    }
-    if payload.status != "passed" && payload.status != "failed" {
-        return Err("world-tour render acceptance status must be passed or failed".to_string());
-    }
-    let path = acceptance_path(&payload.data_root)?;
-    fs::write(
-        &path,
-        serde_json::to_string_pretty(&payload).unwrap_or_default(),
-    )
-    .map_err(|error| {
-        format!(
-            "write world-tour render acceptance failed ({}): {error}",
-            path.display()
-        )
-    })
-}
-
-#[tauri::command]
-pub fn world_tour_render_acceptance_load(
-    payload: WorldTourStoragePayload,
-) -> Result<Option<WorldTourRenderAcceptance>, String> {
-    let path = acceptance_path(&payload.data_root)?;
-    if !path.exists() {
-        return Ok(None);
-    }
-    let raw = fs::read_to_string(&path).map_err(|error| {
-        format!(
-            "read world-tour render acceptance failed ({}): {error}",
-            path.display()
-        )
-    })?;
-    serde_json::from_str(&raw)
-        .map(Some)
-        .map_err(|error| format!("world-tour render acceptance JSON invalid: {error}"))
-}
-
-#[tauri::command]
 pub async fn open_world_tour_window(
     app: tauri::AppHandle,
     payload: OpenWorldTourWindowPayload,
 ) -> Result<OpenWorldTourWindowResponse, String> {
-    let fixture = resolve_fixture_from_manifest(&payload.cache_root, &payload.manifest_path)?;
-    let launch_token = write_launch_token(&payload.temp_root, &fixture.manifest_path)?;
+    let (cache_root, temp_root) = {
+        let slot = app.state::<StandardAppStorageRootSlot>();
+        (
+            slot_cache_root(&slot, "open_world_tour_window")?,
+            slot_temp_root(&slot, "open_world_tour_window")?,
+        )
+    };
+    let fixture = resolve_fixture_from_manifest(&cache_root, &payload.manifest_path)?;
+    let launch_token = write_launch_token(&temp_root, &fixture.manifest_path)?;
     for (label, window) in app.webview_windows() {
         if label.starts_with(WORLD_TOUR_WINDOW_LABEL_PREFIX) {
             let _ = window.close();

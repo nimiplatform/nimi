@@ -1,7 +1,8 @@
 use super::{
     avatar_runtime_env_pairs, build_avatar_close_handoff_uri, build_avatar_handoff_uri,
-    confirm_dialog, open_avatar_handoff_uri_or_binary, require_fresh_inferred_avatar_target,
-    ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload, DesktopAvatarLaunchHandoffPayload,
+    confirm_dialog_host_provider, open_avatar_handoff_uri_or_binary,
+    require_fresh_inferred_avatar_target, ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload,
+    DesktopAvatarLaunchHandoffPayload,
 };
 use crate::test_support::test_guard;
 use nimi_shell_tauri::capabilities::runtime::RuntimeBridgeHostHooks;
@@ -53,30 +54,33 @@ fn confirm_dialog_uses_desktop_e2e_override_sequence() {
     let previous = std::env::var("NIMI_E2E_FIXTURE_PATH").ok();
     std::env::set_var("NIMI_E2E_FIXTURE_PATH", fixture_path.as_os_str());
 
-    let first = confirm_dialog(ConfirmDialogPayload {
+    let first = confirm_dialog_host_provider(ConfirmDialogPayload {
         title: "Upgrade to Standard memory".to_string(),
         description: "Bind canonical memory?".to_string(),
         level: Some("warning".to_string()),
-    });
-    let second = confirm_dialog(ConfirmDialogPayload {
+    })
+    .expect("first confirm override");
+    let second = confirm_dialog_host_provider(ConfirmDialogPayload {
         title: "Upgrade to Standard memory".to_string(),
         description: "Bind canonical memory?".to_string(),
         level: Some("warning".to_string()),
-    });
-    let third = confirm_dialog(ConfirmDialogPayload {
+    })
+    .expect("second confirm override");
+    let third = confirm_dialog_host_provider(ConfirmDialogPayload {
         title: "Upgrade to Standard memory".to_string(),
         description: "Bind canonical memory?".to_string(),
         level: Some("warning".to_string()),
-    });
+    })
+    .expect("third confirm override");
 
     match previous {
         Some(value) => std::env::set_var("NIMI_E2E_FIXTURE_PATH", value),
         None => std::env::remove_var("NIMI_E2E_FIXTURE_PATH"),
     }
 
-    assert!(!first.confirmed);
-    assert!(second.confirmed);
-    assert!(third.confirmed);
+    assert!(!first);
+    assert!(second);
+    assert!(third);
     let _ = fs::remove_dir_all(temp);
 }
 

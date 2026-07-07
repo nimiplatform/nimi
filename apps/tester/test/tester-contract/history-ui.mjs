@@ -30,7 +30,7 @@ test('tester run history is a global runtime test timeline (no standalone Eviden
   const capabilities = readTesterAiTestingSurface(root);
   const surface = readTesterAiTestingSurface(root);
   const historyStore = read('src/tester/tester-history.ts');
-  const appStorage = read('src/tester/tester-app-storage.ts');
+  const standardStorage = read('src/tester/tester-standard-storage.ts');
   const workbench = read('src/tester/tester-workbench.tsx');
 
   // Evidence is folded into each capability's test panel as recent local runs,
@@ -64,13 +64,16 @@ test('tester run history is a global runtime test timeline (no standalone Eviden
   for (const helper of ['createTesterRunHistoryResultSnapshot', 'getTesterRunResultSummary', 'getTesterRunResultTags', 'getTesterRunStatusLabel', 'getTesterRunStatusTone', 'formatTesterRunTimestamp', 'flattenTesterRunHistory']) {
     assert.match(historyStore, new RegExp(helper));
   }
-  assert.match(appStorage, /resolveNimiRuntimeAppStorageRoots/);
-  assert.match(appStorage, /attachNimiRuntimeAppDataStorageRoot/);
-  assert.match(appStorage, /attachNimiRuntimeAppStorageRoots/);
-  assert.doesNotMatch(appStorage, /resolveRuntimeAppStorageRoots/);
-  assert.doesNotMatch(appStorage, /attachRuntimeAppDataStorageRoot/);
-  assert.doesNotMatch(appStorage, /attachRuntimeAppStorageRoots/);
-  assert.doesNotMatch(appStorage, /\.nimi|nimi\.json|runtime\/config|join\(/);
+  // Run history now flows through the kit standard storage bridge; the app no
+  // longer resolves or injects Runtime app storage roots into command payloads.
+  assert.match(standardStorage, /createInstalledNimiAppStandardShellSurface/);
+  assert.match(standardStorage, /storage\.readJson/);
+  assert.match(standardStorage, /storage\.writeJson/);
+  assert.match(historyStore, /TESTER_RUN_HISTORY_STORAGE_PATH = 'tester-run-history\.json'/);
+  assert.match(historyStore, /readTesterStandardStorageJson\(TESTER_RUN_HISTORY_STORAGE_PATH\)/);
+  assert.match(historyStore, /writeTesterStandardStorageJson\(TESTER_RUN_HISTORY_STORAGE_PATH/);
+  assert.doesNotMatch(historyStore, /storageRoot|withTesterDataStorageRoot|tester_run_history_load/);
+  assert.doesNotMatch(standardStorage, /resolveNimiRuntimeAppStorageRoots|storageRoot|dataRoot/);
 
   // Single-level capability workspace: no app-lab / evidence / settings routes.
   assert.match(workbench, /WorkbenchView/);
@@ -373,7 +376,8 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(surface, /<Tooltip content="Copy" placement="top">/);
   assert.match(surface, /<Tooltip content="Download" placement="top">/);
   assert.match(surface, /<Tooltip content="Regenerate" placement="top">/);
-  assert.match(capabilities, /invokeTesterCommand<TesterExportSaveResult>\('tester_export_save',\s*\{\s*payload:\s*\{/s);
+  assert.match(capabilities, /exportShellSaveFile\(\{/s);
+  assert.match(capabilities, /reveal:\s*true/);
   assert.match(capabilities, /export async function saveTesterExport/);
   assert.match(surface, /await saveTesterExport\(\{ filename, mimeType: blob\.type, body: blob \}\)/);
   assert.match(surface, /await saveTesterExport\(\{ filename, mimeType: blob\.type \|\| undefined, body: blob \}\)/);
@@ -552,7 +556,6 @@ test('tester artifact history persistence is real and fail-closed', () => {
   const imageHistory = read('src/tester/tester-image-history.ts');
   const workbench = read('src/tester/tester-workbench.tsx');
   const artifactStorage = read('src/tester/tester-artifact-storage.ts');
-  const testerStorage = read('src-tauri/src/tester_storage.rs');
   const capabilities = readTesterAiTestingSurface(root);
   const tauri = read('src/tester/tester-tauri.ts');
 
@@ -564,15 +567,21 @@ test('tester artifact history persistence is real and fail-closed', () => {
   assert.match(imageHistory, /artifactCount\?: number/);
   assert.match(imageHistory, /traceState\?: 'captured' \| 'not-captured'/);
   assert.match(imageHistory, /records\.slice\(0, 80\)/);
+  // Image history persists through the kit standard storage bridge (relativePath-only).
+  assert.match(imageHistory, /TESTER_IMAGE_HISTORY_STORAGE_PATH = 'tester-image-history\.json'/);
+  assert.match(imageHistory, /writeTesterStandardStorageJson\(\s*TESTER_IMAGE_HISTORY_STORAGE_PATH/);
+  assert.match(imageHistory, /readTesterStandardStorageJson\(TESTER_IMAGE_HISTORY_STORAGE_PATH\)/);
+  assert.doesNotMatch(imageHistory, /storageRoot|withTesterDataStorageRoot|tester_image_history_load/);
   assert.match(workbench, /shouldPersistTesterArtifactRecord\(result\)/);
   assert.match(workbench, /materializeTesterArtifactResult/);
   assert.match(workbench, /saveTesterArtifact/);
   assert.match(workbench, /createTesterRunHistoryResultSnapshot\(historyResult\)/);
   assert.match(workbench, /appendTesterImageHistoryRecord/);
-  assert.match(artifactStorage, /tester_artifact_save/);
-  assert.match(artifactStorage, /convertTauriFileSrc\(result\.artifactPath\)/);
-  assert.match(testerStorage, /pub fn tester_artifact_save/);
-  assert.match(testerStorage, /scoped_storage_child\(&payload\.storage_root, "tester data root", "artifacts"\)/);
+  // Artifacts persist through the kit standard artifacts.write command (artifacts/ prefix).
+  assert.match(artifactStorage, /writeShellArtifact/);
+  assert.match(artifactStorage, /relativePath:\s*`artifacts\//);
+  assert.match(artifactStorage, /convertTauriFileSrc\(result\.path\)/);
+  assert.doesNotMatch(artifactStorage, /tester_artifact_save|storageRoot|invokeTesterCommand/);
   assert.doesNotMatch(imageHistory, /kind: record\.kind \|\| 'runtime-media'/);
 
   // Real runtime artifacts are previewed from their typed url/mimeType only - no fabricated placeholder media.
@@ -602,5 +611,7 @@ test('tester run history labels local fixtures distinctly from runtime results',
   assert.match(history, /status === 'local-fixture'\) return 'info'/);
   assert.match(history, /isJsonObject/);
   assert.match(history, /from '@nimiplatform\/sdk\/types'/);
-  assert.doesNotMatch(history, /@nimiplatform\/kit\/shell\/renderer\/bridge/);
+  // History store no longer calls the raw Tauri command bridge directly; it
+  // persists through the app-owned standard-storage helper.
+  assert.doesNotMatch(history, /invokeTesterCommand|tester_run_history_load|tester_run_history_save/);
 });

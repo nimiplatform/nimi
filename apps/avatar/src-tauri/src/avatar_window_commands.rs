@@ -1,6 +1,6 @@
 use super::*;
 use serde_json::json;
-use tauri::{PhysicalPosition, PhysicalSize, State, WebviewWindow};
+use tauri::{PhysicalPosition, State, WebviewWindow};
 
 #[tauri::command]
 pub(crate) async fn nimi_avatar_get_launch_context(
@@ -94,64 +94,13 @@ pub(crate) async fn nimi_avatar_write_evidence_artifact(
     avatar_evidence_projection::write_visual_artifact(context, payload)
 }
 
-#[tauri::command]
-pub(crate) async fn nimi_avatar_start_window_drag(window: WebviewWindow) -> Result<(), String> {
-    window.start_dragging().map_err(|e| e.to_string())
-}
-
-// Wave 4 drag fallback — manual absolute window move. macOS NSWindow with
-// transparent + always_on_top + decorations(false) does not consistently
-// honor `start_dragging()`. The renderer reads the origin once at drag
-// start, then sends total pointer deltas so the hot path avoids a per-frame
-// `outer_position()` read.
-#[tauri::command]
-pub(crate) async fn nimi_avatar_begin_manual_drag_window(
-    window: WebviewWindow,
-) -> Result<AvatarManualDragWindowOrigin, String> {
-    let pos = window.outer_position().map_err(|e| e.to_string())?;
-    Ok(AvatarManualDragWindowOrigin { x: pos.x, y: pos.y })
-}
-
-pub(crate) fn compute_manual_drag_window_position(
-    origin: (i32, i32),
-    total_delta: (i32, i32),
-) -> PhysicalPosition<i32> {
-    PhysicalPosition::new(origin.0 + total_delta.0, origin.1 + total_delta.1)
-}
-
-#[tauri::command]
-pub(crate) async fn nimi_avatar_move_manual_drag_window(
-    window: WebviewWindow,
-    origin_x: i32,
-    origin_y: i32,
-    total_delta_x: i32,
-    total_delta_y: i32,
-) -> Result<(), String> {
-    let target =
-        compute_manual_drag_window_position((origin_x, origin_y), (total_delta_x, total_delta_y));
-    window.set_position(target).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub(crate) async fn nimi_avatar_set_window_size(
-    window: WebviewWindow,
-    width: u32,
-    height: u32,
-) -> Result<(), String> {
-    window
-        .set_size(PhysicalSize::new(width, height))
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub(crate) async fn nimi_avatar_set_ignore_cursor_events(
-    window: WebviewWindow,
-    ignore: bool,
-) -> Result<(), String> {
-    window
-        .set_ignore_cursor_events(ignore)
-        .map_err(|e| e.to_string())
-}
+// Window control primitives (drag / size / ignore-cursor / constrain /
+// always-on-top / hide / close) are migrated to the kit standard
+// `nimi_shell_tauri` floating-window commands, registered in `main.rs`. The
+// pure geometry helpers (manual-drag position, visible-area constraint) live
+// in `nimi_shell_tauri::standard_floating_window` and are unit-tested there.
+// Avatar keeps only the cursor hit-testing query below, which is app-owned
+// (tightly coupled to the alpha-mask click-through decision).
 
 pub(crate) fn compute_avatar_cursor_client_position(
     cursor_position: PhysicalPosition<f64>,
@@ -184,83 +133,4 @@ pub(crate) async fn nimi_avatar_get_cursor_client_position(
         content_position,
         scale_factor,
     ))
-}
-
-// Wave 4 — pure constraint math extracted so cargo tests can cover it
-// without spinning up a Tauri WebviewWindow. Encodes
-// window-bounds-policy.yaml visible_area rule (K-NAV-SHELL-010):
-// at least `min_visible_ratio` of the window must remain inside the active
-// monitor's work area.
-pub(crate) fn compute_constrained_window_position(
-    window_position: (i32, i32),
-    window_size: (u32, u32),
-    monitor_position: (i32, i32),
-    monitor_size: (u32, u32),
-    min_visible_ratio: f64,
-) -> (i32, i32) {
-    let ratio = if min_visible_ratio.is_finite() {
-        min_visible_ratio.clamp(0.05, 1.0)
-    } else {
-        0.2
-    };
-    let min_visible_width = ((window_size.0 as f64) * ratio).ceil() as i32;
-    let min_visible_height = ((window_size.1 as f64) * ratio).ceil() as i32;
-    let min_x = monitor_position.0 - window_size.0 as i32 + min_visible_width;
-    let max_x = monitor_position.0 + monitor_size.0 as i32 - min_visible_width;
-    let min_y = monitor_position.1 - window_size.1 as i32 + min_visible_height;
-    let max_y = monitor_position.1 + monitor_size.1 as i32 - min_visible_height;
-    (
-        window_position.0.clamp(min_x, max_x),
-        window_position.1.clamp(min_y, max_y),
-    )
-}
-
-#[tauri::command]
-pub(crate) async fn nimi_avatar_constrain_window_to_visible_area(
-    window: WebviewWindow,
-    min_visible_ratio: f64,
-) -> Result<(), String> {
-    let position = window.outer_position().map_err(|e| e.to_string())?;
-    let size = window.outer_size().map_err(|e| e.to_string())?;
-    let monitor = window
-        .current_monitor()
-        .map_err(|e| e.to_string())?
-        .or_else(|| window.primary_monitor().ok().flatten())
-        .ok_or_else(|| "no monitor is available for avatar edge constraints".to_string())?;
-    let monitor_position = monitor.position();
-    let monitor_size = monitor.size();
-    let (cx, cy) = compute_constrained_window_position(
-        (position.x, position.y),
-        (size.width, size.height),
-        (monitor_position.x, monitor_position.y),
-        (monitor_size.width, monitor_size.height),
-        min_visible_ratio,
-    );
-    let constrained = PhysicalPosition::new(cx, cy);
-    if constrained != position {
-        window
-            .set_position(constrained)
-            .map_err(|e| e.to_string())?;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-pub(crate) async fn nimi_avatar_set_always_on_top(
-    window: WebviewWindow,
-    always_on_top: bool,
-) -> Result<(), String> {
-    window
-        .set_always_on_top(always_on_top)
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub(crate) async fn nimi_avatar_hide_window(window: WebviewWindow) -> Result<(), String> {
-    window.hide().map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub(crate) async fn nimi_avatar_close_window(window: WebviewWindow) -> Result<(), String> {
-    window.close().map_err(|e| e.to_string())
 }

@@ -93,7 +93,7 @@ function isAppOwnedProductCode(relativePath) {
   if (relativePath.startsWith('src/tester/')) {
     return true;
   }
-  if (relativePath === 'src-tauri/src/tester_storage.rs' || relativePath === 'src-tauri/src/world_tour.rs') {
+  if (relativePath === 'src-tauri/src/world_tour.rs') {
     return true;
   }
   if (relativePath.startsWith('test/') && relativePath !== 'test/scaffold-boundary.test.mjs') {

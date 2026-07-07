@@ -553,10 +553,14 @@ fn open_avatar_handoff_uri_or_binary(uri: &str) -> Result<(), String> {
     }
 }
 
-#[tauri::command]
-pub(crate) fn confirm_dialog(payload: ConfirmDialogPayload) -> ConfirmDialogResult {
+/// Desktop host adapter for the standard `confirm_dialog` shell-ui command.
+/// Kit owns the wire command; desktop provides this behavior through
+/// `set_standard_shell_ui_host_hooks`. The e2e override is consumed before the
+/// native `rfd` dialog so acceptance runs stay deterministic; it is desktop
+/// private and kit is unaware of it.
+pub(crate) fn confirm_dialog_host_provider(payload: ConfirmDialogPayload) -> Result<bool, String> {
     if let Ok(Some(confirmed)) = crate::desktop_e2e_fixture::next_confirm_dialog_override() {
-        return ConfirmDialogResult { confirmed };
+        return Ok(confirmed);
     }
 
     let title = payload.title.trim();
@@ -578,22 +582,26 @@ pub(crate) fn confirm_dialog(payload: ConfirmDialogPayload) -> ConfirmDialogResu
         .set_buttons(rfd::MessageButtons::YesNo)
         .show();
 
-    ConfirmDialogResult {
-        confirmed: matches!(confirmed, rfd::MessageDialogResult::Yes),
-    }
+    Ok(matches!(confirmed, rfd::MessageDialogResult::Yes))
 }
 
-#[tauri::command]
-pub(crate) fn start_window_drag(window: tauri::WebviewWindow) -> Result<(), String> {
+/// Desktop host adapter for the standard `start_window_drag` shell-ui command.
+/// Returns `Ok(Some(()))` when the drag was handled here (macOS fullscreen
+/// protection + `start_dragging`); the desktop always handles the drag rather
+/// than deferring to the kit default.
+pub(crate) fn start_window_drag_host_provider(
+    window: &tauri::WebviewWindow,
+) -> Result<Option<()>, String> {
     #[cfg(target_os = "macos")]
     if window.is_fullscreen().unwrap_or(false) {
-        return Ok(());
+        return Ok(Some(()));
     }
 
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         window.start_dragging().map_err(|error| error.to_string())
     })) {
-        Ok(result) => result,
+        Ok(Ok(())) => Ok(Some(())),
+        Ok(Err(error)) => Err(error),
         Err(_) => {
             eprintln!("[boot:{:}] start_window_drag panicked", now_ms());
             Err("window drag unavailable".to_string())
@@ -601,10 +609,10 @@ pub(crate) fn start_window_drag(window: tauri::WebviewWindow) -> Result<(), Stri
     }
 }
 
-#[tauri::command]
-pub(crate) fn focus_main_window(app: tauri::AppHandle) -> Result<(), String> {
-    crate::menu_bar_shell::window::focus_main_window(&app)?;
-    crate::menu_bar_shell::set_window_visible(&app, true);
+/// Desktop host adapter for the standard `focus_main_window` shell-ui command.
+pub(crate) fn focus_main_window_host_provider(app: &tauri::AppHandle) -> Result<(), String> {
+    crate::menu_bar_shell::window::focus_main_window(app)?;
+    crate::menu_bar_shell::set_window_visible(app, true);
     Ok(())
 }
 

@@ -181,7 +181,7 @@ test('tester media lanes dispatch through Runtime Scenario jobs when vNext media
           }],
         },
         'audio.synthesize': {
-          voiceRef: 'provider_voice_ref:aiden',
+          voiceRef: 'preset_voice_id:aiden',
           responseFormat: 'wav',
           languageHint: 'en-US',
           speakingRate: '1.15',
@@ -387,7 +387,7 @@ test('tester media lanes dispatch through Runtime Scenario jobs when vNext media
   ]);
   assert.equal(submitted[0].extensions[0]?.namespace, 'nimi.scenario.image.request');
   assert.equal(
-    submitted[1].spec.spec.speechSynthesize.voiceRef.reference.providerVoiceRef,
+    submitted[1].spec.spec.speechSynthesize.voiceRef.reference.presetVoiceId,
     'aiden',
   );
   assert.equal(submitted[1].spec.spec.speechSynthesize.audioFormat, 'wav');
@@ -675,7 +675,7 @@ test('audio.synthesize fails closed when Runtime media TTS does not complete bef
       },
       selectedParams: {
         'audio.synthesize': {
-          voiceRef: 'provider_voice_ref:timeout-voice',
+          voiceRef: 'voice_asset_id:voice-asset-timeout',
           responseFormat: 'mp3',
           timeoutMs: '20',
         },
@@ -768,7 +768,7 @@ test('tester surfaces inline runtime media artifact bytes as a previewable data 
           }],
         },
         'audio.synthesize': {
-          voiceRef: 'provider_voice_ref:inline-audio-voice',
+          voiceRef: 'voice_asset_id:voice-asset-inline-audio',
         },
       },
     },

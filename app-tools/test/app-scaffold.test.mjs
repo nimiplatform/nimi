@@ -315,7 +315,6 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assertGeneratedPathMissing(generated, 'src/shell/ai');
     assertGeneratedPathMissing(generated, 'src/shell/routes/settings.tsx');
     assertGeneratedPathMissing(generated, 'src/shell/routes/settings');
-    assertGeneratedPathMissing(generated, 'src-tauri/src/tester_storage.rs');
     assertGeneratedPathMissing(generated, 'src-tauri/src/world_tour.rs');
     assertGeneratedPathMissing(generated, 'src-electron');
     assertGeneratedPathMissing(generated, 'dist-electron');
@@ -371,9 +370,9 @@ test('tester-reference scaffold keeps the full proof app explicit', () => {
     assert.match(generated.read('src/shell/routes/product-area.tsx'), /TesterWorkbench/);
     assert.match(generated.read('src/tester/tester-runtime.ts'), /invokeTesterCapability/);
     assert.match(generated.read('src/shell/ai/tester-ai-config-settings.tsx'), /TesterAiConfigSettings/);
-    assert.match(generated.read('src-tauri/src/main.rs'), /tester_storage|world_tour/);
+    assert.match(generated.read('src-tauri/src/main.rs'), /world_tour/);
     assert.match(generated.read('src-electron/main.ts'), /APP_ID = 'acme\.widget'/);
-    assertGeneratedPathExists(generated, 'src/tester/tester-app-storage.ts');
+    assertGeneratedPathExists(generated, 'src/tester/tester-standard-storage.ts');
     assertGeneratedPathExists(generated, 'test/electron-acceptance.mjs');
     assertGeneratedPathExists(generated, 'scripts/run-electron-dev.mjs');
     const lock = generated.lock();
@@ -885,7 +884,6 @@ test('scaffold omissions are explicit tester-reference input and do not shrink t
       'src/shell/routes/settings.tsx',
       'src/shell/routes/settings/**',
       'src/tester/**',
-      'src-tauri/src/tester_storage.rs',
       'src-tauri/src/world_tour.rs',
       'test/settings-surface-read.mjs',
       'test/tester-*',

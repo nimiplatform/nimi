@@ -118,6 +118,7 @@
   "agentRouteChecking": "正在准备会话...",
   "agentRouteRequired": "Agent 模式需要可用的本地或云端 runtime 路由，请前往 runtime 设置配置。",
   "agentSubmitMissingThread": "发送消息前请先选择一个 Source 对象。",
+  "agentSubmitRuntimeTextUnavailable": "Runtime Agent 文本执行尚未就绪。",
   "agentSubmitRouteUnavailable": "发送消息前需要可用的本地或云端 runtime 路由。",
   "agentSubmitRouteNeedsSelection": "发送消息前请先选择一个本地或云端 runtime 路由。",
   "agentSubmitRouteUnresolved": "当前选择的 runtime 路由已经无法解析。请在 Agent Center 中重新选择模型路由后再发送。",

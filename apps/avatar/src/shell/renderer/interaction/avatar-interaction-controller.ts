@@ -14,7 +14,6 @@ export type AvatarInteractionControllerDeps = {
   setPointerInside(inside: boolean): void;
   setPointerContact(contact: boolean): void;
   setClickThrough(ignore: boolean): Promise<void> | void;
-  startWindowDrag(): Promise<void> | void;
   constrainWindowToVisibleArea(): Promise<void> | void;
   nowMs(): number;
   isTauriRuntime(): boolean;
@@ -217,32 +216,21 @@ export class AvatarInteractionController {
   }
 
   private beginDrag(pending: PendingDrag, event: AvatarPointerEventLike, hit: AvatarHitTestResult): void {
+    // Drag is unified to manual (kit standard `floatingWindow.beginManualDrag`
+    // always reports `mode: 'manual'`); the retired system-level
+    // `start_dragging` path is gone. Actual window movement is owned by the
+    // embodiment-stage manual-drag pointer path; the controller only emits the
+    // `avatar.user.drag.*` semantic events (30Hz move cadence + physics
+    // feedback consumers). The drag start is therefore confirmed immediately
+    // on every host.
     pending.dragging = true;
     pending.lastMoveEmittedAtMs = this.deps.nowMs();
-    if (!this.deps.isTauriRuntime()) {
-      pending.dragStartConfirmed = true;
-      this.deps.setPointerContact(false);
-      this.emitDragEvent('avatar.user.drag.start', event, pending.startHit, { dx: 0, dy: 0 });
-      this.emitDragEvent('avatar.user.drag.move', event, hit, {
-        dx: Math.round(event.clientX - pending.startClientX),
-        dy: Math.round(event.clientY - pending.startClientY),
-      });
-      return;
-    }
-    void Promise.resolve(this.deps.startWindowDrag()).then(() => {
-      if (this.pending !== pending || pending.dragStartFailed) return;
-      pending.dragStartConfirmed = true;
-      this.deps.setPointerContact(false);
-      this.emitDragEvent('avatar.user.drag.start', event, pending.startHit, { dx: 0, dy: 0 });
-      this.emitDragEvent('avatar.user.drag.move', event, hit, {
-        dx: Math.round(event.clientX - pending.startClientX),
-        dy: Math.round(event.clientY - pending.startClientY),
-      });
-    }).catch(() => {
-      pending.dragStartFailed = true;
-      pending.dragging = false;
-      this.clearPendingLongPressTimer(pending);
-      this.deps.setPointerContact(false);
+    pending.dragStartConfirmed = true;
+    this.deps.setPointerContact(false);
+    this.emitDragEvent('avatar.user.drag.start', event, pending.startHit, { dx: 0, dy: 0 });
+    this.emitDragEvent('avatar.user.drag.move', event, hit, {
+      dx: Math.round(event.clientX - pending.startClientX),
+      dy: Math.round(event.clientY - pending.startClientY),
     });
   }
 

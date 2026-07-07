@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -21,6 +21,13 @@ test.after(async () => {
   if (buildDir) {
     await rm(buildDir, { recursive: true, force: true });
   }
+});
+
+test('Zhiyu Electron main registers local asset files before resolving shell URLs', () => {
+  const source = readFileSync(path.join(root, 'src-electron/main.ts'), 'utf8');
+  assert.match(source, /resolveLocalAssetUrl:\s*resolveZhiyuLocalAssetUrl/u);
+  assert.match(source, /async function resolveZhiyuLocalAssetUrl/u);
+  assert.match(source, /localAssetProtocolHost\.registerReadableFile/u);
 });
 
 test('Zhiyu Agent Center local config renderer parser accepts admitted local ownership modules', async () => {

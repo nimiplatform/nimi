@@ -18,10 +18,10 @@ import {
   getCursorClientPosition,
   moveManualDragWindow,
   setIgnoreCursorEvents,
-  startWindowDrag,
   type AvatarManualDragWindowOrigin,
 } from '../app-shell/tauri-commands.js';
 import { isTauriRuntime } from '../app-shell/tauri-lifecycle.js';
+import { hasAvatarHostRuntime } from '../app-shell/avatar-host-bridge.js';
 import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import {
   recordAvatarEvidenceEventually,
@@ -327,16 +327,13 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   // total delta so Rust does not read the current window position per frame.
   const dragRef = useRef<ManualDragState | null>(null);
 
-  const shouldUseManualDragFallback = (): boolean => {
-    if (!isTauriRuntime()) return false;
-    const platform = window.navigator.platform || '';
-    const userAgent = window.navigator.userAgent || '';
-    if (/Win|Linux|X11/i.test(platform)) return false;
-    if (/Windows|Linux|X11/i.test(userAgent)) return false;
-    // Tauri/WKWebView on macOS may report an empty/deprecated platform
-    // string. The transparent no-chrome Avatar window needs the manual path
-    // on macOS, so unknown desktop Tauri defaults to the fallback.
-    return true;
+  const shouldUseManualDragWindow = (): boolean => {
+    // Window drag is unified to the kit standard manual drag primitive
+    // (`floatingWindow.beginManualDrag` → `moveManualDrag`) on every host and
+    // platform; the retired system-level `start_dragging` OS-sniff branch is
+    // gone. Manual drag runs whenever an avatar host runtime (Tauri or
+    // Electron) is present so window movement works on both hosts.
+    return hasAvatarHostRuntime();
   };
 
   const finalizeManualDragIfDone = (drag: ManualDragState): void => {
@@ -523,7 +520,6 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           setBodyPointerContact?.(contact);
         },
         setClickThrough,
-        startWindowDrag,
         constrainWindowToVisibleArea,
         nowMs: () => performance.now(),
         isTauriRuntime,
@@ -616,7 +612,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           // Capture pointer so subsequent move/up events fire here even when
           // the cursor leaves the element while dragging.
           (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
-          if (shouldUseManualDragFallback()) {
+          if (shouldUseManualDragWindow()) {
             const drag: ManualDragState = {
               mode: 'armed',
               startScreenX: event.screenX,

@@ -23,14 +23,14 @@ export function createTesterRuntimeAgentPresentationProfileProjection(): TesterR
     profile: {
       backendKind: 'live2d',
       avatarAssetRef: 'asset://tester/live2d-agent',
-      defaultVoiceReference: ' provider_voice_ref:tester:voice ',
+      defaultVoiceReference: ' voice_asset_id:tester-voice-asset ',
     },
   });
   const mutation = request.mutation;
   return {
     backendKind: 'profile' in mutation ? mutation.profile.backendKind : 0,
     localAgentOwner: identity.ownerUserId,
-    defaultVoiceReference: normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(' provider_voice_ref:tester:voice '),
+    defaultVoiceReference: normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(' voice_asset_id:tester-voice-asset '),
     mutationKind: mutation.oneofKind ?? 'unknown',
   };
 }
@@ -68,7 +68,7 @@ export async function inspectTesterRuntimeAgentPresentationProfileSurface(): Pro
   }, {
     backendKind: 'live2d',
     avatarAssetRef: 'asset://tester/live2d-agent',
-    defaultVoiceReference: 'provider_voice_ref:tester:voice',
+    defaultVoiceReference: 'voice_asset_id:tester-voice-asset',
   });
   return {
     applied: true,

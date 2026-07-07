@@ -1,6 +1,4 @@
-import { convertTauriFileSrc } from '@nimiplatform/kit/shell/renderer/bridge';
-import { invokeTesterCommand } from './tester-tauri.js';
-import { withTesterDataStorageRoot } from './tester-app-storage.js';
+import { convertTauriFileSrc, writeShellArtifact } from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type TesterArtifactSaveResult = {
   artifactPath: string;
@@ -23,21 +21,37 @@ function parseBase64DataUrl(dataUrl: string): { mimeType?: string; dataBase64: s
   return { mimeType, dataBase64 };
 }
 
+function sanitizeArtifactFilename(filename: string): string {
+  const normalized = filename
+    .trim()
+    .split('')
+    .map((char) => (/[a-zA-Z0-9._-]/u.test(char) ? char : '-'))
+    .join('');
+  const collapsed = normalized.split('-').filter(Boolean).join('-');
+  const trimmed = collapsed.replace(/^\.+|\.+$/gu, '').replace(/^-+|-+$/gu, '');
+  if (!trimmed || trimmed === '.' || trimmed === '..') {
+    return 'nimi-tester-artifact';
+  }
+  return trimmed.slice(0, 180);
+}
+
 export async function saveTesterArtifact(input: {
   filename: string;
   mimeType?: string;
   dataUrl: string;
 }): Promise<TesterArtifactSaveResult> {
   const parsed = parseBase64DataUrl(input.dataUrl);
-  const result = await invokeTesterCommand<Omit<TesterArtifactSaveResult, 'previewUrl'>>('tester_artifact_save', {
-    payload: await withTesterDataStorageRoot({
-      filename: input.filename,
-      mimeType: input.mimeType || parsed.mimeType,
-      dataBase64: parsed.dataBase64,
-    }),
+  const filename = sanitizeArtifactFilename(input.filename);
+  const result = await writeShellArtifact({
+    relativePath: `artifacts/${filename}`,
+    mimeType: input.mimeType || parsed.mimeType,
+    dataBase64: parsed.dataBase64,
   });
   return {
-    ...result,
-    previewUrl: convertTauriFileSrc(result.artifactPath),
+    artifactPath: result.path,
+    filename,
+    byteSize: result.byteSize,
+    mimeType: result.mimeType || input.mimeType || parsed.mimeType,
+    previewUrl: convertTauriFileSrc(result.path),
   };
 }
