@@ -49,21 +49,18 @@ export async function runNimiRuntimeAgentTurn(
     });
   }
   const nowMs = options.nowMs || defaultNimiRuntimeAgentNowMs;
-  const route = normalizeNimiRuntimeAgentText(options.route) || 'runtime-owned';
-  const modelId = normalizeNimiRuntimeAgentText(options.modelId) || 'runtime-owned';
-  const connectorId = normalizeNimiRuntimeAgentText(options.connectorId) || undefined;
   const subscribeStartedAt = nowMs();
   const subscribed = await options.turns.subscribe(buildNimiRuntimeAgentSubscribeRequest(options.request, options.subscribe));
   options.logTiming?.({
     stage: 'subscribe',
     startedAt: subscribeStartedAt,
-    details: nimiRuntimeAgentContextDetails({ request: options.request, requestId, route, modelId, connectorId }),
+    details: nimiRuntimeAgentContextDetails({ request: options.request, requestId }),
   });
   options.logEvent?.({
     level: 'info',
     area: 'agent-chat-runtime',
     message: 'action:runtime-agent-turn:subscribed',
-    details: nimiRuntimeAgentContextDetails({ request: options.request, requestId, route, modelId, connectorId }),
+    details: nimiRuntimeAgentContextDetails({ request: options.request, requestId }),
   });
 
   let requestSubmitted = false;
@@ -115,24 +112,22 @@ export async function runNimiRuntimeAgentTurn(
   options.logTiming?.({
     stage: 'request_ack',
     startedAt: requestStartedAt,
-    details: nimiRuntimeAgentContextDetails({ request: options.request, requestId, requestMessageId, route, modelId, connectorId }),
+    details: nimiRuntimeAgentContextDetails({ request: options.request, requestId, requestMessageId }),
   });
   options.logEvent?.({
     level: 'info',
     area: 'agent-chat-runtime',
     message: 'action:runtime-agent-turn:request-acked',
-    details: nimiRuntimeAgentContextDetails({ request: options.request, requestId, requestMessageId, route, modelId, connectorId }),
+    details: nimiRuntimeAgentContextDetails({ request: options.request, requestId, requestMessageId }),
   });
 
   return {
     stream: createNimiRuntimeAgentTurnStream({
       acceptedRequestIds,
       cleanupSubscription,
-      connectorId,
       eventQueue,
       logEvent: options.logEvent,
       logTiming: options.logTiming,
-      modelId,
       nowMs,
       querySnapshot: () => options.turns.getSessionSnapshot({
         ...localIdentity,
@@ -145,7 +140,6 @@ export async function runNimiRuntimeAgentTurn(
       requestId,
       requestMessageId,
       resolveTrace: options.resolveTrace,
-      route,
       runtimeTurnRef,
       stallRecoveryIntervalMs: options.stallRecoveryIntervalMs,
       buildMetadata: options.buildMetadata,

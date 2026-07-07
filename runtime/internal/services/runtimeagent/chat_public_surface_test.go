@@ -245,10 +245,18 @@ func (s stubPublicChatBindingResolver) ResolvePublicChatBinding(
 
 type stubScopedBindingValidator struct {
 	validate func(string, *runtimev1.ScopedAppBindingRelation, string) (runtimev1.AccountReasonCode, bool)
+	resolve  func(string) *runtimev1.ScopedAppBindingRelation
 }
 
 func (s stubScopedBindingValidator) ValidateScopedBinding(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool) {
 	return s.validate(bindingID, actual, requiredScope)
+}
+
+func (s stubScopedBindingValidator) ResolveScopedBindingRelation(bindingID string) *runtimev1.ScopedAppBindingRelation {
+	if s.resolve == nil {
+		return nil
+	}
+	return s.resolve(bindingID)
 }
 
 type publicChatEmitCapture struct {

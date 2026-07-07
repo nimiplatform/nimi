@@ -183,9 +183,6 @@ export type NimiRuntimeAgentTurnRunnerContext = {
   readonly conversationAnchorId: string;
   readonly runtimeTurnId: string;
   readonly runtimeStreamId: string;
-  readonly route: string;
-  readonly modelId: string;
-  readonly connectorId?: string;
   readonly trace?: NimiRuntimeAgentTurnRunnerTrace;
   readonly runtimeProjectionEvents: NimiRuntimeAgentProjectionSummary[];
   readonly runtimeTurnTimelines: NimiRuntimeAgentTimelineSummary[];
@@ -297,6 +294,8 @@ export type NimiRuntimeAgentTurnRunnerOptions = {
   readonly subscribe?: NimiRuntimeAgentConsumeRequest;
   readonly signal?: AbortSignal;
   readonly interruptReason?: string;
+  // Ignored by the runner: execution route/model/provider identity is Runtime
+  // accepted-turn/config projection, not caller-supplied SDK input.
   readonly route?: string;
   readonly modelId?: string;
   readonly connectorId?: string;

@@ -37,6 +37,14 @@ const EXECUTION_CONFIG_READ_SCOPE = 'runtime.agent.execution_config.read';
 const EXECUTION_CONFIG_WRITE_SCOPE = 'runtime.agent.execution_config.write';
 const REQUIRED_TEXT_CAPABILITY = 'text.generate';
 const GRPC_CODE_ABORTED = 10;
+const READINESS_REASON_CODES = new Set([
+  '',
+  'route_unhealthy',
+  'connector_missing',
+  'model_missing',
+  'target_missing',
+  'probe_failed',
+]);
 
 export type NimiRuntimeAgentExecutionConfigBindings =
   Readonly<Record<string, NimiRuntimeAgentExecutionBinding>>;
@@ -53,10 +61,18 @@ export type NimiRuntimeAgentExecutionReadinessCapabilityState =
   | 'not_configured'
   | 'unavailable';
 
+export type NimiRuntimeAgentExecutionReadinessReasonCode =
+  | ''
+  | 'route_unhealthy'
+  | 'connector_missing'
+  | 'model_missing'
+  | 'target_missing'
+  | 'probe_failed';
+
 export interface NimiRuntimeAgentExecutionCapabilityReadinessProjection {
   readonly capability: string;
   readonly state: NimiRuntimeAgentExecutionReadinessCapabilityState;
-  readonly reasonCode: string;
+  readonly reasonCode: NimiRuntimeAgentExecutionReadinessReasonCode;
   readonly probedAt: string | null;
 }
 
@@ -281,6 +297,19 @@ function projectExecutionReadinessState(
   }
 }
 
+function projectExecutionReadinessReasonCode(
+  reasonCode: unknown,
+  capability: string,
+): NimiRuntimeAgentExecutionReadinessReasonCode {
+  const normalized = normalizeNimiRuntimeAgentText(reasonCode);
+  if (!READINESS_REASON_CODES.has(normalized)) {
+    executionConfigResponseError(
+      `Runtime Agent execution readiness for ${capability} carries an unknown reason code (${normalized}).`,
+    );
+  }
+  return normalized as NimiRuntimeAgentExecutionReadinessReasonCode;
+}
+
 function projectExecutionCapabilityReadiness(
   readiness: RuntimeAgentExecutionCapabilityReadiness,
 ): NimiRuntimeAgentExecutionCapabilityReadinessProjection {
@@ -291,7 +320,7 @@ function projectExecutionCapabilityReadiness(
   return {
     capability,
     state: projectExecutionReadinessState(readiness.state, capability),
-    reasonCode: normalizeNimiRuntimeAgentText(readiness.reasonCode),
+    reasonCode: projectExecutionReadinessReasonCode(readiness.reasonCode, capability),
     probedAt: toNimiRuntimeIsoFromTimestamp(readiness.probedAt),
   };
 }

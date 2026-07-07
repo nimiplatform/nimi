@@ -32,6 +32,31 @@ func newTestStore(t *testing.T) *ConnectorStore {
 	return NewConnectorStoreWithMemorySecrets(dir)
 }
 
+func TestNewConnectorStoreUsesMemorySecretsForTestRuntimeEnv(t *testing.T) {
+	t.Setenv(connectorTestMemorySecretsEnv, "1")
+	store := NewConnectorStore(t.TempDir())
+	rec := ConnectorRecord{
+		ConnectorID: "test-memory-secret",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "user-1",
+		Provider:    "openai",
+		Endpoint:    "https://api.openai.com/v1",
+		Label:       "Memory Secret",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}
+	if _, err := store.Create(rec, "sk-memory"); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	secret, err := store.LoadSecretPayload("test-memory-secret")
+	if err != nil {
+		t.Fatalf("LoadSecretPayload: %v", err)
+	}
+	if secret != "sk-memory" {
+		t.Fatalf("secret mismatch: %q", secret)
+	}
+}
+
 func TestConnectorStoreCRUD(t *testing.T) {
 	store := newTestStore(t)
 

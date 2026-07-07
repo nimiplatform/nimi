@@ -32,7 +32,7 @@ import {
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
-import { normalizeNimiRuntimeAgentText, toNimiRuntimeProtoStruct } from './runtime-agent-values';
+import { normalizeNimiRuntimeAgentText, toNimiRuntimeIsoFromTimestamp, toNimiRuntimeProtoStruct } from './runtime-agent-values';
 import type {
   NimiRuntimeAgentConsumeRequest,
   NimiRuntimeAgentMessage,
@@ -263,8 +263,10 @@ function requestContext(input: {
 function appMessageEvents(
   stream: AsyncIterable<AppMessageEvent>,
   request: NimiRuntimeAgentConsumeRequest,
+  liveStartedAtMs?: number,
 ): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
   return projectRuntimeAgentEventStream(stream, (event) => {
+    if (!eventIsAtOrAfterLiveBoundary(event, liveStartedAtMs)) return null;
     const projected = projectNimiRuntimeAgentAppMessageEvent(event);
     if (!projected) return null;
     const expectedAnchorId = optionalString(request.conversationAnchorId);
@@ -310,8 +312,10 @@ function projectRuntimeAgentEventStream<Input>(
 function agentEvents(
   stream: AsyncIterable<unknown>,
   request: NimiRuntimeAgentConsumeRequest,
+  liveStartedAtMs?: number,
 ): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
   return projectRuntimeAgentEventStream(stream, (event) => {
+    if (!eventIsAtOrAfterLiveBoundary(event, liveStartedAtMs)) return null;
     const projected = projectNimiRuntimeAgentServiceEvent(event as Parameters<typeof projectNimiRuntimeAgentServiceEvent>[0]);
     const expectedAnchorId = optionalString(request.conversationAnchorId);
     const projectedAnchorId = optionalString((projected as { readonly conversationAnchorId?: unknown }).conversationAnchorId);
@@ -320,6 +324,22 @@ function agentEvents(
     }
     return projected;
   });
+}
+
+function eventIsAtOrAfterLiveBoundary(event: unknown, liveStartedAtMs?: number): boolean {
+  if (liveStartedAtMs === undefined) {
+    return true;
+  }
+  const timestamp = (event as { readonly timestamp?: Parameters<typeof toNimiRuntimeIsoFromTimestamp>[0] } | null)?.timestamp;
+  const iso = toNimiRuntimeIsoFromTimestamp(timestamp);
+  if (!iso) {
+    return true;
+  }
+  const eventMs = Date.parse(iso);
+  if (!Number.isFinite(eventMs) || eventMs <= 0) {
+    return true;
+  }
+  return eventMs >= liveStartedAtMs;
 }
 
 function nonNegativeTimeoutMs(value: unknown, fallback: number): number {
@@ -392,28 +412,47 @@ async function waitForVoiceRenderProjection(
 }
 
 function mergeAsyncIterables<T>(sources: readonly AsyncIterable<T>[]): AsyncIterable<T> {
+  type NextState = {
+    readonly index: number;
+    readonly result?: IteratorResult<T>;
+    readonly error?: unknown;
+  };
+  const iterators = sources.map((source) => source[Symbol.asyncIterator]());
+  const never = new Promise<NextState>(() => undefined);
+  const pull = (iterator: AsyncIterator<T>, index: number): Promise<NextState> =>
+    iterator.next().then(
+      (result) => ({ index, result }),
+      (error) => ({ index, error }),
+    );
+  const nexts = iterators.map((iterator, index) => pull(iterator, index));
+  let active = iterators.length;
+  let closed = false;
   return {
-    async *[Symbol.asyncIterator]() {
-      const iterators = sources.map((source) => source[Symbol.asyncIterator]());
-      const never = new Promise<{ index: number; result: IteratorResult<T> }>(() => undefined);
-      const nexts = iterators.map((iterator, index) => iterator.next().then((result) => ({ index, result })));
-      let active = iterators.length;
-      try {
-        while (active > 0) {
-          const { index, result } = await Promise.race(nexts);
-          if (result.done) {
-            active -= 1;
-            nexts[index] = never;
-            continue;
+    [Symbol.asyncIterator](): AsyncIterator<T> {
+      return {
+        next: async () => {
+          while (!closed && active > 0) {
+            const next = await Promise.race(nexts);
+            if (next.error) {
+              throw next.error;
+            }
+            const result = next.result;
+            if (!result || result.done) {
+              active -= 1;
+              nexts[next.index] = never;
+              continue;
+            }
+            nexts[next.index] = pull(iterators[next.index]!, next.index);
+            return { done: false, value: result.value };
           }
-          nexts[index] = iterators[index]!.next().then((nextResult) => ({ index, result: nextResult }));
-          yield result.value;
-        }
-      } finally {
-        await Promise.allSettled(
-          iterators.map((iterator) => iterator.return?.()),
-        );
-      }
+          return { done: true, value: undefined };
+        },
+        return: async () => {
+          closed = true;
+          await Promise.allSettled(iterators.map((iterator) => iterator.return?.()));
+          return { done: true, value: undefined };
+        },
+      };
     },
   };
 }
@@ -427,6 +466,7 @@ export function createNimiRuntimeAgentTurnsModule(
       const identity = localIdentity(request);
       const conversationAnchorId = optionalString(request.conversationAnchorId);
       const cursor = optionalRuntimeCursor(request.cursor);
+      const liveStartedAtMs = cursor ? undefined : Date.now();
       const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
         runtimeAppId: runtime.appId,
         localAgentRef: identity.localAgentRef,
@@ -466,8 +506,11 @@ export function createNimiRuntimeAgentTurnsModule(
         )
         : null;
       const sources = agentStream
-        ? [appMessageEvents(appStream, request), agentEvents(agentStream, request)]
-        : [appMessageEvents(appStream, request)];
+        ? [
+          appMessageEvents(appStream, request, liveStartedAtMs),
+          agentEvents(agentStream, request, liveStartedAtMs),
+        ]
+        : [appMessageEvents(appStream, request, liveStartedAtMs)];
       return mergeAsyncIterables(sources);
     },
     async request(request) {

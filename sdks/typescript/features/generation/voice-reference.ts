@@ -35,7 +35,7 @@ export function requireNimiRuntimeVoiceReferenceForLocalTts<TVoiceRef = NimiRunt
   }
   throw voiceReferenceError(
     'SDK_GENERATION_LOCAL_TTS_VOICE_REFERENCE_REQUIRED',
-    'audio.synthesize local model requires an explicit preset_voice_id or voice_asset_id reference. Select a preset voice or bind a Runtime VoiceAsset before using Default.',
+    'audio.synthesize local model requires an explicit admitted Voice reference (preset_voice_id or voice_asset_id). Select a preset voice or bind a Runtime VoiceAsset before using Default.',
     'select_admitted_voice_reference',
   );
 }

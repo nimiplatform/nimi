@@ -140,6 +140,24 @@ func TestExecutionReadinessTransitionsOnImageBindingUpsert(t *testing.T) {
 	}
 }
 
+func TestExecutionReadinessTargetRefMissingIsUnavailable(t *testing.T) {
+	t.Parallel()
+	svc := newExecutionConfigTestService(t)
+
+	state, reason := svc.evaluateExecutionCapabilityReadiness(&runtimev1.RuntimeAgentExecutionCapabilityBinding{
+		Capability:  executionCapabilityTextGenerate,
+		ModelId:     "local/default",
+		RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		TargetRef:   &runtimev1.RuntimeDurableTargetRef{},
+	})
+	if state != runtimev1.AgentExecutionReadinessState_AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE {
+		t.Fatalf("expected empty target_ref to be unavailable, got %v", state)
+	}
+	if reason != executionReadinessReasonTargetMissing {
+		t.Fatalf("expected reason target_missing, got %q", reason)
+	}
+}
+
 func TestExecutionReadinessRecomputesOnProviderHealthChange(t *testing.T) {
 	t.Parallel()
 	svc := newExecutionConfigTestService(t)

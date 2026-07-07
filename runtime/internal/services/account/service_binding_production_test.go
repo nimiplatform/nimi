@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -67,6 +68,16 @@ func TestBindingIssueRevokeReplayAndStaleRequestBehavior(t *testing.T) {
 	issued := issueBinding(t, svc)
 	if reason, ok := svc.ValidateScopedBinding(issued.GetBindingId(), issued.GetRelation(), "runtime.agent.turn.read"); !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED {
 		t.Fatalf("active binding should validate, ok=%v reason=%v", ok, reason)
+	}
+	resolved := svc.ResolveScopedBindingRelation(issued.GetBindingId())
+	if resolved.GetBindingId() != issued.GetBindingId() ||
+		resolved.GetRuntimeAppId() != issued.GetRelation().GetRuntimeAppId() ||
+		resolved.GetAppInstanceId() != issued.GetRelation().GetAppInstanceId() {
+		t.Fatalf("resolved scoped binding relation mismatch: %#v", resolved)
+	}
+	resolved.AppInstanceId = "mutated-copy"
+	if again := svc.ResolveScopedBindingRelation(issued.GetBindingId()); again.GetAppInstanceId() == "mutated-copy" {
+		t.Fatalf("resolved scoped binding relation must be a copy")
 	}
 	replayRelation := cloneRelation(issued.GetRelation())
 	replayRelation.WindowId = "other-window"
@@ -596,6 +607,32 @@ func TestProductionSecureCustodyUnavailableFailsClosed(t *testing.T) {
 	}
 	if complete.GetAccepted() || complete.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
 		t.Fatalf("production unavailable custody must fail closed: %+v", complete)
+	}
+}
+
+func TestProductionFileCustodyPersistsAndClears(t *testing.T) {
+	custody := fileAccountCustody{path: filepath.Join(t.TempDir(), "account", "custody.json")}
+	if _, err := custody.Load(context.Background(), "partition-1"); !errors.Is(err, ErrNoStoredAccount) {
+		t.Fatalf("missing file should report no stored account, got %v", err)
+	}
+
+	material := testMaterial("acct-file", "access-file", "refresh-file")
+	material.DisplayName = "File Custody"
+	if err := custody.Store(context.Background(), "partition-1", material); err != nil {
+		t.Fatalf("Store: %v", err)
+	}
+	loaded, err := custody.Load(context.Background(), "partition-1")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if loaded.AccountID != "acct-file" || loaded.AccessToken != "access-file" || loaded.RefreshToken != "refresh-file" {
+		t.Fatalf("loaded material mismatch: %+v", loaded)
+	}
+	if err := custody.Clear(context.Background(), "partition-1"); err != nil {
+		t.Fatalf("Clear: %v", err)
+	}
+	if _, err := custody.Load(context.Background(), "partition-1"); !errors.Is(err, ErrNoStoredAccount) {
+		t.Fatalf("cleared file should report no stored account, got %v", err)
 	}
 }
 

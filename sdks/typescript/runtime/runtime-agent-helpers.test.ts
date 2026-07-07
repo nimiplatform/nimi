@@ -2,10 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type {
+  AgentEvent,
   AgentVoiceStreamEvent,
-  CreateRealmGroupMessageCandidateRequest,
   GetAgentRequest,
-  GetRealmGroupMessageCandidateEvidenceRequest,
   InitializeAgentRequest,
   InterruptAgentVoicePlaybackRequest,
   InterruptAgentVoicePlaybackResponse,
@@ -14,27 +13,29 @@ import type {
   type AppMessageEvent,
   RuntimeTypedCallOptions,
   SendAppMessageRequest,
+  SubscribeAgentEventsRequest,
+  SubscribeAppMessagesRequest,
   SubscribeAgentVoiceStreamRequest,
   TerminateAgentRequest,
 } from '../core-generated/runtime-typed-client';
 import {
+  AgentEventType,
   AgentLifecycleStatus,
+  AgentPresentationEventFamily,
   ReasonCode as RuntimeGeneratedReasonCode,
-  RealmGroupMessageCandidateCommitDisposition,
+  VoiceOutputMode,
+  VoicePlaybackState,
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode as SdkReasonCode } from '../types';
 import {
   createNimiHostRuntimeAgentLifecycleSurface,
 } from './runtime-agent-lifecycle';
 import {
-  createNimiHostRuntimeRealmGroupMessageCandidateSurface,
-} from './runtime-agent-group-message';
-import {
   buildNimiRuntimeAgentTurnPayload,
   createNimiRuntimeAgentTurnsModule,
 } from './runtime-agent-turns';
 import { createNimiRuntimeAgentVoiceModule } from './runtime-agent-voice';
-import { fromNimiRuntimeProtoStruct, toNimiRuntimeProtoStruct } from './runtime-agent-values';
+import { fromNimiRuntimeProtoStruct, toNimiRuntimeProtoStruct, toNimiRuntimeTimestamp } from './runtime-agent-values';
 
 const OWNER_USER_ID = 'user-1';
 const RUNTIME_SOURCE_REF = 'agent-1';
@@ -169,6 +170,262 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
     () => rejected.request(baseTurn),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.APP_GRANT_INVALID,
   );
+});
+
+test('Runtime Agent turn subscription without cursor starts at live boundary', async () => {
+  const agentEventCalls: SubscribeAgentEventsRequest[] = [];
+  const appMessageCalls: SubscribeAppMessagesRequest[] = [];
+  const oldAccepted = {
+    messageType: 'runtime.agent.turn.accepted',
+    timestamp: toNimiRuntimeTimestamp(Date.now() - 60_000),
+    payload: toNimiRuntimeProtoStruct({
+      local_agent_ref: LOCAL_AGENT_REF,
+      agent_id: LOCAL_AGENT_REF,
+      conversation_anchor_id: 'anchor-1',
+      turn_id: 'old-turn',
+      stream_id: 'old-stream',
+      detail: {},
+    }),
+  } as AppMessageEvent;
+  const newVoiceChunk = {
+    eventType: AgentEventType.PRESENTATION,
+    sequence: '10',
+    agentId: LOCAL_AGENT_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    timestamp: toNimiRuntimeTimestamp(Date.now() + 1_000),
+    detail: {
+      oneofKind: 'presentation',
+      presentation: {
+        family: AgentPresentationEventFamily.VOICE_STREAM_CHUNK_AVAILABLE,
+        conversationAnchorId: 'anchor-1',
+        turnId: 'new-turn',
+        streamId: 'new-stream',
+        activityName: '',
+        activityCategory: '',
+        activityIntensity: '',
+        activitySource: '',
+        motionId: '',
+        motionPriority: '',
+        motionExpectedDurationMs: '0',
+        expressionId: '',
+        expressionExpectedDurationMs: '0',
+        poseId: '',
+        poseExpectedDurationMs: '0',
+        previousPoseId: '',
+        lookatTargetKind: '',
+        lookatX: 0,
+        lookatY: 0,
+        lookatZ: 0,
+        lookatHasX: false,
+        lookatHasY: false,
+        lookatHasZ: false,
+        audioArtifactId: '',
+        audioMimeType: 'audio/wav',
+        voiceStreamId: 'voice-new',
+        chunkTransportRef: 'runtime-agent-voice-stream://voice-new/chunks/000001',
+        messageId: 'message-new',
+        chunkSequence: '1',
+        finalChunk: false,
+        voiceOutputMode: VoiceOutputMode.NATIVE_STREAM,
+        voicePlaybackState: VoicePlaybackState.ACTIVE,
+        playbackTarget: 'avatar_autoplay',
+        finalArtifact: false,
+        terminalReason: '',
+        reason: 'native_stream_chunk_available',
+        durationMs: '0',
+        deadlineOffsetMs: '0',
+        finalArtifactId: '',
+      },
+    },
+  } as AgentEvent;
+  const module = createNimiRuntimeAgentTurnsModule({
+    runtime: {
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agents: {
+        async getPublicChatSessionSnapshot() {
+          return {};
+        },
+        subscribeAgentEvents(request) {
+          agentEventCalls.push(request);
+          return new CancellableStream<AgentEvent>([newVoiceChunk]);
+        },
+      },
+      appMessages: {
+        async sendAppMessage() {
+          return { messageId: 'unused', accepted: true, reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED };
+        },
+        subscribeAppMessages(request) {
+          appMessageCalls.push(request);
+          return new CancellableStream<AppMessageEvent>([oldAccepted]);
+        },
+      },
+    },
+    getSubjectUserId: () => OWNER_USER_ID,
+    withScopes: async (_scopes, operation) => operation({}),
+  });
+
+  const stream = await module.subscribe({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    includeAgentEvents: true,
+  });
+  const iterator = stream[Symbol.asyncIterator]();
+  try {
+    const next = await iterator.next();
+    assert.equal(next.done, false);
+    assert.equal(next.value.eventName, 'runtime.agent.presentation.voice_stream_chunk_available');
+    assert.equal(next.value.turnId, 'new-turn');
+    assert.equal(next.value.detail.voiceStreamId, 'voice-new');
+    assert.equal((agentEventCalls[0] as { cursor?: string }).cursor, '');
+    assert.equal((appMessageCalls[0] as { cursor?: string }).cursor, '');
+  } finally {
+    await iterator.return?.();
+  }
+});
+
+test('Runtime Agent turn subscription opens live streams before caller pulls', async () => {
+  let agentNextCount = 0;
+  let appNextCount = 0;
+  let agentReturnCount = 0;
+  let appReturnCount = 0;
+  const module = createNimiRuntimeAgentTurnsModule({
+    runtime: {
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agents: {
+        async getPublicChatSessionSnapshot() {
+          return {};
+        },
+        subscribeAgentEvents() {
+          return trackedPendingStream<AgentEvent>({
+            onNext: () => {
+              agentNextCount += 1;
+            },
+            onReturn: () => {
+              agentReturnCount += 1;
+            },
+          });
+        },
+      },
+      appMessages: {
+        async sendAppMessage() {
+          return { messageId: 'unused', accepted: true, reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED };
+        },
+        subscribeAppMessages() {
+          return trackedPendingStream<AppMessageEvent>({
+            onNext: () => {
+              appNextCount += 1;
+            },
+            onReturn: () => {
+              appReturnCount += 1;
+            },
+          });
+        },
+      },
+    },
+    getSubjectUserId: () => OWNER_USER_ID,
+    withScopes: async (_scopes, operation) => operation({}),
+  });
+
+  const stream = await module.subscribe({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    includeAgentEvents: true,
+  });
+
+  assert.equal(appNextCount, 1);
+  assert.equal(agentNextCount, 1);
+  await stream[Symbol.asyncIterator]().return?.();
+  assert.equal(appReturnCount, 1);
+  assert.equal(agentReturnCount, 1);
+});
+
+test('Runtime Agent turn subscription does not treat zero timestamp as stale live event', async () => {
+  const oldAccepted = {
+    messageType: 'runtime.agent.turn.accepted',
+    timestamp: toNimiRuntimeTimestamp(Date.now() - 60_000),
+    payload: toNimiRuntimeProtoStruct({
+      local_agent_ref: LOCAL_AGENT_REF,
+      agent_id: LOCAL_AGENT_REF,
+      conversation_anchor_id: 'anchor-1',
+      turn_id: 'old-turn',
+      stream_id: 'old-stream',
+      detail: {},
+    }),
+  } as AppMessageEvent;
+  const zeroTimestampVoiceChunk = {
+    messageType: 'runtime.agent.presentation.voice_stream_chunk_available',
+    timestamp: toNimiRuntimeTimestamp(0),
+    payload: toNimiRuntimeProtoStruct({
+      local_agent_ref: LOCAL_AGENT_REF,
+      agent_id: LOCAL_AGENT_REF,
+      conversation_anchor_id: 'anchor-1',
+      turn_id: 'new-turn',
+      stream_id: 'new-stream',
+      detail: {
+        audio_mime_type: 'audio/wav',
+        voice_stream_id: 'voice-zero-ts',
+        chunk_transport_ref: 'runtime-agent-voice-stream://voice-zero-ts/chunks/000001',
+        chunk_sequence: 1,
+        final_chunk: false,
+        voice_output_mode: 'native_stream',
+        voice_playback_state: 'active',
+        playback_target: 'avatar_autoplay',
+      },
+    }),
+  } as AppMessageEvent;
+  const module = createNimiRuntimeAgentTurnsModule({
+    runtime: {
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agents: {
+        async getPublicChatSessionSnapshot() {
+          return {};
+        },
+        subscribeAgentEvents() {
+          return new CancellableStream<AgentEvent>([]);
+        },
+      },
+      appMessages: {
+        async sendAppMessage() {
+          return { messageId: 'unused', accepted: true, reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED };
+        },
+        subscribeAppMessages() {
+          return new CancellableStream<AppMessageEvent>([oldAccepted, zeroTimestampVoiceChunk]);
+        },
+      },
+    },
+    getSubjectUserId: () => OWNER_USER_ID,
+    withScopes: async (_scopes, operation) => operation({}),
+  });
+
+  const stream = await module.subscribe({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    includeAgentEvents: false,
+  });
+  const iterator = stream[Symbol.asyncIterator]();
+  try {
+    const next = await iterator.next();
+    assert.equal(next.done, false);
+    assert.equal(next.value.eventName, 'runtime.agent.presentation.voice_stream_chunk_available');
+    assert.equal(next.value.turnId, 'new-turn');
+    assert.equal(next.value.detail.voiceStreamId, 'voice-zero-ts');
+  } finally {
+    await iterator.return?.();
+  }
 });
 
 test('Runtime Agent turn helper requests committed-message voice render and resolves playable Runtime projection', async () => {
@@ -396,6 +653,241 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
   assert.equal(interruptRequests[0]?.turnId, 'turn-1');
   assert.equal(interruptRequests[0]?.context?.localAgentRef, LOCAL_AGENT_REF);
   assert.deepEqual(scopes[1], ['runtime.agent.turn.write']);
+});
+
+test('Runtime Agent voice helper preserves injected metadata and supplies protected token when no Runtime binding exists', async () => {
+  const streamOptions: RuntimeTypedCallOptions[] = [];
+  const authCalls: string[] = [];
+  const module = createNimiRuntimeAgentVoiceModule({
+    runtime: {
+      appId: 'desktop',
+      auth: {
+        async registerApp() {
+          authCalls.push('register');
+          return { accepted: true };
+        },
+      },
+      appAuth: {
+        async authorizeExternalPrincipal() {
+          authCalls.push('authorize');
+          return { tokenId: 'token-voice', secret: 'secret-voice' };
+        },
+      },
+      agents: {
+        async *subscribeAgentVoiceStream(_request, options) {
+          streamOptions.push(options ?? {});
+          yield {
+            voiceStreamId: 'voice-stream-1',
+            conversationAnchorId: 'anchor-1',
+            turnId: 'turn-1',
+            streamId: 'stream-1',
+            messageId: 'message-1',
+            chunkSequence: '1',
+            chunk: new Uint8Array([1]),
+            mimeType: 'audio/wav',
+            voiceOutputMode: 1,
+            playbackTarget: 'avatar_autoplay',
+            terminal: false,
+            voicePlaybackState: 1,
+            terminalReason: '',
+            replayTruncated: false,
+          };
+        },
+        async interruptAgentVoicePlayback() {
+          throw new Error('not expected');
+        },
+      },
+      artifacts: {
+        async readArtifactBytes() {
+          throw new Error('not expected');
+        },
+      },
+    },
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (_nextScopes, operation) =>
+      operation({ metadata: { scoped: 'voice-owner-binding' } }),
+  });
+
+  const stream = await module.subscribeStream({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    voiceStreamId: 'voice-stream-1',
+  });
+  for await (const _event of stream) {
+    break;
+  }
+
+  assert.deepEqual(authCalls, ['register', 'authorize']);
+  assert.equal(streamOptions[0]?.metadata?.scoped, 'voice-owner-binding');
+  assert.equal(streamOptions[0]?.metadata?.['x-nimi-access-token-id'], 'token-voice');
+  assert.equal(streamOptions[0]?.metadata?.['x-nimi-access-token-secret'], 'secret-voice');
+});
+
+test('Runtime Agent voice helper preserves scoped Runtime binding without renderer token fallback', async () => {
+  const streamOptions: RuntimeTypedCallOptions[] = [];
+  const streamRequests: unknown[] = [];
+  const authCalls: string[] = [];
+  const module = createNimiRuntimeAgentVoiceModule({
+    runtime: {
+      appId: 'avatar',
+      auth: {
+        async registerApp() {
+          authCalls.push('register');
+          throw new Error('Runtime auth fallback must not run for Runtime auth bindings');
+        },
+      },
+      appAuth: {
+        async authorizeExternalPrincipal() {
+          authCalls.push('authorize');
+          throw new Error('Runtime protected token fallback must not run for Runtime auth bindings');
+        },
+      },
+      agents: {
+        async *subscribeAgentVoiceStream(request, options) {
+          streamRequests.push(request);
+          streamOptions.push(options ?? {});
+          yield {
+            voiceStreamId: 'voice-stream-1',
+            conversationAnchorId: 'anchor-1',
+            turnId: 'turn-1',
+            streamId: 'stream-1',
+            messageId: 'message-1',
+            chunkSequence: '1',
+            chunk: new Uint8Array([1]),
+            mimeType: 'audio/wav',
+            voiceOutputMode: 1,
+            playbackTarget: 'avatar_autoplay',
+            terminal: false,
+            voicePlaybackState: 1,
+            terminalReason: '',
+            replayTruncated: false,
+          };
+        },
+        async interruptAgentVoicePlayback() {
+          throw new Error('not expected');
+        },
+      },
+      artifacts: {
+        async readArtifactBytes() {
+          throw new Error('not expected');
+        },
+      },
+    },
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (_nextScopes, operation) => operation({
+      metadata: { 'x-nimi-runtime-scoped-binding-id': 'binding-voice' },
+    }),
+  });
+
+  const stream = await module.subscribeStream({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    voiceStreamId: 'voice-stream-1',
+  });
+  for await (const _event of stream) {
+    break;
+  }
+
+  assert.deepEqual(authCalls, []);
+  assert.equal(streamOptions[0]?.metadata?.['x-nimi-runtime-scoped-binding-id'], 'binding-voice');
+  assert.equal(streamOptions[0]?.metadata?.['x-nimi-access-token-id'], undefined);
+  const context = (streamRequests[0] as {
+    readonly context?: {
+      readonly scopedBinding?: {
+        readonly bindingId?: string;
+        readonly runtimeAppId?: string;
+        readonly agentId?: string;
+        readonly conversationAnchorId?: string;
+      };
+    };
+  } | undefined)?.context;
+  assert.equal(context?.scopedBinding?.bindingId, 'binding-voice');
+  assert.equal(context?.scopedBinding?.runtimeAppId, 'avatar');
+  assert.equal(context?.scopedBinding?.agentId, LOCAL_AGENT_REF);
+  assert.equal(context?.scopedBinding?.conversationAnchorId, 'anchor-1');
+});
+
+test('Runtime Agent voice helper preserves host equivalence without renderer token fallback', async () => {
+  const streamOptions: RuntimeTypedCallOptions[] = [];
+  const authCalls: string[] = [];
+  const module = createNimiRuntimeAgentVoiceModule({
+    runtime: {
+      appId: 'zhiyu',
+      auth: {
+        async registerApp() {
+          authCalls.push('register');
+          throw new Error('Runtime auth fallback must not run for Runtime host equivalence');
+        },
+      },
+      appAuth: {
+        async authorizeExternalPrincipal() {
+          authCalls.push('authorize');
+          throw new Error('Runtime protected token fallback must not run for Runtime host equivalence');
+        },
+      },
+      agents: {
+        async *subscribeAgentVoiceStream(_request, options) {
+          streamOptions.push(options ?? {});
+          yield {
+            voiceStreamId: 'voice-stream-1',
+            conversationAnchorId: 'anchor-1',
+            turnId: 'turn-1',
+            streamId: 'stream-1',
+            messageId: 'message-1',
+            chunkSequence: '1',
+            chunk: new Uint8Array([1]),
+            mimeType: 'audio/wav',
+            voiceOutputMode: 1,
+            playbackTarget: 'avatar_autoplay',
+            terminal: false,
+            voicePlaybackState: 1,
+            terminalReason: '',
+            replayTruncated: false,
+          };
+        },
+        async interruptAgentVoicePlayback() {
+          throw new Error('not expected');
+        },
+      },
+      artifacts: {
+        async readArtifactBytes() {
+          throw new Error('not expected');
+        },
+      },
+    },
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (_nextScopes, operation) => operation({
+      metadata: {
+        'x-nimi-runtime-host-equivalence': 'runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host',
+      },
+    }),
+  });
+
+  const stream = await module.subscribeStream({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    voiceStreamId: 'voice-stream-1',
+  });
+  for await (const _event of stream) {
+    break;
+  }
+
+  assert.deepEqual(authCalls, []);
+  assert.equal(
+    streamOptions[0]?.metadata?.['x-nimi-runtime-host-equivalence'],
+    'runtime-sdk-authority:kit-electron-runtime-bridge-local-first-party-host',
+  );
+  assert.equal(streamOptions[0]?.metadata?.['x-nimi-access-token-id'], undefined);
+  assert.equal(streamOptions[0]?.metadata?.['x-nimi-access-token-secret'], undefined);
 });
 
 test('Runtime Agent turn subscription cancels sibling streams on early consumer exit', async () => {
@@ -798,207 +1290,6 @@ test('Runtime Agent lifecycle discovers source provenance without caller runtime
   assert.equal(calls[0]?.options?.metadata?.scopes, 'runtime.agent.read');
 });
 
-test('Runtime Agent lifecycle lists active LocalAgents without source selection', async () => {
-  const calls: Array<{ readonly method: string; readonly request: unknown; readonly options?: RuntimeTypedCallOptions }> = [];
-  const surface = createNimiHostRuntimeAgentLifecycleSurface({
-    getRuntime: () => ({
-      appId: 'desktop',
-      auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
-      agent: {
-        async getAgent() {
-          throw new Error('listLocalAgents must not require caller localAgentRef');
-        },
-        async initializeAgent() {
-          throw new Error('listLocalAgents must not materialize');
-        },
-        async listAgents(request: unknown, options?: RuntimeTypedCallOptions) {
-          calls.push({ method: 'listAgents', request, options });
-          return {
-            agents: [
-              {
-                agentId: 'local-agent:runtime-owned-existing',
-                localAgentRef: 'local-agent:runtime-owned-existing',
-                ownerUserId: OWNER_USER_ID,
-                runtimeSourceRef: 'runtime-source:worldCharacter:world-1:source-1:hash-1',
-                displayName: 'Existing Source Agent',
-                lifecycleStatus: AgentLifecycleStatus.ACTIVE,
-                metadata: toNimiRuntimeProtoStruct({
-                  sourceMaterialization: {
-                    sourceKind: 'worldCharacter',
-                    sourceWorldId: 'world-1',
-                    sourceId: 'source-1',
-                    sourceContentHash: 'hash-1',
-                  },
-                }),
-              },
-              {
-                agentId: 'local-agent:inactive',
-                localAgentRef: 'local-agent:inactive',
-                ownerUserId: OWNER_USER_ID,
-                runtimeSourceRef: 'runtime-source:worldCharacter:world-1:source-2:hash-1',
-                lifecycleStatus: AgentLifecycleStatus.TERMINATED,
-              },
-              {
-                agentId: 'local-agent:other-owner',
-                localAgentRef: 'local-agent:other-owner',
-                ownerUserId: 'other-user',
-                runtimeSourceRef: 'runtime-source:worldCharacter:world-1:source-1:hash-1',
-                lifecycleStatus: AgentLifecycleStatus.ACTIVE,
-              },
-            ],
-            nextPageToken: '',
-          };
-        },
-        async terminateAgent() {
-          return {};
-        },
-      },
-    }),
-    getSubjectUserId: () => OWNER_USER_ID,
-    withScopes: async (scopes, operation) => operation({ metadata: { scopes: scopes.join(' ') } }),
-  });
-
-  const listed = await surface.listLocalAgents({ ownerUserId: OWNER_USER_ID });
-
-  assert.deepEqual(listed.map((agent) => agent.localAgentRef), ['local-agent:runtime-owned-existing']);
-  assert.equal(listed[0]?.sourceKind, 'worldCharacter');
-  assert.equal(listed[0]?.sourceWorldId, 'world-1');
-  assert.equal(listed[0]?.sourceId, 'source-1');
-  assert.equal(listed[0]?.sourceContentHash, 'hash-1');
-  assert.deepEqual(calls.map((call) => call.method), ['listAgents']);
-  assert.equal(calls[0]?.options?.metadata?.scopes, 'runtime.agent.read');
-});
-
-test('Runtime Realm group message candidate surface builds verified commit payloads and rejects mismatched evidence', async () => {
-  const createCalls: CreateRealmGroupMessageCandidateRequest[] = [];
-  const evidenceCalls: GetRealmGroupMessageCandidateEvidenceRequest[] = [];
-  let candidate = candidateHandle();
-  let evidence = candidateEvidence();
-  const surface = createNimiHostRuntimeRealmGroupMessageCandidateSurface({
-    getRuntime: () => ({
-      appId: 'desktop',
-      auth: protectedAuth(),
-      appAuth: protectedAppAuth(),
-      agent: {
-        async createRealmGroupMessageCandidate(request) {
-          createCalls.push(request);
-          return { candidate };
-        },
-        async getRealmGroupMessageCandidateEvidence(request) {
-          evidenceCalls.push(request);
-          return { evidence };
-        },
-      },
-    }),
-    getSubjectUserId: () => 'user-1',
-    withScopes: async (scopes, operation) => operation({ metadata: { scopes: scopes.join(' ') } }),
-  });
-
-  const result = await surface.createCommitPayload({
-    ...agentIdentity(),
-    participantType: 'source',
-    currentUserId: 'user-1',
-    runtimeParticipantSlot: 'slot-1',
-    realmGroupThreadId: 'thread-1',
-    triggerMessageId: 'message-1',
-    triggerKind: 'mention',
-    idempotencyKey: 'idem-1',
-  });
-
-  assert.equal(createCalls[0]?.triggerRef, 'realm://group-chats/thread-1/messages/message-1');
-  assert.equal(createCalls[0]?.contextRefs['realm.group.thread.snapshot'], 'realm-context://group-chats/thread-1/thread/current');
-  assert.equal('custom' in (createCalls[0]?.contextRefs ?? {}), false);
-  assert.equal(evidenceCalls[0]?.candidateId, 'candidate-1');
-  assert.equal(result.realmCommitPayload.commitDisposition, 'MESSAGE_CANDIDATE');
-  assert.equal(result.realmCommitPayload.body, 'hello group');
-  assert.equal(result.realmCommitPayload.idempotencyKey, 'idem-1');
-  assert.equal(result.realmCommitPayload.expectedRuntimeParticipantSlotId, 'slot-1');
-  assert.equal(result.realmCommitPayload.expectedRuntimeSourceRef, 'agent-1');
-  assert.deepEqual(result.realmCommitPayload.triggerEvidence, {
-    kind: 'mention',
-    triggerRef: 'realm://group-chats/thread-1/messages/message-1',
-    actorId: 'user-1',
-    chatId: 'thread-1',
-    messageId: 'message-1',
-  });
-  assert.equal('triggerRef' in result.realmCommitPayload, false);
-  assert.equal(result.realmCommitPayload.createdAt, '2026-06-05T00:00:00.000Z');
-
-  candidate = {
-    ...candidateHandle(),
-    candidateId: 'candidate-2',
-    candidateEvidenceRef: 'evidence-ref-2',
-    evidenceHash: 'hash-2',
-    runtimeTraceRef: 'trace-2',
-    triggerRef: 'realm://group-chats/thread-1/messages/message-2',
-  };
-  evidence = {
-    ...candidateEvidence(),
-    candidateId: 'candidate-2',
-    evidenceHash: 'hash-2',
-    runtimeTraceRef: 'trace-2',
-    triggerRef: 'realm://group-chats/thread-1/messages/message-2',
-  };
-  const explicitAction = await surface.createCommitPayload({
-    ...agentIdentity(),
-    participantType: 'source',
-    currentUserId: 'user-1',
-    runtimeParticipantSlot: 'slot-1',
-    realmGroupThreadId: 'thread-1',
-    triggerMessageId: 'message-2',
-    triggerKind: 'explicitUserAction',
-    idempotencyKey: 'idem-explicit',
-  });
-  assert.equal(explicitAction.realmCommitPayload.triggerEvidence.kind, 'explicitUserAction');
-
-  candidate = candidateHandle();
-  evidence = candidateEvidence();
-  await assert.rejects(
-    () => surface.createCommitPayload({
-      ...agentIdentity(),
-      participantType: 'source',
-      currentUserId: 'user-1',
-      runtimeParticipantSlot: 'slot-1',
-      realmGroupThreadId: 'thread-1',
-      triggerMessageId: 'message-1',
-      idempotencyKey: 'idem-missing-trigger-kind',
-    } as never),
-    /trigger kind/,
-  );
-
-  candidate = candidateHandle();
-  evidence = { ...candidateEvidence(), candidateId: 'other-candidate' };
-  await assert.rejects(
-    () => surface.createCommitPayload({
-      ...agentIdentity(),
-      participantType: 'source',
-      currentUserId: 'user-1',
-      runtimeParticipantSlot: 'slot-1',
-      realmGroupThreadId: 'thread-1',
-      triggerMessageId: 'message-1',
-      triggerKind: 'mention',
-      idempotencyKey: 'idem-2',
-    }),
-    /evidence does not match the candidate handle/,
-  );
-
-  await assert.rejects(
-    () => surface.createCommitPayload({
-      ...agentIdentity(),
-      participantType: 'source',
-      currentUserId: 'user-1',
-      runtimeParticipantSlot: 'slot-1',
-      realmGroupThreadId: 'thread-1',
-      triggerMessageId: 'message-1',
-      triggerKind: 'mention',
-      idempotencyKey: 'idem-3',
-      contextRefs: { custom: 'realm-context://custom' },
-    } as never),
-    /context refs are Runtime-owned/,
-  );
-});
-
 class CancellableStream<T> implements AsyncIterable<T> {
   private readonly values: T[];
   private readonly waiters: Array<(result: IteratorResult<T>) => void> = [];
@@ -1036,6 +1327,37 @@ class CancellableStream<T> implements AsyncIterable<T> {
   }
 }
 
+function trackedPendingStream<T>(hooks: {
+  readonly onNext: () => void;
+  readonly onReturn: () => void;
+}): AsyncIterable<T> {
+  const waiters: Array<(result: IteratorResult<T>) => void> = [];
+  let closed = false;
+  return {
+    [Symbol.asyncIterator](): AsyncIterator<T> {
+      return {
+        next: async () => {
+          hooks.onNext();
+          if (closed) {
+            return { done: true, value: undefined };
+          }
+          return new Promise<IteratorResult<T>>((resolve) => {
+            waiters.push(resolve);
+          });
+        },
+        return: async () => {
+          closed = true;
+          hooks.onReturn();
+          while (waiters.length > 0) {
+            waiters.shift()?.({ done: true, value: undefined });
+          }
+          return { done: true, value: undefined };
+        },
+      };
+    },
+  };
+}
+
 function agentIdentity() {
   return {
     ownerUserId: OWNER_USER_ID,
@@ -1057,62 +1379,5 @@ function protectedAppAuth() {
     async authorizeExternalPrincipal() {
       return { tokenId: 'token-1', secret: 'secret-1' };
     },
-  };
-}
-
-function timestamp(iso: string): { readonly seconds: string; readonly nanos: number } {
-  const millis = Date.parse(iso);
-  return {
-    seconds: String(Math.floor(millis / 1000)),
-    nanos: (millis % 1000) * 1_000_000,
-  };
-}
-
-function candidateHandle() {
-  return {
-    candidateId: 'candidate-1',
-    candidateKind: 'REALM_GROUP_MESSAGE_CANDIDATE',
-    candidateEvidenceRef: 'evidence-ref-1',
-    evidenceHash: 'hash-1',
-    runtimeTraceRef: 'trace-1',
-    realmGroupThreadId: 'thread-1',
-    runtimeParticipantSlot: 'slot-1',
-    ownerUserId: OWNER_USER_ID,
-    runtimeSourceRef: RUNTIME_SOURCE_REF,
-    localAgentRef: LOCAL_AGENT_REF,
-    triggerRef: 'realm://group-chats/thread-1/messages/message-1',
-    outputCandidateRef: 'candidate-output-1',
-    auditLineageRef: 'audit-1',
-    policyVerdictRef: 'policy-1',
-    createdAt: timestamp('2026-06-05T00:00:00.000Z'),
-    expiresAt: timestamp('2026-06-05T00:05:00.000Z'),
-    commitDisposition: RealmGroupMessageCandidateCommitDisposition.MESSAGE_CANDIDATE,
-  };
-}
-
-function candidateEvidence() {
-  return {
-    candidateId: 'candidate-1',
-    candidateKind: 'REALM_GROUP_MESSAGE_CANDIDATE',
-    realmGroupThreadId: 'thread-1',
-    runtimeParticipantSlot: 'slot-1',
-    ownerUserId: OWNER_USER_ID,
-    runtimeSourceRef: RUNTIME_SOURCE_REF,
-    localAgentRef: LOCAL_AGENT_REF,
-    triggerRef: 'realm://group-chats/thread-1/messages/message-1',
-    outputCandidateRef: 'candidate-output-1',
-    evidenceHash: 'hash-1',
-    runtimeTraceRef: 'trace-1',
-    auditLineageRef: 'audit-1',
-    policyVerdictRef: 'policy-1',
-    createdAt: timestamp('2026-06-05T00:00:00.000Z'),
-    expiresAt: timestamp('2026-06-05T00:05:00.000Z'),
-    commitDisposition: RealmGroupMessageCandidateCommitDisposition.MESSAGE_CANDIDATE,
-    messageType: 'TEXT',
-    body: 'hello group',
-    bodyHash: 'body-hash-1',
-    refusalCode: '',
-    refusalReason: '',
-    refusalHash: '',
   };
 }

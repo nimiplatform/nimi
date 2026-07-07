@@ -413,6 +413,26 @@ test('execution readiness projects typed states and fails closed on unknown stat
     assert.equal(error.reasonCode, 'SDK_RUNTIME_AGENT_EXECUTION_CONFIG_RESPONSE_INVALID');
     return true;
   });
+
+  const unknownReason = createModule({
+    async getAgentExecutionReadiness() {
+      return {
+        snapshot: {
+          configRevision: '3',
+          capabilities: [{
+            capability: 'text.generate',
+            state: AgentExecutionReadinessState.UNAVAILABLE,
+            reasonCode: 'provider_said_maybe',
+            probedAt: undefined,
+          }],
+        },
+      };
+    },
+  });
+  await assert.rejects(unknownReason.readiness(), (error: { readonly reasonCode?: string }) => {
+    assert.equal(error.reasonCode, 'SDK_RUNTIME_AGENT_EXECUTION_CONFIG_RESPONSE_INVALID');
+    return true;
+  });
 });
 
 test('subscribeReadiness projects the server stream and honors early return', async () => {

@@ -229,10 +229,78 @@ function createDeferredRuntimeNodeGrpcTransport(
     async unary<Response = unknown, Body = unknown>(request: CoreUnaryRequest<Body>): Promise<Response> {
       return (await ensureTransport()).unary<Response, Body>(request);
     },
-    async *serverStream<Response = unknown, Body = unknown>(
+    serverStream<Response = unknown, Body = unknown>(
       request: CoreStreamRequest<Body>,
     ): AsyncIterable<Response> {
-      yield* (await ensureTransport()).serverStream<Response, Body>(request);
+      return forwardDeferredRuntimeServerStream(async () => (await ensureTransport()).serverStream<Response, Body>(request));
+    },
+  };
+}
+
+function forwardDeferredRuntimeServerStream<Response>(
+  open: () => Promise<AsyncIterable<Response>>,
+): AsyncIterable<Response> {
+  return {
+    [Symbol.asyncIterator](): AsyncIterator<Response> {
+      let closed = false;
+      let source: Promise<AsyncIterable<Response>> | undefined;
+      let sourceIterator: AsyncIterator<Response> | undefined;
+
+      const ensureIterator = async (): Promise<AsyncIterator<Response>> => {
+        source ??= open();
+        const stream = await source;
+        sourceIterator ??= stream[Symbol.asyncIterator]();
+        return sourceIterator;
+      };
+
+      const closeSource = () => {
+        const closeIterator = (iterator: AsyncIterator<Response>) => {
+          if (typeof iterator.return === 'function') {
+            void Promise.resolve(iterator.return()).catch(() => undefined);
+          }
+        };
+        if (sourceIterator) {
+          closeIterator(sourceIterator);
+          return;
+        }
+        if (source) {
+          void source.then((stream) => {
+            sourceIterator ??= stream[Symbol.asyncIterator]();
+            closeIterator(sourceIterator);
+          }).catch(() => undefined);
+        }
+      };
+
+      return {
+        next: async (): Promise<IteratorResult<Response>> => {
+          if (closed) {
+            return { done: true, value: undefined };
+          }
+          try {
+            const iterator = await ensureIterator();
+            if (closed) {
+              return { done: true, value: undefined };
+            }
+            const result = await iterator.next();
+            if (closed) {
+              return { done: true, value: undefined };
+            }
+            return result;
+          } catch (error) {
+            if (closed) {
+              return { done: true, value: undefined };
+            }
+            throw error;
+          }
+        },
+        return: async (): Promise<IteratorResult<Response>> => {
+          if (!closed) {
+            closed = true;
+            closeSource();
+          }
+          return { done: true, value: undefined };
+        },
+      };
     },
   };
 }

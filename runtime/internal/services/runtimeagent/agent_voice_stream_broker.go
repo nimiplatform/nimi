@@ -394,6 +394,14 @@ func (s *Service) SubscribeAgentVoiceStream(req *runtimev1.SubscribeAgentVoiceSt
 	if callerAppID == "" || conversationAnchorID == "" || turnID == "" {
 		return status.Error(codes.InvalidArgument, "voice stream subscription requires app_id, conversation_anchor_id, and turn_id")
 	}
+	if scopedBinding := req.GetContext().GetScopedBinding(); scopedBinding != nil {
+		if scopedBindingAttachmentConversationAnchorMismatches(scopedBinding, conversationAnchorID) {
+			return status.Error(codes.PermissionDenied, "voice stream scoped binding conversation_anchor_id mismatch")
+		}
+		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, identity.LocalAgentRef, runtimeAgentTurnReadScope); err != nil {
+			return err
+		}
+	}
 	if s == nil || s.agentVoiceStreams == nil {
 		return status.Error(codes.Unavailable, "agent voice stream broker unavailable")
 	}

@@ -178,20 +178,7 @@ func (r eventStreamRuntime) broadcast(events []*runtimev1.AgentEvent, targetsByE
 			return
 		}
 		for _, sub := range targetsByEvent[i] {
-			cloned := cloneAgentEvent(event)
-			select {
-			case sub.ch <- cloned:
-				continue
-			default:
-			}
-			select {
-			case <-sub.ch:
-			default:
-			}
-			select {
-			case sub.ch <- cloned:
-			default:
-			}
+			sendSubscriberEvent(sub, event)
 		}
 	}
 }
@@ -202,6 +189,38 @@ func (r eventStreamRuntime) removeSubscriber(id uint64) {
 	delete(r.svc.subscribers, id)
 	r.svc.mu.Unlock()
 	if sub != nil {
+		sub.mu.Lock()
+		if sub.closed {
+			sub.mu.Unlock()
+			return
+		}
+		sub.closed = true
 		close(sub.ch)
+		sub.mu.Unlock()
+	}
+}
+
+func sendSubscriberEvent(sub *subscriber, event *runtimev1.AgentEvent) {
+	if sub == nil || event == nil {
+		return
+	}
+	sub.mu.Lock()
+	defer sub.mu.Unlock()
+	if sub.closed {
+		return
+	}
+	cloned := cloneAgentEvent(event)
+	select {
+	case sub.ch <- cloned:
+		return
+	default:
+	}
+	select {
+	case <-sub.ch:
+	default:
+	}
+	select {
+	case sub.ch <- cloned:
+	default:
 	}
 }

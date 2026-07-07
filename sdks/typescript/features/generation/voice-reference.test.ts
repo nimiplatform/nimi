@@ -5,6 +5,7 @@ import {
   requireNimiRuntimeVoiceReferenceForLocalTts,
   toNimiRuntimeVoiceReferenceFromInput,
 } from './index';
+import { isNimiError } from '../../types';
 
 test('voice reference parser accepts ordinary public preset and asset references', () => {
   assert.deepEqual(
@@ -47,6 +48,13 @@ test('local TTS requires an explicit admitted voice reference', () => {
   );
   assert.throws(
     () => requireNimiRuntimeVoiceReferenceForLocalTts({ routePolicy: 'local', voiceRef: undefined }),
-    /explicit preset_voice_id or voice_asset_id/u,
+    (error) => {
+      assert.equal(isNimiError(error), true);
+      assert.equal(error.code, 'SDK_GENERATION_LOCAL_TTS_VOICE_REFERENCE_REQUIRED');
+      assert.equal(error.actionHint, 'select_admitted_voice_reference');
+      assert.match(error.message, /explicit admitted Voice reference/u);
+      assert.match(error.message, /preset_voice_id or voice_asset_id/u);
+      return true;
+    },
   );
 });

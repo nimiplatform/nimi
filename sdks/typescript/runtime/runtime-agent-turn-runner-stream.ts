@@ -133,12 +133,7 @@ function buildRunnerDiagnostics(input: NimiRuntimeAgentTurnRunnerDiagnosticsInpu
     conversationAnchorId: input.conversationAnchorId,
     runtimeTurnId: input.runtimeTurnId,
     runtimeStreamId: input.runtimeStreamId,
-    route: input.route,
-    modelId: input.modelId,
-    connectorId: input.connectorId || null,
     traceId: input.trace?.traceId || null,
-    modelResolved: input.trace?.modelResolved || null,
-    routeDecision: input.trace?.routeDecision || null,
     ...(input.runtimeTurnTimelines.length > 0 ? { runtimeTurnTimelines: [...input.runtimeTurnTimelines] } : {}),
     ...(input.runtimeProjectionEvents.length > 0 ? { runtimeProjectionEvents: [...input.runtimeProjectionEvents] } : {}),
     ...(input.extra || {}),
@@ -170,10 +165,13 @@ export function nimiRuntimeAgentContextDetails(input: {
   readonly requestMessageId?: string;
   readonly runtimeTurnId?: string;
   readonly runtimeStreamId?: string;
-  readonly route: string;
-  readonly modelId: string;
+  readonly route?: string;
+  readonly modelId?: string;
   readonly connectorId?: string;
 }): JsonObject {
+  const route = normalizeText(input.route);
+  const modelId = normalizeText(input.modelId);
+  const connectorId = normalizeText(input.connectorId);
   return {
     localAgentRef: normalizeText(input.request.localAgentRef),
     conversationAnchorId: input.request.conversationAnchorId,
@@ -182,20 +180,18 @@ export function nimiRuntimeAgentContextDetails(input: {
     ...(input.requestMessageId !== undefined ? { requestMessageId: input.requestMessageId } : {}),
     ...(input.runtimeTurnId !== undefined ? { runtimeTurnId: input.runtimeTurnId } : {}),
     ...(input.runtimeStreamId !== undefined ? { runtimeStreamId: input.runtimeStreamId } : {}),
-    route: input.route,
-    modelId: input.modelId,
-    connectorId: input.connectorId || null,
+    ...(route ? { route } : {}),
+    ...(modelId ? { modelId } : {}),
+    ...(connectorId ? { connectorId } : {}),
   };
 }
 
 export type NimiRuntimeAgentTurnStreamInput = {
   readonly acceptedRequestIds: Set<string>;
   readonly cleanupSubscription: () => void;
-  readonly connectorId: string | undefined;
   readonly eventQueue: ReturnType<typeof createNimiRuntimeAgentEventQueue>;
   readonly logEvent?: (event: NimiRuntimeAgentTurnRunnerLogEvent) => void;
   readonly logTiming?: NimiRuntimeAgentTurnRunnerOptions['logTiming'];
-  readonly modelId: string;
   readonly nowMs: () => number;
   readonly querySnapshot: () => Promise<{
     readonly activeTurn?: NimiRuntimeAgentSessionTurnSnapshot;
@@ -205,7 +201,6 @@ export type NimiRuntimeAgentTurnStreamInput = {
   readonly requestId: string;
   readonly requestMessageId: string;
   readonly resolveTrace?: () => NimiRuntimeAgentTurnRunnerTrace | undefined;
-  readonly route: string;
   readonly runtimeTurnRef: { turnId: string; streamId: string };
   readonly stallRecoveryIntervalMs?: number;
   readonly buildMetadata?: NimiRuntimeAgentTurnRunnerOptions['buildMetadata'];
@@ -249,9 +244,6 @@ export function createNimiRuntimeAgentTurnStream(
         conversationAnchorId: input.request.conversationAnchorId,
         runtimeTurnId,
         runtimeStreamId,
-        route: input.route,
-        modelId: input.modelId,
-        connectorId: input.connectorId,
         trace,
         runtimeProjectionEvents,
         runtimeTurnTimelines,
@@ -307,9 +299,6 @@ export function createNimiRuntimeAgentTurnStream(
             requestMessageId: input.requestMessageId,
             runtimeTurnId: committedMessage.runtimeTurnId,
             runtimeStreamId: committedMessage.runtimeStreamId,
-            route: input.route,
-            modelId: input.modelId,
-            connectorId: input.connectorId,
           }),
         });
       }
@@ -325,9 +314,6 @@ export function createNimiRuntimeAgentTurnStream(
         conversationAnchorId: input.request.conversationAnchorId,
         runtimeTurnId: committedMessage.runtimeTurnId,
         runtimeStreamId: committedMessage.runtimeStreamId,
-        route: input.route,
-        modelId: input.modelId,
-        connectorId: input.connectorId,
         trace,
         runtimeProjectionEvents,
         runtimeTurnTimelines,
@@ -358,9 +344,6 @@ export function createNimiRuntimeAgentTurnStream(
               requestMessageId: input.requestMessageId,
               runtimeTurnId: input.runtimeTurnRef.turnId,
               runtimeStreamId: input.runtimeTurnRef.streamId,
-              route: input.route,
-              modelId: input.modelId,
-              connectorId: input.connectorId,
             }),
           });
           const recovered = await recoverTerminalSnapshot('subscription_done');
@@ -382,9 +365,6 @@ export function createNimiRuntimeAgentTurnStream(
                 requestMessageId: input.requestMessageId,
                 runtimeTurnId: input.runtimeTurnRef.turnId,
                 runtimeStreamId: input.runtimeTurnRef.streamId,
-                route: input.route,
-                modelId: input.modelId,
-                connectorId: input.connectorId,
               }),
               error: String(nextResult.error instanceof Error ? nextResult.error.message : nextResult.error),
             },
@@ -408,9 +388,6 @@ export function createNimiRuntimeAgentTurnStream(
                 requestMessageId: input.requestMessageId,
                 runtimeTurnId: input.runtimeTurnRef.turnId,
                 runtimeStreamId: input.runtimeTurnRef.streamId,
-                route: input.route,
-                modelId: input.modelId,
-                connectorId: input.connectorId,
               }),
               eventName: event.eventName,
               eventTurnId: event.turnId || null,
@@ -437,9 +414,6 @@ export function createNimiRuntimeAgentTurnStream(
                   requestMessageId: input.requestMessageId,
                   runtimeTurnId: input.runtimeTurnRef.turnId,
                   runtimeStreamId: input.runtimeTurnRef.streamId,
-                  route: input.route,
-                  modelId: input.modelId,
-                  connectorId: input.connectorId,
                 }),
                 acceptedRequestId: detailText(event, 'requestId'),
               },
@@ -461,9 +435,6 @@ export function createNimiRuntimeAgentTurnStream(
                     requestMessageId: input.requestMessageId,
                     runtimeTurnId: input.runtimeTurnRef.turnId,
                     runtimeStreamId: input.runtimeTurnRef.streamId,
-                    route: input.route,
-                    modelId: input.modelId,
-                    connectorId: input.connectorId,
                   }),
                 });
               }
@@ -525,9 +496,6 @@ export function createNimiRuntimeAgentTurnStream(
                       requestMessageId: input.requestMessageId,
                       runtimeTurnId: input.runtimeTurnRef.turnId,
                       runtimeStreamId: input.runtimeTurnRef.streamId,
-                      route: input.route,
-                      modelId: input.modelId,
-                      connectorId: input.connectorId,
                     }),
                   });
                 }
@@ -607,9 +575,6 @@ export function createNimiRuntimeAgentTurnStream(
                 requestMessageId: input.requestMessageId,
                 runtimeTurnId: event.turnId || '',
                 runtimeStreamId: event.streamId || '',
-                route: input.route,
-                modelId: input.modelId,
-                connectorId: input.connectorId,
               }),
             });
             if (!messageSealedEmitted || !committedMessage) {

@@ -12,6 +12,7 @@ import (
 )
 
 const runtimeAgentTurnReadScope = "runtime.agent.turn.read"
+const runtimeAgentTurnWriteScope = "runtime.agent.turn.write"
 const runtimeAgentReadScope = "runtime.agent.read"
 
 func (s *Service) GetPublicChatSessionSnapshot(ctx context.Context, req *runtimev1.GetPublicChatSessionSnapshotRequest) (*runtimev1.GetPublicChatSessionSnapshotResponse, error) {
@@ -46,7 +47,7 @@ func (s *Service) GetPublicChatSessionSnapshot(ctx context.Context, req *runtime
 			return nil, identityErr
 		}
 	} else {
-		if strings.TrimSpace(scopedBinding.GetConversationAnchorId()) != anchorID {
+		if scopedBindingAttachmentConversationAnchorMismatches(scopedBinding, anchorID) {
 			return nil, status.Error(codes.PermissionDenied, "public chat scoped binding conversation_anchor_id mismatch")
 		}
 		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, agentID, runtimeAgentTurnReadScope); err != nil {

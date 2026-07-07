@@ -670,38 +670,18 @@ func (s *Service) ValidateScopedBinding(bindingID string, actual *runtimev1.Scop
 	return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 }
 
-func (s *Service) hasActiveWorkspaceMembershipLocked(workspaceID string, realmEnvironmentID string) bool {
-	workspaceID = strings.TrimSpace(workspaceID)
-	realmEnvironmentID = strings.TrimSpace(realmEnvironmentID)
-	if workspaceID == "" || realmEnvironmentID == "" {
-		return false
+func (s *Service) ResolveScopedBindingRelation(bindingID string) *runtimev1.ScopedAppBindingRelation {
+	trimmed := strings.TrimSpace(bindingID)
+	if trimmed == "" {
+		return nil
 	}
-	for _, membership := range s.material.WorkspaceMemberships {
-		if strings.TrimSpace(membership.GetWorkspaceId()) != workspaceID {
-			continue
-		}
-		if strings.TrimSpace(membership.GetRealmEnvironmentId()) != realmEnvironmentID {
-			return false
-		}
-		return membership.GetMembershipState() == runtimev1.WorkspaceMembershipState_WORKSPACE_MEMBERSHIP_STATE_ACTIVE &&
-			s.workspaceMembershipProjectionFreshLocked(membership)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record, exists := s.bindings[trimmed]
+	if !exists {
+		return nil
 	}
-	return false
-}
-
-func (s *Service) workspaceMembershipProjectionFreshLocked(membership *runtimev1.WorkspaceMembershipProjection) bool {
-	if membership.GetObservedAt() == nil {
-		return false
-	}
-	observedAt := membership.GetObservedAt().AsTime()
-	if observedAt.IsZero() {
-		return false
-	}
-	now := s.now().UTC()
-	if observedAt.After(now) {
-		return false
-	}
-	return !observedAt.Before(now.Add(-workspaceMembershipProjectionMaxAge))
+	return cloneRelation(record.relation)
 }
 
 func (s *Service) accountMaterialExpiredLocked() bool {

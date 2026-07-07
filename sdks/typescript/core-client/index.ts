@@ -51,15 +51,15 @@ export class CoreClient {
     });
   }
 
-  async *serverStream<Response = unknown, Body = unknown>(request: CoreStreamRequest<Body>): AsyncIterable<Response> {
-    yield* this.#transport.serverStream<Response, Body>({
+  serverStream<Response = unknown, Body = unknown>(request: CoreStreamRequest<Body>): AsyncIterable<Response> {
+    return forwardCoreServerStream(async () => this.#transport.serverStream<Response, Body>({
       ...request,
       metadata: await this.#metadata(request.metadata),
       responseMetadataObserver: combineResponseMetadataObservers(
         this.#responseMetadataObserver,
         request.responseMetadataObserver,
       ),
-    });
+    }));
   }
 
   unsafeRaw(): CoreTransport {
@@ -72,6 +72,74 @@ export class CoreClient {
       ...(metadata ?? {}),
     };
   }
+}
+
+function forwardCoreServerStream<Response>(
+  open: () => Promise<AsyncIterable<Response>>,
+): AsyncIterable<Response> {
+  return {
+    [Symbol.asyncIterator](): AsyncIterator<Response> {
+      let closed = false;
+      let source: Promise<AsyncIterable<Response>> | undefined;
+      let sourceIterator: AsyncIterator<Response> | undefined;
+
+      const ensureIterator = async (): Promise<AsyncIterator<Response>> => {
+        source ??= open();
+        const stream = await source;
+        sourceIterator ??= stream[Symbol.asyncIterator]();
+        return sourceIterator;
+      };
+
+      const closeSource = () => {
+        const closeIterator = (iterator: AsyncIterator<Response>) => {
+          if (typeof iterator.return === 'function') {
+            void Promise.resolve(iterator.return()).catch(() => undefined);
+          }
+        };
+        if (sourceIterator) {
+          closeIterator(sourceIterator);
+          return;
+        }
+        if (source) {
+          void source.then((stream) => {
+            sourceIterator ??= stream[Symbol.asyncIterator]();
+            closeIterator(sourceIterator);
+          }).catch(() => undefined);
+        }
+      };
+
+      return {
+        next: async (): Promise<IteratorResult<Response>> => {
+          if (closed) {
+            return { done: true, value: undefined };
+          }
+          try {
+            const iterator = await ensureIterator();
+            if (closed) {
+              return { done: true, value: undefined };
+            }
+            const result = await iterator.next();
+            if (closed) {
+              return { done: true, value: undefined };
+            }
+            return result;
+          } catch (error) {
+            if (closed) {
+              return { done: true, value: undefined };
+            }
+            throw error;
+          }
+        },
+        return: async (): Promise<IteratorResult<Response>> => {
+          if (!closed) {
+            closed = true;
+            closeSource();
+          }
+          return { done: true, value: undefined };
+        },
+      };
+    },
+  };
 }
 
 function combineResponseMetadataObservers(

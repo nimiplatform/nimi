@@ -20,6 +20,22 @@ function readRuntimeSource(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, relativePath), 'utf8');
 }
 
+async function expectWithin<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
 test('node-grpc Runtime transport encodes and decodes protobuf bytes', async () => {
   let observedBody: Uint8Array | undefined;
   const bridge: RuntimeNodeGrpcBridge = {
@@ -84,6 +100,60 @@ test('node-grpc Runtime transport decodes protobuf server streams', async () => 
   assert.equal(events.length, 1);
   assert.equal(events[0]?.eventId, 'event-42');
   assert.equal(events[0]?.eventType, AccountEventType.LOGIN_COMPLETED);
+});
+
+test('node-grpc Runtime transport cancels pending server stream returns without waiting for chunks', async () => {
+  let resolveNextStarted!: () => void;
+  const nextStarted = new Promise<void>((resolve) => {
+    resolveNextStarted = resolve;
+  });
+  let resolvePendingNext: ((result: IteratorResult<Uint8Array>) => void) | undefined;
+  let returnCalled = false;
+
+  const bridge: RuntimeNodeGrpcBridge = {
+    async unary() {
+      throw new Error('unexpected unary call');
+    },
+    serverStream(request) {
+      assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents');
+      assert.deepEqual(SubscribeAccountSessionEventsRequest.fromBinary(request.body), {
+        afterSequence: '41',
+      });
+      return {
+        [Symbol.asyncIterator](): AsyncIterator<Uint8Array> {
+          return {
+            next: () => {
+              resolveNextStarted();
+              return new Promise<IteratorResult<Uint8Array>>((resolve) => {
+                resolvePendingNext = resolve;
+              });
+            },
+            return: async () => {
+              returnCalled = true;
+              resolvePendingNext?.({ done: true, value: undefined });
+              return { done: true, value: undefined };
+            },
+          };
+        },
+      };
+    },
+  };
+
+  const runtime = new Runtime({ transport: { type: 'node-grpc', bridge } });
+  const iterator = runtime.account.subscribeAccountSessionEvents({ afterSequence: '41' })[Symbol.asyncIterator]();
+
+  const pendingNext = iterator.next();
+  await expectWithin(nextStarted, 500, 'node-grpc stream next');
+  const returned = await expectWithin(
+    iterator.return?.() ?? Promise.resolve({ done: true, value: undefined }),
+    500,
+    'node-grpc stream return',
+  );
+  const pendingNextResult = await expectWithin(pendingNext, 500, 'pending node-grpc stream next');
+
+  assert.deepEqual(returned, { done: true, value: undefined });
+  assert.equal(returnCalled, true);
+  assert.deepEqual(pendingNextResult, { done: true, value: undefined });
 });
 
 test('Runtime constructs default node-grpc transport in Node.js', () => {

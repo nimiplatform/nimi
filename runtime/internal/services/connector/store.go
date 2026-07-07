@@ -16,7 +16,10 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-const registryFileName = "connector-registry.json"
+const (
+	registryFileName              = "connector-registry.json"
+	connectorTestMemorySecretsEnv = "NIMI_RUNTIME_CONNECTOR_TEST_MEMORY_SECRETS"
+)
 
 var errConnectorLimitExceeded = errors.New("connector limit exceeded")
 
@@ -32,22 +35,22 @@ func countsTowardManagedConnectorLimit(record ConnectorRecord) bool {
 
 // ConnectorRecord is the persistent representation of a connector.
 type ConnectorRecord struct {
-	ConnectorID         string                           `json:"connector_id"`
-	Kind                runtimev1.ConnectorKind          `json:"kind"`
-	OwnerType           runtimev1.ConnectorOwnerType     `json:"owner_type"`
-	OwnerID             string                           `json:"owner_id"`
-	Provider            string                           `json:"provider"`
-	Endpoint            string                           `json:"endpoint"`
-	Label               string                           `json:"label"`
-	Status              runtimev1.ConnectorStatus        `json:"status"`
-	RetiredLocalCategory int32                           `json:"local_category,omitempty"`
-	HasCredential       bool                             `json:"has_credential"`
-	AuthKind            runtimev1.ConnectorAuthKind      `json:"auth_kind,omitempty"`
-	ProviderAuthProfile string                           `json:"provider_auth_profile,omitempty"`
-	CredentialEnv       string                           `json:"credential_env,omitempty"`
-	CreatedAt           int64                            `json:"created_at"`
-	UpdatedAt           int64                            `json:"updated_at"`
-	DeletePending       bool                             `json:"delete_pending,omitempty"`
+	ConnectorID          string                       `json:"connector_id"`
+	Kind                 runtimev1.ConnectorKind      `json:"kind"`
+	OwnerType            runtimev1.ConnectorOwnerType `json:"owner_type"`
+	OwnerID              string                       `json:"owner_id"`
+	Provider             string                       `json:"provider"`
+	Endpoint             string                       `json:"endpoint"`
+	Label                string                       `json:"label"`
+	Status               runtimev1.ConnectorStatus    `json:"status"`
+	RetiredLocalCategory int32                        `json:"local_category,omitempty"`
+	HasCredential        bool                         `json:"has_credential"`
+	AuthKind             runtimev1.ConnectorAuthKind  `json:"auth_kind,omitempty"`
+	ProviderAuthProfile  string                       `json:"provider_auth_profile,omitempty"`
+	CredentialEnv        string                       `json:"credential_env,omitempty"`
+	CreatedAt            int64                        `json:"created_at"`
+	UpdatedAt            int64                        `json:"updated_at"`
+	DeletePending        bool                         `json:"delete_pending,omitempty"`
 }
 
 // ConnectorMutations describes mutable fields for Update.
@@ -70,6 +73,9 @@ type ConnectorStore struct {
 
 // NewConnectorStore creates a store rooted at basePath.
 func NewConnectorStore(basePath string) *ConnectorStore {
+	if strings.TrimSpace(os.Getenv(connectorTestMemorySecretsEnv)) == "1" {
+		return NewConnectorStoreWithMemorySecrets(basePath)
+	}
 	return newConnectorStore(basePath, newOSKeychainSecretStore())
 }
 

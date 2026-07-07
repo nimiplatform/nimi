@@ -11,7 +11,7 @@ import (
 
 const defaultRuntimeAgentVoiceInterruptReason = "runtime_voice_interrupt_requested"
 
-func (s *Service) InterruptAgentVoicePlayback(_ context.Context, req *runtimev1.InterruptAgentVoicePlaybackRequest) (*runtimev1.InterruptAgentVoicePlaybackResponse, error) {
+func (s *Service) InterruptAgentVoicePlayback(ctx context.Context, req *runtimev1.InterruptAgentVoicePlaybackRequest) (*runtimev1.InterruptAgentVoicePlaybackResponse, error) {
 	if s == nil || s.isClosed() {
 		return nil, status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
 	}
@@ -28,6 +28,18 @@ func (s *Service) InterruptAgentVoicePlayback(_ context.Context, req *runtimev1.
 	voiceStreamID := strings.TrimSpace(req.GetVoiceStreamId())
 	if callerAppID == "" || anchorID == "" || turnID == "" || voiceStreamID == "" {
 		return nil, status.Error(codes.InvalidArgument, "voice playback interrupt requires app_id, conversation_anchor_id, turn_id, and voice_stream_id")
+	}
+	scopedBinding := req.GetContext().GetScopedBinding()
+	if scopedBinding == nil {
+		scopedBinding = scopedBindingAttachmentFromIncomingMetadata(ctx)
+	}
+	if scopedBinding != nil {
+		if scopedBindingAttachmentConversationAnchorMismatches(scopedBinding, anchorID) {
+			return nil, status.Error(codes.PermissionDenied, "voice playback scoped binding conversation_anchor_id mismatch")
+		}
+		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, identity.LocalAgentRef, runtimeAgentTurnWriteScope); err != nil {
+			return nil, err
+		}
 	}
 	session, turn, err := s.resolveVoicePlaybackTurnScope(callerAppID, identity, anchorID, turnID)
 	if err != nil {

@@ -64,7 +64,7 @@ function normalizeScopes(scopes: readonly string[]): string[] {
   return [...new Set(scopes.map((scope) => normalizeNimiRuntimeAgentText(scope)).filter(Boolean))].sort();
 }
 
-async function issueNimiRuntimeAgentCallOptions(input: {
+export async function issueNimiRuntimeAgentProtectedCallOptions(input: {
   readonly runtime: NimiRuntimeAgentProtectedRuntime;
   readonly subjectUserId: string;
   readonly scopes: readonly string[];
@@ -165,7 +165,7 @@ export async function withNimiRuntimeAgentScopes<T>(
   if (input.withScopes) {
     return input.withScopes(scopes, operation);
   }
-  return operation(await issueNimiRuntimeAgentCallOptions({
+  return operation(await issueNimiRuntimeAgentProtectedCallOptions({
     runtime: input.runtime,
     subjectUserId: input.subjectUserId,
     scopes,

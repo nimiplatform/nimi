@@ -69,6 +69,48 @@ func runtimeAgentTestEmbeddingVector(raw string, dimension int) []float64 {
 	return vector
 }
 
+func TestRuntimeAgentEventBroadcastSkipsClosedSubscriber(t *testing.T) {
+	t.Parallel()
+
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("runtimeagent.New: %v", err)
+	}
+	closeRuntimeAgentServiceForTest(t, svc)
+
+	sub := &subscriber{
+		id:      1,
+		agentID: "agent-closed",
+		ch:      make(chan *runtimev1.AgentEvent, 1),
+	}
+	svc.mu.Lock()
+	svc.subscribers[sub.id] = sub
+	svc.mu.Unlock()
+	svc.eventStreamRuntime().removeSubscriber(sub.id)
+
+	event := svc.presentationActivityRequestedEvent(
+		"agent-closed",
+		"anchor-1",
+		"turn-1",
+		"stream-1",
+		"wave",
+		"interaction",
+		"moderate",
+		"test",
+		time.Now().UTC(),
+	)
+	svc.eventStreamRuntime().broadcast([]*runtimev1.AgentEvent{event}, [][]*subscriber{{sub}})
+}
+
 func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	t.Parallel()
 

@@ -471,3 +471,101 @@ test('Runtime Agent turn runner preserves voice terminal projection diagnostics'
   assert.equal(projectionEvents.at(-1)?.detail.voicePlaybackState, 'completed');
   assert.equal(projectionEvents.at(-1)?.detail.terminalReason, 'native_stream_completed');
 });
+
+test('Runtime Agent turn runner omits caller route and model diagnostics', async () => {
+  const requestIds: string[] = [];
+  const logDetails: Record<string, unknown>[] = [];
+  const turns: NimiRuntimeAgentTurnsModule = {
+    async subscribe() {
+      return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
+        while (!requestIds[0]) {
+          await Promise.resolve();
+        }
+        const base = {
+          localAgentRef: 'local-agent:owner:agent',
+          conversationAnchorId: 'anchor',
+          turnId: 'turn',
+          streamId: 'stream',
+        };
+        yield {
+          eventName: 'runtime.agent.turn.accepted',
+          ...base,
+          detail: { requestId: requestIds[0] },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.turn.structured',
+          ...base,
+          detail: {
+            payload: structuredPayload('assistant-message', 'diagnostics complete'),
+          },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.turn.message_committed',
+          ...base,
+          detail: {
+            messageId: 'assistant-message',
+            text: 'diagnostics complete',
+          },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.turn.completed',
+          ...base,
+          detail: { terminalReason: 'stop' },
+        } as NimiRuntimeAgentConsumeEvent;
+      })();
+    },
+    async request(request) {
+      requestIds.push(request.requestId || '');
+      return { messageId: 'request-message', accepted: true, reasonCode: 0 as never };
+    },
+    async interrupt() {
+      return { messageId: 'interrupt-message', accepted: true, reasonCode: 0 as never };
+    },
+    async getSessionSnapshot() {
+      return {};
+    },
+  };
+
+  const result = await runNimiRuntimeAgentTurn({
+    turns,
+    request: {
+      ownerUserId: 'owner',
+      runtimeSourceRef: 'agent',
+      localAgentRef: 'local-agent:owner:agent',
+      conversationAnchorId: 'anchor',
+      threadId: 'thread',
+      requestId: 'request',
+      messages: [{ role: 'user', content: 'hello' }],
+    },
+    route: 'app-local-route',
+    modelId: 'app-local-model',
+    connectorId: 'app-local-connector',
+    resolveTrace: () => ({
+      traceId: 'trace-runtime-1',
+      modelResolved: 'app-local-trace-model',
+      routeDecision: 'app-local-trace-route',
+    }),
+    logEvent: (event) => {
+      logDetails.push(event.details as Record<string, unknown>);
+    },
+    logTiming: (event) => {
+      logDetails.push(event.details as Record<string, unknown>);
+    },
+  });
+
+  const parts = [];
+  for await (const part of result.stream) {
+    parts.push(part);
+  }
+
+  const completed = parts.find((part) => part.type === 'turn-completed');
+  assert.equal(completed?.diagnostics.traceId, 'trace-runtime-1');
+  for (const field of ['route', 'modelId', 'connectorId', 'modelResolved', 'routeDecision']) {
+    assert.equal(field in (completed?.diagnostics ?? {}), false, `${field} must not be app-supplied diagnostics truth`);
+  }
+  for (const details of logDetails) {
+    for (const field of ['route', 'modelId', 'connectorId']) {
+      assert.equal(field in details, false, `${field} must not be logged from caller input`);
+    }
+  }
+});

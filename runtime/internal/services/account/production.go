@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,16 +22,18 @@ import (
 )
 
 const accountCustodyServicePrefix = "nimi/runtime/account"
+const accountTestCustodyFilePathEnv = "NIMI_RUNTIME_ACCOUNT_TEST_CUSTODY_FILE_PATH"
 
 type ProductionConfig struct {
-	RealmBaseURL     string
-	AuthorizationURL string
-	TokenURL         string
-	ClientID         string
-	RedirectURI      string
-	CustodyPartition string
-	HTTPClient       *http.Client
-	AppRegistry      *appregistry.Registry
+	RealmBaseURL        string
+	AuthorizationURL    string
+	TokenURL            string
+	ClientID            string
+	RedirectURI         string
+	CustodyPartition    string
+	TestCustodyFilePath string
+	HTTPClient          *http.Client
+	AppRegistry         *appregistry.Registry
 }
 
 type custodySnapshot struct {
@@ -91,9 +94,13 @@ func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 	if strings.TrimSpace(resolved.AuthorizationURL) == "" && logger != nil {
 		logger.Warn("runtime account production activation has no Realm auth base URL; login exchange will fail closed")
 	}
+	custody := Custody(osKeychainCustody{})
+	if strings.TrimSpace(resolved.TestCustodyFilePath) != "" {
+		custody = fileAccountCustody{path: resolved.TestCustodyFilePath}
+	}
 	return New(logger,
 		WithProductionActivation(),
-		WithCustody(osKeychainCustody{}),
+		WithCustody(custody),
 		WithCustodyPartition(resolved.CustodyPartition),
 		WithLoginExchanger(newRealmOAuthExchanger(resolved)),
 		WithRefresher(newRealmTokenRefresher(resolved)),
@@ -151,19 +158,24 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 		cfg.CustodyPartition,
 		os.Getenv("NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION"),
 	)
+	testCustodyFilePath := firstNonEmpty(
+		cfg.TestCustodyFilePath,
+		os.Getenv(accountTestCustodyFilePathEnv),
+	)
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 20 * time.Second}
 	}
 	return ProductionConfig{
-		RealmBaseURL:     realmBaseURL,
-		AuthorizationURL: normalizeOAuthAuthorizeEndpoint(authorizationURL),
-		TokenURL:         strings.TrimSpace(tokenURL),
-		ClientID:         strings.TrimSpace(clientID),
-		RedirectURI:      strings.TrimSpace(redirectURI),
-		CustodyPartition: strings.TrimSpace(custodyPartition),
-		HTTPClient:       httpClient,
-		AppRegistry:      cfg.AppRegistry,
+		RealmBaseURL:        realmBaseURL,
+		AuthorizationURL:    normalizeOAuthAuthorizeEndpoint(authorizationURL),
+		TokenURL:            strings.TrimSpace(tokenURL),
+		ClientID:            strings.TrimSpace(clientID),
+		RedirectURI:         strings.TrimSpace(redirectURI),
+		CustodyPartition:    strings.TrimSpace(custodyPartition),
+		TestCustodyFilePath: strings.TrimSpace(testCustodyFilePath),
+		HTTPClient:          httpClient,
+		AppRegistry:         cfg.AppRegistry,
 	}
 }
 
@@ -233,6 +245,104 @@ func (osKeychainCustody) Store(_ context.Context, partition string, material Acc
 func (osKeychainCustody) Clear(_ context.Context, partition string) error {
 	err := keyring.Delete(accountCustodyServiceName(partition), "account-session")
 	if err != nil && !errors.Is(err, keyring.ErrNotFound) {
+		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
+	}
+	return nil
+}
+
+type fileAccountCustody struct {
+	path string
+}
+
+func (f fileAccountCustody) normalizedPath() string {
+	return strings.TrimSpace(f.path)
+}
+
+func (f fileAccountCustody) Load(_ context.Context, _ string) (AccountMaterial, error) {
+	path := f.normalizedPath()
+	if path == "" {
+		return AccountMaterial{}, ErrCustodyUnavailable
+	}
+	payload, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return AccountMaterial{}, ErrNoStoredAccount
+		}
+		return AccountMaterial{}, fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
+	}
+	var snapshot custodySnapshot
+	if err := json.Unmarshal(payload, &snapshot); err != nil {
+		return AccountMaterial{}, fmt.Errorf("%w: invalid custody snapshot", ErrCustodyUnavailable)
+	}
+	expiresAt, _ := time.Parse(time.RFC3339Nano, snapshot.AccessTokenExpires)
+	return normalizeMaterial(AccountMaterial{
+		AccountID:            snapshot.AccountID,
+		DisplayName:          snapshot.DisplayName,
+		RealmEnvironmentID:   snapshot.RealmEnvironmentID,
+		WorkspaceMemberships: workspaceMembershipsFromSnapshots(snapshot.WorkspaceMemberships),
+		AccessToken:          snapshot.AccessToken,
+		AccessTokenExpires:   expiresAt,
+		RefreshToken:         snapshot.RefreshToken,
+		RefreshTokenHashes:   snapshot.RefreshTokenHashes,
+	}), nil
+}
+
+func (f fileAccountCustody) Store(_ context.Context, _ string, material AccountMaterial) error {
+	path := f.normalizedPath()
+	if path == "" {
+		return ErrCustodyUnavailable
+	}
+	material = normalizeMaterial(material)
+	payload, err := json.Marshal(custodySnapshot{
+		AccountID:            material.AccountID,
+		DisplayName:          material.DisplayName,
+		RealmEnvironmentID:   material.RealmEnvironmentID,
+		WorkspaceMemberships: workspaceMembershipSnapshotsFromProjections(material.WorkspaceMemberships),
+		AccessToken:          material.AccessToken,
+		AccessTokenExpires:   material.AccessTokenExpires.UTC().Format(time.RFC3339Nano),
+		RefreshToken:         material.RefreshToken,
+		RefreshTokenHashes:   material.RefreshTokenHashes,
+	})
+	if err != nil {
+		return fmt.Errorf("%w: encode custody snapshot", ErrCustodyUnavailable)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".account-custody-*.tmp")
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
+	}
+	tmpPath := tmp.Name()
+	cleanup := true
+	defer func() {
+		if cleanup {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+	if _, err := tmp.Write(payload); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
+	}
+	if err := os.Chmod(tmpPath, 0o600); err != nil {
+		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
+	}
+	cleanup = false
+	return nil
+}
+
+func (f fileAccountCustody) Clear(_ context.Context, _ string) error {
+	path := f.normalizedPath()
+	if path == "" {
+		return ErrCustodyUnavailable
+	}
+	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
 	}
 	return nil

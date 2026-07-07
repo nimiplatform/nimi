@@ -262,6 +262,8 @@ export async function withRuntimeDaemon(
       NIMI_RUNTIME_LOCAL_MODELS_PATH: localModelsPath,
       NIMI_RUNTIME_AUTH_DEVELOPER_REGISTRATION_ENABLED: '1',
       NIMI_RUNTIME_CONNECTOR_STORE_PATH: join(stateRoot, 'connector-store.json'),
+      NIMI_RUNTIME_CONNECTOR_TEST_MEMORY_SECRETS: '1',
+      NIMI_RUNTIME_ACCOUNT_TEST_CUSTODY_FILE_PATH: join(stateRoot, 'account-custody.json'),
       XDG_DATA_HOME: join(stateRoot, 'xdg-data'),
       XDG_CACHE_HOME: join(stateRoot, 'xdg-cache'),
       ...(input.runtimeEnv || {}),

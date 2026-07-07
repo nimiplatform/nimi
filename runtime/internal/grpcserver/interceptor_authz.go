@@ -7,6 +7,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -24,6 +25,9 @@ func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.Una
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		capability, required := protectedCapabilityForUnary(info.FullMethod, req)
 		if !required {
+			return handler(ctx, req)
+		}
+		if runtimeAgentScopedBindingMetadataDefersUnaryAuthz(ctx, info.FullMethod) {
 			return handler(ctx, req)
 		}
 		if authorizer == nil {
@@ -214,8 +218,14 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 	case "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding":
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":
+		if requestHasRuntimeAgentScopedBinding(req) {
+			return "", false
+		}
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback":
+		if requestHasRuntimeAgentScopedBinding(req) {
+			return "", false
+		}
 		return "runtime.agent.turn.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection":
 		return "runtime.agent.companion_participation.read", true
@@ -372,6 +382,14 @@ func isMatchingRouteDescribeProbeExtension(extension *runtimev1.ScenarioExtensio
 }
 
 func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {
+	if requestHasRuntimeAgentScopedBinding(req) {
+		switch req.(type) {
+		case *runtimev1.SubscribeAgentEventsRequest,
+			*runtimev1.SubscribeAgentVoiceStreamRequest:
+			return deferredStreamCapability, true
+		}
+	}
+
 	if subscribeReq, ok := req.(*runtimev1.SubscribeAppMessagesRequest); ok {
 		for _, fromAppID := range subscribeReq.GetFromAppIds() {
 			if strings.TrimSpace(fromAppID) == runtimeagentservice.PublicChatRuntimeAppID {
@@ -401,4 +419,39 @@ func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+func requestHasRuntimeAgentScopedBinding(req any) bool {
+	switch typed := req.(type) {
+	case *runtimev1.GetPublicChatSessionSnapshotRequest:
+		return typed.GetContext().GetScopedBinding() != nil
+	case *runtimev1.InterruptAgentVoicePlaybackRequest:
+		return typed.GetContext().GetScopedBinding() != nil
+	case *runtimev1.SubscribeAgentEventsRequest:
+		return typed.GetContext().GetScopedBinding() != nil
+	case *runtimev1.SubscribeAgentVoiceStreamRequest:
+		return typed.GetContext().GetScopedBinding() != nil
+	default:
+		return false
+	}
+}
+
+func runtimeAgentScopedBindingMetadataDefersUnaryAuthz(ctx context.Context, fullMethod string) bool {
+	if fullMethod != "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback" {
+		return false
+	}
+	return incomingRuntimeAgentScopedBindingID(ctx) != ""
+}
+
+func incomingRuntimeAgentScopedBindingID(ctx context.Context) string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ""
+	}
+	for _, value := range md.Get("x-nimi-runtime-scoped-binding-id") {
+		if normalized := strings.TrimSpace(value); normalized != "" {
+			return normalized
+		}
+	}
+	return ""
 }

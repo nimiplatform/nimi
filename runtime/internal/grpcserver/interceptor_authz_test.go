@@ -62,6 +62,47 @@ func TestProtectedCapabilityForStream(t *testing.T) {
 	}
 }
 
+func TestRuntimeAgentScopedBindingDefersProtectedAuthzToService(t *testing.T) {
+	scopedContext := &runtimev1.AgentRequestContext{
+		AppId: "nimi.zhiyu",
+		ScopedBinding: &runtimev1.ScopedRuntimeBindingAttachment{
+			BindingId: "binding-zhiyu-agent",
+		},
+	}
+
+	capability, required := protectedCapabilityForUnary(
+		"/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
+		&runtimev1.GetPublicChatSessionSnapshotRequest{Context: scopedContext},
+	)
+	if required || capability != "" {
+		t.Fatalf("scoped public chat snapshot should defer to service binding validation, got (%q,%v)", capability, required)
+	}
+
+	capability, required = protectedCapabilityForUnary(
+		"/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
+		&runtimev1.InterruptAgentVoicePlaybackRequest{Context: scopedContext},
+	)
+	if required || capability != "" {
+		t.Fatalf("scoped voice interrupt should defer to service binding validation, got (%q,%v)", capability, required)
+	}
+
+	capability, required = protectedCapabilityForStream(
+		"",
+		&runtimev1.SubscribeAgentVoiceStreamRequest{Context: scopedContext},
+	)
+	if !required || capability != deferredStreamCapability {
+		t.Fatalf("scoped voice stream should defer to service binding validation, got (%q,%v)", capability, required)
+	}
+
+	capability, required = protectedCapabilityForStream(
+		"",
+		&runtimev1.SubscribeAgentEventsRequest{Context: scopedContext},
+	)
+	if !required || capability != deferredStreamCapability {
+		t.Fatalf("scoped agent events should defer to service binding validation, got (%q,%v)", capability, required)
+	}
+}
+
 func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 	tests := []struct {
 		method     string
@@ -505,6 +546,45 @@ func TestUnaryAuthzInterceptorAllowsUnprotectedMethodWithoutAuthorizer(t *testin
 	}
 	if !called {
 		t.Fatal("expected unprotected unary handler to run")
+	}
+}
+
+func TestUnaryAuthzInterceptorDefersVoiceInterruptWithScopedBindingMetadata(t *testing.T) {
+	authorizer := &authzTestAuthorizer{
+		allow:      false,
+		reason:     runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+		actionHint: "provide_access_token_credentials",
+	}
+	interceptor := newUnaryAuthzInterceptor(authorizer)
+	called := false
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-runtime-scoped-binding-id",
+		"binding-voice-write",
+	))
+	req := &runtimev1.InterruptAgentVoicePlaybackRequest{
+		Context: &runtimev1.AgentRequestContext{
+			AppId: "nimi.zhiyu",
+		},
+		ConversationAnchorId: "agent_anchor_1",
+		TurnId:               "agent_turn_1",
+		VoiceStreamId:        "voice_stream_1",
+	}
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
+	}
+
+	_, err := interceptor(ctx, req, info, func(_ context.Context, request any) (any, error) {
+		called = true
+		return request, nil
+	})
+	if err != nil {
+		t.Fatalf("expected scoped binding metadata to defer protected authz, got %v", err)
+	}
+	if !called {
+		t.Fatal("expected voice interrupt handler to run")
+	}
+	if authorizer.calls != 0 {
+		t.Fatalf("scoped binding metadata path must defer to service validation, authorizer calls=%d", authorizer.calls)
 	}
 }
 

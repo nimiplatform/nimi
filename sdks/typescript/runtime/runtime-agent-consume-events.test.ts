@@ -11,7 +11,6 @@ import {
   createNimiHostRuntimeAgentDelegatedCapabilitySurface,
   createNimiHostRuntimeAgentMemorySurface,
   createNimiRuntimeAgentConsumeClient,
-  decodeNimiRuntimeAgentCompanionParticipationProjection,
   isNimiRuntimeAgentProjectionEvent,
   matchesNimiRuntimeAgentProjectionScope,
   nimiRuntimeAgentSnapshotCompletedTurnHasRecoverableContent,
@@ -55,6 +54,7 @@ import {
   DelegatedTransportKind,
   HookAdmissionState,
 } from '../core-generated/runtime-typed-client';
+import { toNimiRuntimeTimestamp } from './runtime-agent-values';
 
 const consumeContext = {
   runtimeAppId: 'nimi.avatar',
@@ -101,6 +101,37 @@ async function* asyncEvents<T>(events: readonly T[]): AsyncIterable<T> {
   for (const event of events) {
     yield event;
   }
+}
+
+function trackedPendingStream<T>(hooks: {
+  readonly onNext: () => void;
+  readonly onReturn: () => void;
+}): AsyncIterable<T> {
+  const waiters: Array<(result: IteratorResult<T>) => void> = [];
+  let closed = false;
+  return {
+    [Symbol.asyncIterator](): AsyncIterator<T> {
+      return {
+        next: async () => {
+          hooks.onNext();
+          if (closed) {
+            return { done: true, value: undefined };
+          }
+          return new Promise<IteratorResult<T>>((resolve) => {
+            waiters.push(resolve);
+          });
+        },
+        return: async () => {
+          closed = true;
+          hooks.onReturn();
+          while (waiters.length > 0) {
+            waiters.shift()?.({ done: true, value: undefined });
+          }
+          return { done: true, value: undefined };
+        },
+      };
+    },
+  };
 }
 
 async function collectAsyncIterable<T>(source: AsyncIterable<T>): Promise<T[]> {
@@ -338,6 +369,17 @@ test('Runtime Agent consume subscribe filters app messages and merges generated 
     AgentEventType.PRESENTATION,
     AgentEventType.AVATAR_DEBUG,
   ]);
+  assert.equal((agentEventCalls[0] as { cursor?: string }).cursor, '4');
+
+  appMessageCalls.length = 0;
+  agentEventCalls.length = 0;
+  const liveOnlyStream = await client.turns.subscribe({
+    ...consumeContext,
+    conversationAnchorId: 'anchor-1',
+  });
+  await collectAsyncIterable(liveOnlyStream);
+  assert.equal((appMessageCalls[0] as { cursor?: string }).cursor, '');
+  assert.equal((agentEventCalls[0] as { cursor?: string }).cursor, '');
 
   const appOnly = await client.turns.subscribe({
     ...consumeContext,
@@ -358,6 +400,133 @@ test('Runtime Agent consume subscribe filters app messages and merges generated 
       return true;
     },
   );
+});
+
+test('Runtime Agent consume subscribe without cursor starts generated Agent events at live boundary', async () => {
+  const baseMotion = {
+    family: AgentPresentationEventFamily.MOTION_REQUESTED,
+    conversationAnchorId: 'anchor-1',
+    turnId: 'old-turn',
+    streamId: 'old-stream',
+    activityName: '',
+    activityCategory: '',
+    activityIntensity: '',
+    activitySource: '',
+    motionId: 'motion-old',
+    motionPriority: 'normal',
+    motionExpectedDurationMs: '420',
+    expressionId: '',
+    expressionExpectedDurationMs: '0',
+    poseId: '',
+    poseExpectedDurationMs: '0',
+    previousPoseId: '',
+    lookatTargetKind: '',
+    lookatX: 0,
+    lookatY: 0,
+    lookatZ: 0,
+    lookatHasX: false,
+    lookatHasY: false,
+    lookatHasZ: false,
+  };
+  const oldMotion = {
+    eventType: 7,
+    sequence: '1',
+    agentId: 'local-agent:owner-1:agent-1',
+    localAgentRef: 'local-agent:owner-1:agent-1',
+    ownerUserId: 'owner-1',
+    runtimeSourceRef: 'agent-1',
+    timestamp: toNimiRuntimeTimestamp(Date.now() - 60_000),
+    detail: {
+      oneofKind: 'presentation',
+      presentation: baseMotion,
+    },
+  } as AgentEvent;
+  const newMotion = {
+    ...oldMotion,
+    sequence: '2',
+    timestamp: toNimiRuntimeTimestamp(Date.now() + 1_000),
+    detail: {
+      oneofKind: 'presentation',
+      presentation: {
+        ...baseMotion,
+        turnId: 'new-turn',
+        streamId: 'new-stream',
+        motionId: 'motion-new',
+      },
+    },
+  } as AgentEvent;
+  const runtime = createUnexpectedRuntimeAgentConsumeRuntime({
+    subscribeAgentEvents() {
+      return asyncEvents([oldMotion, newMotion]);
+    },
+  });
+  const client = createNimiRuntimeAgentConsumeClient({
+    runtime: {
+      ...runtime,
+      appMessages: {
+        subscribeAppMessages() {
+          return asyncEvents([]);
+        },
+      },
+    },
+    runtimeAppId: 'nimi.avatar',
+  });
+
+  const events = await collectAsyncIterable(await client.turns.subscribe({
+    ...consumeContext,
+    conversationAnchorId: 'anchor-1',
+  }));
+
+  assert.deepEqual(events.map((event) => event.turnId), ['new-turn']);
+  assert.equal(events[0]?.eventName, 'runtime.agent.presentation.motion_requested');
+  assert.equal(events[0]?.detail.motionId, 'motion-new');
+});
+
+test('Runtime Agent consume client opens live streams before caller pulls', async () => {
+  let agentNextCount = 0;
+  let appNextCount = 0;
+  let agentReturnCount = 0;
+  let appReturnCount = 0;
+  const runtime = createUnexpectedRuntimeAgentConsumeRuntime({
+    subscribeAgentEvents() {
+      return trackedPendingStream<AgentEvent>({
+        onNext: () => {
+          agentNextCount += 1;
+        },
+        onReturn: () => {
+          agentReturnCount += 1;
+        },
+      });
+    },
+  });
+  const runtimeWithMessages: NimiRuntimeAgentConsumeRuntime = {
+    ...runtime,
+    appMessages: {
+      subscribeAppMessages() {
+        return trackedPendingStream<AppMessageEvent>({
+          onNext: () => {
+            appNextCount += 1;
+          },
+          onReturn: () => {
+            appReturnCount += 1;
+          },
+        });
+      },
+    },
+  };
+  const client = createNimiRuntimeAgentConsumeClient({ runtime: runtimeWithMessages, runtimeAppId: 'nimi.avatar' });
+
+  const stream = await client.turns.subscribe({
+    ...consumeContext,
+    conversationAnchorId: 'anchor-1',
+    includeAgentEvents: true,
+  });
+
+  assert.equal(appNextCount, 1);
+  assert.equal(agentNextCount, 1);
+  await stream[Symbol.asyncIterator]().return?.();
+  assert.equal(appReturnCount, 1);
+  assert.equal(agentReturnCount, 1);
 });
 
 test('Runtime Agent consume projects generated event families and fails closed on unsupported ones', () => {
@@ -1209,96 +1378,6 @@ test('Runtime Agent companion participation and avatar debug clients cover reque
     }),
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_INPUT_INVALID');
-      return true;
-    },
-  );
-});
-
-test('Runtime Agent companion projection decoder fails closed on required candidate and commit refs', () => {
-  assert.equal(decodeNimiRuntimeAgentCompanionParticipationProjection({
-    projectionId: 'projection-candidate',
-    agentId: 'local-agent:owner-1:agent-1',
-    surfaceKind: CompanionParticipationSurfaceKind.AVATAR_COMPANION,
-    profileRef: 'profile-1',
-    roomOrchestrationRef: 'room-1',
-    triggerSource: CompanionParticipationTriggerSource.DOMAIN_EVENT,
-    status: CompanionParticipationStatus.CANDIDATE_READY,
-    candidateRef: 'candidate-1',
-    commitRef: '',
-    refusalReason: '',
-    presentationRef: '',
-    auditRef: 'audit-1',
-    conversationAnchorId: 'anchor-1',
-    turnId: '',
-    streamId: '',
-  }).candidateRef, 'candidate-1');
-  assert.equal(decodeNimiRuntimeAgentCompanionParticipationProjection({
-    projectionId: 'projection-commit',
-    agentId: 'local-agent:owner-1:agent-1',
-    surfaceKind: CompanionParticipationSurfaceKind.AVATAR_COMPANION,
-    profileRef: 'profile-1',
-    roomOrchestrationRef: 'room-1',
-    triggerSource: CompanionParticipationTriggerSource.DOMAIN_EVENT,
-    status: CompanionParticipationStatus.COMMITTED_BY_OWNER,
-    candidateRef: '',
-    commitRef: 'commit-1',
-    refusalReason: '',
-    presentationRef: '',
-    auditRef: 'audit-1',
-    conversationAnchorId: 'anchor-1',
-    turnId: '',
-    streamId: '',
-  }).commitRef, 'commit-1');
-  assert.throws(
-    () => decodeNimiRuntimeAgentCompanionParticipationProjection(undefined),
-    (error: unknown) => {
-      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_RESPONSE_INVALID');
-      return true;
-    },
-  );
-  assert.throws(
-    () => decodeNimiRuntimeAgentCompanionParticipationProjection({
-      projectionId: 'projection-candidate',
-      agentId: 'local-agent:owner-1:agent-1',
-      surfaceKind: CompanionParticipationSurfaceKind.AVATAR_COMPANION,
-      profileRef: 'profile-1',
-      roomOrchestrationRef: 'room-1',
-      triggerSource: CompanionParticipationTriggerSource.DOMAIN_EVENT,
-      status: CompanionParticipationStatus.CANDIDATE_READY,
-      candidateRef: '',
-      commitRef: '',
-      refusalReason: '',
-      presentationRef: '',
-      auditRef: 'audit-1',
-      conversationAnchorId: 'anchor-1',
-      turnId: '',
-      streamId: '',
-    }),
-    (error: unknown) => {
-      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_RESPONSE_INVALID');
-      return true;
-    },
-  );
-  assert.throws(
-    () => decodeNimiRuntimeAgentCompanionParticipationProjection({
-      projectionId: 'projection-commit',
-      agentId: 'local-agent:owner-1:agent-1',
-      surfaceKind: CompanionParticipationSurfaceKind.AVATAR_COMPANION,
-      profileRef: 'profile-1',
-      roomOrchestrationRef: 'room-1',
-      triggerSource: CompanionParticipationTriggerSource.DOMAIN_EVENT,
-      status: CompanionParticipationStatus.COMMITTED_BY_OWNER,
-      candidateRef: '',
-      commitRef: '',
-      refusalReason: '',
-      presentationRef: '',
-      auditRef: 'audit-1',
-      conversationAnchorId: 'anchor-1',
-      turnId: '',
-      streamId: '',
-    }),
-    (error: unknown) => {
-      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_RESPONSE_INVALID');
       return true;
     },
   );

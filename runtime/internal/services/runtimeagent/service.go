@@ -39,10 +39,16 @@ type subscriber struct {
 	eventFilters  map[runtimev1.AgentEventType]struct{}
 	scopedBinding *runtimev1.ScopedRuntimeBindingAttachment
 	ch            chan *runtimev1.AgentEvent
+	mu            sync.Mutex
+	closed        bool
 }
 
 type scopedBindingValidator interface {
 	ValidateScopedBinding(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool)
+}
+
+type scopedBindingRelationResolver interface {
+	ResolveScopedBindingRelation(bindingID string) *runtimev1.ScopedAppBindingRelation
 }
 
 type Service struct {
