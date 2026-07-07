@@ -124,12 +124,25 @@ describe('AgentCenter UI', () => {
     const model = node.querySelector<HTMLButtonElement>('[data-testid="chat-agent-center-section:model"]');
     expect(overview?.className).toContain('bg-emerald-500/15');
     expect(overview?.textContent).toContain('Overview');
+    const overviewBadge = overview?.querySelector<HTMLElement>('span[aria-hidden="true"]');
+    expect(overviewBadge?.textContent).toBe('4');
+    expect(overviewBadge?.className).toContain('ml-1.5');
+    expect(overviewBadge?.className).not.toContain('absolute');
     expect(model?.querySelector('span')?.className).toContain('max-w-0');
     expect(node.querySelector('[data-agent-center-active-section-label]')?.textContent).toBe('Overview');
     const hero = node.querySelector<HTMLElement>('[data-agent-center-progress-hero="desktop-migrated"]');
     expect(hero).not.toBeNull();
     expect(hero?.className).toContain('bg-gradient-to-br');
     expect(hero?.className).toContain('p-5');
+
+    const appearance = node.querySelector<HTMLButtonElement>('[data-testid="chat-agent-center-section:appearance"]');
+    click(appearance);
+    const collapsedOverviewBadge = overview?.querySelector<HTMLElement>('span[aria-hidden="true"]');
+    expect(overview?.className).toContain('w-[48px]');
+    expect(collapsedOverviewBadge?.className).not.toContain('absolute');
+    expect(collapsedOverviewBadge?.className).not.toContain('-right');
+    expect(collapsedOverviewBadge?.className).not.toContain('-top');
+    expect(node.querySelector('[data-agent-center-active-section-label]')?.textContent).toBe('Appearance');
 
     click(model);
     expect(model?.className).toContain('bg-emerald-500/15');
@@ -328,16 +341,28 @@ describe('AgentCenter UI', () => {
           agentAIConfig: {} as never,
           modelConfig: {
             providerResolver: () => ({
-              listLocalModels: async () => [{
-                localModelId: 'runtime-text-v2',
-                goRuntimeLocalModelId: 'runtime-text-v2',
-                profileBindingId: 'local-runtime:text-v2',
-                modelId: 'local/runtime-text-v2',
-                label: 'runtime-text-v2',
-                engine: 'llama',
-                status: 'active',
-                capabilities: ['text.generate'],
-              }],
+              listLocalModels: async () => [
+                {
+                  localModelId: 'runtime-text-v2',
+                  goRuntimeLocalModelId: 'runtime-text-v2',
+                  profileBindingId: 'local-runtime:text-v2',
+                  modelId: 'local/runtime-text-v2',
+                  label: 'runtime-text-v2',
+                  engine: 'llama',
+                  status: 'active',
+                  capabilities: ['text.generate'],
+                },
+                {
+                  localModelId: 'runtime-text-v3',
+                  goRuntimeLocalModelId: 'runtime-text-v3',
+                  profileBindingId: 'local-runtime:text-v3',
+                  modelId: 'local/runtime-text-v3',
+                  label: 'runtime-text-v3',
+                  engine: 'llama',
+                  status: 'active',
+                  capabilities: ['text.generate'],
+                },
+              ],
               listConnectors: async () => [],
               listConnectorModels: async () => [],
             }),
@@ -348,7 +373,7 @@ describe('AgentCenter UI', () => {
           async upsertAgentAIConfig(input) {
             calls.push(input);
             return {
-              revision: 10,
+              revision: 9 + calls.length,
               updatedAt: null,
               updatedByAppId: 'runtime',
               intents: input.intents,
@@ -404,6 +429,29 @@ describe('AgentCenter UI', () => {
       },
     }]);
     expect(node.textContent).toContain('Saved Runtime Agent AI Config revision 10.');
+    expect(node.textContent).toContain('runtime-text-v2');
+
+    await clickAsync(node.querySelector('[data-nimi-model-config-capability="text.generate"] button'));
+    const secondOption = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('runtime-text-v3'));
+    await clickAsync(secondOption || null);
+
+    expect(calls[1]).toMatchObject({
+      expectedRevision: 10,
+      intents: {
+        'text.generate': {
+          route: 'local',
+          modelId: 'local-runtime:text-v3',
+          targetRef: {
+            kind: 'local-runtime',
+            version: 'v2',
+            profileBindingId: 'local-runtime:text-v3',
+          },
+        },
+      },
+    });
+    expect(node.textContent).toContain('Saved Runtime Agent AI Config revision 11.');
+    expect(node.textContent).toContain('runtime-text-v3');
   });
 
   it('loads Runtime projection through the adapter when the app supplies placement-only state', async () => {

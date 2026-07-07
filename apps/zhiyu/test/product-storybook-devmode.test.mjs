@@ -22,7 +22,7 @@ function readAgentChatSource() {
   return readAll([
     'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx',
     'src/shell/agent-chat/ZhiyuAgentRightPanel.tsx',
-    'src/shell/agent-chat/ZhiyuAgentAppearancePanel.tsx',
+    'src/shell/agent-chat/zhiyu-agent-center-appearance-adapter.ts',
     'src/shell/agent-chat/ZhiyuAgentChatPieces.tsx',
     'src/shell/agent-chat/ZhiyuAgentChatLabels.ts',
   ]);

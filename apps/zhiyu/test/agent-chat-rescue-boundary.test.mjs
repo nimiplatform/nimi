@@ -56,19 +56,19 @@ test('agent chat source no longer exposes retired backstage and home-shell surfa
   );
 });
 
-test('agent center advanced capability surfaces have local styling hooks', () => {
+test('agent center does not keep retired local advanced styling hooks', () => {
   const css = read('src/shell/app/home-surface.css');
 
-  assert.match(css, /\.zhiyu-agent-center__capability-probe/);
-  assert.match(css, /\.zhiyu-agent-center__proposal/);
-  assert.match(css, /\.zhiyu-agent-center__advanced-warning/);
-  assert.doesNotMatch(css, /zhiyu-agent-center__capability-studio/);
+  assert.doesNotMatch(
+    css,
+    /zhiyu-agent-center__(capability-probe|proposal|advanced-warning|capability-studio|setup-hero|panel-row|kv-row)/,
+  );
 });
 
 test('Agent Center UI classes do not use the retired home agent namespace', () => {
   const agentCenterSource = [
     read('src/shell/agent-chat/ZhiyuAgentRightPanel.tsx'),
-    read('src/shell/agent-chat/ZhiyuAgentAppearancePanel.tsx'),
+    read('src/shell/agent-chat/zhiyu-agent-center-appearance-adapter.ts'),
     read('src/shell/agent-chat/ZhiyuAgentChatPieces.tsx'),
     read('src/shell/app/home-surface.css'),
   ].join('\n');
@@ -78,10 +78,9 @@ test('Agent Center UI classes do not use the retired home agent namespace', () =
     agentCenterSource,
     /zhiyu-home__(setup-hero|setup-meter|checklist-card|live-state-card|model-route-card|behavior-mode-card|cognition-source-card|panel-row|kv-row)/,
   );
-  assert.match(agentCenterSource, /zhiyu-agent-center__section/);
-  assert.match(agentCenterSource, /zhiyu-agent-center__status/);
-  assert.match(agentCenterSource, /zhiyu-agent-center__setup-hero/);
-  assert.match(agentCenterSource, /zhiyu-agent-center__panel-row/);
+  assert.doesNotMatch(agentCenterSource, /zhiyu-agent-center__(section|status|setup-hero|panel-row|kv-row)/);
+  assert.match(agentCenterSource, /@nimiplatform\/kit\/features\/agent-center/);
+  assert.match(agentCenterSource, /appearanceAdapter=\{appearance\.adapter\}/);
 });
 
 function collectSourceFiles(directory) {

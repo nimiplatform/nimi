@@ -404,19 +404,6 @@ tests:
       - Z-AUTH-003
       - Z-GATE-001
     removal_condition: remove or rewrite after proactive interruptibility is either admitted for Zhiyu or explicitly cut from the v1 surface
-  - path: apps/zhiyu/test/product-format.test.mjs
-    owner: zhiyu
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-      - Z-COPY-001
-      - Z-GATE-001
   - path: apps/zhiyu/test/product-storybook-devmode.test.mjs
     owner: zhiyu
     classification: source_regex_sentinel

@@ -20,7 +20,7 @@
   box-sizing: border-box;
 }
 
-:where(.zhiyu-agent-chat) :where(button) {
+:where(.zhiyu-agent-chat) :where(button):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *)) {
   min-width: 34px;
   min-height: 32px;
   border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.1));
@@ -34,12 +34,12 @@
   letter-spacing: 0;
 }
 
-:where(.zhiyu-agent-chat) :where(button:not(:disabled):hover) {
+:where(.zhiyu-agent-chat) :where(button:not(:disabled):hover):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *)) {
   border-color: color-mix(in srgb, var(--nimi-action-primary-bg, #4ecca3) 46%, var(--nimi-border-subtle, rgba(15, 23, 42, 0.12)));
   background: color-mix(in srgb, var(--nimi-surface-card, #fff) 86%, var(--nimi-action-primary-bg, #4ecca3) 14%);
 }
 
-:where(.zhiyu-agent-chat) :where(button:disabled) {
+:where(.zhiyu-agent-chat) :where(button:disabled):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *)) {
   cursor: not-allowed;
   opacity: 0.58;
 }
@@ -415,12 +415,6 @@
   line-height: 1.45;
 }
 
-.zhiyu-agent-center :where(section, .zhiyu-agent-center__gated, .zhiyu-agent-center__projections, .zhiyu-home__gated, .zhiyu-home__diagnostics) {
-  display: grid;
-  min-width: 0;
-  gap: 10px;
-}
-
 .zhiyu-agent-center > [data-nimi-app-card-surface] {
   display: flex;
   min-height: 0;
@@ -429,466 +423,15 @@
   overflow: hidden;
 }
 
-.zhiyu-agent-center__advanced-tab,
-.zhiyu-agent-center__capability-probe,
-.zhiyu-agent-center__projections {
-  display: grid;
-  min-width: 0;
-  gap: 10px;
-}
-
-.zhiyu-agent-center__section-heading {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
-  align-items: start;
-}
-
-.zhiyu-agent-center :where(h2, p) {
-  margin: 0;
-  letter-spacing: 0;
-}
-
-.zhiyu-agent-center :where(h2) {
-  font-size: 15px;
-  line-height: 1.35;
-}
-
-.zhiyu-agent-center :where(p, small, span) {
-  overflow-wrap: anywhere;
-}
-
-.zhiyu-agent-center__setup-hero,
-.zhiyu-agent-center__checklist-card,
-.zhiyu-agent-center__live-state-card,
-.zhiyu-agent-center__model-route-card,
-.zhiyu-agent-center__model-config-card,
-.zhiyu-agent-center__behavior-mode-card,
-.zhiyu-home__avatar-config-card,
-.zhiyu-home__avatar-setup-card,
-.zhiyu-agent-center__advanced-warning,
-.zhiyu-agent-center__capability-overview,
-.zhiyu-agent-center__gated,
-.zhiyu-home__gated,
-.zhiyu-home__diagnostics,
-.zhiyu-home__diagnostic-primary,
-.zhiyu-home__diagnostic-row {
-  min-width: 0;
-  border: 1px solid rgba(226, 232, 240, 0.72);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.76);
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.05);
-}
-
-.zhiyu-agent-center__setup-hero,
-.zhiyu-agent-center__model-route-card,
-.zhiyu-agent-center__advanced-warning {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
-  padding: 16px;
-}
-
-.zhiyu-agent-center__setup-hero {
-  min-height: 158px;
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 22px;
-  padding: 24px 28px;
-}
-
-.zhiyu-agent-center__setup-meter,
-.zhiyu-home__avatar-asset-mark,
-.zhiyu-agent-center__panel-row-index,
-.zhiyu-agent-center__panel-row-status,
-.zhiyu-agent-center__kv-row em,
-.zhiyu-home__avatar-evidence-row > span,
-.zhiyu-home__avatar-launch-card > span {
-  display: inline-grid;
-  min-width: 28px;
-  min-height: 28px;
-  place-items: center;
-  border-radius: 999px;
-  background: rgba(218, 246, 235, 0.86);
-  color: #238264;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 800;
-}
-
-.zhiyu-agent-center__setup-meter {
-  display: grid;
-  width: 78px;
-  height: 78px;
-  place-items: center;
-  border: 8px solid rgba(226, 232, 240, 0.8);
-  border-top-color: #72d3a8;
-  background: transparent;
-  color: #1e293b;
-}
-
-.zhiyu-agent-center__setup-meter strong {
-  margin-top: 6px;
-  font-size: 25px;
-  line-height: 1;
-}
-
-.zhiyu-agent-center__setup-meter span {
-  margin-top: -16px;
-  margin-left: 24px;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.zhiyu-agent-center__setup-meter small {
-  margin-top: -12px;
-  color: #64748b;
-  font-size: 10px;
-  font-weight: 850;
-  letter-spacing: 0.1em;
-}
-
-.zhiyu-agent-center__setup-hero > div:last-child {
-  display: grid;
-  min-width: 0;
-  gap: 7px;
-}
-
-.zhiyu-agent-center__setup-hero > div:last-child strong {
-  font-size: 16px;
-}
-
-.zhiyu-agent-center__setup-hero > div:last-child span {
-  color: #64748b;
-  font-size: 13px;
-}
-
-.zhiyu-agent-chat .zhiyu-agent-center__setup-hero button {
-  justify-self: start;
-  min-height: 30px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  color: #2f7d68;
-  font-size: 13px;
-}
-
-.zhiyu-agent-center__checklist-card,
-.zhiyu-agent-center__live-state-card,
-.zhiyu-home__avatar-config-card,
-.zhiyu-home__avatar-setup-card,
-.zhiyu-home__gated,
-.zhiyu-home__diagnostics {
-  padding: 12px;
-}
-
-.zhiyu-agent-center__checklist-card {
-  overflow: hidden;
-  padding: 0;
-}
-
-.zhiyu-agent-center__model-tab {
-  display: grid;
-  min-width: 0;
-  min-height: 0;
-  align-content: start;
-  gap: 12px;
-}
-
-.zhiyu-agent-center__model-config-section {
-  min-height: 0;
-}
-
-.zhiyu-agent-center__model-config-card {
-  display: block;
-  max-height: none;
-  overflow: visible;
-  padding: 16px;
-  border-radius: 14px;
-  border-color: rgba(226, 232, 240, 0.9);
-  background: #fff;
-  box-shadow: none;
-}
-
-.zhiyu-agent-center__panel-row,
-.zhiyu-agent-center__kv-row,
-.zhiyu-home__avatar-asset-summary,
-.zhiyu-home__avatar-evidence-row,
-.zhiyu-home__live2d-review-item,
-.zhiyu-home__avatar-policy-row,
-.zhiyu-home__diagnostic-row {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  min-width: 0;
-  min-height: 72px;
-  padding: 14px 18px;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.76);
-}
-
-.zhiyu-agent-center__panel-row {
-  width: 100%;
-  justify-content: stretch;
-  grid-template-columns: 34px minmax(0, 1fr) auto 18px;
-}
-
-.zhiyu-agent-center__panel-row::after {
-  content: "›";
-  color: #9aa6b7;
-  font-size: 24px;
-  line-height: 1;
-}
-
-.zhiyu-agent-center__panel-row:last-child,
-.zhiyu-agent-center__kv-row:last-child {
-  border-bottom: 0;
-}
-
-.zhiyu-agent-center__panel-row-copy,
-.zhiyu-agent-center__section-head,
-.zhiyu-home__avatar-config-head,
-.zhiyu-home__capability-item-title {
-  display: grid;
-  min-width: 0;
-  gap: 3px;
-}
-
-.zhiyu-agent-center__panel-row-copy strong,
-.zhiyu-agent-center__kv-row strong,
-.zhiyu-home__avatar-asset-summary strong,
-.zhiyu-home__live2d-review-item strong,
-.zhiyu-home__avatar-policy-row strong {
-  overflow: hidden;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.zhiyu-agent-center__panel-row-copy small,
-.zhiyu-agent-center__kv-row span,
-.zhiyu-home__avatar-asset-summary small,
-.zhiyu-home__live2d-review-item small,
-.zhiyu-home__avatar-policy-row small,
-.zhiyu-home__diagnostic-row small {
-  color: var(--nimi-text-muted, #64748b);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.zhiyu-agent-center__panel-row-index {
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  min-height: 24px;
-  border: 1px solid rgba(203, 213, 225, 0.88);
-  background: transparent;
-  color: #718096;
-}
-
-.zhiyu-agent-center__panel-row-index.is-ready {
-  border-color: rgba(78, 204, 163, 0.34);
-  background: rgba(218, 246, 235, 0.86);
-  color: #1f8a68;
-}
-
-.zhiyu-agent-center__panel-row-index.is-attention {
-  border-color: rgba(245, 158, 11, 0.22);
-  background: rgba(255, 247, 237, 0.88);
-  color: #b45309;
-}
-
-.zhiyu-agent-center__section {
-  display: grid;
-  min-width: 0;
-  gap: 8px;
-}
-
-.zhiyu-agent-center__section-head,
-.zhiyu-home__avatar-config-head {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-}
-
-.zhiyu-agent-center__status,
-.zhiyu-agent-center__panel-row-status,
-.zhiyu-agent-center__kv-row em {
-  justify-self: end;
-  min-height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 11px;
-}
-
-.zhiyu-agent-center__panel-row-status.is-ready,
-.zhiyu-agent-center__kv-row em {
-  background: rgba(218, 246, 235, 0.86);
-  color: #238264;
-}
-
-.zhiyu-agent-center__panel-row-status.is-attention {
-  background: rgba(254, 243, 199, 0.9);
-  color: #b45309;
-}
-
-.zhiyu-agent-center__panel-row-status.is-muted {
-  background: rgba(241, 245, 249, 0.9);
-  color: #64748b;
-}
-
-.zhiyu-agent-center__live-state-card {
-  display: grid;
-  overflow: hidden;
-  padding: 0;
-}
-
-.zhiyu-agent-center__kv-row {
-  min-height: 58px;
-  grid-template-columns: minmax(72px, 0.72fr) minmax(0, 1fr) auto;
-  padding: 13px 18px;
-}
-
-.zhiyu-agent-center__kv-row span {
-  min-width: 0;
-  overflow: hidden;
-  font-size: 12px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.zhiyu-agent-center__kv-row strong {
-  min-width: 0;
-  max-width: 100%;
-  justify-self: end;
-  color: #172033;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.zhiyu-agent-center__behavior-mode-card,
-.zhiyu-home__avatar-import-grid,
-.zhiyu-home__avatar-secondary-grid,
-.zhiyu-home__background-action-grid,
-.zhiyu-home__live2d-review-grid,
-.zhiyu-home__avatar-policy-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.zhiyu-agent-center__behavior-mode-card {
-  padding: 12px;
-}
-
-.zhiyu-agent-center__behavior-mode-card button,
-.zhiyu-home__avatar-import-button,
-.zhiyu-home__avatar-secondary-grid button,
-.zhiyu-home__background-action-grid button,
-.zhiyu-home__avatar-debug-shortcuts button {
-  display: grid;
-  min-height: 64px;
-  min-width: 0;
-  align-content: center;
-  justify-items: start;
-  gap: 5px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(248, 250, 252, 0.78);
-  color: #64748b;
-  text-align: left;
-}
-
-.zhiyu-agent-center__behavior-mode-card button.is-selected {
-  border-color: rgba(110, 204, 170, 0.54);
-  background: rgba(218, 246, 235, 0.76);
-  color: #287c69;
-}
-
-.zhiyu-home__avatar-asset-summary {
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  border-bottom: 0;
-  padding: 0;
-}
-
-.zhiyu-home__avatar-import-button strong,
-.zhiyu-home__avatar-import-button span,
-.zhiyu-home__background-action-grid span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.zhiyu-home__avatar-launch-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  padding: 12px;
-  border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.08));
-  border-radius: 12px;
-}
-
-.zhiyu-home__avatar-debug-shortcuts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.zhiyu-agent-center__capability-route-grid,
-.zhiyu-agent-center__proposal-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.zhiyu-agent-center__proposal-summary,
-.zhiyu-agent-center__proposal-actions {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.zhiyu-agent-center__setup-card,
-.zhiyu-agent-center__proposal-field {
-  display: grid;
-  min-width: 0;
-  gap: 6px;
-  padding: 10px;
-  border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.08));
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--nimi-surface-card, #fff) 68%, transparent);
-}
-
-.zhiyu-agent-center__action-hint {
-  color: var(--nimi-text-muted, #64748b);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.zhiyu-home__memory-list,
 .zhiyu-home__capability-list,
-.zhiyu-home__delegation-grid,
 .zhiyu-home__identity-grid,
-.zhiyu-home__companion-grid,
 .zhiyu-home__avatar-grid {
   display: grid;
   gap: 8px;
 }
 
-.zhiyu-home__memory-record,
 .zhiyu-home__capability-item,
-.zhiyu-home__delegation-field,
-.zhiyu-home__delegation-approval,
-.zhiyu-home__delegation-diagnostic,
 .zhiyu-home__identity-item,
-.zhiyu-home__companion-item,
 .zhiyu-home__avatar-item,
 .zhiyu-home__owner-card {
   min-width: 0;
@@ -917,13 +460,8 @@
 }
 
 .zhiyu-home__capability-governance,
-.zhiyu-home__diagnostic-summary,
-.zhiyu-home__memory-summary,
 .zhiyu-home__capability-summary,
-.zhiyu-home__delegation-summary,
 .zhiyu-home__identity-summary,
-.zhiyu-home__companion-summary,
-.zhiyu-home__diary-summary,
 .zhiyu-home__avatar-summary {
   display: flex;
   min-width: 0;
@@ -931,8 +469,7 @@
   gap: 6px;
 }
 
-.zhiyu-home__capability-governance span,
-.zhiyu-home__diagnostic-summary span {
+.zhiyu-home__capability-governance span {
   padding: 3px 7px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--nimi-surface-panel, #f8f9fb) 80%, transparent);
@@ -1058,28 +595,5 @@
     min-height: calc(100vh - 52px);
     padding: 4px !important;
     border-radius: 0;
-  }
-
-  .zhiyu-agent-center__setup-hero,
-  .zhiyu-agent-center__model-route-card,
-  .zhiyu-agent-center__advanced-warning,
-  .zhiyu-home__avatar-launch-card,
-  .zhiyu-agent-center__panel-row,
-  .zhiyu-agent-center__kv-row,
-  .zhiyu-home__avatar-evidence-row,
-  .zhiyu-home__live2d-review-item,
-  .zhiyu-home__avatar-policy-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .zhiyu-agent-center__behavior-mode-card,
-  .zhiyu-agent-center__capability-route-grid,
-  .zhiyu-agent-center__proposal-grid,
-  .zhiyu-home__avatar-import-grid,
-  .zhiyu-home__avatar-secondary-grid,
-  .zhiyu-home__background-action-grid,
-  .zhiyu-home__live2d-review-grid,
-  .zhiyu-home__avatar-policy-grid {
-    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -132,9 +132,11 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       await page.locator('[data-zhiyu-composer-tool="model"]').click();
       const modelPanel = page.locator('[data-zhiyu-agent-panel-tab="model"]');
       await modelPanel.waitFor({ timeout: 15_000 });
-      const modelConfig = page.locator('[data-zhiyu-ai-config-embedded="agent-center"]');
+      const modelConfig = page.locator('[data-zhiyu-agent-center-kit-surface="true"]');
       await modelConfig.waitFor({ timeout: 15_000 });
+      await modelConfig.locator('#agent-center-model-title').waitFor({ timeout: 15_000 });
       assert.equal(await page.locator('[data-zhiyu-ai-config-drawer="open"]').count(), 0);
+      assert.equal(await page.locator('[data-zhiyu-ai-config-embedded="agent-center"]').count(), 0);
       await assertAgentCenterModelPanelLayout(page, 'real local agent model panel');
       await captureRealLocalAgentEvidence(page, 'model-panel', pageProblems, {
         targetAgent,
@@ -276,9 +278,11 @@ async function assertRelationshipRail(page, expectedCount) {
 async function assertSettingsEntryRoutesToAgentCenter(page, pageProblems, evidence) {
   await page.locator('[data-zhiyu-settings-entry="presence-rail"]').click();
   await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-center-tab-button="advanced"][aria-current="page"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await agentCenterSectionButton(page, 'advanced').waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await agentCenterSectionButton(page, 'advanced').getAttribute('aria-current'), 'page');
   await page.locator('[data-zhiyu-agent-panel-tab="advanced"]').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-center-capability-probe="open"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await page.locator('#agent-center-advanced-title').waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await page.locator('[data-zhiyu-agent-center-capability-probe="open"]').count(), 0);
   assert.equal(
     await page.locator('[data-zhiyu-settings-panel="right"]').count(),
     0,
@@ -303,32 +307,33 @@ async function assertSettingsEntryRoutesToAgentCenter(page, pageProblems, eviden
 }
 
 async function assertAgentCenterDoesNotNestSettings(page) {
-  await page.locator('[data-zhiyu-agent-center-tab-button="behavior"]').click();
-  await page.locator('[data-zhiyu-agent-behavior-panel="true"]').waitFor({ timeout: 15_000 });
+  await openKitAgentCenterSection(page, 'behavior');
   await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
   assert.equal(
     await page.locator('[data-zhiyu-settings-panel="right"]').count(),
     0,
     'Agent Center Behavior tab must not open the generic Settings page',
   );
-  assert.equal(await page.locator('[data-zhiyu-agent-behavior-control]').count(), 3);
-  assert.equal(await page.locator('[data-zhiyu-agent-behavior-mode-option]').count(), 4);
-  await page.locator('[data-zhiyu-agent-center-tab-button="cognition"]').click();
-  await page.locator('[data-zhiyu-agent-cognition-panel="true"]').waitFor({ timeout: 15_000 });
+  assert.match(await page.locator('[data-zhiyu-agent-center-kit-surface="true"]').innerText(), /Behavior|Autonomy/);
+  assert.equal(await page.locator('[data-zhiyu-agent-behavior-panel="true"]').count(), 0);
+  await openKitAgentCenterSection(page, 'cognition');
   await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
   assert.equal(
     await page.locator('[data-zhiyu-settings-panel="right"]').count(),
     0,
     'Agent Center Cognition tab must not open the generic Settings page',
   );
-  await page.locator('[data-zhiyu-agent-center-tab-button="advanced"]').click();
-  await page.locator('[data-zhiyu-agent-advanced-panel="true"]').waitFor({ timeout: 15_000 });
+  assert.match(await page.locator('[data-zhiyu-agent-center-kit-surface="true"]').innerText(), /Cognition|Memory/);
+  assert.equal(await page.locator('[data-zhiyu-agent-cognition-panel="true"]').count(), 0);
+  await openKitAgentCenterSection(page, 'advanced');
   assert.equal(
     await page.locator('[data-zhiyu-settings-panel="right"]').count(),
     0,
     'Agent Center Advanced tab must not open the generic Settings page',
   );
-  await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
+  assert.match(await page.locator('[data-zhiyu-agent-center-kit-surface="true"]').innerText(), /Advanced|runtime-projection|unavailable/);
+  assert.equal(await page.locator('[data-zhiyu-agent-advanced-panel="true"]').count(), 0);
+  await openKitAgentCenterSection(page, 'overview');
 }
 
 async function assertAgentCenterHeaderParity(page, evidence) {
@@ -350,59 +355,54 @@ async function assertAgentCenterHeaderParity(page, evidence) {
   }
 }
 
+function agentCenterSectionButton(page, section) {
+  return page.locator(`[data-testid="chat-agent-center-section:${section}"]`).first();
+}
+
+async function openKitAgentCenterSection(page, section) {
+  const button = agentCenterSectionButton(page, section);
+  await button.waitFor({ state: 'visible', timeout: 15_000 });
+  await button.click();
+  await page.locator('[data-zhiyu-agent-panel-tab]').first().waitFor({ timeout: 15_000 });
+  assert.equal(
+    await page.locator('[data-zhiyu-agent-panel-tab]').first().getAttribute('data-zhiyu-agent-panel-tab'),
+    section,
+    `Agent Center placement must project active Kit section ${section}`,
+  );
+  await page.locator(`#agent-center-${section}-title`).waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await button.getAttribute('aria-current'), 'page');
+  return button;
+}
+
 async function openAgentCenterOverview(page) {
   await page.locator('[data-zhiyu-composer-tool="agent"]').click();
   await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-center-tab-button="overview"][aria-current="page"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await agentCenterSectionButton(page, 'overview').waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await agentCenterSectionButton(page, 'overview').getAttribute('aria-current'), 'page');
 }
 
 async function assertAppearanceConfigParity(page, captureAppearanceEvidence) {
-  await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
-  await page.locator('[data-zhiyu-agent-panel-tab="overview"]').waitFor({ timeout: 15_000 });
+  await openKitAgentCenterSection(page, 'overview');
   await page.locator('[data-zhiyu-agent-panel-tab="overview"] [data-zhiyu-panel-row="形象"]').click();
   await page.locator('[data-zhiyu-agent-panel-tab="appearance"]').waitFor({ timeout: 15_000 });
-  const panel = page.locator('[data-zhiyu-agent-appearance-panel="true"]');
+  const panel = page.locator('[data-zhiyu-agent-center-kit-surface="true"]').first();
   await panel.waitFor({ timeout: 15_000 });
+  await panel.locator('#agent-center-appearance-title').waitFor({ timeout: 15_000 });
 
   const panelText = await panel.innerText();
-  for (const label of ['Avatar 设置', '导入来源', '证据', 'Live2D 工作台', '背景', '动效', '高级诊断']) {
+  for (const label of ['Appearance', 'Import source', 'Evidence', 'Live2D', 'Background', 'Diagnostics']) {
     assert.match(panelText, new RegExp(label), `Appearance panel must include Desktop ${label} structure`);
   }
 
-  assert.equal(await panel.locator('[data-zhiyu-avatar-evidence-row]').count(), 4);
-  assert.equal(await panel.locator('[data-zhiyu-live2d-review-item]').count(), 5);
-  assert.equal(await panel.locator('[data-zhiyu-live2d-review-item="adapter_manifest"]').count(), 1);
-  assert.equal(await panel.locator('[data-zhiyu-agent-background-card="electron-local-config"]').count(), 1);
-  assert.equal(await panel.locator('[data-zhiyu-background-import-action]').count(), 2);
-  assert.equal(await panel.locator('[data-zhiyu-agent-motion-card="read-only"]').count(), 1);
-  assert.equal(await panel.locator('[data-zhiyu-avatar-policy-row]').count(), 4);
-  assert.equal(await panel.locator('[data-zhiyu-avatar-debug-shortcut]').count(), 7);
-  await panel.locator('[data-zhiyu-avatar-advanced-diagnostics="deferred"]').waitFor({ timeout: 15_000 });
-
-  for (const action of ['live2d', 'vrm']) {
-    const control = panel.locator(`[data-zhiyu-avatar-import-action="${action}"]`).first();
-    assert.equal(await control.getAttribute('data-zhiyu-avatar-import-state'), 'available');
-    assert.equal(await control.isDisabled(), false);
+  for (const label of ['Import Live2D folder', 'Import VRM file', 'Link Live2D adapter manifest', 'Remove Avatar asset', 'Import background image', 'Remove background']) {
+    await panel.getByText(label, { exact: false }).waitFor({ state: 'visible', timeout: 15_000 });
   }
-  for (const action of ['live2d-adapter', 'clear']) {
-    const control = panel.locator(`[data-zhiyu-avatar-import-action="${action}"]`).first();
-    assert.equal(await control.getAttribute('data-zhiyu-avatar-import-state'), 'blocked');
-    assert.ok(await control.getAttribute('data-zhiyu-avatar-import-reason'), `${action} blocked import control must expose a concrete reason`);
-    assert.equal(await control.isDisabled(), true);
-  }
-  const backgroundImport = panel.locator('[data-zhiyu-background-import-action="import"]').first();
-  assert.equal(await backgroundImport.getAttribute('data-zhiyu-background-import-state'), 'available');
-  assert.equal(await backgroundImport.isDisabled(), false);
-  const backgroundClear = panel.locator('[data-zhiyu-background-import-action="clear"]').first();
-  assert.equal(await backgroundClear.getAttribute('data-zhiyu-background-import-state'), 'blocked');
-  assert.ok(await backgroundClear.getAttribute('data-zhiyu-background-import-reason'), 'clear background control must expose a concrete blocked reason');
-  assert.equal(await backgroundClear.isDisabled(), true);
 
   if (captureAppearanceEvidence) {
     await captureAppearanceEvidence();
   }
 
-  await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
+  await openKitAgentCenterSection(page, 'overview');
 }
 
 async function assertComposerModeTools(page) {
@@ -444,10 +444,9 @@ async function assertAgentCenterModelPanelLayout(page, label) {
         bottom: rect.bottom,
       };
     };
-    const embedded = document.querySelector('[data-zhiyu-ai-config-embedded="agent-center"]');
-    const embeddedStyle = embedded ? getComputedStyle(embedded) : null;
-    const modelCard = document.querySelector('.zhiyu-agent-center__model-config-card');
-    const modelCardStyle = modelCard ? getComputedStyle(modelCard) : null;
+    const sectionButtons = [...document.querySelectorAll('[data-testid^="chat-agent-center-section:"]')]
+      .map((element) => element.getAttribute('data-testid')?.replace(/^chat-agent-center-section:/u, '') || '')
+      .filter(Boolean);
     return {
       viewport: {
         width: window.innerWidth,
@@ -455,49 +454,30 @@ async function assertAgentCenterModelPanelLayout(page, label) {
       },
       panel: box('[data-zhiyu-region="agent-panel"]'),
       header: box('[data-zhiyu-agent-center-header="true"]'),
-      tabs: box('.zhiyu-agent-center__tabs'),
-      modelCard: box('.zhiyu-agent-center__model-config-card'),
-      embedded: box('[data-zhiyu-ai-config-embedded="agent-center"]'),
-      routeCard: box('[data-zhiyu-agent-model-route-card="true"]'),
+      kitSurface: box('[data-zhiyu-agent-center-kit-surface="true"]'),
+      modelTitle: box('#agent-center-model-title'),
+      activeTab: box('[data-testid="chat-agent-center-section:model"][aria-current="page"]'),
       composer: box('.zhiyu-chat-canvas__composer [data-canonical-composer-width]'),
       textarea: box('[data-chat-composer-textarea="true"]'),
-      embeddedOverflowY: embeddedStyle?.overflowY ?? null,
-      embeddedBackgroundColor: embeddedStyle?.backgroundColor ?? null,
-      embeddedBoxShadow: embeddedStyle?.boxShadow ?? null,
-      embeddedBorderStyle: embeddedStyle?.borderStyle ?? null,
-      embeddedPadding: embeddedStyle?.padding ?? null,
-      modelCardBackgroundColor: modelCardStyle?.backgroundColor ?? null,
-      modelCardBorderStyle: modelCardStyle?.borderStyle ?? null,
-      modelCardBorderRadius: modelCardStyle?.borderRadius ?? null,
-      visibleSections: [...document.querySelectorAll('[data-zhiyu-ai-config-embedded="agent-center"] [data-nimi-model-config-section]')]
-        .map((element) => element.getAttribute('data-nimi-model-config-section')),
+      sectionButtons,
+      legacyAiConfigCount: document.querySelectorAll('[data-zhiyu-ai-config-embedded="agent-center"]').length,
     };
   });
   assert.ok(metrics.panel, `${label}: Agent Center panel must render on wide desktop`);
   assert.ok(metrics.header, `${label}: Agent Center header must render`);
-  assert.ok(metrics.tabs, `${label}: Agent Center tabs must render`);
-  assert.ok(metrics.routeCard, `${label}: model route card must render before embedded config`);
-  assert.ok(metrics.modelCard, `${label}: model config card must render`);
-  assert.ok(metrics.embedded, `${label}: embedded model config must render`);
+  assert.ok(metrics.kitSurface, `${label}: Kit Agent Center surface must render`);
+  assert.ok(metrics.modelTitle, `${label}: model section title must render`);
+  assert.ok(metrics.activeTab, `${label}: model section button must expose active page semantics`);
   assert.ok(metrics.composer, `${label}: composer must render`);
   assert.ok(metrics.textarea, `${label}: composer textarea must render`);
+  assert.equal(metrics.legacyAiConfigCount, 0, `${label}: legacy Zhiyu AIConfig must not be embedded in Agent Center`);
+  for (const section of ['overview', 'model', 'behavior', 'cognition', 'appearance', 'advanced']) {
+    assert.ok(metrics.sectionButtons.includes(section), `${label}: Kit Agent Center section ${section} is missing: ${JSON.stringify(metrics)}`);
+  }
   assert.ok(metrics.panel.y <= 64, `${label}: Agent Center is vertically detached from desktop side-sheet rhythm: ${JSON.stringify(metrics)}`);
   assert.ok(metrics.panel.height >= metrics.viewport.height - 112, `${label}: Agent Center should use the available desktop side-sheet height: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.tabs.y - metrics.header.bottom <= 80, `${label}: Agent Center tabs are detached from the header: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.routeCard.y - metrics.tabs.bottom <= 100, `${label}: Agent Center model content is detached from the tabs: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.modelCard.height <= 760, `${label}: embedded model config is stretching beyond the Desktop Agent Center model card: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.embedded.height <= metrics.modelCard.height + 2, `${label}: embedded model config must stay inside its card: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.embeddedOverflowY, 'visible', `${label}: embedded ModelConfig must not create a second scroll/card surface: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.embeddedBackgroundColor, 'rgba(0, 0, 0, 0)', `${label}: embedded ModelConfig must be transparent inside the Desktop card: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.embeddedBoxShadow, 'none', `${label}: embedded ModelConfig must not add a second shadow: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.embeddedBorderStyle, 'none', `${label}: embedded ModelConfig must not add a second border: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.embeddedPadding, '0px', `${label}: embedded ModelConfig must not add a second padding layer: ${JSON.stringify(metrics)}`);
-  assert.notEqual(metrics.modelCardBackgroundColor, 'rgba(0, 0, 0, 0)', `${label}: Desktop model card must own the visible background: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.modelCardBorderStyle, 'solid', `${label}: Desktop model card must own the visible border: ${JSON.stringify(metrics)}`);
-  assert.match(metrics.modelCardBorderRadius || '', /^14px\b/, `${label}: Desktop model card must use the Agent Center 14px radius: ${JSON.stringify(metrics)}`);
-  for (const section of ['chat', 'embed', 'tts', 'stt', 'image', 'video']) {
-    assert.ok(metrics.visibleSections.includes(section), `${label}: Desktop ModelConfig section ${section} is missing: ${JSON.stringify(metrics)}`);
-  }
+  assert.ok(metrics.kitSurface.y >= metrics.header.bottom - 4, `${label}: Kit surface overlaps the Zhiyu placement header: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.modelTitle.y >= metrics.kitSurface.y - 4, `${label}: model title escapes the Kit surface: ${JSON.stringify(metrics)}`);
   assert.ok(metrics.textarea.height <= 80, `${label}: composer textarea should keep Kit compact auto-height when empty: ${JSON.stringify(metrics)}`);
   assert.ok(metrics.composer.height <= 190, `${label}: composer surface is too tall for desktop agent chat: ${JSON.stringify(metrics)}`);
   const { evidenceRoot } = resolveEvidenceRoot();
@@ -720,7 +700,7 @@ async function assertDesktopAgentCenterSideSheetDensity(page, label) {
   );
 
   const overviewTab = await visibleBox(
-    page.locator('[data-zhiyu-agent-center-tab-button="overview"]').first(),
+    agentCenterSectionButton(page, 'overview'),
     `${label} Agent Center overview tab`,
   );
   assert.ok(overviewTab.height <= 38, `${label}: Agent Center nav buttons should use Desktop h-9 density`);

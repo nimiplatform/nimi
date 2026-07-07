@@ -6,259 +6,240 @@ spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
 tests:
   - path: scripts/ai-structure-budget-core.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/bootstrap-local-qwen3-speech.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/bootstrap-local-voxcpm-mlx.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/build-runtime.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: source_regex_sentinel
+    tier: T3
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+    sentinel_purpose: forbidden_api
   - path: scripts/check-account-session-hardcut.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/check-desktop-chat-authority-anti-patterns.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/check-high-risk-doc-metadata.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/check-live-smoke-gate.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: source_regex_sentinel
+    tier: T3
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+    sentinel_purpose: forbidden_api
   - path: scripts/check-nimi-app-descriptor-admission.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/check-release-gate-registry-coherence.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/check-release-promise-public-copy.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/check-runtime-provider-activation-alignment.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/check-runtime-target-identity-v2.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/check-sdk-ai-runner-export-posture.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/check-secrets.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/check-text-encoding-gate.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/generate-ci-workflow-steps.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/generate-lint-chain.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/generate-nimi-design-md.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/generate-sdk-gap-intel.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/generate-test-inventory-bootstrap.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/lib/generate-spec-human-doc-helpers.mjs
     owner: platform
-    classification: quarantine_unreviewed
+    classification: redundant_candidate
     tier: null
     authority_claim: false
     deterministic: true
@@ -267,220 +248,205 @@ tests:
     may_enter_release_gate: never
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+    supersede_ref: gate.generate-spec-derived-docs-spec-human-doc-check
+    removal_condition: drop from test census once the *-helpers.mjs census glob is scoped to test-helpers only; generator behavior is covered end-to-end by the pnpm generate-spec-derived-docs --scope spec-human-doc --check drift gate
   - path: scripts/lib/pnpm-command.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/lib/release-gate/cli.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/lib/release-gate/env-probe.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/lib/release-gate/evidence.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/lib/release-gate/runner.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/lib/release-gate/workflow-resolver.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/lib/sdk-consumer-link.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/live-provider-utils.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/package-build-runner-deprecation.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/pinned-go-tools.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: source_regex_sentinel
+    tier: T3
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+    sentinel_purpose: forbidden_api
   - path: scripts/release-preflight.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/repair-runtime-local-models.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/run-local-qwen3-live-smoke.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/run-local-qwen3-speech-host.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/run-local-voxcpm-mlx-speech-host.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/run-runtime-dist.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: source_regex_sentinel
+    tier: T3
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+    sentinel_purpose: forbidden_api
   - path: scripts/validate-runtime-local-agent-center-evidence.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: scripts/zhiyu-release-readiness-report.test.mjs
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending

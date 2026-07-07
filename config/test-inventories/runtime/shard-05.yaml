@@ -7,661 +7,608 @@ shard_id: runtime_test_inventory_shard_05
 tests:
   - path: runtime/internal/services/app/package_readiness_handler_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/app/service_subscription_internal_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/app/service_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/app/storage_handler_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/app/uninstall_job_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/audit/service_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/auth/proof_validator_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/auth/service_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/apmem_authorizer_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/apmem_gate_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/authorizer_static_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/authorizer_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/import_invariant_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: source_regex_sentinel
+    tier: T3
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - K-KNOW-001a
+    sentinel_purpose: forbidden_import
   - path: runtime/internal/services/cognition/knowledge_bank_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/knowledge_cascade_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/knowledge_graph_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/knowledge_grpc_e2e_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/knowledge_list_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/knowledge_page_concurrent_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/knowledge_page_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/knowledge_search_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/knowledge_storage_failure_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/knowledge_test_context_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/service_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/workspace_binding_authorizer_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/cognition/workspace_denied_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/connector/service_catalog_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/connector/service_models_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/connector/service_test_helpers_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/connector/service_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/connector/startup_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/connector/store_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/delegation/firewall_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/delegation/gateway_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/externalagent/service_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/grant/service_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/audit_redaction_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/dependency_resolver_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/device_profile_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/disk_space_unix_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/engine_support_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/first_run_execution_evidence_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/first_run_speech_activation_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/image_supervised_contract_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/latency_observability_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/local_environment_activation_gate_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/local_environment_job_control_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/local_environment_job_python_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/local_environment_jobs_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/local_environment_plan_resolver_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/local_environment_plan_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/local_environment_rpc_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/local_inventory_identity_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/product_control_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: runtime/internal/services/localservice/profile_runtime_descriptor_test.go
     owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending

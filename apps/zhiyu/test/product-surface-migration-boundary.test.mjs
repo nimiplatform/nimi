@@ -18,8 +18,10 @@ const hardcutCheckpointPath = path.join(
 );
 
 const productionFilePattern = /\.(?:c|m)?(?:ts|tsx|js|jsx)$/;
+const importGraphProductionFilePattern = /\.(?:c|m)?(?:ts|tsx|js|jsx|css)$/;
 const importSpecifierPattern =
   /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*)['"]([^'"]+)['"]/g;
+const sideEffectImportSpecifierPattern = /\bimport\s+['"]([^'"]+)['"]/g;
 
 test('zhiyu production source has no private app/runtime imports or runtime shortcut truth', async () => {
   const files = await collectProductionFiles(productionRoot);
@@ -42,7 +44,7 @@ test('zhiyu production source has no private app/runtime imports or runtime shor
     if (/\bruntime\/internal\b/.test(source)) {
       violations.push(`${relativePath}: runtime/internal reference`);
     }
-    if (/\bapps\/(?:tester|desktop)\b/.test(source) && relativePath !== 'src/shell/agent-chat/desktop-source-map.ts') {
+    if (/\bapps\/(?:tester|desktop)\b/.test(source)) {
       violations.push(`${relativePath}: private app path reference`);
     }
     if (/\bfetch\s*\(/.test(source)) {
@@ -57,6 +59,16 @@ test('zhiyu production source has no private app/runtime imports or runtime shor
   }
 
   assert.deepEqual(violations, []);
+});
+
+test('zhiyu production source is reachable from the product entrypoint', async () => {
+  const files = await collectImportGraphProductionFiles(productionRoot);
+  const reachable = await collectReachableProductionFiles(path.join(productionRoot, 'main.tsx'));
+  const unreachable = files
+    .filter((file) => !reachable.has(file))
+    .map((file) => path.relative(appRoot, file).replaceAll(path.sep, '/'));
+
+  assert.deepEqual(unreachable, []);
 });
 
 test('hardcut checkpoint replaces ZM0 shared-API-only migration assumptions', async () => {
@@ -109,6 +121,15 @@ test('Zhiyu Electron acceptance writes checkpoint-scoped screenshot and runtime 
   assert.match(liveRuntimeAcceptance, /live-runtime-ready-evidence\.json/);
   assert.match(liveRuntimeAcceptance, /live-runtime-agent-chat-completed-desktop\.png/);
   assert.match(liveRuntimeAcceptance, /live-runtime-agent-chat-completed-evidence\.json/);
+});
+
+test('Zhiyu scripted Electron acceptance does not require retired app-local Agent Center DOM', async () => {
+  const realLocalAgentAcceptance = await readFile(path.join(appRoot, 'test', 'electron-real-local-agent-acceptance.mjs'), 'utf8');
+
+  assert.doesNotMatch(realLocalAgentAcceptance, /data-zhiyu-agent-appearance-panel/);
+  assert.doesNotMatch(realLocalAgentAcceptance, /data-zhiyu-agent-center-tab-button/);
+  assert.doesNotMatch(realLocalAgentAcceptance, /data-zhiyu-avatar-import-action/);
+  assert.doesNotMatch(realLocalAgentAcceptance, /data-zhiyu-live2d-workbench/);
 });
 
 test('zhiyu active product source does not expose legacy surface names', async () => {
@@ -173,6 +194,79 @@ async function collectProductionFiles(root) {
   return files.sort();
 }
 
+async function collectImportGraphProductionFiles(root) {
+  const entries = await readdir(root, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const fullPath = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await collectImportGraphProductionFiles(fullPath));
+      continue;
+    }
+    if (
+      entry.isFile()
+      && importGraphProductionFilePattern.test(entry.name)
+      && !entry.name.endsWith('.d.ts')
+    ) {
+      files.push(fullPath);
+    }
+  }
+  return files.sort();
+}
+
+async function collectReachableProductionFiles(entrypoint) {
+  const reachable = new Set();
+  const queue = [entrypoint];
+
+  while (queue.length > 0) {
+    const file = queue.shift();
+    if (!file || reachable.has(file) || !file.startsWith(productionRoot)) {
+      continue;
+    }
+    reachable.add(file);
+    const source = await readFile(file, 'utf8');
+    for (const specifier of importSpecifiers(source)) {
+      const resolved = resolveProductionImport(file, specifier);
+      if (resolved && !reachable.has(resolved)) {
+        queue.push(resolved);
+      }
+    }
+  }
+
+  return reachable;
+}
+
+function resolveProductionImport(importer, specifier) {
+  if (!specifier.startsWith('.')) {
+    return null;
+  }
+  const base = path.resolve(path.dirname(importer), specifier);
+  const candidates = [
+    base,
+    `${base}.ts`,
+    `${base}.tsx`,
+    `${base}.js`,
+    `${base}.jsx`,
+    `${base}.css`,
+    path.join(base, 'index.ts'),
+    path.join(base, 'index.tsx'),
+    path.join(base, 'index.js'),
+    path.join(base, 'index.jsx'),
+  ];
+
+  for (const candidate of candidates) {
+    if (
+      candidate.startsWith(productionRoot)
+      && importGraphProductionFilePattern.test(candidate)
+      && !candidate.endsWith('.d.ts')
+      && existsSync(candidate)
+    ) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
 async function readAppFiles(relativePaths) {
   const chunks = [];
   for (const relativePath of relativePaths) {
@@ -184,6 +278,9 @@ async function readAppFiles(relativePaths) {
 function importSpecifiers(source) {
   const specifiers = [];
   for (const match of source.matchAll(importSpecifierPattern)) {
+    specifiers.push(match[1]);
+  }
+  for (const match of source.matchAll(sideEffectImportSpecifierPattern)) {
     specifiers.push(match[1]);
   }
   return specifiers;

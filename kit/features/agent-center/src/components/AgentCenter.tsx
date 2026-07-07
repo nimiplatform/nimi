@@ -430,7 +430,9 @@ export function AgentCenter(props: AgentCenterProps) {
                 'outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70',
                 selected
                   ? 'bg-emerald-500/15 px-3 text-emerald-800'
-                  : 'w-9 justify-center px-0 text-slate-500 hover:bg-slate-100 hover:text-slate-900',
+                  : badge
+                    ? 'w-[48px] justify-center px-0 text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+                    : 'w-9 justify-center px-0 text-slate-500 hover:bg-slate-100 hover:text-slate-900',
               )}
               data-testid={`chat-agent-center-section:${section}`}
               key={section}
@@ -458,7 +460,10 @@ export function AgentCenter(props: AgentCenterProps) {
               {badge ? (
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-sm ring-2 ring-white"
+                  className={cnAgentCenter(
+                    'pointer-events-none grid h-[18px] min-w-[18px] place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-sm ring-2 ring-white',
+                    selected ? 'ml-1.5 shrink-0' : 'ml-1 shrink-0',
+                  )}
                 >
                   {badge}
                 </span>

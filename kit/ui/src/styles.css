@@ -4,6 +4,7 @@
 @source "./components/**/*.{ts,tsx}";
 @source "./lib/**/*.{ts,tsx}";
 @source "../../auth/src/**/*.{ts,tsx}";
+@source "../../features/agent-center/src/**/*.{ts,tsx}";
 @source "../../features/chat/src/**/*.{ts,tsx}";
 @source "../../features/commerce/src/**/*.{ts,tsx}";
 @source "../../features/generation/src/**/*.{ts,tsx}";

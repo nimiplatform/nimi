@@ -215,22 +215,21 @@ for (const [optInState, suppressionReason, expectedState] of [
   });
 }
 
-test('home surface exposes proactive interruptibility audit data attributes', () => {
+test('companion state keeps proactive interruptibility evidence without a retired UI section', () => {
   const source = [
     readFileSync(path.join(root, 'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx'), 'utf8'),
-    readFileSync(path.join(root, 'src/shell/app/home-companion-state-section.tsx'), 'utf8'),
+    readFileSync(path.join(root, 'src/shell/app/evidence.ts'), 'utf8'),
     readFileSync(path.join(root, 'src/shell/agent/companion-state.ts'), 'utf8'),
   ].join('\n');
 
-  assert.match(source, /data-zhiyu-proactive-interruptibility/);
-  assert.match(source, /data-zhiyu-proactive-state/);
-  assert.match(source, /data-zhiyu-proactive-mode/);
-  assert.match(source, /data-zhiyu-proactive-opt-in-state/);
-  assert.match(source, /data-zhiyu-proactive-delivery-channel/);
-  assert.match(source, /data-zhiyu-proactive-quiet-hours/);
-  assert.match(source, /data-zhiyu-proactive-frequency-cap/);
-  assert.match(source, /data-zhiyu-proactive-suppression-reason/);
-  assert.match(source, /data-zhiyu-proactive-audit-ref/);
+  assert.match(source, /projectZhiyuProactiveInterruptibility/);
+  assert.match(source, /proactiveInterruptibility/);
+  assert.match(source, /deliveryChannel/);
+  assert.match(source, /quietHoursState/);
+  assert.match(source, /frequencyCapState/);
+  assert.match(source, /lastSuppressionReason/);
+  assert.match(source, /auditRefs/);
+  assert.doesNotMatch(source, /data-zhiyu-proactive-/);
   assert.doesNotMatch(source, /setTimeout|setInterval|Notification\.|new Notification|notificationBridge|permissionStore|proactiveScheduler/);
   assert.doesNotMatch(source, /runtime\/internal|apps\/desktop|apiKey|providerId/);
 });

@@ -30,7 +30,6 @@ const oldImportFragments = [
 const agentChatParitySourceFiles = [
   'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx',
   'src/shell/agent-chat/ZhiyuAgentRightPanel.tsx',
-  'src/shell/agent-chat/ZhiyuAgentAppearancePanel.tsx',
   'src/shell/agent-chat/zhiyu-agent-center-appearance-adapter.ts',
   'src/shell/agent-chat/zhiyu-route-model-picker-provider.ts',
   'src/shell/agent-chat/ZhiyuAgentChatPieces.tsx',
@@ -43,81 +42,6 @@ const liveRuntimeAcceptanceSourceFiles = [
   'test/electron-live-runtime-acceptance-helpers.mjs',
   'test/electron-live-runtime-delegation-helpers.mjs',
   'src/shell/auth/electron-sdk-acceptance.ts',
-];
-
-const requiredDesktopSources = [
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-mode-content.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-canonical-mode-frame.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-presentation-types.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-view-model.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-visible-state.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter-state.ts',
-  'runtime.agent.state.SubscribeAgentEvents',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-diagnostics-view-model.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-thread-model.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-visible-projection-store.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter-session-snapshot.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-session-hydration.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx',
-  'kit/features/chat/src/components/canonical-transcript-view.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx',
-  'kit/features/chat/src/components/canonical-composer.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-submit-driver.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-submit-session.ts',
-  'apps/desktop/src/shell/renderer/app-shell/providers/agent-conversation-anchor-binding-storage.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-host-actions-helpers.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit-helpers.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit-run.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-submit-outcome.ts',
-  'apps/desktop/src/shell/renderer/features/chat/conversation-capability.ts',
-  'apps/desktop/src/shell/renderer/features/chat/conversation-capability-projection.ts',
-  'apps/desktop/src/shell/renderer/features/chat/conversation-submit-readiness.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-shared-settings-panel.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-agent.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-provider.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter-attachments.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-user-projection.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-shared-thinking.ts',
-  'kit/features/agent-center/src/components/AgentCenter.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-shared-side-sheet.tsx',
-  'kit/features/agent-center/src/components/AgentCenterPrimitives.tsx',
-  'kit/features/agent-center/src/components/AgentCenterCognitionSection.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-avatar-settings-content.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-avatar-config-types.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-local-config.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-avatar-config-mutation.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-avatar-config-validation.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-live2d-calibration-workbench.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-live2d-calibration-workbench-model.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-avatar-debug-workbench.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-avatar-debug-workbench-model.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-avatar-asset-diagnostics.ts',
-  'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-center-local-config-store.ts',
-  'apps/desktop/src-tauri/src/desktop_agent_center_store/resources_avatar_import.rs',
-  'apps/desktop/src-tauri/src/desktop_agent_center_store/resources_background_import.rs',
-  'apps/desktop/src-tauri/src/desktop_agent_center_store/resources_live2d_adapter_import.rs',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-background-settings-content.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-viewport.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-viewport.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-diagnostics.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-diagnostics.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-capture.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter-voice.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-voice-transcribe-runtime.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-manual-voice-playback-button.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-manual-voice-request.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-diagnostics.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-diagnostics-content.tsx',
-  'apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts',
-  'apps/desktop/src/shell/renderer/app-shell/layouts/main-layout-topbar.tsx',
-  'apps/desktop/src/shell/renderer/app-shell/layouts/main-layout-settings-menu.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-page.tsx',
 ];
 
 test('Desktop Agent Chat hardcut removes old Zhiyu chat, binding, route, and shell paths', async () => {
@@ -184,24 +108,9 @@ test('Desktop Agent Chat hardcut forbids pseudo binding proof and transcript mas
   assert.deepEqual(violations, []);
 });
 
-test('Desktop Agent Chat provenance map covers required UI and side-capability sources', async () => {
+test('Desktop Agent Chat hardcut does not keep a production provenance map as migration scaffolding', async () => {
   const sourceMapPath = path.join(appRoot, 'src', 'shell', 'agent-chat', 'desktop-source-map.ts');
-  assert.equal(existsSync(sourceMapPath), true, `${sourceMapPath} should exist`);
-
-  const source = await readFile(sourceMapPath, 'utf8');
-  for (const desktopSource of requiredDesktopSources) {
-    assert.match(source, new RegExp(escapeRegExp(desktopSource)), `${desktopSource} missing from provenance map`);
-  }
-
-  const mappedPathLiterals = [...source.matchAll(/['"]((?:apps\/desktop|apps\/zhiyu|kit)\/[^'"]+)['"]/g)]
-    .map((match) => match[1]);
-  for (const mappedPath of mappedPathLiterals) {
-    assert.equal(
-      existsSync(path.join(repoRoot, mappedPath)),
-      true,
-      `${mappedPath} is listed in Desktop Agent Chat provenance but does not exist`,
-    );
-  }
+  assert.equal(existsSync(sourceMapPath), false, `${sourceMapPath} must not remain in production source`);
 });
 
 test('Desktop Agent Chat Runtime binding host equivalence is Electron-host owned and fail-closed', async () => {
@@ -262,41 +171,34 @@ test('Zhiyu product shell contains no app-scope AIConfig or direct Capability St
   assert.deepEqual(violations, []);
 });
 
-test('Agent Center appearance config keeps Desktop avatar, background, and Live2D workbench structure', async () => {
+test('Agent Center appearance config is owned by the Kit adapter instead of a Zhiyu-only panel', async () => {
   const source = await readAgentChatSource();
 
   for (const marker of [
-    'data-zhiyu-agent-appearance-panel="true"',
-    'data-zhiyu-agent-center-local-config',
     'getZhiyuAgentCenterLocalConfig',
     'importZhiyuAgentCenterAvatarAsset',
-    'data-zhiyu-avatar-import-action="live2d-adapter"',
-    'data-zhiyu-avatar-import-action="clear"',
-    'data-zhiyu-avatar-import-state={state}',
-    'data-zhiyu-live2d-workbench="true"',
-    'data-zhiyu-agent-background-card={localConfig.ready ? \'electron-local-config\' : \'blocked\'}',
-    'data-zhiyu-background-import-action="import"',
-    'data-zhiyu-background-import-action="clear"',
-    'data-zhiyu-avatar-policy-row',
-    'data-zhiyu-avatar-debug-shortcut',
-    'data-zhiyu-avatar-advanced-diagnostics="deferred"',
+    'importZhiyuAgentCenterBackground',
+    'importZhiyuAgentCenterLive2dAdapterManifest',
+    'clearZhiyuAgentCenterAvatarAsset',
+    'clearZhiyuAgentCenterBackground',
+    'appearanceAdapter={appearance.adapter}',
+    'appearance: appearance.projection',
+    "const avatarAssetRef = avatar?.local_avatar_asset_ref || null;",
+    "const backgroundRef = appearance?.background_asset_id || null;",
+    "disabledReason: disabledReason || (avatarAssetRef ? null : 'Avatar asset is not configured.'),",
   ]) {
     assert.match(source, new RegExp(escapeRegExp(marker)), `${marker} missing from Zhiyu Agent Center appearance config`);
   }
 
-  assert.match(source, /kind="live2d"[\s\S]*title="导入 Live2D 文件夹"/);
-  assert.match(source, /kind="vrm"[\s\S]*title="导入 VRM 文件"/);
-  assert.match(source, /itemId:\s*'adapter_manifest'/);
-
   assert.doesNotMatch(
     source,
-    /data-zhiyu-agent-background-card="deferred"/,
-    'Background configuration must use Zhiyu Electron local config bridge instead of deferred proof',
+    /ZhiyuAgentAppearancePanel|data-zhiyu-agent-appearance-panel|data-zhiyu-avatar-import-action|data-zhiyu-live2d-workbench/,
+    'Zhiyu must not keep a parallel Appearance panel inside the Kit Agent Center',
   );
   assert.doesNotMatch(
     source,
-    /data-zhiyu-avatar-import-state="deferred"/,
-    'Avatar import controls must not pass parity by staying deferred',
+    /avatarAssetRef\s*=\s*avatar\.configurationRef|avatarAssetRef\s*=\s*avatar\.projectionRef/,
+    'Zhiyu must not fabricate a local Avatar asset from Runtime projection evidence',
   );
 });
 
@@ -518,6 +420,14 @@ test('Agent Center section buttons come from Kit active-page semantics', async (
   assert.match(kitSource, /data-testid=\{`chat-agent-center-section:\$\{section\}`\}/);
   assert.match(kitSource, /aria-current=\{selected \? 'page' : undefined\}/);
   assert.match(kitSource, /aria-pressed=\{selected\}/);
+});
+
+test('Zhiyu Tailwind source scan includes Kit Agent Center utilities', async () => {
+  const zhiyuStyles = await readFile(path.join(appRoot, 'src', 'styles.css'), 'utf8');
+  const kitStyles = await readFile(path.join(repoRoot, 'kit', 'ui', 'src', 'styles.css'), 'utf8');
+
+  assert.match(zhiyuStyles, /kit\/features\/agent-center\/src\/\*\*\/\*\.\{ts,tsx\}/);
+  assert.match(kitStyles, /features\/agent-center\/src\/\*\*\/\*\.\{ts,tsx\}/);
 });
 
 test('Agent Center header mirrors Desktop side-sheet identity metadata', async () => {
@@ -755,7 +665,26 @@ test('Desktop Agent Center side sheet uses Desktop shared side-sheet density', a
   assert.doesNotMatch(css, /\.zhiyu-agent-center__header\s*\{/);
   assert.doesNotMatch(css, /\.zhiyu-agent-center__tabs(?:\s|,|\{)/);
   assert.doesNotMatch(css, /\.zhiyu-agent-center__body\s*\{/);
-  assert.match(css, /:where\(\.zhiyu-agent-chat\)\s+:where\(button\)\s*\{/);
+  assert.match(
+    css,
+    /:where\(\.zhiyu-agent-chat\)\s+:where\(button\):not\(:where\(\[data-chat-agent-center="true"\],\s*\[data-chat-agent-center="true"\] \*\)\)\s*\{/,
+    'Zhiyu app button defaults must not restyle nested Kit Agent Center controls',
+  );
+  assert.doesNotMatch(
+    css,
+    /:where\(\.zhiyu-agent-chat\)\s+:where\(button\)\s*\{/,
+    'Unbounded Zhiyu button defaults leak app-local chrome into Kit Agent Center',
+  );
+  assert.match(
+    css,
+    /\.zhiyu-agent-center > \[data-nimi-app-card-surface\]\s*\{[\s\S]*?display:\s*flex;[\s\S]*?flex-direction:\s*column;/,
+    'Zhiyu side sheet root keeps only the desktop flex column wrapper around the Kit Agent Center',
+  );
+  assert.doesNotMatch(
+    css,
+    /\.zhiyu-agent-center :where\(|zhiyu-agent-center__setup-hero|zhiyu-agent-center__panel-row|zhiyu-agent-center__kv-row/,
+    'Zhiyu must not keep legacy Agent Center layout rules around the nested Kit surface',
+  );
   assert.doesNotMatch(css, /\.zhiyu-agent-chat\s+:where\(button\)\s*\{/);
   assert.doesNotMatch(css, /\.zhiyu-agent-center__avatar\s*\{[\s\S]*?width:\s*72px;[\s\S]*?height:\s*72px;/);
 });
@@ -812,14 +741,4 @@ function lastCssRule(source, selector) {
   const matches = [...source.matchAll(new RegExp(`${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'g'))];
   assert.ok(matches.length > 0, `${selector} rule missing`);
   return matches.at(-1)[1];
-}
-
-function stringArrayLiteralAfter(source, marker) {
-  const start = source.indexOf(marker);
-  assert.notEqual(start, -1, `${marker} missing`);
-  const arrayStart = source.indexOf('[', start);
-  assert.notEqual(arrayStart, -1, `${marker} array start missing`);
-  const arrayEnd = source.indexOf(']', arrayStart);
-  assert.notEqual(arrayEnd, -1, `${marker} array end missing`);
-  return [...source.slice(arrayStart, arrayEnd + 1).matchAll(/['"]([^'"]+)['"]/g)].map((match) => match[1]);
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type {
   NimiAICapabilityRequirementDeclaration,
   NimiAIConfig,
@@ -25,6 +25,7 @@ import type {
   AgentCenterCapabilityState,
   AgentCenterRuntimeAIConfigBinding,
   AgentCenterRuntimeAdapter,
+  AgentCenterRuntimeSnapshot,
   AgentCenterState,
 } from '../types.js';
 import {
@@ -267,19 +268,71 @@ function runtimeIntentsFromModelConfig(
   return nextIntents;
 }
 
+type RuntimeModelConfigService = SharedAIConfigService & {
+  syncState(nextState: AgentCenterState): void;
+};
+
+type RuntimeAgentAIConfigSnapshot = NonNullable<AgentCenterRuntimeSnapshot['agentAIConfig']>;
+
+function modelStateWithSnapshot(
+  base: AgentCenterState,
+  snapshot: RuntimeAgentAIConfigSnapshot,
+): AgentCenterState {
+  return {
+    ...base,
+    configRevision: snapshot.revision,
+    capabilities: base.capabilities.map((capability) => ({
+      ...capability,
+      binding: snapshot.intents[capability.capability] || null,
+    })),
+  };
+}
+
+function shouldAdoptExternalModelState(current: AgentCenterState, next: AgentCenterState): boolean {
+  if (next.configRevision === null) {
+    return current.configRevision === null;
+  }
+  if (current.configRevision === null) {
+    return true;
+  }
+  return next.configRevision >= current.configRevision;
+}
+
 function createRuntimeModelConfigService(input: {
   readonly state: AgentCenterState;
   readonly runtimeAdapter?: AgentCenterRuntimeAdapter | null;
+  readonly onCommittedState: (state: AgentCenterState) => void;
   readonly onStatus: (status: string) => void;
-}): SharedAIConfigService {
-  let currentConfig = runtimeConfigToNimiAIConfig(input.state);
+}): RuntimeModelConfigService {
+  let currentState = input.state;
+  let currentConfig = runtimeConfigToNimiAIConfig(currentState);
   const listeners = new Set<(next: NimiAIConfig) => void>();
   const notify = () => {
     for (const listener of listeners) {
       listener(currentConfig);
     }
   };
+  const commitState = (nextState: AgentCenterState) => {
+    currentState = nextState;
+    currentConfig = runtimeConfigToNimiAIConfig(nextState);
+    input.onCommittedState(nextState);
+    notify();
+  };
+  const refreshAfterFailure = async () => {
+    if (!input.runtimeAdapter?.loadSnapshot) {
+      return;
+    }
+    const snapshot = await input.runtimeAdapter.loadSnapshot();
+    if (snapshot.agentAIConfig) {
+      commitState(modelStateWithSnapshot(currentState, snapshot.agentAIConfig));
+    }
+  };
   return {
+    syncState(nextState) {
+      if (shouldAdoptExternalModelState(currentState, nextState)) {
+        commitState(nextState);
+      }
+    },
     aiConfig: {
       get() {
         return currentConfig;
@@ -288,30 +341,24 @@ function createRuntimeModelConfigService(input: {
         if (!input.runtimeAdapter?.upsertAgentAIConfig) {
           throw new Error('Runtime Agent AI Config adapter unavailable.');
         }
-        if (input.state.configRevision === null) {
+        if (currentState.configRevision === null) {
           throw new Error('Runtime Agent AI Config revision unavailable.');
         }
-        const nextIntents = runtimeIntentsFromModelConfig(input.state, next);
+        const expectedRevision = currentState.configRevision;
+        const nextIntents = runtimeIntentsFromModelConfig(currentState, next);
         currentConfig = next;
         notify();
         input.onStatus('Saving Runtime Agent AI Config model selection.');
         void input.runtimeAdapter.upsertAgentAIConfig({
-          expectedRevision: input.state.configRevision,
+          expectedRevision,
           intents: nextIntents,
         }).then((snapshot) => {
-          currentConfig = runtimeConfigToNimiAIConfig({
-            ...input.state,
-            configRevision: snapshot.revision,
-            capabilities: input.state.capabilities.map((capability) => ({
-              ...capability,
-              binding: snapshot.intents[capability.capability] || null,
-            })),
-          });
-          notify();
+          commitState(modelStateWithSnapshot(currentState, snapshot));
           input.onStatus(`Saved Runtime Agent AI Config revision ${snapshot.revision}.`);
         }).catch((error: unknown) => {
-          currentConfig = runtimeConfigToNimiAIConfig(input.state);
+          currentConfig = runtimeConfigToNimiAIConfig(currentState);
           notify();
+          void refreshAfterFailure().catch(() => undefined);
           input.onStatus(error instanceof Error && error.message ? error.message : 'Runtime Agent AI Config update failed.');
         });
       },
@@ -332,7 +379,7 @@ function createRuntimeModelConfigService(input: {
           after: null,
           outcome: 'unsupported_no_live_config',
           diff: { identical: true, fields: [] },
-          baseVersion: String(input.state.configRevision ?? 0),
+          baseVersion: String(currentState.configRevision ?? 0),
           probeWarnings: ['Runtime Agent AI Config profile import is not admitted on this surface.'],
         };
       },
@@ -397,21 +444,30 @@ function createEmptyProfileController(copy: ModelConfigProfileCopy): ModelConfig
 
 export function AgentCenterModelSection({ state, runtimeAdapter }: AgentCenterModelSectionProps) {
   const [status, setStatus] = useState('');
+  const [modelState, setModelState] = useState(state);
   const service = useMemo(
-    () => createRuntimeModelConfigService({ state, runtimeAdapter, onStatus: setStatus }),
-    [runtimeAdapter, state],
+    () => createRuntimeModelConfigService({
+      state,
+      runtimeAdapter,
+      onCommittedState: setModelState,
+      onStatus: setStatus,
+    }),
+    [runtimeAdapter?.upsertAgentAIConfig, state.configRevision],
   );
+  useEffect(() => {
+    service.syncState(state);
+  }, [service, state]);
   const profile = useMemo(
     () => createEmptyProfileController(defaultModelConfigProfileCopy(t)),
     [],
   );
   const capabilityById = useMemo(() => {
     const map = new Map<string, AgentCenterCapabilityState>();
-    for (const capability of state.capabilities) {
+    for (const capability of modelState.capabilities) {
       map.set(capability.capability, capability);
     }
     return map;
-  }, [state.capabilities]);
+  }, [modelState.capabilities]);
   const surface = useMemo<AppModelConfigSurface>(() => ({
     scopeRef: MODEL_SCOPE_REF,
     aiConfigService: service,
@@ -443,7 +499,7 @@ export function AgentCenterModelSection({ state, runtimeAdapter }: AgentCenterMo
   return (
     <SectionShell labelledBy="agent-center-model-title">
       <SectionHeader
-        description={`Revision ${state.configRevision ?? 'unavailable'}`}
+        description={`Revision ${modelState.configRevision ?? 'unavailable'}`}
         id="agent-center-model-title"
         title="Model"
       />
@@ -451,7 +507,7 @@ export function AgentCenterModelSection({ state, runtimeAdapter }: AgentCenterMo
         data-agent-center-model-apply="runtime-agent-ai-config"
         data-agent-center-model-surface="runtime-model-config-hub"
       >
-        {state.capabilities.map((capability) => (
+        {modelState.capabilities.map((capability) => (
           <span
             data-agent-center-model-binding={capability.capability}
             hidden

@@ -237,16 +237,17 @@ test('Avatar presence source keeps Zhiyu out of private renderer and asset truth
 
 test('Avatar product surfaces do not fabricate a local Avatar resource from Runtime projection evidence', () => {
   const homeSurfaceSections = readFileSync(path.join(root, 'src/shell/app/home-surface-sections.tsx'), 'utf8');
-  const appearancePanel = readFileSync(path.join(root, 'src/shell/agent-chat/ZhiyuAgentAppearancePanel.tsx'), 'utf8');
-  const source = `${homeSurfaceSections}\n${appearancePanel}`;
+  const appearanceAdapter = readFileSync(path.join(root, 'src/shell/agent-chat/zhiyu-agent-center-appearance-adapter.ts'), 'utf8');
+  const source = `${homeSurfaceSections}\n${appearanceAdapter}`;
 
   assert.doesNotMatch(homeSurfaceSections, /fallback:\/\//);
   assert.doesNotMatch(homeSurfaceSections, /createAvatarStageSnapshot/);
   assert.doesNotMatch(homeSurfaceSections, /<AvatarStage/);
   assert.match(homeSurfaceSections, /data-zhiyu-avatar-resource-ref="not-owned-by-zhiyu"/);
-  assert.match(appearancePanel, /const assetConfigured = Boolean\(selectedAvatarAssetRef\)/);
-  assert.match(appearancePanel, /const avatarAssetRef = selectedAvatarAssetRef/);
-  assert.doesNotMatch(appearancePanel, /avatarAssetRef\s*=\s*selectedAvatarAssetRef\s*\|\|\s*avatar\.configurationRef\s*\|\|\s*avatar\.projectionRef/);
+  assert.match(appearanceAdapter, /const avatarAssetRef = avatar\?\.local_avatar_asset_ref \|\| null;/);
+  assert.match(appearanceAdapter, /avatarAssetRef,/);
+  assert.doesNotMatch(appearanceAdapter, /avatarAssetRef\s*=\s*avatar\.configurationRef|avatarAssetRef\s*=\s*avatar\.projectionRef/);
+  assert.doesNotMatch(appearanceAdapter, /avatar\.configurationRef\s*\|\|\s*avatar\.projectionRef/);
   assert.match(source, /data-zhiyu-avatar-unsupported-count/);
   assert.doesNotMatch(source, /avatar\.unsupportedFields\.map/);
   assert.doesNotMatch(source, /data-zhiyu-avatar-unsupported-field/);

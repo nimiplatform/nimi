@@ -10,30 +10,6 @@ import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import { partnerInitial } from './ZhiyuAgentChatLabels';
 
-export function BehaviorControlRow({
-  label,
-  detail,
-  status,
-  dataKey,
-}: {
-  readonly label: string;
-  readonly detail: string;
-  readonly status: string;
-  readonly dataKey: string;
-}) {
-  return (
-    <div className="zhiyu-home__behavior-control-row" data-zhiyu-agent-behavior-control={dataKey}>
-      <div>
-        <strong>{label}</strong>
-        <span>{detail}</span>
-      </div>
-      <button type="button" disabled data-zhiyu-agent-behavior-control-disabled="true">
-        {status}
-      </button>
-    </div>
-  );
-}
-
 export function behaviorModeTitle(mode: 'off' | 'low' | 'medium' | 'high') {
   if (mode === 'low') {
     return '低';
@@ -342,49 +318,4 @@ function runtimeActionEventLabel(eventType: string): string {
 
 function stringValue(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-export function RightPanelRow({
-  index,
-  title,
-  detail,
-  status,
-  tone,
-  onClick,
-}: {
-  readonly index: number;
-  readonly title: string;
-  readonly detail?: string | null;
-  readonly status: string;
-  readonly tone: 'ready' | 'attention' | 'muted';
-  readonly onClick?: () => void;
-}) {
-  return (
-    <button type="button" className="zhiyu-agent-center__panel-row" data-zhiyu-panel-row={title} onClick={onClick}>
-      <span className={`zhiyu-agent-center__panel-row-index is-${tone}`}>{tone === 'ready' ? '✓' : index}</span>
-      <span className="zhiyu-agent-center__panel-row-copy">
-        <strong>{title}</strong>
-        {detail ? <small>{detail}</small> : null}
-      </span>
-      <span className={`zhiyu-agent-center__panel-row-status is-${tone}`}>{status}</span>
-    </button>
-  );
-}
-
-export function KeyValue({
-  label,
-  value,
-  badge,
-}: {
-  readonly label: string;
-  readonly value: string | number | null | undefined;
-  readonly badge?: string;
-}) {
-  return (
-    <div className="zhiyu-agent-center__kv-row">
-      <span>{label}</span>
-      <strong>{String(value ?? '未投影')}</strong>
-      {badge ? <em>{badge}</em> : null}
-    </div>
-  );
 }
