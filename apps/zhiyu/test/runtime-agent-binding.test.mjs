@@ -65,6 +65,12 @@ test('Zhiyu Runtime Agent binding decision exposes Runtime-issued scoped binding
 
   const result = await module.withZhiyuRuntimeAgentBindingScopes(decision, ['runtime.agent.turn.write'], async (options) => {
     assert.equal(options.metadata['x-nimi-runtime-scoped-binding-id'], 'binding-1');
+    assert.equal(options.metadata['x-nimi-runtime-scoped-binding-handle'], 'runtime.binding/binding-1');
+    assert.equal(options.metadata['x-nimi-runtime-scoped-binding-runtime-app-id'], 'runtime.agent');
+    assert.equal(options.metadata['x-nimi-runtime-scoped-binding-app-instance-id'], 'nimi.zhiyu.local');
+    assert.equal(options.metadata['x-nimi-runtime-scoped-binding-agent-id'], 'local-agent-1');
+    assert.equal(options.metadata['x-nimi-runtime-scoped-binding-conversation-anchor-id'], 'conversation-1');
+    assert.equal(options.metadata['x-nimi-runtime-scoped-binding-world-id'], 'world-1');
     return 'allowed';
   });
   assert.equal(result, 'allowed');

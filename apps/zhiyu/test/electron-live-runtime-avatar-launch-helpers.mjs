@@ -122,18 +122,12 @@ export async function assertAvatarLaunchLiveHandoff(
     await closeSpawnedAvatarProcess(launchPid);
   };
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.locator('[data-zhiyu-composer-tool="agent"]').click();
-  await page.locator('[data-zhiyu-agent-center-tab-button="appearance"]').click();
   try {
-    const panel = page.locator('[data-zhiyu-agent-appearance-panel="true"]');
-    await panel.waitFor({ timeout: 15_000 });
-    const launchCard = panel.locator('[data-zhiyu-avatar-launch-card="ready"]').first();
-    await launchCard.waitFor({ timeout: 15_000 });
-    assert.equal(await launchCard.getAttribute('data-zhiyu-avatar-launch-reason'), 'zhiyu-avatar-launch-ready');
-    const launchButton = launchCard.locator('[data-zhiyu-avatar-launch-action="launch"]').first();
-    await launchButton.waitFor({ timeout: 15_000 });
-    assert.equal(await launchButton.isDisabled(), false);
-    await launchButton.click();
+    const launchEntry = page.locator('[data-zhiyu-avatar-launch-entry="ready"]').first();
+    await launchEntry.waitFor({ state: 'visible', timeout: 15_000 });
+    assert.equal(await launchEntry.getAttribute('data-zhiyu-avatar-launch-reason'), 'zhiyu-avatar-launch-ready');
+    assert.equal(await launchEntry.isDisabled(), false);
+    await launchEntry.click();
 
     await waitForEvidence(page, () =>
       globalThis.window.__nimiZhiyuEvidence?.avatar?.reasonCode === 'zhiyu-avatar-launch-requested'
@@ -180,6 +174,15 @@ export async function assertAvatarLaunchLiveHandoff(
     });
     assert.equal(localAssetEvidence.detail?.backend_kind, importedAvatarAsset.backend_kind);
     assert.equal(localAssetEvidence.detail?.local_asset_ref, importedAvatarAsset.local_asset_id);
+
+    await page.locator('[data-zhiyu-composer-tool="agent"]').click();
+    await page.locator('[data-testid="chat-agent-center-section:appearance"]').click();
+    const kitAppearancePanel = page.locator('[data-zhiyu-agent-center-kit-surface="true"]').first();
+    await kitAppearancePanel.waitFor({ timeout: 15_000 });
+    await kitAppearancePanel.locator('#agent-center-appearance-title').waitFor({ timeout: 15_000 });
+    assert.equal(await kitAppearancePanel.locator('[data-zhiyu-avatar-launch-card]').count(), 0, 'avatar launch controls must stay outside Kit Agent Center appearance projection');
+    await page.locator('[data-testid="chat-agent-center-section:overview"]').click();
+    await page.locator('#agent-center-overview-title').waitFor({ timeout: 15_000 });
 
     await captureLiveRuntimeEvidence(page, 'avatarLaunch', pageProblems, {
       readyEvidence,

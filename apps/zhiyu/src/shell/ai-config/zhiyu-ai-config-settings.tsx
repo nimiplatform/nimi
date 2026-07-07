@@ -440,7 +440,7 @@ export function ZhiyuAiConfigSettings({
     return (
       <div
         className="zhiyu-ai-config-embedded"
-        data-zhiyu-ai-config-embedded="agent-center"
+        data-zhiyu-ai-config-embedded="model-settings"
         data-zhiyu-ai-config-drawer="embedded"
       >
         {commitBanner}

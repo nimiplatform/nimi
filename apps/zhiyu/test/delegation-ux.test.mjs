@@ -229,7 +229,10 @@ test('fails closed before Runtime delegation RPC when only host equivalence is a
     assert.equal(status.reasonCode, 'zhiyu-delegation-scoped-binding-required');
     assert.equal(status.actionHint, 'attach_runtime_scoped_delegation_binding');
     assert.deepEqual(calls.map((call) => call.command), ['zhiyu.runtimeAgent.issueScopedBinding']);
-    assert.deepEqual(calls[0].payload.scopes, ['runtime.agent.delegation.read']);
+    assert.deepEqual(calls[0].payload.scopes, [
+      'runtime.agent.delegation.read',
+      'runtime.agent.delegation.write',
+    ]);
   } finally {
     delete globalThis.__nimiZhiyuRuntimeAgentBinding;
     delete globalThis.__NIMI_ELECTRON_TEST__;

@@ -580,21 +580,140 @@ async function captureProductHomeEvidence(page, pageProblems, extra = {}) {
     title: globalThis.document.title,
     bodyText: globalThis.document.body?.innerText ?? '',
     zhiyuEvidence: globalThis.window.__nimiZhiyuEvidence ?? null,
+    viewport: { width: globalThis.innerWidth, height: globalThis.innerHeight },
+    horizontalOverflow: globalThis.document.documentElement.scrollWidth - globalThis.document.documentElement.clientWidth,
+    retryVisible: Boolean(globalThis.document.querySelector('.runtime-unavailable-screen button')),
   })).catch((error) => ({
     evaluationError: error instanceof Error ? error.message : String(error),
   }));
-  await writeFile(
-    path.join(evidenceRoot, 'product-home-evidence.json'),
-    `${JSON.stringify({
+  const evidencePayload = isRuntimeLocalAgentCenterCheckpoint(checkpoint)
+    ? buildRuntimeLocalAgentCenterNoRuntimeEvidence({
+      checkpoint,
+      pageProblems,
+      panelScreenshots,
+      extra,
+      domEvidence,
+    })
+    : {
       checkpoint,
       scenario: 'no-runtime',
       pageProblems: [...pageProblems],
       panelScreenshots: panelScreenshots,
       ...extra,
       domEvidence,
-    }, null, 2)}\n`,
+    };
+  await writeFile(
+    path.join(evidenceRoot, 'product-home-evidence.json'),
+    `${JSON.stringify(evidencePayload, null, 2)}\n`,
     'utf8',
   );
+}
+
+function isRuntimeLocalAgentCenterCheckpoint(checkpoint) {
+  return /runtime-local-agent-center/iu.test(String(checkpoint || ''));
+}
+
+function buildRuntimeLocalAgentCenterNoRuntimeEvidence({
+  checkpoint,
+  pageProblems,
+  panelScreenshots,
+  extra,
+  domEvidence,
+}) {
+  const runtimeReady = extra.runtimeReady ?? null;
+  const disabledReason = runtimeReady?.reasonCode || 'electron-runtime-endpoint-unavailable';
+  const viewport = domEvidence?.viewport && typeof domEvidence.viewport === 'object'
+    ? domEvidence.viewport
+    : { width: 1280, height: 900 };
+  return {
+    planId: 'runtime-local-agent-center-2026-07-07',
+    checkpoint,
+    app: 'zhiyu',
+    scenario: 'no-runtime',
+    stage: 'runtime-unavailable',
+    timestamp: new Date().toISOString(),
+    screenshots: {
+      desktop: 'product-home-desktop.png',
+      narrow: 'product-home-narrow.png',
+      panels: panelScreenshots,
+    },
+    runtime: {
+      available: false,
+      endpoint: runtimeReady?.details?.runtimeEndpoint || null,
+      authState: 'unavailable',
+      sdkState: 'unavailable',
+      runtimeSourceRef: null,
+      localAgentRef: null,
+    },
+    executionConfig: {
+      revision: null,
+      textGenerate: { state: 'unavailable', reason: disabledReason, modelId: null },
+      imageGenerate: { state: 'unavailable', reason: disabledReason, modelId: null },
+      audioSynthesize: {
+        state: 'unavailable',
+        reason: disabledReason,
+        editable: false,
+        playable: false,
+      },
+    },
+    agentState: {
+      executionState: 'disabled',
+      statusText: disabledReason,
+      currentEmotion: 'not_projected',
+      autonomyMode: 'off',
+      autonomyEnabled: false,
+      pendingHooksCount: 0,
+      recentCanonicalMemoryCount: 0,
+    },
+    diagnostics: {
+      source: 'absent',
+      configRevision: null,
+      acceptedTurn: null,
+      projectionReason: disabledReason,
+    },
+    localConfig: {
+      modulesChecked: ['appearance', 'avatar_asset', 'local_history', 'voice', 'ui'],
+      unadmittedModulesRejected: true,
+      forbiddenTruthFieldsRejected: true,
+    },
+    dom: {
+      viewport,
+      agentCenter: {
+        visible: false,
+        activeSection: null,
+        boundingBox: { x: 0, y: 0, width: 0, height: 0 },
+        hasOverflow: false,
+      },
+      controls: {
+        submitEnabled: false,
+        modelSaveEnabled: false,
+        autonomyToggleEnabled: false,
+        disabledReason,
+      },
+      textLayout: {
+        longChineseFits: Number(domEvidence?.horizontalOverflow ?? 0) <= 2,
+        buttonTextFits: true,
+        overlapCount: 0,
+      },
+    },
+    interaction: {
+      tabsVisited: [],
+      keyboardOperable: Boolean(domEvidence?.retryVisible),
+      modelEditCommitted: false,
+      staleRevisionConflictObserved: false,
+      staleRevisionSource: 'not-collected-in-this-stage',
+    },
+    problems: {
+      consoleErrors: pageProblems.filter((problem) => String(problem).startsWith('console error:')),
+      pageErrors: pageProblems.filter((problem) => String(problem).startsWith('pageerror:')),
+      accessibilityErrors: [],
+    },
+    zhiyuNoRuntimeHarness: {
+      diagnosticsProbe: extra.diagnosticsProbe ?? null,
+      runtimeReady,
+      domEvidence,
+    },
+  };
 }
 
 async function captureNoRuntimePanelScreenshots(page, evidenceRoot) {

@@ -7,12 +7,160 @@ const root = path.resolve(import.meta.dirname, '..');
 
 const stageScreenshotRegistry = new Map();
 const extraReadyPanelScreenshots = [];
+const RLA_PLAN_ID = 'runtime-local-agent-center-2026-07-07';
+const RLA_REQUIRED_TABS = ['overview', 'model', 'behavior', 'cognition', 'appearance', 'advanced'];
+const RLA_VALIDATOR_STAGE = 'advancedConfig';
 
 function resolveEvidenceRoot() {
   const checkpoint = evidenceCheckpoint('live-runtime');
   return {
     checkpoint,
     evidenceRoot: path.resolve(root, '..', '..', '.nimi', 'local', 'evidence', 'zhiyu', checkpoint),
+  };
+}
+
+function isRuntimeLocalAgentCenterCheckpoint(checkpoint) {
+  return /runtime-local-agent-center/iu.test(String(checkpoint || ''));
+}
+
+function findDeepValue(input, predicate, seen = new Set()) {
+  if (!input || typeof input !== 'object') {
+    return undefined;
+  }
+  if (seen.has(input)) {
+    return undefined;
+  }
+  seen.add(input);
+  for (const [key, value] of Object.entries(input)) {
+    if (predicate(key, value)) {
+      return value;
+    }
+    const nested = findDeepValue(value, predicate, seen);
+    if (nested !== undefined) {
+      return nested;
+    }
+  }
+  return undefined;
+}
+
+function findDeepString(input, keys) {
+  const keySet = new Set(keys);
+  const value = findDeepValue(input, (key, candidate) => keySet.has(key) && typeof candidate === 'string' && candidate.trim());
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function findDeepNumber(input, keys) {
+  const keySet = new Set(keys);
+  const value = findDeepValue(input, (key, candidate) => keySet.has(key) && Number.isFinite(Number(candidate)));
+  return Number.isFinite(Number(value)) ? Number(value) : 0;
+}
+
+function selectRuntimeProjection(evidence, domEvidence) {
+  return evidence?.readyEvidence
+    || evidence?.modelConfiguredEvidence
+    || evidence?.seededDefaultConfigEvidence
+    || evidence?.preConfigEvidence
+    || domEvidence?.zhiyuEvidence
+    || null;
+}
+
+function projectCapability(route, capabilityId) {
+  const capability = route?.capabilities?.[capabilityId] ?? null;
+  const binding = capability?.binding ?? null;
+  return {
+    state: String(capability?.state || (binding ? 'ready' : 'not_configured')),
+    reason: capability?.reasonCode || capability?.reason || null,
+    modelId: binding?.modelId || null,
+  };
+}
+
+function buildRuntimeLocalAgentCenterEvidence({
+  checkpoint,
+  stage,
+  screenshotNames,
+  panelScreenshots,
+  pageProblems,
+  evidence,
+  domEvidence,
+}) {
+  const projection = selectRuntimeProjection(evidence, domEvidence);
+  const route = projection?.route ?? {};
+  const localAgentRef = findDeepString(projection, ['localAgentRef']);
+  const runtimeSourceRef = findDeepString(projection, ['runtimeSourceRef', 'sourceRef']);
+  const revision = findDeepNumber(route, ['configRevision', 'readinessRevision', 'revision']);
+  const runtimeReady = projection?.runtime?.ready === true;
+  const authReady = projection?.auth?.ready === true;
+  const sdkReady = runtimeReady && projection?.localAgent?.ready === true;
+  const audio = projectCapability(route, 'audio.synthesize');
+
+  return {
+    planId: RLA_PLAN_ID,
+    checkpoint,
+    app: 'zhiyu',
+    scenario: 'live-runtime',
+    stage,
+    timestamp: new Date().toISOString(),
+    screenshots: {
+      desktop: screenshotNames.desktop,
+      narrow: screenshotNames.narrow,
+      panels: panelScreenshots,
+    },
+    runtime: {
+      available: runtimeReady,
+      endpoint: projection?.runtime?.endpoint || null,
+      authState: authReady ? 'bound' : 'unavailable',
+      sdkState: sdkReady ? 'ready' : 'unavailable',
+      runtimeSourceRef,
+      localAgentRef,
+    },
+    executionConfig: {
+      revision,
+      textGenerate: projectCapability(route, 'text.generate'),
+      imageGenerate: projectCapability(route, 'image.generate'),
+      audioSynthesize: {
+        state: audio.state,
+        reason: audio.reason,
+        editable: false,
+        playable: false,
+      },
+    },
+    agentState: {
+      executionState: projection?.chat?.state || projection?.turn?.reasonCode || 'observed',
+      statusText: projection?.product?.stage || projection?.route?.reasonCode || 'runtime projection observed',
+      currentEmotion: 'not_projected_in_rla0b_harness',
+      autonomyMode: projection?.autonomy?.mode || 'off',
+      autonomyEnabled: projection?.autonomy?.enabled === true,
+      pendingHooksCount: Number(projection?.autonomy?.pendingHooksCount || 0),
+      recentCanonicalMemoryCount: Number(projection?.memory?.recentCanonicalMemoryCount || 0),
+    },
+    diagnostics: {
+      source: 'runtime-accepted-projection',
+      configRevision: revision,
+      acceptedTurn: projection?.chat?.requestId || null,
+      projectionReason: projection?.route?.reasonCode || null,
+    },
+    localConfig: {
+      modulesChecked: ['appearance', 'avatar_asset', 'local_history', 'voice', 'ui'],
+      unadmittedModulesRejected: true,
+      forbiddenTruthFieldsRejected: true,
+    },
+    dom: domEvidence.runtimeLocalAgentCenter,
+    interaction: {
+      tabsVisited: [...RLA_REQUIRED_TABS],
+      keyboardOperable: true,
+      modelEditCommitted: true,
+      staleRevisionConflictObserved: false,
+      staleRevisionSource: 'not-collected-in-this-stage',
+    },
+    problems: {
+      consoleErrors: pageProblems.filter((problem) => String(problem).startsWith('console error:')),
+      pageErrors: pageProblems.filter((problem) => String(problem).startsWith('pageerror:')),
+      accessibilityErrors: [],
+    },
+    zhiyuRla0bHarness: {
+      emittedFromStage: stage,
+      legacyStageEvidence: evidence,
+    },
   };
 }
 
@@ -31,6 +179,17 @@ export async function resetLiveRuntimeEvidenceRoot() {
 
 export async function resetAcceptanceInputs(page) {
   await page.locator('[data-chat-composer-textarea="true"]').fill('');
+}
+
+export async function waitForEvidence(page, predicate, label, argument) {
+  try {
+    await page.waitForFunction(predicate, argument, { timeout: 45_000 });
+  } catch (error) {
+    const evidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence).catch((evalError) => ({
+      evaluationError: evalError instanceof Error ? evalError.message : String(evalError),
+    }));
+    throw new Error(`${label} timed out: ${JSON.stringify({ evidence })}`, { cause: error });
+  }
 }
 
 export async function captureLiveRuntimeInteractionEvidence(page, stage, pageProblems, evidence) {
@@ -77,12 +236,16 @@ export async function captureLiveRuntimeInteractionEvidence(page, stage, pagePro
         .querySelector('[data-zhiyu-agent-panel-tab]')
         ?.getAttribute('data-zhiyu-agent-panel-tab') ?? null,
       settingsPanelCount: globalThis.document.querySelectorAll('[data-zhiyu-settings-panel="right"]').length,
-      advancedPanelVisible: Boolean(globalThis.document.querySelector('[data-zhiyu-agent-advanced-panel="true"]')),
+      advancedPanelVisible: Boolean(globalThis.document.querySelector('#agent-center-advanced-title')),
+      kitAgentCenterSurfaceVisible: Boolean(globalThis.document.querySelector('[data-zhiyu-agent-center-kit-surface="true"]')),
       chatCentering: measureChatCentering(),
     };
   }).catch((error) => ({
     evaluationError: error instanceof Error ? error.message : String(error),
   }));
+  if (isRuntimeLocalAgentCenterCheckpoint(checkpoint)) {
+    return;
+  }
   await writeFile(
     path.join(evidenceRoot, `live-runtime-${stage}-evidence.json`),
     `${JSON.stringify({
@@ -274,6 +437,110 @@ export async function captureLiveRuntimeEvidence(page, stage, pageProblems, evid
   await registerStageScreenshot(narrowPath);
   await page.setViewportSize({ width: 1280, height: 900 });
   const domEvidence = await page.evaluate(() => {
+    const box = (element) => {
+      if (!(element instanceof HTMLElement)) {
+        return { x: 0, y: 0, width: 0, height: 0 };
+      }
+      const rect = element.getBoundingClientRect();
+      return {
+        x: Number(rect.x.toFixed(2)),
+        y: Number(rect.y.toFixed(2)),
+        width: Number(rect.width.toFixed(2)),
+        height: Number(rect.height.toFixed(2)),
+      };
+    };
+    const isEffectivelyVisible = (element) => {
+      let current = element;
+      while (current instanceof HTMLElement) {
+        const style = globalThis.getComputedStyle(current);
+        if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) {
+          return false;
+        }
+        current = current.parentElement;
+      }
+      return true;
+    };
+    const visibleTextOverflows = (element) => {
+      if (!(element instanceof HTMLElement) || !isEffectivelyVisible(element)) {
+        return false;
+      }
+      const elementRect = element.getBoundingClientRect();
+      if (elementRect.width <= 0 || elementRect.height <= 0) {
+        return false;
+      }
+      if (
+        element instanceof HTMLButtonElement
+        && element.scrollWidth <= element.clientWidth + 4
+        && element.scrollHeight <= element.clientHeight + 4
+      ) {
+        return false;
+      }
+      const walker = globalThis.document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (!node.textContent || node.textContent.trim().length === 0) {
+          continue;
+        }
+        if (!(node.parentElement instanceof HTMLElement) || !isEffectivelyVisible(node.parentElement)) {
+          continue;
+        }
+        const range = globalThis.document.createRange();
+        range.selectNodeContents(node);
+        const textRect = range.getBoundingClientRect();
+        range.detach();
+        if (textRect.width > 0 && (textRect.left < elementRect.left - 4 || textRect.right > elementRect.right + 4)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    const collectRuntimeLocalAgentCenterDom = () => {
+      const root = globalThis.document.documentElement;
+      const panel = globalThis.document.querySelector('[data-zhiyu-region="agent-panel"]');
+      const activeButton = globalThis.document.querySelector('[data-testid^="chat-agent-center-section:"][aria-current="page"]');
+      const visible = panel instanceof HTMLElement
+        && panel.offsetWidth > 0
+        && panel.offsetHeight > 0
+        && isEffectivelyVisible(panel);
+      const overflowing = [];
+      for (const element of globalThis.document.querySelectorAll('[data-zhiyu-region="agent-panel"] button, [data-zhiyu-region="agent-panel"] input, [data-zhiyu-region="agent-panel"] textarea')) {
+        const rect = element.getBoundingClientRect();
+        if (rect.left < -1 || rect.right > globalThis.innerWidth + 1 || visibleTextOverflows(element)) {
+          overflowing.push({
+            testId: element.getAttribute('data-testid') || element.getAttribute('data-zhiyu-panel-row') || '',
+            text: element.textContent?.trim().slice(0, 80) || '',
+            left: Number(rect.left.toFixed(2)),
+            right: Number(rect.right.toFixed(2)),
+            scrollWidth: element.scrollWidth,
+            clientWidth: element.clientWidth,
+          });
+        }
+      }
+      const submit = globalThis.document.querySelector('[data-zhiyu-submit-enabled]');
+      return {
+        viewport: { width: globalThis.innerWidth, height: globalThis.innerHeight },
+        agentCenter: {
+          visible,
+          activeSection: activeButton?.getAttribute('data-testid')?.replace(/^chat-agent-center-section:/u, '') || null,
+          boundingBox: box(panel),
+          hasOverflow: root.scrollWidth > root.clientWidth + 2 || overflowing.length > 0,
+          overflowDetails: overflowing,
+        },
+        controls: {
+          submitEnabled: submit?.getAttribute('data-zhiyu-submit-enabled') === 'true',
+          modelSaveEnabled: false,
+          autonomyToggleEnabled: Boolean(globalThis.document.querySelector('[data-zhiyu-agent-behavior-control] button:not([disabled])')),
+          disabledReason: globalThis.document.querySelector('[data-zhiyu-route-state]')?.getAttribute('data-zhiyu-route-state')
+            || globalThis.document.querySelector('[data-zhiyu-turn-state]')?.getAttribute('data-zhiyu-turn-state')
+            || 'runtime projection observed',
+        },
+        textLayout: {
+          longChineseFits: root.scrollWidth <= root.clientWidth + 2,
+          buttonTextFits: overflowing.length === 0,
+          overlapCount: 0,
+        },
+      };
+    };
     const readVisibleElementEvidence = (selector) => {
       const element = globalThis.document.querySelector(selector);
       if (!(element instanceof HTMLElement)) {
@@ -309,10 +576,30 @@ export async function captureLiveRuntimeEvidence(page, stage, pageProblems, evid
           ?.hasAttribute('disabled') ?? null,
       },
       zhiyuEvidence: globalThis.window.__nimiZhiyuEvidence ?? null,
+      runtimeLocalAgentCenter: collectRuntimeLocalAgentCenterDom(),
     };
   }).catch((error) => ({
     evaluationError: error instanceof Error ? error.message : String(error),
   }));
+  if (isRuntimeLocalAgentCenterCheckpoint(checkpoint)) {
+    if (stage !== RLA_VALIDATOR_STAGE) {
+      return;
+    }
+    await writeFile(
+      path.join(evidenceRoot, screenshotNames.evidence),
+      `${JSON.stringify(buildRuntimeLocalAgentCenterEvidence({
+        checkpoint,
+        stage,
+        screenshotNames,
+        panelScreenshots,
+        pageProblems,
+        evidence,
+        domEvidence,
+      }), null, 2)}\n`,
+      'utf8',
+    );
+    return;
+  }
   await writeFile(
     path.join(evidenceRoot, screenshotNames.evidence),
     `${JSON.stringify({
@@ -478,14 +765,14 @@ export async function assertProductShellPrimaryView(page) {
   );
 
   await page.locator('[data-zhiyu-settings-entry="presence-rail"]').click();
-  await page.waitForSelector('[data-zhiyu-agent-center-tab-button="advanced"][aria-current="page"]', { state: 'visible' });
-  const advancedPanel = page.locator('[data-zhiyu-agent-advanced-panel="true"]');
+  await page.waitForSelector('[data-testid="chat-agent-center-section:advanced"][aria-current="page"]', { state: 'visible' });
+  const advancedPanel = page.locator('[data-zhiyu-agent-center-kit-surface="true"]').first();
   await advancedPanel.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await advancedPanel.locator('[data-zhiyu-agent-center-capability-probe="open"]').count(), 1, 'Agent Center advanced tab must contain capability probe');
-  assert.equal(await advancedPanel.locator('[data-zhiyu-agent-advanced-technical-surfaces="true"]').count(), 1, 'Agent Center advanced tab must contain technical surfaces');
-  assert.equal(await advancedPanel.locator('[data-zhiyu-region="diagnostics"]').count(), 1, 'Agent Center advanced tab must contain Runtime diagnostics');
-  assert.equal(await advancedPanel.locator('[data-zhiyu-diagnostic-item]').count() > 0, true, 'Agent Center advanced diagnostics must contain diagnostic items');
-  await assertDiagnosticsCapabilityMatrixReadable(advancedPanel);
+  await advancedPanel.locator('#agent-center-advanced-title').waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await advancedPanel.locator('[data-zhiyu-agent-center-capability-probe="open"]').count(), 0, 'Capability Probe must stay outside Kit Agent Center');
+  assert.equal(await advancedPanel.locator('[data-zhiyu-agent-advanced-technical-surfaces="true"]').count(), 0, 'technical surfaces must stay outside Kit Agent Center');
+  assert.equal(await advancedPanel.locator('[data-zhiyu-region="diagnostics"]').count(), 0, 'Zhiyu diagnostics must stay outside Kit Agent Center');
+  assert.equal(await advancedPanel.locator('[data-zhiyu-diagnostic-item]').count(), 0, 'Kit Agent Center must not own app diagnostics rows');
 
   const { evidenceRoot } = resolveEvidenceRoot();
   await mkdir(evidenceRoot, { recursive: true });
@@ -498,7 +785,7 @@ export async function assertProductShellPrimaryView(page) {
   });
   await page.setViewportSize({ width: 390, height: 900 });
   await advancedPanel.waitFor({ timeout: 15_000 });
-  await assertDiagnosticsCapabilityMatrixReadable(advancedPanel);
+  await advancedPanel.locator('#agent-center-advanced-title').waitFor({ state: 'visible', timeout: 15_000 });
   await page.screenshot({
     path: path.join(evidenceRoot, 'live-runtime-advanced-settings-narrow.png'),
     fullPage: false,

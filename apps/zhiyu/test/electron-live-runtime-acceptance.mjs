@@ -33,12 +33,7 @@ import {
 import { withRuntimeAgentLiveE2EFixture } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test-helper.ts';
 import {
   createFixtureRuntimeAgentClient,
-  createRuntimeForEndpoint,
 } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
-import { createNimiRuntimeAppSessionMetadataProvider } from '../../../sdks/typescript/runtime/app-session.ts';
-import { createNimiRuntimeAgentClient } from '../../../sdks/typescript/runtime/runtime-agent-client.ts';
-import { withNimiRuntimeAgentScopes } from '../../../sdks/typescript/runtime/runtime-agent-protected.ts';
-import { createNimiRuntimeAgentVoiceModule } from '../../../sdks/typescript/runtime/runtime-agent-voice.ts';
 import {
   createZhiyuLiveRuntimeAcceptanceRendererUrl,
   createZhiyuLiveRuntimeFixtureAcceptanceInitScript,
@@ -54,7 +49,18 @@ import {
   resetAcceptanceInputs,
   resetLiveRuntimeEvidenceRoot,
   trackPageProblems,
+  waitForEvidence,
 } from './electron-live-runtime-acceptance-helpers.mjs';
+import {
+  assertMidStreamFailureFlow,
+  createDeferred,
+  observeLiveRuntimeNativeVoiceInterrupt,
+  promiseWithTimeout,
+  readLiveRuntimeFixtureArtifactBytes,
+  readZhiyuRuntimeAgentAuthBinding,
+  runtimeProjectionEventTurnId,
+  summarizeTypedVoiceStreamEvent,
+} from './electron-live-runtime-native-voice-helpers.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
@@ -184,42 +190,53 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
 
           await page.locator('[data-zhiyu-composer-tool="model"]').click();
           await page.waitForSelector('[data-zhiyu-agent-panel-tab="model"]');
-          const modelConfig = page.locator('[data-zhiyu-ai-config-embedded="agent-center"]');
-          await modelConfig.waitFor({ timeout: 15_000 });
+          await page.locator('[data-testid="chat-agent-center-section:model"][aria-current="page"]').waitFor({ state: 'visible', timeout: 15_000 });
+          const modelPanel = page.locator('[data-zhiyu-agent-center-kit-surface="true"]').first();
+          await modelPanel.waitFor({ timeout: 15_000 });
+          await modelPanel.locator('#agent-center-model-title').waitFor({ state: 'visible', timeout: 15_000 });
           assert.equal(await page.locator('[data-zhiyu-ai-config-drawer="open"]').count(), 0);
-          await assertModelConfigEmbeddedProductQuality(page);
+          await assertKitAgentCenterModelProjection(page);
           const seededDefaultConfigEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
           await captureLiveRuntimeEvidence(page, 'seededDefaultConfig', pageProblems, {
             seededDefaultConfigEvidence,
           });
-          // Model tab commits text.generate / image.generate through
-          // runtime.agent.executionConfig.upsert; wait for the committed
-          // banner (revision advance) after each managed pick.
-          await modelConfig
-            .locator('button')
-            .filter({ hasText: /Setup required|Select a model|选择.*模型|需要模型目标|未配置/i })
-            .first()
-            .click();
-          const picker = page.locator('[role="dialog"]').filter({ hasText: 'Select Model' }).last();
-          await picker.waitFor();
-          await picker.getByRole('button', { name: /runtime-agent-live-e2e/i }).first().click();
-          await picker.waitFor({ state: 'detached', timeout: 15_000 }).catch(() => undefined);
-          const textCommitRevision = await waitForExecutionCommitCommitted(page, seededConfigRevision);
-          await selectRuntimeModelForCapability(page, modelConfig, {
-            section: 'embed',
-            capabilityId: 'text.embed',
-            modelName: /runtime-agent-live-e2e-embedding/i,
+          const seededCommittedConfig = await runtimeExecutionConfig.get();
+          assert.equal(seededCommittedConfig.revision, seededConfigRevision);
+          const textCommittedConfig = await runtimeExecutionConfig.upsert({
+            expectedRevision: seededCommittedConfig.revision,
+            bindings: {
+              ...seededCommittedConfig.bindings,
+              'text.generate': {
+                route: 'local',
+                modelId: fixture.route.executionBinding.modelId,
+                ...(fixture.route.executionBinding.connectorId
+                  ? { connectorId: fixture.route.executionBinding.connectorId }
+                  : {}),
+                targetRef: fixture.route.targetRef,
+              },
+            },
           });
-          await selectRuntimeModelForCapability(page, modelConfig, {
-            section: 'image',
-            capabilityId: 'image.generate',
-            modelName: /gpt-image-1\.5/i,
-            source: 'cloud',
-            connectorId: fixture.imageRoute.executionBinding.connectorId,
+          await waitForEvidence(page, ({ textRevision }) =>
+            globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
+            && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === textRevision
+            && /runtime-agent-live-e2e/.test(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding?.modelId || ''),
+            'route ready after text execution config SDK upsert',
+            { textRevision: textCommittedConfig.revision },
+          );
+          const imageCommittedConfig = await runtimeExecutionConfig.upsert({
+            expectedRevision: textCommittedConfig.revision,
+            bindings: {
+              ...textCommittedConfig.bindings,
+              'image.generate': {
+                route: 'cloud',
+                modelId: fixture.imageRoute.executionBinding.modelId,
+                ...(fixture.imageRoute.executionBinding.connectorId
+                  ? { connectorId: fixture.imageRoute.executionBinding.connectorId }
+                  : {}),
+                targetRef: fixture.imageRoute.targetRef,
+              },
+            },
           });
-          const imageCommitRevision = await waitForExecutionCommitCommitted(page, textCommitRevision);
-          const imageCommittedConfig = await runtimeExecutionConfig.get();
-          assert.equal(imageCommittedConfig.revision, imageCommitRevision);
           const voiceCommittedConfig = await runtimeExecutionConfig.upsert({
             expectedRevision: imageCommittedConfig.revision,
             bindings: {
@@ -253,8 +270,8 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await captureLiveRuntimeEvidence(page, 'modelConfigured', pageProblems, {
             modelConfiguredEvidence,
           });
-          await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
-          await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
+          await page.locator('[data-testid="chat-agent-center-section:overview"]').click();
+          await page.locator('#agent-center-overview-title').waitFor({ timeout: 15_000 });
 
           let readyEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
           assert.equal(readyEvidence.route.ready, true);
@@ -283,21 +300,8 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.match(readyEvidence.route.executionBinding.modelId, /runtime-agent-live-e2e/);
           assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
           assert.equal(await page.locator('[data-zhiyu-readiness-score]').getAttribute('data-zhiyu-readiness-score'), '8/8');
-          await page.waitForFunction(() =>
-            document.querySelector('[data-zhiyu-memory-observatory]')?.getAttribute('data-zhiyu-memory-ready') === 'true',
-            undefined,
-            { timeout: 15_000 },
-          );
-          assert.equal(
-            await page.locator('[data-zhiyu-memory-observatory]').getAttribute('data-zhiyu-memory-ready'),
-            'true',
-            'memory observatory DOM projection must reach ready before route-ready acceptance continues',
-          );
-          assert.equal(await page.locator('[data-zhiyu-memory-graph-state]').getAttribute('data-zhiyu-memory-graph-state'), 'not_projected');
-          assert.equal(
-            await page.locator('[data-zhiyu-memory-graph-state]').getAttribute('data-zhiyu-memory-graph-reason'),
-            'runtime-agent-memory-graph-relations-not-admitted',
-          );
+          assert.equal(readyEvidence.memory.ready, true, 'Runtime memory projection must reach ready before route-ready acceptance continues');
+          assert.equal(typeof readyEvidence.memory.recordCount, 'number');
           assert.equal(
             await page.locator('[data-zhiyu-status-collapsed]').count(),
             0,
@@ -325,8 +329,8 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await captureLiveRuntimeEvidence(page, 'advancedConfig', pageProblems, {
             readyEvidence,
           });
-          await page.locator('[data-zhiyu-agent-center-tab-button="overview"]').click();
-          await page.locator('[data-zhiyu-memory-observatory]').waitFor({ timeout: 15_000 });
+          await page.locator('[data-testid="chat-agent-center-section:overview"]').click();
+          await page.locator('#agent-center-overview-title').waitFor({ timeout: 15_000 });
           await assertDesktopShellTopbarParity(page, pageProblems);
           await assertAgentCenterKeyboardAccessibility(page);
           await closeAgentCenter(page);
@@ -784,17 +788,6 @@ async function withTempDir(prefix, run) {
   }
 }
 
-async function waitForEvidence(page, predicate, label, argument) {
-  try {
-    await page.waitForFunction(predicate, argument, { timeout: 45_000 });
-  } catch (error) {
-    const evidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence).catch((evalError) => ({
-      evaluationError: evalError instanceof Error ? evalError.message : String(evalError),
-    }));
-    throw new Error(`${label} timed out: ${JSON.stringify({ evidence })}`, { cause: error });
-  }
-}
-
 async function assertNoPartnerProductState(page) {
   assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'source-required');
   const candidateCount = await page.locator('[data-zhiyu-local-agent-candidate="true"]').count();
@@ -880,11 +873,7 @@ async function assertModelConfiguredProductState(page, options = {}) {
   if (options.requireModelPanel === false) {
     return;
   }
-  const modelConfig = page.locator('[data-zhiyu-ai-config-embedded="agent-center"]');
-  await modelConfig.waitFor({ timeout: 15_000 });
-  const modelConfigText = await modelConfig.innerText();
-  assert.match(modelConfigText, /模型目标已绑定|已绑定|已就绪/);
-  assert.doesNotMatch(modelConfigText, /等待上游投影|not_projected|sourceRef|localAgentRef|回显通路|身份地板|graph-lite/);
+  await assertKitAgentCenterModelProjection(page);
   await assertVoiceControlsDeferred(page);
 }
 
@@ -915,60 +904,24 @@ async function assertVoiceControlsDeferred(page) {
   assert.equal(await voiceTool.isDisabled(), true);
 }
 
-async function selectRuntimeModelForCapability(page, drawer, input) {
-  await openModelConfigSection(drawer, input.section);
-  const capability = drawer.locator(`[data-nimi-model-config-capability="${input.capabilityId}"]`).first();
-  await capability.waitFor({ timeout: 15_000 });
-  await capability
-    .locator('button')
-    .filter({ hasText: /Setup required|Select a model|选择.*模型|需要模型目标|未配置|待完成设置/i })
-    .first()
-    .click();
-  const picker = page.locator('[role="dialog"]').filter({ hasText: /Select Model/i }).last();
-  await picker.waitFor({ timeout: 15_000 });
-  if (input.source === 'cloud') {
-    await picker.getByRole('button', { name: /^Cloud$/i }).click();
-    if (input.connectorId) {
-      await picker.getByLabel('Select connector').selectOption(input.connectorId);
-    }
-  }
-  const modelButton = picker.getByRole('button', { name: input.modelName }).first();
-  try {
-    await modelButton.click({ timeout: 15_000 });
-  } catch (error) {
-    const pickerText = await picker.innerText().catch(() => '');
-    throw new Error(`Model picker did not expose ${String(input.modelName)} for ${input.capabilityId}: ${pickerText}`, { cause: error });
-  }
-  await picker.waitFor({ state: 'detached', timeout: 15_000 }).catch(() => undefined);
-}
+async function assertKitAgentCenterModelProjection(page) {
+  const panel = page.locator('[data-zhiyu-agent-center-kit-surface="true"]').first();
+  await panel.waitFor({ timeout: 15_000 });
+  await panel.locator('#agent-center-model-title').waitFor({ timeout: 15_000 });
+  assert.equal(await panel.locator('[data-zhiyu-ai-config-embedded="agent-center"]').count(), 0, 'Kit Agent Center must not embed Zhiyu AIConfig');
+  assert.equal(await page.locator('[data-zhiyu-ai-config-drawer="open"]').count(), 0);
+  const text = await panel.innerText();
+  assert.match(text, /Model/);
+  assert.match(text, /Text/);
+  assert.match(text, /Image/);
+  assert.match(text, /Audio/);
+  assert.match(text, /Read-only|Runtime|projection|revision|not configured|ready/i);
+  assert.doesNotMatch(text, /Capability Studio|Image Studio|zhiyu-ai-config-route-selection-required|ai-config-binding-missing/);
+  await assertAgentCenterModelPanelLayout(page, 'live Runtime Kit model projection');
 
-async function openModelConfigSection(drawer, section) {
-  const detail = drawer.locator('[data-nimi-model-config-detail-section]').last();
-  if (await detail.count()) {
-    const activeSection = await detail.getAttribute('data-nimi-model-config-detail-section');
-    if (activeSection === section) {
-      return;
-    }
-    const back = drawer.locator('[data-nimi-model-config-back="true"]').first();
-    await back.waitFor({ timeout: 15_000 });
-    await back.click();
-  }
-  const sectionButton = drawer.locator(`[data-nimi-model-config-section="${section}"]`).first();
-  await sectionButton.waitFor({ timeout: 15_000 });
-  await sectionButton.click();
-  await drawer.locator(`[data-nimi-model-config-detail-section="${section}"]`).waitFor({ timeout: 15_000 });
-}
-
-async function assertModelConfigEmbeddedProductQuality(page) {
-  const modelConfig = page.locator('[data-zhiyu-ai-config-embedded="agent-center"]');
-  await modelConfig.waitFor({ timeout: 15_000 });
-  await page.locator('[data-zhiyu-agent-model-route-card="true"]').waitFor({ timeout: 15_000 });
-  await modelConfig.locator('.zhiyu-ai-config-embedded__model-hub').waitFor({ timeout: 15_000 });
-  await assertAgentCenterModelPanelLayout(page, 'live Runtime model configured panel');
-
-  const unlabeledOrTinyButtons = await modelConfig.locator('button').evaluateAll((buttons) => buttons
+  const unlabeledOrTinyButtons = await panel.locator('button').evaluateAll((buttons) => buttons
     .map((button, index) => {
-      const label = `${button.getAttribute('aria-label') || button.textContent || ''}`.replace(/\s+/g, ' ').trim();
+      const label = String(button.getAttribute('aria-label') || button.textContent || '').replace(/\s+/g, ' ').trim();
       const rect = button.getBoundingClientRect();
       if (label && rect.width >= 28 && rect.height >= 28) {
         return null;
@@ -977,52 +930,6 @@ async function assertModelConfigEmbeddedProductQuality(page) {
     })
     .filter(Boolean));
   assert.deepEqual(unlabeledOrTinyButtons, []);
-
-  const chatSection = modelConfig.locator('[data-nimi-model-config-section="chat"]').first();
-  await chatSection.waitFor({ timeout: 15_000 });
-  for (const section of ['chat', 'embed', 'tts', 'stt', 'image', 'video']) {
-    await modelConfig.locator(`[data-nimi-model-config-section="${section}"]`).first().waitFor({ timeout: 15_000 });
-  }
-  assert.ok(
-    await modelConfig.getByRole('button', { name: /导入 AI 预设/ }).first().isVisible(),
-    'embedded ModelConfig hub must use the Desktop import profile label instead of falling back to "import"',
-  );
-  await chatSection.click();
-  await modelConfig.locator('[data-nimi-model-config-detail-section="chat"]').waitFor({ timeout: 15_000 });
-  const back = modelConfig.locator('[data-nimi-model-config-back="true"]').first();
-  await back.waitFor({ timeout: 15_000 });
-  const backBox = await back.boundingBox();
-  assert.ok(backBox && backBox.width >= 60 && backBox.height >= 28, `model config back control is too small: ${JSON.stringify(backBox)}`);
-  assert.match(await back.evaluate((button) => `${button.getAttribute('aria-label') || button.textContent || ''}`), /返回|Back/i);
-
-  const capabilityButton = modelConfig.locator('[data-nimi-model-config-capability] > button').first();
-  await capabilityButton.waitFor({ timeout: 15_000 });
-  const capabilityStyle = await capabilityButton.evaluate((button) => {
-    const style = globalThis.getComputedStyle(button);
-    return {
-      borderStyle: style.borderStyle,
-      borderRadius: style.borderRadius,
-      backgroundColor: style.backgroundColor,
-      minHeight: style.minHeight,
-    };
-  });
-  assert.notEqual(capabilityStyle.borderStyle, 'none');
-  assert.notEqual(capabilityStyle.backgroundColor, 'rgba(0, 0, 0, 0)');
-  assert.notEqual(capabilityStyle.borderRadius, '0px');
-
-  const embeddedStyle = await modelConfig.evaluate((panel) => {
-    const style = globalThis.getComputedStyle(panel);
-    return {
-      backgroundColor: style.backgroundColor,
-      boxShadow: style.boxShadow,
-      borderStyle: style.borderStyle,
-      padding: style.padding,
-    };
-  });
-  assert.equal(embeddedStyle.backgroundColor, 'rgba(0, 0, 0, 0)');
-  assert.equal(embeddedStyle.boxShadow, 'none');
-  assert.equal(embeddedStyle.borderStyle, 'none');
-  assert.equal(embeddedStyle.padding, '0px');
 }
 
 async function assertAgentCenterModelPanelLayout(page, label) {
@@ -1043,10 +950,9 @@ async function assertAgentCenterModelPanelLayout(page, label) {
         bottom: rect.bottom,
       };
     };
-    const embedded = document.querySelector('[data-zhiyu-ai-config-embedded="agent-center"]');
-    const embeddedStyle = embedded ? getComputedStyle(embedded) : null;
-    const modelCard = document.querySelector('.zhiyu-agent-center__model-config-card');
-    const modelCardStyle = modelCard ? getComputedStyle(modelCard) : null;
+    const sectionButtons = [...document.querySelectorAll('[data-testid^="chat-agent-center-section:"]')]
+      .map((element) => element.getAttribute('data-testid')?.replace(/^chat-agent-center-section:/u, '') || '')
+      .filter(Boolean);
     return {
       viewport: {
         width: window.innerWidth,
@@ -1054,51 +960,32 @@ async function assertAgentCenterModelPanelLayout(page, label) {
       },
       panel: box('[data-zhiyu-region="agent-panel"]'),
       header: box('[data-zhiyu-agent-center-header="true"]'),
-      tabs: box('.zhiyu-agent-center__tabs'),
-      modelCard: box('.zhiyu-agent-center__model-config-card'),
-      embedded: box('[data-zhiyu-ai-config-embedded="agent-center"]'),
-      routeCard: box('[data-zhiyu-agent-model-route-card="true"]'),
+      kitSurface: box('[data-zhiyu-agent-center-kit-surface="true"]'),
+      modelTitle: box('#agent-center-model-title'),
+      activeTab: box('[data-testid="chat-agent-center-section:model"][aria-current="page"]'),
       composer: box('.zhiyu-chat-canvas__composer [data-canonical-composer-width]'),
       textarea: box('[data-chat-composer-textarea="true"]'),
-      embeddedOverflowY: embeddedStyle?.overflowY ?? null,
-      embeddedBackgroundColor: embeddedStyle?.backgroundColor ?? null,
-      embeddedBoxShadow: embeddedStyle?.boxShadow ?? null,
-      embeddedBorderStyle: embeddedStyle?.borderStyle ?? null,
-      embeddedPadding: embeddedStyle?.padding ?? null,
-      modelCardBackgroundColor: modelCardStyle?.backgroundColor ?? null,
-      modelCardBorderStyle: modelCardStyle?.borderStyle ?? null,
-      modelCardBorderRadius: modelCardStyle?.borderRadius ?? null,
-      visibleSections: [...document.querySelectorAll('[data-zhiyu-ai-config-embedded="agent-center"] [data-nimi-model-config-section]')]
-        .map((element) => element.getAttribute('data-nimi-model-config-section')),
+      sectionButtons,
+      legacyAiConfigCount: document.querySelectorAll('[data-zhiyu-ai-config-embedded="agent-center"]').length,
     };
   });
-  assert.ok(metrics.panel, `${label}: Agent Center panel must render on wide desktop`);
-  assert.ok(metrics.header, `${label}: Agent Center header must render`);
-  assert.ok(metrics.tabs, `${label}: Agent Center tabs must render`);
-  assert.ok(metrics.routeCard, `${label}: model route card must render before embedded config`);
-  assert.ok(metrics.modelCard, `${label}: model config card must render`);
-  assert.ok(metrics.embedded, `${label}: embedded model config must render`);
-  assert.ok(metrics.composer, `${label}: composer must render`);
-  assert.ok(metrics.textarea, `${label}: composer textarea must render`);
-  assert.ok(metrics.panel.y <= 64, `${label}: Agent Center is vertically detached from desktop side-sheet rhythm: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.panel.height >= metrics.viewport.height - 112, `${label}: Agent Center should use the available desktop side-sheet height: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.tabs.y - metrics.header.bottom <= 80, `${label}: Agent Center tabs are detached from the header: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.routeCard.y - metrics.tabs.bottom <= 100, `${label}: Agent Center model content is detached from the tabs: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.modelCard.height <= 760, `${label}: embedded model config is stretching beyond the Desktop Agent Center model card: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.embedded.height <= metrics.modelCard.height + 2, `${label}: embedded model config must stay inside its card: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.embeddedOverflowY, 'visible', `${label}: embedded ModelConfig must not create a second scroll/card surface: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.embeddedBackgroundColor, 'rgba(0, 0, 0, 0)', `${label}: embedded ModelConfig must be transparent inside the Desktop card: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.embeddedBoxShadow, 'none', `${label}: embedded ModelConfig must not add a second shadow: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.embeddedBorderStyle, 'none', `${label}: embedded ModelConfig must not add a second border: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.embeddedPadding, '0px', `${label}: embedded ModelConfig must not add a second padding layer: ${JSON.stringify(metrics)}`);
-  assert.notEqual(metrics.modelCardBackgroundColor, 'rgba(0, 0, 0, 0)', `${label}: Desktop model card must own the visible background: ${JSON.stringify(metrics)}`);
-  assert.equal(metrics.modelCardBorderStyle, 'solid', `${label}: Desktop model card must own the visible border: ${JSON.stringify(metrics)}`);
-  assert.match(metrics.modelCardBorderRadius || '', /^14px\b/, `${label}: Desktop model card must use the Agent Center 14px radius: ${JSON.stringify(metrics)}`);
-  for (const section of ['chat', 'embed', 'tts', 'stt', 'image', 'video']) {
-    assert.ok(metrics.visibleSections.includes(section), `${label}: Desktop ModelConfig section ${section} is missing: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.panel, label + ': Agent Center panel must render on wide desktop');
+  assert.ok(metrics.header, label + ': Agent Center header must render');
+  assert.ok(metrics.kitSurface, label + ': Kit Agent Center surface must render');
+  assert.ok(metrics.modelTitle, label + ': model section title must render');
+  assert.ok(metrics.activeTab, label + ': model section button must expose active page semantics');
+  assert.ok(metrics.composer, label + ': composer must render');
+  assert.ok(metrics.textarea, label + ': composer textarea must render');
+  assert.equal(metrics.legacyAiConfigCount, 0, label + ': legacy Zhiyu AIConfig must not be embedded in Agent Center');
+  for (const section of ['overview', 'model', 'behavior', 'cognition', 'appearance', 'advanced']) {
+    assert.ok(metrics.sectionButtons.includes(section), label + ': Kit Agent Center section ' + section + ' is missing: ' + JSON.stringify(metrics));
   }
-  assert.ok(metrics.textarea.height <= 80, `${label}: composer textarea should keep Kit compact auto-height when empty: ${JSON.stringify(metrics)}`);
-  assert.ok(metrics.composer.height <= 190, `${label}: composer surface is too tall for desktop agent chat: ${JSON.stringify(metrics)}`);
+  assert.ok(metrics.panel.y <= 64, label + ': Agent Center is vertically detached from desktop side-sheet rhythm: ' + JSON.stringify(metrics));
+  assert.ok(metrics.panel.height >= metrics.viewport.height - 112, label + ': Agent Center should use the available desktop side-sheet height: ' + JSON.stringify(metrics));
+  assert.ok(metrics.kitSurface.y >= metrics.header.bottom - 4, label + ': Kit surface overlaps the Zhiyu placement header: ' + JSON.stringify(metrics));
+  assert.ok(metrics.modelTitle.y >= metrics.kitSurface.y - 4, label + ': model title escapes the Kit surface: ' + JSON.stringify(metrics));
+  assert.ok(metrics.textarea.height <= 80, label + ': composer textarea should keep Kit compact auto-height when empty: ' + JSON.stringify(metrics));
+  assert.ok(metrics.composer.height <= 190, label + ': composer surface is too tall for desktop agent chat: ' + JSON.stringify(metrics));
   const checkpoint = process.env.NIMI_ZHIYU_EVIDENCE_CHECKPOINT?.trim() || 'live-runtime';
   const evidenceRoot = path.resolve(root, '..', '..', '.nimi', 'local', 'evidence', 'zhiyu', checkpoint);
   await mkdir(evidenceRoot, { recursive: true });
@@ -1348,75 +1235,6 @@ async function assertRouteUnavailableFlow(page, pageProblems, readyEvidence, run
   return await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
 }
 
-async function assertMidStreamFailureFlow(page, pageProblems, readyEvidence) {
-  const failurePrompt = 'Please trigger Zhiyu mid-stream failure after committed text.';
-  const expectedPartialText = 'Committed before induced action failure.';
-  await page.locator('[data-chat-composer-textarea="true"]').fill(failurePrompt);
-  await page.waitForFunction(() =>
-    document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
-    && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false
-    && document.querySelector('[data-chat-composer-textarea="true"]')?.value.length > 0,
-  );
-  await page.locator('[data-chat-composer-send="true"]').click();
-  await waitForEvidence(page, ({ expectedPartialText, failurePrompt }) =>
-    globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'failed'
-    && globalThis.window.__nimiZhiyuEvidence?.chat?.ready === false
-    && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode !== 'runtime-agent-turn-completed'
-    && globalThis.window.__nimiZhiyuEvidence?.chat?.reasonCode !== 'runtime-turn-request-accepted'
-    && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('text-delta')
-    && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('turn-failed')
-    && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === failurePrompt)
-    && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) =>
-      message?.text === expectedPartialText
-      && message?.status === 'error'
-      && typeof message?.error === 'string'
-      && message.error.length > 0
-    ),
-    'mid-stream failed Runtime Agent chat evidence',
-    {
-      expectedPartialText,
-      failurePrompt,
-    },
-  );
-  const failedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
-  assert.equal(failedEvidence.chat.ready, false);
-  assert.equal(failedEvidence.chat.state, 'failed');
-  assert.notEqual(failedEvidence.chat.reasonCode, 'runtime-agent-turn-completed');
-  assert.notEqual(failedEvidence.chat.reasonCode, 'runtime-turn-request-accepted');
-  assert.equal(failedEvidence.chat.eventTypes.includes('text-delta'), true);
-  assert.equal(failedEvidence.chat.eventTypes.includes('turn-failed'), true);
-  assert.equal(
-    failedEvidence.chat.messages.some((message) =>
-      message?.text === expectedPartialText
-      && message?.status === 'error'
-      && typeof message?.error === 'string'
-      && message.error.length > 0
-    ),
-    true,
-  );
-  assert.equal(await page.locator('[data-zhiyu-agent-chat-state]').getAttribute('data-zhiyu-agent-chat-state'), 'failed');
-  assert.equal(await page.locator('[data-zhiyu-agent-chat-ready]').getAttribute('data-zhiyu-agent-chat-ready'), 'false');
-  const failureNotice = page.locator('[data-zhiyu-agent-chat-failure="true"]').last();
-  await failureNotice.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await failureNotice.getAttribute('data-zhiyu-agent-chat-failure-reason'), failedEvidence.chat.reasonCode);
-  assert.equal(await failureNotice.getAttribute('data-zhiyu-agent-chat-failure-action'), failedEvidence.chat.actionHint);
-  assert.match(await failureNotice.innerText(), new RegExp(escapeRegExp(failedEvidence.chat.reasonCode)));
-  assert.match(await failureNotice.innerText(), /failed|failure|失败|处理/i);
-  const failedConversationText = await page.locator('[data-zhiyu-region="conversation"]').innerText();
-  assert.match(failedConversationText, new RegExp(escapeRegExp(expectedPartialText)));
-  assert.doesNotMatch(failedConversationText, /runtime-agent-turn-completed|runtime-turn-request-accepted/);
-  await page.locator('[data-chat-composer-textarea="true"]').fill('follow up after failure');
-  await page.waitForFunction(() =>
-    document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
-    && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false,
-  );
-  await captureLiveRuntimeEvidence(page, 'chatFailed', pageProblems, {
-    readyEvidence,
-    failedEvidence,
-  });
-  await page.locator('[data-chat-composer-textarea="true"]').fill('');
-}
-
 async function assertRuntimeNativeVoiceInterruptFlow(page, pageProblems, fixture, readyEvidence) {
   const interruptedPrompt = '请开始一段会被 Runtime 中断的实时语音。';
   const runtimeAuthBinding = await readZhiyuRuntimeAgentAuthBinding(page, readyEvidence);
@@ -1553,427 +1371,4 @@ async function assertRuntimeNativeVoiceInterruptFlow(page, pageProblems, fixture
     voiceStreamId,
     interruptRuntimeTurnId,
   });
-}
-
-async function runCapabilityStudio(page, pageProblems, input) {
-  const prompt = page.locator('textarea[aria-label="文字能力输入"]');
-  await prompt.fill(input.prompt);
-  const action = page.locator(`[data-zhiyu-capability-studio-run="${input.capabilityId}"]`);
-  assert.equal(await action.isDisabled(), false);
-  await action.click();
-  await waitForEvidence(page, input.predicate, input.label);
-  const evidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
-  await captureLiveRuntimeEvidence(page, input.stage, pageProblems, {
-    capabilityStudioEvidence: evidence,
-  });
-  return evidence;
-}
-
-async function readZhiyuRuntimeAgentAuthBinding(page, readyEvidence) {
-  const binding = await page.evaluate(() => {
-    const host = globalThis.window?.__nimiZhiyuRuntimeAgentBinding
-      || globalThis.__nimiZhiyuRuntimeAgentBinding
-      || null;
-    const scopedBinding = typeof host?.getScopedBinding === 'function'
-      ? host.getScopedBinding()
-      : host?.scopedBinding;
-    const hostEquivalence = host?.hostEquivalence || null;
-    return JSON.parse(JSON.stringify({ scopedBinding: scopedBinding || null, hostEquivalence }));
-  });
-  const scopedBinding = binding?.scopedBinding;
-  const scopes = Array.isArray(scopedBinding?.scopes) ? scopedBinding.scopes : [];
-  if (
-    scopedBinding?.bindingId
-    && scopes.includes('runtime.agent.turn.read')
-    && scopes.includes('runtime.agent.turn.write')
-  ) {
-    return { kind: 'scopedBinding', bindingId: scopedBinding.bindingId };
-  }
-  const issued = await page.evaluate(async ({ readyEvidence }) => {
-    const invoke = globalThis.window?.__NIMI_ELECTRON_RUNTIME__?.invoke
-      || globalThis.window?.__NIMI_ELECTRON_TEST__?.invoke
-      || globalThis.__NIMI_ELECTRON_RUNTIME__?.invoke
-      || globalThis.__NIMI_ELECTRON_TEST__?.invoke
-      || null;
-    if (typeof invoke !== 'function') {
-      return { error: 'electron_runtime_invoke_unavailable' };
-    }
-    return invoke('zhiyu.runtimeAgent.issueScopedBinding', {
-      ownerUserId: readyEvidence?.conversation?.ownerUserId,
-      runtimeSourceRef: readyEvidence?.conversation?.runtimeSourceRef,
-      localAgentRef: readyEvidence?.conversation?.localAgentRef,
-      conversationAnchorId: readyEvidence?.conversation?.conversationAnchorId,
-      scopes: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
-      issueRequestId: `zhiyu-live-runtime-voice-interrupt:${Date.now()}`,
-      forceRenewal: true,
-    });
-  }, { readyEvidence });
-  const issuedScopedBinding = issued?.scopedBinding;
-  const issuedScopes = Array.isArray(issuedScopedBinding?.scopes) ? issuedScopedBinding.scopes : [];
-  if (
-    issuedScopedBinding?.bindingId
-    && issuedScopes.includes('runtime.agent.turn.read')
-    && issuedScopes.includes('runtime.agent.turn.write')
-  ) {
-    return { kind: 'scopedBinding', bindingId: issuedScopedBinding.bindingId };
-  }
-  const evidenceRef = String(binding?.hostEquivalence?.evidenceRef || '').trim();
-  if (evidenceRef) {
-    return { kind: 'hostEquivalence', evidenceRef };
-  }
-  assert.fail('Zhiyu live voice interrupt requires renderer Runtime scoped binding or admitted host equivalence');
-}
-
-async function observeLiveRuntimeNativeVoiceInterrupt(input) {
-  const agentClient = createZhiyuLiveRuntimeAgentClient(input.fixture);
-  const stream = await agentClient.subscribeEvents({
-    ownerUserId: input.fixture.ownerUserId,
-    runtimeSourceRef: input.fixture.runtimeSourceRef,
-    localAgentRef: input.fixture.localAgentRef,
-    conversationAnchorId: input.conversationAnchorId,
-    includeAgentEvents: true,
-  });
-  const iterator = stream[Symbol.asyncIterator]();
-  input.onReady?.();
-  const deadlineMs = Date.now() + 75_000;
-  const existingVoiceStreamIds = new Set(input.existingVoiceStreamIds || []);
-  let targetTurnId = '';
-  let targetStreamId = '';
-  let observedEvents = 0;
-  let observedNativeChunks = 0;
-  let skippedExistingNativeChunks = 0;
-  try {
-    for (;;) {
-      const next = await nextAsyncIteratorValue(iterator, deadlineMs, 'Runtime native voice interrupt observer');
-      if (next.done) {
-        break;
-      }
-      const event = next.value;
-      if (!event || typeof event !== 'object') {
-        continue;
-      }
-      observedEvents += 1;
-      if (event.eventName === 'runtime.agent.turn.accepted' && !targetTurnId && runtimeEventObservedAtOrAfter(event, input.notBeforeIso)) {
-        targetTurnId = String(event.turnId || '').trim();
-        targetStreamId = String(event.streamId || '').trim();
-        continue;
-      }
-      if (targetTurnId && event.turnId !== targetTurnId) {
-        continue;
-      }
-      if (!isRuntimeNativeNonFinalVoiceChunkEvent(event)) {
-        continue;
-      }
-      observedNativeChunks += 1;
-      const voiceStreamId = String(event.detail?.voiceStreamId || event.detail?.voice_stream_id || '').trim();
-      if (!voiceStreamId || existingVoiceStreamIds.has(voiceStreamId)) {
-        skippedExistingNativeChunks += 1;
-        continue;
-      }
-      targetTurnId = targetTurnId || String(event.turnId || '').trim();
-      targetStreamId = targetStreamId || String(event.streamId || '').trim();
-      if (!targetTurnId) {
-        continue;
-      }
-      const typed = await captureAndInterruptLiveRuntimeVoiceStream({
-        fixture: input.fixture,
-        conversationAnchorId: input.conversationAnchorId,
-        turnId: targetTurnId,
-        voiceStreamId,
-        runtimeAuthBinding: input.runtimeAuthBinding,
-      });
-      return {
-        nativeChunkEvent: event,
-        interruptRuntimeTurnId: targetTurnId,
-        interruptRuntimeStreamId: targetStreamId,
-        voiceStreamId,
-        ...typed,
-      };
-    }
-  } finally {
-    await iterator.return?.();
-  }
-  throw new Error(
-    `Runtime native voice interrupt observer ended before seeing a new native stream chunk for prompt ${JSON.stringify(input.prompt)}; `
-    + `events=${observedEvents} nativeChunks=${observedNativeChunks} skippedExistingNativeChunks=${skippedExistingNativeChunks} `
-    + `targetTurnId=${targetTurnId || '<none>'}`,
-  );
-}
-
-function createDeferred() {
-  let resolve;
-  let reject;
-  const promise = new Promise((resolvePromise, rejectPromise) => {
-    resolve = resolvePromise;
-    reject = rejectPromise;
-  });
-  return { promise, resolve, reject };
-}
-
-function runtimeEventObservedAtOrAfter(event, notBeforeIso) {
-  if (!notBeforeIso) {
-    return true;
-  }
-  const observed = String(
-    event?.timeline?.observedAtWall
-      || event?.timeline?.observed_at_wall
-      || event?.observedAt
-      || event?.observed_at
-      || '',
-  ).trim();
-  if (!observed) {
-    return false;
-  }
-  const observedMs = Date.parse(observed);
-  const notBeforeMs = Date.parse(notBeforeIso);
-  return Number.isFinite(observedMs) && Number.isFinite(notBeforeMs) && observedMs >= notBeforeMs;
-}
-
-async function captureAndInterruptLiveRuntimeVoiceStream(input) {
-  const voice = createZhiyuLiveRuntimeAgentVoiceModule(input.fixture, input.runtimeAuthBinding);
-  const stream = await voice.subscribeStream({
-    ownerUserId: input.fixture.ownerUserId,
-    runtimeSourceRef: input.fixture.runtimeSourceRef,
-    localAgentRef: input.fixture.localAgentRef,
-    conversationAnchorId: input.conversationAnchorId,
-    turnId: input.turnId,
-    voiceStreamId: input.voiceStreamId,
-  });
-  const iterator = stream[Symbol.asyncIterator]();
-  const deadlineMs = Date.now() + 45_000;
-  try {
-    const first = await nextAsyncIteratorValue(iterator, deadlineMs, 'typed Runtime voice stream first chunk');
-    assert.equal(first.done, false, 'typed Runtime voice stream ended before first chunk');
-    const typedFirstChunk = first.value;
-    assert.equal(typedFirstChunk?.voiceStreamId, input.voiceStreamId);
-    assert.equal(typedFirstChunk?.terminal, false);
-    assert.equal((typedFirstChunk?.chunk?.byteLength ?? 0) > 0, true, 'typed Runtime voice stream must carry bytes in the non-final chunk');
-
-    const interruptResponse = await promiseWithTimeout(
-      interruptLiveRuntimeFixtureVoicePlayback(input.fixture, {
-        ownerUserId: input.fixture.ownerUserId,
-        runtimeSourceRef: input.fixture.runtimeSourceRef,
-        localAgentRef: input.fixture.localAgentRef,
-        conversationAnchorId: input.conversationAnchorId,
-        turnId: input.turnId,
-        voiceStreamId: input.voiceStreamId,
-        reason: 'zhiyu_electron_live_voice_interrupt',
-        runtimeAuthBinding: input.runtimeAuthBinding,
-      }),
-      10_000,
-      `Runtime voice interrupt RPC did not return for ${input.voiceStreamId}`,
-    );
-
-    for (;;) {
-      const next = await nextAsyncIteratorValue(iterator, deadlineMs, `typed Runtime voice stream interrupted terminal for ${input.voiceStreamId}`);
-      assert.equal(next.done, false, 'typed Runtime voice stream ended before interrupted terminal');
-      const event = next.value;
-      if (!event?.terminal) {
-        continue;
-      }
-      return {
-        typedFirstChunk,
-        typedTerminalEvent: event,
-        interruptResponse,
-      };
-    }
-  } finally {
-    await iterator.return?.();
-  }
-}
-
-function createZhiyuLiveRuntimeAgentClient(fixture) {
-  const runtime = createRuntimeForEndpoint(fixture.endpoint, zhiyuRuntimeVoiceObserverAppId);
-  return createNimiRuntimeAgentClient({
-    runtime: {
-      appId: zhiyuRuntimeVoiceObserverAppId,
-      auth: runtime.auth,
-      appAuth: runtime.grants,
-      agents: runtime.agents,
-      appMessages: runtime.appMessages,
-    },
-    appId: zhiyuRuntimeVoiceObserverAppId,
-    getSubjectUserId: () => fixture.ownerUserId,
-    withScopes: createZhiyuLiveRuntimeScopeRunner(fixture, runtime),
-  });
-}
-
-function createZhiyuLiveRuntimeAgentVoiceModule(fixture, runtimeAuthBinding) {
-  const runtime = createRuntimeForEndpoint(fixture.endpoint, zhiyuAppId);
-  return createNimiRuntimeAgentVoiceModule({
-    runtime: {
-      appId: zhiyuAppId,
-      auth: runtime.auth,
-      appAuth: runtime.grants,
-      agents: runtime.agents,
-      artifacts: runtime.artifacts,
-    },
-    getSubjectUserId: () => fixture.ownerUserId,
-    withScopes: createZhiyuRuntimeAuthBindingScopeRunner(runtimeAuthBinding),
-  });
-}
-
-function createZhiyuRuntimeAuthBindingScopeRunner(runtimeAuthBinding) {
-  return async (_scopes, operation) => operation({
-    metadata: zhiyuRuntimeAuthBindingMetadata(runtimeAuthBinding),
-  });
-}
-
-function createZhiyuLiveRuntimeScopeRunner(fixture, runtime) {
-  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
-    appId: zhiyuRuntimeVoiceObserverAppId,
-    appInstanceId: zhiyuRuntimeVoiceObserverAppInstanceId,
-    deviceId: 'nimi-zhiyu-live-runtime-voice-observer-device',
-    appVersion: 'zhiyu-electron-live-runtime-acceptance',
-    developerRegistration: false,
-    capabilities: zhiyuRuntimeProtectedScopes,
-    auth: runtime.auth,
-  });
-  return (scopes, operation) =>
-    withNimiRuntimeAgentScopes({
-      runtime: {
-        appId: zhiyuRuntimeVoiceObserverAppId,
-        auth: runtime.auth,
-        appAuth: runtime.grants,
-      },
-      subjectUserId: fixture.ownerUserId,
-    }, scopes, async (callOptions) => {
-      const metadata = await sessionMetadata();
-      return operation({
-        ...callOptions,
-        metadata: {
-          ...metadata,
-          ...(callOptions.metadata ?? {}),
-        },
-      });
-    });
-}
-
-function isRuntimeNativeNonFinalVoiceChunkEvent(event) {
-  return event?.eventName === 'runtime.agent.presentation.voice_stream_chunk_available'
-    && event?.detail?.voiceOutputMode === 'native_stream'
-    && event?.detail?.voicePlaybackState === 'active'
-    && event?.detail?.finalChunk === false
-    && Boolean(event?.detail?.voiceStreamId || event?.detail?.voice_stream_id)
-    && Boolean(event?.detail?.chunkTransportRef || event?.detail?.chunk_transport_ref)
-    && !Boolean(event?.detail?.audioArtifactId || event?.detail?.audio_artifact_id);
-}
-
-async function nextAsyncIteratorValue(iterator, deadlineMs, label) {
-  const remainingMs = Math.max(0, deadlineMs - Date.now());
-  if (remainingMs <= 0) {
-    throw new Error(`${label} timed out`);
-  }
-  let timeout = null;
-  try {
-    return await Promise.race([
-      iterator.next(),
-      new Promise((_, reject) => {
-        timeout = setTimeout(() => reject(new Error(`${label} timed out`)), remainingMs);
-        timeout.unref?.();
-      }),
-    ]);
-  } finally {
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-  }
-}
-
-async function promiseWithTimeout(promise, timeoutMs, label) {
-  let timeout = null;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise((_, reject) => {
-        timeout = setTimeout(() => reject(new Error(`${label} within ${timeoutMs}ms`)), timeoutMs);
-        timeout.unref?.();
-      }),
-    ]);
-  } finally {
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-  }
-}
-
-function summarizeTypedVoiceStreamEvent(event) {
-  return {
-    voiceStreamId: event?.voiceStreamId || '',
-    conversationAnchorId: event?.conversationAnchorId || '',
-    turnId: event?.turnId || '',
-    streamId: event?.streamId || '',
-    messageId: event?.messageId || '',
-    chunkSequence: Number(event?.chunkSequence ?? 0),
-    byteLength: Number(event?.chunk?.byteLength ?? 0),
-    mimeType: event?.mimeType || '',
-    voiceOutputMode: event?.voiceOutputMode,
-    voicePlaybackState: event?.voicePlaybackState,
-    terminal: event?.terminal === true,
-    terminalReason: event?.terminalReason || '',
-    replayTruncated: event?.replayTruncated === true,
-  };
-}
-
-async function readLiveRuntimeFixtureArtifactBytes(fixture, artifactId) {
-  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
-    appId: desktopAppId,
-    appInstanceId: `${desktopAppId}.live-runtime`,
-    deviceId: 'nimi-desktop-live-runtime-device',
-    appVersion: 'zhiyu-electron-live-runtime-acceptance',
-    developerRegistration: false,
-    auth: fixture.runtime.auth,
-  });
-  return fixture.runtime.artifacts.readArtifactBytes({ artifactId }, {
-    metadata: await sessionMetadata(),
-  });
-}
-
-async function interruptLiveRuntimeFixtureVoicePlayback(fixture, input) {
-  const runtime = createRuntimeForEndpoint(fixture.endpoint, zhiyuAppId);
-  const idempotencyKey = `zhiyu-live-runtime-voice-interrupt:${input.voiceStreamId}`;
-  return runtime.agents.interruptAgentVoicePlayback({
-    context: {
-      appId: zhiyuAppId,
-      subjectUserId: input.ownerUserId,
-      ownerUserId: input.ownerUserId,
-      runtimeSourceRef: input.runtimeSourceRef,
-      localAgentRef: input.localAgentRef,
-    },
-    conversationAnchorId: input.conversationAnchorId,
-    turnId: input.turnId,
-    voiceStreamId: input.voiceStreamId,
-    reason: input.reason,
-  }, {
-    metadata: {
-      ...zhiyuRuntimeAuthBindingMetadata(input.runtimeAuthBinding),
-      idempotencyKey,
-      'x-nimi-idempotency-key': idempotencyKey,
-    },
-  });
-}
-
-function zhiyuRuntimeAuthBindingMetadata(runtimeAuthBinding) {
-  if (runtimeAuthBinding?.kind === 'scopedBinding') {
-    const bindingId = String(runtimeAuthBinding.bindingId || '').trim();
-    assert.ok(bindingId, 'Zhiyu Runtime scoped binding id is required for owner-app voice operations');
-    return { 'x-nimi-runtime-scoped-binding-id': bindingId };
-  }
-  if (runtimeAuthBinding?.kind === 'hostEquivalence') {
-    const evidenceRef = String(runtimeAuthBinding.evidenceRef || '').trim();
-    assert.ok(evidenceRef, 'Zhiyu Runtime host equivalence evidence is required for owner-app voice operations');
-    return { 'x-nimi-runtime-host-equivalence': evidenceRef };
-  }
-  assert.fail('Zhiyu Runtime auth binding is required for owner-app voice operations');
-}
-
-function runtimeProjectionEventTurnId(event) {
-  return String(
-    event?.runtimeTurnId
-      || event?.turnId
-      || event?.detail?.runtimeTurnId
-      || event?.detail?.turnId
-      || event?.detail?.turn_id
-      || '',
-  ).trim();
 }

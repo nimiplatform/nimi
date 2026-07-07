@@ -232,10 +232,10 @@ export const ZHIYU_DESKTOP_AGENT_CHAT_SOURCE_MAP: readonly ZhiyuDesktopAgentChat
     note: 'Thinking preference is disabled/deferred unless the route exposes an admitted request surface.',
   },
   {
-    desktopSource: 'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-panel.tsx',
+    desktopSource: 'kit/features/agent-center/src/components/AgentCenter.tsx',
     zhiyuTarget: panelTarget,
-    status: 'adapted',
-    note: 'Agent Center overview, appearance, behavior, model, cognition, and advanced tabs.',
+    status: 'migrated',
+    note: 'RLA4 hardcut: reusable Agent Center overview, appearance, behavior, model, cognition, and advanced tabs are owned by Kit.',
   },
   {
     desktopSource: 'apps/desktop/src/shell/renderer/features/chat/chat-shared-side-sheet.tsx',

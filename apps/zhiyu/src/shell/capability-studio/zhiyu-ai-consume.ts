@@ -46,7 +46,7 @@ export async function runZhiyuCapabilityStudioAIConsume(
       subjectUserId: input.subjectUserId,
       surfaceId: 'zhiyu.capability-studio.audio.synthesize',
       metadata: {
-        productSurface: 'agent-center-advanced',
+        productSurface: 'zhiyu-dev-tooling',
         zhiyuSurface: 'agent-chat',
       },
       withScopes: input.withScopes,

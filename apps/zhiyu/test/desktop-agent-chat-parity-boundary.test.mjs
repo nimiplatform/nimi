@@ -80,7 +80,7 @@ const requiredDesktopSources = [
   'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter-attachments.ts',
   'apps/desktop/src/shell/renderer/features/chat/chat-agent-user-projection.ts',
   'apps/desktop/src/shell/renderer/features/chat/chat-shared-thinking.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-panel.tsx',
+  'kit/features/agent-center/src/components/AgentCenter.tsx',
   'apps/desktop/src/shell/renderer/features/chat/chat-shared-side-sheet.tsx',
   'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-panel-components.tsx',
   'apps/desktop/src/shell/renderer/features/chat/chat-agent-cognition-panel.tsx',
@@ -269,28 +269,28 @@ test('Agent Center appearance config keeps Desktop avatar, background, and Live2
   );
 });
 
-test('Agent Center overview avatar checklist opens Appearance instead of launching Avatar', async () => {
+test('Agent Center placement delegates section navigation to Kit instead of owning checklist actions', async () => {
   const source = await readAgentChatSource();
 
   assert.match(
     source,
-    /const openAppearanceConfig = \(\) => onActiveTabChange\('appearance'\);/,
-    'Agent Center must expose a dedicated Appearance navigation handler',
+    /@nimiplatform\/kit\/features\/agent-center/,
+    'Zhiyu Agent Center placement must consume the Kit Agent Center surface',
   );
   assert.match(
     source,
-    /onClick=\{avatarReady \? onOpenModelConfig : openAppearanceConfig\}/,
-    'Overview hero continue-avatar CTA must open Appearance when avatar setup is missing',
+    /activeSection=\{props\.activeTab\}/,
+    'Zhiyu placement must pass active section into Kit Agent Center',
   );
   assert.match(
     source,
-    /<RightPanelRow index=\{1\} title="形象"[\s\S]{0,260}onClick=\{openAppearanceConfig\}/,
-    'Overview avatar checklist row must follow Desktop and open the Appearance section',
+    /onSectionChange=\{props\.onActiveTabChange\}/,
+    'Zhiyu placement must let Kit section buttons drive section changes',
   );
   assert.doesNotMatch(
     source,
-    /<RightPanelRow index=\{1\} title="形象"[\s\S]{0,260}onClick=\{onAvatarLaunch\}/,
-    'Overview avatar checklist row must not call the Avatar launch action while setup is missing',
+    /zhiyu-agent-center__setup-hero/,
+    'Zhiyu must not keep a parallel overview checklist inside Agent Center',
   );
 });
 
@@ -479,16 +479,14 @@ test('chat voice controls project Runtime voice truth without settings-only pseu
   );
 });
 
-test('Agent Center section buttons expose Desktop active-page accessibility semantics', async () => {
+test('Agent Center section buttons come from Kit active-page semantics', async () => {
   const surfaceSource = await readAgentChatSource();
+  const kitSource = await readFile(path.join(repoRoot, 'kit', 'features', 'agent-center', 'src', 'components', 'AgentCenter.tsx'), 'utf8');
 
-  for (const tab of ['overview', 'appearance', 'behavior', 'model', 'cognition', 'advanced']) {
-    assert.match(
-      surfaceSource,
-      new RegExp(`data-zhiyu-agent-center-tab-button="${tab}"[\\s\\S]{0,180}aria-current=\\{activeTab === '${tab}' \\? 'page' : undefined\\}`),
-      `${tab} Agent Center tab must expose aria-current like Desktop AgentCenterPanel`,
-    );
-  }
+  assert.match(surfaceSource, /<AgentCenter/);
+  assert.match(kitSource, /data-testid=\{`chat-agent-center-section:\$\{section\}`\}/);
+  assert.match(kitSource, /aria-current=\{selected \? 'page' : undefined\}/);
+  assert.match(kitSource, /aria-pressed=\{selected\}/);
 });
 
 test('Agent Center header mirrors Desktop side-sheet identity metadata', async () => {
@@ -498,8 +496,8 @@ test('Agent Center header mirrors Desktop side-sheet identity metadata', async (
     'data-zhiyu-agent-center-eyebrow="AGENT CENTER"',
     'data-zhiyu-agent-center-local-agent-ref',
     'data-zhiyu-agent-center-world-chip',
-    'agentCenterLocalAgentRef(evidence)',
-    'agentCenterWorldLabel(evidence)',
+    'agentCenterLocalAgentRef(props.evidence)',
+    'agentCenterWorldLabel(props.evidence)',
   ]) {
     assert.match(sourceWithNormalizedWhitespace(surfaceSource), new RegExp(escapeRegExp(marker)), `${marker} missing from Desktop Agent Center header metadata`);
   }
@@ -511,38 +509,19 @@ test('Agent Center header mirrors Desktop side-sheet identity metadata', async (
   );
 });
 
-test('Agent Center model settings use Desktop Chat ModelConfig capability matrix and card shell', async () => {
-  const desktopSettingsSource = await readFile(path.join(repoRoot, 'apps', 'desktop', 'src', 'shell', 'renderer', 'features', 'chat', 'chat-shared-settings-panel.tsx'), 'utf8');
-  const zhiyuCapabilitiesSource = await readFile(path.join(appRoot, 'src', 'shell', 'ai-config', 'zhiyu-ai-config-capabilities.ts'), 'utf8');
+test('Agent Center model section projects Runtime execution config and excludes Zhiyu AIConfig settings', async () => {
   const zhiyuSettingsSource = await readFile(path.join(appRoot, 'src', 'shell', 'ai-config', 'zhiyu-ai-config-settings.tsx'), 'utf8');
   const rightPanelSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'ZhiyuAgentRightPanel.tsx'), 'utf8');
-  const css = await readFile(path.join(appRoot, 'src', 'shell', 'app', 'home-surface.css'), 'utf8');
+  const kitModelSource = await readFile(path.join(repoRoot, 'kit', 'features', 'agent-center', 'src', 'components', 'AgentCenterModelSection.tsx'), 'utf8');
 
-  const desktopCapabilities = stringArrayLiteralAfter(desktopSettingsSource, 'const CHAT_ENABLED_CAPABILITIES =');
-  const zhiyuCapabilities = stringArrayLiteralAfter(zhiyuCapabilitiesSource, 'export const ZHIYU_AI_CONFIG_ENABLED_CAPABILITIES =');
-
-  assert.deepEqual(
-    zhiyuCapabilities,
-    desktopCapabilities,
-    'Zhiyu Agent Center model settings must feed the same canonical capability matrix as Desktop ChatSettingsPanel',
-  );
-  assert.doesNotMatch(zhiyuCapabilitiesSource, /['"]chat\.stream['"]/, 'chat.stream must not be reintroduced into Agent Center ModelConfig input');
-  assert.match(zhiyuSettingsSource, /sections:\s*\['image',\s*'video'\]/, 'Zhiyu ModelConfig super sections must keep Desktop media grouping');
-  assert.match(zhiyuSettingsSource, /'ModelConfig\.profile\.importLabel':\s*'导入 AI 预设'/, 'Profile import label must not fall back to raw "import"');
-  assert.match(rightPanelSource, /<span>该 Agent 使用工作区的默认路由。<\/span>/, 'Model route card must keep Desktop shared-route copy');
-  assert.match(rightPanelSource, /<button type="button" onClick=\{onOpenModelConfig\}>[\s\S]*?覆盖[\s\S]*?<\/button>/, 'Model route override must remain an actionable Desktop-style control');
-  assert.match(
-    css,
-    /\.zhiyu-agent-center__model-config-card\s*\{[\s\S]*?padding:\s*16px;[\s\S]*?border-radius:\s*14px;[\s\S]*?background:\s*#fff;[\s\S]*?box-shadow:\s*none;/,
-    'Embedded ModelConfig must sit in the Desktop single white 14px model card shell',
-  );
-  assert.match(
-    css,
-    /\.zhiyu-ai-config-embedded\s*\{[\s\S]*?padding:\s*0;[\s\S]*?border:\s*0;[\s\S]*?background:\s*transparent;[\s\S]*?box-shadow:\s*none;/,
-    'Embedded ModelConfig wrapper must not add a second Zhiyu card surface',
-  );
-}
-);
+  assert.match(rightPanelSource, /buildZhiyuAgentCenterState/);
+  assert.match(rightPanelSource, /executionConfig:\s*buildExecutionConfig\(evidence\)/);
+  assert.match(rightPanelSource, /readiness:\s*buildReadiness\(evidence\)/);
+  assert.doesNotMatch(rightPanelSource, /ZhiyuAiConfigSettings|data-zhiyu-ai-config-embedded|modelConfigContent/);
+  assert.doesNotMatch(zhiyuSettingsSource, /data-zhiyu-ai-config-embedded="agent-center"/);
+  assert.match(kitModelSource, /capability\.editable \? 'Editable' : 'Read-only projection'/);
+  assert.match(kitModelSource, /capability\.binding\?\.modelId \|\| 'Not configured'/);
+});
 
 test('Zhiyu presence rail does not keep migrated Desktop topbar, nav, or add chrome', async () => {
   const railSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'ZhiyuAgentPanel.tsx'), 'utf8');
@@ -711,13 +690,13 @@ test('Desktop Agent Center side sheet uses Desktop shared side-sheet density', a
   assert.doesNotMatch(surfaceSource, /my-\[72px\]|h-\[calc\(100vh-144px\)\]/);
   assert.match(
     surfaceSource,
-    /function agentCenterTabClassName[\s\S]*?min-w-\[76px\][\s\S]*?text-\[13px\][\s\S]*?text-\[0px\]/,
-    'Agent Center tabs must use the desktop compact active-page density from source classes, not CSS selector overrides',
+    /data-zhiyu-agent-center-kit-surface="true"/,
+    'Zhiyu side sheet must host the Kit Agent Center surface instead of local tab density code',
   );
   assert.match(
     surfaceSource,
-    /<ScrollShell[\s\S]*?className="zhiyu-agent-center__body grid flex-1 content-start gap-3 px-5 py-3"/,
-    'Agent Center body must use the shared desktop scroll shell structure',
+    /className="zhiyu-agent-center__body grid flex-1 content-start gap-3 overflow-auto px-5 py-3"/,
+    'Agent Center body must keep the desktop sheet scroll density around the Kit surface',
   );
   assert.match(
     css,

@@ -2,7 +2,7 @@ import {
   StatusBadge,
   Surface,
 } from '@nimiplatform/kit/ui';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ChatComposerAdapter } from '@nimiplatform/kit/features/chat/headless';
 import {
   CanonicalComposer,
@@ -12,19 +12,11 @@ import {
 import {
   X,
 } from 'lucide-react';
-import type { ZhiyuDelegationApprovalDecision, ZhiyuEvidence } from '../app/evidence';
+import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
-import type { ZhiyuCapabilityStudioCapabilityId } from '../app/developer-capability-studio';
-import type { ZhiyuCapabilityRoomState } from '../app/capability-room-state';
-import type { ZhiyuDiagnosticState } from '../app/diagnostic-state';
 import type {
-  ZhiyuHomeGatedSurface,
   ZhiyuHomeProductState,
 } from '../app/home-product-state';
-import type { ZhiyuIdentityFloorState } from '../app/identity-floor-state';
-import { CompanionStateSection } from '../app/home-companion-state-section';
-import { DelegationUxSection } from '../app/home-delegation-ux-section';
-import { DiaryReflectionSection } from '../app/home-diary-reflection-section';
 import {
   DesktopPresenceRail,
 } from './ZhiyuAgentPanel';
@@ -48,40 +40,22 @@ import {
   type AgentPanelTab,
   type RightPanelMode,
 } from './ZhiyuAgentRightPanel';
-import { MemoryObservatorySection } from '../app/home-memory-observatory-section';
 import {
-  AvatarPresenceSection,
-  CapabilityRoomSection,
-  IdentityFloorSection,
   formatReasonLabel,
 } from '../app/home-surface-sections';
 import { ZHIYU_PRODUCT_STORYBOOK_VERSION } from '../app/zhiyu-product-storybook';
-import { AgentCenterProposalSection } from './AgentCenterProposalSection';
 import '../app/home-surface.css';
 
 export type ZhiyuAgentChatSurfaceProps = {
   readonly evidence: ZhiyuEvidence;
   readonly product: ZhiyuHomeProductState;
-  readonly capabilityRoom: ZhiyuCapabilityRoomState;
-  readonly diagnostics: ZhiyuDiagnosticState;
-  readonly identityFloor: ZhiyuIdentityFloorState;
   readonly draft: string;
-  readonly capabilityPrompt: string;
   readonly submitEnabled: boolean;
   readonly composerState: string;
-  readonly capabilityStudioDisabled: boolean;
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
-  readonly modelConfigContent?: ReactNode;
   readonly onDraftChange: (value: string) => void;
-  readonly onCapabilityPromptChange: (value: string) => void;
   readonly onSubmit: (text: string) => Promise<void> | void;
   readonly onStopChat: () => void;
-  readonly onCapabilityStudioRun: (capabilityId: ZhiyuCapabilityStudioCapabilityId) => void;
-  readonly onProposalSubmit: () => void;
-  readonly onDelegationDecision: (
-    approvalRequestId: string,
-    decision: ZhiyuDelegationApprovalDecision,
-  ) => void;
   readonly onSelectLocalAgent: (localAgentRef: string) => void;
   readonly onAvatarLaunch?: () => void;
   readonly onAvatarManage?: () => void;
@@ -90,33 +64,20 @@ export type ZhiyuAgentChatSurfaceProps = {
 export function ZhiyuAgentChatSurface({
   evidence,
   product,
-  capabilityRoom,
-  diagnostics,
-  identityFloor,
   draft,
-  capabilityPrompt,
   submitEnabled,
   composerState,
-  capabilityStudioDisabled,
   avatarLaunchAction,
-  modelConfigContent,
   onDraftChange,
-  onCapabilityPromptChange,
   onSubmit,
   onStopChat,
-  onCapabilityStudioRun,
-  onProposalSubmit,
-  onDelegationDecision,
   onSelectLocalAgent,
   onAvatarLaunch,
-  onAvatarManage,
 }: ZhiyuAgentChatSurfaceProps) {
   const modelConfigLabel = chatPrimaryBindingLabel(evidence);
   const currentPartnerName = currentPartnerDisplayName(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
   const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
-  const modelConfigured = Boolean(evidence.route.executionBinding);
-  const showCapabilityStudio = hasCurrentPartner && modelConfigured;
   const actionArtifactSummary = runtimeActionArtifactSummary(evidence.chat);
   const chatComposerAdapter: ChatComposerAdapter<never> = {
     submit: async (input) => {
@@ -171,9 +132,6 @@ export function ZhiyuAgentChatSurface({
     }
     root.scrollTop = root.scrollHeight;
   }, [getChatTranscriptRoot]);
-  const primaryMemorySurface = product.gatedSurfaces.find((surface) => surface.key === 'memory');
-  const primaryAvatarSurface = product.gatedSurfaces.find((surface) => surface.key === 'avatar');
-  const primaryCompanionSurface = product.gatedSurfaces.find((surface) => surface.key === 'companion');
   const openModelConfig = () => {
     setRightPanelMode('agent');
     setActiveAgentTab('model');
@@ -243,55 +201,6 @@ export function ZhiyuAgentChatSurface({
     getChatTranscriptRoot,
     scrollChatTranscriptToLatest,
   ]);
-  const technicalSurfaces = product.gatedSurfaces.filter((surface) => (
-    surface.key !== 'memory' && surface.key !== 'avatar' && surface.key !== 'companion'
-  ));
-  const renderGatedSurface = (surface: ZhiyuHomeGatedSurface) => {
-    if (surface.key === 'capability') {
-      return <CapabilityRoomSection key={surface.key} capabilityRoom={capabilityRoom} />;
-    }
-    if (surface.key === 'proposal') {
-      return (
-        <AgentCenterProposalSection
-          key={surface.key}
-          surface={surface}
-          proposal={evidence.proposal}
-          onSubmit={onProposalSubmit}
-        />
-      );
-    }
-    if (surface.key === 'delegation') {
-      return (
-        <DelegationUxSection
-          key={surface.key}
-          surface={surface}
-          delegation={evidence.delegation}
-          onDecision={onDelegationDecision}
-        />
-      );
-    }
-    if (surface.key === 'identity') {
-      return <IdentityFloorSection key={surface.key} surface={surface} identityFloor={identityFloor} />;
-    }
-    if (surface.key === 'companion') {
-      return <CompanionStateSection key={surface.key} surface={surface} companion={evidence.companion} />;
-    }
-    if (surface.key === 'diary') {
-      return <DiaryReflectionSection key={surface.key} surface={surface} diary={evidence.diaryReflection} />;
-    }
-    if (surface.key === 'avatar') {
-      return (
-        <AvatarPresenceSection
-          key={surface.key}
-          surface={surface}
-          avatar={evidence.avatar}
-          onLaunch={onAvatarLaunch}
-          onManage={onAvatarManage}
-        />
-      );
-    }
-    return <MemoryObservatorySection key={surface.key} surface={surface} memory={evidence.memory} />;
-  };
   return (
     <main
       className="zhiyu-agent-chat"
@@ -464,28 +373,11 @@ export function ZhiyuAgentChatSurface({
             mode={rightPanelMode}
             evidence={evidence}
             currentPartnerName={currentPartnerName}
-            hasCurrentPartner={hasCurrentPartner}
-            modelConfigLabel={modelConfigLabel}
-            modelConfigContent={modelConfigContent}
-            diagnostics={diagnostics}
-            capabilityRoom={capabilityRoom}
-            capabilityPrompt={capabilityPrompt}
-            capabilityStudioDisabled={capabilityStudioDisabled}
-            showCapabilityStudio={showCapabilityStudio}
-            technicalSurfaces={technicalSurfaces}
-            primaryMemorySurface={primaryMemorySurface}
-            primaryCompanionSurface={primaryCompanionSurface}
-            primaryAvatarSurface={primaryAvatarSurface}
-            avatarLaunchAction={avatarLaunchAction}
             activeTab={activeAgentTab}
             onActiveTabChange={setActiveAgentTab}
             onClose={() => setRightPanelMode('closed')}
             onOpenModelConfig={openModelConfig}
-            onCapabilityPromptChange={onCapabilityPromptChange}
-            onCapabilityStudioRun={onCapabilityStudioRun}
-            onSelectPartner={() => setActiveAgentTab('overview')}
             onAvatarLaunch={onAvatarLaunch}
-            renderGatedSurface={renderGatedSurface}
           />
         ) : null}
       </div>

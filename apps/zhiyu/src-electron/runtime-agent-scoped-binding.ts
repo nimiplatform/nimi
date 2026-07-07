@@ -20,6 +20,11 @@ const delegationScopes = [
   'runtime.agent.delegation.read',
   'runtime.agent.delegation.write',
 ] as const;
+const admittedScopedBindingScopes = new Set<string>([
+  ...delegationScopes,
+  'runtime.agent.turn.read',
+  'runtime.agent.turn.write',
+]);
 const scopedBindingTtlSeconds = 15 * 60;
 
 export interface ZhiyuRuntimeAgentScopedBindingRuntime {
@@ -44,6 +49,7 @@ export function createZhiyuRuntimeAgentScopedBindingCommandHandler(input: {
     const localAgentRef = requireText(payload.localAgentRef, 'localAgentRef');
     const conversationAnchorId = requireText(payload.conversationAnchorId, 'conversationAnchorId');
     const issueRequestId = optionalText(payload.issueRequestId) || createScopedBindingIssueRequestId();
+    const scopes = requestedScopedBindingScopes(payload.scopes);
     await assertRuntimeAccountMatchesOwner({
       runtime,
       accountCaller,
@@ -55,7 +61,7 @@ export function createZhiyuRuntimeAgentScopedBindingCommandHandler(input: {
       caller: accountCaller,
       agentId: localAgentRef,
       conversationAnchorId,
-      scopes: delegationScopes,
+      scopes,
       ttlSeconds: scopedBindingTtlSeconds,
       options: withNimiRuntimeIdempotencyMetadata(
         undefined,
@@ -68,7 +74,7 @@ export function createZhiyuRuntimeAgentScopedBindingCommandHandler(input: {
         bindingSource: 'runtime-account-service',
         expiresAt: isoFromMs(issued.expiresAtMs),
         expiresAtMs: issued.expiresAtMs,
-        scopes: [...delegationScopes],
+        scopes,
       },
       accountId: ownerUserId,
       reasonCode: 'zhiyu-runtime-agent-scoped-binding-issued',
@@ -99,6 +105,26 @@ async function assertRuntimeAccountMatchesOwner(input: {
       },
     });
   }
+}
+
+function requestedScopedBindingScopes(value: unknown): string[] {
+  const requested = Array.isArray(value)
+    ? [...new Set(value.map(optionalText).filter(Boolean))].sort()
+    : [];
+  const scopes = requested.length > 0 ? requested : [...delegationScopes];
+  for (const scope of scopes) {
+    if (!admittedScopedBindingScopes.has(scope)) {
+      throw new NimiElectronShellHostError({
+        code: 'invalid-payload',
+        reasonCode: 'zhiyu-runtime-agent-scoped-binding-scope-unadmitted',
+        actionHint: 'request_admitted_runtime_agent_scoped_binding_scope',
+        source: 'runtime',
+        message: `Zhiyu Runtime Agent scoped binding scope is not admitted: ${scope}`,
+        details: { scope },
+      });
+    }
+  }
+  return scopes;
 }
 
 function scopedBindingIdempotencyKey(

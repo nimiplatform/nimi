@@ -199,9 +199,7 @@ async function resolveDelegationSurface(
     resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost,
     scopedBindingForRuntimeAgentRequest,
   } = await import('../agent-chat/runtime-agent-binding');
-  const requiredScopes = mode === 'read'
-    ? [DELEGATION_READ_SCOPE]
-    : [DELEGATION_READ_SCOPE, DELEGATION_WRITE_SCOPE];
+  const requiredScopes = [DELEGATION_READ_SCOPE, DELEGATION_WRITE_SCOPE];
   const scopedBindingDecision = await resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost({
     ownerUserId: identity.ownerUserId,
     runtimeSourceRef: identity.runtimeSourceRef,

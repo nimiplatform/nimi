@@ -5,95 +5,27 @@ import { pathToFileURL } from 'node:url';
 import type { BrowserWindow, IpcMain } from 'electron';
 import { dialog } from 'electron';
 import { findLive2dModelEntries } from './live2d-source.js';
-
-type AgentCenterAvatarAssetKind = 'live2d' | 'vrm';
-type AvatarImportState = 'valid' | 'invalid_manifest' | 'missing_entry' | 'permission_denied' | 'path_rejected' | 'unsupported_kind' | 'asset_missing' | 'digest_mismatch';
-type BackgroundImportState = 'valid' | 'invalid_manifest' | 'missing_image' | 'permission_denied' | 'path_rejected' | 'unsupported_mime' | 'asset_missing' | 'digest_mismatch';
-
-type LocalConfigScope = {
-  accountId: string;
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
-};
-
-type AgentCenterLocalConfig = {
-  schema_version: 1;
-  config_kind: 'agent_center_local_config';
-  account_id: string;
-  owner_user_id: string;
-  runtime_source_ref: string;
-  local_agent_ref: string;
-  modules: {
-    appearance: {
-      schema_version: 1;
-      background_asset_id: string | null;
-      motion: 'system' | 'reduced' | 'full';
-    };
-    avatar_asset: {
-      schema_version: 1;
-      conversation_anchor_scope: 'current_anchor' | 'explicit_debug_anchor' | 'no_anchor';
-      local_avatar_asset_ref: string | null;
-      live2d_adapter_manifest_source: 'none' | 'embedded_creator_manifest' | 'external_sidecar_manifest';
-      live2d_adapter_manifest_ref: string | null;
-      live2d_calibration_ref: string | null;
-      avatar_instance_policy: 'reuse_active_instance' | 'launch_new_instance' | 'require_user_selection';
-      backend_kind: 'live2d' | 'vrm' | 'future';
-      backend_capability_profile_ref: string | null;
-      generated_motion_provider_policy: 'require_profile_support' | 'disable_generated_motion' | 'debug_only';
-      launch_mode: 'manual' | 'debug_session' | 'start_with_chat';
-      debug_profile: 'standard' | 'strict_backend_evidence' | 'route_matrix';
-      updated_at: string;
-      provenance: {
-        source: 'user_selection' | 'import_validation' | 'runtime_projection' | 'avatar_backend_evidence';
-        evidence_ref: string;
-      };
-    };
-    local_history: {
-      schema_version: 1;
-      last_cleared_at: string | null;
-    };
-    voice: {
-      schema_version: 1;
-      avatar_autoplay: boolean;
-    };
-    ui: {
-      schema_version: 1;
-      last_section: 'overview' | 'appearance' | 'chat_behavior' | 'model' | 'cognition' | 'advanced';
-    };
-  };
-};
-
-type ValidationIssue = {
-  code: string;
-  message: string;
-  path: string | null;
-  severity: 'error' | 'warning';
-};
-
-type AvatarValidationResult = {
-  schema_version: 1;
-  local_asset_id: string;
-  checked_at: string;
-  status: AvatarImportState;
-  errors: ValidationIssue[];
-  warnings: ValidationIssue[];
-};
-
-type BackgroundValidationResult = {
-  schema_version: 1;
-  background_asset_id: string;
-  checked_at: string;
-  status: BackgroundImportState;
-  errors: ValidationIssue[];
-  warnings: ValidationIssue[];
-};
+import {
+  assertSameScope,
+  createDefaultConfig,
+  normalizeText,
+  parseAvatarAssetId,
+  parseAvatarKind,
+  parseBackgroundAssetId,
+  parseConfig,
+  parseRequiredString,
+  parseScope,
+  type AgentCenterAvatarAssetKind,
+  type AgentCenterLocalConfig,
+  type AvatarImportState,
+  type AvatarValidationResult,
+  type BackgroundImportState,
+  type BackgroundValidationResult,
+  type LocalConfigScope,
+  type ValidationIssue,
+} from './agent-center-local-config-schema.js';
 
 const CHANNEL = 'zhiyu:agent-center-local-config';
-const NORMALIZED_ID_PATTERN = /^(?=.*[A-Za-z0-9])(?!\.{1,2}$)(?!.*:\/\/)[A-Za-z0-9._~:@+-]{1,256}$/u;
-const AVATAR_ID_PATTERN = /^(live2d|vrm)_[a-f0-9]{12}$/u;
-const BACKGROUND_ID_PATTERN = /^bg_[a-f0-9]{12}$/u;
-const ADAPTER_ID_PATTERN = /^live2d_adapter_[a-f0-9]{12}$/u;
 const ALLOWED_AVATAR_COMMANDS = new Set([
   'config.get',
   'config.put',
@@ -481,153 +413,6 @@ async function writeConfig(dataRoot: string, config: AgentCenterLocalConfig): Pr
   await writeJson(configPath, config);
 }
 
-function createDefaultConfig(scope: LocalConfigScope): AgentCenterLocalConfig {
-  return {
-    schema_version: 1,
-    config_kind: 'agent_center_local_config',
-    account_id: scope.accountId,
-    owner_user_id: scope.ownerUserId,
-    runtime_source_ref: scope.runtimeSourceRef,
-    local_agent_ref: scope.localAgentRef,
-    modules: {
-      appearance: {
-        schema_version: 1,
-        background_asset_id: null,
-        motion: 'system',
-      },
-      avatar_asset: {
-        schema_version: 1,
-        conversation_anchor_scope: 'current_anchor',
-        local_avatar_asset_ref: null,
-        live2d_adapter_manifest_source: 'none',
-        live2d_adapter_manifest_ref: null,
-        live2d_calibration_ref: null,
-        avatar_instance_policy: 'reuse_active_instance',
-        backend_kind: 'live2d',
-        backend_capability_profile_ref: null,
-        generated_motion_provider_policy: 'require_profile_support',
-        launch_mode: 'manual',
-        debug_profile: 'standard',
-        updated_at: nowIso(),
-        provenance: {
-          source: 'runtime_projection',
-          evidence_ref: 'zhiyu-agent-center-avatar-config-default',
-        },
-      },
-      local_history: {
-        schema_version: 1,
-        last_cleared_at: null,
-      },
-      voice: {
-        schema_version: 1,
-        avatar_autoplay: false,
-      },
-      ui: {
-        schema_version: 1,
-        last_section: 'overview',
-      },
-    },
-  };
-}
-
-function parseScope(value: Record<string, unknown>): LocalConfigScope {
-  const scope = {
-    accountId: parseNormalizedId(value.accountId, 'accountId'),
-    ownerUserId: parseNormalizedId(value.ownerUserId, 'ownerUserId'),
-    runtimeSourceRef: parseNormalizedId(value.runtimeSourceRef, 'runtimeSourceRef'),
-    localAgentRef: parseNormalizedId(value.localAgentRef, 'localAgentRef'),
-  };
-  if (!scope.localAgentRef.startsWith('local-agent:')) {
-    throw new Error('localAgentRef must start with local-agent:.');
-  }
-  if (scope.localAgentRef === scope.runtimeSourceRef) {
-    throw new Error('localAgentRef must not equal runtimeSourceRef.');
-  }
-  return scope;
-}
-
-function parseConfig(value: unknown): AgentCenterLocalConfig {
-  const record = asRecord(value, 'Agent Center local config');
-  if (record.schema_version !== 1 || record.config_kind !== 'agent_center_local_config') {
-    throw new Error('Agent Center local config has an unsupported schema or kind.');
-  }
-  const scope = {
-    accountId: parseNormalizedId(record.account_id, 'config.account_id'),
-    ownerUserId: parseNormalizedId(record.owner_user_id, 'config.owner_user_id'),
-    runtimeSourceRef: parseNormalizedId(record.runtime_source_ref, 'config.runtime_source_ref'),
-    localAgentRef: parseNormalizedId(record.local_agent_ref, 'config.local_agent_ref'),
-  };
-  parseScope({
-    accountId: scope.accountId,
-    ownerUserId: scope.ownerUserId,
-    runtimeSourceRef: scope.runtimeSourceRef,
-    localAgentRef: scope.localAgentRef,
-  });
-  const modules = asRecord(record.modules, 'Agent Center local config modules');
-  const appearance = asRecord(modules.appearance, 'Agent Center appearance module');
-  const avatarAsset = asRecord(modules.avatar_asset, 'Agent Center avatar asset module');
-  const localHistory = asRecord(modules.local_history, 'Agent Center local history module');
-  const voice = asRecord(modules.voice, 'Agent Center voice module');
-  const ui = asRecord(modules.ui, 'Agent Center UI module');
-  return {
-    schema_version: 1,
-    config_kind: 'agent_center_local_config',
-    account_id: scope.accountId,
-    owner_user_id: scope.ownerUserId,
-    runtime_source_ref: scope.runtimeSourceRef,
-    local_agent_ref: scope.localAgentRef,
-    modules: {
-      appearance: {
-        schema_version: 1,
-        background_asset_id: appearance.background_asset_id === null ? null : parseNullablePattern(appearance.background_asset_id, BACKGROUND_ID_PATTERN, 'modules.appearance.background_asset_id'),
-        motion: parseEnum(appearance.motion, ['system', 'reduced', 'full'], 'modules.appearance.motion'),
-      },
-      avatar_asset: {
-        schema_version: 1,
-        conversation_anchor_scope: parseEnum(avatarAsset.conversation_anchor_scope, ['current_anchor', 'explicit_debug_anchor', 'no_anchor'], 'modules.avatar_asset.conversation_anchor_scope'),
-        local_avatar_asset_ref: avatarAsset.local_avatar_asset_ref === null ? null : parseNullablePattern(avatarAsset.local_avatar_asset_ref, AVATAR_ID_PATTERN, 'modules.avatar_asset.local_avatar_asset_ref'),
-        live2d_adapter_manifest_source: parseEnum(avatarAsset.live2d_adapter_manifest_source, ['none', 'embedded_creator_manifest', 'external_sidecar_manifest'], 'modules.avatar_asset.live2d_adapter_manifest_source'),
-        live2d_adapter_manifest_ref: avatarAsset.live2d_adapter_manifest_ref === null ? null : parseNullablePattern(avatarAsset.live2d_adapter_manifest_ref, ADAPTER_ID_PATTERN, 'modules.avatar_asset.live2d_adapter_manifest_ref'),
-        live2d_calibration_ref: typeof avatarAsset.live2d_calibration_ref === 'string' ? avatarAsset.live2d_calibration_ref : null,
-        avatar_instance_policy: parseEnum(avatarAsset.avatar_instance_policy, ['reuse_active_instance', 'launch_new_instance', 'require_user_selection'], 'modules.avatar_asset.avatar_instance_policy'),
-        backend_kind: parseEnum(avatarAsset.backend_kind, ['live2d', 'vrm', 'future'], 'modules.avatar_asset.backend_kind'),
-        backend_capability_profile_ref: typeof avatarAsset.backend_capability_profile_ref === 'string' ? avatarAsset.backend_capability_profile_ref : null,
-        generated_motion_provider_policy: parseEnum(avatarAsset.generated_motion_provider_policy, ['require_profile_support', 'disable_generated_motion', 'debug_only'], 'modules.avatar_asset.generated_motion_provider_policy'),
-        launch_mode: parseEnum(avatarAsset.launch_mode, ['manual', 'debug_session', 'start_with_chat'], 'modules.avatar_asset.launch_mode'),
-        debug_profile: parseEnum(avatarAsset.debug_profile, ['standard', 'strict_backend_evidence', 'route_matrix'], 'modules.avatar_asset.debug_profile'),
-        updated_at: parseRequiredString(avatarAsset.updated_at, 'modules.avatar_asset.updated_at'),
-        provenance: {
-          source: parseEnum(asRecord(avatarAsset.provenance, 'modules.avatar_asset.provenance').source, ['user_selection', 'import_validation', 'runtime_projection', 'avatar_backend_evidence'], 'modules.avatar_asset.provenance.source'),
-          evidence_ref: parseRequiredString(asRecord(avatarAsset.provenance, 'modules.avatar_asset.provenance').evidence_ref, 'modules.avatar_asset.provenance.evidence_ref'),
-        },
-      },
-      local_history: {
-        schema_version: 1,
-        last_cleared_at: typeof localHistory.last_cleared_at === 'string' ? localHistory.last_cleared_at : null,
-      },
-      voice: {
-        schema_version: 1,
-        avatar_autoplay: voice.avatar_autoplay === true,
-      },
-      ui: {
-        schema_version: 1,
-        last_section: parseEnum(ui.last_section, ['overview', 'appearance', 'chat_behavior', 'model', 'cognition', 'advanced'], 'modules.ui.last_section'),
-      },
-    },
-  };
-}
-
-function assertSameScope(config: AgentCenterLocalConfig, scope: LocalConfigScope): void {
-  if (
-    config.account_id !== scope.accountId
-    || config.owner_user_id !== scope.ownerUserId
-    || config.runtime_source_ref !== scope.runtimeSourceRef
-    || config.local_agent_ref !== scope.localAgentRef
-  ) {
-    throw new Error('Agent Center local config scope does not match requested scope.');
-  }
-}
-
 function agentConfigPath(dataRoot: string, scope: LocalConfigScope): string {
   return path.join(agentCenterDir(dataRoot, scope), 'config.json');
 }
@@ -714,68 +499,6 @@ function parseJson(value: string, label: string): unknown {
   } catch (error) {
     throw new Error(`${label} is not valid JSON: ${(error as Error).message}`);
   }
-}
-
-function parseRequiredString(value: unknown, field: string): string {
-  const text = normalizeText(value);
-  if (!text) {
-    throw new Error(`${field} is required.`);
-  }
-  if (text.normalize('NFC') !== text) {
-    throw new Error(`${field} must be NFC normalized.`);
-  }
-  return text;
-}
-
-function parseNormalizedId(value: unknown, field: string): string {
-  const text = parseRequiredString(value, field);
-  if (!NORMALIZED_ID_PATTERN.test(text)) {
-    throw new Error(`${field} is not a normalized id.`);
-  }
-  return text;
-}
-
-function parseAvatarKind(value: unknown): AgentCenterAvatarAssetKind {
-  return parseEnum(value, ['live2d', 'vrm'], 'kind');
-}
-
-function parseAvatarAssetId(value: unknown, field: string): string {
-  const assetId = parseNullablePattern(value, AVATAR_ID_PATTERN, field);
-  if (!assetId) {
-    throw new Error(`${field} is required.`);
-  }
-  return assetId;
-}
-
-function parseBackgroundAssetId(value: unknown, field: string): string {
-  const assetId = parseNullablePattern(value, BACKGROUND_ID_PATTERN, field);
-  if (!assetId) {
-    throw new Error(`${field} is required.`);
-  }
-  return assetId;
-}
-
-function parseNullablePattern(value: unknown, pattern: RegExp, field: string): string | null {
-  if (value === null) {
-    return null;
-  }
-  const text = parseRequiredString(value, field);
-  if (!pattern.test(text)) {
-    throw new Error(`${field} has invalid format.`);
-  }
-  return text;
-}
-
-function parseEnum<TValue extends string>(value: unknown, allowed: readonly TValue[], field: string): TValue {
-  const text = parseRequiredString(value, field);
-  if (!(allowed as readonly string[]).includes(text)) {
-    throw new Error(`${field} is invalid.`);
-  }
-  return text as TValue;
-}
-
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
 }
 
 function randomHex(length: number): string {

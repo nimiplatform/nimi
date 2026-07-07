@@ -46,7 +46,6 @@ import {
   runZhiyuDeveloperCapabilityStudioAIConsume,
   type ZhiyuCapabilityStudioCapabilityId,
 } from './developer-capability-studio';
-import { ZhiyuAiConfigSettings } from '../ai-config/zhiyu-ai-config-settings';
 import {
   createZhiyuAgentHomeAIScopeRef,
   createZhiyuAIConfigService,
@@ -756,40 +755,13 @@ export function App() {
     <ZhiyuAgentChatSurface
       evidence={renderEvidence}
       product={product}
-      capabilityRoom={capabilityRoom}
-      diagnostics={diagnostics}
-      identityFloor={identityFloor}
       draft={draft}
-      capabilityPrompt={capabilityPrompt}
       submitEnabled={submitEnabled}
       composerState={composerState}
-      capabilityStudioDisabled={capabilityStudioDisabled}
       avatarLaunchAction={avatarLaunchAction}
-      modelConfigContent={(
-        <ZhiyuAiConfigSettings
-          scopeRef={aiConfigScopeRef}
-          service={executionCommitService}
-          providerResolver={modelPickerProviderResolver}
-          runtimeReady={renderEvidence.runtime.ready}
-          runtimeDetail={renderEvidence.runtime.ready ? null : renderEvidence.runtime.message}
-          executionCommitState={executionCommit}
-          onDismissExecutionCommitState={() => setExecutionCommit({ status: 'idle' })}
-          variant="embedded"
-        />
-      )}
       onDraftChange={setDraft}
-      onCapabilityPromptChange={setCapabilityPrompt}
       onSubmit={handleSubmit}
       onStopChat={handleStopChat}
-      onCapabilityStudioRun={(capabilityId) => {
-        void handleCapabilityStudioRun(capabilityId);
-      }}
-      onProposalSubmit={() => {
-        void handleProposalSubmit();
-      }}
-      onDelegationDecision={(approvalRequestId, decision) => {
-        void handleDelegationDecision(approvalRequestId, decision);
-      }}
       onSelectLocalAgent={handleSelectLocalAgent}
       onAvatarLaunch={() => {
         void handleAvatarLaunch();

@@ -258,15 +258,29 @@ function callOptionsForBindingDecision(
 ): ZhiyuRuntimeTypedCallOptions {
   if (decision.kind === 'runtime-issued-scoped-binding') {
     return {
-      metadata: {
-        'x-nimi-runtime-scoped-binding-id': decision.scopedBinding.bindingId,
-      },
+      metadata: metadataForScopedBinding(decision.scopedBinding),
     };
   }
   return {
     metadata: {
       'x-nimi-runtime-host-equivalence': decision.evidenceRef,
     },
+  };
+}
+
+function metadataForScopedBinding(
+  scopedBinding: ZhiyuNormalizedScopedRuntimeBindingAttachment,
+): Readonly<Record<string, string>> {
+  return {
+    'x-nimi-runtime-scoped-binding-id': scopedBinding.bindingId,
+    'x-nimi-runtime-scoped-binding-handle': scopedBinding.bindingHandle,
+    'x-nimi-runtime-scoped-binding-runtime-app-id': scopedBinding.runtimeAppId,
+    'x-nimi-runtime-scoped-binding-app-instance-id': scopedBinding.appInstanceId,
+    'x-nimi-runtime-scoped-binding-window-id': scopedBinding.windowId,
+    'x-nimi-runtime-scoped-binding-avatar-instance-id': scopedBinding.avatarInstanceId,
+    'x-nimi-runtime-scoped-binding-agent-id': scopedBinding.agentId,
+    'x-nimi-runtime-scoped-binding-conversation-anchor-id': scopedBinding.conversationAnchorId,
+    'x-nimi-runtime-scoped-binding-world-id': scopedBinding.worldId,
   };
 }
 

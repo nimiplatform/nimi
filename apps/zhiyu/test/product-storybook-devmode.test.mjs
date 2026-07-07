@@ -58,23 +58,19 @@ test('ZM16 product storybook is a first-class acceptance map, not an e2e script 
 test('ZM16 product shell keeps capability probes in backstage and removes image workbench ownership', () => {
   const home = read('src/shell/agent-chat/ZhiyuAgentChatSurface.tsx');
   const rightPanel = read('src/shell/agent-chat/ZhiyuAgentRightPanel.tsx');
-  const capabilityProbe = read('src/shell/agent-chat/AgentCenterCapabilityProbePanel.tsx');
   const css = read('src/shell/app/home-surface.css');
+  const capabilityProbePath = path.join(root, 'src/shell/agent-chat/AgentCenterCapabilityProbePanel.tsx');
+  const capabilitySetupPath = path.join(root, 'src/shell/agent-chat/AgentCenterCapabilitySetupSection.tsx');
 
   assert.doesNotMatch(home, /AgentCenterCapabilityProbePanel|DeveloperBackstageSurface|id="zhiyu-diagnostics-drawer"|data-zhiyu-diagnostics-drawer/);
-  assert.match(rightPanel, /AgentCenterCapabilityProbePanel/);
+  assert.doesNotMatch(rightPanel, /AgentCenterCapabilityProbePanel|CapabilityStudio|data-zhiyu-agent-advanced-panel="true"/);
   assert.doesNotMatch(rightPanel, /DeveloperBackstageSurface/);
-  assert.match(rightPanel, /data-zhiyu-agent-advanced-panel="true"/);
+  assert.match(rightPanel, /@nimiplatform\/kit\/features\/agent-center/);
   assert.match(home, /data-zhiyu-storybook-version=/);
   assert.doesNotMatch(home, /AgentCenterCapabilitySetupSection|HomeCapabilitySetupSection|ImageStudioSection|data-zhiyu-region="capability-studio"|data-zhiyu-region="image-studio"/);
 
-  assert.match(capabilityProbe, /data-zhiyu-agent-center-capability-probe="open"/);
-  assert.match(capabilityProbe, /AgentCenterCapabilitySetupSection/);
-  assert.match(capabilityProbe, /data-zhiyu-region="capability-studio"/);
-  assert.match(capabilityProbe, /data-zhiyu-devmode-audio-synthesize/);
-  assert.match(capabilityProbe, /audio\.synthesize/);
-  assert.doesNotMatch(capabilityProbe, /ImageStudioSection|data-zhiyu-region="image-studio"|data-zhiyu-image-generate-run/);
-  assert.doesNotMatch(capabilityProbe, /apps\/tester|apps\/desktop|@renderer\/|runtime\/internal|DeveloperBackstageSurface|developer-backstage/);
+  assert.equal(existsSync(capabilityProbePath), false, 'Capability Probe must not remain as an Agent Center production panel');
+  assert.equal(existsSync(capabilitySetupPath), false, 'Capability setup must not remain as an Agent Center production panel');
 
   assert.match(css, /\.zhiyu-agent-center/);
   assert.doesNotMatch(

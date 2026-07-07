@@ -101,6 +101,78 @@ test('Zhiyu Electron scoped binding bridge issues Runtime account binding after 
   assert.equal(result.scopedBinding.expiresAtMs, 200_000);
 });
 
+test('Zhiyu Electron scoped binding bridge honors admitted requested Runtime Agent scopes', async () => {
+  const { createZhiyuRuntimeAgentScopedBindingCommandHandler } = await importModule();
+  const calls = [];
+  const runtime = {
+    account: {
+      async getAccountSessionStatus() {
+        return {
+          state: 3,
+          accountProjection: { accountId: 'acct_1' },
+          reasonCode: 1,
+          accountReasonCode: 1,
+          productionInert: false,
+        };
+      },
+      async issueScopedAppBinding(request) {
+        calls.push(request);
+        return {
+          accepted: true,
+          bindingId: 'binding-turn',
+          bindingCarrier: 'binding:binding-turn',
+          relation: {
+            ...request.relation,
+            bindingId: 'binding-turn',
+            issuedAt: { seconds: '100', nanos: 0 },
+            expiresAt: { seconds: '200', nanos: 0 },
+            state: 2,
+            reasonCode: 1,
+          },
+          reasonCode: 1,
+          accountReasonCode: 1,
+          productionInert: false,
+        };
+      },
+    },
+  };
+  const handler = createZhiyuRuntimeAgentScopedBindingCommandHandler({
+    appId: 'nimi.zhiyu',
+    runtimeEndpoint: '127.0.0.1:46371',
+    runtime,
+    accountCaller: {
+      appId: 'nimi.zhiyu',
+      appInstanceId: 'nimi.zhiyu.local-first-party',
+      deviceId: 'nimi-zhiyu-local-first-party-device',
+      mode: 1,
+      scopes: [],
+    },
+  });
+
+  const result = await handler({
+    command: 'zhiyu.runtimeAgent.issueScopedBinding',
+    appId: 'nimi.zhiyu',
+    runtimeEndpoint: '127.0.0.1:46371',
+    event: {},
+    payload: {
+      ownerUserId: 'acct_1',
+      runtimeSourceRef: 'runtime-source:opaque',
+      localAgentRef: 'local-agent:opaque',
+      conversationAnchorId: 'agent_anchor_1',
+      scopes: ['runtime.agent.turn.write', 'runtime.agent.turn.read'],
+    },
+  });
+
+  assert.deepEqual(calls[0].relation.scopes, [
+    'runtime.agent.turn.read',
+    'runtime.agent.turn.write',
+  ]);
+  assert.deepEqual(result.scopedBinding.scopes, [
+    'runtime.agent.turn.read',
+    'runtime.agent.turn.write',
+  ]);
+});
+
 test('Zhiyu Electron scoped binding bridge rejects owner mismatch before issue', async () => {
   const { createZhiyuRuntimeAgentScopedBindingCommandHandler } = await importModule();
   let issueCalled = false;
