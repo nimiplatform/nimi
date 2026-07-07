@@ -5,6 +5,7 @@
   "source_paths": [
     "proto/runtime/v1/account.proto",
     "proto/runtime/v1/agent_common.proto",
+    "proto/runtime/v1/agent_companion.proto",
     "proto/runtime/v1/agent_group_message_candidate.proto",
     "proto/runtime/v1/agent_participation.proto",
     "proto/runtime/v1/agent_service.proto",
@@ -12646,7 +12647,7 @@
             "number": 11
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "CancelCompanionParticipationResponse",
@@ -12659,7 +12660,7 @@
             "number": 1
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "CancelHookRequest",
@@ -14058,7 +14059,7 @@
             "number": 16
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "CompleteLoginRequest",
@@ -17637,7 +17638,7 @@
             "number": 8
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "GetCompanionParticipationProjectionResponse",
@@ -17650,7 +17651,7 @@
             "number": 1
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "GetConnectorRequest",
@@ -28329,7 +28330,7 @@
             "number": 9
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "OpenCompanionParticipationReplayResponse",
@@ -28349,7 +28350,7 @@
             "number": 2
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "OpenConversationAnchorRequest",
@@ -31619,7 +31620,7 @@
             "number": 12
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "RequestCompanionParticipationResponse",
@@ -31632,7 +31633,7 @@
             "number": 1
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "RequestMemoryEmbeddingRuntimeBindRequest",
@@ -39923,7 +39924,7 @@
           "COMPANION_PARTICIPATION_STATUS_FAILED",
           "COMPANION_PARTICIPATION_STATUS_CANCELED"
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "CompanionParticipationSurfaceKind",
@@ -39933,7 +39934,7 @@
           "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL",
           "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH"
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "CompanionParticipationTriggerSource",
@@ -39943,7 +39944,7 @@
           "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE",
           "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT"
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "ConnectorAuthKind",

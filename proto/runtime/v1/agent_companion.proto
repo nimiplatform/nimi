@@ -1,0 +1,109 @@
+syntax = "proto3";
+package nimi.runtime.v1;
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/agent_common.proto";
+
+enum CompanionParticipationSurfaceKind {
+  COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED = 0;
+  COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION = 1;
+  COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL = 2;
+  COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH = 3;
+}
+enum CompanionParticipationTriggerSource {
+  COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED = 0;
+  COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT = 1;
+  COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE = 2;
+  COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT = 3;
+}
+enum CompanionParticipationStatus {
+  COMPANION_PARTICIPATION_STATUS_UNSPECIFIED = 0;
+  COMPANION_PARTICIPATION_STATUS_IDLE = 1;
+  COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING = 2;
+  COMPANION_PARTICIPATION_STATUS_BLOCKED = 3;
+  COMPANION_PARTICIPATION_STATUS_RUNNING = 4;
+  COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY = 5;
+  COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER = 6;
+  COMPANION_PARTICIPATION_STATUS_FAILED = 7;
+  COMPANION_PARTICIPATION_STATUS_CANCELED = 8;
+}
+message CompanionParticipationProjection {
+  string projection_id = 1;
+  string agent_id = 2;
+  CompanionParticipationSurfaceKind surface_kind = 3;
+  string profile_ref = 4;
+  string room_orchestration_ref = 5;
+  CompanionParticipationTriggerSource trigger_source = 6;
+  CompanionParticipationStatus status = 7;
+  string candidate_ref = 8;
+  string commit_ref = 9;
+  string refusal_reason = 10;
+  string presentation_ref = 11;
+  string audit_ref = 12;
+  google.protobuf.Timestamp observed_at = 13;
+  string conversation_anchor_id = 14;
+  string turn_id = 15;
+  string stream_id = 16;
+}
+message GetCompanionParticipationProjectionRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  CompanionParticipationSurfaceKind surface_kind = 4;
+  CompanionParticipationTriggerSource trigger_source = 5;
+  string profile_ref = 6;
+  string room_orchestration_ref = 7;
+  string request_id = 8;
+}
+message GetCompanionParticipationProjectionResponse {
+  CompanionParticipationProjection projection = 1;
+}
+message RequestCompanionParticipationRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  CompanionParticipationSurfaceKind surface_kind = 4;
+  CompanionParticipationTriggerSource trigger_source = 5;
+  string profile_ref = 6;
+  string room_orchestration_ref = 7;
+  string request_id = 8;
+  string text = 9;
+  string thread_id = 10;
+  string world_id = 11;
+  int32 max_output_tokens = 12;
+}
+message RequestCompanionParticipationResponse {
+  CompanionParticipationProjection projection = 1;
+}
+message CancelCompanionParticipationRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  CompanionParticipationSurfaceKind surface_kind = 4;
+  CompanionParticipationTriggerSource trigger_source = 5;
+  string profile_ref = 6;
+  string room_orchestration_ref = 7;
+  string projection_id = 8;
+  string turn_id = 9;
+  string reason = 10;
+  string request_id = 11;
+}
+message CancelCompanionParticipationResponse {
+  CompanionParticipationProjection projection = 1;
+}
+message OpenCompanionParticipationReplayRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  CompanionParticipationSurfaceKind surface_kind = 4;
+  CompanionParticipationTriggerSource trigger_source = 5;
+  string profile_ref = 6;
+  string room_orchestration_ref = 7;
+  string projection_id = 8;
+  string request_id = 9;
+}
+message OpenCompanionParticipationReplayResponse {
+  string replay_ref = 1;
+  CompanionParticipationProjection projection = 2;
+}

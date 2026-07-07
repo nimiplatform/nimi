@@ -18929,6 +18929,294 @@ impl RealmGroupMessageCandidateCommitDisposition {
         }
     }
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CompanionParticipationProjection {
+    #[prost(string, tag = "1")]
+    pub projection_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "3")]
+    pub surface_kind: i32,
+    #[prost(string, tag = "4")]
+    pub profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub room_orchestration_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "6")]
+    pub trigger_source: i32,
+    #[prost(enumeration = "CompanionParticipationStatus", tag = "7")]
+    pub status: i32,
+    #[prost(string, tag = "8")]
+    pub candidate_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub commit_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub refusal_reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub presentation_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub audit_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "13")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "14")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "15")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "16")]
+    pub stream_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetCompanionParticipationProjectionRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
+    pub surface_kind: i32,
+    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
+    pub trigger_source: i32,
+    #[prost(string, tag = "6")]
+    pub profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub room_orchestration_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetCompanionParticipationProjectionResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<CompanionParticipationProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestCompanionParticipationRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
+    pub surface_kind: i32,
+    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
+    pub trigger_source: i32,
+    #[prost(string, tag = "6")]
+    pub profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub room_orchestration_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub thread_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub world_id: ::prost::alloc::string::String,
+    #[prost(int32, tag = "12")]
+    pub max_output_tokens: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestCompanionParticipationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<CompanionParticipationProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelCompanionParticipationRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
+    pub surface_kind: i32,
+    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
+    pub trigger_source: i32,
+    #[prost(string, tag = "6")]
+    pub profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub room_orchestration_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub projection_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelCompanionParticipationResponse {
+    #[prost(message, optional, tag = "1")]
+    pub projection: ::core::option::Option<CompanionParticipationProjection>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenCompanionParticipationReplayRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<AgentRequestContext>,
+    #[prost(string, tag = "2")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
+    pub surface_kind: i32,
+    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
+    pub trigger_source: i32,
+    #[prost(string, tag = "6")]
+    pub profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub room_orchestration_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub projection_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub request_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpenCompanionParticipationReplayResponse {
+    #[prost(string, tag = "1")]
+    pub replay_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub projection: ::core::option::Option<CompanionParticipationProjection>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CompanionParticipationSurfaceKind {
+    Unspecified = 0,
+    AvatarCompanion = 1,
+    DesktopCompanionPanel = 2,
+    AvatarDebugWorkbench = 3,
+}
+impl CompanionParticipationSurfaceKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED",
+            Self::AvatarCompanion => {
+                "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION"
+            }
+            Self::DesktopCompanionPanel => {
+                "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL"
+            }
+            Self::AvatarDebugWorkbench => {
+                "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION" => {
+                Some(Self::AvatarCompanion)
+            }
+            "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL" => {
+                Some(Self::DesktopCompanionPanel)
+            }
+            "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH" => {
+                Some(Self::AvatarDebugWorkbench)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CompanionParticipationTriggerSource {
+    Unspecified = 0,
+    UserExplicit = 1,
+    ScheduledProactive = 2,
+    DomainEvent = 3,
+}
+impl CompanionParticipationTriggerSource {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED",
+            Self::UserExplicit => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT",
+            Self::ScheduledProactive => {
+                "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE"
+            }
+            Self::DomainEvent => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT" => {
+                Some(Self::UserExplicit)
+            }
+            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE" => {
+                Some(Self::ScheduledProactive)
+            }
+            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT" => {
+                Some(Self::DomainEvent)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CompanionParticipationStatus {
+    Unspecified = 0,
+    Idle = 1,
+    AdmissionPending = 2,
+    Blocked = 3,
+    Running = 4,
+    CandidateReady = 5,
+    CommittedByOwner = 6,
+    Failed = 7,
+    Canceled = 8,
+}
+impl CompanionParticipationStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "COMPANION_PARTICIPATION_STATUS_UNSPECIFIED",
+            Self::Idle => "COMPANION_PARTICIPATION_STATUS_IDLE",
+            Self::AdmissionPending => "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING",
+            Self::Blocked => "COMPANION_PARTICIPATION_STATUS_BLOCKED",
+            Self::Running => "COMPANION_PARTICIPATION_STATUS_RUNNING",
+            Self::CandidateReady => "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY",
+            Self::CommittedByOwner => "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER",
+            Self::Failed => "COMPANION_PARTICIPATION_STATUS_FAILED",
+            Self::Canceled => "COMPANION_PARTICIPATION_STATUS_CANCELED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "COMPANION_PARTICIPATION_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "COMPANION_PARTICIPATION_STATUS_IDLE" => Some(Self::Idle),
+            "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING" => {
+                Some(Self::AdmissionPending)
+            }
+            "COMPANION_PARTICIPATION_STATUS_BLOCKED" => Some(Self::Blocked),
+            "COMPANION_PARTICIPATION_STATUS_RUNNING" => Some(Self::Running),
+            "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY" => {
+                Some(Self::CandidateReady)
+            }
+            "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER" => {
+                Some(Self::CommittedByOwner)
+            }
+            "COMPANION_PARTICIPATION_STATUS_FAILED" => Some(Self::Failed),
+            "COMPANION_PARTICIPATION_STATUS_CANCELED" => Some(Self::Canceled),
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AgentAutonomyConfig {
     #[prost(int64, tag = "1")]
@@ -20213,155 +20501,6 @@ pub struct ListAgentConversationSummariesResponse {
     pub summaries: ::prost::alloc::vec::Vec<AgentConversationSummary>,
     #[prost(string, tag = "2")]
     pub next_page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CompanionParticipationProjection {
-    #[prost(string, tag = "1")]
-    pub projection_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "3")]
-    pub surface_kind: i32,
-    #[prost(string, tag = "4")]
-    pub profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub room_orchestration_ref: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "6")]
-    pub trigger_source: i32,
-    #[prost(enumeration = "CompanionParticipationStatus", tag = "7")]
-    pub status: i32,
-    #[prost(string, tag = "8")]
-    pub candidate_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub commit_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub refusal_reason: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub presentation_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub audit_ref: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "13")]
-    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "14")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "15")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "16")]
-    pub stream_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetCompanionParticipationProjectionRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
-    pub surface_kind: i32,
-    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
-    pub trigger_source: i32,
-    #[prost(string, tag = "6")]
-    pub profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub room_orchestration_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub request_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetCompanionParticipationProjectionResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<CompanionParticipationProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestCompanionParticipationRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
-    pub surface_kind: i32,
-    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
-    pub trigger_source: i32,
-    #[prost(string, tag = "6")]
-    pub profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub room_orchestration_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub request_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub text: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub thread_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub world_id: ::prost::alloc::string::String,
-    #[prost(int32, tag = "12")]
-    pub max_output_tokens: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestCompanionParticipationResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<CompanionParticipationProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CancelCompanionParticipationRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
-    pub surface_kind: i32,
-    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
-    pub trigger_source: i32,
-    #[prost(string, tag = "6")]
-    pub profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub room_orchestration_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub projection_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub reason: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub request_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CancelCompanionParticipationResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<CompanionParticipationProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct OpenCompanionParticipationReplayRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
-    pub surface_kind: i32,
-    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
-    pub trigger_source: i32,
-    #[prost(string, tag = "6")]
-    pub profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub room_orchestration_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub projection_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub request_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct OpenCompanionParticipationReplayResponse {
-    #[prost(string, tag = "1")]
-    pub replay_ref: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub projection: ::core::option::Option<CompanionParticipationProjection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAvatarDebugSnapshotRequest {
@@ -21708,145 +21847,6 @@ impl AgentCanonicalMemoryBankMode {
             "AGENT_CANONICAL_MEMORY_BANK_MODE_BASELINE" => Some(Self::Baseline),
             "AGENT_CANONICAL_MEMORY_BANK_MODE_STANDARD" => Some(Self::Standard),
             "AGENT_CANONICAL_MEMORY_BANK_MODE_UNAVAILABLE" => Some(Self::Unavailable),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum CompanionParticipationSurfaceKind {
-    Unspecified = 0,
-    AvatarCompanion = 1,
-    DesktopCompanionPanel = 2,
-    AvatarDebugWorkbench = 3,
-}
-impl CompanionParticipationSurfaceKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED",
-            Self::AvatarCompanion => {
-                "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION"
-            }
-            Self::DesktopCompanionPanel => {
-                "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL"
-            }
-            Self::AvatarDebugWorkbench => {
-                "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION" => {
-                Some(Self::AvatarCompanion)
-            }
-            "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL" => {
-                Some(Self::DesktopCompanionPanel)
-            }
-            "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH" => {
-                Some(Self::AvatarDebugWorkbench)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum CompanionParticipationTriggerSource {
-    Unspecified = 0,
-    UserExplicit = 1,
-    ScheduledProactive = 2,
-    DomainEvent = 3,
-}
-impl CompanionParticipationTriggerSource {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED",
-            Self::UserExplicit => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT",
-            Self::ScheduledProactive => {
-                "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE"
-            }
-            Self::DomainEvent => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT" => {
-                Some(Self::UserExplicit)
-            }
-            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE" => {
-                Some(Self::ScheduledProactive)
-            }
-            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT" => {
-                Some(Self::DomainEvent)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum CompanionParticipationStatus {
-    Unspecified = 0,
-    Idle = 1,
-    AdmissionPending = 2,
-    Blocked = 3,
-    Running = 4,
-    CandidateReady = 5,
-    CommittedByOwner = 6,
-    Failed = 7,
-    Canceled = 8,
-}
-impl CompanionParticipationStatus {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "COMPANION_PARTICIPATION_STATUS_UNSPECIFIED",
-            Self::Idle => "COMPANION_PARTICIPATION_STATUS_IDLE",
-            Self::AdmissionPending => "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING",
-            Self::Blocked => "COMPANION_PARTICIPATION_STATUS_BLOCKED",
-            Self::Running => "COMPANION_PARTICIPATION_STATUS_RUNNING",
-            Self::CandidateReady => "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY",
-            Self::CommittedByOwner => "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER",
-            Self::Failed => "COMPANION_PARTICIPATION_STATUS_FAILED",
-            Self::Canceled => "COMPANION_PARTICIPATION_STATUS_CANCELED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "COMPANION_PARTICIPATION_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "COMPANION_PARTICIPATION_STATUS_IDLE" => Some(Self::Idle),
-            "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING" => {
-                Some(Self::AdmissionPending)
-            }
-            "COMPANION_PARTICIPATION_STATUS_BLOCKED" => Some(Self::Blocked),
-            "COMPANION_PARTICIPATION_STATUS_RUNNING" => Some(Self::Running),
-            "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY" => {
-                Some(Self::CandidateReady)
-            }
-            "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER" => {
-                Some(Self::CommittedByOwner)
-            }
-            "COMPANION_PARTICIPATION_STATUS_FAILED" => Some(Self::Failed),
-            "COMPANION_PARTICIPATION_STATUS_CANCELED" => Some(Self::Canceled),
             _ => None,
         }
     }

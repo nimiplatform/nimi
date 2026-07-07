@@ -8,6 +8,7 @@ lint:
     PACKAGE_DIRECTORY_MATCH:
       - runtime/v1/account.proto
       - runtime/v1/agent_common.proto
+      - runtime/v1/agent_companion.proto
       - runtime/v1/agent_group_message_candidate.proto
       - runtime/v1/agent_participation.proto
       - runtime/v1/ai.proto
