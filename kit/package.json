@@ -239,6 +239,26 @@
       "import": "./dist/features/avatar/live2d.js",
       "default": "./dist/features/avatar/live2d.js"
     },
+    "./features/agent-center": {
+      "types": "./dist/features/agent-center/index.d.ts",
+      "import": "./dist/features/agent-center/index.js",
+      "default": "./dist/features/agent-center/index.js"
+    },
+    "./features/agent-center/headless": {
+      "types": "./dist/features/agent-center/headless.d.ts",
+      "import": "./dist/features/agent-center/headless.js",
+      "default": "./dist/features/agent-center/headless.js"
+    },
+    "./features/agent-center/runtime": {
+      "types": "./dist/features/agent-center/runtime.d.ts",
+      "import": "./dist/features/agent-center/runtime.js",
+      "default": "./dist/features/agent-center/runtime.js"
+    },
+    "./features/agent-center/ui": {
+      "types": "./dist/features/agent-center/ui.d.ts",
+      "import": "./dist/features/agent-center/ui.js",
+      "default": "./dist/features/agent-center/ui.js"
+    },
     "./features/model-picker": {
       "types": "./dist/features/model-picker/index.d.ts",
       "import": "./dist/features/model-picker/index.js",

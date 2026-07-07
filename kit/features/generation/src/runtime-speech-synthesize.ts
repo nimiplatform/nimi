@@ -104,6 +104,8 @@ type SpeechParams = {
   readonly timeoutMs?: number;
 };
 
+type RuntimeSpeechVoiceReferenceInput = Parameters<typeof toNimiRuntimeVoiceReference>[0];
+
 type SchedulingPreflight = {
   readonly unavailable: RuntimeSpeechSynthesizeUnavailable | null;
   readonly metadata: Record<string, string>;
@@ -225,19 +227,7 @@ function buildSpeechSynthesisInput(input: {
 
 function speechParamsFromBinding(binding: NimiAIConfigRuntimeBinding): SpeechParams {
   const params = paramRecord(binding.selectedParams);
-  const voiceRef = requireNimiRuntimeVoiceReferenceForLocalTts({
-    routePolicy: binding.routePolicy,
-    voiceRef: toNimiRuntimeVoiceReferenceFromInput(
-      params.voiceRef
-      ?? params.voice_ref
-      ?? params.providerVoiceRef
-      ?? params.provider_voice_ref
-      ?? params.presetVoiceId
-      ?? params.preset_voice_id
-      ?? params.voiceAssetId
-      ?? params.voice_asset_id,
-    ),
-  });
+  const voiceRef = voiceReferenceFromParams(binding, params);
   return {
     voiceRef: toNimiRuntimeVoiceReference(voiceRef),
     language: optionalDefaultText(params.languageHint ?? params.language_hint ?? params.language),
@@ -249,6 +239,52 @@ function speechParamsFromBinding(binding: NimiAIConfigRuntimeBinding): SpeechPar
     emotion: optionalDefaultText(params.emotion),
     timeoutMs: optionalPositiveInteger(params.timeoutMs ?? params.timeout_ms, 'timeoutMs'),
   };
+}
+
+function voiceReferenceFromParams(
+  binding: NimiAIConfigRuntimeBinding,
+  params: Record<string, unknown>,
+): RuntimeSpeechVoiceReferenceInput {
+  const raw =
+    params.voiceRef
+    ?? params.voice_ref
+    ?? params.providerVoiceRef
+    ?? params.provider_voice_ref
+    ?? params.presetVoiceId
+    ?? params.preset_voice_id
+    ?? params.voiceAssetId
+    ?? params.voice_asset_id;
+  const providerVoiceRef = providerVoiceReferenceText(raw)
+    || optionalDefaultText(params.providerVoiceRef ?? params.provider_voice_ref);
+  if (binding.routePolicy !== 'local' && providerVoiceRef) {
+    return {
+      kind: 'provider_voice_ref',
+      providerVoiceRef,
+    };
+  }
+  return requireNimiRuntimeVoiceReferenceForLocalTts({
+    routePolicy: binding.routePolicy,
+    voiceRef: toNimiRuntimeVoiceReferenceFromInput(raw),
+  });
+}
+
+function providerVoiceReferenceText(input: unknown): string | undefined {
+  if (!input) return undefined;
+  if (typeof input === 'object' && !Array.isArray(input)) {
+    const record = input as Readonly<Record<string, unknown>>;
+    const kind = optionalDefaultText(record.kind)?.toLowerCase();
+    if (kind === 'provider_voice_ref') {
+      return optionalDefaultText(record.providerVoiceRef ?? record.provider_voice_ref);
+    }
+    return optionalDefaultText(record.providerVoiceRef ?? record.provider_voice_ref);
+  }
+  const text = optionalDefaultText(input);
+  if (!text) return undefined;
+  const [rawPrefix, ...rest] = text.split(':');
+  if (optionalDefaultText(rawPrefix)?.toLowerCase() !== 'provider_voice_ref') {
+    return undefined;
+  }
+  return optionalDefaultText(rest.join(':'));
 }
 
 function summarizeAudioArtifact(artifact: ScenarioArtifact): RuntimeSpeechSynthesizeArtifactSummary {

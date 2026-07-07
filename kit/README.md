@@ -85,7 +85,7 @@ platform spec tables first and regenerate the projection.
 
 ## Current Public Surface
 
-The current package publishes 61 public subpath exports through
+The current package publishes 65 public subpath exports through
 `kit/package.json`:
 
 - 8 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
@@ -100,7 +100,8 @@ The current package publishes 61 public subpath exports through
   `./shell/renderer/bootstrap`, `./shell/electron/main`,
   `./shell/electron/preload`, and `./shell/electron/preload-cjs`)
 - 2 telemetry entries (`./telemetry`, `./telemetry/error-boundary`)
-- 34 feature entries across `./features/chat`, `./features/avatar`,
+- 38 feature entries across `./features/chat`, `./features/avatar`,
+  `./features/agent-center`,
   `./features/model-picker`, `./features/model-config`,
   `./features/generation`, and `./features/commerce`
 
@@ -194,6 +195,7 @@ import { useAppAiChatSession } from '@nimiplatform/kit/features/chat/runtime';
 import { useRealmChatComposer } from '@nimiplatform/kit/features/chat/realm';
 import { CanonicalConversationShell } from '@nimiplatform/kit/features/chat/components/canonical-conversation-shell';
 import { AvatarStage } from '@nimiplatform/kit/features/avatar';
+import { AgentCenter } from '@nimiplatform/kit/features/agent-center';
 import { RuntimeModelPickerPanel } from '@nimiplatform/kit/features/model-picker/ui';
 import { useRuntimeGenerationPanel } from '@nimiplatform/kit/features/generation/runtime';
 import { useRealmSendGiftDialog } from '@nimiplatform/kit/features/commerce/realm';

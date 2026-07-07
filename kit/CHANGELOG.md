@@ -11,6 +11,11 @@ Discipline.
 
 ### Added
 
+- Added `@nimiplatform/kit/features/agent-center` as the reusable Runtime
+  Local Agent Center surface. Apps now consume typed Runtime/appearance
+  adapters instead of passing arbitrary app panels into Agent Center; model
+  readiness, autonomy, cognition, appearance, and advanced diagnostics are
+  rendered from Runtime/SDK projections.
 - Added renderer-safe text storage helpers to `@nimiplatform/kit/core/storage-json`
   so apps can share browser storage access mechanics without moving schema
   ownership into Kit.

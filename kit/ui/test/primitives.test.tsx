@@ -693,6 +693,33 @@ test('toggle primitive renders canonical switch slots and states', () => {
   expect(html).toMatch(/disabled=""/);
 });
 
+test('toggle primitive is a local button switch without Radix ref state', async () => {
+  const source = readFileSync(path.join(process.cwd(), 'ui/src/components/switch.tsx'), 'utf8');
+  expect(source).not.toContain('@radix-ui/react-switch');
+
+  const changes: boolean[] = [];
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+
+  await act(async () => {
+    root?.render(<Toggle checked={false} onChange={(next) => changes.push(next)} />);
+    await flush();
+  });
+
+  const toggle = container.querySelector('button[role="switch"]');
+  expect(toggle).toBeTruthy();
+  expect(toggle?.getAttribute('aria-checked')).toBe('false');
+  expect(toggle?.getAttribute('data-state')).toBe('unchecked');
+
+  await act(async () => {
+    (toggle as HTMLButtonElement).click();
+    await flush();
+  });
+
+  expect(changes).toEqual([true]);
+});
+
 test('confirm dialog uses governed overlay and action primitives', async () => {
   container = document.createElement('div');
   document.body.appendChild(container);
