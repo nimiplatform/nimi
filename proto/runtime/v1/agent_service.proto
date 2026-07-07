@@ -170,8 +170,7 @@ message AgentPresentationProfile {
   string interaction_policy_ref = 5;
   string default_voice_reference = 6;
   bool avatar_autoplay = 7;
-  string speech_model_id = 8;
-  RoutePolicy speech_route_policy = 9;
+  reserved 8, 9;
 }
 message ClearAgentPresentationProfile {}
 message AgentStateMutation {
@@ -774,23 +773,51 @@ message ListAvatarDebugProbeResultsRequest { AgentRequestContext context = 1; st
 message ListAvatarDebugProbeResultsResponse { repeated AvatarDebugProbeResultEnvelope probe_results = 1; }
 message GetAvatarDebugReplayRequest { AgentRequestContext context = 1; string agent_id = 2; string probe_id = 3; string conversation_anchor_id = 4; }
 message GetAvatarDebugReplayResponse { AvatarDebugProbeRequestEnvelope request = 1; AvatarDebugProbeResultEnvelope result = 2; AvatarDebugReplayRef replay_ref = 3; }
-// K-AGCORE-144..150 Runtime Agent execution config. One committed
-// capability-to-binding config per runtime instance with monotonic revision,
-// expected-revision optimistic concurrency, and a probe-backed readiness
-// projection. Capability, readiness-state, and reason vocabularies are
-// admitted in .nimi/spec/runtime/kernel/tables/agent-execution-config.yaml.
-message RuntimeAgentExecutionCapabilityBinding { string capability = 1; string model_id = 2; RoutePolicy route_policy = 3; string connector_id = 4; RuntimeDurableTargetRef target_ref = 5; }
-message RuntimeAgentExecutionConfig { uint64 revision = 1; repeated RuntimeAgentExecutionCapabilityBinding bindings = 2; google.protobuf.Timestamp updated_at = 3; string updated_by_app_id = 4; }
-enum AgentExecutionReadinessState { AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED = 0; AGENT_EXECUTION_READINESS_STATE_READY = 1; AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED = 2; AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE = 3; }
-message RuntimeAgentExecutionCapabilityReadiness { string capability = 1; AgentExecutionReadinessState state = 2; string reason_code = 3; google.protobuf.Timestamp probed_at = 4; }
-message AgentExecutionReadinessSnapshot { uint64 config_revision = 1; repeated RuntimeAgentExecutionCapabilityReadiness capabilities = 2; }
-message GetAgentExecutionConfigRequest { AgentRequestContext context = 1; }
-message GetAgentExecutionConfigResponse { RuntimeAgentExecutionConfig config = 1; }
-message UpsertAgentExecutionConfigRequest { AgentRequestContext context = 1; uint64 expected_revision = 2; repeated RuntimeAgentExecutionCapabilityBinding bindings = 3; }
-message UpsertAgentExecutionConfigResponse { RuntimeAgentExecutionConfig config = 1; }
-message GetAgentExecutionReadinessRequest { AgentRequestContext context = 1; }
-message GetAgentExecutionReadinessResponse { AgentExecutionReadinessSnapshot snapshot = 1; }
-message SubscribeAgentExecutionReadinessRequest { AgentRequestContext context = 1; }
+// K-AGCORE-144..150 Runtime Agent AI Config. One committed AI consume config
+// per Runtime Local Agent instance with monotonic revision, expected-revision
+// optimistic concurrency, and a probe-backed readiness projection. Capability,
+// readiness-state, and reason vocabularies are admitted in
+// .nimi/spec/runtime/kernel/tables/runtime-agent-ai-config.yaml.
+message RuntimeAgentAIConfigIntent {
+  string capability = 1;
+  string model_id = 2;
+  RoutePolicy route_policy = 3;
+  string connector_id = 4;
+  RuntimeDurableTargetRef target_ref = 5;
+  string voice_reference_ref = 6;
+  string image_policy_ref = 7;
+}
+message RuntimeAgentAIConfig {
+  string agent_instance_id = 1;
+  uint64 revision = 2;
+  repeated RuntimeAgentAIConfigIntent intents = 3;
+  google.protobuf.Timestamp updated_at = 4;
+  string updated_by_app_id = 5;
+}
+enum RuntimeAgentAIConfigReadinessState {
+  RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED = 0;
+  RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY = 1;
+  RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED = 2;
+  RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE = 3;
+}
+message RuntimeAgentAIConfigCapabilityReadiness {
+  string capability = 1;
+  RuntimeAgentAIConfigReadinessState state = 2;
+  string reason_code = 3;
+  google.protobuf.Timestamp probed_at = 4;
+}
+message RuntimeAgentAIConfigReadinessSnapshot {
+  string agent_instance_id = 1;
+  uint64 config_revision = 2;
+  repeated RuntimeAgentAIConfigCapabilityReadiness capabilities = 3;
+}
+message GetRuntimeAgentAIConfigRequest { AgentRequestContext context = 1; }
+message GetRuntimeAgentAIConfigResponse { RuntimeAgentAIConfig config = 1; }
+message UpsertRuntimeAgentAIConfigRequest { AgentRequestContext context = 1; uint64 expected_revision = 2; repeated RuntimeAgentAIConfigIntent intents = 3; }
+message UpsertRuntimeAgentAIConfigResponse { RuntimeAgentAIConfig config = 1; }
+message GetRuntimeAgentAIConfigReadinessRequest { AgentRequestContext context = 1; }
+message GetRuntimeAgentAIConfigReadinessResponse { RuntimeAgentAIConfigReadinessSnapshot snapshot = 1; }
+message SubscribeRuntimeAgentAIConfigReadinessRequest { AgentRequestContext context = 1; }
 service RuntimeAgentService {
   rpc InitializeAgent(InitializeAgentRequest) returns (InitializeAgentResponse);
   rpc TerminateAgent(TerminateAgentRequest) returns (TerminateAgentResponse);
@@ -848,9 +875,9 @@ service RuntimeAgentService {
   rpc SubscribeAgentEvents(SubscribeAgentEventsRequest) returns (stream AgentEvent);
   rpc SubscribeAgentVoiceStream(SubscribeAgentVoiceStreamRequest) returns (stream AgentVoiceStreamEvent);
   rpc InterruptAgentVoicePlayback(InterruptAgentVoicePlaybackRequest) returns (InterruptAgentVoicePlaybackResponse);
-  // K-AGCORE-144..150 Runtime Agent execution config surface.
-  rpc GetAgentExecutionConfig(GetAgentExecutionConfigRequest) returns (GetAgentExecutionConfigResponse);
-  rpc UpsertAgentExecutionConfig(UpsertAgentExecutionConfigRequest) returns (UpsertAgentExecutionConfigResponse);
-  rpc GetAgentExecutionReadiness(GetAgentExecutionReadinessRequest) returns (GetAgentExecutionReadinessResponse);
-  rpc SubscribeAgentExecutionReadiness(SubscribeAgentExecutionReadinessRequest) returns (stream AgentExecutionReadinessSnapshot);
+  // K-AGCORE-144..150 Runtime Agent AI Config surface.
+  rpc GetRuntimeAgentAIConfig(GetRuntimeAgentAIConfigRequest) returns (GetRuntimeAgentAIConfigResponse);
+  rpc UpsertRuntimeAgentAIConfig(UpsertRuntimeAgentAIConfigRequest) returns (UpsertRuntimeAgentAIConfigResponse);
+  rpc GetRuntimeAgentAIConfigReadiness(GetRuntimeAgentAIConfigReadinessRequest) returns (GetRuntimeAgentAIConfigReadinessResponse);
+  rpc SubscribeRuntimeAgentAIConfigReadiness(SubscribeRuntimeAgentAIConfigReadinessRequest) returns (stream RuntimeAgentAIConfigReadinessSnapshot);
 }

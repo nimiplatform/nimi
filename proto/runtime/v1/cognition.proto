@@ -17,8 +17,6 @@ service RuntimeCognitionService {
   rpc History(HistoryRequest) returns (HistoryResponse);
   rpc DeleteMemory(DeleteMemoryRequest) returns (DeleteMemoryResponse);
   rpc SubscribeMemoryEvents(SubscribeMemoryEventsRequest) returns (stream MemoryEvent);
-  rpc GetMemoryEmbeddingRuntimeIntent(GetMemoryEmbeddingRuntimeIntentRequest) returns (GetMemoryEmbeddingRuntimeIntentResponse);
-  rpc SetMemoryEmbeddingRuntimeIntent(SetMemoryEmbeddingRuntimeIntentRequest) returns (SetMemoryEmbeddingRuntimeIntentResponse);
   rpc InspectMemoryEmbeddingRuntime(InspectMemoryEmbeddingRuntimeRequest) returns (InspectMemoryEmbeddingRuntimeResponse);
   rpc RequestMemoryEmbeddingRuntimeBind(RequestMemoryEmbeddingRuntimeBindRequest) returns (RequestMemoryEmbeddingRuntimeBindResponse);
   rpc RequestMemoryEmbeddingRuntimeCutover(RequestMemoryEmbeddingRuntimeCutoverRequest) returns (RequestMemoryEmbeddingRuntimeCutoverResponse);

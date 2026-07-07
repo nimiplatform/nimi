@@ -1298,74 +1298,6 @@ func (*MemoryEmbeddingLocalBindingRef_ProfileBindingId) isMemoryEmbeddingLocalBi
 
 func (*MemoryEmbeddingLocalBindingRef_ReadinessRef) isMemoryEmbeddingLocalBindingRef_Ref() {}
 
-type MemoryEmbeddingBindingIntentSnapshot struct {
-	state         protoimpl.MessageState          `protogen:"open.v1"`
-	SourceKind    string                          `protobuf:"bytes,1,opt,name=source_kind,json=sourceKind,proto3" json:"source_kind,omitempty"`
-	CloudBinding  *MemoryEmbeddingCloudBindingRef `protobuf:"bytes,2,opt,name=cloud_binding,json=cloudBinding,proto3" json:"cloud_binding,omitempty"`
-	LocalBinding  *MemoryEmbeddingLocalBindingRef `protobuf:"bytes,3,opt,name=local_binding,json=localBinding,proto3" json:"local_binding,omitempty"`
-	RevisionToken string                          `protobuf:"bytes,4,opt,name=revision_token,json=revisionToken,proto3" json:"revision_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *MemoryEmbeddingBindingIntentSnapshot) Reset() {
-	*x = MemoryEmbeddingBindingIntentSnapshot{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MemoryEmbeddingBindingIntentSnapshot) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MemoryEmbeddingBindingIntentSnapshot) ProtoMessage() {}
-
-func (x *MemoryEmbeddingBindingIntentSnapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MemoryEmbeddingBindingIntentSnapshot.ProtoReflect.Descriptor instead.
-func (*MemoryEmbeddingBindingIntentSnapshot) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *MemoryEmbeddingBindingIntentSnapshot) GetSourceKind() string {
-	if x != nil {
-		return x.SourceKind
-	}
-	return ""
-}
-
-func (x *MemoryEmbeddingBindingIntentSnapshot) GetCloudBinding() *MemoryEmbeddingCloudBindingRef {
-	if x != nil {
-		return x.CloudBinding
-	}
-	return nil
-}
-
-func (x *MemoryEmbeddingBindingIntentSnapshot) GetLocalBinding() *MemoryEmbeddingLocalBindingRef {
-	if x != nil {
-		return x.LocalBinding
-	}
-	return nil
-}
-
-func (x *MemoryEmbeddingBindingIntentSnapshot) GetRevisionToken() string {
-	if x != nil {
-		return x.RevisionToken
-	}
-	return ""
-}
-
 type MemoryEmbeddingOperationReadiness struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	BindAllowed    bool                   `protobuf:"varint,1,opt,name=bind_allowed,json=bindAllowed,proto3" json:"bind_allowed,omitempty"`
@@ -1376,7 +1308,7 @@ type MemoryEmbeddingOperationReadiness struct {
 
 func (x *MemoryEmbeddingOperationReadiness) Reset() {
 	*x = MemoryEmbeddingOperationReadiness{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[13]
+	mi := &file_runtime_v1_memory_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1388,7 +1320,7 @@ func (x *MemoryEmbeddingOperationReadiness) String() string {
 func (*MemoryEmbeddingOperationReadiness) ProtoMessage() {}
 
 func (x *MemoryEmbeddingOperationReadiness) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[13]
+	mi := &file_runtime_v1_memory_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1401,7 +1333,7 @@ func (x *MemoryEmbeddingOperationReadiness) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use MemoryEmbeddingOperationReadiness.ProtoReflect.Descriptor instead.
 func (*MemoryEmbeddingOperationReadiness) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{13}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *MemoryEmbeddingOperationReadiness) GetBindAllowed() bool {
@@ -1435,7 +1367,7 @@ type MemoryBank struct {
 
 func (x *MemoryBank) Reset() {
 	*x = MemoryBank{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[14]
+	mi := &file_runtime_v1_memory_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1447,7 +1379,7 @@ func (x *MemoryBank) String() string {
 func (*MemoryBank) ProtoMessage() {}
 
 func (x *MemoryBank) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[14]
+	mi := &file_runtime_v1_memory_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1460,7 +1392,7 @@ func (x *MemoryBank) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryBank.ProtoReflect.Descriptor instead.
 func (*MemoryBank) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{14}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *MemoryBank) GetBankId() string {
@@ -1539,7 +1471,7 @@ type MemoryProvenance struct {
 
 func (x *MemoryProvenance) Reset() {
 	*x = MemoryProvenance{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[15]
+	mi := &file_runtime_v1_memory_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1551,7 +1483,7 @@ func (x *MemoryProvenance) String() string {
 func (*MemoryProvenance) ProtoMessage() {}
 
 func (x *MemoryProvenance) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[15]
+	mi := &file_runtime_v1_memory_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1564,7 +1496,7 @@ func (x *MemoryProvenance) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryProvenance.ProtoReflect.Descriptor instead.
 func (*MemoryProvenance) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{15}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *MemoryProvenance) GetSourceSystem() string {
@@ -1613,7 +1545,7 @@ type EpisodicMemoryRecord struct {
 
 func (x *EpisodicMemoryRecord) Reset() {
 	*x = EpisodicMemoryRecord{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[16]
+	mi := &file_runtime_v1_memory_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1625,7 +1557,7 @@ func (x *EpisodicMemoryRecord) String() string {
 func (*EpisodicMemoryRecord) ProtoMessage() {}
 
 func (x *EpisodicMemoryRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[16]
+	mi := &file_runtime_v1_memory_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1638,7 +1570,7 @@ func (x *EpisodicMemoryRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EpisodicMemoryRecord.ProtoReflect.Descriptor instead.
 func (*EpisodicMemoryRecord) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{16}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *EpisodicMemoryRecord) GetSummary() string {
@@ -1674,7 +1606,7 @@ type SemanticMemoryRecord struct {
 
 func (x *SemanticMemoryRecord) Reset() {
 	*x = SemanticMemoryRecord{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[17]
+	mi := &file_runtime_v1_memory_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1686,7 +1618,7 @@ func (x *SemanticMemoryRecord) String() string {
 func (*SemanticMemoryRecord) ProtoMessage() {}
 
 func (x *SemanticMemoryRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[17]
+	mi := &file_runtime_v1_memory_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1699,7 +1631,7 @@ func (x *SemanticMemoryRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SemanticMemoryRecord.ProtoReflect.Descriptor instead.
 func (*SemanticMemoryRecord) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SemanticMemoryRecord) GetSubject() string {
@@ -1741,7 +1673,7 @@ type ObservationalMemoryRecord struct {
 
 func (x *ObservationalMemoryRecord) Reset() {
 	*x = ObservationalMemoryRecord{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[18]
+	mi := &file_runtime_v1_memory_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1753,7 +1685,7 @@ func (x *ObservationalMemoryRecord) String() string {
 func (*ObservationalMemoryRecord) ProtoMessage() {}
 
 func (x *ObservationalMemoryRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[18]
+	mi := &file_runtime_v1_memory_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1766,7 +1698,7 @@ func (x *ObservationalMemoryRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ObservationalMemoryRecord.ProtoReflect.Descriptor instead.
 func (*ObservationalMemoryRecord) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ObservationalMemoryRecord) GetObservation() string {
@@ -1809,7 +1741,7 @@ type MemoryRecordInput struct {
 
 func (x *MemoryRecordInput) Reset() {
 	*x = MemoryRecordInput{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[19]
+	mi := &file_runtime_v1_memory_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1821,7 +1753,7 @@ func (x *MemoryRecordInput) String() string {
 func (*MemoryRecordInput) ProtoMessage() {}
 
 func (x *MemoryRecordInput) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[19]
+	mi := &file_runtime_v1_memory_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1834,7 +1766,7 @@ func (x *MemoryRecordInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryRecordInput.ProtoReflect.Descriptor instead.
 func (*MemoryRecordInput) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *MemoryRecordInput) GetKind() MemoryRecordKind {
@@ -1938,7 +1870,7 @@ type MemoryReplicationPending struct {
 
 func (x *MemoryReplicationPending) Reset() {
 	*x = MemoryReplicationPending{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[20]
+	mi := &file_runtime_v1_memory_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1950,7 +1882,7 @@ func (x *MemoryReplicationPending) String() string {
 func (*MemoryReplicationPending) ProtoMessage() {}
 
 func (x *MemoryReplicationPending) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[20]
+	mi := &file_runtime_v1_memory_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1963,7 +1895,7 @@ func (x *MemoryReplicationPending) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryReplicationPending.ProtoReflect.Descriptor instead.
 func (*MemoryReplicationPending) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *MemoryReplicationPending) GetBasisVersion() string {
@@ -1990,7 +1922,7 @@ type MemoryReplicationSynced struct {
 
 func (x *MemoryReplicationSynced) Reset() {
 	*x = MemoryReplicationSynced{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[21]
+	mi := &file_runtime_v1_memory_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2002,7 +1934,7 @@ func (x *MemoryReplicationSynced) String() string {
 func (*MemoryReplicationSynced) ProtoMessage() {}
 
 func (x *MemoryReplicationSynced) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[21]
+	mi := &file_runtime_v1_memory_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2015,7 +1947,7 @@ func (x *MemoryReplicationSynced) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryReplicationSynced.ProtoReflect.Descriptor instead.
 func (*MemoryReplicationSynced) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *MemoryReplicationSynced) GetRealmVersion() string {
@@ -2045,7 +1977,7 @@ type MemoryReplicationConflict struct {
 
 func (x *MemoryReplicationConflict) Reset() {
 	*x = MemoryReplicationConflict{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[22]
+	mi := &file_runtime_v1_memory_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2057,7 +1989,7 @@ func (x *MemoryReplicationConflict) String() string {
 func (*MemoryReplicationConflict) ProtoMessage() {}
 
 func (x *MemoryReplicationConflict) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[22]
+	mi := &file_runtime_v1_memory_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2070,7 +2002,7 @@ func (x *MemoryReplicationConflict) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryReplicationConflict.ProtoReflect.Descriptor instead.
 func (*MemoryReplicationConflict) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *MemoryReplicationConflict) GetConflictId() string {
@@ -2121,7 +2053,7 @@ type MemoryInvalidation struct {
 
 func (x *MemoryInvalidation) Reset() {
 	*x = MemoryInvalidation{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[23]
+	mi := &file_runtime_v1_memory_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2133,7 +2065,7 @@ func (x *MemoryInvalidation) String() string {
 func (*MemoryInvalidation) ProtoMessage() {}
 
 func (x *MemoryInvalidation) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[23]
+	mi := &file_runtime_v1_memory_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2146,7 +2078,7 @@ func (x *MemoryInvalidation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryInvalidation.ProtoReflect.Descriptor instead.
 func (*MemoryInvalidation) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *MemoryInvalidation) GetInvalidationId() string {
@@ -2202,7 +2134,7 @@ type MemoryReplicationState struct {
 
 func (x *MemoryReplicationState) Reset() {
 	*x = MemoryReplicationState{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[24]
+	mi := &file_runtime_v1_memory_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2214,7 +2146,7 @@ func (x *MemoryReplicationState) String() string {
 func (*MemoryReplicationState) ProtoMessage() {}
 
 func (x *MemoryReplicationState) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[24]
+	mi := &file_runtime_v1_memory_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2227,7 +2159,7 @@ func (x *MemoryReplicationState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryReplicationState.ProtoReflect.Descriptor instead.
 func (*MemoryReplicationState) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *MemoryReplicationState) GetOutcome() MemoryReplicationOutcome {
@@ -2346,7 +2278,7 @@ type MemoryRecord struct {
 
 func (x *MemoryRecord) Reset() {
 	*x = MemoryRecord{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[25]
+	mi := &file_runtime_v1_memory_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2358,7 +2290,7 @@ func (x *MemoryRecord) String() string {
 func (*MemoryRecord) ProtoMessage() {}
 
 func (x *MemoryRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[25]
+	mi := &file_runtime_v1_memory_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2371,7 +2303,7 @@ func (x *MemoryRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryRecord.ProtoReflect.Descriptor instead.
 func (*MemoryRecord) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *MemoryRecord) GetMemoryId() string {
@@ -2515,7 +2447,7 @@ type MemoryRecallQuery struct {
 
 func (x *MemoryRecallQuery) Reset() {
 	*x = MemoryRecallQuery{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[26]
+	mi := &file_runtime_v1_memory_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2527,7 +2459,7 @@ func (x *MemoryRecallQuery) String() string {
 func (*MemoryRecallQuery) ProtoMessage() {}
 
 func (x *MemoryRecallQuery) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[26]
+	mi := &file_runtime_v1_memory_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2540,7 +2472,7 @@ func (x *MemoryRecallQuery) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryRecallQuery.ProtoReflect.Descriptor instead.
 func (*MemoryRecallQuery) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *MemoryRecallQuery) GetQuery() string {
@@ -2606,7 +2538,7 @@ type MemoryHistoryQuery struct {
 
 func (x *MemoryHistoryQuery) Reset() {
 	*x = MemoryHistoryQuery{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[27]
+	mi := &file_runtime_v1_memory_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2618,7 +2550,7 @@ func (x *MemoryHistoryQuery) String() string {
 func (*MemoryHistoryQuery) ProtoMessage() {}
 
 func (x *MemoryHistoryQuery) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[27]
+	mi := &file_runtime_v1_memory_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2631,7 +2563,7 @@ func (x *MemoryHistoryQuery) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryHistoryQuery.ProtoReflect.Descriptor instead.
 func (*MemoryHistoryQuery) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *MemoryHistoryQuery) GetKinds() []MemoryRecordKind {
@@ -2687,7 +2619,7 @@ type MemoryRecallHit struct {
 
 func (x *MemoryRecallHit) Reset() {
 	*x = MemoryRecallHit{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[28]
+	mi := &file_runtime_v1_memory_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2699,7 +2631,7 @@ func (x *MemoryRecallHit) String() string {
 func (*MemoryRecallHit) ProtoMessage() {}
 
 func (x *MemoryRecallHit) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[28]
+	mi := &file_runtime_v1_memory_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2712,7 +2644,7 @@ func (x *MemoryRecallHit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryRecallHit.ProtoReflect.Descriptor instead.
 func (*MemoryRecallHit) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *MemoryRecallHit) GetRecord() *MemoryRecord {
@@ -2750,7 +2682,7 @@ type NarrativeRecallHit struct {
 
 func (x *NarrativeRecallHit) Reset() {
 	*x = NarrativeRecallHit{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[29]
+	mi := &file_runtime_v1_memory_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2762,7 +2694,7 @@ func (x *NarrativeRecallHit) String() string {
 func (*NarrativeRecallHit) ProtoMessage() {}
 
 func (x *NarrativeRecallHit) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[29]
+	mi := &file_runtime_v1_memory_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2775,7 +2707,7 @@ func (x *NarrativeRecallHit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NarrativeRecallHit.ProtoReflect.Descriptor instead.
 func (*NarrativeRecallHit) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *NarrativeRecallHit) GetNarrativeId() string {
@@ -2833,7 +2765,7 @@ type MemoryReflectionRequest struct {
 
 func (x *MemoryReflectionRequest) Reset() {
 	*x = MemoryReflectionRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[30]
+	mi := &file_runtime_v1_memory_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2845,7 +2777,7 @@ func (x *MemoryReflectionRequest) String() string {
 func (*MemoryReflectionRequest) ProtoMessage() {}
 
 func (x *MemoryReflectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[30]
+	mi := &file_runtime_v1_memory_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2858,7 +2790,7 @@ func (x *MemoryReflectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryReflectionRequest.ProtoReflect.Descriptor instead.
 func (*MemoryReflectionRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *MemoryReflectionRequest) GetSourceKinds() []MemoryRecordKind {
@@ -2907,7 +2839,7 @@ type MemoryReflectionResult struct {
 
 func (x *MemoryReflectionResult) Reset() {
 	*x = MemoryReflectionResult{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[31]
+	mi := &file_runtime_v1_memory_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2919,7 +2851,7 @@ func (x *MemoryReflectionResult) String() string {
 func (*MemoryReflectionResult) ProtoMessage() {}
 
 func (x *MemoryReflectionResult) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[31]
+	mi := &file_runtime_v1_memory_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2932,7 +2864,7 @@ func (x *MemoryReflectionResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryReflectionResult.ProtoReflect.Descriptor instead.
 func (*MemoryReflectionResult) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *MemoryReflectionResult) GetCreatedRecords() []*MemoryRecord {
@@ -2966,7 +2898,7 @@ type MemoryDeletedDetail struct {
 
 func (x *MemoryDeletedDetail) Reset() {
 	*x = MemoryDeletedDetail{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[32]
+	mi := &file_runtime_v1_memory_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2978,7 +2910,7 @@ func (x *MemoryDeletedDetail) String() string {
 func (*MemoryDeletedDetail) ProtoMessage() {}
 
 func (x *MemoryDeletedDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[32]
+	mi := &file_runtime_v1_memory_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2991,7 +2923,7 @@ func (x *MemoryDeletedDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryDeletedDetail.ProtoReflect.Descriptor instead.
 func (*MemoryDeletedDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *MemoryDeletedDetail) GetMemoryIds() []string {
@@ -3018,7 +2950,7 @@ type MemoryReplicationObservedDetail struct {
 
 func (x *MemoryReplicationObservedDetail) Reset() {
 	*x = MemoryReplicationObservedDetail{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[33]
+	mi := &file_runtime_v1_memory_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3030,7 +2962,7 @@ func (x *MemoryReplicationObservedDetail) String() string {
 func (*MemoryReplicationObservedDetail) ProtoMessage() {}
 
 func (x *MemoryReplicationObservedDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[33]
+	mi := &file_runtime_v1_memory_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3043,7 +2975,7 @@ func (x *MemoryReplicationObservedDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryReplicationObservedDetail.ProtoReflect.Descriptor instead.
 func (*MemoryReplicationObservedDetail) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *MemoryReplicationObservedDetail) GetMemoryId() string {
@@ -3081,7 +3013,7 @@ type MemoryEvent struct {
 
 func (x *MemoryEvent) Reset() {
 	*x = MemoryEvent{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[34]
+	mi := &file_runtime_v1_memory_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3093,7 +3025,7 @@ func (x *MemoryEvent) String() string {
 func (*MemoryEvent) ProtoMessage() {}
 
 func (x *MemoryEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[34]
+	mi := &file_runtime_v1_memory_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3106,7 +3038,7 @@ func (x *MemoryEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryEvent.ProtoReflect.Descriptor instead.
 func (*MemoryEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *MemoryEvent) GetEventType() MemoryEventType {
@@ -3252,7 +3184,7 @@ type CreateBankRequest struct {
 
 func (x *CreateBankRequest) Reset() {
 	*x = CreateBankRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[35]
+	mi := &file_runtime_v1_memory_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3264,7 +3196,7 @@ func (x *CreateBankRequest) String() string {
 func (*CreateBankRequest) ProtoMessage() {}
 
 func (x *CreateBankRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[35]
+	mi := &file_runtime_v1_memory_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3277,7 +3209,7 @@ func (x *CreateBankRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateBankRequest.ProtoReflect.Descriptor instead.
 func (*CreateBankRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *CreateBankRequest) GetContext() *MemoryRequestContext {
@@ -3324,7 +3256,7 @@ type CreateBankResponse struct {
 
 func (x *CreateBankResponse) Reset() {
 	*x = CreateBankResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[36]
+	mi := &file_runtime_v1_memory_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3336,7 +3268,7 @@ func (x *CreateBankResponse) String() string {
 func (*CreateBankResponse) ProtoMessage() {}
 
 func (x *CreateBankResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[36]
+	mi := &file_runtime_v1_memory_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3349,7 +3281,7 @@ func (x *CreateBankResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateBankResponse.ProtoReflect.Descriptor instead.
 func (*CreateBankResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *CreateBankResponse) GetBank() *MemoryBank {
@@ -3369,7 +3301,7 @@ type GetBankRequest struct {
 
 func (x *GetBankRequest) Reset() {
 	*x = GetBankRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[37]
+	mi := &file_runtime_v1_memory_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3381,7 +3313,7 @@ func (x *GetBankRequest) String() string {
 func (*GetBankRequest) ProtoMessage() {}
 
 func (x *GetBankRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[37]
+	mi := &file_runtime_v1_memory_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3394,7 +3326,7 @@ func (x *GetBankRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBankRequest.ProtoReflect.Descriptor instead.
 func (*GetBankRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{37}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *GetBankRequest) GetContext() *MemoryRequestContext {
@@ -3420,7 +3352,7 @@ type GetBankResponse struct {
 
 func (x *GetBankResponse) Reset() {
 	*x = GetBankResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[38]
+	mi := &file_runtime_v1_memory_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3432,7 +3364,7 @@ func (x *GetBankResponse) String() string {
 func (*GetBankResponse) ProtoMessage() {}
 
 func (x *GetBankResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[38]
+	mi := &file_runtime_v1_memory_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3445,7 +3377,7 @@ func (x *GetBankResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBankResponse.ProtoReflect.Descriptor instead.
 func (*GetBankResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{38}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *GetBankResponse) GetBank() *MemoryBank {
@@ -3468,7 +3400,7 @@ type ListBanksRequest struct {
 
 func (x *ListBanksRequest) Reset() {
 	*x = ListBanksRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[39]
+	mi := &file_runtime_v1_memory_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3480,7 +3412,7 @@ func (x *ListBanksRequest) String() string {
 func (*ListBanksRequest) ProtoMessage() {}
 
 func (x *ListBanksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[39]
+	mi := &file_runtime_v1_memory_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3493,7 +3425,7 @@ func (x *ListBanksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBanksRequest.ProtoReflect.Descriptor instead.
 func (*ListBanksRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{39}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ListBanksRequest) GetContext() *MemoryRequestContext {
@@ -3541,7 +3473,7 @@ type ListBanksResponse struct {
 
 func (x *ListBanksResponse) Reset() {
 	*x = ListBanksResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[40]
+	mi := &file_runtime_v1_memory_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3553,7 +3485,7 @@ func (x *ListBanksResponse) String() string {
 func (*ListBanksResponse) ProtoMessage() {}
 
 func (x *ListBanksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[40]
+	mi := &file_runtime_v1_memory_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3566,7 +3498,7 @@ func (x *ListBanksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBanksResponse.ProtoReflect.Descriptor instead.
 func (*ListBanksResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{40}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ListBanksResponse) GetBanks() []*MemoryBank {
@@ -3593,7 +3525,7 @@ type DeleteBankRequest struct {
 
 func (x *DeleteBankRequest) Reset() {
 	*x = DeleteBankRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[41]
+	mi := &file_runtime_v1_memory_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3605,7 +3537,7 @@ func (x *DeleteBankRequest) String() string {
 func (*DeleteBankRequest) ProtoMessage() {}
 
 func (x *DeleteBankRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[41]
+	mi := &file_runtime_v1_memory_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3618,7 +3550,7 @@ func (x *DeleteBankRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteBankRequest.ProtoReflect.Descriptor instead.
 func (*DeleteBankRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{41}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *DeleteBankRequest) GetContext() *MemoryRequestContext {
@@ -3644,7 +3576,7 @@ type DeleteBankResponse struct {
 
 func (x *DeleteBankResponse) Reset() {
 	*x = DeleteBankResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[42]
+	mi := &file_runtime_v1_memory_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3656,7 +3588,7 @@ func (x *DeleteBankResponse) String() string {
 func (*DeleteBankResponse) ProtoMessage() {}
 
 func (x *DeleteBankResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[42]
+	mi := &file_runtime_v1_memory_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3669,7 +3601,7 @@ func (x *DeleteBankResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteBankResponse.ProtoReflect.Descriptor instead.
 func (*DeleteBankResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{42}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *DeleteBankResponse) GetAck() *Ack {
@@ -3690,7 +3622,7 @@ type RetainRequest struct {
 
 func (x *RetainRequest) Reset() {
 	*x = RetainRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[43]
+	mi := &file_runtime_v1_memory_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3702,7 +3634,7 @@ func (x *RetainRequest) String() string {
 func (*RetainRequest) ProtoMessage() {}
 
 func (x *RetainRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[43]
+	mi := &file_runtime_v1_memory_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3715,7 +3647,7 @@ func (x *RetainRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetainRequest.ProtoReflect.Descriptor instead.
 func (*RetainRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{43}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *RetainRequest) GetContext() *MemoryRequestContext {
@@ -3748,7 +3680,7 @@ type RetainResponse struct {
 
 func (x *RetainResponse) Reset() {
 	*x = RetainResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[44]
+	mi := &file_runtime_v1_memory_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3760,7 +3692,7 @@ func (x *RetainResponse) String() string {
 func (*RetainResponse) ProtoMessage() {}
 
 func (x *RetainResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[44]
+	mi := &file_runtime_v1_memory_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3773,7 +3705,7 @@ func (x *RetainResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetainResponse.ProtoReflect.Descriptor instead.
 func (*RetainResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{44}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *RetainResponse) GetRecords() []*MemoryRecord {
@@ -3794,7 +3726,7 @@ type RecallRequest struct {
 
 func (x *RecallRequest) Reset() {
 	*x = RecallRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[45]
+	mi := &file_runtime_v1_memory_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3806,7 +3738,7 @@ func (x *RecallRequest) String() string {
 func (*RecallRequest) ProtoMessage() {}
 
 func (x *RecallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[45]
+	mi := &file_runtime_v1_memory_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3819,7 +3751,7 @@ func (x *RecallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecallRequest.ProtoReflect.Descriptor instead.
 func (*RecallRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{45}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *RecallRequest) GetContext() *MemoryRequestContext {
@@ -3853,7 +3785,7 @@ type RecallResponse struct {
 
 func (x *RecallResponse) Reset() {
 	*x = RecallResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[46]
+	mi := &file_runtime_v1_memory_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3865,7 +3797,7 @@ func (x *RecallResponse) String() string {
 func (*RecallResponse) ProtoMessage() {}
 
 func (x *RecallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[46]
+	mi := &file_runtime_v1_memory_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3878,7 +3810,7 @@ func (x *RecallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecallResponse.ProtoReflect.Descriptor instead.
 func (*RecallResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{46}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *RecallResponse) GetHits() []*MemoryRecallHit {
@@ -3906,7 +3838,7 @@ type HistoryRequest struct {
 
 func (x *HistoryRequest) Reset() {
 	*x = HistoryRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[47]
+	mi := &file_runtime_v1_memory_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3918,7 +3850,7 @@ func (x *HistoryRequest) String() string {
 func (*HistoryRequest) ProtoMessage() {}
 
 func (x *HistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[47]
+	mi := &file_runtime_v1_memory_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3931,7 +3863,7 @@ func (x *HistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryRequest.ProtoReflect.Descriptor instead.
 func (*HistoryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{47}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *HistoryRequest) GetContext() *MemoryRequestContext {
@@ -3965,7 +3897,7 @@ type HistoryResponse struct {
 
 func (x *HistoryResponse) Reset() {
 	*x = HistoryResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[48]
+	mi := &file_runtime_v1_memory_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3977,7 +3909,7 @@ func (x *HistoryResponse) String() string {
 func (*HistoryResponse) ProtoMessage() {}
 
 func (x *HistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[48]
+	mi := &file_runtime_v1_memory_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3990,7 +3922,7 @@ func (x *HistoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HistoryResponse.ProtoReflect.Descriptor instead.
 func (*HistoryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{48}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *HistoryResponse) GetRecords() []*MemoryRecord {
@@ -4019,7 +3951,7 @@ type DeleteMemoryRequest struct {
 
 func (x *DeleteMemoryRequest) Reset() {
 	*x = DeleteMemoryRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[49]
+	mi := &file_runtime_v1_memory_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4031,7 +3963,7 @@ func (x *DeleteMemoryRequest) String() string {
 func (*DeleteMemoryRequest) ProtoMessage() {}
 
 func (x *DeleteMemoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[49]
+	mi := &file_runtime_v1_memory_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4044,7 +3976,7 @@ func (x *DeleteMemoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMemoryRequest.ProtoReflect.Descriptor instead.
 func (*DeleteMemoryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{49}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *DeleteMemoryRequest) GetContext() *MemoryRequestContext {
@@ -4085,7 +4017,7 @@ type DeleteMemoryResponse struct {
 
 func (x *DeleteMemoryResponse) Reset() {
 	*x = DeleteMemoryResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[50]
+	mi := &file_runtime_v1_memory_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4097,7 +4029,7 @@ func (x *DeleteMemoryResponse) String() string {
 func (*DeleteMemoryResponse) ProtoMessage() {}
 
 func (x *DeleteMemoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[50]
+	mi := &file_runtime_v1_memory_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4110,7 +4042,7 @@ func (x *DeleteMemoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMemoryResponse.ProtoReflect.Descriptor instead.
 func (*DeleteMemoryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{50}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *DeleteMemoryResponse) GetAck() *Ack {
@@ -4139,7 +4071,7 @@ type SubscribeMemoryEventsRequest struct {
 
 func (x *SubscribeMemoryEventsRequest) Reset() {
 	*x = SubscribeMemoryEventsRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[51]
+	mi := &file_runtime_v1_memory_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4151,7 +4083,7 @@ func (x *SubscribeMemoryEventsRequest) String() string {
 func (*SubscribeMemoryEventsRequest) ProtoMessage() {}
 
 func (x *SubscribeMemoryEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[51]
+	mi := &file_runtime_v1_memory_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4164,7 +4096,7 @@ func (x *SubscribeMemoryEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeMemoryEventsRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeMemoryEventsRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{51}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *SubscribeMemoryEventsRequest) GetContext() *MemoryRequestContext {
@@ -4195,223 +4127,6 @@ func (x *SubscribeMemoryEventsRequest) GetCursor() string {
 	return ""
 }
 
-type GetMemoryEmbeddingRuntimeIntentRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Context       *MemoryRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	Locator       *MemoryBankLocator     `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetMemoryEmbeddingRuntimeIntentRequest) Reset() {
-	*x = GetMemoryEmbeddingRuntimeIntentRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[52]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetMemoryEmbeddingRuntimeIntentRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetMemoryEmbeddingRuntimeIntentRequest) ProtoMessage() {}
-
-func (x *GetMemoryEmbeddingRuntimeIntentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[52]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetMemoryEmbeddingRuntimeIntentRequest.ProtoReflect.Descriptor instead.
-func (*GetMemoryEmbeddingRuntimeIntentRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{52}
-}
-
-func (x *GetMemoryEmbeddingRuntimeIntentRequest) GetContext() *MemoryRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *GetMemoryEmbeddingRuntimeIntentRequest) GetLocator() *MemoryBankLocator {
-	if x != nil {
-		return x.Locator
-	}
-	return nil
-}
-
-type GetMemoryEmbeddingRuntimeIntentResponse struct {
-	state                protoimpl.MessageState                `protogen:"open.v1"`
-	BindingIntentPresent bool                                  `protobuf:"varint,1,opt,name=binding_intent_present,json=bindingIntentPresent,proto3" json:"binding_intent_present,omitempty"`
-	BindingIntent        *MemoryEmbeddingBindingIntentSnapshot `protobuf:"bytes,2,opt,name=binding_intent,json=bindingIntent,proto3" json:"binding_intent,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
-}
-
-func (x *GetMemoryEmbeddingRuntimeIntentResponse) Reset() {
-	*x = GetMemoryEmbeddingRuntimeIntentResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[53]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetMemoryEmbeddingRuntimeIntentResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetMemoryEmbeddingRuntimeIntentResponse) ProtoMessage() {}
-
-func (x *GetMemoryEmbeddingRuntimeIntentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[53]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetMemoryEmbeddingRuntimeIntentResponse.ProtoReflect.Descriptor instead.
-func (*GetMemoryEmbeddingRuntimeIntentResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{53}
-}
-
-func (x *GetMemoryEmbeddingRuntimeIntentResponse) GetBindingIntentPresent() bool {
-	if x != nil {
-		return x.BindingIntentPresent
-	}
-	return false
-}
-
-func (x *GetMemoryEmbeddingRuntimeIntentResponse) GetBindingIntent() *MemoryEmbeddingBindingIntentSnapshot {
-	if x != nil {
-		return x.BindingIntent
-	}
-	return nil
-}
-
-type SetMemoryEmbeddingRuntimeIntentRequest struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	Context *MemoryRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	Locator *MemoryBankLocator     `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
-	// Omit or send an empty binding_intent to clear the Runtime-owned binding intent.
-	BindingIntent *MemoryEmbeddingBindingIntentSnapshot `protobuf:"bytes,3,opt,name=binding_intent,json=bindingIntent,proto3" json:"binding_intent,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SetMemoryEmbeddingRuntimeIntentRequest) Reset() {
-	*x = SetMemoryEmbeddingRuntimeIntentRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[54]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SetMemoryEmbeddingRuntimeIntentRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetMemoryEmbeddingRuntimeIntentRequest) ProtoMessage() {}
-
-func (x *SetMemoryEmbeddingRuntimeIntentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[54]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetMemoryEmbeddingRuntimeIntentRequest.ProtoReflect.Descriptor instead.
-func (*SetMemoryEmbeddingRuntimeIntentRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{54}
-}
-
-func (x *SetMemoryEmbeddingRuntimeIntentRequest) GetContext() *MemoryRequestContext {
-	if x != nil {
-		return x.Context
-	}
-	return nil
-}
-
-func (x *SetMemoryEmbeddingRuntimeIntentRequest) GetLocator() *MemoryBankLocator {
-	if x != nil {
-		return x.Locator
-	}
-	return nil
-}
-
-func (x *SetMemoryEmbeddingRuntimeIntentRequest) GetBindingIntent() *MemoryEmbeddingBindingIntentSnapshot {
-	if x != nil {
-		return x.BindingIntent
-	}
-	return nil
-}
-
-type SetMemoryEmbeddingRuntimeIntentResponse struct {
-	state         protoimpl.MessageState                `protogen:"open.v1"`
-	Accepted      bool                                  `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
-	BindingIntent *MemoryEmbeddingBindingIntentSnapshot `protobuf:"bytes,2,opt,name=binding_intent,json=bindingIntent,proto3" json:"binding_intent,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SetMemoryEmbeddingRuntimeIntentResponse) Reset() {
-	*x = SetMemoryEmbeddingRuntimeIntentResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[55]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SetMemoryEmbeddingRuntimeIntentResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetMemoryEmbeddingRuntimeIntentResponse) ProtoMessage() {}
-
-func (x *SetMemoryEmbeddingRuntimeIntentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[55]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetMemoryEmbeddingRuntimeIntentResponse.ProtoReflect.Descriptor instead.
-func (*SetMemoryEmbeddingRuntimeIntentResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{55}
-}
-
-func (x *SetMemoryEmbeddingRuntimeIntentResponse) GetAccepted() bool {
-	if x != nil {
-		return x.Accepted
-	}
-	return false
-}
-
-func (x *SetMemoryEmbeddingRuntimeIntentResponse) GetBindingIntent() *MemoryEmbeddingBindingIntentSnapshot {
-	if x != nil {
-		return x.BindingIntent
-	}
-	return nil
-}
-
 type InspectMemoryEmbeddingRuntimeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Context       *MemoryRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
@@ -4422,7 +4137,7 @@ type InspectMemoryEmbeddingRuntimeRequest struct {
 
 func (x *InspectMemoryEmbeddingRuntimeRequest) Reset() {
 	*x = InspectMemoryEmbeddingRuntimeRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[56]
+	mi := &file_runtime_v1_memory_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4434,7 +4149,7 @@ func (x *InspectMemoryEmbeddingRuntimeRequest) String() string {
 func (*InspectMemoryEmbeddingRuntimeRequest) ProtoMessage() {}
 
 func (x *InspectMemoryEmbeddingRuntimeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[56]
+	mi := &file_runtime_v1_memory_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4447,7 +4162,7 @@ func (x *InspectMemoryEmbeddingRuntimeRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use InspectMemoryEmbeddingRuntimeRequest.ProtoReflect.Descriptor instead.
 func (*InspectMemoryEmbeddingRuntimeRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{56}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *InspectMemoryEmbeddingRuntimeRequest) GetContext() *MemoryRequestContext {
@@ -4465,21 +4180,22 @@ func (x *InspectMemoryEmbeddingRuntimeRequest) GetLocator() *MemoryBankLocator {
 }
 
 type InspectMemoryEmbeddingRuntimeResponse struct {
-	state                protoimpl.MessageState             `protogen:"open.v1"`
-	BindingIntentPresent bool                               `protobuf:"varint,1,opt,name=binding_intent_present,json=bindingIntentPresent,proto3" json:"binding_intent_present,omitempty"`
-	BindingSourceKind    string                             `protobuf:"bytes,2,opt,name=binding_source_kind,json=bindingSourceKind,proto3" json:"binding_source_kind,omitempty"`
-	ResolutionState      string                             `protobuf:"bytes,3,opt,name=resolution_state,json=resolutionState,proto3" json:"resolution_state,omitempty"`
-	ResolvedProfile      *MemoryEmbeddingProfile            `protobuf:"bytes,4,opt,name=resolved_profile,json=resolvedProfile,proto3" json:"resolved_profile,omitempty"`
-	CanonicalBankStatus  string                             `protobuf:"bytes,5,opt,name=canonical_bank_status,json=canonicalBankStatus,proto3" json:"canonical_bank_status,omitempty"`
-	BlockedReasonCode    ReasonCode                         `protobuf:"varint,6,opt,name=blocked_reason_code,json=blockedReasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"blocked_reason_code,omitempty"`
-	OperationReadiness   *MemoryEmbeddingOperationReadiness `protobuf:"bytes,7,opt,name=operation_readiness,json=operationReadiness,proto3" json:"operation_readiness,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                  protoimpl.MessageState             `protogen:"open.v1"`
+	TextEmbedIntentPresent bool                               `protobuf:"varint,1,opt,name=text_embed_intent_present,json=textEmbedIntentPresent,proto3" json:"text_embed_intent_present,omitempty"`
+	TextEmbedSourceKind    string                             `protobuf:"bytes,2,opt,name=text_embed_source_kind,json=textEmbedSourceKind,proto3" json:"text_embed_source_kind,omitempty"`
+	ResolutionState        string                             `protobuf:"bytes,3,opt,name=resolution_state,json=resolutionState,proto3" json:"resolution_state,omitempty"`
+	ResolvedProfile        *MemoryEmbeddingProfile            `protobuf:"bytes,4,opt,name=resolved_profile,json=resolvedProfile,proto3" json:"resolved_profile,omitempty"`
+	CanonicalBankStatus    string                             `protobuf:"bytes,5,opt,name=canonical_bank_status,json=canonicalBankStatus,proto3" json:"canonical_bank_status,omitempty"`
+	BlockedReasonCode      ReasonCode                         `protobuf:"varint,6,opt,name=blocked_reason_code,json=blockedReasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"blocked_reason_code,omitempty"`
+	OperationReadiness     *MemoryEmbeddingOperationReadiness `protobuf:"bytes,7,opt,name=operation_readiness,json=operationReadiness,proto3" json:"operation_readiness,omitempty"`
+	ConfigRevision         uint64                             `protobuf:"varint,8,opt,name=config_revision,json=configRevision,proto3" json:"config_revision,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *InspectMemoryEmbeddingRuntimeResponse) Reset() {
 	*x = InspectMemoryEmbeddingRuntimeResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[57]
+	mi := &file_runtime_v1_memory_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4491,7 +4207,7 @@ func (x *InspectMemoryEmbeddingRuntimeResponse) String() string {
 func (*InspectMemoryEmbeddingRuntimeResponse) ProtoMessage() {}
 
 func (x *InspectMemoryEmbeddingRuntimeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[57]
+	mi := &file_runtime_v1_memory_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4504,19 +4220,19 @@ func (x *InspectMemoryEmbeddingRuntimeResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use InspectMemoryEmbeddingRuntimeResponse.ProtoReflect.Descriptor instead.
 func (*InspectMemoryEmbeddingRuntimeResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{57}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{52}
 }
 
-func (x *InspectMemoryEmbeddingRuntimeResponse) GetBindingIntentPresent() bool {
+func (x *InspectMemoryEmbeddingRuntimeResponse) GetTextEmbedIntentPresent() bool {
 	if x != nil {
-		return x.BindingIntentPresent
+		return x.TextEmbedIntentPresent
 	}
 	return false
 }
 
-func (x *InspectMemoryEmbeddingRuntimeResponse) GetBindingSourceKind() string {
+func (x *InspectMemoryEmbeddingRuntimeResponse) GetTextEmbedSourceKind() string {
 	if x != nil {
-		return x.BindingSourceKind
+		return x.TextEmbedSourceKind
 	}
 	return ""
 }
@@ -4556,6 +4272,13 @@ func (x *InspectMemoryEmbeddingRuntimeResponse) GetOperationReadiness() *MemoryE
 	return nil
 }
 
+func (x *InspectMemoryEmbeddingRuntimeResponse) GetConfigRevision() uint64 {
+	if x != nil {
+		return x.ConfigRevision
+	}
+	return 0
+}
+
 type RequestMemoryEmbeddingRuntimeBindRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Context       *MemoryRequestContext  `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
@@ -4566,7 +4289,7 @@ type RequestMemoryEmbeddingRuntimeBindRequest struct {
 
 func (x *RequestMemoryEmbeddingRuntimeBindRequest) Reset() {
 	*x = RequestMemoryEmbeddingRuntimeBindRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[58]
+	mi := &file_runtime_v1_memory_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4578,7 +4301,7 @@ func (x *RequestMemoryEmbeddingRuntimeBindRequest) String() string {
 func (*RequestMemoryEmbeddingRuntimeBindRequest) ProtoMessage() {}
 
 func (x *RequestMemoryEmbeddingRuntimeBindRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[58]
+	mi := &file_runtime_v1_memory_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4591,7 +4314,7 @@ func (x *RequestMemoryEmbeddingRuntimeBindRequest) ProtoReflect() protoreflect.M
 
 // Deprecated: Use RequestMemoryEmbeddingRuntimeBindRequest.ProtoReflect.Descriptor instead.
 func (*RequestMemoryEmbeddingRuntimeBindRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{58}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *RequestMemoryEmbeddingRuntimeBindRequest) GetContext() *MemoryRequestContext {
@@ -4620,7 +4343,7 @@ type RequestMemoryEmbeddingRuntimeBindResponse struct {
 
 func (x *RequestMemoryEmbeddingRuntimeBindResponse) Reset() {
 	*x = RequestMemoryEmbeddingRuntimeBindResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[59]
+	mi := &file_runtime_v1_memory_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4632,7 +4355,7 @@ func (x *RequestMemoryEmbeddingRuntimeBindResponse) String() string {
 func (*RequestMemoryEmbeddingRuntimeBindResponse) ProtoMessage() {}
 
 func (x *RequestMemoryEmbeddingRuntimeBindResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[59]
+	mi := &file_runtime_v1_memory_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4645,7 +4368,7 @@ func (x *RequestMemoryEmbeddingRuntimeBindResponse) ProtoReflect() protoreflect.
 
 // Deprecated: Use RequestMemoryEmbeddingRuntimeBindResponse.ProtoReflect.Descriptor instead.
 func (*RequestMemoryEmbeddingRuntimeBindResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{59}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *RequestMemoryEmbeddingRuntimeBindResponse) GetOutcome() string {
@@ -4686,7 +4409,7 @@ type RequestMemoryEmbeddingRuntimeCutoverRequest struct {
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) Reset() {
 	*x = RequestMemoryEmbeddingRuntimeCutoverRequest{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[60]
+	mi := &file_runtime_v1_memory_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4698,7 +4421,7 @@ func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) String() string {
 func (*RequestMemoryEmbeddingRuntimeCutoverRequest) ProtoMessage() {}
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[60]
+	mi := &file_runtime_v1_memory_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4711,7 +4434,7 @@ func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) ProtoReflect() protoreflec
 
 // Deprecated: Use RequestMemoryEmbeddingRuntimeCutoverRequest.ProtoReflect.Descriptor instead.
 func (*RequestMemoryEmbeddingRuntimeCutoverRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{60}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverRequest) GetContext() *MemoryRequestContext {
@@ -4739,7 +4462,7 @@ type RequestMemoryEmbeddingRuntimeCutoverResponse struct {
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverResponse) Reset() {
 	*x = RequestMemoryEmbeddingRuntimeCutoverResponse{}
-	mi := &file_runtime_v1_memory_proto_msgTypes[61]
+	mi := &file_runtime_v1_memory_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4751,7 +4474,7 @@ func (x *RequestMemoryEmbeddingRuntimeCutoverResponse) String() string {
 func (*RequestMemoryEmbeddingRuntimeCutoverResponse) ProtoMessage() {}
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_memory_proto_msgTypes[61]
+	mi := &file_runtime_v1_memory_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4764,7 +4487,7 @@ func (x *RequestMemoryEmbeddingRuntimeCutoverResponse) ProtoReflect() protorefle
 
 // Deprecated: Use RequestMemoryEmbeddingRuntimeCutoverResponse.ProtoReflect.Descriptor instead.
 func (*RequestMemoryEmbeddingRuntimeCutoverResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{61}
+	return file_runtime_v1_memory_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *RequestMemoryEmbeddingRuntimeCutoverResponse) GetOutcome() string {
@@ -4852,13 +4575,7 @@ const file_runtime_v1_memory_proto_rawDesc = "" +
 	"\x1eMemoryEmbeddingLocalBindingRef\x12.\n" +
 	"\x12profile_binding_id\x18\x02 \x01(\tH\x00R\x10profileBindingId\x12%\n" +
 	"\rreadiness_ref\x18\x03 \x01(\tH\x00R\freadinessRefB\x05\n" +
-	"\x03refJ\x04\b\x01\x10\x02R\ttarget_id\"\x9a\x02\n" +
-	"$MemoryEmbeddingBindingIntentSnapshot\x12\x1f\n" +
-	"\vsource_kind\x18\x01 \x01(\tR\n" +
-	"sourceKind\x12T\n" +
-	"\rcloud_binding\x18\x02 \x01(\v2/.nimi.runtime.v1.MemoryEmbeddingCloudBindingRefR\fcloudBinding\x12T\n" +
-	"\rlocal_binding\x18\x03 \x01(\v2/.nimi.runtime.v1.MemoryEmbeddingLocalBindingRefR\flocalBinding\x12%\n" +
-	"\x0erevision_token\x18\x04 \x01(\tR\rrevisionToken\"o\n" +
+	"\x03refJ\x04\b\x01\x10\x02R\ttarget_id\"o\n" +
 	"!MemoryEmbeddingOperationReadiness\x12!\n" +
 	"\fbind_allowed\x18\x01 \x01(\bR\vbindAllowed\x12'\n" +
 	"\x0fcutover_allowed\x18\x02 \x01(\bR\x0ecutoverAllowed\"\xeb\x03\n" +
@@ -5089,31 +4806,19 @@ const file_runtime_v1_memory_proto_rawDesc = "" +
 	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x12E\n" +
 	"\rscope_filters\x18\x02 \x03(\x0e2 .nimi.runtime.v1.MemoryBankScopeR\fscopeFilters\x12K\n" +
 	"\rowner_filters\x18\x03 \x03(\v2&.nimi.runtime.v1.MemoryBankOwnerFilterR\fownerFilters\x12\x16\n" +
-	"\x06cursor\x18\x04 \x01(\tR\x06cursor\"\xa7\x01\n" +
-	"&GetMemoryEmbeddingRuntimeIntentRequest\x12?\n" +
-	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x12<\n" +
-	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\"\xbd\x01\n" +
-	"'GetMemoryEmbeddingRuntimeIntentResponse\x124\n" +
-	"\x16binding_intent_present\x18\x01 \x01(\bR\x14bindingIntentPresent\x12\\\n" +
-	"\x0ebinding_intent\x18\x02 \x01(\v25.nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshotR\rbindingIntent\"\x85\x02\n" +
-	"&SetMemoryEmbeddingRuntimeIntentRequest\x12?\n" +
-	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x12<\n" +
-	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\x12\\\n" +
-	"\x0ebinding_intent\x18\x03 \x01(\v25.nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshotR\rbindingIntent\"\xa3\x01\n" +
-	"'SetMemoryEmbeddingRuntimeIntentResponse\x12\x1a\n" +
-	"\baccepted\x18\x01 \x01(\bR\baccepted\x12\\\n" +
-	"\x0ebinding_intent\x18\x02 \x01(\v25.nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshotR\rbindingIntent\"\xa5\x01\n" +
+	"\x06cursor\x18\x04 \x01(\tR\x06cursor\"\xa5\x01\n" +
 	"$InspectMemoryEmbeddingRuntimeRequest\x12?\n" +
 	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x12<\n" +
-	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\"\xf2\x03\n" +
-	"%InspectMemoryEmbeddingRuntimeResponse\x124\n" +
-	"\x16binding_intent_present\x18\x01 \x01(\bR\x14bindingIntentPresent\x12.\n" +
-	"\x13binding_source_kind\x18\x02 \x01(\tR\x11bindingSourceKind\x12)\n" +
+	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\"\xa5\x04\n" +
+	"%InspectMemoryEmbeddingRuntimeResponse\x129\n" +
+	"\x19text_embed_intent_present\x18\x01 \x01(\bR\x16textEmbedIntentPresent\x123\n" +
+	"\x16text_embed_source_kind\x18\x02 \x01(\tR\x13textEmbedSourceKind\x12)\n" +
 	"\x10resolution_state\x18\x03 \x01(\tR\x0fresolutionState\x12R\n" +
 	"\x10resolved_profile\x18\x04 \x01(\v2'.nimi.runtime.v1.MemoryEmbeddingProfileR\x0fresolvedProfile\x122\n" +
 	"\x15canonical_bank_status\x18\x05 \x01(\tR\x13canonicalBankStatus\x12K\n" +
 	"\x13blocked_reason_code\x18\x06 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\x11blockedReasonCode\x12c\n" +
-	"\x13operation_readiness\x18\a \x01(\v22.nimi.runtime.v1.MemoryEmbeddingOperationReadinessR\x12operationReadiness\"\xa9\x01\n" +
+	"\x13operation_readiness\x18\a \x01(\v22.nimi.runtime.v1.MemoryEmbeddingOperationReadinessR\x12operationReadiness\x12'\n" +
+	"\x0fconfig_revision\x18\b \x01(\x04R\x0econfigRevision\"\xa9\x01\n" +
 	"(RequestMemoryEmbeddingRuntimeBindRequest\x12?\n" +
 	"\acontext\x18\x01 \x01(\v2%.nimi.runtime.v1.MemoryRequestContextR\acontext\x12<\n" +
 	"\alocator\x18\x02 \x01(\v2\".nimi.runtime.v1.MemoryBankLocatorR\alocator\"\xfa\x01\n" +
@@ -5183,7 +4888,7 @@ func file_runtime_v1_memory_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_memory_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_runtime_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 62)
+var file_runtime_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 57)
 var file_runtime_v1_memory_proto_goTypes = []any{
 	(MemoryBankScope)(0),                                 // 0: nimi.runtime.v1.MemoryBankScope
 	(MemoryRecordKind)(0),                                // 1: nimi.runtime.v1.MemoryRecordKind
@@ -5204,60 +4909,55 @@ var file_runtime_v1_memory_proto_goTypes = []any{
 	(*MemoryEmbeddingProfile)(nil),                       // 16: nimi.runtime.v1.MemoryEmbeddingProfile
 	(*MemoryEmbeddingCloudBindingRef)(nil),               // 17: nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
 	(*MemoryEmbeddingLocalBindingRef)(nil),               // 18: nimi.runtime.v1.MemoryEmbeddingLocalBindingRef
-	(*MemoryEmbeddingBindingIntentSnapshot)(nil),         // 19: nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
-	(*MemoryEmbeddingOperationReadiness)(nil),            // 20: nimi.runtime.v1.MemoryEmbeddingOperationReadiness
-	(*MemoryBank)(nil),                                   // 21: nimi.runtime.v1.MemoryBank
-	(*MemoryProvenance)(nil),                             // 22: nimi.runtime.v1.MemoryProvenance
-	(*EpisodicMemoryRecord)(nil),                         // 23: nimi.runtime.v1.EpisodicMemoryRecord
-	(*SemanticMemoryRecord)(nil),                         // 24: nimi.runtime.v1.SemanticMemoryRecord
-	(*ObservationalMemoryRecord)(nil),                    // 25: nimi.runtime.v1.ObservationalMemoryRecord
-	(*MemoryRecordInput)(nil),                            // 26: nimi.runtime.v1.MemoryRecordInput
-	(*MemoryReplicationPending)(nil),                     // 27: nimi.runtime.v1.MemoryReplicationPending
-	(*MemoryReplicationSynced)(nil),                      // 28: nimi.runtime.v1.MemoryReplicationSynced
-	(*MemoryReplicationConflict)(nil),                    // 29: nimi.runtime.v1.MemoryReplicationConflict
-	(*MemoryInvalidation)(nil),                           // 30: nimi.runtime.v1.MemoryInvalidation
-	(*MemoryReplicationState)(nil),                       // 31: nimi.runtime.v1.MemoryReplicationState
-	(*MemoryRecord)(nil),                                 // 32: nimi.runtime.v1.MemoryRecord
-	(*MemoryRecallQuery)(nil),                            // 33: nimi.runtime.v1.MemoryRecallQuery
-	(*MemoryHistoryQuery)(nil),                           // 34: nimi.runtime.v1.MemoryHistoryQuery
-	(*MemoryRecallHit)(nil),                              // 35: nimi.runtime.v1.MemoryRecallHit
-	(*NarrativeRecallHit)(nil),                           // 36: nimi.runtime.v1.NarrativeRecallHit
-	(*MemoryReflectionRequest)(nil),                      // 37: nimi.runtime.v1.MemoryReflectionRequest
-	(*MemoryReflectionResult)(nil),                       // 38: nimi.runtime.v1.MemoryReflectionResult
-	(*MemoryDeletedDetail)(nil),                          // 39: nimi.runtime.v1.MemoryDeletedDetail
-	(*MemoryReplicationObservedDetail)(nil),              // 40: nimi.runtime.v1.MemoryReplicationObservedDetail
-	(*MemoryEvent)(nil),                                  // 41: nimi.runtime.v1.MemoryEvent
-	(*CreateBankRequest)(nil),                            // 42: nimi.runtime.v1.CreateBankRequest
-	(*CreateBankResponse)(nil),                           // 43: nimi.runtime.v1.CreateBankResponse
-	(*GetBankRequest)(nil),                               // 44: nimi.runtime.v1.GetBankRequest
-	(*GetBankResponse)(nil),                              // 45: nimi.runtime.v1.GetBankResponse
-	(*ListBanksRequest)(nil),                             // 46: nimi.runtime.v1.ListBanksRequest
-	(*ListBanksResponse)(nil),                            // 47: nimi.runtime.v1.ListBanksResponse
-	(*DeleteBankRequest)(nil),                            // 48: nimi.runtime.v1.DeleteBankRequest
-	(*DeleteBankResponse)(nil),                           // 49: nimi.runtime.v1.DeleteBankResponse
-	(*RetainRequest)(nil),                                // 50: nimi.runtime.v1.RetainRequest
-	(*RetainResponse)(nil),                               // 51: nimi.runtime.v1.RetainResponse
-	(*RecallRequest)(nil),                                // 52: nimi.runtime.v1.RecallRequest
-	(*RecallResponse)(nil),                               // 53: nimi.runtime.v1.RecallResponse
-	(*HistoryRequest)(nil),                               // 54: nimi.runtime.v1.HistoryRequest
-	(*HistoryResponse)(nil),                              // 55: nimi.runtime.v1.HistoryResponse
-	(*DeleteMemoryRequest)(nil),                          // 56: nimi.runtime.v1.DeleteMemoryRequest
-	(*DeleteMemoryResponse)(nil),                         // 57: nimi.runtime.v1.DeleteMemoryResponse
-	(*SubscribeMemoryEventsRequest)(nil),                 // 58: nimi.runtime.v1.SubscribeMemoryEventsRequest
-	(*GetMemoryEmbeddingRuntimeIntentRequest)(nil),       // 59: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest
-	(*GetMemoryEmbeddingRuntimeIntentResponse)(nil),      // 60: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse
-	(*SetMemoryEmbeddingRuntimeIntentRequest)(nil),       // 61: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest
-	(*SetMemoryEmbeddingRuntimeIntentResponse)(nil),      // 62: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse
-	(*InspectMemoryEmbeddingRuntimeRequest)(nil),         // 63: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest
-	(*InspectMemoryEmbeddingRuntimeResponse)(nil),        // 64: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse
-	(*RequestMemoryEmbeddingRuntimeBindRequest)(nil),     // 65: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest
-	(*RequestMemoryEmbeddingRuntimeBindResponse)(nil),    // 66: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse
-	(*RequestMemoryEmbeddingRuntimeCutoverRequest)(nil),  // 67: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest
-	(*RequestMemoryEmbeddingRuntimeCutoverResponse)(nil), // 68: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse
-	(*structpb.Struct)(nil),                              // 69: google.protobuf.Struct
-	(*timestamppb.Timestamp)(nil),                        // 70: google.protobuf.Timestamp
-	(*Ack)(nil),                                          // 71: nimi.runtime.v1.Ack
-	(ReasonCode)(0),                                      // 72: nimi.runtime.v1.ReasonCode
+	(*MemoryEmbeddingOperationReadiness)(nil),            // 19: nimi.runtime.v1.MemoryEmbeddingOperationReadiness
+	(*MemoryBank)(nil),                                   // 20: nimi.runtime.v1.MemoryBank
+	(*MemoryProvenance)(nil),                             // 21: nimi.runtime.v1.MemoryProvenance
+	(*EpisodicMemoryRecord)(nil),                         // 22: nimi.runtime.v1.EpisodicMemoryRecord
+	(*SemanticMemoryRecord)(nil),                         // 23: nimi.runtime.v1.SemanticMemoryRecord
+	(*ObservationalMemoryRecord)(nil),                    // 24: nimi.runtime.v1.ObservationalMemoryRecord
+	(*MemoryRecordInput)(nil),                            // 25: nimi.runtime.v1.MemoryRecordInput
+	(*MemoryReplicationPending)(nil),                     // 26: nimi.runtime.v1.MemoryReplicationPending
+	(*MemoryReplicationSynced)(nil),                      // 27: nimi.runtime.v1.MemoryReplicationSynced
+	(*MemoryReplicationConflict)(nil),                    // 28: nimi.runtime.v1.MemoryReplicationConflict
+	(*MemoryInvalidation)(nil),                           // 29: nimi.runtime.v1.MemoryInvalidation
+	(*MemoryReplicationState)(nil),                       // 30: nimi.runtime.v1.MemoryReplicationState
+	(*MemoryRecord)(nil),                                 // 31: nimi.runtime.v1.MemoryRecord
+	(*MemoryRecallQuery)(nil),                            // 32: nimi.runtime.v1.MemoryRecallQuery
+	(*MemoryHistoryQuery)(nil),                           // 33: nimi.runtime.v1.MemoryHistoryQuery
+	(*MemoryRecallHit)(nil),                              // 34: nimi.runtime.v1.MemoryRecallHit
+	(*NarrativeRecallHit)(nil),                           // 35: nimi.runtime.v1.NarrativeRecallHit
+	(*MemoryReflectionRequest)(nil),                      // 36: nimi.runtime.v1.MemoryReflectionRequest
+	(*MemoryReflectionResult)(nil),                       // 37: nimi.runtime.v1.MemoryReflectionResult
+	(*MemoryDeletedDetail)(nil),                          // 38: nimi.runtime.v1.MemoryDeletedDetail
+	(*MemoryReplicationObservedDetail)(nil),              // 39: nimi.runtime.v1.MemoryReplicationObservedDetail
+	(*MemoryEvent)(nil),                                  // 40: nimi.runtime.v1.MemoryEvent
+	(*CreateBankRequest)(nil),                            // 41: nimi.runtime.v1.CreateBankRequest
+	(*CreateBankResponse)(nil),                           // 42: nimi.runtime.v1.CreateBankResponse
+	(*GetBankRequest)(nil),                               // 43: nimi.runtime.v1.GetBankRequest
+	(*GetBankResponse)(nil),                              // 44: nimi.runtime.v1.GetBankResponse
+	(*ListBanksRequest)(nil),                             // 45: nimi.runtime.v1.ListBanksRequest
+	(*ListBanksResponse)(nil),                            // 46: nimi.runtime.v1.ListBanksResponse
+	(*DeleteBankRequest)(nil),                            // 47: nimi.runtime.v1.DeleteBankRequest
+	(*DeleteBankResponse)(nil),                           // 48: nimi.runtime.v1.DeleteBankResponse
+	(*RetainRequest)(nil),                                // 49: nimi.runtime.v1.RetainRequest
+	(*RetainResponse)(nil),                               // 50: nimi.runtime.v1.RetainResponse
+	(*RecallRequest)(nil),                                // 51: nimi.runtime.v1.RecallRequest
+	(*RecallResponse)(nil),                               // 52: nimi.runtime.v1.RecallResponse
+	(*HistoryRequest)(nil),                               // 53: nimi.runtime.v1.HistoryRequest
+	(*HistoryResponse)(nil),                              // 54: nimi.runtime.v1.HistoryResponse
+	(*DeleteMemoryRequest)(nil),                          // 55: nimi.runtime.v1.DeleteMemoryRequest
+	(*DeleteMemoryResponse)(nil),                         // 56: nimi.runtime.v1.DeleteMemoryResponse
+	(*SubscribeMemoryEventsRequest)(nil),                 // 57: nimi.runtime.v1.SubscribeMemoryEventsRequest
+	(*InspectMemoryEmbeddingRuntimeRequest)(nil),         // 58: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest
+	(*InspectMemoryEmbeddingRuntimeResponse)(nil),        // 59: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse
+	(*RequestMemoryEmbeddingRuntimeBindRequest)(nil),     // 60: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest
+	(*RequestMemoryEmbeddingRuntimeBindResponse)(nil),    // 61: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse
+	(*RequestMemoryEmbeddingRuntimeCutoverRequest)(nil),  // 62: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest
+	(*RequestMemoryEmbeddingRuntimeCutoverResponse)(nil), // 63: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse
+	(*structpb.Struct)(nil),                              // 64: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil),                        // 65: google.protobuf.Timestamp
+	(*Ack)(nil),                                          // 66: nimi.runtime.v1.Ack
+	(ReasonCode)(0),                                      // 67: nimi.runtime.v1.ReasonCode
 }
 var file_runtime_v1_memory_proto_depIdxs = []int32{
 	0,   // 0: nimi.runtime.v1.MemoryBankLocator.scope:type_name -> nimi.runtime.v1.MemoryBankScope
@@ -5277,125 +4977,116 @@ var file_runtime_v1_memory_proto_depIdxs = []int32{
 	4,   // 14: nimi.runtime.v1.MemoryEmbeddingProfile.migration_policy:type_name -> nimi.runtime.v1.MemoryMigrationPolicy
 	17,  // 15: nimi.runtime.v1.MemoryEmbeddingProfile.cloud_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
 	18,  // 16: nimi.runtime.v1.MemoryEmbeddingProfile.local_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingLocalBindingRef
-	17,  // 17: nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot.cloud_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingCloudBindingRef
-	18,  // 18: nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot.local_binding:type_name -> nimi.runtime.v1.MemoryEmbeddingLocalBindingRef
-	13,  // 19: nimi.runtime.v1.MemoryBank.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	16,  // 20: nimi.runtime.v1.MemoryBank.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	69,  // 21: nimi.runtime.v1.MemoryBank.metadata:type_name -> google.protobuf.Struct
-	70,  // 22: nimi.runtime.v1.MemoryBank.created_at:type_name -> google.protobuf.Timestamp
-	70,  // 23: nimi.runtime.v1.MemoryBank.updated_at:type_name -> google.protobuf.Timestamp
-	70,  // 24: nimi.runtime.v1.MemoryProvenance.committed_at:type_name -> google.protobuf.Timestamp
-	70,  // 25: nimi.runtime.v1.EpisodicMemoryRecord.occurred_at:type_name -> google.protobuf.Timestamp
-	70,  // 26: nimi.runtime.v1.ObservationalMemoryRecord.observed_at:type_name -> google.protobuf.Timestamp
-	1,   // 27: nimi.runtime.v1.MemoryRecordInput.kind:type_name -> nimi.runtime.v1.MemoryRecordKind
-	2,   // 28: nimi.runtime.v1.MemoryRecordInput.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	22,  // 29: nimi.runtime.v1.MemoryRecordInput.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
-	69,  // 30: nimi.runtime.v1.MemoryRecordInput.metadata:type_name -> google.protobuf.Struct
-	69,  // 31: nimi.runtime.v1.MemoryRecordInput.extensions:type_name -> google.protobuf.Struct
-	23,  // 32: nimi.runtime.v1.MemoryRecordInput.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
-	24,  // 33: nimi.runtime.v1.MemoryRecordInput.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
-	25,  // 34: nimi.runtime.v1.MemoryRecordInput.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
-	70,  // 35: nimi.runtime.v1.MemoryReplicationPending.enqueued_at:type_name -> google.protobuf.Timestamp
-	70,  // 36: nimi.runtime.v1.MemoryReplicationSynced.synced_at:type_name -> google.protobuf.Timestamp
-	70,  // 37: nimi.runtime.v1.MemoryReplicationConflict.detected_at:type_name -> google.protobuf.Timestamp
-	70,  // 38: nimi.runtime.v1.MemoryInvalidation.invalidated_at:type_name -> google.protobuf.Timestamp
-	5,   // 39: nimi.runtime.v1.MemoryReplicationState.outcome:type_name -> nimi.runtime.v1.MemoryReplicationOutcome
-	27,  // 40: nimi.runtime.v1.MemoryReplicationState.pending:type_name -> nimi.runtime.v1.MemoryReplicationPending
-	28,  // 41: nimi.runtime.v1.MemoryReplicationState.synced:type_name -> nimi.runtime.v1.MemoryReplicationSynced
-	29,  // 42: nimi.runtime.v1.MemoryReplicationState.conflict:type_name -> nimi.runtime.v1.MemoryReplicationConflict
-	30,  // 43: nimi.runtime.v1.MemoryReplicationState.invalidation:type_name -> nimi.runtime.v1.MemoryInvalidation
-	13,  // 44: nimi.runtime.v1.MemoryRecord.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	1,   // 45: nimi.runtime.v1.MemoryRecord.kind:type_name -> nimi.runtime.v1.MemoryRecordKind
-	2,   // 46: nimi.runtime.v1.MemoryRecord.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	22,  // 47: nimi.runtime.v1.MemoryRecord.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
-	31,  // 48: nimi.runtime.v1.MemoryRecord.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
-	69,  // 49: nimi.runtime.v1.MemoryRecord.metadata:type_name -> google.protobuf.Struct
-	69,  // 50: nimi.runtime.v1.MemoryRecord.extensions:type_name -> google.protobuf.Struct
-	23,  // 51: nimi.runtime.v1.MemoryRecord.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
-	24,  // 52: nimi.runtime.v1.MemoryRecord.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
-	25,  // 53: nimi.runtime.v1.MemoryRecord.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
-	70,  // 54: nimi.runtime.v1.MemoryRecord.created_at:type_name -> google.protobuf.Timestamp
-	70,  // 55: nimi.runtime.v1.MemoryRecord.updated_at:type_name -> google.protobuf.Timestamp
-	1,   // 56: nimi.runtime.v1.MemoryRecallQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	70,  // 57: nimi.runtime.v1.MemoryRecallQuery.start_time:type_name -> google.protobuf.Timestamp
-	70,  // 58: nimi.runtime.v1.MemoryRecallQuery.end_time:type_name -> google.protobuf.Timestamp
-	2,   // 59: nimi.runtime.v1.MemoryRecallQuery.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
-	1,   // 60: nimi.runtime.v1.MemoryHistoryQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	70,  // 61: nimi.runtime.v1.MemoryHistoryQuery.start_time:type_name -> google.protobuf.Timestamp
-	70,  // 62: nimi.runtime.v1.MemoryHistoryQuery.end_time:type_name -> google.protobuf.Timestamp
-	32,  // 63: nimi.runtime.v1.MemoryRecallHit.record:type_name -> nimi.runtime.v1.MemoryRecord
-	1,   // 64: nimi.runtime.v1.MemoryReflectionRequest.source_kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
-	70,  // 65: nimi.runtime.v1.MemoryReflectionRequest.start_time:type_name -> google.protobuf.Timestamp
-	70,  // 66: nimi.runtime.v1.MemoryReflectionRequest.end_time:type_name -> google.protobuf.Timestamp
-	32,  // 67: nimi.runtime.v1.MemoryReflectionResult.created_records:type_name -> nimi.runtime.v1.MemoryRecord
-	70,  // 68: nimi.runtime.v1.MemoryReflectionResult.completed_at:type_name -> google.protobuf.Timestamp
-	31,  // 69: nimi.runtime.v1.MemoryReplicationObservedDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
-	6,   // 70: nimi.runtime.v1.MemoryEvent.event_type:type_name -> nimi.runtime.v1.MemoryEventType
-	13,  // 71: nimi.runtime.v1.MemoryEvent.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	70,  // 72: nimi.runtime.v1.MemoryEvent.timestamp:type_name -> google.protobuf.Timestamp
-	21,  // 73: nimi.runtime.v1.MemoryEvent.bank_created:type_name -> nimi.runtime.v1.MemoryBank
-	21,  // 74: nimi.runtime.v1.MemoryEvent.bank_deleted:type_name -> nimi.runtime.v1.MemoryBank
-	32,  // 75: nimi.runtime.v1.MemoryEvent.record_retained:type_name -> nimi.runtime.v1.MemoryRecord
-	39,  // 76: nimi.runtime.v1.MemoryEvent.record_deleted:type_name -> nimi.runtime.v1.MemoryDeletedDetail
-	38,  // 77: nimi.runtime.v1.MemoryEvent.reflection_completed:type_name -> nimi.runtime.v1.MemoryReflectionResult
-	40,  // 78: nimi.runtime.v1.MemoryEvent.replication_updated:type_name -> nimi.runtime.v1.MemoryReplicationObservedDetail
-	7,   // 79: nimi.runtime.v1.CreateBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	14,  // 80: nimi.runtime.v1.CreateBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
-	16,  // 81: nimi.runtime.v1.CreateBankRequest.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	69,  // 82: nimi.runtime.v1.CreateBankRequest.metadata:type_name -> google.protobuf.Struct
-	21,  // 83: nimi.runtime.v1.CreateBankResponse.bank:type_name -> nimi.runtime.v1.MemoryBank
-	7,   // 84: nimi.runtime.v1.GetBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 85: nimi.runtime.v1.GetBankRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	21,  // 86: nimi.runtime.v1.GetBankResponse.bank:type_name -> nimi.runtime.v1.MemoryBank
-	7,   // 87: nimi.runtime.v1.ListBanksRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	0,   // 88: nimi.runtime.v1.ListBanksRequest.scope_filters:type_name -> nimi.runtime.v1.MemoryBankScope
-	15,  // 89: nimi.runtime.v1.ListBanksRequest.owner_filters:type_name -> nimi.runtime.v1.MemoryBankOwnerFilter
-	21,  // 90: nimi.runtime.v1.ListBanksResponse.banks:type_name -> nimi.runtime.v1.MemoryBank
-	7,   // 91: nimi.runtime.v1.DeleteBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	14,  // 92: nimi.runtime.v1.DeleteBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
-	71,  // 93: nimi.runtime.v1.DeleteBankResponse.ack:type_name -> nimi.runtime.v1.Ack
-	7,   // 94: nimi.runtime.v1.RetainRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 95: nimi.runtime.v1.RetainRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	26,  // 96: nimi.runtime.v1.RetainRequest.records:type_name -> nimi.runtime.v1.MemoryRecordInput
-	32,  // 97: nimi.runtime.v1.RetainResponse.records:type_name -> nimi.runtime.v1.MemoryRecord
-	7,   // 98: nimi.runtime.v1.RecallRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 99: nimi.runtime.v1.RecallRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	33,  // 100: nimi.runtime.v1.RecallRequest.query:type_name -> nimi.runtime.v1.MemoryRecallQuery
-	35,  // 101: nimi.runtime.v1.RecallResponse.hits:type_name -> nimi.runtime.v1.MemoryRecallHit
-	36,  // 102: nimi.runtime.v1.RecallResponse.narrative_hits:type_name -> nimi.runtime.v1.NarrativeRecallHit
-	7,   // 103: nimi.runtime.v1.HistoryRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 104: nimi.runtime.v1.HistoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	34,  // 105: nimi.runtime.v1.HistoryRequest.query:type_name -> nimi.runtime.v1.MemoryHistoryQuery
-	32,  // 106: nimi.runtime.v1.HistoryResponse.records:type_name -> nimi.runtime.v1.MemoryRecord
-	7,   // 107: nimi.runtime.v1.DeleteMemoryRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 108: nimi.runtime.v1.DeleteMemoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
-	71,  // 109: nimi.runtime.v1.DeleteMemoryResponse.ack:type_name -> nimi.runtime.v1.Ack
-	7,   // 110: nimi.runtime.v1.SubscribeMemoryEventsRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	0,   // 111: nimi.runtime.v1.SubscribeMemoryEventsRequest.scope_filters:type_name -> nimi.runtime.v1.MemoryBankScope
-	15,  // 112: nimi.runtime.v1.SubscribeMemoryEventsRequest.owner_filters:type_name -> nimi.runtime.v1.MemoryBankOwnerFilter
-	7,   // 113: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 114: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	19,  // 115: nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
-	7,   // 116: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 117: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	19,  // 118: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
-	19,  // 119: nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse.binding_intent:type_name -> nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
-	7,   // 120: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 121: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	16,  // 122: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.resolved_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
-	72,  // 123: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	20,  // 124: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.operation_readiness:type_name -> nimi.runtime.v1.MemoryEmbeddingOperationReadiness
-	7,   // 125: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 126: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	72,  // 127: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	7,   // 128: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
-	13,  // 129: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
-	72,  // 130: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	131, // [131:131] is the sub-list for method output_type
-	131, // [131:131] is the sub-list for method input_type
-	131, // [131:131] is the sub-list for extension type_name
-	131, // [131:131] is the sub-list for extension extendee
-	0,   // [0:131] is the sub-list for field type_name
+	13,  // 17: nimi.runtime.v1.MemoryBank.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	16,  // 18: nimi.runtime.v1.MemoryBank.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
+	64,  // 19: nimi.runtime.v1.MemoryBank.metadata:type_name -> google.protobuf.Struct
+	65,  // 20: nimi.runtime.v1.MemoryBank.created_at:type_name -> google.protobuf.Timestamp
+	65,  // 21: nimi.runtime.v1.MemoryBank.updated_at:type_name -> google.protobuf.Timestamp
+	65,  // 22: nimi.runtime.v1.MemoryProvenance.committed_at:type_name -> google.protobuf.Timestamp
+	65,  // 23: nimi.runtime.v1.EpisodicMemoryRecord.occurred_at:type_name -> google.protobuf.Timestamp
+	65,  // 24: nimi.runtime.v1.ObservationalMemoryRecord.observed_at:type_name -> google.protobuf.Timestamp
+	1,   // 25: nimi.runtime.v1.MemoryRecordInput.kind:type_name -> nimi.runtime.v1.MemoryRecordKind
+	2,   // 26: nimi.runtime.v1.MemoryRecordInput.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	21,  // 27: nimi.runtime.v1.MemoryRecordInput.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
+	64,  // 28: nimi.runtime.v1.MemoryRecordInput.metadata:type_name -> google.protobuf.Struct
+	64,  // 29: nimi.runtime.v1.MemoryRecordInput.extensions:type_name -> google.protobuf.Struct
+	22,  // 30: nimi.runtime.v1.MemoryRecordInput.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
+	23,  // 31: nimi.runtime.v1.MemoryRecordInput.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
+	24,  // 32: nimi.runtime.v1.MemoryRecordInput.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
+	65,  // 33: nimi.runtime.v1.MemoryReplicationPending.enqueued_at:type_name -> google.protobuf.Timestamp
+	65,  // 34: nimi.runtime.v1.MemoryReplicationSynced.synced_at:type_name -> google.protobuf.Timestamp
+	65,  // 35: nimi.runtime.v1.MemoryReplicationConflict.detected_at:type_name -> google.protobuf.Timestamp
+	65,  // 36: nimi.runtime.v1.MemoryInvalidation.invalidated_at:type_name -> google.protobuf.Timestamp
+	5,   // 37: nimi.runtime.v1.MemoryReplicationState.outcome:type_name -> nimi.runtime.v1.MemoryReplicationOutcome
+	26,  // 38: nimi.runtime.v1.MemoryReplicationState.pending:type_name -> nimi.runtime.v1.MemoryReplicationPending
+	27,  // 39: nimi.runtime.v1.MemoryReplicationState.synced:type_name -> nimi.runtime.v1.MemoryReplicationSynced
+	28,  // 40: nimi.runtime.v1.MemoryReplicationState.conflict:type_name -> nimi.runtime.v1.MemoryReplicationConflict
+	29,  // 41: nimi.runtime.v1.MemoryReplicationState.invalidation:type_name -> nimi.runtime.v1.MemoryInvalidation
+	13,  // 42: nimi.runtime.v1.MemoryRecord.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	1,   // 43: nimi.runtime.v1.MemoryRecord.kind:type_name -> nimi.runtime.v1.MemoryRecordKind
+	2,   // 44: nimi.runtime.v1.MemoryRecord.canonical_class:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	21,  // 45: nimi.runtime.v1.MemoryRecord.provenance:type_name -> nimi.runtime.v1.MemoryProvenance
+	30,  // 46: nimi.runtime.v1.MemoryRecord.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
+	64,  // 47: nimi.runtime.v1.MemoryRecord.metadata:type_name -> google.protobuf.Struct
+	64,  // 48: nimi.runtime.v1.MemoryRecord.extensions:type_name -> google.protobuf.Struct
+	22,  // 49: nimi.runtime.v1.MemoryRecord.episodic:type_name -> nimi.runtime.v1.EpisodicMemoryRecord
+	23,  // 50: nimi.runtime.v1.MemoryRecord.semantic:type_name -> nimi.runtime.v1.SemanticMemoryRecord
+	24,  // 51: nimi.runtime.v1.MemoryRecord.observational:type_name -> nimi.runtime.v1.ObservationalMemoryRecord
+	65,  // 52: nimi.runtime.v1.MemoryRecord.created_at:type_name -> google.protobuf.Timestamp
+	65,  // 53: nimi.runtime.v1.MemoryRecord.updated_at:type_name -> google.protobuf.Timestamp
+	1,   // 54: nimi.runtime.v1.MemoryRecallQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
+	65,  // 55: nimi.runtime.v1.MemoryRecallQuery.start_time:type_name -> google.protobuf.Timestamp
+	65,  // 56: nimi.runtime.v1.MemoryRecallQuery.end_time:type_name -> google.protobuf.Timestamp
+	2,   // 57: nimi.runtime.v1.MemoryRecallQuery.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
+	1,   // 58: nimi.runtime.v1.MemoryHistoryQuery.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
+	65,  // 59: nimi.runtime.v1.MemoryHistoryQuery.start_time:type_name -> google.protobuf.Timestamp
+	65,  // 60: nimi.runtime.v1.MemoryHistoryQuery.end_time:type_name -> google.protobuf.Timestamp
+	31,  // 61: nimi.runtime.v1.MemoryRecallHit.record:type_name -> nimi.runtime.v1.MemoryRecord
+	1,   // 62: nimi.runtime.v1.MemoryReflectionRequest.source_kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
+	65,  // 63: nimi.runtime.v1.MemoryReflectionRequest.start_time:type_name -> google.protobuf.Timestamp
+	65,  // 64: nimi.runtime.v1.MemoryReflectionRequest.end_time:type_name -> google.protobuf.Timestamp
+	31,  // 65: nimi.runtime.v1.MemoryReflectionResult.created_records:type_name -> nimi.runtime.v1.MemoryRecord
+	65,  // 66: nimi.runtime.v1.MemoryReflectionResult.completed_at:type_name -> google.protobuf.Timestamp
+	30,  // 67: nimi.runtime.v1.MemoryReplicationObservedDetail.replication:type_name -> nimi.runtime.v1.MemoryReplicationState
+	6,   // 68: nimi.runtime.v1.MemoryEvent.event_type:type_name -> nimi.runtime.v1.MemoryEventType
+	13,  // 69: nimi.runtime.v1.MemoryEvent.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	65,  // 70: nimi.runtime.v1.MemoryEvent.timestamp:type_name -> google.protobuf.Timestamp
+	20,  // 71: nimi.runtime.v1.MemoryEvent.bank_created:type_name -> nimi.runtime.v1.MemoryBank
+	20,  // 72: nimi.runtime.v1.MemoryEvent.bank_deleted:type_name -> nimi.runtime.v1.MemoryBank
+	31,  // 73: nimi.runtime.v1.MemoryEvent.record_retained:type_name -> nimi.runtime.v1.MemoryRecord
+	38,  // 74: nimi.runtime.v1.MemoryEvent.record_deleted:type_name -> nimi.runtime.v1.MemoryDeletedDetail
+	37,  // 75: nimi.runtime.v1.MemoryEvent.reflection_completed:type_name -> nimi.runtime.v1.MemoryReflectionResult
+	39,  // 76: nimi.runtime.v1.MemoryEvent.replication_updated:type_name -> nimi.runtime.v1.MemoryReplicationObservedDetail
+	7,   // 77: nimi.runtime.v1.CreateBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	14,  // 78: nimi.runtime.v1.CreateBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
+	16,  // 79: nimi.runtime.v1.CreateBankRequest.embedding_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
+	64,  // 80: nimi.runtime.v1.CreateBankRequest.metadata:type_name -> google.protobuf.Struct
+	20,  // 81: nimi.runtime.v1.CreateBankResponse.bank:type_name -> nimi.runtime.v1.MemoryBank
+	7,   // 82: nimi.runtime.v1.GetBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 83: nimi.runtime.v1.GetBankRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	20,  // 84: nimi.runtime.v1.GetBankResponse.bank:type_name -> nimi.runtime.v1.MemoryBank
+	7,   // 85: nimi.runtime.v1.ListBanksRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	0,   // 86: nimi.runtime.v1.ListBanksRequest.scope_filters:type_name -> nimi.runtime.v1.MemoryBankScope
+	15,  // 87: nimi.runtime.v1.ListBanksRequest.owner_filters:type_name -> nimi.runtime.v1.MemoryBankOwnerFilter
+	20,  // 88: nimi.runtime.v1.ListBanksResponse.banks:type_name -> nimi.runtime.v1.MemoryBank
+	7,   // 89: nimi.runtime.v1.DeleteBankRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	14,  // 90: nimi.runtime.v1.DeleteBankRequest.locator:type_name -> nimi.runtime.v1.PublicMemoryBankLocator
+	66,  // 91: nimi.runtime.v1.DeleteBankResponse.ack:type_name -> nimi.runtime.v1.Ack
+	7,   // 92: nimi.runtime.v1.RetainRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 93: nimi.runtime.v1.RetainRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	25,  // 94: nimi.runtime.v1.RetainRequest.records:type_name -> nimi.runtime.v1.MemoryRecordInput
+	31,  // 95: nimi.runtime.v1.RetainResponse.records:type_name -> nimi.runtime.v1.MemoryRecord
+	7,   // 96: nimi.runtime.v1.RecallRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 97: nimi.runtime.v1.RecallRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	32,  // 98: nimi.runtime.v1.RecallRequest.query:type_name -> nimi.runtime.v1.MemoryRecallQuery
+	34,  // 99: nimi.runtime.v1.RecallResponse.hits:type_name -> nimi.runtime.v1.MemoryRecallHit
+	35,  // 100: nimi.runtime.v1.RecallResponse.narrative_hits:type_name -> nimi.runtime.v1.NarrativeRecallHit
+	7,   // 101: nimi.runtime.v1.HistoryRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 102: nimi.runtime.v1.HistoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	33,  // 103: nimi.runtime.v1.HistoryRequest.query:type_name -> nimi.runtime.v1.MemoryHistoryQuery
+	31,  // 104: nimi.runtime.v1.HistoryResponse.records:type_name -> nimi.runtime.v1.MemoryRecord
+	7,   // 105: nimi.runtime.v1.DeleteMemoryRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 106: nimi.runtime.v1.DeleteMemoryRequest.bank:type_name -> nimi.runtime.v1.MemoryBankLocator
+	66,  // 107: nimi.runtime.v1.DeleteMemoryResponse.ack:type_name -> nimi.runtime.v1.Ack
+	7,   // 108: nimi.runtime.v1.SubscribeMemoryEventsRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	0,   // 109: nimi.runtime.v1.SubscribeMemoryEventsRequest.scope_filters:type_name -> nimi.runtime.v1.MemoryBankScope
+	15,  // 110: nimi.runtime.v1.SubscribeMemoryEventsRequest.owner_filters:type_name -> nimi.runtime.v1.MemoryBankOwnerFilter
+	7,   // 111: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 112: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	16,  // 113: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.resolved_profile:type_name -> nimi.runtime.v1.MemoryEmbeddingProfile
+	67,  // 114: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	19,  // 115: nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse.operation_readiness:type_name -> nimi.runtime.v1.MemoryEmbeddingOperationReadiness
+	7,   // 116: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 117: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	67,  // 118: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	7,   // 119: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.context:type_name -> nimi.runtime.v1.MemoryRequestContext
+	13,  // 120: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverRequest.locator:type_name -> nimi.runtime.v1.MemoryBankLocator
+	67,  // 121: nimi.runtime.v1.RequestMemoryEmbeddingRuntimeCutoverResponse.blocked_reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	122, // [122:122] is the sub-list for method output_type
+	122, // [122:122] is the sub-list for method input_type
+	122, // [122:122] is the sub-list for extension type_name
+	122, // [122:122] is the sub-list for extension extendee
+	0,   // [0:122] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_memory_proto_init() }
@@ -5426,23 +5117,23 @@ func file_runtime_v1_memory_proto_init() {
 		(*MemoryEmbeddingLocalBindingRef_ProfileBindingId)(nil),
 		(*MemoryEmbeddingLocalBindingRef_ReadinessRef)(nil),
 	}
-	file_runtime_v1_memory_proto_msgTypes[19].OneofWrappers = []any{
+	file_runtime_v1_memory_proto_msgTypes[18].OneofWrappers = []any{
 		(*MemoryRecordInput_Episodic)(nil),
 		(*MemoryRecordInput_Semantic)(nil),
 		(*MemoryRecordInput_Observational)(nil),
 	}
-	file_runtime_v1_memory_proto_msgTypes[24].OneofWrappers = []any{
+	file_runtime_v1_memory_proto_msgTypes[23].OneofWrappers = []any{
 		(*MemoryReplicationState_Pending)(nil),
 		(*MemoryReplicationState_Synced)(nil),
 		(*MemoryReplicationState_Conflict)(nil),
 		(*MemoryReplicationState_Invalidation)(nil),
 	}
-	file_runtime_v1_memory_proto_msgTypes[25].OneofWrappers = []any{
+	file_runtime_v1_memory_proto_msgTypes[24].OneofWrappers = []any{
 		(*MemoryRecord_Episodic)(nil),
 		(*MemoryRecord_Semantic)(nil),
 		(*MemoryRecord_Observational)(nil),
 	}
-	file_runtime_v1_memory_proto_msgTypes[34].OneofWrappers = []any{
+	file_runtime_v1_memory_proto_msgTypes[33].OneofWrappers = []any{
 		(*MemoryEvent_BankCreated)(nil),
 		(*MemoryEvent_BankDeleted)(nil),
 		(*MemoryEvent_RecordRetained)(nil),
@@ -5456,7 +5147,7 @@ func file_runtime_v1_memory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_memory_proto_rawDesc), len(file_runtime_v1_memory_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   62,
+			NumMessages:   57,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

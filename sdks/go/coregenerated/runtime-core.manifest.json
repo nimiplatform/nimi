@@ -675,38 +675,38 @@
           "response_stream": false
         },
         {
-          "name": "GetAgentExecutionConfig",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
+          "name": "GetRuntimeAgentAIConfig",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig",
           "kind": "unary",
-          "request_type": "GetAgentExecutionConfigRequest",
-          "response_type": "GetAgentExecutionConfigResponse",
+          "request_type": "GetRuntimeAgentAIConfigRequest",
+          "response_type": "GetRuntimeAgentAIConfigResponse",
           "request_stream": false,
           "response_stream": false
         },
         {
-          "name": "UpsertAgentExecutionConfig",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
+          "name": "UpsertRuntimeAgentAIConfig",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
           "kind": "unary",
-          "request_type": "UpsertAgentExecutionConfigRequest",
-          "response_type": "UpsertAgentExecutionConfigResponse",
+          "request_type": "UpsertRuntimeAgentAIConfigRequest",
+          "response_type": "UpsertRuntimeAgentAIConfigResponse",
           "request_stream": false,
           "response_stream": false
         },
         {
-          "name": "GetAgentExecutionReadiness",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
+          "name": "GetRuntimeAgentAIConfigReadiness",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness",
           "kind": "unary",
-          "request_type": "GetAgentExecutionReadinessRequest",
-          "response_type": "GetAgentExecutionReadinessResponse",
+          "request_type": "GetRuntimeAgentAIConfigReadinessRequest",
+          "response_type": "GetRuntimeAgentAIConfigReadinessResponse",
           "request_stream": false,
           "response_stream": false
         },
         {
-          "name": "SubscribeAgentExecutionReadiness",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
+          "name": "SubscribeRuntimeAgentAIConfigReadiness",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
           "kind": "server_stream",
-          "request_type": "SubscribeAgentExecutionReadinessRequest",
-          "response_type": "AgentExecutionReadinessSnapshot",
+          "request_type": "SubscribeRuntimeAgentAIConfigReadinessRequest",
+          "response_type": "RuntimeAgentAIConfigReadinessSnapshot",
           "request_stream": false,
           "response_stream": true
         }
@@ -1282,24 +1282,6 @@
           "response_type": "MemoryEvent",
           "request_stream": false,
           "response_stream": true
-        },
-        {
-          "name": "GetMemoryEmbeddingRuntimeIntent",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
-          "kind": "unary",
-          "request_type": "GetMemoryEmbeddingRuntimeIntentRequest",
-          "response_type": "GetMemoryEmbeddingRuntimeIntentResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "SetMemoryEmbeddingRuntimeIntent",
-          "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
-          "kind": "unary",
-          "request_type": "SetMemoryEmbeddingRuntimeIntentRequest",
-          "response_type": "SetMemoryEmbeddingRuntimeIntentResponse",
-          "request_stream": false,
-          "response_stream": false
         },
         {
           "name": "InspectMemoryEmbeddingRuntime",
@@ -2438,8 +2420,6 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus",
-    "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
-    "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
     "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
@@ -2452,6 +2432,8 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts",
     "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence",
+    "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig",
+    "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness",
     "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
     "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
     "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
@@ -2477,12 +2459,12 @@
     "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
     "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
-    "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
+    "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
     "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
-    "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
     "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
+    "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
@@ -2545,7 +2527,6 @@
     "/nimi.runtime.v1.RuntimeCognitionService/GetBank",
     "/nimi.runtime.v1.RuntimeCognitionService/GetIngestTask",
     "/nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank",
-    "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
     "/nimi.runtime.v1.RuntimeCognitionService/GetPage",
     "/nimi.runtime.v1.RuntimeCognitionService/History",
     "/nimi.runtime.v1.RuntimeCognitionService/IngestDocument",
@@ -2563,7 +2544,6 @@
     "/nimi.runtime.v1.RuntimeCognitionService/Retain",
     "/nimi.runtime.v1.RuntimeCognitionService/SearchHybrid",
     "/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword",
-    "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
     "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
     "/nimi.runtime.v1.RuntimeCognitionService/TraverseGraph",
     "/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
@@ -2876,22 +2856,6 @@
       "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
-      "service": "RuntimeAgentService",
-      "method": "GetAgentExecutionConfig",
-      "kind": "unary",
-      "request_type": "GetAgentExecutionConfigRequest",
-      "response_type": "GetAgentExecutionConfigResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
-      "service": "RuntimeAgentService",
-      "method": "GetAgentExecutionReadiness",
-      "kind": "unary",
-      "request_type": "GetAgentExecutionReadinessRequest",
-      "response_type": "GetAgentExecutionReadinessResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
       "service": "RuntimeAgentService",
       "method": "GetAgentState",
@@ -2986,6 +2950,22 @@
       "kind": "unary",
       "request_type": "GetRealmGroupMessageCandidateEvidenceRequest",
       "response_type": "GetRealmGroupMessageCandidateEvidenceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig",
+      "service": "RuntimeAgentService",
+      "method": "GetRuntimeAgentAIConfig",
+      "kind": "unary",
+      "request_type": "GetRuntimeAgentAIConfigRequest",
+      "response_type": "GetRuntimeAgentAIConfigResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness",
+      "service": "RuntimeAgentService",
+      "method": "GetRuntimeAgentAIConfigReadiness",
+      "kind": "unary",
+      "request_type": "GetRuntimeAgentAIConfigReadinessRequest",
+      "response_type": "GetRuntimeAgentAIConfigReadinessResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
@@ -3188,20 +3168,20 @@
       "response_type": "AgentEvent"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
-      "service": "RuntimeAgentService",
-      "method": "SubscribeAgentExecutionReadiness",
-      "kind": "server_stream",
-      "request_type": "SubscribeAgentExecutionReadinessRequest",
-      "response_type": "AgentExecutionReadinessSnapshot"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
       "service": "RuntimeAgentService",
       "method": "SubscribeAgentVoiceStream",
       "kind": "server_stream",
       "request_type": "SubscribeAgentVoiceStreamRequest",
       "response_type": "AgentVoiceStreamEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
+      "service": "RuntimeAgentService",
+      "method": "SubscribeRuntimeAgentAIConfigReadiness",
+      "kind": "server_stream",
+      "request_type": "SubscribeRuntimeAgentAIConfigReadinessRequest",
+      "response_type": "RuntimeAgentAIConfigReadinessSnapshot"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
@@ -3220,20 +3200,20 @@
       "response_type": "UpdateAgentStateResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
-      "service": "RuntimeAgentService",
-      "method": "UpsertAgentExecutionConfig",
-      "kind": "unary",
-      "request_type": "UpsertAgentExecutionConfigRequest",
-      "response_type": "UpsertAgentExecutionConfigResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
       "service": "RuntimeAgentService",
       "method": "UpsertDelegatedProviderProfile",
       "kind": "unary",
       "request_type": "UpsertDelegatedProviderProfileRequest",
       "response_type": "UpsertDelegatedProviderProfileResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
+      "service": "RuntimeAgentService",
+      "method": "UpsertRuntimeAgentAIConfig",
+      "kind": "unary",
+      "request_type": "UpsertRuntimeAgentAIConfigRequest",
+      "response_type": "UpsertRuntimeAgentAIConfigResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
@@ -3732,14 +3712,6 @@
       "response_type": "GetKnowledgeBankResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
-      "service": "RuntimeCognitionService",
-      "method": "GetMemoryEmbeddingRuntimeIntent",
-      "kind": "unary",
-      "request_type": "GetMemoryEmbeddingRuntimeIntentRequest",
-      "response_type": "GetMemoryEmbeddingRuntimeIntentResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetPage",
       "service": "RuntimeCognitionService",
       "method": "GetPage",
@@ -3874,14 +3846,6 @@
       "kind": "unary",
       "request_type": "SearchKeywordRequest",
       "response_type": "SearchKeywordResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
-      "service": "RuntimeCognitionService",
-      "method": "SetMemoryEmbeddingRuntimeIntent",
-      "kind": "unary",
-      "request_type": "SetMemoryEmbeddingRuntimeIntentRequest",
-      "response_type": "SetMemoryEmbeddingRuntimeIntentResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
@@ -4902,22 +4866,6 @@
       "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
-      "service": "RuntimeAgentService",
-      "method": "GetAgentExecutionConfig",
-      "kind": "unary",
-      "request_type": "GetAgentExecutionConfigRequest",
-      "response_type": "GetAgentExecutionConfigResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
-      "service": "RuntimeAgentService",
-      "method": "GetAgentExecutionReadiness",
-      "kind": "unary",
-      "request_type": "GetAgentExecutionReadinessRequest",
-      "response_type": "GetAgentExecutionReadinessResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
       "service": "RuntimeAgentService",
       "method": "GetAgentState",
@@ -5012,6 +4960,22 @@
       "kind": "unary",
       "request_type": "GetRealmGroupMessageCandidateEvidenceRequest",
       "response_type": "GetRealmGroupMessageCandidateEvidenceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig",
+      "service": "RuntimeAgentService",
+      "method": "GetRuntimeAgentAIConfig",
+      "kind": "unary",
+      "request_type": "GetRuntimeAgentAIConfigRequest",
+      "response_type": "GetRuntimeAgentAIConfigResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness",
+      "service": "RuntimeAgentService",
+      "method": "GetRuntimeAgentAIConfigReadiness",
+      "kind": "unary",
+      "request_type": "GetRuntimeAgentAIConfigReadinessRequest",
+      "response_type": "GetRuntimeAgentAIConfigReadinessResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
@@ -5214,20 +5178,20 @@
       "response_type": "AgentEvent"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
-      "service": "RuntimeAgentService",
-      "method": "SubscribeAgentExecutionReadiness",
-      "kind": "server_stream",
-      "request_type": "SubscribeAgentExecutionReadinessRequest",
-      "response_type": "AgentExecutionReadinessSnapshot"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
       "service": "RuntimeAgentService",
       "method": "SubscribeAgentVoiceStream",
       "kind": "server_stream",
       "request_type": "SubscribeAgentVoiceStreamRequest",
       "response_type": "AgentVoiceStreamEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
+      "service": "RuntimeAgentService",
+      "method": "SubscribeRuntimeAgentAIConfigReadiness",
+      "kind": "server_stream",
+      "request_type": "SubscribeRuntimeAgentAIConfigReadinessRequest",
+      "response_type": "RuntimeAgentAIConfigReadinessSnapshot"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
@@ -5246,20 +5210,20 @@
       "response_type": "UpdateAgentStateResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
-      "service": "RuntimeAgentService",
-      "method": "UpsertAgentExecutionConfig",
-      "kind": "unary",
-      "request_type": "UpsertAgentExecutionConfigRequest",
-      "response_type": "UpsertAgentExecutionConfigResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
       "service": "RuntimeAgentService",
       "method": "UpsertDelegatedProviderProfile",
       "kind": "unary",
       "request_type": "UpsertDelegatedProviderProfileRequest",
       "response_type": "UpsertDelegatedProviderProfileResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
+      "service": "RuntimeAgentService",
+      "method": "UpsertRuntimeAgentAIConfig",
+      "kind": "unary",
+      "request_type": "UpsertRuntimeAgentAIConfigRequest",
+      "response_type": "UpsertRuntimeAgentAIConfigResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
@@ -5758,14 +5722,6 @@
       "response_type": "GetKnowledgeBankResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
-      "service": "RuntimeCognitionService",
-      "method": "GetMemoryEmbeddingRuntimeIntent",
-      "kind": "unary",
-      "request_type": "GetMemoryEmbeddingRuntimeIntentRequest",
-      "response_type": "GetMemoryEmbeddingRuntimeIntentResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetPage",
       "service": "RuntimeCognitionService",
       "method": "GetPage",
@@ -5900,14 +5856,6 @@
       "kind": "unary",
       "request_type": "SearchKeywordRequest",
       "response_type": "SearchKeywordResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
-      "service": "RuntimeCognitionService",
-      "method": "SetMemoryEmbeddingRuntimeIntent",
-      "kind": "unary",
-      "request_type": "SetMemoryEmbeddingRuntimeIntentRequest",
-      "response_type": "SetMemoryEmbeddingRuntimeIntentResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
@@ -6744,7 +6692,6 @@
       "AgentCoreBankOwner",
       "AgentDyadicBankOwner",
       "AgentEvent",
-      "AgentExecutionReadinessSnapshot",
       "AgentHookEventDetail",
       "AgentLifecycleEventDetail",
       "AgentMemoryEventDetail",
@@ -6942,10 +6889,6 @@
       "GetAgentCanonicalMemoryBankStatusResponse",
       "GetAgentCanonicalMemoryReviewStatusRequest",
       "GetAgentCanonicalMemoryReviewStatusResponse",
-      "GetAgentExecutionConfigRequest",
-      "GetAgentExecutionConfigResponse",
-      "GetAgentExecutionReadinessRequest",
-      "GetAgentExecutionReadinessResponse",
       "GetAgentRequest",
       "GetAgentResponse",
       "GetAgentStateRequest",
@@ -6980,8 +6923,6 @@
       "GetIngestTaskResponse",
       "GetKnowledgeBankRequest",
       "GetKnowledgeBankResponse",
-      "GetMemoryEmbeddingRuntimeIntentRequest",
-      "GetMemoryEmbeddingRuntimeIntentResponse",
       "GetPageRequest",
       "GetPageResponse",
       "GetParticipationCandidateRequest",
@@ -6998,6 +6939,10 @@
       "GetRealmGroupMessageCandidateEvidenceResponse",
       "GetRecommendationFeedRequest",
       "GetRecommendationFeedResponse",
+      "GetRuntimeAgentAIConfigReadinessRequest",
+      "GetRuntimeAgentAIConfigReadinessResponse",
+      "GetRuntimeAgentAIConfigRequest",
+      "GetRuntimeAgentAIConfigResponse",
       "GetRuntimeHealthRequest",
       "GetRuntimeHealthResponse",
       "GetScenarioArtifactsRequest",
@@ -7201,7 +7146,6 @@
       "MemoryBankLocator",
       "MemoryBankOwnerFilter",
       "MemoryDeletedDetail",
-      "MemoryEmbeddingBindingIntentSnapshot",
       "MemoryEmbeddingCloudBindingRef",
       "MemoryEmbeddingLocalBindingRef",
       "MemoryEmbeddingOperationReadiness",
@@ -7370,9 +7314,10 @@
       "RevokeSessionRequest",
       "RevokeWorkspaceBindingRequest",
       "RevokeWorkspaceBindingResponse",
-      "RuntimeAgentExecutionCapabilityBinding",
-      "RuntimeAgentExecutionCapabilityReadiness",
-      "RuntimeAgentExecutionConfig",
+      "RuntimeAgentAIConfig",
+      "RuntimeAgentAIConfigCapabilityReadiness",
+      "RuntimeAgentAIConfigIntent",
+      "RuntimeAgentAIConfigReadinessSnapshot",
       "RuntimeBaselineActivationConsumerEvidence",
       "RuntimeBaselineActivationDependencyEvidence",
       "RuntimeBaselineConsumerBinding",
@@ -7428,8 +7373,6 @@
       "SetAutonomyConfigResponse",
       "SetDelegatedProviderStateRequest",
       "SetDelegatedProviderStateResponse",
-      "SetMemoryEmbeddingRuntimeIntentRequest",
-      "SetMemoryEmbeddingRuntimeIntentResponse",
       "SetProductControlFirstRunInstallLevelRequest",
       "SpeechAlignment",
       "SpeechAlignmentToken",
@@ -7465,10 +7408,10 @@
       "SubscribeAIProviderHealthEventsRequest",
       "SubscribeAccountSessionEventsRequest",
       "SubscribeAgentEventsRequest",
-      "SubscribeAgentExecutionReadinessRequest",
       "SubscribeAgentVoiceStreamRequest",
       "SubscribeAppMessagesRequest",
       "SubscribeMemoryEventsRequest",
+      "SubscribeRuntimeAgentAIConfigReadinessRequest",
       "SubscribeRuntimeHealthEventsRequest",
       "SubscribeScenarioJobEventsRequest",
       "SubscribeWorkflowEventsRequest",
@@ -7507,14 +7450,14 @@
       "UploadArtifactMetadata",
       "UploadArtifactRequest",
       "UploadArtifactResponse",
-      "UpsertAgentExecutionConfigRequest",
-      "UpsertAgentExecutionConfigResponse",
       "UpsertCatalogModelOverlayRequest",
       "UpsertCatalogModelOverlayResponse",
       "UpsertDelegatedProviderProfileRequest",
       "UpsertDelegatedProviderProfileResponse",
       "UpsertModelCatalogProviderRequest",
       "UpsertModelCatalogProviderResponse",
+      "UpsertRuntimeAgentAIConfigRequest",
+      "UpsertRuntimeAgentAIConfigResponse",
       "UsageStatRecord",
       "UsageStats",
       "ValidateAppAccessTokenRequest",
@@ -7576,7 +7519,6 @@
       "AgentCanonicalMemoryBankMode",
       "AgentCanonicalMemoryReviewReadiness",
       "AgentEventType",
-      "AgentExecutionReadinessState",
       "AgentExecutionState",
       "AgentLifecycleStatus",
       "AgentPresentationBackendKind",
@@ -7698,6 +7640,7 @@
       "ReasoningTraceMode",
       "ResponseFormatKind",
       "RoutePolicy",
+      "RuntimeAgentAIConfigReadinessState",
       "RuntimeHealthStatus",
       "ScenarioJobEventType",
       "ScenarioJobStatus",
@@ -8666,26 +8609,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "AgentExecutionReadinessSnapshot",
-        "fields": [
-          {
-            "name": "config_revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "capabilities",
-            "type": "RuntimeAgentExecutionCapabilityReadiness",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "AgentHookEventDetail",
         "fields": [
           {
@@ -9123,20 +9046,6 @@
             "repeated": false,
             "optional": false,
             "number": 7
-          },
-          {
-            "name": "speech_model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "speech_route_policy",
-            "type": "RoutePolicy",
-            "repeated": false,
-            "optional": false,
-            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -17174,58 +17083,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "GetAgentExecutionConfigRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "GetAgentExecutionConfigResponse",
-        "fields": [
-          {
-            "name": "config",
-            "type": "RuntimeAgentExecutionConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "GetAgentExecutionReadinessRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "GetAgentExecutionReadinessResponse",
-        "fields": [
-          {
-            "name": "snapshot",
-            "type": "AgentExecutionReadinessSnapshot",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "GetAgentRequest",
         "fields": [
           {
@@ -17906,46 +17763,6 @@
         "source_file": "proto/runtime/v1/knowledge.proto"
       },
       {
-        "name": "GetMemoryEmbeddingRuntimeIntentRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "locator",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "GetMemoryEmbeddingRuntimeIntentResponse",
-        "fields": [
-          {
-            "name": "binding_intent_present",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "binding_intent",
-            "type": "MemoryEmbeddingBindingIntentSnapshot",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "GetPageRequest",
         "fields": [
           {
@@ -18269,6 +18086,58 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "GetRuntimeAgentAIConfigReadinessRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetRuntimeAgentAIConfigReadinessResponse",
+        "fields": [
+          {
+            "name": "snapshot",
+            "type": "RuntimeAgentAIConfigReadinessSnapshot",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetRuntimeAgentAIConfigRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetRuntimeAgentAIConfigResponse",
+        "fields": [
+          {
+            "name": "config",
+            "type": "RuntimeAgentAIConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "GetRuntimeHealthRequest",
@@ -19246,14 +19115,14 @@
         "name": "InspectMemoryEmbeddingRuntimeResponse",
         "fields": [
           {
-            "name": "binding_intent_present",
+            "name": "text_embed_intent_present",
             "type": "bool",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "binding_source_kind",
+            "name": "text_embed_source_kind",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -19293,6 +19162,13 @@
             "repeated": false,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "config_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
@@ -26719,40 +26595,6 @@
         "source_file": "proto/runtime/v1/memory.proto"
       },
       {
-        "name": "MemoryEmbeddingBindingIntentSnapshot",
-        "fields": [
-          {
-            "name": "source_kind",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "cloud_binding",
-            "type": "MemoryEmbeddingCloudBindingRef",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "local_binding",
-            "type": "MemoryEmbeddingLocalBindingRef",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "revision_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "MemoryEmbeddingCloudBindingRef",
         "fields": [
           {
@@ -32801,7 +32643,82 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
-        "name": "RuntimeAgentExecutionCapabilityBinding",
+        "name": "RuntimeAgentAIConfig",
+        "fields": [
+          {
+            "name": "agent_instance_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "intents",
+            "type": "RuntimeAgentAIConfigIntent",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "updated_by_app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "RuntimeAgentAIConfigCapabilityReadiness",
+        "fields": [
+          {
+            "name": "capability",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "state",
+            "type": "RuntimeAgentAIConfigReadinessState",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "probed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "RuntimeAgentAIConfigIntent",
         "fields": [
           {
             "name": "capability",
@@ -32837,74 +32754,47 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "voice_reference_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "image_policy_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "RuntimeAgentExecutionCapabilityReadiness",
+        "name": "RuntimeAgentAIConfigReadinessSnapshot",
         "fields": [
           {
-            "name": "capability",
+            "name": "agent_instance_id",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "state",
-            "type": "AgentExecutionReadinessState",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason_code",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "probed_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "RuntimeAgentExecutionConfig",
-        "fields": [
-          {
-            "name": "revision",
+            "name": "config_revision",
             "type": "uint64",
             "repeated": false,
             "optional": false,
-            "number": 1
-          },
-          {
-            "name": "bindings",
-            "type": "RuntimeAgentExecutionCapabilityBinding",
-            "repeated": true,
-            "optional": false,
             "number": 2
           },
           {
-            "name": "updated_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
+            "name": "capabilities",
+            "type": "RuntimeAgentAIConfigCapabilityReadiness",
+            "repeated": true,
             "optional": false,
             "number": 3
-          },
-          {
-            "name": "updated_by_app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -35080,53 +34970,6 @@
         "source_file": "proto/runtime/v1/delegated_control.proto"
       },
       {
-        "name": "SetMemoryEmbeddingRuntimeIntentRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "MemoryRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "locator",
-            "type": "MemoryBankLocator",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "binding_intent",
-            "type": "MemoryEmbeddingBindingIntentSnapshot",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
-        "name": "SetMemoryEmbeddingRuntimeIntentResponse",
-        "fields": [
-          {
-            "name": "accepted",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "binding_intent",
-            "type": "MemoryEmbeddingBindingIntentSnapshot",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/memory.proto"
-      },
-      {
         "name": "SetProductControlFirstRunInstallLevelRequest",
         "fields": [
           {
@@ -36060,19 +35903,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "SubscribeAgentExecutionReadinessRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "SubscribeAgentVoiceStreamRequest",
         "fields": [
           {
@@ -36185,6 +36015,19 @@
           }
         ],
         "source_file": "proto/runtime/v1/memory.proto"
+      },
+      {
+        "name": "SubscribeRuntimeAgentAIConfigReadinessRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "SubscribeRuntimeHealthEventsRequest",
@@ -37338,46 +37181,6 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "UpsertAgentExecutionConfigRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "expected_revision",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "bindings",
-            "type": "RuntimeAgentExecutionCapabilityBinding",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "UpsertAgentExecutionConfigResponse",
-        "fields": [
-          {
-            "name": "config",
-            "type": "RuntimeAgentExecutionConfig",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "UpsertCatalogModelOverlayRequest",
         "fields": [
           {
@@ -37517,6 +37320,46 @@
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "UpsertRuntimeAgentAIConfigRequest",
+        "fields": [
+          {
+            "name": "context",
+            "type": "AgentRequestContext",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "intents",
+            "type": "RuntimeAgentAIConfigIntent",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "UpsertRuntimeAgentAIConfigResponse",
+        "fields": [
+          {
+            "name": "config",
+            "type": "RuntimeAgentAIConfig",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "UsageStatRecord",
@@ -39585,13 +39428,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "AgentExecutionReadinessState",
-        "values": [
-          "AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED"
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "AgentExecutionState",
         "values": [
           "AGENT_EXECUTION_STATE_UNSPECIFIED"
@@ -40998,6 +40834,16 @@
           "ROUTE_POLICY_CLOUD"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "RuntimeAgentAIConfigReadinessState",
+        "values": [
+          "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED",
+          "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY",
+          "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED",
+          "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE"
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "RuntimeHealthStatus",

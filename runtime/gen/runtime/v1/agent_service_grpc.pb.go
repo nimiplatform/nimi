@@ -19,65 +19,65 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAgentService_InitializeAgent_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent"
-	RuntimeAgentService_TerminateAgent_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
-	RuntimeAgentService_GetAgent_FullMethodName                              = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
-	RuntimeAgentService_ListAgents_FullMethodName                            = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
-	RuntimeAgentService_OpenConversationAnchor_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
-	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
-	RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding"
-	RuntimeAgentService_ResolveAvatarLiveInstanceBinding_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding"
-	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
-	RuntimeAgentService_ListAgentConversationSummaries_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries"
-	RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection"
-	RuntimeAgentService_RequestCompanionParticipation_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation"
-	RuntimeAgentService_CancelCompanionParticipation_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation"
-	RuntimeAgentService_OpenCompanionParticipationReplay_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay"
-	RuntimeAgentService_CreateRealmGroupMessageCandidate_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate"
-	RuntimeAgentService_GetRealmGroupMessageCandidateEvidence_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence"
-	RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot"
-	RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe"
-	RuntimeAgentService_SubmitAvatarDebugProbeResult_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult"
-	RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults"
-	RuntimeAgentService_GetAvatarDebugReplay_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay"
-	RuntimeAgentService_GetAgentState_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
-	RuntimeAgentService_UpdateAgentState_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
-	RuntimeAgentService_SetAgentPresentationProfile_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
-	RuntimeAgentService_EnableAutonomy_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy"
-	RuntimeAgentService_DisableAutonomy_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy"
-	RuntimeAgentService_SetAutonomyConfig_FullMethodName                     = "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig"
-	RuntimeAgentService_ListPendingHooks_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks"
-	RuntimeAgentService_CancelHook_FullMethodName                            = "/nimi.runtime.v1.RuntimeAgentService/CancelHook"
-	RuntimeAgentService_ListDelegatedProviderProfiles_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles"
-	RuntimeAgentService_UpsertDelegatedProviderProfile_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile"
-	RuntimeAgentService_SetDelegatedProviderState_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState"
-	RuntimeAgentService_ListDelegatedApprovalRequests_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests"
-	RuntimeAgentService_SubmitDelegatedApprovalDecision_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision"
-	RuntimeAgentService_ListDelegatedDiagnostics_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics"
-	RuntimeAgentService_GetDelegatedReplayTrace_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace"
-	RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
-	RuntimeAgentService_ExecuteDelegatedCapability_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability"
-	RuntimeAgentService_ResumeDelegatedCapability_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability"
-	RuntimeAgentService_QueryAgentMemory_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
-	RuntimeAgentService_WriteAgentMemory_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
-	RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus"
-	RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind"
-	RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus"
-	RuntimeAgentService_DescribeParticipationProfiles_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles"
-	RuntimeAgentService_DescribeParticipationContextBlocks_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks"
-	RuntimeAgentService_ValidateParticipation_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation"
-	RuntimeAgentService_ExecuteParticipation_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation"
-	RuntimeAgentService_GetParticipationCandidate_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate"
-	RuntimeAgentService_GetParticipationVerdicts_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts"
-	RuntimeAgentService_ListParticipationAuditEvents_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents"
-	RuntimeAgentService_GetParticipationReplay_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay"
-	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
-	RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream"
-	RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback"
-	RuntimeAgentService_GetAgentExecutionConfig_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig"
-	RuntimeAgentService_UpsertAgentExecutionConfig_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig"
-	RuntimeAgentService_GetAgentExecutionReadiness_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness"
-	RuntimeAgentService_SubscribeAgentExecutionReadiness_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness"
+	RuntimeAgentService_InitializeAgent_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent"
+	RuntimeAgentService_TerminateAgent_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
+	RuntimeAgentService_GetAgent_FullMethodName                               = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
+	RuntimeAgentService_ListAgents_FullMethodName                             = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
+	RuntimeAgentService_OpenConversationAnchor_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
+	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
+	RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding"
+	RuntimeAgentService_ResolveAvatarLiveInstanceBinding_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding"
+	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
+	RuntimeAgentService_ListAgentConversationSummaries_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries"
+	RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection"
+	RuntimeAgentService_RequestCompanionParticipation_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation"
+	RuntimeAgentService_CancelCompanionParticipation_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation"
+	RuntimeAgentService_OpenCompanionParticipationReplay_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay"
+	RuntimeAgentService_CreateRealmGroupMessageCandidate_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate"
+	RuntimeAgentService_GetRealmGroupMessageCandidateEvidence_FullMethodName  = "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence"
+	RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot"
+	RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe"
+	RuntimeAgentService_SubmitAvatarDebugProbeResult_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult"
+	RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults"
+	RuntimeAgentService_GetAvatarDebugReplay_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay"
+	RuntimeAgentService_GetAgentState_FullMethodName                          = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
+	RuntimeAgentService_UpdateAgentState_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
+	RuntimeAgentService_SetAgentPresentationProfile_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
+	RuntimeAgentService_EnableAutonomy_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy"
+	RuntimeAgentService_DisableAutonomy_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy"
+	RuntimeAgentService_SetAutonomyConfig_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig"
+	RuntimeAgentService_ListPendingHooks_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks"
+	RuntimeAgentService_CancelHook_FullMethodName                             = "/nimi.runtime.v1.RuntimeAgentService/CancelHook"
+	RuntimeAgentService_ListDelegatedProviderProfiles_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles"
+	RuntimeAgentService_UpsertDelegatedProviderProfile_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile"
+	RuntimeAgentService_SetDelegatedProviderState_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState"
+	RuntimeAgentService_ListDelegatedApprovalRequests_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests"
+	RuntimeAgentService_SubmitDelegatedApprovalDecision_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision"
+	RuntimeAgentService_ListDelegatedDiagnostics_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics"
+	RuntimeAgentService_GetDelegatedReplayTrace_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace"
+	RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
+	RuntimeAgentService_ExecuteDelegatedCapability_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability"
+	RuntimeAgentService_ResumeDelegatedCapability_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/ResumeDelegatedCapability"
+	RuntimeAgentService_QueryAgentMemory_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
+	RuntimeAgentService_WriteAgentMemory_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
+	RuntimeAgentService_GetAgentCanonicalMemoryBankStatus_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryBankStatus"
+	RuntimeAgentService_RequestAgentCanonicalMemoryBankBind_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/RequestAgentCanonicalMemoryBankBind"
+	RuntimeAgentService_GetAgentCanonicalMemoryReviewStatus_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/GetAgentCanonicalMemoryReviewStatus"
+	RuntimeAgentService_DescribeParticipationProfiles_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationProfiles"
+	RuntimeAgentService_DescribeParticipationContextBlocks_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/DescribeParticipationContextBlocks"
+	RuntimeAgentService_ValidateParticipation_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation"
+	RuntimeAgentService_ExecuteParticipation_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/ExecuteParticipation"
+	RuntimeAgentService_GetParticipationCandidate_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationCandidate"
+	RuntimeAgentService_GetParticipationVerdicts_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationVerdicts"
+	RuntimeAgentService_ListParticipationAuditEvents_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/ListParticipationAuditEvents"
+	RuntimeAgentService_GetParticipationReplay_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/GetParticipationReplay"
+	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
+	RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream"
+	RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback"
+	RuntimeAgentService_GetRuntimeAgentAIConfig_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig"
+	RuntimeAgentService_UpsertRuntimeAgentAIConfig_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig"
+	RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness"
+	RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadiness_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness"
 )
 
 // RuntimeAgentServiceClient is the client API for RuntimeAgentService service.
@@ -140,11 +140,11 @@ type RuntimeAgentServiceClient interface {
 	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
 	SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error)
 	InterruptAgentVoicePlayback(ctx context.Context, in *InterruptAgentVoicePlaybackRequest, opts ...grpc.CallOption) (*InterruptAgentVoicePlaybackResponse, error)
-	// K-AGCORE-144..150 Runtime Agent execution config surface.
-	GetAgentExecutionConfig(ctx context.Context, in *GetAgentExecutionConfigRequest, opts ...grpc.CallOption) (*GetAgentExecutionConfigResponse, error)
-	UpsertAgentExecutionConfig(ctx context.Context, in *UpsertAgentExecutionConfigRequest, opts ...grpc.CallOption) (*UpsertAgentExecutionConfigResponse, error)
-	GetAgentExecutionReadiness(ctx context.Context, in *GetAgentExecutionReadinessRequest, opts ...grpc.CallOption) (*GetAgentExecutionReadinessResponse, error)
-	SubscribeAgentExecutionReadiness(ctx context.Context, in *SubscribeAgentExecutionReadinessRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentExecutionReadinessSnapshot], error)
+	// K-AGCORE-144..150 Runtime Agent AI Config surface.
+	GetRuntimeAgentAIConfig(ctx context.Context, in *GetRuntimeAgentAIConfigRequest, opts ...grpc.CallOption) (*GetRuntimeAgentAIConfigResponse, error)
+	UpsertRuntimeAgentAIConfig(ctx context.Context, in *UpsertRuntimeAgentAIConfigRequest, opts ...grpc.CallOption) (*UpsertRuntimeAgentAIConfigResponse, error)
+	GetRuntimeAgentAIConfigReadiness(ctx context.Context, in *GetRuntimeAgentAIConfigReadinessRequest, opts ...grpc.CallOption) (*GetRuntimeAgentAIConfigReadinessResponse, error)
+	SubscribeRuntimeAgentAIConfigReadiness(ctx context.Context, in *SubscribeRuntimeAgentAIConfigReadinessRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RuntimeAgentAIConfigReadinessSnapshot], error)
 }
 
 type runtimeAgentServiceClient struct {
@@ -723,43 +723,43 @@ func (c *runtimeAgentServiceClient) InterruptAgentVoicePlayback(ctx context.Cont
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) GetAgentExecutionConfig(ctx context.Context, in *GetAgentExecutionConfigRequest, opts ...grpc.CallOption) (*GetAgentExecutionConfigResponse, error) {
+func (c *runtimeAgentServiceClient) GetRuntimeAgentAIConfig(ctx context.Context, in *GetRuntimeAgentAIConfigRequest, opts ...grpc.CallOption) (*GetRuntimeAgentAIConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAgentExecutionConfigResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAgentExecutionConfig_FullMethodName, in, out, cOpts...)
+	out := new(GetRuntimeAgentAIConfigResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetRuntimeAgentAIConfig_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) UpsertAgentExecutionConfig(ctx context.Context, in *UpsertAgentExecutionConfigRequest, opts ...grpc.CallOption) (*UpsertAgentExecutionConfigResponse, error) {
+func (c *runtimeAgentServiceClient) UpsertRuntimeAgentAIConfig(ctx context.Context, in *UpsertRuntimeAgentAIConfigRequest, opts ...grpc.CallOption) (*UpsertRuntimeAgentAIConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpsertAgentExecutionConfigResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_UpsertAgentExecutionConfig_FullMethodName, in, out, cOpts...)
+	out := new(UpsertRuntimeAgentAIConfigResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_UpsertRuntimeAgentAIConfig_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) GetAgentExecutionReadiness(ctx context.Context, in *GetAgentExecutionReadinessRequest, opts ...grpc.CallOption) (*GetAgentExecutionReadinessResponse, error) {
+func (c *runtimeAgentServiceClient) GetRuntimeAgentAIConfigReadiness(ctx context.Context, in *GetRuntimeAgentAIConfigReadinessRequest, opts ...grpc.CallOption) (*GetRuntimeAgentAIConfigReadinessResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAgentExecutionReadinessResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAgentExecutionReadiness_FullMethodName, in, out, cOpts...)
+	out := new(GetRuntimeAgentAIConfigReadinessResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) SubscribeAgentExecutionReadiness(ctx context.Context, in *SubscribeAgentExecutionReadinessRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentExecutionReadinessSnapshot], error) {
+func (c *runtimeAgentServiceClient) SubscribeRuntimeAgentAIConfigReadiness(ctx context.Context, in *SubscribeRuntimeAgentAIConfigReadinessRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RuntimeAgentAIConfigReadinessSnapshot], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[2], RuntimeAgentService_SubscribeAgentExecutionReadiness_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[2], RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadiness_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[SubscribeAgentExecutionReadinessRequest, AgentExecutionReadinessSnapshot]{ClientStream: stream}
+	x := &grpc.GenericClientStream[SubscribeRuntimeAgentAIConfigReadinessRequest, RuntimeAgentAIConfigReadinessSnapshot]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -770,7 +770,7 @@ func (c *runtimeAgentServiceClient) SubscribeAgentExecutionReadiness(ctx context
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAgentService_SubscribeAgentExecutionReadinessClient = grpc.ServerStreamingClient[AgentExecutionReadinessSnapshot]
+type RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadinessClient = grpc.ServerStreamingClient[RuntimeAgentAIConfigReadinessSnapshot]
 
 // RuntimeAgentServiceServer is the server API for RuntimeAgentService service.
 // All implementations should embed UnimplementedRuntimeAgentServiceServer
@@ -832,11 +832,11 @@ type RuntimeAgentServiceServer interface {
 	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
 	SubscribeAgentVoiceStream(*SubscribeAgentVoiceStreamRequest, grpc.ServerStreamingServer[AgentVoiceStreamEvent]) error
 	InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error)
-	// K-AGCORE-144..150 Runtime Agent execution config surface.
-	GetAgentExecutionConfig(context.Context, *GetAgentExecutionConfigRequest) (*GetAgentExecutionConfigResponse, error)
-	UpsertAgentExecutionConfig(context.Context, *UpsertAgentExecutionConfigRequest) (*UpsertAgentExecutionConfigResponse, error)
-	GetAgentExecutionReadiness(context.Context, *GetAgentExecutionReadinessRequest) (*GetAgentExecutionReadinessResponse, error)
-	SubscribeAgentExecutionReadiness(*SubscribeAgentExecutionReadinessRequest, grpc.ServerStreamingServer[AgentExecutionReadinessSnapshot]) error
+	// K-AGCORE-144..150 Runtime Agent AI Config surface.
+	GetRuntimeAgentAIConfig(context.Context, *GetRuntimeAgentAIConfigRequest) (*GetRuntimeAgentAIConfigResponse, error)
+	UpsertRuntimeAgentAIConfig(context.Context, *UpsertRuntimeAgentAIConfigRequest) (*UpsertRuntimeAgentAIConfigResponse, error)
+	GetRuntimeAgentAIConfigReadiness(context.Context, *GetRuntimeAgentAIConfigReadinessRequest) (*GetRuntimeAgentAIConfigReadinessResponse, error)
+	SubscribeRuntimeAgentAIConfigReadiness(*SubscribeRuntimeAgentAIConfigReadinessRequest, grpc.ServerStreamingServer[RuntimeAgentAIConfigReadinessSnapshot]) error
 }
 
 // UnimplementedRuntimeAgentServiceServer should be embedded to have
@@ -1011,17 +1011,17 @@ func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentVoiceStream(*Subscri
 func (UnimplementedRuntimeAgentServiceServer) InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method InterruptAgentVoicePlayback not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) GetAgentExecutionConfig(context.Context, *GetAgentExecutionConfigRequest) (*GetAgentExecutionConfigResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAgentExecutionConfig not implemented")
+func (UnimplementedRuntimeAgentServiceServer) GetRuntimeAgentAIConfig(context.Context, *GetRuntimeAgentAIConfigRequest) (*GetRuntimeAgentAIConfigResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRuntimeAgentAIConfig not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) UpsertAgentExecutionConfig(context.Context, *UpsertAgentExecutionConfigRequest) (*UpsertAgentExecutionConfigResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpsertAgentExecutionConfig not implemented")
+func (UnimplementedRuntimeAgentServiceServer) UpsertRuntimeAgentAIConfig(context.Context, *UpsertRuntimeAgentAIConfigRequest) (*UpsertRuntimeAgentAIConfigResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertRuntimeAgentAIConfig not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) GetAgentExecutionReadiness(context.Context, *GetAgentExecutionReadinessRequest) (*GetAgentExecutionReadinessResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAgentExecutionReadiness not implemented")
+func (UnimplementedRuntimeAgentServiceServer) GetRuntimeAgentAIConfigReadiness(context.Context, *GetRuntimeAgentAIConfigReadinessRequest) (*GetRuntimeAgentAIConfigReadinessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRuntimeAgentAIConfigReadiness not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentExecutionReadiness(*SubscribeAgentExecutionReadinessRequest, grpc.ServerStreamingServer[AgentExecutionReadinessSnapshot]) error {
-	return status.Error(codes.Unimplemented, "method SubscribeAgentExecutionReadiness not implemented")
+func (UnimplementedRuntimeAgentServiceServer) SubscribeRuntimeAgentAIConfigReadiness(*SubscribeRuntimeAgentAIConfigReadinessRequest, grpc.ServerStreamingServer[RuntimeAgentAIConfigReadinessSnapshot]) error {
+	return status.Error(codes.Unimplemented, "method SubscribeRuntimeAgentAIConfigReadiness not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) testEmbeddedByValue() {}
 
@@ -2019,70 +2019,70 @@ func _RuntimeAgentService_InterruptAgentVoicePlayback_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_GetAgentExecutionConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAgentExecutionConfigRequest)
+func _RuntimeAgentService_GetRuntimeAgentAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRuntimeAgentAIConfigRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).GetAgentExecutionConfig(ctx, in)
+		return srv.(RuntimeAgentServiceServer).GetRuntimeAgentAIConfig(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAgentService_GetAgentExecutionConfig_FullMethodName,
+		FullMethod: RuntimeAgentService_GetRuntimeAgentAIConfig_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).GetAgentExecutionConfig(ctx, req.(*GetAgentExecutionConfigRequest))
+		return srv.(RuntimeAgentServiceServer).GetRuntimeAgentAIConfig(ctx, req.(*GetRuntimeAgentAIConfigRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_UpsertAgentExecutionConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpsertAgentExecutionConfigRequest)
+func _RuntimeAgentService_UpsertRuntimeAgentAIConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertRuntimeAgentAIConfigRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).UpsertAgentExecutionConfig(ctx, in)
+		return srv.(RuntimeAgentServiceServer).UpsertRuntimeAgentAIConfig(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAgentService_UpsertAgentExecutionConfig_FullMethodName,
+		FullMethod: RuntimeAgentService_UpsertRuntimeAgentAIConfig_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).UpsertAgentExecutionConfig(ctx, req.(*UpsertAgentExecutionConfigRequest))
+		return srv.(RuntimeAgentServiceServer).UpsertRuntimeAgentAIConfig(ctx, req.(*UpsertRuntimeAgentAIConfigRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_GetAgentExecutionReadiness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAgentExecutionReadinessRequest)
+func _RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRuntimeAgentAIConfigReadinessRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).GetAgentExecutionReadiness(ctx, in)
+		return srv.(RuntimeAgentServiceServer).GetRuntimeAgentAIConfigReadiness(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAgentService_GetAgentExecutionReadiness_FullMethodName,
+		FullMethod: RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).GetAgentExecutionReadiness(ctx, req.(*GetAgentExecutionReadinessRequest))
+		return srv.(RuntimeAgentServiceServer).GetRuntimeAgentAIConfigReadiness(ctx, req.(*GetRuntimeAgentAIConfigReadinessRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_SubscribeAgentExecutionReadiness_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SubscribeAgentExecutionReadinessRequest)
+func _RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadiness_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeRuntimeAgentAIConfigReadinessRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(RuntimeAgentServiceServer).SubscribeAgentExecutionReadiness(m, &grpc.GenericServerStream[SubscribeAgentExecutionReadinessRequest, AgentExecutionReadinessSnapshot]{ServerStream: stream})
+	return srv.(RuntimeAgentServiceServer).SubscribeRuntimeAgentAIConfigReadiness(m, &grpc.GenericServerStream[SubscribeRuntimeAgentAIConfigReadinessRequest, RuntimeAgentAIConfigReadinessSnapshot]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAgentService_SubscribeAgentExecutionReadinessServer = grpc.ServerStreamingServer[AgentExecutionReadinessSnapshot]
+type RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadinessServer = grpc.ServerStreamingServer[RuntimeAgentAIConfigReadinessSnapshot]
 
 // RuntimeAgentService_ServiceDesc is the grpc.ServiceDesc for RuntimeAgentService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -2304,16 +2304,16 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAgentService_InterruptAgentVoicePlayback_Handler,
 		},
 		{
-			MethodName: "GetAgentExecutionConfig",
-			Handler:    _RuntimeAgentService_GetAgentExecutionConfig_Handler,
+			MethodName: "GetRuntimeAgentAIConfig",
+			Handler:    _RuntimeAgentService_GetRuntimeAgentAIConfig_Handler,
 		},
 		{
-			MethodName: "UpsertAgentExecutionConfig",
-			Handler:    _RuntimeAgentService_UpsertAgentExecutionConfig_Handler,
+			MethodName: "UpsertRuntimeAgentAIConfig",
+			Handler:    _RuntimeAgentService_UpsertRuntimeAgentAIConfig_Handler,
 		},
 		{
-			MethodName: "GetAgentExecutionReadiness",
-			Handler:    _RuntimeAgentService_GetAgentExecutionReadiness_Handler,
+			MethodName: "GetRuntimeAgentAIConfigReadiness",
+			Handler:    _RuntimeAgentService_GetRuntimeAgentAIConfigReadiness_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -2328,8 +2328,8 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "SubscribeAgentExecutionReadiness",
-			Handler:       _RuntimeAgentService_SubscribeAgentExecutionReadiness_Handler,
+			StreamName:    "SubscribeRuntimeAgentAIConfigReadiness",
+			Handler:       _RuntimeAgentService_SubscribeRuntimeAgentAIConfigReadiness_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -223,22 +223,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAgentCanonicalMemoryReviewStatusResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
-    "service": "RuntimeAgentService",
-    "method": "GetAgentExecutionConfig",
-    "kind": "unary",
-    "requestType": "GetAgentExecutionConfigRequest",
-    "responseType": "GetAgentExecutionConfigResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
-    "service": "RuntimeAgentService",
-    "method": "GetAgentExecutionReadiness",
-    "kind": "unary",
-    "requestType": "GetAgentExecutionReadinessRequest",
-    "responseType": "GetAgentExecutionReadinessResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "service": "RuntimeAgentService",
     "method": "GetAgentState",
@@ -333,6 +317,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "GetRealmGroupMessageCandidateEvidenceRequest",
     "responseType": "GetRealmGroupMessageCandidateEvidenceResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig",
+    "service": "RuntimeAgentService",
+    "method": "GetRuntimeAgentAIConfig",
+    "kind": "unary",
+    "requestType": "GetRuntimeAgentAIConfigRequest",
+    "responseType": "GetRuntimeAgentAIConfigResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness",
+    "service": "RuntimeAgentService",
+    "method": "GetRuntimeAgentAIConfigReadiness",
+    "kind": "unary",
+    "requestType": "GetRuntimeAgentAIConfigReadinessRequest",
+    "responseType": "GetRuntimeAgentAIConfigReadinessResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
@@ -535,20 +535,20 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "AgentEvent"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
-    "service": "RuntimeAgentService",
-    "method": "SubscribeAgentExecutionReadiness",
-    "kind": "server_stream",
-    "requestType": "SubscribeAgentExecutionReadinessRequest",
-    "responseType": "AgentExecutionReadinessSnapshot"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
     "service": "RuntimeAgentService",
     "method": "SubscribeAgentVoiceStream",
     "kind": "server_stream",
     "requestType": "SubscribeAgentVoiceStreamRequest",
     "responseType": "AgentVoiceStreamEvent"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
+    "service": "RuntimeAgentService",
+    "method": "SubscribeRuntimeAgentAIConfigReadiness",
+    "kind": "server_stream",
+    "requestType": "SubscribeRuntimeAgentAIConfigReadinessRequest",
+    "responseType": "RuntimeAgentAIConfigReadinessSnapshot"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
@@ -567,20 +567,20 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "UpdateAgentStateResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
-    "service": "RuntimeAgentService",
-    "method": "UpsertAgentExecutionConfig",
-    "kind": "unary",
-    "requestType": "UpsertAgentExecutionConfigRequest",
-    "responseType": "UpsertAgentExecutionConfigResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
     "service": "RuntimeAgentService",
     "method": "UpsertDelegatedProviderProfile",
     "kind": "unary",
     "requestType": "UpsertDelegatedProviderProfileRequest",
     "responseType": "UpsertDelegatedProviderProfileResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
+    "service": "RuntimeAgentService",
+    "method": "UpsertRuntimeAgentAIConfig",
+    "kind": "unary",
+    "requestType": "UpsertRuntimeAgentAIConfigRequest",
+    "responseType": "UpsertRuntimeAgentAIConfigResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
@@ -1079,14 +1079,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetKnowledgeBankResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
-    "service": "RuntimeCognitionService",
-    "method": "GetMemoryEmbeddingRuntimeIntent",
-    "kind": "unary",
-    "requestType": "GetMemoryEmbeddingRuntimeIntentRequest",
-    "responseType": "GetMemoryEmbeddingRuntimeIntentResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeCognitionService/GetPage",
     "service": "RuntimeCognitionService",
     "method": "GetPage",
@@ -1221,14 +1213,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "SearchKeywordRequest",
     "responseType": "SearchKeywordResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
-    "service": "RuntimeCognitionService",
-    "method": "SetMemoryEmbeddingRuntimeIntent",
-    "kind": "unary",
-    "requestType": "SetMemoryEmbeddingRuntimeIntentRequest",
-    "responseType": "SetMemoryEmbeddingRuntimeIntentResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",

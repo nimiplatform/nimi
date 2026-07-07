@@ -15885,17 +15885,6 @@ pub mod memory_embedding_local_binding_ref {
         ReadinessRef(::prost::alloc::string::String),
     }
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MemoryEmbeddingBindingIntentSnapshot {
-    #[prost(string, tag = "1")]
-    pub source_kind: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub cloud_binding: ::core::option::Option<MemoryEmbeddingCloudBindingRef>,
-    #[prost(message, optional, tag = "3")]
-    pub local_binding: ::core::option::Option<MemoryEmbeddingLocalBindingRef>,
-    #[prost(string, tag = "4")]
-    pub revision_token: ::prost::alloc::string::String,
-}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct MemoryEmbeddingOperationReadiness {
     #[prost(bool, tag = "1")]
@@ -16357,37 +16346,6 @@ pub struct SubscribeMemoryEventsRequest {
     pub cursor: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetMemoryEmbeddingRuntimeIntentRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub locator: ::core::option::Option<MemoryBankLocator>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetMemoryEmbeddingRuntimeIntentResponse {
-    #[prost(bool, tag = "1")]
-    pub binding_intent_present: bool,
-    #[prost(message, optional, tag = "2")]
-    pub binding_intent: ::core::option::Option<MemoryEmbeddingBindingIntentSnapshot>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SetMemoryEmbeddingRuntimeIntentRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<MemoryRequestContext>,
-    #[prost(message, optional, tag = "2")]
-    pub locator: ::core::option::Option<MemoryBankLocator>,
-    /// Omit or send an empty binding_intent to clear the Runtime-owned binding intent.
-    #[prost(message, optional, tag = "3")]
-    pub binding_intent: ::core::option::Option<MemoryEmbeddingBindingIntentSnapshot>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SetMemoryEmbeddingRuntimeIntentResponse {
-    #[prost(bool, tag = "1")]
-    pub accepted: bool,
-    #[prost(message, optional, tag = "2")]
-    pub binding_intent: ::core::option::Option<MemoryEmbeddingBindingIntentSnapshot>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InspectMemoryEmbeddingRuntimeRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<MemoryRequestContext>,
@@ -16397,9 +16355,9 @@ pub struct InspectMemoryEmbeddingRuntimeRequest {
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct InspectMemoryEmbeddingRuntimeResponse {
     #[prost(bool, tag = "1")]
-    pub binding_intent_present: bool,
+    pub text_embed_intent_present: bool,
     #[prost(string, tag = "2")]
-    pub binding_source_kind: ::prost::alloc::string::String,
+    pub text_embed_source_kind: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub resolution_state: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
@@ -16410,6 +16368,8 @@ pub struct InspectMemoryEmbeddingRuntimeResponse {
     pub blocked_reason_code: i32,
     #[prost(message, optional, tag = "7")]
     pub operation_readiness: ::core::option::Option<MemoryEmbeddingOperationReadiness>,
+    #[prost(uint64, tag = "8")]
+    pub config_revision: u64,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RequestMemoryEmbeddingRuntimeBindRequest {
@@ -19353,10 +19313,6 @@ pub struct AgentPresentationProfile {
     pub default_voice_reference: ::prost::alloc::string::String,
     #[prost(bool, tag = "7")]
     pub avatar_autoplay: bool,
-    #[prost(string, tag = "8")]
-    pub speech_model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "RoutePolicy", tag = "9")]
-    pub speech_route_policy: i32,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ClearAgentPresentationProfile {}
@@ -20608,13 +20564,13 @@ pub struct GetAvatarDebugReplayResponse {
     #[prost(message, optional, tag = "3")]
     pub replay_ref: ::core::option::Option<AvatarDebugReplayRef>,
 }
-/// K-AGCORE-144..150 Runtime Agent execution config. One committed
-/// capability-to-binding config per runtime instance with monotonic revision,
-/// expected-revision optimistic concurrency, and a probe-backed readiness
-/// projection. Capability, readiness-state, and reason vocabularies are
-/// admitted in .nimi/spec/runtime/kernel/tables/agent-execution-config.yaml.
+/// K-AGCORE-144..150 Runtime Agent AI Config. One committed AI consume config
+/// per Runtime Local Agent instance with monotonic revision, expected-revision
+/// optimistic concurrency, and a probe-backed readiness projection. Capability,
+/// readiness-state, and reason vocabularies are admitted in
+/// .nimi/spec/runtime/kernel/tables/runtime-agent-ai-config.yaml.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RuntimeAgentExecutionCapabilityBinding {
+pub struct RuntimeAgentAiConfigIntent {
     #[prost(string, tag = "1")]
     pub capability: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
@@ -20625,23 +20581,29 @@ pub struct RuntimeAgentExecutionCapabilityBinding {
     pub connector_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "5")]
     pub target_ref: ::core::option::Option<RuntimeDurableTargetRef>,
+    #[prost(string, tag = "6")]
+    pub voice_reference_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub image_policy_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RuntimeAgentExecutionConfig {
-    #[prost(uint64, tag = "1")]
+pub struct RuntimeAgentAiConfig {
+    #[prost(string, tag = "1")]
+    pub agent_instance_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
     pub revision: u64,
-    #[prost(message, repeated, tag = "2")]
-    pub bindings: ::prost::alloc::vec::Vec<RuntimeAgentExecutionCapabilityBinding>,
-    #[prost(message, optional, tag = "3")]
+    #[prost(message, repeated, tag = "3")]
+    pub intents: ::prost::alloc::vec::Vec<RuntimeAgentAiConfigIntent>,
+    #[prost(message, optional, tag = "4")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "4")]
+    #[prost(string, tag = "5")]
     pub updated_by_app_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RuntimeAgentExecutionCapabilityReadiness {
+pub struct RuntimeAgentAiConfigCapabilityReadiness {
     #[prost(string, tag = "1")]
     pub capability: ::prost::alloc::string::String,
-    #[prost(enumeration = "AgentExecutionReadinessState", tag = "2")]
+    #[prost(enumeration = "RuntimeAgentAiConfigReadinessState", tag = "2")]
     pub state: i32,
     #[prost(string, tag = "3")]
     pub reason_code: ::prost::alloc::string::String,
@@ -20649,48 +20611,50 @@ pub struct RuntimeAgentExecutionCapabilityReadiness {
     pub probed_at: ::core::option::Option<::prost_types::Timestamp>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AgentExecutionReadinessSnapshot {
-    #[prost(uint64, tag = "1")]
+pub struct RuntimeAgentAiConfigReadinessSnapshot {
+    #[prost(string, tag = "1")]
+    pub agent_instance_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
     pub config_revision: u64,
-    #[prost(message, repeated, tag = "2")]
-    pub capabilities: ::prost::alloc::vec::Vec<RuntimeAgentExecutionCapabilityReadiness>,
+    #[prost(message, repeated, tag = "3")]
+    pub capabilities: ::prost::alloc::vec::Vec<RuntimeAgentAiConfigCapabilityReadiness>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAgentExecutionConfigRequest {
+pub struct GetRuntimeAgentAiConfigRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetAgentExecutionConfigResponse {
+pub struct GetRuntimeAgentAiConfigResponse {
     #[prost(message, optional, tag = "1")]
-    pub config: ::core::option::Option<RuntimeAgentExecutionConfig>,
+    pub config: ::core::option::Option<RuntimeAgentAiConfig>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpsertAgentExecutionConfigRequest {
+pub struct UpsertRuntimeAgentAiConfigRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
     #[prost(uint64, tag = "2")]
     pub expected_revision: u64,
     #[prost(message, repeated, tag = "3")]
-    pub bindings: ::prost::alloc::vec::Vec<RuntimeAgentExecutionCapabilityBinding>,
+    pub intents: ::prost::alloc::vec::Vec<RuntimeAgentAiConfigIntent>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpsertAgentExecutionConfigResponse {
+pub struct UpsertRuntimeAgentAiConfigResponse {
     #[prost(message, optional, tag = "1")]
-    pub config: ::core::option::Option<RuntimeAgentExecutionConfig>,
+    pub config: ::core::option::Option<RuntimeAgentAiConfig>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAgentExecutionReadinessRequest {
+pub struct GetRuntimeAgentAiConfigReadinessRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetAgentExecutionReadinessResponse {
+pub struct GetRuntimeAgentAiConfigReadinessResponse {
     #[prost(message, optional, tag = "1")]
-    pub snapshot: ::core::option::Option<AgentExecutionReadinessSnapshot>,
+    pub snapshot: ::core::option::Option<RuntimeAgentAiConfigReadinessSnapshot>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubscribeAgentExecutionReadinessRequest {
+pub struct SubscribeRuntimeAgentAiConfigReadinessRequest {
     #[prost(message, optional, tag = "1")]
     pub context: ::core::option::Option<AgentRequestContext>,
 }
@@ -21853,32 +21817,40 @@ impl AgentCanonicalMemoryBankMode {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum AgentExecutionReadinessState {
+pub enum RuntimeAgentAiConfigReadinessState {
     Unspecified = 0,
     Ready = 1,
     NotConfigured = 2,
     Unavailable = 3,
 }
-impl AgentExecutionReadinessState {
+impl RuntimeAgentAiConfigReadinessState {
     /// String value of the enum field names used in the ProtoBuf definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Unspecified => "AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED",
-            Self::Ready => "AGENT_EXECUTION_READINESS_STATE_READY",
-            Self::NotConfigured => "AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED",
-            Self::Unavailable => "AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE",
+            Self::Unspecified => "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED",
+            Self::Ready => "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY",
+            Self::NotConfigured => {
+                "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED"
+            }
+            Self::Unavailable => "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_EXECUTION_READINESS_STATE_READY" => Some(Self::Ready),
-            "AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED" => Some(Self::NotConfigured),
-            "AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE" => Some(Self::Unavailable),
+            "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY" => Some(Self::Ready),
+            "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED" => {
+                Some(Self::NotConfigured)
+            }
+            "RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE" => {
+                Some(Self::Unavailable)
+            }
             _ => None,
         }
     }
@@ -23589,12 +23561,12 @@ pub mod runtime_agent_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        /// K-AGCORE-144..150 Runtime Agent execution config surface.
-        pub async fn get_agent_execution_config(
+        /// K-AGCORE-144..150 Runtime Agent AI Config surface.
+        pub async fn get_runtime_agent_ai_config(
             &mut self,
-            request: impl tonic::IntoRequest<super::GetAgentExecutionConfigRequest>,
+            request: impl tonic::IntoRequest<super::GetRuntimeAgentAiConfigRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::GetAgentExecutionConfigResponse>,
+            tonic::Response<super::GetRuntimeAgentAiConfigResponse>,
             tonic::Status,
         > {
             self.inner
@@ -23607,23 +23579,23 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
+                "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "GetAgentExecutionConfig",
+                        "GetRuntimeAgentAIConfig",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn upsert_agent_execution_config(
+        pub async fn upsert_runtime_agent_ai_config(
             &mut self,
-            request: impl tonic::IntoRequest<super::UpsertAgentExecutionConfigRequest>,
+            request: impl tonic::IntoRequest<super::UpsertRuntimeAgentAiConfigRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::UpsertAgentExecutionConfigResponse>,
+            tonic::Response<super::UpsertRuntimeAgentAiConfigResponse>,
             tonic::Status,
         > {
             self.inner
@@ -23636,55 +23608,57 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
+                "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "UpsertAgentExecutionConfig",
+                        "UpsertRuntimeAgentAIConfig",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn get_agent_execution_readiness(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetAgentExecutionReadinessRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAgentExecutionReadinessResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "GetAgentExecutionReadiness",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn subscribe_agent_execution_readiness(
+        pub async fn get_runtime_agent_ai_config_readiness(
             &mut self,
             request: impl tonic::IntoRequest<
-                super::SubscribeAgentExecutionReadinessRequest,
+                super::GetRuntimeAgentAiConfigReadinessRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetRuntimeAgentAiConfigReadinessResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetRuntimeAgentAIConfigReadiness",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_runtime_agent_ai_config_readiness(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::SubscribeRuntimeAgentAiConfigReadinessRequest,
             >,
         ) -> std::result::Result<
             tonic::Response<
-                tonic::codec::Streaming<super::AgentExecutionReadinessSnapshot>,
+                tonic::codec::Streaming<super::RuntimeAgentAiConfigReadinessSnapshot>,
             >,
             tonic::Status,
         > {
@@ -23698,14 +23672,14 @@ pub mod runtime_agent_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
+                "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
-                        "SubscribeAgentExecutionReadiness",
+                        "SubscribeRuntimeAgentAIConfigReadiness",
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await

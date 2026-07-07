@@ -60,6 +60,7 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { RuntimeDurableTargetRef } from "./runtime_target_identity";
+import { RoutePolicy } from "./ai";
 import { MemoryEmbeddingProfile } from "./memory";
 import { NarrativeRecallHit } from "./memory";
 import { MemoryRecordKind } from "./memory";
@@ -74,7 +75,6 @@ import { MemoryRecordInput } from "./memory";
 import { MemoryBankLocator } from "./memory";
 import { MemoryCanonicalClass } from "./memory";
 import { ReasonCode } from "./common";
-import { RoutePolicy } from "./ai";
 import { Struct } from "../../google/protobuf/struct";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { Duration } from "../../google/protobuf/duration";
@@ -326,14 +326,6 @@ export interface AgentPresentationProfile {
      * @generated from protobuf field: bool avatar_autoplay = 7
      */
     avatarAutoplay: boolean;
-    /**
-     * @generated from protobuf field: string speech_model_id = 8
-     */
-    speechModelId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.RoutePolicy speech_route_policy = 9
-     */
-    speechRoutePolicy: RoutePolicy;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ClearAgentPresentationProfile
@@ -2696,15 +2688,15 @@ export interface GetAvatarDebugReplayResponse {
     replayRef?: AvatarDebugReplayRef;
 }
 /**
- * K-AGCORE-144..150 Runtime Agent execution config. One committed
- * capability-to-binding config per runtime instance with monotonic revision,
- * expected-revision optimistic concurrency, and a probe-backed readiness
- * projection. Capability, readiness-state, and reason vocabularies are
- * admitted in .nimi/spec/runtime/kernel/tables/agent-execution-config.yaml.
+ * K-AGCORE-144..150 Runtime Agent AI Config. One committed AI consume config
+ * per Runtime Local Agent instance with monotonic revision, expected-revision
+ * optimistic concurrency, and a probe-backed readiness projection. Capability,
+ * readiness-state, and reason vocabularies are admitted in
+ * .nimi/spec/runtime/kernel/tables/runtime-agent-ai-config.yaml.
  *
- * @generated from protobuf message nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding
+ * @generated from protobuf message nimi.runtime.v1.RuntimeAgentAIConfigIntent
  */
-export interface RuntimeAgentExecutionCapabilityBinding {
+export interface RuntimeAgentAIConfigIntent {
     /**
      * @generated from protobuf field: string capability = 1
      */
@@ -2725,40 +2717,52 @@ export interface RuntimeAgentExecutionCapabilityBinding {
      * @generated from protobuf field: nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 5
      */
     targetRef?: RuntimeDurableTargetRef;
+    /**
+     * @generated from protobuf field: string voice_reference_ref = 6
+     */
+    voiceReferenceRef: string;
+    /**
+     * @generated from protobuf field: string image_policy_ref = 7
+     */
+    imagePolicyRef: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.RuntimeAgentExecutionConfig
+ * @generated from protobuf message nimi.runtime.v1.RuntimeAgentAIConfig
  */
-export interface RuntimeAgentExecutionConfig {
+export interface RuntimeAgentAIConfig {
     /**
-     * @generated from protobuf field: uint64 revision = 1
+     * @generated from protobuf field: string agent_instance_id = 1
+     */
+    agentInstanceId: string;
+    /**
+     * @generated from protobuf field: uint64 revision = 2
      */
     revision: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings = 2
+     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeAgentAIConfigIntent intents = 3
      */
-    bindings: RuntimeAgentExecutionCapabilityBinding[];
+    intents: RuntimeAgentAIConfigIntent[];
     /**
-     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 3
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 4
      */
     updatedAt?: Timestamp;
     /**
-     * @generated from protobuf field: string updated_by_app_id = 4
+     * @generated from protobuf field: string updated_by_app_id = 5
      */
     updatedByAppId: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness
+ * @generated from protobuf message nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness
  */
-export interface RuntimeAgentExecutionCapabilityReadiness {
+export interface RuntimeAgentAIConfigCapabilityReadiness {
     /**
      * @generated from protobuf field: string capability = 1
      */
     capability: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentExecutionReadinessState state = 2
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentAIConfigReadinessState state = 2
      */
-    state: AgentExecutionReadinessState;
+    state: RuntimeAgentAIConfigReadinessState;
     /**
      * @generated from protobuf field: string reason_code = 3
      */
@@ -2769,40 +2773,44 @@ export interface RuntimeAgentExecutionCapabilityReadiness {
     probedAt?: Timestamp;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.AgentExecutionReadinessSnapshot
+ * @generated from protobuf message nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot
  */
-export interface AgentExecutionReadinessSnapshot {
+export interface RuntimeAgentAIConfigReadinessSnapshot {
     /**
-     * @generated from protobuf field: uint64 config_revision = 1
+     * @generated from protobuf field: string agent_instance_id = 1
+     */
+    agentInstanceId: string;
+    /**
+     * @generated from protobuf field: uint64 config_revision = 2
      */
     configRevision: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness capabilities = 2
+     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness capabilities = 3
      */
-    capabilities: RuntimeAgentExecutionCapabilityReadiness[];
+    capabilities: RuntimeAgentAIConfigCapabilityReadiness[];
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.GetAgentExecutionConfigRequest
+ * @generated from protobuf message nimi.runtime.v1.GetRuntimeAgentAIConfigRequest
  */
-export interface GetAgentExecutionConfigRequest {
+export interface GetRuntimeAgentAIConfigRequest {
     /**
      * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
      */
     context?: AgentRequestContext;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.GetAgentExecutionConfigResponse
+ * @generated from protobuf message nimi.runtime.v1.GetRuntimeAgentAIConfigResponse
  */
-export interface GetAgentExecutionConfigResponse {
+export interface GetRuntimeAgentAIConfigResponse {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentExecutionConfig config = 1
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentAIConfig config = 1
      */
-    config?: RuntimeAgentExecutionConfig;
+    config?: RuntimeAgentAIConfig;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.UpsertAgentExecutionConfigRequest
+ * @generated from protobuf message nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest
  */
-export interface UpsertAgentExecutionConfigRequest {
+export interface UpsertRuntimeAgentAIConfigRequest {
     /**
      * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
      */
@@ -2812,41 +2820,41 @@ export interface UpsertAgentExecutionConfigRequest {
      */
     expectedRevision: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings = 3
+     * @generated from protobuf field: repeated nimi.runtime.v1.RuntimeAgentAIConfigIntent intents = 3
      */
-    bindings: RuntimeAgentExecutionCapabilityBinding[];
+    intents: RuntimeAgentAIConfigIntent[];
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.UpsertAgentExecutionConfigResponse
+ * @generated from protobuf message nimi.runtime.v1.UpsertRuntimeAgentAIConfigResponse
  */
-export interface UpsertAgentExecutionConfigResponse {
+export interface UpsertRuntimeAgentAIConfigResponse {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentExecutionConfig config = 1
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentAIConfig config = 1
      */
-    config?: RuntimeAgentExecutionConfig;
+    config?: RuntimeAgentAIConfig;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.GetAgentExecutionReadinessRequest
+ * @generated from protobuf message nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessRequest
  */
-export interface GetAgentExecutionReadinessRequest {
+export interface GetRuntimeAgentAIConfigReadinessRequest {
     /**
      * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
      */
     context?: AgentRequestContext;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.GetAgentExecutionReadinessResponse
+ * @generated from protobuf message nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessResponse
  */
-export interface GetAgentExecutionReadinessResponse {
+export interface GetRuntimeAgentAIConfigReadinessResponse {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentExecutionReadinessSnapshot snapshot = 1
+     * @generated from protobuf field: nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot snapshot = 1
      */
-    snapshot?: AgentExecutionReadinessSnapshot;
+    snapshot?: RuntimeAgentAIConfigReadinessSnapshot;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.SubscribeAgentExecutionReadinessRequest
+ * @generated from protobuf message nimi.runtime.v1.SubscribeRuntimeAgentAIConfigReadinessRequest
  */
-export interface SubscribeAgentExecutionReadinessRequest {
+export interface SubscribeRuntimeAgentAIConfigReadinessRequest {
     /**
      * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
      */
@@ -3625,25 +3633,25 @@ export enum AgentCanonicalMemoryBankMode {
     UNAVAILABLE = 3
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.AgentExecutionReadinessState
+ * @generated from protobuf enum nimi.runtime.v1.RuntimeAgentAIConfigReadinessState
  */
-export enum AgentExecutionReadinessState {
+export enum RuntimeAgentAIConfigReadinessState {
     /**
-     * @generated from protobuf enum value: AGENT_EXECUTION_READINESS_STATE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED = 0;
      */
-    UNSPECIFIED = 0,
+    RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: AGENT_EXECUTION_READINESS_STATE_READY = 1;
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY = 1;
      */
-    READY = 1,
+    RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_READY = 1,
     /**
-     * @generated from protobuf enum value: AGENT_EXECUTION_READINESS_STATE_NOT_CONFIGURED = 2;
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED = 2;
      */
-    NOT_CONFIGURED = 2,
+    RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED = 2,
     /**
-     * @generated from protobuf enum value: AGENT_EXECUTION_READINESS_STATE_UNAVAILABLE = 3;
+     * @generated from protobuf enum value: RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE = 3;
      */
-    UNAVAILABLE = 3
+    RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class AgentAutonomyConfig$Type extends MessageType<AgentAutonomyConfig> {
@@ -4374,9 +4382,7 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
             { no: 4, name: "idle_preset", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "interaction_policy_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "default_voice_reference", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "avatar_autoplay", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 8, name: "speech_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "speech_route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] }
+            { no: 7, name: "avatar_autoplay", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<AgentPresentationProfile>): AgentPresentationProfile {
@@ -4388,8 +4394,6 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
         message.interactionPolicyRef = "";
         message.defaultVoiceReference = "";
         message.avatarAutoplay = false;
-        message.speechModelId = "";
-        message.speechRoutePolicy = 0;
         if (value !== undefined)
             reflectionMergePartial<AgentPresentationProfile>(this, message, value);
         return message;
@@ -4419,12 +4423,6 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
                     break;
                 case /* bool avatar_autoplay */ 7:
                     message.avatarAutoplay = reader.bool();
-                    break;
-                case /* string speech_model_id */ 8:
-                    message.speechModelId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.RoutePolicy speech_route_policy */ 9:
-                    message.speechRoutePolicy = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4459,12 +4457,6 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
         /* bool avatar_autoplay = 7; */
         if (message.avatarAutoplay !== false)
             writer.tag(7, WireType.Varint).bool(message.avatarAutoplay);
-        /* string speech_model_id = 8; */
-        if (message.speechModelId !== "")
-            writer.tag(8, WireType.LengthDelimited).string(message.speechModelId);
-        /* nimi.runtime.v1.RoutePolicy speech_route_policy = 9; */
-        if (message.speechRoutePolicy !== 0)
-            writer.tag(9, WireType.Varint).int32(message.speechRoutePolicy);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11578,27 +11570,31 @@ class GetAvatarDebugReplayResponse$Type extends MessageType<GetAvatarDebugReplay
  */
 export const GetAvatarDebugReplayResponse = new GetAvatarDebugReplayResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class RuntimeAgentExecutionCapabilityBinding$Type extends MessageType<RuntimeAgentExecutionCapabilityBinding> {
+class RuntimeAgentAIConfigIntent$Type extends MessageType<RuntimeAgentAIConfigIntent> {
     constructor() {
-        super("nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding", [
+        super("nimi.runtime.v1.RuntimeAgentAIConfigIntent", [
             { no: 1, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "route_policy", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
             { no: 4, name: "connector_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "target_ref", kind: "message", T: () => RuntimeDurableTargetRef }
+            { no: 5, name: "target_ref", kind: "message", T: () => RuntimeDurableTargetRef },
+            { no: 6, name: "voice_reference_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "image_policy_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<RuntimeAgentExecutionCapabilityBinding>): RuntimeAgentExecutionCapabilityBinding {
+    create(value?: PartialMessage<RuntimeAgentAIConfigIntent>): RuntimeAgentAIConfigIntent {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.capability = "";
         message.modelId = "";
         message.routePolicy = 0;
         message.connectorId = "";
+        message.voiceReferenceRef = "";
+        message.imagePolicyRef = "";
         if (value !== undefined)
-            reflectionMergePartial<RuntimeAgentExecutionCapabilityBinding>(this, message, value);
+            reflectionMergePartial<RuntimeAgentAIConfigIntent>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentExecutionCapabilityBinding): RuntimeAgentExecutionCapabilityBinding {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentAIConfigIntent): RuntimeAgentAIConfigIntent {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -11618,6 +11614,12 @@ class RuntimeAgentExecutionCapabilityBinding$Type extends MessageType<RuntimeAge
                 case /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref */ 5:
                     message.targetRef = RuntimeDurableTargetRef.internalBinaryRead(reader, reader.uint32(), options, message.targetRef);
                     break;
+                case /* string voice_reference_ref */ 6:
+                    message.voiceReferenceRef = reader.string();
+                    break;
+                case /* string image_policy_ref */ 7:
+                    message.imagePolicyRef = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -11629,7 +11631,7 @@ class RuntimeAgentExecutionCapabilityBinding$Type extends MessageType<RuntimeAge
         }
         return message;
     }
-    internalBinaryWrite(message: RuntimeAgentExecutionCapabilityBinding, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: RuntimeAgentAIConfigIntent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string capability = 1; */
         if (message.capability !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.capability);
@@ -11645,6 +11647,12 @@ class RuntimeAgentExecutionCapabilityBinding$Type extends MessageType<RuntimeAge
         /* nimi.runtime.v1.RuntimeDurableTargetRef target_ref = 5; */
         if (message.targetRef)
             RuntimeDurableTargetRef.internalBinaryWrite(message.targetRef, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* string voice_reference_ref = 6; */
+        if (message.voiceReferenceRef !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.voiceReferenceRef);
+        /* string image_policy_ref = 7; */
+        if (message.imagePolicyRef !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.imagePolicyRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11652,43 +11660,48 @@ class RuntimeAgentExecutionCapabilityBinding$Type extends MessageType<RuntimeAge
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentAIConfigIntent
  */
-export const RuntimeAgentExecutionCapabilityBinding = new RuntimeAgentExecutionCapabilityBinding$Type();
+export const RuntimeAgentAIConfigIntent = new RuntimeAgentAIConfigIntent$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class RuntimeAgentExecutionConfig$Type extends MessageType<RuntimeAgentExecutionConfig> {
+class RuntimeAgentAIConfig$Type extends MessageType<RuntimeAgentAIConfig> {
     constructor() {
-        super("nimi.runtime.v1.RuntimeAgentExecutionConfig", [
-            { no: 1, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 2, name: "bindings", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentExecutionCapabilityBinding },
-            { no: 3, name: "updated_at", kind: "message", T: () => Timestamp },
-            { no: 4, name: "updated_by_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        super("nimi.runtime.v1.RuntimeAgentAIConfig", [
+            { no: 1, name: "agent_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "intents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentAIConfigIntent },
+            { no: 4, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 5, name: "updated_by_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<RuntimeAgentExecutionConfig>): RuntimeAgentExecutionConfig {
+    create(value?: PartialMessage<RuntimeAgentAIConfig>): RuntimeAgentAIConfig {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentInstanceId = "";
         message.revision = "0";
-        message.bindings = [];
+        message.intents = [];
         message.updatedByAppId = "";
         if (value !== undefined)
-            reflectionMergePartial<RuntimeAgentExecutionConfig>(this, message, value);
+            reflectionMergePartial<RuntimeAgentAIConfig>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentExecutionConfig): RuntimeAgentExecutionConfig {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentAIConfig): RuntimeAgentAIConfig {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* uint64 revision */ 1:
+                case /* string agent_instance_id */ 1:
+                    message.agentInstanceId = reader.string();
+                    break;
+                case /* uint64 revision */ 2:
                     message.revision = reader.uint64().toString();
                     break;
-                case /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings */ 2:
-                    message.bindings.push(RuntimeAgentExecutionCapabilityBinding.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.RuntimeAgentAIConfigIntent intents */ 3:
+                    message.intents.push(RuntimeAgentAIConfigIntent.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* google.protobuf.Timestamp updated_at */ 3:
+                case /* google.protobuf.Timestamp updated_at */ 4:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
                     break;
-                case /* string updated_by_app_id */ 4:
+                case /* string updated_by_app_id */ 5:
                     message.updatedByAppId = reader.string();
                     break;
                 default:
@@ -11702,19 +11715,22 @@ class RuntimeAgentExecutionConfig$Type extends MessageType<RuntimeAgentExecution
         }
         return message;
     }
-    internalBinaryWrite(message: RuntimeAgentExecutionConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* uint64 revision = 1; */
+    internalBinaryWrite(message: RuntimeAgentAIConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_instance_id = 1; */
+        if (message.agentInstanceId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentInstanceId);
+        /* uint64 revision = 2; */
         if (message.revision !== "0")
-            writer.tag(1, WireType.Varint).uint64(message.revision);
-        /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings = 2; */
-        for (let i = 0; i < message.bindings.length; i++)
-            RuntimeAgentExecutionCapabilityBinding.internalBinaryWrite(message.bindings[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* google.protobuf.Timestamp updated_at = 3; */
+            writer.tag(2, WireType.Varint).uint64(message.revision);
+        /* repeated nimi.runtime.v1.RuntimeAgentAIConfigIntent intents = 3; */
+        for (let i = 0; i < message.intents.length; i++)
+            RuntimeAgentAIConfigIntent.internalBinaryWrite(message.intents[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 4; */
         if (message.updatedAt)
-            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* string updated_by_app_id = 4; */
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* string updated_by_app_id = 5; */
         if (message.updatedByAppId !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.updatedByAppId);
+            writer.tag(5, WireType.LengthDelimited).string(message.updatedByAppId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11722,29 +11738,29 @@ class RuntimeAgentExecutionConfig$Type extends MessageType<RuntimeAgentExecution
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentExecutionConfig
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentAIConfig
  */
-export const RuntimeAgentExecutionConfig = new RuntimeAgentExecutionConfig$Type();
+export const RuntimeAgentAIConfig = new RuntimeAgentAIConfig$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class RuntimeAgentExecutionCapabilityReadiness$Type extends MessageType<RuntimeAgentExecutionCapabilityReadiness> {
+class RuntimeAgentAIConfigCapabilityReadiness$Type extends MessageType<RuntimeAgentAIConfigCapabilityReadiness> {
     constructor() {
-        super("nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness", [
+        super("nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness", [
             { no: 1, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AgentExecutionReadinessState", AgentExecutionReadinessState, "AGENT_EXECUTION_READINESS_STATE_"] },
+            { no: 2, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.RuntimeAgentAIConfigReadinessState", RuntimeAgentAIConfigReadinessState] },
             { no: 3, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "probed_at", kind: "message", T: () => Timestamp }
         ]);
     }
-    create(value?: PartialMessage<RuntimeAgentExecutionCapabilityReadiness>): RuntimeAgentExecutionCapabilityReadiness {
+    create(value?: PartialMessage<RuntimeAgentAIConfigCapabilityReadiness>): RuntimeAgentAIConfigCapabilityReadiness {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.capability = "";
         message.state = 0;
         message.reasonCode = "";
         if (value !== undefined)
-            reflectionMergePartial<RuntimeAgentExecutionCapabilityReadiness>(this, message, value);
+            reflectionMergePartial<RuntimeAgentAIConfigCapabilityReadiness>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentExecutionCapabilityReadiness): RuntimeAgentExecutionCapabilityReadiness {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentAIConfigCapabilityReadiness): RuntimeAgentAIConfigCapabilityReadiness {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -11752,7 +11768,7 @@ class RuntimeAgentExecutionCapabilityReadiness$Type extends MessageType<RuntimeA
                 case /* string capability */ 1:
                     message.capability = reader.string();
                     break;
-                case /* nimi.runtime.v1.AgentExecutionReadinessState state */ 2:
+                case /* nimi.runtime.v1.RuntimeAgentAIConfigReadinessState state */ 2:
                     message.state = reader.int32();
                     break;
                 case /* string reason_code */ 3:
@@ -11772,11 +11788,11 @@ class RuntimeAgentExecutionCapabilityReadiness$Type extends MessageType<RuntimeA
         }
         return message;
     }
-    internalBinaryWrite(message: RuntimeAgentExecutionCapabilityReadiness, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: RuntimeAgentAIConfigCapabilityReadiness, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string capability = 1; */
         if (message.capability !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.capability);
-        /* nimi.runtime.v1.AgentExecutionReadinessState state = 2; */
+        /* nimi.runtime.v1.RuntimeAgentAIConfigReadinessState state = 2; */
         if (message.state !== 0)
             writer.tag(2, WireType.Varint).int32(message.state);
         /* string reason_code = 3; */
@@ -11792,35 +11808,40 @@ class RuntimeAgentExecutionCapabilityReadiness$Type extends MessageType<RuntimeA
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness
  */
-export const RuntimeAgentExecutionCapabilityReadiness = new RuntimeAgentExecutionCapabilityReadiness$Type();
+export const RuntimeAgentAIConfigCapabilityReadiness = new RuntimeAgentAIConfigCapabilityReadiness$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class AgentExecutionReadinessSnapshot$Type extends MessageType<AgentExecutionReadinessSnapshot> {
+class RuntimeAgentAIConfigReadinessSnapshot$Type extends MessageType<RuntimeAgentAIConfigReadinessSnapshot> {
     constructor() {
-        super("nimi.runtime.v1.AgentExecutionReadinessSnapshot", [
-            { no: 1, name: "config_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 2, name: "capabilities", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentExecutionCapabilityReadiness }
+        super("nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot", [
+            { no: 1, name: "agent_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "config_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 3, name: "capabilities", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentAIConfigCapabilityReadiness }
         ]);
     }
-    create(value?: PartialMessage<AgentExecutionReadinessSnapshot>): AgentExecutionReadinessSnapshot {
+    create(value?: PartialMessage<RuntimeAgentAIConfigReadinessSnapshot>): RuntimeAgentAIConfigReadinessSnapshot {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentInstanceId = "";
         message.configRevision = "0";
         message.capabilities = [];
         if (value !== undefined)
-            reflectionMergePartial<AgentExecutionReadinessSnapshot>(this, message, value);
+            reflectionMergePartial<RuntimeAgentAIConfigReadinessSnapshot>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentExecutionReadinessSnapshot): AgentExecutionReadinessSnapshot {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RuntimeAgentAIConfigReadinessSnapshot): RuntimeAgentAIConfigReadinessSnapshot {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* uint64 config_revision */ 1:
+                case /* string agent_instance_id */ 1:
+                    message.agentInstanceId = reader.string();
+                    break;
+                case /* uint64 config_revision */ 2:
                     message.configRevision = reader.uint64().toString();
                     break;
-                case /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness capabilities */ 2:
-                    message.capabilities.push(RuntimeAgentExecutionCapabilityReadiness.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness capabilities */ 3:
+                    message.capabilities.push(RuntimeAgentAIConfigCapabilityReadiness.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -11833,13 +11854,16 @@ class AgentExecutionReadinessSnapshot$Type extends MessageType<AgentExecutionRea
         }
         return message;
     }
-    internalBinaryWrite(message: AgentExecutionReadinessSnapshot, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* uint64 config_revision = 1; */
+    internalBinaryWrite(message: RuntimeAgentAIConfigReadinessSnapshot, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_instance_id = 1; */
+        if (message.agentInstanceId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentInstanceId);
+        /* uint64 config_revision = 2; */
         if (message.configRevision !== "0")
-            writer.tag(1, WireType.Varint).uint64(message.configRevision);
-        /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityReadiness capabilities = 2; */
+            writer.tag(2, WireType.Varint).uint64(message.configRevision);
+        /* repeated nimi.runtime.v1.RuntimeAgentAIConfigCapabilityReadiness capabilities = 3; */
         for (let i = 0; i < message.capabilities.length; i++)
-            RuntimeAgentExecutionCapabilityReadiness.internalBinaryWrite(message.capabilities[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+            RuntimeAgentAIConfigCapabilityReadiness.internalBinaryWrite(message.capabilities[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11847,23 +11871,23 @@ class AgentExecutionReadinessSnapshot$Type extends MessageType<AgentExecutionRea
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.AgentExecutionReadinessSnapshot
+ * @generated MessageType for protobuf message nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot
  */
-export const AgentExecutionReadinessSnapshot = new AgentExecutionReadinessSnapshot$Type();
+export const RuntimeAgentAIConfigReadinessSnapshot = new RuntimeAgentAIConfigReadinessSnapshot$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class GetAgentExecutionConfigRequest$Type extends MessageType<GetAgentExecutionConfigRequest> {
+class GetRuntimeAgentAIConfigRequest$Type extends MessageType<GetRuntimeAgentAIConfigRequest> {
     constructor() {
-        super("nimi.runtime.v1.GetAgentExecutionConfigRequest", [
+        super("nimi.runtime.v1.GetRuntimeAgentAIConfigRequest", [
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext }
         ]);
     }
-    create(value?: PartialMessage<GetAgentExecutionConfigRequest>): GetAgentExecutionConfigRequest {
+    create(value?: PartialMessage<GetRuntimeAgentAIConfigRequest>): GetRuntimeAgentAIConfigRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<GetAgentExecutionConfigRequest>(this, message, value);
+            reflectionMergePartial<GetRuntimeAgentAIConfigRequest>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentExecutionConfigRequest): GetAgentExecutionConfigRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetRuntimeAgentAIConfigRequest): GetRuntimeAgentAIConfigRequest {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -11882,7 +11906,7 @@ class GetAgentExecutionConfigRequest$Type extends MessageType<GetAgentExecutionC
         }
         return message;
     }
-    internalBinaryWrite(message: GetAgentExecutionConfigRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: GetRuntimeAgentAIConfigRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* nimi.runtime.v1.AgentRequestContext context = 1; */
         if (message.context)
             AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
@@ -11893,29 +11917,29 @@ class GetAgentExecutionConfigRequest$Type extends MessageType<GetAgentExecutionC
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentExecutionConfigRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetRuntimeAgentAIConfigRequest
  */
-export const GetAgentExecutionConfigRequest = new GetAgentExecutionConfigRequest$Type();
+export const GetRuntimeAgentAIConfigRequest = new GetRuntimeAgentAIConfigRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class GetAgentExecutionConfigResponse$Type extends MessageType<GetAgentExecutionConfigResponse> {
+class GetRuntimeAgentAIConfigResponse$Type extends MessageType<GetRuntimeAgentAIConfigResponse> {
     constructor() {
-        super("nimi.runtime.v1.GetAgentExecutionConfigResponse", [
-            { no: 1, name: "config", kind: "message", T: () => RuntimeAgentExecutionConfig }
+        super("nimi.runtime.v1.GetRuntimeAgentAIConfigResponse", [
+            { no: 1, name: "config", kind: "message", T: () => RuntimeAgentAIConfig }
         ]);
     }
-    create(value?: PartialMessage<GetAgentExecutionConfigResponse>): GetAgentExecutionConfigResponse {
+    create(value?: PartialMessage<GetRuntimeAgentAIConfigResponse>): GetRuntimeAgentAIConfigResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<GetAgentExecutionConfigResponse>(this, message, value);
+            reflectionMergePartial<GetRuntimeAgentAIConfigResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentExecutionConfigResponse): GetAgentExecutionConfigResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetRuntimeAgentAIConfigResponse): GetRuntimeAgentAIConfigResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.RuntimeAgentExecutionConfig config */ 1:
-                    message.config = RuntimeAgentExecutionConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                case /* nimi.runtime.v1.RuntimeAgentAIConfig config */ 1:
+                    message.config = RuntimeAgentAIConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -11928,10 +11952,10 @@ class GetAgentExecutionConfigResponse$Type extends MessageType<GetAgentExecution
         }
         return message;
     }
-    internalBinaryWrite(message: GetAgentExecutionConfigResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.RuntimeAgentExecutionConfig config = 1; */
+    internalBinaryWrite(message: GetRuntimeAgentAIConfigResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RuntimeAgentAIConfig config = 1; */
         if (message.config)
-            RuntimeAgentExecutionConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+            RuntimeAgentAIConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11939,27 +11963,27 @@ class GetAgentExecutionConfigResponse$Type extends MessageType<GetAgentExecution
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentExecutionConfigResponse
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetRuntimeAgentAIConfigResponse
  */
-export const GetAgentExecutionConfigResponse = new GetAgentExecutionConfigResponse$Type();
+export const GetRuntimeAgentAIConfigResponse = new GetRuntimeAgentAIConfigResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class UpsertAgentExecutionConfigRequest$Type extends MessageType<UpsertAgentExecutionConfigRequest> {
+class UpsertRuntimeAgentAIConfigRequest$Type extends MessageType<UpsertRuntimeAgentAIConfigRequest> {
     constructor() {
-        super("nimi.runtime.v1.UpsertAgentExecutionConfigRequest", [
+        super("nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest", [
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
             { no: 2, name: "expected_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 3, name: "bindings", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentExecutionCapabilityBinding }
+            { no: 3, name: "intents", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RuntimeAgentAIConfigIntent }
         ]);
     }
-    create(value?: PartialMessage<UpsertAgentExecutionConfigRequest>): UpsertAgentExecutionConfigRequest {
+    create(value?: PartialMessage<UpsertRuntimeAgentAIConfigRequest>): UpsertRuntimeAgentAIConfigRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.expectedRevision = "0";
-        message.bindings = [];
+        message.intents = [];
         if (value !== undefined)
-            reflectionMergePartial<UpsertAgentExecutionConfigRequest>(this, message, value);
+            reflectionMergePartial<UpsertRuntimeAgentAIConfigRequest>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpsertAgentExecutionConfigRequest): UpsertAgentExecutionConfigRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpsertRuntimeAgentAIConfigRequest): UpsertRuntimeAgentAIConfigRequest {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -11970,8 +11994,8 @@ class UpsertAgentExecutionConfigRequest$Type extends MessageType<UpsertAgentExec
                 case /* uint64 expected_revision */ 2:
                     message.expectedRevision = reader.uint64().toString();
                     break;
-                case /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings */ 3:
-                    message.bindings.push(RuntimeAgentExecutionCapabilityBinding.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.RuntimeAgentAIConfigIntent intents */ 3:
+                    message.intents.push(RuntimeAgentAIConfigIntent.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -11984,16 +12008,16 @@ class UpsertAgentExecutionConfigRequest$Type extends MessageType<UpsertAgentExec
         }
         return message;
     }
-    internalBinaryWrite(message: UpsertAgentExecutionConfigRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: UpsertRuntimeAgentAIConfigRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* nimi.runtime.v1.AgentRequestContext context = 1; */
         if (message.context)
             AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         /* uint64 expected_revision = 2; */
         if (message.expectedRevision !== "0")
             writer.tag(2, WireType.Varint).uint64(message.expectedRevision);
-        /* repeated nimi.runtime.v1.RuntimeAgentExecutionCapabilityBinding bindings = 3; */
-        for (let i = 0; i < message.bindings.length; i++)
-            RuntimeAgentExecutionCapabilityBinding.internalBinaryWrite(message.bindings[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.RuntimeAgentAIConfigIntent intents = 3; */
+        for (let i = 0; i < message.intents.length; i++)
+            RuntimeAgentAIConfigIntent.internalBinaryWrite(message.intents[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12001,29 +12025,29 @@ class UpsertAgentExecutionConfigRequest$Type extends MessageType<UpsertAgentExec
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpsertAgentExecutionConfigRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpsertRuntimeAgentAIConfigRequest
  */
-export const UpsertAgentExecutionConfigRequest = new UpsertAgentExecutionConfigRequest$Type();
+export const UpsertRuntimeAgentAIConfigRequest = new UpsertRuntimeAgentAIConfigRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class UpsertAgentExecutionConfigResponse$Type extends MessageType<UpsertAgentExecutionConfigResponse> {
+class UpsertRuntimeAgentAIConfigResponse$Type extends MessageType<UpsertRuntimeAgentAIConfigResponse> {
     constructor() {
-        super("nimi.runtime.v1.UpsertAgentExecutionConfigResponse", [
-            { no: 1, name: "config", kind: "message", T: () => RuntimeAgentExecutionConfig }
+        super("nimi.runtime.v1.UpsertRuntimeAgentAIConfigResponse", [
+            { no: 1, name: "config", kind: "message", T: () => RuntimeAgentAIConfig }
         ]);
     }
-    create(value?: PartialMessage<UpsertAgentExecutionConfigResponse>): UpsertAgentExecutionConfigResponse {
+    create(value?: PartialMessage<UpsertRuntimeAgentAIConfigResponse>): UpsertRuntimeAgentAIConfigResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<UpsertAgentExecutionConfigResponse>(this, message, value);
+            reflectionMergePartial<UpsertRuntimeAgentAIConfigResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpsertAgentExecutionConfigResponse): UpsertAgentExecutionConfigResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpsertRuntimeAgentAIConfigResponse): UpsertRuntimeAgentAIConfigResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.RuntimeAgentExecutionConfig config */ 1:
-                    message.config = RuntimeAgentExecutionConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                case /* nimi.runtime.v1.RuntimeAgentAIConfig config */ 1:
+                    message.config = RuntimeAgentAIConfig.internalBinaryRead(reader, reader.uint32(), options, message.config);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -12036,10 +12060,10 @@ class UpsertAgentExecutionConfigResponse$Type extends MessageType<UpsertAgentExe
         }
         return message;
     }
-    internalBinaryWrite(message: UpsertAgentExecutionConfigResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.RuntimeAgentExecutionConfig config = 1; */
+    internalBinaryWrite(message: UpsertRuntimeAgentAIConfigResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RuntimeAgentAIConfig config = 1; */
         if (message.config)
-            RuntimeAgentExecutionConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+            RuntimeAgentAIConfig.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12047,23 +12071,23 @@ class UpsertAgentExecutionConfigResponse$Type extends MessageType<UpsertAgentExe
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.UpsertAgentExecutionConfigResponse
+ * @generated MessageType for protobuf message nimi.runtime.v1.UpsertRuntimeAgentAIConfigResponse
  */
-export const UpsertAgentExecutionConfigResponse = new UpsertAgentExecutionConfigResponse$Type();
+export const UpsertRuntimeAgentAIConfigResponse = new UpsertRuntimeAgentAIConfigResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class GetAgentExecutionReadinessRequest$Type extends MessageType<GetAgentExecutionReadinessRequest> {
+class GetRuntimeAgentAIConfigReadinessRequest$Type extends MessageType<GetRuntimeAgentAIConfigReadinessRequest> {
     constructor() {
-        super("nimi.runtime.v1.GetAgentExecutionReadinessRequest", [
+        super("nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessRequest", [
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext }
         ]);
     }
-    create(value?: PartialMessage<GetAgentExecutionReadinessRequest>): GetAgentExecutionReadinessRequest {
+    create(value?: PartialMessage<GetRuntimeAgentAIConfigReadinessRequest>): GetRuntimeAgentAIConfigReadinessRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<GetAgentExecutionReadinessRequest>(this, message, value);
+            reflectionMergePartial<GetRuntimeAgentAIConfigReadinessRequest>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentExecutionReadinessRequest): GetAgentExecutionReadinessRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetRuntimeAgentAIConfigReadinessRequest): GetRuntimeAgentAIConfigReadinessRequest {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -12082,7 +12106,7 @@ class GetAgentExecutionReadinessRequest$Type extends MessageType<GetAgentExecuti
         }
         return message;
     }
-    internalBinaryWrite(message: GetAgentExecutionReadinessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: GetRuntimeAgentAIConfigReadinessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* nimi.runtime.v1.AgentRequestContext context = 1; */
         if (message.context)
             AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
@@ -12093,29 +12117,29 @@ class GetAgentExecutionReadinessRequest$Type extends MessageType<GetAgentExecuti
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentExecutionReadinessRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessRequest
  */
-export const GetAgentExecutionReadinessRequest = new GetAgentExecutionReadinessRequest$Type();
+export const GetRuntimeAgentAIConfigReadinessRequest = new GetRuntimeAgentAIConfigReadinessRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class GetAgentExecutionReadinessResponse$Type extends MessageType<GetAgentExecutionReadinessResponse> {
+class GetRuntimeAgentAIConfigReadinessResponse$Type extends MessageType<GetRuntimeAgentAIConfigReadinessResponse> {
     constructor() {
-        super("nimi.runtime.v1.GetAgentExecutionReadinessResponse", [
-            { no: 1, name: "snapshot", kind: "message", T: () => AgentExecutionReadinessSnapshot }
+        super("nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessResponse", [
+            { no: 1, name: "snapshot", kind: "message", T: () => RuntimeAgentAIConfigReadinessSnapshot }
         ]);
     }
-    create(value?: PartialMessage<GetAgentExecutionReadinessResponse>): GetAgentExecutionReadinessResponse {
+    create(value?: PartialMessage<GetRuntimeAgentAIConfigReadinessResponse>): GetRuntimeAgentAIConfigReadinessResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<GetAgentExecutionReadinessResponse>(this, message, value);
+            reflectionMergePartial<GetRuntimeAgentAIConfigReadinessResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAgentExecutionReadinessResponse): GetAgentExecutionReadinessResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetRuntimeAgentAIConfigReadinessResponse): GetRuntimeAgentAIConfigReadinessResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentExecutionReadinessSnapshot snapshot */ 1:
-                    message.snapshot = AgentExecutionReadinessSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.snapshot);
+                case /* nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot snapshot */ 1:
+                    message.snapshot = RuntimeAgentAIConfigReadinessSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.snapshot);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -12128,10 +12152,10 @@ class GetAgentExecutionReadinessResponse$Type extends MessageType<GetAgentExecut
         }
         return message;
     }
-    internalBinaryWrite(message: GetAgentExecutionReadinessResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentExecutionReadinessSnapshot snapshot = 1; */
+    internalBinaryWrite(message: GetRuntimeAgentAIConfigReadinessResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.RuntimeAgentAIConfigReadinessSnapshot snapshot = 1; */
         if (message.snapshot)
-            AgentExecutionReadinessSnapshot.internalBinaryWrite(message.snapshot, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+            RuntimeAgentAIConfigReadinessSnapshot.internalBinaryWrite(message.snapshot, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -12139,23 +12163,23 @@ class GetAgentExecutionReadinessResponse$Type extends MessageType<GetAgentExecut
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetAgentExecutionReadinessResponse
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetRuntimeAgentAIConfigReadinessResponse
  */
-export const GetAgentExecutionReadinessResponse = new GetAgentExecutionReadinessResponse$Type();
+export const GetRuntimeAgentAIConfigReadinessResponse = new GetRuntimeAgentAIConfigReadinessResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class SubscribeAgentExecutionReadinessRequest$Type extends MessageType<SubscribeAgentExecutionReadinessRequest> {
+class SubscribeRuntimeAgentAIConfigReadinessRequest$Type extends MessageType<SubscribeRuntimeAgentAIConfigReadinessRequest> {
     constructor() {
-        super("nimi.runtime.v1.SubscribeAgentExecutionReadinessRequest", [
+        super("nimi.runtime.v1.SubscribeRuntimeAgentAIConfigReadinessRequest", [
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext }
         ]);
     }
-    create(value?: PartialMessage<SubscribeAgentExecutionReadinessRequest>): SubscribeAgentExecutionReadinessRequest {
+    create(value?: PartialMessage<SubscribeRuntimeAgentAIConfigReadinessRequest>): SubscribeRuntimeAgentAIConfigReadinessRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         if (value !== undefined)
-            reflectionMergePartial<SubscribeAgentExecutionReadinessRequest>(this, message, value);
+            reflectionMergePartial<SubscribeRuntimeAgentAIConfigReadinessRequest>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubscribeAgentExecutionReadinessRequest): SubscribeAgentExecutionReadinessRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubscribeRuntimeAgentAIConfigReadinessRequest): SubscribeRuntimeAgentAIConfigReadinessRequest {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -12174,7 +12198,7 @@ class SubscribeAgentExecutionReadinessRequest$Type extends MessageType<Subscribe
         }
         return message;
     }
-    internalBinaryWrite(message: SubscribeAgentExecutionReadinessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: SubscribeRuntimeAgentAIConfigReadinessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* nimi.runtime.v1.AgentRequestContext context = 1; */
         if (message.context)
             AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
@@ -12185,6 +12209,6 @@ class SubscribeAgentExecutionReadinessRequest$Type extends MessageType<Subscribe
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeAgentExecutionReadinessRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeRuntimeAgentAIConfigReadinessRequest
  */
-export const SubscribeAgentExecutionReadinessRequest = new SubscribeAgentExecutionReadinessRequest$Type();
+export const SubscribeRuntimeAgentAIConfigReadinessRequest = new SubscribeRuntimeAgentAIConfigReadinessRequest$Type();

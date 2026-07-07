@@ -149,13 +149,6 @@ message MemoryEmbeddingLocalBindingRef {
   }
 }
 
-message MemoryEmbeddingBindingIntentSnapshot {
-  string source_kind = 1;
-  MemoryEmbeddingCloudBindingRef cloud_binding = 2;
-  MemoryEmbeddingLocalBindingRef local_binding = 3;
-  string revision_token = 4;
-}
-
 message MemoryEmbeddingOperationReadiness {
   bool bind_allowed = 1;
   bool cutover_allowed = 2;
@@ -437,41 +430,20 @@ message SubscribeMemoryEventsRequest {
   string cursor = 4;
 }
 
-message GetMemoryEmbeddingRuntimeIntentRequest {
-  MemoryRequestContext context = 1;
-  MemoryBankLocator locator = 2;
-}
-
-message GetMemoryEmbeddingRuntimeIntentResponse {
-  bool binding_intent_present = 1;
-  MemoryEmbeddingBindingIntentSnapshot binding_intent = 2;
-}
-
-message SetMemoryEmbeddingRuntimeIntentRequest {
-  MemoryRequestContext context = 1;
-  MemoryBankLocator locator = 2;
-  // Omit or send an empty binding_intent to clear the Runtime-owned binding intent.
-  MemoryEmbeddingBindingIntentSnapshot binding_intent = 3;
-}
-
-message SetMemoryEmbeddingRuntimeIntentResponse {
-  bool accepted = 1;
-  MemoryEmbeddingBindingIntentSnapshot binding_intent = 2;
-}
-
 message InspectMemoryEmbeddingRuntimeRequest {
   MemoryRequestContext context = 1;
   MemoryBankLocator locator = 2;
 }
 
 message InspectMemoryEmbeddingRuntimeResponse {
-  bool binding_intent_present = 1;
-  string binding_source_kind = 2;
+  bool text_embed_intent_present = 1;
+  string text_embed_source_kind = 2;
   string resolution_state = 3;
   MemoryEmbeddingProfile resolved_profile = 4;
   string canonical_bank_status = 5;
   ReasonCode blocked_reason_code = 6;
   MemoryEmbeddingOperationReadiness operation_readiness = 7;
+  uint64 config_revision = 8;
 }
 
 message RequestMemoryEmbeddingRuntimeBindRequest {

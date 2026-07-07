@@ -276,27 +276,6 @@ export interface MemoryEmbeddingLocalBindingRef {
     };
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
- */
-export interface MemoryEmbeddingBindingIntentSnapshot {
-    /**
-     * @generated from protobuf field: string source_kind = 1
-     */
-    sourceKind: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingCloudBindingRef cloud_binding = 2
-     */
-    cloudBinding?: MemoryEmbeddingCloudBindingRef;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingLocalBindingRef local_binding = 3
-     */
-    localBinding?: MemoryEmbeddingLocalBindingRef;
-    /**
-     * @generated from protobuf field: string revision_token = 4
-     */
-    revisionToken: string;
-}
-/**
  * @generated from protobuf message nimi.runtime.v1.MemoryEmbeddingOperationReadiness
  */
 export interface MemoryEmbeddingOperationReadiness {
@@ -1170,64 +1149,6 @@ export interface SubscribeMemoryEventsRequest {
     cursor: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest
- */
-export interface GetMemoryEmbeddingRuntimeIntentRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryRequestContext context = 1
-     */
-    context?: MemoryRequestContext;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryBankLocator locator = 2
-     */
-    locator?: MemoryBankLocator;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse
- */
-export interface GetMemoryEmbeddingRuntimeIntentResponse {
-    /**
-     * @generated from protobuf field: bool binding_intent_present = 1
-     */
-    bindingIntentPresent: boolean;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot binding_intent = 2
-     */
-    bindingIntent?: MemoryEmbeddingBindingIntentSnapshot;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest
- */
-export interface SetMemoryEmbeddingRuntimeIntentRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryRequestContext context = 1
-     */
-    context?: MemoryRequestContext;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryBankLocator locator = 2
-     */
-    locator?: MemoryBankLocator;
-    /**
-     * Omit or send an empty binding_intent to clear the Runtime-owned binding intent.
-     *
-     * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot binding_intent = 3
-     */
-    bindingIntent?: MemoryEmbeddingBindingIntentSnapshot;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse
- */
-export interface SetMemoryEmbeddingRuntimeIntentResponse {
-    /**
-     * @generated from protobuf field: bool accepted = 1
-     */
-    accepted: boolean;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot binding_intent = 2
-     */
-    bindingIntent?: MemoryEmbeddingBindingIntentSnapshot;
-}
-/**
  * @generated from protobuf message nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest
  */
 export interface InspectMemoryEmbeddingRuntimeRequest {
@@ -1245,13 +1166,13 @@ export interface InspectMemoryEmbeddingRuntimeRequest {
  */
 export interface InspectMemoryEmbeddingRuntimeResponse {
     /**
-     * @generated from protobuf field: bool binding_intent_present = 1
+     * @generated from protobuf field: bool text_embed_intent_present = 1
      */
-    bindingIntentPresent: boolean;
+    textEmbedIntentPresent: boolean;
     /**
-     * @generated from protobuf field: string binding_source_kind = 2
+     * @generated from protobuf field: string text_embed_source_kind = 2
      */
-    bindingSourceKind: string;
+    textEmbedSourceKind: string;
     /**
      * @generated from protobuf field: string resolution_state = 3
      */
@@ -1272,6 +1193,10 @@ export interface InspectMemoryEmbeddingRuntimeResponse {
      * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingOperationReadiness operation_readiness = 7
      */
     operationReadiness?: MemoryEmbeddingOperationReadiness;
+    /**
+     * @generated from protobuf field: uint64 config_revision = 8
+     */
+    configRevision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.RequestMemoryEmbeddingRuntimeBindRequest
@@ -2298,75 +2223,6 @@ class MemoryEmbeddingLocalBindingRef$Type extends MessageType<MemoryEmbeddingLoc
  * @generated MessageType for protobuf message nimi.runtime.v1.MemoryEmbeddingLocalBindingRef
  */
 export const MemoryEmbeddingLocalBindingRef = new MemoryEmbeddingLocalBindingRef$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class MemoryEmbeddingBindingIntentSnapshot$Type extends MessageType<MemoryEmbeddingBindingIntentSnapshot> {
-    constructor() {
-        super("nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot", [
-            { no: 1, name: "source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "cloud_binding", kind: "message", T: () => MemoryEmbeddingCloudBindingRef },
-            { no: 3, name: "local_binding", kind: "message", T: () => MemoryEmbeddingLocalBindingRef },
-            { no: 4, name: "revision_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<MemoryEmbeddingBindingIntentSnapshot>): MemoryEmbeddingBindingIntentSnapshot {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.sourceKind = "";
-        message.revisionToken = "";
-        if (value !== undefined)
-            reflectionMergePartial<MemoryEmbeddingBindingIntentSnapshot>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MemoryEmbeddingBindingIntentSnapshot): MemoryEmbeddingBindingIntentSnapshot {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string source_kind */ 1:
-                    message.sourceKind = reader.string();
-                    break;
-                case /* nimi.runtime.v1.MemoryEmbeddingCloudBindingRef cloud_binding */ 2:
-                    message.cloudBinding = MemoryEmbeddingCloudBindingRef.internalBinaryRead(reader, reader.uint32(), options, message.cloudBinding);
-                    break;
-                case /* nimi.runtime.v1.MemoryEmbeddingLocalBindingRef local_binding */ 3:
-                    message.localBinding = MemoryEmbeddingLocalBindingRef.internalBinaryRead(reader, reader.uint32(), options, message.localBinding);
-                    break;
-                case /* string revision_token */ 4:
-                    message.revisionToken = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: MemoryEmbeddingBindingIntentSnapshot, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string source_kind = 1; */
-        if (message.sourceKind !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.sourceKind);
-        /* nimi.runtime.v1.MemoryEmbeddingCloudBindingRef cloud_binding = 2; */
-        if (message.cloudBinding)
-            MemoryEmbeddingCloudBindingRef.internalBinaryWrite(message.cloudBinding, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.MemoryEmbeddingLocalBindingRef local_binding = 3; */
-        if (message.localBinding)
-            MemoryEmbeddingLocalBindingRef.internalBinaryWrite(message.localBinding, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* string revision_token = 4; */
-        if (message.revisionToken !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.revisionToken);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot
- */
-export const MemoryEmbeddingBindingIntentSnapshot = new MemoryEmbeddingBindingIntentSnapshot$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class MemoryEmbeddingOperationReadiness$Type extends MessageType<MemoryEmbeddingOperationReadiness> {
     constructor() {
@@ -5156,227 +5012,6 @@ class SubscribeMemoryEventsRequest$Type extends MessageType<SubscribeMemoryEvent
  */
 export const SubscribeMemoryEventsRequest = new SubscribeMemoryEventsRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class GetMemoryEmbeddingRuntimeIntentRequest$Type extends MessageType<GetMemoryEmbeddingRuntimeIntentRequest> {
-    constructor() {
-        super("nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest", [
-            { no: 1, name: "context", kind: "message", T: () => MemoryRequestContext },
-            { no: 2, name: "locator", kind: "message", T: () => MemoryBankLocator }
-        ]);
-    }
-    create(value?: PartialMessage<GetMemoryEmbeddingRuntimeIntentRequest>): GetMemoryEmbeddingRuntimeIntentRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<GetMemoryEmbeddingRuntimeIntentRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetMemoryEmbeddingRuntimeIntentRequest): GetMemoryEmbeddingRuntimeIntentRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.MemoryRequestContext context */ 1:
-                    message.context = MemoryRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* nimi.runtime.v1.MemoryBankLocator locator */ 2:
-                    message.locator = MemoryBankLocator.internalBinaryRead(reader, reader.uint32(), options, message.locator);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: GetMemoryEmbeddingRuntimeIntentRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.MemoryRequestContext context = 1; */
-        if (message.context)
-            MemoryRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.MemoryBankLocator locator = 2; */
-        if (message.locator)
-            MemoryBankLocator.internalBinaryWrite(message.locator, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentRequest
- */
-export const GetMemoryEmbeddingRuntimeIntentRequest = new GetMemoryEmbeddingRuntimeIntentRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class GetMemoryEmbeddingRuntimeIntentResponse$Type extends MessageType<GetMemoryEmbeddingRuntimeIntentResponse> {
-    constructor() {
-        super("nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse", [
-            { no: 1, name: "binding_intent_present", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "binding_intent", kind: "message", T: () => MemoryEmbeddingBindingIntentSnapshot }
-        ]);
-    }
-    create(value?: PartialMessage<GetMemoryEmbeddingRuntimeIntentResponse>): GetMemoryEmbeddingRuntimeIntentResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.bindingIntentPresent = false;
-        if (value !== undefined)
-            reflectionMergePartial<GetMemoryEmbeddingRuntimeIntentResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetMemoryEmbeddingRuntimeIntentResponse): GetMemoryEmbeddingRuntimeIntentResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* bool binding_intent_present */ 1:
-                    message.bindingIntentPresent = reader.bool();
-                    break;
-                case /* nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot binding_intent */ 2:
-                    message.bindingIntent = MemoryEmbeddingBindingIntentSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.bindingIntent);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: GetMemoryEmbeddingRuntimeIntentResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* bool binding_intent_present = 1; */
-        if (message.bindingIntentPresent !== false)
-            writer.tag(1, WireType.Varint).bool(message.bindingIntentPresent);
-        /* nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot binding_intent = 2; */
-        if (message.bindingIntent)
-            MemoryEmbeddingBindingIntentSnapshot.internalBinaryWrite(message.bindingIntent, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetMemoryEmbeddingRuntimeIntentResponse
- */
-export const GetMemoryEmbeddingRuntimeIntentResponse = new GetMemoryEmbeddingRuntimeIntentResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SetMemoryEmbeddingRuntimeIntentRequest$Type extends MessageType<SetMemoryEmbeddingRuntimeIntentRequest> {
-    constructor() {
-        super("nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest", [
-            { no: 1, name: "context", kind: "message", T: () => MemoryRequestContext },
-            { no: 2, name: "locator", kind: "message", T: () => MemoryBankLocator },
-            { no: 3, name: "binding_intent", kind: "message", T: () => MemoryEmbeddingBindingIntentSnapshot }
-        ]);
-    }
-    create(value?: PartialMessage<SetMemoryEmbeddingRuntimeIntentRequest>): SetMemoryEmbeddingRuntimeIntentRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<SetMemoryEmbeddingRuntimeIntentRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SetMemoryEmbeddingRuntimeIntentRequest): SetMemoryEmbeddingRuntimeIntentRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.MemoryRequestContext context */ 1:
-                    message.context = MemoryRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* nimi.runtime.v1.MemoryBankLocator locator */ 2:
-                    message.locator = MemoryBankLocator.internalBinaryRead(reader, reader.uint32(), options, message.locator);
-                    break;
-                case /* nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot binding_intent */ 3:
-                    message.bindingIntent = MemoryEmbeddingBindingIntentSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.bindingIntent);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SetMemoryEmbeddingRuntimeIntentRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.MemoryRequestContext context = 1; */
-        if (message.context)
-            MemoryRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.MemoryBankLocator locator = 2; */
-        if (message.locator)
-            MemoryBankLocator.internalBinaryWrite(message.locator, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot binding_intent = 3; */
-        if (message.bindingIntent)
-            MemoryEmbeddingBindingIntentSnapshot.internalBinaryWrite(message.bindingIntent, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentRequest
- */
-export const SetMemoryEmbeddingRuntimeIntentRequest = new SetMemoryEmbeddingRuntimeIntentRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SetMemoryEmbeddingRuntimeIntentResponse$Type extends MessageType<SetMemoryEmbeddingRuntimeIntentResponse> {
-    constructor() {
-        super("nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse", [
-            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "binding_intent", kind: "message", T: () => MemoryEmbeddingBindingIntentSnapshot }
-        ]);
-    }
-    create(value?: PartialMessage<SetMemoryEmbeddingRuntimeIntentResponse>): SetMemoryEmbeddingRuntimeIntentResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.accepted = false;
-        if (value !== undefined)
-            reflectionMergePartial<SetMemoryEmbeddingRuntimeIntentResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SetMemoryEmbeddingRuntimeIntentResponse): SetMemoryEmbeddingRuntimeIntentResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* bool accepted */ 1:
-                    message.accepted = reader.bool();
-                    break;
-                case /* nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot binding_intent */ 2:
-                    message.bindingIntent = MemoryEmbeddingBindingIntentSnapshot.internalBinaryRead(reader, reader.uint32(), options, message.bindingIntent);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SetMemoryEmbeddingRuntimeIntentResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* bool accepted = 1; */
-        if (message.accepted !== false)
-            writer.tag(1, WireType.Varint).bool(message.accepted);
-        /* nimi.runtime.v1.MemoryEmbeddingBindingIntentSnapshot binding_intent = 2; */
-        if (message.bindingIntent)
-            MemoryEmbeddingBindingIntentSnapshot.internalBinaryWrite(message.bindingIntent, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SetMemoryEmbeddingRuntimeIntentResponse
- */
-export const SetMemoryEmbeddingRuntimeIntentResponse = new SetMemoryEmbeddingRuntimeIntentResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class InspectMemoryEmbeddingRuntimeRequest$Type extends MessageType<InspectMemoryEmbeddingRuntimeRequest> {
     constructor() {
         super("nimi.runtime.v1.InspectMemoryEmbeddingRuntimeRequest", [
@@ -5433,22 +5068,24 @@ export const InspectMemoryEmbeddingRuntimeRequest = new InspectMemoryEmbeddingRu
 class InspectMemoryEmbeddingRuntimeResponse$Type extends MessageType<InspectMemoryEmbeddingRuntimeResponse> {
     constructor() {
         super("nimi.runtime.v1.InspectMemoryEmbeddingRuntimeResponse", [
-            { no: 1, name: "binding_intent_present", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "binding_source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "text_embed_intent_present", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "text_embed_source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "resolution_state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "resolved_profile", kind: "message", T: () => MemoryEmbeddingProfile },
             { no: 5, name: "canonical_bank_status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "blocked_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 7, name: "operation_readiness", kind: "message", T: () => MemoryEmbeddingOperationReadiness }
+            { no: 7, name: "operation_readiness", kind: "message", T: () => MemoryEmbeddingOperationReadiness },
+            { no: 8, name: "config_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
     create(value?: PartialMessage<InspectMemoryEmbeddingRuntimeResponse>): InspectMemoryEmbeddingRuntimeResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.bindingIntentPresent = false;
-        message.bindingSourceKind = "";
+        message.textEmbedIntentPresent = false;
+        message.textEmbedSourceKind = "";
         message.resolutionState = "";
         message.canonicalBankStatus = "";
         message.blockedReasonCode = 0;
+        message.configRevision = "0";
         if (value !== undefined)
             reflectionMergePartial<InspectMemoryEmbeddingRuntimeResponse>(this, message, value);
         return message;
@@ -5458,11 +5095,11 @@ class InspectMemoryEmbeddingRuntimeResponse$Type extends MessageType<InspectMemo
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* bool binding_intent_present */ 1:
-                    message.bindingIntentPresent = reader.bool();
+                case /* bool text_embed_intent_present */ 1:
+                    message.textEmbedIntentPresent = reader.bool();
                     break;
-                case /* string binding_source_kind */ 2:
-                    message.bindingSourceKind = reader.string();
+                case /* string text_embed_source_kind */ 2:
+                    message.textEmbedSourceKind = reader.string();
                     break;
                 case /* string resolution_state */ 3:
                     message.resolutionState = reader.string();
@@ -5479,6 +5116,9 @@ class InspectMemoryEmbeddingRuntimeResponse$Type extends MessageType<InspectMemo
                 case /* nimi.runtime.v1.MemoryEmbeddingOperationReadiness operation_readiness */ 7:
                     message.operationReadiness = MemoryEmbeddingOperationReadiness.internalBinaryRead(reader, reader.uint32(), options, message.operationReadiness);
                     break;
+                case /* uint64 config_revision */ 8:
+                    message.configRevision = reader.uint64().toString();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5491,12 +5131,12 @@ class InspectMemoryEmbeddingRuntimeResponse$Type extends MessageType<InspectMemo
         return message;
     }
     internalBinaryWrite(message: InspectMemoryEmbeddingRuntimeResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* bool binding_intent_present = 1; */
-        if (message.bindingIntentPresent !== false)
-            writer.tag(1, WireType.Varint).bool(message.bindingIntentPresent);
-        /* string binding_source_kind = 2; */
-        if (message.bindingSourceKind !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.bindingSourceKind);
+        /* bool text_embed_intent_present = 1; */
+        if (message.textEmbedIntentPresent !== false)
+            writer.tag(1, WireType.Varint).bool(message.textEmbedIntentPresent);
+        /* string text_embed_source_kind = 2; */
+        if (message.textEmbedSourceKind !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.textEmbedSourceKind);
         /* string resolution_state = 3; */
         if (message.resolutionState !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.resolutionState);
@@ -5512,6 +5152,9 @@ class InspectMemoryEmbeddingRuntimeResponse$Type extends MessageType<InspectMemo
         /* nimi.runtime.v1.MemoryEmbeddingOperationReadiness operation_readiness = 7; */
         if (message.operationReadiness)
             MemoryEmbeddingOperationReadiness.internalBinaryWrite(message.operationReadiness, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* uint64 config_revision = 8; */
+        if (message.configRevision !== "0")
+            writer.tag(8, WireType.Varint).uint64(message.configRevision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

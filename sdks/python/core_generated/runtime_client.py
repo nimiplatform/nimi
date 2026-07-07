@@ -216,22 +216,6 @@ RUNTIME_METHODS = [
     "response_type": "GetAgentCanonicalMemoryReviewStatusResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionConfig",
-    "service": "RuntimeAgentService",
-    "method": "GetAgentExecutionConfig",
-    "kind": "unary",
-    "request_type": "GetAgentExecutionConfigRequest",
-    "response_type": "GetAgentExecutionConfigResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentExecutionReadiness",
-    "service": "RuntimeAgentService",
-    "method": "GetAgentExecutionReadiness",
-    "kind": "unary",
-    "request_type": "GetAgentExecutionReadinessRequest",
-    "response_type": "GetAgentExecutionReadinessResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "service": "RuntimeAgentService",
     "method": "GetAgentState",
@@ -326,6 +310,22 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "GetRealmGroupMessageCandidateEvidenceRequest",
     "response_type": "GetRealmGroupMessageCandidateEvidenceResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfig",
+    "service": "RuntimeAgentService",
+    "method": "GetRuntimeAgentAIConfig",
+    "kind": "unary",
+    "request_type": "GetRuntimeAgentAIConfigRequest",
+    "response_type": "GetRuntimeAgentAIConfigResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetRuntimeAgentAIConfigReadiness",
+    "service": "RuntimeAgentService",
+    "method": "GetRuntimeAgentAIConfigReadiness",
+    "kind": "unary",
+    "request_type": "GetRuntimeAgentAIConfigReadinessRequest",
+    "response_type": "GetRuntimeAgentAIConfigReadinessResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
@@ -528,20 +528,20 @@ RUNTIME_METHODS = [
     "response_type": "AgentEvent"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentExecutionReadiness",
-    "service": "RuntimeAgentService",
-    "method": "SubscribeAgentExecutionReadiness",
-    "kind": "server_stream",
-    "request_type": "SubscribeAgentExecutionReadinessRequest",
-    "response_type": "AgentExecutionReadinessSnapshot"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
     "service": "RuntimeAgentService",
     "method": "SubscribeAgentVoiceStream",
     "kind": "server_stream",
     "request_type": "SubscribeAgentVoiceStreamRequest",
     "response_type": "AgentVoiceStreamEvent"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeRuntimeAgentAIConfigReadiness",
+    "service": "RuntimeAgentService",
+    "method": "SubscribeRuntimeAgentAIConfigReadiness",
+    "kind": "server_stream",
+    "request_type": "SubscribeRuntimeAgentAIConfigReadinessRequest",
+    "response_type": "RuntimeAgentAIConfigReadinessSnapshot"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent",
@@ -560,20 +560,20 @@ RUNTIME_METHODS = [
     "response_type": "UpdateAgentStateResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertAgentExecutionConfig",
-    "service": "RuntimeAgentService",
-    "method": "UpsertAgentExecutionConfig",
-    "kind": "unary",
-    "request_type": "UpsertAgentExecutionConfigRequest",
-    "response_type": "UpsertAgentExecutionConfigResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
     "service": "RuntimeAgentService",
     "method": "UpsertDelegatedProviderProfile",
     "kind": "unary",
     "request_type": "UpsertDelegatedProviderProfileRequest",
     "response_type": "UpsertDelegatedProviderProfileResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpsertRuntimeAgentAIConfig",
+    "service": "RuntimeAgentService",
+    "method": "UpsertRuntimeAgentAIConfig",
+    "kind": "unary",
+    "request_type": "UpsertRuntimeAgentAIConfigRequest",
+    "response_type": "UpsertRuntimeAgentAIConfigResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ValidateParticipation",
@@ -1072,14 +1072,6 @@ RUNTIME_METHODS = [
     "response_type": "GetKnowledgeBankResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetMemoryEmbeddingRuntimeIntent",
-    "service": "RuntimeCognitionService",
-    "method": "GetMemoryEmbeddingRuntimeIntent",
-    "kind": "unary",
-    "request_type": "GetMemoryEmbeddingRuntimeIntentRequest",
-    "response_type": "GetMemoryEmbeddingRuntimeIntentResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeCognitionService/GetPage",
     "service": "RuntimeCognitionService",
     "method": "GetPage",
@@ -1214,14 +1206,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "SearchKeywordRequest",
     "response_type": "SearchKeywordResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SetMemoryEmbeddingRuntimeIntent",
-    "service": "RuntimeCognitionService",
-    "method": "SetMemoryEmbeddingRuntimeIntent",
-    "kind": "unary",
-    "request_type": "SetMemoryEmbeddingRuntimeIntentRequest",
-    "response_type": "SetMemoryEmbeddingRuntimeIntentResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeCognitionService/SubscribeMemoryEvents",
