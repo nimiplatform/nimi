@@ -390,7 +390,7 @@ tests:
     spec_refs:
       - P-TEST-001
       - S-SURFACE-021
-  - path: sdks/typescript/runtime/runtime-agent-execution-config-live-acceptance.test.ts
+  - path: sdks/typescript/runtime/runtime-agent-ai-config-live-acceptance.test.ts
     owner: sdks
     classification: live_provider_proof
     tier: T7
@@ -402,7 +402,7 @@ tests:
     spec_refs:
       - P-TEST-001
       - S-GATE-080
-  - path: sdks/typescript/runtime/runtime-agent-execution-config.test.ts
+  - path: sdks/typescript/runtime/runtime-agent-ai-config.test.ts
     owner: sdks
     classification: contract_conformance
     tier: T5

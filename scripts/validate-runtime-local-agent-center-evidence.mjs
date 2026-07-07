@@ -187,35 +187,35 @@ function validateRuntime(violations, filePath, evidence) {
   }
 }
 
-function validateExecutionConfig(violations, filePath, evidence) {
-  const config = evidence.executionConfig;
+function validateAgentAIConfig(violations, filePath, evidence) {
+  const config = evidence.agentAIConfig;
   if (evidence.scenario === 'live-runtime') {
-    const executionConfig = requireObject(violations, filePath, config, 'executionConfig');
-    if (!executionConfig) return;
-    requireNumber(violations, filePath, executionConfig.revision, 'executionConfig.revision');
-    const textGenerate = requireObject(violations, filePath, executionConfig.textGenerate, 'executionConfig.textGenerate');
+    const agentAIConfig = requireObject(violations, filePath, config, 'agentAIConfig');
+    if (!agentAIConfig) return;
+    requireNumber(violations, filePath, agentAIConfig.revision, 'agentAIConfig.revision');
+    const textGenerate = requireObject(violations, filePath, agentAIConfig.textGenerate, 'agentAIConfig.textGenerate');
     if (textGenerate) {
-      requireString(violations, filePath, textGenerate.state, 'executionConfig.textGenerate.state');
+      requireString(violations, filePath, textGenerate.state, 'agentAIConfig.textGenerate.state');
       if (String(evidence.stage || '').includes('send-ready') && textGenerate.state !== 'ready') {
-        fail(violations, filePath, 'live-runtime send-ready evidence requires executionConfig.textGenerate.state ready');
+        fail(violations, filePath, 'live-runtime send-ready evidence requires agentAIConfig.textGenerate.state ready');
       }
     }
   }
 
   if (evidence.scenario === 'no-runtime') {
     if (config && typeof config === 'object' && config.revision !== null && config.revision !== undefined) {
-      fail(violations, filePath, 'no-runtime evidence must not invent an executionConfig revision');
+      fail(violations, filePath, 'no-runtime evidence must not invent an agentAIConfig revision');
     }
   }
 
   const audio = config && typeof config === 'object' ? config.audioSynthesize : null;
   if (audio && typeof audio === 'object') {
-    if (audio.editable === true || audio.playable === true) {
-      fail(violations, filePath, 'audio.synthesize evidence must be read-only projection, absent, or fail-closed');
+    if (audio.playable === true) {
+      fail(violations, filePath, 'audio.synthesize evidence must not expose a playable artifact from Agent Center');
     }
     const state = String(audio.state || '');
-    if (state === 'editable' || state === 'playable') {
-      fail(violations, filePath, `audio.synthesize state is not admitted for this wave: ${state}`);
+    if (state === 'playable') {
+      fail(violations, filePath, `audio.synthesize state is not admitted for Agent Center evidence: ${state}`);
     }
   }
 }
@@ -375,7 +375,7 @@ async function validateEvidenceFile(filePath, options) {
   validateBaseFields(violations, filePath, evidence);
   await validateScreenshots(violations, filePath, evidence);
   validateRuntime(violations, filePath, evidence);
-  validateExecutionConfig(violations, filePath, evidence);
+  validateAgentAIConfig(violations, filePath, evidence);
   validateDom(violations, filePath, evidence);
   validateInteraction(violations, filePath, evidence, options);
   validateProblems(violations, filePath, evidence);

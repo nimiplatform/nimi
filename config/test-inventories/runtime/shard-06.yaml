@@ -497,6 +497,30 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
+  - path: runtime/internal/services/runtimeagent/agent_ai_config_readiness_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/runtimeagent/agent_ai_config_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
   - path: runtime/internal/services/runtimeagent/agent_event_projection_envelope_test.go
     owner: runtime
     classification: quarantine_unreviewed
@@ -581,6 +605,18 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
+  - path: runtime/internal/services/runtimeagent/chat_public_surface_ai_config_helpers_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
   - path: runtime/internal/services/runtimeagent/chat_public_surface_followup_binding_test.go
     owner: runtime
     classification: quarantine_unreviewed
@@ -618,42 +654,6 @@ tests:
       - P-TEST-001
     removal_condition: human classification pending
   - path: runtime/internal/services/runtimeagent/chat_public_surface_turn_state_test.go
-    owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
-    spec_refs:
-      - P-TEST-001
-    removal_condition: human classification pending
-  - path: runtime/internal/services/runtimeagent/chat_public_surface_validation_test.go
-    owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
-    spec_refs:
-      - P-TEST-001
-    removal_condition: human classification pending
-  - path: runtime/internal/services/runtimeagent/chat_session_snapshot_test.go
-    owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
-    spec_refs:
-      - P-TEST-001
-    removal_condition: human classification pending
-  - path: runtime/internal/services/runtimeagent/chat_surface_state_persistence_test.go
     owner: runtime
     classification: quarantine_unreviewed
     tier: null

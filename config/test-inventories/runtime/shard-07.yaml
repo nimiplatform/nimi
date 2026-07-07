@@ -5,6 +5,42 @@ authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
 shard_id: runtime_test_inventory_shard_07
 tests:
+  - path: runtime/internal/services/runtimeagent/chat_public_surface_validation_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/runtimeagent/chat_session_snapshot_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/runtimeagent/chat_surface_state_persistence_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
   - path: runtime/internal/services/runtimeagent/companion_participation_rpc_test.go
     owner: runtime
     classification: quarantine_unreviewed
@@ -66,30 +102,6 @@ tests:
       - P-TEST-001
     removal_condition: human classification pending
   - path: runtime/internal/services/runtimeagent/emotion_state_test.go
-    owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
-    spec_refs:
-      - P-TEST-001
-    removal_condition: human classification pending
-  - path: runtime/internal/services/runtimeagent/execution_config_test.go
-    owner: runtime
-    classification: quarantine_unreviewed
-    tier: null
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
-    spec_refs:
-      - P-TEST-001
-    removal_condition: human classification pending
-  - path: runtime/internal/services/runtimeagent/execution_readiness_test.go
     owner: runtime
     classification: quarantine_unreviewed
     tier: null

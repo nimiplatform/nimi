@@ -190,8 +190,6 @@ const memory = createNimiRuntimeMemoryContextClient({
         };
       },
       async history() { return { records: [], nextPageToken: '' }; },
-      async getMemoryEmbeddingRuntimeIntent() { return { bindingIntentPresent: false }; },
-      async setMemoryEmbeddingRuntimeIntent() { return { accepted: true }; },
       async inspectMemoryEmbeddingRuntime() {
         return { bindingIntentPresent: false, bindingSourceKind: '', resolutionState: 'ready', canonicalBankStatus: 'bound', blockedReasonCode: 0, operationReadiness: { bindAllowed: true, cutoverAllowed: false } };
       },
@@ -398,8 +396,6 @@ const memoryClient: NimiRuntimeMemoryContextClient = createNimiRuntimeMemoryCont
     memory: {
       async recall() { throw new Error('typed only'); },
       async history() { throw new Error('typed only'); },
-      async getMemoryEmbeddingRuntimeIntent() { throw new Error('typed only'); },
-      async setMemoryEmbeddingRuntimeIntent() { throw new Error('typed only'); },
       async inspectMemoryEmbeddingRuntime() { throw new Error('typed only'); },
       async requestMemoryEmbeddingRuntimeBind() { throw new Error('typed only'); },
       async requestMemoryEmbeddingRuntimeCutover() { throw new Error('typed only'); },

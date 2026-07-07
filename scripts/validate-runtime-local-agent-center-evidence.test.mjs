@@ -19,16 +19,49 @@ test('validates recursive live-runtime evidence with screenshots and Runtime pro
   assert.match(result.stdout, /validated 1 evidence file/);
 });
 
-test('rejects no-runtime evidence that invents a Runtime execution revision', () => {
+test('rejects no-runtime evidence that invents a Runtime Agent AI Config revision', () => {
   const root = mkdtempSync(path.join(tmpdir(), 'nimi-rla-evidence-no-runtime-'));
   writeEvidence(root, noRuntimeEvidence({
-    executionConfig: { revision: 7 },
+    agentAIConfig: { revision: 7 },
   }));
 
   const result = runValidator(root);
 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /no-runtime.*revision/i);
+});
+
+test('accepts editable audio.synthesize intent evidence but rejects playable pseudo artifacts', () => {
+  const editableRoot = mkdtempSync(path.join(tmpdir(), 'nimi-rla-evidence-editable-audio-'));
+  writeEvidence(editableRoot, liveEvidence({
+    agentAIConfig: {
+      audioSynthesize: {
+        state: 'ready',
+        reason: null,
+        editable: true,
+        playable: false,
+      },
+    },
+  }));
+
+  const accepted = runValidator(editableRoot);
+  assert.equal(accepted.status, 0, accepted.stderr);
+
+  const playableRoot = mkdtempSync(path.join(tmpdir(), 'nimi-rla-evidence-playable-audio-'));
+  writeEvidence(playableRoot, liveEvidence({
+    agentAIConfig: {
+      audioSynthesize: {
+        state: 'playable',
+        reason: null,
+        editable: true,
+        playable: true,
+      },
+    },
+  }));
+
+  const rejected = runValidator(playableRoot);
+  assert.notEqual(rejected.status, 0);
+  assert.match(rejected.stderr, /playable artifact|state is not admitted/);
 });
 
 test('accepts no-runtime global fail-closed evidence without visible Agent Center tabs', () => {
@@ -139,7 +172,7 @@ function liveEvidence(overrides = {}) {
       runtimeSourceRef: 'runtime-source:test',
       localAgentRef: 'local-agent:test',
     },
-    executionConfig: {
+    agentAIConfig: {
       revision: 2,
       textGenerate: { state: 'ready', reason: null, modelId: 'local/default' },
       imageGenerate: { state: 'not_configured', reason: null },
@@ -176,7 +209,7 @@ function noRuntimeEvidence(overrides = {}) {
     runtime: {
       available: false,
     },
-    executionConfig: {
+    agentAIConfig: {
       revision: null,
     },
     dom: {

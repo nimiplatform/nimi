@@ -32,6 +32,7 @@ const gates = new Map([
   ['no-direct-ai-consumption', checkNoDirectAIConsumption],
   ['conversation-artifact-boundary', checkConversationArtifactBoundary],
   ['local-persistence-boundary', checkLocalPersistenceBoundary],
+  ['agent-center-authority', checkAgentCenterAuthority],
 ]);
 
 let failed = false;
@@ -278,6 +279,66 @@ function checkLocalPersistenceBoundary() {
     { label: 'session recovery truth filesystem persistence', pattern: /(?:writeFile|appendFile)[\s\S]{0,160}(?:session|recovery)|(?:session|recovery)[\s\S]{0,160}(?:writeFile|appendFile)/iu },
   ], appShellFiles());
   reportHits('local persistence boundary gate', [...hits, ...shellPersistenceHits]);
+}
+
+function checkAgentCenterAuthority() {
+  const files = [
+    ...walkFiles('apps/zhiyu/src/shell/agent-chat'),
+    ...walkFiles('apps/zhiyu/src/shell/app'),
+    ...walkFiles('apps/zhiyu/src-electron'),
+  ].filter((rel) => exists(rel));
+  requireFileIncludes('apps/zhiyu/src/shell/agent-chat/agent-ai-config.ts', [
+    'runtime.agent.ai_config.read',
+    'runtime.agent.ai_config.write',
+    'RuntimeLocalAgentIdentityInput',
+    'fetchZhiyuAgentAIConfigRouteEvidence',
+    'intents',
+    'zhiyu-agent-ai-config-identity-required',
+  ]);
+  requireFileIncludes('apps/zhiyu/src/shell/app/App.tsx', [
+    'agentAIConfigRouteInputRef',
+    'subscribeZhiyuAgentAIConfigReadiness(callInput)',
+    'fetchZhiyuAgentAIConfigRouteEvidence(agentAIConfigRouteInputRef.current)',
+  ]);
+  requireFileIncludes('apps/zhiyu/src/shell/agent-chat/ZhiyuAgentRightPanel.tsx', [
+    'runtimeAdapter={runtimeAdapter}',
+    'upsertAgentAIConfig',
+    'upsertZhiyuAgentAIConfig',
+    'expectedRevision',
+  ]);
+  const oldExecutionSnake = ['execution', 'config'].join('_');
+  const oldMemoryIntent = ['memory', 'embedding', 'intent'].join('_');
+  const hits = scan([
+    { label: 'old agent execution config filename', pattern: new RegExp(escapeRegExp(['agent', 'execution', 'config'].join('-')), 'u') },
+    { label: 'old Zhiyu execution config commit filename', pattern: new RegExp(escapeRegExp(['zhiyu', 'execution', 'config', 'commit'].join('-')), 'u') },
+    { label: 'old Runtime execution config scope', pattern: new RegExp(escapeRegExp(['runtime', 'agent', oldExecutionSnake].join('.')), 'u') },
+    { label: 'old config camelCase surface', pattern: new RegExp(escapeRegExp(['execution', 'Config'].join('')), 'u') },
+    { label: 'old config PascalCase type surface', pattern: new RegExp(escapeRegExp(['Execution', 'Config'].join('')), 'u') },
+    { label: 'old execution-config ready reason', pattern: new RegExp(escapeRegExp(['runtime', 'execution', 'config', 'ready'].join('-')), 'u') },
+    { label: 'old Zhiyu execution readiness reason', pattern: new RegExp(escapeRegExp(['zhiyu', 'agent', 'execution', 'readiness', 'unavailable'].join('-')), 'u') },
+    { label: 'old execution model action', pattern: new RegExp(escapeRegExp(['configure', 'runtime', 'agent', 'execution', 'model'].join('_')), 'u') },
+    { label: 'old execution readiness inspect action', pattern: new RegExp(escapeRegExp(['inspect', 'runtime', 'agent', 'execution'].join('_')), 'u') },
+    { label: 'old memory embedding intent token', pattern: new RegExp(escapeRegExp(oldMemoryIntent), 'u') },
+    { label: 'old memory embedding intent RPC', pattern: new RegExp(`(?:Get|Set)${escapeRegExp(['MemoryEmbedding', 'RuntimeIntent'].join(''))}`, 'u') },
+    { label: 'app-local Agent Center state builder export', pattern: new RegExp(escapeRegExp(['buildZhiyu', 'AgentCenterState'].join('')), 'u') },
+    { label: 'app-local Agent Center Runtime projection builder', pattern: /projectZhiyuAgentCenterRuntimeProjection/u },
+    { label: 'app-local Agent Center AI Config projection builder', pattern: /function\s+buildAgentAIConfig/u },
+    { label: 'app-local Agent Center readiness projection builder', pattern: /function\s+buildReadiness/u },
+    { label: 'app-local Agent Center inspect projection builder', pattern: /function\s+buildInspect/u },
+    { label: 'app-local Agent Center appearance projection builder', pattern: /function\s+buildAppearance/u },
+    { label: 'bad mechanical runtime agentAIConfig scope', pattern: new RegExp(escapeRegExp(['runtime.agent', 'agentAIConfig'].join('.')), 'u') },
+    { label: 'product direct Runtime AI consume helper', pattern: /runRuntimeAIConsumeCapability/u },
+    { label: 'product direct Runtime speech synthesize helper', pattern: /runRuntimeSpeechSynthesize/u },
+    { label: 'product app-scope AIConfig truth type', pattern: /\bNimiAIConfig\b/u },
+    { label: 'product Electron app-scope AIConfig store', pattern: /createNimiElectronFileAIConfigStore|aiConfigStore/u },
+    { label: 'standard shell app-scope AIConfig facade', pattern: /NIMI_STANDARD_SHELL_COMMANDS\[['"]ai-config\.(?:get|set)['"]\]/u },
+    { label: 'Zhiyu app-scope AIConfig surface id', pattern: /zhiyu-agent-home/u },
+    { label: 'Zhiyu product AIConfig settings/store module', pattern: /ZhiyuAiConfigSettings|zhiyu-ai-config-store|zhiyu-ai-config-settings/u },
+    { label: 'Zhiyu product Capability Studio AI consume module', pattern: /zhiyu-ai-consume|developer-capability-studio/u },
+    { label: 'Zhiyu app-specific Agent Center proposal section', pattern: /AgentCenterProposalSection/u },
+    { label: 'Zhiyu app-specific Agent Center developer surface', pattern: /CapabilityStudio|technicalSurfaces|renderGatedSurface/u },
+  ], files);
+  reportHits('agent-center authority gate', hits);
 }
 
 if (!gates.has(gate)) {

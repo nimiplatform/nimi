@@ -116,7 +116,8 @@ async function checkSpec() {
     assertContains(source, 'Surface Ownership Matrix', 'surface ownership matrix', contractPath, findings);
     assertContains(source, 'Desktop `ChatSettingsPanel` injected as `modelContent`', 'Desktop ChatSettingsPanel classification', contractPath, findings);
     assertContains(source, 'Zhiyu `AgentCenterCapabilityProbePanel` / Capability Studio', 'Zhiyu capability tooling classification', contractPath, findings);
-    assertContains(source, 'read-only Runtime projection', 'audio wave decision', contractPath, findings);
+    assertContains(source, 'Runtime Agent AI Config-owned', 'audio and voice workflow owner decision', contractPath, findings);
+    assertContains(source, 'Agent Center may render and edit them only through the admitted Runtime/SDK ai-config adapter', 'audio and voice workflow editable adapter decision', contractPath, findings);
     assertContains(source, '`local_history` is admitted only as non-semantic UI recents', 'local_history owner decision', contractPath, findings);
   }
 
@@ -139,7 +140,7 @@ async function checkSpec() {
   assertContains(desktopKit, '`local_history` | Non-semantic UI recents only', 'Desktop local_history decision', desktopKitPath, findings);
 
   const desktopConversation = await readText(desktopConversationPath);
-  assertContains(desktopConversation, 'D-LLM-022 Agent Center Runtime Execution Config Consumer Boundary', 'Desktop Agent Chat execution config boundary', desktopConversationPath, findings);
+  assertContains(desktopConversation, 'D-LLM-022 Agent Center Runtime Agent AI Config Consumer Boundary', 'Desktop Agent Chat AI config boundary', desktopConversationPath, findings);
 
   const zhiyu = await readText(zhiyuPath);
   assertContains(zhiyu, 'Z-CONFIG-006 Kit Agent Center Consumer Boundary', 'Zhiyu Kit consumer boundary', zhiyuPath, findings);
@@ -173,6 +174,8 @@ async function checkKit() {
 
   let sawTypedAdapter = false;
   let sawAgentCenter = false;
+  let sawRuntimeAdapterThreaded = false;
+  let sawAgentAIConfigUpsert = false;
   for (const filePath of files) {
     const relPath = toRepoRelative(filePath);
     const source = await fs.readFile(filePath, 'utf8');
@@ -180,6 +183,12 @@ async function checkKit() {
     collectForbidden(source, relPath, forbidden, findings);
     if (source.includes('RuntimeAgentCenterAdapter') || source.includes('AgentCenterAppearanceAdapter')) {
       sawTypedAdapter = true;
+    }
+    if (source.includes('runtimeAdapter={runtimeAdapter}') || source.includes('runtimeAdapter={props.runtimeAdapter}')) {
+      sawRuntimeAdapterThreaded = true;
+    }
+    if (source.includes('upsertAgentAIConfig') && source.includes('expectedRevision')) {
+      sawAgentAIConfigUpsert = true;
     }
     if (source.includes('AgentCenter')) {
       sawAgentCenter = true;
@@ -191,6 +200,12 @@ async function checkKit() {
   }
   if (!sawAgentCenter) {
     findings.push('kit/features/agent-center: missing AgentCenter public surface');
+  }
+  if (!sawRuntimeAdapterThreaded) {
+    findings.push('kit/features/agent-center: runtimeAdapter is not threaded into sections');
+  }
+  if (!sawAgentAIConfigUpsert) {
+    findings.push('kit/features/agent-center: missing Runtime Agent AI Config mutation wiring with expectedRevision');
   }
 
   return { name: 'kit', findings, scanned };
