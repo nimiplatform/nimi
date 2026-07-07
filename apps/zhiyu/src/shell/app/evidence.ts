@@ -19,7 +19,6 @@ import {
   createInitialZhiyuDelegationEvidence,
   type ZhiyuDelegationUxStatus,
 } from './delegation-evidence';
-import type { ZhiyuCapabilityStudioCapabilityId } from './developer-capability-studio';
 
 export type {
   ZhiyuDelegationApprovalDecision,
@@ -128,34 +127,10 @@ export type ZhiyuDiaryReflectionStatus = {
   readonly artifacts: readonly ZhiyuDiaryReflectionArtifact[];
 };
 
-export type ZhiyuCapabilityStudioStatus = {
-  readonly transport: 'electron-ipc';
-  readonly ready: boolean;
-  readonly state: 'idle' | 'blocked' | 'running' | 'succeeded' | 'failed';
-  readonly reasonCode: string;
-  readonly actionHint: string;
-  readonly source: string;
-  readonly message: string;
-  readonly lastCapabilityId: ZhiyuCapabilityStudioCapabilityId | null;
-  readonly resultKind: 'none' | 'text' | 'embedding' | 'audio' | 'unavailable';
-  readonly text: string | null;
-  readonly streamingText: string | null;
-  readonly finishReason: string | null;
-  readonly vectorCount: number | null;
-  readonly dimensions: number | null;
-  readonly sample: readonly number[];
-  readonly audioJobId: string | null;
-  readonly audioJobStatus: string | null;
-  readonly audioArtifactCount: number | null;
-  readonly audioMimeType: string | null;
-  readonly audioPreviewUrl: string | null;
-  readonly traceId: string | null;
-};
-
-export type ZhiyuExecutionReadinessState = 'ready' | 'not_configured' | 'unavailable';
+export type ZhiyuAgentAIConfigReadinessState = 'ready' | 'not_configured' | 'unavailable';
 
 export type ZhiyuExecutionCapabilityEvidence = {
-  readonly state: ZhiyuExecutionReadinessState;
+  readonly state: ZhiyuAgentAIConfigReadinessState;
   readonly reasonCode: string;
   readonly probedAt: string | null;
   readonly binding: NimiRuntimeAgentExecutionBinding | null;
@@ -393,14 +368,13 @@ export type ZhiyuEvidence = {
     readonly launchHandoff: AvatarLaunchHandoffResult | null;
     readonly unsupportedFields: readonly string[];
   };
-  readonly capabilityStudio: ZhiyuCapabilityStudioStatus;
   readonly chat: ZhiyuRuntimeAgentChatStatus;
   readonly route: {
     readonly transport: 'electron-ipc';
     // Send readiness: runtime-projected text.generate readiness === 'ready'.
     readonly ready: boolean;
     readonly capability: 'text.generate';
-    // Committed runtime agent execution config projection (K-AGCORE-144~150).
+    // Committed runtime agent AI Config projection (K-AGCORE-144~150).
     readonly configRevision: number | null;
     readonly readinessRevision: number | null;
     readonly updatedAt: string | null;
@@ -681,29 +655,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
         'expressionState',
       ],
     },
-    capabilityStudio: {
-      transport: 'electron-ipc',
-      ready: false,
-      state: 'idle',
-      reasonCode: 'zhiyu-capability-studio-idle',
-      actionHint: 'enter_capability_studio_prompt',
-      source: 'renderer',
-      message: 'Capability Studio has not run a Runtime AI capability.',
-      lastCapabilityId: null,
-      resultKind: 'none',
-      text: null,
-      streamingText: null,
-      finishReason: null,
-      vectorCount: null,
-      dimensions: null,
-      sample: [],
-      audioJobId: null,
-      audioJobStatus: null,
-      audioArtifactCount: null,
-      audioMimeType: null,
-      audioPreviewUrl: null,
-      traceId: null,
-    },
     chat: {
       transport: 'electron-ipc',
       ready: false,
@@ -736,15 +687,15 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       capabilities: {},
       executionBinding: null,
       reasonCode: 'not-probed',
-      actionHint: 'fetch_runtime_agent_execution_config',
+      actionHint: 'fetch_runtime_agent_ai_config',
       source: 'renderer',
-      message: 'Runtime agent execution config has not been fetched.',
+      message: 'Runtime Agent AI Config has not been fetched.',
     },
     turn: {
       transport: 'electron-ipc',
       ready: false,
       reasonCode: 'not-probed',
-      actionHint: 'configure_runtime_agent_execution_model',
+      actionHint: 'configure_runtime_agent_ai_config',
       source: 'renderer',
       message: 'Runtime turn readiness has not been probed.',
       ownerUserId: null,
@@ -762,6 +713,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       source: 'renderer',
       message: 'Runtime Agent composer has not been used.',
     },
-    productRegions: ['presence', 'conversation', 'capability-studio', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'diary', 'avatar', 'diagnostics'],
+    productRegions: ['presence', 'conversation', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'diary', 'avatar', 'diagnostics'],
   };
 }

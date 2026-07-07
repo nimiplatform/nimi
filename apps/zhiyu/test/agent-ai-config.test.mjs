@@ -17,9 +17,9 @@ test.after(async () => {
   }
 });
 
-test('Zhiyu execution route evidence projects committed config + readiness tri-state', async () => {
-  const module = await importExecutionConfigModule();
-  const route = module.projectZhiyuAgentExecutionRouteEvidence({
+test('Zhiyu AI Config route evidence projects committed config + readiness tri-state', async () => {
+  const module = await importAgentAIConfigModule();
+  const route = module.projectZhiyuAgentAIConfigRouteEvidence({
     config: configSnapshot(),
     readiness: readinessSnapshot([
       capabilityReadiness('text.generate', 'ready', ''),
@@ -32,7 +32,7 @@ test('Zhiyu execution route evidence projects committed config + readiness tri-s
   assert.equal(route.configRevision, 7);
   assert.equal(route.readinessRevision, 7);
   assert.equal(route.updatedByAppId, 'nimi.zhiyu');
-  assert.equal(route.reasonCode, 'runtime-execution-config-ready');
+  assert.equal(route.reasonCode, 'runtime-agent-ai-config-ready');
   assert.equal(route.actionHint, 'send_runtime_agent_turn');
   assert.equal(route.source, 'runtime');
   assert.deepEqual(route.executionBinding, textBinding());
@@ -43,21 +43,21 @@ test('Zhiyu execution route evidence projects committed config + readiness tri-s
   assert.deepEqual(route.capabilities['image.generate'].binding, imageBinding());
 });
 
-test('Zhiyu execution route evidence derives send-readiness from text.generate readiness only', async () => {
-  const module = await importExecutionConfigModule();
+test('Zhiyu AI Config route evidence derives send-readiness from text.generate readiness only', async () => {
+  const module = await importAgentAIConfigModule();
 
-  const notConfigured = module.projectZhiyuAgentExecutionRouteEvidence({
-    config: configSnapshot({ bindings: {} }),
+  const notConfigured = module.projectZhiyuAgentAIConfigRouteEvidence({
+    config: configSnapshot({ intents: {} }),
     readiness: readinessSnapshot([
       capabilityReadiness('text.generate', 'not_configured', ''),
     ]),
   });
   assert.equal(notConfigured.ready, false);
-  assert.equal(notConfigured.reasonCode, 'zhiyu-agent-execution-config-not-configured');
-  assert.equal(notConfigured.actionHint, 'configure_runtime_agent_execution_model');
+  assert.equal(notConfigured.reasonCode, 'zhiyu-agent-ai-config-not-configured');
+  assert.equal(notConfigured.actionHint, 'configure_runtime_agent_ai_config');
   assert.equal(notConfigured.executionBinding, null);
 
-  const unavailable = module.projectZhiyuAgentExecutionRouteEvidence({
+  const unavailable = module.projectZhiyuAgentAIConfigRouteEvidence({
     config: configSnapshot(),
     readiness: readinessSnapshot([
       capabilityReadiness('text.generate', 'unavailable', 'route_unhealthy'),
@@ -65,48 +65,51 @@ test('Zhiyu execution route evidence derives send-readiness from text.generate r
     ]),
   });
   assert.equal(unavailable.ready, false);
-  assert.equal(unavailable.reasonCode, 'zhiyu-agent-execution-readiness-unavailable');
+  assert.equal(unavailable.reasonCode, 'zhiyu-agent-ai-config-readiness-unavailable');
   assert.match(unavailable.message, /route_unhealthy/);
 });
 
-test('Zhiyu execution route evidence fails closed with typed zhiyu reason codes', async () => {
-  const module = await importExecutionConfigModule();
+test('Zhiyu AI Config route evidence fails closed with typed zhiyu reason codes', async () => {
+  const module = await importAgentAIConfigModule();
 
-  const authRequired = module.zhiyuAgentExecutionRouteAuthRequired();
+  const authRequired = module.zhiyuAgentAIConfigRouteAuthRequired();
   assert.equal(authRequired.ready, false);
-  assert.equal(authRequired.reasonCode, 'zhiyu-agent-execution-config-auth-required');
+  assert.equal(authRequired.reasonCode, 'zhiyu-agent-ai-config-auth-required');
   assert.equal(authRequired.actionHint, 'sign_in_runtime_account');
   assert.equal(authRequired.configRevision, null);
 
-  const unavailable = module.zhiyuAgentExecutionRouteUnavailable(Object.assign(
+  const unavailable = module.zhiyuAgentAIConfigRouteUnavailable(Object.assign(
     new Error('grpc unavailable'),
     { reasonCode: 'RUNTIME_GRPC_UNAVAILABLE', source: 'runtime' },
   ));
   assert.equal(unavailable.ready, false);
-  assert.equal(unavailable.reasonCode, 'zhiyu-agent-execution-config-unavailable');
+  assert.equal(unavailable.reasonCode, 'zhiyu-agent-ai-config-unavailable');
   assert.match(unavailable.message, /RUNTIME_GRPC_UNAVAILABLE/);
   assert.match(unavailable.message, /grpc unavailable/);
   assert.equal(unavailable.executionBinding, null);
 
-  const fetched = await module.fetchZhiyuAgentExecutionRouteEvidence('');
-  assert.equal(fetched.reasonCode, 'zhiyu-agent-execution-config-auth-required');
+  const fetched = await module.fetchZhiyuAgentAIConfigRouteEvidence({ subjectUserId: '' });
+  assert.equal(fetched.reasonCode, 'zhiyu-agent-ai-config-auth-required');
+
+  const identityMissing = await module.fetchZhiyuAgentAIConfigRouteEvidence({ subjectUserId: 'user-1' });
+  assert.equal(identityMissing.reasonCode, 'zhiyu-agent-ai-config-identity-required');
 });
 
-test('Zhiyu turn readiness gates on conversation anchor, execution readiness, and Runtime binding', async () => {
+test('Zhiyu turn readiness gates on conversation anchor, Agent AI Config readiness, and Runtime binding', async () => {
   const module = await importTurnReadinessModule();
   const routeReady = {
     ready: true,
-    reasonCode: 'runtime-execution-config-ready',
+    reasonCode: 'runtime-agent-ai-config-ready',
     actionHint: 'send_runtime_agent_turn',
     source: 'runtime',
     message: 'ready',
   };
   const routeNotConfigured = {
     ready: false,
-    reasonCode: 'zhiyu-agent-execution-config-not-configured',
-    actionHint: 'configure_runtime_agent_execution_model',
+    reasonCode: 'zhiyu-agent-ai-config-not-configured',
+    actionHint: 'configure_runtime_agent_ai_config',
     source: 'runtime',
-    message: 'Runtime agent execution config has no ready text.generate binding yet.',
+    message: 'Runtime agent AI Config has no ready text.generate binding yet.',
   };
 
   const blockedByRoute = module.probeZhiyuAgentTurnReadiness(
@@ -115,7 +118,7 @@ test('Zhiyu turn readiness gates on conversation anchor, execution readiness, an
     scopedBindingDecision(module),
   );
   assert.equal(blockedByRoute.ready, false);
-  assert.equal(blockedByRoute.reasonCode, 'zhiyu-agent-execution-config-not-configured');
+  assert.equal(blockedByRoute.reasonCode, 'zhiyu-agent-ai-config-not-configured');
 
   const blockedByBinding = module.probeZhiyuAgentTurnReadiness(
     conversationReady(),
@@ -134,7 +137,7 @@ test('Zhiyu turn readiness gates on conversation anchor, execution readiness, an
   assert.equal(ready.reasonCode, 'runtime-turn-ready');
 });
 
-test('Zhiyu composer copy maps execution readiness tri-state to Chinese product copy', async () => {
+test('Zhiyu composer copy maps Agent AI Config readiness tri-state to Chinese product copy', async () => {
   const module = await importLabelsModule();
   const routeBase = {
     transport: 'electron-ipc',
@@ -146,20 +149,20 @@ test('Zhiyu composer copy maps execution readiness tri-state to Chinese product 
     updatedByAppId: 'nimi.zhiyu',
     capabilities: {},
     executionBinding: null,
-    reasonCode: 'zhiyu-agent-execution-config-not-configured',
-    actionHint: 'configure_runtime_agent_execution_model',
+    reasonCode: 'zhiyu-agent-ai-config-not-configured',
+    actionHint: 'configure_runtime_agent_ai_config',
     source: 'runtime',
     message: 'not configured',
   };
 
   assert.equal(
-    module.executionReadinessHint(routeBase),
+    module.agentAIConfigReadinessHint(routeBase),
     '请先在伙伴中心完成模型配置。',
   );
   assert.equal(
-    module.executionReadinessHint({
+    module.agentAIConfigReadinessHint({
       ...routeBase,
-      reasonCode: 'zhiyu-agent-execution-readiness-unavailable',
+      reasonCode: 'zhiyu-agent-ai-config-readiness-unavailable',
       capabilities: {
         'text.generate': {
           state: 'unavailable',
@@ -172,7 +175,7 @@ test('Zhiyu composer copy maps execution readiness tri-state to Chinese product 
     '模型通路暂不可用，请检查本地模型服务或云端连接。',
   );
   assert.equal(
-    module.executionReadinessHint({
+    module.agentAIConfigReadinessHint({
       ...routeBase,
       capabilities: {
         'text.generate': {
@@ -182,28 +185,28 @@ test('Zhiyu composer copy maps execution readiness tri-state to Chinese product 
           binding: null,
         },
       },
-      reasonCode: 'zhiyu-agent-execution-readiness-unavailable',
+      reasonCode: 'zhiyu-agent-ai-config-readiness-unavailable',
     }),
     '云端连接器缺失，请重新完成模型配置。',
   );
   assert.equal(
-    module.executionReadinessHint({
+    module.agentAIConfigReadinessHint({
       ...routeBase,
-      reasonCode: 'zhiyu-agent-execution-config-auth-required',
+      reasonCode: 'zhiyu-agent-ai-config-auth-required',
     }),
     '请先登录本地运行服务账户。',
   );
   assert.equal(
-    module.executionReadinessHint({
+    module.agentAIConfigReadinessHint({
       ...routeBase,
-      reasonCode: 'zhiyu-agent-execution-config-unavailable',
+      reasonCode: 'zhiyu-agent-ai-config-unavailable',
     }),
     '本地运行服务暂时不可用，请稍后重试。',
   );
 });
 
-async function importExecutionConfigModule() {
-  const outputPath = path.join(await buildModules(), 'agent-execution-config.mjs');
+async function importAgentAIConfigModule() {
+  const outputPath = path.join(await buildModules(), 'agent-ai-config.mjs');
   return import(pathToFileURL(outputPath).href);
 }
 
@@ -220,10 +223,10 @@ async function importLabelsModule() {
 async function buildModules() {
   if (buildDir) return buildDir;
   mkdirSync(path.join(root, '.tmp'), { recursive: true });
-  buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-zhiyu-execution-config-'));
+  buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-zhiyu-agent-ai-config-'));
   await build({
     entryPoints: [
-      path.join(root, 'src/shell/agent-chat/agent-execution-config.ts'),
+      path.join(root, 'src/shell/agent-chat/agent-ai-config.ts'),
       path.join(root, 'src/shell/agent-chat/agent-turn-readiness.ts'),
       path.join(root, 'src/shell/agent-chat/ZhiyuAgentChatLabels.ts'),
     ],
@@ -237,8 +240,8 @@ async function buildModules() {
     logLevel: 'silent',
     plugins: [workspaceStubPlugin()],
   }).catch(async (error) => {
-    const text = await readFile(path.join(root, 'src/shell/agent-chat/agent-execution-config.ts'), 'utf8').catch(() => '');
-    throw new Error(`failed to build Zhiyu execution config modules: ${error.message}\nsource length=${text.length}`);
+    const text = await readFile(path.join(root, 'src/shell/agent-chat/agent-ai-config.ts'), 'utf8').catch(() => '');
+    throw new Error(`failed to build Zhiyu AI Config modules: ${error.message}\nsource length=${text.length}`);
   });
   return buildDir;
 }
@@ -286,7 +289,7 @@ function workspaceStubPlugin() {
 function configSnapshot(overrides = {}) {
   return {
     revision: 7,
-    bindings: {
+    intents: {
       'text.generate': textBinding(),
       'image.generate': imageBinding(),
     },

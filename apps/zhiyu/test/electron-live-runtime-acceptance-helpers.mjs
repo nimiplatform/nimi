@@ -113,7 +113,7 @@ function buildRuntimeLocalAgentCenterEvidence({
       runtimeSourceRef,
       localAgentRef,
     },
-    executionConfig: {
+    agentAIConfig: {
       revision,
       textGenerate: projectCapability(route, 'text.generate'),
       imageGenerate: projectCapability(route, 'image.generate'),

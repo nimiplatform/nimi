@@ -12,9 +12,9 @@ export {
   resolveZhiyuRuntimeAgentBindingDecision,
 };
 
-// Turn readiness is projection-only: the conversation anchor plus runtime
-// execution readiness plus Runtime binding custody. Route truth stays with
-// the runtime execution config (K-AGCORE-147); Zhiyu never re-derives it.
+// Turn readiness is projection-only: the conversation anchor plus Runtime
+// Agent AI Config readiness plus Runtime binding custody. Route truth stays
+// with Runtime Agent AI Config (K-AGCORE-147); Zhiyu never re-derives it.
 export function probeZhiyuAgentTurnReadiness(
   conversation: ZhiyuConversationHomeStatus,
   route: Pick<ZhiyuEvidence['route'], 'ready' | 'reasonCode' | 'actionHint' | 'source' | 'message'>,
@@ -37,9 +37,9 @@ export function probeZhiyuAgentTurnReadiness(
   if (!route.ready) {
     return turnUnavailable({
       reasonCode: route.reasonCode === 'not-probed'
-        ? 'zhiyu-runtime-execution-readiness-required'
+        ? 'zhiyu-runtime-agent-ai-config-readiness-required'
         : route.reasonCode,
-      actionHint: route.actionHint || 'configure_runtime_agent_execution_model',
+      actionHint: route.actionHint || 'configure_runtime_agent_ai_config',
       source: route.source,
       message: route.message,
       ...identity,

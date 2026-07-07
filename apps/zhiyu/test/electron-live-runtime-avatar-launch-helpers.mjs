@@ -4,7 +4,6 @@ import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
   AgentPresentationBackendKind,
-  RoutePolicy,
 } from '../../../sdks/typescript/core-generated/runtime-typed-client.ts';
 import {
   buildRuntimeAgentRequestContext,
@@ -55,8 +54,6 @@ export async function seedLiveRuntimeAvatarPresentationProfile(fixture) {
           interactionPolicyRef: 'policy://runtime-live/ambient',
           defaultVoiceReference: fixture.voiceAsset.defaultVoiceReference,
           avatarAutoplay: true,
-          speechModelId: fixture.voiceRoute.executionBinding.modelId,
-          speechRoutePolicy: RoutePolicy.CLOUD,
         },
       },
     },

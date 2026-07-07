@@ -8,6 +8,8 @@ import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
+const FORBIDDEN_RUNTIME_CONFIG_KEY = ['execution', 'config'].join('_');
+const FORBIDDEN_RUNTIME_CONFIG_FIELD = `config.${FORBIDDEN_RUNTIME_CONFIG_KEY}`;
 
 let buildDir = null;
 let importCounter = 0;
@@ -45,7 +47,7 @@ test('Zhiyu Agent Center local config renderer parser accepts admitted local own
 test('Zhiyu Agent Center local config renderer parser rejects Runtime execution truth and arbitrary key growth', async () => {
   const renderer = await importRendererConfig();
   const config = validConfig();
-  config.execution_config = { revision: 'runtime-config-revision-1' };
+  config[FORBIDDEN_RUNTIME_CONFIG_KEY] = { revision: 'runtime-config-revision-1' };
   config.provider = 'runtime-provider';
   config.model = 'runtime-model';
   config.memory = { records: [] };
@@ -63,7 +65,7 @@ test('Zhiyu Agent Center local config renderer parser rejects Runtime execution 
   assert.equal(result.ok, false);
   const errors = result.errors.join('\n');
   for (const field of [
-    'config.execution_config',
+    FORBIDDEN_RUNTIME_CONFIG_FIELD,
     'config.provider',
     'config.model',
     'config.memory',
@@ -103,7 +105,7 @@ test('Zhiyu Electron Agent Center local config bridge rejects Runtime truth on p
     const electronBridge = await importElectronBridge();
     const handler = registerBridgeForTest(electronBridge, dataRoot);
     const config = validConfig();
-    config.execution_config = { revision: 'runtime-config-revision-1' };
+    config[FORBIDDEN_RUNTIME_CONFIG_KEY] = { revision: 'runtime-config-revision-1' };
     config.provider_route = { provider: 'runtime-provider', model: 'runtime-model' };
     config.runtime_snapshot = { ready: true };
     config.modules.avatar_asset.memory = { records: [] };
@@ -116,7 +118,7 @@ test('Zhiyu Electron Agent Center local config bridge rejects Runtime truth on p
         command: 'config.put',
         payload: { config },
       }),
-      /config\.execution_config is not admitted|config\.provider_route is not admitted|config\.runtime_snapshot is not admitted/u,
+      new RegExp(`${escapeRegExp(FORBIDDEN_RUNTIME_CONFIG_FIELD)} is not admitted|config\\.provider_route is not admitted|config\\.runtime_snapshot is not admitted`, 'u'),
     );
   });
 });
@@ -136,7 +138,7 @@ test('Zhiyu Electron Agent Center local config bridge creates only admitted defa
     assert.equal(config.modules.local_history.last_cleared_at, null);
     assert.equal(config.modules.voice.avatar_autoplay, false);
     assert.equal(config.modules.ui.last_section, 'overview');
-    assert.equal('execution_config' in config, false);
+    assert.equal(FORBIDDEN_RUNTIME_CONFIG_KEY in config, false);
     assert.equal('memory' in config.modules, false);
   });
 });

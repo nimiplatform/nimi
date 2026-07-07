@@ -79,32 +79,31 @@ test('ZM16 product shell keeps capability probes in backstage and removes image 
   );
 });
 
-test('ZM16 AI config presents image.generate as conversation artifact support, not image creation', () => {
-  const settings = read('src/shell/ai-config/zhiyu-ai-config-settings.tsx');
+test('ZM16 product shell has no app-scope AIConfig settings surface', () => {
+  const settingsPath = path.join(root, 'src/shell/ai-config/zhiyu-ai-config-settings.tsx');
+  const storePath = path.join(root, 'src/shell/ai-config/zhiyu-ai-config-store.ts');
   const liveRuntimeAcceptance = readLiveRuntimeAcceptanceSource();
 
-  assert.match(settings, /对话图像产物/);
-  assert.doesNotMatch(settings, /图片创作|图像创作|image studio|prompt tool/i);
+  assert.equal(existsSync(settingsPath), false);
+  assert.equal(existsSync(storePath), false);
   assert.doesNotMatch(liveRuntimeAcceptance, /localStorage|agent-home-ai|ai-config:index|clearZhiyuAIConfigStorage/);
   assert.match(liveRuntimeAcceptance, /resetLiveRuntimeEvidenceRoot/);
   assert.match(liveRuntimeAcceptance, /live-runtime-\.\*\\\.\(\?:png\|json\)/);
 });
 
-test('ZM16 TTS consume uses Kit generation owner surface, not tester-private invokers', () => {
+test('ZM16 product shell does not keep direct Runtime AI consume wrappers', () => {
   const kitRuntime = readRepo('kit/features/generation/src/runtime.ts');
   const kitSpeech = readRepo('kit/features/generation/src/runtime-speech-synthesize.ts');
-  const zhiyuConsume = read('src/shell/capability-studio/zhiyu-ai-consume.ts');
-  const aiConfigCapabilities = read('src/shell/ai-config/zhiyu-ai-config-capabilities.ts');
+  const zhiyuConsumePath = path.join(root, 'src/shell/capability-studio/zhiyu-ai-consume.ts');
+  const aiConfigCapabilitiesPath = path.join(root, 'src/shell/ai-config/zhiyu-ai-config-capabilities.ts');
 
   assert.match(kitRuntime, /runtime-speech-synthesize/);
   assert.match(kitSpeech, /runRuntimeSpeechSynthesize/);
   assert.match(kitSpeech, /runNimiRuntimeSpeechSynthesis/);
   assert.doesNotMatch(kitSpeech, /apps\/tester|tester-runtime/);
 
-  assert.match(zhiyuConsume, /runRuntimeSpeechSynthesize/);
-  assert.match(zhiyuConsume, /audio\.synthesize/);
-  assert.doesNotMatch(zhiyuConsume, /apps\/tester|tester-runtime/);
-  assert.match(aiConfigCapabilities, /audio\.synthesize/);
+  assert.equal(existsSync(zhiyuConsumePath), false);
+  assert.equal(existsSync(aiConfigCapabilitiesPath), false);
 });
 
 test('ZM16 avatar launch migration is owner-safe and fail-closed without a public handoff bridge', () => {

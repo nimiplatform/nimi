@@ -469,7 +469,6 @@
 .zhiyu-home__avatar-setup-card,
 .zhiyu-agent-center__advanced-warning,
 .zhiyu-agent-center__capability-overview,
-.zhiyu-agent-center__capability-studio,
 .zhiyu-agent-center__gated,
 .zhiyu-home__gated,
 .zhiyu-home__diagnostics,
@@ -848,9 +847,7 @@
 }
 
 .zhiyu-agent-center__proposal-summary,
-.zhiyu-agent-center__capability-studio-actions,
-.zhiyu-agent-center__capability-studio-embedding,
-.zhiyu-agent-center__capability-studio-audio {
+.zhiyu-agent-center__proposal-actions {
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
@@ -859,8 +856,7 @@
 }
 
 .zhiyu-agent-center__setup-card,
-.zhiyu-agent-center__proposal-field,
-.zhiyu-agent-center__capability-studio-result {
+.zhiyu-agent-center__proposal-field {
   display: grid;
   min-width: 0;
   gap: 6px;
@@ -942,48 +938,6 @@
   background: color-mix(in srgb, var(--nimi-surface-panel, #f8f9fb) 80%, transparent);
   color: var(--nimi-text-secondary, #4b5563);
   font-size: 11px;
-}
-
-.zhiyu-ai-config-embedded,
-.zhiyu-ai-config-embedded__model-hub,
-.zhiyu-ai-config-drawer__model-hub {
-  min-width: 0;
-}
-
-.zhiyu-ai-config-embedded {
-  min-height: 0;
-  max-height: none;
-  overflow: visible;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.zhiyu-ai-config-embedded__model-hub {
-  display: block;
-}
-
-.zhiyu-ai-config-embedded__model-hub [data-nimi-model-config-section],
-.zhiyu-ai-config-embedded__model-hub [data-nimi-model-config-capability],
-.zhiyu-ai-config-drawer__model-hub [data-nimi-model-config-section],
-.zhiyu-ai-config-drawer__model-hub [data-nimi-model-config-capability] {
-  min-width: 0;
-  border-radius: 12px;
-}
-
-.zhiyu-ai-config-drawer__model-hub [data-nimi-model-config-section] > button,
-.zhiyu-ai-config-drawer__model-hub [data-nimi-model-config-capability] > button {
-  width: 100%;
-  min-width: 0;
-  border: 1px solid var(--nimi-border-subtle, rgba(15, 23, 42, 0.1));
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--nimi-surface-card, #fff) 86%, transparent);
-}
-
-body:has(.nimi-overlay-panel--dialog) .zhiyu-ai-config-drawer {
-  pointer-events: none;
 }
 
 @media (max-width: 1320px) {

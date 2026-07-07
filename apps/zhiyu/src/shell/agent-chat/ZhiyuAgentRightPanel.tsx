@@ -1,26 +1,38 @@
 import {
   AgentCenter,
-  type AgentCenterAppearanceProjection,
+  type AgentCenterRuntimeAdapter,
+  type AgentCenterRuntimeAIConfigUpsertInput,
   type AgentCenterSectionId,
   type AgentCenterStateInput,
 } from '@nimiplatform/kit/features/agent-center';
 import type {
-  NimiRuntimeAgentCanonicalMemoryInspect,
-  NimiRuntimeAgentExecutionConfigBindings,
-  NimiRuntimeAgentExecutionReadinessReasonCode,
-  NimiRuntimeAgentInspectSnapshot,
+  RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   AppCardSurface,
   IconToggleAction,
 } from '@nimiplatform/kit/ui';
 import { X } from 'lucide-react';
+import { useMemo } from 'react';
 import type { ZhiyuEvidence } from '../app/evidence';
+import {
+  getZhiyuAgentAIConfig,
+  getZhiyuAgentAIConfigReadiness,
+  subscribeZhiyuAgentAIConfigReadiness,
+  upsertZhiyuAgentAIConfig,
+  type ZhiyuAgentAIConfigCallInput,
+} from './agent-ai-config';
+import {
+  zhiyuAgentAIConfigIdentityFromRouteInput,
+  zhiyuAgentAIConfigRouteInputFromEvidence,
+} from '../app/agent-ai-config-route-input';
 import {
   agentCenterLocalAgentRef,
   agentCenterWorldLabel,
   partnerInitial,
 } from './ZhiyuAgentChatLabels';
+import { useZhiyuAgentCenterAppearanceAdapter } from './zhiyu-agent-center-appearance-adapter';
+import { getZhiyuRouteModelPickerProvider } from './zhiyu-route-model-picker-provider';
 
 export type RightPanelMode = 'agent' | 'closed';
 export type VisibleRightPanelMode = Exclude<RightPanelMode, 'closed'>;
@@ -40,7 +52,15 @@ type RightAgentPanelProps = {
 export function RightAgentPanel(props: RightAgentPanelProps) {
   const agentCenterRef = agentCenterLocalAgentRef(props.evidence);
   const agentCenterWorld = agentCenterWorldLabel(props.evidence);
-  const state = buildZhiyuAgentCenterState(props.evidence);
+  const appearance = useZhiyuAgentCenterAppearanceAdapter(props.evidence);
+  const state = useMemo<AgentCenterStateInput>(() => ({
+    runtimeError: props.evidence.runtime.ready ? null : `${props.evidence.runtime.reasonCode}: ${props.evidence.runtime.message}`,
+    appearance: appearance.projection,
+  }), [appearance.projection, props.evidence.runtime.message, props.evidence.runtime.ready, props.evidence.runtime.reasonCode]);
+  const runtimeAdapter = useMemo(
+    () => buildZhiyuAgentCenterRuntimeAdapter(props.evidence),
+    [props.evidence],
+  );
 
   return (
     <aside
@@ -105,12 +125,15 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
           <AgentCenter
             ariaLabel="Zhiyu Agent Center"
             activeSection={props.activeTab}
+            chrome="embedded"
             onSectionChange={props.onActiveTabChange}
             placementActions={{
               close: props.onClose,
               openRuntimeSettings: props.onOpenModelConfig,
               launchAvatar: props.onAvatarLaunch,
             }}
+            appearanceAdapter={appearance.adapter}
+            runtimeAdapter={runtimeAdapter}
             state={state}
           />
         </div>
@@ -119,146 +142,94 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
   );
 }
 
-export function buildZhiyuAgentCenterState(evidence: ZhiyuEvidence): AgentCenterStateInput {
-  return {
-    executionConfig: buildExecutionConfig(evidence),
-    readiness: buildReadiness(evidence),
-    inspect: buildInspect(evidence),
-    runtimeError: evidence.runtime.ready ? null : `${evidence.runtime.reasonCode}: ${evidence.runtime.message}`,
-    autonomyMutationAvailable: false,
-    appearance: buildAppearance(evidence),
-  };
-}
-
-function buildExecutionConfig(evidence: ZhiyuEvidence): AgentCenterStateInput['executionConfig'] {
-  if (evidence.route.configRevision === null) {
+function buildZhiyuAgentCenterRuntimeAdapter(evidence: ZhiyuEvidence): AgentCenterRuntimeAdapter | null {
+  const routeInput = zhiyuAgentAIConfigRouteInputFromEvidence(evidence);
+  const subjectUserId = routeInput.subjectUserId.trim();
+  const identity = zhiyuAgentAIConfigIdentityFromRouteInput(routeInput);
+  if (!subjectUserId || !identity) {
     return null;
   }
-  const bindings: Record<string, NimiRuntimeAgentExecutionConfigBindings[string]> = {};
-  for (const [capability, projection] of Object.entries(evidence.route.capabilities)) {
-    if (projection.binding) {
-      bindings[capability] = projection.binding;
-    }
+  const callInput: ZhiyuAgentAIConfigCallInput = {
+    subjectUserId,
+    ...identity,
+  };
+  const upsertWithIdentity = (input: AgentCenterRuntimeAIConfigUpsertInput) =>
+    upsertZhiyuAgentAIConfig({
+      ...resolveZhiyuAgentCenterMutationIdentity(callInput, input),
+      subjectUserId,
+      expectedRevision: input.expectedRevision,
+      intents: input.intents,
+    });
+
+  return {
+    agentAIConfig: {
+      get(input = callInput) {
+        return getZhiyuAgentAIConfig({
+          ...resolveZhiyuAgentCenterCallIdentity(callInput, input),
+          subjectUserId: input.subjectUserId || subjectUserId,
+        });
+      },
+      readiness(input = callInput) {
+        return getZhiyuAgentAIConfigReadiness({
+          ...resolveZhiyuAgentCenterCallIdentity(callInput, input),
+          subjectUserId: input.subjectUserId || subjectUserId,
+        });
+      },
+      subscribeReadiness(input = callInput) {
+        return subscribeZhiyuAgentAIConfigReadiness({
+          ...resolveZhiyuAgentCenterCallIdentity(callInput, input),
+          subjectUserId: input.subjectUserId || subjectUserId,
+        });
+      },
+      upsert(input) {
+        return upsertZhiyuAgentAIConfig({
+          ...resolveZhiyuAgentCenterCallIdentity(callInput, input),
+          subjectUserId: input.subjectUserId || subjectUserId,
+          expectedRevision: input.expectedRevision,
+          intents: input.intents,
+        });
+      },
+    },
+    modelConfig: {
+      providerResolver: getZhiyuRouteModelPickerProvider,
+    },
+    async loadSnapshot() {
+      const [agentAIConfig, readiness] = await Promise.all([
+        getZhiyuAgentAIConfig(callInput),
+        getZhiyuAgentAIConfigReadiness(callInput),
+      ]);
+      return {
+        agentAIConfig,
+        readiness,
+      };
+    },
+    upsertAgentAIConfig: upsertWithIdentity,
+  };
+}
+
+function resolveZhiyuAgentCenterMutationIdentity(
+  base: ZhiyuAgentAIConfigCallInput,
+  input: AgentCenterRuntimeAIConfigUpsertInput,
+): RuntimeLocalAgentIdentityInput {
+  if (input.ownerUserId && input.runtimeSourceRef && input.localAgentRef) {
+    return {
+      ownerUserId: input.ownerUserId,
+      runtimeSourceRef: input.runtimeSourceRef,
+      localAgentRef: input.localAgentRef,
+      ...(input.scopedBinding ? { scopedBinding: input.scopedBinding } : {}),
+    };
   }
-  if (evidence.route.executionBinding && !bindings['text.generate']) {
-    bindings['text.generate'] = evidence.route.executionBinding;
-  }
-  return {
-    revision: evidence.route.configRevision,
-    bindings,
-    updatedAt: evidence.route.updatedAt,
-    updatedByAppId: evidence.route.updatedByAppId || 'runtime',
-  };
+  return resolveZhiyuAgentCenterCallIdentity(base, base);
 }
 
-function buildReadiness(evidence: ZhiyuEvidence): AgentCenterStateInput['readiness'] {
-  const capabilities = Object.entries(evidence.route.capabilities);
-  if (evidence.route.readinessRevision === null && capabilities.length === 0) {
-    return null;
-  }
+function resolveZhiyuAgentCenterCallIdentity(
+  base: ZhiyuAgentAIConfigCallInput,
+  input: Partial<RuntimeLocalAgentIdentityInput>,
+): RuntimeLocalAgentIdentityInput {
   return {
-    configRevision: evidence.route.readinessRevision ?? evidence.route.configRevision ?? 0,
-    capabilities: capabilities.map(([capability, projection]) => ({
-      capability,
-      state: projection.state,
-      reasonCode: normalizeReadinessReasonCode(projection.reasonCode),
-      probedAt: projection.probedAt,
-    })),
+    ownerUserId: input.ownerUserId || base.ownerUserId,
+    runtimeSourceRef: input.runtimeSourceRef || base.runtimeSourceRef,
+    localAgentRef: input.localAgentRef || base.localAgentRef,
+    ...(input.scopedBinding || base.scopedBinding ? { scopedBinding: input.scopedBinding || base.scopedBinding } : {}),
   };
-}
-
-function buildInspect(evidence: ZhiyuEvidence): NimiRuntimeAgentInspectSnapshot | null {
-  if (!evidence.localAgent.ready && !evidence.companion.ready && !evidence.memory.ready && !evidence.avatar.ready) {
-    return null;
-  }
-  const proactive = evidence.companion.proactiveInterruptibility;
-  return {
-    executionState: evidence.companion.executionState,
-    statusText: evidence.companion.statusText,
-    activeWorldId: evidence.companion.activeWorldId,
-    activeUserId: evidence.companion.activeUserId,
-    updatedAt: evidence.companion.stateUpdatedAt,
-    currentEmotion: evidence.companion.currentEmotion,
-    proactiveInterruptibility: buildProactiveProjection(evidence),
-    lifecycleStatus: evidence.localAgent.ready ? evidence.localAgent.reasonCode : null,
-    presentationProfile: null,
-    autonomyMode: proactive.mode,
-    autonomyEnabled: proactive.mode ? proactive.mode !== 'off' : null,
-    autonomyBudgetExhausted: proactive.frequencyCapState === 'capped',
-    autonomyUsedTokensInWindow: null,
-    autonomyDailyTokenBudget: null,
-    autonomyMaxTokensPerHook: null,
-    autonomyWindowStartedAt: null,
-    autonomySuspendedUntil: null,
-    pendingHooksCount: 0,
-    nextScheduledFor: null,
-    pendingHooks: [],
-    recentTerminalHooks: [],
-    recentCanonicalMemories: evidence.memory.records.map(toCanonicalMemoryInspect),
-  };
-}
-
-function buildProactiveProjection(evidence: ZhiyuEvidence): NimiRuntimeAgentInspectSnapshot['proactiveInterruptibility'] {
-  const proactive = evidence.companion.proactiveInterruptibility;
-  return {
-    projectionId: proactive.projectionId,
-    projectionKind: proactive.projectionKind,
-    mode: proactive.mode,
-    optInState: proactive.optInState,
-    deliveryChannel: proactive.deliveryChannel,
-    quietHoursState: proactive.quietHoursState,
-    frequencyCapState: proactive.frequencyCapState,
-    suggestedEvent: null,
-    lastDeliveredEvent: null,
-    lastSuppressedEvent: null,
-    auditRefs: proactive.auditRefs,
-    unsupportedFields: proactive.unsupportedFields,
-  };
-}
-
-function toCanonicalMemoryInspect(
-  memory: ZhiyuEvidence['memory']['records'][number],
-): NimiRuntimeAgentCanonicalMemoryInspect {
-  return {
-    memoryId: memory.memoryId,
-    canonicalClass: memory.canonicalClass,
-    kind: memory.kind,
-    summary: memory.summary,
-    updatedAt: memory.lineage.committedAt ?? memory.timelineAt,
-    sourceEventId: memory.lineage.sourceEventId,
-    policyReason: memory.confidence.reasonCode,
-    recallScore: null,
-  };
-}
-
-function buildAppearance(evidence: ZhiyuEvidence): AgentCenterAppearanceProjection {
-  const avatarAssetRef = evidence.avatar.projectionRef || evidence.avatar.configurationRef || null;
-  const status: AgentCenterAppearanceProjection['status'] = evidence.avatar.ready || evidence.avatar.visualReadiness === 'projected'
-    ? 'ready'
-    : avatarAssetRef
-      ? 'invalid'
-      : 'not_configured';
-  return {
-    status,
-    backendKind: evidence.avatar.backendKind,
-    avatarAssetRef,
-    backgroundRef: null,
-    defaultVoiceReference: null,
-    avatarAutoplay: false,
-    disabledReason: status === 'ready' ? null : evidence.avatar.message,
-  };
-}
-
-function normalizeReadinessReasonCode(value: string): NimiRuntimeAgentExecutionReadinessReasonCode {
-  if (
-    value === ''
-    || value === 'route_unhealthy'
-    || value === 'connector_missing'
-    || value === 'model_missing'
-    || value === 'target_missing'
-    || value === 'probe_failed'
-  ) {
-    return value;
-  }
-  return 'probe_failed';
 }

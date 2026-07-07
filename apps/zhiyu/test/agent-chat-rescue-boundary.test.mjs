@@ -60,9 +60,9 @@ test('agent center advanced capability surfaces have local styling hooks', () =>
   const css = read('src/shell/app/home-surface.css');
 
   assert.match(css, /\.zhiyu-agent-center__capability-probe/);
-  assert.match(css, /\.zhiyu-agent-center__capability-studio/);
   assert.match(css, /\.zhiyu-agent-center__proposal/);
   assert.match(css, /\.zhiyu-agent-center__advanced-warning/);
+  assert.doesNotMatch(css, /zhiyu-agent-center__capability-studio/);
 });
 
 test('Agent Center UI classes do not use the retired home agent namespace', () => {

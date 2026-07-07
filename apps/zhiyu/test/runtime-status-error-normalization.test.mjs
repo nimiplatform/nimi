@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { transformSync } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -31,7 +32,7 @@ test('leaves non-transport Runtime errors available to the caller', async () => 
 
   assert.equal(
     normalizeZhiyuElectronRuntimeUnavailableError({
-      reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
       actionHint: 'register_runtime_principal',
       source: 'runtime',
     }),

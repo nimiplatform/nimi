@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { transformSync } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -237,14 +238,14 @@ test('identity floor renders Runtime memory rejection and identity conflict rela
       state: 'warning',
       identityConflict: {
         state: 'detected',
-        reasonCode: 'PROTOCOL_DOMAIN_FIELD_CONFLICT',
+        reasonCode: ReasonCode.PROTOCOL_DOMAIN_FIELD_CONFLICT,
         source: 'runtime-agent-memory-admission',
         sourceEventId: 'turn-1',
         message: 'memory candidate conflicts with local identity boundary',
       },
       memoryAdmission: {
         state: 'rejected',
-        reasonCode: 'PROTOCOL_DOMAIN_FIELD_CONFLICT',
+        reasonCode: ReasonCode.PROTOCOL_DOMAIN_FIELD_CONFLICT,
         source: 'runtime-agent-memory-admission',
         sourceEventId: 'turn-1',
         message: 'memory candidate conflicts with local identity boundary',

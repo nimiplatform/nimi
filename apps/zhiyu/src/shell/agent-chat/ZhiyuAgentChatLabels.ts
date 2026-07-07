@@ -33,23 +33,26 @@ export function chatBlockedHint(evidence: ZhiyuEvidence): string {
     return '正在打开会话，请稍候。';
   }
   if (!evidence.route.ready) {
-    return executionReadinessHint(evidence.route);
+    return agentAIConfigReadinessHint(evidence.route);
   }
   return '当前暂时不能发送，请稍后重试。';
 }
 
 // Readiness tri-state product copy for the composer gate. The unavailable
-// reason codes come from the runtime execution readiness projection
-// (.nimi/spec/runtime/kernel/tables/agent-execution-config.yaml).
-export function executionReadinessHint(route: ZhiyuEvidence['route']): string {
-  if (route.reasonCode === 'zhiyu-agent-execution-config-auth-required') {
+// reason codes come from the Runtime Agent AI Config readiness projection
+// (.nimi/spec/runtime/kernel/tables/runtime-agent-ai-config.yaml).
+export function agentAIConfigReadinessHint(route: ZhiyuEvidence['route']): string {
+  if (route.reasonCode === 'zhiyu-agent-ai-config-auth-required') {
     return '请先登录本地运行服务账户。';
   }
-  if (route.reasonCode === 'zhiyu-agent-execution-config-unavailable') {
+  if (route.reasonCode === 'zhiyu-agent-ai-config-identity-required') {
+    return '请先选择本地伙伴。';
+  }
+  if (route.reasonCode === 'zhiyu-agent-ai-config-unavailable') {
     return '本地运行服务暂时不可用，请稍后重试。';
   }
   const text = route.capabilities['text.generate'] ?? null;
-  if (!text || text.state === 'not_configured' || route.reasonCode === 'zhiyu-agent-execution-config-not-configured') {
+  if (!text || text.state === 'not_configured' || route.reasonCode === 'zhiyu-agent-ai-config-not-configured') {
     return '请先在伙伴中心完成模型配置。';
   }
   if (text.state === 'unavailable') {

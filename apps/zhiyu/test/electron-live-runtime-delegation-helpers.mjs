@@ -4,6 +4,14 @@ const delegationScopes = [
   'runtime.agent.delegation.read',
   'runtime.agent.delegation.write',
 ];
+const admittedRuntimeAgentAIConfigCapabilities = [
+  'audio.synthesize',
+  'image.generate',
+  'text.embed',
+  'text.generate',
+  'voice_workflow.voice_clone',
+  'voice_workflow.voice_design',
+];
 
 export async function assertPreConfigRuntimeEvidence(page, fixture, zhiyuAppId) {
   const preConfigEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
@@ -29,7 +37,7 @@ export async function assertPreConfigRuntimeEvidence(page, fixture, zhiyuAppId) 
     fixture,
     zhiyuAppId,
     preConfigEvidence,
-    expectedScopes: ['runtime.agent.delegation.read'],
+    expectedScopes: delegationScopes,
   });
 
   const scopedBindingRenewal = await page.evaluate(() =>
@@ -58,29 +66,33 @@ export async function assertPreConfigRuntimeEvidence(page, fixture, zhiyuAppId) 
   assert.equal(installedRenewedScopedBinding?.bindingId, renewedScopedBinding.bindingId);
   assert.equal(preConfigEvidence.memory.ready, true);
   assert.match(preConfigEvidence.memory.state, /^(ready|empty)$/);
-  // Pre-config route truth is the K-AGCORE-150 runtime-seeded execution
-  // config: text.generate=local/default resolves ready on a fresh daemon and
+  // Pre-config route truth is the K-AGCORE-150 runtime-seeded AI Config:
+  // text.generate=local/default resolves ready on a fresh daemon and
   // optional media capabilities stay not_configured until an app or fixture
   // commits them.
   assert.equal(preConfigEvidence.route.ready, true);
-  assert.equal(preConfigEvidence.route.reasonCode, 'runtime-execution-config-ready');
+  assert.equal(preConfigEvidence.route.reasonCode, 'runtime-agent-ai-config-ready');
   assert.equal(preConfigEvidence.route.capability, 'text.generate');
   assert.equal(preConfigEvidence.route.configRevision, 1);
   assert.equal(preConfigEvidence.route.readinessRevision, 1);
   assert.equal(preConfigEvidence.route.updatedByAppId, 'runtime');
-  assert.ok(preConfigEvidence.route.updatedAt, 'seeded execution config must carry a commit timestamp');
+  assert.ok(preConfigEvidence.route.updatedAt, 'seeded Runtime Agent AI Config must carry a commit timestamp');
   assert.equal(preConfigEvidence.route.executionBinding.route, 'local');
   assert.equal(preConfigEvidence.route.executionBinding.modelId, 'local/default');
   assert.deepEqual(
     Object.keys(preConfigEvidence.route.capabilities).sort(),
-    ['audio.synthesize', 'image.generate', 'text.generate'],
+    admittedRuntimeAgentAIConfigCapabilities,
   );
   assert.equal(preConfigEvidence.route.capabilities['text.generate'].state, 'ready');
   assert.equal(preConfigEvidence.route.capabilities['text.generate'].binding.modelId, 'local/default');
+  assert.equal(preConfigEvidence.route.capabilities['text.embed'].state, 'ready');
+  assert.equal(preConfigEvidence.route.capabilities['text.embed'].binding.modelId, 'local/default-embedding');
   assert.equal(preConfigEvidence.route.capabilities['image.generate'].state, 'not_configured');
   assert.equal(preConfigEvidence.route.capabilities['image.generate'].binding, null);
   assert.equal(preConfigEvidence.route.capabilities['audio.synthesize'].state, 'not_configured');
   assert.equal(preConfigEvidence.route.capabilities['audio.synthesize'].binding, null);
+  assert.equal(preConfigEvidence.route.capabilities['voice_workflow.voice_clone'].state, 'not_configured');
+  assert.equal(preConfigEvidence.route.capabilities['voice_workflow.voice_design'].state, 'not_configured');
   return { preConfigEvidence, preConfigScopedBinding, renewedScopedBinding };
 }
 

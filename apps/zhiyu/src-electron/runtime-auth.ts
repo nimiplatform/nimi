@@ -15,10 +15,10 @@ const runtimeProtectedScopes = [
   'runtime.agent.turn.write',
   'runtime.agent.delegation.read',
   'runtime.agent.delegation.write',
-  // K-AGCORE-144~150 / Z-AUTH-006: the renderer's runtime.agent.executionConfig
-  // projection + model-tab commits require the execution config scopes.
-  'runtime.agent.execution_config.read',
-  'runtime.agent.execution_config.write',
+  // K-AGCORE-144~150 / Z-AUTH-006: the renderer's runtime.agent.ai_config
+  // projection + model-tab commits require the AI Config scopes.
+  'runtime.agent.ai_config.read',
+  'runtime.agent.ai_config.write',
   'ai.spend.meter',
 ] as const;
 const runtimeProtectedScopeCatalogVersion = 'sdk-v2';

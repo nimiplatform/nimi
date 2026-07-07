@@ -3,7 +3,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { app, BrowserWindow, Menu, ipcMain, protocol } from 'electron';
 import {
   createElectronShellFileProtocolHost,
-  createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   type NimiElectronRuntimeTrustedCallerMode,
@@ -72,10 +71,6 @@ void app.whenReady().then(async () => {
       runtimeTrustedCaller: {
         mode: resolveRuntimeTrustedCallerMode(),
       },
-      aiConfigStore: createNimiElectronFileAIConfigStore({
-        dataRoot: standardDataRoot,
-        storeLabel: 'zhiyu AI Config',
-      }),
     },
     commandHandlers: {
       [ZHIYU_RUNTIME_AGENT_SCOPED_BINDING_COMMAND]: createZhiyuRuntimeAgentScopedBindingCommandHandler({

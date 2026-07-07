@@ -68,7 +68,7 @@ tests:
       - Z-CONFIG-002
       - Z-CONFIG-005
       - Z-GATE-001
-  - path: apps/zhiyu/test/agent-execution-config.test.mjs
+  - path: apps/zhiyu/test/agent-ai-config.test.mjs
     owner: zhiyu
     classification: behavior_unit
     tier: T4
@@ -81,34 +81,6 @@ tests:
       - P-TEST-001
       - Z-AUTH-006
       - Z-CHAT-001
-      - Z-GATE-001
-  - path: apps/zhiyu/test/ai-config-local-assets.test.mjs
-    owner: zhiyu
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-      - Z-CONFIG-001
-      - Z-CONFIG-004
-      - Z-GATE-001
-  - path: apps/zhiyu/test/ai-config-store.test.mjs
-    owner: zhiyu
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-      - Z-CONFIG-002
-      - Z-PERSIST-002
       - Z-GATE-001
   - path: apps/zhiyu/test/avatar-launch-handoff.test.mjs
     owner: zhiyu
@@ -152,20 +124,6 @@ tests:
       - Z-AUTH-004
       - Z-GATE-001
     removal_condition: replace with admitted capability-room behavior coverage or delete once Z-AUTH-004 and Z-GATE-005 are no longer represented by this drift fossil
-  - path: apps/zhiyu/test/capability-studio-ai-consume.test.mjs
-    owner: zhiyu
-    classification: legacy_drift_quarantine
-    tier: null
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
-    spec_refs:
-      - P-TEST-001
-      - Z-CHAT-003
-      - Z-GATE-001
-    removal_condition: replace with admitted Kit-owned AI consume boundary coverage or delete once the Capability Studio drift fossil is superseded
   - path: apps/zhiyu/test/chat-turn-apply-guard.test.mjs
     owner: zhiyu
     classification: behavior_unit
@@ -348,20 +306,6 @@ tests:
       - Z-GATE-005
       - Z-CHAT-001
       - Z-CONFIG-005
-  - path: apps/zhiyu/test/execution-config-commit.test.mjs
-    owner: zhiyu
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-      - Z-AUTH-006
-      - Z-CONFIG-001
-      - Z-GATE-001
   - path: apps/zhiyu/test/home-product-state.test.mjs
     owner: zhiyu
     classification: behavior_unit

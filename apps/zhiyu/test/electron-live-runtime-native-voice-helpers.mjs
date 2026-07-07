@@ -21,8 +21,8 @@ const zhiyuRuntimeProtectedScopes = [
   'runtime.agent.turn.write',
   'runtime.agent.delegation.read',
   'runtime.agent.delegation.write',
-  'runtime.agent.execution_config.read',
-  'runtime.agent.execution_config.write',
+  'runtime.agent.ai_config.read',
+  'runtime.agent.ai_config.write',
   'ai.spend.meter',
 ];
 export async function assertMidStreamFailureFlow(page, pageProblems, readyEvidence) {

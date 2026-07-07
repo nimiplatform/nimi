@@ -31,6 +31,8 @@ const agentChatParitySourceFiles = [
   'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx',
   'src/shell/agent-chat/ZhiyuAgentRightPanel.tsx',
   'src/shell/agent-chat/ZhiyuAgentAppearancePanel.tsx',
+  'src/shell/agent-chat/zhiyu-agent-center-appearance-adapter.ts',
+  'src/shell/agent-chat/zhiyu-route-model-picker-provider.ts',
   'src/shell/agent-chat/ZhiyuAgentChatPieces.tsx',
   'src/shell/agent-chat/ZhiyuAgentChatLabels.ts',
   'src/shell/agent-chat/ZhiyuAgentPanel.tsx',
@@ -82,8 +84,8 @@ const requiredDesktopSources = [
   'apps/desktop/src/shell/renderer/features/chat/chat-shared-thinking.ts',
   'kit/features/agent-center/src/components/AgentCenter.tsx',
   'apps/desktop/src/shell/renderer/features/chat/chat-shared-side-sheet.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-panel-components.tsx',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-cognition-panel.tsx',
+  'kit/features/agent-center/src/components/AgentCenterPrimitives.tsx',
+  'kit/features/agent-center/src/components/AgentCenterCognitionSection.tsx',
   'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-avatar-settings-content.tsx',
   'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-avatar-config-types.ts',
   'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-local-config.ts',
@@ -224,6 +226,35 @@ test('primary agent chat surface does not import Capability Studio direct AI con
     for (const specifier of importSpecifiers(source)) {
       if (specifier.includes('capability-studio/zhiyu-ai-consume')) {
         violations.push(`${relativePath}: primary chat path imports direct AI consume helper`);
+      }
+    }
+  }
+
+  assert.deepEqual(violations, []);
+});
+
+test('Zhiyu product shell contains no app-scope AIConfig or direct Capability Studio AI consume substrate', async () => {
+  const files = [
+    ...await collectProductionFiles(path.join(productionRoot, 'shell')),
+    ...await collectProductionFiles(path.join(appRoot, 'src-electron')),
+  ];
+  const violations = [];
+  const forbidden = [
+    ['app-scope AIConfig service', /createZhiyuAIConfigService|createZhiyuAgentHomeAIScopeRef|loadZhiyuAIConfig|refreshZhiyuAIConfig/u],
+    ['app-scope AIConfig UI', /ZhiyuAiConfigSettings|data-zhiyu-ai-config|zhiyu-agent-home/u],
+    ['standard shell AIConfig facade', /NIMI_STANDARD_SHELL_COMMANDS\[['"]ai-config\.(?:get|set)['"]\]|aiConfigStore|createNimiElectronFileAIConfigStore/u],
+    ['SDK AIConfig route truth type', /\bNimiAIConfig\b/u],
+    ['direct Kit AI consume helper', /runRuntimeAIConsumeCapability/u],
+    ['direct Runtime speech synthesize helper', /runRuntimeSpeechSynthesize/u],
+    ['Capability Studio consume module', /zhiyu-ai-consume|developer-capability-studio/u],
+  ];
+
+  for (const file of files) {
+    const relativePath = path.relative(appRoot, file).replaceAll(path.sep, '/');
+    const source = await readFile(file, 'utf8');
+    for (const [label, pattern] of forbidden) {
+      if (pattern.test(source)) {
+        violations.push(`${relativePath}: ${label}`);
       }
     }
   }
@@ -509,17 +540,35 @@ test('Agent Center header mirrors Desktop side-sheet identity metadata', async (
   );
 });
 
-test('Agent Center model section projects Runtime execution config and excludes Zhiyu AIConfig settings', async () => {
-  const zhiyuSettingsSource = await readFile(path.join(appRoot, 'src', 'shell', 'ai-config', 'zhiyu-ai-config-settings.tsx'), 'utf8');
+test('Agent Center model section projects Runtime AI Config and excludes Zhiyu AIConfig settings', async () => {
   const rightPanelSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'ZhiyuAgentRightPanel.tsx'), 'utf8');
+  const zhiyuRouteModelPickerProviderSource = await readFile(path.join(appRoot, 'src', 'shell', 'agent-chat', 'zhiyu-route-model-picker-provider.ts'), 'utf8');
   const kitModelSource = await readFile(path.join(repoRoot, 'kit', 'features', 'agent-center', 'src', 'components', 'AgentCenterModelSection.tsx'), 'utf8');
 
-  assert.match(rightPanelSource, /buildZhiyuAgentCenterState/);
-  assert.match(rightPanelSource, /executionConfig:\s*buildExecutionConfig\(evidence\)/);
-  assert.match(rightPanelSource, /readiness:\s*buildReadiness\(evidence\)/);
+  assert.equal(existsSync(path.join(appRoot, 'src', 'shell', 'ai-config', 'zhiyu-ai-config-settings.tsx')), false);
+  assert.equal(existsSync(path.join(appRoot, 'src', 'shell', 'ai-config', 'zhiyu-ai-config-store.ts')), false);
+  assert.doesNotMatch(
+    rightPanelSource,
+    new RegExp(['buildZhiyu', 'AgentCenterState'].join('')),
+  );
+  assert.doesNotMatch(rightPanelSource, /projectZhiyuAgentCenterRuntimeProjection/);
+  assert.match(rightPanelSource, /runtimeAdapter=\{runtimeAdapter\}/);
+  assert.match(rightPanelSource, /modelConfig:\s*\{[\s\S]*providerResolver:\s*getZhiyuRouteModelPickerProvider/);
+  assert.match(rightPanelSource, /upsertAgentAIConfig/);
+  assert.match(rightPanelSource, /upsertZhiyuAgentAIConfig/);
+  assert.match(rightPanelSource, /expectedRevision/);
+  assert.match(rightPanelSource, /loadSnapshot/);
+  assert.doesNotMatch(rightPanelSource, /agentAIConfig:\s*buildAgentAIConfig\(evidence\)/);
+  assert.doesNotMatch(rightPanelSource, /readiness:\s*buildReadiness\(evidence\)/);
+  assert.doesNotMatch(rightPanelSource, /function\s+build(?:AgentAIConfig|Readiness|Inspect|Appearance)/);
   assert.doesNotMatch(rightPanelSource, /ZhiyuAiConfigSettings|data-zhiyu-ai-config-embedded|modelConfigContent/);
-  assert.doesNotMatch(zhiyuSettingsSource, /data-zhiyu-ai-config-embedded="agent-center"/);
-  assert.match(kitModelSource, /capability\.editable \? 'Editable' : 'Read-only projection'/);
+  assert.match(zhiyuRouteModelPickerProviderSource, /createRuntimeRouteModelPickerProviderCache/);
+  assert.match(zhiyuRouteModelPickerProviderSource, /listNimiRuntimeRouteOptionsWithHost/);
+  assert.match(zhiyuRouteModelPickerProviderSource, /createNimiRuntimeRouteOptionsHostDeps/);
+  assert.doesNotMatch(zhiyuRouteModelPickerProviderSource, /desktop-route-model-picker-provider|getDesktopRouteModelPickerProvider/);
+  assert.doesNotMatch(kitModelSource, /capability\.editable \? 'Editable' : 'Read-only projection'/);
+  assert.match(kitModelSource, /runtimeAdapter\.upsertAgentAIConfig/);
+  assert.match(kitModelSource, /data-agent-center-model-apply/);
   assert.match(kitModelSource, /capability\.binding\?\.modelId \|\| 'Not configured'/);
 });
 

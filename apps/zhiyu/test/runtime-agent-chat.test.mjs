@@ -71,8 +71,8 @@ test('Zhiyu Runtime Agent chat delegates streaming turns through Desktop-parity 
     worldId: 'world-turn-ready',
     scopes: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
   });
-  // Atomic hard cut: turn requests never carry execution bindings; the
-  // runtime resolves execution from its committed config (K-AGCORE-147).
+  // Atomic hard cut: turn requests never carry model bindings; the runtime
+  // resolves execution from its committed Runtime Agent AI Config.
   assert.equal('executionBindings' in captured[0].request, false);
   assert.deepEqual(captured[0].request.messages, [
     { role: 'user', content: 'hello from Zhiyu chat' },
@@ -336,7 +336,7 @@ test('Zhiyu Runtime Agent chat renders resolved Runtime image artifacts as chat 
   assert.equal(imageMessage?.metadata?.artifactProjection, 'runtime.agent.turn.artifact_ready');
 });
 
-test('Zhiyu Runtime Agent chat turn requests never carry execution bindings', async () => {
+test('Zhiyu Runtime Agent chat turn requests never carry model bindings', async () => {
   const module = await importRuntimeAgentChat();
   const captured = [];
 
@@ -366,11 +366,11 @@ test('Zhiyu Runtime Agent chat turn requests never carry execution bindings', as
   });
 
   // Atomic hard cut: even with local route evidence for text+image, the turn
-  // request never carries execution bindings (K-AGCORE-147).
+  // request never carries model bindings (K-AGCORE-147).
   assert.equal('executionBindings' in captured[0], false);
 });
 
-test('Zhiyu Runtime Agent chat fails closed before streaming when execution readiness is not ready', async () => {
+test('Zhiyu Runtime Agent chat fails closed before streaming when Agent AI Config readiness is not ready', async () => {
   const module = await importRuntimeAgentChat();
   let called = false;
 
@@ -387,8 +387,8 @@ test('Zhiyu Runtime Agent chat fails closed before streaming when execution read
 
   assert.equal(called, false);
   assert.equal(result.ready, false);
-  assert.equal(result.reasonCode, 'zhiyu-agent-execution-config-not-configured');
-  assert.equal(result.actionHint, 'configure_runtime_agent_execution_model');
+  assert.equal(result.reasonCode, 'zhiyu-agent-ai-config-not-configured');
+  assert.equal(result.actionHint, 'configure_runtime_agent_ai_config');
 });
 
 test('Zhiyu Runtime Agent chat fails closed before streaming without Runtime binding evidence', async () => {
@@ -561,7 +561,7 @@ function conversationReady(overrides = {}) {
   };
 }
 
-// evidence.route projects the runtime-owned execution config + readiness
+// evidence.route projects the runtime-owned AI Config + readiness
 // (K-AGCORE-144~150): committed revision, per-capability binding summary,
 // readiness tri-state, and send-readiness from text.generate === 'ready'.
 function routeReady(overrides = {}) {
@@ -588,10 +588,10 @@ function routeReady(overrides = {}) {
       },
     },
     executionBinding: textExecutionBinding(),
-    reasonCode: 'runtime-execution-config-ready',
+    reasonCode: 'runtime-agent-ai-config-ready',
     actionHint: 'send_runtime_agent_turn',
     source: 'runtime',
-    message: 'Runtime agent execution config projects text.generate as ready.',
+    message: 'Runtime agent AI Config projects text.generate as ready.',
     ...overrides,
   };
 }
@@ -608,9 +608,9 @@ function routeNotReady() {
       },
     },
     executionBinding: null,
-    reasonCode: 'zhiyu-agent-execution-config-not-configured',
-    actionHint: 'configure_runtime_agent_execution_model',
-    message: 'Runtime agent execution config has no ready text.generate binding yet.',
+    reasonCode: 'zhiyu-agent-ai-config-not-configured',
+    actionHint: 'configure_runtime_agent_ai_config',
+    message: 'Runtime Agent AI Config has no ready text.generate intent yet.',
   });
 }
 

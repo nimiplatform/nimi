@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { transformSync } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -199,7 +200,7 @@ test('fails closed before default Runtime presentation read when Electron bridge
 test('normalizes Avatar facade read failures without pseudo presence', async () => {
   const { probeZhiyuAvatarPresence } = await loadModule();
   const error = Object.assign(new Error('Avatar facade read failed.'), {
-    reasonCode: 'SDK_AVATAR_CONFIGURATION_RECORD_INVALID',
+    reasonCode: ReasonCode.SDK_AVATAR_CONFIGURATION_RECORD_INVALID,
     actionHint: 'check_avatar_facade_projection',
     source: 'sdk',
   });

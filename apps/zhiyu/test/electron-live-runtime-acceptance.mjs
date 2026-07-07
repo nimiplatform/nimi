@@ -73,9 +73,17 @@ const zhiyuRuntimeProtectedScopes = [
   'runtime.agent.turn.write',
   'runtime.agent.delegation.read',
   'runtime.agent.delegation.write',
-  'runtime.agent.execution_config.read',
-  'runtime.agent.execution_config.write',
+  'runtime.agent.ai_config.read',
+  'runtime.agent.ai_config.write',
   'ai.spend.meter',
+];
+const admittedRuntimeAgentAIConfigCapabilities = [
+  'audio.synthesize',
+  'image.generate',
+  'text.embed',
+  'text.generate',
+  'voice_workflow.voice_clone',
+  'voice_workflow.voice_design',
 ];
 
 test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtime Agent chat turn', { timeout: 300_000 }, async () => {
@@ -98,10 +106,11 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
         capabilities: avatarRuntimeProtectedScopes,
       });
       await seedLiveRuntimeAvatarPresentationProfile(fixture);
-      // Node-side view of the runtime-owned execution config: used to drive
+      // Node-side view of the runtime-owned AI Config: used to drive
       // an honest external config mutation (second admitted writer) for the
       // unavailable-readiness stage. Never used to fake Zhiyu UI state.
-      const runtimeExecutionConfig = createFixtureRuntimeAgentClient(fixture.runtime).executionConfig;
+      const runtimeAgentAIConfig = createFixtureRuntimeAgentClient(fixture.runtime).agentAIConfig;
+      const runtimeAgentAIConfigIdentity = { ownerUserId: fixture.ownerUserId, runtimeSourceRef: fixture.runtimeSourceRef, localAgentRef: fixture.localAgentRef };
 
       await withTempDir('live-runtime', async (tmpRoot) => {
         const dataRoot = path.join(tmpRoot, 'data');
@@ -151,7 +160,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             && globalThis.window.__nimiZhiyuEvidence?.memory?.ready === true
             && globalThis.window.__nimiZhiyuEvidence?.delegation?.ready === true
             && globalThis.window.__nimiZhiyuEvidence?.delegation?.reasonCode === 'runtime-delegation-control-surface-ready'
-            && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
+            && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-agent-ai-config-ready'
             && globalThis.window.__nimiZhiyuEvidence?.turn?.ready === true,
             'pre-config runtime evidence',
           );
@@ -192,12 +201,13 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           await captureLiveRuntimeEvidence(page, 'seededDefaultConfig', pageProblems, {
             seededDefaultConfigEvidence,
           });
-          const seededCommittedConfig = await runtimeExecutionConfig.get();
+          const seededCommittedConfig = await runtimeAgentAIConfig.get(runtimeAgentAIConfigIdentity);
           assert.equal(seededCommittedConfig.revision, seededConfigRevision);
-          const textCommittedConfig = await runtimeExecutionConfig.upsert({
+          const textCommittedConfig = await runtimeAgentAIConfig.upsert({
+            ...runtimeAgentAIConfigIdentity,
             expectedRevision: seededCommittedConfig.revision,
-            bindings: {
-              ...seededCommittedConfig.bindings,
+            intents: {
+              ...seededCommittedConfig.intents,
               'text.generate': {
                 route: 'local',
                 modelId: fixture.route.executionBinding.modelId,
@@ -209,16 +219,17 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             },
           });
           await waitForEvidence(page, ({ textRevision }) =>
-            globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
+            globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-agent-ai-config-ready'
             && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === textRevision
             && /runtime-agent-live-e2e/.test(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding?.modelId || ''),
-            'route ready after text execution config SDK upsert',
+            'route ready after text AI Config SDK upsert',
             { textRevision: textCommittedConfig.revision },
           );
-          const imageCommittedConfig = await runtimeExecutionConfig.upsert({
+          const imageCommittedConfig = await runtimeAgentAIConfig.upsert({
+            ...runtimeAgentAIConfigIdentity,
             expectedRevision: textCommittedConfig.revision,
-            bindings: {
-              ...textCommittedConfig.bindings,
+            intents: {
+              ...textCommittedConfig.intents,
               'image.generate': {
                 route: 'cloud',
                 modelId: fixture.imageRoute.executionBinding.modelId,
@@ -229,10 +240,11 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
               },
             },
           });
-          const voiceCommittedConfig = await runtimeExecutionConfig.upsert({
+          const voiceCommittedConfig = await runtimeAgentAIConfig.upsert({
+            ...runtimeAgentAIConfigIdentity,
             expectedRevision: imageCommittedConfig.revision,
-            bindings: {
-              ...imageCommittedConfig.bindings,
+            intents: {
+              ...imageCommittedConfig.intents,
               'audio.synthesize': {
                 route: 'cloud',
                 modelId: fixture.voiceRoute.executionBinding.modelId,
@@ -245,14 +257,14 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           });
           const voiceCommitRevision = voiceCommittedConfig.revision;
           await waitForEvidence(page, ({ voiceCommitRevision }) =>
-            globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
+            globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-agent-ai-config-ready'
             && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === voiceCommitRevision
             && /runtime-agent-live-e2e/.test(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding?.modelId || '')
             && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['image.generate']?.state !== 'not_configured'
             && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['image.generate']?.binding?.route === 'cloud'
             && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['audio.synthesize']?.state !== 'not_configured'
             && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['audio.synthesize']?.binding?.route === 'cloud',
-            'route ready after execution config commits',
+            'route ready after AI Config commits',
             { voiceCommitRevision },
           );
           const modelConfiguredEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
@@ -267,19 +279,22 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
 
           let readyEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
           assert.equal(readyEvidence.route.ready, true);
-          assert.equal(readyEvidence.route.reasonCode, 'runtime-execution-config-ready');
+          assert.equal(readyEvidence.route.reasonCode, 'runtime-agent-ai-config-ready');
           assert.equal(readyEvidence.route.capability, 'text.generate');
           assert.equal(readyEvidence.route.configRevision, voiceCommitRevision);
           assert.equal(readyEvidence.route.readinessRevision, voiceCommitRevision);
           assert.equal(readyEvidence.route.updatedByAppId, desktopAppId);
           assert.deepEqual(
             Object.keys(readyEvidence.route.capabilities).sort(),
-            ['audio.synthesize', 'image.generate', 'text.generate'],
+            admittedRuntimeAgentAIConfigCapabilities,
             'runtime execution readiness projects exactly the admitted capabilities',
           );
           assert.equal(readyEvidence.route.capabilities['text.generate'].state, 'ready');
           assert.equal(readyEvidence.route.capabilities['text.generate'].binding.route, 'local');
           assert.match(readyEvidence.route.capabilities['text.generate'].binding.modelId, /runtime-agent-live-e2e/);
+          assert.equal(readyEvidence.route.capabilities['text.embed'].state, 'ready');
+          assert.equal(readyEvidence.route.capabilities['text.embed'].binding.route, 'local');
+          assert.equal(readyEvidence.route.capabilities['text.embed'].binding.modelId, 'local/default-embedding');
           assert.notEqual(readyEvidence.route.capabilities['image.generate'].state, 'not_configured');
           assert.equal(readyEvidence.route.capabilities['image.generate'].binding.route, 'cloud');
           assert.match(readyEvidence.route.capabilities['image.generate'].binding.modelId, /gpt-image/);
@@ -288,6 +303,8 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           assert.equal(readyEvidence.route.capabilities['audio.synthesize'].binding.route, 'cloud');
           assert.equal(readyEvidence.route.capabilities['audio.synthesize'].binding.modelId, fixture.voiceRoute.executionBinding.modelId);
           assert.ok(readyEvidence.route.capabilities['audio.synthesize'].binding.connectorId, 'committed voice binding must carry its cloud connector');
+          assert.equal(readyEvidence.route.capabilities['voice_workflow.voice_clone'].state, 'not_configured');
+          assert.equal(readyEvidence.route.capabilities['voice_workflow.voice_design'].state, 'not_configured');
           assert.equal(readyEvidence.route.executionBinding.route, 'local');
           assert.match(readyEvidence.route.executionBinding.modelId, /runtime-agent-live-e2e/);
           assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
@@ -341,7 +358,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             importedAvatarAsset,
             { keepRunning: true },
           );
-          readyEvidence = await assertRouteUnavailableFlow(page, pageProblems, readyEvidence, runtimeExecutionConfig);
+          readyEvidence = await assertRouteUnavailableFlow(page, pageProblems, readyEvidence, runtimeAgentAIConfig, runtimeAgentAIConfigIdentity);
 
           await assertStopChatFlow(page, pageProblems, readyEvidence);
 
@@ -504,7 +521,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
           // (Zhiyu chat evidence does not re-project the session snapshot's
           // config_revision, so config truth is asserted via the route
           // projection consistency instead of new app code.)
-          assert.equal(chatCompletedEvidence.route.reasonCode, 'runtime-execution-config-ready');
+          assert.equal(chatCompletedEvidence.route.reasonCode, 'runtime-agent-ai-config-ready');
           assert.equal(chatCompletedEvidence.route.configRevision, readyEvidence.route.configRevision);
           assert.equal(await page.locator('[data-zhiyu-agent-chat-state]').getAttribute('data-zhiyu-agent-chat-state'), 'completed');
           assert.equal(await page.locator('[data-zhiyu-agent-chat-ready]').getAttribute('data-zhiyu-agent-chat-ready'), 'true');
@@ -665,7 +682,7 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
               && globalThis.window.__nimiZhiyuEvidence?.chat?.eventTypes?.includes('session-snapshot-hydrated')
               && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === firstOutputText)
               && globalThis.window.__nimiZhiyuEvidence?.chat?.messages?.some((message) => message?.text === secondPrompt)
-              && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
+              && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-agent-ai-config-ready'
               && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === configRevision
               && /runtime-agent-live-e2e/.test(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding?.modelId || '')
               && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['image.generate']?.binding?.route === 'cloud'
@@ -692,8 +709,8 @@ test('zhiyu Electron live Runtime path consumes SDK fixture and streams a Runtim
             assert.equal(restartHydratedEvidence.chat.ready, true);
             assert.equal(restartHydratedEvidence.chat.messages.some((message) => message?.text === firstOutputText), true);
             assert.equal(restartHydratedEvidence.chat.messages.some((message) => message?.text === secondPrompt), true);
-            assert.equal(restartHydratedEvidence.route.reasonCode, 'runtime-execution-config-ready');
-            // The committed execution config is daemon-owned truth: an app
+            assert.equal(restartHydratedEvidence.route.reasonCode, 'runtime-agent-ai-config-ready');
+            // The committed AI Config is daemon-owned truth: an app
             // restart must re-project the same committed revision + bindings.
             assert.equal(restartHydratedEvidence.route.configRevision, readyEvidence.route.configRevision);
             assert.equal(restartHydratedEvidence.route.capabilities['text.generate'].state, 'ready');
@@ -805,7 +822,7 @@ async function assertNoPartnerProductState(page) {
 }
 
 async function assertPartnerSelectedProductState(page) {
-  // The K-AGCORE-150 seeded execution config (text.generate=local/default)
+  // The K-AGCORE-150 seeded AI Config (text.generate=local/default)
   // resolves ready on a fresh daemon, so partner selection lands directly in
   // the conversational-ready product stage — there is no route-required gate.
   assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
@@ -837,7 +854,7 @@ async function assertSeededDefaultConfigProductState(page, preConfigEvidence) {
   const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
   assertPrimaryWorkspaceHasNoEngineeringCopy(shellText);
   assert.equal(preConfigEvidence.route.ready, true);
-  assert.equal(preConfigEvidence.route.reasonCode, 'runtime-execution-config-ready');
+  assert.equal(preConfigEvidence.route.reasonCode, 'runtime-agent-ai-config-ready');
   assert.equal(preConfigEvidence.route.updatedByAppId, 'runtime');
   assert.equal(preConfigEvidence.route.executionBinding.route, 'local');
   assert.equal(preConfigEvidence.route.executionBinding.modelId, 'local/default');
@@ -850,7 +867,7 @@ async function assertSeededDefaultConfigProductState(page, preConfigEvidence) {
 
 async function assertModelConfiguredProductState(page, options = {}) {
   await waitForEvidence(page, () =>
-    globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
+    globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-agent-ai-config-ready'
     && Boolean(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding),
     'model configured product state',
   );
@@ -1048,68 +1065,40 @@ async function assertStopChatFlow(page, pageProblems, readyEvidence) {
   await page.locator('[data-chat-composer-textarea="true"]').fill('');
 }
 
-// Waits for the model tab's runtime execution config commit banner to reach
-// "committed" with a revision advanced past `afterRevision`, and returns the
-// committed revision. A conflict/failed banner surfaces in the timeout
-// diagnostics instead of being silently retried.
-async function waitForExecutionCommitCommitted(page, afterRevision) {
-  try {
-    await page.waitForFunction((afterRevision) => {
-      const banner = document.querySelector('[data-zhiyu-execution-commit-state]');
-      if (!banner || banner.getAttribute('data-zhiyu-execution-commit-state') !== 'committed') {
-        return false;
-      }
-      const revision = Number(banner.getAttribute('data-zhiyu-execution-commit-revision'));
-      return Number.isFinite(revision) && revision > afterRevision;
-    }, afterRevision, { timeout: 30_000 });
-  } catch (error) {
-    const banner = await page.evaluate(() => {
-      const element = document.querySelector('[data-zhiyu-execution-commit-state]');
-      return element
-        ? {
-          state: element.getAttribute('data-zhiyu-execution-commit-state'),
-          reason: element.getAttribute('data-zhiyu-execution-commit-reason'),
-          revision: element.getAttribute('data-zhiyu-execution-commit-revision'),
-          text: element.textContent,
-        }
-        : null;
-    }).catch(() => null);
-    throw new Error(`execution config commit did not reach committed past revision ${afterRevision}: ${JSON.stringify(banner)}`, { cause: error });
-  }
-  const revision = Number(await page
-    .locator('[data-zhiyu-execution-commit-state="committed"]')
-    .getAttribute('data-zhiyu-execution-commit-revision'));
-  assert.ok(Number.isFinite(revision) && revision > afterRevision, `committed revision must advance past ${afterRevision}, got ${revision}`);
-  return revision;
-}
-
 // Replaces the pre-cutover app-local "stale AIConfig" stage: route truth is
-// now the runtime-owned execution config, so the honest blocked state is an
+// now the runtime-owned AI Config, so the honest blocked state is an
 // external admitted writer committing a text.generate binding the runtime
 // readiness prober reports as unavailable (cloud route without a connector →
 // connector_missing). Zhiyu must project the unavailable readiness fail-closed
 // and gate the composer; the submit-time refresh guard
 // (zhiyu-submit-route-refresh-stale) is exercised best-effort by racing the
 // send click against the readiness subscription refresh.
-async function assertRouteUnavailableFlow(page, pageProblems, readyEvidence, runtimeExecutionConfig) {
-  const blockedPrompt = 'Please verify Zhiyu blocks send on unavailable execution readiness.';
-  const committed = await runtimeExecutionConfig.get();
-  assert.match(committed.bindings['text.generate']?.modelId || '', /runtime-agent-live-e2e/);
+async function assertRouteUnavailableFlow(
+  page,
+  pageProblems,
+  readyEvidence,
+  runtimeAgentAIConfig,
+  runtimeAgentAIConfigIdentity,
+) {
+  const blockedPrompt = 'Please verify Zhiyu blocks send on unavailable Agent AI Config readiness.';
+  const committed = await runtimeAgentAIConfig.get(runtimeAgentAIConfigIdentity);
+  assert.match(committed.intents['text.generate']?.modelId || '', /runtime-agent-live-e2e/);
 
   await page.locator('[data-chat-composer-textarea="true"]').fill(blockedPrompt);
   await waitForEvidence(page, () =>
     document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
     && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false
     && document.querySelector('[data-chat-composer-textarea="true"]')?.value.length > 0,
-    'send-ready composer before external execution config degrade',
+    'send-ready composer before external AI Config degrade',
   );
 
   let restoredRevision = null;
   try {
-    const degraded = await runtimeExecutionConfig.upsert({
+    const degraded = await runtimeAgentAIConfig.upsert({
+      ...runtimeAgentAIConfigIdentity,
       expectedRevision: committed.revision,
-      bindings: {
-        ...committed.bindings,
+      intents: {
+        ...committed.intents,
         'text.generate': {
           route: 'cloud',
           modelId: 'zhiyu-live-acceptance-degraded-text-model',
@@ -1132,7 +1121,7 @@ async function assertRouteUnavailableFlow(page, pageProblems, readyEvidence, run
     });
     await waitForEvidence(page, ({ degradedRevision }) =>
       globalThis.window.__nimiZhiyuEvidence?.route?.ready === false
-      && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'zhiyu-agent-execution-readiness-unavailable'
+      && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'zhiyu-agent-ai-config-readiness-unavailable'
       && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === degradedRevision
       && globalThis.window.__nimiZhiyuEvidence?.route?.capabilities?.['text.generate']?.state === 'unavailable',
       'unavailable execution readiness route evidence',
@@ -1148,7 +1137,7 @@ async function assertRouteUnavailableFlow(page, pageProblems, readyEvidence, run
     }
     const routeUnavailableEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
     assert.equal(routeUnavailableEvidence.route.ready, false);
-    assert.equal(routeUnavailableEvidence.route.reasonCode, 'zhiyu-agent-execution-readiness-unavailable');
+    assert.equal(routeUnavailableEvidence.route.reasonCode, 'zhiyu-agent-ai-config-readiness-unavailable');
     assert.equal(routeUnavailableEvidence.route.capabilities['text.generate'].state, 'unavailable');
     assert.equal(routeUnavailableEvidence.route.capabilities['text.generate'].reasonCode, 'connector_missing');
     assert.equal(routeUnavailableEvidence.route.updatedByAppId, 'nimi.desktop');
@@ -1186,26 +1175,28 @@ async function assertRouteUnavailableFlow(page, pageProblems, readyEvidence, run
     }
     assert.equal(
       await page.locator('[data-zhiyu-route-state]').getAttribute('data-zhiyu-route-state'),
-      'zhiyu-agent-execution-readiness-unavailable',
+      'zhiyu-agent-ai-config-readiness-unavailable',
     );
     await captureLiveRuntimeEvidence(page, 'routeUnavailable', pageProblems, {
       readyEvidence,
       routeUnavailableEvidence,
       midSubmitGuardObserved: midSubmitClicked,
     });
-    const restored = await runtimeExecutionConfig.upsert({
+    const restored = await runtimeAgentAIConfig.upsert({
+      ...runtimeAgentAIConfigIdentity,
       expectedRevision: degraded.revision,
-      bindings: committed.bindings,
+      intents: committed.intents,
     });
     restoredRevision = restored.revision;
   } finally {
     if (restoredRevision === null) {
       // Fail-safe restore so a mid-stage assertion failure does not leave the
       // shared daemon config degraded for unrelated diagnostics.
-      await runtimeExecutionConfig.get()
-        .then((current) => runtimeExecutionConfig.upsert({
+      await runtimeAgentAIConfig.get(runtimeAgentAIConfigIdentity)
+        .then((current) => runtimeAgentAIConfig.upsert({
+          ...runtimeAgentAIConfigIdentity,
           expectedRevision: current.revision,
-          bindings: committed.bindings,
+          intents: committed.intents,
         }))
         .catch(() => undefined);
     }
@@ -1216,11 +1207,11 @@ async function assertRouteUnavailableFlow(page, pageProblems, readyEvidence, run
   await page.waitForSelector('[data-zhiyu-screen="home"]');
   await waitForEvidence(page, ({ conversationAnchorId, restoredRevision }) =>
     globalThis.window.__nimiZhiyuEvidence?.conversation?.conversationAnchorId === conversationAnchorId
-    && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-execution-config-ready'
+    && globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-agent-ai-config-ready'
     && globalThis.window.__nimiZhiyuEvidence?.route?.configRevision === restoredRevision
     && /runtime-agent-live-e2e/.test(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding?.modelId || '')
     && globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'idle',
-    'ready evidence after restoring the committed execution config',
+    'ready evidence after restoring the committed AI Config',
     { conversationAnchorId: readyEvidence.conversation.conversationAnchorId, restoredRevision },
   );
   await resetAcceptanceInputs(page);

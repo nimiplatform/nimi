@@ -7,18 +7,12 @@ import {
   createNimiRuntimeAgentClient,
   Runtime,
   type NimiRuntimeAgentConsumeEvent,
-  type NimiRuntimeAgentExecutionReadinessSnapshotProjection,
+  type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
 } from '@nimiplatform/sdk/runtime';
-import {
-  createInitialZhiyuEvidence,
-  type ZhiyuCapabilityStudioStatus,
-  type ZhiyuEvidence,
-} from './evidence';
+import { createInitialZhiyuEvidence, type ZhiyuEvidence } from './evidence';
 import {
   appendSubmittedUserMessage,
   cancelStreamingChatMessages,
-  capabilityStudioFromResult,
-  capabilityStudioUnavailable,
   chatStatusFromProjection,
   chatStatusFromResult,
   chatStatusFromSubmitRefreshFailure,
@@ -43,28 +37,13 @@ import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import { launchZhiyuAvatar } from '../avatar/avatar-launch-handoff';
 import { probeZhiyuAvatarPresence } from '../avatar/avatar-presence';
 import {
-  runZhiyuDeveloperCapabilityStudioAIConsume,
-  type ZhiyuCapabilityStudioCapabilityId,
-} from './developer-capability-studio';
-import {
-  createZhiyuAgentHomeAIScopeRef,
-  createZhiyuAIConfigService,
-} from '../ai-config/zhiyu-ai-config-store';
-import {
-  createZhiyuRuntimeModelPickerProviderCache,
-  resolveZhiyuExecutionBindingForTargetRef,
-} from '../ai-config/zhiyu-runtime-model-provider';
-import {
-  createZhiyuExecutionConfigCommitService,
-  type ZhiyuExecutionConfigCommitState,
-} from '../ai-config/zhiyu-execution-config-commit';
-import {
-  fetchZhiyuAgentExecutionRouteEvidence,
-  getZhiyuAgentExecutionConfig,
-  subscribeZhiyuAgentExecutionReadiness,
-  upsertZhiyuAgentExecutionConfig,
-  zhiyuAgentExecutionRouteAuthRequired,
-} from '../agent-chat/agent-execution-config';
+  fetchZhiyuAgentAIConfigRouteEvidence,
+  subscribeZhiyuAgentAIConfigReadiness,
+  zhiyuAgentAIConfigRouteAuthRequired,
+  zhiyuAgentAIConfigRouteIdentityRequired,
+  type ZhiyuAgentAIConfigRouteEvidenceInput,
+} from '../agent-chat/agent-ai-config';
+import { zhiyuAgentAIConfigIdentityFromRouteInput, zhiyuAgentAIConfigRouteInputFromEvidence } from './agent-ai-config-route-input';
 import { probeZhiyuRuntimeAgentInventory } from '../agent/agent-inventory';
 import { probeZhiyuRuntimeCompanionState } from '../agent/companion-state';
 import { probeZhiyuRuntimeConversationHome } from '../agent/conversation-home';
@@ -93,34 +72,19 @@ import { probeZhiyuRuntimeAccountStatus } from '../auth/runtime-account-status';
 import { probeZhiyuRuntimeStatus } from '../runtime/runtime-status';
 
 export function App() {
-  const aiConfigScopeRef = useMemo(() => createZhiyuAgentHomeAIScopeRef(), []);
-  const aiConfigService = useMemo(() => createZhiyuAIConfigService(), []);
-  const modelPickerProviderResolver = useMemo(() => createZhiyuRuntimeModelPickerProviderCache(), []);
-  const [aiConfig, setAiConfig] = useState(() => aiConfigService.aiConfig.get(aiConfigScopeRef));
   const [evidence, setEvidence] = useState<ZhiyuEvidence>(() => createInitialZhiyuEvidence());
   const [selectedLocalAgentRef, setSelectedLocalAgentRef] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
-  const [capabilityPrompt, setCapabilityPrompt] = useState('');
-  const [executionCommit, setExecutionCommit] = useState<ZhiyuExecutionConfigCommitState>({ status: 'idle' });
   const activeChatAbortRef = useRef<AbortController | null>(null);
-  const executionSubjectRef = useRef<string>('');
+  const agentAIConfigRouteInputRef = useRef<ZhiyuAgentAIConfigRouteEvidenceInput>({ subjectUserId: '' });
   const renderEvidence = useMemo(() => projectZhiyuIdentitySafetyEvidence(evidence), [evidence]);
   const latestConversationIdentityRef = useRef<ZhiyuRuntimeChatApplyIdentity>(
     zhiyuRuntimeChatApplyIdentity(evidence.conversation),
   );
 
   useEffect(() => {
-    setAiConfig(aiConfigService.aiConfig.get(aiConfigScopeRef));
-    return aiConfigService.aiConfig.subscribe(aiConfigScopeRef, setAiConfig);
-  }, [aiConfigScopeRef, aiConfigService]);
-
-  useEffect(() => {
-    executionSubjectRef.current = renderEvidence.auth.ready
-      ? (renderEvidence.auth.accountId ?? '').trim()
-      : '';
-  }, [renderEvidence.auth.ready, renderEvidence.auth.accountId]);
-
-  useEffect(() => {
+    const routeInput = zhiyuAgentAIConfigRouteInputFromEvidence(renderEvidence);
+    agentAIConfigRouteInputRef.current = routeInput;
     window.__nimiZhiyuEvidence = renderEvidence;
     latestConversationIdentityRef.current = zhiyuRuntimeChatApplyIdentity(renderEvidence.conversation);
   }, [renderEvidence]);
@@ -202,24 +166,30 @@ export function App() {
     }));
   }, []);
 
-  const applyFreshExecutionRoute = useCallback(async () => {
-    applyExecutionRoute(await fetchZhiyuAgentExecutionRouteEvidence(executionSubjectRef.current));
-  }, [applyExecutionRoute]);
-
-  // Route evidence is a pure projection of the runtime-owned execution
-  // config + readiness (K-AGCORE-144~150). Startup fetch is isolated from
-  // the core Runtime bootstrap matrix; live updates arrive over the
-  // readiness subscription and re-read the committed config on each change.
+  // Route evidence is a pure projection of the runtime-owned Agent AI Config
+  // + readiness (K-AGCORE-144~150). Startup fetch is isolated from the core
+  // Runtime bootstrap matrix; live updates arrive over the readiness
+  // subscription and re-read the committed config on each change.
   useEffect(() => {
-    const subjectUserId = evidence.auth.ready ? (evidence.auth.accountId ?? '').trim() : '';
+    const routeInput = zhiyuAgentAIConfigRouteInputFromEvidence(evidence);
+    const subjectUserId = routeInput.subjectUserId;
     if (!subjectUserId) {
-      applyExecutionRoute(zhiyuAgentExecutionRouteAuthRequired());
+      applyExecutionRoute(zhiyuAgentAIConfigRouteAuthRequired());
       return undefined;
     }
+    const identity = zhiyuAgentAIConfigIdentityFromRouteInput(routeInput);
+    if (!identity) {
+      applyExecutionRoute(zhiyuAgentAIConfigRouteIdentityRequired());
+      return undefined;
+    }
+    const callInput = {
+      subjectUserId,
+      ...identity,
+    };
     let active = true;
-    let readinessIterator: AsyncIterator<NimiRuntimeAgentExecutionReadinessSnapshotProjection> | null = null;
+    let readinessIterator: AsyncIterator<NimiRuntimeAgentAIConfigReadinessSnapshotProjection> | null = null;
     void (async () => {
-      const route = await fetchZhiyuAgentExecutionRouteEvidence(subjectUserId);
+      const route = await fetchZhiyuAgentAIConfigRouteEvidence(routeInput);
       if (!active) {
         return;
       }
@@ -227,14 +197,14 @@ export function App() {
       try {
         // Readiness subscription is best-effort after the fail-closed
         // initial fetch, mirroring the agent event subscription pattern.
-        const stream = subscribeZhiyuAgentExecutionReadiness({ subjectUserId });
+        const stream = subscribeZhiyuAgentAIConfigReadiness(callInput);
         readinessIterator = stream[Symbol.asyncIterator]();
         while (active) {
           const next = await readinessIterator.next();
           if (next.done) {
             break;
           }
-          const refreshed = await fetchZhiyuAgentExecutionRouteEvidence(subjectUserId);
+          const refreshed = await fetchZhiyuAgentAIConfigRouteEvidence(routeInput);
           if (!active) {
             return;
           }
@@ -249,7 +219,19 @@ export function App() {
       active = false;
       void readinessIterator?.return?.();
     };
-  }, [applyExecutionRoute, evidence.auth.ready, evidence.auth.accountId]);
+  }, [
+    applyExecutionRoute,
+    evidence.auth.ready,
+    evidence.auth.accountId,
+    evidence.conversation.ownerUserId,
+    evidence.conversation.runtimeSourceRef,
+    evidence.conversation.localAgentRef,
+    evidence.localAgent.ownerUserId,
+    evidence.localAgent.runtimeSourceRef,
+    evidence.localAgent.localAgentRef,
+    evidence.source.ownerUserId,
+    evidence.source.runtimeSourceRef,
+  ]);
 
   useEffect(() => {
     const ownerUserId = renderEvidence.conversation.ownerUserId;
@@ -350,23 +332,6 @@ export function App() {
   const diagnostics = useMemo(() => projectZhiyuDiagnosticState(renderEvidence), [renderEvidence]);
   const identityFloor = useMemo(() => projectZhiyuIdentityFloorState(renderEvidence), [renderEvidence]);
   const avatarLaunchAction = useMemo(() => projectZhiyuAvatarLaunchAction(renderEvidence), [renderEvidence]);
-  // The Agent Center model tab commits text.generate / image.generate through
-  // runtime.agent.executionConfig.upsert; the AIConfig facade stays the commit
-  // target for every other capability and the picker's listing/display store.
-  const executionCommitService = useMemo(() => createZhiyuExecutionConfigCommitService({
-    base: aiConfigService,
-    getSubjectUserId: () => executionSubjectRef.current,
-    getCommittedConfig: (input) => getZhiyuAgentExecutionConfig(input),
-    upsertConfig: (input) => upsertZhiyuAgentExecutionConfig(input),
-    buildBindingForTargetRef: (capability, targetRef) =>
-      resolveZhiyuExecutionBindingForTargetRef(capability, targetRef),
-    onCommitState: (state) => {
-      setExecutionCommit(state);
-      if (state.status === 'committed' || state.status === 'conflict') {
-        void applyFreshExecutionRoute();
-      }
-    },
-  }), [aiConfigService, applyFreshExecutionRoute]);
 
   const recoverableFailedTurn = renderEvidence.chat.state === 'failed'
     && renderEvidence.chat.source === 'runtime'
@@ -391,10 +356,6 @@ export function App() {
     : submitEnabled
       ? 'ready'
       : 'blocked';
-  const capabilityStudioDisabled = !renderEvidence.runtime.ready
-    || !renderEvidence.auth.ready
-    || !capabilityPrompt.trim()
-    || renderEvidence.capabilityStudio.state === 'running';
 
   async function handleSubmit(textInput: string) {
     const text = textInput.trim();
@@ -408,9 +369,9 @@ export function App() {
         submittedConversation,
         signal: activeChatAbort.signal,
       });
-    // Submit refresh re-reads the runtime execution config + readiness; the
+    // Submit refresh re-reads the runtime AI Config + readiness; the
     // turn itself carries no bindings (K-AGCORE-147).
-    const refreshedRoute = await fetchZhiyuAgentExecutionRouteEvidence(executionSubjectRef.current);
+    const refreshedRoute = await fetchZhiyuAgentAIConfigRouteEvidence(agentAIConfigRouteInputRef.current);
     const refreshedTurn = probeZhiyuAgentTurnReadiness(evidence.conversation, refreshedRoute);
     if (!submitStillCurrent()) {
       if (activeChatAbortRef.current === activeChatAbort) {
@@ -678,76 +639,6 @@ export function App() {
         message: result.message,
         launchHandoff: result.state === 'opened' ? result.handoff : null,
       },
-    }));
-  }
-
-  async function handleCapabilityStudioRun(capabilityId: ZhiyuCapabilityStudioCapabilityId) {
-    const prompt = capabilityPrompt.trim();
-    if (!prompt) {
-      setEvidence((current) => ({
-        ...current,
-        capabilityStudio: capabilityStudioUnavailable({
-          capabilityId,
-          reasonCode: 'zhiyu-capability-studio-prompt-required',
-          actionHint: 'enter_capability_studio_prompt',
-          message: 'Capability Studio prompt is required before dispatch.',
-        }),
-      }));
-      return;
-    }
-    setEvidence((current) => ({
-      ...current,
-      capabilityStudio: {
-        ...current.capabilityStudio,
-        ready: false,
-        state: 'running',
-        reasonCode: 'zhiyu-capability-studio-running',
-        actionHint: 'wait_runtime_ai_consume_result',
-        source: 'renderer',
-        message: `Running ${capabilityId} through Runtime.`,
-        lastCapabilityId: capabilityId,
-        resultKind: 'none',
-        text: null,
-        streamingText: capabilityId === 'chat.stream' ? '' : null,
-        finishReason: null,
-        vectorCount: null,
-        dimensions: null,
-        sample: [],
-        audioJobId: null,
-        audioJobStatus: null,
-        audioArtifactCount: null,
-        audioMimeType: null,
-        audioPreviewUrl: null,
-        traceId: null,
-      },
-    }));
-    const runtime = new Runtime({
-      appId: 'nimi.zhiyu',
-      transport: { type: 'electron-ipc' },
-    });
-    const result = await runZhiyuDeveloperCapabilityStudioAIConsume({
-      runtime,
-      config: aiConfig,
-      capabilityId,
-      prompt,
-      subjectUserId: renderEvidence.auth.accountId ?? undefined,
-      withScopes: withZhiyuRuntimeAgentBindingRequired,
-      onPartial: (streamingText) => {
-        setEvidence((current) => ({
-          ...current,
-          capabilityStudio: {
-            ...current.capabilityStudio,
-            streamingText,
-            text: streamingText,
-            resultKind: 'text',
-            message: streamingText,
-          },
-        }));
-      },
-    });
-    setEvidence((current) => ({
-      ...current,
-      capabilityStudio: capabilityStudioFromResult(capabilityId, result),
     }));
   }
 

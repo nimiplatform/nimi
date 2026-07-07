@@ -2,104 +2,10 @@ import type {
   RuntimeAgentConversationProjectionState,
 } from '@nimiplatform/kit/features/chat/headless';
 import type {
-  ZhiyuCapabilityStudioStatus,
   ZhiyuEvidence,
   ZhiyuRuntimeAgentChatStatus,
 } from './evidence';
-import {
-  runZhiyuDeveloperCapabilityStudioAIConsume,
-  type ZhiyuCapabilityStudioCapabilityId,
-} from './developer-capability-studio';
 import { runZhiyuAgentChatTurn } from '../agent-chat/runtime-agent-turn-adapter';
-
-export function capabilityStudioFromResult(
-  capabilityId: ZhiyuCapabilityStudioCapabilityId,
-  result: Awaited<ReturnType<typeof runZhiyuDeveloperCapabilityStudioAIConsume>>,
-): ZhiyuCapabilityStudioStatus {
-  if (result.ok === false) {
-    return capabilityStudioUnavailable({
-      capabilityId,
-      reasonCode: result.reason,
-      actionHint: 'inspect_runtime_ai_consume_failure',
-      message: result.message,
-    });
-  }
-  if (result.output.kind === 'embedding') {
-    return {
-      transport: 'electron-ipc',
-      ready: true,
-      state: 'succeeded',
-      reasonCode: 'zhiyu-capability-studio-embedding-ready',
-      actionHint: 'review_embedding_summary',
-      source: 'runtime',
-      message: result.message,
-      lastCapabilityId: capabilityId,
-      resultKind: 'embedding',
-      text: null,
-      streamingText: null,
-      finishReason: null,
-      vectorCount: result.output.vectorCount,
-      dimensions: result.output.dimensions,
-      sample: result.output.sample,
-      audioJobId: null,
-      audioJobStatus: null,
-      audioArtifactCount: null,
-      audioMimeType: null,
-      audioPreviewUrl: null,
-      traceId: result.trace?.traceId ?? null,
-    };
-  }
-  if (result.output.kind === 'audio-artifacts') {
-    return {
-      transport: 'electron-ipc',
-      ready: true,
-      state: 'succeeded',
-      reasonCode: 'zhiyu-capability-studio-audio-ready',
-      actionHint: 'review_runtime_audio_artifacts',
-      source: 'runtime',
-      message: result.message,
-      lastCapabilityId: capabilityId,
-      resultKind: 'audio',
-      text: null,
-      streamingText: null,
-      finishReason: null,
-      vectorCount: null,
-      dimensions: null,
-      sample: [],
-      audioJobId: result.output.jobId,
-      audioJobStatus: result.output.jobStatus,
-      audioArtifactCount: result.output.artifactCount,
-      audioMimeType: result.output.firstArtifact?.mimeType ?? null,
-      audioPreviewUrl: result.output.firstArtifact?.previewUrl ?? null,
-      traceId: result.trace?.traceId ?? null,
-    };
-  }
-  return {
-    transport: 'electron-ipc',
-    ready: true,
-    state: 'succeeded',
-    reasonCode: result.output.streamed
-      ? 'zhiyu-capability-studio-stream-ready'
-      : 'zhiyu-capability-studio-text-ready',
-    actionHint: 'review_runtime_ai_text_result',
-    source: 'runtime',
-    message: result.message,
-    lastCapabilityId: capabilityId,
-    resultKind: 'text',
-    text: result.output.text,
-    streamingText: result.output.streamed ? result.output.text : null,
-    finishReason: result.output.finishReason,
-    vectorCount: null,
-    dimensions: null,
-    sample: [],
-    audioJobId: null,
-    audioJobStatus: null,
-    audioArtifactCount: null,
-    audioMimeType: null,
-    audioPreviewUrl: null,
-    traceId: result.trace?.traceId ?? null,
-  };
-}
 
 export function chatStatusFromSubmitRefreshFailure({
   current,
@@ -121,7 +27,7 @@ export function chatStatusFromSubmitRefreshFailure({
       ? 'zhiyu-submit-route-refresh-stale'
       : 'zhiyu-submit-turn-refresh-blocked',
     actionHint: routeBlocked
-      ? route.actionHint || 'configure_runtime_agent_execution_model'
+      ? route.actionHint || 'configure_runtime_agent_ai_config'
       : turn.actionHint || 'resolve_runtime_agent_binding',
     source: routeBlocked ? route.source : turn.source,
     message: routeBlocked
@@ -325,37 +231,6 @@ export function cancelStreamingChatMessages(
       },
     };
   });
-}
-
-export function capabilityStudioUnavailable(input: {
-  readonly capabilityId: ZhiyuCapabilityStudioCapabilityId;
-  readonly reasonCode: string;
-  readonly actionHint: string;
-  readonly message: string;
-}): ZhiyuCapabilityStudioStatus {
-  return {
-    transport: 'electron-ipc',
-    ready: false,
-    state: 'failed',
-    reasonCode: input.reasonCode,
-    actionHint: input.actionHint,
-    source: 'runtime',
-    message: input.message,
-    lastCapabilityId: input.capabilityId,
-    resultKind: 'unavailable',
-    text: null,
-    streamingText: null,
-    finishReason: null,
-    vectorCount: null,
-    dimensions: null,
-    sample: [],
-    audioJobId: null,
-    audioJobStatus: null,
-    audioArtifactCount: null,
-    audioMimeType: null,
-    audioPreviewUrl: null,
-    traceId: null,
-  };
 }
 
 function createSubmittedUserMessage(input: {

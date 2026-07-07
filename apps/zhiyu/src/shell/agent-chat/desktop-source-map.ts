@@ -10,7 +10,7 @@ export interface ZhiyuDesktopAgentChatSourceMapEntry {
 const surfaceTarget = 'apps/zhiyu/src/shell/agent-chat/ZhiyuAgentChatSurface.tsx';
 const panelTarget = 'apps/zhiyu/src/shell/agent-chat/ZhiyuAgentPanel.tsx';
 const stateTarget = 'apps/zhiyu/src/shell/agent-chat/agent-conversation-state.ts';
-const routeTarget = 'apps/zhiyu/src/shell/agent-chat/agent-execution-config.ts';
+const routeTarget = 'apps/zhiyu/src/shell/agent-chat/agent-ai-config.ts';
 const turnTarget = 'apps/zhiyu/src/shell/agent-chat/runtime-agent-turn-adapter.ts';
 const anchorBindingTarget = 'apps/zhiyu/src/shell/agent/conversation-anchor-binding-storage.ts';
 
@@ -181,7 +181,7 @@ export const ZHIYU_DESKTOP_AGENT_CHAT_SOURCE_MAP: readonly ZhiyuDesktopAgentChat
     desktopSource: 'apps/desktop/src/shell/renderer/features/chat/conversation-capability.ts',
     zhiyuTarget: routeTarget,
     status: 'adapted',
-    note: 'Capability readiness is a pure projection of the runtime agent execution config + readiness (K-AGCORE-144~150).',
+    note: 'Capability readiness is a pure projection of the runtime agent AI Config + readiness (K-AGCORE-144~150).',
   },
   {
     desktopSource: 'apps/desktop/src/shell/renderer/features/chat/conversation-capability-projection.ts',
@@ -193,7 +193,7 @@ export const ZHIYU_DESKTOP_AGENT_CHAT_SOURCE_MAP: readonly ZhiyuDesktopAgentChat
     desktopSource: 'apps/desktop/src/shell/renderer/features/chat/conversation-submit-readiness.ts',
     zhiyuTarget: routeTarget,
     status: 'adapted',
-    note: 'Submit-time execution config + readiness re-read, stale-readiness fail-closed behavior, and action hints.',
+    note: 'Submit-time AI Config + readiness re-read, stale-readiness fail-closed behavior, and action hints.',
   },
   {
     desktopSource: 'apps/desktop/src/shell/renderer/features/chat/chat-shared-settings-panel.tsx',
@@ -244,16 +244,16 @@ export const ZHIYU_DESKTOP_AGENT_CHAT_SOURCE_MAP: readonly ZhiyuDesktopAgentChat
     note: 'Agent Center eyebrow, localAgentRef handle, avatar, and world chip header metadata are mirrored in Zhiyu.',
   },
   {
-    desktopSource: 'apps/desktop/src/shell/renderer/features/chat/chat-agent-center-panel-components.tsx',
+    desktopSource: 'kit/features/agent-center/src/components/AgentCenterPrimitives.tsx',
     zhiyuTarget: panelTarget,
-    status: 'adapted',
-    note: 'Agent Center rows, pills, mode picker, state cards, and warning patterns.',
+    status: 'migrated',
+    note: 'Agent Center rows, pills, mode picker, state cards, and warning patterns are Kit-owned.',
   },
   {
-    desktopSource: 'apps/desktop/src/shell/renderer/features/chat/chat-agent-cognition-panel.tsx',
+    desktopSource: 'kit/features/agent-center/src/components/AgentCenterCognitionSection.tsx',
     zhiyuTarget: panelTarget,
-    status: 'adapted',
-    note: 'Cognition panel source details and memory status are read-only Runtime/SDK projections.',
+    status: 'migrated',
+    note: 'Cognition panel source details and memory status are read-only Runtime/SDK projections in Kit.',
   },
   {
     desktopSource: 'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-avatar-settings-content.tsx',

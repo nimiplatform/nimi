@@ -125,14 +125,14 @@ export async function runZhiyuAgentChatTurn(
   }
 
   // Display-evidence gate only: the runtime resolves each turn against its
-  // committed execution config (K-AGCORE-147); Zhiyu just refuses to submit
-  // while the projected text.generate readiness is not 'ready'.
+  // committed Runtime Agent AI Config (K-AGCORE-147); Zhiyu just refuses to
+  // submit while the projected text.generate readiness is not 'ready'.
   if (!input.route.ready) {
     return chatUnavailable({
       reasonCode: input.route.reasonCode === 'not-probed'
-        ? 'zhiyu-runtime-execution-readiness-required'
+        ? 'zhiyu-runtime-agent-ai-config-readiness-required'
         : input.route.reasonCode,
-      actionHint: input.route.actionHint || 'configure_runtime_agent_execution_model',
+      actionHint: input.route.actionHint || 'configure_runtime_agent_ai_config',
       source: input.route.source,
       message: input.route.message,
       ...identity,
@@ -245,9 +245,9 @@ export async function runZhiyuAgentChatTurn(
   }
 }
 
-// Turn requests never carry execution bindings: the runtime resolves each
-// turn against its committed agent execution config (K-AGCORE-147). The local
-// text binding gate above is route-readiness display evidence only.
+// Turn requests never carry model bindings: the runtime resolves each turn
+// against its committed Runtime Agent AI Config (K-AGCORE-147). The local text
+// binding gate above is route-readiness display evidence only.
 function buildRuntimeAgentTurnRequest(input: {
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
