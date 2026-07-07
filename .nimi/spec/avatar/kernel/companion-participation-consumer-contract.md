@@ -163,3 +163,16 @@ The surface must show a blocked/failed state when:
 
 No UI may convert these failures into a successful reply, synthetic candidate,
 or local fallback execution.
+
+## Agent Center Appearance Boundary
+
+Avatar may consume Agent Center appearance inputs only as admitted local asset
+references and Runtime/SDK presentation projection. This boundary admits local
+Live2D/VRM/background refs, validation evidence, and launch bridge inputs, but
+does not admit any Agent Center model, provider, Runtime execution config,
+memory, transcript, Runtime snapshot, route, or turn execution truth.
+
+Avatar package resolvers and bridge payload parsers must reject Runtime AI
+config fields, provider/model route fields, memory fields, transcript/session
+recovery fields, Runtime snapshot fields, and arbitrary key growth. Avatar
+package gates remain required before RLA5 closeout.

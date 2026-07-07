@@ -73,6 +73,48 @@ inventory, retained app-owned compositions, and controlled exceptions.
 - Kit avatar renderer seams must not become the semantic owner of
   speaking-vs-attention precedence or Desktop attention lifecycle truth.
 
+## D-SHELL-098 Agent Center Kit Consumer Boundary
+
+Desktop Agent Center consumes `kit.features.agent-center` as the reusable
+Runtime Local Agent product surface.
+
+Desktop owns only:
+
+- Agent Center placement in Desktop shell chrome
+- close/open settings callbacks and other Desktop navigation outside Kit core
+- scoped Runtime SDK adapter attachment
+- typed host-local Avatar/background file custody adapter
+- typed Avatar launch bridge when admitted by Avatar/Desktop contracts
+- evidence hooks for real app acceptance
+
+Desktop must not:
+
+- keep a reusable Desktop-owned Agent Center implementation after the Kit
+  hardcut
+- inject `ChatSettingsPanel`, arbitrary `modelContent`, `diagnosticsContent`,
+  `avatarContent`, `localAppearanceContent`, or equivalent app panels into Kit
+  Agent Center
+- derive Agent Chat submit readiness from Desktop AIConfig,
+  `ConversationCapabilityProjection.resolvedBinding`, route cache, or
+  `AISnapshot`
+- derive route/model/provider diagnostics from app-local AIConfig or
+  conversation capability bindings
+- persist Runtime Agent lifecycle, memory, transcript, model route, provider,
+  or turn execution truth
+
+Local config module ownership for Desktop Agent Center:
+
+| Module | Owner Decision |
+| --- | --- |
+| `appearance` / `avatar_asset` | Bounded Desktop host-local asset custody only; Avatar consumes validated local refs through admitted boundary. |
+| `local_history` | Non-semantic UI recents only; no transcript, message, turn, session, or memory content. |
+| `voice.avatar_autoplay` | Host-local playback UI preference only; not `audio.synthesize` readiness, binding, generation, or policy truth. |
+| `ui.last_section` | Host-local UI preference only; no Runtime or product authority. |
+
+`audio.synthesize` is read-only Runtime readiness projection in this wave.
+Desktop must not render an editable audio binding surface or a playable pseudo
+voice artifact as Agent Center truth.
+
 ## Fact Sources
 
 - `tables/nimi-kit-adoption.yaml`

@@ -229,3 +229,22 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
   to derive Agent Chat workflow, voice executor, broader voice session, or
   transcript/caption semantics. Those are Runtime-owned projection/output truth
   for Desktop.
+
+## D-LLM-022 Agent Center Runtime Execution Config Consumer Boundary
+
+Agent Center product UI for Agent Chat belongs to Kit Agent Center after
+`kit.features.agent-center` admission. Desktop may place the Kit surface and
+provide typed host adapters, but the model/readiness editor inside Agent Center
+must read and mutate Runtime Agent execution config with `expected_revision`.
+Desktop generic AIConfig settings remain outside Agent Center.
+
+Desktop diagnostics for Agent Chat may display route/model/provider identity
+only when Runtime projects it as accepted turn/config projection; otherwise the
+diagnostic field is absent. Desktop AIConfig, conversation capability bindings,
+route cache, `runtimeFields`, and `AISnapshot` are not Agent Chat execution
+truth.
+
+Agent Chat optional `audio.synthesize` is read-only Runtime readiness
+projection for this wave. Desktop conversation capability `audio.synthesize`
+or voice workflow capability state must not be reinterpreted as Runtime Agent
+audio binding truth.

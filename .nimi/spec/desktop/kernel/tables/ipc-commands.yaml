@@ -8,6 +8,7 @@ surfaces:
   - desktop-update
   - system
   - http
+  - storage
   - ui
   - oauth
   - telemetry
@@ -217,6 +218,27 @@ commands:
     module: http
     description: Fail-closed shell network helper for admitted Runtime/Realm origins and generated SDK connector-auth acquisition endpoints
     source_rule: D-IPC-004
+
+  # Standard shell storage/data helpers
+  - command: data_path_resolve
+    module: storage
+    description: Resolve a scoped runtime app storage child path from host-owned standard shell storage root
+    source_rule: D-IPC-012
+
+  - command: storage_read_json
+    module: storage
+    description: Read scoped JSON from host-owned standard shell runtime app storage without exposing renderer path/root custody
+    source_rule: D-IPC-012
+
+  - command: storage_write_json
+    module: storage
+    description: Write scoped JSON to host-owned standard shell runtime app storage without exposing renderer path/root custody
+    source_rule: D-IPC-012
+
+  - command: storage_remove_json
+    module: storage
+    description: Remove scoped JSON from host-owned standard shell runtime app storage with idempotent missing-file behavior
+    source_rule: D-IPC-012
 
   # UI
   - command: open_external_url
