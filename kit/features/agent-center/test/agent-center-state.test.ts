@@ -7,18 +7,20 @@ import type { AgentCenterStateInput } from '../src/types.js';
 
 function stateInput(patch: Partial<AgentCenterStateInput> = {}): AgentCenterStateInput {
   return {
-    executionConfig: {
+    agentAIConfig: {
       revision: 7,
       updatedAt: '2026-07-07T00:00:00.000Z',
       updatedByAppId: 'runtime',
-      bindings: {
+      intents: {
         'text.generate': { route: 'local', modelId: 'local/default' },
+        'text.embed': { route: 'local', modelId: 'local/default-embedding' },
       },
     },
     readiness: {
       configRevision: 7,
       capabilities: [
         { capability: 'text.generate', state: 'ready', reasonCode: '', probedAt: '2026-07-07T00:00:01.000Z' },
+        { capability: 'text.embed', state: 'ready', reasonCode: '', probedAt: '2026-07-07T00:00:01.000Z' },
         { capability: 'image.generate', state: 'not_configured', reasonCode: '', probedAt: '2026-07-07T00:00:01.000Z' },
         { capability: 'audio.synthesize', state: 'not_configured', reasonCode: '', probedAt: '2026-07-07T00:00:01.000Z' },
       ],
@@ -32,9 +34,10 @@ describe('Agent Center state', () => {
     const state = buildAgentCenterState(stateInput());
 
     expect(state.baseTextReady).toBe(true);
+    expect(state.capabilities.find((item) => item.capability === 'text.embed')?.blocksTextTurns).toBe(false);
     expect(state.capabilities.find((item) => item.capability === 'image.generate')?.blocksTextTurns).toBe(false);
     expect(state.capabilities.find((item) => item.capability === 'audio.synthesize')?.blocksTextTurns).toBe(false);
-    expect(state.capabilities.find((item) => item.capability === 'audio.synthesize')?.editable).toBe(false);
+    expect(state.capabilities.find((item) => item.capability === 'audio.synthesize')?.editable).toBe(true);
   });
 
   it('fails closed when Runtime inspect is unavailable and disables autonomy controls', () => {

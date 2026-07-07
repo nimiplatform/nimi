@@ -5,9 +5,9 @@ Center surface.
 
 It owns generic Agent Center layout, sections, state assembly, typed Runtime
 adapter contracts, failure states, disabled states, and narrow layout behavior.
-It does not own Runtime lifecycle, execution config persistence, memory truth,
-SDK transport, app shell chrome, provider secrets, or app-specific developer
-tools.
+It does not own Runtime lifecycle, Runtime Agent AI Config persistence, memory
+truth, SDK transport, app shell chrome, provider secrets, or app-specific
+developer tools.
 
 Runtime truth must enter through `@nimiplatform/kit/core/sdk-contract` or the
 typed adapters exported by this feature. Host-local appearance/avatar custody is

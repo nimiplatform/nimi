@@ -1,5 +1,6 @@
 import {
   ScenarioJobStatus,
+  ReasonCode,
   createNimiRuntimeAISchedulingClient,
   requireNimiRuntimeVoiceReferenceForLocalTts,
   resolveNimiAIConfigRuntimeBinding,
@@ -513,13 +514,13 @@ function unavailableFromError(error: unknown): RuntimeSpeechSynthesizeUnavailabl
       || '',
     )
     : '';
-  const reason: RuntimeSpeechSynthesizeUnavailableReason = reasonCode === 'SDK_RUNTIME_METHOD_UNAVAILABLE'
+  const reason: RuntimeSpeechSynthesizeUnavailableReason = reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE
     ? 'sdk-method-unavailable'
-    : reasonCode === 'AUTH_CONTEXT_MISSING'
-      || reasonCode === 'PRINCIPAL_UNAUTHORIZED'
-      || reasonCode === 'SESSION_EXPIRED'
-      || reasonCode === 'APP_TOKEN_EXPIRED'
-      || reasonCode === 'APP_TOKEN_REVOKED'
+    : reasonCode === ReasonCode.AUTH_CONTEXT_MISSING
+      || reasonCode === ReasonCode.PRINCIPAL_UNAUTHORIZED
+      || reasonCode === ReasonCode.SESSION_EXPIRED
+      || reasonCode === ReasonCode.APP_TOKEN_EXPIRED
+      || reasonCode === ReasonCode.APP_TOKEN_REVOKED
         ? 'principal-unauthorized'
         : 'runtime-call-failed';
   return unavailable(reason, describeError(error));

@@ -10,8 +10,11 @@ import type {
 
 const CAPABILITIES: readonly AgentCenterCapabilityId[] = [
   'text.generate',
+  'text.embed',
   'image.generate',
   'audio.synthesize',
+  'voice_workflow.voice_clone',
+  'voice_workflow.voice_design',
 ];
 
 const DEFAULT_APPEARANCE: AgentCenterAppearanceProjection = {
@@ -46,8 +49,8 @@ function buildCapabilityState(
   capability: AgentCenterCapabilityId,
 ): AgentCenterCapabilityState {
   const readiness = input.readiness?.capabilities.find((entry) => entry.capability === capability);
-  const binding = input.executionConfig?.bindings[capability] || null;
-  const required = capability === 'text.generate';
+  const binding = input.agentAIConfig?.intents[capability] || null;
+  const required = capability === 'text.generate' || capability === 'text.embed';
   const state: AgentCenterCapabilityState = {
     capability,
     label: AGENT_CENTER_CAPABILITY_LABELS[capability],
@@ -57,7 +60,7 @@ function buildCapabilityState(
     probedAt: readiness?.probedAt || null,
     binding,
     blocksTextTurns: required && readiness?.state !== 'ready',
-    editable: capability !== 'audio.synthesize',
+    editable: true,
     summary: '',
   };
   return {
@@ -70,7 +73,7 @@ function statusTone(input: AgentCenterStateInput, baseTextReady: boolean): Agent
   if (input.runtimeError) {
     return 'failed';
   }
-  if (!input.readiness && !input.executionConfig && !input.inspect) {
+  if (!input.readiness && !input.agentAIConfig && !input.inspect) {
     return 'disabled';
   }
   if (!baseTextReady) {
@@ -91,11 +94,11 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
   return {
     runtimeStatus: input.runtimeError
       ? 'failed'
-      : (!input.readiness && !input.executionConfig && !inspect ? 'disabled' : 'ready'),
+      : (!input.readiness && !input.agentAIConfig && !inspect ? 'disabled' : 'ready'),
     statusTone: tone,
     baseTextReady,
     baseTextDisabledReason: baseTextReady ? null : (text?.summary || 'Text readiness unavailable'),
-    configRevision: input.readiness?.configRevision ?? input.executionConfig?.revision ?? null,
+    configRevision: input.readiness?.configRevision ?? input.agentAIConfig?.revision ?? null,
     capabilities,
     autonomy: {
       enabled: inspect?.autonomyEnabled ?? null,
@@ -120,7 +123,6 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
     },
     appearance: input.appearance || inspect?.presentationProfile ? {
       ...DEFAULT_APPEARANCE,
-      ...(input.appearance || {}),
       ...(inspect?.presentationProfile ? {
         backendKind: inspect.presentationProfile.backendKind,
         avatarAssetRef: inspect.presentationProfile.avatarAssetRef,
@@ -129,10 +131,11 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
         status: inspect.presentationProfile.avatarAssetRef ? 'ready' : 'not_configured',
         disabledReason: inspect.presentationProfile.avatarAssetRef ? null : DEFAULT_APPEARANCE.disabledReason,
       } satisfies Partial<AgentCenterAppearanceProjection> : {}),
+      ...(input.appearance || {}),
     } : DEFAULT_APPEARANCE,
     diagnostics: {
       source: input.runtimeError ? 'unavailable' : 'runtime-projection',
-      configRevision: input.readiness?.configRevision ?? input.executionConfig?.revision ?? null,
+      configRevision: input.readiness?.configRevision ?? input.agentAIConfig?.revision ?? null,
       runtimeTurnId: null,
       runtimeStreamId: null,
       runtimeError: input.runtimeError || null,

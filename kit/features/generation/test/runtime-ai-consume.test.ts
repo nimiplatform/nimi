@@ -3,7 +3,7 @@ import {
   runRuntimeAIConsumeCapability,
   type RuntimeAIConsumeCapabilityId,
 } from '../src/runtime.js';
-import { ExecutionMode, ScenarioType, type NimiAIConfig } from '@nimiplatform/kit/core/sdk-contract';
+import { ExecutionMode, ReasonCode, ScenarioType, type NimiAIConfig } from '@nimiplatform/kit/core/sdk-contract';
 
 describe('runtime AI consume helper', () => {
   it('fails closed before dispatch when the AIConfig target binding is missing', async () => {
@@ -466,7 +466,7 @@ function streamFailedEvent() {
     payload: {
       oneofKind: 'failed',
       failed: {
-        reasonCode: 'AI_MODEL_NOT_FOUND',
+        reasonCode: ReasonCode.AI_MODEL_NOT_FOUND,
         actionHint: 'missing model',
       },
     },

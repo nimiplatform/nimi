@@ -1,22 +1,41 @@
 import type {
-  NimiRuntimeAgentExecutionConfigModule,
+  NimiRuntimeAgentAIConfigModule,
   NimiRuntimeAgentInspectSurface,
   NimiRuntimeAgentMemoryObservatorySnapshot,
   RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
+  AgentCenterRuntimeAutonomyConfigInput,
+  AgentCenterRuntimeAIConfigUpsertInput,
   AgentCenterRuntimeAdapter,
   AgentCenterRuntimeLoadInput,
   AgentCenterRuntimeSnapshot,
 } from './types.js';
 
 export interface CreateRuntimeAgentCenterAdapterInput {
-  readonly executionConfig: NimiRuntimeAgentExecutionConfigModule;
+  readonly agentAIConfig: NimiRuntimeAgentAIConfigModule;
   readonly inspect?: NimiRuntimeAgentInspectSurface | null;
   readonly identity?: RuntimeLocalAgentIdentityInput;
   readonly loadMemory?: (
     input: RuntimeLocalAgentIdentityInput,
   ) => Promise<NimiRuntimeAgentMemoryObservatorySnapshot | null>;
+}
+
+function resolveAutonomyMutationIdentity(
+  base: RuntimeLocalAgentIdentityInput | undefined,
+  input: AgentCenterRuntimeAutonomyConfigInput,
+): RuntimeLocalAgentIdentityInput {
+  if (input.ownerUserId && input.runtimeSourceRef && input.localAgentRef) {
+    return {
+      ownerUserId: input.ownerUserId,
+      runtimeSourceRef: input.runtimeSourceRef,
+      localAgentRef: input.localAgentRef,
+    };
+  }
+  if (!base) {
+    throw new Error('Agent Center Runtime adapter requires Runtime Local Agent identity.');
+  }
+  return base;
 }
 
 function resolveIdentity(
@@ -26,35 +45,76 @@ function resolveIdentity(
   return input?.identity || base || null;
 }
 
+function requireIdentity(
+  base: RuntimeLocalAgentIdentityInput | undefined,
+  input: AgentCenterRuntimeLoadInput | undefined,
+): RuntimeLocalAgentIdentityInput {
+  const identity = resolveIdentity(base, input);
+  if (!identity) {
+    throw new Error('Agent Center Runtime adapter requires Runtime Local Agent identity.');
+  }
+  return identity;
+}
+
+function resolveMutationIdentity(
+  base: RuntimeLocalAgentIdentityInput | undefined,
+  input: AgentCenterRuntimeAIConfigUpsertInput,
+): RuntimeLocalAgentIdentityInput {
+  if (input.ownerUserId && input.runtimeSourceRef && input.localAgentRef) {
+    return {
+      ownerUserId: input.ownerUserId,
+      runtimeSourceRef: input.runtimeSourceRef,
+      localAgentRef: input.localAgentRef,
+    };
+  }
+  if (!base) {
+    throw new Error('Agent Center Runtime adapter requires Runtime Local Agent identity.');
+  }
+  return base;
+}
+
 export function createRuntimeAgentCenterAdapter(
   input: CreateRuntimeAgentCenterAdapterInput,
 ): AgentCenterRuntimeAdapter {
   return {
-    executionConfig: input.executionConfig,
+    agentAIConfig: input.agentAIConfig,
     inspect: input.inspect || null,
     async loadSnapshot(loadInput = {}): Promise<AgentCenterRuntimeSnapshot> {
-      const identity = resolveIdentity(input.identity, loadInput);
-      const [executionConfig, readiness, inspect, memory] = await Promise.all([
-        input.executionConfig.get({ subjectUserId: loadInput.subjectUserId }),
-        input.executionConfig.readiness({ subjectUserId: loadInput.subjectUserId }),
-        input.inspect && identity ? input.inspect.getPublicInspect(identity) : Promise.resolve(null),
+      const identity = requireIdentity(input.identity, loadInput);
+      const callInput = { ...identity, subjectUserId: loadInput.subjectUserId };
+      const [agentAIConfig, readiness, inspect, memory] = await Promise.all([
+        input.agentAIConfig.get(callInput),
+        input.agentAIConfig.readiness(callInput),
+        input.inspect ? input.inspect.getPublicInspect(identity) : Promise.resolve(null),
         input.loadMemory && identity ? input.loadMemory(identity) : Promise.resolve(null),
       ]);
       return {
-        executionConfig,
+        agentAIConfig,
         readiness,
         inspect,
         memory,
       };
     },
-    upsertExecutionConfig(upsertInput) {
-      return input.executionConfig.upsert(upsertInput);
+    upsertAgentAIConfig(upsertInput) {
+      const identity = resolveMutationIdentity(input.identity, upsertInput);
+      return input.agentAIConfig.upsert({
+        ...identity,
+        subjectUserId: upsertInput.subjectUserId,
+        expectedRevision: upsertInput.expectedRevision,
+        intents: upsertInput.intents,
+      });
     },
     setAutonomyConfig(autonomyInput) {
       if (!input.inspect) {
         throw new Error('Runtime Agent inspect surface is required to mutate autonomy.');
       }
-      return input.inspect.setAutonomyConfig(autonomyInput);
+      const identity = resolveAutonomyMutationIdentity(input.identity, autonomyInput);
+      return input.inspect.setAutonomyConfig({
+        ...identity,
+        mode: autonomyInput.enabled === false ? 'off' : autonomyInput.mode,
+        dailyTokenBudget: autonomyInput.dailyTokenBudget,
+        maxTokensPerHook: autonomyInput.maxTokensPerHook,
+      });
     },
   };
 }

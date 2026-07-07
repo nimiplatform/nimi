@@ -140,6 +140,7 @@ export interface CapabilityItemOverride {
   readonly showClearButton?: boolean;
   readonly clearSelectionLabel?: string;
   readonly showEditorWhen?: 'always' | 'local';
+  readonly hideEditor?: boolean;
   readonly placeholder?: string;
   readonly detail?: string;
   readonly disabled?: boolean;

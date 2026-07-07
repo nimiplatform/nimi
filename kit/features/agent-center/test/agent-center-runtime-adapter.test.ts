@@ -17,7 +17,7 @@ function collectSourceFiles(dir: string): string[] {
 }
 
 describe('Agent Center Runtime adapter', () => {
-  it('loads execution config, readiness, inspect, and memory through typed adapters', async () => {
+  it('loads Runtime Agent AI Config, readiness, inspect, and memory through typed adapters', async () => {
     const calls: string[] = [];
     const adapter: AgentCenterRuntimeAdapter = createRuntimeAgentCenterAdapter({
       identity: {
@@ -25,16 +25,18 @@ describe('Agent Center Runtime adapter', () => {
         runtimeSourceRef: 'agent',
         localAgentRef: 'local-agent:owner:agent',
       },
-      executionConfig: {
-        async get() {
+      agentAIConfig: {
+        async get(input) {
+          expect(input.localAgentRef).toBe('local-agent:owner:agent');
           calls.push('config.get');
-          return { revision: 2, bindings: {}, updatedAt: null, updatedByAppId: 'runtime' };
+          return { revision: 2, intents: {}, updatedAt: null, updatedByAppId: 'runtime' };
         },
         async upsert() {
           calls.push('config.upsert');
-          return { revision: 3, bindings: {}, updatedAt: null, updatedByAppId: 'runtime' };
+          return { revision: 3, intents: {}, updatedAt: null, updatedByAppId: 'runtime' };
         },
-        async readiness() {
+        async readiness(input) {
+          expect(input.localAgentRef).toBe('local-agent:owner:agent');
           calls.push('config.readiness');
           return { configRevision: 2, capabilities: [] };
         },
@@ -82,7 +84,16 @@ describe('Agent Center Runtime adapter', () => {
     });
 
     const snapshot = await adapter.loadSnapshot();
-    await adapter.upsertExecutionConfig?.({ expectedRevision: 2, bindings: { 'text.generate': { route: 'local', modelId: 'local/default' } } });
+    await adapter.upsertAgentAIConfig?.({
+      ownerUserId: 'owner',
+      runtimeSourceRef: 'agent',
+      localAgentRef: 'local-agent:owner:agent',
+      expectedRevision: 2,
+      intents: {
+        'text.generate': { route: 'local', modelId: 'local/default' },
+        'text.embed': { route: 'local', modelId: 'local/default-embedding' },
+      },
+    });
     await adapter.setAutonomyConfig?.({
       ownerUserId: 'owner',
       runtimeSourceRef: 'agent',
@@ -92,7 +103,7 @@ describe('Agent Center Runtime adapter', () => {
       maxTokensPerHook: 120,
     });
 
-    expect(snapshot.executionConfig?.revision).toBe(2);
+    expect(snapshot.agentAIConfig?.revision).toBe(2);
     expect(snapshot.readiness?.configRevision).toBe(2);
     expect(calls).toEqual([
       'config.get',

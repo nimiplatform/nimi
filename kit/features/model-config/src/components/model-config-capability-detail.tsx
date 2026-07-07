@@ -218,6 +218,9 @@ function renderEditor(
   const override = resolveOverride(surface, descriptor.capabilityId);
   const showEditorWhen = override.showEditorWhen
     ?? (descriptor.editorKind === 'image' || descriptor.editorKind === 'video' ? 'local' : 'always');
+  if (override.hideEditor) {
+    return { showEditorWhen, editor: null };
+  }
 
   const t = surface.i18n.t;
 
