@@ -1,0 +1,667 @@
+version: 1
+inventory_id: desktop_test_inventory
+shard_id: desktop_test_inventory_shard_01
+owner: desktop
+authority_class: non_authoritative_inventory
+spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+tests:
+  - path: apps/desktop/scripts/run-macos-smoke-helpers.mjs
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/account-profile-projection.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/agent-chat-projection-boundary.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/agent-guide-first-message-floor.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/agent-hardcut-residue-contract.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/agent-identity-inference-contract.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/agents-panel-render.test.tsx
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/ai-config-multi-scope.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/ai-profile-config-domain-boundary.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/anonymous-runtime-shell.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/app-first-launch-ai-config.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/apps-ai-profile-repair-surface.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/apps-card-state-derivation.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/apps-lifecycle-bridge.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/apps-panel-controller.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/apps-panel-ordinary-visible-projection.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/apps-t4-w5-acceptance.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/asset-protocol-csp.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/audit-sdk-service.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/audit-view-model.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/auth-bootstrap-guard.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/auth-bootstrap-observability.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/auth-refresh-token-retention.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/auth-runtime-account-domain-boundary.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/avatar-debug-e2e-closeout.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/avatar-shell-local-assets-domain-boundary.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/avatar-smoke-fixture-hardcut.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/bootstrap-reentry-contract.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/built-in-ai-config-evidence.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/cbdb-agent-chat-localagent-link.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-4-mode-acceptance.test.tsx
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-anchor-binding-storage.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-avatar-attention-state.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-avatar-configuration-surface.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-avatar-debug-override.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-avatar-instance-registry.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-avatar-launch-arbitration.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-avatar-launcher.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-avatar-live2d-cubism-runtime.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-avatar-live2d-viewport-state.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-avatar-vrm-viewport-state.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-avatar-vrm-viewport.test.tsx
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-behavior-storage-hardcut.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-center-avatar-debug-workbench.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-center-live2d-calibration-workbench.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-center-local-config-store-bridge.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-center-local-config.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-composer-submit-clear-contract.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-diagnostics.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-local-mode-capability.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-local-mode-turn-routing.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-local-mode-turn-stream-snapshot.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-local-mode-turn-stream.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-local-mode.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/desktop/test/chat-agent-manual-voice-request.test.ts
+    owner: desktop
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending

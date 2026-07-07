@@ -1,0 +1,547 @@
+version: 1
+inventory_id: avatar_test_inventory
+shard_id: avatar_test_inventory_shard_01
+owner: avatar
+authority_class: non_authoritative_inventory
+spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+tests:
+  - path: apps/avatar/src/shell/renderer/app-shell/app-bootstrap-runtime-binding.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/app-shell/app-bootstrap.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/app-shell/avatar-conversation-context.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/app-shell/composition-state.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/app-shell/device-tier-detector.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/app-shell/throttled-cursor-events.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/app-shell/throttled-emit.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/app-shell/use-window-bounds-sync.test.tsx
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/app-shell/window-bounds.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/App.context-menu.test.tsx
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/App.interactions.test.tsx
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/App.snapshot.test.tsx
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/App.test.tsx
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/avatar-debug/avatar-debug-session.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/avatar-scale-state.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/bridge/launch-context.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/carrier/avatar-carrier.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/carrier/create-backend-branch.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/companion-surface/companion-surface.test.tsx
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/companion-surface/presence-state-machine.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/creator-capabilities.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/degraded-surface/degraded-surface.test.tsx
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/driver/factory.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/embodiment-stage/embodiment-stage.test.tsx
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/interaction/avatar-interaction-controller.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/live2d/backend-session.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/live2d/carrier-visual-assets.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/live2d/carrier-visual-host.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/live2d/interaction-physics.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/live2d/live2d-backend-branch.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/live2d/live2d-expression-mapping.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/live2d/live2d-expression-stack.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/live2d/live2d-look-at-idle.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/live2d/live2d-parameter-lane-scheduler.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/live2d/Live2DCarrierVisualSurface.test.tsx
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/mock/MockDriver.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/mock/scenario-loader.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/nas/continuous-scheduler.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/nas/creator-runtime-examples.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/nas/event-dispatch.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/nas/handler-executor.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/nas/handler-registry-capability.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/nas/handler-registry.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/nas/handler-sandbox-policy.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: apps/avatar/src/shell/renderer/nas/handler-sandbox.test.ts
+    owner: avatar
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending

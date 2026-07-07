@@ -73,6 +73,42 @@ export function readYaml(repoRoot, rel) {
   return YAML.parse(fs.readFileSync(path.join(repoRoot, rel), 'utf8'));
 }
 
+function readInventoryWithShards(repoRoot, inventoryRel) {
+  const inventory = readYaml(repoRoot, inventoryRel);
+  const rows = Array.isArray(inventory?.tests) ? [...inventory.tests] : [];
+  const shards = Array.isArray(inventory?.shards) ? inventory.shards : [];
+  for (const rawShard of shards) {
+    const shardRel = normalizeRel(rawShard);
+    if (!shardRel) {
+      continue;
+    }
+    const shard = readYaml(repoRoot, shardRel);
+    validateInventoryShardReference(inventoryRel, inventory, shardRel, shard);
+    rows.push(...(Array.isArray(shard?.tests) ? shard.tests : []));
+  }
+  return { ...inventory, tests: rows };
+}
+
+function validateInventoryShardReference(inventoryRel, inventory, shardRel, shard) {
+  for (const field of ['version', 'owner', 'authority_class', 'spec_policy_ref']) {
+    if (shard?.[field] !== inventory?.[field]) {
+      throw new Error(`${shardRel} ${field} must match ${inventoryRel}`);
+    }
+  }
+  if (shard?.inventory_id !== inventory?.inventory_id) {
+    throw new Error(`${shardRel} inventory_id must match ${inventoryRel}`);
+  }
+  if (!String(shard?.shard_id || '').trim()) {
+    throw new Error(`${shardRel} must declare shard_id`);
+  }
+  if (Array.isArray(shard?.shards) && shard.shards.length > 0) {
+    throw new Error(`${shardRel} must not declare nested shards`);
+  }
+  if (!Array.isArray(shard?.tests)) {
+    throw new Error(`${shardRel} must declare tests as a list`);
+  }
+}
+
 export function loadPolicy(repoRoot = defaultRepoRoot) {
   const policy = readYaml(repoRoot, policyRel);
   const classifications = new Map();
@@ -187,7 +223,7 @@ export function checkInventories({ repoRoot = defaultRepoRoot, domain = null, re
 
     let inventory;
     try {
-      inventory = readYaml(repoRoot, moduleRow.inventory);
+      inventory = readInventoryWithShards(repoRoot, moduleRow.inventory);
     } catch (error) {
       errors.push(`${moduleRow.inventory} must parse as YAML: ${error.message}`);
       continue;
@@ -282,7 +318,7 @@ export function auditInventoryClassifications({ repoRoot = defaultRepoRoot, doma
   for (const moduleRow of selectedRows) {
     const inventoryPath = path.join(repoRoot, moduleRow.inventory);
     if (!fs.existsSync(inventoryPath)) continue;
-    const inventory = readYaml(repoRoot, moduleRow.inventory);
+    const inventory = readInventoryWithShards(repoRoot, moduleRow.inventory);
     const rows = Array.isArray(inventory?.tests) ? inventory.tests : [];
     for (const row of rows) {
       const rel = normalizeRel(row?.path);
