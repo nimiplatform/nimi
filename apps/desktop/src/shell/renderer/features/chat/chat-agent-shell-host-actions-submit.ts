@@ -29,7 +29,7 @@ import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import {
   describeRuntimeAgentTextReadiness,
   isRuntimeAgentTextReadinessReady,
-} from '@renderer/infra/runtime-agent-execution-config';
+} from '@renderer/infra/runtime-agent-ai-config';
 import { buildAgentUserProjection } from './chat-agent-user-projection';
 import {
   assertAgentSubmitSchedulingAllowed,
@@ -108,7 +108,7 @@ export async function submitAgentConversationTurn(input: {
       },
     });
 
-    const runtimeReadiness = await input.hostInput.getRuntimeAgentExecutionReadiness();
+    const runtimeReadiness = await input.hostInput.getRuntimeAgentAIConfigReadiness();
     if (!isRuntimeAgentTextReadinessReady(runtimeReadiness)) {
       throw new Error(
         input.hostInput.runtimeAgentTextDisabledReason

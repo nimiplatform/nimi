@@ -16,7 +16,7 @@ import {
 } from './chat-runtime-inspect-content';
 import { AgentDiagnosticsAvatarOverrideCard } from './chat-agent-diagnostics-avatar-override';
 import {
-  AUTONOMY_MODE_OPTIONS,
+  CHAT_DIAGNOSTICS_AUTONOMY_MODE_OPTIONS,
   DIAGNOSTIC_INLINE_INPUT_CLASS_NAME,
   DIAGNOSTIC_INPUT_CLASS_NAME,
   DiagnosticsDangerGhostButton,
@@ -39,7 +39,7 @@ export type AgentDiagnosticsSection = {
   headerAction?: ReactNode;
 };
 
-export function AgentDiagnosticsPanel(props: {
+export function ChatAgentDiagnosticsPanel(props: {
   activeTarget: AgentLocalTargetSnapshot | null;
   lifecycle: AgentTurnLifecycleState | null;
   mutationPendingAction: string | null;
@@ -242,7 +242,7 @@ export function AgentDiagnosticsPanel(props: {
             disabled={mutationPending}
             className={DIAGNOSTIC_INLINE_INPUT_CLASS_NAME}
           >
-            {AUTONOMY_MODE_OPTIONS.map((option) => (
+            {CHAT_DIAGNOSTICS_AUTONOMY_MODE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

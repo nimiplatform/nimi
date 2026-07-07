@@ -187,7 +187,7 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /settingsContent:/);
   assert.doesNotMatch(chatAgentPresentationSource, /diagnosticsContent=/);
   assert.match(chatAgentPresentationSettingsSource, /@nimiplatform\/kit\/features\/agent-center/);
-  assert.match(chatAgentPresentationSettingsSource, /export \{ AgentConversationDiagnosticsContent \}/);
+  assert.doesNotMatch(chatAgentPresentationSettingsSource, /AgentConversationDiagnosticsContent/);
   assert.match(chatAgentPresentationSource, /composerContent:/);
   assert.doesNotMatch(chatAgentPresentationSource, /rightSidebarContent:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderTranscript:/);

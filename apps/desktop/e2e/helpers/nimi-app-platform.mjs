@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { _electron as electron } from 'playwright';
 
 export const PLATFORM_FIXTURE_APP_ID = 'community.nimi.fixture.platform-proof';
@@ -28,7 +29,7 @@ export function platformFixtureProjection(input) {
     launched: true,
     activeVersion: PLATFORM_FIXTURE_VERSION,
     scope: { kind: 'app', ownerId: PLATFORM_FIXTURE_APP_ID },
-    reasonCode: 'ACTION_EXECUTED',
+    reasonCode: ReasonCode.ACTION_EXECUTED,
     releaseDescriptorRef: PLATFORM_FIXTURE_DESCRIPTOR_REF,
     descriptorClass: 'external-immutable-artifact',
     admissionTrack: 'admission-sandbox-ci',

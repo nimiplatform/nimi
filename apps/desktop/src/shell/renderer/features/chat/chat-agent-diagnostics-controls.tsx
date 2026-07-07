@@ -6,7 +6,7 @@ export const DIAGNOSTIC_INPUT_CLASS_NAME = 'mt-1.5 w-full rounded-lg border bord
 // label sits to the LEFT, not above, so the field shouldn't push itself down.
 export const DIAGNOSTIC_INLINE_INPUT_CLASS_NAME = 'w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-2.5 py-1.5 text-[13px] font-medium text-[var(--nimi-text-primary)] outline-none transition focus:border-[color:var(--nimi-action-primary-bg)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,white)] disabled:cursor-not-allowed disabled:opacity-50';
 
-export const AUTONOMY_MODE_OPTIONS = [
+export const CHAT_DIAGNOSTICS_AUTONOMY_MODE_OPTIONS = [
   { value: 'off', label: 'Off' },
   { value: 'low', label: 'Low' },
   { value: 'medium', label: 'Medium' },

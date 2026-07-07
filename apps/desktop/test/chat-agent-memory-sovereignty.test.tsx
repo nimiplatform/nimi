@@ -9,7 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 // bundler injects; the bare tsx test runner has no injection, so expose it.
 (globalThis as Record<string, unknown>).React = React;
 import type { NimiRuntimeAgentCanonicalMemoryInspect } from '@nimiplatform/sdk/runtime';
-import { ChatAgentCognitionPanel } from '../src/shell/renderer/features/chat/chat-agent-cognition-panel.js';
+import { ChatAgentMemorySovereigntyPanel } from '../src/shell/renderer/features/chat/chat-agent-cognition-panel.js';
 
 function memoryFixture(overrides: Partial<NimiRuntimeAgentCanonicalMemoryInspect> = {}): NimiRuntimeAgentCanonicalMemoryInspect {
   return {
@@ -42,7 +42,7 @@ function renderPanel(element: React.ReactElement): string {
 
 test('memory sovereignty card renders records and count without Desktop-private export action', () => {
   const html = renderPanel(
-    <ChatAgentCognitionPanel
+    <ChatAgentMemorySovereigntyPanel
       targetTitle="Companion"
       recentMemories={[memoryFixture(), memoryFixture({ memoryId: 'memory-2', summary: 'Second memory record.' })]}
     />,
@@ -53,7 +53,7 @@ test('memory sovereignty card renders records and count without Desktop-private 
   assert.ok(!html.includes('data-testid="chat-memory-export-button"'), 'Desktop-private memory export action must not render');
 });
 
-test('Chat Agent cognition has no Desktop-private memory export bridge', () => {
+test('Chat Agent memory sovereignty panel has no Desktop-private memory export bridge', () => {
   const root = resolve(import.meta.dirname, '..');
   const sources = [
     'src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx',
@@ -72,7 +72,7 @@ test('Chat Agent cognition has no Desktop-private memory export bridge', () => {
 
 test('memory sovereignty card shows the honest empty state', () => {
   const html = renderPanel(
-    <ChatAgentCognitionPanel targetTitle="Companion" recentMemories={[]} />,
+    <ChatAgentMemorySovereigntyPanel targetTitle="Companion" recentMemories={[]} />,
   );
   assert.ok(html.includes('data-testid="chat-memory-sovereignty-card"'), 'card renders for empty memory');
   assert.ok(html.includes('No canonical memories recorded yet'), 'empty state copy must render');
@@ -81,7 +81,7 @@ test('memory sovereignty card shows the honest empty state', () => {
 
 test('memory sovereignty card stays absent without inspect data', () => {
   const html = renderPanel(
-    <ChatAgentCognitionPanel targetTitle="Companion" recentMemories={null} />,
+    <ChatAgentMemorySovereigntyPanel targetTitle="Companion" recentMemories={null} />,
   );
   assert.ok(!html.includes('data-testid="chat-memory-sovereignty-card"'), 'card must not render without data');
 });

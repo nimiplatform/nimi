@@ -78,9 +78,6 @@ export function overlayAgentTargetWithLiveProfileContent(
   const nextDefaultVoiceReference = liveTarget.defaultVoiceReference
     ?? threadTarget.defaultVoiceReference
     ?? null;
-  const nextSpeechSynthesis = liveTarget.speechSynthesis
-    ?? threadTarget.speechSynthesis
-    ?? null;
   const nextAvatarAutoplay = liveTarget.avatarAutoplay
     ?? threadTarget.avatarAutoplay
     ?? null;
@@ -91,7 +88,6 @@ export function overlayAgentTargetWithLiveProfileContent(
     nextGreeting === (threadTarget.greeting ?? null)
     && nextDocs === (threadTarget.builtinDocsContext ?? null)
     && nextDefaultVoiceReference === (threadTarget.defaultVoiceReference ?? null)
-    && areSpeechSynthesisRoutesEqual(nextSpeechSynthesis, threadTarget.speechSynthesis ?? null)
     && (nextAvatarAutoplay ?? false) === (threadTarget.avatarAutoplay ?? false)
     && areOwnerSettingsProjectionsEqual(
       nextOwnerSettingsProjection,
@@ -106,7 +102,6 @@ export function overlayAgentTargetWithLiveProfileContent(
     greeting: nextGreeting,
     builtinDocsContext: nextDocs,
     defaultVoiceReference: nextDefaultVoiceReference,
-    speechSynthesis: nextSpeechSynthesis,
     avatarAutoplay: nextAvatarAutoplay,
     ownerSettingsProjection: nextOwnerSettingsProjection,
   };
@@ -150,22 +145,6 @@ function areOwnerSettingsProjectionsEqual(
     );
 }
 
-function areSpeechSynthesisRoutesEqual(
-  left: AgentLocalTargetSnapshot['speechSynthesis'] | null | undefined,
-  right: AgentLocalTargetSnapshot['speechSynthesis'] | null | undefined,
-): boolean {
-  const leftRoute = left ?? null;
-  const rightRoute = right ?? null;
-  if (!leftRoute && !rightRoute) {
-    return true;
-  }
-  if (!leftRoute || !rightRoute) {
-    return false;
-  }
-  return leftRoute.modelId === rightRoute.modelId
-    && leftRoute.routePolicy === rightRoute.routePolicy;
-}
-
 export function areAgentTargetSnapshotsEquivalent(
   left: AgentLocalTargetSnapshot | null | undefined,
   right: AgentLocalTargetSnapshot | null | undefined,
@@ -183,7 +162,6 @@ export function areAgentTargetSnapshotsEquivalent(
     && left.handle === right.handle
     && (left.avatarUrl || null) === (right.avatarUrl || null)
     && (left.defaultVoiceReference || null) === (right.defaultVoiceReference || null)
-    && areSpeechSynthesisRoutesEqual(left.speechSynthesis, right.speechSynthesis)
     && (left.avatarAutoplay ?? false) === (right.avatarAutoplay ?? false)
     && (left.worldId || null) === (right.worldId || null)
     && (left.worldName || null) === (right.worldName || null)

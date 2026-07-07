@@ -18,12 +18,8 @@ fn text_binding() -> serde_json::Value {
         "version": "v2",
         "readinessRef": "execution_evidence_test",
         "runtime": {
-            "runtimeBaselineRef": "runtime-baseline:test",
             "runtimeConsumerId": "llama.cpp.cpu",
-            "boundAssetId": "asset-id:gemma-test",
-            "runtimeLocalRouteTarget": "local",
             "modelResolved": "asset-id:gemma-test",
-            "runtimeExecutionTraceId": "trace:llama.cpp.cpu",
         },
     })
 }
@@ -34,12 +30,8 @@ fn stt_binding() -> serde_json::Value {
         "version": "v2",
         "readinessRef": "execution_evidence_test",
         "runtime": {
-            "runtimeBaselineRef": "runtime-baseline:test",
             "runtimeConsumerId": "speech.qwen3-asr.python",
-            "boundAssetId": "asset-id:asr-test",
-            "runtimeLocalRouteTarget": "speech",
             "modelResolved": "asset-id:asr-test",
-            "runtimeExecutionTraceId": "trace:speech.qwen3-asr.python",
         },
     })
 }
@@ -50,12 +42,20 @@ fn tts_binding() -> serde_json::Value {
         "version": "v2",
         "readinessRef": "execution_evidence_test",
         "runtime": {
-            "runtimeBaselineRef": "runtime-baseline:test",
             "runtimeConsumerId": "speech.qwen3-tts.python",
-            "boundAssetId": "asset-id:tts-test",
-            "runtimeLocalRouteTarget": "speech",
             "modelResolved": "asset-id:tts-test",
-            "runtimeExecutionTraceId": "trace:speech.qwen3-tts.python",
+        },
+    })
+}
+
+fn tts_binding_v2() -> serde_json::Value {
+    serde_json::json!({
+        "kind": "local-runtime",
+        "version": "v2",
+        "readinessRef": "execution_evidence_test",
+        "runtime": {
+            "runtimeConsumerId": "speech.qwen3-tts.python",
+            "modelResolved": "asset-id:tts-test-v2",
         },
     })
 }
@@ -65,6 +65,23 @@ fn baseline_bindings() -> Vec<super::BuiltInAiConfigCapability> {
         super::BuiltInAiConfigCapability {
             capability: "audio.synthesize".to_string(),
             binding: tts_binding(),
+        },
+        super::BuiltInAiConfigCapability {
+            capability: "audio.transcribe".to_string(),
+            binding: stt_binding(),
+        },
+        super::BuiltInAiConfigCapability {
+            capability: "text.generate".to_string(),
+            binding: text_binding(),
+        },
+    ]
+}
+
+fn baseline_bindings_with_tts_v2() -> Vec<super::BuiltInAiConfigCapability> {
+    vec![
+        super::BuiltInAiConfigCapability {
+            capability: "audio.synthesize".to_string(),
+            binding: tts_binding_v2(),
         },
         super::BuiltInAiConfigCapability {
             capability: "audio.transcribe".to_string(),
@@ -275,6 +292,42 @@ fn committed_built_in_config_is_full_materialized_for_factory_capability_set() {
 }
 
 #[test]
+fn built_in_scope_init_projects_target_refs_shape_for_renderer_aiconfig() {
+    let root = temp_data_root("scope-init-target-refs");
+    let set = ensure_built_in_ai_config_evidence_set(
+        &root,
+        "account_1",
+        ALIAS,
+        LEVEL,
+        &baseline_bindings(),
+    )
+    .expect("ensure evidence set");
+
+    let init = super::read_built_in_ai_config_for_scope_init(
+        &root,
+        "account_1",
+        "agent",
+        &set.refs(),
+        &baseline_bindings(),
+    )
+    .expect("read scope init");
+    let json = serde_json::to_value(&init).expect("scope init json");
+    let capabilities = json
+        .get("capabilities")
+        .and_then(|value| value.as_object())
+        .expect("capabilities object");
+    assert!(capabilities.contains_key("targetRefs"));
+    assert!(!capabilities.contains_key("selectedBindings"));
+    assert_eq!(
+        capabilities
+            .get("targetRefs")
+            .and_then(|value| value.as_object())
+            .and_then(|target_refs| target_refs.get("audio.synthesize")),
+        Some(&tts_binding()),
+    );
+}
+
+#[test]
 fn runtime_execution_proofs_are_required_binding_projection_inputs() {
     let bindings = runtime_capability_bindings_from_execution_evidence_ref(
         &ready_runtime_execution_evidence_ref(),
@@ -324,6 +377,53 @@ fn existing_valid_records_are_reused_without_rewrite() {
     let raw_after = std::fs::read_to_string(&nimi_path).expect("read after");
     assert_eq!(raw_after, raw_before);
     assert_eq!(first.refs(), second.refs());
+}
+
+#[test]
+fn ensure_rematerializes_stale_builtin_record_from_current_runtime_evidence() {
+    let root = temp_data_root("rematerialize-stale-evidence");
+    let first = ensure_built_in_ai_config(
+        &root,
+        "account_1",
+        "agent",
+        ALIAS,
+        LEVEL,
+        &baseline_bindings(),
+    )
+    .expect("first ensure");
+    let path = built_in_ai_config_path(&root, "account_1", "agent").expect("path");
+    let stale_record = read_record(&path);
+    assert_eq!(stale_record.ai_config_version, 1);
+    let old_ref = first.built_in_ai_config_ref;
+
+    let second = ensure_built_in_ai_config(
+        &root,
+        "account_1",
+        "agent",
+        ALIAS,
+        LEVEL,
+        &baseline_bindings_with_tts_v2(),
+    )
+    .expect("second ensure rematerializes stale runtime evidence binding");
+
+    let refreshed = read_record(&path);
+    assert_eq!(refreshed.ai_config_version, 2);
+    assert_ne!(second.built_in_ai_config_ref, old_ref);
+    let tts = refreshed
+        .config_payload
+        .capabilities
+        .iter()
+        .find(|cap| cap.capability == "audio.synthesize")
+        .expect("audio.synthesize");
+    assert_eq!(tts.binding, tts_binding_v2());
+    verify_built_in_ai_config_ref(
+        &root,
+        "account_1",
+        "agent",
+        &second.built_in_ai_config_ref,
+        Some(&baseline_bindings_with_tts_v2()),
+    )
+    .expect("refreshed ref resolves against current runtime evidence");
 }
 
 #[test]

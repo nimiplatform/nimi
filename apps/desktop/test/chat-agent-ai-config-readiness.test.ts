@@ -11,17 +11,17 @@ function read(relPath: string): string {
   return fs.readFileSync(path.join(desktopDir, relPath), 'utf8');
 }
 
-test('RLA3 submit gate reads Runtime Agent execution readiness through Desktop SDK adapter', () => {
+test('RLA3 submit gate reads Runtime Agent AI Config readiness through Desktop SDK adapter', () => {
   const submitSource = read('src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit.ts');
   const typesSource = read('src/shell/renderer/features/chat/chat-agent-shell-host-actions-types.ts');
   const adapterSource = read('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
-  const infraSource = fs.readFileSync(path.join(infraDir, 'runtime-agent-execution-config.ts'), 'utf8');
+  const infraSource = fs.readFileSync(path.join(infraDir, 'runtime-agent-ai-config.ts'), 'utf8');
 
-  assert.match(infraSource, /createNimiRuntimeAgentExecutionConfigModule/);
+  assert.match(infraSource, /createNimiRuntimeAgentAIConfigModule/);
   assert.doesNotMatch(infraSource, /conversation-capability/);
-  assert.match(typesSource, /getRuntimeAgentExecutionReadiness/);
-  assert.match(adapterSource, /getRuntimeAgentExecutionReadiness:\s*refreshRuntimeAgentExecutionReadiness/);
-  assert.match(submitSource, /await input\.hostInput\.getRuntimeAgentExecutionReadiness\(\)/);
+  assert.match(typesSource, /getRuntimeAgentAIConfigReadiness/);
+  assert.match(adapterSource, /getRuntimeAgentAIConfigReadiness:\s*refreshRuntimeAgentAIConfigReadiness/);
+  assert.match(submitSource, /await input\.hostInput\.getRuntimeAgentAIConfigReadiness\(\)/);
   assert.doesNotMatch(submitSource, /ensureAgentConversationSubmitRouteReady|resolvedBinding|createNimiConversationAISnapshot/);
 });
 
@@ -40,6 +40,13 @@ test('RLA3 Desktop Agent Center placement consumes Kit surface only', () => {
   const desktopPanelPath = path.join(chatDir, 'chat-agent-center-panel.tsx');
 
   assert.match(placementSource, /@nimiplatform\/kit\/features\/agent-center/);
+  assert.match(placementSource, /chrome="embedded"/);
+  assert.match(placementSource, /appearanceAdapter=\{appearanceAdapter\}/);
+  assert.match(placementSource, /agentAIConfig:\s*input\.runtimeAgentAIConfig/);
+  assert.match(placementSource, /readiness:\s*input\.runtimeAgentAIConfigReadiness/);
+  assert.match(placementSource, /inspect:\s*input\.runtimeInspect/);
+  assert.match(placementSource, /providerResolver:\s*getDesktopRouteModelPickerProvider/);
+  assert.doesNotMatch(placementSource, /\bidentity=\{/);
   assert.doesNotMatch(placementSource, /ChatSettingsPanel|modelContent|diagnosticsContent|avatarContent|localAppearanceContent/);
   assert.equal(fs.existsSync(desktopPanelPath), false, 'Desktop-owned AgentCenterPanel must be removed');
 });

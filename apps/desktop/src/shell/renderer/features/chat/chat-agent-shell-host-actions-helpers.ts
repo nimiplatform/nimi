@@ -100,15 +100,6 @@ export function buildAgentConversationAnchorMetadata(target: AgentLocalTargetSna
   if (target.avatarAutoplay === true) {
     realmProfileContext.avatarAutoplay = true;
   }
-  const speechSynthesis = target.speechSynthesis ?? null;
-  if (speechSynthesis) {
-    const speechModelId = normalizeText(speechSynthesis.modelId);
-    const speechRoutePolicy = normalizeText(speechSynthesis.routePolicy);
-    if (speechModelId && (speechRoutePolicy === 'local' || speechRoutePolicy === 'cloud')) {
-      realmProfileContext.speechModelId = speechModelId;
-      realmProfileContext.speechRoutePolicy = speechRoutePolicy;
-    }
-  }
   if (target.ownershipType === 'WORLD_OWNED' && normalizeText(target.worldId).startsWith('cbdb-')) {
     realmProfileContext.ownerScope = 'cbdb-curated-system';
     realmProfileContext.sourceProfileId = 'cbdb-historical';

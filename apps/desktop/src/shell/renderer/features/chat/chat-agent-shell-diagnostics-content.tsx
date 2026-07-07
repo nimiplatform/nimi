@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
+import { ChatAgentDiagnosticsPanel } from './chat-agent-diagnostics';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 
 function DiagnosticsBlock(props: {
@@ -23,13 +23,13 @@ function DiagnosticsBlock(props: {
   );
 }
 
-export function AgentConversationDiagnosticsContent({
+export function ChatAgentDiagnosticsContent({
   input,
 }: {
   input: UseAgentConversationPresentationInput;
 }) {
   return (
-    <AgentDiagnosticsPanel
+    <ChatAgentDiagnosticsPanel
       activeTarget={input.activeTarget}
       lifecycle={input.currentFooterHostState?.lifecycle || null}
       mutationPendingAction={input.mutationPendingAction}

@@ -5,7 +5,7 @@ import type {
   NimiRuntimeAppLifecycleClient,
   NimiRuntimeAppOpenProjection,
 } from '@nimiplatform/sdk/runtime';
-import { createNimiError } from '@nimiplatform/sdk/types';
+import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
 
 import {
   createDesktopAppLifecycleBridge,
@@ -47,7 +47,7 @@ describe('Desktop App Lifecycle OpenApp launch-resolution handoff', () => {
       state: 'blocked',
       reachedStep: 'verify_package',
       launched: false,
-      reasonCode: 'APP_INSTALL_DIGEST_MISMATCH',
+      reasonCode: ReasonCode.APP_INSTALL_DIGEST_MISMATCH,
     };
     const launchCalls: NimiRuntimeAppOpenProjection[] = [];
     const bridge = createDesktopAppLifecycleBridge({
@@ -116,7 +116,7 @@ function launchedProjection(): NimiRuntimeAppOpenProjection {
     launched: true,
     activeVersion: '0.1.0-sandbox',
     scope: { kind: 'app', ownerId: 'community.nimi.fixture.platform-proof' },
-    reasonCode: 'ACTION_EXECUTED',
+    reasonCode: ReasonCode.ACTION_EXECUTED,
     releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
     descriptorClass: 'external-immutable-artifact',
     admissionTrack: 'admission-sandbox-ci',

@@ -1,23 +1,19 @@
 /**
  * Shared Desktop memory-embedding Runtime surface.
  *
- * Desktop does not own memory embedding binding intent. It composes SDK
- * protected surfaces over RuntimeCognitionService so durable intent, inspect,
- * bind, and cutover all go through Runtime.
+ * Desktop does not own memory embedding intent. It composes the SDK protected
+ * runtime surface over RuntimeCognitionService for inspect, bind, and cutover.
+ * The committed text.embed intent is owned by Runtime Agent AI Config.
  */
 
 import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import {
-  createNimiProtectedHostMemoryEmbeddingConfigSurface,
   createNimiProtectedHostMemoryEmbeddingRuntimeSurface,
-  type NimiProtectedHostMemoryEmbeddingConfigClient,
   type NimiProtectedHostMemoryEmbeddingRuntimeClient,
   type NimiMemoryEmbeddingRuntimeSurface,
-  type NimiMemoryEmbeddingConfigSurface,
 } from '@nimiplatform/sdk/runtime';
 
 export type DesktopMemoryEmbeddingConfigService = {
-  memoryEmbeddingConfig: NimiMemoryEmbeddingConfigSurface;
   memoryEmbeddingRuntime: NimiMemoryEmbeddingRuntimeSurface;
 };
 
@@ -38,7 +34,7 @@ async function currentSubjectUserId(): Promise<string> {
 function createProtectedMemoryEmbeddingRuntimeClient(
   runtime: RuntimeClient,
   appId: string,
-): NimiProtectedHostMemoryEmbeddingConfigClient & NimiProtectedHostMemoryEmbeddingRuntimeClient {
+): NimiProtectedHostMemoryEmbeddingRuntimeClient {
   const normalizedAppId = String(appId || '').trim();
   if (!normalizedAppId) {
     throw new Error('Desktop memory embedding service requires a Nimi app id.');
@@ -58,16 +54,11 @@ export function createDesktopMemoryEmbeddingConfigService(
   const getAppId = deps.getAppId ?? (() => getDesktopAppId());
   const getProtectedRuntime = () => createProtectedMemoryEmbeddingRuntimeClient(getRuntime(), getAppId());
   const getSubjectUserId = deps.getSubjectUserId ?? currentSubjectUserId;
-  const configSurface = createNimiProtectedHostMemoryEmbeddingConfigSurface({
-    runtime: getProtectedRuntime,
-    getSubjectUserId,
-  });
   const runtimeSurface = createNimiProtectedHostMemoryEmbeddingRuntimeSurface({
     runtime: getProtectedRuntime,
     getSubjectUserId,
   });
   return {
-    memoryEmbeddingConfig: configSurface,
     memoryEmbeddingRuntime: runtimeSurface,
   };
 }

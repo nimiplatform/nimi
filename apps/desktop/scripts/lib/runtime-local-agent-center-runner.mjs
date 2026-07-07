@@ -31,7 +31,7 @@ import {
   captureDesktopRuntimeLocalAgentCenterEvidence,
   openDesktopAgentCenter,
   probeDesktopRuntimeAvailable,
-  projectExecutionConfigForEvidence,
+  projectAgentAIConfigForEvidence,
   trackRuntimeLocalAgentCenterPageProblems,
   visitDesktopAgentCenterTabs,
 } from './runtime-local-agent-center-evidence.mjs';
@@ -233,24 +233,33 @@ export async function runDesktopRuntimeLocalAgentCenterAcceptance({
     await openDesktopAgentCenter(page, { localAgentRef });
     const tabsVisited = await visitDesktopAgentCenterTabs(page);
 
-    let committedConfig = null;
+    let committedAgentAIConfig = null;
     let readiness = null;
     let staleRevisionConflict = null;
     let runtimeAvailableProbe = await probeDesktopRuntimeAvailable(page);
+    const agentAIConfigIdentity = {
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef,
+      localAgentRef,
+    };
     if (resolvedScenario === 'live-runtime') {
-      committedConfig = await agentClient.executionConfig.get();
-      readiness = await agentClient.executionConfig.readiness();
-      staleRevisionConflict = await proveRuntimeExecutionConfigStaleConflict(agentClient.executionConfig, committedConfig);
-      committedConfig = await agentClient.executionConfig.get();
-      readiness = await agentClient.executionConfig.readiness();
+      committedAgentAIConfig = await agentClient.agentAIConfig.get(agentAIConfigIdentity);
+      readiness = await agentClient.agentAIConfig.readiness(agentAIConfigIdentity);
+      staleRevisionConflict = await proveRuntimeAgentAIConfigStaleConflict(
+        agentClient.agentAIConfig,
+        committedAgentAIConfig,
+        agentAIConfigIdentity,
+      );
+      committedAgentAIConfig = await agentClient.agentAIConfig.get(agentAIConfigIdentity);
+      readiness = await agentClient.agentAIConfig.readiness(agentAIConfigIdentity);
     } else {
       await terminateDaemon(runtimeDaemon);
       runtimeDaemon = null;
       runtimeAvailableProbe = await probeDesktopRuntimeAvailable(page);
     }
 
-    const executionConfig = resolvedScenario === 'live-runtime'
-      ? projectExecutionConfigForEvidence(committedConfig, readiness)
+    const agentAIConfig = resolvedScenario === 'live-runtime'
+      ? projectAgentAIConfigForEvidence(committedAgentAIConfig, readiness)
       : { revision: null, textGenerate: { state: 'unavailable', reason: 'runtime-unavailable' } };
     const runtimeEvidence = resolvedScenario === 'live-runtime'
       ? {
@@ -279,11 +288,11 @@ export async function runDesktopRuntimeLocalAgentCenterAcceptance({
       scenario: resolvedScenario,
       stage: resolvedScenario === 'live-runtime' ? 'rla0b-live-agent-center' : 'rla0b-no-runtime-agent-center',
       runtime: runtimeEvidence,
-      executionConfig,
+      agentAIConfig,
       diagnostics: resolvedScenario === 'live-runtime'
         ? {
           source: 'runtime-accepted-projection',
-          runtimeConfigRevision: executionConfig.revision,
+          runtimeConfigRevision: agentAIConfig.revision,
           acceptedTurnRef: null,
         }
         : { source: 'absent' },
@@ -331,31 +340,39 @@ export async function runDesktopRuntimeLocalAgentCenterAcceptance({
   }
 }
 
-async function proveRuntimeExecutionConfigStaleConflict(executionConfig, seededConfig) {
-  const seededText = seededConfig?.bindings?.['text.generate'] || null;
+async function proveRuntimeAgentAIConfigStaleConflict(agentAIConfig, seededConfig, identity) {
+  const seededText = seededConfig?.intents?.['text.generate'] || null;
+  const seededEmbed = seededConfig?.intents?.['text.embed'] || null;
   if (!seededText) {
-    throw new Error('Desktop RLA stale conflict evidence requires committed text.generate binding');
+    throw new Error('Desktop RLA stale conflict evidence requires committed text.generate intent');
   }
-  const committed = await executionConfig.upsert({
+  if (!seededEmbed) {
+    throw new Error('Desktop RLA stale conflict evidence requires committed text.embed intent');
+  }
+  const committed = await agentAIConfig.upsert({
+    ...identity,
     expectedRevision: seededConfig.revision,
-    bindings: {
+    intents: {
       'text.generate': seededText,
+      'text.embed': seededEmbed,
     },
   });
   try {
-    await executionConfig.upsert({
+    await agentAIConfig.upsert({
+      ...identity,
       expectedRevision: seededConfig.revision,
-      bindings: {
+      intents: {
         'text.generate': seededText,
+        'text.embed': seededEmbed,
       },
     });
   } catch (error) {
     const reasonCode = normalizeErrorField(error, 'reasonCode');
     const actionHint = normalizeErrorField(error, 'actionHint');
-    if (reasonCode !== 'RUNTIME_AGENT_EXECUTION_CONFIG_CONCURRENT_MODIFICATION') {
+    if (reasonCode !== 'RUNTIME_AGENT_AI_CONFIG_CONCURRENT_MODIFICATION') {
       throw new Error(`Desktop RLA stale conflict evidence expected Runtime SDK conflict, got ${reasonCode || formatError(error).message}`, { cause: error });
     }
-    const afterConflict = await executionConfig.get();
+    const afterConflict = await agentAIConfig.get(identity);
     if (afterConflict.revision !== committed.revision) {
       throw new Error(`Desktop RLA stale conflict mutated config revision: expected ${committed.revision}, got ${afterConflict.revision}`, { cause: error });
     }

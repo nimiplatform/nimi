@@ -10,6 +10,10 @@ import {
 import type { TFunction } from 'i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import {
+  createRuntimeAgentCenterAdapter,
+  type AgentCenterRuntimeAdapter,
+} from '@nimiplatform/kit/features/agent-center';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { ensureRuntimeAgentExists } from './chat-agent-shell-host-actions-helpers';
@@ -23,12 +27,12 @@ import {
   type NimiRuntimeAgentInspectSnapshot,
 } from '@renderer/infra/runtime-agent-inspect';
 import {
-  createRuntimeAgentExecutionConfigAdapter,
+  createRuntimeAgentAIConfigAdapter,
   describeRuntimeAgentTextReadiness,
   isRuntimeAgentTextReadinessReady,
-  type NimiRuntimeAgentExecutionConfigSnapshot,
-  type NimiRuntimeAgentExecutionReadinessSnapshotProjection,
-} from '@renderer/infra/runtime-agent-execution-config';
+  type NimiRuntimeAgentAIConfigSnapshot,
+  type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
+} from '@renderer/infra/runtime-agent-ai-config';
 import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import {
   useAgentConversationRuntimeMutations,
@@ -64,16 +68,17 @@ type AgentConversationRuntimeController = {
   canonicalMemoryStatus: CanonicalMemoryBankStatus | null;
   mutationPendingAction: string | null;
   recentRuntimeEvents: readonly NimiRuntimeAgentInspectEventSummary[];
-  runtimeAgentExecutionConfig: NimiRuntimeAgentExecutionConfigSnapshot | null;
-  runtimeAgentExecutionReadiness: NimiRuntimeAgentExecutionReadinessSnapshotProjection | null;
-  runtimeAgentExecutionLoading: boolean;
-  runtimeAgentExecutionError: string | null;
+  runtimeAgentAIConfig: NimiRuntimeAgentAIConfigSnapshot | null;
+  runtimeAgentAIConfigReadiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null;
+  runtimeAgentAIConfigLoading: boolean;
+  runtimeAgentAIConfigError: string | null;
+  runtimeAgentCenterAdapter: AgentCenterRuntimeAdapter | null;
   runtimeAgentTextReady: boolean;
   runtimeAgentTextDisabledReason: string | null;
   runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
   runtimePresentationProfile: AvatarPresentationProfile | null;
-  refreshRuntimeAgentExecutionReadiness: () => Promise<NimiRuntimeAgentExecutionReadinessSnapshotProjection>;
+  refreshRuntimeAgentAIConfigReadiness: () => Promise<NimiRuntimeAgentAIConfigReadinessSnapshotProjection>;
   handleCancelPendingHook: (hookId: string) => void;
   handleUpgradeStandardMemory: () => void;
   handleClearDyadicContext: () => void;
@@ -125,10 +130,10 @@ export function useAgentConversationRuntimeController(
   } = input;
   const [canonicalMemoryStatus, setCanonicalMemoryStatus] = useState<CanonicalMemoryBankStatus | null>(null);
   const [canonicalMemoryLoading, setCanonicalMemoryLoading] = useState(false);
-  const [runtimeAgentExecutionConfig, setRuntimeAgentExecutionConfig] = useState<NimiRuntimeAgentExecutionConfigSnapshot | null>(null);
-  const [runtimeAgentExecutionReadiness, setRuntimeAgentExecutionReadiness] = useState<NimiRuntimeAgentExecutionReadinessSnapshotProjection | null>(null);
-  const [runtimeAgentExecutionLoading, setRuntimeAgentExecutionLoading] = useState(false);
-  const [runtimeAgentExecutionError, setRuntimeAgentExecutionError] = useState<string | null>(null);
+  const [runtimeAgentAIConfig, setRuntimeAgentAIConfig] = useState<NimiRuntimeAgentAIConfigSnapshot | null>(null);
+  const [runtimeAgentAIConfigReadiness, setRuntimeAgentAIConfigReadiness] = useState<NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null>(null);
+  const [runtimeAgentAIConfigLoading, setRuntimeAgentAIConfigLoading] = useState(false);
+  const [runtimeAgentAIConfigError, setRuntimeAgentAIConfigError] = useState<string | null>(null);
   const [runtimeInspect, setRuntimeInspect] = useState<NimiRuntimeAgentInspectSnapshot | null>(null);
   const [runtimeInspectLoading, setRuntimeInspectLoading] = useState(false);
   const [runtimePresentationProfile, setRuntimePresentationProfile] = useState<AvatarPresentationProfile | null>(null);
@@ -140,64 +145,82 @@ export function useAgentConversationRuntimeController(
   const runtimeAgentInspect = useMemo(() => createRuntimeAgentInspectAdapter({
     getSubjectUserId: requireRuntimeSubjectUserId,
   }), []);
-  const runtimeAgentExecutionConfigAdapter = useMemo(() => createRuntimeAgentExecutionConfigAdapter({
+  const runtimeAgentAIConfigAdapter = useMemo(() => createRuntimeAgentAIConfigAdapter({
     getSubjectUserId: requireRuntimeSubjectUserId,
   }), []);
+  const runtimeAgentCenterAdapter = useMemo(() => {
+    if (authStatus !== 'authenticated' || !activeTarget) {
+      return null;
+    }
+    return createRuntimeAgentCenterAdapter({
+      identity: toRuntimeIdentityInput(activeTarget),
+      agentAIConfig: runtimeAgentAIConfigAdapter,
+      inspect: runtimeAgentInspect,
+    });
+  }, [activeTarget, authStatus, runtimeAgentAIConfigAdapter, runtimeAgentInspect]);
 
-  const refreshRuntimeAgentExecutionReadiness = useCallback(async () => {
-    const readiness = await runtimeAgentExecutionConfigAdapter.readiness();
-    setRuntimeAgentExecutionReadiness(readiness);
-    setRuntimeAgentExecutionError(null);
+  const requireActiveRuntimeIdentity = useCallback(() => {
+    if (!activeTarget) {
+      throw new Error('desktop agent shell requires an active Runtime Local Agent before reading Runtime Agent AI Config');
+    }
+    return toRuntimeIdentityInput(activeTarget);
+  }, [activeTarget]);
+
+  const refreshRuntimeAgentAIConfigReadiness = useCallback(async () => {
+    const readiness = await runtimeAgentAIConfigAdapter.readiness(requireActiveRuntimeIdentity());
+    setRuntimeAgentAIConfigReadiness(readiness);
+    setRuntimeAgentAIConfigError(null);
     return readiness;
-  }, [runtimeAgentExecutionConfigAdapter]);
+  }, [requireActiveRuntimeIdentity, runtimeAgentAIConfigAdapter]);
 
   useEffect(() => {
     let cancelled = false;
-    if (authStatus !== 'authenticated') {
-      setRuntimeAgentExecutionConfig(null);
-      setRuntimeAgentExecutionReadiness(null);
-      setRuntimeAgentExecutionLoading(false);
-      setRuntimeAgentExecutionError(null);
+    if (authStatus !== 'authenticated' || !activeTarget) {
+      setRuntimeAgentAIConfig(null);
+      setRuntimeAgentAIConfigReadiness(null);
+      setRuntimeAgentAIConfigLoading(false);
+      setRuntimeAgentAIConfigError(null);
       return () => {
         cancelled = true;
       };
     }
-    setRuntimeAgentExecutionLoading(true);
+    const identity = toRuntimeIdentityInput(activeTarget);
+    setRuntimeAgentAIConfigLoading(true);
     void Promise.all([
-      runtimeAgentExecutionConfigAdapter.get(),
-      runtimeAgentExecutionConfigAdapter.readiness(),
+      runtimeAgentAIConfigAdapter.get(identity),
+      runtimeAgentAIConfigAdapter.readiness(identity),
     ])
-      .then(([executionConfig, readiness]) => {
+      .then(([agentAIConfig, readiness]) => {
         if (cancelled) {
           return;
         }
-        setRuntimeAgentExecutionConfig(executionConfig);
-        setRuntimeAgentExecutionReadiness(readiness);
-        setRuntimeAgentExecutionError(null);
+        setRuntimeAgentAIConfig(agentAIConfig);
+        setRuntimeAgentAIConfigReadiness(readiness);
+        setRuntimeAgentAIConfigError(null);
       })
       .catch((error) => {
         if (cancelled) {
           return;
         }
-        setRuntimeAgentExecutionConfig(null);
-        setRuntimeAgentExecutionReadiness(null);
-        setRuntimeAgentExecutionError(error instanceof Error ? error.message : String(error || ''));
+        setRuntimeAgentAIConfig(null);
+        setRuntimeAgentAIConfigReadiness(null);
+        setRuntimeAgentAIConfigError(error instanceof Error ? error.message : String(error || ''));
         logRendererEvent({
           level: 'warn',
           area: 'agent-chat-shell',
           message: 'action:host-error',
-          details: buildHostErrorDetails(error, 'load-runtime-agent-execution-config'),
+          details: buildHostErrorDetails(error, 'load-runtime-agent-ai-config'),
         });
       })
       .finally(() => {
         if (!cancelled) {
-          setRuntimeAgentExecutionLoading(false);
+          setRuntimeAgentAIConfigLoading(false);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [authStatus, buildHostErrorDetails, runtimeAgentExecutionConfigAdapter]);
+  }, [activeTarget, authStatus, buildHostErrorDetails, runtimeAgentAIConfigAdapter]);
 
   const reloadRuntimeInspect = useCallback(async (
     target: AgentLocalTargetSnapshot,
@@ -469,19 +492,20 @@ export function useAgentConversationRuntimeController(
     canonicalMemoryStatus,
     mutationPendingAction: runtimeMutations.mutationPendingAction,
     recentRuntimeEvents,
-    runtimeAgentExecutionConfig,
-    runtimeAgentExecutionReadiness,
-    runtimeAgentExecutionLoading,
-    runtimeAgentExecutionError,
-    runtimeAgentTextReady: isRuntimeAgentTextReadinessReady(runtimeAgentExecutionReadiness),
-    runtimeAgentTextDisabledReason: runtimeAgentExecutionError
-      || (isRuntimeAgentTextReadinessReady(runtimeAgentExecutionReadiness)
+    runtimeAgentAIConfig,
+    runtimeAgentAIConfigReadiness,
+    runtimeAgentAIConfigLoading,
+    runtimeAgentAIConfigError,
+    runtimeAgentCenterAdapter,
+    runtimeAgentTextReady: isRuntimeAgentTextReadinessReady(runtimeAgentAIConfigReadiness),
+    runtimeAgentTextDisabledReason: runtimeAgentAIConfigError
+      || (isRuntimeAgentTextReadinessReady(runtimeAgentAIConfigReadiness)
         ? null
-        : describeRuntimeAgentTextReadiness(runtimeAgentExecutionReadiness)),
+        : describeRuntimeAgentTextReadiness(runtimeAgentAIConfigReadiness)),
     runtimeInspect,
     runtimeInspectLoading,
     runtimePresentationProfile,
-    refreshRuntimeAgentExecutionReadiness,
+    refreshRuntimeAgentAIConfigReadiness,
     handleCancelPendingHook: runtimeMutations.handleCancelPendingHook,
     handleUpgradeStandardMemory: runtimeMutations.handleUpgradeStandardMemory,
     handleClearDyadicContext: runtimeMutations.handleClearDyadicContext,

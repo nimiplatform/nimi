@@ -11,11 +11,6 @@ export type AgentOwnerSettingsProjectionSummary = {
   communicationStyle: string | null;
 };
 
-export type AgentSpeechSynthesisRoute = {
-  modelId: string;
-  routePolicy: 'local' | 'cloud';
-};
-
 export type AgentLocalTargetSnapshot = {
   ownerUserId: string;
   runtimeSourceRef: string;
@@ -24,7 +19,6 @@ export type AgentLocalTargetSnapshot = {
   handle: string;
   avatarUrl: string | null;
   defaultVoiceReference?: string | null;
-  speechSynthesis?: AgentSpeechSynthesisRoute | null;
   avatarAutoplay?: boolean | null;
   presentationProfile?: AvatarPresentationProfile | null;
   worldId: string | null;

@@ -392,7 +392,10 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.doesNotMatch(hostActionHelpersSource, /runtime\.agent\.initializeAgent/);
   assert.match(hostActionHelpersSource, /client\.anchors\.getSnapshot/);
   assert.match(hostActionHelpersSource, /clearAgentConversationAnchorBinding/);
-  assert.doesNotMatch(hostActionHelpersSource, /runtimeAgentExecutionBindingsMatch/);
+  assert.doesNotMatch(
+    hostActionHelpersSource,
+    new RegExp(['runtimeAgent', 'Execution', 'BindingsMatch'].join('')),
+  );
   assert.doesNotMatch(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.write'\]/);
   assert.doesNotMatch(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.read'\]/);
   assert.match(hostActionHelpersSource, /record\.anchor/);
@@ -413,17 +416,17 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(hostActionSubmitSource, /setSubmittingThreadId\(effectiveThreadId\)/);
   assert.match(hostActionSubmitSource, /setFooterHostState\(effectiveThreadId,\s*null\)/);
   assert.match(hostActionSubmitSource, /releaseSubmittingIfCurrent/);
-  const readinessGate = 'const runtimeReadiness = await input.hostInput.getRuntimeAgentExecutionReadiness();';
+  const readinessGate = 'const runtimeReadiness = await input.hostInput.getRuntimeAgentAIConfigReadiness();';
   assert.ok(
     hostActionSubmitSource.indexOf(readinessGate)
     < hostActionSubmitSource.indexOf('const threadContext = await ensureThreadAnchorBindingForTarget({'),
-    'agent host actions must verify Runtime Agent execution readiness before creating local projection cache rows',
+    'agent host actions must verify Runtime Agent AI Config readiness before creating local projection cache rows',
   );
   const readinessIndex = hostActionSubmitSource.indexOf(readinessGate);
   const finalUserProjectionIndex = hostActionSubmitSource.indexOf('const userProjection = buildAgentUserProjection({');
   assert.ok(
     readinessIndex < finalUserProjectionIndex,
-    'agent host actions must verify Runtime Agent execution readiness before applying in-memory user projection messages',
+    'agent host actions must verify Runtime Agent AI Config readiness before applying in-memory user projection messages',
   );
   assert.match(hostActionSubmitSource, /userProjectionApplied = true/);
   assert.match(hostActionSubmitSource, /setAgentVisibleProjection\(effectiveThreadId,\s*userBundle\)/);
@@ -448,7 +451,7 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.doesNotMatch(hostActionSubmitSource, /latestVoiceCapture\?\.conversationAnchorId === conversationAnchorId/);
   assert.match(adapterSource, /return createReadyConversationSetupState\('agent'\);/);
   assert.match(adapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleError/);
-  assert.match(hostActionSubmitSource, /getRuntimeAgentExecutionReadiness/);
+  assert.match(hostActionSubmitSource, /getRuntimeAgentAIConfigReadiness/);
   assert.doesNotMatch(hostActionSubmitSource, /ensureAgentConversationSubmitRouteReady/);
   assert.match(runtimeProviderSource, /case 'text-delta':/);
   assert.match(runtimeProviderSource, /feedStreamEvent\(input\.baseInput\.threadId,\s*\{\s*type:\s*'keepalive'\s*\}\)/);

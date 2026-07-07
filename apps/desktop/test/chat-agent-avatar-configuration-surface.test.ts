@@ -75,6 +75,31 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
     assert.match(settingsProjectionSource, new RegExp(requiredControl, 'u'));
   }
 
+  for (const requiredAdapterWiring of [
+    'appearanceAdapter',
+    'importAvatarAsset',
+    'linkLive2dAdapterManifest',
+    'clearAvatarAsset',
+    'importBackground',
+    'clearBackground',
+    'updateAvatarConfig',
+    'cleanupGeneratedVoiceArtifacts',
+    'setAvatarAutoplay',
+  ]) {
+    assert.match(settingsSource, new RegExp(requiredAdapterWiring, 'u'));
+  }
+
+  for (const requiredPresentationProp of [
+    'avatarAssetImportMutation={localAvatar.avatarAssetImportMutation}',
+    'live2dAdapterManifestImportMutation={localAvatar.live2dAdapterManifestImportMutation}',
+    'backgroundImportMutation={localAvatar.backgroundImportMutation}',
+    'clearBackgroundMutation={localAvatar.clearBackgroundMutation}',
+    'voiceArtifactCleanupMutation={localAvatar.voiceArtifactCleanupMutation}',
+    'avatarConfigMutation={localAvatar.avatarConfigMutation}',
+  ]) {
+    assert.match(presentationSource, new RegExp(requiredPresentationProp.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'));
+  }
+
   assert.match(localAvatarControlsSource, /useAgentCenterAvatarConfigMutation/u);
   assert.match(localAvatarControlsSource, /importAgentCenterAvatarAsset/u);
   assert.match(localAvatarControlsSource, /validateAgentCenterAvatarAsset/u);

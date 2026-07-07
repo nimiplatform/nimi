@@ -5,7 +5,7 @@ import path from 'node:path';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
 const PLAN_ID = 'runtime-local-agent-center-2026-07-07';
-const REQUIRED_TABS = ['overview', 'model', 'behavior', 'cognition', 'appearance'];
+const REQUIRED_TABS = ['overview', 'model', 'behavior', 'cognition', 'appearance', 'advanced'];
 
 export function trackRuntimeLocalAgentCenterPageProblems(page) {
   const consoleErrors = [];
@@ -98,7 +98,7 @@ export async function captureDesktopRuntimeLocalAgentCenterEvidence(input) {
     scenario,
     stage,
     runtime,
-    executionConfig,
+    agentAIConfig,
     diagnostics,
     localAgentRef,
     pageProblems,
@@ -129,6 +129,11 @@ export async function captureDesktopRuntimeLocalAgentCenterEvidence(input) {
       timeout: 60_000,
     });
     panelScreenshots.push(panelScreenshot);
+    panelScreenshots.push(...await captureDesktopAgentCenterSectionScreenshots({
+      page,
+      evidenceRoot,
+      stage,
+    }));
   }
 
   await setElectronWindowSize(app, 390, 860);
@@ -156,7 +161,7 @@ export async function captureDesktopRuntimeLocalAgentCenterEvidence(input) {
       panels: panelScreenshots,
     },
     runtime,
-    executionConfig,
+    agentAIConfig,
     agentState: {
       executionState: 'observed',
       statusText: dom.agentCenter.activeSection || 'Agent Center',
@@ -198,7 +203,37 @@ export async function captureDesktopRuntimeLocalAgentCenterEvidence(input) {
   return { evidenceFile, evidence };
 }
 
-export function projectExecutionConfigForEvidence(config, readiness) {
+async function captureDesktopAgentCenterSectionScreenshots({ page, evidenceRoot, stage }) {
+  const screenshots = [];
+  const panel = page.locator('[data-chat-agent-center="true"]').first();
+  for (const section of REQUIRED_TABS) {
+    const button = page.getByTestId(`chat-agent-center-section:${section}`).first();
+    if (await button.count() === 0 || !await button.isVisible().catch(() => false)) {
+      continue;
+    }
+    await button.click();
+    await page.waitForFunction((sectionId) => {
+      const active = document.querySelector(`[data-testid="chat-agent-center-section:${sectionId}"][aria-current="page"]`);
+      return Boolean(active);
+    }, section, { timeout: 15_000 });
+    const filename = `desktop-${stage}-section-${section}.png`;
+    await panel.screenshot({
+      path: path.join(evidenceRoot, filename),
+      animations: 'disabled',
+      caret: 'hide',
+      timeout: 60_000,
+    });
+    screenshots.push(filename);
+  }
+  const overview = page.getByTestId('chat-agent-center-section:overview').first();
+  if (await overview.count() > 0 && await overview.isVisible().catch(() => false)) {
+    await overview.click();
+    await page.waitForFunction(() => Boolean(document.querySelector('[data-testid="chat-agent-center-section:overview"][aria-current="page"]')), null, { timeout: 15_000 });
+  }
+  return screenshots;
+}
+
+export function projectAgentAIConfigForEvidence(config, readiness) {
   if (!config || typeof config !== 'object') {
     return null;
   }
@@ -207,7 +242,7 @@ export function projectExecutionConfigForEvidence(config, readiness) {
     readinessByCapability.set(item.capability, item);
   }
   const capability = (name) => {
-    const binding = config.bindings?.[name] || null;
+    const binding = config.intents?.[name] || null;
     const state = readinessByCapability.get(name);
     if (!binding && !state) {
       return { state: 'not_configured', reason: null };

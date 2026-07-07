@@ -276,8 +276,24 @@ export function useAgentConversationPresentation(
         avatarAssetChecking={localAvatar.avatarAssetChecking}
         avatarAssetConfig={localAvatar.avatarAssetConfig}
         avatarVoicePolicy={localAvatar.avatarVoicePolicy}
+        avatarAssetValidationPresentation={localAvatar.avatarAssetValidationPresentation}
+        avatarConfigMutation={localAvatar.avatarConfigMutation}
+        voicePolicyMutation={localAvatar.voicePolicyMutation}
+        voiceArtifactCleanupMutation={localAvatar.voiceArtifactCleanupMutation}
+        avatarAssetImportMutation={localAvatar.avatarAssetImportMutation}
+        avatarAssetLibraryQuery={localAvatar.avatarAssetLibraryQuery}
+        avatarAssetSelectMutation={localAvatar.avatarAssetSelectMutation}
+        avatarImportDisabled={localAvatar.avatarImportDisabled}
+        avatarImportError={localAvatar.avatarImportError}
+        clearAvatarAssetMutation={localAvatar.clearAvatarAssetMutation}
+        live2dAdapterManifestImportMutation={localAvatar.live2dAdapterManifestImportMutation}
         selectedBackgroundAssetId={localAvatar.selectedBackgroundAssetId}
+        backgroundAssetQuery={localAvatar.backgroundAssetQuery}
         backgroundValidation={localAvatar.backgroundValidation}
+        backgroundImportError={localAvatar.backgroundImportError}
+        clearBackgroundMutation={localAvatar.clearBackgroundMutation}
+        backgroundImportDisabled={localAvatar.backgroundImportDisabled}
+        backgroundImportMutation={localAvatar.backgroundImportMutation}
       />
     ),
     settingsDrawerTitle: input.t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' }),

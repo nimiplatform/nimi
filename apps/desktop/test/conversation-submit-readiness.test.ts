@@ -5,6 +5,7 @@ import type {
   AgentEffectiveCapabilityResolution,
   ConversationCapabilityProjection,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   ensureAgentConversationSubmitRouteReady,
   ensureAiConversationSubmitRouteReady,
@@ -267,21 +268,21 @@ test('conversation submit readiness: route issue details distinguish selection, 
     reasonCode: 'selection_missing',
   })), {
     message: 'Choose a local or cloud runtime route before sending a message.',
-    reasonCode: 'AI_INPUT_INVALID',
+    reasonCode: ReasonCode.AI_INPUT_INVALID,
     actionHint: 'select_runtime_route_binding',
   });
   assert.deepEqual(resolveAgentSubmitRouteUnavailableDetails(t, createTextProjection({
     reasonCode: 'route_not_ready',
   })), {
     message: 'The selected runtime route is not ready yet. Finish setup or warm the local model before sending.',
-    reasonCode: 'AI_MODEL_NOT_READY',
+    reasonCode: ReasonCode.AI_MODEL_NOT_READY,
     actionHint: 'warm_runtime_route_binding',
   });
   assert.deepEqual(resolveAgentSubmitRouteUnavailableDetails(t, createTextProjection({
     reasonCode: 'host_denied',
   })), {
     message: 'This device is not allowed to use the selected Runtime route for this conversation.',
-    reasonCode: 'ACTION_PERMISSION_DENIED',
+    reasonCode: ReasonCode.ACTION_PERMISSION_DENIED,
     actionHint: 'request_runtime_route_permission',
   });
 });

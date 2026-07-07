@@ -6,7 +6,7 @@ import type { NimiRuntimeAgentCanonicalMemoryInspect } from '@nimiplatform/sdk/r
 import type { CanonicalMemoryBankStatus } from '@renderer/infra/runtime-agent-memory';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
-type ChatAgentCognitionPanelProps = {
+type ChatAgentMemorySovereigntyPanelProps = {
   targetTitle: string;
   disabled?: boolean;
   memoryStatus?: CanonicalMemoryBankStatus | null;
@@ -18,7 +18,7 @@ type ChatAgentCognitionPanelProps = {
 
 const MEMORY_PREVIEW_LIMIT = 8;
 
-export function ChatAgentCognitionPanel(props: ChatAgentCognitionPanelProps) {
+export function ChatAgentMemorySovereigntyPanel(props: ChatAgentMemorySovereigntyPanelProps) {
   const { t } = useTranslation();
 
   const handleUpgradeStandardMemory = useCallback(() => {

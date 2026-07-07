@@ -3,14 +3,13 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  createEmptyNimiMemoryEmbeddingConfig,
   projectNimiMemoryEmbeddingRouteAvailability,
   type NimiMemoryEmbeddingConfig,
+  type NimiMemoryEmbeddingScopeRef,
   type NimiRuntimeRouteOptionsSnapshot,
   type NimiRuntimeRouteTargetRef,
 } from '@nimiplatform/sdk/runtime';
 import { Surface, cn } from '@nimiplatform/kit/ui';
-import { createDesktopMemoryEmbeddingScopeRef } from '@renderer/app-shell/providers/desktop-memory-embedding-scope';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
@@ -47,6 +46,22 @@ type MemoryEmbeddingRouteCandidate = {
   tone: AvailabilityTone;
   state: string;
 };
+
+const ROUTE_CANDIDATE_SCOPE_REF: NimiMemoryEmbeddingScopeRef = {
+  kind: 'runtime-agent-ai-config-candidate',
+  ownerId: 'desktop-runtime-config',
+  surfaceId: 'text.embed-route-availability',
+};
+
+function createRouteCandidateConfig(): NimiMemoryEmbeddingConfig {
+  return {
+    scopeRef: ROUTE_CANDIDATE_SCOPE_REF,
+    sourceKind: null,
+    bindingRef: null,
+    revisionToken: '',
+    updatedAt: '',
+  };
+}
 
 function buildCloudCandidateConfig(
   base: NimiMemoryEmbeddingConfig,
@@ -155,8 +170,7 @@ function buildCandidates(
 
 export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEmbeddingSectionProps) {
   const { t } = useTranslation();
-  const scopeRef = useMemo(() => createDesktopMemoryEmbeddingScopeRef(), []);
-  const scopeConfig = useMemo(() => createEmptyNimiMemoryEmbeddingConfig(scopeRef), [scopeRef]);
+  const scopeConfig = useMemo(() => createRouteCandidateConfig(), []);
   const routeOptions = useMemo<NimiRuntimeRouteOptionsSnapshot>(() => {
     return {
       capability: 'text.embed',
@@ -211,7 +225,7 @@ export function RuntimeConfigMemoryEmbeddingSection(props: RuntimeConfigMemoryEm
       ? t('runtimeConfig.memory.ready', { defaultValue: 'Ready' })
       : t('runtimeConfig.memory.notConfigured', { defaultValue: 'Not configured' });
   const hint = t('runtimeConfig.memory.scopeHint', {
-    defaultValue: 'Memory embedding binding intent is saved per agent by Runtime when you explicitly upgrade an agent memory bank.',
+    defaultValue: 'Embedding intent is committed per agent by Runtime Agent AI Config. Memory bank bind and cutover state is resolved by Runtime.',
   });
 
   return (

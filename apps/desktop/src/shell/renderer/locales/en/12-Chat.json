@@ -255,6 +255,7 @@
   "memoryExportDone": "Exported {{records}} records across {{banks}} banks to {{path}}",
   "agentCenterTitle": "Agent Center",
   "agentCenterSubtitle": "Configure this agent from chat. Identity and state stay read-only here.",
+  "agentCenterWorldRole": "World role",
   "agentCenterNavigation": "Agent Center sections",
   "agentCenterOverview": "Overview",
   "agentCenterAppearance": "Appearance",

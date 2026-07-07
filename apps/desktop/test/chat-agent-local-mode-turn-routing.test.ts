@@ -243,7 +243,7 @@ test('agent runtime turn request carries no execution bindings to Runtime', asyn
 
     assert.equal(requestCalls.length, 1);
     // Atomic hard cut: even with a resolved cloud route the request carries
-    // NO execution bindings (runtime execution config is authoritative).
+    // NO execution bindings (Runtime Agent AI Config is authoritative).
     assert.equal('executionBindings' in (requestCalls[0] ?? {}), false);
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();

@@ -1,7 +1,7 @@
 import {
-  createNimiRuntimeAgentExecutionConfigModule,
-  type NimiRuntimeAgentExecutionConfigModule,
-  type NimiRuntimeAgentExecutionReadinessSnapshotProjection,
+  createNimiRuntimeAgentAIConfigModule,
+  type NimiRuntimeAgentAIConfigModule,
+  type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
 } from '@nimiplatform/sdk/runtime';
 import {
   getDesktopAccountRuntime,
@@ -11,16 +11,16 @@ import {
 } from './sdk/desktop-nimi-client-session';
 
 export type {
-  NimiRuntimeAgentExecutionBinding,
-  NimiRuntimeAgentExecutionConfigSnapshot,
-  NimiRuntimeAgentExecutionReadinessSnapshotProjection,
+  NimiRuntimeAgentAIConfigBinding,
+  NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
+  NimiRuntimeAgentAIConfigSnapshot,
 } from '@nimiplatform/sdk/runtime';
 
-type RuntimeAgentExecutionConfigDeps = {
+type RuntimeAgentAIConfigDeps = {
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
 };
 
-function getDesktopRuntimeAgentExecutionConfigClient() {
+function getDesktopRuntimeAgentAIConfigClient() {
   const accountRuntime = getDesktopAccountRuntime();
   return {
     appId: getDesktopAppId(),
@@ -30,18 +30,18 @@ function getDesktopRuntimeAgentExecutionConfigClient() {
   };
 }
 
-export function createRuntimeAgentExecutionConfigAdapter(
-  deps: RuntimeAgentExecutionConfigDeps = {},
-): NimiRuntimeAgentExecutionConfigModule {
-  return createNimiRuntimeAgentExecutionConfigModule({
-    runtime: getDesktopRuntimeAgentExecutionConfigClient(),
+export function createRuntimeAgentAIConfigAdapter(
+  deps: RuntimeAgentAIConfigDeps = {},
+): NimiRuntimeAgentAIConfigModule {
+  return createNimiRuntimeAgentAIConfigModule({
+    runtime: getDesktopRuntimeAgentAIConfigClient(),
     getSubjectUserId: deps.getSubjectUserId ?? (() => undefined),
     withScopes: withDesktopRuntimeProtectedScopes,
   });
 }
 
 export function isRuntimeAgentTextReadinessReady(
-  readiness: NimiRuntimeAgentExecutionReadinessSnapshotProjection | null | undefined,
+  readiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null | undefined,
 ): boolean {
   return readiness?.capabilities.some((entry) => (
     entry.capability === 'text.generate' && entry.state === 'ready'
@@ -49,7 +49,7 @@ export function isRuntimeAgentTextReadinessReady(
 }
 
 export function describeRuntimeAgentTextReadiness(
-  readiness: NimiRuntimeAgentExecutionReadinessSnapshotProjection | null | undefined,
+  readiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null | undefined,
   fallback = 'Runtime Agent text execution is unavailable.',
 ): string {
   const text = readiness?.capabilities.find((entry) => entry.capability === 'text.generate') || null;

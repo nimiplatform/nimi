@@ -6,6 +6,8 @@ export const PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS = 30_000;
 export const DESKTOP_RUNTIME_PROTECTED_SCOPES = [
   'ai.spend.meter',
   'runtime.agent.admin',
+  'runtime.agent.ai_config.read',
+  'runtime.agent.ai_config.write',
   'runtime.agent.autonomy.write',
   'runtime.agent.avatar_debug.read',
   'runtime.agent.avatar_debug.write',

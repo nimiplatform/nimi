@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test, { describe } from 'node:test';
 
 import type { NimiRuntimeAppOpenProjection } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 import {
   DESKTOP_INSTALLED_APP_CALLER_MODE,
@@ -155,7 +156,7 @@ describe('Desktop installed app launcher', () => {
           state: 'blocked',
           reachedStep: 'verify_package',
           launched: false,
-          reasonCode: 'APP_INSTALL_DIGEST_MISMATCH',
+          reasonCode: ReasonCode.APP_INSTALL_DIGEST_MISMATCH,
         },
       }),
       (error: unknown) =>
@@ -275,7 +276,7 @@ function launchedProjection(
     launched: true,
     activeVersion: '0.1.0-sandbox',
     scope: { kind: 'app', ownerId: 'community.nimi.fixture.platform-proof' },
-    reasonCode: 'ACTION_EXECUTED',
+    reasonCode: ReasonCode.ACTION_EXECUTED,
     releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
     descriptorClass: 'external-immutable-artifact',
     admissionTrack: 'admission-sandbox-ci',

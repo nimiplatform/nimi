@@ -65,7 +65,7 @@ fn built_in_ai_config_for_scope_init_from_record(
     BuiltInAiConfigForScopeInit {
         scope_ref: record.scope_ref.clone(),
         capabilities: BuiltInAiConfigScopeInitCapabilities {
-            selected_bindings,
+            target_refs: selected_bindings,
             local_profile_refs: serde_json::Map::new(),
             selected_params: serde_json::Map::new(),
         },
@@ -446,9 +446,34 @@ pub fn verify_built_in_ai_config_ref(
     Ok(evidence)
 }
 
+fn rematerialized_config_record(
+    existing: Option<&BuiltInAiConfigRecord>,
+    account_id: &str,
+    data_root_ref: &str,
+    surface_id: &str,
+    install_level: &str,
+    row: &PlatformAIProfileFactoryRow,
+    baseline_bindings: &[BuiltInAiConfigCapability],
+) -> Result<BuiltInAiConfigRecord, String> {
+    let mut record = new_config_record(
+        account_id,
+        data_root_ref,
+        surface_id,
+        install_level,
+        row,
+        baseline_bindings,
+    )?;
+    if let Some(existing) = existing {
+        record.ai_config_version = existing.ai_config_version.saturating_add(1).max(1);
+        record.ai_config_content_hash = compute_config_content_hash(&record)?;
+    }
+    Ok(record)
+}
+
 /// Ensure the committed built-in `AIConfig` for one canonical scope exists, then
 /// resolve + verify it. Idempotent: an existing valid record is reused without
-/// rewrite; an existing invalid record fails closed instead of overwriting.
+/// rewrite; an existing stale host-owned record is fully rematerialized from the
+/// current Runtime execution evidence instead of blocking first-run forever.
 pub fn ensure_built_in_ai_config(
     data_root: &Path,
     authenticated_account_id: &str,
@@ -465,29 +490,47 @@ pub fn ensure_built_in_ai_config(
     let selected_row =
         verify_first_run_factory_ai_profile(selected_ai_profile_alias, install_level)?;
     if path.exists() {
-        let record = read_config_record(&path)?;
-        verify_record_fields(
-            &record,
-            authenticated_account_id,
-            &expected_data_root_ref,
-            surface_id,
-            Some(baseline_bindings),
-        )
-        .map_err(|error| {
-            format!(
-                "existing built-in AIConfig record failed owner verification; refusing to overwrite: {error}"
+        if let Ok(record) = read_config_record(&path) {
+            if verify_record_fields(
+                &record,
+                authenticated_account_id,
+                &expected_data_root_ref,
+                surface_id,
+                Some(baseline_bindings),
             )
-        })?;
-        let evidence = evidence_from_record(&path, &record)?;
-        return verify_built_in_ai_config_ref(
-            data_root,
-            authenticated_account_id,
-            surface_id,
-            &evidence.built_in_ai_config_ref,
-            Some(baseline_bindings),
-        );
+            .is_ok()
+            {
+                let evidence = evidence_from_record(&path, &record)?;
+                return verify_built_in_ai_config_ref(
+                    data_root,
+                    authenticated_account_id,
+                    surface_id,
+                    &evidence.built_in_ai_config_ref,
+                    Some(baseline_bindings),
+                );
+            }
+            let record = rematerialized_config_record(
+                Some(&record),
+                authenticated_account_id,
+                &expected_data_root_ref,
+                surface_id,
+                install_level,
+                selected_row,
+                baseline_bindings,
+            )?;
+            write_config_record(&path, &record)?;
+            let evidence = evidence_from_record(&path, &record)?;
+            return verify_built_in_ai_config_ref(
+                data_root,
+                authenticated_account_id,
+                surface_id,
+                &evidence.built_in_ai_config_ref,
+                Some(baseline_bindings),
+            );
+        }
     }
-    let record = new_config_record(
+    let record = rematerialized_config_record(
+        None,
         authenticated_account_id,
         &expected_data_root_ref,
         surface_id,

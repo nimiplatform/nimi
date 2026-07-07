@@ -145,7 +145,7 @@ test('phase 3: AI runtime adapter does not pass routeSnapshot to streamChatAiRun
 });
 
 
-test('RLA3: agent submit uses Runtime execution readiness, not conversation capability resolution', () => {
+test('RLA3: agent submit uses Runtime Agent AI Config readiness, not conversation capability resolution', () => {
   const hostActionsTypesSource = fs.readFileSync(
     path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-host-actions-types.ts'),
     'utf8',
@@ -159,8 +159,8 @@ test('RLA3: agent submit uses Runtime execution readiness, not conversation capa
     'utf8',
   );
   assert.ok(
-    /getRuntimeAgentExecutionReadiness:\s*\(\)\s*=>\s*Promise<NimiRuntimeAgentExecutionReadinessSnapshotProjection>/.test(hostActionsTypesSource),
-    'host actions input must load Runtime Agent execution readiness from Runtime/SDK',
+    /getRuntimeAgentAIConfigReadiness:\s*\(\)\s*=>\s*Promise<NimiRuntimeAgentAIConfigReadinessSnapshotProjection>/.test(hostActionsTypesSource),
+    'host actions input must load Runtime Agent AI Config readiness from Runtime/SDK',
   );
   assert.equal(
     /agentResolution:\s*AgentEffectiveCapabilityResolution/.test(hostActionsTypesSource),

@@ -103,7 +103,7 @@ pub struct BuiltInAiConfigEvidenceSet {
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BuiltInAiConfigScopeInitCapabilities {
-    pub selected_bindings: serde_json::Map<String, serde_json::Value>,
+    pub target_refs: serde_json::Map<String, serde_json::Value>,
     pub local_profile_refs: serde_json::Map<String, serde_json::Value>,
     pub selected_params: serde_json::Map<String, serde_json::Value>,
 }

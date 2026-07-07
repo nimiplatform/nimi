@@ -124,13 +124,13 @@ function runtimeInspect(overrides: Partial<NimiRuntimeAgentInspectSnapshot> = {}
   };
 }
 
-async function loadAgentDiagnosticsPanel() {
+async function loadChatAgentDiagnosticsPanel() {
   Object.defineProperty(globalThis, 'React', {
     value: React,
     configurable: true,
   });
   const module = await import('../src/shell/renderer/features/chat/chat-agent-diagnostics.js');
-  return module.AgentDiagnosticsPanel;
+  return module.ChatAgentDiagnosticsPanel;
 }
 
 test('agent diagnostics view model shows empty state before any completed turn', () => {
@@ -565,9 +565,9 @@ test('agent diagnostics view model shows recent runtime events and hook history 
 });
 
 test('agent diagnostics panel renders runtime control actions when inspect data is available', async () => {
-  const AgentDiagnosticsPanel = await loadAgentDiagnosticsPanel();
+  const ChatAgentDiagnosticsPanel = await loadChatAgentDiagnosticsPanel();
   const markup = renderToStaticMarkup(
-    React.createElement(AgentDiagnosticsPanel, {
+    React.createElement(ChatAgentDiagnosticsPanel, {
       activeTarget: sampleTarget(),
       lifecycle: baseLifecycle(),
       mutationPendingAction: null,

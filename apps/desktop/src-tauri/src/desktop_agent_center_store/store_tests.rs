@@ -39,18 +39,31 @@ fn valid_config() -> AgentCenterLocalConfig {
 }
 
 #[test]
-fn local_agent_scope_requires_exact_derived_ref() {
+fn local_agent_scope_accepts_runtime_owned_opaque_ref() {
     assert!(
         validate_local_agent_scope("owner_1", "agent_1", "local-agent:owner_1:agent_1").is_ok()
     );
+    assert!(
+        validate_local_agent_scope("owner_1", "agent_1", "local-agent:runtime-owned-opaque+1")
+            .is_ok()
+    );
     assert!(validate_local_agent_scope("owner_1", "agent_1", "agent_1").is_err());
-    assert!(
-        validate_local_agent_scope("owner_1", "agent_1", "local-agent:owner_2:agent_1").is_err()
-    );
-    assert!(
-        validate_local_agent_scope("owner_1", "agent_1", "local-agent:owner_1:agent_2").is_err()
-    );
     assert!(validate_local_agent_scope("owner_1", "agent_1", "agent:abc.def+1").is_err());
+}
+
+#[test]
+fn missing_config_returns_default_for_runtime_owned_opaque_ref() {
+    let home = temp_home("default-opaque");
+    with_product_data_home(&home, || {
+        let mut payload = scope_payload();
+        payload.local_agent_ref = "local-agent:runtime-owned-opaque+1".to_string();
+        let config = desktop_agent_center_config_get_blocking("account_1", payload)
+            .expect("default config");
+
+        assert_eq!(config.owner_user_id, owner_user_id());
+        assert_eq!(config.runtime_source_ref, runtime_source_ref());
+        assert_eq!(config.local_agent_ref, "local-agent:runtime-owned-opaque+1");
+    });
 }
 
 #[test]
@@ -290,7 +303,7 @@ fn put_rejects_scope_mismatch() {
             },
         )
         .expect_err("scope mismatch");
-        assert!(err.contains("localAgentRef"));
+        assert!(err.contains("Agent Center config identity does not match requested local agent scope"));
     });
 }
 

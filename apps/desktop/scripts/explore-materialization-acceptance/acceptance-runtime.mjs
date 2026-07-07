@@ -36,6 +36,7 @@ export async function startRuntimeDaemon({ fixtureOrigin, homeDir, stateRoot, ru
   const httpPort = await allocatePort();
   const endpoint = `127.0.0.1:${grpcPort}`;
   const httpEndpoint = `127.0.0.1:${httpPort}`;
+  const repoRoot = path.resolve(runtimeDir, '..');
   const localStatePath = path.join(stateRoot, 'local-state.json');
   const modelRegistryPath = path.join(stateRoot, 'model-registry.json');
   const daemon = spawn('go', ['run', './cmd/nimi', 'serve'], {
@@ -45,6 +46,9 @@ export async function startRuntimeDaemon({ fixtureOrigin, homeDir, stateRoot, ru
       ...baseEnv,
       HOME: homeDir,
       USERPROFILE: homeDir,
+      GOCACHE: baseEnv?.GOCACHE || path.join(repoRoot, '.cache', 'go-build'),
+      GOMODCACHE: baseEnv?.GOMODCACHE || path.join(repoRoot, '.cache', 'go-mod'),
+      GOPATH: baseEnv?.GOPATH || path.join(repoRoot, '.cache', 'go-path'),
       NIMI_REALM_URL: fixtureOrigin,
       NIMI_RUNTIME_GRPC_ADDR: endpoint,
       NIMI_RUNTIME_HTTP_ADDR: httpEndpoint,

@@ -3,24 +3,16 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import {
-  buildNimiMemoryEmbeddingBindingIntentSnapshot,
-  createEmptyNimiMemoryEmbeddingConfig,
-  type NimiMemoryEmbeddingConfig,
-} from '@nimiplatform/sdk/runtime';
-import { createDesktopMemoryEmbeddingScopeRef } from '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-scope';
-
 const desktopMemoryEmbeddingServiceSource = readFileSync(
   path.resolve(process.cwd(), 'src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service.ts'),
   'utf-8',
 );
 
-test('desktop memory embedding service composes Runtime-owned intent through SDK surfaces', async () => {
+test('desktop memory embedding service exposes Runtime-owned inspect, bind, and cutover only', async () => {
   const { createDesktopMemoryEmbeddingConfigService } = await import(
     '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service.js'
   );
   const calls: Array<{ method: string; request: Record<string, unknown> }> = [];
-  let intent: ReturnType<typeof buildNimiMemoryEmbeddingBindingIntentSnapshot>;
   const runtime = {
     appId: 'desktop-test',
     auth: {
@@ -47,27 +39,13 @@ test('desktop memory embedding service composes Runtime-owned intent through SDK
       }),
     },
     memory: {
-      async getMemoryEmbeddingRuntimeIntent(request: Record<string, unknown>) {
-        calls.push({ method: 'get', request });
-        return {
-          bindingIntentPresent: Boolean(intent),
-          bindingIntent: intent,
-        };
-      },
-      async setMemoryEmbeddingRuntimeIntent(request: Record<string, unknown>) {
-        calls.push({ method: 'set', request });
-        intent = request.bindingIntent as typeof intent;
-        return {
-          bindingIntentPresent: Boolean(intent),
-          bindingIntent: intent,
-        };
-      },
       async inspectMemoryEmbeddingRuntime(request: Record<string, unknown>) {
         calls.push({ method: 'inspect', request });
         return {
-          bindingIntentPresent: Boolean(intent),
-          bindingSourceKind: intent?.sourceKind || '',
-          resolutionState: intent ? 'resolved' : 'missing',
+          textEmbedIntentPresent: true,
+          textEmbedSourceKind: 'local',
+          configRevision: '7',
+          resolutionState: 'resolved',
           canonicalBankStatus: 'bound_equivalent',
           blockedReasonCode: '',
           operationReadiness: { bindAllowed: false, cutoverAllowed: false },
@@ -97,57 +75,45 @@ test('desktop memory embedding service composes Runtime-owned intent through SDK
     getAppId: () => 'desktop-test',
     getSubjectUserId: () => 'user-1',
   });
-  const scopeRef = createDesktopMemoryEmbeddingScopeRef();
   const request = {
-    scopeRef,
     targetRef: {
       kind: 'agent-core' as const,
       localAgentRef: 'local-agent:user-1:agent-local-1',
     },
   };
-  const updates: NimiMemoryEmbeddingConfig[] = [];
-  const unsubscribe = service.memoryEmbeddingConfig.subscribe(request, (config) => {
-    updates.push(config);
-  });
-  const committed = await service.memoryEmbeddingConfig.update(request, {
-    ...createEmptyNimiMemoryEmbeddingConfig(scopeRef),
-    sourceKind: 'local',
-    bindingRef: {
-      kind: 'local',
-      profileBindingId: 'nomic-embed-local',
-    },
-  });
-  const config = await service.memoryEmbeddingConfig.get(request);
+
   const inspect = await service.memoryEmbeddingRuntime.inspect(request);
   const bind = await service.memoryEmbeddingRuntime.requestBind(request);
   const cutover = await service.memoryEmbeddingRuntime.requestCutover(request);
-  unsubscribe();
 
-  assert.equal(updates.length, 1);
-  assert.equal(committed.sourceKind, 'local');
-  assert.deepEqual(config.bindingRef, {
-    kind: 'local',
-    profileBindingId: 'nomic-embed-local',
-  });
-  assert.equal(inspect.bindingIntentPresent, true);
-  assert.equal(inspect.bindingSourceKind, 'local');
+  assert.equal('memoryEmbeddingConfig' in service, false);
+  assert.equal(inspect.textEmbedIntentPresent, true);
+  assert.equal(inspect.textEmbedSourceKind, 'local');
+  assert.equal(inspect.configRevision, 7);
   assert.equal(inspect.resolutionState, 'resolved');
   assert.equal(bind.outcome, 'already_bound');
   assert.equal(bind.pendingCutover, false);
   assert.equal(cutover.outcome, 'already_current');
-  assert.deepEqual(calls.map((call) => call.method), ['set', 'get', 'inspect', 'bind', 'cutover']);
-  assert.equal('bindingIntentSnapshot' in calls[2]!.request, false);
+  assert.deepEqual(calls.map((call) => call.method), ['inspect', 'bind', 'cutover']);
+  assert.equal('bindingIntentSnapshot' in calls[0]!.request, false);
 });
 
 test('desktop memory embedding runtime service delegates Runtime composition to SDK', () => {
-  assert.match(desktopMemoryEmbeddingServiceSource, /createNimiProtectedHostMemoryEmbeddingConfigSurface/);
+  assert.doesNotMatch(
+    desktopMemoryEmbeddingServiceSource,
+    new RegExp(['createNimiProtectedHostMemory', 'EmbeddingConfigSurface'].join('')),
+  );
   assert.match(desktopMemoryEmbeddingServiceSource, /createNimiProtectedHostMemoryEmbeddingRuntimeSurface/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /memoryEmbeddingConfig/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /localStorage/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /desktop-memory-embedding-config-storage/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /withRuntimeMemoryScopes/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /buildNimiMemoryEmbeddingAgentCoreLocator/);
-  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /buildNimiMemoryEmbeddingBindingIntentSnapshot/);
+  assert.doesNotMatch(
+    desktopMemoryEmbeddingServiceSource,
+    new RegExp(['buildNimiMemoryEmbedding', 'BindingIntentSnapshot'].join('')),
+  );
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /projectNimiMemoryEmbeddingRuntimeState/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /projectNimiMemoryEmbeddingBindResult/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /projectNimiMemoryEmbeddingCutoverResult/);

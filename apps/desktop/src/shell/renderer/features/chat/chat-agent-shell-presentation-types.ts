@@ -9,6 +9,7 @@ import type { AgentLocalTargetSnapshot, AgentLocalThreadBundle, AgentLocalThread
 import type { AgentRuntimeConversationSummary } from './chat-agent-runtime-conversation-summaries';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import type { RouteModelPickerSelection } from '@nimiplatform/kit/features/model-picker';
+import type { AgentCenterRuntimeAdapter } from '@nimiplatform/kit/features/agent-center';
 import type { NimiAISchedulingJudgement } from '@nimiplatform/sdk/ai';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
@@ -21,9 +22,9 @@ import type {
   NimiRuntimeAgentInspectSnapshot,
 } from '@renderer/infra/runtime-agent-inspect';
 import type {
-  NimiRuntimeAgentExecutionConfigSnapshot,
-  NimiRuntimeAgentExecutionReadinessSnapshotProjection,
-} from '@renderer/infra/runtime-agent-execution-config';
+  NimiRuntimeAgentAIConfigSnapshot,
+  NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
+} from '@renderer/infra/runtime-agent-ai-config';
 import type { AgentVoiceSessionShellState } from './chat-agent-voice-session';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 
@@ -65,10 +66,11 @@ export type UseAgentConversationPresentationInput = {
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   renderMessageContent: CanonicalMessageContentSlot;
   routeReady: boolean;
-  runtimeAgentExecutionConfig: NimiRuntimeAgentExecutionConfigSnapshot | null;
-  runtimeAgentExecutionReadiness: NimiRuntimeAgentExecutionReadinessSnapshotProjection | null;
-  runtimeAgentExecutionLoading: boolean;
-  runtimeAgentExecutionError: string | null;
+  runtimeAgentAIConfig: NimiRuntimeAgentAIConfigSnapshot | null;
+  runtimeAgentAIConfigReadiness: NimiRuntimeAgentAIConfigReadinessSnapshotProjection | null;
+  runtimeAgentAIConfigLoading: boolean;
+  runtimeAgentAIConfigError: string | null;
+  runtimeAgentCenterAdapter: AgentCenterRuntimeAdapter | null;
   runtimeAgentTextReady: boolean;
   runtimeAgentTextDisabledReason: string | null;
   runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;

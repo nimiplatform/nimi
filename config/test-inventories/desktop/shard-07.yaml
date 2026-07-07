@@ -461,7 +461,7 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: apps/desktop/test/chat-agent-execution-config-readiness.test.ts
+  - path: apps/desktop/test/chat-agent-ai-config-readiness.test.ts
     owner: desktop
     classification: quarantine_unreviewed
     tier: null

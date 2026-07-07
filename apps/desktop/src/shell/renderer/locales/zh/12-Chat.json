@@ -255,6 +255,7 @@
   "memoryExportDone": "已将 {{records}} 条记录（{{banks}} 个 bank）导出到 {{path}}",
   "agentCenterTitle": "Agent Center",
   "agentCenterSubtitle": "在聊天中配置当前 Agent。身份与状态在这里保持只读。",
+  "agentCenterWorldRole": "世界角色",
   "agentCenterNavigation": "Agent Center 分区",
   "agentCenterOverview": "总览",
   "agentCenterAppearance": "外观",
