@@ -1,0 +1,9 @@
+version: 1
+inventory_id: sdks_typescript_test_inventory
+owner: sdks
+authority_class: non_authoritative_inventory
+spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+shards:
+  - config/test-inventories/sdks-typescript/shard-01.yaml
+  - config/test-inventories/sdks-typescript/shard-02.yaml
+  - config/test-inventories/sdks-typescript/shard-03.yaml

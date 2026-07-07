@@ -27,10 +27,11 @@ try {
       domain: args.domain,
       output: args.output,
       force: args.force,
+      shardSize: args.shardSize,
     });
-    console.log(`generate-test-inventory-bootstrap: wrote ${result.outputRel} (${result.inventory.tests.length} tests)`);
+    console.log(`generate-test-inventory-bootstrap: wrote ${result.outputRel} (${result.testCount} tests)`);
   } else {
-    const result = buildBootstrapInventory({ domain: args.domain });
+    const result = buildBootstrapInventory({ domain: args.domain, shardSize: args.shardSize });
     process.stdout.write(result.yaml);
   }
 } catch (error) {

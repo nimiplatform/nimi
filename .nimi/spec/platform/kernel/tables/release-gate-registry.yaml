@@ -12,7 +12,7 @@ registry_id: platform_release_gate_registry
 # file. Hand-edits in projection surfaces are a projection-drift fail.
 
 schema_version: release-gate-registry/v1
-registry_version: "1.4.0"
+registry_version: "1.4.1"
 profile_id: nimi
 # -----------------------------------------------------------------------
 # Tier definitions (P-RELG-012 tier membership constraint)
@@ -2007,6 +2007,20 @@ gates:
     command: pnpm check:spec-semantic-completeness
     runner: pnpm
     tiers: [fast, first-public-existence, release]
+    targets: [any]
+    timeout_seconds: 60
+    requires_binaries: [pnpm]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false
+
+  - id: gate.spec-governance.test-inventory
+    description: Platform test inventory census/classification coverage across all registered domains.
+    command: pnpm check:test-inventory
+    runner: pnpm
+    tiers: [fast]
     targets: [any]
     timeout_seconds: 60
     requires_binaries: [pnpm]

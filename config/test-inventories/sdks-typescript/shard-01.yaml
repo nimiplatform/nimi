@@ -1,12 +1,12 @@
 version: 1
-inventory_id: kit_test_inventory
-shard_id: kit_test_inventory_shard_02
-owner: platform
+inventory_id: sdks_typescript_test_inventory
+owner: sdks
 authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+shard_id: sdks_typescript_test_inventory_shard_01
 tests:
-  - path: kit/features/chat/test/conversation-shell-ui-transcript.test.tsx
-    owner: platform
+  - path: sdks/typescript/adapters/langgraph/langgraph.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -16,10 +16,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-061
-      - P-KIT-070
-  - path: kit/features/chat/test/conversation-shell-ui.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/llamaindex/llamaindex.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -29,49 +28,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-061
-      - P-KIT-070
-  - path: kit/features/chat/test/orchestration-runtime.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-061
-      - P-KIT-080
-  - path: kit/features/chat/test/realm-chat.test.tsx
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-061
-      - P-KIT-080
-  - path: kit/features/chat/test/runtime-agent-turn-projection.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-061
-      - P-KIT-080
-  - path: kit/features/chat/test/startup-boundary.test.ts
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/mastra/mastra.boundary.test.ts
+    owner: sdks
     classification: source_regex_sentinel
     tier: T3
     authority_claim: false
@@ -81,11 +40,11 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-061
-      - P-KIT-080
+      - S-AIP-001
+      - S-BOUNDARY-001
     sentinel_purpose: forbidden_import
-  - path: kit/features/commerce/test/gift-inbox-detail.test.tsx
-    owner: platform
+  - path: sdks/typescript/adapters/mastra/mastra.conformance.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -95,10 +54,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-  - path: kit/features/commerce/test/realm-commerce.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/mastra/mastra.context.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -108,10 +66,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-080
-  - path: kit/features/commerce/test/send-gift-dialog.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/mastra/mastra.embedding-voice.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -121,10 +78,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-  - path: kit/features/commerce/test/use-gift-inbox.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/mastra/mastra.runtime-delegated-tools.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -134,10 +90,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-  - path: kit/features/generation/test/generation-panel.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/mastra/mastra.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -147,10 +102,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-  - path: kit/features/generation/test/runtime-ai-consume.test.ts
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/mastra/mastra.upstream-compat.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -160,10 +114,10 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-080
-  - path: kit/features/generation/test/runtime-generation.test.tsx
-    owner: platform
+      - S-AIP-001
+    note: assertion-free aggregator; imported member tests are contract_conformance release-allowed
+  - path: sdks/typescript/adapters/mastra/mastra.upstream-object-compat.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -173,10 +127,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-080
-  - path: kit/features/generation/test/runtime-image-generate.test.ts
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/mastra/mastra.upstream-runtime-surface.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -186,10 +139,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-080
-  - path: kit/features/generation/test/runtime-speech-synthesize.test.ts
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/mastra/mastra.upstream-text-compat.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -199,10 +151,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-080
-  - path: kit/features/model-config/test/aggregate.test.ts
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/mastra/mastra.upstream-tool-compat.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -212,11 +163,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/model-config/test/binding-helpers.test.ts
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/mcp/mcp.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -226,11 +175,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/model-config/test/default-profile-copy.test.ts
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/next/next.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -240,11 +187,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/model-config/test/local-runtime-status.test.ts
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/openai-compatible/openai-compatible.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -254,11 +199,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/model-config/test/model-config-ai-model-hub.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/react/react.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -268,11 +211,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/model-config/test/model-config-capability-detail.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/vercel-ai/vercel-ai.conformance.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -282,11 +223,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/model-config/test/model-config-panel.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/vercel-ai/vercel-ai.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -296,11 +235,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/model-config/test/params-editors.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/vercel-ai/vercel-ai.upstream-compat.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -310,11 +247,10 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/model-config/test/profile-controller-core.test.ts
-    owner: platform
+      - S-AIP-001
+    note: assertion-free aggregator; imported member tests are contract_conformance release-allowed
+  - path: sdks/typescript/adapters/vercel-ai/vercel-ai.upstream-object-compat.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -324,11 +260,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/model-config/test/profile-controller-hook.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/vercel-ai/vercel-ai.upstream-text-compat.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -338,11 +272,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/model-config/test/use-model-config-profile-controller.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/adapters/vercel-ai/vercel-ai.upstream-tool-compat.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -352,11 +284,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/model-picker/test/model-picker.test.tsx
-    owner: platform
+      - S-AIP-001
+  - path: sdks/typescript/core-client/core-client.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -366,142 +296,43 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-  - path: kit/features/model-picker/test/route-data-provider.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
+      - S-SURFACE-019
+  - path: sdks/typescript/core/ai-runner/agent-runner.test.ts
+    owner: sdks
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
     may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-080
-  - path: kit/features/model-picker/test/route-model-picker-panel.test.tsx
-    owner: platform
-    classification: contract_conformance
-    tier: T5
+  - path: sdks/typescript/core/ai-runner/app-ai.test.ts
+    owner: sdks
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
     may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-      - P-KIT-060
-      - P-KIT-080
-  - path: kit/features/model-picker/test/runtime-model-picker.test.tsx
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-060
-      - P-KIT-080
-  - path: kit/features/model-picker/test/runtime-route-provider.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-060
-      - P-KIT-080
-  - path: kit/shell/capabilities/test/standard-shell-capabilities.test.ts
-    owner: platform
-    classification: generated_drift_guard
-    tier: T2
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-003
-      - P-KIT-044
-      - P-KIT-090
-  - path: kit/shell/electron/test/electron-runtime-account-auth.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-003
-      - P-KIT-090
-  - path: kit/shell/electron/test/electron-runtime-error-classification.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-003
-      - P-KIT-090
-  - path: kit/shell/electron/test/electron-runtime-metadata-provider.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-003
-      - P-KIT-090
-  - path: kit/shell/electron/test/electron-shell-runtime-hardening.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-003
-      - P-KIT-090
-  - path: kit/shell/electron/test/electron-shell.test.ts
-    owner: platform
+  - path: sdks/typescript/core/ai/ai-config.test.ts
+    owner: sdks
     classification: source_regex_sentinel
     tier: T3
     authority_claim: false
     deterministic: true
     offline: true
     may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-      - P-KIT-003
-      - P-KIT-090
-    sentinel_purpose: forbidden_import
-  - path: kit/shell/renderer/test/auth-session-bridge.test.ts
-    owner: platform
+    sentinel_purpose: forbidden_copy
+  - path: sdks/typescript/core/ai/embeddings.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -511,9 +342,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-042
-  - path: kit/shell/renderer/test/bootstrap.test.ts
-    owner: platform
+      - S-SURFACE-020
+  - path: sdks/typescript/core/ai/runtime-model.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -523,9 +354,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-042
-  - path: kit/shell/renderer/test/installed-app-bridge.test.ts
-    owner: platform
+      - S-SURFACE-020
+  - path: sdks/typescript/core/ai/text-runner.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -535,10 +366,9 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-042
-      - P-KIT-044
-  - path: kit/shell/renderer/test/runtime-bridge.test.ts
-    owner: platform
+      - S-SURFACE-020
+  - path: sdks/typescript/core/app/app-surface.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -548,22 +378,56 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-042
-  - path: kit/shell/renderer/test/shell-bridge-error-normalization.test.ts
-    owner: platform
+      - S-APP-001
+  - path: sdks/typescript/core/app/runtime-account-realm.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-APP-001
+  - path: sdks/typescript/core/contracts/architecture.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-SURFACE-001
+  - path: sdks/typescript/core/testing/core-testing.test.ts
+    owner: sdks
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: sdks/typescript/doctor/doctor.test.ts
+    owner: sdks
     classification: source_regex_sentinel
     tier: T3
     authority_claim: false
     deterministic: true
     offline: true
     may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-      - P-KIT-042
-    sentinel_purpose: forbidden_import
-  - path: kit/test/auth-email-flow.test.ts
-    owner: platform
+    sentinel_purpose: forbidden_api
+  - path: sdks/typescript/features/feature-modules.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -573,9 +437,20 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-020
-  - path: kit/test/auth-form-state.test.ts
-    owner: platform
+      - S-SURFACE-020
+  - path: sdks/typescript/features/generation/media-params.test.ts
+    owner: sdks
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: sdks/typescript/features/generation/runtime-image-generation.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -585,9 +460,31 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-020
-  - path: kit/test/auth-menu-handlers.test.ts
-    owner: platform
+      - S-SURFACE-022
+  - path: sdks/typescript/features/generation/runtime-job-builders.test.ts
+    owner: sdks
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: sdks/typescript/features/generation/voice-reference.test.ts
+    owner: sdks
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: sdks/typescript/features/workflow/workflow.test.ts
+    owner: sdks
     classification: contract_conformance
     tier: T5
     authority_claim: false
@@ -597,4 +494,172 @@ tests:
     may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-      - P-KIT-020
+      - S-SURFACE-014
+  - path: sdks/typescript/migration-proofs/migration-proofs.test.ts
+    owner: sdks
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: sdks/typescript/realm/account-data.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALM-010
+  - path: sdks/typescript/realm/account-settings.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALM-010
+  - path: sdks/typescript/realm/auth.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALM-010
+  - path: sdks/typescript/realm/endpoint.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALM-010
+  - path: sdks/typescript/realm/fetch-transport.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALM-010
+  - path: sdks/typescript/realm/generated-public-surface.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALMCORE-001
+  - path: sdks/typescript/realm/group-chat.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALM-010
+  - path: sdks/typescript/realm/notifications.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALM-010
+  - path: sdks/typescript/realm/permission-grants.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALM-010
+  - path: sdks/typescript/realm/realm-facade.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALM-010
+  - path: sdks/typescript/realm/resource-upload.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALM-010
+  - path: sdks/typescript/realm/social.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-REALM-010
+  - path: sdks/typescript/root-client.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-BOUNDARY-004

@@ -23,6 +23,7 @@ export function parseCliArgs(argv) {
     write: false,
     force: false,
     output: null,
+    shardSize: 55,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -44,6 +45,15 @@ export function parseCliArgs(argv) {
       if (!value || value.startsWith('--')) throw new Error('--output requires a value');
       args.output = value;
       index += 1;
+    } else if (arg === '--shard-size') {
+      const value = argv[index + 1];
+      if (!value || value.startsWith('--')) throw new Error('--shard-size requires a value');
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        throw new Error('--shard-size must be a positive integer');
+      }
+      args.shardSize = parsed;
+      index += 1;
     } else if (arg === '--help' || arg === '-h') {
       args.help = true;
     } else {
@@ -56,9 +66,10 @@ export function parseCliArgs(argv) {
 export function usage(commandName) {
   if (commandName.includes('generate-test-inventory-bootstrap')) {
     return [
-      'Usage: node scripts/generate-test-inventory-bootstrap.mjs --domain <name> [--write] [--output <path>] [--force]',
+      'Usage: node scripts/generate-test-inventory-bootstrap.mjs --domain <name> [--write] [--output <path>] [--force] [--shard-size <N>]',
       '',
       'Drafts one quarantine_unreviewed inventory row per census-discovered test file.',
+      'Inventories over --shard-size rows are emitted as top-level shard pointers plus shard files.',
     ].join('\n');
   }
   return [
@@ -75,8 +86,11 @@ export function readYaml(repoRoot, rel) {
 
 function readInventoryWithShards(repoRoot, inventoryRel) {
   const inventory = readYaml(repoRoot, inventoryRel);
-  const rows = Array.isArray(inventory?.tests) ? [...inventory.tests] : [];
   const shards = Array.isArray(inventory?.shards) ? inventory.shards : [];
+  if (shards.length > 0 && Object.prototype.hasOwnProperty.call(inventory ?? {}, 'tests')) {
+    throw new Error(`${inventoryRel} must not declare top-level tests when using shards`);
+  }
+  const rows = Array.isArray(inventory?.tests) ? [...inventory.tests] : [];
   for (const rawShard of shards) {
     const shardRel = normalizeRel(rawShard);
     if (!shardRel) {
@@ -280,8 +294,11 @@ export function checkInventories({ repoRoot = defaultRepoRoot, domain = null, re
   };
 }
 
-export function buildBootstrapInventory({ repoRoot = defaultRepoRoot, domain }) {
+export function buildBootstrapInventory({ repoRoot = defaultRepoRoot, domain, shardSize = 55 }) {
   if (!domain) throw new Error('--domain is required for bootstrap generation');
+  if (!Number.isInteger(shardSize) || shardSize <= 0) {
+    throw new Error('--shard-size must be a positive integer');
+  }
   const policy = loadPolicy(repoRoot);
   const selectedRows = selectModuleRows(policy, domain);
   if (selectedRows.length !== 1) throw new Error(`unknown test inventory domain: ${domain}`);
@@ -299,15 +316,57 @@ export function buildBootstrapInventory({ repoRoot = defaultRepoRoot, domain }) 
     spec_refs: ['P-TEST-001'],
     removal_condition: 'human classification pending',
   }));
-  const inventory = {
+  const baseEnvelope = {
     version: 1,
     inventory_id: `${domain.replaceAll('-', '_')}_test_inventory`,
     owner: moduleRow.owner,
     authority_class: 'non_authoritative_inventory',
     spec_policy_ref: policyRel,
-    tests,
   };
-  return { inventory, moduleRow, yaml: `${YAML.stringify(inventory, { lineWidth: 0 })}` };
+  if (tests.length <= shardSize) {
+    const inventory = {
+      ...baseEnvelope,
+      tests,
+    };
+    return {
+      inventory,
+      moduleRow,
+      shards: [],
+      testCount: tests.length,
+      yaml: `${YAML.stringify(inventory, { lineWidth: 0 })}`,
+    };
+  }
+
+  const shardDirRel = `config/test-inventories/${domain}`;
+  const shardCount = Math.ceil(tests.length / shardSize);
+  const shardRels = Array.from({ length: shardCount }, (_, index) => (
+    `${shardDirRel}/shard-${String(index + 1).padStart(2, '0')}.yaml`
+  ));
+  const inventory = {
+    ...baseEnvelope,
+    shards: shardRels,
+  };
+  const shards = shardRels.map((rel, index) => {
+    const shardNumber = index + 1;
+    const shardInventory = {
+      ...baseEnvelope,
+      shard_id: `${baseEnvelope.inventory_id}_shard_${String(shardNumber).padStart(2, '0')}`,
+      tests: tests.slice(index * shardSize, shardNumber * shardSize),
+    };
+    return {
+      rel,
+      inventory: shardInventory,
+      yaml: `${YAML.stringify(shardInventory, { lineWidth: 0 })}`,
+    };
+  });
+  return {
+    inventory,
+    moduleRow,
+    shardDirRel,
+    shards,
+    testCount: tests.length,
+    yaml: `${YAML.stringify(inventory, { lineWidth: 0 })}`,
+  };
 }
 
 export function auditInventoryClassifications({ repoRoot = defaultRepoRoot, domain = null } = {}) {
@@ -343,15 +402,26 @@ export function auditInventoryClassifications({ repoRoot = defaultRepoRoot, doma
   };
 }
 
-export function writeBootstrapInventory({ repoRoot = defaultRepoRoot, domain, output = null, force = false }) {
-  const result = buildBootstrapInventory({ repoRoot, domain });
+export function writeBootstrapInventory({ repoRoot = defaultRepoRoot, domain, output = null, force = false, shardSize = 55 }) {
+  const result = buildBootstrapInventory({ repoRoot, domain, shardSize });
   const outputRel = normalizeRel(output || result.moduleRow.inventory);
   const outputAbs = path.join(repoRoot, outputRel);
   if (fs.existsSync(outputAbs) && !force) {
     throw new Error(`${outputRel} already exists; pass --force to replace it`);
   }
+  for (const shard of result.shards) {
+    const shardAbs = path.join(repoRoot, shard.rel);
+    if (fs.existsSync(shardAbs) && !force) {
+      throw new Error(`${shard.rel} already exists; pass --force to replace it`);
+    }
+  }
   fs.mkdirSync(path.dirname(outputAbs), { recursive: true });
   fs.writeFileSync(outputAbs, result.yaml, 'utf8');
+  for (const shard of result.shards) {
+    const shardAbs = path.join(repoRoot, shard.rel);
+    fs.mkdirSync(path.dirname(shardAbs), { recursive: true });
+    fs.writeFileSync(shardAbs, shard.yaml, 'utf8');
+  }
   return { ...result, outputRel };
 }
 
@@ -491,29 +561,68 @@ function sourceRegexMisclassificationReason(source) {
   if (!/\bfrom\s+['"]node:fs(?:\/promises)?['"]|require\(\s*['"]node:fs(?:\/promises)?['"]\s*\)/u.test(source)) {
     return null;
   }
-  if (!/\b(?:readFile|readFileSync|readdir|readdirSync)\s*\(/u.test(source)) {
-    return null;
-  }
-  if (!/(?:assert\.(?:match|doesNotMatch)\s*\(|\.includes\s*\(|\.match\s*\(|new RegExp\s*\()/u.test(source)) {
+  const code = stripQuotedLiterals(source);
+  if (!/\b(?:readFile|readFileSync|readdir|readdirSync)\s*\(/u.test(code)) {
     return null;
   }
 
   const buildsViolationsList =
-    /\b(?:const|let)\s+violations\s*=\s*\[\s*\]/u.test(source)
-    && /\bviolations\.push\s*\(/u.test(source)
-    && /assert\.(?:deepEqual|deepStrictEqual)\s*\(\s*violations\s*,\s*\[\s*\]/u.test(source);
+    /\b(?:const|let)\s+violations\s*=\s*\[\s*\]/u.test(code)
+    && /\bviolations\.push\s*\(/u.test(code)
+    && /assert\.(?:deepEqual|deepStrictEqual)\s*\(\s*violations\s*,\s*\[\s*\]/u.test(code);
   if (buildsViolationsList) {
     return 'reads source files, builds violations, asserts no forbidden source hits';
   }
 
   const scansForbiddenList =
-    /for\s*\(\s*const\s+forbidden\s+of\s+\[/u.test(source)
-    || /\b(?:forbidden|forbiddenPaths|forbiddenImports|forbiddenFragments)\s*=\s*\[/u.test(source);
-  if (scansForbiddenList && /assert\.(?:doesNotMatch|equal|deepEqual|deepStrictEqual)\s*\(/u.test(source)) {
+    /for\s*\(\s*const\s+forbidden\s+of\s+\[/u.test(code)
+    || /\b(?:forbidden|forbiddenPaths|forbiddenImports|forbiddenFragments)\s*=\s*\[/u.test(code);
+  if (scansForbiddenList && /assert\.(?:doesNotMatch|equal|deepEqual|deepStrictEqual)\s*\(/u.test(code)) {
     return 'reads source files and asserts a forbidden source-pattern list';
   }
 
+  if (hasSourceTextPatternAssertion(code)) {
+    return 'reads source files and asserts source-pattern presence or absence';
+  }
+
   return null;
+}
+
+function stripQuotedLiterals(source) {
+  return source.replace(/(['"`])(?:\\[\s\S]|(?!\1)[\s\S])*\1/gu, (literal) => ' '.repeat(literal.length));
+}
+
+function hasSourceTextPatternAssertion(source) {
+  const sourceTextVariables = collectSourceTextVariables(source);
+  for (const variable of sourceTextVariables) {
+    const escaped = escapeRegExp(variable);
+    const directAssert = new RegExp(`assert\\.(?:match|doesNotMatch)\\s*\\(\\s*${escaped}\\b`, 'u');
+    const methodAssert = new RegExp(`\\b${escaped}\\s*\\.(?:includes|match)\\s*\\(`, 'u');
+    if (directAssert.test(source) || methodAssert.test(source)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function collectSourceTextVariables(source) {
+  const variables = new Set();
+  const readAssignmentPattern = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*([^;]*\b(?:readFile|readFileSync)\s*\([^;]*)/gsu;
+  for (const match of source.matchAll(readAssignmentPattern)) {
+    const variable = match[1];
+    if (isSourceTextVariable(variable)) {
+      variables.add(variable);
+    }
+  }
+  return variables;
+}
+
+function isSourceTextVariable(variable) {
+  return /source/iu.test(variable);
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
 function* walkFiles(repoRoot, relRoot, excludeDirs) {

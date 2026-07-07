@@ -20,6 +20,7 @@ const appShellRoots = [
 const tablesRoot = '.nimi/spec/zhiyu/kernel/tables';
 const agentCenterLocalConfigHardcutFiles = new Set([
   'apps/zhiyu/src-electron/agent-center-local-config.ts',
+  'apps/zhiyu/src-electron/agent-center-local-config-schema.ts',
   'apps/zhiyu/src-electron/live2d-source.ts',
 ]);
 
@@ -195,11 +196,20 @@ function checkConfigBoundary() {
     'source_rule: Z-CONFIG-005',
   ]);
   requireFileIncludes('apps/zhiyu/src-electron/agent-center-local-config.ts', [
-    'agent_center_local_config',
     'parseScope',
     'safeSegment',
     'validateAvatarAsset',
     'assertLive2dSource',
+  ]);
+  // The config record contract (discriminator, type, parser, default builder) is
+  // owned by the schema sibling that agent-center-local-config.ts imports. It is
+  // part of the same Z-CONFIG-005 bounded hardcut surface, so the record identity
+  // token is anchored there rather than in the bridge entrypoint file.
+  requireFileIncludes('apps/zhiyu/src-electron/agent-center-local-config-schema.ts', [
+    'agent_center_local_config',
+    'AgentCenterLocalConfig',
+    'parseConfig',
+    'createDefaultConfig',
   ]);
   const hits = scan([
     { label: 'app-local AI config store', pattern: /createNimiAIConfigStore/u },

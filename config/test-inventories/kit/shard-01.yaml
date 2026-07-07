@@ -7,541 +7,569 @@ spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
 tests:
   - path: kit/auth/test/auth-flow-hardcut.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: source_regex_sentinel
+    tier: T3
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+    sentinel_purpose: forbidden_api
   - path: kit/auth/test/auth-view-email-login.test.tsx
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-020
   - path: kit/auth/test/desktop-particle-background-light.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
   - path: kit/auth/test/desktop-shell-auth-page.test.tsx
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-020
   - path: kit/auth/test/native-oauth-result-page.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-020
   - path: kit/auth/test/runtime-account-browser-broker.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-020
   - path: kit/auth/test/runtime-account-desktop-auth.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-020
   - path: kit/core/test/notifications.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-030
   - path: kit/core/test/shell-mode.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: source_regex_sentinel
+    tier: T3
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+    sentinel_purpose: forbidden_api
   - path: kit/features/avatar/test/avatar-activity-mapping-resolver.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
   - path: kit/features/avatar/test/avatar-audio-pipeline.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-074
   - path: kit/features/avatar/test/avatar-headless.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
   - path: kit/features/avatar/test/avatar-hit-region.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-074
   - path: kit/features/avatar/test/avatar-launch-arbitration.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
   - path: kit/features/avatar/test/avatar-launch-handoff.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
   - path: kit/features/avatar/test/avatar-live2d-compatibility.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-live2d-framing.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-live2d-hit-region.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-live2d-motion.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-live2d-nominal-bounds.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-live2d-projection-adapter.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-live2d-state.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-model-manifest.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
   - path: kit/features/avatar/test/avatar-projection-smoothing.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
   - path: kit/features/avatar/test/avatar-runtime-voice-playback.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-074
   - path: kit/features/avatar/test/avatar-stage.test.tsx
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
   - path: kit/features/avatar/test/avatar-voice-lipsync-state-bus.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-074
   - path: kit/features/avatar/test/avatar-voice-playback.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-074
   - path: kit/features/avatar/test/avatar-vrm-camera-framing.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-vrm-emote-state.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-vrm-emote-table.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-vrm-framing.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-vrm-generated-motion.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-vrm-hit-region.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-vrm-lazy.test.tsx
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-vrm-motion-preset-table.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-vrm-state.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/avatar-vrm.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-073
   - path: kit/features/avatar/test/wlipsync-audio-consumer.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-071
+      - P-KIT-074
   - path: kit/features/chat/test/app-ai-chat-panel.test.tsx
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-061
+      - P-KIT-070
   - path: kit/features/chat/test/app-ai-chat-session.test.tsx
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-061
+      - P-KIT-070
   - path: kit/features/chat/test/app-ai-chat.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-061
+      - P-KIT-070
   - path: kit/features/chat/test/browser-data-url-attachment-adapter.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-061
+      - P-KIT-070
   - path: kit/features/chat/test/chat-composer.test.tsx
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-061
+      - P-KIT-070
   - path: kit/features/chat/test/conversation-headless.test.ts
     owner: platform
-    classification: quarantine_unreviewed
-    tier: null
+    classification: contract_conformance
+    tier: T5
     authority_claim: false
     deterministic: true
     offline: true
-    may_enter_regression_gate: never
-    may_enter_release_gate: never
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
     spec_refs:
       - P-TEST-001
-    removal_condition: human classification pending
+      - P-KIT-061
+      - P-KIT-070

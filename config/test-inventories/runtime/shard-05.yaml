@@ -1,11 +1,12 @@
 version: 1
-inventory_id: scripts_test_inventory
-owner: platform
+inventory_id: runtime_test_inventory
+owner: runtime
 authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+shard_id: runtime_test_inventory_shard_05
 tests:
-  - path: scripts/ai-structure-budget-core.test.mjs
-    owner: platform
+  - path: runtime/internal/services/app/package_readiness_handler_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -16,8 +17,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/bootstrap-local-qwen3-speech.test.mjs
-    owner: platform
+  - path: runtime/internal/services/app/service_subscription_internal_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -28,8 +29,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/bootstrap-local-voxcpm-mlx.test.mjs
-    owner: platform
+  - path: runtime/internal/services/app/service_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -40,8 +41,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/build-runtime.test.mjs
-    owner: platform
+  - path: runtime/internal/services/app/storage_handler_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -52,8 +53,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-account-session-hardcut.test.mjs
-    owner: platform
+  - path: runtime/internal/services/app/uninstall_job_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -64,8 +65,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-desktop-chat-authority-anti-patterns.test.mjs
-    owner: platform
+  - path: runtime/internal/services/audit/service_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -76,8 +77,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-high-risk-doc-metadata.test.mjs
-    owner: platform
+  - path: runtime/internal/services/auth/proof_validator_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -88,8 +89,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-live-smoke-gate.test.mjs
-    owner: platform
+  - path: runtime/internal/services/auth/service_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -100,8 +101,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-nimi-app-descriptor-admission.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/apmem_authorizer_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -112,8 +113,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-release-gate-registry-coherence.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/apmem_gate_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -124,8 +125,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-release-promise-public-copy.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/authorizer_static_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -136,8 +137,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-runtime-provider-activation-alignment.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/authorizer_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -148,8 +149,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-runtime-target-identity-v2.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/import_invariant_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -160,8 +161,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-sdk-ai-runner-export-posture.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/knowledge_bank_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -172,8 +173,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-secrets.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/knowledge_cascade_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -184,8 +185,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/check-text-encoding-gate.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/knowledge_graph_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -196,8 +197,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/generate-ci-workflow-steps.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/knowledge_grpc_e2e_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -208,8 +209,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/generate-lint-chain.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/knowledge_list_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -220,8 +221,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/generate-nimi-design-md.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/knowledge_page_concurrent_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -232,8 +233,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/generate-sdk-gap-intel.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/knowledge_page_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -244,8 +245,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/generate-test-inventory-bootstrap.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/knowledge_search_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -256,8 +257,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/lib/generate-spec-human-doc-helpers.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/knowledge_storage_failure_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -268,8 +269,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/lib/pnpm-command.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/knowledge_test_context_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -280,8 +281,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/lib/release-gate/cli.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/service_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -292,8 +293,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/lib/release-gate/env-probe.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/workspace_binding_authorizer_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -304,8 +305,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/lib/release-gate/evidence.test.mjs
-    owner: platform
+  - path: runtime/internal/services/cognition/workspace_denied_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -316,8 +317,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/lib/release-gate/runner.test.mjs
-    owner: platform
+  - path: runtime/internal/services/connector/service_catalog_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -328,8 +329,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/lib/release-gate/workflow-resolver.test.mjs
-    owner: platform
+  - path: runtime/internal/services/connector/service_models_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -340,8 +341,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/lib/sdk-consumer-link.test.mjs
-    owner: platform
+  - path: runtime/internal/services/connector/service_test_helpers_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -352,8 +353,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/live-provider-utils.test.mjs
-    owner: platform
+  - path: runtime/internal/services/connector/service_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -364,8 +365,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/package-build-runner-deprecation.test.mjs
-    owner: platform
+  - path: runtime/internal/services/connector/startup_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -376,8 +377,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/pinned-go-tools.test.mjs
-    owner: platform
+  - path: runtime/internal/services/connector/store_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -388,8 +389,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/release-preflight.test.mjs
-    owner: platform
+  - path: runtime/internal/services/delegation/firewall_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -400,8 +401,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/repair-runtime-local-models.test.mjs
-    owner: platform
+  - path: runtime/internal/services/delegation/gateway_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -412,8 +413,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/run-local-qwen3-live-smoke.test.mjs
-    owner: platform
+  - path: runtime/internal/services/externalagent/service_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -424,8 +425,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/run-local-qwen3-speech-host.test.mjs
-    owner: platform
+  - path: runtime/internal/services/grant/service_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -436,8 +437,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/run-local-voxcpm-mlx-speech-host.test.mjs
-    owner: platform
+  - path: runtime/internal/services/localservice/audit_redaction_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -448,8 +449,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/run-runtime-dist.test.mjs
-    owner: platform
+  - path: runtime/internal/services/localservice/dependency_resolver_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -460,8 +461,8 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/validate-runtime-local-agent-center-evidence.test.mjs
-    owner: platform
+  - path: runtime/internal/services/localservice/device_profile_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
@@ -472,8 +473,188 @@ tests:
     spec_refs:
       - P-TEST-001
     removal_condition: human classification pending
-  - path: scripts/zhiyu-release-readiness-report.test.mjs
-    owner: platform
+  - path: runtime/internal/services/localservice/disk_space_unix_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/engine_support_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/first_run_execution_evidence_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/first_run_speech_activation_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/image_supervised_contract_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/latency_observability_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/local_environment_activation_gate_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/local_environment_job_control_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/local_environment_job_python_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/local_environment_jobs_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/local_environment_plan_resolver_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/local_environment_plan_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/local_environment_rpc_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/local_inventory_identity_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/product_control_test.go
+    owner: runtime
+    classification: quarantine_unreviewed
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+    removal_condition: human classification pending
+  - path: runtime/internal/services/localservice/profile_runtime_descriptor_test.go
+    owner: runtime
     classification: quarantine_unreviewed
     tier: null
     authority_claim: false
