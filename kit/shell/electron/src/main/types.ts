@@ -81,9 +81,12 @@ export type ElectronRuntimeBridgeTrustedMetadataProviderInput = {
   readonly runtimeEndpoint: string;
 };
 
-export type ElectronRuntimeBridgeTrustedMetadataProvider = (
-  input: ElectronRuntimeBridgeTrustedMetadataProviderInput,
-) => Promise<ElectronRuntimeBridgeTrustedMetadata | undefined> | ElectronRuntimeBridgeTrustedMetadata | undefined;
+export type ElectronRuntimeBridgeTrustedMetadataProvider = {
+  (
+    input: ElectronRuntimeBridgeTrustedMetadataProviderInput,
+  ): Promise<ElectronRuntimeBridgeTrustedMetadata | undefined> | ElectronRuntimeBridgeTrustedMetadata | undefined;
+  invalidate?: (reason: string) => void;
+};
 
 export type NimiElectronIpcMainInvokeEvent = {
   readonly senderFrame?: {
@@ -224,11 +227,100 @@ export type NimiElectronShellUiCommandInput = {
   readonly runtimeEndpoint: string;
 };
 
+export type NimiElectronShellFileProtocolPrivileges = {
+  readonly standard: boolean;
+  readonly secure: boolean;
+  readonly corsEnabled: boolean;
+  readonly supportFetchAPI: boolean;
+  readonly stream: boolean;
+};
+
+export type NimiElectronShellFileProtocolResponseLike = {
+  readonly status?: number;
+};
+
+export type NimiElectronShellFileProtocolApi = {
+  readonly registerSchemesAsPrivileged: (
+    customSchemes: readonly {
+      readonly scheme: string;
+      readonly privileges: NimiElectronShellFileProtocolPrivileges;
+    }[],
+  ) => void;
+  readonly handle: (
+    scheme: string,
+    handler: (request: { readonly url: string }) => Promise<NimiElectronShellFileProtocolResponseLike>,
+  ) => void;
+};
+
+export type NimiElectronShellFileProtocolHost = {
+  readonly protocolScheme: string;
+  readonly registerPrivilegedSchemes: () => void;
+  readonly registerProtocolHandler: () => void;
+  readonly registerReadableFile: (absolutePath: string) => Promise<string>;
+  readonly resolveLocalAssetUrl: (absolutePath: string) => string;
+  readonly hasReadableFile: (absolutePath: string) => Promise<boolean>;
+};
+
+export type NimiElectronFileDialogFilter = {
+  readonly name: string;
+  readonly extensions: readonly string[];
+};
+
+export type NimiElectronFileDialogOpenPayload = {
+  readonly kind: 'file' | 'directory';
+  readonly title?: string;
+  readonly filters?: readonly NimiElectronFileDialogFilter[];
+  readonly multiple?: boolean;
+};
+
+export type NimiElectronFileDialogOpenResult = {
+  readonly canceled: boolean;
+  readonly paths: readonly string[];
+};
+
+export type NimiElectronFloatingWindowMethod = (
+  payload: Readonly<Record<string, unknown>>,
+  input: NimiElectronShellUiCommandInput,
+) => Promise<Readonly<Record<string, unknown>> | void> | Readonly<Record<string, unknown>> | void;
+
+export type NimiElectronFloatingWindowHost = {
+  readonly setBounds?: NimiElectronFloatingWindowMethod;
+  readonly setIgnoreCursorEvents?: NimiElectronFloatingWindowMethod;
+  readonly setAlwaysOnTop?: NimiElectronFloatingWindowMethod;
+  readonly hide?: NimiElectronFloatingWindowMethod;
+  readonly close?: NimiElectronFloatingWindowMethod;
+  readonly beginManualDrag?: NimiElectronFloatingWindowMethod;
+  readonly moveManualDrag?: NimiElectronFloatingWindowMethod;
+  readonly constrainToVisibleArea?: NimiElectronFloatingWindowMethod;
+};
+
+export type NimiElectronStandardDataRootBinding =
+  | { readonly source: 'runtime-get-app-storage' }
+  | {
+      readonly source: 'runtime-launch-projection';
+      readonly durableDataRoot: string;
+      readonly cacheRoot?: string;
+      readonly tempRoot?: string;
+      readonly projectionRef: string;
+    };
+
+export type NimiElectronStandardStorageRoots = {
+  readonly dataRoot: string;
+  readonly cacheRoot?: string;
+  readonly tempRoot?: string;
+};
+
 export type NimiElectronStandardShellHost = {
   readonly capabilitySetRef?: string;
-  readonly dataRoot?: string;
+  readonly standardDataRootBinding?: NimiElectronStandardDataRootBinding;
   readonly localAssetRoots?: readonly string[];
-  readonly resolveLocalAssetUrl?: (filePath: string) => Promise<string> | string;
+  readonly localAssetProtocolHost?: NimiElectronShellFileProtocolHost;
+  readonly openFileDialog?: (
+    payload: NimiElectronFileDialogOpenPayload,
+  ) => Promise<NimiElectronFileDialogOpenResult> | NimiElectronFileDialogOpenResult;
+  readonly revealInOs?: (path: string) => Promise<void> | void;
+  readonly exportDirectory?: () => Promise<string> | string;
+  readonly floatingWindow?: NimiElectronFloatingWindowHost;
   readonly openExternalUrl?: (url: string) => Promise<void> | void;
   readonly confirmDialog?: (
     payload: NimiElectronConfirmDialogPayload,

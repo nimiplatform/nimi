@@ -1,7 +1,23 @@
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::RwLock;
+
+const STANDARD_STORAGE_BINDING_TIMEOUT_MS: u64 = 10_000;
+
+/// Renderer-supplied storage payloads must never carry root/path authority.
+/// Mirrors the Electron host's assertNoRendererStorageRootFields discipline.
+const FORBIDDEN_RENDERER_STORAGE_ROOT_FIELDS: &[&str] = &[
+    "path",
+    "root",
+    "storageRoot",
+    "absolutePath",
+    "dataRoot",
+    "cacheRoot",
+    "tempRoot",
+];
 
 pub fn canonical_storage_root(root: &str, label: &str) -> Result<PathBuf, String> {
     let path = PathBuf::from(root.trim());
@@ -42,35 +58,255 @@ pub fn scoped_storage_child(
     Ok(child_path)
 }
 
-#[derive(Debug, Clone)]
-pub struct StandardAppStorageRoot {
-    root: PathBuf,
+/// How the standard app storage roots are obtained. Renderer code never
+/// supplies roots; the host resolves them from Runtime truth.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StandardDataRootBinding {
+    /// Resolve roots by calling Runtime
+    /// `/nimi.runtime.v1.RuntimeAppService/GetAppStorage` for `app_id`.
+    RuntimeGetAppStorage { app_id: String },
+    /// Roots were already projected by the Runtime launch flow; bind them
+    /// directly. `projection_ref` records where the projection came from.
+    RuntimeLaunchProjection {
+        durable_data_root: PathBuf,
+        cache_root: Option<PathBuf>,
+        temp_root: Option<PathBuf>,
+        projection_ref: String,
+    },
 }
 
-impl StandardAppStorageRoot {
-    pub fn from_path(root: impl Into<PathBuf>) -> Result<Self, String> {
-        let path = root.into();
-        if !path.is_absolute() {
-            return Err(
-                "standard app storage root must be an absolute Runtime app storage root"
-                    .to_string(),
-            );
-        }
-        fs::create_dir_all(&path).map_err(|error| {
-            format!(
-                "create standard app storage root failed ({}): {error}",
-                path.display()
-            )
-        })?;
-        let canonical = path
-            .canonicalize()
-            .map_err(|error| format!("resolve standard app storage root failed: {error}"))?;
-        Ok(Self { root: canonical })
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StandardAppStorageRoots {
+    data_root: PathBuf,
+    cache_root: Option<PathBuf>,
+    temp_root: Option<PathBuf>,
+}
+
+impl StandardAppStorageRoots {
+    pub fn data_root(&self) -> &Path {
+        &self.data_root
     }
 
-    pub fn root(&self) -> &Path {
-        &self.root
+    pub fn cache_root(&self) -> Option<&Path> {
+        self.cache_root.as_deref()
     }
+
+    pub fn temp_root(&self) -> Option<&Path> {
+        self.temp_root.as_deref()
+    }
+}
+
+/// Managed Tauri state slot for the standard app storage roots. Apps
+/// `.manage(StandardAppStorageRootSlot::empty())` (or a resolved slot) and
+/// bind roots from a `StandardDataRootBinding`; commands fail closed while
+/// the slot is unbound.
+#[derive(Debug, Default)]
+pub struct StandardAppStorageRootSlot(RwLock<Option<StandardAppStorageRoots>>);
+
+impl StandardAppStorageRootSlot {
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
+    pub fn from_roots(roots: StandardAppStorageRoots) -> Self {
+        Self(RwLock::new(Some(roots)))
+    }
+
+    pub async fn from_binding_resolved(binding: StandardDataRootBinding) -> Result<Self, String> {
+        Ok(Self::from_roots(
+            resolve_standard_app_storage_roots(binding).await?,
+        ))
+    }
+
+    pub fn bind(&self, roots: StandardAppStorageRoots) -> Result<(), String> {
+        let mut slot = self.0.write().map_err(|_| {
+            binding_error(
+                "host-internal-error",
+                "tauri-standard-storage-binding-slot-poisoned",
+                "restart_app_to_recover_standard_storage_binding",
+                None,
+            )
+        })?;
+        *slot = Some(roots);
+        Ok(())
+    }
+
+    pub fn current(&self) -> Option<StandardAppStorageRoots> {
+        self.0.read().ok().and_then(|slot| slot.clone())
+    }
+}
+
+pub fn require_bound_standard_storage_roots(
+    slot: &StandardAppStorageRootSlot,
+    _command: &str,
+) -> Result<StandardAppStorageRoots, String> {
+    slot.current().ok_or_else(|| {
+        crate::capabilities::standard_shell_error(
+            "capability-unavailable",
+            "tauri-standard-storage-binding-missing",
+            "manage_standard_app_storage_root_from_runtime_binding",
+            "tauri",
+            None,
+        )
+    })
+}
+
+pub async fn resolve_standard_app_storage_roots(
+    binding: StandardDataRootBinding,
+) -> Result<StandardAppStorageRoots, String> {
+    match binding {
+        StandardDataRootBinding::RuntimeGetAppStorage { app_id } => {
+            let app_id = app_id.trim().to_string();
+            if app_id.is_empty() {
+                return Err(binding_error(
+                    "invalid-payload",
+                    "tauri-standard-storage-binding-app-id-required",
+                    "provide_runtime_app_id_for_storage_binding",
+                    None,
+                ));
+            }
+            let response: crate::runtime_bridge::generated::GetAppStorageResponse =
+                crate::runtime_bridge::invoke_unary_typed_with_metadata(
+                    crate::runtime_bridge::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+                    crate::runtime_bridge::generated::GetAppStorageRequest {
+                        app_id: app_id.clone(),
+                    },
+                    crate::runtime_bridge::RuntimeBridgeMetadata {
+                        app_id: Some(app_id.clone()),
+                        ..Default::default()
+                    },
+                    Some(STANDARD_STORAGE_BINDING_TIMEOUT_MS),
+                )
+                .await
+                .map_err(|cause| {
+                    binding_error(
+                        "capability-unavailable",
+                        "tauri-standard-storage-binding-get-app-storage-failed",
+                        "start_runtime_daemon_before_standard_storage_binding",
+                        Some(cause),
+                    )
+                })?;
+            let projection = response.projection.ok_or_else(|| {
+                binding_error(
+                    "host-internal-error",
+                    "tauri-standard-storage-binding-projection-missing",
+                    "inspect_runtime_get_app_storage_response",
+                    Some(format!("appId={app_id}")),
+                )
+            })?;
+            if projection.state != crate::runtime_bridge::generated::AppStorageState::Ready as i32 {
+                return Err(binding_error(
+                    "capability-unavailable",
+                    "tauri-standard-storage-binding-projection-not-ready",
+                    "install_or_repair_app_storage_before_binding",
+                    Some(format!("appId={app_id} state={}", projection.state)),
+                ));
+            }
+            build_standard_app_storage_roots(
+                Path::new(projection.durable_data_root.trim()),
+                optional_projected_root(projection.cache_root.as_str()).as_deref(),
+                optional_projected_root(projection.temp_root.as_str()).as_deref(),
+            )
+        }
+        StandardDataRootBinding::RuntimeLaunchProjection {
+            durable_data_root,
+            cache_root,
+            temp_root,
+            projection_ref,
+        } => {
+            if projection_ref.trim().is_empty() {
+                return Err(binding_error(
+                    "invalid-payload",
+                    "tauri-standard-storage-binding-projection-ref-required",
+                    "provide_runtime_launch_projection_ref",
+                    None,
+                ));
+            }
+            build_standard_app_storage_roots(
+                durable_data_root.as_path(),
+                cache_root.as_deref(),
+                temp_root.as_deref(),
+            )
+        }
+    }
+}
+
+fn optional_projected_root(value: &str) -> Option<PathBuf> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(trimmed))
+    }
+}
+
+fn build_standard_app_storage_roots(
+    data_root: &Path,
+    cache_root: Option<&Path>,
+    temp_root: Option<&Path>,
+) -> Result<StandardAppStorageRoots, String> {
+    Ok(StandardAppStorageRoots {
+        data_root: canonical_binding_root(data_root, "durable_data_root")?,
+        cache_root: cache_root
+            .map(|root| canonical_binding_root(root, "cache_root"))
+            .transpose()?,
+        temp_root: temp_root
+            .map(|root| canonical_binding_root(root, "temp_root"))
+            .transpose()?,
+    })
+}
+
+fn canonical_binding_root(path: &Path, label: &str) -> Result<PathBuf, String> {
+    let raw = path.as_os_str().to_string_lossy();
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err(binding_error(
+            "invalid-path",
+            "tauri-standard-storage-binding-root-required",
+            "provide_absolute_runtime_projected_storage_root",
+            Some(format!("{label} is empty")),
+        ));
+    }
+    let path = PathBuf::from(trimmed);
+    if !path.is_absolute() {
+        return Err(binding_error(
+            "invalid-path",
+            "tauri-standard-storage-binding-root-not-absolute",
+            "provide_absolute_runtime_projected_storage_root",
+            Some(format!("{label}: {}", path.display())),
+        ));
+    }
+    fs::create_dir_all(&path).map_err(|error| {
+        binding_error(
+            "host-internal-error",
+            "tauri-standard-storage-binding-root-create-failed",
+            "inspect_standard_storage_host_permissions",
+            Some(format!("{label} ({}): {error}", path.display())),
+        )
+    })?;
+    path.canonicalize().map_err(|error| {
+        binding_error(
+            "host-internal-error",
+            "tauri-standard-storage-binding-root-resolve-failed",
+            "inspect_standard_storage_host_permissions",
+            Some(format!("{label} ({}): {error}", path.display())),
+        )
+    })
+}
+
+fn binding_error(
+    code: &str,
+    reason_code: &str,
+    action_hint: &str,
+    cause: Option<String>,
+) -> String {
+    crate::capabilities::standard_shell_error(
+        code,
+        reason_code,
+        action_hint,
+        "tauri",
+        Some(json!({ "binding": "standard-app-storage", "cause": cause })),
+    )
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -108,23 +344,63 @@ pub struct StandardStorageRemoveJsonResult {
     pub removed: bool,
 }
 
-pub fn data_path_resolve_for_root(
-    root: &StandardAppStorageRoot,
+/// Parses a renderer storage payload fail-closed: rejects renderer-supplied
+/// root/path authority fields before typed deserialization.
+pub fn parse_standard_storage_payload<T: DeserializeOwned>(
+    payload: Value,
+    command: &str,
+) -> Result<T, String> {
+    let object = payload.as_object().ok_or_else(|| {
+        storage_error(
+            "invalid-payload",
+            "tauri-standard-storage-payload-not-object",
+            "send_structured_standard_storage_payload",
+            command,
+            None,
+            None,
+        )
+    })?;
+    for field in FORBIDDEN_RENDERER_STORAGE_ROOT_FIELDS {
+        if object.contains_key(*field) {
+            return Err(storage_error(
+                "invalid-payload",
+                "tauri-standard-storage-renderer-field-forbidden",
+                "send_relative_path_only_for_standard_storage",
+                command,
+                None,
+                Some(format!("forbidden renderer field: {field}")),
+            ));
+        }
+    }
+    serde_json::from_value::<T>(payload).map_err(|error| {
+        storage_error(
+            "invalid-payload",
+            "tauri-standard-storage-payload-invalid",
+            "send_declared_standard_storage_payload_fields",
+            command,
+            None,
+            Some(error.to_string()),
+        )
+    })
+}
+
+pub fn data_path_resolve_for_roots(
+    roots: &StandardAppStorageRoots,
     payload: StandardStoragePathPayload,
 ) -> Result<StandardPathResolveResult, String> {
     let path =
-        resolve_standard_storage_child(root, payload.relative_path.as_str(), "data_path_resolve")?;
+        resolve_standard_storage_child(roots, payload.relative_path.as_str(), "data_path_resolve")?;
     Ok(StandardPathResolveResult {
         path: path.display().to_string(),
     })
 }
 
-pub fn storage_read_json_for_root(
-    root: &StandardAppStorageRoot,
+pub fn storage_read_json_for_roots(
+    roots: &StandardAppStorageRoots,
     payload: StandardStoragePathPayload,
 ) -> Result<StandardStorageJsonResult, String> {
     let path =
-        resolve_standard_storage_child(root, payload.relative_path.as_str(), "storage_read_json")?;
+        resolve_standard_storage_child(roots, payload.relative_path.as_str(), "storage_read_json")?;
     if !path.exists() {
         return Err(storage_error(
             "not-found",
@@ -161,12 +437,15 @@ pub fn storage_read_json_for_root(
     })
 }
 
-pub fn storage_write_json_for_root(
-    root: &StandardAppStorageRoot,
+pub fn storage_write_json_for_roots(
+    roots: &StandardAppStorageRoots,
     payload: StandardStorageWriteJsonPayload,
 ) -> Result<StandardStorageJsonResult, String> {
-    let path =
-        resolve_standard_storage_child(root, payload.relative_path.as_str(), "storage_write_json")?;
+    let path = resolve_standard_storage_child(
+        roots,
+        payload.relative_path.as_str(),
+        "storage_write_json",
+    )?;
     let body = serde_json::to_string_pretty(&payload.value).map_err(|error| {
         storage_error(
             "invalid-payload",
@@ -215,12 +494,12 @@ pub fn storage_write_json_for_root(
     })
 }
 
-pub fn storage_remove_json_for_root(
-    root: &StandardAppStorageRoot,
+pub fn storage_remove_json_for_roots(
+    roots: &StandardAppStorageRoots,
     payload: StandardStoragePathPayload,
 ) -> Result<StandardStorageRemoveJsonResult, String> {
     let path = resolve_standard_storage_child(
-        root,
+        roots,
         payload.relative_path.as_str(),
         "storage_remove_json",
     )?;
@@ -246,8 +525,8 @@ pub fn storage_remove_json_for_root(
     })
 }
 
-fn resolve_standard_storage_child(
-    root: &StandardAppStorageRoot,
+pub(crate) fn resolve_standard_storage_child(
+    roots: &StandardAppStorageRoots,
     relative_path: &str,
     command: &str,
 ) -> Result<PathBuf, String> {
@@ -274,7 +553,7 @@ fn resolve_standard_storage_child(
         ));
     }
     scoped_storage_child(
-        root.root().to_str().unwrap_or_default(),
+        roots.data_root().to_str().unwrap_or_default(),
         "standard app storage root",
         child,
     )
@@ -312,155 +591,10 @@ fn storage_error(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        canonical_storage_root, data_path_resolve_for_root, scoped_storage_child,
-        storage_read_json_for_root, storage_remove_json_for_root, storage_write_json_for_root,
-        StandardAppStorageRoot, StandardStoragePathPayload, StandardStorageWriteJsonPayload,
-    };
-    use serde_json::Value;
-    use std::path::PathBuf;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    fn temp_root(prefix: &str) -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("time")
-            .as_nanos();
-        let dir = std::env::temp_dir().join(format!("nimi-runtime-app-storage-{prefix}-{unique}"));
-        std::fs::create_dir_all(&dir).expect("create temp root");
-        dir
-    }
-
-    #[test]
-    fn canonical_root_requires_absolute_path() {
-        assert!(canonical_storage_root("relative/path", "test root")
-            .expect_err("relative rejected")
-            .contains("absolute Runtime app storage root"));
-    }
-
-    #[test]
-    fn scoped_child_rejects_parent_escape() {
-        let root = temp_root("escape");
-        let error =
-            scoped_storage_child(root.to_str().expect("root"), "test root", "../outside.json")
-                .expect_err("escape rejected");
-        assert!(error.contains("escapes Runtime app storage root"));
-    }
-
-    #[test]
-    fn scoped_child_materializes_parent_under_root() {
-        let root = temp_root("child");
-        let child = scoped_storage_child(
-            root.to_str().expect("root"),
-            "test root",
-            "nested/file.json",
-        )
-        .expect("child");
-        assert!(child.starts_with(root.canonicalize().expect("canonical root")));
-        assert!(child.parent().expect("parent").exists());
-    }
-
-    #[test]
-    fn standard_storage_root_requires_absolute_path() {
-        let error =
-            StandardAppStorageRoot::from_path("relative/path").expect_err("relative root rejected");
-        assert!(error.contains("absolute Runtime app storage root"));
-    }
-
-    #[test]
-    fn standard_storage_helpers_confine_relative_paths() {
-        let root = temp_root("standard-escape");
-        let provider = StandardAppStorageRoot::from_path(root).expect("provider");
-        let error = data_path_resolve_for_root(
-            &provider,
-            StandardStoragePathPayload {
-                relative_path: "../escape.json".to_string(),
-            },
-        )
-        .expect_err("escape rejected");
-        let parsed: Value = serde_json::from_str(error.as_str()).expect("standard shell error");
-        assert_eq!(
-            parsed.get("code").and_then(Value::as_str),
-            Some("invalid-path")
-        );
-    }
-
-    #[test]
-    fn standard_storage_payload_rejects_renderer_root_fields() {
-        let parsed = serde_json::from_value::<StandardStoragePathPayload>(serde_json::json!({
-            "relativePath": "settings/profile.json",
-            "path": "settings/legacy-alias.json"
-        }));
-        assert!(
-            parsed.is_err(),
-            "standard storage payload must reject path alias"
-        );
-        let parsed = serde_json::from_value::<StandardStorageWriteJsonPayload>(serde_json::json!({
-            "relativePath": "settings/profile.json",
-            "value": { "ok": true },
-            "storageRoot": "/tmp/renderer-root"
-        }));
-        assert!(
-            parsed.is_err(),
-            "standard storage write payload must reject renderer root fields"
-        );
-    }
-
-    #[test]
-    fn standard_storage_helpers_read_write_and_remove_json() {
-        let root = temp_root("standard-rw");
-        let provider = StandardAppStorageRoot::from_path(root.clone()).expect("provider");
-        let payload = StandardStoragePathPayload {
-            relative_path: "settings/profile.json".to_string(),
-        };
-
-        let missing = storage_read_json_for_root(&provider, payload.clone())
-            .expect_err("missing file rejected");
-        let parsed_missing: Value =
-            serde_json::from_str(missing.as_str()).expect("standard shell error");
-        assert_eq!(
-            parsed_missing.get("code").and_then(Value::as_str),
-            Some("not-found")
-        );
-
-        let write = storage_write_json_for_root(
-            &provider,
-            StandardStorageWriteJsonPayload {
-                relative_path: payload.relative_path.clone(),
-                value: serde_json::json!({ "schemaVersion": 1, "enabled": true }),
-            },
-        )
-        .expect("write");
-        assert!(write.path.ends_with("settings/profile.json"));
-        assert_eq!(write.value["enabled"], true);
-
-        let read = storage_read_json_for_root(&provider, payload.clone()).expect("read");
-        assert_eq!(read.value["schemaVersion"], 1);
-
-        let remove = storage_remove_json_for_root(&provider, payload.clone()).expect("remove");
-        assert!(remove.removed);
-        let second = storage_remove_json_for_root(&provider, payload).expect("idempotent remove");
-        assert!(!second.removed);
-    }
-
-    #[test]
-    fn standard_storage_read_rejects_invalid_json() {
-        let root = temp_root("standard-invalid-json");
-        let provider = StandardAppStorageRoot::from_path(root.clone()).expect("provider");
-        let file = root.join("broken.json");
-        std::fs::write(&file, "{not-json").expect("write broken");
-        let error = storage_read_json_for_root(
-            &provider,
-            StandardStoragePathPayload {
-                relative_path: "broken.json".to_string(),
-            },
-        )
-        .expect_err("invalid json rejected");
-        let parsed: Value = serde_json::from_str(error.as_str()).expect("standard shell error");
-        assert_eq!(
-            parsed.get("code").and_then(Value::as_str),
-            Some("invalid-payload")
-        );
-    }
+pub(crate) fn test_standard_app_storage_roots(root: impl Into<PathBuf>) -> StandardAppStorageRoots {
+    build_standard_app_storage_roots(root.into().as_path(), None, None)
+        .expect("test standard app storage roots")
 }
+
+#[cfg(test)]
+mod tests;

@@ -53,6 +53,39 @@ export {
   focusMainWindow,
 } from './ui.js';
 export {
+  openShellFileDialog,
+  revealShellFile,
+  exportShellSaveFile,
+  writeShellArtifact,
+} from './files.js';
+export type {
+  ShellFileDialogFilter,
+  ShellFileDialogOpenPayload,
+  ShellFileDialogOpenResult,
+  ShellFileRevealResult,
+  ShellExportSaveFilePayload,
+  ShellExportSaveFileResult,
+  ShellArtifactWritePayload,
+  ShellArtifactWriteResult,
+} from './files.js';
+export {
+  floatingWindowSetBounds,
+  floatingWindowSetIgnoreCursorEvents,
+  floatingWindowSetAlwaysOnTop,
+  floatingWindowHide,
+  floatingWindowClose,
+  floatingWindowBeginManualDrag,
+  floatingWindowMoveManualDrag,
+  floatingWindowConstrainToVisibleArea,
+} from './floating-window.js';
+export type {
+  FloatingWindowBounds,
+  FloatingWindowIgnoreCursorEventsOptions,
+  FloatingWindowManualDragOrigin,
+  FloatingWindowMoveDelta,
+  FloatingWindowConstrainResult,
+} from './floating-window.js';
+export {
   createInstalledNimiAppStandardShellSurface,
 } from './installed-app.js';
 export type {

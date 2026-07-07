@@ -2,8 +2,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
-  attachNimiRuntimeAppDataStorageRoot,
-  attachNimiRuntimeAppStorageRoots,
   buildNimiRuntimeBridgeConfigWithLocalEndpoint,
   mergeNimiRuntimeBridgeDataRootConfig,
   mergeNimiRuntimeBridgeDeveloperRegistrationConfig,
@@ -91,7 +89,7 @@ describe('Runtime app storage helpers', () => {
     );
   });
 
-  it('attaches Runtime-owned storage roots to SDK payloads and forwards call options', async () => {
+  it('resolves storage roots with forwarded call options and trimmed app id', async () => {
     const calls: unknown[] = [];
     const appLifecycle: NimiRuntimeAppStorageClient = {
       async storage(input, options) {
@@ -101,33 +99,17 @@ describe('Runtime app storage helpers', () => {
     };
     const options = { metadata: { callerId: 'storage-test' } };
 
-    const dataPayload = await attachNimiRuntimeAppDataStorageRoot({
+    const roots = await resolveNimiRuntimeAppStorageRoots({
       appLifecycle,
       appId: ' nimi.example-app ',
       options,
-      payload: { jobId: 'job-1' },
     });
-    assert.deepEqual(dataPayload, {
-      jobId: 'job-1',
-      storageRoot: '/data/nimi.example-app',
-    });
-
-    const rootsPayload = await attachNimiRuntimeAppStorageRoots({
-      appLifecycle,
-      appId: 'nimi.example-app',
-      options,
-      payload: { jobId: 'job-2' },
-    });
-    assert.deepEqual(rootsPayload, {
-      jobId: 'job-2',
+    assert.deepEqual(roots, {
       dataRoot: '/data/nimi.example-app',
       cacheRoot: '/cache/nimi.example-app',
       tempRoot: '/tmp/nimi.example-app',
     });
-    assert.deepEqual(calls, [
-      { input: { appId: 'nimi.example-app' }, options },
-      { input: { appId: 'nimi.example-app' }, options },
-    ]);
+    assert.deepEqual(calls, [{ input: { appId: 'nimi.example-app' }, options }]);
   });
 
   it('fails closed on missing app ids roots and unavailable storage defaults', async () => {

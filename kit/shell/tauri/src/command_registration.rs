@@ -2,6 +2,8 @@
 pub enum ShellCommandBoundary {
     AuthSession,
     Daemon,
+    Files,
+    FloatingWindow,
     OAuth,
     Runtime,
     RuntimeDefaults,
@@ -154,6 +156,74 @@ pub const STANDARD_SHELL_UI_COMMANDS: &[ShellCommandDescriptor] = &[
     },
 ];
 
+pub const STANDARD_FILE_COMMANDS: &[ShellCommandDescriptor] = &[
+    ShellCommandDescriptor {
+        command_name: "file_dialog_open",
+        rust_path: "nimi_shell_tauri::capabilities::file_dialog::file_dialog_open",
+        boundary: ShellCommandBoundary::Files,
+    },
+    ShellCommandDescriptor {
+        command_name: "file_reveal_reveal",
+        rust_path: "nimi_shell_tauri::capabilities::file_reveal::file_reveal_reveal",
+        boundary: ShellCommandBoundary::Files,
+    },
+    ShellCommandDescriptor {
+        command_name: "export_save_file",
+        rust_path: "nimi_shell_tauri::capabilities::export::export_save_file",
+        boundary: ShellCommandBoundary::Files,
+    },
+    ShellCommandDescriptor {
+        command_name: "artifacts_write",
+        rust_path: "nimi_shell_tauri::capabilities::artifacts::artifacts_write",
+        boundary: ShellCommandBoundary::Files,
+    },
+];
+
+pub const STANDARD_FLOATING_WINDOW_COMMANDS: &[ShellCommandDescriptor] = &[
+    ShellCommandDescriptor {
+        command_name: "floating_window_set_bounds",
+        rust_path: "nimi_shell_tauri::standard_floating_window::floating_window_set_bounds",
+        boundary: ShellCommandBoundary::FloatingWindow,
+    },
+    ShellCommandDescriptor {
+        command_name: "floating_window_set_ignore_cursor_events",
+        rust_path:
+            "nimi_shell_tauri::standard_floating_window::floating_window_set_ignore_cursor_events",
+        boundary: ShellCommandBoundary::FloatingWindow,
+    },
+    ShellCommandDescriptor {
+        command_name: "floating_window_set_always_on_top",
+        rust_path: "nimi_shell_tauri::standard_floating_window::floating_window_set_always_on_top",
+        boundary: ShellCommandBoundary::FloatingWindow,
+    },
+    ShellCommandDescriptor {
+        command_name: "floating_window_hide",
+        rust_path: "nimi_shell_tauri::standard_floating_window::floating_window_hide",
+        boundary: ShellCommandBoundary::FloatingWindow,
+    },
+    ShellCommandDescriptor {
+        command_name: "floating_window_close",
+        rust_path: "nimi_shell_tauri::standard_floating_window::floating_window_close",
+        boundary: ShellCommandBoundary::FloatingWindow,
+    },
+    ShellCommandDescriptor {
+        command_name: "floating_window_begin_manual_drag",
+        rust_path: "nimi_shell_tauri::standard_floating_window::floating_window_begin_manual_drag",
+        boundary: ShellCommandBoundary::FloatingWindow,
+    },
+    ShellCommandDescriptor {
+        command_name: "floating_window_move_manual_drag",
+        rust_path: "nimi_shell_tauri::standard_floating_window::floating_window_move_manual_drag",
+        boundary: ShellCommandBoundary::FloatingWindow,
+    },
+    ShellCommandDescriptor {
+        command_name: "floating_window_constrain_to_visible_area",
+        rust_path:
+            "nimi_shell_tauri::standard_floating_window::floating_window_constrain_to_visible_area",
+        boundary: ShellCommandBoundary::FloatingWindow,
+    },
+];
+
 pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     let mut commands = Vec::new();
     commands.extend_from_slice(RUNTIME_DEFAULTS_COMMANDS);
@@ -163,6 +233,8 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     commands.extend_from_slice(SESSION_LOGGING_COMMANDS);
     commands.extend_from_slice(STANDARD_STORAGE_COMMANDS);
     commands.extend_from_slice(STANDARD_SHELL_UI_COMMANDS);
+    commands.extend_from_slice(STANDARD_FILE_COMMANDS);
+    commands.extend_from_slice(STANDARD_FLOATING_WINDOW_COMMANDS);
     commands
 }
 
@@ -187,6 +259,10 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
             $crate::capabilities::shell_ui::confirm_dialog,
             $crate::capabilities::shell_ui::start_window_drag,
             $crate::capabilities::shell_ui::focus_main_window,
+            $crate::capabilities::file_dialog::file_dialog_open,
+            $crate::capabilities::file_reveal::file_reveal_reveal,
+            $crate::capabilities::export::export_save_file,
+            $crate::capabilities::artifacts::artifacts_write,
             $($app_command),*
         ]
     };
@@ -226,6 +302,10 @@ macro_rules! nimi_shell_tauri_auth_oauth_runtime_bridge_handler {
             $crate::capabilities::shell_ui::confirm_dialog,
             $crate::capabilities::shell_ui::start_window_drag,
             $crate::capabilities::shell_ui::focus_main_window,
+            $crate::capabilities::file_dialog::file_dialog_open,
+            $crate::capabilities::file_reveal::file_reveal_reveal,
+            $crate::capabilities::export::export_save_file,
+            $crate::capabilities::artifacts::artifacts_write,
             $($app_command),*
         ]
     };
@@ -262,12 +342,40 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $crate::capabilities::shell_ui::confirm_dialog,
             $crate::capabilities::shell_ui::start_window_drag,
             $crate::capabilities::shell_ui::focus_main_window,
+            $crate::capabilities::file_dialog::file_dialog_open,
+            $crate::capabilities::file_reveal::file_reveal_reveal,
+            $crate::capabilities::export::export_save_file,
+            $crate::capabilities::artifacts::artifacts_write,
             $($app_command),*
         ]
     };
     ($($app_command:path),* $(,)?) => {
         $crate::nimi_shell_tauri_oauth_runtime_bridge_handler![
             @with_runtime_defaults $crate::capabilities::runtime_defaults::runtime_defaults;
+            $($app_command),*
+        ]
+    };
+}
+
+/// Standalone floating-window command handler group. Expands to a single
+/// `tauri::generate_handler!` that registers only the eight `floating_window_*`
+/// commands plus any extra app commands passed in, so a host (e.g. Nimi
+/// Avatar) can opt into standard window control without pulling in the
+/// runtime/auth/oauth handler families. Intentionally excluded from the
+/// default handler macros so window control is not granted to apps that do
+/// not opt in.
+#[macro_export]
+macro_rules! nimi_shell_tauri_floating_window_commands {
+    ($($app_command:path),* $(,)?) => {
+        tauri::generate_handler![
+            $crate::standard_floating_window::floating_window_set_bounds,
+            $crate::standard_floating_window::floating_window_set_ignore_cursor_events,
+            $crate::standard_floating_window::floating_window_set_always_on_top,
+            $crate::standard_floating_window::floating_window_hide,
+            $crate::standard_floating_window::floating_window_close,
+            $crate::standard_floating_window::floating_window_begin_manual_drag,
+            $crate::standard_floating_window::floating_window_move_manual_drag,
+            $crate::standard_floating_window::floating_window_constrain_to_visible_area,
             $($app_command),*
         ]
     };
@@ -319,6 +427,18 @@ mod tests {
                 "confirm_dialog",
                 "start_window_drag",
                 "focus_main_window",
+                "file_dialog_open",
+                "file_reveal_reveal",
+                "export_save_file",
+                "artifacts_write",
+                "floating_window_set_bounds",
+                "floating_window_set_ignore_cursor_events",
+                "floating_window_set_always_on_top",
+                "floating_window_hide",
+                "floating_window_close",
+                "floating_window_begin_manual_drag",
+                "floating_window_move_manual_drag",
+                "floating_window_constrain_to_visible_area",
             ]
         );
     }
@@ -348,6 +468,72 @@ mod tests {
         assert!(commands
             .iter()
             .any(|command| command.boundary == ShellCommandBoundary::ShellUi));
+        assert!(commands
+            .iter()
+            .any(|command| command.boundary == ShellCommandBoundary::Files));
+        assert!(commands
+            .iter()
+            .any(|command| command.boundary == ShellCommandBoundary::FloatingWindow));
+    }
+
+    #[test]
+    fn standard_floating_window_commands_cover_all_eight_operations() {
+        let names = STANDARD_FLOATING_WINDOW_COMMANDS
+            .iter()
+            .map(|command| command.command_name)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            names,
+            vec![
+                "floating_window_set_bounds",
+                "floating_window_set_ignore_cursor_events",
+                "floating_window_set_always_on_top",
+                "floating_window_hide",
+                "floating_window_close",
+                "floating_window_begin_manual_drag",
+                "floating_window_move_manual_drag",
+                "floating_window_constrain_to_visible_area",
+            ]
+        );
+        assert!(STANDARD_FLOATING_WINDOW_COMMANDS
+            .iter()
+            .all(|command| command.boundary == ShellCommandBoundary::FloatingWindow));
+    }
+
+    #[test]
+    fn floating_window_commands_are_excluded_from_default_handler_families() {
+        // Window control must be opt-in: the default runtime/auth/oauth
+        // handler macros must not carry any floating-window command.
+        for descriptor in STANDARD_FLOATING_WINDOW_COMMANDS {
+            assert!(!RUNTIME_BRIDGE_COMMANDS
+                .iter()
+                .chain(STANDARD_STORAGE_COMMANDS)
+                .chain(STANDARD_SHELL_UI_COMMANDS)
+                .chain(STANDARD_FILE_COMMANDS)
+                .chain(AUTH_SESSION_COMMANDS)
+                .chain(OAUTH_COMMANDS)
+                .any(|other| other.command_name == descriptor.command_name));
+        }
+    }
+
+    #[test]
+    fn standard_file_commands_cover_new_standard_capabilities() {
+        let names = STANDARD_FILE_COMMANDS
+            .iter()
+            .map(|command| command.command_name)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            names,
+            vec![
+                "file_dialog_open",
+                "file_reveal_reveal",
+                "export_save_file",
+                "artifacts_write",
+            ]
+        );
+        assert!(STANDARD_FILE_COMMANDS
+            .iter()
+            .all(|command| command.boundary == ShellCommandBoundary::Files));
     }
 
     #[test]
@@ -377,5 +563,10 @@ mod tests {
                 test_app_command
             ],
         );
+        let _floating_window_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
+            crate::nimi_shell_tauri_floating_window_commands![test_app_command],
+        );
+        let _floating_window_only_builder = tauri::Builder::<tauri::Wry>::default()
+            .invoke_handler(crate::nimi_shell_tauri_floating_window_commands![]);
     }
 }

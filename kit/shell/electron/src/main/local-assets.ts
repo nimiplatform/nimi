@@ -7,11 +7,12 @@ export async function resolveElectronStandardLocalAssetUrl(
   payload: Readonly<Record<string, unknown>>,
   command: string,
 ): Promise<{ readonly path: string; readonly url: string }> {
-  const resolver = host?.resolveLocalAssetUrl;
-  if (!resolver) {
+  const protocolHost = host?.localAssetProtocolHost;
+  if (!protocolHost) {
     throw createElectronCapabilityUnavailableError(command);
   }
   const filePath = await resolveElectronStandardLocalAssetPath(host, payload, command);
-  const url = normalizeRequiredToken(await resolver(filePath), 'url');
+  await protocolHost.registerReadableFile(filePath);
+  const url = normalizeRequiredToken(protocolHost.resolveLocalAssetUrl(filePath), 'url');
   return { path: filePath, url };
 }

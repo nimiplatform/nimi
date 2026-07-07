@@ -16,6 +16,42 @@ Discipline.
   adapters instead of passing arbitrary app panels into Agent Center; model
   readiness, autonomy, cognition, appearance, and advanced diagnostics are
   rendered from Runtime/SDK projections.
+- Admitted five standard shell capabilities across `shell/capabilities`,
+  `shell/renderer/bridge`, `shell/electron`, and `nimi_shell_tauri`:
+  `file-dialog.open`, `file-reveal.reveal`, `export.saveFile`,
+  `artifacts.write`, and the `floating-window.*` operation family
+  (platform rule `P-KIT-041F`). Hosts without an implementation fail closed
+  with `capability-unavailable`; the installed-app capability set forbids all
+  of them by default.
+- Finalized the `floating-window.*` three-layer contract (renderer bridge,
+  Electron host hooks, and the new `nimi_shell_tauri::standard_floating_window`
+  Tauri command module). Contract shapes: `setBounds` takes an integer,
+  physical-pixel `{x?,y?,width?,height?}` patch (at least one field; `x`/`y`
+  and `width`/`height` move together); `beginManualDrag` takes no payload and
+  returns `{mode:'manual', originX, originY}` — `mode` is a
+  `'system'|'manual'` union reserved for a future platform, but both hosts
+  always report `'manual'` (system-level `start_dragging` is unreliable for
+  transparent always-on-top windows) plus the window's current outer position
+  as the drag origin; `moveManualDrag` takes
+  `{originX, originY, totalDeltaX, totalDeltaY}` and sets the window position
+  to `origin + totalDelta`; `constrainToVisibleArea` takes `{minVisibleRatio}`
+  (clamped `0.05..=1.0`, default `0.2`) and returns `{constrained}` indicating
+  whether the window actually moved. The renderer type exports changed from
+  `FloatingWindowManualDragPoint` to `FloatingWindowBounds`,
+  `FloatingWindowIgnoreCursorEventsOptions`,
+  `FloatingWindowManualDragOrigin`, `FloatingWindowMoveDelta`, and
+  `FloatingWindowConstrainResult`. Tauri exposes a standalone opt-in handler
+  macro `nimi_shell_tauri_floating_window_commands!` (the eight
+  `floating_window_*` commands only) that is deliberately excluded from the
+  default runtime/auth/oauth handler families so window control is not granted
+  to apps that do not opt in.
+- Added `createElectronShellFileProtocolHost` (`shell/electron`): kit-owned
+  `nimi-shell-file` protocol registration, path/root validation, and the
+  readable-file registry for standard local-asset URL serving.
+- Added Tauri standard shell-ui host hooks
+  (`set_standard_shell_ui_host_hooks`): apps inject confirm-dialog, focus
+  target, and window-drag policy instead of registering same-name app-local
+  command forks.
 - Added renderer-safe text storage helpers to `@nimiplatform/kit/core/storage-json`
   so apps can share browser storage access mechanics without moving schema
   ownership into Kit.
@@ -43,6 +79,27 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x)**: Electron `standardShellHost` storage root input moved
+  from a plain `dataRoot: string` to the Runtime-attested
+  `standardDataRootBinding` (`runtime-get-app-storage` resolved lazily by the
+  host through Runtime `GetAppStorage`, or `runtime-launch-projection` with
+  attested roots plus `projectionRef`). Migration: dev/acceptance hosts pass
+  `{ source: 'runtime-get-app-storage' }` (or a projection binding sourced
+  from an acceptance fixture root), and the Desktop installed-app host passes
+  the Runtime OpenApp launch-projection roots. There is no silent
+  `userData` fallback for standard storage resolution. The legacy
+  `dataRoot`/`cacheRoot`/`tempRoot` host fields and the app-provided
+  `resolveLocalAssetUrl` host hook are fully removed (no transitional
+  compatibility): a host missing `standardDataRootBinding` fails closed with
+  `electron-standard-data-root-binding-missing`, and local-asset URL serving is
+  owned solely by `localAssetProtocolHost` (missing → `capability-unavailable`).
+- **Breaking (0.x)**: Tauri standard data/storage commands now read managed
+  `StandardAppStorageRootSlot` state resolved from `StandardDataRootBinding`
+  (`StandardAppStorageRoot` removed); an unmanaged or unresolved slot fails
+  closed with `tauri-standard-storage-binding-missing`. Standard storage
+  payloads reject renderer-supplied root fields
+  (`path`/`root`/`storageRoot`/`absolutePath`/`dataRoot`/`cacheRoot`/`tempRoot`)
+  on both hosts.
 - Replaced the shared `DatePicker` popover with a three-column year / month /
   day wheel selector and removed the old monthly calendar-grid panel. This is
   a 0.x interaction break: consumers that relied on `DatePickerPanel`'s old

@@ -2,6 +2,7 @@ import path from 'node:path';
 import { access, mkdir, realpath } from 'node:fs/promises';
 import { NimiElectronShellHostError, type NimiElectronStandardShellHost } from './types.js';
 import { createElectronCapabilityUnavailableError, errorMessage } from './errors.js';
+import { resolveElectronStandardDataRoot } from './data-root-binding.js';
 
 export function normalizeRequiredToken(value: unknown, field: string): string {
   const normalized = normalizeText(value);
@@ -71,7 +72,7 @@ export function isSameOrChildPath(root: string, candidate: string): boolean {
   const relative = path.relative(root, candidate);
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
-async function canonicalElectronPathCandidate(candidate: string): Promise<string> {
+export async function canonicalElectronPathCandidate(candidate: string): Promise<string> {
   const resolved = path.resolve(candidate);
   const missingSegments: string[] = [];
   let current = resolved;
@@ -96,10 +97,8 @@ export async function resolveElectronStandardDataRootPath(
   payload: Readonly<Record<string, unknown>>,
   command: string,
 ): Promise<string> {
-  if (!host?.dataRoot) {
-    throw createElectronCapabilityUnavailableError(command);
-  }
-  const root = await canonicalElectronStandardRoot(host.dataRoot, command, 'dataRoot');
+  const boundDataRoot = await resolveElectronStandardDataRoot(host, command);
+  const root = await canonicalElectronStandardRoot(boundDataRoot, command, 'standardDataRootBinding');
   assertNoRendererStorageRootFields(payload, command);
   const relativePath = normalizeStandardRelativePath(payload.relativePath, command);
   const target = path.resolve(root, relativePath);
@@ -191,7 +190,7 @@ export function normalizeStandardRelativePath(value: unknown, command: string): 
   return relativePath;
 }
 function assertNoRendererStorageRootFields(payload: Readonly<Record<string, unknown>>, command: string): void {
-  for (const field of ['path', 'root', 'storageRoot', 'absolutePath']) {
+  for (const field of ['path', 'root', 'storageRoot', 'absolutePath', 'dataRoot', 'cacheRoot', 'tempRoot']) {
     if (field in payload) {
       throw new NimiElectronShellHostError({
         code: 'invalid-payload',
@@ -224,6 +223,24 @@ export function serializeElectronStandardJsonValue(value: unknown, command: stri
     });
   }
   return `${body}\n`;
+}
+export function decodeElectronStandardBase64Bytes(value: unknown, field: string, command: string): Buffer {
+  const normalized = normalizeText(value).replace(/\s+/gu, '');
+  const invalid = () => new NimiElectronShellHostError({
+    code: 'invalid-payload',
+    message: `Electron standard base64 payload is empty or not decodable: ${field}`,
+    reasonCode: 'electron-standard-base64-payload-invalid',
+    actionHint: 'provide_non_empty_base64_payload',
+    details: { command, field },
+  });
+  if (!normalized || normalized.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/u.test(normalized)) {
+    throw invalid();
+  }
+  const bytes = Buffer.from(normalized, 'base64');
+  if (bytes.byteLength === 0) {
+    throw invalid();
+  }
+  return bytes;
 }
 export function standardNestedPayload(
   payload: Readonly<Record<string, unknown>>,

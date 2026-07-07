@@ -10,10 +10,6 @@ export type NimiRuntimeAppActiveStorageRoots = NimiRuntimeAppStorageRoots & {
   releaseRoot: string;
 };
 
-export type NimiRuntimeAppDataStorageRootPayload = {
-  storageRoot: string;
-};
-
 export type NimiRuntimeAppStorageState =
   | 'ready'
   | 'install_required'
@@ -48,11 +44,12 @@ export type ResolveNimiRuntimeAppStorageRootsInput = {
   options?: unknown;
 };
 
-export type AttachNimiRuntimeAppStorageRootsInput<T extends object> =
-  ResolveNimiRuntimeAppStorageRootsInput & {
-    payload: T;
-  };
-
+/**
+ * Host-side primitive. Resolved roots are host-owned Runtime storage truth and
+ * must never be placed into renderer→host command payloads; the standard shell
+ * storage payload policy forbids renderer-carried `storageRoot`/`root`/
+ * `absolutePath` fields (platform standard-shell-capabilities table).
+ */
 export async function resolveNimiRuntimeAppStorageRoots(
   input: ResolveNimiRuntimeAppStorageRootsInput,
 ): Promise<NimiRuntimeAppStorageRoots> {
@@ -67,6 +64,10 @@ export async function resolveNimiRuntimeAppStorageRoots(
   };
 }
 
+/**
+ * Host-side primitive. See resolveNimiRuntimeAppStorageRoots: returned roots
+ * must not enter renderer→host command payloads.
+ */
 export async function resolveNimiRuntimeAppActiveStorageRoots(
   input: ResolveNimiRuntimeAppStorageRootsInput,
 ): Promise<NimiRuntimeAppActiveStorageRoots | undefined> {
@@ -82,26 +83,6 @@ export async function resolveNimiRuntimeAppActiveStorageRoots(
     dataRoot: requireText(projection.durableDataRoot, 'durableDataRoot'),
     cacheRoot: requireText(projection.cacheRoot, 'cacheRoot'),
     tempRoot: requireText(projection.tempRoot, 'tempRoot'),
-  };
-}
-
-export async function attachNimiRuntimeAppDataStorageRoot<T extends object>(
-  input: AttachNimiRuntimeAppStorageRootsInput<T>,
-): Promise<T & NimiRuntimeAppDataStorageRootPayload> {
-  const roots = await resolveNimiRuntimeAppStorageRoots(input);
-  return {
-    ...input.payload,
-    storageRoot: roots.dataRoot,
-  };
-}
-
-export async function attachNimiRuntimeAppStorageRoots<T extends object>(
-  input: AttachNimiRuntimeAppStorageRootsInput<T>,
-): Promise<T & NimiRuntimeAppStorageRoots> {
-  const roots = await resolveNimiRuntimeAppStorageRoots(input);
-  return {
-    ...input.payload,
-    ...roots,
   };
 }
 

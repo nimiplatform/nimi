@@ -67,6 +67,18 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']]: 'confirm_dialog',
   [NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag']]: 'start_window_drag',
   [NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow']]: 'focus_main_window',
+  [NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open']]: 'file_dialog_open',
+  [NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']]: 'file_reveal_reveal',
+  [NIMI_STANDARD_SHELL_COMMANDS['export.saveFile']]: 'export_save_file',
+  [NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']]: 'artifacts_write',
+  [NIMI_STANDARD_SHELL_COMMANDS['floating-window.setBounds']]: 'floating_window_set_bounds',
+  [NIMI_STANDARD_SHELL_COMMANDS['floating-window.setIgnoreCursorEvents']]: 'floating_window_set_ignore_cursor_events',
+  [NIMI_STANDARD_SHELL_COMMANDS['floating-window.setAlwaysOnTop']]: 'floating_window_set_always_on_top',
+  [NIMI_STANDARD_SHELL_COMMANDS['floating-window.hide']]: 'floating_window_hide',
+  [NIMI_STANDARD_SHELL_COMMANDS['floating-window.close']]: 'floating_window_close',
+  [NIMI_STANDARD_SHELL_COMMANDS['floating-window.beginManualDrag']]: 'floating_window_begin_manual_drag',
+  [NIMI_STANDARD_SHELL_COMMANDS['floating-window.moveManualDrag']]: 'floating_window_move_manual_drag',
+  [NIMI_STANDARD_SHELL_COMMANDS['floating-window.constrainToVisibleArea']]: 'floating_window_constrain_to_visible_area',
 };
 
 export function resolveTauriStandardCommand(command: string): string {

@@ -1,6 +1,7 @@
 import { NIMI_STANDARD_SHELL_CAPABILITY_IDS, NIMI_STANDARD_SHELL_COMMANDS, type NimiStandardShellCapabilityId } from '@nimiplatform/kit/shell/capabilities';
 import {
   createElectronRuntimeEndpointUnavailableError,
+  isRuntimeAppGrantInvalidLike,
   isRuntimeEndpointUnavailableLike,
   toElectronRuntimeBridgeError,
 } from './errors.js';
@@ -65,7 +66,7 @@ export async function invokeElectronRuntimeUnary(input: {
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
 }): Promise<ElectronRuntimeBridgeUnaryResponse> {
   const request = parseElectronRuntimeUnaryRequest(input.payload);
-  const trusted = await resolveTrustedRuntimeMetadata({
+  let trusted = await resolveTrustedRuntimeMetadata({
     provider: input.trustedRuntimeMetadataProvider,
     command: input.command,
     methodId: request.methodId,
@@ -82,12 +83,41 @@ export async function invokeElectronRuntimeUnary(input: {
       timeoutMs: request.timeoutMs,
     });
   } catch (error) {
-    throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
+    if (shouldRefreshTrustedRuntimeMetadata(input.trustedRuntimeMetadataProvider, error)) {
+      input.trustedRuntimeMetadataProvider?.invalidate?.('APP_GRANT_INVALID');
+      trusted = await resolveTrustedRuntimeMetadata({
+        provider: input.trustedRuntimeMetadataProvider,
+        command: input.command,
+        methodId: request.methodId,
+        event: input.event,
+        appId: input.appId,
+        runtimeEndpoint: input.runtimeEndpoint,
+      });
+      try {
+        response = await input.client.unary({
+          methodId: request.methodId,
+          requestBytes: fromBase64(request.requestBytesBase64),
+          metadata: buildElectronRuntimeGrpcMetadata(request, input.appId, trusted),
+          timeoutMs: request.timeoutMs,
+        });
+      } catch (retryError) {
+        throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, retryError);
+      }
+    } else {
+      throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
+    }
   }
   return {
     responseBytesBase64: toBase64(response.responseBytes),
     responseMetadata: response.responseMetadata,
   };
+}
+
+function shouldRefreshTrustedRuntimeMetadata(
+  provider: ElectronRuntimeBridgeTrustedMetadataProvider | undefined,
+  error: unknown,
+): boolean {
+  return typeof provider?.invalidate === 'function' && isRuntimeAppGrantInvalidLike(error);
 }
 
 export async function openElectronRuntimeStream(input: {

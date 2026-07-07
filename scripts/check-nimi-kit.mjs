@@ -257,6 +257,11 @@ const requiredStandardShellCapabilityIds = [
   'ai-config',
   'avatar',
   'platform-projection',
+  'file-dialog',
+  'file-reveal',
+  'export',
+  'artifacts',
+  'floating-window',
 ];
 const requiredStandardShellErrorCodes = [
   'capability-unavailable',

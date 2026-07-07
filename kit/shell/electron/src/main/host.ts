@@ -30,6 +30,12 @@ import {
   normalizeElectronShellAppId,
   toSerializedElectronShellError,
 } from './errors.js';
+import { writeElectronShellArtifact } from './artifacts.js';
+import { bindElectronStandardDataRootRuntimeResolver } from './data-root-binding.js';
+import { saveElectronShellExportFile } from './export.js';
+import { openElectronShellFileDialog } from './file-dialog.js';
+import { revealElectronShellFile } from './file-reveal.js';
+import { dispatchElectronFloatingWindowCommand, isElectronFloatingWindowCommand } from './floating-window.js';
 import { resolveElectronStandardLocalAssetUrl } from './local-assets.js';
 import {
   assertOpaqueElectronLocalAgentRef,
@@ -118,6 +124,13 @@ export function registerNimiElectronRuntimeBridge(
     clientPromise ??= Promise.resolve(createGrpcClient(runtimeEndpoint));
     return clientPromise;
   };
+  if (input.standardShellHost?.standardDataRootBinding?.source === 'runtime-get-app-storage') {
+    bindElectronStandardDataRootRuntimeResolver(input.standardShellHost, {
+      appId,
+      runtimeEndpoint,
+      ensureClient,
+    });
+  }
   const streams = new Map<string, RuntimeGrpcBridgeStream>();
 
   const handleInvoke = async (event: NimiElectronIpcMainInvokeEvent, message: unknown): Promise<unknown> => {
@@ -197,6 +210,13 @@ export function registerNimiElectronRuntimeBridge(
       return focusElectronMainWindow({ host: input.standardShellHost, command, event, appId, runtimeEndpoint });
     }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']) return resolveElectronStandardLocalAssetUrl(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open']) return openElectronShellFileDialog(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']) return revealElectronShellFile(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['export.saveFile']) return saveElectronShellExportFile(input.standardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']) return writeElectronShellArtifact(input.standardShellHost, standardPayload, command);
+    if (isElectronFloatingWindowCommand(command)) {
+      return dispatchElectronFloatingWindowCommand({ host: input.standardShellHost, payload: standardPayload, command, event, appId, runtimeEndpoint });
+    }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']) return resolveElectronAvatarAssetUrl(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity']) return resolveElectronLocalAgentIdentity(input.standardShellHost, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']) return resolveElectronRuntimeTrustedCaller(input.standardShellHost, standardPayload, appId, command);

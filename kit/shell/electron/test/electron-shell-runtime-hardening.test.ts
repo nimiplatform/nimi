@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import {
+  createElectronShellFileProtocolHost,
   registerNimiElectronRuntimeBridge,
   type RuntimeGrpcBridgeClient,
 } from '../src/main/index.js';
@@ -15,6 +16,7 @@ import {
   toBase64,
   withTempDir,
 } from './electron-shell-test-utils.js';
+import { FakeElectronProtocol } from './fake-electron-protocol.js';
 
 describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
   it('fails closed for Electron standard file capability path escapes and missing assets', async () => {
@@ -33,9 +35,16 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
           throw new Error('not used');
         },
         standardShellHost: {
-          dataRoot,
+          standardDataRootBinding: {
+            source: 'runtime-launch-projection',
+            durableDataRoot: dataRoot,
+            projectionRef: 'electron-shell-test-fixture',
+          },
           localAssetRoots: [assetRoot],
-          resolveLocalAssetUrl: (filePath) => `nimi-shell-file://${encodeURIComponent(filePath)}`,
+          localAssetProtocolHost: createElectronShellFileProtocolHost({
+            protocol: new FakeElectronProtocol(),
+            roots: [assetRoot],
+          }),
         },
       });
       const { event } = createInvokeEvent();

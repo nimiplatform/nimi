@@ -185,6 +185,22 @@ export function isRuntimeEndpointUnavailableLike(error: unknown): boolean {
     || message.startsWith('4 DEADLINE_EXCEEDED:');
 }
 
+export function isRuntimeAppGrantInvalidLike(error: unknown): boolean {
+  const message = errorMessage(error);
+  const embedded = parseRuntimeErrorPayload(message);
+  const record = asOptionalRecord(error) ?? {};
+  const details = asOptionalRecord(record.details);
+  const reasonCode = normalizeErrorText(
+    embedded.reasonCode
+    ?? embedded.reason_code
+    ?? record.reasonCode
+    ?? record.reason_code
+    ?? details?.reasonCode
+    ?? details?.reason_code,
+  );
+  return reasonCode === 'APP_GRANT_INVALID' || message.includes('APP_GRANT_INVALID');
+}
+
 function runtimeGrpcCode(error: unknown): number {
   const record = asOptionalRecord(error);
   const rawCode = record?.code ?? record?.grpcCode ?? record?.grpc_code;

@@ -166,7 +166,7 @@ export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
   }> | null = null;
   let protectedAccessInflightKey = '';
 
-  async function trustedMetadata(): Promise<ElectronRuntimeBridgeTrustedMetadata | undefined> {
+  const trustedMetadata: ElectronRuntimeBridgeTrustedMetadataProvider = async (): Promise<ElectronRuntimeBridgeTrustedMetadata | undefined> => {
     await ensureAccountCallerRegistered?.();
     const subjectUserId = await readRuntimeSubjectUserIdIfAvailable(accountRuntime, accountCaller);
     if (!subjectUserId) {
@@ -178,7 +178,13 @@ export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
       ...appSessionMetadata,
       ...protectedAccessMetadata,
     });
-  }
+  };
+
+  trustedMetadata.invalidate = () => {
+    protectedAccessCache = null;
+    protectedAccessInflight = null;
+    protectedAccessInflightKey = '';
+  };
 
   async function getProtectedAccessMetadata(subjectUserId: string): Promise<CoreMetadata> {
     if (
@@ -428,7 +434,17 @@ function runtimeAuthorizeResponseExpiresAtMs(token: AuthorizeExternalPrincipalRe
 }
 
 function buildScopesSignature(scopes: readonly string[]): string {
-  return scopes.length > 0 ? scopes.slice().sort().join('|') : 'none';
+  const normalized = scopes.slice().sort();
+  let hash = 0x811c9dc5;
+  for (const scope of normalized) {
+    for (let index = 0; index < scope.length; index += 1) {
+      hash ^= scope.charCodeAt(index);
+      hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    hash ^= 0x7c;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return `s${normalized.length}-${hash.toString(36)}`;
 }
 
 function normalizeSubjectSegment(value: string): string {

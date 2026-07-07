@@ -140,6 +140,144 @@ describe('Electron Runtime account trusted metadata provider', () => {
     expect(authorizeInput?.preset).toBe(AUTHORIZATION_PRESET_UNSPECIFIED);
   });
 
+  it('invalidates only protected access metadata when a cached app grant is rejected', async () => {
+    let openSessionCount = 0;
+    let authorizeCount = 0;
+    const provider = createNimiElectronRuntimeAccountTrustedMetadataProvider({
+      appId: 'nimi.zhiyu',
+      runtimeEndpoint: '127.0.0.1:46371',
+      accountCaller: {
+        appId: 'nimi.zhiyu',
+        appInstanceId: 'nimi.zhiyu.local-first-party',
+        deviceId: 'zhiyu-local-first-party-device',
+        mode: ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+        scopes: [],
+      },
+      protectedAccess: {
+        consentId: 'zhiyu-runtime-account',
+        authorizationVersion: 'zhiyu-runtime-account-v1',
+        scopeCatalogVersion: 'sdk-v2',
+        scopes: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
+      },
+      appSession: {
+        appInstanceId: 'nimi.zhiyu.platform-runtime-session',
+        deviceId: 'zhiyu-platform-runtime-session',
+        capabilities: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
+      },
+      runtime: {
+        account: {
+          getAccountSessionStatus: async () => ({
+            state: ACCOUNT_SESSION_STATE_AUTHENTICATED,
+            accountProjection: { accountId: 'acct-zhiyu', displayName: 'Zhiyu' },
+          }),
+        },
+        auth: {
+          registerApp: async () => ({ accepted: true }),
+          openSession: async () => {
+            openSessionCount += 1;
+            return {
+              sessionId: 'session-zhiyu',
+              sessionToken: 'session-secret',
+              expiresAt: { seconds: Math.floor(Date.now() / 1000) + 3600, nanos: 0 },
+            };
+          },
+        },
+        grants: {
+          authorizeExternalPrincipal: async () => {
+            authorizeCount += 1;
+            return {
+              tokenId: `grant-${authorizeCount}`,
+              secret: 'grant-secret',
+              expiresAt: { seconds: Math.floor(Date.now() / 1000) + 3600, nanos: 0 },
+            };
+          },
+        },
+      },
+    });
+    const input = {
+      command: 'nimi.shell.runtime.unary',
+      methodId: '/nimi.runtime.v1.RuntimeAgentService/ListAgents',
+      event: {},
+      appId: 'nimi.zhiyu',
+      runtimeEndpoint: '127.0.0.1:46371',
+    } as never;
+
+    const first = await provider(input);
+    const cached = await provider(input);
+    provider.invalidate?.('APP_GRANT_INVALID');
+    const refreshed = await provider(input);
+
+    expect(first?.protectedAccessToken?.tokenId).toBe('grant-1');
+    expect(cached?.protectedAccessToken?.tokenId).toBe('grant-1');
+    expect(refreshed?.protectedAccessToken?.tokenId).toBe('grant-2');
+    expect(openSessionCount).toBe(1);
+    expect(authorizeCount).toBe(2);
+  });
+
+  it('passes a safe protected access scope signature to custom idempotency keys', async () => {
+    let idempotencyInput: Record<string, unknown> | undefined;
+    const provider = createNimiElectronRuntimeAccountTrustedMetadataProvider({
+      appId: 'nimi.zhiyu',
+      runtimeEndpoint: '127.0.0.1:46371',
+      accountCaller: {
+        appId: 'nimi.zhiyu',
+        appInstanceId: 'nimi.zhiyu.local-first-party',
+        deviceId: 'zhiyu-local-first-party-device',
+        mode: ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+        scopes: [],
+      },
+      protectedAccess: {
+        consentId: 'zhiyu-runtime-account',
+        authorizationVersion: 'zhiyu-runtime-account-v1',
+        scopeCatalogVersion: 'sdk-v2',
+        scopes: ['runtime.agent.turn.read', 'runtime.agent.execution_config.read'],
+        idempotencyKey: (input) => {
+          idempotencyInput = input;
+          return `zhiyu-runtime-protected-${input.normalizedSubjectUserId}-${input.scopesSignature}`;
+        },
+      },
+      appSession: {
+        appInstanceId: 'nimi.zhiyu.platform-runtime-session',
+        deviceId: 'zhiyu-platform-runtime-session',
+        capabilities: ['runtime.agent.turn.read', 'runtime.agent.execution_config.read'],
+      },
+      runtime: {
+        account: {
+          getAccountSessionStatus: async () => ({
+            state: ACCOUNT_SESSION_STATE_AUTHENTICATED,
+            accountProjection: { accountId: 'acct-zhiyu', displayName: 'Zhiyu' },
+          }),
+        },
+        auth: {
+          registerApp: async () => ({ accepted: true }),
+          openSession: async () => ({
+            sessionId: 'session-zhiyu',
+            sessionToken: 'session-secret',
+            expiresAt: { seconds: Math.floor(Date.now() / 1000) + 3600, nanos: 0 },
+          }),
+        },
+        grants: {
+          authorizeExternalPrincipal: async () => ({
+            tokenId: 'grant-zhiyu',
+            secret: 'grant-secret',
+            expiresAt: { seconds: Math.floor(Date.now() / 1000) + 3600, nanos: 0 },
+          }),
+        },
+      },
+    });
+
+    await provider({
+      command: 'nimi.shell.runtime.unary',
+      methodId: '/nimi.runtime.v1.RuntimeAgentService/ListAgents',
+      event: {},
+      appId: 'nimi.zhiyu',
+      runtimeEndpoint: '127.0.0.1:46371',
+    } as never);
+
+    expect(idempotencyInput?.scopesSignature).toMatch(/^s2-[a-z0-9]+$/u);
+    expect(String(idempotencyInput?.scopesSignature)).not.toContain('|');
+  });
+
   it('pre-registers local first-party account callers before account subject lookup', async () => {
     const events: string[] = [];
     let registeredCaller = false;

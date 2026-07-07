@@ -17,6 +17,11 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_IDS = [
   'ai-config',
   'avatar',
   'platform-projection',
+  'file-dialog',
+  'file-reveal',
+  'export',
+  'artifacts',
+  'floating-window',
 ] as const;
 
 export type NimiStandardShellCapabilityId = (typeof NIMI_STANDARD_SHELL_CAPABILITY_IDS)[number];
@@ -161,6 +166,43 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
       { id: 'get', command: 'nimi.shell.platformProjection.get', negativeStates: ['capability-unavailable', 'not-found'] },
     ],
   },
+  {
+    id: 'file-dialog',
+    operations: [
+      { id: 'open', command: 'nimi.shell.fileDialog.open', negativeStates: ['capability-unavailable', 'invalid-payload', 'host-internal-error'] },
+    ],
+  },
+  {
+    id: 'file-reveal',
+    operations: [
+      { id: 'reveal', command: 'nimi.shell.fileReveal.reveal', negativeStates: ['capability-unavailable', 'invalid-path', 'not-found', 'host-internal-error'] },
+    ],
+  },
+  {
+    id: 'export',
+    operations: [
+      { id: 'saveFile', command: 'nimi.shell.export.saveFile', negativeStates: ['capability-unavailable', 'invalid-payload', 'host-internal-error'] },
+    ],
+  },
+  {
+    id: 'artifacts',
+    operations: [
+      { id: 'write', command: 'nimi.shell.artifacts.write', negativeStates: ['capability-unavailable', 'invalid-path', 'invalid-payload', 'host-internal-error'] },
+    ],
+  },
+  {
+    id: 'floating-window',
+    operations: [
+      { id: 'setBounds', command: 'nimi.shell.floatingWindow.setBounds', negativeStates: ['capability-unavailable', 'invalid-payload', 'host-internal-error'] },
+      { id: 'setIgnoreCursorEvents', command: 'nimi.shell.floatingWindow.setIgnoreCursorEvents', negativeStates: ['capability-unavailable', 'invalid-payload', 'host-internal-error'] },
+      { id: 'setAlwaysOnTop', command: 'nimi.shell.floatingWindow.setAlwaysOnTop', negativeStates: ['capability-unavailable', 'invalid-payload', 'host-internal-error'] },
+      { id: 'hide', command: 'nimi.shell.floatingWindow.hide', negativeStates: ['capability-unavailable', 'host-internal-error'] },
+      { id: 'close', command: 'nimi.shell.floatingWindow.close', negativeStates: ['capability-unavailable', 'host-internal-error'] },
+      { id: 'beginManualDrag', command: 'nimi.shell.floatingWindow.beginManualDrag', negativeStates: ['capability-unavailable', 'host-internal-error'] },
+      { id: 'moveManualDrag', command: 'nimi.shell.floatingWindow.moveManualDrag', negativeStates: ['capability-unavailable', 'invalid-payload', 'host-internal-error'] },
+      { id: 'constrainToVisibleArea', command: 'nimi.shell.floatingWindow.constrainToVisibleArea', negativeStates: ['capability-unavailable', 'invalid-payload', 'host-internal-error'] },
+    ],
+  },
 ] as const satisfies readonly NimiStandardShellCapability[];
 
 const INSTALLED_NIMI_APP_ALLOWED_OPERATIONS = [
@@ -199,6 +241,18 @@ const INSTALLED_NIMI_APP_FORBIDDEN_OPERATIONS = [
   'ai-profile.get',
   'avatar.assetResolve',
   'platform-projection.get',
+  'file-dialog.open',
+  'file-reveal.reveal',
+  'export.saveFile',
+  'artifacts.write',
+  'floating-window.setBounds',
+  'floating-window.setIgnoreCursorEvents',
+  'floating-window.setAlwaysOnTop',
+  'floating-window.hide',
+  'floating-window.close',
+  'floating-window.beginManualDrag',
+  'floating-window.moveManualDrag',
+  'floating-window.constrainToVisibleArea',
   'desktop-private.product-control',
   'tauri-only.commands',
   'electron.raw-ipc',
@@ -226,6 +280,8 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_SETS = [
       'desktop-installed-app-denies-platform-projection',
       'desktop-installed-app-denies-desktop-private-bridge',
       'desktop-installed-app-denies-tauri-only-commands',
+      'desktop-installed-app-denies-file-system-handoff',
+      'desktop-installed-app-denies-floating-window',
     ],
     sourceRule: 'P-KIT-044',
   },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
-import { mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import {
   createElectronCapabilityUnavailableError,
   createElectronExternalDaemonRequiredError,
@@ -8,6 +8,7 @@ import {
   createNimiElectronFileAIConfigStore,
   getElectronStandardShellCapabilityIds,
   registerNimiElectronRuntimeBridge,
+  type ElectronRuntimeBridgeTrustedMetadataProvider,
   type ElectronRuntimeBridgeUnaryRequest,
   type RuntimeGrpcBridgeClient,
 } from '../src/main/index.js';
@@ -324,6 +325,69 @@ describe('registerNimiElectronRuntimeBridge', () => {
     expect(capturedMetadata['x-nimi-custom']).toBe('custom-value');
     expect([...fromBase64(response.responseBytesBase64)]).toEqual([4, 5, 6]);
     expect(response.responseMetadata['x-nimi-runtime-version']).toBe('0.5.0');
+  });
+
+  it('refreshes trusted Runtime metadata once when a protected app grant is invalidated', async () => {
+    const capturedTokens: string[] = [];
+    let unaryCalls = 0;
+    let invalidatedReason = '';
+    const fakeClient: RuntimeGrpcBridgeClient = {
+      unary: async (request) => {
+        unaryCalls += 1;
+        capturedTokens.push(request.metadata['x-nimi-access-token-id'] || '');
+        if (unaryCalls === 1) {
+          throw Object.assign(new Error('7 PERMISSION_DENIED: {"reasonCode":"APP_GRANT_INVALID","actionHint":"refresh_authorization_policy"}'), {
+            code: 7,
+          });
+        }
+        return {
+          responseBytes: Uint8Array.from([7, 8, 9]),
+        };
+      },
+      serverStream: () => {
+        throw new Error('not used');
+      },
+      close: () => undefined,
+    };
+    let metadataCalls = 0;
+    const provider: ElectronRuntimeBridgeTrustedMetadataProvider = async () => {
+      metadataCalls += 1;
+      return {
+        protectedAccessToken: {
+          tokenId: metadataCalls === 1 ? 'stale-token' : 'fresh-token',
+          secret: 'token-secret',
+        },
+        appSession: { sessionId: 'session-id', sessionToken: 'session-token' },
+      };
+    };
+    Object.defineProperty(provider, 'invalidate', {
+      value: (reason: string) => {
+        invalidatedReason = reason;
+      },
+    });
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.zhiyu',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => fakeClient,
+      trustedRuntimeMetadataProvider: provider,
+    });
+
+    const response = await invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: STANDARD_COMMANDS.unary,
+      payload: {
+        methodId: '/nimi.runtime.v1.RuntimeAgentService/GetSessionSnapshot',
+        requestBytesBase64: toBase64(Uint8Array.from([1])),
+      },
+    }) as { responseBytesBase64: string };
+
+    expect([...fromBase64(response.responseBytesBase64)]).toEqual([7, 8, 9]);
+    expect(unaryCalls).toBe(2);
+    expect(metadataCalls).toBe(2);
+    expect(invalidatedReason).toBe('APP_GRANT_INVALID');
+    expect(capturedTokens).toEqual(['stale-token', 'fresh-token']);
   });
 
   it('uses host trusted Runtime identity metadata ahead of renderer metadata', async () => {
@@ -1107,38 +1171,6 @@ describe('registerNimiElectronRuntimeBridge', () => {
     }
   });
 
-  it('implements avatar asset resolution through the standard local asset roots', async () => {
-    await withTempDir('avatar-asset', async (root) => {
-      const assetRoot = path.join(root, 'avatar');
-      await mkdir(assetRoot, { recursive: true });
-      const assetPath = path.join(assetRoot, 'avatar.vrm');
-      await writeFile(assetPath, 'avatar bytes', 'utf8');
-      const canonicalAssetPath = await realpath(assetPath);
-      const ipcMain = new FakeIpcMain();
-      registerNimiElectronRuntimeBridge({
-        appId: 'nimi.tester',
-        runtimeEndpoint: '127.0.0.1:46371',
-        allowedOrigins: ['http://localhost:1430'],
-        ipcMain,
-        createGrpcClient: async () => {
-          throw new Error('not used');
-        },
-        standardShellHost: {
-          localAssetRoots: [assetRoot],
-          resolveLocalAssetUrl: (filePath) => `nimi-shell-file://${encodeURIComponent(filePath)}`,
-        },
-      });
-
-      await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve'],
-        payload: { path: assetPath },
-      })).resolves.toEqual({
-        path: canonicalAssetPath,
-        url: `nimi-shell-file://${encodeURIComponent(canonicalAssetPath)}`,
-      });
-    });
-  });
-
   it('implements AI Profile lookup through the standard factory catalog projection', async () => {
     const ipcMain = new FakeIpcMain();
     registerNimiElectronRuntimeBridge({
@@ -1339,156 +1371,6 @@ describe('registerNimiElectronRuntimeBridge', () => {
       await expect(store.set({ scopeRef, config })).resolves.toEqual(config);
       await expect(store.get({ scopeRef })).resolves.toEqual(config);
       await expect(readFile(path.join(root, 'ai-config', `${encoded}.json`), 'utf8')).resolves.toContain(scopeRef);
-    });
-  });
-
-  it('implements standard data, storage, and local asset capabilities inside admitted host roots', async () => {
-    await withTempDir('standard-roots', async (root) => {
-      const dataRoot = path.join(root, 'data');
-      const assetRoot = path.join(root, 'assets');
-      await mkdir(dataRoot, { recursive: true });
-      await mkdir(assetRoot, { recursive: true });
-      const assetPath = path.join(assetRoot, 'preview.txt');
-      await writeFile(assetPath, 'preview', 'utf8');
-      const canonicalDataRoot = await realpath(dataRoot);
-      const canonicalAssetPath = await realpath(assetPath);
-      const registeredAssets: string[] = [];
-      const ipcMain = new FakeIpcMain();
-      registerNimiElectronRuntimeBridge({
-        appId: 'nimi.tester',
-        runtimeEndpoint: '127.0.0.1:46371',
-        allowedOrigins: ['http://localhost:1430'],
-        ipcMain,
-        createGrpcClient: async () => {
-          throw new Error('not used');
-        },
-        standardShellHost: {
-          dataRoot,
-          localAssetRoots: [assetRoot],
-          resolveLocalAssetUrl: async (filePath) => {
-            registeredAssets.push(filePath);
-            return `nimi-shell-file://${encodeURIComponent(filePath)}`;
-          },
-        },
-      });
-      const { event } = createInvokeEvent();
-
-      await expect(invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'],
-        payload: { relativePath: 'settings/profile.json' },
-      })).resolves.toMatchObject({
-        path: path.join(canonicalDataRoot, 'settings', 'profile.json'),
-      });
-      await expect(invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve'],
-        payload: { path: 'settings/legacy-alias.json' },
-      })).rejects.toMatchObject({
-        code: 'invalid-payload',
-        reasonCode: 'electron-standard-storage-renderer-field-forbidden',
-      });
-
-      const writeResult = await invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
-        payload: {
-          relativePath: 'settings/profile.json',
-          value: { schemaVersion: 1, enabled: true },
-        },
-      }) as { path: string; value: Record<string, unknown> };
-      expect(writeResult.path).toBe(path.join(canonicalDataRoot, 'settings', 'profile.json'));
-      expect(JSON.parse(await readFile(writeResult.path, 'utf8'))).toEqual({ schemaVersion: 1, enabled: true });
-      expect(await readdir(path.dirname(writeResult.path))).toEqual(['profile.json']);
-
-      await expect(invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
-        payload: { relativePath: 'settings/profile.json' },
-      })).resolves.toEqual({
-        path: path.join(canonicalDataRoot, 'settings', 'profile.json'),
-        value: { schemaVersion: 1, enabled: true },
-      });
-
-      await expect(invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
-        payload: { relativePath: 'settings/profile.json' },
-      })).resolves.toEqual({
-        path: path.join(canonicalDataRoot, 'settings', 'profile.json'),
-        removed: true,
-      });
-      await expect(invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
-        payload: { relativePath: 'settings/profile.json' },
-      })).resolves.toEqual({
-        path: path.join(canonicalDataRoot, 'settings', 'profile.json'),
-        removed: false,
-      });
-      await expect(invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
-        payload: { relativePath: 'settings/profile.json' },
-      })).rejects.toMatchObject({
-        code: 'not-found',
-        reasonCode: 'electron-standard-storage-json-not-found',
-      });
-      await expect(invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
-        payload: { relativePath: '../escape.json' },
-      })).rejects.toMatchObject({
-        code: 'invalid-path',
-      });
-
-      await expect(invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl'],
-        payload: { path: assetPath },
-      })).resolves.toEqual({
-        path: canonicalAssetPath,
-        url: `nimi-shell-file://${encodeURIComponent(canonicalAssetPath)}`,
-      });
-      expect(registeredAssets).toEqual([canonicalAssetPath]);
-    });
-  });
-
-  it('accepts renderer standard-shell nested payload envelopes for storage commands', async () => {
-    await withTempDir('standard-nested-storage', async (root) => {
-      const dataRoot = path.join(root, 'data');
-      await mkdir(dataRoot, { recursive: true });
-      const canonicalDataRoot = await realpath(dataRoot);
-      const ipcMain = new FakeIpcMain();
-      registerNimiElectronRuntimeBridge({
-        appId: 'nimi.tester',
-        runtimeEndpoint: '127.0.0.1:46371',
-        allowedOrigins: ['http://localhost:1430'],
-        ipcMain,
-        createGrpcClient: async () => {
-          throw new Error('not used');
-        },
-        standardShellHost: {
-          dataRoot,
-        },
-      });
-      const { event } = createInvokeEvent();
-
-      await expect(invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
-        payload: {
-          payload: {
-            relativePath: 'shijing-space/account.fixture.json',
-            value: { user_id: 'fixture', readings: [1] },
-          },
-        },
-      })).resolves.toEqual({
-        path: path.join(canonicalDataRoot, 'shijing-space', 'account.fixture.json'),
-        value: { user_id: 'fixture', readings: [1] },
-      });
-
-      await expect(invokeBridge(ipcMain, event, {
-        command: NIMI_STANDARD_SHELL_COMMANDS['storage.readJson'],
-        payload: {
-          payload: {
-            relativePath: 'shijing-space/account.fixture.json',
-          },
-        },
-      })).resolves.toEqual({
-        path: path.join(canonicalDataRoot, 'shijing-space', 'account.fixture.json'),
-        value: { user_id: 'fixture', readings: [1] },
-      });
     });
   });
 
