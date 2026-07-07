@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  AgentPresentationBackendKind,
+  AgentEventType,
   ExecutionMode,
   LocalAssetKind,
   LocalAssetStatus,
@@ -10,16 +12,24 @@ import {
   ScenarioType,
   SpeechTimingMode,
   VoiceOutputMode,
+  VoicePlaybackState,
   VoiceReferenceKind,
 } from '../core-generated/runtime-typed-client';
 import { createNimiRuntimeEmbeddingClient, toRuntimeDurableTargetRef } from '../core/ai';
 import { runNimiRuntimeImageGeneration } from '../features/generation';
 import { createNimiRuntimeAppSessionMetadataProvider } from './app-session';
 import { withNimiRuntimeAgentScopes } from './runtime-agent-protected';
+import { issueNimiRuntimeAgentScopedBinding } from './runtime-agent-scoped-binding';
+import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import {
   SOURCE_MATERIALIZATION_AUDIENCE,
   withRuntimeAgentLiveE2EFixture,
 } from './runtime-agent-live-e2e-fixture.test-helper';
+import {
+  createFixtureRuntimeAgentClient,
+  createRuntimeForEndpoint,
+} from './runtime-agent-live-e2e-fixture-runtime.test-helper';
+import { createNimiRuntimeAgentVoiceModule } from './runtime-agent-voice';
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 test('runtime agent live e2e fixture mints source packet through Runtime-mediated Realm', {
@@ -386,6 +396,258 @@ test('runtime agent live e2e fixture submits accepted Runtime Agent turn', {
   });
 });
 
+test('runtime agent live e2e fixture exposes native Runtime Agent voice chunks through typed stream', {
+  timeout: 180_000,
+}, async () => {
+  await withRuntimeAgentLiveE2EFixture({
+    voiceSpeechStreamDelayMs: 8_000,
+    run: async (fixture) => {
+      const progress: Record<string, unknown> = { stage: 'start' };
+      try {
+        const agentClient = createFixtureRuntimeAgentClient(fixture.runtime);
+        progress.stage = 'commit_execution_config';
+        const seeded = await agentClient.executionConfig.get();
+        await agentClient.executionConfig.upsert({
+          expectedRevision: seeded.revision,
+          bindings: {
+            ...seeded.bindings,
+            'text.generate': {
+              route: fixture.route.executionBinding.route,
+              modelId: fixture.route.executionBinding.modelId,
+              targetRef: fixture.route.targetRef,
+            },
+            'audio.synthesize': {
+              route: fixture.voiceRoute.executionBinding.route,
+              modelId: fixture.voiceRoute.executionBinding.modelId,
+              ...(fixture.voiceRoute.executionBinding.connectorId
+                ? { connectorId: fixture.voiceRoute.executionBinding.connectorId }
+                : {}),
+              targetRef: fixture.voiceRoute.targetRef,
+            },
+          },
+        });
+        progress.stage = 'set_presentation_profile';
+        await fixture.runtime.agents.setAgentPresentationProfile({
+          context: {
+            appId: 'nimi.desktop',
+            subjectUserId: fixture.ownerUserId,
+            ownerUserId: fixture.ownerUserId,
+            runtimeSourceRef: fixture.runtimeSourceRef,
+            localAgentRef: fixture.localAgentRef,
+          },
+          agentId: fixture.localAgentRef,
+          mutation: {
+            oneofKind: 'profile',
+            profile: {
+              backendKind: AgentPresentationBackendKind.VRM,
+              avatarAssetRef: 'runtime-presentation-avatar:sdk-live-voice-stream-fixture',
+              expressionProfileRef: 'expression://runtime-live/calm',
+              idlePreset: 'idle-soft',
+              interactionPolicyRef: 'policy://runtime-live/ambient',
+              defaultVoiceReference: fixture.voiceAsset.defaultVoiceReference,
+              avatarAutoplay: true,
+              speechModelId: fixture.voiceRoute.executionBinding.modelId,
+              speechRoutePolicy: RoutePolicy.CLOUD,
+            },
+          },
+        }, {
+          metadata: {
+            idempotencyKey: `sdk-live-runtime-agent-voice-stream-profile:${fixture.localAgentRef}`,
+            'x-nimi-idempotency-key': `sdk-live-runtime-agent-voice-stream-profile:${fixture.localAgentRef}`,
+          },
+        });
+        progress.stage = 'subscribe_events_start';
+        const eventStream = await withNimiRuntimeAgentScopes({
+          runtime: {
+            appId: 'nimi.desktop',
+            auth: fixture.runtime.auth,
+            appAuth: fixture.runtime.grants,
+          },
+          subjectUserId: fixture.ownerUserId,
+        }, ['runtime.agent.read'], async (callOptions) =>
+          fixture.runtime.agents.subscribeAgentEvents({
+            context: {
+              appId: 'nimi.desktop',
+              subjectUserId: fixture.ownerUserId,
+              ownerUserId: fixture.ownerUserId,
+              runtimeSourceRef: fixture.runtimeSourceRef,
+              localAgentRef: fixture.localAgentRef,
+            },
+            agentId: '',
+            eventFilters: [AgentEventType.PRESENTATION],
+          }, callOptions),
+        );
+        const eventIterator = eventStream[Symbol.asyncIterator]();
+        try {
+          progress.stage = 'send_turn_start';
+          const response = await fixture.sendTurn('typed native Runtime Agent voice stream fixture');
+          assert.equal(response.accepted, true);
+
+          progress.stage = 'waiting_projection_chunk';
+          const nativeChunk = await nextLiveNativeVoiceChunk(eventIterator, Date.now() + 60_000);
+          const voiceStreamId = String(nativeChunk.voiceStreamId || '').trim();
+          progress.stage = 'projection_chunk_received';
+          progress.voiceStreamId = voiceStreamId;
+          progress.turnId = nativeChunk.turnId || '';
+          assert.match(voiceStreamId, /^runtime-agent-voice-stream:/);
+          assert.equal(nativeChunk.voiceOutputMode, VoiceOutputMode.NATIVE_STREAM);
+          assert.equal(nativeChunk.voicePlaybackState, VoicePlaybackState.ACTIVE);
+          assert.equal(nativeChunk.finalChunk, false);
+          assert.equal(nativeChunk.audioArtifactId, '');
+
+          progress.stage = 'typed_module_create';
+          const voice = createNimiRuntimeAgentVoiceModule({
+            runtime: {
+              appId: 'nimi.desktop',
+              auth: fixture.runtime.auth,
+              appAuth: fixture.runtime.grants,
+              agents: fixture.runtime.agents,
+              artifacts: fixture.runtime.artifacts,
+            },
+            getSubjectUserId: () => fixture.ownerUserId,
+          });
+          progress.stage = 'typed_subscribe_start';
+          const typedStream = await promiseWithTimeout(
+            voice.subscribeStream({
+              ownerUserId: fixture.ownerUserId,
+              runtimeSourceRef: fixture.runtimeSourceRef,
+              localAgentRef: fixture.localAgentRef,
+              conversationAnchorId: fixture.conversationAnchorId,
+              turnId: nativeChunk.turnId || '',
+              voiceStreamId,
+            }),
+            20_000,
+            () => `typed Runtime Agent voice stream subscribe did not return; progress=${JSON.stringify(progress)}`,
+          );
+          const typedIterator = typedStream[Symbol.asyncIterator]();
+          try {
+            progress.stage = 'typed_waiting_first_chunk';
+            const first = await nextAsyncIteratorValue(
+              typedIterator,
+              Date.now() + 20_000,
+              () => `typed native Runtime Agent voice stream first chunk timed out; progress=${JSON.stringify(progress)}`,
+            );
+            progress.stage = 'typed_first_chunk_received';
+            assert.equal(first.done, false);
+            assert.equal(first.value.voiceStreamId, voiceStreamId);
+            assert.equal(first.value.terminal, false);
+            assert.equal(first.value.voiceOutputMode, VoiceOutputMode.NATIVE_STREAM);
+            assert.equal((first.value.chunk?.byteLength ?? 0) > 0, true);
+          } finally {
+            await promiseWithTimeout(
+              Promise.resolve(typedIterator.return?.()),
+              2_000,
+              () => `typed Runtime Agent voice stream iterator cleanup timed out; progress=${JSON.stringify(progress)}`,
+            ).catch(() => undefined);
+          }
+
+          progress.stage = 'admit_scoped_voice_app';
+          const zhiyuAppId = 'nimi.zhiyu';
+          const zhiyuRuntime = createRuntimeForEndpoint(fixture.endpoint, zhiyuAppId);
+          const zhiyuCaller = await fixture.admitLocalFirstPartyRuntimeAccountCaller({
+            appId: zhiyuAppId,
+            appInstanceId: `${zhiyuAppId}.local-first-party`,
+            deviceId: 'sdk-live-scoped-voice-device',
+            capabilities: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
+          });
+          const zhiyuSessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
+            appId: zhiyuAppId,
+            appInstanceId: `${zhiyuAppId}.local-first-party`,
+            deviceId: 'sdk-live-scoped-voice-device',
+            capabilities: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
+            developerRegistration: false,
+            auth: zhiyuRuntime.auth,
+          });
+          progress.stage = 'issue_scoped_voice_binding';
+          const scopedBinding = await issueNimiRuntimeAgentScopedBinding({
+            runtime: { account: zhiyuRuntime.account },
+            caller: zhiyuCaller,
+            agentId: fixture.localAgentRef,
+            conversationAnchorId: fixture.conversationAnchorId,
+            scopes: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
+            ttlSeconds: 900,
+            options: withNimiRuntimeIdempotencyMetadata(
+              undefined,
+              `sdk-live-runtime-agent-voice-stream-scoped-binding:${voiceStreamId}`,
+            ),
+          });
+          progress.stage = 'scoped_typed_module_create';
+          const scopedVoice = createNimiRuntimeAgentVoiceModule({
+            runtime: {
+              appId: zhiyuAppId,
+              auth: zhiyuRuntime.auth,
+              appAuth: zhiyuRuntime.grants,
+              agents: zhiyuRuntime.agents,
+              artifacts: zhiyuRuntime.artifacts,
+            },
+            getSubjectUserId: () => fixture.ownerUserId,
+            withScopes: (scopes, operation) =>
+              withNimiRuntimeAgentScopes({
+                runtime: {
+                  appId: zhiyuAppId,
+                  auth: zhiyuRuntime.auth,
+                  appAuth: zhiyuRuntime.grants,
+                },
+                subjectUserId: fixture.ownerUserId,
+              }, scopes, async (callOptions) => operation({
+                ...callOptions,
+                metadata: {
+                  ...await zhiyuSessionMetadata(),
+                  ...(callOptions.metadata ?? {}),
+                },
+              })),
+          });
+          progress.stage = 'scoped_typed_subscribe_start';
+          const scopedTypedStream = await promiseWithTimeout(
+            scopedVoice.subscribeStream({
+              ownerUserId: fixture.ownerUserId,
+              runtimeSourceRef: fixture.runtimeSourceRef,
+              localAgentRef: fixture.localAgentRef,
+              conversationAnchorId: fixture.conversationAnchorId,
+              turnId: nativeChunk.turnId || '',
+              voiceStreamId,
+              scopedBinding: scopedBinding.scopedBinding,
+            }),
+            20_000,
+            () => `scoped typed Runtime Agent voice stream subscribe did not return; progress=${JSON.stringify(progress)}`,
+          );
+          const scopedTypedIterator = scopedTypedStream[Symbol.asyncIterator]();
+          try {
+            progress.stage = 'scoped_typed_waiting_first_chunk';
+            const scopedFirst = await nextAsyncIteratorValue(
+              scopedTypedIterator,
+              Date.now() + 20_000,
+              () => `scoped typed native Runtime Agent voice stream first chunk timed out; progress=${JSON.stringify(progress)}`,
+            );
+            progress.stage = 'scoped_typed_first_chunk_received';
+            assert.equal(scopedFirst.done, false);
+            assert.equal(scopedFirst.value.voiceStreamId, voiceStreamId);
+            assert.equal(scopedFirst.value.terminal, false);
+            assert.equal(scopedFirst.value.voiceOutputMode, VoiceOutputMode.NATIVE_STREAM);
+            assert.equal((scopedFirst.value.chunk?.byteLength ?? 0) > 0, true);
+          } finally {
+            await promiseWithTimeout(
+              Promise.resolve(scopedTypedIterator.return?.()),
+              2_000,
+              () => `scoped typed Runtime Agent voice stream iterator cleanup timed out; progress=${JSON.stringify(progress)}`,
+            ).catch(() => undefined);
+          }
+        } finally {
+          await promiseWithTimeout(
+            Promise.resolve(eventIterator.return?.()),
+            2_000,
+            () => `Runtime Agent event stream cleanup timed out; progress=${JSON.stringify(progress)}`,
+          ).catch(() => undefined);
+        }
+      } catch (error) {
+        throw new Error(`typed Runtime Agent voice stream fixture failed; progress=${JSON.stringify(progress)}`, {
+          cause: error,
+        });
+      }
+    },
+  });
+});
+
 function errorDiagnostics(error: unknown): Record<string, unknown> {
   const record = error && typeof error === 'object'
     ? error as Record<string, unknown>
@@ -400,4 +662,71 @@ function errorDiagnostics(error: unknown): Record<string, unknown> {
     source: record.source,
     cause: error instanceof Error && error.cause ? errorDiagnostics(error.cause) : undefined,
   };
+}
+
+async function nextLiveNativeVoiceChunk(
+  iterator: AsyncIterator<any>,
+  deadlineMs: number,
+) {
+  for (;;) {
+    const next = await nextAsyncIteratorValue(iterator, deadlineMs, 'native Runtime Agent voice chunk event');
+    assert.equal(next.done, false, 'Runtime Agent event stream ended before native voice chunk');
+    const event = next.value;
+    const presentation = event?.detail?.oneofKind === 'presentation'
+      ? event.detail.presentation
+      : null;
+    if (
+      presentation?.voiceOutputMode === VoiceOutputMode.NATIVE_STREAM
+      && presentation.voiceStreamId
+      && presentation.finalChunk === false
+    ) {
+      return presentation;
+    }
+  }
+}
+
+async function nextAsyncIteratorValue<T>(
+  iterator: AsyncIterator<T>,
+  deadlineMs: number,
+  label: string | (() => string),
+): Promise<IteratorResult<T>> {
+  const remainingMs = Math.max(1, deadlineMs - Date.now());
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      iterator.next(),
+      new Promise<IteratorResult<T>>((_, reject) => {
+        timer = setTimeout(() => {
+          const message = typeof label === 'function' ? label() : `${label} timed out after ${remainingMs}ms`;
+          reject(new Error(message));
+        }, remainingMs);
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
+async function promiseWithTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string | (() => string),
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(typeof label === 'function' ? label() : label));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 }

@@ -36,7 +36,7 @@ func TestPublicChatTurnFailureProjectsRuntimeActionHintAndBindingContext(t *test
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-preflight-failure",
 			"messages": []any{
@@ -141,7 +141,7 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-cancel-follow-up",
 			"messages": []any{
@@ -175,7 +175,7 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-cancel-follow-up",
 			"messages": []any{
@@ -186,8 +186,8 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 	if secondErr != nil {
 		t.Fatalf("ConsumePublicChatAppMessage(second): %v", secondErr)
 	}
-	// Per Exec Pack 1 scope, there is no admitted runtime.agent.follow_up.*
-	// public event family. Follow-up cancellation on new-user-turn must be
+	// There is no admitted runtime.agent.follow_up.* public event family.
+	// Follow-up cancellation on new-user-turn must be
 	// observed through the admitted session_envelope projection (last_turn
 	// follow_up status), and through the next accepted turn's user origin.
 	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
@@ -285,7 +285,7 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-recovery",
 			"messages": []any{
@@ -421,7 +421,7 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-session-reuse-cancel",
 			"messages": []any{
@@ -453,7 +453,7 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "new user reply"},
@@ -464,8 +464,8 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 		t.Fatalf("ConsumePublicChatAppMessage(second): %v", secondErr)
 	}
 	// Anchor reuse with new user-originated turn must invalidate the pending
-	// follow-up without requiring any runtime.agent.follow_up.* public event
-	// (not admitted in Exec Pack 1). Verification uses the admitted accepted
+	// follow-up without requiring any runtime.agent.follow_up.* public event.
+	// Verification uses the admitted accepted
 	// projection plus the executor call-count invariant.
 	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
@@ -587,7 +587,7 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-follow-up-cancel-action-hint",
 			"messages": []any{
@@ -613,8 +613,8 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 	}
 	requirePublicChatPostTurnHookIntent(t, firstPostTurn, "action-follow-up-1", "pending", 20)
 	// Poll the committed session snapshot until follow-up cancellation lands.
-	// Exec Pack 1 does not admit a public runtime.agent.follow_up.* event
-	// family; cancellation is observed through the unary public chat session
+	// Public chat does not admit a runtime.agent.follow_up.* event family;
+	// cancellation is observed through the unary public chat session
 	// snapshot only (`last_turn.follow_up.status`).
 	deadline := time.Now().Add(2 * time.Second)
 	var lastSnapshotPayload map[string]any
@@ -707,7 +707,7 @@ func TestPublicChatSessionSnapshotPersistsLastTurnAcrossRestart(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-restart-snapshot",
 			"messages": []any{

@@ -84,7 +84,7 @@ func TestRuntimeAgentDelegatedCapabilityUsesGatewayAndFirewall(t *testing.T) {
 		t.Fatalf("runtime decision mismatch: %+v", decision)
 	}
 	if decision.ModelContextAdmitted || decision.ProjectionAdmitted || decision.ActionAdmitted {
-		t.Fatalf("wave-4 decision must not directly admit consumers: %+v", decision)
+		t.Fatalf("delegated capability decision must not directly admit consumers: %+v", decision)
 	}
 	records := svc.delegatedCapabilityDecisionAuditSnapshot()
 	if len(records) != 1 {
@@ -524,7 +524,7 @@ func TestRuntimeAgentDelegatedControlStatePersistsApprovedPausedRequestAcrossRes
 		AgentID:              agentID,
 		LocalAgentRef:        agentID,
 		OwnerUserID:          "user-1",
-		RuntimeSourceRef:         "agent-alpha",
+		RuntimeSourceRef:     "agent-alpha",
 		CallerAppID:          ctx.GetAppId(),
 		SubjectUserID:        "user-1",
 		ThreadID:             "thread-1",

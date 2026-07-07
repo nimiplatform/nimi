@@ -115,7 +115,7 @@ func (r reviewRuntime) execute(ctx context.Context, req CanonicalReviewRequest) 
 
 func (r reviewRuntime) finalizePreparedRun(ctx context.Context, run ReviewRunRecord) error {
 	if run.Status == "prepared" || strings.TrimSpace(run.Status) == "" {
-		run.PreparedOutcomes = memoryengine.NormalizeReviewOutcomesForWave4(run.PreparedOutcomes)
+		run.PreparedOutcomes = memoryengine.NormalizeReviewOutcomesForAdmissionFloor(run.PreparedOutcomes)
 		locator, err := r.reviewRunLocator(run)
 		if err != nil {
 			return fmt.Errorf("resolve bank locator for review run %s: %w", run.ReviewRunID, err)

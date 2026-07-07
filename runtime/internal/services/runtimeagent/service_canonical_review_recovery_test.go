@@ -13,7 +13,7 @@ import (
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
-func TestRuntimeAgentExecuteCanonicalReviewWithAIBackedExecutorAppliesWave4Normalization(t *testing.T) {
+func TestRuntimeAgentExecuteCanonicalReviewWithAIBackedExecutorAppliesAdmissionFloorNormalization(t *testing.T) {
 	t.Parallel()
 
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
@@ -85,10 +85,10 @@ func TestRuntimeAgentExecuteCanonicalReviewWithAIBackedExecutorAppliesWave4Norma
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
 						Text: fmt.Sprintf(`<canonical-review>
-  <summary>wave 4 review</summary>
+  <summary>admission floor review</summary>
   <tokens-used>64</tokens-used>
   <narratives>
-    <narrative id="nar-ai-exec-1" topic="memory redesign" source-version="wave4" status="active">
+    <narrative id="nar-ai-exec-1" topic="memory redesign" source-version="admission-floor" status="active">
       <content>The current focus remains memory redesign review quality.</content>
       <source-memory-id>%s</source-memory-id>
       <source-memory-id>%s</source-memory-id>
@@ -146,7 +146,7 @@ func TestRuntimeAgentExecuteCanonicalReviewWithAIBackedExecutorAppliesWave4Norma
 		t.Fatalf("ListAdmittedTruths: %v", err)
 	}
 	if len(truths) != 0 {
-		t.Fatalf("expected no admitted truths after Wave 4 normalization, got %#v", truths)
+		t.Fatalf("expected no admitted truths after admission floor normalization, got %#v", truths)
 	}
 	var truthJSON string
 	if err := memorySvc.PersistenceBackend().DB().QueryRow(`SELECT truth_json FROM agent_truth WHERE truth_id = ?`, "truth-ai-exec-1").Scan(&truthJSON); err != nil {

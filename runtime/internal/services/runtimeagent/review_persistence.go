@@ -45,7 +45,7 @@ func (s sqliteReviewPersistence) SavePreparedReviewRun(ctx context.Context, run 
 	if strings.TrimSpace(run.Status) == "" {
 		run.Status = "prepared"
 	}
-	run.PreparedOutcomes = memoryengine.NormalizeReviewOutcomesForWave4(run.PreparedOutcomes)
+	run.PreparedOutcomes = memoryengine.NormalizeReviewOutcomesForAdmissionFloor(run.PreparedOutcomes)
 	payload, err := json.Marshal(run.PreparedOutcomes)
 	if err != nil {
 		return err

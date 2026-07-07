@@ -32,7 +32,7 @@ func TestAvatarDebugProbeRecordsRuntimeAuditReplayAndProjection(t *testing.T) {
 		t.Fatalf("request probe id mismatch: %+v", resp.GetRequest())
 	}
 	if got := resp.GetResult().GetStatus(); got != runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_BLOCKED {
-		t.Fatalf("wave-3 must fail closed before Avatar backend evidence, got %s", got)
+		t.Fatalf("avatar backend proof gate must fail closed before evidence, got %s", got)
 	}
 	if resp.GetResult().GetReasonCode() != avatarDebugSessionUnavailable {
 		t.Fatalf("unexpected reason code: %s", resp.GetResult().GetReasonCode())

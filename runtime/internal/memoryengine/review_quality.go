@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	wave4TruthAdmissionConfidenceFloor = 0.7
-	wave4ClusterMinCosine              = 0.70
-	wave4ClusterMinFinalScore          = 0.74
-	wave4ClusterMinMembers             = 2
-	wave4ClusterMaxMembers             = 12
+	truthAdmissionConfidenceFloor = 0.7
+	reviewClusterMinCosine        = 0.70
+	reviewClusterMinFinalScore    = 0.74
+	reviewClusterMinMembers       = 2
+	reviewClusterMaxMembers       = 12
 )
 
 type TruthThresholds struct {
@@ -34,19 +34,19 @@ type reviewTopicClusterState struct {
 	tokens    map[string]struct{}
 }
 
-var wave4TruthThresholdsByDimension = map[string]TruthThresholds{
+var truthThresholdsByDimension = map[string]TruthThresholds{
 	"relational": {CandidateFloor: 2, AdmissionFloor: 4},
 	"cognitive":  {CandidateFloor: 3, AdmissionFloor: 5},
 	"value":      {CandidateFloor: 3, AdmissionFloor: 6},
 	"procedural": {CandidateFloor: 4, AdmissionFloor: 8},
 }
 
-func Wave4TruthThresholdsForDimension(dimension string) (TruthThresholds, bool) {
-	thresholds, ok := wave4TruthThresholdsByDimension[strings.ToLower(strings.TrimSpace(dimension))]
+func TruthThresholdsForDimension(dimension string) (TruthThresholds, bool) {
+	thresholds, ok := truthThresholdsByDimension[strings.ToLower(strings.TrimSpace(dimension))]
 	return thresholds, ok
 }
 
-func NormalizeReviewOutcomesForWave4(outcomes ReviewOutcomes) ReviewOutcomes {
+func NormalizeReviewOutcomesForAdmissionFloor(outcomes ReviewOutcomes) ReviewOutcomes {
 	normalized := ReviewOutcomes{
 		Narratives: append([]NarrativeRecord(nil), outcomes.Narratives...),
 		Relations:  append([]RelationRecord(nil), outcomes.Relations...),
@@ -57,7 +57,7 @@ func NormalizeReviewOutcomesForWave4(outcomes ReviewOutcomes) ReviewOutcomes {
 	}
 	normalized.Truths = make([]TruthRecord, 0, len(outcomes.Truths))
 	for _, truth := range outcomes.Truths {
-		item, keep := normalizeTruthRecordForWave4(truth)
+		item, keep := normalizeTruthRecordForAdmissionFloor(truth)
 		if keep {
 			normalized.Truths = append(normalized.Truths, item)
 		}
@@ -96,16 +96,16 @@ func ClusterReviewRecords(records []*runtimev1.MemoryRecord, embeddings map[stri
 		bestSeed := ""
 		for idx := range clusters {
 			cluster := clusters[idx]
-			if len(cluster.records) >= wave4ClusterMaxMembers {
+			if len(cluster.records) >= reviewClusterMaxMembers {
 				continue
 			}
 			cosine := reviewCosineSimilarity(vector, cluster.centroid)
-			if cosine < wave4ClusterMinCosine {
+			if cosine < reviewClusterMinCosine {
 				continue
 			}
 			lexical := lexicalOverlap(tokenSet, cluster.tokens)
 			finalScore := 0.8*cosine + 0.2*lexical
-			if finalScore < wave4ClusterMinFinalScore {
+			if finalScore < reviewClusterMinFinalScore {
 				continue
 			}
 			seed := ""
@@ -127,7 +127,7 @@ func ClusterReviewRecords(records []*runtimev1.MemoryRecord, embeddings map[stri
 
 	outClusters := make([]ReviewTopicCluster, 0, len(clusters))
 	for _, cluster := range clusters {
-		if len(cluster.records) < wave4ClusterMinMembers {
+		if len(cluster.records) < reviewClusterMinMembers {
 			leftovers = append(leftovers, cluster.records...)
 			continue
 		}
@@ -139,8 +139,8 @@ func ClusterReviewRecords(records []*runtimev1.MemoryRecord, embeddings map[stri
 	return outClusters, leftovers
 }
 
-func normalizeTruthRecordForWave4(input TruthRecord) (TruthRecord, bool) {
-	thresholds, ok := Wave4TruthThresholdsForDimension(input.Dimension)
+func normalizeTruthRecordForAdmissionFloor(input TruthRecord) (TruthRecord, bool) {
+	thresholds, ok := TruthThresholdsForDimension(input.Dimension)
 	if !ok {
 		return cloneTruthRecord(input), true
 	}
@@ -155,7 +155,7 @@ func normalizeTruthRecordForWave4(input TruthRecord) (TruthRecord, bool) {
 	case "stale", "invalidated":
 		return output, true
 	}
-	if sourceCount < thresholds.AdmissionFloor || output.Confidence < wave4TruthAdmissionConfidenceFloor {
+	if sourceCount < thresholds.AdmissionFloor || output.Confidence < truthAdmissionConfidenceFloor {
 		output.Status = "candidate"
 		return output, true
 	}

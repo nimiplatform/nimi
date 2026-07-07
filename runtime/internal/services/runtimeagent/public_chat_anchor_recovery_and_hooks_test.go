@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestWave1RemediationAConversationAnchorMetadataCommittedAndRecovered(t *testing.T) {
+func TestConversationAnchorMetadataCommittedAndRecovered(t *testing.T) {
 	t.Parallel()
 
 	localStatePath := t.TempDir() + "/local-state.json"
@@ -33,12 +33,12 @@ func TestWave1RemediationAConversationAnchorMetadataCommittedAndRecovered(t *tes
 	}
 
 	openResp, err := svc.OpenConversationAnchor(context.Background(), &runtimev1.OpenConversationAnchorRequest{
-		Context:       testRuntimeAgentIdentityContext("agent-alpha"),
-		LocalAgentRef: testRuntimeAgentLocalRef("agent-alpha"),
-		OwnerUserId:   "user-1",
-		RuntimeSourceRef:  "agent-alpha",
-		SubjectUserId: "user-1",
-		Metadata:      metadata,
+		Context:          testRuntimeAgentIdentityContext("agent-alpha"),
+		LocalAgentRef:    testRuntimeAgentLocalRef("agent-alpha"),
+		OwnerUserId:      "user-1",
+		RuntimeSourceRef: "agent-alpha",
+		SubjectUserId:    "user-1",
+		Metadata:         metadata,
 	})
 	if err != nil {
 		t.Fatalf("OpenConversationAnchor: %v", err)
@@ -81,7 +81,7 @@ func TestWave1RemediationAConversationAnchorMetadataCommittedAndRecovered(t *tes
 	}
 }
 
-func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
+func TestPublicChatConversationAnchorRecoveryAndIsolation(t *testing.T) {
 	t.Parallel()
 
 	localStatePath := t.TempDir() + "/local-state.json"
@@ -166,7 +166,7 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorA1,
 			"thread_id":              "thread-exec-pack-4-anchor-a1",
 			"messages": []any{
@@ -216,7 +216,7 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-beta"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-beta",
+			"runtime_source_ref":     "agent-beta",
 			"conversation_anchor_id": anchorB1,
 			"thread_id":              "thread-exec-pack-4-anchor-b1",
 			"messages": []any{
@@ -311,7 +311,7 @@ func TestWave1ExecPack4ConversationAnchorRecoveryAndIsolation(t *testing.T) {
 	}
 }
 
-func TestWave1ExecPack4InterruptIsolationRejectsWrongAnchor(t *testing.T) {
+func TestPublicChatInterruptIsolationRejectsWrongAnchor(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -347,7 +347,7 @@ func TestWave1ExecPack4InterruptIsolationRejectsWrongAnchor(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorA1,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hold"},
@@ -405,7 +405,7 @@ func TestWave1ExecPack4InterruptIsolationRejectsWrongAnchor(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnInterruptedType)
 }
 
-func TestWave1ExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *testing.T) {
+func TestExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
@@ -495,7 +495,7 @@ func TestWave1ExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *tes
 	}
 }
 
-func TestWave1ExecPack4ChatTrackHookProposalUsesCanonicalHookLifecycle(t *testing.T) {
+func TestPublicChatTrackHookProposalUsesCanonicalHookLifecycle(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
@@ -564,7 +564,7 @@ func TestWave1ExecPack4ChatTrackHookProposalUsesCanonicalHookLifecycle(t *testin
 	}
 }
 
-func TestWave1ExecPack4PublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
+func TestPublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -624,7 +624,7 @@ func TestWave1ExecPack4PublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testi
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "propose follow up"},
@@ -713,7 +713,7 @@ func TestWave1ExecPack4PublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testi
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "missing agent id"},

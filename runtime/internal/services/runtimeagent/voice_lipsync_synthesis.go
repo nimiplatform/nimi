@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// Wave 3 — Voice/lipsync synthesis adapter for committed assistant turns.
+// Voice/lipsync synthesis adapter for committed assistant turns.
 //
 // Per spec K-AGCORE-051 and K-VOICE-018, runtime owns whether voice/lipsync
 // projection is emitted, and it may emit playable voice only after policy and

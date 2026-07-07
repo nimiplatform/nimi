@@ -99,12 +99,12 @@ func (s *Service) takePublicChatFollowUp(followUpID string) *publicChatFollowUpS
 }
 
 // emitPublicChatFollowUpCanceled records the follow-up cancellation into the
-// runtime-owned turn projection only. Per Exec Pack 1 scope, no stealth
+// runtime-owned turn projection only. No stealth
 // `runtime.agent.follow_up.*` public event family is minted; the cancellation
 // surfaces via the admitted session_envelope projection
 // (`session.snapshot.last_turn.follow_up.status == "canceled"`). Expanding
 // public event families beyond `turn.*` / `session.*` would require a new
-// authority admission outside Exec Pack 1.
+// authority admission.
 func (s *Service) emitPublicChatFollowUpCanceled(
 	followUp publicChatFollowUpState,
 	reason string,

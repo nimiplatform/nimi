@@ -366,7 +366,7 @@ func TestAIBackedCanonicalReviewExecutorDecodesValidOutput(t *testing.T) {
   <summary>review complete</summary>
   <tokens-used>42</tokens-used>
   <narratives>
-    <narrative id="nar-ai-1" topic="review quality" source-version="wave4" status="active">
+    <narrative id="nar-ai-1" topic="review quality" source-version="admission-floor" status="active">
       <content>The work remains focused on review quality.</content>
       <source-memory-id>mem-1</source-memory-id>
       <source-memory-id>mem-2</source-memory-id>

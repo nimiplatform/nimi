@@ -781,7 +781,7 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *tes
 	// first-class discriminator for `runtime.agent.hook.*`. Running /
 	// completed / pending events are asserted via `family` rather than
 	// digging through `outcome.intent.admission_state`.
-	// Wave 1 Exec Pack 3 adds a committed
+	// Committed runtime agent projection adds a
 	// `runtime.agent.state.status_text_changed` event for life-track status
 	// mutations. The life-turn result here sets status_text="watching the
 	// world"; runtime emits a STATE event alongside hook/memory/budget. Per

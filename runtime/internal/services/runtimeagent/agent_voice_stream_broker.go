@@ -405,7 +405,7 @@ func (s *Service) SubscribeAgentVoiceStream(req *runtimev1.SubscribeAgentVoiceSt
 	if s == nil || s.agentVoiceStreams == nil {
 		return status.Error(codes.Unavailable, "agent voice stream broker unavailable")
 	}
-	session, err := s.resolveVoicePlaybackAnchorScope(callerAppID, identity, conversationAnchorID)
+	session, err := s.resolveVoicePlaybackAnchorScope(callerAppID, identity, conversationAnchorID, req.GetContext().GetScopedBinding(), runtimeAgentTurnReadScope)
 	if err != nil {
 		return err
 	}

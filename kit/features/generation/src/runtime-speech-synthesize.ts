@@ -245,15 +245,7 @@ function voiceReferenceFromParams(
   binding: NimiAIConfigRuntimeBinding,
   params: Record<string, unknown>,
 ): RuntimeSpeechVoiceReferenceInput {
-  const raw =
-    params.voiceRef
-    ?? params.voice_ref
-    ?? params.providerVoiceRef
-    ?? params.provider_voice_ref
-    ?? params.presetVoiceId
-    ?? params.preset_voice_id
-    ?? params.voiceAssetId
-    ?? params.voice_asset_id;
+  const raw = voiceReferenceInputFromParams(params);
   const providerVoiceRef = providerVoiceReferenceText(raw)
     || optionalDefaultText(params.providerVoiceRef ?? params.provider_voice_ref);
   if (binding.routePolicy !== 'local' && providerVoiceRef) {
@@ -285,6 +277,18 @@ function providerVoiceReferenceText(input: unknown): string | undefined {
     return undefined;
   }
   return optionalDefaultText(rest.join(':'));
+}
+
+function voiceReferenceInputFromParams(params: Record<string, unknown>): unknown {
+  if (params.voiceRef !== undefined) return params.voiceRef;
+  if (params.voice_ref !== undefined) return params.voice_ref;
+  if (params.providerVoiceRef !== undefined) return { providerVoiceRef: params.providerVoiceRef };
+  if (params.provider_voice_ref !== undefined) return { provider_voice_ref: params.provider_voice_ref };
+  if (params.presetVoiceId !== undefined) return { presetVoiceId: params.presetVoiceId };
+  if (params.preset_voice_id !== undefined) return { preset_voice_id: params.preset_voice_id };
+  if (params.voiceAssetId !== undefined) return { voiceAssetId: params.voiceAssetId };
+  if (params.voice_asset_id !== undefined) return { voice_asset_id: params.voice_asset_id };
+  return params;
 }
 
 function summarizeAudioArtifact(artifact: ScenarioArtifact): RuntimeSpeechSynthesizeArtifactSummary {

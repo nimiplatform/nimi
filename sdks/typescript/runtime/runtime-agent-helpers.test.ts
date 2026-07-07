@@ -558,6 +558,17 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
   const streamRequests: SubscribeAgentVoiceStreamRequest[] = [];
   const interruptRequests: InterruptAgentVoicePlaybackRequest[] = [];
   const artifactReads: ReadArtifactBytesRequest[] = [];
+  const scopedBinding = {
+    bindingId: 'binding-voice-1',
+    bindingHandle: 'binding-handle-1',
+    runtimeAppId: 'desktop',
+    appInstanceId: 'desktop-instance-1',
+    windowId: 'window-1',
+    avatarInstanceId: 'avatar-1',
+    agentId: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    worldId: 'world-1',
+  };
   const voiceEvents: AgentVoiceStreamEvent[] = [{
     voiceStreamId: 'voice-stream-1',
     conversationAnchorId: 'anchor-1',
@@ -620,6 +631,7 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
     conversationAnchorId: 'anchor-1',
     turnId: 'turn-1',
     voiceStreamId: 'voice-stream-1',
+    scopedBinding,
   });
   const received: AgentVoiceStreamEvent[] = [];
   for await (const event of stream) {
@@ -628,6 +640,7 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
   assert.deepEqual([...received[0]?.chunk ?? []], [1, 2, 3]);
   assert.equal(streamRequests[0]?.voiceStreamId, 'voice-stream-1');
   assert.equal(streamRequests[0]?.context?.localAgentRef, LOCAL_AGENT_REF);
+  assert.deepEqual(streamRequests[0]?.context?.scopedBinding, scopedBinding);
   assert.deepEqual(scopes[0], ['runtime.agent.turn.read']);
 
   const replay = await module.replayFinalArtifact({ artifactId: 'artifact-audio-1' });
@@ -645,6 +658,7 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
     turnId: 'turn-1',
     voiceStreamId: 'voice-stream-1',
     reason: 'avatar_user_interrupt',
+    scopedBinding,
   });
   assert.equal(interrupt.voicePlaybackState, 3);
   assert.equal(interrupt.terminalReason, 'avatar_user_interrupt');
@@ -652,6 +666,7 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
   assert.equal(interruptRequests[0]?.conversationAnchorId, 'anchor-1');
   assert.equal(interruptRequests[0]?.turnId, 'turn-1');
   assert.equal(interruptRequests[0]?.context?.localAgentRef, LOCAL_AGENT_REF);
+  assert.deepEqual(interruptRequests[0]?.context?.scopedBinding, scopedBinding);
   assert.deepEqual(scopes[1], ['runtime.agent.turn.write']);
 });
 

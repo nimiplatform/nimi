@@ -8,7 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func TestWave2PublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
+func TestPublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -18,10 +18,10 @@ func TestWave2PublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
 	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
 		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
-			envelope := `<message id="message-wave2-event">I can follow up when you pause.</message><event-hook id="action-wave2-event"><event-user-idle idle-for="120s"/><effect kind="follow-up-turn"><prompt-text>continue after idle</prompt-text></effect></event-hook>`
+			envelope := `<message id="message-event-hook">I can follow up when you pause.</message><event-hook id="action-event-hook"><event-user-idle idle-for="120s"/><effect kind="follow-up-turn"><prompt-text>continue after idle</prompt-text></effect></event-hook>`
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
-				TraceId:   "trace-wave2-event-hook",
+				TraceId:   "trace-event-hook",
 				Payload: &runtimev1.StreamScenarioEvent_Started{
 					Started: &runtimev1.ScenarioStreamStarted{
 						ModelResolved: "qwen3-chat",
@@ -33,7 +33,7 @@ func TestWave2PublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 			}
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-				TraceId:   "trace-wave2-event-hook",
+				TraceId:   "trace-event-hook",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
 					Delta: &runtimev1.ScenarioStreamDelta{
 						Delta: &runtimev1.ScenarioStreamDelta_Text{
@@ -46,7 +46,7 @@ func TestWave2PublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 			}
 			return emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
-				TraceId:   "trace-wave2-event-hook",
+				TraceId:   "trace-event-hook",
 				Payload: &runtimev1.StreamScenarioEvent_Completed{
 					Completed: &runtimev1.ScenarioStreamCompleted{
 						FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
@@ -68,7 +68,7 @@ func TestWave2PublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "propose idle follow up"},
@@ -90,8 +90,8 @@ func TestWave2PublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 
 	hookIntent := publicChatPostTurnHookIntent(t, postTurn)
-	if got := hookIntent["intent_id"]; got != "action-wave2-event" {
-		t.Fatalf("expected event hook intent id action-wave2-event, got=%v", hookIntent)
+	if got := hookIntent["intent_id"]; got != "action-event-hook" {
+		t.Fatalf("expected event hook intent id action-event-hook, got=%v", hookIntent)
 	}
 	if got := hookIntent["trigger_family"]; got != "event" {
 		t.Fatalf("expected event trigger family, got=%v", hookIntent)
@@ -158,7 +158,7 @@ func TestWave2PublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 		t.Fatalf("public chat event hook must not create life-track pending hook truth, got %#v", pendingResp.GetHooks())
 	}
 
-	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-wave2-event-hook")
+	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-event-hook")
 	snapshotDetail := publicChatSessionSnapshotDetail(t, snapshot)
 	if _, present := snapshotDetail["pending_follow_up"]; present {
 		t.Fatalf("rejected event hook must not create pending_follow_up, got=%v", snapshotDetail)
@@ -171,8 +171,8 @@ func TestWave2PublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 	if got := followUp["status"]; got != "rejected" {
 		t.Fatalf("expected rejected follow_up status, got=%v", followUp)
 	}
-	if got := followUp["source_action_id"]; got != "action-wave2-event" {
-		t.Fatalf("expected action-wave2-event follow_up source_action_id, got=%v", followUp)
+	if got := followUp["source_action_id"]; got != "action-event-hook" {
+		t.Fatalf("expected action-event-hook follow_up source_action_id, got=%v", followUp)
 	}
 	if got := followUp["reason_code"]; got != runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED.String() {
 		t.Fatalf("expected AI_ROUTE_UNSUPPORTED reason, got=%v", followUp)

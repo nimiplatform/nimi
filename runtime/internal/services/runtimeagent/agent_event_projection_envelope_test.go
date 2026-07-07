@@ -12,9 +12,8 @@ import (
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
-// TestWave1ExecPack3PostureProjectionAndEnvelopeInvariants exercises the
-// Wave 1 Exec Pack 3 Must-Achieve items that land without requiring a live
-// chat turn executor:
+// TestAgentStatePostureProjectionAndEnvelopeInvariants exercises runtime agent
+// projection invariants that land without requiring a live chat turn executor:
 //
 //   - runtime.agent.state.posture_changed emits real PostureProjection per
 //     K-AGCORE-037 (current_posture.{action_family,interrupt_mode}).
@@ -25,7 +24,7 @@ import (
 //   - runtime.agent.presentation.* validator fail-closes when envelope
 //     (conversation_anchor_id / turn_id / stream_id) is missing. Runtime
 //     MUST NOT emit anonymous presentation payloads.
-func TestWave1ExecPack3PostureProjectionAndEnvelopeInvariants(t *testing.T) {
+func TestAgentStatePostureProjectionAndEnvelopeInvariants(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
@@ -189,7 +188,7 @@ func TestWave1ExecPack3PostureProjectionAndEnvelopeInvariants(t *testing.T) {
 	}
 }
 
-func TestWave1ExecPack3CommittedPresentationReachesTypedStream(t *testing.T) {
+func TestPublicChatCommittedPresentationReachesTypedStream(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -249,7 +248,7 @@ func TestWave1ExecPack3CommittedPresentationReachesTypedStream(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "show emotion"},
@@ -304,7 +303,7 @@ func TestWave1ExecPack3CommittedPresentationReachesTypedStream(t *testing.T) {
 	}
 }
 
-func TestWave1ExecPack3CommittedAPMLActivityReachesTypedStream(t *testing.T) {
+func TestPublicChatCommittedAPMLActivityReachesTypedStream(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -364,7 +363,7 @@ func TestWave1ExecPack3CommittedAPMLActivityReachesTypedStream(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "show activity"},

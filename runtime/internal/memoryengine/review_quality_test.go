@@ -9,10 +9,10 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TestNormalizeReviewOutcomesForWave4AppliesDimensionThresholds(t *testing.T) {
+func TestNormalizeReviewOutcomesForAdmissionFloorAppliesDimensionThresholds(t *testing.T) {
 	t.Parallel()
 
-	outcomes := NormalizeReviewOutcomesForWave4(ReviewOutcomes{
+	outcomes := NormalizeReviewOutcomesForAdmissionFloor(ReviewOutcomes{
 		Truths: []TruthRecord{
 			{
 				TruthID:         "rel-candidate",

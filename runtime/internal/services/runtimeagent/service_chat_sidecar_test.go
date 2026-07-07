@@ -268,7 +268,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextGenerate{
 					TextGenerate: &runtimev1.TextGenerateOutput{
-						Text: `<chat-track-sidecar><behavioral-posture><posture-class>focused_support</posture-class><action-family>support</action-family><interrupt-mode>focused</interrupt-mode><transition-reason>chat sidecar</transition-reason><truth-basis-id>truth-a</truth-basis-id><truth-basis-id>truth-a</truth-basis-id><truth-basis-id>truth-b</truth-basis-id><status-text>focused and present</status-text></behavioral-posture><cancel-pending-hook-id>hook-chat-exec-old</cancel-pending-hook-id><next-hook-intent trigger-family="TIME" effect="FOLLOW_UP_TURN" reason="follow up later"><time delay="600s"/></next-hook-intent><canonical-memory-candidates><candidate canonical-class="PUBLIC_SHARED" policy-reason="chat_summary"><observational><observation>user asked about wave 6 chat posture patch</observation></observational></candidate></canonical-memory-candidates></chat-track-sidecar>`,
+						Text: `<chat-track-sidecar><behavioral-posture><posture-class>focused_support</posture-class><action-family>support</action-family><interrupt-mode>focused</interrupt-mode><transition-reason>chat sidecar</transition-reason><truth-basis-id>truth-a</truth-basis-id><truth-basis-id>truth-a</truth-basis-id><truth-basis-id>truth-b</truth-basis-id><status-text>focused and present</status-text></behavioral-posture><cancel-pending-hook-id>hook-chat-exec-old</cancel-pending-hook-id><next-hook-intent trigger-family="TIME" effect="FOLLOW_UP_TURN" reason="follow up later"><time delay="600s"/></next-hook-intent><canonical-memory-candidates><candidate canonical-class="PUBLIC_SHARED" policy-reason="chat_summary"><observational><observation>user asked about chat posture routing</observation></observational></candidate></canonical-memory-candidates></chat-track-sidecar>`,
 					},
 				},
 			},
@@ -327,7 +327,7 @@ func TestRuntimeAgentExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t
 	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
 		Context:          testRuntimeAgentIdentityContext("agent-chat-exec"),
 		AgentId:          "agent-chat-exec",
-		Query:            "wave 6 posture patch",
+		Query:            "chat posture routing",
 		Limit:            5,
 		CanonicalClasses: []runtimev1.MemoryCanonicalClass{runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED},
 	})

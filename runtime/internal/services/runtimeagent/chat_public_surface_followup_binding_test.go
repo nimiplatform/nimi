@@ -68,7 +68,7 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -88,7 +88,7 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"messages": []any{
 				map[string]any{"role": "user", "content": "second turn"},
@@ -158,7 +158,7 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-1",
 			"messages": []any{
@@ -184,7 +184,7 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-2",
 			"messages": []any{
@@ -196,6 +196,7 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 		t.Fatalf("expected thread identity drift rejection, got err=%v code=%v", err, status.Code(err))
 	}
 }
+
 // TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation proves
 // K-AGCORE-147 turn admission truth: every turn binds to the committed
 // execution config at admission and fixes the config_revision into the
@@ -253,7 +254,7 @@ func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testin
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": anchorID,
 			"thread_id":              "thread-1",
 			"messages": []any{
@@ -335,7 +336,7 @@ func TestPublicChatTurnAdmissionStampsConfigRevisionAndFollowsMutation(t *testin
 }
 
 // TestPublicChatTurnRequestRejectsMissingConversationAnchorID is a fail-closed
-// negative proof for Exec Pack 1 / K-AGCORE-034: runtime.agent.turn.request
+// negative proof for K-AGCORE-034: runtime.agent.turn.request
 // must not route an agent_id alone; the caller must supply an explicit
 // conversation_anchor_id obtained via OpenConversationAnchor.
 func TestPublicChatTurnRequestRejectsMissingConversationAnchorID(t *testing.T) {
@@ -355,9 +356,9 @@ func TestPublicChatTurnRequestRejectsMissingConversationAnchorID(t *testing.T) {
 		SubjectUserId: "user-1",
 		MessageType:   publicChatTurnRequestType,
 		Payload: publicChatStructPayload(t, map[string]any{
-			"local_agent_ref": testRuntimeAgentLocalRef("agent-alpha"),
-			"owner_user_id":   "user-1",
-			"runtime_source_ref":  "agent-alpha",
+			"local_agent_ref":    testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":      "user-1",
+			"runtime_source_ref": "agent-alpha",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
 			},
@@ -394,7 +395,7 @@ func TestPublicChatTurnRequestRejectsUnknownConversationAnchorID(t *testing.T) {
 		Payload: publicChatStructPayload(t, map[string]any{
 			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
 			"owner_user_id":          "user-1",
-			"runtime_source_ref":         "agent-alpha",
+			"runtime_source_ref":     "agent-alpha",
 			"conversation_anchor_id": "agent_anchor_never_opened",
 			"messages": []any{
 				map[string]any{"role": "user", "content": "hello"},
@@ -411,7 +412,7 @@ func TestPublicChatTurnRequestRejectsUnknownConversationAnchorID(t *testing.T) {
 
 // TestPublicChatIngressRejectsLegacyAgentChatCarrier proves the legacy
 // `agent.chat.*.v1` ingress names are not admitted anywhere on the primary
-// runtime carrier after the Exec Pack 1 hard cut. Any inbound message with
+// runtime carrier. Any inbound message with
 // those message types must fail closed -not be silently upgraded or
 // accepted as an alias.
 func TestPublicChatIngressRejectsLegacyAgentChatCarrier(t *testing.T) {
@@ -439,10 +440,10 @@ func TestPublicChatIngressRejectsLegacyAgentChatCarrier(t *testing.T) {
 				SubjectUserId: "user-1",
 				MessageType:   messageType,
 				Payload: publicChatStructPayload(t, map[string]any{
-					"local_agent_ref": testRuntimeAgentLocalRef("agent-alpha"),
-					"owner_user_id":   "user-1",
-					"runtime_source_ref":  "agent-alpha",
-					"session_id":      "session-legacy",
+					"local_agent_ref":    testRuntimeAgentLocalRef("agent-alpha"),
+					"owner_user_id":      "user-1",
+					"runtime_source_ref": "agent-alpha",
+					"session_id":         "session-legacy",
 					"messages": []any{
 						map[string]any{"role": "user", "content": "hello"},
 					},

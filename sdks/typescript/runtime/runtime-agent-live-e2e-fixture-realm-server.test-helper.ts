@@ -392,7 +392,10 @@ async function writeOpenAISpeech(
   if (body.stream === true) {
     response.setHeader('cache-control', 'no-cache');
     response.flushHeaders?.();
-    const firstChunkSize = Math.min(1024, audio.byteLength);
+    // Keep the first frame larger than Runtime's provider read buffer so the
+    // loopback HTTP fixture proves a provider-readable non-final frame before
+    // completion instead of relying on transport-specific small-write flushes.
+    const firstChunkSize = Math.min(20 * 1024, audio.byteLength);
     response.write(audio.subarray(0, firstChunkSize));
     await delay(options.voiceSpeechStreamDelayMs);
     if (response.destroyed || response.writableEnded) {

@@ -144,7 +144,7 @@ describe('runtime speech synthesis helper', () => {
         },
         selectedParams: {
           'audio.synthesize': {
-            providerVoiceRef: 'voice-main',
+            presetVoiceId: 'voice-main',
             language: 'zh-CN',
             audioFormat: 'mp3',
             sampleRateHz: '24000',
@@ -225,8 +225,8 @@ describe('runtime speech synthesis helper', () => {
       emotion: 'warm',
       voiceRef: {
         reference: {
-          oneofKind: 'providerVoiceRef',
-          providerVoiceRef: 'voice-main',
+          oneofKind: 'presetVoiceId',
+          presetVoiceId: 'voice-main',
         },
       },
     });

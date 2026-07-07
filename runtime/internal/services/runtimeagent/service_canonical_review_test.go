@@ -258,7 +258,7 @@ func TestRuntimeAgentRecoversPreparedReviewRunAndCommitsMemory(t *testing.T) {
 	}
 }
 
-func TestRuntimeAgentRecoveryDowngradesWave4TruthBelowAdmissionFloor(t *testing.T) {
+func TestRuntimeAgentRecoveryDowngradesTruthBelowAdmissionFloor(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
@@ -278,14 +278,14 @@ func TestRuntimeAgentRecoveryDowngradesWave4TruthBelowAdmissionFloor(t *testing.
 	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
-		Context: testRuntimeAgentIdentityContext("agent-wave4-threshold"),
+		Context: testRuntimeAgentIdentityContext("agent-admission-floor"),
 	}); err != nil {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
-			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-wave4-threshold")},
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: testRuntimeAgentLocalRef("agent-admission-floor")},
 		},
 	}
 	if _, err := memorySvc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
@@ -316,14 +316,14 @@ func TestRuntimeAgentRecoveryDowngradesWave4TruthBelowAdmissionFloor(t *testing.
 		retainResp.GetRecords()[1].GetMemoryId(),
 	}
 	if err := svc.SavePreparedReviewRun(ctx, ReviewRunRecord{
-		ReviewRunID:     "review-run-wave4-threshold",
-		AgentID:         "agent-wave4-threshold",
+		ReviewRunID:     "review-run-admission-floor",
+		AgentID:         "agent-admission-floor",
 		BankLocatorKey:  memoryservice.LocatorKey(locator),
 		CheckpointBasis: sourceIDs[1],
 		PreparedOutcomes: memoryservice.CanonicalReviewOutcomes{
 			Truths: []memoryservice.TruthCandidate{
 				{
-					TruthID:         "truth-wave4-threshold",
+					TruthID:         "truth-admission-floor",
 					Dimension:       "relational",
 					NormalizedKey:   "relationship:cadence",
 					Statement:       "The relationship cadence is becoming stable.",
@@ -365,7 +365,7 @@ func TestRuntimeAgentRecoveryDowngradesWave4TruthBelowAdmissionFloor(t *testing.
 		SELECT status
 		FROM agent_truth
 		WHERE truth_id = ?
-	`, "truth-wave4-threshold").Scan(&truthStatus); err != nil {
+	`, "truth-admission-floor").Scan(&truthStatus); err != nil {
 		t.Fatalf("load truth status: %v", err)
 	}
 	if truthStatus != "candidate" {
@@ -458,7 +458,7 @@ func TestRuntimeAgentExecuteCanonicalReviewCommitsExecutorOutputs(t *testing.T) 
 						NarrativeID:     "nar-exec-1",
 						Topic:           "memory redesign",
 						Content:         "The current focus remains memory redesign review quality.",
-						SourceVersion:   "wave4",
+						SourceVersion:   "admission-floor",
 						Status:          "active",
 						SourceMemoryIDs: []string{req.Clusters[0].RecordIDs[0], req.Clusters[0].RecordIDs[1]},
 					},

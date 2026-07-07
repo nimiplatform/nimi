@@ -282,6 +282,9 @@ func (r publicChatRuntime) projectCommittedNativeVoiceStream(session publicChatA
 	if emittedChunks == 0 {
 		return true, nil
 	}
+	if r.svc.agentVoiceStreamTerminalState(voiceStreamID) == runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_INTERRUPTED {
+		return true, nil
+	}
 	if err := r.svc.putGeneratedVoiceArtifactBytes(
 		out.AudioArtifactID,
 		out.AudioBytes,
