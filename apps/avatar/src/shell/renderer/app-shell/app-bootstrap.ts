@@ -13,7 +13,7 @@ import {
   AvatarDebugRequestedBy,
   ReasonCode,
   type AvatarDebugProbeResultEnvelope,
-} from '@nimiplatform/sdk/runtime/generated';
+} from '@nimiplatform/sdk/runtime/wire-types';
 import {
   buildNimiRuntimeGenerationSubmitRequest,
   createNimiSpeechTranscriptionScenario,

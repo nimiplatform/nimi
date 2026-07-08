@@ -1,5 +1,5 @@
 import { getDaemonStatus, startDaemon } from '../bridge/index.js';
-import { AccountReasonCode, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { AccountReasonCode, ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
 import { useAvatarStore } from './app-store.js';
 import { readNormalizedString } from './app-bootstrap-helpers.js';

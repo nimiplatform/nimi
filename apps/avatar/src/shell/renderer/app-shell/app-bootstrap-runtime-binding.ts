@@ -10,7 +10,7 @@ import {
   type NimiRuntimeAppSessionMetadataProvider,
   type RuntimeOptions,
 } from '@nimiplatform/sdk/runtime';
-import { type AccountCaller } from '@nimiplatform/sdk/runtime/generated';
+import { type AccountCaller } from '@nimiplatform/sdk/runtime/wire-types';
 import { readNormalizedString } from './app-bootstrap-helpers.js';
 
 const AVATAR_LOCAL_FIRST_PARTY_APP_INSTANCE_ID = 'nimi.avatar.local-first-party';

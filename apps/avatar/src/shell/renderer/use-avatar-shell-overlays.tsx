@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/generated';
+import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AvatarAppState } from './app-shell/app-store.js';
 import type { CompositionState } from './app-shell/composition-state.js';

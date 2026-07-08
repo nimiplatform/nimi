@@ -1,5 +1,5 @@
 import type { AgentDataDriver } from '../driver/types.js';
-import { AvatarDebugProbeKind, AvatarDebugProbeStatus, type AvatarDebugProbeResultEnvelope } from '@nimiplatform/sdk/runtime/generated';
+import { AvatarDebugProbeKind, AvatarDebugProbeStatus, type AvatarDebugProbeResultEnvelope } from '@nimiplatform/sdk/runtime/wire-types';
 import { ContinuousScheduler, wireEventDispatch } from '../nas/event-dispatch.js';
 import { HandlerExecutor } from '../nas/handler-executor.js';
 import {

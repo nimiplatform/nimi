@@ -104,7 +104,7 @@ const MOCK_SCENARIO_LOADERS = {
 } satisfies Record<MockScenarioId, () => Promise<{ default: string }>>;
 
 const VRM_FIXTURE_MODEL_DIR = '.cache/assets/vrm-models/';
-const VRM_FIXTURE_MODEL_DIR_URL_RAW = new URL('../../../../.cache/assets/vrm-models/', import.meta.url).href;
+const VRM_FIXTURE_MODEL_DIR_URL_RAW = new URL(/* @vite-ignore */ '../../../../.cache/assets/vrm-models/', import.meta.url).href;
 const VRM_FIXTURE_MODEL_DIR_URL = VRM_FIXTURE_MODEL_DIR_URL_RAW.endsWith('/')
   ? VRM_FIXTURE_MODEL_DIR_URL_RAW
   : `${VRM_FIXTURE_MODEL_DIR_URL_RAW}/`;

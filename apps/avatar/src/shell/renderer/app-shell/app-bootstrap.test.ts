@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 import type { AgentDataBundle, AgentDataDriver, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from './app-store.js';
 

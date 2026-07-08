@@ -1,4 +1,4 @@
-import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/generated';
+import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
 import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 import type { BackendBranch } from '../carrier/backend-branch.js';
 import {

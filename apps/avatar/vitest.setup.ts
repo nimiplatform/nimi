@@ -1,3 +1,6 @@
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+
 function installMemoryLocalStorage(): void {
   if (typeof window === 'undefined') return;
   if (typeof window.localStorage?.clear === 'function') return;
@@ -30,4 +33,24 @@ function installMemoryLocalStorage(): void {
   });
 }
 
+function installCanvasShim(): void {
+  if (typeof HTMLCanvasElement === 'undefined') return;
+
+  Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+    configurable: true,
+    writable: true,
+    value: () => null,
+  });
+  Object.defineProperty(HTMLCanvasElement.prototype, 'toDataURL', {
+    configurable: true,
+    writable: true,
+    value: () => 'data:image/png;base64,',
+  });
+}
+
 installMemoryLocalStorage();
+installCanvasShim();
+
+afterEach(() => {
+  cleanup();
+});

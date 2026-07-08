@@ -1,4 +1,4 @@
-import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/generated';
+import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
 import { describe, expect, it } from 'vitest';
 import type { BackendBranch } from '../carrier/backend-branch.js';
 import type { VrmCapabilityProfile } from '../vrm/vrm-capability-profile.js';

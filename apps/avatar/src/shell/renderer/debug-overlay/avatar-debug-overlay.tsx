@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCcw, SearchCheck, X } from 'lucide-react';
-import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '@nimiplatform/sdk/runtime/generated';
+import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { useTranslation } from '../i18n/index.js';
 import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';

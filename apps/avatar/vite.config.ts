@@ -120,6 +120,7 @@ export default defineConfig(() => {
         { find: '@mock', replacement: path.resolve(__dirname, 'src/shell/renderer/mock') },
         { find: '@driver', replacement: path.resolve(__dirname, 'src/shell/renderer/driver') },
         { find: '@nimiplatform/sdk/runtime/generated', replacement: path.join(sdkVNextDist, 'runtime/generated.js') },
+        { find: '@nimiplatform/sdk/runtime/wire-types', replacement: path.join(sdkVNextDist, 'runtime/wire-types/index.js') },
         { find: '@nimiplatform/sdk/runtime', replacement: path.join(sdkVNextDist, 'runtime/index.js') },
         { find: '@nimiplatform/sdk/realm/generated', replacement: path.join(sdkVNextDist, 'realm/generated.js') },
         { find: '@nimiplatform/sdk/realm', replacement: path.join(sdkVNextDist, 'realm/index.js') },
@@ -169,6 +170,7 @@ export default defineConfig(() => {
       outDir: path.resolve(__dirname, 'dist'),
       emptyOutDir: true,
       sourcemap: true,
+      chunkSizeWarningLimit: 2500,
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, 'src/shell/renderer/index.html'),
@@ -186,30 +188,9 @@ export default defineConfig(() => {
             if (normalizedId.includes('/kit/ui/src/')) {
               return 'vendor-platform';
             }
-            if (normalizedId.includes('/src/shell/renderer/live2d/')) {
-              return 'live2d-app';
-            }
-            if (normalizedId.includes('/src/shell/renderer/nas/')) {
-              return 'nas-runtime';
-            }
-            if (normalizedId.includes('/src/shell/renderer/mock/')) {
-              return 'mock-driver';
-            }
 
             if (!normalizedId.includes('node_modules')) {
               return undefined;
-            }
-            if (normalizedId.includes('/react-dom/') || normalizedId.includes('/react/') || normalizedId.includes('/scheduler/')) {
-              return 'vendor-react';
-            }
-            if (
-              normalizedId.includes('/zustand/') ||
-              normalizedId.includes('/use-sync-external-store/')
-            ) {
-              return 'vendor-state';
-            }
-            if (normalizedId.includes('/@protobuf-ts/')) {
-              return 'vendor-protobuf';
             }
             return 'vendor-misc';
           },

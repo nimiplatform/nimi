@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveAvatarConversationContext } from './avatar-conversation-context.js';
 import { type NimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 
 const OWNER_USER_ID = 'account-runtime';
 const RUNTIME_SOURCE_REF = 'agent-e2e-alpha';

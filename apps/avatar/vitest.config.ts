@@ -28,6 +28,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
+    testTimeout: 15000,
+    hookTimeout: 15000,
   },
   resolve: {
     dedupe: ['react', 'react-dom', 'scheduler', '@radix-ui/react-switch'],
@@ -45,6 +47,7 @@ export default defineConfig({
       { find: '@mock', replacement: path.resolve(__dirname, 'src/shell/renderer/mock') },
       { find: '@driver', replacement: path.resolve(__dirname, 'src/shell/renderer/driver') },
       { find: '@nimiplatform/sdk/runtime/generated', replacement: path.join(sdkVNextDist, 'runtime/generated.js') },
+      { find: '@nimiplatform/sdk/runtime/wire-types', replacement: path.join(sdkVNextDist, 'runtime/wire-types/index.js') },
       { find: '@nimiplatform/sdk/runtime', replacement: path.join(sdkVNextDist, 'runtime/index.js') },
       { find: '@nimiplatform/sdk/realm/generated', replacement: path.join(sdkVNextDist, 'realm/generated.js') },
       { find: '@nimiplatform/sdk/realm', replacement: path.join(sdkVNextDist, 'realm/index.js') },

@@ -4,7 +4,7 @@ import { App } from './App.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AgentDataBundle } from './driver/types.js';
-import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '@nimiplatform/sdk/runtime/generated';
+import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   AVATAR_SCALE_DEFAULT,
   AVATAR_SCALE_STORAGE_KEY,

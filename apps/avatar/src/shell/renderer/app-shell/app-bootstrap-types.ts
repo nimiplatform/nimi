@@ -4,7 +4,7 @@ import type {
   NimiRuntimeAgentCompanionParticipationProjection,
   RequestAvatarDebugProbeResponse,
 } from '@nimiplatform/sdk/runtime';
-import type { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/generated';
+import type { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
