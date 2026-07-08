@@ -104,17 +104,26 @@ export function createRuntimeAgentCenterAdapter(
         intents: upsertInput.intents,
       });
     },
-    setAutonomyConfig(autonomyInput) {
+    async setAutonomyConfig(autonomyInput) {
       if (!input.inspect) {
         throw new Error('Runtime Agent inspect surface is required to mutate autonomy.');
       }
+      const inspect = input.inspect;
       const identity = resolveAutonomyMutationIdentity(input.identity, autonomyInput);
-      return input.inspect.setAutonomyConfig({
+      const mode = autonomyInput.enabled === false ? 'off' : autonomyInput.mode;
+      const snapshot = await inspect.setAutonomyConfig({
         ...identity,
-        mode: autonomyInput.enabled === false ? 'off' : autonomyInput.mode,
+        mode,
         dailyTokenBudget: autonomyInput.dailyTokenBudget,
         maxTokensPerHook: autonomyInput.maxTokensPerHook,
       });
+      if (autonomyInput.enabled !== true || mode === 'off') {
+        return snapshot;
+      }
+      if (snapshot.enabled === true) {
+        return snapshot;
+      }
+      return inspect.enableAutonomy(identity);
     },
   };
 }

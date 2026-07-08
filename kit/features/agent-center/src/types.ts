@@ -345,6 +345,7 @@ export interface AgentCenterState {
 export interface AgentCenterStateInput extends AgentCenterRuntimeSnapshot {
   readonly appearance?: AgentCenterAppearanceProjection | null;
   readonly autonomyMutationAvailable?: boolean;
+  readonly autonomyDisabledReason?: string | null;
 }
 
 export interface AgentCenterProps {

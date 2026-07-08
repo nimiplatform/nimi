@@ -34,6 +34,7 @@ import {
 import {
   agentCenterHeaderStateLabel,
   agentCenterWorldLabel,
+  chatBlockedHint,
   partnerInitial,
 } from './ZhiyuAgentChatLabels';
 import { useZhiyuAgentCenterAppearanceAdapter } from './zhiyu-agent-center-appearance-adapter';
@@ -186,10 +187,24 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
   const moodLabel = agentCenterHeaderStateLabel(props.evidence.companion.currentEmotion);
   const activityLabel = agentCenterHeaderStateLabel(props.evidence.companion.executionState);
   const appearanceLabel = agentCenterHeaderStateLabel(appearance.projection.status);
+  const autonomyMutationAvailable = Boolean(
+    props.evidence.conversation.ready
+      && props.evidence.conversation.conversationAnchorId,
+  );
+  const autonomyDisabledReason = autonomyMutationAvailable ? null : chatBlockedHint(props.evidence);
   const state = useMemo<AgentCenterStateInput>(() => ({
     runtimeError: props.evidence.runtime.ready ? null : `${props.evidence.runtime.reasonCode}: ${props.evidence.runtime.message}`,
     appearance: appearance.projection,
-  }), [appearance.projection, props.evidence.runtime.message, props.evidence.runtime.ready, props.evidence.runtime.reasonCode]);
+    autonomyMutationAvailable,
+    autonomyDisabledReason,
+  }), [
+    appearance.projection,
+    autonomyDisabledReason,
+    autonomyMutationAvailable,
+    props.evidence.runtime.message,
+    props.evidence.runtime.ready,
+    props.evidence.runtime.reasonCode,
+  ]);
   const runtimeAdapter = useMemo(
     () => buildZhiyuAgentCenterRuntimeAdapter(props.evidence),
     [props.evidence],
@@ -387,13 +402,19 @@ function buildZhiyuAgentCenterRuntimeAdapter(evidence: ZhiyuEvidence): AgentCent
       };
     },
     upsertAgentAIConfig: upsertWithIdentity,
-    setAutonomyConfig(input) {
-      return inspect.setAutonomyConfig({
-        ...resolveZhiyuAgentCenterAutonomyIdentity(callInput, input),
-        mode: input.enabled === false ? 'off' : input.mode,
+    async setAutonomyConfig(input) {
+      const identityInput = resolveZhiyuAgentCenterAutonomyIdentity(callInput, input);
+      const mode = input.enabled === false ? 'off' : input.mode;
+      const snapshot = await inspect.setAutonomyConfig({
+        ...identityInput,
+        mode,
         dailyTokenBudget: input.dailyTokenBudget,
         maxTokensPerHook: input.maxTokensPerHook,
       });
+      if (input.enabled !== true || mode === 'off' || snapshot.enabled === true) {
+        return snapshot;
+      }
+      return inspect.enableAutonomy(identityInput);
     },
   };
 }

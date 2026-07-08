@@ -10,6 +10,7 @@ import {
   AgentButton,
   Card,
   Notice,
+  SectionHeader,
   SectionShell,
   agentCenterInputClassName,
   cnAgentCenter,
@@ -164,8 +165,12 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
       dailyTokenBudget,
       maxTokensPerHook,
     };
-    const nextEnabled = patch.enabled ?? enabled;
-    const nextMode = patch.mode ?? mode;
+    const nextMode = patch.enabled === false
+      ? 'off'
+      : patch.enabled === true && (patch.mode ?? mode) === 'off'
+        ? 'medium'
+        : patch.mode ?? mode;
+    const nextEnabled = patch.enabled ?? nextMode !== 'off';
     const nextDailyBudget = patch.dailyTokenBudget ?? dailyLimit;
     const nextPerHookBudget = patch.maxTokensPerHook ?? singleLimit;
 
@@ -201,18 +206,17 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
       labelledBy="agent-center-behavior-title"
       className="gap-3.5"
     >
-      <div
-        className="grid min-w-0 gap-2"
-        data-agent-center-behavior-page="proactive-companion"
-      >
-        <p className="m-0 text-[12px] font-semibold leading-none text-emerald-700">{labels.eyebrow}</p>
-        <div className="grid min-w-0 gap-1">
-          <h2 id="agent-center-behavior-title" className="m-0 text-[21px] font-semibold leading-[1.24] tracking-normal text-slate-950">
-            {labels.title}
-          </h2>
-          <p className="m-0 text-[13.5px] leading-[1.5] text-slate-500">{labels.description}</p>
-        </div>
+      <div data-agent-center-behavior-page="proactive-companion">
+        <SectionHeader
+          description={labels.description}
+          id="agent-center-behavior-title"
+          title={labels.title}
+        />
       </div>
+
+      {autonomy.controlsDisabled ? (
+        <Notice tone="warn">{autonomy.disabledReason}</Notice>
+      ) : null}
 
       <Card className="rounded-[14px] border-slate-200/80 bg-white/95 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
         <div className="flex min-w-0 items-center justify-between gap-4 px-4 py-4">
@@ -409,9 +413,6 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
         </div>
         <div className="h-4" />
       </Card>
-      {autonomy.controlsDisabled ? (
-        <Notice tone="warn">{autonomy.disabledReason}</Notice>
-      ) : null}
       {mutationStatus ? (
         <Notice>{mutationStatus}</Notice>
       ) : null}

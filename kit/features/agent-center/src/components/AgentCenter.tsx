@@ -371,7 +371,7 @@ export function AgentCenter(props: AgentCenterProps) {
     return resolveAgentCenterState({
       ...placementState,
       ...(loadedSnapshot || {}),
-      autonomyMutationAvailable: placementState.autonomyMutationAvailable === true || runtimeAutonomyMutationAvailable,
+      autonomyMutationAvailable: placementState.autonomyMutationAvailable ?? runtimeAutonomyMutationAvailable,
       ...(loadedAppearance ? { appearance: loadedAppearance } : {}),
       ...(appearanceLoadError ? {
         appearance: {
@@ -387,7 +387,6 @@ export function AgentCenter(props: AgentCenterProps) {
     props.defaultSection || 'overview',
   );
   const activeSection = props.activeSection || uncontrolledSection;
-  const activeSectionLabel = AGENT_CENTER_SECTION_LABELS[activeSection];
   const chrome = props.chrome || 'standalone';
   const setup = agentCenterSetupProgress(state);
   const setSection = (section: AgentCenterSectionId) => {
@@ -456,7 +455,7 @@ export function AgentCenter(props: AgentCenterProps) {
               <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
               <span
                 className={cnAgentCenter(
-                  'overflow-hidden whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0.0,1)]',
+                  'overflow-hidden whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0.0,1)] max-[420px]:hidden',
                   selected ? 'ml-2 max-w-[160px] opacity-100 max-[420px]:ml-0 max-[420px]:max-w-0 max-[420px]:opacity-0' : 'ml-0 max-w-0 opacity-0',
                 )}
               >
@@ -478,14 +477,6 @@ export function AgentCenter(props: AgentCenterProps) {
         })}
       </nav>
       <div className="min-w-0">
-        <div className="mb-3">
-          <h4
-            className="m-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
-            data-agent-center-active-section-label="true"
-          >
-            {activeSectionLabel}
-          </h4>
-        </div>
         {activeSection === 'overview'
           ? <AgentCenterOverview onSectionSelect={setSection} state={state} />
           : renderSection(activeSection, state, props.runtimeAdapter, props.appearanceAdapter, props.appearanceCopy, props.behaviorCopy)}

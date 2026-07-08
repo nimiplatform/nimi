@@ -74,7 +74,7 @@ describe('AgentCenter appearance visual setup surface', () => {
     expect(node.querySelector('[data-agent-center-appearance-primary-action="continue"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-secondary-action="change"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-progress="display-checklist"]')).not.toBeNull();
-    expect(node.querySelector('[data-agent-center-appearance-management="asset-import"]')).toBeNull();
+    expect(node.querySelector('[data-agent-center-appearance-management="asset-import"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-background="chat-scene"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-effects="dynamic"]')).toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-diagnostics="collapsed"]')).not.toBeNull();
@@ -82,7 +82,9 @@ describe('AgentCenter appearance visual setup surface', () => {
     expect(node.textContent).toContain('Partner avatar');
     expect(node.textContent).toContain('Continue setup');
     expect(node.textContent).toContain('Change avatar');
-    expect(node.textContent).not.toContain('Avatar management');
+    expect(node.textContent).toContain('Avatar management');
+    expect(node.textContent).toContain('Import Live2D folder');
+    expect(node.textContent).toContain('Import VRM file');
     const progressBar = node.querySelector<HTMLElement>('[data-agent-center-appearance-progress-bar]');
     expect(progressBar?.style.width).toBe('50%');
     expect(node.textContent).toContain('2 / 4');
@@ -136,9 +138,10 @@ describe('AgentCenter appearance visual setup surface', () => {
     expect(node.querySelector('[data-agent-center-appearance-avatar-preview="empty"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-import-options]')).toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-hero="character-preview"]')).toBeNull();
-    expect(node.querySelector('[data-agent-center-appearance-progress="display-checklist"]')).toBeNull();
-    expect(node.querySelector('[data-agent-center-appearance-management="asset-import"]')).toBeNull();
-    expect(node.querySelector('[data-agent-center-appearance-background="chat-scene"]')).toBeNull();
+    expect(node.querySelector('[data-agent-center-appearance-progress="display-checklist"]')).not.toBeNull();
+    expect(node.querySelector('[data-agent-center-appearance-management="asset-import"]')).not.toBeNull();
+    expect(node.querySelector('[data-agent-center-appearance-background="chat-scene"]')).not.toBeNull();
+    expect(node.querySelector('[data-agent-center-appearance-diagnostics="collapsed"]')).not.toBeNull();
     expect(node.textContent).toContain('Partner avatar');
     expect(node.textContent).toContain('Avatar is not set');
     expect(node.textContent).toContain('Import Live2D or VRM to show the partner preview here.');
@@ -146,11 +149,15 @@ describe('AgentCenter appearance visual setup surface', () => {
     expect(node.textContent).toContain('Import VRM');
     expect(node.textContent).toContain('Supports model3.json + textures, or .vrm files');
     expect(node.textContent).toContain('View supported formats');
+    expect(node.textContent).toContain('Make the avatar visible');
+    expect(node.textContent).toContain('Avatar management');
+    expect(node.textContent).toContain('Import Live2D folder');
+    expect(node.textContent).toContain('Import VRM file');
+    expect(node.textContent).toContain('Select sidecar file');
+    expect(node.textContent).toContain('Chat background');
+    expect(node.textContent).toContain('Technical details');
     expect(node.textContent).not.toContain('Import avatar asset');
-    expect(node.textContent).not.toContain('Import Live2D folder');
-    expect(node.textContent).not.toContain('Import VRM file');
     expect(node.textContent).not.toContain('Change avatar');
-    expect(node.textContent).not.toContain('Select sidecar file');
     expect(node.textContent).not.toContain('Current avatar: LIVE2D');
   });
 

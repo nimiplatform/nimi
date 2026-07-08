@@ -499,7 +499,6 @@ export function AgentCenterModelSection({ state, runtimeAdapter }: AgentCenterMo
   return (
     <SectionShell labelledBy="agent-center-model-title">
       <SectionHeader
-        description={`Revision ${modelState.configRevision ?? 'unavailable'}`}
         id="agent-center-model-title"
         title="Model"
       />

@@ -90,6 +90,9 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
   const inspect = input.inspect || null;
   const memory = input.memory || null;
   const autonomyMutationAvailable = input.autonomyMutationAvailable === true;
+  const autonomyDisabledReason = typeof input.autonomyDisabledReason === 'string'
+    ? input.autonomyDisabledReason.trim()
+    : '';
 
   return {
     runtimeStatus: input.runtimeError
@@ -111,8 +114,8 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
       budgetExhausted: inspect?.autonomyBudgetExhausted ?? null,
       controlsDisabled: !inspect || !autonomyMutationAvailable,
       disabledReason: !inspect
-        ? (input.runtimeError || 'runtime inspect unavailable')
-        : (!autonomyMutationAvailable ? 'runtime autonomy mutation unavailable' : null),
+        ? (input.runtimeError || autonomyDisabledReason || 'runtime inspect unavailable')
+        : (!autonomyMutationAvailable ? autonomyDisabledReason || 'runtime autonomy mutation unavailable' : null),
     },
     cognition: {
       lifecycleStatus: inspect?.lifecycleStatus ?? null,

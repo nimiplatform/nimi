@@ -471,16 +471,14 @@ async function assertAppearanceConfigParity(page, captureAppearanceEvidence) {
   await panel.locator('#agent-center-appearance-title').waitFor({ state: 'attached', timeout: 15_000 });
 
   const panelText = await panel.innerText();
-  for (const label of ['外观', '伙伴形象', '当前形象', '让形象显示出来', '聊天背景', '技术详情']) {
+  for (const label of ['外观', '伙伴形象', '当前形象', '让形象显示出来', '形象管理', '聊天背景', '技术详情']) {
     assert.match(panelText, new RegExp(label), `Appearance panel must include redesigned ${label} structure`);
   }
-  assert.doesNotMatch(panelText, /形象管理/u, 'Appearance panel must not keep the retired separate avatar management card');
   assert.doesNotMatch(panelText, /动态效果/u, 'Appearance panel must not expose a non-actionable dynamic effects module');
 
-  for (const label of ['继续完成配置', '更换形象', '选择 sidecar 文件', '上传背景图片', '选择推荐背景']) {
+  for (const label of ['继续完成配置', '更换形象', '导入 Live2D 文件夹', '导入 VRM 文件', '选择 sidecar 文件', '上传背景图片', '选择推荐背景']) {
     await panel.getByText(label, { exact: false }).waitFor({ state: 'visible', timeout: 15_000 });
   }
-  assert.doesNotMatch(panelText, /导入 Live2D 文件夹|导入 VRM 文件/u, 'Imported appearance state must consolidate import controls into Change avatar');
 
   for (const selector of [
     '[data-agent-center-appearance-surface="visual-setup"]',
@@ -490,6 +488,7 @@ async function assertAppearanceConfigParity(page, captureAppearanceEvidence) {
     '[data-agent-center-appearance-primary-action="continue"]',
     '[data-agent-center-appearance-secondary-action="change"]',
     '[data-agent-center-appearance-progress="display-checklist"]',
+    '[data-agent-center-appearance-management="asset-import"]',
     '[data-agent-center-appearance-background="chat-scene"]',
     '[data-agent-center-appearance-diagnostics="collapsed"]',
   ]) {

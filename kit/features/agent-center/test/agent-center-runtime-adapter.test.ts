@@ -115,6 +115,65 @@ describe('Agent Center Runtime adapter', () => {
     ]);
   });
 
+  it('enables Runtime autonomy after applying a non-quiet config from an off state', async () => {
+    const calls: string[] = [];
+    const adapter: AgentCenterRuntimeAdapter = createRuntimeAgentCenterAdapter({
+      identity: {
+        ownerUserId: 'owner',
+        runtimeSourceRef: 'agent',
+        localAgentRef: 'local-agent:owner:agent',
+      },
+      agentAIConfig: {
+        async get() {
+          throw new Error('not used');
+        },
+        async upsert() {
+          throw new Error('not used');
+        },
+        async readiness() {
+          throw new Error('not used');
+        },
+        subscribeReadiness() {
+          throw new Error('not used');
+        },
+      },
+      inspect: {
+        async setAutonomyConfig(input) {
+          calls.push(`set.${input.mode}.${input.dailyTokenBudget}.${input.maxTokensPerHook}`);
+          return {
+            enabled: false,
+            mode: input.mode,
+            dailyTokenBudget: Number(input.dailyTokenBudget),
+            maxTokensPerHook: Number(input.maxTokensPerHook),
+          } as never;
+        },
+        async enableAutonomy(input) {
+          calls.push(`enable.${input.localAgentRef}`);
+          return {
+            enabled: true,
+            mode: 'high',
+            dailyTokenBudget: 640,
+            maxTokensPerHook: 160,
+          } as never;
+        },
+      } as never,
+    });
+
+    const snapshot = await adapter.setAutonomyConfig?.({
+      enabled: true,
+      mode: 'high',
+      dailyTokenBudget: 640,
+      maxTokensPerHook: 160,
+    });
+
+    expect(snapshot?.enabled).toBe(true);
+    expect(snapshot?.mode).toBe('high');
+    expect(calls).toEqual([
+      'set.high.640.160',
+      'enable.local-agent:owner:agent',
+    ]);
+  });
+
   it('keeps production source behind Kit sdk-contract and typed adapter boundary', () => {
     const root = path.resolve(__dirname, '../src');
     const source = collectSourceFiles(root)

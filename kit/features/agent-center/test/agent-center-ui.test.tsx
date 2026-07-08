@@ -88,7 +88,7 @@ describe('AgentCenter UI', () => {
     expect(embedded.textContent).not.toContain('local-agent:runtime-ae3e127864d3567bdf...');
   });
 
-  it('uses the migrated Desktop Agent Center navigation and section chrome', () => {
+  it('uses the migrated Desktop Agent Center navigation without a duplicate active section heading', () => {
     const state = buildAgentCenterState({
       agentAIConfig: {
         revision: 4,
@@ -131,7 +131,7 @@ describe('AgentCenter UI', () => {
     expect(overviewBadge?.className).toContain('ml-1.5');
     expect(overviewBadge?.className).not.toContain('absolute');
     expect(model?.querySelector('span')?.className).toContain('max-w-0');
-    expect(node.querySelector('[data-agent-center-active-section-label]')?.textContent).toBe('Overview');
+    expect(node.querySelector('[data-agent-center-active-section-label]')).toBeNull();
     const hero = node.querySelector<HTMLElement>('[data-agent-center-progress-hero="desktop-migrated"]');
     expect(hero).not.toBeNull();
     expect(hero?.className).toContain('bg-gradient-to-br');
@@ -146,13 +146,13 @@ describe('AgentCenter UI', () => {
     expect(collapsedOverviewBadge?.className).not.toContain('absolute');
     expect(collapsedOverviewBadge?.className).not.toContain('-right');
     expect(collapsedOverviewBadge?.className).not.toContain('-top');
-    expect(node.querySelector('[data-agent-center-active-section-label]')?.textContent).toBe('Appearance');
+    expect(node.querySelector('[data-agent-center-active-section-label]')).toBeNull();
 
     click(model);
     expect(model?.className).toContain('bg-emerald-500/15');
     expect(model?.querySelector('span')?.className).toContain('max-w-[160px]');
     expect(overview?.querySelector('span')?.className).toContain('max-w-0');
-    expect(node.querySelector('[data-agent-center-active-section-label]')?.textContent).toBe('Model');
+    expect(node.querySelector('[data-agent-center-active-section-label]')).toBeNull();
     expect(node.querySelector('[data-agent-center-model-surface="runtime-model-config-hub"]')).not.toBeNull();
     expect(node.textContent).toContain('Conversation');
     expect(node.textContent).toContain('Voice');
@@ -265,7 +265,7 @@ describe('AgentCenter UI', () => {
     ]);
 
     click(buttons[3]);
-    expect(node.textContent).toContain('Revision 9');
+    expect(node.textContent).not.toContain('Revision 9');
     expect(node.querySelector('[data-agent-center-model-surface="runtime-model-config-hub"]')).not.toBeNull();
     expect(node.textContent).toContain('Embedding');
     expect(node.textContent).not.toContain('Model ID');
@@ -496,7 +496,7 @@ describe('AgentCenter UI', () => {
     });
 
     expect(calls).toEqual(['loadSnapshot']);
-    expect(node.textContent).toContain('Revision 15');
+    expect(node.textContent).not.toContain('Revision 15');
     expect(node.querySelector('[data-agent-center-model-surface="runtime-model-config-hub"]')).not.toBeNull();
     expect(node.textContent).toContain('Embedding');
   });
@@ -539,7 +539,7 @@ describe('AgentCenter UI', () => {
     await flush();
 
     expect(loadCalls).toBe(0);
-    expect(node.textContent).toContain('Revision 22');
+    expect(node.textContent).not.toContain('Revision 22');
     expect(node.textContent).toContain('Embedding');
     expect(node.textContent).not.toContain('unexpected duplicate load');
   });
@@ -576,6 +576,126 @@ describe('AgentCenter UI', () => {
     expect(loadCalls).toBe(0);
     expect(node.textContent).toContain('avatar:provided');
     expect(node.textContent).not.toContain('unexpected duplicate appearance load');
+  });
+
+  it('honors explicit autonomy mutation disablement even when a runtime adapter can write', async () => {
+    const autonomyCalls: unknown[] = [];
+    const node = render(
+      <AgentCenter
+        defaultSection="behavior"
+        runtimeAdapter={{
+          agentAIConfig: {} as never,
+          async loadSnapshot() {
+            return {};
+          },
+          async setAutonomyConfig(input) {
+            autonomyCalls.push(input);
+            return { enabled: true, mode: input.mode } as never;
+          },
+        }}
+        state={{
+          autonomyMutationAvailable: false,
+          autonomyDisabledReason: '会话没有打开成功，请重新选择伙伴或重启织羽后再试。',
+          inspect: {
+            lifecycleStatus: 'active',
+            executionState: 'idle',
+            statusText: 'ready',
+            activeWorldId: null,
+            activeUserId: null,
+            updatedAt: null,
+            currentEmotion: 'calm',
+            proactiveInterruptibility: null,
+            presentationProfile: null,
+            autonomyMode: 'off',
+            autonomyEnabled: false,
+            autonomyBudgetExhausted: false,
+            autonomyUsedTokensInWindow: 0,
+            autonomyDailyTokenBudget: 0,
+            autonomyMaxTokensPerHook: 0,
+            autonomyWindowStartedAt: null,
+            autonomySuspendedUntil: null,
+            pendingHooksCount: 0,
+            nextScheduledFor: null,
+            pendingHooks: [],
+            recentTerminalHooks: [],
+            recentCanonicalMemories: [],
+          } as never,
+        }}
+      />,
+    );
+
+    await flush();
+
+    const toggle = node.querySelector<HTMLInputElement>('[data-agent-center-proactive-toggle="true"]');
+    const highMode = node.querySelector<HTMLButtonElement>('[data-agent-center-behavior-mode="high"]');
+    expect(node.textContent).toContain('会话没有打开成功，请重新选择伙伴或重启织羽后再试。');
+    expect(toggle?.disabled).toBe(true);
+    expect(highMode?.disabled).toBe(true);
+    await clickAsync(highMode);
+    expect(autonomyCalls).toEqual([]);
+  });
+
+  it('enables proactive companion when selecting a non-quiet behavior level from off', async () => {
+    const autonomyCalls: unknown[] = [];
+    const node = render(
+      <AgentCenter
+        defaultSection="behavior"
+        runtimeAdapter={{
+          agentAIConfig: {} as never,
+          async loadSnapshot() {
+            return {};
+          },
+          async setAutonomyConfig(input) {
+            autonomyCalls.push(input);
+            return {
+              enabled: input.enabled,
+              mode: input.mode,
+              dailyTokenBudget: input.dailyTokenBudget,
+              maxTokensPerHook: input.maxTokensPerHook,
+            } as never;
+          },
+        }}
+        state={{
+          autonomyMutationAvailable: true,
+          inspect: {
+            lifecycleStatus: 'active',
+            executionState: 'idle',
+            statusText: 'ready',
+            activeWorldId: null,
+            activeUserId: null,
+            updatedAt: null,
+            currentEmotion: 'calm',
+            proactiveInterruptibility: null,
+            presentationProfile: null,
+            autonomyMode: 'off',
+            autonomyEnabled: false,
+            autonomyBudgetExhausted: false,
+            autonomyUsedTokensInWindow: 0,
+            autonomyDailyTokenBudget: 0,
+            autonomyMaxTokensPerHook: 0,
+            autonomyWindowStartedAt: null,
+            autonomySuspendedUntil: null,
+            pendingHooksCount: 0,
+            nextScheduledFor: null,
+            pendingHooks: [],
+            recentTerminalHooks: [],
+            recentCanonicalMemories: [],
+          } as never,
+        }}
+      />,
+    );
+
+    await flush();
+    await clickAsync(node.querySelector('[data-agent-center-behavior-mode="high"]'));
+
+    expect(autonomyCalls).toEqual([{
+      enabled: true,
+      mode: 'high',
+      dailyTokenBudget: 0,
+      maxTokensPerHook: 0,
+    }]);
+    expect(node.querySelector('[data-agent-center-behavior-mode="high"]')?.getAttribute('aria-pressed')).toBe('true');
+    expect(node.querySelector<HTMLInputElement>('[data-agent-center-proactive-toggle="true"]')?.checked).toBe(true);
   });
 
   it('commits behavior and appearance edits through typed adapters', async () => {
@@ -685,7 +805,7 @@ describe('AgentCenter UI', () => {
     await flush();
     expect(autonomyCalls).toEqual([{
       enabled: false,
-      mode: 'medium',
+      mode: 'off',
       dailyTokenBudget: 1200,
       maxTokensPerHook: 80,
     }]);
@@ -693,11 +813,11 @@ describe('AgentCenter UI', () => {
     click(node.querySelector('[data-testid="chat-agent-center-section:appearance"]'));
     expect(node.textContent).toContain('Partner avatar');
     expect(node.textContent).toContain('Change avatar');
+    expect(node.textContent).toContain('Import Live2D folder');
+    expect(node.textContent).toContain('Import VRM file');
     expect(node.textContent).toContain('Import background image');
-    expect(node.textContent).not.toContain('Import Live2D folder');
-    expect(node.textContent).not.toContain('Import VRM file');
     expect(node.textContent).not.toContain('Avatar local asset ref');
-    await clickAsync(node.querySelector('[data-agent-center-appearance-secondary-action="change"]'));
+    await clickAsync(Array.from(node.querySelectorAll('button')).find((button) => button.textContent?.includes('Import Live2D folder')) || null);
     await clickAsync(Array.from(node.querySelectorAll('button')).find((button) => button.textContent?.includes('Import background image')) || null);
     click(node.querySelector('[data-agent-center-avatar-autoplay]'));
     expect(appearanceCalls).toEqual([
@@ -787,6 +907,65 @@ describe('AgentCenter UI', () => {
       dailyTokenBudget: 2000,
       maxTokensPerHook: 500,
     });
+  });
+
+  it('matches the behavior title scale to appearance and omits the eyebrow label', () => {
+    const state = buildAgentCenterState({
+      autonomyMutationAvailable: true,
+      inspect: {
+        lifecycleStatus: 'active',
+        executionState: 'idle',
+        statusText: 'ready',
+        activeWorldId: null,
+        activeUserId: null,
+        updatedAt: null,
+        currentEmotion: 'calm',
+        proactiveInterruptibility: null,
+        presentationProfile: null,
+        autonomyMode: 'medium',
+        autonomyEnabled: true,
+        autonomyBudgetExhausted: false,
+        autonomyUsedTokensInWindow: 0,
+        autonomyDailyTokenBudget: 0,
+        autonomyMaxTokensPerHook: 0,
+        autonomyWindowStartedAt: null,
+        autonomySuspendedUntil: null,
+        pendingHooksCount: 0,
+        nextScheduledFor: null,
+        pendingHooks: [],
+        recentTerminalHooks: [],
+        recentCanonicalMemories: [],
+      } as never,
+      appearance: {
+        status: 'ready',
+        backendKind: 'live2d',
+        avatarAssetRef: 'avatar:provided',
+        avatarAssetValid: true,
+        backendCapabilityProfileRef: 'avatar-profile:live2d',
+        live2dAdapterManifestSource: 'embedded_creator_manifest',
+        disabledReason: null,
+      },
+    });
+    const node = render(
+      <AgentCenter
+        behaviorCopy={{
+          eyebrow: 'REMOVE_ME_EYEBROW',
+          title: 'Behavior section title',
+          description: 'Behavior section description',
+        }}
+        defaultSection="behavior"
+        state={state}
+      />,
+    );
+
+    const behaviorTitle = node.querySelector<HTMLElement>('#agent-center-behavior-title');
+    expect(behaviorTitle?.textContent).toBe('Behavior section title');
+    expect(node.textContent).not.toContain('REMOVE_ME_EYEBROW');
+
+    click(node.querySelector('[data-testid="chat-agent-center-section:appearance"]'));
+    const appearanceTitle = node.querySelector<HTMLElement>('#agent-center-appearance-title');
+    expect(appearanceTitle?.textContent).toBe('Appearance');
+    expect(behaviorTitle?.className).toBe(appearanceTitle?.className);
   });
 
   it('renders structured Runtime projection load errors from Electron bridges', async () => {

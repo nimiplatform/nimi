@@ -8,7 +8,9 @@ import {
   FolderOpen,
   Image as ImageIcon,
   ImagePlus,
+  PlayCircle,
   Settings2,
+  Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type {
@@ -512,6 +514,7 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
   }, [state.appearance]);
 
   const avatarImportDisabled = Boolean(appearance.avatarImportDisabled || !appearanceAdapter?.importAvatarAsset);
+  const clearAvatarDisabled = Boolean(!appearance.avatarAssetRef || !appearanceAdapter?.clearAvatarAsset);
   const live2dManifestDisabled = Boolean(
     avatarImportDisabled
       || !appearance.avatarAssetRef
@@ -708,6 +711,307 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
     </div>
   );
 
+  const renderProgressChecklist = () => (
+    <div data-agent-center-appearance-progress="display-checklist">
+      <Card className="border-slate-200/80 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="m-0 text-[15px] font-semibold leading-6 text-slate-950">{labels.progressTitle}</h3>
+          <span className="shrink-0 text-[12px] font-semibold text-slate-500">
+            {labels.progressCompleteLabel} {completedSteps} / {setupSteps.length}
+          </span>
+        </div>
+        <div className="mb-5 h-2 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="h-full rounded-full bg-emerald-500 transition-[width] duration-300"
+            data-agent-center-appearance-progress-bar="true"
+            style={{ width: progressWidth }}
+          />
+        </div>
+        <ol className="m-0 list-none p-0">
+          {setupSteps.map((step, index) => (
+            <SetupStepRow index={index + 1} key={step.label} step={step} />
+          ))}
+        </ol>
+        <button
+          className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] border border-emerald-500 bg-emerald-500 px-4 text-[13px] font-semibold text-white shadow-[0_10px_20px_rgba(16,185,129,0.20)] transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:border-emerald-200 disabled:bg-emerald-200 disabled:text-white/70 disabled:shadow-none"
+          disabled={live2dManifestDisabled || sidecarReady}
+          onClick={continueSetup}
+          type="button"
+        >
+          <FolderOpen aria-hidden="true" className="h-4 w-4" />
+          {labels.selectSidecar}
+        </button>
+      </Card>
+    </div>
+  );
+
+  const renderAssetManagement = () => (
+    <div data-agent-center-appearance-management="asset-import">
+      <Card className="border-slate-200/80 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+        <h3 className="m-0 text-[15px] font-semibold leading-6 text-slate-950">{labels.assetManagementTitle}</h3>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <button
+            className="group grid min-h-[118px] place-items-center gap-2 rounded-[12px] border border-emerald-100 bg-emerald-50/40 px-3 py-4 text-center transition-colors hover:border-emerald-200 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-55"
+            disabled={avatarImportDisabled}
+            onClick={() => importAvatarAsset('live2d')}
+            type="button"
+          >
+            <span className="relative grid h-11 w-11 place-items-center rounded-[12px] bg-white text-emerald-600 shadow-sm">
+              <FolderOpen aria-hidden="true" className="h-6 w-6" />
+              <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-emerald-100 text-emerald-700 ring-2 ring-white">
+                <PlayCircle aria-hidden="true" className="h-3.5 w-3.5" />
+              </span>
+            </span>
+            <span className="grid min-w-0 gap-1">
+              <span className="text-[13px] font-semibold text-slate-700">
+                {appearance.avatarImportPending ? `${labels.importLive2dTitle}...` : labels.importLive2dTitle}
+              </span>
+              <span className="text-[11.5px] leading-4 text-slate-500">{labels.importLive2dSubtitle}</span>
+              <span className="text-[11px] font-semibold text-emerald-600">
+                {avatarReady && backendKind(appearance) === 'live2d' ? labels.live2dImported : labels.importOtherFormat}
+              </span>
+            </span>
+          </button>
+
+          <button
+            className="group grid min-h-[118px] place-items-center gap-2 rounded-[12px] border border-sky-100 bg-sky-50/20 px-3 py-4 text-center transition-colors hover:border-sky-200 hover:bg-sky-50/60 disabled:cursor-not-allowed disabled:opacity-55"
+            disabled={avatarImportDisabled}
+            onClick={() => importAvatarAsset('vrm')}
+            type="button"
+          >
+            <span className="grid h-11 w-11 place-items-center rounded-[12px] bg-white text-sky-500 shadow-sm">
+              <Box aria-hidden="true" className="h-6 w-6" />
+            </span>
+            <span className="grid min-w-0 gap-1">
+              <span className="text-[13px] font-semibold text-slate-700">
+                {appearance.avatarImportPending ? `${labels.importVrmTitle}...` : labels.importVrmTitle}
+              </span>
+              <span className="text-[11.5px] leading-4 text-slate-500">{labels.importVrmSubtitle}</span>
+              <span className="text-[11px] font-semibold text-sky-600">
+                {backendKind(appearance) === 'vrm' && avatarReady ? labels.live2dImported : labels.importOtherFormat}
+              </span>
+            </span>
+          </button>
+        </div>
+        <div className="mt-4 flex min-w-0 items-center justify-between gap-3 border-t border-slate-100 pt-3 text-[12px] text-slate-500">
+          <span>{labels.removeAvatar}</span>
+          <button
+            aria-label={labels.removeAvatar}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] border border-slate-200 bg-white text-slate-400 transition-colors hover:border-rose-100 hover:bg-rose-50 hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={clearAvatarDisabled}
+            onClick={() => run(
+              labels.removeAvatar,
+              appearanceAdapter?.clearAvatarAsset ? () => appearanceAdapter.clearAvatarAsset?.() as Promise<AgentCenterAppearanceProjection> : undefined,
+              () => labels.doneLabel,
+            )}
+            type="button"
+          >
+            <Trash2 aria-hidden="true" className="h-4 w-4" />
+          </button>
+        </div>
+      </Card>
+    </div>
+  );
+
+  const renderChatBackground = () => (
+    <div data-agent-center-appearance-background="chat-scene">
+      <Card className="border-slate-200/80 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_170px]">
+          <div className="min-w-0">
+            <h3 className="m-0 text-[15px] font-semibold leading-6 text-slate-950">{labels.chatBackgroundTitle}</h3>
+            <p className="m-0 mt-2 max-w-[230px] text-[12px] leading-5 text-slate-500">{labels.chatBackgroundDescription}</p>
+            <span className={cnAgentCenter(
+              'mt-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold',
+              backgroundState === 'ready' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500',
+            )}>
+              {backgroundState === 'ready' ? labels.backgroundReady : labels.backgroundUnset}
+            </span>
+          </div>
+          <div
+            className="grid min-h-[102px] place-items-center overflow-hidden rounded-[12px] border border-emerald-100 bg-emerald-50/60 text-emerald-600"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.92), rgba(232,247,239,0.92))',
+            }}
+          >
+            <ImageIcon aria-hidden="true" className="h-9 w-9 opacity-80" />
+          </div>
+        </div>
+        {appearance.backgroundValidationMessage ? (
+          <div className="mt-3 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-800">
+            {appearance.backgroundValidationMessage}
+          </div>
+        ) : null}
+        {appearance.backgroundImportError ? (
+          <div className="mt-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
+            {appearance.backgroundImportError}
+          </div>
+        ) : null}
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <button
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 text-[12.5px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-55"
+            disabled={backgroundImportDisabled}
+            onClick={importBackground}
+            type="button"
+          >
+            <ImagePlus aria-hidden="true" className="h-4 w-4" />
+            {appearance.backgroundImportPending ? `${labels.uploadBackground}...` : labels.uploadBackground}
+          </button>
+          <button
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-[10px] border border-slate-200 bg-white px-3 text-[12.5px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+            disabled
+            type="button"
+          >
+            <ImageIcon aria-hidden="true" className="h-4 w-4" />
+            {labels.chooseRecommendedBackground}
+          </button>
+        </div>
+      </Card>
+    </div>
+  );
+
+  const renderDiagnostics = () => (
+    <details
+      className="group rounded-[14px] border border-slate-200/80 bg-white px-4 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
+      data-agent-center-appearance-diagnostics="collapsed"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+        <span className="min-w-0">
+          <span className="block text-[15px] font-semibold leading-6 text-slate-950">{labels.technicalDetailsTitle}</span>
+          <span className="mt-1 block text-[12px] leading-5 text-slate-500">{labels.technicalDetailsDescription}</span>
+        </span>
+        <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-700 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3">
+        <div className="grid gap-2">
+          <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-700">
+            <Settings2 aria-hidden="true" className="h-4 w-4 text-slate-400" />
+            {labels.diagnosticsEvidenceTitle}
+          </div>
+          <EvidenceRow
+            label={labels.selectedAssetLabel}
+            state={appearance.avatarAssetRef ? 'ready' : 'missing'}
+            value={appearance.avatarAssetRef || labels.missingLabel}
+          />
+          <EvidenceRow
+            label={labels.validationLabel}
+            state={assetStatus(appearance)}
+            value={(appearance.validationStatus || (appearance.avatarAssetRef ? 'unchecked' : 'selection_missing')).replaceAll('_', ' ')}
+          />
+          <EvidenceRow
+            label={labels.capabilityProfileLabel}
+            state={capabilityStatus(appearance)}
+            value={appearance.backendCapabilityProfileRef ? labels.linkedLabel : labels.pendingEvidenceLabel}
+          />
+          {backendKind(appearance) === 'live2d' ? (
+            <EvidenceRow
+              label={labels.live2dManifestLabel}
+              state={live2dManifestStatus(appearance)}
+              value={adapterDisplay}
+            />
+          ) : null}
+        </div>
+
+        {appearance.validationIssueRows && appearance.validationIssueRows.length > 0 ? (
+          <div className="rounded-[10px] bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-600">
+            {appearance.validationIssueRows.map((issue) => (
+              <div className="break-words" key={issue}>{issue}</div>
+            ))}
+          </div>
+        ) : null}
+
+        <DiagnosticsWorkbench appearance={appearance} />
+
+        <div className="grid gap-2">
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-[12px] bg-slate-50 px-3 py-2.5">
+            <div className="grid min-w-0 gap-0.5">
+              <span className="text-[13px] font-semibold text-slate-950">{labels.avatarAutoplayLabel}</span>
+              <span className="text-[12px] text-slate-600">{labels.avatarAutoplayDescription}</span>
+            </div>
+            <AgentButton
+              dataAttrs={{ 'data-agent-center-avatar-autoplay': 'true' }}
+              disabled={!appearanceAdapter?.setAvatarAutoplay}
+              onClick={toggleAutoplay}
+              variant={appearance.avatarAutoplay ? 'accent' : 'default'}
+            >
+              {appearance.avatarAutoplay ? labels.disableLabel : labels.enableLabel}
+            </AgentButton>
+          </div>
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-[12px] bg-slate-50 px-3 py-2.5">
+            <div className="grid min-w-0 gap-0.5">
+              <span className="text-[13px] font-semibold text-slate-950">{labels.voiceArtifactsLabel}</span>
+              <span className="text-[12px] text-slate-600">{labels.voiceArtifactsDescription}</span>
+            </div>
+            <AgentButton
+              disabled={!appearanceAdapter?.cleanupGeneratedVoiceArtifacts || appearance.voiceCleanupPending}
+              onClick={() => run(
+                labels.voiceArtifactsLabel,
+                appearanceAdapter?.cleanupGeneratedVoiceArtifacts ? () => appearanceAdapter.cleanupGeneratedVoiceArtifacts?.() as Promise<AgentCenterAppearanceProjection> : undefined,
+                () => labels.doneLabel,
+              )}
+              variant="default"
+            >
+              {appearance.voiceCleanupPending ? labels.cleaningLabel : labels.cleanupLabel}
+            </AgentButton>
+          </div>
+          {appearance.voiceCleanupError ? <Notice tone="warn">{appearance.voiceCleanupError}</Notice> : null}
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <SelectControl
+            disabled={avatarConfigDisabled}
+            label={labels.instancePolicyLabel}
+            onChange={(avatar_instance_policy) => updateAvatarConfig({ avatar_instance_policy })}
+            options={[
+              { value: 'reuse_active_instance', label: 'Reuse active' },
+              { value: 'launch_new_instance', label: 'Launch new' },
+              { value: 'require_user_selection', label: 'Ask every time' },
+            ]}
+            value={(appearance.avatarInstancePolicy || 'reuse_active_instance') as 'reuse_active_instance' | 'launch_new_instance' | 'require_user_selection'}
+          />
+          <SelectControl
+            disabled={avatarConfigDisabled}
+            label={labels.generatedMotionLabel}
+            onChange={(generated_motion_provider_policy) => updateAvatarConfig({ generated_motion_provider_policy })}
+            options={[
+              { value: 'require_profile_support', label: 'Require profile' },
+              { value: 'disable_generated_motion', label: 'Disabled' },
+              { value: 'debug_only', label: 'Debug only' },
+            ]}
+            value={(appearance.generatedMotionProviderPolicy || 'require_profile_support') as 'require_profile_support' | 'disable_generated_motion' | 'debug_only'}
+          />
+          <SelectControl
+            disabled={avatarConfigDisabled}
+            label={labels.launchModeLabel}
+            onChange={(launch_mode) => updateAvatarConfig({ launch_mode })}
+            options={[
+              { value: 'manual', label: 'Manual' },
+              { value: 'debug_session', label: 'Debug session' },
+              { value: 'start_with_chat', label: 'Start with chat' },
+            ]}
+            value={(appearance.launchMode || 'manual') as 'manual' | 'debug_session' | 'start_with_chat'}
+          />
+          <SelectControl
+            disabled={avatarConfigDisabled || !appearance.developerModeEnabled}
+            label={labels.debugProfileLabel}
+            onChange={(debug_profile) => updateAvatarConfig({ debug_profile })}
+            options={[
+              { value: 'standard', label: 'Standard' },
+              { value: 'strict_backend_evidence', label: 'Strict backend evidence' },
+              { value: 'route_matrix', label: 'Route matrix' },
+            ]}
+            value={(appearance.debugProfile || 'standard') as 'standard' | 'strict_backend_evidence' | 'route_matrix'}
+          />
+        </div>
+        <div className="flex min-w-0 items-start gap-2 rounded-[10px] border border-slate-100 bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-600">
+          <AlertCircle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <span className="min-w-0">
+            Kit stores opaque Avatar/Runtime refs only. Avatar and Runtime own model digest, framing, scale, FPS, expression inventory, preview refs, and effect materialization.
+          </span>
+        </div>
+      </div>
+    </details>
+  );
+
   if (setupBlockedReason) {
     const blocked = blockedSetupCopy(setupBlockedReason, labels);
     return (
@@ -756,6 +1060,11 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
           {readableDisabledReason ? <Notice tone="warn">{readableDisabledReason}</Notice> : null}
           {appearance.avatarImportError ? <Notice tone="warn">{appearance.avatarImportError}</Notice> : null}
 
+          {renderProgressChecklist()}
+          {renderAssetManagement()}
+          {renderChatBackground()}
+          {renderDiagnostics()}
+
           {status ? <Notice>{status}</Notice> : null}
         </div>
       </SectionShell>
@@ -778,232 +1087,10 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
         {readableDisabledReason ? <Notice tone="warn">{readableDisabledReason}</Notice> : null}
         {appearance.avatarImportError ? <Notice tone="warn">{appearance.avatarImportError}</Notice> : null}
 
-        <div data-agent-center-appearance-progress="display-checklist">
-        <Card className="border-slate-200/80 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="m-0 text-[15px] font-semibold leading-6 text-slate-950">{labels.progressTitle}</h3>
-            <span className="shrink-0 text-[12px] font-semibold text-slate-500">
-              {labels.progressCompleteLabel} {completedSteps} / {setupSteps.length}
-            </span>
-          </div>
-          <div className="mb-5 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-emerald-500 transition-[width] duration-300"
-              data-agent-center-appearance-progress-bar="true"
-              style={{ width: progressWidth }}
-            />
-          </div>
-          <ol className="m-0 list-none p-0">
-            {setupSteps.map((step, index) => (
-              <SetupStepRow index={index + 1} key={step.label} step={step} />
-            ))}
-          </ol>
-          <button
-            className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] border border-emerald-500 bg-emerald-500 px-4 text-[13px] font-semibold text-white shadow-[0_10px_20px_rgba(16,185,129,0.20)] transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:border-emerald-200 disabled:bg-emerald-200 disabled:text-white/70 disabled:shadow-none"
-            disabled={live2dManifestDisabled || sidecarReady}
-            onClick={continueSetup}
-            type="button"
-          >
-            <FolderOpen aria-hidden="true" className="h-4 w-4" />
-            {labels.selectSidecar}
-          </button>
-        </Card>
-        </div>
-
-        <div data-agent-center-appearance-background="chat-scene">
-        <Card className="border-slate-200/80 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_170px]">
-            <div className="min-w-0">
-              <h3 className="m-0 text-[15px] font-semibold leading-6 text-slate-950">{labels.chatBackgroundTitle}</h3>
-              <p className="m-0 mt-2 max-w-[230px] text-[12px] leading-5 text-slate-500">{labels.chatBackgroundDescription}</p>
-              <span className={cnAgentCenter(
-                'mt-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold',
-                backgroundState === 'ready' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500',
-              )}>
-                {backgroundState === 'ready' ? labels.backgroundReady : labels.backgroundUnset}
-              </span>
-            </div>
-            <div
-              className="grid min-h-[102px] place-items-center overflow-hidden rounded-[12px] border border-emerald-100 bg-emerald-50/60 text-emerald-600"
-              style={{
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.92), rgba(232,247,239,0.92))',
-              }}
-            >
-              <ImageIcon aria-hidden="true" className="h-9 w-9 opacity-80" />
-            </div>
-          </div>
-          {appearance.backgroundValidationMessage ? (
-            <div className="mt-3 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-800">
-              {appearance.backgroundValidationMessage}
-            </div>
-          ) : null}
-          {appearance.backgroundImportError ? (
-            <div className="mt-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
-              {appearance.backgroundImportError}
-            </div>
-          ) : null}
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <button
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 text-[12.5px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-55"
-              disabled={backgroundImportDisabled}
-              onClick={importBackground}
-              type="button"
-            >
-              <ImagePlus aria-hidden="true" className="h-4 w-4" />
-              {appearance.backgroundImportPending ? `${labels.uploadBackground}...` : labels.uploadBackground}
-            </button>
-            <button
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-[10px] border border-slate-200 bg-white px-3 text-[12.5px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
-              disabled
-              type="button"
-            >
-              <ImageIcon aria-hidden="true" className="h-4 w-4" />
-              {labels.chooseRecommendedBackground}
-            </button>
-          </div>
-        </Card>
-        </div>
-
-        <details
-          className="group rounded-[14px] border border-slate-200/80 bg-white px-4 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
-          data-agent-center-appearance-diagnostics="collapsed"
-        >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-            <span className="min-w-0">
-              <span className="block text-[15px] font-semibold leading-6 text-slate-950">{labels.technicalDetailsTitle}</span>
-              <span className="mt-1 block text-[12px] leading-5 text-slate-500">{labels.technicalDetailsDescription}</span>
-            </span>
-            <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-700 transition-transform group-open:rotate-180" />
-          </summary>
-          <div className="mt-4 grid gap-3 border-t border-slate-100 pt-3">
-            <div className="grid gap-2">
-              <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-700">
-                <Settings2 aria-hidden="true" className="h-4 w-4 text-slate-400" />
-                {labels.diagnosticsEvidenceTitle}
-              </div>
-              <EvidenceRow
-                label={labels.selectedAssetLabel}
-                state={appearance.avatarAssetRef ? 'ready' : 'missing'}
-                value={appearance.avatarAssetRef || labels.missingLabel}
-              />
-              <EvidenceRow
-                label={labels.validationLabel}
-                state={assetStatus(appearance)}
-                value={(appearance.validationStatus || (appearance.avatarAssetRef ? 'unchecked' : 'selection_missing')).replaceAll('_', ' ')}
-              />
-              <EvidenceRow
-                label={labels.capabilityProfileLabel}
-                state={capabilityStatus(appearance)}
-                value={appearance.backendCapabilityProfileRef ? labels.linkedLabel : labels.pendingEvidenceLabel}
-              />
-              {backendKind(appearance) === 'live2d' ? (
-                <EvidenceRow
-                  label={labels.live2dManifestLabel}
-                  state={live2dManifestStatus(appearance)}
-                  value={adapterDisplay}
-                />
-              ) : null}
-            </div>
-
-            {appearance.validationIssueRows && appearance.validationIssueRows.length > 0 ? (
-              <div className="rounded-[10px] bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-600">
-                {appearance.validationIssueRows.map((issue) => (
-                  <div className="break-words" key={issue}>{issue}</div>
-                ))}
-              </div>
-            ) : null}
-
-            <DiagnosticsWorkbench appearance={appearance} />
-
-            <div className="grid gap-2">
-              <div className="flex min-w-0 items-center justify-between gap-3 rounded-[12px] bg-slate-50 px-3 py-2.5">
-                <div className="grid min-w-0 gap-0.5">
-                  <span className="text-[13px] font-semibold text-slate-950">{labels.avatarAutoplayLabel}</span>
-                  <span className="text-[12px] text-slate-600">{labels.avatarAutoplayDescription}</span>
-                </div>
-                <AgentButton
-                  dataAttrs={{ 'data-agent-center-avatar-autoplay': 'true' }}
-                  disabled={!appearanceAdapter?.setAvatarAutoplay}
-                  onClick={toggleAutoplay}
-                  variant={appearance.avatarAutoplay ? 'accent' : 'default'}
-                >
-                  {appearance.avatarAutoplay ? labels.disableLabel : labels.enableLabel}
-                </AgentButton>
-              </div>
-              <div className="flex min-w-0 items-center justify-between gap-3 rounded-[12px] bg-slate-50 px-3 py-2.5">
-                <div className="grid min-w-0 gap-0.5">
-                  <span className="text-[13px] font-semibold text-slate-950">{labels.voiceArtifactsLabel}</span>
-                  <span className="text-[12px] text-slate-600">{labels.voiceArtifactsDescription}</span>
-                </div>
-                <AgentButton
-                  disabled={!appearanceAdapter?.cleanupGeneratedVoiceArtifacts || appearance.voiceCleanupPending}
-                  onClick={() => run(
-                    labels.voiceArtifactsLabel,
-                    appearanceAdapter?.cleanupGeneratedVoiceArtifacts ? () => appearanceAdapter.cleanupGeneratedVoiceArtifacts?.() as Promise<AgentCenterAppearanceProjection> : undefined,
-                    () => labels.doneLabel,
-                  )}
-                  variant="default"
-                >
-                  {appearance.voiceCleanupPending ? labels.cleaningLabel : labels.cleanupLabel}
-                </AgentButton>
-              </div>
-              {appearance.voiceCleanupError ? <Notice tone="warn">{appearance.voiceCleanupError}</Notice> : null}
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2">
-              <SelectControl
-                disabled={avatarConfigDisabled}
-                label={labels.instancePolicyLabel}
-                onChange={(avatar_instance_policy) => updateAvatarConfig({ avatar_instance_policy })}
-                options={[
-                  { value: 'reuse_active_instance', label: 'Reuse active' },
-                  { value: 'launch_new_instance', label: 'Launch new' },
-                  { value: 'require_user_selection', label: 'Ask every time' },
-                ]}
-                value={(appearance.avatarInstancePolicy || 'reuse_active_instance') as 'reuse_active_instance' | 'launch_new_instance' | 'require_user_selection'}
-              />
-              <SelectControl
-                disabled={avatarConfigDisabled}
-                label={labels.generatedMotionLabel}
-                onChange={(generated_motion_provider_policy) => updateAvatarConfig({ generated_motion_provider_policy })}
-                options={[
-                  { value: 'require_profile_support', label: 'Require profile' },
-                  { value: 'disable_generated_motion', label: 'Disabled' },
-                  { value: 'debug_only', label: 'Debug only' },
-                ]}
-                value={(appearance.generatedMotionProviderPolicy || 'require_profile_support') as 'require_profile_support' | 'disable_generated_motion' | 'debug_only'}
-              />
-              <SelectControl
-                disabled={avatarConfigDisabled}
-                label={labels.launchModeLabel}
-                onChange={(launch_mode) => updateAvatarConfig({ launch_mode })}
-                options={[
-                  { value: 'manual', label: 'Manual' },
-                  { value: 'debug_session', label: 'Debug session' },
-                  { value: 'start_with_chat', label: 'Start with chat' },
-                ]}
-                value={(appearance.launchMode || 'manual') as 'manual' | 'debug_session' | 'start_with_chat'}
-              />
-              <SelectControl
-                disabled={avatarConfigDisabled || !appearance.developerModeEnabled}
-                label={labels.debugProfileLabel}
-                onChange={(debug_profile) => updateAvatarConfig({ debug_profile })}
-                options={[
-                  { value: 'standard', label: 'Standard' },
-                  { value: 'strict_backend_evidence', label: 'Strict backend evidence' },
-                  { value: 'route_matrix', label: 'Route matrix' },
-                ]}
-                value={(appearance.debugProfile || 'standard') as 'standard' | 'strict_backend_evidence' | 'route_matrix'}
-              />
-            </div>
-            <div className="flex min-w-0 items-start gap-2 rounded-[10px] border border-slate-100 bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-600">
-              <AlertCircle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-              <span className="min-w-0">
-                Kit stores opaque Avatar/Runtime refs only. Avatar and Runtime own model digest, framing, scale, FPS, expression inventory, preview refs, and effect materialization.
-              </span>
-            </div>
-          </div>
-        </details>
+        {renderProgressChecklist()}
+        {renderAssetManagement()}
+        {renderChatBackground()}
+        {renderDiagnostics()}
 
         {status ? <Notice>{status}</Notice> : null}
       </div>
