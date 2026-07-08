@@ -84,6 +84,7 @@ modules:
       - react-i18next
     exports:
       - ./auth
+      - ./auth/shell
       - ./auth/styles.css
       - ./auth/native-oauth-result-page
     headless_exports:
@@ -91,9 +92,11 @@ modules:
       - ./auth/native-oauth-result-page
     ui_exports:
       - ./auth
+      - ./auth/shell
       - ./auth/styles.css
     reuse_entrypoints:
       - ./auth
+      - ./auth/shell
       - ./auth/styles.css
       - ./auth/native-oauth-result-page
     admission_status: active

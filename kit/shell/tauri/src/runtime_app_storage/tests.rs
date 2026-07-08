@@ -5,9 +5,21 @@ use super::{
     test_standard_app_storage_roots, StandardAppStorageRootSlot, StandardDataRootBinding,
     StandardStoragePathPayload, StandardStorageWriteJsonPayload,
 };
+use base64::Engine;
+use prost::Message;
 use serde_json::Value;
 use std::path::PathBuf;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::runtime_bridge::{
+    generated, with_runtime_bridge_host_hooks, RuntimeBridgeAppSession, RuntimeBridgeHostHooks,
+    RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata, RuntimeBridgeUnaryResult,
+    RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+};
 
 fn temp_root(prefix: &str) -> PathBuf {
     let unique = SystemTime::now()
@@ -157,6 +169,101 @@ async fn get_app_storage_binding_requires_app_id() {
 }
 
 #[test]
+fn get_app_storage_binding_uses_trusted_host_metadata() {
+    let data_root = temp_root("runtime-get-storage-data");
+    let cache_root = temp_root("runtime-get-storage-cache");
+    let trusted_called = Arc::new(AtomicBool::new(false));
+    let trusted_called_for_hook = trusted_called.clone();
+    let override_called = Arc::new(AtomicBool::new(false));
+    let override_called_for_hook = override_called.clone();
+    let data_root_for_hook = data_root.clone();
+    let cache_root_for_hook = cache_root.clone();
+
+    let hooks = RuntimeBridgeHostHooks {
+        trusted_metadata: Some(Arc::new(move |request| {
+            trusted_called_for_hook.store(true, Ordering::SeqCst);
+            Box::pin(async move {
+                assert_eq!(request.method_id, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID);
+                Ok(Some(RuntimeBridgeTrustedMetadata {
+                    metadata: Some(RuntimeBridgeMetadata {
+                        app_id: Some("nimi.parentos".to_string()),
+                        participant_id: Some("nimi.parentos".to_string()),
+                        caller_kind: Some("local-developer-app".to_string()),
+                        caller_id: Some("nimi.parentos.local-developer".to_string()),
+                        ..RuntimeBridgeMetadata::default()
+                    }),
+                    authorization: None,
+                    protected_access_token: None,
+                    app_session: Some(RuntimeBridgeAppSession {
+                        session_id: "host-session-id".to_string(),
+                        session_token: "host-session-token".to_string(),
+                    }),
+                }))
+            })
+        })),
+        unary_override: Some(Arc::new(move |payload| {
+            override_called_for_hook.store(true, Ordering::SeqCst);
+            assert_eq!(payload.method_id, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID);
+            let metadata = payload.metadata.as_ref().expect("trusted host metadata");
+            assert_eq!(metadata.app_id.as_deref(), Some("nimi.parentos"));
+            assert_eq!(
+                metadata.caller_id.as_deref(),
+                Some("nimi.parentos.local-developer")
+            );
+            assert_eq!(
+                payload
+                    .app_session
+                    .as_ref()
+                    .map(|session| session.session_id.as_str()),
+                Some("host-session-id")
+            );
+            let request_bytes = base64::engine::general_purpose::STANDARD
+                .decode(payload.request_bytes_base64.trim())
+                .expect("decode request");
+            let request = generated::GetAppStorageRequest::decode(request_bytes.as_slice())
+                .expect("decode GetAppStorageRequest");
+            assert_eq!(request.app_id, "nimi.parentos");
+
+            let response = generated::GetAppStorageResponse {
+                projection: Some(generated::AppStorageProjection {
+                    app_id: "nimi.parentos".to_string(),
+                    state: generated::AppStorageState::Ready as i32,
+                    durable_data_root: data_root_for_hook.display().to_string(),
+                    cache_root: cache_root_for_hook.display().to_string(),
+                    ..generated::AppStorageProjection::default()
+                }),
+            };
+            Ok(Some(RuntimeBridgeUnaryResult {
+                response_bytes_base64: base64::engine::general_purpose::STANDARD
+                    .encode(response.encode_to_vec()),
+                response_metadata: None,
+            }))
+        })),
+        ..RuntimeBridgeHostHooks::default()
+    };
+
+    let roots = with_runtime_bridge_host_hooks(hooks, || {
+        tauri::async_runtime::block_on(resolve_standard_app_storage_roots(
+            StandardDataRootBinding::RuntimeGetAppStorage {
+                app_id: "nimi.parentos".to_string(),
+            },
+        ))
+    })
+    .expect("Runtime storage binding should use trusted host metadata");
+
+    assert!(trusted_called.load(Ordering::SeqCst));
+    assert!(override_called.load(Ordering::SeqCst));
+    assert_eq!(
+        roots.data_root(),
+        data_root.canonicalize().expect("canonical data root")
+    );
+    assert_eq!(
+        roots.cache_root().expect("cache root"),
+        cache_root.canonicalize().expect("canonical cache root")
+    );
+}
+
+#[test]
 fn storage_payload_parse_rejects_forbidden_renderer_root_fields() {
     for field in [
         "path",
@@ -259,7 +366,7 @@ fn standard_storage_helpers_read_write_and_remove_json() {
         },
     )
     .expect("write");
-    assert!(write.path.ends_with("settings/profile.json"));
+    assert!(PathBuf::from(&write.path).ends_with(PathBuf::from("settings").join("profile.json")));
     assert_eq!(write.value["enabled"], true);
 
     let read = storage_read_json_for_roots(&roots, payload.clone()).expect("read");

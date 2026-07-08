@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { AccountCallerMode, AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
+import { AccountCallerMode, AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   type DesktopElectronRuntimeAuthRuntime,
   createDesktopElectronTrustedRuntimeMetadataProvider,
@@ -59,6 +59,21 @@ test('Desktop Electron trusted Runtime metadata is host-owned and not developer-
   assert.equal(registerCall?.request.developerRegistration, false);
   assert.equal(tokenCall?.request.subjectUserId, 'account-1');
   assert.deepEqual(metadata, {
+    metadata: {
+      participantId: 'nimi.desktop',
+      callerKind: 'desktop-shell',
+      callerId: 'nimi.desktop.local-first-party',
+      protocolVersion: undefined,
+      participantProtocolVersion: undefined,
+      domain: undefined,
+      traceId: undefined,
+      idempotencyKey: undefined,
+      surfaceId: undefined,
+      keySource: undefined,
+      providerType: undefined,
+      clientId: undefined,
+      providerEndpoint: undefined,
+    },
     appSession: {
       sessionId: 'session-id',
       sessionToken: 'session-token',
@@ -70,7 +85,7 @@ test('Desktop Electron trusted Runtime metadata is host-owned and not developer-
   });
 });
 
-test('Desktop Electron trusted Runtime metadata returns unavailable while Runtime account is unauthenticated', async () => {
+test('Desktop Electron trusted Runtime metadata keeps host identity and app session while account is unauthenticated', async () => {
   const calls: Array<{ readonly kind: string; readonly request: Record<string, unknown>; readonly options?: unknown }> = [];
   const provider = createDesktopElectronTrustedRuntimeMetadataProvider({
     appId: 'nimi.desktop',
@@ -86,8 +101,28 @@ test('Desktop Electron trusted Runtime metadata returns unavailable while Runtim
     event: {},
   });
 
-  assert.equal(metadata, undefined);
-  assert.deepEqual(calls.map((call) => call.kind), ['getAccountSessionStatus']);
+  assert.deepEqual(metadata, {
+    metadata: {
+      participantId: 'nimi.desktop',
+      callerKind: 'desktop-shell',
+      callerId: 'nimi.desktop.local-first-party',
+      protocolVersion: undefined,
+      participantProtocolVersion: undefined,
+      domain: undefined,
+      traceId: undefined,
+      idempotencyKey: undefined,
+      surfaceId: undefined,
+      keySource: undefined,
+      providerType: undefined,
+      clientId: undefined,
+      providerEndpoint: undefined,
+    },
+    appSession: {
+      sessionId: 'session-id',
+      sessionToken: 'session-token',
+    },
+  });
+  assert.deepEqual(calls.map((call) => call.kind), ['registerApp', 'openSession', 'getAccountSessionStatus']);
 });
 
 function createFakeDesktopElectronRuntime(

@@ -14,8 +14,9 @@ const POLICY_MODE_CUSTOM = 2;
 const AUTHORIZATION_PRESET_UNSPECIFIED = 0;
 
 describe('Electron Runtime account trusted metadata provider', () => {
-  it('returns undefined when account is unauthenticated', async () => {
+  it('returns host-owned identity and app session when account is anonymous', async () => {
     let registerCalled = false;
+    let openSessionCalled = false;
     const provider = createNimiElectronRuntimeAccountTrustedMetadataProvider({
       appId: 'nimi.thirdparty.fixture',
       runtimeEndpoint: '127.0.0.1:46371',
@@ -47,7 +48,12 @@ describe('Electron Runtime account trusted metadata provider', () => {
             return { accepted: true };
           },
           openSession: async () => {
-            throw new Error('app session must not be opened without account');
+            openSessionCalled = true;
+            return {
+              sessionId: 'anonymous-session',
+              sessionToken: 'anonymous-session-secret',
+              expiresAt: { seconds: Math.floor(Date.now() / 1000) + 3600, nanos: 0 },
+            };
           },
         },
         grants: {
@@ -58,14 +64,26 @@ describe('Electron Runtime account trusted metadata provider', () => {
       },
     });
 
-    await expect(provider({
+    const metadata = await provider({
       command: 'nimi.shell.runtime.unary',
       methodId: '/nimi.runtime.v1.RuntimeAgentService/ListAgents',
       event: {},
       appId: 'nimi.thirdparty.fixture',
       runtimeEndpoint: '127.0.0.1:46371',
-    } as never)).resolves.toBeUndefined();
+    } as never);
+
+    expect(metadata?.metadata).toEqual({
+      participantId: 'nimi.thirdparty.fixture',
+      callerKind: 'local-first-party-app',
+      callerId: 'fixture.instance',
+    });
+    expect(metadata?.appSession).toEqual({
+      sessionId: 'anonymous-session',
+      sessionToken: 'anonymous-session-secret',
+    });
+    expect(metadata?.protectedAccessToken).toBeUndefined();
     expect(registerCalled).toBe(true);
+    expect(openSessionCalled).toBe(true);
   });
 
   it('returns host-owned session and grant metadata', async () => {
@@ -133,6 +151,11 @@ describe('Electron Runtime account trusted metadata provider', () => {
 
     expect(metadata?.appSession).toEqual({ sessionId: 'session-1', sessionToken: 'session-secret' });
     expect(metadata?.protectedAccessToken).toEqual({ tokenId: 'grant-1', secret: 'grant-secret' });
+    expect(metadata?.metadata).toEqual({
+      participantId: 'nimi.thirdparty.fixture',
+      callerKind: 'local-first-party-app',
+      callerId: 'fixture.instance',
+    });
     expect(registerInput?.capabilities).toEqual(['realm.feed.read', 'runtime.ai.consume']);
     expect(registerInput?.developerRegistration).toBe(false);
     expect(authorizeInput?.externalPrincipalType).toBe(EXTERNAL_PRINCIPAL_TYPE_APP);
@@ -349,7 +372,8 @@ describe('Electron Runtime account trusted metadata provider', () => {
     } as never);
 
     expect(events[0]).toBe('register:nimi.zhiyu.local-first-party');
-    expect(events[1]).toBe('status');
+    expect(events[1]).toBe('register:nimi.zhiyu.platform-runtime-session');
+    expect(events[2]).toBe('status');
     expect(registerInputs[0]?.developerRegistration).toBe(false);
     expect(registerInputs[0]?.capabilities).toEqual(['runtime.account.read', 'runtime.agent.read']);
     expect(registerInputs.some((input) => input.appInstanceId === 'nimi.zhiyu.platform-runtime-session')).toBe(true);
@@ -429,7 +453,8 @@ describe('Electron Runtime account trusted metadata provider', () => {
     } as never);
 
     expect(events[0]).toBe('register:nimi.zhiyu.local-developer');
-    expect(events[1]).toBe('status');
+    expect(events[1]).toBe('register:nimi.zhiyu.platform-runtime-session');
+    expect(events[2]).toBe('status');
     expect(registerInputs[0]?.developerRegistration).toBe(true);
     expect(registerInputs[0]?.capabilities).toEqual(['runtime.account.read', 'runtime.agent.read']);
     expect(registerInputs.some((input) => input.appInstanceId === 'nimi.zhiyu.platform-runtime-session')).toBe(true);

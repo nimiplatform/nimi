@@ -4,6 +4,7 @@
   "packageExports": [
     "./auth",
     "./auth/native-oauth-result-page",
+    "./auth/shell",
     "./auth/styles.css",
     "./core/desktop-open",
     "./core/model-config",
@@ -116,6 +117,15 @@
         "function renderDesktopOAuthResultPage",
         "type DesktopOAuthResultPageLocale",
         "type DesktopOAuthResultPageStatus"
+      ]
+    },
+    {
+      "exportKey": "./auth/shell",
+      "source": "kit/auth/src/shell/index.ts",
+      "exports": [
+        "export type { AuthPlatformAdapter, WalletChallengeInput, WalletChallengeResult, WalletLoginInput, } from '../platform/auth-platform-adapter.js';",
+        "export type { ShellAuthAppearance, ShellAuthBackgroundState, ShellAuthBranding, ShellAuthCopy, ShellAuthDesktopBrowserAuth, ShellAuthDesktopBrowserAuthRuntimeBroker, ShellAuthPageProps, ShellAuthSession, ShellAuthTestIds, ShellAuthWindow, WebAuthMenuMode, } from '../types/auth-types.js';",
+        "export { ShellAuthPage} from '../components/shell-auth-page.js';"
       ]
     },
     {
@@ -1584,6 +1594,10 @@
         "type NimiElectronFileDialogOpenResult",
         "type NimiElectronFloatingWindowHost",
         "type NimiElectronFloatingWindowMethod",
+        "type NimiElectronHostCommandKind",
+        "type NimiElectronHostCommandPolicy",
+        "type NimiElectronHostCommandPolicyDecision",
+        "type NimiElectronHostCommandPolicyInput",
         "type NimiElectronInstalledAppLaunchBinding",
         "type NimiElectronInstalledAppRuntimeAccountTrustedMetadataProviderInput",
         "type NimiElectronInstalledAppSessionInput",

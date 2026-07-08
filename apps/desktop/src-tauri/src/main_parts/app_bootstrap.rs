@@ -10,7 +10,10 @@ use nimi_shell_tauri::{
     capabilities::diagnostics::{
         build_renderer_entry_probe_script, RendererEntryProbeScriptConfig,
     },
-    capabilities::runtime::RuntimeBridgeHostHooks,
+    capabilities::runtime::{
+        RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata,
+        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+    },
     capabilities::shell_ui::{StandardConfirmDialogPayload, StandardShellUiHostHooks},
 };
 use std::sync::Arc;
@@ -41,6 +44,23 @@ fn install_shared_runtime_bridge_hooks() {
                 None
             }
         },
+        trusted_metadata: Some(Arc::new(|request| {
+            Box::pin(async move {
+                if request.method_id != RUNTIME_APP_GET_APP_STORAGE_METHOD_ID {
+                    return Ok(None);
+                }
+                Ok(Some(RuntimeBridgeTrustedMetadata {
+                    metadata: Some(RuntimeBridgeMetadata {
+                        app_id: Some("nimi.desktop".to_string()),
+                        participant_id: Some("nimi.desktop".to_string()),
+                        caller_kind: Some("desktop-shell".to_string()),
+                        caller_id: Some("nimi.desktop.shell".to_string()),
+                        ..RuntimeBridgeMetadata::default()
+                    }),
+                    ..RuntimeBridgeTrustedMetadata::default()
+                }))
+            })
+        })),
         sync_daemon_status: Some(Arc::new(|app, status| {
             crate::menu_bar_shell::sync_daemon_status(app, status);
         })),

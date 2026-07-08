@@ -11,6 +11,12 @@ Discipline.
 
 ### Added
 
+- Added `@nimiplatform/kit/auth/shell` as a lightweight public auth entry
+  that exports `ShellAuthPage` and its adapter/type contracts without the
+  desktop shell particle background or Three.js dependencies.
+- Added Electron host command policy types on `@nimiplatform/kit/shell/electron/main`
+  so installed-app hosts can deny selected standard/app-domain commands before
+  their handlers run while preserving structured fail-closed shell errors.
 - Added `@nimiplatform/kit/features/agent-center` as the reusable Runtime
   Local Agent Center surface. Apps now consume typed Runtime/appearance
   adapters instead of passing arbitrary app panels into Agent Center; model

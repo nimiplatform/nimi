@@ -149,6 +149,28 @@ export type NimiElectronCommandHandler = (
   input: NimiElectronCommandHandlerInput,
 ) => Promise<unknown> | unknown;
 
+export type NimiElectronHostCommandKind = 'standard' | 'app-domain' | 'unknown';
+
+export type NimiElectronHostCommandPolicyDecision =
+  | { readonly allow: true }
+  | {
+      readonly allow: false;
+      readonly code?: NimiStandardShellErrorCode;
+      readonly reasonCode: string;
+      readonly actionHint: string;
+      readonly details?: Readonly<Record<string, unknown>>;
+    };
+
+export type NimiElectronHostCommandPolicyInput = {
+  readonly command: string;
+  readonly commandKind: NimiElectronHostCommandKind;
+  readonly appId: string;
+};
+
+export type NimiElectronHostCommandPolicy = (
+  input: NimiElectronHostCommandPolicyInput,
+) => NimiElectronHostCommandPolicyDecision | Promise<NimiElectronHostCommandPolicyDecision>;
+
 export type NimiElectronLocalAgentIdentityInput = {
   readonly ownerUserId: string;
   readonly runtimeSourceRef: string;
@@ -374,6 +396,7 @@ export type RegisterNimiElectronRuntimeBridgeInput = {
   readonly eventChannelPrefix?: string;
   readonly createGrpcClient?: (endpoint: string) => Promise<RuntimeGrpcBridgeClient> | RuntimeGrpcBridgeClient;
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
+  readonly commandPolicy?: NimiElectronHostCommandPolicy;
   readonly standardShellHost?: NimiElectronStandardShellHost;
   readonly commandHandlers?: Readonly<Record<string, NimiElectronCommandHandler>>;
 };

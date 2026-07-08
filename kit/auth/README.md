@@ -5,6 +5,7 @@ Cross-app authentication feature module for sign-in UI, flows, adapters, storage
 
 ## Public Surfaces
 - `@nimiplatform/kit/auth`
+- `@nimiplatform/kit/auth/shell`
 - `@nimiplatform/kit/auth/styles.css`
 - `@nimiplatform/kit/auth/native-oauth-result-page`
 - Current surfaces:

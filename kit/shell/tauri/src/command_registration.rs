@@ -430,6 +430,7 @@ mod tests {
                 "open_external_url",
                 "oauth_token_exchange",
                 "oauth_listen_for_code",
+                "desktop_open_intent_open_intent",
                 "log_renderer_event",
                 "data_path_resolve",
                 "storage_read_json",

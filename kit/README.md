@@ -85,13 +85,13 @@ platform spec tables first and regenerate the projection.
 
 ## Current Public Surface
 
-The current package publishes 66 public subpath exports through
+The current package publishes 67 public subpath exports through
 `kit/package.json`:
 
 - 8 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
   `./ui/styles.css`, `./ui/themes/light.css`, `./ui/themes/dark.css`,
   and `./ui/themes/nimi-accent.css`)
-- 3 auth entries (`./auth`, `./auth/styles.css`, `./auth/native-oauth-result-page`)
+- 4 auth entries (`./auth`, `./auth/shell`, `./auth/styles.css`, `./auth/native-oauth-result-page`)
 - 9 core entries (`./core/shell-mode`, `./core/oauth`,
   `./core/storage-json`, `./core/offline-coordinator`,
   `./core/notifications`, `./core/desktop-open`,
@@ -137,6 +137,7 @@ projected from `.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml`.
 
 ```ts
 import { useAuthFlow, AuthEmailFlow } from '@nimiplatform/kit/auth';
+import { ShellAuthPage } from '@nimiplatform/kit/auth/shell';
 import '@nimiplatform/kit/auth/styles.css';
 ```
 
@@ -164,12 +165,18 @@ live behind injected bridge hooks.
 ### Electron shell
 
 ```ts
-import { createElectronRuntimeBridgeCommandNames } from '@nimiplatform/kit/shell/electron/main';
+import {
+  createElectronRuntimeBridgeCommandNames,
+  type NimiElectronHostCommandPolicy,
+} from '@nimiplatform/kit/shell/electron/main';
 import { installNimiElectronRuntimeBridge } from '@nimiplatform/kit/shell/electron/preload';
 ```
 
 Electron shell APIs are for main/preload host code only. Renderer application
 code uses SDK `electron-ipc` plus `@nimiplatform/kit/shell/renderer/*`.
+Host-owned `commandPolicy` hooks may deny selected standard or app-domain
+commands before their handlers run; policy denials surface as structured
+fail-closed shell errors rather than pseudo-success.
 
 ### Tauri shell crate
 

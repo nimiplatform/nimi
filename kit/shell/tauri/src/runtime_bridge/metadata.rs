@@ -14,6 +14,7 @@ static IDEMPOTENCY_COUNTER: AtomicU64 = AtomicU64::new(1);
 const SUPPORTED_PROTOCOL_VERSION: &str = "1.0.0";
 const SUPPORTED_PARTICIPANT_PROTOCOL_VERSION: &str = "1.0.0";
 const RESERVED_METADATA_KEYS: &[&str] = &[
+    "authorization",
     "x-nimi-protocol-version",
     "x-nimi-participant-protocol-version",
     "x-nimi-participant-id",
@@ -27,6 +28,8 @@ const RESERVED_METADATA_KEYS: &[&str] = &[
     "x-nimi-key-source",
     "x-nimi-provider-endpoint",
     "x-nimi-provider-api-key",
+    "x-nimi-access-token-id",
+    "x-nimi-access-token-secret",
     "x-nimi-session-id",
     "x-nimi-session-token",
 ];
@@ -101,6 +104,39 @@ impl fmt::Debug for RuntimeBridgeMetadata {
     }
 }
 
+#[derive(Clone, Default)]
+pub struct RuntimeBridgeTrustedMetadata {
+    pub metadata: Option<RuntimeBridgeMetadata>,
+    pub authorization: Option<String>,
+    pub protected_access_token: Option<RuntimeBridgeProtectedAccessToken>,
+    pub app_session: Option<RuntimeBridgeAppSession>,
+}
+
+impl fmt::Debug for RuntimeBridgeTrustedMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RuntimeBridgeTrustedMetadata")
+            .field("metadata", &self.metadata)
+            .field(
+                "authorization",
+                &self
+                    .authorization
+                    .as_ref()
+                    .map(|value| redact_secret(value)),
+            )
+            .field("protected_access_token", &self.protected_access_token)
+            .field("app_session", &self.app_session)
+            .finish()
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct RuntimeBridgeResolvedMetadata {
+    pub metadata: Option<RuntimeBridgeMetadata>,
+    pub authorization: Option<String>,
+    pub protected_access_token: Option<RuntimeBridgeProtectedAccessToken>,
+    pub app_session: Option<RuntimeBridgeAppSession>,
+}
+
 fn normalize(value: Option<&str>) -> Option<String> {
     let text = value.unwrap_or("").trim();
     if text.is_empty() {
@@ -149,6 +185,202 @@ fn validate_protocol_version(value: &str, expected: &str, header: &str) -> Resul
         ));
     }
     Ok(value.to_string())
+}
+
+fn normalized_metadata_key(value: &str) -> String {
+    value
+        .chars()
+        .filter(|ch| *ch != '-' && *ch != '_')
+        .collect::<String>()
+        .to_ascii_lowercase()
+}
+
+fn renderer_forbidden_metadata_kind(key: &str) -> Option<&'static str> {
+    const IDENTITY_KEYS: &[&str] = &[
+        "appid",
+        "participantid",
+        "callerkind",
+        "callerid",
+        "xnimiappid",
+        "xnimiparticipantid",
+        "xnimicallerkind",
+        "xnimicallerid",
+    ];
+    const AUTH_KEYS: &[&str] = &[
+        "authorization",
+        "protectedaccesstoken",
+        "appsession",
+        "accesstokenid",
+        "accesstokensecret",
+        "sessionid",
+        "sessiontoken",
+        "providerapikey",
+        "xnimiauthorization",
+        "xnimiprotectedaccesstoken",
+        "xnimiappsession",
+        "xnimiaccesstokenid",
+        "xnimiaccesstokensecret",
+        "xnimisessionid",
+        "xnimisessiontoken",
+        "xnimiproviderapikey",
+    ];
+    let normalized = normalized_metadata_key(key);
+    if IDENTITY_KEYS.contains(&normalized.as_str()) {
+        return Some("identity");
+    }
+    if AUTH_KEYS.contains(&normalized.as_str())
+        || normalized.contains("authorization")
+        || normalized.contains("accesstoken")
+        || normalized.contains("session")
+        || normalized.contains("providerapikey")
+        || normalized.contains("secret")
+    {
+        return Some("auth");
+    }
+    None
+}
+
+fn renderer_host_owned_metadata_error(kind: &str, field: &str) -> String {
+    let code = if kind == "identity" {
+        "RUNTIME_BRIDGE_RENDERER_HOST_OWNED_IDENTITY_METADATA_FORBIDDEN"
+    } else {
+        "RUNTIME_BRIDGE_RENDERER_HOST_OWNED_AUTH_METADATA_FORBIDDEN"
+    };
+    bridge_error(code, field)
+}
+
+fn reject_renderer_host_owned_field(field: &str, present: bool, kind: &str) -> Result<(), String> {
+    if present {
+        return Err(renderer_host_owned_metadata_error(kind, field));
+    }
+    Ok(())
+}
+
+fn assert_renderer_metadata_allowed_with_trusted_provider(
+    metadata: Option<&RuntimeBridgeMetadata>,
+    authorization: Option<&str>,
+    protected_access_token: Option<&RuntimeBridgeProtectedAccessToken>,
+    app_session: Option<&RuntimeBridgeAppSession>,
+) -> Result<(), String> {
+    reject_renderer_host_owned_field("authorization", normalize(authorization).is_some(), "auth")?;
+    reject_renderer_host_owned_field(
+        "protectedAccessToken",
+        protected_access_token.is_some(),
+        "auth",
+    )?;
+    reject_renderer_host_owned_field("appSession", app_session.is_some(), "auth")?;
+
+    let Some(metadata) = metadata else {
+        return Ok(());
+    };
+    reject_renderer_host_owned_field(
+        "appId",
+        normalize(metadata.app_id.as_deref()).is_some(),
+        "identity",
+    )?;
+    reject_renderer_host_owned_field(
+        "participantId",
+        normalize(metadata.participant_id.as_deref()).is_some(),
+        "identity",
+    )?;
+    reject_renderer_host_owned_field(
+        "callerKind",
+        normalize(metadata.caller_kind.as_deref()).is_some(),
+        "identity",
+    )?;
+    reject_renderer_host_owned_field(
+        "callerId",
+        normalize(metadata.caller_id.as_deref()).is_some(),
+        "identity",
+    )?;
+    reject_renderer_host_owned_field(
+        "providerApiKey",
+        normalize(metadata.provider_api_key.as_deref()).is_some(),
+        "auth",
+    )?;
+
+    if let Some(extra) = metadata.extra.as_ref() {
+        for key in extra.keys() {
+            if let Some(kind) = renderer_forbidden_metadata_kind(key) {
+                return Err(renderer_host_owned_metadata_error(kind, key));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn merge_metadata_extra(
+    renderer: Option<HashMap<String, String>>,
+    trusted: Option<HashMap<String, String>>,
+) -> Option<HashMap<String, String>> {
+    let mut merged = HashMap::new();
+    if let Some(extra) = renderer {
+        merged.extend(extra);
+    }
+    if let Some(extra) = trusted {
+        merged.extend(extra);
+    }
+    if merged.is_empty() {
+        None
+    } else {
+        Some(merged)
+    }
+}
+
+pub(crate) fn resolve_trusted_runtime_bridge_metadata(
+    renderer_metadata: Option<&RuntimeBridgeMetadata>,
+    renderer_authorization: Option<&str>,
+    renderer_protected_access_token: Option<&RuntimeBridgeProtectedAccessToken>,
+    renderer_app_session: Option<&RuntimeBridgeAppSession>,
+    trusted: Option<RuntimeBridgeTrustedMetadata>,
+) -> Result<RuntimeBridgeResolvedMetadata, String> {
+    assert_renderer_metadata_allowed_with_trusted_provider(
+        renderer_metadata,
+        renderer_authorization,
+        renderer_protected_access_token,
+        renderer_app_session,
+    )?;
+
+    let renderer_metadata = renderer_metadata.cloned().unwrap_or_default();
+    let trusted = trusted.unwrap_or_default();
+    let trusted_metadata = trusted.metadata.clone().unwrap_or_default();
+    let metadata = RuntimeBridgeMetadata {
+        protocol_version: renderer_metadata
+            .protocol_version
+            .or(trusted_metadata.protocol_version),
+        participant_protocol_version: renderer_metadata
+            .participant_protocol_version
+            .or(trusted_metadata.participant_protocol_version),
+        participant_id: trusted_metadata.participant_id,
+        domain: renderer_metadata.domain.or(trusted_metadata.domain),
+        app_id: trusted_metadata.app_id,
+        trace_id: renderer_metadata.trace_id.or(trusted_metadata.trace_id),
+        idempotency_key: renderer_metadata
+            .idempotency_key
+            .or(trusted_metadata.idempotency_key),
+        caller_kind: trusted_metadata.caller_kind,
+        caller_id: trusted_metadata.caller_id,
+        surface_id: trusted_metadata.surface_id.or(renderer_metadata.surface_id),
+        key_source: renderer_metadata.key_source.or(trusted_metadata.key_source),
+        provider_endpoint: renderer_metadata
+            .provider_endpoint
+            .or(trusted_metadata.provider_endpoint),
+        provider_api_key: trusted_metadata.provider_api_key,
+        extra: merge_metadata_extra(renderer_metadata.extra, trusted_metadata.extra),
+    };
+    if normalize(metadata.app_id.as_deref()).is_none() {
+        return Err(bridge_error(
+            "RUNTIME_BRIDGE_TRUSTED_METADATA_APP_ID_REQUIRED",
+            "x-nimi-app-id",
+        ));
+    }
+
+    Ok(RuntimeBridgeResolvedMetadata {
+        metadata: Some(metadata),
+        authorization: normalize(trusted.authorization.as_deref()),
+        protected_access_token: trusted.protected_access_token,
+        app_session: trusted.app_session,
+    })
 }
 
 pub fn apply_metadata(
@@ -287,8 +519,8 @@ mod tests {
     use tonic::Request;
 
     use super::{
-        apply_metadata, RuntimeBridgeAppSession, RuntimeBridgeMetadata,
-        RuntimeBridgeProtectedAccessToken,
+        apply_metadata, resolve_trusted_runtime_bridge_metadata, RuntimeBridgeAppSession,
+        RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken, RuntimeBridgeTrustedMetadata,
     };
 
     fn read_metadata(request: &Request<Vec<u8>>, key: &str) -> Option<String> {
@@ -304,6 +536,194 @@ mod tests {
             app_id: Some(app_id.to_string()),
             ..RuntimeBridgeMetadata::default()
         }
+    }
+
+    fn protected_access_token() -> RuntimeBridgeProtectedAccessToken {
+        RuntimeBridgeProtectedAccessToken {
+            token_id: "host-protected-token-id".to_string(),
+            secret: "host-protected-token-secret".to_string(),
+        }
+    }
+
+    fn app_session() -> RuntimeBridgeAppSession {
+        RuntimeBridgeAppSession {
+            session_id: "host-session-id".to_string(),
+            session_token: "host-session-token".to_string(),
+        }
+    }
+
+    fn trusted_metadata(app_id: &str) -> RuntimeBridgeTrustedMetadata {
+        RuntimeBridgeTrustedMetadata {
+            metadata: Some(RuntimeBridgeMetadata {
+                app_id: Some(app_id.to_string()),
+                participant_id: Some(app_id.to_string()),
+                caller_kind: Some("local-developer-app".to_string()),
+                caller_id: Some(format!("{app_id}.local-developer")),
+                surface_id: Some("host.surface".to_string()),
+                ..RuntimeBridgeMetadata::default()
+            }),
+            authorization: Some("Bearer host-token".to_string()),
+            protected_access_token: Some(protected_access_token()),
+            app_session: Some(app_session()),
+        }
+    }
+
+    #[test]
+    fn trusted_metadata_rejects_renderer_authorization() {
+        let error = resolve_trusted_runtime_bridge_metadata(
+            None,
+            Some("Bearer renderer-token"),
+            None,
+            None,
+            Some(trusted_metadata("nimi.parentos")),
+        )
+        .expect_err("renderer authorization should fail closed when trusted metadata is enabled");
+
+        assert!(error.contains("RUNTIME_BRIDGE_RENDERER_HOST_OWNED_AUTH_METADATA_FORBIDDEN"));
+        assert!(error.contains("authorization"));
+    }
+
+    #[test]
+    fn trusted_metadata_rejects_renderer_protected_access_and_app_session() {
+        let error = resolve_trusted_runtime_bridge_metadata(
+            None,
+            None,
+            Some(&RuntimeBridgeProtectedAccessToken {
+                token_id: "renderer-token-id".to_string(),
+                secret: "renderer-token-secret".to_string(),
+            }),
+            None,
+            Some(trusted_metadata("nimi.parentos")),
+        )
+        .expect_err("renderer protected access should fail closed");
+
+        assert!(error.contains("RUNTIME_BRIDGE_RENDERER_HOST_OWNED_AUTH_METADATA_FORBIDDEN"));
+        assert!(error.contains("protectedAccessToken"));
+
+        let error = resolve_trusted_runtime_bridge_metadata(
+            None,
+            None,
+            None,
+            Some(&RuntimeBridgeAppSession {
+                session_id: "renderer-session-id".to_string(),
+                session_token: "renderer-session-token".to_string(),
+            }),
+            Some(trusted_metadata("nimi.parentos")),
+        )
+        .expect_err("renderer app session should fail closed");
+
+        assert!(error.contains("RUNTIME_BRIDGE_RENDERER_HOST_OWNED_AUTH_METADATA_FORBIDDEN"));
+        assert!(error.contains("appSession"));
+    }
+
+    #[test]
+    fn trusted_metadata_rejects_renderer_identity_fields() {
+        let renderer = RuntimeBridgeMetadata {
+            app_id: Some("renderer.app".to_string()),
+            participant_id: Some("renderer.participant".to_string()),
+            caller_kind: Some("renderer-kind".to_string()),
+            caller_id: Some("renderer-caller".to_string()),
+            ..RuntimeBridgeMetadata::default()
+        };
+
+        let error = resolve_trusted_runtime_bridge_metadata(
+            Some(&renderer),
+            None,
+            None,
+            None,
+            Some(trusted_metadata("nimi.parentos")),
+        )
+        .expect_err("renderer identity metadata should fail closed");
+
+        assert!(error.contains("RUNTIME_BRIDGE_RENDERER_HOST_OWNED_IDENTITY_METADATA_FORBIDDEN"));
+        assert!(error.contains("appId"));
+    }
+
+    #[test]
+    fn trusted_metadata_merges_host_identity_and_auth_with_renderer_call_metadata() {
+        let mut renderer_extra = HashMap::new();
+        renderer_extra.insert("x-nimi-renderer-extra".to_string(), "renderer".to_string());
+        let renderer = RuntimeBridgeMetadata {
+            domain: Some("runtime.renderer".to_string()),
+            trace_id: Some("trace-renderer".to_string()),
+            idempotency_key: Some("idem-renderer".to_string()),
+            surface_id: Some("renderer.surface".to_string()),
+            key_source: Some("renderer-key-source".to_string()),
+            provider_endpoint: Some("https://runtime.example.test".to_string()),
+            extra: Some(renderer_extra),
+            ..RuntimeBridgeMetadata::default()
+        };
+        let mut trusted = trusted_metadata("nimi.parentos");
+        if let Some(metadata) = trusted.metadata.as_mut() {
+            let mut trusted_extra = HashMap::new();
+            trusted_extra.insert("x-nimi-host-extra".to_string(), "host".to_string());
+            metadata.domain = Some("runtime.host".to_string());
+            metadata.extra = Some(trusted_extra);
+        }
+
+        let resolved = resolve_trusted_runtime_bridge_metadata(
+            Some(&renderer),
+            None,
+            None,
+            None,
+            Some(trusted),
+        )
+        .expect("trusted metadata should merge");
+        let mut request = Request::new(Vec::<u8>::new());
+        apply_metadata(
+            &mut request,
+            resolved.metadata.as_ref(),
+            resolved.authorization.as_deref(),
+            resolved.protected_access_token.as_ref(),
+            resolved.app_session.as_ref(),
+            "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+        )
+        .expect("merged metadata should apply");
+
+        assert_eq!(
+            read_metadata(&request, "x-nimi-app-id").as_deref(),
+            Some("nimi.parentos")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-participant-id").as_deref(),
+            Some("nimi.parentos")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-caller-kind").as_deref(),
+            Some("local-developer-app")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-caller-id").as_deref(),
+            Some("nimi.parentos.local-developer")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-domain").as_deref(),
+            Some("runtime.renderer")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-surface-id").as_deref(),
+            Some("host.surface")
+        );
+        assert_eq!(
+            read_metadata(&request, "authorization").as_deref(),
+            Some("Bearer host-token")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-access-token-id").as_deref(),
+            Some("host-protected-token-id")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-session-id").as_deref(),
+            Some("host-session-id")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-renderer-extra").as_deref(),
+            Some("renderer")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-host-extra").as_deref(),
+            Some("host")
+        );
     }
 
     #[test]

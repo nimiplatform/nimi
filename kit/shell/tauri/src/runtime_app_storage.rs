@@ -166,14 +166,10 @@ pub async fn resolve_standard_app_storage_roots(
                 ));
             }
             let response: crate::runtime_bridge::generated::GetAppStorageResponse =
-                crate::runtime_bridge::invoke_unary_typed_with_metadata(
+                crate::runtime_bridge::invoke_unary_typed(
                     crate::runtime_bridge::RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
                     crate::runtime_bridge::generated::GetAppStorageRequest {
                         app_id: app_id.clone(),
-                    },
-                    crate::runtime_bridge::RuntimeBridgeMetadata {
-                        app_id: Some(app_id.clone()),
-                        ..Default::default()
                     },
                     Some(STANDARD_STORAGE_BINDING_TIMEOUT_MS),
                 )

@@ -147,6 +147,7 @@ export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
     refreshSkewMs: input.appSession.refreshSkewMs,
     auth: accountRuntime.auth,
   });
+  const identityMetadata = createTrustedIdentityMetadata(appId, accountCaller);
 
   let protectedAccessCache: {
     readonly subjectUserId: string;
@@ -168,13 +169,17 @@ export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
 
   const trustedMetadata: ElectronRuntimeBridgeTrustedMetadataProvider = async (): Promise<ElectronRuntimeBridgeTrustedMetadata | undefined> => {
     await ensureAccountCallerRegistered?.();
+    const appSessionMetadata = await appSessionMetadataProvider();
     const subjectUserId = await readRuntimeSubjectUserIdIfAvailable(accountRuntime, accountCaller);
     if (!subjectUserId) {
-      return undefined;
+      return toTrustedMetadata({
+        ...identityMetadata,
+        ...appSessionMetadata,
+      });
     }
-    const appSessionMetadata = await appSessionMetadataProvider();
     const protectedAccessMetadata = await getProtectedAccessMetadata(subjectUserId);
     return toTrustedMetadata({
+      ...identityMetadata,
       ...appSessionMetadata,
       ...protectedAccessMetadata,
     });
@@ -299,6 +304,33 @@ function shouldRegisterAccountCaller(mode: AccountCallerMode | undefined): boole
     || mode === AccountCallerMode.LOCAL_DEVELOPER_APP;
 }
 
+function createTrustedIdentityMetadata(
+  appId: string,
+  accountCaller: NimiRuntimeAccountCaller,
+): CoreMetadata {
+  return {
+    participantId: appId,
+    callerKind: accountCallerKindForMode(accountCaller.mode),
+    callerId: requireText(accountCaller.appInstanceId, 'accountCaller.appInstanceId'),
+  };
+}
+
+function accountCallerKindForMode(mode: AccountCallerMode | undefined): string {
+  if (mode === AccountCallerMode.LOCAL_FIRST_PARTY_APP) {
+    return 'local-first-party-app';
+  }
+  if (mode === AccountCallerMode.LOCAL_DEVELOPER_APP) {
+    return 'local-developer-app';
+  }
+  if (mode === AccountCallerMode.DESKTOP_LAUNCHED_NIMI_APP) {
+    return 'desktop-launched-nimi-app';
+  }
+  if (mode === AccountCallerMode.DESKTOP_SHELL) {
+    return 'desktop-shell';
+  }
+  return 'third-party-app';
+}
+
 export function createNimiElectronInstalledAppRuntimeAccountTrustedMetadataProvider(
   input: NimiElectronInstalledAppRuntimeAccountTrustedMetadataProviderInput,
 ): ElectronRuntimeBridgeTrustedMetadataProvider {
@@ -415,12 +447,30 @@ function toTrustedMetadata(metadata: CoreMetadata): ElectronRuntimeBridgeTrusted
   const sessionToken = normalizeText(metadata['x-nimi-session-token']);
   const tokenId = normalizeText(metadata['x-nimi-access-token-id']);
   const secret = normalizeText(metadata['x-nimi-access-token-secret']);
-  if (!sessionId || !sessionToken || !tokenId || !secret) {
+  if (!sessionId || !sessionToken) {
     return undefined;
   }
+  if ((tokenId && !secret) || (!tokenId && secret)) {
+    throw new Error('Electron Runtime protected access metadata is incomplete.');
+  }
   return {
+    metadata: {
+      participantId: normalizeText(metadata.participantId),
+      callerKind: normalizeText(metadata.callerKind),
+      callerId: normalizeText(metadata.callerId),
+      protocolVersion: normalizeText(metadata.protocolVersion) || undefined,
+      participantProtocolVersion: normalizeText(metadata.participantProtocolVersion) || undefined,
+      domain: normalizeText(metadata.domain) || undefined,
+      traceId: normalizeText(metadata.traceId) || undefined,
+      idempotencyKey: normalizeText(metadata.idempotencyKey) || undefined,
+      surfaceId: normalizeText(metadata.surfaceId) || undefined,
+      keySource: normalizeText(metadata.keySource) || undefined,
+      providerType: normalizeText(metadata.providerType) || undefined,
+      clientId: normalizeText(metadata.clientId) || undefined,
+      providerEndpoint: normalizeText(metadata.providerEndpoint) || undefined,
+    },
     appSession: { sessionId, sessionToken },
-    protectedAccessToken: { tokenId, secret },
+    ...(tokenId && secret ? { protectedAccessToken: { tokenId, secret } } : {}),
   };
 }
 

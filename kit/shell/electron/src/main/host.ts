@@ -8,6 +8,7 @@ import { isElectronRuntimeAccountCustodyCommand } from './auth.js';
 import { resolveElectronAvatarAssetUrl } from './avatar.js';
 import { getElectronAiConfig, setElectronAiConfig } from './ai-config.js';
 import { resolveElectronAiProfile } from './ai-profile.js';
+import { assertElectronHostCommandPolicyAllowed } from './command-policy.js';
 import { getElectronRuntimeConfig } from './config.js';
 import {
   readElectronStandardStorageJson,
@@ -63,6 +64,7 @@ import {
 import { isElectronExternallyManagedRuntimeCommand } from './runtime-lifecycle.js';
 import { NimiElectronShellHostError } from './types.js';
 import type {
+  NimiElectronHostCommandKind,
   NimiElectronIpcMainInvokeEvent,
   RegisterNimiElectronRuntimeBridgeInput,
   RegisteredNimiElectronRuntimeBridge,
@@ -97,6 +99,19 @@ type ResolvedElectronStandardShellCapabilitySet = {
 
 function isStandardShellCommand(command: string): boolean {
   return STANDARD_SHELL_COMMAND_SET.has(command);
+}
+
+function classifyElectronHostCommand(
+  command: string,
+  hasCommandHandler: boolean,
+): NimiElectronHostCommandKind {
+  if (isStandardShellCommand(command)) {
+    return 'standard';
+  }
+  if (hasCommandHandler) {
+    return 'app-domain';
+  }
+  return 'unknown';
 }
 
 export function registerNimiElectronRuntimeBridge(
@@ -146,7 +161,10 @@ export function registerNimiElectronRuntimeBridge(
     const envelope = asRecord(message, 'Electron Runtime bridge message must be an object');
     const command = normalizeRequiredToken(envelope.command, 'command');
     const payload = asRecord(envelope.payload ?? {}, 'Electron Runtime bridge command ' + command + ' payload must be an object');
-    assertElectronStandardShellCommandAllowed(command, capabilitySet);
+    const commandHandler = input.commandHandlers?.[command];
+    const commandKind = classifyElectronHostCommand(command, Boolean(commandHandler));
+    await assertElectronHostCommandPolicyAllowed(input.commandPolicy, { command, commandKind, appId });
+    assertElectronStandardShellCommandAllowed(command, commandKind, capabilitySet);
     if (command === commandNames.unary) {
       const runtimePayload = electronRuntimeCommandPayload(payload, command);
       parseElectronRuntimeUnaryRequest(runtimePayload);
@@ -227,7 +245,6 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.get']) return getElectronAiConfig(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.set']) return setElectronAiConfig(input.standardShellHost, standardPayload, command);
     if (isElectronRuntimeAccountCustodyCommand(command)) throw createElectronRuntimeAccountCustodyExternalError(command);
-    const commandHandler = input.commandHandlers?.[command];
     if (commandHandler) return await commandHandler({ command, payload, event, appId, runtimeEndpoint });
     if (isStandardShellCommand(command)) throw createElectronCapabilityUnavailableError(command);
     throw new NimiElectronShellHostError({
@@ -279,9 +296,10 @@ function resolveElectronStandardShellCapabilitySet(
 
 function assertElectronStandardShellCommandAllowed(
   command: string,
+  commandKind: NimiElectronHostCommandKind,
   capabilitySet: ResolvedElectronStandardShellCapabilitySet | undefined,
 ): void {
-  if (!capabilitySet || capabilitySet.allowedCommands.has(command)) {
+  if (commandKind !== 'standard' || !capabilitySet || capabilitySet.allowedCommands.has(command)) {
     return;
   }
   throw createElectronCapabilityNotInHostSetError(command, capabilitySet.capabilitySetRef);

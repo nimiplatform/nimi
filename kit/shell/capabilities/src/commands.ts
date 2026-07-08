@@ -3,9 +3,13 @@ import { NIMI_STANDARD_SHELL_CAPABILITIES, type NimiStandardShellCapabilityId } 
 
 type NimiStandardShellCatalogEntry = (typeof NIMI_STANDARD_SHELL_CAPABILITIES)[number];
 type NimiStandardShellCommandKeyFor<Capability extends NimiStandardShellCatalogEntry> =
-  `${Capability['id']}.${Capability['operations'][number]['id']}`;
+  Capability extends NimiStandardShellCatalogEntry
+    ? `${Capability['id']}.${Capability['operations'][number]['id']}`
+    : never;
 
-export type NimiStandardShellCommandKey = NimiStandardShellCommandKeyFor<NimiStandardShellCatalogEntry>;
+export type NimiStandardShellCommandKey =
+  | NimiStandardShellCommandKeyFor<NimiStandardShellCatalogEntry>
+  | 'desktop-open.openIntent';
 
 export const NIMI_STANDARD_SHELL_COMMANDS = Object.freeze(
   Object.fromEntries(

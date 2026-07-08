@@ -8,14 +8,17 @@ mod unary;
 
 use serde::Deserialize;
 use serde_json::Value;
+use std::fmt;
+use std::future::Future;
 use std::path::PathBuf;
+use std::pin::Pin;
 use std::sync::{Arc, Mutex, OnceLock};
 use tauri::AppHandle;
 
 pub use daemon_manager::http_addr;
 pub use daemon_manager::RuntimeBridgeDaemonStatus;
 pub use error_map::bridge_error;
-pub use metadata::RuntimeBridgeMetadata;
+pub use metadata::{RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata};
 pub use stream::RuntimeBridgeStreamOpenResult;
 pub use unary::{
     build_unary_payload, build_unary_payload_with_metadata, decode_unary_result,
@@ -104,14 +107,31 @@ type UnaryOverrideHook = Arc<
         + Send
         + Sync,
 >;
+type TrustedMetadataFuture =
+    Pin<Box<dyn Future<Output = Result<Option<RuntimeBridgeTrustedMetadata>, String>> + Send>>;
+type TrustedMetadataHook =
+    Arc<dyn Fn(RuntimeBridgeTrustedMetadataRequest) -> TrustedMetadataFuture + Send + Sync>;
 type OptionalPathHook = Arc<dyn Fn() -> Option<PathBuf> + Send + Sync>;
 type OptionalStringHook = Arc<dyn Fn() -> Option<String> + Send + Sync>;
 type ResultPathHook = Arc<dyn Fn() -> Result<PathBuf, String> + Send + Sync>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeBridgeTrustedMetadataBridgeKind {
+    Unary,
+    Stream,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuntimeBridgeTrustedMetadataRequest {
+    pub method_id: String,
+    pub bridge_kind: RuntimeBridgeTrustedMetadataBridgeKind,
+}
 
 #[derive(Clone, Default)]
 pub struct RuntimeBridgeHostHooks {
     pub status_override: Option<StatusOverrideHook>,
     pub unary_override: Option<UnaryOverrideHook>,
+    pub trusted_metadata: Option<TrustedMetadataHook>,
     pub sync_daemon_status: Option<StatusSyncHook>,
     pub set_action_in_flight: Option<ActionInFlightHook>,
     pub staged_runtime_binary_path: Option<OptionalPathHook>,
@@ -122,6 +142,8 @@ pub struct RuntimeBridgeHostHooks {
 }
 
 static HOST_HOOKS: OnceLock<Mutex<RuntimeBridgeHostHooks>> = OnceLock::new();
+#[cfg(test)]
+static TEST_HOST_HOOKS_LOCK: Mutex<()> = Mutex::new(());
 
 pub fn set_runtime_bridge_host_hooks(hooks: RuntimeBridgeHostHooks) -> Result<(), String> {
     if HOST_HOOKS.get().is_some() {
@@ -150,6 +172,9 @@ pub(crate) fn with_runtime_bridge_host_hooks<R>(
     hooks: RuntimeBridgeHostHooks,
     run: impl FnOnce() -> R,
 ) -> R {
+    let _guard = TEST_HOST_HOOKS_LOCK
+        .lock()
+        .expect("runtime bridge test host hooks lock");
     let previous = host_hooks().unwrap_or_default();
     set_runtime_bridge_host_hooks(hooks).expect("set temporary runtime bridge host hooks");
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(run));
@@ -188,6 +213,43 @@ fn call_unary_override_hook(
     }
 }
 
+fn trusted_metadata_hook() -> Option<TrustedMetadataHook> {
+    host_hooks().and_then(|hooks| hooks.trusted_metadata.clone())
+}
+
+async fn apply_trusted_metadata_hook(
+    method_id: &str,
+    bridge_kind: RuntimeBridgeTrustedMetadataBridgeKind,
+    payload_metadata: &mut Option<RuntimeBridgeMetadata>,
+    authorization: &mut Option<String>,
+    protected_access_token: &mut Option<RuntimeBridgeProtectedAccessToken>,
+    app_session: &mut Option<RuntimeBridgeAppSession>,
+) -> Result<(), String> {
+    let Some(hook) = trusted_metadata_hook() else {
+        return Ok(());
+    };
+    let trusted = hook(RuntimeBridgeTrustedMetadataRequest {
+        method_id: method_id.to_string(),
+        bridge_kind,
+    })
+    .await?;
+    let Some(trusted) = trusted else {
+        return Ok(());
+    };
+    let resolved = metadata::resolve_trusted_runtime_bridge_metadata(
+        payload_metadata.as_ref(),
+        authorization.as_deref(),
+        protected_access_token.as_ref(),
+        app_session.as_ref(),
+        Some(trusted),
+    )?;
+    *payload_metadata = resolved.metadata;
+    *authorization = resolved.authorization;
+    *protected_access_token = resolved.protected_access_token;
+    *app_session = resolved.app_session;
+    Ok(())
+}
+
 fn set_action_in_flight_hook(app: &AppHandle, action: Option<&'static str>) {
     if let Some(hook) = host_hooks().and_then(|hooks| hooks.set_action_in_flight.clone()) {
         hook(app, action);
@@ -224,18 +286,47 @@ pub(crate) fn resolve_nimi_data_dir_hook() -> Option<Result<PathBuf, String>> {
         .map(|hook| hook())
 }
 
-#[derive(Debug, Deserialize)]
+fn redact_runtime_secret(value: &str) -> String {
+    if value.trim().is_empty() {
+        String::new()
+    } else {
+        "***REDACTED***".to_string()
+    }
+}
+
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeBridgeProtectedAccessToken {
     pub token_id: String,
     pub secret: String,
 }
 
-#[derive(Debug, Deserialize)]
+impl fmt::Debug for RuntimeBridgeProtectedAccessToken {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RuntimeBridgeProtectedAccessToken")
+            .field("token_id", &self.token_id)
+            .field("secret", &redact_runtime_secret(self.secret.as_str()))
+            .finish()
+    }
+}
+
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeBridgeAppSession {
     pub session_id: String,
     pub session_token: String,
+}
+
+impl fmt::Debug for RuntimeBridgeAppSession {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RuntimeBridgeAppSession")
+            .field("session_id", &self.session_id)
+            .field(
+                "session_token",
+                &redact_runtime_secret(self.session_token.as_str()),
+            )
+            .finish()
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -295,10 +386,19 @@ pub fn is_allowlisted_method(method_id: &str) -> bool {
 }
 
 pub async fn runtime_bridge_unary(
-    payload: RuntimeBridgeUnaryPayload,
+    mut payload: RuntimeBridgeUnaryPayload,
 ) -> Result<RuntimeBridgeUnaryResult, String> {
-    let method_id = payload.method_id.as_str();
-    if is_allowlisted_method(method_id) && !is_stream_method(method_id) {
+    let method_id = payload.method_id.clone();
+    if is_allowlisted_method(method_id.as_str()) && !is_stream_method(method_id.as_str()) {
+        apply_trusted_metadata_hook(
+            method_id.as_str(),
+            RuntimeBridgeTrustedMetadataBridgeKind::Unary,
+            &mut payload.metadata,
+            &mut payload.authorization,
+            &mut payload.protected_access_token,
+            &mut payload.app_session,
+        )
+        .await?;
         if let Some(result) = call_unary_override_hook(&payload)? {
             return Ok(result);
         }
@@ -308,8 +408,20 @@ pub async fn runtime_bridge_unary(
 
 pub async fn runtime_bridge_stream_open(
     app: AppHandle,
-    payload: RuntimeBridgeStreamOpenPayload,
+    mut payload: RuntimeBridgeStreamOpenPayload,
 ) -> Result<RuntimeBridgeStreamOpenResult, String> {
+    let method_id = payload.method_id.clone();
+    if is_allowlisted_method(method_id.as_str()) && is_stream_method(method_id.as_str()) {
+        apply_trusted_metadata_hook(
+            method_id.as_str(),
+            RuntimeBridgeTrustedMetadataBridgeKind::Stream,
+            &mut payload.metadata,
+            &mut payload.authorization,
+            &mut payload.protected_access_token,
+            &mut payload.app_session,
+        )
+        .await?;
+    }
     stream::open_stream(&app, &payload).await
 }
 
@@ -417,9 +529,15 @@ pub fn channel_invalidation_count() -> usize {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::{
-        is_allowlisted_method, is_stream_method, stream_event_name_with_namespace,
-        DEFAULT_EVENT_NAMESPACE,
+        is_allowlisted_method, is_stream_method, runtime_bridge_unary,
+        stream_event_name_with_namespace, with_runtime_bridge_host_hooks, RuntimeBridgeAppSession,
+        RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
+        RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataBridgeKind,
+        RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult, DEFAULT_EVENT_NAMESPACE,
+        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
     };
 
     #[test]
@@ -460,6 +578,88 @@ mod tests {
         let unknown = "/nimi.runtime.v1.RuntimeAiService/NotExists";
         assert!(!is_stream_method(unknown));
         assert!(!is_allowlisted_method(unknown));
+    }
+
+    #[test]
+    fn runtime_bridge_unary_applies_trusted_metadata_before_override() {
+        let payload = RuntimeBridgeUnaryPayload {
+            method_id: RUNTIME_APP_GET_APP_STORAGE_METHOD_ID.to_string(),
+            request_bytes_base64: String::new(),
+            metadata: Some(RuntimeBridgeMetadata {
+                surface_id: Some("renderer.surface".to_string()),
+                ..RuntimeBridgeMetadata::default()
+            }),
+            authorization: None,
+            protected_access_token: None,
+            app_session: None,
+            timeout_ms: None,
+        };
+        let hooks = RuntimeBridgeHostHooks {
+            trusted_metadata: Some(Arc::new(|request| {
+                Box::pin(async move {
+                    assert_eq!(request.method_id, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID);
+                    assert_eq!(
+                        request.bridge_kind,
+                        RuntimeBridgeTrustedMetadataBridgeKind::Unary
+                    );
+                    Ok(Some(RuntimeBridgeTrustedMetadata {
+                        metadata: Some(RuntimeBridgeMetadata {
+                            app_id: Some("nimi.parentos".to_string()),
+                            participant_id: Some("nimi.parentos".to_string()),
+                            caller_kind: Some("local-developer-app".to_string()),
+                            caller_id: Some("nimi.parentos.local-developer".to_string()),
+                            surface_id: Some("host.surface".to_string()),
+                            ..RuntimeBridgeMetadata::default()
+                        }),
+                        authorization: Some("Bearer host-token".to_string()),
+                        protected_access_token: Some(RuntimeBridgeProtectedAccessToken {
+                            token_id: "host-token-id".to_string(),
+                            secret: "host-token-secret".to_string(),
+                        }),
+                        app_session: Some(RuntimeBridgeAppSession {
+                            session_id: "host-session-id".to_string(),
+                            session_token: "host-session-token".to_string(),
+                        }),
+                    }))
+                })
+            })),
+            unary_override: Some(Arc::new(|payload| {
+                let metadata = payload.metadata.as_ref().expect("trusted metadata");
+                assert_eq!(metadata.app_id.as_deref(), Some("nimi.parentos"));
+                assert_eq!(
+                    metadata.caller_id.as_deref(),
+                    Some("nimi.parentos.local-developer")
+                );
+                assert_eq!(metadata.surface_id.as_deref(), Some("host.surface"));
+                assert_eq!(payload.authorization.as_deref(), Some("Bearer host-token"));
+                assert_eq!(
+                    payload
+                        .protected_access_token
+                        .as_ref()
+                        .map(|token| token.token_id.as_str()),
+                    Some("host-token-id")
+                );
+                assert_eq!(
+                    payload
+                        .app_session
+                        .as_ref()
+                        .map(|session| session.session_id.as_str()),
+                    Some("host-session-id")
+                );
+                Ok(Some(RuntimeBridgeUnaryResult {
+                    response_bytes_base64: String::new(),
+                    response_metadata: None,
+                }))
+            })),
+            ..RuntimeBridgeHostHooks::default()
+        };
+
+        let result = with_runtime_bridge_host_hooks(hooks, || {
+            tauri::async_runtime::block_on(runtime_bridge_unary(payload))
+        })
+        .expect("runtime bridge should return override result");
+
+        assert_eq!(result.response_bytes_base64, "");
     }
 
     #[test]
