@@ -118,6 +118,13 @@ ai_governance:
         error_lines: 1400
         error_max_line_bytes: 12000
         error_average_line_bytes: 1200
+      temporary_large_tests:
+        warning_lines: 900
+        warning_max_line_bytes: 3000
+        warning_average_line_bytes: 500
+        error_lines: 1800
+        error_max_line_bytes: 12000
+        error_average_line_bytes: 1200
       scripts:
         warning_lines: 1000
         warning_max_line_bytes: 3000
@@ -133,6 +140,13 @@ ai_governance:
         error_max_line_bytes: 16000
         error_average_line_bytes: 1600
       temporary_large_spec_yaml:
+        warning_lines: 800
+        warning_max_line_bytes: 4000
+        warning_average_line_bytes: 800
+        error_lines: 1400
+        error_max_line_bytes: 16000
+        error_average_line_bytes: 1600
+      temporary_large_config_inventory:
         warning_lines: 800
         warning_max_line_bytes: 4000
         warning_average_line_bytes: 800
@@ -194,9 +208,22 @@ ai_governance:
         - config/*-public-surface-baseline.json
       temporary_large_production:
         - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
+        - apps/desktop/scripts/run-e2e.mjs
+        - apps/desktop/src-tauri/src/desktop_open_intent.rs
         - apps/desktop/src-tauri/src/desktop_product_control/operations.rs
         - apps/desktop/src/shell/renderer/first-run/product-control-workflow.tsx
+        - kit/features/agent-center/src/components/AgentCenterAppearanceSection.tsx
+        - kit/shell/tauri/src/standard_desktop_open.rs
         - runtime/internal/services/localservice/local_environment_jobs.go
+        - sdks/typescript/runtime/runtime-agent-turn-runner-stream.ts
+      temporary_large_tests:
+        - kit/shell/electron/test/electron-shell.test.ts
+        - runtime/internal/services/runtimeagent/public_chat_voice_lipsync_emission_test.go
+        - sdks/typescript/runtime/runtime-agent-consume.test.ts
+        - sdks/typescript/runtime/runtime-agent-helpers.test.ts
+        - sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-server.test-helper.ts
+      temporary_large_config_inventory:
+        - config/zhiyu-test-inventory.yaml
       temporary_large_spec_yaml:
         - runtime/catalog/source/providers/local.source.yaml
         - spec/runtime/kernel/tables/rule-evidence.rules.yaml

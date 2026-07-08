@@ -53,3 +53,29 @@ tests:
     spec_refs:
       - P-TEST-001
       - S-SURFACE-019
+  - path: sdks/typescript/core/app/desktop-open.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-DOPEN-001
+      - P-DOPEN-004
+      - P-DOPEN-009
+  - path: sdks/typescript/realm/world-public.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-SURFACE-019

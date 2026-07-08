@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { _electron as electron } from 'playwright';
+import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
 import { withRuntimeDaemon } from '../../../sdks/typescript/runtime/live-runtime-daemon.test-helper.ts';
 import { withRealmFixtureServer } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-server.test-helper.ts';
 import {
@@ -28,12 +29,10 @@ import {
   seedRuntimeAgentLiveVoiceCatalogProvider,
 } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-routes.test-helper.ts';
 import {
-  createZhiyuLiveRuntimeAcceptanceRendererUrl,
-} from './live-runtime-fixture-adapter.mjs';
-import {
   assertNoPageProblems,
   captureLiveRuntimeEvidence,
   captureLiveRuntimeInteractionEvidence,
+  createZhiyuLiveRuntimeAcceptanceRendererUrl,
   resetLiveRuntimeEvidenceRoot,
   trackPageProblems,
   waitForEvidence,
@@ -67,81 +66,83 @@ test('zhiyu Electron live Runtime empty LocalAgent inventory renders an empty ra
         const dataRoot = path.join(tmpRoot, 'data');
         await mkdir(dataRoot, { recursive: true });
 
-        const app = await electron.launch({
-          args: [mainEntry],
-          env: {
-            ...process.env,
-            NIMI_RUNTIME_GRPC_ADDR: '',
-            NIMI_ZHIYU_ELECTRON_RENDERER_URL: createZhiyuLiveRuntimeAcceptanceRendererUrl(root),
-            NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT: endpoint,
-            NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
-          },
+        await withSdkDistLock('zhiyu empty local partner electron app', async () => {
+          const app = await electron.launch({
+            args: [mainEntry, `--user-data-dir=${path.join(dataRoot, 'electron-user-data')}`],
+            env: {
+              ...process.env,
+              NIMI_RUNTIME_GRPC_ADDR: '',
+              NIMI_ZHIYU_ELECTRON_RENDERER_URL: createZhiyuLiveRuntimeAcceptanceRendererUrl(root),
+              NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT: endpoint,
+              NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
+            },
+          });
+
+          try {
+            const page = await app.firstWindow({ timeout: 120_000 });
+            const pageProblems = trackPageProblems(page);
+            await page.waitForLoadState('domcontentloaded');
+            await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
+            await page.waitForSelector('[data-zhiyu-screen="home"]');
+            await waitForEvidence(page, () =>
+              globalThis.window.__nimiZhiyuEvidence?.runtime?.ready === true
+              && globalThis.window.__nimiZhiyuEvidence?.auth?.ready === true
+              && globalThis.window.__nimiZhiyuEvidence?.inventory?.ready === true
+              && globalThis.window.__nimiZhiyuEvidence?.inventory?.count === 0
+              && Array.isArray(globalThis.window.__nimiZhiyuEvidence?.inventory?.localAgents)
+              && globalThis.window.__nimiZhiyuEvidence.inventory.localAgents.length === 0
+              && globalThis.window.__nimiZhiyuEvidence?.localAgent?.ready === false,
+            'empty LocalAgent inventory runtime evidence');
+
+            const emptyLocalPartnerEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+            assert.equal(emptyLocalPartnerEvidence.auth.ready, true);
+            assert.equal(emptyLocalPartnerEvidence.runtime.ready, true);
+            assert.equal(emptyLocalPartnerEvidence.inventory.ready, true);
+            assert.equal(emptyLocalPartnerEvidence.inventory.count, 0);
+            assert.deepEqual(emptyLocalPartnerEvidence.inventory.localAgents, []);
+            assert.equal(emptyLocalPartnerEvidence.localAgent.localAgentRef, null);
+            assert.equal(emptyLocalPartnerEvidence.localAgent.ready, false);
+            assert.equal(await page.locator('[data-zhiyu-local-agent-candidate="true"]').count(), 0);
+            assert.equal(await page.locator('[data-zhiyu-relationship-rail-empty]').getAttribute('data-zhiyu-relationship-rail-empty'), 'true');
+            assert.equal(await page.locator('[data-zhiyu-relationship-rail-state]').getAttribute('data-zhiyu-relationship-rail-state'), 'empty');
+            assert.equal(await page.locator('[data-zhiyu-no-local-partner-empty="true"]').count(), 1);
+
+            const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
+            assert.match(shellText, /还没有本地伙伴/);
+            assert.match(shellText, /从世界中选择一位角色加入本地后，就可以和他开始对话/);
+            assert.match(shellText, /去探索伙伴/);
+            assert.match(shellText, /本地伙伴会保留角色来源与身份设定/);
+            assert.doesNotMatch(shellText, /添加本地伙伴后开始聊天。/);
+            assert.doesNotMatch(shellText, /请选择已存在的本地伙伴/);
+            assert.doesNotMatch(shellText, /你还没有添加可对话的本地伙伴/);
+            assert.doesNotMatch(shellText, /Runtime Live Source|LocalAgent|sourceRef|localAgentRef|Capability Studio|Image Studio/);
+
+            const action = page.locator('[data-zhiyu-no-local-partner-action="show-guidance"]').first();
+            await action.waitFor({ state: 'visible', timeout: 15_000 });
+            assert.equal(await action.isDisabled(), false);
+            assert.equal(await action.getAttribute('aria-expanded'), 'false');
+            assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
+            assert.equal(await page.locator('[data-chat-composer-send="true"]').isDisabled(), true);
+            assert.equal(await page.locator('[data-chat-composer-textarea="true"]').getAttribute('placeholder'), '添加本地伙伴后开始聊天...');
+
+            await captureLiveRuntimeEvidence(page, 'noPartner', pageProblems, {
+              emptyLocalPartnerEvidence,
+            });
+
+            await action.click();
+            assert.equal(await action.getAttribute('aria-expanded'), 'true');
+            assert.match(
+              await page.locator('[data-zhiyu-no-local-partner-guidance="desktop-explore"]').innerText(),
+              /请打开 Nimi 桌面端「探索」页，选择角色并加入本地/,
+            );
+            await captureLiveRuntimeInteractionEvidence(page, 'empty-local-partner-guidance', pageProblems, {
+              emptyLocalPartnerEvidence,
+            });
+            assertNoPageProblems(pageProblems);
+          } finally {
+            await app.close();
+          }
         });
-
-        try {
-          const page = await app.firstWindow({ timeout: 120_000 });
-          const pageProblems = trackPageProblems(page);
-          await page.waitForLoadState('domcontentloaded');
-          await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
-          await page.waitForSelector('[data-zhiyu-screen="home"]');
-          await waitForEvidence(page, () =>
-            globalThis.window.__nimiZhiyuEvidence?.runtime?.ready === true
-            && globalThis.window.__nimiZhiyuEvidence?.auth?.ready === true
-            && globalThis.window.__nimiZhiyuEvidence?.inventory?.ready === true
-            && globalThis.window.__nimiZhiyuEvidence?.inventory?.count === 0
-            && Array.isArray(globalThis.window.__nimiZhiyuEvidence?.inventory?.localAgents)
-            && globalThis.window.__nimiZhiyuEvidence.inventory.localAgents.length === 0
-            && globalThis.window.__nimiZhiyuEvidence?.localAgent?.ready === false,
-          'empty LocalAgent inventory runtime evidence');
-
-          const emptyLocalPartnerEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
-          assert.equal(emptyLocalPartnerEvidence.auth.ready, true);
-          assert.equal(emptyLocalPartnerEvidence.runtime.ready, true);
-          assert.equal(emptyLocalPartnerEvidence.inventory.ready, true);
-          assert.equal(emptyLocalPartnerEvidence.inventory.count, 0);
-          assert.deepEqual(emptyLocalPartnerEvidence.inventory.localAgents, []);
-          assert.equal(emptyLocalPartnerEvidence.localAgent.localAgentRef, null);
-          assert.equal(emptyLocalPartnerEvidence.localAgent.ready, false);
-          assert.equal(await page.locator('[data-zhiyu-local-agent-candidate="true"]').count(), 0);
-          assert.equal(await page.locator('[data-zhiyu-relationship-rail-empty]').getAttribute('data-zhiyu-relationship-rail-empty'), 'true');
-          assert.equal(await page.locator('[data-zhiyu-relationship-rail-state]').getAttribute('data-zhiyu-relationship-rail-state'), 'empty');
-          assert.equal(await page.locator('[data-zhiyu-no-local-partner-empty="true"]').count(), 1);
-
-          const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
-          assert.match(shellText, /还没有本地伙伴/);
-          assert.match(shellText, /从世界中选择一位角色加入本地后，就可以和他开始对话/);
-          assert.match(shellText, /去探索伙伴/);
-          assert.match(shellText, /本地伙伴会保留角色来源与身份设定/);
-          assert.doesNotMatch(shellText, /添加本地伙伴后开始聊天。/);
-          assert.doesNotMatch(shellText, /请选择已存在的本地伙伴/);
-          assert.doesNotMatch(shellText, /你还没有添加可对话的本地伙伴/);
-          assert.doesNotMatch(shellText, /Runtime Live Source|LocalAgent|sourceRef|localAgentRef|Capability Studio|Image Studio/);
-
-          const action = page.locator('[data-zhiyu-no-local-partner-action="show-guidance"]').first();
-          await action.waitFor({ state: 'visible', timeout: 15_000 });
-          assert.equal(await action.isDisabled(), false);
-          assert.equal(await action.getAttribute('aria-expanded'), 'false');
-          assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
-          assert.equal(await page.locator('[data-chat-composer-send="true"]').isDisabled(), true);
-          assert.equal(await page.locator('[data-chat-composer-textarea="true"]').getAttribute('placeholder'), '添加本地伙伴后开始聊天...');
-
-          await captureLiveRuntimeEvidence(page, 'noPartner', pageProblems, {
-            emptyLocalPartnerEvidence,
-          });
-
-          await action.click();
-          assert.equal(await action.getAttribute('aria-expanded'), 'true');
-          assert.match(
-            await page.locator('[data-zhiyu-no-local-partner-guidance="desktop-explore"]').innerText(),
-            /请打开 Nimi 桌面端「探索」页，选择角色并加入本地/,
-          );
-          await captureLiveRuntimeInteractionEvidence(page, 'empty-local-partner-guidance', pageProblems, {
-            emptyLocalPartnerEvidence,
-          });
-          assertNoPageProblems(pageProblems);
-        } finally {
-          await app.close();
-        }
       });
     });
   } finally {
