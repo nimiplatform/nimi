@@ -102,7 +102,7 @@ test('agent shell presentation disables stage panel props and consumes the Kit A
 
 test('Kit Agent Center Behavior section renders disabled autonomy controls without overlay dependency', () => {
   assert.doesNotMatch(kitAgentCenterPrimitivesSource, /import \{[^}]*\bTooltip\b[^}]*\} from '@nimiplatform\/kit\/ui'/);
-  assert.match(kitAgentCenterBehaviorSectionSource, /autonomy\.disabledReason \|\| 'Runtime autonomy mutation unavailable\.'/);
+  assert.match(kitAgentCenterBehaviorSectionSource, /autonomy\.disabledReason \|\| labels\.unavailableLabel/);
   assert.match(kitAgentCenterPrimitivesSource, /disabled=\{props\.disabled\}/);
 });
 

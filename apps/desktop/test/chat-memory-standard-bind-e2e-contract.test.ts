@@ -97,6 +97,7 @@ test('chat memory standard bind journey exposes stable Memory Mode test ids', ()
 test('RLA3 Agent Center memory projection is owned by Kit, not Desktop slots', () => {
   assert.match(agentCenterPlacementSource, /@nimiplatform\/kit\/features\/agent-center/);
   assert.doesNotMatch(agentShellAdapterSource, /ChatAgentCognitionPanel/);
-  assert.match(kitCognitionSectionSource, /Recent canonical memories/);
+  assert.match(kitCognitionSectionSource, /data-agent-center-cognition-memory="true"/);
+  assert.match(kitCognitionSectionSource, /最近记忆/);
   assert.match(kitCognitionSectionSource, /cognition\.recentCanonicalMemories/);
 });

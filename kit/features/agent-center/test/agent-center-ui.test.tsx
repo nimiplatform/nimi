@@ -122,6 +122,8 @@ describe('AgentCenter UI', () => {
     expect(nav).not.toBeNull();
     const overview = node.querySelector<HTMLButtonElement>('[data-testid="chat-agent-center-section:overview"]');
     const model = node.querySelector<HTMLButtonElement>('[data-testid="chat-agent-center-section:model"]');
+    expect(overview?.className).toContain('min-w-[36px]');
+    expect(model?.className).toContain('min-w-[36px]');
     expect(overview?.className).toContain('bg-emerald-500/15');
     expect(overview?.textContent).toContain('Overview');
     const overviewBadge = overview?.querySelector<HTMLElement>('span[aria-hidden="true"]');
@@ -134,6 +136,8 @@ describe('AgentCenter UI', () => {
     expect(hero).not.toBeNull();
     expect(hero?.className).toContain('bg-gradient-to-br');
     expect(hero?.className).toContain('p-5');
+    expect(node.textContent).not.toContain('Runtime Agent AI Config can serve local agent turns');
+    expect(node.textContent).not.toContain('Current state');
 
     const appearance = node.querySelector<HTMLButtonElement>('[data-testid="chat-agent-center-section:appearance"]');
     click(appearance);
@@ -268,7 +272,7 @@ describe('AgentCenter UI', () => {
 
     click(buttons[4]);
     expect(node.textContent).toContain('用户希望 Agent Center 使用运行时投影');
-    expect(node.textContent).toContain('正在处理一个非常长的中文状态文本');
+    expect(node.textContent).not.toContain('正在处理一个非常长的中文状态文本');
 
     click(buttons[1]);
     expect(node.textContent).toContain('asset://avatar/runtime-admitted');
@@ -673,12 +677,12 @@ describe('AgentCenter UI', () => {
       />,
     );
 
-    const enabled = node.querySelector<HTMLInputElement>('[aria-label="Autonomy enabled"]');
+    const enabled = node.querySelector<HTMLInputElement>('[data-agent-center-proactive-toggle="true"]');
     if (!enabled) throw new Error('missing autonomy enabled input');
     act(() => {
       enabled.click();
     });
-    click(node.querySelector('[data-agent-center-autonomy-apply]'));
+    await flush();
     expect(autonomyCalls).toEqual([{
       enabled: false,
       mode: 'medium',
@@ -687,11 +691,13 @@ describe('AgentCenter UI', () => {
     }]);
 
     click(node.querySelector('[data-testid="chat-agent-center-section:appearance"]'));
-    expect(node.textContent).toContain('Import Live2D folder');
-    expect(node.textContent).toContain('Import VRM file');
+    expect(node.textContent).toContain('Partner avatar');
+    expect(node.textContent).toContain('Change avatar');
     expect(node.textContent).toContain('Import background image');
+    expect(node.textContent).not.toContain('Import Live2D folder');
+    expect(node.textContent).not.toContain('Import VRM file');
     expect(node.textContent).not.toContain('Avatar local asset ref');
-    await clickAsync(Array.from(node.querySelectorAll('button')).find((button) => button.textContent?.includes('Import Live2D folder')) || null);
+    await clickAsync(node.querySelector('[data-agent-center-appearance-secondary-action="change"]'));
     await clickAsync(Array.from(node.querySelectorAll('button')).find((button) => button.textContent?.includes('Import background image')) || null);
     click(node.querySelector('[data-agent-center-avatar-autoplay]'));
     expect(appearanceCalls).toEqual([
@@ -699,5 +705,244 @@ describe('AgentCenter UI', () => {
       { importBackground: true },
       { autoplay: true },
     ]);
+  });
+
+  it('enables behavior controls after loading Runtime inspect through the adapter', async () => {
+    const autonomyCalls: unknown[] = [];
+    const node = render(
+      <AgentCenter
+        defaultSection="behavior"
+        runtimeAdapter={{
+          agentAIConfig: {} as never,
+          async loadSnapshot() {
+            return {
+              agentAIConfig: {
+                revision: 11,
+                updatedAt: null,
+                updatedByAppId: 'runtime',
+                intents: {
+                  'text.generate': { route: 'local', modelId: 'local/default' },
+                  'text.embed': { route: 'local', modelId: 'local/default-embedding' },
+                },
+              },
+              readiness: {
+                configRevision: 11,
+                capabilities: [
+                  { capability: 'text.generate', state: 'ready', reasonCode: '', probedAt: null },
+                  { capability: 'text.embed', state: 'ready', reasonCode: '', probedAt: null },
+                ],
+              },
+              inspect: {
+                lifecycleStatus: 'active',
+                executionState: 'idle',
+                statusText: 'ready',
+                activeWorldId: null,
+                activeUserId: null,
+                updatedAt: null,
+                currentEmotion: 'calm',
+                proactiveInterruptibility: null,
+                presentationProfile: null,
+                autonomyMode: 'medium',
+                autonomyEnabled: true,
+                autonomyBudgetExhausted: false,
+                autonomyUsedTokensInWindow: 320,
+                autonomyDailyTokenBudget: 2000,
+                autonomyMaxTokensPerHook: 500,
+                autonomyWindowStartedAt: null,
+                autonomySuspendedUntil: null,
+                pendingHooksCount: 0,
+                nextScheduledFor: null,
+                pendingHooks: [],
+                recentTerminalHooks: [],
+                recentCanonicalMemories: [],
+              } as never,
+            };
+          },
+          async setAutonomyConfig(input) {
+            autonomyCalls.push(input);
+            return {
+              enabled: true,
+              mode: input.mode,
+              dailyTokenBudget: input.dailyTokenBudget,
+              maxTokensPerHook: input.maxTokensPerHook,
+              budgetExhausted: false,
+              usedTokensInWindow: 320,
+              windowStartedAt: null,
+              suspendedUntil: null,
+            } as never;
+          },
+        }}
+        state={{}}
+      />,
+    );
+
+    await flush();
+
+    const enabled = node.querySelector<HTMLInputElement>('[data-agent-center-proactive-toggle="true"]');
+    expect(enabled?.disabled).toBe(false);
+    await clickAsync(node.querySelector('[data-agent-center-behavior-mode="high"]'));
+    expect(autonomyCalls.at(-1)).toMatchObject({
+      enabled: true,
+      mode: 'high',
+      dailyTokenBudget: 2000,
+      maxTokensPerHook: 500,
+    });
+  });
+
+  it('renders structured Runtime projection load errors from Electron bridges', async () => {
+    const node = render(
+      <AgentCenter
+        defaultSection="behavior"
+        runtimeAdapter={{
+          agentAIConfig: {} as never,
+          async loadSnapshot() {
+            throw {
+              message: 'Runtime method denied',
+              reasonCode: 'SDK_RUNTIME_SCOPE_DENIED',
+              actionHint: 'request_runtime_agent_read',
+            };
+          },
+          async setAutonomyConfig() {
+            return { enabled: false, mode: 'off' } as never;
+          },
+        }}
+        state={{}}
+      />,
+    );
+
+    await flush();
+
+    expect(node.textContent).toContain('Runtime method denied SDK_RUNTIME_SCOPE_DENIED request_runtime_agent_read');
+    const toggle = node.querySelector<HTMLInputElement>('[data-agent-center-proactive-toggle="true"]');
+    expect(toggle?.disabled).toBe(true);
+  });
+
+  it('renders the Chinese proactive companion behavior layout with real mode and budget controls', async () => {
+    const autonomyCalls: unknown[] = [];
+    const state = buildAgentCenterState({
+      agentAIConfig: {
+        revision: 9,
+        updatedAt: null,
+        updatedByAppId: 'runtime',
+        intents: {
+          'text.generate': { route: 'local', modelId: 'local/default' },
+          'text.embed': { route: 'local', modelId: 'local/default-embedding' },
+        },
+      },
+      readiness: {
+        configRevision: 9,
+        capabilities: [
+          { capability: 'text.generate', state: 'ready', reasonCode: '', probedAt: null },
+          { capability: 'text.embed', state: 'ready', reasonCode: '', probedAt: null },
+        ],
+      },
+      autonomyMutationAvailable: true,
+      inspect: {
+        lifecycleStatus: 'active',
+        executionState: 'idle',
+        statusText: 'ready',
+        activeWorldId: null,
+        activeUserId: null,
+        updatedAt: null,
+        currentEmotion: 'calm',
+        proactiveInterruptibility: null,
+        presentationProfile: null,
+        autonomyMode: 'medium',
+        autonomyEnabled: true,
+        autonomyBudgetExhausted: false,
+        autonomyUsedTokensInWindow: 320,
+        autonomyDailyTokenBudget: 2000,
+        autonomyMaxTokensPerHook: 500,
+        autonomyWindowStartedAt: null,
+        autonomySuspendedUntil: null,
+        pendingHooksCount: 0,
+        nextScheduledFor: null,
+        pendingHooks: [],
+        recentTerminalHooks: [],
+        recentCanonicalMemories: [],
+      } as never,
+    });
+
+    const node = render(
+      <AgentCenter
+        behaviorCopy={{
+          eyebrow: '主动陪伴',
+          title: '让伙伴在合适的时候主动出现',
+          description: '开启后，他可以在日常节奏、久未联系或重要变化时主动和你互动。',
+          enableTitle: '允许主动陪伴',
+          enableDescription: '关闭后，他只会在你主动发起对话时回应。',
+          enabledStatus: '已开启',
+          disabledStatus: '已关闭',
+          modeTitle: '主动程度',
+          quietTitle: '安静',
+          quietDescription: '只在你开口时回应',
+          occasionalTitle: '偶尔',
+          occasionalDescription: '久未联系时提醒',
+          dailyTitle: '日常',
+          dailyDescription: '自然问候与陪伴',
+          activeTitle: '活跃',
+          activeDescription: '更频繁参与互动',
+          budgetTitle: '主动用量保护',
+          budgetDescription: '为主动陪伴设置 token 上限，避免在你没有注意时消耗过多。',
+          todayUsedLabel: '今日已用',
+          dailyLimitLabel: '每日上限',
+          singleLimitLabel: '单次上限',
+          reachedLimitLabel: '达到上限后',
+          reachedLimitAction: '暂停主动陪伴',
+          adjustLimitLabel: '调整用量上限',
+          applyLimitLabel: '保存用量上限',
+          tokensUnit: 'tokens',
+          approxPrefix: '约',
+        }}
+        defaultSection="behavior"
+        runtimeAdapter={{
+          agentAIConfig: {} as never,
+          async loadSnapshot() {
+            return {};
+          },
+          async setAutonomyConfig(input) {
+            autonomyCalls.push(input);
+            return {
+              enabled: input.enabled ?? true,
+              mode: input.mode ?? 'medium',
+              dailyTokenBudget: Number(input.dailyTokenBudget),
+              maxTokensPerHook: Number(input.maxTokensPerHook),
+              usedTokensInWindow: 320,
+              budgetExhausted: false,
+              windowStartedAt: null,
+              suspendedUntil: null,
+            } as never;
+          },
+        }}
+        state={state}
+      />,
+    );
+
+    expect(node.querySelector('[data-agent-center-behavior-page="proactive-companion"]')).not.toBeNull();
+    expect(node.textContent).toContain('主动陪伴');
+    expect(node.textContent).toContain('让伙伴在合适的时候主动出现');
+    expect(node.textContent).toContain('320 / 2000 tokens');
+    expect(node.textContent).toContain('约 16%');
+    expect(node.textContent).toContain('暂停主动陪伴');
+
+    const selectedMode = node.querySelector<HTMLButtonElement>('[data-agent-center-behavior-mode="medium"]');
+    expect(selectedMode?.textContent).toContain('日常');
+    expect(selectedMode?.getAttribute('aria-pressed')).toBe('true');
+    const progress = node.querySelector<HTMLElement>('[data-agent-center-budget-progress="true"]');
+    expect(progress?.getAttribute('style')).toContain('width: 16%');
+
+    await clickAsync(node.querySelector('[data-agent-center-behavior-mode="high"]'));
+    expect(autonomyCalls.at(-1)).toMatchObject({
+      enabled: true,
+      mode: 'high',
+      dailyTokenBudget: 2000,
+      maxTokensPerHook: 500,
+    });
+
+    click(node.querySelector('[data-agent-center-budget-adjust="true"]'));
+    const dailyInput = node.querySelector<HTMLInputElement>('input[aria-label="每日上限"]');
+    const hookInput = node.querySelector<HTMLInputElement>('input[aria-label="单次上限"]');
+    expect(dailyInput?.value).toBe('2000');
+    expect(hookInput?.value).toBe('500');
   });
 });

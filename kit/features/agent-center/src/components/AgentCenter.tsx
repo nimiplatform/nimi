@@ -4,7 +4,9 @@ import { AGENT_CENTER_SECTION_LABELS } from '../sections.js';
 import { isAgentCenterState, resolveAgentCenterState } from '../state.js';
 import type {
   AgentCenterAppearanceAdapter,
+  AgentCenterAppearanceCopy,
   AgentCenterAppearanceProjection,
+  AgentCenterBehaviorCopy,
   AgentCenterIdentityProjection,
   AgentCenterProps,
   AgentCenterRuntimeAdapter,
@@ -27,7 +29,6 @@ import {
   SECTION_ICONS,
   SectionHeader,
   SectionShell,
-  StateRow,
   cnAgentCenter,
 } from './AgentCenterPrimitives.js';
 
@@ -107,7 +108,6 @@ function AgentCenterOverview({
     <SectionShell labelledBy="agent-center-overview-title">
       <h2 className="sr-only" id="agent-center-overview-title">{AGENT_CENTER_SECTION_LABELS.overview}</h2>
       <ProgressHero
-        description={state.baseTextReady ? 'Runtime Agent AI Config can serve local agent turns. Remaining rows are Runtime projections and typed settings.' : state.baseTextDisabledReason || 'Runtime projection is not ready.'}
         setupDone={setup.done}
         setupTotal={setup.total}
         title={setup.remaining === 0 ? 'Runtime local agent ready' : 'Configuration needs attention'}
@@ -129,15 +129,6 @@ function AgentCenterOverview({
               title={item.title}
             />
           ))}
-        </Card>
-      </div>
-      <div>
-        <h3 className="mb-2 mt-1 text-[13px] font-semibold text-slate-950">Current state</h3>
-        <Card>
-          <StateRow label="Runtime" value={state.runtimeStatus} />
-          <StateRow label="Mood" value={state.cognition.currentEmotion || 'unknown'} />
-          <StateRow label="Activity" value={state.cognition.executionState || 'unknown'} />
-          <StateRow label="Appearance" value={state.appearance.status} valueTone={state.appearance.status === 'ready' ? 'plain' : 'attn'} />
         </Card>
       </div>
     </SectionShell>
@@ -169,16 +160,18 @@ function renderSection(
   state: AgentCenterState,
   runtimeAdapter: AgentCenterRuntimeAdapter | null | undefined,
   appearanceAdapter: AgentCenterAppearanceAdapter | null | undefined,
+  appearanceCopy: AgentCenterAppearanceCopy | undefined,
+  behaviorCopy: AgentCenterBehaviorCopy | undefined,
 ) {
   switch (section) {
     case 'model':
       return <AgentCenterModelSection runtimeAdapter={runtimeAdapter} state={state} />;
     case 'behavior':
-      return <AgentCenterBehaviorSection runtimeAdapter={runtimeAdapter} state={state} />;
+      return <AgentCenterBehaviorSection copy={behaviorCopy} runtimeAdapter={runtimeAdapter} state={state} />;
     case 'cognition':
       return <AgentCenterCognitionSection state={state} />;
     case 'appearance':
-      return <AgentCenterAppearanceSection appearanceAdapter={appearanceAdapter} state={state} />;
+      return <AgentCenterAppearanceSection appearanceAdapter={appearanceAdapter} copy={appearanceCopy} state={state} />;
     case 'advanced':
       return <AgentCenterAdvanced state={state} />;
     default:
@@ -189,6 +182,16 @@ function renderSection(
 function normalizeLoadError(error: unknown): string {
   if (error instanceof Error && error.message.trim()) {
     return error.message.trim();
+  }
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>;
+    const message = typeof record.message === 'string' ? record.message.trim() : '';
+    const reasonCode = typeof record.reasonCode === 'string' ? record.reasonCode.trim() : '';
+    const actionHint = typeof record.actionHint === 'string' ? record.actionHint.trim() : '';
+    const detail = [message, reasonCode, actionHint].filter(Boolean).join(' ');
+    if (detail) {
+      return detail;
+    }
   }
   return 'Runtime Agent Center projection load failed.';
 }
@@ -301,6 +304,7 @@ export function AgentCenter(props: AgentCenterProps) {
   const [loadedAppearance, setLoadedAppearance] = useState<AgentCenterAppearanceProjection | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [appearanceLoadError, setAppearanceLoadError] = useState<string | null>(null);
+  const runtimeAutonomyMutationAvailable = typeof props.runtimeAdapter?.setAutonomyConfig === 'function';
   const runtimeProjectionSupplied = hasSuppliedRuntimeProjection(props.state);
   const appearanceProjectionSupplied = hasSuppliedAppearanceProjection(props.state);
   useEffect(() => {
@@ -367,6 +371,7 @@ export function AgentCenter(props: AgentCenterProps) {
     return resolveAgentCenterState({
       ...placementState,
       ...(loadedSnapshot || {}),
+      autonomyMutationAvailable: placementState.autonomyMutationAvailable === true || runtimeAutonomyMutationAvailable,
       ...(loadedAppearance ? { appearance: loadedAppearance } : {}),
       ...(appearanceLoadError ? {
         appearance: {
@@ -377,7 +382,7 @@ export function AgentCenter(props: AgentCenterProps) {
       } : {}),
       runtimeError: loadError || loadedSnapshot?.runtimeError || placementState.runtimeError || null,
     });
-  }, [appearanceLoadError, loadError, loadedAppearance, loadedSnapshot, props.state]);
+  }, [appearanceLoadError, loadError, loadedAppearance, loadedSnapshot, props.state, runtimeAutonomyMutationAvailable]);
   const [uncontrolledSection, setUncontrolledSection] = useState<AgentCenterSectionId>(
     props.defaultSection || 'overview',
   );
@@ -425,11 +430,11 @@ export function AgentCenter(props: AgentCenterProps) {
               aria-current={selected ? 'page' : undefined}
               aria-pressed={selected}
               className={cnAgentCenter(
-                'group relative flex h-9 shrink-0 items-center rounded-[12px] text-[12px] font-medium',
+                'group relative flex h-9 min-w-[36px] shrink-0 items-center rounded-[12px] text-[12px] font-medium',
                 'transition-[width,background-color,color,padding] duration-300 ease-[cubic-bezier(0.32,0.72,0.0,1)]',
                 'outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70',
                 selected
-                  ? 'bg-emerald-500/15 px-3 text-emerald-800'
+                  ? 'bg-emerald-500/15 px-3 text-emerald-800 max-[420px]:w-9 max-[420px]:justify-center max-[420px]:px-0'
                   : badge
                     ? 'w-[48px] justify-center px-0 text-slate-500 hover:bg-slate-100 hover:text-slate-900'
                     : 'w-9 justify-center px-0 text-slate-500 hover:bg-slate-100 hover:text-slate-900',
@@ -452,7 +457,7 @@ export function AgentCenter(props: AgentCenterProps) {
               <span
                 className={cnAgentCenter(
                   'overflow-hidden whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0.0,1)]',
-                  selected ? 'ml-2 max-w-[160px] opacity-100' : 'ml-0 max-w-0 opacity-0',
+                  selected ? 'ml-2 max-w-[160px] opacity-100 max-[420px]:ml-0 max-[420px]:max-w-0 max-[420px]:opacity-0' : 'ml-0 max-w-0 opacity-0',
                 )}
               >
                 {AGENT_CENTER_SECTION_LABELS[section]}
@@ -483,7 +488,7 @@ export function AgentCenter(props: AgentCenterProps) {
         </div>
         {activeSection === 'overview'
           ? <AgentCenterOverview onSectionSelect={setSection} state={state} />
-          : renderSection(activeSection, state, props.runtimeAdapter, props.appearanceAdapter)}
+          : renderSection(activeSection, state, props.runtimeAdapter, props.appearanceAdapter, props.appearanceCopy, props.behaviorCopy)}
       </div>
     </section>
   );

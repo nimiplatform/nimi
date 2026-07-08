@@ -295,7 +295,6 @@ export function ProgressHero(props: {
   readonly setupDone: number;
   readonly setupTotal: number;
   readonly title: string;
-  readonly description: ReactNode;
 }) {
   const ratio = props.setupTotal > 0 ? Math.min(1, props.setupDone / props.setupTotal) : 0;
   const radius = 36;
@@ -334,7 +333,6 @@ export function ProgressHero(props: {
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="mb-1.5 text-[16px] font-semibold tracking-tight text-slate-950">{props.title}</h3>
-        <p className="m-0 text-[13px] leading-[1.55] text-slate-600">{props.description}</p>
       </div>
     </div>
   );

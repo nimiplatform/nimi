@@ -81,6 +81,41 @@ describe('Agent Center state', () => {
     expect(state.autonomy.disabledReason).toBe('runtime autonomy mutation unavailable');
   });
 
+  it('projects Runtime autonomy usage numbers for the behavior budget surface', () => {
+    const state = buildAgentCenterState(stateInput({
+      autonomyMutationAvailable: true,
+      inspect: {
+        lifecycleStatus: 'active',
+        executionState: 'idle',
+        statusText: 'ready',
+        activeWorldId: null,
+        activeUserId: null,
+        updatedAt: null,
+        currentEmotion: 'calm',
+        proactiveInterruptibility: null,
+        presentationProfile: null,
+        autonomyMode: 'medium',
+        autonomyEnabled: true,
+        autonomyBudgetExhausted: false,
+        autonomyUsedTokensInWindow: 320,
+        autonomyDailyTokenBudget: 2000,
+        autonomyMaxTokensPerHook: 500,
+        autonomyWindowStartedAt: '2026-07-08T00:00:00.000Z',
+        autonomySuspendedUntil: null,
+        pendingHooksCount: 0,
+        nextScheduledFor: null,
+        pendingHooks: [],
+        recentTerminalHooks: [],
+        recentCanonicalMemories: [],
+      } as never,
+    }));
+
+    expect(state.autonomy.usedTokensInWindow).toBe(320);
+    expect(state.autonomy.dailyTokenBudget).toBe(2000);
+    expect(state.autonomy.maxTokensPerHook).toBe(500);
+    expect(state.autonomy.windowStartedAt).toBe('2026-07-08T00:00:00.000Z');
+  });
+
   it('projects cognition memory list only from Runtime inspect canonical memories', () => {
     const state = buildAgentCenterState(stateInput({
       autonomyMutationAvailable: true,

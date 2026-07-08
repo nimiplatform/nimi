@@ -103,12 +103,15 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
     autonomy: {
       enabled: inspect?.autonomyEnabled ?? null,
       mode: inspect?.autonomyMode ?? null,
+      usedTokensInWindow: inspect?.autonomyUsedTokensInWindow ?? null,
       dailyTokenBudget: inspect?.autonomyDailyTokenBudget ?? null,
       maxTokensPerHook: inspect?.autonomyMaxTokensPerHook ?? null,
+      windowStartedAt: inspect?.autonomyWindowStartedAt ?? null,
+      suspendedUntil: inspect?.autonomySuspendedUntil ?? null,
       budgetExhausted: inspect?.autonomyBudgetExhausted ?? null,
       controlsDisabled: !inspect || !autonomyMutationAvailable,
       disabledReason: !inspect
-        ? 'runtime inspect unavailable'
+        ? (input.runtimeError || 'runtime inspect unavailable')
         : (!autonomyMutationAvailable ? 'runtime autonomy mutation unavailable' : null),
     },
     cognition: {

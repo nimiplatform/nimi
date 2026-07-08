@@ -78,7 +78,9 @@ function packageExportTargetToSourceTarget(exportTarget) {
   const distRelative = normalized
     .replace(/^\.\//, '')
     .replace(/^dist\//, '')
+    .replace(/\.d\.cts$/u, '')
     .replace(/\.d\.ts$/u, '')
+    .replace(/\.cjs$/u, '')
     .replace(/\.js$/u, '')
     .replace(/\.css$/u, '.css');
 
@@ -96,7 +98,7 @@ function packageExportTargetToSourceTarget(exportTarget) {
   }
 
   for (const candidate of sourceCandidates) {
-    for (const extension of ['', '.ts', '.tsx', '.css']) {
+    for (const extension of ['', '.ts', '.tsx', '.cts', '.css']) {
       const withExtension = candidate.endsWith('.css') ? candidate : `${candidate}${extension}`;
       if (fs.existsSync(path.join(kitRoot, withExtension.replace(/^\.\//, '')))) {
         return withExtension;
