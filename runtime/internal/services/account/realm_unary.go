@@ -20,6 +20,7 @@ const (
 	realmDesktopAppID       = "nimi.desktop"
 	realmPersonaStudioAppID = "nimi.realm-persona-studio"
 	realmWorldStudioAppID   = "nimi.realm-world-studio"
+	realmZhiyuAppID         = "nimi.zhiyu"
 )
 
 type realmUnaryOperation struct {
@@ -74,7 +75,7 @@ func worldStudioRealmUnaryOperation(method string, path string) realmUnaryOperat
 }
 
 func publicWorldRealmUnaryOperation(method string, path string) realmUnaryOperation {
-	return studioRealmUnaryOperation(method, path, realmDesktopAppID)
+	return studioRealmUnaryOperation(method, path, realmDesktopAppID, realmZhiyuAppID)
 }
 
 func studioRealmUnaryOperation(method string, path string, appIDs ...string) realmUnaryOperation {
@@ -115,7 +116,8 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 			ErrorMessage:      "realm method is not admitted for this Runtime app",
 		}, nil
 	}
-	if err := s.validateRealmBaseURL(req.GetRealmBaseUrl()); err != nil {
+	realmBaseURL, err := s.resolveRealmUnaryBaseURL(req.GetRealmBaseUrl())
+	if err != nil {
 		return realmUnaryRejected(err.Error()), nil
 	}
 	accessToken, reason, ok, err := s.realmUnaryAccessToken(ctx, req.GetCaller())
@@ -130,7 +132,7 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	if err != nil {
 		return realmUnaryRejected(err.Error()), nil
 	}
-	targetURL, err := buildRealmUnaryURL(req.GetRealmBaseUrl(), operation, parsedRequest)
+	targetURL, err := buildRealmUnaryURL(realmBaseURL, operation, parsedRequest)
 	if err != nil {
 		return realmUnaryRejected(err.Error()), nil
 	}
@@ -225,19 +227,22 @@ func realmUnaryRejected(message string) *runtimev1.InvokeRealmUnaryResponse {
 	}
 }
 
-func (s *Service) validateRealmBaseURL(value string) error {
-	requested, err := canonicalRealmUnaryBaseURL(value)
-	if err != nil {
-		return err
-	}
+func (s *Service) resolveRealmUnaryBaseURL(value string) (string, error) {
 	authorized, err := canonicalRealmUnaryBaseURL(s.realmBaseURL)
 	if err != nil {
-		return fmt.Errorf("runtime Realm base URL is unavailable")
+		return "", fmt.Errorf("runtime Realm base URL is unavailable")
+	}
+	if strings.TrimSpace(value) == "" {
+		return authorized, nil
+	}
+	requested, err := canonicalRealmUnaryBaseURL(value)
+	if err != nil {
+		return "", err
 	}
 	if requested != authorized {
-		return fmt.Errorf("realm base URL is not admitted")
+		return "", fmt.Errorf("realm base URL is not admitted")
 	}
-	return nil
+	return requested, nil
 }
 
 func canonicalRealmUnaryBaseURL(value string) (string, error) {

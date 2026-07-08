@@ -50,6 +50,7 @@ test('runtime agent live e2e fixture mints source packet through Runtime-mediate
       assert.equal(packet.sourceId, fixture.sourceRef.sourceId);
       assert.equal(packet.sourceWorldId, fixture.sourceRef.worldId);
       assert.equal(packet.sourceContentHash, fixture.sourceRef.sourceContentHash);
+      assert.equal((packet.sourceDisplayMetadata as { readonly worldName?: unknown }).worldName, 'Runtime Live World');
       assert.match(packet.packetHash, /^[a-f0-9]{64}$/);
       assert.match(packet.packetProof, /^hmac-sha256:[a-f0-9]{64}$/);
 
@@ -83,6 +84,10 @@ test('runtime agent live e2e fixture seeds Runtime-owned LocalAgent from source 
       assert.equal(
         (metadata.sourceMaterialization as { readonly runtimeSourceRef?: unknown }).runtimeSourceRef,
         fixture.runtimeSourceRef,
+      );
+      assert.equal(
+        (metadata.sourceMaterialization as { readonly sourceWorldName?: unknown }).sourceWorldName,
+        'Runtime Live World',
       );
     },
   });

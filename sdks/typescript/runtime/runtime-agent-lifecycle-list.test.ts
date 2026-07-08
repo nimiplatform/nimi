@@ -43,6 +43,7 @@ test('Runtime Agent lifecycle lists active LocalAgents without source selection'
                   sourceMaterialization: {
                     sourceKind: 'worldCharacter',
                     sourceWorldId: 'world-1',
+                    sourceWorldName: '唐代文人世界',
                     sourceId: 'source-1',
                     sourceContentHash: 'hash-1',
                   },
@@ -80,6 +81,7 @@ test('Runtime Agent lifecycle lists active LocalAgents without source selection'
   assert.deepEqual(listed.map((agent) => agent.localAgentRef), ['local-agent:runtime-owned-existing']);
   assert.equal(listed[0]?.sourceKind, 'worldCharacter');
   assert.equal(listed[0]?.sourceWorldId, 'world-1');
+  assert.equal(listed[0]?.sourceWorldName, '唐代文人世界');
   assert.equal(listed[0]?.sourceId, 'source-1');
   assert.equal(listed[0]?.sourceContentHash, 'hash-1');
   assert.deepEqual(calls.map((call) => call.method), ['listAgents']);

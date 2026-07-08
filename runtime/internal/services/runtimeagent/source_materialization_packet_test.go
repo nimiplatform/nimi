@@ -70,6 +70,39 @@ func TestInitializeAgentConsumesSourceMaterializationPacketWithoutPersistingPayl
 	}
 }
 
+func TestInitializeAgentPersistsSourceWorldNameFromDisplayMetadata(t *testing.T) {
+	t.Setenv(sourceMaterializationHMACSecretEnv, "unit-test-source-packet-secret")
+	svc := newRuntimeAgentTestService(t)
+	ownerID := "user-source"
+	runtimeSourceRef := "runtime-source:worldCharacter:world-1:source-1:hash-1"
+	packet := testSourceMaterializationPacket(t, ownerID, runtimeSourceRef, "nonce-world-name", time.Now().UTC().Add(5*time.Minute), sourceMaterializationAudienceDesktop)
+	displayMetadata := packet["sourceDisplayMetadata"].(map[string]any)
+	displayMetadata["worldName"] = "唐代文人世界"
+	refreshTestSourceMaterializationPacketSignature(t, packet, ownerID)
+
+	resp, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
+		OwnerUserId:      ownerID,
+		RuntimeSourceRef: runtimeSourceRef,
+		DisplayName:      "Source Fork",
+		Metadata:         testSourceMaterializationMetadata(t, packet),
+	})
+	if err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	fields := resp.GetAgent().GetMetadata().GetFields()
+	if fields[sourceMaterializationPacketMetadataKey] != nil {
+		t.Fatalf("packet payload persisted in agent metadata: %#v", fields[sourceMaterializationPacketMetadataKey])
+	}
+	sourceMaterialization := fields[sourceMaterializationMetadataKey].GetStructValue()
+	if sourceMaterialization == nil {
+		t.Fatalf("source materialization provenance missing: %#v", fields)
+	}
+	if got := sourceMaterialization.GetFields()["sourceWorldName"].GetStringValue(); got != "唐代文人世界" {
+		t.Fatalf("sourceWorldName provenance = %q, want 唐代文人世界", got)
+	}
+}
+
 func TestInitializeAgentUsesConfiguredSourceMaterializationPacketSecretWithoutEnv(t *testing.T) {
 	signingSecret := "unit-test-source-packet-secret"
 	t.Setenv(sourceMaterializationHMACSecretEnv, signingSecret)

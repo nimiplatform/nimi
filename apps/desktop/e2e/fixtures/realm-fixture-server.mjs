@@ -535,6 +535,7 @@ function buildSourceMaterializationPacket(manifest, sourceRef, intendedRuntimeAu
   const payloadSchema = sourceRef.kind === 'worldCharacter'
     ? 'realm.world-character-core/v1'
     : 'realm.persona/v1';
+  const sourceWorldName = text(lookupWorld(manifest, sourceRef.worldId)?.name, '');
   const unsignedPacket = {
     packetSchemaVersion: 'realm.source-materialization-packet/v1',
     packetId,
@@ -549,6 +550,7 @@ function buildSourceMaterializationPacket(manifest, sourceRef, intendedRuntimeAu
     intendedRuntimeAudience: audience,
     runtimeSourceRef,
     sourceDisplayMetadata: {
+      ...(sourceWorldName ? { worldName: sourceWorldName } : {}),
       displayName: sourceRef.sourceId,
       avatarUrl: null,
       profileCoverUrl: null,

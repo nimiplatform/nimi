@@ -38,6 +38,7 @@ export function createFixtureSourceMaterializationPacket(
     intendedRuntimeAudience: audience,
     runtimeSourceRef,
     sourceDisplayMetadata: {
+      worldName: 'Runtime Live World',
       identity: {
         name: 'Runtime Live Source',
       },

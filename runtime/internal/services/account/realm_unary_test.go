@@ -82,13 +82,14 @@ func TestInvokeRealmUnaryAdmitsStudioOperationIDs(t *testing.T) {
 	completeLogin(t, svc)
 
 	cases := []struct {
-		name        string
-		caller      *runtimev1.AccountCaller
-		methodID    string
-		requestJSON string
-		method      string
-		path        string
-		query       string
+		name             string
+		caller           *runtimev1.AccountCaller
+		methodID         string
+		requestJSON      string
+		method           string
+		path             string
+		query            string
+		omitRealmBaseURL bool
 	}{
 		{
 			name:        "realm persona list",
@@ -317,6 +318,15 @@ func TestInvokeRealmUnaryAdmitsStudioOperationIDs(t *testing.T) {
 			path:        "/api/world/by-id/world-1",
 		},
 		{
+			name:             "zhiyu public world detail defaults runtime realm base url",
+			caller:           zhiyuLocalFirstPartyCaller(),
+			methodID:         "WorldPublicController_getWorld",
+			requestJSON:      `{"path":{"worldId":"world-1"}}`,
+			method:           http.MethodGet,
+			path:             "/api/world/by-id/world-1",
+			omitRealmBaseURL: true,
+		},
+		{
 			name:        "desktop public world characters",
 			caller:      realmDesktopShellCaller(),
 			methodID:    "WorldPublicController_listWorldCharacters",
@@ -339,10 +349,14 @@ func TestInvokeRealmUnaryAdmitsStudioOperationIDs(t *testing.T) {
 			wantMethod = tc.method
 			wantPath = tc.path
 			wantQuery = tc.query
+			realmBaseURL := server.URL
+			if tc.omitRealmBaseURL {
+				realmBaseURL = ""
+			}
 			resp, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
 				Caller:       tc.caller,
 				MethodId:     tc.methodID,
-				RealmBaseUrl: server.URL,
+				RealmBaseUrl: realmBaseURL,
 				RequestJson:  tc.requestJSON,
 			})
 			if err != nil {
@@ -522,7 +536,7 @@ func newRealmUnaryHarnessService(t *testing.T, realmBaseURL string) *Service {
 	return newHarnessService(
 		t,
 		nil,
-		WithAppRegistry(testAppRegistry(t, firstPartyCaller(), realmPersonaStudioCaller(), realmWorldStudioCaller(), realmDesktopShellCaller())),
+		WithAppRegistry(testAppRegistry(t, firstPartyCaller(), realmPersonaStudioCaller(), realmWorldStudioCaller(), realmDesktopShellCaller(), zhiyuLocalFirstPartyCaller())),
 		WithRealmBaseURL(realmBaseURL),
 	)
 }
@@ -551,5 +565,14 @@ func realmDesktopShellCaller() *runtimev1.AccountCaller {
 		AppInstanceId: "nimi.desktop.local-first-party",
 		DeviceId:      "desktop-shell",
 		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL,
+	}
+}
+
+func zhiyuLocalFirstPartyCaller() *runtimev1.AccountCaller {
+	return &runtimev1.AccountCaller{
+		AppId:         "nimi.zhiyu",
+		AppInstanceId: "nimi.zhiyu.local-first-party",
+		DeviceId:      "nimi-zhiyu-local-first-party-device",
+		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
 	}
 }

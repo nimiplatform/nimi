@@ -71,6 +71,7 @@ export interface NimiRuntimeAgentDiscoveredLocalAgent {
   readonly displayName: string;
   readonly sourceKind: string | null;
   readonly sourceWorldId: string | null;
+  readonly sourceWorldName: string | null;
   readonly sourceId: string | null;
   readonly sourceContentHash: string | null;
   readonly agent: AgentRecord;
@@ -228,6 +229,7 @@ function readSourceMaterializationProvenance(agent: AgentRecord) {
     return {
       sourceKind: null,
       sourceWorldId: null,
+      sourceWorldName: null,
       sourceId: null,
       sourceContentHash: null,
     };
@@ -236,6 +238,7 @@ function readSourceMaterializationProvenance(agent: AgentRecord) {
   return {
     sourceKind: normalizeNimiRuntimeAgentText(record.sourceKind) || null,
     sourceWorldId: normalizeNimiRuntimeAgentText(record.sourceWorldId) || null,
+    sourceWorldName: normalizeNimiRuntimeAgentText(record.sourceWorldName) || null,
     sourceId: normalizeNimiRuntimeAgentText(record.sourceId) || null,
     sourceContentHash: normalizeNimiRuntimeAgentText(record.sourceContentHash) || null,
   };

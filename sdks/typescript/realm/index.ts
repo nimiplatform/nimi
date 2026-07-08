@@ -15,6 +15,7 @@ export * from './resource-upload';
 export * from './group-chat';
 export * from './feed';
 export * from './social';
+export * from './world-public';
 export * from './notifications';
 export * from './fetch-transport';
 

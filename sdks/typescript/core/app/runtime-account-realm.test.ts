@@ -7,7 +7,10 @@ import {
   NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
 } from '../../runtime/account-caller';
 import { createInstalledNimiAppBootstrap } from './installed-app-bootstrap';
-import { createRealmWithRuntimeAccountToken } from './runtime-account-realm';
+import {
+  createRealmWithRuntimeAccountToken,
+  createRuntimeAccountMediatedRealmTransport,
+} from './runtime-account-realm';
 
 test('Realm Runtime account helper adds bearer token and refreshes after 401', async () => {
   const calls: Array<{ readonly authorization: string }> = [];
@@ -48,6 +51,49 @@ test('Realm Runtime account helper adds bearer token and refreshes after 401', a
     'Bearer token-1',
     'Bearer token-2',
   ]);
+});
+
+test('Runtime-mediated Realm transport delegates unary calls without renderer token custody', async () => {
+  const caller = {
+    appId: 'nimi.zhiyu',
+    appInstanceId: 'nimi.zhiyu.local-first-party',
+    deviceId: 'nimi-zhiyu-local-first-party-device',
+    mode: AccountCallerMode.ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+    scopes: [],
+  };
+  const calls: Array<{ readonly request: unknown; readonly options: unknown }> = [];
+  const transport = createRuntimeAccountMediatedRealmTransport({
+    accountCaller: caller,
+    runtime: {
+      account: {
+        invokeRealmUnary: async (request: unknown, options: unknown) => {
+          calls.push({ request, options });
+          return {
+            accepted: true,
+            responseJson: JSON.stringify({ id: 'world-1', name: '唐代文人世界' }),
+          };
+        },
+      },
+    },
+  });
+
+  const response = await transport.unary({
+    methodId: 'WorldPublicController_getWorld',
+    body: { path: { worldId: 'world-1' } },
+    timeoutMs: 15_000,
+  });
+
+  assert.deepEqual(response, { id: 'world-1', name: '唐代文人世界' });
+  assert.deepEqual(calls.map((call) => call.request), [{
+    caller,
+    methodId: 'WorldPublicController_getWorld',
+    realmBaseUrl: '',
+    requestJson: JSON.stringify({ path: { worldId: 'world-1' } }),
+    timeoutMs: 15_000,
+  }]);
+  const options = calls[0]?.options as { readonly metadata?: Record<string, string> } | undefined;
+  assert.match(options?.metadata?.idempotencyKey ?? '', /^runtime-realm:WorldPublicController_getWorld:[a-f0-9]{16}$/);
+  assert.equal(options?.metadata?.['x-nimi-idempotency-key'], options?.metadata?.idempotencyKey);
 });
 
 test('installed app bootstrap composes host-owned Runtime account, Realm, and standard shell surfaces', async () => {

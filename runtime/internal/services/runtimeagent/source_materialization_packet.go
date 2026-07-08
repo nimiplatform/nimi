@@ -42,6 +42,7 @@ type verifiedSourceMaterializationPacket struct {
 	SourceKind            string
 	SourceID              string
 	SourceWorldID         string
+	SourceWorldName       string
 	SourceContentRevision float64
 	SourceContentHash     string
 	RuntimeSourceRef      string
@@ -149,8 +150,13 @@ func verifySourceMaterializationPacketObject(
 	if runtimeSourceRef != identity.RuntimeSourceRef {
 		return nil, status.Error(codes.InvalidArgument, "source materialization packet runtime_source_ref mismatch")
 	}
-	if _, ok := packet["sourceDisplayMetadata"].(map[string]any); !ok {
+	sourceDisplayMetadata, ok := packet["sourceDisplayMetadata"].(map[string]any)
+	if !ok {
 		return nil, status.Error(codes.InvalidArgument, "source materialization packet display metadata is required")
+	}
+	sourceWorldName, err := optionalPacketString(sourceDisplayMetadata, "worldName")
+	if err != nil {
+		return nil, err
 	}
 	payload, ok := packet["payload"].(map[string]any)
 	if !ok {
@@ -212,6 +218,7 @@ func verifySourceMaterializationPacketObject(
 		SourceKind:            sourceKind,
 		SourceID:              sourceID,
 		SourceWorldID:         sourceWorldID,
+		SourceWorldName:       sourceWorldName,
 		SourceContentRevision: sourceContentRevision,
 		SourceContentHash:     sourceContentHash,
 		RuntimeSourceRef:      runtimeSourceRef,
@@ -250,6 +257,18 @@ func requiredPacketString(packet map[string]any, key string) (string, error) {
 	text, ok := value.(string)
 	if !ok || strings.TrimSpace(text) == "" {
 		return "", status.Errorf(codes.InvalidArgument, "source materialization packet %s must be a non-empty string", key)
+	}
+	return strings.TrimSpace(text), nil
+}
+
+func optionalPacketString(packet map[string]any, key string) (string, error) {
+	value, ok := packet[key]
+	if !ok || value == nil {
+		return "", nil
+	}
+	text, ok := value.(string)
+	if !ok {
+		return "", status.Errorf(codes.InvalidArgument, "source materialization packet %s must be a string", key)
 	}
 	return strings.TrimSpace(text), nil
 }
@@ -343,7 +362,7 @@ func sanitizeInitializeAgentMetadata(metadata *structpb.Struct, verified *verifi
 		}
 	}
 	if verified != nil {
-		result[sourceMaterializationMetadataKey] = map[string]any{
+		sourceMaterialization := map[string]any{
 			"packetId":              verified.PacketID,
 			"packetHash":            verified.PacketHash,
 			"sourceKind":            verified.SourceKind,
@@ -354,6 +373,10 @@ func sanitizeInitializeAgentMetadata(metadata *structpb.Struct, verified *verifi
 			"runtimeSourceRef":      verified.RuntimeSourceRef,
 			"consumedAt":            verified.ConsumedAt.Format(time.RFC3339Nano),
 		}
+		if verified.SourceWorldName != "" {
+			sourceMaterialization["sourceWorldName"] = verified.SourceWorldName
+		}
+		result[sourceMaterializationMetadataKey] = sourceMaterialization
 	}
 	if len(result) == 0 {
 		return nil, nil
