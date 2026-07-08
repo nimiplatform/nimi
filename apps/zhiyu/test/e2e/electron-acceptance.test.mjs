@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { _electron as electron } from 'playwright';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
-const root = path.resolve(import.meta.dirname, '..');
+const root = path.resolve(import.meta.dirname, '..', '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
 const rendererAcceptanceUrl = withAcceptanceQuery(pathToFileURL(path.join(root, 'dist', 'index.html')).toString());
 

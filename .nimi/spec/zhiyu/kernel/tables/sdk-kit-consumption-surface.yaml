@@ -57,7 +57,7 @@ rows:
     source_rule: Z-MEM-003
   - kind: forbidden_surface
     symbol: renderVoice
-    reason: voice_render_deferred_and_not_runtime_admitted_for_zhiyu
+    reason: app_local_voice_render_bypasses_runtime_sdk_voice_truth
     source_rule: Z-AV-003
   - kind: local_parity_module
     path: apps/zhiyu/src/shell/agent-chat/runtime-agent-binding.ts

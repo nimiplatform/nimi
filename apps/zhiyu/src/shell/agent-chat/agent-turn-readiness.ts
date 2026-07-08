@@ -65,6 +65,8 @@ export function probeZhiyuAgentTurnReadiness(
     message: 'Runtime Agent turn channel is ready.',
     ...identity,
     requestId: null,
+    runtimeTurnId: null,
+    runtimeStreamId: null,
     messageId: null,
   };
 }
@@ -116,6 +118,8 @@ function turnUnavailable(input: {
     localAgentRef: input.localAgentRef ?? null,
     conversationAnchorId: input.conversationAnchorId ?? null,
     requestId: input.requestId ?? null,
+    runtimeTurnId: null,
+    runtimeStreamId: null,
     messageId: null,
   };
 }

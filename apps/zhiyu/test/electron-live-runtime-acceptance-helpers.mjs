@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const root = path.resolve(import.meta.dirname, '..');
 
@@ -21,6 +22,40 @@ function resolveEvidenceRoot() {
 
 function isRuntimeLocalAgentCenterCheckpoint(checkpoint) {
   return /runtime-local-agent-center/iu.test(String(checkpoint || ''));
+}
+
+export function createZhiyuLiveRuntimeFixtureAcceptanceInitScript(fixture) {
+  const sourceProjection = {
+    transport: 'electron-ipc',
+    ready: true,
+    reasonCode: 'runtime-source-projected',
+    actionHint: 'discover_runtime_owned_local_agent',
+    source: 'sdk-fixture',
+    message: 'Runtime source projection was supplied by the SDK live fixture.',
+    ownerUserId: fixture.ownerUserId,
+    runtimeSourceRef: fixture.runtimeSourceRef,
+    sourceRef: {
+      kind: fixture.sourceRef?.kind,
+      worldId: fixture.sourceRef?.worldId,
+      sourceId: fixture.sourceRef?.sourceId,
+      sourceContentHash: fixture.sourceRef?.sourceContentHash,
+    },
+  };
+  return `
+    (() => {
+      const sourceProjection = ${JSON.stringify(sourceProjection)};
+      Object.defineProperty(window, '__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__', {
+        value: sourceProjection,
+        configurable: true
+      });
+    })();
+  `;
+}
+
+export function createZhiyuLiveRuntimeAcceptanceRendererUrl(appRoot) {
+  const url = new URL(pathToFileURL(path.join(appRoot, 'dist', 'index.html')).toString());
+  url.searchParams.set('nimiElectronSdkAcceptance', '1');
+  return url.toString();
 }
 
 function findDeepValue(input, predicate, seen = new Set()) {
@@ -92,6 +127,7 @@ function buildRuntimeLocalAgentCenterEvidence({
   const authReady = projection?.auth?.ready === true;
   const sdkReady = runtimeReady && projection?.localAgent?.ready === true;
   const audio = projectCapability(route, 'audio.synthesize');
+  const transcription = projectCapability(route, 'audio.transcribe');
 
   return {
     planId: RLA_PLAN_ID,
@@ -120,6 +156,12 @@ function buildRuntimeLocalAgentCenterEvidence({
       audioSynthesize: {
         state: audio.state,
         reason: audio.reason,
+        editable: false,
+        playable: false,
+      },
+      audioTranscribe: {
+        state: transcription.state,
+        reason: transcription.reason,
         editable: false,
         playable: false,
       },

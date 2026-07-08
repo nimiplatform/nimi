@@ -44,7 +44,7 @@ entries:
     evidence_requirement: memory_contract_sdk_kit_forbidden_surface_and_continuity_acceptance
   - id: avatar_voice
     rule_prefix: Z-AV
-    evidence_requirement: avatar_voice_contract_config_surface_and_deferred_voice_acceptance
+    evidence_requirement: avatar_voice_contract_runtime_voice_truth_and_full_support_acceptance
   - id: activity
     rule_prefix: Z-ACT
     evidence_requirement: creation_activity_contract_and_artifact_boundary_gate

@@ -52,7 +52,7 @@ test('common mojibake and replacement patterns fail closed', () => {
 
 test('allowlist only exempts the specified path, rule, value, and line shape', () => {
   const allowlist = [{
-    path: 'apps/zhiyu/test/electron-acceptance.mjs',
+    path: 'apps/zhiyu/test/e2e/electron-acceptance.test.mjs',
     ruleId: 'mojibake_utf8_as_gbk',
     value: '\u7f01\u56e9\u7a98',
     lineIncludes: 'assert.doesNotMatch',
@@ -60,21 +60,21 @@ test('allowlist only exempts the specified path, rule, value, and line shape', (
   }];
 
   const allowed = scanBuffer({
-    relativePath: 'apps/zhiyu/test/electron-acceptance.mjs',
+    relativePath: 'apps/zhiyu/test/e2e/electron-acceptance.test.mjs',
     buffer: utf8('assert.doesNotMatch(unavailableText, /\u7f01\u56e9\u7a98/);'),
     allowlist,
   });
   assert.deepEqual(allowed.violations, []);
 
   const sameFileDifferentToken = scanBuffer({
-    relativePath: 'apps/zhiyu/test/electron-acceptance.mjs',
+    relativePath: 'apps/zhiyu/test/e2e/electron-acceptance.test.mjs',
     buffer: utf8('assert.doesNotMatch(unavailableText, /\u7f02\u4f78\u6d28/);'),
     allowlist,
   });
   assert.deepEqual(ruleIds(sameFileDifferentToken), ['mojibake_utf8_as_gbk']);
 
   const sameTokenDifferentLineShape = scanBuffer({
-    relativePath: 'apps/zhiyu/test/electron-acceptance.mjs',
+    relativePath: 'apps/zhiyu/test/e2e/electron-acceptance.test.mjs',
     buffer: utf8('const leaked = "\u7f01\u56e9\u7a98";'),
     allowlist,
   });
@@ -83,11 +83,11 @@ test('allowlist only exempts the specified path, rule, value, and line shape', (
 
 test('stale allowlist entries fail in full-scan validation', () => {
   const result = scanFileRecords([{
-    relativePath: 'apps/zhiyu/test/electron-acceptance.mjs',
+    relativePath: 'apps/zhiyu/test/e2e/electron-acceptance.test.mjs',
     buffer: utf8('assert.equal(text, "clean");'),
   }], {
     allowlist: [{
-      path: 'apps/zhiyu/test/electron-acceptance.mjs',
+      path: 'apps/zhiyu/test/e2e/electron-acceptance.test.mjs',
       ruleId: 'mojibake_utf8_as_gbk',
       value: '\u7f01\u56e9\u7a98',
       lineIncludes: 'assert.doesNotMatch',

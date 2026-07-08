@@ -73,12 +73,12 @@ story_acceptance:
     gates: [config_boundary, local_persistence_boundary]
     dimensions: [real_app_shell, primary_user_path, real_runtime_auth_sdk_connectivity, failure_state, button_input_usability, owner_boundary_trace]
     required_evidence: [avatar_import_facade_available, avatar_selection_facade_available, avatar_launch_handoff_available, no_app_local_avatar_resource_truth]
-  - story: story_08_voice_deferred
+  - story: story_08_voice_full_support
     states: [partner_ready]
     decisions: [D4, D11]
     gates: [no_direct_ai_consumption]
-    dimensions: [real_app_shell, disabled_state, chinese_readability, owner_boundary_trace]
-    required_evidence: [voice_status_or_future_entry_only, no_voice_render_path, no_app_local_tts]
+    dimensions: [real_app_shell, primary_user_path, dom_cdp_state, console_error_free, failure_state, disabled_state, chinese_readability, owner_boundary_trace]
+    required_evidence: [runtime_voice_truth_projected, native_stream_playback_supported, batch_artifact_playback_supported, text_only_has_no_playback_control, voice_capture_transcribes_through_runtime, voice_interrupt_projects_runtime_truth, simulated_or_incomplete_voice_truth_fails_closed, no_app_local_tts]
   - story: story_09_creation_artifact_boundary
     states: [partner_responding, partner_ready]
     decisions: [D8, D10, D11, D12]
@@ -96,7 +96,7 @@ story_acceptance:
     decisions: [D3, D4, D6, D11]
     gates: [test_quarantine, no_direct_ai_consumption]
     dimensions: [real_app_shell, failure_state, dom_cdp_state, console_error_free, chinese_readability, owner_boundary_trace]
-    required_evidence: [diagnostics_secondary_surface_only, owner_reason_trace_visible, proactive_and_voice_marked_deferred]
+    required_evidence: [diagnostics_secondary_surface_only, owner_reason_trace_visible, proactive_marked_deferred]
 state_acceptance:
   - state: local_service_unavailable
     stories: [story_10_local_service_offline, story_11_diagnostics]
@@ -111,7 +111,7 @@ state_acceptance:
     stories: [story_03_configure_model]
     required_evidence: [runtime_ai_config_missing_or_invalid_state, config_facade_action]
   - state: partner_ready
-    stories: [story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_08_voice_deferred, story_09_creation_artifact_boundary]
+    stories: [story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_08_voice_full_support, story_09_creation_artifact_boundary]
     required_evidence: [conversation_ready_controls, config_controls_available, avatar_launch_entry_available, continuity_projection_available]
   - state: partner_responding
     stories: [story_04_first_conversation, story_09_creation_artifact_boundary]
@@ -133,9 +133,9 @@ decision_acceptance:
     spec_refs: [Z-AUTH-003]
     acceptance_rows: [story_11_diagnostics]
   - decision: D4
-    semantics: voice_deferred_no_voice_render_v1_path
+    semantics: voice_full_support_runtime_sdk_projection_no_app_local_tts
     spec_refs: [Z-AV-003, Z-AV-004]
-    acceptance_rows: [story_08_voice_deferred, story_11_diagnostics]
+    acceptance_rows: [story_08_voice_full_support]
   - decision: D5
     semantics: avatar_config_operation_and_launch_only_carrier
     spec_refs: [Z-CONFIG-003, Z-AV-001, Z-AV-002]
@@ -163,7 +163,7 @@ decision_acceptance:
   - decision: D11
     semantics: binding_only_first_party_consumer
     spec_refs: [Z-AUTH-002, Z-AUTH-004]
-    acceptance_rows: [story_01_first_open_partner_selection, story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_08_voice_deferred, story_09_creation_artifact_boundary, story_10_local_service_offline, story_11_diagnostics]
+    acceptance_rows: [story_01_first_open_partner_selection, story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_08_voice_full_support, story_09_creation_artifact_boundary, story_10_local_service_offline, story_11_diagnostics]
   - decision: D12
     semantics: local_persistence_boundary_no_truth_localization
     spec_refs: [Z-PERSIST-001, Z-PERSIST-002, Z-PERSIST-003]
@@ -179,7 +179,7 @@ blocking_gates:
     blocks_real_app_acceptance_for: [story_01_first_open_partner_selection, story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_09_creation_artifact_boundary, story_10_local_service_offline]
     source_rule: Z-GATE-007
   - gate: no_direct_ai_consumption
-    blocks_real_app_acceptance_for: [story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_08_voice_deferred, story_09_creation_artifact_boundary, story_11_diagnostics]
+    blocks_real_app_acceptance_for: [story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_08_voice_full_support, story_09_creation_artifact_boundary, story_11_diagnostics]
     source_rule: Z-GATE-007
   - gate: no_duplicate_turn_reducer
     blocks_real_app_acceptance_for: [story_04_first_conversation, story_10_local_service_offline]

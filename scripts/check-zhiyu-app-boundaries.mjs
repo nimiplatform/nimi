@@ -241,7 +241,7 @@ function checkNoDirectAIConsumption() {
     .map((symbol) => ({ label: `forbidden SDK/Kit surface ${symbol}`, pattern: symbol }));
   const hits = scan([
     ...symbolPatterns,
-    { label: 'runtime voice render ingress', pattern: /runtime\.agent\.turn\.voice_render/u },
+    { label: 'app-local voice render bypass', pattern: /runtime\.agent\.turn\.voice_render/u },
     { label: 'raw runtime agent app-message send', pattern: /sendAppMessage\s*\([^)]*runtime\.agent/su },
     { label: 'runtime memory write scope', pattern: /runtime\.memory\.write/u },
   ]);

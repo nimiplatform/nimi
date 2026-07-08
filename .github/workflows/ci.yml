@@ -594,6 +594,35 @@ jobs:
       - name: Build web
         run: pnpm --filter @nimiplatform/web build
 
+  zhiyu-quality:
+    needs: changes
+    if: needs.changes.outputs.core_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Test Zhiyu
+        run: pnpm --filter @nimiplatform/zhiyu test
+
+      - name: Typecheck Zhiyu
+        run: pnpm --filter @nimiplatform/zhiyu typecheck
+
   governance-security:
     needs: changes
     if: needs.changes.outputs.core_changed == 'true'

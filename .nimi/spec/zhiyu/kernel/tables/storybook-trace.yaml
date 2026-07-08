@@ -10,7 +10,7 @@ entries:
   - story_05_revisit_continuity
   - story_06_relationship_state_summary
   - story_07_avatar_config_launch
-  - story_08_voice_deferred
+  - story_08_voice_full_support
   - story_09_creation_artifact_boundary
   - story_10_local_service_offline
   - story_11_diagnostics
@@ -50,9 +50,9 @@ stories:
     intent: configure_and_launch_avatar_through_admitted_facades
     states: [partner_ready]
     authority_refs: [configuration-surface-contract.md, avatar-voice-surface-contract.md]
-  - id: story_08_voice_deferred
+  - id: story_08_voice_full_support
     source_story: 8
-    intent: show_voice_status_and_future_entry_without_v1_voice_render_path
+    intent: play_runtime_voice_output_and_capture_voice_input_through_runtime_surfaces
     states: [partner_ready]
     authority_refs: [avatar-voice-surface-contract.md]
   - id: story_09_creation_artifact_boundary

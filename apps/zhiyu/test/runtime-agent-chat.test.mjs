@@ -74,6 +74,10 @@ test('Zhiyu Runtime Agent chat delegates streaming turns through Desktop-parity 
   // Atomic hard cut: turn requests never carry model bindings; the runtime
   // resolves execution from its committed Runtime Agent AI Config.
   assert.equal('executionBindings' in captured[0].request, false);
+  assert.deepEqual(captured[0].request.reasoning, {
+    mode: 'on',
+    traceMode: 'separate',
+  });
   assert.deepEqual(captured[0].request.messages, [
     { role: 'user', content: 'hello from Zhiyu chat' },
   ]);

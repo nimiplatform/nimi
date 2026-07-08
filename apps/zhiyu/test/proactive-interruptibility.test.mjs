@@ -1,20 +1,45 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { transformSync } from 'esbuild';
+import { pathToFileURL } from 'node:url';
+import { build } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
+const repoRoot = path.resolve(root, '..', '..');
+let buildDir = null;
+
+test.after(async () => {
+  if (buildDir) {
+    await rm(buildDir, { recursive: true, force: true });
+  }
+});
 
 async function loadCompanionModule() {
-  const sourcePath = path.join(root, 'src/shell/agent/companion-state.ts');
-  const source = readFileSync(sourcePath, 'utf8');
-  const output = transformSync(source, {
-    loader: 'ts',
+  const outputPath = path.join(await buildCompanionModule(), 'companion-state.mjs');
+  return import(pathToFileURL(outputPath).href);
+}
+
+async function buildCompanionModule() {
+  if (buildDir) return buildDir;
+  mkdirSync(path.join(root, '.tmp'), { recursive: true });
+  buildDir = mkdtempSync(path.join(tmpdir(), 'nimi-zhiyu-proactive-companion-state-'));
+  await build({
+    entryPoints: [path.join(root, 'src/shell/agent/companion-state.ts')],
+    outfile: path.join(buildDir, 'companion-state.mjs'),
+    bundle: true,
+    platform: 'node',
     format: 'esm',
     target: 'es2022',
+    sourcemap: false,
+    logLevel: 'silent',
+    alias: {
+      '@nimiplatform/kit/features/avatar/headless': path.join(repoRoot, 'kit/features/avatar/src/headless.ts'),
+    },
   });
-  return import(`data:text/javascript;base64,${Buffer.from(output.code).toString('base64')}`);
+  return buildDir;
 }
 
 function localAgentReady() {
@@ -83,7 +108,7 @@ function runtimeStateSnapshot(proactiveInterruptibility) {
     activeWorldId: 'world-1',
     activeUserId: 'user-1',
     updatedAt: '2026-07-02T00:00:02.000Z',
-    currentEmotion: 'focused',
+    currentEmotion: 'confused',
     proactiveInterruptibility,
   };
 }

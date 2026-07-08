@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
+const repoRoot = path.resolve(root, '..', '..');
 let buildDir = null;
 
 test.after(async () => {
@@ -85,7 +86,7 @@ test('reactively projects Runtime Agent state events into companion evidence', a
       detail: {
         currentStatusText: '正在整理上下文',
         currentExecutionState: 'chat_active',
-        currentEmotion: 'focused',
+        currentEmotion: 'confused',
         currentPosture: {
           actionFamily: 'chat',
           interruptMode: 'interruptible',
@@ -102,13 +103,44 @@ test('reactively projects Runtime Agent state events into companion evidence', a
   assert.equal(companion.reasonCode, 'runtime-agent-state-event-projected');
   assert.equal(companion.statusText, '正在整理上下文');
   assert.equal(companion.executionState, 'chat_active');
-  assert.equal(companion.currentEmotion, 'focused');
+  assert.equal(companion.currentEmotion, 'confused');
+  assert.equal(companion.currentEmotionId, 'confused');
+  assert.equal(companion.currentEmotionCue, 'focus');
+  assert.equal(companion.currentEmotionIntensity, null);
+  assert.equal(companion.emotionViolation, null);
   assert.equal(companion.observedAt, '2026-07-04T02:00:00.000Z');
   assert.equal(companion.stateUpdatedAt, '2026-07-04T02:00:00.000Z');
   assert.equal(companion.participationMode, 'idle');
   assert.equal(companion.participationSource, 'runtime-agent-event');
   assert.ok(companion.projectedFields.includes('runtimeAgentEventSubscription'));
   assert.ok(companion.projectedFields.includes('currentPosture'));
+});
+
+test('fails closed for unknown Runtime Agent emotion ids without displaying raw values', async () => {
+  const module = await importConversationStateModule();
+  const companion = module.projectZhiyuCompanionFromRuntimeAgentEvent({
+    current: blockedCompanion(),
+    event: {
+      eventName: 'runtime.agent.state.emotion_changed',
+      localAgentRef: 'local-agent:opaque',
+      conversationAnchorId: 'conversation-anchor:opaque',
+      detail: {
+        currentStatusText: '正在整理上下文',
+        currentExecutionState: 'chat_active',
+        currentEmotion: 'focused',
+      },
+    },
+    ownerUserId: 'user-1',
+    runtimeSourceRef: 'runtime-source:opaque',
+    observedAt: '2026-07-04T02:00:00.000Z',
+  });
+
+  assert.equal(companion.currentEmotion, null);
+  assert.equal(companion.currentEmotionId, null);
+  assert.equal(companion.currentEmotionCue, null);
+  assert.equal(companion.emotionViolation.rawValue, 'focused');
+  assert.equal(companion.emotionViolation.reasonCode, 'runtime-agent-emotion-id-not-admitted');
+  assert.ok(companion.projectedFields.includes('emotionViolation'));
 });
 
 test('reactively projects Runtime Agent action, activity, voice, lipsync, and hook events into companion evidence', async () => {
@@ -146,13 +178,16 @@ test('reactively projects Runtime Agent action, activity, voice, lipsync, and ho
     event: event('runtime.agent.presentation.activity_requested', {
       activityName: 'happy',
       category: 'emotion',
-      intensity: 'medium',
+      intensity: 'moderate',
       source: 'apml',
     }),
   });
   assert.equal(companion.executionState, 'activity_requested');
   assert.equal(companion.statusText, 'happy');
   assert.equal(companion.currentEmotion, 'happy');
+  assert.equal(companion.currentEmotionId, 'happy');
+  assert.equal(companion.currentEmotionCue, 'joy');
+  assert.equal(companion.currentEmotionIntensity, 'moderate');
   assert.ok(companion.projectedFields.includes('presentationActivity'));
 
   companion = module.projectZhiyuCompanionFromRuntimeAgentEvent({
@@ -187,7 +222,13 @@ test('reactively projects Runtime Agent action, activity, voice, lipsync, and ho
     }),
   });
   assert.equal(companion.executionState, 'lipsync_frame_batch');
+  assert.equal(companion.statusText, 'lipsync_frames:1');
   assert.ok(companion.projectedFields.includes('lipsyncFrameBatch'));
+  const lipsyncDiagnostic = companion.diagnostics.runtimeProjectionEvents.at(-1);
+  assert.equal(lipsyncDiagnostic.eventName, 'runtime.agent.presentation.lipsync_frame_batch');
+  assert.equal(lipsyncDiagnostic.projectedExecutionState, 'lipsync_frame_batch');
+  assert.equal(lipsyncDiagnostic.projectedStatusText, 'lipsync_frames:1');
+  assert.ok(lipsyncDiagnostic.projectedFields.includes('lipsyncFrameBatch'));
 
   companion = module.projectZhiyuCompanionFromRuntimeAgentEvent({
     ...base,
@@ -312,6 +353,9 @@ async function buildConversationStateModule() {
     target: 'es2022',
     sourcemap: false,
     logLevel: 'silent',
+    alias: {
+      '@nimiplatform/kit/features/avatar/headless': path.join(repoRoot, 'kit/features/avatar/src/headless.ts'),
+    },
   });
   return buildDir;
 }
@@ -372,6 +416,10 @@ function blockedCompanion() {
     activeWorldId: null,
     activeUserId: null,
     currentEmotion: null,
+    currentEmotionId: null,
+    currentEmotionCue: null,
+    currentEmotionIntensity: null,
+    emotionViolation: null,
     participationMode: 'not_projected',
     participationSource: null,
     projectedFields: [],

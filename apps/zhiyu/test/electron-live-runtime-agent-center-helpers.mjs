@@ -232,7 +232,8 @@ export async function assertAgentCenterKeyboardAccessibility(page) {
 
   const voiceCapture = page.locator('[data-zhiyu-composer-tool="voice-capture"]').first();
   await voiceCapture.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await voiceCapture.isDisabled(), true);
+  assert.equal(await voiceCapture.getAttribute('data-zhiyu-chat-voice-capture-ready'), 'true');
+  assert.equal(await voiceCapture.isDisabled(), false);
   const handsFree = page.locator('[data-zhiyu-composer-tool="hands-free"]').first();
   await handsFree.waitFor({ state: 'visible', timeout: 15_000 });
   assert.equal(await handsFree.isDisabled(), true);

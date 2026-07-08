@@ -4,7 +4,16 @@ import type {
   NimiRuntimeAgentSessionTranscriptMessage,
 } from '@nimiplatform/sdk/runtime';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat';
-import type { ZhiyuEvidence } from '../app/evidence';
+import type {
+  ZhiyuCompanionRuntimeProjectionEventEvidence,
+  ZhiyuEvidence,
+} from '../app/evidence';
+import {
+  initialZhiyuCompanionEmotionProjection,
+  projectZhiyuCompanionEmotion,
+  type ZhiyuCompanionEmotionProjection,
+  type ZhiyuCompanionEmotionViolation,
+} from '../agent/companion-emotion';
 
 export type ZhiyuAgentChatStatus = ZhiyuEvidence['chat'];
 export type ZhiyuCompanionStatus = ZhiyuEvidence['companion'];
@@ -51,6 +60,8 @@ export function hydrateZhiyuAgentChatFromRuntimeSessionSnapshot(
     localAgentRef: input.localAgentRef,
     conversationAnchorId: input.conversationAnchorId,
     requestId: normalizeText(input.snapshot.requestId) || null,
+    runtimeTurnId: runtimeTurnIdFromSnapshot(input.snapshot),
+    runtimeStreamId: runtimeStreamIdFromSnapshot(input.snapshot),
     eventTypes: ['session-snapshot-hydrated'],
     messageCount: messages.length,
     messages,
@@ -86,6 +97,10 @@ export function projectZhiyuCompanionFromRuntimeAgentEvent(input: {
   const voicePlaybackTarget = projection.voicePlaybackTarget || input.current.voicePlaybackTarget;
   const voiceStreamId = projection.voiceStreamId || input.current.voiceStreamId;
   const currentEmotion = projection.currentEmotion || input.current.currentEmotion;
+  const currentEmotionId = projection.currentEmotionId;
+  const currentEmotionCue = projection.currentEmotionCue;
+  const currentEmotionIntensity = projection.currentEmotionIntensity;
+  const emotionViolation = projection.emotionViolation;
   const activeWorldId = projection.activeWorldId || input.current.activeWorldId;
   const activeUserId = projection.activeUserId || input.current.activeUserId;
   const projectedFields = uniqueTexts([
@@ -101,9 +116,19 @@ export function projectZhiyuCompanionFromRuntimeAgentEvent(input: {
     voicePlaybackTarget ? 'voicePlaybackTarget' : '',
     voiceStreamId ? 'voiceStreamId' : '',
     currentEmotion ? 'currentEmotion' : '',
+    currentEmotionId ? 'currentEmotionId' : '',
+    currentEmotionCue ? 'currentEmotionCue' : '',
+    currentEmotionIntensity ? 'currentEmotionIntensity' : '',
+    emotionViolation ? 'emotionViolation' : '',
     activeWorldId ? 'activeWorldId' : '',
     activeUserId ? 'activeUserId' : '',
   ]);
+  const diagnostics = appendCompanionRuntimeProjectionEvent(input.current.diagnostics, input.event, {
+    projectedExecutionState: executionState,
+    projectedStatusText: statusText,
+    projectedFields,
+    projectionReasonCode: projection.reasonCode,
+  });
   return {
     ...input.current,
     transport: 'electron-ipc',
@@ -129,9 +154,14 @@ export function projectZhiyuCompanionFromRuntimeAgentEvent(input: {
     activeWorldId,
     activeUserId,
     currentEmotion,
+    currentEmotionId,
+    currentEmotionCue,
+    currentEmotionIntensity,
+    emotionViolation,
     participationMode: activeWorldId ? 'world' : activeUserId ? 'dyadic' : 'idle',
     participationSource: activeWorldId || activeUserId || 'runtime-agent-event',
     projectedFields,
+    diagnostics,
   };
 }
 
@@ -172,7 +202,11 @@ type CompanionEventProjection = {
   readonly voiceStreamId?: string | null;
   readonly activeWorldId: string | null;
   readonly activeUserId: string | null;
-  readonly currentEmotion: string | null;
+  readonly currentEmotion: ZhiyuCompanionEmotionProjection['currentEmotion'];
+  readonly currentEmotionId: ZhiyuCompanionEmotionProjection['currentEmotionId'];
+  readonly currentEmotionCue: ZhiyuCompanionEmotionProjection['currentEmotionCue'];
+  readonly currentEmotionIntensity: ZhiyuCompanionEmotionProjection['currentEmotionIntensity'];
+  readonly emotionViolation: ZhiyuCompanionEmotionViolation | null;
   readonly projectedFields: readonly string[];
 };
 
@@ -183,12 +217,22 @@ function projectRuntimeAgentCompanionEvent(
   const eventName = normalizeText(event.eventName);
   const detail = event.detail || {};
   if (eventName.startsWith('runtime.agent.state.')) {
+    const emotion = detailText(detail, 'currentEmotion', 'current_emotion')
+      ? projectZhiyuCompanionEmotion({
+        current: companionEmotionProjectionFromStatus(current),
+        emotion: detailText(detail, 'currentEmotion', 'current_emotion'),
+      })
+      : companionEmotionProjectionFromStatus(current);
     return {
       reasonCode: 'runtime-agent-state-event-projected',
       message: 'Runtime Agent state event was projected through SDK event subscription.',
       statusText: detailText(detail, 'currentStatusText', 'current_status_text') || current.statusText,
       executionState: detailText(detail, 'currentExecutionState', 'current_execution_state') || current.executionState,
-      currentEmotion: detailText(detail, 'currentEmotion', 'current_emotion') || current.currentEmotion,
+      currentEmotion: emotion.currentEmotion,
+      currentEmotionId: emotion.currentEmotionId,
+      currentEmotionCue: emotion.currentEmotionCue,
+      currentEmotionIntensity: emotion.currentEmotionIntensity,
+      emotionViolation: emotion.emotionViolation,
       activeWorldId: detailText(detail, 'activeWorldId', 'active_world_id') || current.activeWorldId,
       activeUserId: detailText(detail, 'activeUserId', 'active_user_id') || current.activeUserId,
       projectedFields: [
@@ -260,12 +304,22 @@ function projectRuntimeAgentActivityEvent(
 ): CompanionEventProjection {
   const activityName = detailText(detail, 'activityName', 'activity_name');
   const category = detailText(detail, 'category');
+  const emotion = category === 'emotion' && activityName
+    ? projectZhiyuCompanionEmotion({
+      current: companionEmotionProjectionFromStatus(current),
+      emotion: activityName,
+      intensity: detailText(detail, 'intensity'),
+    })
+    : companionEmotionProjectionFromStatus(current);
+  const statusText = category === 'emotion' && emotion.emotionViolation
+    ? category || current.statusText
+    : activityName || category || current.statusText;
   return runtimeProjection({
     reasonCode: 'runtime-agent-presentation-activity-event-projected',
     message: 'Runtime Agent presentation activity event was projected through SDK event subscription.',
     executionState: 'activity_requested',
-    statusText: activityName || category || current.statusText,
-    currentEmotion: category === 'emotion' ? activityName || current.currentEmotion : current.currentEmotion,
+    statusText,
+    emotion,
     current,
     projectedFields: [
       'presentationActivity',
@@ -273,6 +327,7 @@ function projectRuntimeAgentActivityEvent(
       category ? 'activityCategory' : '',
       detailText(detail, 'intensity') ? 'activityIntensity' : '',
       detailText(detail, 'source') ? 'activitySource' : '',
+      emotion.emotionViolation ? 'emotionViolation' : '',
     ],
   });
 }
@@ -403,6 +458,7 @@ function runtimeProjection(input: {
   readonly executionState: string | null;
   readonly statusText: string | null;
   readonly currentEmotion?: string | null;
+  readonly emotion?: ZhiyuCompanionEmotionProjection;
   readonly voiceOutputMode?: string | null;
   readonly voicePlaybackState?: string | null;
   readonly voiceAudioArtifactId?: string | null;
@@ -412,6 +468,14 @@ function runtimeProjection(input: {
   readonly current: ZhiyuCompanionStatus;
   readonly projectedFields: readonly string[];
 }): CompanionEventProjection {
+  const emotion = input.emotion ?? (
+    input.currentEmotion === undefined
+      ? companionEmotionProjectionFromStatus(input.current)
+      : projectZhiyuCompanionEmotion({
+        current: companionEmotionProjectionFromStatus(input.current),
+        emotion: input.currentEmotion,
+      })
+  );
   return {
     reasonCode: input.reasonCode,
     message: input.message,
@@ -419,7 +483,11 @@ function runtimeProjection(input: {
     statusText: input.statusText || input.current.statusText,
     activeWorldId: input.current.activeWorldId,
     activeUserId: input.current.activeUserId,
-    currentEmotion: input.currentEmotion ?? input.current.currentEmotion,
+    currentEmotion: emotion.currentEmotion,
+    currentEmotionId: emotion.currentEmotionId,
+    currentEmotionCue: emotion.currentEmotionCue,
+    currentEmotionIntensity: emotion.currentEmotionIntensity,
+    emotionViolation: emotion.emotionViolation,
     voiceOutputMode: input.voiceOutputMode ?? input.current.voiceOutputMode,
     voicePlaybackState: input.voicePlaybackState ?? input.current.voicePlaybackState,
     voiceAudioArtifactId: input.voiceAudioArtifactId ?? input.current.voiceAudioArtifactId,
@@ -428,6 +496,25 @@ function runtimeProjection(input: {
     voiceStreamId: input.voiceStreamId ?? input.current.voiceStreamId,
     projectedFields: input.projectedFields,
   };
+}
+
+function companionEmotionProjectionFromStatus(status: ZhiyuCompanionStatus): ZhiyuCompanionEmotionProjection {
+  if (
+    status.currentEmotion
+    || status.currentEmotionId
+    || status.currentEmotionCue
+    || status.currentEmotionIntensity
+    || status.emotionViolation
+  ) {
+    return {
+      currentEmotion: status.currentEmotion,
+      currentEmotionId: status.currentEmotionId,
+      currentEmotionCue: status.currentEmotionCue,
+      currentEmotionIntensity: status.currentEmotionIntensity,
+      emotionViolation: status.emotionViolation,
+    };
+  }
+  return initialZhiyuCompanionEmotionProjection();
 }
 
 function runtimeProjectionEventsFromChat(chat: ZhiyuAgentChatStatus): NimiRuntimeAgentConsumeEvent[] {
@@ -480,6 +567,50 @@ function runtimeProjectionEventFromUnknown(
   } as NimiRuntimeAgentConsumeEvent;
 }
 
+function appendCompanionRuntimeProjectionEvent(
+  current: ZhiyuCompanionStatus['diagnostics'] | undefined,
+  event: NimiRuntimeAgentConsumeEvent,
+  projection: {
+    readonly projectedExecutionState: string | null;
+    readonly projectedStatusText: string | null;
+    readonly projectedFields: readonly string[];
+    readonly projectionReasonCode: string | null;
+  },
+): ZhiyuCompanionStatus['diagnostics'] {
+  const events = Array.isArray(current?.runtimeProjectionEvents)
+    ? current.runtimeProjectionEvents
+    : [];
+  return {
+    runtimeProjectionEvents: [
+      ...events,
+      companionRuntimeProjectionEventEvidence(event, projection),
+    ].slice(-80),
+  };
+}
+
+function companionRuntimeProjectionEventEvidence(
+  event: NimiRuntimeAgentConsumeEvent,
+  projection: {
+    readonly projectedExecutionState: string | null;
+    readonly projectedStatusText: string | null;
+    readonly projectedFields: readonly string[];
+    readonly projectionReasonCode: string | null;
+  },
+): ZhiyuCompanionRuntimeProjectionEventEvidence {
+  return {
+    eventName: normalizeText(event.eventName),
+    localAgentRef: normalizeText(event.localAgentRef) || null,
+    conversationAnchorId: normalizeText(event.conversationAnchorId) || null,
+    turnId: normalizeText(event.turnId) || null,
+    streamId: normalizeText(event.streamId) || null,
+    detail: isRecord(event.detail) ? { ...event.detail } : {},
+    projectedExecutionState: normalizeText(projection.projectedExecutionState) || null,
+    projectedStatusText: normalizeText(projection.projectedStatusText) || null,
+    projectedFields: uniqueTexts(projection.projectedFields),
+    projectionReasonCode: normalizeText(projection.projectionReasonCode) || null,
+  };
+}
+
 function transcriptHasReplayEnvelope(
   transcript: readonly NimiRuntimeAgentSessionTranscriptMessage[],
 ): boolean {
@@ -492,6 +623,16 @@ function transcriptHasReplayEnvelope(
     && normalizeText(message.createdAt)
     && normalizeText(message.updatedAt)
   ));
+}
+
+function runtimeTurnIdFromSnapshot(snapshot: NimiRuntimeAgentSessionSnapshot): string | null {
+  const turnId = normalizeText(snapshot.activeTurn?.turnId) || normalizeText(snapshot.lastTurn?.turnId);
+  return /^agent_turn_/u.test(turnId) ? turnId : null;
+}
+
+function runtimeStreamIdFromSnapshot(snapshot: NimiRuntimeAgentSessionSnapshot): string | null {
+  const streamId = normalizeText(snapshot.activeTurn?.streamId) || normalizeText(snapshot.lastTurn?.streamId);
+  return /^agent_stream_/u.test(streamId) ? streamId : null;
 }
 
 function transcriptMessageToCanonicalMessage(input: {

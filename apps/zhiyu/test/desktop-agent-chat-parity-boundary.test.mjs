@@ -33,15 +33,33 @@ const agentChatParitySourceFiles = [
   'src/shell/agent-chat/zhiyu-agent-center-appearance-adapter.ts',
   'src/shell/agent-chat/zhiyu-route-model-picker-provider.ts',
   'src/shell/agent-chat/ZhiyuAgentChatPieces.tsx',
+  'src/shell/agent-chat/voice-capture.ts',
+  'src/shell/agent-chat/voice-playback.ts',
   'src/shell/agent-chat/ZhiyuAgentChatLabels.ts',
   'src/shell/agent-chat/ZhiyuAgentPanel.tsx',
 ];
 
 const liveRuntimeAcceptanceSourceFiles = [
-  'test/electron-live-runtime-acceptance.mjs',
+  'test/scenario/apml.scenarios.test.mjs',
+  'test/scenario/media.scenarios.test.mjs',
+  'test/scenario/lifecycle.scenarios.test.mjs',
+  'test/scenario/emotion.scenarios.test.mjs',
+  'test/scenario/voice.scenarios.test.mjs',
+  'test/scenario/run-context-helpers.mjs',
+  'test/scenario/repeat-runner-helpers.mjs',
   'test/electron-live-runtime-acceptance-helpers.mjs',
   'test/electron-live-runtime-delegation-helpers.mjs',
   'src/shell/auth/electron-sdk-acceptance.ts',
+];
+const mediaScenarioAcceptanceSourceFiles = [
+  'test/scenario/media.scenarios.test.mjs',
+  'test/scenario/run-context-helpers.mjs',
+  'test/scenario/repeat-runner-helpers.mjs',
+];
+const lifecycleScenarioAcceptanceSourceFiles = [
+  'test/scenario/lifecycle.scenarios.test.mjs',
+  'test/scenario/run-context-helpers.mjs',
+  'test/scenario/repeat-runner-helpers.mjs',
 ];
 
 test('Desktop Agent Chat hardcut removes old Zhiyu chat, binding, route, and shell paths', async () => {
@@ -249,7 +267,7 @@ test('streaming chat exposes a product stop control wired to the active turn abo
 
 test('Runtime action and artifact events are product-visible or explicitly deferred', async () => {
   const surfaceSource = await readAgentChatSource();
-  const acceptanceSource = await readLiveRuntimeAcceptanceSource();
+  const mediaScenarioSource = await readMediaScenarioAcceptanceSource();
 
   for (const marker of [
     'data-zhiyu-runtime-action-artifact-summary="true"',
@@ -261,25 +279,26 @@ test('Runtime action and artifact events are product-visible or explicitly defer
     'zhiyu-runtime-artifact-preview-uri-not-admitted',
     'metadata?.artifacts',
   ]) {
-    assert.match(`${surfaceSource}\n${acceptanceSource}`, new RegExp(escapeRegExp(marker)), `${marker} missing from Runtime action/artifact visible parity`);
+    assert.match(`${surfaceSource}\n${mediaScenarioSource}`, new RegExp(escapeRegExp(marker)), `${marker} missing from Runtime action/artifact visible parity`);
   }
 
   for (const marker of [
-    'actionArtifact',
+    'B-07 image artifact renders',
+    "runtimeAgentLiveE2EChatScenarioPrompt('b-image-action')",
     'artifact-ready',
-    'beat-planned',
     'data-zhiyu-runtime-action-artifact-summary="true"',
-    'live-runtime-action-artifact-desktop.png',
-    'live-runtime-action-artifact-evidence.json',
+    'img[src^="data:image/"]',
+    'captureScenarioEvidence(context',
+    'scenarioEvidenceRoot',
   ]) {
-    assert.match(acceptanceSource, new RegExp(escapeRegExp(marker)), `${marker} missing from live Runtime action/artifact acceptance`);
+    assert.match(mediaScenarioSource, new RegExp(escapeRegExp(marker)), `${marker} missing from B-07 Runtime action/artifact scenario acceptance`);
   }
 });
 
 test('live Runtime acceptance captures streaming UI before exercising stop cancel', async () => {
-  const acceptanceSource = await readLiveRuntimeAcceptanceSource();
-  const streamingCaptureIndex = acceptanceSource.indexOf("captureLiveRuntimeEvidence(page, 'chatStreaming'");
-  const stopClickIndex = acceptanceSource.indexOf('await stopButton.click();');
+  const mediaScenarioSource = await readMediaScenarioAcceptanceSource();
+  const streamingCaptureIndex = mediaScenarioSource.indexOf("scenarioId: `${scenarioId}-streaming`");
+  const stopClickIndex = mediaScenarioSource.indexOf('await stopButton.click();');
 
   assert.notEqual(streamingCaptureIndex, -1, 'live Runtime acceptance must capture the active streaming UI state');
   assert.notEqual(stopClickIndex, -1, 'live Runtime acceptance must exercise the product stop action');
@@ -290,69 +309,68 @@ test('live Runtime acceptance captures streaming UI before exercising stop cance
 });
 
 test('live Runtime acceptance captures multi-turn transcript continuity', async () => {
-  const acceptanceSource = await readLiveRuntimeAcceptanceSource();
-  const completedCaptureIndex = acceptanceSource.indexOf("captureLiveRuntimeEvidence(page, 'chatCompleted'");
-  const multiTurnCaptureIndex = acceptanceSource.indexOf("captureLiveRuntimeEvidence(page, 'chatMultiTurn'");
+  const mediaScenarioSource = await readMediaScenarioAcceptanceSource();
+  const firstTurnIndex = mediaScenarioSource.indexOf("runtimeAgentLiveE2EChatScenarioPrompt('b-multi-turn-first')");
+  const secondTurnIndex = mediaScenarioSource.indexOf("runtimeAgentLiveE2EChatScenarioPrompt('b-multi-turn-second')");
+  const captureIndex = mediaScenarioSource.indexOf('captureScenarioEvidence(context', secondTurnIndex);
 
-  assert.notEqual(completedCaptureIndex, -1, 'live Runtime acceptance must capture the first completed chat turn');
-  assert.notEqual(multiTurnCaptureIndex, -1, 'live Runtime acceptance must capture multi-turn continuity evidence');
+  assert.notEqual(firstTurnIndex, -1, 'live Runtime acceptance must submit the first multi-turn prompt');
+  assert.notEqual(secondTurnIndex, -1, 'live Runtime acceptance must submit the second multi-turn prompt');
+  assert.notEqual(captureIndex, -1, 'live Runtime acceptance must capture multi-turn continuity evidence');
   assert.ok(
-    completedCaptureIndex < multiTurnCaptureIndex,
-    'multi-turn continuity must be verified after the first completed turn',
+    firstTurnIndex < secondTurnIndex && secondTurnIndex < captureIndex,
+    'multi-turn continuity must be verified after the first and second completed turns',
   );
 
   for (const marker of [
-    'chatMultiTurn:',
-    'live-runtime-agent-chat-multi-turn-desktop.png',
-    'live-runtime-agent-chat-multi-turn-narrow.png',
-    'live-runtime-agent-chat-multi-turn-evidence.json',
-    'live-runtime-agent-chat-multi-turn-panel.png',
-    'transcriptBottomGap',
+    'B-02 multi-turn Runtime Agent conversation context stays on the same anchor',
+    'firstOutput',
+    'secondPrompt',
+    'same anchor',
+    'captureScenarioEvidence(context',
   ]) {
     assert.match(
-      acceptanceSource,
+      mediaScenarioSource,
       new RegExp(escapeRegExp(marker)),
       `${marker} missing from live Runtime multi-turn acceptance evidence`,
     );
   }
 
-  assert.match(acceptanceSource, /requestId:\s*firstRequestId/);
-  assert.match(acceptanceSource, /conversationAnchorId:\s*readyEvidence\.conversation\.conversationAnchorId/);
-  assert.match(acceptanceSource, /messageCount\s*>=\s*4/);
+  assert.match(mediaScenarioSource, /notEqual\(second\.chat\.requestId,\s*first\.chat\.requestId\)/);
+  assert.match(mediaScenarioSource, /second\.chat\.conversationAnchorId,\s*context\.readyEvidence\.conversation\.conversationAnchorId/);
+  assert.match(mediaScenarioSource, /second\.chat\.messages\.some\(\(message\)\s*=>\s*message\?\.text\s*===\s*firstOutput\)/);
 });
 
 test('live Runtime acceptance captures restart snapshot hydration continuity', async () => {
-  const acceptanceSource = await readLiveRuntimeAcceptanceSource();
-  const multiTurnCaptureIndex = acceptanceSource.indexOf("captureLiveRuntimeEvidence(page, 'chatMultiTurn'");
-  const restartCaptureIndex = acceptanceSource.indexOf("captureLiveRuntimeEvidence(relaunchedPage, 'chatRestartHydrated'");
+  const lifecycleScenarioSource = await readLifecycleScenarioAcceptanceSource();
+  const beforeCaptureIndex = lifecycleScenarioSource.indexOf("C-05 pre-restart completed chat");
+  const restartCaptureIndex = lifecycleScenarioSource.indexOf("captureScenarioEvidence({\n          ...context,\n          page: relaunched.page");
 
-  assert.notEqual(multiTurnCaptureIndex, -1, 'live Runtime acceptance must capture multi-turn continuity evidence');
+  assert.notEqual(beforeCaptureIndex, -1, 'live Runtime acceptance must capture a completed pre-restart turn');
   assert.notEqual(restartCaptureIndex, -1, 'live Runtime acceptance must capture restart hydration evidence');
   assert.ok(
-    multiTurnCaptureIndex < restartCaptureIndex,
-    'restart hydration must be verified after multi-turn transcript continuity is established',
+    beforeCaptureIndex < restartCaptureIndex,
+    'restart hydration must be verified after transcript continuity is established',
   );
 
   for (const marker of [
-    'chatRestartHydrated:',
-    'restart hydrated Runtime Agent chat snapshot',
+    'C-05 app restart hydrates Runtime conversation and AI Config evidence',
+    'C-05 restart hydrated Runtime Agent chat snapshot and route',
     'runtime-agent-session-snapshot-hydrated',
-    'live-runtime-agent-chat-restart-hydrated-desktop.png',
-    'live-runtime-agent-chat-restart-hydrated-narrow.png',
-    'live-runtime-agent-chat-restart-hydrated-evidence.json',
-    'live-runtime-agent-chat-restart-hydrated-panel.png',
-    'const relaunchedApp = await launchLiveRuntimeZhiyuApp({ fixture, dataRoot });',
+    'const relaunchedApp = await context.launchApp();',
+    'openScenarioAppPage',
+    'captureScenarioEvidence({',
   ]) {
     assert.match(
-      acceptanceSource,
+      lifecycleScenarioSource,
       new RegExp(escapeRegExp(marker)),
       `${marker} missing from live Runtime restart hydration acceptance evidence`,
     );
   }
 
-  assert.match(acceptanceSource, /await app\.close\(\);/);
-  assert.match(acceptanceSource, /conversationAnchorId:\s*readyEvidence\.conversation\.conversationAnchorId/);
-  assert.match(acceptanceSource, /messageCount\s*>=\s*4/);
+  assert.match(lifecycleScenarioSource, /await context\.closeApp\(\);/);
+  assert.match(lifecycleScenarioSource, /conversationAnchorId:\s*context\.readyEvidence\.conversation\.conversationAnchorId/);
+  assert.match(lifecycleScenarioSource, /messageCount\s*>=\s*2/);
 });
 
 test('live Runtime acceptance verifies Runtime-issued delegation scoped binding renewal', async () => {
@@ -379,17 +397,20 @@ test('chat voice controls project Runtime voice truth without settings-only pseu
 
   for (const marker of [
     'data-zhiyu-composer-tool="voice-capture"',
-    'data-zhiyu-chat-voice-capture-state="deferred"',
-    'data-zhiyu-chat-voice-capture-reason="zhiyu-chat-voice-capture-runtime-surface-deferred"',
+    'data-zhiyu-chat-voice-capture-state={evidence.voiceCapture.state}',
+    'data-zhiyu-chat-voice-capture-ready={String(evidence.voiceCapture.ready)}',
+    'data-zhiyu-chat-voice-capture-reason={evidence.voiceCapture.reasonCode}',
+    'data-zhiyu-chat-voice-capture-model-id={evidence.voiceCapture.runtimeBindingModelId || \'not_projected\'}',
     'data-zhiyu-composer-tool="hands-free"',
-    'data-zhiyu-chat-voice-state={voiceState}',
-    'data-zhiyu-chat-voice-reason={voiceReason}',
-    'data-zhiyu-chat-voice-output-mode={voiceOutputMode}',
-    'data-zhiyu-chat-voice-playback-state={voicePlaybackState}',
-    'data-zhiyu-chat-voice-audio-artifact-id={voiceAudioArtifactId}',
+    'projectZhiyuVoicePlayback',
+    'data-zhiyu-chat-voice-state={voicePlayback.state}',
+    'data-zhiyu-chat-voice-reason={voicePlayback.reasonCode}',
+    'data-zhiyu-chat-voice-output-mode={voicePlayback.outputMode}',
+    'data-zhiyu-chat-voice-playback-state={voicePlayback.playbackState}',
+    'data-zhiyu-chat-voice-audio-artifact-id={voicePlayback.audioArtifactId}',
     'data-zhiyu-chat-voice-playback-target={voicePlaybackTarget}',
-    'zhiyu-chat-voice-runtime-projected',
-    'zhiyu-chat-voice-runtime-surface-deferred',
+    'runtime-voice-no-current-output',
+    'runtime-voice-capture-ready',
     'disabled',
   ]) {
     assert.match(surfaceSource, new RegExp(escapeRegExp(marker)), `${marker} missing from Runtime voice UI`);
@@ -723,6 +744,14 @@ async function readAgentChatSource() {
 
 async function readLiveRuntimeAcceptanceSource() {
   return readAppFiles(liveRuntimeAcceptanceSourceFiles);
+}
+
+async function readMediaScenarioAcceptanceSource() {
+  return readAppFiles(mediaScenarioAcceptanceSourceFiles);
+}
+
+async function readLifecycleScenarioAcceptanceSource() {
+  return readAppFiles(lifecycleScenarioAcceptanceSourceFiles);
 }
 
 async function readAppFiles(relativePaths) {

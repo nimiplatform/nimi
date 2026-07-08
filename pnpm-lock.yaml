@@ -506,6 +506,9 @@ importers:
 
   apps/zhiyu:
     dependencies:
+      '@grpc/grpc-js':
+        specifier: ^1.14.4
+        version: 1.14.4
       '@nimiplatform/kit':
         specifier: workspace:*
         version: link:../../kit

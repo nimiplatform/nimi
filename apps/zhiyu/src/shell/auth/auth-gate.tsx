@@ -12,6 +12,7 @@ import {
 import { loadRuntimeAccountUser } from './runtime-account-auth';
 import { RuntimeLoginPage } from './runtime-login-page';
 import { RuntimeUnavailablePage } from './runtime-unavailable-page';
+import { createInitialZhiyuEvidence } from '../app/evidence';
 import './runtime-auth.css';
 
 const runtimeGateOfflineCoordinator = new OfflineCoordinator();
@@ -94,6 +95,39 @@ export function AuthGate({ children }: { readonly children: ReactNode }) {
       active = false;
     };
   }, [reloadKey]);
+
+  useEffect(() => {
+    if (state.kind !== 'blocked') {
+      return;
+    }
+    const reasonCode = state.projection?.reasonCode ?? 'runtime-unavailable';
+    const actionHint = state.projection?.actionHint ?? 'start_external_runtime_daemon';
+    const message = state.message || state.projection?.message || 'Runtime session projection is not ready.';
+    window.__nimiZhiyuEvidence = {
+      ...createInitialZhiyuEvidence(),
+      runtime: {
+        transport: 'electron-ipc',
+        ready: false,
+        reasonCode,
+        actionHint,
+        source: 'runtime',
+        message,
+      },
+      auth: {
+        transport: 'electron-ipc',
+        ready: false,
+        state: 'runtime-unavailable',
+        reasonCode,
+        accountReasonCode: 'RUNTIME_UNAVAILABLE',
+        actionHint,
+        source: 'runtime',
+        message,
+        accountId: null,
+        displayName: null,
+        productionInert: false,
+      },
+    };
+  }, [state]);
 
   if (state.kind === 'checking') {
     return (

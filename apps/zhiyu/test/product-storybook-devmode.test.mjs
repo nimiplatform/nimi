@@ -30,7 +30,12 @@ function readAgentChatSource() {
 
 function readLiveRuntimeAcceptanceSource() {
   return readAll([
-    'test/electron-live-runtime-acceptance.mjs',
+    'test/scenario/run-context-helpers.mjs',
+    'test/scenario/apml.scenarios.test.mjs',
+    'test/scenario/media.scenarios.test.mjs',
+    'test/scenario/lifecycle.scenarios.test.mjs',
+    'test/scenario/emotion.scenarios.test.mjs',
+    'test/scenario/voice.scenarios.test.mjs',
     'test/electron-live-runtime-acceptance-helpers.mjs',
   ]);
 }

@@ -248,8 +248,8 @@ function checkCapabilityPosture() {
   if (capabilities?.proactive_notification?.posture !== 'deferred_v1_out_of_scope') {
     fail(`${rel} proactive_notification posture must be deferred_v1_out_of_scope`);
   }
-  if (capabilities?.voice?.posture !== 'deferred_v1_out_of_scope') {
-    fail(`${rel} voice posture must be deferred_v1_out_of_scope`);
+  if (capabilities?.voice?.posture !== 'v1_full_support') {
+    fail(`${rel} voice posture must be v1_full_support`);
   }
   if (capabilities?.image_creation?.posture !== 'removed_from_zhiyu_v1') {
     fail(`${rel} image_creation posture must be removed_from_zhiyu_v1`);

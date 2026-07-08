@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { _electron as electron } from 'playwright';
 
-const root = path.resolve(import.meta.dirname, '..');
+const root = path.resolve(import.meta.dirname, '..', '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
 const zhiyuAppId = 'nimi.zhiyu';
 
@@ -543,18 +543,19 @@ async function assertComposerModeTools(page) {
     await page.locator(`[data-zhiyu-composer-tool="${tool}"]`).waitFor({ state: 'visible', timeout: 15_000 });
   }
   const captureTool = page.locator('[data-zhiyu-composer-tool="voice-capture"]').first();
-  assert.equal(await captureTool.getAttribute('data-zhiyu-chat-voice-capture-state'), 'deferred');
+  assert.equal(await captureTool.getAttribute('data-zhiyu-chat-voice-capture-state'), 'failed');
+  assert.equal(await captureTool.getAttribute('data-zhiyu-chat-voice-capture-ready'), 'false');
   assert.equal(
     await captureTool.getAttribute('data-zhiyu-chat-voice-capture-reason'),
-    'zhiyu-chat-voice-capture-runtime-surface-deferred',
+    'runtime-voice-capture-route-not-ready',
   );
   assert.equal(await captureTool.isDisabled(), true);
 
   const voiceTool = page.locator('[data-zhiyu-composer-tool="hands-free"]').first();
-  assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-state'), 'deferred');
+  assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-state'), 'idle');
   assert.equal(
     await voiceTool.getAttribute('data-zhiyu-chat-voice-reason'),
-    'zhiyu-chat-voice-runtime-surface-deferred',
+    'runtime-voice-no-current-output',
   );
   assert.equal(await voiceTool.isDisabled(), true);
 }

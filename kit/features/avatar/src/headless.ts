@@ -410,3 +410,13 @@ export type {
   StartWithChatGateInput,
   StartWithChatGateResult,
 } from './launch-arbitration.js';
+export {
+  mapRuntimeAgentEmotionToAvatarCue,
+  parseRuntimeAgentEmotionId,
+  parseRuntimeAgentEmotionIntensity,
+  RUNTIME_AGENT_EMOTION_IDS,
+} from './emotion-mapping.js';
+export type {
+  RuntimeAgentEmotionId,
+  RuntimeAgentEmotionIntensity,
+} from './emotion-mapping.js';

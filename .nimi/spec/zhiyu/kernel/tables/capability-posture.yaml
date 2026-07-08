@@ -44,7 +44,7 @@ capabilities:
     owner: platform_runtime_notification
     source_rule: Z-AUTH-003
   voice:
-    posture: deferred_v1_out_of_scope
+    posture: v1_full_support
     owner: runtime_sdk_avatar
     source_rule: Z-AV-003
   image_creation:

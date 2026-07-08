@@ -28,11 +28,11 @@ const fixtures = [
     },
   },
   {
-    name: 'voice posture admitted by mistake',
+    name: 'voice posture regresses to deferred',
     expectedOutput: 'voice posture',
     mutate(root) {
       const rel = path.join(root, 'kernel', 'tables', 'capability-posture.yaml');
-      replaceInFile(rel, '  voice:\n    posture: deferred_v1_out_of_scope', '  voice:\n    posture: v1_admitted');
+      replaceInFile(rel, '  voice:\n    posture: v1_full_support', '  voice:\n    posture: deferred_v1_out_of_scope');
     },
   },
   {

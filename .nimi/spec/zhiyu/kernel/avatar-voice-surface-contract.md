@@ -12,7 +12,7 @@ belong to Avatar/Runtime/Kit.
 Zhiyu v1 uses launch handoff to Avatar app or independent surface. Zhiyu does
 not embed Avatar carrier runtime unless Avatar owner admits an embedded facade.
 
-## Z-AV-003 Runtime Voice Playback Surface
+## Z-AV-003 Runtime Voice Playback And Capture Surface
 
 Runtime voice playback is admitted for Zhiyu only through the Runtime/SDK voice
 projection surface. Zhiyu may consume
@@ -20,11 +20,20 @@ projection surface. Zhiyu may consume
 `runtime.agent.presentation.voice_stream_chunk_available` when those events
 carry positive Runtime voice truth.
 
-Zhiyu is a playback surface only. Zhiyu must:
+Voice input is admitted for Zhiyu only as app recording plus Runtime scenario
+transcription. Zhiyu may submit recorded audio through the Runtime AI scenario
+surface for `audio.transcribe` / `SpeechTranscribeScenarioSpec`, then project
+the returned transcript into the composer. Runtime Agent AI Config owns the
+committed transcription route; Zhiyu must not choose provider/model or carry an
+execution binding on the capture request.
+
+Zhiyu is a playback and capture orchestration surface. Zhiyu must:
 
 - consume Runtime/SDK voice projection truth (`voice_output_mode`,
   `voice_playback_state`, chunk ordering, final replay artifact) and never select
   provider/model or run app-local TTS
+- submit voice capture only through the Runtime scenario transcription surface
+  and never run app-local STT or model routing
 - never own durable voice cache truth; final replay bytes are read from the
   Runtime artifact service
 - fail closed when Runtime voice truth is absent rather than fabricating a

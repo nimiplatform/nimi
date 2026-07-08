@@ -88,6 +88,6 @@ Local config module ownership for Zhiyu Agent Center:
 | `voice.avatar_autoplay` | Host-local playback UI preference only; not `audio.synthesize` readiness, binding, generation, or policy truth. |
 | `ui.last_section` | Host-local UI preference only; no Runtime or product authority. |
 
-`audio.synthesize` and `voice_workflow.*` intent are Runtime Agent AI
+`audio.transcribe`, `audio.synthesize`, and `voice_workflow.*` intent are Runtime Agent AI
 Config-owned. Zhiyu must not render app-local audio binding truth, workflow
 ownership, or a playable pseudo voice artifact as Agent Center truth.

@@ -74,7 +74,7 @@ test('does not promote bare Runtime inventory into the current partner without R
   assert.equal(selected.ownerUserId, 'user-1');
   assert.equal(selected.runtimeSourceRef, null);
   assert.equal(selected.localAgentRef, null);
-  assert.equal(selected.actionHint, 'open_desktop_explore_character_persona');
+  assert.equal(selected.actionHint, 'desktop_open_select_partner');
   assert.doesNotMatch(selected.actionHint, /materialize|create|select_or_create/);
   assert.match(selected.message, /Runtime-owned partner/);
   assert.match(selected.message, /Desktop Explore/);
@@ -139,7 +139,7 @@ test('fails closed when Runtime inventory is empty or ambiguous', async () => {
   });
   assert.equal(empty.ready, false);
   assert.equal(empty.reasonCode, 'zhiyu-runtime-local-agent-inventory-empty');
-  assert.equal(empty.actionHint, 'open_desktop_explore_character_persona');
+  assert.equal(empty.actionHint, 'desktop_open_select_partner');
   assert.doesNotMatch(empty.actionHint, /materialize|create|select_or_create/);
   assert.match(empty.message, /Desktop Explore/);
 

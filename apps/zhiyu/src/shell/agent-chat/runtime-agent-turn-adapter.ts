@@ -32,7 +32,7 @@ const ZHIYU_RUNTIME_AGENT_TURN_SCOPES = [
 
 export type ZhiyuRuntimeAgentChatRouteEvidence = Pick<
   ZhiyuEvidence['route'],
-  'ready' | 'reasonCode' | 'actionHint' | 'source' | 'message'
+  'ready' | 'reasonCode' | 'actionHint' | 'source' | 'message' | 'executionBinding'
 >;
 
 export type ZhiyuRuntimeAgentChatState =
@@ -190,6 +190,7 @@ export async function runZhiyuAgentChatTurn(
   const requestId = stringOr(input.requestId, createTurnRequestId());
   const request = buildRuntimeAgentTurnRequest({
     ...identity,
+    route: input.route,
     requestId,
     text,
     runtimeBinding,
@@ -253,11 +254,13 @@ function buildRuntimeAgentTurnRequest(input: {
   readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
   readonly conversationAnchorId: string;
+  readonly route: ZhiyuRuntimeAgentChatRouteEvidence;
   readonly requestId: string;
   readonly text: string;
   readonly runtimeBinding: Exclude<ZhiyuRuntimeAgentBindingDecision, { readonly kind: 'missing' }>;
 }): NimiRuntimeAgentTurnRequest {
   const scopedBinding = scopedBindingForRuntimeAgentRequest(input.runtimeBinding);
+  const reasoning = runtimeAgentReasoningRequest(input.route);
   return {
     ownerUserId: input.ownerUserId,
     runtimeSourceRef: input.runtimeSourceRef,
@@ -271,8 +274,20 @@ function buildRuntimeAgentTurnRequest(input: {
         content: input.text,
       },
     ],
+    ...(reasoning ? { reasoning } : {}),
     ...(scopedBinding ? { scopedBinding } : {}),
   };
+}
+
+function runtimeAgentReasoningRequest(
+  route: ZhiyuRuntimeAgentChatRouteEvidence,
+): NimiRuntimeAgentTurnRequest['reasoning'] | undefined {
+  return route.ready && route.executionBinding?.route === 'local'
+    ? {
+      mode: 'on',
+      traceMode: 'separate',
+    }
+    : undefined;
 }
 
 function createElectronRuntimeAgentStreamTurn(

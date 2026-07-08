@@ -38,6 +38,8 @@ export function chatStatusFromSubmitRefreshFailure({
     localAgentRef: conversation.localAgentRef,
     conversationAnchorId: conversation.conversationAnchorId,
     requestId: null,
+    runtimeTurnId: current.runtimeTurnId,
+    runtimeStreamId: current.runtimeStreamId,
     eventTypes: [],
     messageCount: current.messages.length,
     messages: current.messages,
@@ -110,6 +112,7 @@ export function chatStatusFromProjection(
   identity?: Pick<ZhiyuEvidence['conversation'], 'ownerUserId' | 'runtimeSourceRef' | 'localAgentRef' | 'conversationAnchorId'>,
 ): ZhiyuRuntimeAgentChatStatus {
   const latestAssistant = latestAssistantMessage(projection.messages);
+  const runtimeIdentity = runtimeTurnIdentityFromProjection(projection);
   return {
     transport: 'electron-ipc',
     ready: projection.status === 'completed',
@@ -125,6 +128,8 @@ export function chatStatusFromProjection(
     localAgentRef: projection.localAgentRef || identity?.localAgentRef || null,
     conversationAnchorId: projection.conversationAnchorId || identity?.conversationAnchorId || null,
     requestId: projection.turnId,
+    runtimeTurnId: runtimeIdentity.runtimeTurnId,
+    runtimeStreamId: runtimeIdentity.runtimeStreamId,
     eventTypes: projection.events.map((event) => event.type),
     messageCount: projection.messages.length,
     messages: projection.messages,
@@ -139,6 +144,7 @@ export function chatStatusFromResult(
   result: Awaited<ReturnType<typeof runZhiyuAgentChatTurn>>,
 ): ZhiyuRuntimeAgentChatStatus {
   const latestAssistant = latestAssistantMessage(result.messages);
+  const runtimeIdentity = runtimeTurnIdentityFromResult(result);
   return {
     transport: 'electron-ipc',
     ready: result.ready,
@@ -152,6 +158,8 @@ export function chatStatusFromResult(
     localAgentRef: result.localAgentRef,
     conversationAnchorId: result.conversationAnchorId,
     requestId: result.requestId,
+    runtimeTurnId: runtimeIdentity.runtimeTurnId,
+    runtimeStreamId: runtimeIdentity.runtimeStreamId,
     eventTypes: result.events.map((event) => event.type),
     messageCount: result.messages.length,
     messages: result.messages,
@@ -185,6 +193,8 @@ export function mergeChatTranscript(
   const latestAssistant = latestAssistantMessage(messages);
   return {
     ...incoming,
+    runtimeTurnId: incoming.runtimeTurnId ?? current.runtimeTurnId,
+    runtimeStreamId: incoming.runtimeStreamId ?? current.runtimeStreamId,
     messageCount: messages.length,
     messages,
     latestAssistantText: latestAssistant?.text || incoming.latestAssistantText,
@@ -205,6 +215,8 @@ export function turnStatusFromChat(chat: ZhiyuRuntimeAgentChatStatus): ZhiyuEvid
     localAgentRef: chat.localAgentRef,
     conversationAnchorId: chat.conversationAnchorId,
     requestId: chat.requestId,
+    runtimeTurnId: chat.runtimeTurnId,
+    runtimeStreamId: chat.runtimeStreamId,
     messageId: latestAssistant?.id ?? null,
   };
 }
@@ -355,6 +367,106 @@ function conversationMessageTurnId(
 ): string | null {
   const turnId = message.metadata?.turnId;
   return typeof turnId === 'string' && turnId.trim() ? turnId : null;
+}
+
+function runtimeTurnIdentityFromProjection(
+  projection: RuntimeAgentConversationProjectionState,
+): {
+  readonly runtimeTurnId: string | null;
+  readonly runtimeStreamId: string | null;
+} {
+  return runtimeTurnIdentityFromSources([
+    projection.diagnostics,
+    projection.events,
+    projection.messages.map((message) => message.metadata),
+  ]);
+}
+
+function runtimeTurnIdentityFromResult(
+  result: Awaited<ReturnType<typeof runZhiyuAgentChatTurn>>,
+): {
+  readonly runtimeTurnId: string | null;
+  readonly runtimeStreamId: string | null;
+} {
+  return runtimeTurnIdentityFromSources([
+    result.diagnostics,
+    result.events,
+    result.messages.map((message) => message.metadata),
+  ]);
+}
+
+function runtimeTurnIdentityFromSources(sources: readonly unknown[]): {
+  readonly runtimeTurnId: string | null;
+  readonly runtimeStreamId: string | null;
+} {
+  let runtimeTurnId: string | null = null;
+  let runtimeStreamId: string | null = null;
+  const visit = (value: unknown) => {
+    if (runtimeTurnId && runtimeStreamId) {
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        visit(item);
+        if (runtimeTurnId && runtimeStreamId) {
+          return;
+        }
+      }
+      return;
+    }
+    if (!isRecord(value)) {
+      return;
+    }
+    runtimeTurnId ||= runtimeTurnIdFromRecord(value);
+    runtimeStreamId ||= runtimeStreamIdFromRecord(value);
+    visit(value.runtimeProjectionEvents);
+    visit(value.runtimeTurnTimelines);
+    visit(value.diagnostics);
+    visit(value.metadata);
+    visit(value.detail);
+  };
+  for (const source of sources) {
+    visit(source);
+  }
+  return { runtimeTurnId, runtimeStreamId };
+}
+
+function runtimeTurnIdFromRecord(record: Readonly<Record<string, unknown>>): string | null {
+  return firstMatchingText(/^agent_turn_/u, [
+    record.runtimeTurnId,
+    record.runtime_turn_id,
+    record.turnId,
+    record.turn_id,
+  ]);
+}
+
+function runtimeStreamIdFromRecord(record: Readonly<Record<string, unknown>>): string | null {
+  return firstMatchingText(/^agent_stream_/u, [
+    record.runtimeStreamId,
+    record.runtime_stream_id,
+    record.streamId,
+    record.stream_id,
+  ]);
+}
+
+function firstMatchingText(
+  pattern: RegExp,
+  values: readonly unknown[],
+): string | null {
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+    const text = value.trim();
+    if (pattern.test(text)) {
+      return text;
+    }
+  }
+  return null;
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
 function isEmptyStreamingTranscriptPlaceholder(

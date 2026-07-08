@@ -100,9 +100,14 @@ test('hardcut checkpoint replaces ZM0 shared-API-only migration assumptions', as
 });
 
 test('Zhiyu Electron acceptance writes checkpoint-scoped screenshot and runtime evidence', async () => {
-  const noRuntimeAcceptance = await readFile(path.join(appRoot, 'test', 'electron-acceptance.mjs'), 'utf8');
+  const noRuntimeAcceptance = await readFile(path.join(appRoot, 'test', 'e2e', 'electron-acceptance.test.mjs'), 'utf8');
   const liveRuntimeAcceptance = await readAppFiles([
-    'test/electron-live-runtime-acceptance.mjs',
+    'test/scenario/run-context-helpers.mjs',
+    'test/scenario/apml.scenarios.test.mjs',
+    'test/scenario/media.scenarios.test.mjs',
+    'test/scenario/lifecycle.scenarios.test.mjs',
+    'test/scenario/emotion.scenarios.test.mjs',
+    'test/scenario/voice.scenarios.test.mjs',
     'test/electron-live-runtime-acceptance-helpers.mjs',
   ]);
 
@@ -113,18 +118,18 @@ test('Zhiyu Electron acceptance writes checkpoint-scoped screenshot and runtime 
   assert.match(liveRuntimeAcceptance, /NIMI_ZHIYU_EVIDENCE_CHECKPOINT/);
   assert.match(liveRuntimeAcceptance, /trackPageProblems/);
   assert.match(liveRuntimeAcceptance, /assertNoPageProblems/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-seeded-default-config-desktop\.png/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-seeded-default-config-evidence\.json/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-model-configured-desktop\.png/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-model-configured-evidence\.json/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-ready-desktop\.png/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-ready-evidence\.json/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-agent-chat-completed-desktop\.png/);
-  assert.match(liveRuntimeAcceptance, /live-runtime-agent-chat-completed-evidence\.json/);
+  assert.match(liveRuntimeAcceptance, /captureScenarioEvidence/);
+  assert.match(liveRuntimeAcceptance, /\$\{safeId\}\.png/);
+  assert.match(liveRuntimeAcceptance, /\$\{safeId\}\.json/);
+  assert.match(liveRuntimeAcceptance, /A-06 voice action APML reaches Runtime voice truth/);
+  assert.match(liveRuntimeAcceptance, /B-01 single completed Runtime Agent text turn/);
+  assert.match(liveRuntimeAcceptance, /C-08 turn state matrix reaches completed with typed Runtime events/);
+  assert.match(liveRuntimeAcceptance, /D-06 hook and lipsync projections are carried into companion execution state/);
+  assert.match(liveRuntimeAcceptance, /E-04 user interrupt moves native_stream playback to interrupted/);
 });
 
 test('Zhiyu scripted Electron acceptance does not require retired app-local Agent Center DOM', async () => {
-  const realLocalAgentAcceptance = await readFile(path.join(appRoot, 'test', 'electron-real-local-agent-acceptance.mjs'), 'utf8');
+  const realLocalAgentAcceptance = await readFile(path.join(appRoot, 'test', 'e2e', 'electron-real-local-agent-acceptance.test.mjs'), 'utf8');
 
   assert.doesNotMatch(realLocalAgentAcceptance, /data-zhiyu-agent-appearance-panel/);
   assert.doesNotMatch(realLocalAgentAcceptance, /data-zhiyu-agent-center-tab-button/);

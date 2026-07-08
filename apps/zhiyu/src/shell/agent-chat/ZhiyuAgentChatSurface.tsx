@@ -11,11 +11,13 @@ import {
 } from '@nimiplatform/kit/features/chat/ui';
 import {
   ChevronRight,
+  Compass,
   ShieldCheck,
   X,
 } from 'lucide-react';
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
+import type { ZhiyuDesktopOpenActionResult } from '../desktop-open/desktop-open-action';
 import type {
   ZhiyuHomeProductState,
 } from '../app/home-product-state';
@@ -43,6 +45,7 @@ import {
   type RightPanelMode,
 } from './ZhiyuAgentRightPanel';
 import {
+  CompanionEmotionStatus,
   formatReasonLabel,
 } from '../app/home-surface-sections';
 import { ZHIYU_PRODUCT_STORYBOOK_VERSION } from '../app/zhiyu-product-storybook';
@@ -58,7 +61,9 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onDraftChange: (value: string) => void;
   readonly onSubmit: (text: string) => Promise<void> | void;
   readonly onStopChat: () => void;
+  readonly onVoiceCaptureToggle: () => Promise<void> | void;
   readonly onSelectLocalAgent: (localAgentRef: string) => void;
+  readonly onDesktopOpenSelectPartner: () => Promise<ZhiyuDesktopOpenActionResult> | ZhiyuDesktopOpenActionResult;
   readonly onAvatarLaunch?: () => void;
   readonly onAvatarManage?: () => void;
 };
@@ -73,7 +78,9 @@ export function ZhiyuAgentChatSurface({
   onDraftChange,
   onSubmit,
   onStopChat,
+  onVoiceCaptureToggle,
   onSelectLocalAgent,
+  onDesktopOpenSelectPartner,
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
   const modelConfigLabel = chatPrimaryBindingLabel(evidence);
@@ -174,6 +181,8 @@ export function ZhiyuAgentChatSurface({
   ) : null;
   const [rightPanelMode, setRightPanelMode] = useState<RightPanelMode>('closed');
   const [activeAgentTab, setActiveAgentTab] = useState<AgentPanelTab>('overview');
+  const [desktopOpenPending, setDesktopOpenPending] = useState(false);
+  const [desktopOpenResult, setDesktopOpenResult] = useState<ZhiyuDesktopOpenActionResult | null>(null);
   const chatTranscriptViewportRef = useRef<HTMLDivElement>(null);
   const composerRootRef = useRef<HTMLDivElement>(null);
   const getChatTranscriptRoot = useCallback(() => (
@@ -205,6 +214,17 @@ export function ZhiyuAgentChatSurface({
   const openAdvancedSettings = () => {
     setRightPanelMode('agent');
     setActiveAgentTab('advanced');
+  };
+  const handleDesktopOpenSelectPartner = async () => {
+    if (desktopOpenPending) {
+      return;
+    }
+    setDesktopOpenPending(true);
+    try {
+      setDesktopOpenResult(await onDesktopOpenSelectPartner());
+    } finally {
+      setDesktopOpenPending(false);
+    }
   };
   useLayoutEffect(() => {
     if (evidence.chat.messageCount <= 0) {
@@ -337,6 +357,31 @@ export function ZhiyuAgentChatSurface({
             {evidence.chat.state === 'failed' ? (
               <RuntimeChatFailureNotice chat={evidence.chat} />
             ) : null}
+            {!hasCurrentPartner ? (
+              <section
+                className="zhiyu-home__desktop-open-callout"
+                data-zhiyu-desktop-open-action="desktop_open_select_partner"
+                data-zhiyu-desktop-open-state={desktopOpenPending ? 'pending' : desktopOpenResult?.state ?? 'idle'}
+                data-zhiyu-desktop-open-reason={desktopOpenResult?.reasonCode ?? evidence.localAgent.reasonCode}
+              >
+                <div className="zhiyu-home__desktop-open-copy">
+                  <span>{product.primaryTitle}</span>
+                  <p>{product.primaryDescription}</p>
+                  <small>{desktopOpenResult?.message ?? product.primaryActionHint}</small>
+                </div>
+                <button
+                  type="button"
+                  data-zhiyu-desktop-open-select-partner="true"
+                  onClick={() => {
+                    void handleDesktopOpenSelectPartner();
+                  }}
+                  disabled={desktopOpenPending}
+                >
+                  <Compass size={15} aria-hidden="true" />
+                  <span>{desktopOpenPending ? '打开中' : '打开 Explore'}</span>
+                </button>
+              </section>
+            ) : null}
             <div
               ref={composerRootRef}
               className="zhiyu-chat-canvas__composer"
@@ -364,6 +409,7 @@ export function ZhiyuAgentChatSurface({
                 toolbarSlot={(
                   <ComposerModeTools
                     evidence={evidence}
+                    onVoiceCaptureToggle={onVoiceCaptureToggle}
                     onOpenModelConfig={openModelConfig}
                     onOpenAgentPanel={() => {
                       setRightPanelMode('agent');
@@ -396,6 +442,7 @@ export function ZhiyuAgentChatSurface({
                 {chatReplyChipLabel(evidence)}
               </StatusBadge>
             </span>
+            <CompanionEmotionStatus companion={evidence.companion} />
           </div>
           <p
             data-zhiyu-conversation-state={evidence.conversation.reasonCode}

@@ -29,6 +29,9 @@ import type {
   ZhiyuIdentityFloorItemState,
   ZhiyuIdentityFloorState,
 } from './identity-floor-state';
+import {
+  formatZhiyuCompanionEmotionLabel,
+} from '../agent/companion-emotion';
 
 export function formatProjectionValue(value: string | null | undefined): string {
   if (!value || value === 'not_projected') {
@@ -84,6 +87,32 @@ export function formatReasonLabel(ready: boolean, reasonCode: string): string {
     return '需要处理';
   }
   return '同步中';
+}
+
+export function CompanionEmotionStatus({ companion }: { readonly companion: ZhiyuEvidence['companion'] }) {
+  const label = formatZhiyuCompanionEmotionLabel(companion);
+  const tone = companion.emotionViolation
+    ? 'warning'
+    : companion.currentEmotionCue
+      ? 'success'
+      : 'neutral';
+  return (
+    <span
+      className="zhiyu-chat-canvas__labeled-chip"
+      data-zhiyu-region="companion"
+      data-zhiyu-companion-current-emotion-id={companion.currentEmotionId ?? 'not_projected'}
+      data-zhiyu-companion-current-emotion-cue={companion.currentEmotionCue ?? 'not_projected'}
+      data-zhiyu-companion-current-emotion-intensity={companion.currentEmotionIntensity ?? 'not_projected'}
+      data-zhiyu-companion-emotion-violation={companion.emotionViolation ? 'true' : 'false'}
+      data-zhiyu-companion-emotion-violation-reason={companion.emotionViolation?.reasonCode ?? 'none'}
+      data-zhiyu-companion-current-emotion-label={label}
+    >
+      <span className="zhiyu-chat-canvas__chip-label">相处</span>
+      <StatusBadge tone={tone} shape="dot">
+        {label}
+      </StatusBadge>
+    </span>
+  );
 }
 
 export function AvatarPresenceSection({
@@ -611,6 +640,13 @@ export function HiddenEvidenceStatus({ evidence }: { readonly evidence: ZhiyuEvi
         data-zhiyu-local-agent-state={evidence.localAgent.reasonCode}
         data-zhiyu-local-agent-source={evidence.localAgent.source}
         data-zhiyu-local-agent-ready={String(evidence.localAgent.ready)}
+      />
+      <p
+        data-zhiyu-companion-current-emotion-id={evidence.companion.currentEmotionId ?? 'not_projected'}
+        data-zhiyu-companion-current-emotion-cue={evidence.companion.currentEmotionCue ?? 'not_projected'}
+        data-zhiyu-companion-current-emotion-intensity={evidence.companion.currentEmotionIntensity ?? 'not_projected'}
+        data-zhiyu-companion-emotion-violation={evidence.companion.emotionViolation ? 'true' : 'false'}
+        data-zhiyu-companion-emotion-violation-reason={evidence.companion.emotionViolation?.reasonCode ?? 'none'}
       />
     </div>
   );

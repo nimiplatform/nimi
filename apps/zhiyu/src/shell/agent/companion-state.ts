@@ -9,6 +9,10 @@ import type {
   ZhiyuProactiveInterruptibilityStatus,
 } from '../app/evidence';
 import type { ZhiyuLocalAgentStatus } from './local-agent-discovery';
+import {
+  initialZhiyuCompanionEmotionProjection,
+  projectZhiyuCompanionEmotion,
+} from './companion-emotion';
 
 const APP_ID = 'nimi.zhiyu';
 const UNSUPPORTED_EXPLAINABILITY_FIELDS = [
@@ -139,6 +143,10 @@ function companionAvailable(
     });
   }
   const participation = companionParticipationProjection(snapshot);
+  const emotion = projectZhiyuCompanionEmotion({
+    current: initialZhiyuCompanionEmotionProjection(),
+    emotion: snapshot.currentEmotion,
+  });
   const proactiveInterruptibility = projectZhiyuProactiveInterruptibility(
     snapshot.proactiveInterruptibility,
     identity,
@@ -150,7 +158,11 @@ function companionAvailable(
     snapshot.activeWorldId ? 'activeWorldId' : '',
     snapshot.activeUserId ? 'activeUserId' : '',
     snapshot.updatedAt ? 'stateUpdatedAt' : '',
-    snapshot.currentEmotion ? 'currentEmotion' : '',
+    emotion.currentEmotion ? 'currentEmotion' : '',
+    emotion.currentEmotionId ? 'currentEmotionId' : '',
+    emotion.currentEmotionCue ? 'currentEmotionCue' : '',
+    emotion.currentEmotionIntensity ? 'currentEmotionIntensity' : '',
+    emotion.emotionViolation ? 'emotionViolation' : '',
     'participationMode',
     'participationSource',
     proactiveInterruptibility.ready ? 'proactiveInterruptibility' : '',
@@ -170,7 +182,11 @@ function companionAvailable(
     statusText: snapshot.statusText,
     activeWorldId: snapshot.activeWorldId,
     activeUserId: snapshot.activeUserId,
-    currentEmotion: snapshot.currentEmotion,
+    currentEmotion: emotion.currentEmotion,
+    currentEmotionId: emotion.currentEmotionId,
+    currentEmotionCue: emotion.currentEmotionCue,
+    currentEmotionIntensity: emotion.currentEmotionIntensity,
+    emotionViolation: emotion.emotionViolation,
     voiceOutputMode: null,
     voicePlaybackState: null,
     voiceAudioArtifactId: null,
@@ -181,6 +197,9 @@ function companionAvailable(
     participationSource: participation.source,
     projectedFields,
     unsupportedExplainabilityFields: [...UNSUPPORTED_EXPLAINABILITY_FIELDS],
+    diagnostics: {
+      runtimeProjectionEvents: [],
+    },
     proactiveInterruptibility,
   };
 }
@@ -524,6 +543,10 @@ function companionUnavailable(input: {
     activeWorldId: null,
     activeUserId: null,
     currentEmotion: null,
+    currentEmotionId: null,
+    currentEmotionCue: null,
+    currentEmotionIntensity: null,
+    emotionViolation: null,
     voiceOutputMode: null,
     voicePlaybackState: null,
     voiceAudioArtifactId: null,
@@ -534,6 +557,9 @@ function companionUnavailable(input: {
     participationSource: null,
     projectedFields: [],
     unsupportedExplainabilityFields: [...UNSUPPORTED_EXPLAINABILITY_FIELDS],
+    diagnostics: {
+      runtimeProjectionEvents: [],
+    },
     proactiveInterruptibility: proactiveInterruptibilityUnavailable({
       reasonCode: input.reasonCode,
       actionHint: 'probe_runtime_agent_proactive_interruptibility',

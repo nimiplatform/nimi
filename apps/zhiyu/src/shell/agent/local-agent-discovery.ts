@@ -53,7 +53,7 @@ export async function probeZhiyuLocalAgentDiscovery(
     if (!first) {
       return localAgentUnavailable({
         reasonCode: 'zhiyu-local-agent-not-found',
-        actionHint: 'open_desktop_explore_character_persona',
+        actionHint: 'desktop_open_select_partner',
         source: 'runtime',
         message: 'Runtime inventory has no active LocalAgent for the admitted source projection; use Desktop Explore character/persona context and return after Runtime reports an available partner.',
         ownerUserId: projection.ownerUserId,

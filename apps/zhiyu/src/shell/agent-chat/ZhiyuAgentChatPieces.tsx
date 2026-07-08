@@ -9,6 +9,7 @@ import {
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import { partnerInitial } from './ZhiyuAgentChatLabels';
+import { projectZhiyuVoicePlayback } from './voice-playback';
 
 export function behaviorModeTitle(mode: 'off' | 'low' | 'medium' | 'high') {
   if (mode === 'low') {
@@ -71,42 +72,57 @@ export function ComposerAvatarButton({
 
 export function ComposerModeTools({
   evidence,
+  onVoiceCaptureToggle,
   onOpenModelConfig,
   onOpenAgentPanel,
   onOpenSettings,
 }: {
   readonly evidence: ZhiyuEvidence;
+  readonly onVoiceCaptureToggle: () => Promise<void> | void;
   readonly onOpenModelConfig: () => void;
   readonly onOpenAgentPanel: () => void;
   readonly onOpenSettings: () => void;
 }) {
-  const voiceOutputMode = evidence.companion.voiceOutputMode || '';
-  const voicePlaybackState = evidence.companion.voicePlaybackState || '';
-  const voiceAudioArtifactId = evidence.companion.voiceAudioArtifactId || '';
+  const voicePlayback = projectZhiyuVoicePlayback({
+    voiceOutputMode: evidence.companion.voiceOutputMode,
+    voicePlaybackState: evidence.companion.voicePlaybackState,
+    voiceAudioArtifactId: evidence.companion.voiceAudioArtifactId,
+    voiceAudioMimeType: evidence.companion.voiceAudioMimeType,
+    voiceStreamId: evidence.companion.voiceStreamId,
+  });
   const voicePlaybackTarget = evidence.companion.voicePlaybackTarget || '';
-  const voiceStreamId = evidence.companion.voiceStreamId || '';
-  const voiceProjected = voiceOutputMode.length > 0;
-  const voiceState = voiceProjected ? voicePlaybackState || 'projected' : 'deferred';
-  const voiceReason = voiceProjected
-    ? 'zhiyu-chat-voice-runtime-projected'
-    : 'zhiyu-chat-voice-runtime-surface-deferred';
-  const voiceLabel = voiceProjected
-    ? `语音模式：${voiceOutputMode}${voicePlaybackState ? ` / ${voicePlaybackState}` : ''}`
-    : '语音模式暂未接入';
-  const voiceTitle = voiceProjected
-    ? `Runtime 语音投影：${voiceOutputMode}${voicePlaybackState ? ` / ${voicePlaybackState}` : ''}`
-    : '语音模式暂未接入：等待 Runtime/SDK chat voice surface admission';
+  const voiceCaptureDisabled = evidence.voiceCapture.state === 'transcribing'
+    || (!evidence.voiceCapture.ready && evidence.voiceCapture.state !== 'recording');
+  const voiceCaptureLabel = evidence.voiceCapture.state === 'recording'
+    ? '停止语音输入'
+    : evidence.voiceCapture.state === 'transcribing'
+      ? '语音转写中'
+      : evidence.voiceCapture.ready
+        ? '开始语音输入'
+        : '语音输入不可用';
+  const voiceLabel = voicePlayback.outputMode
+    ? `语音播放：${voicePlayback.outputMode}${voicePlayback.playbackState ? ` / ${voicePlayback.playbackState}` : ''}`
+    : '语音播放：等待 Runtime 输出';
+  const voiceTitle = voicePlayback.violation
+    ? `Runtime 语音投影违规：${voicePlayback.reasonCode}`
+    : `Runtime 语音投影：${voicePlayback.reasonCode}`;
 
   return (
     <>
       <button
         type="button"
-        aria-label="语音输入暂未接入"
-        title="语音输入暂未接入：等待 Runtime/SDK chat voice capture surface admission"
+        aria-label={voiceCaptureLabel}
+        title={`${voiceCaptureLabel}：${evidence.voiceCapture.reasonCode}`}
         data-zhiyu-composer-tool="voice-capture"
-        data-zhiyu-chat-voice-capture-state="deferred"
-        data-zhiyu-chat-voice-capture-reason="zhiyu-chat-voice-capture-runtime-surface-deferred"
-        disabled
+        data-zhiyu-chat-voice-capture-state={evidence.voiceCapture.state}
+        data-zhiyu-chat-voice-capture-ready={String(evidence.voiceCapture.ready)}
+        data-zhiyu-chat-voice-capture-reason={evidence.voiceCapture.reasonCode}
+        data-zhiyu-chat-voice-capture-model-id={evidence.voiceCapture.runtimeBindingModelId || 'not_projected'}
+        data-zhiyu-chat-voice-capture-connector-id={evidence.voiceCapture.connectorId || 'not_projected'}
+        data-zhiyu-chat-voice-capture-request-id={evidence.voiceCapture.requestId || 'not_projected'}
+        data-zhiyu-chat-voice-capture-transcript-length={String(evidence.voiceCapture.transcriptLength)}
+        onClick={onVoiceCaptureToggle}
+        disabled={voiceCaptureDisabled}
       >
         <Mic size={15} aria-hidden="true" />
       </button>
@@ -118,13 +134,16 @@ export function ComposerModeTools({
         aria-label={voiceLabel}
         title={voiceTitle}
         data-zhiyu-composer-tool="hands-free"
-        data-zhiyu-chat-voice-state={voiceState}
-        data-zhiyu-chat-voice-reason={voiceReason}
-        data-zhiyu-chat-voice-output-mode={voiceOutputMode}
-        data-zhiyu-chat-voice-playback-state={voicePlaybackState}
-        data-zhiyu-chat-voice-audio-artifact-id={voiceAudioArtifactId}
+        data-zhiyu-chat-voice-state={voicePlayback.state}
+        data-zhiyu-chat-voice-reason={voicePlayback.reasonCode}
+        data-zhiyu-chat-voice-output-mode={voicePlayback.outputMode}
+        data-zhiyu-chat-voice-playback-state={voicePlayback.playbackState}
+        data-zhiyu-chat-voice-audio-artifact-id={voicePlayback.audioArtifactId}
+        data-zhiyu-chat-voice-audio-mime-type={voicePlayback.audioMimeType}
         data-zhiyu-chat-voice-playback-target={voicePlaybackTarget}
-        data-zhiyu-chat-voice-stream-id={voiceStreamId}
+        data-zhiyu-chat-voice-stream-id={voicePlayback.voiceStreamId}
+        data-zhiyu-chat-voice-playback-action={voicePlayback.playbackAction}
+        data-zhiyu-chat-voice-violation={String(voicePlayback.violation)}
         disabled
       >
         <Headphones size={15} aria-hidden="true" />

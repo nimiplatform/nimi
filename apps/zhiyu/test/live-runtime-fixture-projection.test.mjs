@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   createZhiyuLiveRuntimeAcceptanceRendererUrl,
   createZhiyuLiveRuntimeFixtureAcceptanceInitScript,
-} from './live-runtime-fixture-adapter.mjs';
+} from './electron-live-runtime-acceptance-helpers.mjs';
 
 const fixture = {
   ownerUserId: 'user-live',

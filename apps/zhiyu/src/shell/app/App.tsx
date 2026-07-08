@@ -65,10 +65,17 @@ import {
   projectZhiyuCompanionFromRuntimeAgentEvent,
   projectZhiyuCompanionFromRuntimeProjectionEvents,
 } from '../agent-chat/agent-conversation-state';
+import {
+  createBrowserVoiceCaptureRecorder,
+  createElectronVoiceCaptureTranscriber,
+  createZhiyuVoiceCaptureController,
+  projectZhiyuVoiceCaptureReadiness,
+} from '../agent-chat/voice-capture';
 import { probeZhiyuRuntimeSourceProjection } from '../agent/source-projection';
 import { runZhiyuAgentChatTurn } from '../agent-chat/runtime-agent-turn-adapter';
 import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
 import { probeZhiyuRuntimeAccountStatus } from '../auth/runtime-account-status';
+import { requestZhiyuDesktopOpenSelectPartner } from '../desktop-open/desktop-open-action';
 import { probeZhiyuRuntimeStatus } from '../runtime/runtime-status';
 
 export function App() {
@@ -77,6 +84,7 @@ export function App() {
   const [selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey] = useState(0);
   const [draft, setDraft] = useState('');
   const activeChatAbortRef = useRef<AbortController | null>(null);
+  const activeVoiceCaptureRef = useRef<ReturnType<typeof createZhiyuVoiceCaptureController> | null>(null);
   const agentAIConfigRouteInputRef = useRef<ZhiyuAgentAIConfigRouteEvidenceInput>({ subjectUserId: '' });
   const renderEvidence = useMemo(() => projectZhiyuIdentitySafetyEvidence(evidence), [evidence]);
   const latestConversationIdentityRef = useRef<ZhiyuRuntimeChatApplyIdentity>(
@@ -164,6 +172,9 @@ export function App() {
       ...current,
       route,
       turn: probeZhiyuAgentTurnReadiness(current.conversation, route),
+      voiceCapture: current.voiceCapture.state === 'recording' || current.voiceCapture.state === 'transcribing'
+        ? current.voiceCapture
+        : projectZhiyuVoiceCaptureReadiness(route),
     }));
   }, []);
 
@@ -572,6 +583,70 @@ export function App() {
     });
   }
 
+  async function handleVoiceCaptureToggle() {
+    if (renderEvidence.voiceCapture.state === 'transcribing') {
+      return;
+    }
+    if (renderEvidence.voiceCapture.state === 'recording') {
+      const activeVoiceCapture = activeVoiceCaptureRef.current;
+      if (!activeVoiceCapture) {
+        setEvidence((current) => ({
+          ...current,
+          voiceCapture: {
+            ...current.voiceCapture,
+            ready: false,
+            state: 'failed',
+            reasonCode: 'runtime-voice-capture-recorder-missing',
+            actionHint: 'start_voice_capture',
+            source: 'renderer',
+            message: 'Voice capture stop was requested before recording started.',
+          },
+        }));
+        return;
+      }
+      const result = await activeVoiceCapture.stop();
+      activeVoiceCaptureRef.current = null;
+      if (result.state === 'idle' && result.transcriptText) {
+        const transcriptText = result.transcriptText;
+        setDraft(transcriptText);
+        setEvidence((current) => ({
+          ...current,
+          voiceCapture: result,
+          composer: {
+            ...current.composer,
+            draftLength: transcriptText.length,
+            reasonCode: result.reasonCode,
+            actionHint: 'send_runtime_agent_turn',
+            source: result.source,
+            message: result.message,
+          },
+        }));
+      }
+      return;
+    }
+
+    const readiness = projectZhiyuVoiceCaptureReadiness(renderEvidence.route);
+    const controller = createZhiyuVoiceCaptureController({
+      readiness,
+      createRecorder: createBrowserVoiceCaptureRecorder,
+      transcribe: (request) => createElectronVoiceCaptureTranscriber({
+        route: renderEvidence.route,
+        subjectUserId: renderEvidence.conversation.ownerUserId || renderEvidence.auth.accountId || '',
+      })(request),
+      onStateChange: (voiceCapture) => {
+        setEvidence((current) => ({
+          ...current,
+          voiceCapture,
+        }));
+      },
+    });
+    activeVoiceCaptureRef.current = controller;
+    const started = await controller.start();
+    if (started.state !== 'recording') {
+      activeVoiceCaptureRef.current = null;
+    }
+  }
+
   function handleSelectLocalAgent(localAgentRef: string) {
     const selected = localAgentRef.trim();
     if (!selected) {
@@ -655,7 +730,9 @@ export function App() {
       onDraftChange={setDraft}
       onSubmit={handleSubmit}
       onStopChat={handleStopChat}
+      onVoiceCaptureToggle={handleVoiceCaptureToggle}
       onSelectLocalAgent={handleSelectLocalAgent}
+      onDesktopOpenSelectPartner={requestZhiyuDesktopOpenSelectPartner}
       onAvatarLaunch={() => {
         void handleAvatarLaunch();
       }}

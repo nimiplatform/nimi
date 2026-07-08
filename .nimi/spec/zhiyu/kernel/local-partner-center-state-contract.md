@@ -30,3 +30,14 @@ Runtime session state, or Avatar carrier readiness.
 `检查本地服务` must run a real health reconnect action: probe Runtime/auth/SDK
 bridge, refresh product state, and show owner-aware failure with diagnostics on
 failure. It must not be a no-op button.
+
+## Z-STATE-005 Runtime Emotion Projection
+
+Zhiyu companion emotion state must derive only from admitted Runtime Agent
+emotion ontology ids. Zhiyu must preserve the ontology id and intensity as
+truth-axis evidence, derive `AvatarEmotionCue` through the Kit avatar emotion
+mapping surface, and expose both axes through product evidence. Unknown emotion
+ids, unknown intensity values, and neutral emotion with intensity must fail
+closed into typed `emotionViolation` evidence without displaying the rejected
+raw value. Non-emotion Runtime Agent activity events must not overwrite the
+current companion emotion projection.

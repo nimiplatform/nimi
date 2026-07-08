@@ -6,6 +6,7 @@ const delegationScopes = [
 ];
 const admittedRuntimeAgentAIConfigCapabilities = [
   'audio.synthesize',
+  'audio.transcribe',
   'image.generate',
   'text.embed',
   'text.generate',
@@ -91,6 +92,8 @@ export async function assertPreConfigRuntimeEvidence(page, fixture, zhiyuAppId) 
   assert.equal(preConfigEvidence.route.capabilities['image.generate'].binding, null);
   assert.equal(preConfigEvidence.route.capabilities['audio.synthesize'].state, 'not_configured');
   assert.equal(preConfigEvidence.route.capabilities['audio.synthesize'].binding, null);
+  assert.equal(preConfigEvidence.route.capabilities['audio.transcribe'].state, 'not_configured');
+  assert.equal(preConfigEvidence.route.capabilities['audio.transcribe'].binding, null);
   assert.equal(preConfigEvidence.route.capabilities['voice_workflow.voice_clone'].state, 'not_configured');
   assert.equal(preConfigEvidence.route.capabilities['voice_workflow.voice_design'].state, 'not_configured');
   return { preConfigEvidence, preConfigScopedBinding, renewedScopedBinding };

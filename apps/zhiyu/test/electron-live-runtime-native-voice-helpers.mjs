@@ -1,9 +1,17 @@
 import assert from 'node:assert/strict';
 import { createNimiRuntimeAppSessionMetadataProvider } from '../../../sdks/typescript/runtime/app-session.ts';
+import {
+  VoiceOutputMode,
+  VoicePlaybackState,
+} from '../../../sdks/typescript/core-generated/runtime-typed-client.ts';
 import { createNimiRuntimeAgentClient } from '../../../sdks/typescript/runtime/runtime-agent-client.ts';
+import { createNimiRuntimeAgentTurnsModule } from '../../../sdks/typescript/runtime/runtime-agent-turns.ts';
 import { withNimiRuntimeAgentScopes } from '../../../sdks/typescript/runtime/runtime-agent-protected.ts';
 import { createNimiRuntimeAgentVoiceModule } from '../../../sdks/typescript/runtime/runtime-agent-voice.ts';
 import { createRuntimeForEndpoint } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
+import {
+  runtimeAgentLiveE2EChatScenarioPrompt,
+} from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-server.test-helper.ts';
 import {
   captureLiveRuntimeEvidence,
   escapeRegExp,
@@ -17,6 +25,7 @@ const zhiyuRuntimeVoiceObserverAppInstanceId = `${zhiyuRuntimeVoiceObserverAppId
 const zhiyuRuntimeProtectedScopes = [
   'runtime.agent.read',
   'runtime.agent.write',
+  'runtime.agent.autonomy.write',
   'runtime.agent.turn.read',
   'runtime.agent.turn.write',
   'runtime.agent.delegation.read',
@@ -26,7 +35,7 @@ const zhiyuRuntimeProtectedScopes = [
   'ai.spend.meter',
 ];
 export async function assertMidStreamFailureFlow(page, pageProblems, readyEvidence) {
-  const failurePrompt = 'Please trigger Zhiyu mid-stream failure after committed text.';
+  const failurePrompt = `${runtimeAgentLiveE2EChatScenarioPrompt('b-mid-stream-failure')} Please trigger Zhiyu mid-stream failure after committed text.`;
   const expectedPartialText = 'Committed before induced action failure.';
   await page.locator('[data-chat-composer-textarea="true"]').fill(failurePrompt);
   await page.waitForFunction(() =>
@@ -92,6 +101,173 @@ export async function assertMidStreamFailureFlow(page, pageProblems, readyEviden
     failedEvidence,
   });
   await page.locator('[data-chat-composer-textarea="true"]').fill('');
+}
+
+export async function assertRuntimeNativeVoiceInterruptFlow(page, pageProblems, fixture, readyEvidence, options = {}) {
+  const interruptedPrompt = String(options.prompt || '').trim() || '请开始一段会被 Runtime 中断的实时语音。';
+  const runtimeAuthBinding = await readZhiyuRuntimeAgentAuthBinding(page, readyEvidence);
+  const existingVoiceStreamIds = await page.evaluate(() => {
+    const events = globalThis.window.__nimiZhiyuEvidence?.chat?.diagnostics?.runtimeProjectionEvents ?? [];
+    return events
+      .map((event) => String(event?.detail?.voiceStreamId || event?.detail?.voice_stream_id || '').trim())
+      .filter(Boolean);
+  });
+  const targetRequestId = createDeferred();
+  const interruptProgress = {
+    stage: 'page_submit_start',
+    observedEvents: 0,
+    observedNativeChunks: 0,
+    skippedExistingNativeChunks: 0,
+    lastEventName: '',
+    lastTurnId: '',
+    lastVoiceStreamId: '',
+    targetRequestId: '',
+    targetTurnId: '',
+    targetStreamId: '',
+  };
+  const runtimeInterruptObserver = observeLiveRuntimeNativeVoiceInterrupt({
+    fixture,
+    conversationAnchorId: readyEvidence.conversation.conversationAnchorId,
+    prompt: interruptedPrompt,
+    existingVoiceStreamIds,
+    runtimeAuthBinding,
+    targetRequestIdPromise: targetRequestId.promise,
+    progress: interruptProgress,
+  });
+  runtimeInterruptObserver.catch(() => {});
+  await page.locator('[data-chat-composer-textarea="true"]').fill(interruptedPrompt, { timeout: 15_000 });
+  await page.waitForFunction(() =>
+    document.querySelector('[data-zhiyu-submit-enabled]')?.getAttribute('data-zhiyu-submit-enabled') === 'true'
+    && document.querySelector('[data-chat-composer-send="true"]')?.disabled === false
+    && document.querySelector('[data-chat-composer-textarea="true"]')?.value.length > 0,
+    undefined,
+    { timeout: 15_000 },
+  );
+  await page.locator('[data-chat-composer-send="true"]').click({ timeout: 15_000 });
+  await waitForEvidence(page, ({ interruptedPrompt }) => {
+    const evidence = globalThis.window.__nimiZhiyuEvidence;
+    return evidence?.chat?.conversationAnchorId
+      && evidence?.chat?.messages?.some((message) => message?.text === interruptedPrompt)
+      && ['streaming', 'completed', 'failed'].includes(evidence?.chat?.state || '');
+  }, 'Runtime voice interrupt turn submitted through Zhiyu', { interruptedPrompt });
+  const submittedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+  const submittedRequestId = String(submittedEvidence?.chat?.requestId || '').trim();
+  assert.match(submittedRequestId, /^zhiyu-turn-/u, 'Zhiyu interrupt turn must expose its local request id before Runtime accepted');
+  interruptProgress.targetRequestId = submittedRequestId;
+  interruptProgress.stage = 'observer_subscribe_start';
+  targetRequestId.resolve(submittedRequestId);
+  const runtimeInterrupt = await promiseWithTimeout(
+    runtimeInterruptObserver,
+    60_000,
+    () => `Runtime native voice interrupt observer/capture did not complete; progress=${JSON.stringify(interruptProgress)}`,
+  );
+  const {
+    nativeChunkEvent,
+    interruptRuntimeTurnId,
+    interruptRuntimeStreamId,
+    typedFirstChunk,
+    typedTerminalEvent,
+    interruptResponse,
+    voiceStreamId,
+  } = runtimeInterrupt;
+  assert.ok(voiceStreamId, 'Runtime native voice chunk projection must carry voiceStreamId');
+  assert.match(interruptRuntimeTurnId, /^agent_turn_/u, 'Runtime native voice chunk projection must carry turn id');
+  assert.match(interruptRuntimeStreamId, /^agent_stream_/u, 'Runtime native voice chunk projection must carry stream id');
+  assert.equal(nativeChunkEvent.detail?.audioArtifactId || nativeChunkEvent.detail?.audio_artifact_id || null, null);
+  assert.match(
+    String(nativeChunkEvent.detail?.chunkTransportRef || nativeChunkEvent.detail?.chunk_transport_ref || ''),
+    new RegExp(escapeRegExp(voiceStreamId)),
+    'interrupt turn native chunk must point at transient stream transport',
+  );
+  assert.equal(typedFirstChunk.voiceStreamId, voiceStreamId);
+  assert.equal(typedFirstChunk.voiceOutputMode, VoiceOutputMode.NATIVE_STREAM);
+  assert.equal(typedFirstChunk.voicePlaybackState, VoicePlaybackState.ACTIVE);
+  assert.equal(typedFirstChunk.terminal, false);
+  assert.equal((typedFirstChunk.chunk?.byteLength ?? 0) > 0, true, 'typed voice stream must deliver playable non-final bytes before interrupt');
+  assert.equal(typedTerminalEvent.voiceStreamId, voiceStreamId);
+  assert.equal(typedTerminalEvent.voiceOutputMode, VoiceOutputMode.NATIVE_STREAM);
+  assert.equal(typedTerminalEvent.voicePlaybackState, VoicePlaybackState.INTERRUPTED);
+  assert.equal(typedTerminalEvent.terminalReason, 'zhiyu_electron_live_voice_interrupt');
+  assert.equal(interruptResponse.voiceStreamId, voiceStreamId);
+  assert.equal(interruptResponse.voiceOutputMode, VoiceOutputMode.NATIVE_STREAM);
+  assert.equal(interruptResponse.voicePlaybackState, VoicePlaybackState.INTERRUPTED);
+
+  await waitForEvidence(page, ({ interruptRuntimeTurnId, voiceStreamId }) => {
+    const evidence = globalThis.window.__nimiZhiyuEvidence;
+    const events = evidence?.chat?.diagnostics?.runtimeProjectionEvents ?? [];
+    const eventTurnId = (event) => String(
+      event?.runtimeTurnId
+        || event?.turnId
+        || event?.detail?.runtimeTurnId
+        || event?.detail?.turnId
+        || event?.detail?.turn_id
+        || '',
+    ).trim();
+    const terminal = events.find((event) =>
+      event?.eventName === 'runtime.agent.presentation.voice_playback_terminal'
+      && eventTurnId(event) === interruptRuntimeTurnId
+      && (event?.detail?.voiceStreamId || event?.detail?.voice_stream_id) === voiceStreamId
+    );
+    const finalPlaybackForInterruptedStream = events.some((event) =>
+      event?.eventName === 'runtime.agent.presentation.voice_playback_requested'
+      && (event?.detail?.voiceStreamId || event?.detail?.voice_stream_id) === voiceStreamId
+      && event?.detail?.finalArtifact === true
+    );
+    return terminal?.detail?.voiceOutputMode === 'native_stream'
+      && terminal?.detail?.voicePlaybackState === 'interrupted'
+      && terminal?.detail?.terminalReason === 'zhiyu_electron_live_voice_interrupt'
+      && !Boolean(terminal?.detail?.finalArtifactId || terminal?.detail?.final_artifact_id)
+      && finalPlaybackForInterruptedStream === false
+      && evidence?.companion?.voiceOutputMode === 'native_stream'
+      && evidence?.companion?.voicePlaybackState === 'interrupted'
+      && evidence?.companion?.voiceStreamId === voiceStreamId
+      && evidence?.companion?.projectedFields?.includes('voicePlaybackTerminal');
+  }, 'interrupted native voice terminal truth', { interruptRuntimeTurnId, voiceStreamId });
+
+  const interruptedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+  const terminalEvent = interruptedEvidence.chat.diagnostics.runtimeProjectionEvents.find((event) =>
+    event?.eventName === 'runtime.agent.presentation.voice_playback_terminal'
+    && runtimeProjectionEventTurnId(event) === interruptRuntimeTurnId
+    && (event?.detail?.voiceStreamId || event?.detail?.voice_stream_id) === voiceStreamId
+  );
+  assert.ok(terminalEvent, 'Runtime interrupt must project voice_playback_terminal');
+  assert.equal(terminalEvent.detail.voiceOutputMode, 'native_stream');
+  assert.equal(terminalEvent.detail.voicePlaybackState, 'interrupted');
+  assert.equal(terminalEvent.detail.terminalReason, 'zhiyu_electron_live_voice_interrupt');
+  assert.equal(terminalEvent.detail.finalArtifactId || terminalEvent.detail.final_artifact_id || null, null);
+  const voiceTool = page.locator('[data-zhiyu-composer-tool="hands-free"]').first();
+  await voiceTool.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-output-mode'), 'native_stream');
+  assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-playback-state'), 'interrupted');
+  assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-stream-id'), voiceStreamId);
+  assert.equal(await voiceTool.getAttribute('data-zhiyu-chat-voice-playback-target'), 'avatar_autoplay');
+  assert.equal(await voiceTool.isDisabled(), true, 'Runtime voice interrupt truth must not turn Zhiyu into a local playback controller');
+  const interruptedConversationText = await page.locator('[data-zhiyu-region="conversation"]').innerText();
+  assert.match(interruptedConversationText, new RegExp(escapeRegExp(interruptedPrompt)));
+  await captureLiveRuntimeEvidence(page, 'voiceInterrupted', pageProblems, {
+    readyEvidence,
+    interruptedEvidence,
+    runtimeInterrupt: {
+      nativeChunkEvent,
+      typedFirstChunk: summarizeTypedVoiceStreamEvent(typedFirstChunk),
+      typedTerminalEvent: summarizeTypedVoiceStreamEvent(typedTerminalEvent),
+    },
+    interruptResponse,
+    voiceStreamId,
+    interruptRuntimeTurnId,
+  });
+  return {
+    readyEvidence,
+    interruptedEvidence,
+    runtimeInterrupt: {
+      nativeChunkEvent,
+      typedFirstChunk: summarizeTypedVoiceStreamEvent(typedFirstChunk),
+      typedTerminalEvent: summarizeTypedVoiceStreamEvent(typedTerminalEvent),
+    },
+    interruptResponse,
+    voiceStreamId,
+    interruptRuntimeTurnId,
+  };
 }
 
 async function runCapabilityStudio(page, pageProblems, input) {
@@ -161,6 +337,27 @@ export async function readZhiyuRuntimeAgentAuthBinding(page, readyEvidence) {
     return { kind: 'hostEquivalence', evidenceRef };
   }
   assert.fail('Zhiyu live voice interrupt requires renderer Runtime scoped binding or admitted host equivalence');
+}
+
+export async function renderLiveRuntimeCommittedVoice(input) {
+  const runtimeAuthBinding = input.runtimeAuthBinding
+    || await readZhiyuRuntimeAgentAuthBinding(input.page, input.readyEvidence);
+  const turns = createZhiyuLiveRuntimeAgentTurnsModule(input.fixture, runtimeAuthBinding);
+  const idempotencyKey = String(input.idempotencyKey || '').trim()
+    || `zhiyu-live-runtime-voice-render:${input.turnId}:${input.messageId}:${input.playbackTarget || 'desktop_manual'}`;
+  return turns.renderVoice({
+    ownerUserId: input.fixture.ownerUserId,
+    runtimeSourceRef: input.fixture.runtimeSourceRef,
+    localAgentRef: input.fixture.localAgentRef,
+    conversationAnchorId: input.conversationAnchorId,
+    turnId: input.turnId,
+    messageId: input.messageId,
+    text: input.text,
+    playbackTarget: input.playbackTarget || 'desktop_manual',
+    timeoutMs: input.timeoutMs ?? 45_000,
+    idempotencyKey,
+    ...(input.useScopedBinding === true ? { scopedBinding: zhiyuRuntimeAuthScopedBinding(runtimeAuthBinding, input) } : {}),
+  });
 }
 
 export async function observeLiveRuntimeNativeVoiceInterrupt(input) {
@@ -503,6 +700,31 @@ function createZhiyuLiveRuntimeAgentVoiceModule(fixture, runtimeAuthBinding) {
       appAuth: runtime.grants,
       agents: runtime.agents,
       artifacts: runtime.artifacts,
+    },
+    getSubjectUserId: () => fixture.ownerUserId,
+    withScopes: createZhiyuRuntimeAuthBindingScopeRunner(fixture, runtime, runtimeAuthBinding),
+  });
+}
+
+function createZhiyuLiveRuntimeAgentTurnsModule(fixture, runtimeAuthBinding) {
+  const runtime = createRuntimeForEndpoint(fixture.endpoint, zhiyuAppId);
+  return createNimiRuntimeAgentTurnsModule({
+    runtime: {
+      appId: zhiyuAppId,
+      auth: runtime.auth,
+      appAuth: runtime.grants,
+      agents: {
+        getPublicChatSessionSnapshot: (request, options) =>
+          runtime.agents.getPublicChatSessionSnapshot(request, options),
+        subscribeAgentEvents: (request, options) =>
+          runtime.agents.subscribeAgentEvents(request, options),
+      },
+      appMessages: {
+        sendAppMessage: (request, options) =>
+          runtime.appMessages.sendAppMessage(request, options),
+        subscribeAppMessages: (request, options) =>
+          runtime.appMessages.subscribeAppMessages(request, options),
+      },
     },
     getSubjectUserId: () => fixture.ownerUserId,
     withScopes: createZhiyuRuntimeAuthBindingScopeRunner(fixture, runtime, runtimeAuthBinding),

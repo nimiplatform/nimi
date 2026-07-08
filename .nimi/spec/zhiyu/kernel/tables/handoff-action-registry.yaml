@@ -4,7 +4,7 @@ owner: zhiyu
 catalog_id: zhiyu_handoff_action_registry
 entries:
   - check_local_service
-  - go_to_desktop_partner_creation
+  - desktop_open_select_partner
   - open_ai_model_config
   - configure_avatar
   - launch_avatar
@@ -15,10 +15,15 @@ actions:
     zhiyu_role: trigger_probe_and_refresh_state
     fallback: owner_aware_failure_plus_diagnostics
     source_rule: Z-STATE-004
-  go_to_desktop_partner_creation:
-    owner: desktop_realm
-    zhiyu_role: handoff_or_honest_guidance
-    fallback: open_desktop_or_show_guidance
+  desktop_open_select_partner:
+    owner: platform_desktop_sdk_kit
+    zhiyu_role: request_desktop_open_intent_or_honest_guidance
+    desktop_open_intent:
+      kind: open-explore
+      section: personas
+      productIntent: select-partner
+    standard_shell_operation: desktop-open.openIntent
+    fallback: open_desktop_first_or_show_guidance
     source_rule: Z-PARTNER-002
   open_ai_model_config:
     owner: runtime_sdk_kit_platform

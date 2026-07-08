@@ -44,7 +44,7 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
   if (localAgents.length === 0) {
     return localAgentUnavailable({
       reasonCode: 'zhiyu-runtime-local-agent-inventory-empty',
-      actionHint: 'open_desktop_explore_character_persona',
+      actionHint: 'desktop_open_select_partner',
       source: 'runtime',
       message: 'Runtime inventory has no active Runtime-owned partner for Zhiyu to open. Use Desktop Explore character/persona context and return after Runtime reports an available partner.',
       ownerUserId: input.inventory.ownerUserId,
@@ -62,7 +62,7 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
 
   return localAgentUnavailable({
     reasonCode: 'zhiyu-realm-materialized-partner-required',
-    actionHint: 'open_desktop_explore_character_persona',
+    actionHint: 'desktop_open_select_partner',
     source: 'runtime',
     message: 'Zhiyu requires a Runtime-owned partner selected from Desktop Explore character/persona context before opening chat.',
     ownerUserId: input.inventory.ownerUserId,

@@ -30,7 +30,7 @@ test('zhiyu runtime auth migrates to shared SDK/Kit account gate surfaces', () =
   const runtimePlatformSource = read('src/shell/auth/runtime-platform.ts');
   const hostAccountCallerSource = read('src-electron/runtime-account-caller.ts');
   const hostAuthSource = read('src-electron/runtime-auth.ts');
-  const liveAcceptanceSource = read('test/electron-live-runtime-acceptance.mjs');
+  const liveAcceptanceSource = read('test/scenario/run-context-helpers.mjs');
 
   assert.match(mainSource, /installNimiShellRuntimeBridge\(\)/);
   assert.match(mainSource, /<AuthGate>/);
@@ -54,8 +54,8 @@ test('zhiyu runtime auth migrates to shared SDK/Kit account gate surfaces', () =
   assert.match(hostAuthSource, /'runtime\.agent\.delegation\.write'/);
   assert.match(hostAuthSource, /'runtime\.agent\.autonomy\.write'/);
   assert.match(liveAcceptanceSource, /admitLocalFirstPartyRuntimeAccountCaller/);
-  assert.match(liveAcceptanceSource, /appInstanceId:\s*`\$\{zhiyuAppId\}\.local-first-party`/);
-  assert.match(liveAcceptanceSource, /deviceId:\s*'nimi-zhiyu-local-first-party-device'/);
+  assert.match(liveAcceptanceSource, /appInstanceId:\s*`\$\{zhiyuAppId\}\.scenario-suite`/);
+  assert.match(liveAcceptanceSource, /deviceId:\s*'nimi-zhiyu-scenario-suite-device'/);
   assert.match(liveAcceptanceSource, /'runtime\.agent\.delegation\.read'/);
   assert.match(liveAcceptanceSource, /'runtime\.agent\.delegation\.write'/);
   assert.match(liveAcceptanceSource, /'runtime\.agent\.autonomy\.write'/);

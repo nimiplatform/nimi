@@ -3,6 +3,9 @@ import type {
 } from '@nimiplatform/kit/features/chat/headless';
 import type {
   AvatarLaunchHandoffResult,
+  AvatarEmotionCue,
+  RuntimeAgentEmotionId,
+  RuntimeAgentEmotionIntensity,
 } from '@nimiplatform/kit/features/avatar/headless';
 import type {
   NimiRuntimeAgentExecutionBinding,
@@ -19,6 +22,13 @@ import {
   createInitialZhiyuDelegationEvidence,
   type ZhiyuDelegationUxStatus,
 } from './delegation-evidence';
+import {
+  createInitialZhiyuVoiceCaptureEvidence,
+  type ZhiyuVoiceCaptureEvidence,
+} from '../agent-chat/voice-capture';
+import type {
+  ZhiyuCompanionEmotionViolation,
+} from '../agent/companion-emotion';
 
 export type {
   ZhiyuDelegationApprovalDecision,
@@ -149,6 +159,8 @@ export type ZhiyuRuntimeAgentChatStatus = {
   readonly localAgentRef: string | null;
   readonly conversationAnchorId: string | null;
   readonly requestId: string | null;
+  readonly runtimeTurnId: string | null;
+  readonly runtimeStreamId: string | null;
   readonly eventTypes: readonly string[];
   readonly messageCount: number;
   readonly messages: RuntimeAgentConversationProjectionState['messages'];
@@ -156,6 +168,19 @@ export type ZhiyuRuntimeAgentChatStatus = {
   readonly reasoningText: string | null;
   readonly outputText: string | null;
   readonly diagnostics: RuntimeAgentConversationProjectionState['diagnostics'];
+};
+
+export type ZhiyuCompanionRuntimeProjectionEventEvidence = {
+  readonly eventName: string;
+  readonly localAgentRef: string | null;
+  readonly conversationAnchorId: string | null;
+  readonly turnId: string | null;
+  readonly streamId: string | null;
+  readonly detail: Readonly<Record<string, unknown>>;
+  readonly projectedExecutionState: string | null;
+  readonly projectedStatusText: string | null;
+  readonly projectedFields: readonly string[];
+  readonly projectionReasonCode: string | null;
 };
 
 export type ZhiyuEvidence = {
@@ -319,13 +344,21 @@ export type ZhiyuEvidence = {
     readonly voiceStreamId: string | null;
     readonly activeWorldId: string | null;
     readonly activeUserId: string | null;
-    readonly currentEmotion: string | null;
+    readonly currentEmotion: RuntimeAgentEmotionId | null;
+    readonly currentEmotionId: RuntimeAgentEmotionId | null;
+    readonly currentEmotionCue: AvatarEmotionCue | null;
+    readonly currentEmotionIntensity: RuntimeAgentEmotionIntensity | null;
+    readonly emotionViolation: ZhiyuCompanionEmotionViolation | null;
     readonly participationMode: 'world' | 'dyadic' | 'idle' | 'not_projected';
     readonly participationSource: string | null;
     readonly projectedFields: readonly string[];
     readonly unsupportedExplainabilityFields: readonly string[];
+    readonly diagnostics: {
+      readonly runtimeProjectionEvents: readonly ZhiyuCompanionRuntimeProjectionEventEvidence[];
+    };
     readonly proactiveInterruptibility: ZhiyuProactiveInterruptibilityStatus;
   };
+  readonly voiceCapture: ZhiyuVoiceCaptureEvidence;
   readonly diaryReflection: ZhiyuDiaryReflectionStatus;
   readonly delegation: ZhiyuDelegationUxStatus;
   readonly proposal: {
@@ -401,6 +434,8 @@ export type ZhiyuEvidence = {
     readonly localAgentRef: string | null;
     readonly conversationAnchorId: string | null;
     readonly requestId: string | null;
+    readonly runtimeTurnId: string | null;
+    readonly runtimeStreamId: string | null;
     readonly messageId: string | null;
   };
   readonly composer: {
@@ -528,6 +563,10 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       activeWorldId: null,
       activeUserId: null,
       currentEmotion: null,
+      currentEmotionId: null,
+      currentEmotionCue: null,
+      currentEmotionIntensity: null,
+      emotionViolation: null,
       participationMode: 'not_projected',
       participationSource: null,
       projectedFields: [],
@@ -540,6 +579,9 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
         'diaryReflection',
         'stateChangeHistory',
       ],
+      diagnostics: {
+        runtimeProjectionEvents: [],
+      },
       proactiveInterruptibility: {
         transport: 'electron-ipc',
         ready: false,
@@ -570,6 +612,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
         unsupportedFields: ['proactive_interruptibility'],
       },
     },
+    voiceCapture: createInitialZhiyuVoiceCaptureEvidence(),
     diaryReflection: {
       transport: 'electron-ipc',
       ready: false,
@@ -669,6 +712,8 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       localAgentRef: null,
       conversationAnchorId: null,
       requestId: null,
+      runtimeTurnId: null,
+      runtimeStreamId: null,
       eventTypes: [],
       messageCount: 0,
       messages: [],
@@ -704,6 +749,8 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       localAgentRef: null,
       conversationAnchorId: null,
       requestId: null,
+      runtimeTurnId: null,
+      runtimeStreamId: null,
       messageId: null,
     },
     composer: {
