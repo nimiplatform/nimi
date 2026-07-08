@@ -20,7 +20,7 @@ import {
 } from '../src/shell/renderer/infra/sdk/desktop-nimi-client-session';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { Runtime } from '@nimiplatform/sdk/runtime';
-import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/generated';
+import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   CreateConnectorResponse,
   ListConnectorModelsResponse,

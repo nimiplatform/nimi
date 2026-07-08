@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { normalizeNimiRuntimeAgentPresentationBackendKind, normalizeNimiRuntimeAgentPresentationDefaultVoiceReference } from '@nimiplatform/sdk/runtime';
-import { AgentPresentationBackendKind } from '@nimiplatform/sdk/runtime/generated';
+import { AgentPresentationBackendKind } from '@nimiplatform/sdk/runtime/wire-types';
 
 const runtimeAgentPresentationProfileSource = () => readFileSync(
   resolve(process.cwd(), 'src/shell/renderer/infra/runtime-agent-presentation-profile.ts'),

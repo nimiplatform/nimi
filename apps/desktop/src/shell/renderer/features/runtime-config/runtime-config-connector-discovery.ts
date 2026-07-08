@@ -2,10 +2,10 @@ import type {
   RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { ProviderStatusV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { NimiRuntimeLocalRunnableAssetKindId } from '@nimiplatform/sdk/runtime';
-import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/generated';
+import type { GetRuntimeHealthResponse } from '@nimiplatform/sdk/runtime/wire-types';
 import type { JsonObject } from '@nimiplatform/sdk/types';
 import { normalizeNimiRuntimeLocalProviderAdapterId, type NimiRuntimeLocalProviderAdapterId, normalizeNimiRuntimeLocalRunnableAssetKindId, parseNimiRuntimeLocalAssetStatusId, parseNimiRuntimeLocalRunnableAssetKindId, projectNimiRuntimeHealthSummary } from '@nimiplatform/sdk/runtime';
-import { LocalAssetKind, LocalAssetStatus } from '@nimiplatform/sdk/runtime/generated';
+import { LocalAssetKind, LocalAssetStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { asNimiError } from '@nimiplatform/sdk/types';
 import { NIMI_RUNTIME_REASON_CODES } from '@nimiplatform/sdk/runtime';
 import {

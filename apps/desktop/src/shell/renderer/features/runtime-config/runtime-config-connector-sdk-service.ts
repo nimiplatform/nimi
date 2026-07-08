@@ -1,5 +1,6 @@
 import { createNimiRuntimeConnectorInventoryClient, defaultNimiRuntimeConnectorAuthOptionForProvider, listNimiRuntimeConnectorAuthOptionsForProvider, providerToNimiRuntimeConnectorVendor, resolveNimiRuntimeConnectorProviderEndpoint, nimiRuntimeConnectorAuthProfileForId, nimiRuntimeConnectorToProjection, runtimeConnectorProjectionToNimiRuntimeConfigConnector, nimiRuntimeConnectorVendorToProvider, type NimiRuntimeConnectorAuthProfileSpec, type NimiRuntimeConnectorAuthOption, type NimiRuntimeConnectorClient, type NimiRuntimeConnectorModelInfo, type NimiRuntimeConnectorProjection, type NimiRuntimeConnectorProjectionInput } from '@nimiplatform/sdk/runtime';
-import { type ProviderCatalogEntry, type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
+import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
+import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import type {
   ApiConnector,
   ApiConnectorAuthModeV11,

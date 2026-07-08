@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { UsageWindow } from '@nimiplatform/sdk/runtime/generated';
-import type { UsageStatRecord } from '@nimiplatform/sdk/runtime/generated';
+import { UsageWindow } from '@nimiplatform/sdk/runtime/wire-types';
+import type { UsageStatRecord } from '@nimiplatform/sdk/runtime/wire-types';
 import { fetchUsageStats } from './runtime-config-audit-sdk-service.js';
 import { usePricingIndex, type PricingEntry } from './runtime-config-pricing-index.js';
 import type { NimiRuntimeCatalogPricing } from './runtime-config-catalog-sdk-service.js';

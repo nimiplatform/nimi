@@ -6,7 +6,7 @@ import {
 import authLogoImage from '../../assets/logo.png';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { WebAuthMenuMode } from '@nimiplatform/kit/auth';
+import type { WebAuthMenuMode } from '@nimiplatform/kit/auth/shell';
 import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
 import '@nimiplatform/kit/auth/styles.css';
 import { toNimiRealmAuthUserRecord } from '@nimiplatform/sdk/realm';

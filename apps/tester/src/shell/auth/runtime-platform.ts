@@ -10,13 +10,15 @@ import {
   type RuntimeOptions,
 } from '@nimiplatform/sdk/runtime';
 import {
+  type RuntimeTypedCallOptions,
+} from '@nimiplatform/sdk/runtime/generated';
+import {
   AccountSessionState,
   AuthorizationPreset,
   ExternalPrincipalType,
   PolicyMode,
   type AuthorizeExternalPrincipalResponse,
-  type RuntimeTypedCallOptions,
-} from '@nimiplatform/sdk/runtime/generated';
+} from '@nimiplatform/sdk/runtime/wire-types';
 import type { CoreMetadata } from '@nimiplatform/sdk/types';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';

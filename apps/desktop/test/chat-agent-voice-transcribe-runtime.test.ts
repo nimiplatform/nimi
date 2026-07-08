@@ -6,7 +6,14 @@ import {
   type ConversationCapabilityProjection,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
 import { createNimiBuiltInChatAIScopeRef, createEmptyNimiAIConfig } from '@nimiplatform/sdk/ai';
-import { ExecutionMode, RoutePolicy, ScenarioJobEventType, ScenarioJobStatus, ScenarioType, type SubmitScenarioJobRequest } from '@nimiplatform/sdk/runtime/generated';
+import {
+  ExecutionMode,
+  RoutePolicy,
+  ScenarioJobEventType,
+  ScenarioJobStatus,
+  ScenarioType,
+  type SubmitScenarioJobRequest,
+} from '@nimiplatform/sdk/runtime/wire-types';
 import { transcribeChatAgentVoiceRuntime } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 
 const testScopeRef = createNimiBuiltInChatAIScopeRef('agent');

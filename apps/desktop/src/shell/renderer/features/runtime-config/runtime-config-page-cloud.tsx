@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatNimiRuntimeErrorBanner as formatRuntimeConfigErrorBanner } from '@nimiplatform/sdk/runtime';
-import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/generated';
+import { type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { getVendorLabelV11, randomIdV11, type ApiVendor } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';

@@ -1,6 +1,6 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import { Runtime } from '@nimiplatform/sdk/runtime';
-import { RuntimeHealthStatus } from '@nimiplatform/sdk/runtime/generated';
+import { RuntimeHealthStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import type { ZhiyuEvidence } from '../app/evidence';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from './electron-runtime-unavailable';
 

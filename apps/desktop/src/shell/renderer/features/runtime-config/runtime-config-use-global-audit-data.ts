@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AIProviderHealthSnapshot, AuditEventRecord, GetRuntimeHealthResponse, UsageStatRecord } from '@nimiplatform/sdk/runtime/generated';
-import { UsageWindow } from '@nimiplatform/sdk/runtime/generated';
+import type {
+  AIProviderHealthSnapshot,
+  AuditEventRecord,
+  GetRuntimeHealthResponse,
+  UsageStatRecord,
+} from '@nimiplatform/sdk/runtime/wire-types';
+import { UsageWindow } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   fetchGlobalAuditEvents,
   fetchUsageStats,

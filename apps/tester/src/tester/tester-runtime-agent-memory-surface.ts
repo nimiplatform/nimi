@@ -3,7 +3,7 @@ import {
   type NimiHostRuntimeAgentMemoryClient,
   type NimiRuntimeAgentScopeRunner,
 } from '@nimiplatform/sdk/runtime';
-import { AgentCanonicalMemoryBankMode, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { AgentCanonicalMemoryBankMode, ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 
 const TESTER_RUNTIME_IDENTITY = {
   ownerUserId: 'tester-user',

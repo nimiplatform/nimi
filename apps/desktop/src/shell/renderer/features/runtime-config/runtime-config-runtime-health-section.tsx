@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { GetRuntimeHealthResponse, AIProviderHealthSnapshot } from '@nimiplatform/sdk/runtime/generated';
+import type { GetRuntimeHealthResponse, AIProviderHealthSnapshot } from '@nimiplatform/sdk/runtime/wire-types';
 import { Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import {
   runtimeHealthStatusLabel,

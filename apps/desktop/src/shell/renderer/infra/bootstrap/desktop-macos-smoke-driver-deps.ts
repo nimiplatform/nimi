@@ -18,7 +18,7 @@ import {
   getDesktopRuntime,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAgentSmokeVerificationSurface, isRuntimeLocalAgentRef, type NimiRuntimeAgentSmokeVerificationRuntime } from '@nimiplatform/sdk/runtime';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   type DesktopMacosSmokeDriverDeps,
   LIVE2D_VIEWPORT_SELECTOR,

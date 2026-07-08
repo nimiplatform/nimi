@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { LocalAuditEvent } from '@nimiplatform/sdk/runtime/generated';
+import type { LocalAuditEvent } from '@nimiplatform/sdk/runtime/wire-types';
 import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import {
   filterAuditEvents,

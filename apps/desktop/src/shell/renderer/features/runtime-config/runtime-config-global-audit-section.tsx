@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AuditEventRecord } from '@nimiplatform/sdk/runtime/generated';
-import { CallerKind } from '@nimiplatform/sdk/runtime/generated';
+import type { AuditEventRecord } from '@nimiplatform/sdk/runtime/wire-types';
+import { CallerKind } from '@nimiplatform/sdk/runtime/wire-types';
 import { Popover, PopoverContent, PopoverTrigger, ScrollArea, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { Button, RuntimeSelect } from './runtime-config-primitives.js';
 import {

@@ -1,5 +1,5 @@
 import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
-import { type AgentConversationSummary } from '@nimiplatform/sdk/runtime/generated';
+import { type AgentConversationSummary } from '@nimiplatform/sdk/runtime/wire-types';
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import { getDesktopAppId, getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 

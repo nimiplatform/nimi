@@ -5,7 +5,8 @@ import {
   ReasonCode,
 } from '@nimiplatform/sdk/types';
 import { createNimiRuntimeRouteOptionsHostDeps, listNimiRuntimeRouteOptionsWithHost, nimiRuntimeRouteLocalKindForCapability, type NimiRuntimeCanonicalCapability, type NimiRuntimeRouteHostLocalMetadata, type NimiRuntimeRouteHostOptionsDeps, type NimiRuntimeRouteLocalAssetProjectionInput, type NimiRuntimeRouteOptionsHostRuntime, type NimiRuntimeRouteOptionsSnapshot, type NimiRuntimeRouteTargetRef } from '@nimiplatform/sdk/runtime';
-import { LocalAssetKind, LocalAssetStatus, type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
+import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
+import { LocalAssetKind, LocalAssetStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;

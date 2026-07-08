@@ -431,7 +431,8 @@ test('tester settings consumes SDK memory embedding route availability projectio
 
   assert.match(settings, /projectNimiMemoryEmbeddingRouteAvailability/);
   assert.match(settings, /projectNimiRuntimeAgentCanonicalMemoryBankStatus/);
-  assert.match(settings, /createEmptyNimiMemoryEmbeddingConfig/);
+  assert.match(settings, /revisionToken: 'tester-memory-embedding-config'/);
+  assert.doesNotMatch(settings, /createEmptyNimiMemoryEmbeddingConfig/);
   assert.match(settings, /createTesterMemoryEmbeddingRuntimeProjection/);
   assert.match(runtimeProjection, /createNimiProtectedHostMemoryEmbeddingRuntimeSurface/);
   assert.doesNotMatch(runtimeProjection, /AuthorizeExternalPrincipalResponse/);

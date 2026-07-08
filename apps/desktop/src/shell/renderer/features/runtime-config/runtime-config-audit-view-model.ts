@@ -1,5 +1,5 @@
 import { i18n } from '@renderer/i18n';
-import type { LocalAuditEvent } from '@nimiplatform/sdk/runtime/generated';
+import type { LocalAuditEvent } from '@nimiplatform/sdk/runtime/wire-types';
 import { nimiRuntimeProtoStructToJson } from '@nimiplatform/sdk/runtime';
 
 export type RuntimeConfigAuditEvent = Omit<Partial<LocalAuditEvent>, 'payload'> & {

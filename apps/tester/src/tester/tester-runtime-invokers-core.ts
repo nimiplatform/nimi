@@ -28,7 +28,7 @@ import {
   type NimiRuntimeEmbeddingScenarioClient,
 } from '@nimiplatform/sdk/ai';
 import type { NimiRuntimeLocalModelCenterRpc, NimiRuntimeScenarioJobClient } from '@nimiplatform/sdk/runtime';
-import type { ListVoiceAssetsRequest, ListVoiceAssetsResponse } from '@nimiplatform/sdk/runtime/generated';
+import type { ListVoiceAssetsRequest, ListVoiceAssetsResponse } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   textPart,
   type NimiMessage,

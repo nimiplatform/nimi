@@ -1,5 +1,5 @@
 import { createNimiProtectedHostMemoryEmbeddingRuntimeSurface } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 
 export type TesterMemoryEmbeddingRuntimeProjection = {
   agentId: string;
@@ -52,7 +52,7 @@ export function createTesterMemoryEmbeddingRuntimeSurface() {
         return {
           textEmbedIntentPresent: true,
           textEmbedSourceKind: 'cloud',
-          configRevision: 1,
+          configRevision: '1',
           resolutionState: 'resolved',
           canonicalBankStatus: 'bound_equivalent',
           blockedReasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,

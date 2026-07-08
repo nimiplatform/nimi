@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/generated';
+import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { DEFAULT_CONNECTOR_ENDPOINT_V11 } from '@renderer/features/runtime-config/runtime-config-state-types';

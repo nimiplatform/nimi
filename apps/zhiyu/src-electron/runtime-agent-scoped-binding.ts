@@ -7,7 +7,7 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import {
   AccountSessionState,
-} from '@nimiplatform/sdk/runtime/generated';
+} from '@nimiplatform/sdk/runtime/wire-types';
 import {
   NimiElectronShellHostError,
   type NimiElectronCommandHandler,

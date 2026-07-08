@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import { MemoryCanonicalClass, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { MemoryCanonicalClass, ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 import { createRuntimeAgentInspectAdapter } from '../src/shell/renderer/infra/runtime-agent-inspect.js';
 
 const LOCAL_AGENT_REF = 'local-agent:desktop-inspect-agent-1';

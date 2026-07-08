@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { UsageStatRecord } from '@nimiplatform/sdk/runtime/generated';
+import type { UsageStatRecord } from '@nimiplatform/sdk/runtime/wire-types';
 import { mapUsageRecordsToEstimate } from '../src/shell/renderer/features/runtime-config/runtime-config-cost-estimator';
 import { parseSystemResourceSnapshot } from '../src/shell/renderer/bridge/runtime-bridge/runtime-parsers';
 

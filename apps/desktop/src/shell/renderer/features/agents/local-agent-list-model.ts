@@ -2,7 +2,7 @@ import {
   fromNimiRuntimeProtoStruct,
   isRuntimeLocalAgentRef,
 } from '@nimiplatform/sdk/runtime';
-import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/generated';
+import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import {
   getDesktopRuntime,

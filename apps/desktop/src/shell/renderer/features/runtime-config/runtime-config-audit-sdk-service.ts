@@ -1,6 +1,17 @@
 import { NIMI_RUNTIME_REASON_CODES } from '@nimiplatform/sdk/runtime';
 import { asNimiError } from '@nimiplatform/sdk/types';
-import type { ListAuditEventsRequest, ListAuditEventsResponse, ExportAuditEventsRequest, AuditExportChunk, ListUsageStatsRequest, ListUsageStatsResponse, GetRuntimeHealthResponse, ListAIProviderHealthResponse, RuntimeHealthEvent, AIProviderHealthEvent } from '@nimiplatform/sdk/runtime/generated';
+import type {
+  ListAuditEventsRequest,
+  ListAuditEventsResponse,
+  ExportAuditEventsRequest,
+  AuditExportChunk,
+  ListUsageStatsRequest,
+  ListUsageStatsResponse,
+  GetRuntimeHealthResponse,
+  ListAIProviderHealthResponse,
+  RuntimeHealthEvent,
+  AIProviderHealthEvent,
+} from '@nimiplatform/sdk/runtime/wire-types';
 import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 function withAuditError<T>(value: T | Promise<T>): Promise<T> {

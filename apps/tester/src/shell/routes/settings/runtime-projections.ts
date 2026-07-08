@@ -4,8 +4,14 @@ import {
   parseNimiAppBridgeProjection,
   selectNimiAppFactoryAIProfileForFirstRun,
 } from '@nimiplatform/sdk/app';
-import { aggregateNimiFirstRunMaterializationDownloadProgress, buildNimiRuntimeLocalImageNativeEnvironmentPlanInput, buildNimiRuntimeRouteRequestMetadata, buildNimiRuntimeRouteTargetCallOptions, bridgeNimiRuntimeLocalProfile, createEmptyNimiMemoryEmbeddingConfig, extractNimiRuntimeReasonCodeFromError, findNimiRuntimeRouteModelProfile, fromNimiRuntimeProtoStruct, getNimiRuntimeReasonCodeDefaultMessage, isNimiRuntimeLocalEnvironmentDependencyJobActiveState, isNimiRuntimeLocalEnvironmentDependencyJobRetryableState, isNimiRuntimeLocalEnvironmentDependencyJobTransferringState, isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState, isNimiRuntimeLocalEnvironmentDependencyStartableState, isNimiRuntimeTargetInventoryItemSelectable, nimiRuntimeLocalRecommendationTierToRunGrade, parseNimiRuntimeLocalRecommendationFeedCacheStateId, normalizeNimiRuntimeLocalProfilesDeclaration, normalizeNimiRuntimeReasonCode, parseNimiRuntimeLocalRecommendationFeedSourceId, projectNimiRuntimeLocalEnvironmentDependencyJob, projectNimiRuntimeLocalEnvironmentPlan, projectNimiRuntimeLocalRecommendationFeed, productStateForNimiFirstRunMaterializationStatus, projectNimiMemoryEmbeddingRouteAvailability, projectNimiRuntimeAgentCanonicalMemoryBankStatus, projectNimiRuntimeAuditCallerKindName, projectNimiRuntimeHealthStatusName, projectNimiRuntimeHealthSummary, projectNimiRuntimeRouteCapabilityCoverage, projectNimiRuntimeUsageWindowName, repairableNimiFirstRunMaterializationDependencies, retryableInterruptedNimiFirstRunMaterializationJobs, nimiRuntimeRouteTargetRefsMatch, summarizeNimiRuntimeLocalRecommendationFeedCacheState, toCanonicalNimiRuntimeLocalAssetId, toCanonicalNimiRuntimeLocalAssetLookupKey, toNimiRuntimeIsoFromTimestamp, toNimiRuntimeProtoStruct, toNimiRuntimeUserFacingError, type NimiRuntimeLocalExecutionPlan, type NimiRuntimeResolvedBinding, type NimiRuntimeRouteDescribeResult } from '@nimiplatform/sdk/runtime';
-import { AgentCanonicalMemoryBankMode, CallerKind, RuntimeHealthStatus, ReasonCode as RuntimeReasonCode, UsageWindow } from '@nimiplatform/sdk/runtime/generated';
+import { aggregateNimiFirstRunMaterializationDownloadProgress, buildNimiRuntimeLocalImageNativeEnvironmentPlanInput, buildNimiRuntimeRouteRequestMetadata, buildNimiRuntimeRouteTargetCallOptions, bridgeNimiRuntimeLocalProfile, extractNimiRuntimeReasonCodeFromError, findNimiRuntimeRouteModelProfile, fromNimiRuntimeProtoStruct, getNimiRuntimeReasonCodeDefaultMessage, isNimiRuntimeLocalEnvironmentDependencyJobActiveState, isNimiRuntimeLocalEnvironmentDependencyJobRetryableState, isNimiRuntimeLocalEnvironmentDependencyJobTransferringState, isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState, isNimiRuntimeLocalEnvironmentDependencyStartableState, isNimiRuntimeTargetInventoryItemSelectable, nimiRuntimeLocalRecommendationTierToRunGrade, parseNimiRuntimeLocalRecommendationFeedCacheStateId, normalizeNimiRuntimeLocalProfilesDeclaration, normalizeNimiRuntimeReasonCode, parseNimiRuntimeLocalRecommendationFeedSourceId, projectNimiRuntimeLocalEnvironmentDependencyJob, projectNimiRuntimeLocalEnvironmentPlan, projectNimiRuntimeLocalRecommendationFeed, productStateForNimiFirstRunMaterializationStatus, projectNimiMemoryEmbeddingRouteAvailability, projectNimiRuntimeAgentCanonicalMemoryBankStatus, projectNimiRuntimeAuditCallerKindName, projectNimiRuntimeHealthStatusName, projectNimiRuntimeHealthSummary, projectNimiRuntimeRouteCapabilityCoverage, projectNimiRuntimeUsageWindowName, repairableNimiFirstRunMaterializationDependencies, retryableInterruptedNimiFirstRunMaterializationJobs, nimiRuntimeRouteTargetRefsMatch, summarizeNimiRuntimeLocalRecommendationFeedCacheState, toCanonicalNimiRuntimeLocalAssetId, toCanonicalNimiRuntimeLocalAssetLookupKey, toNimiRuntimeIsoFromTimestamp, toNimiRuntimeProtoStruct, toNimiRuntimeUserFacingError, type NimiRuntimeLocalExecutionPlan, type NimiRuntimeResolvedBinding, type NimiRuntimeRouteDescribeResult } from '@nimiplatform/sdk/runtime';
+import {
+  AgentCanonicalMemoryBankMode,
+  CallerKind,
+  RuntimeHealthStatus,
+  ReasonCode as RuntimeReasonCode,
+  UsageWindow,
+} from '@nimiplatform/sdk/runtime/wire-types';
 import { classifyOfflineError, classifyOfflineReasonCode, createOfflineNimiError, extractNimiErrorFields, ReasonCode } from '@nimiplatform/sdk/types';
 import { summarizeTargetRef } from '@nimiplatform/kit/features/model-config/headless';
 import { createTesterExternalAgentProjection } from '../../../tester/tester-external-agent-projection';
@@ -207,12 +213,14 @@ export function createTesterSettingsRuntimeProjections() {
     provider: 'tester',
   };
   const memoryEmbeddingConfig = {
-    ...createEmptyNimiMemoryEmbeddingConfig({
+    scopeRef: {
       kind: 'feature',
       ownerId: 'tester',
       surfaceId: 'settings-memory-embedding',
-    }),
+    },
     sourceKind: 'cloud' as const,
+    revisionToken: 'tester-memory-embedding-config',
+    updatedAt: '2026-01-01T00:00:00.000Z',
     bindingRef: {
       kind: 'cloud' as const,
       connectorId: 'tester-cloud',

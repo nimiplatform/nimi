@@ -1,7 +1,14 @@
 import { NimiClient, createNimiClient } from '@nimiplatform/sdk';
 import { createRealmWithRuntimeAccountToken } from '@nimiplatform/sdk/app';
 import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAppSessionMetadataProvider, createNimiRuntimeFullAppRegistration, createNimiRuntimePlatformClient, toNimiRuntimeTimestamp, withNimiRuntimeIdempotencyMetadata, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentScopeRunner, type NimiRuntimeAgentTurnsRuntime, type Runtime } from '@nimiplatform/sdk/runtime';
-import { AccountSessionState, AuthorizationPreset, ExternalPrincipalType, PolicyMode, type AuthorizeExternalPrincipalResponse, type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
+import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
+import {
+  AccountSessionState,
+  AuthorizationPreset,
+  ExternalPrincipalType,
+  PolicyMode,
+  type AuthorizeExternalPrincipalResponse,
+} from '@nimiplatform/sdk/runtime/wire-types';
 import { Realm, createRealmFetchTransport, loginNimiRealmAuthPassword, type NimiRealmOAuthLoginResult } from '@nimiplatform/sdk/realm';
 import { createNimiClientId, createNimiError, ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
 import {

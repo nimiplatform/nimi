@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ConversationAnchorStatus } from '@nimiplatform/sdk/runtime/generated';
+import { ConversationAnchorStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
 import { toAgentRuntimeConversationSummary } from '../src/shell/renderer/features/chat/chat-agent-runtime-conversation-summaries.js';
 

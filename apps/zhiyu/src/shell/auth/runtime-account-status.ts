@@ -1,6 +1,6 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import { Runtime } from '@nimiplatform/sdk/runtime';
-import { AccountReasonCode, AccountSessionState, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { AccountReasonCode, AccountSessionState, ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 import type { ZhiyuEvidence } from '../app/evidence';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electron-runtime-unavailable';
 import { appId, getRuntimeAccountCaller } from './runtime-platform';

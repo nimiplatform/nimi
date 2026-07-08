@@ -1,5 +1,12 @@
 import { runNimiRuntimeScenarioJob, type NimiRuntimeScenarioJob, type NimiRuntimeScenarioJobClient, type NimiRuntimeScenarioArtifact } from '@nimiplatform/sdk/runtime';
-import { ExecutionMode, ReasonCode, ScenarioJobEventType, ScenarioJobStatus, ScenarioType, type ScenarioJobEvent } from '@nimiplatform/sdk/runtime/generated';
+import {
+  ExecutionMode,
+  ReasonCode,
+  ScenarioJobEventType,
+  ScenarioJobStatus,
+  ScenarioType,
+  type ScenarioJobEvent,
+} from '@nimiplatform/sdk/runtime/wire-types';
 
 export type TesterRuntimeMediaGenerationRunnerProjection = {
   finalStatus: string;

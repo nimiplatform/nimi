@@ -13,7 +13,7 @@ import {
   requireNimiRuntimeVoiceReferenceForLocalTts,
   toNimiRuntimeVoiceReferenceFromInput,
 } from '@nimiplatform/sdk/features/generation';
-import { VoiceAssetStatus, VoiceWorkflowType, type ListVoiceAssetsResponse } from '@nimiplatform/sdk/runtime/generated';
+import { VoiceAssetStatus, VoiceWorkflowType, type ListVoiceAssetsResponse } from '@nimiplatform/sdk/runtime/wire-types';
 import type { JsonObject } from '@nimiplatform/sdk/types';
 import {
   TESTER_APP_ID,

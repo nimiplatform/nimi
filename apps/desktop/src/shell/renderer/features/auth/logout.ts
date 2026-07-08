@@ -1,4 +1,5 @@
 import { queryClient } from '@renderer/infra/query-client/query-client';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
 import { clearPersistedAccessToken } from '@nimiplatform/kit/auth';
 import { i18n } from '@renderer/i18n';
@@ -76,7 +77,6 @@ async function emitLogoutFeedback(
     input.setStatusBanner(banner);
     return;
   }
-  const { useAppStore } = await import('@renderer/app-shell/providers/app-store');
   useAppStore.getState().setStatusBanner(banner);
 }
 

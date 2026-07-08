@@ -28,7 +28,6 @@ async function preflightRendererAppDependencies(): Promise<void> {
       loadEntryModule('entry:app-providers', () => import('@renderer/app-shell/providers/app-providers')),
       loadEntryModule('entry:app-routes', () => import('@renderer/app-shell/routes/app-routes')),
       loadEntryModule('entry:app-error-boundary', () => import('@renderer/infra/error-boundary/app-error-boundary')),
-      loadEntryModule('entry:app-store', () => import('@renderer/app-shell/providers/app-store')),
       loadEntryModule('entry:sdk-ai', () => import('@nimiplatform/sdk/ai')),
       loadEntryModule('entry:renderer-log', () => import('@nimiplatform/kit/telemetry')),
       loadEntryModule('entry:menu-bar-navigation-listener', () => import('@renderer/infra/menu-bar/menu-bar-navigation-listener')),

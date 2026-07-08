@@ -7,6 +7,7 @@ import {
   buildRuntimeBridgeConfigFromLocalEndpoint,
 } from './runtime-bridge-config';
 import { replaceConnectorsInState } from './runtime-config-connector-actions';
+import { sdkListConnectors } from './runtime-config-connector-sdk-service';
 import { asRecord, type SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 
 const RUNTIME_BRIDGE_CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
@@ -50,7 +51,6 @@ export function useRuntimeConfigBridgeSync(input: UseRuntimeConfigBridgeSyncInpu
     let cancelled = false;
     const loadBridgeConfig = async () => {
       try {
-        const { sdkListConnectors } = await import('./runtime-config-connector-sdk-service');
         const [bridgeResult, connectorResult] = await Promise.allSettled([
           desktopBridge.getRuntimeBridgeConfig(),
           sdkListConnectors(),

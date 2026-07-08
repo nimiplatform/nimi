@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { AgentCanonicalMemoryBankMode, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { AgentCanonicalMemoryBankMode, ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   createRuntimeAgentMemoryAdapter,
 } from '../src/shell/renderer/infra/runtime-agent-memory';

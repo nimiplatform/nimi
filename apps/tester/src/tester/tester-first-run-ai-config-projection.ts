@@ -1,5 +1,5 @@
 import { projectNimiFirstRunExecutionEvidenceToAIConfigTargets, type NimiFirstRunExecutionEvidenceForAIConfig } from '@nimiplatform/sdk/runtime';
-import { RoutePolicy, ScenarioType } from '@nimiplatform/sdk/runtime/generated';
+import { RoutePolicy, ScenarioType } from '@nimiplatform/sdk/runtime/wire-types';
 
 function testerExecutionEvidence(): NimiFirstRunExecutionEvidenceForAIConfig {
   return {

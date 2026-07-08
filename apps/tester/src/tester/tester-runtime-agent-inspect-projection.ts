@@ -1,5 +1,11 @@
 import { buildNimiRuntimeAgentStateMutations, createNimiHostRuntimeAgentInspectSurface, projectNimiRuntimeAgentInspectSnapshot, projectNimiRuntimeAgentPendingHookInspect, readNimiRuntimeAgentPresentationProfile, toNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
-import { AgentAutonomyMode, AgentExecutionState, AgentLifecycleStatus, HookAdmissionState, HookTriggerFamily } from '@nimiplatform/sdk/runtime/generated';
+import {
+  AgentAutonomyMode,
+  AgentExecutionState,
+  AgentLifecycleStatus,
+  HookAdmissionState,
+  HookTriggerFamily,
+} from '@nimiplatform/sdk/runtime/wire-types';
 
 export type TesterRuntimeAgentInspectProjection = {
   lifecycleStatus: string | null;

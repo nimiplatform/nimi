@@ -19,7 +19,7 @@ import {
   AccountSessionState,
   LocalAssetKind,
   LocalAssetStatus,
-} from '@nimiplatform/sdk/runtime/generated';
+} from '@nimiplatform/sdk/runtime/wire-types';
 import {
   APP_ID,
   OWNER_USER_ID,

@@ -17,7 +17,7 @@ import {
   withBootstrapStepTimeout,
 } from '@nimiplatform/kit/shell/renderer/bootstrap';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import { reconcileLocalRuntimeBootstrapState } from './runtime-bootstrap-local-ai';
 import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
 import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watcher';

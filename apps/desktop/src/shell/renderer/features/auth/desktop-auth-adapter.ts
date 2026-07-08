@@ -4,8 +4,10 @@ import {
   createRuntimeAccountBrowserBroker,
   persistAuthSessionMetadata,
   resolveSessionExpiry,
-  type AuthPlatformAdapter,
 } from '@nimiplatform/kit/auth';
+import type {
+  AuthPlatformAdapter,
+} from '@nimiplatform/kit/auth/shell';
 import type { ShellOAuthBridge } from '@nimiplatform/kit/core/oauth';
 import { isWebShellMode } from '@nimiplatform/kit/core/shell-mode';
 import {
@@ -26,7 +28,7 @@ import {
   type NimiRealmOAuthProvider,
 } from '@nimiplatform/sdk/realm';
 import { createNimiDesktopShellRuntimeAccountCaller } from '@nimiplatform/sdk/runtime';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { desktopBridge } from '@renderer/bridge';

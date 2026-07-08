@@ -1,4 +1,4 @@
-import { RoutePolicy } from '@nimiplatform/sdk/runtime/generated';
+import { RoutePolicy } from '@nimiplatform/sdk/runtime/wire-types';
 import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import type { NimiAISnapshot } from './conversation-capability';
 

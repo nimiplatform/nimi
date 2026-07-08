@@ -11,7 +11,7 @@ import {
 import {
   AppMode,
   WorldRelation,
-} from '@nimiplatform/sdk/runtime/generated';
+} from '@nimiplatform/sdk/runtime/wire-types';
 import {
   Realm,
   createNimiRealmSourceMaterializationPacket,

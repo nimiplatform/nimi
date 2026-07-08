@@ -20,7 +20,7 @@ import {
   createNimiHostRuntimeRealmGroupMessageCandidateSurface,
   isRuntimeLocalAgentRef,
 } from '@nimiplatform/sdk/runtime';
-import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/generated';
+import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { createNimiClientId, type JsonObject } from '@nimiplatform/sdk/types';
 import {
   getDesktopAccountRuntime,

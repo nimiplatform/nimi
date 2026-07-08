@@ -8,7 +8,18 @@ import {
   type CoreUnaryRequest,
 } from '@nimiplatform/sdk';
 import { createNimiRuntimeConnectorInventoryClient, createNimiRuntimeModelCatalogClient, listNimiRuntimeLocalAssetEntries, NimiRuntimeHealthCoordinator, normalizeNimiRuntimeRouteCapabilityToken, type NimiRuntimeConnectorClient, type NimiRuntimeModelCatalogConnectorClient, type NimiRuntimeRouteCapabilityRuntime } from '@nimiplatform/sdk/runtime';
-import { CatalogModelSource, ConnectorAuthKind, ConnectorKind, ConnectorOwnerType, ConnectorStatus, LocalAssetKind, LocalAssetStatus, ModelCatalogProviderSource, type LocalAssetRecord, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/generated';
+import {
+  CatalogModelSource,
+  ConnectorAuthKind,
+  ConnectorKind,
+  ConnectorOwnerType,
+  ConnectorStatus,
+  LocalAssetKind,
+  LocalAssetStatus,
+  ModelCatalogProviderSource,
+  type LocalAssetRecord,
+  type ProviderCatalogEntry,
+} from '@nimiplatform/sdk/runtime/wire-types';
 import {
   loadNimiRealmSocialSnapshot,
   type Realm,

@@ -1,11 +1,13 @@
 import type { NimiClient } from '@nimiplatform/sdk';
-import { AccountSessionState } from '@nimiplatform/sdk/runtime/generated';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   createRuntimeAccountDesktopBrowserAuth,
-  type AuthPlatformAdapter,
   type RuntimeAccountDesktopBrowserAuthClient,
-  type ShellAuthDesktopBrowserAuth,
 } from '@nimiplatform/kit/auth';
+import type {
+  AuthPlatformAdapter,
+  ShellAuthDesktopBrowserAuth,
+} from '@nimiplatform/kit/auth/shell';
 import { createStandardShellOAuthBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   getRuntimeAccountCaller,
