@@ -48,6 +48,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(listedEvidence.inventory.count, listedEvidence.inventory.localAgents.length);
       assert.ok(listedEvidence.inventory.count > 0, 'Runtime listAgents returned no active LocalAgents');
       await assertRelationshipRail(page, listedEvidence.inventory.count);
+      await assertUnselectedLocalPartnerEmptyState(page);
 
       const targetAgent = chooseTargetAgent(listedEvidence.inventory.localAgents);
       const targetIndex = listedEvidence.inventory.localAgents.findIndex((agent) => agent.localAgentRef === targetAgent.localAgentRef);
@@ -97,7 +98,14 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(selectedEvidence.localAgent.reasonCode, 'runtime-local-agent-selected');
       assert.equal(selectedEvidence.localAgent.runtimeSourceRef, targetAgent.runtimeSourceRef);
       assert.equal(selectedEvidence.conversation.localAgentRef, targetAgent.localAgentRef);
-      assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'route-required');
+      assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
+      assert.equal(selectedEvidence.route.reasonCode, 'runtime-agent-ai-config-ready');
+      assert.ok(
+        new Set(['runtime', 'nimi.desktop', zhiyuAppId]).has(selectedEvidence.route.updatedByAppId),
+        `real Runtime AI Config must be written by Runtime or an admitted first-party config writer, got ${selectedEvidence.route.updatedByAppId}`,
+      );
+      assert.equal(selectedEvidence.route.executionBinding?.route, 'local');
+      assert.ok(selectedEvidence.route.executionBinding?.modelId, 'real Runtime route must expose the selected local model id');
       assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
       await assertConversationTopStripRemoved(page);
       await assertProductDesignLayout(page, 'selected local agent');
@@ -145,7 +153,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
 
       const modelSelection = await selectTextGenerateModel(page, modelConfig);
       await waitForEvidence(page, () =>
-        globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-route-ready'
+        globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-agent-ai-config-ready'
         && Boolean(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding),
         'real Runtime model route ready',
       );
@@ -153,7 +161,8 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       const modelReadyEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
       assert.equal(modelReadyEvidence.route.executionBinding.route === 'local' || modelReadyEvidence.route.executionBinding.route === 'cloud', true);
       assert.ok(modelReadyEvidence.route.executionBinding.modelId, 'Runtime route must expose a model id after model config');
-      assert.equal(modelReadyEvidence.route.targetRefKinds['text.generate'] === 'local-runtime' || modelReadyEvidence.route.targetRefKinds['text.generate'] === 'cloud-connector', true);
+      assert.equal(modelReadyEvidence.route.capabilities['text.generate'].state, 'ready');
+      assert.equal(modelReadyEvidence.route.capabilities['text.embed'].state, 'ready');
       await captureRealLocalAgentEvidence(page, 'model-ready', pageProblems, {
         targetAgent,
         modelSelection,
@@ -314,7 +323,7 @@ async function assertAgentCenterDoesNotNestSettings(page) {
     0,
     'Agent Center Behavior tab must not open the generic Settings page',
   );
-  assert.match(await page.locator('[data-zhiyu-agent-center-kit-surface="true"]').innerText(), /Behavior|Autonomy/);
+  assert.match(await page.locator('[data-zhiyu-agent-center-kit-surface="true"]').innerText(), /Behavior|主动陪伴|Autonomy/);
   assert.equal(await page.locator('[data-zhiyu-agent-behavior-panel="true"]').count(), 0);
   await openKitAgentCenterSection(page, 'cognition');
   await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
@@ -343,16 +352,87 @@ async function assertAgentCenterHeaderParity(page, evidence) {
   assert.equal(await header.locator('[data-zhiyu-agent-center-eyebrow]').innerText(), 'AGENT CENTER');
   const localAgentRef = evidence.localAgent.localAgentRef;
   assert.ok(localAgentRef, 'selected real LocalAgent evidence must include a localAgentRef');
-  const refLine = header.locator('[data-zhiyu-agent-center-local-agent-ref]').first();
-  await refLine.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await refLine.getAttribute('title'), localAgentRef);
-  assert.equal(await refLine.innerText(), localAgentRef);
+  assert.equal(await header.locator('[data-zhiyu-agent-center-local-agent-ref]').count(), 0);
+  assert.equal((await header.innerText()).includes(localAgentRef), false, 'opaque Runtime LocalAgent ref must stay out of the user-facing header');
   const currentAgent = evidence.inventory.localAgents.find((agent) => agent.localAgentRef === localAgentRef);
+  assert.equal(await header.locator('[data-zhiyu-agent-center-world-chip]').count(), 0, 'old world-role chip must not render');
   if (currentAgent?.sourceKind === 'worldCharacter') {
-    const chip = header.locator('[data-zhiyu-agent-center-world-chip]').first();
-    await chip.waitFor({ state: 'visible', timeout: 15_000 });
-    assert.match(await chip.innerText(), /世界|World|唐代/);
+    assert.ok(currentAgent.sourceWorldName, 'world-character LocalAgent evidence must include the resolved sourceWorldName');
+    const worldName = header.locator('[data-zhiyu-agent-center-world-name]').first();
+    await worldName.waitFor({ state: 'visible', timeout: 15_000 });
+    assert.equal((await worldName.innerText()).trim(), currentAgent.sourceWorldName);
+    assert.equal(await header.locator('[data-zhiyu-agent-center-world-icon]').count(), 1);
+    assert.equal((await header.innerText()).includes('世界角色'), false, 'world metadata must render the world name instead of the role tag');
+  } else {
+    assert.equal(await header.locator('[data-zhiyu-agent-center-world-name]').count(), 0);
   }
+  const runtimePill = header.locator('[data-zhiyu-agent-center-runtime-pill]').first();
+  await runtimePill.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal((await runtimePill.innerText()).trim().toLowerCase(), 'runtime');
+  assert.equal(await runtimePill.getAttribute('data-zhiyu-agent-center-runtime-pill'), 'ready');
+  const headerLayout = await header.evaluate((root) => {
+    const eyebrow = root.querySelector('[data-zhiyu-agent-center-eyebrow]');
+    const pill = root.querySelector('[data-zhiyu-agent-center-runtime-pill]');
+    const name = root.querySelector('.zhiyu-agent-center__title strong');
+    const eyebrowRow = root.querySelector('.zhiyu-agent-center__eyebrow-row');
+    const box = (element) => {
+      const rect = element?.getBoundingClientRect();
+      return rect
+        ? { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, yCenter: rect.top + rect.height / 2 }
+        : null;
+    };
+    return {
+      eyebrow: box(eyebrow),
+      pill: box(pill),
+      name: box(name),
+      eyebrowRowClass: eyebrowRow?.getAttribute('class') ?? '',
+    };
+  });
+  assert.match(headerLayout.eyebrowRowClass, /\bgap-3\b/, `Runtime pill row must keep the requested small text gap: ${JSON.stringify(headerLayout)}`);
+  assert.ok(headerLayout.eyebrow && headerLayout.pill && headerLayout.name, `header placement evidence missing: ${JSON.stringify(headerLayout)}`);
+  const eyebrowToPillGap = headerLayout.pill.left - headerLayout.eyebrow.right;
+  assert.ok(eyebrowToPillGap >= 8 && eyebrowToPillGap <= 24, `Runtime pill must sit a few letters to the right of AGENT CENTER: ${JSON.stringify({ eyebrowToPillGap, headerLayout })}`);
+  assert.ok(Math.abs(headerLayout.pill.yCenter - headerLayout.eyebrow.yCenter) <= 4, `Runtime pill must share the AGENT CENTER row: ${JSON.stringify(headerLayout)}`);
+  assert.ok(headerLayout.name.top >= headerLayout.pill.bottom - 1, `partner name must stay below the Runtime pill row: ${JSON.stringify(headerLayout)}`);
+
+  const stateChips = header.locator('[data-zhiyu-agent-center-state-chip]');
+  const stateChipTexts = await stateChips.evaluateAll((elements) =>
+    elements.map((element) => element.textContent?.trim() || ''),
+  );
+  assert.deepEqual(
+    stateChipTexts.filter((text) => /not_configured|not_projected|unknown/iu.test(text)),
+    [],
+    `Agent Center header must not render missing state chips: ${JSON.stringify(stateChipTexts)}`,
+  );
+  assert.deepEqual(
+    stateChipTexts.filter((text) => text.toLowerCase() === 'ready'),
+    [],
+    `Agent Center header must not duplicate generic ready state chips: ${JSON.stringify(stateChipTexts)}`,
+  );
+  if (!isMeaningfulHeaderState(evidence.companion.currentEmotion)) {
+    assert.equal(await header.locator('[data-zhiyu-agent-center-state-chip="mood"]').count(), 0);
+  }
+  if (!isMeaningfulHeaderState(evidence.companion.executionState)) {
+    assert.equal(await header.locator('[data-zhiyu-agent-center-state-chip="activity"]').count(), 0);
+  }
+  assert.equal(
+    await header.locator('[data-zhiyu-agent-center-state-chip="appearance"]').count(),
+    0,
+    'not_configured appearance state must be handled by the checklist instead of duplicated in the header',
+  );
+}
+
+function isMeaningfulHeaderState(value) {
+  const normalized = String(value || '').trim().toLowerCase().replaceAll('-', '_');
+  return Boolean(
+    normalized
+    && normalized !== 'not_projected'
+    && !normalized.startsWith('not_projected_')
+    && normalized !== 'not_configured'
+    && normalized !== 'not_selected'
+    && normalized !== 'unknown'
+    && normalized !== 'ready',
+  );
 }
 
 function agentCenterSectionButton(page, section) {
@@ -369,7 +449,10 @@ async function openKitAgentCenterSection(page, section) {
     section,
     `Agent Center placement must project active Kit section ${section}`,
   );
-  await page.locator(`#agent-center-${section}-title`).waitFor({ state: 'visible', timeout: 15_000 });
+  await page.locator(`#agent-center-${section}-title`).waitFor({
+    state: section === 'appearance' ? 'attached' : 'visible',
+    timeout: 15_000,
+  });
   assert.equal(await button.getAttribute('aria-current'), 'page');
   return button;
 }
@@ -382,27 +465,77 @@ async function openAgentCenterOverview(page) {
 }
 
 async function assertAppearanceConfigParity(page, captureAppearanceEvidence) {
-  await openKitAgentCenterSection(page, 'overview');
-  await page.locator('[data-zhiyu-agent-panel-tab="overview"] [data-zhiyu-panel-row="形象"]').click();
-  await page.locator('[data-zhiyu-agent-panel-tab="appearance"]').waitFor({ timeout: 15_000 });
+  await openKitAgentCenterSection(page, 'appearance');
   const panel = page.locator('[data-zhiyu-agent-center-kit-surface="true"]').first();
   await panel.waitFor({ timeout: 15_000 });
-  await panel.locator('#agent-center-appearance-title').waitFor({ timeout: 15_000 });
+  await panel.locator('#agent-center-appearance-title').waitFor({ state: 'attached', timeout: 15_000 });
 
   const panelText = await panel.innerText();
-  for (const label of ['Appearance', 'Import source', 'Evidence', 'Live2D', 'Background', 'Diagnostics']) {
-    assert.match(panelText, new RegExp(label), `Appearance panel must include Desktop ${label} structure`);
+  for (const label of ['外观', '伙伴形象', '当前形象', '让形象显示出来', '聊天背景', '技术详情']) {
+    assert.match(panelText, new RegExp(label), `Appearance panel must include redesigned ${label} structure`);
   }
+  assert.doesNotMatch(panelText, /形象管理/u, 'Appearance panel must not keep the retired separate avatar management card');
+  assert.doesNotMatch(panelText, /动态效果/u, 'Appearance panel must not expose a non-actionable dynamic effects module');
 
-  for (const label of ['Import Live2D folder', 'Import VRM file', 'Link Live2D adapter manifest', 'Remove Avatar asset', 'Import background image', 'Remove background']) {
+  for (const label of ['继续完成配置', '更换形象', '选择 sidecar 文件', '上传背景图片', '选择推荐背景']) {
     await panel.getByText(label, { exact: false }).waitFor({ state: 'visible', timeout: 15_000 });
   }
+  assert.doesNotMatch(panelText, /导入 Live2D 文件夹|导入 VRM 文件/u, 'Imported appearance state must consolidate import controls into Change avatar');
+
+  for (const selector of [
+    '[data-agent-center-appearance-surface="visual-setup"]',
+    '[data-agent-center-appearance-hero="character-preview"]',
+    '[data-agent-center-appearance-avatar-card="true"]',
+    '[data-agent-center-appearance-avatar-preview="configured"]',
+    '[data-agent-center-appearance-primary-action="continue"]',
+    '[data-agent-center-appearance-secondary-action="change"]',
+    '[data-agent-center-appearance-progress="display-checklist"]',
+    '[data-agent-center-appearance-background="chat-scene"]',
+    '[data-agent-center-appearance-diagnostics="collapsed"]',
+  ]) {
+    await panel.locator(selector).waitFor({ state: 'visible', timeout: 15_000 });
+  }
+
+  const progressBarWidth = await panel.locator('[data-agent-center-appearance-progress-bar]').evaluate((element) =>
+    (element instanceof HTMLElement ? element.style.width : ''),
+  );
+  assert.match(progressBarWidth, /^\d+%$/u, `Appearance progress bar must expose a concrete percentage width: ${progressBarWidth}`);
+
+  const recommendedBackgroundButton = panel.getByRole('button', { name: /选择推荐背景/u }).first();
+  await recommendedBackgroundButton.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await recommendedBackgroundButton.isDisabled(), true, 'recommended background must stay disabled until a typed adapter exists');
+
+  const diagnostics = panel.locator('[data-agent-center-appearance-diagnostics="collapsed"]').first();
+  await diagnostics.locator('summary').click();
+  await panel.locator('[data-agent-center-avatar-autoplay="true"]').waitFor({ state: 'visible', timeout: 15_000 });
+  await diagnostics.locator('summary').click();
+
+  await assertAppearanceNarrowLayout(page, panel);
 
   if (captureAppearanceEvidence) {
     await captureAppearanceEvidence();
   }
 
   await openKitAgentCenterSection(page, 'overview');
+}
+
+async function assertAppearanceNarrowLayout(page, panel) {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await panel.locator('[data-agent-center-appearance-surface="visual-setup"]').waitFor({ state: 'visible', timeout: 15_000 });
+  const layout = await page.evaluate(() => {
+    const surface = document.querySelector('[data-agent-center-appearance-surface="visual-setup"]');
+    const rect = surface?.getBoundingClientRect();
+    return {
+      viewportWidth: window.innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      surfaceWidth: rect?.width ?? 0,
+      surfaceRight: rect?.right ?? 0,
+    };
+  });
+  assert.ok(layout.surfaceWidth > 0, `appearance surface must render on narrow viewport: ${JSON.stringify(layout)}`);
+  assert.ok(layout.scrollWidth <= layout.viewportWidth + 1, `appearance narrow viewport must not horizontally overflow: ${JSON.stringify(layout)}`);
+  assert.ok(layout.surfaceRight <= layout.viewportWidth + 1, `appearance surface must stay inside narrow viewport: ${JSON.stringify(layout)}`);
+  await page.setViewportSize({ width: 1280, height: 900 });
 }
 
 async function assertComposerModeTools(page) {
@@ -733,6 +866,16 @@ function runtimeEndpointFromEnv() {
     || process.env.NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT?.trim()
     || process.env.NIMI_RUNTIME_GRPC_ADDR?.trim()
     || '127.0.0.1:46371';
+}
+
+async function assertUnselectedLocalPartnerEmptyState(page) {
+  const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
+  assert.match(shellText, /选择一位本地伙伴，开始对话/);
+  assert.doesNotMatch(shellText, /请先在左侧选择一位已有的本地伙伴开始对话/);
+  assert.match(shellText, /如果想添加更多伙伴，请到Nimi桌面端的「探索」中选择角色/);
+  assert.doesNotMatch(shellText, /你还没有添加可对话的本地伙伴/);
+  assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
+  assert.equal(await page.locator('[data-chat-composer-send="true"]').isDisabled(), true);
 }
 
 function chooseTargetAgent(localAgents) {

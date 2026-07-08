@@ -435,9 +435,16 @@ test('Agent Center header mirrors Desktop side-sheet identity metadata', async (
 
   for (const marker of [
     'data-zhiyu-agent-center-eyebrow="AGENT CENTER"',
-    'data-zhiyu-agent-center-local-agent-ref',
-    'data-zhiyu-agent-center-world-chip',
-    'agentCenterLocalAgentRef(props.evidence)',
+    'data-zhiyu-agent-center-world-name',
+    'data-zhiyu-agent-center-world-icon',
+    'data-zhiyu-agent-center-runtime-pill',
+    'data-zhiyu-agent-center-runtime-dot',
+    'data-zhiyu-agent-center-state-chip="mood"',
+    'data-zhiyu-agent-center-state-chip="activity"',
+    'data-zhiyu-agent-center-state-chip="appearance"',
+    'agentCenterHeaderStateLabel(props.evidence.companion.currentEmotion)',
+    'agentCenterHeaderStateLabel(props.evidence.companion.executionState)',
+    'agentCenterHeaderStateLabel(appearance.projection.status)',
     'agentCenterWorldLabel(props.evidence)',
   ]) {
     assert.match(sourceWithNormalizedWhitespace(surfaceSource), new RegExp(escapeRegExp(marker)), `${marker} missing from Desktop Agent Center header metadata`);
@@ -448,6 +455,11 @@ test('Agent Center header mirrors Desktop side-sheet identity metadata', async (
     /<span>\{mode === 'settings' \? '织羽设置' : '伙伴中心'\}<\/span>/,
     'Agent mode header must use the Desktop AGENT CENTER eyebrow instead of the old Zhiyu-only label',
   );
+  assert.doesNotMatch(surfaceSource, /data-zhiyu-agent-center-local-agent-ref/);
+  assert.doesNotMatch(surfaceSource, /\bagentCenterLocalAgentRef\b/);
+  assert.doesNotMatch(surfaceSource, /data-zhiyu-agent-center-world-chip/);
+  assert.doesNotMatch(surfaceSource, />\s*世界角色\s*</u);
+  assert.doesNotMatch(surfaceSource, />\s*not selected\s*</);
 });
 
 test('Agent Center model section projects Runtime AI Config and excludes Zhiyu AIConfig settings', async () => {

@@ -30,6 +30,21 @@ test('Zhiyu startup projects Runtime Agent AI Config isolated from core Runtime 
   );
   assert.match(
     source,
+    /const \[selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey\] = useState\(0\);/,
+    'Selecting the current Runtime LocalAgent again must have an explicit refresh key for retrying conversation bootstrap.',
+  );
+  assert.match(
+    source,
+    /\}, \[selectedLocalAgentRef, selectedLocalAgentRefreshKey\]\);/,
+    'Runtime bootstrap effect must rerun when the selected Runtime LocalAgent is explicitly reselected.',
+  );
+  assert.match(
+    source,
+    /setSelectedLocalAgentRefreshKey\(\(current\) => current \+ 1\);/,
+    'Runtime LocalAgent selection handler must bump the refresh key even when the selected ref is unchanged.',
+  );
+  assert.match(
+    source,
     /const refreshedRoute = await fetchZhiyuAgentAIConfigRouteEvidence\(agentAIConfigRouteInputRef\.current\);/,
     'Submit refresh must re-read Runtime Agent AI Config + readiness, not probe or warm any route.',
   );

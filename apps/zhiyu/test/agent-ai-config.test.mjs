@@ -205,6 +205,70 @@ test('Zhiyu composer copy maps Agent AI Config readiness tri-state to Chinese pr
   );
 });
 
+test('Zhiyu composer copy surfaces conversation anchor failures instead of indefinite opening copy', async () => {
+  const module = await importLabelsModule();
+  const hint = module.chatBlockedHint({
+    localAgent: {
+      ready: true,
+    },
+    conversation: {
+      ready: false,
+      reasonCode: 'zhiyu-conversation-anchor-unavailable',
+      actionHint: 'check_runtime_agent_open_conversation',
+      message: 'Runtime conversation anchor is unavailable.',
+    },
+    route: {
+      ready: true,
+    },
+    chat: {
+      state: 'idle',
+    },
+  });
+
+  assert.notEqual(hint, '正在打开会话，请稍候。');
+  assert.equal(hint, '会话没有打开成功，请重新选择伙伴或重启织羽后再试。');
+});
+
+test('Zhiyu composer copy distinguishes empty local partner inventory from unselected partners', async () => {
+  const module = await importLabelsModule();
+  const baseEvidence = {
+    localAgent: {
+      ready: false,
+    },
+    conversation: {
+      ready: false,
+      reasonCode: 'zhiyu-local-agent-required',
+    },
+    route: {
+      ready: false,
+    },
+    chat: {
+      state: 'idle',
+    },
+  };
+
+  assert.equal(
+    module.chatBlockedHint({
+      ...baseEvidence,
+      inventory: {
+        localAgents: [],
+      },
+    }),
+    '添加本地伙伴后开始聊天。',
+  );
+  assert.equal(
+    module.chatBlockedHint({
+      ...baseEvidence,
+      inventory: {
+        localAgents: [{
+          localAgentRef: 'local-agent:ren',
+        }],
+      },
+    }),
+    '请先选择已存在的本地伙伴。',
+  );
+});
+
 async function importAgentAIConfigModule() {
   const outputPath = path.join(await buildModules(), 'agent-ai-config.mjs');
   return import(pathToFileURL(outputPath).href);
@@ -279,6 +343,18 @@ function workspaceStubPlugin() {
               reasonCode: 'sdk-runtime-agent-client-test-stub',
               source: 'test',
             });
+          }
+          export function createNimiHostRuntimeAgentInspectSurface() {
+            return {
+              cancelHook: async () => ({}),
+              disableAutonomy: async () => ({}),
+              enableAutonomy: async () => ({}),
+              getPublicInspect: async () => ({}),
+              getPresentationProfile: async () => null,
+              setAutonomyConfig: async () => ({}),
+              subscribePublicEvents: async () => undefined,
+              updateState: async () => ({}),
+            };
           }
         `,
       }));

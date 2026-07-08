@@ -1,17 +1,20 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
+  createNimiHostRuntimeAgentInspectSurface,
   createNimiRuntimeAgentClient,
   Runtime,
   type NimiRuntimeAgentAIConfigIntents,
   type NimiRuntimeAgentAIConfigModule,
   type NimiRuntimeAgentAIConfigSnapshot,
   type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
+  type NimiRuntimeAgentInspectSurface,
   type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence, ZhiyuExecutionCapabilityEvidence, ZhiyuAgentAIConfigReadinessState } from '../app/evidence';
 import {
   createZhiyuRuntimeAgentBindingScopeRunner,
   resolveZhiyuRuntimeAgentBindingDecisionFromHost,
+  resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost,
 } from './runtime-agent-binding';
 
 // Z-AUTH-006: Zhiyu is a pure projection + config-editor surface over the
@@ -25,6 +28,9 @@ export const ZHIYU_AGENT_AI_CONFIG_READ_SCOPES = [
 export const ZHIYU_AGENT_AI_CONFIG_WRITE_SCOPES = [
   'runtime.agent.ai_config.read',
   'runtime.agent.ai_config.write',
+] as const;
+export const ZHIYU_AGENT_INSPECT_READ_SCOPES = [
+  'runtime.agent.read',
 ] as const;
 
 export type ZhiyuRuntimeRouteStatus = ZhiyuEvidence['route'];
@@ -40,6 +46,13 @@ export type ZhiyuAgentAIConfigUpsertInput = ZhiyuAgentAIConfigCallInput & {
 
 export type ZhiyuAgentAIConfigRouteEvidenceInput = Partial<RuntimeLocalAgentIdentityInput> & {
   readonly subjectUserId: string;
+};
+
+export type ZhiyuAgentRuntimeScopedBindingIdentity = {
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef: string;
+  readonly conversationAnchorId: string;
 };
 
 export function getZhiyuAgentAIConfig(
@@ -64,6 +77,27 @@ export function subscribeZhiyuAgentAIConfigReadiness(
   input: ZhiyuAgentAIConfigCallInput,
 ): AsyncIterable<NimiRuntimeAgentAIConfigReadinessSnapshotProjection> {
   return zhiyuAgentAIConfigModule(input.subjectUserId).subscribeReadiness(input);
+}
+
+export function createZhiyuAgentInspectSurface(
+  subjectUserId: string,
+  bindingIdentity?: ZhiyuAgentRuntimeScopedBindingIdentity | null,
+): NimiRuntimeAgentInspectSurface {
+  const { runtime, subject, withScopes } = zhiyuRuntimeAgentScopedSurface(
+    subjectUserId,
+    ZHIYU_AGENT_INSPECT_READ_SCOPES,
+    bindingIdentity,
+  );
+  return createNimiHostRuntimeAgentInspectSurface({
+    getRuntime: () => ({
+      appId: 'nimi.zhiyu',
+      auth: runtime.auth,
+      appAuth: runtime.grants,
+      agent: runtime.agents,
+    }),
+    getSubjectUserId: () => subject,
+    withScopes,
+  });
 }
 
 // Startup + on-demand refresh: one committed-config read plus one readiness
@@ -214,6 +248,21 @@ function zhiyuAgentAIConfigModule(
   subjectUserId: string,
   requiredScopes: readonly string[] = ZHIYU_AGENT_AI_CONFIG_READ_SCOPES,
 ): NimiRuntimeAgentAIConfigModule {
+  const { runtime, subject, withScopes } = zhiyuRuntimeAgentScopedSurface(subjectUserId, requiredScopes);
+  const client = createNimiRuntimeAgentClient({
+    runtime,
+    appId: 'nimi.zhiyu',
+    getSubjectUserId: () => subject,
+    withScopes,
+  });
+  return client.agentAIConfig;
+}
+
+function zhiyuRuntimeAgentScopedSurface(
+  subjectUserId: string,
+  requiredScopes: readonly string[],
+  bindingIdentity?: ZhiyuAgentRuntimeScopedBindingIdentity | null,
+) {
   const subject = subjectUserId.trim();
   if (!subject) {
     throw Object.assign(new Error('Zhiyu Runtime Agent AI Config requires an authenticated subject user id.'), {
@@ -235,17 +284,23 @@ function zhiyuAgentAIConfigModule(
     appId: 'nimi.zhiyu',
     transport: { type: 'electron-ipc' },
   });
-  const client = createNimiRuntimeAgentClient({
-    runtime,
-    appId: 'nimi.zhiyu',
-    getSubjectUserId: () => subject,
-    withScopes: createZhiyuRuntimeAgentBindingScopeRunner(
-      (scopes) => resolveZhiyuRuntimeAgentBindingDecisionFromHost(
-        scopes.length > 0 ? scopes : requiredScopes,
-      ),
-    ),
-  });
-  return client.agentAIConfig;
+  const withScopes = createZhiyuRuntimeAgentBindingScopeRunner(
+    async (scopes) => {
+      const resolvedScopes = scopes.length > 0 ? scopes : requiredScopes;
+      const decision = resolveZhiyuRuntimeAgentBindingDecisionFromHost(resolvedScopes);
+      if (decision.kind === 'runtime-issued-scoped-binding' || !bindingIdentity) {
+        return decision;
+      }
+      return resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost({
+        ownerUserId: bindingIdentity.ownerUserId,
+        runtimeSourceRef: bindingIdentity.runtimeSourceRef,
+        localAgentRef: bindingIdentity.localAgentRef,
+        conversationAnchorId: bindingIdentity.conversationAnchorId,
+        scopes: resolvedScopes,
+      });
+    },
+  );
+  return { runtime, subject, withScopes };
 }
 
 function normalizeRouteIdentity(

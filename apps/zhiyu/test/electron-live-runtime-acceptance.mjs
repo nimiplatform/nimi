@@ -69,6 +69,7 @@ const zhiyuAppId = 'nimi.zhiyu';
 const zhiyuRuntimeProtectedScopes = [
   'runtime.agent.read',
   'runtime.agent.write',
+  'runtime.agent.autonomy.write',
   'runtime.agent.turn.read',
   'runtime.agent.turn.write',
   'runtime.agent.delegation.read',
@@ -814,10 +815,31 @@ async function assertNoPartnerProductState(page) {
     'primary chat must not render the legacy readiness/status checklist',
   );
   const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
-  assert.match(shellText, /选择本地伙伴/);
-  assert.match(shellText, /选择本地伙伴开始对话/);
+  assert.match(shellText, /ZHIYU/);
+  if (candidateCount > 0) {
+    assert.match(shellText, /选择一位本地伙伴，开始对话/);
+    assert.doesNotMatch(shellText, /请先在左侧选择一位已有的本地伙伴开始对话/);
+    assert.match(shellText, /如果想添加更多伙伴，请到Nimi桌面端的「探索」中选择角色/);
+    assert.doesNotMatch(shellText, /还没有本地伙伴/);
+  } else {
+    assert.equal(await page.locator('[data-zhiyu-no-local-partner-empty="true"]').count(), 1);
+    assert.equal(await page.locator('[data-zhiyu-relationship-rail-empty]').getAttribute('data-zhiyu-relationship-rail-empty'), 'true');
+    assert.match(shellText, /还没有本地伙伴/);
+    assert.match(shellText, /从世界中选择一位角色加入本地后，就可以和他开始对话/);
+    assert.match(shellText, /去探索伙伴/);
+    assert.match(shellText, /本地伙伴会保留角色来源与身份设定/);
+    const exploreGuide = page.locator('[data-zhiyu-no-local-partner-action="show-guidance"]').first();
+    await exploreGuide.waitFor({ state: 'visible', timeout: 15_000 });
+    assert.equal(await exploreGuide.isDisabled(), false);
+    await exploreGuide.click();
+    assert.match(
+      await page.locator('[data-zhiyu-no-local-partner-guidance="desktop-explore"]').innerText(),
+      /请打开 Nimi 桌面端「探索」页，选择角色并加入本地/,
+    );
+    assert.doesNotMatch(shellText, /你还没有添加可对话的本地伙伴/);
+  }
   assert.doesNotMatch(shellText, /8 项 checklist|checklist dashboard/i);
-  assert.doesNotMatch(shellText, /本地伙伴工作台|character\/persona|文字能力|图片创作/);
+  assert.doesNotMatch(shellText, /本地伙伴工作台|Desktop Explore|character\/persona|文字能力|图片创作|不伪造身份/);
   assertPrimaryWorkspaceHasNoEngineeringCopy(shellText);
 }
 
@@ -921,9 +943,10 @@ async function assertKitAgentCenterModelProjection(page) {
   assert.equal(await page.locator('[data-zhiyu-ai-config-drawer="open"]').count(), 0);
   const text = await panel.innerText();
   assert.match(text, /Model/);
-  assert.match(text, /Text/);
+  assert.match(text, /Chat/);
+  assert.match(text, /Embedding/);
   assert.match(text, /Image/);
-  assert.match(text, /Audio/);
+  assert.match(text, /Speech/);
   assert.match(text, /Read-only|Runtime|projection|revision|not configured|ready/i);
   assert.doesNotMatch(text, /Capability Studio|Image Studio|zhiyu-ai-config-route-selection-required|ai-config-binding-missing/);
   await assertAgentCenterModelPanelLayout(page, 'live Runtime Kit model projection');

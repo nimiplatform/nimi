@@ -529,7 +529,7 @@ export async function captureLiveRuntimeEvidence(page, stage, pageProblems, evid
         controls: {
           submitEnabled: submit?.getAttribute('data-zhiyu-submit-enabled') === 'true',
           modelSaveEnabled: false,
-          autonomyToggleEnabled: Boolean(globalThis.document.querySelector('[data-zhiyu-agent-behavior-control] button:not([disabled])')),
+          autonomyToggleEnabled: Boolean(globalThis.document.querySelector('[data-agent-center-proactive-toggle="true"]:not([disabled])')),
           disabledReason: globalThis.document.querySelector('[data-zhiyu-route-state]')?.getAttribute('data-zhiyu-route-state')
             || globalThis.document.querySelector('[data-zhiyu-turn-state]')?.getAttribute('data-zhiyu-turn-state')
             || 'runtime projection observed',
@@ -688,6 +688,14 @@ async function capturePanelScreenshots(page, stage, evidenceRoot) {
       continue;
     }
     const locator = page.locator(selector).first();
+    if (selector === '[data-zhiyu-region="relationship-rail"]') {
+      await locator.waitFor({ state: 'attached', timeout: 15_000 });
+      if (await locator.getAttribute('data-zhiyu-relationship-rail-empty') === 'true') {
+        await page.screenshot({ path: path.join(evidenceRoot, filename), fullPage: false });
+        captured.push(filename);
+        continue;
+      }
+    }
     await locator.waitFor({ timeout: 15_000 });
     await locator.scrollIntoViewIfNeeded();
     await locator.screenshot({ path: path.join(evidenceRoot, filename) });

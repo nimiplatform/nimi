@@ -361,6 +361,7 @@ test('projects explicit Runtime inventory selection as current partner without s
         displayName: '颜真卿',
         sourceKind: 'worldCharacter',
         sourceWorldId: 'world-1',
+        sourceWorldName: '唐代文人世界',
         sourceId: 'source-1',
         sourceContentHash: 'hash-1',
       }],

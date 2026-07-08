@@ -13,7 +13,7 @@
     "build:electron": "pnpm run prepare:workspace-surfaces && tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs",
     "pack:release-evidence": "corepack pnpm run build && corepack pnpm run build:electron && node scripts/pack-release-evidence.mjs",
     "test:e2e:electron": "corepack pnpm run build && corepack pnpm run build:electron && node --test test/electron-acceptance.mjs",
-    "test:e2e:electron:live-runtime": "corepack pnpm --filter @nimiplatform/avatar build:renderer && corepack pnpm --filter @nimiplatform/avatar build:electron && corepack pnpm run build && corepack pnpm run build:electron && node --import tsx --test test/electron-live-runtime-acceptance.mjs",
+    "test:e2e:electron:live-runtime": "corepack pnpm run prepare:workspace-surfaces && corepack pnpm --filter @nimiplatform/avatar build:renderer && corepack pnpm --filter @nimiplatform/avatar build:electron && corepack pnpm run build && corepack pnpm run build:electron && node --import tsx --test test/electron-live-runtime-acceptance.mjs",
     "test:e2e:electron:real-local-agent": "corepack pnpm run build && corepack pnpm run build:electron && node --test test/electron-real-local-agent-acceptance.mjs",
     "test": "node --test test/*.test.mjs"
   },

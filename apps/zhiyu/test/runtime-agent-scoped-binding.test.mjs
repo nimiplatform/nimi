@@ -164,15 +164,24 @@ test('Zhiyu Electron scoped binding bridge honors admitted requested Runtime Age
       runtimeSourceRef: 'runtime-source:opaque',
       localAgentRef: 'local-agent:opaque',
       conversationAnchorId: 'agent_anchor_1',
-      scopes: ['runtime.agent.turn.write', 'runtime.agent.turn.read'],
+      scopes: [
+        'runtime.agent.autonomy.write',
+        'runtime.agent.turn.write',
+        'runtime.agent.read',
+        'runtime.agent.turn.read',
+      ],
     },
   });
 
   assert.deepEqual(calls[0].relation.scopes, [
+    'runtime.agent.autonomy.write',
+    'runtime.agent.read',
     'runtime.agent.turn.read',
     'runtime.agent.turn.write',
   ]);
   assert.deepEqual(result.scopedBinding.scopes, [
+    'runtime.agent.autonomy.write',
+    'runtime.agent.read',
     'runtime.agent.turn.read',
     'runtime.agent.turn.write',
   ]);

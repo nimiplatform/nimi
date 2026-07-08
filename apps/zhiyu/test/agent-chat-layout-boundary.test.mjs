@@ -111,6 +111,68 @@ test('settings-open chat layout centers conversation tracks', () => {
   );
 });
 
+test('narrow open Agent Center remains visible as an operable side sheet', () => {
+  const css = readSource('src/shell/app/home-surface.css');
+
+  assert.match(
+    css,
+    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\) \.zhiyu-agent-center\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?inset:\s*8px;[\s\S]*?z-index:\s*30;[\s\S]*?height:\s*calc\(100dvh - 16px\);[\s\S]*?width:\s*calc\(100vw - 16px\);/,
+    'open Agent Center must be visible inside the 640px viewport instead of being placed below a non-scrollable conversation row',
+  );
+  assert.match(
+    css,
+    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\) \[data-zhiyu-agent-center-kit-surface="true"\]\s*\{[\s\S]*?overflow-y:\s*auto;[\s\S]*?-webkit-overflow-scrolling:\s*touch;/,
+    'narrow Agent Center body must own vertical scrolling once the side sheet is fixed',
+  );
+});
+
+test('unselected-partner transcript empty state guides existing selection and adding more partners', () => {
+  const surface = readSource('src/shell/agent-chat/ZhiyuAgentChatSurface.tsx');
+
+  assert.match(surface, /emptyEyebrow="ZHIYU"/);
+  assert.match(surface, /const hasLocalPartners = evidence\.inventory\.localAgents\.length > 0;/);
+  assert.match(surface, /'选择一位本地伙伴，开始对话'/);
+  assert.doesNotMatch(surface, /请先在左侧选择一位已有的本地伙伴开始对话/);
+  assert.match(surface, /'如果想添加更多伙伴，请到Nimi桌面端的「探索」中选择角色。'/);
+  assert.doesNotMatch(surface, /Desktop Explore/);
+  assert.doesNotMatch(surface, /不伪造身份/);
+});
+
+test('no-partner transcript empty state keeps the relationship rail empty and shows honest explore guidance', () => {
+  const surface = readSource('src/shell/agent-chat/ZhiyuAgentChatSurface.tsx');
+  const panel = readSource('src/shell/agent-chat/ZhiyuAgentPanel.tsx');
+  const css = readSource('src/shell/app/home-surface.css');
+
+  assert.match(
+    panel,
+    /data-zhiyu-relationship-rail-empty=\{String\(agents\.length === 0\)\}/,
+    'relationship rail must expose that no local partner candidates are rendered',
+  );
+  assert.doesNotMatch(
+    panel,
+    /agents\.length\s*===\s*0[\s\S]{0,200}data-zhiyu-local-agent-candidate="true"/,
+    'empty relationship rail must not render a synthetic local partner candidate',
+  );
+  assert.match(
+    surface,
+    /const emptyTitle = hasCurrentPartner\s*\? '开始一段对话'\s*:\s*hasLocalPartners\s*\? '选择一位本地伙伴，开始对话'\s*:\s*'还没有本地伙伴';/,
+    'no-partner state must not keep the select-existing-partner title',
+  );
+  assert.match(surface, /const noLocalPartnerEmptyState = !hasCurrentPartner && !hasLocalPartners/);
+  assert.match(
+    surface,
+    /const chatRuntimeHint = chatDisabled && \(hasLocalPartners \|\| evidence\.chat\.state === 'streaming'\)/,
+    'empty local partner inventory must not render a duplicate composer warning strip',
+  );
+  assert.match(surface, /data-zhiyu-no-local-partner-empty="true"/);
+  assert.match(surface, /data-zhiyu-no-local-partner-action="show-guidance"/);
+  assert.match(surface, /去探索伙伴/);
+  assert.match(surface, /从世界中选择一位角色加入本地后，就可以和他开始对话。/);
+  assert.match(surface, /本地伙伴会保留角色来源与身份设定。/);
+  assert.match(css, /\.zhiyu-no-local-partner-empty\s*\{/);
+  assert.match(css, /\.zhiyu-no-local-partner-empty__action\s*\{/);
+});
+
 function readSource(relativePath) {
   return readFileSync(path.join(root, relativePath), 'utf8');
 }

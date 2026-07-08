@@ -27,15 +27,40 @@ export function chatReplyChipLabel(evidence: ZhiyuEvidence): string {
 
 export function chatBlockedHint(evidence: ZhiyuEvidence): string {
   if (!evidence.localAgent.ready) {
+    if (evidence.inventory.localAgents.length === 0) {
+      return '添加本地伙伴后开始聊天。';
+    }
     return '请先选择已存在的本地伙伴。';
   }
   if (!evidence.conversation.ready) {
-    return '正在打开会话，请稍候。';
+    return conversationReadinessHint(evidence.conversation);
   }
   if (!evidence.route.ready) {
     return agentAIConfigReadinessHint(evidence.route);
   }
   return '当前暂时不能发送，请稍后重试。';
+}
+
+function conversationReadinessHint(conversation: ZhiyuEvidence['conversation']): string {
+  const reasonCode = conversation.reasonCode?.trim() || '';
+  if (!reasonCode || reasonCode === 'not-probed') {
+    return '正在打开会话，请稍候。';
+  }
+  if (reasonCode === 'zhiyu-local-agent-required') {
+    return '请先选择已存在的本地伙伴。';
+  }
+  if (reasonCode === 'electron-runtime-bridge-unavailable') {
+    return '本地应用桥接暂时不可用，请重启织羽。';
+  }
+  if (
+    reasonCode.includes('anchor')
+    || reasonCode.includes('conversation')
+    || reasonCode.includes('unavailable')
+    || reasonCode.includes('missing')
+  ) {
+    return '会话没有打开成功，请重新选择伙伴或重启织羽后再试。';
+  }
+  return '会话暂时不可用，请稍后重试。';
 }
 
 // Readiness tri-state product copy for the composer gate. The unavailable
@@ -102,20 +127,21 @@ export function currentPartnerSubtitle(evidence: ZhiyuEvidence): string {
   return '本地伙伴';
 }
 
-export function agentCenterLocalAgentRef(evidence: ZhiyuEvidence): string | null {
-  if (!evidence.localAgent.ready) {
-    return null;
-  }
-  return evidence.localAgent.localAgentRef || evidence.conversation.localAgentRef || null;
-}
-
 export function agentCenterWorldLabel(evidence: ZhiyuEvidence): string | null {
   const selectedRef = evidence.localAgent.localAgentRef;
   const fromInventory = evidence.inventory.localAgents.find((agent) => agent.localAgentRef === selectedRef);
   if (fromInventory?.sourceKind !== 'worldCharacter') {
     return null;
   }
-  return '世界角色';
+  return normalizedWorldName(fromInventory.sourceWorldName);
+}
+
+function normalizedWorldName(value: string | null | undefined): string | null {
+  const worldName = value?.trim();
+  if (!worldName) {
+    return null;
+  }
+  return worldName;
 }
 
 function normalizedPartnerName(value: string | null | undefined): string | null {
@@ -154,6 +180,25 @@ export function stateDisplayLabel(value: string | null | undefined): string {
     return '受阻';
   }
   return normalized;
+}
+
+export function agentCenterHeaderStateLabel(value: string | null | undefined): string | null {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return null;
+  }
+  const normalizedState = normalized.toLowerCase().replaceAll('-', '_');
+  if (
+    normalizedState === 'not_projected'
+    || normalizedState.startsWith('not_projected_')
+    || normalizedState === 'not_configured'
+    || normalizedState === 'not_selected'
+    || normalizedState === 'unknown'
+    || normalizedState === 'ready'
+  ) {
+    return null;
+  }
+  return stateDisplayLabel(normalized);
 }
 
 export function avatarStatusMessage(action: ZhiyuAvatarLaunchAction): string {

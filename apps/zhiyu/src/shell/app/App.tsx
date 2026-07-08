@@ -74,6 +74,7 @@ import { probeZhiyuRuntimeStatus } from '../runtime/runtime-status';
 export function App() {
   const [evidence, setEvidence] = useState<ZhiyuEvidence>(() => createInitialZhiyuEvidence());
   const [selectedLocalAgentRef, setSelectedLocalAgentRef] = useState<string | null>(null);
+  const [selectedLocalAgentRefreshKey, setSelectedLocalAgentRefreshKey] = useState(0);
   const [draft, setDraft] = useState('');
   const activeChatAbortRef = useRef<AbortController | null>(null);
   const agentAIConfigRouteInputRef = useRef<ZhiyuAgentAIConfigRouteEvidenceInput>({ subjectUserId: '' });
@@ -156,7 +157,7 @@ export function App() {
     return () => {
       active = false;
     };
-  }, [selectedLocalAgentRef]);
+  }, [selectedLocalAgentRef, selectedLocalAgentRefreshKey]);
 
   const applyExecutionRoute = useCallback((route: ZhiyuEvidence['route']) => {
     setEvidence((current) => ({
@@ -579,6 +580,7 @@ export function App() {
     activeChatAbortRef.current?.abort('zhiyu_chat_turn_local_agent_changed');
     const initial = createInitialZhiyuEvidence();
     setSelectedLocalAgentRef(selected);
+    setSelectedLocalAgentRefreshKey((current) => current + 1);
     setDraft('');
     setEvidence((current) => ({
       ...current,

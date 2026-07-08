@@ -215,6 +215,7 @@ export type ZhiyuEvidence = {
       readonly displayName: string;
       readonly sourceKind: string | null;
       readonly sourceWorldId: string | null;
+      readonly sourceWorldName: string | null;
       readonly sourceId: string | null;
       readonly sourceContentHash: string | null;
     }[];

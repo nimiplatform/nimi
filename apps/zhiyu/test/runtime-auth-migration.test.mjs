@@ -52,11 +52,13 @@ test('zhiyu runtime auth migrates to shared SDK/Kit account gate surfaces', () =
   assert.match(hostAccountCallerSource, /const runtimeAccountDeviceId = `\$\{clientIdPrefix\}-local-first-party-device`/);
   assert.match(hostAuthSource, /'runtime\.agent\.delegation\.read'/);
   assert.match(hostAuthSource, /'runtime\.agent\.delegation\.write'/);
+  assert.match(hostAuthSource, /'runtime\.agent\.autonomy\.write'/);
   assert.match(liveAcceptanceSource, /admitLocalFirstPartyRuntimeAccountCaller/);
   assert.match(liveAcceptanceSource, /appInstanceId:\s*`\$\{zhiyuAppId\}\.local-first-party`/);
   assert.match(liveAcceptanceSource, /deviceId:\s*'nimi-zhiyu-local-first-party-device'/);
   assert.match(liveAcceptanceSource, /'runtime\.agent\.delegation\.read'/);
   assert.match(liveAcceptanceSource, /'runtime\.agent\.delegation\.write'/);
+  assert.match(liveAcceptanceSource, /'runtime\.agent\.autonomy\.write'/);
 
   for (const source of [authGateSource, runtimeAccountAuthSource, runtimeLoginSource, runtimePlatformSource]) {
     assert.doesNotMatch(source, /getAccessToken|persistAccessToken|loadPersistedAccessToken|localStorage|sessionStorage|indexedDB/);

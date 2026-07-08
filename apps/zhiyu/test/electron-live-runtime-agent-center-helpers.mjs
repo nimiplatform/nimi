@@ -9,17 +9,56 @@ export async function assertAgentCenterHeaderParity(page, evidence) {
   const header = page.locator('[data-zhiyu-agent-center-header="true"]').first();
   await header.waitFor({ state: 'visible', timeout: 15_000 });
   assert.equal(await header.locator('[data-zhiyu-agent-center-eyebrow]').innerText(), 'AGENT CENTER');
+  const runtimePill = header.locator('[data-zhiyu-agent-center-runtime-pill]').first();
+  await runtimePill.waitFor({ state: 'visible', timeout: 15_000 });
+  assert.equal(await runtimePill.getAttribute('data-zhiyu-agent-center-runtime-pill'), 'ready');
+  const headerLayout = await header.evaluate((root) => {
+    const eyebrow = root.querySelector('[data-zhiyu-agent-center-eyebrow]');
+    const pill = root.querySelector('[data-zhiyu-agent-center-runtime-pill]');
+    const name = root.querySelector('.zhiyu-agent-center__title strong');
+    const eyebrowRow = root.querySelector('.zhiyu-agent-center__eyebrow-row');
+    const box = (element) => {
+      const rect = element?.getBoundingClientRect();
+      return rect
+        ? { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, yCenter: rect.top + rect.height / 2 }
+        : null;
+    };
+    return {
+      eyebrow: box(eyebrow),
+      pill: box(pill),
+      name: box(name),
+      eyebrowRowClass: eyebrowRow?.getAttribute('class') ?? '',
+    };
+  });
+  assert.match(headerLayout.eyebrowRowClass, /\bgap-3\b/, `Runtime pill row must keep the requested small text gap: ${JSON.stringify(headerLayout)}`);
+  assert.ok(headerLayout.eyebrow && headerLayout.pill && headerLayout.name, `header placement evidence missing: ${JSON.stringify(headerLayout)}`);
+  const eyebrowToPillGap = headerLayout.pill.left - headerLayout.eyebrow.right;
+  assert.ok(eyebrowToPillGap >= 8 && eyebrowToPillGap <= 24, `Runtime pill must sit a few letters to the right of AGENT CENTER: ${JSON.stringify({ eyebrowToPillGap, headerLayout })}`);
+  assert.ok(Math.abs(headerLayout.pill.yCenter - headerLayout.eyebrow.yCenter) <= 4, `Runtime pill must share the AGENT CENTER row: ${JSON.stringify(headerLayout)}`);
+  assert.ok(headerLayout.name.top >= headerLayout.pill.bottom - 1, `partner name must stay below the Runtime pill row: ${JSON.stringify(headerLayout)}`);
+  const stateChipTexts = await header.locator('[data-zhiyu-agent-center-state-chip]').evaluateAll((elements) =>
+    elements.map((element) => element.textContent?.trim().toLowerCase() || ''),
+  );
+  assert.deepEqual(
+    stateChipTexts.filter((text) => text === 'ready'),
+    [],
+    `Agent Center header must not duplicate generic ready state chips: ${JSON.stringify(stateChipTexts)}`,
+  );
   const localAgentRef = evidence.localAgent.localAgentRef;
   assert.ok(localAgentRef, 'ready evidence must include a Runtime LocalAgent ref');
-  const refLine = header.locator('[data-zhiyu-agent-center-local-agent-ref]').first();
-  await refLine.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await refLine.getAttribute('title'), localAgentRef);
-  assert.equal(await refLine.innerText(), localAgentRef);
+  assert.equal(await header.locator('[data-zhiyu-agent-center-local-agent-ref]').count(), 0);
+  assert.equal((await header.innerText()).includes(localAgentRef), false, 'opaque Runtime LocalAgent ref must stay out of the user-facing header');
   const currentAgent = evidence.inventory.localAgents.find((agent) => agent.localAgentRef === localAgentRef);
+  assert.equal(await header.locator('[data-zhiyu-agent-center-world-chip]').count(), 0, 'old world-role chip must not render');
   if (currentAgent?.sourceKind === 'worldCharacter') {
-    const chip = header.locator('[data-zhiyu-agent-center-world-chip]').first();
-    await chip.waitFor({ state: 'visible', timeout: 15_000 });
-    assert.match(await chip.innerText(), /世界|World|唐代/);
+    assert.ok(currentAgent.sourceWorldName, 'world-character LocalAgent evidence must include the resolved sourceWorldName');
+    const worldName = header.locator('[data-zhiyu-agent-center-world-name]').first();
+    await worldName.waitFor({ state: 'visible', timeout: 15_000 });
+    assert.equal((await worldName.innerText()).trim(), currentAgent.sourceWorldName);
+    assert.equal(await header.locator('[data-zhiyu-agent-center-world-icon]').count(), 1);
+    assert.equal((await header.innerText()).includes('世界角色'), false, 'world metadata must render the world name instead of the role tag');
+  } else {
+    assert.equal(await header.locator('[data-zhiyu-agent-center-world-name]').count(), 0);
   }
 }
 
@@ -62,8 +101,8 @@ export async function assertAppearanceConfigParity(page, importedAvatarAsset) {
   const panel = page.locator('[data-zhiyu-agent-center-kit-surface="true"]').first();
   await panel.waitFor({ timeout: 15_000 });
   const text = await panel.innerText();
-  assert.match(text, /Appearance/);
-  assert.match(text, /Avatar|not admitted|not configured/);
+  assert.match(text, /Appearance|外观/);
+  assert.match(text, /Avatar|伙伴形象|尚未设置形象|not admitted|not configured/);
   assert.equal(await page.locator('[data-zhiyu-agent-appearance-panel="true"]').count(), 0, 'Zhiyu-specific Appearance panel must not be inside Kit Agent Center');
   assert.equal(await page.locator('[data-zhiyu-avatar-import-action]').count(), 0, 'Avatar import controls are outside the RLA4 Kit Agent Center surface');
   if (importedAvatarAsset?.local_asset_id) {
@@ -104,11 +143,37 @@ export async function assertBehaviorConfigParity(page) {
   await openKitAgentCenterSection(page, 'behavior');
   const panel = page.locator('[data-zhiyu-agent-center-kit-surface="true"]').first();
   const text = await panel.innerText();
-  assert.match(text, /Behavior/);
-  assert.match(text, /Autonomy/);
-  const autonomy = panel.locator('input[aria-label="Autonomy enabled"]').first();
+  assert.match(text, /Behavior|主动陪伴/);
+  await panel.locator('[data-agent-center-behavior-page="proactive-companion"]').waitFor({ state: 'visible', timeout: 15_000 });
+  const autonomy = panel.locator('[data-agent-center-proactive-toggle="true"]').first();
   await autonomy.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await autonomy.isDisabled(), true, 'Zhiyu must not expose app-local autonomy mutation controls inside Kit Agent Center');
+  await page.waitForFunction(() => {
+    const toggle = document.querySelector('[data-agent-center-proactive-toggle="true"]');
+    return toggle instanceof HTMLInputElement && !toggle.disabled;
+  }, undefined, { timeout: 15_000 }).catch(() => undefined);
+  const autonomyDebug = await panel.evaluate((root) => {
+    const toggle = root.querySelector('[data-agent-center-proactive-toggle="true"]');
+    return {
+      disabled: toggle?.hasAttribute('disabled') ?? null,
+      text: root.textContent?.trim().slice(0, 1200) ?? '',
+      hasBehaviorPage: Boolean(root.querySelector('[data-agent-center-behavior-page="proactive-companion"]')),
+      activeSection: root.querySelector('[data-agent-center-active-section-label="true"]')?.textContent?.trim() ?? null,
+    };
+  });
+  assert.equal(
+    await autonomy.isDisabled(),
+    false,
+    `Zhiyu must expose Runtime-backed autonomy mutation controls through Kit Agent Center: ${JSON.stringify(autonomyDebug)}`,
+  );
+  await panel.locator('[data-agent-center-budget-progress="true"]').waitFor({ state: 'attached', timeout: 15_000 });
+  const highMode = panel.locator('[data-agent-center-behavior-mode="high"]').first();
+  await highMode.click();
+  await page.waitForFunction(() =>
+    document.querySelector('[data-agent-center-behavior-mode="high"]')?.getAttribute('aria-pressed') === 'true',
+  );
+  const adjust = panel.locator('[data-agent-center-budget-adjust="true"]').first();
+  await adjust.click();
+  await panel.locator('[data-agent-center-autonomy-apply="true"]').waitFor({ state: 'visible', timeout: 15_000 });
 }
 
 export async function assertCognitionConfigParity(page) {
@@ -116,7 +181,15 @@ export async function assertCognitionConfigParity(page) {
   const panel = page.locator('[data-zhiyu-agent-center-kit-surface="true"]').first();
   const text = await panel.innerText();
   assert.match(text, /Cognition/);
-  assert.match(text, /Memory/);
+  assert.match(text, /记忆状态|最近记忆/);
+  assert.doesNotMatch(text, /Runtime 尚未返回生命周期、情绪与记忆摘要。/);
+  assert.doesNotMatch(text, /织羽不会补写、猜测或伪造这些信息。/);
+  assert.doesNotMatch(text, /这里仅展示 Runtime 投影出来的 canonical memory 摘要。/);
+  assert.doesNotMatch(text, /当 Runtime 投影出近期记忆后，这里会显示记忆摘要、记忆类型和展示原因。/);
+  assert.doesNotMatch(text, /不会编辑记忆|不会伪造记忆|不在本地保存记忆真相/);
+  assert.doesNotMatch(text, /关于认知投影/);
+  assert.equal(await page.locator('[data-agent-center-cognition-about="true"]').count(), 0, 'Cognition tab must not render the removed about projection card');
+  assert.equal(await page.locator('[data-agent-center-cognition-readonly-chip]').count(), 0, 'Cognition tab must not render the removed readonly memory chips');
   assert.equal(await page.locator('[data-zhiyu-agent-cognition-panel="true"]').count(), 0, 'Zhiyu-specific cognition panel must not be inside Kit Agent Center');
 }
 

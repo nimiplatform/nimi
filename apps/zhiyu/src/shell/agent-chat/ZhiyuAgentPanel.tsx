@@ -47,6 +47,7 @@ export function DesktopPresenceRail({
         className="zhiyu-agent-rail__agents"
         data-zhiyu-region="relationship-rail"
         data-zhiyu-relationship-rail-density="desktop"
+        data-zhiyu-relationship-rail-empty={String(agents.length === 0)}
       >
         {agents.map((agent) => {
           const displayName = normalizedDisplayName(agent.displayName) ?? currentPartnerName;

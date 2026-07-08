@@ -53,6 +53,7 @@ function inventoryAgent(overrides = {}) {
     displayName: 'Runtime LocalAgent',
     sourceKind: null,
     sourceWorldId: null,
+    sourceWorldName: null,
     sourceId: null,
     sourceContentHash: null,
     ...overrides,

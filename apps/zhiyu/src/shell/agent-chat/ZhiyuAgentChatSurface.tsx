@@ -10,6 +10,8 @@ import {
   ChatStreamStatus,
 } from '@nimiplatform/kit/features/chat/ui';
 import {
+  ChevronRight,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 import type { ZhiyuEvidence } from '../app/evidence';
@@ -77,8 +79,60 @@ export function ZhiyuAgentChatSurface({
   const modelConfigLabel = chatPrimaryBindingLabel(evidence);
   const currentPartnerName = currentPartnerDisplayName(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
+  const hasLocalPartners = evidence.inventory.localAgents.length > 0;
   const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
   const actionArtifactSummary = runtimeActionArtifactSummary(evidence.chat);
+  const [showNoPartnerGuidance, setShowNoPartnerGuidance] = useState(false);
+  const emptyTitle = hasCurrentPartner
+    ? '开始一段对话'
+    : hasLocalPartners
+      ? '选择一位本地伙伴，开始对话'
+      : '还没有本地伙伴';
+  const emptyDescription = hasCurrentPartner
+    ? '提个问题、分享想法，或者告诉这个伙伴你想探索什么。'
+    : hasLocalPartners
+      ? '如果想添加更多伙伴，请到Nimi桌面端的「探索」中选择角色。'
+      : '从世界中选择一位角色加入本地后，就可以和他开始对话。';
+  const noLocalPartnerEmptyState = !hasCurrentPartner && !hasLocalPartners ? (
+    <section
+      className="zhiyu-no-local-partner-empty"
+      data-zhiyu-no-local-partner-empty="true"
+      aria-label="还没有本地伙伴"
+    >
+      <div className="zhiyu-no-local-partner-empty__inner">
+        <p className="zhiyu-no-local-partner-empty__eyebrow">ZHI YU</p>
+        <h2>还没有本地伙伴</h2>
+        <p className="zhiyu-no-local-partner-empty__copy">
+          从世界中选择一位角色加入本地后，就可以和他开始对话。
+        </p>
+        <button
+          type="button"
+          className="zhiyu-no-local-partner-empty__action"
+          data-zhiyu-no-local-partner-action="show-guidance"
+          data-zhiyu-no-local-partner-action-state={showNoPartnerGuidance ? 'expanded' : 'idle'}
+          aria-expanded={showNoPartnerGuidance}
+          aria-controls="zhiyu-no-local-partner-guidance"
+          onClick={() => setShowNoPartnerGuidance(true)}
+        >
+          <span>去探索伙伴</span>
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
+        <p className="zhiyu-no-local-partner-empty__assurance">
+          <ShieldCheck size={14} aria-hidden="true" />
+          <span>本地伙伴会保留角色来源与身份设定。</span>
+        </p>
+        {showNoPartnerGuidance ? (
+          <p
+            id="zhiyu-no-local-partner-guidance"
+            className="zhiyu-no-local-partner-empty__handoff"
+            data-zhiyu-no-local-partner-guidance="desktop-explore"
+          >
+            请打开 Nimi 桌面端「探索」页，选择角色并加入本地；织羽会在本地伙伴出现后显示在左侧。
+          </p>
+        ) : null}
+      </div>
+    </section>
+  ) : null;
   const chatComposerAdapter: ChatComposerAdapter<never> = {
     submit: async (input) => {
       await onSubmit(input.text);
@@ -87,7 +141,7 @@ export function ZhiyuAgentChatSurface({
   const chatDisabled = !evidence.conversation.ready
     || !evidence.route.ready
     || evidence.chat.state === 'streaming';
-  const chatRuntimeHint = chatDisabled
+  const chatRuntimeHint = chatDisabled && (hasLocalPartners || evidence.chat.state === 'streaming')
     ? (
       evidence.chat.state === 'streaming'
         ? '当前伙伴正在回复。'
@@ -218,7 +272,7 @@ export function ZhiyuAgentChatSurface({
       <div
         className={`zhiyu-agent-chat__layout${rightPanelMode === 'closed' ? ' is-side-closed' : ''}`}
         data-zhiyu-side-panel-state={rightPanelMode}
-        data-zhiyu-relationship-rail-state={evidence.inventory.localAgents.length > 0 ? 'available' : 'empty'}
+        data-zhiyu-relationship-rail-state={hasLocalPartners ? 'available' : 'empty'}
       >
         <DesktopPresenceRail
           evidence={evidence}
@@ -265,9 +319,10 @@ export function ZhiyuAgentChatSurface({
                 activeConversationId={evidence.conversation.conversationAnchorId}
                 agentName={primaryPartnerName}
                 formatDateLabel={formatZhiyuTranscriptDateLabel}
-                emptyEyebrow="ZH IYU"
-                emptyTitle={hasCurrentPartner ? '开始一段对话' : '选择本地伙伴开始对话'}
-                emptyDescription={hasCurrentPartner ? '提个问题、分享想法，或者告诉这个伙伴你想探索什么。' : '当前没有可打开的伙伴；请先到 Desktop Explore 的角色/人格页确认伙伴来源。织羽只承载真实伙伴，不伪造身份。'}
+                emptyEyebrow="ZHIYU"
+                emptyTitle={emptyTitle}
+                emptyDescription={emptyDescription}
+                content={noLocalPartnerEmptyState}
                 footerContent={chatFooter}
                 widthClassName="w-full max-w-none"
                 widthPositionClassName="mx-0"
@@ -293,7 +348,7 @@ export function ZhiyuAgentChatSurface({
                 text={draft}
                 onTextChange={onDraftChange}
                 disabled={chatDisabled}
-                placeholder={hasCurrentPartner ? '和这个伙伴聊点什么...' : '先选择本地伙伴...'}
+                placeholder={hasCurrentPartner ? '和这个伙伴聊点什么...' : hasLocalPartners ? '先选择本地伙伴...' : '添加本地伙伴后开始聊天...'}
                 runtimeHint={chatRuntimeHint}
                 modelLabel={<span>{modelConfigLabel}</span>}
                 sendHint={evidence.chat.state === 'streaming' ? '回复中' : undefined}

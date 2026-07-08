@@ -22,6 +22,8 @@ const delegationScopes = [
 ] as const;
 const admittedScopedBindingScopes = new Set<string>([
   ...delegationScopes,
+  'runtime.agent.read',
+  'runtime.agent.autonomy.write',
   'runtime.agent.turn.read',
   'runtime.agent.turn.write',
 ]);

@@ -11,6 +11,7 @@ const runtimeDeveloperRegistrationRequested = false;
 const runtimeProtectedScopes = [
   'runtime.agent.read',
   'runtime.agent.write',
+  'runtime.agent.autonomy.write',
   'runtime.agent.turn.read',
   'runtime.agent.turn.write',
   'runtime.agent.delegation.read',

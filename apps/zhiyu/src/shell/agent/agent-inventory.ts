@@ -1,4 +1,6 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
+import { createRuntimeAccountMediatedRealmTransport } from '@nimiplatform/sdk/app';
+import { Realm, loadNimiRealmWorldIdentityById } from '@nimiplatform/sdk/realm';
 import {
   createNimiRuntimeAgentClient,
   Runtime,
@@ -6,6 +8,11 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
 import type { ZhiyuEvidence } from '../app/evidence';
+import { appId, getRuntimeAccountCaller } from '../auth/runtime-platform';
+import {
+  hydrateZhiyuInventoryAgentWorldNames,
+  type ZhiyuInventoryWorldNameResolver,
+} from './agent-inventory-world-name';
 
 export type ZhiyuRuntimeAgentInventoryStatus = ZhiyuEvidence['inventory'];
 export type ZhiyuRuntimeAccountStatus = ZhiyuEvidence['auth'];
@@ -32,18 +39,22 @@ export async function probeZhiyuRuntimeAgentInventory(
   }
 
   const runtime = new Runtime({
-    appId: 'nimi.zhiyu',
+    appId,
     transport: { type: 'electron-ipc' },
   });
   const client = createNimiRuntimeAgentClient({
     runtime,
-    appId: 'nimi.zhiyu',
+    appId,
     getSubjectUserId: () => auth.accountId || undefined,
     withScopes: withZhiyuRuntimeAgentBindingRequired,
   });
 
   try {
     const localAgents = await client.listLocalAgents({ ownerUserId: auth.accountId });
+    const inventoryAgents = await hydrateZhiyuInventoryAgentWorldNames(
+      localAgents.map(toInventoryAgent),
+      createZhiyuRuntimeWorldNameResolver(runtime),
+    );
     return {
       transport: 'electron-ipc',
       ready: true,
@@ -52,8 +63,8 @@ export async function probeZhiyuRuntimeAgentInventory(
       source: 'runtime',
       message: 'Runtime LocalAgent inventory was listed through SDK.',
       ownerUserId: auth.accountId,
-      count: localAgents.length,
-      localAgents: localAgents.map(toInventoryAgent),
+      count: inventoryAgents.length,
+      localAgents: inventoryAgents,
     };
   } catch (error) {
     return normalizeInventoryError(error, auth.accountId);
@@ -68,8 +79,28 @@ function toInventoryAgent(agent: NimiRuntimeAgentDiscoveredLocalAgent): ZhiyuRun
     displayName: agent.displayName,
     sourceKind: agent.sourceKind,
     sourceWorldId: agent.sourceWorldId,
+    sourceWorldName: agent.sourceWorldName,
     sourceId: agent.sourceId,
     sourceContentHash: agent.sourceContentHash,
+  };
+}
+
+function createZhiyuRuntimeWorldNameResolver(runtime: Runtime): ZhiyuInventoryWorldNameResolver {
+  let realm: Realm | null = null;
+  return async (worldId) => {
+    realm ??= new Realm({
+      transport: createRuntimeAccountMediatedRealmTransport({
+        runtime,
+        accountCaller: getRuntimeAccountCaller(),
+      }),
+    });
+    const identity = await loadNimiRealmWorldIdentityById(
+      realm,
+      () => {},
+      worldId,
+      { timeoutMs: 15_000 },
+    );
+    return identity.name;
   };
 }
 
