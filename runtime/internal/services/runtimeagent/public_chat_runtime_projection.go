@@ -277,6 +277,11 @@ func (r publicChatRuntime) projectCommittedNativeVoiceStream(session publicChatA
 		if r.svc.agentVoiceStreamTerminalState(voiceStreamID) == runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_INTERRUPTED {
 			return true, nil
 		}
+		if emittedChunks > 0 {
+			if terminalErr := r.emitNativeVoiceStreamFailedTerminal(session, turn, input, voiceStreamID); terminalErr != nil {
+				return true, terminalErr
+			}
+		}
 		return true, err
 	}
 	if emittedChunks == 0 {
@@ -347,6 +352,39 @@ func (r publicChatRuntime) projectCommittedNativeVoiceStream(session publicChatA
 		TerminalReason:       "native_stream_completed",
 	})
 	return true, nil
+}
+
+func (r publicChatRuntime) emitNativeVoiceStreamFailedTerminal(
+	session publicChatAnchorState,
+	turn publicChatTurnState,
+	input voiceLipsyncSynthesisInput,
+	voiceStreamID string,
+) error {
+	const terminalReason = "native_stream_failed"
+	messageID := strings.TrimSpace(input.MessageID)
+	if err := r.emitVoicePlaybackTerminalTimelineEvent(session, turn, publicChatVoicePlaybackTerminalProjection{
+		VoiceStreamID:      voiceStreamID,
+		MessageID:          messageID,
+		VoiceOutputMode:    "native_stream",
+		VoicePlaybackState: "failed",
+		PlaybackTarget:     "avatar_autoplay",
+		TerminalReason:     terminalReason,
+	}); err != nil {
+		return err
+	}
+	r.svc.publishAgentVoiceStreamEvent(&runtimev1.AgentVoiceStreamEvent{
+		VoiceStreamId:        voiceStreamID,
+		ConversationAnchorId: session.ConversationAnchorID,
+		TurnId:               turn.TurnID,
+		StreamId:             turn.StreamID,
+		MessageId:            messageID,
+		VoiceOutputMode:      runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
+		PlaybackTarget:       "avatar_autoplay",
+		Terminal:             true,
+		VoicePlaybackState:   runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_FAILED,
+		TerminalReason:       terminalReason,
+	})
+	return nil
 }
 
 type agentVoiceOutputPolicy struct {

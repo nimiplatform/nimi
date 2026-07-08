@@ -80,6 +80,10 @@ func TestAgentAIConfigReadinessSeededProjection(t *testing.T) {
 	if audio.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED {
 		t.Fatalf("expected absent audio.synthesize NOT_CONFIGURED, got %v (%q)", audio.GetState(), audio.GetReasonCode())
 	}
+	transcribe := requireExecutionCapabilityReadiness(t, snapshot, runtimeAgentAIConfigCapabilityAudioTranscribe)
+	if transcribe.GetState() != runtimev1.RuntimeAgentAIConfigReadinessState_RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED {
+		t.Fatalf("expected absent audio.transcribe NOT_CONFIGURED, got %v (%q)", transcribe.GetState(), transcribe.GetReasonCode())
+	}
 }
 
 func TestAgentAIConfigReadinessTransitionsOnImageBindingUpsert(t *testing.T) {

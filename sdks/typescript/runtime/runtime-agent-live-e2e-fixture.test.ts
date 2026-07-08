@@ -16,21 +16,139 @@ import {
   VoiceReferenceKind,
 } from '../core-generated/runtime-typed-client';
 import { createNimiRuntimeEmbeddingClient, toRuntimeDurableTargetRef } from '../core/ai';
-import { runNimiRuntimeImageGeneration } from '../features/generation';
+import {
+  runNimiRuntimeImageGeneration,
+  runNimiRuntimeSpeechTranscription,
+} from '../features/generation';
 import { createNimiRuntimeAppSessionMetadataProvider } from './app-session';
 import { withNimiRuntimeAgentScopes } from './runtime-agent-protected';
 import { issueNimiRuntimeAgentScopedBinding } from './runtime-agent-scoped-binding';
-import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
+import { runNimiRuntimeScenarioJob, withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import {
   SOURCE_MATERIALIZATION_AUDIENCE,
   withRuntimeAgentLiveE2EFixture,
 } from './runtime-agent-live-e2e-fixture.test-helper';
+import {
+  runtimeAgentLiveE2EChatScenarioPrompt,
+  withRealmFixtureServer,
+} from './runtime-agent-live-e2e-fixture-realm-server.test-helper';
 import {
   createFixtureRuntimeAgentClient,
   createRuntimeForEndpoint,
 } from './runtime-agent-live-e2e-fixture-runtime.test-helper';
 import { createNimiRuntimeAgentVoiceModule } from './runtime-agent-voice';
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
+
+test('runtime agent live e2e fixture selects chat completion scenarios from registry markers', async () => {
+  await withRealmFixtureServer(async ({ baseUrl, requests }) => {
+    const response = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        stream: true,
+        messages: [{
+          role: 'user',
+          content: runtimeAgentLiveE2EChatScenarioPrompt('b-stream-delta'),
+        }],
+      }),
+    });
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type') || '', /^text\/event-stream/u);
+    const payload = await response.text();
+    const events = payload
+      .split('\n\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('data: {'));
+    assert.equal(events.length > 2, true, 'char-split scenario must stream multiple SSE chunks');
+    const streamedContent = events
+      .map((line) => JSON.parse(line.replace(/^data:\s*/u, '')) as {
+        readonly choices?: readonly [{
+          readonly delta?: { readonly content?: string };
+        }];
+      })
+      .map((event) => event.choices?.[0]?.delta?.content ?? '')
+      .join('');
+    assert.match(streamedContent, /Streaming delta text arrives/u);
+    assert.equal(requests[0]?.path, '/v1/chat/completions');
+
+    const repairResponse = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        stream: false,
+        messages: [{
+          role: 'system',
+          content: 'Runtime APML repair task:\nRuntime output contract: <message id="message-0">assistant-visible reply text</message>',
+        }, {
+          role: 'user',
+          parts: [{
+            type: 'text',
+            text: 'Malformed APML packet:\n<message id="message-a-malformed-apml"><activity>thinking</activity>A-09 malformed APML.',
+          }],
+        }],
+      }),
+    });
+    assert.equal(repairResponse.status, 200);
+    const repairPayload = await repairResponse.json() as {
+      readonly choices?: readonly [{
+        readonly message?: { readonly content?: string };
+      }];
+    };
+    assert.match(repairPayload.choices?.[0]?.message?.content ?? '', /message-a-malformed-apml-repair/u);
+
+    const anonymousRepairResponse = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        stream: false,
+        messages: [{
+          role: 'system',
+          content: 'Runtime APML repair task:\nRuntime output contract: <message id="message-0">assistant-visible reply text</message>',
+        }, {
+          role: 'user',
+          content: 'Malformed APML packet:\n<message><activity>thinking</activity>A-09 malformed APML.',
+        }],
+      }),
+    });
+    assert.equal(anonymousRepairResponse.status, 200);
+    const anonymousRepairPayload = await anonymousRepairResponse.json() as {
+      readonly choices?: readonly [{
+        readonly message?: { readonly content?: string };
+      }];
+    };
+    assert.match(anonymousRepairPayload.choices?.[0]?.message?.content ?? '', /message-a-malformed-apml-repair/u);
+
+    const sidecarResponse = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        stream: false,
+        messages: [{
+          role: 'system',
+          content: 'You are the runtime-private Chat Track sidecar executor for Nimi Agent Core.',
+        }, {
+          role: 'user',
+          content: `Current chat transcript: ${runtimeAgentLiveE2EChatScenarioPrompt('a-malformed-apml')}`,
+        }],
+      }),
+    });
+    assert.equal(sidecarResponse.status, 200);
+    const sidecarPayload = await sidecarResponse.json() as {
+      readonly choices?: readonly [{
+        readonly message?: { readonly content?: string };
+      }];
+    };
+    assert.match(sidecarPayload.choices?.[0]?.message?.content ?? '', /^<chat-track-sidecar>/u);
+  });
+});
 
 test('runtime agent live e2e fixture mints source packet through Runtime-mediated Realm', {
   timeout: 180_000,
@@ -257,6 +375,69 @@ test('runtime agent live e2e fixture returns SDK-owned image route projection an
   });
 });
 
+test('runtime agent live e2e fixture returns SDK-owned transcription route projection and executes speech transcription', {
+  timeout: 180_000,
+}, async () => {
+  await withRuntimeAgentLiveE2EFixture({
+    run: async (fixture) => {
+      assert.equal(fixture.transcriptionRoute.capability, 'audio.transcribe');
+      assert.equal(fixture.transcriptionRoute.selectedTargetRefKind, 'cloud-connector');
+      assert.match(fixture.transcriptionRoute.resolvedBindingRef, /^cloud:audio\.transcribe:/);
+      assert.equal(fixture.transcriptionRoute.executionBinding.route, 'cloud');
+      assert.equal(fixture.transcriptionRoute.executionBinding.modelId, 'gpt-4o-mini-transcribe-runtime-live');
+      assert.ok(fixture.transcriptionRoute.executionBinding.connectorId, 'transcription route must expose connector execution binding');
+
+      const appSessionMetadata = await createNimiRuntimeAppSessionMetadataProvider({
+        appId: 'nimi.desktop',
+        appInstanceId: 'nimi.desktop.local-first-party',
+        deviceId: 'desktop-shell',
+        capabilities: ['ai.spend.meter'],
+        auth: fixture.runtime.auth,
+      })();
+      const result = await withNimiRuntimeAgentScopes({
+        runtime: {
+          appId: 'nimi.desktop',
+          auth: fixture.runtime.auth,
+          appAuth: fixture.runtime.grants,
+        },
+        subjectUserId: fixture.ownerUserId,
+      }, ['ai.spend.meter'], async (callOptions) => runNimiRuntimeSpeechTranscription({
+        runtime: { ai: fixture.runtime.ai },
+        head: {
+          appId: 'nimi.desktop',
+          subjectUserId: fixture.ownerUserId,
+          routePolicy: fixture.transcriptionRoute.executionBinding.route,
+          modelId: fixture.transcriptionRoute.executionBinding.modelId,
+          targetRef: toRuntimeDurableTargetRef(fixture.transcriptionRoute.targetRef),
+          timeoutMs: 60_000,
+        },
+        audio: { type: 'bytes', bytes: new Uint8Array([82, 73, 70, 70, 1, 2, 3, 4]) },
+        mimeType: 'audio/wav',
+        responseFormat: 'json',
+        requestId: 'runtime-agent-live-e2e-transcription',
+        idempotencyKey: 'runtime-agent-live-e2e-transcription',
+        callOptions: {
+          ...callOptions,
+          metadata: {
+            ...appSessionMetadata,
+            ...(callOptions.metadata ?? {}),
+          },
+        },
+      }));
+      assert.equal(result.job.status, ScenarioJobStatus.COMPLETED);
+      assert.equal(result.text, 'Runtime live fixture transcript.');
+      assert.equal(
+        fixture.realmRequests.some((request) =>
+          request.method === 'POST'
+          && request.path === '/v1/audio/transcriptions'
+        ),
+        true,
+        'speech transcription fixture must execute through /v1/audio/transcriptions',
+      );
+    },
+  });
+});
+
 test('runtime agent live e2e fixture returns SDK-owned native voice route projection and streams speech', {
   timeout: 180_000,
 }, async () => {
@@ -368,6 +549,77 @@ test('runtime agent live e2e fixture returns SDK-owned native voice route projec
         ),
         true,
         'voice fixture must create custom voice through Runtime voice workflow before synthesis',
+      );
+
+      const batchResult = await withNimiRuntimeAgentScopes({
+        runtime: {
+          appId: 'nimi.desktop',
+          auth: fixture.runtime.auth,
+          appAuth: fixture.runtime.grants,
+        },
+        subjectUserId: fixture.ownerUserId,
+      }, ['ai.spend.meter'], async (callOptions) => runNimiRuntimeScenarioJob({
+        ai: fixture.runtime.ai,
+        request: {
+          head: {
+            appId: 'nimi.desktop',
+            subjectUserId: fixture.ownerUserId,
+            routePolicy: RoutePolicy.CLOUD,
+            modelId: fixture.voiceRoute.executionBinding.modelId,
+            fallback: 0,
+            timeoutMs: 60_000,
+            connectorId: '',
+            targetRef: toRuntimeDurableTargetRef(fixture.voiceRoute.targetRef),
+          },
+          scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
+          executionMode: ExecutionMode.ASYNC_JOB,
+          idempotencyKey: 'runtime-agent-live-e2e-native-voice-batch',
+          spec: {
+            spec: {
+              oneofKind: 'speechSynthesize',
+              speechSynthesize: {
+                text: 'hello from the DashScope native voice batch fixture',
+                language: 'zh',
+                audioFormat: 'wav',
+                sampleRateHz: 16_000,
+                speed: 0,
+                pitch: 0,
+                volume: 0,
+                emotion: '',
+                timingMode: SpeechTimingMode.WORD,
+                voiceRef: {
+                  kind: VoiceReferenceKind.VOICE_ASSET,
+                  reference: {
+                    oneofKind: 'voiceAssetId',
+                    voiceAssetId: fixture.voiceAsset.voiceAssetId,
+                  },
+                },
+              },
+            },
+          },
+          extensions: [],
+        },
+        callOptions: {
+          ...callOptions,
+          metadata: {
+            ...appSessionMetadata,
+            ...(callOptions.metadata ?? {}),
+          },
+        },
+      }));
+      assert.equal(batchResult.job.status, ScenarioJobStatus.COMPLETED);
+      assert.equal(batchResult.artifacts.length, 1);
+      assert.equal(batchResult.artifacts[0]?.mimeType, 'audio/wav');
+      assert.equal((batchResult.artifacts[0]?.bytes?.byteLength ?? 0) > 0, true);
+      assert.equal(
+        fixture.realmRequests.some((request) =>
+          request.method === 'POST'
+          && request.path === '/api/v1/services/aigc/multimodal-generation/generation'
+          && request?.body?.model === fixture.voiceRoute.executionBinding.modelId
+          && request?.body?.input?.voice === 'runtime-live-voice'
+        ),
+        true,
+        'voice fixture must support Runtime DashScope native TTS batch render endpoint',
       );
     },
   });

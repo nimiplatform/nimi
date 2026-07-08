@@ -11,7 +11,7 @@ import {
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import type { ScopedRuntimeBindingAttachment } from '../core-generated/runtime-protobuf/runtime/v1/common';
-import { createNimiError, ReasonCode, type JsonObject } from '../types';
+import { createNimiClientId, createNimiError, ReasonCode, type JsonObject } from '../types';
 import {
   buildRuntimeAgentRequestContext,
   projectRuntimeLocalAgentIdentity,
@@ -33,6 +33,7 @@ import {
   type NimiRuntimeAgentScopeRunner,
 } from './runtime-agent-protected';
 import { normalizeNimiRuntimeAgentText, toNimiRuntimeIsoFromTimestamp, toNimiRuntimeProtoStruct } from './runtime-agent-values';
+import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import type {
   NimiRuntimeAgentConsumeRequest,
   NimiRuntimeAgentMessage,
@@ -100,6 +101,20 @@ function optionalString(value: unknown): string | undefined {
 
 function optionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function mergeRuntimeAgentTurnCallOptions(
+  left: RuntimeTypedCallOptions | undefined,
+  right: RuntimeTypedCallOptions | undefined,
+): RuntimeTypedCallOptions {
+  return {
+    ...(left ?? {}),
+    ...(right ?? {}),
+    metadata: {
+      ...(left?.metadata ?? {}),
+      ...(right?.metadata ?? {}),
+    },
+  };
 }
 
 function requireConversationAnchorId(anchorId: unknown, actionHint = 'open_runtime_agent_anchor_first'): string {
@@ -592,6 +607,21 @@ export function createNimiRuntimeAgentTurnsModule(
           fromAppIds: [RUNTIME_AGENT_APP_ID],
         }, callOptions),
       );
+      const agentStream = await withTurnScopes(options, subjectUserId, [AGENT_READ_SCOPE], async (callOptions) =>
+        runtime.agents.subscribeAgentEvents({
+          agentId: '',
+          cursor: '',
+          eventFilters: [AgentEventType.PRESENTATION],
+          context: requestContext({
+            runtimeAppId: runtime.appId,
+            subjectUserId,
+            ownerUserId: identity.ownerUserId,
+            runtimeSourceRef: identity.runtimeSourceRef,
+            localAgentRef: identity.localAgentRef,
+            scopedBinding,
+          }),
+        }, callOptions),
+      );
       const payload = toNimiRuntimeProtoStruct({
         conversation_anchor_id: conversationAnchorId,
         turn_id: turnId,
@@ -599,6 +629,10 @@ export function createNimiRuntimeAgentTurnsModule(
         ...(optionalString(request.text) ? { text: optionalString(request.text) } : {}),
         playback_target: playbackTarget,
       });
+      const voiceRenderOptions = withNimiRuntimeIdempotencyMetadata(
+        undefined,
+        optionalString(request.idempotencyKey) || createNimiClientId('runtime-agent-voice-render'),
+      );
       const response = await withTurnScopes(options, subjectUserId, [TURN_WRITE_SCOPE], async (callOptions) =>
         runtime.appMessages.sendAppMessage({
           fromAppId: runtime.appId,
@@ -608,13 +642,20 @@ export function createNimiRuntimeAgentTurnsModule(
           messageType: TURN_VOICE_RENDER_TYPE,
           payload,
           requireAck: false,
-        }, callOptions),
+        }, mergeRuntimeAgentTurnCallOptions(voiceRenderOptions, callOptions)),
       );
       assertAccepted(response, TURN_VOICE_RENDER_TYPE);
-      return waitForVoiceRenderProjection(appMessageEvents(appStream, {
-        ...identity,
-        conversationAnchorId,
-      }), {
+      const projectionStream = mergeAsyncIterables([
+        appMessageEvents(appStream, {
+          ...identity,
+          conversationAnchorId,
+        }),
+        agentEvents(agentStream, {
+          ...identity,
+          conversationAnchorId,
+        }),
+      ]);
+      return waitForVoiceRenderProjection(projectionStream, {
         conversationAnchorId,
         turnId,
         messageId,

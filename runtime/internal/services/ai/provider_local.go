@@ -163,7 +163,17 @@ func (p *localProvider) StreamGenerateTextScenarioRich(
 	spec *runtimev1.TextGenerateScenarioSpec,
 	handler nimillm.TextStreamEventHandler,
 ) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	return p.StreamGenerateTextScenario(ctx, modelID, spec, handler.OnText)
+	if spec == nil {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	backend, resolvedModelID, explicit, ok := p.pickTextBackend(modelID)
+	if explicit && !ok {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH)
+	}
+	if backend != nil {
+		return backend.StreamGenerateTextRich(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), nimillm.BuildTextGenParams(spec), handler)
+	}
+	return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
 func (p *localProvider) pickAvailabilityBackend(modelID string) (*nimillm.Backend, string, bool, bool) {

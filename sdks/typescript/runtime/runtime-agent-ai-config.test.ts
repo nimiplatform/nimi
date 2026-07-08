@@ -460,6 +460,12 @@ test('AI Config readiness projects typed states and fails closed on unknown stat
               probedAt: { seconds: '1700000000', nanos: 0 },
             },
             {
+              capability: 'audio.transcribe',
+              state: RuntimeAgentAIConfigReadinessState.RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_NOT_CONFIGURED,
+              reasonCode: '',
+              probedAt: { seconds: '1700000000', nanos: 0 },
+            },
+            {
               capability: 'text.embed',
               state: RuntimeAgentAIConfigReadinessState.RUNTIME_AGENT_AI_CONFIG_READINESS_STATE_UNAVAILABLE,
               reasonCode: 'embedding_profile_unavailable',
@@ -496,12 +502,15 @@ test('AI Config readiness projects typed states and fails closed on unknown stat
     ['text.generate', 'ready'],
     ['image.generate', 'not_configured'],
     ['audio.synthesize', 'not_configured'],
+    ['audio.transcribe', 'not_configured'],
     ['text.embed', 'unavailable'],
     ['voice_workflow.voice_clone', 'unavailable'],
     ['voice_workflow.voice_design', 'unavailable'],
     ['image.generate', 'unavailable'],
   ]);
-  assert.deepEqual(readiness.capabilities.slice(3).map((entry) => entry.reasonCode), [
+  assert.deepEqual(readiness.capabilities
+    .filter((entry) => entry.state === 'unavailable')
+    .map((entry) => entry.reasonCode), [
     'embedding_profile_unavailable',
     'voice_reference_missing',
     'voice_workflow_unavailable',

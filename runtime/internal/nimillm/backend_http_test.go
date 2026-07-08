@@ -72,6 +72,61 @@ func TestBackendStreamGenerateTextBrokenChunkReturnsReasonCode(t *testing.T) {
 	}
 }
 
+func TestBackendStreamGenerateTextRichKeepsReasoningSeparate(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"reasoning_content":"checking route"},"finish_reason":null}]}` + "\n\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"content":"hello"},"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":1,"total_tokens":3}}` + "\n\n"))
+		_, _ = w.Write([]byte("data: [DONE]\n\n"))
+	}))
+	defer func() { server.Close() }()
+
+	backend := NewBackend("openai", server.URL, "", 5*time.Second)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+
+	var textParts []string
+	var reasoningParts []string
+	usage, finish, err := backend.StreamGenerateTextRich(
+		context.Background(),
+		"gpt-4o-mini",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		0,
+		textGenParams{},
+		TextStreamEventHandler{
+			OnText: func(text string) error {
+				if text != "" {
+					textParts = append(textParts, text)
+				}
+				return nil
+			},
+			OnReasoning: func(text string) error {
+				reasoningParts = append(reasoningParts, text)
+				return nil
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected stream error: %v", err)
+	}
+	if finish != runtimev1.FinishReason_FINISH_REASON_STOP {
+		t.Fatalf("unexpected finish reason: %v", finish)
+	}
+	if usage == nil || usage.GetInputTokens() != 2 || usage.GetOutputTokens() != 1 {
+		t.Fatalf("unexpected usage: %+v", usage)
+	}
+	if got, want := strings.Join(textParts, ""), "hello"; got != want {
+		t.Fatalf("text parts mismatch: got=%q want=%q", got, want)
+	}
+	if got, want := strings.Join(reasoningParts, ""), "checking route"; got != want {
+		t.Fatalf("reasoning parts mismatch: got=%q want=%q", got, want)
+	}
+}
+
 func TestBackendGenerateTextUsesFlexibleMessageExtraction(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

@@ -23,6 +23,7 @@ export type RuntimeAgentLiveE2ERealmRequest = {
   readonly query: string;
   readonly authorization: string;
   readonly body: unknown;
+  fixtureScenarioApml?: string;
 };
 
 export type RuntimeAgentLiveE2EFixtureContext = {
@@ -41,6 +42,7 @@ export type RuntimeAgentLiveE2EFixtureContext = {
   readonly route: RuntimeAgentLiveE2ERouteProjection;
   readonly embeddingRoute: RuntimeAgentLiveE2ERouteProjection;
   readonly imageRoute: RuntimeAgentLiveE2ERouteProjection;
+  readonly transcriptionRoute: RuntimeAgentLiveE2ERouteProjection;
   readonly voiceRoute: RuntimeAgentLiveE2ERouteProjection;
   readonly voiceAsset: RuntimeAgentLiveE2EVoiceAssetProjection;
   readonly sourceRef: NimiRealmCoreSourceRef;
@@ -56,7 +58,7 @@ export type RuntimeAgentLiveE2EFixtureContext = {
 };
 
 export type RuntimeAgentLiveE2ERouteProjection = {
-  readonly capability: 'text.generate' | 'text.embed' | 'image.generate' | 'audio.synthesize';
+  readonly capability: 'text.generate' | 'text.embed' | 'image.generate' | 'audio.synthesize' | 'audio.transcribe';
   readonly selectedTargetRefKind: string;
   readonly resolvedBindingRef: string;
   readonly targetRef: NimiRuntimeRouteTargetRef;
@@ -111,6 +113,7 @@ export const LOCAL_EMBED_DIMENSIONS = 4;
 export const FIXTURE_IMAGE_PROVIDER = 'openai';
 export const FIXTURE_IMAGE_MODEL_ID = 'gpt-image-1.5';
 export const FIXTURE_IMAGE_CONNECTOR_LABEL = 'Runtime Agent live image fixture';
+export const FIXTURE_TRANSCRIPTION_MODEL_ID = 'gpt-4o-mini-transcribe-runtime-live';
 export const FIXTURE_VOICE_PROVIDER = 'dashscope';
 export const FIXTURE_VOICE_MODEL_ID = 'qwen3-tts-runtime-live-native-stream';
 export const FIXTURE_VOICE_CONNECTOR_LABEL = 'Runtime Agent live voice fixture';

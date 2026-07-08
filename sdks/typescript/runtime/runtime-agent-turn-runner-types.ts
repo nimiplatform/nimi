@@ -81,6 +81,7 @@ export type NimiRuntimeAgentTurnVoiceRenderRequest = RuntimeLocalAgentIdentityIn
   readonly subjectUserId?: string;
   readonly worldId?: string;
   readonly timeoutMs?: number;
+  readonly idempotencyKey?: string;
   readonly scopedBinding?: ScopedRuntimeBindingAttachment;
 };
 

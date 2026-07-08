@@ -40,6 +40,7 @@ import {
   FIXTURE_IMAGE_CONNECTOR_LABEL,
   FIXTURE_IMAGE_MODEL_ID,
   FIXTURE_IMAGE_PROVIDER,
+  FIXTURE_TRANSCRIPTION_MODEL_ID,
   FIXTURE_VOICE_CONNECTOR_LABEL,
   FIXTURE_VOICE_ID,
   FIXTURE_VOICE_MODEL_ID,
@@ -295,6 +296,30 @@ export async function resolveFixtureImageConnectorModel(
   return descriptor;
 }
 
+export async function resolveFixtureTranscriptionConnectorModel(
+  runtime: Runtime,
+  connectorId: string,
+): Promise<ConnectorModelDescriptor> {
+  const response = await runtime.connectors.listConnectorModels({
+    connectorId,
+    forceRefresh: false,
+    pageSize: 200,
+    pageToken: '',
+  }, liveIdempotencyOptions('list-transcription-connector-models'));
+  const descriptor = (response.models || []).find((model) =>
+    normalizeText(model.modelId) === FIXTURE_TRANSCRIPTION_MODEL_ID
+    && normalizeText(model.providerModelId) === FIXTURE_TRANSCRIPTION_MODEL_ID
+    && (model.capabilities || []).some((capability) => normalizeText(capability) === 'audio.transcribe')
+  );
+  if (!descriptor) {
+    throw new Error(`Runtime Agent live transcription connector model missing: ${JSON.stringify(response.models || [])}`);
+  }
+  if (!normalizeText(descriptor.remoteModelCatalogId)) {
+    throw new Error(`Runtime Agent live transcription connector model has no remote catalog id: ${JSON.stringify(descriptor)}`);
+  }
+  return descriptor;
+}
+
 export function seedRuntimeAgentLiveImageCatalogProvider(customDir: string): void {
   mkdirSync(customDir, { recursive: true });
   writeFileSync(join(customDir, `${FIXTURE_IMAGE_PROVIDER}.yaml`), fixtureImageCatalogProviderYaml());
@@ -381,6 +406,30 @@ models:
       supports_aspect_ratio: true
       supports_quality: true
       supports_style: true
+  - model_id: ${FIXTURE_TRANSCRIPTION_MODEL_ID}
+    provider: ${FIXTURE_IMAGE_PROVIDER}
+    model_type: stt
+    updated_at: "2026-07-06"
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: USD
+      as_of: "2026-07-06"
+      notes: Runtime Agent live fixture speech transcription.
+    source_ref:
+      url: http://127.0.0.1/runtime-agent-live-e2e/transcription-catalog
+      retrieved_at: "2026-07-06"
+      note: Runtime Agent live fixture speech transcription.
+    transcription:
+      tiers:
+        - core_transcript
+      response_formats:
+        - json
+      supports_language: true
+      supports_prompt: true
 `;
 }
 
@@ -499,9 +548,13 @@ function selectedTargetRefForFixtureCapability(
     readonly connectorModel?: ConnectorModelDescriptor;
   },
 ): NimiRuntimeRouteTargetRef {
-  if (capability === 'image.generate' || capability === 'audio.synthesize') {
-    const provider = capability === 'image.generate' ? FIXTURE_IMAGE_PROVIDER : FIXTURE_VOICE_PROVIDER;
-    const label = capability === 'image.generate' ? 'image' : 'voice';
+  if (capability === 'image.generate' || capability === 'audio.synthesize' || capability === 'audio.transcribe') {
+    const provider = capability === 'audio.synthesize' ? FIXTURE_VOICE_PROVIDER : FIXTURE_IMAGE_PROVIDER;
+    const label = capability === 'audio.synthesize'
+      ? 'voice'
+      : capability === 'audio.transcribe'
+        ? 'transcription'
+        : 'image';
     const connectorId = requireText(input.connectorId, `${label} connector id`);
     const model = input.connectorModel;
     if (!model) {

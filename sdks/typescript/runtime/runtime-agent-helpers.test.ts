@@ -430,6 +430,7 @@ test('Runtime Agent turn subscription does not treat zero timestamp as stale liv
 
 test('Runtime Agent turn helper requests committed-message voice render and resolves playable Runtime projection', async () => {
   const sendCalls: SendAppMessageRequest[] = [];
+  const sendOptions: RuntimeTypedCallOptions[] = [];
   const scopes: readonly string[][] = [];
   const voiceEvent = {
     messageType: 'runtime.agent.presentation.voice_playback_requested',
@@ -450,6 +451,7 @@ test('Runtime Agent turn helper requests committed-message voice render and reso
     }),
   } as AppMessageEvent;
   const appStream = new CancellableStream<AppMessageEvent>([voiceEvent]);
+  const agentStream = new CancellableStream<AgentEvent>([]);
   const module = createNimiRuntimeAgentTurnsModule({
     runtime: {
       appId: 'desktop',
@@ -459,13 +461,14 @@ test('Runtime Agent turn helper requests committed-message voice render and reso
         async getPublicChatSessionSnapshot() {
           return {};
         },
-        async *subscribeAgentEvents() {
-          yield undefined;
+        subscribeAgentEvents() {
+          return agentStream;
         },
       },
       appMessages: {
-        async sendAppMessage(request) {
+        async sendAppMessage(request, options) {
           sendCalls.push(request);
+          sendOptions.push(options ?? {});
           return { messageId: 'request-message-1', accepted: true, reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED };
         },
         subscribeAppMessages() {
@@ -488,12 +491,14 @@ test('Runtime Agent turn helper requests committed-message voice render and reso
     turnId: 'turn-1',
     messageId: 'message-1',
     text: 'Committed answer',
+    idempotencyKey: 'voice-render-test-1',
   });
 
   assert.equal(result.status, 'ready');
   assert.equal(result.status === 'ready' ? result.audioArtifactId : '', 'artifact-audio-1');
   assert.deepEqual(scopes, [
     ['runtime.agent.turn.read'],
+    ['runtime.agent.read'],
     ['runtime.agent.turn.write'],
   ]);
   assert.equal(sendCalls[0]?.messageType, 'runtime.agent.turn.voice_render');
@@ -505,11 +510,26 @@ test('Runtime Agent turn helper requests committed-message voice render and reso
     text: 'Committed answer',
     playback_target: 'desktop_manual',
   });
+  assert.equal(sendOptions[0]?.metadata?.idempotencyKey, 'voice-render-test-1');
+  assert.equal(sendOptions[0]?.metadata?.['x-nimi-idempotency-key'], 'voice-render-test-1');
+  assert.equal(sendOptions[0]?.metadata?.scoped, 'runtime.agent.turn.write');
   assert.equal(appStream.returnCount, 1);
+  assert.equal(agentStream.returnCount, 1);
 });
 
-test('Runtime Agent turn helper reports text_only when Runtime emits no playable voice projection', async () => {
+test('Runtime Agent turn helper resolves voice render projection from Agent presentation events when app stream has no live tail', async () => {
   const appStream = new CancellableStream<AppMessageEvent>([]);
+  const agentStream = new CancellableStream<AgentEvent>([
+    voicePlaybackRequestedAgentEvent({
+      conversationAnchorId: 'anchor-1',
+      turnId: 'turn-1',
+      streamId: 'stream-1',
+      messageId: 'message-1',
+      audioArtifactId: 'artifact-agent-audio-1',
+      audioMimeType: 'audio/wav',
+      playbackTarget: 'desktop_manual',
+    }),
+  ]);
   const module = createNimiRuntimeAgentTurnsModule({
     runtime: {
       appId: 'desktop',
@@ -519,8 +539,52 @@ test('Runtime Agent turn helper reports text_only when Runtime emits no playable
         async getPublicChatSessionSnapshot() {
           return {};
         },
-        async *subscribeAgentEvents() {
-          yield undefined;
+        subscribeAgentEvents() {
+          return agentStream;
+        },
+      },
+      appMessages: {
+        async sendAppMessage() {
+          return { messageId: 'request-message-1', accepted: true, reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED };
+        },
+        subscribeAppMessages() {
+          return appStream;
+        },
+      },
+    },
+    getSubjectUserId: () => 'user-1',
+    withScopes: async (_nextScopes, operation) => operation({}),
+  });
+
+  const result = await module.renderVoice({
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    conversationAnchorId: 'anchor-1',
+    turnId: 'turn-1',
+    messageId: 'message-1',
+  });
+
+  assert.equal(result.status, 'ready');
+  assert.equal(result.status === 'ready' ? result.audioArtifactId : '', 'artifact-agent-audio-1');
+  assert.equal(appStream.returnCount, 1);
+  assert.equal(agentStream.returnCount, 1);
+});
+
+test('Runtime Agent turn helper reports text_only when Runtime emits no playable voice projection', async () => {
+  const appStream = new CancellableStream<AppMessageEvent>([]);
+  const agentStream = new CancellableStream<AgentEvent>([]);
+  const module = createNimiRuntimeAgentTurnsModule({
+    runtime: {
+      appId: 'desktop',
+      auth: protectedAuth(),
+      appAuth: protectedAppAuth(),
+      agents: {
+        async getPublicChatSessionSnapshot() {
+          return {};
+        },
+        subscribeAgentEvents() {
+          return agentStream;
         },
       },
       appMessages: {
@@ -551,6 +615,7 @@ test('Runtime Agent turn helper reports text_only when Runtime emits no playable
     reason: 'voice_projection_unavailable',
   });
   assert.equal(appStream.returnCount, 1);
+  assert.equal(agentStream.returnCount, 1);
 });
 
 test('Runtime Agent voice helper consumes typed stream and replays only audio artifacts', async () => {
@@ -1304,6 +1369,70 @@ test('Runtime Agent lifecycle discovers source provenance without caller runtime
   assert.deepEqual(calls.map((call) => call.method), ['listAgents']);
   assert.equal(calls[0]?.options?.metadata?.scopes, 'runtime.agent.read');
 });
+
+function voicePlaybackRequestedAgentEvent(input: {
+  readonly conversationAnchorId: string;
+  readonly turnId: string;
+  readonly streamId: string;
+  readonly messageId: string;
+  readonly audioArtifactId: string;
+  readonly audioMimeType: string;
+  readonly playbackTarget: string;
+}): AgentEvent {
+  return {
+    eventType: AgentEventType.PRESENTATION,
+    sequence: '20',
+    agentId: LOCAL_AGENT_REF,
+    localAgentRef: LOCAL_AGENT_REF,
+    ownerUserId: OWNER_USER_ID,
+    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    timestamp: toNimiRuntimeTimestamp(Date.now()),
+    detail: {
+      oneofKind: 'presentation',
+      presentation: {
+        family: AgentPresentationEventFamily.VOICE_PLAYBACK_REQUESTED,
+        conversationAnchorId: input.conversationAnchorId,
+        turnId: input.turnId,
+        streamId: input.streamId,
+        activityName: '',
+        activityCategory: '',
+        activityIntensity: '',
+        activitySource: '',
+        motionId: '',
+        motionPriority: '',
+        motionExpectedDurationMs: '0',
+        expressionId: '',
+        expressionExpectedDurationMs: '0',
+        poseId: '',
+        poseExpectedDurationMs: '0',
+        previousPoseId: '',
+        lookatTargetKind: '',
+        lookatX: 0,
+        lookatY: 0,
+        lookatZ: 0,
+        lookatHasX: false,
+        lookatHasY: false,
+        lookatHasZ: false,
+        audioArtifactId: input.audioArtifactId,
+        audioMimeType: input.audioMimeType,
+        voiceStreamId: '',
+        chunkTransportRef: '',
+        messageId: input.messageId,
+        chunkSequence: '0',
+        finalChunk: true,
+        voiceOutputMode: VoiceOutputMode.BATCH_FINAL_ARTIFACT,
+        voicePlaybackState: VoicePlaybackState.ACTIVE,
+        playbackTarget: input.playbackTarget,
+        finalArtifact: true,
+        terminalReason: '',
+        reason: 'manual_render_requested',
+        durationMs: '1000',
+        deadlineOffsetMs: '0',
+        finalArtifactId: '',
+      },
+    },
+  };
+}
 
 class CancellableStream<T> implements AsyncIterable<T> {
   private readonly values: T[];

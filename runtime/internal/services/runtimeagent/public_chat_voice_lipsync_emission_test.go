@@ -550,6 +550,202 @@ func TestPublicChatCommittedTurnEmitsNativeVoiceStreamChunksBeforeFinalArtifact(
 	}
 }
 
+func TestPublicChatCommittedTurnEmitsNativeVoiceFailedTerminalAfterProviderFailure(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
+	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", true)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	capture := newPublicChatEmitCapture()
+	svc.SetPublicChatAppEmitter(capture.emit)
+	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
+	presentationCursor := svc.sequence
+
+	voiceAI := &fakeVoiceLipsyncScenarioExecutor{
+		modelResolved: "speech/qwen3tts-native-failed",
+		streamEvents: []*runtimev1.StreamScenarioEvent{
+			{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				Payload: &runtimev1.StreamScenarioEvent_Started{
+					Started: &runtimev1.ScenarioStreamStarted{
+						ModelResolved:   "speech/qwen3tts-native-failed",
+						RouteDecision:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+						VoiceOutputMode: runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
+					},
+				},
+			},
+			nativeVoiceArtifactDeltaEvent([]byte("RIFF-native-failed-1")),
+			{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
+				Payload: &runtimev1.StreamScenarioEvent_Failed{
+					Failed: &runtimev1.ScenarioStreamFailed{
+						ReasonCode: runtimev1.ReasonCode_AI_STREAM_BROKEN,
+						ActionHint: "provider native stream failed after chunk",
+					},
+				},
+			},
+		},
+	}
+	svc.SetVoiceLipsyncScenarioExecutor(voiceAI, "", runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED)
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{
+		stream: func(_ context.Context, _ *PublicChatTurnExecutionRequest, emit func(*runtimev1.StreamScenarioEvent) error) error {
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
+				Payload: &runtimev1.StreamScenarioEvent_Started{
+					Started: &runtimev1.ScenarioStreamStarted{
+						ModelResolved: "qwen3-chat",
+						RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+					},
+				},
+			}); err != nil {
+				return err
+			}
+			if err := emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				Payload: &runtimev1.StreamScenarioEvent_Delta{
+					Delta: &runtimev1.ScenarioStreamDelta{
+						Delta: &runtimev1.ScenarioStreamDelta_Text{
+							Text: &runtimev1.TextStreamDelta{Text: publicChatStructuredEnvelopeAPML("message-native-voice-failed-1", "Native voice stream should fail after its first chunk.")},
+						},
+					},
+				},
+			}); err != nil {
+				return err
+			}
+			return emit(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
+				Payload: &runtimev1.StreamScenarioEvent_Completed{
+					Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP},
+				},
+			})
+		},
+	})
+
+	if err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:       publicChatRuntimeAppID,
+		FromAppId:     "desktop.app",
+		SubjectUserId: "user-1",
+		MessageType:   publicChatTurnRequestType,
+		Payload: publicChatStructPayload(t, map[string]any{
+			"local_agent_ref":        testRuntimeAgentLocalRef("agent-alpha"),
+			"owner_user_id":          "user-1",
+			"runtime_source_ref":     "agent-alpha",
+			"conversation_anchor_id": anchorID,
+			"request_id":             "native-voice-failed-request-1",
+			"messages": []any{
+				map[string]any{"role": "user", "content": "hello failed native voice"},
+			},
+		}),
+	}); err != nil {
+		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
+	}
+
+	accepted := capture.waitForMessageType(t, publicChatTurnAcceptedType)
+	chunk := capture.waitForMessageType(t, publicChatPresentationVoiceStreamChunkType)
+	terminal := capture.waitForMessageType(t, publicChatPresentationVoicePlaybackTerminalType)
+	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
+
+	acceptedPayload := publicChatPayloadMap(t, accepted)
+	turnID := strings.TrimSpace(acceptedPayload["turn_id"].(string))
+	streamID := strings.TrimSpace(acceptedPayload["stream_id"].(string))
+	chunkPayload := publicChatPayloadMap(t, chunk)
+	terminalPayload := publicChatPayloadMap(t, terminal)
+	requirePublicChatTimelineEnvelope(t, chunkPayload, turnID, streamID, publicChatTimelineChannelVoice, "K-AGCORE-133")
+	requirePublicChatTimelineEnvelope(t, terminalPayload, turnID, streamID, publicChatTimelineChannelVoice, "K-AGCORE-133")
+
+	chunkDetail := chunkPayload["detail"].(map[string]any)
+	terminalDetail := terminalPayload["detail"].(map[string]any)
+	voiceStreamID := strings.TrimSpace(chunkDetail["voice_stream_id"].(string))
+	if voiceStreamID == "" {
+		t.Fatalf("native failed chunk must expose voice_stream_id: %#v", chunkDetail)
+	}
+	if got := strings.TrimSpace(chunkDetail["voice_output_mode"].(string)); got != "native_stream" {
+		t.Fatalf("native failed chunk voice_output_mode = %q, detail=%#v", got, chunkDetail)
+	}
+	if got := strings.TrimSpace(chunkDetail["voice_playback_state"].(string)); got != "active" {
+		t.Fatalf("native failed chunk voice_playback_state = %q, detail=%#v", got, chunkDetail)
+	}
+	if finalChunk, ok := chunkDetail["final_chunk"].(bool); !ok || finalChunk {
+		t.Fatalf("native failed first chunk must be non-final, got %v", chunkDetail["final_chunk"])
+	}
+	if _, ok := chunkDetail["audio_artifact_id"]; ok {
+		t.Fatalf("native failed non-final chunk must not claim durable artifact: %#v", chunkDetail)
+	}
+	if got := strings.TrimSpace(terminalDetail["voice_stream_id"].(string)); got != voiceStreamID {
+		t.Fatalf("native failed terminal voice_stream_id drift: want %s got %#v", voiceStreamID, terminalDetail)
+	}
+	if got := strings.TrimSpace(terminalDetail["voice_output_mode"].(string)); got != "native_stream" {
+		t.Fatalf("native failed terminal voice_output_mode = %q, detail=%#v", got, terminalDetail)
+	}
+	if got := strings.TrimSpace(terminalDetail["voice_playback_state"].(string)); got != "failed" {
+		t.Fatalf("native failed terminal voice_playback_state = %q, detail=%#v", got, terminalDetail)
+	}
+	if got := strings.TrimSpace(terminalDetail["terminal_reason"].(string)); got != "native_stream_failed" {
+		t.Fatalf("native failed terminal reason = %q, detail=%#v", got, terminalDetail)
+	}
+	if _, ok := terminalDetail["final_artifact_id"]; ok {
+		t.Fatalf("native failed terminal must not claim final replay artifact: %#v", terminalDetail)
+	}
+	for _, messageType := range capture.messageTypes() {
+		if messageType == publicChatPresentationVoicePlaybackRequestedType ||
+			messageType == publicChatPresentationLipsyncFrameBatchType {
+			t.Fatalf("failed native voice stream must not emit final playback/lipsync events, got %v", capture.messageTypes())
+		}
+	}
+
+	presentationStream := newAgentEventCaptureStreamLimit(context.Background(), 2)
+	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
+		AgentId:      "agent-alpha",
+		Cursor:       encodeCursor(presentationCursor),
+		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_PRESENTATION},
+	}, presentationStream); err != context.Canceled {
+		t.Fatalf("SubscribeAgentEvents(presentation voice failed): %v", err)
+	}
+	if len(presentationStream.events) != 2 {
+		t.Fatalf("expected failed native chunk and terminal presentation events, got %d events: %#v", len(presentationStream.events), presentationStream.events)
+	}
+	presentationTerminal := presentationStream.events[1].GetPresentation()
+	if presentationTerminal.GetFamily() != runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL ||
+		presentationTerminal.GetVoiceStreamId() != voiceStreamID ||
+		presentationTerminal.GetFinalArtifactId() != "" ||
+		presentationTerminal.GetVoiceOutputMode() != runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM ||
+		presentationTerminal.GetVoicePlaybackState() != runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_FAILED ||
+		presentationTerminal.GetTerminalReason() != "native_stream_failed" {
+		t.Fatalf("native failed presentation terminal mismatch: %#v", presentationTerminal)
+	}
+
+	voiceStream := newAgentVoiceStreamCaptureStreamLimit(context.Background(), 2)
+	voiceStreamCtx := testRuntimeAgentIdentityContext("agent-alpha")
+	voiceStreamCtx.AppId = "desktop.app"
+	if err := svc.SubscribeAgentVoiceStream(&runtimev1.SubscribeAgentVoiceStreamRequest{
+		Context:              voiceStreamCtx,
+		VoiceStreamId:        voiceStreamID,
+		ConversationAnchorId: anchorID,
+		TurnId:               turnID,
+	}, voiceStream); err != nil {
+		t.Fatalf("SubscribeAgentVoiceStream(failed native): %v", err)
+	}
+	if len(voiceStream.events) != 2 {
+		t.Fatalf("expected first chunk plus failed terminal, got %d events: %#v", len(voiceStream.events), voiceStream.events)
+	}
+	if got := string(voiceStream.events[0].GetChunk()); got != "RIFF-native-failed-1" {
+		t.Fatalf("typed stream failed first chunk = %q", got)
+	}
+	if !voiceStream.events[1].GetTerminal() ||
+		voiceStream.events[1].GetVoicePlaybackState() != runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_FAILED ||
+		voiceStream.events[1].GetVoiceOutputMode() != runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM ||
+		voiceStream.events[1].GetTerminalReason() != "native_stream_failed" {
+		t.Fatalf("typed stream failed terminal mismatch: %#v", voiceStream.events[1])
+	}
+	if voiceAI.submitReq != nil {
+		t.Fatalf("failed native stream path must not submit async batch job")
+	}
+	if voiceAI.streamReq == nil || voiceAI.streamReq.GetExecutionMode() != runtimev1.ExecutionMode_EXECUTION_MODE_STREAM {
+		t.Fatalf("expected failed native voice StreamScenario request, got %#v", voiceAI.streamReq)
+	}
+}
+
 func TestPublicChatNativeVoicePlaybackInterruptCancelsStreamAndEmitsTerminalTruth(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -1136,10 +1332,10 @@ func (f *idempotentVoiceLipsyncScenarioExecutor) GetScenarioArtifacts(_ context.
 func publicChatVoicePolicyMetadata(t *testing.T, avatarAutoplay bool) *structpb.Struct {
 	t.Helper()
 	metadata, err := structpb.NewStruct(map[string]any{
-			"realm_profile_context": map[string]any{
-				"avatar_autoplay":         avatarAutoplay,
-				"default_voice_reference": "preset_voice_id:nimi-default",
-			},
+		"realm_profile_context": map[string]any{
+			"avatar_autoplay":         avatarAutoplay,
+			"default_voice_reference": "preset_voice_id:nimi-default",
+		},
 	})
 	if err != nil {
 		t.Fatalf("structpb.NewStruct(voice policy metadata): %v", err)

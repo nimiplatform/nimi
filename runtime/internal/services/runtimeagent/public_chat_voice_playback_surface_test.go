@@ -338,6 +338,7 @@ func TestPublicChatManualVoiceRenderEmitsDesktopManualProjectionWithoutAvatarAut
 		}
 	}
 
+	presentationCursor := svc.sequence
 	if err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,
 		FromAppId:     "desktop.app",
@@ -379,6 +380,45 @@ func TestPublicChatManualVoiceRenderEmitsDesktopManualProjectionWithoutAvatarAut
 	}
 	if got, ok := voiceDetail["final_artifact"].(bool); !ok || !got {
 		t.Fatalf("expected manual final_artifact=true, got %v", voiceDetail["final_artifact"])
+	}
+	presentationStream := newAgentEventCaptureStreamLimit(context.Background(), 2)
+	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
+		AgentId:      "agent-alpha",
+		Cursor:       encodeCursor(presentationCursor),
+		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_PRESENTATION},
+	}, presentationStream); err != context.Canceled {
+		t.Fatalf("SubscribeAgentEvents(manual presentation voice): %v", err)
+	}
+	if len(presentationStream.events) != 2 {
+		t.Fatalf("expected manual voice chunk and playback presentation events, got %d events: %#v", len(presentationStream.events), presentationStream.events)
+	}
+	presentationChunk := presentationStream.events[0].GetPresentation()
+	if presentationChunk.GetFamily() != runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE ||
+		presentationChunk.GetConversationAnchorId() != anchorID ||
+		presentationChunk.GetTurnId() != turnID ||
+		presentationChunk.GetStreamId() != streamID ||
+		presentationChunk.GetMessageId() != "message-provider-manual-1" ||
+		presentationChunk.GetAudioArtifactId() != expectedAudioArtifactID ||
+		presentationChunk.GetAudioMimeType() != "audio/wav" ||
+		presentationChunk.GetVoiceOutputMode() != runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT ||
+		presentationChunk.GetVoicePlaybackState() != runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_ACTIVE ||
+		presentationChunk.GetPlaybackTarget() != "desktop_manual" {
+		t.Fatalf("manual voice presentation chunk mismatch: %#v", presentationChunk)
+	}
+	presentationPlayback := presentationStream.events[1].GetPresentation()
+	if presentationPlayback.GetFamily() != runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED ||
+		presentationPlayback.GetConversationAnchorId() != anchorID ||
+		presentationPlayback.GetTurnId() != turnID ||
+		presentationPlayback.GetStreamId() != streamID ||
+		presentationPlayback.GetMessageId() != "message-provider-manual-1" ||
+		presentationPlayback.GetAudioArtifactId() != expectedAudioArtifactID ||
+		presentationPlayback.GetAudioMimeType() != "audio/wav" ||
+		presentationPlayback.GetVoiceOutputMode() != runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT ||
+		presentationPlayback.GetVoicePlaybackState() != runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_ACTIVE ||
+		presentationPlayback.GetPlaybackTarget() != "desktop_manual" ||
+		!presentationPlayback.GetFinalArtifact() {
+		t.Fatalf("manual voice presentation playback mismatch: %#v", presentationPlayback)
 	}
 	record, ok := svc.runtimeArtifacts.Get(expectedAudioArtifactID)
 	if !ok || record.GeneratedVoice == nil {

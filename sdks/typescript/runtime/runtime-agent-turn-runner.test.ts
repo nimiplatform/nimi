@@ -17,6 +17,23 @@ function structuredPayload(messageId: string, text: string): Record<string, unkn
   };
 }
 
+function textTimeline(sequence: number) {
+  return {
+    turnId: 'turn',
+    streamId: 'stream',
+    channel: 'text',
+    offsetMs: sequence,
+    sequence,
+    startedAtWall: '2026-06-05T00:00:00.000Z',
+    observedAtWall: `2026-06-05T00:00:00.00${sequence}Z`,
+    timebaseOwner: 'runtime',
+    projectionRuleId: 'K-AGCORE-051',
+    clockBasis: 'monotonic_with_wall_anchor',
+    providerNeutral: true,
+    appLocalAuthority: false,
+  } as const;
+}
+
 test('Runtime Agent turn runner filters backlog and seals committed message', async () => {
   const requestIds: string[] = [];
   let snapshotQueryCount = 0;
@@ -118,6 +135,102 @@ test('Runtime Agent turn runner filters backlog and seals committed message', as
   assert.equal(parts.find((part) => part.type === 'message-sealed')?.envelope.message.messageId, 'assistant-message');
   assert.equal(parts.find((part) => part.type === 'turn-completed')?.outputText, 'runner complete');
   assert.equal(snapshotQueryCount, 0);
+});
+
+test('Runtime Agent turn runner drains same-turn text timeline events before terminal completion', async () => {
+  const requestIds: string[] = [];
+  const turns: NimiRuntimeAgentTurnsModule = {
+    async subscribe() {
+      return (async function* stream(): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
+        while (!requestIds[0]) {
+          await Promise.resolve();
+        }
+        const base = {
+          localAgentRef: 'local-agent:owner:agent',
+          conversationAnchorId: 'anchor',
+          turnId: 'turn',
+          streamId: 'stream',
+        };
+        yield {
+          eventName: 'runtime.agent.turn.accepted',
+          ...base,
+          detail: { requestId: requestIds[0] },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.turn.structured',
+          ...base,
+          timeline: textTimeline(3),
+          detail: {
+            payload: structuredPayload('assistant-message', 'runner complete'),
+          },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.turn.message_committed',
+          ...base,
+          timeline: textTimeline(4),
+          detail: {
+            messageId: 'assistant-message',
+            text: 'runner complete',
+          },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.turn.completed',
+          ...base,
+          detail: { terminalReason: 'stop' },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.turn.text_delta',
+          ...base,
+          timeline: textTimeline(2),
+          detail: { text: 'runner complete' },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.turn.reasoning_delta',
+          ...base,
+          timeline: textTimeline(1),
+          detail: { text: 'reasoning stays separate' },
+        } as NimiRuntimeAgentConsumeEvent;
+      })();
+    },
+    async request(request) {
+      requestIds.push(request.requestId || '');
+      return { messageId: 'request-message', accepted: true, reasonCode: 0 as never };
+    },
+    async interrupt() {
+      return { messageId: 'interrupt-message', accepted: true, reasonCode: 0 as never };
+    },
+    async getSessionSnapshot() {
+      return {};
+    },
+  };
+
+  const result = await runNimiRuntimeAgentTurn({
+    turns,
+    request: {
+      ownerUserId: 'owner',
+      runtimeSourceRef: 'agent',
+      localAgentRef: 'local-agent:owner:agent',
+      conversationAnchorId: 'anchor',
+      threadId: 'thread',
+      requestId: 'request',
+      messages: [{ role: 'user', content: 'hello' }],
+    },
+  });
+
+  const parts = [];
+  for await (const part of result.stream) {
+    parts.push(part);
+  }
+
+  assert.deepEqual(parts.map((part) => part.type), [
+    'message-sealed',
+    'reasoning-delta',
+    'text-delta',
+    'turn-completed',
+  ]);
+  assert.equal(parts.find((part) => part.type === 'reasoning-delta')?.textDelta, 'reasoning stays separate');
+  assert.equal(parts.find((part) => part.type === 'text-delta')?.textDelta, 'runner complete');
+  assert.equal(parts.find((part) => part.type === 'turn-completed')?.outputText, 'runner complete');
 });
 
 test('Runtime Agent turn runner recovers terminal snapshot after subscription closes', async () => {

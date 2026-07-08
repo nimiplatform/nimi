@@ -144,15 +144,15 @@ export function projectNimiRuntimeAgentAppMessageEvent(event: AppMessageEvent): 
   );
   const turnId = requireText(payload.turn_id ?? payload.turnId, 'turnId');
   const streamId = requireText(payload.stream_id ?? payload.streamId, 'streamId');
+  const timelinePayload = payload.timeline ?? payload.runtime_timeline ?? payload.runtimeTimeline;
+  const timeline = parseOptionalNimiRuntimeAgentTimeline(timelinePayload, messageType, turnId, streamId);
   return {
     eventName: messageType as NimiRuntimeAgentTurnConsumeEvent['eventName'],
     localAgentRef,
     conversationAnchorId,
     turnId,
     streamId,
-    ...(parseOptionalNimiRuntimeAgentTimeline(payload.runtime_timeline ?? payload.runtimeTimeline, messageType, turnId, streamId)
-      ? { timeline: parseOptionalNimiRuntimeAgentTimeline(payload.runtime_timeline ?? payload.runtimeTimeline, messageType, turnId, streamId) }
-      : {}),
+    ...(timeline ? { timeline } : {}),
     detail: projectAppMessageDetail(messageType, payload),
   };
 }
@@ -193,6 +193,7 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
     case 'runtime.agent.turn.accepted':
       return { requestId: optionalString(detail.request_id, detail.requestId, payload.request_id, payload.requestId) };
     case 'runtime.agent.turn.text_delta':
+    case 'runtime.agent.turn.reasoning_delta':
     case 'runtime.agent.turn.message_committed':
       return {
         text: optionalString(detail.text, payload.text) || '',
@@ -293,6 +294,11 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
         terminalReason: optionalString(detail.terminal_reason, detail.terminalReason, payload.terminal_reason, payload.terminalReason),
         playbackTarget: optionalString(detail.playback_target, detail.playbackTarget, payload.playback_target, payload.playbackTarget),
       };
+    case 'runtime.agent.presentation.lipsync_frame_batch':
+      return {
+        audioArtifactId: optionalString(detail.audio_artifact_id, detail.audioArtifactId, payload.audio_artifact_id, payload.audioArtifactId) || '',
+        frames: parseLipsyncFrames(detail.frames ?? payload.frames),
+      };
     default:
       return {};
   }
@@ -325,6 +331,25 @@ function parseVoiceRouteBinding(value: unknown): JsonObject | null {
     }
   }
   return Object.keys(result).length > 0 ? result : null;
+}
+
+function parseLipsyncFrames(value: unknown): readonly JsonObject[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.flatMap((item) => {
+    const frame = asRecord(item);
+    if (!frame) {
+      return [];
+    }
+    return [{
+      frameSequence: optionalNumber(frame.frame_sequence ?? frame.frameSequence),
+      offsetMs: optionalNumber(frame.offset_ms ?? frame.offsetMs),
+      durationMs: optionalNumber(frame.duration_ms ?? frame.durationMs),
+      mouthOpenY: optionalNumber(frame.mouth_open_y ?? frame.mouthOpenY),
+      audioLevel: optionalNumber(frame.audio_level ?? frame.audioLevel),
+    }];
+  });
 }
 
 function optionalBoolean(value: unknown): boolean | undefined {

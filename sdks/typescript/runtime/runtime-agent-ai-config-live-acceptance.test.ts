@@ -5,6 +5,7 @@ import test from 'node:test';
 import type { RuntimeTypedCallOptions } from '../core-generated/runtime-typed-client';
 
 import { withRuntimeAgentLiveE2EFixture } from './runtime-agent-live-e2e-fixture.test-helper';
+import { runtimeAgentLiveE2EChatScenarioPrompt } from './runtime-agent-live-e2e-fixture-realm-server.test-helper';
 import { createFixtureRuntimeAgentClient } from './runtime-agent-live-e2e-fixture-runtime.test-helper';
 import {
   DESKTOP_APP_ID,
@@ -56,6 +57,7 @@ test('runtime agent AI Config live acceptance matrix v1', {
       assert.equal(seededEmbed.route, 'local');
       assert.equal(seeded.intents['image.generate'], undefined, 'seed must leave image.generate absent');
       assert.equal(seeded.intents['audio.synthesize'], undefined, 'seed must leave audio.synthesize absent');
+      assert.equal(seeded.intents['audio.transcribe'], undefined, 'seed must leave audio.transcribe absent');
 
       // 2. Readiness projection: text ready, optional media capabilities not_configured.
       const seededReadiness = await agentAIConfig.readiness(identity);
@@ -64,6 +66,7 @@ test('runtime agent AI Config live acceptance matrix v1', {
       assert.equal(readinessState(seededReadiness, 'text.embed'), 'ready');
       assert.equal(readinessState(seededReadiness, 'image.generate'), 'not_configured');
       assert.equal(readinessState(seededReadiness, 'audio.synthesize'), 'not_configured');
+      assert.equal(readinessState(seededReadiness, 'audio.transcribe'), 'not_configured');
 
       // 3. Upsert with the correct expectedRevision adds the fixture cloud
       // image and voice intents: revision advances by exactly one and both
@@ -125,6 +128,7 @@ test('runtime agent AI Config live acceptance matrix v1', {
         'not_configured',
         'a committed voice intent must leave not_configured',
       );
+      assert.equal(readinessState(committedReadiness, 'audio.transcribe'), 'not_configured');
       assert.equal(readinessState(committedReadiness, 'text.generate'), 'ready');
       assert.equal(readinessState(committedReadiness, 'text.embed'), 'ready');
 
@@ -192,6 +196,7 @@ test('runtime agent AI Config live acceptance matrix v1', {
         assert.equal(readinessState(advanced, 'text.embed'), 'ready');
         assert.equal(readinessState(advanced, 'image.generate'), 'not_configured');
         assert.equal(readinessState(advanced, 'audio.synthesize'), 'not_configured');
+        assert.equal(readinessState(advanced, 'audio.transcribe'), 'not_configured');
       } finally {
         await iterator.return?.();
       }
@@ -239,6 +244,7 @@ test('runtime agent turn execution cutover live acceptance matrix v2', {
       assert.ok(seededEmbed, 'seed must commit the text.embed intent');
       assert.equal(seeded.intents['image.generate'], undefined, 'seed must leave image.generate absent');
       assert.equal(seeded.intents['audio.synthesize'], undefined, 'seed must leave audio.synthesize absent');
+      assert.equal(seeded.intents['audio.transcribe'], undefined, 'seed must leave audio.transcribe absent');
 
       // The fixture daemon serves its own live local text model, not the
       // bundled default the seeded local/default alias resolves to. Commit
@@ -308,7 +314,7 @@ test('runtime agent turn execution cutover live acceptance matrix v2', {
       // complete without any image artifact. The typed action_failed
       // reason=image_binding_missing branch is covered by the runtime Go
       // tests (public_chat_action_projection_test.go).
-      const missingImageTurn = await runTurn('please make an image artifact for me');
+      const missingImageTurn = await runTurn(`${runtimeAgentLiveE2EChatScenarioPrompt('b-image-action')} please make an image artifact for me`);
       assertNoImageArtifacts(missingImageTurn.parts, 'image turn without committed image intent');
 
       // 5. Upsert the fixture cloud image binding through the agentAIConfig
@@ -335,7 +341,7 @@ test('runtime agent turn execution cutover live acceptance matrix v2', {
       // 6. Image action end-to-end against the committed config: the fixture
       // model plans the action and the runtime materializes a real image
       // artifact (action_planned -> artifact_ready with readable PNG bytes).
-      const imageTurn = await runTurn('please make an image artifact now');
+      const imageTurn = await runTurn(`${runtimeAgentLiveE2EChatScenarioPrompt('b-image-action')} please make an image artifact now`);
       assert.equal(imageTurn.terminal.type, 'turn-completed', turnDiagnostics(imageTurn));
       assert.ok(
         imageTurn.parts.some((part) => part.type === 'beat-planned'),

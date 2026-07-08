@@ -1067,8 +1067,9 @@ It owns:
 - the single committed Runtime Agent AI Config record for each Runtime Local
   Agent instance
 - per-capability committed AI consume intent (`text.generate`, `text.embed`,
-  `image.generate`, `audio.synthesize`, `voice_workflow.voice_clone`,
-  `voice_workflow.voice_design`, and future admitted `agent.work.*`)
+  `image.generate`, `audio.synthesize`, `audio.transcribe`,
+  `voice_workflow.voice_clone`, `voice_workflow.voice_design`, and future
+  admitted `agent.work.*`)
 - config mutation admission, validation, revisioning, and change event emission
 - readiness projection derived from the committed config
 

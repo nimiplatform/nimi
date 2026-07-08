@@ -481,14 +481,22 @@ func extractChatCompletionFinishReason(payload map[string]any) string {
 
 // StreamGenerateText sends a streaming chat completion request.
 func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, params textGenParams, onDelta func(string) error) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	return b.StreamGenerateTextRich(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, TextStreamEventHandler{
+		OnText: onDelta,
+	})
+}
+
+// StreamGenerateTextRich sends a streaming chat completion request while
+// preserving provider reasoning deltas as a separate typed channel.
+func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, params textGenParams, handler TextStreamEventHandler) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
 	if err := unsupportedToolSurface(params); err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	if b.supportsAnthropicMessages() {
-		return b.streamGenerateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
+		return b.streamGenerateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, handler.OnText)
 	}
 	if b.supportsCodexResponses() {
-		return b.streamGenerateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
+		return b.streamGenerateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, handler.OnText)
 	}
 	type streamOptions struct {
 		IncludeUsage bool `json:"include_usage"`
@@ -507,7 +515,9 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 	type streamResponse struct {
 		Choices []struct {
 			Delta struct {
-				Content string `json:"content"`
+				Content          string `json:"content"`
+				Reasoning        string `json:"reasoning"`
+				ReasoningContent string `json:"reasoning_content"`
 			} `json:"delta"`
 			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
@@ -577,7 +587,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 		errPayload, mappedErr := providerHTTPErrorFromResponse(response, endpoint)
 		_ = response.Body.Close()
 		if IsStreamUnsupported(response.StatusCode, errPayload) {
-			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
+			return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, handler.OnText)
 		}
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, mappedErr
 	}
@@ -585,7 +595,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 	contentType := strings.ToLower(strings.TrimSpace(response.Header.Get("Content-Type")))
 	if !strings.HasPrefix(contentType, "text/event-stream") {
 		_ = response.Body.Close()
-		return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, onDelta)
+		return b.fallbackStreamToNonStream(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params, handler.OnText)
 	}
 	defer func() { _ = response.Body.Close() }()
 
@@ -615,18 +625,27 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
 		}
 		if len(chunk.Choices) > 0 {
-			if onDelta != nil {
+			if handler.OnText != nil {
 				// Count any valid provider SSE chunk as streaming activity even when
 				// the chunk carries role/tool-call metadata instead of text content.
-				if err := onDelta(""); err != nil {
+				if err := handler.OnText(""); err != nil {
+					return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+				}
+			}
+			reasoningDelta := chunk.Choices[0].Delta.ReasoningContent
+			if reasoningDelta == "" {
+				reasoningDelta = chunk.Choices[0].Delta.Reasoning
+			}
+			if reasoningDelta != "" && handler.OnReasoning != nil {
+				if err := handler.OnReasoning(reasoningDelta); err != nil {
 					return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 				}
 			}
 			delta := chunk.Choices[0].Delta.Content
 			if delta != "" {
 				outputBuilder.WriteString(delta)
-				if onDelta != nil {
-					if err := onDelta(delta); err != nil {
+				if handler.OnText != nil {
+					if err := handler.OnText(delta); err != nil {
 						return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 					}
 				}

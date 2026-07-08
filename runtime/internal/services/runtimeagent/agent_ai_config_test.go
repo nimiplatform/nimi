@@ -227,6 +227,40 @@ func TestRuntimeAgentAIConfigUpsertBumpsRevision(t *testing.T) {
 	}
 }
 
+func TestRuntimeAgentAIConfigAdmitsAudioTranscribeIntent(t *testing.T) {
+	t.Parallel()
+	svc := newAgentAIConfigTestService(t)
+
+	resp, err := svc.UpsertRuntimeAgentAIConfig(context.Background(), &runtimev1.UpsertRuntimeAgentAIConfigRequest{
+		Context:          agentAIConfigTestContext("nimi.desktop"),
+		ExpectedRevision: 1,
+		Intents: requiredRuntimeAgentAIConfigTestIntents(&runtimev1.RuntimeAgentAIConfigIntent{
+			Capability:  runtimeAgentAIConfigCapabilityAudioTranscribe,
+			ModelId:     "speech/qwen3-asr",
+			RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			ConnectorId: "cloud-speech",
+			TargetRef: &runtimev1.RuntimeDurableTargetRef{
+				Target: &runtimev1.RuntimeDurableTargetRef_Cloud{
+					Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
+						Version:              "v2",
+						ConnectorId:          "cloud-speech",
+						RemoteModelCatalogId: "dashscope/qwen3-asr",
+						ProviderModelId:      "qwen3-asr",
+						Provider:             "dashscope",
+					},
+				},
+			},
+		}),
+	})
+	if err != nil {
+		t.Fatalf("audio.transcribe must be admitted by Runtime Agent AI Config: %v", err)
+	}
+	transcribe := requireAgentAIConfigIntent(t, resp.GetConfig(), runtimeAgentAIConfigCapabilityAudioTranscribe)
+	if transcribe.GetConnectorId() != "cloud-speech" {
+		t.Fatalf("expected committed audio.transcribe connector, got %q", transcribe.GetConnectorId())
+	}
+}
+
 func TestRuntimeAgentAIConfigUpsertStaleRevisionAborted(t *testing.T) {
 	t.Parallel()
 	svc := newAgentAIConfigTestService(t)

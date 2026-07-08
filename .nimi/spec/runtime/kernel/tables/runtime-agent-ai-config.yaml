@@ -77,6 +77,13 @@ admitted_capabilities:
     required: false
     seeded_default: null
     source_rule: K-VOICE-018
+  audio.transcribe:
+    required: false
+    seeded_default: null
+    source_rule: K-VOICE-018
+    consume_paths:
+      - zhiyu_voice_capture
+      - future_agent_work
   voice_workflow.voice_clone:
     required: false
     seeded_default: null

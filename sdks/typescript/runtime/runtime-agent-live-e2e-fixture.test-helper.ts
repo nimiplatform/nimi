@@ -23,6 +23,7 @@ import {
   createFixtureRouteProjection,
   createFixtureVoiceConnector,
   resolveFixtureImageConnectorModel,
+  resolveFixtureTranscriptionConnectorModel,
   resolveFixtureVoiceConnectorModel,
   seedRuntimeAgentLiveImageCatalogProvider,
   seedRuntimeAgentLiveLocalRouteState,
@@ -164,6 +165,11 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
           connectorId: imageConnectorId,
           connectorModel: imageModelDescriptor,
         });
+        const transcriptionModelDescriptor = await resolveFixtureTranscriptionConnectorModel(runtime, imageConnectorId);
+        const transcriptionRoute = await createFixtureRouteProjection(runtime, 'audio.transcribe', {
+          connectorId: imageConnectorId,
+          connectorModel: transcriptionModelDescriptor,
+        });
         const voiceConnectorId = await createFixtureVoiceConnector(runtime, baseUrl);
         const voiceModelDescriptor = await resolveFixtureVoiceConnectorModel(runtime, voiceConnectorId);
         const voiceRoute = await createFixtureRouteProjection(runtime, 'audio.synthesize', {
@@ -189,6 +195,7 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
             route,
             embeddingRoute,
             imageRoute,
+            transcriptionRoute,
             voiceRoute,
             voiceAsset,
             sourceRef: SOURCE_REF,

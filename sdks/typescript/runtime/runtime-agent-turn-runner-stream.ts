@@ -35,7 +35,11 @@ import type {
 type NimiRuntimeAgentQueuedEvent =
   | { readonly type: 'event'; readonly event: NimiRuntimeAgentConsumeEvent }
   | { readonly type: 'done' }
+  | { readonly type: 'timeout' }
   | { readonly type: 'error'; readonly error: unknown };
+
+const TERMINAL_GRACE_WAIT_MS = 25;
+const TERMINAL_GRACE_MAX_EVENTS = 64;
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -45,10 +49,29 @@ function detailText(event: NimiRuntimeAgentConsumeEvent, field: string): string 
   return normalizeText(event.detail[field]);
 }
 
+function runtimeEventTimelineSequence(event: NimiRuntimeAgentConsumeEvent): number {
+  const sequence = event.timeline?.sequence;
+  return typeof sequence === 'number' && Number.isFinite(sequence) ? sequence : Number.POSITIVE_INFINITY;
+}
+
+function sortedRuntimeTerminalGraceEvents(
+  events: readonly NimiRuntimeAgentConsumeEvent[],
+): NimiRuntimeAgentConsumeEvent[] {
+  return events
+    .map((event, index) => ({ event, index }))
+    .sort((left, right) => {
+      const leftSequence = runtimeEventTimelineSequence(left.event);
+      const rightSequence = runtimeEventTimelineSequence(right.event);
+      if (leftSequence !== rightSequence) return leftSequence - rightSequence;
+      return left.index - right.index;
+    })
+    .map((item) => item.event);
+}
+
 export function createNimiRuntimeAgentEventQueue(
   source: AsyncIterable<NimiRuntimeAgentConsumeEvent>,
 ): {
-  readonly next: () => Promise<NimiRuntimeAgentQueuedEvent>;
+  readonly next: (timeoutMs?: number) => Promise<NimiRuntimeAgentQueuedEvent>;
   readonly enqueue: (event: NimiRuntimeAgentConsumeEvent) => void;
   readonly stop: () => void;
 } {
@@ -86,9 +109,21 @@ export function createNimiRuntimeAgentEventQueue(
   })();
 
   return {
-    next: async () => {
+    next: async (timeoutMs?: number) => {
       while (queue.length === 0) {
         if (stopped) return { type: 'done' };
+        if (typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs >= 0) {
+          let timeout: ReturnType<typeof setTimeout> | null = null;
+          const timedOut = await Promise.race([
+            waitForEvent().then(() => false),
+            new Promise<boolean>((resolve) => {
+              timeout = globalThis.setTimeout(() => resolve(true), Math.floor(timeoutMs));
+            }),
+          ]);
+          if (timeout) globalThis.clearTimeout(timeout);
+          if (timedOut && queue.length === 0) return { type: 'timeout' };
+          continue;
+        }
         await waitForEvent();
       }
       return queue.shift() || { type: 'done' };
@@ -330,6 +365,205 @@ export function createNimiRuntimeAgentTurnStream(
       };
     };
 
+    const eventMatchesCurrentTurn = (event: NimiRuntimeAgentConsumeEvent): boolean =>
+      currentTurnAccepted && event.turnId === input.runtimeTurnRef.turnId;
+    const projectionMatchesCurrentTurn = (event: NimiRuntimeAgentConsumeEvent): boolean =>
+      isNimiRuntimeAgentProjectionEvent(event)
+        && matchesNimiRuntimeAgentProjectionScope({
+          event,
+          conversationAnchorId: input.request.conversationAnchorId,
+          currentTurnAccepted,
+          currentRuntimeTurnId: input.runtimeTurnRef.turnId,
+        });
+    const shouldDrainBeforeTerminal = (event: NimiRuntimeAgentConsumeEvent): boolean => {
+      if (
+        event.eventName === 'runtime.agent.turn.completed'
+        || event.eventName === 'runtime.agent.turn.failed'
+        || event.eventName === 'runtime.agent.turn.interrupted'
+      ) {
+        return false;
+      }
+      if (event.eventName.startsWith('runtime.agent.turn.')) {
+        return eventMatchesCurrentTurn(event);
+      }
+      return projectionMatchesCurrentTurn(event);
+    };
+    const drainTerminalGraceEvents = async (): Promise<NimiRuntimeAgentConsumeEvent[]> => {
+      const drained: NimiRuntimeAgentConsumeEvent[] = [];
+      while (drained.length < TERMINAL_GRACE_MAX_EVENTS) {
+        const nextGrace = await input.eventQueue.next(TERMINAL_GRACE_WAIT_MS);
+        if (nextGrace.type === 'timeout' || nextGrace.type === 'done') break;
+        if (nextGrace.type === 'error') {
+          input.logEvent?.({
+            level: 'warn',
+            area: 'agent-chat-runtime',
+            message: 'action:runtime-agent-turn:terminal-grace-error',
+            details: {
+              ...nimiRuntimeAgentContextDetails({
+                request: input.request,
+                requestId: input.requestId,
+                requestMessageId: input.requestMessageId,
+                runtimeTurnId: input.runtimeTurnRef.turnId,
+                runtimeStreamId: input.runtimeTurnRef.streamId,
+              }),
+              error: String(nextGrace.error instanceof Error ? nextGrace.error.message : nextGrace.error),
+            },
+          });
+          break;
+        }
+        if (shouldDrainBeforeTerminal(nextGrace.event)) {
+          drained.push(nextGrace.event);
+        }
+      }
+      return sortedRuntimeTerminalGraceEvents(drained);
+    };
+    const yieldPreTerminalEvent = function* (
+      event: NimiRuntimeAgentConsumeEvent,
+      trace?: NimiRuntimeAgentTurnRunnerTrace,
+    ): Generator<NimiRuntimeAgentTurnRunnerPart> {
+      switch (event.eventName) {
+        case 'runtime.agent.turn.started':
+        case 'runtime.agent.turn.post_turn':
+        case 'runtime.agent.turn.interrupt_ack':
+          if (!eventMatchesCurrentTurn(event)) break;
+          if (event.eventName === 'runtime.agent.turn.started') {
+            startedAt = input.nowMs();
+            if (acceptedAt > 0) {
+              input.logTiming?.({
+                stage: 'accepted_to_started',
+                startedAt: acceptedAt,
+                details: nimiRuntimeAgentContextDetails({
+                  request: input.request,
+                  requestId: input.requestId,
+                  requestMessageId: input.requestMessageId,
+                  runtimeTurnId: input.runtimeTurnRef.turnId,
+                  runtimeStreamId: input.runtimeTurnRef.streamId,
+                }),
+              });
+            }
+          }
+          break;
+        case 'runtime.agent.state.status_text_changed':
+        case 'runtime.agent.state.execution_state_changed':
+        case 'runtime.agent.state.emotion_changed':
+        case 'runtime.agent.state.posture_changed':
+        case 'runtime.agent.hook.intent_proposed':
+        case 'runtime.agent.hook.pending':
+        case 'runtime.agent.hook.rejected':
+        case 'runtime.agent.hook.running':
+        case 'runtime.agent.hook.completed':
+        case 'runtime.agent.hook.failed':
+        case 'runtime.agent.hook.canceled':
+        case 'runtime.agent.hook.rescheduled':
+        case 'runtime.agent.presentation.activity_requested':
+        case 'runtime.agent.presentation.motion_requested':
+        case 'runtime.agent.presentation.expression_requested':
+        case 'runtime.agent.presentation.pose_requested':
+        case 'runtime.agent.presentation.pose_cleared':
+        case 'runtime.agent.presentation.lookat_requested':
+        case 'runtime.agent.presentation.voice_playback_requested':
+        case 'runtime.agent.presentation.voice_stream_chunk_available':
+        case 'runtime.agent.presentation.voice_playback_terminal':
+        case 'runtime.agent.presentation.lipsync_frame_batch':
+          if (projectionMatchesCurrentTurn(event)) {
+            runtimeProjectionEvents.push(summarizeNimiRuntimeAgentProjectionEvent(event));
+          }
+          break;
+        case 'runtime.agent.turn.reasoning_delta': {
+          if (!eventMatchesCurrentTurn(event)) break;
+          const text = detailText(event, 'text');
+          if (text) yield { type: 'reasoning-delta', textDelta: text };
+          break;
+        }
+        case 'runtime.agent.turn.text_delta': {
+          if (!eventMatchesCurrentTurn(event)) break;
+          const text = detailText(event, 'text');
+          provisionalText += text;
+          if (text) {
+            if (!firstDeltaObserved) {
+              firstDeltaObserved = true;
+              if (startedAt > 0) {
+                input.logTiming?.({
+                  stage: 'started_to_first_delta',
+                  startedAt,
+                  details: nimiRuntimeAgentContextDetails({
+                    request: input.request,
+                    requestId: input.requestId,
+                    requestMessageId: input.requestMessageId,
+                    runtimeTurnId: input.runtimeTurnRef.turnId,
+                    runtimeStreamId: input.runtimeTurnRef.streamId,
+                  }),
+                });
+              }
+            }
+            yield { type: 'text-delta', textDelta: text };
+          }
+          break;
+        }
+        case 'runtime.agent.turn.structured':
+          if (!eventMatchesCurrentTurn(event)) break;
+          structuredEnvelope = parseNimiRuntimeAgentStructuredMessageActionEnvelope(event.detail.payload);
+          yield* maybeYieldCommittedMessage(trace);
+          break;
+        case 'runtime.agent.turn.message_committed': {
+          if (!eventMatchesCurrentTurn(event)) break;
+          const messageId = detailText(event, 'messageId');
+          const text = detailText(event, 'text');
+          committedMessage = {
+            messageId,
+            text,
+            runtimeTurnId: event.turnId || '',
+            runtimeStreamId: event.streamId || '',
+          };
+          messageCommittedAt = input.nowMs();
+          yield* maybeYieldCommittedMessage(trace);
+          break;
+        }
+        case 'runtime.agent.turn.action_planned':
+          if (!eventMatchesCurrentTurn(event)) break;
+          yield {
+            type: 'beat-planned',
+            turnId: event.turnId || '',
+            beatId: detailText(event, 'actionId'),
+            projectionMessageId: detailText(event, 'projectionMessageId') || undefined,
+          };
+          break;
+        case 'runtime.agent.turn.action_started':
+          if (!eventMatchesCurrentTurn(event)) break;
+          yield {
+            type: 'beat-delivery-started',
+            turnId: event.turnId || '',
+            beatId: detailText(event, 'actionId'),
+            projectionMessageId: detailText(event, 'projectionMessageId') || undefined,
+          };
+          break;
+        case 'runtime.agent.turn.artifact_ready':
+          if (!eventMatchesCurrentTurn(event)) break;
+          yield {
+            type: 'artifact-ready',
+            turnId: event.turnId || '',
+            beatId: detailText(event, 'actionId'),
+            artifactId: detailText(event, 'artifactId'),
+            mimeType: detailText(event, 'mimeType'),
+            projectionMessageId: detailText(event, 'projectionMessageId') || undefined,
+          };
+          break;
+        case 'runtime.agent.turn.action_completed':
+          if (!eventMatchesCurrentTurn(event)) break;
+          yield {
+            type: 'beat-delivered',
+            turnId: event.turnId || '',
+            beatId: detailText(event, 'actionId'),
+            projectionMessageId: detailText(event, 'projectionMessageId') || undefined,
+            artifactId: detailText(event, 'artifactId') || undefined,
+            mimeType: detailText(event, 'mimeType') || undefined,
+          };
+          break;
+        default:
+          break;
+      }
+    };
+
     try {
       while (true) {
         const nextResult = await input.eventQueue.next();
@@ -352,6 +586,9 @@ export function createNimiRuntimeAgentTurnStream(
           const retryRecovered = await recoverTerminalSnapshot('subscription_done_retry');
           if (retryRecovered !== 'none') continue;
           break;
+        }
+        if (nextResult.type === 'timeout') {
+          continue;
         }
         if (nextResult.type === 'error') {
           input.logEvent?.({
@@ -565,6 +802,10 @@ export function createNimiRuntimeAgentTurnStream(
             break;
           case 'runtime.agent.turn.completed':
             if (!currentTurnAccepted || event.turnId !== input.runtimeTurnRef.turnId) break;
+            for (const graceEvent of await drainTerminalGraceEvents()) {
+              recordTurnTimeline(graceEvent);
+              yield* yieldPreTerminalEvent(graceEvent, input.resolveTrace?.());
+            }
             terminalProjected = true;
             input.logTiming?.({
               stage: 'completed_to_ui_done',

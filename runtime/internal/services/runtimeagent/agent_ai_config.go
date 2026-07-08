@@ -20,6 +20,7 @@ const (
 	runtimeAgentAIConfigCapabilityTextEmbed           = "text.embed"
 	runtimeAgentAIConfigCapabilityImageGenerate       = "image.generate"
 	runtimeAgentAIConfigCapabilityAudioSynthesize     = "audio.synthesize"
+	runtimeAgentAIConfigCapabilityAudioTranscribe     = "audio.transcribe"
 	runtimeAgentAIConfigCapabilityVoiceWorkflowClone  = "voice_workflow.voice_clone"
 	runtimeAgentAIConfigCapabilityVoiceWorkflowDesign = "voice_workflow.voice_design"
 
@@ -35,6 +36,7 @@ var admittedRuntimeAgentAIConfigCapabilities = []string{
 	runtimeAgentAIConfigCapabilityTextEmbed,
 	runtimeAgentAIConfigCapabilityImageGenerate,
 	runtimeAgentAIConfigCapabilityAudioSynthesize,
+	runtimeAgentAIConfigCapabilityAudioTranscribe,
 	runtimeAgentAIConfigCapabilityVoiceWorkflowClone,
 	runtimeAgentAIConfigCapabilityVoiceWorkflowDesign,
 }

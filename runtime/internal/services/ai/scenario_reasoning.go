@@ -91,6 +91,9 @@ func requestedReasoningSeparate(spec *runtimev1.TextGenerateScenarioSpec) bool {
 }
 
 func reasoningCapabilityForRequest(modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider) nimillm.ReasoningCapability {
+	if remoteTarget == nil && selected != nil && selected.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
+		return nimillm.OllamaReasoningCapability()
+	}
 	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_TEXT)
 	switch strings.ToLower(strings.TrimSpace(providerType)) {
 	case "ollama":

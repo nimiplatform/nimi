@@ -235,7 +235,8 @@ func (r publicChatRuntime) emitTimelineEventForChannelSnapshot(session publicCha
 		return err
 	}
 	turn.StreamSequence = sequence
-	timeline, err := publicChatBuildTimelineEnvelopeForChannel(turn, channel, sequence, time.Now())
+	observedAt := time.Now().UTC()
+	timeline, err := publicChatBuildTimelineEnvelopeForChannel(turn, channel, sequence, observedAt)
 	if err != nil {
 		return err
 	}
@@ -249,6 +250,9 @@ func (r publicChatRuntime) emitTimelineEventForChannelSnapshot(session publicCha
 		"detail":                 detail,
 	}
 	if err := r.emitEvent(session.CallerAppID, session.SubjectUserID, messageType, out); err != nil {
+		return err
+	}
+	if err := r.emitPresentationAgentEventForTimeline(session, strings.TrimSpace(turn.TurnID), strings.TrimSpace(turn.StreamID), messageType, detail, observedAt); err != nil {
 		return err
 	}
 	r.svc.persistCurrentPublicChatSurfaceState()
