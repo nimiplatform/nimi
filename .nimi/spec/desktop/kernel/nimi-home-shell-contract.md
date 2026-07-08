@@ -138,6 +138,21 @@ upstream authority 非 ready 状态都必须经由该 surface 显式呈现给用
 `MUST NOT`：不得把 multiple 非 ready 状态压缩成单一 `unavailable` /
 `offline` 文案；不得隐藏失败原因或 dependency family identity。
 
+## D-HOME-013 — Apps Desktop Open Targets
+
+Desktop-hosted Nimi Home owns Apps surface placement and the Apps Desktop Open
+targets recorded in `tables/apps-open-targets.yaml`. Platform Open Intent may
+reference these targets, but it must not own Apps IA or app selection truth.
+
+Admitted v1 targets are:
+
+- `surface`: open the Apps surface without launching an app.
+- `app-selection`: open the Apps surface and select an existing app when the
+  optional `appId` resolves in the Apps projection.
+
+Missing or unknown `appId` must not launch an app or fabricate Apps inventory
+truth.
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/nimi-home-contract.md` — `P-HOME-001..P-HOME-010`
@@ -153,3 +168,4 @@ upstream authority 非 ready 状态都必须经由该 surface 显式呈现给用
 - `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
 - `.nimi/spec/sdks/kernel/local-environment-projection-contract.md` — `S-RUNTIME-119`
 - `.nimi/spec/desktop/kernel/tables/nimi-home-surfaces.yaml`
+- `.nimi/spec/desktop/kernel/tables/apps-open-targets.yaml`

@@ -11,6 +11,7 @@ surfaces:
   - storage
   - ui
   - oauth
+  - desktop-open
   - telemetry
   - runtime-bridge
   - runtime-daemon
@@ -250,6 +251,16 @@ commands:
     module: oauth
     description: Listen for OAuth callback code on redirect URI
     source_rule: D-IPC-006
+
+  - command: desktop_open_intent_open_intent
+    module: desktop-open
+    description: Standard shell desktop-open.openIntent (platform P-DOPEN-001/P-KIT-041C); kit-owned command sends a host-stamped Desktop Open Intent to the running Desktop bridge without cold-starting Desktop
+    source_rule: D-IPC-018
+
+  - command: desktop_open_intent_set_ready
+    module: desktop-open
+    description: Renderer readiness heartbeat for the running Desktop Open Intent bridge; mounted listener marks ready and reload/window/exit paths reset fail-closed readiness
+    source_rule: D-IPC-018
 
   - command: confirm_dialog
     module: ui

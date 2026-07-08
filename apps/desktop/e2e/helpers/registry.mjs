@@ -35,6 +35,7 @@ export const scenarioRegistry = new Map([
   ['explore.feed-profile-modal', { bucket: 'journeys', profile: 'explore.feed-profile-modal.json', spec: 'apps/desktop/e2e/specs/explore.feed-profile-modal.e2e.mjs' }],
   ['runtime.local-ai.panel-load', { bucket: 'journeys', profile: 'runtime.local-ai.panel-load.json', spec: 'apps/desktop/e2e/specs/runtime.local-ai.panel-load.e2e.mjs' }],
   ['runtime.external-agent.panel-load', { bucket: 'journeys', profile: 'runtime.external-agent.panel-load.json', spec: 'apps/desktop/e2e/specs/runtime.external-agent.panel-load.e2e.mjs' }],
+  ['desktop-open-intent.running', { bucket: 'desktop-open', profile: 'desktop-open-intent.running.json', spec: 'apps/desktop/e2e/specs/desktop-open-intent.running.e2e.mjs' }],
   ['nimi-app-platform.sandbox.lifecycle', { bucket: 'nimi-app-platform-sandbox', profile: 'nimi-app-platform-sandbox.json', spec: 'apps/desktop/e2e/specs/nimi-app-platform-sandbox.e2e.mjs' }],
   ['nimi-app-platform.sandbox.electron-host', { bucket: 'nimi-app-platform-sandbox', runner: ELECTRON_HOST_RUNNER, profile: 'nimi-app-platform-sandbox.json', spec: 'apps/desktop/e2e/specs/nimi-app-platform-sandbox.electron-host.e2e.mjs' }],
   ['nimi-app-platform.negative.digest-mismatch', { bucket: 'nimi-app-platform-negative', profile: 'nimi-app-platform-negative-digest-mismatch.json', spec: 'apps/desktop/e2e/specs/nimi-app-platform-negative.e2e.mjs' }],

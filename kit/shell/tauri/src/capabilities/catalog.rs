@@ -7,6 +7,7 @@ pub const STANDARD_SHELL_CAPABILITY_IDS: &[&str] = &[
     "runtime-defaults",
     "auth",
     "oauth",
+    "desktop-open",
     "shell-ui",
     "diagnostics",
     "data",
@@ -183,6 +184,19 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 ],
             },
         ],
+    },
+    StandardShellCapability {
+        id: "desktop-open",
+        operations: &[StandardShellOperation {
+            id: "openIntent",
+            command: "nimi.shell.desktopOpen.openIntent",
+            negative_states: &[
+                "capability-unavailable",
+                "forbidden-renderer-access",
+                "invalid-payload",
+                "host-internal-error",
+            ],
+        }],
     },
     StandardShellCapability {
         id: "shell-ui",

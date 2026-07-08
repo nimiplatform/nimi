@@ -11,6 +11,7 @@ export const SETTINGS_SELECTED_STORAGE_KEY = 'nimi.settings.selected';
 export const SETTINGS_SELECTED_TARGET_ID_STORAGE_KEY = 'nimi.settings.targetId';
 export const SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY = 'nimi.settings.performance.preferences.v1';
 export const SETTINGS_PERFORMANCE_PREFERENCES_EVENT = 'nimi:settings:performance-preferences-changed';
+export const SETTINGS_OPEN_SECTION_EVENT = 'nimi://settings-open-section';
 
 const VISIBLE_SETTINGS_SELECTED_IDS = new Set([
   'profile',
@@ -46,6 +47,31 @@ export function loadStoredSettingsSelected(fallback: string): string {
 
 export function persistStoredSettingsSelected(id: string): void {
   writeStorageTextTo(resolveBrowserStorage('local'), SETTINGS_SELECTED_STORAGE_KEY, normalizeSettingsSelectedId(id, 'profile'));
+}
+
+export function dispatchSettingsOpenSection(id: string): void {
+  const normalized = normalizeSettingsSelectedId(id, 'profile');
+  persistStoredSettingsSelected(normalized);
+  globalThis.window?.dispatchEvent?.(
+    new CustomEvent(SETTINGS_OPEN_SECTION_EVENT, {
+      detail: normalized,
+    }),
+  );
+}
+
+export function addSettingsOpenSectionListener(onOpen: (id: string) => void): () => void {
+  const eventTarget = globalThis.window;
+  if (!eventTarget?.addEventListener) {
+    return () => {};
+  }
+  const onEvent = (event: Event) => {
+    const next = normalizeSettingsSelectedId(String((event as CustomEvent<unknown>).detail || ''), 'profile');
+    onOpen(next);
+  };
+  eventTarget.addEventListener(SETTINGS_OPEN_SECTION_EVENT, onEvent);
+  return () => {
+    eventTarget.removeEventListener(SETTINGS_OPEN_SECTION_EVENT, onEvent);
+  };
 }
 
 export function loadStoredSettingsTargetId(): string {

@@ -64,6 +64,7 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']]: 'open_external_url',
   [NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange']]: 'oauth_token_exchange',
   [NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']]: 'oauth_listen_for_code',
+  [NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent']]: 'desktop_open_intent_open_intent',
   [NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']]: 'confirm_dialog',
   [NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag']]: 'start_window_drag',
   [NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow']]: 'focus_main_window',

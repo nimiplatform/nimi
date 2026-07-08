@@ -23,7 +23,7 @@ entries:
     semantics: Shared public TypeScript core request, metadata, and error shape boundary.
   - id: app
     owner: sdks/typescript/core/app
-    semantics: Third-party app identity, installation, scope, permission, binding, and ecosystem entry contracts.
+    semantics: Third-party app identity, installation, scope, permission, binding, ecosystem entry contracts, and Desktop Open Intent parser/types.
   - id: contracts
     owner: sdks/typescript/core/contracts
     semantics: Nimi-native AI, Tool, Trace, and adapter contract types.

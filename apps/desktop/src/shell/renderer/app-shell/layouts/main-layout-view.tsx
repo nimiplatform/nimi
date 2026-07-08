@@ -14,7 +14,6 @@ import {
 } from '@renderer/features/notification/notification-query.js';
 import type { NimiRealmFeedScope } from '@nimiplatform/sdk/realm';
 import { DEFAULT_HOME_FEED_SCOPE } from '@renderer/features/home/home-feed-controls';
-import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
 import {
   persistStoredSettingsSelected,
 } from '@renderer/features/settings/settings-storage';
@@ -101,6 +100,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
   const authUser = useAppStore((state) => state.auth.user);
+  const exploreActiveSection = useAppStore((state) => state.exploreActiveSection);
+  const setExploreActiveSection = useAppStore((state) => state.setExploreActiveSection);
+  const exploreSearchText = useAppStore((state) => state.exploreSearchText);
+  const setExploreSearchText = useAppStore((state) => state.setExploreSearchText);
   const isAnonymousShell = props.authStatus !== 'authenticated';
   const notificationIdentityRef = useMemo(
     () => resolveNotificationIdentityRef(props.authStatus, authUser),
@@ -131,8 +134,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const sidebarWidthClass = 'w-[60px]';
   const titlebarLeftInsetClass = flags.enableTitlebarDrag ? 'pl-[92px]' : 'pl-3';
-  const [exploreActiveSection, setExploreActiveSection] = useState<ExploreSectionId>('worlds');
-  const [exploreSearchText, setExploreSearchText] = useState('');
   const [homeFeedScope, setHomeFeedScope] = useState(DEFAULT_HOME_FEED_SCOPE);
   const [homeCreatePostRequestKey, setHomeCreatePostRequestKey] = useState(0);
   const reducedMotion = useDesktopReducedMotion();

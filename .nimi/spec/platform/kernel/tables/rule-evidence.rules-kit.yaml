@@ -33,6 +33,7 @@ entries:
   - P-KIT-040
   - P-KIT-041
   - P-KIT-044
+  - P-KIT-045
   - P-KIT-042
   - P-KIT-043
   - P-KIT-050
@@ -94,6 +95,17 @@ rules:
     test_files:
       - kit/shell/electron/test/electron-shell.test.ts
       - apps/desktop/test/desktop-installed-app-launcher.test.ts
+  - rule_id: P-KIT-045
+    evidence_refs:
+      - platform_kernel_consistency
+      - nimi_kit_gate
+    evidence_requirement: required
+    note: Desktop Open Intent Kit surfaces; evidence binds pure SDK parser reuse, renderer operation payload shaping, and host client fail-closed running-only behavior.
+    test_files:
+      - kit/core/test/desktop-open.test.ts
+      - kit/shell/electron/test/electron-desktop-open.test.ts
+      - kit/shell/renderer/test/desktop-open-bridge.test.ts
+      - kit/shell/tauri/src/standard_desktop_open.rs
   - rule_id: P-KIT-042
     evidence_refs:
       - platform_kernel_consistency

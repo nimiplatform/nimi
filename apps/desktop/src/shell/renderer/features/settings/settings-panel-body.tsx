@@ -13,6 +13,7 @@ import {
 import { getSettingsMenuSections } from './settings-assets.js';
 import { renderSettingsPage } from './settings-pages.js';
 import {
+  addSettingsOpenSectionListener,
   loadStoredSettingsSelected,
   persistStoredSettingsSelected,
 } from './settings-storage.js';
@@ -62,6 +63,10 @@ export function SettingsPanelBody() {
       dragCleanupRef.current?.();
     };
   }, []);
+
+  useEffect(() => addSettingsOpenSectionListener((id) => {
+    setSelectedId(id);
+  }), []);
 
   const startResize = (event: MouseEvent<HTMLDivElement>) => {
     event.preventDefault();

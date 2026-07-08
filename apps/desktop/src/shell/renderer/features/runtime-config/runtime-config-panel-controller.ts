@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimePageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
-import { addRuntimeConfigOpenPageListener } from '@renderer/features/runtime-config/runtime-config-navigation-events';
+import {
+  addRuntimeConfigActionFocusListener,
+  addRuntimeConfigOpenPageListener,
+} from '@renderer/features/runtime-config/runtime-config-navigation-events';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { createRuntimeConfigPanelCommands } from './runtime-config-panel-commands';
@@ -166,6 +169,14 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     panelState.updateState((prev) => ({
       ...prev,
       activePage: pageId,
+    }));
+  }), [panelState.updateState]);
+
+  useEffect(() => addRuntimeConfigActionFocusListener((actionFocus) => {
+    panelState.updateState((prev) => ({
+      ...prev,
+      activePage: actionFocus.page,
+      actionFocus,
     }));
   }), [panelState.updateState]);
 

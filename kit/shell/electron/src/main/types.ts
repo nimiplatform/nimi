@@ -208,6 +208,32 @@ export type NimiElectronRuntimeConfigGetResult = {
 export type NimiElectronRuntimeConfigGet = (
 ) => Promise<NimiElectronRuntimeConfigGetResult> | NimiElectronRuntimeConfigGetResult;
 
+export type NimiElectronDesktopOpenFetchResponse = {
+  readonly ok?: boolean;
+  readonly status: number;
+  readonly json?: () => Promise<unknown> | unknown;
+  readonly text?: () => Promise<string> | string;
+};
+
+export type NimiElectronDesktopOpenFetch = (
+  url: string,
+  init: {
+    readonly method: 'POST';
+    readonly headers: Readonly<Record<string, string>>;
+    readonly body: string;
+  },
+) => Promise<NimiElectronDesktopOpenFetchResponse> | NimiElectronDesktopOpenFetchResponse;
+
+export type NimiElectronDesktopOpenHost = {
+  readonly descriptorPath?: string;
+  readonly sourceHost?: 'electron-standard-shell' | 'desktop-electron-installed-app-host';
+  readonly maxHeartbeatAgeMs?: number;
+  readonly now?: () => number;
+  readonly createRequestId?: () => string;
+  readonly readTextFile?: (absolutePath: string) => Promise<string> | string;
+  readonly fetch?: NimiElectronDesktopOpenFetch;
+};
+
 export type NimiElectronShellUiLevel = 'info' | 'warning' | 'error';
 
 export type NimiElectronConfirmDialogPayload = {
@@ -333,6 +359,7 @@ export type NimiElectronStandardShellHost = {
   readonly aiConfigStore?: NimiElectronAIConfigStore;
   readonly oauthTokenExchangeFetch?: NimiElectronOAuthTokenExchangeFetch;
   readonly runtimeConfigGet?: NimiElectronRuntimeConfigGet;
+  readonly desktopOpen?: NimiElectronDesktopOpenHost;
 };
 
 export type RegisterNimiElectronRuntimeBridgeInput = {

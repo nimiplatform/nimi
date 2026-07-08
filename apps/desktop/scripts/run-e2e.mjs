@@ -16,7 +16,6 @@ import {
   scenarioRunner,
   selectScenarios,
 } from '../e2e/helpers/registry.mjs';
-import { startRealmFixtureServer } from '../e2e/fixtures/realm-fixture-server.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptDir, '..');
@@ -203,6 +202,14 @@ function ensureSupportedPlatform() {
       'desktop E2E via tauri-driver is unsupported on macOS per D-GATE-060; run `pnpm check:desktop-e2e-smoke` or `pnpm check:desktop-e2e-journeys` on Linux/Windows CI, and keep macOS to local/manual smoke only',
     );
   }
+}
+
+async function loadRealmFixtureServer() {
+  const module = await import('../e2e/fixtures/realm-fixture-server.mjs');
+  if (typeof module.startRealmFixtureServer !== 'function') {
+    throw new Error('realm fixture server module must export startRealmFixtureServer()');
+  }
+  return module.startRealmFixtureServer;
 }
 
 function ensureTauriDriverAvailable() {
@@ -550,8 +557,10 @@ async function runScenario(scenarioId, runIndex) {
   const driverHost = process.env.NIMI_E2E_DRIVER_HOST || '127.0.0.1';
   const { driverPort, nativeDriverPort } = await resolveDriverPorts(driverHost);
   const artifactsDir = path.join(artifactRoot(), `${String(runIndex).padStart(2, '0')}-${scenarioId}`);
+  const e2eHomeDir = path.join(artifactsDir, 'home');
   const desktopSpecPath = path.relative(desktopRoot, path.join(repoRoot, scenario.spec));
   resetArtifactDir(artifactsDir);
+  fs.mkdirSync(e2eHomeDir, { recursive: true });
   const backendLogPath = path.join(artifactsDir, 'backend.log');
   const scenarioManifestPath = path.join(artifactsDir, 'scenario-manifest.json');
   const artifactManifestPath = path.join(artifactsDir, 'artifact-manifest.json');
@@ -563,6 +572,7 @@ async function runScenario(scenarioId, runIndex) {
     tauriFixture: profile.tauriFixture || {},
     artifactPolicy: profile.artifactPolicy || {},
   });
+  const startRealmFixtureServer = await loadRealmFixtureServer();
   const fixtureServer = await startRealmFixtureServer({
     manifestPath: scenarioManifestPath,
   });
@@ -587,6 +597,9 @@ async function runScenario(scenarioId, runIndex) {
     env: {
       ...process.env,
       TAURI_WEBVIEW_AUTOMATION: 'true',
+      HOME: e2eHomeDir,
+      USERPROFILE: e2eHomeDir,
+      NIMI_E2E_HOME_DIR: e2eHomeDir,
       NIMI_E2E_PROFILE: scenarioId,
       NIMI_E2E_FIXTURE_PATH: scenarioManifestPath,
       NIMI_E2E_BACKEND_LOG_PATH: backendLogPath,
@@ -611,6 +624,7 @@ async function runScenario(scenarioId, runIndex) {
     driver_log: path.relative(repoRoot, path.join(artifactsDir, 'tauri-driver.log')),
     driver_port: driverPort,
     native_driver_port: nativeDriverPort,
+    e2e_home_dir: path.relative(repoRoot, e2eHomeDir),
     artifact_policy: scenarioManifest.artifactPolicy || {},
     parity_captures: [],
   });
@@ -649,6 +663,7 @@ async function runScenario(scenarioId, runIndex) {
           NIMI_E2E_FIXTURE_CONTROL_URL: fixtureServer.controlUrl,
           NIMI_E2E_FIXTURE_PATH: scenarioManifestPath,
           NIMI_E2E_ARTIFACT_MANIFEST: artifactManifestPath,
+          NIMI_E2E_HOME_DIR: e2eHomeDir,
           SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET,
         },
       },

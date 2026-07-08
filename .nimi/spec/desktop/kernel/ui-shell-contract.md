@@ -689,11 +689,37 @@ Forbidden sources:
   commands, raw Electron IPC, and raw Node filesystem access must not be exposed
   to launched installed apps
 
+## D-SHELL-039 - Desktop Open Intent Navigation Targets
+
+Desktop UI Shell owns the renderer-side application of admitted Desktop Open
+Intent navigation targets. Platform `P-DOPEN-*` may reference Desktop target
+catalogs, but it must not duplicate Desktop IA values or mutate Desktop shell
+state.
+
+Desktop-owned target catalogs:
+
+- `tables/desktop-open-targets.yaml` is the aggregate Desktop Open target
+  catalog.
+- `tables/runtime-config-open-actions.yaml` owns Runtime Config
+  `cloud.add-connector` and `models.install-model` action focus targets.
+- `tables/settings-open-targets.yaml` owns the admitted Settings `profile`
+  target.
+- `tables/agents-open-targets.yaml` owns the admitted Agents `inventory`
+  target.
+
+Renderer navigation must apply target mappings through Desktop-owned store or
+controller APIs. A tab switch alone is not sufficient evidence for targets that
+require page-owned focus state.
+
 ## Fact Sources
 
 - `tables/app-tabs.yaml` — 导航 Tab 枚举
 - `tables/installed-app-launch-hosts.yaml` - installed Nimi App launch host
   registry
+- `tables/desktop-open-targets.yaml` - aggregate Desktop Open target catalog
+- `tables/runtime-config-open-actions.yaml` - Runtime Config Desktop Open action targets
+- `tables/settings-open-targets.yaml` - Settings Desktop Open targets
+- `tables/agents-open-targets.yaml` - Agents Desktop Open targets
 - `tables/feature-flags.yaml` — Feature flag 定义
 - `tables/build-chunks.yaml` — Vite 分包枚举
 - `tables/renderer-design-tokens.yaml` — baseline semantic design token

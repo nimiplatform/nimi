@@ -87,7 +87,13 @@
 - `tables/nimi-home-surfaces.yaml`
 - `tables/home-feed-scopes.yaml`
 - `tables/explore-sections.yaml`
+- `tables/explore-open-targets.yaml`
 - `tables/realm-persona-materialization-actions.yaml`
+- `tables/runtime-config-open-actions.yaml`
+- `tables/settings-open-targets.yaml`
+- `tables/agents-open-targets.yaml`
+- `tables/apps-open-targets.yaml`
+- `tables/desktop-open-targets.yaml`
 - `tables/relationship-categories.yaml`
 - `tables/relationship-friend-request-states.yaml`
 - `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules-*.yaml`，含 `tables/rule-evidence.rules-support-devtools.yaml`）

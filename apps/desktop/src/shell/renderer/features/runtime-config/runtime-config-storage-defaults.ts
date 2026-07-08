@@ -7,6 +7,7 @@ export type StoredStateV11 = {
   version: 11 | 12;
   initializedByV11: boolean;
   activePage: RuntimeConfigStateV11['activePage'];
+  actionFocus?: RuntimeConfigStateV11['actionFocus'];
   diagnosticsCollapsed: boolean;
   uiMode: RuntimeConfigStateV11['uiMode'];
   selectedSource: RuntimeConfigStateV11['selectedSource'];
@@ -19,6 +20,7 @@ export function createDefaultStateV11(): RuntimeConfigStateV11 {
     version: 12,
     initializedByV11: false,
     activePage: 'overview',
+    actionFocus: null,
     diagnosticsCollapsed: true,
     uiMode: 'simple',
     selectedSource: 'local',

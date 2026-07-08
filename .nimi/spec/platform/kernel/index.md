@@ -42,6 +42,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `DEV` | Nimi App developer workflow contract | `nimi-app-developer-workflow-contract.md` |
 | `SCAF` | Nimi App scaffolding and app-authoring contract | `nimi-app-scaffolding-contract.md` |
 | `PROP` | Nimi proposal intake contract | `nimi-proposal-intake-contract.md` |
+| `DOPEN` | Running Desktop Open Intent contract | `desktop-open-intent-contract.md` |
 
 ## Numbering Convention
 
@@ -79,6 +80,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | 280–289 | Nimi App developer workflow authority (developer repo layout, ordered developer workflow step sequence, developer-side `nimi audit` dry-run, immutable submission, PR-based admission workflow obligations consuming `P-NAPP-013`) |
 | `P-SCAF-*` | Nimi App scaffolding authority (app-authoring ownership, A0-A5 accepted inputs, standalone/workspace-app profiles, submitted-manifest and build-profile inputs, permission declaration transparency, managed file taxonomy, `nimi-app create|init|doctor|update`, nimicoding projection ownership, local harness evidence role, app-slice exception, model-test admission dependency) |
 | `P-PROP-*` | Nimi proposal intake authority (conversation-originated non-executing proposal record identity, closed proposal kind set, proposal intake state machine, owner handoff boundary, source conversation anchor reference boundary, audit transition obligation, SDK/app consumer boundary) |
+| `P-DOPEN-*` | Running Desktop Open Intent authority (other-app-to-running-Desktop closed intent protocol, running-only boundary, Desktop target catalog references, sourceHost semantics, result code producer mapping, and acceptance evidence manifest requirement) |
 
 ## Document Ownership Matrix
 
@@ -114,6 +116,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `nimi-app-developer-workflow-contract.md` | `P-DEV-*` | Nimi App developer workflow authority: developer repository layout (`nimi.app.yaml` as submitted-manifest input only, `LICENSE`, `SECURITY.md`, `README.md`, `AGENTS.md` per `nimi-coding` governance, release artifact + attestation) with `developer_repo_layout_incomplete` typed fail reason, ordered developer workflow step sequence (`pack → validate → local-audit-dry-run → submit → review-evidence → CI-build → release-promotion`; per-step required-truth + forbidden-shortcut; `developer_workflow_sequence_violation` typed fail reason; no hosted developer portal substrate), developer-side `nimi audit` dry-run-only command (mutual cross-reference to `P-AUDIT-005`), immutable submission (protected immutable tag OR reviewed commit SHA; mutable branch and unprotected mutable tag forbidden with typed fail reason `mutable_submission_artifact`; consistent with `tables/nimi-app-release-descriptors.yaml` `third_party_descriptor_floor.forbidden_install_inputs`), PR-based admission workflow obligations consuming `P-NAPP-013` admission-path mechanism without redefinition (developer-side identity, source reference per `P-DEV-004`, dry-run audit per `P-DEV-003`, manifest input per `P-DEV-001`) |
 | `nimi-app-scaffolding-contract.md` | `P-SCAF-*` | Nimi App scaffolding and app-authoring authority: app-authoring ownership, accepted A0-A5 inputs, `standalone` / `workspace-app` profile split, `nimi.app.yaml` as submitted-manifest input only, build-profile requirements, permission declarations as transparency/review input only, managed file taxonomy, `nimi-app create|init|doctor|update`, init/doctor/update developer-scaffold semantics, nimicoding projection ownership, local acceptance harness as local evidence only, no public Nimi App admission/install truth from scaffolding, explicit `workspace-app` app-slice admission exception under `P-APP-*`, and A5 model-test admission dependency |
 | `nimi-proposal-intake-contract.md` | `P-PROP-*` | Nimi proposal intake authority: conversation-originated non-executing proposal record identity, closed proposal kind set (`capability_proposal`, `workflow_draft_request`, `nimi_app_request`, `delegated_tool_request`, `rejected_request`), required proposal record shape, intake state machine (`draft`, `submitted`, `under-review`, `revision-requested`, `rejected`, `accepted-for-admission`, `blocked`), owner handoff boundary into `P-DEV-*` / `P-NAPP-*` / `P-AUDIT-*`, Runtime/delegation, or future owner authority, source conversation anchor reference boundary, transition audit obligation, and SDK/app consumer boundary with no app-local proposal truth or execution shortcut |
+| `desktop-open-intent-contract.md` | `P-DOPEN-*` | Running Desktop Open Intent authority: running-only protocol, Desktop target catalog references, sourceHost enum, result code producer mapping, and closeout evidence manifest requirement |
 
 ## Structured Fact Sources
 
@@ -152,6 +155,8 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `tables/release-promise-freeze.yaml` | `governance-contract.md` | Cross-domain release-promise freeze: public capability id, posture, canonical owner, login requirement, failure behavior, partial/deferred reason, and owner authority refs. Authority `P-GOV-026`. |
 | `tables/nimi-data-directory-ownership.yaml` | `local-config-migration-contract.md` | Canonical `nimi_data` data-root directory ownership matrix: per first-level directory owner, product meaning, and cleanup rule. Authority `P-MIG-006`. |
 | `tables/local-config-file-registry.yaml` | `local-config-migration-contract.md` | Canonical membership registry for the `~/.nimi` governed config file family: per file schema owner and current-schema validation authority. Authority `P-MIG-001`, `P-MIG-003`. |
+| `tables/desktop-open-intents.yaml` | `desktop-open-intent-contract.md` | Closed protocol surface for other apps requesting an already-running Desktop process to open admitted Desktop-owned targets. Authority `P-DOPEN-001..P-DOPEN-008`. |
+| `tables/desktop-open-intent-golden-vectors.yaml` | `desktop-open-intent-contract.md` | Parser and target conformance vectors for SDK, Kit, and Desktop Open Intent implementations. Authority `P-DOPEN-009`. |
 
 ## Version Terminology
 

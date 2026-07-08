@@ -5,6 +5,7 @@
     "./auth",
     "./auth/native-oauth-result-page",
     "./auth/styles.css",
+    "./core/desktop-open",
     "./core/model-config",
     "./core/notifications",
     "./core/oauth",
@@ -124,6 +125,14 @@
       "cssCustomProperties": []
     },
     {
+      "exportKey": "./core/desktop-open",
+      "source": "kit/core/src/desktop-open.ts",
+      "exports": [
+        "export type { ComposeNimiDesktopOpenIntentEnvelopeInput, NimiDesktopOpenAcceptedResult, NimiDesktopOpenAgentsIntent, NimiDesktopOpenAgentsView, NimiDesktopOpenAppsIntent, NimiDesktopOpenExploreIntent, NimiDesktopOpenExploreProductIntent, NimiDesktopOpenExploreSection, NimiDesktopOpenIntent, NimiDesktopOpenIntentEnvelope, NimiDesktopOpenIntentKind, NimiDesktopOpenIntentParseResult, NimiDesktopOpenParseReasonCode, NimiDesktopOpenRejectedResult, NimiDesktopOpenRejectedActionHint, NimiDesktopOpenRendererRequest, NimiDesktopOpenResult, NimiDesktopOpenResultReasonCode, NimiDesktopOpenRuntimeConfigAction, NimiDesktopOpenRuntimeConfigIntent, NimiDesktopOpenRuntimeConfigPage, NimiDesktopOpenSettingsIntent, NimiDesktopOpenSettingsSection, NimiDesktopOpenSourceHost, } from './sdk-contract.js';",
+        "export { NIMI_DESKTOP_OPEN_RESULT_REASON_CODES, NIMI_DESKTOP_OPEN_SCHEMA_VERSION, NIMI_DESKTOP_OPEN_SOURCE_HOSTS, NimiDesktopOpenIntentParseError, composeNimiDesktopOpenIntentEnvelope, createNimiDesktopOpenRequestId, isNimiDesktopOpenResultReasonCode, isNimiDesktopOpenSourceHost, parseNimiDesktopOpenIntent, parseNimiDesktopOpenIntentEnvelope, parseNimiDesktopOpenRendererRequest, parseNimiDesktopOpenResult, safeParseNimiDesktopOpenIntentEnvelope, } from './sdk-contract.js';"
+      ]
+    },
+    {
       "exportKey": "./core/model-config",
       "source": "kit/core/src/model-config/index.ts",
       "exports": [
@@ -192,6 +201,7 @@
       "source": "kit/core/src/sdk-contract.ts",
       "exports": [
         "export type { CatalogModelDetail, CatalogOverlayWarning, CatalogPricing, CatalogSourceRef, CatalogVideoGenerationCapability, CatalogVoiceEntry, CatalogWorkflowModel, CatalogModelWorkflowBinding, CatalogModelSummary, ModelCatalogProviderEntry} from '@nimiplatform/sdk/runtime/generated';",
+        "export type { ComposeNimiDesktopOpenIntentEnvelopeInput, NimiDesktopOpenAcceptedResult, NimiDesktopOpenAgentsIntent, NimiDesktopOpenAgentsView, NimiDesktopOpenAppsIntent, NimiDesktopOpenExploreIntent, NimiDesktopOpenExploreProductIntent, NimiDesktopOpenExploreSection, NimiDesktopOpenIntent, NimiDesktopOpenIntentEnvelope, NimiDesktopOpenIntentKind, NimiDesktopOpenIntentParseResult, NimiDesktopOpenParseReasonCode, NimiDesktopOpenRejectedResult, NimiDesktopOpenRejectedActionHint, NimiDesktopOpenRendererRequest, NimiDesktopOpenResult, NimiDesktopOpenResultReasonCode, NimiDesktopOpenRuntimeConfigAction, NimiDesktopOpenRuntimeConfigIntent, NimiDesktopOpenRuntimeConfigPage, NimiDesktopOpenSettingsIntent, NimiDesktopOpenSettingsSection, NimiDesktopOpenSourceHost, } from '@nimiplatform/sdk/app';",
         "export type { NimiAICapabilityRequirementDeclaration, NimiAICapabilityRequirementSlice, NimiAIConfig, NimiAIConfigSetupProjection, NimiAIConfigTargetRef, NimiAIProfile, NimiAIProfileApplyOptions, NimiAIProfileApplyResult, NimiAIProfileOriginRef, NimiAIProfilePreviewOptions, NimiAIProfilePreviewResult, NimiAIScopeRef, } from '@nimiplatform/sdk/ai';",
         "export type { NimiAIConfigRuntimeBinding, NimiAITextGenerationParameterSet, NimiAiModel, NimiGenerateTextRequest, NimiGenerateTextResult, NimiRuntimeAIScenarioClient, NimiRuntimeEmbeddingScenarioClient, NimiRuntimeAISchedulingClient, NimiRuntimeImageCompanionSlotContract, NimiRuntimeAIModelOptions, NimiRuntimeAIRoutePolicy, NimiRuntimeAIReasoningOptions, NimiTextError, NimiTextGenerateInput, NimiTextGenerateResult, NimiTextRuntime, NimiTextStreamHandlers, NimiTextStreamResponseResult, NimiTextTurnEvent, NimiTextTurnInput, } from '@nimiplatform/sdk/ai';",
         "export type { NimiClientConfig} from '@nimiplatform/sdk';",
@@ -206,6 +216,7 @@
         "export type { RuntimeDurableTargetRef, } from '@nimiplatform/sdk/runtime';",
         "export { ExecutionMode, ScenarioJobEventType, ScenarioJobStatus, ScenarioType, CatalogModelSource, ModelCatalogProviderSource} from '@nimiplatform/sdk/runtime/generated';",
         "export { NIMI_CONVERSATION_SESSION_COMPLETION_RESERVE, NIMI_CONVERSATION_SESSION_HISTORY_BUDGET, buildNimiConversationHistoryWindow, buildNimiConversationHistoryWindowResult, buildNimiConversationHistoryMessages, estimateNimiConversationMessageChars, estimateNimiConversationTokenEstimateFromChars, estimateNimiConversationTokens, measureNimiConversationHistoryWindow, } from '@nimiplatform/sdk/features/conversation';",
+        "export { NIMI_DESKTOP_OPEN_RESULT_REASON_CODES, NIMI_DESKTOP_OPEN_SCHEMA_VERSION, NIMI_DESKTOP_OPEN_SOURCE_HOSTS, NimiDesktopOpenIntentParseError, composeNimiDesktopOpenIntentEnvelope, createNimiDesktopOpenRequestId, isNimiDesktopOpenResultReasonCode, isNimiDesktopOpenSourceHost, parseNimiDesktopOpenIntent, parseNimiDesktopOpenIntentEnvelope, parseNimiDesktopOpenRendererRequest, parseNimiDesktopOpenResult, safeParseNimiDesktopOpenIntentEnvelope, } from '@nimiplatform/sdk/app';",
         "export { NIMI_REALM_OAUTH_LOGIN_STATE, NIMI_REALM_OAUTH_PROVIDER, normalizeNimiRealmAuthTokens, normalizeNimiRealmOAuthLoginResult, readNimiRealmOAuthLoginTokens, resolveNimiRealmMediaUrl, toNimiRealmAuthUserRecord, } from '@nimiplatform/sdk/realm';",
         "export { NIMI_RUNTIME_IMAGE_MODEL_FAMILY_OPTIONS, coerceNimiAITextGenerationParams, createNimiRuntimeEmbeddingClient, createNimiRuntimeAISchedulingClient, normalizeNimiRuntimeImageModelFamily, resolveNimiRuntimeImageCompanionSlots, resolveNimiAIConfigRuntimeBinding, createNimiRuntimeAIModel, runNimiTextGenerate, runNimiTextTurn, streamNimiTextResponse, toRuntimeDurableTargetRef, } from '@nimiplatform/sdk/ai';",
         "export { NimiClient, createNimiClient} from '@nimiplatform/sdk';",
@@ -394,6 +405,7 @@
         "export type { CreateVrmHitRegionInputs, VrmHitRegionDegradedDetail, VrmHitRegionDeviceTier, VrmHitRegionRenderTarget, } from './vrm-hit-region.js';",
         "export type { Live2DAdapterManifestV1, Live2DCompatibilityDiagnostic, Live2DCompatibilityDiagnosticCode, Live2DCompatibilityInput, Live2DCompatibilityModelManifest, Live2DCompatibilityModelSettings, Live2DCompatibilityReport, Live2DCompatibilityResources, Live2DCompatibilityTier, Live2DFeatureDisposition, } from './live2d-compatibility.js';",
         "export type { Live2DNominalBoundsInput, Live2DNominalBoundsModel, } from './live2d-nominal-bounds.js';",
+        "export type { RuntimeAgentEmotionId, RuntimeAgentEmotionIntensity, } from './emotion-mapping.js';",
         "export type { VoiceLipsyncStateBusEvent, VoiceLipsyncStateBusListener, } from './voice-lipsync-state-bus.js';",
         "export type { WLipSyncAudioConsumer, WLipSyncAudioConsumerDeps, WLipSyncAudioConsumerFactory, WLipSyncAudioNode, } from './wlipsync-audio-consumer.js';",
         "export { AVATAR_INSTANCE_POLICY_VALUES, arbitrateAvatarLaunch, evaluateStartWithChatGate, } from './launch-arbitration.js';",
@@ -411,6 +423,7 @@
         "export { createWLipSyncAudioConsumer, } from './wlipsync-audio-consumer.js';",
         "export { fromLive2DLocalModelManifest, fromTauriAvatarModelManifest, } from './avatar-model-manifest.js';",
         "export { getSharedVoiceLipsyncStateBus, resetSharedVoiceLipsyncStateBusForTesting, VoiceLipsyncStateBus, } from './voice-lipsync-state-bus.js';",
+        "export { mapRuntimeAgentEmotionToAvatarCue, parseRuntimeAgentEmotionId, parseRuntimeAgentEmotionIntensity, RUNTIME_AGENT_EMOTION_IDS, } from './emotion-mapping.js';",
         "export { resolveAgentVoicePlaybackAmplitude, resolveAgentVoicePlaybackCue, resolveAgentVoicePlaybackEstimatedFrame, resolveAgentVoicePlaybackVisemeId, } from './voice-playback.js';",
         "function createAvatarStageSnapshot",
         "function createRuntimeAgentPresentationRecord",
@@ -451,6 +464,7 @@
         "export type { CreateVrmHitRegionInputs, VrmHitRegionDegradedDetail, VrmHitRegionDeviceTier, VrmHitRegionRenderTarget, } from './vrm-hit-region.js';",
         "export type { Live2DAdapterManifestV1, Live2DCompatibilityDiagnostic, Live2DCompatibilityDiagnosticCode, Live2DCompatibilityInput, Live2DCompatibilityModelManifest, Live2DCompatibilityModelSettings, Live2DCompatibilityReport, Live2DCompatibilityResources, Live2DCompatibilityTier, Live2DFeatureDisposition, } from './live2d-compatibility.js';",
         "export type { Live2DNominalBoundsInput, Live2DNominalBoundsModel, } from './live2d-nominal-bounds.js';",
+        "export type { RuntimeAgentEmotionId, RuntimeAgentEmotionIntensity, } from './emotion-mapping.js';",
         "export type { VoiceLipsyncStateBusEvent, VoiceLipsyncStateBusListener, } from './voice-lipsync-state-bus.js';",
         "export type { WLipSyncAudioConsumer, WLipSyncAudioConsumerDeps, WLipSyncAudioConsumerFactory, WLipSyncAudioNode, } from './wlipsync-audio-consumer.js';",
         "export { AVATAR_INSTANCE_POLICY_VALUES, arbitrateAvatarLaunch, evaluateStartWithChatGate, } from './launch-arbitration.js';",
@@ -467,6 +481,7 @@
         "export { createWLipSyncAudioConsumer, } from './wlipsync-audio-consumer.js';",
         "export { fromLive2DLocalModelManifest, fromTauriAvatarModelManifest, } from './avatar-model-manifest.js';",
         "export { getSharedVoiceLipsyncStateBus, resetSharedVoiceLipsyncStateBusForTesting, VoiceLipsyncStateBus, } from './voice-lipsync-state-bus.js';",
+        "export { mapRuntimeAgentEmotionToAvatarCue, parseRuntimeAgentEmotionId, parseRuntimeAgentEmotionIntensity, RUNTIME_AGENT_EMOTION_IDS, } from './emotion-mapping.js';",
         "export { resolveAgentVoicePlaybackAmplitude, resolveAgentVoicePlaybackCue, resolveAgentVoicePlaybackEstimatedFrame, resolveAgentVoicePlaybackVisemeId, } from './voice-playback.js';",
         "function createAvatarStageSnapshot",
         "function inferAvatarEmotionFromPhase",
@@ -1514,6 +1529,7 @@
         "export * from './ai-config-store.js';",
         "export * from './app-menu.js';",
         "export * from './data-root-binding.js';",
+        "export * from './desktop-open.js';",
         "export * from './host.js';",
         "export * from './local-asset-protocol.js';",
         "export * from './runtime-account-auth.js';",
@@ -1532,6 +1548,7 @@
         "function createNimiElectronStandardApplicationMenuTemplate",
         "function createNimiElectronStandardEditMenuTemplate",
         "function decodeElectronShellFileUrl",
+        "function openElectronDesktopIntent",
         "function registerNimiElectronRuntimeBridge",
         "function resolveElectronStandardDataRoot",
         "function resolveElectronStandardStorageRoots",
@@ -1558,6 +1575,9 @@
         "type NimiElectronCommandHandlerInput",
         "type NimiElectronConfirmDialogPayload",
         "type NimiElectronConfirmDialogResult",
+        "type NimiElectronDesktopOpenFetch",
+        "type NimiElectronDesktopOpenFetchResponse",
+        "type NimiElectronDesktopOpenHost",
         "type NimiElectronFileAIConfigStoreOptions",
         "type NimiElectronFileDialogFilter",
         "type NimiElectronFileDialogOpenPayload",
@@ -1596,6 +1616,7 @@
         "type NimiElectronStandardMenuRole",
         "type NimiElectronStandardShellHost",
         "type NimiElectronStandardStorageRoots",
+        "type OpenElectronDesktopIntentInput",
         "type RegisterNimiElectronRuntimeBridgeInput",
         "type RegisteredNimiElectronRuntimeBridge",
         "type RuntimeGrpcBridgeClient",
@@ -1678,6 +1699,7 @@
         "export type { FloatingWindowBounds, FloatingWindowIgnoreCursorEventsOptions, FloatingWindowManualDragOrigin, FloatingWindowMoveDelta, FloatingWindowConstrainResult, } from './floating-window.js';",
         "export type { InstalledNimiAppStorageRemoveJsonResult, InstalledNimiAppStandardShellSurface, } from './installed-app.js';",
         "export type { JsonPrimitive, JsonValue, JsonObject, RuntimeDefaults, RealmDefaults, RuntimeExecutionDefaults, RuntimeBridgeDaemonStatus, RuntimeBridgeConfigGetResult, RuntimeBridgeConfigSetResult, ConfirmDialogPayload, ConfirmDialogResult, } from './types.js';",
+        "export type { NimiDesktopOpenRendererRequest, NimiDesktopOpenResult, } from './desktop-open.js';",
         "export type { NimiShellRuntimeBridgeResult} from './tauri-api.js';",
         "export type { SharedDesktopAuthSessionWatchOptions} from './auth-session.js';",
         "export type { ShellBridgeNimiErrorOptions, ShellBridgeStructuredError, ShellBridgeUserMessageProjection, } from './nimi-error.js';",
@@ -1695,6 +1717,7 @@
         "export { loadAuthSession, saveAuthSession, clearAuthSession, watchAuthSessionChanges, } from './auth-session.js';",
         "export { normalizeShellExternalUrl, openExternalUrl, confirmDialog, startWindowDrag, focusMainWindow, } from './ui.js';",
         "export { oauthTokenExchange, oauthListenForCode, createStandardShellOAuthCodeBridge, createStandardShellOAuthBridge, } from './oauth.js';",
+        "export { openDesktopIntent, } from './desktop-open.js';",
         "export { openShellFileDialog, revealShellFile, exportShellSaveFile, writeShellArtifact, } from './files.js';"
       ]
     },

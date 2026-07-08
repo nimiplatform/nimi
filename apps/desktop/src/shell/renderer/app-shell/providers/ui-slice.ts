@@ -1,5 +1,6 @@
 import { startTransition } from 'react';
 import type { OfflineTier } from '@nimiplatform/kit/core/offline-coordinator';
+import type { ExploreSectionId } from '@renderer/features/explore/explore-section-nav';
 import {
   DEFAULT_CHAT_SOURCE_FILTER,
   DEFAULT_CHAT_SETUP_STATE,
@@ -58,6 +59,9 @@ type UiSlice = Pick<AppStoreState,
   | 'selectedWorldId'
   | 'selectedWorldInitialSubpage'
   | 'selectedGiftTransactionId'
+  | 'exploreActiveSection'
+  | 'exploreSearchText'
+  | 'appsDetailAppId'
   | 'profileDetailOverlayOpen'
   | 'chatProfilePanelTarget'
   | 'offlineTier'
@@ -87,6 +91,9 @@ type UiSlice = Pick<AppStoreState,
   | 'setSelectedSourceRef'
   | 'setSelectedWorldId'
   | 'setSelectedGiftTransactionId'
+  | 'setExploreActiveSection'
+  | 'setExploreSearchText'
+  | 'setAppsDetailAppId'
   | 'setProfileDetailOverlayOpen'
   | 'setChatProfilePanelTarget'
   | 'navigateToProfile'
@@ -125,6 +132,9 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     selectedWorldId: null,
     selectedWorldInitialSubpage: null,
     selectedGiftTransactionId: null,
+    exploreActiveSection: 'worlds' as ExploreSectionId,
+    exploreSearchText: '',
+    appsDetailAppId: null,
     profileDetailOverlayOpen: false,
     chatProfilePanelTarget: null,
     offlineTier: 'L0' as OfflineTier,
@@ -243,6 +253,12 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     setSelectedSourceRef: (sourceRef) => set({ selectedSourceRef: sourceRef }),
     setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId, selectedWorldInitialSubpage: null }),
     setSelectedGiftTransactionId: (giftTransactionId) => set({ selectedGiftTransactionId: giftTransactionId }),
+    setExploreActiveSection: (section) => set({ exploreActiveSection: section }),
+    setExploreSearchText: (text) => set({ exploreSearchText: String(text || '') }),
+    setAppsDetailAppId: (appId) => {
+      const normalizedAppId = String(appId || '').trim();
+      set({ appsDetailAppId: normalizedAppId || null });
+    },
     setProfileDetailOverlayOpen: (open) => set({ profileDetailOverlayOpen: open }),
     setChatProfilePanelTarget: (target) => set({ chatProfilePanelTarget: target }),
     navigateToProfile: (profileId, tab) =>

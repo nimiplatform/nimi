@@ -13,6 +13,7 @@ const sdkContractAbs = path.join(repoRoot, sdkContractRel);
 const allowedSdkContractSpecifiers = new Set([
   '@nimiplatform/sdk',
   '@nimiplatform/sdk/ai',
+  '@nimiplatform/sdk/app',
   '@nimiplatform/sdk/contracts',
   '@nimiplatform/sdk/features/conversation',
   '@nimiplatform/sdk/features/generation',

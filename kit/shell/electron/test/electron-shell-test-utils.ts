@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, realpath, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import {
@@ -51,7 +51,8 @@ export function fromBase64(value: string): Uint8Array {
 }
 
 export async function withTempDir<T>(prefix: string, run: (dir: string) => Promise<T>): Promise<T> {
-  const dir = await mkdtemp(path.join(tmpdir(), `nimi-electron-shell-${prefix}-`));
+  const rawDir = await mkdtemp(path.join(tmpdir(), `nimi-electron-shell-${prefix}-`));
+  const dir = await realpath(rawDir);
   try {
     return await run(dir);
   } finally {

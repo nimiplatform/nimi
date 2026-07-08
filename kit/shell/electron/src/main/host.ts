@@ -32,6 +32,7 @@ import {
 } from './errors.js';
 import { writeElectronShellArtifact } from './artifacts.js';
 import { bindElectronStandardDataRootRuntimeResolver } from './data-root-binding.js';
+import { openElectronDesktopIntent } from './desktop-open.js';
 import { saveElectronShellExportFile } from './export.js';
 import { openElectronShellFileDialog } from './file-dialog.js';
 import { revealElectronShellFile } from './file-reveal.js';
@@ -200,6 +201,7 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return openElectronExternalUrl(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange']) return exchangeElectronOauthToken(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']) return listenElectronOauthForCode(standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent']) return openElectronDesktopIntent({ host: input.standardShellHost, payload: standardPayload, command, appId });
     if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']) {
       return confirmElectronShellDialog({ host: input.standardShellHost, payload: standardPayload, command, event, appId, runtimeEndpoint });
     }

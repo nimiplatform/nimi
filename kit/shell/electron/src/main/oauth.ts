@@ -205,7 +205,16 @@ function parseElectronExternalUrl(value: string, command: string): URL {
     });
   }
   const host = parsed.hostname.toLowerCase();
-  const isLoopbackHttp = parsed.protocol === 'http:' && (host === 'localhost' || host === '127.0.0.1');
+  const isLoopbackHttp = parsed.protocol === 'http:' && isElectronOauthLoopbackHost(host);
+  if (isLoopbackHttp && isDesktopOpenReservedOauthUrl(parsed)) {
+    throw new NimiElectronShellHostError({
+      code: 'forbidden-renderer-access',
+      message: `Electron OAuth external URL targets a reserved Desktop Open route: ${parsed.toString()}`,
+      reasonCode: 'electron-oauth-external-url-not-allowed',
+      actionHint: 'use_https_or_loopback_http_oauth_url',
+      details: { command, url: parsed.toString() },
+    });
+  }
   if (parsed.protocol === 'https:' || isLoopbackHttp) {
     return parsed;
   }
@@ -333,12 +342,21 @@ function parseElectronOauthRedirectUri(value: string, command: string): {
   }
   const host = parsed.hostname.toLowerCase();
   const port = Number(parsed.port || (parsed.protocol === 'http:' ? 80 : 0));
-  if (parsed.protocol !== 'http:' || (host !== 'localhost' && host !== '127.0.0.1') || !Number.isInteger(port) || port <= 0) {
+  if (parsed.protocol !== 'http:' || !isElectronOauthLoopbackHost(host) || !Number.isInteger(port) || port <= 0) {
     throw new NimiElectronShellHostError({
       code: 'invalid-payload',
       message: `Electron OAuth redirectUri must be loopback http with an explicit port: ${value}`,
       reasonCode: 'electron-oauth-redirect-uri-not-loopback',
       actionHint: 'provide_loopback_http_redirect_uri',
+      details: { command, redirectUri: value },
+    });
+  }
+  if (isDesktopOpenReservedOauthUrl(parsed)) {
+    throw new NimiElectronShellHostError({
+      code: 'invalid-payload',
+      message: `Electron OAuth redirectUri targets a reserved Desktop Open route: ${value}`,
+      reasonCode: 'electron-oauth-redirect-uri-reserved-desktop-open-route',
+      actionHint: 'provide_non_desktop_open_redirect_uri',
       details: { command, redirectUri: value },
     });
   }
@@ -353,10 +371,45 @@ function parseElectronOauthRedirectUri(value: string, command: string): {
   }
   return {
     redirectUri: parsed.toString(),
-    bindHost: host === 'localhost' ? '127.0.0.1' : host,
+    bindHost: host === 'localhost' ? '127.0.0.1' : normalizeElectronOauthBindHost(host),
     port,
     expectedPath: parsed.pathname || '/',
   };
+}
+
+function isDesktopOpenReservedOauthUrl(parsed: URL): boolean {
+  const host = parsed.hostname.toLowerCase();
+  if (parsed.protocol !== 'http:' || !isElectronOauthLoopbackHost(host)) {
+    return false;
+  }
+  const candidates = new Set<string>([parsed.pathname]);
+  try {
+    candidates.add(decodeURIComponent(parsed.pathname));
+  } catch {
+    // Keep the raw path candidate.
+  }
+  for (const candidate of candidates) {
+    const normalized = candidate.replace(/\/+$/u, '') || '/';
+    const lower = normalized.toLowerCase();
+    if (lower === '/v1/open-intent') {
+      return true;
+    }
+    if (lower === '/__nimi_desktop_launch__' || lower.startsWith('/__nimi_desktop_launch__/')) {
+      return true;
+    }
+    if (lower === '/desktop-open' || lower.startsWith('/desktop-open/')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isElectronOauthLoopbackHost(host: string): boolean {
+  return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '::1';
+}
+
+function normalizeElectronOauthBindHost(host: string): string {
+  return host === '[::1]' ? '::1' : host;
 }
 
 async function handleElectronOauthCallbackRequest(

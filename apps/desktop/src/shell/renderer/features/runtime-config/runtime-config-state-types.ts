@@ -60,6 +60,17 @@ export type ProviderStatusV11 = NimiRuntimeConfigProviderStatus;
 export type ApiConnectorScopeV11 = 'user' | 'machine-global' | 'runtime-system';
 export type ApiVendor = string;
 export type ApiConnectorAuthModeV11 = 'api_key' | 'oauth_managed';
+export type RuntimeConfigActionFocus =
+  | {
+    page: 'cloud';
+    action: 'add-connector';
+    focus: 'runtime-config-action-focus.cloud-connector-draft';
+  }
+  | {
+    page: 'models';
+    action: 'install-model';
+    focus: 'runtime-config-action-focus.models-catalog-install';
+  };
 
 export type LocalModelOptionV11 = NimiRuntimeConfigLocalModelProjection & {
   recommendation?: NimiRuntimeLocalCatalogRecommendation;
@@ -90,6 +101,7 @@ export type RuntimeConfigStateV11 = {
   version: 11 | 12;
   initializedByV11: boolean;
   activePage: RuntimePageIdV11;
+  actionFocus: RuntimeConfigActionFocus | null;
   diagnosticsCollapsed: boolean;
   selectedSource: SourceIdV11;
   activeCapability: CapabilityV11;
@@ -118,6 +130,36 @@ export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
     return value;
   }
   return 'overview';
+}
+
+export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfigActionFocus | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  if (
+    record.page === 'cloud'
+    && record.action === 'add-connector'
+    && record.focus === 'runtime-config-action-focus.cloud-connector-draft'
+  ) {
+    return {
+      page: 'cloud',
+      action: 'add-connector',
+      focus: 'runtime-config-action-focus.cloud-connector-draft',
+    };
+  }
+  if (
+    record.page === 'models'
+    && record.action === 'install-model'
+    && record.focus === 'runtime-config-action-focus.models-catalog-install'
+  ) {
+    return {
+      page: 'models',
+      action: 'install-model',
+      focus: 'runtime-config-action-focus.models-catalog-install',
+    };
+  }
+  return null;
 }
 
 export function normalizeCapabilityV11(value: unknown): CapabilityV11 {

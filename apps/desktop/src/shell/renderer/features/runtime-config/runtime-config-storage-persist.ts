@@ -35,6 +35,7 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
     version: 12,
     initializedByV11: Boolean(state.initializedByV11),
     activePage: state.activePage,
+    actionFocus: state.actionFocus,
     diagnosticsCollapsed: Boolean(state.diagnosticsCollapsed),
     uiMode: state.uiMode,
     selectedSource: state.selectedSource,

@@ -7,7 +7,7 @@
  * top-level IA entry is collapsed.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -32,6 +32,15 @@ const SUB_TABS: Array<{ id: ModelsSubTabId; labelKey: string; defaultLabel: stri
 export function ModelsPage({ model, state }: ModelsPageProps) {
   const { t } = useTranslation();
   const [subTab, setSubTab] = useState<ModelsSubTabId>('installed');
+  useEffect(() => {
+    if (state.actionFocus?.focus === 'runtime-config-action-focus.models-catalog-install') {
+      setSubTab('catalog');
+      model.updateState((prev) => ({
+        ...prev,
+        actionFocus: null,
+      }));
+    }
+  }, [model, state.actionFocus]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

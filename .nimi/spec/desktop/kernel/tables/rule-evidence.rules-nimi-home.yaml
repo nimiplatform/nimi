@@ -36,6 +36,7 @@ entries:
   - D-HOME-010
   - D-HOME-011
   - D-HOME-012
+  - D-HOME-013
 rules:
   - rule_id: D-HOME-001
     evidence_refs:
@@ -85,3 +86,11 @@ rules:
     evidence_refs:
       - desktop_kernel_consistency
     evidence_requirement: required
+  - rule_id: D-HOME-013
+    evidence_refs:
+      - desktop_kernel_consistency
+      - desktop_test_gate
+    evidence_requirement: required
+    note: Apps/Nimi Home Desktop Open target ownership; evidence binds app surface and app-selection target catalog handling.
+    test_files:
+      - apps/desktop/test/desktop-open-navigation.test.ts

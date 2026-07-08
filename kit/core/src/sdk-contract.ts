@@ -43,6 +43,9 @@
  *     - history windows, text accumulation, and stream snapshots
  *   @nimiplatform/sdk/features/generation — Runtime media generation helpers
  *     - image parameter coercion and Runtime image.generate scenario runner
+ *   @nimiplatform/sdk/app — app-side Desktop Open Intent data surface
+ *     - closed intent parser, renderer request parser, envelope composition,
+ *       and result parser
  *
  * Re-export strategy
  * ------------------
@@ -289,3 +292,46 @@ export type {
   NimiConversationMessage,
   NimiConversationTextAccumulatorSnapshot,
 } from '@nimiplatform/sdk/features/conversation';
+
+// --- App-side Desktop Open Intent data surface -----------------------------
+export {
+  NIMI_DESKTOP_OPEN_RESULT_REASON_CODES,
+  NIMI_DESKTOP_OPEN_SCHEMA_VERSION,
+  NIMI_DESKTOP_OPEN_SOURCE_HOSTS,
+  NimiDesktopOpenIntentParseError,
+  composeNimiDesktopOpenIntentEnvelope,
+  createNimiDesktopOpenRequestId,
+  isNimiDesktopOpenResultReasonCode,
+  isNimiDesktopOpenSourceHost,
+  parseNimiDesktopOpenIntent,
+  parseNimiDesktopOpenIntentEnvelope,
+  parseNimiDesktopOpenRendererRequest,
+  parseNimiDesktopOpenResult,
+  safeParseNimiDesktopOpenIntentEnvelope,
+} from '@nimiplatform/sdk/app';
+export type {
+  ComposeNimiDesktopOpenIntentEnvelopeInput,
+  NimiDesktopOpenAcceptedResult,
+  NimiDesktopOpenAgentsIntent,
+  NimiDesktopOpenAgentsView,
+  NimiDesktopOpenAppsIntent,
+  NimiDesktopOpenExploreIntent,
+  NimiDesktopOpenExploreProductIntent,
+  NimiDesktopOpenExploreSection,
+  NimiDesktopOpenIntent,
+  NimiDesktopOpenIntentEnvelope,
+  NimiDesktopOpenIntentKind,
+  NimiDesktopOpenIntentParseResult,
+  NimiDesktopOpenParseReasonCode,
+  NimiDesktopOpenRejectedResult,
+  NimiDesktopOpenRejectedActionHint,
+  NimiDesktopOpenRendererRequest,
+  NimiDesktopOpenResult,
+  NimiDesktopOpenResultReasonCode,
+  NimiDesktopOpenRuntimeConfigAction,
+  NimiDesktopOpenRuntimeConfigIntent,
+  NimiDesktopOpenRuntimeConfigPage,
+  NimiDesktopOpenSettingsIntent,
+  NimiDesktopOpenSettingsSection,
+  NimiDesktopOpenSourceHost,
+} from '@nimiplatform/sdk/app';

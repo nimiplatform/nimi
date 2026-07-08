@@ -1,0 +1,54 @@
+version: 1
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_explore_open_targets
+authority_refs:
+  - D-EXPL-002
+  - D-EXPL-006
+entries:
+  - worlds
+  - worlds.discover-worlds
+  - personas
+  - personas.discover-personas
+  - personas.select-partner
+  - activity
+  - activity.view-activity
+targets:
+  - id: worlds
+    section: worlds
+    active_tab: explore
+    required_renderer_state: explore-section.worlds
+  - id: worlds.discover-worlds
+    section: worlds
+    productIntent: discover-worlds
+    active_tab: explore
+    required_renderer_state: explore-section.worlds
+  - id: personas
+    section: personas
+    active_tab: explore
+    required_renderer_state: explore-section.personas
+  - id: personas.discover-personas
+    section: personas
+    productIntent: discover-personas
+    active_tab: explore
+    required_renderer_state: explore-section.personas
+  - id: personas.select-partner
+    section: personas
+    productIntent: select-partner
+    active_tab: explore
+    required_renderer_state: explore-section.personas
+  - id: activity
+    section: activity
+    active_tab: explore
+    required_renderer_state: explore-section.activity
+  - id: activity.view-activity
+    section: activity
+    productIntent: view-activity
+    active_tab: explore
+    required_renderer_state: explore-section.activity
+query:
+  allowed_for_sections:
+    - worlds
+    - personas
+    - activity
+  max_unicode_scalars_after_trim: 160

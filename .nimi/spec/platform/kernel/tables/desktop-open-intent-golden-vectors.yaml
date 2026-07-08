@@ -1,0 +1,181 @@
+version: 1
+table_family: conformance_vectors
+owner: platform
+catalog_id: platform_desktop_open_intent_golden_vectors
+authority_refs:
+  - P-DOPEN-001
+  - P-DOPEN-003
+  - P-DOPEN-004
+  - P-DOPEN-007
+accepted:
+  - id: explore-personas-select-partner
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.zhiyu
+      sourceHost: desktop-electron-installed-app-host
+      requestId: desktop-open-20260708-0001
+      intent:
+        kind: open-explore
+        section: personas
+        productIntent: select-partner
+  - id: explore-worlds-discover
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0009
+      intent:
+        kind: open-explore
+        section: worlds
+        productIntent: discover-worlds
+  - id: explore-worlds-section-only
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0012
+      intent:
+        kind: open-explore
+        section: worlds
+  - id: explore-activity-view
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: tauri-standard-shell
+      requestId: desktop-open-20260708-0010
+      intent:
+        kind: open-explore
+        section: activity
+        productIntent: view-activity
+  - id: explore-activity-section-only
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0013
+      intent:
+        kind: open-explore
+        section: activity
+  - id: explore-personas-discover
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0011
+      intent:
+        kind: open-explore
+        section: personas
+        productIntent: discover-personas
+  - id: explore-personas-section-only
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0014
+      intent:
+        kind: open-explore
+        section: personas
+  - id: runtime-cloud-add-connector
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0002
+      intent:
+        kind: open-runtime-config
+        page: cloud
+        action: add-connector
+  - id: runtime-models-install-model
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: tauri-standard-shell
+      requestId: desktop-open-20260708-0003
+      intent:
+        kind: open-runtime-config
+        page: models
+        action: install-model
+  - id: explore-personas-search
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0004
+      intent:
+        kind: open-explore
+        section: personas
+        query: mentor
+  - id: agents-inventory
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0005
+      intent:
+        kind: open-agents
+        view: inventory
+  - id: apps-surface
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0006
+      intent:
+        kind: open-apps
+  - id: apps-selection
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0007
+      intent:
+        kind: open-apps
+        appId: nimi.example
+  - id: settings-profile
+    envelope:
+      schemaVersion: 1
+      sourceApp: nimi.test-launcher
+      sourceHost: electron-standard-shell
+      requestId: desktop-open-20260708-0008
+      intent:
+        kind: open-settings
+        section: profile
+rejected:
+  - id: source-app-missing
+    reasonCode: desktop-open-intent-invalid
+  - id: unknown-field-authorization
+    reasonCode: desktop-open-intent-invalid
+  - id: unknown-target
+    reasonCode: desktop-open-target-unsupported
+  - id: invalid-runtime-action-page-pair
+    reasonCode: desktop-open-target-unsupported
+  - id: invalid-explore-worlds-select-partner-pair
+    reasonCode: desktop-open-target-unsupported
+  - id: invalid-explore-activity-discover-personas-pair
+    reasonCode: desktop-open-target-unsupported
+  - id: invalid-source-host
+    reasonCode: desktop-open-intent-invalid
+  - id: invalid-request-id
+    reasonCode: desktop-open-intent-invalid
+  - id: invalid-app-id
+    reasonCode: desktop-open-intent-invalid
+  - id: invalid-query-too-long
+    reasonCode: desktop-open-intent-invalid
+  - id: developer-tools-settings-target-v1
+    reasonCode: desktop-open-target-unsupported
+  - id: agent-center-target-v1
+    reasonCode: desktop-open-target-unsupported
+  - id: agent-center-local-agent-ref-v1
+    reasonCode: desktop-open-intent-invalid
+  - id: runtime-profiles-manage-profile-v1
+    reasonCode: desktop-open-target-unsupported
+  - id: runtime-advanced-inspect-runtime-v1
+    reasonCode: desktop-open-target-unsupported
+  - id: os-scheme-url
+    reasonCode: desktop-open-intent-invalid
+  - id: raw-url-payload
+    reasonCode: desktop-open-intent-invalid
+  - id: renderer-provided-source-app
+    reasonCode: desktop-open-intent-invalid
+  - id: provider-model-credential-fields
+    reasonCode: desktop-open-intent-invalid

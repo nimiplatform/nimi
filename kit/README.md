@@ -85,17 +85,18 @@ platform spec tables first and regenerate the projection.
 
 ## Current Public Surface
 
-The current package publishes 65 public subpath exports through
+The current package publishes 66 public subpath exports through
 `kit/package.json`:
 
 - 8 UI entries (`./ui`, `./ui/glass`, `./ui/motion`, `./ui/a11y`,
   `./ui/styles.css`, `./ui/themes/light.css`, `./ui/themes/dark.css`,
   and `./ui/themes/nimi-accent.css`)
 - 3 auth entries (`./auth`, `./auth/styles.css`, `./auth/native-oauth-result-page`)
-- 8 core entries (`./core/shell-mode`, `./core/oauth`,
+- 9 core entries (`./core/shell-mode`, `./core/oauth`,
   `./core/storage-json`, `./core/offline-coordinator`,
-  `./core/notifications`, `./core/runtime-capabilities`,
-  `./core/model-config`, `./core/sdk-contract`)
+  `./core/notifications`, `./core/desktop-open`,
+  `./core/runtime-capabilities`, `./core/model-config`,
+  `./core/sdk-contract`)
 - 6 shell entries (`./shell/capabilities`, `./shell/renderer/bridge`,
   `./shell/renderer/bootstrap`, `./shell/electron/main`,
   `./shell/electron/preload`, and `./shell/electron/preload-cjs`)

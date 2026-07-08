@@ -48,7 +48,7 @@
 
 ## P-KIT-030 — Core Sub-Module
 
-- `core` is a logic module for shared env, capability detection, and OAuth helpers.
+- `core` is a logic module for shared env, capability detection, OAuth helpers, and Desktop Open Intent pure helpers.
 - Core is a pure-logic utility library: zero UI dependencies, zero CSS imports, zero runtime rendering code.
 - OAuth helpers must be parameterized on `TauriOAuthBridge`; no Tauri-specific imports.
 - Shell mode detection must read injected environment values (`VITE_NIMI_SHELL_MODE`); no hardcoded app names.
@@ -191,6 +191,27 @@
   raw Electron/Node/Tauri bridge access, and any Tauri-only command assumption.
 - Negative tests for excluded capabilities are part of the capability-set
   contract. Missing negative tests make the set inadmissible.
+
+## P-KIT-045 - Desktop Open Intent Kit Surfaces
+
+- `core/desktop-open` is a pure-logic Kit surface that wraps SDK
+  `NimiDesktopOpenIntent` parser/types and provides normalized result helpers.
+  SDK owns TypeScript semantic parsing; Kit must not fork a second parser truth.
+- `shell/capabilities` owns the standard operation id
+  `desktop-open.openIntent` and command name
+  `nimi.shell.desktopOpen.openIntent`.
+- `shell/renderer` exposes a host-neutral renderer bridge whose payload may
+  include only `intent` and optional `requestId`. Renderer payloads must not
+  include `sourceApp`, `sourceHost`, Desktop endpoint, Desktop token, raw URL,
+  or OS scheme.
+- `shell/electron` and `shell/tauri` implement host clients that resolve the
+  running Desktop presence descriptor and POST to Desktop's exact-loopback
+  bridge. They must not start Desktop.
+- Domain-level Desktop Open rejections return as successful command values
+  shaped as `NimiDesktopOpenResult`. The standard shell error envelope remains
+  reserved for missing capability, forbidden renderer access, malformed command
+  payload, serialization failure, and host internal errors before a domain
+  result can be produced.
 
 ## P-KIT-043 — Runtime Capabilities Module
 

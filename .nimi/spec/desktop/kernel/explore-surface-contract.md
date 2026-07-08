@@ -207,9 +207,27 @@ Explore.
 `MUST NOT`: any Explore section may expose free World creation or local source
 creation as an ordinary Desktop action.
 
+## D-EXPL-014 - Explore Open Targets
+
+Desktop Explore owns the admitted section and `productIntent` pairings for
+Desktop Open Intent. Platform `P-DOPEN-*` may reference
+`tables/explore-open-targets.yaml`, but it must not duplicate Explore section
+or product-intent truth.
+
+Admitted v1 pairings are:
+
+- `worlds` with optional `discover-worlds`
+- `personas` with optional `discover-personas` or `select-partner`
+- `activity` with optional `view-activity`
+
+Invalid section/productIntent pairings fail closed as
+`desktop-open-target-unsupported`. Explore Open Intent must not create
+WorldCore, RealmPersona, SourceMaterializationPacket, or LocalAgent truth.
+
 ## Fact Sources
 
 - `.nimi/spec/desktop/kernel/tables/explore-sections.yaml` — Explore section catalog.
+- `.nimi/spec/desktop/kernel/tables/explore-open-targets.yaml` — Explore Desktop Open target and productIntent catalog.
 - `.nimi/spec/desktop/kernel/tables/realm-persona-materialization-actions.yaml` — source-state to primary-action table.
 - `.nimi/spec/desktop/kernel/ui-shell-contract.md` — navigation and World Detail layout.
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — Apps surface boundary.

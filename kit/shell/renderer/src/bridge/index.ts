@@ -88,6 +88,13 @@ export type {
 export {
   createInstalledNimiAppStandardShellSurface,
 } from './installed-app.js';
+export {
+  openDesktopIntent,
+} from './desktop-open.js';
+export type {
+  NimiDesktopOpenRendererRequest,
+  NimiDesktopOpenResult,
+} from './desktop-open.js';
 export type {
   InstalledNimiAppStorageRemoveJsonResult,
   InstalledNimiAppStandardShellSurface,

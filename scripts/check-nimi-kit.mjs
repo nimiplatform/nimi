@@ -248,6 +248,7 @@ const requiredStandardShellCapabilityIds = [
   'runtime-defaults',
   'auth',
   'oauth',
+  'desktop-open',
   'shell-ui',
   'diagnostics',
   'data',

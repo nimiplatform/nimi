@@ -94,6 +94,7 @@ export default defineConfig({
       { find: '@nimiplatform/kit/auth', replacement: path.resolve(__dirname, '../auth/src/index.ts') },
       { find: '@nimiplatform/kit/core/shell-mode', replacement: path.resolve(__dirname, '../core/src/shell-mode.ts') },
       { find: '@nimiplatform/kit/core/oauth', replacement: path.resolve(__dirname, '../core/src/oauth') },
+      { find: '@nimiplatform/kit/core/desktop-open', replacement: path.resolve(__dirname, '../core/src/desktop-open.ts') },
       { find: '@nimiplatform/kit/core/sdk-contract', replacement: path.resolve(__dirname, '../core/src/sdk-contract.ts') },
       { find: '@nimiplatform/kit/core/runtime-capabilities', replacement: path.resolve(__dirname, '../core/src/runtime-capabilities') },
       { find: '@nimiplatform/kit/core/model-config', replacement: path.resolve(__dirname, '../core/src/model-config') },

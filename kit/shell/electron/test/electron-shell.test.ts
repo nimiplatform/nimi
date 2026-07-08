@@ -230,6 +230,7 @@ describe('Electron standard shell capability catalog', () => {
       NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
       NIMI_STANDARD_SHELL_COMMANDS['ai-config.set'],
       NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl'],
+      NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
       NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog'],
       NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag'],
       NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow'],
@@ -980,6 +981,47 @@ describe('registerNimiElectronRuntimeBridge', () => {
       code: 'forbidden-renderer-access',
       reasonCode: 'electron-oauth-external-url-not-allowed',
     });
+  });
+
+  it('rejects OAuth external URLs that target Desktop Open reserved loopback routes', async () => {
+    const openedUrls: string[] = [];
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.tester',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => {
+        throw new Error('not used');
+      },
+      standardShellHost: {
+        openExternalUrl: async (url) => {
+          openedUrls.push(url);
+        },
+      },
+    });
+    const { event } = createInvokeEvent();
+    const reservedUrls = [
+      'http://127.0.0.1:4500/v1/open-intent',
+      'http://[::1]:4500/v1/open-intent',
+      'http://127.0.0.1:4500/%76%31/%6f%70%65%6e%2d%69%6e%74%65%6e%74',
+      'http://127.0.0.1:4500/v1/open-intent/',
+      'http://127.0.0.1:4500/v1/open-intent?x=1#fragment',
+      'http://127.0.0.1:4500/V1/Open-Intent',
+      'http://127.0.0.1:4500/__nimi_desktop_launch__/runtime-config/cloud',
+      'http://127.0.0.1:4500/desktop-open/%2e%2e/v1/open-intent',
+    ];
+
+    for (const url of reservedUrls) {
+      await expect(invokeBridge(ipcMain, event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl'],
+        payload: { payload: { url } },
+      })).rejects.toMatchObject({
+        code: 'forbidden-renderer-access',
+        reasonCode: 'electron-oauth-external-url-not-allowed',
+      });
+    }
+    expect(openedUrls).toEqual([]);
   });
 
   it('implements OAuth loopback callback listening for authorization codes', async () => {

@@ -15,6 +15,9 @@ mod desktop_ai_config_library;
 mod desktop_avatar_instance_registry;
 mod desktop_e2e_fixture;
 mod desktop_logs_export;
+mod desktop_open_intent;
+#[cfg(test)]
+mod desktop_open_intent_tests;
 mod desktop_paths;
 mod desktop_product_control;
 mod desktop_product_control_admission;

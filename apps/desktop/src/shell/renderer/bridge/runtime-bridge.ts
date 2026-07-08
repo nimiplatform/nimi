@@ -41,6 +41,7 @@ import { exportDesktopLogs } from './runtime-bridge/support-logs-export';
 import { getAppsBridgeProjection } from './runtime-bridge/apps-projection';
 import { getDesktopStorageDirs } from './runtime-bridge/desktop-storage';
 import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
+import { setDesktopOpenIntentReady } from './runtime-bridge/desktop-open-intent';
 import {
   focusMainWindow,
   oauthListenForCode,
@@ -136,4 +137,5 @@ export {
   startWindowDrag,
   syncMenuBarRuntimeHealth,
   completeMenuBarQuit,
+  setDesktopOpenIntentReady,
 };

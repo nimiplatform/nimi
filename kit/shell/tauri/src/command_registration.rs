@@ -2,6 +2,7 @@
 pub enum ShellCommandBoundary {
     AuthSession,
     Daemon,
+    DesktopOpen,
     Files,
     FloatingWindow,
     OAuth,
@@ -108,6 +109,12 @@ pub const OAUTH_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::OAuth,
     },
 ];
+
+pub const DESKTOP_OPEN_INTENT_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDescriptor {
+    command_name: "desktop_open_intent_open_intent",
+    rust_path: "nimi_shell_tauri::capabilities::desktop_open::desktop_open_intent_open_intent",
+    boundary: ShellCommandBoundary::DesktopOpen,
+}];
 
 pub const SESSION_LOGGING_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDescriptor {
     command_name: "log_renderer_event",
@@ -230,6 +237,7 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     commands.extend_from_slice(RUNTIME_BRIDGE_COMMANDS);
     commands.extend_from_slice(AUTH_SESSION_COMMANDS);
     commands.extend_from_slice(OAUTH_COMMANDS);
+    commands.extend_from_slice(DESKTOP_OPEN_INTENT_COMMANDS);
     commands.extend_from_slice(SESSION_LOGGING_COMMANDS);
     commands.extend_from_slice(STANDARD_STORAGE_COMMANDS);
     commands.extend_from_slice(STANDARD_SHELL_UI_COMMANDS);
@@ -263,6 +271,7 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
             $crate::capabilities::file_reveal::file_reveal_reveal,
             $crate::capabilities::export::export_save_file,
             $crate::capabilities::artifacts::artifacts_write,
+            $crate::capabilities::desktop_open::desktop_open_intent_open_intent,
             $($app_command),*
         ]
     };
@@ -306,6 +315,7 @@ macro_rules! nimi_shell_tauri_auth_oauth_runtime_bridge_handler {
             $crate::capabilities::file_reveal::file_reveal_reveal,
             $crate::capabilities::export::export_save_file,
             $crate::capabilities::artifacts::artifacts_write,
+            $crate::capabilities::desktop_open::desktop_open_intent_open_intent,
             $($app_command),*
         ]
     };
@@ -346,6 +356,7 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $crate::capabilities::file_reveal::file_reveal_reveal,
             $crate::capabilities::export::export_save_file,
             $crate::capabilities::artifacts::artifacts_write,
+            $crate::capabilities::desktop_open::desktop_open_intent_open_intent,
             $($app_command),*
         ]
     };

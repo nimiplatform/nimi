@@ -88,6 +88,11 @@
       "import": "./dist/core/notifications.js",
       "default": "./dist/core/notifications.js"
     },
+    "./core/desktop-open": {
+      "types": "./dist/core/desktop-open.d.ts",
+      "import": "./dist/core/desktop-open.js",
+      "default": "./dist/core/desktop-open.js"
+    },
     "./core/runtime-capabilities": {
       "types": "./dist/core/runtime-capabilities/index.d.ts",
       "import": "./dist/core/runtime-capabilities/index.js",

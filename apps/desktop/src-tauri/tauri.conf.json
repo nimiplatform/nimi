@@ -57,11 +57,6 @@
     ]
   },
   "plugins": {
-    "deep-link": {
-      "desktop": {
-        "schemes": ["nimi-desktop"]
-      }
-    },
     "updater": {
       "pubkey": "",
       "endpoints": [],

@@ -5,6 +5,7 @@ import { desktopBridge } from '@renderer/bridge';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
+import { useDesktopOpenIntentListener } from '@renderer/infra/desktop-open/desktop-open-intent-listener';
 import {
   isDeveloperModeEnabled,
   subscribeDeveloperMode,
@@ -62,6 +63,7 @@ class NonCriticalStartupBoundary extends React.Component<PropsWithChildren, { ha
 export function MainLayout() {
   const navigate = useNavigate();
   const flags = getShellFeatureFlags();
+  useDesktopOpenIntentListener();
   const activeTab = useAppStore((state) => state.activeTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);

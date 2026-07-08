@@ -49,6 +49,7 @@ entries:
 - D-IPC-014
 - D-IPC-015
 - D-IPC-016
+- D-IPC-018
 - D-IPC-010
 - D-IPC-011
 - D-IPC-012
@@ -255,6 +256,18 @@ rules:
   evidence_refs:
   - desktop_kernel_consistency
   evidence_requirement: required
+- rule_id: D-IPC-018
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_journey_gate
+  evidence_requirement: required
+  note: Running-only Desktop Open Intent bridge authority; evidence covers presence descriptor lifecycle, loopback bearer validation, POST-only no-CORS behavior, and fail-closed not-running/not-ready states.
+  test_files:
+  - apps/desktop/src-tauri/src/desktop_open_intent.rs
+  - apps/desktop/src-tauri/src/desktop_open_intent_tests.rs
+  - apps/desktop/test/desktop-open-intent-navigation.test.ts
 - rule_id: D-LLM-001
   evidence_refs:
   - desktop_kernel_consistency

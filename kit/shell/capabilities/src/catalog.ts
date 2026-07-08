@@ -6,6 +6,7 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_IDS = [
   'runtime-defaults',
   'auth',
   'oauth',
+  'desktop-open',
   'shell-ui',
   'diagnostics',
   'data',
@@ -91,6 +92,12 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
       { id: 'openExternalUrl', command: 'nimi.shell.oauth.openExternalUrl', negativeStates: ['capability-unavailable', 'forbidden-renderer-access', 'invalid-payload'] },
       { id: 'tokenExchange', command: 'nimi.shell.oauth.tokenExchange', negativeStates: ['capability-unavailable', 'invalid-payload', 'host-internal-error'] },
       { id: 'listenForCode', command: 'nimi.shell.oauth.listenForCode', negativeStates: ['capability-unavailable', 'invalid-payload', 'host-internal-error'] },
+    ],
+  },
+  {
+    id: 'desktop-open',
+    operations: [
+      { id: 'openIntent', command: 'nimi.shell.desktopOpen.openIntent', negativeStates: ['capability-unavailable', 'forbidden-renderer-access', 'invalid-payload', 'host-internal-error'] },
     ],
   },
   {
@@ -218,6 +225,7 @@ const INSTALLED_NIMI_APP_ALLOWED_OPERATIONS = [
   'ai-config.get',
   'ai-config.set',
   'local-assets.resolveUrl',
+  'desktop-open.openIntent',
   'shell-ui.confirmDialog',
   'shell-ui.startWindowDrag',
   'shell-ui.focusMainWindow',

@@ -1,0 +1,19 @@
+version: 1
+table_family: product_catalog
+owner: desktop
+catalog_id: desktop_runtime_config_open_actions
+authority_refs:
+  - D-SHELL-001
+  - D-IPC-018
+entries:
+  - cloud.add-connector
+  - models.install-model
+actions:
+  - id: cloud.add-connector
+    page: cloud
+    action: add-connector
+    required_renderer_state: runtime-config-action-focus.cloud-connector-draft
+  - id: models.install-model
+    page: models
+    action: install-model
+    required_renderer_state: runtime-config-action-focus.models-catalog-install

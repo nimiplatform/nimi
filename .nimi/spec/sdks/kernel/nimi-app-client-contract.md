@@ -574,6 +574,27 @@ Cross-references: `P-SCAF-016` (scaffolded installed-app binding custody),
 `K-APP-017` (Runtime OpenApp launch-resolution authority), `P-KIT-044`
 (installed app standard shell capability set).
 
+## S-APP-023 - Desktop Open Intent Data Surface
+
+`MUST`: SDK `@nimiplatform/sdk/app` exposes `NimiDesktopOpenIntent`,
+`NimiDesktopOpenEnvelope`, parser, and type guard surfaces for the Platform
+`P-DOPEN-*` Desktop Open Intent protocol.
+
+`MUST`: SDK is the TypeScript semantic parser owner for Desktop Open Intent.
+SDK parser behavior must match
+`.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml`.
+
+`MUST NOT`: SDK must not expose an opener, import Kit, Electron, Tauri, browser
+globals, OS opener code, Desktop private bridge code, or Runtime private
+boundaries. Apps call Desktop Open Intent through Kit standard shell hosts, not
+through SDK.
+
+`MUST NOT`: SDK Desktop Open Intent data must not carry auth/session/token,
+provider/model/connector credential truth, Runtime caller identity, or
+executable LocalAgent truth.
+
+Cross-references: `P-DOPEN-*`, `P-KIT-045`, `D-IPC-018`, `D-SHELL-039`.
+
 ## Fact Sources
 
 - `.nimi/spec/sdks/kernel/ai-config-surface-contract.md` — `S-AICONF-001..S-AICONF-006`
@@ -594,3 +615,5 @@ Cross-references: `P-SCAF-016` (scaffolded installed-app binding custody),
 - `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*` (Runtime account/session and short-lived access-token projection authority consumed by `S-APP-016`)
 - `.nimi/spec/runtime/kernel/scoped-app-binding-contract.md` — `K-BIND-*` (Runtime-issued scoped app binding authority consumed by `S-APP-016`)
 - `.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md` — `P-SCAF-*` (generated-app auth helper naming, auth modes, dev-standalone fail-closed posture, and no first-party self-declaration consumed by `S-APP-016`)
+- `.nimi/spec/platform/kernel/desktop-open-intent-contract.md` — `P-DOPEN-*`
+- `.nimi/spec/platform/kernel/tables/desktop-open-intent-golden-vectors.yaml`

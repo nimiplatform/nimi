@@ -37,6 +37,7 @@ mod runtime_local_assets;
 mod session_logging;
 mod shell_ui_hooks;
 mod standard_artifacts;
+mod standard_desktop_open;
 mod standard_export;
 mod standard_file_dialog;
 mod standard_file_reveal;

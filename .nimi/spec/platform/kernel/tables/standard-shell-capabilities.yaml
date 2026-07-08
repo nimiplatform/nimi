@@ -11,6 +11,7 @@ surfaces:
   - notification
   - storage
   - auth
+  - desktop-open
 authority:
   id: platform.standard-shell-capabilities
   owner: platform
@@ -109,6 +110,7 @@ capability_sets:
       - ai-config.get
       - ai-config.set
       - local-assets.resolveUrl
+      - desktop-open.openIntent
       - shell-ui.confirmDialog
       - shell-ui.startWindowDrag
       - shell-ui.focusMainWindow
@@ -255,6 +257,16 @@ capabilities:
         command: nimi.shell.oauth.listenForCode
         negative_states:
           - capability-unavailable
+          - invalid-payload
+          - host-internal-error
+  - id: desktop-open
+    host_contract: NimiStandardShellCapabilityHost
+    operations:
+      - id: openIntent
+        command: nimi.shell.desktopOpen.openIntent
+        negative_states:
+          - capability-unavailable
+          - forbidden-renderer-access
           - invalid-payload
           - host-internal-error
   - id: shell-ui

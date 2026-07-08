@@ -68,14 +68,68 @@ fn is_loopback_http(url: &Url) -> bool {
     if url.scheme() != "http" {
         return false;
     }
-    matches!(url.host_str(), Some("localhost" | "127.0.0.1"))
+    matches!(
+        url.host_str(),
+        Some("localhost" | "127.0.0.1" | "::1" | "[::1]")
+    )
 }
 
 fn validate_external_url(url: &Url) -> Result<(), String> {
+    if is_desktop_open_reserved_oauth_url(url) {
+        return Err("OAuth URL targets a reserved Desktop Open route".to_string());
+    }
     if url.scheme() == "https" || is_loopback_http(url) {
         return Ok(());
     }
-    Err("Only https or localhost/127.0.0.1 http URLs are allowed".to_string())
+    Err("Only https or localhost/127.0.0.1/[::1] http URLs are allowed".to_string())
+}
+
+fn is_desktop_open_reserved_oauth_url(url: &Url) -> bool {
+    if !is_loopback_http(url) {
+        return false;
+    }
+    let mut candidates = vec![url.path().to_string()];
+    if let Some(decoded) = percent_decode_path(url.path()) {
+        candidates.push(decoded);
+    }
+    candidates.iter().any(|candidate| {
+        let normalized = candidate.trim_end_matches('/').to_ascii_lowercase();
+        normalized == "/v1/open-intent"
+            || normalized == "/__nimi_desktop_launch__"
+            || normalized.starts_with("/__nimi_desktop_launch__/")
+            || normalized == "/desktop-open"
+            || normalized.starts_with("/desktop-open/")
+    })
+}
+
+fn percent_decode_path(input: &str) -> Option<String> {
+    let bytes = input.as_bytes();
+    let mut output = Vec::with_capacity(bytes.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        if bytes[index] == b'%' {
+            if index + 2 >= bytes.len() {
+                return None;
+            }
+            let high = hex_value(bytes[index + 1])?;
+            let low = hex_value(bytes[index + 2])?;
+            output.push((high << 4) | low);
+            index += 3;
+            continue;
+        }
+        output.push(bytes[index]);
+        index += 1;
+    }
+    String::from_utf8(output).ok()
+}
+
+fn hex_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -121,8 +175,11 @@ fn parse_oauth_redirect_uri(redirect_uri: &str) -> Result<(String, u16, String),
         .host_str()
         .ok_or_else(|| "OAuth redirect_uri missing host".to_string())?
         .to_ascii_lowercase();
-    if host != "localhost" && host != "127.0.0.1" {
-        return Err("OAuth redirect_uri host must be localhost or 127.0.0.1".to_string());
+    if host != "localhost" && host != "127.0.0.1" && host != "::1" && host != "[::1]" {
+        return Err("OAuth redirect_uri host must be localhost, 127.0.0.1, or [::1]".to_string());
+    }
+    if is_desktop_open_reserved_oauth_url(&url) {
+        return Err("OAuth redirect_uri targets a reserved Desktop Open route".to_string());
     }
     let port = url
         .port_or_known_default()
@@ -390,6 +447,8 @@ fn oauth_listen_for_code_blocking(
     let (host, port, expected_path) = parse_oauth_redirect_uri(payload.redirect_uri.as_str())?;
     let bind_host = if host == "localhost" {
         "127.0.0.1".to_string()
+    } else if host == "::1" || host == "[::1]" {
+        "[::1]".to_string()
     } else {
         host.clone()
     };
@@ -553,11 +612,13 @@ pub async fn oauth_listen_for_code(
 #[cfg(test)]
 mod tests {
     use super::{
-        normalize_oauth_callback_target, oauth_token_exchange_url,
-        parse_oauth_callback_http_request, parse_oauth_token_exchange_provider,
-        redact_body_preview, redact_json_value, render_oauth_callback_page,
-        OauthTokenExchangePayload, OauthTokenExchangeProvider,
+        is_desktop_open_reserved_oauth_url, normalize_oauth_callback_target,
+        oauth_token_exchange_url, parse_oauth_callback_http_request,
+        parse_oauth_token_exchange_provider, redact_body_preview, redact_json_value,
+        render_oauth_callback_page, validate_external_url, OauthTokenExchangePayload,
+        OauthTokenExchangeProvider,
     };
+    use url::Url;
 
     #[test]
     fn redact_body_preview_masks_sensitive_json_keys() {
@@ -641,6 +702,31 @@ mod tests {
             normalize_oauth_callback_target("//oauth/callback?code=abc", "/oauth/callback")
                 .is_err()
         );
+    }
+
+    #[test]
+    fn oauth_urls_reject_desktop_open_reserved_routes_with_canonicalization() {
+        let reserved = [
+            "http://127.0.0.1:4500/v1/open-intent",
+            "http://[::1]:4500/v1/open-intent",
+            "http://127.0.0.1:4500/%76%31/%6f%70%65%6e%2d%69%6e%74%65%6e%74",
+            "http://127.0.0.1:4500/v1/open-intent/",
+            "http://127.0.0.1:4500/v1/open-intent?x=1#fragment",
+            "http://127.0.0.1:4500/V1/Open-Intent",
+            "http://127.0.0.1:4500/__nimi_desktop_launch__/runtime-config/cloud",
+            "http://127.0.0.1:4500/desktop-open/%2e%2e/v1/open-intent",
+        ];
+        for raw in reserved {
+            let parsed = Url::parse(raw).expect("reserved URL should parse");
+            assert!(
+                is_desktop_open_reserved_oauth_url(&parsed),
+                "{raw} should be reserved"
+            );
+            assert!(
+                validate_external_url(&parsed).is_err(),
+                "{raw} should be rejected"
+            );
+        }
     }
 
     #[test]

@@ -9,6 +9,7 @@ entries:
   - kit.shell.tauri
   - kit.shell.renderer
   - kit.shell.electron
+  - kit.core.desktop-open
   - kit.core.runtime-capabilities
   - kit.core.model-config
   - kit.telemetry
@@ -114,6 +115,7 @@ modules:
       - ./core/offline-coordinator
       - ./core/notifications
       - ./core/sdk-contract
+      - ./core/desktop-open
     headless_exports:
       - ./core/shell-mode
       - ./core/oauth
@@ -121,6 +123,7 @@ modules:
       - ./core/offline-coordinator
       - ./core/notifications
       - ./core/sdk-contract
+      - ./core/desktop-open
     ui_exports: []
     reuse_entrypoints:
       - ./core/shell-mode
@@ -129,9 +132,29 @@ modules:
       - ./core/offline-coordinator
       - ./core/notifications
       - ./core/sdk-contract
+      - ./core/desktop-open
     admission_status: active
     owner: platform
     source_rule: P-KIT-030
+  - id: kit.core.desktop-open
+    subpath: /core/desktop-open
+    kind: logic
+    surface_level: logic
+    adapter_contract: none
+    description: Pure-logic Desktop Open Intent helpers that wrap SDK parser/types and normalize Desktop Open result values without owning opener behavior.
+    dependencies:
+      - sdk
+    peer_dependencies: []
+    exports:
+      - ./core/desktop-open
+    headless_exports:
+      - ./core/desktop-open
+    ui_exports: []
+    reuse_entrypoints:
+      - ./core/desktop-open
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-045
   - id: kit.shell.capabilities
     subpath: /shell/capabilities
     kind: infra
@@ -179,6 +202,7 @@ modules:
     dependencies:
       - kit.shell.capabilities
       - kit.core
+      - kit.core.desktop-open
       - kit.auth
       - kit.telemetry
       - sdk
@@ -205,6 +229,7 @@ modules:
     description: Shared Electron main/preload host glue for Runtime gRPC proxying, narrowed preload IPC exposure, stream forwarding, origin allowlisting, app identity enforcement, artifact URL serving, and externally managed daemon status projection.
     dependencies:
       - kit.shell.capabilities
+      - kit.core.desktop-open
       - sdk
       - "@grpc/grpc-js"
     peer_dependencies:

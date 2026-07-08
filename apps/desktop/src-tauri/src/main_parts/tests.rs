@@ -2,8 +2,8 @@ use super::env_http::load_dotenv_file_preserve_env;
 use super::{
     allow_http_request_origin_with_history, allowed_http_origins,
     is_authorized_http_origin_allowed, is_connector_auth_acquisition_request_allowed,
-    normalize_http_method, normalize_origin, normalize_runtime_config_page_id, runtime_defaults,
-    HTTP_REQUEST_RATE_LIMIT_BURST, HTTP_REQUEST_RATE_LIMIT_WINDOW,
+    normalize_http_method, normalize_origin, runtime_defaults, HTTP_REQUEST_RATE_LIMIT_BURST,
+    HTTP_REQUEST_RATE_LIMIT_WINDOW,
 };
 use crate::test_support::with_env;
 use reqwest::Url;
@@ -392,27 +392,6 @@ fn http_send_failure_error_classifies_realm_origin_as_realm_unavailable() {
             assert_eq!(payload["retryable"], true);
         },
     );
-}
-
-#[test]
-fn runtime_config_deep_links_only_accept_known_pages() {
-    assert_eq!(normalize_runtime_config_page_id(None), Some("overview"));
-    assert_eq!(normalize_runtime_config_page_id(Some("")), Some("overview"));
-    assert_eq!(
-        normalize_runtime_config_page_id(Some("runtime")),
-        Some("runtime")
-    );
-    assert_eq!(
-        normalize_runtime_config_page_id(Some("data-management")),
-        Some("data-management"),
-    );
-    assert_eq!(normalize_runtime_config_page_id(Some("mods")), None);
-    assert_eq!(
-        normalize_runtime_config_page_id(Some("mod-developer")),
-        None
-    );
-    assert_eq!(normalize_runtime_config_page_id(Some("danger-zone")), None);
-    assert_eq!(normalize_runtime_config_page_id(Some("../runtime")), None);
 }
 
 #[test]

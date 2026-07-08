@@ -126,12 +126,14 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
     };
     tauri::Builder::default()
         .plugin(updater_plugin)
-        .plugin(tauri_plugin_deep_link::init())
         .on_page_load(|webview, payload| {
             let event = match payload.event() {
                 tauri::webview::PageLoadEvent::Started => "started",
                 tauri::webview::PageLoadEvent::Finished => "finished",
             };
+            if matches!(payload.event(), tauri::webview::PageLoadEvent::Started) {
+                set_desktop_open_intent_ready(webview.app_handle(), false);
+            }
             let details = json!({
                 "event": event,
                 "url": payload.url().to_string(),
@@ -188,6 +190,20 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             install_shared_runtime_bridge_hooks();
             install_standard_shell_ui_host_hooks();
             install_standard_app_storage_slot(app);
+            match crate::desktop_open_intent::start_desktop_open_intent_bridge(app.handle().clone())
+            {
+                Ok(runtime) => {
+                    eprintln!("[boot:{:}] desktop open intent bridge initialized", now_ms());
+                    app.manage(runtime);
+                }
+                Err(error) => {
+                    eprintln!(
+                        "[boot:{:}] desktop open intent bridge disabled fail-closed: {}",
+                        now_ms(),
+                        error
+                    );
+                }
+            }
             app.manage(crate::menu_bar_shell::MenuBarShellStore::new());
             match crate::desktop_release::initialize(app.handle()) {
                 Ok(info) => {
@@ -304,21 +320,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
                 let _ = crate::menu_bar_shell::setup(app.handle());
             }
 
-            // RL-INTOP-004 — Deep-link URL scheme handler (nimi-desktop://runtime-config/{pageId})
-            {
-                use tauri_plugin_deep_link::DeepLinkExt;
-                #[cfg(desktop)]
-                {
-                    let _ = app.deep_link().register("nimi-desktop");
-                }
-                let app_handle_for_deep_link = app.handle().clone();
-                app.deep_link().on_open_url(move |event| {
-                    for url in event.urls() {
-                        handle_deep_link_url(&app_handle_for_deep_link, url.as_str());
-                    }
-                });
-            }
-
             Ok(())
         })
         .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![
@@ -329,6 +330,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             desktop_updates::desktop_update_download,
             desktop_updates::desktop_update_install,
             desktop_updates::desktop_update_restart,
+            crate::desktop_open_intent::desktop_open_intent_set_ready,
             crate::desktop_product_control::product_control_record_get,
             crate::desktop_product_control::product_control_selected_data_root_get,
             crate::desktop_product_control::product_control_record_ensure_created,
@@ -399,61 +401,12 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
         .build(tauri::generate_context!())
 }
 
-/// RL-INTOP-004 — Parse deep-link URL and emit navigation event to webview.
-/// URL format: nimi-desktop://runtime-config/{pageId}
-pub(super) fn normalize_runtime_config_page_id(page_id: Option<&str>) -> Option<&'static str> {
-    match page_id.unwrap_or("overview") {
-        "" | "overview" => Some("overview"),
-        "recommend" => Some("recommend"),
-        "local" => Some("local"),
-        "cloud" => Some("cloud"),
-        "catalog" => Some("catalog"),
-        "runtime" => Some("runtime"),
-        "data-management" => Some("data-management"),
-        "performance" => Some("performance"),
-        _ => None,
+fn set_desktop_open_intent_ready(app_handle: &tauri::AppHandle, ready: bool) {
+    if let Some(runtime) =
+        app_handle.try_state::<crate::desktop_open_intent::DesktopOpenIntentRuntime>()
+    {
+        runtime.set_ready(ready);
     }
-}
-
-fn handle_deep_link_url(app: &tauri::AppHandle, raw_url: &str) {
-    use tauri::Emitter;
-    eprintln!("[deep-link] received url: {}", raw_url);
-    let parsed = match url::Url::parse(raw_url) {
-        Ok(u) => u,
-        Err(_) => return,
-    };
-    if parsed.scheme() != "nimi-desktop" {
-        return;
-    }
-    let host = parsed.host_str().unwrap_or("");
-    if host != "runtime-config" {
-        return;
-    }
-    let Some(page_id) =
-        normalize_runtime_config_page_id(parsed.path_segments().and_then(|mut s| s.next()))
-    else {
-        return;
-    };
-
-    #[derive(Clone, serde::Serialize)]
-    #[serde(rename_all = "camelCase")]
-    struct DeepLinkOpenTabPayload {
-        tab: String,
-        page: Option<String>,
-    }
-
-    // Focus + show window first
-    let _ = crate::menu_bar_shell::window::focus_main_window(app);
-    crate::menu_bar_shell::set_window_visible(app, true);
-
-    // Emit same event shape as menu-bar://open-tab so the existing listener handles it
-    let _ = app.emit(
-        crate::menu_bar_shell::MENU_BAR_OPEN_TAB_EVENT,
-        DeepLinkOpenTabPayload {
-            tab: "runtime".to_string(),
-            page: Some(page_id.to_string()),
-        },
-    );
 }
 
 pub(crate) fn run() {
@@ -471,8 +424,19 @@ pub(crate) fn run() {
 
     match result {
         Ok(app) => {
-            app.run(|app_handle, event| {
-                if let tauri::RunEvent::ExitRequested { api, .. } = event {
+            app.run(|app_handle, event| match event {
+                tauri::RunEvent::WindowEvent { label, event, .. } => {
+                    if label == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
+                        set_desktop_open_intent_ready(app_handle, false);
+                    }
+                }
+                tauri::RunEvent::ExitRequested { api, .. } => {
+                    set_desktop_open_intent_ready(app_handle, false);
+                    if let Some(runtime) = app_handle
+                        .try_state::<crate::desktop_open_intent::DesktopOpenIntentRuntime>(
+                    ) {
+                        runtime.shutdown();
+                    }
                     if !crate::menu_bar_shell::is_enabled() {
                         return;
                     }
@@ -482,6 +446,7 @@ pub(crate) fn run() {
                         let _ = crate::menu_bar_shell::request_quit(app_handle);
                     }
                 }
+                _ => {}
             });
             eprintln!("[boot:{:}] tauri run completed", now_ms());
         }

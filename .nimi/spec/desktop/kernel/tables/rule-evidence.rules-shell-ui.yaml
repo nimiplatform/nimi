@@ -73,6 +73,7 @@ entries:
 - D-SHELL-036
 - D-SHELL-037
 - D-SHELL-038
+- D-SHELL-039
 - D-STRM-001
 - D-STRM-002
 - D-STRM-003
@@ -409,6 +410,17 @@ rules:
   - apps/desktop/test/desktop-installed-app-launcher.test.ts
   - apps/desktop/test/desktop-installed-app-launch-resolution.test.ts
   evidence_requirement: required
+- rule_id: D-SHELL-039
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_spec_docs_drift_gate
+  - desktop_test_gate
+  - desktop_e2e_journey_gate
+  evidence_requirement: required
+  note: Desktop-owned Open Intent navigation targets; evidence binds target catalogs, renderer navigation adapters, and acceptance row manifests.
+  test_files:
+  - apps/desktop/test/desktop-open-navigation.test.ts
+  - apps/desktop/test/desktop-open-target-catalog.test.ts
 - rule_id: D-STRM-001
   evidence_refs:
   - desktop_kernel_consistency

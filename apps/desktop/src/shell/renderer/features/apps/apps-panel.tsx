@@ -1,7 +1,8 @@
-import type { ReactElement } from 'react';
+import { useEffect, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ConfirmDialog, ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsAIProfileSection } from './apps-ai-profile-section.js';
 import { AppsDetailView } from './apps-detail-view.js';
@@ -19,6 +20,8 @@ function LoadingAppsProjection(): ReactElement {
 export function AppsPanel(): ReactElement {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const requestedDetailAppId = useAppStore((state) => state.appsDetailAppId);
+  const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
   const controller = useAppsPanelController({
     requestSignIn: () => {
       navigate('/login', { replace: false });
@@ -37,6 +40,12 @@ export function AppsPanel(): ReactElement {
     closeDetail,
     connectLocalApp,
   } = controller;
+
+  useEffect(() => {
+    if (requestedDetailAppId) {
+      runCardAction(requestedDetailAppId, 'details');
+    }
+  }, [requestedDetailAppId, runCardAction]);
 
   const detailEntry =
     projection?.status === 'loaded' && detailAppId
@@ -81,7 +90,10 @@ export function AppsPanel(): ReactElement {
           />
         ) : null}
         onCardAction={runCardAction}
-        onClose={closeDetail}
+        onClose={() => {
+          setAppsDetailAppId(null);
+          closeDetail();
+        }}
       />
 
       {pendingConfirm ? (

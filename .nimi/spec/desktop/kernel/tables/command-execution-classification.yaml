@@ -261,6 +261,54 @@ registered_command_families:
       - thread_sleep
     source_rule: D-GATE-094
 
+  - family: standard_shell_storage_json
+    match:
+      exact:
+        - data_path_resolve
+        - storage_read_json
+        - storage_write_json
+        - storage_remove_json
+    origin_crate: kit/shell/tauri
+    owner_domain: standard-shell-storage
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: standard_shell_file_export
+    match:
+      exact:
+        - file_dialog_open
+        - file_reveal_reveal
+        - export_save_file
+        - artifacts_write
+    origin_crate: kit/shell/tauri
+    owner_domain: standard-shell-file-export
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - native_dialog
+      - std_fs
+      - os_browser_handoff
+    source_rule: D-GATE-094
+
+  - family: desktop_open_intent
+    match:
+      exact:
+        - desktop_open_intent_open_intent
+        - desktop_open_intent_set_ready
+    origin_crate: mixed
+    owner_domain: desktop-open-intent
+    execution_class: request_response_async
+    remediation_required: false
+    admitted_risks:
+      - blocking_http
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
   - family: telemetry_and_menu_projection
     match:
       regex: "^(log_renderer_event|menu_bar_.*)$"
@@ -476,6 +524,16 @@ registered_command_families:
     source_rule: D-GATE-092
 
 dormant_command_families:
+  - family: kit_shell_floating_window_for_non_desktop_hosts
+    match:
+      prefix: floating_window_
+    origin_crate: kit/shell/tauri
+    owner_domain: standard-shell-floating-window
+    dormant_class: dormant_admitted
+    remediation_required: false
+    reason: Shared Kit floating-window commands are scanned from the kit Tauri crate but Desktop does not register the floating-window host surface in the current shell.
+    source_rule: D-GATE-095
+
   - family: kit_shell_avatar_asset_resolvers_for_avatar_app
     match:
       exact:

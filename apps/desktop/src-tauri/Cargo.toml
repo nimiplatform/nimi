@@ -42,14 +42,18 @@ tempfile = "3"
 notify = "8"
 ed25519-dalek = { version = "2", features = ["pem", "pkcs8"] }
 tauri-plugin-updater = "2"
-tauri-plugin-deep-link = "2"
 llmfit-core = "0.7.4"
 keyring = "3"
 nimi-shell-tauri = { path = "../../../kit/shell/tauri" }
 sysinfo = "0.34.2"
+libc = "0.2"
 
 [dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2-app-kit = "0.3.2"
 keyring = { version = "3", features = ["apple-native"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }

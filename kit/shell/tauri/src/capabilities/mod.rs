@@ -174,6 +174,16 @@ pub mod oauth {
     }
 }
 
+pub mod desktop_open {
+    #[tauri::command]
+    pub async fn desktop_open_intent_open_intent(
+        app: tauri::AppHandle,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_desktop_open::desktop_open_intent_open_intent(app, payload).await
+    }
+}
+
 pub mod diagnostics {
     pub use crate::renderer_entry_probe::{
         build_renderer_entry_probe_script, RendererEntryProbeScriptConfig,

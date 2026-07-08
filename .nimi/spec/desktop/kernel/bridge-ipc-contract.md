@@ -315,7 +315,40 @@ Fixed rules:
   separate non-carrier authority and must not be conflated with avatar carrier
   import/binding truth
 
+## D-IPC-018 - Running Desktop Open Intent Bridge
+
+Desktop owns the running-process bridge that accepts host-stamped
+`DesktopOpenEnvelope` requests from Kit standard shell hosts. The bridge is a
+running-only focus/navigation intake. It must not start Desktop, register a
+single-instance launch queue, or admit OS custom-scheme production transport.
+
+Bridge requirements:
+
+- presence descriptor path is
+  `~/.nimi/run/desktop/open-intent/presence.v1.json`, under the stable
+  `resolve_nimi_dir()` host-control root and not under product `nimi_data`
+- descriptor writes use owner-only permissions where supported, atomic
+  temp-file plus rename/replace, symlink refusal, startup stale cleanup, and
+  token/Authorization redaction
+- exact-loopback bridge accepts only `POST /v1/open-intent` with bearer token,
+  rejects GET/OPTIONS/browser preflight shapes, exposes no CORS surface, and
+  validates the full envelope before focusing Desktop
+- `desktop_open_intent_set_ready` marks the bridge ready only after the
+  renderer listener is mounted and its heartbeat is fresh; PageLoad Started,
+  renderer reload, listener cleanup, window destroyed, ExitRequested, and
+  stale renderer heartbeat reset readiness to not-ready
+- not-ready requests return `desktop-open-desktop-not-ready` immediately and
+  must not be queued or replayed
+- accepted requests focus/show Desktop and emit a dedicated Desktop Open Intent
+  renderer event; they must not reuse external `menu-bar://open-tab`
+
+Desktop Open target catalog ownership is recorded in
+`tables/desktop-open-targets.yaml`. Platform may reference this table from
+`P-DOPEN-*`, but Platform must not duplicate Desktop IA values.
+
 ## Fact Sources
 
 - `tables/ipc-commands.yaml` — IPC 命令清单
 - `tables/error-codes.yaml` — Bridge 错误码映射
+- `tables/desktop-open-targets.yaml` — Desktop-owned target catalog consumed by the running Desktop Open Intent bridge
+- `tables/runtime-config-open-actions.yaml` — Desktop-owned Runtime Config action targets for Desktop Open Intent

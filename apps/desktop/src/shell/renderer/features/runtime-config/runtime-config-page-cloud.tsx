@@ -33,6 +33,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const [deletingConnectorId, setDeletingConnectorId] = useState('');
   const [codexOAuthPending, setCodexOAuthPending] = useState<CodexOAuthPendingState | null>(null);
   const [codexOAuthBusy, setCodexOAuthBusy] = useState(false);
+  const consumedActionFocusRef = useRef('');
   const selectedConnectorId = selectedConnector?.id || '';
   const connectorScope = selectedConnector?.scope || 'user';
   const isRuntimeSystem = connectorScope === 'runtime-system';
@@ -181,6 +182,23 @@ export function CloudPage({ model, state }: CloudPageProps) {
     setConnectorLabelDraft(draft.label);
     updateState((prev) => addConnectorToState(prev, draft));
   }, [authStatus, state.connectors.length, updateState]);
+  useEffect(() => {
+    const actionFocus = state.actionFocus;
+    if (actionFocus?.focus !== 'runtime-config-action-focus.cloud-connector-draft') {
+      return;
+    }
+    const focusKey = `${actionFocus.page}:${actionFocus.action}:${state.connectors.length}`;
+    if (consumedActionFocusRef.current === focusKey) {
+      return;
+    }
+    consumedActionFocusRef.current = focusKey;
+    void onAddConnector().finally(() => {
+      updateState((prev) => ({
+        ...prev,
+        actionFocus: null,
+      }));
+    });
+  }, [onAddConnector, state.actionFocus, state.connectors.length, updateState]);
   const onDeleteConnector = useCallback(async (connectorId: string) => {
     const connector = state.connectors.find((item) => item.id === connectorId) || null;
     if (!connector || connector.scope === 'runtime-system' || connector.isSystemOwned || deletingConnectorId) return;

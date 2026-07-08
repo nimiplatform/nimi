@@ -99,6 +99,7 @@ function assertScenarioRegistryIntegrity() {
   const supportedBuckets = new Set([
     'smoke',
     'journeys',
+    'desktop-open',
     'nimi-app-platform-sandbox',
     'nimi-app-platform-negative',
   ]);
