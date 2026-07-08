@@ -28,6 +28,11 @@
       "import": "./dist/runtime/generated.js",
       "default": "./dist/runtime/generated.js"
     },
+    "./runtime/wire-types": {
+      "types": "./dist/runtime/wire-types/index.d.ts",
+      "import": "./dist/runtime/wire-types/index.js",
+      "default": "./dist/runtime/wire-types/index.js"
+    },
     "./realm": {
       "types": "./dist/realm/index.d.ts",
       "import": "./dist/realm/index.js",
@@ -133,6 +138,12 @@
     "preCutover": true,
     "targetPackage": "@nimiplatform/sdk",
     "workspaceCutover": "active-local-hardcut",
-    "adapterPackageNames": "independent-packages"
+    "adapterPackageNames": "independent-packages",
+    "duplicateDependencyReferenceExceptions": {
+      "@grpc/grpc-js": {
+        "sections": ["devDependencies", "peerDependencies"],
+        "reason": "Optional Node gRPC peer for consumers; devDependency is required to typecheck and test the node-grpc transport inside the SDK source package."
+      }
+    }
   }
 }

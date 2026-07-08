@@ -197,6 +197,7 @@ export type RuntimeTransportConfig =
 
 export interface RuntimeOptions extends Omit<CoreClientOptions, 'transport'> {
   readonly appId?: string;
+  readonly hostOwnedIdentity?: boolean;
   readonly metadata?: CoreMetadata;
   readonly responseMetadataObserver?: CoreResponseMetadataObserver;
   readonly transport?: RuntimeTransportConfig;
@@ -540,7 +541,8 @@ function toCoreClientOptions(
   responseMetadataObserver: CoreResponseMetadataObserver,
 ): CoreClientOptions {
   const includeDefaultIdentity = !(
-    options.transport && !isCoreTransportLike(options.transport) && options.transport.type === 'electron-ipc'
+    options.hostOwnedIdentity === true
+    || (options.transport && !isCoreTransportLike(options.transport) && options.transport.type === 'electron-ipc')
   );
   return {
     authMetadata: async () => ({

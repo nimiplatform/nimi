@@ -65,6 +65,9 @@ import {
   RuntimeHealthStatus,
 } from '@nimiplatform/sdk/runtime/generated';
 import {
+  ScenarioType,
+} from '@nimiplatform/sdk/runtime/wire-types';
+import {
   asNimiError,
   createNimiError,
   isNimiError,
@@ -107,6 +110,7 @@ const nodeGrpcRuntime = createRuntime({
 });
 assert.equal((await nodeGrpcRuntime.ready()).status, RuntimeHealthStatus.READY);
 assert.equal(RUNTIME_AI_METHODS.includes('executeScenario'), true);
+assert.equal(ScenarioType.TEXT_GENERATE, 1);
 assert.equal(NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE, 'first-run');
 assert.deepEqual([...NIMI_FIRST_RUN_PHASES], ['storage', 'device-scan', 'local-ai', 'setup']);
 assert.equal(
@@ -205,6 +209,10 @@ import {
   type GetRuntimeHealthResponse,
 } from '@nimiplatform/sdk/runtime/generated';
 import {
+  ScenarioType,
+  type ExecuteScenarioRequest,
+} from '@nimiplatform/sdk/runtime/wire-types';
+import {
   createNimiError,
   type NimiError,
 } from '@nimiplatform/sdk/types';
@@ -244,6 +252,7 @@ const error: NimiError = createNimiError({
   reasonCode: 'AI_PROVIDER_TIMEOUT',
   actionHint: 'retry',
 });
+const scenarioRequest: Partial<ExecuteScenarioRequest> = { scenarioType: ScenarioType.TEXT_GENERATE };
 
 void core;
 void compatibility;
@@ -253,6 +262,7 @@ void firstRunMaterialization;
 void NIMI_FIRST_RUN_MATERIALIZATION_CONSUMER_SCOPE;
 void NIMI_FIRST_RUN_PHASES;
 void error;
+void scenarioRequest;
 `);
 
   writeFileSync(path.join(tempRoot, 'tsconfig.json'), JSON.stringify({

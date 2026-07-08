@@ -35,7 +35,7 @@ function windowsCommandCandidates(command, env) {
   if (extension) {
     return [command];
   }
-  return [command, ...windowsPathExts(env).map((pathExt) => `${command}${pathExt}`)];
+  return [...windowsPathExts(env).map((pathExt) => `${command}${pathExt}`), command];
 }
 
 function resolveWindowsCommand(command, env) {

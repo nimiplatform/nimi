@@ -18,7 +18,7 @@ const EXPECTED_EXPORTS = [
   '.', './ai-runner', './ai', './app', './contracts', './features/conversation',
   './features/evaluation', './features/generation', './features/knowledge-context',
   './features/memory-context', './features/toolkits', './features/workflow',
-  './realm', './realm/generated', './runtime', './runtime/generated', './testing', './types',
+  './realm', './realm/generated', './runtime', './runtime/generated', './runtime/wire-types', './testing', './types',
 ];
 
 function cleanup() {
@@ -84,6 +84,10 @@ for (const [specifier, exportName] of checks) {
   assert.equal(typeof module[exportName], 'function', specifier + ' must export ' + exportName);
 }
 
+const runtimeWireTypesModule = await import('@nimiplatform/sdk/runtime/wire-types');
+assert.equal(runtimeWireTypesModule.ScenarioType.TEXT_GENERATE, 1);
+assert.equal(runtimeWireTypesModule.AccountSessionState.AUTHENTICATED, 3);
+
 const runtimeModule = await import('@nimiplatform/sdk/runtime');
 assert.equal('createRuntimeNodeGrpcTransport' in runtimeModule, false);
 
@@ -96,6 +100,7 @@ assert.equal(typeof typesModule.ReasonCode.RUNTIME_UNAVAILABLE, 'string');
 import { createNimiClient, type NimiClientConfig } from '@nimiplatform/sdk';
 import { createRuntime, type CoreTransport } from '@nimiplatform/sdk/runtime';
 import { RuntimeTypedClient, ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { ScenarioType, type ExecuteScenarioRequest } from '@nimiplatform/sdk/runtime/wire-types';
 import { createRealm, type Realm } from '@nimiplatform/sdk/realm';
 import { RealmTypedClient, type RealmModel, type RealmModelName } from '@nimiplatform/sdk/realm/generated';
 import { createNimiAppClient, type NimiAppInventoryEntry, type NimiAppRow } from '@nimiplatform/sdk/app';
@@ -163,6 +168,7 @@ const appClient = createNimiAppClient({
 const error: NimiError = createNimiError({ message: 'x', reasonCode: 'SDK_SURFACE', source: 'sdk' });
 const json: JsonObject = { reasonCode: ReasonCode.REALM_UNAVAILABLE };
 const generatedReason = RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED;
+const scenarioRequest: Partial<ExecuteScenarioRequest> = { scenarioType: ScenarioType.TEXT_GENERATE };
 const realmModelName: RealmModelName = 'AccountGrantViewRowDto';
 const grantRow: Partial<RealmModel<'AccountGrantViewRowDto'>> = { grantId: 'grant' };
 const message: NimiMessage = { role: 'user', content: [textPart('hello')] };
@@ -178,7 +184,7 @@ const runner: NimiAiRunnerSpec = { id: 'runner', name: 'Runner' };
 const plan = createWorldWorkflowPlan({ planId: 'plan', steps: [{ kind: 'world-core-list' }] });
 const registry = createNimiToolRegistry([]);
 
-void client; void runtime; void generatedRuntime; void realm; void generatedRealm; void appClient; void error; void json; void generatedReason; void realmModelName; void grantRow; void message;
+void client; void runtime; void generatedRuntime; void realm; void generatedRealm; void appClient; void error; void json; void generatedReason; void scenarioRequest; void realmModelName; void grantRow; void message;
 void manifest; void model; void runner; void plan; void registry;
 void collectNimiTextStream; void runNimiAiRunner; void userTextMessage;
 void buildNimiConversationHistoryWindow; void createNimiKnowledgeContextBundle;

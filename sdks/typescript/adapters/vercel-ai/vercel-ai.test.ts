@@ -613,13 +613,14 @@ test('vercel-ai provider forwards runtime-backed targetRef into createRuntimeMod
 
   createNimiVercelProvider({
     client,
-    routePolicy: 'runtime',
+    routePolicy: 'local',
     subjectUserId: 'user-1',
     subjectMode: 'external-principal',
     targetRef,
   }).languageModel('model-1');
 
-  assert.deepEqual(captured?.targetRef, targetRef);
+  const capturedOptions = captured as NimiClientRuntimeModelOptions | null;
+  assert.deepEqual(capturedOptions?.targetRef, targetRef);
 });
 
 test('vercel-ai provider rejects runtime-backed creation without a live v2 targetRef', () => {
@@ -632,7 +633,7 @@ test('vercel-ai provider rejects runtime-backed creation without a live v2 targe
   } as unknown as NimiClient;
 
   assert.throws(
-    () => createNimiVercelProvider({ client, routePolicy: 'runtime' }).languageModel('model-1'),
+    () => createNimiVercelProvider({ client, routePolicy: 'local' }).languageModel('model-1'),
     { feature: 'provider.targetRef' },
   );
 });
@@ -649,7 +650,7 @@ test('vercel-ai provider rejects runtime-backed creation with profile-slice targ
   assert.throws(
     () => createNimiVercelProvider({
       client,
-      routePolicy: 'runtime',
+      routePolicy: 'local',
       targetRef: {
         kind: 'profile-slice',
         sourceProfileId: 'profile-1',

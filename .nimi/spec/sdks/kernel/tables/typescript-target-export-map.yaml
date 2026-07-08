@@ -12,6 +12,9 @@ entries:
   - id: runtime-generated
     owner: sdks/typescript/runtime/generated
     semantics: Explicit low-level generated Runtime core boundary for typed client, method descriptors, wire codecs, and generated Runtime DTO and enum values.
+  - id: runtime-wire-types
+    owner: sdks/typescript/runtime/wire-types
+    semantics: Lightweight generated Runtime wire DTO and enum boundary for consumers that need stable protobuf-shaped values/types without importing the monolithic typed client or wire-codec barrel.
   - id: realm
     owner: sdks/typescript/realm
     semantics: Realm SDK projection facade over generated Realm core, without raw generated DTO or enum namespace re-export.
