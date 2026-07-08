@@ -43,6 +43,28 @@ test('world character source detail uses the dedicated world character page surf
   assert.doesNotMatch(markup, /data-testid="source-detail-compact-profile-card"/);
 });
 
+test('world character source detail removes only the outer page background', () => {
+  const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: { friendsCount: 0, postsCount: 0, likesCount: 0 },
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+    }),
+  );
+
+  assert.match(markup, /data-testid="world-character-hero-banner"/);
+  assert.doesNotMatch(markup, /data-testid="world-character-source-detail-page" class="[^"]*\bbg-gray-50\b/);
+  assert.doesNotMatch(markup, /relative min-h-0 overflow-hidden flex-1 bg-gray-50/);
+  assert.doesNotMatch(markup, /data-radix-scroll-area-viewport="" class="[^"]*\bbg-gray-50\b/);
+  assert.match(markup, /overflow-hidden rounded-\[24px\][^"]*\bbg-white\b/);
+  assert.match(markup, /bg-\[#fbf8f1\]/);
+});
+
 test('world character source detail keeps section titles without eyebrow labels', async () => {
   await changeLocale('zh');
   try {

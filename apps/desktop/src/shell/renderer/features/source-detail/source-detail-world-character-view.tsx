@@ -564,10 +564,9 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
     : null;
 
   return (
-    <div data-testid="world-character-source-detail-page" className="flex min-h-0 flex-1 flex-col bg-gray-50">
+    <div data-testid="world-character-source-detail-page" className="flex min-h-0 flex-1 flex-col">
       <ScrollArea
-        className="flex-1 bg-gray-50"
-        viewportClassName="bg-gray-50"
+        className="flex-1"
         contentClassName="mx-auto max-w-[1180px] px-5 py-6"
       >
         <div className="grid gap-5">
