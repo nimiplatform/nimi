@@ -538,6 +538,18 @@ class AgentPresentationProfile:
     interaction_policy_ref: str | None = None
     default_voice_reference: str | None = None
     avatar_autoplay: bool | None = None
+    background_asset_ref: str | None = None
+
+@dataclass(frozen=True)
+class AgentPresentationProfilePatch:
+    backend_kind: AgentPresentationBackendKind | None = None
+    avatar_asset_ref: str | None = None
+    expression_profile_ref: str | None = None
+    idle_preset: str | None = None
+    interaction_policy_ref: str | None = None
+    default_voice_reference: str | None = None
+    avatar_autoplay: bool | None = None
+    background_asset_ref: str | None = None
 
 @dataclass(frozen=True)
 class AgentProactiveEventDetail:
@@ -5661,6 +5673,7 @@ class SetAgentPresentationProfileRequest:
     agent_id: str | None = None
     profile: AgentPresentationProfile | None = None
     clear: ClearAgentPresentationProfile | None = None
+    patch: AgentPresentationProfilePatch | None = None
 
 @dataclass(frozen=True)
 class SetAgentPresentationProfileResponse:

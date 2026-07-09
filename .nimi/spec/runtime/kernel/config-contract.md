@@ -80,6 +80,17 @@ Desktop/CLI/SDK 对 runtime 配置行为的投影必须与本契约保持语义�
 其中 machine-default cloud target 由 `defaultCloudProvider + provider.defaultModel`
 形成。
 
+- Runtime Agent AI Config alias bindings consume admitted default target
+  aliases rather than copying concrete targets into every agent record. The
+  default alias family includes `local/default`, capability-specific local
+  defaults, `local/default-embedding`, and `cloud/default`.
+- Changing a default alias target is an admitted app-facing Runtime config
+  mutation surface with explicit scope, audit, and Runtime Agent AI Config
+  readiness recompute. Alias-bound agents observe the new target on their next
+  turn; pinned agents are unaffected. This package records the authority only;
+  implementation of the mutation RPC and Agent Center Model UI is a separate
+  follow-up package.
+
 - 对 `static_source` provider：当 provider 未显式覆盖 `defaultModel` 时，
   higher-level surface 可以回退到 provider catalog 的
   `default_text_model`。

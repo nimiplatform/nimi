@@ -2,8 +2,6 @@ version: 1
 table_family: protocol_surface
 protocol_id: sdk_runtime_avatar_control_methods
 surfaces:
-  - runtime.avatarConfiguration.get
-  - runtime.avatarConfiguration.upsert
   - runtime.avatarDebug.snapshot
   - runtime.avatarDebug.requestProbe
   - runtime.avatarDebug.submitProbeResult
@@ -15,24 +13,6 @@ owner: .nimi/spec/sdks
 source_rule: S-RUNTIME-116
 status: active
 methods:
-  - name: runtime.avatarConfiguration.get
-    category: read
-    input_ref: agent-avatar-configuration.schema.yaml
-    output_ref: agent-avatar-configuration.schema.yaml
-    semantic_owner: desktop_control_surface
-    transport: host_typed_logical_surface
-    implementation_status: host_surface_implemented
-    implementation: sdks/typescript/runtime/runtime-avatar-configuration.ts
-    test: sdks/typescript/runtime/runtime-avatar-configuration.test.ts
-  - name: runtime.avatarConfiguration.upsert
-    category: command
-    input_ref: agent-avatar-configuration.schema.yaml
-    output_ref: agent-avatar-configuration.schema.yaml
-    semantic_owner: desktop_control_surface
-    transport: host_typed_logical_surface
-    implementation_status: host_surface_implemented
-    implementation: sdks/typescript/runtime/runtime-avatar-configuration.ts
-    test: sdks/typescript/runtime/runtime-avatar-configuration.test.ts
   - name: runtime.avatarDebug.snapshot
     category: read
     method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot
@@ -123,12 +103,19 @@ forbidden_type_shapes:
   - raw_backend_payload
 
 implementation_status: implemented
+retired_methods:
+  - name: runtime.avatarConfiguration.get
+    retired_by: 2026-07-09-agent-center-avatar-kit-shell-hardcut
+    reason: Desktop-owned Agent Center avatar configuration schema retired; selection truth moved to Runtime AgentPresentationProfile and asset custody moved to Kit Shell agent-center capability.
+    former_input_ref: agent-avatar-configuration.schema.yaml
+    former_output_ref: agent-avatar-configuration.schema.yaml
+  - name: runtime.avatarConfiguration.upsert
+    retired_by: 2026-07-09-agent-center-avatar-kit-shell-hardcut
+    reason: Desktop-owned Agent Center avatar configuration schema retired; selection truth moved to Runtime AgentPresentationProfile and asset custody moved to Kit Shell agent-center capability.
+    former_input_ref: agent-avatar-configuration.schema.yaml
+    former_output_ref: agent-avatar-configuration.schema.yaml
 proto_boundary_note: >-
-  The six runtime-owned methods ride daemon RPCs already admitted in
-  proto/runtime/v1/agent_service.proto with runtime handlers and tests. The two
-  runtime.avatarConfiguration methods are host-typed logical surfaces over the
-  Desktop-owned closed configuration record (semantic_owner
-  desktop_control_surface, D-LLM-079): reads and writes go through a
-  caller-injected host persistence adapter following the S-AICONF-005 /
-  S-RUNTIME-120 host-surface pattern and never become daemon RPC truth, so the
-  proto-stub precondition does not apply to them.
+  The active runtime-owned methods ride daemon RPCs already admitted in
+  proto/runtime/v1/agent_service.proto with runtime handlers and tests. Retired
+  runtime.avatarConfiguration methods must not be used as host-typed logical
+  surfaces over the retired Desktop Agent Center configuration schema.

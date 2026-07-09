@@ -95,6 +95,13 @@ rules:
     evidence_refs:
       - runtime_kernel_consistency
     evidence_requirement: required
+  - rule_id: K-AGCORE-023a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: AgentPresentationProfile partial mutation admits independent avatar/background/default-voice/autoplay edits, rejects raw paths and launch payload truth, and is the only Agent Center selection write path.
+    evidence_requirement: required
   - rule_id: K-AGCORE-024
     evidence_refs:
       - runtime_kernel_consistency

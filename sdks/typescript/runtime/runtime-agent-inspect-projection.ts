@@ -65,8 +65,11 @@ function parseAvatarPresentationProfile(value: unknown): NimiRuntimeAgentPresent
   }
   const record = value as Record<string, unknown>;
   const backendKind = parseAvatarBackendKind(record.backendKind);
-  const avatarAssetRef = normalizeNimiRuntimeAgentText(record.avatarAssetRef);
-  if (!backendKind || !avatarAssetRef) {
+  const avatarAssetRef = normalizeNimiRuntimeAgentText(record.avatarAssetRef) || null;
+  const defaultVoiceReference = normalizeNimiRuntimeAgentText(record.defaultVoiceReference) || null;
+  const backgroundAssetRef = normalizeNimiRuntimeAgentText(record.backgroundAssetRef) || null;
+  const avatarAutoplay = record.avatarAutoplay === true;
+  if (!backendKind && !avatarAssetRef && !defaultVoiceReference && !backgroundAssetRef && !avatarAutoplay) {
     return null;
   }
   return {
@@ -75,8 +78,9 @@ function parseAvatarPresentationProfile(value: unknown): NimiRuntimeAgentPresent
     expressionProfileRef: normalizeNimiRuntimeAgentText(record.expressionProfileRef) || null,
     idlePreset: normalizeNimiRuntimeAgentText(record.idlePreset) || null,
     interactionPolicyRef: normalizeNimiRuntimeAgentText(record.interactionPolicyRef) || null,
-    defaultVoiceReference: normalizeNimiRuntimeAgentText(record.defaultVoiceReference) || null,
-    avatarAutoplay: record.avatarAutoplay === true,
+    defaultVoiceReference,
+    avatarAutoplay,
+    backgroundAssetRef,
   };
 }
 

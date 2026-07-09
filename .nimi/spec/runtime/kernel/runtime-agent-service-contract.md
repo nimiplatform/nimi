@@ -151,6 +151,7 @@ Apps may not:
 - `GetAgentCanonicalMemoryBankStatus`
 - `RequestAgentCanonicalMemoryBankBind`
 - `GetAgentCanonicalMemoryReviewStatus`
+- `SetAgentPresentationProfile`
 - `SubscribeAgentEvents`
 
 Primary semantic outputs on this surface must use Nimi-owned typed messages:

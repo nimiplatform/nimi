@@ -6698,6 +6698,7 @@
       "AgentPostureProjection",
       "AgentPresentationEventDetail",
       "AgentPresentationProfile",
+      "AgentPresentationProfilePatch",
       "AgentProactiveEventDetail",
       "AgentProactiveInterruptibilityProjection",
       "AgentRecord",
@@ -9046,6 +9047,75 @@
             "repeated": false,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "background_asset_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "AgentPresentationProfilePatch",
+        "fields": [
+          {
+            "name": "backend_kind",
+            "type": "AgentPresentationBackendKind",
+            "repeated": false,
+            "optional": true,
+            "number": 1
+          },
+          {
+            "name": "avatar_asset_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 2
+          },
+          {
+            "name": "expression_profile_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          },
+          {
+            "name": "idle_preset",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 4
+          },
+          {
+            "name": "interaction_policy_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "default_voice_reference",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 6
+          },
+          {
+            "name": "avatar_autoplay",
+            "type": "bool",
+            "repeated": false,
+            "optional": true,
+            "number": 7
+          },
+          {
+            "name": "background_asset_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -34858,6 +34928,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "patch",
+            "type": "AgentPresentationProfilePatch",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"

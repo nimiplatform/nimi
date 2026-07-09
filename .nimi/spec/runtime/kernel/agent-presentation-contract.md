@@ -13,6 +13,8 @@ It owns:
 - stable expression / idle preset references
 - stable presentation-policy defaults for reusable consumers
 - default voice binding through runtime-owned `VoiceReference`
+- avatar autoplay policy for ordinary assistant playback
+- stable background asset reference as an opaque presentation ref
 
 It does not own:
 
@@ -39,6 +41,8 @@ Its admitted public boundary is limited to stable presentation inputs such as:
 - `idle_preset`
 - `interaction_policy_ref`
 - optional default `VoiceReference`
+- `avatar_autoplay`
+- `background_asset_ref`
 
 Fixed rules:
 
@@ -46,6 +50,30 @@ Fixed rules:
 - runtime may store provider or asset-specific implementation detail only as auxiliary metadata, not as a second canonical profile shape
 - display labels, temporary URLs, or renderer-local cache handles must not become the canonical profile key
 - missing required stable profile fields must fail closed rather than fabricate a fallback avatar
+- avatar/background refs are opaque refs; asset bytes, managed local paths, local asset URLs, and Live2D adapter sidecar payloads remain outside Runtime source and belong to the admitted host-local custody owner
+- `avatar_autoplay` is the single persistent per-agent autoplay home and must not be mirrored into app-local Agent Center config
+- `background_asset_ref` is runtime-owned selection truth only; an unresolved host-local ref must project a fail-closed re-import state instead of a ready background
+
+## K-AGCORE-023a AgentPresentationProfile Mutation Boundary
+
+`SetAgentPresentationProfile` admits partial field mutation for stable
+presentation inputs.
+
+Fixed rules:
+
+- callers may set or clear `avatar_asset_ref`, `backend_kind`,
+  `background_asset_ref`, default `VoiceReference`, and `avatar_autoplay`
+  independently
+- autoplay, background, and default voice must be editable before an avatar
+  asset exists
+- import completion for Kit Agent Center avatar/background assets commits the
+  minted opaque ref through this Runtime mutation path; shell-local selected
+  state without a committed Runtime write is not success
+- mutation must fail closed on invalid voice reference kind, malformed opaque
+  ref, missing auth scope, or expected revision conflict
+- Runtime must not accept raw filesystem paths, raw `file://` URLs, asset bytes,
+  package descriptors, backend compatibility tiers, calibration payloads, or
+  Avatar launch payload fields on this mutation surface
 
 ## K-AGCORE-024 VoiceReference Binding Boundary
 

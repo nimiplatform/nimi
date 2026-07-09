@@ -3834,6 +3834,7 @@ pub struct AgentPresentationProfile {
     pub interaction_policy_ref: Option<String>,
     pub default_voice_reference: Option<String>,
     pub avatar_autoplay: Option<bool>,
+    pub background_asset_ref: Option<String>,
 }
 
 impl AgentPresentationProfile {
@@ -3846,6 +3847,7 @@ impl AgentPresentationProfile {
         if let Some(value) = &self.interaction_policy_ref { pairs.push(format!("interaction_policy_ref={}", value)); }
         if let Some(value) = &self.default_voice_reference { pairs.push(format!("default_voice_reference={}", value)); }
         if let Some(value) = &self.avatar_autoplay { pairs.push(format!("avatar_autoplay={}", value)); }
+        if let Some(value) = &self.background_asset_ref { pairs.push(format!("background_asset_ref={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -3864,6 +3866,53 @@ impl AgentPresentationProfile {
         out.interaction_policy_ref = pairs.get("interaction_policy_ref").cloned();
         out.default_voice_reference = pairs.get("default_voice_reference").cloned();
         out.avatar_autoplay = pairs.get("avatar_autoplay").and_then(|value| value.parse().ok());
+        out.background_asset_ref = pairs.get("background_asset_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentPresentationProfilePatch {
+    pub backend_kind: Option<AgentPresentationBackendKind>,
+    pub avatar_asset_ref: Option<String>,
+    pub expression_profile_ref: Option<String>,
+    pub idle_preset: Option<String>,
+    pub interaction_policy_ref: Option<String>,
+    pub default_voice_reference: Option<String>,
+    pub avatar_autoplay: Option<bool>,
+    pub background_asset_ref: Option<String>,
+}
+
+impl AgentPresentationProfilePatch {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.backend_kind { pairs.push(format!("backend_kind={:?}", value)); }
+        if let Some(value) = &self.avatar_asset_ref { pairs.push(format!("avatar_asset_ref={}", value)); }
+        if let Some(value) = &self.expression_profile_ref { pairs.push(format!("expression_profile_ref={}", value)); }
+        if let Some(value) = &self.idle_preset { pairs.push(format!("idle_preset={}", value)); }
+        if let Some(value) = &self.interaction_policy_ref { pairs.push(format!("interaction_policy_ref={}", value)); }
+        if let Some(value) = &self.default_voice_reference { pairs.push(format!("default_voice_reference={}", value)); }
+        if let Some(value) = &self.avatar_autoplay { pairs.push(format!("avatar_autoplay={}", value)); }
+        if let Some(value) = &self.background_asset_ref { pairs.push(format!("background_asset_ref={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        for key in ["backend_kind"] {
+            if pairs.contains_key(key) {
+                panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
+            }
+        }
+
+        out.avatar_asset_ref = pairs.get("avatar_asset_ref").cloned();
+        out.expression_profile_ref = pairs.get("expression_profile_ref").cloned();
+        out.idle_preset = pairs.get("idle_preset").cloned();
+        out.interaction_policy_ref = pairs.get("interaction_policy_ref").cloned();
+        out.default_voice_reference = pairs.get("default_voice_reference").cloned();
+        out.avatar_autoplay = pairs.get("avatar_autoplay").and_then(|value| value.parse().ok());
+        out.background_asset_ref = pairs.get("background_asset_ref").cloned();
         out
     }
 }
@@ -27195,6 +27244,7 @@ pub struct SetAgentPresentationProfileRequest {
     pub agent_id: Option<String>,
     pub profile: Option<Box<AgentPresentationProfile>>,
     pub clear: Option<Box<ClearAgentPresentationProfile>>,
+    pub patch: Option<Box<AgentPresentationProfilePatch>>,
 }
 
 impl SetAgentPresentationProfileRequest {
@@ -27204,13 +27254,14 @@ impl SetAgentPresentationProfileRequest {
         if let Some(value) = &self.agent_id { pairs.push(format!("agent_id={}", value)); }
         if self.profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode profile"); }
         if self.clear.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode clear"); }
+        if self.patch.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode patch"); }
         pairs.join(";").into_bytes()
     }
 
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["context", "profile", "clear"] {
+        for key in ["context", "profile", "clear", "patch"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -31877,6 +31928,12 @@ impl From<Vec<u8>> for AgentPresentationEventDetail {
 }
 
 impl From<Vec<u8>> for AgentPresentationProfile {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
+impl From<Vec<u8>> for AgentPresentationProfilePatch {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
     }

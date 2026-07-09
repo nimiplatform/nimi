@@ -326,6 +326,47 @@ export interface AgentPresentationProfile {
      * @generated from protobuf field: bool avatar_autoplay = 7
      */
     avatarAutoplay: boolean;
+    /**
+     * @generated from protobuf field: string background_asset_ref = 8
+     */
+    backgroundAssetRef: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AgentPresentationProfilePatch
+ */
+export interface AgentPresentationProfilePatch {
+    /**
+     * @generated from protobuf field: optional nimi.runtime.v1.AgentPresentationBackendKind backend_kind = 1
+     */
+    backendKind?: AgentPresentationBackendKind;
+    /**
+     * @generated from protobuf field: optional string avatar_asset_ref = 2
+     */
+    avatarAssetRef?: string;
+    /**
+     * @generated from protobuf field: optional string expression_profile_ref = 3
+     */
+    expressionProfileRef?: string;
+    /**
+     * @generated from protobuf field: optional string idle_preset = 4
+     */
+    idlePreset?: string;
+    /**
+     * @generated from protobuf field: optional string interaction_policy_ref = 5
+     */
+    interactionPolicyRef?: string;
+    /**
+     * @generated from protobuf field: optional string default_voice_reference = 6
+     */
+    defaultVoiceReference?: string;
+    /**
+     * @generated from protobuf field: optional bool avatar_autoplay = 7
+     */
+    avatarAutoplay?: boolean;
+    /**
+     * @generated from protobuf field: optional string background_asset_ref = 8
+     */
+    backgroundAssetRef?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ClearAgentPresentationProfile
@@ -1659,6 +1700,12 @@ export interface SetAgentPresentationProfileRequest {
          * @generated from protobuf field: nimi.runtime.v1.ClearAgentPresentationProfile clear = 4
          */
         clear: ClearAgentPresentationProfile;
+    } | {
+        oneofKind: "patch";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AgentPresentationProfilePatch patch = 5
+         */
+        patch: AgentPresentationProfilePatch;
     } | {
         oneofKind: undefined;
     };
@@ -4382,7 +4429,8 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
             { no: 4, name: "idle_preset", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "interaction_policy_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "default_voice_reference", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "avatar_autoplay", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 7, name: "avatar_autoplay", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "background_asset_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AgentPresentationProfile>): AgentPresentationProfile {
@@ -4394,6 +4442,7 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
         message.interactionPolicyRef = "";
         message.defaultVoiceReference = "";
         message.avatarAutoplay = false;
+        message.backgroundAssetRef = "";
         if (value !== undefined)
             reflectionMergePartial<AgentPresentationProfile>(this, message, value);
         return message;
@@ -4423,6 +4472,9 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
                     break;
                 case /* bool avatar_autoplay */ 7:
                     message.avatarAutoplay = reader.bool();
+                    break;
+                case /* string background_asset_ref */ 8:
+                    message.backgroundAssetRef = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4457,6 +4509,9 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
         /* bool avatar_autoplay = 7; */
         if (message.avatarAutoplay !== false)
             writer.tag(7, WireType.Varint).bool(message.avatarAutoplay);
+        /* string background_asset_ref = 8; */
+        if (message.backgroundAssetRef !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.backgroundAssetRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4467,6 +4522,101 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
  * @generated MessageType for protobuf message nimi.runtime.v1.AgentPresentationProfile
  */
 export const AgentPresentationProfile = new AgentPresentationProfile$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentPresentationProfilePatch$Type extends MessageType<AgentPresentationProfilePatch> {
+    constructor() {
+        super("nimi.runtime.v1.AgentPresentationProfilePatch", [
+            { no: 1, name: "backend_kind", kind: "enum", opt: true, T: () => ["nimi.runtime.v1.AgentPresentationBackendKind", AgentPresentationBackendKind, "AGENT_PRESENTATION_BACKEND_KIND_"] },
+            { no: 2, name: "avatar_asset_ref", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "expression_profile_ref", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "idle_preset", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "interaction_policy_ref", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "default_voice_reference", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "avatar_autoplay", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "background_asset_ref", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AgentPresentationProfilePatch>): AgentPresentationProfilePatch {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<AgentPresentationProfilePatch>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentPresentationProfilePatch): AgentPresentationProfilePatch {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* optional nimi.runtime.v1.AgentPresentationBackendKind backend_kind */ 1:
+                    message.backendKind = reader.int32();
+                    break;
+                case /* optional string avatar_asset_ref */ 2:
+                    message.avatarAssetRef = reader.string();
+                    break;
+                case /* optional string expression_profile_ref */ 3:
+                    message.expressionProfileRef = reader.string();
+                    break;
+                case /* optional string idle_preset */ 4:
+                    message.idlePreset = reader.string();
+                    break;
+                case /* optional string interaction_policy_ref */ 5:
+                    message.interactionPolicyRef = reader.string();
+                    break;
+                case /* optional string default_voice_reference */ 6:
+                    message.defaultVoiceReference = reader.string();
+                    break;
+                case /* optional bool avatar_autoplay */ 7:
+                    message.avatarAutoplay = reader.bool();
+                    break;
+                case /* optional string background_asset_ref */ 8:
+                    message.backgroundAssetRef = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentPresentationProfilePatch, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* optional nimi.runtime.v1.AgentPresentationBackendKind backend_kind = 1; */
+        if (message.backendKind !== undefined)
+            writer.tag(1, WireType.Varint).int32(message.backendKind);
+        /* optional string avatar_asset_ref = 2; */
+        if (message.avatarAssetRef !== undefined)
+            writer.tag(2, WireType.LengthDelimited).string(message.avatarAssetRef);
+        /* optional string expression_profile_ref = 3; */
+        if (message.expressionProfileRef !== undefined)
+            writer.tag(3, WireType.LengthDelimited).string(message.expressionProfileRef);
+        /* optional string idle_preset = 4; */
+        if (message.idlePreset !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.idlePreset);
+        /* optional string interaction_policy_ref = 5; */
+        if (message.interactionPolicyRef !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.interactionPolicyRef);
+        /* optional string default_voice_reference = 6; */
+        if (message.defaultVoiceReference !== undefined)
+            writer.tag(6, WireType.LengthDelimited).string(message.defaultVoiceReference);
+        /* optional bool avatar_autoplay = 7; */
+        if (message.avatarAutoplay !== undefined)
+            writer.tag(7, WireType.Varint).bool(message.avatarAutoplay);
+        /* optional string background_asset_ref = 8; */
+        if (message.backgroundAssetRef !== undefined)
+            writer.tag(8, WireType.LengthDelimited).string(message.backgroundAssetRef);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentPresentationProfilePatch
+ */
+export const AgentPresentationProfilePatch = new AgentPresentationProfilePatch$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ClearAgentPresentationProfile$Type extends MessageType<ClearAgentPresentationProfile> {
     constructor() {
@@ -8109,7 +8259,8 @@ class SetAgentPresentationProfileRequest$Type extends MessageType<SetAgentPresen
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
             { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "profile", kind: "message", oneof: "mutation", T: () => AgentPresentationProfile },
-            { no: 4, name: "clear", kind: "message", oneof: "mutation", T: () => ClearAgentPresentationProfile }
+            { no: 4, name: "clear", kind: "message", oneof: "mutation", T: () => ClearAgentPresentationProfile },
+            { no: 5, name: "patch", kind: "message", oneof: "mutation", T: () => AgentPresentationProfilePatch }
         ]);
     }
     create(value?: PartialMessage<SetAgentPresentationProfileRequest>): SetAgentPresentationProfileRequest {
@@ -8143,6 +8294,12 @@ class SetAgentPresentationProfileRequest$Type extends MessageType<SetAgentPresen
                         clear: ClearAgentPresentationProfile.internalBinaryRead(reader, reader.uint32(), options, (message.mutation as any).clear)
                     };
                     break;
+                case /* nimi.runtime.v1.AgentPresentationProfilePatch patch */ 5:
+                    message.mutation = {
+                        oneofKind: "patch",
+                        patch: AgentPresentationProfilePatch.internalBinaryRead(reader, reader.uint32(), options, (message.mutation as any).patch)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8167,6 +8324,9 @@ class SetAgentPresentationProfileRequest$Type extends MessageType<SetAgentPresen
         /* nimi.runtime.v1.ClearAgentPresentationProfile clear = 4; */
         if (message.mutation.oneofKind === "clear")
             ClearAgentPresentationProfile.internalBinaryWrite(message.mutation.clear, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentPresentationProfilePatch patch = 5; */
+        if (message.mutation.oneofKind === "patch")
+            AgentPresentationProfilePatch.internalBinaryWrite(message.mutation.patch, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

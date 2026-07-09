@@ -10,14 +10,21 @@ clients for the referenced Desktop, Runtime, and Avatar authority contracts.
 SDK does not own configuration semantics, probe semantics, backend execution,
 or replay truth.
 
-## S-RUNTIME-113 Configuration Projection
+## S-RUNTIME-113 Retired Configuration Projection
 
-SDK configuration methods must align to
-`.nimi/spec/desktop/kernel/agent-avatar-configuration-contract.md` and
-`tables/agent-avatar-configuration.schema.yaml`.
+SDK avatar configuration methods aligned to the Desktop-owned Agent Center
+avatar configuration schema are retired. The Desktop schema is no longer active
+semantic authority.
 
-SDK must preserve opaque refs as refs. It must not dereference Avatar package
-descriptors or backend capability profiles.
+Current selection truth is Runtime `AgentPresentationProfile`, written through
+the Runtime Agent presentation mutation surface. Host-local asset custody is a
+Kit Shell standard `agent-center` capability surface, not an SDK semantic
+configuration record.
+
+SDK must not reintroduce `runtime.avatarConfiguration.*` as a Desktop-owned
+schema facade, compatibility shim, or app-local config store. Opaque refs remain
+opaque and must not be dereferenced into Avatar package descriptors or backend
+capability profiles.
 
 ## S-RUNTIME-114 Probe And Replay Projection
 

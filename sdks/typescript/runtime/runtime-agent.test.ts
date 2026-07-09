@@ -61,6 +61,7 @@ test('Runtime Agent projection reads presentation metadata and state snapshots',
       interactionPolicyRef: 'policy://default',
       defaultVoiceReference: 'preset_voice_id:nimi-default',
       avatarAutoplay: true,
+      backgroundAssetRef: 'background://agent/room',
     },
   });
 
@@ -131,6 +132,7 @@ test('Runtime Agent projection reads presentation metadata and state snapshots',
     interactionPolicyRef: 'policy://default',
     defaultVoiceReference: 'preset_voice_id:nimi-default',
     avatarAutoplay: true,
+    backgroundAssetRef: 'background://agent/room',
   });
   assert.equal(snapshot.lifecycleStatus, 'active');
   assert.equal(snapshot.executionState, 'chat-active');
@@ -700,6 +702,7 @@ test('Runtime Agent presentation builder admits static sprite2d profile media as
       backendKind: 'sprite2d',
       avatarAssetRef: 'profile_media_url:https://cdn.nimi.test/cbdb/su-zhe-reviewed-portrait.png',
       defaultVoiceReference: 'preset_voice_id:zh_narrator',
+      backgroundAssetRef: 'background://cbdb/study',
     },
   });
 
@@ -710,6 +713,31 @@ test('Runtime Agent presentation builder admits static sprite2d profile media as
     'profile_media_url:https://cdn.nimi.test/cbdb/su-zhe-reviewed-portrait.png',
   );
   assert.equal(request.mutation.profile.defaultVoiceReference, 'preset_voice_id:zh_narrator');
+  assert.equal(request.mutation.profile.backgroundAssetRef, 'background://cbdb/study');
+});
+
+test('Runtime Agent presentation builder admits partial presentation patch without avatar asset', () => {
+  const request = buildNimiSetRuntimeAgentPresentationProfileRequest({
+    context: {
+      appId: 'sdk.test',
+      subjectUserId: OWNER_USER_ID,
+    },
+    identity: {
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: 'agent-1',
+      localAgentRef: LOCAL_AGENT_REF,
+    },
+    patch: {
+      defaultVoiceReference: 'voice_asset_id:voice-1',
+      avatarAutoplay: false,
+      backgroundAssetRef: 'background://agent/night',
+    },
+  });
+
+  assert.equal(request.mutation.oneofKind, 'patch');
+  assert.equal(request.mutation.patch.defaultVoiceReference, 'voice_asset_id:voice-1');
+  assert.equal(request.mutation.patch.avatarAutoplay, false);
+  assert.equal(request.mutation.patch.backgroundAssetRef, 'background://agent/night');
 });
 
 test('Runtime Agent smoke verification reads protected anchor snapshot and health evidence', async () => {

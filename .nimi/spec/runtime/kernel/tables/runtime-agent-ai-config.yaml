@@ -46,6 +46,28 @@ intent_schema:
     - voice_reference_ref
     - image_policy_ref
   target_ref_contract: K-RTARGET v2 durable target ref only
+  binding_union:
+    variants:
+      - alias
+      - pinned_target_ref
+    alias_values:
+      - local/default
+      - local/default-embedding
+      - cloud/default
+      - local/text.generate.default
+      - local/image.generate.default
+      - local/audio.synthesize.default
+      - local/audio.transcribe.default
+      - local/voice_workflow.voice_clone.default
+      - local/voice_workflow.voice_design.default
+    pinned_target_ref_contract: K-RTARGET v2 durable target ref only
+    ui_projection:
+      fixed_checkbox: alias_false_pinned_true
+      persisted_field: none
+      non_pinnable_in_agent_center_product_ui:
+        - local_route
+        - text.embed
+    implementation_status: spec_recorded_for_follow_up_package
 admitted_capabilities:
   text.generate:
     required: true
@@ -132,6 +154,9 @@ invariants:
   - text_generate_binding_required_after_seed
   - text_embed_binding_required_after_seed
   - readiness_is_projection_not_execution_gate
+  - readiness_recomputes_on_default_alias_target_change
+  - alias_bound_turn_snapshot_records_alias_resolved_target_and_config_revision
+  - pinned_binding_unaffected_by_default_alias_target_change
   - request_carried_turn_bindings_not_admitted
   - no_app_local_shadow_copy_of_ai_consume_truth
   - no_cognition_owned_embedding_binding_truth

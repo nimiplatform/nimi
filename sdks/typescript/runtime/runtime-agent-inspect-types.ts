@@ -144,13 +144,14 @@ export interface NimiRuntimeAgentProactiveInterruptibilityProjection {
 }
 
 export interface NimiRuntimeAgentPresentationProfileProjection {
-  readonly backendKind: 'vrm' | 'live2d' | 'sprite2d' | 'canvas2d' | 'video';
-  readonly avatarAssetRef: string;
+  readonly backendKind: 'vrm' | 'live2d' | 'sprite2d' | 'canvas2d' | 'video' | null;
+  readonly avatarAssetRef: string | null;
   readonly expressionProfileRef: string | null;
   readonly idlePreset: string | null;
   readonly interactionPolicyRef: string | null;
   readonly defaultVoiceReference: string | null;
   readonly avatarAutoplay: boolean;
+  readonly backgroundAssetRef: string | null;
 }
 
 export interface NimiRuntimeAgentAutonomySnapshot {

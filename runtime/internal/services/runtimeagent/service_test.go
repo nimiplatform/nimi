@@ -14,6 +14,7 @@ import (
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -495,6 +496,7 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 				InteractionPolicyRef:  " interaction://airi/v1 ",
 				DefaultVoiceReference: " preset_voice_id:airi-default ",
 				AvatarAutoplay:        true,
+				BackgroundAssetRef:    " background://airi/chat-room ",
 			},
 		},
 	})
@@ -519,6 +521,9 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 	}
 	if got := presentation["defaultVoiceReference"].GetStringValue(); got != "preset_voice_id:airi-default" {
 		t.Fatalf("unexpected defaultVoiceReference metadata: %q", got)
+	}
+	if got := presentation["backgroundAssetRef"].GetStringValue(); got != "background://airi/chat-room" {
+		t.Fatalf("unexpected backgroundAssetRef metadata: %q", got)
 	}
 	if got := presentation["avatarAutoplay"].GetBoolValue(); !got {
 		t.Fatalf("unexpected avatarAutoplay metadata: %v", got)
@@ -553,6 +558,84 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 		if _, ok := metadata.GetFields()["presentationProfile"]; ok {
 			t.Fatalf("expected presentationProfile metadata removed, got %#v", metadata)
 		}
+	}
+}
+
+func TestRuntimeAgentPatchPresentationProfileAllowsNonAvatarFields(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-patch"),
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	resp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-patch"),
+		AgentId: "agent-presentation-profile-patch",
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{
+			Patch: &runtimev1.AgentPresentationProfilePatch{
+				DefaultVoiceReference: proto.String(" preset_voice_id:airi-default "),
+				AvatarAutoplay:        proto.Bool(true),
+				BackgroundAssetRef:    proto.String(" background://airi/room "),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SetAgentPresentationProfile(patch): %v", err)
+	}
+	if got := resp.GetProfile().GetAvatarAssetRef(); got != "" {
+		t.Fatalf("patch without avatar must not invent avatar ref, got %q", got)
+	}
+	if got := resp.GetProfile().GetDefaultVoiceReference(); got != "preset_voice_id:airi-default" {
+		t.Fatalf("unexpected default voice after patch: %q", got)
+	}
+	if got := resp.GetProfile().GetBackgroundAssetRef(); got != "background://airi/room" {
+		t.Fatalf("unexpected background after patch: %q", got)
+	}
+	if !resp.GetProfile().GetAvatarAutoplay() {
+		t.Fatal("expected avatar autoplay patch to persist true")
+	}
+
+	agentResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-patch"),
+		AgentId: "agent-presentation-profile-patch",
+	})
+	if err != nil {
+		t.Fatalf("GetAgent: %v", err)
+	}
+	presentation := agentResp.GetAgent().GetMetadata().GetFields()["presentationProfile"].GetStructValue().GetFields()
+	if _, ok := presentation["avatarAssetRef"]; ok {
+		t.Fatalf("patch without avatar must not write avatarAssetRef metadata: %#v", presentation)
+	}
+	if got := presentation["defaultVoiceReference"].GetStringValue(); got != "preset_voice_id:airi-default" {
+		t.Fatalf("unexpected defaultVoiceReference metadata: %q", got)
+	}
+	if got := presentation["backgroundAssetRef"].GetStringValue(); got != "background://airi/room" {
+		t.Fatalf("unexpected backgroundAssetRef metadata: %q", got)
+	}
+	if got := presentation["avatarAutoplay"].GetBoolValue(); !got {
+		t.Fatalf("unexpected avatarAutoplay metadata: %v", got)
+	}
+
+	clearResp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-patch"),
+		AgentId: "agent-presentation-profile-patch",
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{
+			Patch: &runtimev1.AgentPresentationProfilePatch{
+				DefaultVoiceReference: proto.String(""),
+				AvatarAutoplay:        proto.Bool(false),
+				BackgroundAssetRef:    proto.String(""),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SetAgentPresentationProfile(clear patch): %v", err)
+	}
+	if clearResp.GetProfile() != nil {
+		t.Fatalf("expected empty patch result to remove presentationProfile, got %#v", clearResp.GetProfile())
 	}
 }
 

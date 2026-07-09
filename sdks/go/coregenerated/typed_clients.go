@@ -2089,6 +2089,18 @@ type AgentPresentationProfile struct {
 	InteractionPolicyRef string `json:"interaction_policy_ref,omitempty"`
 	DefaultVoiceReference string `json:"default_voice_reference,omitempty"`
 	AvatarAutoplay bool `json:"avatar_autoplay,omitempty"`
+	BackgroundAssetRef string `json:"background_asset_ref,omitempty"`
+}
+
+type AgentPresentationProfilePatch struct {
+	BackendKind AgentPresentationBackendKind `json:"backend_kind,omitempty"`
+	AvatarAssetRef string `json:"avatar_asset_ref,omitempty"`
+	ExpressionProfileRef string `json:"expression_profile_ref,omitempty"`
+	IdlePreset string `json:"idle_preset,omitempty"`
+	InteractionPolicyRef string `json:"interaction_policy_ref,omitempty"`
+	DefaultVoiceReference string `json:"default_voice_reference,omitempty"`
+	AvatarAutoplay bool `json:"avatar_autoplay,omitempty"`
+	BackgroundAssetRef string `json:"background_asset_ref,omitempty"`
 }
 
 type AgentProactiveEventDetail struct {
@@ -7212,6 +7224,7 @@ type SetAgentPresentationProfileRequest struct {
 	AgentId string `json:"agent_id,omitempty"`
 	Profile *AgentPresentationProfile `json:"profile,omitempty"`
 	Clear *ClearAgentPresentationProfile `json:"clear,omitempty"`
+	Patch *AgentPresentationProfilePatch `json:"patch,omitempty"`
 }
 
 type SetAgentPresentationProfileResponse struct {

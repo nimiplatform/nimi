@@ -170,7 +170,18 @@ message AgentPresentationProfile {
   string interaction_policy_ref = 5;
   string default_voice_reference = 6;
   bool avatar_autoplay = 7;
-  reserved 8, 9;
+  string background_asset_ref = 8;
+  reserved 9;
+}
+message AgentPresentationProfilePatch {
+  optional AgentPresentationBackendKind backend_kind = 1;
+  optional string avatar_asset_ref = 2;
+  optional string expression_profile_ref = 3;
+  optional string idle_preset = 4;
+  optional string interaction_policy_ref = 5;
+  optional string default_voice_reference = 6;
+  optional bool avatar_autoplay = 7;
+  optional string background_asset_ref = 8;
 }
 message ClearAgentPresentationProfile {}
 message AgentStateMutation {
@@ -515,6 +526,7 @@ message SetAgentPresentationProfileRequest {
   oneof mutation {
     AgentPresentationProfile profile = 3;
     ClearAgentPresentationProfile clear = 4;
+    AgentPresentationProfilePatch patch = 5;
   }
 }
 message SetAgentPresentationProfileResponse {

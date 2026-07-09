@@ -244,8 +244,9 @@ workflow choice, or whether a committed assistant message has voice semantics.
 
 Minimum policy fields:
 
-- `avatar_autoplay`: per-agent boolean. When false, Avatar must remain text /
-  expression / activity only for ordinary assistant turns.
+- `avatar_autoplay`: per-agent boolean persisted only on Runtime
+  `AgentPresentationProfile`. When false, Avatar must remain text / expression /
+  activity only for ordinary assistant turns.
 - `desktop_autoplay`: fixed false for Desktop Agent Chat unless a later Desktop
   authority admits a user-facing setting. Desktop manual play is an explicit user
   request, not autoplay.
@@ -274,6 +275,9 @@ Fixed rules:
   authority admits a provider-specific combined workflow.
 - Voice identity follows the agent profile. Avatar asset, Avatar instance, and
   Desktop chat surface are projection layers and must not own voice identity.
+- Agent Center hosts must not persist or mutate `voice.avatar_autoplay` in
+  app-local or Kit-local config; controls write `AgentPresentationProfile`
+  through the Runtime mutation surface.
 
 ## K-VOICE-019 Agent Voice Streaming And Interruption
 

@@ -19313,6 +19313,27 @@ pub struct AgentPresentationProfile {
     pub default_voice_reference: ::prost::alloc::string::String,
     #[prost(bool, tag = "7")]
     pub avatar_autoplay: bool,
+    #[prost(string, tag = "8")]
+    pub background_asset_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentPresentationProfilePatch {
+    #[prost(enumeration = "AgentPresentationBackendKind", optional, tag = "1")]
+    pub backend_kind: ::core::option::Option<i32>,
+    #[prost(string, optional, tag = "2")]
+    pub avatar_asset_ref: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "3")]
+    pub expression_profile_ref: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "4")]
+    pub idle_preset: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "5")]
+    pub interaction_policy_ref: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "6")]
+    pub default_voice_reference: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, optional, tag = "7")]
+    pub avatar_autoplay: ::core::option::Option<bool>,
+    #[prost(string, optional, tag = "8")]
+    pub background_asset_ref: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ClearAgentPresentationProfile {}
@@ -20009,7 +20030,10 @@ pub struct SetAgentPresentationProfileRequest {
     pub context: ::core::option::Option<AgentRequestContext>,
     #[prost(string, tag = "2")]
     pub agent_id: ::prost::alloc::string::String,
-    #[prost(oneof = "set_agent_presentation_profile_request::Mutation", tags = "3, 4")]
+    #[prost(
+        oneof = "set_agent_presentation_profile_request::Mutation",
+        tags = "3, 4, 5"
+    )]
     pub mutation: ::core::option::Option<
         set_agent_presentation_profile_request::Mutation,
     >,
@@ -20022,6 +20046,8 @@ pub mod set_agent_presentation_profile_request {
         Profile(super::AgentPresentationProfile),
         #[prost(message, tag = "4")]
         Clear(super::ClearAgentPresentationProfile),
+        #[prost(message, tag = "5")]
+        Patch(super::AgentPresentationProfilePatch),
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

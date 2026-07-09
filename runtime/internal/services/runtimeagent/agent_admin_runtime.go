@@ -243,6 +243,15 @@ func (r agentAdminRuntime) setPresentationProfile(req *runtimev1.SetAgentPresent
 		}
 	case *runtimev1.SetAgentPresentationProfileRequest_Clear:
 		profile = nil
+	case *runtimev1.SetAgentPresentationProfileRequest_Patch:
+		existing, err := agentPresentationProfileFromMetadata(entry.Agent.GetMetadata())
+		if err != nil {
+			return nil, err
+		}
+		profile, err = normalizeAgentPresentationProfilePatch(existing, mutation.Patch)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}

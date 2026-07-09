@@ -48,6 +48,15 @@ Fixed rules:
 - binding values must use v2 durable target refs (`K-RTARGET-*`) or another
   spec-admitted typed binding reference; descriptor or evidence fields forbidden
   by K-AIEXEC-001 must be rejected fail-closed
+- binding values are an alias-or-pinned union per capability: alias bindings
+  reference admitted default target families such as `local/default`,
+  `local/default-embedding`, capability-specific local defaults, or
+  `cloud/default`; pinned bindings reference a concrete v2 target ref
+- Agent Center `fixed` checkboxes are pure projection of alias-vs-pinned
+  binding state. They do not add a persisted boolean field.
+- product UI does not offer pinning for the `local` route or `text.embed` in
+  this hardcut; the runtime contract remains neutral so later UI admission can
+  widen presentation without changing the config record shape
 - this config is agent-domain committed state, not a runtime-global active AI
   profile; K-AIEXEC-005 continues to hold for the generic profile resolve/apply
   layer
@@ -87,9 +96,9 @@ Fixed rules:
 - `not_configured` (no committed binding for the capability) and `unavailable`
   (committed binding whose route is currently not usable) are distinct truths
   and must never be collapsed
-- readiness recomputes at daemon start, on every config mutation, and on
-  provider/route health change evidence; a startup-only probe that is never
-  refreshed is not admitted
+- readiness recomputes at daemon start, on every config mutation, on default
+  alias target changes, and on provider/route health change evidence; a
+  startup-only probe that is never refreshed is not admitted
 - readiness carries `config_revision` and probe timestamps so consumers can
   detect staleness; consumers must not cache readiness as their own truth
 - readiness success does not admit an action, validate a prompt payload, or
@@ -110,6 +119,10 @@ Fixed rules:
 - turn admission fixes the resolved bindings and the `config_revision` into the
   turn execution snapshot (K-AIEXEC-003); a config mutation during an in-flight
   turn affects the next turn only
+- for alias-bound capabilities, the turn snapshot records the alias name, the
+  resolved target ref, and the `config_revision`; a default-target mutation
+  affects alias-bound agents on their next turn and does not affect pinned
+  agents
 - the conversation-anchor-sticky binding rule (anchor-committed bindings with
   mismatch rejection) is retired; anchors do not own binding truth
 - Life Track, canonical review, chat-track sidecar, and companion participation

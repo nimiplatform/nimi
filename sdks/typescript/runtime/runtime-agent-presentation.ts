@@ -1,5 +1,6 @@
 import {
   AgentPresentationBackendKind,
+  type AgentPresentationProfilePatch,
   type RuntimeTypedCallOptions,
   type SetAgentPresentationProfileRequest,
   type SetAgentPresentationProfileResponse,
@@ -27,6 +28,18 @@ export interface NimiRuntimeAgentPresentationProfileInput {
   readonly interactionPolicyRef?: unknown;
   readonly defaultVoiceReference?: unknown;
   readonly avatarAutoplay?: unknown;
+  readonly backgroundAssetRef?: unknown;
+}
+
+export interface NimiRuntimeAgentPresentationProfilePatchInput {
+  readonly backendKind?: unknown;
+  readonly avatarAssetRef?: unknown;
+  readonly expressionProfileRef?: unknown;
+  readonly idlePreset?: unknown;
+  readonly interactionPolicyRef?: unknown;
+  readonly defaultVoiceReference?: unknown;
+  readonly avatarAutoplay?: unknown;
+  readonly backgroundAssetRef?: unknown;
 }
 
 export interface NimiRuntimeAgentPresentationProfileContext {
@@ -36,6 +49,7 @@ export interface NimiRuntimeAgentPresentationProfileContext {
 
 export interface NimiRuntimeAgentPresentationProfileSurface {
   setPresentationProfile(input: RuntimeLocalAgentIdentityInput, profile: NimiRuntimeAgentPresentationProfileInput | null): Promise<void>;
+  patchPresentationProfile(input: RuntimeLocalAgentIdentityInput, patch: NimiRuntimeAgentPresentationProfilePatchInput): Promise<void>;
 }
 
 export interface NimiHostRuntimeAgentPresentationProfileClient {
@@ -104,10 +118,70 @@ function presentationError(message: string, reasonCode: string, actionHint: stri
   });
 }
 
+function hasPresentationPatchField<T extends object>(patch: T, field: keyof T): boolean {
+  return Object.prototype.hasOwnProperty.call(patch, field);
+}
+
+function buildNimiRuntimeAgentPresentationProfilePatch(
+  input: NimiRuntimeAgentPresentationProfilePatchInput,
+): AgentPresentationProfilePatch {
+  const patch: Record<string, unknown> = {};
+  let changed = false;
+  if (hasPresentationPatchField(input, 'backendKind')) {
+    const backendKind = normalizeNimiRuntimeAgentPresentationBackendKind(input.backendKind);
+    if (!backendKind) {
+      presentationError(
+        'Runtime Agent presentation profile patch requires a supported backend kind.',
+        'SDK_RUNTIME_AGENT_PRESENTATION_PROFILE_INVALID',
+        'provide_runtime_agent_presentation_profile_patch',
+      );
+    }
+    patch.backendKind = backendKind;
+    changed = true;
+  }
+  if (hasPresentationPatchField(input, 'avatarAssetRef')) {
+    patch.avatarAssetRef = normalizeNimiRuntimeAgentText(input.avatarAssetRef);
+    changed = true;
+  }
+  if (hasPresentationPatchField(input, 'expressionProfileRef')) {
+    patch.expressionProfileRef = normalizeNimiRuntimeAgentText(input.expressionProfileRef);
+    changed = true;
+  }
+  if (hasPresentationPatchField(input, 'idlePreset')) {
+    patch.idlePreset = normalizeNimiRuntimeAgentText(input.idlePreset);
+    changed = true;
+  }
+  if (hasPresentationPatchField(input, 'interactionPolicyRef')) {
+    patch.interactionPolicyRef = normalizeNimiRuntimeAgentText(input.interactionPolicyRef);
+    changed = true;
+  }
+  if (hasPresentationPatchField(input, 'defaultVoiceReference')) {
+    patch.defaultVoiceReference = normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(input.defaultVoiceReference);
+    changed = true;
+  }
+  if (hasPresentationPatchField(input, 'avatarAutoplay')) {
+    patch.avatarAutoplay = input.avatarAutoplay === true;
+    changed = true;
+  }
+  if (hasPresentationPatchField(input, 'backgroundAssetRef')) {
+    patch.backgroundAssetRef = normalizeNimiRuntimeAgentText(input.backgroundAssetRef);
+    changed = true;
+  }
+  if (!changed) {
+    presentationError(
+      'Runtime Agent presentation profile patch requires at least one field.',
+      'SDK_RUNTIME_AGENT_PRESENTATION_PROFILE_INVALID',
+      'provide_runtime_agent_presentation_profile_patch',
+    );
+  }
+  return patch as AgentPresentationProfilePatch;
+}
+
 export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
   readonly context: NimiRuntimeAgentPresentationProfileContext;
   readonly identity: RuntimeLocalAgentIdentityInput;
-  readonly profile: NimiRuntimeAgentPresentationProfileInput | null | undefined;
+  readonly profile?: NimiRuntimeAgentPresentationProfileInput | null | undefined;
+  readonly patch?: NimiRuntimeAgentPresentationProfilePatchInput | null | undefined;
 }): SetAgentPresentationProfileRequest {
   const identity = projectRuntimeLocalAgentIdentity(input.identity);
   const agentId = identity.localAgentRef;
@@ -130,6 +204,16 @@ export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
     runtimeSourceRef: identity.runtimeSourceRef,
     localAgentRef: identity.localAgentRef,
   });
+  if (input.patch) {
+    return {
+      context,
+      agentId,
+      mutation: {
+        oneofKind: 'patch',
+        patch: buildNimiRuntimeAgentPresentationProfilePatch(input.patch),
+      },
+    };
+  }
   if (!input.profile) {
     return {
       context,
@@ -162,6 +246,7 @@ export function buildNimiSetRuntimeAgentPresentationProfileRequest(input: {
         interactionPolicyRef: normalizeNimiRuntimeAgentText(input.profile.interactionPolicyRef),
         defaultVoiceReference: normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(input.profile.defaultVoiceReference),
         avatarAutoplay: input.profile.avatarAutoplay === true,
+        backgroundAssetRef: normalizeNimiRuntimeAgentText(input.profile.backgroundAssetRef),
       },
     },
   };
@@ -186,6 +271,25 @@ export function createNimiHostRuntimeAgentPresentationProfileSurface(
           context: { appId: runtime.appId, subjectUserId },
           identity,
           profile,
+        }),
+        callOptions,
+      ));
+    },
+    async patchPresentationProfile(identity, patch) {
+      const runtime = options.getRuntime();
+      const subjectUserId = await resolveNimiRuntimeAgentSubjectUserId(
+        options.getSubjectUserId,
+        'Runtime Agent presentation profile requires authenticated subject user id.',
+      );
+      await withNimiRuntimeAgentScopes({
+        runtime,
+        subjectUserId,
+        withScopes: options.withScopes,
+      }, ['runtime.agent.write'], (callOptions) => runtime.agent.setAgentPresentationProfile(
+        buildNimiSetRuntimeAgentPresentationProfileRequest({
+          context: { appId: runtime.appId, subjectUserId },
+          identity,
+          patch,
         }),
         callOptions,
       ));
