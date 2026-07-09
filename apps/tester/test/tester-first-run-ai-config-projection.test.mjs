@@ -16,7 +16,7 @@ function buildModule() {
     '--outDir',
     buildDir,
     '--rootDir',
-    'src',
+    '.',
     '--module',
     'NodeNext',
     '--moduleResolution',
@@ -29,7 +29,7 @@ function buildModule() {
     'node',
     '--noEmit',
     'false',
-    'src/tester/tester-first-run-ai-config-projection.ts',
+    'test/proofs/tester-first-run-ai-config-projection.ts',
   ], {
     cwd: root,
     stdio: 'pipe',
@@ -46,7 +46,7 @@ test.after(() => {
 test('Tester consumes SDK first-run execution evidence AIConfig projection', async () => {
   const moduleUrl = pathToFileURL(path.join(
     buildModule(),
-    'tester/tester-first-run-ai-config-projection.js',
+    'test/proofs/tester-first-run-ai-config-projection.js',
   )).href;
   const { createTesterFirstRunAIConfigProjection } = await import(moduleUrl);
   assert.deepEqual(createTesterFirstRunAIConfigProjection(), {

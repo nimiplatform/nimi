@@ -16,7 +16,7 @@ function buildBehaviorModules() {
     '--outDir',
     behaviorBuildDir,
     '--rootDir',
-    'src',
+    '.',
     '--module',
     'NodeNext',
     '--moduleResolution',
@@ -29,7 +29,7 @@ function buildBehaviorModules() {
     'node',
     '--noEmit',
     'false',
-    'src/tester/tester-runtime-agent-inspect-projection.ts',
+    'test/proofs/tester-runtime-agent-inspect-projection.ts',
   ], {
     cwd: root,
     stdio: 'pipe',
@@ -40,7 +40,7 @@ function buildBehaviorModules() {
 async function importProjection() {
   return import(pathToFileURL(path.join(
     buildBehaviorModules(),
-    'tester/tester-runtime-agent-inspect-projection.js',
+    'test/proofs/tester-runtime-agent-inspect-projection.js',
   )).href);
 }
 

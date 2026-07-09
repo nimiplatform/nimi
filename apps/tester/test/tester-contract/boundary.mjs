@@ -190,7 +190,7 @@ test('tester account menu consumes the shared Kit AccountPanel without owning Ru
 });
 
 test('Tester consumes SDK Runtime agent smoke verification surface as second app proof', () => {
-  const helper = read('src/tester/tester-runtime-smoke-verification.ts');
+  const helper = read('test/proofs/tester-runtime-smoke-verification.ts');
   assert.match(helper, /createNimiRuntimeAgentSmokeVerificationSurface/);
   assert.match(helper, /NimiRuntimeAgentSmokeVerificationSurface/);
   assert.match(helper, /from '@nimiplatform\/sdk\/runtime'/);

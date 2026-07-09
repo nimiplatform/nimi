@@ -17,7 +17,7 @@ function buildModule() {
     '--outDir',
     buildDir,
     '--rootDir',
-    'src',
+    '.',
     '--module',
     'NodeNext',
     '--moduleResolution',
@@ -30,7 +30,7 @@ function buildModule() {
     'node',
     '--noEmit',
     'false',
-    'src/tester/tester-product-control-projection.ts',
+    'test/proofs/tester-product-control-projection.ts',
   ], {
     cwd: root,
     stdio: 'pipe',
@@ -45,7 +45,7 @@ test.after(() => {
 });
 
 test('tester consumes SDK Runtime product-control reconciliation helper as second app proof', async () => {
-  const moduleUrl = pathToFileURL(path.join(buildModule(), 'tester/tester-product-control-projection.js')).href;
+  const moduleUrl = pathToFileURL(path.join(buildModule(), 'test/proofs/tester-product-control-projection.js')).href;
   const { loadTesterProductControlProjection } = await import(moduleUrl);
   const projection = await loadTesterProductControlProjection();
 

@@ -17,7 +17,7 @@ function buildModule() {
     '--outDir',
     buildDir,
     '--rootDir',
-    'src',
+    '.',
     '--module',
     'NodeNext',
     '--moduleResolution',
@@ -30,7 +30,7 @@ function buildModule() {
     'node',
     '--noEmit',
     'false',
-    'src/tester/tester-runtime-route-capability-runtime.ts',
+    'test/proofs/tester-runtime-route-capability-runtime.ts',
   ], {
     cwd: root,
     stdio: 'pipe',
@@ -45,7 +45,7 @@ test.after(() => {
 });
 
 test('tester consumes SDK runtime route capability host runtime as second app proof', async () => {
-  const moduleUrl = pathToFileURL(path.join(buildModule(), 'tester/tester-runtime-route-capability-runtime.js')).href;
+  const moduleUrl = pathToFileURL(path.join(buildModule(), 'test/proofs/tester-runtime-route-capability-runtime.js')).href;
   const { createTesterRuntimeRouteCapabilityRuntimeProjection } = await import(moduleUrl);
   assert.deepEqual(await createTesterRuntimeRouteCapabilityRuntimeProjection(), {
     resolvedRef: 'cloud:text.generate:tester-cloud:remote-catalog%3Atester-cloud%3Atester-model:tester-model',

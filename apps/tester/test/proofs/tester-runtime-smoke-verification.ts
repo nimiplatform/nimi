@@ -2,7 +2,7 @@ import {
   createNimiRuntimeAgentSmokeVerificationSurface,
   type NimiRuntimeAgentSmokeVerificationSurface,
 } from '@nimiplatform/sdk/runtime';
-import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
+import { getRuntimePlatformProjection } from '../../src/shell/auth/runtime-platform.js';
 
 export async function createTesterRuntimeAgentSmokeVerificationSurface(
   subjectUserId: string,

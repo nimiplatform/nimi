@@ -17,7 +17,7 @@ function buildModule() {
     '--outDir',
     buildDir,
     '--rootDir',
-    'src',
+    '.',
     '--module',
     'NodeNext',
     '--moduleResolution',
@@ -30,7 +30,7 @@ function buildModule() {
     'node',
     '--noEmit',
     'false',
-    'src/tester/tester-runtime-local-config-projection.ts',
+    'test/proofs/tester-runtime-local-config-projection.ts',
   ], {
     cwd: root,
     stdio: 'pipe',
@@ -45,7 +45,7 @@ test.after(() => {
 });
 
 test('tester consumes SDK runtime local config projection as a second app proof', async () => {
-  const moduleUrl = pathToFileURL(path.join(buildModule(), 'tester/tester-runtime-local-config-projection.js')).href;
+  const moduleUrl = pathToFileURL(path.join(buildModule(), 'test/proofs/tester-runtime-local-config-projection.js')).href;
   const { createTesterRuntimeLocalConfigProjection } = await import(moduleUrl);
   assert.deepEqual(createTesterRuntimeLocalConfigProjection(), {
     preferredLocalModelId: 'tester-active',

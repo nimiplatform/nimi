@@ -16,7 +16,7 @@ function buildBehaviorModules() {
     '--outDir',
     behaviorBuildDir,
     '--rootDir',
-    'src',
+    '.',
     '--module',
     'NodeNext',
     '--moduleResolution',
@@ -29,7 +29,7 @@ function buildBehaviorModules() {
     'node',
     '--noEmit',
     'false',
-    'src/tester/tester-runtime-agent-memory-surface.ts',
+    'test/proofs/tester-runtime-agent-memory-surface.ts',
   ], {
     cwd: root,
     stdio: 'pipe',
@@ -40,7 +40,7 @@ function buildBehaviorModules() {
 async function importProjection() {
   return import(pathToFileURL(path.join(
     buildBehaviorModules(),
-    'tester/tester-runtime-agent-memory-surface.js',
+    'test/proofs/tester-runtime-agent-memory-surface.js',
   )).href);
 }
 
