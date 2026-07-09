@@ -288,6 +288,7 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
           capabilityLabel={item.label}
           provider={item.provider}
           initialSelection={selection}
+          copy={item.modelPickerCopy}
           onSelect={(pickerSelection: RouteModelPickerSelection) => {
             item.onTargetRefChange(pickerSelectionToTargetRef(pickerSelection));
           }}

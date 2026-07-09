@@ -327,4 +327,67 @@ describe('ModelPickerModal', () => {
       modelLabel: 'seedance-2.0',
     }));
   });
+
+  it('renders host-provided modal copy for localized desktop shells', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <ModelPickerModal
+          open
+          onClose={() => undefined}
+          capability="text.generate"
+          capabilityLabel="文本生成"
+          copy={{
+            title: '选择模型',
+            local: '本地',
+            cloud: '云端',
+            selectConnectorLabel: '选择连接器',
+            searchPlaceholder: '搜索模型',
+            loading: '正在加载模型...',
+            noSearchResults: '没有匹配的模型。',
+            noModelsAvailable: '没有可用模型。',
+          }}
+          provider={{
+            listLocalModels: async () => [{
+              localModelId: 'local-chat',
+              modelId: 'local-import/chat-model',
+              label: 'chat-model',
+              engine: 'llama',
+              status: 'active',
+              capabilities: ['text.generate'],
+            }],
+            listConnectors: async () => [],
+            listConnectorModels: async () => [],
+          }}
+          onSelect={() => undefined}
+        />,
+      );
+      await flush();
+      await flush();
+    });
+
+    expect(document.body.textContent).toContain('选择模型');
+    expect(document.body.textContent).toContain('本地');
+    expect(document.body.textContent).toContain('云端');
+    expect(document.body.textContent).not.toContain('Select Model');
+    expect(document.body.querySelector('input')?.getAttribute('placeholder')).toBe('搜索模型');
+
+    const searchInput = document.body.querySelector('input');
+    expect(searchInput).toBeTruthy();
+    const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+    await act(async () => {
+      if (searchInput) {
+        valueSetter?.call(searchInput, 'missing');
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      await flush();
+      await flush();
+    });
+
+    expect(document.body.textContent).toContain('没有匹配的模型。');
+    expect(document.body.textContent).not.toContain('No models match your search.');
+  });
 });

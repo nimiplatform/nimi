@@ -57,8 +57,8 @@ const DEFAULT_BEHAVIOR_COPY: Required<AgentCenterBehaviorCopy> = {
   unavailableLabel: 'Runtime autonomy mutation unavailable.',
 };
 
-function normalizeError(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : 'Runtime autonomy update failed.';
+function normalizeError(error: unknown, labels: Required<AgentCenterBehaviorCopy>): string {
+  return error instanceof Error && error.message ? error.message : labels.unavailableLabel;
 }
 
 function resolveCopy(copy: AgentCenterBehaviorCopy | undefined): Required<AgentCenterBehaviorCopy> {
@@ -147,6 +147,10 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
     { id: 'medium', title: labels.dailyTitle, description: labels.dailyDescription },
     { id: 'high', title: labels.activeTitle, description: labels.activeDescription },
   ];
+  const disabledNotice = autonomy.disabledReason
+    && !['runtime inspect unavailable', 'runtime autonomy mutation unavailable'].includes(autonomy.disabledReason)
+    ? autonomy.disabledReason
+    : labels.unavailableLabel;
 
   const commit = async (patch: Partial<{
     readonly enabled: boolean;
@@ -197,7 +201,7 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
       setMode(previous.mode);
       setDailyTokenBudget(previous.dailyTokenBudget);
       setMaxTokensPerHook(previous.maxTokensPerHook);
-      setMutationStatus(normalizeError(error));
+      setMutationStatus(normalizeError(error, labels));
     }
   };
 
@@ -215,7 +219,7 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
       </div>
 
       {autonomy.controlsDisabled ? (
-        <Notice tone="warn">{autonomy.disabledReason}</Notice>
+        <Notice tone="warn">{disabledNotice}</Notice>
       ) : null}
 
       <Card className="rounded-[14px] border-slate-200/80 bg-white/95 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
@@ -233,7 +237,7 @@ export function AgentCenterBehaviorSection({ state, runtimeAdapter, copy }: Agen
               )}
             >
               <input
-                aria-label="Autonomy enabled"
+                aria-label={labels.enableTitle}
                 checked={enabled}
                 className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
                 data-agent-center-proactive-toggle="true"

@@ -193,14 +193,19 @@ pub(crate) async fn with_runtime_bridge_host_hooks_async<R, Fut>(
 where
     Fut: std::future::Future<Output = R>,
 {
+    use futures_util::FutureExt;
+
     let _guard = TEST_HOST_HOOKS_LOCK
         .lock()
         .expect("runtime bridge test host hooks lock");
     let previous = host_hooks().unwrap_or_default();
     set_runtime_bridge_host_hooks(hooks).expect("set temporary runtime bridge host hooks");
-    let result = run().await;
+    let result = std::panic::AssertUnwindSafe(run()).catch_unwind().await;
     set_runtime_bridge_host_hooks(previous).expect("restore runtime bridge host hooks");
-    result
+    match result {
+        Ok(value) => value,
+        Err(payload) => std::panic::resume_unwind(payload),
+    }
 }
 
 fn host_hooks() -> Option<RuntimeBridgeHostHooks> {

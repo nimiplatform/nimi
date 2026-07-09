@@ -13,8 +13,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const TEST_DATA_ROOT_ENV: &str = "NIMI_AGENT_CENTER_AVATAR_TEST_DATA_ROOT";
-
 fn unique_temp_dir(prefix: &str) -> PathBuf {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -23,36 +21,19 @@ fn unique_temp_dir(prefix: &str) -> PathBuf {
     std::env::temp_dir().join(format!("nimi-shell-avatar-asset-{prefix}-{unique}"))
 }
 
-fn data_root_test_hooks() -> RuntimeBridgeHostHooks {
-    RuntimeBridgeHostHooks {
-        resolve_nimi_data_dir: Some(Arc::new(|| {
-            std::env::var_os(TEST_DATA_ROOT_ENV)
-                .map(PathBuf::from)
-                .ok_or_else(|| {
-                    "test data-root hook requires NIMI_AGENT_CENTER_AVATAR_TEST_DATA_ROOT"
-                        .to_string()
-                })
-        })),
-        ..Default::default()
-    }
-}
-
 async fn with_admitted_data_root<R, F, Fut>(home: &Path, run: F) -> R
 where
     F: FnOnce() -> Fut,
     Fut: Future<Output = R>,
 {
-    with_runtime_bridge_host_hooks_async(data_root_test_hooks(), || async {
-        let data_root = home.join(".nimi").join("data");
-        let previous_data_root = std::env::var(TEST_DATA_ROOT_ENV).ok();
-        std::env::set_var(TEST_DATA_ROOT_ENV, &data_root);
-        let result = run().await;
-        match previous_data_root {
-            Some(value) => std::env::set_var(TEST_DATA_ROOT_ENV, value),
-            None => std::env::remove_var(TEST_DATA_ROOT_ENV),
-        }
-        result
-    })
+    let data_root = home.join(".nimi").join("data");
+    with_runtime_bridge_host_hooks_async(
+        RuntimeBridgeHostHooks {
+            resolve_nimi_data_dir: Some(Arc::new(move || Ok(data_root.clone()))),
+            ..Default::default()
+        },
+        run,
+    )
     .await
 }
 
@@ -61,16 +42,15 @@ where
     F: FnOnce() -> Fut,
     Fut: Future<Output = R>,
 {
-    with_runtime_bridge_host_hooks_async(data_root_test_hooks(), || async {
-        let previous_data_root = std::env::var(TEST_DATA_ROOT_ENV).ok();
-        std::env::remove_var(TEST_DATA_ROOT_ENV);
-        let result = run().await;
-        match previous_data_root {
-            Some(value) => std::env::set_var(TEST_DATA_ROOT_ENV, value),
-            None => std::env::remove_var(TEST_DATA_ROOT_ENV),
-        }
-        result
-    })
+    with_runtime_bridge_host_hooks_async(
+        RuntimeBridgeHostHooks {
+            resolve_nimi_data_dir: Some(Arc::new(|| {
+                Err("test data-root hook is intentionally unavailable".to_string())
+            })),
+            ..Default::default()
+        },
+        run,
+    )
     .await
 }
 
@@ -437,7 +417,7 @@ async fn rejects_home_data_root_without_admitted_host_hook() {
         None => std::env::remove_var("HOME"),
     }
 
-    assert!(error.contains("requires NIMI_AGENT_CENTER_AVATAR_TEST_DATA_ROOT"));
+    assert!(error.contains("intentionally unavailable"));
 
     let _ = fs::remove_dir_all(&home);
 }

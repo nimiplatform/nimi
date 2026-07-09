@@ -16,6 +16,7 @@ export type ShellFileDialogOpenPayload = {
   readonly title?: string;
   readonly filters?: readonly ShellFileDialogFilter[];
   readonly multiple?: boolean;
+  readonly startDirectory?: string;
 };
 
 export type ShellFileDialogOpenResult = {

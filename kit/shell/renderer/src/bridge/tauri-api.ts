@@ -68,9 +68,15 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange']]: 'oauth_token_exchange',
   [NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']]: 'oauth_listen_for_code',
   [NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent']]: 'desktop_open_intent_open_intent',
+  [NIMI_STANDARD_SHELL_COMMANDS['diagnostics.rendererEntryProbe']]: 'diagnostics_renderer_entry_probe',
   [NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']]: 'confirm_dialog',
   [NIMI_STANDARD_SHELL_COMMANDS['shell-ui.startWindowDrag']]: 'start_window_drag',
   [NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow']]: 'focus_main_window',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']]: 'local_assets_resolve_url',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity']]: 'local_agent_identity',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']]: 'local_agent_runtime_trusted_caller',
+  [NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']]: 'avatar_asset_resolve',
+  [NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']]: 'platform_projection_get',
   [NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open']]: 'file_dialog_open',
   [NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']]: 'file_reveal_reveal',
   [NIMI_STANDARD_SHELL_COMMANDS['export.saveFile']]: 'export_save_file',
@@ -198,5 +204,17 @@ function convertElectronFileSrc(fileUrl: string): string {
   if (!normalized || /^(?:https?:|data:|blob:|nimi-shell-file:)/u.test(normalized)) {
     return normalized;
   }
-  return `nimi-shell-file://local/${encodeURIComponent(normalized)}`;
+  return `nimi-shell-file://local/?path=${encodeElectronShellFilePath(normalized)}`;
+}
+
+function encodeElectronShellFilePath(filePath: string): string {
+  const bytes = new TextEncoder().encode(filePath);
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/u, '');
 }

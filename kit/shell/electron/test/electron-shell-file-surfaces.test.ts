@@ -57,8 +57,23 @@ describe('createElectronShellFileProtocolHost', () => {
     expect(protocol.privilegedSchemes).toEqual([NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME]);
     expect(protocol.handlers.has(NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME)).toBe(true);
     const absolutePath = path.resolve('/tmp/nimi shell asset.png');
-    expect(protocolHost.resolveLocalAssetUrl(absolutePath))
-      .toBe(`nimi-shell-file://local/${encodeURIComponent(absolutePath)}`);
+    const url = new URL(protocolHost.resolveLocalAssetUrl(absolutePath));
+    expect(url.protocol).toBe(`${NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME}:`);
+    expect(url.hostname).toBe('local');
+    expect(url.pathname).toBe('/');
+    expect(url.searchParams.get('path')).toMatch(/^[A-Za-z0-9_-]+$/u);
+  });
+
+  it('keeps absolute local paths out of the URL pathname for renderer fetch compatibility', () => {
+    const protocolHost = createElectronShellFileProtocolHost({ protocol: new FakeElectronProtocol() });
+    const absolutePath = path.resolve('/tmp/nimi shell asset.png');
+    const url = new URL(protocolHost.resolveLocalAssetUrl(absolutePath));
+
+    expect(url.protocol).toBe(`${NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME}:`);
+    expect(url.hostname).toBe('local');
+    expect(url.pathname).toBe('/');
+    expect(url.searchParams.get('path')).toMatch(/^[A-Za-z0-9_-]+$/u);
+    expect(url.href).not.toContain(encodeURIComponent(absolutePath));
   });
 
   it('serves root files, rejects out-of-root unregistered files, and honors the readable registry', async () => {
@@ -116,7 +131,7 @@ describe('createElectronShellFileProtocolHost', () => {
         payload: { path: assetPath },
       })).resolves.toEqual({
         path: canonicalAssetPath,
-        url: `nimi-shell-file://local/${encodeURIComponent(canonicalAssetPath)}`,
+        url: protocolHost.resolveLocalAssetUrl(canonicalAssetPath),
       });
       expect(await protocolHost.hasReadableFile(canonicalAssetPath)).toBe(true);
     });

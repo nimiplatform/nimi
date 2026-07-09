@@ -8,7 +8,6 @@ This crate owns app-agnostic shell behavior only:
 - daemon status, start, stop, restart, and config commands;
 - runtime defaults;
 - renderer diagnostic logging;
-- auth-session command boundary;
 - fenced OAuth helper commands;
 - desktop path resolution helpers.
 
@@ -47,7 +46,6 @@ Available macros:
 
 - `nimi_shell_tauri_runtime_bridge_handler!`
 - `nimi_shell_tauri_oauth_runtime_bridge_handler!`
-- `nimi_shell_tauri_auth_oauth_runtime_bridge_handler!`
 
 The command catalog is also exposed through
 `nimi_shell_tauri::command_registration` for tests, audits, and apps that need

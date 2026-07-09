@@ -29,349 +29,30 @@ import {
   agentCenterSelectClassName,
   cnAgentCenter,
 } from './AgentCenterPrimitives.js';
+import type { EvidenceState, SetupStep } from './AgentCenterAppearanceSection.logic.js';
+import {
+  assetStatus,
+  backendKind,
+  backendLabel,
+  backgroundStatus,
+  blockedSetupCopy,
+  blockedSetupReason,
+  buildLive2dEvidenceItems,
+  buildSetupSteps,
+  capabilityStatus,
+  evidenceTone,
+  live2dManifestStatus,
+  live2dStatusLabel,
+  live2dStatusTone,
+  normalizeError,
+  resolveCopy,
+  visibleDisabledReason,
+} from './AgentCenterAppearanceSection.logic.js';
 
 export interface AgentCenterAppearanceSectionProps {
   readonly state: AgentCenterState;
   readonly appearanceAdapter?: AgentCenterAppearanceAdapter | null;
   readonly copy?: AgentCenterAppearanceCopy;
-}
-
-type EvidenceState = 'ready' | 'pending' | 'missing' | 'blocked';
-type SetupStepState = 'ready' | 'active' | 'idle' | 'blocked';
-
-type SetupStep = {
-  readonly label: string;
-  readonly detail: string;
-  readonly state: SetupStepState;
-  readonly statusLabel: string;
-};
-
-type AppearanceSetupBlockedReason = 'scope-required' | 'bridge-unavailable' | 'configuration-unavailable';
-
-type Live2dWorkbenchStatus =
-  | EvidenceState
-  | 'checking'
-  | 'probe_required'
-  | 'not_admitted'
-  | 'effect_projection_pending';
-
-type Live2dWorkbenchItem = {
-  readonly id: 'preview_artifact' | 'model_framing' | 'render_policy' | 'expression_inventory' | 'adapter_manifest';
-  readonly label: string;
-  readonly detail: string;
-  readonly status: Live2dWorkbenchStatus;
-  readonly evidenceRef?: string | null;
-};
-
-const LIVE2D_DEBUG_SHORTCUTS = ['Backend', 'Profile', 'Routes', 'Motion', 'Emotion', 'Speech', 'Window'] as const;
-
-const DEFAULT_APPEARANCE_COPY: Required<AgentCenterAppearanceCopy> = {
-  appearanceTitle: 'Appearance',
-  appearanceDescription: 'Configure this partner avatar, background, and dynamic effects.',
-  avatarCardTitle: 'Partner avatar',
-  avatarUnsetTitle: 'Avatar is not set',
-  avatarUnsetDescription: 'Import Live2D or VRM to show the partner preview here.',
-  importLive2dButton: 'Import Live2D',
-  importVrmButton: 'Import VRM',
-  supportedFormatsLabel: 'Supports model3.json + textures, or .vrm files',
-  viewSupportedFormats: 'View supported formats',
-  currentAvatarPrefix: 'Current avatar',
-  assetImported: 'Asset imported',
-  avatarReadyHint: '1 step left before it can appear in chat.',
-  avatarSetupHint: 'Import an avatar asset to show it in chat.',
-  avatarMissingTitle: 'No avatar imported',
-  avatarImportPrimary: 'Import avatar asset',
-  blockedScopeTitle: 'Select a local partner before configuring appearance.',
-  blockedScopeDescription: 'Appearance imports are scoped to one local partner, so choose a partner first.',
-  blockedScopeHint: 'Live2D and VRM import controls will appear after the partner scope is available.',
-  blockedBridgeTitle: 'Appearance configuration is unavailable.',
-  blockedBridgeDescription: 'The local configuration bridge is not connected, so avatar imports cannot be written.',
-  blockedBridgeHint: 'Restore the desktop runtime bridge before changing this partner appearance.',
-  blockedGenericTitle: 'Appearance configuration is unavailable.',
-  blockedGenericDescription: 'This state cannot safely write avatar configuration yet.',
-  blockedGenericHint: 'Try again after selecting a ready local partner.',
-  continueSetup: 'Continue setup',
-  changeAvatar: 'Change avatar',
-  progressTitle: 'Make the avatar visible',
-  progressCompleteLabel: 'Complete',
-  stepAssetTitle: 'Avatar asset imported',
-  stepAssetReady: 'Live2D resource has been imported.',
-  stepAssetMissing: 'Choose a Live2D folder or VRM file.',
-  stepValidationTitle: 'File format verified',
-  stepValidationReady: 'Model and config file format look correct.',
-  stepValidationMissing: 'Validation will run after an avatar is selected.',
-  stepSidecarTitle: 'Choose Live2D sidecar config',
-  stepSidecarReady: 'Sidecar config is linked.',
-  stepSidecarPending: 'Choose a sidecar file to enable the avatar.',
-  stepDisplayTitle: 'Enable chat display',
-  stepDisplayReady: 'Avatar can appear in chat.',
-  stepDisplayPending: 'Enable after setup is complete.',
-  doneLabel: 'Done',
-  pendingLabel: 'Pending',
-  notStartedLabel: 'Not started',
-  selectSidecar: 'Select sidecar file',
-  assetManagementTitle: 'Avatar management',
-  importLive2dTitle: 'Import Live2D folder',
-  importLive2dSubtitle: 'Supports model3.json + textures',
-  live2dImported: 'Currently imported',
-  importVrmTitle: 'Import VRM file',
-  importVrmSubtitle: 'Supports a single .vrm file',
-  importOtherFormat: 'Import another format',
-  removeAvatar: 'Remove current avatar',
-  chatBackgroundTitle: 'Chat background',
-  chatBackgroundDescription: 'Set a dedicated background for this partner to make chat feel fresher.',
-  backgroundUnset: 'Not set',
-  backgroundReady: 'Ready',
-  uploadBackground: 'Import background image',
-  chooseRecommendedBackground: 'Choose recommended background',
-  technicalDetailsTitle: 'Technical details',
-  technicalDetailsDescription: 'View avatar resources, config, and diagnostic information.',
-  diagnosticsEvidenceTitle: 'Evidence',
-  selectedAssetLabel: 'Selected asset',
-  validationLabel: 'Validation',
-  capabilityProfileLabel: 'Capability profile',
-  live2dManifestLabel: 'Live2D adapter manifest',
-  linkedLabel: 'Linked',
-  pendingEvidenceLabel: 'Pending evidence',
-  missingLabel: 'Missing',
-  avatarAutoplayLabel: 'Avatar autoplay',
-  avatarAutoplayDescription: 'Launch handoff uses Runtime appearance projection.',
-  enableLabel: 'Enable',
-  disableLabel: 'Disable',
-  voiceArtifactsLabel: 'Generated voice artifacts',
-  voiceArtifactsDescription: 'Cleanup remains a typed Runtime/Avatar maintenance action.',
-  cleanupLabel: 'Cleanup',
-  cleaningLabel: 'Cleaning...',
-  instancePolicyLabel: 'Instance policy',
-  generatedMotionLabel: 'Generated motion',
-  launchModeLabel: 'Launch mode',
-  debugProfileLabel: 'Debug profile',
-};
-
-function normalizeError(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : 'Runtime appearance update failed.';
-}
-
-function resolveCopy(copy: AgentCenterAppearanceCopy | undefined): Required<AgentCenterAppearanceCopy> {
-  return {
-    ...DEFAULT_APPEARANCE_COPY,
-    ...(copy || {}),
-  };
-}
-
-function backendKind(appearance: AgentCenterAppearanceProjection): string {
-  return (appearance.backendKind || 'live2d').toString().trim().toLowerCase() || 'live2d';
-}
-
-function backendLabel(appearance: AgentCenterAppearanceProjection): string {
-  return backendKind(appearance).toUpperCase();
-}
-
-function blockedSetupReason(appearance: AgentCenterAppearanceProjection): AppearanceSetupBlockedReason | null {
-  const disabledReason = (appearance.disabledReason || '').trim();
-  if (appearance.avatarAssetRef || !appearance.avatarImportDisabled || !disabledReason) {
-    return null;
-  }
-  if (disabledReason.includes('local-config-scope-required')) {
-    return 'scope-required';
-  }
-  if (disabledReason.includes('local-config-bridge-unavailable')) {
-    return 'bridge-unavailable';
-  }
-  return 'configuration-unavailable';
-}
-
-function blockedSetupCopy(
-  reason: AppearanceSetupBlockedReason,
-  labels: Required<AgentCenterAppearanceCopy>,
-): { readonly title: string; readonly description: string; readonly hint: string } {
-  if (reason === 'scope-required') {
-    return {
-      title: labels.blockedScopeTitle,
-      description: labels.blockedScopeDescription,
-      hint: labels.blockedScopeHint,
-    };
-  }
-  if (reason === 'bridge-unavailable') {
-    return {
-      title: labels.blockedBridgeTitle,
-      description: labels.blockedBridgeDescription,
-      hint: labels.blockedBridgeHint,
-    };
-  }
-  return {
-    title: labels.blockedGenericTitle,
-    description: labels.blockedGenericDescription,
-    hint: labels.blockedGenericHint,
-  };
-}
-
-function visibleDisabledReason(appearance: AgentCenterAppearanceProjection): string | null {
-  const disabledReason = (appearance.disabledReason || '').trim();
-  if (!disabledReason) {
-    return null;
-  }
-  if (!appearance.avatarAssetRef && disabledReason === 'Avatar asset is not configured.') {
-    return null;
-  }
-  if (disabledReason.startsWith('zhiyu-agent-center-')) {
-    return null;
-  }
-  return disabledReason;
-}
-
-function evidenceTone(state: EvidenceState): string {
-  if (state === 'ready') return 'border-emerald-100 bg-emerald-50/70 text-emerald-700';
-  if (state === 'pending') return 'border-amber-100 bg-amber-50/80 text-amber-700';
-  if (state === 'blocked') return 'border-rose-100 bg-rose-50/80 text-rose-700';
-  return 'border-slate-100 bg-slate-50 text-slate-500';
-}
-
-function assetStatus(appearance: AgentCenterAppearanceProjection): EvidenceState {
-  if (appearance.avatarAssetValid) return 'ready';
-  if (appearance.avatarAssetChecking) return 'pending';
-  return appearance.avatarAssetRef ? 'blocked' : 'missing';
-}
-
-function capabilityStatus(appearance: AgentCenterAppearanceProjection): EvidenceState {
-  if (appearance.backendCapabilityProfileRef) return 'ready';
-  return appearance.avatarAssetRef ? 'pending' : 'missing';
-}
-
-function live2dManifestStatus(appearance: AgentCenterAppearanceProjection): EvidenceState {
-  return appearance.live2dAdapterManifestSource && appearance.live2dAdapterManifestSource !== 'none'
-    ? 'ready'
-    : appearance.avatarAssetRef
-      ? 'missing'
-      : 'missing';
-}
-
-function backgroundStatus(appearance: AgentCenterAppearanceProjection): EvidenceState {
-  if (appearance.backgroundValid) return 'ready';
-  if (appearance.backgroundChecking) return 'pending';
-  return appearance.backgroundRef ? 'blocked' : 'missing';
-}
-
-function live2dStatusTone(status: Live2dWorkbenchStatus): string {
-  if (status === 'ready') return 'border-emerald-100 bg-emerald-50 text-emerald-700';
-  if (status === 'blocked') return 'border-rose-100 bg-rose-50 text-rose-700';
-  if (status === 'probe_required' || status === 'checking' || status === 'pending') return 'border-amber-100 bg-amber-50 text-amber-700';
-  if (status === 'not_admitted' || status === 'effect_projection_pending') return 'border-sky-100 bg-sky-50 text-sky-700';
-  return 'border-slate-100 bg-slate-50 text-slate-500';
-}
-
-function live2dStatusLabel(status: Live2dWorkbenchStatus): string {
-  if (status === 'probe_required') return 'Probe required';
-  if (status === 'not_admitted') return 'Not admitted';
-  if (status === 'effect_projection_pending') return 'Effect pending';
-  if (status === 'checking') return 'Checking';
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-function live2dProbeStatus(appearance: AgentCenterAppearanceProjection): Live2dWorkbenchStatus {
-  if (appearance.avatarAssetChecking) return 'checking';
-  if (!appearance.avatarAssetRef || !appearance.avatarAssetValid || !appearance.backendCapabilityProfileRef) return 'blocked';
-  return 'probe_required';
-}
-
-function live2dCalibrationStatus(appearance: AgentCenterAppearanceProjection): Live2dWorkbenchStatus {
-  if (appearance.avatarAssetChecking) return 'checking';
-  if (!appearance.avatarAssetRef || !appearance.avatarAssetValid) return 'blocked';
-  return 'effect_projection_pending';
-}
-
-function live2dAdapterWorkbenchStatus(appearance: AgentCenterAppearanceProjection): Live2dWorkbenchStatus {
-  if (appearance.live2dAdapterManifestSource === 'external_sidecar_manifest') {
-    return appearance.live2dAdapterManifestRef ? 'ready' : 'blocked';
-  }
-  if (appearance.live2dAdapterManifestSource === 'embedded_creator_manifest') return 'ready';
-  return 'missing';
-}
-
-function buildLive2dWorkbenchItems(appearance: AgentCenterAppearanceProjection): readonly Live2dWorkbenchItem[] {
-  const launchEvidenceReady = Boolean(
-    appearance.avatarAssetRef
-      && appearance.avatarAssetValid
-      && appearance.backendCapabilityProfileRef,
-  );
-  const evidenceRequired = 'Local asset and backend capability evidence are required.';
-  return [
-    {
-      id: 'preview_artifact',
-      label: 'Preview artifact',
-      detail: launchEvidenceReady ? 'Review through Runtime backend or window probe evidence.' : evidenceRequired,
-      status: live2dProbeStatus(appearance),
-    },
-    {
-      id: 'model_framing',
-      label: 'Model framing',
-      detail: launchEvidenceReady ? 'Calibration ref is projected as evidence; Avatar effect waits for payload/effect projection.' : evidenceRequired,
-      status: live2dCalibrationStatus(appearance),
-      evidenceRef: appearance.live2dCalibrationRef || null,
-    },
-    {
-      id: 'render_policy',
-      label: 'Render policy',
-      detail: launchEvidenceReady ? 'Calibration ref is projected as evidence; Avatar effect waits for payload/effect projection.' : evidenceRequired,
-      status: live2dCalibrationStatus(appearance),
-      evidenceRef: appearance.live2dCalibrationRef || null,
-    },
-    {
-      id: 'expression_inventory',
-      label: 'Expression inventory',
-      detail: appearance.backendCapabilityProfileRef ? 'Review through Runtime emotion probe evidence.' : 'Backend capability profile evidence is required.',
-      status: live2dProbeStatus(appearance),
-      evidenceRef: appearance.backendCapabilityProfileRef || null,
-    },
-    {
-      id: 'adapter_manifest',
-      label: 'Adapter manifest',
-      detail: appearance.live2dAdapterManifestSource === 'external_sidecar_manifest'
-        ? 'External sidecar ref is selected.'
-        : appearance.live2dAdapterManifestSource === 'embedded_creator_manifest'
-          ? 'Embedded creator manifest is selected.'
-          : 'No adapter manifest is selected.',
-      status: live2dAdapterWorkbenchStatus(appearance),
-      evidenceRef: appearance.live2dAdapterManifestRef || null,
-    },
-  ];
-}
-
-function buildSetupSteps(
-  appearance: AgentCenterAppearanceProjection,
-  copy: Required<AgentCenterAppearanceCopy>,
-): readonly SetupStep[] {
-  const avatarReady = Boolean(appearance.avatarAssetRef && appearance.avatarAssetValid);
-  const validationReady = avatarReady && assetStatus(appearance) === 'ready';
-  const sidecarReady = backendKind(appearance) !== 'live2d' || live2dManifestStatus(appearance) === 'ready';
-  const sidecarActive = avatarReady && !sidecarReady;
-  const displayReady = avatarReady && sidecarReady && appearance.status === 'ready';
-  return [
-    {
-      label: copy.stepAssetTitle,
-      detail: avatarReady ? copy.stepAssetReady : copy.stepAssetMissing,
-      state: avatarReady ? 'ready' : appearance.avatarAssetChecking ? 'active' : 'idle',
-      statusLabel: avatarReady ? copy.doneLabel : appearance.avatarAssetChecking ? copy.pendingLabel : copy.notStartedLabel,
-    },
-    {
-      label: copy.stepValidationTitle,
-      detail: validationReady ? copy.stepValidationReady : copy.stepValidationMissing,
-      state: validationReady ? 'ready' : appearance.avatarAssetRef ? 'blocked' : 'idle',
-      statusLabel: validationReady ? copy.doneLabel : appearance.avatarAssetRef ? copy.pendingLabel : copy.notStartedLabel,
-    },
-    {
-      label: copy.stepSidecarTitle,
-      detail: sidecarReady ? copy.stepSidecarReady : copy.stepSidecarPending,
-      state: sidecarReady ? 'ready' : sidecarActive ? 'active' : 'idle',
-      statusLabel: sidecarReady ? copy.doneLabel : sidecarActive ? copy.pendingLabel : copy.notStartedLabel,
-    },
-    {
-      label: copy.stepDisplayTitle,
-      detail: displayReady ? copy.stepDisplayReady : copy.stepDisplayPending,
-      state: displayReady ? 'ready' : sidecarReady && avatarReady ? 'active' : 'idle',
-      statusLabel: displayReady ? copy.doneLabel : sidecarReady && avatarReady ? copy.pendingLabel : copy.notStartedLabel,
-    },
-  ];
 }
 
 function EvidenceRow(props: {
@@ -451,11 +132,17 @@ function SelectControl<TValue extends string>(props: {
   );
 }
 
-function DiagnosticsWorkbench({ appearance }: { readonly appearance: AgentCenterAppearanceProjection }) {
+function DiagnosticsEvidencePanel({
+  appearance,
+  labels,
+}: {
+  readonly appearance: AgentCenterAppearanceProjection;
+  readonly labels: Required<AgentCenterAppearanceCopy>;
+}) {
   if (backendKind(appearance) !== 'live2d') {
     return null;
   }
-  const reviewItems = buildLive2dWorkbenchItems(appearance);
+  const reviewItems = buildLive2dEvidenceItems(appearance, labels);
   return (
     <div className="grid gap-2">
       <div className="grid gap-2 sm:grid-cols-2">
@@ -470,34 +157,20 @@ function DiagnosticsWorkbench({ appearance }: { readonly appearance: AgentCenter
                 'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
                 live2dStatusTone(item.status),
               )}>
-                {live2dStatusLabel(item.status)}
+                {live2dStatusLabel(item.status, labels)}
               </span>
             </div>
             {item.evidenceRef ? (
               <div className="mt-2 truncate text-[10px] leading-4 text-slate-400">
-                Evidence ref: {item.evidenceRef}
+                {labels.evidenceRefLabel}: {item.evidenceRef}
               </div>
             ) : null}
           </div>
         ))}
       </div>
-      <div className="rounded-[10px] border border-slate-100 bg-slate-50 px-3 py-2">
-        <div className="text-[10px] font-semibold uppercase text-slate-500">Debug probe shortcuts</div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {LIVE2D_DEBUG_SHORTCUTS.map((shortcut) => (
-            <span
-              className="rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700"
-              data-agent-center-live2d-debug-shortcut={shortcut.toLowerCase()}
-              key={shortcut}
-            >
-              {shortcut}
-            </span>
-          ))}
-        </div>
-      </div>
       {appearance.live2dCalibrationRef ? (
         <div className="truncate rounded-[10px] border border-slate-100 bg-white px-3 py-2 text-[10px] font-semibold text-slate-500">
-          Calibration ref: {appearance.live2dCalibrationRef}
+          {labels.calibrationRefLabel}: {appearance.live2dCalibrationRef}
         </div>
       ) : null}
     </div>
@@ -531,10 +204,10 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
   const setupBlockedReason = blockedSetupReason(appearance);
   const readableDisabledReason = visibleDisabledReason(appearance);
   const adapterDisplay = appearance.live2dAdapterManifestSource === 'external_sidecar_manifest'
-    ? 'External sidecar linked'
+    ? labels.live2dExternalSidecarSelected
     : appearance.live2dAdapterManifestSource === 'embedded_creator_manifest'
-      ? 'Embedded'
-      : 'Not selected';
+      ? labels.live2dEmbeddedManifestSelected
+      : labels.missingLabel;
   const backgroundState = backgroundStatus(appearance);
 
   const run = (
@@ -543,7 +216,7 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
     success: (projection: AgentCenterAppearanceProjection) => string,
   ) => {
     if (!action) {
-      setStatus(`${label} adapter unavailable.`);
+      setStatus(labels.adapterUnavailableFormat.replace('{{label}}', label));
       return;
     }
     setStatus(`${label}...`);
@@ -552,7 +225,7 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
         setAppearance(projection);
         setStatus(success(projection));
       })
-      .catch((error: unknown) => setStatus(normalizeError(error)));
+      .catch((error: unknown) => setStatus(normalizeError(error, labels)));
   };
 
   const importAvatarAsset = (kind: 'live2d' | 'vrm') => {
@@ -820,12 +493,11 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
           <div className="min-w-0">
             <h3 className="m-0 text-[15px] font-semibold leading-6 text-slate-950">{labels.chatBackgroundTitle}</h3>
             <p className="m-0 mt-2 max-w-[230px] text-[12px] leading-5 text-slate-500">{labels.chatBackgroundDescription}</p>
-            <span className={cnAgentCenter(
-              'mt-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold',
-              backgroundState === 'ready' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500',
-            )}>
-              {backgroundState === 'ready' ? labels.backgroundReady : labels.backgroundUnset}
-            </span>
+            {backgroundState === 'ready' ? (
+              <span className="mt-3 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600">
+                {labels.backgroundReady}
+              </span>
+            ) : null}
           </div>
           <div
             className="grid min-h-[102px] place-items-center overflow-hidden rounded-[12px] border border-emerald-100 bg-emerald-50/60 text-emerald-600"
@@ -919,7 +591,7 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
           </div>
         ) : null}
 
-        <DiagnosticsWorkbench appearance={appearance} />
+        <DiagnosticsEvidencePanel appearance={appearance} labels={labels} />
 
         <div className="grid gap-2">
           <div className="flex min-w-0 items-center justify-between gap-3 rounded-[12px] bg-slate-50 px-3 py-2.5">
@@ -962,9 +634,9 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
             label={labels.instancePolicyLabel}
             onChange={(avatar_instance_policy) => updateAvatarConfig({ avatar_instance_policy })}
             options={[
-              { value: 'reuse_active_instance', label: 'Reuse active' },
-              { value: 'launch_new_instance', label: 'Launch new' },
-              { value: 'require_user_selection', label: 'Ask every time' },
+              { value: 'reuse_active_instance', label: labels.instancePolicyReuseActive },
+              { value: 'launch_new_instance', label: labels.instancePolicyLaunchNew },
+              { value: 'require_user_selection', label: labels.instancePolicyRequireUserSelection },
             ]}
             value={(appearance.avatarInstancePolicy || 'reuse_active_instance') as 'reuse_active_instance' | 'launch_new_instance' | 'require_user_selection'}
           />
@@ -973,9 +645,9 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
             label={labels.generatedMotionLabel}
             onChange={(generated_motion_provider_policy) => updateAvatarConfig({ generated_motion_provider_policy })}
             options={[
-              { value: 'require_profile_support', label: 'Require profile' },
-              { value: 'disable_generated_motion', label: 'Disabled' },
-              { value: 'debug_only', label: 'Debug only' },
+              { value: 'require_profile_support', label: labels.generatedMotionRequireProfile },
+              { value: 'disable_generated_motion', label: labels.generatedMotionDisabled },
+              { value: 'debug_only', label: labels.generatedMotionDebugOnly },
             ]}
             value={(appearance.generatedMotionProviderPolicy || 'require_profile_support') as 'require_profile_support' | 'disable_generated_motion' | 'debug_only'}
           />
@@ -984,9 +656,9 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
             label={labels.launchModeLabel}
             onChange={(launch_mode) => updateAvatarConfig({ launch_mode })}
             options={[
-              { value: 'manual', label: 'Manual' },
-              { value: 'debug_session', label: 'Debug session' },
-              { value: 'start_with_chat', label: 'Start with chat' },
+              { value: 'manual', label: labels.launchModeManual },
+              { value: 'debug_session', label: labels.launchModeDebugSession },
+              { value: 'start_with_chat', label: labels.launchModeStartWithChat },
             ]}
             value={(appearance.launchMode || 'manual') as 'manual' | 'debug_session' | 'start_with_chat'}
           />
@@ -995,9 +667,9 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
             label={labels.debugProfileLabel}
             onChange={(debug_profile) => updateAvatarConfig({ debug_profile })}
             options={[
-              { value: 'standard', label: 'Standard' },
-              { value: 'strict_backend_evidence', label: 'Strict backend evidence' },
-              { value: 'route_matrix', label: 'Route matrix' },
+              { value: 'standard', label: labels.debugProfileStandard },
+              { value: 'strict_backend_evidence', label: labels.debugProfileStrictBackendEvidence },
+              { value: 'route_matrix', label: labels.debugProfileRouteMatrix },
             ]}
             value={(appearance.debugProfile || 'standard') as 'standard' | 'strict_backend_evidence' | 'route_matrix'}
           />
@@ -1005,7 +677,7 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
         <div className="flex min-w-0 items-start gap-2 rounded-[10px] border border-slate-100 bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-600">
           <AlertCircle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
           <span className="min-w-0">
-            Kit stores opaque Avatar/Runtime refs only. Avatar and Runtime own model digest, framing, scale, FPS, expression inventory, preview refs, and effect materialization.
+            {labels.custodyNotice}
           </span>
         </div>
       </div>

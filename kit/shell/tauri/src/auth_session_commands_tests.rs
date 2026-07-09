@@ -208,6 +208,63 @@ fn e2e_master_key_must_decode_to_aes_key() {
 }
 
 #[test]
+fn public_auth_session_commands_round_trip_in_e2e_encrypted_file_mode() {
+    let home = temp_dir("public-command-home");
+    let fixture = temp_dir("public-command-fixture");
+    let encoded_key = base64::engine::general_purpose::STANDARD.encode(fixed_key());
+    let payload = AuthSessionSavePayload {
+        realm_base_url: "https://realm.nimi.test".to_string(),
+        access_token: "access-token".to_string(),
+        refresh_token: Some("refresh-token".to_string()),
+        user: Some(AuthSessionUser {
+            id: "user-1".to_string(),
+            display_name: "User One".to_string(),
+            email: Some("user@example.com".to_string()),
+            avatar_url: None,
+        }),
+        updated_at: "2026-04-05T10:00:00.000Z".to_string(),
+        expires_at: Some("2026-04-05T11:00:00.000Z".to_string()),
+    };
+
+    with_env(
+        &[
+            ("HOME", home.to_str()),
+            ("NIMI_E2E_AUTH_SESSION_STORAGE", Some("encrypted-file")),
+            (
+                "NIMI_E2E_AUTH_SESSION_MASTER_KEY",
+                Some(encoded_key.as_str()),
+            ),
+            ("NIMI_E2E_PROFILE", Some("desktop-tauri-shell")),
+            ("NIMI_E2E_FIXTURE_PATH", fixture.to_str()),
+        ],
+        || {
+            assert_eq!(super::auth_session_load().expect("initial load"), None);
+
+            super::auth_session_save(payload.clone()).expect("save shared auth session");
+
+            assert_eq!(
+                super::auth_session_load()
+                    .expect("load shared auth session")
+                    .expect("session exists"),
+                AuthSessionLoadResult {
+                    realm_base_url: payload.realm_base_url,
+                    access_token: payload.access_token,
+                    refresh_token: payload.refresh_token,
+                    user: payload.user,
+                    updated_at: payload.updated_at,
+                    expires_at: payload.expires_at,
+                }
+            );
+
+            super::auth_session_clear().expect("clear shared auth session");
+            assert_eq!(super::auth_session_load().expect("load after clear"), None);
+        },
+    );
+    let _ = fs::remove_dir_all(home);
+    let _ = fs::remove_dir_all(fixture);
+}
+
+#[test]
 fn clear_is_idempotent() {
     let path = session_path("clear");
     fs::write(&path, "x").expect("write file");

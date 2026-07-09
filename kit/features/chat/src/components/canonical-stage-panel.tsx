@@ -106,6 +106,8 @@ export type CanonicalStagePanelProps = {
   characterData?: ConversationCharacterData | null;
   messages: readonly ConversationCanonicalMessage[];
   pendingFirstBeat?: boolean;
+  pendingAgentRoleLabel?: string;
+  pendingThinkingLabel?: string;
   content?: ReactNode;
   footerContent?: ReactNode;
   widthClassName?: string;
@@ -298,8 +300,8 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
                     <CanonicalTypingBubble
                       agentAvatarUrl={props.agentAvatarUrl}
                       agentName={props.agentName || props.characterData?.name || 'Assistant'}
-                      agentRoleLabel="Assistant pending"
-                      thinkingLabel="Thinking…"
+                      agentRoleLabel={props.pendingAgentRoleLabel || 'Assistant pending'}
+                      thinkingLabel={props.pendingThinkingLabel || 'Thinking...'}
                     />
                   ) : null}
                   {props.footerContent}

@@ -31,6 +31,8 @@ pub struct StandardFileDialogOpenPayload {
     pub filters: Option<Vec<StandardFileDialogFilter>>,
     #[serde(default)]
     pub multiple: Option<bool>,
+    #[serde(default)]
+    pub start_directory: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -52,6 +54,7 @@ pub(crate) struct ValidatedFileDialogRequest {
     pub title: Option<String>,
     pub filters: Vec<StandardFileDialogFilter>,
     pub multiple: bool,
+    pub start_directory: Option<PathBuf>,
 }
 
 fn selected_path_registry() -> &'static RwLock<HashSet<PathBuf>> {
@@ -127,6 +130,7 @@ pub(crate) fn parse_file_dialog_open_payload(
             ));
         }
     }
+    let start_directory = parse_start_directory(parsed.start_directory)?;
     Ok(ValidatedFileDialogRequest {
         kind,
         title: parsed
@@ -135,12 +139,16 @@ pub(crate) fn parse_file_dialog_open_payload(
             .filter(|title| !title.is_empty()),
         filters,
         multiple: parsed.multiple.unwrap_or(false),
+        start_directory,
     })
 }
 
 pub fn file_dialog_open(payload: Value) -> Result<StandardFileDialogOpenResult, String> {
     let request = parse_file_dialog_open_payload(payload)?;
     let mut dialog = rfd::FileDialog::new();
+    if let Some(start_directory) = &request.start_directory {
+        dialog = dialog.set_directory(start_directory);
+    }
     if let Some(title) = request.title {
         dialog = dialog.set_title(title);
     }
@@ -180,6 +188,28 @@ pub fn file_dialog_open(payload: Value) -> Result<StandardFileDialogOpenResult, 
     })
 }
 
+fn parse_start_directory(value: Option<String>) -> Result<Option<PathBuf>, String> {
+    let Some(raw) = value else {
+        return Ok(None);
+    };
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err(start_directory_error(Some(raw)));
+    }
+    let path = PathBuf::from(trimmed);
+    if !path.is_absolute() {
+        return Err(start_directory_error(Some(path.display().to_string())));
+    }
+    match path.metadata() {
+        Ok(metadata) if metadata.is_dir() => Ok(Some(path)),
+        Ok(_) => Err(start_directory_error(Some(path.display().to_string()))),
+        Err(error) => Err(start_directory_error(Some(format!(
+            "{} ({error})",
+            path.display()
+        )))),
+    }
+}
+
 fn validate_selected_file_dialog_path(path: PathBuf) -> Result<PathBuf, String> {
     if !path.is_absolute() {
         return Err(dialog_error(
@@ -197,6 +227,15 @@ fn validate_selected_file_dialog_path(path: PathBuf) -> Result<PathBuf, String> 
             Some(format!("{} ({error})", path.display())),
         )
     })
+}
+
+fn start_directory_error(cause: Option<String>) -> String {
+    dialog_error(
+        "invalid-payload",
+        "tauri-standard-file-dialog-start-directory-invalid",
+        "provide_existing_absolute_directory_for_file_dialog_start_directory",
+        cause,
+    )
 }
 
 fn dialog_error(code: &str, reason_code: &str, action_hint: &str, cause: Option<String>) -> String {
@@ -258,6 +297,60 @@ mod tests {
         }))
         .expect("title is part of the standard file dialog payload");
         assert_eq!(request.title.as_deref(), Some("Pick an image"));
+    }
+
+    #[test]
+    fn parse_accepts_existing_start_directory() {
+        let dir = temp_dir("start-directory");
+        let request = parse_file_dialog_open_payload(json!({
+            "kind": "file",
+            "startDirectory": dir.display().to_string(),
+        }))
+        .expect("existing start directory is accepted");
+
+        assert_eq!(request.start_directory.as_deref(), Some(dir.as_path()));
+    }
+
+    #[test]
+    fn parse_rejects_empty_start_directory() {
+        let error = parse_file_dialog_open_payload(json!({
+            "kind": "file",
+            "startDirectory": "   ",
+        }))
+        .expect_err("empty start directory rejected");
+        assert_eq!(
+            reason_code(error.as_str()),
+            "tauri-standard-file-dialog-start-directory-invalid"
+        );
+    }
+
+    #[test]
+    fn parse_rejects_relative_start_directory() {
+        let error = parse_file_dialog_open_payload(json!({
+            "kind": "file",
+            "startDirectory": "relative/path",
+        }))
+        .expect_err("relative start directory rejected");
+        assert_eq!(
+            reason_code(error.as_str()),
+            "tauri-standard-file-dialog-start-directory-invalid"
+        );
+    }
+
+    #[test]
+    fn parse_rejects_file_start_directory() {
+        let dir = temp_dir("start-directory-file");
+        let file = dir.join("not-a-directory.txt");
+        std::fs::write(&file, b"file").expect("write file");
+        let error = parse_file_dialog_open_payload(json!({
+            "kind": "file",
+            "startDirectory": file.display().to_string(),
+        }))
+        .expect_err("file start directory rejected");
+        assert_eq!(
+            reason_code(error.as_str()),
+            "tauri-standard-file-dialog-start-directory-invalid"
+        );
     }
 
     #[test]

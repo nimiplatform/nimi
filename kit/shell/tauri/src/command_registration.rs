@@ -1,12 +1,17 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShellCommandBoundary {
     AuthSession,
+    Avatar,
     Daemon,
     DesktopOpen,
+    Diagnostics,
     Files,
     FloatingWindow,
     AiConfig,
+    LocalAgent,
+    LocalAssets,
     OAuth,
+    PlatformProjection,
     Runtime,
     RuntimeDefaults,
     SessionLogging,
@@ -123,6 +128,12 @@ pub const SESSION_LOGGING_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDe
     boundary: ShellCommandBoundary::SessionLogging,
 }];
 
+pub const STANDARD_DIAGNOSTICS_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDescriptor {
+    command_name: "diagnostics_renderer_entry_probe",
+    rust_path: "nimi_shell_tauri::capabilities::diagnostics::diagnostics_renderer_entry_probe",
+    boundary: ShellCommandBoundary::Diagnostics,
+}];
+
 pub const STANDARD_STORAGE_COMMANDS: &[ShellCommandDescriptor] = &[
     ShellCommandDescriptor {
         command_name: "data_path_resolve",
@@ -200,6 +211,39 @@ pub const STANDARD_FILE_COMMANDS: &[ShellCommandDescriptor] = &[
     },
 ];
 
+pub const STANDARD_LOCAL_ASSET_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDescriptor {
+    command_name: "local_assets_resolve_url",
+    rust_path: "nimi_shell_tauri::capabilities::local_assets::local_assets_resolve_url",
+    boundary: ShellCommandBoundary::LocalAssets,
+}];
+
+pub const STANDARD_LOCAL_AGENT_COMMANDS: &[ShellCommandDescriptor] = &[
+    ShellCommandDescriptor {
+        command_name: "local_agent_identity",
+        rust_path: "nimi_shell_tauri::capabilities::local_agent::local_agent_identity",
+        boundary: ShellCommandBoundary::LocalAgent,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_agent_runtime_trusted_caller",
+        rust_path:
+            "nimi_shell_tauri::capabilities::local_agent::local_agent_runtime_trusted_caller",
+        boundary: ShellCommandBoundary::LocalAgent,
+    },
+];
+
+pub const STANDARD_AVATAR_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDescriptor {
+    command_name: "avatar_asset_resolve",
+    rust_path: "nimi_shell_tauri::capabilities::avatar::avatar_asset_resolve",
+    boundary: ShellCommandBoundary::Avatar,
+}];
+
+pub const STANDARD_PLATFORM_PROJECTION_COMMANDS: &[ShellCommandDescriptor] =
+    &[ShellCommandDescriptor {
+        command_name: "platform_projection_get",
+        rust_path: "nimi_shell_tauri::capabilities::platform_projection::platform_projection_get",
+        boundary: ShellCommandBoundary::PlatformProjection,
+    }];
+
 pub const STANDARD_FLOATING_WINDOW_COMMANDS: &[ShellCommandDescriptor] = &[
     ShellCommandDescriptor {
         command_name: "floating_window_set_bounds",
@@ -253,10 +297,15 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     commands.extend_from_slice(OAUTH_COMMANDS);
     commands.extend_from_slice(DESKTOP_OPEN_INTENT_COMMANDS);
     commands.extend_from_slice(SESSION_LOGGING_COMMANDS);
+    commands.extend_from_slice(STANDARD_DIAGNOSTICS_COMMANDS);
     commands.extend_from_slice(STANDARD_STORAGE_COMMANDS);
     commands.extend_from_slice(STANDARD_AI_CONFIG_COMMANDS);
     commands.extend_from_slice(STANDARD_SHELL_UI_COMMANDS);
     commands.extend_from_slice(STANDARD_FILE_COMMANDS);
+    commands.extend_from_slice(STANDARD_LOCAL_ASSET_COMMANDS);
+    commands.extend_from_slice(STANDARD_LOCAL_AGENT_COMMANDS);
+    commands.extend_from_slice(STANDARD_AVATAR_COMMANDS);
+    commands.extend_from_slice(STANDARD_PLATFORM_PROJECTION_COMMANDS);
     commands.extend_from_slice(STANDARD_FLOATING_WINDOW_COMMANDS);
     commands
 }
@@ -275,15 +324,24 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
             $crate::capabilities::runtime::runtime_bridge_restart,
             $crate::capabilities::runtime::runtime_bridge_config_get,
             $crate::capabilities::runtime::runtime_bridge_config_set,
+            $crate::capabilities::auth::auth_session_load,
+            $crate::capabilities::auth::auth_session_save,
+            $crate::capabilities::auth::auth_session_clear,
             $crate::capabilities::data::data_path_resolve,
             $crate::capabilities::storage::storage_read_json,
             $crate::capabilities::storage::storage_write_json,
             $crate::capabilities::storage::storage_remove_json,
             $crate::capabilities::ai_config::ai_config_get,
             $crate::capabilities::ai_config::ai_config_set,
+            $crate::capabilities::diagnostics::diagnostics_renderer_entry_probe,
             $crate::capabilities::shell_ui::confirm_dialog,
             $crate::capabilities::shell_ui::start_window_drag,
             $crate::capabilities::shell_ui::focus_main_window,
+            $crate::capabilities::local_assets::local_assets_resolve_url,
+            $crate::capabilities::local_agent::local_agent_identity,
+            $crate::capabilities::local_agent::local_agent_runtime_trusted_caller,
+            $crate::capabilities::avatar::avatar_asset_resolve,
+            $crate::capabilities::platform_projection::platform_projection_get,
             $crate::capabilities::file_dialog::file_dialog_open,
             $crate::capabilities::file_reveal::file_reveal_reveal,
             $crate::capabilities::export::export_save_file,
@@ -327,9 +385,15 @@ macro_rules! nimi_shell_tauri_auth_oauth_runtime_bridge_handler {
             $crate::capabilities::storage::storage_remove_json,
             $crate::capabilities::ai_config::ai_config_get,
             $crate::capabilities::ai_config::ai_config_set,
+            $crate::capabilities::diagnostics::diagnostics_renderer_entry_probe,
             $crate::capabilities::shell_ui::confirm_dialog,
             $crate::capabilities::shell_ui::start_window_drag,
             $crate::capabilities::shell_ui::focus_main_window,
+            $crate::capabilities::local_assets::local_assets_resolve_url,
+            $crate::capabilities::local_agent::local_agent_identity,
+            $crate::capabilities::local_agent::local_agent_runtime_trusted_caller,
+            $crate::capabilities::avatar::avatar_asset_resolve,
+            $crate::capabilities::platform_projection::platform_projection_get,
             $crate::capabilities::file_dialog::file_dialog_open,
             $crate::capabilities::file_reveal::file_reveal_reveal,
             $crate::capabilities::export::export_save_file,
@@ -370,9 +434,15 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $crate::capabilities::storage::storage_remove_json,
             $crate::capabilities::ai_config::ai_config_get,
             $crate::capabilities::ai_config::ai_config_set,
+            $crate::capabilities::diagnostics::diagnostics_renderer_entry_probe,
             $crate::capabilities::shell_ui::confirm_dialog,
             $crate::capabilities::shell_ui::start_window_drag,
             $crate::capabilities::shell_ui::focus_main_window,
+            $crate::capabilities::local_assets::local_assets_resolve_url,
+            $crate::capabilities::local_agent::local_agent_identity,
+            $crate::capabilities::local_agent::local_agent_runtime_trusted_caller,
+            $crate::capabilities::avatar::avatar_asset_resolve,
+            $crate::capabilities::platform_projection::platform_projection_get,
             $crate::capabilities::file_dialog::file_dialog_open,
             $crate::capabilities::file_reveal::file_reveal_reveal,
             $crate::capabilities::export::export_save_file,
@@ -393,7 +463,7 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
 /// `tauri::generate_handler!` that registers only the eight `floating_window_*`
 /// commands plus any extra app commands passed in, so a host (e.g. Nimi
 /// Avatar) can opt into standard window control without pulling in the
-/// runtime/auth/oauth handler families. Intentionally excluded from the
+/// runtime/oauth handler families. Intentionally excluded from the
 /// default handler macros so window control is not granted to apps that do
 /// not opt in.
 #[macro_export]
@@ -453,6 +523,7 @@ mod tests {
                 "oauth_listen_for_code",
                 "desktop_open_intent_open_intent",
                 "log_renderer_event",
+                "diagnostics_renderer_entry_probe",
                 "data_path_resolve",
                 "storage_read_json",
                 "storage_write_json",
@@ -466,6 +537,11 @@ mod tests {
                 "file_reveal_reveal",
                 "export_save_file",
                 "artifacts_write",
+                "local_assets_resolve_url",
+                "local_agent_identity",
+                "local_agent_runtime_trusted_caller",
+                "avatar_asset_resolve",
+                "platform_projection_get",
                 "floating_window_set_bounds",
                 "floating_window_set_ignore_cursor_events",
                 "floating_window_set_always_on_top",
@@ -499,6 +575,9 @@ mod tests {
             .any(|command| command.boundary == ShellCommandBoundary::SessionLogging));
         assert!(commands
             .iter()
+            .any(|command| command.boundary == ShellCommandBoundary::Diagnostics));
+        assert!(commands
+            .iter()
             .any(|command| command.boundary == ShellCommandBoundary::Storage));
         assert!(commands
             .iter()
@@ -509,6 +588,18 @@ mod tests {
         assert!(commands
             .iter()
             .any(|command| command.boundary == ShellCommandBoundary::Files));
+        assert!(commands
+            .iter()
+            .any(|command| command.boundary == ShellCommandBoundary::LocalAssets));
+        assert!(commands
+            .iter()
+            .any(|command| command.boundary == ShellCommandBoundary::LocalAgent));
+        assert!(commands
+            .iter()
+            .any(|command| command.boundary == ShellCommandBoundary::Avatar));
+        assert!(commands
+            .iter()
+            .any(|command| command.boundary == ShellCommandBoundary::PlatformProjection));
         assert!(commands
             .iter()
             .any(|command| command.boundary == ShellCommandBoundary::FloatingWindow));
@@ -545,10 +636,15 @@ mod tests {
         for descriptor in STANDARD_FLOATING_WINDOW_COMMANDS {
             assert!(!RUNTIME_BRIDGE_COMMANDS
                 .iter()
+                .chain(AUTH_SESSION_COMMANDS)
                 .chain(STANDARD_STORAGE_COMMANDS)
                 .chain(STANDARD_SHELL_UI_COMMANDS)
                 .chain(STANDARD_FILE_COMMANDS)
-                .chain(AUTH_SESSION_COMMANDS)
+                .chain(STANDARD_DIAGNOSTICS_COMMANDS)
+                .chain(STANDARD_LOCAL_ASSET_COMMANDS)
+                .chain(STANDARD_LOCAL_AGENT_COMMANDS)
+                .chain(STANDARD_AVATAR_COMMANDS)
+                .chain(STANDARD_PLATFORM_PROJECTION_COMMANDS)
                 .chain(OAUTH_COMMANDS)
                 .any(|other| other.command_name == descriptor.command_name));
         }
@@ -596,14 +692,6 @@ mod tests {
                 @with_runtime_defaults test_runtime_defaults;
                 test_app_command
             ]);
-        let _oauth_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
-            crate::nimi_shell_tauri_oauth_runtime_bridge_handler![test_app_command],
-        );
-        let _oauth_custom_defaults_builder = tauri::Builder::<tauri::Wry>::default()
-            .invoke_handler(crate::nimi_shell_tauri_oauth_runtime_bridge_handler![
-                @with_runtime_defaults test_runtime_defaults;
-                test_app_command
-            ]);
         let _auth_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
             crate::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![test_app_command],
         );
@@ -613,6 +701,14 @@ mod tests {
                 test_app_command
             ],
         );
+        let _oauth_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
+            crate::nimi_shell_tauri_oauth_runtime_bridge_handler![test_app_command],
+        );
+        let _oauth_custom_defaults_builder = tauri::Builder::<tauri::Wry>::default()
+            .invoke_handler(crate::nimi_shell_tauri_oauth_runtime_bridge_handler![
+                @with_runtime_defaults test_runtime_defaults;
+                test_app_command
+            ]);
         let _floating_window_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
             crate::nimi_shell_tauri_floating_window_commands![test_app_command],
         );

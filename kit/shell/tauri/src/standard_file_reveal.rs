@@ -31,7 +31,9 @@ pub fn file_reveal_reveal(
     roots: &StandardAppStorageRoots,
     payload: Value,
 ) -> Result<StandardFileRevealResult, String> {
-    let target = resolve_reveal_target(roots, payload)?;
+    let local_asset_roots =
+        crate::standard_local_assets::canonical_host_local_asset_roots("file_reveal_reveal")?;
+    let target = resolve_reveal_target_with_admitted_roots(roots, payload, &local_asset_roots)?;
     reveal_path_in_os(target.as_path()).map_err(|cause| {
         reveal_error(
             "host-internal-error",
@@ -46,9 +48,18 @@ pub fn file_reveal_reveal(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn resolve_reveal_target(
     roots: &StandardAppStorageRoots,
     payload: Value,
+) -> Result<PathBuf, String> {
+    resolve_reveal_target_with_admitted_roots(roots, payload, &[])
+}
+
+pub(crate) fn resolve_reveal_target_with_admitted_roots(
+    roots: &StandardAppStorageRoots,
+    payload: Value,
+    admitted_local_asset_roots: &[PathBuf],
 ) -> Result<PathBuf, String> {
     // file-reveal declares invalid-path/not-found negative states (no
     // invalid-payload), so malformed payloads map to invalid-path.
@@ -87,12 +98,16 @@ pub(crate) fn resolve_reveal_target(
         )
     })?;
     if !canonical.starts_with(roots.data_root())
+        && !crate::standard_local_assets::is_admitted_local_asset_path(
+            &canonical,
+            admitted_local_asset_roots,
+        )
         && !crate::standard_file_dialog::is_registered_file_dialog_selected_path(&canonical)
     {
         return Err(reveal_error(
             "invalid-path",
             "tauri-standard-file-reveal-path-not-admitted",
-            "reveal_paths_inside_standard_data_root_or_file_dialog_registry",
+            "reveal_paths_inside_standard_data_root_local_asset_roots_or_file_dialog_registry",
             Some(canonical.display().to_string()),
         ));
     }
@@ -146,9 +161,12 @@ fn reveal_error(code: &str, reason_code: &str, action_hint: &str, cause: Option<
 
 #[cfg(test)]
 mod tests {
-    use super::{resolve_reveal_target, StandardFileRevealResult};
+    use super::{
+        resolve_reveal_target, resolve_reveal_target_with_admitted_roots, StandardFileRevealResult,
+    };
     use crate::runtime_app_storage::test_standard_app_storage_roots;
     use crate::standard_file_dialog::register_file_dialog_selected_paths;
+    use crate::standard_local_assets::canonical_admitted_local_asset_roots;
     use serde_json::{json, Value};
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -263,6 +281,63 @@ mod tests {
         .expect("registered selected path resolves");
 
         assert_eq!(resolved, canonical);
+    }
+
+    #[test]
+    fn reveal_target_accepts_host_admitted_local_asset_root() {
+        let root = temp_root("data-root");
+        let asset_root = temp_root("asset-root");
+        let roots = test_standard_app_storage_roots(root);
+        let selected_file = asset_root.join("model.gguf");
+        std::fs::write(&selected_file, b"model").expect("write local asset");
+        let canonical_asset_roots =
+            canonical_admitted_local_asset_roots(&[asset_root.clone()], "file_reveal_reveal")
+                .expect("canonical roots");
+
+        let resolved = resolve_reveal_target_with_admitted_roots(
+            &roots,
+            json!({ "path": selected_file.display().to_string() }),
+            &canonical_asset_roots,
+        )
+        .expect("host admitted local asset path resolves");
+
+        assert_eq!(
+            resolved,
+            selected_file.canonicalize().expect("canonical local asset")
+        );
+    }
+
+    #[test]
+    fn local_asset_root_is_created_before_revealing_root_path() {
+        let root = temp_root("data-root");
+        let parent = temp_root("asset-parent");
+        let asset_root = parent.join("models");
+        let roots = test_standard_app_storage_roots(root);
+        assert!(!asset_root.exists());
+        let canonical_asset_roots =
+            canonical_admitted_local_asset_roots(&[asset_root.clone()], "file_reveal_reveal")
+                .expect("canonical roots");
+
+        let resolved = resolve_reveal_target_with_admitted_roots(
+            &roots,
+            json!({ "path": asset_root.display().to_string() }),
+            &canonical_asset_roots,
+        )
+        .expect("created host admitted local asset root resolves");
+
+        assert_eq!(resolved, asset_root.canonicalize().expect("canonical root"));
+    }
+
+    #[test]
+    fn local_asset_roots_must_be_absolute() {
+        let error =
+            canonical_admitted_local_asset_roots(&[PathBuf::from("models")], "file_reveal_reveal")
+                .expect_err("relative local asset root rejected");
+        let parsed = envelope(error.as_str());
+        assert_eq!(
+            parsed.get("reasonCode").and_then(Value::as_str),
+            Some("tauri-standard-local-asset-root-not-absolute")
+        );
     }
 
     #[test]

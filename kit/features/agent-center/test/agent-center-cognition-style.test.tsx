@@ -105,13 +105,17 @@ describe('AgentCenter cognition projection surface', () => {
       } as never,
     });
 
-    expect(node.textContent).toContain('active');
-    expect(node.textContent).toContain('focused');
+    expect(node.textContent).toContain('活跃');
+    expect(node.textContent).toContain('专注');
+    expect(node.textContent).not.toContain('active');
+    expect(node.textContent).not.toContain('focused');
     expect(node.textContent).toContain('可展示');
     expect(node.textContent).not.toContain('Runtime 已投影一段很长的中文状态说明');
     expect(node.textContent).toContain('用户希望认知页面只展示 Runtime 投影出来的记忆摘要。');
-    expect(node.textContent).toContain('dyadic');
-    expect(node.textContent).toContain('runtime-inspect');
+    expect(node.textContent).toContain('双人关系');
+    expect(node.textContent).toContain('运行时检查');
+    expect(node.textContent).not.toContain('dyadic');
+    expect(node.textContent).not.toContain('runtime-inspect');
     expect(node.querySelector('[data-agent-center-cognition-surface="read-only-projection"] button')).toBeNull();
   });
 });

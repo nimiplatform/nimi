@@ -209,6 +209,37 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.textContent).toContain('This is an open weight \uFF08open weights\uFF09 model.');
   });
 
+  it('uses host-provided pending typing copy in transcript view', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalTranscriptView
+          messages={[{
+            id: 'user-1',
+            sessionId: 'session-agent',
+            targetId: 'agent:ren',
+            source: 'agent',
+            role: 'user',
+            text: '你好',
+            createdAt: '2026-04-05T00:00:00.000Z',
+            kind: 'text',
+          }]}
+          pendingFirstBeat
+          pendingAgentRoleLabel="伙伴正在回复"
+          pendingThinkingLabel="正在思考..."
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.textContent).toContain('正在思考...');
+    expect(container.textContent).not.toContain('Thinking');
+    expect(container.querySelector('[role="status"]')?.getAttribute('aria-label')).toBe('伙伴正在回复');
+  });
+
 	  it('renders group sender labels and avatar slots from canonical transcript props', async () => {
 	    container = document.createElement('div');
 	    document.body.appendChild(container);

@@ -62,6 +62,7 @@ describe('renderer file surface bridge', () => {
         title: 'Pick',
         filters: [{ name: 'Images', extensions: ['png'] }],
         multiple: false,
+        startDirectory: '/data',
       })).resolves.toEqual({ canceled: false, paths: ['/data/selected.png'] });
       await expect(revealShellFile('/data/selected.png')).resolves.toEqual({
         revealed: true,
@@ -100,6 +101,7 @@ describe('renderer file surface bridge', () => {
         title: 'Pick',
         filters: [{ name: 'Images', extensions: ['png'] }],
         multiple: false,
+        startDirectory: '/data',
       },
     });
     expect(calls[1]?.payload).toEqual({ payload: { path: '/data/selected.png' } });
@@ -263,6 +265,15 @@ describe('Tauri standard command aliases for file surfaces', () => {
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']]).toBe('file_reveal_reveal');
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['export.saveFile']]).toBe('export_save_file');
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']]).toBe('artifacts_write');
+    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['diagnostics.rendererEntryProbe']]).toBe('diagnostics_renderer_entry_probe');
+    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']]).toBe('local_assets_resolve_url');
+    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity']]).toBe('local_agent_identity');
+    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']]).toBe('local_agent_runtime_trusted_caller');
+    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']]).toBe('avatar_asset_resolve');
+    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']]).toBe('platform_projection_get');
+    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad']]).toBe('auth_session_load');
+    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['auth.sessionSave']]).toBe('auth_session_save');
+    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['auth.sessionClear']]).toBe('auth_session_clear');
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.setBounds']]).toBe('floating_window_set_bounds');
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.setIgnoreCursorEvents']]).toBe('floating_window_set_ignore_cursor_events');
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.setAlwaysOnTop']]).toBe('floating_window_set_always_on_top');

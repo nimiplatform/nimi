@@ -455,7 +455,7 @@ describe('Electron Desktop Open Intent host client', () => {
       const realDir = path.join(dir, 'real');
       const linkDir = path.join(dir, 'link');
       await mkdir(realDir);
-      await symlink(realDir, linkDir, 'dir');
+      await symlink(realDir, linkDir, process.platform === 'win32' ? 'junction' : 'dir');
       await writeDescriptor(path.join(realDir, 'presence.v1.json'), {
         bridgeId: 'desktop-open-20260708-bridge',
         endpoint: 'http://127.0.0.1:49152',

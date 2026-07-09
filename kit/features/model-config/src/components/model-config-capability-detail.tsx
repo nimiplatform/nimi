@@ -490,6 +490,16 @@ export function ModelConfigCapabilityDetail({
     disabled: override.disabled,
     runtimeNotReadyLabel: surface.runtimeNotReadyLabel,
     clearSelectionLabel: override.clearSelectionLabel,
+    modelPickerCopy: {
+      title: translateWithDefault(t, 'ModelConfig.modelPicker.title', 'Select Model'),
+      local: translateWithDefault(t, 'ModelConfig.modelPicker.local', 'Local'),
+      cloud: translateWithDefault(t, 'ModelConfig.modelPicker.cloud', 'Cloud'),
+      selectConnectorLabel: translateWithDefault(t, 'ModelConfig.modelPicker.selectConnectorLabel', 'Select connector'),
+      searchPlaceholder: translateWithDefault(t, 'ModelConfig.modelPicker.searchPlaceholder', 'Search models'),
+      loading: translateWithDefault(t, 'ModelConfig.modelPicker.loading', 'Loading models...'),
+      noSearchResults: translateWithDefault(t, 'ModelConfig.modelPicker.noSearchResults', 'No models match your search.'),
+      noModelsAvailable: translateWithDefault(t, 'ModelConfig.modelPicker.noModelsAvailable', 'No models available.'),
+    },
   };
 
   return <CapabilityModelCard item={item} />;

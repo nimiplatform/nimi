@@ -23,6 +23,9 @@ import type {
   AgentCenterAgentAIConfigIntents,
   AgentCenterCapabilityId,
   AgentCenterCapabilityState,
+  AgentCenterModelConfigCopyKey,
+  AgentCenterModelCopy,
+  AgentCenterModelSuperSectionId,
   AgentCenterRuntimeAIConfigBinding,
   AgentCenterRuntimeAdapter,
   AgentCenterRuntimeSnapshot,
@@ -37,6 +40,7 @@ import {
 export interface AgentCenterModelSectionProps {
   readonly state: AgentCenterState;
   readonly runtimeAdapter?: AgentCenterRuntimeAdapter | null;
+  readonly copy?: AgentCenterModelCopy;
 }
 
 const MODEL_SCOPE_REF: NimiAIScopeRef = {
@@ -54,13 +58,13 @@ const AGENT_CENTER_MODEL_CAPABILITIES: readonly AgentCenterCapabilityId[] = [
   'image.generate',
 ];
 
-const MODEL_SUPER_SECTIONS: readonly ModelConfigSuperSection[] = [
+const MODEL_SUPER_SECTIONS: readonly (ModelConfigSuperSection & { readonly id: AgentCenterModelSuperSectionId })[] = [
   { id: 'conversation', label: 'Conversation', sections: ['chat', 'embed'] },
   { id: 'voice', label: 'Voice', sections: ['tts', 'voice'] },
   { id: 'media', label: 'Media', sections: ['image'] },
 ];
 
-const MODEL_CONFIG_COPY: Record<string, string> = {
+const MODEL_CONFIG_COPY: Record<AgentCenterModelConfigCopyKey, string> = {
   'ModelConfig.hub.title': 'AI Model',
   'ModelConfig.hub.aggregateReady': 'Runtime ready',
   'ModelConfig.hub.aggregateAttention': 'Needs setup',
@@ -124,13 +128,102 @@ const MODEL_CONFIG_COPY: Record<string, string> = {
   'ModelConfig.capability.imageGenerate.title': 'Image Generation',
   'ModelConfig.capability.imageGenerate.subtitle': 'Runtime image action route',
   'ModelConfig.capability.imageGenerate.detail': 'Committed Runtime Agent AI Config image.generate intent.',
+  'ModelConfig.modelPicker.title': 'Select Model',
+  'ModelConfig.modelPicker.local': 'Local',
+  'ModelConfig.modelPicker.cloud': 'Cloud',
+  'ModelConfig.modelPicker.selectConnectorLabel': 'Select connector',
+  'ModelConfig.modelPicker.searchPlaceholder': 'Search models',
+  'ModelConfig.modelPicker.loading': 'Loading models...',
+  'ModelConfig.modelPicker.noSearchResults': 'No models match your search.',
+  'ModelConfig.modelPicker.noModelsAvailable': 'No models available.',
 };
 
-function t(key: string, vars?: Readonly<Record<string, string | number>>): string {
-  const template = typeof vars?.defaultValue === 'string'
-    ? String(vars.defaultValue)
-    : (MODEL_CONFIG_COPY[key] || key);
+type ResolvedAgentCenterModelCopy = {
+  readonly sectionTitle: string;
+  readonly superSectionLabels: Record<AgentCenterModelSuperSectionId, string>;
+  readonly modelConfig: Record<AgentCenterModelConfigCopyKey, string>;
+  readonly detailActiveModelHint: string;
+  readonly setupRequiredLabel: string;
+  readonly runtimeModelPickerUnavailableLabel: string;
+  readonly notConfiguredLabel: string;
+  readonly profileImportUnsupportedLabel: string;
+  readonly parameterEditRejected: string;
+  readonly profileSliceRefRejected: string;
+  readonly adapterUnavailable: string;
+  readonly revisionUnavailable: string;
+  readonly savingStatus: string;
+  readonly savedStatusFormat: string;
+  readonly updateFailed: string;
+  readonly projectionReadyBadge: string;
+  readonly projectionReadyTitle: string;
+  readonly projectionNeedsSetupBadge: string;
+  readonly projectionRouteNotConfiguredTitle: string;
+  readonly projectionModelRequiredTitle: string;
+  readonly projectionUnavailableTitle: string;
+  readonly modelSelectionUnresolvedSuffix: string;
+};
+
+const DEFAULT_MODEL_COPY: ResolvedAgentCenterModelCopy = {
+  sectionTitle: 'Model',
+  superSectionLabels: {
+    conversation: 'Conversation',
+    voice: 'Voice',
+    media: 'Media',
+  },
+  modelConfig: MODEL_CONFIG_COPY,
+  detailActiveModelHint: 'Click to change model',
+  setupRequiredLabel: 'Setup required',
+  runtimeModelPickerUnavailableLabel: 'Runtime model picker unavailable',
+  notConfiguredLabel: 'Not configured',
+  profileImportUnsupportedLabel: 'Runtime Agent AI Config profile import is not admitted on this surface.',
+  parameterEditRejected: 'Runtime Agent AI Config does not admit app-scope model parameter edits on this surface.',
+  profileSliceRefRejected: 'Runtime Agent AI Config does not accept profile-slice model refs on this surface.',
+  adapterUnavailable: 'Runtime Agent AI Config adapter unavailable.',
+  revisionUnavailable: 'Runtime Agent AI Config revision unavailable.',
+  savingStatus: 'Saving Runtime Agent AI Config model selection.',
+  savedStatusFormat: 'Saved Runtime Agent AI Config revision {{revision}}.',
+  updateFailed: 'Runtime Agent AI Config update failed.',
+  projectionReadyBadge: 'Ready',
+  projectionReadyTitle: 'Runtime ready',
+  projectionNeedsSetupBadge: 'Needs setup',
+  projectionRouteNotConfiguredTitle: 'Runtime route not configured',
+  projectionModelRequiredTitle: 'Model selection required',
+  projectionUnavailableTitle: 'Runtime projection unavailable',
+  modelSelectionUnresolvedSuffix: 'model selection did not resolve a Runtime model id.',
+};
+
+function resolveModelCopy(copy: AgentCenterModelCopy | undefined): ResolvedAgentCenterModelCopy {
+  return {
+    ...DEFAULT_MODEL_COPY,
+    ...(copy || {}),
+    superSectionLabels: {
+      ...DEFAULT_MODEL_COPY.superSectionLabels,
+      ...(copy?.superSectionLabels || {}),
+    },
+    modelConfig: {
+      ...MODEL_CONFIG_COPY,
+      ...(copy?.modelConfig || {}),
+    },
+  };
+}
+
+function formatCopy(template: string, vars?: Readonly<Record<string, string | number>>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_match, name: string) => String(vars?.[name] ?? ''));
+}
+
+function createTranslator(copy: ResolvedAgentCenterModelCopy) {
+  return (key: string, vars?: Readonly<Record<string, string | number>>): string => {
+    const template = copy.modelConfig[key as AgentCenterModelConfigCopyKey]
+      || (typeof vars?.defaultValue === 'string' ? String(vars.defaultValue) : key);
+    return formatCopy(template, vars);
+  };
+}
+
+function superSectionsForCopy(copy: ResolvedAgentCenterModelCopy): readonly ModelConfigSuperSection[] {
+  return MODEL_SUPER_SECTIONS.map((section) => ({
+    ...section,
+    label: copy.superSectionLabels[section.id],
+  }));
 }
 
 function buildRequirementDeclaration(): NimiAICapabilityRequirementDeclaration {
@@ -165,6 +258,7 @@ function bindingTargetRefToModelTargetRef(
 
 function modelTargetRefToRuntimeTargetRef(
   targetRef: NimiAIConfigTargetRef,
+  copy: ResolvedAgentCenterModelCopy,
 ): NonNullable<AgentCenterRuntimeAIConfigBinding['targetRef']> {
   if (targetRef.kind === 'local-runtime') {
     return targetRef;
@@ -179,7 +273,7 @@ function modelTargetRefToRuntimeTargetRef(
       ...(targetRef.provider ? { provider: targetRef.provider } : {}),
     };
   }
-  throw new Error('Runtime Agent AI Config does not accept profile-slice model refs on this surface.');
+  throw new Error(copy.profileSliceRefRejected);
 }
 
 function modelIdFromTargetRef(
@@ -233,9 +327,10 @@ function buildCurrentIntents(state: AgentCenterState): Record<string, AgentCente
 function runtimeIntentsFromModelConfig(
   state: AgentCenterState,
   nextConfig: NimiAIConfig,
+  copy: ResolvedAgentCenterModelCopy,
 ): AgentCenterAgentAIConfigIntents {
   if (Object.keys(nextConfig.capabilities.selectedParams || {}).length > 0) {
-    throw new Error('Runtime Agent AI Config does not admit app-scope model parameter edits on this surface.');
+    throw new Error(copy.parameterEditRejected);
   }
   const nextIntents = buildCurrentIntents(state);
   for (const capability of state.capabilities) {
@@ -250,12 +345,12 @@ function runtimeIntentsFromModelConfig(
       }
       continue;
     }
-    const runtimeTargetRef = modelTargetRefToRuntimeTargetRef(targetRef);
+    const runtimeTargetRef = modelTargetRefToRuntimeTargetRef(targetRef, copy);
     const current = capability.binding || undefined;
     const route = runtimeTargetRef.kind === 'cloud-connector' ? 'cloud' : 'local';
     const modelId = modelIdFromTargetRef(targetRef, current?.modelId || '');
     if (!modelId) {
-      throw new Error(`${capability.label} model selection did not resolve a Runtime model id.`);
+      throw new Error(`${capability.label} ${copy.modelSelectionUnresolvedSuffix}`);
     }
     nextIntents[capability.capability] = {
       ...current,
@@ -299,6 +394,7 @@ function shouldAdoptExternalModelState(current: AgentCenterState, next: AgentCen
 }
 
 function createRuntimeModelConfigService(input: {
+  readonly copy: ResolvedAgentCenterModelCopy;
   readonly state: AgentCenterState;
   readonly runtimeAdapter?: AgentCenterRuntimeAdapter | null;
   readonly onCommittedState: (state: AgentCenterState) => void;
@@ -339,27 +435,27 @@ function createRuntimeModelConfigService(input: {
       },
       update(_scopeRef, next) {
         if (!input.runtimeAdapter?.upsertAgentAIConfig) {
-          throw new Error('Runtime Agent AI Config adapter unavailable.');
+          throw new Error(input.copy.adapterUnavailable);
         }
         if (currentState.configRevision === null) {
-          throw new Error('Runtime Agent AI Config revision unavailable.');
+          throw new Error(input.copy.revisionUnavailable);
         }
         const expectedRevision = currentState.configRevision;
-        const nextIntents = runtimeIntentsFromModelConfig(currentState, next);
+        const nextIntents = runtimeIntentsFromModelConfig(currentState, next, input.copy);
         currentConfig = next;
         notify();
-        input.onStatus('Saving Runtime Agent AI Config model selection.');
+        input.onStatus(input.copy.savingStatus);
         void input.runtimeAdapter.upsertAgentAIConfig({
           expectedRevision,
           intents: nextIntents,
         }).then((snapshot) => {
           commitState(modelStateWithSnapshot(currentState, snapshot));
-          input.onStatus(`Saved Runtime Agent AI Config revision ${snapshot.revision}.`);
+          input.onStatus(formatCopy(input.copy.savedStatusFormat, { revision: snapshot.revision }));
         }).catch((error: unknown) => {
           currentConfig = runtimeConfigToNimiAIConfig(currentState);
           notify();
           void refreshAfterFailure().catch(() => undefined);
-          input.onStatus(error instanceof Error && error.message ? error.message : 'Runtime Agent AI Config update failed.');
+          input.onStatus(error instanceof Error && error.message ? error.message : input.copy.updateFailed);
         });
       },
       subscribe(_scopeRef, listener) {
@@ -380,14 +476,14 @@ function createRuntimeModelConfigService(input: {
           outcome: 'unsupported_no_live_config',
           diff: { identical: true, fields: [] },
           baseVersion: String(currentState.configRevision ?? 0),
-          probeWarnings: ['Runtime Agent AI Config profile import is not admitted on this surface.'],
+          probeWarnings: [input.copy.profileImportUnsupportedLabel],
         };
       },
       async apply(): Promise<NimiAIProfileApplyResult> {
         return {
           success: false,
           config: null,
-          failureReason: 'Runtime Agent AI Config profile import is not admitted on this surface.',
+          failureReason: input.copy.profileImportUnsupportedLabel,
           outcome: 'unsupported_no_live_config',
           probeWarnings: [],
         };
@@ -396,13 +492,16 @@ function createRuntimeModelConfigService(input: {
   };
 }
 
-function projectionForCapability(capability: AgentCenterCapabilityState): ModelConfigProjectionStatus {
+function projectionForCapability(
+  capability: AgentCenterCapabilityState,
+  copy: ResolvedAgentCenterModelCopy,
+): ModelConfigProjectionStatus {
   if (capability.readinessState === 'ready') {
     return {
       supported: true,
       tone: 'ready',
-      badgeLabel: 'Ready',
-      title: 'Runtime ready',
+      badgeLabel: copy.projectionReadyBadge,
+      title: copy.projectionReadyTitle,
       detail: null,
     };
   }
@@ -410,8 +509,8 @@ function projectionForCapability(capability: AgentCenterCapabilityState): ModelC
     return {
       supported: false,
       tone: 'attention',
-      badgeLabel: 'Needs setup',
-      title: capability.binding ? 'Runtime route not configured' : 'Model selection required',
+      badgeLabel: copy.projectionNeedsSetupBadge,
+      title: capability.binding ? copy.projectionRouteNotConfiguredTitle : copy.projectionModelRequiredTitle,
       detail: capability.summary,
     };
   }
@@ -419,7 +518,7 @@ function projectionForCapability(capability: AgentCenterCapabilityState): ModelC
     supported: false,
     tone: capability.readinessState === 'unavailable' ? 'attention' : 'neutral',
     badgeLabel: capability.readinessState,
-    title: capability.reasonCode || 'Runtime projection unavailable',
+    title: capability.reasonCode || copy.projectionUnavailableTitle,
     detail: capability.summary,
   };
 }
@@ -442,24 +541,28 @@ function createEmptyProfileController(copy: ModelConfigProfileCopy): ModelConfig
   };
 }
 
-export function AgentCenterModelSection({ state, runtimeAdapter }: AgentCenterModelSectionProps) {
+export function AgentCenterModelSection({ state, runtimeAdapter, copy }: AgentCenterModelSectionProps) {
   const [status, setStatus] = useState('');
   const [modelState, setModelState] = useState(state);
+  const labels = useMemo(() => resolveModelCopy(copy), [copy]);
+  const t = useMemo(() => createTranslator(labels), [labels]);
+  const superSections = useMemo(() => superSectionsForCopy(labels), [labels]);
   const service = useMemo(
     () => createRuntimeModelConfigService({
+      copy: labels,
       state,
       runtimeAdapter,
       onCommittedState: setModelState,
       onStatus: setStatus,
     }),
-    [runtimeAdapter?.upsertAgentAIConfig, state.configRevision],
+    [labels, runtimeAdapter?.upsertAgentAIConfig, state.configRevision],
   );
   useEffect(() => {
     service.syncState(state);
   }, [service, state]);
   const profile = useMemo(
     () => createEmptyProfileController(defaultModelConfigProfileCopy(t)),
-    [],
+    [t],
   );
   const capabilityById = useMemo(() => {
     const map = new Map<string, AgentCenterCapabilityState>();
@@ -475,7 +578,7 @@ export function AgentCenterModelSection({ state, runtimeAdapter }: AgentCenterMo
     providerResolver: (routeCapability) => runtimeAdapter?.modelConfig?.providerResolver?.(routeCapability) ?? null,
     projectionResolver: (capabilityId) => {
       const capability = capabilityById.get(capabilityId);
-      return capability ? projectionForCapability(capability) : null;
+      return capability ? projectionForCapability(capability, labels) : null;
     },
     localAssetSource: runtimeAdapter?.modelConfig?.localAssetSource || undefined,
     capabilityOverrides: Object.fromEntries(
@@ -485,22 +588,22 @@ export function AgentCenterModelSection({ state, runtimeAdapter }: AgentCenterMo
           hideEditor: true,
           showClearButton: capability !== 'text.generate' && capability !== 'text.embed',
           placeholder: runtimeAdapter?.modelConfig?.providerResolver
-            ? 'Setup required'
-            : 'Runtime model picker unavailable',
+            ? labels.setupRequiredLabel
+            : labels.runtimeModelPickerUnavailableLabel,
         },
       ]),
     ),
     runtimeNotReadyLabel: runtimeAdapter?.modelConfig?.providerResolver
-      ? 'Setup required'
-      : 'Runtime model picker unavailable',
+      ? labels.setupRequiredLabel
+      : labels.runtimeModelPickerUnavailableLabel,
     i18n: { t },
-  }), [capabilityById, runtimeAdapter?.modelConfig?.localAssetSource, runtimeAdapter?.modelConfig?.providerResolver, service]);
+  }), [capabilityById, labels, runtimeAdapter?.modelConfig?.localAssetSource, runtimeAdapter?.modelConfig?.providerResolver, service, t]);
 
   return (
     <SectionShell labelledBy="agent-center-model-title">
       <SectionHeader
         id="agent-center-model-title"
-        title="Model"
+        title={labels.sectionTitle}
       />
       <div
         data-agent-center-model-apply="runtime-agent-ai-config"
@@ -512,13 +615,13 @@ export function AgentCenterModelSection({ state, runtimeAdapter }: AgentCenterMo
             hidden
             key={capability.capability}
           >
-            {capability.binding?.modelId || 'Not configured'}
+            {capability.binding?.modelId || labels.notConfiguredLabel}
           </span>
         ))}
         <ModelConfigAiModelHub
-          detailActiveModelHint="Click to change model"
+          detailActiveModelHint={labels.detailActiveModelHint}
           profile={profile}
-          superSections={MODEL_SUPER_SECTIONS}
+          superSections={superSections}
           surface={surface}
         />
       </div>

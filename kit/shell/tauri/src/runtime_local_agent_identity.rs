@@ -1,4 +1,7 @@
-#[derive(Clone, Debug, PartialEq, Eq)]
+use serde::Serialize;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RuntimeLocalAgentIdentity {
     pub owner_user_id: String,
     pub runtime_source_ref: String,

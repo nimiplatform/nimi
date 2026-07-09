@@ -2,11 +2,23 @@ import path from 'node:path';
 import { readFile, realpath } from 'node:fs/promises';
 import { isSameOrChildPath, normalizeRequiredToken, normalizeText } from './paths.js';
 import type {
+  NimiElectronShellFileProtocolPrivileges,
   NimiElectronShellFileProtocolApi,
   NimiElectronShellFileProtocolHost,
 } from './types.js';
 
 export const NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME = 'nimi-shell-file';
+export const NIMI_ELECTRON_SHELL_FILE_PROTOCOL_PRIVILEGES: NimiElectronShellFileProtocolPrivileges = {
+  standard: true,
+  secure: true,
+  corsEnabled: true,
+  supportFetchAPI: true,
+  stream: true,
+};
+export const NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION = {
+  scheme: NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME,
+  privileges: NIMI_ELECTRON_SHELL_FILE_PROTOCOL_PRIVILEGES,
+} as const;
 
 export type CreateElectronShellFileProtocolHostOptions = {
   readonly protocol: NimiElectronShellFileProtocolApi;
@@ -15,7 +27,7 @@ export type CreateElectronShellFileProtocolHostOptions = {
 };
 
 /**
- * Shared `nimi-shell-file://local/<encodeURIComponent(absPath)>` protocol host
+ * Shared `nimi-shell-file://local/?path=<base64url(absPath)>` protocol host
  * for Electron standard shells. Serves only files that are inside an admitted
  * root or explicitly registered as readable; everything else fails closed with
  * a 4xx response.
@@ -40,16 +52,7 @@ export function createElectronShellFileProtocolHost(
   return {
     protocolScheme: NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME,
     registerPrivilegedSchemes: () => {
-      options.protocol.registerSchemesAsPrivileged([{
-        scheme: NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME,
-        privileges: {
-          standard: true,
-          secure: true,
-          corsEnabled: true,
-          supportFetchAPI: true,
-          stream: true,
-        },
-      }]);
+      options.protocol.registerSchemesAsPrivileged([NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION]);
     },
     registerProtocolHandler: () => {
       options.protocol.handle(NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME, async (request) => {
@@ -83,7 +86,7 @@ export function createElectronShellFileProtocolHost(
       return canonical;
     },
     resolveLocalAssetUrl: (absolutePath) =>
-      `${NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME}://local/${encodeURIComponent(path.resolve(normalizeRequiredToken(absolutePath, 'absolutePath')))}`,
+      `${NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME}://local/?path=${encodeElectronShellFilePath(path.resolve(normalizeRequiredToken(absolutePath, 'absolutePath')))}`,
     hasReadableFile: async (absolutePath) => {
       const normalized = normalizeText(absolutePath);
       if (!normalized) {
@@ -99,13 +102,32 @@ export function decodeElectronShellFileUrl(value: string): string {
   if (url.protocol !== `${NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME}:`) {
     throw new Error(`unsupported Electron shell file protocol: ${url.protocol}`);
   }
-  const encoded = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
-  return decodeURIComponent(encoded);
+  const encodedPath = normalizeText(url.searchParams.get('path'));
+  if (!encodedPath) {
+    throw new Error('Electron shell file protocol path token is required');
+  }
+  return decodeElectronShellFilePath(encodedPath);
 }
 
 async function canonicalCandidatePath(candidate: string): Promise<string> {
   const resolved = path.resolve(candidate);
   return realpath(resolved).catch(() => resolved);
+}
+
+function encodeElectronShellFilePath(filePath: string): string {
+  return Buffer.from(filePath, 'utf8')
+    .toString('base64')
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/u, '');
+}
+
+function decodeElectronShellFilePath(value: string): string {
+  if (!/^[A-Za-z0-9_-]+$/u.test(value)) {
+    throw new Error('Electron shell file protocol path token is invalid');
+  }
+  const padded = value.padEnd(value.length + ((4 - (value.length % 4)) % 4), '=');
+  return Buffer.from(padded.replaceAll('-', '+').replaceAll('_', '/'), 'base64').toString('utf8');
 }
 
 function toArrayBufferView(bytes: Uint8Array): Uint8Array<ArrayBuffer> {

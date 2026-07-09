@@ -15,6 +15,17 @@ export type ModelConfigCapabilityStatus = {
   detail?: string | null;
 };
 
+export type ModelConfigModelPickerCopy = Partial<{
+  title: string;
+  local: string;
+  cloud: string;
+  selectConnectorLabel: string;
+  searchPlaceholder: string;
+  loading: string;
+  noSearchResults: string;
+  noModelsAvailable: string;
+}>;
+
 export type ModelConfigCapabilityItem = {
   capabilityId: string;
   routeCapability: string;
@@ -39,6 +50,7 @@ export type ModelConfigCapabilityItem = {
   disabled?: boolean;
   runtimeNotReadyLabel?: string;
   clearSelectionLabel?: string;
+  modelPickerCopy?: ModelConfigModelPickerCopy;
 };
 
 export type ModelConfigSection = {

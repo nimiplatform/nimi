@@ -19,6 +19,29 @@ export type ModelPickerModalProps = {
   provider: RouteModelPickerDataProvider;
   initialSelection?: Partial<RouteModelPickerSelection>;
   onSelect: (selection: RouteModelPickerSelection) => void;
+  copy?: ModelPickerModalCopy;
+};
+
+export type ModelPickerModalCopy = Partial<{
+  title: string;
+  local: string;
+  cloud: string;
+  selectConnectorLabel: string;
+  searchPlaceholder: string;
+  loading: string;
+  noSearchResults: string;
+  noModelsAvailable: string;
+}>;
+
+const DEFAULT_MODEL_PICKER_MODAL_COPY: Required<ModelPickerModalCopy> = {
+  title: 'Select Model',
+  local: 'Local',
+  cloud: 'Cloud',
+  selectConnectorLabel: 'Select connector',
+  searchPlaceholder: 'Search models',
+  loading: 'Loading models...',
+  noSearchResults: 'No models match your search.',
+  noModelsAvailable: 'No models available.',
 };
 
 const LOCAL_ICON = (
@@ -74,9 +97,17 @@ export function ModelPickerModal({
   provider,
   initialSelection,
   onSelect,
+  copy,
 }: ModelPickerModalProps) {
   const [search, setSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  const labels = useMemo(
+    () => ({
+      ...DEFAULT_MODEL_PICKER_MODAL_COPY,
+      ...(copy || {}),
+    }),
+    [copy],
+  );
 
   const {
     selection,
@@ -187,7 +218,7 @@ export function ModelPickerModal({
         {/* Header */}
         <div className="shrink-0 border-b border-slate-100 px-5 pt-5 pb-4">
           <div className="flex items-center justify-between">
-            <h2 id="model-picker-modal-title" className="text-base font-semibold text-slate-800">Select Model</h2>
+            <h2 id="model-picker-modal-title" className="text-base font-semibold text-slate-800">{labels.title}</h2>
             <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
               {capabilityLabel}
             </span>
@@ -203,7 +234,7 @@ export function ModelPickerModal({
                 setSearch('');
               }}
             >
-              Local
+              {labels.local}
             </SourceTab>
             <SourceTab
               value="cloud"
@@ -214,7 +245,7 @@ export function ModelPickerModal({
                 setSearch('');
               }}
             >
-              Cloud
+              {labels.cloud}
             </SourceTab>
           </div>
 
@@ -228,7 +259,7 @@ export function ModelPickerModal({
                   setSearch('');
                 }}
                 className="min-h-[var(--nimi-sizing-field-md-height)] w-full rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-3 text-sm font-normal text-[var(--nimi-field-text)] outline-none transition-colors duration-[var(--nimi-motion-fast)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
-                aria-label="Select connector"
+                aria-label={labels.selectConnectorLabel}
               >
                 {connectors.map((connector) => (
                   <option key={connector.connectorId} value={connector.connectorId}>
@@ -246,14 +277,14 @@ export function ModelPickerModal({
             ref={searchRef}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search models"
+            placeholder={labels.searchPlaceholder}
           />
         </div>
 
         {/* Model list */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {loading ? (
-            <p className="px-5 py-8 text-center text-sm text-slate-400">Loading models...</p>
+            <p className="px-5 py-8 text-center text-sm text-slate-400">{labels.loading}</p>
           ) : filteredModels.length > 0 ? (
             <div className="py-1">
               {filteredModels.map((model) => {
@@ -290,7 +321,7 @@ export function ModelPickerModal({
             </div>
           ) : (
             <p className="px-5 py-8 text-center text-sm text-slate-400">
-              {search ? 'No models match your search.' : 'No models available.'}
+              {search ? labels.noSearchResults : labels.noModelsAvailable}
             </p>
           )}
         </div>

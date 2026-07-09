@@ -19,8 +19,73 @@ export interface AgentCenterCognitionSectionProps {
   readonly state: AgentCenterState;
 }
 
-function projectedValue(value: string | null | undefined) {
-  return value && value.trim() ? value : '尚未投影';
+const LOCALIZED_LIFECYCLE_STATUS: Record<string, string> = {
+  active: '活跃',
+  blocked: '受阻',
+  idle: '空闲',
+  inactive: '未激活',
+  offline: '离线',
+  paused: '已暂停',
+  ready: '就绪',
+  sleeping: '休眠',
+  starting: '启动中',
+  stopped: '已停止',
+  stopping: '停止中',
+  suspended: '已暂停',
+};
+
+const LOCALIZED_EMOTION_STATUS: Record<string, string> = {
+  angry: '生气',
+  anxious: '紧张',
+  calm: '平静',
+  confused: '困惑',
+  curious: '好奇',
+  excited: '兴奋',
+  focused: '专注',
+  happy: '开心',
+  neutral: '中性',
+  sad: '低落',
+  tired: '疲惫',
+};
+
+const LOCALIZED_MEMORY_CLASS: Record<string, string> = {
+  dyadic: '双人关系',
+  episodic: '情节记忆',
+  fact: '事实',
+  preference: '偏好',
+  profile: '画像',
+  relation: '关系',
+  relationship: '关系',
+  safety: '安全',
+  semantic: '语义记忆',
+  task: '任务',
+};
+
+const LOCALIZED_MEMORY_POLICY: Record<string, string> = {
+  admitted_runtime: '运行时准入',
+  'admitted-runtime': '运行时准入',
+  memory_observatory: '记忆观测',
+  'memory-observatory': '记忆观测',
+  runtime_inspect: '运行时检查',
+  'runtime-inspect': '运行时检查',
+  runtime_projection: '运行时投影',
+  'runtime-projection': '运行时投影',
+};
+
+function localizedProjectionValue(
+  value: string | null | undefined,
+  labels: Record<string, string>,
+  fallback: string,
+) {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return '尚未投影';
+  }
+  const key = normalized.toLowerCase();
+  if (labels[key]) {
+    return labels[key];
+  }
+  return /[\u4e00-\u9fff]/u.test(normalized) ? normalized : fallback;
 }
 
 function memoryStateLabel(state: AgentCenterState['cognition']['memoryState']) {
@@ -49,6 +114,16 @@ export function AgentCenterCognitionSection({ state }: AgentCenterCognitionSecti
   const cognition = state.cognition;
   const hasProjection = hasCognitionProjection(cognition);
   const memoryLabel = memoryStateLabel(cognition.memoryState);
+  const lifecycleLabel = localizedProjectionValue(
+    cognition.lifecycleStatus,
+    LOCALIZED_LIFECYCLE_STATUS,
+    '已投影',
+  );
+  const emotionLabel = localizedProjectionValue(
+    cognition.currentEmotion,
+    LOCALIZED_EMOTION_STATUS,
+    '已投影',
+  );
 
   return (
     <SectionShell
@@ -83,13 +158,13 @@ export function AgentCenterCognitionSection({ state }: AgentCenterCognitionSecti
                 icon={Leaf}
                 label="生命周期"
                 tone="emerald"
-                value={projectedValue(cognition.lifecycleStatus)}
+                value={lifecycleLabel}
               />
               <CognitionMetric
                 icon={Heart}
                 label="情绪投影"
                 tone="rose"
-                value={projectedValue(cognition.currentEmotion)}
+                value={emotionLabel}
               />
               <CognitionMetric
                 icon={Database}
@@ -104,7 +179,7 @@ export function AgentCenterCognitionSection({ state }: AgentCenterCognitionSecti
         <div data-agent-center-cognition-memory="true">
           <Card className="p-4">
             <h3 className="m-0 text-[15px] font-semibold leading-[1.35] text-slate-950">最近记忆</h3>
-            <div className="mt-4 grid min-w-0 gap-2.5" role="list" aria-label="最近 canonical memory 摘要">
+            <div className="mt-4 grid min-w-0 gap-2.5" role="list" aria-label="最近规范记忆摘要">
               {cognition.recentCanonicalMemories.length > 0 ? cognition.recentCanonicalMemories.map((memory) => (
                 <div
                   className="min-w-0 rounded-[12px] border border-slate-200 bg-white/90 p-3.5"
@@ -113,7 +188,7 @@ export function AgentCenterCognitionSection({ state }: AgentCenterCognitionSecti
                 >
                   <div className="min-w-0 text-[13px] font-semibold leading-[1.55] text-slate-950">{memory.summary}</div>
                   <div className="mt-1.5 min-w-0 text-[12px] leading-[1.45] text-slate-500">
-                    {memory.canonicalClass || 'canonical'} · {memory.policyReason || 'runtime projection'}
+                    {localizedProjectionValue(memory.canonicalClass, LOCALIZED_MEMORY_CLASS, '规范记忆')} · {localizedProjectionValue(memory.policyReason, LOCALIZED_MEMORY_POLICY, '运行时投影')}
                   </div>
                 </div>
               )) : (

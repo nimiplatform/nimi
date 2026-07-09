@@ -295,6 +295,7 @@ export function ProgressHero(props: {
   readonly setupDone: number;
   readonly setupTotal: number;
   readonly title: string;
+  readonly configLabel?: string;
 }) {
   const ratio = props.setupTotal > 0 ? Math.min(1, props.setupDone / props.setupTotal) : 0;
   const radius = 36;
@@ -327,7 +328,7 @@ export function ProgressHero(props: {
               {props.setupDone}
               <span className="text-[14px] text-slate-400">/{props.setupTotal}</span>
             </div>
-            <div className="mt-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">Config</div>
+            <div className="mt-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-500">{props.configLabel || 'Config'}</div>
           </div>
         </div>
       </div>

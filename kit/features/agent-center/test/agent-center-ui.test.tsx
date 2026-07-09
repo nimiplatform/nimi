@@ -283,6 +283,113 @@ describe('AgentCenter UI', () => {
     expect(node.textContent).not.toContain(['Capability', 'Studio'].join(''));
   });
 
+  it('lets Zhiyu inject a Chinese copy namespace across Agent Center sections', () => {
+    const state = buildAgentCenterState({
+      readiness: {
+        configRevision: 3,
+        capabilities: [
+          { capability: 'text.generate', state: 'not_configured', reasonCode: 'model_missing', probedAt: null },
+          { capability: 'text.embed', state: 'ready', reasonCode: '', probedAt: null },
+        ],
+      },
+      appearance: {
+        status: 'not_configured',
+        avatarAssetRef: null,
+        disabledReason: null,
+      },
+    });
+
+    const node = render(
+      <AgentCenter
+        copy={{
+          sectionLabels: {
+            overview: '总览',
+            appearance: '外观',
+            behavior: '主动',
+            model: '模型',
+            cognition: '认知',
+            advanced: '高级',
+          },
+          overview: {
+            attentionTitle: '配置需要处理',
+            checklistTitle: '配置检查',
+            appearancePendingDescription: '形象与外观尚未完成。',
+            modelPendingDescription: '文本和记忆路线需要运行时配置。',
+            needsSetupPill: '待配置',
+            readyPill: '就绪',
+            offPill: '关闭',
+            projectedPill: '已投影',
+            readOnlyPill: '只读',
+          },
+          progress: {
+            configLabel: '配置',
+          },
+          advanced: {
+            title: '高级',
+            descriptionRuntimeProjection: '运行时投影',
+            configRevisionLabel: '配置版本',
+            runtimeTurnLabel: '运行时回合',
+            runtimeStreamLabel: '运行时流',
+            runtimeErrorLabel: '运行时错误',
+            unavailableValue: '暂不可用',
+            notProjectedValue: '尚未投影',
+            noneValue: '无',
+          },
+          model: {
+            sectionTitle: '模型',
+            superSectionLabels: {
+              conversation: '对话',
+              voice: '语音',
+              media: '媒体',
+            },
+            setupRequiredLabel: '需要配置',
+            runtimeModelPickerUnavailableLabel: '运行时模型选择暂不可用',
+            notConfiguredLabel: '未配置',
+            detailActiveModelHint: '点击更换模型',
+            modelConfig: {
+              'ModelConfig.hub.title': '智能模型',
+              'ModelConfig.section.chat.title': '聊天',
+              'ModelConfig.section.embed.title': '记忆',
+              'ModelConfig.section.tts.title': '语音',
+              'ModelConfig.section.voice.title': '声音工作流',
+              'ModelConfig.section.image.title': '图像',
+            },
+          },
+        }}
+        state={state}
+      />,
+    );
+
+    const buttons = Array.from(node.querySelectorAll('nav button'));
+    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
+      '总览',
+      '外观',
+      '主动',
+      '模型',
+      '认知',
+      '高级',
+    ]);
+    expect(node.textContent).toContain('配置需要处理');
+    expect(node.textContent).toContain('配置检查');
+    expect(node.textContent).toContain('待配置');
+    expect(node.textContent).not.toContain('Overview');
+    expect(node.textContent).not.toContain('Configuration checklist');
+    expect(node.textContent).not.toContain('Needs setup');
+
+    click(buttons[3]);
+    expect(node.textContent).toContain('模型');
+    expect(node.textContent).toContain('对话');
+    expect(node.textContent).toContain('语音');
+    expect(node.textContent).toContain('媒体');
+    expect(node.textContent).not.toContain('Conversation');
+
+    click(buttons[5]);
+    expect(node.textContent).toContain('配置版本');
+    expect(node.textContent).toContain('运行时回合');
+    expect(node.textContent).not.toContain('Config revision');
+    expect(node.textContent).not.toContain('Runtime turn');
+  });
+
   it('commits model selection through the Runtime Agent AI Config adapter with the current revision', async () => {
     const calls: unknown[] = [];
     const state = buildAgentCenterState({

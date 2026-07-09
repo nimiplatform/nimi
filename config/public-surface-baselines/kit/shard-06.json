@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "package": "@nimiplatform/kit",
+  "shardId": "kit_public_surface_baseline_shard_06",
+  "entryPoints": [
+    {
+      "exportKey": "./ui/a11y",
+      "source": "kit/ui/src/a11y/index.ts",
+      "exports": [
+        "export { FOCUSABLE_ELEMENTS_SELECTOR, FOCUS_RING_CLASS_NAME, collectFocusableElements, } from './focus.js';",
+        "export { VISUALLY_HIDDEN_CLASS_NAME, VISUALLY_HIDDEN_STYLE, } from './visually-hidden.js';"
+      ]
+    },
+    {
+      "exportKey": "./ui/glass",
+      "source": "kit/ui/src/glass/index.ts",
+      "exports": [
+        "export type { SurfaceMaterial, SurfaceMaterialTransparency, GlassMaterialTier, } from './material.js';",
+        "export { SURFACE_MATERIAL_TIERS, SURFACE_MATERIAL_TRANSPARENCY_MODES, isGlassMaterial, downgradeSurfaceMaterial, } from './material.js';"
+      ]
+    },
+    {
+      "exportKey": "./ui/motion",
+      "source": "kit/ui/src/motion/index.ts",
+      "exports": [
+        "export type { NimiMotionDurationKey, NimiMotionEasingKey, } from './timing.js';",
+        "export { NIMI_MOTION_DURATIONS_MS, NIMI_MOTION_EASINGS, resolveMotionDurationMs, } from './timing.js';",
+        "export { usePrefersReducedMotion} from './use-prefers-reduced-motion.js';"
+      ]
+    },
+    {
+      "exportKey": "./ui/styles.css",
+      "source": "kit/ui/src/styles.css",
+      "exports": [],
+      "cssCustomProperties": [
+        "--font-mono",
+        "--font-sans",
+        "--font-serif",
+        "--nimi-accent",
+        "--nimi-accent-hover",
+        "--nimi-accent-onAccent",
+        "--nimi-accent-onAccent",
+        "--nimi-accent-soft",
+        "--nimi-fg-1",
+        "--nimi-fg-2",
+        "--nimi-fg-3",
+        "--nimi-fg-4",
+        "--nimi-fg-inverse",
+        "--nimi-font-display",
+        "--nimi-font-mono",
+        "--nimi-font-sans"
+      ]
+    },
+    {
+      "exportKey": "./ui/themes/dark.css",
+      "source": "kit/ui/src/themes/dark.css",
+      "exports": [],
+      "cssCustomProperties": []
+    },
+    {
+      "exportKey": "./ui/themes/light.css",
+      "source": "kit/ui/src/themes/light.css",
+      "exports": [],
+      "cssCustomProperties": []
+    },
+    {
+      "exportKey": "./ui/themes/nimi-accent.css",
+      "source": "kit/ui/src/themes/nimi-accent.css",
+      "exports": [],
+      "cssCustomProperties": []
+    }
+  ]
+}

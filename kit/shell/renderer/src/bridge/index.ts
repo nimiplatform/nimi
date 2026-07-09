@@ -92,10 +92,17 @@ export {
 export {
   openDesktopIntent,
 } from './desktop-open.js';
+export {
+  getShellPlatformProjection,
+} from './platform-projection.js';
 export type {
   NimiDesktopOpenRendererRequest,
   NimiDesktopOpenResult,
 } from './desktop-open.js';
+export type {
+  ShellPlatformProjectionPayload,
+  ShellPlatformProjectionResult,
+} from './platform-projection.js';
 export type {
   InstalledNimiAppStorageRemoveJsonResult,
   InstalledNimiAppStandardShellSurface,

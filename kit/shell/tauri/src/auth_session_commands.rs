@@ -491,77 +491,62 @@ fn clear_legacy_plaintext_dev_session_file() -> Result<(), String> {
     clear_session_file(path.as_path())
 }
 
-// Local first-party account custody is RuntimeAccountService-owned.
-// This command remains registered only as a compatibility fail-closed stub.
-// Do not re-enable the legacy keyring/encrypted-file implementation below.
+// Kit shared auth is available to Nimi ecosystem apps. Desktop first-party
+// account custody remains RuntimeAccountService-owned and must not consume it.
 pub fn auth_session_load() -> Result<Option<AuthSessionLoadResult>, String> {
-    return Err("auth_session_load is disabled for local first-party account truth; use RuntimeAccountService".to_string());
-    #[allow(unreachable_code)]
-    {
-        clear_legacy_plaintext_dev_session_file()?;
-        if matches!(
-            auth_session_storage_mode(),
-            AuthSessionStorageMode::E2eEncryptedFile
-        ) {
-            let path = auth_session_e2e_path()?;
-            let key = load_e2e_master_key()?;
-            return coerce_unreadable_session_load_result(load_auth_session_from_path(
-                path.as_path(),
-                key.as_slice(),
-            ));
-        }
-        let path = auth_session_path()?;
-        let Some(key) = load_existing_master_key()? else {
-            return Ok(None);
-        };
-        coerce_unreadable_session_load_result(load_auth_session_from_path(
+    clear_legacy_plaintext_dev_session_file()?;
+    if matches!(
+        auth_session_storage_mode(),
+        AuthSessionStorageMode::E2eEncryptedFile
+    ) {
+        let path = auth_session_e2e_path()?;
+        let key = load_e2e_master_key()?;
+        return coerce_unreadable_session_load_result(load_auth_session_from_path(
             path.as_path(),
             key.as_slice(),
-        ))
+        ));
     }
+    let path = auth_session_path()?;
+    let Some(key) = load_existing_master_key()? else {
+        return Ok(None);
+    };
+    coerce_unreadable_session_load_result(load_auth_session_from_path(
+        path.as_path(),
+        key.as_slice(),
+    ))
 }
 
-// Local first-party account custody is RuntimeAccountService-owned.
-// This command remains registered only as a compatibility fail-closed stub.
-// Do not re-enable the legacy keyring/encrypted-file implementation below.
-pub fn auth_session_save(_payload: AuthSessionSavePayload) -> Result<(), String> {
-    return Err("auth_session_save is disabled for local first-party account truth; Runtime owns account custody".to_string());
-    #[allow(unreachable_code)]
-    {
-        if matches!(
-            auth_session_storage_mode(),
-            AuthSessionStorageMode::E2eEncryptedFile
-        ) {
-            let path = auth_session_e2e_path()?;
-            let key = load_e2e_master_key()?;
-            save_auth_session_to_path(path.as_path(), key.as_slice(), &_payload)?;
-            return clear_legacy_plaintext_dev_session_file();
-        }
-        let path = auth_session_path()?;
-        let key = load_or_create_master_key()?;
-        save_auth_session_to_path(path.as_path(), key.as_slice(), &_payload)?;
-        clear_legacy_plaintext_dev_session_file()
+// Kit shared auth is available to Nimi ecosystem apps. Desktop first-party
+// account custody remains RuntimeAccountService-owned and must not consume it.
+pub fn auth_session_save(payload: AuthSessionSavePayload) -> Result<(), String> {
+    if matches!(
+        auth_session_storage_mode(),
+        AuthSessionStorageMode::E2eEncryptedFile
+    ) {
+        let path = auth_session_e2e_path()?;
+        let key = load_e2e_master_key()?;
+        save_auth_session_to_path(path.as_path(), key.as_slice(), &payload)?;
+        return clear_legacy_plaintext_dev_session_file();
     }
+    let path = auth_session_path()?;
+    let key = load_or_create_master_key()?;
+    save_auth_session_to_path(path.as_path(), key.as_slice(), &payload)?;
+    clear_legacy_plaintext_dev_session_file()
 }
 
-// Local first-party account custody is RuntimeAccountService-owned.
-// This command remains registered only as a compatibility fail-closed stub.
-// Do not re-enable the legacy keyring/encrypted-file implementation below.
+// Kit shared auth is available to Nimi ecosystem apps. Desktop first-party
+// account custody remains RuntimeAccountService-owned and must not consume it.
 pub fn auth_session_clear() -> Result<(), String> {
-    return Err("auth_session_clear is disabled for local first-party account truth; use RuntimeAccountService.Logout".to_string());
-    #[allow(unreachable_code)]
-    {
-        let path = if matches!(
-            auth_session_storage_mode(),
-            AuthSessionStorageMode::E2eEncryptedFile
-        ) {
-            auth_session_e2e_path()?
-        } else {
-            auth_session_path()?
-        };
-        clear_session_file(path.as_path())?;
-        clear_legacy_plaintext_dev_session_file()
-    }
+    let path = if matches!(
+        auth_session_storage_mode(),
+        AuthSessionStorageMode::E2eEncryptedFile
+    ) {
+        auth_session_e2e_path()?
+    } else {
+        auth_session_path()?
+    };
+    clear_session_file(path.as_path())?;
+    clear_legacy_plaintext_dev_session_file()
 }
 
 #[cfg(test)]

@@ -27,6 +27,9 @@ export type CanonicalTranscriptViewProps = {
   loading?: boolean;
   error?: string | null;
   pendingFirstBeat?: boolean;
+  pendingAgentRoleLabel?: string;
+  pendingThinkingLabel?: string;
+  pendingStopLabel?: string;
   agentAvatarUrl?: string | null;
   agentName?: string;
   loadingLabel?: string;
@@ -69,6 +72,9 @@ export function CanonicalTranscriptView({
   loading = false,
   error = null,
   pendingFirstBeat = false,
+  pendingAgentRoleLabel = 'Assistant pending',
+  pendingThinkingLabel = 'Thinking...',
+  pendingStopLabel = 'Stop generating',
   agentAvatarUrl = null,
   agentName = 'Assistant',
   loadingLabel = 'Loading conversation...',
@@ -296,9 +302,10 @@ export function CanonicalTranscriptView({
               <div className="py-1">
                 <CanonicalTypingBubble
                   agentName={agentName}
-                  agentRoleLabel="Assistant pending"
-                  thinkingLabel="Thinking…"
+                  agentRoleLabel={pendingAgentRoleLabel}
+                  thinkingLabel={pendingThinkingLabel}
                   onStop={onStopGenerating}
+                  stopLabel={pendingStopLabel}
                 />
               </div>
             ) : null}

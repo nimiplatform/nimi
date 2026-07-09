@@ -16,6 +16,6 @@ export type {
 export { CompactRouteModelPicker } from './components/compact-route-model-picker.js';
 export type { CompactRouteModelPickerProps } from './components/compact-route-model-picker.js';
 export { ModelPickerModal } from './components/model-picker-modal.js';
-export type { ModelPickerModalProps } from './components/model-picker-modal.js';
+export type { ModelPickerModalCopy, ModelPickerModalProps } from './components/model-picker-modal.js';
 export { ModelSelectorTrigger } from './components/model-selector-trigger.js';
 export type { ModelSelectorTriggerProps } from './components/model-selector-trigger.js';

@@ -90,6 +90,14 @@ describe('AgentCenter appearance visual setup surface', () => {
     expect(node.textContent).toContain('2 / 4');
   });
 
+  it('omits the background unset badge when the placeholder already communicates the missing state', () => {
+    const node = renderAppearance();
+
+    expect(node.querySelector('[data-agent-center-appearance-background="chat-scene"]')).not.toBeNull();
+    expect(node.textContent).toContain('Chat background');
+    expect(node.textContent).not.toContain('Not set');
+  });
+
   it('renders a scoped blocked empty state before avatar setup controls are available', () => {
     const node = renderAppearance({
       status: 'not_configured',

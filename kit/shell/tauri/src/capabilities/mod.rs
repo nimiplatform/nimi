@@ -191,6 +191,39 @@ pub mod diagnostics {
     pub use crate::renderer_entry_probe::{
         build_renderer_entry_probe_script, RendererEntryProbeScriptConfig,
     };
+
+    #[tauri::command]
+    pub fn diagnostics_renderer_entry_probe(
+        payload: Option<serde_json::Value>,
+        stage: Option<String>,
+    ) -> Result<serde_json::Value, String> {
+        let payload = payload.unwrap_or_else(|| serde_json::json!({ "stage": stage }));
+        let stage = payload
+            .as_object()
+            .ok_or_else(|| {
+                crate::capabilities::standard_shell_error(
+                    "invalid-payload",
+                    "tauri-diagnostics-renderer-entry-probe-payload-not-object",
+                    "send_structured_renderer_entry_probe_payload",
+                    "tauri",
+                    Some(serde_json::json!({ "command": "diagnostics_renderer_entry_probe" })),
+                )
+            })?
+            .get("stage")
+            .map(|value| {
+                String::from(value.as_str().unwrap_or_default())
+                    .trim()
+                    .to_string()
+            })
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| "renderer-entry-probe".to_string());
+        Ok(serde_json::json!({
+            "ok": true,
+            "source": "tauri",
+            "stage": stage,
+            "hasInvoke": true,
+        }))
+    }
 }
 
 pub mod session_logging {
@@ -369,6 +402,22 @@ pub mod local_assets {
         canonical_asset_manifest_path, reveal_target_for_asset, runtime_models_dir,
         ASSET_MANIFEST_FILE_NAME,
     };
+    pub use crate::standard_local_assets::{
+        set_standard_local_assets_host_hooks, StandardLocalAssetRootsHook,
+        StandardLocalAssetUrlPayload, StandardLocalAssetUrlResult, StandardLocalAssetsHostHooks,
+    };
+
+    #[tauri::command]
+    pub fn local_assets_resolve_url(
+        app: tauri::AppHandle,
+        payload: serde_json::Value,
+    ) -> Result<StandardLocalAssetUrlResult, String> {
+        crate::standard_local_assets::resolve_standard_local_asset_url(
+            &app,
+            payload,
+            "local_assets_resolve_url",
+        )
+    }
 }
 
 pub mod local_agent {
@@ -378,6 +427,26 @@ pub mod local_agent {
     pub use crate::runtime_local_agent_identity::{
         is_runtime_local_agent_ref, project_runtime_local_agent_identity, RuntimeLocalAgentIdentity,
     };
+    pub use crate::standard_local_agent::{
+        set_standard_local_agent_host_hooks, StandardLocalAgentHostHooks,
+        StandardLocalAgentIdentityHook, StandardRuntimeTrustedCaller,
+        StandardRuntimeTrustedCallerHook,
+    };
+
+    #[tauri::command]
+    pub fn local_agent_identity() -> Result<RuntimeLocalAgentIdentity, String> {
+        crate::standard_local_agent::local_agent_identity("local_agent_identity")
+    }
+
+    #[tauri::command]
+    pub fn local_agent_runtime_trusted_caller(
+        payload: serde_json::Value,
+    ) -> Result<StandardRuntimeTrustedCaller, String> {
+        crate::standard_local_agent::runtime_trusted_caller(
+            payload,
+            "local_agent_runtime_trusted_caller",
+        )
+    }
 }
 
 pub mod desktop_product_local_agent {
@@ -401,6 +470,21 @@ pub mod avatar {
         nimi_avatar_resolve_local_avatar_asset, AgentCenterAvatarAssetResolvePayload,
         LocalAvatarAssetResolvePayload, ModelManifest,
     };
+    pub use crate::standard_local_assets::{
+        StandardLocalAssetUrlPayload, StandardLocalAssetUrlResult,
+    };
+
+    #[tauri::command]
+    pub fn avatar_asset_resolve(
+        app: tauri::AppHandle,
+        payload: serde_json::Value,
+    ) -> Result<StandardLocalAssetUrlResult, String> {
+        crate::standard_local_assets::resolve_standard_local_asset_url(
+            &app,
+            payload,
+            "avatar_asset_resolve",
+        )
+    }
 }
 
 pub mod platform_projection {
@@ -408,6 +492,28 @@ pub mod platform_projection {
     pub use crate::platform_projection::{
         apps_bridge, apps_packages, apps_registry, factory_profile_index,
     };
+    pub use crate::standard_platform_projection::{
+        StandardPlatformProjectionPayload, StandardPlatformProjectionResult,
+    };
+
+    #[tauri::command]
+    pub async fn platform_projection_get(
+        payload: serde_json::Value,
+    ) -> Result<StandardPlatformProjectionResult, String> {
+        tauri::async_runtime::spawn_blocking(move || {
+            crate::standard_platform_projection::platform_projection_get(payload)
+        })
+        .await
+        .map_err(|error| {
+            crate::capabilities::standard_shell_error(
+                "host-internal-error",
+                "tauri-platform-projection-task-failed",
+                "inspect_platform_projection_blocking_task",
+                "tauri",
+                Some(serde_json::json!({ "command": "platform_projection_get", "cause": error.to_string() })),
+            )
+        })?
+    }
 }
 
 pub mod file_dialog {

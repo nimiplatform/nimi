@@ -441,7 +441,7 @@ const DEFAULT_LABELS: RouteModelPickerLabels = {
   loading: 'Loading models...',
   unavailable: 'Route options unavailable',
   localUnavailable: 'Local model discovery failed. Runtime may be unavailable.',
-  noLocalModels: 'No local models available for this capability. Install a model via Desktop.',
+  noLocalModels: 'No local models available for this capability. Install or import a model from model settings.',
   selectConnector: 'Select a connector to see available models.',
   noCloudModels: 'No models available for this connector.',
   savedRouteUnavailable: 'Saved route is no longer available.',

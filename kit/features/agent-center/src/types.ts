@@ -53,6 +53,166 @@ export type AgentCenterStatusTone =
   | 'loading'
   | 'failed';
 
+export type AgentCenterModelSuperSectionId = 'conversation' | 'voice' | 'media';
+
+export type AgentCenterModelConfigCopyKey =
+  | 'ModelConfig.hub.title'
+  | 'ModelConfig.hub.aggregateReady'
+  | 'ModelConfig.hub.aggregateAttention'
+  | 'ModelConfig.hub.aggregateNeutral'
+  | 'ModelConfig.hub.aggregateEmpty'
+  | 'ModelConfig.hub.backLabel'
+  | 'ModelConfig.hub.detailStatusReady'
+  | 'ModelConfig.hub.detailStatusAttention'
+  | 'ModelConfig.hub.detailStatusNeutral'
+  | 'ModelConfig.hub.detailTitleFormat'
+  | 'ModelConfig.hub.activeModelLabel'
+  | 'ModelConfig.hub.activeModelHint'
+  | 'ModelConfig.hub.activeModelConfiguredLabel'
+  | 'ModelConfig.hub.activeModelSetupPendingLabel'
+  | 'ModelConfig.profile.sectionTitle'
+  | 'ModelConfig.profile.summaryLabel'
+  | 'ModelConfig.profile.emptySummaryLabel'
+  | 'ModelConfig.profile.applyButtonLabel'
+  | 'ModelConfig.profile.changeButtonLabel'
+  | 'ModelConfig.profile.manageButtonTitle'
+  | 'ModelConfig.profile.modalTitle'
+  | 'ModelConfig.profile.modalHint'
+  | 'ModelConfig.profile.loadingLabel'
+  | 'ModelConfig.profile.emptyLabel'
+  | 'ModelConfig.profile.currentBadgeLabel'
+  | 'ModelConfig.profile.cancelLabel'
+  | 'ModelConfig.profile.confirmLabel'
+  | 'ModelConfig.profile.applyingLabel'
+  | 'ModelConfig.profile.reloadLabel'
+  | 'ModelConfig.profile.importLabel'
+  | 'ModelConfig.profile.previewTitle'
+  | 'ModelConfig.profile.previewHint'
+  | 'ModelConfig.profile.previewingLabel'
+  | 'ModelConfig.profile.previewFirstApplyLabel'
+  | 'ModelConfig.profile.previewNoChangeLabel'
+  | 'ModelConfig.profile.previewBeforeLabel'
+  | 'ModelConfig.profile.previewAfterLabel'
+  | 'ModelConfig.profile.previewWarningsLabel'
+  | 'ModelConfig.profile.previewConfirmLabel'
+  | 'ModelConfig.profile.previewBackLabel'
+  | 'ModelConfig.section.chat.title'
+  | 'ModelConfig.section.tts.title'
+  | 'ModelConfig.section.image.title'
+  | 'ModelConfig.section.voice.title'
+  | 'ModelConfig.section.embed.title'
+  | 'ModelConfig.capability.textGenerate.title'
+  | 'ModelConfig.capability.textGenerate.subtitle'
+  | 'ModelConfig.capability.textGenerate.detail'
+  | 'ModelConfig.capability.textEmbed.title'
+  | 'ModelConfig.capability.textEmbed.subtitle'
+  | 'ModelConfig.capability.textEmbed.detail'
+  | 'ModelConfig.capability.audioSynthesize.title'
+  | 'ModelConfig.capability.audioSynthesize.subtitle'
+  | 'ModelConfig.capability.audioSynthesize.detail'
+  | 'ModelConfig.capability.voiceWorkflowVoiceClone.title'
+  | 'ModelConfig.capability.voiceWorkflowVoiceClone.subtitle'
+  | 'ModelConfig.capability.voiceWorkflowVoiceClone.detail'
+  | 'ModelConfig.capability.voiceWorkflowVoiceDesign.title'
+  | 'ModelConfig.capability.voiceWorkflowVoiceDesign.subtitle'
+  | 'ModelConfig.capability.voiceWorkflowVoiceDesign.detail'
+  | 'ModelConfig.capability.imageGenerate.title'
+  | 'ModelConfig.capability.imageGenerate.subtitle'
+  | 'ModelConfig.capability.imageGenerate.detail'
+  | 'ModelConfig.modelPicker.title'
+  | 'ModelConfig.modelPicker.local'
+  | 'ModelConfig.modelPicker.cloud'
+  | 'ModelConfig.modelPicker.selectConnectorLabel'
+  | 'ModelConfig.modelPicker.searchPlaceholder'
+  | 'ModelConfig.modelPicker.loading'
+  | 'ModelConfig.modelPicker.noSearchResults'
+  | 'ModelConfig.modelPicker.noModelsAvailable';
+
+export type AgentCenterChromeCopy = Partial<{
+  readonly title: string;
+  readonly eyebrow: string;
+  readonly closeLabel: string;
+  readonly navLabel: string;
+  readonly textReadyLabel: string;
+  readonly avatarFallback: string;
+  readonly projectionLoadFailed: string;
+}>;
+
+export type AgentCenterProgressCopy = Partial<{
+  readonly configLabel: string;
+}>;
+
+export type AgentCenterOverviewCopy = Partial<{
+  readonly readyTitle: string;
+  readonly attentionTitle: string;
+  readonly checklistTitle: string;
+  readonly appearanceReadyDescription: string;
+  readonly appearancePendingDescription: string;
+  readonly modelReadyDescription: string;
+  readonly modelPendingDescription: string;
+  readonly behaviorReadyDescriptionPrefix: string;
+  readonly behaviorReadyEnabledFallback: string;
+  readonly behaviorOffDescription: string;
+  readonly cognitionFallbackDescription: string;
+  readonly readyPill: string;
+  readonly needsSetupPill: string;
+  readonly enabledPill: string;
+  readonly offPill: string;
+  readonly projectedPill: string;
+  readonly readOnlyPill: string;
+}>;
+
+export type AgentCenterAdvancedCopy = Partial<{
+  readonly title: string;
+  readonly descriptionRuntimeProjection: string;
+  readonly descriptionUnavailable: string;
+  readonly configRevisionLabel: string;
+  readonly runtimeTurnLabel: string;
+  readonly runtimeStreamLabel: string;
+  readonly runtimeErrorLabel: string;
+  readonly unavailableValue: string;
+  readonly notProjectedValue: string;
+  readonly noneValue: string;
+}>;
+
+export type AgentCenterModelCopy = Partial<{
+  readonly sectionTitle: string;
+  readonly superSectionLabels: Partial<Record<AgentCenterModelSuperSectionId, string>>;
+  readonly modelConfig: Partial<Record<AgentCenterModelConfigCopyKey, string>>;
+  readonly detailActiveModelHint: string;
+  readonly setupRequiredLabel: string;
+  readonly runtimeModelPickerUnavailableLabel: string;
+  readonly notConfiguredLabel: string;
+  readonly profileImportUnsupportedLabel: string;
+  readonly profileImportUnavailableLabel: string;
+  readonly profilePreviewUnsupportedLabel: string;
+  readonly profileFirstApplyLabel: string;
+  readonly parameterEditRejected: string;
+  readonly profileSliceRefRejected: string;
+  readonly adapterUnavailable: string;
+  readonly revisionUnavailable: string;
+  readonly savingStatus: string;
+  readonly savedStatusFormat: string;
+  readonly updateFailed: string;
+  readonly projectionReadyBadge: string;
+  readonly projectionReadyTitle: string;
+  readonly projectionNeedsSetupBadge: string;
+  readonly projectionRouteNotConfiguredTitle: string;
+  readonly projectionModelRequiredTitle: string;
+  readonly projectionUnavailableTitle: string;
+  readonly modelSelectionUnresolvedSuffix: string;
+}>;
+
+export type AgentCenterCopy = Partial<{
+  readonly sectionLabels: Partial<Record<AgentCenterSectionId, string>>;
+  readonly capabilityLabels: Partial<Record<AgentCenterCapabilityId, string>>;
+  readonly chrome: AgentCenterChromeCopy;
+  readonly progress: AgentCenterProgressCopy;
+  readonly overview: AgentCenterOverviewCopy;
+  readonly advanced: AgentCenterAdvancedCopy;
+  readonly model: AgentCenterModelCopy;
+}>;
+
 export type AgentCenterRuntimeStatus =
   | 'ready'
   | 'disabled'
@@ -231,6 +391,44 @@ export type AgentCenterAppearanceCopy = Partial<{
   readonly generatedMotionLabel: string;
   readonly launchModeLabel: string;
   readonly debugProfileLabel: string;
+  readonly appearanceUpdateFailed: string;
+  readonly live2dStatusProbeRequired: string;
+  readonly live2dStatusNotAdmitted: string;
+  readonly live2dStatusEffectPending: string;
+  readonly live2dStatusChecking: string;
+  readonly live2dStatusReady: string;
+  readonly live2dStatusPending: string;
+  readonly live2dStatusMissing: string;
+  readonly live2dStatusBlocked: string;
+  readonly live2dPreviewArtifactLabel: string;
+  readonly live2dModelFramingLabel: string;
+  readonly live2dRenderPolicyLabel: string;
+  readonly live2dExpressionInventoryLabel: string;
+  readonly live2dAdapterManifestEvidenceLabel: string;
+  readonly live2dEvidenceRequired: string;
+  readonly live2dPreviewReadyDetail: string;
+  readonly live2dCalibrationPendingDetail: string;
+  readonly live2dEmotionReadyDetail: string;
+  readonly live2dBackendRequiredDetail: string;
+  readonly live2dExternalSidecarSelected: string;
+  readonly live2dEmbeddedManifestSelected: string;
+  readonly live2dNoAdapterManifestSelected: string;
+  readonly evidenceRefLabel: string;
+  readonly calibrationRefLabel: string;
+  readonly instancePolicyReuseActive: string;
+  readonly instancePolicyLaunchNew: string;
+  readonly instancePolicyRequireUserSelection: string;
+  readonly generatedMotionRequireProfile: string;
+  readonly generatedMotionDisabled: string;
+  readonly generatedMotionDebugOnly: string;
+  readonly launchModeManual: string;
+  readonly launchModeDebugSession: string;
+  readonly launchModeStartWithChat: string;
+  readonly debugProfileStandard: string;
+  readonly debugProfileStrictBackendEvidence: string;
+  readonly debugProfileRouteMatrix: string;
+  readonly custodyNotice: string;
+  readonly adapterUnavailableFormat: string;
 }>;
 
 export type AgentCenterBehaviorCopy = Partial<{
@@ -355,6 +553,7 @@ export interface AgentCenterProps {
   readonly onSectionChange?: (section: AgentCenterSectionId) => void;
   readonly runtimeAdapter?: AgentCenterRuntimeAdapter | null;
   readonly appearanceAdapter?: AgentCenterAppearanceAdapter | null;
+  readonly copy?: AgentCenterCopy;
   readonly appearanceCopy?: AgentCenterAppearanceCopy;
   readonly behaviorCopy?: AgentCenterBehaviorCopy;
   readonly placementActions?: AgentCenterPlacementActions;
