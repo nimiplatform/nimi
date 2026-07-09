@@ -586,7 +586,7 @@ export function WorldCharacterSourceDetailPage(props: WorldCharacterSourceDetail
                 data-testid="world-character-back-button"
                 onClick={props.onBack}
                 aria-label={t('Common.back', { defaultValue: 'Back' })}
-                className="absolute left-6 top-6 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/68 text-[#33423b] shadow-[0_10px_24px_rgba(30,41,38,.10)] backdrop-blur-[4px] transition hover:bg-white/86 hover:text-[#1f6844]"
+                className="absolute left-6 top-6 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] text-[#33423b] shadow-[0_10px_24px_rgba(30,41,38,.10)] nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition hover:bg-white/86 hover:text-[#1f6844]"
               >
                 <ArrowLeft aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />
               </button>

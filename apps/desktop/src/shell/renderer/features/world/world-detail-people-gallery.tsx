@@ -402,7 +402,8 @@ function PeopleArchiveShell({
         type="button"
         aria-label={t('WorldDetail.paper.gallery.close')}
         onClick={onAction}
-        style={{ position: 'absolute', inset: 0, border: 0, background: 'rgba(38,32,23,.5)', backdropFilter: 'blur(2px)', cursor: 'default' }}
+        className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+        style={{ position: 'absolute', inset: 0, border: 0, background: 'rgba(38,32,23,.5)', cursor: 'default' }}
       />
       {panel}
     </div>
