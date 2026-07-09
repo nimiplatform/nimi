@@ -152,14 +152,19 @@ test('tester left rail keeps compact icon spacing and solid green active state',
 
 test('tester left rail anchors UI Recipes above the framed account avatar', () => {
   const sideNav = read('src/tester/workbench/workbench-side-nav.tsx');
+  const accountPanel = read('src/shell/account/account-panel.tsx');
   const styles = read('src/tester/tester-workbench.css');
   const bottomGroup = sideNav.match(/<div className="workbench-side-nav__group" data-nav-placement="bottom">[\s\S]*?<\/div>\s*<\/nav>/)?.[0] ?? '';
 
   assert.match(sideNav, /workbenchLibraryCapabilityId[\s\S]*data-nav-placement="bottom"/);
   assert.doesNotMatch(bottomGroup, /workbenchLibraryCapabilityId|<Compass/);
   assert.match(bottomGroup, /aria-label="UI Recipes"[\s\S]*\{accountSlot/);
+  assert.match(styles, /\.workbench\{[^}]*--workbench-account-avatar-size: 28px;/);
   assert.match(styles, /\[data-workbench-account-root\]\{[^}]*align-self: end;[^}]*border-radius: 999px;/);
-  assert.match(styles, /\[data-workbench-account-trigger\]\{[^}]*border-radius: 999px;[^}]*box-shadow: inset 0 0 0 1px/);
+  assert.match(styles, /\[data-workbench-account-trigger\]\{[^}]*border-radius: 999px;[^}]*background: transparent;[^}]*box-shadow: none;/);
+  assert.match(accountPanel, /className="lab-account-menu__avatar-glyph"/);
+  assert.match(styles, /\[data-workbench-account-trigger\] \.nimi-action__icon\{[^}]*width: var\(--workbench-account-avatar-size\);[^}]*height: var\(--workbench-account-avatar-size\);/);
+  assert.match(styles, /\.lab-account-menu__avatar-glyph\{[^}]*width: var\(--workbench-account-avatar-size\);[^}]*height: var\(--workbench-account-avatar-size\);[^}]*box-shadow: inset 0 0 0 1px/);
 });
 
 test('tester account menu consumes the shared Kit AccountPanel without owning Runtime logout truth', () => {

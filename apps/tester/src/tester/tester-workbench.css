@@ -1,4 +1,4 @@
-.workbench{ --studio-work-width: 760px; --studio-side-panel-width: min(360px, calc(100vw - 48px)); position: relative; min-height: 100%; height: 100vh; overflow: hidden; background: radial-gradient(circle at 16% 18%, rgba(210, 236, 255, 0.72), transparent 34%), radial-gradient(circle at 26% 92%, rgba(216, 246, 238, 0.76), transparent 31%), radial-gradient(circle at 92% 18%, rgba(244, 233, 255, 0.72), transparent 34%), linear-gradient(115deg, #edf8f6 0%, #eef6ff 48%, #faf2fb 100%); color: var(--nimi-text-primary);}
+.workbench{ --studio-work-width: 760px; --studio-side-panel-width: min(360px, calc(100vw - 48px)); --workbench-rail-item-size: 44px; --workbench-account-avatar-size: 28px; position: relative; min-height: 100%; height: 100vh; overflow: hidden; background: radial-gradient(circle at 16% 18%, rgba(210, 236, 255, 0.72), transparent 34%), radial-gradient(circle at 26% 92%, rgba(216, 246, 238, 0.76), transparent 31%), radial-gradient(circle at 92% 18%, rgba(244, 233, 255, 0.72), transparent 34%), linear-gradient(115deg, #edf8f6 0%, #eef6ff 48%, #faf2fb 100%); color: var(--nimi-text-primary);}
 .workbench__body{ display: grid; grid-template-columns: 72px minmax(0, 1fr); height: 100%; min-height: 0;}
 .workbench__main,
 .workbench__content,
@@ -10,16 +10,19 @@
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] ul{ display: grid; gap: 8px; margin: 0; padding: 0; list-style: none;}
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-nav-placement="bottom"]{ margin-top: auto;}
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-rail-item],
-.workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger]{ display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 15px; background: transparent; color: color-mix(in srgb, var(--nimi-text-secondary) 72%, #3c5e76); cursor: pointer;}
+.workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger]{ display: grid; place-items: center; width: var(--workbench-rail-item-size); height: var(--workbench-rail-item-size); border: 0; border-radius: 15px; background: transparent; color: color-mix(in srgb, var(--nimi-text-secondary) 72%, #3c5e76); cursor: pointer;}
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-rail-item]:hover,
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger]:hover{ background: rgba(255, 255, 255, 0.42); color: var(--nimi-text-primary);}
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-rail-item][aria-current="page"],
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger][data-open="true"]{ background: var(--nimi-action-primary-bg); color: var(--nimi-action-primary-text); box-shadow: 0 14px 26px rgba(78, 204, 163, 0.24);}
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-rail-label]{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;}
-.workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-root]{ position: relative; z-index: 45; display: grid; align-self: end; width: 44px; border-radius: 999px; justify-items: center;}
-.workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger]{ border-radius: 999px; background: rgba(255, 255, 255, 0.36); box-shadow: inset 0 0 0 1px rgba(91, 112, 128, 0.24), 0 10px 22px rgba(31, 45, 66, 0.06);}
+.workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-root]{ position: relative; z-index: 45; display: grid; align-self: end; width: var(--workbench-rail-item-size); border-radius: 999px; justify-items: center;}
+.workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger]{ border-radius: 999px; background: transparent; box-shadow: none;}
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger][data-open="true"]{ background: var(--nimi-action-primary-bg); color: var(--nimi-action-primary-text); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32), 0 14px 26px rgba(78, 204, 163, 0.24);}
-.workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger] span{ font-size: 15px; font-weight: 780; line-height: 1;}
+.workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger] .nimi-action__icon{ display: grid; place-items: center; width: var(--workbench-account-avatar-size); height: var(--workbench-account-avatar-size);}
+.workbench__body > aside[aria-label="Nimi Lab workspace navigation"] .lab-account-menu__avatar-glyph{ display: grid; place-items: center; width: var(--workbench-account-avatar-size); height: var(--workbench-account-avatar-size); border-radius: 999px; background: rgba(255, 255, 255, 0.40); color: color-mix(in srgb, var(--nimi-text-secondary) 82%, #20364a); box-shadow: inset 0 0 0 1px rgba(91, 112, 128, 0.24), 0 6px 14px rgba(31, 45, 66, 0.05); font-size: 13px; font-weight: 780; line-height: 1;}
+.workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger]:hover .lab-account-menu__avatar-glyph{ background: rgba(255, 255, 255, 0.66); color: var(--nimi-text-primary);}
+.workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-trigger][data-open="true"] .lab-account-menu__avatar-glyph{ background: transparent; color: inherit; box-shadow: none;}
 .workbench__body > aside[aria-label="Nimi Lab workspace navigation"] [data-workbench-account-panel]{ position: fixed; left: 84px; bottom: 18px; z-index: 70;}
 .workbench-topbar-tooltip{ display: grid; gap: 6px; max-width: 320px;}
 .workbench-topbar-tooltip span{ display: grid; gap: 2px;}
@@ -53,7 +56,6 @@
 .studio__title,
 .studio__head-actions{ display: flex; align-items: center; gap: 10px; min-width: 0;}
 .studio__title{ flex-wrap: wrap; overflow: visible; row-gap: 6px;}
-.studio__title h1{ margin: 0; overflow: visible; text-overflow: clip; white-space: normal; font-size: 29px; line-height: 1.42; font-weight: 540; letter-spacing: 0;}
 .studio__stage{ min-width: 0; min-height: 0; display: grid;}
 .studio-start{ display: grid; place-items: center; min-height: 0; padding: 24px 24px 108px;}
 .studio-start__center{ display: grid; gap: 31px; width: min(842px, 100%);}

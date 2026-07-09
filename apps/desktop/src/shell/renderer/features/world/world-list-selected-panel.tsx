@@ -236,7 +236,7 @@ export function SelectedWorldPanel({
           role="section-title"
           data-testid="world-atlas-hero-title"
           title={world.name}
-          className="truncate text-[20px] font-bold text-[var(--world-explorer-text)]"
+          className="w-full truncate text-center text-[20px] font-bold text-[var(--world-explorer-text)]"
         >
           {world.name}
         </NimiText>
@@ -257,7 +257,6 @@ export function SelectedWorldPanel({
           data-testid="world-atlas-preview-intro"
           role="body"
           className="mt-3 text-[13.5px] font-medium leading-[1.65] text-[var(--world-explorer-text-secondary)]"
-          style={WORLD_EXPLORER_THEME.introClamp}
         >
           {intro}
         </NimiText>
@@ -307,7 +306,7 @@ export function SelectedWorldPanel({
             size="lg"
             fullWidth
             trailingIcon={<ArrowRight size={16} aria-hidden="true" />}
-            className="world-panel-primary-action rounded-[20px] border-transparent bg-[var(--world-explorer-brand)] text-white hover:bg-[var(--world-explorer-brand-hover)]"
+            className="world-panel-primary-action rounded-[20px] border-transparent bg-[var(--world-explorer-brand)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--world-explorer-brand-hover)]"
             style={WORLD_EXPLORER_THEME.primaryAction}
             onClick={onOpen}
           >

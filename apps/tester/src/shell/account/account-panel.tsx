@@ -178,7 +178,7 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
           aria-haspopup="menu"
           onClick={() => setOpen((value) => !value)}
           className={open ? 'lab-account-menu__trigger lab-account-menu__trigger--open' : 'lab-account-menu__trigger'}
-          icon={signedIn ? <span aria-hidden="true">{fallback}</span> : <LogIn size={18} strokeWidth={1.9} aria-hidden="true" />}
+          icon={signedIn ? <span className="lab-account-menu__avatar-glyph" aria-hidden="true">{fallback}</span> : <LogIn size={18} strokeWidth={1.9} aria-hidden="true" />}
         />
       </Tooltip>
       {open ? (

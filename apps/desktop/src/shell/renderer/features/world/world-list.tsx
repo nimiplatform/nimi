@@ -29,8 +29,8 @@ export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean
         style={WORLD_ATLAS_SHELL_COLUMNS_STYLE}
       >
         <Surface
-          tone="hero"
-          material="glass-thick"
+          tone="panel"
+          material="glass-regular"
           padding="none"
           className="min-w-0 max-w-full rounded-[32px] p-4 sm:p-5 xl:p-6"
           style={WORLD_EXPLORER_THEME.discoveryPanel}
@@ -138,8 +138,8 @@ export function WorldCatalogContent({
         <Surface
           as="section"
           data-testid="world-atlas-discovery-panel"
-          tone="hero"
-          material="glass-thick"
+          tone="panel"
+          material="glass-regular"
           elevation="floating"
           padding="none"
           className="min-w-0 max-w-full rounded-[32px] p-4 sm:p-5 xl:p-6"

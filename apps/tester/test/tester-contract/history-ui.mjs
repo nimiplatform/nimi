@@ -108,6 +108,14 @@ test('right-side history timeline renders a visible timestamp slot', () => {
   assert.match(styles, /\.studio-recent__title time\s*\{[^}]*overflow:\s*visible/s);
 });
 
+test('tester capability pages do not render top-left capability titles', () => {
+  const capabilities = readTesterAiTestingSurface(root);
+  const styles = read('src/tester/tester-workbench.css');
+
+  assert.doesNotMatch(capabilities, /<h1>\{capability\.label\}<\/h1>/);
+  assert.doesNotMatch(styles, /\.studio__title\s+h1/);
+});
+
 test('runtime history panel toggle lives beside Runtime and reflects collapsed state', () => {
   const historyPanel = read('src/tester/workbench/section-ai-testing-history.tsx');
   const workbench = read('src/tester/workbench/section-ai-testing.tsx');
@@ -440,9 +448,7 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
     /\.studio__workspace--with-history\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/s,
   );
   assert.match(styles, /\.studio__title\s*\{[^}]*overflow:\s*visible/s);
-  assert.match(styles, /\.studio__title\s+h1\s*\{[^}]*overflow:\s*visible/s);
-  assert.match(styles, /\.studio__title\s+h1\s*\{[^}]*white-space:\s*normal/s);
-  assert.match(styles, /\.studio__title\s+h1\s*\{[^}]*line-height:\s*1\.42/s);
+  assert.doesNotMatch(styles, /\.studio__title\s+h1/);
   assert.match(styles, /--studio-work-width:\s*760px/);
   assert.match(styles, /\.studio-turn\s*\{[^}]*max-width:\s*var\(--studio-work-width\)/s);
   assert.match(styles, /\.studio-turn--user p\s*\{[^}]*border-radius:\s*18px/s);

@@ -32,6 +32,11 @@ const featuredStripSource = readWorldSource('world-list-featured-strip.tsx');
 const worldListControlsSource = readWorldSource('world-list-catalog-controls.tsx');
 const worldExplorerThemeSource = readOptionalWorldSource('world-list-theme.ts');
 const worldCoverSource = readOptionalWorldSource('world-list-cover.tsx');
+const discoveryPanelThemeStart = worldExplorerThemeSource.indexOf('discoveryPanel: {');
+const discoveryPanelThemeEnd = worldExplorerThemeSource.indexOf('nav: {', discoveryPanelThemeStart);
+const discoveryPanelThemeSource = discoveryPanelThemeStart >= 0 && discoveryPanelThemeEnd > discoveryPanelThemeStart
+  ? worldExplorerThemeSource.slice(discoveryPanelThemeStart, discoveryPanelThemeEnd)
+  : '';
 
 const worldDetailTemplateSource = [
   'world-detail-template.tsx',
@@ -92,8 +97,10 @@ test('world atlas declares one restrained World Explorer theme instead of inline
   assert.match(worldExplorerThemeSource, /background:\s*'#F6F8FB'/);
   assert.match(worldExplorerThemeSource, /surface:\s*'#FFFFFF'/);
   assert.match(worldExplorerThemeSource, /weakSurface:\s*'#F8FAFC'/);
-  assert.match(worldExplorerThemeSource, /brand:\s*'#24C6A4'/);
-  assert.match(worldExplorerThemeSource, /brandSoft:\s*'#EAFBF6'/);
+  assert.match(worldExplorerThemeSource, /brand:\s*'#4ECCA3'/);
+  assert.match(worldExplorerThemeSource, /brandHover:\s*'#3DBB96'/);
+  assert.match(worldExplorerThemeSource, /brandSoft:\s*'rgba\(78, 204, 163, 0\.12\)'/);
+  assert.doesNotMatch(worldExplorerThemeSource, /#24C6A4|#1DB393|rgba\(36, 198, 164/);
   assert.match(worldExplorerThemeSource, /text:\s*'#17202A'/);
   assert.match(worldExplorerThemeSource, /textSecondary:\s*'#6B7280'/);
   assert.match(worldExplorerThemeSource, /textMuted:\s*'#9AA4B2'/);
@@ -103,7 +110,9 @@ test('world atlas declares one restrained World Explorer theme instead of inline
 });
 
 test('world atlas confines glass to the reference shell without blue-gradient or pink favorite styling', () => {
-  assert.match(worldListSource, /data-testid="world-atlas-discovery-panel"[\s\S]*material="glass-thick"/);
+  assert.match(worldListSource, /data-testid="world-atlas-discovery-panel"[\s\S]*tone="panel"[\s\S]*material="glass-regular"/);
+  assert.doesNotMatch(discoveryPanelThemeSource, /background:/);
+  assert.doesNotMatch(discoveryPanelThemeSource, /border:/);
   assert.doesNotMatch(worldListSource, /data-testid="world-atlas-featured-card"[\s\S]*material="glass-/);
   assert.doesNotMatch(worldListSource, /data-testid="world-atlas-selected-panel"[\s\S]*material="glass-/);
   assert.doesNotMatch(worldListSource, /var\(--nimi-status-info\)/);
@@ -116,6 +125,7 @@ test('world atlas confines glass to the reference shell without blue-gradient or
 
 test('world atlas selected panel is a user-facing preview without quick entries', () => {
   assert.match(selectedPanelSource, /data-testid="world-atlas-hero-title"/);
+  assert.match(selectedPanelSource, /data-testid="world-atlas-hero-title"[\s\S]*className="w-full truncate text-center/);
   assert.match(selectedPanelSource, /data-testid="world-atlas-preview-intro"/);
   assert.match(selectedPanelSource, /data-testid="world-atlas-preview-overview"/);
   assert.match(selectedPanelSource, /data-testid="world-atlas-preview-people"/);
@@ -129,6 +139,9 @@ test('world atlas selected panel is a user-facing preview without quick entries'
   assert.doesNotMatch(selectedPanelSource, /World\.atlas\.preview\.people\.viewAll/);
   assert.doesNotMatch(selectedPanelSource, /action=\{t\('World\.atlas\.preview\.people\.viewAll'\)\}/);
   assert.match(selectedPanelSource, /World\.card\.view/);
+  assert.match(selectedPanelSource, /world-panel-primary-action[\s\S]*text-\[var\(--nimi-action-primary-text\)\]/);
+  assert.doesNotMatch(selectedPanelSource, /style=\{WORLD_EXPLORER_THEME\.introClamp\}/);
+  assert.doesNotMatch(worldExplorerThemeSource, /introClamp|WebkitLineClamp/);
   assert.match(selectedPanelSource, /const \{ t, i18n \} = useTranslation\(\)/);
   assert.match(selectedPanelSource, /displayTags\(world, 2, i18n\.language\)/);
   assert.doesNotMatch(worldListSource, /World\.atlas\.sourceCount/);

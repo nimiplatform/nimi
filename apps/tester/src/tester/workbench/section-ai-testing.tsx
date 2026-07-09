@@ -258,7 +258,6 @@ function TextStudioShell({
         <div className="studio__primary">
           <header className="studio__head">
             <div className="studio__title">
-              <h1>{capability.label}</h1>
               {showAdmissionBadge ? (
                 <StatusBadge tone={admission.tone} shape="dot">{STATUS_PILL_LABEL[admission.label]}</StatusBadge>
               ) : null}
