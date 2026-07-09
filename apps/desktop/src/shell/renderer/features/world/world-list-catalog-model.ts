@@ -18,6 +18,13 @@ export const CATEGORY_TABS: readonly { id: CategoryId; label: string }[] = [
   { id: 'anime', label: 'Anime' },
 ] as const;
 
+export const WORLD_ATLAS_VISIBLE_CATEGORY_TABS: readonly { id: CategoryId; label: string }[] = CATEGORY_TABS.filter((category) => (
+  category.id === 'all'
+  || category.id === 'followed'
+  || category.id === 'trending'
+  || category.id === 'new'
+));
+
 const WORLD_MEDIA_PLACEHOLDER = 'var(--nimi-surface-hero)';
 
 export function worldHeroBackground(imageUrl: string | null): string {

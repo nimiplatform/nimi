@@ -1,7 +1,7 @@
 import { Grid2X2, Heart, List } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SegmentedControl, SelectField, Surface } from '@nimiplatform/kit/ui';
-import { CATEGORY_TABS, type CategoryId, type SortId, type ViewMode } from './world-list-catalog-model';
+import { WORLD_ATLAS_VISIBLE_CATEGORY_TABS, type CategoryId, type SortId, type ViewMode } from './world-list-catalog-model';
 import { WORLD_EXPLORER_THEME } from './world-list-theme';
 
 export function AtlasCategoryTabs({
@@ -22,7 +22,7 @@ export function AtlasCategoryTabs({
   onSortChange: (sort: SortId) => void;
 }) {
   const { t } = useTranslation();
-  const categoryItems = CATEGORY_TABS.map((category) => {
+  const categoryItems = WORLD_ATLAS_VISIBLE_CATEGORY_TABS.map((category) => {
     const isFollowed = category.id === 'followed';
     return {
       value: category.id,

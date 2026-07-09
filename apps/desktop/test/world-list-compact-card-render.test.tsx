@@ -138,6 +138,16 @@ test('world atlas category toolbar does not render the extra more action', () =>
   );
 
   assert.match(markup, /全部世界/);
+  assert.match(markup, /已关注/);
+  assert.match(markup, /趋势/);
+  assert.match(markup, /最新/);
   assert.match(markup, /视图模式/);
+  assert.match(markup, /排序世界/);
+  assert.doesNotMatch(markup, /奇幻/);
+  assert.doesNotMatch(markup, /科幻/);
+  assert.doesNotMatch(markup, /自然/);
+  assert.doesNotMatch(markup, /蒸汽朋克/);
+  assert.doesNotMatch(markup, /悬疑/);
+  assert.doesNotMatch(markup, /动画/);
   assert.doesNotMatch(markup, /更多/);
 });
