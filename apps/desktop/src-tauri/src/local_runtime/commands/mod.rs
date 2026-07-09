@@ -1,14 +1,6 @@
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::PathBuf;
 
-use serde::Deserialize;
 use tauri::AppHandle;
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiAssetIdPayload {
-    pub local_asset_id: String,
-}
 
 fn runtime_root_dir() -> Result<PathBuf, String> {
     crate::desktop_paths::resolve_nimi_data_dir()
@@ -16,49 +8,6 @@ fn runtime_root_dir() -> Result<PathBuf, String> {
 
 fn runtime_models_dir() -> Result<PathBuf, String> {
     Ok(nimi_shell_tauri::capabilities::local_assets::runtime_models_dir(&runtime_root_dir()?))
-}
-
-fn picker_start_dir() -> PathBuf {
-    dirs::home_dir().unwrap_or_else(|| runtime_models_dir().unwrap_or_default())
-}
-
-fn reveal_path_in_os(path: &Path) -> Result<(), String> {
-    #[cfg(target_os = "macos")]
-    {
-        Command::new("open")
-            .arg(path)
-            .spawn()
-            .map_err(|e| format!("reveal failed: {e}"))?;
-    }
-    #[cfg(target_os = "windows")]
-    {
-        Command::new("explorer")
-            .arg(path)
-            .spawn()
-            .map_err(|e| format!("reveal failed: {e}"))?;
-    }
-    #[cfg(target_os = "linux")]
-    {
-        Command::new("xdg-open")
-            .arg(path)
-            .spawn()
-            .map_err(|e| format!("reveal failed: {e}"))?;
-    }
-    Ok(())
-}
-
-#[tauri::command]
-pub fn runtime_local_pick_asset_file(_app: AppHandle) -> Result<Option<String>, String> {
-    let selected = rfd::FileDialog::new()
-        .set_directory(picker_start_dir())
-        .set_title("Select asset file to import")
-        .add_filter(
-            "Asset Files",
-            &["gguf", "safetensors", "bin", "pt", "onnx", "pth"],
-        )
-        .add_filter("All Files", &["*"])
-        .pick_file();
-    Ok(selected.map(|p| p.to_string_lossy().to_string()))
 }
 
 #[tauri::command]
@@ -80,37 +29,6 @@ pub fn runtime_local_pick_asset_manifest_path(_app: AppHandle) -> Result<Option<
         .to_string_lossy()
         .to_string(),
     ))
-}
-
-#[tauri::command]
-pub fn runtime_local_pick_asset_directory(_app: AppHandle) -> Result<Option<String>, String> {
-    let selected = rfd::FileDialog::new()
-        .set_directory(picker_start_dir())
-        .set_title("Select asset bundle directory to import")
-        .pick_folder();
-    Ok(selected.map(|path| path.to_string_lossy().to_string()))
-}
-
-#[tauri::command]
-pub fn runtime_local_assets_reveal_in_folder(
-    _app: AppHandle,
-    payload: LocalAiAssetIdPayload,
-) -> Result<(), String> {
-    if payload.local_asset_id.trim().is_empty() {
-        return Err("LOCAL_AI_ASSET_ID_REQUIRED".to_string());
-    }
-    let models_root = runtime_models_dir()?;
-    let target = nimi_shell_tauri::capabilities::local_assets::reveal_target_for_asset(
-        &models_root,
-        &payload.local_asset_id,
-    );
-    reveal_path_in_os(&target)
-}
-
-#[tauri::command]
-pub fn runtime_local_assets_reveal_root_folder(_app: AppHandle) -> Result<(), String> {
-    let models_root = runtime_models_dir()?;
-    reveal_path_in_os(&models_root)
 }
 
 #[cfg(test)]

@@ -5,9 +5,8 @@ mod account_apps_projection;
 mod account_profile_library;
 mod account_profile_library_commands;
 mod account_profile_library_files;
-mod apps_bridge_projection;
-mod apps_local_app_commands;
 mod apps_packages_projection;
+#[cfg(test)]
 mod apps_registry_projection;
 mod chat_ai_store;
 mod desktop_agent_center_store;

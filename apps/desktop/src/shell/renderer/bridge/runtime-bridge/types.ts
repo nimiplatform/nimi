@@ -23,7 +23,6 @@ export type {
   MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
   DesktopMacosSmokeContext,
-  DesktopMacosSmokeAvatarEvidenceReadResult,
   DesktopMacosSmokeReportPayload,
   DesktopMacosSmokeReportResult,
 } from './runtime-types.js';
@@ -39,7 +38,6 @@ export {
   parseRuntimeBridgeConfigSetResult,
   parseMenuBarProviderSummary,
   parseDesktopMacosSmokeContext,
-  parseDesktopMacosSmokeAvatarEvidenceReadResult,
   parseDesktopMacosSmokeReportResult,
 } from './runtime-parsers.js';
 

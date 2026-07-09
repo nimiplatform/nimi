@@ -25,7 +25,7 @@ const csp = String(tauriConfig.app?.security?.csp || '');
 const devCsp = String(tauriConfig.app?.security?.devCsp || '');
 const assetProtocol = tauriConfig.app?.security?.assetProtocol;
 
-test('desktop CSP allows tauri asset protocol for VRM avatar loading', () => {
+test('desktop CSP allows tauri asset protocol for local avatar resource loading', () => {
   const imgDirective = csp.match(/\bimg-src\b[^;]*/)?.[0] || '';
   const mediaDirective = csp.match(/\bmedia-src\b[^;]*/)?.[0] || '';
   const connectDirective = csp.match(/\bconnect-src\b[^;]*/)?.[0] || '';
@@ -44,7 +44,7 @@ test('desktop CSP allows tauri asset protocol for VRM avatar loading', () => {
   );
   assert.ok(
     connectDirective.includes('asset:'),
-    'connect-src must allow asset: URLs so GLTFLoader can fetch local VRM assets',
+    'connect-src must allow asset: URLs for managed local avatar resources',
   );
   assert.ok(
     connectDirective.includes('http://asset.localhost'),

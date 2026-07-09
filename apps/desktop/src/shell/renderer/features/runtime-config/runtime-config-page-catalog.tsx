@@ -295,7 +295,6 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
               contentClassName="max-h-[360px]"
             />
           </div>
-          <ProviderCapabilities provider={selectedProvider} />
         </div>
         {selectedProvider ? (
           <div className="flex items-center gap-2">
@@ -334,26 +333,6 @@ export function CatalogPage({ model, state: _state }: CatalogPageProps) {
         <AddModelDialog provider={selectedProvider} formState={formState} saving={savingModel} onChange={setFormState} onClose={() => setShowAddModel(false)} onSubmit={onSubmitModel} />
       ) : null}
     </RuntimePageShell>
-  );
-}
-
-function ProviderCapabilities({ provider }: { provider: NimiRuntimeModelCatalogProvider | null }) {
-  if (!provider) return null;
-  const sourceLabel = provider.source === 'builtin'
-    ? 'Built-in'
-    : provider.source === 'custom'
-      ? 'Custom'
-      : provider.source === 'overridden'
-        ? 'Overridden'
-        : provider.source;
-  const inventoryLabel = (provider.inventoryMode || 'static_source') === 'dynamic_endpoint'
-    ? 'Dynamic inventory'
-    : 'Static catalog';
-  return (
-    <div className="flex flex-col justify-center leading-tight">
-      <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{provider.modelCount} models</span>
-      <span className="text-xs text-[var(--nimi-text-muted)]">{sourceLabel} · {inventoryLabel}</span>
-    </div>
   );
 }
 

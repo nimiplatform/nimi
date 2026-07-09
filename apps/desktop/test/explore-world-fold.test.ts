@@ -29,7 +29,6 @@ const worldListSource = [
   'features/world/world-list-selected-panel.tsx',
 ].map(readRendererFile).join('\n');
 const worldDataSource = readRendererFile('features/world/data/realm-world-data.ts');
-const worldListCardsSource = readRendererFile('features/world/world-list-cards.tsx');
 const worldDetailSource = readRendererFile('features/world/world-detail.tsx');
 const worldDetailTemplateSource = [
   'features/world/world-detail-template.tsx',
@@ -113,7 +112,6 @@ test('World Detail exposes no Desktop Realm source creation entry point after co
 test('Worlds and World Detail use source discovery semantics instead of runtime entry or authoring', () => {
   const worldSurfaceSources = [
     worldListSource,
-    worldListCardsSource,
     worldDetailSource,
     worldDetailTemplateSource,
     worldLocaleEnSource,
@@ -122,8 +120,10 @@ test('Worlds and World Detail use source discovery semantics instead of runtime 
     worldDetailLocaleZhSource,
   ].join('\n');
 
-  assert.doesNotMatch(worldListCardsSource, /World\.card\.enter/);
-  assert.doesNotMatch(worldListCardsSource, /World\.status\.active/);
+  assert.equal(
+    fs.existsSync(path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-list-cards.tsx')),
+    false,
+  );
   assert.doesNotMatch(worldDetailSource, /onEnterEdit|onCreateSubWorld|handleEnterEdit|handleCreateSubWorld/);
   assert.doesNotMatch(worldDetailTemplateSource, /onEnterEdit|onCreateSubWorld/);
   assert.doesNotMatch(worldSurfaceSources, /Enter world|Enter Editor|Create Sub World/);

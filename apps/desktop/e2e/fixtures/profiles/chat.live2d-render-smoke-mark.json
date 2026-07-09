@@ -1,4 +1,0 @@
-{
-  "extends": "chat.live2d-render-smoke.json",
-  "scenarioId": "chat.live2d-render-smoke-mark"
-}

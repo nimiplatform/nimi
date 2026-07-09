@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
 import {
   createDefaultAgentCenterLocalConfig,
@@ -14,6 +15,10 @@ import {
 } from '../src/shell/renderer/features/chat/chat-agent-center-local-config';
 import {
   agentCenterLocalConfigQueryKey,
+  pickAgentCenterAvatarLive2dSource,
+  pickAgentCenterAvatarVrmSource,
+  pickAgentCenterBackgroundSource,
+  pickAgentCenterLive2dAdapterManifestSource,
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
 
 const CONFIG_IDENTITY = {
@@ -22,6 +27,27 @@ const CONFIG_IDENTITY = {
   runtime_source_ref: 'agent_1',
   local_agent_ref: 'local-agent:owner_1:agent_1',
 } as const;
+
+type DesktopBridgeTestGlobal = typeof globalThis & {
+  __NIMI_ELECTRON_TEST__?: {
+    invoke: (command: string, payload?: unknown) => Promise<unknown>;
+    listen: (eventName: string, handler: (event: { payload: unknown }) => void) => () => void;
+  };
+};
+
+async function withStandardShellInvoke<T>(
+  invoke: (command: string, payload?: unknown) => Promise<unknown>,
+  run: () => Promise<T>,
+): Promise<T> {
+  const root = globalThis as DesktopBridgeTestGlobal;
+  const previous = root.__NIMI_ELECTRON_TEST__;
+  root.__NIMI_ELECTRON_TEST__ = { invoke, listen: () => () => undefined };
+  try {
+    return await run();
+  } finally {
+    root.__NIMI_ELECTRON_TEST__ = previous;
+  }
+}
 
 test('Agent Center local config bridge parser accepts Rust store payload shape', () => {
   const result = validateAgentCenterLocalConfig({
@@ -194,6 +220,78 @@ test('Agent Center local config bridge exposes stable query key shape', () => {
     'account_1',
     'local-agent:owner_1:agent_1',
   ]);
+});
+
+test('Agent Center file pickers use Kit standard file dialog payloads', async () => {
+  const calls: Array<{ command: string; payload: unknown }> = [];
+  await withStandardShellInvoke(async (command, payload) => {
+    calls.push({ command, payload });
+    return { canceled: false, paths: [`D:/picked/${calls.length}`] };
+  }, async () => {
+    assert.equal(await pickAgentCenterLive2dAdapterManifestSource(), 'D:/picked/1');
+    assert.equal(await pickAgentCenterAvatarLive2dSource(), 'D:/picked/2');
+    assert.equal(await pickAgentCenterAvatarVrmSource(), 'D:/picked/3');
+    assert.equal(await pickAgentCenterBackgroundSource(), 'D:/picked/4');
+  });
+
+  assert.deepEqual(calls, [
+    {
+      command: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
+      payload: {
+        payload: {
+          kind: 'file',
+          title: 'Select Live2D adapter manifest',
+          filters: [
+            { name: 'JSON', extensions: ['json'] },
+            { name: 'All Files', extensions: ['*'] },
+          ],
+        },
+      },
+    },
+    {
+      command: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
+      payload: {
+        payload: {
+          kind: 'directory',
+          title: 'Select Live2D folder',
+        },
+      },
+    },
+    {
+      command: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
+      payload: {
+        payload: {
+          kind: 'file',
+          title: 'Select VRM file',
+          filters: [
+            { name: 'VRM', extensions: ['vrm'] },
+            { name: 'All Files', extensions: ['*'] },
+          ],
+        },
+      },
+    },
+    {
+      command: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
+      payload: {
+        payload: {
+          kind: 'file',
+          title: 'Select background image',
+          filters: [
+            { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] },
+          ],
+        },
+      },
+    },
+  ]);
+});
+
+test('Agent Center file pickers preserve cancel as null', async () => {
+  await withStandardShellInvoke(async () => ({ canceled: true, paths: [] }), async () => {
+    assert.equal(await pickAgentCenterLive2dAdapterManifestSource(), null);
+    assert.equal(await pickAgentCenterAvatarLive2dSource(), null);
+    assert.equal(await pickAgentCenterAvatarVrmSource(), null);
+    assert.equal(await pickAgentCenterBackgroundSource(), null);
+  });
 });
 
 test('Agent Center local config default includes closed avatar configuration fields', () => {

@@ -250,6 +250,11 @@ export function resolveAgentConsumerSnapshotForHarness(input: {
       emptyTitle: 'Start the local agent conversation',
       emptyDescription: 'Send a message to start the local agent conversation.',
       loadingLabel: 'Loading local agent conversation…',
+      pendingAgentRoleLabel: 'Agent is replying',
+      pendingThinkingLabel: 'Thinking...',
+      pendingStopLabel: 'Stop generating',
+      todayLabel: 'Today',
+      yesterdayLabel: 'Yesterday',
     },
     renderMessageContent,
   });

@@ -18,19 +18,6 @@ export const scenarioRegistry = new Map([
   ['runtime.config-panel-load', { bucket: 'smoke', profile: 'runtime.config-panel-load.json', spec: 'apps/desktop/e2e/specs/runtime.config-panel-load.e2e.mjs' }],
   ['settings.release-strip-and-preferences', { bucket: 'journeys', profile: 'settings.release-strip-and-preferences.json', spec: 'apps/desktop/e2e/specs/settings.release-strip-and-preferences.e2e.mjs' }],
   ['chat.open-thread', { bucket: 'journeys', profile: 'chat.open-thread.json', spec: 'apps/desktop/e2e/specs/chat.open-thread.e2e.mjs' }],
-  ['chat.memory-standard-bind', { bucket: 'journeys', profile: 'chat.memory-standard-bind.json', spec: 'apps/desktop/e2e/specs/chat.memory-standard-bind.e2e.mjs' }],
-  ['chat.live2d-render-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.live2d-render-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.live2d-render-smoke-mark', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.live2d-render-smoke-mark-speaking', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.live2d-avatar-product-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.live2d-avatar-local-asset-missing-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.live2d-render-smoke-mark.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-lifecycle-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-speaking-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-speaking-smoke-no-viseme', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-listening-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-thinking-smoke', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-lifecycle-smoke-avatar-sample-a', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
-  ['chat.vrm-lifecycle-smoke-avatar-sample-b', { bucket: 'journeys', runner: MACOS_SMOKE_RUNNER, profile: 'chat.vrm-lifecycle-smoke.json', spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs' }],
   ['explore.panel-load', { bucket: 'journeys', profile: 'explore.panel-load.json', spec: 'apps/desktop/e2e/specs/explore.panel-load.e2e.mjs' }],
   ['explore.feed-profile-modal', { bucket: 'journeys', profile: 'explore.feed-profile-modal.json', spec: 'apps/desktop/e2e/specs/explore.feed-profile-modal.e2e.mjs' }],
   ['runtime.local-ai.panel-load', { bucket: 'journeys', profile: 'runtime.local-ai.panel-load.json', spec: 'apps/desktop/e2e/specs/runtime.local-ai.panel-load.e2e.mjs' }],
@@ -44,24 +31,10 @@ export const scenarioRegistry = new Map([
   ['nimi-app-platform.negative.electron-host', { bucket: 'nimi-app-platform-negative', runner: ELECTRON_HOST_RUNNER, profile: 'nimi-app-platform-negative-digest-mismatch.json', spec: 'apps/desktop/e2e/specs/nimi-app-platform-negative.electron-host.e2e.mjs' }],
 ]);
 
-const live2dSampleScenarioPattern = /^chat\.live2d-render-smoke-([a-z0-9-]+)$/;
-
-export function isDynamicLive2dSampleScenario(scenarioId) {
-  return live2dSampleScenarioPattern.test(scenarioId) && !scenarioRegistry.has(scenarioId);
-}
-
 export function scenarioEntryForId(scenarioId) {
   const explicit = scenarioRegistry.get(scenarioId);
   if (explicit) {
     return explicit;
-  }
-  if (isDynamicLive2dSampleScenario(scenarioId)) {
-    return {
-      bucket: 'journeys',
-      runner: MACOS_SMOKE_RUNNER,
-      profile: 'chat.live2d-render-smoke-sample.json',
-      spec: 'apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs',
-    };
   }
   return null;
 }

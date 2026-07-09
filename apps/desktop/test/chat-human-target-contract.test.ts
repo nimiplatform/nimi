@@ -15,6 +15,7 @@ import {
   toHumanFriendTargetsFromSocialSnapshot,
 } from '../src/shell/renderer/features/chat/chat-sidebar-targets.js';
 import type { LocalAgentListItem } from '../src/shell/renderer/features/agents/local-agent-list-model.js';
+import type { SourceDetailData } from '../src/shell/renderer/features/source-detail/source-detail-model.js';
 
 test('human target contract collapses multiple chats for the same other user into one canonical target', () => {
   const chats = [
@@ -198,6 +199,93 @@ test('agent sidebar targets include Runtime ListAgents items even without Realm 
     bio: null,
     ownershipType: null,
     greeting: null,
+    builtinDocsContext: null,
+  });
+});
+
+test('agent sidebar targets rehydrate Runtime worldCharacter items from source detail projection', () => {
+  const localAgent = {
+    localAgentRef: 'local-agent:runtime-owned-yan-zhenqing',
+    ownerUserId: 'owner-1',
+    runtimeSourceRef: 'runtime-source:worldCharacter:tang:yan-zhenqing:hash-1',
+    displayName: 'Yan Zhenqing',
+    sourceRef: {
+      kind: 'worldCharacter',
+      worldId: 'world-tang',
+      sourceId: 'yan-zhenqing',
+      sourceContentHash: 'hash-1',
+    },
+    sourceKey: 'worldCharacter:world-tang:yan-zhenqing:hash-1',
+  } satisfies LocalAgentListItem;
+
+  const sourceDetail = {
+    id: 'yan-zhenqing',
+    displayName: '颜真卿',
+    handle: '~yan-zhenqing',
+    avatarUrl: 'https://cdn.example.test/yan/avatar.png',
+    profileCoverUrl: 'https://cdn.example.test/yan/cover.png',
+    referenceImageUrl: 'https://cdn.example.test/yan/reference.png',
+    voiceSample: null,
+    voiceDesign: null,
+    bio: '唐代书法家、忠臣、政治家。',
+    createdAt: '2026-07-09T00:00:00.000Z',
+    tags: ['唐代', '书法家'],
+    isOnline: false,
+    state: null,
+    archetype: null,
+    origin: null,
+    tier: null,
+    pacing: null,
+    visibility: null,
+    ownershipType: 'WORLD_OWNED',
+    worldId: 'world-tang',
+    sourceKind: 'worldCharacter',
+    sourceId: 'yan-zhenqing',
+    sourceContentHash: 'hash-1',
+    runtimeSourceRef: 'runtime-source:worldCharacter:tang:yan-zhenqing:hash-1',
+    sourceRef: localAgent.sourceRef,
+    entity: null,
+    worldCharacter: {
+      role: '书法家、忠臣、政治家',
+      faction: '唐代士族、书法大家',
+      rank: '太师、鲁郡公',
+      sceneRefs: ['tang-court'],
+      milestones: [],
+      relationshipNotes: [],
+      conversationAnchors: ['想问书法、仕途还是安史之乱？'],
+      interaction: {
+        tone: '沉稳刚正',
+        cadence: '缓慢有力',
+        scenario: null,
+        greeting: '老夫颜真卿，愿与你谈书法与世道。',
+      },
+    },
+    relationshipClues: [],
+    works: [],
+    worksAvailability: 'unavailable',
+    isFriend: false,
+    sourceState: 'local_agent_available',
+    worldBannerUrl: 'https://cdn.example.test/tang/banner.png',
+  } satisfies SourceDetailData;
+
+  const runtimeTargets = toAgentTargetsFromLocalAgentList(
+    [localAgent],
+    new Map([['world-tang', 'Tang Literati']]),
+    new Map([[localAgent.sourceKey, sourceDetail]]),
+  );
+
+  assert.deepEqual(toAgentTargetSnapshotFromSummary(runtimeTargets[0]), {
+    ownerUserId: 'owner-1',
+    runtimeSourceRef: 'runtime-source:worldCharacter:tang:yan-zhenqing:hash-1',
+    localAgentRef: 'local-agent:runtime-owned-yan-zhenqing',
+    displayName: '颜真卿',
+    handle: '~yan-zhenqing',
+    avatarUrl: 'https://cdn.example.test/yan/avatar.png',
+    worldId: 'world-tang',
+    worldName: 'Tang Literati',
+    bio: '唐代书法家、忠臣、政治家。',
+    ownershipType: 'WORLD_OWNED',
+    greeting: '老夫颜真卿，愿与你谈书法与世道。',
     builtinDocsContext: null,
   });
 });

@@ -58,6 +58,11 @@ test('agent host view resolves availability badge and selected target id from sh
       emptyTitle: 'Start the local agent conversation',
       emptyDescription: 'Send a message to start the local agent conversation.',
       loadingLabel: 'Loading local agent conversation…',
+      pendingAgentRoleLabel: 'Agent is replying',
+      pendingThinkingLabel: 'Thinking...',
+      pendingStopLabel: 'Stop generating',
+      todayLabel: 'Today',
+      yesterdayLabel: 'Yesterday',
     },
     renderMessageContent,
   });
@@ -86,12 +91,32 @@ test('agent host view renders streaming footer and propagates pendingFirstBeat t
       emptyTitle: 'Start the local agent conversation',
       emptyDescription: 'Send a message to start the local agent conversation.',
       loadingLabel: 'Loading local agent conversation…',
+      pendingAgentRoleLabel: '伙伴正在回复',
+      pendingThinkingLabel: '正在思考...',
+      pendingStopLabel: '停止生成',
+      todayLabel: '今天',
+      yesterdayLabel: '昨天',
     },
     renderMessageContent,
   });
 
   assert.equal(hostView.transcriptProps?.pendingFirstBeat, true);
   assert.equal(hostView.stagePanelProps?.pendingFirstBeat, true);
+  assert.equal(hostView.transcriptProps?.pendingAgentRoleLabel, '伙伴正在回复');
+  assert.equal(hostView.transcriptProps?.pendingThinkingLabel, '正在思考...');
+  assert.equal(hostView.transcriptProps?.pendingStopLabel, '停止生成');
+  assert.equal(hostView.stagePanelProps?.pendingAgentRoleLabel, '伙伴正在回复');
+  assert.equal(hostView.stagePanelProps?.pendingThinkingLabel, '正在思考...');
+  assert.equal(hostView.transcriptProps?.formatDateLabel?.({
+    timestamp: new Date().toISOString(),
+    date: new Date(),
+    diffDays: 0,
+  }), '今天');
+  assert.equal(hostView.transcriptProps?.formatDateLabel?.({
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
+    date: new Date(Date.now() - 86400000),
+    diffDays: 1,
+  }), '昨天');
   assert.ok(React.isValidElement(hostView.transcriptProps?.footerContent));
   assert.ok(React.isValidElement(hostView.stagePanelProps?.footerContent));
   assert.equal(hostView.transcriptProps?.footerContent.props['data-testid'], 'footer-streaming');
@@ -114,6 +139,11 @@ test('agent host view renders interrupted footer copy when the footer state is i
       emptyTitle: 'Start the local agent conversation',
       emptyDescription: 'Send a message to start the local agent conversation.',
       loadingLabel: 'Loading local agent conversation…',
+      pendingAgentRoleLabel: 'Agent is replying',
+      pendingThinkingLabel: 'Thinking...',
+      pendingStopLabel: 'Stop generating',
+      todayLabel: 'Today',
+      yesterdayLabel: 'Yesterday',
     },
     renderMessageContent,
   });

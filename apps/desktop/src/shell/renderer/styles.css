@@ -40,7 +40,7 @@
    Layer 0: app-native glass base (bottom) — preserves the app's established
             glass aesthetic; stays inside the app window, not over the desktop
    Layer 1: optional backdrop mask (per-agent in-app imported image)
-   Layer 2: avatar stage (Live2D / VRM)
+   Layer 2: external Avatar app handoff/status projection; no desktop-local renderer
    Layer 3: components (nav / transcript / composer / rail)
 */
 
@@ -57,10 +57,6 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  pointer-events: none;
-}
-
-.chat-agent-layer-avatar {
   pointer-events: none;
 }
 

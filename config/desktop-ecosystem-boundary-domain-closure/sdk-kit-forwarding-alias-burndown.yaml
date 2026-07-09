@@ -9,9 +9,8 @@ closure_result:
 authority_posture:
   spec_status: alignment
   authority_owner:
-    - sdk/src/ai/**
-    - sdk/src/app/**
-    - sdk/src/platform-catalog/**
+    - sdks/typescript/core/ai/**
+    - sdks/typescript/core/app/**
     - kit/auth/**
     - apps/desktop/src/public-web/**
   work_type: alignment
@@ -32,7 +31,7 @@ scope:
   excluded:
     - Public-web facades already legalized as admitted Web scaffold.
     - Desktop app-owned barrels that only re-export local Desktop modules.
-    - Bridge shared/runtime type facades, offline coordinator facade, avatar framing shells, app lifecycle type facade, world detail SDK type facade, runtime catalog type facade, first-run materialization type facade, and runtime-agent inspect type facade. These were detected by the new boundary scan and must be closed as separate domains.
+    - Bridge shared/runtime type facades, offline coordinator facade, app lifecycle type facade, world detail SDK type facade, runtime catalog type facade, first-run materialization type facade, and runtime-agent inspect type facade. These were detected by the new boundary scan and must be closed as separate domains.
 preflight_violation_inventory:
   platform_truth:
     - finding: Desktop modules forwarded SDK/Kit owner symbols as if Desktop were a public owner.
@@ -53,9 +52,8 @@ preflight_violation_inventory:
       disposition: not applicable.
 migrated:
   shared_owners:
-    - sdk/src/ai/**
-    - sdk/src/app/**
-    - sdk/src/platform-catalog/**
+    - sdks/typescript/core/ai/**
+    - sdks/typescript/core/app/**
     - kit/auth/**
   desktop_consumers:
     - apps/desktop/src/shell/renderer/app-shell/providers/runtime-slice.ts imports applyAIProfileToConfig from SDK directly.
@@ -97,8 +95,6 @@ prohibited_patterns:
       - apps/desktop/src/shell/renderer/bridge/runtime-bridge/runtime-types.ts
       - apps/desktop/src/shell/renderer/bridge/runtime-bridge/shared.ts
       - apps/desktop/src/shell/renderer/features/apps/apps-lifecycle-bridge.ts
-      - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-framing.ts
-      - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-framing.ts
       - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-catalog-sdk-service.ts
       - apps/desktop/src/shell/renderer/features/world/world-detail-types.ts
       - apps/desktop/src/shell/renderer/first-run/runtime-materialization.ts

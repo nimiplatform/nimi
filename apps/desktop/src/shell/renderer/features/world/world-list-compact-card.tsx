@@ -36,7 +36,7 @@ export function CompactWorldCard({
       elevation="base"
       padding="sm"
       className={[
-        'relative min-h-[96px] rounded-[20px] transition duration-200 hover:-translate-y-0.5',
+        'relative min-h-[112px] min-w-0 max-w-full rounded-[20px] transition duration-200 hover:-translate-y-0.5',
         selected ? 'world-card--selected' : '',
       ].join(' ')}
       style={{
@@ -67,14 +67,14 @@ export function CompactWorldCard({
       <button
         type="button"
         aria-pressed={selected}
-        className="grid w-full min-w-0 cursor-pointer items-center gap-3 border-0 bg-transparent p-0 pr-8 text-left"
+        className="grid w-full min-w-0 cursor-pointer items-center gap-4 border-0 bg-transparent p-0 pr-8 text-left"
         style={{ gridTemplateColumns: listMode ? '86px minmax(0,1fr)' : '86px minmax(0,1fr)' }}
         onClick={onSelect}
         onDoubleClick={onOpen}
       >
-        <WorldCover world={world} variant="thumb" className={listMode ? 'h-[72px]' : ''} />
+        <WorldCover world={world} variant="thumb" className={listMode ? 'h-[86px]' : ''} />
         <span className="grid min-w-0 gap-1.5">
-          <NimiText as="span" role="card-title" className="truncate text-[15px] font-bold text-[var(--world-explorer-text)]" title={world.name}>
+          <NimiText as="span" role="card-title" className="truncate text-[14px] font-bold text-[var(--world-explorer-text)]" title={world.name}>
             {world.name}
           </NimiText>
           {tags.length > 0 ? (

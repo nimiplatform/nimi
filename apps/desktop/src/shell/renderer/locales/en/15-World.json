@@ -25,6 +25,11 @@
     "description": "Public world backgrounds, rules, and source directories for choosing characters or personas."
   },
   "atlas": {
+    "discovery": {
+      "title": "Explore worlds",
+      "subtitle": "Choose a world and start your source discovery journey."
+    },
+    "discoverMore": "Discover more worlds",
     "countSummary": "{{value}} worlds / public setting index",
     "worldCount": "{{value}} worlds",
     "sourceDiscovery": "Source Discovery",

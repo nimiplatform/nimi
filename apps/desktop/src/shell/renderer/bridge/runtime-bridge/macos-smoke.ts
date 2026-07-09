@@ -4,10 +4,8 @@ import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { JsonObject } from './shared.js';
 import {
   parseDesktopMacosSmokeContext,
-  parseDesktopMacosSmokeAvatarEvidenceReadResult,
   parseDesktopMacosSmokeReportResult,
   type DesktopMacosSmokeContext,
-  type DesktopMacosSmokeAvatarEvidenceReadResult,
   type DesktopMacosSmokeReportPayload,
   type DesktopMacosSmokeReportResult,
 } from './types';
@@ -21,33 +19,6 @@ export async function getDesktopMacosSmokeContext(): Promise<DesktopMacosSmokeCo
     {},
     parseDesktopMacosSmokeContext,
   );
-}
-
-export async function readDesktopMacosSmokeAvatarEvidence(
-  avatarInstanceId: string,
-): Promise<DesktopMacosSmokeAvatarEvidenceReadResult> {
-  if (!hasTauriInvoke()) {
-    throw new Error('desktop_macos_smoke_avatar_evidence_read requires Tauri runtime');
-  }
-  return invokeChecked(
-    'desktop_macos_smoke_avatar_evidence_read',
-    { payload: { avatarInstanceId } },
-    parseDesktopMacosSmokeAvatarEvidenceReadResult,
-  );
-}
-
-export async function applyDesktopMacosSmokeAvatarProductLocalAssetFault(
-  faultKind: 'missing_entry_file',
-): Promise<JsonObject> {
-  if (!hasTauriInvoke()) {
-    throw new Error('desktop_macos_smoke_avatar_product_local_asset_fault_apply requires Tauri runtime');
-  }
-  const result = await invokeTauri('desktop_macos_smoke_avatar_product_local_asset_fault_apply', {
-    payload: { faultKind },
-  });
-  return result && typeof result === 'object' && !Array.isArray(result)
-    ? result as JsonObject
-    : {};
 }
 
 export async function writeDesktopMacosSmokeReport(

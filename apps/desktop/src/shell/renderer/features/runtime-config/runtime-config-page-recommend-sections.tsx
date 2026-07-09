@@ -262,11 +262,13 @@ export function SelectChip({
   options,
   value,
   onChange,
+  contentClassName = 'w-52 overflow-hidden rounded-xl bg-white p-0',
 }: {
   label: string;
   options: { value: string; label: string }[];
   value: string;
   onChange: (value: string) => void;
+  contentClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const selectedOption = options.find((o) => o.value === value);
@@ -287,7 +289,7 @@ export function SelectChip({
       <PopoverContent
         align="start"
         sideOffset={6}
-        className="w-52 overflow-hidden rounded-xl bg-white p-0"
+        className={contentClassName}
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <ScrollArea className="max-h-56" viewportClassName="max-h-56" contentClassName="py-1">

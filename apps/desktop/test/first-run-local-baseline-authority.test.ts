@@ -17,10 +17,6 @@ const productControlWorkflowSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/first-run/product-control-workflow.tsx'),
   'utf8',
 );
-const readinessTypesSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/first-run/types.ts'),
-  'utf8',
-);
 const productControlBridgeSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
   'utf8',
@@ -109,9 +105,21 @@ test('config_missing is an internal transient and does not expose the data-root 
 });
 
 test('first-run readiness includes product control record and selected data root gates', () => {
-  assert.match(readinessTypesSource, /productControlRecord/);
-  assert.match(readinessTypesSource, /dataRoot/);
-  assert.match(readinessTypesSource, /readyForUse: boolean/);
+  for (const removed of [
+    'types.ts',
+    'readiness-projection.ts',
+    'readiness-view.tsx',
+    'discovery-projection.ts',
+    'discovery-view.tsx',
+    'library-projection.ts',
+    'library-view.tsx',
+  ]) {
+    assert.equal(
+      fs.existsSync(path.join(import.meta.dirname, '../src/shell/renderer/first-run', removed)),
+      false,
+      `${removed} must stay hard-cut after Product Control first-run admission`,
+    );
+  }
   assert.match(productControlBridgeSource, /ready_for_use/);
 });
 

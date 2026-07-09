@@ -93,6 +93,14 @@ test('recommend single-select chips make the selected value visually explicit', 
   assert.doesNotMatch(recommendSectionsSource, /<span className="text-\[var\(--nimi-text-secondary\)\]">\{displayLabel\}<\/span>/);
 });
 
+test('recommend capability dropdown uses the compact single-select menu width', () => {
+  assert.match(recommendSectionsSource, /contentClassName\?: string/);
+  assert.match(
+    recommendPageSource,
+    /label=\{t\('runtimeConfig\.recommend\.capabilityLabel'[\s\S]*?contentClassName="w-40 overflow-hidden rounded-xl bg-white p-0"/,
+  );
+});
+
 test('recommend page retries empty or stale model-index snapshots on mount', () => {
   assert.match(recommendPageSource, /cacheState === 'fresh' \? 24 \* 60 \* 60 \* 1000 : 0/);
   assert.match(recommendPageSource, /refetchOnMount:\s*true/);

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { repoRoot, writeJson } from './run-macos-smoke-helpers.mjs';
 
 export function applicationPath() {
@@ -242,59 +242,12 @@ export function closeWriteStream(stream) {
   });
 }
 
-export function avatarInstanceIdFromReport(smokeReportPath) {
-  try {
-    const report = JSON.parse(fs.readFileSync(smokeReportPath, 'utf8'));
-    return String(report?.details?.avatarProductPath?.liveInstance?.avatarInstanceId || '').trim();
-  } catch {
-    return '';
-  }
-}
-
-export async function terminateAvatarProductResidue(smokeReportPath) {
-  const avatarInstanceId = avatarInstanceIdFromReport(smokeReportPath);
-  if (!avatarInstanceId) {
-    return;
-  }
-  const result = spawnSync('pgrep', ['-f', avatarInstanceId], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-  });
-  if (result.status !== 0 || !result.stdout.trim()) {
-    return;
-  }
-  const pids = result.stdout
-    .split(/\s+/)
-    .map((value) => Number.parseInt(value, 10))
-    .filter((pid) => Number.isFinite(pid) && pid > 0 && pid !== process.pid);
-  for (const pid of pids) {
-    await terminatePid(pid, `Avatar product smoke residue ${avatarInstanceId}`);
-  }
-}
-
-export async function terminateAvatarProductProcessResidue() {
-  const result = spawnSync('pgrep', ['-f', 'Nimi Avatar.app/Contents/MacOS/nimiplatform-avatar'], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-  });
-  if (result.status !== 0 || !result.stdout.trim()) {
-    return;
-  }
-  const pids = result.stdout
-    .split(/\s+/)
-    .map((value) => Number.parseInt(value, 10))
-    .filter((pid) => Number.isFinite(pid) && pid > 0 && pid !== process.pid);
-  for (const pid of pids) {
-    await terminatePid(pid, 'Avatar product smoke process residue');
-  }
-}
-
 export async function terminateRuntimeStartedByScenario(initialRuntimeLockPid, lockPath = '') {
   const currentLockPid = readRuntimeLockPid(lockPath);
   if (!currentLockPid || currentLockPid === initialRuntimeLockPid) {
     return;
   }
-  await terminatePid(currentLockPid, 'Runtime product smoke residue');
+  await terminatePid(currentLockPid, 'Runtime smoke residue');
   const remainingLockPid = readRuntimeLockPid(lockPath);
   if (remainingLockPid === currentLockPid && !isProcessAlive(currentLockPid)) {
     try {

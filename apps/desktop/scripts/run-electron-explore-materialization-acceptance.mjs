@@ -8,13 +8,13 @@ import { Runtime } from '@nimiplatform/sdk/runtime';
 import { startRealmFixtureServer } from '../e2e/fixtures/realm-fixture-server.mjs';
 import {
   APP_ID,
-  DISABLED_PERSONA_ID,
   OWNER_USER_ID,
-  VALID_PERSONA_ID,
+  VALID_CHARACTER_ID,
   VALID_SOURCE_REF,
 } from './explore-materialization-acceptance/acceptance-constants.mjs';
 import { createRealmFixtureManifest } from './explore-materialization-acceptance/acceptance-fixture.mjs';
 import {
+  delay,
   fetchJson,
   formatError,
   normalizeOptionalPath,
@@ -25,14 +25,13 @@ import {
 } from './explore-materialization-acceptance/acceptance-files.mjs';
 import {
   captureScreenshot,
+  inspectAccessibility,
   inspectLayout,
   normalizeWhitespace,
-  openExplorePersonas,
+  openExploreWorlds,
   readAIConfigStorageSnapshot,
   setElectronWindowSize,
-  waitForAttribute,
   waitForDesktopSurface,
-  waitForTextGenerateTargetRef,
 } from './explore-materialization-acceptance/acceptance-page.mjs';
 import {
   createAcceptanceAgentClient,
@@ -60,10 +59,11 @@ delete acceptanceBaseEnv.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET;
 safeResetDir(artifactsDir, { reportsRoot: path.join(appRoot, 'reports', 'e2e') });
 const runtimeStdoutPath = path.join(artifactsDir, 'runtime-stdout.log');
 const runtimeStderrPath = path.join(artifactsDir, 'runtime-stderr.log');
-const desktopScreenshotPath = path.join(artifactsDir, 'desktop-explore-persona.png');
-const narrowScreenshotPath = path.join(artifactsDir, 'narrow-explore-persona.png');
+const desktopScreenshotPath = path.join(artifactsDir, 'desktop-explore-world-character.png');
+const narrowScreenshotPath = path.join(artifactsDir, 'narrow-world-character-detail.png');
 const chatScreenshotPath = path.join(artifactsDir, 'desktop-chat-consumption.png');
 const sourceDetailOpenPartnerScreenshotPath = path.join(artifactsDir, 'desktop-source-detail-open-partner.png');
+const sourceDetailMaterializationFailureScreenshotPath = path.join(artifactsDir, 'desktop-source-detail-materialization-failure.png');
 const chatSendAttemptScreenshotPath = path.join(artifactsDir, 'desktop-chat-send-after-model-selection.png');
 const agentModelSettingsScreenshotPath = path.join(artifactsDir, 'desktop-agent-model-settings.png');
 const agentModelChatDetailScreenshotPath = path.join(artifactsDir, 'desktop-agent-model-chat-detail.png');
@@ -109,7 +109,7 @@ rendererServer = await startAcceptanceRendererServer({
 rendererUrl = `${rendererServer.origin}/index.html?nimiExploreMaterializationAcceptance=1`;
 const desktopFixtureOrigin = rendererServer.origin;
 const realtimeFixtureOrigin = localhostOrigin(fixtureServer.origin);
-writeJsonFile(manifestPath, createRealmFixtureManifest(desktopFixtureOrigin));
+writeJsonFile(manifestPath, createRealmFixtureManifest(desktopFixtureOrigin, fixtureServer.origin));
 
 let runtimeDaemon = null;
 let electronApp = null;
@@ -117,6 +117,60 @@ const consoleErrors = [];
 const consoleErrorDetails = [];
 const pageErrors = [];
 const observations = {};
+
+async function waitForDiscoveredLocalAgent(agentClient) {
+  const deadline = Date.now() + 60_000;
+  let discovered = [];
+  while (Date.now() < deadline) {
+    discovered = await agentClient.discoverBySource({
+      ownerUserId: OWNER_USER_ID,
+      sourceRef: VALID_SOURCE_REF,
+    });
+    if (discovered.length > 0) {
+      return discovered;
+    }
+    await delay(500);
+  }
+  return discovered;
+}
+
+function runtimeAgentIdentity(localAgentRef, runtimeSourceRef) {
+  return {
+    ownerUserId: OWNER_USER_ID,
+    subjectUserId: OWNER_USER_ID,
+    localAgentRef,
+    runtimeSourceRef,
+  };
+}
+
+async function readRuntimeAgentAIConfig(agentClient, identity) {
+  return agentClient.agentAIConfig.get(identity);
+}
+
+function textGenerateTargetRefFromRuntimeAIConfig(snapshot) {
+  const targetRef = snapshot?.intents?.['text.generate']?.targetRef;
+  if (!targetRef || typeof targetRef !== 'object') {
+    return null;
+  }
+  if (targetRef.kind === 'local-runtime' || targetRef.kind === 'cloud-connector') {
+    return targetRef;
+  }
+  return null;
+}
+
+async function waitForRuntimeTextGenerateTargetRef(agentClient, identity) {
+  const deadline = Date.now() + 30_000;
+  let lastSnapshot = null;
+  while (Date.now() < deadline) {
+    lastSnapshot = await readRuntimeAgentAIConfig(agentClient, identity);
+    const targetRef = textGenerateTargetRefFromRuntimeAIConfig(lastSnapshot);
+    if (targetRef) {
+      return { targetRef, snapshot: lastSnapshot };
+    }
+    await delay(500);
+  }
+  return { targetRef: null, snapshot: lastSnapshot };
+}
 
 try {
   const runtimeContext = await startRuntimeDaemon({
@@ -200,79 +254,119 @@ try {
     throw new Error(`Desktop Electron did not reach main shell; surface=${surface}. Screenshot: ${firstRunScreenshotPath}`);
   }
 
-  await openExplorePersonas(page);
-  const validAction = page.getByTestId(`explore-persona-source-primary-action:${VALID_PERSONA_ID}`);
-  const disabledAction = page.getByTestId(`explore-persona-source-primary-action:${DISABLED_PERSONA_ID}`);
-  await validAction.waitFor({ state: 'visible', timeout: 60_000 });
-  await disabledAction.waitFor({ state: 'visible', timeout: 60_000 });
-  await waitForAttribute(validAction, 'data-primary-action', 'become_partner');
-  await waitForAttribute(validAction, 'data-source-state', 'source_materialization_available');
-  await waitForAttribute(disabledAction, 'data-primary-action', 'source_materialization_unavailable');
-  assert.equal(await validAction.isEnabled(), true, 'valid persona CTA must be enabled');
-  assert.equal(await disabledAction.isDisabled(), true, 'missing-hash persona CTA must be disabled');
-  assert.match(await validAction.innerText(), /成为我的伙伴/u);
-  assert.match(await disabledAction.innerText(), /不可用/u);
+  await openExploreWorlds(page);
+  const worldPreviewPeople = page.getByTestId('world-atlas-preview-people');
+  await worldPreviewPeople.waitFor({ state: 'visible', timeout: 60_000 });
+  observations.worldPreviewDisabledActions = await worldPreviewPeople.locator('button:disabled').count();
+  assert.ok(
+    observations.worldPreviewDisabledActions > 0,
+    'World preview must expose a disabled/unavailable source action.',
+  );
 
   await captureScreenshot(page, desktopScreenshotPath);
   const desktopLayout = await inspectLayout(page);
   assert.equal(desktopLayout.hasHorizontalOverflow, false, `desktop layout overflow: ${JSON.stringify(desktopLayout)}`);
+  observations.desktopAccessibility = await inspectAccessibility(page);
+  assert.equal(
+    observations.desktopAccessibility.unnamedInteractiveControls.length,
+    0,
+    `desktop interactive controls require accessible names: ${JSON.stringify(observations.desktopAccessibility)}`,
+  );
+
+  const firstWorldCharacterProfileButton = worldPreviewPeople.locator('button[aria-label]').first();
+  await firstWorldCharacterProfileButton.waitFor({ state: 'visible', timeout: 60_000 });
+  await firstWorldCharacterProfileButton.click();
+  await page.getByTestId('world-character-source-detail-page').waitFor({ state: 'visible', timeout: 60_000 });
+  assert.equal(
+    await page.getByTestId('source-detail-compact-profile-card').count(),
+    0,
+    'Source Detail must render the world-character page, not the legacy compact page.',
+  );
+  observations.sourceDetailSurface = 'world-character';
+  await page.locator('[data-testid="world-character-hero-avatar"] img[src*="yan-zhenqing-avatar"]').waitFor({
+    state: 'visible',
+    timeout: 30_000,
+  });
+  observations.worldCharacterHeroAvatarImages = await page
+    .locator('[data-testid="world-character-hero-avatar"] img[src*="yan-zhenqing-avatar"]')
+    .count();
+  await page.getByTestId('world-character-media-section').waitFor({ state: 'visible', timeout: 30_000 });
 
   await setElectronWindowSize(electronApp, 390, 860);
   await captureScreenshot(page, narrowScreenshotPath);
   const narrowLayout = await inspectLayout(page);
   assert.equal(narrowLayout.hasHorizontalOverflow, false, `narrow layout overflow: ${JSON.stringify(narrowLayout)}`);
+  observations.narrowAccessibility = await inspectAccessibility(page);
+  assert.equal(
+    observations.narrowAccessibility.unnamedInteractiveControls.length,
+    0,
+    `narrow interactive controls require accessible names: ${JSON.stringify(observations.narrowAccessibility)}`,
+  );
 
   await setElectronWindowSize(electronApp, 1440, 940);
-  await validAction.click();
-  await page.getByTestId('chat-page').waitFor({ state: 'visible', timeout: 60_000 });
-  await page.getByTestId('message-timeline').waitFor({ state: 'visible', timeout: 30_000 }).catch(() => undefined);
-  await captureScreenshot(page, chatScreenshotPath);
-  observations.agentChatInitialAIConfigStorage = await readAIConfigStorageSnapshot(page);
+  const becomePartnerAction = page
+    .locator('[data-testid="world-character-hero-actions"] button[data-primary-action="become_partner"]')
+    .first();
+  await becomePartnerAction.waitFor({ state: 'visible', timeout: 30_000 });
+  assert.equal(await becomePartnerAction.isEnabled(), true, 'world-character materialization action must be enabled');
+  await becomePartnerAction.click();
 
-  const discovered = await agentClient.discoverBySource({
-    ownerUserId: OWNER_USER_ID,
-    sourceRef: VALID_SOURCE_REF,
-  });
+  const discovered = await waitForDiscoveredLocalAgent(agentClient);
+  if (discovered.length !== 1) {
+    observations.sourceDetailAfterMaterializationText = normalizeWhitespace(await page.locator('body').innerText())
+      .slice(0, 2200);
+    await captureScreenshot(page, sourceDetailMaterializationFailureScreenshotPath);
+  }
   assert.equal(discovered.length, 1, `expected one Runtime-owned local agent, got ${discovered.length}`);
   const localAgentRef = discovered[0].localAgentRef;
   assert.match(localAgentRef, /^local-agent:runtime-/u, `localAgentRef is not Runtime-owned opaque ref: ${localAgentRef}`);
-  assert.ok(!localAgentRef.includes(VALID_PERSONA_ID), `localAgentRef leaks app source id: ${localAgentRef}`);
+  assert.ok(!localAgentRef.includes(VALID_CHARACTER_ID), `localAgentRef leaks app source id: ${localAgentRef}`);
   observations.localAgentRef = localAgentRef;
   observations.runtimeSourceRef = discovered[0].runtimeSourceRef;
+  const agentIdentity = runtimeAgentIdentity(localAgentRef, discovered[0].runtimeSourceRef);
 
-  const agentRailTarget = page.getByTestId(`chat-target:${localAgentRef}`);
-  await agentRailTarget.waitFor({ state: 'visible', timeout: 30_000 });
-  observations.agentChatLocalAgentRailTargetVisible = await agentRailTarget.isVisible();
-  assert.equal(observations.agentChatLocalAgentRailTargetVisible, true, 'Agent Chat rail must list Runtime ListAgents localAgent targets.');
-
+  await page.getByTestId('world-character-back-button').click();
+  await page.getByTestId('nav-tab:agents').waitFor({ state: 'visible', timeout: 30_000 });
+  observations.sourceDetailBackRestoredPrimaryRail = true;
   await page.getByTestId('nav-tab:agents').click();
   await page.getByTestId('panel:agents').waitFor({ state: 'visible', timeout: 30_000 });
   const localAgentCard = page.getByTestId(`agents-card:${localAgentRef}`);
   await localAgentCard.waitFor({ state: 'visible', timeout: 30_000 });
   await localAgentCard.click();
-  await page.waitForFunction(() => {
-    const worldCharacterDetail = globalThis.document.querySelector('[data-testid="world-character-source-detail-page"]');
-    const compactDetail = globalThis.document.querySelector('[data-testid="source-detail-compact-profile-card"]');
-    return Boolean(worldCharacterDetail || compactDetail);
-  }, null, { timeout: 30_000 });
-  observations.sourceDetailSurface = await page.evaluate(() => {
-    if (globalThis.document.querySelector('[data-testid="world-character-source-detail-page"]')) {
-      return 'world-character';
-    }
-    if (globalThis.document.querySelector('[data-testid="source-detail-compact-profile-card"]')) {
-      return 'compact-source';
-    }
-    return 'missing';
-  });
-  const openPartnerAction = page.locator('[data-primary-action="open_partner"]').first();
+  await page.getByTestId('world-character-source-detail-page').waitFor({ state: 'visible', timeout: 30_000 });
+  assert.equal(
+    await page.getByTestId('source-detail-compact-profile-card').count(),
+    0,
+    'Materialized LocalAgent card must open the world-character page, not the legacy compact page.',
+  );
+  const openPartnerAction = page.locator('[data-testid="world-character-hero-actions"] button:not([data-primary-action])').first();
   await openPartnerAction.waitFor({ state: 'visible', timeout: 30_000 });
-  await waitForAttribute(openPartnerAction, 'data-source-state', 'local_agent_available');
   assert.equal(await openPartnerAction.isEnabled(), true, 'Source Detail Open partner action must be enabled for existing Runtime localAgent.');
   await captureScreenshot(page, sourceDetailOpenPartnerScreenshotPath);
   await openPartnerAction.click();
   await page.getByTestId('chat-page').waitFor({ state: 'visible', timeout: 30_000 });
   await page.getByTestId(`chat-target:${localAgentRef}`).waitFor({ state: 'visible', timeout: 30_000 });
   observations.sourceDetailOpenPartnerRoutedToAgentChat = true;
+  await page.getByTestId('message-timeline').waitFor({ state: 'visible', timeout: 30_000 }).catch(() => undefined);
+
+  const agentRailTarget = page.getByTestId(`chat-target:${localAgentRef}`);
+  await agentRailTarget.waitFor({ state: 'visible', timeout: 30_000 });
+  observations.agentChatLocalAgentRailTargetVisible = await agentRailTarget.isVisible();
+  assert.equal(observations.agentChatLocalAgentRailTargetVisible, true, 'Agent Chat rail must list Runtime ListAgents localAgent targets.');
+  await agentRailTarget.locator('img[src*="yan-zhenqing-avatar"]').waitFor({ state: 'visible', timeout: 30_000 });
+  observations.agentChatLocalAgentRailAvatarImages = await agentRailTarget
+    .locator('img[src*="yan-zhenqing-avatar"]')
+    .count();
+  assert.ok(observations.agentChatLocalAgentRailAvatarImages > 0, 'Agent Chat rail must render the source-backed avatar image.');
+  await captureScreenshot(page, chatScreenshotPath);
+  observations.chatAccessibility = await inspectAccessibility(page);
+  assert.equal(
+    observations.chatAccessibility.unnamedInteractiveControls.length,
+    0,
+    `chat interactive controls require accessible names: ${JSON.stringify(observations.chatAccessibility)}`,
+  );
+  observations.agentChatInitialAIConfigStorage = await readAIConfigStorageSnapshot(page);
+  observations.agentChatInitialRuntimeAIConfig = await readRuntimeAgentAIConfig(agentClient, agentIdentity);
 
   const composerTextarea = page.locator('[data-chat-composer-textarea="true"]').first();
   await composerTextarea.waitFor({ state: 'visible', timeout: 30_000 });
@@ -287,7 +381,20 @@ try {
   await page.waitForTimeout(2500);
   await captureScreenshot(page, agentModelSettingsScreenshotPath);
   observations.agentModelSettingsAIConfigStorage = await readAIConfigStorageSnapshot(page);
+  observations.agentModelSettingsRuntimeAIConfig = await readRuntimeAgentAIConfig(agentClient, agentIdentity);
+  observations.agentModelSettingsEnglishCopyVisible = await page
+    .locator('[data-agent-center-model-surface="runtime-model-config-hub"]')
+    .first()
+    .getByText(/Runtime ready|Needs setup|Import AI Profile|No profile applied|AI Profile/i)
+    .count();
+  observations.agentModelSettingsEnglishStatusTransitionCopyVisible = await page
+    .locator('[data-agent-center-model-surface="runtime-model-config-hub"]')
+    .first()
+    .getByText(/Saving Runtime Agent AI Config|Saved Runtime Agent AI Config|Runtime Agent AI Config adapter unavailable|Runtime Agent AI Config revision unavailable|Runtime Agent AI Config update failed/i)
+    .count();
   observations.agentModeUnavailableVisible = await page.getByText(/Agent mode is temporarily unavailable/i).count();
+  assert.equal(observations.agentModelSettingsEnglishCopyVisible, 0, 'Agent model settings must not leak English model/profile status copy in zh shell.');
+  assert.equal(observations.agentModelSettingsEnglishStatusTransitionCopyVisible, 0, 'Agent model settings must not leak English Runtime AIConfig transition status copy in zh shell.');
   assert.equal(observations.agentModeUnavailableVisible, 0, 'Agent model settings must not fall back to unavailable mode.');
   const chatModelSection = page.locator('[data-nimi-model-config-section="chat"]').first();
   if (await chatModelSection.count()) {
@@ -295,7 +402,19 @@ try {
     await page.waitForTimeout(1000);
     await captureScreenshot(page, agentModelChatDetailScreenshotPath);
     observations.agentModelChatDetailVisible = await page.locator('[data-nimi-model-config-detail-section="chat"]').count();
+    observations.agentModelChatDetailEnglishConfigurationVisible = await page
+      .locator('[data-nimi-model-config-detail-section="chat"]')
+      .first()
+      .getByText(/Configuration/i)
+      .count();
+    observations.agentModelChatDetailEnglishStatusVisible = await page
+      .locator('[data-nimi-model-config-detail-section="chat"]')
+      .first()
+      .getByText(/Runtime ready|Needs setup|Setup required|Model selection required|Not configured|Click to change model/i)
+      .count();
     observations.agentModeUnavailableAfterChatDetailVisible = await page.getByText(/Agent mode is temporarily unavailable/i).count();
+    assert.equal(observations.agentModelChatDetailEnglishConfigurationVisible, 0, 'Agent chat model detail must not leak English Configuration copy in zh shell.');
+    assert.equal(observations.agentModelChatDetailEnglishStatusVisible, 0, 'Agent chat model detail must not leak English status copy in zh shell.');
     assert.equal(observations.agentModeUnavailableAfterChatDetailVisible, 0, 'Agent chat model detail must not fall back to unavailable mode.');
     const textGenerateCard = page.locator('[data-nimi-model-config-capability="text.generate"]').first();
     observations.agentTextGenerateCardVisible = await textGenerateCard.count();
@@ -303,13 +422,23 @@ try {
       await textGenerateCard.locator('button').first().click();
       await page.waitForTimeout(2500);
       await captureScreenshot(page, agentModelPickerScreenshotPath);
-      const modelPickerDialog = page.locator('[role="dialog"][aria-modal="true"]').filter({ hasText: 'Select Model' }).first();
+      const modelPickerDialog = page.locator('[role="dialog"][aria-modal="true"]').filter({ hasText: /选择模型|Select Model/u }).first();
       await modelPickerDialog.waitFor({ state: 'visible', timeout: 30_000 });
       observations.agentModelPickerDialogVisible = await modelPickerDialog.count();
-      observations.agentModelPickerNoModelsVisible = await page.getByText(/No models available|No local models available/i).count();
+      observations.agentModelPickerLocalizedTitleVisible = await modelPickerDialog.getByText('选择模型').count();
+      observations.agentModelPickerLocalizedLocalTabVisible = await modelPickerDialog.getByText('本地').count();
+      observations.agentModelPickerLocalizedCloudTabVisible = await modelPickerDialog.getByText('云端').count();
+      observations.agentModelPickerLocalizedSearchVisible = await modelPickerDialog.getByPlaceholder('搜索模型').count();
+      observations.agentModelPickerEnglishCopyVisible = await modelPickerDialog.getByText(/Select Model|Search models|Text Generation/i).count();
+      observations.agentModelPickerNoModelsVisible = await page.getByText(/没有可用模型|当前能力没有可用的本地模型|No models available|No local models available/i).count();
       observations.agentModeUnavailableAfterPickerVisible = await page.getByText(/Agent mode is temporarily unavailable/i).count();
       assert.equal(observations.agentModeUnavailableAfterPickerVisible, 0, 'Agent model picker must not fall back to unavailable mode.');
       assert.equal(observations.agentModelPickerDialogVisible, 1, 'Agent text.generate model picker must open.');
+      assert.ok(observations.agentModelPickerLocalizedTitleVisible > 0, 'Agent model picker must render localized Chinese title.');
+      assert.ok(observations.agentModelPickerLocalizedLocalTabVisible > 0, 'Agent model picker must render localized Local tab.');
+      assert.ok(observations.agentModelPickerLocalizedCloudTabVisible > 0, 'Agent model picker must render localized Cloud tab.');
+      assert.ok(observations.agentModelPickerLocalizedSearchVisible > 0, 'Agent model picker must render localized search placeholder.');
+      assert.equal(observations.agentModelPickerEnglishCopyVisible, 0, 'Agent model picker must not leak English default copy in zh shell.');
       assert.equal(observations.agentModelPickerNoModelsVisible, 0, 'Agent text.generate picker must expose real Runtime route options.');
 
       const firstLocalModelButton = modelPickerDialog.locator('button').filter({ hasText: /local\./i }).first();
@@ -319,11 +448,17 @@ try {
       await modelPickerDialog.waitFor({ state: 'detached', timeout: 30_000 }).catch(async () => {
         await modelPickerDialog.waitFor({ state: 'hidden', timeout: 30_000 });
       });
-      observations.agentModelSelectedAIConfigTargetRef = await waitForTextGenerateTargetRef(page);
+      const selectedAIConfig = await waitForRuntimeTextGenerateTargetRef(agentClient, agentIdentity);
+      observations.agentModelSelectedAIConfigTargetRef = selectedAIConfig.targetRef;
+      observations.agentModelSelectedRuntimeAIConfig = selectedAIConfig.snapshot;
       observations.agentModelSelectedAIConfigStorage = await readAIConfigStorageSnapshot(page);
       await page.waitForTimeout(500);
       await captureScreenshot(page, agentModelSelectedScreenshotPath);
       observations.agentModelSelectedRouteUnavailableVisible = await page.getByText(/Route unhealthy|Route needs setup|路由不健康|路由需要配置|未通过最近一次健康检查|尚未就绪|latest health check|not ready/i).count();
+      observations.agentModelSelectedEnglishStatusTransitionCopyVisible = await page
+        .getByText(/Saving Runtime Agent AI Config|Saved Runtime Agent AI Config|Runtime Agent AI Config adapter unavailable|Runtime Agent AI Config revision unavailable|Runtime Agent AI Config update failed/i)
+        .count();
+      assert.equal(observations.agentModelSelectedEnglishStatusTransitionCopyVisible, 0, 'Agent model selection must not leak English Runtime AIConfig transition status copy in zh shell.');
     }
   }
   assert.ok(observations.agentModelChatDetailVisible, 'Agent chat model detail must be visible.');
@@ -339,6 +474,7 @@ try {
     observations.agentComposerRouteDisabledHintVisible = await page.getByText(/当前选择的 runtime 路由|selected runtime route|健康检查|health check|尚未就绪|not ready/i).count();
     await captureScreenshot(page, chatSendAttemptScreenshotPath);
     observations.agentChatAfterSendAIConfigStorage = await readAIConfigStorageSnapshot(page);
+    observations.agentChatAfterSendRuntimeAIConfig = await readRuntimeAgentAIConfig(agentClient, agentIdentity);
     observations.agentChatSendSkippedReason = 'runtime_route_unavailable';
     assert.equal(
       observations.agentComposerTextareaDisabledAfterRouteSelection,
@@ -360,8 +496,16 @@ try {
     await page.waitForTimeout(2500);
     await captureScreenshot(page, chatSendAttemptScreenshotPath);
     observations.agentChatAfterSendAIConfigStorage = await readAIConfigStorageSnapshot(page);
+    observations.agentChatAfterSendRuntimeAIConfig = await readRuntimeAgentAIConfig(agentClient, agentIdentity);
     observations.agentChatSendRouteErrorVisible = await page.getByText(/A local or cloud runtime route is required before sending a message|local or cloud runtime route|本地.*云端.*runtime.*路由/i).count();
+    observations.agentChatTranscriptLocalizedTodayVisible = await page.getByText('今天').count();
+    observations.agentChatTranscriptEnglishTodayVisible = await page.getByText(/^Today$/u).count();
+    observations.agentChatTranscriptLocalizedThinkingVisible = await page.getByText(/正在思考/u).count();
+    observations.agentChatTranscriptEnglishThinkingVisible = await page.getByText(/Thinking(?:\.\.\.|…)?/i).count();
     assert.equal(observations.agentChatSendRouteErrorVisible, 0, 'Agent Chat must not report missing route after selecting a model.');
+    assert.ok(observations.agentChatTranscriptLocalizedTodayVisible > 0, 'Agent Chat transcript must render localized today date label in zh shell.');
+    assert.equal(observations.agentChatTranscriptEnglishTodayVisible, 0, 'Agent Chat transcript must not leak English Today date label in zh shell.');
+    assert.equal(observations.agentChatTranscriptEnglishThinkingVisible, 0, 'Agent Chat transcript must not leak English Thinking pending label in zh shell.');
   }
 
   const fixtureManifest = await fetchJson(`${fixtureServer.origin}/__fixture/control/manifest`);
@@ -389,6 +533,9 @@ try {
       desktopExplore: desktopScreenshotPath,
       narrowExplore: narrowScreenshotPath,
       desktopChat: chatScreenshotPath,
+      sourceDetailMaterializationFailure: fs.existsSync(sourceDetailMaterializationFailureScreenshotPath)
+        ? sourceDetailMaterializationFailureScreenshotPath
+        : null,
       sourceDetailOpenPartner: sourceDetailOpenPartnerScreenshotPath,
       chatSendAfterModelSelection: chatSendAttemptScreenshotPath,
       agentModelSettings: agentModelSettingsScreenshotPath,
@@ -416,6 +563,9 @@ try {
       desktopExplore: fs.existsSync(desktopScreenshotPath) ? desktopScreenshotPath : null,
       narrowExplore: fs.existsSync(narrowScreenshotPath) ? narrowScreenshotPath : null,
       desktopChat: fs.existsSync(chatScreenshotPath) ? chatScreenshotPath : null,
+      sourceDetailMaterializationFailure: fs.existsSync(sourceDetailMaterializationFailureScreenshotPath)
+        ? sourceDetailMaterializationFailureScreenshotPath
+        : null,
       sourceDetailOpenPartner: fs.existsSync(sourceDetailOpenPartnerScreenshotPath) ? sourceDetailOpenPartnerScreenshotPath : null,
       chatSendAfterModelSelection: fs.existsSync(chatSendAttemptScreenshotPath) ? chatSendAttemptScreenshotPath : null,
       agentModelSettings: fs.existsSync(agentModelSettingsScreenshotPath) ? agentModelSettingsScreenshotPath : null,

@@ -279,7 +279,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     std::env::set_var("NIMI_ACCESS_TOKEN", "must-not-forward");
     std::env::set_var("NIMI_E2E_AUTH_SESSION_STORAGE", "encrypted-file");
     std::env::set_var("NIMI_E2E_AUTH_SESSION_MASTER_KEY", "master-key");
-    std::env::set_var("NIMI_E2E_PROFILE", "chat.live2d-avatar-product-smoke");
+    std::env::set_var("NIMI_E2E_PROFILE", "boot.anonymous.login-screen");
     std::env::set_var("NIMI_E2E_FIXTURE_PATH", fixture_path.as_os_str());
     std::env::set_var(
         "NIMI_RUNTIME_CONFIG_PATH",

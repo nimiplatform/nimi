@@ -1,29 +1,8 @@
-import { createLogger, defineConfig, loadEnv, searchForWorkspaceRoot, type Logger, type PluginOption } from 'vite';
+import { createLogger, defineConfig, loadEnv, searchForWorkspaceRoot, type Logger } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
-import { mkdir, copyFile, readFile, stat, writeFile } from 'node:fs/promises';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-
-const CUBISM_WEB_SDK_VERSION = '5-r.5';
-const CUBISM_WEB_SDK_URL = `https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}.zip`;
-const CUBISM_WEB_CORE_PUBLIC_DIR = path.join('assets', 'js', 'live2d-cubism-core', 'Core');
-const CUBISM_WEB_SHADER_PUBLIC_DIR = path.join(
-  'assets',
-  'js',
-  'live2d-cubism-framework-shaders',
-  'WebGL',
-);
-const CUBISM_WEB_SDK_CACHE_ROOT = path.resolve(
-  __dirname,
-  '.cache',
-  'assets',
-  'js',
-  `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}`,
-);
-const CUBISM_WEB_FRAMEWORK_CACHE_ROOT = path.join(CUBISM_WEB_SDK_CACHE_ROOT, 'Framework', 'src');
-const CUBISM_WEB_SHADER_CACHE_ROOT = path.join(CUBISM_WEB_SDK_CACHE_ROOT, 'Framework', 'Shaders', 'WebGL');
 
 function loadDesktopBuildEnvFiles(): void {
   if (typeof process.loadEnvFile !== 'function') {
@@ -59,112 +38,8 @@ function desktopPackageVersion(): string {
   return String(pkg.version || '').trim() || '0.0.0';
 }
 
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await stat(targetPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function extractZipArchive(zipPath: string, destinationDir: string): void {
-  if (process.platform === 'win32') {
-    execFileSync(
-      'powershell.exe',
-      [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        '& { param($ZipPath, $DestinationPath) Expand-Archive -LiteralPath $ZipPath -DestinationPath $DestinationPath -Force }',
-        zipPath,
-        destinationDir,
-      ],
-      {
-        stdio: 'ignore',
-      },
-    );
-    return;
-  }
-
-  execFileSync('unzip', ['-o', zipPath, '-d', destinationDir], {
-    stdio: 'ignore',
-  });
-}
-
-async function ensureCubismSdkExtracted(
-  cacheZipPath: string,
-  cacheRoot: string,
-  requiredPaths: string[],
-): Promise<void> {
-  const missingRequiredPath = await Promise.all(requiredPaths.map((targetPath) => pathExists(targetPath)))
-    .then((results) => results.some((exists) => !exists));
-  if (!missingRequiredPath) {
-    return;
-  }
-
-  await mkdir(cacheRoot, { recursive: true });
-  extractZipArchive(cacheZipPath, path.dirname(cacheRoot));
-}
-
 function matchesAny(value: string, patterns: readonly string[]): boolean {
   return patterns.some((pattern) => value.includes(pattern));
-}
-
-function cubismWebCorePlugin(): PluginOption {
-  return {
-    name: 'nimi-sync-cubism-web-sdk',
-    async configResolved(config) {
-      const cacheRoot = CUBISM_WEB_SDK_CACHE_ROOT;
-      const cacheZipPath = path.join(cacheRoot, `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}.zip`);
-      const cacheCorePath = path.join(cacheRoot, 'Core', 'live2dcubismcore.min.js');
-      const cacheFrameworkIndexPath = path.join(CUBISM_WEB_FRAMEWORK_CACHE_ROOT, 'live2dcubismframework.ts');
-      const cacheShaderIndexPath = path.join(CUBISM_WEB_SHADER_CACHE_ROOT, 'vertshadersrc.vert');
-      const publicCoreDir = path.resolve(config.publicDir, CUBISM_WEB_CORE_PUBLIC_DIR);
-      const publicCorePath = path.join(publicCoreDir, 'live2dcubismcore.min.js');
-      const publicShaderDir = path.resolve(config.publicDir, CUBISM_WEB_SHADER_PUBLIC_DIR);
-
-      await mkdir(cacheRoot, { recursive: true });
-      if (!await pathExists(cacheZipPath)) {
-        const response = await fetch(CUBISM_WEB_SDK_URL);
-        if (!response.ok) {
-          throw new Error(`Failed to download Cubism SDK from ${CUBISM_WEB_SDK_URL}: ${response.status} ${response.statusText}`);
-        }
-        const zipBytes = Buffer.from(await response.arrayBuffer());
-        await writeFile(cacheZipPath, zipBytes);
-      }
-      await ensureCubismSdkExtracted(cacheZipPath, cacheRoot, [
-        cacheCorePath,
-        cacheFrameworkIndexPath,
-        cacheShaderIndexPath,
-      ]);
-
-      await mkdir(publicCoreDir, { recursive: true });
-      await mkdir(publicShaderDir, { recursive: true });
-      const hasPublicCore = await pathExists(publicCorePath);
-      const [publicBytes, cacheBytes] = await Promise.all([
-        hasPublicCore ? readFile(publicCorePath) : Promise.resolve<Buffer | null>(null),
-        readFile(cacheCorePath),
-      ]);
-      if (publicBytes === null || !publicBytes.equals(cacheBytes)) {
-        await copyFile(cacheCorePath, publicCorePath);
-      }
-
-      const shaderEntryNames = (await fs.promises.readdir(CUBISM_WEB_SHADER_CACHE_ROOT)).filter(Boolean);
-      await Promise.all(shaderEntryNames.map(async (entryName) => {
-        const cacheShaderPath = path.join(CUBISM_WEB_SHADER_CACHE_ROOT, entryName);
-        const publicShaderPath = path.join(publicShaderDir, entryName);
-        const hasPublicShader = await pathExists(publicShaderPath);
-        const [publicShaderBytes, cacheShaderBytes] = await Promise.all([
-          hasPublicShader ? readFile(publicShaderPath) : Promise.resolve<Buffer | null>(null),
-          readFile(cacheShaderPath),
-        ]);
-        if (publicShaderBytes === null || !publicShaderBytes.equals(cacheShaderBytes)) {
-          await copyFile(cacheShaderPath, publicShaderPath);
-        }
-      }));
-    },
-  };
 }
 
 function sanitizeConsoleText(input: string): string {
@@ -225,23 +100,9 @@ export default defineConfig(({ mode }) => {
     },
     publicDir: path.resolve(__dirname, 'src/shell/renderer/public'),
     optimizeDeps: {
-      // Force Vite to prebundle the react-three -> zustand/traditional chain so
-      // the browser never evaluates the raw CJS shim entry as native ESM.
       include: [
-        '@react-three/fiber',
-        '@react-three/drei',
-        '@react-three/postprocessing',
         'zustand',
         'zustand/traditional',
-        // simplex-noise is reachable only behind a dynamic import (the auth
-        // screen's particle background). If Vite discovers it after the dev
-        // server starts serving, it re-optimizes deps and bumps the optimizer
-        // browserHash. Because `server.hmr` is disabled for the Tauri webview,
-        // the client never receives the post-reoptimize full-reload, so the
-        // in-flight entry imports in main.tsx keep hitting stale `?v=` URLs and
-        // fail with "Failed to fetch dynamically imported module". Prebundling
-        // it up front keeps the first optimize pass complete and stable.
-        'simplex-noise',
       ],
     },
     resolve: {
@@ -276,10 +137,6 @@ export default defineConfig(({ mode }) => {
         {
           find: 'react-i18next',
           replacement: path.resolve(__dirname, 'node_modules/react-i18next/dist/es/index.js'),
-        },
-        {
-          find: '@framework',
-          replacement: CUBISM_WEB_FRAMEWORK_CACHE_ROOT,
         },
         {
           find: '@runtime',
@@ -322,7 +179,6 @@ export default defineConfig(({ mode }) => {
       ],
     },
     plugins: [
-      cubismWebCorePlugin(),
       react(),
       tailwindcss(),
     ],
@@ -370,10 +226,9 @@ export default defineConfig(({ mode }) => {
                 return 'chat-agent-avatar';
               }
               if (matchesAny(normalizedId, [
-                '/chat-agent-diagnostics',
                 '/chat-agent-debug-metadata',
               ])) {
-                return 'chat-agent-diagnostics';
+                return 'chat-agent-debug-metadata';
               }
               if (matchesAny(normalizedId, [
                 '/chat-shared-runtime-stream-ui',
@@ -511,9 +366,6 @@ export default defineConfig(({ mode }) => {
             if (normalizedId.includes('/sdks/typescript/dist/')) {
               return 'vendor-sdk-client';
             }
-            if (normalizedId.includes(CUBISM_WEB_FRAMEWORK_CACHE_ROOT.split(path.sep).join('/'))) {
-              return 'vendor-live2d';
-            }
             if (normalizedId.includes('/apps/desktop/src/runtime/data-sync/')) {
               return 'runtime-data-sync';
             }
@@ -554,20 +406,6 @@ export default defineConfig(({ mode }) => {
             }
             if (id.includes('/@nimiplatform/sdk') || id.includes('/ai/') || id.includes('/@ai-sdk/')) {
               return 'vendor-ai';
-            }
-            if (id.includes('/three/') || id.includes('/simplex-noise/')) {
-              return 'vendor-three-core';
-            }
-            if (
-              id.includes('/@react-three/')
-              || id.includes('/postprocessing/')
-              || id.includes('/three-stdlib/')
-              || id.includes('/troika-three-text/')
-              || id.includes('/troika-three-utils/')
-              || id.includes('/maath/')
-              || id.includes('/@monogrid/gainmap-js/')
-            ) {
-              return 'vendor-three-react';
             }
             if (
               id.includes('/socket.io-client/')

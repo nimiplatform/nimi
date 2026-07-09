@@ -1,12 +1,19 @@
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
-import { invokeChecked } from '@renderer/bridge/runtime-bridge/invoke';
+import {
+  hasShellHostInvoke,
+  openShellFileDialog,
+  type ShellFileDialogOpenResult,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
-function parseOptionalPath(value: unknown): string | null {
-  const path = typeof value === 'string' ? value.trim() : '';
+function firstDialogPath(result: ShellFileDialogOpenResult): string | null {
+  if (result.canceled) return null;
+  const path = typeof result.paths[0] === 'string' ? result.paths[0].trim() : '';
   return path || null;
 }
 
 export async function pickLocalAppRootDirectory(): Promise<string | null> {
-  if (!hasTauriInvoke()) return null;
-  return invokeChecked('apps_pick_local_app_root_directory', {}, parseOptionalPath);
+  if (!hasShellHostInvoke()) return null;
+  return firstDialogPath(await openShellFileDialog({
+    kind: 'directory',
+    title: 'Select local app root directory',
+  }));
 }

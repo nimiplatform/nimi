@@ -161,7 +161,7 @@ export function ExploreView(props: ExploreViewProps) {
         className="min-h-0 flex-1"
         viewportClassName="bg-transparent"
         contentClassName={props.activeSection === 'worlds'
-          ? 'w-full px-5 py-5'
+          ? 'min-w-0 w-full max-w-full overflow-x-hidden px-3 py-4 sm:px-5 sm:py-5'
           : 'mx-auto w-full max-w-6xl px-1 py-5'}
         viewportRef={feedScrollRef}
       >

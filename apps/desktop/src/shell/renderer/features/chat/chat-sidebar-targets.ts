@@ -1,6 +1,6 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { isRuntimeLocalAgentRef } from '@nimiplatform/sdk/runtime';
@@ -12,6 +12,11 @@ import {
   type LocalAgentListItem,
 } from '@renderer/features/agents/local-agent-list-model';
 import { toSourceContactLaunchTarget } from '@renderer/features/relationship/source-contact-launch-target';
+import {
+  fetchSourceDisplayDetail,
+  sourceDisplayDetailQueryKey,
+} from '@renderer/features/source-detail/source-detail-queries';
+import type { SourceDetailData } from '@renderer/features/source-detail/source-detail-model.js';
 import {
   fetchWorldListItems,
   worldListQueryKey,
@@ -150,22 +155,26 @@ function toAgentTargetSummary(snapshot: AgentLocalTargetSnapshot): ConversationT
 export function toAgentTargetsFromLocalAgentList(
   agents: readonly LocalAgentListItem[],
   worldNameById: ReadonlyMap<string, string> = new Map(),
+  sourceDetailBySourceKey: ReadonlyMap<string, SourceDetailData | null> = new Map(),
 ): ConversationTargetSummary[] {
   return agents
-    .map((agent) => toAgentTargetSummary({
-      ownerUserId: agent.ownerUserId,
-      runtimeSourceRef: agent.runtimeSourceRef,
-      localAgentRef: agent.localAgentRef,
-      displayName: agent.displayName,
-      handle: agent.sourceRef.sourceId,
-      avatarUrl: null,
-      worldId: agent.sourceRef.worldId,
-      worldName: worldNameById.get(agent.sourceRef.worldId) || null,
-      bio: null,
-      ownershipType: null,
-      greeting: null,
-      builtinDocsContext: null,
-    }))
+    .map((agent) => {
+      const source = sourceDetailBySourceKey.get(agent.sourceKey) ?? null;
+      return toAgentTargetSummary({
+        ownerUserId: agent.ownerUserId,
+        runtimeSourceRef: agent.runtimeSourceRef,
+        localAgentRef: agent.localAgentRef,
+        displayName: source?.displayName || agent.displayName,
+        handle: source?.handle || agent.sourceRef.sourceId,
+        avatarUrl: source?.avatarUrl ?? null,
+        worldId: source?.worldId || agent.sourceRef.worldId,
+        worldName: worldNameById.get(source?.worldId || agent.sourceRef.worldId) || null,
+        bio: source?.bio ?? null,
+        ownershipType: normalizeOwnershipType(source?.ownershipType),
+        greeting: source?.worldCharacter?.interaction?.greeting ?? null,
+        builtinDocsContext: null,
+      });
+    })
     .sort((left, right) => left.title.localeCompare(right.title));
 }
 
@@ -300,11 +309,29 @@ export function useChatTargetsForSidebar(
     enabled: authStatus === 'authenticated' && Boolean(ownerUserId),
     staleTime: 15_000,
   });
+  const localAgents = localAgentsQuery.data ?? [];
+
+  const localAgentSourceDetailQueries = useQueries({
+    queries: localAgents.map((agent) => ({
+      queryKey: sourceDisplayDetailQueryKey(agent.sourceRef),
+      queryFn: async () => fetchSourceDisplayDetail(agent.sourceRef),
+      enabled: authStatus === 'authenticated',
+      staleTime: 60_000,
+    })),
+  });
 
   const worldNameById = useMemo(() => {
     const worlds = worldsQuery.data ?? [];
     return new Map(worlds.map((world) => [world.id, world.name]));
   }, [worldsQuery.data]);
+
+  const sourceDetailBySourceKey = useMemo(() => {
+    const bySourceKey = new Map<string, SourceDetailData | null>();
+    for (const [index, agent] of localAgents.entries()) {
+      bySourceKey.set(agent.sourceKey, localAgentSourceDetailQueries[index]?.data?.source ?? null);
+    }
+    return bySourceKey;
+  }, [localAgents, localAgentSourceDetailQueries]);
 
   const humanTargets = useMemo(() => {
     const allChats = ((humanChatsQuery.data as { items?: RealmChatViewDto[] } | undefined)?.items || []) as RealmChatViewDto[];
@@ -321,10 +348,10 @@ export function useChatTargetsForSidebar(
   }, [humanChatsQuery.data, socialSnapshotQuery.data, t]);
 
   const agentTargets = useMemo(() => {
-    const runtimeTargets = toAgentTargetsFromLocalAgentList(localAgentsQuery.data ?? [], worldNameById);
+    const runtimeTargets = toAgentTargetsFromLocalAgentList(localAgents, worldNameById, sourceDetailBySourceKey);
     const sourceContactTargets = toAgentTargetsFromSocialSnapshot(socialSnapshotQuery.data, ownerUserId);
     return mergeAgentTargetSummaries(runtimeTargets, sourceContactTargets);
-  }, [localAgentsQuery.data, ownerUserId, socialSnapshotQuery.data, worldNameById]);
+  }, [localAgents, ownerUserId, socialSnapshotQuery.data, sourceDetailBySourceKey, worldNameById]);
 
   const groupTargets = useMemo(() => {
     const items = ((groupChatsQuery.data as { items?: GroupChatViewDto[] } | undefined)?.items || []) as GroupChatViewDto[];

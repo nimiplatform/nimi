@@ -72,7 +72,6 @@ export type DesktopMacosSmokeContext = {
   artifactsDir?: string;
   disableRuntimeBootstrap?: boolean;
   bootstrapTimeoutMs?: number;
-  avatarProductLocalAssetFault?: JsonObject;
 };
 
 export type DesktopMacosSmokeReportPayload = {
@@ -91,9 +90,4 @@ export type DesktopMacosSmokeReportPayload = {
 export type DesktopMacosSmokeReportResult = {
   reportPath: string;
   htmlSnapshotPath?: string;
-};
-
-export type DesktopMacosSmokeAvatarEvidenceReadResult = {
-  evidencePath: string;
-  evidence: JsonObject;
 };

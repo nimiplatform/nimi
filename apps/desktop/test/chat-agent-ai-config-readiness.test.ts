@@ -50,3 +50,22 @@ test('RLA3 Desktop Agent Center placement consumes Kit surface only', () => {
   assert.doesNotMatch(placementSource, /ChatSettingsPanel|modelContent|diagnosticsContent|avatarContent|localAppearanceContent/);
   assert.equal(fs.existsSync(desktopPanelPath), false, 'Desktop-owned AgentCenterPanel must be removed');
 });
+
+test('RLA3 Desktop Agent Center injects localized Runtime AIConfig status copy', () => {
+  const placementSource = fs.readFileSync(path.join(chatDir, 'chat-agent-shell-presentation-settings.tsx'), 'utf8');
+  const requiredCopyFields = [
+    'adapterUnavailable',
+    'revisionUnavailable',
+    'savingStatus',
+    'savedStatusFormat',
+    'updateFailed',
+  ];
+
+  for (const field of requiredCopyFields) {
+    assert.match(
+      placementSource,
+      new RegExp(`${field}:\\s*input\\.t\\('Chat\\.agentCenterModelStatus`, 'u'),
+      `${field} must be injected from Chat locale copy, not Kit English defaults`,
+    );
+  }
+});

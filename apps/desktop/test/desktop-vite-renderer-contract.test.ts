@@ -10,13 +10,13 @@ const rendererEntryHtml = fs.readFileSync(
   path.join(root, 'src/shell/renderer/index.html'),
   'utf8',
 );
-const live2dRuntimeLoaderSource = fs.readFileSync(
-  path.join(root, 'src/shell/renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime-loader.ts'),
-  'utf8',
+const retiredLive2dRuntimeLoaderPath = path.join(
+  root,
+  'src/shell/renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime-loader.ts',
 );
-const live2dRuntimeSource = fs.readFileSync(
-  path.join(root, 'src/shell/renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime.ts'),
-  'utf8',
+const retiredLive2dRuntimePath = path.join(
+  root,
+  'src/shell/renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime.ts',
 );
 
 test('desktop production renderer does not inject Vite modulepreload fetch polyfills', () => {
@@ -86,12 +86,8 @@ test('desktop renderer entrypoint is packaged-local and has no remote boot resou
   assert.doesNotMatch(rendererEntryHtml, /live2dcubismcore\.min\.js/);
 });
 
-test('desktop Live2D Cubism Core is loaded only by the avatar runtime path', () => {
-  assert.match(
-    live2dRuntimeLoaderSource,
-    /assets\/js\/live2d-cubism-core\/Core\/live2dcubismcore\.min\.js/,
-  );
-  assert.match(live2dRuntimeLoaderSource, /createElement\('script'\)/);
-  assert.match(live2dRuntimeLoaderSource, /Live2D Cubism Core script loaded without publishing Live2DCubismCore/);
-  assert.match(live2dRuntimeSource, /await ensureLive2dCubismCoreLoaded\(\)/);
+test('desktop renderer hard-cuts the retired in-app Live2D Cubism runtime path', () => {
+  assert.equal(fs.existsSync(retiredLive2dRuntimeLoaderPath), false);
+  assert.equal(fs.existsSync(retiredLive2dRuntimePath), false);
+  assert.doesNotMatch(viteConfigSource, /chat-agent-avatar-live2d-cubism-runtime/);
 });

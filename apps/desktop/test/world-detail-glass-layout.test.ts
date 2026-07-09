@@ -173,7 +173,8 @@ test('world detail drill-down pages share the root paper top safe area', () => {
 });
 
 test('world detail root content aligns with the atlas top content offset', () => {
-  assert.match(exploreViewSource, /props\.activeSection === 'worlds'\s*\?\s*'w-full px-5 py-5'/);
+  assert.match(exploreViewSource, /props\.activeSection === 'worlds'\s*\?\s*'flex min-h-0 flex-1 flex-col'/);
+  assert.match(exploreViewSource, /props\.activeSection === 'worlds'\s*\?\s*'min-w-0 w-full max-w-full overflow-x-hidden px-3 py-4 sm:px-5 sm:py-5'/);
   assert.match(worldDetailLayoutSource, /WORLD_DETAIL_PAPER_TOP_PADDING = '20px'/);
   assert.match(worldDetailLayoutSource, /WORLD_DETAIL_PAPER_CONTENT_PADDING = `\$\{WORLD_DETAIL_PAPER_TOP_PADDING\} 28px 80px`/);
   assert.doesNotMatch(worldDetailLayoutSource, /3\.5rem \+ 1\.75rem \+ 22px|calc\(3\.5rem\+1\.75rem\)/);

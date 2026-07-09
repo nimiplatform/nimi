@@ -33,10 +33,6 @@ const authenticatedBaseProfile = JSON.parse(fs.readFileSync(
   path.join(root, 'e2e/fixtures/profiles/_authenticated-base.json'),
   'utf8',
 ));
-const chatMemoryStandardBindProfile = JSON.parse(fs.readFileSync(
-  path.join(root, 'e2e/fixtures/profiles/chat.memory-standard-bind.json'),
-  'utf8',
-));
 const authenticatedBootSpecSource = fs.readFileSync(
   path.join(root, 'e2e/specs/boot.authenticated.main-shell.e2e.mjs'),
   'utf8',
@@ -69,12 +65,16 @@ const realmFixtureServerSource = fs.readFileSync(
   path.join(root, 'e2e/fixtures/realm-fixture-server.mjs'),
   'utf8',
 );
-const chatMemoryStandardBindSpecSource = fs.readFileSync(
-  path.join(root, 'e2e/specs/chat.memory-standard-bind.e2e.mjs'),
+const exploreMaterializationAcceptanceSource = fs.readFileSync(
+  path.join(root, 'scripts/run-electron-explore-materialization-acceptance.mjs'),
   'utf8',
 );
-const chatLive2dRenderSmokeSpecSource = fs.readFileSync(
-  path.join(root, 'e2e/specs/chat.live2d-render-smoke.e2e.mjs'),
+const exploreMaterializationAcceptanceConstantsSource = fs.readFileSync(
+  path.join(root, 'scripts/explore-materialization-acceptance/acceptance-constants.mjs'),
+  'utf8',
+);
+const exploreMaterializationAcceptanceFixtureSource = fs.readFileSync(
+  path.join(root, 'scripts/explore-materialization-acceptance/acceptance-fixture.mjs'),
   'utf8',
 );
 const wdioConfigSource = fs.readFileSync(
@@ -133,30 +133,13 @@ test('desktop E2E runner tears down native WebDriver process trees between scena
   assert.match(runnerSource, /waitForPortClosed\(driverHost, nativeDriverPort, 10000\)/);
 });
 
-test('desktop E2E chat scenarios target canonical local-agent anchors', () => {
-  assert.match(chatMemoryStandardBindSpecSource, /E2E_IDS\.localAgentRef\('local-agent:desktop-e2e-alpha'\)/);
-  assert.match(chatLive2dRenderSmokeSpecSource, /E2E_IDS\.localAgentRef\('local-agent:desktop-e2e-alpha'\)/);
-  assert.doesNotMatch(chatMemoryStandardBindSpecSource, /chatTarget\('agent-e2e-alpha'\)/);
-  assert.doesNotMatch(chatLive2dRenderSmokeSpecSource, /chatTarget\('agent-e2e-alpha'\)/);
-});
-
-test('desktop E2E memory bind fixture materializes the source contact for its canonical local-agent anchor', () => {
-  const friends = chatMemoryStandardBindProfile.realmFixture?.friends?.items;
-  assert.ok(Array.isArray(friends), 'memory bind profile must include friend fixtures');
-  const sourceFriend = friends.find((friend) => friend?.id === 'agent-e2e-alpha');
-  assert.ok(sourceFriend && typeof sourceFriend === 'object');
-  assert.equal(sourceFriend.isSource, true);
-  assert.equal(sourceFriend.runtimeSourceRef, 'agent-e2e-alpha');
-  assert.equal(sourceFriend.sourceKind, 'worldCharacter');
-  assert.equal(sourceFriend.sourceId, 'agent-e2e-alpha');
-  assert.equal(sourceFriend.sourceContentHash, 'agent-e2e-alpha-hash');
-  assert.equal(sourceFriend.sourceOwnershipType, 'WORLD_OWNED');
-  assert.deepEqual(sourceFriend.sourceRef, {
-    kind: 'worldCharacter',
-    worldId: 'world-e2e-1',
-    sourceId: 'agent-e2e-alpha',
-    sourceContentHash: 'agent-e2e-alpha-hash',
-  });
+test('desktop E2E hard-cuts retired memory and in-app avatar render journeys', () => {
+  assert.doesNotMatch(registrySource, /chat\.memory-standard-bind/);
+  assert.doesNotMatch(registrySource, /chat\.live2d-render-smoke/);
+  assert.doesNotMatch(registrySource, /chat\.vrm-/);
+  assert.equal(fs.existsSync(path.join(root, 'e2e/specs/chat.memory-standard-bind.e2e.mjs')), false);
+  assert.equal(fs.existsSync(path.join(root, 'e2e/specs/chat.live2d-render-smoke.e2e.mjs')), false);
+  assert.equal(fs.existsSync(path.join(root, 'e2e/fixtures/profiles/chat.memory-standard-bind.json')), false);
 });
 
 test('runtime-unavailable boot smoke targets the canonical desktop release strip', () => {
@@ -198,15 +181,13 @@ test('desktop E2E runner launches WDIO from the desktop package dependency conte
   assert.match(wdioConfigSource, /specs:\s*\['e2e\/specs\/\*\*\/\*\.e2e\.mjs'\]/);
 });
 
-test('desktop E2E runner excludes macOS-owned avatar visual smokes from WDIO journeys', () => {
+test('desktop E2E runner keeps runner ownership explicit without retired avatar visual smokes', () => {
   assert.match(registrySource, /export const WDIO_RUNNER = 'wdio';/);
   assert.match(registrySource, /export const MACOS_SMOKE_RUNNER = 'macos-smoke';/);
   assert.match(registrySource, /scenarioRunner\(entry\)/);
   assert.match(registrySource, /item\.bucket === 'journeys' && matchesRequestedRunner\(item, options\.runner\)/);
-  assert.match(registrySource, /\['chat\.live2d-render-smoke', \{ bucket: 'journeys', runner: MACOS_SMOKE_RUNNER/);
-  assert.match(registrySource, /\['chat\.live2d-avatar-product-smoke', \{ bucket: 'journeys', runner: MACOS_SMOKE_RUNNER/);
-  assert.match(registrySource, /\['chat\.vrm-lifecycle-smoke', \{ bucket: 'journeys', runner: MACOS_SMOKE_RUNNER/);
-  assert.match(registrySource, /runner: MACOS_SMOKE_RUNNER,\s*profile: 'chat\.live2d-render-smoke-sample\.json'/);
+  assert.doesNotMatch(registrySource, /runner: MACOS_SMOKE_RUNNER,\s*profile: 'chat\.live2d/);
+  assert.doesNotMatch(registrySource, /runner: MACOS_SMOKE_RUNNER,\s*profile: 'chat\.vrm/);
   assert.match(runnerSource, /function isRunE2eRunner\(entry\)/);
   assert.match(runnerSource, /runner === WDIO_RUNNER \|\| runner === ELECTRON_HOST_RUNNER/);
   assert.match(runnerSource, /selectScenarios\(options\)\.filter/);
@@ -237,6 +218,29 @@ test('desktop E2E Realm fixture serves public world and source materialization p
   assert.match(realmFixtureServerSource, /pathname === '\/api\/realm\/core\/source-materialization-packets'/);
   assert.doesNotMatch(realmFixtureServerSource, new RegExp(`/api/human/${['source', 'connections'].join('-')}`));
   assert.match(realmFixtureServerSource, /runtime-source:\$\{sourceRef\.kind\}/);
+});
+
+test('Explore materialization Electron acceptance hard-cuts to worldCharacter detail', () => {
+  assert.match(exploreMaterializationAcceptanceConstantsSource, /kind:\s*'worldCharacter'/);
+  assert.doesNotMatch(exploreMaterializationAcceptanceConstantsSource, /kind:\s*'realmPersona'/);
+  assert.match(exploreMaterializationAcceptanceConstantsSource, /runtime\.agent\.ai_config\.read/);
+  assert.match(exploreMaterializationAcceptanceConstantsSource, /runtime\.agent\.ai_config\.write/);
+  assert.match(exploreMaterializationAcceptanceFixtureSource, /characters:\s*\[/);
+  assert.match(exploreMaterializationAcceptanceFixtureSource, /profileCoverUrl/);
+  assert.match(exploreMaterializationAcceptanceFixtureSource, /referenceImageUrl/);
+  assert.match(exploreMaterializationAcceptanceFixtureSource, /voiceSampleUrl/);
+  assert.match(exploreMaterializationAcceptanceFixtureSource, /interactionProfile/);
+  assert.match(exploreMaterializationAcceptanceFixtureSource, /character-acceptance-disabled-hash/);
+  assert.doesNotMatch(exploreMaterializationAcceptanceFixtureSource, /omitContentHash/);
+  assert.match(exploreMaterializationAcceptanceSource, /world-character-source-detail-page/);
+  assert.match(exploreMaterializationAcceptanceSource, /Source Detail must render the world-character page/);
+  assert.match(exploreMaterializationAcceptanceSource, /world-character-back-button/);
+  assert.match(exploreMaterializationAcceptanceSource, /agentClient\.agentAIConfig\.get/);
+  assert.match(exploreMaterializationAcceptanceSource, /waitForRuntimeTextGenerateTargetRef/);
+  assert.doesNotMatch(exploreMaterializationAcceptanceSource, /waitForTextGenerateTargetRef/);
+  assert.match(exploreMaterializationAcceptanceSource, /sourceDetailSurface = 'world-character'/);
+  assert.doesNotMatch(exploreMaterializationAcceptanceSource, /sourceDetailSurface = 'compact-source'/);
+  assert.doesNotMatch(exploreMaterializationAcceptanceSource, /Boolean\(worldCharacterDetail \|\| compactDetail\)/);
 });
 
 test('authenticated desktop E2E chat messages use canonical Realm message DTOs', () => {

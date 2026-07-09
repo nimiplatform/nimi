@@ -62,23 +62,6 @@ pub(super) fn account_projection_from_fixture(
     })
 }
 
-pub(super) fn uses_real_runtime_account_projection(manifest: &DesktopE2EFixtureManifest) -> bool {
-    manifest
-        .tauri_fixture
-        .as_ref()
-        .and_then(|fixture| fixture.macos_smoke.as_ref())
-        .and_then(|smoke| smoke.scenario_id.as_deref())
-        .map(str::trim)
-        .is_some_and(is_live2d_avatar_product_smoke_scenario)
-}
-
-pub(super) fn is_live2d_avatar_product_smoke_scenario(scenario_id: &str) -> bool {
-    matches!(
-        scenario_id,
-        "chat.live2d-avatar-product-smoke" | "chat.live2d-avatar-local-asset-missing-smoke"
-    )
-}
-
 pub(super) fn runtime_account_status_response(
     projection: Option<runtime_bridge_generated::AccountProjection>,
 ) -> runtime_bridge_generated::GetAccountSessionStatusResponse {

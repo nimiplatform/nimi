@@ -13,13 +13,6 @@ pub struct DesktopE2EMacosSmokeOverride {
     pub artifacts_dir: Option<String>,
     pub disable_runtime_bootstrap: Option<bool>,
     pub bootstrap_timeout_ms: Option<u64>,
-    pub avatar_product_local_asset_fault: Option<DesktopE2EMacosSmokeAvatarProductLocalAssetFault>,
-}
-
-#[derive(Debug, Clone)]
-pub struct DesktopE2EMacosSmokeAvatarProductLocalAssetFault {
-    pub fault_kind: String,
-    pub package_dir: String,
 }
 
 pub fn fixture_manifest_path() -> Option<String> {

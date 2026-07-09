@@ -7,15 +7,15 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-const chatRightColumnSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-right-column-primitives.tsx');
 const settingsLayoutSource = readWorkspaceFile('src/shell/renderer/features/settings/settings-layout-components.tsx');
 const runtimePrimitivesSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-primitives.tsx');
 const runtimeLocalDebugSource = readWorkspaceFile('src/shell/renderer/features/runtime-config/runtime-config-local-debug-section.tsx');
 
-test('W2 glass card convergence: chat right-column cards consume the kit promoted glass primitive', () => {
-  assert.match(chatRightColumnSource, /import \{ AppCardSurface, cn \} from '@nimiplatform\/kit\/ui';/);
-  assert.match(chatRightColumnSource, /<AppCardSurface[\s\S]*kind="promoted-glass"/);
-  assert.doesNotMatch(chatRightColumnSource, /RIGHT_COLUMN_CARD_BASE_CLASS/u);
+test('W2 glass card convergence: retired chat right-column primitive is hard-cut', () => {
+  assert.equal(
+    fs.existsSync(path.join(import.meta.dirname, '..', 'src/shell/renderer/features/chat/chat-shared-right-column-primitives.tsx')),
+    false,
+  );
 });
 
 test('W2 glass card convergence: settings and runtime shared cards consume the kit operational primitive', () => {

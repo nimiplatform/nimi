@@ -1,10 +1,11 @@
 /* global window, document */
 import { delay } from './acceptance-files.mjs';
 
-export async function openExplorePersonas(page) {
+export async function openExploreWorlds(page) {
   await page.getByTestId('nav-tab:explore').click();
-  await page.getByTestId('explore-section-tab-personas').click();
-  await page.getByTestId('explore-personas-section').waitFor({ state: 'visible', timeout: 30_000 });
+  await page.getByTestId('explore-section-tab-worlds').click();
+  await page.getByTestId('world-atlas-selected-panel').waitFor({ state: 'visible', timeout: 30_000 });
+  await page.getByTestId('world-atlas-preview-people').waitFor({ state: 'visible', timeout: 30_000 });
 }
 
 export async function readAIConfigStorageSnapshot(page) {
@@ -24,45 +25,6 @@ export async function readAIConfigStorageSnapshot(page) {
     }
     return entries;
   });
-}
-
-function findTextGenerateTargetRefInAIConfigStorage(snapshot) {
-  for (const value of Object.values(snapshot || {})) {
-    if (!value || typeof value !== 'object') {
-      continue;
-    }
-    const targetRef = value?.capabilities?.targetRefs?.['text.generate'];
-    if (targetRef && typeof targetRef === 'object') {
-      return targetRef;
-    }
-  }
-  return null;
-}
-
-export async function waitForTextGenerateTargetRef(page) {
-  await page.waitForFunction(() => {
-    for (let index = 0; index < window.localStorage.length; index += 1) {
-      const key = window.localStorage.key(index);
-      if (!key || !key.startsWith('nimi.ai-config.scope.')) {
-        continue;
-      }
-      const raw = window.localStorage.getItem(key);
-      if (!raw) {
-        continue;
-      }
-      try {
-        const parsed = JSON.parse(raw);
-        const targetRef = parsed?.capabilities?.targetRefs?.['text.generate'];
-        if (targetRef?.kind === 'local-runtime' || targetRef?.kind === 'cloud-connector') {
-          return true;
-        }
-      } catch {
-        continue;
-      }
-    }
-    return false;
-  }, null, { timeout: 30_000 });
-  return findTextGenerateTargetRefInAIConfigStorage(await readAIConfigStorageSnapshot(page));
 }
 
 export function normalizeWhitespace(value) {
@@ -87,24 +49,11 @@ export async function waitForDesktopSurface(page) {
   return handle.jsonValue();
 }
 
-export async function waitForAttribute(locator, name, expected) {
-  const deadline = Date.now() + 30_000;
-  let last = null;
-  while (Date.now() < deadline) {
-    last = await locator.getAttribute(name).catch(() => null);
-    if (last === expected) {
-      return;
-    }
-    await delay(100);
-  }
-  throw new Error(`Timed out waiting for ${name}=${expected}; last=${last}`);
-}
-
 export async function inspectLayout(page) {
   return page.evaluate(() => {
     const root = document.documentElement;
     const overflowing = [];
-    for (const element of document.querySelectorAll('button, [data-testid^="explore-persona-source-card:"]')) {
+    for (const element of document.querySelectorAll('button, [data-testid="world-character-source-detail-page"], [data-testid="world-atlas-selected-panel"], [data-testid="world-atlas-preview-people"]')) {
       const rect = element.getBoundingClientRect();
       if (rect.left < -1 || rect.right > window.innerWidth + 1) {
         overflowing.push({
@@ -124,6 +73,36 @@ export async function inspectLayout(page) {
       overflowing,
     };
   });
+}
+
+export async function inspectAccessibility(page) {
+  const session = await page.context().newCDPSession(page);
+  const tree = await session.send('Accessibility.getFullAXTree');
+  const interactiveRoles = new Set([
+    'button',
+    'checkbox',
+    'combobox',
+    'link',
+    'menuitem',
+    'radio',
+    'searchbox',
+    'slider',
+    'switch',
+    'tab',
+    'textbox',
+  ]);
+  const controls = tree.nodes
+    .filter((node) => !node.ignored && interactiveRoles.has(String(node.role?.value || '')))
+    .map((node) => ({
+      role: String(node.role?.value || ''),
+      name: normalizeWhitespace(node.name?.value),
+      disabled: Boolean(node.disabled?.value),
+    }));
+  return {
+    nodeCount: tree.nodes.length,
+    interactiveControlCount: controls.length,
+    unnamedInteractiveControls: controls.filter((node) => !node.name).slice(0, 20),
+  };
 }
 
 export async function captureScreenshot(page, screenshotPath) {

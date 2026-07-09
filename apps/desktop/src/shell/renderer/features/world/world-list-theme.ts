@@ -17,11 +17,12 @@ export const WORLD_EXPLORER_COLORS = {
 } as const;
 
 export const WORLD_EXPLORER_SHADOWS = {
-  card: '0 8px 24px rgba(20, 35, 50, 0.04)',
-  cardHover: '0 14px 30px rgba(20, 35, 50, 0.07)',
-  selected: '0 12px 30px rgba(36, 198, 164, 0.14)',
-  panel: '0 18px 44px rgba(20, 35, 50, 0.08)',
-  nav: '0 8px 22px rgba(20, 35, 50, 0.04)',
+  shell: '0 26px 70px rgba(20, 35, 50, 0.08)',
+  card: '0 12px 28px rgba(20, 35, 50, 0.05)',
+  cardHover: '0 16px 34px rgba(20, 35, 50, 0.08)',
+  selected: '0 16px 36px rgba(36, 198, 164, 0.16)',
+  panel: '0 22px 52px rgba(20, 35, 50, 0.09)',
+  nav: '0 10px 28px rgba(20, 35, 50, 0.045)',
   button: '0 12px 24px rgba(36, 198, 164, 0.22)',
   icon: '0 6px 16px rgba(20, 35, 50, 0.06)',
 } as const;
@@ -56,30 +57,36 @@ export const WORLD_EXPLORER_THEME = {
   } satisfies ExplorerStyle,
   page: {
     background:
-      'linear-gradient(135deg, #F7FAF8 0%, #F6F8FB 58%, #FBF9FD 100%)',
+      'radial-gradient(circle at 4% 92%, rgba(167, 243, 208, 0.22), transparent 34%), radial-gradient(circle at 98% 5%, rgba(221, 214, 254, 0.22), transparent 31%), linear-gradient(135deg, #F7FAF8 0%, #F6F8FB 58%, #FBF9FD 100%)',
+  } satisfies CSSProperties,
+  discoveryPanel: {
+    background:
+      'linear-gradient(145deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.56))',
+    border: '1px solid rgba(255, 255, 255, 0.72)',
+    boxShadow: WORLD_EXPLORER_SHADOWS.shell,
   } satisfies CSSProperties,
   nav: {
-    background: WORLD_EXPLORER_COLORS.surface,
-    border: `1px solid ${WORLD_EXPLORER_COLORS.border}`,
+    background: 'rgba(255, 255, 255, 0.72)',
+    border: '1px solid rgba(255, 255, 255, 0.82)',
     boxShadow: WORLD_EXPLORER_SHADOWS.nav,
   } satisfies CSSProperties,
   card: {
-    background: WORLD_EXPLORER_COLORS.surface,
-    border: `1px solid ${WORLD_EXPLORER_COLORS.border}`,
+    background: 'rgba(255, 255, 255, 0.82)',
+    border: '1px solid rgba(255, 255, 255, 0.78)',
     boxShadow: WORLD_EXPLORER_SHADOWS.card,
   } satisfies CSSProperties,
   selectedCard: {
-    background: WORLD_EXPLORER_COLORS.surface,
+    background: 'rgba(255, 255, 255, 0.88)',
     border: `1px solid ${WORLD_EXPLORER_COLORS.brand}`,
     boxShadow: WORLD_EXPLORER_SHADOWS.selected,
   } satisfies CSSProperties,
   panel: {
-    background: WORLD_EXPLORER_COLORS.surface,
-    border: `1px solid ${WORLD_EXPLORER_COLORS.border}`,
+    background: 'rgba(255, 255, 255, 0.82)',
+    border: '1px solid rgba(255, 255, 255, 0.78)',
     boxShadow: WORLD_EXPLORER_SHADOWS.panel,
   } satisfies CSSProperties,
   weakBlock: {
-    background: WORLD_EXPLORER_COLORS.weakSurface,
+    background: 'rgba(248, 250, 252, 0.72)',
     border: `1px solid ${WORLD_EXPLORER_COLORS.border}`,
   } satisfies CSSProperties,
   primaryAction: {
@@ -88,9 +95,12 @@ export const WORLD_EXPLORER_THEME = {
     boxShadow: WORLD_EXPLORER_SHADOWS.button,
   } satisfies CSSProperties,
   iconButton: {
-    background: WORLD_EXPLORER_COLORS.surface,
+    background: 'rgba(255, 255, 255, 0.86)',
     border: `1px solid ${WORLD_EXPLORER_COLORS.border}`,
     boxShadow: WORLD_EXPLORER_SHADOWS.icon,
+  } satisfies CSSProperties,
+  discoverMore: {
+    boxShadow: '0 10px 24px rgba(20, 35, 50, 0.04)',
   } satisfies CSSProperties,
   introClamp: {
     display: '-webkit-box',

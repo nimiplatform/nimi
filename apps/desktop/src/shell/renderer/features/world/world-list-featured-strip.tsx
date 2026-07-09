@@ -26,7 +26,7 @@ function FeaturedCard({
       elevation="base"
       padding="none"
       className={[
-        'relative min-h-[154px] overflow-hidden rounded-[16px] transition duration-200 hover:-translate-y-0.5',
+        'relative min-h-[182px] min-w-0 max-w-full overflow-hidden rounded-[18px] transition duration-200 hover:-translate-y-0.5',
         selected ? 'ring-2 ring-[var(--world-explorer-brand)] ring-offset-0' : '',
       ].join(' ')}
       data-testid="world-atlas-featured-card"
@@ -39,7 +39,7 @@ function FeaturedCard({
       <button
         type="button"
         aria-pressed={selected}
-        className="absolute inset-0 cursor-pointer border-0 bg-transparent p-0 text-left"
+        className="absolute inset-0 min-w-0 cursor-pointer border-0 bg-transparent p-0 text-left"
         onClick={onSelect}
         onDoubleClick={onOpen}
       >
@@ -86,10 +86,10 @@ export function FeaturedStrip({
   return (
     <div
       data-testid="world-atlas-featured-strip"
-      className="grid"
-      style={{ gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}
+      className="grid min-w-0 max-w-full"
+      style={{ gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}
     >
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+      <div className="grid min-w-0 max-w-full grid-cols-1 gap-4 min-[860px]:[grid-template-columns:repeat(3,minmax(0,1fr))]">
         {featured.map((world) => (
           <FeaturedCard
             key={world.id}

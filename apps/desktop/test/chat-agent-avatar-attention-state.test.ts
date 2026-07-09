@@ -6,11 +6,6 @@ import {
   resolveAppAttentionStateFromViewport,
   shouldUpdateAppAttentionState,
 } from '../src/shell/renderer/app-shell/providers/app-attention-state.js';
-import {
-  createIdleChatAgentAvatarAttentionState,
-  resolveChatAgentAvatarAttentionStateFromAppAttention,
-  shouldUpdateChatAgentAvatarAttentionState,
-} from '../src/shell/renderer/features/chat/chat-agent-avatar-attention-state.js';
 
 test('app attention normalizes viewport coordinates into a bounded symmetric range', () => {
   const state = resolveAppAttentionStateFromViewport({
@@ -69,43 +64,6 @@ test('app attention fails closed when viewport bounds are invalid', () => {
   );
 });
 
-test('avatar attention state projects app-level attention into bounded avatar consume state', () => {
-  const state = resolveChatAgentAvatarAttentionStateFromAppAttention({
-    attention: {
-      active: true,
-      presence: 0.64,
-      normalizedX: 0.88,
-      normalizedY: -0.46,
-    },
-  });
-
-  assert.equal(state.active, true);
-  assert.equal(state.presence, 0.64);
-  assert.equal(state.normalizedX, 0.88);
-  assert.equal(state.normalizedY, -0.46);
-  assert.equal(state.attentionBoost, 'engaged');
-});
-
-test('avatar attention state fails closed when app attention is missing or inactive', () => {
-  assert.deepEqual(
-    resolveChatAgentAvatarAttentionStateFromAppAttention({
-      attention: null,
-    }),
-    createIdleChatAgentAvatarAttentionState(),
-  );
-  assert.deepEqual(
-    resolveChatAgentAvatarAttentionStateFromAppAttention({
-      attention: {
-        active: false,
-        presence: 0,
-        normalizedX: 0.3,
-        normalizedY: -0.2,
-      },
-    }),
-    createIdleChatAgentAvatarAttentionState(),
-  );
-});
-
 test('attention updates ignore sub-epsilon jitter', () => {
   assert.equal(
     shouldUpdateAppAttentionState(
@@ -123,25 +81,5 @@ test('attention updates ignore sub-epsilon jitter', () => {
       },
     ),
     false,
-  );
-
-  assert.equal(
-    shouldUpdateChatAgentAvatarAttentionState(
-      {
-        active: true,
-        presence: 0.4,
-        normalizedX: 0.2,
-        normalizedY: -0.1,
-        attentionBoost: 'attentive',
-      },
-      {
-        active: true,
-        presence: 0.46,
-        normalizedX: 0.26,
-        normalizedY: -0.1,
-        attentionBoost: 'attentive',
-      },
-    ),
-    true,
   );
 });

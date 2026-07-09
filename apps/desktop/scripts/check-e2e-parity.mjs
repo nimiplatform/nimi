@@ -140,7 +140,6 @@ function assertScenarioRegistryIntegrity() {
 
   const admittedUnregisteredProfiles = new Set([
     '_authenticated-base.json',
-    'chat.live2d-render-smoke-sample.json',
   ]);
   const profileRoot = path.join(desktopRoot, 'e2e', 'fixtures', 'profiles');
   for (const profilePath of listFilesRecursive(profileRoot, (filePath) => filePath.endsWith('.json'))) {

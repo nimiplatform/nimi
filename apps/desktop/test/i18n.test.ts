@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -111,11 +111,11 @@ test('changeLocale synchronizes document title and lang', async () => {
 
   await changeLocale('zh');
   assert.equal(document.documentElement.lang, 'zh-CN');
-  assert.equal(document.title, 'Nimi 桌面运行时');
+  assert.equal(document.title, 'Nimi 运行时');
 
   await changeLocale('en');
   assert.equal(document.documentElement.lang, 'en');
-  assert.equal(document.title, 'Nimi Desktop Runtime');
+  assert.equal(document.title, 'Nimi Runtime');
 });
 
 test('formatRelativeLocaleTime follows current locale', async () => {

@@ -1,4 +1,9 @@
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import {
+  hasTauriInvoke,
+  openShellFileDialog,
+  type ShellFileDialogOpenPayload,
+  type ShellFileDialogOpenResult,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 import {
   validateAgentCenterLocalConfig,
@@ -129,35 +134,53 @@ export async function putAgentCenterLocalConfig(input: {
   }, parseAgentCenterLocalConfig);
 }
 
-function parseOptionalPath(value: unknown): string | null {
-  if (value == null) {
-    return null;
-  }
-  if (typeof value !== 'string') {
-    throw new Error('Agent Center file picker returned invalid payload');
-  }
-  const normalized = value.trim();
+function firstDialogPath(result: ShellFileDialogOpenResult): string | null {
+  if (result.canceled) return null;
+  const normalized = typeof result.paths[0] === 'string' ? result.paths[0].trim() : '';
   return normalized ? normalized : null;
 }
 
+async function pickAgentCenterFileDialog(payload: ShellFileDialogOpenPayload): Promise<string | null> {
+  return firstDialogPath(await openShellFileDialog(payload));
+}
+
 export async function pickAgentCenterLive2dAdapterManifestSource(): Promise<string | null> {
-  requireTauri('desktop_agent_center_live2d_adapter_manifest_pick_source');
-  return invokeChecked('desktop_agent_center_live2d_adapter_manifest_pick_source', {}, parseOptionalPath);
+  return pickAgentCenterFileDialog({
+    kind: 'file',
+    title: 'Select Live2D adapter manifest',
+    filters: [
+      { name: 'JSON', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
 }
 
 export async function pickAgentCenterAvatarLive2dSource(): Promise<string | null> {
-  requireTauri('desktop_agent_center_avatar_asset_pick_live2d_source');
-  return invokeChecked('desktop_agent_center_avatar_asset_pick_live2d_source', {}, parseOptionalPath);
+  return pickAgentCenterFileDialog({
+    kind: 'directory',
+    title: 'Select Live2D folder',
+  });
 }
 
 export async function pickAgentCenterAvatarVrmSource(): Promise<string | null> {
-  requireTauri('desktop_agent_center_avatar_asset_pick_vrm_source');
-  return invokeChecked('desktop_agent_center_avatar_asset_pick_vrm_source', {}, parseOptionalPath);
+  return pickAgentCenterFileDialog({
+    kind: 'file',
+    title: 'Select VRM file',
+    filters: [
+      { name: 'VRM', extensions: ['vrm'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
 }
 
 export async function pickAgentCenterBackgroundSource(): Promise<string | null> {
-  requireTauri('desktop_agent_center_background_pick_source');
-  return invokeChecked('desktop_agent_center_background_pick_source', {}, parseOptionalPath);
+  return pickAgentCenterFileDialog({
+    kind: 'file',
+    title: 'Select background image',
+    filters: [
+      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] },
+    ],
+  });
 }
 
 export async function importAgentCenterLive2dAdapterManifest(input: {

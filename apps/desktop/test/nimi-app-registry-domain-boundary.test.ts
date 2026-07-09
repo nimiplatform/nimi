@@ -41,7 +41,9 @@ describe('Nimi App registry/admission domain boundary', () => {
   it('keeps Desktop Tauri apps projections as Kit-backed materializers only', () => {
     const registryProjection = readRepo('apps/desktop/src-tauri/src/apps_registry_projection.rs');
     const packagesProjection = readRepo('apps/desktop/src-tauri/src/apps_packages_projection.rs');
-    const bridgeProjection = readRepo('apps/desktop/src-tauri/src/apps_bridge_projection.rs');
+    const kitPlatformProjection = readRepo('kit/shell/tauri/src/standard_platform_projection.rs');
+    const desktopBootstrap = readRepo('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
+    const desktopMain = readRepo('apps/desktop/src-tauri/src/main.rs');
 
     assert.match(registryProjection, /nimi_shell_tauri::capabilities::platform_projection::apps_registry/);
     assert.match(registryProjection, /build_apps_registry_record/);
@@ -59,14 +61,16 @@ describe('Nimi App registry/admission domain boundary', () => {
     assert.doesNotMatch(packagesProjection, /const\s+PACKAGE_STATE_/);
     assert.doesNotMatch(packagesProjection, /package\.(?:data_root|cache_root|temp_root|install_root)/);
 
-    assert.match(bridgeProjection, /ensure_apps_registry/);
-    assert.match(bridgeProjection, /GetAppPackageReadiness/);
-    assert.doesNotMatch(bridgeProjection, /ensure_apps_packages/);
-    assert.match(bridgeProjection, /build_shared_apps_bridge_projection/);
-    assert.doesNotMatch(bridgeProjection, /struct\s+BridgeRegistryRow/);
-    assert.doesNotMatch(bridgeProjection, /struct\s+BridgeReleaseDescriptorRow/);
-    assert.doesNotMatch(bridgeProjection, /struct\s+BridgeInstallEvidenceRow/);
-    assert.doesNotMatch(bridgeProjection, /storage_roots|storageRoots/);
+    assert.match(kitPlatformProjection, /materialize_apps_registry_projection/);
+    assert.match(kitPlatformProjection, /build_apps_bridge_projection/);
+    assert.match(kitPlatformProjection, /APPS_PACKAGES_POINTER/);
+    assert.doesNotMatch(kitPlatformProjection, /ensure_apps_packages/);
+    assert.doesNotMatch(kitPlatformProjection, /struct\s+BridgeRegistryRow/);
+    assert.doesNotMatch(kitPlatformProjection, /struct\s+BridgeReleaseDescriptorRow/);
+    assert.doesNotMatch(kitPlatformProjection, /struct\s+BridgeInstallEvidenceRow/);
+    assert.doesNotMatch(kitPlatformProjection, /storage_roots|storageRoots/);
+    assert.doesNotMatch(desktopBootstrap, /apps_bridge_projection_get/);
+    assert.doesNotMatch(desktopMain, /apps_bridge_projection/);
   });
 
   it('keeps Desktop renderer Apps as SDK and Runtime consumers', () => {
@@ -83,7 +87,9 @@ describe('Nimi App registry/admission domain boundary', () => {
 
     assert.match(bridgeClient, /parseNimiAppBridgeProjection/);
     assert.match(bridgeClient, /from '@nimiplatform\/sdk\/app'/);
-    assert.match(bridgeClient, /apps_bridge_projection_get/);
+    assert.match(bridgeClient, /getShellPlatformProjection/);
+    assert.match(bridgeClient, /projectionId: 'apps-bridge'/);
+    assert.doesNotMatch(bridgeClient, /apps_bridge_projection_get/);
     assert.doesNotMatch(bridgeClient, /ADMISSION_STATUSES|RELEASE_DESCRIPTOR_CLASSES|VERIFICATION_STATES/);
 
     assert.match(liveBridge, /NimiAppClient/);

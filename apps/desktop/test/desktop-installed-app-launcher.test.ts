@@ -325,6 +325,9 @@ describe('Desktop installed app host window/protocol/auth plans', () => {
     assert.match(mainSource, /DESKTOP_INSTALLED_APP_PROTOCOL_SCHEME/);
     assert.match(mainSource, /createAIConfigStore:\s*createDesktopAiConfigStore/);
     assert.match(mainSource, /protocol\.registerSchemesAsPrivileged/);
+    assert.match(mainSource, /NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION/);
+    assert.doesNotMatch(mainSource, /localAssetProtocolHost\.registerPrivilegedSchemes/);
+    assert.equal(mainSource.match(/protocol\.registerSchemesAsPrivileged\(/g)?.length, 1);
     assert.equal(DESKTOP_INSTALLED_APP_LAUNCH_COMMAND, 'desktop.installedApp.launch');
   });
 });

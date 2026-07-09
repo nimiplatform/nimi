@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Heart } from 'lucide-react';
+import { useMemo, useState, type CSSProperties } from 'react';
+import { ChevronDown, Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState, LoadingSkeleton, NimiText, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
@@ -15,23 +15,40 @@ import { WORLD_EXPLORER_THEME } from './world-list-theme';
 import type { WorldCharacter } from './world-detail-types';
 import type { WorldListItem } from './world-list-model';
 
+type WorldAtlasShellColumnsStyle = CSSProperties & Record<'--world-atlas-shell-columns', string>;
+
+const WORLD_ATLAS_SHELL_COLUMNS_STYLE: WorldAtlasShellColumnsStyle = {
+  '--world-atlas-shell-columns': 'minmax(0,1fr) minmax(324px,clamp(324px,24vw,360px))',
+};
+
 export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean }) {
   const content = (
-    <div className="mx-auto grid w-full max-w-[1540px] gap-5" style={WORLD_EXPLORER_THEME.root}>
-      <LoadingSkeleton lines={1} className="max-w-md" />
-      <Surface tone="panel" material="solid" padding="sm" className="h-14 rounded-[24px]" style={WORLD_EXPLORER_THEME.weakBlock} />
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="grid gap-5">
-          <Surface tone="card" material="solid" padding="md" className="h-60 rounded-[24px]" style={WORLD_EXPLORER_THEME.card} />
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
-            {Array.from({ length: 9 }).map((_, index) => (
-              <Surface key={index} tone="card" material="solid" padding="md" className="h-[88px] rounded-[20px]" style={WORLD_EXPLORER_THEME.card}>
-                <LoadingSkeleton lines={2} />
-              </Surface>
-            ))}
+    <div className="mx-auto min-w-0 w-full max-w-[min(100%,1390px)]" style={WORLD_EXPLORER_THEME.root}>
+      <div
+        className="grid min-w-0 items-start gap-[18px] min-[1180px]:[grid-template-columns:var(--world-atlas-shell-columns)]"
+        style={WORLD_ATLAS_SHELL_COLUMNS_STYLE}
+      >
+        <Surface
+          tone="hero"
+          material="glass-thick"
+          padding="none"
+          className="min-w-0 max-w-full rounded-[32px] p-4 sm:p-5 xl:p-6"
+          style={WORLD_EXPLORER_THEME.discoveryPanel}
+        >
+          <LoadingSkeleton lines={2} className="max-w-md" />
+          <Surface tone="panel" material="solid" padding="sm" className="mt-5 h-14 rounded-[24px]" style={WORLD_EXPLORER_THEME.weakBlock} />
+          <div className="mt-6 grid min-w-0 gap-6">
+            <Surface tone="card" material="solid" padding="md" className="h-[182px] rounded-[18px]" style={WORLD_EXPLORER_THEME.card} />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <Surface key={index} tone="card" material="solid" padding="md" className="h-[112px] rounded-[20px]" style={WORLD_EXPLORER_THEME.card}>
+                  <LoadingSkeleton lines={2} />
+                </Surface>
+              ))}
+            </div>
           </div>
-        </div>
-        <Surface tone="panel" material="solid" padding="md" className="h-[660px] rounded-[28px]" style={WORLD_EXPLORER_THEME.panel}>
+        </Surface>
+        <Surface tone="panel" material="solid" padding="md" className="h-[720px] rounded-[32px]" style={WORLD_EXPLORER_THEME.panel}>
           <LoadingSkeleton lines={5} />
         </Surface>
       </div>
@@ -42,7 +59,7 @@ export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean
   }
   return (
     <div className="flex min-h-0 flex-1 flex-col" style={WORLD_EXPLORER_THEME.page}>
-      <ScrollArea className="flex-1" contentClassName="px-6 py-6">
+      <ScrollArea className="flex-1" contentClassName="min-w-0 max-w-full px-3 py-4 sm:px-6 sm:py-6">
         {content}
       </ScrollArea>
     </div>
@@ -108,100 +125,149 @@ export function WorldCatalogContent({
   const content = (
     <div
       data-testid="world-atlas-glass-layout"
-      className="mx-auto grid w-full max-w-[1540px] rounded-[28px]"
-      style={{ ...WORLD_EXPLORER_THEME.root, gap: 18 }}
+      className="mx-auto min-w-0 w-full max-w-[min(100%,1390px)]"
+      style={WORLD_EXPLORER_THEME.root}
     >
-      <AtlasCategoryTabs
-        active={category}
-        onChange={setCategory}
-        followedCount={followed.ids.length}
-        view={view}
-        onViewChange={setView}
-        sort={sort}
-        onSortChange={setSort}
-      />
-
       <div
-        className="grid items-start"
-        style={{
-          gridTemplateColumns: 'minmax(760px,1fr) minmax(288px,clamp(288px,24vw,320px))',
-          gap: 18,
-        }}
+        className={[
+          'grid min-w-0 items-start gap-[18px]',
+          selectedWorld ? 'min-[1180px]:[grid-template-columns:var(--world-atlas-shell-columns)]' : '',
+        ].join(' ')}
+        style={selectedWorld ? WORLD_ATLAS_SHELL_COLUMNS_STYLE : undefined}
       >
-        <main className="grid min-w-0 gap-6">
-          <FeaturedStrip
-            worlds={featuredWorlds}
-            selectedWorldId={selectedWorld?.id ?? null}
-            onSelectWorld={setSelectedWorldId}
-            onOpenWorld={onOpenWorld}
-          />
-          <section className="grid gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex min-w-0 items-baseline gap-2.5">
-                <NimiText as="h2" role="section-title" className="truncate text-[18px] font-bold text-[var(--world-explorer-text)]">
-                  {isFollowedCategory ? t('World.atlas.followed.title') : t('World.sidebar.filters.all')}
-                </NimiText>
-                <NimiText as="span" role="caption" className="shrink-0 font-semibold text-[var(--world-explorer-text-muted)]">
-                  {isFollowedCategory
-                    ? t('World.atlas.followed.summary', { value: formatNum(followed.ids.length) })
-                    : t('World.atlas.worldCount', { value: formatNum(filteredWorlds.length) })}
-                </NimiText>
-              </div>
-            </div>
-            {filteredWorlds.length === 0 ? (
-              isFollowedCategory && !query ? (
-                <EmptyState
-                  data-testid="world-atlas-followed-empty"
-                  icon={<Heart size={28} aria-hidden="true" />}
-                  title={t('World.atlas.followed.empty.title')}
-                  description={followed.available ? t('World.atlas.followed.empty.body') : t('World.atlas.followed.unavailable')}
-                  action={(
-                    <Button
-                      type="button"
-                      tone="primary"
-                      size="sm"
-                      className="bg-[var(--world-explorer-brand)] text-white hover:bg-[var(--world-explorer-brand-hover)]"
-                      onClick={() => setCategory('all')}
-                    >
-                      {t('World.atlas.followed.empty.cta')}
-                    </Button>
-                  )}
-                  style={WORLD_EXPLORER_THEME.card}
-                />
-              ) : (
-                <EmptyState
-                  title={query ? t('World.noSearchResults') : t('World.card.noMatch')}
-                  style={WORLD_EXPLORER_THEME.card}
-                />
-              )
-            ) : (
-              <div
-                data-testid="world-atlas-world-grid"
-                className="grid"
-                style={{
-                  gridTemplateColumns: view === 'grid'
-                    ? 'repeat(auto-fill, minmax(250px, 1fr))'
-                    : 'minmax(0, 1fr)',
-                  gap: 12,
-                }}
+        <Surface
+          as="section"
+          data-testid="world-atlas-discovery-panel"
+          tone="hero"
+          material="glass-thick"
+          elevation="floating"
+          padding="none"
+          className="min-w-0 max-w-full rounded-[32px] p-4 sm:p-5 xl:p-6"
+          style={WORLD_EXPLORER_THEME.discoveryPanel}
+        >
+          <header className="mb-5 flex min-w-0 flex-wrap items-end justify-between gap-4">
+            <div className="min-w-0">
+              <NimiText
+                as="h1"
+                role="page-title"
+                className="truncate text-[24px] font-extrabold leading-8 text-[var(--world-explorer-text)]"
               >
-                {filteredWorlds.map((world) => (
-                  <CompactWorldCard
-                    key={world.id}
-                    world={world}
-                    selected={world.id === selectedWorld?.id}
-                    view={view}
-                    onSelect={() => setSelectedWorldId(world.id)}
-                    onOpen={() => onOpenWorld(world.id)}
-                    followed={followed.isFollowed(world.id)}
-                    followAvailable={followed.available}
-                    onToggleFollow={() => followed.toggle(world.id)}
-                  />
-                ))}
+                {t('World.atlas.discovery.title')}
+              </NimiText>
+              <NimiText
+                as="p"
+                role="body"
+                className="mt-1 text-[13px] font-medium text-[var(--world-explorer-text-secondary)]"
+              >
+                {t('World.atlas.discovery.subtitle')}
+              </NimiText>
+            </div>
+          </header>
+
+          <AtlasCategoryTabs
+            active={category}
+            onChange={setCategory}
+            followedCount={followed.ids.length}
+            view={view}
+            onViewChange={setView}
+            sort={sort}
+            onSortChange={setSort}
+          />
+
+          <main className="mt-6 grid min-w-0 max-w-full gap-6">
+            <FeaturedStrip
+              worlds={featuredWorlds}
+              selectedWorldId={selectedWorld?.id ?? null}
+              onSelectWorld={setSelectedWorldId}
+              onOpenWorld={onOpenWorld}
+            />
+            <section className="grid min-w-0 gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-baseline gap-2.5">
+                  <NimiText as="h2" role="section-title" className="truncate text-[18px] font-bold text-[var(--world-explorer-text)]">
+                    {isFollowedCategory ? t('World.atlas.followed.title') : t('World.sidebar.filters.all')}
+                  </NimiText>
+                  <NimiText as="span" role="caption" className="shrink-0 font-semibold text-[var(--world-explorer-text-muted)]">
+                    {isFollowedCategory
+                      ? t('World.atlas.followed.summary', { value: formatNum(followed.ids.length) })
+                      : t('World.atlas.worldCount', { value: formatNum(filteredWorlds.length) })}
+                  </NimiText>
+                </div>
               </div>
-            )}
-          </section>
-        </main>
+              {filteredWorlds.length === 0 ? (
+                isFollowedCategory && !query ? (
+                  <EmptyState
+                    data-testid="world-atlas-followed-empty"
+                    icon={<Heart size={28} aria-hidden="true" />}
+                    title={t('World.atlas.followed.empty.title')}
+                    description={followed.available ? t('World.atlas.followed.empty.body') : t('World.atlas.followed.unavailable')}
+                    action={(
+                      <Button
+                        type="button"
+                        tone="primary"
+                        size="sm"
+                        className="bg-[var(--world-explorer-brand)] text-white hover:bg-[var(--world-explorer-brand-hover)]"
+                        onClick={() => setCategory('all')}
+                      >
+                        {t('World.atlas.followed.empty.cta')}
+                      </Button>
+                    )}
+                    style={WORLD_EXPLORER_THEME.card}
+                  />
+                ) : (
+                  <EmptyState
+                    title={query ? t('World.noSearchResults') : t('World.card.noMatch')}
+                    style={WORLD_EXPLORER_THEME.card}
+                  />
+                )
+              ) : (
+                <div
+                  data-testid="world-atlas-world-grid"
+                  className="grid min-w-0 max-w-full"
+                  style={{
+                    gridTemplateColumns: view === 'grid'
+                      ? 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))'
+                      : 'minmax(0, 1fr)',
+                    gap: 16,
+                  }}
+                >
+                  {filteredWorlds.map((world) => (
+                    <CompactWorldCard
+                      key={world.id}
+                      world={world}
+                      selected={world.id === selectedWorld?.id}
+                      view={view}
+                      onSelect={() => setSelectedWorldId(world.id)}
+                      onOpen={() => onOpenWorld(world.id)}
+                      followed={followed.isFollowed(world.id)}
+                      followAvailable={followed.available}
+                      onToggleFollow={() => followed.toggle(world.id)}
+                    />
+                  ))}
+                </div>
+              )}
+              {filteredWorlds.length > 0 ? (
+                <div className="flex justify-center pt-3">
+                  <Button
+                    type="button"
+                    data-testid="world-atlas-discover-more"
+                    tone="secondary"
+                    size="md"
+                    trailingIcon={<ChevronDown size={15} aria-hidden="true" />}
+                    className="rounded-full border-transparent bg-[var(--world-explorer-surface)] px-8 text-[var(--world-explorer-text-secondary)] hover:bg-[var(--world-explorer-brand-soft)] hover:text-[var(--world-explorer-brand)]"
+                    style={WORLD_EXPLORER_THEME.discoverMore}
+                    onClick={() => {
+                      setCategory((current) => (current === 'all' ? 'trending' : 'all'));
+                      setSort('active');
+                    }}
+                  >
+                    {t('World.atlas.discoverMore')}
+                  </Button>
+                </div>
+              ) : null}
+            </section>
+          </main>
+        </Surface>
         {selectedWorld ? (
           <SelectedWorldPanel
             world={selectedWorld}
@@ -223,7 +289,7 @@ export function WorldCatalogContent({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={WORLD_EXPLORER_THEME.page}>
-      <ScrollArea className="flex-1" contentClassName="px-6 pb-10 pt-6">
+      <ScrollArea className="flex-1" contentClassName="min-w-0 max-w-full px-3 pb-8 pt-4 sm:px-6 sm:pb-10 sm:pt-6">
         {content}
       </ScrollArea>
     </div>

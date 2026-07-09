@@ -36,23 +36,6 @@ fn require_enabled_macos_smoke_override(
     Ok(override_payload)
 }
 
-fn sanitize_avatar_evidence_component(input: &str) -> String {
-    let mut out = String::new();
-    for ch in input.trim().chars() {
-        if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_') {
-            out.push(ch);
-        } else {
-            out.push('_');
-        }
-    }
-    let trimmed = out.trim_matches('_').to_string();
-    if trimmed.is_empty() {
-        "avatar-instance".to_string()
-    } else {
-        trimmed
-    }
-}
-
 pub(crate) fn append_macos_smoke_backend_stage(
     stage: &str,
     details: Option<&serde_json::Value>,
@@ -79,39 +62,6 @@ pub(crate) fn append_macos_smoke_backend_stage(
 }
 
 #[tauri::command]
-pub(crate) fn desktop_macos_smoke_avatar_evidence_read(
-    payload: DesktopMacosSmokeAvatarEvidenceReadPayload,
-) -> Result<DesktopMacosSmokeAvatarEvidenceReadResult, String> {
-    let _override_payload = require_enabled_macos_smoke_override()?;
-    let avatar_instance_id = payload.avatar_instance_id.trim();
-    if avatar_instance_id.is_empty() {
-        return Err("avatarInstanceId is required".to_string());
-    }
-    let evidence_path = crate::desktop_paths::resolve_nimi_data_dir()?
-        .join("avatar-carrier-evidence")
-        .join(format!(
-            "{}.json",
-            sanitize_avatar_evidence_component(avatar_instance_id)
-        ));
-    let raw = fs::read_to_string(&evidence_path).map_err(|error| {
-        format!(
-            "read avatar carrier evidence failed ({}): {error}",
-            evidence_path.display()
-        )
-    })?;
-    let evidence = serde_json::from_str::<serde_json::Value>(&raw).map_err(|error| {
-        format!(
-            "parse avatar carrier evidence failed ({}): {error}",
-            evidence_path.display()
-        )
-    })?;
-    Ok(DesktopMacosSmokeAvatarEvidenceReadResult {
-        evidence_path: evidence_path.display().to_string(),
-        evidence,
-    })
-}
-
-#[tauri::command]
 pub(crate) fn desktop_macos_smoke_context_get() -> Result<DesktopMacosSmokeContextResult, String> {
     let Some(override_payload) = crate::desktop_e2e_fixture::macos_smoke_override()? else {
         return Ok(DesktopMacosSmokeContextResult {
@@ -121,7 +71,6 @@ pub(crate) fn desktop_macos_smoke_context_get() -> Result<DesktopMacosSmokeConte
             artifacts_dir: None,
             disable_runtime_bootstrap: false,
             bootstrap_timeout_ms: None,
-            avatar_product_local_asset_fault: None,
         });
     };
 
@@ -132,102 +81,6 @@ pub(crate) fn desktop_macos_smoke_context_get() -> Result<DesktopMacosSmokeConte
         artifacts_dir: normalize_optional(override_payload.artifacts_dir),
         disable_runtime_bootstrap: override_payload.disable_runtime_bootstrap.unwrap_or(false),
         bootstrap_timeout_ms: override_payload.bootstrap_timeout_ms,
-        avatar_product_local_asset_fault: override_payload.avatar_product_local_asset_fault.map(
-            |fault| {
-                json!({
-                    "faultKind": fault.fault_kind,
-                    "packageDir": fault.package_dir,
-                })
-            },
-        ),
-    })
-}
-
-fn require_safe_relative_smoke_asset_path(path: &str, field: &str) -> Result<PathBuf, String> {
-    let trimmed = path.trim();
-    if trimmed.is_empty() {
-        return Err(format!("{field} is required"));
-    }
-    let path_buf = PathBuf::from(trimmed);
-    if path_buf.is_absolute() {
-        return Err(format!("{field} must be relative"));
-    }
-    let mut normalized = PathBuf::new();
-    for component in path_buf.components() {
-        match component {
-            std::path::Component::Normal(part) => normalized.push(part),
-            _ => {
-                return Err(format!(
-                    "{field} must not contain traversal or prefix components"
-                ))
-            }
-        }
-    }
-    if normalized.as_os_str().is_empty() {
-        return Err(format!("{field} is required"));
-    }
-    Ok(normalized)
-}
-
-#[tauri::command]
-pub(crate) fn desktop_macos_smoke_avatar_product_local_asset_fault_apply(
-    payload: DesktopMacosSmokeAvatarProductLocalAssetFaultApplyPayload,
-) -> Result<DesktopMacosSmokeAvatarProductLocalAssetFaultApplyResult, String> {
-    let override_payload = require_enabled_macos_smoke_override()?;
-    let configured = override_payload
-        .avatar_product_local_asset_fault
-        .ok_or_else(|| "Avatar product local asset fault is not configured".to_string())?;
-    let fault_kind = payload.fault_kind.trim();
-    if fault_kind != "missing_entry_file" || configured.fault_kind.trim() != fault_kind {
-        return Err(format!(
-            "unsupported Avatar product local asset fault: requested={fault_kind} configured={}",
-            configured.fault_kind
-        ));
-    }
-    let package_dir = require_absolute_path(
-        &configured.package_dir,
-        "avatarProductLocalAssetFault.packageDir",
-    )?;
-    let manifest_path = package_dir.join("manifest.json");
-    let raw_manifest = fs::read_to_string(&manifest_path).map_err(|error| {
-        format!(
-            "read Avatar product local asset manifest failed ({}): {error}",
-            manifest_path.display()
-        )
-    })?;
-    let manifest = serde_json::from_str::<serde_json::Value>(&raw_manifest).map_err(|error| {
-        format!(
-            "parse Avatar product local asset manifest failed ({}): {error}",
-            manifest_path.display()
-        )
-    })?;
-    let entry_file = manifest
-        .get("entry_file")
-        .and_then(|value| value.as_str())
-        .unwrap_or_default();
-    let relative_entry = require_safe_relative_smoke_asset_path(entry_file, "entry_file")?;
-    if !relative_entry.starts_with("files") {
-        return Err("entry_file must be inside files/".to_string());
-    }
-    let entry_path = package_dir.join(relative_entry);
-    fs::remove_file(&entry_path).map_err(|error| {
-        format!(
-            "apply Avatar product local asset missing_entry_file fault failed ({}): {error}",
-            entry_path.display()
-        )
-    })?;
-    append_macos_smoke_backend_stage(
-        "avatar-product-local-asset-fault-applied",
-        Some(&json!({
-            "faultKind": fault_kind,
-            "manifestPath": manifest_path.display().to_string(),
-            "removedEntryPath": entry_path.display().to_string(),
-        })),
-    )?;
-    Ok(DesktopMacosSmokeAvatarProductLocalAssetFaultApplyResult {
-        fault_kind: fault_kind.to_string(),
-        manifest_path: manifest_path.display().to_string(),
-        removed_entry_path: entry_path.display().to_string(),
     })
 }
 
@@ -375,7 +228,7 @@ mod tests {
                 "tauriFixture": {
                     "macosSmoke": {
                         "enabled": true,
-                        "scenarioId": "chat.memory-standard-bind",
+                        "scenarioId": "boot.anonymous.login-screen",
                         "reportPath": temp.join("report.json").display().to_string(),
                         "artifactsDir": temp.join("artifacts").display().to_string(),
                         "disableRuntimeBootstrap": true,
@@ -396,7 +249,7 @@ mod tests {
         assert!(result.enabled);
         assert_eq!(
             result.scenario_id.as_deref(),
-            Some("chat.memory-standard-bind")
+            Some("boot.anonymous.login-screen")
         );
         assert!(result.report_path.is_some());
         assert!(result.artifacts_dir.is_some());
@@ -418,7 +271,7 @@ mod tests {
                 "tauriFixture": {
                     "macosSmoke": {
                         "enabled": true,
-                        "scenarioId": "chat.memory-standard-bind",
+                        "scenarioId": "boot.anonymous.login-screen",
                         "reportPath": report_path.display().to_string(),
                         "artifactsDir": artifacts_dir.display().to_string()
                     }
@@ -439,9 +292,7 @@ mod tests {
             route: Some("/chat".to_string()),
             html_snapshot: Some("<html>ok</html>".to_string()),
             details: Some(json!({
-                "live2d": {
-                    "framingMode": "full-body-tall"
-                }
+                "surface": "login"
             })),
         })
         .expect("write report");
@@ -452,7 +303,7 @@ mod tests {
 
         assert_eq!(result.report_path, report_path.display().to_string());
         let report_raw = fs::read_to_string(&report_path).expect("read report");
-        assert!(report_raw.contains("\"scenarioId\": \"chat.memory-standard-bind\""));
+        assert!(report_raw.contains("\"scenarioId\": \"boot.anonymous.login-screen\""));
         assert!(report_raw.contains("\"fixtureManifestPath\""));
         assert!(report_raw.contains("\"failureSource\": \"renderer\""));
         assert!(report_raw.contains("\"details\""));
@@ -476,7 +327,7 @@ mod tests {
   "tauriFixture": {
     "macosSmoke": {
       "enabled": true,
-      "scenarioId": "chat.memory-standard-bind",
+      "scenarioId": "boot.anonymous.login-screen",
       "reportPath": "relative/report.json",
       "artifactsDir": "relative/artifacts"
     }
@@ -536,7 +387,7 @@ mod tests {
                 "tauriFixture": {
                     "macosSmoke": {
                         "enabled": true,
-                        "scenarioId": "chat.memory-standard-bind",
+                        "scenarioId": "boot.anonymous.login-screen",
                         "reportPath": temp.join("report.json").display().to_string(),
                         "artifactsDir": temp.join("artifacts").display().to_string()
                     }
@@ -550,7 +401,7 @@ mod tests {
         std::env::set_var("NIMI_E2E_BACKEND_LOG_PATH", backend_log_path.as_os_str());
         append_macos_smoke_backend_stage(
             "renderer-root-mounted",
-            Some(&json!({ "scenarioId": "chat.memory-standard-bind" })),
+            Some(&json!({ "scenarioId": "boot.anonymous.login-screen" })),
         )
         .expect("append stage");
         match previous_fixture {
@@ -564,7 +415,7 @@ mod tests {
 
         let log_raw = fs::read_to_string(backend_log_path).expect("read backend log");
         assert!(log_raw.contains("macos_smoke_ping stage=renderer-root-mounted"));
-        assert!(log_raw.contains("\"scenarioId\":\"chat.memory-standard-bind\""));
+        assert!(log_raw.contains("\"scenarioId\":\"boot.anonymous.login-screen\""));
         let _ = fs::remove_dir_all(temp);
     }
 }

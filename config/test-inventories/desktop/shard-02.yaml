@@ -5,18 +5,6 @@ owner: desktop
 authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
 tests:
-  - path: apps/desktop/test/chat-agent-memory-sovereignty.test.tsx
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
   - path: apps/desktop/test/chat-agent-policy-action-validation.test.ts
     owner: desktop
     classification: behavior_unit
@@ -510,30 +498,6 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/desktop/test/chat-secondary-surface-follow-on-w2.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/chat-secondary-surface-follow-on-w3.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
   - path: apps/desktop/test/chat-send-cache.test.ts
     owner: desktop
     classification: source_regex_sentinel
@@ -547,17 +511,6 @@ tests:
       - P-TEST-001
     sentinel_purpose: forbidden_copy
   - path: apps/desktop/test/chat-shared-execution-scheduling-guard.test.ts
-    owner: desktop
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/desktop/test/chat-shared-floating-menu.test.ts
     owner: desktop
     classification: behavior_unit
     tier: T4

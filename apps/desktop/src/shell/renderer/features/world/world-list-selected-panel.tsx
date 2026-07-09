@@ -195,10 +195,10 @@ export function SelectedWorldPanel({
       elevation="base"
       padding="none"
       data-testid="world-atlas-selected-panel"
-      className="sticky top-3 min-w-0 overflow-hidden rounded-[28px]"
+      className="w-full min-w-0 max-w-full overflow-hidden rounded-[32px] min-[1180px]:sticky min-[1180px]:top-3"
       style={WORLD_EXPLORER_THEME.panel}
     >
-      <div className="p-4 pb-0">
+      <div className="p-4 pb-0 sm:p-5 sm:pb-0">
         <WorldCover world={world} variant="panel" overlay>
           <div className="absolute right-3 top-3">
             <IconButton
@@ -230,7 +230,7 @@ export function SelectedWorldPanel({
         </WorldCover>
       </div>
 
-      <div className="p-5">
+      <div className="p-4 sm:p-6">
         <NimiText
           as="h2"
           role="section-title"
@@ -243,7 +243,7 @@ export function SelectedWorldPanel({
 
         <StatisticGroup
           data-testid="world-atlas-preview-overview"
-          className="mt-4 grid-cols-4 gap-1"
+          className="mt-4 grid-cols-2 gap-1 min-[460px]:grid-cols-4"
         >
           <PanelMetric value={formatPanelMetric(peopleCount)} helper={t('World.atlas.preview.metrics.people')} />
           <PanelMetric value={formatPanelMetric(world.entityCount)} helper={t('World.atlas.preview.metrics.materials')} />
@@ -275,7 +275,7 @@ export function SelectedWorldPanel({
               <DataList
                 items={peopleItems}
                 ariaLabel={t('World.atlas.preview.people.title')}
-                className="overflow-visible border-0 bg-transparent [&_.nimi-data-list__aside_.nimi-action]:min-h-8 [&_.nimi-data-list__aside_.nimi-action]:px-3 [&_.nimi-data-list__description]:text-[var(--world-explorer-text-muted)] [&_.nimi-data-list__item]:mb-2 [&_.nimi-data-list__item]:rounded-[16px] [&_.nimi-data-list__item]:border [&_.nimi-data-list__item]:border-[var(--world-explorer-border)] [&_.nimi-data-list__item]:!border-b [&_.nimi-data-list__item]:!border-b-[var(--world-explorer-border)] [&_.nimi-data-list__item]:bg-[var(--world-explorer-surface)] [&_.nimi-data-list__item]:px-2.5 [&_.nimi-data-list__item]:py-2.5 last:[&_.nimi-data-list__item]:mb-0"
+                className="min-w-0 overflow-visible border-0 bg-transparent [&_.nimi-data-list__aside_.nimi-action]:min-h-8 [&_.nimi-data-list__aside_.nimi-action]:px-3 [&_.nimi-data-list__description]:text-[var(--world-explorer-text-muted)] [&_.nimi-data-list__item]:mb-2 [&_.nimi-data-list__item]:min-w-0 [&_.nimi-data-list__item]:rounded-[16px] [&_.nimi-data-list__item]:border [&_.nimi-data-list__item]:border-[var(--world-explorer-border)] [&_.nimi-data-list__item]:!border-b [&_.nimi-data-list__item]:!border-b-[var(--world-explorer-border)] [&_.nimi-data-list__item]:bg-[var(--world-explorer-surface)] [&_.nimi-data-list__item]:px-2.5 [&_.nimi-data-list__item]:py-2.5 last:[&_.nimi-data-list__item]:mb-0"
               />
             ) : (
               <EmptyState title={peopleEmptyTitle} className="py-4" />
@@ -307,7 +307,7 @@ export function SelectedWorldPanel({
             size="lg"
             fullWidth
             trailingIcon={<ArrowRight size={16} aria-hidden="true" />}
-            className="world-panel-primary-action rounded-[16px] border-transparent bg-[var(--world-explorer-brand)] text-white hover:bg-[var(--world-explorer-brand-hover)]"
+            className="world-panel-primary-action rounded-[20px] border-transparent bg-[var(--world-explorer-brand)] text-white hover:bg-[var(--world-explorer-brand-hover)]"
             style={WORLD_EXPLORER_THEME.primaryAction}
             onClick={onOpen}
           >

@@ -20,45 +20,9 @@ import {
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptDir, '..');
 const repoRoot = path.resolve(desktopRoot, '..', '..');
-const CUBISM_WEB_SDK_VERSION = '5-r.5';
-const CUBISM_SAMPLE_MODEL = 'Hiyori';
 const SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET = String(
   process.env.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET || 'desktop-e2e-source-materialization-secret',
 );
-
-function ensureCubismLive2dSample() {
-  const sampleCacheRoot = path.join(repoRoot, 'apps/desktop/.cache/assets/js');
-  const sdkRoot = path.join(sampleCacheRoot, `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}`);
-  const zipPath = path.join(sdkRoot, `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}.zip`);
-  const modelPath = path.join(
-    sdkRoot,
-    'Samples',
-    'Resources',
-    CUBISM_SAMPLE_MODEL,
-    `${CUBISM_SAMPLE_MODEL}.model3.json`,
-  );
-
-  if (!fs.existsSync(zipPath)) {
-    throw new Error(`Cubism Web SDK zip is missing: ${zipPath}`);
-  }
-  if (!fs.existsSync(modelPath)) {
-    const entry = `CubismSdkForWeb-${CUBISM_WEB_SDK_VERSION}/Samples/Resources/${CUBISM_SAMPLE_MODEL}/*`;
-    const extract = spawnSync('unzip', ['-oq', zipPath, entry, '-d', sampleCacheRoot], {
-      cwd: repoRoot,
-      encoding: 'utf8',
-    });
-    if (extract.error) {
-      throw extract.error;
-    }
-    if (extract.status !== 0) {
-      throw new Error(`failed to extract Cubism sample ${CUBISM_SAMPLE_MODEL}: ${extract.stderr || extract.stdout || 'unknown unzip error'}`);
-    }
-  }
-  return {
-    sampleRoot: path.dirname(modelPath),
-    modelFileUrl: pathToFileURL(modelPath).toString(),
-  };
-}
 
 function parseArgs(argv) {
   const options = {
@@ -142,10 +106,6 @@ function writeJson(filePath, value) {
 }
 
 function buildScenarioManifest({ scenarioId, profile, fixtureOrigin, artifactsDir }) {
-  const profileText = JSON.stringify(profile);
-  const cubism = profileText.includes('__CUBISM_SAMPLE_LIVE2D_')
-    ? ensureCubismLive2dSample()
-    : null;
   return replacePlaceholders({
     ...profile,
     scenarioId,
@@ -154,8 +114,6 @@ function buildScenarioManifest({ scenarioId, profile, fixtureOrigin, artifactsDi
     __REPO_ROOT__: repoRoot,
     __E2E_DATA_ROOT__: path.join(artifactsDir, 'nimi-data'),
     __E2E_RUNTIME_CONFIG_PATH__: path.join(artifactsDir, 'runtime', 'config.json'),
-    __CUBISM_SAMPLE_LIVE2D_ROOT__: cubism?.sampleRoot || '',
-    __CUBISM_SAMPLE_LIVE2D_MODEL_FILE_URL__: cubism?.modelFileUrl || '',
   });
 }
 

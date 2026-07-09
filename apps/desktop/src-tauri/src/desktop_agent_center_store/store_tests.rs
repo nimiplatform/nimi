@@ -57,8 +57,8 @@ fn missing_config_returns_default_for_runtime_owned_opaque_ref() {
     with_product_data_home(&home, || {
         let mut payload = scope_payload();
         payload.local_agent_ref = "local-agent:runtime-owned-opaque+1".to_string();
-        let config = desktop_agent_center_config_get_blocking("account_1", payload)
-            .expect("default config");
+        let config =
+            desktop_agent_center_config_get_blocking("account_1", payload).expect("default config");
 
         assert_eq!(config.owner_user_id, owner_user_id());
         assert_eq!(config.runtime_source_ref, runtime_source_ref());
@@ -303,7 +303,9 @@ fn put_rejects_scope_mismatch() {
             },
         )
         .expect_err("scope mismatch");
-        assert!(err.contains("Agent Center config identity does not match requested local agent scope"));
+        assert!(
+            err.contains("Agent Center config identity does not match requested local agent scope")
+        );
     });
 }
 

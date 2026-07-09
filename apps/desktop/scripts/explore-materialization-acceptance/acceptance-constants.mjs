@@ -1,16 +1,18 @@
 export const APP_ID = 'nimi.desktop';
 export const OWNER_USER_ID = 'user-e2e-primary';
-export const VALID_PERSONA_ID = 'persona-acceptance-partner';
-export const DISABLED_PERSONA_ID = 'persona-acceptance-missing-hash';
+export const VALID_CHARACTER_ID = 'character-acceptance-yan-zhenqing';
+export const DISABLED_CHARACTER_ID = 'character-acceptance-missing-hash';
 export const VALID_SOURCE_REF = {
-  kind: 'realmPersona',
+  kind: 'worldCharacter',
   worldId: 'world-explore-acceptance',
-  sourceId: VALID_PERSONA_ID,
-  sourceContentHash: 'persona-acceptance-partner-hash',
+  sourceId: VALID_CHARACTER_ID,
+  sourceContentHash: 'character-acceptance-yan-zhenqing-hash',
 };
 export const PROTECTED_SCOPES = [
   'ai.spend.meter',
   'runtime.agent.admin',
+  'runtime.agent.ai_config.read',
+  'runtime.agent.ai_config.write',
   'runtime.agent.autonomy.write',
   'runtime.agent.avatar_debug.read',
   'runtime.agent.avatar_debug.write',

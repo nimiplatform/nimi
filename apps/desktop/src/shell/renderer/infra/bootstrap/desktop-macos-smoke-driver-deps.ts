@@ -1,12 +1,7 @@
-import {
-  applyDesktopMacosSmokeAvatarProductLocalAssetFault,
-  readDesktopMacosSmokeAvatarEvidence,
-  writeDesktopMacosSmokeReport,
-} from '@renderer/bridge/runtime-bridge/macos-smoke';
+import { writeDesktopMacosSmokeReport } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import type { DesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
-import { CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT } from '@renderer/features/chat/chat-agent-avatar-debug-override';
 import {
   clearAllAgentConversationAnchorBindings,
   getAgentConversationAnchorBinding,
@@ -17,20 +12,12 @@ import {
   getDesktopAppId,
   getDesktopRuntime,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAgentSmokeVerificationSurface, isRuntimeLocalAgentRef, type NimiRuntimeAgentSmokeVerificationRuntime } from '@nimiplatform/sdk/runtime';
+import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeAgentSmokeVerificationSurface, type NimiRuntimeAgentSmokeVerificationRuntime } from '@nimiplatform/sdk/runtime';
 import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   type DesktopMacosSmokeDriverDeps,
-  LIVE2D_VIEWPORT_SELECTOR,
   SMOKE_STEP_TIMEOUT_MS,
-  VRM_VIEWPORT_SELECTOR,
 } from './desktop-macos-smoke-shared';
-import {
-  mutateDesktopMacosSmokeViewportHost,
-  pulseDesktopMacosSmokeViewportTinyHost,
-  readDesktopMacosSmokeCanvasStats,
-  triggerDesktopMacosSmokeViewportContextLossAndRestore,
-} from './desktop-macos-smoke-dom-viewport';
 
 export type DesktopMacosSmokeDriverDepsOptions = {
   context?: DesktopMacosSmokeContext | null;
@@ -175,7 +162,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
             'text.generate': {
               kind: 'local-runtime',
               version: 'v2',
-              profileBindingId: 'e2e-live2d-text-route',
+              profileBindingId: 'e2e-runtime-text-route',
             },
           },
         },
@@ -208,7 +195,7 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
         'Runtime account product-smoke logout reset',
         accountRuntime.account.logout({
           caller: accountCaller,
-          reason: 'desktop_macos_avatar_product_smoke_reset',
+          reason: 'desktop_macos_smoke_reset',
         }),
         5_000,
       );
@@ -292,54 +279,6 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
       }
       throw new Error(`Desktop authenticated session was not available through Runtime account projection: ${lastError}`);
     },
-    async setChatAvatarInteractionOverride(override) {
-      const runtimeWindow = window as typeof window & {
-        __NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__?: Record<string, unknown> | null;
-        __NIMI_LIVE2D_SMOKE_OVERRIDE__?: Record<string, unknown> | null;
-      };
-      runtimeWindow.__NIMI_CHAT_AVATAR_SMOKE_OVERRIDE__ = override;
-      runtimeWindow.__NIMI_LIVE2D_SMOKE_OVERRIDE__ = override;
-      window.dispatchEvent(new CustomEvent(CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT));
-      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-    },
-    async resizeLive2dViewport(size) {
-      await mutateDesktopMacosSmokeViewportHost(LIVE2D_VIEWPORT_SELECTOR, size);
-    },
-    async pulseLive2dViewportTinyHost() {
-      await pulseDesktopMacosSmokeViewportTinyHost(LIVE2D_VIEWPORT_SELECTOR);
-    },
-    async pulseLive2dDevicePixelRatio(nextValue) {
-      const descriptor = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio');
-      const fallbackValue = window.devicePixelRatio;
-      Object.defineProperty(window, 'devicePixelRatio', {
-        configurable: true,
-        value: nextValue,
-      });
-      window.dispatchEvent(new Event('resize'));
-      await new Promise((resolve) => setTimeout(resolve, 180));
-      if (descriptor) {
-        Object.defineProperty(window, 'devicePixelRatio', descriptor);
-      } else {
-        Object.defineProperty(window, 'devicePixelRatio', {
-          configurable: true,
-          value: fallbackValue,
-        });
-      }
-      window.dispatchEvent(new Event('resize'));
-      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-    },
-    async triggerLive2dContextLossAndRestore() {
-      await triggerDesktopMacosSmokeViewportContextLossAndRestore(LIVE2D_VIEWPORT_SELECTOR, 'live2d');
-    },
-    async resizeVrmViewport(size) {
-      await mutateDesktopMacosSmokeViewportHost(VRM_VIEWPORT_SELECTOR, size);
-    },
-    async pulseVrmViewportTinyHost() {
-      await pulseDesktopMacosSmokeViewportTinyHost(VRM_VIEWPORT_SELECTOR);
-    },
-    async triggerVrmContextLossAndRestore() {
-      await triggerDesktopMacosSmokeViewportContextLossAndRestore(VRM_VIEWPORT_SELECTOR, 'vrm');
-    },
     async readTextByTestId(id: string) {
       const element = queryByTestId(id);
       if (!element) {
@@ -353,66 +292,6 @@ export function createDomDriverDeps(options: DesktopMacosSmokeDriverDepsOptions 
         throw new Error(`missing test id ${id}`);
       }
       return element.getAttribute(name);
-    },
-    async readLive2dCanvasStats(selector: string) {
-      const stats = await readDesktopMacosSmokeCanvasStats(selector, {
-        statusAttribute: 'data-avatar-live2d-status',
-        debugWindowKey: '__NIMI_LIVE2D_DEBUG__',
-        fallbackSelector: '[data-live2d-fallback-reason="true"]',
-      });
-      return {
-        status: stats.status,
-        fallbackText: stats.fallbackText,
-        width: stats.width,
-        height: stats.height,
-        canvasPresent: stats.canvasPresent,
-        contextKind: stats.contextKind,
-        sampleCount: stats.sampleCount,
-        nonTransparentSampleCount: stats.nonTransparentSampleCount,
-        sampleError: stats.sampleError,
-        runtimeDebug: stats.runtimeDebug,
-      };
-    },
-    async readVrmCanvasStats(selector: string) {
-      const stats = await readDesktopMacosSmokeCanvasStats(selector, {
-        statusAttribute: 'data-avatar-vrm-status',
-        stageAttribute: 'data-avatar-vrm-stage',
-        debugWindowKey: '__NIMI_VRM_DEBUG__',
-        fallbackSelector: '[data-vrm-load-reason="true"], [data-vrm-error-reason="true"]',
-      });
-      return {
-        status: stats.status,
-        stage: stats.stage,
-        fallbackText: stats.fallbackText,
-        width: stats.width,
-        height: stats.height,
-        canvasPresent: stats.canvasPresent,
-        contextKind: stats.contextKind,
-        sampleCount: stats.sampleCount,
-        nonTransparentSampleCount: stats.nonTransparentSampleCount,
-        sampleError: stats.sampleError,
-        runtimeDebug: stats.runtimeDebug,
-      };
-    },
-    async listAvatarLiveInstances(localAgentRef: string) {
-      const normalized = String(localAgentRef || '').trim();
-      if (!isRuntimeLocalAgentRef(normalized)) {
-        throw new Error('macOS smoke Avatar live-instance lookup requires localAgentRef');
-      }
-      throw new Error('macOS smoke Avatar live-instance lookup requires explicit ownerUserId and runtimeSourceRef');
-    },
-    async readAvatarEvidence(avatarInstanceId: string) {
-      return readDesktopMacosSmokeAvatarEvidence(avatarInstanceId);
-    },
-    async applyAvatarProductLocalAssetFault(faultKind: 'missing_entry_file') {
-      if (options.context?.avatarProductLocalAssetFault?.faultKind !== faultKind) {
-        throw new Error(`Avatar product local asset fault is not configured for ${faultKind}`);
-      }
-      return withSmokeTimeout(
-        'desktop_macos_smoke_avatar_product_local_asset_fault_apply',
-        applyDesktopMacosSmokeAvatarProductLocalAssetFault(faultKind),
-        3_000,
-      );
     },
     async writeReport(payload) {
       if (options.isReportOpen && !options.isReportOpen()) {

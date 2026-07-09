@@ -1,4 +1,0 @@
-{
-  "extends": "chat.memory-standard-bind.json",
-  "scenarioId": "chat.vrm-lifecycle-smoke"
-}

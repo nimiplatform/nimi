@@ -94,7 +94,10 @@ fn desktop_open_intent_uses_canonical_app_id_grammar() {
         "intent": { "kind": "open-apps" },
     }))
     .expect_err("request id suffix must start with an alphanumeric character");
-    assert_eq!(invalid_request_id.reason_code, "desktop-open-intent-invalid");
+    assert_eq!(
+        invalid_request_id.reason_code,
+        "desktop-open-intent-invalid"
+    );
 }
 
 #[test]

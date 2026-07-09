@@ -128,8 +128,16 @@ test('Desktop auth custody stays RuntimeAccountService-owned', () => {
     path.join(import.meta.dirname, '../src/shell/renderer/features/auth/desktop-auth-adapter.ts'),
     'utf8',
   );
-  const authSessionCommandsSource = fs.readFileSync(
-    path.join(import.meta.dirname, '../../../kit/shell/tauri/src/auth_session_commands.rs'),
+  const authSessionCommandsPath = path.join(
+    import.meta.dirname,
+    '../../../kit/shell/tauri/src/auth_session_commands.rs',
+  );
+  const commandRegistrationSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../../../kit/shell/tauri/src/command_registration.rs'),
+    'utf8',
+  );
+  const ipcCommandsSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../../../.nimi/spec/desktop/kernel/tables/ipc-commands.yaml'),
     'utf8',
   );
 
@@ -141,17 +149,11 @@ test('Desktop auth custody stays RuntimeAccountService-owned', () => {
   assert.match(authAdapterSource, /getAccountSessionStatus/);
   assert.match(authAdapterSource, /getAccessToken/);
 
-  for (const commandName of ['auth_session_load', 'auth_session_save', 'auth_session_clear']) {
-    const commandPattern = new RegExp(
-      [
-        'Local first-party account custody is RuntimeAccountService-owned\\.',
-        'This command remains registered only as a compatibility fail-closed stub\\.',
-        'Do not re-enable the legacy keyring/encrypted-file implementation below\\.',
-        `pub fn ${commandName}`,
-      ].join('[\\s\\S]*?'),
-    );
-    assert.match(authSessionCommandsSource, commandPattern);
-  }
+  assert.equal(fs.existsSync(authSessionCommandsPath), true);
+  assert.match(commandRegistrationSource, /auth_session_load|auth_session_save|auth_session_clear/);
+  assert.match(commandRegistrationSource, /AuthSession|AUTH_SESSION_COMMANDS/);
+  assert.match(ipcCommandsSource, /auth_session_load/);
+  assert.match(ipcCommandsSource, /Kit shared auth session surface/);
 });
 
 test('proxyHttp fallback blocks private-network absolute URLs outside the app origin', async () => {

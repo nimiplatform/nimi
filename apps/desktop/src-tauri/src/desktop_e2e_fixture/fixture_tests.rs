@@ -10,43 +10,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-fn manifest_for_scenario(scenario_id: &str) -> DesktopE2EFixtureManifest {
-    DesktopE2EFixtureManifest {
-        tauri_fixture: Some(DesktopE2ETauriFixture {
-            bootstrap_error: None,
-            runtime_defaults: None,
-            runtime_bridge_status: None,
-            desktop_release_info: None,
-            product_control_record: None,
-            app_platform: None,
-            confirm_dialog: None,
-            macos_smoke: Some(DesktopE2EMacosSmokeOverride {
-                enabled: true,
-                scenario_id: Some(scenario_id.to_string()),
-                report_path: None,
-                artifacts_dir: None,
-                disable_runtime_bootstrap: None,
-                bootstrap_timeout_ms: None,
-                avatar_product_local_asset_fault: None,
-            }),
-        }),
-        realm_fixture: None,
-    }
-}
-
-#[test]
-fn real_runtime_account_projection_covers_avatar_product_smoke_matrix() {
-    assert!(uses_real_runtime_account_projection(
-        &manifest_for_scenario("chat.live2d-avatar-product-smoke",)
-    ));
-    assert!(uses_real_runtime_account_projection(
-        &manifest_for_scenario("chat.live2d-avatar-local-asset-missing-smoke",)
-    ));
-    assert!(!uses_real_runtime_account_projection(
-        &manifest_for_scenario("chat.live2d-render-smoke",)
-    ));
-}
-
 #[test]
 fn runtime_register_app_fixture_accepts_local_first_party_registration() {
     let request = runtime_bridge_generated::RegisterAppRequest {

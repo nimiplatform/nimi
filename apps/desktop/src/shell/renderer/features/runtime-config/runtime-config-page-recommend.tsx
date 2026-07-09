@@ -201,6 +201,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
           label={t('runtimeConfig.recommend.capabilityLabel', { defaultValue: 'Task' })}
           value={capability}
           onChange={(value) => setActiveCapability(normalizeRecommendPageCapability(value))}
+          contentClassName="w-40 overflow-hidden rounded-xl bg-white p-0"
           options={RECOMMEND_PAGE_CAPABILITIES.map((v) => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))}
         />
 

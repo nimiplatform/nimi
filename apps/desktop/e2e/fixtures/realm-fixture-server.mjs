@@ -40,6 +40,66 @@ function notFound(response, pathname) {
   });
 }
 
+function fixtureSvg(name) {
+  const label = String(name || 'fixture').replace(/[^a-z0-9 -]/gi, ' ').trim() || 'fixture';
+  const colors = label.includes('cover') || label.includes('banner') || label.includes('hero')
+    ? ['#30251f', '#71563f', '#c9a56c']
+    : ['#1d3f34', '#4f8f65', '#d9c28f'];
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-label="${label}">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="${colors[0]}"/>
+      <stop offset="0.55" stop-color="${colors[1]}"/>
+      <stop offset="1" stop-color="${colors[2]}"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="720" fill="url(#g)"/>
+  <circle cx="840" cy="250" r="185" fill="rgba(255,255,255,.18)"/>
+  <rect x="120" y="130" width="270" height="460" rx="36" fill="rgba(255,255,255,.16)"/>
+  <text x="450" y="350" fill="#fff8e7" font-family="Arial, sans-serif" font-size="64" font-weight="700">${label}</text>
+</svg>`;
+}
+
+function fixtureSilentWav() {
+  const sampleRate = 8000;
+  const durationSamples = 800;
+  const dataSize = durationSamples * 2;
+  const buffer = Buffer.alloc(44 + dataSize);
+  buffer.write('RIFF', 0);
+  buffer.writeUInt32LE(36 + dataSize, 4);
+  buffer.write('WAVE', 8);
+  buffer.write('fmt ', 12);
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(sampleRate * 2, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write('data', 36);
+  buffer.writeUInt32LE(dataSize, 40);
+  return buffer;
+}
+
+function serveFixtureMedia(response, pathname) {
+  const match = pathname.match(/^\/__fixture\/media\/([^/]+)\.(svg|wav)$/u);
+  if (!match) {
+    return false;
+  }
+  const [, name, extension] = match;
+  response.statusCode = 200;
+  response.setHeader('access-control-allow-origin', '*');
+  if (extension === 'svg') {
+    response.setHeader('content-type', 'image/svg+xml; charset=utf-8');
+    response.end(fixtureSvg(decodeURIComponent(name || 'fixture')));
+    return true;
+  }
+  response.setHeader('content-type', 'audio/wav');
+  response.end(fixtureSilentWav());
+  return true;
+}
+
 function trimHandle(value) {
   return String(value || '').trim().replace(/^[@~]/u, '');
 }
@@ -311,10 +371,7 @@ function projectPublicWorld(world) {
 function projectPublicSource(world, source, sourceKind) {
   const worldId = text(world?.id, 'world-e2e-1');
   const id = text(source?.id, `${sourceKind}-fixture`);
-  const sourceContentHash = text(
-    source?.sourceRef?.sourceContentHash || source?.sourceContentHash || source?.contentHash,
-    `hash-${id}`,
-  );
+  const sourceContentHash = explicitSourceContentHash(source, id);
   const sourceRef = {
     kind: sourceKind,
     worldId,
@@ -324,7 +381,8 @@ function projectPublicSource(world, source, sourceKind) {
   return {
     id,
     sourceKind,
-    ownership: sourceKind === 'worldCharacter' ? 'worldOwned' : 'userOwned',
+    ownership: source?.ownership ?? (sourceKind === 'worldCharacter' ? 'worldOwned' : 'userOwned'),
+    ownershipType: source?.sourceOwnershipType ?? source?.ownershipType ?? (sourceKind === 'worldCharacter' ? 'WORLD_OWNED' : 'MASTER_OWNED'),
     sourceRef,
     displayName: text(source?.displayName || source?.name, id),
     handle: source?.handle ?? null,
@@ -452,6 +510,166 @@ function listRealmPersonaCores(manifest) {
   return worlds.flatMap((world) => asArray(world?.personas).map((source) => projectRealmPersonaCore(world, source)));
 }
 
+function projectWorldCharacterCore(world, source) {
+  const worldId = text(world?.id, 'world-e2e-1');
+  const id = text(source?.id, 'character-fixture');
+  const contentHash = explicitSourceContentHash(source, id);
+  const displayName = text(source?.displayName || source?.name, id);
+  const handle = text(source?.handle, displayName);
+  const summary = text(source?.summary || source?.bio, 'Fixture world character used for desktop materialization coverage.');
+  const tags = asArray(source?.tags).map(String).filter(Boolean);
+  const media = normalizeSourceMedia(source);
+  const entity = asRecord(source?.entity);
+  const entityId = text(source?.entityId || entity?.id, `entity-${id}`);
+  const core = asRecord(source?.core) || {
+    identity: {
+      name: displayName,
+      handle,
+      summary,
+    },
+    presentation: {
+      displayName,
+      profileLine: summary,
+      shortBio: text(source?.bio, summary),
+      avatarResourceRef: media.avatarUrl ?? media.portraitUrl ?? null,
+    },
+    placement: {
+      worldId,
+      entityId,
+      role: text(source?.placement?.role || source?.role, ''),
+      faction: text(source?.placement?.faction || source?.faction, ''),
+      rank: text(source?.placement?.rank || source?.rank, ''),
+      sceneRefs: asArray(source?.placement?.sceneRefs ?? source?.sceneRefs),
+    },
+    biography: asRecord(source?.biography) || { milestones: [] },
+    relationships: asArray(source?.relationships),
+    knowledge: asRecord(source?.knowledge) || {
+      topics: tags,
+      constraints: [],
+    },
+    interactionProfile: asRecord(source?.interactionProfile) || {},
+    assets: {
+      externalRefs: [
+        media.avatarUrl ? { kind: 'avatar', uri: media.avatarUrl } : null,
+        media.profileCoverUrl ? { kind: 'profileCover', uri: media.profileCoverUrl } : null,
+        media.referenceImageUrl ? { kind: 'referenceImage', uri: media.referenceImageUrl } : null,
+      ].filter(Boolean),
+    },
+  };
+  return {
+    id,
+    contentHash,
+    contentRevision: Number.isFinite(Number(source?.contentRevision)) ? Number(source.contentRevision) : 1,
+    core,
+    createdAt: text(source?.createdAt || world?.createdAt, '2026-03-15T00:00:00.000Z'),
+    entityId,
+    schemaVersion: text(source?.schemaVersion, 'realm.world-character-core/v1'),
+    updatedAt: text(source?.updatedAt || world?.updatedAt || source?.createdAt, '2026-03-15T00:00:00.000Z'),
+    worldId,
+  };
+}
+
+function listWorldCharacterCores(manifest) {
+  const worlds = Array.isArray(manifest.realmFixture?.worlds) ? manifest.realmFixture.worlds : [];
+  return worlds.flatMap((world) => asArray(world?.characters).map((source) => projectWorldCharacterCore(world, source)));
+}
+
+function projectWorldEntityCore(world, source) {
+  const worldId = text(world?.id, 'world-e2e-1');
+  const id = text(source?.id, 'character-fixture');
+  const displayName = text(source?.displayName || source?.name, id);
+  const summary = text(source?.summary || source?.bio, 'Fixture world entity used for desktop materialization coverage.');
+  const sourceEntity = asRecord(source?.entity);
+  const entityId = text(source?.entityId || sourceEntity?.id, `entity-${id}`);
+  const core = asRecord(sourceEntity?.core) || {
+    identity: {
+      name: displayName,
+      kind: text(sourceEntity?.kind, 'person'),
+      summary,
+    },
+    classification: {
+      tags: asArray(source?.tags).map(String).filter(Boolean),
+    },
+    facts: [],
+  };
+  return {
+    id: entityId,
+    kind: text(sourceEntity?.kind, 'person'),
+    worldId,
+    contentHash: text(sourceEntity?.contentHash, `entity-hash-${id}`),
+    core,
+    createdAt: text(source?.createdAt || world?.createdAt, '2026-03-15T00:00:00.000Z'),
+    updatedAt: text(source?.updatedAt || world?.updatedAt || source?.createdAt, '2026-03-15T00:00:00.000Z'),
+  };
+}
+
+function listWorldEntityCores(manifest) {
+  const worlds = Array.isArray(manifest.realmFixture?.worlds) ? manifest.realmFixture.worlds : [];
+  return worlds.flatMap((world) => asArray(world?.characters).map((source) => projectWorldEntityCore(world, source)));
+}
+
+function projectWorldRelationshipCore(world, source, relationship, index) {
+  const worldId = text(world?.id, 'world-e2e-1');
+  const sourceEntity = projectWorldEntityCore(world, source);
+  const type = text(relationship?.type || relationship?.relationType, 'association');
+  const summary = text(relationship?.summary, '');
+  const targetEntityId = text(relationship?.targetEntityId || relationship?.targetRef, `${sourceEntity.id}-${type}-${index + 1}`);
+  const id = text(relationship?.id || relationship?.relationshipId, `relationship-${sourceEntity.id}-${type}-${index + 1}`);
+  return {
+    id,
+    type,
+    worldId,
+    sourceEntityId: text(relationship?.sourceEntityId, sourceEntity.id),
+    targetEntityId,
+    contentHash: text(relationship?.contentHash, `relationship-hash-${id}`),
+    core: asRecord(relationship?.core) || {
+      endpoints: {
+        type,
+      },
+      presentation: {
+        title: text(relationship?.label || relationship?.targetLabel, type),
+        summary,
+      },
+      attributes: {
+        targetLabel: text(relationship?.targetLabel || relationship?.targetRef, ''),
+        label: text(relationship?.label, ''),
+        officeLabel: text(relationship?.officeLabel, ''),
+        statusLabel: text(relationship?.statusLabel, ''),
+        timeLabel: text(relationship?.timeLabel, ''),
+      },
+    },
+  };
+}
+
+function listWorldRelationshipCores(manifest, worldIdInput, entityIdInput = '') {
+  const worlds = Array.isArray(manifest.realmFixture?.worlds) ? manifest.realmFixture.worlds : [];
+  const rows = [];
+  for (const world of worlds) {
+    const worldId = text(world?.id, '');
+    if (worldIdInput && worldId !== worldIdInput) {
+      continue;
+    }
+    for (const source of asArray(world?.characters)) {
+      const sourceEntity = projectWorldEntityCore(world, source);
+      const relationships = [
+        ...asArray(source?.relationships),
+        ...asArray(world?.relationships).filter((relationship) => text(relationship?.sourceEntityId, '') === sourceEntity.id),
+      ];
+      for (const [index, relationship] of relationships.entries()) {
+        rows.push(projectWorldRelationshipCore(world, source, relationship, index));
+      }
+    }
+  }
+  const entityId = text(entityIdInput, '');
+  return entityId ? rows.filter((row) => row.sourceEntityId === entityId || row.targetEntityId === entityId) : rows;
+}
+
+function lookupSourceRow(manifest, sourceRef) {
+  const world = lookupWorld(manifest, sourceRef?.worldId);
+  const collection = sourceRef?.kind === 'realmPersona' ? world?.personas : world?.characters;
+  return asArray(collection).find((item) => String(item?.id || '') === String(sourceRef?.sourceId || '')) || null;
+}
+
 function resolveFixtureSourceHash(manifest, source) {
   const worldId = text(source?.worldId, 'world-e2e-1');
   const sourceId = text(source?.sourceId, `${source?.kind || 'source'}-fixture`);
@@ -536,6 +754,9 @@ function buildSourceMaterializationPacket(manifest, sourceRef, intendedRuntimeAu
     ? 'realm.world-character-core/v1'
     : 'realm.persona/v1';
   const sourceWorldName = text(lookupWorld(manifest, sourceRef.worldId)?.name, '');
+  const sourceRow = lookupSourceRow(manifest, sourceRef);
+  const sourceMedia = normalizeSourceMedia(sourceRow);
+  const sourceDisplayName = text(sourceRow?.displayName || sourceRow?.name, sourceRef.sourceId);
   const unsignedPacket = {
     packetSchemaVersion: 'realm.source-materialization-packet/v1',
     packetId,
@@ -551,9 +772,9 @@ function buildSourceMaterializationPacket(manifest, sourceRef, intendedRuntimeAu
     runtimeSourceRef,
     sourceDisplayMetadata: {
       ...(sourceWorldName ? { worldName: sourceWorldName } : {}),
-      displayName: sourceRef.sourceId,
-      avatarUrl: null,
-      profileCoverUrl: null,
+      displayName: sourceDisplayName,
+      avatarUrl: sourceMedia.avatarUrl,
+      profileCoverUrl: sourceMedia.profileCoverUrl,
     },
     payload: {
       sourceRef,
@@ -705,6 +926,10 @@ async function handleApi(request, response, manifestPath) {
       ok: true,
       scenarioId: manifest.scenarioId,
     });
+    return undefined;
+  }
+
+  if (serveFixtureMedia(response, pathname)) {
     return undefined;
   }
 
@@ -886,6 +1111,39 @@ async function handleApi(request, response, manifestPath) {
       return undefined;
     }
     json(response, 200, row);
+    return undefined;
+  }
+
+  const worldCharacterMatch = pathname.match(/^\/api\/realm\/core\/world-characters\/([^/]+)$/u);
+  if (request.method === 'GET' && worldCharacterMatch) {
+    const characterId = decodeURIComponent(worldCharacterMatch[1]);
+    const row = listWorldCharacterCores(manifest).find((item) => String(item.id || '') === characterId);
+    if (!row) {
+      notFound(response, pathname);
+      return undefined;
+    }
+    json(response, 200, row);
+    return undefined;
+  }
+
+  const worldEntityMatch = pathname.match(/^\/api\/realm\/core\/world-entities\/([^/]+)$/u);
+  if (request.method === 'GET' && worldEntityMatch) {
+    const entityId = decodeURIComponent(worldEntityMatch[1]);
+    const row = listWorldEntityCores(manifest).find((item) => String(item.id || '') === entityId);
+    if (!row) {
+      notFound(response, pathname);
+      return undefined;
+    }
+    json(response, 200, row);
+    return undefined;
+  }
+
+  const worldRelationshipsMatch = pathname.match(/^\/api\/realm\/core\/worlds\/([^/]+)\/relationships$/u);
+  if (request.method === 'GET' && worldRelationshipsMatch) {
+    const worldId = decodeURIComponent(worldRelationshipsMatch[1]);
+    const entityId = requestUrl.searchParams.get('entityId') || '';
+    const take = positiveInt(requestUrl.searchParams.get('take'), 500);
+    json(response, 200, listWorldRelationshipCores(manifest, worldId, entityId).slice(0, take));
     return undefined;
   }
 

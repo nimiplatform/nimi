@@ -197,13 +197,14 @@ test('the Storage phase wires the native folder picker to the selectProductDataR
   assert.match(storageSource, /onContinue/);
   assert.doesNotMatch(storageSource, /<input/);
 
-  // The folder picker bridge call is fail-closed on a non-string payload.
+  // The folder picker uses the standard Kit file dialog rather than an app-local Tauri command.
   const bridgeSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/product-control.ts'),
     'utf8',
   );
-  assert.match(bridgeSource, /product_control_pick_data_root_directory/);
-  assert.match(bridgeSource, /returned invalid payload/);
+  assert.match(bridgeSource, /openShellFileDialog/);
+  assert.match(bridgeSource, /kind:\s*'directory'/);
+  assert.doesNotMatch(bridgeSource, /invokeChecked\('product_control_pick_data_root_directory'/);
 });
 
 test('the Storage phase pre-fills the OS default nimi_data path as a confirmable proposal', () => {

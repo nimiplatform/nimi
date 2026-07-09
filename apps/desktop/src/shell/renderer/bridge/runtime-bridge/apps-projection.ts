@@ -1,30 +1,33 @@
 // Desktop Apps bridge projection client.
 //
-// The Desktop bridge invokes the shell-owned `apps_bridge_projection_get`
-// command. The returned payload is decoded by the SDK Nimi App surface so
-// Desktop does not maintain a second registry/admission/release-descriptor
-// parser.
+// The Desktop bridge invokes the Kit standard `platformProjection.get` command
+// for `apps-bridge`. The returned record is decoded by the SDK Nimi App
+// surface so Desktop does not maintain a second registry/admission/release-
+// descriptor parser.
 
 import {
   parseNimiAppBridgeProjection,
   type NimiAppBridgeProjection,
 } from '@nimiplatform/sdk/app';
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
-import { invokeChecked } from './invoke';
+import {
+  getShellPlatformProjection,
+  hasShellHostInvoke,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type AppsBridgeProjection = NimiAppBridgeProjection;
 
 /**
- * Invoke the `apps_bridge_projection_get` Tauri command.
+ * Invoke the standard `platformProjection.get` shell command.
  *
  * Ensures `~/.nimi/apps/registry.json` is materialized, then returns the SDK
  * Nimi App registry/descriptor loader payloads. Package readiness is read
- * through Runtime `GetAppPackageReadiness`, not this Tauri projection.
- * Requires the Tauri runtime — the Apps bridge has no non-desktop source.
+ * through Runtime `GetAppPackageReadiness`, not this shell projection.
+ * Requires a standard shell host; Desktop does not keep an app-local fallback.
  */
 export async function getAppsBridgeProjection(): Promise<AppsBridgeProjection> {
-  if (!hasTauriInvoke()) {
-    throw new Error('apps_bridge_projection_get requires the desktop Tauri runtime');
+  if (!hasShellHostInvoke()) {
+    throw new Error('platformProjection.get apps-bridge requires a standard shell host');
   }
-  return invokeChecked('apps_bridge_projection_get', {}, parseNimiAppBridgeProjection);
+  const projection = await getShellPlatformProjection({ projectionId: 'apps-bridge' });
+  return parseNimiAppBridgeProjection(projection.record);
 }

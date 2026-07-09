@@ -24,6 +24,11 @@ export function resolveAgentConversationHostView(input: {
     emptyDescription: string;
     emptyEyebrow: string;
     loadingLabel: string;
+    pendingAgentRoleLabel: string;
+    pendingThinkingLabel: string;
+    pendingStopLabel: string;
+    todayLabel: string;
+    yesterdayLabel: string;
   };
   transcriptWidthClassName?: string;
   transcriptWidthPositionClassName?: string;
@@ -34,6 +39,16 @@ export function resolveAgentConversationHostView(input: {
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   onStopGenerating?: () => void;
 }): AgentConversationHostView {
+  const formatDateLabel = ({ date, diffDays }: { date: Date; diffDays: number }) => {
+    if (diffDays === 0) {
+      return input.labels.todayLabel;
+    }
+    if (diffDays === 1) {
+      return input.labels.yesterdayLabel;
+    }
+    return date.toLocaleDateString();
+  };
+
   return {
     availability: {
       mode: 'agent',
@@ -51,6 +66,10 @@ export function resolveAgentConversationHostView(input: {
       emptyDescription: input.labels.emptyDescription,
       emptyStateVariant: 'compact',
       loadingLabel: input.labels.loadingLabel,
+      pendingAgentRoleLabel: input.labels.pendingAgentRoleLabel,
+      pendingThinkingLabel: input.labels.pendingThinkingLabel,
+      pendingStopLabel: input.labels.pendingStopLabel,
+      formatDateLabel,
       widthClassName: input.transcriptWidthClassName || 'max-w-[min(920px,calc(100vw-620px))]',
       widthPositionClassName: input.transcriptWidthPositionClassName || 'mx-auto',
       scrollViewportWidthClassName: input.transcriptScrollViewportWidthClassName || 'w-full',
@@ -68,6 +87,8 @@ export function resolveAgentConversationHostView(input: {
       renderMessageContent: input.renderMessageContent,
       renderMessageAccessory: input.renderMessageAccessory,
       pendingFirstBeat: input.footerViewState.pendingFirstBeat,
+      pendingAgentRoleLabel: input.labels.pendingAgentRoleLabel,
+      pendingThinkingLabel: input.labels.pendingThinkingLabel,
       disableRpContent: true,
     },
   };

@@ -2,9 +2,9 @@ status: migrated
 date: "2026-06-01"
 domain: avatar-framing-kit-forwarding-shell
 closure_result:
-  kind: kit_owner_forwarding_shell_burndown_and_test_relocation
-  migrated_in_this_commit: true
-  production_code_changed_in_this_commit: true
+  kind: superseded_by_desktop_avatar_viewport_hard_cut
+  migrated_in_this_commit: false
+  production_code_changed_in_this_commit: false
   refactor_progress_credit: true
 authority_posture:
   spec_status: alignment
@@ -20,21 +20,12 @@ scope:
   included:
     - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-framing.ts
     - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-framing.ts
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-viewport.tsx
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-diagnostics.ts
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-scene.tsx
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-viewport.tsx
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-cubism-model.ts
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime.ts
-    - apps/desktop/test/chat-agent-avatar-vrm-framing.test.ts
-    - apps/desktop/test/chat-agent-avatar-live2d-framing.test.ts
-    - apps/desktop/test/avatar-shell-local-assets-domain-boundary.test.ts
     - apps/desktop/test/sdk-kit-forwarding-alias-domain-boundary.test.ts
     - kit/features/avatar/test/avatar-vrm-framing.test.ts
     - kit/features/avatar/test/avatar-live2d-framing.test.ts
     - apps/tester/src/shell/routes/settings.tsx
   excluded:
-    - Desktop avatar viewport load-state, asset URL, expression-weight, diagnostics, and Cubism runtime integration logic.
+    - Desktop avatar viewport load-state, asset URL, expression-weight, diagnostics, and Cubism runtime integration logic; these are no longer admitted Desktop-owned residues.
     - Avatar app launch handoff and live instance registry custody.
 preflight_violation_inventory:
   platform_truth:
@@ -57,27 +48,14 @@ migrated:
       responsibility: VRM framing metrics, policies, scene measurement, and result projection.
     - path: kit/features/avatar/src/live2d.tsx
       responsibility: Live2D framing policy and intent projection.
-  desktop_consumers:
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-viewport.tsx
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-diagnostics.ts
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-scene.tsx
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-viewport.tsx
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-cubism-model.ts
-    - apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime.ts
+  desktop_consumers: []
   tester_consumers:
     - apps/tester/src/shell/routes/settings.tsx consumes Kit avatar headless/runtime surfaces as the second app proof for shared avatar ownership.
-desktop_app_owned_residue:
-  - path: apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-vrm-viewport.tsx
-    rationale: Desktop owns product-specific Three/VRM viewport integration, diagnostics wiring, and asset custody handling; reusable framing math is Kit-owned.
-  - path: apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-cubism-model.ts
-    rationale: Desktop owns official Cubism runtime integration and local asset loading; reusable Live2D framing policy is Kit-owned.
-  - path: apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-viewport.tsx
-    rationale: Desktop owns product-specific Live2D viewport load/error/diagnostic wiring; reusable framing intent types are Kit-owned.
+desktop_app_owned_residue: []
 tester_proof:
   - apps/tester/src/shell/routes/settings.tsx imports @nimiplatform/kit/features/avatar/headless and @nimiplatform/kit/features/avatar/runtime.
   - apps/tester/test/tester-contract.test.mjs verifies Tester settings consumes Kit avatar voice cue projection.
 regression_guards:
-  - apps/desktop/test/avatar-shell-local-assets-domain-boundary.test.ts asserts the Desktop framing shell files are absent and production consumers import Kit avatar surfaces directly.
   - apps/desktop/test/sdk-kit-forwarding-alias-domain-boundary.test.ts no longer allowlists the deleted avatar framing forwarding shells.
   - kit/features/avatar/test/avatar-vrm-framing.test.ts owns VRM framing policy, scene metrics, and result behavior.
   - kit/features/avatar/test/avatar-live2d-framing.test.ts owns Live2D framing policy behavior.
@@ -87,26 +65,9 @@ prohibited_patterns:
       - "chat-agent-avatar-vrm-framing"
       - "chat-agent-avatar-live2d-framing"
 verification:
-  status: passed
+  status: superseded_by_desktop_avatar_viewport_hard_cut
+  note: Previous command evidence referenced tests and Desktop viewport files deleted by the hard cut; do not treat those command lines as current pass evidence.
   commands:
-    - command: node -e "const fs=require('fs'); const yaml=require('yaml'); yaml.parse(fs.readFileSync('config/desktop-ecosystem-boundary-domain-closure/avatar-framing-kit-forwarding-shell.yaml','utf8'));"
-      result: passed
-    - command: pnpm --filter @nimiplatform/kit exec vitest run features/avatar/test/avatar-vrm-framing.test.ts features/avatar/test/avatar-live2d-framing.test.ts
-      result: passed
-      evidence: 20 Kit owner tests passed.
-    - command: pnpm --filter @nimiplatform/desktop exec tsx --test test/avatar-shell-local-assets-domain-boundary.test.ts test/sdk-kit-forwarding-alias-domain-boundary.test.ts test/chat-agent-avatar-vrm-viewport.test.tsx test/chat-agent-avatar-vrm-viewport-state.test.ts test/chat-agent-avatar-live2d-viewport-state.test.ts test/chat-agent-avatar-live2d-cubism-runtime.test.ts
-      result: passed
-      evidence: 45 Desktop hardcut/viewport integration tests passed.
-    - command: pnpm --filter @nimiplatform/tester exec node --test test/tester-contract.test.mjs
-      result: passed
-      evidence: 62 Tester contract tests passed, including Kit avatar runtime/headless consumption.
-    - command: pnpm --filter @nimiplatform/desktop typecheck
-      result: passed
-    - command: rg -n "chat-agent-avatar-vrm-framing|chat-agent-avatar-live2d-framing" apps/desktop/src/shell/renderer/features/chat --glob '!**/generated/**'
-      result: passed_no_matches
-    - command: pnpm check:no-legacy-imports
-      result: passed
-    - command: pnpm check:no-absolute-user-paths
-      result: passed
-    - command: git diff --check
-      result: passed
+    - command: historical_entries_removed
+      result: superseded
+      evidence: No deleted Desktop-local viewport test is represented as current pass evidence.

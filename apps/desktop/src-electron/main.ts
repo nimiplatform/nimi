@@ -3,6 +3,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell, type MessageBoxOptions } from 'electron';
 import {
+  NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION,
   createElectronShellFileProtocolHost,
   createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
@@ -41,33 +42,37 @@ const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
 // path-allow gate for which absolute paths may be resolved stays on the
 // standard shell host via `localAssetRoots`.
 //
-// The kit `NimiElectronShellFileProtocolApi` declares its scheme list param as
-// `readonly`, while Electron's `Protocol.registerSchemesAsPrivileged` expects a
-// mutable array, so the raw `protocol` object is not structurally assignable.
-// Forward through a thin adapter that copies the list into a mutable array.
+// Privileged scheme registration is centralized below because Electron reads
+// these declarations during app bootstrap.
 const localAssetProtocolHost: NimiElectronShellFileProtocolHost = createElectronShellFileProtocolHost({
   protocol: {
-    registerSchemesAsPrivileged: (customSchemes) =>
-      protocol.registerSchemesAsPrivileged([...customSchemes]),
+    registerSchemesAsPrivileged: () => {
+      throw new Error('Desktop registers Electron privileged schemes once during app bootstrap.');
+    },
     handle: (scheme, handler) =>
       protocol.handle(scheme, async (request) => (await handler(request)) as Response),
   },
 });
 let mainWindow: BrowserWindow | undefined;
 
-localAssetProtocolHost.registerPrivilegedSchemes();
-protocol.registerSchemesAsPrivileged([{
-  scheme: DESKTOP_INSTALLED_APP_PROTOCOL_SCHEME,
-  privileges: {
-    standard: true,
-    secure: true,
-    corsEnabled: true,
-    supportFetchAPI: true,
-    stream: true,
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.scheme,
+    privileges: { ...NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.privileges },
   },
-}]);
+  {
+    scheme: DESKTOP_INSTALLED_APP_PROTOCOL_SCHEME,
+    privileges: {
+      standard: true,
+      secure: true,
+      corsEnabled: true,
+      supportFetchAPI: true,
+      stream: true,
+    },
+  },
+]);
 
-app.setName('Nimi Desktop');
+app.setName('Nimi');
 configureDesktopElectronChromiumRuntime();
 
 void app.whenReady().then(async () => {
@@ -143,7 +148,7 @@ async function createMainWindow(): Promise<BrowserWindow> {
     height: 940,
     minWidth: 1100,
     minHeight: 760,
-    title: 'Nimi Desktop',
+    title: 'Nimi',
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,

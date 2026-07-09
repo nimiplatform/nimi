@@ -81,9 +81,9 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
     path.join(root, 'src/shell/renderer/infra/bootstrap/desktop-macos-smoke.ts'),
     'utf8',
   );
-  const live2dRuntimeHookSource = fs.readFileSync(
-    path.join(root, 'src/shell/renderer/features/chat/chat-agent-avatar-live2d-runtime-hook.ts'),
-    'utf8',
+  const retiredLive2dRuntimeHookPath = path.join(
+    root,
+    'src/shell/renderer/features/chat/chat-agent-avatar-live2d-runtime-hook.ts',
   );
 
   assert.match(mainSource, /renderer-main-entry/);
@@ -101,8 +101,7 @@ test('desktop macos smoke renderer sources include mounted ping markers', () => 
   assert.match(bootstrapSource, /smoke-context-load-failed/);
   assert.match(bootstrapSource, /bootstrap-timeout-before-ready/);
   assert.match(bootstrapSource, /bootstrap-error-screen/);
-  assert.match(live2dRuntimeHookSource, /webglcontextrestored/);
-  assert.match(live2dRuntimeHookSource, /action:live2d-model-rebuilt/);
+  assert.equal(fs.existsSync(retiredLive2dRuntimeHookPath), false);
 });
 
 test('desktop macos smoke commands are fixture-gated instrumentation only', () => {
@@ -126,8 +125,6 @@ test('desktop macos smoke commands are fixture-gated instrumentation only', () =
 
   assert.match(macosSmokeSource, /^\/\/! Desktop macOS smoke instrumentation\./);
   for (const commandName of [
-    'desktop_macos_smoke_avatar_evidence_read',
-    'desktop_macos_smoke_avatar_product_local_asset_fault_apply',
     'desktop_macos_smoke_report_write',
   ]) {
     assert.match(
@@ -135,6 +132,8 @@ test('desktop macos smoke commands are fixture-gated instrumentation only', () =
       new RegExp(`pub\\(crate\\) fn ${commandName}[\\s\\S]*?require_enabled_macos_smoke_override\\(\\)\\?;`),
     );
   }
+  assert.doesNotMatch(macosSmokeSource, /desktop_macos_smoke_avatar_evidence_read/);
+  assert.doesNotMatch(macosSmokeSource, /desktop_macos_smoke_avatar_product_local_asset_fault_apply/);
   assert.match(
     macosSmokeSource,
     /desktop_macos_smoke_context_get[\s\S]*?macos_smoke_override\(\)\?[\s\S]*?enabled: false/,

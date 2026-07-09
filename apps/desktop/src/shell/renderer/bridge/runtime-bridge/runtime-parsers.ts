@@ -6,7 +6,6 @@ import {
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   assertRecord,
-  parseOptionalJsonObject,
   parseOptionalNumber,
   parseOptionalString,
   parseRequiredString,
@@ -16,7 +15,6 @@ import type {
   DesktopUpdateCheckResult,
   DesktopUpdateState,
   DesktopMacosSmokeContext,
-  DesktopMacosSmokeAvatarEvidenceReadResult,
   DesktopMacosSmokeReportResult,
   MenuBarProviderSummary,
   SystemResourceSnapshot,
@@ -118,7 +116,6 @@ export function parseDesktopMacosSmokeContext(value: unknown): DesktopMacosSmoke
     artifactsDir: parseOptionalString(record.artifactsDir),
     disableRuntimeBootstrap: Boolean(record.disableRuntimeBootstrap),
     bootstrapTimeoutMs: parseOptionalNumber(record.bootstrapTimeoutMs),
-    avatarProductLocalAssetFault: parseOptionalJsonObject(record.avatarProductLocalAssetFault) || undefined,
   };
 }
 
@@ -127,13 +124,5 @@ export function parseDesktopMacosSmokeReportResult(value: unknown): DesktopMacos
   return {
     reportPath: parseRequiredString(record.reportPath, 'reportPath', 'desktop_macos_smoke_report_write'),
     htmlSnapshotPath: parseOptionalString(record.htmlSnapshotPath),
-  };
-}
-
-export function parseDesktopMacosSmokeAvatarEvidenceReadResult(value: unknown): DesktopMacosSmokeAvatarEvidenceReadResult {
-  const record = assertRecord(value, 'desktop_macos_smoke_avatar_evidence_read returned invalid payload');
-  return {
-    evidencePath: parseRequiredString(record.evidencePath, 'evidencePath', 'desktop_macos_smoke_avatar_evidence_read'),
-    evidence: parseOptionalJsonObject(record.evidence) || {},
   };
 }

@@ -105,14 +105,6 @@ pub struct DesktopE2EMacosSmokeOverride {
     pub artifacts_dir: Option<String>,
     pub disable_runtime_bootstrap: Option<bool>,
     pub bootstrap_timeout_ms: Option<u64>,
-    pub avatar_product_local_asset_fault: Option<DesktopE2EMacosSmokeAvatarProductLocalAssetFault>,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DesktopE2EMacosSmokeAvatarProductLocalAssetFault {
-    pub fault_kind: String,
-    pub package_dir: String,
 }
 
 fn confirm_dialog_override_index_store() -> &'static Mutex<usize> {
@@ -517,14 +509,6 @@ pub fn runtime_bridge_unary_override(
         append_backend_log(&format!(
             "runtime_agent_fixture method=received method_id={method_id}"
         ));
-    }
-    if uses_real_runtime_account_projection(&manifest) {
-        if method_id.contains("/nimi.runtime.v1.RuntimeAgentService/") {
-            append_backend_log(&format!(
-                "runtime_agent_fixture method=bypassed-real-account-projection method_id={method_id}"
-            ));
-        }
-        return Ok(None);
     }
     let projection = account_projection_from_fixture(manifest.realm_fixture.as_ref());
     match method_id {

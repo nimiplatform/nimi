@@ -294,7 +294,7 @@ export function bootstrapRuntime(): Promise<void> {
       daemonStatus,
       realmDefaults: defaults.realm,
       flowId,
-      preserveLocalRuntimeStatePath: macosSmokeContext.scenarioId === 'chat.live2d-avatar-product-smoke',
+      preserveLocalRuntimeStatePath: false,
     });
     daemonStatus = configSync.daemonStatus;
     runtimeUnavailable = configSync.runtimeUnavailable;

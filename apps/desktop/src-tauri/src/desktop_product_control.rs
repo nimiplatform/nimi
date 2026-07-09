@@ -149,24 +149,6 @@ pub async fn product_control_record_select_data_root(
     .await
 }
 
-/// Opens the OS native directory picker so the first-run Storage phase can
-/// resolve an absolute `nimi_data` folder without a raw path text field.
-///
-/// This command only resolves a path; it does not mutate the product-control
-/// record. The renderer passes the returned absolute path to
-/// `product_control_record_select_data_root`, which owns recording and
-/// fail-closed validation (`P-COLD-010`). `Ok(None)` means the user cancelled
-/// the dialog — that is a normal, non-error outcome.
-#[tauri::command]
-pub fn product_control_pick_data_root_directory() -> Result<Option<String>, String> {
-    let start_dir = dirs::home_dir().unwrap_or_else(std::env::temp_dir);
-    let selected = rfd::FileDialog::new()
-        .set_directory(&start_dir)
-        .set_title("Choose where Nimi stores models and data")
-        .pick_folder();
-    Ok(selected.map(|path| path.to_string_lossy().to_string()))
-}
-
 /// Resolves the OS-conventional default `nimi_data` directory the first-run
 /// Storage phase pre-fills as the recommended location.
 ///

@@ -45,9 +45,9 @@ function coverBackground(world: WorldListItem): string {
 }
 
 const variantClassName: Record<WorldCoverVariant, string> = {
-  thumb: 'relative block h-[72px] w-[86px] shrink-0 overflow-hidden rounded-[16px]',
-  featured: 'absolute inset-0 block overflow-hidden rounded-[16px]',
-  panel: 'relative block h-[192px] shrink-0 overflow-hidden rounded-[20px]',
+  thumb: 'relative block h-[86px] w-[86px] shrink-0 overflow-hidden rounded-[16px]',
+  featured: 'absolute inset-0 block overflow-hidden rounded-[18px]',
+  panel: 'relative block h-[232px] shrink-0 overflow-hidden rounded-[24px]',
 };
 
 export function WorldCover({

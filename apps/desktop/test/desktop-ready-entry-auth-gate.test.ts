@@ -67,6 +67,12 @@ const productControlRootSource = readFileSync(
 const productControlOperationsSource = readFileSync(
   resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control/operations.rs'),
   'utf8',
+).concat(
+  '\n',
+  readFileSync(
+    resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control/operations_test_support.rs'),
+    'utf8',
+  ),
 );
 const productControlRecordStoreSource = readFileSync(
   resolve(import.meta.dirname, '../src-tauri/src/desktop_product_control/record_store.rs'),

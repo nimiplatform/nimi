@@ -7,8 +7,13 @@ use nimi_shell_tauri::{
     capabilities::data::{
         resolve_standard_app_storage_roots, StandardAppStorageRootSlot, StandardDataRootBinding,
     },
+    capabilities::desktop_product_local_agent::desktop_shell_runtime_account_caller,
     capabilities::diagnostics::{
         build_renderer_entry_probe_script, RendererEntryProbeScriptConfig,
+    },
+    capabilities::local_agent::{set_standard_local_agent_host_hooks, StandardLocalAgentHostHooks},
+    capabilities::local_assets::{
+        set_standard_local_assets_host_hooks, StandardLocalAssetsHostHooks,
     },
     capabilities::runtime::{
         RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata,
@@ -101,6 +106,35 @@ fn install_standard_shell_ui_host_hooks() {
         })),
     };
     let _ = nimi_shell_tauri::capabilities::shell_ui::set_standard_shell_ui_host_hooks(hooks);
+}
+
+/// Admit Desktop-owned runtime local asset roots for the shared standard
+/// `file-reveal.reveal` command. Renderer code still supplies only a concrete
+/// target path; the Tauri host resolves the authoritative product data root.
+fn install_standard_local_assets_host_hooks() {
+    let hooks = StandardLocalAssetsHostHooks {
+        local_asset_roots: Some(Arc::new(|| {
+            let data_root = crate::desktop_paths::resolve_nimi_data_dir()?;
+            Ok(vec![
+                nimi_shell_tauri::capabilities::local_assets::runtime_models_dir(&data_root),
+            ])
+        })),
+    };
+    let _ = set_standard_local_assets_host_hooks(hooks);
+}
+
+/// Bind the Desktop shell as the host-derived Runtime account caller for
+/// standard local-agent Runtime access. Desktop intentionally does not bind a
+/// local-agent identity hook here; Electron keeps that surface unbound too, and
+/// the renderer must not fabricate a local-agent ref.
+pub(super) fn install_standard_local_agent_host_hooks() {
+    let hooks = StandardLocalAgentHostHooks {
+        identity: None,
+        runtime_trusted_caller: Some(Arc::new(|| {
+            desktop_shell_runtime_account_caller("nimi.desktop")
+        })),
+    };
+    let _ = set_standard_local_agent_host_hooks(hooks);
 }
 
 /// Resolve and manage the standard app storage slot. Desktop's renderer does
@@ -209,6 +243,8 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             eprintln!("[boot:{:}] setup entered", now_ms());
             install_shared_runtime_bridge_hooks();
             install_standard_shell_ui_host_hooks();
+            install_standard_local_assets_host_hooks();
+            install_standard_local_agent_host_hooks();
             install_standard_app_storage_slot(app);
             match crate::desktop_open_intent::start_desktop_open_intent_bridge(app.handle().clone())
             {
@@ -356,7 +392,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::desktop_product_control::product_control_record_ensure_created,
             crate::desktop_product_control::product_control_record_select_data_root,
             crate::desktop_product_control::product_control_record_complete_first_run_device_environment_scan,
-            crate::desktop_product_control::product_control_pick_data_root_directory,
             crate::desktop_product_control::product_control_default_data_root_directory,
             crate::desktop_product_control::product_control_record_set_first_run_install_level,
             crate::desktop_product_control::product_control_record_ensure_account_default_profile,
@@ -374,16 +409,12 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             crate::nimi_data_directory::nimi_data_cleanup_plan,
             crate::nimi_data_directory::nimi_data_cleanup_execute,
             crate::desktop_logs_export::desktop_logs_export,
-            crate::apps_bridge_projection::apps_bridge_projection_get,
-            crate::apps_local_app_commands::apps_pick_local_app_root_directory,
             super::defaults_and_commands::system_resources::get_system_resource_snapshot,
             super::defaults_and_commands::http_request,
             super::defaults_and_commands::window_and_logs::desktop_avatar_launch_handoff,
             super::defaults_and_commands::window_and_logs::desktop_avatar_close_handoff,
             crate::desktop_avatar_instance_registry::commands::desktop_avatar_instance_registry_list,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_context_get,
-            super::defaults_and_commands::macos_smoke::desktop_macos_smoke_avatar_evidence_read,
-            super::defaults_and_commands::macos_smoke::desktop_macos_smoke_avatar_product_local_asset_fault_apply,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_report_write,
             super::defaults_and_commands::macos_smoke::desktop_macos_smoke_ping,
             menu_bar_shell::menu_bar_sync_runtime_health,
@@ -400,23 +431,15 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             desktop_agent_center_store::desktop_agent_center_account_local_resources_remove,
             desktop_agent_center_store::desktop_agent_center_agent_local_resources_remove,
             desktop_agent_center_store::desktop_agent_center_avatar_asset_import,
-            desktop_agent_center_store::desktop_agent_center_avatar_asset_pick_live2d_source,
-            desktop_agent_center_store::desktop_agent_center_avatar_asset_pick_vrm_source,
             desktop_agent_center_store::desktop_agent_center_avatar_asset_validate,
             desktop_agent_center_store::desktop_agent_center_live2d_adapter_manifest_import,
-            desktop_agent_center_store::desktop_agent_center_live2d_adapter_manifest_pick_source,
             desktop_agent_center_store::desktop_agent_center_background_asset_get,
             desktop_agent_center_store::desktop_agent_center_background_import,
-            desktop_agent_center_store::desktop_agent_center_background_pick_source,
             desktop_agent_center_store::desktop_agent_center_background_remove,
             desktop_agent_center_store::desktop_agent_center_background_validate,
             desktop_agent_center_store::desktop_agent_center_config_get,
             desktop_agent_center_store::desktop_agent_center_config_put,
             local_runtime::commands::runtime_local_pick_asset_manifest_path,
-            local_runtime::commands::runtime_local_pick_asset_file,
-            local_runtime::commands::runtime_local_pick_asset_directory,
-            local_runtime::commands::runtime_local_assets_reveal_in_folder,
-            local_runtime::commands::runtime_local_assets_reveal_root_folder,
         ])
         .build(tauri::generate_context!())
 }

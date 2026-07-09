@@ -1,3 +1,4 @@
+use super::app_bootstrap::install_standard_local_agent_host_hooks;
 use super::env_http::load_dotenv_file_preserve_env;
 use super::{
     allow_http_request_origin_with_history, allowed_http_origins,
@@ -180,9 +181,6 @@ fn shared_bridge_ipc_handler_uses_kit_owned_scaffold_macro() {
     );
 
     for hand_registered_shared_command in [
-        "crate::auth_session_commands::auth_session_load",
-        "crate::auth_session_commands::auth_session_save",
-        "crate::auth_session_commands::auth_session_clear",
         "crate::oauth_commands::open_external_url",
         "crate::oauth_commands::oauth_token_exchange",
         "crate::oauth_commands::oauth_listen_for_code",
@@ -206,6 +204,25 @@ fn shared_bridge_ipc_handler_uses_kit_owned_scaffold_macro() {
             "shared bridge IPC command must be registered through Kit scaffold macro: {hand_registered_shared_command}"
         );
     }
+}
+
+#[test]
+fn standard_local_agent_hooks_project_desktop_runtime_trusted_caller_without_identity() {
+    install_standard_local_agent_host_hooks();
+
+    let caller = nimi_shell_tauri::capabilities::local_agent::local_agent_runtime_trusted_caller(
+        serde_json::json!({}),
+    )
+    .expect("runtime trusted caller");
+
+    assert_eq!(caller.app_id, "nimi.desktop");
+    assert_eq!(caller.app_instance_id, "nimi.desktop.local-first-party");
+    assert_eq!(caller.device_id, "desktop-shell");
+    assert_eq!(caller.mode, 2);
+    assert!(
+        nimi_shell_tauri::capabilities::local_agent::local_agent_identity().is_err(),
+        "Desktop Tauri must not fabricate local-agent identity when Electron keeps it unbound"
+    );
 }
 
 #[test]

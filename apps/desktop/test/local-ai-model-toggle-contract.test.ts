@@ -325,12 +325,12 @@ test('local model lifecycle writes route through SDK runtime service only', () =
   assert.doesNotMatch(tauriCommandsSource, /append_audit_event/);
 });
 
-test('local runtime cleanup leaves only admitted picker and reveal helpers in Tauri', () => {
+test('local runtime cleanup leaves only admitted manifest picker in Tauri', () => {
   assert.match(tauriCommandsSource, /pub fn runtime_local_pick_asset_manifest_path/);
-  assert.match(tauriCommandsSource, /pub fn runtime_local_pick_asset_file/);
-  assert.match(tauriCommandsSource, /pub fn runtime_local_pick_asset_directory/);
-  assert.match(tauriCommandsSource, /pub fn runtime_local_assets_reveal_in_folder/);
-  assert.match(tauriCommandsSource, /pub fn runtime_local_assets_reveal_root_folder/);
+  assert.doesNotMatch(tauriCommandsSource, /pub fn runtime_local_assets_reveal_in_folder/);
+  assert.doesNotMatch(tauriCommandsSource, /pub fn runtime_local_assets_reveal_root_folder/);
+  assert.doesNotMatch(tauriCommandsSource, /pub fn runtime_local_pick_asset_file/);
+  assert.doesNotMatch(tauriCommandsSource, /pub fn runtime_local_pick_asset_directory/);
   assert.doesNotMatch(tauriCommandsSource, /RuntimeLocalService/);
   assert.doesNotMatch(tauriCommandsSource, /LocalAiAssetRecord/);
   assert.doesNotMatch(tauriCommandsSource, /runtime_managed_asset_dir/);

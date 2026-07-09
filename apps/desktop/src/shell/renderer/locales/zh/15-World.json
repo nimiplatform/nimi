@@ -25,6 +25,11 @@
     "description": "公开世界背景、规则与 Source 目录，用来选择感兴趣的 Character 或 Persona。"
   },
   "atlas": {
+    "discovery": {
+      "title": "探索世界",
+      "subtitle": "选择一个世界，开启你的探索之旅"
+    },
+    "discoverMore": "发现更多世界",
     "countSummary": "{{value}} 个世界 / 公开设定索引",
     "worldCount": "{{value}} 个世界",
     "sourceDiscovery": "Source 发现",

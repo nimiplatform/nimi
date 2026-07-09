@@ -1,4 +1,9 @@
-import { hasShellHostInvoke, hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import {
+  hasShellHostInvoke,
+  hasTauriInvoke,
+  openShellFileDialog,
+  type ShellFileDialogOpenResult,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 import { invokeChecked } from './invoke';
 import {
   completeNimiRuntimeProductControlFirstRunDeviceEnvironmentScan,
@@ -50,6 +55,12 @@ function asRecord(value: unknown, label: string): Record<string, unknown> {
     throw new Error(`${label} returned invalid payload`);
   }
   return value as Record<string, unknown>;
+}
+
+function firstDialogPath(result: ShellFileDialogOpenResult): string | null {
+  if (result.canceled) return null;
+  const path = typeof result.paths[0] === 'string' ? result.paths[0].trim() : '';
+  return path || null;
 }
 
 export async function getProductControlRecord(): Promise<NimiProductControlRecordProjection> {
@@ -122,17 +133,13 @@ export async function selectProductDataRoot(dataRoot: string): Promise<NimiProdu
  * fail-closed validation of the selected `nimi_data` root (P-COLD-010).
  */
 export async function pickProductDataRootDirectory(): Promise<string | null> {
-  if (!hasTauriInvoke()) {
-    throw new Error('product_control_pick_data_root_directory requires Tauri runtime');
+  if (!hasShellHostInvoke()) {
+    throw new Error('Product data-root picker requires standard shell file dialog');
   }
-  return invokeChecked('product_control_pick_data_root_directory', {}, (value) => {
-    if (value == null) return null;
-    if (typeof value !== 'string') {
-      throw new Error('product_control_pick_data_root_directory returned invalid payload');
-    }
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  });
+  return firstDialogPath(await openShellFileDialog({
+    kind: 'directory',
+    title: 'Choose where Nimi stores models and data',
+  }));
 }
 
 /**
