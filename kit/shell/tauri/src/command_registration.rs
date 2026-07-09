@@ -310,6 +310,56 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     commands
 }
 
+pub fn installed_app_standard_shell_commands() -> Vec<ShellCommandDescriptor> {
+    const INSTALLED_APP_COMMAND_NAMES: &[&str] = &[
+        "runtime_bridge_unary",
+        "runtime_bridge_stream_open",
+        "runtime_bridge_stream_close",
+        "runtime_bridge_config_get",
+        "runtime_bridge_config_set",
+        "desktop_open_intent_open_intent",
+        "data_path_resolve",
+        "storage_read_json",
+        "storage_write_json",
+        "storage_remove_json",
+        "ai_config_get",
+        "ai_config_set",
+        "confirm_dialog",
+        "start_window_drag",
+        "focus_main_window",
+        "local_assets_resolve_url",
+    ];
+    all_shell_commands()
+        .into_iter()
+        .filter(|command| INSTALLED_APP_COMMAND_NAMES.contains(&command.command_name))
+        .collect()
+}
+
+#[macro_export]
+macro_rules! nimi_shell_tauri_installed_app_standard_shell_handler {
+    ($($app_command:path),* $(,)?) => {
+        tauri::generate_handler![
+            $crate::capabilities::runtime::runtime_bridge_unary,
+            $crate::capabilities::runtime::runtime_bridge_stream_open,
+            $crate::capabilities::runtime::runtime_bridge_stream_close,
+            $crate::capabilities::runtime::runtime_bridge_config_get,
+            $crate::capabilities::runtime::runtime_bridge_config_set,
+            $crate::capabilities::data::data_path_resolve,
+            $crate::capabilities::storage::storage_read_json,
+            $crate::capabilities::storage::storage_write_json,
+            $crate::capabilities::storage::storage_remove_json,
+            $crate::capabilities::ai_config::ai_config_get,
+            $crate::capabilities::ai_config::ai_config_set,
+            $crate::capabilities::shell_ui::confirm_dialog,
+            $crate::capabilities::shell_ui::start_window_drag,
+            $crate::capabilities::shell_ui::focus_main_window,
+            $crate::capabilities::local_assets::local_assets_resolve_url,
+            $crate::capabilities::desktop_open::desktop_open_intent_open_intent,
+            $($app_command),*
+        ]
+    };
+}
+
 #[macro_export]
 macro_rules! nimi_shell_tauri_runtime_bridge_handler {
     (@with_runtime_defaults $runtime_defaults:path; $($app_command:path),* $(,)?) => {
@@ -663,6 +713,61 @@ mod tests {
     }
 
     #[test]
+    fn installed_app_standard_shell_catalog_matches_admitted_surface() {
+        let names = installed_app_standard_shell_commands()
+            .into_iter()
+            .map(|command| command.command_name)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            names,
+            vec![
+                "runtime_bridge_unary",
+                "runtime_bridge_stream_open",
+                "runtime_bridge_stream_close",
+                "runtime_bridge_config_get",
+                "runtime_bridge_config_set",
+                "desktop_open_intent_open_intent",
+                "data_path_resolve",
+                "storage_read_json",
+                "storage_write_json",
+                "storage_remove_json",
+                "ai_config_get",
+                "ai_config_set",
+                "confirm_dialog",
+                "start_window_drag",
+                "focus_main_window",
+                "local_assets_resolve_url",
+            ]
+        );
+        for forbidden in [
+            "runtime_defaults",
+            "runtime_bridge_status",
+            "runtime_bridge_start",
+            "runtime_bridge_stop",
+            "runtime_bridge_restart",
+            "auth_session_load",
+            "auth_session_save",
+            "auth_session_clear",
+            "open_external_url",
+            "oauth_token_exchange",
+            "oauth_listen_for_code",
+            "log_renderer_event",
+            "diagnostics_renderer_entry_probe",
+            "local_agent_identity",
+            "local_agent_runtime_trusted_caller",
+            "avatar_asset_resolve",
+            "platform_projection_get",
+            "file_dialog_open",
+            "file_reveal_reveal",
+            "export_save_file",
+            "artifacts_write",
+            "floating_window_set_bounds",
+        ] {
+            assert!(!names.contains(&forbidden));
+        }
+    }
+
+    #[test]
     fn standard_file_commands_cover_new_standard_capabilities() {
         let names = STANDARD_FILE_COMMANDS
             .iter()
@@ -714,5 +819,8 @@ mod tests {
         );
         let _floating_window_only_builder = tauri::Builder::<tauri::Wry>::default()
             .invoke_handler(crate::nimi_shell_tauri_floating_window_commands![]);
+        let _installed_app_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
+            crate::nimi_shell_tauri_installed_app_standard_shell_handler![test_app_command],
+        );
     }
 }

@@ -125,7 +125,8 @@ function validateStandardShellBridgeCatalog() {
   assertIncludes(electronHost, "NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']", 'Kit Electron OAuth command');
   assertIncludes(electronHost, "NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']", 'Kit Electron local-agent command');
 
-  assertIncludes(tauriMain, 'nimi_shell_tauri_runtime_bridge_handler![', 'Tester Tauri standard shell host');
+  assertIncludes(tauriMain, 'nimi_shell_tauri_installed_app_standard_shell_handler![', 'Tester Tauri installed app standard shell host');
+  assertIncludes(tauriCommandRegistration, 'nimi_shell_tauri_installed_app_standard_shell_handler', 'Kit Tauri installed app command macro');
   assertIncludes(tauriCommandRegistration, 'pub const RUNTIME_BRIDGE_COMMANDS', 'Kit Tauri runtime bridge catalog');
   assertIncludes(tauriCommandRegistration, 'runtime_bridge_unary', 'Kit Tauri runtime bridge command');
   assertIncludes(tauriCommandRegistration, 'auth_session_load', 'Kit Tauri auth command');
@@ -158,7 +159,7 @@ function validateShellParity() {
   assertIncludes(electronMain, 'trustedRuntimeMetadataProvider', 'Electron runtime auth');
   assertIncludes(electronMain, 'createTesterElectronCommandHandlers', 'Electron tester commands');
   assertIncludes(electronPreload, 'installNimiElectronRuntimeBridge', 'Electron preload bridge');
-  assertIncludes(tauriMain, 'nimi_shell_tauri_runtime_bridge_handler![', 'Tauri runtime bridge');
+  assertIncludes(tauriMain, 'nimi_shell_tauri_installed_app_standard_shell_handler![', 'Tauri installed app standard shell');
   assertMatch(tauriMain, /capabilities::diagnostics::build_renderer_entry_probe_script/, 'Tauri renderer probe');
   assertMatch(tauriMain, /RendererEntryProbeScriptConfig/, 'Tauri renderer probe config');
   assertNotMatch(tauriMain, /tauri::generate_handler!\[/, 'Tauri handler bypass');

@@ -59,17 +59,52 @@ fn acceptance_probe_path() -> Option<std::path::PathBuf> {
 fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value> {
     vec![
         serde_json::json!({
-            "id": "runtime-lifecycle.status",
-            "command": "runtime_bridge_status",
+            "id": "ai-config.set",
+            "command": "ai_config_set",
+            "payload": {
+                "payload": {
+                    "scopeRef": "app:nimi.tester:app-lab",
+                    "config": {
+                        "scopeRef": {
+                            "kind": "app",
+                            "ownerId": "nimi.tester",
+                            "surfaceId": "app-lab"
+                        },
+                        "capabilities": {
+                            "targetRefs": {},
+                            "selectedParams": {}
+                        },
+                        "profileOrigin": null
+                    }
+                }
+            },
         }),
         serde_json::json!({
-            "id": "runtime-defaults.get",
-            "command": "runtime_defaults",
+            "id": "ai-config.get",
+            "command": "ai_config_get",
+            "payload": {
+                "payload": {
+                    "scopeRef": "app:nimi.tester:app-lab",
+                }
+            },
         }),
         serde_json::json!({
             "id": "config.get.negative",
             "command": "runtime_bridge_config_get",
             "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "standard-storage.runHistory.write",
+            "command": "storage_write_json",
+            "payload": {
+                "payload": {
+                    "relativePath": "tester-run-history.json",
+                    "value": {
+                        "schemaVersion": 1,
+                        "runs": []
+                    }
+                },
+            },
         }),
         serde_json::json!({
             "id": "standard-storage.runHistory.read",
@@ -81,8 +116,24 @@ fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value> {
             },
         }),
         serde_json::json!({
-            "id": "auth.sessionLoad.empty",
+            "id": "runtime-lifecycle.status.negative",
+            "command": "runtime_bridge_status",
+            "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "runtime-defaults.get.negative",
+            "command": "runtime_defaults",
+            "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "auth.sessionLoad.negative",
             "command": "auth_session_load",
+            "expectError": true,
+        }),
+        serde_json::json!({
+            "id": "local-agent.identity.negative",
+            "command": "local_agent_identity",
+            "expectError": true,
         }),
         serde_json::json!({
             "id": "unsupported-standard-command.negative",
@@ -169,15 +220,17 @@ fn main() {
                 let _ = webview.eval(script.as_str());
             }
         })
-        .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler![
-            tester_renderer_probe_ping,
-            tester_renderer_probe_report_write,
-            tester_renderer_probe_context_get,
-            world_tour::resolve_world_tour_fixture,
-            world_tour::claim_world_tour_viewer_launch,
-            world_tour::save_world_tour_viewer_preset,
-            world_tour::open_world_tour_window,
-        ])
+        .invoke_handler(
+            nimi_shell_tauri::nimi_shell_tauri_installed_app_standard_shell_handler![
+                tester_renderer_probe_ping,
+                tester_renderer_probe_report_write,
+                tester_renderer_probe_context_get,
+                world_tour::resolve_world_tour_fixture,
+                world_tour::claim_world_tour_viewer_launch,
+                world_tour::save_world_tour_viewer_preset,
+                world_tour::open_world_tour_window,
+            ],
+        )
         .run(tauri::generate_context!())
         .expect("failed to run Nimi Lab shell");
 }
@@ -281,11 +334,24 @@ mod tests {
                 assert!(command_checks
                     .iter()
                     .any(|row| row.get("command").and_then(serde_json::Value::as_str)
-                        == Some("runtime_bridge_status")));
+                        == Some("ai_config_set")));
+                assert!(command_checks
+                    .iter()
+                    .any(|row| row.get("command").and_then(serde_json::Value::as_str)
+                        == Some("ai_config_get")));
+                assert!(command_checks
+                    .iter()
+                    .any(|row| row.get("command").and_then(serde_json::Value::as_str)
+                        == Some("storage_write_json")));
                 assert!(command_checks
                     .iter()
                     .any(|row| row.get("command").and_then(serde_json::Value::as_str)
                         == Some("storage_read_json")));
+                assert!(command_checks.iter().any(|row| {
+                    row.get("command").and_then(serde_json::Value::as_str)
+                        == Some("runtime_defaults")
+                        && row.get("expectError").and_then(serde_json::Value::as_bool) == Some(true)
+                }));
                 assert!(command_checks.iter().any(|row| row
                     .get("expectError")
                     .and_then(serde_json::Value::as_bool)
@@ -532,55 +598,6 @@ mod tests {
             }
             other => panic!("expected shared governed-config repair state, got {other:?}"),
         }
-    }
-
-    #[test]
-    fn tester_consumes_shared_runtime_defaults_projection() {
-        with_env_vars(
-            &[
-                ("NIMI_REALM_URL", Some("http://localhost")),
-                ("NIMI_REALM_JWKS_URL", None),
-                ("NIMI_REALM_REVOCATION_URL", None),
-                ("NIMI_REALM_JWT_ISSUER", None),
-                ("NIMI_REALM_JWT_AUDIENCE", None),
-                ("NIMI_ACCESS_TOKEN", Some("tester-runtime-token")),
-                (
-                    "NIMI_LOCAL_PROVIDER_ENDPOINT",
-                    Some("http://127.0.0.1:1234/v1"),
-                ),
-                ("NIMI_LOCAL_PROVIDER_MODEL", Some("legacy-model")),
-                ("NIMI_PROVIDER", Some("legacy-provider")),
-            ],
-            || {
-                let defaults = nimi_shell_tauri::capabilities::runtime_defaults::runtime_defaults();
-                assert_eq!(defaults.realm.realm_base_url, "http://localhost:3002");
-                assert_eq!(
-                    defaults.realm.jwks_url,
-                    "http://localhost:3002/api/auth/jwks"
-                );
-                assert_eq!(
-                    defaults.realm.revocation_url,
-                    "http://localhost:3002/api/auth/sessions/introspect"
-                );
-                assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
-                assert_eq!(defaults.realm.jwt_audience, "nimi-runtime");
-                assert_eq!(defaults.realm.access_token, "tester-runtime-token");
-
-                let runtime = serde_json::to_value(defaults.runtime).expect("runtime json");
-                for retired_key in [
-                    "localProviderEndpoint",
-                    "localProviderModel",
-                    "localOpenAiEndpoint",
-                    "connectorId",
-                    "provider",
-                ] {
-                    assert!(
-                        runtime.get(retired_key).is_none(),
-                        "shared runtime defaults must not emit retired route field {retired_key}"
-                    );
-                }
-            },
-        );
     }
 
     #[test]

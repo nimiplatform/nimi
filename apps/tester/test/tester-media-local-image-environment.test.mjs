@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
+import { installStandardShellAIConfigHarness } from './tester-standard-shell-harness.mjs';
 import { buildWithTsc } from './tsc-build.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -80,6 +81,7 @@ function createMemoryStorage(initial = {}) {
 }
 
 function installMemoryStorageHarness(t) {
+  installStandardShellAIConfigHarness(t);
   const previousWindow = globalThis.window;
   const hadLocalStorage = Object.prototype.hasOwnProperty.call(globalThis, 'localStorage');
   const previousLocalStorage = globalThis.localStorage;
@@ -209,7 +211,7 @@ test('image.generate materializes local model and companion slots into Runtime p
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -350,7 +352,7 @@ test('image.generate resolves v2 local-runtime profile binding ids to Runtime lo
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -435,7 +437,7 @@ test('image.generate materializes Ideogram4 uncond companion from selected model
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -551,7 +553,7 @@ test('image.generate derives Ideogram4 companion requirements from Runtime local
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -648,7 +650,7 @@ test('image.generate fails closed when Ideogram4 required uncond companion is mi
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -739,7 +741,7 @@ test('image.generate validates configured Ideogram4 profile entries before Runti
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -827,7 +829,7 @@ test('image.generate starts local image environment dependencies before submitti
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -966,7 +968,7 @@ test('image.generate starts concrete companion dependencies instead of waiting o
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -1162,7 +1164,7 @@ test('image.generate reports profile binding blocker as missing companion setup 
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {

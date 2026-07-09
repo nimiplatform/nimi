@@ -1,19 +1,18 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { appendFile, mkdir, readFile } from 'node:fs/promises';
-import { app, BrowserWindow, ipcMain, Menu, protocol, shell } from 'electron';
+import { mkdir, readFile } from 'node:fs/promises';
+import { app, BrowserWindow, ipcMain, Menu, protocol } from 'electron';
 import {
-  assertOpaqueElectronLocalAgentRef,
   createElectronShellFileProtocolHost,
   createNimiElectronFileAIConfigStore,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
   resolveElectronStandardStorageRoots,
-  type NimiElectronRuntimeTrustedCallerMode,
   type NimiElectronShellFileProtocolHost,
   type NimiElectronStandardDataRootBinding,
   type NimiElectronStandardShellHost,
 } from '@nimiplatform/kit/shell/electron/main';
+import { NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID } from '@nimiplatform/kit/shell/capabilities';
 import { createTesterElectronCommandHandlers } from './commands/tester-commands.js';
 import { createTesterElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 
@@ -48,18 +47,11 @@ configureTesterElectronChromiumRuntime();
 void app.whenReady().then(async () => {
   fileProtocolHost.registerProtocolHandler();
   const standardDataRoot = resolveStandardDataRoot();
-  const localAgentIdentity = resolveTesterElectronLocalAgentIdentity();
   const standardShellHost: NimiElectronStandardShellHost = {
+    capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
     standardDataRootBinding: resolveStandardDataRootBinding(),
     localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
     localAssetProtocolHost: fileProtocolHost,
-    revealInOs: (filePath) => shell.showItemInFolder(filePath),
-    exportDirectory: () => app.getPath('downloads'),
-    openExternalUrl: openTesterExternalUrl,
-    ...(localAgentIdentity ? { localAgentIdentity } : {}),
-    runtimeTrustedCaller: {
-      mode: resolveRuntimeTrustedCallerMode(),
-    },
     aiConfigStore: createTesterAiConfigStore(standardDataRoot),
     runtimeConfigGet: createTesterRuntimeConfigReader(standardDataRoot),
   };
@@ -272,72 +264,8 @@ function createTesterRuntimeConfigReader(dataRoot: string): () => Promise<{
   };
 }
 
-function resolveRuntimeTrustedCallerMode(): NimiElectronRuntimeTrustedCallerMode {
-  const mode = normalizeText(process.env.NIMI_TESTER_ELECTRON_RUNTIME_TRUSTED_CALLER_MODE) || 'local-developer-app';
-  if (
-    mode === 'local-developer-app'
-    || mode === 'local-first-party-app'
-    || mode === 'desktop-shell'
-  ) {
-    return mode;
-  }
-  throw new Error(`unsupported tester Electron Runtime trusted caller mode: ${mode}`);
-}
-
-function resolveTesterElectronLocalAgentIdentity(): {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-} | undefined {
-  const localAgentRef = normalizeText(process.env.NIMI_TESTER_ELECTRON_LOCAL_AGENT_REF);
-  if (!localAgentRef) {
-    return undefined;
-  }
-  const ownerUserId = normalizeRequiredEnv(
-    process.env.NIMI_TESTER_ELECTRON_LOCAL_AGENT_OWNER_USER_ID,
-    'NIMI_TESTER_ELECTRON_LOCAL_AGENT_OWNER_USER_ID',
-  );
-  const runtimeSourceRef = normalizeRequiredEnv(
-    process.env.NIMI_TESTER_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF,
-    'NIMI_TESTER_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF',
-  );
-  if (!localAgentRef.startsWith('local-agent:')) {
-    throw new Error('NIMI_TESTER_ELECTRON_LOCAL_AGENT_REF must start with local-agent:');
-  }
-  assertOpaqueElectronLocalAgentRef({
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
-    command: 'NIMI_TESTER_ELECTRON_LOCAL_AGENT_REF',
-  });
-  return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
-  };
-}
-
-function normalizeRequiredEnv(value: unknown, field: string): string {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    throw new Error(`${field} is required when NIMI_TESTER_ELECTRON_LOCAL_AGENT_REF is set`);
-  }
-  return normalized;
-}
-
 function isTesterRendererUrl(url: string): boolean {
   return isAllowedElectronRendererUrl(url, allowedRendererUrls());
-}
-
-async function openTesterExternalUrl(url: string): Promise<void> {
-  const capturePath = normalizeText(process.env.NIMI_TESTER_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE);
-  if (capturePath) {
-    const resolved = path.resolve(capturePath);
-    await mkdir(path.dirname(resolved), { recursive: true });
-    await appendFile(resolved, `${url}\n`, 'utf8');
-    return;
-  }
-  await shell.openExternal(url);
 }
 
 /**

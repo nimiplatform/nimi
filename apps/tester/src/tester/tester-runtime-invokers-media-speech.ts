@@ -15,7 +15,7 @@ import {
   unavailableFromValidation,
 } from './tester-runtime-invokers-core.js';
 import { TESTER_APP_ID, runtimeJobIdentity } from './tester-runtime-invokers-media-runtime.js';
-import { loadTesterAIConfig } from './tester-ai-config-store.js';
+import { hydrateTesterAIConfigFromStandardShell } from './tester-ai-config-store.js';
 import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
 
 type RuntimeRequestDiagnostics = NonNullable<TesterUnavailable['runtimeRequest']>;
@@ -36,7 +36,7 @@ export async function invokeSpeechSynthesize(client: TesterRuntimeInvocationClie
         local: client.runtime.local,
       },
       appId: TESTER_APP_ID,
-      config: loadTesterAIConfig(),
+      config: await hydrateTesterAIConfigFromStandardShell(),
       text: prompt,
       scenarioId: identity.idempotencyKey,
       subjectUserId,
@@ -116,7 +116,7 @@ export async function invokeSpeechTranscribe(client: TesterRuntimeInvocationClie
         scheduling: client.runtime.scheduling,
       },
       appId: TESTER_APP_ID,
-      config: loadTesterAIConfig(),
+      config: await hydrateTesterAIConfigFromStandardShell(),
       audioUrl: url,
       scenarioId: identity.idempotencyKey,
       subjectUserId,
@@ -172,7 +172,7 @@ export async function invokeSpeechBundle(client: TesterRuntimeInvocationClient, 
         scheduling: client.runtime.scheduling,
       },
       appId: TESTER_APP_ID,
-      config: loadTesterAIConfig(),
+      config: await hydrateTesterAIConfigFromStandardShell(),
       bindingCapabilityId: 'audio.synthesize',
       scenarioId: input.scenarioId,
       subjectUserId,

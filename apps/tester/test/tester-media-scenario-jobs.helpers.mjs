@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { installStandardShellAIConfigHarness } from './tester-standard-shell-harness.mjs';
 import { buildWithTsc } from './tsc-build.mjs';
 
 export const root = path.resolve(import.meta.dirname, '..');
@@ -78,6 +79,7 @@ export function createMemoryStorage(initial = {}) {
 }
 
 export function installMemoryStorageHarness(t) {
+  installStandardShellAIConfigHarness(t);
   const previousWindow = globalThis.window;
   const hadLocalStorage = Object.prototype.hasOwnProperty.call(globalThis, 'localStorage');
   const previousLocalStorage = globalThis.localStorage;

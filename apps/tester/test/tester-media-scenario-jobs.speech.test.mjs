@@ -26,7 +26,7 @@ test('audio.synthesize fails closed for local TTS without explicit voice referen
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -132,7 +132,7 @@ test('audio.synthesize fails closed when Runtime Scenario job does not complete 
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {

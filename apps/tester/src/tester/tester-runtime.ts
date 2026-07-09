@@ -1,5 +1,3 @@
-import { getDaemonStatus, getRuntimeDefaults } from '@nimiplatform/kit/shell/renderer/bridge';
-import { checkRuntimeDaemonVersion } from '@nimiplatform/kit/shell/renderer/bootstrap';
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
@@ -49,14 +47,11 @@ export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection
     };
   }
   try {
-    const defaults = await getRuntimeDefaults();
-    const daemonStatus = await getDaemonStatus();
-    const daemonVersion = checkRuntimeDaemonVersion(daemonStatus.version, '0.1.0');
     const health = await projection.client.runtime.health({});
     return {
       status: 'ready',
       mode: projection.mode,
-      detail: `Runtime app session is ready. Realm defaults resolve to ${defaults.realm.realmBaseUrl}. Kit shell daemon bridge reports ${daemonStatus.launchMode} (${daemonVersion.severity}). Capability lanes call runtime.ai.* directly.`,
+      detail: 'Runtime app session is ready. Capability lanes call runtime.ai.* directly.',
       healthJson: compactJson(health),
     };
   } catch (error) {

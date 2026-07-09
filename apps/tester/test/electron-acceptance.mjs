@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
-import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -50,7 +49,6 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
   await withTempDir('acceptance', async (tmpRoot) => {
   const dataRoot = path.join(tmpRoot, 'data');
   const assetRoot = path.join(tmpRoot, 'assets');
-  const openedUrlsPath = path.join(tmpRoot, 'opened-urls.txt');
   const assetPath = path.join(assetRoot, 'preview.txt');
   const runtimeConfigPath = path.join(dataRoot, 'runtime', 'config.json');
   await mkdir(dataRoot, { recursive: true });
@@ -87,11 +85,6 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       NIMI_AGENT_ID: 'acceptance-agent',
       NIMI_WORLD_ID: 'acceptance-world',
       NIMI_USER_CONFIRMED_UPLOAD: '1',
-      NIMI_TESTER_ELECTRON_LOCAL_AGENT_OWNER_USER_ID: 'acceptance-owner',
-      NIMI_TESTER_ELECTRON_LOCAL_AGENT_RUNTIME_SOURCE_REF: 'acceptance-runtime',
-      NIMI_TESTER_ELECTRON_LOCAL_AGENT_REF: 'local-agent:acceptance-agent',
-      NIMI_TESTER_ELECTRON_RUNTIME_TRUSTED_CALLER_MODE: 'local-developer-app',
-      NIMI_TESTER_ELECTRON_OPEN_EXTERNAL_CAPTURE_FILE: openedUrlsPath,
     },
   });
   try {
@@ -123,122 +116,18 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     assert.equal(sdkRuntimeReady.reasonCode, 'electron-runtime-endpoint-unavailable');
     assert.equal(sdkRuntimeReady.actionHint, 'start_external_runtime_daemon');
 
-    const statusError = await captureInvokeError(
-      page,
-      NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status'],
-      {},
-    );
-    assert.equal(statusError.code, 'external-daemon-required');
-    assert.equal(statusError.reasonCode, 'electron-runtime-endpoint-unavailable');
-    assert.equal(statusError.actionHint, 'start_external_runtime_daemon');
-
-    const diagnosticsProbe = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, { stage: 'acceptance-bootstrap' }),
-      NIMI_STANDARD_SHELL_COMMANDS['diagnostics.rendererEntryProbe'],
-    );
-    assert.equal(diagnosticsProbe.ok, true);
-    assert.equal(diagnosticsProbe.source, 'electron');
-    assert.equal(diagnosticsProbe.appId, 'nimi.tester');
-    assert.equal(diagnosticsProbe.stage, 'acceptance-bootstrap');
-    assert.equal(diagnosticsProbe.origin, 'file://');
-    assert.match(String(diagnosticsProbe.url || ''), /dist\/index\.html|dist\\index\.html/);
-    assert.equal(diagnosticsProbe.hasSender, true);
-
-    const localAgentIdentity = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {}),
-      NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity'],
-    );
-    assert.deepEqual(localAgentIdentity, {
-      ownerUserId: 'acceptance-owner',
-      runtimeSourceRef: 'acceptance-runtime',
-      localAgentRef: 'local-agent:acceptance-agent',
-    });
-
-    const trustedCaller = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {}),
-      NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
-    );
-    assert.deepEqual(trustedCaller, {
-      appId: 'nimi.tester',
-      appInstanceId: 'nimi.tester.local-developer',
-      deviceId: 'local-developer-device',
-      mode: 7,
-      scopes: [],
-    });
-
-    const trustedCallerSpoof = await captureInvokeError(page, NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'], {
-      appId: 'renderer-spoof',
-    });
-    assert.equal(trustedCallerSpoof.code, 'forbidden-renderer-access');
-    assert.equal(trustedCallerSpoof.reasonCode, 'electron-renderer-local-agent-caller-field-forbidden');
-
-    const oauthOpen = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {
-        payload: { url: 'https://auth.example.test/authorize' },
-      }),
-      NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl'],
-    );
-    assert.deepEqual(oauthOpen, { opened: true });
-    assert.equal(await readFile(openedUrlsPath, 'utf8'), 'https://auth.example.test/authorize\n');
-
-    const oauthForbidden = await captureInvokeError(page, NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl'], {
-      payload: { url: 'http://evil.example.test/authorize' },
-    });
-    assert.equal(oauthForbidden.code, 'forbidden-renderer-access');
-    assert.equal(oauthForbidden.reasonCode, 'electron-oauth-external-url-not-allowed');
-
-    const oauthTokenProviderForbidden = await captureInvokeError(page, NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'], {
-      payload: {
-        provider: 'https://evil.example.test/token',
-        clientId: 'client-1',
-        code: 'code-1',
-        codeVerifier: 'verifier-1',
-        redirectUri: 'http://127.0.0.1:4100/oauth/callback',
-      },
-    });
-    assert.equal(oauthTokenProviderForbidden.code, 'invalid-payload');
-    assert.equal(oauthTokenProviderForbidden.reasonCode, 'electron-oauth-token-provider-not-admitted');
-
-    const oauthPort = await findFreePort();
-    const oauthListenPromise = page.evaluate(
-      ({ command, port }) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {
-        redirectUri: `http://127.0.0.1:${port}/oauth/callback`,
-        timeoutMs: 5_000,
-      }),
-      {
-        command: NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode'],
-        port: oauthPort,
-      },
-    );
-    await waitForFetchOk(`http://127.0.0.1:${oauthPort}/oauth/callback?code=acceptance-code&state=acceptance-state`);
-    assert.deepEqual(await oauthListenPromise, {
-      callbackUrl: `http://localhost:${oauthPort}/oauth/callback?code=acceptance-code&state=acceptance-state`,
-      code: 'acceptance-code',
-      state: 'acceptance-state',
-    });
-
-    const runtimeDefaults = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {}),
-      NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get'],
-    );
-    assert.deepEqual(runtimeDefaults, {
-      realm: {
-        realmBaseUrl: 'http://localhost:3002',
-        realtimeUrl: 'ws://localhost:3003',
-        accessToken: 'acceptance-token',
-        jwksUrl: 'http://localhost:3002/api/auth/jwks',
-        revocationUrl: 'http://localhost:3002/api/auth/sessions/introspect',
-        jwtIssuer: 'http://localhost:3002',
-        jwtAudience: 'nimi-runtime',
-      },
-      runtime: {
-        targetType: 'local',
-        targetAccountId: 'acceptance-account',
-        agentId: 'acceptance-agent',
-        worldId: 'acceptance-world',
-        userConfirmedUpload: true,
-      },
-    });
+    for (const commandKey of [
+      'runtime-lifecycle.status',
+      'diagnostics.rendererEntryProbe',
+      'local-agent.identity',
+      'local-agent.runtimeTrustedCaller',
+      'oauth.openExternalUrl',
+      'oauth.tokenExchange',
+      'oauth.listenForCode',
+      'runtime-defaults.get',
+    ]) {
+      await assertInstalledCapabilityForbidden(page, NIMI_STANDARD_SHELL_COMMANDS[commandKey], commandKey);
+    }
 
     const runtimeConfig = await page.evaluate(
       (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, {}),
@@ -301,79 +190,18 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     assert.equal(assetResult.fetchOk, true);
     assert.equal(assetResult.body, 'tester asset preview');
 
-    const avatarAssetResult = await page.evaluate(async ({ command, assetPath: inputPath }) => {
-      const result = await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, { path: inputPath });
-      const response = await fetch(result.url);
-      return {
-        path: result.path,
-        url: result.url,
-        fetchOk: response.ok,
-        body: await response.text(),
-      };
-    }, {
-      command: NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve'],
-      assetPath,
-    });
-    assert.equal(avatarAssetResult.path, canonicalAssetPath);
-    assert.deepEqual(avatarAssetResult, assetResult);
-
-    const aiProfile = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, { alias: 'local-gpu' }),
-      NIMI_STANDARD_SHELL_COMMANDS['ai-profile.get'],
+    for (const commandKey of [
+      'avatar.assetResolve',
+      'ai-profile.get',
+      'platform-projection.get',
+    ]) {
+      await assertInstalledCapabilityForbidden(page, NIMI_STANDARD_SHELL_COMMANDS[commandKey], commandKey);
+    }
+    await assertInstalledCapabilityForbidden(
+      page,
+      NIMI_STANDARD_SHELL_COMMANDS['floating-window.setIgnoreCursorEvents'],
+      'floating-window.setIgnoreCursorEvents',
     );
-    assert.equal(aiProfile.alias, 'local-gpu');
-    assert.equal(aiProfile.computePosture, 'cuda-capable');
-    assert.equal(aiProfile.routingPolicy, 'local-first');
-    assert.equal(aiProfile.materializationConfirmationRequired, true);
-    assert.ok(aiProfile.capabilitySet.includes('image.generate'));
-
-    const aiProfileMissing = await captureInvokeError(page, NIMI_STANDARD_SHELL_COMMANDS['ai-profile.get'], {
-      alias: 'missing',
-    });
-    assert.equal(aiProfileMissing.code, 'not-found');
-    assert.equal(aiProfileMissing.reasonCode, 'electron-ai-profile-alias-not-found');
-
-    const factoryProjection = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, { projectionId: 'factory-profile-index' }),
-      NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
-    );
-    assert.equal(factoryProjection.projectionId, 'factory-profile-index');
-    assert.ok(factoryProjection.record.profiles.some((profile) => profile.alias === 'local-gpu'));
-
-    const appsRegistryProjection = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, { projectionId: 'apps-registry' }),
-      NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
-    );
-    assert.equal(appsRegistryProjection.projectionId, 'apps-registry');
-    assert.equal(appsRegistryProjection.record.catalogId, 'platform_nimi_app_registry');
-    assert.ok(appsRegistryProjection.record.apps.some((appRow) => appRow.appId === 'nimi.avatar'));
-
-    const appsBridgeProjection = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, { projectionId: 'apps-bridge' }),
-      NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
-    );
-    assert.equal(appsBridgeProjection.projectionId, 'apps-bridge');
-    assert.ok(appsBridgeProjection.record.registryRows.some((appRow) => appRow.appId === 'nimi.avatar'));
-    assert.ok(appsBridgeProjection.record.releaseDescriptors.some((descriptor) => descriptor.descriptorId === 'nimi.avatar.bundled-with-nimi'));
-
-    const appsPackagesProjection = await page.evaluate(
-      (command) => globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(command, { projectionId: 'apps-packages' }),
-      NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
-    );
-    assert.deepEqual(appsPackagesProjection, {
-      projectionId: 'apps-packages',
-      record: {
-        schemaVersion: 2,
-        updatedAt: appsPackagesProjection.record.updatedAt,
-        packages: [],
-      },
-    });
-
-    const missingProjection = await captureInvokeError(page, NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'], {
-      projectionId: 'missing',
-    });
-    assert.equal(missingProjection.code, 'not-found');
-    assert.equal(missingProjection.reasonCode, 'electron-platform-projection-not-found');
 
     const missingAiConfig = await captureInvokeError(page, NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'], {
       scopeRef: 'tester.scope.chat',
@@ -427,13 +255,7 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       'runtime-lifecycle.stop',
       'runtime-lifecycle.restart',
     ]) {
-      const lifecycleError = await captureInvokeError(page, NIMI_STANDARD_SHELL_COMMANDS[commandKey], {});
-      assert.equal(lifecycleError.code, 'external-daemon-required', commandKey);
-      assert.match(
-        `${lifecycleError.reasonCode || ''} ${lifecycleError.message || ''}`,
-        /electron-runtime-daemon-managed-externally|requires an external daemon/,
-        commandKey,
-      );
+      await assertInstalledCapabilityForbidden(page, NIMI_STANDARD_SHELL_COMMANDS[commandKey], commandKey);
     }
 
     const configSetError = await captureInvokeError(page, NIMI_STANDARD_SHELL_COMMANDS['config.set'], {
@@ -479,12 +301,7 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       'auth.sessionSave',
       'auth.sessionClear',
     ]) {
-      const unavailableCapability = await captureInvokeError(page, NIMI_STANDARD_SHELL_COMMANDS[commandKey], {});
-      assert.equal(unavailableCapability.code, 'external-daemon-required', commandKey);
-      assert.equal(unavailableCapability.reasonCode, 'electron-runtime-account-custody-external', commandKey);
-      assert.equal(unavailableCapability.source, 'electron', commandKey);
-      assert.equal(unavailableCapability.envelope?.code, 'external-daemon-required', commandKey);
-      assert.equal(unavailableCapability.envelope?.source, 'electron', commandKey);
+      await assertInstalledCapabilityForbidden(page, NIMI_STANDARD_SHELL_COMMANDS[commandKey], commandKey);
     }
   } finally {
     await app.close();
@@ -512,44 +329,12 @@ async function captureInvokeError(page, command, payload) {
   return errorPayload;
 }
 
-async function findFreePort() {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.on('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      server.close((error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        if (address && typeof address === 'object') {
-          resolve(address.port);
-          return;
-        }
-        reject(new Error('missing free port address'));
-      });
-    });
-  });
-}
-
-async function waitForFetchOk(url) {
-  const deadline = Date.now() + 2_000;
-  let lastError = null;
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) {
-        await response.text();
-        return;
-      }
-      lastError = new Error(`HTTP ${response.status}`);
-    } catch (error) {
-      lastError = error;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  throw lastError || new Error('fetch failed');
+async function assertInstalledCapabilityForbidden(page, command, label, payload = {}) {
+  const error = await captureInvokeError(page, command, payload);
+  assert.equal(error.code, 'capability-unavailable', label);
+  assert.equal(error.reasonCode, 'electron-standard-capability-not-in-host-set', label);
+  assert.equal(error.source, 'electron', label);
+  assert.match(error.message, /installed-nimi-app-standard-shell-v1/, label);
 }
 
 async function withTempDir(prefix, run) {

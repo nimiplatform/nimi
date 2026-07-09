@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import type { NimiAIConfig } from '@nimiplatform/sdk/ai';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistoryRecord } from '../tester-history.js';
-import { createTesterAIConfigService, createTesterAppLabAIScopeRef } from '../tester-ai-config-store.js';
+import {
+  createTesterAIConfigService,
+  createTesterAppLabAIScopeRef,
+  hydrateTesterAIConfigFromStandardShell,
+} from '../tester-ai-config-store.js';
 import { createTesterRunTargetSummary, type TesterRunTargetLocalModel, type TesterRunTargetSummary } from '../tester-run-target.js';
 import type { TesterCapabilityRunResult, TesterRuntimeInspection } from '../tester-runtime.js';
 import { composeStudioDirective, DEFAULT_LENGTH_VALUE, DEFAULT_TONE_VALUE, getCapabilityStudioProfile, LENGTH_OPTIONS, TONE_OPTIONS } from './capability-studio-profiles.js';
@@ -71,22 +75,30 @@ export function useTesterRunTargetSummary(
 ): TesterRunTargetSummary {
   const scopeRef = useMemo(() => createTesterAppLabAIScopeRef(), []);
   const service = useMemo(() => createTesterAIConfigService(), []);
-  const [config, setConfig] = useState(() => {
-    try {
-      return service.aiConfig.get(scopeRef);
-    } catch {
-      return null;
-    }
-  });
+  const [config, setConfig] = useState<NimiAIConfig | null>(null);
 
   useEffect(() => {
-    try {
-      setConfig(service.aiConfig.get(scopeRef));
-      return service.aiConfig.subscribe(scopeRef, setConfig);
-    } catch {
-      setConfig(null);
-      return undefined;
-    }
+    let cancelled = false;
+    void hydrateTesterAIConfigFromStandardShell(scopeRef)
+      .then((next) => {
+        if (!cancelled) {
+          setConfig(next);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setConfig(null);
+        }
+      });
+    const unsubscribe = service.aiConfig.subscribe(scopeRef, (next) => {
+      if (!cancelled) {
+        setConfig(next);
+      }
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [scopeRef, service]);
 
   const [localModels, setLocalModels] = useState<TesterRunTargetLocalModel[]>([]);

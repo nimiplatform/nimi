@@ -8,11 +8,15 @@ import path from 'node:path';
 const root = path.resolve(import.meta.dirname, '..');
 const timeoutMs = Number.parseInt(process.env.NIMI_TESTER_TAURI_ACCEPTANCE_TIMEOUT_MS || '90000', 10);
 const commandMatrix = [
-  { id: 'runtime-lifecycle.status', command: 'runtime_bridge_status' },
-  { id: 'runtime-defaults.get', command: 'runtime_defaults' },
+  { id: 'ai-config.set', command: 'ai_config_set' },
+  { id: 'ai-config.get', command: 'ai_config_get' },
   { id: 'config.get.negative', command: 'runtime_bridge_config_get', expectError: true },
+  { id: 'standard-storage.runHistory.write', command: 'storage_write_json' },
   { id: 'standard-storage.runHistory.read', command: 'storage_read_json' },
-  { id: 'auth.sessionLoad.empty', command: 'auth_session_load' },
+  { id: 'runtime-lifecycle.status.negative', command: 'runtime_bridge_status', expectError: true },
+  { id: 'runtime-defaults.get.negative', command: 'runtime_defaults', expectError: true },
+  { id: 'auth.sessionLoad.negative', command: 'auth_session_load', expectError: true },
+  { id: 'local-agent.identity.negative', command: 'local_agent_identity', expectError: true },
   { id: 'unsupported-standard-command.negative', command: 'unsupported-standard-command', expectError: true },
 ];
 
@@ -24,7 +28,24 @@ function outputTail(chunks) {
   return chunks.join('').slice(-8000).trim();
 }
 
-function terminateProcessTree(child) {
+async function waitForExit(child, timeoutMs) {
+  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) {
+    return true;
+  }
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      child.off('exit', onExit);
+      resolve(false);
+    }, timeoutMs);
+    const onExit = () => {
+      clearTimeout(timeout);
+      resolve(true);
+    };
+    child.once('exit', onExit);
+  });
+}
+
+async function terminateProcessTree(child) {
   if (!child?.pid || child.exitCode !== null || child.signalCode !== null) {
     return;
   }
@@ -34,7 +55,20 @@ function terminateProcessTree(child) {
     });
     return;
   }
-  child.kill('SIGTERM');
+  try {
+    process.kill(-child.pid, 'SIGTERM');
+  } catch {
+    child.kill('SIGTERM');
+  }
+  if (await waitForExit(child, 3_000)) {
+    return;
+  }
+  try {
+    process.kill(-child.pid, 'SIGKILL');
+  } catch {
+    child.kill('SIGKILL');
+  }
+  await waitForExit(child, 1_000);
 }
 
 function readProbe(probePath) {
@@ -94,6 +128,7 @@ async function main() {
   const outputChunks = [];
   const child = spawn(process.execPath, ['scripts/run-tauri-dev.mjs'], {
     cwd: root,
+    detached: process.platform !== 'win32',
     env: {
       ...process.env,
       CARGO_TERM_PROGRESS_WHEN: process.env.CARGO_TERM_PROGRESS_WHEN || 'never',
@@ -116,7 +151,7 @@ async function main() {
     const record = await waitForProbe(child, probePath, outputChunks);
     process.stdout.write(`[tester-tauri-acceptance] passed (${record.payload.stage})\n`);
   } finally {
-    terminateProcessTree(child);
+    await terminateProcessTree(child);
     rmSync(tempRoot, { recursive: true, force: true });
   }
 }

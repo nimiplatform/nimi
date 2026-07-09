@@ -34,7 +34,10 @@ import type { NimiRuntimeLocalModelCenterRpc, NimiRuntimeScenarioJobClient } fro
 import type { TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
 import { getTesterCapability, getTesterRuntimeBindingCapabilityId } from './tester-capabilities.js';
-import { loadTesterAIConfig } from './tester-ai-config-store.js';
+import {
+  hydrateTesterAIConfigFromStandardShell,
+  loadTesterAIConfig,
+} from './tester-ai-config-store.js';
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { resolveTesterRuntimeHostKind } from '../shell/auth/runtime-transport.js';
 
@@ -482,7 +485,7 @@ async function invokeRuntimeAIConsume(
   const result = await runRuntimeAIConsumeCapability({
     runtime: client.runtime,
     appId: TESTER_APP_ID,
-    config: loadTesterAIConfig(),
+    config: await hydrateTesterAIConfigFromStandardShell(),
     capabilityId,
     bindingCapabilityId,
     prompt,
@@ -543,7 +546,8 @@ export async function invokeChatStream(client: TesterRuntimeInvocationClient, in
   }
   const attachmentUnavailable = unsupportedTextAttachments('chat.stream', input.attachments);
   if (attachmentUnavailable) return attachmentUnavailable;
-  const resolved = resolveTesterLLMBinding('chat.stream');
+  const config = await hydrateTesterAIConfigFromStandardShell();
+  const resolved = resolveTesterLLMBinding('chat.stream', config);
   if (isTesterUnavailable(resolved)) return resolved;
   const textParams = resolveTextGenerationParameters('chat.stream', resolved);
   if (isTesterUnavailable(textParams)) return textParams;

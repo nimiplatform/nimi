@@ -478,7 +478,7 @@ test('tester capability runs consume Kit renderer telemetry', () => {
   assert.doesNotMatch(workbench, /Math\.random\(\)/);
 });
 
-test('tester product-local persistence consumes Kit core storage helpers', () => {
+test('tester product-local preferences use Kit storage while AIConfig persistence is standard-shell owned', () => {
   const preferences = read('src/tester/tester-preferences.ts');
   const store = read('src/tester/tester-ai-config-store.ts');
 
@@ -491,8 +491,12 @@ test('tester product-local persistence consumes Kit core storage helpers', () =>
   ]) {
     assert.match(preferences, new RegExp(helper));
   }
-  assert.match(store, /from '@nimiplatform\/kit\/core\/storage-json'/);
-  assert.match(store, /resolveBrowserStorage\('local'\)/);
+  assert.match(store, /createInstalledNimiAppStandardShellSurface/);
+  assert.match(store, /standardShellSurface\.aiConfig\.get/);
+  assert.match(store, /standardShellSurface\.aiConfig\.set/);
+  assert.doesNotMatch(store, /from '@nimiplatform\/kit\/core\/storage-json'/);
+  assert.doesNotMatch(store, /resolveBrowserStorage\('local'\)/);
+  assert.doesNotMatch(store, /createNimiAIConfigStore/);
 });
 
 test('tester app-owned Tauri commands are registered in standalone shell', () => {

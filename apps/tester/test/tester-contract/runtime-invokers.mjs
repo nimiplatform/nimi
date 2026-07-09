@@ -14,6 +14,7 @@ import {
   cleanupBehaviorModules,
   createMemoryStorage,
   importBehaviorModule,
+  installStandardShellAIConfigHarness,
   listSourceFiles,
   read,
   readTesterAiTestingSurface,
@@ -27,6 +28,9 @@ import {
 } from './helpers.mjs';
 
 test.after(cleanupBehaviorModules);
+test.beforeEach((t) => {
+  installStandardShellAIConfigHarness(t);
+});
 
 test('tester runtime media invokers use AIConfig bindings instead of executable auto routing', () => {
   const invokers = readTesterRuntimeInvokersSurface(root);
@@ -269,7 +273,7 @@ test('tester LLM invoker dispatches configured AIConfig route payload', async ()
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -384,7 +388,7 @@ test('tester chat.stream surfaces Runtime stream failure reason names instead of
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -449,7 +453,7 @@ test('tester LLM invokers forward selectedParams and timeout to Runtime payloads
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -544,7 +548,7 @@ test('tester LLM selectedParams validation fails closed before dispatch', async 
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -596,7 +600,7 @@ test('tester LLM selectedParams validation fails closed before dispatch', async 
   assert.match(result.message, /selectedParams\.maxTokens must be a finite number/);
   assert.deepEqual(captured, []);
 
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -631,7 +635,7 @@ test('tester video invoker forwards selected media params to Runtime Scenario jo
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -755,7 +759,7 @@ test('tester local text.generate binding omits runtime connectorId payload', asy
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
   const runtimeLocalModelId = 'local.chat.gemma-4-e2b-it.q8-0';
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -816,7 +820,7 @@ test('tester Runtime failures surface provider metadata details', async () => {
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -875,7 +879,7 @@ test('tester Runtime failures include the exact Runtime request diagnostics', as
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -956,7 +960,7 @@ test('tester local LLM scheduling denial fails closed before Runtime execution',
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {

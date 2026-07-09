@@ -21,18 +21,22 @@ test('tester exposes a first-class shell parity gate', () => {
   assert.match(source, /src-electron\/main\.ts/);
   assert.match(source, /src-tauri\/src\/main\.rs/);
   assert.match(source, /createTesterElectronCommandHandlers/);
-  assert.match(source, /nimi_shell_tauri_runtime_bridge_handler/);
+  assert.match(source, /nimi_shell_tauri_installed_app_standard_shell_handler/);
   assert.match(source, /resolve_world_tour_fixture/);
   assert.match(source, /open_world_tour_window/);
   assert.equal(existsSync(path.join(root, 'scripts/run-tauri-acceptance.mjs')), true);
   const tauriAcceptance = read('scripts/run-tauri-acceptance.mjs');
   assert.match(tauriAcceptance, /commandMatrix/);
   for (const expectedCommand of [
+    'ai_config_set',
+    'ai_config_get',
+    'runtime_bridge_config_get',
+    'storage_write_json',
+    'storage_read_json',
     'runtime_bridge_status',
     'runtime_defaults',
-    'runtime_bridge_config_get',
-    'storage_read_json',
     'auth_session_load',
+    'local_agent_identity',
     'unsupported-standard-command',
   ]) {
     assert.match(tauriAcceptance, new RegExp(expectedCommand));

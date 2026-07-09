@@ -11,6 +11,7 @@ import {
   RUNTIME_SCHEDULING_DENIED,
   cleanupBehaviorModules,
   createMemoryStorage,
+  installStandardShellAIConfigHarness,
   importBehaviorModule,
   listSourceFiles,
   read,
@@ -25,6 +26,9 @@ import {
 } from './helpers.mjs';
 
 test.after(cleanupBehaviorModules);
+test.beforeEach((t) => {
+  installStandardShellAIConfigHarness(t);
+});
 
 test('tester renderer resolves kit model-config from source instead of stale prebundle', () => {
   const viteConfig = read('vite.config.ts');
@@ -217,7 +221,9 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
     'NimiAIProfile',
     'NimiAIConfig',
     'createNimiAppAIScopeRef',
-    'createNimiAIConfigStore',
+    'createInstalledNimiAppStandardShellSurface',
+    'standardShellSurface.aiConfig.get',
+    'standardShellSurface.aiConfig.set',
     'createNimiAISnapshotStore',
     'parseNimiAIProfile',
     'createNimiAIHostSurface',
@@ -244,6 +250,10 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   assert.doesNotMatch(store, /TESTER_AI_CONFIG_LEGACY_STORAGE_KEY/);
   assert.doesNotMatch(store, /migrateLegacyTesterAIConfigIfNeeded/);
   assert.doesNotMatch(store, /scope-mismatch/);
+  assert.doesNotMatch(store, /resolveBrowserStorage/);
+  assert.doesNotMatch(store, /createNimiAIConfigStore/);
+  assert.doesNotMatch(store, /TESTER_AI_CONFIG_STORAGE_KEY/);
+  assert.doesNotMatch(store, /repairTesterAIConfigStorageForScope/);
 
   // The kit model-config mechanics live in the scaffold-managed sectioned config
   // surface skeleton (inherited by every generated app). It composes admitted kit
@@ -440,7 +450,7 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
   assert.equal(legacyBindingProfile.ok, false);
   assert.match(legacyBindingProfile.errors.join('\n'), /binding is forbidden/i);
 
-  assert.throws(() => store.saveTesterAIConfig({
+  await assert.rejects(() => store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -453,9 +463,9 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
       selectedParams: {},
     },
     profileOrigin: null,
-  }), /AIConfig validation failed: .*connectorId.*required.*providerModelId.*required/i);
+  }), /Tester AIConfig save validation failed: .*connectorId.*required.*providerModelId.*required/i);
 
-  assert.throws(() => store.saveTesterAIConfig({
+  await assert.rejects(() => store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -466,53 +476,7 @@ test('tester LLM binding resolver fails closed for missing and malformed binding
       selectedParams: {},
     },
     profileOrigin: null,
-  }), /AIConfig validation failed: .*profileBindingId or readinessRef/i);
-
-  const previousWindow = globalThis.window;
-  const invalidStoredConfig = {
-    scopeRef,
-    capabilities: {
-      targetRefs: {
-        'text.generate': {
-          kind: 'cloud-connector',
-          connectorId: 'runtime-connector',
-          providerModelId: '',
-        },
-      },
-      selectedParams: {},
-    },
-    profileOrigin: null,
-  };
-  try {
-    const scopedKey = store.testerAIConfigStorageKeyForScopeKey(
-      [scopeRef.kind, scopeRef.ownerId, scopeRef.surfaceId ?? ''].map(encodeURIComponent).join(':'),
-    );
-    const storage = createMemoryStorage({
-      [scopedKey]: JSON.stringify(invalidStoredConfig),
-      [store.TESTER_AI_CONFIG_SCOPE_INDEX_KEY]: JSON.stringify([
-        [scopeRef.kind, scopeRef.ownerId, scopeRef.surfaceId ?? ''].map(encodeURIComponent).join(':'),
-      ]),
-    });
-    globalThis.window = { localStorage: storage };
-
-    const repaired = store.loadTesterAIConfig(scopeRef);
-    assert.deepEqual(repaired.capabilities.targetRefs, {});
-    assert.equal(storage.getItem(scopedKey), null);
-    assert.deepEqual(JSON.parse(storage.getItem(store.TESTER_AI_CONFIG_SCOPE_INDEX_KEY)), []);
-    const quarantineKey = [...Array.from({ length: storage.length }, (_, index) => storage.key(index))]
-      .filter((key) => key?.startsWith(store.TESTER_AI_CONFIG_QUARANTINE_PREFIX));
-    assert.equal(quarantineKey.length, 1);
-    const quarantine = JSON.parse(storage.getItem(quarantineKey[0]));
-    assert.equal(quarantine.reasonCode, 'TESTER_AI_CONFIG_STORE_INVALID');
-    assert.equal(quarantine.originalKey, scopedKey);
-    assert.equal(quarantine.raw, JSON.stringify(invalidStoredConfig));
-  } finally {
-    if (previousWindow === undefined) {
-      delete globalThis.window;
-    } else {
-      globalThis.window = previousWindow;
-    }
-  }
+  }), /Tester AIConfig save validation failed: .*profileBindingId or readinessRef/i);
 });
 
 test('Tester consumes SDK scoped AISnapshot store as App Lab execution evidence proof', async () => {
@@ -525,7 +489,7 @@ test('Tester consumes SDK scoped AISnapshot store as App Lab execution evidence 
     remoteModelCatalogId: 'remote-catalog:runtime-connector:runtime-model',
     providerModelId: 'runtime-model',
   };
-  const config = store.saveTesterAIConfig({
+  const config = await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {

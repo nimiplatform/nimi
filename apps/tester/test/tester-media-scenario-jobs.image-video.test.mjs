@@ -26,7 +26,7 @@ test('tester media lanes dispatch through Runtime Scenario jobs', async (t) => {
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -290,7 +290,7 @@ test('image.generate maps selected UI params to Runtime image spec and omits pro
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {

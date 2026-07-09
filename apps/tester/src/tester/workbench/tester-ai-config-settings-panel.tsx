@@ -6,6 +6,7 @@ import type { TesterRuntimeInspection } from '../tester-runtime.js';
 import {
   createTesterAIConfigService,
   createTesterAppLabAIScopeRef,
+  hydrateTesterAIConfigFromStandardShell,
   importTesterAIProfileJson,
 } from '../tester-ai-config-store.js';
 import { createTesterRuntimeModelPickerProviderCache } from '../tester-runtime-model-provider.js';
@@ -111,6 +112,40 @@ export function TesterAiConfigSettingsPanel({ runtime, initialSection = null, on
   const service = useMemo(() => createTesterAIConfigService(), []);
   const resolveRuntimeModelPickerProvider = useMemo(() => createTesterRuntimeModelPickerProviderCache(), []);
   const localAssetSource = useTesterRuntimeLocalAssetSource(runtime?.status === 'ready');
+  const [hydration, setHydration] = useState<{ status: 'loading' | 'ready' | 'failed'; message: string | null }>({
+    status: 'loading',
+    message: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    setHydration({ status: 'loading', message: null });
+    void hydrateTesterAIConfigFromStandardShell(scopeRef)
+      .then(() => {
+        if (!cancelled) {
+          setHydration({ status: 'ready', message: null });
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setHydration({
+            status: 'failed',
+            message: error instanceof Error ? error.message : String(error || 'AI config load failed.'),
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [scopeRef]);
+
+  if (hydration.status !== 'ready') {
+    return (
+      <div className="grid h-full min-h-0 place-items-center p-6 text-sm text-[var(--nimi-text-muted)]">
+        {hydration.status === 'loading' ? 'Loading AI model config...' : hydration.message}
+      </div>
+    );
+  }
 
   return (
     <TesterAiConfigSettings

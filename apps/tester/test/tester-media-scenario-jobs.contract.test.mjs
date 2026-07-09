@@ -40,7 +40,7 @@ test('tester media Runtime failures include Kit-captured request diagnostics', a
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -122,7 +122,7 @@ test('image.generate uses Kit image generation consumer and fails closed without
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -212,7 +212,7 @@ test('video.generate fails closed when completed Runtime job has no video artifa
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  store.saveTesterAIConfig({
+  await store.saveTesterAIConfig({
     scopeRef,
     capabilities: {
       targetRefs: {

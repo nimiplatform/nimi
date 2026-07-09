@@ -95,7 +95,6 @@ test('Electron host uses canonical tester app identity for Runtime calls', () =>
 
   assert.match(mainSource, /const APP_ID = 'nimi\.tester'/);
   assert.match(sdkAcceptanceSource, /appId:\s*'nimi\.tester'/);
-  assert.match(acceptanceSource, /appId:\s*'nimi\.tester'/);
   assert.doesNotMatch(mainSource, /com\.nimiplatform\.tester/);
   assert.doesNotMatch(sdkAcceptanceSource, /com\.nimiplatform\.tester/);
   assert.doesNotMatch(acceptanceSource, /com\.nimiplatform\.tester/);

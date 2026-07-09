@@ -4,9 +4,15 @@ import { mkdirSync, mkdtempSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
+import { installStandardShellAIConfigHarness } from './tester-standard-shell-harness.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 let behaviorBuildDir = null;
+const RETIRED_TESTER_AI_CONFIG_STORAGE_KEY = 'nimiapp-tester:app-lab-ai-config:v1';
+
+test.beforeEach((t) => {
+  installStandardShellAIConfigHarness(t);
+});
 
 function buildBehaviorModules() {
   if (behaviorBuildDir) return behaviorBuildDir;
@@ -110,7 +116,7 @@ test('Tester consumes the SDK host AIProfile surface for preview and apply', asy
     const preview = await service.aiProfile.previewApply(scopeRef, profile.profileId, {
       requirementDeclarations,
     });
-    assert.equal(preview.before, null);
+    assert.deepEqual(preview.before.capabilities.targetRefs, {});
     assert.equal(preview.outcome, 'ready_to_apply');
     assert.equal(preview.after.scopeRef.ownerId, scopeRef.ownerId);
     assert.equal(preview.after.capabilities.targetRefs['text.generate'].profileBindingId, 'local-chat');
@@ -125,7 +131,7 @@ test('Tester consumes the SDK host AIProfile surface for preview and apply', asy
     const stalePreview = await service.aiProfile.previewApply(scopeRef, profile.profileId, {
       requirementDeclarations,
     });
-    service.aiConfig.update(scopeRef, {
+    await service.aiConfig.update(scopeRef, {
       ...store.loadTesterAIConfig(scopeRef),
       profileOrigin: {
         profileId: 'external-change',
@@ -231,16 +237,15 @@ test('Tester AIConfig store ignores retired unscoped App Lab config storage', as
     profileOrigin: null,
   };
   const storage = createMemoryStorage({
-    [store.TESTER_AI_CONFIG_STORAGE_KEY]: JSON.stringify(retiredConfig),
+    [RETIRED_TESTER_AI_CONFIG_STORAGE_KEY]: JSON.stringify(retiredConfig),
   });
   globalThis.window = { localStorage: storage };
   try {
-    const loaded = store.loadTesterAIConfig(scopeRef);
-    const scopedKey = store.testerAIConfigStorageKeyForScopeKey(encodeScopeRef(scopeRef));
+    const loaded = await store.hydrateTesterAIConfigFromStandardShell(scopeRef);
     assert.deepEqual(loaded.capabilities.targetRefs, {});
-    assert.equal(storage.getItem(store.TESTER_AI_CONFIG_STORAGE_KEY), JSON.stringify(retiredConfig));
-    assert.equal(storage.getItem(scopedKey), null);
-    assert.equal(storage.getItem(`${store.TESTER_AI_CONFIG_STORAGE_KEY}:invalid`), null);
+    assert.equal(storage.getItem(RETIRED_TESTER_AI_CONFIG_STORAGE_KEY), JSON.stringify(retiredConfig));
+    assert.equal(storage.getItem(`${RETIRED_TESTER_AI_CONFIG_STORAGE_KEY}:${encodeScopeRef(scopeRef)}`), null);
+    assert.equal(storage.getItem(`${RETIRED_TESTER_AI_CONFIG_STORAGE_KEY}:invalid`), null);
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;
@@ -273,7 +278,7 @@ test('Tester AIConfig service ignores retired scope-mismatched App Lab config be
     profileOrigin: null,
   };
   const storage = createMemoryStorage({
-    [store.TESTER_AI_CONFIG_STORAGE_KEY]: JSON.stringify(retiredScopeConfig),
+    [RETIRED_TESTER_AI_CONFIG_STORAGE_KEY]: JSON.stringify(retiredScopeConfig),
   });
   globalThis.window = { localStorage: storage };
   try {
@@ -309,9 +314,9 @@ test('Tester AIConfig service ignores retired scope-mismatched App Lab config be
       requirementDeclarations,
     });
     assert.equal(preview.outcome, 'ready_to_apply');
-    assert.equal(preview.before, null);
-    assert.equal(storage.getItem(store.TESTER_AI_CONFIG_STORAGE_KEY), JSON.stringify(retiredScopeConfig));
-    assert.equal(storage.getItem(`${store.TESTER_AI_CONFIG_STORAGE_KEY}:scope-mismatch`), null);
+    assert.deepEqual(preview.before.capabilities.targetRefs, {});
+    assert.equal(storage.getItem(RETIRED_TESTER_AI_CONFIG_STORAGE_KEY), JSON.stringify(retiredScopeConfig));
+    assert.equal(storage.getItem(`${RETIRED_TESTER_AI_CONFIG_STORAGE_KEY}:scope-mismatch`), null);
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;

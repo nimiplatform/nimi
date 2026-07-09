@@ -197,7 +197,7 @@ test('Support typed projection lifecycle is owned by Kit UI and consumed by apps
   assert.match(testerSettingsContract, /tester settings does not create local Runtime, Realm, admission, or permission truth/);
 });
 
-test('Tester product-local persistence consumes Kit core storage helpers', () => {
+test('Tester product-local persistence uses Kit storage while AIConfig is standard-shell owned', () => {
   const testerPreferences = read('apps/tester/src/tester/tester-preferences.ts');
   const testerAiConfigStore = read('apps/tester/src/tester/tester-ai-config-store.ts');
   const testerContract = read('apps/tester/test/tester-contract.test.mjs');
@@ -209,12 +209,16 @@ test('Tester product-local persistence consumes Kit core storage helpers', () =>
   assert.doesNotMatch(testerPreferences, /JSON\.parse\(raw\)/);
   assert.doesNotMatch(testerPreferences, /JSON\.stringify\(normalized\)/);
 
-  assert.match(testerAiConfigStore, /from '@nimiplatform\/kit\/core\/storage-json'/);
-  assert.match(testerAiConfigStore, /createNimiAIConfigStore/);
+  assert.match(testerAiConfigStore, /createInstalledNimiAppStandardShellSurface/);
+  assert.match(testerAiConfigStore, /standardShellSurface\.aiConfig\.get/);
+  assert.match(testerAiConfigStore, /standardShellSurface\.aiConfig\.set/);
   assert.match(testerAiConfigStore, /createNimiAISnapshotStore/);
+  assert.doesNotMatch(testerAiConfigStore, /from '@nimiplatform\/kit\/core\/storage-json'/);
+  assert.doesNotMatch(testerAiConfigStore, /resolveBrowserStorage/);
+  assert.doesNotMatch(testerAiConfigStore, /createNimiAIConfigStore/);
   assert.doesNotMatch(testerAiConfigStore, /createScopedAIConfigStore/);
   assert.doesNotMatch(testerAiConfigStore, /createScopedAISnapshotStore/);
-  assert.match(testerContract, /tester product-local persistence consumes Kit core storage helpers/);
+  assert.match(testerContract, /tester product-local preferences use Kit storage while AIConfig persistence is standard-shell owned/);
 });
 
 test('Tester Electron shell host consumes Kit Electron AI config store', () => {

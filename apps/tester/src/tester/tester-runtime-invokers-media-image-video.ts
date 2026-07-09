@@ -14,7 +14,7 @@ import {
 } from './tester-runtime-invokers-core.js';
 import { TESTER_APP_ID, runtimeJobIdentity } from './tester-runtime-invokers-media-runtime.js';
 import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
-import { loadTesterAIConfig } from './tester-ai-config-store.js';
+import { hydrateTesterAIConfigFromStandardShell } from './tester-ai-config-store.js';
 
 type RuntimeRequestDiagnostics = NonNullable<TesterUnavailable['runtimeRequest']>;
 
@@ -35,7 +35,7 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
         local: client.runtime.local,
       },
       appId: TESTER_APP_ID,
-      config: loadTesterAIConfig(),
+      config: await hydrateTesterAIConfigFromStandardShell(),
       prompt,
       scenarioId: identity.idempotencyKey,
       subjectUserId,
@@ -137,7 +137,7 @@ export async function invokeVideoGenerate(client: TesterRuntimeInvocationClient,
         scheduling: client.runtime.scheduling,
       },
       appId: TESTER_APP_ID,
-      config: loadTesterAIConfig(),
+      config: await hydrateTesterAIConfigFromStandardShell(),
       prompt,
       scenarioId: identity.idempotencyKey,
       subjectUserId,
