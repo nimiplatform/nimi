@@ -437,7 +437,9 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     const service: SharedAIConfigService = {
       aiConfig: {
         get: () => imageConfig,
-        update: (_scope, next) => updates.push(next),
+        update: (_scope, next) => {
+          updates.push(next);
+        },
         subscribe: () => () => undefined,
       },
       aiProfile: {
@@ -489,6 +491,163 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     const nextParams = updates[0]?.capabilities.selectedParams['image.generate'] as Record<string, unknown> | undefined;
     expect(nextParams?.seed).toBe('seed-new');
     expect(nextParams?.companionSlots).toEqual({ vae_path: 'asset-vae' });
+  });
+
+  it('surfaces async host persistence failures instead of projecting a successful save', async () => {
+    const imageConfig: NimiAIConfig = {
+      ...baseConfig,
+      capabilities: {
+        targetRefs: {
+          'image.generate': {
+            kind: 'local-runtime',
+            version: 'v2',
+            readinessRef: 'readiness:image-local',
+          },
+        },
+        selectedParams: {
+          'image.generate': { seed: 'seed-old' },
+        },
+      },
+    };
+    const service: SharedAIConfigService = {
+      aiConfig: {
+        get: () => imageConfig,
+        update: async () => {
+          throw new Error('host save failed');
+        },
+        subscribe: () => () => undefined,
+      },
+      aiProfile: {
+        list: async () => [],
+        previewApply: async () => { throw new Error('stub'); },
+        apply: async () => ({
+          success: false,
+          config: null,
+          failureReason: 'stub',
+          outcome: 'failed',
+          probeWarnings: [],
+        }),
+      },
+    };
+    const surface: AppModelConfigSurface = {
+      ...makeSurface('image.generate'),
+      aiConfigService: service,
+    };
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="image.generate"
+          surface={surface}
+          config={imageConfig}
+        />,
+      ),
+    );
+
+    const seedInput = Array.from(container?.querySelectorAll('input') || [])
+      .find((input) => input.value === 'seed-old');
+    expect(seedInput).toBeTruthy();
+    await act(async () => {
+      setInputValue(seedInput as HTMLInputElement, 'seed-new');
+      await flush();
+      await flush();
+    });
+
+    expect(container?.textContent).toContain('AI config save failed');
+    expect(container?.textContent).toContain('host save failed');
+  });
+
+  it('serializes async capability writes and reads fresh base after the previous write resolves', async () => {
+    let currentConfig: NimiAIConfig = {
+      ...baseConfig,
+      capabilities: {
+        targetRefs: {
+          'image.generate': {
+            kind: 'local-runtime',
+            version: 'v2',
+            readinessRef: 'readiness:image-local',
+          },
+        },
+        selectedParams: {
+          'image.generate': { seed: 'seed-start' },
+        },
+      },
+    };
+    let getCalls = 0;
+    const updates: NimiAIConfig[] = [];
+    const resolvers: Array<() => void> = [];
+    const service: SharedAIConfigService = {
+      aiConfig: {
+        get: () => {
+          getCalls += 1;
+          return currentConfig;
+        },
+        update: (_scope, next) => new Promise<void>((resolve) => {
+          updates.push(next);
+          resolvers.push(() => {
+            currentConfig = next;
+            resolve();
+          });
+        }),
+        subscribe: () => () => undefined,
+      },
+      aiProfile: {
+        list: async () => [],
+        previewApply: async () => { throw new Error('stub'); },
+        apply: async () => ({
+          success: false,
+          config: null,
+          failureReason: 'stub',
+          outcome: 'failed',
+          probeWarnings: [],
+        }),
+      },
+    };
+    const surface: AppModelConfigSurface = {
+      ...makeSurface('image.generate'),
+      aiConfigService: service,
+    };
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="image.generate"
+          surface={surface}
+          config={currentConfig}
+        />,
+      ),
+    );
+
+    const seedInput = Array.from(container?.querySelectorAll('input') || [])
+      .find((input) => input.value === 'seed-start');
+    expect(seedInput).toBeTruthy();
+    await act(async () => {
+      setInputValue(seedInput as HTMLInputElement, 'seed-one');
+      await flush();
+    });
+    expect(getCalls).toBe(1);
+    expect(updates).toHaveLength(1);
+
+    await act(async () => {
+      setInputValue(seedInput as HTMLInputElement, 'seed-two');
+      await flush();
+    });
+    expect(getCalls).toBe(1);
+    expect(updates).toHaveLength(1);
+
+    await act(async () => {
+      resolvers[0]?.();
+      await flush();
+      await flush();
+    });
+    expect(getCalls).toBe(2);
+    expect(updates).toHaveLength(2);
+
+    await act(async () => {
+      resolvers[1]?.();
+      await flush();
+      await flush();
+    });
+    const finalParams = currentConfig.capabilities.selectedParams['image.generate'] as Record<string, unknown>;
+    expect(finalParams.seed).toBe('seed-two');
   });
 
   it('derives image companion slots from prefixed local-runtime profile bindings', async () => {

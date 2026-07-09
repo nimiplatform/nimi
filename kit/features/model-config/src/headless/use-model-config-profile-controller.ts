@@ -136,6 +136,8 @@ export function useModelConfigProfileController(
   const scopeRefRef = useRef(scopeRef);
   const userProfilesSourceRef = useRef<UserProfilesSource | undefined>(userProfilesSource);
   const profilesRef = useRef<ReadonlyArray<NimiAIProfile>>([]);
+  const previewRequestRef = useRef(0);
+  const applyRequestRef = useRef(0);
 
   scopeRefRef.current = scopeRef;
   userProfilesSourceRef.current = userProfilesSource;
@@ -197,11 +199,14 @@ export function useModelConfigProfileController(
     setApplyError(null);
     setPreview(null);
     setPendingPreview(null);
+    const requestId = previewRequestRef.current + 1;
+    previewRequestRef.current = requestId;
     const currentScopeRef = scopeRefRef.current;
     void aiConfigService.aiProfile.previewApply(currentScopeRef, profileId, {
       requirementDeclarations: [requirementDeclaration],
     })
       .then((previewResult: NimiAIProfilePreviewResult) => {
+        if (previewRequestRef.current !== requestId) return;
         if (previewResult.outcome !== 'ready_to_apply' || !previewResult.after) {
           setApplyError(describePreviewFailure(previewResult));
           return;
@@ -210,9 +215,11 @@ export function useModelConfigProfileController(
         setPreview(toDisplayPreview(profileId, profileTitleFor(profileId), previewResult));
       })
       .catch((error: unknown) => {
+        if (previewRequestRef.current !== requestId) return;
         setApplyError(describeError(error));
       })
       .finally(() => {
+        if (previewRequestRef.current !== requestId) return;
         setPreviewing(false);
       });
   }, [aiConfigService, profileTitleFor, requirementDeclaration]);
@@ -224,12 +231,15 @@ export function useModelConfigProfileController(
     if (!profileId) return;
     setApplying(true);
     setApplyError(null);
+    const requestId = applyRequestRef.current + 1;
+    applyRequestRef.current = requestId;
     const currentScopeRef = scopeRefRef.current;
     void aiConfigService.aiProfile.apply(currentScopeRef, profileId, {
       expectedBaseVersion: pendingPreview.baseVersion,
       requirementDeclarations: [requirementDeclaration],
     })
       .then((remoteResult: NimiAIProfileApplyResult) => {
+        if (applyRequestRef.current !== requestId) return undefined;
         const resolution = core.resolveRemoteApply({
           profileId,
           remoteResult,
@@ -237,23 +247,30 @@ export function useModelConfigProfileController(
           now: () => new Date().toISOString(),
         });
         if (resolution.kind === 'remote-success') {
-          aiConfigService.aiConfig.update(currentScopeRef, resolution.nextConfig);
-          setPreview(null);
-          setPendingPreview(null);
-          return;
+          return Promise.resolve(aiConfigService.aiConfig.update(currentScopeRef, resolution.nextConfig))
+            .then(() => {
+              if (applyRequestRef.current !== requestId) return;
+              setPreview(null);
+              setPendingPreview(null);
+            });
         }
         setApplyError(resolution.failureReason);
+        return undefined;
       })
       .catch((error: unknown) => {
+        if (applyRequestRef.current !== requestId) return;
         const resolution = core.resolveNetworkError({ profileId, error });
         setApplyError(resolution.kind === 'network-error' ? resolution.failureReason : 'Profile apply failed.');
       })
       .finally(() => {
+        if (applyRequestRef.current !== requestId) return;
         setApplying(false);
       });
   }, [aiConfigService, core, pendingPreview, preview, requirementDeclaration]);
 
   const handleCancelPreview = useCallback(() => {
+    previewRequestRef.current += 1;
+    applyRequestRef.current += 1;
     setPreview(null);
     setPendingPreview(null);
     setApplyError(null);

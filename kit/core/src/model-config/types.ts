@@ -43,7 +43,7 @@ export type SharedAIConfigSubscribeListener = (config: NimiAIConfig) => void;
 export interface SharedAIConfigService {
   readonly aiConfig: {
     get(scopeRef: NimiAIScopeRef): NimiAIConfig;
-    update(scopeRef: NimiAIScopeRef, next: NimiAIConfig): void;
+    update(scopeRef: NimiAIScopeRef, next: NimiAIConfig): void | Promise<void>;
     subscribe(scopeRef: NimiAIScopeRef, listener: SharedAIConfigSubscribeListener): SharedAIConfigUnsubscribe;
   };
   readonly aiProfile: {

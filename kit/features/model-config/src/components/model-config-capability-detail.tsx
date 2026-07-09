@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { RouteModelPickerDataProvider } from '@nimiplatform/kit/features/model-picker';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
@@ -167,10 +167,15 @@ function writeCapabilityPatch(
     targetRef?: ModelConfigTargetRef | null;
     params?: NimiJsonValue;
   },
-): void {
+): Promise<void> {
   const current = service.aiConfig.get(scopeRef);
-  service.aiConfig.update(scopeRef, applyModelConfigCapabilityPatch(current, capabilityId, patch));
+  return Promise.resolve(service.aiConfig.update(scopeRef, applyModelConfigCapabilityPatch(current, capabilityId, patch)));
 }
+
+type CapabilityPatchWriter = (patch: {
+  targetRef?: ModelConfigTargetRef | null;
+  params?: NimiJsonValue;
+}) => void;
 
 function resolveOverride(
   surface: AppModelConfigSurface,
@@ -208,12 +213,11 @@ function renderEditor(
   descriptor: CanonicalCapabilityDescriptor,
   surface: AppModelConfigSurface,
   config: NimiAIConfig,
+  writePatch: CapabilityPatchWriter,
 ): {
   editor: ReturnType<typeof Object> | null;
   showEditorWhen: 'always' | 'local';
 } {
-  const service = surface.aiConfigService;
-  const { scopeRef } = surface;
   const storedParams = readParams(config, descriptor.capabilityId);
   const override = resolveOverride(surface, descriptor.capabilityId);
   const showEditorWhen = override.showEditorWhen
@@ -233,7 +237,7 @@ function renderEditor(
           <TextGenerateParamsEditor
             copy={createTextGenerateEditorCopy(t)}
             params={params}
-            onParamsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, { params: { ...DEFAULT_TEXT_GENERATE_PARAMS, ...next } })}
+            onParamsChange={(next) => writePatch({ params: { ...DEFAULT_TEXT_GENERATE_PARAMS, ...next } })}
           />
         ),
       };
@@ -251,7 +255,7 @@ function renderEditor(
               const selectedOption = (override.audioSynthesizeVoiceOptions || []).find((option) => (
                 sameSpeechVoiceReference(option.value, next.voiceRef)
               ));
-              writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, {
+              writePatch({
                 ...(selectedOption?.targetRef ? { targetRef: selectedOption.targetRef } : {}),
                 params: { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS, ...next },
               });
@@ -268,7 +272,7 @@ function renderEditor(
           <AudioTranscribeParamsEditor
             copy={createAudioTranscribeEditorCopy(t)}
             params={params}
-            onParamsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, { params: { ...DEFAULT_AUDIO_TRANSCRIBE_PARAMS, ...next } })}
+            onParamsChange={(next) => writePatch({ params: { ...DEFAULT_AUDIO_TRANSCRIBE_PARAMS, ...next } })}
           />
         ),
       };
@@ -285,7 +289,7 @@ function renderEditor(
             assets={[...voiceAssets]}
             assetsLoading={surface.localAssetSource?.loading}
             mode={descriptor.capabilityId === 'voice_workflow.voice_design' ? 'voice_design' : 'voice_clone'}
-            onParamsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, { params: { ...DEFAULT_VOICE_WORKFLOW_PARAMS, ...next } })}
+            onParamsChange={(next) => writePatch({ params: { ...DEFAULT_VOICE_WORKFLOW_PARAMS, ...next } })}
           />
         ),
       };
@@ -310,10 +314,10 @@ function renderEditor(
             companionSlotDefs={companionSlotDefs}
             assets={[...imageAssets]}
             assetsLoading={surface.localAssetSource?.loading}
-            onParamsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, {
+            onParamsChange={(next) => writePatch({
               params: { ...DEFAULT_IMAGE_PARAMS, ...next, companionSlots },
             })}
-            onCompanionSlotsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, {
+            onCompanionSlotsChange={(next) => writePatch({
               params: { ...DEFAULT_IMAGE_PARAMS, ...params, companionSlots: next },
             })}
           />
@@ -328,7 +332,7 @@ function renderEditor(
           <VideoParamsEditor
             copy={buildVideoCopy(t)}
             params={params}
-            onParamsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, { params: { ...DEFAULT_VIDEO_PARAMS, ...next } })}
+            onParamsChange={(next) => writePatch({ params: { ...DEFAULT_VIDEO_PARAMS, ...next } })}
           />
         ),
       };
@@ -404,10 +408,40 @@ export function ModelConfigCapabilityDetail({
   const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[capabilityId];
   const override = resolveOverride(surface, capabilityId);
   const targetRef = readModelConfigTargetRef(config, capabilityId);
+  const [writeError, setWriteError] = useState<string | null>(null);
+  const writeQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const writeSequenceRef = useRef(0);
+  const latestWriteSequenceRef = useRef(0);
+
+  const writePatch = useCallback((patch: {
+    targetRef?: ModelConfigTargetRef | null;
+    params?: NimiJsonValue;
+  }) => {
+    const sequence = writeSequenceRef.current + 1;
+    writeSequenceRef.current = sequence;
+    latestWriteSequenceRef.current = sequence;
+    setWriteError(null);
+    const commit = writeQueueRef.current
+      .catch(() => undefined)
+      .then(() => writeCapabilityPatch(surface.aiConfigService, surface.scopeRef, capabilityId, patch));
+    writeQueueRef.current = commit;
+    void commit
+      .then(() => {
+        if (latestWriteSequenceRef.current === sequence) {
+          setWriteError(null);
+        }
+      })
+      .catch((error: unknown) => {
+        if (latestWriteSequenceRef.current !== sequence) {
+          return;
+        }
+        setWriteError(error instanceof Error ? error.message : String(error || 'AI config save failed.'));
+      });
+  }, [capabilityId, surface.aiConfigService, surface.scopeRef]);
 
   const handleTargetRefChange = useCallback((next: ModelConfigTargetRef | null) => {
-    writeCapabilityPatch(surface.aiConfigService, surface.scopeRef, capabilityId, { targetRef: next });
-  }, [capabilityId, surface.aiConfigService, surface.scopeRef]);
+    writePatch({ targetRef: next });
+  }, [writePatch]);
 
   const provider = useMemo(
     () => (descriptor ? resolveProvider(surface, descriptor.sourceRef.capability) : null),
@@ -418,8 +452,18 @@ export function ModelConfigCapabilityDetail({
     return null;
   }
 
-  const { editor, showEditorWhen } = renderEditor(descriptor, surface, config);
-  const projection = surface.projectionResolver(capabilityId);
+  const { editor, showEditorWhen } = renderEditor(descriptor, surface, config, writePatch);
+  const baseProjection = surface.projectionResolver(capabilityId);
+  const projection = writeError
+    ? {
+        ...baseProjection,
+        supported: false,
+        tone: 'attention' as const,
+        badgeLabel: translateWithDefault(surface.i18n.t, 'ModelConfig.saveFailedBadgeLabel', 'Save failed'),
+        title: translateWithDefault(surface.i18n.t, 'ModelConfig.saveFailedTitle', 'AI config save failed'),
+        detail: writeError,
+      }
+    : baseProjection;
   const t = surface.i18n.t;
 
   const item: ModelConfigCapabilityItem = {

@@ -263,6 +263,63 @@ describe('useModelConfigProfileController apply paths', () => {
     expect(captured.controller?.preview).toBeNull();
   });
 
+  it('path 1b — host update rejection after remote success fails closed and preserves preview', async () => {
+    let currentConfig = baseConfig;
+    let updateCalls = 0;
+    const service: SharedAIConfigService = {
+      aiConfig: {
+        get: () => currentConfig,
+        update: async () => {
+          updateCalls += 1;
+          throw new Error('host commit rejected');
+        },
+        subscribe: () => () => undefined,
+      },
+      aiProfile: {
+        list: async () => [remoteProfile],
+        previewApply: makePreviewApplyStub({
+          currentConfig: () => currentConfig,
+          profilesById: [remoteProfile],
+        }),
+        apply: async () => ({
+          success: true,
+          config: appliedConfig,
+          failureReason: null,
+          outcome: 'ready_to_apply',
+          probeWarnings: [],
+        }) satisfies NimiAIProfileApplyResult,
+      },
+    };
+
+    const captured: HarnessProps['captured'] = { controller: null };
+    await render(
+      <Harness
+        service={service}
+        captured={captured}
+        profileId="remote-profile"
+      />,
+    );
+
+    const button = container?.querySelector('button');
+    await act(async () => {
+      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+      await flush();
+    });
+    expect(captured.controller?.preview).toBeTruthy();
+
+    await act(async () => {
+      captured.controller?.onConfirmApply();
+      await flush();
+      await flush();
+    });
+
+    expect(updateCalls).toBe(1);
+    expect(captured.controller?.error).toBe('host commit rejected');
+    expect(captured.controller?.applying).toBe(false);
+    expect(captured.controller?.preview).toBeTruthy();
+  });
+
   it('path 2 — preview remote failure with user profile fails closed and never commits', async () => {
     let currentConfig = baseConfig;
     const updates: NimiAIConfig[] = [];
