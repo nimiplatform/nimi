@@ -110,6 +110,11 @@ test('web documents and config keep the public-web contract explicit', () => {
   assert.match(viteConfig, /find: '@desktop-public'/);
   assert.match(viteConfig, /@nimiplatform\\\/kit\\\/telemetry/);
   assert.match(viteConfig, /kit\/telemetry\/src\/telemetry\/index\.ts/);
+  const runtimeWireTypesAliasIndex = viteConfig.indexOf("find: '@nimiplatform/sdk/runtime/wire-types'");
+  const runtimeAliasIndex = viteConfig.indexOf("find: '@nimiplatform/sdk/runtime',");
+  assert.notEqual(runtimeWireTypesAliasIndex, -1);
+  assert.ok(runtimeWireTypesAliasIndex < runtimeAliasIndex);
+  assert.match(viteConfig, /runtime\/wire-types\/index\.js/);
   assert.ok(existsSync(path.join(desktopPublicRoot, 'realm/index.ts')));
   assert.doesNotMatch(runtimeBootstrap, /type AuthSessionSnapshot/);
   assert.doesNotMatch(runtimeBootstrap, /getAuthSnapshot\(\).*token/s);

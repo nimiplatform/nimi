@@ -158,6 +158,10 @@ export default defineConfig(({ mode }) => {
           replacement: path.join(sdkVNextDist, 'runtime/generated.js'),
         },
         {
+          find: '@nimiplatform/sdk/runtime/wire-types',
+          replacement: path.join(sdkVNextDist, 'runtime/wire-types/index.js'),
+        },
+        {
           find: '@nimiplatform/sdk/realm/generated',
           replacement: path.join(sdkVNextDist, 'realm/generated.js'),
         },

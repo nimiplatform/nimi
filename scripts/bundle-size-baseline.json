@@ -9,6 +9,11 @@
     "web": {
       "entryChunkBytes": 1968377,
       "maxLargestAppChunkBytes": 150000
+    },
+    "tester": {
+      "entryBudgetBytes": 30000,
+      "maxLargestAppChunkBytes": 180000,
+      "maxLargestVendorChunkBytes": 850000
     }
   }
 }

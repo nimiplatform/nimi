@@ -10,6 +10,7 @@ const baselinePath = path.join(scriptDir, 'bundle-size-baseline.json');
 const TARGET_DIR_CANDIDATES = {
   desktop: ['apps/desktop', 'desktop'],
   web: ['apps/web', 'web'],
+  tester: ['apps/tester'],
 };
 
 function formatBytes(bytes) {
@@ -50,6 +51,14 @@ async function readEntryChunkSize(targetName) {
 }
 
 async function readLargestAppChunk(targetName) {
+  return readLargestChunk(targetName, ({ fileName }) => !fileName.startsWith('vendor-'), 'non-vendor app chunk');
+}
+
+async function readLargestVendorChunk(targetName) {
+  return readLargestChunk(targetName, ({ fileName }) => fileName.startsWith('vendor-'), 'vendor chunk');
+}
+
+async function readLargestChunk(targetName, include, label) {
   const distDir = await resolveTargetDistDir(targetName);
   const distAssetsDir = path.join(distDir, 'assets');
   const entries = await fs.readdir(distAssetsDir, { withFileTypes: true });
@@ -59,8 +68,7 @@ async function readLargestAppChunk(targetName) {
 
   let largest = null;
   for (const fileName of jsFiles) {
-    // Vendor chunks are tracked independently by Vite warnings and not part of app-budget gate.
-    if (fileName.startsWith('vendor-')) {
+    if (!include({ fileName })) {
       continue;
     }
     const filePath = path.join(distAssetsDir, fileName);
@@ -74,7 +82,7 @@ async function readLargestAppChunk(targetName) {
   }
 
   if (!largest) {
-    throw new Error(`no non-vendor app chunk found under ${path.relative(repoRoot, distAssetsDir)}`);
+    throw new Error(`no ${label} found under ${path.relative(repoRoot, distAssetsDir)}`);
   }
 
   return largest;
@@ -102,33 +110,47 @@ async function main() {
   const minReductionPercent = Number(baseline.minimumReductionPercent || 20);
   const targets = baseline.targets || {};
   const failures = [];
+  const targetNames = ['desktop', 'web', 'tester'].filter((targetName) => Object.hasOwn(targets, targetName));
 
-  for (const targetName of ['desktop', 'web']) {
+  for (const targetName of targetNames) {
     const targetBaseline = targets[targetName];
-    if (!targetBaseline || !Number.isFinite(targetBaseline.entryChunkBytes)) {
-      failures.push(`${targetName}: missing baseline entryChunkBytes`);
+    const baselineBytes = Number(targetBaseline?.entryChunkBytes || 0);
+    const explicitBudgetBytes = Number(targetBaseline?.entryBudgetBytes || 0);
+    if (!targetBaseline || (!Number.isFinite(baselineBytes) || baselineBytes <= 0) && (!Number.isFinite(explicitBudgetBytes) || explicitBudgetBytes <= 0)) {
+      failures.push(`${targetName}: missing entryChunkBytes or entryBudgetBytes`);
       continue;
     }
 
-    const baselineBytes = Number(targetBaseline.entryChunkBytes);
-    const budgetBytes = Math.floor(baselineBytes * (1 - minReductionPercent / 100));
+    const budgetBytes = Number.isFinite(explicitBudgetBytes) && explicitBudgetBytes > 0
+      ? explicitBudgetBytes
+      : Math.floor(baselineBytes * (1 - minReductionPercent / 100));
     const current = await readEntryChunkSize(targetName);
     const largestAppChunk = await readLargestAppChunk(targetName);
     const maxLargestAppChunkBytes = Number(targetBaseline.maxLargestAppChunkBytes || 0);
-    const reductionPercent = ((baselineBytes - current.bytes) / baselineBytes) * 100;
+    const maxLargestVendorChunkBytes = Number(targetBaseline.maxLargestVendorChunkBytes || 0);
+    const largestVendorChunk =
+      Number.isFinite(maxLargestVendorChunkBytes) && maxLargestVendorChunkBytes > 0
+        ? await readLargestVendorChunk(targetName)
+        : null;
+    const hasBaseline = Number.isFinite(baselineBytes) && baselineBytes > 0;
+    const reductionPercent = hasBaseline ? ((baselineBytes - current.bytes) / baselineBytes) * 100 : null;
     const pass = current.bytes <= budgetBytes;
     const appChunkWithinLimit =
       Number.isFinite(maxLargestAppChunkBytes) && maxLargestAppChunkBytes > 0
         ? largestAppChunk.bytes <= maxLargestAppChunkBytes
+        : true;
+    const vendorChunkWithinLimit =
+      Number.isFinite(maxLargestVendorChunkBytes) && maxLargestVendorChunkBytes > 0
+        ? Boolean(largestVendorChunk && largestVendorChunk.bytes <= maxLargestVendorChunkBytes)
         : true;
 
     process.stdout.write(
       [
         `[bundle-size] ${targetName}`,
         `entry=${formatBytes(current.bytes)}`,
-        `baseline=${formatBytes(baselineBytes)}`,
+        hasBaseline ? `baseline=${formatBytes(baselineBytes)}` : 'baseline=n/a',
         `budget=${formatBytes(budgetBytes)}`,
-        `reduction=${reductionPercent.toFixed(2)}%`,
+        reductionPercent === null ? 'reduction=n/a' : `reduction=${reductionPercent.toFixed(2)}%`,
         `file=${path.relative(repoRoot, current.scriptPath).replace(/\\/g, '/')}`,
       ].join(' '),
     );
@@ -144,15 +166,31 @@ async function main() {
       );
       process.stdout.write('\n');
     }
+    if (largestVendorChunk && Number.isFinite(maxLargestVendorChunkBytes) && maxLargestVendorChunkBytes > 0) {
+      process.stdout.write(
+        [
+          `[bundle-size] ${targetName}`,
+          `largest-vendor=${formatBytes(largestVendorChunk.bytes)}`,
+          `max=${formatBytes(maxLargestVendorChunkBytes)}`,
+          `file=${path.relative(repoRoot, largestVendorChunk.filePath).replace(/\\/g, '/')}`,
+        ].join(' '),
+      );
+      process.stdout.write('\n');
+    }
 
     if (!pass) {
       failures.push(
-        `${targetName}: entry chunk ${current.bytes} exceeds budget ${budgetBytes} (${minReductionPercent}% reduction target)`,
+        `${targetName}: entry chunk ${current.bytes} exceeds budget ${budgetBytes}`,
       );
     }
     if (!appChunkWithinLimit) {
       failures.push(
         `${targetName}: largest app chunk ${largestAppChunk.bytes} exceeds max ${maxLargestAppChunkBytes}`,
+      );
+    }
+    if (!vendorChunkWithinLimit) {
+      failures.push(
+        `${targetName}: largest vendor chunk ${largestVendorChunk.bytes} exceeds max ${maxLargestVendorChunkBytes}`,
       );
     }
   }
