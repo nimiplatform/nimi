@@ -53,6 +53,12 @@ Fixed rules:
 - avatar/background refs are opaque refs; asset bytes, managed local paths, local asset URLs, and Live2D adapter sidecar payloads remain outside Runtime source and belong to the admitted host-local custody owner
 - `avatar_autoplay` is the single persistent per-agent autoplay home and must not be mirrored into app-local Agent Center config
 - `background_asset_ref` is runtime-owned selection truth only; an unresolved host-local ref must project a fail-closed re-import state instead of a ready background
+- Runtime projects the selected profile through typed
+  `AgentRecord.presentation_profile` field `8` and its committed revision
+  through `AgentRecord.presentation_profile_revision` field `9`; generic
+  `metadata.presentationProfile` is not an admitted read or storage seam
+- a non-empty `AgentPresentationProfile` also carries its matching `uint64
+  revision` at field `10`; field number `9` in that message remains reserved
 
 ## K-AGCORE-023a AgentPresentationProfile Mutation Boundary
 
@@ -71,6 +77,51 @@ Fixed rules:
   state without a committed Runtime write is not success
 - mutation must fail closed on invalid voice reference kind, malformed opaque
   ref, missing auth scope, or expected revision conflict
+- every set, patch, and clear mutation carries `expected_revision`; a
+  never-mutated absent profile starts at committed revision `0`, and each
+  successful mutation advances the committed revision by exactly one,
+  including a clear; a cleared profile remains absent while its last committed
+  revision remains available for the next CAS
+- `SetAgentPresentationProfileRequest.expected_revision` is `optional uint64`
+  field `6` so an omitted token is distinguishable from the valid initial
+  revision `0`;
+  Runtime compares it and commits the profile plus revision in one
+  lock/transaction boundary; a stale revision fails with gRPC `ABORTED` and
+  `AGENT_PRESENTATION_REVISION_CONFLICT` and must not partially change profile
+  fields
+- `SetAgentPresentationProfileResponse.committed_revision` is `uint64` field
+  `2`; it returns the committed revision even when response field `profile = 1`
+  is absent after clear
+- `SetAgentPresentationProfile` is a protected write and the server must enforce
+  `runtime.agent.write` (or an admitted scoped binding carrying that write
+  capability); an SDK-requested scope is not authorization by itself
+- `InitializeAgent.metadata` reserves `presentationProfile` and
+  `presentationProfileRevision`; supplying either key fails closed, so generic
+  metadata cannot bypass the typed mutation, validation, authorization, or CAS
+  boundary
+- a non-empty avatar/background opaque ref uses exactly one grammar below:
+  - a bare ref is `1..256` ASCII bytes and matches
+    `[A-Za-z0-9][A-Za-z0-9._@+~-]*`; a value containing `:` cannot fall back
+    to the bare form
+  - a qualified ref is `1..2048` ASCII bytes, starts with a lowercase namespace
+    matching `[a-z][a-z0-9_.+-]{0,63}:`, and has a non-empty tail containing
+    only RFC 3986 URI characters; percent escapes must be complete hexadecimal
+    escapes; every value containing `:` is parsed as this qualified form
+  - direct namespaces `file`, `data`, `http`, and `https` are forbidden;
+    `profile_media_url` is the only URL-bearing namespace and its tail must be
+    an absolute `https://` URL with no userinfo
+  - both the raw value and one percent-decoded pass must contain no whitespace,
+    control/NUL byte, backslash, POSIX absolute prefix, Windows drive/UNC
+    prefix, `.`/`..` slash segment, or `;base64,` marker
+  - clearing a field is represented only by the patch field being present with
+    the empty string; the empty string is not an opaque ref
+- full-profile validation, merged-patch validation, persisted-profile reads,
+  and SDK request/projection validation apply the same opaque-ref admission
+  rules; invalid stored metadata fails closed instead of projecting ready state
+- `voice_asset_id` default voice bindings resolve at mutation time to an active,
+  owner-scoped, durable Runtime `VoiceAsset`; missing, deleted, expired, failed,
+  cross-owner, or `session_ephemeral` assets are rejected, and an empty voice
+  reference suffix is invalid
 - Runtime must not accept raw filesystem paths, raw `file://` URLs, asset bytes,
   package descriptors, backend compatibility tiers, calibration payloads, or
   Avatar launch payload fields on this mutation surface

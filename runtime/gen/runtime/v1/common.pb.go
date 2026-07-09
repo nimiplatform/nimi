@@ -241,6 +241,9 @@ const (
 	ReasonCode_APP_OPEN_AICONFIG_UNRESOLVED              ReasonCode = 611
 	ReasonCode_APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED ReasonCode = 612
 	ReasonCode_APP_OPEN_LAUNCH_FAILED                    ReasonCode = 613
+	// AGENT_PRESENTATION family — optimistic concurrency for persistent
+	// Runtime-owned presentation truth (K-AGCORE-023a).
+	ReasonCode_AGENT_PRESENTATION_REVISION_CONFLICT ReasonCode = 614
 )
 
 // Enum value maps for ReasonCode.
@@ -427,6 +430,7 @@ var (
 		611: "APP_OPEN_AICONFIG_UNRESOLVED",
 		612: "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED",
 		613: "APP_OPEN_LAUNCH_FAILED",
+		614: "AGENT_PRESENTATION_REVISION_CONFLICT",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":                        0,
@@ -610,6 +614,7 @@ var (
 		"APP_OPEN_AICONFIG_UNRESOLVED":                   611,
 		"APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED":      612,
 		"APP_OPEN_LAUNCH_FAILED":                         613,
+		"AGENT_PRESENTATION_REVISION_CONFLICT":           614,
 	}
 )
 
@@ -1319,7 +1324,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xac/\n" +
+	"actionHint*\xd7/\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1503,7 +1508,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1fAPP_OPEN_PERMISSION_NOT_GRANTED\x10\xe2\x04\x12!\n" +
 	"\x1cAPP_OPEN_AICONFIG_UNRESOLVED\x10\xe3\x04\x12.\n" +
 	")APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED\x10\xe4\x04\x12\x1b\n" +
-	"\x16APP_OPEN_LAUNCH_FAILED\x10\xe5\x04\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
+	"\x16APP_OPEN_LAUNCH_FAILED\x10\xe5\x04\x12)\n" +
+	"$AGENT_PRESENTATION_REVISION_CONFLICT\x10\xe6\x04\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

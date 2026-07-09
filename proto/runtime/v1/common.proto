@@ -248,6 +248,10 @@ enum ReasonCode {
   APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED = 612;
   APP_OPEN_LAUNCH_FAILED = 613;
 
+  // AGENT_PRESENTATION family — optimistic concurrency for persistent
+  // Runtime-owned presentation truth (K-AGCORE-023a).
+  AGENT_PRESENTATION_REVISION_CONFLICT = 614;
+
   // Reserved: old values of renumbered codes.
   // 104=APP_SCOPE_FORBIDDEN→503, 106=APP_SCOPE_REVOKED→504,
   // 115=APP_MODE_DOMAIN_FORBIDDEN→500, 116=APP_MODE_SCOPE_FORBIDDEN→501,

@@ -257,11 +257,12 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile
-    posture: anonymous_read
-    rationale: id-based presentation profile update; no JWT validation
+    posture: authenticated_required
+    rationale: runtime-owned presentation profile mutation requires runtime.agent.write and server-side authorization
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-AGCORE-023a
   - method_id: /nimi.runtime.v1.RuntimeAgentService/EnableAutonomy
     posture: anonymous_read
     rationale: id-based autonomy toggle; no JWT validation

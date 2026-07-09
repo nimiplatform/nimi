@@ -107,6 +107,10 @@ codes:
     value: 613
     family: APP_OPEN
     source_rule: K-APP-017
+  - name: AGENT_PRESENTATION_REVISION_CONFLICT
+    value: 614
+    family: AGENT_PRESENTATION
+    source_rule: K-AGCORE-023a
   - name: AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED
     value: 560
     family: LOCAL_SPEECH

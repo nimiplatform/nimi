@@ -21,6 +21,21 @@ the Runtime Agent presentation mutation surface. Host-local asset custody is a
 Kit Shell standard `agent-center` capability surface, not an SDK semantic
 configuration record.
 
+The typed SDK Agent record projection carries Runtime's optional presentation
+profile and committed presentation revision as separate fields, so a caller can
+read the current CAS token even after clear. Set, patch, and clear helpers
+require the caller's expected revision,
+preserve proto3 optional presence so `false` and empty-string clears remain
+distinct from omission in every generated SDK, and surface stale writes as the
+typed Runtime conflict rather than retrying or overwriting a newer profile.
+
+SDK request builders and read projections implement the exact positive
+bare/qualified opaque-ref grammar from `K-AGCORE-023a`, including its byte
+limits, namespace allow/deny rules, percent-decoded validation pass, and
+`profile_media_url:https://` restriction. They also reject empty
+voice-reference suffixes. These client checks do not replace Runtime
+authorization, owner/durability resolution, or atomic validation.
+
 SDK must not reintroduce `runtime.avatarConfiguration.*` as a Desktop-owned
 schema facade, compatibility shim, or app-local config store. Opaque refs remain
 opaque and must not be dereferenced into Avatar package descriptors or backend

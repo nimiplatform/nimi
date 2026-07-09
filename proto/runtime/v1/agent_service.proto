@@ -118,6 +118,8 @@ message AgentRecord {
   google.protobuf.Struct metadata = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
+  AgentPresentationProfile presentation_profile = 8;
+  uint64 presentation_profile_revision = 9;
   string local_agent_ref = 20;
   string owner_user_id = 21;
   string runtime_source_ref = 22;
@@ -172,6 +174,7 @@ message AgentPresentationProfile {
   bool avatar_autoplay = 7;
   string background_asset_ref = 8;
   reserved 9;
+  uint64 revision = 10;
 }
 message AgentPresentationProfilePatch {
   optional AgentPresentationBackendKind backend_kind = 1;
@@ -528,9 +531,11 @@ message SetAgentPresentationProfileRequest {
     ClearAgentPresentationProfile clear = 4;
     AgentPresentationProfilePatch patch = 5;
   }
+  optional uint64 expected_revision = 6;
 }
 message SetAgentPresentationProfileResponse {
   AgentPresentationProfile profile = 1;
+  uint64 committed_revision = 2;
 }
 message ListPendingHooksRequest {
   AgentRequestContext context = 1;

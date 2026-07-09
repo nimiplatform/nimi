@@ -49,10 +49,10 @@ inventory, retained app-owned compositions, and controlled exceptions.
 
 - Desktop may pass already-resolved Avatar/Runtime avatar presentation
   projections into `kit/features/avatar`.
-- Desktop owns local avatar file picker/copy transport only. Avatar/Runtime
-  resource service owns import custody, materialization, registry, and per-agent
-  resource truth. `kit/features/avatar` must not become the canonical home for
-  those resource truths.
+- Desktop does not own Agent Center avatar/background picker, copy, validation,
+  or custody transport. It injects the standard Kit Shell `agent-center`
+  capability; Kit Shell owns the managed host-local bytes and asset-scoped
+  custody metadata, while Runtime owns the selected opaque refs.
 - Local VRM or Live2D refs must arrive at kit surfaces as Avatar/Runtime
   projections or typed host-transport callbacks, not as arbitrary file-system
   product truth.

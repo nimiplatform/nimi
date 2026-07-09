@@ -169,3 +169,8 @@ mappings:
     surface: app_open_lifecycle
     exit_shape: terminal_reason_non_error
     source_rule: K-APP-017
+  - reason_code: AGENT_PRESENTATION_REVISION_CONFLICT
+    grpc_code: ABORTED
+    surface: runtime_agent_presentation_mutation
+    exit_shape: grpc_status
+    source_rule: K-AGCORE-023a
