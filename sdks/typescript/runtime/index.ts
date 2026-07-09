@@ -96,6 +96,7 @@ export type {
   RuntimeTypedMethodName,
 } from './runtime-method-modules';
 export type {
+  RuntimeTypedCallOptions,
   RuntimeDurableCloudTargetRef,
   RuntimeDurableLocalTargetRef,
   RuntimeDurableTargetRef,

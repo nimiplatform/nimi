@@ -1,3 +1,9 @@
+import {
+  runNimiRuntimeScenarioJob as runSdkNimiRuntimeScenarioJob,
+  type NimiRuntimeScenarioJobResult,
+  type NimiRuntimeScenarioJobRunnerInput,
+} from '@nimiplatform/sdk/runtime';
+
 /**
  * `@nimiplatform/kit/core/sdk-contract`
  *
@@ -88,7 +94,16 @@ export type { NimiClientConfig } from '@nimiplatform/sdk';
 // --- Runtime type family ----------------------------------------------------
 // `Runtime`, `ScenarioJobStatus`, catalog enums, and catalog client factories
 // are runtime values, not type-only — keep their value-side export.
-export { Runtime, createNimiHostRuntimeAgentInspectSurface, createNimiRuntimeModelCatalogClient, getNimiRuntimeReasonCodeMessage, listNimiRuntimeRouteOptions, NIMI_RUNTIME_REASON_CODES, runNimiRuntimeScenarioJob, runtimeNimiRouteCapabilitiesMatch } from '@nimiplatform/sdk/runtime';
+export { Runtime, createNimiHostRuntimeAgentInspectSurface, createNimiRuntimeModelCatalogClient, getNimiRuntimeReasonCodeMessage, listNimiRuntimeRouteOptions, NIMI_RUNTIME_REASON_CODES, runtimeNimiRouteCapabilitiesMatch } from '@nimiplatform/sdk/runtime';
+export {
+  buildNimiRuntimeLocalImageNativeEnvironmentPlanInput,
+  createNimiRuntimeLocalModelCenterClient,
+  isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
+  isNimiRuntimeLocalEnvironmentDependencyReadyState,
+  isNimiRuntimeLocalEnvironmentDependencyStartableState,
+  listNimiRuntimeLocalAssetEntries,
+  withNimiRuntimeIdempotencyMetadata,
+} from '@nimiplatform/sdk/runtime';
 export { ExecutionMode, ScenarioJobEventType, ScenarioJobStatus, ScenarioType, CatalogModelSource, ModelCatalogProviderSource } from '@nimiplatform/sdk/runtime/generated';
 export type {
   NimiListRuntimeRouteOptionsInput,
@@ -126,6 +141,12 @@ export type {
   NimiRuntimeCatalogVoiceEntry,
   NimiRuntimeCatalogWorkflowBinding,
   NimiRuntimeCatalogWorkflowModel,
+  NimiRuntimeLocalAssetEntry,
+  NimiRuntimeLocalEnvironmentDependencyJob,
+  NimiRuntimeLocalEnvironmentPlan,
+  NimiRuntimeLocalEnvironmentPlanDependency,
+  NimiRuntimeLocalEnvironmentPlanInput,
+  NimiRuntimeLocalModelCenterRpc,
   NimiRuntimeModelCatalogClient,
   NimiRuntimeModelCatalogConnectorClient,
   NimiRuntimeModelCatalogProvider,
@@ -137,12 +158,19 @@ export type {
   NimiRuntimeScenarioJob,
   NimiRuntimeScenarioJobClient,
   NimiRuntimeScenarioJobResult,
+  NimiRuntimeScenarioJobRunnerInput,
   NimiRuntimeScenarioJobSubmitRequest,
   NimiRuntimeSpeechVoiceReference,
   NimiRuntimeTargetInventoryItem,
   RuntimeLocalAgentIdentityInput,
   RuntimeTargetInventoryProjection,
 } from '@nimiplatform/sdk/runtime';
+
+export function runKitRuntimeScenarioJob(
+  input: NimiRuntimeScenarioJobRunnerInput,
+): Promise<NimiRuntimeScenarioJobResult> {
+  return runSdkNimiRuntimeScenarioJob(input);
+}
 export type { CatalogModelDetail, CatalogOverlayWarning, CatalogPricing, CatalogSourceRef, CatalogVideoGenerationCapability, CatalogVoiceEntry, CatalogWorkflowModel, CatalogModelWorkflowBinding, CatalogModelSummary, ModelCatalogProviderEntry } from '@nimiplatform/sdk/runtime/generated';
 
 // --- Realm type family ------------------------------------------------------
@@ -231,18 +259,32 @@ export type {
   NimiTextTurnInput,
 } from '@nimiplatform/sdk/ai';
 export {
+  audioBytesFromNimiUrl,
+  buildNimiRuntimeScenarioJobIdentity,
   coerceNimiImageGenerationParams,
+  coerceNimiSpeechTranscriptionParams,
+  coerceNimiVideoGenerationParams,
+  mimeTypeForNimiAudioUrl,
   requireNimiRuntimeVoiceReferenceForLocalTts,
   runNimiRuntimeImageGeneration,
+  runNimiRuntimeSpeechTranscription,
   runNimiRuntimeSpeechSynthesis,
+  runNimiRuntimeVideoGeneration,
   toNimiRuntimeVoiceReferenceFromInput,
 } from '@nimiplatform/sdk/features/generation';
 export type {
   NimiImageGenerationCoercedParams,
   NimiRuntimeImageGenerationInput,
   NimiRuntimeImageGenerationResult,
+  NimiRuntimeSpeechTranscriptionAudioSource,
+  NimiRuntimeSpeechTranscriptionInput,
+  NimiRuntimeSpeechTranscriptionResult,
   NimiRuntimeSpeechSynthesisInput,
   NimiRuntimeSpeechSynthesisResult,
+  NimiRuntimeVideoGenerationInput,
+  NimiRuntimeVideoGenerationResult,
+  NimiSpeechTranscriptionCoercedParams,
+  NimiVideoGenerationCoercedParams,
 } from '@nimiplatform/sdk/features/generation';
 export type {
   NimiJsonObject,

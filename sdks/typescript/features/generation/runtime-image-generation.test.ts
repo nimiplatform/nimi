@@ -9,7 +9,7 @@ import {
   ScenarioType,
 } from '../../core-generated/runtime-typed-client';
 import type { RuntimeDurableTargetRef } from '../../core-generated/runtime-protobuf/runtime/v1/runtime_target_identity';
-import { runNimiRuntimeImageGeneration } from './index';
+import { runNimiRuntimeImageGeneration, runNimiRuntimeVideoGeneration } from './index';
 
 const targetRef: RuntimeDurableTargetRef = {
   target: {
@@ -112,4 +112,109 @@ test('runNimiRuntimeImageGeneration submits an image scenario job and returns im
   assert.equal(submitted[0].request.spec.spec.imageGenerate.responseFormat, 'b64_json');
   assert.equal(submitted[0].request.labels.gateway, 'openai-compatible');
   assert.equal(submitted[0].options.metadata['x-nimi-idempotency-key'], 'idem-image-1');
+});
+
+test('runNimiRuntimeVideoGeneration submits a video scenario job and returns video artifacts', async () => {
+  const submitted: any[] = [];
+  const artifact = {
+    artifactId: 'artifact-video-1',
+    mimeType: 'video/mp4',
+    uri: 'runtime-artifact://artifact-video-1',
+    bytes: new Uint8Array(),
+  };
+  const runtime = {
+    async submitScenarioJob(request: any, options: any) {
+      submitted.push({ request, options });
+      return {
+        job: {
+          jobId: 'job-video-1',
+          status: ScenarioJobStatus.SUBMITTED,
+          scenarioType: ScenarioType.VIDEO_GENERATE,
+          artifacts: [],
+        },
+      };
+    },
+    async getScenarioJob() {
+      throw new Error('terminal event should avoid polling');
+    },
+    async cancelScenarioJob() {
+      throw new Error('cancel should not be called');
+    },
+    async *subscribeScenarioJobEvents() {
+      yield {
+        eventType: ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED,
+        sequence: '1',
+        traceId: 'trace-video-1',
+        job: {
+          jobId: 'job-video-1',
+          status: ScenarioJobStatus.COMPLETED,
+          scenarioType: ScenarioType.VIDEO_GENERATE,
+          artifacts: [artifact],
+          traceId: 'trace-video-1',
+        },
+      };
+    },
+    async getScenarioArtifacts() {
+      return {
+        traceId: 'trace-artifacts-video-1',
+        artifacts: [artifact],
+        output: {
+          output: {
+            oneofKind: 'videoGenerate',
+            videoGenerate: {
+              artifacts: [artifact],
+            },
+          },
+        },
+      };
+    },
+  };
+
+  const result = await runNimiRuntimeVideoGeneration({
+    runtime,
+    head: {
+      appId: 'nimi.local-gateway.openai-compatible',
+      subjectUserId: 'local-user',
+      routePolicy: 'local',
+      targetRef,
+      timeoutMs: 123000,
+    },
+    mode: 't2v',
+    prompt: 'Generate a moving product shot',
+    negativePrompt: 'blur',
+    content: [{ type: 'text', role: 'prompt', text: 'Generate a moving product shot' }],
+    options: {
+      ratio: '9:16',
+      durationSec: 6,
+      resolution: '720p',
+      fps: 24,
+      seed: '42',
+      cameraFixed: true,
+      generateAudio: true,
+    },
+    requestId: 'request-video-1',
+    idempotencyKey: 'idem-video-1',
+    labels: { gateway: 'openai-compatible' },
+  });
+
+  assert.equal(result.job.jobId, 'job-video-1');
+  assert.equal(result.traceId, 'trace-artifacts-video-1');
+  assert.deepEqual(result.artifacts, [artifact]);
+  assert.equal(submitted.length, 1);
+  assert.equal(submitted[0].request.scenarioType, ScenarioType.VIDEO_GENERATE);
+  assert.equal(submitted[0].request.executionMode, ExecutionMode.ASYNC_JOB);
+  assert.equal(submitted[0].request.head.timeoutMs, 123000);
+  assert.deepEqual(submitted[0].request.head.targetRef, targetRef);
+  assert.equal(submitted[0].request.spec.spec.oneofKind, 'videoGenerate');
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.prompt, 'Generate a moving product shot');
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.negativePrompt, 'blur');
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.mode, 1);
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.options.ratio, '9:16');
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.options.durationSec, 6);
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.options.resolution, '720p');
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.options.fps, 24);
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.options.seed, '42');
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.options.cameraFixed, true);
+  assert.equal(submitted[0].request.spec.spec.videoGenerate.options.generateAudio, true);
+  assert.equal(submitted[0].options.metadata['x-nimi-idempotency-key'], 'idem-video-1');
 });

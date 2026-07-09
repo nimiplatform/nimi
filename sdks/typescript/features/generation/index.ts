@@ -28,10 +28,13 @@ import {
 import {
   createNimiSpeechSynthesisScenario,
   createNimiSpeechTranscriptionScenario,
+  createNimiVideoGenerationScenario,
 } from './runtime-scenarios';
 import type {
   NimiRuntimeGenerationScenario,
   NimiRuntimeSpeechTranscriptionAudioSource,
+  NimiRuntimeVideoContentPart,
+  NimiRuntimeVideoGenerationOptions,
 } from './runtime-scenarios';
 import {
   buildNimiRuntimeGenerationSubmitRequest,
@@ -190,6 +193,7 @@ export interface NimiRuntimeGenerationSurface {
 
 type NimiRuntimeScenarioRuntime = NimiRuntimeScenarioJobClient | { readonly ai: NimiRuntimeScenarioJobClient };
 type NimiRuntimeSpeechScenarioRuntime = NimiRuntimeScenarioRuntime;
+type NimiRuntimeVideoScenarioRuntime = NimiRuntimeScenarioRuntime;
 type NimiRuntimeSpeechSynthesisScenarioInput = Extract<
   NimiRuntimeGenerationScenario,
   { readonly kind: 'speech-synthesize' }
@@ -255,6 +259,34 @@ export interface NimiRuntimeSpeechTranscriptionOutput {
 }
 
 export interface NimiRuntimeSpeechTranscriptionResult extends NimiRuntimeSpeechTranscriptionOutput {
+  readonly job: ScenarioJob;
+  readonly traceId?: string;
+  readonly output?: ScenarioOutput;
+}
+
+export interface NimiRuntimeVideoGenerationInput {
+  readonly runtime: NimiRuntimeVideoScenarioRuntime;
+  readonly head: NimiRuntimeGenerationHeadInput;
+  readonly mode: Extract<NimiRuntimeGenerationScenario, { readonly kind: 'video' }>['mode'];
+  readonly prompt: string;
+  readonly negativePrompt?: string;
+  readonly content?: readonly NimiRuntimeVideoContentPart[];
+  readonly options?: NimiRuntimeVideoGenerationOptions;
+  readonly requestId: string;
+  readonly idempotencyKey: string;
+  readonly labels?: Readonly<Record<string, string>>;
+  readonly extensions?: NimiRuntimeGenerationSubmitInput['extensions'];
+  readonly callOptions?: RuntimeTypedCallOptions;
+  readonly signal?: AbortSignal;
+  readonly abortReason?: string;
+  readonly onJobUpdate?: (job: ScenarioJob) => void;
+}
+
+export interface NimiRuntimeVideoGenerationOutput {
+  readonly artifacts: readonly ScenarioArtifact[];
+}
+
+export interface NimiRuntimeVideoGenerationResult extends NimiRuntimeVideoGenerationOutput {
   readonly job: ScenarioJob;
   readonly traceId?: string;
   readonly output?: ScenarioOutput;
@@ -423,6 +455,68 @@ export async function runNimiRuntimeSpeechTranscription(
   };
 }
 
+export async function runNimiRuntimeVideoGeneration(
+  input: NimiRuntimeVideoGenerationInput,
+): Promise<NimiRuntimeVideoGenerationResult> {
+  const ai = getRuntimeScenarioClient(input.runtime);
+  const result = await runNimiRuntimeScenarioJob({
+    ai,
+    request: buildNimiRuntimeGenerationSubmitRequest(input.head, {
+      scenario: createNimiVideoGenerationScenario({
+        kind: 'video',
+        mode: input.mode,
+        prompt: input.prompt,
+        negativePrompt: input.negativePrompt,
+        content: input.content,
+        options: input.options,
+      }),
+      requestId: input.requestId,
+      idempotencyKey: input.idempotencyKey,
+      labels: input.labels,
+      extensions: input.extensions,
+    }),
+    callOptions: input.callOptions,
+    signal: input.signal,
+    abortReason: input.abortReason,
+    onJobUpdate: input.onJobUpdate,
+  });
+  const video = extractNimiRuntimeVideoGenerationOutput(result.output);
+  return {
+    artifacts: result.artifacts.length > 0 ? result.artifacts : video.artifacts,
+    job: result.job,
+    traceId: result.traceId || result.job.traceId || undefined,
+    output: result.output,
+  };
+}
+
+export function extractNimiRuntimeVideoGenerationOutput(
+  output: ScenarioOutput | undefined,
+): NimiRuntimeVideoGenerationOutput {
+  const variant = output?.output;
+  if (variant?.oneofKind !== 'videoGenerate') {
+    throw generationError(
+      'SDK_RUNTIME_RESPONSE_DECODE_FAILED',
+      'Runtime video generation output is missing typed videoGenerate result',
+      'check_runtime_video_generation_output',
+    );
+  }
+  const artifacts = Array.isArray(variant.videoGenerate.artifacts)
+    ? variant.videoGenerate.artifacts
+    : [];
+  const videoArtifacts = artifacts.filter(isRuntimeVideoArtifact);
+  if (videoArtifacts.length === 0) {
+    throw createNimiError({
+      message: 'Runtime video generation returned no video artifact',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_video_generation',
+      source: 'runtime',
+    });
+  }
+  return {
+    artifacts: videoArtifacts,
+  };
+}
+
 export function extractNimiRuntimeSpeechTranscriptionOutput(
   output: ScenarioOutput | undefined,
 ): NimiRuntimeSpeechTranscriptionOutput {
@@ -453,6 +547,15 @@ export function extractNimiRuntimeSpeechTranscriptionOutput(
 
 function isRuntimeSpeechAudioArtifact(artifact: ScenarioArtifact): boolean {
   return normalizeText(artifact.mimeType).startsWith('audio/')
+    && (
+      normalizeText(artifact.artifactId).length > 0
+      || normalizeText(artifact.uri).length > 0
+      || artifact.bytes.length > 0
+    );
+}
+
+function isRuntimeVideoArtifact(artifact: ScenarioArtifact): boolean {
+  return normalizeText(artifact.mimeType).startsWith('video/')
     && (
       normalizeText(artifact.artifactId).length > 0
       || normalizeText(artifact.uri).length > 0

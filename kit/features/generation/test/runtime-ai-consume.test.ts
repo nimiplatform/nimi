@@ -135,6 +135,50 @@ describe('runtime AI consume helper', () => {
     });
   });
 
+  it('preserves SDK reason code and provider detail on text.generate failures', async () => {
+    const runtime = createRuntimeHarness();
+    runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
+    const error = new Error('provider request failed') as Error & {
+      reasonCode: string;
+      details: { provider_message: string };
+    };
+    error.reasonCode = ReasonCode.AI_INPUT_INVALID;
+    error.details = {
+      provider_message: 'llama.cpp rejected model id local/local-import/gemma-4-26B-A4B-it-Q8_0',
+    };
+    runtime.ai.executeScenario.mockRejectedValue(error);
+
+    const result = await runRuntimeAIConsumeCapability({
+      runtime,
+      appId: 'nimi.zhiyu',
+      config: createAIConfig({
+        targetRefs: {
+          'text.generate': {
+            kind: 'local-runtime',
+            version: 'v2',
+            profileBindingId: 'local/local-import/gemma-4-26B-A4B-it-Q8_0',
+          },
+        },
+      }),
+      capabilityId: 'text.generate',
+      bindingCapabilityId: 'text.generate',
+      prompt: 'hello runtime',
+      scenarioId: 'provider-detail',
+      subjectUserId: 'subject-user-1',
+      surfaceId: 'zhiyu.capability-studio.text.generate',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      capabilityId: 'text.generate',
+      reason: 'runtime-call-failed',
+    });
+    expect(result.message).toContain('AI_INPUT_INVALID: provider request failed');
+    expect(result.message).toContain(
+      'Provider detail: llama.cpp rejected model id local/local-import/gemma-4-26B-A4B-it-Q8_0',
+    );
+  });
+
   it('streams chat.stream partial text and only succeeds after Runtime terminal completion', async () => {
     const runtime = createRuntimeHarness();
     const partials: string[] = [];

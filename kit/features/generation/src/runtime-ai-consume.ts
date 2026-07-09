@@ -7,7 +7,6 @@ import {
   runNimiTextGenerate,
   streamNimiTextResponse,
   textPart,
-  ReasonCode,
   type NimiAIConfig,
   type NimiAIConfigRuntimeBinding,
   type NimiJsonObject,
@@ -15,6 +14,12 @@ import {
   type NimiRuntimeAIScenarioClient,
   type NimiRuntimeAISchedulingClient,
 } from '@nimiplatform/kit/core/sdk-contract';
+import {
+  describeRuntimeGenerationError,
+  runtimeUnavailableReasonFromError,
+  withRuntimeRequestDiagnostics,
+  type RuntimeRequestDiagnosticsRecorder,
+} from './runtime-diagnostics.js';
 
 export type RuntimeAIConsumeCapabilityId = 'text.generate' | 'chat.stream' | 'text.embed';
 
@@ -71,6 +76,7 @@ export type RuntimeAIConsumeInput = {
   readonly runtime: RuntimeAIConsumeRuntime;
   readonly appId: string;
   readonly config: NimiAIConfig;
+  readonly binding?: NimiAIConfigRuntimeBinding;
   readonly capabilityId: RuntimeAIConsumeCapabilityId;
   readonly bindingCapabilityId: string;
   readonly prompt: string;
@@ -80,6 +86,7 @@ export type RuntimeAIConsumeInput = {
   readonly surfaceId: string;
   readonly metadata?: Record<string, string | undefined>;
   readonly onPartial?: (accumulatedText: string) => void;
+  readonly onRuntimeRequest?: RuntimeRequestDiagnosticsRecorder;
   readonly withScopes?: RuntimeAIConsumeScopeRunner;
 };
 
@@ -102,26 +109,38 @@ export async function runRuntimeAIConsumeCapability(
     return unavailable(input.capabilityId, 'input-invalid', `Scenario prompt is empty for ${input.capabilityId}.`);
   }
 
-  const resolved = resolveNimiAIConfigRuntimeBinding({
-    config: input.config,
-    capabilityId: input.capabilityId,
-    bindingCapabilityId: input.bindingCapabilityId,
-  });
+  const resolved = input.binding
+    ? { ok: true as const, binding: input.binding }
+    : resolveNimiAIConfigRuntimeBinding({
+      config: input.config,
+      capabilityId: input.capabilityId,
+      bindingCapabilityId: input.bindingCapabilityId,
+    });
   if (resolved.ok === false) {
     return unavailable(input.capabilityId, 'ai-config-binding-missing', resolved.message);
   }
 
-  if (input.capabilityId === 'text.generate') {
-    return runTextGenerate(input, resolved.binding, prompt);
+  const effectiveInput = input.onRuntimeRequest
+    ? {
+      ...input,
+      runtime: {
+        ...input.runtime,
+        ai: withRuntimeRequestDiagnostics(input.runtime.ai, input.onRuntimeRequest),
+      },
+    }
+    : input;
+
+  if (effectiveInput.capabilityId === 'text.generate') {
+    return runTextGenerate(effectiveInput, resolved.binding, prompt);
   }
-  if (input.capabilityId === 'chat.stream') {
-    return runChatStream(input, resolved.binding, prompt);
+  if (effectiveInput.capabilityId === 'chat.stream') {
+    return runChatStream(effectiveInput, resolved.binding, prompt);
   }
-  if (input.capabilityId === 'text.embed') {
-    return runEmbedding(input, resolved.binding, prompt);
+  if (effectiveInput.capabilityId === 'text.embed') {
+    return runEmbedding(effectiveInput, resolved.binding, prompt);
   }
 
-  return unavailable(input.capabilityId, 'runtime-call-failed', `Runtime AI consume helper does not yet support ${input.capabilityId}.`);
+  return unavailable(effectiveInput.capabilityId, 'runtime-call-failed', `Runtime AI consume helper does not yet support ${effectiveInput.capabilityId}.`);
 }
 
 async function runEmbedding(
@@ -233,7 +252,7 @@ async function runTextGenerate(
       },
     });
     if (result.ok === false) {
-      return unavailable(input.capabilityId, 'runtime-call-failed', result.error.message);
+      return unavailableFromError(input.capabilityId, result.error);
     }
     const output = result.result;
     return {
@@ -443,23 +462,7 @@ function unavailableFromError(
   capabilityId: RuntimeAIConsumeCapabilityId,
   error: unknown,
 ): RuntimeAIConsumeUnavailable {
-  const reasonCode = error && typeof error === 'object'
-    ? String(
-      (error as { reasonCode?: unknown }).reasonCode
-      || (error as { code?: unknown }).code
-      || '',
-    )
-    : '';
-  const reason: RuntimeAIConsumeUnavailableReason = reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE
-    ? 'sdk-method-unavailable'
-    : reasonCode === ReasonCode.AUTH_CONTEXT_MISSING
-      || reasonCode === ReasonCode.PRINCIPAL_UNAUTHORIZED
-      || reasonCode === ReasonCode.SESSION_EXPIRED
-      || reasonCode === ReasonCode.APP_TOKEN_EXPIRED
-      || reasonCode === ReasonCode.APP_TOKEN_REVOKED
-        ? 'principal-unauthorized'
-        : 'runtime-call-failed';
-  return unavailable(capabilityId, reason, describeError(error));
+  return unavailable(capabilityId, runtimeUnavailableReasonFromError(error), describeError(error));
 }
 
 function unavailable(
@@ -476,12 +479,7 @@ function unavailable(
 }
 
 function describeError(error: unknown): string {
-  if (error instanceof Error) {
-    const reasonCode = (error as { reasonCode?: string }).reasonCode;
-    const code = reasonCode || (error.name && error.name !== 'Error' ? error.name : '');
-    return code ? `${code}: ${error.message}` : error.message;
-  }
-  return String(error || 'Runtime SDK call failed.');
+  return describeRuntimeGenerationError(error, 'Runtime SDK call failed.');
 }
 
 function normalizeText(value: unknown): string {

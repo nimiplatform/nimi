@@ -4,6 +4,7 @@ import {
 } from '../src/runtime.js';
 import {
   ExecutionMode,
+  ReasonCode,
   ScenarioJobEventType,
   ScenarioJobStatus,
   ScenarioType,
@@ -208,7 +209,7 @@ describe('runtime image generation helper', () => {
       },
       trace: {
         traceId: 'trace-artifacts',
-        modelResolved: 'local-runtime:image-main',
+        modelResolved: 'image-main',
         routeDecision: 'local',
       },
     });
@@ -234,7 +235,7 @@ describe('runtime image generation helper', () => {
     expect(request.head).toMatchObject({
       appId: 'nimi.zhiyu',
       subjectUserId: 'subject-user-1',
-      modelId: 'local-runtime:image-main',
+      modelId: 'image-main',
       connectorId: '',
       timeoutMs: 90000,
     });
@@ -289,7 +290,7 @@ describe('runtime image generation helper', () => {
           engine: 'media',
         },
         {
-          entry_id: 'llm_path-slot',
+          entry_id: 'companion-llm',
           asset_id: 'z-image-llm',
           asset_kind: 'chat',
           engine: 'llama',
@@ -297,7 +298,7 @@ describe('runtime image generation helper', () => {
           required: true,
         },
         {
-          entry_id: 'vae_path-slot',
+          entry_id: 'companion-vae',
           asset_id: 'z-image-ae',
           asset_kind: 'vae',
           engine: 'media',
@@ -305,6 +306,112 @@ describe('runtime image generation helper', () => {
           required: true,
         },
       ],
+    });
+  });
+
+  it('accepts a pre-resolved image binding for caller-owned local asset materialization', async () => {
+    const runtime = createRuntimeHarness();
+    runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
+    runtime.ai.submitScenarioJob.mockResolvedValue({
+      job: {
+        jobId: 'job-image-pre-resolved',
+        status: ScenarioJobStatus.SUBMITTED,
+        scenarioType: ScenarioType.IMAGE_GENERATE,
+        artifacts: [],
+      },
+    });
+
+    const result = await runRuntimeImageGenerate({
+      runtime,
+      appId: 'nimi.zhiyu',
+      config: createAIConfig(),
+      binding: {
+        bindingCapabilityId: 'image.generate',
+        targetRef: {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'local-main-image',
+        },
+        model: 'local-import/z-image-turbo-Q4_K_M',
+        routePolicy: 'local',
+        schedulingTarget: {
+          capability: 'image.generate',
+          targetRef: {
+            kind: 'local-runtime',
+            version: 'v2',
+            profileBindingId: 'local-main-image',
+          },
+        },
+        selectedParams: {
+          timeoutMs: '90000',
+          profile_entries: [{
+            entry_id: 'main-image',
+            kind: 'asset',
+            title: 'Main image model',
+            capability: 'image.generate',
+            asset_id: 'local-import/z-image-turbo-Q4_K_M',
+            asset_kind: 'image',
+            engine: 'media',
+            required: true,
+          }],
+          entry_overrides: [{
+            entry_id: 'main-image',
+            local_asset_id: 'local-main-image',
+          }],
+        },
+        metadata: {
+          aiConfigBindingCapabilityId: 'image.generate',
+          aiConfigBindingModel: 'local-main-image',
+          aiConfigRuntimeModelAssetId: 'local-import/z-image-turbo-Q4_K_M',
+          aiConfigRuntimeModelLocalAssetId: 'local-main-image',
+          aiConfigTargetRefKind: 'local-runtime',
+        },
+      },
+      prompt: 'local materialized image',
+      scenarioId: 'image-pre-resolved-binding',
+      subjectUserId: 'subject-user-1',
+      surfaceId: 'zhiyu.image-studio',
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      capabilityId: 'image.generate',
+      trace: {
+        modelResolved: 'local-import/z-image-turbo-Q4_K_M',
+        routeDecision: 'local',
+      },
+    });
+    expect(runtime.scheduling.peekScheduling).toHaveBeenCalledOnce();
+    const [schedulingInput] = runtime.scheduling.peekScheduling.mock.calls[0];
+    expect(schedulingInput.targets[0]).toMatchObject({
+      capability: 'image.generate',
+      targetId: 'local-main-image',
+      profileId: 'local-main-image',
+    });
+    const [request, options] = runtime.ai.submitScenarioJob.mock.calls[0];
+    expect(request.head.modelId).toBe('local-import/z-image-turbo-Q4_K_M');
+    expect(request.labels).toMatchObject({
+      aiConfigBindingModel: 'local-main-image',
+      aiConfigRuntimeModelAssetId: 'local-import/z-image-turbo-Q4_K_M',
+      aiConfigRuntimeModelLocalAssetId: 'local-main-image',
+    });
+    expect(options.metadata).toMatchObject({
+      aiConfigBindingModel: 'local-main-image',
+      aiConfigRuntimeModelAssetId: 'local-import/z-image-turbo-Q4_K_M',
+      aiConfigRuntimeModelLocalAssetId: 'local-main-image',
+    });
+    const imageExtension = request.extensions.find((extension: { namespace: string }) => (
+      extension.namespace === 'nimi.scenario.image.request'
+    ));
+    expect(fromNimiRuntimeProtoStruct(imageExtension.payload)).toMatchObject({
+      profile_entries: [{
+        entry_id: 'main-image',
+        asset_id: 'local-import/z-image-turbo-Q4_K_M',
+      }],
+      entry_overrides: [{
+        entry_id: 'main-image',
+        local_asset_id: 'local-main-image',
+      }],
     });
   });
 
@@ -441,6 +548,45 @@ describe('runtime image generation helper', () => {
     });
     expect(result.message).toContain('typed imageGenerate result');
   });
+
+  it('preserves provider detail on image.generate Runtime failures', async () => {
+    const runtime = createRuntimeHarness();
+    runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
+    const error = new Error('provider request failed') as Error & {
+      reasonCode: string;
+      details: { provider_message: string };
+    };
+    error.reasonCode = ReasonCode.AI_INPUT_INVALID;
+    error.details = { provider_message: 'image provider rejected model local/image' };
+    runtime.ai.submitScenarioJob.mockRejectedValue(error);
+
+    const result = await runRuntimeImageGenerate({
+      runtime,
+      appId: 'nimi.zhiyu',
+      config: createAIConfig({
+        targetRefs: {
+          'image.generate': {
+            kind: 'cloud-connector',
+            connectorId: 'runtime-connector',
+            remoteModelCatalogId: 'remote-catalog:runtime-connector:image-model',
+            providerModelId: 'image-model',
+          },
+        },
+      }),
+      prompt: 'paint a mountain',
+      scenarioId: 'image-provider-detail',
+      subjectUserId: 'subject-user-1',
+      surfaceId: 'zhiyu.image-studio',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      capabilityId: 'image.generate',
+      reason: 'runtime-call-failed',
+    });
+    expect(result.message).toContain('AI_INPUT_INVALID: provider request failed');
+    expect(result.message).toContain('Provider detail: image provider rejected model local/image');
+  });
 });
 
 function createAIConfig(input: {
@@ -499,6 +645,36 @@ function createRuntimeHarness() {
     artifacts: {
       readArtifactBytes: vi.fn(),
     },
+    local: {
+      listLocalAssets: vi.fn(async () => ({
+        nextPageToken: '',
+        assets: [
+          localAsset({
+            localAssetId: 'image-main',
+            assetId: 'image-main',
+            kind: 'image',
+            engine: 'media',
+          }),
+          localAsset({
+            localAssetId: 'z-image-llm',
+            assetId: 'z-image-llm',
+            kind: 'chat',
+            engine: 'llama',
+          }),
+          localAsset({
+            localAssetId: 'z-image-ae',
+            assetId: 'z-image-ae',
+            kind: 'vae',
+            engine: 'media',
+          }),
+        ],
+      })),
+      resolveLocalEnvironmentPlan: vi.fn(async () => ({
+        plan: readyLocalImageEnvironmentPlan(),
+      })),
+      listLocalEnvironmentDependencyJobs: vi.fn(async () => ({ jobs: [] })),
+      startLocalEnvironmentDependencyJob: vi.fn(),
+    },
   };
 }
 
@@ -532,5 +708,36 @@ function imageArtifact(input: {
     width: input.width ?? 0,
     height: input.height ?? 0,
     metadata: undefined,
+  };
+}
+
+function localAsset(input: {
+  localAssetId: string;
+  assetId: string;
+  kind: string;
+  engine: string;
+}) {
+  return {
+    localAssetId: input.localAssetId,
+    assetId: input.assetId,
+    kind: input.kind,
+    engine: input.engine,
+    status: 'active',
+  };
+}
+
+function readyLocalImageEnvironmentPlan() {
+  return {
+    planId: 'local-image-native-ready',
+    packId: 'local-image-native',
+    productLabel: 'Local image native',
+    hostProfileId: 'tester-host',
+    platformTuple: 'darwin-arm64',
+    runtimeDataRoot: 'tester-data-root',
+    consumerScope: 'local-image-native',
+    cloudOnlyImpact: 'none',
+    state: 'ready_managed',
+    reasonCode: 'LOCAL_ENVIRONMENT_PLAN_READY',
+    dependencies: [],
   };
 }

@@ -5,7 +5,6 @@ import {
   resolveNimiAIConfigRuntimeBinding,
   resolveNimiRuntimeImageCompanionSlots,
   runNimiRuntimeImageGeneration,
-  ReasonCode,
   toNimiRuntimeProtoStruct,
   toRuntimeDurableTargetRef,
   type NimiAIConfig,
@@ -13,9 +12,9 @@ import {
   type NimiImageGenerationCoercedParams,
   type NimiJsonObject,
   type NimiJsonValue,
+  type NimiRuntimeLocalModelCenterRpc,
   type NimiRuntimeAISchedulingClient,
   type NimiRuntimeImageGenerationInput,
-  type NimiRuntimeImageGenerationResult,
   type NimiRuntimeScenarioJobClient,
   type ReadArtifactBytesResponse,
   type RuntimeTypedCallOptions,
@@ -23,6 +22,19 @@ import {
   type ScenarioExtension,
   type ScenarioJob,
 } from '@nimiplatform/kit/core/sdk-contract';
+import {
+  describeRuntimeGenerationError,
+  runtimeUnavailableReasonFromError,
+  withRuntimeRequestDiagnostics,
+  type RuntimeRequestDiagnosticsRecorder,
+} from './runtime-diagnostics.js';
+import {
+  ensureRuntimeLocalImageEnvironmentReady,
+  materializeRuntimeImageBinding,
+  type RuntimeImageLocalRuntime,
+  type RuntimeImageLocalUnavailable,
+} from './runtime-image-local-binding.js';
+import { withRuntimeOperationTimeout } from './runtime-operation-timeout.js';
 
 export type RuntimeImageGenerateUnavailableReason =
   | 'input-invalid'
@@ -30,7 +42,9 @@ export type RuntimeImageGenerateUnavailableReason =
   | 'runtime-call-failed'
   | 'principal-unauthorized'
   | 'sdk-method-unavailable'
-  | 'local-companion-missing';
+  | 'local-companion-missing'
+  | 'local-environment-blocked'
+  | 'local-environment-preparing';
 
 export type RuntimeImageGenerateArtifactPreviewSource =
   | 'hosted-uri'
@@ -87,6 +101,7 @@ export type RuntimeImageGenerateRuntime = {
   readonly artifacts?: RuntimeImageArtifactReadClient;
   readonly scheduling?: NimiRuntimeAISchedulingClient;
   readonly generated?: NimiRuntimeAISchedulingClient;
+  readonly local?: NimiRuntimeLocalModelCenterRpc;
 };
 
 export type RuntimeImageArtifactReadClient = {
@@ -105,6 +120,7 @@ export type RuntimeImageGenerateInput = {
   readonly runtime: RuntimeImageGenerateRuntime;
   readonly appId: string;
   readonly config: NimiAIConfig;
+  readonly binding?: NimiAIConfigRuntimeBinding;
   readonly prompt: string;
   readonly negativePrompt?: string;
   readonly scenarioId: string;
@@ -112,6 +128,9 @@ export type RuntimeImageGenerateInput = {
   readonly surfaceId: string;
   readonly metadata?: Record<string, string | undefined>;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
+  readonly onRuntimeRequest?: RuntimeRequestDiagnosticsRecorder;
+  readonly signal?: AbortSignal;
+  readonly abortReason?: string;
   readonly withScopes?: RuntimeImageGenerateScopeRunner;
 };
 
@@ -140,11 +159,13 @@ export async function runRuntimeImageGenerate(
     return unavailable('input-invalid', 'Image prompt is required before dispatch.');
   }
 
-  const resolved = resolveNimiAIConfigRuntimeBinding({
-    config: input.config,
-    capabilityId: 'image.generate',
-    bindingCapabilityId: 'image.generate',
-  });
+  const resolved = input.binding
+    ? { ok: true as const, binding: input.binding }
+    : resolveNimiAIConfigRuntimeBinding({
+      config: input.config,
+      capabilityId: 'image.generate',
+      bindingCapabilityId: 'image.generate',
+    });
   if (resolved.ok === false) {
     return unavailable('ai-config-binding-missing', resolved.message);
   }
@@ -154,9 +175,18 @@ export async function runRuntimeImageGenerate(
     return unavailable('principal-unauthorized', 'Runtime account subjectUserId is required before image dispatch.');
   }
 
+  const materialized = await materializeRuntimeImageBinding({
+    runtime: input.runtime as RuntimeImageLocalRuntime,
+    binding: resolved.binding,
+  });
+  if (materialized.ok === false) {
+    return unavailableFromLocal(materialized.unavailable);
+  }
+  const binding = materialized.value.binding;
+
   let imageParams: NimiImageGenerationCoercedParams;
   try {
-    imageParams = coerceNimiImageGenerationParams(paramRecord(resolved.binding.selectedParams));
+    imageParams = coerceNimiImageGenerationParams(paramRecord(binding.selectedParams));
   } catch (error) {
     return unavailable('input-invalid', describeError(error));
   }
@@ -166,7 +196,7 @@ export async function runRuntimeImageGenerate(
     readonly unavailable: RuntimeImageGenerateUnavailable | null;
   };
   try {
-    profileExtensions = imageProfileExtensionsFromBinding(resolved.binding, imageParams);
+    profileExtensions = imageProfileExtensionsFromBinding(binding, imageParams);
   } catch (error) {
     return unavailable('input-invalid', describeError(error));
   }
@@ -174,50 +204,68 @@ export async function runRuntimeImageGenerate(
     return profileExtensions.unavailable;
   }
 
-  const scheduling = await ensureSchedulingPreflight(input, resolved.binding);
+  const scheduling = await ensureSchedulingPreflight(input, binding);
   if (scheduling.unavailable) {
     return scheduling.unavailable;
   }
+  const localEnvironment = await ensureRuntimeLocalImageEnvironmentReady({
+    runtime: input.runtime as RuntimeImageLocalRuntime,
+    binding,
+    runIdempotencyKey: input.scenarioId,
+  });
+  if (localEnvironment) {
+    return unavailableFromLocal(localEnvironment);
+  }
 
   try {
-    return await withSpendMeterScope(input, async (protectedOptions) => {
-      const callOptions: RuntimeTypedCallOptions = {
-        metadata: {
-          ...protectedOptions.metadata,
-          ...buildMetadata(input, resolved.binding, scheduling.metadata),
+    return await withRuntimeOperationTimeout({
+      capabilityId: 'image.generate',
+      timeoutMs: imageParams.timeoutMs,
+      signal: input.signal,
+      abortReason: input.abortReason,
+      operation: (signal, abortReason) => withSpendMeterScope(
+        { ...input, signal, abortReason },
+        async (protectedOptions) => {
+          const timedInput = { ...input, signal, abortReason };
+          const callOptions: RuntimeTypedCallOptions = {
+            metadata: {
+              ...protectedOptions.metadata,
+              ...buildMetadata(timedInput, binding, scheduling.metadata),
+            },
+            ...(imageParams.timeoutMs ? { timeoutMs: imageParams.timeoutMs } : {}),
+          };
+          const request = buildImageGenerationInput({
+            input: timedInput,
+            binding,
+            prompt,
+            subjectUserId,
+            imageParams,
+            extensions: profileExtensions.extensions,
+            callOptions,
+          });
+          const generated = await runNimiRuntimeImageGeneration(request);
+          const artifacts = await summarizeImageArtifacts(timedInput.runtime.artifacts, generated.artifacts, callOptions);
+          const firstArtifact = artifacts[0];
+          return {
+            ok: true,
+            capabilityId: 'image.generate',
+            message: `Runtime completed image job ${generated.job.jobId} with ${artifacts.length} artifact(s).`,
+            output: {
+              kind: 'image-artifacts',
+              jobId: generated.job.jobId,
+              jobStatus: scenarioJobStatusText(generated.job.status),
+              artifactCount: artifacts.length,
+              ...(firstArtifact ? { firstArtifact } : {}),
+              artifacts,
+            },
+            trace: {
+              traceId: generated.traceId || generated.job.traceId || undefined,
+              modelResolved: binding.model,
+              routeDecision: binding.routePolicy,
+            },
+          };
         },
-        ...(imageParams.timeoutMs ? { timeoutMs: imageParams.timeoutMs } : {}),
-      };
-      const request = buildImageGenerationInput({
-        input,
-        binding: resolved.binding,
-        prompt,
-        subjectUserId,
-        imageParams,
-        extensions: profileExtensions.extensions,
-        callOptions,
-      });
-      const generated = await runNimiRuntimeImageGeneration(request);
-      const artifacts = await summarizeImageArtifacts(input.runtime.artifacts, generated.artifacts, callOptions);
-      const firstArtifact = artifacts[0];
-      return {
-        ok: true,
-        capabilityId: 'image.generate',
-        message: `Runtime completed image job ${generated.job.jobId} with ${artifacts.length} artifact(s).`,
-        output: {
-          kind: 'image-artifacts',
-          jobId: generated.job.jobId,
-          jobStatus: scenarioJobStatusText(generated.job.status),
-          artifactCount: artifacts.length,
-          ...(firstArtifact ? { firstArtifact } : {}),
-          artifacts,
-        },
-        trace: {
-          traceId: generated.traceId || generated.job.traceId || undefined,
-          modelResolved: resolved.binding.model,
-          routeDecision: resolved.binding.routePolicy,
-        },
-      };
+      ),
     });
   } catch (error) {
     return unavailableFromError(error);
@@ -234,7 +282,7 @@ function buildImageGenerationInput(input: {
   readonly callOptions: RuntimeTypedCallOptions;
 }): NimiRuntimeImageGenerationInput {
   return {
-    runtime: { ai: input.input.runtime.ai },
+    runtime: { ai: withRuntimeRequestDiagnostics(input.input.runtime.ai, input.input.onRuntimeRequest) },
     head: {
       appId: input.input.appId,
       subjectUserId: input.subjectUserId,
@@ -260,6 +308,8 @@ function buildImageGenerationInput(input: {
     labels: buildLabels(input.input, input.binding),
     extensions: input.extensions,
     callOptions: input.callOptions,
+    signal: input.input.signal,
+    abortReason: input.input.abortReason,
     onJobUpdate: input.input.onJobUpdate,
   };
 }
@@ -593,6 +643,7 @@ function buildLabels(
     bindingCapabilityId: binding.bindingCapabilityId,
     routePolicy: binding.routePolicy,
     targetRefKind: binding.targetRef.kind,
+    ...binding.metadata,
     ...stringMetadata(input.metadata),
   };
 }
@@ -664,23 +715,11 @@ function scenarioJobStatusText(status: ScenarioJobStatus): string {
 }
 
 function unavailableFromError(error: unknown): RuntimeImageGenerateUnavailable {
-  const reasonCode = error && typeof error === 'object'
-    ? String(
-      (error as { reasonCode?: unknown }).reasonCode
-      || (error as { code?: unknown }).code
-      || '',
-    )
-    : '';
-  const reason: RuntimeImageGenerateUnavailableReason = reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE
-    ? 'sdk-method-unavailable'
-    : reasonCode === ReasonCode.AUTH_CONTEXT_MISSING
-      || reasonCode === ReasonCode.PRINCIPAL_UNAUTHORIZED
-      || reasonCode === ReasonCode.SESSION_EXPIRED
-      || reasonCode === ReasonCode.APP_TOKEN_EXPIRED
-      || reasonCode === ReasonCode.APP_TOKEN_REVOKED
-        ? 'principal-unauthorized'
-        : 'runtime-call-failed';
-  return unavailable(reason, describeError(error));
+  return unavailable(runtimeUnavailableReasonFromError(error), describeError(error));
+}
+
+function unavailableFromLocal(error: RuntimeImageLocalUnavailable): RuntimeImageGenerateUnavailable {
+  return unavailable(error.reason, error.message);
 }
 
 function unavailable(
@@ -696,12 +735,7 @@ function unavailable(
 }
 
 function describeError(error: unknown): string {
-  if (error instanceof Error) {
-    const reasonCode = (error as { reasonCode?: string }).reasonCode;
-    const code = reasonCode || (error.name && error.name !== 'Error' ? error.name : '');
-    return code ? `${code}: ${error.message}` : error.message;
-  }
-  return String(error || 'Runtime image generation failed.');
+  return describeRuntimeGenerationError(error, 'Runtime image generation failed.');
 }
 
 function normalizeText(value: unknown): string {

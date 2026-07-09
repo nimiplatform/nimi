@@ -1,7 +1,7 @@
 import {
   ScenarioJobStatus,
-  ReasonCode,
   createNimiRuntimeAISchedulingClient,
+  listNimiRuntimeLocalAssetEntries,
   requireNimiRuntimeVoiceReferenceForLocalTts,
   resolveNimiAIConfigRuntimeBinding,
   runNimiRuntimeSpeechSynthesis,
@@ -10,14 +10,22 @@ import {
   toRuntimeDurableTargetRef,
   type NimiAIConfig,
   type NimiAIConfigRuntimeBinding,
-  type NimiJsonObject,
   type NimiRuntimeAISchedulingClient,
+  type NimiRuntimeLocalAssetEntry,
+  type NimiRuntimeLocalModelCenterRpc,
   type NimiRuntimeScenarioJobClient,
   type NimiRuntimeSpeechSynthesisInput,
   type RuntimeTypedCallOptions,
   type ScenarioArtifact,
   type ScenarioJob,
 } from '@nimiplatform/kit/core/sdk-contract';
+import {
+  describeRuntimeGenerationError,
+  runtimeUnavailableReasonFromError,
+  withRuntimeRequestDiagnostics,
+  type RuntimeRequestDiagnosticsRecorder,
+} from './runtime-diagnostics.js';
+import { withRuntimeOperationTimeout } from './runtime-operation-timeout.js';
 
 export type RuntimeSpeechSynthesizeUnavailableReason =
   | 'input-invalid'
@@ -73,6 +81,7 @@ export type RuntimeSpeechSynthesizeRuntime = {
   readonly ai: NimiRuntimeScenarioJobClient;
   readonly scheduling?: NimiRuntimeAISchedulingClient;
   readonly generated?: NimiRuntimeAISchedulingClient;
+  readonly local?: NimiRuntimeLocalModelCenterRpc;
 };
 
 export type RuntimeSpeechSynthesizeScopeRunner = <T>(
@@ -84,12 +93,16 @@ export type RuntimeSpeechSynthesizeInput = {
   readonly runtime: RuntimeSpeechSynthesizeRuntime;
   readonly appId: string;
   readonly config: NimiAIConfig;
+  readonly binding?: NimiAIConfigRuntimeBinding;
   readonly text: string;
   readonly scenarioId: string;
   readonly subjectUserId?: string;
   readonly surfaceId: string;
   readonly metadata?: Record<string, string | undefined>;
   readonly onJobUpdate?: (job: ScenarioJob) => void;
+  readonly onRuntimeRequest?: RuntimeRequestDiagnosticsRecorder;
+  readonly signal?: AbortSignal;
+  readonly abortReason?: string;
   readonly withScopes?: RuntimeSpeechSynthesizeScopeRunner;
 };
 
@@ -120,11 +133,13 @@ export async function runRuntimeSpeechSynthesize(
     return unavailable('input-invalid', 'Speech synthesis text is required before dispatch.');
   }
 
-  const resolved = resolveNimiAIConfigRuntimeBinding({
-    config: input.config,
-    capabilityId: 'audio.synthesize',
-    bindingCapabilityId: 'audio.synthesize',
-  });
+  const resolved = input.binding
+    ? { ok: true as const, binding: input.binding }
+    : resolveNimiAIConfigRuntimeBinding({
+      config: input.config,
+      capabilityId: 'audio.synthesize',
+      bindingCapabilityId: 'audio.synthesize',
+    });
   if (resolved.ok === false) {
     return unavailable('ai-config-binding-missing', resolved.message);
   }
@@ -141,49 +156,65 @@ export async function runRuntimeSpeechSynthesize(
     return unavailable('input-invalid', describeError(error));
   }
 
-  const scheduling = await ensureSchedulingPreflight(input, resolved.binding);
+  const bindingResult = await materializeSpeechBinding(input.runtime, resolved.binding);
+  if (bindingResult.ok === false) {
+    return unavailable('input-invalid', bindingResult.message);
+  }
+  const binding = bindingResult.binding;
+
+  const scheduling = await ensureSchedulingPreflight(input, binding);
   if (scheduling.unavailable) {
     return scheduling.unavailable;
   }
 
   try {
-    return await withSpendMeterScope(input, async (protectedOptions) => {
-      const callOptions: RuntimeTypedCallOptions = {
-        metadata: {
-          ...protectedOptions.metadata,
-          ...buildMetadata(input, resolved.binding, scheduling.metadata),
+    return await withRuntimeOperationTimeout({
+      capabilityId: 'audio.synthesize',
+      timeoutMs: params.timeoutMs,
+      signal: input.signal,
+      abortReason: input.abortReason,
+      operation: (signal, abortReason) => withSpendMeterScope(
+        { ...input, signal, abortReason },
+        async (protectedOptions) => {
+          const timedInput = { ...input, signal, abortReason };
+          const callOptions: RuntimeTypedCallOptions = {
+            metadata: {
+              ...protectedOptions.metadata,
+              ...buildMetadata(timedInput, binding, scheduling.metadata),
+            },
+            ...(params.timeoutMs ? { timeoutMs: params.timeoutMs } : {}),
+          };
+          const request = buildSpeechSynthesisInput({
+            input: timedInput,
+            binding,
+            params,
+            subjectUserId,
+            text,
+            callOptions,
+          });
+          const generated = await runNimiRuntimeSpeechSynthesis(request);
+          const artifacts = generated.artifacts.map(summarizeAudioArtifact);
+          const firstArtifact = artifacts[0];
+          return {
+            ok: true,
+            capabilityId: 'audio.synthesize',
+            message: `Runtime completed speech synthesis job ${generated.job.jobId} with ${artifacts.length} audio artifact(s).`,
+            output: {
+              kind: 'audio-artifacts',
+              jobId: generated.job.jobId,
+              jobStatus: scenarioJobStatusText(generated.job.status),
+              artifactCount: artifacts.length,
+              ...(firstArtifact ? { firstArtifact } : {}),
+              artifacts,
+            },
+            trace: {
+              traceId: generated.traceId || generated.job.traceId || undefined,
+              modelResolved: binding.model,
+              routeDecision: binding.routePolicy,
+            },
+          };
         },
-        ...(params.timeoutMs ? { timeoutMs: params.timeoutMs } : {}),
-      };
-      const request = buildSpeechSynthesisInput({
-        input,
-        binding: resolved.binding,
-        params,
-        subjectUserId,
-        text,
-        callOptions,
-      });
-      const generated = await runNimiRuntimeSpeechSynthesis(request);
-      const artifacts = generated.artifacts.map(summarizeAudioArtifact);
-      const firstArtifact = artifacts[0];
-      return {
-        ok: true,
-        capabilityId: 'audio.synthesize',
-        message: `Runtime completed speech synthesis job ${generated.job.jobId} with ${artifacts.length} audio artifact(s).`,
-        output: {
-          kind: 'audio-artifacts',
-          jobId: generated.job.jobId,
-          jobStatus: scenarioJobStatusText(generated.job.status),
-          artifactCount: artifacts.length,
-          ...(firstArtifact ? { firstArtifact } : {}),
-          artifacts,
-        },
-        trace: {
-          traceId: generated.traceId || generated.job.traceId || undefined,
-          modelResolved: resolved.binding.model,
-          routeDecision: resolved.binding.routePolicy,
-        },
-      };
+      ),
     });
   } catch (error) {
     return unavailableFromError(error);
@@ -199,7 +230,7 @@ function buildSpeechSynthesisInput(input: {
   readonly callOptions: RuntimeTypedCallOptions;
 }): NimiRuntimeSpeechSynthesisInput {
   return {
-    runtime: { ai: input.input.runtime.ai },
+    runtime: { ai: withRuntimeRequestDiagnostics(input.input.runtime.ai, input.input.onRuntimeRequest) },
     head: {
       appId: input.input.appId,
       subjectUserId: input.subjectUserId,
@@ -222,6 +253,8 @@ function buildSpeechSynthesisInput(input: {
     idempotencyKey: input.input.scenarioId,
     labels: buildLabels(input.input, input.binding),
     callOptions: input.callOptions,
+    signal: input.input.signal,
+    abortReason: input.input.abortReason,
     onJobUpdate: input.input.onJobUpdate,
   };
 }
@@ -240,6 +273,93 @@ function speechParamsFromBinding(binding: NimiAIConfigRuntimeBinding): SpeechPar
     emotion: optionalDefaultText(params.emotion),
     timeoutMs: optionalPositiveInteger(params.timeoutMs ?? params.timeout_ms, 'timeoutMs'),
   };
+}
+
+async function materializeSpeechBinding(
+  runtime: RuntimeSpeechSynthesizeRuntime,
+  binding: NimiAIConfigRuntimeBinding,
+): Promise<
+  | { readonly ok: true; readonly binding: NimiAIConfigRuntimeBinding }
+  | { readonly ok: false; readonly message: string }
+> {
+  if (binding.routePolicy !== 'local') {
+    return { ok: true, binding };
+  }
+  if (!runtime.local) {
+    return {
+      ok: false,
+      message: 'audio.synthesize local model binding requires Runtime local asset listing; reload Runtime projection and reselect the active model.',
+    };
+  }
+  try {
+    const assets = await listNimiRuntimeLocalAssetEntries({ local: runtime.local });
+    const asset = findLocalAssetById(assets, binding.model);
+    if (!asset) {
+      return {
+        ok: false,
+        message: `audio.synthesize active model ${binding.model} is not present in Runtime local assets; reselect the active model.`,
+      };
+    }
+    if (asset.kind !== 'tts') {
+      return {
+        ok: false,
+        message: `audio.synthesize active model ${binding.model} resolves to local asset kind ${asset.kind}; expected tts.`,
+      };
+    }
+    const model = requiredSemanticAssetId(asset, 'audio.synthesize');
+    return {
+      ok: true,
+      binding: {
+        ...binding,
+        model,
+        metadata: {
+          ...binding.metadata,
+          aiConfigRuntimeModelAssetId: model,
+          aiConfigRuntimeModelLocalAssetId: asset.localAssetId,
+        },
+      },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: describeError(error),
+    };
+  }
+}
+
+function findLocalAssetById(
+  assets: readonly NimiRuntimeLocalAssetEntry[],
+  id: string,
+): NimiRuntimeLocalAssetEntry | null {
+  return assets.find((asset) => assetMatchesId(asset, id)) ?? null;
+}
+
+function assetMatchesId(asset: NimiRuntimeLocalAssetEntry, id: string): boolean {
+  return localRuntimeRefCandidates(id).some((candidate) => (
+    normalizeText(asset.localAssetId) === candidate
+    || normalizeText(asset.assetId) === candidate
+  ));
+}
+
+function localRuntimeRefCandidates(value: unknown): string[] {
+  const text = normalizeText(value);
+  if (!text) return [];
+  const candidates = new Set<string>([text]);
+  for (const prefix of ['local-runtime:', 'local/']) {
+    if (text.toLowerCase().startsWith(prefix)) {
+      const stripped = text.slice(prefix.length).trim();
+      if (stripped) candidates.add(stripped);
+    }
+  }
+  return [...candidates];
+}
+
+function requiredSemanticAssetId(asset: NimiRuntimeLocalAssetEntry, context: string): string {
+  const assetId = normalizeText(asset.assetId);
+  if (!assetId) {
+    throw new Error(`${context} Runtime local asset ${asset.localAssetId} is missing semantic assetId; reload Runtime projection and re-import the asset.`);
+  }
+  return assetId;
 }
 
 function voiceReferenceFromParams(
@@ -415,6 +535,7 @@ function buildLabels(
     bindingCapabilityId: binding.bindingCapabilityId,
     routePolicy: binding.routePolicy,
     targetRefKind: binding.targetRef.kind,
+    ...binding.metadata,
     ...stringMetadata(input.metadata),
   };
 }
@@ -507,23 +628,7 @@ function scenarioJobStatusText(status: ScenarioJobStatus): string {
 }
 
 function unavailableFromError(error: unknown): RuntimeSpeechSynthesizeUnavailable {
-  const reasonCode = error && typeof error === 'object'
-    ? String(
-      (error as { reasonCode?: unknown }).reasonCode
-      || (error as { code?: unknown }).code
-      || '',
-    )
-    : '';
-  const reason: RuntimeSpeechSynthesizeUnavailableReason = reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE
-    ? 'sdk-method-unavailable'
-    : reasonCode === ReasonCode.AUTH_CONTEXT_MISSING
-      || reasonCode === ReasonCode.PRINCIPAL_UNAUTHORIZED
-      || reasonCode === ReasonCode.SESSION_EXPIRED
-      || reasonCode === ReasonCode.APP_TOKEN_EXPIRED
-      || reasonCode === ReasonCode.APP_TOKEN_REVOKED
-        ? 'principal-unauthorized'
-        : 'runtime-call-failed';
-  return unavailable(reason, describeError(error));
+  return unavailable(runtimeUnavailableReasonFromError(error), describeError(error));
 }
 
 function unavailable(
@@ -539,12 +644,7 @@ function unavailable(
 }
 
 function describeError(error: unknown): string {
-  if (error instanceof Error) {
-    const reasonCode = (error as { reasonCode?: string }).reasonCode;
-    const code = reasonCode || (error.name && error.name !== 'Error' ? error.name : '');
-    return code ? `${code}: ${error.message}` : error.message;
-  }
-  return String(error || 'Runtime speech synthesis failed.');
+  return describeRuntimeGenerationError(error, 'Runtime speech synthesis failed.');
 }
 
 function normalizeText(value: unknown): string {

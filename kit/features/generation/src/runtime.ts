@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import {
-  runNimiRuntimeScenarioJob,
+  runKitRuntimeScenarioJob,
   ScenarioJobStatus,
   type Runtime,
   type NimiRuntimeScenarioJob,
@@ -11,7 +11,11 @@ import { useGenerationPanel, type UseGenerationPanelResult } from './hooks/use-g
 import type { GenerationRunItem } from './types.js';
 export * from './runtime-ai-consume.js';
 export * from './runtime-image-generate.js';
+export * from './runtime-identity.js';
 export * from './runtime-speech-synthesize.js';
+export * from './runtime-speech-transcribe.js';
+export * from './runtime-video-generate.js';
+export * from './runtime-voice-catalog.js';
 export type RuntimeGenerationMappedStatus = 'pending' | 'running' | 'completed' | 'failed' | 'timeout' | 'canceled';
 
 export type RuntimeGenerationRequestContext<TInput> = {
@@ -153,7 +157,7 @@ export function useRuntimeGenerationPanel<TInput>({
         let result: NimiRuntimeScenarioJobResult | null = null;
 
         try {
-          result = await runNimiRuntimeScenarioJob({
+          result = await runKitRuntimeScenarioJob({
             ai: resolvedRuntime.ai,
             request,
             onJobUpdate: (job) => {

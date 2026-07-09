@@ -4,6 +4,7 @@ import {
 } from '../src/runtime.js';
 import {
   ExecutionMode,
+  ReasonCode,
   ScenarioJobEventType,
   ScenarioJobStatus,
   ScenarioType,
@@ -253,6 +254,107 @@ describe('runtime speech synthesis helper', () => {
       'x-nimi-idempotency-key': 'audio-synthesize',
     });
   });
+
+  it('accepts a pre-resolved speech binding and forwards abort signal to the Runtime job runner', async () => {
+    const runtime = createRuntimeHarness();
+    runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
+    const abort = new AbortController();
+    abort.abort();
+
+    const result = await runRuntimeSpeechSynthesize({
+      runtime,
+      appId: 'nimi.zhiyu',
+      config: createAIConfig(),
+      binding: {
+        bindingCapabilityId: 'audio.synthesize',
+        targetRef: {
+          kind: 'local-runtime',
+          version: 'v2',
+          profileBindingId: 'local-tts-main',
+        },
+        model: 'speech/qwen3-tts-local',
+        routePolicy: 'local',
+        schedulingTarget: {
+          capability: 'audio.synthesize',
+          targetRef: {
+            kind: 'local-runtime',
+            version: 'v2',
+            profileBindingId: 'local-tts-main',
+          },
+        },
+        selectedParams: {
+          voiceAssetId: 'voice-asset-1',
+          timeoutMs: '90000',
+        },
+        metadata: {
+          aiConfigBindingCapabilityId: 'audio.synthesize',
+          aiConfigBindingModel: 'local-tts-main',
+          aiConfigRuntimeModelAssetId: 'speech/qwen3-tts-local',
+          aiConfigRuntimeModelLocalAssetId: 'local-tts-main',
+          aiConfigTargetRefKind: 'local-runtime',
+        },
+      },
+      text: 'abort this speech job',
+      scenarioId: 'audio-pre-resolved-abort',
+      subjectUserId: 'subject-user-1',
+      surfaceId: 'zhiyu.capability-studio.audio.synthesize',
+      signal: abort.signal,
+      abortReason: 'test_audio_abort',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      capabilityId: 'audio.synthesize',
+      reason: 'runtime-call-failed',
+    });
+    expect(result.message).toContain('Runtime Scenario job was aborted');
+    expect(runtime.scheduling.peekScheduling).toHaveBeenCalledOnce();
+    expect(runtime.ai.submitScenarioJob).not.toHaveBeenCalled();
+  });
+
+  it('preserves provider detail on audio.synthesize Runtime failures', async () => {
+    const runtime = createRuntimeHarness();
+    runtime.scheduling.peekScheduling.mockResolvedValue(runnableSchedulingResponse());
+    const error = new Error('provider request failed') as Error & {
+      reasonCode: string;
+      details: { provider_message: string };
+    };
+    error.reasonCode = ReasonCode.AI_INPUT_INVALID;
+    error.details = { provider_message: 'speech provider rejected preset voice' };
+    runtime.ai.submitScenarioJob.mockRejectedValue(error);
+
+    const result = await runRuntimeSpeechSynthesize({
+      runtime,
+      appId: 'nimi.zhiyu',
+      config: createAIConfig({
+        targetRefs: {
+          'audio.synthesize': {
+            kind: 'cloud-connector',
+            connectorId: 'runtime-connector',
+            remoteModelCatalogId: 'remote-catalog:runtime-connector:tts-model',
+            providerModelId: 'tts-model',
+          },
+        },
+        selectedParams: {
+          'audio.synthesize': {
+            presetVoiceId: 'voice-main',
+          },
+        },
+      }),
+      text: 'read this aloud',
+      scenarioId: 'speech-provider-detail',
+      subjectUserId: 'subject-user-1',
+      surfaceId: 'zhiyu.capability-studio.audio.synthesize',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      capabilityId: 'audio.synthesize',
+      reason: 'runtime-call-failed',
+    });
+    expect(result.message).toContain('AI_INPUT_INVALID: provider request failed');
+    expect(result.message).toContain('Provider detail: speech provider rejected preset voice');
+  });
 });
 
 function createAIConfig(input: {
@@ -306,6 +408,18 @@ function createRuntimeHarness() {
             },
           },
         },
+      })),
+    },
+    local: {
+      listLocalAssets: vi.fn(async () => ({
+        nextPageToken: '',
+        assets: [{
+          localAssetId: 'local-tts-main',
+          assetId: 'speech/qwen3-tts-local',
+          kind: 'tts',
+          engine: 'speech',
+          status: 'active',
+        }],
       })),
     },
   };
