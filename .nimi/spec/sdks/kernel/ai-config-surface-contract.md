@@ -398,7 +398,7 @@ passes the compact-ref validator; otherwise it must be rejected, not shimmed.
   P-AIPS-009 first-party app AIProfile hint, P-AIPS-013 Account Default Profile
 - `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` —
   P-NAPP-002 registry row schema, P-NAPP-003 AIProfile selection hint
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md` — K-APP-017 app Open flow
+- `.nimi/spec/runtime/kernel/app-lifecycle-contract.md` — K-APP-017 app Open flow
 - `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` — K-AIEXEC-001~007
 - `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md` — K-MEM-004~006b
 - `.nimi/spec/runtime/kernel/scheduling-contract.md` — K-SCHED-001~007

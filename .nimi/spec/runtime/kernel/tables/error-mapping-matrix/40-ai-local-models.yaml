@@ -1,0 +1,147 @@
+mappings:
+  - reason_code: AI_LOCAL_MODEL_PROFILE_MISSING
+    grpc_code: FAILED_PRECONDITION
+    surface: local_consume_or_probe
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: K-LOCAL-003
+  - reason_code: AI_LOCAL_MODEL_UNAVAILABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: local_consume_or_probe
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: K-LOCAL-006
+  - reason_code: AI_LOCAL_MODEL_ALREADY_INSTALLED
+    grpc_code: ALREADY_EXISTS
+    surface: install_local_model_duplicate
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-009
+  - reason_code: AI_LOCAL_ASSET_ALREADY_INSTALLED
+    grpc_code: ALREADY_EXISTS
+    surface: install_local_model_duplicate
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-009
+  - reason_code: AI_LOCAL_SERVICE_UNAVAILABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: local_service_lifecycle_or_probe
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: K-LOCAL-006
+  - reason_code: AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_probe_or_consume
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: K-ERR-011
+  - reason_code: AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_probe_or_consume
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: K-ERR-011
+    note: 显式 Download 确认缺失时 fail-close；不得被 Desktop/SDK 投影成 silent bootstrap/download
+  - reason_code: AI_LOCAL_SPEECH_ENV_INIT_FAILED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_prepare
+    exit_shape: grpc_status
+    source_rule: K-ERR-011
+  - reason_code: AI_LOCAL_SPEECH_HOST_INIT_FAILED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_prepare
+    exit_shape: grpc_status
+    source_rule: K-ERR-011
+  - reason_code: AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_materialize
+    exit_shape: grpc_status
+    source_rule: K-ERR-011
+  - reason_code: AI_LOCAL_SPEECH_BUNDLE_DEGRADED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_speech_bundle_probe_or_consume
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: K-ERR-011
+  - reason_code: AI_LOCAL_SERVICE_ALREADY_INSTALLED
+    grpc_code: ALREADY_EXISTS
+    surface: install_local_service_duplicate
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-009
+  - reason_code: AI_LOCAL_ENDPOINT_REQUIRED
+    grpc_code: INVALID_ARGUMENT
+    surface: install_or_start_local_model_endpoint_required
+    exit_shape: grpc_status
+    source_rule: K-LENG-005
+  - reason_code: AI_LOCAL_TEMPLATE_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: install_verified_model_template_missing
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-010
+  - reason_code: AI_LOCAL_MANIFEST_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: import_local_model_manifest_parse_fail
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-009
+  - reason_code: AI_LOCAL_MODEL_INVALID_TRANSITION
+    grpc_code: FAILED_PRECONDITION
+    surface: local_model_or_service_state_transition
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-005
+  - reason_code: AI_LOCAL_SERVICE_INVALID_TRANSITION
+    grpc_code: FAILED_PRECONDITION
+    surface: local_service_state_transition
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-005
+  - reason_code: AI_LOCAL_ASSET_ALREADY_INSTALLED
+    grpc_code: ALREADY_EXISTS
+    surface: local_asset_install
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-009
+  - reason_code: AI_LOCAL_ASSET_SLOT_MISSING
+    grpc_code: FAILED_PRECONDITION
+    surface: local_profile_slot_resolution
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-031
+  - reason_code: AI_LOCAL_ASSET_SLOT_FORBIDDEN
+    grpc_code: INVALID_ARGUMENT
+    surface: local_profile_slot_resolution
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-031
+  - reason_code: AI_LOCAL_PROFILE_SLOT_CONFLICT
+    grpc_code: INVALID_ARGUMENT
+    surface: local_profile_slot_resolution
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-031
+  - reason_code: AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN
+    grpc_code: INVALID_ARGUMENT
+    surface: local_profile_entry_override
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-032
+  - reason_code: AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN
+    grpc_code: FAILED_PRECONDITION
+    surface: local_component_compatibility
+    exit_shape: grpc_status
+    source_rule: K-RTARGET-009
+  - reason_code: AI_LOCAL_COMPONENT_INCOMPATIBLE
+    grpc_code: FAILED_PRECONDITION
+    surface: local_component_compatibility
+    exit_shape: grpc_status
+    source_rule: K-RTARGET-009
+  - reason_code: AI_LOCAL_DOWNLOAD_FAILED
+    grpc_code: INTERNAL
+    surface: local_model_download
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-024
+  - reason_code: AI_LOCAL_DOWNLOAD_HASH_MISMATCH
+    grpc_code: DATA_LOSS
+    surface: local_model_download_verify
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-024
+  - reason_code: AI_LOCAL_HF_REPO_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: local_model_hf_repo_parse
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-023
+  - reason_code: AI_LOCAL_HF_SEARCH_FAILED
+    grpc_code: UNAVAILABLE
+    surface: local_model_hf_search
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-023
+  - reason_code: AI_LOCAL_MANIFEST_SCHEMA_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: local_model_manifest_schema_validate
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-026

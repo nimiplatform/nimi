@@ -363,7 +363,7 @@ Rules:
 
 ## Fact Sources
 
-- `local-category-capability.md` — K-LOCAL-013~015, K-LOCAL-014a (`ResolveProfile`, `ApplyProfile`)
+- `local-profile-application-contract.md` — K-LOCAL-013~015, K-LOCAL-014a (`ResolveProfile`, `ApplyProfile`)
 - `device-profile-contract.md` — K-DEV-001~009 (device profile collection)
 - `model-service-contract.md` — K-MODEL-001~008 (model descriptor, health check)
 - `scheduling-contract.md` — K-SCHED-001~007 (five-state scheduling judgement)

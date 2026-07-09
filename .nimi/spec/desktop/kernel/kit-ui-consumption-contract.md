@@ -57,14 +57,16 @@ inventory, retained app-owned compositions, and controlled exceptions.
   projections or typed host-transport callbacks, not as arbitrary file-system
   product truth.
 
-## D-SHELL-096 — Live2D Viewport Consumer Boundary
+## D-SHELL-096 — Retired Live2D / VRM Viewport Consumer Boundary
 
-- Desktop may ship a concrete Live2D viewport locally while consuming
-  `kit/features/avatar` stage semantics and normalized presentation inputs.
-- This local viewport does not make kit the owner of Desktop fallback policy,
-  local runtime packaging, or Desktop-only viewport lifecycle.
-- A shared `/live2d` kit export must be separately registered and shipped before
-  Desktop or any other app treats it as package surface.
+- Desktop MUST NOT ship a concrete Live2D, VRM, Cubism, or Three.js avatar
+  viewport locally.
+- Desktop may consume `kit/features/avatar` and `kit/features/agent-center`
+  only for normalized presentation, evidence, and launch-control surfaces.
+- Concrete avatar renderer execution belongs to the Runtime-admitted Avatar app
+  and its Avatar/Runtime resource resolver path, not the Desktop shell.
+- Absence of a shared Kit renderer export must fail closed; it must not create a
+  Desktop-local fallback renderer or lifecycle path.
 
 ## D-SHELL-097 — Pointer Attention Consumer Boundary
 

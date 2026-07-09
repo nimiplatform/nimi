@@ -1,0 +1,68 @@
+codes:
+  - name: SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_APP_SESSION_INPUT_INVALID
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_EXTERNAL_AGENT_TOKEN_LEDGER_INVALID
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_LOCAL_ASSET_RESPONSE_INVALID
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_LOCAL_INPUT_INVALID
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_LOCAL_RESPONSE_INVALID
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_LOCAL_WRITE_DENIED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_MODEL_CATALOG_INPUT_INVALID
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_PARTICIPATION_INPUT_INVALID
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ROUTE_CLIENT_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_INVALID
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_KIND_UNSUPPORTED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_MISMATCH
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ROUTE_DESCRIBE_METADATA_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ROUTE_DESCRIBE_UNSUPPORTED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ROUTE_INPUT_INVALID
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_VOICE_REF_INVALID
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: OPERATION_ABORTED
+    family: SDK_SYNTHETIC_REASON
+    source_rule: S-ERROR-010
+    note: SDK 合成码；永不重试（S-ERROR-008）
+  - name: RUNTIME_UNAVAILABLE
+    family: SDK_SYNTHETIC_REASON
+    source_rule: S-ERROR-010
+    note: SDK 合成码；应用层可重试（S-ERROR-007）
+  - name: RUNTIME_BRIDGE_DAEMON_UNAVAILABLE
+    family: SDK_SYNTHETIC_REASON
+    source_rule: S-ERROR-010
+    note: SDK 合成码；应用层可重试（S-ERROR-007）
+  - name: RUNTIME_AGENT_AI_CONFIG_CONCURRENT_MODIFICATION
+    family: SDK_SYNTHETIC_REASON
+    source_rule: S-ERROR-010
+    note: K-AGCORE-145 revision CAS 冲突的 typed 投影；应用需重读 committed config 后重试

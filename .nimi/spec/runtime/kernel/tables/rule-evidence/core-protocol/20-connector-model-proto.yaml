@@ -1,0 +1,242 @@
+rules:
+  - rule_id: K-CONN-000
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_proto_linkage
+    note: Runtime Target Identity v2 retires local connector vocabulary and keeps ConnectorService as remote credential custody only.
+    evidence_requirement: required
+  - rule_id: K-CONN-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-015
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-016
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-017
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-CONN-017a
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_provider_checks
+    note: Live provider smoke coverage must use managed connector catalog targetRefs instead of raw model strings or connector/model shortcuts.
+    evidence_requirement: required
+  - rule_id: K-CONN-018
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-CONN-019
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: AIProfile cloud connector slice boundary; executable coverage must prove no AIProfile/AIConfig/Desktop/app surface receives secret material.
+    evidence_requirement: required
+  - rule_id: K-MODEL-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-MODEL-009
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-MODEL-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MODEL-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MODEL-012
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MODEL-013
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-MODEL-014
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - runtime_catalog_drift
+    evidence_requirement: required
+  - rule_id: K-PROTO-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-002
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-003
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-004
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-005
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-006
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-007
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-008
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-009
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-010
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-011
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_proto_linkage
+    evidence_requirement: required
+  - rule_id: K-PROTO-012
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime Agent Participation proto surface boundary admitted as contract truth; implementation-facing proto contracts require separate admitted implementation evidence.
+    evidence_requirement: deferred

@@ -122,7 +122,7 @@ Fixed rules:
   silent in-place mutation is not admitted
 - runtime-owned embedding execution is the only admitted embedding authority
 - the resolved profile `dimension` authority is the runtime model catalog
-  (`model-catalog-contract.md` `K-MCAT-030` `embedding.dimension`), not the local
+  (`model-catalog-voice-workflow-contract.md` `K-MCAT-030` `embedding.dimension`), not the local
   asset record and not a hardcoded constant; resolving an embedding profile for a
   `text.embed` model with no admitted catalog dimension must fail close rather
   than fabricate a dimension or silently retarget to another model

@@ -423,8 +423,10 @@ Fixed rules:
   `backend_load`, `capability_profile`, `route_support_matrix`,
   `generated_motion`, `emotion_expression`, `speech_lipsync`, and
   `window_hit_region`.
-- `requested_by` remains Runtime's admitted `desktop_debug_workbench` value;
-  Avatar must not add a local requested-by enum or raw app-bus bypass.
+- `requested_by` remains Runtime's stable admitted `desktop_debug_workbench`
+  enum value for this typed probe client; the enum name is not Desktop-local UI
+  authority. Avatar must not add a local requested-by enum or raw app-bus
+  bypass.
 - Avatar backend evidence must still flow through Runtime's typed
   `SubmitAvatarDebugProbeResult` path before becoming public diagnostic truth.
 - The overlay must not expose package paths, tokens, raw APML, raw provider
@@ -762,7 +764,7 @@ Avatar 必须：
 - 仅从 Avatar local asset resolver 返回的 materialized Live2D/VRM files 读取
   visual files；远程 marketplace package 来源已退役（Asset Market 撤回），
   本地 import + materialization 是 visual 唯一来源
-- 对 Live2D，Avatar local asset resolver 可以返回 Desktop-owned
+- 对 Live2D，Avatar local asset resolver 可以返回 host-projected
   `live2d_calibration_ref` 作为只读 opaque evidence；不得读取 calibration
   payload/values，不得将该 ref 解释为 carrier truth 或 render/framing effect
 - 创建或恢复 Avatar-owned conversation context

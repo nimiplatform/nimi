@@ -88,6 +88,8 @@ surfaces:
     owner: desktop_nimi_home_shell
     source_authority:
       - .nimi/spec/runtime/kernel/local-engine-contract.md
+      - .nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md
+      - .nimi/spec/runtime/kernel/local-environment-materializers-contract.md
       - .nimi/spec/sdks/kernel/local-environment-projection-contract.md
     allowed_projection_scope:
       - daemon_lifecycle_state
@@ -146,6 +148,8 @@ surfaces:
     owner: desktop_nimi_home_shell
     source_authority:
       - .nimi/spec/runtime/kernel/local-engine-contract.md
+      - .nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md
+      - .nimi/spec/runtime/kernel/local-environment-materializers-contract.md
       - .nimi/spec/sdks/kernel/local-environment-projection-contract.md
     allowed_projection_scope:
       - runtime_diagnostic_reports

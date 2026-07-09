@@ -189,7 +189,8 @@ this hard cut unless a downstream owner is explicitly named.
 | `.nimi/spec/runtime/kernel/connector-contract.md` | `connector_id`, `model_id`, `LOCAL_MODEL` | `must_migrate` | Patch connector authority to remote credential custody only. |
 | `.nimi/spec/runtime/kernel/index.md` | `connector_id` | `allowed_non_identity_fact` | Topic index text only; linked authority files carry v2 semantics. |
 | `.nimi/spec/runtime/kernel/key-source-routing.md` | `connector_id`, `model_id`, `target_model_id`, `LOCAL_MODEL`, `targetId`, `profileId`, `localModelId`, `goRuntimeLocalModelId` | `must_migrate` | Patch managed credential routing and cloud target identity separation. |
-| `.nimi/spec/runtime/kernel/local-category-capability.md` | `connector_id`, `model_id` | `must_migrate` | Patch local connector/category and raw local model routing to v2 local refs or non-identity facts. |
+| `.nimi/spec/runtime/kernel/local-category-capability.md` | `connector_id`, `model_id` | `must_migrate` | Patch local connector/category identity text to v2 local refs or non-identity facts. |
+| `.nimi/spec/runtime/kernel/local-profile-application-contract.md` | `model_id` | `must_migrate` | Patch raw local model routing and profile application text to v2 local refs or resolved non-identity facts. |
 | `.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md` | `model_id` | `allowed_non_identity_fact` | Catalog/route model selector only; G4/G12 reject it as durable local target identity. |
 | `.nimi/spec/runtime/kernel/model-catalog-contract.md` | `model_id` | `must_migrate` | Patch remote catalog id minting and provider/catalog model id non-identity semantics. |
 | `.nimi/spec/runtime/kernel/model-service-contract.md` | `model_id` | `allowed_non_identity_fact` | Catalog model identifier only; G3/G11 reject descriptor/model-service id as target ref. |

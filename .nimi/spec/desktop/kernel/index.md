@@ -33,8 +33,7 @@
 | `agent-chat-projection-contract.md` | `D-LLM-*` | Desktop Agent Chat projection / presentation surface：shell placement, user input handoff, Runtime/SDK projection rendering, fail-closed UI states；不拥有 Agent Chat orchestration / execution / prompt / voice workflow / media truth |
 | `agent-avatar-surface-contract.md` | `D-LLM-*` | Agent avatar transient surface + desktop bridge/handoff authority：`AvatarInteractionState`、desktop-to-`apps/avatar` launch semantics、desktop carrier decommission boundary、and retained non-carrier shell scope |
 | `agent-avatar-configuration-contract.md` | `D-LLM-*` | Agent Chat Settings Avatar configuration control surface：closed config record, local Avatar asset selection authority, opaque profile refs, minimal launch payload hard cut, fail-closed readiness UX, and no Desktop-local binding/carrier authority (remote marketplace package sources retired with Asset Market) |
-| `agent-avatar-debug-workbench-contract.md` | `D-LLM-*` | Desktop Avatar debug workbench product surface：typed probe views, remediation states, Runtime replay links, and no raw backend/app bus bypass |
-| `agent-delegation-control-surface-contract.md` | `D-LLM-*` | Runtime-owned delegated capability gateway 的 Desktop product control surface：agent chat settings / avatar config / connector config / debug workbench / approval UX；不拥有 provider execution、approval semantics、credential custody、firewall/audit truth |
+| `agent-delegation-control-surface-contract.md` | `D-LLM-*` | Runtime-owned delegated capability gateway 的 Desktop product control surface：agent chat settings / avatar config / connector config / approval UX；不拥有 provider execution、approval semantics、credential custody、firewall/audit truth |
 | `realm-group-agent-participation-surface-contract.md` | `D-LLM-*` | Desktop/Web Realm GROUP agent participation control/projection hardcut：typed SDK/Realm/Runtime consumers only；不拥有 prompt/provider/model、memory、queue、scheduler、or commit truth |
 | `companion-participation-control-surface-contract.md` | `D-LLM-*` | Desktop Avatar companion/persona participation control/projection hardcut：typed SDK/Runtime consumers only；不拥有 prompt/provider/model、memory、queue、scheduler、or commit truth |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
@@ -82,8 +81,6 @@
 - `tables/command-execution-classification.yaml`
 - `tables/desktop-feature-coverage.yaml`
 - `tables/agent-avatar-configuration.schema.yaml`
-- `tables/agent-avatar-debug-workbench-probes.yaml`
-- `tables/agent-avatar-debug-remediation-states.yaml`
 - `tables/nimi-home-surfaces.yaml`
 - `tables/home-feed-scopes.yaml`
 - `tables/explore-sections.yaml`

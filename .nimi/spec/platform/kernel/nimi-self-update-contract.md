@@ -87,6 +87,7 @@ policy 平级 owner。
 - `.nimi/spec/platform/kernel/cold-start-authority-contract.md` — `P-COLD-001..P-COLD-008`
 - `.nimi/spec/platform/kernel/web-release-contract.md` — `P-WEB-*`
 - `.nimi/spec/desktop/kernel/self-update-contract.md` — desktop-host 实现细节
-- `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
+- `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
+- `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md`
 - `.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md`

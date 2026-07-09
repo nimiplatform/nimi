@@ -67,6 +67,7 @@ surfaces:
   - registered_command_families_33
   - registered_command_families_34
   - registered_command_families_35
+  - registered_command_families_36
 # Desktop Tauri command execution classification.
 # Source of truth for D-GATE-092..D-GATE-096.
 schema_version: desktop-tauri-command-execution/v1
@@ -150,16 +151,6 @@ risk_catalog:
     source_rule: D-GATE-094
 
 registered_command_families:
-  - family: auth_session_disabled
-    match:
-      prefix: auth_session_
-    origin_crate: kit/shell/tauri
-    owner_domain: runtime-account-custody
-    execution_class: registered_disabled_stub
-    remediation_required: false
-    admitted_risks: []
-    source_rule: D-GATE-092
-
   - family: static_desktop_state
     match:
       exact:
@@ -174,6 +165,18 @@ registered_command_families:
     admitted_risks:
       - std_fs
       - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: kit_shared_auth_session
+    match:
+      prefix: auth_session_
+    origin_crate: kit/shell/tauri
+    owner_domain: kit-shared-auth
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - sync_keyring_dialog
     source_rule: D-GATE-092
 
   - family: desktop_update_async
@@ -191,6 +194,8 @@ registered_command_families:
       - std_fs
     source_rule: D-GATE-092
 
+  # Retained app-local in the 2026-07-09 Tauri shell refactor batch;
+  # future redesign target: kit shell host network capability.
   - family: admitted_shell_network_async
     match:
       exact:
@@ -213,8 +218,6 @@ registered_command_families:
         - desktop_avatar_instance_registry_list
         - focus_main_window
         - start_window_drag
-        - runtime_local_assets_reveal_in_folder
-        - runtime_local_assets_reveal_root_folder
     origin_crate: mixed
     owner_domain: desktop-shell
     execution_class: bounded_blocking_with_admission
@@ -231,13 +234,6 @@ registered_command_families:
       exact:
         - confirm_dialog
         - runtime_local_pick_asset_manifest_path
-        - runtime_local_pick_asset_file
-        - runtime_local_pick_asset_directory
-        - product_control_pick_data_root_directory
-        - desktop_agent_center_live2d_adapter_manifest_pick_source
-        - desktop_agent_center_avatar_asset_pick_live2d_source
-        - desktop_agent_center_avatar_asset_pick_vrm_source
-        - desktop_agent_center_background_pick_source
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-shell
     execution_class: bounded_blocking_with_admission
@@ -308,6 +304,57 @@ registered_command_families:
       - os_browser_handoff
     source_rule: D-GATE-094
 
+  - family: standard_shell_diagnostics
+    match:
+      exact:
+        - diagnostics_renderer_entry_probe
+    origin_crate: kit/shell/tauri
+    owner_domain: standard-shell-diagnostics
+    execution_class: ui_sync
+    remediation_required: false
+    admitted_risks: []
+    source_rule: D-GATE-092
+
+  - family: standard_shell_local_assets
+    match:
+      exact:
+        - local_assets_resolve_url
+        - avatar_asset_resolve
+    origin_crate: kit/shell/tauri
+    owner_domain: standard-shell-local-assets
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: standard_shell_local_agent
+    match:
+      exact:
+        - local_agent_identity
+        - local_agent_runtime_trusted_caller
+    origin_crate: kit/shell/tauri
+    owner_domain: standard-shell-local-agent
+    execution_class: ui_sync
+    remediation_required: false
+    admitted_risks:
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: standard_shell_platform_projection
+    match:
+      exact:
+        - platform_projection_get
+    origin_crate: kit/shell/tauri
+    owner_domain: standard-shell-platform-projection
+    execution_class: request_response_async
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - spawn_blocking
+    source_rule: D-GATE-092
+
   - family: desktop_open_intent
     match:
       exact:
@@ -363,6 +410,8 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
+  # Retained app-local in the 2026-07-09 Tauri shell refactor batch;
+  # future owner is pending explicit decision between admitted Desktop local truth and runtime ownership.
   - family: chat_ai_local_store
     match:
       regex: "^chat_ai_.*$"
@@ -377,6 +426,8 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
+  # Avatar import/validate remain app-local in the 2026-07-09 Tauri shell refactor batch;
+  # future redesign target: kit/features/avatar custody/import capability.
   - family: desktop_agent_center_resources
     match:
       exact:
@@ -402,6 +453,8 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
+  # Retained app-local in the 2026-07-09 Tauri shell refactor batch;
+  # future redesign target: kit device-probe.
   - family: system_resource_snapshot
     match:
       exact:
@@ -439,7 +492,6 @@ registered_command_families:
   - family: product_control_os_helpers
     match:
       exact:
-        - product_control_pick_data_root_directory
         - product_control_default_data_root_directory
     origin_crate: apps/desktop/src-tauri
     owner_domain: desktop-bounded-os-helper
@@ -494,31 +546,6 @@ registered_command_families:
       - archive_or_compression
       - process_command
       - spawn_blocking
-    source_rule: D-GATE-092
-
-  - family: apps_projection
-    match:
-      exact:
-        - apps_bridge_projection_get
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-apps-projection
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - spawn_blocking
-    source_rule: D-GATE-092
-
-  - family: apps_local_app_picker
-    match:
-      exact:
-        - apps_pick_local_app_root_directory
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-apps-projection
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - native_dialog
     source_rule: D-GATE-092
 
   - family: account_profile_library

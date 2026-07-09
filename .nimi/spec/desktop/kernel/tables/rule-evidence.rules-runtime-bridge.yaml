@@ -90,10 +90,6 @@ entries:
 - D-LLM-081
 - D-LLM-082
 - D-LLM-083
-- D-LLM-084
-- D-LLM-085
-- D-LLM-086
-- D-LLM-087
 - D-LLM-088
 - D-LLM-089
 - D-LLM-090
@@ -463,29 +459,6 @@ rules:
   - desktop_kernel_consistency
   note: Desktop Avatar fail-closed configuration state admitted as contract truth.
   evidence_requirement: required
-- rule_id: D-LLM-084
-  evidence_refs:
-  - desktop_kernel_consistency
-  note: Desktop Avatar debug workbench authority home admitted as contract truth.
-  evidence_requirement: required
-- rule_id: D-LLM-085
-  evidence_refs:
-  - desktop_kernel_consistency
-  note: Desktop Avatar debug workbench probe taxonomy and remediation states admitted
-    as contract truth.
-  evidence_requirement: required
-- rule_id: D-LLM-086
-  evidence_refs:
-  - desktop_kernel_consistency
-  note: Desktop Avatar debug workbench replay and audit links admitted as contract
-    truth.
-  evidence_requirement: required
-- rule_id: D-LLM-087
-  evidence_refs:
-  - desktop_kernel_consistency
-  note: Desktop Avatar debug workbench app-bus and backend-command bypass prohibition
-    admitted as contract truth.
-  evidence_requirement: required
 - rule_id: D-LLM-088
   evidence_refs:
   - desktop_kernel_consistency
@@ -581,9 +554,9 @@ rules:
   - desktop_test_gate
   - avatar_spec_consistency_gate
   - avatar_test_gate
-  note: Desktop Live2D calibration workbench is review-only; opaque ref projection
-    is admitted, payload/effect projection is blocked, and Avatar launch parser
-    rejects calibration payload drift.
+  note: Desktop Live2D calibration surface is retired; opaque ref display is
+    admitted as read-only evidence, payload/effect projection is blocked, and
+    Avatar launch parser rejects calibration payload drift.
   evidence_requirement: required
 - rule_id: D-LLM-105
   evidence_refs:

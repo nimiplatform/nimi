@@ -1,0 +1,272 @@
+rules:
+  - rule_id: K-AGCORE-093
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation external entry gateway chain admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-094
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation external entry negative gates admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-095
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation domain future seam matrix admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-096
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation OASIS/world future seam boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-097
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation Scenario Sandbox future seam boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-098
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation domain truth separation boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-099
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation future product implementation gates admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-100
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation domain future seam negative gates admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-101
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation promotion boundary registry admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-102
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation Runtime memory/cognition promotion target admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-103
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation canonical chat promotion target admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-104
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation Realm GROUP transcript promotion target admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-105
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation domain truth promotion target admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-106
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation promotion fail-closed invariants admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-107
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration authority admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-108
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration parent participation boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-109
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration closed axis model admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-110
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration domain matrix admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-111
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration trigger arbitration and turn ordering admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-112
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration budget cancellation and timeout policy admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-113
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration status projection boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-114
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration external participant admission admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-115
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration commit-race handoff boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-116
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration domain overlay limitation admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-117
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration negative gates admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-118
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime room orchestration closure gates admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-119
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group participation consumer boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-120
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group typed context mapping admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-121
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group message candidate and commit handoff admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-122
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group Runtime participation policy inheritance admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-123
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group room orchestration consumer binding admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-124
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Realm Group negative gates admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-125
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-126
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-127
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-128
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-129
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-130
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-131
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-132
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-138
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Avatar live-instance binding recovery admitted as Runtime-owned anchor continuity truth; Avatar package projection contract withdrawn with Asset Market.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-139
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: InitializeAgent is a Runtime-local creation operation for SourceMaterializationPacket-to-LocalAgent materialization, not only the Nimi guide; Runtime owns opaque localAgentRef generation, packet validation, provenance persistence, and multiple LocalAgents per source provenance, while Realm source provenance does not own the creation trigger.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-140
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Nimi guide prompt and built-in docs are product knowledge/context only and must not create Agent authority, memory, grant, setup, profile, or app truth.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-141
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: TerminateAgent is a Runtime-local delete/reset operation for Runtime-owned LocalAgent materialization, hard-deletes the runtime_local_agent row plus local state/hooks/event-log/memory when explicitly invoked by Runtime-local authority, is idempotent for an already-absent agent, and snapshot persistence must not re-insert a deleted ref; source provenance removal must not trigger deletion.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-142
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Built-in Nimi usage documentation corpus is product knowledge authored alongside the guide bootstrap definition and attached per-turn as context only; it is not a runtime-owned catalog, not memory truth, and not setup/profile authority.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-143
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+    note: Proactive interruptibility is a bounded Runtime-owned projection for Zhiyu PP6; runtime, SDK, and consuming app evidence must prove default-off mode, quiet_hours, frequency_cap, permission suppression, delivery/suppression events, audit refs, and explicit notification.not_admitted behavior without app-local scheduler truth.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-144
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: One committed Runtime Agent AI Config per Runtime Local Agent instance; apps read/write only through the admitted RuntimeAgentService RPC surface with runtime.agent.ai_config scopes; no app-local, cognition-local, or per-turn AI consume binding authoring once K-AGCORE-147 applies.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-145
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: Runtime Agent AI Config carries an agent_instance_id and monotonic revision with expected_revision optimistic concurrency, persists in the runtime store across daemon restart, emits observable change events for every mutation, and writes mutation evidence to the audit trail.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-146
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: Per-capability readiness projection is exactly ready, not_configured, or unavailable with typed reason codes, recomputes at daemon start plus config mutation plus health change, carries config_revision and probe timestamps, and never substitutes for prepare/readiness or execution-time fail-closed enforcement.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-147
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: Turn admission resolves AI consume bindings from Runtime Agent AI Config only; request-carried execution_bindings/runtimeFields/app AIConfig/provider-model payloads are rejected typed; the execution snapshot stamps config_revision and resolved bindings; anchor-sticky binding truth is retired; Life Track, canonical review, sidecar, and companion executors consume the same config text.generate binding.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-148
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: Model-facing action availability derives from Runtime Agent AI Config presence plus readiness as a tri-state; the APML output contract states the matching truth for not_configured versus unavailable; planned actions on non-available capabilities fail as typed action_failed reasons from the runtime-agent-ai-config table.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-149
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: Config and readiness changes reach apps through a dedicated domain-scoped subscription seam with initial snapshot plus revisioned change events; agent-scoped AgentEvent envelopes are not widened and no secret or runtime-private descriptor evidence leaks.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-150
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: First service start with no committed record seeds text.generate to the runtime-owned local default alias as a normal committed mutation with revision one, audit record, and change event; the seed never overwrites an existing config and a missing row after seeding fails closed with no turn-time silent fallback.
+    evidence_requirement: required

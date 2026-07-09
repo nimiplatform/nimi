@@ -5,9 +5,11 @@
 ## S-RUNTIME-119 Runtime Local Environment Projection
 
 SDK may expose typed projection for Runtime local environment plans only as a
-downstream mirror of Runtime truth. The Runtime authority source is
-`.nimi/spec/runtime/kernel/local-engine-contract.md` `K-LENG-024` through
-`K-LENG-028` and the local environment tables under
+downstream mirror of Runtime truth. The Runtime authority sources are
+`.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md`
+`K-LENG-024` through `K-LENG-027`,
+`.nimi/spec/runtime/kernel/local-environment-materializers-contract.md`
+`K-LENG-028`, and the local environment tables under
 `.nimi/spec/runtime/kernel/tables/`.
 
 Allowed SDK projection families:

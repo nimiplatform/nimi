@@ -9,7 +9,7 @@ Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/c
 ## D-IPC-001 — Bootstrap / Auth Session 命令
 
 > **Authority Disposition**：
-> 共享 auth session 命令（`auth_session_load` / `auth_session_save` / `auth_session_clear`）作为 local first-party account truth surface 已 superseded。Replacement authority 为 `RuntimeAccountService`（`K-ACCSVC-*`）；`auth_session_*` IPC 路径必须删除或 hard-block，不允许保留 dual-read。`runtime_defaults` 中 `realm.accessToken` / `realm.jwksUrl` / `realm.revocationUrl` 不得继续作为 local first-party account truth source（仅允许 explicit Web/cloud adapter 模式或 dev-only override 使用，且必须 fenced）。local first-party Desktop data clients 若需要 Realm access token，必须通过 Runtime `GetAccessToken` 或等价 provider 获取短期 token。
+> 共享 auth session 命令（`auth_session_load` / `auth_session_save` / `auth_session_clear`）是 Kit-owned standard shell shared auth surface，面向 Nimi ecosystem apps 复用。它们不是 Desktop app-local account truth，也不得被 Desktop first-party account custody 当作 parallel truth。Desktop first-party account custody 与 local authenticated Runtime access 仍归 `RuntimeAccountService`（`K-ACCSVC-*`）；Desktop data clients 若需要 Realm access token，必须通过 Runtime `GetAccessToken` 或等价 provider 获取短期 token。
 
 `runtime_defaults` 命令返回 `RuntimeDefaults`，包含：
 - `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）
@@ -19,24 +19,23 @@ Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/c
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。
 
-共享 auth session 命令集（**superseded for local first-party account truth**）：
+共享 auth session 命令集（**Kit shared auth surface; not Desktop app-local account truth**）：
 
 - `auth_session_load`
 - `auth_session_save`
 - `auth_session_clear`
 
-These command names may remain registered only as disabled Kit/Tauri scaffold
-stubs. Each command MUST fail closed and MUST NOT read, decrypt, write, clear,
-or validate `~/.nimi/auth/session.v1.json` for local first-party Desktop
-account truth. Renderer code, Desktop bootstrap, Avatar, Tester, and Web
-adapters MUST NOT consume these commands for revalidation, token handoff,
-logout, or user-switch detection.
+These command names may remain registered only through `kit/shell/tauri/**`
+and Kit renderer aliases. Apps must not duplicate them as app-local commands.
+Desktop renderer account flows, Desktop bootstrap, Avatar, Tester, and Web
+adapters MUST NOT consume these commands as Desktop first-party revalidation,
+token handoff, logout, or user-switch truth.
 
 Authenticated local consumer revalidation belongs to Runtime account-session
 projection (`GetAccountSessionStatus`, `SubscribeAccountSessionEvents`,
 `GetAccessToken`) and scoped binding validation. Desktop may render Runtime
 account projection and route user intent, but it must not reintroduce
-shared-session coherence as a Desktop bridge surface.
+app-local shared-session coherence as a Desktop bridge surface.
 
 ## D-IPC-002 — Daemon 生命周期命令
 
@@ -244,14 +243,13 @@ cloud 路径必须固定经由 Runtime connector APIs；Desktop 不得恢复 leg
 
 ## D-IPC-011 — Local Runtime 命令
 
-Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`），命令集统一使用 `runtime_local_*` 前缀（`local_runtime::commands`）：
+Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）。Desktop app-local `runtime_local_*` 命令只保留 manifest picker helper；通用 file/directory picker 与 reveal 必须走 Kit standard shell `file-dialog.open` / `file-reveal.reveal`：
 
 Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle/catalog 命令不再注册，也不得作为 shipped helper 保留。catalog search、catalog variants、install-plan 与 install execution 必须走 SDK `RuntimeLocalService` typed API：
 
-- `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<local-asset-id>/asset.manifest.json`。
-- `runtime_local_pick_asset_directory`：选取 bundle 目录，供 SDK `RuntimeLocalService` bundle import 使用。
-- `runtime_local_pick_asset_file`：选取任意待导入的 asset 文件。
+- asset file/bundle directory pickers：renderer wrapper 调用 Kit standard `file-dialog.open`，不得注册 `runtime_local_pick_asset_file` / `runtime_local_pick_asset_directory`。
+- asset reveal/root reveal：renderer wrapper 调用 Kit standard `file-reveal.reveal`，不得注册 `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`。
 - recommendation page 必须经 SDK `RuntimeLocalService.GetRecommendationFeed` 读取 capability-scoped candidate feed；Tauri 不得保留 recommendation feed / model-index / host-fit helper surface。
 
 产品约束：

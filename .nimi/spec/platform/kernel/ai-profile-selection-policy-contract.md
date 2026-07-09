@@ -459,8 +459,8 @@ Account Default Profile content source。
   `AIConfig` / `AISnapshot`
 - `.nimi/spec/runtime/kernel/ai-profile-execution-contract.md` —
   `K-AIEXEC-001..K-AIEXEC-006` runtime profile execution + probe contract
-- `.nimi/spec/runtime/kernel/local-engine-contract.md` —
-  `K-LENG-024..K-LENG-028` runtime local environment authority
+- `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` —
+  `K-LENG-024..K-LENG-027` runtime local environment authority
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` —
   `K-LENG-028`, `K-RPC-025`, materializer registry/projection authority
 - `.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md`

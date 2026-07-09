@@ -20,17 +20,14 @@ typed SDK methods:
 - explicit user trigger requests
 - cancellation/interrupt requests
 - replay open requests
-- debug/probe requests through the admitted Avatar debug workbench path
 
 Controls must carry typed refs only: `agent_id`, `surface_kind`, `profile_ref`,
 `conversation_anchor_ref`, `room_orchestration_ref`, `domain_context_ref`, or
 `debug_probe_ref` as applicable.
 
-The Agent Center Avatar debug workbench must request a typed companion
-participation projection for `avatar_debug_workbench` when refreshing or
-running Avatar debug probes. Passed debug probes without visible typed
-participation status are not sufficient product evidence for companion
-participation readiness.
+Avatar debug/probe participation remains Runtime/Avatar-owned. Desktop may
+display typed projection state when surfaced by SDK/Runtime, but it must not own
+or run a Desktop debug/probe workbench.
 
 ## D-LLM-096 Persona Boundary
 

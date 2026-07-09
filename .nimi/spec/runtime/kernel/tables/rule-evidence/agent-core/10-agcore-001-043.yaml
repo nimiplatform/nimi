@@ -1,0 +1,183 @@
+rules:
+  - rule_id: K-AGCORE-001
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-002
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-003
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-004
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-005
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-006
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-006a
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-006b
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-006c
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-006d
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Agent Chat lifecycle authority is explicitly non-equivalent to ordinary app AI session-loop product truth.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-007
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-008
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-009
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-010
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-011
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-012
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-013
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-014
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-015
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-016
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-016a
+    evidence_refs:
+      - runtime_kernel_consistency
+    test_files:
+      - runtime/internal/services/runtimeagent/service_canonical_review_status_test.go
+    note: Runtime-owned bank-level canonical review status projection for app-facing observability; no per-record review truth or mutation is admitted here.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-017
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-018
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-019
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-020
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-021
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-022
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-023
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-024
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-025
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-026
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-026a
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-026b
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-027
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-028
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-029
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-030
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-031
+    evidence_refs: []
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-032
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-033
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-034
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-035
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-036
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-037
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-038
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-039
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-040
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-041
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-042
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-043
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required

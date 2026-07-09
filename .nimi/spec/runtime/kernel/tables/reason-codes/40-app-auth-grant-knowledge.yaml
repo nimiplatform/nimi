@@ -1,0 +1,153 @@
+codes:
+  - name: APP_AUTHORIZATION_DENIED
+    value: 100
+    family: APP_AUTH
+    source_rule: K-GRANT-003
+  - name: APP_GRANT_INVALID
+    value: 101
+    family: APP_AUTH
+    source_rule: K-GRANT-004
+  - name: APP_TOKEN_EXPIRED
+    value: 102
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-004
+  - name: APP_TOKEN_REVOKED
+    value: 103
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-005
+  - name: APP_SCOPE_CATALOG_UNPUBLISHED
+    value: 105
+    family: APP_AUTH
+    source_rule: K-GRANT-008
+  - name: APP_DELEGATION_FORBIDDEN
+    value: 107
+    family: APP_AUTH
+    source_rule: K-GRANT-005
+  - name: APP_DELEGATION_DEPTH_EXCEEDED
+    value: 108
+    family: APP_AUTH
+    source_rule: K-GRANT-005
+  - name: APP_RESOURCE_SELECTOR_INVALID
+    value: 109
+    family: APP_AUTH
+    source_rule: K-GRANT-003
+  - name: APP_RESOURCE_OUT_OF_SCOPE
+    value: 110
+    family: APP_AUTH
+    source_rule: K-GRANT-005
+  - name: APP_CONSENT_MISSING
+    value: 111
+    family: APP_AUTH
+    source_rule: K-GRANT-003
+  - name: APP_CONSENT_INVALID
+    value: 112
+    family: APP_AUTH
+    source_rule: K-GRANT-003
+  - name: EXTERNAL_PRINCIPAL_PROOF_MISSING
+    value: 113
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-006
+  - name: EXTERNAL_PRINCIPAL_PROOF_INVALID
+    value: 114
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-006
+  - name: APP_MODE_WORLD_RELATION_FORBIDDEN
+    value: 117
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-010
+  - name: APP_MODE_DOMAIN_FORBIDDEN
+    value: 500
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-009
+  - name: APP_MODE_SCOPE_FORBIDDEN
+    value: 501
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-009
+  - name: APP_MODE_MANIFEST_INVALID
+    value: 502
+    family: APP_AUTH
+    source_rule: K-AUTHSVC-010
+  - name: APP_SCOPE_FORBIDDEN
+    value: 503
+    family: APP_AUTH
+    source_rule: K-GRANT-009
+  - name: APP_SCOPE_REVOKED
+    value: 504
+    family: APP_AUTH
+    source_rule: K-GRANT-010
+  - name: GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND
+    value: 510
+    family: GRANT
+    source_rule: K-GRANT-013
+  - name: GRANT_TOKEN_CHAIN_ROOT_REQUIRED
+    value: 511
+    family: GRANT
+    source_rule: K-GRANT-013
+  - name: PAGE_TOKEN_INVALID
+    value: 520
+    family: PAGE
+    source_rule: K-PAGE-002
+  - name: KNOWLEDGE_BANK_ALREADY_EXISTS
+    value: 530
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_BANK_NOT_FOUND
+    value: 531
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_BANK_SCOPE_INVALID
+    value: 532
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_BANK_ACCESS_DENIED
+    value: 533
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_PAGE_NOT_FOUND
+    value: 534
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_PAGE_SLUG_CONFLICT
+    value: 535
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_PAGE_ACCESS_DENIED
+    value: 536
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE
+    value: 537
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE
+    value: 538
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_VECTOR_INDEX_NOT_READY
+    value: 539
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS
+    value: 540
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_LINK_NOT_FOUND
+    value: 541
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_LINK_ALREADY_EXISTS
+    value: 542
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_LINK_INVALID
+    value: 543
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_GRAPH_DEPTH_INVALID
+    value: 544
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_INGEST_TASK_NOT_FOUND
+    value: 545
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005

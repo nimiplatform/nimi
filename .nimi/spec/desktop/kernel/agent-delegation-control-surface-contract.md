@@ -37,7 +37,7 @@ Fixed constraints:
 ## D-LLM-074 — Product Surface Placement
 
 Desktop MAY expose delegated capability controls in agent chat settings, avatar
-configuration, connector configuration, debug workbench, and approval UX panels.
+configuration, connector configuration, and approval UX panels.
 
 Fixed constraints:
 
@@ -49,11 +49,8 @@ Fixed constraints:
 - Connector configuration MAY reference Runtime credential custody identifiers
   such as `connector://`, `key-source://`, or `grant://`; it MUST NOT expose raw
   credential material to delegated provider profiles.
-- Debug workbench diagnostics MUST show Runtime decision/audit evidence; it MUST
-  NOT synthesize success or hide firewall rejection.
-- Avatar-specific configuration and debug workbench truth lives in
-  `agent-avatar-configuration-contract.md` and
-  `agent-avatar-debug-workbench-contract.md`. This rule remains the
+- Avatar-specific configuration truth lives in
+  `agent-avatar-configuration-contract.md`. This rule remains the
   delegated-capability placement cross-reference and does not own backend
   capability profile refs, Runtime avatar probe semantics, or Avatar backend
   evidence.

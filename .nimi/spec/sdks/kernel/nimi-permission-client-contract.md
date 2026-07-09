@@ -198,5 +198,5 @@ location), `P-NAPP-025` (review-decision schema; not redefined),
 - `.nimi/spec/platform/kernel/app-permission-contract.md` — `P-PERM-001..P-PERM-011` (`P-PERM-006` cross-app authorization; `P-PERM-011` `app-local-drafts` qualifier semantics)
 - `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` — `P-NAPP-025` review-decision schema (consumed by `S-APP-015`, anti-target recorded at `S-PERM-010`)
 - `.nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md` — `P-AUDIT-006` review-evidence shape (consumed by `S-APP-015`, anti-target recorded at `S-PERM-010`)
-- `.nimi/spec/runtime/kernel/app-messaging-contract.md` — `K-APP-018` Runtime-mediated file-API non-admission (referenced by `S-PERM-009` flow-shape non-admission)
+- `.nimi/spec/runtime/kernel/app-lifecycle-contract.md` — `K-APP-018` Runtime-mediated file-API non-admission (referenced by `S-PERM-009` flow-shape non-admission)
 - `.nimi/spec/cognition/kernel/app-memory-access-contract.md` — `C-APMEM-001..C-APMEM-008`

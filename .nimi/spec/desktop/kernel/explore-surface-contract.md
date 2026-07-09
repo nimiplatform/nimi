@@ -234,4 +234,4 @@ WorldCore, RealmPersona, SourceMaterializationPacket, or LocalAgent truth.
 - `.nimi/spec/realm/kernel/core-contract.md` — WorldCore, WorldCharacterCore, RealmPersona, SourceMaterializationPacket authority.
 - `.nimi/spec/realm/kernel/feed-contract.md` — public activity feed scopes and author identity.
 - `.nimi/spec/realm/kernel/chat-contract.md` — LocalAgent Chat identity.
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — SourceMaterializationPacket to LocalAgent materialization and Runtime-local deletion.
+- `.nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md` — SourceMaterializationPacket to LocalAgent materialization and Runtime-local deletion.

@@ -1,0 +1,97 @@
+codes:
+  - name: REASON_CODE_UNSPECIFIED
+    value: 0
+    family: GENERAL
+    source_rule: K-ERR-001
+  - name: ACTION_EXECUTED
+    value: 1
+    family: GENERAL
+    source_rule: K-ERR-001
+  - name: PROTOCOL_ENVELOPE_INVALID
+    value: 2
+    family: GENERAL
+    source_rule: K-ERR-003
+  - name: PROTOCOL_DOMAIN_FIELD_CONFLICT
+    value: 3
+    family: GENERAL
+    source_rule: K-ERR-003
+  - name: CAPABILITY_CATALOG_MISMATCH
+    value: 4
+    family: GENERAL
+    source_rule: K-ERR-006
+  - name: APP_NOT_REGISTERED
+    value: 5
+    family: GENERAL
+    source_rule: K-AUTHSVC-003
+  - name: EXTERNAL_PRINCIPAL_NOT_REGISTERED
+    value: 6
+    family: GENERAL
+    source_rule: K-AUTHSVC-006
+  - name: PRINCIPAL_UNAUTHORIZED
+    value: 8
+    family: GENERAL
+    source_rule: K-AUTH-001
+  - name: SESSION_EXPIRED
+    value: 7
+    family: AUTH
+    source_rule: K-AUTHN-006
+  - name: AUTH_TOKEN_INVALID
+    value: 300
+    family: AUTH
+    source_rule: K-AUTHN-007
+  - name: AUTH_TOKEN_EXPIRED
+    value: 301
+    family: AUTH
+    source_rule: K-AUTHSVC-013
+  - name: AUTH_UNSUPPORTED_PROOF_TYPE
+    value: 302
+    family: AUTH
+    source_rule: K-AUTHSVC-013
+  - name: AUTH_REVOCATION_UNAVAILABLE
+    value: 303
+    family: AUTH
+    source_rule: K-AUTHN-006
+  - name: AI_CONNECTOR_NOT_FOUND
+    value: 310
+    family: CONNECTOR
+    source_rule: K-ERR-004
+  - name: AI_CONNECTOR_DISABLED
+    value: 311
+    family: CONNECTOR
+    source_rule: K-ERR-004
+  - name: AI_CONNECTOR_CREDENTIAL_MISSING
+    value: 312
+    family: CONNECTOR
+    source_rule: K-ERR-004
+  - name: AI_CONNECTOR_INVALID
+    value: 313
+    family: CONNECTOR
+    source_rule: K-ERR-006
+  - name: AI_CONNECTOR_IMMUTABLE
+    value: 314
+    family: CONNECTOR
+    source_rule: K-ERR-006
+  - name: AI_CONNECTOR_LIMIT_EXCEEDED
+    value: 315
+    family: CONNECTOR
+    source_rule: K-ERR-006
+  - name: AI_CONNECTOR_ID_REQUIRED
+    value: 316
+    family: CONNECTOR
+    source_rule: K-KEYSRC-007
+  - name: AI_LOCAL_CONNECTOR_RETIRED
+    value: 317
+    family: CONNECTOR
+    source_rule: K-RTARGET-006
+  - name: AI_REQUEST_CREDENTIAL_CONFLICT
+    value: 330
+    family: REQUEST_CREDENTIAL
+    source_rule: K-KEYSRC-002
+  - name: AI_REQUEST_CREDENTIAL_MISSING
+    value: 211
+    family: REQUEST_CREDENTIAL
+    source_rule: K-KEYSRC-007
+  - name: AI_REQUEST_CREDENTIAL_INVALID
+    value: 212
+    family: REQUEST_CREDENTIAL
+    source_rule: K-ERR-006

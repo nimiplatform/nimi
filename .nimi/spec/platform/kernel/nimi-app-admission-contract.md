@@ -793,5 +793,6 @@ AIConfig, storage, or Runtime OpenApp gates.
 - `.nimi/spec/sdks/kernel/nimi-app-client-contract.md` — `S-APP-001..S-APP-021`
 - `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*`
 - `.nimi/spec/runtime/kernel/app-messaging-contract.md` — `K-APP-*`
-- `.nimi/spec/runtime/kernel/local-engine-contract.md` — `K-LENG-024..K-LENG-028`
+- `.nimi/spec/runtime/kernel/local-engine-runtime-environment-contract.md` — `K-LENG-024..K-LENG-027`
+- `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 - `.nimi/spec/desktop/kernel/nimi-home-shell-contract.md` — `D-HOME-001..D-HOME-012`

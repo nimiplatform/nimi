@@ -1,0 +1,251 @@
+rules:
+  - rule_id: K-AGCORE-044
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-045
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-046
+    evidence_refs:
+      - runtime_kernel_consistency
+    evidence_requirement: required
+  - rule_id: K-AGCORE-047
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-048
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-049
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-050
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-051
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: PresentationTimeline voice/lipsync branch is admitted as authority; implementation evidence is owned by downstream runtime timeline implementation
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-052
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+  - rule_id: K-AGCORE-053
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    note: Runtime artifact bytes retrieval; active authority requires RuntimeArtifactService wire and storage evidence.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-054
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Avatar debug projection authority admitted as contract/table truth; runtime implementation evidence is deferred until debug projection runtime implementation.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-055
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Avatar probe request envelope admitted as contract/table truth; runtime implementation evidence is deferred until probe request runtime implementation.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-056
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Avatar probe result envelope admitted as contract/table truth; runtime implementation evidence is deferred until probe result runtime implementation.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-057
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Avatar debug replay keys admitted as contract/table truth; runtime implementation evidence is deferred until debug replay runtime implementation.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-058
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: runtime.agent.avatar_debug.* projection families admitted as contract/table truth; runtime implementation evidence is deferred until avatar debug runtime implementation.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-059
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Provider/delegation boundary admitted as authority reference; delegated gateway implementation evidence remains under K-DELEG-*.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-060
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Later implementation status rule for Avatar debug projection; closure evidence is owned by the owning implementation authority.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-133
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+    note: Runtime-owned voice chunk stream projection requires runtime artifact/turn-stream behavior and SDK projection consumption evidence.
+    evidence_requirement: required
+  - rule_id: K-AGCORE-061
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation authority admitted as contract/table truth; implementation evidence is owned by Runtime participation implementation authority.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-062
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation non-canonical candidate posture admitted as contract/table truth; implementation evidence is owned by Runtime participation implementation authority.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-063
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation axis registry admitted as contract/table truth; implementation evidence is owned by Runtime participation implementation authority.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-064
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation transcript owner axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-065
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation identity source axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-066
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation execution owner axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-067
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation memory read scope axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-068
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation memory write default axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-069
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation capability scope axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-070
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation input trust axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-071
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation output destination axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-072
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation promotion posture axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-073
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation execution concurrency axis admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-074
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation profile registry admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-075
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation canonical agent chat reference profile admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-076
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation Realm group agent profile admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-077
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation Scenario sandbox profile admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-078
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation OASIS/world profile admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-079
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation external agent entry profile admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-080
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation debug/probe profile admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-081
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation context block registry admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-082
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation output candidate schema admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-083
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation domain commit separation admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-084
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation memory policy tables admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-085
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation capability scope table admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-086
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation concurrency policy table admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-087
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation audit/replay boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-088
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation public raw prompt boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-089
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation external entry boundary matrix admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-090
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation MCP-backed AI capability entry boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-091
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation future A2A external agent entry boundary admitted as contract/table truth.
+    evidence_requirement: deferred
+  - rule_id: K-AGCORE-092
+    evidence_refs:
+      - runtime_kernel_consistency
+    note: Runtime agent participation external principal writeback boundary admitted as contract/table truth.
+    evidence_requirement: deferred

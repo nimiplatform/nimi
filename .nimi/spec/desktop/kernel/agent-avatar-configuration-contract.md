@@ -26,14 +26,16 @@ Fixed rules:
 - configuration is a Desktop host-transport/control cache, not final Avatar or
   Runtime presentation truth and not a launch payload
 - `local_avatar_asset_ref` and `backend_capability_profile_ref` are opaque
-  Avatar/Runtime projection refs when present, not Desktop-owned refs
+  host-transport evidence refs when present; they are not Desktop renderer
+  refs, not Avatar launch payload, and not final Avatar/Runtime truth
 - Desktop MAY validate selected file shape before handoff, but Avatar/Runtime
-  resource service owns materialization, backend capability profile truth, and
-  final admission
+  resource service owns renderer materialization semantics, backend capability
+  profile truth, and final admission
 - Desktop MUST NOT create a local avatar carrier registry or per-agent local
   avatar binding truth
 - local asset resolver execution belongs to Avatar/Runtime resource service
-  after Runtime validates the launch agent selector
+  after Runtime validates the launch agent selector; Desktop cache paths are
+  transport staging only
 
 ## D-LLM-079 — Closed Configuration Record
 
@@ -177,8 +179,8 @@ Desktop transport cache may store only local Avatar asset refs, source
 provenance, and bounded status summaries:
 
 - `local_avatar_asset_ref` or current storage-equivalent local selection ref
-- `live2d_calibration_ref` as an opaque Avatar-domain projection ref
-- `backend_capability_profile_ref` as an opaque Avatar-domain projection ref
+- `live2d_calibration_ref` as an opaque Avatar-domain evidence ref
+- `backend_capability_profile_ref` as an opaque host-transport evidence ref
 - selected `backend_kind`
 - readiness/status summary
 - typed diagnostic ids
@@ -246,29 +248,25 @@ to Avatar after Runtime validates `agent_id` and the local agent projection.
 Agent Center resolver plumbing, when present, is local Avatar asset
 materialization storage only. It is not remote package authority.
 
-## D-LLM-104 — Live2D Calibration Workbench Boundary
+## D-LLM-104 — Live2D Calibration Ref Boundary
 
-Desktop MAY render a Live2D calibration/review workbench inside Agent Chat
-Settings -> Avatar.
+Desktop MUST NOT render or maintain a Live2D calibration or debug-control
+surface inside Agent Chat Settings -> Avatar.
 
-Admitted review surface:
+Admitted read-only evidence surface:
 
 - selected opaque local Avatar asset ref
 - Live2D adapter manifest source posture and opaque sidecar ref state
-- preview artifact posture sourced from Runtime/Avatar debug probe evidence
-- model framing and render-policy readiness posture
-- expression inventory posture sourced from Runtime/Avatar debug probe evidence
-- debug probe request shortcuts for backend, capability profile, route matrix,
-  generated motion, emotion/expression, speech/lipsync, and window/hit-region
+- backend capability and validation posture from typed Avatar/Runtime evidence
+- `live2d_calibration_ref` display as an opaque evidence ref only
 
-The workbench MAY persist `live2d_calibration_ref` as an opaque Desktop
-control-record ref. The ref records only that Desktop has a bounded calibration
-handle; it is not a payload, not a model digest, not a preview artifact, and not
-Avatar carrier truth.
+Desktop MAY persist `live2d_calibration_ref` only as an opaque host-control
+cache ref. The ref records only read-only evidence returned by the admitted
+Avatar/Runtime resource path; it is not a payload, not a model digest, not a
+preview artifact, not a debug shortcut, and not Avatar carrier truth.
 
 Until a Runtime/SDK/Avatar calibration payload/effect projection shape is
-admitted, the workbench
-MUST NOT persist or pass:
+admitted, Desktop MUST NOT persist or pass:
 
 - calibration payload or calibration values
 - model digest or avatar-instance calibration mapping
@@ -279,7 +277,7 @@ MUST NOT persist or pass:
 - compatibility tier, `AVATAR_LIVE2D_COMPAT_*` diagnostics, or Avatar carrier
   proof as Desktop configuration truth
 
-The workbench MUST NOT widen the Avatar launch payload. Any future persisted
+This ref boundary MUST NOT widen the Avatar launch payload. Any future persisted
 calibration may affect Avatar only through an admitted Runtime/SDK/Avatar
 payload/effect resolver projection, never through Desktop launch handoff or app-local carrier
 truth.

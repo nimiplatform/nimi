@@ -257,4 +257,4 @@ ResourceHint {
 - `device-profile-contract.md` — K-DEV-001~007 (device profile collection)
 - `ai-profile-execution-contract.md` — K-AIEXEC-003~004 (execution snapshot, scheduling boundary)
 - `config-contract.md` — K-CFG-* (configuration paths)
-- `local-category-capability.md` — K-LOCAL-013~015 (ResolveProfile, ApplyProfile)
+- `local-profile-application-contract.md` — K-LOCAL-013~015 (ResolveProfile, ApplyProfile)

@@ -41,8 +41,8 @@ surface_kinds: &companion_participation_surface_kind_surfaces
       - memory_write
       - domain_commit
   avatar_debug_workbench:
-    owner: desktop_and_avatar
-    product_surface: Avatar debug/probe workbench
+    owner: runtime_avatar_sdk_consumers
+    product_surface: Avatar debug/probe typed projection client
     projection_modes:
       - typed_probe_status
       - typed_replay_status

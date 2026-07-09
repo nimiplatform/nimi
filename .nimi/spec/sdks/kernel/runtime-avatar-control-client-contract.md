@@ -4,7 +4,7 @@
 
 ## S-RUNTIME-112 Avatar Control Client Boundary
 
-SDK may expose Avatar configuration and debug workbench APIs only as typed
+SDK may expose Avatar configuration and debug/probe APIs only as typed
 clients for the referenced Desktop, Runtime, and Avatar authority contracts.
 
 SDK does not own configuration semantics, probe semantics, backend execution,

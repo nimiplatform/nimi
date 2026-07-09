@@ -54,10 +54,9 @@ surfaces:
   - Embedded and external Live2D adapter manifests must not be merged or
     silently preferred.
   - Missing evidence produces fail-closed configuration status.
-  - The Desktop Live2D calibration workbench may persist only an opaque
-    `live2d_calibration_ref`; calibration values and Avatar effect remain
-    blocked until a Runtime/SDK/Avatar payload/effect resolver projection is
-    admitted.
+  - Desktop may persist only an opaque `live2d_calibration_ref`; calibration
+    values, debug shortcuts, and Avatar effect remain blocked until a
+    Runtime/SDK/Avatar payload/effect resolver projection is admitted.
 schema_id: nimi.desktop.agent-avatar-configuration.v1
 owner: .nimi/spec/desktop
 status: active
@@ -223,7 +222,7 @@ invariants:
   - Desktop local import validation issue codes are import-readiness evidence
     only; they must not use `AVATAR_LIVE2D_COMPAT_*`, compatibility tier, Avatar
     carrier-proof, or backend capability truth semantics.
-  - The Desktop Live2D calibration workbench may persist only
-    `live2d_calibration_ref` as an opaque control ref that Avatar local asset
-    resolver may project as read-only evidence; it must not persist calibration
-    values or affect Avatar outside an admitted resolver effect projection.
+  - Desktop may persist only `live2d_calibration_ref` as an opaque control ref
+    that Avatar local asset resolver may project as read-only evidence; it must
+    not persist calibration values, expose debug shortcuts, or affect Avatar
+    outside an admitted resolver effect projection.

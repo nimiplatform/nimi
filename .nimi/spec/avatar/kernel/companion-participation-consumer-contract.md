@@ -47,7 +47,8 @@ The initial admitted kinds are:
 
 - `avatar_companion`
 - `desktop_companion_panel`
-- `avatar_debug_workbench`
+- `avatar_debug_workbench` (stable typed probe-client vocabulary; not a
+  Desktop-local workbench UI)
 
 Avatar package/persona choices, such as assistant, character, virtual singer,
 or other stylized persona, are configuration and content choices inside the

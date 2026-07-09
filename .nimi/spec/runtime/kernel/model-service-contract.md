@@ -159,8 +159,10 @@ Cross-owner split:
 
 - `device-profile-contract.md` owns `LocalDeviceProfile` collection and host
   capability evidence.
-- `local-engine-contract.md` owns public engine taxonomy, supervised/attached
-  runtime modes, and engine/host compatibility rules.
+- `local-engine-contract.md` owns public engine taxonomy and supervised/attached
+  runtime modes.
+- `local-engine-resolver-contract.md` owns engine/host compatibility and
+  resolver rules.
 - `local-environment-materializers-contract.md` owns dependency materialization,
   verification, activation, and repair evidence.
 - `model-catalog-contract.md` owns catalog identity and provider/source

@@ -15,8 +15,6 @@ entries:
   - features_10
   - features_11
   - features_12
-  - features_13
-  - features_14
 features:
   - feature: boot-startup
     risk_tier: P0
@@ -129,35 +127,6 @@ features:
       - scenario_id: chat.open-thread
         source_rule: D-GATE-040
         spec_path: apps/desktop/e2e/specs/chat.open-thread.e2e.mjs
-  - feature: chat-memory-mode
-    risk_tier: P1
-    required_layers:
-      - unit_contract
-      - desktop_e2e_journey
-    covers_tabs:
-      - chat
-    covers_bootstrap_phases: []
-    covers_ipc_commands:
-      - confirm_dialog
-    covers_runtime_pages: []
-    scenarios:
-      - scenario_id: chat.memory-standard-bind
-        source_rule: D-GATE-040
-        spec_path: apps/desktop/e2e/specs/chat.memory-standard-bind.e2e.mjs
-  - feature: chat-avatar-rendering
-    risk_tier: P1
-    required_layers:
-      - unit_contract
-      - desktop_e2e_journey
-    covers_tabs:
-      - chat
-    covers_bootstrap_phases: []
-    covers_ipc_commands: []
-    covers_runtime_pages: []
-    scenarios:
-      - scenario_id: chat.live2d-render-smoke
-        source_rule: D-GATE-040
-        spec_path: apps/desktop/e2e/specs/chat.live2d-render-smoke.e2e.mjs
   - feature: explore-entry
     risk_tier: P1
     required_layers:

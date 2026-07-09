@@ -1,0 +1,133 @@
+codes:
+  - name: APP_MESSAGE_PAYLOAD_TOO_LARGE
+    value: 550
+    family: APP_MESSAGE
+    source_rule: K-APP-005
+  - name: APP_MESSAGE_RATE_LIMITED
+    value: 551
+    family: APP_MESSAGE
+    source_rule: K-APP-005
+  - name: APP_MESSAGE_LOOP_DETECTED
+    value: 552
+    family: APP_MESSAGE
+    source_rule: K-APP-005
+  - name: APP_INSTALL_DESCRIPTOR_NOT_FOUND
+    value: 553
+    family: APP_INSTALL
+    source_rule: K-APP-011
+  - name: APP_INSTALL_DIGEST_MISMATCH
+    value: 554
+    family: APP_INSTALL
+    source_rule: K-APP-011
+  - name: APP_INSTALL_MANIFEST_INVALID
+    value: 555
+    family: APP_INSTALL
+    source_rule: K-APP-011
+  - name: APP_INSTALL_STORAGE_VIOLATION
+    value: 556
+    family: APP_INSTALL
+    source_rule: K-APP-011
+  - name: APP_INSTALL_DOWNLOAD_FAILED
+    value: 557
+    family: APP_INSTALL
+    source_rule: K-APP-011
+  - name: APP_INSTALL_UNPACK_FAILED
+    value: 558
+    family: APP_INSTALL
+    source_rule: K-APP-011
+  - name: APP_INSTALL_INTERNAL
+    value: 559
+    family: APP_INSTALL
+    source_rule: K-APP-011
+  - name: APP_UPDATE_NOT_AVAILABLE
+    value: 590
+    family: APP_UPDATE
+    source_rule: K-APP-015
+  - name: APP_UPDATE_NOT_INSTALLED
+    value: 591
+    family: APP_UPDATE
+    source_rule: K-APP-015
+  - name: APP_UPDATE_CONFIRMATION_REQUIRED
+    value: 592
+    family: APP_UPDATE
+    source_rule: K-APP-015
+  - name: APP_UPDATE_SWAP_FAILED
+    value: 593
+    family: APP_UPDATE
+    source_rule: K-APP-015
+  - name: APP_REPAIR_ACTION_INVALID
+    value: 594
+    family: APP_REPAIR
+    source_rule: K-APP-016
+  - name: APP_REPAIR_NO_RECOVERABLE_JOB
+    value: 595
+    family: APP_REPAIR
+    source_rule: K-APP-016
+  - name: APP_REPAIR_NOT_REPAIRABLE
+    value: 596
+    family: APP_REPAIR
+    source_rule: K-APP-016
+  - name: APP_LIFECYCLE_JOB_CANCELLED
+    value: 597
+    family: APP_REPAIR
+    source_rule: K-APP-016
+  - name: APP_OPEN_SCOPE_REF_REQUIRED
+    value: 605
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_SCOPE_REF_INVALID
+    value: 606
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_PACKAGE_NOT_VERIFIED
+    value: 607
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_LIBRARY_STATE_INVALID
+    value: 608
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_APP_DATA_INVALID
+    value: 609
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_PERMISSION_NOT_GRANTED
+    value: 610
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_AICONFIG_UNRESOLVED
+    value: 611
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED
+    value: 612
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: APP_OPEN_LAUNCH_FAILED
+    value: 613
+    family: APP_OPEN
+    source_rule: K-APP-017
+  - name: AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED
+    value: 560
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011
+  - name: AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED
+    value: 561
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011
+  - name: AI_LOCAL_SPEECH_ENV_INIT_FAILED
+    value: 562
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011
+  - name: AI_LOCAL_SPEECH_HOST_INIT_FAILED
+    value: 563
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011
+  - name: AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED
+    value: 564
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011
+  - name: AI_LOCAL_SPEECH_BUNDLE_DEGRADED
+    value: 565
+    family: LOCAL_SPEECH
+    source_rule: K-ERR-011

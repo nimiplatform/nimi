@@ -81,7 +81,7 @@ capabilities:
     authority_refs:
       - .nimi/spec/realm/kernel/social-contract.md#R-SOC-001
       - .nimi/spec/realm/kernel/chat-contract.md#R-CHAT-001
-      - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-139
+      - .nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md#K-AGCORE-139
     login_requirement: realm_login_required
     public_promise: Realm-owned ecosystem identity covers authenticated social, group, and RealmPersona source identity; Runtime owns local executable LocalAgent identity and materialization from SourceMaterializationPacket.
     failure_behavior: Unauthenticated or mismatched owner identity fails closed; localAgentRef is Runtime-owned opaque identity and must not be derived from ownerUserId plus runtimeSourceRef.
@@ -98,6 +98,9 @@ capabilities:
     authority_refs:
       - .nimi/spec/desktop/kernel/offline-degradation-contract.md#D-OFFLINE-001
       - .nimi/spec/runtime/kernel/local-category-capability.md
+      - .nimi/spec/runtime/kernel/local-profile-application-contract.md
+      - .nimi/spec/runtime/kernel/local-catalog-recommendation-contract.md
+      - .nimi/spec/runtime/kernel/local-asset-storage-manifest-contract.md
       - .nimi/spec/platform/kernel/governance-contract.md#P-GOV-026
     login_requirement: local_runtime_allowed
     public_promise: Runtime-reachable local AI and current-renderer local agent interaction may operate when Realm is unavailable, without claiming Realm sync, social, economy, or account success.
@@ -131,8 +134,8 @@ capabilities:
     owner_domain: runtime
     authority_refs:
       - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-001
-      - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-139
-      - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-141
+      - .nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md#K-AGCORE-139
+      - .nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md#K-AGCORE-141
     login_requirement: realm_login_required
     public_promise: RuntimeAgentService owns live LocalAgent lifecycle, conversation anchors, hard delete, event log, and local executable materialization from SourceMaterializationPacket input and Runtime-local provenance.
     failure_behavior: Invalid packet proof, mismatched localAgentRef, substrate deletion failure, or unavailable runtime state fails closed; TerminateAgent cannot leave partial projection truth and source removal must not delete LocalAgent state.
@@ -140,7 +143,7 @@ capabilities:
     verification_refs:
       - runtime/internal/services/runtimeagent/agent_hard_deletion_test.go
       - runtime/internal/services/runtimeagent/guide_localagent_projection_test.go
-      - sdks/typescript/runtime/runtime-agent-helpers.test.ts
+      - sdks/typescript/runtime/runtime-agent-lifecycle-helpers.test.ts
     source_rule: P-GOV-026
 
   - id: runtime.agent.chat-track
@@ -148,7 +151,7 @@ capabilities:
     owner_domain: runtime
     authority_refs:
       - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-002
-      - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-032
+      - .nimi/spec/runtime/kernel/runtime-agent-app-consume-contract.md#K-AGCORE-032
       - .nimi/spec/runtime/kernel/agent-presentation-stream-contract.md#K-AGCORE-037
       - .nimi/spec/desktop/kernel/agent-chat-projection-contract.md#D-LLM-022
     login_requirement: realm_login_required
@@ -164,7 +167,7 @@ capabilities:
     verification_refs:
       - runtime/internal/services/runtimeagent/chat_public_surface_test.go
       - runtime/internal/services/runtimeagent/chat_public_surface_validation_test.go
-      - sdks/typescript/runtime/runtime-agent-consume.test.ts
+      - sdks/typescript/runtime/runtime-agent-consume-client.test.ts
       - apps/desktop/test/agent-chat-projection-boundary.test.ts
     source_rule: P-GOV-026
 
@@ -173,7 +176,7 @@ capabilities:
     owner_domain: runtime
     authority_refs:
       - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-002
-      - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-012
+      - .nimi/spec/runtime/kernel/runtime-agent-life-autonomy-contract.md#K-AGCORE-012
       - .nimi/spec/runtime/kernel/agent-hook-intent-contract.md#K-AGCORE-040
     login_requirement: realm_login_required
     public_promise: Only narrow Runtime-owned Life Track execution for admitted HookIntent follow-up-turn, budget, event projection, and canonical-memory candidate admission is promised.
@@ -205,7 +208,7 @@ capabilities:
     verification_refs:
       - runtime/internal/services/runtimeagent/service_memory_state_test.go
       - runtime/internal/services/runtimeagent/service_life_replication_test.go
-      - sdks/typescript/runtime/runtime-agent-consume.test.ts
+      - sdks/typescript/runtime/runtime-agent-consume-client.test.ts
     source_rule: P-GOV-026
 
   - id: runtime.agent.hooks
@@ -227,7 +230,7 @@ capabilities:
     posture: partial
     owner_domain: runtime
     authority_refs:
-      - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md#K-AGCORE-143
+      - .nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md#K-AGCORE-143
       - .nimi/spec/runtime/kernel/agent-hook-intent-contract.md#K-AGCORE-043
       - .nimi/spec/runtime/kernel/agent-presentation-stream-contract.md#K-AGCORE-037
       - .nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml
@@ -259,7 +262,7 @@ capabilities:
     partial_deferred_reason: Protocol-native A2A, raw MCP ontology promotion, app-held credentials, and broad delegated authority inheritance are not promised.
     verification_refs:
       - runtime/internal/services/runtimeagent/delegated_capability_orchestration_test.go
-      - sdks/typescript/runtime/runtime-agent-consume.test.ts
+      - sdks/typescript/runtime/runtime-agent-consume-client.test.ts
       - sdks/typescript/adapters/mastra/mastra.runtime-delegated-tools.test.ts
     source_rule: P-GOV-026
 

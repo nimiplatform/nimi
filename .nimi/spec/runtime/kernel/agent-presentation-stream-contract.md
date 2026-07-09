@@ -312,6 +312,8 @@ Fixed rules:
 ## Fact Sources
 
 - `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`
+- `.nimi/spec/runtime/kernel/runtime-agent-app-consume-contract.md`
+- `.nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md`
 - `.nimi/spec/runtime/kernel/agent-output-wire-contract.md`
 - `.nimi/spec/runtime/kernel/agent-presentation-contract.md`
 - `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`

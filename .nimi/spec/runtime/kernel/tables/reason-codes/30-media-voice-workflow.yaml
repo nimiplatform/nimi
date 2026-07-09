@@ -1,0 +1,93 @@
+codes:
+  - name: AI_MEDIA_SPEC_INVALID
+    value: 410
+    family: MEDIA
+    source_rule: K-JOB-001
+  - name: AI_MEDIA_OPTION_UNSUPPORTED
+    value: 411
+    family: MEDIA
+    source_rule: K-JOB-001
+  - name: AI_MEDIA_JOB_NOT_FOUND
+    value: 412
+    family: MEDIA
+    source_rule: K-JOB-001
+  - name: AI_MEDIA_JOB_NOT_CANCELLABLE
+    value: 413
+    family: MEDIA
+    source_rule: K-JOB-001
+  - name: AI_MEDIA_IDEMPOTENCY_CONFLICT
+    value: 414
+    family: MEDIA
+    source_rule: K-ERR-007
+  - name: AI_ARTIFACT_UPLOAD_INVALID
+    value: 415
+    family: MEDIA
+    source_rule: K-MMPROV-032
+  - name: AI_ARTIFACT_UPLOAD_TOO_LARGE
+    value: 416
+    family: MEDIA
+    source_rule: K-MMPROV-032
+  - name: AI_REALTIME_SESSION_NOT_FOUND
+    value: 417
+    family: MEDIA
+    source_rule: K-MMPROV-031
+  - name: AI_REALTIME_SESSION_CLOSED
+    value: 418
+    family: MEDIA
+    source_rule: K-MMPROV-031
+  - name: AI_VOICE_INPUT_INVALID
+    value: 420
+    family: VOICE
+    source_rule: K-VOICE-010
+  - name: AI_VOICE_WORKFLOW_UNSUPPORTED
+    value: 421
+    family: VOICE
+    source_rule: K-VOICE-010
+  - name: AI_VOICE_ASSET_NOT_FOUND
+    value: 422
+    family: VOICE
+    source_rule: K-VOICE-010
+  - name: AI_VOICE_ASSET_EXPIRED
+    value: 423
+    family: VOICE
+    source_rule: K-VOICE-010
+  - name: AI_VOICE_ASSET_SCOPE_FORBIDDEN
+    value: 424
+    family: VOICE
+    source_rule: K-VOICE-006
+  - name: AI_VOICE_TARGET_MODEL_MISMATCH
+    value: 425
+    family: VOICE
+    source_rule: K-VOICE-007
+  - name: AI_VOICE_JOB_NOT_FOUND
+    value: 426
+    family: VOICE
+    source_rule: K-VOICE-005
+  - name: AI_VOICE_JOB_NOT_CANCELLABLE
+    value: 427
+    family: VOICE
+    source_rule: K-VOICE-005
+  - name: AI_MODULE_CONFIG_INVALID
+    value: 430
+    family: MODULE
+    source_rule: K-ERR-006
+  - name: WF_DAG_INVALID
+    value: 440
+    family: WORKFLOW
+    source_rule: K-WF-010
+  - name: WF_NODE_CONFIG_MISMATCH
+    value: 441
+    family: WORKFLOW
+    source_rule: K-WF-002
+  - name: WF_TIMEOUT
+    value: 442
+    family: WORKFLOW
+    source_rule: K-WF-003
+  - name: WF_TASK_NOT_FOUND
+    value: 443
+    family: WORKFLOW
+    source_rule: K-WF-003
+  - name: AI_MEMORY_EMBEDDING_TARGET_REF_INVALID
+    value: 444
+    family: MEMORY_EMBEDDING
+    source_rule: K-RTARGET-007

@@ -561,13 +561,12 @@ Fixed rules:
 - `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` — core substrate reader guide and correspondence matrix
 - `.nimi/spec/avatar/kernel/live2d-render-contract.md` — reader guide and first-30-second demo correspondence
 
-## D-LLM-078a Cross-Reference — Configuration And Debug Workbench
+## D-LLM-078a Cross-Reference — Configuration
 
-`agent-avatar-configuration-contract.md` and
-`agent-avatar-debug-workbench-contract.md` own the Agent Chat Settings Avatar
-configuration and debug workbench product surfaces.
+`agent-avatar-configuration-contract.md` owns the Agent Chat Settings Avatar
+configuration product surface.
 
 This contract continues to own transient avatar surface and handoff semantics.
-The configuration/debug contracts must not reopen Desktop-local carrier
-registry, per-agent avatar binding truth, or launch payload widening prohibited
-by D-LLM-059 through D-LLM-072.
+The configuration contract must not reopen Desktop-local carrier registry,
+per-agent avatar binding truth, or launch payload widening prohibited by
+D-LLM-059 through D-LLM-072.

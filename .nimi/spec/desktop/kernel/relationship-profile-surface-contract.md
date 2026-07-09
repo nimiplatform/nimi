@@ -46,4 +46,4 @@ human/source profile modal behavior from contextual consumers.
 - `.nimi/spec/desktop/kernel/explore-surface-contract.md` — RealmPersona
   discovery and source-state primary actions.
 - `.nimi/spec/realm/kernel/social-contract.md` and `.nimi/spec/realm/kernel/core-contract.md` — Friendship and typed source provenance truth.
-- `.nimi/spec/runtime/kernel/runtime-agent-service-contract.md` — SourceMaterializationPacket materialization and Runtime-local LocalAgent lifecycle.
+- `.nimi/spec/runtime/kernel/runtime-local-agent-materialization-contract.md` — SourceMaterializationPacket materialization and Runtime-local LocalAgent lifecycle.

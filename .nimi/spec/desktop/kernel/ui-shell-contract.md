@@ -376,6 +376,9 @@ secondary / tertiary card 不得继续按 feature 自发发明新的 material �
 - `chat` / `agent` surface 仍然不是自动 admitted exception，也不因 shell glass
   baseline 落地而自动获得自由 glass 权限；它们必须作为单独收敛 cohort 接入共享
   hierarchy，而不是把当前 local recipe 升格为事实标准。
+- Desktop-local Live2D / VRM renderer chrome 已退役；`chat` surface 不得以
+  avatar/stage viewport 名义恢复 Cubism、Three.js、debug-control UI 或 renderer-local
+  presentation recipe。
 - profile detail 的 branded hero-glass 族谱在单独 decision packet 闭环前，
   只允许作为 `secondary` surface 注册为 exception candidate，不得直接提升成
   admitted exception。
@@ -412,9 +415,9 @@ secondary / tertiary card 不得继续按 feature 自发发明新的 material �
      surface；它们默认服从 `solid-first`，但必须通过 shared operational card
      path 收敛，而不是继续维护 `chat`-local inspection card formula。
 - 以下 `chat` surface family 在新的 admitted packet 明确改写前，只能作为
-  `chat`-owned exception candidate 登记，不得被默认为 shared card：
+  `chat`-owned convergence candidate 登记，不得被默认为 shared card：
   1. canonical transcript / stage conversation chrome
-  2. avatar/stage viewport chrome（包含 Live2D / VRM renderer chrome）
+  2. Avatar app handoff / status chrome（不包含 Desktop-local Live2D / VRM renderer）
   3. 与 avatar presentation 强绑定的 presence / status chrome
 - `chat` exception candidate 不是自动 admitted exception。只有在
   `tables/renderer-design-surfaces.yaml` 中被显式登记并在后续 authority update 中明确保留时，
@@ -422,7 +425,7 @@ secondary / tertiary card 不得继续按 feature 自发发明新的 material �
   presentation recipe。
 - `chat` secondary / tertiary surface cluster 必须在
   `tables/renderer-design-surfaces.yaml` 中显式登记为 converging cohort 或
-  exception candidate；只登记 `chat.page.root` 与 `chat.secondary.cards`
+  governed surface；只登记 `chat.page.root`
   不足以表达当前边界。
 - 本轮 authority cut 冻结的实现顺序固定如下：
   1. `chat-page` floating controls + right-panel utility/settings rail controls

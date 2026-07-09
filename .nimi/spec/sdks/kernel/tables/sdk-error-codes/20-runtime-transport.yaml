@@ -1,0 +1,100 @@
+codes:
+  - name: SDK_RUNTIME_BASE64_DECODER_UNAVAILABLE
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_BASE64_ENCODER_UNAVAILABLE
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_CODEC_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_NODE_GRPC_EMPTY_RESPONSE
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_NODE_GRPC_STREAM_BACKPRESSURE
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_NODE_GRPC_STREAM_CLOSE_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_NODE_GRPC_STREAM_OPEN_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_NODE_GRPC_UNARY_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_REQUEST_BYTES_REQUIRED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_REQUEST_ENCODE_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_RESPONSE_DECODE_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_STREAM_DECODE_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_INVOKE_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_LISTEN_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_STREAM_BACKPRESSURE
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_STREAM_CLOSE_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_STREAM_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_STREAM_ID_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_STREAM_OPEN_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_STREAM_REMOTE_ERROR
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_UNARY_BYTES_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_TAURI_UNARY_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ELECTRON_INVOKE_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ELECTRON_LISTEN_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ELECTRON_STREAM_BACKPRESSURE
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ELECTRON_STREAM_CLOSE_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ELECTRON_STREAM_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ELECTRON_STREAM_ID_MISMATCH
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ELECTRON_STREAM_ID_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ELECTRON_STREAM_OPEN_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ELECTRON_STREAM_REMOTE_ERROR
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ELECTRON_UNARY_BYTES_MISSING
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003
+  - name: SDK_RUNTIME_ELECTRON_UNARY_FAILED
+    family: SDK_RUNTIME
+    source_rule: S-ERROR-003

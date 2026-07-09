@@ -1,0 +1,103 @@
+mappings:
+  - reason_code: WORKSPACE_BINDING_MISSING
+    grpc_code: PERMISSION_DENIED
+    surface: workspace_binding_missing_attachment
+    exit_shape: grpc_status
+    source_rule: K-BIND-019
+    workspace_binding_decision: DENY_MISSING_ATTACHMENT
+    action_hint: attach_workspace_binding
+  - reason_code: WORKSPACE_BINDING_MALFORMED
+    grpc_code: INVALID_ARGUMENT
+    surface: workspace_binding_malformed_attachment
+    exit_shape: grpc_status
+    source_rule: K-BIND-019
+    workspace_binding_decision: DENY_MALFORMED_ATTACHMENT
+    action_hint: reissue_workspace_binding
+  - reason_code: WORKSPACE_BINDING_NOT_FOUND
+    grpc_code: PERMISSION_DENIED
+    surface: workspace_binding_not_found
+    exit_shape: grpc_status
+    source_rule: K-BIND-019
+    workspace_binding_decision: DENY_NOT_FOUND
+    action_hint: reissue_workspace_binding
+  - reason_code: WORKSPACE_BINDING_REVOKED
+    grpc_code: PERMISSION_DENIED
+    surface: workspace_binding_revoked
+    exit_shape: grpc_status
+    source_rule: K-BIND-019
+    workspace_binding_decision: DENY_REVOKED
+    action_hint: reissue_workspace_binding
+  - reason_code: WORKSPACE_BINDING_EXPIRED
+    grpc_code: PERMISSION_DENIED
+    surface: workspace_binding_expired
+    exit_shape: grpc_status
+    source_rule: K-BIND-019
+    workspace_binding_decision: DENY_EXPIRED
+    action_hint: reissue_workspace_binding
+  - reason_code: WORKSPACE_BINDING_REPLAY
+    grpc_code: PERMISSION_DENIED
+    surface: workspace_binding_replay
+    exit_shape: grpc_status
+    source_rule: K-BIND-019
+    workspace_binding_decision: DENY_REPLAY
+    action_hint: reissue_workspace_binding
+  - reason_code: WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: workspace_binding_account_unavailable
+    exit_shape: grpc_status
+    source_rule: K-BIND-019
+    workspace_binding_decision: DENY_ACCOUNT_UNAVAILABLE
+    action_hint: refresh_account_membership
+  - reason_code: WORKSPACE_BINDING_CALLER_MISMATCH
+    grpc_code: PERMISSION_DENIED
+    surface: workspace_binding_caller_mismatch
+    exit_shape: grpc_status
+    source_rule: K-BIND-019
+    workspace_binding_decision: DENY_CALLER_MISMATCH
+    action_hint: use_caller_owned_binding
+  - reason_code: WORKSPACE_BINDING_WORKSPACE_MISMATCH
+    grpc_code: PERMISSION_DENIED
+    surface: workspace_binding_workspace_mismatch
+    exit_shape: grpc_status
+    source_rule: K-BIND-019
+    workspace_binding_decision: DENY_WORKSPACE_MISMATCH
+    action_hint: attach_matching_workspace_binding
+  - reason_code: WORKSPACE_BINDING_ENV_DEVICE_MISMATCH
+    grpc_code: PERMISSION_DENIED
+    surface: workspace_binding_env_or_device_mismatch
+    exit_shape: grpc_status
+    source_rule: K-BIND-019
+    workspace_binding_decision: DENY_ENV_MISMATCH_OR_DENY_DEVICE_MISMATCH
+    action_hint: reissue_workspace_binding_on_current_device
+  - reason_code: WORKSPACE_BINDING_SCOPE_MISSING
+    grpc_code: PERMISSION_DENIED
+    surface: workspace_binding_scope_missing
+    exit_shape: grpc_status
+    source_rule: K-BIND-019
+    workspace_binding_decision: DENY_SCOPE_MISSING
+    action_hint: reissue_workspace_binding_with_required_scope
+  - reason_code: ARTIFACT_INVALID_INPUT
+    grpc_code: INVALID_ARGUMENT
+    surface: read_artifact_bytes_invalid_request
+    exit_shape: grpc_status
+    source_rule: K-AGCORE-053
+  - reason_code: ARTIFACT_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: read_artifact_bytes_artifact_missing
+    exit_shape: grpc_status
+    source_rule: K-AGCORE-053
+  - reason_code: ARTIFACT_TOO_LARGE
+    grpc_code: RESOURCE_EXHAUSTED
+    surface: read_artifact_bytes_inline_size_cap
+    exit_shape: grpc_status
+    source_rule: K-AGCORE-053
+  - reason_code: ARTIFACT_FORBIDDEN
+    grpc_code: PERMISSION_DENIED
+    surface: read_artifact_bytes_acl_violation
+    exit_shape: grpc_status
+    source_rule: K-AGCORE-053
+  - reason_code: ARTIFACT_MIME_MISMATCH
+    grpc_code: FAILED_PRECONDITION
+    surface: read_artifact_bytes_mime_prefix_mismatch
+    exit_shape: grpc_status
+    source_rule: K-AGCORE-053

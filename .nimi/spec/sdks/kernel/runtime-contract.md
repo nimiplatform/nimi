@@ -527,7 +527,7 @@ drift check：
 
 ## S-RUNTIME-123 Local Runtime Transfer State Projection
 
-> Upstream Runtime authority: `K-LOCAL-024`（`local-category-capability.md`）。
+> Upstream Runtime authority: `K-LOCAL-024`（`local-catalog-recommendation-contract.md`）。
 
 Runtime LocalService owns local transfer lifecycle state. SDK local-runtime
 transfer parsers are typed projections over that state only.
@@ -548,7 +548,7 @@ Fixed rules:
 
 ## S-RUNTIME-124 Runtime Agent Memory Observatory Projection Helper Boundary
 
-> Upstream Runtime authority: `runtime-agent-service-contract.md`
+> Upstream Runtime authority: `runtime-agent-canonical-memory-contract.md`
 >
 > Consumer product driver: Zhiyu H5 Memory Observatory local companion surface.
 
@@ -582,7 +582,7 @@ Fixed rules:
 
 ## S-RUNTIME-125 Runtime Agent Canonical Review Status Projection
 
-> Upstream Runtime authority: `K-AGCORE-016a`
+> Upstream Runtime authority: `K-AGCORE-016a`（`runtime-agent-canonical-memory-contract.md`）
 >
 > Consumer product driver: Zhiyu Memory Observatory lifecycle transparency.
 

@@ -37,7 +37,7 @@ methods:
     category: read
     method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot
     input_ref: avatar-debug-probe-events.yaml
-    output_ref: agent-avatar-debug-workbench-probes.yaml
+    output_ref: avatar-debug-probe-events.yaml
     semantic_owner: runtime_probe
     implementation_status: runtime_rpc_implemented
     implementation: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc.go
@@ -54,7 +54,7 @@ methods:
     implementation: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc.go
     test: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc_test.go
     sdk_client: sdks/typescript/runtime/runtime-agent-consume-client.ts
-    sdk_test: sdks/typescript/runtime/runtime-agent-consume.test.ts
+    sdk_test: sdks/typescript/runtime/runtime-agent-consume-client.test.ts
   - name: runtime.avatarDebug.submitProbeResult
     category: command
     method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult
@@ -65,7 +65,7 @@ methods:
     implementation: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc.go
     test: runtime/internal/services/runtimeagent/avatar_debug_probe_rpc_test.go
     sdk_client: sdks/typescript/runtime/runtime-agent-consume-client.ts
-    sdk_test: sdks/typescript/runtime/runtime-agent-consume.test.ts
+    sdk_test: sdks/typescript/runtime/runtime-agent-consume-client.test.ts
   - name: runtime.avatarDebug.listProbeResults
     category: read
     method_id: /nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults
@@ -99,7 +99,7 @@ methods:
     implementation: runtime/internal/services/runtimeagent/avatar_live_instance_binding_rpc.go
     test: runtime/internal/services/runtimeagent/avatar_live_instance_binding_rpc_test.go
     sdk_client: sdks/typescript/runtime/runtime-agent-consume-client.ts
-    sdk_test: sdks/typescript/runtime/runtime-agent-consume.test.ts
+    sdk_test: sdks/typescript/runtime/runtime-agent-consume-client.test.ts
   - name: runtime.agent.anchors.resolveAvatarLiveInstance
     category: read
     method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
@@ -111,7 +111,7 @@ methods:
     implementation: runtime/internal/services/runtimeagent/avatar_live_instance_binding_rpc.go
     test: runtime/internal/services/runtimeagent/avatar_live_instance_binding_rpc_test.go
     sdk_client: sdks/typescript/runtime/runtime-agent-consume-client.ts
-    sdk_test: sdks/typescript/runtime/runtime-agent-consume.test.ts
+    sdk_test: sdks/typescript/runtime/runtime-agent-consume-client.test.ts
 
 forbidden_type_shapes:
   - any

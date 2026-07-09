@@ -27,25 +27,9 @@ surfaces:
     exception_policy: none
     testid_required: true
     source_rule: D-SHELL-019
-  - id: chat.secondary.cards
-    module: features/chat/chat-shared-right-column-primitives.tsx
-    role: chat_secondary_cards
-    surface_profile: secondary
-    density_mode: compact
-    exception_policy: allowlisted_arbitrary
-    testid_required: false
-    source_rule: D-SHELL-029
   - id: chat.page.floating_controls
     module: features/chat/chat-page.tsx
     role: chat_page_floating_controls
-    surface_profile: secondary
-    density_mode: compact
-    exception_policy: none
-    testid_required: false
-    source_rule: D-SHELL-030
-  - id: chat.settings.rail_controls
-    module: features/chat/chat-right-panel-settings.tsx
-    role: chat_settings_rail_controls
     surface_profile: secondary
     density_mode: compact
     exception_policy: none
@@ -59,25 +43,9 @@ surfaces:
     exception_policy: none
     testid_required: false
     source_rule: D-SHELL-030
-  - id: chat.agent_cognition.cards
-    module: features/chat/chat-agent-cognition-panel.tsx
-    role: chat_agent_cognition_cards
-    surface_profile: secondary
-    density_mode: compact
-    exception_policy: none
-    testid_required: true
-    source_rule: D-SHELL-030
   - id: chat.inspect.operational
     module: features/chat/chat-runtime-inspect-content.tsx
     role: chat_runtime_inspect_operational
-    surface_profile: secondary
-    density_mode: compact
-    exception_policy: none
-    testid_required: false
-    source_rule: D-SHELL-030
-  - id: chat.diagnostics.operational
-    module: features/chat/chat-agent-diagnostics.tsx
-    role: chat_agent_diagnostics_operational
     surface_profile: secondary
     density_mode: compact
     exception_policy: none

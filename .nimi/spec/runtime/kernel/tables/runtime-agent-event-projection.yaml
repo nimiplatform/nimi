@@ -277,6 +277,8 @@ avatar_debug_events:
       - Probe requests may include a scoped_binding attachment so the Avatar
         carrier can submit evidence-backed results through Runtime without
         reconstructing binding authority locally.
+      - The `desktop_debug_workbench` enum value is stable provenance for the
+        typed debug/probe client; it does not admit a Desktop-local debug UI.
       - Payload must not include package descriptors, package paths, backend
         commands, raw provider output, or auth material.
   - event: runtime.agent.avatar_debug.probe_result
@@ -302,6 +304,8 @@ avatar_debug_events:
     notes:
       - Replay refs are Runtime-owned. Desktop and SDK may display them but
         must not reconstruct replay from local state.
+      - The `desktop_debug_workbench` visibility value remains a stable wire
+        value only; Desktop-local replay reconstruction remains forbidden.
 
 presentation_events:
   - event: runtime.agent.presentation.activity_requested
