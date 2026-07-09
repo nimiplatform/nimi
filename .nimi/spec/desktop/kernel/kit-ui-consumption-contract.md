@@ -87,7 +87,7 @@ Desktop owns only:
 - Agent Center placement in Desktop shell chrome
 - close/open settings callbacks and other Desktop navigation outside Kit core
 - scoped Runtime SDK adapter attachment
-- typed host-local Avatar/background file picker/copy transport adapter
+- Kit Shell host bridge injection for the standard `agent-center` capability
 - typed Avatar launch bridge when admitted by Avatar/Desktop contracts
 - evidence hooks for real app acceptance
 
@@ -104,16 +104,20 @@ Desktop must not:
 - derive route/model/provider diagnostics from app-local AIConfig or
   conversation capability bindings
 - persist Runtime Agent lifecycle, memory, transcript, model route, provider,
-  or turn execution truth
+  turn execution truth, or Agent Center presentation selection truth
 
-Local config module ownership for Desktop Agent Center:
+Retired local config module ownership for Desktop Agent Center:
 
 | Module | Owner Decision |
 | --- | --- |
-| `appearance` / `avatar_asset` | Bounded Desktop host-local picker/copy transport only; Avatar/Runtime resource service owns custody/materialization truth and projects validated refs through admitted boundary. |
-| `local_history` | Non-semantic UI recents only; no transcript, message, turn, session, or memory content. |
-| `voice.avatar_autoplay` | Host-local playback UI preference only; not `audio.synthesize` readiness, binding, generation, or policy truth. |
-| `ui.last_section` | Host-local UI preference only; no Runtime or product authority. |
+| `appearance` / `avatar_asset` | Retired as Desktop local config. Selection truth is Runtime `AgentPresentationProfile`; asset bytes and validation are Kit Shell `agent-center` custody. |
+| `local_history` | Dropped without replacement. |
+| `voice.avatar_autoplay` | Retired as host-local preference. Runtime `AgentPresentationProfile.avatar_autoplay` is the single persistent home. |
+| `ui.last_section` | Dropped without replacement. |
+
+Desktop must not expose `AgentCenterLocalConfig`, `desktop_agent_center_*`,
+or app-local Agent Center config get/set/import/resource-management bridges
+after the hardcut.
 
 `audio.synthesize` and `voice_workflow.*` are editable only through Kit Agent
 Center typed Runtime Agent AI Config controls. Desktop must not render an

@@ -25,8 +25,8 @@ export type StartWithChatGateInput = {
   readonly localAgentRef: string | null;
   readonly runtimeSourceRef: string | null;
   readonly conversationAnchorId: string | null;
-  readonly localAvatarAssetRef: string | null;
-  readonly localAvatarAssetValidationStatus: string | null;
+  readonly avatarAssetRef: string | null;
+  readonly avatarAssetValidationStatus: string | null;
   readonly backendCapabilityProfileRef: string | null;
   readonly runtimeProjectionAuthorization: AvatarRuntimeProjectionAuthorization;
   readonly launchMode: string | null;
@@ -117,11 +117,11 @@ export function evaluateStartWithChatGate(input: StartWithChatGateInput): StartW
     { id: 'conversation_anchor_present', passed: Boolean(input.conversationAnchorId?.trim()) },
     {
       id: 'local_avatar_asset_valid',
-      passed: Boolean(input.localAvatarAssetRef?.trim() && input.localAvatarAssetValidationStatus === 'valid'),
+      passed: Boolean(input.avatarAssetRef?.trim() && input.avatarAssetValidationStatus === 'valid'),
     },
     {
       id: 'backend_capability_posture_valid',
-      passed: Boolean(input.backendCapabilityProfileRef?.trim() && input.localAvatarAssetValidationStatus === 'valid'),
+      passed: Boolean(input.backendCapabilityProfileRef?.trim() && input.avatarAssetValidationStatus === 'valid'),
     },
     { id: 'runtime_projection_authorized', passed: input.runtimeProjectionAuthorization === 'authorized' },
     { id: 'launch_mode_start_with_chat', passed: input.launchMode === 'start_with_chat' },

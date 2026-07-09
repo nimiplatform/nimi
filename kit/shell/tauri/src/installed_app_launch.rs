@@ -101,9 +101,7 @@ fn normalize_realm_base_url(value: &str) -> Result<String, String> {
     Url::parse(&normalized)
         .map(|url| url.to_string())
         .map_err(|_| {
-            format!(
-                "Installed app Tauri launch binding has invalid realmBaseUrl: {normalized}"
-            )
+            format!("Installed app Tauri launch binding has invalid realmBaseUrl: {normalized}")
         })
 }
 

@@ -11,6 +11,7 @@ surfaces:
   - notification
   - storage
   - ai-config
+  - agent-center
   - auth
   - desktop-open
 authority:
@@ -132,6 +133,16 @@ capability_sets:
       - local-agent.runtimeTrustedCaller
       - ai-profile.get
       - avatar.assetResolve
+      - agent-center.avatarAssetImport
+      - agent-center.avatarAssetValidate
+      - agent-center.avatarAssetResolvePreview
+      - agent-center.live2dAdapterImport
+      - agent-center.backgroundImport
+      - agent-center.backgroundGet
+      - agent-center.backgroundValidate
+      - agent-center.backgroundRemove
+      - agent-center.agentResourcesRemove
+      - agent-center.accountResourcesRemove
       - platform-projection.get
       - file-dialog.open
       - file-reveal.reveal
@@ -393,6 +404,105 @@ capabilities:
           - capability-unavailable
           - invalid-path
           - not-found
+  - id: agent-center
+    host_contract: NimiStandardShellCapabilityHost
+    ownership: host_local_asset_custody_only
+    forbidden_operations:
+      - configGet
+      - configSet
+    operations:
+      - id: avatarAssetImport
+        command: nimi.shell.agentCenter.avatarAssetImport
+        payload_owner: host_registered_file_dialog_path
+        result_owner: kit_shell_asset_custody
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - invalid-path
+          - forbidden-renderer-access
+          - host-internal-error
+      - id: avatarAssetValidate
+        command: nimi.shell.agentCenter.avatarAssetValidate
+        payload_owner: kit_shell_local_asset_ref
+        result_owner: kit_shell_validation_projection
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - not-found
+          - host-internal-error
+      - id: avatarAssetResolvePreview
+        command: nimi.shell.agentCenter.avatarAssetResolvePreview
+        payload_owner: kit_shell_local_asset_ref
+        result_owner: avatar_preview_material_projection
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - not-found
+          - host-internal-error
+      - id: live2dAdapterImport
+        command: nimi.shell.agentCenter.live2dAdapterImport
+        payload_owner: host_registered_file_dialog_path
+        result_owner: kit_shell_asset_scoped_sidecar_custody
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - invalid-path
+          - not-found
+          - forbidden-renderer-access
+          - host-internal-error
+      - id: backgroundImport
+        command: nimi.shell.agentCenter.backgroundImport
+        payload_owner: host_registered_file_dialog_path
+        result_owner: kit_shell_asset_custody
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - invalid-path
+          - forbidden-renderer-access
+          - host-internal-error
+      - id: backgroundGet
+        command: nimi.shell.agentCenter.backgroundGet
+        payload_owner: kit_shell_background_asset_ref
+        result_owner: standard_local_asset_url_projection
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - not-found
+          - host-internal-error
+      - id: backgroundValidate
+        command: nimi.shell.agentCenter.backgroundValidate
+        payload_owner: kit_shell_background_asset_ref
+        result_owner: kit_shell_validation_projection
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - not-found
+          - host-internal-error
+      - id: backgroundRemove
+        command: nimi.shell.agentCenter.backgroundRemove
+        payload_owner: kit_shell_background_asset_ref
+        result_owner: kit_shell_removal_projection
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - not-found
+          - host-internal-error
+      - id: agentResourcesRemove
+        command: nimi.shell.agentCenter.agentResourcesRemove
+        payload_owner: account_agent_scope
+        result_owner: kit_shell_removal_projection
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
+      - id: accountResourcesRemove
+        command: nimi.shell.agentCenter.accountResourcesRemove
+        payload_owner: account_scope
+        result_owner: kit_shell_removal_projection
+        negative_states:
+          - capability-unavailable
+          - invalid-payload
+          - host-internal-error
   - id: platform-projection
     host_contract: NimiStandardShellCapabilityHost
     operations:

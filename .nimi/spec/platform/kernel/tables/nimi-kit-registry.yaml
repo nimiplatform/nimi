@@ -522,7 +522,7 @@ modules:
     kind: feature
     surface_level: headless+ui+runtime
     adapter_contract: RuntimeAgentCenterAdapter + AgentCenterAppearanceAdapter + AgentCenterPlacementAdapter
-    description: Reusable Runtime Local Agent Center surface with complete generic overview, model, behavior, cognition, appearance, and advanced diagnostics sections. Consumes Runtime Agent AI Config, readiness, lifecycle, autonomy, memory projection, and typed host-local appearance custody through Kit SDK contract or injected typed adapters.
+    description: Reusable Runtime Local Agent Center surface with complete generic overview, model, behavior, cognition, appearance, and advanced diagnostics sections. Consumes Runtime Agent AI Config, readiness, lifecycle, autonomy, memory projection, Runtime AgentPresentationProfile selection truth, Kit Shell host-local Agent Center asset custody, and Avatar-owned preview-service projection through Kit SDK contract or injected typed adapters.
     dependencies:
       - kit.ui
       - kit.core
@@ -551,4 +551,4 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-AGENT-CENTER-001
-    notes: Kit Agent Center owns reusable product composition only. Runtime/SDK own Runtime Agent AI Config, readiness, lifecycle, memory admission, turn admission, diagnostics truth, and event projection. Apps own placement, shell chrome, and admitted host-local file custody through typed adapters only; app-specific panels and arbitrary ReactNode content slots are forbidden inside Agent Center.
+    notes: Kit Agent Center owns reusable product composition and the standard shell-backed appearance adapter. Runtime/SDK own Runtime Agent AI Config, Runtime AgentPresentationProfile selection truth, readiness, lifecycle, memory admission, turn admission, diagnostics truth, and event projection. Kit Shell owns host-local Agent Center asset byte custody through the standard agent-center capability. Apps own placement, shell chrome, copy namespace, and evidence hooks only; app-specific panels and arbitrary ReactNode content slots are forbidden inside Agent Center.

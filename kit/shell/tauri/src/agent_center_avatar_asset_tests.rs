@@ -1,7 +1,6 @@
 use crate::agent_center_avatar_asset::{
     agent_center_path_segment, nimi_avatar_resolve_agent_center_avatar_asset,
-    nimi_avatar_resolve_local_avatar_asset, AgentCenterAvatarAssetResolvePayload,
-    LocalAvatarAssetResolvePayload,
+    AgentCenterAvatarAssetResolvePayload,
 };
 use crate::runtime_bridge::{with_runtime_bridge_host_hooks_async, RuntimeBridgeHostHooks};
 use crate::test_support::test_guard;
@@ -166,56 +165,6 @@ fn write_avatar_asset_package(
     package_dir
 }
 
-fn write_local_avatar_asset_config(
-    home: &Path,
-    account_id: &str,
-    owner_user_id: &str,
-    runtime_source_ref: &str,
-    kind: &str,
-    local_asset_id: &str,
-) {
-    let local_agent_ref = local_agent_ref(owner_user_id, runtime_source_ref);
-    let config_path = agent_center_root(home, account_id, &local_agent_ref).join("config.json");
-    fs::create_dir_all(config_path.parent().expect("config parent")).expect("config dir");
-    let config = json!({
-        "schema_version": 1,
-        "config_kind": "agent_center_local_config",
-        "account_id": account_id,
-        "owner_user_id": owner_user_id,
-        "runtime_source_ref": runtime_source_ref,
-        "local_agent_ref": local_agent_ref,
-        "modules": {
-            "appearance": { "schema_version": 1 },
-            "avatar_asset": {
-                "schema_version": 1,
-                "conversation_anchor_scope": "current_anchor",
-                "local_avatar_asset_ref": local_asset_id,
-                "live2d_adapter_manifest_source": "embedded_creator_manifest",
-                "live2d_adapter_manifest_ref": null,
-                "avatar_instance_policy": "reuse_active_instance",
-                "backend_kind": kind,
-                "backend_capability_profile_ref": format!("avatar.backend_profile/{kind}/basic"),
-                "generated_motion_provider_policy": "require_profile_support",
-                "launch_mode": "manual",
-                "debug_profile": "strict_backend_evidence",
-                "updated_at": "2026-05-17T00:00:00Z",
-                "provenance": { "source": "test" }
-            },
-            "local_history": { "schema_version": 1 },
-            "voice": {
-                "schema_version": 1,
-                "avatar_autoplay": false
-            },
-            "ui": { "schema_version": 1 }
-        }
-    });
-    fs::write(
-        config_path,
-        serde_json::to_string_pretty(&config).expect("config json"),
-    )
-    .expect("config");
-}
-
 #[tokio::test(flavor = "current_thread")]
 async fn resolves_agent_center_live2d_asset_with_canonical_runtime_dir() {
     let _guard = test_guard();
@@ -257,49 +206,6 @@ async fn resolves_agent_center_live2d_asset_with_canonical_runtime_dir() {
             .display()
             .to_string()
     );
-
-    let _ = fs::remove_dir_all(&home);
-}
-
-#[tokio::test(flavor = "current_thread")]
-async fn resolves_local_avatar_asset_from_agent_center_config_selection() {
-    let _guard = test_guard();
-    let home = unique_temp_dir("local-config");
-    fs::create_dir_all(&home).expect("home");
-    write_avatar_asset_package(
-        &home,
-        "owner_1",
-        "owner_1",
-        "agent_1",
-        "live2d",
-        "live2d_ab12cd34ef56",
-        "files/ren.model3.json",
-        "application/json",
-        br#"{"Version":3}"#,
-    );
-    write_local_avatar_asset_config(
-        &home,
-        "owner_1",
-        "owner_1",
-        "agent_1",
-        "live2d",
-        "live2d_ab12cd34ef56",
-    );
-
-    let manifest = with_admitted_data_root(&home, || async {
-        nimi_avatar_resolve_local_avatar_asset(LocalAvatarAssetResolvePayload {
-            account_id: "owner_1".to_string(),
-            owner_user_id: "owner_1".to_string(),
-            runtime_source_ref: "agent_1".to_string(),
-            local_agent_ref: local_agent_ref("owner_1", "agent_1"),
-        })
-        .await
-    })
-    .await
-    .expect("resolve selected local avatar asset");
-
-    assert_eq!(manifest.kind, "live2d");
-    assert_eq!(manifest.model_id, "ren");
 
     let _ = fs::remove_dir_all(&home);
 }

@@ -75,6 +75,7 @@
       "exportKey": "./shell/capabilities",
       "source": "kit/shell/capabilities/src/index.ts",
       "exports": [
+        "export * from './agent-center.js';",
         "export * from './ai-config.js';",
         "export * from './ai-profile.js';",
         "export * from './auth.js';",
@@ -97,6 +98,7 @@
       ],
       "expandedExports": [
         "class NimiStandardShellCapabilityError",
+        "const NIMI_AGENT_CENTER_SHELL_COMMANDS",
         "const NIMI_AI_CONFIG_SHELL_COMMANDS",
         "const NIMI_AUTH_SHELL_COMMANDS",
         "const NIMI_AVATAR_SHELL_COMMANDS",
@@ -163,6 +165,7 @@
       "exportKey": "./shell/electron/main",
       "source": "kit/shell/electron/src/main/index.ts",
       "exports": [
+        "export * from './agent-center.js';",
         "export * from './ai-config-store.js';",
         "export * from './app-menu.js';",
         "export * from './data-root-binding.js';",
@@ -189,6 +192,8 @@
         "function createNimiElectronStandardApplicationMenuTemplate",
         "function createNimiElectronStandardEditMenuTemplate",
         "function decodeElectronShellFileUrl",
+        "function dispatchElectronAgentCenterCommand",
+        "function isElectronAgentCenterCommand",
         "function openElectronDesktopIntent",
         "function registerNimiElectronRuntimeBridge",
         "function resolveElectronStandardDataRoot",
@@ -343,6 +348,7 @@
       "exportKey": "./shell/renderer/bridge",
       "source": "kit/shell/renderer/src/bridge/index.ts",
       "exports": [
+        "export type { AgentCenterAvatarAssetImportPayload, AgentCenterAvatarAssetImportResult, AgentCenterAvatarAssetValidatePayload, AgentCenterAvatarAssetValidateResult, AgentCenterAvatarPreviewResolvePayload, AgentCenterAvatarPreviewResolveResult, AgentCenterBackgroundGetPayload, AgentCenterBackgroundGetResult, AgentCenterBackgroundImportPayload, AgentCenterBackgroundImportResult, AgentCenterBackgroundRemovePayload, AgentCenterBackgroundValidatePayload, AgentCenterBackgroundValidateResult, AgentCenterLive2dAdapterImportPayload, AgentCenterLive2dAdapterImportResult, AgentCenterResourceRemovalPayload, AgentCenterResourceRemovalResult, AgentCenterShellBridge, AgentCenterShellHostScope, } from './agent-center.js';",
         "export type { FloatingWindowBounds, FloatingWindowIgnoreCursorEventsOptions, FloatingWindowManualDragOrigin, FloatingWindowMoveDelta, FloatingWindowConstrainResult, } from './floating-window.js';",
         "export type { InstalledNimiAppStorageRemoveJsonResult, InstalledNimiAppStandardShellSurface, InstalledNimiAppLaunchBinding, } from './installed-app.js';",
         "export type { JsonPrimitive, JsonValue, JsonObject, RuntimeDefaults, RealmDefaults, RuntimeExecutionDefaults, RuntimeBridgeDaemonStatus, RuntimeBridgeConfigGetResult, RuntimeBridgeConfigSetResult, ConfirmDialogPayload, ConfirmDialogResult, } from './types.js';",
@@ -353,6 +359,7 @@
         "export type { ShellFileDialogFilter, ShellFileDialogOpenPayload, ShellFileDialogOpenResult, ShellFileRevealResult, ShellExportSaveFilePayload, ShellExportSaveFileResult, ShellArtifactWritePayload, ShellArtifactWriteResult, } from './files.js';",
         "export type { ShellPlatformProjectionPayload, ShellPlatformProjectionResult, } from './platform-projection.js';",
         "export { assertRecord, isJsonObject, parseOptionalJsonObject, parseOptionalNumber, parseOptionalString, parseRequiredString, parseRuntimeDefaults, parseRuntimeBridgeDaemonStatus, parseRuntimeBridgeConfigGetResult, parseRuntimeBridgeConfigSetResult, parseConfirmDialogResult, } from './types.js';",
+        "export { clearAgentCenterRegisteredDialogPathsForTest, createAgentCenterShellBridge, getAgentCenterBackground, importAgentCenterAvatarAsset, importAgentCenterBackground, importAgentCenterLive2dAdapter, pickAgentCenterBackgroundImage, pickAgentCenterLive2dAdapterJson, pickAgentCenterLive2dFolder, pickAgentCenterVrmFile, removeAgentCenterAccountResources, removeAgentCenterAgentResources, removeAgentCenterBackground, resolveAgentCenterAvatarAssetPreview, validateAgentCenterAvatarAsset, validateAgentCenterBackground, } from './agent-center.js';",
         "export { convertTauriFileSrc, hasElectronRuntime, hasNimiShellRuntime, hasTauriRuntime, invokeShell, invokeTauri, listenShell, listenTauri, } from './tauri-api.js';",
         "export { createInstalledNimiAppStandardShellSurface, readInstalledNimiAppLaunchBinding, } from './installed-app.js';",
         "export { extractShellBridgeErrorCode, getShellBridgeUserMessageProjection, parseShellBridgeJsonPayload, toShellBridgeNimiError, toShellBridgeUserMessage, } from './nimi-error.js';",

@@ -109,6 +109,7 @@ describe('standard shell capabilities', () => {
       'ai-profile.ts',
       'ai-config.ts',
       'avatar.ts',
+      'agent-center.ts',
       'platform-projection.ts',
     ];
     for (const moduleFile of capabilityModules) {

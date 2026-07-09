@@ -7,6 +7,7 @@ import {
 import { isElectronRuntimeAccountCustodyCommand } from './auth.js';
 import { resolveElectronAvatarAssetUrl } from './avatar.js';
 import { getElectronAiConfig, setElectronAiConfig } from './ai-config.js';
+import { dispatchElectronAgentCenterCommand, isElectronAgentCenterCommand } from './agent-center.js';
 import { resolveElectronAiProfile } from './ai-profile.js';
 import { assertElectronHostCommandPolicyAllowed } from './command-policy.js';
 import { getElectronRuntimeConfig } from './config.js';
@@ -236,6 +237,9 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']) return revealElectronShellFile(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['export.saveFile']) return saveElectronShellExportFile(input.standardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']) return writeElectronShellArtifact(input.standardShellHost, standardPayload, command);
+    if (isElectronAgentCenterCommand(command)) {
+      return dispatchElectronAgentCenterCommand({ host: input.standardShellHost, payload: standardPayload, command });
+    }
     if (isElectronFloatingWindowCommand(command)) {
       return dispatchElectronFloatingWindowCommand({ host: input.standardShellHost, payload: standardPayload, command, event, appId, runtimeEndpoint });
     }

@@ -132,6 +132,7 @@ export function buildAgentCenterState(input: AgentCenterStateInput): AgentCenter
       ...(inspect?.presentationProfile ? {
         backendKind: inspect.presentationProfile.backendKind,
         avatarAssetRef: inspect.presentationProfile.avatarAssetRef,
+        backgroundRef: inspect.presentationProfile.backgroundAssetRef,
         defaultVoiceReference: inspect.presentationProfile.defaultVoiceReference,
         avatarAutoplay: inspect.presentationProfile.avatarAutoplay,
         status: inspect.presentationProfile.avatarAssetRef ? 'ready' : 'not_configured',

@@ -259,6 +259,7 @@ const requiredStandardShellCapabilityIds = [
   'ai-profile',
   'ai-config',
   'avatar',
+  'agent-center',
   'platform-projection',
   'file-dialog',
   'file-reveal',

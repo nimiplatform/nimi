@@ -43,6 +43,9 @@ function renderAppearance(
       validationStatus: 'valid',
       backendCapabilityProfileRef: 'profile://avatar/live2d',
       live2dAdapterManifestSource: 'none',
+      previewState: 'ready',
+      previewTier: 'avatar_preview_service',
+      previewArtifactRef: 'agent-center-preview:local-agent/live2d',
       backgroundRef: null,
       backgroundValid: false,
       avatarAutoplay: true,
@@ -71,6 +74,9 @@ describe('AgentCenter appearance visual setup surface', () => {
     expect(node.querySelector('[data-agent-center-appearance-hero="character-preview"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-avatar-card="true"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-avatar-preview="configured"]')).not.toBeNull();
+    expect(node.querySelector('[data-avatar-preview-tier="avatar_preview_service"]')).not.toBeNull();
+    expect(node.querySelector('[data-avatar-preview-nonplaceholder="true"]')).not.toBeNull();
+    expect(node.querySelector('[data-avatar-preview-artifact-ref="agent-center-preview:local-agent/live2d"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-primary-action="continue"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-secondary-action="change"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-progress="display-checklist"]')).not.toBeNull();
@@ -88,6 +94,20 @@ describe('AgentCenter appearance visual setup surface', () => {
     const progressBar = node.querySelector<HTMLElement>('[data-agent-center-appearance-progress-bar]');
     expect(progressBar?.style.width).toBe('50%');
     expect(node.textContent).toContain('2 / 4');
+  });
+
+  it('does not treat the old backend label placeholder as preview success', () => {
+    const node = renderAppearance({
+      previewState: 'unavailable',
+      previewTier: null,
+      previewArtifactRef: null,
+      previewFailureReason: 'avatar_preview_service evidence is missing',
+    });
+
+    expect(node.querySelector('[data-agent-center-appearance-avatar-preview="configured"]')).not.toBeNull();
+    expect(node.querySelector('[data-avatar-preview-nonplaceholder="true"]')).toBeNull();
+    expect(node.querySelector('[data-avatar-preview-nonplaceholder="false"]')).not.toBeNull();
+    expect(node.textContent).toContain('avatar_preview_service evidence is missing');
   });
 
   it('omits the background unset badge when the placeholder already communicates the missing state', () => {

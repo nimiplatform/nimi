@@ -12,7 +12,7 @@ Reusable agent avatar surface for Runtime-adjacent presentation records, voice p
 - `@nimiplatform/kit/features/avatar/live2d`
 - Current surfaces:
   - `headless`: admitted for normalized presentation and transient interaction contracts
-  - `ui`: admitted for the default avatar stage shell
+  - `ui`: admitted for the default avatar stage shell and the Agent Center preview facade
   - `runtime`: admitted for avatar presentation records, playback cue envelopes, and estimator helpers after Runtime/SDK has exposed typed projection data
   - `vrm`: admitted optional renderer surface for backend-specific VRM adapters without forcing 3D runtime assumptions into the default `ui` surface
   - `live2d`: admitted optional renderer and helper surface for backend-specific Live2D adapters without moving desktop-local source loading or Cubism bootstrapping into kit
@@ -27,6 +27,7 @@ Reusable agent avatar surface for Runtime-adjacent presentation records, voice p
 
 ## Before Building Locally
 - Check `avatar/ui` before building a new avatar stage, idle shell, or reusable agent render container.
+- Check `avatar/ui` and `avatar/headless` before rendering Agent Center avatar previews. A configured Agent Center avatar is only non-placeholder when `AgentCenterAvatarPreview` receives `previewTier=avatar_preview_service`, `previewState=ready`, and an Avatar-owned preview artifact ref.
 - Check `avatar/headless` before introducing app-local presentation normalization, emotion cue mapping, or transient avatar interaction state contracts.
 - Check `avatar/runtime` before rebuilding avatar presentation-record or playback-cue helpers in app code. Runtime event schedule decisions belong in `@nimiplatform/sdk/runtime`.
 - Check `avatar/vrm` before introducing app-local R3F/VRM renderer code; prefer injecting that implementation through the admitted optional VRM surface.
@@ -38,6 +39,7 @@ Reusable agent avatar surface for Runtime-adjacent presentation records, voice p
 - Runtime canonical agent identity, canonical memory, and autonomy truth.
 - Voice workflow, voice asset lifecycle, and standalone voice-library semantics.
 - App-specific layout placement, permissions, and shell orchestration.
+- Agent Center asset bytes, file adaptation, and preview artifact generation; Kit consumes opaque refs and renders fail-closed when Avatar preview service evidence is missing.
 - Desktop-only thread/session meaning and app-local store ownership.
 - VRM runtime engine dependencies and concrete WebGL host configuration unless the consumer explicitly opts into `avatar/vrm`.
 - Desktop-local asset binding, file adaptation, and concrete Cubism runtime lifecycle even when the consumer opts into `avatar/live2d`.

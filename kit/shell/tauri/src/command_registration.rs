@@ -1,5 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShellCommandBoundary {
+    AgentCenter,
     AuthSession,
     Avatar,
     Daemon,
@@ -237,6 +238,65 @@ pub const STANDARD_AVATAR_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDe
     boundary: ShellCommandBoundary::Avatar,
 }];
 
+pub const STANDARD_AGENT_CENTER_COMMANDS: &[ShellCommandDescriptor] = &[
+    ShellCommandDescriptor {
+        command_name: "agent_center_avatar_asset_import",
+        rust_path: "nimi_shell_tauri::capabilities::agent_center::agent_center_avatar_asset_import",
+        boundary: ShellCommandBoundary::AgentCenter,
+    },
+    ShellCommandDescriptor {
+        command_name: "agent_center_avatar_asset_validate",
+        rust_path:
+            "nimi_shell_tauri::capabilities::agent_center::agent_center_avatar_asset_validate",
+        boundary: ShellCommandBoundary::AgentCenter,
+    },
+    ShellCommandDescriptor {
+        command_name: "agent_center_avatar_asset_resolve_preview",
+        rust_path:
+            "nimi_shell_tauri::capabilities::agent_center::agent_center_avatar_asset_resolve_preview",
+        boundary: ShellCommandBoundary::AgentCenter,
+    },
+    ShellCommandDescriptor {
+        command_name: "agent_center_live2d_adapter_import",
+        rust_path:
+            "nimi_shell_tauri::capabilities::agent_center::agent_center_live2d_adapter_import",
+        boundary: ShellCommandBoundary::AgentCenter,
+    },
+    ShellCommandDescriptor {
+        command_name: "agent_center_background_import",
+        rust_path: "nimi_shell_tauri::capabilities::agent_center::agent_center_background_import",
+        boundary: ShellCommandBoundary::AgentCenter,
+    },
+    ShellCommandDescriptor {
+        command_name: "agent_center_background_get",
+        rust_path: "nimi_shell_tauri::capabilities::agent_center::agent_center_background_get",
+        boundary: ShellCommandBoundary::AgentCenter,
+    },
+    ShellCommandDescriptor {
+        command_name: "agent_center_background_validate",
+        rust_path:
+            "nimi_shell_tauri::capabilities::agent_center::agent_center_background_validate",
+        boundary: ShellCommandBoundary::AgentCenter,
+    },
+    ShellCommandDescriptor {
+        command_name: "agent_center_background_remove",
+        rust_path: "nimi_shell_tauri::capabilities::agent_center::agent_center_background_remove",
+        boundary: ShellCommandBoundary::AgentCenter,
+    },
+    ShellCommandDescriptor {
+        command_name: "agent_center_agent_resources_remove",
+        rust_path:
+            "nimi_shell_tauri::capabilities::agent_center::agent_center_agent_resources_remove",
+        boundary: ShellCommandBoundary::AgentCenter,
+    },
+    ShellCommandDescriptor {
+        command_name: "agent_center_account_resources_remove",
+        rust_path:
+            "nimi_shell_tauri::capabilities::agent_center::agent_center_account_resources_remove",
+        boundary: ShellCommandBoundary::AgentCenter,
+    },
+];
+
 pub const STANDARD_PLATFORM_PROJECTION_COMMANDS: &[ShellCommandDescriptor] =
     &[ShellCommandDescriptor {
         command_name: "platform_projection_get",
@@ -305,6 +365,7 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     commands.extend_from_slice(STANDARD_LOCAL_ASSET_COMMANDS);
     commands.extend_from_slice(STANDARD_LOCAL_AGENT_COMMANDS);
     commands.extend_from_slice(STANDARD_AVATAR_COMMANDS);
+    commands.extend_from_slice(STANDARD_AGENT_CENTER_COMMANDS);
     commands.extend_from_slice(STANDARD_PLATFORM_PROJECTION_COMMANDS);
     commands.extend_from_slice(STANDARD_FLOATING_WINDOW_COMMANDS);
     commands
@@ -391,6 +452,16 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
             $crate::capabilities::local_agent::local_agent_identity,
             $crate::capabilities::local_agent::local_agent_runtime_trusted_caller,
             $crate::capabilities::avatar::avatar_asset_resolve,
+            $crate::capabilities::agent_center::agent_center_avatar_asset_import,
+            $crate::capabilities::agent_center::agent_center_avatar_asset_validate,
+            $crate::capabilities::agent_center::agent_center_avatar_asset_resolve_preview,
+            $crate::capabilities::agent_center::agent_center_live2d_adapter_import,
+            $crate::capabilities::agent_center::agent_center_background_import,
+            $crate::capabilities::agent_center::agent_center_background_get,
+            $crate::capabilities::agent_center::agent_center_background_validate,
+            $crate::capabilities::agent_center::agent_center_background_remove,
+            $crate::capabilities::agent_center::agent_center_agent_resources_remove,
+            $crate::capabilities::agent_center::agent_center_account_resources_remove,
             $crate::capabilities::platform_projection::platform_projection_get,
             $crate::capabilities::file_dialog::file_dialog_open,
             $crate::capabilities::file_reveal::file_reveal_reveal,
@@ -443,6 +514,16 @@ macro_rules! nimi_shell_tauri_auth_oauth_runtime_bridge_handler {
             $crate::capabilities::local_agent::local_agent_identity,
             $crate::capabilities::local_agent::local_agent_runtime_trusted_caller,
             $crate::capabilities::avatar::avatar_asset_resolve,
+            $crate::capabilities::agent_center::agent_center_avatar_asset_import,
+            $crate::capabilities::agent_center::agent_center_avatar_asset_validate,
+            $crate::capabilities::agent_center::agent_center_avatar_asset_resolve_preview,
+            $crate::capabilities::agent_center::agent_center_live2d_adapter_import,
+            $crate::capabilities::agent_center::agent_center_background_import,
+            $crate::capabilities::agent_center::agent_center_background_get,
+            $crate::capabilities::agent_center::agent_center_background_validate,
+            $crate::capabilities::agent_center::agent_center_background_remove,
+            $crate::capabilities::agent_center::agent_center_agent_resources_remove,
+            $crate::capabilities::agent_center::agent_center_account_resources_remove,
             $crate::capabilities::platform_projection::platform_projection_get,
             $crate::capabilities::file_dialog::file_dialog_open,
             $crate::capabilities::file_reveal::file_reveal_reveal,
@@ -492,6 +573,16 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $crate::capabilities::local_agent::local_agent_identity,
             $crate::capabilities::local_agent::local_agent_runtime_trusted_caller,
             $crate::capabilities::avatar::avatar_asset_resolve,
+            $crate::capabilities::agent_center::agent_center_avatar_asset_import,
+            $crate::capabilities::agent_center::agent_center_avatar_asset_validate,
+            $crate::capabilities::agent_center::agent_center_avatar_asset_resolve_preview,
+            $crate::capabilities::agent_center::agent_center_live2d_adapter_import,
+            $crate::capabilities::agent_center::agent_center_background_import,
+            $crate::capabilities::agent_center::agent_center_background_get,
+            $crate::capabilities::agent_center::agent_center_background_validate,
+            $crate::capabilities::agent_center::agent_center_background_remove,
+            $crate::capabilities::agent_center::agent_center_agent_resources_remove,
+            $crate::capabilities::agent_center::agent_center_account_resources_remove,
             $crate::capabilities::platform_projection::platform_projection_get,
             $crate::capabilities::file_dialog::file_dialog_open,
             $crate::capabilities::file_reveal::file_reveal_reveal,
@@ -531,296 +622,4 @@ macro_rules! nimi_shell_tauri_floating_window_commands {
             $($app_command),*
         ]
     };
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tauri::command]
-    fn test_app_command() {}
-
-    #[tauri::command]
-    fn test_runtime_defaults() -> crate::runtime_defaults::RuntimeDefaults {
-        crate::runtime_defaults::runtime_defaults()
-    }
-
-    #[test]
-    fn public_catalog_names_all_shell_commands() {
-        let names = all_shell_commands()
-            .into_iter()
-            .map(|command| command.command_name)
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            names,
-            vec![
-                "runtime_defaults",
-                "runtime_bridge_unary",
-                "runtime_bridge_stream_open",
-                "runtime_bridge_stream_close",
-                "runtime_bridge_status",
-                "runtime_bridge_start",
-                "runtime_bridge_stop",
-                "runtime_bridge_restart",
-                "runtime_bridge_config_get",
-                "runtime_bridge_config_set",
-                "auth_session_load",
-                "auth_session_save",
-                "auth_session_clear",
-                "open_external_url",
-                "oauth_token_exchange",
-                "oauth_listen_for_code",
-                "desktop_open_intent_open_intent",
-                "log_renderer_event",
-                "diagnostics_renderer_entry_probe",
-                "data_path_resolve",
-                "storage_read_json",
-                "storage_write_json",
-                "storage_remove_json",
-                "ai_config_get",
-                "ai_config_set",
-                "confirm_dialog",
-                "start_window_drag",
-                "focus_main_window",
-                "file_dialog_open",
-                "file_reveal_reveal",
-                "export_save_file",
-                "artifacts_write",
-                "local_assets_resolve_url",
-                "local_agent_identity",
-                "local_agent_runtime_trusted_caller",
-                "avatar_asset_resolve",
-                "platform_projection_get",
-                "floating_window_set_bounds",
-                "floating_window_set_ignore_cursor_events",
-                "floating_window_set_always_on_top",
-                "floating_window_hide",
-                "floating_window_close",
-                "floating_window_begin_manual_drag",
-                "floating_window_move_manual_drag",
-                "floating_window_constrain_to_visible_area",
-            ]
-        );
-    }
-
-    #[test]
-    fn public_catalog_keeps_boundaries_explicit() {
-        let commands = all_shell_commands();
-
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::AuthSession));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::Runtime));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::Daemon));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::OAuth));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::SessionLogging));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::Diagnostics));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::Storage));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::AiConfig));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::ShellUi));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::Files));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::LocalAssets));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::LocalAgent));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::Avatar));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::PlatformProjection));
-        assert!(commands
-            .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::FloatingWindow));
-    }
-
-    #[test]
-    fn standard_floating_window_commands_cover_all_eight_operations() {
-        let names = STANDARD_FLOATING_WINDOW_COMMANDS
-            .iter()
-            .map(|command| command.command_name)
-            .collect::<Vec<_>>();
-        assert_eq!(
-            names,
-            vec![
-                "floating_window_set_bounds",
-                "floating_window_set_ignore_cursor_events",
-                "floating_window_set_always_on_top",
-                "floating_window_hide",
-                "floating_window_close",
-                "floating_window_begin_manual_drag",
-                "floating_window_move_manual_drag",
-                "floating_window_constrain_to_visible_area",
-            ]
-        );
-        assert!(STANDARD_FLOATING_WINDOW_COMMANDS
-            .iter()
-            .all(|command| command.boundary == ShellCommandBoundary::FloatingWindow));
-    }
-
-    #[test]
-    fn floating_window_commands_are_excluded_from_default_handler_families() {
-        // Window control must be opt-in: the default runtime/auth/oauth
-        // handler macros must not carry any floating-window command.
-        for descriptor in STANDARD_FLOATING_WINDOW_COMMANDS {
-            assert!(!RUNTIME_BRIDGE_COMMANDS
-                .iter()
-                .chain(AUTH_SESSION_COMMANDS)
-                .chain(STANDARD_STORAGE_COMMANDS)
-                .chain(STANDARD_SHELL_UI_COMMANDS)
-                .chain(STANDARD_FILE_COMMANDS)
-                .chain(STANDARD_DIAGNOSTICS_COMMANDS)
-                .chain(STANDARD_LOCAL_ASSET_COMMANDS)
-                .chain(STANDARD_LOCAL_AGENT_COMMANDS)
-                .chain(STANDARD_AVATAR_COMMANDS)
-                .chain(STANDARD_PLATFORM_PROJECTION_COMMANDS)
-                .chain(OAUTH_COMMANDS)
-                .any(|other| other.command_name == descriptor.command_name));
-        }
-    }
-
-    #[test]
-    fn standard_ai_config_commands_cover_installed_app_operations() {
-        let names = STANDARD_AI_CONFIG_COMMANDS
-            .iter()
-            .map(|command| command.command_name)
-            .collect::<Vec<_>>();
-        assert_eq!(names, vec!["ai_config_get", "ai_config_set"]);
-        assert!(STANDARD_AI_CONFIG_COMMANDS
-            .iter()
-            .all(|command| command.boundary == ShellCommandBoundary::AiConfig));
-    }
-
-    #[test]
-    fn installed_app_standard_shell_catalog_matches_admitted_surface() {
-        let names = installed_app_standard_shell_commands()
-            .into_iter()
-            .map(|command| command.command_name)
-            .collect::<Vec<_>>();
-        assert_eq!(
-            names,
-            vec![
-                "runtime_bridge_unary",
-                "runtime_bridge_stream_open",
-                "runtime_bridge_stream_close",
-                "runtime_bridge_config_get",
-                "runtime_bridge_config_set",
-                "desktop_open_intent_open_intent",
-                "data_path_resolve",
-                "storage_read_json",
-                "storage_write_json",
-                "storage_remove_json",
-                "ai_config_get",
-                "ai_config_set",
-                "confirm_dialog",
-                "start_window_drag",
-                "focus_main_window",
-                "local_assets_resolve_url",
-            ]
-        );
-        for forbidden in [
-            "runtime_defaults",
-            "runtime_bridge_status",
-            "runtime_bridge_start",
-            "runtime_bridge_stop",
-            "runtime_bridge_restart",
-            "auth_session_load",
-            "auth_session_save",
-            "auth_session_clear",
-            "open_external_url",
-            "oauth_token_exchange",
-            "oauth_listen_for_code",
-            "log_renderer_event",
-            "diagnostics_renderer_entry_probe",
-            "local_agent_identity",
-            "local_agent_runtime_trusted_caller",
-            "avatar_asset_resolve",
-            "platform_projection_get",
-            "file_dialog_open",
-            "file_reveal_reveal",
-            "export_save_file",
-            "artifacts_write",
-            "floating_window_set_bounds",
-        ] {
-            assert!(!names.contains(&forbidden));
-        }
-    }
-
-    #[test]
-    fn standard_file_commands_cover_new_standard_capabilities() {
-        let names = STANDARD_FILE_COMMANDS
-            .iter()
-            .map(|command| command.command_name)
-            .collect::<Vec<_>>();
-        assert_eq!(
-            names,
-            vec![
-                "file_dialog_open",
-                "file_reveal_reveal",
-                "export_save_file",
-                "artifacts_write",
-            ]
-        );
-        assert!(STANDARD_FILE_COMMANDS
-            .iter()
-            .all(|command| command.boundary == ShellCommandBoundary::Files));
-    }
-
-    #[test]
-    fn scoped_generate_handler_macros_compile() {
-        let _runtime_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
-            crate::nimi_shell_tauri_runtime_bridge_handler![test_app_command],
-        );
-        let _runtime_custom_defaults_builder = tauri::Builder::<tauri::Wry>::default()
-            .invoke_handler(crate::nimi_shell_tauri_runtime_bridge_handler![
-                @with_runtime_defaults test_runtime_defaults;
-                test_app_command
-            ]);
-        let _auth_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
-            crate::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![test_app_command],
-        );
-        let _auth_custom_defaults_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
-            crate::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![
-                @with_runtime_defaults test_runtime_defaults;
-                test_app_command
-            ],
-        );
-        let _oauth_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
-            crate::nimi_shell_tauri_oauth_runtime_bridge_handler![test_app_command],
-        );
-        let _oauth_custom_defaults_builder = tauri::Builder::<tauri::Wry>::default()
-            .invoke_handler(crate::nimi_shell_tauri_oauth_runtime_bridge_handler![
-                @with_runtime_defaults test_runtime_defaults;
-                test_app_command
-            ]);
-        let _floating_window_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
-            crate::nimi_shell_tauri_floating_window_commands![test_app_command],
-        );
-        let _floating_window_only_builder = tauri::Builder::<tauri::Wry>::default()
-            .invoke_handler(crate::nimi_shell_tauri_floating_window_commands![]);
-        let _installed_app_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
-            crate::nimi_shell_tauri_installed_app_standard_shell_handler![test_app_command],
-        );
-    }
 }

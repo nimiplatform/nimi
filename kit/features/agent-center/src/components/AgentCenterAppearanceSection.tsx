@@ -13,9 +13,12 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import {
+  AgentCenterAvatarPreview,
+  resolveAgentCenterAvatarPreviewServiceResult,
+} from '@nimiplatform/kit/features/avatar';
 import type {
   AgentCenterAppearanceAdapter,
-  AgentCenterAppearanceConfigPatch,
   AgentCenterAppearanceCopy,
   AgentCenterAppearanceProjection,
   AgentCenterState,
@@ -26,7 +29,6 @@ import {
   Notice,
   SectionHeader,
   SectionShell,
-  agentCenterSelectClassName,
   cnAgentCenter,
 } from './AgentCenterPrimitives.js';
 import type { EvidenceState, SetupStep } from './AgentCenterAppearanceSection.logic.js';
@@ -106,32 +108,6 @@ function SetupStepRow({ index, step }: { readonly index: number; readonly step: 
   );
 }
 
-function SelectControl<TValue extends string>(props: {
-  readonly label: string;
-  readonly value: TValue;
-  readonly disabled: boolean;
-  readonly options: ReadonlyArray<{ readonly value: TValue; readonly label: string }>;
-  readonly onChange: (value: TValue) => void;
-}) {
-  return (
-    <label className="block rounded-[10px] border border-slate-100 bg-white px-3 py-2">
-      <span className="block text-[10px] font-semibold uppercase text-slate-500">
-        {props.label}
-      </span>
-      <select
-        className={cnAgentCenter(agentCenterSelectClassName, 'mt-1 w-full')}
-        disabled={props.disabled}
-        onChange={(event) => props.onChange(event.currentTarget.value as TValue)}
-        value={props.value}
-      >
-        {props.options.map((option) => (
-          <option key={option.value} value={option.value}>{option.label}</option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 function DiagnosticsEvidencePanel({
   appearance,
   labels,
@@ -195,7 +171,6 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
       || !appearanceAdapter?.linkLive2dAdapterManifest,
   );
   const backgroundImportDisabled = Boolean(appearance.backgroundImportDisabled || !appearanceAdapter?.importBackground);
-  const avatarConfigDisabled = Boolean(appearance.avatarConfigPending || !appearanceAdapter?.updateAvatarConfig);
   const avatarReady = Boolean(appearance.avatarAssetRef && appearance.avatarAssetValid);
   const sidecarReady = backendKind(appearance) !== 'live2d' || live2dManifestStatus(appearance) === 'ready';
   const setupSteps = buildSetupSteps(appearance, labels);
@@ -244,14 +219,6 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
     );
   };
 
-  const updateAvatarConfig = (patch: AgentCenterAppearanceConfigPatch) => {
-    run(
-      labels.technicalDetailsTitle,
-      appearanceAdapter?.updateAvatarConfig ? () => appearanceAdapter.updateAvatarConfig?.(patch) as Promise<AgentCenterAppearanceProjection> : undefined,
-      () => labels.doneLabel,
-    );
-  };
-
   const toggleAutoplay = () => {
     run(
       labels.avatarAutoplayLabel,
@@ -278,6 +245,17 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
 
   const renderAvatarPreview = (configured: boolean) => {
     const kindLabel = backendKind(appearance) === 'vrm' ? '3D' : '2D';
+    const previewResult = resolveAgentCenterAvatarPreviewServiceResult({
+      previewState: appearance.previewState,
+      previewTier: appearance.previewTier,
+      backendKind: appearance.backendKind,
+      avatarAssetRef: appearance.avatarAssetRef,
+      previewArtifactRef: appearance.previewArtifactRef,
+      previewImageRef: appearance.previewImageRef,
+      previewFailureReason: appearance.previewFailureReason,
+      previewWarnings: appearance.previewWarnings,
+    });
+    const previewFailureReason = previewResult.state === 'ready' ? '' : previewResult.reason;
     return (
       <div
         className={cnAgentCenter(
@@ -286,15 +264,25 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
         )}
         data-agent-center-appearance-avatar-preview={configured ? 'configured' : 'empty'}
       >
-        <div className="grid h-[112px] w-[112px] place-items-center rounded-full border border-emerald-100 bg-white/80 shadow-[0_12px_28px_rgba(16,185,129,0.10)]">
-          {configured ? (
-            <span className="text-[34px] font-semibold leading-none">{kindLabel}</span>
-          ) : (
+        {configured ? (
+          <AgentCenterAvatarPreview
+            className="grid min-h-[132px] min-w-[132px] place-items-center"
+            fallback={(
+              <div className="grid h-[112px] w-[112px] place-items-center rounded-full border border-amber-100 bg-white/80 text-center text-[11px] font-semibold leading-4 text-amber-700 shadow-[0_12px_28px_rgba(245,158,11,0.10)]">
+                {previewFailureReason}
+              </div>
+            )}
+            label={labels.avatarCardTitle}
+            result={previewResult}
+            size="md"
+          />
+        ) : (
+          <div className="grid h-[112px] w-[112px] place-items-center rounded-full border border-emerald-100 bg-white/80 shadow-[0_12px_28px_rgba(16,185,129,0.10)]">
             <ImageIcon aria-hidden="true" className="h-10 w-10 text-emerald-300" />
-          )}
-        </div>
+          </div>
+        )}
         <span className="absolute bottom-5 text-[15px] font-semibold text-emerald-700/50">
-          {kindLabel}
+          {configured && previewResult.state === 'ready' ? previewResult.backendKind.toUpperCase() : kindLabel}
         </span>
       </div>
     );
@@ -628,52 +616,6 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
           {appearance.voiceCleanupError ? <Notice tone="warn">{appearance.voiceCleanupError}</Notice> : null}
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2">
-          <SelectControl
-            disabled={avatarConfigDisabled}
-            label={labels.instancePolicyLabel}
-            onChange={(avatar_instance_policy) => updateAvatarConfig({ avatar_instance_policy })}
-            options={[
-              { value: 'reuse_active_instance', label: labels.instancePolicyReuseActive },
-              { value: 'launch_new_instance', label: labels.instancePolicyLaunchNew },
-              { value: 'require_user_selection', label: labels.instancePolicyRequireUserSelection },
-            ]}
-            value={(appearance.avatarInstancePolicy || 'reuse_active_instance') as 'reuse_active_instance' | 'launch_new_instance' | 'require_user_selection'}
-          />
-          <SelectControl
-            disabled={avatarConfigDisabled}
-            label={labels.generatedMotionLabel}
-            onChange={(generated_motion_provider_policy) => updateAvatarConfig({ generated_motion_provider_policy })}
-            options={[
-              { value: 'require_profile_support', label: labels.generatedMotionRequireProfile },
-              { value: 'disable_generated_motion', label: labels.generatedMotionDisabled },
-              { value: 'debug_only', label: labels.generatedMotionDebugOnly },
-            ]}
-            value={(appearance.generatedMotionProviderPolicy || 'require_profile_support') as 'require_profile_support' | 'disable_generated_motion' | 'debug_only'}
-          />
-          <SelectControl
-            disabled={avatarConfigDisabled}
-            label={labels.launchModeLabel}
-            onChange={(launch_mode) => updateAvatarConfig({ launch_mode })}
-            options={[
-              { value: 'manual', label: labels.launchModeManual },
-              { value: 'debug_session', label: labels.launchModeDebugSession },
-              { value: 'start_with_chat', label: labels.launchModeStartWithChat },
-            ]}
-            value={(appearance.launchMode || 'manual') as 'manual' | 'debug_session' | 'start_with_chat'}
-          />
-          <SelectControl
-            disabled={avatarConfigDisabled || !appearance.developerModeEnabled}
-            label={labels.debugProfileLabel}
-            onChange={(debug_profile) => updateAvatarConfig({ debug_profile })}
-            options={[
-              { value: 'standard', label: labels.debugProfileStandard },
-              { value: 'strict_backend_evidence', label: labels.debugProfileStrictBackendEvidence },
-              { value: 'route_matrix', label: labels.debugProfileRouteMatrix },
-            ]}
-            value={(appearance.debugProfile || 'standard') as 'standard' | 'strict_backend_evidence' | 'route_matrix'}
-          />
-        </div>
         <div className="flex min-w-0 items-start gap-2 rounded-[10px] border border-slate-100 bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-600">
           <AlertCircle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
           <span className="min-w-0">

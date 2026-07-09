@@ -55,6 +55,10 @@ export type AgentCenterStatusTone =
 
 export type AgentCenterModelSuperSectionId = 'conversation' | 'voice' | 'media';
 
+export type AgentCenterHostScope =
+  | 'account'
+  | 'local-agent';
+
 export type AgentCenterModelConfigCopyKey =
   | 'ModelConfig.hub.title'
   | 'ModelConfig.hub.aggregateReady'
@@ -269,6 +273,12 @@ export interface AgentCenterAppearanceProjection {
   readonly backgroundValidationStatus?: string | null;
   readonly backgroundValidationMessage?: string | null;
   readonly backgroundImportError?: string | null;
+  readonly previewState?: 'ready' | 'failed' | 'loading' | 'unavailable' | null;
+  readonly previewTier?: 'avatar_preview_service' | string | null;
+  readonly previewArtifactRef?: string | null;
+  readonly previewImageRef?: string | null;
+  readonly previewFailureReason?: string | null;
+  readonly previewWarnings?: readonly string[];
   readonly defaultVoiceReference?: string | null;
   readonly avatarAutoplay?: boolean;
   readonly avatarImportDisabled?: boolean;
@@ -282,10 +292,6 @@ export interface AgentCenterAppearanceProjection {
   readonly backgroundImportPending?: boolean;
   readonly clearBackgroundPending?: boolean;
   readonly avatarImportError?: string | null;
-  readonly avatarInstancePolicy?: 'reuse_active_instance' | 'launch_new_instance' | 'require_user_selection' | string | null;
-  readonly generatedMotionProviderPolicy?: 'require_profile_support' | 'disable_generated_motion' | 'debug_only' | string | null;
-  readonly launchMode?: 'manual' | 'debug_session' | 'start_with_chat' | string | null;
-  readonly debugProfile?: 'standard' | 'strict_backend_evidence' | 'route_matrix' | string | null;
   readonly developerModeEnabled?: boolean;
   readonly disabledReason?: string | null;
 }
@@ -298,16 +304,32 @@ export interface AgentCenterAppearanceAdapter {
   readonly clearAvatarAsset?: () => Promise<AgentCenterAppearanceProjection>;
   readonly importBackground?: () => Promise<AgentCenterAppearanceProjection>;
   readonly clearBackground?: () => Promise<AgentCenterAppearanceProjection>;
-  readonly updateAvatarConfig?: (patch: AgentCenterAppearanceConfigPatch) => Promise<AgentCenterAppearanceProjection>;
+  readonly removeAgentResources?: () => Promise<AgentCenterAppearanceProjection>;
+  readonly removeAccountResources?: () => Promise<AgentCenterAppearanceProjection>;
   readonly cleanupGeneratedVoiceArtifacts?: () => Promise<AgentCenterAppearanceProjection>;
   readonly setAvatarAutoplay?: (enabled: boolean) => Promise<AgentCenterAppearanceProjection>;
 }
 
-export interface AgentCenterAppearanceConfigPatch {
-  readonly avatar_instance_policy?: 'reuse_active_instance' | 'launch_new_instance' | 'require_user_selection' | string;
-  readonly generated_motion_provider_policy?: 'require_profile_support' | 'disable_generated_motion' | 'debug_only' | string;
-  readonly launch_mode?: 'manual' | 'debug_session' | 'start_with_chat' | string;
-  readonly debug_profile?: 'standard' | 'strict_backend_evidence' | 'route_matrix' | string;
+export interface AgentCenterRuntimePresentationProfilePatch {
+  readonly backendKind?: string | null;
+  readonly avatarAssetRef?: string | null;
+  readonly expressionProfileRef?: string | null;
+  readonly idlePreset?: string | null;
+  readonly interactionPolicyRef?: string | null;
+  readonly defaultVoiceReference?: string | null;
+  readonly avatarAutoplay?: boolean;
+  readonly backgroundAssetRef?: string | null;
+}
+
+export interface AgentCenterRuntimePresentationProfileSurface {
+  readonly patchPresentationProfile: (
+    input: RuntimeLocalAgentIdentityInput,
+    patch: AgentCenterRuntimePresentationProfilePatch,
+  ) => Promise<void>;
+  readonly setPresentationProfile?: (
+    input: RuntimeLocalAgentIdentityInput,
+    profile: AgentCenterRuntimePresentationProfilePatch | null,
+  ) => Promise<void>;
 }
 
 export type AgentCenterAppearanceCopy = Partial<{
@@ -387,10 +409,6 @@ export type AgentCenterAppearanceCopy = Partial<{
   readonly voiceArtifactsDescription: string;
   readonly cleanupLabel: string;
   readonly cleaningLabel: string;
-  readonly instancePolicyLabel: string;
-  readonly generatedMotionLabel: string;
-  readonly launchModeLabel: string;
-  readonly debugProfileLabel: string;
   readonly appearanceUpdateFailed: string;
   readonly live2dStatusProbeRequired: string;
   readonly live2dStatusNotAdmitted: string;
@@ -415,18 +433,6 @@ export type AgentCenterAppearanceCopy = Partial<{
   readonly live2dNoAdapterManifestSelected: string;
   readonly evidenceRefLabel: string;
   readonly calibrationRefLabel: string;
-  readonly instancePolicyReuseActive: string;
-  readonly instancePolicyLaunchNew: string;
-  readonly instancePolicyRequireUserSelection: string;
-  readonly generatedMotionRequireProfile: string;
-  readonly generatedMotionDisabled: string;
-  readonly generatedMotionDebugOnly: string;
-  readonly launchModeManual: string;
-  readonly launchModeDebugSession: string;
-  readonly launchModeStartWithChat: string;
-  readonly debugProfileStandard: string;
-  readonly debugProfileStrictBackendEvidence: string;
-  readonly debugProfileRouteMatrix: string;
   readonly custodyNotice: string;
   readonly adapterUnavailableFormat: string;
 }>;

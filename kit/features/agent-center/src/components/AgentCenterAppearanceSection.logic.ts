@@ -31,7 +31,7 @@ export type Live2dEvidenceItem = {
 
 const DEFAULT_APPEARANCE_COPY: Required<AgentCenterAppearanceCopy> = {
   appearanceTitle: 'Appearance',
-  appearanceDescription: 'Configure this partner avatar, background, and dynamic effects.',
+  appearanceDescription: 'Configure this partner avatar and chat background.',
   avatarCardTitle: 'Partner avatar',
   avatarUnsetTitle: 'Avatar is not set',
   avatarUnsetDescription: 'Import Live2D or VRM to show the partner preview here.',
@@ -106,10 +106,6 @@ const DEFAULT_APPEARANCE_COPY: Required<AgentCenterAppearanceCopy> = {
   voiceArtifactsDescription: 'Cleanup remains a typed Runtime/Avatar maintenance action.',
   cleanupLabel: 'Cleanup',
   cleaningLabel: 'Cleaning...',
-  instancePolicyLabel: 'Instance policy',
-  generatedMotionLabel: 'Generated motion',
-  launchModeLabel: 'Launch mode',
-  debugProfileLabel: 'Debug profile',
   appearanceUpdateFailed: 'Runtime appearance update failed.',
   live2dStatusProbeRequired: 'Probe required',
   live2dStatusNotAdmitted: 'Not admitted',
@@ -134,18 +130,6 @@ const DEFAULT_APPEARANCE_COPY: Required<AgentCenterAppearanceCopy> = {
   live2dNoAdapterManifestSelected: 'No adapter manifest is selected.',
   evidenceRefLabel: 'Evidence ref',
   calibrationRefLabel: 'Calibration ref',
-  instancePolicyReuseActive: 'Reuse active',
-  instancePolicyLaunchNew: 'Launch new',
-  instancePolicyRequireUserSelection: 'Ask every time',
-  generatedMotionRequireProfile: 'Require profile',
-  generatedMotionDisabled: 'Disabled',
-  generatedMotionDebugOnly: 'Debug only',
-  launchModeManual: 'Manual',
-  launchModeDebugSession: 'Debug session',
-  launchModeStartWithChat: 'Start with chat',
-  debugProfileStandard: 'Standard',
-  debugProfileStrictBackendEvidence: 'Strict backend evidence',
-  debugProfileRouteMatrix: 'Route matrix',
   custodyNotice: 'Kit stores opaque Avatar/Runtime refs only. Avatar and Runtime own model digest, framing, scale, FPS, expression inventory, preview refs, and effect materialization.',
   adapterUnavailableFormat: '{{label}} adapter unavailable.',
 };
@@ -280,6 +264,11 @@ export function live2dStatusLabel(
 function live2dProbeStatus(appearance: AgentCenterAppearanceProjection): Live2dEvidenceStatus {
   if (appearance.avatarAssetChecking) return 'checking';
   if (!appearance.avatarAssetRef || !appearance.avatarAssetValid || !appearance.backendCapabilityProfileRef) return 'blocked';
+  if (appearance.previewState === 'ready' && appearance.previewTier === 'avatar_preview_service' && appearance.previewArtifactRef) {
+    return 'ready';
+  }
+  if (appearance.previewState === 'failed') return 'blocked';
+  if (appearance.previewState === 'loading') return 'checking';
   return 'probe_required';
 }
 
@@ -306,13 +295,19 @@ export function buildLive2dEvidenceItems(
       && appearance.avatarAssetValid
       && appearance.backendCapabilityProfileRef,
   );
+  const previewReady = Boolean(
+    appearance.previewState === 'ready'
+      && appearance.previewTier === 'avatar_preview_service'
+      && appearance.previewArtifactRef,
+  );
   const evidenceRequired = labels.live2dEvidenceRequired;
   return [
     {
       id: 'preview_artifact',
       label: labels.live2dPreviewArtifactLabel,
-      detail: launchEvidenceReady ? labels.live2dPreviewReadyDetail : evidenceRequired,
+      detail: previewReady ? labels.live2dPreviewReadyDetail : appearance.previewFailureReason || (launchEvidenceReady ? labels.live2dPreviewReadyDetail : evidenceRequired),
       status: live2dProbeStatus(appearance),
+      evidenceRef: previewReady ? `avatar_preview_service:live2d:${appearance.previewArtifactRef}` : null,
     },
     {
       id: 'model_framing',

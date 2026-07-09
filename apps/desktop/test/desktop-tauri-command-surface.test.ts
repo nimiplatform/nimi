@@ -57,10 +57,10 @@ function readDispositionCommands(): string[] {
 test('Desktop Tauri command surface exposes source-derived accounting buckets', () => {
   const report = readCommandSurfaceReport();
 
-  assert.equal(report.registered.length, 97);
-  assert.equal(report.kitRegistered.length, 37);
-  assert.equal(report.appLocalRegistered.length, 60);
-  assert.equal(report.dormant.length, 10);
+  assert.equal(report.registered.length, 96);
+  assert.equal(report.kitRegistered.length, 47);
+  assert.equal(report.appLocalRegistered.length, 49);
+  assert.equal(report.dormant.length, 9);
 
   assert.deepEqual(report.missingActiveSpec, []);
   assert.deepEqual(report.missingExecutionClassification, []);
@@ -83,8 +83,6 @@ test('future redesign commands are retained app-local and excluded from this Kit
   const retainedCommands = [
     'http_request',
     'get_system_resource_snapshot',
-    'desktop_agent_center_avatar_asset_import',
-    'desktop_agent_center_avatar_asset_validate',
   ];
 
   for (const command of retainedCommands) {
@@ -119,13 +117,13 @@ test('future redesign commands are retained app-local and excluded from this Kit
 
   assert.match(futurePackets, /kit shell host network capability/u);
   assert.match(futurePackets, /kit device-probe/u);
-  assert.match(futurePackets, /kit\/features\/avatar custody\/import capability/u);
+  assert.doesNotMatch(futurePackets, /desktop_agent_center_/u);
   assert.match(futurePackets, /AI config authority redesign/u);
   assert.match(futurePackets, /admitted Desktop local truth and runtime ownership/u);
 
   assert.match(classification, /future redesign target: kit shell host network capability/u);
   assert.match(classification, /future redesign target: kit device-probe/u);
-  assert.match(classification, /future redesign target: kit\/features\/avatar custody\/import capability/u);
+  assert.doesNotMatch(classification, /desktop_agent_center_/u);
   assert.match(classification, /pending explicit decision between admitted Desktop local truth and runtime ownership/u);
 });
 

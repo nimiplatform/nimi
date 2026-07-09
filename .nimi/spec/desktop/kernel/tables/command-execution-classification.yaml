@@ -329,6 +329,30 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
+  - family: standard_shell_agent_center
+    match:
+      exact:
+        - agent_center_avatar_asset_import
+        - agent_center_avatar_asset_validate
+        - agent_center_avatar_asset_resolve_preview
+        - agent_center_live2d_adapter_import
+        - agent_center_background_import
+        - agent_center_background_get
+        - agent_center_background_validate
+        - agent_center_background_remove
+        - agent_center_agent_resources_remove
+        - agent_center_account_resources_remove
+    origin_crate: kit/shell/tauri
+    owner_domain: standard-shell-agent-center
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - cpu_hash_or_codec
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
   - family: standard_shell_local_agent
     match:
       exact:
@@ -422,33 +446,6 @@ registered_command_families:
     admitted_risks:
       - sqlite_sync
       - std_fs
-      - spawn_blocking
-      - sync_lock_contention
-    source_rule: D-GATE-094
-
-  # Avatar import/validate remain app-local in the 2026-07-09 Tauri shell refactor batch;
-  # future redesign target: kit/features/avatar custody/import capability.
-  - family: desktop_agent_center_resources
-    match:
-      exact:
-        - desktop_agent_center_account_local_resources_remove
-        - desktop_agent_center_agent_local_resources_remove
-        - desktop_agent_center_avatar_asset_import
-        - desktop_agent_center_avatar_asset_validate
-        - desktop_agent_center_background_asset_get
-        - desktop_agent_center_background_import
-        - desktop_agent_center_background_remove
-        - desktop_agent_center_background_validate
-        - desktop_agent_center_config_get
-        - desktop_agent_center_config_put
-        - desktop_agent_center_live2d_adapter_manifest_import
-    origin_crate: apps/desktop/src-tauri
-    owner_domain: desktop-agent-center-resource-store
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - cpu_hash_or_codec
       - spawn_blocking
       - sync_lock_contention
     source_rule: D-GATE-094
@@ -579,7 +576,6 @@ dormant_command_families:
     match:
       exact:
         - nimi_avatar_resolve_agent_center_avatar_asset
-        - nimi_avatar_resolve_local_avatar_asset
     origin_crate: kit/shell/tauri
     owner_domain: avatar-shell-local-asset-resolution
     dormant_class: dormant_admitted

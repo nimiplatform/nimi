@@ -15,6 +15,7 @@
 // - platform_projection: deterministic host projection record builders
 // - renderer_entry_probe: shared page-load renderer entry smoke probe script
 // - agent_center_avatar_asset: shared Agent Center Avatar local asset resolution
+// - standard_agent_center: shared Agent Center local asset custody commands
 
 mod agent_center_avatar_asset;
 mod auth_session_commands;
@@ -37,6 +38,7 @@ mod runtime_local_agent_identity;
 mod runtime_local_assets;
 mod session_logging;
 mod shell_ui_hooks;
+mod standard_agent_center;
 mod standard_artifacts;
 mod standard_desktop_open;
 mod standard_export;
@@ -49,6 +51,8 @@ mod standard_platform_projection;
 
 #[cfg(test)]
 mod agent_center_avatar_asset_tests;
+#[cfg(test)]
+mod command_registration_tests;
 #[cfg(test)]
 mod installed_app_launch_tests;
 #[cfg(test)]

@@ -427,60 +427,55 @@ commands:
     description: Delete a local chat AI draft from the desktop local store
     source_rule: D-IPC-011
 
-  # Agent Center local resources
-  - command: desktop_agent_center_account_local_resources_remove
+  # Agent Center local resources (Kit Shell standard host commands; no config get/set surface)
+  - command: agent_center_avatar_asset_import
     module: agent-center
-    description: Remove account-scoped Agent Center local resources from the desktop local store
+    description: Import a user-selected local avatar asset into Kit Shell managed Agent Center storage.
     source_rule: D-IPC-011
 
-  - command: desktop_agent_center_agent_local_resources_remove
+  - command: agent_center_avatar_asset_validate
     module: agent-center
-    description: Remove agent-scoped Agent Center local resources from the desktop local store
+    description: Validate a Kit Shell managed local avatar asset manifest and sidecar.
     source_rule: D-IPC-011
 
-  - command: desktop_agent_center_avatar_asset_import
+  - command: agent_center_avatar_asset_resolve_preview
     module: agent-center
-    description: Import an admitted Agent Center avatar asset into the desktop local resource store
+    description: Resolve a Kit Shell managed local avatar asset into a preview model manifest without mutating Runtime presentation truth.
     source_rule: D-IPC-011
 
-  - command: desktop_agent_center_avatar_asset_validate
+  - command: agent_center_live2d_adapter_import
     module: agent-center
-    description: Validate an imported Agent Center avatar asset manifest and sidecar evidence
+    description: Import a user-selected Live2D adapter manifest into Kit Shell managed Agent Center storage.
     source_rule: D-IPC-011
 
-  - command: desktop_agent_center_live2d_adapter_manifest_import
+  - command: agent_center_background_import
     module: agent-center
-    description: Import a Live2D adapter manifest into the Agent Center local resource store
+    description: Import a user-selected background image into Kit Shell managed Agent Center storage.
     source_rule: D-IPC-011
 
-  - command: desktop_agent_center_background_asset_get
+  - command: agent_center_background_get
     module: agent-center
-    description: Read an Agent Center background asset projection from the desktop local resource store
+    description: Resolve a managed background image into an app-readable local asset URL.
     source_rule: D-IPC-011
 
-  - command: desktop_agent_center_background_import
+  - command: agent_center_background_validate
     module: agent-center
-    description: Import an admitted Agent Center background asset into the desktop local resource store
+    description: Validate a Kit Shell managed background manifest and sidecar.
     source_rule: D-IPC-011
 
-  - command: desktop_agent_center_background_remove
+  - command: agent_center_background_remove
     module: agent-center
-    description: Remove an Agent Center background asset from the desktop local resource store
+    description: Quarantine a Kit Shell managed background asset without mutating Runtime presentation truth.
     source_rule: D-IPC-011
 
-  - command: desktop_agent_center_background_validate
+  - command: agent_center_agent_resources_remove
     module: agent-center
-    description: Validate an Agent Center background asset manifest and sidecar evidence
+    description: Quarantine all Kit Shell managed Agent Center resources for one Runtime local agent.
     source_rule: D-IPC-011
 
-  - command: desktop_agent_center_config_get
+  - command: agent_center_account_resources_remove
     module: agent-center
-    description: Read Agent Center local resource configuration from the desktop local store
-    source_rule: D-IPC-011
-
-  - command: desktop_agent_center_config_put
-    module: agent-center
-    description: Save Agent Center local resource configuration to the desktop local store
+    description: Quarantine all Kit Shell managed Agent Center resources for one account.
     source_rule: D-IPC-011
 
   # Runtime bridge (runtime_bridge) — gRPC transport

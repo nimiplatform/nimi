@@ -395,8 +395,7 @@ pub mod config {
 pub mod local_assets {
     pub use crate::agent_center_avatar_asset::{
         agent_center_path_segment, nimi_avatar_resolve_agent_center_avatar_asset,
-        nimi_avatar_resolve_local_avatar_asset, AgentCenterAvatarAssetResolvePayload,
-        LocalAvatarAssetResolvePayload, ModelManifest,
+        AgentCenterAvatarAssetResolvePayload, ModelManifest,
     };
     pub use crate::runtime_local_assets::{
         canonical_asset_manifest_path, reveal_target_for_asset, runtime_models_dir,
@@ -467,8 +466,7 @@ pub mod ai_config;
 pub mod avatar {
     pub use crate::agent_center_avatar_asset::{
         agent_center_path_segment, nimi_avatar_resolve_agent_center_avatar_asset,
-        nimi_avatar_resolve_local_avatar_asset, AgentCenterAvatarAssetResolvePayload,
-        LocalAvatarAssetResolvePayload, ModelManifest,
+        AgentCenterAvatarAssetResolvePayload, ModelManifest,
     };
     pub use crate::standard_local_assets::{
         StandardLocalAssetUrlPayload, StandardLocalAssetUrlResult,
@@ -484,6 +482,161 @@ pub mod avatar {
             payload,
             "avatar_asset_resolve",
         )
+    }
+}
+
+pub mod agent_center {
+    pub use crate::standard_agent_center::{
+        StandardAgentCenterAccountLocalResourcesRemovePayload,
+        StandardAgentCenterAgentLocalResourcesRemovePayload,
+        StandardAgentCenterAvatarAssetImportPayload, StandardAgentCenterAvatarAssetImportResult,
+        StandardAgentCenterAvatarAssetValidatePayload,
+        StandardAgentCenterAvatarAssetValidationResult, StandardAgentCenterAvatarBackendKind,
+        StandardAgentCenterAvatarPreviewResolvePayload, StandardAgentCenterBackgroundAssetResult,
+        StandardAgentCenterBackgroundImportPayload, StandardAgentCenterBackgroundImportResult,
+        StandardAgentCenterBackgroundRemovePayload, StandardAgentCenterBackgroundValidatePayload,
+        StandardAgentCenterBackgroundValidationResult,
+        StandardAgentCenterLive2dAdapterManifestImportPayload,
+        StandardAgentCenterLive2dAdapterManifestImportResult,
+        StandardAgentCenterLocalResourceRemoveResult, StandardAgentCenterValidationIssue,
+    };
+
+    fn roots(
+        slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
+        command: &str,
+    ) -> Result<crate::runtime_app_storage::StandardAppStorageRoots, String> {
+        crate::runtime_app_storage::require_bound_standard_storage_roots(slot.inner(), command)
+    }
+
+    #[tauri::command]
+    pub async fn agent_center_avatar_asset_import(
+        slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
+        payload: StandardAgentCenterAvatarAssetImportPayload,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_agent_center::avatar_asset_import(
+            roots(slot, "agent_center_avatar_asset_import")?,
+            payload,
+        )
+        .await
+        .map(crate::standard_agent_center::shell_avatar_asset_import_result)
+    }
+
+    #[tauri::command]
+    pub async fn agent_center_avatar_asset_validate(
+        slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
+        payload: StandardAgentCenterAvatarAssetValidatePayload,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_agent_center::avatar_asset_validate(
+            roots(slot, "agent_center_avatar_asset_validate")?,
+            payload,
+        )
+        .await
+        .map(crate::standard_agent_center::shell_avatar_asset_validate_result)
+    }
+
+    #[tauri::command]
+    pub async fn agent_center_avatar_asset_resolve_preview(
+        slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
+        payload: StandardAgentCenterAvatarPreviewResolvePayload,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_agent_center::avatar_asset_resolve_preview(
+            roots(slot, "agent_center_avatar_asset_resolve_preview")?,
+            payload,
+        )
+        .await
+    }
+
+    #[tauri::command]
+    pub async fn agent_center_live2d_adapter_import(
+        slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
+        payload: StandardAgentCenterLive2dAdapterManifestImportPayload,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_agent_center::live2d_adapter_manifest_import(
+            roots(slot, "agent_center_live2d_adapter_import")?,
+            payload,
+        )
+        .await
+        .map(crate::standard_agent_center::shell_live2d_adapter_import_result)
+    }
+
+    #[tauri::command]
+    pub async fn agent_center_background_import(
+        slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
+        payload: StandardAgentCenterBackgroundImportPayload,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_agent_center::background_import(
+            roots(slot, "agent_center_background_import")?,
+            payload,
+        )
+        .await
+        .map(crate::standard_agent_center::shell_background_import_result)
+    }
+
+    #[tauri::command]
+    pub async fn agent_center_background_get(
+        app: tauri::AppHandle,
+        slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
+        payload: StandardAgentCenterBackgroundValidatePayload,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_agent_center::background_get(
+            roots(slot, "agent_center_background_get")?,
+            app,
+            payload,
+        )
+        .await
+        .map(crate::standard_agent_center::shell_background_get_result)
+    }
+
+    #[tauri::command]
+    pub async fn agent_center_background_validate(
+        slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
+        payload: StandardAgentCenterBackgroundValidatePayload,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_agent_center::background_validate(
+            roots(slot, "agent_center_background_validate")?,
+            payload,
+        )
+        .await
+        .map(crate::standard_agent_center::shell_background_validate_result)
+    }
+
+    #[tauri::command]
+    pub async fn agent_center_background_remove(
+        slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
+        payload: StandardAgentCenterBackgroundRemovePayload,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_agent_center::background_remove(
+            roots(slot, "agent_center_background_remove")?,
+            payload,
+        )
+        .await
+        .map(crate::standard_agent_center::shell_resource_removal_result)
+    }
+
+    #[tauri::command]
+    pub async fn agent_center_agent_resources_remove(
+        slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
+        payload: StandardAgentCenterAgentLocalResourcesRemovePayload,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_agent_center::agent_resources_remove(
+            roots(slot, "agent_center_agent_resources_remove")?,
+            payload,
+        )
+        .await
+        .map(crate::standard_agent_center::shell_resource_removal_result)
+    }
+
+    #[tauri::command]
+    pub async fn agent_center_account_resources_remove(
+        slot: tauri::State<'_, crate::runtime_app_storage::StandardAppStorageRootSlot>,
+        payload: StandardAgentCenterAccountLocalResourcesRemovePayload,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_agent_center::account_resources_remove(
+            roots(slot, "agent_center_account_resources_remove")?,
+            payload,
+        )
+        .await
+        .map(crate::standard_agent_center::shell_resource_removal_result)
     }
 }
 

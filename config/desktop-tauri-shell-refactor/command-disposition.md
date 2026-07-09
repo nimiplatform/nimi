@@ -4,14 +4,14 @@ Date: 2026-07-09
 
 This tracked config report is machine-checkable audit evidence for the Desktop Tauri shell refactor. It is not parallel authority. The executable command surface remains `.nimi/spec/desktop/kernel/tables/ipc-commands.yaml`, `.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml`, and `apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs`.
 
-Current command accounting after the shared-auth audit fix:
+Current command accounting after the Agent Center Kit-shell hardcut:
 
 | Bucket | Count |
 | --- | ---: |
-| Registered Desktop Tauri commands | 95 |
-| Kit/shared injected commands | 35 |
-| App-local Desktop commands | 60 |
-| Dormant annotated commands | 10 |
+| Registered Desktop Tauri commands | 96 |
+| Kit/shared injected commands | 47 |
+| App-local Desktop commands | 49 |
+| Dormant annotated commands | 9 |
 
 Owner bucket vocabulary:
 
@@ -74,15 +74,4 @@ Owner bucket vocabulary:
 | `chat_ai_get_draft` | `future-redesign-retained` | `runtime-bridge/chat-ai-store.ts` | Retained Desktop local SQLite draft read. | Pending decision: admitted Desktop local truth or runtime ownership. |
 | `chat_ai_put_draft` | `future-redesign-retained` | `runtime-bridge/chat-ai-store.ts` | Retained Desktop local SQLite draft write. | Pending decision: admitted Desktop local truth or runtime ownership. |
 | `chat_ai_delete_draft` | `future-redesign-retained` | `runtime-bridge/chat-ai-store.ts` | Retained Desktop local SQLite draft deletion. | Pending decision: admitted Desktop local truth or runtime ownership. |
-| `desktop_agent_center_account_local_resources_remove` | `desktop-support` | `runtime-bridge/chat-agent-center-local-config-store.ts` | Removes account-scoped Agent Center local resources under Desktop cleanup policy. | None admitted. |
-| `desktop_agent_center_agent_local_resources_remove` | `desktop-support` | `runtime-bridge/chat-agent-center-local-config-store.ts` | Removes agent-scoped Agent Center local resources under Desktop cleanup policy. | None admitted. |
-| `desktop_agent_center_avatar_asset_import` | `future-redesign-retained` | `runtime-bridge/chat-agent-center-local-config-store.ts` | Retained Desktop avatar asset import and custody. | Future redesign target: kit/features/avatar custody/import capability. |
-| `desktop_agent_center_avatar_asset_validate` | `future-redesign-retained` | `runtime-bridge/chat-agent-center-local-config-store.ts` | Retained Desktop avatar asset validation and custody. | Future redesign target: kit/features/avatar custody/import capability. |
-| `desktop_agent_center_live2d_adapter_manifest_import` | `desktop-product` | `runtime-bridge/chat-agent-center-local-config-store.ts` | Imports Desktop Agent Center Live2D adapter manifest under product policy. | None admitted. |
-| `desktop_agent_center_background_asset_get` | `desktop-product` | `runtime-bridge/chat-agent-center-local-config-store.ts` | Reads selected Desktop Agent Center background asset. | None admitted. |
-| `desktop_agent_center_background_import` | `desktop-product` | `runtime-bridge/chat-agent-center-local-config-store.ts` | Imports Desktop Agent Center background asset. | None admitted. |
-| `desktop_agent_center_background_remove` | `desktop-support` | `runtime-bridge/chat-agent-center-local-config-store.ts` | Removes Desktop Agent Center background resource and updates config. | None admitted. |
-| `desktop_agent_center_background_validate` | `desktop-product` | `runtime-bridge/chat-agent-center-local-config-store.ts` | Validates Desktop Agent Center background resource under product policy. | None admitted. |
-| `desktop_agent_center_config_get` | `desktop-product` | `runtime-bridge/chat-agent-center-local-config-store.ts` | Reads Desktop Agent Center local config. | None admitted. |
-| `desktop_agent_center_config_put` | `desktop-product` | `runtime-bridge/chat-agent-center-local-config-store.ts` | Writes Desktop Agent Center local config. | None admitted. |
 | `runtime_local_pick_asset_manifest_path` | `runtime-domain-retained` | `runtime-bridge/local-runtime-os-helpers.ts` | Keeps manifest picker tied to runtime-local manifest canonicalization rules. | None admitted. |

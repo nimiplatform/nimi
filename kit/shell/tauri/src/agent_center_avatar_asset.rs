@@ -41,51 +41,6 @@ pub struct AgentCenterAvatarAssetResolvePayload {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct LocalAvatarAssetResolvePayload {
-    pub account_id: String,
-    pub owner_user_id: String,
-    pub runtime_source_ref: String,
-    pub local_agent_ref: String,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AgentCenterLocalConfigFile {
-    schema_version: u8,
-    config_kind: String,
-    account_id: String,
-    owner_user_id: String,
-    runtime_source_ref: String,
-    local_agent_ref: String,
-    modules: AgentCenterLocalConfigModules,
-}
-
-#[derive(Deserialize)]
-struct AgentCenterLocalConfigModules {
-    avatar_asset: AgentCenterLocalAvatarAssetSelection,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AgentCenterLocalAvatarAssetSelection {
-    schema_version: u8,
-    conversation_anchor_scope: String,
-    local_avatar_asset_ref: Option<String>,
-    live2d_calibration_ref: Option<String>,
-    live2d_adapter_manifest_source: String,
-    live2d_adapter_manifest_ref: Option<String>,
-    avatar_instance_policy: String,
-    backend_kind: String,
-    backend_capability_profile_ref: Option<String>,
-    generated_motion_provider_policy: String,
-    launch_mode: String,
-    debug_profile: String,
-    updated_at: String,
-    provenance: serde_json::Value,
-}
-
-#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct AgentCenterAvatarAssetManifest {
     manifest_version: u8,
@@ -196,26 +151,6 @@ fn validate_avatar_asset_id(value: &str, kind: &str) -> Result<String, String> {
     Ok(normalized.to_string())
 }
 
-fn validate_live2d_calibration_ref(value: &str) -> Result<String, String> {
-    let normalized = value.trim();
-    const PREFIX: &str = "live2d_calibration_";
-    if !normalized.starts_with(PREFIX) {
-        return Err("live2d_calibration_ref must be an opaque Live2D calibration ref".to_string());
-    }
-    let suffix = &normalized[PREFIX.len()..];
-    if suffix.len() != 12
-        || !suffix
-            .chars()
-            .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
-    {
-        return Err(
-            "live2d_calibration_ref must use a 12-character lowercase hex digest suffix"
-                .to_string(),
-        );
-    }
-    Ok(normalized.to_string())
-}
-
 fn validate_handoff_ref(value: &str, field: &str) -> Result<String, String> {
     let normalized = value.trim();
     if normalized.is_empty() || normalized.len() > 512 {
@@ -238,52 +173,6 @@ fn expected_materialization_ref(
         agent_center_path_segment(account_id),
         agent_center_path_segment(local_agent_ref),
     )
-}
-
-fn read_local_avatar_asset_selection(
-    data_root: &Path,
-    account_id: &str,
-    owner_user_id: &str,
-    runtime_source_ref: &str,
-    local_agent_ref: &str,
-) -> Result<AgentCenterLocalAvatarAssetSelection, String> {
-    let config_path = data_root
-        .join("accounts")
-        .join(agent_center_path_segment(account_id))
-        .join("agents")
-        .join(agent_center_path_segment(local_agent_ref))
-        .join("agent-center")
-        .join("config.json");
-    let raw = fs::read_to_string(&config_path)
-        .map_err(|error| format!("local Avatar asset config is unavailable: {error}"))?;
-    let config: AgentCenterLocalConfigFile = serde_json::from_str(&raw)
-        .map_err(|error| format!("local Avatar asset config is invalid: {error}"))?;
-    if config.schema_version != 1 || config.config_kind != "agent_center_local_config" {
-        return Err("local Avatar asset config kind is invalid".to_string());
-    }
-    if config.account_id != account_id
-        || config.owner_user_id != owner_user_id
-        || config.runtime_source_ref != runtime_source_ref
-        || config.local_agent_ref != local_agent_ref
-    {
-        return Err("local Avatar asset config scope mismatch".to_string());
-    }
-    let selection = config.modules.avatar_asset;
-    if selection.schema_version != 1 {
-        return Err("local Avatar asset module schema_version must be 1".to_string());
-    }
-    let _ = (
-        &selection.conversation_anchor_scope,
-        &selection.live2d_adapter_manifest_source,
-        &selection.live2d_adapter_manifest_ref,
-        &selection.avatar_instance_policy,
-        &selection.generated_motion_provider_policy,
-        &selection.launch_mode,
-        &selection.debug_profile,
-        &selection.updated_at,
-        &selection.provenance,
-    );
-    Ok(selection)
 }
 
 fn is_safe_asset_relative_path(value: &str) -> bool {
@@ -607,78 +496,4 @@ pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
         adapter_manifest_path,
         live2d_calibration_ref: None,
     })
-}
-
-#[tauri::command]
-pub async fn nimi_avatar_resolve_local_avatar_asset(
-    payload: LocalAvatarAssetResolvePayload,
-) -> Result<ModelManifest, String> {
-    let account_id = validate_agent_center_id(&payload.account_id, "account_id")?;
-    let owner_user_id = validate_agent_center_id(&payload.owner_user_id, "owner_user_id")?;
-    let runtime_source_ref =
-        validate_agent_center_id(&payload.runtime_source_ref, "runtime_source_ref")?;
-    let local_agent_ref = validate_agent_center_id(&payload.local_agent_ref, "local_agent_ref")?;
-    if account_id != owner_user_id {
-        return Err("local Avatar asset account_id must equal owner_user_id".to_string());
-    }
-    let local_agent_ref = project_runtime_local_agent_identity(
-        &owner_user_id,
-        &runtime_source_ref,
-        Some(&local_agent_ref),
-    )
-    .map(|identity| identity.local_agent_ref)?;
-    let data_root = resolve_admitted_data_root()?;
-    let selection = read_local_avatar_asset_selection(
-        &data_root,
-        &account_id,
-        &owner_user_id,
-        &runtime_source_ref,
-        &local_agent_ref,
-    )?;
-    let kind = selection.backend_kind.trim().to_string();
-    let live2d_calibration_ref = selection
-        .live2d_calibration_ref
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(validate_live2d_calibration_ref)
-        .transpose()?;
-    if live2d_calibration_ref.is_some() && kind != "live2d" {
-        return Err("live2d_calibration_ref requires live2d backend_kind".to_string());
-    }
-    let local_avatar_asset_ref = selection
-        .local_avatar_asset_ref
-        .as_deref()
-        .unwrap_or("")
-        .trim()
-        .to_string();
-    let backend_capability_profile_ref = selection
-        .backend_capability_profile_ref
-        .as_deref()
-        .unwrap_or("")
-        .trim()
-        .to_string();
-    if local_avatar_asset_ref.is_empty() || backend_capability_profile_ref.is_empty() {
-        return Err("local Avatar asset selection is incomplete".to_string());
-    }
-    let materialization_ref = expected_materialization_ref(
-        &account_id,
-        &local_agent_ref,
-        kind.as_str(),
-        &local_avatar_asset_ref,
-    );
-    let mut manifest =
-        nimi_avatar_resolve_agent_center_avatar_asset(AgentCenterAvatarAssetResolvePayload {
-            account_id,
-            owner_user_id,
-            runtime_source_ref,
-            local_agent_ref,
-            backend_kind: kind,
-            local_avatar_asset_ref,
-            backend_capability_profile_ref,
-            materialization_ref,
-        })
-        .await?;
-    manifest.live2d_calibration_ref = live2d_calibration_ref;
-    Ok(manifest)
 }

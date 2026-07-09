@@ -381,6 +381,13 @@ export function inferAvatarToneFromEmotion(emotion: AvatarInteractionState['emot
 }
 
 export {
+  resolveAgentCenterAvatarPreviewServiceResult,
+} from './agent-center-preview.js';
+export type {
+  AgentCenterAvatarPreviewServiceResult,
+  ResolveAgentCenterAvatarPreviewServiceInput,
+} from './agent-center-preview.js';
+export {
   buildAvatarLaunchHandoffPayload,
   buildAvatarLaunchInstanceId,
   parseAvatarLaunchHandoffPayload,
