@@ -6,7 +6,22 @@ import {
   parseRequiredString,
 } from './types.js';
 
+export type InstalledNimiAppLaunchBinding = {
+  readonly appId: string;
+  readonly appInstanceId: string;
+  readonly deviceId: string;
+  readonly bindingSource: 'host-owned-installed-app-bridge';
+  readonly launchHostId: string;
+  readonly launchNonce: string;
+  readonly releaseDescriptorRef: string;
+  readonly realmBaseUrl: string;
+};
+
 export type InstalledNimiAppStandardShellSurface = {
+  readonly aiConfig: {
+    readonly get: (scopeRef: string) => Promise<JsonObject>;
+    readonly set: (scopeRef: string, config: JsonObject) => Promise<JsonObject>;
+  };
   readonly config: {
     readonly get: () => Promise<JsonObject>;
     readonly set: (config: JsonObject) => Promise<JsonObject>;
@@ -31,6 +46,18 @@ export type InstalledNimiAppStorageRemoveJsonResult = {
 
 export function createInstalledNimiAppStandardShellSurface(): InstalledNimiAppStandardShellSurface {
   return {
+    aiConfig: {
+      get: async (scopeRef) => invokeChecked(
+        NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
+        { payload: { scopeRef } },
+        (value) => parseAIConfigResult(value, NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'], scopeRef),
+      ),
+      set: async (scopeRef, config) => invokeChecked(
+        NIMI_STANDARD_SHELL_COMMANDS['ai-config.set'],
+        { payload: { scopeRef, config } },
+        (value) => parseAIConfigResult(value, NIMI_STANDARD_SHELL_COMMANDS['ai-config.set'], scopeRef),
+      ),
+    },
     config: {
       get: async () => invokeChecked(
         NIMI_STANDARD_SHELL_COMMANDS['config.get'],
@@ -75,6 +102,43 @@ export function createInstalledNimiAppStandardShellSurface(): InstalledNimiAppSt
       ),
     },
   };
+}
+
+export function readInstalledNimiAppLaunchBinding(
+  scope: typeof globalThis = globalThis,
+): InstalledNimiAppLaunchBinding {
+  const candidate = (scope as { __NIMI_ELECTRON_RUNTIME__?: { installedAppLaunchBinding?: unknown } }).__NIMI_ELECTRON_RUNTIME__?.installedAppLaunchBinding
+    ?? (scope as { window?: { __NIMI_ELECTRON_RUNTIME__?: { installedAppLaunchBinding?: unknown } } }).window?.__NIMI_ELECTRON_RUNTIME__?.installedAppLaunchBinding
+    ?? (scope as { __NIMI_TAURI_RUNTIME__?: { installedAppLaunchBinding?: unknown } }).__NIMI_TAURI_RUNTIME__?.installedAppLaunchBinding
+    ?? (scope as { window?: { __NIMI_TAURI_RUNTIME__?: { installedAppLaunchBinding?: unknown } } }).window?.__NIMI_TAURI_RUNTIME__?.installedAppLaunchBinding;
+  return parseInstalledAppLaunchBinding(candidate);
+}
+
+function parseInstalledAppLaunchBinding(value: unknown): InstalledNimiAppLaunchBinding {
+  const record = assertRecord(value, 'Installed Nimi app launch binding is unavailable');
+  const bindingSource = parseRequiredString(record.bindingSource, 'bindingSource', 'readInstalledNimiAppLaunchBinding');
+  if (bindingSource !== 'host-owned-installed-app-bridge') {
+    throw new Error('Installed Nimi app launch binding must be host-owned.');
+  }
+  return {
+    appId: parseRequiredString(record.appId, 'appId', 'readInstalledNimiAppLaunchBinding'),
+    appInstanceId: parseRequiredString(record.appInstanceId, 'appInstanceId', 'readInstalledNimiAppLaunchBinding'),
+    deviceId: parseRequiredString(record.deviceId, 'deviceId', 'readInstalledNimiAppLaunchBinding'),
+    bindingSource,
+    launchHostId: parseRequiredString(record.launchHostId, 'launchHostId', 'readInstalledNimiAppLaunchBinding'),
+    launchNonce: parseRequiredString(record.launchNonce, 'launchNonce', 'readInstalledNimiAppLaunchBinding'),
+    releaseDescriptorRef: parseRequiredString(record.releaseDescriptorRef, 'releaseDescriptorRef', 'readInstalledNimiAppLaunchBinding'),
+    realmBaseUrl: parseRequiredString(record.realmBaseUrl, 'realmBaseUrl', 'readInstalledNimiAppLaunchBinding'),
+  };
+}
+
+function parseAIConfigResult(value: unknown, command: string, expectedScopeRef: string): JsonObject {
+  const record = assertRecord(value, `${command} returned invalid payload`);
+  const scopeRef = parseRequiredString(record.scopeRef, 'scopeRef', command);
+  if (scopeRef !== expectedScopeRef) {
+    throw new Error(`${command} returned AI config for unexpected scopeRef`);
+  }
+  return assertRecord(record.config, `${command} config payload is invalid`);
 }
 
 function parseConfigResult(value: unknown, command: string): JsonObject {

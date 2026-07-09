@@ -37,35 +37,37 @@ describe('Desktop installed app launcher', () => {
       get: async () => null,
       set: async ({ config }: { readonly config: Readonly<Record<string, unknown>> }) => config,
     };
-    const launcher = createDesktopInstalledAppLauncher({
-      runtimeEndpoint: '127.0.0.1:46371',
-      preloadPath: 'D:/nimi/desktop/preload.cjs',
-      createAIConfigStore: (dataRoot) => {
-        assert.equal(dataRoot, projection.storage?.durableDataRoot);
-        return aiConfigStore;
-      },
-      registerProtocol: async (input) => {
-        protocolInputs.push(input);
-        return {
-          scheme: 'nimi-installed-app',
-          origin: 'nimi-installed-app://community.nimi.fixture.platform-proof',
-          entryUrl: 'nimi-installed-app://community.nimi.fixture.platform-proof/dist/index.html',
-          entryFilePath: 'D:/nimi-data/apps/community.nimi.fixture.platform-proof/releases/0.1.0-sandbox/dist/index.html',
-          releaseRoot: 'D:/nimi-data/apps/community.nimi.fixture.platform-proof/releases/0.1.0-sandbox',
-          allowedOrigins: ['nimi-installed-app://community.nimi.fixture.platform-proof'],
-        };
-      },
-      createAuthProvider: (input) => {
-        authInputs.push(input);
-        return async () => ({ metadata: { participantId: projection.appId } });
-      },
-      createHostWindow: async (input) => {
-        hostInputs.push(input);
-        return { windowId: 42, entryUrl: input.entryUrl };
-      },
-    });
+    const result = await withRealmEnv('https://realm.test/', async () => {
+      const launcher = createDesktopInstalledAppLauncher({
+        runtimeEndpoint: '127.0.0.1:46371',
+        preloadPath: 'D:/nimi/desktop/preload.cjs',
+        createAIConfigStore: (dataRoot) => {
+          assert.equal(dataRoot, projection.storage?.durableDataRoot);
+          return aiConfigStore;
+        },
+        registerProtocol: async (input) => {
+          protocolInputs.push(input);
+          return {
+            scheme: 'nimi-installed-app',
+            origin: 'nimi-installed-app://community.nimi.fixture.platform-proof',
+            entryUrl: 'nimi-installed-app://community.nimi.fixture.platform-proof/dist/index.html',
+            entryFilePath: 'D:/nimi-data/apps/community.nimi.fixture.platform-proof/releases/0.1.0-sandbox/dist/index.html',
+            releaseRoot: 'D:/nimi-data/apps/community.nimi.fixture.platform-proof/releases/0.1.0-sandbox',
+            allowedOrigins: ['nimi-installed-app://community.nimi.fixture.platform-proof'],
+          };
+        },
+        createAuthProvider: (input) => {
+          authInputs.push(input);
+          return async () => ({ metadata: { participantId: projection.appId } });
+        },
+        createHostWindow: async (input) => {
+          hostInputs.push(input);
+          return { windowId: 42, entryUrl: input.entryUrl };
+        },
+      });
 
-    const result = await launcher.launch({ projection });
+      return launcher.launch({ projection });
+    });
 
     assert.equal(result.state, 'launched');
     assert.equal(result.appId, projection.appId);
@@ -107,6 +109,16 @@ describe('Desktop installed app launcher', () => {
       readonly allowedOrigins?: readonly string[];
       readonly runtimeEndpoint?: string;
       readonly trustedRuntimeMetadataProvider?: unknown;
+      readonly rendererLaunchBinding?: {
+        readonly appId?: string;
+        readonly appInstanceId?: string;
+        readonly deviceId?: string;
+        readonly bindingSource?: string;
+        readonly launchHostId?: string;
+        readonly launchNonce?: string;
+        readonly releaseDescriptorRef?: string;
+        readonly realmBaseUrl?: string;
+      };
       readonly standardShell?: {
         readonly capabilitySetRef?: string;
         readonly standardDataRootBinding?: {
@@ -126,6 +138,16 @@ describe('Desktop installed app launcher', () => {
     assert.deepEqual(hostInput.allowedOrigins, ['nimi-installed-app://community.nimi.fixture.platform-proof']);
     assert.equal(hostInput.runtimeEndpoint, '127.0.0.1:46371');
     assert.equal(typeof hostInput.trustedRuntimeMetadataProvider, 'function');
+    assert.deepEqual(hostInput.rendererLaunchBinding, {
+      appId: projection.appId,
+      appInstanceId: desktopInstalledAppInstanceId(projection.appId),
+      deviceId: DESKTOP_INSTALLED_APP_DEVICE_ID,
+      bindingSource: 'host-owned-installed-app-bridge',
+      launchHostId: DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID,
+      launchNonce: projection.launchNonce,
+      releaseDescriptorRef: projection.releaseDescriptorRef,
+      realmBaseUrl: 'https://realm.test',
+    });
     assert.equal(hostInput.standardShell?.capabilitySetRef, INSTALLED_APP_STANDARD_SHELL_CAPABILITY_SET_REF);
     assert.deepEqual(hostInput.standardShell?.standardDataRootBinding, {
       source: 'runtime-launch-projection',
@@ -202,6 +224,47 @@ describe('Desktop installed app launcher', () => {
         (error as { reasonCode?: string }).reasonCode
           === DESKTOP_INSTALLED_APP_LAUNCH_REASON_CODES.resolutionRequired,
     );
+  });
+
+  test('rejects installed app launch when host Realm base URL is missing or malformed', async () => {
+    const projection = launchedProjection();
+    const hostInputs: unknown[] = [];
+    const launcher = createDesktopInstalledAppLauncher({
+      runtimeEndpoint: '127.0.0.1:46371',
+      preloadPath: 'D:/nimi/desktop/preload.cjs',
+      registerProtocol: () => ({
+        scheme: 'nimi-installed-app',
+        origin: 'nimi-installed-app://community.nimi.fixture.platform-proof',
+        entryUrl: 'nimi-installed-app://community.nimi.fixture.platform-proof/dist/index.html',
+        entryFilePath: 'D:/nimi-data/apps/community.nimi.fixture.platform-proof/releases/0.1.0-sandbox/dist/index.html',
+        releaseRoot: 'D:/nimi-data/apps/community.nimi.fixture.platform-proof/releases/0.1.0-sandbox',
+        allowedOrigins: ['nimi-installed-app://community.nimi.fixture.platform-proof'],
+      }),
+      createHostWindow: async (input) => {
+        hostInputs.push(input);
+        return { windowId: 1, entryUrl: input.entryUrl };
+      },
+    });
+
+    await withRealmEnv(undefined, async () => {
+      await assert.rejects(
+        () => launcher.launch({ projection }),
+        (error: unknown) =>
+          (error as { reasonCode?: string; details?: { field?: string } }).reasonCode
+            === DESKTOP_INSTALLED_APP_LAUNCH_REASON_CODES.resolutionRequired
+          && (error as { details?: { field?: string } }).details?.field === 'realmBaseUrl',
+      );
+    });
+    await withRealmEnv('not a url', async () => {
+      await assert.rejects(
+        () => launcher.launch({ projection }),
+        (error: unknown) =>
+          (error as { reasonCode?: string; details?: { field?: string } }).reasonCode
+            === DESKTOP_INSTALLED_APP_LAUNCH_REASON_CODES.resolutionRequired
+          && (error as { details?: { field?: string } }).details?.field === 'realmBaseUrl',
+      );
+    });
+    assert.equal(hostInputs.length, 0);
   });
 });
 
@@ -298,4 +361,22 @@ function launchedProjection(
     productReadinessClaimAllowed: false,
     ...overrides,
   };
+}
+
+async function withRealmEnv<T>(value: string | undefined, run: () => Promise<T>): Promise<T> {
+  const previous = process.env.NIMI_REALM_URL;
+  if (value === undefined) {
+    delete process.env.NIMI_REALM_URL;
+  } else {
+    process.env.NIMI_REALM_URL = value;
+  }
+  try {
+    return await run();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.NIMI_REALM_URL;
+    } else {
+      process.env.NIMI_REALM_URL = previous;
+    }
+  }
 }

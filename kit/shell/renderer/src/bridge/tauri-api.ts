@@ -23,6 +23,7 @@ export type NimiShellRuntimeHook = {
 export type NimiElectronRuntimeHook = {
   invoke: ShellInvoke;
   listen: ElectronEventListen;
+  installedAppLaunchBinding?: unknown;
 };
 
 export type TauriRuntimeGlobal = typeof globalThis & {
@@ -56,6 +57,8 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']]: 'storage_read_json',
   [NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']]: 'storage_write_json',
   [NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']]: 'storage_remove_json',
+  [NIMI_STANDARD_SHELL_COMMANDS['ai-config.get']]: 'ai_config_get',
+  [NIMI_STANDARD_SHELL_COMMANDS['ai-config.set']]: 'ai_config_set',
   [NIMI_STANDARD_SHELL_COMMANDS['config.get']]: 'runtime_bridge_config_get',
   [NIMI_STANDARD_SHELL_COMMANDS['config.set']]: 'runtime_bridge_config_set',
   [NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad']]: 'auth_session_load',

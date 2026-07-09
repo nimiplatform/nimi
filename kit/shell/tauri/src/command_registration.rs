@@ -5,6 +5,7 @@ pub enum ShellCommandBoundary {
     DesktopOpen,
     Files,
     FloatingWindow,
+    AiConfig,
     OAuth,
     Runtime,
     RuntimeDefaults,
@@ -145,6 +146,19 @@ pub const STANDARD_STORAGE_COMMANDS: &[ShellCommandDescriptor] = &[
     },
 ];
 
+pub const STANDARD_AI_CONFIG_COMMANDS: &[ShellCommandDescriptor] = &[
+    ShellCommandDescriptor {
+        command_name: "ai_config_get",
+        rust_path: "nimi_shell_tauri::capabilities::ai_config::ai_config_get",
+        boundary: ShellCommandBoundary::AiConfig,
+    },
+    ShellCommandDescriptor {
+        command_name: "ai_config_set",
+        rust_path: "nimi_shell_tauri::capabilities::ai_config::ai_config_set",
+        boundary: ShellCommandBoundary::AiConfig,
+    },
+];
+
 pub const STANDARD_SHELL_UI_COMMANDS: &[ShellCommandDescriptor] = &[
     ShellCommandDescriptor {
         command_name: "confirm_dialog",
@@ -240,6 +254,7 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     commands.extend_from_slice(DESKTOP_OPEN_INTENT_COMMANDS);
     commands.extend_from_slice(SESSION_LOGGING_COMMANDS);
     commands.extend_from_slice(STANDARD_STORAGE_COMMANDS);
+    commands.extend_from_slice(STANDARD_AI_CONFIG_COMMANDS);
     commands.extend_from_slice(STANDARD_SHELL_UI_COMMANDS);
     commands.extend_from_slice(STANDARD_FILE_COMMANDS);
     commands.extend_from_slice(STANDARD_FLOATING_WINDOW_COMMANDS);
@@ -264,6 +279,8 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
             $crate::capabilities::storage::storage_read_json,
             $crate::capabilities::storage::storage_write_json,
             $crate::capabilities::storage::storage_remove_json,
+            $crate::capabilities::ai_config::ai_config_get,
+            $crate::capabilities::ai_config::ai_config_set,
             $crate::capabilities::shell_ui::confirm_dialog,
             $crate::capabilities::shell_ui::start_window_drag,
             $crate::capabilities::shell_ui::focus_main_window,
@@ -308,6 +325,8 @@ macro_rules! nimi_shell_tauri_auth_oauth_runtime_bridge_handler {
             $crate::capabilities::storage::storage_read_json,
             $crate::capabilities::storage::storage_write_json,
             $crate::capabilities::storage::storage_remove_json,
+            $crate::capabilities::ai_config::ai_config_get,
+            $crate::capabilities::ai_config::ai_config_set,
             $crate::capabilities::shell_ui::confirm_dialog,
             $crate::capabilities::shell_ui::start_window_drag,
             $crate::capabilities::shell_ui::focus_main_window,
@@ -349,6 +368,8 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $crate::capabilities::storage::storage_read_json,
             $crate::capabilities::storage::storage_write_json,
             $crate::capabilities::storage::storage_remove_json,
+            $crate::capabilities::ai_config::ai_config_get,
+            $crate::capabilities::ai_config::ai_config_set,
             $crate::capabilities::shell_ui::confirm_dialog,
             $crate::capabilities::shell_ui::start_window_drag,
             $crate::capabilities::shell_ui::focus_main_window,
@@ -436,6 +457,8 @@ mod tests {
                 "storage_read_json",
                 "storage_write_json",
                 "storage_remove_json",
+                "ai_config_get",
+                "ai_config_set",
                 "confirm_dialog",
                 "start_window_drag",
                 "focus_main_window",
@@ -477,6 +500,9 @@ mod tests {
         assert!(commands
             .iter()
             .any(|command| command.boundary == ShellCommandBoundary::Storage));
+        assert!(commands
+            .iter()
+            .any(|command| command.boundary == ShellCommandBoundary::AiConfig));
         assert!(commands
             .iter()
             .any(|command| command.boundary == ShellCommandBoundary::ShellUi));
@@ -526,6 +552,18 @@ mod tests {
                 .chain(OAUTH_COMMANDS)
                 .any(|other| other.command_name == descriptor.command_name));
         }
+    }
+
+    #[test]
+    fn standard_ai_config_commands_cover_installed_app_operations() {
+        let names = STANDARD_AI_CONFIG_COMMANDS
+            .iter()
+            .map(|command| command.command_name)
+            .collect::<Vec<_>>();
+        assert_eq!(names, vec!["ai_config_get", "ai_config_set"]);
+        assert!(STANDARD_AI_CONFIG_COMMANDS
+            .iter()
+            .all(|command| command.boundary == ShellCommandBoundary::AiConfig));
     }
 
     #[test]

@@ -87,6 +87,7 @@ export type {
 } from './floating-window.js';
 export {
   createInstalledNimiAppStandardShellSurface,
+  readInstalledNimiAppLaunchBinding,
 } from './installed-app.js';
 export {
   openDesktopIntent,
@@ -98,6 +99,7 @@ export type {
 export type {
   InstalledNimiAppStorageRemoveJsonResult,
   InstalledNimiAppStandardShellSurface,
+  InstalledNimiAppLaunchBinding,
 } from './installed-app.js';
 export type {
   JsonPrimitive,

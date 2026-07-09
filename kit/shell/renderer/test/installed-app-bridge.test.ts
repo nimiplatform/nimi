@@ -24,6 +24,8 @@ describe('renderer installed app standard shell surface', () => {
         if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']) return { path: 'settings/view.json', value: { zoom: 2 } };
         if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']) return { path: 'settings/view.json', removed: true };
         if (command === NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']) return { path: 'dist/icon.png', url: 'nimi-installed-app://fixture/dist/icon.png' };
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.get']) return { scopeRef: 'app:fixture', config: { capabilities: { targetRefs: {} } } };
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-config.set']) return { scopeRef: 'app:fixture', config: { capabilities: { selectedParams: {} } } };
         throw new Error(`unexpected command ${command}`);
       },
       listen: () => () => undefined,
@@ -38,6 +40,9 @@ describe('renderer installed app standard shell surface', () => {
       await expect(surface.storage.writeJson('settings/view.json', { zoom: 2 })).resolves.toEqual({ zoom: 2 });
       await expect(surface.storage.removeJson('settings/view.json')).resolves.toEqual({ path: 'settings/view.json', removed: true });
       await expect(surface.localAssets.resolveUrl('dist/icon.png')).resolves.toBe('nimi-installed-app://fixture/dist/icon.png');
+      await expect(surface.aiConfig.get('app:fixture')).resolves.toEqual({ capabilities: { targetRefs: {} } });
+      await expect(surface.aiConfig.set('app:fixture', { capabilities: { selectedParams: {} } })).resolves.toEqual({ capabilities: { selectedParams: {} } });
+      expect(Object.keys(surface).sort()).toEqual(['aiConfig', 'config', 'data', 'localAssets', 'storage']);
     } finally {
       root.__NIMI_ELECTRON_TEST__ = previous;
     }
@@ -50,10 +55,30 @@ describe('renderer installed app standard shell surface', () => {
       NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
       NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson'],
       NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl'],
+      NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
+      NIMI_STANDARD_SHELL_COMMANDS['ai-config.set'],
     ]);
     expect(calls[1]?.payload).toEqual({ payload: { config: { density: 'compact' } } });
     expect(calls[4]?.payload).toEqual({ payload: { relativePath: 'settings/view.json', value: { zoom: 2 } } });
     expect(calls[5]?.payload).toEqual({ payload: { relativePath: 'settings/view.json' } });
+    expect(calls[7]?.payload).toEqual({ payload: { scopeRef: 'app:fixture' } });
+    expect(calls[8]?.payload).toEqual({ payload: { scopeRef: 'app:fixture', config: { capabilities: { selectedParams: {} } } } });
+  });
+
+  it('fails closed when the host returns an ai-config for a different scope', async () => {
+    const root = globalThis as RendererInstalledAppTestGlobal;
+    const previous = root.__NIMI_ELECTRON_TEST__;
+    root.__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => ({ scopeRef: 'app:other', config: {} }),
+      listen: () => () => undefined,
+    };
+
+    try {
+      const surface = createInstalledNimiAppStandardShellSurface();
+      await expect(surface.aiConfig.get('app:fixture')).rejects.toThrow(/unexpected scopeRef/u);
+    } finally {
+      root.__NIMI_ELECTRON_TEST__ = previous;
+    }
   });
 
   it('preserves Electron structured host errors instead of stringifying them', async () => {

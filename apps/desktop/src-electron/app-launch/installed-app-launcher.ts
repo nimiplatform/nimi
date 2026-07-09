@@ -112,6 +112,16 @@ export function createDesktopInstalledAppLauncher(deps: DesktopInstalledAppLaunc
         allowedOrigins: protocol.allowedOrigins,
         runtimeEndpoint,
         trustedRuntimeMetadataProvider,
+        rendererLaunchBinding: {
+          appId: resolution.appId,
+          appInstanceId: resolution.appInstanceId,
+          deviceId: resolution.deviceId,
+          bindingSource: 'host-owned-installed-app-bridge',
+          launchHostId: resolution.launchHostId,
+          launchNonce: resolution.launchNonce,
+          releaseDescriptorRef: resolution.releaseDescriptorRef,
+          realmBaseUrl: resolveDesktopInstalledAppRealmBaseUrl(),
+        },
         standardShell: {
           capabilitySetRef: INSTALLED_APP_STANDARD_SHELL_CAPABILITY_SET_REF,
           standardDataRootBinding: {
@@ -137,6 +147,35 @@ export function createDesktopInstalledAppLauncher(deps: DesktopInstalledAppLaunc
       };
     },
   };
+}
+
+function resolveDesktopInstalledAppRealmBaseUrl(): string {
+  const realmBaseUrl = String(process.env.NIMI_REALM_URL || '').trim();
+  if (!realmBaseUrl) {
+    throw createDesktopInstalledAppLaunchError({
+      message: 'Desktop installed app launch requires host-projected Realm base URL.',
+      reasonCode: DESKTOP_INSTALLED_APP_LAUNCH_REASON_CODES.resolutionRequired,
+      details: { field: 'realmBaseUrl' },
+    });
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(realmBaseUrl);
+  } catch {
+    throw createDesktopInstalledAppLaunchError({
+      message: 'Desktop installed app launch requires a valid host-projected Realm base URL.',
+      reasonCode: DESKTOP_INSTALLED_APP_LAUNCH_REASON_CODES.resolutionRequired,
+      details: { field: 'realmBaseUrl' },
+    });
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw createDesktopInstalledAppLaunchError({
+      message: 'Desktop installed app launch Realm base URL must use http or https.',
+      reasonCode: DESKTOP_INSTALLED_APP_LAUNCH_REASON_CODES.resolutionRequired,
+      details: { field: 'realmBaseUrl' },
+    });
+  }
+  return parsed.toString().replace(/\/+$/u, '');
 }
 
 export function registerDesktopInstalledAppLaunchIpc(

@@ -393,12 +393,7 @@ pub mod ai_profile {
     };
 }
 
-pub mod ai_config {
-    pub use crate::runtime_ai_config_projection::{
-        project_first_run_execution_evidence_to_ai_config_bindings,
-        RuntimeAiConfigCapabilityBinding,
-    };
-}
+pub mod ai_config;
 
 pub mod avatar {
     pub use crate::agent_center_avatar_asset::{

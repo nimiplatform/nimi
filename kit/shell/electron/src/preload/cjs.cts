@@ -8,6 +8,18 @@ export type NimiElectronRuntimeListen = (
 export type NimiElectronRuntimeHook = {
   readonly invoke: NimiElectronRuntimeInvoke;
   readonly listen: NimiElectronRuntimeListen;
+  readonly installedAppLaunchBinding?: NimiElectronInstalledAppLaunchBinding;
+};
+
+export type NimiElectronInstalledAppLaunchBinding = {
+  readonly appId: string;
+  readonly appInstanceId: string;
+  readonly deviceId: string;
+  readonly bindingSource: 'host-owned-installed-app-bridge';
+  readonly launchHostId: string;
+  readonly launchNonce: string;
+  readonly releaseDescriptorRef: string;
+  readonly realmBaseUrl: string;
 };
 
 export type NimiElectronContextBridge = {
@@ -60,10 +72,50 @@ export function installNimiElectronRuntimeBridge(
         input.ipcRenderer.removeListener(channel, listener);
       };
     },
+    ...optionalInstalledAppLaunchBinding(),
   };
 
   input.contextBridge.exposeInMainWorld(apiKey, hook);
   return { apiKey, invokeChannel, listenChannelPrefix };
+}
+
+function optionalInstalledAppLaunchBinding(): { readonly installedAppLaunchBinding: NimiElectronInstalledAppLaunchBinding } | {} {
+  const raw = process.argv.find((arg) => arg.startsWith('--nimi-installed-app-launch-binding='));
+  if (!raw) {
+    return {};
+  }
+  const encoded = raw.slice('--nimi-installed-app-launch-binding='.length).trim();
+  if (!encoded) {
+    return {};
+  }
+  const parsed = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as unknown;
+  return { installedAppLaunchBinding: parseInstalledAppLaunchBinding(parsed) };
+}
+
+function parseInstalledAppLaunchBinding(value: unknown): NimiElectronInstalledAppLaunchBinding {
+  const record = asRecord(value, 'Nimi Electron installed app launch binding must be an object');
+  const binding: NimiElectronInstalledAppLaunchBinding = {
+    appId: requiredBindingText(record.appId, 'appId'),
+    appInstanceId: requiredBindingText(record.appInstanceId, 'appInstanceId'),
+    deviceId: requiredBindingText(record.deviceId, 'deviceId'),
+    bindingSource: 'host-owned-installed-app-bridge',
+    launchHostId: requiredBindingText(record.launchHostId, 'launchHostId'),
+    launchNonce: requiredBindingText(record.launchNonce, 'launchNonce'),
+    releaseDescriptorRef: requiredBindingText(record.releaseDescriptorRef, 'releaseDescriptorRef'),
+    realmBaseUrl: requiredBindingText(record.realmBaseUrl, 'realmBaseUrl'),
+  };
+  if (record.bindingSource !== binding.bindingSource) {
+    throw new Error('Nimi Electron installed app launch binding source is not host-owned.');
+  }
+  return binding;
+}
+
+function requiredBindingText(value: unknown, field: string): string {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) {
+    throw new Error(`Nimi Electron installed app launch binding requires ${field}`);
+  }
+  return normalized;
 }
 
 function unwrapInvokeResponse(response: unknown): unknown {

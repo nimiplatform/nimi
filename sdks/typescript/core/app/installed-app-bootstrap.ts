@@ -12,6 +12,10 @@ import {
 } from './runtime-account-realm';
 
 export type InstalledNimiAppStandardShellSurface = {
+  readonly aiConfig: {
+    readonly get: (scopeRef: string) => Promise<JsonObject> | JsonObject;
+    readonly set: (scopeRef: string, config: JsonObject) => Promise<JsonObject> | JsonObject;
+  };
   readonly config: {
     readonly get: () => Promise<JsonObject> | JsonObject;
     readonly set: (config: JsonObject) => Promise<JsonObject> | JsonObject;
@@ -81,6 +85,8 @@ function requireInstalledStandardShell(
 ): InstalledNimiAppStandardShellSurface {
   if (
     !surface
+    || typeof surface.aiConfig?.get !== 'function'
+    || typeof surface.aiConfig?.set !== 'function'
     || typeof surface.config?.get !== 'function'
     || typeof surface.config?.set !== 'function'
     || typeof surface.data?.resolvePath !== 'function'
@@ -90,7 +96,7 @@ function requireInstalledStandardShell(
     || typeof surface.localAssets?.resolveUrl !== 'function'
   ) {
     throw createNimiError({
-      message: 'Installed Nimi App bootstrap requires host-provided standard shell config, storage, and local asset surfaces.',
+      message: 'Installed Nimi App bootstrap requires host-provided standard shell aiConfig, config, storage, and local asset surfaces.',
       reasonCode: 'SDK_INSTALLED_APP_BOOTSTRAP_STANDARD_SHELL_REQUIRED',
       actionHint: 'compose_bootstrap_from_installed_app_standard_shell_host',
       source: 'sdk',

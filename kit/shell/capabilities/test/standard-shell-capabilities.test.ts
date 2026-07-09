@@ -54,6 +54,15 @@ function readCatalogCommands(content: string): string[] {
   return [...content.matchAll(/^\s+command: ([a-zA-Z0-9.]+)$/gm)].map((match) => match[1]);
 }
 
+function readCapabilitySetList(field: string, content: string): string[] {
+  const start = content.indexOf(`    ${field}:\n`);
+  expect(start).toBeGreaterThanOrEqual(0);
+  const afterStart = content.slice(start + field.length + 6);
+  const end = afterStart.search(/\n    [a-z_]+:/u);
+  const block = end === -1 ? afterStart : afterStart.slice(0, end);
+  return [...block.matchAll(/^\s+- ([a-zA-Z0-9.-]+)\s*$/gm)].map((match) => match[1]);
+}
+
 function readCatalogNegativeStatesForCommand(content: string, command: string): string[] {
   const start = content.indexOf(`command: ${command}`);
   expect(start).toBeGreaterThanOrEqual(0);
@@ -169,6 +178,37 @@ describe('standard shell capabilities', () => {
     );
     expect(installedSet?.allowedOperations).toContain('storage.removeJson');
     expect(installedSet?.allowedCommands).toContain(command);
+  });
+
+  it('admits ai-config for installed apps while keeping custody and private surfaces forbidden', () => {
+    const catalog = readFileSync(catalogPath, 'utf8');
+    const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
+      (set) => set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+    );
+
+    expect(installedSet?.allowedOperations).toEqual(readCapabilitySetList('allowed_operations', catalog));
+    expect(installedSet?.forbiddenOperations).toEqual(readCapabilitySetList('forbidden_operations', catalog));
+    expect(installedSet?.allowedOperations).toEqual(expect.arrayContaining([
+      'ai-config.get',
+      'ai-config.set',
+    ]));
+    expect(installedSet?.allowedCommands).toEqual(expect.arrayContaining([
+      getNimiStandardShellCommand('ai-config', 'get'),
+      getNimiStandardShellCommand('ai-config', 'set'),
+    ]));
+    expect(installedSet?.forbiddenOperations).toEqual(expect.arrayContaining([
+      'runtime-defaults.get',
+      'auth.sessionLoad',
+      'auth.sessionSave',
+      'auth.sessionClear',
+      'oauth.openExternalUrl',
+      'oauth.tokenExchange',
+      'oauth.listenForCode',
+      'local-agent.identity',
+      'local-agent.runtimeTrustedCaller',
+      'electron.raw-ipc',
+      'node.raw-fs',
+    ]));
   });
 
   it('exports fail-closed error envelopes and catalog-sourced command lookup', () => {

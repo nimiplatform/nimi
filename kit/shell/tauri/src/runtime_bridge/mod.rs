@@ -185,6 +185,24 @@ pub(crate) fn with_runtime_bridge_host_hooks<R>(
     }
 }
 
+#[cfg(test)]
+pub(crate) async fn with_runtime_bridge_host_hooks_async<R, Fut>(
+    hooks: RuntimeBridgeHostHooks,
+    run: impl FnOnce() -> Fut,
+) -> R
+where
+    Fut: std::future::Future<Output = R>,
+{
+    let _guard = TEST_HOST_HOOKS_LOCK
+        .lock()
+        .expect("runtime bridge test host hooks lock");
+    let previous = host_hooks().unwrap_or_default();
+    set_runtime_bridge_host_hooks(hooks).expect("set temporary runtime bridge host hooks");
+    let result = run().await;
+    set_runtime_bridge_host_hooks(previous).expect("restore runtime bridge host hooks");
+    result
+}
+
 fn host_hooks() -> Option<RuntimeBridgeHostHooks> {
     HOST_HOOKS
         .get()

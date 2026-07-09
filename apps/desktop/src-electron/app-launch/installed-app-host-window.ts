@@ -15,6 +15,17 @@ export type DesktopInstalledAppStandardShellPlan = {
   readonly aiConfigStore?: NimiElectronAIConfigStore;
 };
 
+export type DesktopInstalledAppRendererLaunchBinding = {
+  readonly appId: string;
+  readonly appInstanceId: string;
+  readonly deviceId: string;
+  readonly bindingSource: 'host-owned-installed-app-bridge';
+  readonly launchHostId: string;
+  readonly launchNonce: string;
+  readonly releaseDescriptorRef: string;
+  readonly realmBaseUrl: string;
+};
+
 export type DesktopInstalledAppHostWindowInput = {
   readonly appId: string;
   readonly preloadPath: string;
@@ -22,6 +33,7 @@ export type DesktopInstalledAppHostWindowInput = {
   readonly allowedOrigins: readonly string[];
   readonly runtimeEndpoint: string;
   readonly trustedRuntimeMetadataProvider: ElectronRuntimeBridgeTrustedMetadataProvider;
+  readonly rendererLaunchBinding: DesktopInstalledAppRendererLaunchBinding;
   readonly standardShell: DesktopInstalledAppStandardShellPlan;
 };
 
@@ -48,10 +60,14 @@ export function buildDesktopInstalledAppHostWindowOptions(input: {
   readonly preloadPath: string;
   readonly bridgeInvokeChannel?: string;
   readonly bridgeEventChannelPrefix?: string;
+  readonly rendererLaunchBinding?: DesktopInstalledAppRendererLaunchBinding;
 }): BrowserWindowConstructorOptions {
   const additionalArguments = [
     input.bridgeInvokeChannel ? `--nimi-electron-runtime-invoke-channel=${input.bridgeInvokeChannel}` : '',
     input.bridgeEventChannelPrefix ? `--nimi-electron-runtime-event-channel-prefix=${input.bridgeEventChannelPrefix}` : '',
+    input.rendererLaunchBinding
+      ? `--nimi-installed-app-launch-binding=${encodeRendererLaunchBinding(input.rendererLaunchBinding)}`
+      : '',
   ].filter(Boolean);
   return {
     width: 1180,
@@ -82,6 +98,7 @@ export async function createDesktopInstalledAppHostWindow(
     preloadPath: input.preloadPath,
     bridgeInvokeChannel: installedAppInvokeChannel(input.appId),
     bridgeEventChannelPrefix: installedAppEventChannelPrefix(input.appId),
+    rendererLaunchBinding: input.rendererLaunchBinding,
   }));
   secureInstalledAppWindow(window, input.entryUrl, input.allowedOrigins);
   deps.registerRuntimeBridge({
@@ -105,6 +122,10 @@ export async function createDesktopInstalledAppHostWindow(
     windowId: window.id,
     entryUrl: input.entryUrl,
   };
+}
+
+function encodeRendererLaunchBinding(binding: DesktopInstalledAppRendererLaunchBinding): string {
+  return Buffer.from(JSON.stringify(binding), 'utf8').toString('base64url');
 }
 
 function installedAppInvokeChannel(appId: string): string {
