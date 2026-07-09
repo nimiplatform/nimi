@@ -228,7 +228,7 @@ func (r agentAdminRuntime) get(req *runtimev1.GetAgentRequest) (*runtimev1.GetAg
 	return &runtimev1.GetAgentResponse{Agent: cloneAgentRecord(entry.Agent)}, nil
 }
 
-func (r agentAdminRuntime) setPresentationProfile(req *runtimev1.SetAgentPresentationProfileRequest) (*runtimev1.SetAgentPresentationProfileResponse, error) {
+func (r agentAdminRuntime) setPresentationProfile(ctx context.Context, req *runtimev1.SetAgentPresentationProfileRequest) (*runtimev1.SetAgentPresentationProfileResponse, error) {
 	if req == nil || req.ExpectedRevision == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -236,22 +236,34 @@ func (r agentAdminRuntime) setPresentationProfile(req *runtimev1.SetAgentPresent
 	if err != nil {
 		return nil, err
 	}
-	profile, committedRevision, err := r.svc.agentStateRuntime().mutateAgentPresentationProfile(
+	existing, err := r.svc.agentStateRuntime().snapshotAgentPresentationProfile(identity, req.GetExpectedRevision())
+	if err != nil {
+		return nil, err
+	}
+	var profile *runtimev1.AgentPresentationProfile
+	switch mutation := req.GetMutation().(type) {
+	case *runtimev1.SetAgentPresentationProfileRequest_Profile:
+		profile, err = normalizeAgentPresentationProfile(mutation.Profile)
+	case *runtimev1.SetAgentPresentationProfileRequest_Clear:
+		profile = nil
+	case *runtimev1.SetAgentPresentationProfileRequest_Patch:
+		profile, err = normalizeAgentPresentationProfilePatch(existing, mutation.Patch)
+	default:
+		err = grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := validateAgentPresentationVoiceAssetBinding(
+		ctx,
+		r.svc.currentVoiceAssetResolver(),
 		identity,
-		req.GetExpectedRevision(),
-		func(existing *runtimev1.AgentPresentationProfile) (*runtimev1.AgentPresentationProfile, error) {
-			switch mutation := req.GetMutation().(type) {
-			case *runtimev1.SetAgentPresentationProfileRequest_Profile:
-				return normalizeAgentPresentationProfile(mutation.Profile)
-			case *runtimev1.SetAgentPresentationProfileRequest_Clear:
-				return nil, nil
-			case *runtimev1.SetAgentPresentationProfileRequest_Patch:
-				return normalizeAgentPresentationProfilePatch(existing, mutation.Patch)
-			default:
-				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-			}
-		},
-	)
+		req.GetContext().GetAppId(),
+		profile,
+	); err != nil {
+		return nil, err
+	}
+	profile, committedRevision, err := r.svc.agentStateRuntime().commitAgentPresentationProfile(identity, req.GetExpectedRevision(), profile)
 	if err != nil {
 		return nil, err
 	}

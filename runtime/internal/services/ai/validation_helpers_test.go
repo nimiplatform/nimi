@@ -237,6 +237,46 @@ func TestPrepareScenarioRequestRequiresRuntimeTargetRef(t *testing.T) {
 	}
 }
 
+func TestNormalizeScenarioRuntimeTargetRefRejectsNoncanonicalDurableIdentity(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		targetRef *runtimev1.RuntimeDurableTargetRef
+	}{
+		{
+			name: "padded local identity",
+			targetRef: &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_LocalRuntime{LocalRuntime: &runtimev1.RuntimeDurableLocalTargetRef{
+				Version: "v2",
+				Ref:     &runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId{ProfileBindingId: " profile-binding-1"},
+			}}},
+		},
+		{
+			name: "padded cloud identity",
+			targetRef: &runtimev1.RuntimeDurableTargetRef{Target: &runtimev1.RuntimeDurableTargetRef_Cloud{Cloud: &runtimev1.RuntimeDurableCloudTargetRef{
+				Version:              "v2",
+				ConnectorId:          " connector-1",
+				RemoteModelCatalogId: "remote-catalog-1",
+				ProviderModelId:      "provider-model-1",
+				Provider:             "provider-1",
+			}}},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+			_, err := svc.normalizeScenarioRuntimeTargetRef(context.Background(), &runtimev1.ScenarioRequestHead{
+				AppId:         "nimi.desktop",
+				SubjectUserId: "user-1",
+				TargetRef:     tc.targetRef,
+			})
+			if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+				t.Fatalf("reason = %s, %v; want PROTOCOL_ENVELOPE_INVALID: %v", reason, ok, err)
+			}
+		})
+	}
+}
+
 func TestPrepareScenarioRequestRequiresSubjectForTokenAPI(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 

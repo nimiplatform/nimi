@@ -10,6 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
 
@@ -19,33 +20,32 @@ func (s *Service) normalizeScenarioRuntimeTargetRef(ctx context.Context, head *r
 			ActionHint: "provide_runtime_target_ref",
 		})
 	}
+	if err := runtimeidentity.ValidateDurableTargetRef(head.GetTargetRef()); err != nil {
+		return nil, invalidScenarioDurableTargetRef(head.GetTargetRef())
+	}
 	switch target := head.GetTargetRef().GetTarget().(type) {
 	case *runtimev1.RuntimeDurableTargetRef_Cloud:
 		return s.normalizeScenarioCloudTargetRef(ctx, head, target.Cloud)
 	case *runtimev1.RuntimeDurableTargetRef_LocalRuntime:
-		return nil, normalizeScenarioLocalTargetRef(target.LocalRuntime)
+		return nil, nil
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 }
 
-func normalizeScenarioLocalTargetRef(ref *runtimev1.RuntimeDurableLocalTargetRef) error {
-	if ref == nil {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	switch ref.GetRef().(type) {
-	case *runtimev1.RuntimeDurableLocalTargetRef_ProfileBindingId:
-		if strings.TrimSpace(ref.GetProfileBindingId()) == "" {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+func invalidScenarioDurableTargetRef(targetRef *runtimev1.RuntimeDurableTargetRef) error {
+	if cloud := targetRef.GetCloud(); cloud != nil {
+		if strings.TrimSpace(cloud.GetConnectorId()) == "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_ID_REQUIRED)
 		}
-	case *runtimev1.RuntimeDurableLocalTargetRef_ReadinessRef:
-		if strings.TrimSpace(ref.GetReadinessRef()) == "" {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		if strings.TrimSpace(cloud.GetProviderModelId()) == "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODEL_ID_REQUIRED)
 		}
-	default:
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		if strings.TrimSpace(cloud.GetRemoteModelCatalogId()) == "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_ID_REQUIRED)
+		}
 	}
-	return nil
+	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 }
 
 func (s *Service) normalizeScenarioCloudTargetRef(ctx context.Context, head *runtimev1.ScenarioRequestHead, ref *runtimev1.RuntimeDurableCloudTargetRef) (*connector.RemoteModelCatalogBinding, error) {

@@ -63,6 +63,8 @@ type Service struct {
 	postures                              behavioralPosturePersistence
 	chatAppEmit                           publicChatAppMessageEmitter
 	bindingValidator                      scopedBindingValidator
+	voiceAssetResolverMu                  sync.RWMutex
+	voiceAssetResolver                    VoiceAssetResolver
 	aiBridgeMu                            sync.RWMutex
 	aiBridge                              *RuntimePrivateAIBridge
 	auditStore                            *auditlog.Store
@@ -180,6 +182,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		execSubs:                       make(map[uint64]runtimeAgentAIConfigReadinessSubscriber),
 		reviews:                        newReviewPersistence(backend),
 		postures:                       newBehavioralPosturePersistence(backend),
+		voiceAssetResolver:             rejectingVoiceAssetResolver{},
 		aiBridge:                       newRuntimePrivateAIBridge(),
 		delegatedGateway:               delegatedGateway,
 		delegatedFirewall:              delegatedFirewall,

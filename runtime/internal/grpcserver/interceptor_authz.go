@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
@@ -26,6 +27,11 @@ func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.Una
 		capability, required := protectedCapabilityForUnary(info.FullMethod, req)
 		if !required {
 			return handler(ctx, req)
+		}
+		if info.FullMethod == "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile" {
+			if err := validateAgentPresentationRealmIdentity(ctx, req); err != nil {
+				return nil, err
+			}
 		}
 		if runtimeAgentScopedBindingMetadataDefersUnaryAuthz(ctx, info.FullMethod) {
 			return handler(ctx, req)
@@ -46,6 +52,20 @@ func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.Una
 		ctx = envelope.WithValidatedProtectedCapability(ctx, appID, capability)
 		return handler(ctx, req)
 	}
+}
+
+func validateAgentPresentationRealmIdentity(ctx context.Context, req any) error {
+	request, ok := req.(*runtimev1.SetAgentPresentationProfileRequest)
+	identity := authn.IdentityFromContext(ctx)
+	if !ok || request.GetContext() == nil || identity == nil {
+		return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+	}
+	ownerUserID := strings.TrimSpace(request.GetContext().GetOwnerUserId())
+	subjectUserID := strings.TrimSpace(identity.SubjectUserID)
+	if ownerUserID == "" || subjectUserID == "" || subjectUserID != ownerUserID {
+		return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+	}
+	return nil
 }
 
 func newStreamAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.StreamServerInterceptor {
@@ -205,6 +225,8 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/ListAgents":
 		return "runtime.agent.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile":
+		return "runtime.agent.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor":
 		return "runtime.agent.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot":

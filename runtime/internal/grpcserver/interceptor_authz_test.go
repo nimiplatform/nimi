@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -149,6 +151,11 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			capability: "runtime.agent.read",
 		},
 		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
+			request:    &runtimev1.SetAgentPresentationProfileRequest{},
+			capability: "runtime.agent.write",
+		},
+		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory",
 			request:    &runtimev1.WriteAgentMemoryRequest{},
 			capability: "runtime.agent.write",
@@ -288,6 +295,125 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 		if !required || capability != tc.capability {
 			t.Fatalf("%s: expected (%q,true), got (%q,%v)", tc.method, tc.capability, capability, required)
 		}
+	}
+}
+
+func TestSetAgentPresentationProfileUnaryAuthzInterceptor(t *testing.T) {
+	const fullMethod = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
+	tests := []struct {
+		name                string
+		authorizerAvailable bool
+		allow               bool
+		realmSubject        string
+		scopedBinding       bool
+		wantCode            codes.Code
+		wantReason          runtimev1.ReasonCode
+		wantHandler         bool
+		wantCalls           int
+	}{
+		{
+			name:                "allowed write capability",
+			authorizerAvailable: true,
+			allow:               true,
+			realmSubject:        "user-1",
+			wantCode:            codes.OK,
+			wantHandler:         true,
+			wantCalls:           1,
+		},
+		{
+			name:                "anonymous realm identity",
+			authorizerAvailable: true,
+			allow:               true,
+			wantCode:            codes.Unauthenticated,
+			wantReason:          runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+			wantHandler:         false,
+			wantCalls:           0,
+		},
+		{
+			name:                "mismatched realm subject",
+			authorizerAvailable: true,
+			allow:               true,
+			realmSubject:        "other-user",
+			wantCode:            codes.Unauthenticated,
+			wantReason:          runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+			wantHandler:         false,
+			wantCalls:           0,
+		},
+		{
+			name:                "anonymous scoped binding cannot defer realm auth",
+			authorizerAvailable: true,
+			allow:               true,
+			scopedBinding:       true,
+			wantCode:            codes.Unauthenticated,
+			wantReason:          runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
+			wantHandler:         false,
+			wantCalls:           0,
+		},
+		{
+			name:                "denied write capability",
+			authorizerAvailable: true,
+			realmSubject:        "user-1",
+			wantCode:            codes.PermissionDenied,
+			wantHandler:         false,
+			wantCalls:           1,
+		},
+		{
+			name:         "authorizer unavailable",
+			realmSubject: "user-1",
+			wantCode:     codes.PermissionDenied,
+			wantHandler:  false,
+			wantCalls:    0,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var authorizer *authzTestAuthorizer
+			var interceptorAuthorizer protectedCapabilityAuthorizer
+			if tc.authorizerAvailable {
+				authorizer = &authzTestAuthorizer{allow: tc.allow, reason: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED}
+				interceptorAuthorizer = authorizer
+			}
+			interceptor := newUnaryAuthzInterceptor(interceptorAuthorizer)
+			called := false
+			ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "nimi.desktop"))
+			if tc.scopedBinding {
+				ctx = metadata.NewIncomingContext(ctx, metadata.Pairs(
+					"x-nimi-app-id", "nimi.desktop",
+					"x-nimi-runtime-scoped-binding-id", "binding-agent-presentation",
+				))
+			}
+			if tc.realmSubject != "" {
+				ctx = authn.WithIdentity(ctx, &authn.Identity{SubjectUserID: tc.realmSubject})
+			}
+			request := &runtimev1.SetAgentPresentationProfileRequest{Context: &runtimev1.AgentRequestContext{
+				AppId:       "nimi.desktop",
+				OwnerUserId: "user-1",
+			}}
+			_, err := interceptor(ctx, request, &grpc.UnaryServerInfo{FullMethod: fullMethod}, func(_ context.Context, request any) (any, error) {
+				called = true
+				return request, nil
+			})
+			if status.Code(err) != tc.wantCode {
+				t.Fatalf("code = %s, want %s: %v", status.Code(err), tc.wantCode, err)
+			}
+			if called != tc.wantHandler {
+				t.Fatalf("handler called = %v, want %v", called, tc.wantHandler)
+			}
+			if tc.wantReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+				if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != tc.wantReason {
+					t.Fatalf("reason = %s, %v; want %s", reason, ok, tc.wantReason)
+				}
+			}
+			if authorizer != nil {
+				if authorizer.calls != tc.wantCalls {
+					t.Fatalf("authorizer calls = %d, want %d", authorizer.calls, tc.wantCalls)
+				}
+				if tc.wantCalls > 0 && authorizer.lastCap != "runtime.agent.write" {
+					t.Fatalf("capability = %q, want runtime.agent.write", authorizer.lastCap)
+				}
+			}
+		})
 	}
 }
 

@@ -497,3 +497,29 @@ func TestPersistedAgentPresentationReadAndLoadRejectReservedMetadataStorage(t *t
 		})
 	}
 }
+
+func TestPersistedAgentPresentationLoadRejectsInvalidTypedRef(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	requestContext := testRuntimeAgentIdentityContext("persisted-invalid-typed-ref")
+	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{Context: requestContext}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	svc.mu.Lock()
+	entry := svc.agents[requestContext.GetLocalAgentRef()]
+	entry.Agent.PresentationProfile = &runtimev1.AgentPresentationProfile{
+		BackendKind:    runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
+		AvatarAssetRef: "file:///tmp/persisted-invalid.vrm",
+		Revision:       1,
+	}
+	entry.Agent.PresentationProfileRevision = 1
+	err := svc.saveStateLocked()
+	svc.mu.Unlock()
+	if err != nil {
+		t.Fatalf("save invalid typed fixture: %v", err)
+	}
+	if err := svc.loadState(); err == nil {
+		t.Fatal("loadState accepted persisted invalid typed avatar ref")
+	}
+}

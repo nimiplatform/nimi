@@ -32,8 +32,8 @@ func (s *Service) UpdateAgentState(_ context.Context, req *runtimev1.UpdateAgent
 	return s.agentAdminRuntime().updateState(req)
 }
 
-func (s *Service) SetAgentPresentationProfile(_ context.Context, req *runtimev1.SetAgentPresentationProfileRequest) (*runtimev1.SetAgentPresentationProfileResponse, error) {
-	return s.agentAdminRuntime().setPresentationProfile(req)
+func (s *Service) SetAgentPresentationProfile(ctx context.Context, req *runtimev1.SetAgentPresentationProfileRequest) (*runtimev1.SetAgentPresentationProfileResponse, error) {
+	return s.agentAdminRuntime().setPresentationProfile(ctx, req)
 }
 
 func (s *Service) EnableAutonomy(_ context.Context, req *runtimev1.EnableAutonomyRequest) (*runtimev1.EnableAutonomyResponse, error) {
