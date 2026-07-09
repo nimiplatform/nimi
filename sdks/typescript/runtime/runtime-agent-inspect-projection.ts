@@ -18,7 +18,6 @@ import {
 import type { Struct } from '../core-generated/runtime-protobuf/google/protobuf/struct';
 import type { Timestamp } from '../core-generated/runtime-protobuf/google/protobuf/timestamp';
 import {
-  fromNimiRuntimeProtoStruct,
   normalizeNimiRuntimeAgentText,
   toNimiRuntimeIsoFromTimestamp,
 } from './runtime-agent-values';
@@ -35,6 +34,7 @@ import type {
   ProjectNimiRuntimeAgentInspectSnapshotInput,
 } from './runtime-agent-inspect-types';
 import { projectNimiRuntimeAgentProactiveInterruptibility } from './runtime-agent-proactive-projection';
+import { projectNimiRuntimeAgentPresentationRecord } from './runtime-agent-presentation-validation';
 
 export function normalizeNimiRuntimeAgentOptionalNumber(value: unknown): number | null {
   const normalized = Number(value);
@@ -45,50 +45,10 @@ function runtimeAgentTimestampToIso(timestamp?: Timestamp): string | null {
   return toNimiRuntimeIsoFromTimestamp(timestamp);
 }
 
-function parseAvatarBackendKind(value: unknown): NimiRuntimeAgentPresentationProfileProjection['backendKind'] | null {
-  const normalized = normalizeNimiRuntimeAgentText(value);
-  if (
-    normalized === 'vrm'
-    || normalized === 'live2d'
-    || normalized === 'sprite2d'
-    || normalized === 'canvas2d'
-    || normalized === 'video'
-  ) {
-    return normalized;
-  }
-  return null;
-}
-
-function parseAvatarPresentationProfile(value: unknown): NimiRuntimeAgentPresentationProfileProjection | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  const record = value as Record<string, unknown>;
-  const backendKind = parseAvatarBackendKind(record.backendKind);
-  const avatarAssetRef = normalizeNimiRuntimeAgentText(record.avatarAssetRef) || null;
-  const defaultVoiceReference = normalizeNimiRuntimeAgentText(record.defaultVoiceReference) || null;
-  const backgroundAssetRef = normalizeNimiRuntimeAgentText(record.backgroundAssetRef) || null;
-  const avatarAutoplay = record.avatarAutoplay === true;
-  if (!backendKind && !avatarAssetRef && !defaultVoiceReference && !backgroundAssetRef && !avatarAutoplay) {
-    return null;
-  }
-  return {
-    backendKind,
-    avatarAssetRef,
-    expressionProfileRef: normalizeNimiRuntimeAgentText(record.expressionProfileRef) || null,
-    idlePreset: normalizeNimiRuntimeAgentText(record.idlePreset) || null,
-    interactionPolicyRef: normalizeNimiRuntimeAgentText(record.interactionPolicyRef) || null,
-    defaultVoiceReference,
-    avatarAutoplay,
-    backgroundAssetRef,
-  };
-}
-
 export function readNimiRuntimeAgentPresentationProfile(
-  metadata?: Struct | unknown,
+  agent?: { readonly presentationProfile?: unknown; readonly presentationProfileRevision?: unknown } | null,
 ): NimiRuntimeAgentPresentationProfileProjection | null {
-  const json = fromNimiRuntimeProtoStruct(metadata as Struct | undefined);
-  return parseAvatarPresentationProfile(json.presentationProfile);
+  return projectNimiRuntimeAgentPresentationRecord(agent).profile;
 }
 
 export function formatNimiRuntimeAgentLifecycleStatus(value: unknown): string | null {
@@ -409,13 +369,15 @@ export function projectNimiRuntimeAgentInspectSnapshot(
     .slice(0, input.maxRecentTerminalHooks ?? 6);
   const state = projectNimiRuntimeAgentStateSnapshot(input.state);
   const autonomy = projectNimiRuntimeAgentAutonomySnapshot(input.agent?.autonomy);
+  const presentation = projectNimiRuntimeAgentPresentationRecord(input.agent);
   const recentCanonicalMemories = (input.recentCanonicalMemories || [])
     .map(projectNimiRuntimeAgentCanonicalMemoryInspect)
     .filter((view): view is NimiRuntimeAgentCanonicalMemoryInspect => Boolean(view));
 
   return {
     lifecycleStatus: formatNimiRuntimeAgentLifecycleStatus(input.agent?.lifecycleStatus),
-    presentationProfile: readNimiRuntimeAgentPresentationProfile(input.agent?.metadata),
+    presentationProfile: presentation.profile,
+    presentationProfileRevision: presentation.committedRevision,
     executionState: state.executionState,
     statusText: state.statusText,
     activeWorldId: state.activeWorldId,

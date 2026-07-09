@@ -3,6 +3,8 @@ import {
   createNimiHostRuntimeAgentLifecycleSurface,
   createNimiHostRuntimeAgentPresentationProfileSurface,
   createNimiRuntimeAgentConsumeClient,
+  buildRuntimeAgentRequestContext,
+  normalizeNimiRuntimeAgentPresentationRevision,
   normalizeNimiRuntimeAgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
 import { asNimiError, ReasonCode } from '@nimiplatform/sdk/types';
@@ -150,11 +152,30 @@ async function syncRuntimePresentationProfile(input: {
     getSubjectUserId: () => input.context.subjectUserId,
     withScopes: withDesktopRuntimeProtectedScopes,
   });
+  const current = await withDesktopRuntimeProtectedScopes(
+    ['runtime.agent.read'],
+    (callOptions) => runtime.agent.getAgent({
+      context: buildRuntimeAgentRequestContext({
+        runtimeAppId: input.context.appId,
+        subjectUserId: input.context.subjectUserId,
+        ownerUserId: input.context.ownerUserId,
+        runtimeSourceRef: input.context.runtimeSourceRef,
+        localAgentRef: input.context.localAgentRef,
+      }),
+      agentId: input.context.localAgentRef,
+    }, callOptions),
+  );
+  const expectedRevision = normalizeNimiRuntimeAgentPresentationRevision(
+    current.agent?.presentationProfileRevision,
+  );
+  if (expectedRevision === null) {
+    throw new Error('Runtime Agent presentation profile revision is unavailable.');
+  }
   await surface.setPresentationProfile({
     localAgentRef: input.context.localAgentRef,
     ownerUserId: input.context.ownerUserId,
     runtimeSourceRef: input.context.runtimeSourceRef,
-  }, profile);
+  }, profile, expectedRevision);
 }
 
 export async function ensureRuntimeAgentExists(target: AgentLocalTargetSnapshot): Promise<void> {

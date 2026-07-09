@@ -284,9 +284,9 @@ export function useAgentConversationRuntimeController(
     }
     void ensureRuntimeAgentExists(target)
       .then(() => runtimeAgentInspect.getPresentationProfile(toRuntimeIdentityInput(target)))
-      .then((profile) => {
+      .then((presentationProfileRead) => {
         if (!cancelled) {
-          setRuntimePresentationProfile(profile);
+          setRuntimePresentationProfile(presentationProfileRead.profile);
         }
       })
       .catch((error) => {

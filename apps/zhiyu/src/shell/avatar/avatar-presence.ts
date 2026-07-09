@@ -139,7 +139,7 @@ async function readRuntimeAgentPresentationProfile(
     context,
     agentId: input.localAgentRef,
   }, callOptions));
-  return readNimiRuntimeAgentPresentationProfile(response.agent?.metadata);
+  return readNimiRuntimeAgentPresentationProfile(response.agent);
 }
 
 async function hasRuntimeBridge(): Promise<boolean> {

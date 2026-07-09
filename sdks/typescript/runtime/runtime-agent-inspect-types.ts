@@ -154,6 +154,11 @@ export interface NimiRuntimeAgentPresentationProfileProjection {
   readonly backgroundAssetRef: string | null;
 }
 
+export interface NimiRuntimeAgentPresentationProfileReadProjection {
+  readonly profile: NimiRuntimeAgentPresentationProfileProjection | null;
+  readonly committedRevision: string | null;
+}
+
 export interface NimiRuntimeAgentAutonomySnapshot {
   readonly mode: NimiRuntimeAgentAutonomyMode | null;
   readonly enabled: boolean | null;
@@ -178,6 +183,7 @@ export interface NimiRuntimeAgentStateSnapshot {
 export interface NimiRuntimeAgentInspectSnapshot extends NimiRuntimeAgentStateSnapshot {
   readonly lifecycleStatus: string | null;
   readonly presentationProfile?: NimiRuntimeAgentPresentationProfileProjection | null;
+  readonly presentationProfileRevision: string | null;
   readonly autonomyMode: NimiRuntimeAgentAutonomyMode | null;
   readonly autonomyEnabled: boolean | null;
   readonly autonomyBudgetExhausted: boolean | null;
@@ -197,6 +203,8 @@ export interface ProjectNimiRuntimeAgentInspectSnapshotInput {
   readonly agent?: {
     readonly lifecycleStatus?: unknown;
     readonly metadata?: Struct | unknown;
+    readonly presentationProfile?: unknown;
+    readonly presentationProfileRevision?: unknown;
     readonly autonomy?: AgentAutonomyState | null;
   } | null;
   readonly state?: AgentStateProjection | null;
@@ -248,7 +256,7 @@ export interface NimiRuntimeAgentInspectSurface {
   disableAutonomy(input: NimiRuntimeAgentDisableAutonomyInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
   enableAutonomy(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
   getPublicInspect(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentInspectSnapshot>;
-  getPresentationProfile(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentPresentationProfileProjection | null>;
+  getPresentationProfile(input: RuntimeLocalAgentIdentityInput): Promise<NimiRuntimeAgentPresentationProfileReadProjection>;
   setAutonomyConfig(input: NimiRuntimeAgentAutonomyConfigInput): Promise<NimiRuntimeAgentAutonomySnapshot>;
   subscribePublicEvents(input: NimiRuntimeAgentEventSubscriptionInput): Promise<void>;
   updateState(input: NimiRuntimeAgentStateUpdateInput): Promise<NimiRuntimeAgentStateSnapshot>;

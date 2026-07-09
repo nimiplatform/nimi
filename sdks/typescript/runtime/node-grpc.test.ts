@@ -3,7 +3,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { AccountEventType, RuntimeHealthStatus } from '../core-generated/runtime-typed-client';
+import {
+  AccountEventType,
+  ExecutionMode,
+  RoutePolicy,
+  RuntimeHealthStatus,
+  ScenarioType,
+} from '../core-generated/runtime-typed-client';
 import {
   AccountSessionEvent,
   SubscribeAccountSessionEventsRequest,
@@ -12,6 +18,10 @@ import {
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
 } from '../core-generated/runtime-protobuf/runtime/v1/audit';
+import {
+  SetAgentPresentationProfileResponse,
+} from '../core-generated/runtime-protobuf/runtime/v1/agent_service';
+import { StreamScenarioEvent } from '../core-generated/runtime-protobuf/runtime/v1/ai';
 import { Runtime } from './index';
 import { createRuntimeNodeGrpcTransport, type RuntimeNodeGrpcBridge } from './node-grpc';
 import { ReasonCode } from '../types';
@@ -41,6 +51,7 @@ test('node-grpc Runtime transport encodes and decodes protobuf bytes', async () 
   const bridge: RuntimeNodeGrpcBridge = {
     async unary(request) {
       observedBody = request.body;
+      assert.equal(Object.hasOwn(request, 'authorization'), false);
       assert.equal(request.endpoint, '127.0.0.1:46371');
       assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth');
       assert.equal(request.metadata?.appId, 'nimi.app');
@@ -69,6 +80,78 @@ test('node-grpc Runtime transport encodes and decodes protobuf bytes', async () 
   assert.equal(health.reason, 'bridge-ok');
   assert.equal(runtime.runtimeVersion(), '0.2.0');
   assert.equal(runtime.versionCompatibility().state, 'compatible');
+});
+
+test('ordinary Runtime bridge cannot observe bearer authority', async () => {
+  if (false) {
+    // @ts-expect-error RuntimeOptions intentionally has no raw token or provider authority.
+    new Runtime({ auth: { accessToken: 'forged-app-token' } });
+  }
+
+  const observedAuthorizationFields: boolean[] = [];
+  const bridge: RuntimeNodeGrpcBridge = {
+    async unary(request) {
+      observedAuthorizationFields.push(Object.hasOwn(request, 'authorization'));
+      return SetAgentPresentationProfileResponse.toBinary(SetAgentPresentationProfileResponse.create({
+        committedRevision: '1',
+      }));
+    },
+    async *serverStream() {
+      throw new Error('unexpected stream call');
+    },
+  };
+  const runtime = new Runtime({
+    auth: { accessToken: 'forged-app-token' },
+    transport: { type: 'node-grpc', bridge },
+  } as never);
+
+  await runtime.agents.setAgentPresentationProfile({
+    context: {
+      appId: 'nimi.app',
+      subjectUserId: 'user-1',
+      ownerUserId: 'user-1',
+      runtimeSourceRef: 'source-1',
+      localAgentRef: 'agent-1',
+    },
+    agentId: 'agent-1',
+    expectedRevision: '0',
+    mutation: { oneofKind: 'clear', clear: {} },
+  });
+
+  assert.deepEqual(observedAuthorizationFields, [false]);
+});
+
+test('ordinary Runtime mixed stream bridge cannot observe bearer authority', async () => {
+  const observedAuthorizationFields: boolean[] = [];
+  const bridge: RuntimeNodeGrpcBridge = {
+    async unary() {
+      throw new Error('unexpected unary call');
+    },
+    async *serverStream(request) {
+      observedAuthorizationFields.push(Object.hasOwn(request, 'authorization'));
+      yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({}));
+    },
+  };
+  const runtime = new Runtime({ transport: { type: 'node-grpc', bridge } });
+
+  for await (const _event of runtime.ai.streamScenario({
+    head: {
+      appId: 'nimi.app',
+      subjectUserId: 'user-1',
+      modelId: 'model-1',
+      routePolicy: RoutePolicy.LOCAL,
+      connectorId: '',
+      timeoutMs: 0,
+      fallback: 0,
+    },
+    scenarioType: ScenarioType.TEXT_GENERATE,
+    executionMode: ExecutionMode.SYNC,
+    extensions: [],
+  })) {
+    break;
+  }
+
+  assert.deepEqual(observedAuthorizationFields, [false]);
 });
 
 test('node-grpc Runtime transport decodes protobuf server streams', async () => {

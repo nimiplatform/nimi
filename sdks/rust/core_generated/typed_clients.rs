@@ -2057,6 +2057,7 @@ pub enum ReasonCode {
     APPOPENAICONFIGUNRESOLVED,
     APPOPENMANIFESTREQUIREMENTUNSATISFIED,
     APPOPENLAUNCHFAILED,
+    AGENTPRESENTATIONREVISIONCONFLICT,
 }
 
 impl Default for ReasonCode {
@@ -3835,6 +3836,7 @@ pub struct AgentPresentationProfile {
     pub default_voice_reference: Option<String>,
     pub avatar_autoplay: Option<bool>,
     pub background_asset_ref: Option<String>,
+    pub revision: Option<u64>,
 }
 
 impl AgentPresentationProfile {
@@ -3848,6 +3850,7 @@ impl AgentPresentationProfile {
         if let Some(value) = &self.default_voice_reference { pairs.push(format!("default_voice_reference={}", value)); }
         if let Some(value) = &self.avatar_autoplay { pairs.push(format!("avatar_autoplay={}", value)); }
         if let Some(value) = &self.background_asset_ref { pairs.push(format!("background_asset_ref={}", value)); }
+        if let Some(value) = &self.revision { pairs.push(format!("revision={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -3867,6 +3870,7 @@ impl AgentPresentationProfile {
         out.default_voice_reference = pairs.get("default_voice_reference").cloned();
         out.avatar_autoplay = pairs.get("avatar_autoplay").and_then(|value| value.parse().ok());
         out.background_asset_ref = pairs.get("background_asset_ref").cloned();
+        out.revision = pairs.get("revision").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -4051,6 +4055,8 @@ pub struct AgentRecord {
     pub metadata: Option<BTreeMap<String, String>>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
+    pub presentation_profile: Option<Box<AgentPresentationProfile>>,
+    pub presentation_profile_revision: Option<u64>,
     pub local_agent_ref: Option<String>,
     pub owner_user_id: Option<String>,
     pub runtime_source_ref: Option<String>,
@@ -4066,6 +4072,8 @@ impl AgentRecord {
         if self.metadata.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode metadata"); }
         if let Some(value) = &self.created_at { pairs.push(format!("created_at={}", value)); }
         if let Some(value) = &self.updated_at { pairs.push(format!("updated_at={}", value)); }
+        if self.presentation_profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode presentation_profile"); }
+        if let Some(value) = &self.presentation_profile_revision { pairs.push(format!("presentation_profile_revision={}", value)); }
         if let Some(value) = &self.local_agent_ref { pairs.push(format!("local_agent_ref={}", value)); }
         if let Some(value) = &self.owner_user_id { pairs.push(format!("owner_user_id={}", value)); }
         if let Some(value) = &self.runtime_source_ref { pairs.push(format!("runtime_source_ref={}", value)); }
@@ -4075,7 +4083,7 @@ impl AgentRecord {
     pub fn from_transport(raw: &[u8]) -> Self {
         let pairs = parse_pairs(raw);
         let mut out = Self::default();
-        for key in ["lifecycle_status", "autonomy", "metadata"] {
+        for key in ["lifecycle_status", "autonomy", "metadata", "presentation_profile"] {
             if pairs.contains_key(key) {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
@@ -4085,6 +4093,7 @@ impl AgentRecord {
         out.display_name = pairs.get("display_name").cloned();
         out.created_at = pairs.get("created_at").cloned();
         out.updated_at = pairs.get("updated_at").cloned();
+        out.presentation_profile_revision = pairs.get("presentation_profile_revision").and_then(|value| value.parse().ok());
         out.local_agent_ref = pairs.get("local_agent_ref").cloned();
         out.owner_user_id = pairs.get("owner_user_id").cloned();
         out.runtime_source_ref = pairs.get("runtime_source_ref").cloned();
@@ -27245,6 +27254,7 @@ pub struct SetAgentPresentationProfileRequest {
     pub profile: Option<Box<AgentPresentationProfile>>,
     pub clear: Option<Box<ClearAgentPresentationProfile>>,
     pub patch: Option<Box<AgentPresentationProfilePatch>>,
+    pub expected_revision: Option<u64>,
 }
 
 impl SetAgentPresentationProfileRequest {
@@ -27255,6 +27265,7 @@ impl SetAgentPresentationProfileRequest {
         if self.profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode profile"); }
         if self.clear.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode clear"); }
         if self.patch.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode patch"); }
+        if let Some(value) = &self.expected_revision { pairs.push(format!("expected_revision={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -27268,6 +27279,7 @@ impl SetAgentPresentationProfileRequest {
         }
 
         out.agent_id = pairs.get("agent_id").cloned();
+        out.expected_revision = pairs.get("expected_revision").and_then(|value| value.parse().ok());
         out
     }
 }
@@ -27275,12 +27287,14 @@ impl SetAgentPresentationProfileRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SetAgentPresentationProfileResponse {
     pub profile: Option<Box<AgentPresentationProfile>>,
+    pub committed_revision: Option<u64>,
 }
 
 impl SetAgentPresentationProfileResponse {
     pub fn to_transport(&self) -> Vec<u8> {
         let mut pairs: Vec<String> = Vec::new();
         if self.profile.is_some() { panic!("SDK_RUNTIME_REQUEST_ENCODE_FAILED: generated Rust typed client cannot encode profile"); }
+        if let Some(value) = &self.committed_revision { pairs.push(format!("committed_revision={}", value)); }
         pairs.join(";").into_bytes()
     }
 
@@ -27292,11 +27306,8 @@ impl SetAgentPresentationProfileResponse {
                 panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client cannot decode {}", key);
             }
         }
-        if !pairs.is_empty() {
-            panic!("SDK_RUNTIME_RESPONSE_DECODE_FAILED: generated Rust typed client has no decoder for response fields");
-        }
 
-
+        out.committed_revision = pairs.get("committed_revision").and_then(|value| value.parse().ok());
         out
     }
 }

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 
 import type {
   AccountCaller,
@@ -11,6 +11,7 @@ import type {
   NimiRealmSourceMaterializationPacket,
 } from '../realm/social';
 import type { Runtime } from './index';
+import type { NimiLocalFirstPartyAgentPresentationClient } from './local-first-party-agent-presentation';
 import type { NimiRuntimeRouteTargetRef } from './route-options';
 import type { NimiRuntimeAgentInitializedLocalAgent } from './runtime-agent-lifecycle';
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
@@ -30,6 +31,7 @@ export type RuntimeAgentLiveE2EFixtureContext = {
   readonly endpoint: string;
   readonly localModelsPath: string;
   readonly runtime: Runtime;
+  readonly agentPresentation: NimiLocalFirstPartyAgentPresentationClient;
   readonly realm: Realm;
   readonly realmBaseUrl: string;
   readonly realmRequests: readonly RuntimeAgentLiveE2ERealmRequest[];
@@ -49,6 +51,11 @@ export type RuntimeAgentLiveE2EFixtureContext = {
   readonly sourceMaterializationPacket: NimiRealmSourceMaterializationPacket;
   readonly createSourceMaterializationPacket: () => Promise<NimiRealmSourceMaterializationPacket>;
   readonly sendTurn: (text: string) => Promise<SendAppMessageResponse>;
+  readonly refreshRuntimeAccountSession: () => Promise<{
+    readonly previousAccessToken: string;
+    readonly accessToken: string;
+    readonly sessionId: string;
+  }>;
   readonly admitDeveloperRegisteredRuntimeAccountCaller: (
     input: RuntimeAgentLiveE2EDeveloperRegisteredAccountInput,
   ) => Promise<AccountCaller>;
@@ -91,10 +98,24 @@ export const REALM_WORLD_STUDIO_APP_ID = 'nimi.realm-world-studio';
 export const REALM_WORLD_STUDIO_APP_INSTANCE_ID = 'nimi.realm-world-studio.local-first-party';
 export const REALM_STUDIO_DEVICE_ID = 'device-1';
 export const RUNTIME_ACCOUNT_REDIRECT_URI = 'http://localhost:46373/oauth/callback';
-export const RUNTIME_ACCOUNT_ACCESS_TOKEN = 'runtime-live-access-token';
 export const RUNTIME_ACCOUNT_REFRESH_TOKEN = 'runtime-live-refresh-token';
 export const SOURCE_PACKET_HMAC_SECRET = 'sdk-runtime-agent-live-e2e-source-packet-secret';
 export const OWNER_USER_ID = 'user-runtime-agent-live';
+export const RUNTIME_AUTH_JWT_ISSUER = 'https://realm.sdk-runtime-agent-live.test';
+export const RUNTIME_AUTH_JWT_AUDIENCE = 'nimi-runtime';
+const RUNTIME_AUTH_JWT_KEY_ID = 'sdk-runtime-agent-live-rs256';
+const RUNTIME_AUTH_JWT_KEYS = generateKeyPairSync('rsa', { modulusLength: 2048 });
+const RUNTIME_AUTH_JWT_PUBLIC_JWK = RUNTIME_AUTH_JWT_KEYS.publicKey.export({ format: 'jwk' });
+export const RUNTIME_AUTH_JWKS = {
+  keys: [{
+    ...RUNTIME_AUTH_JWT_PUBLIC_JWK,
+    kid: RUNTIME_AUTH_JWT_KEY_ID,
+    use: 'sig',
+    alg: 'RS256',
+  }],
+};
+export const RUNTIME_ACCOUNT_SESSION_ID = 'sdk-runtime-agent-live-session';
+export const RUNTIME_ACCOUNT_ACCESS_TOKEN = createRuntimeAccountAccessToken(RUNTIME_ACCOUNT_SESSION_ID);
 export const SOURCE_REF: NimiRealmCoreSourceRef = {
   kind: 'worldCharacter',
   worldId: 'world-runtime-live',
@@ -103,6 +124,27 @@ export const SOURCE_REF: NimiRealmCoreSourceRef = {
 };
 export const RUNTIME_SOURCE_REF =
   `runtime-source:${SOURCE_REF.kind}:${SOURCE_REF.worldId}:${SOURCE_REF.sourceId}:${SOURCE_REF.sourceContentHash}`;
+
+export function createRuntimeAccountAccessToken(sessionId: string): string {
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const header = base64UrlJSON({ alg: 'RS256', typ: 'JWT', kid: RUNTIME_AUTH_JWT_KEY_ID });
+  const payload = base64UrlJSON({
+    iss: RUNTIME_AUTH_JWT_ISSUER,
+    aud: RUNTIME_AUTH_JWT_AUDIENCE,
+    sub: OWNER_USER_ID,
+    sid: requireText(sessionId, 'sessionId'),
+    iat: issuedAt,
+    exp: issuedAt + 3600,
+  });
+  const signingInput = `${header}.${payload}`;
+  const signature = sign('RSA-SHA256', Buffer.from(signingInput, 'utf8'), RUNTIME_AUTH_JWT_KEYS.privateKey)
+    .toString('base64url');
+  return `${signingInput}.${signature}`;
+}
+
+function base64UrlJSON(value: unknown): string {
+  return Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
+}
 export const LOCAL_TEXT_MODEL_ID = 'runtime-agent-live-e2e';
 export const LOCAL_TEXT_MODEL_REF = `local/${LOCAL_TEXT_MODEL_ID}`;
 export const LOCAL_TEXT_ASSET_ID = 'local-asset-runtime-agent-live-e2e-chat';

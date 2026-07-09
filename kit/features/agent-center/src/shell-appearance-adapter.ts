@@ -68,6 +68,7 @@ export function createAgentCenterShellAppearanceAdapter(
   input: CreateAgentCenterShellAppearanceAdapterInput,
 ): AgentCenterAppearanceAdapter {
   let committedProfile = presentationProfileFromSnapshot(input.snapshot) || EMPTY_PROFILE;
+  let committedRevision = presentationRevisionFromSnapshot(input.snapshot);
   let sidecar: Pick<AgentCenterAppearanceProjection, 'live2dAdapterManifestRef' | 'live2dAdapterManifestSource'> = {};
 
   const scope = (): AgentCenterShellAppearanceBridgeScope => ({
@@ -81,14 +82,23 @@ export function createAgentCenterShellAppearanceAdapter(
   const refresh = async (): Promise<AgentCenterAppearanceProjection> => {
     const snapshot = input.loadSnapshot ? await input.loadSnapshot() : input.snapshot;
     committedProfile = presentationProfileFromSnapshot(snapshot) || committedProfile || EMPTY_PROFILE;
+    committedRevision = presentationRevisionFromSnapshot(snapshot) ?? committedRevision;
     return projectAppearance(committedProfile, input.shell || null, sidecar, scope());
   };
 
   const patchRuntimeProfile = async (
     patch: AgentCenterRuntimePresentationProfilePatch,
   ): Promise<AgentCenterAppearanceProjection> => {
-    await input.runtimePresentation.patchPresentationProfile(input.identity, normalizePatch(patch));
-    committedProfile = mergeProfile(committedProfile, patch);
+    if (committedRevision === null) {
+      throw new Error('Agent Center Runtime presentation revision is unavailable.');
+    }
+    const result = await input.runtimePresentation.patchPresentationProfile(
+      input.identity,
+      normalizePatch(patch),
+      committedRevision,
+    );
+    committedProfile = result.profile || EMPTY_PROFILE;
+    committedRevision = result.committedRevision;
     return projectAppearance(committedProfile, input.shell || null, sidecar, scope());
   };
 
@@ -244,6 +254,12 @@ function presentationProfileFromSnapshot(
   snapshot: AgentCenterRuntimeSnapshot | null | undefined,
 ): NimiRuntimeAgentPresentationProfileProjection | null {
   return snapshot?.inspect?.presentationProfile || null;
+}
+
+function presentationRevisionFromSnapshot(
+  snapshot: AgentCenterRuntimeSnapshot | null | undefined,
+): string | null {
+  return snapshot?.inspect?.presentationProfileRevision ?? null;
 }
 
 function normalizePatch(

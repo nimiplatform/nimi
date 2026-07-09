@@ -1397,6 +1397,7 @@ const (
 	APPOPENAICONFIGUNRESOLVED ReasonCode = "APP_OPEN_AICONFIG_UNRESOLVED"
 	APPOPENMANIFESTREQUIREMENTUNSATISFIED ReasonCode = "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED"
 	APPOPENLAUNCHFAILED ReasonCode = "APP_OPEN_LAUNCH_FAILED"
+	AGENTPRESENTATIONREVISIONCONFLICT ReasonCode = "AGENT_PRESENTATION_REVISION_CONFLICT"
 )
 
 type ReasoningMode string
@@ -2090,17 +2091,18 @@ type AgentPresentationProfile struct {
 	DefaultVoiceReference string `json:"default_voice_reference,omitempty"`
 	AvatarAutoplay bool `json:"avatar_autoplay,omitempty"`
 	BackgroundAssetRef string `json:"background_asset_ref,omitempty"`
+	Revision uint64 `json:"revision,omitempty"`
 }
 
 type AgentPresentationProfilePatch struct {
-	BackendKind AgentPresentationBackendKind `json:"backend_kind,omitempty"`
-	AvatarAssetRef string `json:"avatar_asset_ref,omitempty"`
-	ExpressionProfileRef string `json:"expression_profile_ref,omitempty"`
-	IdlePreset string `json:"idle_preset,omitempty"`
-	InteractionPolicyRef string `json:"interaction_policy_ref,omitempty"`
-	DefaultVoiceReference string `json:"default_voice_reference,omitempty"`
-	AvatarAutoplay bool `json:"avatar_autoplay,omitempty"`
-	BackgroundAssetRef string `json:"background_asset_ref,omitempty"`
+	BackendKind *AgentPresentationBackendKind `json:"backend_kind,omitempty"`
+	AvatarAssetRef *string `json:"avatar_asset_ref,omitempty"`
+	ExpressionProfileRef *string `json:"expression_profile_ref,omitempty"`
+	IdlePreset *string `json:"idle_preset,omitempty"`
+	InteractionPolicyRef *string `json:"interaction_policy_ref,omitempty"`
+	DefaultVoiceReference *string `json:"default_voice_reference,omitempty"`
+	AvatarAutoplay *bool `json:"avatar_autoplay,omitempty"`
+	BackgroundAssetRef *string `json:"background_asset_ref,omitempty"`
 }
 
 type AgentProactiveEventDetail struct {
@@ -2149,6 +2151,8 @@ type AgentRecord struct {
 	Metadata map[string]any `json:"metadata,omitempty"`
 	CreatedAt string `json:"created_at,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
+	PresentationProfile *AgentPresentationProfile `json:"presentation_profile,omitempty"`
+	PresentationProfileRevision uint64 `json:"presentation_profile_revision,omitempty"`
 	LocalAgentRef string `json:"local_agent_ref,omitempty"`
 	OwnerUserId string `json:"owner_user_id,omitempty"`
 	RuntimeSourceRef string `json:"runtime_source_ref,omitempty"`
@@ -4385,7 +4389,7 @@ type ListAgentConversationSummariesResponse struct {
 type ListAgentsRequest struct {
 	Context *AgentRequestContext `json:"context,omitempty"`
 	LifecycleFilter AgentLifecycleStatus `json:"lifecycle_filter,omitempty"`
-	AutonomyEnabled bool `json:"autonomy_enabled,omitempty"`
+	AutonomyEnabled *bool `json:"autonomy_enabled,omitempty"`
 	PageSize int32 `json:"page_size,omitempty"`
 	PageToken string `json:"page_token,omitempty"`
 }
@@ -5244,8 +5248,8 @@ type LocalProfileEntryDescriptor struct {
 	Title string `json:"title,omitempty"`
 	Description string `json:"description,omitempty"`
 	Capability string `json:"capability,omitempty"`
-	Required bool `json:"required,omitempty"`
-	Preferred bool `json:"preferred,omitempty"`
+	Required *bool `json:"required,omitempty"`
+	Preferred *bool `json:"preferred,omitempty"`
 	Repo string `json:"repo,omitempty"`
 	ServiceId string `json:"service_id,omitempty"`
 	NodeId string `json:"node_id,omitempty"`
@@ -7225,10 +7229,12 @@ type SetAgentPresentationProfileRequest struct {
 	Profile *AgentPresentationProfile `json:"profile,omitempty"`
 	Clear *ClearAgentPresentationProfile `json:"clear,omitempty"`
 	Patch *AgentPresentationProfilePatch `json:"patch,omitempty"`
+	ExpectedRevision *uint64 `json:"expected_revision,omitempty"`
 }
 
 type SetAgentPresentationProfileResponse struct {
 	Profile *AgentPresentationProfile `json:"profile,omitempty"`
+	CommittedRevision uint64 `json:"committed_revision,omitempty"`
 }
 
 type SetAutonomyConfigRequest struct {
@@ -7700,14 +7706,14 @@ type UpdateAppResponse struct {
 
 type UpdateConnectorRequest struct {
 	ConnectorId string `json:"connector_id,omitempty"`
-	Label string `json:"label,omitempty"`
-	Endpoint string `json:"endpoint,omitempty"`
-	ApiKey string `json:"api_key,omitempty"`
+	Label *string `json:"label,omitempty"`
+	Endpoint *string `json:"endpoint,omitempty"`
+	ApiKey *string `json:"api_key,omitempty"`
 	Status ConnectorStatus `json:"status,omitempty"`
 	UpdateMask string `json:"update_mask,omitempty"`
-	AuthKind ConnectorAuthKind `json:"auth_kind,omitempty"`
-	ProviderAuthProfile string `json:"provider_auth_profile,omitempty"`
-	CredentialJson string `json:"credential_json,omitempty"`
+	AuthKind *ConnectorAuthKind `json:"auth_kind,omitempty"`
+	ProviderAuthProfile *string `json:"provider_auth_profile,omitempty"`
+	CredentialJson *string `json:"credential_json,omitempty"`
 }
 
 type UpdateConnectorResponse struct {

@@ -130,6 +130,7 @@ export * from './external-agent';
 export * from './first-run-materialization';
 export * from './health-coordinator';
 export * from './local-asset-vocabulary';
+export * from './local-first-party-agent-presentation';
 export * from './runtime-local-model-center';
 export * from './runtime-local-profile-manifest';
 export * from './runtime-local-recommendation';
@@ -221,10 +222,11 @@ function loadRuntimeNodeGrpcModule(): Promise<RuntimeNodeGrpcModule> {
 function createDeferredRuntimeNodeGrpcTransport(
   options: RuntimeNodeGrpcTransportOptions = {},
 ): CoreTransport {
+  const transportOptions = options;
   let transportPromise: Promise<CoreTransport> | undefined;
   const ensureTransport = async (): Promise<CoreTransport> => {
     transportPromise ??= loadRuntimeNodeGrpcModule()
-      .then((module) => module.createRuntimeNodeGrpcTransport(options));
+      .then((module) => module.createRuntimeNodeGrpcTransport(transportOptions));
     return transportPromise;
   };
   return {
@@ -559,7 +561,9 @@ function toCoreClientOptions(
   };
 }
 
-function toCoreTransport(transport: RuntimeOptions['transport']): CoreTransport {
+function toCoreTransport(
+  transport: RuntimeOptions['transport'],
+): CoreTransport {
   if (!transport) {
     if (isNodeRuntime()) {
       return createDeferredRuntimeNodeGrpcTransport({

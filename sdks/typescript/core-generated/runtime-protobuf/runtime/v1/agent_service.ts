@@ -169,6 +169,14 @@ export interface AgentRecord {
      */
     updatedAt?: Timestamp;
     /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentPresentationProfile presentation_profile = 8
+     */
+    presentationProfile?: AgentPresentationProfile;
+    /**
+     * @generated from protobuf field: uint64 presentation_profile_revision = 9
+     */
+    presentationProfileRevision: string;
+    /**
      * @generated from protobuf field: string local_agent_ref = 20
      */
     localAgentRef: string;
@@ -330,6 +338,10 @@ export interface AgentPresentationProfile {
      * @generated from protobuf field: string background_asset_ref = 8
      */
     backgroundAssetRef: string;
+    /**
+     * @generated from protobuf field: uint64 revision = 10
+     */
+    revision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentPresentationProfilePatch
@@ -1709,6 +1721,10 @@ export interface SetAgentPresentationProfileRequest {
     } | {
         oneofKind: undefined;
     };
+    /**
+     * @generated from protobuf field: optional uint64 expected_revision = 6
+     */
+    expectedRevision?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SetAgentPresentationProfileResponse
@@ -1718,6 +1734,10 @@ export interface SetAgentPresentationProfileResponse {
      * @generated from protobuf field: nimi.runtime.v1.AgentPresentationProfile profile = 1
      */
     profile?: AgentPresentationProfile;
+    /**
+     * @generated from protobuf field: uint64 committed_revision = 2
+     */
+    committedRevision: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListPendingHooksRequest
@@ -3879,6 +3899,8 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
             { no: 5, name: "metadata", kind: "message", T: () => Struct },
             { no: 6, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 7, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 8, name: "presentation_profile", kind: "message", T: () => AgentPresentationProfile },
+            { no: 9, name: "presentation_profile_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 20, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "owner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 22, name: "runtime_source_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
@@ -3889,6 +3911,7 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
         message.agentId = "";
         message.displayName = "";
         message.lifecycleStatus = 0;
+        message.presentationProfileRevision = "0";
         message.localAgentRef = "";
         message.ownerUserId = "";
         message.runtimeSourceRef = "";
@@ -3921,6 +3944,12 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
                     break;
                 case /* google.protobuf.Timestamp updated_at */ 7:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* nimi.runtime.v1.AgentPresentationProfile presentation_profile */ 8:
+                    message.presentationProfile = AgentPresentationProfile.internalBinaryRead(reader, reader.uint32(), options, message.presentationProfile);
+                    break;
+                case /* uint64 presentation_profile_revision */ 9:
+                    message.presentationProfileRevision = reader.uint64().toString();
                     break;
                 case /* string local_agent_ref */ 20:
                     message.localAgentRef = reader.string();
@@ -3964,6 +3993,12 @@ class AgentRecord$Type extends MessageType<AgentRecord> {
         /* google.protobuf.Timestamp updated_at = 7; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentPresentationProfile presentation_profile = 8; */
+        if (message.presentationProfile)
+            AgentPresentationProfile.internalBinaryWrite(message.presentationProfile, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* uint64 presentation_profile_revision = 9; */
+        if (message.presentationProfileRevision !== "0")
+            writer.tag(9, WireType.Varint).uint64(message.presentationProfileRevision);
         /* string local_agent_ref = 20; */
         if (message.localAgentRef !== "")
             writer.tag(20, WireType.LengthDelimited).string(message.localAgentRef);
@@ -4430,7 +4465,8 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
             { no: 5, name: "interaction_policy_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "default_voice_reference", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "avatar_autoplay", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 8, name: "background_asset_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "background_asset_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
     create(value?: PartialMessage<AgentPresentationProfile>): AgentPresentationProfile {
@@ -4443,6 +4479,7 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
         message.defaultVoiceReference = "";
         message.avatarAutoplay = false;
         message.backgroundAssetRef = "";
+        message.revision = "0";
         if (value !== undefined)
             reflectionMergePartial<AgentPresentationProfile>(this, message, value);
         return message;
@@ -4475,6 +4512,9 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
                     break;
                 case /* string background_asset_ref */ 8:
                     message.backgroundAssetRef = reader.string();
+                    break;
+                case /* uint64 revision */ 10:
+                    message.revision = reader.uint64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4512,6 +4552,9 @@ class AgentPresentationProfile$Type extends MessageType<AgentPresentationProfile
         /* string background_asset_ref = 8; */
         if (message.backgroundAssetRef !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.backgroundAssetRef);
+        /* uint64 revision = 10; */
+        if (message.revision !== "0")
+            writer.tag(10, WireType.Varint).uint64(message.revision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -8260,7 +8303,8 @@ class SetAgentPresentationProfileRequest$Type extends MessageType<SetAgentPresen
             { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "profile", kind: "message", oneof: "mutation", T: () => AgentPresentationProfile },
             { no: 4, name: "clear", kind: "message", oneof: "mutation", T: () => ClearAgentPresentationProfile },
-            { no: 5, name: "patch", kind: "message", oneof: "mutation", T: () => AgentPresentationProfilePatch }
+            { no: 5, name: "patch", kind: "message", oneof: "mutation", T: () => AgentPresentationProfilePatch },
+            { no: 6, name: "expected_revision", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
     create(value?: PartialMessage<SetAgentPresentationProfileRequest>): SetAgentPresentationProfileRequest {
@@ -8300,6 +8344,9 @@ class SetAgentPresentationProfileRequest$Type extends MessageType<SetAgentPresen
                         patch: AgentPresentationProfilePatch.internalBinaryRead(reader, reader.uint32(), options, (message.mutation as any).patch)
                     };
                     break;
+                case /* optional uint64 expected_revision */ 6:
+                    message.expectedRevision = reader.uint64().toString();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8327,6 +8374,9 @@ class SetAgentPresentationProfileRequest$Type extends MessageType<SetAgentPresen
         /* nimi.runtime.v1.AgentPresentationProfilePatch patch = 5; */
         if (message.mutation.oneofKind === "patch")
             AgentPresentationProfilePatch.internalBinaryWrite(message.mutation.patch, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* optional uint64 expected_revision = 6; */
+        if (message.expectedRevision !== undefined)
+            writer.tag(6, WireType.Varint).uint64(message.expectedRevision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -8341,11 +8391,13 @@ export const SetAgentPresentationProfileRequest = new SetAgentPresentationProfil
 class SetAgentPresentationProfileResponse$Type extends MessageType<SetAgentPresentationProfileResponse> {
     constructor() {
         super("nimi.runtime.v1.SetAgentPresentationProfileResponse", [
-            { no: 1, name: "profile", kind: "message", T: () => AgentPresentationProfile }
+            { no: 1, name: "profile", kind: "message", T: () => AgentPresentationProfile },
+            { no: 2, name: "committed_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
     create(value?: PartialMessage<SetAgentPresentationProfileResponse>): SetAgentPresentationProfileResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.committedRevision = "0";
         if (value !== undefined)
             reflectionMergePartial<SetAgentPresentationProfileResponse>(this, message, value);
         return message;
@@ -8357,6 +8409,9 @@ class SetAgentPresentationProfileResponse$Type extends MessageType<SetAgentPrese
             switch (fieldNo) {
                 case /* nimi.runtime.v1.AgentPresentationProfile profile */ 1:
                     message.profile = AgentPresentationProfile.internalBinaryRead(reader, reader.uint32(), options, message.profile);
+                    break;
+                case /* uint64 committed_revision */ 2:
+                    message.committedRevision = reader.uint64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -8373,6 +8428,9 @@ class SetAgentPresentationProfileResponse$Type extends MessageType<SetAgentPrese
         /* nimi.runtime.v1.AgentPresentationProfile profile = 1; */
         if (message.profile)
             AgentPresentationProfile.internalBinaryWrite(message.profile, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* uint64 committed_revision = 2; */
+        if (message.committedRevision !== "0")
+            writer.tag(2, WireType.Varint).uint64(message.committedRevision);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

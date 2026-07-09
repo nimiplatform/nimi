@@ -8,6 +8,7 @@ import { extractRealmCore } from './lib/realm-openapi.mjs';
 import { extractRuntimeProto } from './lib/runtime-proto.mjs';
 import { writeTypescriptRuntimeProtobuf } from './lib/runtime-protobuf-ts.mjs';
 import { writeTypedClients } from './lib/typed-clients.mjs';
+import { writeTypescriptRuntimeAuthPostureProjection } from './lib/runtime-auth-posture.mjs';
 
 function assertRealmOpenApiLoaded(realm) {
   if (realm.source_state === 'openapi_loaded' || realm.source_state === 'projection_loaded') {
@@ -59,6 +60,7 @@ function main() {
   const exportsManifest = buildExportManifest(runtime, realm, errorCodes);
 
   writeTypescriptRuntimeProtobuf();
+  writeTypescriptRuntimeAuthPostureProjection(runtime);
   writeSharedArtifacts(runtime, realm, errorCodes, exportsManifest);
   writeLanguageArtifacts(runtime, realm, errorCodes, exportsManifest);
   writeConformanceFixtures(runtime, realm, errorCodes, exportsManifest);

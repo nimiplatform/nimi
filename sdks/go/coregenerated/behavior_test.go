@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/nimiplatform/nimi/sdks/go/coreclient"
@@ -166,6 +167,53 @@ func loadBehaviorFixtures(t *testing.T) behaviorFixtures {
 		t.Fatalf("parse fixtures: %v", err)
 	}
 	return fixtures
+}
+
+func TestGeneratedRuntimeOptionalScalarAndEnumPresence(t *testing.T) {
+	falseValue := false
+	emptyValue := ""
+	zeroRevision := uint64(0)
+	unspecifiedBackend := AgentPresentationBackendKind("AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED")
+	patch := AgentPresentationProfilePatch{
+		BackendKind:           &unspecifiedBackend,
+		AvatarAssetRef:        &emptyValue,
+		DefaultVoiceReference: &emptyValue,
+		AvatarAutoplay:        &falseValue,
+	}
+	request := SetAgentPresentationProfileRequest{
+		ExpectedRevision: &zeroRevision,
+	}
+
+	encodedPatch, err := json.Marshal(patch)
+	if err != nil {
+		t.Fatalf("marshal patch: %v", err)
+	}
+	encodedRequest, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+
+	for _, expected := range []string{
+		`"backend_kind":"AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED"`,
+		`"avatar_asset_ref":""`,
+		`"default_voice_reference":""`,
+		`"avatar_autoplay":false`,
+	} {
+		if !strings.Contains(string(encodedPatch), expected) {
+			t.Fatalf("optional patch presence lost: expected %s in %s", expected, encodedPatch)
+		}
+	}
+	if !strings.Contains(string(encodedRequest), `"expected_revision":0`) {
+		t.Fatalf("optional expected_revision presence lost: %s", encodedRequest)
+	}
+
+	omittedPatch, err := json.Marshal(AgentPresentationProfilePatch{})
+	if err != nil {
+		t.Fatalf("marshal omitted patch: %v", err)
+	}
+	if string(omittedPatch) != "{}" {
+		t.Fatalf("omitted optional patch fields must stay absent: %s", omittedPatch)
+	}
 }
 
 func TestGeneratedClientsWithFakeTransport(t *testing.T) {

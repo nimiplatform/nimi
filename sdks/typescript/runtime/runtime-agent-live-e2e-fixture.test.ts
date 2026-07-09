@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  AgentPresentationBackendKind,
   AgentEventType,
   ExecutionMode,
   LocalAssetKind,
@@ -28,6 +27,7 @@ import {
   SOURCE_MATERIALIZATION_AUDIENCE,
   withRuntimeAgentLiveE2EFixture,
 } from './runtime-agent-live-e2e-fixture.test-helper';
+import { RUNTIME_ACCOUNT_ACCESS_TOKEN } from './runtime-agent-live-e2e-fixture-shared.test-helper';
 import {
   runtimeAgentLiveE2EChatScenarioPrompt,
   withRealmFixtureServer,
@@ -35,6 +35,7 @@ import {
 import {
   createFixtureRuntimeAgentClient,
   createRuntimeForEndpoint,
+  setFixtureRuntimeAgentPresentationProfile,
 } from './runtime-agent-live-e2e-fixture-runtime.test-helper';
 import { createNimiRuntimeAgentVoiceModule } from './runtime-agent-voice';
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
@@ -176,7 +177,7 @@ test('runtime agent live e2e fixture mints source packet through Runtime-mediate
         fixture.realmRequests.some((request) =>
           request.method === 'POST'
           && request.path === '/api/realm/core/source-materialization-packets'
-          && request.authorization === 'Bearer runtime-live-access-token'
+          && request.authorization === `Bearer ${RUNTIME_ACCOUNT_ACCESS_TOKEN}`
         ),
         'packet minting must travel through Runtime account Realm mediation',
       );
@@ -667,6 +668,15 @@ test('runtime agent live e2e fixture exposes native Runtime Agent voice chunks t
           runtimeSourceRef: fixture.runtimeSourceRef,
           localAgentRef: fixture.localAgentRef,
         };
+        await assert.rejects(
+          fixture.agentPresentation.getPresentationProfile({
+            ...identity,
+            ownerUserId: 'user-runtime-agent-owner-mismatch',
+          }),
+          (error: unknown) =>
+            (error as { readonly reasonCode?: string }).reasonCode
+              === 'SDK_RUNTIME_AGENT_OWNER_ACCOUNT_MISMATCH',
+        );
         progress.stage = 'commit_execution_config';
         const seeded = await agentClient.agentAIConfig.get(identity);
         await agentClient.agentAIConfig.upsert({
@@ -690,33 +700,45 @@ test('runtime agent live e2e fixture exposes native Runtime Agent voice chunks t
           },
         });
         progress.stage = 'set_presentation_profile';
-        await fixture.runtime.agents.setAgentPresentationProfile({
-          context: {
-            appId: 'nimi.desktop',
-            subjectUserId: fixture.ownerUserId,
-            ownerUserId: fixture.ownerUserId,
-            runtimeSourceRef: fixture.runtimeSourceRef,
-            localAgentRef: fixture.localAgentRef,
-          },
-          agentId: fixture.localAgentRef,
-          mutation: {
-            oneofKind: 'profile',
-            profile: {
-              backendKind: AgentPresentationBackendKind.VRM,
-              avatarAssetRef: 'runtime-presentation-avatar:sdk-live-voice-stream-fixture',
-              expressionProfileRef: 'expression://runtime-live/calm',
-              idlePreset: 'idle-soft',
-              interactionPolicyRef: 'policy://runtime-live/ambient',
-              defaultVoiceReference: fixture.voiceAsset.defaultVoiceReference,
-              avatarAutoplay: true,
-            },
-          },
-        }, {
-          metadata: {
-            idempotencyKey: `sdk-live-runtime-agent-voice-stream-profile:${fixture.localAgentRef}`,
-            'x-nimi-idempotency-key': `sdk-live-runtime-agent-voice-stream-profile:${fixture.localAgentRef}`,
-          },
+        const presentationProfile = {
+          backendKind: 'vrm' as const,
+          avatarAssetRef: 'runtime-presentation-avatar:sdk-live-voice-stream-fixture',
+          expressionProfileRef: 'runtime-expression-profile:sdk-live-calm',
+          idlePreset: 'runtime-idle-preset:idle-soft',
+          interactionPolicyRef: 'runtime-interaction-policy:sdk-live-ambient',
+          defaultVoiceReference: 'preset_voice_id:runtime-live-voice',
+          avatarAutoplay: true,
+        };
+        const initialPresentation = await setFixtureRuntimeAgentPresentationProfile({
+          presentation: fixture.agentPresentation,
+          identity,
+          profile: presentationProfile,
         });
+        progress.stage = 'refresh_runtime_account_session';
+        const refreshedAccount = await fixture.refreshRuntimeAccountSession();
+        assert.notEqual(refreshedAccount.accessToken, refreshedAccount.previousAccessToken);
+        progress.stage = 'patch_presentation_profile';
+        const patchedPresentation = await fixture.agentPresentation.patchPresentationProfile(
+          identity,
+          { avatarAutoplay: false },
+          initialPresentation.committedRevision,
+        );
+        assert.notEqual(patchedPresentation.committedRevision, initialPresentation.committedRevision);
+        assert.ok(
+          fixture.realmRequests.some((request) =>
+            request.method === 'POST'
+            && request.path === '/api/auth/sessions/introspect'
+            && String((request.body as { readonly session_id?: unknown } | null)?.session_id || '')
+              === refreshedAccount.sessionId),
+          'presentation mutation after Runtime account refresh must authorize with the newly signed session token',
+        );
+        progress.stage = 'restore_presentation_profile';
+        const restoredPresentation = await fixture.agentPresentation.setPresentationProfile(
+          identity,
+          presentationProfile,
+          patchedPresentation.committedRevision,
+        );
+        assert.notEqual(restoredPresentation.committedRevision, patchedPresentation.committedRevision);
         progress.stage = 'subscribe_events_start';
         const eventStream = await withNimiRuntimeAgentScopes({
           runtime: {
@@ -900,6 +922,14 @@ test('runtime agent live e2e fixture exposes native Runtime Agent voice chunks t
             () => `Runtime Agent event stream cleanup timed out; progress=${JSON.stringify(progress)}`,
           ).catch(() => undefined);
         }
+        progress.stage = 'clear_presentation_profile';
+        const clearedPresentation = await fixture.agentPresentation.setPresentationProfile(
+          identity,
+          null,
+          restoredPresentation.committedRevision,
+        );
+        assert.notEqual(clearedPresentation.committedRevision, restoredPresentation.committedRevision);
+        assert.equal(clearedPresentation.profile, null);
       } catch (error) {
         throw new Error(`typed Runtime Agent voice stream fixture failed; progress=${JSON.stringify(progress)}`, {
           cause: error,

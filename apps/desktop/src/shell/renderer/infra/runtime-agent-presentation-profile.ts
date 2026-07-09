@@ -3,6 +3,7 @@ import {
   type NimiHostRuntimeAgentPresentationProfileClient,
   type NimiHostRuntimeAgentPresentationProfileSurfaceOptions,
   type NimiRuntimeAgentPresentationProfileInput,
+  type NimiRuntimeAgentPresentationProfileMutationResult,
   type NimiRuntimeAgentPresentationProfilePatchInput,
   type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/sdk/runtime';
@@ -29,14 +30,16 @@ export function createRuntimeAgentPresentationProfileAdapter(
     async setPresentationProfile(
       identity: RuntimeLocalAgentIdentityInput,
       profile: NimiRuntimeAgentPresentationProfileInput | null,
-    ): Promise<void> {
-      await surface.setPresentationProfile(identity, profile);
+      expectedRevision: string,
+    ): Promise<NimiRuntimeAgentPresentationProfileMutationResult> {
+      return surface.setPresentationProfile(identity, profile, expectedRevision);
     },
     async patchPresentationProfile(
       identity: RuntimeLocalAgentIdentityInput,
       patch: NimiRuntimeAgentPresentationProfilePatchInput,
-    ): Promise<void> {
-      await surface.patchPresentationProfile(identity, patch);
+      expectedRevision: string,
+    ): Promise<NimiRuntimeAgentPresentationProfileMutationResult> {
+      return surface.patchPresentationProfile(identity, patch, expectedRevision);
     },
   };
 }

@@ -18,7 +18,10 @@ import {
   RUNTIME_ACCOUNT_ACCESS_TOKEN,
   RUNTIME_ACCOUNT_REDIRECT_URI,
   RUNTIME_ACCOUNT_REFRESH_TOKEN,
+  RUNTIME_ACCOUNT_SESSION_ID,
+  RUNTIME_AUTH_JWKS,
   SOURCE_MATERIALIZATION_AUDIENCE,
+  createRuntimeAccountAccessToken,
   type RuntimeAgentLiveE2ERealmRequest,
   normalizeText,
 } from './runtime-agent-live-e2e-fixture-shared.test-helper';
@@ -31,20 +34,37 @@ export {
   type RuntimeAgentLiveE2EChatScenario,
 } from './runtime-agent-live-e2e-fixture-realm-scenarios.test-helper';
 
+export interface RuntimeAgentLiveE2ERealmFixtureContext {
+  readonly baseUrl: string;
+  readonly requests: RuntimeAgentLiveE2ERealmRequest[];
+  readonly currentRuntimeAccountSession: () => {
+    readonly accessToken: string;
+    readonly refreshToken: string;
+    readonly sessionId: string;
+  };
+}
+
+type RuntimeAccountFixtureState = {
+  accessToken: string;
+  refreshToken: string;
+  sessionId: string;
+  sequence: number;
+};
+
 export async function withRealmFixtureServer(
   input: {
     readonly localChatCompletionStreamDelayMs?: number;
     readonly voiceSpeechStreamDelayMs?: number;
-    readonly run: (context: {
-      readonly baseUrl: string;
-      readonly requests: RuntimeAgentLiveE2ERealmRequest[];
-    }) => Promise<void>;
-  } | ((context: {
-    readonly baseUrl: string;
-    readonly requests: RuntimeAgentLiveE2ERealmRequest[];
-  }) => Promise<void>),
+    readonly run: (context: RuntimeAgentLiveE2ERealmFixtureContext) => Promise<void>;
+  } | ((context: RuntimeAgentLiveE2ERealmFixtureContext) => Promise<void>),
 ): Promise<void> {
   const requests: RuntimeAgentLiveE2ERealmRequest[] = [];
+  const accountState: RuntimeAccountFixtureState = {
+    accessToken: RUNTIME_ACCOUNT_ACCESS_TOKEN,
+    refreshToken: RUNTIME_ACCOUNT_REFRESH_TOKEN,
+    sessionId: RUNTIME_ACCOUNT_SESSION_ID,
+    sequence: 0,
+  };
   const run = typeof input === 'function' ? input : input.run;
   const options = {
     localChatCompletionStreamDelayMs: typeof input === 'function'
@@ -56,7 +76,7 @@ export async function withRealmFixtureServer(
   };
   const server = createServer(async (request, response) => {
     try {
-      await handleRealmFixtureRequest(request, response, requests, options);
+      await handleRealmFixtureRequest(request, response, requests, options, accountState);
     } catch (error) {
       writeJSON(response, 500, {
         message: error instanceof Error ? error.message : String(error),
@@ -74,7 +94,15 @@ export async function withRealmFixtureServer(
   const baseUrl = `http://127.0.0.1:${address.port}`;
 
   try {
-    await run({ baseUrl, requests });
+    await run({
+      baseUrl,
+      requests,
+      currentRuntimeAccountSession: () => ({
+        accessToken: accountState.accessToken,
+        refreshToken: accountState.refreshToken,
+        sessionId: accountState.sessionId,
+      }),
+    });
   } finally {
     await closeServer(server);
   }
@@ -97,6 +125,7 @@ async function handleRealmFixtureRequest(
     readonly localChatCompletionStreamDelayMs: number;
     readonly voiceSpeechStreamDelayMs: number;
   },
+  accountState: RuntimeAccountFixtureState,
 ): Promise<void> {
   const url = new URL(request.url || '/', 'http://127.0.0.1');
   const rawBody = await readRequestBody(request);
@@ -110,7 +139,28 @@ async function handleRealmFixtureRequest(
   };
   requests.push(requestRecord);
 
+  if (request.method === 'GET' && url.pathname === '/api/auth/jwks') {
+    writeJSON(response, 200, RUNTIME_AUTH_JWKS);
+    return;
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/auth/sessions/introspect') {
+    const sessionId = normalizeText(asRecord(body).session_id);
+    const active = sessionId === accountState.sessionId;
+    writeJSON(response, 200, { active, revoked: !active });
+    return;
+  }
+
   if (request.method === 'POST' && url.pathname === '/api/auth/oauth/token') {
+    if (String(request.headers['content-type'] || '').startsWith('application/json')) {
+      if (normalizeText(asRecord(body).refreshToken) !== accountState.refreshToken) {
+        writeJSON(response, 400, { message: 'invalid Runtime OAuth refresh token' });
+        return;
+      }
+      rotateRuntimeAccountSession(accountState);
+      writeJSON(response, 200, runtimeTokenResponse(accountState));
+      return;
+    }
     const form = new URLSearchParams(rawBody);
     if (
       form.get('grant_type') !== 'authorization_code'
@@ -121,12 +171,13 @@ async function handleRealmFixtureRequest(
       writeJSON(response, 400, { message: 'invalid Runtime OAuth token exchange' });
       return;
     }
-    writeJSON(response, 200, runtimeTokenResponse());
+    writeJSON(response, 200, runtimeTokenResponse(accountState));
     return;
   }
 
   if (request.method === 'POST' && url.pathname === '/api/auth/refresh') {
-    writeJSON(response, 200, runtimeTokenResponse());
+    rotateRuntimeAccountSession(accountState);
+    writeJSON(response, 200, runtimeTokenResponse(accountState));
     return;
   }
 
@@ -701,10 +752,17 @@ function embeddingVectorForText(value: string): number[] {
   return out;
 }
 
-function runtimeTokenResponse(): JsonObject {
+function rotateRuntimeAccountSession(state: RuntimeAccountFixtureState): void {
+  state.sequence += 1;
+  state.sessionId = `${RUNTIME_ACCOUNT_SESSION_ID}-refresh-${state.sequence}`;
+  state.accessToken = createRuntimeAccountAccessToken(state.sessionId);
+  state.refreshToken = `${RUNTIME_ACCOUNT_REFRESH_TOKEN}-refresh-${state.sequence}`;
+}
+
+function runtimeTokenResponse(state: RuntimeAccountFixtureState): JsonObject {
   return {
-    access_token: RUNTIME_ACCOUNT_ACCESS_TOKEN,
-    refresh_token: RUNTIME_ACCOUNT_REFRESH_TOKEN,
+    access_token: state.accessToken,
+    refresh_token: state.refreshToken,
     token_type: 'Bearer',
     expires_in: 3600,
     account_id: OWNER_USER_ID,

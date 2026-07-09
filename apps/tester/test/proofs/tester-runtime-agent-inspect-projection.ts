@@ -1,8 +1,9 @@
-import { buildNimiRuntimeAgentStateMutations, createNimiHostRuntimeAgentInspectSurface, projectNimiRuntimeAgentInspectSnapshot, projectNimiRuntimeAgentPendingHookInspect, readNimiRuntimeAgentPresentationProfile, toNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
+import { buildNimiRuntimeAgentStateMutations, createNimiHostRuntimeAgentInspectSurface, projectNimiRuntimeAgentInspectSnapshot, projectNimiRuntimeAgentPendingHookInspect, readNimiRuntimeAgentPresentationProfile } from '@nimiplatform/sdk/runtime';
 import {
   AgentAutonomyMode,
   AgentExecutionState,
   AgentLifecycleStatus,
+  AgentPresentationBackendKind,
   HookAdmissionState,
   HookTriggerFamily,
 } from '@nimiplatform/sdk/runtime/wire-types';
@@ -33,12 +34,18 @@ export function createTesterRuntimeAgentInspectSurface() {
           return {
             agent: {
               lifecycleStatus: AgentLifecycleStatus.ACTIVE,
-              metadata: toNimiRuntimeProtoStruct({
-                presentationProfile: {
-                  backendKind: 'vrm',
-                  avatarAssetRef: 'asset://tester/vrm-agent',
-                },
-              }),
+              presentationProfile: {
+                backendKind: AgentPresentationBackendKind.VRM,
+                avatarAssetRef: 'asset:tester/vrm-agent',
+                expressionProfileRef: '',
+                idlePreset: '',
+                interactionPolicyRef: '',
+                defaultVoiceReference: '',
+                avatarAutoplay: false,
+                backgroundAssetRef: '',
+                revision: '1',
+              },
+              presentationProfileRevision: '1',
             },
           };
         },
@@ -105,19 +112,26 @@ export async function inspectTesterRuntimeAgentSurfaceProjection(): Promise<{
   const presentation = await surface.getPresentationProfile(runtimeIdentity);
   return {
     lifecycleStatus: snapshot.lifecycleStatus,
-    presentationBackend: presentation?.backendKind ?? 'none',
+    presentationBackend: presentation.profile?.backendKind ?? 'none',
     stateStatusText: snapshot.statusText,
   };
 }
 
 export function createTesterRuntimeAgentInspectProjection(): TesterRuntimeAgentInspectProjection {
-  const metadata = toNimiRuntimeProtoStruct({
+  const presentation = readNimiRuntimeAgentPresentationProfile({
     presentationProfile: {
-      backendKind: 'vrm',
-      avatarAssetRef: 'asset://tester/vrm-agent',
+      backendKind: AgentPresentationBackendKind.VRM,
+      avatarAssetRef: 'asset:tester/vrm-agent',
+      expressionProfileRef: '',
+      idlePreset: '',
+      interactionPolicyRef: '',
+      defaultVoiceReference: '',
+      avatarAutoplay: false,
+      backgroundAssetRef: '',
+      revision: '1',
     },
+    presentationProfileRevision: '1',
   });
-  const presentation = readNimiRuntimeAgentPresentationProfile(metadata);
   const pendingHook = projectNimiRuntimeAgentPendingHookInspect({
     intent: {
       intentId: 'tester-hook',

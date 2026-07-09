@@ -139,7 +139,9 @@ export function goProtoType(field, runtime) {
   };
   if (field.type === 'map') return `map[${inner(field.map_key_type, true)}]${inner(field.map_value_type, true)}`;
   const base = inner(field.type, field.repeated);
-  return field.repeated ? `[]${base}` : base;
+  if (field.repeated) return `[]${base}`;
+  if (field.optional && protoTypeKind(field.type, runtime) !== 'message') return `*${base}`;
+  return base;
 }
 
 export function rustProtoType(field, runtime) {

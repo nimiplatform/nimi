@@ -973,7 +973,14 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: APP_OPEN_LAUNCH_FAILED = 613;
      */
-    APP_OPEN_LAUNCH_FAILED = 613
+    APP_OPEN_LAUNCH_FAILED = 613,
+    /**
+     * AGENT_PRESENTATION family — optimistic concurrency for persistent
+     * Runtime-owned presentation truth (K-AGCORE-023a).
+     *
+     * @generated from protobuf enum value: AGENT_PRESENTATION_REVISION_CONFLICT = 614;
+     */
+    AGENT_PRESENTATION_REVISION_CONFLICT = 614
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

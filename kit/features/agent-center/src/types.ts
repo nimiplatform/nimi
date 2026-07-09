@@ -14,6 +14,7 @@ import type {
   NimiRuntimeAgentInspectSnapshot,
   NimiRuntimeAgentInspectSurface,
   NimiRuntimeAgentMemoryObservatorySnapshot,
+  NimiRuntimeAgentPresentationProfileProjection,
   RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type {
@@ -325,11 +326,18 @@ export interface AgentCenterRuntimePresentationProfileSurface {
   readonly patchPresentationProfile: (
     input: RuntimeLocalAgentIdentityInput,
     patch: AgentCenterRuntimePresentationProfilePatch,
-  ) => Promise<void>;
+    expectedRevision: string,
+  ) => Promise<AgentCenterRuntimePresentationProfileMutationResult>;
   readonly setPresentationProfile?: (
     input: RuntimeLocalAgentIdentityInput,
     profile: AgentCenterRuntimePresentationProfilePatch | null,
-  ) => Promise<void>;
+    expectedRevision: string,
+  ) => Promise<AgentCenterRuntimePresentationProfileMutationResult>;
+}
+
+export interface AgentCenterRuntimePresentationProfileMutationResult {
+  readonly profile: NimiRuntimeAgentPresentationProfileProjection | null;
+  readonly committedRevision: string;
 }
 
 export type AgentCenterAppearanceCopy = Partial<{

@@ -49,7 +49,20 @@ export function createTesterRuntimeAgentPresentationProfileSurface() {
         }),
       },
       agent: {
-        setAgentPresentationProfile: async (request: unknown) => ({ request }),
+        setAgentPresentationProfile: async () => ({
+          committedRevision: '1',
+          profile: {
+            backendKind: 2,
+            avatarAssetRef: 'asset:tester/live2d-agent',
+            expressionProfileRef: '',
+            idlePreset: '',
+            interactionPolicyRef: '',
+            defaultVoiceReference: 'voice_asset_id:tester-voice-asset',
+            avatarAutoplay: false,
+            backgroundAssetRef: '',
+            revision: '1',
+          },
+        }),
       },
     }) as never,
     getSubjectUserId: () => 'tester-user',
@@ -67,9 +80,9 @@ export async function inspectTesterRuntimeAgentPresentationProfileSurface(): Pro
     runtimeSourceRef: 'tester-agent',
   }, {
     backendKind: 'live2d',
-    avatarAssetRef: 'asset://tester/live2d-agent',
+    avatarAssetRef: 'asset:tester/live2d-agent',
     defaultVoiceReference: 'voice_asset_id:tester-voice-asset',
-  });
+  }, '0');
   return {
     applied: true,
     backendKind: 'live2d',

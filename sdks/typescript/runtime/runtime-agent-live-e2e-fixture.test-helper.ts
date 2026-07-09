@@ -14,6 +14,7 @@ import {
 } from '../core-generated/runtime-typed-client';
 import { toRuntimeDurableTargetRef } from '../core/ai';
 import { Runtime } from './index';
+import { createNimiLocalFirstPartyAgentPresentationClient } from './local-first-party-agent-presentation';
 import { createNimiRuntimeAppSessionMetadataProvider } from './app-session';
 import { withRuntimeDaemon } from './live-runtime-daemon.test-helper';
 import { withNimiRuntimeAgentScopes } from './runtime-agent-protected';
@@ -56,6 +57,8 @@ import {
   REALM_WORLD_STUDIO_APP_ID,
   REALM_WORLD_STUDIO_APP_INSTANCE_ID,
   RUNTIME_SOURCE_REF,
+  RUNTIME_AUTH_JWT_AUDIENCE,
+  RUNTIME_AUTH_JWT_ISSUER,
   SOURCE_MATERIALIZATION_AUDIENCE,
   SOURCE_PACKET_HMAC_SECRET,
   SOURCE_REF,
@@ -97,13 +100,17 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
   await withRealmFixtureServer({
     localChatCompletionStreamDelayMs: input.localChatCompletionStreamDelayMs,
     voiceSpeechStreamDelayMs: input.voiceSpeechStreamDelayMs,
-    run: async ({ baseUrl, requests }) => {
+    run: async ({ baseUrl, requests, currentRuntimeAccountSession }) => {
     await withRuntimeDaemon({
       appId: DESKTOP_APP_ID,
       runtimeEnv: {
         NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL: baseUrl,
         NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL: `${baseUrl}/api/auth/oauth/authorize`,
         NIMI_RUNTIME_ACCOUNT_TOKEN_URL: `${baseUrl}/api/auth/oauth/token`,
+        NIMI_RUNTIME_AUTH_JWT_ISSUER: RUNTIME_AUTH_JWT_ISSUER,
+        NIMI_RUNTIME_AUTH_JWT_AUDIENCE: RUNTIME_AUTH_JWT_AUDIENCE,
+        NIMI_RUNTIME_AUTH_JWT_JWKS_URL: `${baseUrl}/api/auth/jwks`,
+        NIMI_RUNTIME_AUTH_JWT_REVOCATION_URL: `${baseUrl}/api/auth/sessions/introspect`,
         NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION: `sdk-runtime-agent-live-e2e-${randomUUID()}`,
         NIMI_RUNTIME_APP_REGISTRY_PATH: PLATFORM_APP_REGISTRY_PATH,
         NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL: LOCAL_TEXT_MODEL_ID,
@@ -120,19 +127,53 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
         seedRuntimeAgentLiveVoiceCatalogProvider(catalogCustomDir);
       },
       run: async ({ endpoint, localModelsPath }) => {
-        const runtime = createRuntimeForEndpoint(endpoint, DESKTOP_APP_ID);
-        const studioRuntime = createRuntimeForEndpoint(endpoint, REALM_WORLD_STUDIO_APP_ID);
         const desktopCaller = desktopAccountCaller();
         const studioCaller = realmWorldStudioCaller();
+        const bootstrapRuntime = createRuntimeForEndpoint(endpoint, DESKTOP_APP_ID);
+        const studioRuntime = createRuntimeForEndpoint(endpoint, REALM_WORLD_STUDIO_APP_ID);
 
-        await registerRuntimeApp(runtime, DESKTOP_APP_ID, DESKTOP_APP_INSTANCE_ID, DESKTOP_DEVICE_ID);
+        await registerRuntimeApp(bootstrapRuntime, DESKTOP_APP_ID, DESKTOP_APP_INSTANCE_ID, DESKTOP_DEVICE_ID);
         await registerRuntimeApp(
           studioRuntime,
           REALM_WORLD_STUDIO_APP_ID,
           REALM_WORLD_STUDIO_APP_INSTANCE_ID,
           REALM_STUDIO_DEVICE_ID,
         );
-        await completeRuntimeAccountLogin(runtime, desktopCaller);
+        await completeRuntimeAccountLogin(bootstrapRuntime, desktopCaller);
+        const runtime = bootstrapRuntime;
+        const presentationCaller = {
+          ...desktopCaller,
+          scopes: [...desktopCaller.scopes],
+        };
+        const agentPresentation = createNimiLocalFirstPartyAgentPresentationClient({
+          mode: 'first-party-local-app',
+          appId: DESKTOP_APP_ID,
+          accountCaller: presentationCaller,
+          endpoint,
+        });
+        presentationCaller.appId = 'mutated-after-presentation-construction';
+        presentationCaller.scopes.push('mutated.after.construction');
+        const refreshRuntimeAccountSession = async () => {
+          const previous = currentRuntimeAccountSession();
+          const refreshed = await bootstrapRuntime.account.refreshAccountSession({
+            caller: desktopCaller,
+          }, withNimiRuntimeIdempotencyMetadata(
+            undefined,
+            `runtime-agent-live-e2e:refresh-runtime-account-session:${randomUUID()}`,
+          ));
+          if (!refreshed.accepted) {
+            throw new Error(`Runtime account refresh failed: ${JSON.stringify(refreshed)}`);
+          }
+          const current = currentRuntimeAccountSession();
+          if (current.accessToken === previous.accessToken || current.sessionId === previous.sessionId) {
+            throw new Error('Runtime account refresh fixture did not rotate its signed session token.');
+          }
+          return {
+            previousAccessToken: previous.accessToken,
+            accessToken: current.accessToken,
+            sessionId: current.sessionId,
+          };
+        };
 
         const realm = new Realm({
           transport: createRuntimeMediatedRealmTransport({
@@ -177,12 +218,12 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
           connectorModel: voiceModelDescriptor,
         });
         const voiceAsset = await createFixtureVoiceAsset(runtime, voiceRoute);
-
         try {
           await input.run({
             endpoint,
             localModelsPath,
             runtime,
+            agentPresentation,
             realm,
             realmBaseUrl: baseUrl,
             realmRequests: requests,
@@ -213,6 +254,7 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
               conversationAnchorId,
               text,
             }),
+            refreshRuntimeAccountSession,
             admitDeveloperRegisteredRuntimeAccountCaller: (accountInput) =>
               admitDeveloperRegisteredRuntimeAccountCaller(
                 createRuntimeForEndpoint(endpoint, requireText(accountInput.appId, 'appId')),
@@ -225,7 +267,7 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
               ),
           });
         } finally {
-          await logoutRuntimeAccount(runtime, desktopCaller);
+          await logoutRuntimeAccount(bootstrapRuntime, desktopCaller);
         }
       },
     });

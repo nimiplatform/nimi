@@ -9054,6 +9054,13 @@
             "repeated": false,
             "optional": false,
             "number": 8
+          },
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -9407,6 +9414,20 @@
             "repeated": false,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "presentation_profile",
+            "type": "AgentPresentationProfile",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "presentation_profile_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 9
           },
           {
             "name": "local_agent_ref",
@@ -34935,6 +34956,13 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "expected_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": true,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -34948,6 +34976,13 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "committed_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -40871,7 +40906,8 @@
           "APP_OPEN_PERMISSION_NOT_GRANTED",
           "APP_OPEN_AICONFIG_UNRESOLVED",
           "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED",
-          "APP_OPEN_LAUNCH_FAILED"
+          "APP_OPEN_LAUNCH_FAILED",
+          "AGENT_PRESENTATION_REVISION_CONFLICT"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
-import { toNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
+import { AgentPresentationBackendKind, ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 import type { AgentDataBundle, AgentDataDriver, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from './app-store.js';
 
@@ -441,13 +440,18 @@ describe('bootstrapAvatar', () => {
       accessToken: 'runtime-issued-short-lived-token',
     });
     getAgentMock.mockResolvedValue({
-      metadata: toNimiRuntimeProtoStruct({
-        presentationProfile: {
-          backendKind: 'live2d',
-          avatarAssetRef: 'live2d_ab12cd34ef56',
-          avatarAutoplay: false,
-        },
-      }),
+      presentationProfileRevision: '7',
+      presentationProfile: {
+        revision: '7',
+        backendKind: AgentPresentationBackendKind.LIVE2D,
+        avatarAssetRef: 'live2d_ab12cd34ef56',
+        expressionProfileRef: '',
+        idlePreset: '',
+        interactionPolicyRef: '',
+        defaultVoiceReference: '',
+        avatarAutoplay: false,
+        backgroundAssetRef: '',
+      },
     });
     authorizeExternalPrincipalMock.mockResolvedValue({
       tokenId: 'avatar-protected-token-id',

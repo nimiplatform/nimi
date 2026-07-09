@@ -51,24 +51,23 @@ test('Runtime Agent facade exposes canonical review status read projection', () 
   assert.equal(RUNTIME_AGENT_METHODS.includes('getAgentCanonicalMemoryReviewStatus'), true);
 });
 
-test('Runtime Agent projection reads presentation metadata and state snapshots', () => {
-  const metadata = toNimiRuntimeProtoStruct({
-    presentationProfile: {
-      backendKind: 'vrm',
-      avatarAssetRef: 'avatar://agent/default',
-      expressionProfileRef: 'expression://calm',
-      idlePreset: 'idle',
-      interactionPolicyRef: 'policy://default',
-      defaultVoiceReference: 'preset_voice_id:nimi-default',
-      avatarAutoplay: true,
-      backgroundAssetRef: 'background://agent/room',
-    },
-  });
-
+test('Runtime Agent projection reads typed presentation profile and state snapshots', () => {
+  const presentationProfile = {
+    backendKind: AgentPresentationBackendKind.VRM,
+    avatarAssetRef: 'avatar:agent/default',
+    expressionProfileRef: 'expression:calm',
+    idlePreset: 'idle',
+    interactionPolicyRef: 'policy:default',
+    defaultVoiceReference: 'preset_voice_id:nimi-default',
+    avatarAutoplay: true,
+    backgroundAssetRef: 'background:agent/room',
+    revision: '1',
+  };
   const snapshot = projectNimiRuntimeAgentInspectSnapshot({
     agent: {
       lifecycleStatus: AgentLifecycleStatus.ACTIVE,
-      metadata,
+      presentationProfile,
+      presentationProfileRevision: '1',
       autonomy: {
         enabled: true,
         config: {
@@ -124,15 +123,18 @@ test('Runtime Agent projection reads presentation metadata and state snapshots',
     }],
   });
 
-  assert.deepEqual(readNimiRuntimeAgentPresentationProfile(metadata), {
+  assert.deepEqual(readNimiRuntimeAgentPresentationProfile({
+    presentationProfile,
+    presentationProfileRevision: '1',
+  }), {
     backendKind: 'vrm',
-    avatarAssetRef: 'avatar://agent/default',
-    expressionProfileRef: 'expression://calm',
+    avatarAssetRef: 'avatar:agent/default',
+    expressionProfileRef: 'expression:calm',
     idlePreset: 'idle',
-    interactionPolicyRef: 'policy://default',
+    interactionPolicyRef: 'policy:default',
     defaultVoiceReference: 'preset_voice_id:nimi-default',
     avatarAutoplay: true,
-    backgroundAssetRef: 'background://agent/room',
+    backgroundAssetRef: 'background:agent/room',
   });
   assert.equal(snapshot.lifecycleStatus, 'active');
   assert.equal(snapshot.executionState, 'chat-active');
@@ -272,9 +274,10 @@ test('Runtime Agent builders produce generated Runtime requests without old alia
       runtimeSourceRef: 'runtime-source-1',
       localAgentRef: PRESENTATION_LOCAL_AGENT_REF,
     },
+    expectedRevision: '0',
     profile: {
       backendKind: 'live2d',
-      avatarAssetRef: 'avatar://agent/live2d',
+      avatarAssetRef: 'avatar:agent/live2d',
       defaultVoiceReference: 'voice_asset_id:voice-1',
       avatarAutoplay: true,
     },
@@ -309,9 +312,10 @@ test('Runtime Agent presentation profile rejects provider voice handles', () => 
       runtimeSourceRef: 'runtime-source-1',
       localAgentRef: PRESENTATION_LOCAL_AGENT_REF,
     },
+    expectedRevision: '0',
     profile: {
       backendKind: 'live2d',
-      avatarAssetRef: 'avatar://agent/live2d',
+      avatarAssetRef: 'avatar:agent/live2d',
       defaultVoiceReference: 'provider_voice_ref:voice-1',
     },
   }), /preset_voice_id or voice_asset_id/u);
@@ -367,7 +371,20 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
         if (options) {
           issuedOptions.push(options);
         }
-        return {};
+        return {
+          committedRevision: '1',
+          profile: {
+            backendKind: AgentPresentationBackendKind.VRM,
+            avatarAssetRef: 'avatar:agent/default',
+            expressionProfileRef: '',
+            idlePreset: '',
+            interactionPolicyRef: '',
+            defaultVoiceReference: 'voice_asset_id:voice-1',
+            avatarAutoplay: false,
+            backgroundAssetRef: '',
+            revision: '1',
+          },
+        };
       },
     },
   };
@@ -383,9 +400,9 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
     localAgentRef: PRESENTATION_LOCAL_AGENT_REF,
   }, {
     backendKind: 'vrm',
-    avatarAssetRef: 'avatar://agent/default',
+    avatarAssetRef: 'avatar:agent/default',
     defaultVoiceReference: 'voice_asset_id:voice-1',
-  });
+  }, '0');
 
   assert.deepEqual(issuedScopes, [['runtime.agent.write']]);
   assert.equal(authorizeRequests[0]?.externalPrincipalId, 'sdk.test.runtime-agent');
@@ -462,12 +479,18 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
         return {
           agent: {
             lifecycleStatus: AgentLifecycleStatus.ACTIVE,
-            metadata: toNimiRuntimeProtoStruct({
-              presentationProfile: {
-                backendKind: 'vrm',
-                avatarAssetRef: 'asset://agent/default',
-              },
-            }),
+            presentationProfile: {
+              backendKind: AgentPresentationBackendKind.VRM,
+              avatarAssetRef: 'asset:agent/default',
+              expressionProfileRef: '',
+              idlePreset: '',
+              interactionPolicyRef: '',
+              defaultVoiceReference: '',
+              avatarAutoplay: false,
+              backgroundAssetRef: '',
+              revision: '1',
+            },
+            presentationProfileRevision: '1',
             autonomy: {
               enabled: true,
               usedTokensInWindow: '10',
@@ -698,11 +721,12 @@ test('Runtime Agent presentation builder admits static sprite2d profile media as
       runtimeSourceRef: 'cbdb-agent-1',
       localAgentRef: CBDB_LOCAL_AGENT_REF,
     },
+    expectedRevision: '0',
     profile: {
       backendKind: 'sprite2d',
       avatarAssetRef: 'profile_media_url:https://cdn.nimi.test/cbdb/su-zhe-reviewed-portrait.png',
       defaultVoiceReference: 'preset_voice_id:zh_narrator',
-      backgroundAssetRef: 'background://cbdb/study',
+      backgroundAssetRef: 'background:cbdb/study',
     },
   });
 
@@ -713,7 +737,7 @@ test('Runtime Agent presentation builder admits static sprite2d profile media as
     'profile_media_url:https://cdn.nimi.test/cbdb/su-zhe-reviewed-portrait.png',
   );
   assert.equal(request.mutation.profile.defaultVoiceReference, 'preset_voice_id:zh_narrator');
-  assert.equal(request.mutation.profile.backgroundAssetRef, 'background://cbdb/study');
+  assert.equal(request.mutation.profile.backgroundAssetRef, 'background:cbdb/study');
 });
 
 test('Runtime Agent presentation builder admits partial presentation patch without avatar asset', () => {
@@ -727,17 +751,18 @@ test('Runtime Agent presentation builder admits partial presentation patch witho
       runtimeSourceRef: 'agent-1',
       localAgentRef: LOCAL_AGENT_REF,
     },
+    expectedRevision: '0',
     patch: {
       defaultVoiceReference: 'voice_asset_id:voice-1',
       avatarAutoplay: false,
-      backgroundAssetRef: 'background://agent/night',
+      backgroundAssetRef: 'background:agent/night',
     },
   });
 
   assert.equal(request.mutation.oneofKind, 'patch');
   assert.equal(request.mutation.patch.defaultVoiceReference, 'voice_asset_id:voice-1');
   assert.equal(request.mutation.patch.avatarAutoplay, false);
-  assert.equal(request.mutation.patch.backgroundAssetRef, 'background://agent/night');
+  assert.equal(request.mutation.patch.backgroundAssetRef, 'background:agent/night');
 });
 
 test('Runtime Agent smoke verification reads protected anchor snapshot and health evidence', async () => {

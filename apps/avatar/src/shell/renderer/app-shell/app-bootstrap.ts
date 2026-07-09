@@ -434,7 +434,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           agentId,
           worldId: '',
         });
-        const presentationProfile = await runFirstPartyStage('runtime_presentation_profile', () => runtimeAgentInspect.getPresentationProfile({
+        const presentationProfileRead = await runFirstPartyStage('runtime_presentation_profile', () => runtimeAgentInspect.getPresentationProfile({
           ownerUserId,
           runtimeSourceRef,
           localAgentRef,
@@ -444,7 +444,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           ownerUserId,
           runtimeSourceRef,
           localAgentRef,
-          presentationProfile,
+          presentationProfile: presentationProfileRead.profile,
         }));
         driver = await runFirstPartyStage('driver_create', async () => createDriver({
           kind: 'sdk',

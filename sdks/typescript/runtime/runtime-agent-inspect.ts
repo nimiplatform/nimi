@@ -19,7 +19,6 @@ import {
   projectNimiRuntimeAgentInspectSnapshot,
   projectNimiRuntimeAgentPendingHookInspect,
   projectNimiRuntimeAgentStateSnapshot,
-  readNimiRuntimeAgentPresentationProfile,
   toNimiRuntimeAgentAutonomyMode,
 } from './runtime-agent-inspect-projection';
 import type {
@@ -28,6 +27,7 @@ import type {
   NimiRuntimeAgentInspectSurface,
   NimiRuntimeAgentPendingHookInspect,
 } from './runtime-agent-inspect-types';
+import { projectNimiRuntimeAgentPresentationRecord } from './runtime-agent-presentation-validation';
 import { normalizeNimiRuntimeAgentText } from './runtime-agent-values';
 
 export * from './runtime-agent-inspect-projection';
@@ -291,7 +291,7 @@ export function createNimiHostRuntimeAgentInspectSurface(
           agentId: resolved.agentId,
         }, callOptions),
       );
-      return readNimiRuntimeAgentPresentationProfile(agent.agent?.metadata);
+      return projectNimiRuntimeAgentPresentationRecord(agent.agent);
     },
     async setAutonomyConfig(input) {
       const resolved = await context(input);

@@ -30,6 +30,14 @@ import {
   createNimiRuntimeAgentClient,
   type NimiRuntimeAgentClientRuntime,
 } from './runtime-agent-client';
+import {
+  type NimiRuntimeAgentPresentationProfileInput,
+  type NimiRuntimeAgentPresentationProfileMutationResult,
+} from './runtime-agent-presentation';
+import {
+  type RuntimeLocalAgentIdentityInput,
+} from './agent-local-identity';
+import type { NimiLocalFirstPartyAgentPresentationClient } from './local-first-party-agent-presentation';
 import type { NimiRuntimeAgentInitializedLocalAgent } from './runtime-agent-lifecycle';
 import {
   withNimiRuntimeAgentScopes,
@@ -121,6 +129,22 @@ export function createFixtureRuntimeAgentClient(runtime: Runtime): ReturnType<ty
   });
 }
 
+export async function setFixtureRuntimeAgentPresentationProfile(input: {
+  readonly presentation: NimiLocalFirstPartyAgentPresentationClient;
+  readonly identity: RuntimeLocalAgentIdentityInput;
+  readonly profile: NimiRuntimeAgentPresentationProfileInput;
+}): Promise<NimiRuntimeAgentPresentationProfileMutationResult> {
+  const current = await input.presentation.getPresentationProfile(input.identity);
+  if (current.committedRevision === null) {
+    throw new Error('Runtime Agent live fixture received an invalid presentation revision from typed AgentRecord.');
+  }
+  return input.presentation.setPresentationProfile(
+    input.identity,
+    input.profile,
+    current.committedRevision,
+  );
+}
+
 export function requireConversationAnchorId(conversation: ConversationAnchorSnapshot): string {
   const anchorId = normalizeText(conversation.anchor?.conversationAnchorId);
   if (!anchorId) {
@@ -129,7 +153,10 @@ export function requireConversationAnchorId(conversation: ConversationAnchorSnap
   return anchorId;
 }
 
-export function createRuntimeForEndpoint(endpoint: string, appId: string): Runtime {
+export function createRuntimeForEndpoint(
+  endpoint: string,
+  appId: string,
+): Runtime {
   return new Runtime({
     appId,
     transport: {
@@ -343,11 +370,12 @@ function runtimeAgentClientRuntime(runtime: Runtime, appId: string):
 function runtimeAgentLiveScopeRunner(
   runtime: NimiRuntimeAgentProtectedRuntime,
   sessionMetadata: NimiRuntimeAppSessionMetadataProvider,
+  subjectUserId = OWNER_USER_ID,
 ): NimiRuntimeAgentScopeRunner {
   return (scopes, operation) =>
     withNimiRuntimeAgentScopes({
       runtime,
-      subjectUserId: OWNER_USER_ID,
+      subjectUserId,
     }, scopes, async (options) => {
       const appSessionMetadata = await sessionMetadata();
       return operation(liveIdempotencyOptions(`runtime-agent:${scopes.join(',')}`, {
