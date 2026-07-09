@@ -2,8 +2,7 @@
 
 ## External Authority
 
-This file records the external Realm authority pointer for Nimi:
-`<nimi-realm>`.
+This file records the external Realm authority pointer for Nimi.
 
 Realm server/domain product rules are not redefined in this repository.
 

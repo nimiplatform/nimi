@@ -2,6 +2,10 @@ version: 1
 table_family: protocol_surface
 owner: platform
 protocol_id: platform_desktop_open_intents
+surfaces:
+  - desktop-open.openIntent
+  - desktop-open.intentEnvelope
+  - desktop-open.resultCodes
 authority:
   id: platform.desktop-open-intents
   owner: platform

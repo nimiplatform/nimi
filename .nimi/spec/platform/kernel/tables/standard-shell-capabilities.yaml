@@ -10,6 +10,7 @@ surfaces:
   - window
   - notification
   - storage
+  - ai-config
   - auth
   - desktop-open
 authority:

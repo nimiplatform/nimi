@@ -230,7 +230,7 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
   transcript/caption semantics. Those are Runtime-owned projection/output truth
   for Desktop.
 
-## D-LLM-022 Agent Center Runtime Agent AI Config Consumer Boundary
+## D-LLM-021a — Agent Center Runtime Agent AI Config Consumer Boundary
 
 Agent Center product UI for Agent Chat belongs to Kit Agent Center after
 `kit.features.agent-center` admission. Desktop may place the Kit surface and

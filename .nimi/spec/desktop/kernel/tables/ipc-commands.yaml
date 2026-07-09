@@ -9,6 +9,7 @@ surfaces:
   - system
   - http
   - storage
+  - ai-config
   - ui
   - oauth
   - desktop-open
@@ -301,6 +302,16 @@ commands:
   - command: storage_remove_json
     module: storage
     description: Standard shell storage.removeJson (platform P-KIT-041C); kit-owned idempotent removal over the host-owned app data root
+    source_rule: D-IPC-016
+
+  - command: ai_config_get
+    module: ai-config
+    description: Standard shell aiConfig.get (platform P-KIT-044); kit-owned command over the host-owned app AIConfig store
+    source_rule: D-IPC-016
+
+  - command: ai_config_set
+    module: ai-config
+    description: Standard shell aiConfig.set (platform P-KIT-044); kit-owned command over the host-owned app AIConfig store
     source_rule: D-IPC-016
 
   # Standard shell file & export surfaces (kit-owned, platform P-KIT-041F)

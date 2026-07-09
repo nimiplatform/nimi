@@ -1,7 +1,41 @@
 version: 1
-table_family: conformance_vectors
+table_family: product_catalog
 owner: platform
 catalog_id: platform_desktop_open_intent_golden_vectors
+entries:
+  - explore-personas-select-partner
+  - explore-worlds-discover
+  - explore-worlds-section-only
+  - explore-activity-view
+  - explore-activity-section-only
+  - explore-personas-discover
+  - explore-personas-section-only
+  - runtime-cloud-add-connector
+  - runtime-models-install-model
+  - explore-personas-search
+  - agents-inventory
+  - apps-surface
+  - apps-selection
+  - settings-profile
+  - source-app-missing
+  - unknown-field-authorization
+  - unknown-target
+  - invalid-runtime-action-page-pair
+  - invalid-explore-worlds-select-partner-pair
+  - invalid-explore-activity-discover-personas-pair
+  - invalid-source-host
+  - invalid-request-id
+  - invalid-app-id
+  - invalid-query-too-long
+  - developer-tools-settings-target-v1
+  - agent-center-target-v1
+  - agent-center-local-agent-ref-v1
+  - runtime-profiles-manage-profile-v1
+  - runtime-advanced-inspect-runtime-v1
+  - os-scheme-url
+  - raw-url-payload
+  - renderer-provided-source-app
+  - provider-model-credential-fields
 authority_refs:
   - P-DOPEN-001
   - P-DOPEN-003

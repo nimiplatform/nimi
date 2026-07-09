@@ -511,4 +511,6 @@ groups:
       - GetRuntimeAgentAIConfigReadiness
       - SubscribeRuntimeAgentAIConfigReadiness
       - SubscribeAgentEvents
+      - SubscribeAgentVoiceStream
+      - InterruptAgentVoicePlayback
     source_rule: S-SURFACE-002

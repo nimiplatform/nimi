@@ -2,7 +2,7 @@
 
 This directory is only a pointer to the external Realm authority.
 
-- External authority id: `<nimi-realm>`
+- External authority id: external Realm authority root
 - Pointer role: external Realm authority
 - Nimi role: Realm API consumer
 - Canonical Nimi consumer contract:

@@ -206,6 +206,7 @@ ai_governance:
         - config/realm-openapi/api-nimi.yaml
       temporary_large_generated:
         - config/*-public-surface-baseline.json
+        - sdks/typescript/runtime/wire-types/index.ts
       temporary_large_production:
         - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
         - apps/desktop/scripts/run-e2e.mjs
@@ -213,10 +214,12 @@ ai_governance:
         - apps/desktop/src-tauri/src/desktop_product_control/operations.rs
         - apps/desktop/src/shell/renderer/first-run/product-control-workflow.tsx
         - kit/features/agent-center/src/components/AgentCenterAppearanceSection.tsx
+        - kit/shell/tauri/src/runtime_bridge/metadata.rs
         - kit/shell/tauri/src/standard_desktop_open.rs
         - runtime/internal/services/localservice/local_environment_jobs.go
         - sdks/typescript/runtime/runtime-agent-turn-runner-stream.ts
       temporary_large_tests:
+        - apps/tester/test/tester-media-scenario-jobs.test.mjs
         - kit/shell/electron/test/electron-shell.test.ts
         - runtime/internal/services/runtimeagent/public_chat_voice_lipsync_emission_test.go
         - sdks/typescript/runtime/runtime-agent-consume.test.ts

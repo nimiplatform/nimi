@@ -277,6 +277,20 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-094
 
+  - family: standard_shell_ai_config
+    match:
+      exact:
+        - ai_config_get
+        - ai_config_set
+    origin_crate: kit/shell/tauri
+    owner_domain: standard-shell-ai-config
+    execution_class: bounded_blocking_with_admission
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
   - family: standard_shell_file_export
     match:
       exact:
