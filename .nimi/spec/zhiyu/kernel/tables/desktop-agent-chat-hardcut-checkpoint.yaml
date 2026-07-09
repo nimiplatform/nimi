@@ -6,14 +6,14 @@ checkpoint_id: ZHIYU_DESKTOP_AGENT_CHAT_HARDCUT
 work_type: redesign
 parallel_truth: forbidden
 no_new_sdk_kit_upstreaming_this_phase: true
-bounded_zhiyu_local_parity_implementation: true
+bounded_zhiyu_local_parity_implementation: false
 binding_equivalence_requirement: runtime_sdk_authority_admitted_first_party_electron_host_equivalence
 entries:
   - phase_1_spec_drift_hardcut
   - phase_1a_scoped_binding_decision
   - phase_2_old_path_guard
   - phase_3_desktop_source_provenance
-  - phase_8_agent_center_local_config_hardcut
+  - phase_8_agent_center_kit_shell_hardcut
   - phase_9_real_app_acceptance
 old_paths_forbidden:
   - apps/zhiyu/src/shell/agent/runtime-agent-chat.ts
@@ -34,19 +34,25 @@ desktop_sources:
   - apps/desktop/src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx
   - apps/desktop/src/shell/renderer/features/chat/conversation-submit-readiness.ts
   - apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts
-agent_center_local_config_hardcut:
-  posture: bounded_zhiyu_local_parity_implementation
-  upstream: candidate_after_real_app_acceptance
+agent_center_kit_shell_hardcut:
+  posture: private_zhiyu_local_config_bridge_retired
+  upstream: kit_shell_standard_agent_center_capability
   source_rule: Z-CONFIG-005
-  paths:
+  retired_paths:
     - apps/zhiyu/src-electron/agent-center-local-config.ts
+    - apps/zhiyu/src-electron/agent-center-local-config-schema.ts
     - apps/zhiyu/src-electron/live2d-source.ts
-  desktop_sources:
+    - apps/zhiyu/src/shell/agent-chat/zhiyu-agent-center-local-config.ts
+  retired_desktop_sources:
     - apps/desktop/src/shell/renderer/features/chat/chat-agent-center-local-config.ts
     - apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-center-local-config-store.ts
     - apps/desktop/src-tauri/src/desktop_agent_center_store/resources_avatar_import.rs
     - apps/desktop/src-tauri/src/desktop_agent_center_store/resources_background_import.rs
     - apps/desktop/src-tauri/src/desktop_agent_center_store/resources_live2d_adapter_import.rs
+  replacement:
+    selection_truth: runtime.AgentPresentationProfile
+    asset_custody: kit_shell.agent-center
+    preview_truth: avatar.agent_center_preview_service
 acceptance_gates:
   - runtime_sdk_authority_admitted_first_party_electron_host_equivalence_or_runtime_issued_binding
   - no_runtime_committed_text_masking

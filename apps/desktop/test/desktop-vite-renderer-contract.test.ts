@@ -40,24 +40,8 @@ test('desktop dev renderer does not restore archived SDK source aliases', () => 
   assert.match(viteConfigSource, /sdks\/typescript\/dist/);
 });
 
-test('desktop agent center local config bridge stays with the agent chat chunk', () => {
-  const agentCenterBridgeExceptionIndex = viteConfigSource.indexOf(
-    "chat-agent-center-local-config-store.ts')",
-  );
-  const runtimeBridgeChunkIndex = viteConfigSource.indexOf(
-    "return 'runtime-bridge';",
-  );
-
-  assert.notEqual(agentCenterBridgeExceptionIndex, -1);
-  assert.notEqual(runtimeBridgeChunkIndex, -1);
-  assert.ok(
-    agentCenterBridgeExceptionIndex < runtimeBridgeChunkIndex,
-    'Agent Center local config bridge must be chunked before the generic runtime-bridge catch-all',
-  );
-  assert.match(
-    viteConfigSource.slice(agentCenterBridgeExceptionIndex, runtimeBridgeChunkIndex),
-    /return 'chat-agent-shell';/,
-  );
+test('desktop renderer no longer keeps an Agent Center local config bridge chunk exception', () => {
+  assert.doesNotMatch(viteConfigSource, /chat-agent-center-local-config-store/);
 });
 
 test('desktop settings dependencies stay out of the agent chat chunk', () => {

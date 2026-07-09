@@ -64,6 +64,8 @@ function sampleTarget(): AgentLocalTargetSnapshot {
       idlePreset: null,
       interactionPolicyRef: null,
       defaultVoiceReference: null,
+      avatarAutoplay: false,
+      backgroundAssetRef: null,
     },
     worldId: null,
     worldName: null,
@@ -226,7 +228,14 @@ test('agent visible state disables composer and marks character thinking while s
     emotion: 'focus',
     amplitude: 0.42,
   });
-  assert.deepEqual(surfaceState.character.avatarPresentationProfile, sampleTarget().presentationProfile);
+  assert.deepEqual(surfaceState.character.avatarPresentationProfile, {
+    backendKind: 'live2d',
+    avatarAssetRef: 'fallback://companion',
+    expressionProfileRef: null,
+    idlePreset: null,
+    interactionPolicyRef: null,
+    defaultVoiceReference: null,
+  });
   assert.equal(surfaceState.footer.shouldRender, true);
   assert.equal(surfaceState.footer.pendingFirstBeat, true);
 });

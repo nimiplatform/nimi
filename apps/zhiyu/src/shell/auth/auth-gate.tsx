@@ -16,6 +16,7 @@ import { createInitialZhiyuEvidence } from '../app/evidence';
 import './runtime-auth.css';
 
 const runtimeGateOfflineCoordinator = new OfflineCoordinator();
+const WEB_AGENT_CENTER_ACCEPTANCE_QUERY = 'nimiWebAgentCenterAcceptance';
 
 type RuntimePlatformLoginProjection = RuntimePlatformLoginRequiredProjection | RuntimePlatformReadyProjection;
 
@@ -142,6 +143,9 @@ export function AuthGate({ children }: { readonly children: ReactNode }) {
   }
 
   if (state.kind === 'blocked') {
+    if (shouldExposeWebAgentCenterAcceptanceShell()) {
+      return <>{children}</>;
+    }
     return (
       <RuntimeUnavailablePage
         projection={state.projection}
@@ -153,4 +157,11 @@ export function AuthGate({ children }: { readonly children: ReactNode }) {
   }
 
   return <>{children}</>;
+}
+
+function shouldExposeWebAgentCenterAcceptanceShell(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  return new URL(window.location.href).searchParams.get(WEB_AGENT_CENTER_ACCEPTANCE_QUERY) === '1';
 }

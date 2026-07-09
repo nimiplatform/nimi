@@ -1,15 +1,16 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { app, BrowserWindow, Menu, ipcMain, protocol } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain, protocol, dialog } from 'electron';
 import {
   createElectronShellFileProtocolHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
+  type NimiElectronFileDialogOpenPayload,
+  type NimiElectronFileDialogOpenResult,
   type NimiElectronRuntimeTrustedCallerMode,
   type NimiElectronShellFileProtocolHost,
   type NimiElectronStandardDataRootBinding,
 } from '@nimiplatform/kit/shell/electron/main';
-import { registerZhiyuAgentCenterLocalConfigBridge } from './agent-center-local-config.js';
 import { registerZhiyuAvatarLaunchHandoffBridge } from './avatar-launch-handoff.js';
 import { createZhiyuElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 import {
@@ -41,13 +42,6 @@ localAssetProtocolHost.registerPrivilegedSchemes();
 void app.whenReady().then(async () => {
   const standardDataRoot = resolveStandardDataRoot();
   localAssetProtocolHost.registerProtocolHandler();
-  registerZhiyuAgentCenterLocalConfigBridge({
-    ipcMain,
-    dataRoot: standardDataRoot,
-    isAllowedRendererUrl: isZhiyuRendererUrl,
-    mainWindow: () => mainWindow,
-    resolveLocalAssetUrl: resolveZhiyuLocalAssetUrl,
-  });
   registerZhiyuAvatarLaunchHandoffBridge({
     ipcMain,
     dataRoot: standardDataRoot,
@@ -65,9 +59,11 @@ void app.whenReady().then(async () => {
       runtimeEndpoint,
     }),
     standardShellHost: {
+      allowAllStandardShellCommands: true,
       standardDataRootBinding: resolveStandardDataRootBinding(),
       localAssetRoots: resolveLocalAssetRoots(standardDataRoot),
       localAssetProtocolHost,
+      openFileDialog: openZhiyuStandardFileDialog,
       runtimeTrustedCaller: {
         mode: resolveRuntimeTrustedCallerMode(),
       },
@@ -185,9 +181,44 @@ function createLocalAssetProtocolHost(): NimiElectronShellFileProtocolHost {
   });
 }
 
-async function resolveZhiyuLocalAssetUrl(filePath: string): Promise<string> {
-  await localAssetProtocolHost.registerReadableFile(filePath);
-  return localAssetProtocolHost.resolveLocalAssetUrl(filePath);
+async function openZhiyuStandardFileDialog(
+  payload: NimiElectronFileDialogOpenPayload,
+): Promise<NimiElectronFileDialogOpenResult> {
+  const injected = consumeInjectedTestFileDialogPath();
+  if (injected) {
+    return { canceled: false, paths: [injected] };
+  }
+  const properties: Electron.OpenDialogOptions['properties'] = [
+    payload.kind === 'directory' ? 'openDirectory' : 'openFile',
+  ];
+  if (payload.multiple) {
+    properties.push('multiSelections');
+  }
+  const options: Electron.OpenDialogOptions = {
+    title: payload.title,
+    properties,
+    filters: payload.filters?.map((filter) => ({
+      name: filter.name,
+      extensions: [...filter.extensions],
+    })),
+  };
+  const result = mainWindow
+    ? await dialog.showOpenDialog(mainWindow, options)
+    : await dialog.showOpenDialog(options);
+  return {
+    canceled: result.canceled,
+    paths: result.filePaths,
+  };
+}
+
+function consumeInjectedTestFileDialogPath(): string | null {
+  const raw = normalizeText(process.env.NIMI_ZHIYU_ELECTRON_TEST_FILE_DIALOG_PATHS);
+  if (!raw) {
+    return null;
+  }
+  const [next, ...remaining] = raw.split(path.delimiter).map((entry) => normalizeText(entry)).filter(Boolean);
+  process.env.NIMI_ZHIYU_ELECTRON_TEST_FILE_DIALOG_PATHS = remaining.join(path.delimiter);
+  return next ? path.resolve(next) : null;
 }
 
 function resolveLocalAssetRoots(dataRoot: string): string[] {

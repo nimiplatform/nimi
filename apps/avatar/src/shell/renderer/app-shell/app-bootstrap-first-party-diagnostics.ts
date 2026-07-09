@@ -12,6 +12,7 @@ export type FirstPartyBootstrapStage =
   | 'account_access_token'
   | 'conversation_context'
   | 'runtime_identity_binding'
+  | 'runtime_presentation_profile'
   | 'local_avatar_asset_manifest'
   | 'driver_create'
   | 'runtime_carrier_start'
@@ -120,6 +121,13 @@ function fallbackDiagnosticForFirstPartyStage(
   stage: string | null,
 ): FirstPartyStageFallbackDiagnostic | null {
   switch (stage) {
+    case 'runtime_presentation_profile':
+      return {
+        reasonCode: 'RUNTIME_PRESENTATION_PROFILE_UNAVAILABLE',
+        actionHint: 'configure_runtime_agent_presentation_profile',
+        source: 'runtime',
+        retryable: false,
+      };
     case 'local_avatar_asset_manifest':
       return {
         reasonCode: 'LOCAL_AVATAR_ASSET_RESOLVE_FAILED',

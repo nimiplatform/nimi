@@ -370,11 +370,6 @@ export default defineConfig(({ mode }) => {
               return 'runtime-data-sync';
             }
             if (
-              normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-center-local-config-store.ts')
-            ) {
-              return 'chat-agent-shell';
-            }
-            if (
               normalizedId.includes('/apps/desktop/src/runtime/local-runtime/')
               || normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/')
               || normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge/runtime-bridge.ts')

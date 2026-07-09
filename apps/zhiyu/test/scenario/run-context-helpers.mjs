@@ -303,6 +303,7 @@ async function launchScenarioApp({ fixture, dataRoot }) {
       NIMI_ZHIYU_ELECTRON_RENDERER_URL: createZhiyuLiveRuntimeAcceptanceRendererUrl(zhiyuRoot),
       NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT: fixture.endpoint,
       NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
+      NIMI_ZHIYU_ELECTRON_TEST_FILE_DIALOG_PATHS: path.join(zhiyuRoot, '..', 'avatar', 'fixtures', 'vrm-debug', 'VRM1_Constraint_Twist_Sample.vrm'),
       NIMI_ZHIYU_AVATAR_ELECTRON_MAIN_PATH: path.join(zhiyuRoot, '..', 'avatar', 'dist-electron', 'main.js'),
     },
   });

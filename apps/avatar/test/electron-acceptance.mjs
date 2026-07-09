@@ -118,7 +118,7 @@ test('Avatar Electron host boots renderer and exposes standard shell capability 
         avatarInstanceId: null,
         launchSource: 'electron',
       });
-      const unboundLocalAsset = await captureAvatarInvokeError(page, 'nimi_avatar_resolve_local_avatar_asset', {
+      const retiredLocalAssetResolver = await captureAvatarInvokeError(page, 'nimi_avatar_resolve_local_avatar_asset', {
         payload: {
           accountId: 'avatar-account',
           ownerUserId: 'avatar-owner',
@@ -126,7 +126,7 @@ test('Avatar Electron host boots renderer and exposes standard shell capability 
           localAgentRef: 'local-agent:avatar-acceptance-agent',
         },
       });
-      assert.match(unboundLocalAsset.message, /requires bound Runtime identity/);
+      assert.match(retiredLocalAssetResolver.message, /Unsupported Avatar Electron product command/);
       const boundIdentity = await page.evaluate((identityPayload) =>
         globalThis.window.__NIMI_AVATAR_ELECTRON__.invoke('nimi_avatar_bind_runtime_identity', { payload: identityPayload }),
         {

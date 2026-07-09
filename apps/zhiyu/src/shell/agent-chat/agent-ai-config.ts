@@ -1,6 +1,7 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   createNimiHostRuntimeAgentInspectSurface,
+  createNimiHostRuntimeAgentPresentationProfileSurface,
   createNimiRuntimeAgentClient,
   Runtime,
   type NimiRuntimeAgentAIConfigIntents,
@@ -8,6 +9,7 @@ import {
   type NimiRuntimeAgentAIConfigSnapshot,
   type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
   type NimiRuntimeAgentInspectSurface,
+  type NimiRuntimeAgentPresentationProfileSurface,
   type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence, ZhiyuExecutionCapabilityEvidence, ZhiyuAgentAIConfigReadinessState } from '../app/evidence';
@@ -31,6 +33,9 @@ export const ZHIYU_AGENT_AI_CONFIG_WRITE_SCOPES = [
 ] as const;
 export const ZHIYU_AGENT_INSPECT_READ_SCOPES = [
   'runtime.agent.read',
+] as const;
+export const ZHIYU_AGENT_PRESENTATION_WRITE_SCOPES = [
+  'runtime.agent.write',
 ] as const;
 
 export type ZhiyuRuntimeRouteStatus = ZhiyuEvidence['route'];
@@ -89,6 +94,27 @@ export function createZhiyuAgentInspectSurface(
     bindingIdentity,
   );
   return createNimiHostRuntimeAgentInspectSurface({
+    getRuntime: () => ({
+      appId: 'nimi.zhiyu',
+      auth: runtime.auth,
+      appAuth: runtime.grants,
+      agent: runtime.agents,
+    }),
+    getSubjectUserId: () => subject,
+    withScopes,
+  });
+}
+
+export function createZhiyuAgentPresentationProfileSurface(
+  subjectUserId: string,
+  bindingIdentity?: ZhiyuAgentRuntimeScopedBindingIdentity | null,
+): NimiRuntimeAgentPresentationProfileSurface {
+  const { runtime, subject, withScopes } = zhiyuRuntimeAgentScopedSurface(
+    subjectUserId,
+    ZHIYU_AGENT_PRESENTATION_WRITE_SCOPES,
+    bindingIdentity,
+  );
+  return createNimiHostRuntimeAgentPresentationProfileSurface({
     getRuntime: () => ({
       appId: 'nimi.zhiyu',
       auth: runtime.auth,

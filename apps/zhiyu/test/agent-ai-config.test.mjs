@@ -356,6 +356,12 @@ function workspaceStubPlugin() {
               updateState: async () => ({}),
             };
           }
+          export function createNimiHostRuntimeAgentPresentationProfileSurface() {
+            return {
+              patchPresentationProfile: async () => undefined,
+              setPresentationProfile: async () => undefined,
+            };
+          }
         `,
       }));
     },

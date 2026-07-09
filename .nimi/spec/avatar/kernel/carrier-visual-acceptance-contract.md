@@ -83,6 +83,40 @@ Avatar launch payload. Desktop and Runtime debug surfaces may consume the
 bounded refs/status, but cannot close Avatar carrier proof from Desktop-rendered
 pixels.
 
+## 2.2 Agent Center Avatar Preview Service
+
+Avatar admits an Agent Center preview service for bounded Live2D and VRM preview
+surfaces. This service is the blocking preview tier for Kit Agent Center
+appearance acceptance.
+
+Callable boundary:
+
+- caller: Kit Agent Center through the admitted Kit Shell preview material
+  resolution and Avatar preview facade
+- registration: Avatar renderer registers a local preview surface handle or
+  same-origin URL controlled by Avatar-owned renderer code
+- input: opaque Kit Shell asset/material refs and backend kind only
+- output: typed ready/failure envelope with `preview_tier =
+  avatar_preview_service`, backend kind, render surface handle or URL,
+  evidence marker fields, and failure reason code
+
+Fixed rules:
+
+- preview service evidence is not Avatar carrier readiness, backend
+  compatibility tier, calibration effect, Runtime probe truth, or launch payload
+  truth
+- Kit Shell material resolution alone is not render proof
+- a ready preview must expose DOM/runtime markers for preview tier, backend
+  kind, and non-placeholder rendering path
+- Live2D and VRM preview closure requires canvas or pixel evidence from the
+  Avatar-owned preview service path; static Kit placeholders, manifest posters,
+  Desktop-rendered pixels, and file-structure validators cannot close this
+  acceptance row
+- failure envelopes must distinguish missing asset, invalid manifest,
+  unsupported preview tier, unavailable capability, and host/internal errors
+- Desktop and Zhiyu must not import concrete Live2D/VRM renderer dependencies
+  to satisfy Agent Center preview acceptance
+
 ## 3. Forbidden Closure
 
 The following evidence must not close Avatar carrier visual proof:

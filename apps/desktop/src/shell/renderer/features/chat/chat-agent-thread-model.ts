@@ -1,7 +1,7 @@
 import type {
   ConversationMessageViewModel,
 } from '@nimiplatform/kit/features/chat/headless';
-import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
+import type { NimiRuntimeAgentPresentationProfileProjection } from '@nimiplatform/sdk/runtime';
 import type {
   AgentLocalMessageRecord,
   AgentLocalTargetSnapshot,
@@ -16,7 +16,7 @@ function toIsoString(timestampMs: number): string {
 
 export function mergeAgentTargetWithPresentationProfile(
   target: AgentLocalTargetSnapshot | null,
-  presentationProfile: AvatarPresentationProfile | null | undefined,
+  presentationProfile: NimiRuntimeAgentPresentationProfileProjection | null | undefined,
 ): AgentLocalTargetSnapshot | null {
   if (!target) {
     return null;
@@ -30,23 +30,6 @@ export function mergeAgentTargetWithPresentationProfile(
     ...target,
     avatarUrl: nextAvatarUrl,
     presentationProfile: nextPresentationProfile,
-  };
-}
-
-export function mergeAgentTargetWithLocalVoicePolicy(
-  target: AgentLocalTargetSnapshot | null,
-  input: { avatarAutoplay?: boolean | null } | null | undefined,
-): AgentLocalTargetSnapshot | null {
-  if (!target) {
-    return null;
-  }
-  const nextAvatarAutoplay = input?.avatarAutoplay === true;
-  if ((target.avatarAutoplay ?? false) === nextAvatarAutoplay) {
-    return target;
-  }
-  return {
-    ...target,
-    avatarAutoplay: nextAvatarAutoplay,
   };
 }
 
@@ -108,8 +91,8 @@ export function overlayAgentTargetWithLiveProfileContent(
 }
 
 function arePresentationProfilesEqual(
-  left: AvatarPresentationProfile | null | undefined,
-  right: AvatarPresentationProfile | null | undefined,
+  left: NimiRuntimeAgentPresentationProfileProjection | null | undefined,
+  right: NimiRuntimeAgentPresentationProfileProjection | null | undefined,
 ): boolean {
   if (!left && !right) {
     return true;
@@ -122,7 +105,9 @@ function arePresentationProfilesEqual(
     && (left.expressionProfileRef || null) === (right.expressionProfileRef || null)
     && (left.idlePreset || null) === (right.idlePreset || null)
     && (left.interactionPolicyRef || null) === (right.interactionPolicyRef || null)
-    && (left.defaultVoiceReference || null) === (right.defaultVoiceReference || null);
+    && (left.defaultVoiceReference || null) === (right.defaultVoiceReference || null)
+    && (left.avatarAutoplay ?? false) === (right.avatarAutoplay ?? false)
+    && (left.backgroundAssetRef || null) === (right.backgroundAssetRef || null);
 }
 
 function areOwnerSettingsProjectionsEqual(

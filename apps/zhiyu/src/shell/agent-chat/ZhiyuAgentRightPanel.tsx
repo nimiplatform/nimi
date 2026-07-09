@@ -1,6 +1,9 @@
 import {
   AgentCenter,
+  createAgentCenterShellAppearanceAdapter,
+  type AgentCenterAppearanceAdapter,
   type AgentCenterAppearanceCopy,
+  type AgentCenterAppearanceProjection,
   type AgentCenterBehaviorCopy,
   type AgentCenterCopy,
   type AgentCenterRuntimeAutonomyConfigInput,
@@ -13,6 +16,10 @@ import type {
   RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
+  createAgentCenterShellBridge,
+  hasElectronRuntime,
+} from '@nimiplatform/kit/shell/renderer/bridge';
+import {
   AppCardSurface,
   IconToggleAction,
 } from '@nimiplatform/kit/ui';
@@ -21,6 +28,7 @@ import { useMemo } from 'react';
 import type { ZhiyuEvidence } from '../app/evidence';
 import {
   createZhiyuAgentInspectSurface,
+  createZhiyuAgentPresentationProfileSurface,
   getZhiyuAgentAIConfig,
   getZhiyuAgentAIConfigReadiness,
   subscribeZhiyuAgentAIConfigReadiness,
@@ -38,7 +46,6 @@ import {
   chatBlockedHint,
   partnerInitial,
 } from './ZhiyuAgentChatLabels';
-import { useZhiyuAgentCenterAppearanceAdapter } from './zhiyu-agent-center-appearance-adapter';
 import { getZhiyuRouteModelPickerProvider } from './zhiyu-route-model-picker-provider';
 
 export type RightPanelMode = 'agent' | 'closed';
@@ -58,7 +65,7 @@ type RightAgentPanelProps = {
 
 const ZHIYU_AGENT_CENTER_APPEARANCE_COPY: AgentCenterAppearanceCopy = {
   appearanceTitle: '外观',
-  appearanceDescription: '设置这个伙伴在聊天中的形象、背景和动态效果。',
+  appearanceDescription: '设置这个伙伴在聊天中的形象和背景。',
   avatarCardTitle: '伙伴形象',
   avatarUnsetTitle: '尚未设置形象',
   avatarUnsetDescription: '导入 Live2D 或 VRM 后，这里会显示伙伴预览。',
@@ -133,10 +140,6 @@ const ZHIYU_AGENT_CENTER_APPEARANCE_COPY: AgentCenterAppearanceCopy = {
   voiceArtifactsDescription: '清理由运行时/形象类型化维护动作处理。',
   cleanupLabel: '清理',
   cleaningLabel: '清理中...',
-  instancePolicyLabel: '实例策略',
-  generatedMotionLabel: '生成动作',
-  launchModeLabel: '启动模式',
-  debugProfileLabel: '调试配置',
   appearanceUpdateFailed: '运行时外观更新失败。',
   live2dStatusProbeRequired: '需要检查',
   live2dStatusNotAdmitted: '尚未准入',
@@ -150,7 +153,7 @@ const ZHIYU_AGENT_CENTER_APPEARANCE_COPY: AgentCenterAppearanceCopy = {
   live2dModelFramingLabel: '模型构图',
   live2dRenderPolicyLabel: '渲染策略',
   live2dExpressionInventoryLabel: '表情清单',
-  live2dAdapterManifestWorkbenchLabel: '适配器配置',
+  live2dAdapterManifestEvidenceLabel: '适配器配置',
   live2dEvidenceRequired: '需要本地资源和后端能力证据。',
   live2dPreviewReadyDetail: '通过运行时后端或窗口检查证据复核。',
   live2dCalibrationPendingDetail: '校准引用已作为证据投影，形象效果等待载荷与效果投影。',
@@ -161,25 +164,6 @@ const ZHIYU_AGENT_CENTER_APPEARANCE_COPY: AgentCenterAppearanceCopy = {
   live2dNoAdapterManifestSelected: '尚未选择适配器配置。',
   evidenceRefLabel: '证据引用',
   calibrationRefLabel: '校准引用',
-  live2dDebugShortcutBackend: '后端',
-  live2dDebugShortcutProfile: '配置',
-  live2dDebugShortcutRoutes: '路线',
-  live2dDebugShortcutMotion: '动作',
-  live2dDebugShortcutEmotion: '情绪',
-  live2dDebugShortcutSpeech: '语音',
-  live2dDebugShortcutWindow: '窗口',
-  instancePolicyReuseActive: '复用当前实例',
-  instancePolicyLaunchNew: '启动新实例',
-  instancePolicyRequireUserSelection: '每次询问',
-  generatedMotionRequireProfile: '需要配置支持',
-  generatedMotionDisabled: '停用',
-  generatedMotionDebugOnly: '仅调试',
-  launchModeManual: '手动启动',
-  launchModeDebugSession: '调试会话',
-  launchModeStartWithChat: '随聊天启动',
-  debugProfileStandard: '标准',
-  debugProfileStrictBackendEvidence: '严格后端证据',
-  debugProfileRouteMatrix: '路线矩阵',
   custodyNotice: '此界面只保存不透明的形象/运行时引用；模型摘要、构图、缩放、帧率、表情清单、预览引用与效果物化由形象和运行时负责。',
   adapterUnavailableFormat: '{{label}} 适配器暂不可用。',
 };
@@ -368,7 +352,10 @@ const ZHIYU_AGENT_CENTER_COPY: AgentCenterCopy = {
 
 export function RightAgentPanel(props: RightAgentPanelProps) {
   const agentCenterWorld = agentCenterWorldLabel(props.evidence);
-  const appearance = useZhiyuAgentCenterAppearanceAdapter(props.evidence);
+  const appearanceAdapter = useMemo(
+    () => buildZhiyuAgentCenterAppearanceAdapter(props.evidence),
+    [props.evidence],
+  );
   const runtimeState = props.evidence.runtime.ready
     ? 'ready'
     : props.evidence.runtime.reasonCode === 'not-probed'
@@ -381,7 +368,6 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
       : 'bg-amber-500';
   const moodLabel = agentCenterHeaderStateLabel(props.evidence.companion.currentEmotion);
   const activityLabel = agentCenterHeaderStateLabel(props.evidence.companion.executionState);
-  const appearanceLabel = agentCenterHeaderStateLabel(appearance.projection.status);
   const autonomyMutationAvailable = Boolean(
     props.evidence.conversation.ready
       && props.evidence.conversation.conversationAnchorId,
@@ -389,11 +375,9 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
   const autonomyDisabledReason = autonomyMutationAvailable ? null : chatBlockedHint(props.evidence);
   const state = useMemo<AgentCenterStateInput>(() => ({
     runtimeError: props.evidence.runtime.ready ? null : `${props.evidence.runtime.reasonCode}: ${props.evidence.runtime.message}`,
-    appearance: appearance.projection,
     autonomyMutationAvailable,
     autonomyDisabledReason,
   }), [
-    appearance.projection,
     autonomyDisabledReason,
     autonomyMutationAvailable,
     props.evidence.runtime.message,
@@ -467,15 +451,6 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
                       {activityLabel}
                     </span>
                   ) : null}
-                  {appearanceLabel ? (
-                    <span
-                      className="inline-flex max-w-[92px] shrink-0 items-center truncate rounded-full bg-emerald-500/10 px-1.5 py-px text-[10px] font-semibold text-emerald-700"
-                      data-zhiyu-agent-center-state-chip="appearance"
-                      title={`形象：${appearanceLabel}`}
-                    >
-                      {appearanceLabel}
-                    </span>
-                  ) : null}
                   {agentCenterWorld ? (
                     <span
                       className="inline-flex min-w-0 max-w-full shrink items-center gap-1.5 text-[10.5px] font-medium text-[var(--nimi-text-secondary)]"
@@ -522,7 +497,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
               openRuntimeSettings: props.onOpenModelConfig,
               launchAvatar: props.onAvatarLaunch,
             }}
-            appearanceAdapter={appearance.adapter}
+            appearanceAdapter={appearanceAdapter}
             runtimeAdapter={runtimeAdapter}
             state={state}
           />
@@ -530,6 +505,77 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
       </AppCardSurface>
     </aside>
   );
+}
+
+function buildZhiyuAgentCenterAppearanceAdapter(
+  evidence: ZhiyuEvidence,
+): AgentCenterAppearanceAdapter {
+  const routeInput = zhiyuAgentAIConfigRouteInputFromEvidence(evidence);
+  const subjectUserId = routeInput.subjectUserId.trim();
+  const identity = zhiyuAgentAIConfigIdentityFromRouteInput(routeInput);
+  if (!subjectUserId || !identity) {
+    return createUnavailableZhiyuAgentCenterAppearanceAdapter(
+      evidence,
+      !subjectUserId
+        ? 'zhiyu-agent-center-runtime-subject-required'
+        : 'zhiyu-agent-center-runtime-identity-required',
+    );
+  }
+  if (!hasElectronRuntime()) {
+    return createUnavailableZhiyuAgentCenterAppearanceAdapter(
+      evidence,
+      'zhiyu-agent-center-runtime-bridge-unavailable',
+    );
+  }
+  const scopedBindingIdentity = zhiyuAgentCenterScopedBindingIdentity(identity, evidence);
+  const inspect = createZhiyuAgentInspectSurface(subjectUserId, scopedBindingIdentity);
+  return createAgentCenterShellAppearanceAdapter({
+    identity,
+    accountId: subjectUserId,
+    runtimePresentation: createZhiyuAgentPresentationProfileSurface(subjectUserId, scopedBindingIdentity),
+    shell: createAgentCenterShellBridge(),
+    loadSnapshot: async () => ({
+      inspect: await inspect.getPublicInspect(identity),
+    }),
+  });
+}
+
+function createUnavailableZhiyuAgentCenterAppearanceAdapter(
+  evidence: ZhiyuEvidence,
+  reason: string,
+): AgentCenterAppearanceAdapter {
+  const projection: AgentCenterAppearanceProjection = {
+    status: 'not_configured',
+    backendKind: evidence.avatar.backendKind || null,
+    avatarAssetRef: null,
+    avatarAssetValid: false,
+    avatarAssetChecking: false,
+    validationStatus: 'selection_missing',
+    validationMessage: evidence.avatar.message || null,
+    validationIssueRows: [],
+    backendCapabilityProfileRef: null,
+    backgroundRef: null,
+    backgroundValid: false,
+    backgroundChecking: false,
+    backgroundValidationStatus: 'selection_missing',
+    backgroundValidationMessage: null,
+    previewState: null,
+    previewTier: null,
+    previewArtifactRef: null,
+    previewImageRef: null,
+    previewFailureReason: null,
+    previewWarnings: [],
+    defaultVoiceReference: null,
+    avatarAutoplay: false,
+    avatarImportDisabled: true,
+    backgroundImportDisabled: true,
+    disabledReason: reason,
+  };
+  return {
+    async load() {
+      return projection;
+    },
+  };
 }
 
 function buildZhiyuAgentCenterRuntimeAdapter(evidence: ZhiyuEvidence): AgentCenterRuntimeAdapter | null {

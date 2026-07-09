@@ -1,228 +1,40 @@
-table_family: protocol_surface
+version: 2
+table_family: retired_protocol_surface
 protocol_id: desktop_agent_avatar_configuration_schema
-surfaces:
-  - agent_id
-  - conversation_anchor_scope
-  - live2d_adapter_manifest_source
-  - avatar_instance_policy
-  - backend_kind
-  - launch_mode
-  - debug_profile
-  - updated_at
-  - provenance
-  - local_avatar_asset_ref
-  - live2d_adapter_manifest_ref
-  - backend_capability_profile_ref
-  - generated_motion_provider_policy
-  - live2d_calibration_ref
-  - live2d_calibration
-  - model_digest
-  - avatar_instance_calibration
-  - preview_artifact_ref
-  - framing_calibration
-  - render_scale
-  - target_fps
-  - performance_policy
-  - expression_inventory
-  - package_descriptor
-  - package_path
-  - launch_local_asset_id
-  - live2d_adapter_manifest_payload
-  - live2d_adapter_manifest_path
-  - live2d_adapter_manifest_absolute_path
-  - compatibility_tier
-  - avatar_compatibility_diagnostics
-  - carrier_registry_id
-  - scoped_avatar_binding_id
-  - account_id
-  - user_id
-  - realm_url
-  - token
-  - refresh_token
-  - jwt
-  - auth_payload
-  - raw_apml
-  - raw_mcp
-  - raw_a2a
-  - raw_provider_output
-  - backend_command
-  - Desktop stores opaque refs only and does not dereference package descriptors.
-  - The schema must not be copied into Avatar launch payload.
-  - External Live2D sidecar refs are Desktop custody refs only; Avatar remains
-    manifest resolver, compatibility validator, diagnostics, and carrier-proof
-    owner.
-  - Embedded and external Live2D adapter manifests must not be merged or
-    silently preferred.
-  - Missing evidence produces fail-closed configuration status.
-  - Desktop may persist only an opaque `live2d_calibration_ref`; calibration
-    values, debug shortcuts, and Avatar effect remain blocked until a
-    Runtime/SDK/Avatar payload/effect resolver projection is admitted.
 schema_id: nimi.desktop.agent-avatar-configuration.v1
 owner: .nimi/spec/desktop
-status: active
+status: retired
+retired_by: 2026-07-09-agent-center-avatar-kit-shell-hardcut
+replacement:
+  selection_truth: runtime.AgentPresentationProfile
+  asset_custody: kit_shell.agent-center
+  preview_truth: avatar.agent_center_preview_service
 source_rule: D-LLM-079
 description: >
-  Closed Desktop control-record schema for Agent Chat Settings Avatar
-  configuration. This schema is not Avatar launch payload and not carrier truth.
-
-required_fields:
-  - agent_id
-  - conversation_anchor_scope
+  Retired Desktop control-record schema for Agent Center avatar/background
+  configuration. Product is not launched; no user data migration is admitted.
+  The schema must not be used by Desktop, Zhiyu, SDK, Kit, or Runtime as active
+  semantic authority.
+retired_fields_not_migrated:
+  - local_avatar_asset_ref
   - live2d_adapter_manifest_source
+  - live2d_adapter_manifest_ref
+  - live2d_calibration_ref
   - avatar_instance_policy
   - backend_kind
+  - backend_capability_profile_ref
+  - generated_motion_provider_policy
   - launch_mode
   - debug_profile
-  - updated_at
-  - provenance
-
-fields:
-  agent_id:
-    type: string
-    owner: runtime_projection_identity
-  conversation_anchor_scope:
-    type: enum
-    values:
-      - current_anchor
-      - explicit_debug_anchor
-      - no_anchor
-  local_avatar_asset_ref:
-    type: string_optional
-    pattern: "^(live2d|vrm)_[a-f0-9]{12}$"
-    semantics: opaque_control_ref
-    forbidden_as:
-      - launch_payload
-      - package_descriptor
-      - carrier_truth
-  live2d_adapter_manifest_source:
-    type: enum
-    values:
-      - none
-      - embedded_creator_manifest
-      - external_sidecar_manifest
-    semantics: exact_one_manifest_source_selection
-    forbidden_as:
-      - launch_payload
-      - compatibility_tier_truth
-      - carrier_truth
-  live2d_adapter_manifest_ref:
-    type: string_optional
-    pattern: "^live2d_adapter_[a-f0-9]{12}$"
-    semantics: opaque_external_sidecar_control_ref
-    required_when: "live2d_adapter_manifest_source == external_sidecar_manifest"
-    forbidden_as:
-      - raw_manifest_payload
-      - absolute_source_path
-      - package_descriptor
-      - launch_payload
-      - Avatar_diagnostic_truth
-  live2d_calibration_ref:
-    type: string_optional
-    pattern: "^live2d_calibration_[a-f0-9]{12}$"
-    semantics: opaque_desktop_calibration_resolver_ref
-    backend_required: live2d
-    resolver_ref_projection_admitted: true
-    resolver_effect_projection_admitted: false
-    forbidden_as:
-      - launch_payload
-      - calibration_payload
-      - calibration_value_truth
-      - carrier_truth
-      - Avatar_diagnostic_truth
-    effect_boundary: "no_avatar_effect_until_runtime_sdk_avatar_resolver_projection_admitted"
-  avatar_instance_policy:
-    type: enum
-    values:
-      - reuse_active_instance
-      - launch_new_instance
-      - require_user_selection
-  backend_kind:
-    type: enum
-    values:
-      - vrm
-      - live2d
-      - future
-  backend_capability_profile_ref:
-    type: string_optional
-    semantics: opaque_control_ref
-    forbidden_as:
-      - backend_capability_truth
-      - launch_payload
-  generated_motion_provider_policy:
-    type: enum
-    values:
-      - require_profile_support
-      - disable_generated_motion
-      - debug_only
-  launch_mode:
-    type: enum
-    values:
-      - manual
-      - debug_session
-      - start_with_chat
-  debug_profile:
-    type: enum
-    values:
-      - standard
-      - strict_backend_evidence
-      - route_matrix
-  updated_at:
-    type: iso8601_utc_timestamp
-  provenance:
-    type: object
-    required_fields:
-      - source
-      - evidence_ref
-    source_enum:
-      - user_selection
-      - import_validation
-      - runtime_projection
-      - avatar_backend_evidence
-
-forbidden_fields:
-  - package_descriptor
-  - package_path
-  - launch_local_asset_id
-  - live2d_calibration
-  - model_digest
-  - avatar_instance_calibration
-  - preview_artifact_ref
-  - framing_calibration
-  - render_scale
-  - target_fps
-  - performance_policy
-  - expression_inventory
-  - live2d_adapter_manifest_payload
-  - live2d_adapter_manifest_path
-  - live2d_adapter_manifest_absolute_path
-  - compatibility_tier
-  - avatar_compatibility_diagnostics
-  - carrier_registry_id
-  - scoped_avatar_binding_id
-  - account_id
-  - user_id
-  - realm_url
-  - token
-  - refresh_token
-  - jwt
-  - auth_payload
-  - raw_apml
-  - raw_mcp
-  - raw_a2a
-  - raw_provider_output
-  - backend_command
-
+  - local_history
+  - ui.last_section
+forbidden_revival:
+  - AgentCenterLocalConfig
+  - app_local_avatar_selection_store
+  - app_local_background_selection_store
+  - app_local_voice_avatar_autoplay
 invariants:
-  - Desktop stores opaque refs only and does not dereference package descriptors.
-  - The schema must not be copied into Avatar launch payload.
-  - External Live2D sidecar refs are Desktop custody refs only; Avatar remains
-    manifest resolver, compatibility validator, diagnostics, and carrier-proof owner.
-  - Embedded and external Live2D adapter manifests must not be merged or silently preferred.
-  - Missing evidence produces fail-closed configuration status.
-  - Desktop local import validation issue codes are import-readiness evidence
-    only; they must not use `AVATAR_LIVE2D_COMPAT_*`, compatibility tier, Avatar
-    carrier-proof, or backend capability truth semantics.
-  - Desktop may persist only `live2d_calibration_ref` as an opaque control ref
-    that Avatar local asset resolver may project as read-only evidence; it must
-    not persist calibration values, expose debug shortcuts, or affect Avatar
-    outside an admitted resolver effect projection.
+  - Runtime AgentPresentationProfile owns avatar/background/default-voice/autoplay selection truth.
+  - Kit Shell standard agent-center operations own host-local asset byte custody only.
+  - Live2D adapter manifest association is asset-scoped Kit Shell custody metadata.
+  - No compatibility shim, migration, dual-write, configGet, or configSet is admitted.

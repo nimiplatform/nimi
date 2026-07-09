@@ -14,16 +14,6 @@ class SmokePreflightError extends Error {
   }
 }
 
-function live2dSmokeRepairMessage(accountsRoot) {
-  return [
-    `[avatar-live2d-smoke] missing local Agent Center Live2D data under: ${accountsRoot}`,
-    '[avatar-live2d-smoke] Fix one of:',
-    '  - set NIMI_DATA_ROOT to the desktop data root that contains accounts/<account>/agents/<agent>/agent-center/config.json',
-    '  - open Desktop, import/select a local Live2D Avatar asset for the target agent, then rerun this smoke',
-    '  - set NIMI_AVATAR_SMOKE_ACCOUNT_ID and NIMI_AVATAR_SMOKE_AGENT_ID for an existing configured agent',
-  ].join('\n');
-}
-
 function canUseRawPathSegment(value) {
   const body = value.startsWith('~') ? value.slice(1) : value;
   if (!body || value.length > 128) return false;
@@ -52,150 +42,146 @@ function assertSafeRelativeFileRef(root, ref, label) {
   return resolved;
 }
 
-function findConfiguredAgent(dataRoot, explicitAccountId, explicitAgentId) {
-  const accountsRoot = join(dataRoot, 'accounts');
-  if (!existsSync(accountsRoot) || !statSync(accountsRoot).isDirectory()) {
-    throw new SmokePreflightError(live2dSmokeRepairMessage(accountsRoot));
+function accountsRoot(dataRoot) {
+  return join(dataRoot, 'agent-center', 'accounts');
+}
+
+function agentCenterDir(dataRoot, accountId, localAgentRef) {
+  return join(
+    accountsRoot(dataRoot),
+    scopePathSegment(accountId),
+    'agents',
+    scopePathSegment(localAgentRef),
+    'agent-center',
+  );
+}
+
+function live2dPackageDir(dataRoot, accountId, localAgentRef, avatarAssetRef) {
+  return join(
+    agentCenterDir(dataRoot, accountId, localAgentRef),
+    'modules',
+    'avatar_asset',
+    'packages',
+    'live2d',
+    avatarAssetRef,
+  );
+}
+
+function live2dSmokeRepairMessage(root) {
+  return [
+    `[avatar-live2d-smoke] missing Kit Shell Agent Center Live2D data under: ${root}`,
+    '[avatar-live2d-smoke] Fix one of:',
+    '  - set NIMI_DATA_ROOT to the Runtime app storage root that contains agent-center/accounts',
+    '  - import a Live2D Avatar asset through Agent Center, then rerun this smoke',
+    '  - set NIMI_AVATAR_SMOKE_ACCOUNT_ID, NIMI_AVATAR_SMOKE_LOCAL_AGENT_REF, and NIMI_AVATAR_SMOKE_AVATAR_ASSET_REF',
+  ].join('\n');
+}
+
+function explicitTarget(dataRoot) {
+  const accountId = normalize(process.env.NIMI_AVATAR_SMOKE_ACCOUNT_ID);
+  const localAgentRef = normalize(process.env.NIMI_AVATAR_SMOKE_LOCAL_AGENT_REF || process.env.NIMI_AVATAR_SMOKE_AGENT_ID);
+  const avatarAssetRef = normalize(process.env.NIMI_AVATAR_SMOKE_AVATAR_ASSET_REF);
+  if (!accountId && !localAgentRef && !avatarAssetRef) {
+    return null;
+  }
+  if (!accountId || !localAgentRef || !avatarAssetRef) {
+    throw new SmokePreflightError('[avatar-live2d-smoke] explicit target requires account, local agent ref, and avatar asset ref env vars.');
+  }
+  return {
+    accountId,
+    localAgentRef,
+    accountPathSegment: scopePathSegment(accountId),
+    localAgentPathSegment: scopePathSegment(localAgentRef),
+    avatarAssetRef,
+    assetRoot: live2dPackageDir(dataRoot, accountId, localAgentRef, avatarAssetRef),
+  };
+}
+
+function findLive2dTarget(dataRoot) {
+  const explicit = explicitTarget(dataRoot);
+  if (explicit) return explicit;
+
+  const root = accountsRoot(dataRoot);
+  if (!existsSync(root) || !statSync(root).isDirectory()) {
+    throw new SmokePreflightError(live2dSmokeRepairMessage(root));
   }
 
-  if (explicitAccountId && explicitAgentId) {
-    const configPath = join(
-      accountsRoot,
-      scopePathSegment(explicitAccountId),
-      'agents',
-      scopePathSegment(explicitAgentId),
-      'agent-center',
-      'config.json',
-    );
-    if (!existsSync(configPath)) {
-      throw new SmokePreflightError([
-        `[avatar-live2d-smoke] explicit Agent Center config does not exist: ${configPath}`,
-        `[avatar-live2d-smoke] NIMI_AVATAR_SMOKE_ACCOUNT_ID=${explicitAccountId}`,
-        `[avatar-live2d-smoke] NIMI_AVATAR_SMOKE_AGENT_ID=${explicitAgentId}`,
-        '[avatar-live2d-smoke] Import/select a local Live2D Avatar asset for that agent in Desktop, or point the env vars at a configured agent.',
-      ].join('\n'));
-    }
-    return {
-      accountId: explicitAccountId,
-      agentId: explicitAgentId,
-      configPath,
-    };
-  }
-
-  for (const accountSegment of readdirSync(accountsRoot)) {
-    const agentsRoot = join(accountsRoot, accountSegment, 'agents');
+  for (const accountSegment of readdirSync(root)) {
+    const agentsRoot = join(root, accountSegment, 'agents');
     if (!existsSync(agentsRoot) || !statSync(agentsRoot).isDirectory()) continue;
     for (const agentSegment of readdirSync(agentsRoot)) {
-      const configPath = join(agentsRoot, agentSegment, 'agent-center', 'config.json');
-      if (!existsSync(configPath)) continue;
-      const config = readJson(configPath);
-      const selected = config.modules?.avatar_asset;
-      if (
-        selected?.backend_kind === 'live2d'
-        && normalize(selected.local_avatar_asset_ref)
-      ) {
-        return {
-          accountId: normalize(config.account_id),
-          agentId: normalize(config.agent_id),
-          configPath,
-        };
+      const packagesRoot = join(agentsRoot, agentSegment, 'agent-center', 'modules', 'avatar_asset', 'packages', 'live2d');
+      if (!existsSync(packagesRoot) || !statSync(packagesRoot).isDirectory()) continue;
+      for (const avatarAssetRef of readdirSync(packagesRoot)) {
+        if (!/^live2d_[a-f0-9]{12}$/u.test(avatarAssetRef)) continue;
+        const assetRoot = join(packagesRoot, avatarAssetRef);
+        if (existsSync(join(assetRoot, 'manifest.json'))) {
+          return {
+            accountId: accountSegment,
+            localAgentRef: agentSegment,
+            accountPathSegment: accountSegment,
+            localAgentPathSegment: agentSegment,
+            avatarAssetRef,
+            assetRoot,
+          };
+        }
       }
     }
   }
+
   throw new SmokePreflightError([
-    `[avatar-live2d-smoke] no Agent Center config with a selected local Live2D Avatar asset was found under: ${accountsRoot}`,
-    '[avatar-live2d-smoke] Open Desktop, import/select a local Live2D Avatar asset for an agent, then rerun this smoke.',
-    '[avatar-live2d-smoke] To target a specific agent, set NIMI_AVATAR_SMOKE_ACCOUNT_ID and NIMI_AVATAR_SMOKE_AGENT_ID.',
+    `[avatar-live2d-smoke] no Kit Shell managed Live2D Avatar asset was found under: ${root}`,
+    '[avatar-live2d-smoke] Import a Live2D Avatar asset through Agent Center, then rerun this smoke.',
   ].join('\n'));
 }
 
 function main() {
   const dataRoot = resolve(process.env.NIMI_DATA_ROOT || join(homedir(), '.nimi', 'data'));
-  const target = findConfiguredAgent(
-    dataRoot,
-    normalize(process.env.NIMI_AVATAR_SMOKE_ACCOUNT_ID),
-    normalize(process.env.NIMI_AVATAR_SMOKE_AGENT_ID),
-  );
-  const config = readJson(target.configPath);
-  const selected = config.modules?.avatar_asset;
-  const localAssetRef = normalize(selected?.local_avatar_asset_ref);
-  if (selected?.backend_kind !== 'live2d' || !localAssetRef) {
-    throw new SmokePreflightError([
-      `[avatar-live2d-smoke] Agent Center config has no selected local Live2D Avatar asset: ${target.configPath}`,
-      '[avatar-live2d-smoke] Select/import a local Live2D Avatar asset for this agent in Desktop, then rerun this smoke.',
-    ].join('\n'));
+  const target = findLive2dTarget(dataRoot);
+  if (!/^live2d_[a-f0-9]{12}$/u.test(target.avatarAssetRef)) {
+    throw new Error(`Live2D Avatar asset ref is invalid: ${target.avatarAssetRef}`);
   }
-  if (!canUseRawPathSegment(localAssetRef)) {
-    throw new Error(`Live2D local Avatar asset ref is not a safe package segment: ${localAssetRef}`);
-  }
-  const assetRoot = join(
-    dataRoot,
-    'accounts',
-    scopePathSegment(target.accountId),
-    'agents',
-    scopePathSegment(target.agentId),
-    'agent-center',
-    'modules',
-    'avatar_asset',
-    'packages',
-    'live2d',
-    localAssetRef,
-  );
-  const manifestPath = join(assetRoot, 'manifest.json');
+  const manifestPath = join(target.assetRoot, 'manifest.json');
   if (!existsSync(manifestPath)) {
-    throw new SmokePreflightError([
-      `[avatar-live2d-smoke] Live2D local Avatar asset manifest is missing: ${manifestPath}`,
-      '[avatar-live2d-smoke] Reimport the local Live2D Avatar asset in Desktop, then rerun this smoke.',
-    ].join('\n'));
+    throw new SmokePreflightError(`[avatar-live2d-smoke] Live2D Avatar asset manifest is missing: ${manifestPath}`);
   }
   const manifest = readJson(manifestPath);
   const entryFile = normalize(manifest.entry_file);
+  if (manifest.kind !== 'live2d' || manifest.local_asset_id !== target.avatarAssetRef) {
+    throw new Error(`Live2D manifest identity mismatch: ${manifestPath}`);
+  }
   if (!entryFile.startsWith('files/') || !entryFile.endsWith('.model3.json')) {
     throw new Error(`Live2D manifest entry_file is not a model3 entry under files/: ${entryFile}`);
   }
-  const filesRoot = resolve(assetRoot, 'files');
-  const model3Path = assertSafeRelativeFileRef(assetRoot, entryFile, 'Live2D manifest entry_file');
+  const filesRoot = resolve(target.assetRoot, 'files');
+  const model3Path = assertSafeRelativeFileRef(target.assetRoot, entryFile, 'Live2D manifest entry_file');
   if (!model3Path.startsWith(`${filesRoot}${sep}`)) {
     throw new Error(`Live2D manifest entry_file escapes files/: ${entryFile}`);
   }
   if (!existsSync(model3Path)) {
-    throw new SmokePreflightError([
-      `[avatar-live2d-smoke] Live2D model3 entry is missing: ${model3Path}`,
-      '[avatar-live2d-smoke] Reimport the local Live2D Avatar asset in Desktop, then rerun this smoke.',
-    ].join('\n'));
+    throw new SmokePreflightError(`[avatar-live2d-smoke] Live2D model3 entry is missing: ${model3Path}`);
   }
   const model3 = readJson(model3Path);
   if (typeof model3.Version !== 'number') {
     throw new Error(`Live2D model3 entry is missing Version: ${model3Path}`);
   }
-  const launchContext = {
-    agent_id: target.agentId,
-  };
   console.log(JSON.stringify({
     status: 'ok',
     data_root: dataRoot,
-    account_id: target.accountId,
-    account_path_segment: scopePathSegment(target.accountId),
-    agent_id: target.agentId,
-    agent_path_segment: scopePathSegment(target.agentId),
-    config_path: target.configPath,
-    local_avatar_asset_ref: localAssetRef,
-    backend_capability_profile_ref: normalize(selected.backend_capability_profile_ref),
-    asset_root: assetRoot,
+    account_path_segment: target.accountPathSegment,
+    agent_path_segment: target.localAgentPathSegment,
+    avatar_asset_ref: target.avatarAssetRef,
+    backend_capability_profile_ref: `avatar.backend_profile:live2d:${target.avatarAssetRef}:import_validated`,
+    asset_root: target.assetRoot,
     manifest_path: manifestPath,
     model3_path: model3Path,
-    launch_context: launchContext,
+    materialization_ref: `agent-center-avatar-asset:${target.accountPathSegment}:${target.localAgentPathSegment}:live2d:${target.avatarAssetRef}`,
   }, null, 2));
 }
 
 try {
   main();
 } catch (error) {
-  if (error instanceof SmokePreflightError) {
-    console.error(error.message);
-    process.exitCode = 1;
-  } else {
-    console.error(error instanceof Error ? (error.stack || error.message) : String(error));
-    process.exitCode = 1;
-  }
+  console.error(error instanceof Error ? (error.stack || error.message) : String(error));
+  process.exitCode = 1;
 }

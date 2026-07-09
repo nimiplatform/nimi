@@ -99,6 +99,8 @@ test('agent shell view model prefers persisted thread snapshot avatar for target
           idlePreset: 'companion.idle.soft',
           interactionPolicyRef: null,
           defaultVoiceReference: 'voice://agent-1/default',
+          avatarAutoplay: true,
+          backgroundAssetRef: 'agent-center-background:agent-1/main',
         },
       },
     }],
@@ -112,6 +114,8 @@ test('agent shell view model prefers persisted thread snapshot avatar for target
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,
     defaultVoiceReference: 'voice://agent-1/default',
+    avatarAutoplay: true,
+    backgroundAssetRef: 'agent-center-background:agent-1/main',
   });
 });
 
@@ -353,6 +357,8 @@ test('agent shell view model merges runtime presentation profile onto desktop ta
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,
     defaultVoiceReference: 'voice://agent-1/default',
+    avatarAutoplay: true,
+    backgroundAssetRef: null,
   });
 
   assert.equal(merged?.avatarUrl, null);
@@ -363,5 +369,7 @@ test('agent shell view model merges runtime presentation profile onto desktop ta
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,
     defaultVoiceReference: 'voice://agent-1/default',
+    avatarAutoplay: true,
+    backgroundAssetRef: null,
   });
 });

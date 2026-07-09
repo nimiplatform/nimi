@@ -1,6 +1,7 @@
 import { getSharedAudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
 import {
   createNimiRuntimeAgentConsumeClient,
+  createNimiHostRuntimeAgentInspectSurface,
   createNimiRuntimeAgentTurnsModule,
   createNimiRuntimeAgentVoiceModule,
   runNimiRuntimeScenarioJob,
@@ -21,7 +22,7 @@ import {
 import { getRuntimeDefaults } from '../bridge/index.js';
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
-import { resolveLocalAvatarAssetManifest } from '../carrier/model-resolver.js';
+import { resolveRuntimePresentationAvatarAssetManifest } from '../carrier/model-resolver.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { ulid } from '../infra/ids.js';
 import { readAvatarShellSettings } from '../settings-state.js';
@@ -409,6 +410,16 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           getSubjectUserId: () => subjectUserId,
           withScopes: withAvatarRuntimeAgentScopes,
         });
+        const runtimeAgentInspect = createNimiHostRuntimeAgentInspectSurface({
+          getRuntime: () => ({
+            appId: runtimeAppId,
+            auth: runtime.auth,
+            appAuth: runtime.grants,
+            agent: runtime.agents,
+          }),
+          getSubjectUserId: () => subjectUserId,
+          withScopes: withAvatarRuntimeAgentScopes,
+        });
         currentConversationAnchorId = conversationAnchorId;
         await runFirstPartyStage('runtime_identity_binding', () => bindAvatarRuntimeIdentity({
           avatarInstanceId,
@@ -423,11 +434,17 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           agentId,
           worldId: '',
         });
-        const modelManifest = await runFirstPartyStage('local_avatar_asset_manifest', () => resolveLocalAvatarAssetManifest({
+        const presentationProfile = await runFirstPartyStage('runtime_presentation_profile', () => runtimeAgentInspect.getPresentationProfile({
+          ownerUserId,
+          runtimeSourceRef,
+          localAgentRef,
+        }));
+        const modelManifest = await runFirstPartyStage('local_avatar_asset_manifest', () => resolveRuntimePresentationAvatarAssetManifest({
           accountId,
           ownerUserId,
           runtimeSourceRef,
           localAgentRef,
+          presentationProfile,
         }));
         driver = await runFirstPartyStage('driver_create', async () => createDriver({
           kind: 'sdk',

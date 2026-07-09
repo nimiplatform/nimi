@@ -237,17 +237,19 @@ test('Avatar presence source keeps Zhiyu out of private renderer and asset truth
 
 test('Avatar product surfaces do not fabricate a local Avatar resource from Runtime projection evidence', () => {
   const homeSurfaceSections = readFileSync(path.join(root, 'src/shell/app/home-surface-sections.tsx'), 'utf8');
-  const appearanceAdapter = readFileSync(path.join(root, 'src/shell/agent-chat/zhiyu-agent-center-appearance-adapter.ts'), 'utf8');
-  const source = `${homeSurfaceSections}\n${appearanceAdapter}`;
+  const rightPanel = readFileSync(path.join(root, 'src/shell/agent-chat/ZhiyuAgentRightPanel.tsx'), 'utf8');
+  const source = `${homeSurfaceSections}\n${rightPanel}`;
 
   assert.doesNotMatch(homeSurfaceSections, /fallback:\/\//);
   assert.doesNotMatch(homeSurfaceSections, /createAvatarStageSnapshot/);
   assert.doesNotMatch(homeSurfaceSections, /<AvatarStage/);
   assert.match(homeSurfaceSections, /data-zhiyu-avatar-resource-ref="not-owned-by-zhiyu"/);
-  assert.match(appearanceAdapter, /const avatarAssetRef = avatar\?\.local_avatar_asset_ref \|\| null;/);
-  assert.match(appearanceAdapter, /avatarAssetRef,/);
-  assert.doesNotMatch(appearanceAdapter, /avatarAssetRef\s*=\s*avatar\.configurationRef|avatarAssetRef\s*=\s*avatar\.projectionRef/);
-  assert.doesNotMatch(appearanceAdapter, /avatar\.configurationRef\s*\|\|\s*avatar\.projectionRef/);
+  assert.match(rightPanel, /createAgentCenterShellAppearanceAdapter/);
+  assert.match(rightPanel, /createZhiyuAgentPresentationProfileSurface/);
+  assert.match(rightPanel, /inspect\.getPublicInspect\(identity\)/);
+  assert.doesNotMatch(rightPanel, /local_avatar_asset_ref|background_asset_id|ZhiyuAgentCenterLocalConfig/);
+  assert.doesNotMatch(rightPanel, /avatarAssetRef\s*=\s*avatar\.configurationRef|avatarAssetRef\s*=\s*avatar\.projectionRef/);
+  assert.doesNotMatch(rightPanel, /avatar\.configurationRef\s*\|\|\s*avatar\.projectionRef/);
   assert.match(source, /data-zhiyu-avatar-unsupported-count/);
   assert.doesNotMatch(source, /avatar\.unsupportedFields\.map/);
   assert.doesNotMatch(source, /data-zhiyu-avatar-unsupported-field/);

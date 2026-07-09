@@ -21,8 +21,8 @@ function passingGateInput(): StartWithChatGateInput {
     localAgentRef: LOCAL_AGENT,
     runtimeSourceRef: 'agent-1',
     conversationAnchorId: 'anchor-1',
-    localAvatarAssetRef: 'asset-ref-1',
-    localAvatarAssetValidationStatus: 'valid',
+    avatarAssetRef: 'asset-ref-1',
+    avatarAssetValidationStatus: 'valid',
     backendCapabilityProfileRef: 'backend-profile-1',
     runtimeProjectionAuthorization: 'authorized',
     launchMode: 'start_with_chat',
@@ -50,7 +50,7 @@ test('start_with_chat gate fails closed when any single condition is false', () 
       input: { ...passingGateInput(), localAgentRef: 'agent-1', runtimeSourceRef: 'agent-1' },
     },
     { id: 'conversation_anchor_present', input: { ...passingGateInput(), conversationAnchorId: null } },
-    { id: 'local_avatar_asset_valid', input: { ...passingGateInput(), localAvatarAssetRef: null } },
+    { id: 'local_avatar_asset_valid', input: { ...passingGateInput(), avatarAssetRef: null } },
     { id: 'backend_capability_posture_valid', input: { ...passingGateInput(), backendCapabilityProfileRef: null } },
     {
       id: 'runtime_projection_authorized',
@@ -96,7 +96,7 @@ test('start_with_chat gate condition 6 rejects an unknown runtime authorization 
 test('start_with_chat gate condition 5 fails when local asset validation is not valid', () => {
   const input = {
     ...passingGateInput(),
-    localAvatarAssetValidationStatus: 'unsupported_backend',
+    avatarAssetValidationStatus: 'unsupported_backend',
   };
   const result = evaluateStartWithChatGate(input);
   assert.equal(result.decision, 'no_launch');

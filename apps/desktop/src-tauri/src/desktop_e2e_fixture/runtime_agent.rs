@@ -167,6 +167,22 @@ pub(super) fn runtime_agent_set_presentation_profile_response(
             ),
         ) => Some(profile),
         Some(
+            runtime_bridge_generated::set_agent_presentation_profile_request::Mutation::Patch(
+                patch,
+            ),
+        ) => Some(runtime_bridge_generated::AgentPresentationProfile {
+            backend_kind: patch.backend_kind.unwrap_or(
+                runtime_bridge_generated::AgentPresentationBackendKind::Unspecified as i32,
+            ),
+            avatar_asset_ref: patch.avatar_asset_ref.unwrap_or_default(),
+            expression_profile_ref: patch.expression_profile_ref.unwrap_or_default(),
+            idle_preset: patch.idle_preset.unwrap_or_default(),
+            interaction_policy_ref: patch.interaction_policy_ref.unwrap_or_default(),
+            default_voice_reference: patch.default_voice_reference.unwrap_or_default(),
+            avatar_autoplay: patch.avatar_autoplay.unwrap_or(false),
+            background_asset_ref: patch.background_asset_ref.unwrap_or_default(),
+        }),
+        Some(
             runtime_bridge_generated::set_agent_presentation_profile_request::Mutation::Clear(_),
         )
         | None => None,

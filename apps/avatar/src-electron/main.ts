@@ -1,7 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { appendFile, mkdir, readFile, readdir, realpath, stat, writeFile } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import { appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { app, BrowserWindow, ipcMain, protocol, screen, shell, type IpcMainInvokeEvent } from 'electron';
 import {
   assertOpaqueElectronLocalAgentRef,
@@ -52,6 +51,7 @@ void app.whenReady().then(async () => {
       runtimeEndpoint,
     }),
     standardShellHost: {
+      allowAllStandardShellCommands: true,
       standardDataRootBinding: resolveStandardDataRootBinding(),
       localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
       localAssetProtocolHost,
@@ -113,8 +113,6 @@ function registerAvatarElectronProductCommands(dataRoot: string): void {
         return recordAvatarElectronEvidence(dataRoot, payload);
       case 'nimi_avatar_write_evidence_artifact':
         return writeAvatarElectronEvidenceArtifact(dataRoot, payload);
-      case 'nimi_avatar_resolve_local_avatar_asset':
-        return resolveAvatarElectronLocalAvatarAsset(payload);
       // Window control (drag / size / ignore-cursor / constrain /
       // always-on-top / hide / close) is migrated to the kit standard
       // floating-window commands, routed through the standard shell runtime
@@ -270,179 +268,6 @@ async function writeAvatarElectronEvidenceArtifact(
     artifactMimeType,
     artifactByteLength: bytes.byteLength,
   };
-}
-
-async function resolveAvatarElectronLocalAvatarAsset(
-  payload: Readonly<Record<string, unknown>>,
-): Promise<Record<string, string | null>> {
-  const commandPayload = asRecord(payload.payload ?? payload, 'Avatar local asset resolver payload must be an object');
-  const scope = {
-    accountId: normalizeRequiredString(commandPayload.accountId, 'accountId'),
-    ownerUserId: normalizeRequiredString(commandPayload.ownerUserId, 'ownerUserId'),
-    runtimeSourceRef: normalizeRequiredString(commandPayload.runtimeSourceRef, 'runtimeSourceRef'),
-    localAgentRef: normalizeRequiredString(commandPayload.localAgentRef, 'localAgentRef'),
-  };
-  if (!scope.localAgentRef.startsWith('local-agent:')) {
-    throw new Error('Avatar local asset resolver localAgentRef must start with local-agent:');
-  }
-  const bound = boundRuntimeIdentity;
-  if (!bound) {
-    throw new Error('Avatar local asset resolver requires bound Runtime identity.');
-  }
-  if (
-    bound.ownerUserId !== scope.ownerUserId
-    || bound.runtimeSourceRef !== scope.runtimeSourceRef
-    || bound.localAgentRef !== scope.localAgentRef
-  ) {
-    throw new Error('Avatar local asset resolver scope does not match bound Runtime identity.');
-  }
-  const agentCenterDataRoot = resolveAgentCenterDataRoot();
-  const config = await readAgentCenterLocalConfig(agentCenterDataRoot, scope);
-  const modules = asRecord(config.modules, 'Avatar local asset resolver config missing modules');
-  const avatarAsset = asRecord(modules.avatar_asset, 'Avatar local asset resolver config missing avatar_asset module');
-  const localAssetId = normalizeRequiredString(avatarAsset.local_avatar_asset_ref, 'modules.avatar_asset.local_avatar_asset_ref');
-  const backendKind = normalizeRequiredString(avatarAsset.backend_kind, 'modules.avatar_asset.backend_kind');
-  const assetDir = await resolveAgentCenterAssetDir(agentCenterDataRoot, scope, localAssetId);
-  if (backendKind === 'vrm') {
-    const vrmPath = path.join(assetDir, 'package.vrm');
-    await assertFile(vrmPath, 'selected VRM Avatar package is missing');
-    return {
-      kind: 'vrm',
-      runtime_dir: assetDir,
-      model_id: localAssetId,
-      vrm_file_path: vrmPath,
-      nimi_dir: null,
-      motion_presets_dir: null,
-    };
-  }
-  if (backendKind === 'live2d') {
-    const packageDir = path.join(assetDir, 'package');
-    const model3JsonPath = await findSingleLive2dModel3Json(packageDir);
-    return {
-      kind: 'live2d',
-      runtime_dir: packageDir,
-      model_id: localAssetId,
-      model3_json_path: model3JsonPath,
-      nimi_dir: null,
-      adapter_manifest_path: normalizeAgentCenterAdapterManifestPath(assetDir, avatarAsset.live2d_adapter_manifest_ref),
-      live2d_calibration_ref: normalizeText(avatarAsset.live2d_calibration_ref) || null,
-    };
-  }
-  throw new Error(`Avatar local asset resolver backend kind is not admitted: ${backendKind}`);
-}
-
-function resolveAgentCenterDataRoot(): string {
-  const fromEnv = normalizeText(process.env.NIMI_AVATAR_ELECTRON_AGENT_CENTER_DATA_ROOT);
-  if (!fromEnv) {
-    throw new Error('Avatar local asset resolver requires NIMI_AVATAR_ELECTRON_AGENT_CENTER_DATA_ROOT');
-  }
-  return path.resolve(fromEnv);
-}
-
-async function readAgentCenterLocalConfig(
-  dataRoot: string,
-  scope: {
-    readonly accountId: string;
-    readonly ownerUserId: string;
-    readonly runtimeSourceRef: string;
-    readonly localAgentRef: string;
-  },
-): Promise<Readonly<Record<string, unknown>>> {
-  const configPath = path.join(agentCenterDir(dataRoot, scope), 'config.json');
-  const parsed = JSON.parse(await readFile(configPath, 'utf8')) as unknown;
-  const config = asRecord(parsed, 'Avatar local asset resolver Agent Center config must be an object');
-  if (
-    config.schema_version !== 1
-    || config.config_kind !== 'agent_center_local_config'
-    || normalizeText(config.account_id) !== scope.accountId
-    || normalizeText(config.owner_user_id) !== scope.ownerUserId
-    || normalizeText(config.runtime_source_ref) !== scope.runtimeSourceRef
-    || normalizeText(config.local_agent_ref) !== scope.localAgentRef
-  ) {
-    throw new Error('Avatar local asset resolver Agent Center config scope is invalid.');
-  }
-  return config;
-}
-
-async function resolveAgentCenterAssetDir(
-  dataRoot: string,
-  scope: {
-    readonly accountId: string;
-    readonly localAgentRef: string;
-  },
-  localAssetId: string,
-): Promise<string> {
-  if (!/^(?:live2d|vrm)_[a-f0-9]{12}$/u.test(localAssetId)) {
-    throw new Error(`Avatar local asset resolver asset id is invalid: ${localAssetId}`);
-  }
-  const root = await realpath(path.resolve(dataRoot));
-  const candidate = path.join(agentCenterDir(root, scope), 'avatar-assets', localAssetId);
-  const canonical = await realpath(candidate);
-  if (!isPathInside(canonical, root)) {
-    throw new Error('Avatar local asset resolver rejected asset path outside Agent Center data root.');
-  }
-  return canonical;
-}
-
-function agentCenterDir(
-  dataRoot: string,
-  scope: {
-    readonly accountId: string;
-    readonly localAgentRef: string;
-  },
-): string {
-  return path.join(dataRoot, 'zhiyu-agent-center', hashedSegment(scope.accountId), hashedSegment(scope.localAgentRef));
-}
-
-function hashedSegment(value: string): string {
-  return createHash('sha256').update(Buffer.from(value)).digest('hex').slice(0, 16);
-}
-
-function isPathInside(candidate: string, root: string): boolean {
-  const relative = path.relative(root, candidate);
-  return Boolean(relative) && !relative.startsWith('..') && !path.isAbsolute(relative);
-}
-
-async function assertFile(filePath: string, message: string): Promise<void> {
-  const fileStat = await stat(filePath).catch(() => null);
-  if (!fileStat?.isFile()) {
-    throw new Error(message);
-  }
-}
-
-async function findSingleLive2dModel3Json(root: string): Promise<string> {
-  const rootStat = await stat(root).catch(() => null);
-  if (!rootStat?.isDirectory()) {
-    throw new Error('selected Live2D Avatar package directory is missing');
-  }
-  const found: string[] = [];
-  await walkLive2dPackage(root, found);
-  if (found.length !== 1) {
-    throw new Error(`selected Live2D Avatar package must contain exactly one .model3.json entry, found ${found.length}`);
-  }
-  return found[0]!;
-}
-
-async function walkLive2dPackage(dir: string, found: string[]): Promise<void> {
-  for (const entry of await readdir(dir, { withFileTypes: true })) {
-    const entryPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      await walkLive2dPackage(entryPath, found);
-    } else if (entry.isFile() && entry.name.endsWith('.model3.json')) {
-      found.push(entryPath);
-    }
-  }
-}
-
-function normalizeAgentCenterAdapterManifestPath(assetDir: string, manifestRef: unknown): string | null {
-  const ref = normalizeText(manifestRef);
-  if (!ref) {
-    return null;
-  }
-  if (!/^live2d_adapter_[a-f0-9]{12}$/u.test(ref)) {
-    throw new Error(`Avatar local asset resolver adapter manifest ref is invalid: ${ref}`);
-  }
-  return path.join(assetDir, `${ref}.json`);
 }
 
 // Kit standard floating-window host hooks (Electron). Each acts on the

@@ -182,36 +182,34 @@ function checkNoDuplicateTurnReducer() {
 
 function checkConfigBoundary() {
   const files = [
+    ...walkFiles('apps/zhiyu/src/shell/agent-chat'),
     ...walkFiles('apps/zhiyu/src/shell/ai-config'),
     ...walkFiles('apps/zhiyu/src/shell/avatar'),
     ...walkFiles('apps/zhiyu/src-electron'),
   ];
   requireFileIncludes('.nimi/spec/zhiyu/kernel/configuration-surface-contract.md', [
     'Z-CONFIG-005',
-    'apps/zhiyu/src-electron/agent-center-local-config.ts',
-    'noncanonical local parity state',
+    'Retired Agent Center Local Config Bridge',
+    '__nimiZhiyuAgentCenterLocalConfig',
+    'Kit Shell standard `agent-center`',
+    'Runtime `AgentPresentationProfile`',
   ]);
   requireFileIncludes(`${tablesRoot}/local-persistence-boundary.yaml`, [
     'agent_center_local_config_hardcut',
-    'bounded_hardcut_parity',
+    'retired',
     'source_rule: Z-CONFIG-005',
   ]);
-  requireFileIncludes('apps/zhiyu/src-electron/agent-center-local-config.ts', [
-    'parseScope',
-    'safeSegment',
-    'validateAvatarAsset',
-    'assertLive2dSource',
-  ]);
-  // The config record contract (discriminator, type, parser, default builder) is
-  // owned by the schema sibling that agent-center-local-config.ts imports. It is
-  // part of the same Z-CONFIG-005 bounded hardcut surface, so the record identity
-  // token is anchored there rather than in the bridge entrypoint file.
-  requireFileIncludes('apps/zhiyu/src-electron/agent-center-local-config-schema.ts', [
-    'agent_center_local_config',
-    'AgentCenterLocalConfig',
-    'parseConfig',
-    'createDefaultConfig',
-  ]);
+  for (const rel of [
+    'apps/zhiyu/src-electron/agent-center-local-config.ts',
+    'apps/zhiyu/src-electron/agent-center-local-config-schema.ts',
+    'apps/zhiyu/src-electron/live2d-source.ts',
+    'apps/zhiyu/src/shell/agent-chat/zhiyu-agent-center-local-config.ts',
+    'apps/zhiyu/src/shell/agent-chat/zhiyu-agent-center-appearance-adapter.ts',
+  ]) {
+    if (exists(rel)) {
+      fail(`retired Agent Center local config file must be removed: ${rel}`);
+    }
+  }
   const hits = scan([
     { label: 'app-local AI config store', pattern: /createNimiAIConfigStore/u },
     { label: 'app-local AI snapshot store', pattern: /createNimiAISnapshotStore/u },
@@ -224,6 +222,11 @@ function checkConfigBoundary() {
     { label: 'app-local Avatar resource store', pattern: /(?:avatarResourceStore|avatar_resource_store|ZHIYU_AVATAR_RESOURCE_STORAGE|live2dResourceStore|vrmResourceStore)/u },
     { label: 'Avatar browser storage truth', pattern: /(?:avatar|live2d|vrm)[\s\S]{0,80}(?:localStorage|sessionStorage|indexedDB)|(?:localStorage|sessionStorage|indexedDB)[\s\S]{0,80}(?:avatar|live2d|vrm)/iu },
     { label: 'app-local Avatar carrier lifecycle truth', pattern: /(?:carrierLifecycleStore|carrier_lifecycle_store|avatarCarrierTruth|avatar_carrier_truth)/u },
+    { label: 'retired Zhiyu Agent Center local config global', pattern: /__nimiZhiyuAgentCenterLocalConfig/u },
+    { label: 'retired Zhiyu Agent Center local config IPC', pattern: /zhiyu:agent-center-local-config/u },
+    { label: 'retired Agent Center local config type', pattern: /\b(?:Zhiyu)?AgentCenterLocalConfig\b/u },
+    { label: 'retired Agent Center local avatar ref field', pattern: /\blocal_avatar_asset_ref\b/u },
+    { label: 'retired Agent Center local background field', pattern: /\bbackground_asset_id\b/u },
   ], files);
   const avatarFilesystemHits = scan([
     { label: 'Avatar filesystem truth in app shell', pattern: /(?:avatar|live2d|vrm)[\s\S]{0,120}(?:writeFile|appendFile)|(?:writeFile|appendFile)[\s\S]{0,120}(?:avatar|live2d|vrm)/iu },

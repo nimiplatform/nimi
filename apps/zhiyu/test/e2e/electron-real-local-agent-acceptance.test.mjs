@@ -1,33 +1,75 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { _electron as electron } from 'playwright';
+import { createNimiRealmSourceMaterializationPacket } from '@nimiplatform/sdk/realm';
+import {
+  AgentPresentationBackendKind,
+} from '../../../../sdks/typescript/core-generated/runtime-typed-client.ts';
+import { withSdkDistLock } from '../../../../scripts/lib/sdk-dist-lock.mjs';
+import {
+  createFixtureRuntimeAgentClient,
+} from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
+import {
+  SOURCE_MATERIALIZATION_AUDIENCE,
+  withRuntimeAgentLiveE2EFixture,
+} from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test-helper.ts';
 
 const root = path.resolve(import.meta.dirname, '..', '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
+const desktopAppId = 'nimi.desktop';
 const zhiyuAppId = 'nimi.zhiyu';
+const zhiyuRuntimeProtectedScopes = [
+  'runtime.agent.read',
+  'runtime.agent.write',
+  'runtime.agent.autonomy.write',
+  'runtime.agent.turn.read',
+  'runtime.agent.turn.write',
+  'runtime.agent.delegation.read',
+  'runtime.agent.delegation.write',
+  'runtime.agent.ai_config.read',
+  'runtime.agent.ai_config.write',
+  'ai.spend.meter',
+];
+const zhiyuAcceptanceTargetDisplayName = '\u989c\u771f\u537f';
+const zhiyuAcceptanceTargetSourceRef = {
+  kind: 'worldCharacter',
+  worldId: 'world-runtime-live',
+  sourceId: 'source-runtime-live-yan-zhenqing',
+  sourceContentHash: 'hash-runtime-live-yan-zhenqing',
+};
+const zhiyuAcceptanceAvatarAssetRef = 'vrm_aaaaaaaaaaaa';
+const zhiyuAcceptanceBackgroundAssetRef = 'bg_bbbbbbbbbbbb';
 
-test('zhiyu Electron real local-agent flow lists, selects, configures, and chats through Runtime', { timeout: 300_000 }, async () => {
+test('zhiyu Electron real local-agent flow lists, selects, configures, and chats through Runtime', { timeout: 600_000 }, async () => {
   await resetRealLocalAgentEvidenceRoot();
 
-  await withTempDir('real-local-agent', async (tmpRoot) => {
-    const runtimeEndpoint = runtimeEndpointFromEnv();
-    const dataRoot = path.join(tmpRoot, 'standard-shell-data');
-    await mkdir(dataRoot, { recursive: true });
+  await withFixtureRuntimeLocalAgent(async ({ endpoint, targetAgent }) => {
+    await withTempDir('real-local-agent', async (tmpRoot) => {
+      const runtimeEndpoint = endpoint;
+      const dataRoot = path.join(tmpRoot, 'standard-shell-data');
+      await mkdir(dataRoot, { recursive: true });
+      await seedStandardShellAppearanceAssets({
+        dataRoot,
+        ownerUserId: targetAgent.ownerUserId,
+        localAgentRef: targetAgent.localAgentRef,
+      });
 
-    const app = await electron.launch({
-      args: [mainEntry],
-      env: {
-        ...process.env,
-        NIMI_RUNTIME_GRPC_ADDR: runtimeEndpoint,
-        NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT: runtimeEndpoint,
-        NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
-      },
-    });
+      await withSdkDistLock('zhiyu real local-agent electron app', async () => {
+        const app = await electron.launch({
+          args: [mainEntry],
+          env: {
+            ...process.env,
+            NIMI_RUNTIME_GRPC_ADDR: runtimeEndpoint,
+            NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT: runtimeEndpoint,
+            NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
+          },
+        });
 
-    try {
+        try {
       const page = await app.firstWindow();
       const pageProblems = trackPageProblems(page);
       await page.waitForLoadState('domcontentloaded');
@@ -50,19 +92,19 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       await assertRelationshipRail(page, listedEvidence.inventory.count);
       await assertUnselectedLocalPartnerEmptyState(page);
 
-      const targetAgent = chooseTargetAgent(listedEvidence.inventory.localAgents);
-      const targetIndex = listedEvidence.inventory.localAgents.findIndex((agent) => agent.localAgentRef === targetAgent.localAgentRef);
+      const targetAgentEvidence = chooseTargetAgent(listedEvidence.inventory.localAgents, targetAgent.localAgentRef);
+      const targetIndex = listedEvidence.inventory.localAgents.findIndex((agent) => agent.localAgentRef === targetAgentEvidence.localAgentRef);
       assert.notEqual(targetIndex, -1, 'target LocalAgent must be part of the listed Runtime inventory');
-      assert.doesNotMatch(targetAgent.displayName || '', /\uFFFD/u, 'target LocalAgent display name must not contain replacement characters');
-      assert.match(targetAgent.displayName || '', /\p{Script=Han}/u, 'target LocalAgent display name should remain human-readable Chinese for this acceptance scenario');
+      assert.doesNotMatch(targetAgentEvidence.displayName || '', /\uFFFD/u, 'target LocalAgent display name must not contain replacement characters');
+      assert.match(targetAgentEvidence.displayName || '', /\p{Script=Han}/u, 'target LocalAgent display name should remain human-readable Chinese for this acceptance scenario');
       await captureRealLocalAgentEvidence(page, 'listed', pageProblems, {
         runtimeEndpoint,
-        targetAgent,
+        targetAgent: targetAgentEvidence,
         listedEvidence,
       });
 
       const candidateButtons = page.locator('[data-zhiyu-local-agent-candidate="true"]');
-      const switchAgent = listedEvidence.inventory.localAgents.find((agent) => agent.localAgentRef !== targetAgent.localAgentRef) || null;
+      const switchAgent = listedEvidence.inventory.localAgents.find((agent) => agent.localAgentRef !== targetAgentEvidence.localAgentRef) || null;
       if (switchAgent) {
         const switchIndex = listedEvidence.inventory.localAgents.findIndex((agent) => agent.localAgentRef === switchAgent.localAgentRef);
         assert.notEqual(switchIndex, -1, 'switch LocalAgent must be part of the listed Runtime inventory');
@@ -91,13 +133,13 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
         && globalThis.window.__nimiZhiyuEvidence?.localAgent?.localAgentRef === targetLocalAgentRef
         && globalThis.window.__nimiZhiyuEvidence?.conversation?.ready === true,
         'selected real Runtime LocalAgent',
-        targetAgent.localAgentRef,
+        targetAgentEvidence.localAgentRef,
       );
 
       const selectedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
       assert.equal(selectedEvidence.localAgent.reasonCode, 'runtime-local-agent-selected');
-      assert.equal(selectedEvidence.localAgent.runtimeSourceRef, targetAgent.runtimeSourceRef);
-      assert.equal(selectedEvidence.conversation.localAgentRef, targetAgent.localAgentRef);
+      assert.equal(selectedEvidence.localAgent.runtimeSourceRef, targetAgentEvidence.runtimeSourceRef);
+      assert.equal(selectedEvidence.conversation.localAgentRef, targetAgentEvidence.localAgentRef);
       assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
       assert.equal(selectedEvidence.route.reasonCode, 'runtime-agent-ai-config-ready');
       assert.ok(
@@ -110,7 +152,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       await assertConversationTopStripRemoved(page);
       await assertProductDesignLayout(page, 'selected local agent');
       await captureRealLocalAgentEvidence(page, 'selected-closed-layout', pageProblems, {
-        targetAgent,
+        targetAgent: targetAgentEvidence,
         selectedEvidence,
       });
       await openAgentCenterOverview(page);
@@ -118,7 +160,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       await assertAgentCenterDoesNotNestSettings(page);
       await assertAppearanceConfigParity(page, async () => {
         await captureRealLocalAgentEvidence(page, 'appearance-config', pageProblems, {
-          targetAgent,
+          targetAgent: targetAgentEvidence,
           selectedEvidence,
           panelScreenshots: [
             'real-local-agent-appearance-config-panel.png',
@@ -128,11 +170,11 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
         await captureRealLocalAgentPanelEvidence(page, 'appearance-config');
       });
       await assertSettingsEntryRoutesToAgentCenter(page, pageProblems, {
-        targetAgent,
+        targetAgent: targetAgentEvidence,
         selectedEvidence,
       });
       await captureRealLocalAgentEvidence(page, 'selected', pageProblems, {
-        targetAgent,
+        targetAgent: targetAgentEvidence,
         selectedEvidence,
       });
 
@@ -147,7 +189,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(await page.locator('[data-zhiyu-ai-config-embedded="agent-center"]').count(), 0);
       await assertAgentCenterModelPanelLayout(page, 'real local agent model panel');
       await captureRealLocalAgentEvidence(page, 'model-panel', pageProblems, {
-        targetAgent,
+        targetAgent: targetAgentEvidence,
         selectedEvidence,
       });
 
@@ -164,7 +206,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(modelReadyEvidence.route.capabilities['text.generate'].state, 'ready');
       assert.equal(modelReadyEvidence.route.capabilities['text.embed'].state, 'ready');
       await captureRealLocalAgentEvidence(page, 'model-ready', pageProblems, {
-        targetAgent,
+        targetAgent: targetAgentEvidence,
         modelSelection,
         modelReadyEvidence,
       });
@@ -185,17 +227,17 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
         && Boolean(globalThis.window.__nimiZhiyuEvidence?.chat?.outputText)
         && globalThis.window.__nimiZhiyuEvidence?.chat?.localAgentRef === targetLocalAgentRef,
         'real Runtime Agent chat completed',
-        targetAgent.localAgentRef,
+        targetAgentEvidence.localAgentRef,
       );
 
       const chatCompletedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
       assert.equal(chatCompletedEvidence.chat.source, 'runtime');
-      assert.equal(chatCompletedEvidence.chat.localAgentRef, targetAgent.localAgentRef);
+      assert.equal(chatCompletedEvidence.chat.localAgentRef, targetAgentEvidence.localAgentRef);
       assert.equal(chatCompletedEvidence.chat.conversationAnchorId, modelReadyEvidence.conversation.conversationAnchorId);
       assert.equal(chatCompletedEvidence.chat.state, 'completed');
       assert.equal(chatCompletedEvidence.chat.ready, true);
       assert.equal(chatCompletedEvidence.turn.ready, true);
-      assert.equal(chatCompletedEvidence.turn.localAgentRef, targetAgent.localAgentRef);
+      assert.equal(chatCompletedEvidence.turn.localAgentRef, targetAgentEvidence.localAgentRef);
       assert.equal(chatCompletedEvidence.turn.conversationAnchorId, modelReadyEvidence.conversation.conversationAnchorId);
       assert.equal(chatCompletedEvidence.turn.requestId, chatCompletedEvidence.chat.requestId);
       assert.ok(chatCompletedEvidence.turn.messageId, 'completed turn must expose the sealed assistant message id');
@@ -209,7 +251,7 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       await assertProductDesignLayout(page, 'chat completed');
       assertNoPageProblems(pageProblems);
       await captureRealLocalAgentEvidence(page, 'chat-completed', pageProblems, {
-        targetAgent,
+        targetAgent: targetAgentEvidence,
         modelSelection,
         chatCompletedEvidence,
       });
@@ -226,14 +268,16 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(await page.locator('[data-chat-composer-textarea="true"]').isDisabled(), false);
       assert.equal(await page.locator('[data-chat-composer-send="true"]').isDisabled(), false);
       await captureRealLocalAgentEvidence(page, 'follow-up-ready', pageProblems, {
-        targetAgent,
+        targetAgent: targetAgentEvidence,
         modelSelection,
         followUpPromptLength: followUpPrompt.length,
         followUpReadyEvidence,
       });
-    } finally {
-      await app.close();
-    }
+        } finally {
+          await app.close();
+        }
+      });
+    });
   });
 });
 
@@ -374,7 +418,7 @@ async function assertAgentCenterHeaderParity(page, evidence) {
     const eyebrow = root.querySelector('[data-zhiyu-agent-center-eyebrow]');
     const pill = root.querySelector('[data-zhiyu-agent-center-runtime-pill]');
     const name = root.querySelector('.zhiyu-agent-center__title strong');
-    const eyebrowRow = root.querySelector('.zhiyu-agent-center__eyebrow-row');
+    const eyebrowRow = root.querySelector('.zhiyu-agent-center__chrome-row');
     const box = (element) => {
       const rect = element?.getBoundingClientRect();
       return rect
@@ -869,11 +913,161 @@ async function withTempDir(prefix, run) {
   }
 }
 
-function runtimeEndpointFromEnv() {
-  return process.env.NIMI_ZHIYU_REAL_RUNTIME_ENDPOINT?.trim()
-    || process.env.NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT?.trim()
-    || process.env.NIMI_RUNTIME_GRPC_ADDR?.trim()
-    || '127.0.0.1:46371';
+async function withFixtureRuntimeLocalAgent(run) {
+  await withRuntimeAgentLiveE2EFixture({
+    run: async (context) => {
+      await context.admitLocalFirstPartyRuntimeAccountCaller({
+        appId: zhiyuAppId,
+        appInstanceId: `${zhiyuAppId}.local-first-party`,
+        deviceId: 'nimi-zhiyu-local-first-party-device',
+        capabilities: zhiyuRuntimeProtectedScopes,
+      });
+      const agentClient = createFixtureRuntimeAgentClient(context.runtime);
+      const sourceMaterializationPacket = await createNimiRealmSourceMaterializationPacket(
+        context.realm,
+        () => {},
+        zhiyuAcceptanceTargetSourceRef,
+        SOURCE_MATERIALIZATION_AUDIENCE,
+      );
+      const targetAgent = await agentClient.initialize({
+        ownerUserId: context.ownerUserId,
+        runtimeSourceRef: runtimeSourceRefForSource(zhiyuAcceptanceTargetSourceRef),
+        displayName: zhiyuAcceptanceTargetDisplayName,
+        sourceMaterializationPacket,
+      });
+      await context.runtime.agents.setAgentPresentationProfile(
+        {
+          context: {
+            appId: desktopAppId,
+            subjectUserId: context.ownerUserId,
+            ownerUserId: context.ownerUserId,
+            runtimeSourceRef: targetAgent.runtimeSourceRef,
+            localAgentRef: targetAgent.localAgentRef,
+          },
+          agentId: targetAgent.localAgentRef,
+          mutation: {
+            oneofKind: 'profile',
+            profile: {
+              backendKind: AgentPresentationBackendKind.VRM,
+              avatarAssetRef: zhiyuAcceptanceAvatarAssetRef,
+              expressionProfileRef: 'expression://zhiyu-real-local-agent/calm',
+              idlePreset: 'idle-soft',
+              interactionPolicyRef: 'policy://zhiyu-real-local-agent/ambient',
+              defaultVoiceReference: 'preset_voice_id:zhiyu-real-local-agent',
+              avatarAutoplay: true,
+              backgroundAssetRef: zhiyuAcceptanceBackgroundAssetRef,
+            },
+          },
+        },
+        {
+          metadata: {
+            idempotencyKey: `zhiyu-real-local-agent-presentation:${targetAgent.localAgentRef}`,
+            'x-nimi-idempotency-key': `zhiyu-real-local-agent-presentation:${targetAgent.localAgentRef}`,
+          },
+        },
+      );
+      await agentClient.openConversation({
+        ownerUserId: context.ownerUserId,
+        runtimeSourceRef: targetAgent.runtimeSourceRef,
+        localAgentRef: targetAgent.localAgentRef,
+        metadata: {
+          appId: zhiyuAppId,
+          surface: 'zhiyu.real-local-agent.acceptance',
+        },
+      });
+      await run({
+        endpoint: context.endpoint,
+        targetAgent,
+      });
+    },
+  });
+}
+
+async function seedStandardShellAppearanceAssets(input) {
+  const agentCenterRoot = path.join(
+    input.dataRoot,
+    'agent-center',
+    'accounts',
+    segment(input.ownerUserId),
+    'agents',
+    segment(input.localAgentRef),
+    'agent-center',
+  );
+  const avatarDir = path.join(
+    agentCenterRoot,
+    'modules',
+    'avatar_asset',
+    'packages',
+    'vrm',
+    zhiyuAcceptanceAvatarAssetRef,
+  );
+  await mkdir(avatarDir, { recursive: true });
+  await writeFile(path.join(avatarDir, 'fixture.vrm'), 'NIMI_ZHIYU_REAL_LOCAL_AGENT_ACCEPTANCE_VRM\n');
+  await writeFile(path.join(avatarDir, 'manifest.json'), `${JSON.stringify({
+    manifest_version: 1,
+    local_asset_id: zhiyuAcceptanceAvatarAssetRef,
+    kind: 'vrm',
+    entry_file: 'fixture.vrm',
+    required_files: ['fixture.vrm'],
+    content_digest: 'sha256:zhiyu-real-local-agent-fixture',
+    files: [{
+      path: 'fixture.vrm',
+      sha256: sha256('NIMI_ZHIYU_REAL_LOCAL_AGENT_ACCEPTANCE_VRM\n'),
+      bytes: 43,
+      mime: 'model/vrm',
+    }],
+    import: {
+      imported_at: '1970-01-01T00:00:00.000Z',
+      source_label: 'zhiyu-real-local-agent-fixture.vrm',
+    },
+  }, null, 2)}\n`);
+
+  const backgroundDir = path.join(
+    agentCenterRoot,
+    'modules',
+    'appearance',
+    'backgrounds',
+    zhiyuAcceptanceBackgroundAssetRef,
+  );
+  const backgroundBytes = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l0G3WQAAAABJRU5ErkJggg==',
+    'base64',
+  );
+  await mkdir(backgroundDir, { recursive: true });
+  await writeFile(path.join(backgroundDir, 'image.png'), backgroundBytes);
+  await writeFile(path.join(backgroundDir, 'manifest.json'), `${JSON.stringify({
+    manifest_version: 1,
+    background_asset_id: zhiyuAcceptanceBackgroundAssetRef,
+    image_file: 'image.png',
+    mime: 'image/png',
+    bytes: backgroundBytes.byteLength,
+    sha256: sha256(backgroundBytes),
+    imported_at: '1970-01-01T00:00:00.000Z',
+    source_label: 'zhiyu-real-local-agent-fixture.png',
+  }, null, 2)}\n`);
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function segment(value) {
+  const text = String(value || '');
+  const body = text.startsWith('~') ? text.slice(1) : text;
+  if (/^[a-z0-9][a-z0-9_-]{0,127}$/u.test(body)) {
+    return text;
+  }
+  return `id_${sha256(text).slice(0, 24)}`;
+}
+
+function runtimeSourceRefForSource(sourceRef) {
+  return [
+    'runtime-source',
+    sourceRef.kind,
+    sourceRef.worldId,
+    sourceRef.sourceId,
+    sourceRef.sourceContentHash,
+  ].map((value) => String(value || '').trim()).join(':');
 }
 
 async function assertUnselectedLocalPartnerEmptyState(page) {
@@ -888,9 +1082,13 @@ async function assertUnselectedLocalPartnerEmptyState(page) {
   assert.equal(await page.locator('[data-chat-composer-send="true"]').isDisabled(), true);
 }
 
-function chooseTargetAgent(localAgents) {
-  const pattern = regexFromEnv('NIMI_ZHIYU_ACCEPTANCE_AGENT_PATTERN', /颜真卿/u);
-  const target = localAgents.find((agent) => pattern.test(agent.displayName || ''))
+function chooseTargetAgent(localAgents, targetLocalAgentRef) {
+  const pattern = regexFromEnv(
+    'NIMI_ZHIYU_ACCEPTANCE_AGENT_PATTERN',
+    new RegExp(escapeRegExp(zhiyuAcceptanceTargetDisplayName), 'u'),
+  );
+  const target = localAgents.find((agent) => agent.localAgentRef === targetLocalAgentRef)
+    || localAgents.find((agent) => pattern.test(agent.displayName || ''))
     || localAgents.find((agent) => pattern.test(agent.localAgentRef || ''));
   if (!target) {
     const available = localAgents.map((agent) => ({
@@ -901,6 +1099,10 @@ function chooseTargetAgent(localAgents) {
     throw new Error(`Runtime inventory did not include the target LocalAgent ${pattern}: ${JSON.stringify(available, null, 2)}`);
   }
   return target;
+}
+
+function escapeRegExp(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
 async function selectTextGenerateModel(page, drawer) {

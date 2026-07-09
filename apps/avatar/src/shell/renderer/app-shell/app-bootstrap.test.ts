@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
+import { toNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
 import type { AgentDataBundle, AgentDataDriver, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from './app-store.js';
 
@@ -22,6 +23,7 @@ const openSessionMock = vi.fn();
 const authorizeExternalPrincipalMock = vi.fn();
 const getAccountSessionStatusMock = vi.fn();
 const getAccessTokenMock = vi.fn();
+const getAgentMock = vi.fn();
 const openAnchorMock = vi.fn();
 const getAnchorSnapshotMock = vi.fn();
 const resolveAvatarLiveInstanceMock = vi.fn();
@@ -37,7 +39,7 @@ const getScenarioJobMock = vi.fn();
 const cancelScenarioJobMock = vi.fn();
 const subscribeScenarioJobEventsMock = vi.fn();
 const getScenarioArtifactsMock = vi.fn();
-const resolveLocalAvatarAssetManifestMock = vi.fn();
+const resolveRuntimePresentationAvatarAssetManifestMock = vi.fn();
 const startAvatarRuntimeCarrierMock = vi.fn();
 const carrierShutdownMock = vi.fn();
 const recordAvatarEvidenceEventuallyMock = vi.fn();
@@ -61,6 +63,9 @@ const runtimeMock = {
     }),
     getConversationAnchorSnapshot: async (...args: unknown[]) => ({
       snapshot: await getAnchorSnapshotMock(...args),
+    }),
+    getAgent: async (...args: unknown[]) => ({
+      agent: await getAgentMock(...args),
     }),
     resolveAvatarLiveInstanceBinding: (...args: unknown[]) => resolveAvatarLiveInstanceMock(...args),
     getPublicChatSessionSnapshot: async (...args: unknown[]) => ({
@@ -214,8 +219,8 @@ vi.mock('../mock/scenarios/vrm-lifecycle.mock.json?raw', () => ({
 }));
 
 vi.mock('../carrier/model-resolver.js', () => ({
-  resolveLocalAvatarAssetManifest: (...args: unknown[]) =>
-    resolveLocalAvatarAssetManifestMock(...args),
+  resolveRuntimePresentationAvatarAssetManifest: (...args: unknown[]) =>
+    resolveRuntimePresentationAvatarAssetManifestMock(...args),
 }));
 
 vi.mock('../carrier/avatar-carrier.js', () => ({
@@ -361,7 +366,8 @@ describe('bootstrapAvatar', () => {
     cancelScenarioJobMock.mockReset();
     subscribeScenarioJobEventsMock.mockReset();
     getScenarioArtifactsMock.mockReset();
-    resolveLocalAvatarAssetManifestMock.mockReset();
+    resolveRuntimePresentationAvatarAssetManifestMock.mockReset();
+    getAgentMock.mockReset();
     startAvatarRuntimeCarrierMock.mockReset();
     carrierShutdownMock.mockReset();
     recordAvatarEvidenceEventuallyMock.mockReset();
@@ -434,6 +440,15 @@ describe('bootstrapAvatar', () => {
       accepted: true,
       accessToken: 'runtime-issued-short-lived-token',
     });
+    getAgentMock.mockResolvedValue({
+      metadata: toNimiRuntimeProtoStruct({
+        presentationProfile: {
+          backendKind: 'live2d',
+          avatarAssetRef: 'live2d_ab12cd34ef56',
+          avatarAutoplay: false,
+        },
+      }),
+    });
     authorizeExternalPrincipalMock.mockResolvedValue({
       tokenId: 'avatar-protected-token-id',
       secret: 'avatar-protected-token-secret',
@@ -473,7 +488,7 @@ describe('bootstrapAvatar', () => {
     });
     subscribeAppMessagesMock.mockReturnValue((async function* emptyAppMessageStream() {})());
     subscribeAgentEventsMock.mockReturnValue((async function* emptyAgentEventStream() {})());
-    resolveLocalAvatarAssetManifestMock.mockResolvedValue({
+    resolveRuntimePresentationAvatarAssetManifestMock.mockResolvedValue({
       kind: 'live2d',
       runtimeDir: '/models/ren/files',
       modelId: 'ren',
@@ -571,11 +586,18 @@ describe('bootstrapAvatar', () => {
     });
     expect(getAnchorSnapshotMock).not.toHaveBeenCalled();
     expect(openAnchorMock).toHaveBeenCalledWith(openAnchorRequestMatcher(), protectedAccessOptionsMatcher());
-    expect(resolveLocalAvatarAssetManifestMock).toHaveBeenCalledWith({
+    expect(getAgentMock).toHaveBeenCalledWith(expect.objectContaining({
+      agentId: LOCAL_AGENT_REF,
+    }), protectedAccessOptionsMatcher());
+    expect(resolveRuntimePresentationAvatarAssetManifestMock).toHaveBeenCalledWith({
       accountId: OWNER_USER_ID,
       ownerUserId: OWNER_USER_ID,
       runtimeSourceRef: RUNTIME_SOURCE_REF,
       localAgentRef: LOCAL_AGENT_REF,
+      presentationProfile: expect.objectContaining({
+        backendKind: 'live2d',
+        avatarAssetRef: 'live2d_ab12cd34ef56',
+      }),
     });
     const localAssetResolvedCall = recordAvatarEvidenceEventuallyMock.mock.calls.find(([payload]) => (
       payload
@@ -1064,7 +1086,7 @@ describe('bootstrapAvatar', () => {
   });
 
   it('fails closed with typed local Avatar asset diagnostics after Runtime anchor recovery', async () => {
-    resolveLocalAvatarAssetManifestMock.mockRejectedValue(
+    resolveRuntimePresentationAvatarAssetManifestMock.mockRejectedValue(
       new Error('selected local Avatar asset entry file is missing'),
     );
     const { bootstrapAvatar } = await import('./app-bootstrap.js');

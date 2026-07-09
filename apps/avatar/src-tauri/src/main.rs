@@ -8,9 +8,7 @@ mod avatar_paths;
 mod avatar_visual_commands;
 mod avatar_window;
 mod avatar_window_commands;
-use avatar_asset_commands::{
-    nimi_avatar_resolve_agent_center_avatar_asset, nimi_avatar_resolve_local_avatar_asset,
-};
+use avatar_asset_commands::nimi_avatar_resolve_agent_center_avatar_asset;
 use avatar_evidence_projection::{
     AvatarEvidenceArtifactInput, AvatarEvidenceArtifactWriteResult, AvatarEvidenceRecordInput,
 };
@@ -133,7 +131,6 @@ fn main() {
             nimi_avatar_write_evidence_artifact,
             nimi_avatar_resolve_model,
             nimi_avatar_resolve_agent_center_avatar_asset,
-            nimi_avatar_resolve_local_avatar_asset,
             nimi_avatar_scan_nas_handlers,
             nimi_avatar_read_text_file,
             nimi_avatar_read_binary_file,

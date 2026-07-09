@@ -1,8 +1,5 @@
 use super::*;
-use crate::{
-    chat_ai_store, desktop_agent_center_store, desktop_release, desktop_updates, local_runtime,
-    menu_bar_shell,
-};
+use crate::{chat_ai_store, desktop_release, desktop_updates, local_runtime, menu_bar_shell};
 use nimi_shell_tauri::{
     capabilities::data::{
         resolve_standard_app_storage_roots, StandardAppStorageRootSlot, StandardDataRootBinding,
@@ -428,17 +425,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             chat_ai_store::chat_ai_get_draft,
             chat_ai_store::chat_ai_put_draft,
             chat_ai_store::chat_ai_delete_draft,
-            desktop_agent_center_store::desktop_agent_center_account_local_resources_remove,
-            desktop_agent_center_store::desktop_agent_center_agent_local_resources_remove,
-            desktop_agent_center_store::desktop_agent_center_avatar_asset_import,
-            desktop_agent_center_store::desktop_agent_center_avatar_asset_validate,
-            desktop_agent_center_store::desktop_agent_center_live2d_adapter_manifest_import,
-            desktop_agent_center_store::desktop_agent_center_background_asset_get,
-            desktop_agent_center_store::desktop_agent_center_background_import,
-            desktop_agent_center_store::desktop_agent_center_background_remove,
-            desktop_agent_center_store::desktop_agent_center_background_validate,
-            desktop_agent_center_store::desktop_agent_center_config_get,
-            desktop_agent_center_store::desktop_agent_center_config_put,
             local_runtime::commands::runtime_local_pick_asset_manifest_path,
         ])
         .build(tauri::generate_context!())

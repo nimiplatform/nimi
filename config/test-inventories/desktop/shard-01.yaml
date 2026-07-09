@@ -414,28 +414,6 @@ tests:
     spec_refs:
       - P-TEST-001
     sentinel_purpose: forbidden_api
-  - path: apps/desktop/test/chat-agent-center-local-config-store-bridge.test.ts
-    owner: desktop
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/desktop/test/chat-agent-center-local-config.test.ts
-    owner: desktop
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
   - path: apps/desktop/test/chat-agent-composer-submit-clear-contract.test.ts
     owner: desktop
     classification: source_regex_sentinel

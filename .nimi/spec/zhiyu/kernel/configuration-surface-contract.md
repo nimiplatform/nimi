@@ -18,9 +18,11 @@ or hardcode provider/model constants.
 ## Z-CONFIG-003 Avatar Config Operation
 
 Zhiyu must provide Avatar config operations required by the local partner
-center: import Live2D/VRM resources through admitted facades, select
-Live2D/VRM, and launch Avatar. Zhiyu does not own Avatar resource truth, config
-truth, carrier lifecycle, or runtime truth.
+center: import Live2D/VRM resources through Kit Shell standard `agent-center`
+operations when a shell host is available, select Live2D/VRM through Runtime
+`AgentPresentationProfile`, and launch Avatar through admitted owner facades.
+Zhiyu does not own Avatar resource truth, config truth, carrier lifecycle,
+preview truth, or runtime truth.
 
 ## Z-CONFIG-004 Config Boundary
 
@@ -28,19 +30,19 @@ Configuration surfaces must fail closed on missing upstream facade, permission,
 binding, validation, or owner admission. A local UI control is not proof that
 the config change is admitted or persisted.
 
-## Z-CONFIG-005 Agent Center Local Config Hardcut
+## Z-CONFIG-005 Retired Agent Center Local Config Bridge
 
-During the Desktop Agent Chat parity hardcut, Zhiyu may host a bounded Electron
-local config/import bridge at `apps/zhiyu/src-electron/agent-center-local-config.ts`
-and `apps/zhiyu/src-electron/live2d-source.ts` until real app acceptance
-stabilizes on the admitted Avatar/Runtime resource surface. This bridge is
-limited to host picker/copy transport for user-selected Agent Center
-appearance/avatar package inputs, scoped
-to account id, owner user id, runtime source ref, and Runtime-owned local agent
-ref. It must remain noncanonical local parity state, fail closed on invalid
-scope/path/manifest, and must not claim Avatar resource truth, Avatar carrier
-lifecycle truth, Runtime AI config truth, provider/model route truth,
-transcript/session recovery truth, memory truth, or Runtime snapshot truth.
+The bounded Zhiyu Electron local config/import bridge is retired by the Agent
+Center Avatar Kit Shell hardcut. Zhiyu must not expose
+`__nimiZhiyuAgentCenterLocalConfig`, `zhiyu:agent-center-local-config`,
+renderer-side local config schemas, or private `avatar.import` /
+`background.import` command vocabularies.
+
+Zhiyu consumes Kit Agent Center plus the Kit Shell standard `agent-center`
+capability for host-local asset custody. Runtime `AgentPresentationProfile`
+owns avatar/background/default-voice/autoplay selection truth. Web hosts without
+standard shell support must fail closed for import/custody controls while
+allowing admitted Runtime selection edits.
 
 ## Z-CONFIG-006 Kit Agent Center Consumer Boundary
 
@@ -51,8 +53,7 @@ button, side-sheet chrome, and developer tools stay outside Kit Agent Center.
 Zhiyu may provide:
 
 - a scoped Runtime SDK adapter
-- a bounded local appearance/avatar import bridge
-- typed host-local UI preferences admitted by Platform Agent Center authority
+- Kit Shell standard `agent-center` host bridge injection when available
 - evidence hooks for real app acceptance
 
 Zhiyu must not place the following inside Kit Agent Center:
@@ -79,14 +80,14 @@ It must not retain Capability Studio `runRuntimeAIConsumeCapability`,
 separate dev-only tools outside the Zhiyu product shell and outside product
 Electron AIConfig storage.
 
-Local config module ownership for Zhiyu Agent Center:
+Retired local config module ownership for Zhiyu Agent Center:
 
 | Module | Owner Decision |
 | --- | --- |
-| `appearance` / `avatar_asset` | Bounded Zhiyu host-local picker/copy transport only; no Avatar resource truth, materialization truth, or Runtime presentation truth. |
-| `local_history` | Non-semantic UI recents only; no transcript, message, turn, session, or memory content. |
-| `voice.avatar_autoplay` | Host-local playback UI preference only; not `audio.synthesize` readiness, binding, generation, or policy truth. |
-| `ui.last_section` | Host-local UI preference only; no Runtime or product authority. |
+| `appearance` / `avatar_asset` | Retired as Zhiyu local config. Selection truth is Runtime `AgentPresentationProfile`; asset bytes and validation are Kit Shell `agent-center` custody. |
+| `local_history` | Dropped without replacement. |
+| `voice.avatar_autoplay` | Retired as host-local preference. Runtime `AgentPresentationProfile.avatar_autoplay` is the single persistent home. |
+| `ui.last_section` | Dropped without replacement. |
 
 `audio.transcribe`, `audio.synthesize`, and `voice_workflow.*` intent are Runtime Agent AI
 Config-owned. Zhiyu must not render app-local audio binding truth, workflow

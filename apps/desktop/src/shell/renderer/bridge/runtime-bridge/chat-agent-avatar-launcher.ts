@@ -51,10 +51,6 @@ const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
   'avatar_package_ref',
   'avatarPackageSchemaVersion',
   'avatar_package_schema_version',
-  'localAvatarAssetRef',
-  'local_avatar_asset_ref',
-  'backendCapabilityProfileRef',
-  'backend_capability_profile_ref',
   'materializationRef',
   'materialization_ref',
   'localMaterializationRef',
@@ -195,6 +191,14 @@ function normalizeRequiredLocalAgentRef(value: string, field: string): string {
   return normalized;
 }
 
+function isRetiredSelectionField(field: string): boolean {
+  const normalized = field.replace(/_/g, '').toLowerCase();
+  return (
+    (normalized.includes('avatarasset') && normalized.endsWith('ref'))
+    || (normalized.includes('backendcapability') && normalized.endsWith('ref'))
+  );
+}
+
 export function parseDesktopAvatarLaunchHandoffResult(value: unknown): DesktopAvatarLaunchHandoffResult {
   if (!value || typeof value !== 'object') {
     throw new Error('desktop avatar handoff returned invalid payload');
@@ -221,8 +225,8 @@ export function buildDesktopAvatarLaunchHandoffPayload(
   input: DesktopAvatarLaunchHandoffInput,
 ): DesktopAvatarLaunchHandoffPayload {
   const record = input as Record<string, unknown>;
-  for (const field of FORBIDDEN_LAUNCH_INPUT_FIELDS) {
-    if (field in record) {
+  for (const field of Object.keys(record)) {
+    if ((FORBIDDEN_LAUNCH_INPUT_FIELDS as readonly string[]).includes(field) || isRetiredSelectionField(field)) {
       throw new Error(`desktop avatar handoff contains forbidden field: ${field}`);
     }
   }

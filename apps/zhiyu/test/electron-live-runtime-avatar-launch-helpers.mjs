@@ -13,6 +13,7 @@ import {
   createNimiRuntimeAppSessionMetadataProvider,
   withNimiRuntimeAgentScopes,
 } from '../../../sdks/typescript/runtime/index.ts';
+import { NIMI_STANDARD_SHELL_COMMANDS } from '../../../kit/shell/capabilities/src/index.ts';
 import {
   captureLiveRuntimeEvidence,
 } from './electron-live-runtime-acceptance-helpers.mjs';
@@ -68,34 +69,42 @@ export async function seedLiveRuntimeAvatarPresentationProfile(fixture) {
 
 export async function importLiveRuntimeAvatarFixtureAsset(page, evidence) {
   const sourcePath = path.resolve(root, '..', 'avatar', 'fixtures', 'vrm-debug', 'VRM1_Constraint_Twist_Sample.vrm');
-  await page.waitForFunction(() => Boolean(globalThis.window?.__nimiZhiyuAgentCenterLocalConfig));
-  const result = await page.evaluate(async ({ sourcePath: fixtureSourcePath, scope }) => {
-    return globalThis.window.__nimiZhiyuAgentCenterLocalConfig.invoke('avatar.import', {
-      ...scope,
-      kind: 'vrm',
-      sourcePath: fixtureSourcePath,
-      select: true,
+  await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
+  const result = await page.evaluate(async ({ commands, importScope }) => {
+    const dialogResult = await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(commands.fileDialogOpen, {
+      kind: 'file',
+      title: 'Select VRM file',
+      filters: [{ name: 'VRM', extensions: ['vrm'] }],
+    });
+    if (dialogResult.canceled || dialogResult.paths.length !== 1) {
+      throw new Error('VRM fixture file dialog did not return exactly one path.');
+    }
+    return globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(commands.avatarAssetImport, {
+      hostScope: 'local-agent',
+      accountId: importScope.accountId,
+      localAgentRef: importScope.localAgentRef,
+      backendKind: 'vrm',
+      sourcePath: dialogResult.paths[0],
     });
   }, {
-    sourcePath,
-    scope: {
+    importScope: {
       accountId: evidence.auth.accountId,
-      ownerUserId: evidence.conversation.ownerUserId,
-      runtimeSourceRef: evidence.conversation.runtimeSourceRef,
       localAgentRef: evidence.conversation.localAgentRef,
     },
+    commands: {
+      fileDialogOpen: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
+      avatarAssetImport: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
+    },
   });
-  assert.equal(result?.backend_kind, 'vrm');
-  assert.match(result?.local_asset_id ?? '', /^vrm_[a-f0-9]{12}$/u);
-  assert.equal(result?.selected, true);
-  assert.equal(result?.validation?.status, 'valid');
+  assert.equal(result?.backendKind, 'vrm');
+  assert.match(result?.avatarAssetRef ?? '', /^vrm_[a-f0-9]{12}$/u);
+  assert.equal(result?.validationStatus, 'valid');
   return {
     sourcePath,
-    local_asset_id: result.local_asset_id,
-    backend_kind: result.backend_kind,
-    materialization_ref: result.materialization_ref,
-    backend_capability_profile_ref: result.backend_capability_profile_ref,
-    validation: result.validation,
+    avatarAssetRef: result.avatarAssetRef,
+    backendKind: result.backendKind,
+    backendCapabilityProfileRef: result.backendCapabilityProfileRef,
+    validationStatus: result.validationStatus,
   };
 }
 
@@ -170,8 +179,8 @@ export async function assertAvatarLaunchLiveHandoff(
       avatarInstanceId,
       conversationAnchorId: readyEvidence.conversation.conversationAnchorId,
     });
-    assert.equal(localAssetEvidence.detail?.backend_kind, importedAvatarAsset.backend_kind);
-    assert.equal(localAssetEvidence.detail?.local_asset_ref, importedAvatarAsset.local_asset_id);
+    assert.equal(localAssetEvidence.detail?.backend_kind, importedAvatarAsset.backendKind);
+    assert.equal(localAssetEvidence.detail?.local_asset_ref, importedAvatarAsset.avatarAssetRef);
 
     await page.locator('[data-zhiyu-composer-tool="agent"]').click();
     await page.locator('[data-testid="chat-agent-center-section:appearance"]').click();

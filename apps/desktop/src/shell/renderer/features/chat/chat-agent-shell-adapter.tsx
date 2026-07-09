@@ -5,8 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   createReadyConversationSetupState,
 } from '@nimiplatform/kit/features/chat/headless';
@@ -54,12 +53,7 @@ import { useAgentConversationVoiceSession } from './chat-agent-shell-adapter-voi
 import { useAgentConversationShellState } from './chat-agent-shell-adapter-state';
 import {
   mergeAgentTargetWithPresentationProfile,
-  mergeAgentTargetWithLocalVoicePolicy,
 } from './chat-agent-thread-model';
-import {
-  agentCenterLocalConfigQueryKey,
-  getAgentCenterLocalConfig,
-} from '@renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
 import { useAgentConversationRuntimeController } from './chat-agent-shell-adapter-runtime';
 import { useAgentRuntimeSessionSnapshotHydration } from './chat-agent-shell-adapter-session-snapshot';
 import { RUNTIME_AGENT_CHAT_MODE_ID } from './chat-agent-runtime-mode';
@@ -218,32 +212,9 @@ export function useAgentConversationModeHost(
   const accountId = input.runtimeFields.targetAccountId
     || normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id)
     || 'local_account';
-  const baseActiveTarget = useMemo(
+  const activeTarget = useMemo(
     () => mergeAgentTargetWithPresentationProfile(shellActiveTarget, runtimePresentationProfile),
     [runtimePresentationProfile, shellActiveTarget],
-  );
-  const agentCenterLocalConfigQuery = useQuery({
-    queryKey: accountId && baseActiveTarget?.localAgentRef
-      ? agentCenterLocalConfigQueryKey(accountId, baseActiveTarget.localAgentRef)
-      : ['agent-center-local-config', 'none'],
-    queryFn: async () => (
-      accountId && baseActiveTarget?.localAgentRef
-        ? getAgentCenterLocalConfig({
-          accountId,
-          ownerUserId: baseActiveTarget.ownerUserId,
-          runtimeSourceRef: baseActiveTarget.runtimeSourceRef,
-          localAgentRef: baseActiveTarget.localAgentRef,
-        })
-        : null
-    ),
-    enabled: hasTauriInvoke() && Boolean(accountId && baseActiveTarget?.localAgentRef),
-    staleTime: 30_000,
-  });
-  const activeTarget = useMemo(
-    () => mergeAgentTargetWithLocalVoicePolicy(baseActiveTarget, {
-      avatarAutoplay: agentCenterLocalConfigQuery.data?.modules.voice.avatar_autoplay ?? false,
-    }),
-    [agentCenterLocalConfigQuery.data?.modules.voice.avatar_autoplay, baseActiveTarget],
   );
 
   useEffect(() => {

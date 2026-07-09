@@ -78,8 +78,10 @@ test('hardcut checkpoint replaces ZM0 shared-API-only migration assumptions', as
   assert.match(checkpoint, /checkpoint_id:\s*ZHIYU_DESKTOP_AGENT_CHAT_HARDCUT/i);
   assert.match(checkpoint, /work_type:\s*redesign/i);
   assert.match(checkpoint, /no_new_sdk_kit_upstreaming_this_phase:\s*true/i);
-  assert.match(checkpoint, /bounded_zhiyu_local_parity_implementation:\s*true/i);
+  assert.match(checkpoint, /bounded_zhiyu_local_parity_implementation:\s*false/i);
   assert.match(checkpoint, /runtime_sdk_authority_admitted_first_party_electron_host_equivalence/i);
+  assert.match(checkpoint, /private_zhiyu_local_config_bridge_retired/i);
+  assert.match(checkpoint, /kit_shell_standard_agent_center_capability/i);
   assert.match(checkpoint, /runtime-agent-scopes\.ts/);
   assert.match(checkpoint, /operation\(\{\}\)/);
 

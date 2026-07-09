@@ -33,7 +33,7 @@ import {
   type NimiRuntimeAgentAIConfigSnapshot,
   type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
 } from '@renderer/infra/runtime-agent-ai-config';
-import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
+import type { NimiRuntimeAgentPresentationProfileProjection } from '@nimiplatform/sdk/runtime';
 import {
   useAgentConversationRuntimeMutations,
   type AutonomyConfigInput,
@@ -77,7 +77,7 @@ type AgentConversationRuntimeController = {
   runtimeAgentTextDisabledReason: string | null;
   runtimeInspect: NimiRuntimeAgentInspectSnapshot | null;
   runtimeInspectLoading: boolean;
-  runtimePresentationProfile: AvatarPresentationProfile | null;
+  runtimePresentationProfile: NimiRuntimeAgentPresentationProfileProjection | null;
   refreshRuntimeAgentAIConfigReadiness: () => Promise<NimiRuntimeAgentAIConfigReadinessSnapshotProjection>;
   handleCancelPendingHook: (hookId: string) => void;
   handleUpgradeStandardMemory: () => void;
@@ -136,7 +136,8 @@ export function useAgentConversationRuntimeController(
   const [runtimeAgentAIConfigError, setRuntimeAgentAIConfigError] = useState<string | null>(null);
   const [runtimeInspect, setRuntimeInspect] = useState<NimiRuntimeAgentInspectSnapshot | null>(null);
   const [runtimeInspectLoading, setRuntimeInspectLoading] = useState(false);
-  const [runtimePresentationProfile, setRuntimePresentationProfile] = useState<AvatarPresentationProfile | null>(null);
+  const [runtimePresentationProfile, setRuntimePresentationProfile] =
+    useState<NimiRuntimeAgentPresentationProfileProjection | null>(null);
   const [recentRuntimeEvents, setRecentRuntimeEvents] = useState<readonly NimiRuntimeAgentInspectEventSummary[]>([]);
   const lastInspectFetchedAgentIdRef = useRef<string | null>(null);
   const runtimeAgentMemory = useMemo(() => createRuntimeAgentMemoryAdapter({

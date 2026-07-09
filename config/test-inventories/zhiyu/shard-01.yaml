@@ -67,20 +67,6 @@ tests:
       - Z-CHAT-001
       - Z-CHAT-002
       - Z-GATE-001
-  - path: apps/zhiyu/test/agent-center-local-config.test.mjs
-    owner: zhiyu
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-      - Z-CONFIG-002
-      - Z-CONFIG-005
-      - Z-GATE-001
   - path: apps/zhiyu/test/agent-ai-config.test.mjs
     owner: zhiyu
     classification: behavior_unit

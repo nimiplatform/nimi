@@ -30,7 +30,6 @@ const oldImportFragments = [
 const agentChatParitySourceFiles = [
   'src/shell/agent-chat/ZhiyuAgentChatSurface.tsx',
   'src/shell/agent-chat/ZhiyuAgentRightPanel.tsx',
-  'src/shell/agent-chat/zhiyu-agent-center-appearance-adapter.ts',
   'src/shell/agent-chat/zhiyu-route-model-picker-provider.ts',
   'src/shell/agent-chat/ZhiyuAgentChatPieces.tsx',
   'src/shell/agent-chat/voice-capture.ts',
@@ -193,19 +192,31 @@ test('Agent Center appearance config is owned by the Kit adapter instead of a Zh
   const source = await readAgentChatSource();
 
   for (const marker of [
+    'createAgentCenterShellAppearanceAdapter',
+    'createAgentCenterShellBridge',
+    'createZhiyuAgentPresentationProfileSurface',
+    'appearanceAdapter={appearanceAdapter}',
+    'loadSnapshot: async () => ({',
+    'inspect.getPublicInspect(identity)',
+  ]) {
+    assert.match(source, new RegExp(escapeRegExp(marker)), `${marker} missing from Zhiyu Agent Center appearance config`);
+  }
+
+  for (const forbidden of [
     'getZhiyuAgentCenterLocalConfig',
+    'putZhiyuAgentCenterLocalConfig',
     'importZhiyuAgentCenterAvatarAsset',
     'importZhiyuAgentCenterBackground',
     'importZhiyuAgentCenterLive2dAdapterManifest',
     'clearZhiyuAgentCenterAvatarAsset',
     'clearZhiyuAgentCenterBackground',
-    'appearanceAdapter={appearance.adapter}',
+    'ZhiyuAgentCenterLocalConfig',
+    '__nimiZhiyuAgentCenterLocalConfig',
+    'local_avatar_asset_ref',
+    'background_asset_id',
     'appearance: appearance.projection',
-    "const avatarAssetRef = avatar?.local_avatar_asset_ref || null;",
-    "const backgroundRef = appearance?.background_asset_id || null;",
-    "disabledReason: disabledReason || (avatarAssetRef ? null : 'Avatar asset is not configured.'),",
   ]) {
-    assert.match(source, new RegExp(escapeRegExp(marker)), `${marker} missing from Zhiyu Agent Center appearance config`);
+    assert.doesNotMatch(source, new RegExp(escapeRegExp(forbidden)), `${forbidden} must not remain in Zhiyu Agent Center production path`);
   }
 
   assert.doesNotMatch(
@@ -462,10 +473,8 @@ test('Agent Center header mirrors Desktop side-sheet identity metadata', async (
     'data-zhiyu-agent-center-runtime-dot',
     'data-zhiyu-agent-center-state-chip="mood"',
     'data-zhiyu-agent-center-state-chip="activity"',
-    'data-zhiyu-agent-center-state-chip="appearance"',
     'agentCenterHeaderStateLabel(props.evidence.companion.currentEmotion)',
     'agentCenterHeaderStateLabel(props.evidence.companion.executionState)',
-    'agentCenterHeaderStateLabel(appearance.projection.status)',
     'agentCenterWorldLabel(props.evidence)',
   ]) {
     assert.match(sourceWithNormalizedWhitespace(surfaceSource), new RegExp(escapeRegExp(marker)), `${marker} missing from Desktop Agent Center header metadata`);
@@ -479,6 +488,8 @@ test('Agent Center header mirrors Desktop side-sheet identity metadata', async (
   assert.doesNotMatch(surfaceSource, /data-zhiyu-agent-center-local-agent-ref/);
   assert.doesNotMatch(surfaceSource, /\bagentCenterLocalAgentRef\b/);
   assert.doesNotMatch(surfaceSource, /data-zhiyu-agent-center-world-chip/);
+  assert.doesNotMatch(surfaceSource, /data-zhiyu-agent-center-state-chip="appearance"/);
+  assert.doesNotMatch(surfaceSource, /agentCenterHeaderStateLabel\(props\.evidence\.avatar\.state\)/);
   assert.doesNotMatch(surfaceSource, />\s*世界角色\s*</u);
   assert.doesNotMatch(surfaceSource, />\s*not selected\s*</);
 });

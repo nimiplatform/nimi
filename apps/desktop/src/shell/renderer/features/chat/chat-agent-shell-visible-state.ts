@@ -1,5 +1,6 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type { NimiRuntimeAgentResolvedStatusCue } from '@nimiplatform/sdk/runtime';
+import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import type { AgentFooterViewState } from './chat-agent-shell-footer-state';
 import type { AgentVoiceSessionShellState } from './chat-agent-voice-session';
 
@@ -18,7 +19,7 @@ export type AgentConversationSurfaceState = {
   character: {
     name: string;
     avatarUrl: string | null;
-    avatarPresentationProfile: AgentLocalTargetSnapshot['presentationProfile'];
+    avatarPresentationProfile: AvatarPresentationProfile | null;
     avatarFallback: string;
     handle: string | null;
     bio: string | null;
@@ -154,6 +155,22 @@ function resolveSpeakingEmotion(input: {
   }
 }
 
+function toAvatarPresentationProfile(
+  profile: AgentLocalTargetSnapshot['presentationProfile'] | null | undefined,
+): AvatarPresentationProfile | null {
+  if (!profile?.backendKind || !profile.avatarAssetRef) {
+    return null;
+  }
+  return {
+    backendKind: profile.backendKind,
+    avatarAssetRef: profile.avatarAssetRef,
+    expressionProfileRef: profile.expressionProfileRef,
+    idlePreset: profile.idlePreset,
+    interactionPolicyRef: profile.interactionPolicyRef,
+    defaultVoiceReference: profile.defaultVoiceReference,
+  };
+}
+
 export function resolveAgentConversationSurfaceState(input: {
   composerReady: boolean;
   routeDisabledReason?: string | null;
@@ -275,7 +292,7 @@ export function resolveAgentConversationSurfaceState(input: {
     character: {
       name: displayName || 'Agent',
       avatarUrl: input.activeTarget?.avatarUrl || null,
-      avatarPresentationProfile: input.activeTarget?.presentationProfile || null,
+      avatarPresentationProfile: toAvatarPresentationProfile(input.activeTarget?.presentationProfile || null),
       avatarFallback: (displayName || 'A').charAt(0).toUpperCase() || 'A',
       handle: input.activeTarget?.handle ? `@${input.activeTarget.handle}` : null,
       bio: input.activeTarget?.bio || null,

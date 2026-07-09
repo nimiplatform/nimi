@@ -41,7 +41,7 @@ test('RLA3 Desktop Agent Center placement consumes Kit surface only', () => {
 
   assert.match(placementSource, /@nimiplatform\/kit\/features\/agent-center/);
   assert.match(placementSource, /chrome="embedded"/);
-  assert.match(placementSource, /appearanceAdapter=\{appearanceAdapter\}/);
+  assert.match(placementSource, /appearanceAdapter=\{props\.appearanceAdapter\}/);
   assert.match(placementSource, /agentAIConfig:\s*input\.runtimeAgentAIConfig/);
   assert.match(placementSource, /readiness:\s*input\.runtimeAgentAIConfigReadiness/);
   assert.match(placementSource, /inspect:\s*input\.runtimeInspect/);

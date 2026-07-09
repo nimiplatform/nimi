@@ -166,3 +166,17 @@ tests:
       - Z-GATE-005
       - Z-CHAT-001
       - Z-AUTH-002
+  - path: apps/zhiyu/test/e2e/web-agent-center-acceptance.test.mjs
+    owner: zhiyu
+    classification: product_acceptance
+    tier: T6
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: after_real_shell_evidence
+    spec_refs:
+      - P-TEST-001
+      - Z-GATE-001
+      - Z-GATE-005
+      - Z-CONFIG-005

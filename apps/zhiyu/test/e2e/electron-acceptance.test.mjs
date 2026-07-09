@@ -25,6 +25,7 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
         NIMI_ZHIYU_ELECTRON_RENDERER_URL: rendererAcceptanceUrl,
         NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT: '127.0.0.1:1',
         NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
+        NIMI_ZHIYU_ELECTRON_TEST_FILE_DIALOG_PATHS: nestedLive2dSource,
       },
     });
 
@@ -85,22 +86,29 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
         assert.equal(trustedCallerSpoof.code, 'forbidden-renderer-access');
         assert.equal(trustedCallerSpoof.reasonCode, 'electron-renderer-local-agent-caller-field-forbidden');
 
-        await page.waitForFunction(() => Boolean(globalThis.window?.__nimiZhiyuAgentCenterLocalConfig));
-        const live2dImportResult = await page.evaluate((sourcePath) =>
-          globalThis.window.__nimiZhiyuAgentCenterLocalConfig.invoke('avatar.import', {
+        assert.equal(await page.evaluate(() => Boolean(globalThis.window.__nimiZhiyuAgentCenterLocalConfig)), false);
+        const live2dImportResult = await page.evaluate(async (commands) => {
+          const dialogResult = await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(commands.fileDialogOpen, {
+            kind: 'directory',
+            title: 'Select Live2D folder',
+          });
+          if (dialogResult.canceled || dialogResult.paths.length !== 1) {
+            throw new Error('Live2D fixture file dialog did not return exactly one path.');
+          }
+          return globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(commands.avatarAssetImport, {
+            hostScope: 'local-agent',
             accountId: 'account_1',
-            ownerUserId: 'owner_1',
-            runtimeSourceRef: 'runtime-source:ren',
             localAgentRef: 'local-agent:ren',
-            kind: 'live2d',
-            sourcePath,
-            select: true,
-          }),
-        nestedLive2dSource);
-        assert.equal(live2dImportResult.backend_kind, 'live2d');
-        assert.equal(live2dImportResult.selected, true);
-        assert.equal(live2dImportResult.validation.status, 'valid');
-        assert.equal(live2dImportResult.validation.errors.length, 0);
+            backendKind: 'live2d',
+            sourcePath: dialogResult.paths[0],
+          });
+        }, {
+          fileDialogOpen: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
+          avatarAssetImport: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
+        });
+        assert.equal(live2dImportResult.backendKind, 'live2d');
+        assert.match(live2dImportResult.avatarAssetRef ?? '', /^live2d_[a-f0-9]{12}$/u);
+        assert.equal(live2dImportResult.validationStatus, 'valid');
 
         await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__));
         const runtimeReady = await page.evaluate(() =>

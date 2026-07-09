@@ -178,18 +178,23 @@ test('left relationship rail uses desktop chat avatar rail structure', () => {
   );
 });
 
-test('narrow open Agent Center remains visible as an operable side sheet', () => {
+test('narrow open Agent Center stacks below conversation as an operable side sheet', () => {
   const css = readSource('src/shell/app/home-surface.css');
 
   assert.match(
     css,
-    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\) \.zhiyu-agent-center\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?inset:\s*8px;[\s\S]*?z-index:\s*30;[\s\S]*?height:\s*calc\(100dvh - 16px\);[\s\S]*?width:\s*calc\(100vw - 16px\);/,
-    'open Agent Center must be visible inside the 640px viewport instead of being placed below a non-scrollable conversation row',
+    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\)\s*\{[\s\S]*?grid-template-areas:\s*"presence"\s*"conversation"\s*"side";/,
+    'open Agent Center must be a real narrow grid row below the conversation instead of overlaying earlier content',
+  );
+  assert.match(
+    css,
+    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\) \.zhiyu-agent-center\s*\{[\s\S]*?position:\s*relative;[\s\S]*?height:\s*auto;[\s\S]*?width:\s*100%;[\s\S]*?min-height:\s*min\(640px,\s*calc\(100vh - 20px\)\);/,
+    'open Agent Center must occupy its grid row with a stable usable minimum height',
   );
   assert.match(
     css,
     /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-chat__layout:not\(\.is-side-closed\) \[data-zhiyu-agent-center-kit-surface="true"\]\s*\{[\s\S]*?overflow-y:\s*auto;[\s\S]*?-webkit-overflow-scrolling:\s*touch;/,
-    'narrow Agent Center body must own vertical scrolling once the side sheet is fixed',
+    'narrow Agent Center body must own vertical scrolling inside its grid row',
   );
 });
 

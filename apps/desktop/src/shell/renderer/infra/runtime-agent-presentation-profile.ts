@@ -2,8 +2,10 @@ import {
   createNimiHostRuntimeAgentPresentationProfileSurface,
   type NimiHostRuntimeAgentPresentationProfileClient,
   type NimiHostRuntimeAgentPresentationProfileSurfaceOptions,
+  type NimiRuntimeAgentPresentationProfileInput,
+  type NimiRuntimeAgentPresentationProfilePatchInput,
+  type RuntimeLocalAgentIdentityInput,
 } from '@nimiplatform/sdk/runtime';
-import type { AvatarPresentationProfile } from '@nimiplatform/kit/features/avatar/headless';
 import {
   getDesktopHostRuntimeAgentClient,
   withDesktopRuntimeProtectedScopes,
@@ -24,12 +26,17 @@ export function createRuntimeAgentPresentationProfileAdapter(
   });
 
   return {
-    async setPresentationProfile(identity: {
-      readonly ownerUserId: string;
-      readonly runtimeSourceRef: string;
-      readonly localAgentRef: string;
-    }, profile: AvatarPresentationProfile | null): Promise<void> {
+    async setPresentationProfile(
+      identity: RuntimeLocalAgentIdentityInput,
+      profile: NimiRuntimeAgentPresentationProfileInput | null,
+    ): Promise<void> {
       await surface.setPresentationProfile(identity, profile);
+    },
+    async patchPresentationProfile(
+      identity: RuntimeLocalAgentIdentityInput,
+      patch: NimiRuntimeAgentPresentationProfilePatchInput,
+    ): Promise<void> {
+      await surface.patchPresentationProfile(identity, patch);
     },
   };
 }

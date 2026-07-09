@@ -25,7 +25,7 @@ function appRegisteredCommands(): string[] {
   const listEnd = source.indexOf('])', listStart);
   assert.notEqual(listEnd, -1, 'Desktop invoke handler list must close');
   const body = source.slice(listStart, listEnd);
-  return [...body.matchAll(/^\s*(?:crate::|super::|menu_bar_shell::|chat_ai_store::|desktop_agent_center_store::|local_runtime::)?(?:[A-Za-z0-9_]+::)*([A-Za-z0-9_]+),\s*$/gm)]
+  return [...body.matchAll(/^\s*(?:crate::|super::|menu_bar_shell::|chat_ai_store::|local_runtime::)?(?:[A-Za-z0-9_]+::)*([A-Za-z0-9_]+),\s*$/gm)]
     .flatMap((match) => (match[1] ? [match[1]] : []))
     .filter((name) => name !== 'runtime_defaults')
     .sort();

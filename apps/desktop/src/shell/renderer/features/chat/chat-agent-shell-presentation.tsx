@@ -130,7 +130,7 @@ export function useAgentConversationPresentation(
     theme: {
       roomSurface: 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.94))',
       roomAura: 'linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.90))',
-      appBackdropImageUrl: localAvatar.backdropImageUrl,
+      ...(localAvatar.backdropImageUrl ? { appBackdropImageUrl: localAvatar.backdropImageUrl } : {}),
       accentSoft: 'rgba(148,163,184,0.12)',
       accentStrong: '#475569',
       border: 'rgba(148,163,184,0.20)',
@@ -276,29 +276,7 @@ export function useAgentConversationPresentation(
     settingsContent: (
       <AgentConversationSettingsContent
         input={input}
-        avatarAssetValid={localAvatar.avatarAssetValid}
-        backgroundValid={localAvatar.backgroundValid}
-        avatarAssetChecking={localAvatar.avatarAssetChecking}
-        avatarAssetConfig={localAvatar.avatarAssetConfig}
-        avatarVoicePolicy={localAvatar.avatarVoicePolicy}
-        avatarAssetValidationPresentation={localAvatar.avatarAssetValidationPresentation}
-        avatarConfigMutation={localAvatar.avatarConfigMutation}
-        voicePolicyMutation={localAvatar.voicePolicyMutation}
-        voiceArtifactCleanupMutation={localAvatar.voiceArtifactCleanupMutation}
-        avatarAssetImportMutation={localAvatar.avatarAssetImportMutation}
-        avatarAssetLibraryQuery={localAvatar.avatarAssetLibraryQuery}
-        avatarAssetSelectMutation={localAvatar.avatarAssetSelectMutation}
-        avatarImportDisabled={localAvatar.avatarImportDisabled}
-        avatarImportError={localAvatar.avatarImportError}
-        clearAvatarAssetMutation={localAvatar.clearAvatarAssetMutation}
-        live2dAdapterManifestImportMutation={localAvatar.live2dAdapterManifestImportMutation}
-        selectedBackgroundAssetId={localAvatar.selectedBackgroundAssetId}
-        backgroundAssetQuery={localAvatar.backgroundAssetQuery}
-        backgroundValidation={localAvatar.backgroundValidation}
-        backgroundImportError={localAvatar.backgroundImportError}
-        clearBackgroundMutation={localAvatar.clearBackgroundMutation}
-        backgroundImportDisabled={localAvatar.backgroundImportDisabled}
-        backgroundImportMutation={localAvatar.backgroundImportMutation}
+        appearanceAdapter={localAvatar.appearanceAdapter}
       />
     ),
     settingsDrawerTitle: input.t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' }),

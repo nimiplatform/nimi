@@ -3,9 +3,10 @@
 ## Z-AV-001 Avatar Config And Launch
 
 Zhiyu provides Avatar config and launch affordances for the current partner,
-including Live2D/VRM import and selection through admitted owner facades.
-Avatar config truth, resource truth, carrier lifecycle, and runtime rendering
-belong to Avatar/Runtime/Kit.
+including Live2D/VRM import through Kit Shell standard `agent-center`
+operations and selection through Runtime `AgentPresentationProfile`.
+Avatar config truth, resource truth, preview rendering, carrier lifecycle, and
+runtime rendering belong to Avatar/Runtime/Kit.
 
 ## Z-AV-002 Launch-Only Carrier Posture
 

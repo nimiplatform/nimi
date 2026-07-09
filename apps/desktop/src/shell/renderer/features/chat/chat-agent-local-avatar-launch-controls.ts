@@ -19,8 +19,6 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { registerDesktopAvatarLiveInstanceBinding } from './chat-agent-avatar-live-instance-runtime-binding';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
-import type { AgentCenterLocalConfig } from './chat-agent-center-local-config';
-import type { AvatarAssetValidationResult } from './chat-agent-shell-avatar-asset-diagnostics';
 
 type AvatarComposerActionState =
   | 'running'
@@ -53,10 +51,11 @@ export function resolveAvatarComposerActionState(input: {
 
 export function useAgentLocalAvatarLaunchControls(input: {
   presentation: UseAgentConversationPresentationInput;
-  avatarAssetConfig: AgentCenterLocalConfig['modules']['avatar_asset'] | null;
-  avatarAssetValidation: AvatarAssetValidationResult | null;
+  avatarAssetRef: string | null;
+  backendCapabilityProfileRef: string | null;
   avatarConfigured: boolean;
   avatarAssetValid: boolean;
+  validationStatus: string | null;
 }) {
   const presentation = input.presentation;
   const avatarHandoffReady = hasTauriInvoke();
@@ -93,8 +92,8 @@ export function useAgentLocalAvatarLaunchControls(input: {
     ? avatarLiveInstancesQuery.data?.find((instance) => instance.avatarInstanceId === avatarInstanceId) || null
     : null;
   const avatarRunning = Boolean(runningAvatarInstance);
-  const avatarInstancePolicy = input.avatarAssetConfig?.avatar_instance_policy ?? null;
-  const avatarLaunchMode = input.avatarAssetConfig?.launch_mode ?? null;
+  const avatarInstancePolicy = null;
+  const avatarLaunchMode = null;
   const avatarLiveInstances = useMemo(
     () => (avatarLiveInstancesQuery.data || []).map((instance) => ({
       avatarInstanceId: instance.avatarInstanceId,
@@ -324,9 +323,9 @@ export function useAgentLocalAvatarLaunchControls(input: {
       localAgentRef: presentation.activeTarget?.localAgentRef ?? null,
       runtimeSourceRef: presentation.activeTarget?.runtimeSourceRef ?? null,
       conversationAnchorId: presentation.activeConversationAnchorId,
-      localAvatarAssetRef: input.avatarAssetConfig?.local_avatar_asset_ref ?? null,
-      localAvatarAssetValidationStatus: input.avatarAssetValidation?.status ?? null,
-      backendCapabilityProfileRef: input.avatarAssetConfig?.backend_capability_profile_ref ?? null,
+      avatarAssetRef: input.avatarAssetRef,
+      avatarAssetValidationStatus: input.validationStatus,
+      backendCapabilityProfileRef: input.backendCapabilityProfileRef,
       runtimeProjectionAuthorization: avatarRuntimeProjectionAuthorization,
       launchMode: avatarLaunchMode,
       avatarInstancePolicy,
@@ -373,9 +372,9 @@ export function useAgentLocalAvatarLaunchControls(input: {
     avatarRuntimeProjectionAuthorization,
     avatarLaunchMode,
     avatarInstancePolicy,
-    input.avatarAssetConfig?.local_avatar_asset_ref,
-    input.avatarAssetConfig?.backend_capability_profile_ref,
-    input.avatarAssetValidation?.status,
+    input.avatarAssetRef,
+    input.backendCapabilityProfileRef,
+    input.validationStatus,
     presentation.activeTarget,
     presentation.activeConversationAnchorId,
     executeArbitratedLaunch,

@@ -169,7 +169,7 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /CanonicalComposer/);
   assert.match(chatAgentCanonicalComposerSource, /layout="stacked"/);
   assert.match(chatAgentPresentationSource, /resolveAgentConversationHostSnapshot/);
-  assert.match(chatAgentLocalAvatarControlsSource, /getAgentCenterBackgroundAsset/);
+  assert.doesNotMatch(chatAgentLocalAvatarControlsSource, /getAgentCenterBackgroundAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /desktopAgentBackdropBindingQueryKey/);
   assert.match(chatAgentPresentationSource, /const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-\[clamp\(140px,16vh,200px\)\]'/);
   assert.doesNotMatch(chatAgentPresentationSource, /avatarStagePlacement/);
@@ -180,10 +180,10 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /widthClassName=\{CHAT_CONTENT_WIDTH_CLASS\}/);
   assert.match(chatAgentPresentationSource, /widthPositionClassName=\{CHAT_CONTENT_POSITION_CLASS\}/);
   assert.match(chatAgentPresentationSource, /topContent: schedulingFeedbackNode/);
-  assert.match(chatAgentLocalAvatarControlsSource, /importAgentCenterAvatarAsset/);
-  assert.match(chatAgentLocalAvatarControlsSource, /validateAgentCenterAvatarAsset/);
+  assert.match(chatAgentLocalAvatarControlsSource, /createAgentCenterShellAppearanceAdapter/);
+  assert.match(chatAgentLocalAvatarControlsSource, /createAgentCenterShellBridge/);
   assert.doesNotMatch(chatAgentPresentationSource, /chat-agent-avatar-store/);
-  assert.match(chatAgentLocalAvatarControlsSource, /importAgentCenterBackground/);
+  assert.doesNotMatch(chatAgentLocalAvatarControlsSource, /importAgentCenterBackground/);
   assert.match(chatAgentPresentationSource, /settingsContent:/);
   assert.doesNotMatch(chatAgentPresentationSource, /diagnosticsContent=/);
   assert.match(chatAgentPresentationSettingsSource, /@nimiplatform\/kit\/features\/agent-center/);

@@ -90,10 +90,10 @@ test('agent shell presentation disables stage panel props and consumes the Kit A
   assert.match(chatAgentPresentationSettingsSource, /from '@nimiplatform\/kit\/features\/agent-center'/);
   assert.match(chatAgentPresentationSettingsSource, /<AgentCenter/);
   assert.doesNotMatch(chatAgentPresentationSettingsSource, /AgentCenterPanel/);
-  assert.match(chatAgentLocalAvatarControlsSource, /importAgentCenterAvatarAsset/);
-  assert.match(chatAgentLocalAvatarControlsSource, /validateAgentCenterAvatarAsset/);
+  assert.match(chatAgentLocalAvatarControlsSource, /createAgentCenterShellAppearanceAdapter/);
+  assert.match(chatAgentLocalAvatarControlsSource, /createAgentCenterShellBridge/);
   assert.doesNotMatch(chatAgentPresentationSource, /chat-agent-avatar-store/);
-  assert.match(chatAgentLocalAvatarControlsSource, /getAgentCenterBackgroundAsset/);
+  assert.doesNotMatch(chatAgentLocalAvatarControlsSource, /getAgentCenterBackgroundAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /ChatAgentAvatarSettingsPanel/u);
   assert.doesNotMatch(chatAgentPresentationSource, /desktopAgentBackdropBindingQueryKey/u);
   assert.doesNotMatch(chatAgentPresentationSource, /avatarStagePlacement/u);

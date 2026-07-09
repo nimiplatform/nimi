@@ -25,8 +25,6 @@ const forbiddenLaunchFields = [
   'avatar_package_ref',
   'avatarPackageSchemaVersion',
   'avatar_package_schema_version',
-  'backendCapabilityProfileRef',
-  'backend_capability_profile_ref',
   'materializationRef',
   'materialization_ref',
   'localMaterializationRef',
@@ -207,6 +205,24 @@ test('desktop avatar prepared payload rejects old launch authority tuple inputs'
     } as never),
     /forbidden field: avatarPackage/,
   );
+});
+
+test('desktop avatar prepared payload rejects retired selection refs', async () => {
+  for (const field of [
+    ['local', 'Avatar', 'Asset', 'Ref'].join(''),
+    ['local', 'avatar', 'asset', 'ref'].join('_'),
+    ['backend', 'Capability', 'Profile', 'Ref'].join(''),
+    ['backend', 'capability', 'profile', 'ref'].join('_'),
+  ]) {
+    await assert.rejects(
+      prepareDesktopAvatarLaunchHandoffPayload({
+        ...avatarLaunchIdentity,
+        [field]: 'retired-selection-ref',
+      } as never),
+      /forbidden field/,
+      `expected ${field} to be rejected before Avatar handoff`,
+    );
+  }
 });
 
 test('desktop avatar prepared payload rejects Live2D calibration refs and payload fields', async () => {
