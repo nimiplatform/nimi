@@ -595,7 +595,7 @@ export async function saveTesterRunHistory(history: TesterRunHistory): Promise<v
 }
 
 export async function appendTesterRunHistory(record: TesterRunHistoryRecord): Promise<TesterRunHistory> {
-  const history = await loadTesterRunHistory().catch(() => ({} as TesterRunHistory));
+  const history = await loadTesterRunHistory();
   const existing = history[record.capabilityId] || [];
   const next = {
     ...history,

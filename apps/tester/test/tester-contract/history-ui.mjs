@@ -381,7 +381,9 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(capabilities, /export async function saveTesterExport/);
   assert.match(surface, /await saveTesterExport\(\{ filename, mimeType: blob\.type, body: blob \}\)/);
   assert.match(surface, /await saveTesterExport\(\{ filename, mimeType: blob\.type \|\| undefined, body: blob \}\)/);
-  assert.match(surface, /function anchorDownload\(filename: string, blob: Blob\)/);
+  assert.match(surface, /if \(!response\.ok\)/);
+  assert.doesNotMatch(surface, /function anchorDownload/);
+  assert.doesNotMatch(surface, /document\.createElement\('a'\)/);
   assert.match(surface, /function studioResultModelLabel\(result: TesterCapabilityRunResult \| null, capability: TesterCapability, preferredLabel\?: string\)/);
   assert.match(surface, /const preferred = preferredLabel\?\.trim\(\)/);
   assert.match(surface, /const displayModelLabel = studioResultModelLabel\(result, capability, modelLabel\)/);

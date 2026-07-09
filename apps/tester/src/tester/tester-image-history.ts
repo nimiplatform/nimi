@@ -54,7 +54,7 @@ export async function saveTesterImageHistory(records: TesterImageHistoryRecord[]
 }
 
 export async function appendTesterImageHistoryRecord(record: TesterImageHistoryRecord): Promise<TesterImageHistoryRecord[]> {
-  const history = await loadTesterImageHistory().catch(() => [] as TesterImageHistoryRecord[]);
+  const history = await loadTesterImageHistory();
   const linkageId = record.runId || record.id;
   const withoutDuplicate = history.filter((existing) => (existing.runId || existing.id) !== linkageId);
   const next = [normalizeRecord(record), ...withoutDuplicate].slice(0, 80);

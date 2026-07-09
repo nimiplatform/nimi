@@ -241,26 +241,9 @@ export function TextStudioOutputBody({ text }: { text: string }) {
   );
 }
 
-function anchorDownload(filename: string, blob: Blob) {
-  if (typeof document === 'undefined') return;
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}
-
 export async function downloadTextFile(filename: string, body: string) {
   const blob = new Blob([body], { type: 'text/plain;charset=utf-8' });
-  try {
-    await saveTesterExport({ filename, mimeType: blob.type, body: blob });
-    return;
-  } catch {
-    anchorDownload(filename, blob);
-  }
+  await saveTesterExport({ filename, mimeType: blob.type, body: blob });
 }
 
 // File extension for a saved media artifact, derived from its MIME subtype.
@@ -276,16 +259,10 @@ export function artifactExtension(mimeType?: string): string {
 // Save a runtime media artifact (image / audio / video) to disk. Works for both
 // inline data URLs and hosted URLs by streaming the resource through a Blob.
 export async function downloadArtifactUrl(filename: string, url: string) {
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    try {
-      await saveTesterExport({ filename, mimeType: blob.type || undefined, body: blob });
-      return;
-    } catch {
-      anchorDownload(filename, blob);
-    }
-  } catch {
-    // Saving is best-effort; the inline preview remains the durable surface.
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Runtime artifact download failed (${response.status} ${response.statusText || 'HTTP error'})`);
   }
+  const blob = await response.blob();
+  await saveTesterExport({ filename, mimeType: blob.type || undefined, body: blob });
 }
