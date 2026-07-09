@@ -12,7 +12,7 @@ const commandMatrix = [
   { id: 'runtime-defaults.get', command: 'runtime_defaults' },
   { id: 'config.get.negative', command: 'runtime_bridge_config_get', expectError: true },
   { id: 'standard-storage.runHistory.read', command: 'storage_read_json' },
-  { id: 'auth.sessionLoad.negative', command: 'auth_session_load', expectError: true },
+  { id: 'auth.sessionLoad.empty', command: 'auth_session_load' },
   { id: 'unsupported-standard-command.negative', command: 'unsupported-standard-command', expectError: true },
 ];
 

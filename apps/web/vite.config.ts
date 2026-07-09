@@ -132,10 +132,6 @@ export default defineConfig(({ mode }) => {
           find: /^@renderer\/bridge$/,
           replacement: path.resolve(__dirname, 'src/desktop-adapter/bridge.web.ts'),
         },
-        {
-          find: '@renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime-loader',
-          replacement: path.resolve(__dirname, 'src/desktop-adapter/chat-agent-avatar-live2d-cubism-runtime-loader.web.ts'),
-        },
         // Desktop public-for-web boundary: web source files import from here
         // instead of reaching into desktop internals directly.
         {
@@ -392,11 +388,8 @@ export default defineConfig(({ mode }) => {
               ])) {
                 return 'chat-agent-avatar';
               }
-              if (matchesAny(normalizedId, [
-                '/chat-agent-diagnostics',
-                '/chat-agent-debug-metadata',
-              ])) {
-                return 'chat-agent-diagnostics';
+              if (normalizedId.includes('/chat-agent-debug-metadata')) {
+                return 'chat-agent-debug-metadata';
               }
               if (matchesAny(normalizedId, [
                 '/chat-shared-runtime-stream-ui',

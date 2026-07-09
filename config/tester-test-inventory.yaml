@@ -121,7 +121,40 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-media-scenario-jobs.test.mjs
+  - path: apps/tester/test/tester-media-scenario-jobs.artifacts.test.mjs
+    owner: tester
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/tester/test/tester-media-scenario-jobs.contract.test.mjs
+    owner: tester
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/tester/test/tester-media-scenario-jobs.image-video.test.mjs
+    owner: tester
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/tester/test/tester-media-scenario-jobs.speech.test.mjs
     owner: tester
     classification: behavior_unit
     tier: T4

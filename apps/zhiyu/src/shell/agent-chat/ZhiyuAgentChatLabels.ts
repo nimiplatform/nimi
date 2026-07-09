@@ -179,6 +179,18 @@ export function stateDisplayLabel(value: string | null | undefined): string {
   if (normalized === 'blocked') {
     return '受阻';
   }
+  if (normalized === 'focused') {
+    return '专注';
+  }
+  if (normalized === 'chat-active') {
+    return '对话中';
+  }
+  if (normalized === 'active') {
+    return '活跃';
+  }
+  if (normalized === 'calm') {
+    return '平静';
+  }
   return normalized;
 }
 

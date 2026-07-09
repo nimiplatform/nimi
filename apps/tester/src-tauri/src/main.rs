@@ -81,9 +81,8 @@ fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value> {
             },
         }),
         serde_json::json!({
-            "id": "auth.sessionLoad.negative",
+            "id": "auth.sessionLoad.empty",
             "command": "auth_session_load",
-            "expectError": true,
         }),
         serde_json::json!({
             "id": "unsupported-standard-command.negative",

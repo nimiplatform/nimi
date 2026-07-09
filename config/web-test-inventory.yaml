@@ -59,17 +59,6 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/web/test/live2d-cubism-runtime-loader.web.test.ts
-    owner: web
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
   - path: apps/web/test/locale.test.ts
     owner: web
     classification: behavior_unit

@@ -87,6 +87,7 @@ export function ZhiyuAgentChatSurface({
   const currentPartnerName = currentPartnerDisplayName(evidence);
   const hasCurrentPartner = evidence.localAgent.ready;
   const hasLocalPartners = evidence.inventory.localAgents.length > 0;
+  const shouldRenderDesktopOpenCallout = !hasCurrentPartner && !hasLocalPartners;
   const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
   const actionArtifactSummary = runtimeActionArtifactSummary(evidence.chat);
   const [showNoPartnerGuidance, setShowNoPartnerGuidance] = useState(false);
@@ -148,7 +149,7 @@ export function ZhiyuAgentChatSurface({
   const chatDisabled = !evidence.conversation.ready
     || !evidence.route.ready
     || evidence.chat.state === 'streaming';
-  const chatRuntimeHint = chatDisabled && (hasLocalPartners || evidence.chat.state === 'streaming')
+  const chatRuntimeHint = chatDisabled && (hasCurrentPartner || evidence.chat.state === 'streaming')
     ? (
       evidence.chat.state === 'streaming'
         ? '当前伙伴正在回复。'
@@ -357,7 +358,7 @@ export function ZhiyuAgentChatSurface({
             {evidence.chat.state === 'failed' ? (
               <RuntimeChatFailureNotice chat={evidence.chat} />
             ) : null}
-            {!hasCurrentPartner ? (
+            {shouldRenderDesktopOpenCallout ? (
               <section
                 className="zhiyu-home__desktop-open-callout"
                 data-zhiyu-desktop-open-action="desktop_open_select_partner"

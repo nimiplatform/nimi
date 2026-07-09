@@ -277,7 +277,7 @@ export const landingContentZh: LandingContent = {
     subtitle:
       'Desktop 是完整应用 —— 内嵌 runtime、本地 AI、跑在你自己的机器上。Web mode 用同一套外壳加上明确的 web-only adapter。两边都是真实的产品面。',
     chromeLabels: {
-      appName: 'Nimi Desktop',
+      appName: 'Nimi',
       runtime: 'Runtime',
       health: '状态正常',
       healthDetail: 'gRPC 已就绪，本地 runtime 已连接。',

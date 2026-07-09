@@ -110,27 +110,78 @@
 
 .zhiyu-agent-rail__agents {
   display: flex;
+  width: 100%;
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 6px;
+  padding: 2px 0;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: none;
 }
 
-.zhiyu-agent-rail__agent,
-.zhiyu-agent-rail__tools button {
+.zhiyu-agent-rail__agents::-webkit-scrollbar {
+  display: none;
+}
+
+.zhiyu-agent-rail__separator {
+  width: 28px;
+  height: 1px;
+  margin: 4px auto;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(203, 213, 225, 0.82);
+}
+
+.zhiyu-agent-rail__agent-row {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 44px;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.zhiyu-agent-rail__agent-indicator {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 3px;
+  height: 0;
+  transform: translateY(-50%);
+  border-radius: 0 999px 999px 0;
+  background: #4ecca3;
+  opacity: 0;
+  transition: height 160ms ease, opacity 160ms ease;
+}
+
+.zhiyu-agent-rail__agent-row:hover .zhiyu-agent-rail__agent-indicator {
+  height: 16px;
+  opacity: 1;
+}
+
+.zhiyu-agent-rail__agent-row .zhiyu-agent-rail__agent-indicator.is-active {
+  height: 32px;
+  opacity: 1;
+}
+
+.zhiyu-agent-rail__agent {
   position: relative;
   display: inline-grid;
   width: 40px;
   height: 40px;
   min-height: 40px;
+  margin-left: 8px;
   place-items: center;
   padding: 0;
+  overflow: hidden;
   border: 0;
   border-radius: 999px;
   box-shadow: none;
+  transition: border-radius 160ms ease, box-shadow 160ms ease, transform 160ms ease, background 160ms ease;
 }
 
 .zhiyu-agent-rail__agent {
@@ -140,22 +191,15 @@
   font-weight: 800;
 }
 
-.zhiyu-agent-rail__agent.is-active {
-  border-radius: 18px;
-  background: #58c7b5;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 0 4px rgba(255, 255, 255, 0.48);
+.zhiyu-agent-rail__agent:not(.is-active):hover {
+  border-radius: 16px;
+  transform: translateY(-1px);
 }
 
-.zhiyu-agent-rail__agent.is-active::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: -13px;
-  width: 3px;
-  height: 32px;
-  transform: translateY(-50%);
-  border-radius: 999px 0 0 999px;
-  background: #4ecca3;
+.zhiyu-agent-rail__agent.is-active {
+  border-radius: 16px;
+  background: #58c7b5;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 8px 18px rgba(21, 128, 112, 0.16);
 }
 
 .zhiyu-agent-rail__tools {
@@ -166,8 +210,17 @@
 }
 
 .zhiyu-agent-rail__tools button {
+  position: relative;
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  place-items: center;
+  padding: 0;
+  border: 0;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.58);
+  box-shadow: none;
 }
 
 .zhiyu-chat-canvas {
@@ -652,6 +705,11 @@
     padding: 10px 6px;
   }
 
+  .zhiyu-agent-rail__agent-row {
+    height: 42px;
+    flex-basis: 42px;
+  }
+
   .zhiyu-agent-rail__agent,
   .zhiyu-agent-rail__tools button {
     width: 38px;
@@ -719,6 +777,9 @@
   }
 
   .zhiyu-agent-rail {
+    width: 100%;
+    height: 52px;
+    min-height: 52px;
     flex-direction: row;
     justify-content: flex-start;
     gap: 8px;
@@ -729,9 +790,22 @@
   .zhiyu-agent-rail__agents {
     flex: 1;
     flex-direction: row;
+    align-items: center;
     justify-content: flex-start;
     overflow-x: auto;
     overflow-y: hidden;
+  }
+
+  .zhiyu-agent-rail__separator {
+    width: 1px;
+    height: 28px;
+    margin: auto 3px;
+  }
+
+  .zhiyu-agent-rail__agent-row {
+    width: 44px;
+    height: 40px;
+    flex: 0 0 44px;
   }
 
   .zhiyu-agent-rail__tools {

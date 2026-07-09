@@ -323,7 +323,7 @@ async function assertAgentCenterDoesNotNestSettings(page) {
     0,
     'Agent Center Behavior tab must not open the generic Settings page',
   );
-  assert.match(await page.locator('[data-zhiyu-agent-center-kit-surface="true"]').innerText(), /Behavior|主动陪伴|Autonomy/);
+  assert.match(await page.locator('[data-zhiyu-agent-center-kit-surface="true"]').innerText(), /主动陪伴/);
   assert.equal(await page.locator('[data-zhiyu-agent-behavior-panel="true"]').count(), 0);
   await openKitAgentCenterSection(page, 'cognition');
   await page.locator('[data-zhiyu-agent-panel-mode="agent"]').waitFor({ state: 'visible', timeout: 15_000 });
@@ -332,7 +332,7 @@ async function assertAgentCenterDoesNotNestSettings(page) {
     0,
     'Agent Center Cognition tab must not open the generic Settings page',
   );
-  assert.match(await page.locator('[data-zhiyu-agent-center-kit-surface="true"]').innerText(), /Cognition|Memory/);
+  assert.match(await page.locator('[data-zhiyu-agent-center-kit-surface="true"]').innerText(), /认知状态|最近记忆/);
   assert.equal(await page.locator('[data-zhiyu-agent-cognition-panel="true"]').count(), 0);
   await openKitAgentCenterSection(page, 'advanced');
   assert.equal(
@@ -340,7 +340,7 @@ async function assertAgentCenterDoesNotNestSettings(page) {
     0,
     'Agent Center Advanced tab must not open the generic Settings page',
   );
-  assert.match(await page.locator('[data-zhiyu-agent-center-kit-surface="true"]').innerText(), /Advanced|runtime-projection|unavailable/);
+  assert.match(await page.locator('[data-zhiyu-agent-center-kit-surface="true"]').innerText(), /高级|运行时投影|配置版本/);
   assert.equal(await page.locator('[data-zhiyu-agent-advanced-panel="true"]').count(), 0);
   await openKitAgentCenterSection(page, 'overview');
 }
@@ -349,7 +349,7 @@ async function assertAgentCenterHeaderParity(page, evidence) {
   await page.setViewportSize({ width: 1280, height: 900 });
   const header = page.locator('[data-zhiyu-agent-center-header="true"]').first();
   await header.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal(await header.locator('[data-zhiyu-agent-center-eyebrow]').innerText(), 'AGENT CENTER');
+  assert.equal(await header.locator('[data-zhiyu-agent-center-eyebrow]').innerText(), '智能体中心');
   const localAgentRef = evidence.localAgent.localAgentRef;
   assert.ok(localAgentRef, 'selected real LocalAgent evidence must include a localAgentRef');
   assert.equal(await header.locator('[data-zhiyu-agent-center-local-agent-ref]').count(), 0);
@@ -368,7 +368,7 @@ async function assertAgentCenterHeaderParity(page, evidence) {
   }
   const runtimePill = header.locator('[data-zhiyu-agent-center-runtime-pill]').first();
   await runtimePill.waitFor({ state: 'visible', timeout: 15_000 });
-  assert.equal((await runtimePill.innerText()).trim().toLowerCase(), 'runtime');
+  assert.equal((await runtimePill.innerText()).trim(), '运行时');
   assert.equal(await runtimePill.getAttribute('data-zhiyu-agent-center-runtime-pill'), 'ready');
   const headerLayout = await header.evaluate((root) => {
     const eyebrow = root.querySelector('[data-zhiyu-agent-center-eyebrow]');
@@ -388,11 +388,11 @@ async function assertAgentCenterHeaderParity(page, evidence) {
       eyebrowRowClass: eyebrowRow?.getAttribute('class') ?? '',
     };
   });
-  assert.match(headerLayout.eyebrowRowClass, /\bgap-3\b/, `Runtime pill row must keep the requested small text gap: ${JSON.stringify(headerLayout)}`);
+  assert.match(headerLayout.eyebrowRowClass, /\bgap-2\b/, `运行时 pill row must keep the requested compact text gap: ${JSON.stringify(headerLayout)}`);
   assert.ok(headerLayout.eyebrow && headerLayout.pill && headerLayout.name, `header placement evidence missing: ${JSON.stringify(headerLayout)}`);
   const eyebrowToPillGap = headerLayout.pill.left - headerLayout.eyebrow.right;
-  assert.ok(eyebrowToPillGap >= 8 && eyebrowToPillGap <= 24, `Runtime pill must sit a few letters to the right of AGENT CENTER: ${JSON.stringify({ eyebrowToPillGap, headerLayout })}`);
-  assert.ok(Math.abs(headerLayout.pill.yCenter - headerLayout.eyebrow.yCenter) <= 4, `Runtime pill must share the AGENT CENTER row: ${JSON.stringify(headerLayout)}`);
+  assert.ok(eyebrowToPillGap >= 8 && eyebrowToPillGap <= 24, `运行时 pill must sit close to the 智能体中心 label: ${JSON.stringify({ eyebrowToPillGap, headerLayout })}`);
+  assert.ok(Math.abs(headerLayout.pill.yCenter - headerLayout.eyebrow.yCenter) <= 4, `运行时 pill must share the 智能体中心 row: ${JSON.stringify(headerLayout)}`);
   assert.ok(headerLayout.name.top >= headerLayout.pill.bottom - 1, `partner name must stay below the Runtime pill row: ${JSON.stringify(headerLayout)}`);
 
   const stateChips = header.locator('[data-zhiyu-agent-center-state-chip]');
@@ -476,7 +476,7 @@ async function assertAppearanceConfigParity(page, captureAppearanceEvidence) {
   }
   assert.doesNotMatch(panelText, /动态效果/u, 'Appearance panel must not expose a non-actionable dynamic effects module');
 
-  for (const label of ['继续完成配置', '更换形象', '导入 Live2D 文件夹', '导入 VRM 文件', '选择 sidecar 文件', '上传背景图片', '选择推荐背景']) {
+  for (const label of ['继续完成配置', '更换形象', '导入 Live2D 文件夹', '导入 VRM 文件', '选择旁路配置文件', '上传背景图片', '选择推荐背景']) {
     await panel.getByText(label, { exact: false }).waitFor({ state: 'visible', timeout: 15_000 });
   }
 
@@ -494,6 +494,14 @@ async function assertAppearanceConfigParity(page, captureAppearanceEvidence) {
   ]) {
     await panel.locator(selector).waitFor({ state: 'visible', timeout: 15_000 });
   }
+
+  const backgroundCard = panel.locator('[data-agent-center-appearance-background="chat-scene"]').first();
+  const backgroundCardText = await backgroundCard.innerText();
+  assert.doesNotMatch(
+    backgroundCardText,
+    /尚未设置/u,
+    'Chat background placeholder must not duplicate the unset state with a text badge',
+  );
 
   const progressBarWidth = await panel.locator('[data-agent-center-appearance-progress-bar]').evaluate((element) =>
     (element instanceof HTMLElement ? element.style.width : ''),
@@ -872,8 +880,10 @@ async function assertUnselectedLocalPartnerEmptyState(page) {
   const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
   assert.match(shellText, /选择一位本地伙伴，开始对话/);
   assert.doesNotMatch(shellText, /请先在左侧选择一位已有的本地伙伴开始对话/);
+  assert.doesNotMatch(shellText, /请先选择已存在的本地伙伴/);
   assert.match(shellText, /如果想添加更多伙伴，请到Nimi桌面端的「探索」中选择角色/);
   assert.doesNotMatch(shellText, /你还没有添加可对话的本地伙伴/);
+  assert.equal(await page.locator('[data-zhiyu-desktop-open-action="desktop_open_select_partner"]').count(), 0);
   assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'false');
   assert.equal(await page.locator('[data-chat-composer-send="true"]').isDisabled(), true);
 }

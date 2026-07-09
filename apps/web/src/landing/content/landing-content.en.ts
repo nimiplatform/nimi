@@ -287,7 +287,7 @@ export const landingContentEn: LandingContent = {
     subtitle:
       'Desktop is the full app — embedded runtime, local AI, your machine. Web mode runs the same shell with explicit web-only adapters. Both ship as real surfaces.',
     chromeLabels: {
-      appName: 'Nimi Desktop',
+      appName: 'Nimi',
       runtime: 'Runtime',
       health: 'Health: OK',
       healthDetail: 'gRPC ready. Local runtime connected.',

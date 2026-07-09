@@ -1,0 +1,166 @@
+version: 1
+inventory_id: zhiyu_test_inventory
+shard_id: zhiyu_test_inventory_shard_01
+owner: zhiyu
+authority_class: non_authoritative_inventory
+spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+tests:
+  - path: apps/zhiyu/test/agent-chat-layout-boundary.test.mjs
+    owner: zhiyu
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    sentinel_purpose: forbidden_copy
+    spec_refs:
+      - P-TEST-001
+      - Z-PROD-001
+      - Z-CHAT-001
+      - Z-DIAG-001
+      - Z-GATE-001
+      - Z-GATE-005
+  - path: apps/zhiyu/test/agent-chat-rescue-boundary.test.mjs
+    owner: zhiyu
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    sentinel_purpose: forbidden_copy
+    spec_refs:
+      - P-TEST-001
+      - Z-PROD-001
+      - Z-CHAT-001
+      - Z-DIAG-001
+      - Z-GATE-001
+      - Z-GATE-005
+  - path: apps/zhiyu/test/agent-conversation-state.test.mjs
+    owner: zhiyu
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+      - Z-CHAT-001
+      - Z-CHAT-002
+      - Z-GATE-001
+  - path: apps/zhiyu/test/apml-projection-matrix.test.mjs
+    owner: zhiyu
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+      - Z-CHAT-001
+      - Z-CHAT-002
+      - Z-GATE-001
+  - path: apps/zhiyu/test/agent-center-local-config.test.mjs
+    owner: zhiyu
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+      - Z-CONFIG-002
+      - Z-CONFIG-005
+      - Z-GATE-001
+  - path: apps/zhiyu/test/agent-ai-config.test.mjs
+    owner: zhiyu
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+      - Z-AUTH-006
+      - Z-CHAT-001
+      - Z-GATE-001
+  - path: apps/zhiyu/test/agent-center-header-state.test.mjs
+    owner: zhiyu
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+      - Z-CHAT-001
+      - Z-CONFIG-006
+      - Z-GATE-001
+  - path: apps/zhiyu/test/agent-inventory-world-name.test.mjs
+    owner: zhiyu
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+      - Z-PARTNER-003
+      - Z-GATE-001
+  - path: apps/zhiyu/test/avatar-launch-handoff.test.mjs
+    owner: zhiyu
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+      - Z-AV-001
+      - Z-CHAT-001
+      - Z-GATE-001
+  - path: apps/zhiyu/test/avatar-presence.test.mjs
+    owner: zhiyu
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+      - Z-AV-001
+      - Z-CONFIG-003
+      - Z-GATE-001
+  - path: apps/zhiyu/test/capability-room-state.test.mjs
+    owner: zhiyu
+    classification: legacy_drift_quarantine
+    tier: null
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: never
+    may_enter_release_gate: never
+    spec_refs:
+      - P-TEST-001
+      - Z-AUTH-004
+      - Z-GATE-001
+    removal_condition: replace with admitted capability-room behavior coverage or delete once Z-AUTH-004 and Z-GATE-005 are no longer represented by this drift fossil

@@ -25,22 +25,32 @@ test('Agent Center header state chips hide unconfigured and missing projections'
     assert.equal(labels.agentCenterHeaderStateLabel(missingValue), null, `${String(missingValue)} must not render a header chip`);
   }
 
-  assert.equal(labels.agentCenterHeaderStateLabel('focused'), 'focused');
-  assert.equal(labels.agentCenterHeaderStateLabel('chat-active'), 'chat-active');
+  assert.equal(labels.agentCenterHeaderStateLabel('focused'), '专注');
+  assert.equal(labels.agentCenterHeaderStateLabel('chat-active'), '对话中');
 });
 
-test('Agent Center header places Runtime pill beside the Agent Center eyebrow', async () => {
+test('Agent Center header places the Chinese Runtime pill in the chrome row above the enlarged avatar profile row', async () => {
   const source = await readFile(path.join(appRoot, 'src/shell/agent-chat/ZhiyuAgentRightPanel.tsx'), 'utf8');
 
   assert.match(
     source,
-    /className="zhiyu-agent-center__eyebrow-row[^"]*gap-3[^"]*"[\s\S]{0,700}data-zhiyu-agent-center-eyebrow="AGENT CENTER"[\s\S]{0,700}data-zhiyu-agent-center-runtime-pill=\{runtimeState\}/,
-    'Runtime pill must sit on the same row as the AGENT CENTER eyebrow with a small gap',
+    /className="zhiyu-agent-center__chrome-row[^"]*gap-2[^"]*"[\s\S]{0,700}data-zhiyu-agent-center-eyebrow="agent-center"[\s\S]{0,120}智能体中心[\s\S]{0,700}data-zhiyu-agent-center-runtime-pill=\{runtimeState\}[\s\S]{0,120}运行时[\s\S]{0,700}className="zhiyu-agent-center__profile-row/,
+    '运行时 pill must sit with the Chinese Agent Center eyebrow above the avatar/profile row',
   );
   assert.doesNotMatch(
     source,
-    /className="flex min-w-0 items-center gap-2"[\s\S]{0,500}data-zhiyu-agent-center-runtime-pill=\{runtimeState\}/,
-    'Runtime pill must not remain on the partner display-name row',
+    /className="zhiyu-agent-center__profile-row[^"]*"[\s\S]{0,700}data-zhiyu-agent-center-runtime-pill=\{runtimeState\}/,
+    'Runtime pill must not move into the avatar/name/status profile row',
+  );
+  assert.match(
+    source,
+    /data-zhiyu-agent-center-eyebrow="agent-center"[\s\S]{0,180}text-\[12px\]/,
+    'Agent Center eyebrow should use the larger 12px label size',
+  );
+  assert.match(
+    source,
+    /zhiyu-agent-center__avatar[^"]*h-\[52px\][^"]*w-\[52px\][^"]*text-\[18px\]/,
+    'Agent Center avatar should use the enlarged 52px side-sheet avatar size',
   );
 });
 

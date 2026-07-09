@@ -455,7 +455,7 @@ test('Agent Center header mirrors Desktop side-sheet identity metadata', async (
   const surfaceSource = await readAgentChatSource();
 
   for (const marker of [
-    'data-zhiyu-agent-center-eyebrow="AGENT CENTER"',
+    'data-zhiyu-agent-center-eyebrow="agent-center"',
     'data-zhiyu-agent-center-world-name',
     'data-zhiyu-agent-center-world-icon',
     'data-zhiyu-agent-center-runtime-pill',
@@ -474,7 +474,7 @@ test('Agent Center header mirrors Desktop side-sheet identity metadata', async (
   assert.doesNotMatch(
     surfaceSource,
     /<span>\{mode === 'settings' \? '织羽设置' : '伙伴中心'\}<\/span>/,
-    'Agent mode header must use the Desktop AGENT CENTER eyebrow instead of the old Zhiyu-only label',
+    'Agent mode header must use the Desktop Agent Center eyebrow instead of the old Zhiyu-only label',
   );
   assert.doesNotMatch(surfaceSource, /data-zhiyu-agent-center-local-agent-ref/);
   assert.doesNotMatch(surfaceSource, /\bagentCenterLocalAgentRef\b/);
@@ -512,7 +512,7 @@ test('Agent Center model section projects Runtime AI Config and excludes Zhiyu A
   assert.doesNotMatch(kitModelSource, /capability\.editable \? 'Editable' : 'Read-only projection'/);
   assert.match(kitModelSource, /runtimeAdapter\.upsertAgentAIConfig/);
   assert.match(kitModelSource, /data-agent-center-model-apply/);
-  assert.match(kitModelSource, /capability\.binding\?\.modelId \|\| 'Not configured'/);
+  assert.match(kitModelSource, /capability\.binding\?\.modelId \|\| labels\.notConfiguredLabel/);
 });
 
 test('Zhiyu presence rail does not keep migrated Desktop topbar, nav, or add chrome', async () => {
@@ -602,7 +602,9 @@ test('Desktop contacts rail keeps compact density inside the left presence rail'
   const shellGridRule = lastCssRule(css, '.zhiyu-agent-chat__layout');
 
   assert.match(railSource, /data-zhiyu-relationship-rail-density="desktop"/);
+  assert.match(railSource, /data-zhiyu-relationship-rail-source="desktop-chat-relationship-rail"/);
   assert.match(railSource, /data-zhiyu-settings-entry="presence-rail"/);
+  assert.match(railSource, /className="zhiyu-agent-rail__agent-row"/);
   assert.doesNotMatch(railSource, /data-zhiyu-model-config-entry="rail"/);
   assert.doesNotMatch(railSource, /data-zhiyu-diagnostics-entry="rail"/);
   assert.doesNotMatch(railSource, /data-zhiyu-avatar-launch-entry=\{avatarLaunchAction\.state\}/);
@@ -611,7 +613,11 @@ test('Desktop contacts rail keeps compact density inside the left presence rail'
   assert.doesNotMatch(css, /zhiyu-home__right-rail|zhiyu-home__desktop-nav|zhiyu-home__agents-rail|grid-template-areas:\s*"[^"]*relationship/);
   assert.match(
     css,
-    /\.zhiyu-agent-rail__agent,\s*\.zhiyu-agent-rail__tools button\s*\{[\s\S]*?width:\s*40px;[\s\S]*?height:\s*40px;/,
+    /\.zhiyu-agent-rail__agent\s*\{[\s\S]*?width:\s*40px;[\s\S]*?height:\s*40px;/,
+  );
+  assert.match(
+    css,
+    /\.zhiyu-agent-rail__tools button\s*\{[\s\S]*?width:\s*40px;[\s\S]*?height:\s*40px;/,
   );
   assert.doesNotMatch(css, /\.zhiyu-agent-rail__agent\s*\{[^}]*width:\s*56px;[^}]*height:\s*56px;/);
   assert.doesNotMatch(css, /zhiyu-home__topbar-(?:chrome|button|popover)/);

@@ -2,7 +2,6 @@
   "compilerOptions": {
     "paths": {
       "@desktop-public/*": ["../desktop/src/public-web/*"],
-      "@renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime-loader": ["./src/desktop-adapter/chat-agent-avatar-live2d-cubism-runtime-loader.web.ts"],
       "@renderer/infra/bootstrap/runtime-bootstrap": ["./src/desktop-adapter/runtime-bootstrap.web.ts"],
       "@renderer/features/runtime-config/runtime-config-panel-view": ["./src/desktop-adapter/runtime-config-panel.web.tsx"],
       "@renderer/bridge": ["./src/desktop-adapter/bridge.web.ts"],

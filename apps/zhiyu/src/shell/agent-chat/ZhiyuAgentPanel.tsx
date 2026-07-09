@@ -47,33 +47,45 @@ export function DesktopPresenceRail({
         className="zhiyu-agent-rail__agents"
         data-zhiyu-region="relationship-rail"
         data-zhiyu-relationship-rail-density="desktop"
+        data-zhiyu-relationship-rail-source="desktop-chat-relationship-rail"
         data-zhiyu-relationship-rail-empty={String(agents.length === 0)}
       >
+        {agents.length > 0 ? <div className="zhiyu-agent-rail__separator" aria-hidden="true" /> : null}
         {agents.map((agent) => {
           const displayName = normalizedDisplayName(agent.displayName) ?? currentPartnerName;
           const isCurrent = hasCurrentPartner && agent.localAgentRef === currentLocalAgentRef;
           const canSelect = Boolean(agent.localAgentRef) && !isCurrent;
           return (
-            <button
+            <div
               key={agent.localAgentRef ?? agent.itemKey}
-              type="button"
-              className={`zhiyu-agent-rail__agent${isCurrent ? ' is-active' : ''}`}
-              aria-label={isCurrent ? `当前伙伴：${displayName}` : `选择伙伴：${displayName}`}
-              data-zhiyu-local-agent-candidate="true"
-              data-zhiyu-local-agent-candidate-active={String(isCurrent)}
-              data-zhiyu-local-agent-ref={agent.localAgentRef ?? ''}
-              onClick={() => {
-                if (canSelect && agent.localAgentRef) {
-                  onSelectLocalAgent(agent.localAgentRef);
-                  return;
-                }
-                if (isCurrent) {
-                  onOpenCurrentAgent();
-                }
-              }}
+              className="zhiyu-agent-rail__agent-row"
+              data-zhiyu-local-agent-row="true"
             >
-              {partnerInitial(agent.displayName)}
-            </button>
+              <span
+                className={`zhiyu-agent-rail__agent-indicator${isCurrent ? ' is-active' : ''}`}
+                aria-hidden="true"
+              />
+              <button
+                type="button"
+                className={`zhiyu-agent-rail__agent${isCurrent ? ' is-active' : ''}`}
+                aria-label={isCurrent ? `当前伙伴：${displayName}` : `选择伙伴：${displayName}`}
+                title={displayName}
+                data-zhiyu-local-agent-candidate="true"
+                data-zhiyu-local-agent-candidate-active={String(isCurrent)}
+                data-zhiyu-local-agent-ref={agent.localAgentRef ?? ''}
+                onClick={() => {
+                  if (canSelect && agent.localAgentRef) {
+                    onSelectLocalAgent(agent.localAgentRef);
+                    return;
+                  }
+                  if (isCurrent) {
+                    onOpenCurrentAgent();
+                  }
+                }}
+              >
+                {partnerInitial(agent.displayName)}
+              </button>
+            </div>
           );
         })}
       </div>

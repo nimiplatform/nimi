@@ -111,6 +111,73 @@ test('settings-open chat layout centers conversation tracks', () => {
   );
 });
 
+test('left relationship rail uses desktop chat avatar rail structure', () => {
+  const panel = readSource('src/shell/agent-chat/ZhiyuAgentPanel.tsx');
+  const css = readSource('src/shell/app/home-surface.css');
+  const presenceRail = sourceBetween(panel, 'export function DesktopPresenceRail', 'function normalizedDisplayName');
+
+  assert.match(
+    presenceRail,
+    /data-zhiyu-relationship-rail-source="desktop-chat-relationship-rail"/,
+    'Zhiyu left rail must explicitly declare the Desktop chat relationship rail visual source',
+  );
+  assert.match(
+    presenceRail,
+    /className="zhiyu-agent-rail__separator"/,
+    'relationship groups must use the Desktop chat rail separator rhythm',
+  );
+  assert.match(
+    presenceRail,
+    /className="zhiyu-agent-rail__agent-row"/,
+    'each local partner avatar must sit inside a full-width row so the active indicator can align like Desktop chat',
+  );
+  assert.match(
+    presenceRail,
+    /className=\{`zhiyu-agent-rail__agent-indicator/,
+    'each local partner row must render a dedicated active indicator instead of a pseudo-element on the avatar',
+  );
+  assert.match(
+    css,
+    /\.zhiyu-agent-rail__agent-row\s*\{[\s\S]*?height:\s*44px;[\s\S]*?width:\s*100%;[\s\S]*?justify-content:\s*flex-start;/,
+    'local partner rows must match the Desktop chat h-11 full-width avatar-row structure',
+  );
+  assert.match(
+    css,
+    /\.zhiyu-agent-rail__agent-indicator\s*\{[\s\S]*?left:\s*0;[\s\S]*?width:\s*3px;[\s\S]*?border-radius:\s*0 999px 999px 0;[\s\S]*?transition:/,
+    'left rail active indicators must sit on the left side of the selected avatar',
+  );
+  assert.doesNotMatch(
+    css,
+    /\.zhiyu-agent-rail__agent-indicator\s*\{[\s\S]*?right:\s*0;/,
+    'left rail active indicators must not remain on the right side of the avatar row',
+  );
+  assert.match(
+    css,
+    /\.zhiyu-agent-rail__agent-row\s+\.zhiyu-agent-rail__agent-indicator\.is-active\s*\{[\s\S]*?height:\s*32px;/,
+    'the active indicator rule must beat the row hover rule so the selected partner keeps the Desktop chat 32px pill',
+  );
+  assert.match(
+    css,
+    /\.zhiyu-agent-rail__agent\s*\{[\s\S]*?width:\s*40px;[\s\S]*?height:\s*40px;[\s\S]*?margin-left:\s*8px;[\s\S]*?border-radius:\s*999px;[\s\S]*?transition:/,
+    'avatar buttons must keep Desktop chat 40px density while leaving room for the left active indicator',
+  );
+  assert.match(
+    css,
+    /\.zhiyu-agent-rail__agent\.is-active\s*\{[\s\S]*?border-radius:\s*16px;/,
+    'active avatar must use the Desktop chat rounded-square selected state',
+  );
+  assert.match(
+    css,
+    /@media \(max-width:\s*640px\)[\s\S]*?\.zhiyu-agent-rail\s*\{[\s\S]*?height:\s*52px;[\s\S]*?min-height:\s*52px;/,
+    'narrow viewports must keep the relationship rail in the top presence row instead of inheriting a 100vh sidebar',
+  );
+  assert.doesNotMatch(
+    css,
+    /\.zhiyu-agent-rail__agent\.is-active::after/,
+    'active state must not keep the previous pseudo-element rail indicator',
+  );
+});
+
 test('narrow open Agent Center remains visible as an operable side sheet', () => {
   const css = readSource('src/shell/app/home-surface.css');
 
@@ -126,6 +193,22 @@ test('narrow open Agent Center remains visible as an operable side sheet', () =>
   );
 });
 
+test('Agent Center header places chrome labels above the avatar and partner state beside it', () => {
+  const rightPanel = readSource('src/shell/agent-chat/ZhiyuAgentRightPanel.tsx');
+  const header = sourceBetween(rightPanel, 'className="zhiyu-agent-center__header', '<IconToggleAction');
+
+  assert.match(
+    header,
+    /zhiyu-agent-center__identity[\s\S]*?zhiyu-agent-center__chrome-row[\s\S]*?data-zhiyu-agent-center-eyebrow="agent-center"[\s\S]*?智能体中心[\s\S]*?data-zhiyu-agent-center-runtime-pill=\{runtimeState\}[\s\S]*?运行时[\s\S]*?zhiyu-agent-center__profile-row[\s\S]*?zhiyu-agent-center__avatar[\s\S]*?h-\[52px\][\s\S]*?w-\[52px\][\s\S]*?zhiyu-agent-center__title/,
+    'Chinese Agent Center and Runtime labels must render above the enlarged avatar, with the partner name/status block to the avatar right',
+  );
+  assert.doesNotMatch(
+    header,
+    /zhiyu-agent-center__avatar[\s\S]*?zhiyu-agent-center__eyebrow-row/,
+    'the old row placed Agent Center and Runtime beside the avatar instead of above it',
+  );
+});
+
 test('unselected-partner transcript empty state guides existing selection and adding more partners', () => {
   const surface = readSource('src/shell/agent-chat/ZhiyuAgentChatSurface.tsx');
 
@@ -134,6 +217,16 @@ test('unselected-partner transcript empty state guides existing selection and ad
   assert.match(surface, /'选择一位本地伙伴，开始对话'/);
   assert.doesNotMatch(surface, /请先在左侧选择一位已有的本地伙伴开始对话/);
   assert.match(surface, /'如果想添加更多伙伴，请到Nimi桌面端的「探索」中选择角色。'/);
+  assert.match(
+    surface,
+    /const shouldRenderDesktopOpenCallout = !hasCurrentPartner && !hasLocalPartners;/,
+    'the lower Explore callout must only remain for an empty local-partner inventory',
+  );
+  assert.match(
+    surface,
+    /const chatRuntimeHint = chatDisabled && \(hasCurrentPartner \|\| evidence\.chat\.state === 'streaming'\)/,
+    'unselected existing partners must not render a duplicate composer warning strip',
+  );
   assert.doesNotMatch(surface, /Desktop Explore/);
   assert.doesNotMatch(surface, /不伪造身份/);
 });
@@ -161,7 +254,7 @@ test('no-partner transcript empty state keeps the relationship rail empty and sh
   assert.match(surface, /const noLocalPartnerEmptyState = !hasCurrentPartner && !hasLocalPartners/);
   assert.match(
     surface,
-    /const chatRuntimeHint = chatDisabled && \(hasLocalPartners \|\| evidence\.chat\.state === 'streaming'\)/,
+    /const chatRuntimeHint = chatDisabled && \(hasCurrentPartner \|\| evidence\.chat\.state === 'streaming'\)/,
     'empty local partner inventory must not render a duplicate composer warning strip',
   );
   assert.match(surface, /data-zhiyu-no-local-partner-empty="true"/);

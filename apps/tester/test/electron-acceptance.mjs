@@ -19,10 +19,19 @@ const rendererAcceptanceUrl = `${pathToFileURL(path.join(root, 'dist', 'index.ht
 test('Electron acceptance matrix maps every standard shell command to e2e or host-unit coverage', async () => {
   const acceptanceSource = await readFile(new URL('./electron-acceptance.mjs', import.meta.url), 'utf8');
   const mainSource = await readFile(path.join(root, 'src-electron', 'main.ts'), 'utf8');
-  const electronHostUnitSource = await readFile(
-    path.join(repoRoot, 'kit', 'shell', 'electron', 'test', 'electron-shell.test.ts'),
-    'utf8',
-  );
+  const electronHostUnitFiles = [
+    'electron-shell-bridge-core.test.ts',
+    'electron-shell-bridge-guardrails.test.ts',
+    'electron-shell-bridge-host-features.test.ts',
+    'electron-shell-capabilities.test.ts',
+    'electron-shell-file-surfaces.test.ts',
+    'electron-shell-preload.test.ts',
+    'electron-shell-runtime-hardening.test.ts',
+    'electron-shell-source-boundaries.test.ts',
+  ];
+  const electronHostUnitSource = (await Promise.all(electronHostUnitFiles.map((file) =>
+    readFile(path.join(repoRoot, 'kit', 'shell', 'electron', 'test', file), 'utf8')
+  ))).join('\n');
   assert.doesNotMatch(mainSource, /local-agent:tester-electron-local/);
   const coverageSource = `${acceptanceSource}\n${electronHostUnitSource}`;
   for (const capability of NIMI_STANDARD_SHELL_CAPABILITIES) {
