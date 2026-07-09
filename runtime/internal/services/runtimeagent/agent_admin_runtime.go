@@ -27,6 +27,9 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 		return nil, err
 	}
 	localAgentRef := identity.LocalAgentRef
+	if err := validateInitializeAgentPresentationMetadata(req.GetMetadata()); err != nil {
+		return nil, err
+	}
 
 	// K-AGCORE-141: TerminateAgent hard-deletes the LocalAgent projection and
 	// never retains a TERMINATED tombstone, so any present in-memory entry is
@@ -37,6 +40,9 @@ func (r agentAdminRuntime) initialize(ctx context.Context, req *runtimev1.Initia
 		agent := cloneAgentRecord(existing.Agent)
 		r.svc.mu.RUnlock()
 		if err := validateAgentRecordIdentity(agent, identity); err != nil {
+			return nil, err
+		}
+		if err := validatePersistedAgentPresentationProfile(agent); err != nil {
 			return nil, err
 		}
 		if _, err := r.svc.ensureRuntimeAgentAIConfigForIdentity(identity); err != nil {
@@ -223,49 +229,36 @@ func (r agentAdminRuntime) get(req *runtimev1.GetAgentRequest) (*runtimev1.GetAg
 }
 
 func (r agentAdminRuntime) setPresentationProfile(req *runtimev1.SetAgentPresentationProfileRequest) (*runtimev1.SetAgentPresentationProfileResponse, error) {
+	if req == nil || req.ExpectedRevision == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 	identity, err := localAgentIdentityFromContext(req.GetContext())
 	if err != nil {
 		return nil, err
 	}
-	entry, err := r.svc.agentByID(identity.LocalAgentRef)
+	profile, committedRevision, err := r.svc.agentStateRuntime().mutateAgentPresentationProfile(
+		identity,
+		req.GetExpectedRevision(),
+		func(existing *runtimev1.AgentPresentationProfile) (*runtimev1.AgentPresentationProfile, error) {
+			switch mutation := req.GetMutation().(type) {
+			case *runtimev1.SetAgentPresentationProfileRequest_Profile:
+				return normalizeAgentPresentationProfile(mutation.Profile)
+			case *runtimev1.SetAgentPresentationProfileRequest_Clear:
+				return nil, nil
+			case *runtimev1.SetAgentPresentationProfileRequest_Patch:
+				return normalizeAgentPresentationProfilePatch(existing, mutation.Patch)
+			default:
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+			}
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
-	if err := validateAgentRecordIdentity(entry.Agent, identity); err != nil {
-		return nil, err
-	}
-	var profile *runtimev1.AgentPresentationProfile
-	switch mutation := req.GetMutation().(type) {
-	case *runtimev1.SetAgentPresentationProfileRequest_Profile:
-		profile, err = normalizeAgentPresentationProfile(mutation.Profile)
-		if err != nil {
-			return nil, err
-		}
-	case *runtimev1.SetAgentPresentationProfileRequest_Clear:
-		profile = nil
-	case *runtimev1.SetAgentPresentationProfileRequest_Patch:
-		existing, err := agentPresentationProfileFromMetadata(entry.Agent.GetMetadata())
-		if err != nil {
-			return nil, err
-		}
-		profile, err = normalizeAgentPresentationProfilePatch(existing, mutation.Patch)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	nextMetadata, err := mergeAgentPresentationProfileMetadata(entry.Agent.GetMetadata(), profile)
-	if err != nil {
-		return nil, err
-	}
-	now := time.Now().UTC()
-	entry.Agent.Metadata = nextMetadata
-	entry.Agent.UpdatedAt = timestamppb.New(now)
-	if err := r.svc.updateAgent(entry); err != nil {
-		return nil, err
-	}
-	return &runtimev1.SetAgentPresentationProfileResponse{Profile: profile}, nil
+	return &runtimev1.SetAgentPresentationProfileResponse{
+		Profile:           profile,
+		CommittedRevision: committedRevision,
+	}, nil
 }
 
 func (r agentAdminRuntime) list(req *runtimev1.ListAgentsRequest) (*runtimev1.ListAgentsResponse, error) {
@@ -279,7 +272,12 @@ func (r agentAdminRuntime) list(req *runtimev1.ListAgentsRequest) (*runtimev1.Li
 		if req.AutonomyEnabled != nil && entry.Agent.GetAutonomy().GetEnabled() != req.GetAutonomyEnabled() {
 			continue
 		}
-		items = append(items, cloneAgentRecord(entry.Agent))
+		agent := cloneAgentRecord(entry.Agent)
+		if err := validatePersistedAgentPresentationProfile(agent); err != nil {
+			r.svc.mu.RUnlock()
+			return nil, err
+		}
+		items = append(items, agent)
 	}
 	r.svc.mu.RUnlock()
 	sort.Slice(items, func(i, j int) bool {

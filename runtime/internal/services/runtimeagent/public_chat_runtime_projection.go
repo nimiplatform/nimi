@@ -6,7 +6,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
@@ -397,11 +396,11 @@ type agentVoiceOutputPolicy struct {
 }
 
 func (r publicChatRuntime) agentVoiceOutputPolicyForSession(session publicChatAnchorState) (agentVoiceOutputPolicy, bool) {
-	profile := r.profileContextForSession(session)
+	profile := r.agentPresentationProfileForSession(session)
 	if profile == nil {
 		return agentVoiceOutputPolicy{}, false
 	}
-	voiceRef, err := normalizeDefaultVoiceReference(profileString(profile, "defaultVoiceReference", "default_voice_reference"))
+	voiceRef, err := normalizeDefaultVoiceReference(profile.GetDefaultVoiceReference())
 	if err != nil || voiceRef == "" {
 		return agentVoiceOutputPolicy{}, false
 	}
@@ -416,7 +415,7 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(session publicChatAn
 		return agentVoiceOutputPolicy{}, false
 	}
 	return agentVoiceOutputPolicy{
-		AvatarAutoplay:        profileBool(profile, "avatarAutoplay", "avatar_autoplay"),
+		AvatarAutoplay:        profile.GetAvatarAutoplay(),
 		DefaultVoiceReference: voiceRef,
 		SpeechModelID:         modelID,
 		SpeechRoutePolicy:     routePolicy,
@@ -425,41 +424,7 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(session publicChatAn
 	}, true
 }
 
-func (r publicChatRuntime) defaultVoiceReferenceForSession(session publicChatAnchorState) string {
-	if r.svc == nil || r.svc.chatStateRepo == nil {
-		return ""
-	}
-	metadata, err := r.svc.chatStateRepo.loadConversationAnchorMetadata(session.ConversationAnchorID)
-	if err != nil || metadata == nil {
-		return ""
-	}
-	profile := conversationAnchorProfileContext(metadata)
-	if profile == nil {
-		return ""
-	}
-	value := profileString(profile, "defaultVoiceReference", "default_voice_reference")
-	normalized, err := normalizeDefaultVoiceReference(value)
-	if err != nil {
-		return ""
-	}
-	return normalized
-}
-
-func (r publicChatRuntime) profileContextForSession(session publicChatAnchorState) map[string]*structpb.Value {
-	if profile := r.agentPresentationProfileContextForSession(session); profile != nil {
-		return profile
-	}
-	if r.svc == nil || r.svc.chatStateRepo == nil {
-		return nil
-	}
-	metadata, err := r.svc.chatStateRepo.loadConversationAnchorMetadata(session.ConversationAnchorID)
-	if err != nil || metadata == nil {
-		return nil
-	}
-	return conversationAnchorProfileContext(metadata)
-}
-
-func (r publicChatRuntime) agentPresentationProfileContextForSession(session publicChatAnchorState) map[string]*structpb.Value {
+func (r publicChatRuntime) agentPresentationProfileForSession(session publicChatAnchorState) *runtimev1.AgentPresentationProfile {
 	if r.svc == nil {
 		return nil
 	}
@@ -467,15 +432,10 @@ func (r publicChatRuntime) agentPresentationProfileContextForSession(session pub
 	if err != nil || entry == nil || entry.Agent == nil {
 		return nil
 	}
-	metadata := entry.Agent.GetMetadata()
-	if metadata == nil {
+	if err := validatePersistedAgentPresentationProfile(entry.Agent); err != nil {
 		return nil
 	}
-	profile := metadata.GetFields()["presentationProfile"].GetStructValue()
-	if profile == nil || len(profile.GetFields()) == 0 {
-		return nil
-	}
-	return profile.GetFields()
+	return entry.Agent.GetPresentationProfile()
 }
 
 // emitTurnEvent composes the runtime.agent.turn.* envelope per

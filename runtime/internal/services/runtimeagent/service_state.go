@@ -199,6 +199,9 @@ func (r *runtimeAgentStateRepository) loadStateFromDB(s *Service) error {
 		if strings.TrimSpace(agent.GetLocalAgentRef()) != localAgentRef || strings.TrimSpace(agent.GetOwnerUserId()) == "" || strings.TrimSpace(agent.GetRuntimeSourceRef()) == "" {
 			return fmt.Errorf("persisted runtime agent %s local identity invalid", localAgentRef)
 		}
+		if err := validatePersistedAgentPresentationProfile(agent); err != nil {
+			return fmt.Errorf("persisted runtime agent %s presentation profile invalid: %w", localAgentRef, err)
+		}
 		s.agents[localAgentRef] = &agentEntry{
 			Agent: agent,
 			State: &runtimev1.AgentStateProjection{},

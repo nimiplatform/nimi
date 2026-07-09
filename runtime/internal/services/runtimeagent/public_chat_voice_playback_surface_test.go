@@ -251,6 +251,7 @@ func TestPublicChatManualVoiceRenderEmitsDesktopManualProjectionWithoutAvatarAut
 	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	metadata := publicChatVoicePolicyMetadata(t, false)
 	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, "agent-alpha", "desktop.app", "user-1", metadata)
+	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", false)
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})
@@ -438,6 +439,7 @@ func TestPublicChatManualVoiceRenderSupportsHistoricalTurnAndRerendersAfterClean
 	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	metadata := publicChatVoicePolicyMetadata(t, false)
 	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, "agent-alpha", "desktop.app", "user-1", metadata)
+	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", false)
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 
@@ -590,6 +592,7 @@ func TestPublicChatCommittedTurnSkipsLipsyncProjectionWithoutArtifactStore(t *te
 	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	metadata := publicChatVoicePolicyMetadata(t, true)
 	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, "agent-alpha", "desktop.app", "user-1", metadata)
+	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", true)
 	svc.SetVoiceLipsyncScenarioExecutor(&fakeVoiceLipsyncScenarioExecutor{
 		jobID:    "job-no-store-voice",
 		artifact: &runtimev1.ScenarioArtifact{ArtifactId: "artifact-no-store-voice", MimeType: "audio/wav"},

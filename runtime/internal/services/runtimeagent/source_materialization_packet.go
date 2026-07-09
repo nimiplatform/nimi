@@ -348,7 +348,21 @@ func consumeSourceMaterializationPacketNonce(ctx context.Context, backend interf
 	})
 }
 
+func validateInitializeAgentPresentationMetadata(metadata *structpb.Struct) error {
+	if metadata != nil {
+		for _, key := range []string{"presentationProfile", "presentationProfileRevision"} {
+			if _, exists := metadata.GetFields()[key]; exists {
+				return status.Errorf(codes.InvalidArgument, "initialize agent metadata key %q is reserved", key)
+			}
+		}
+	}
+	return nil
+}
+
 func sanitizeInitializeAgentMetadata(metadata *structpb.Struct, verified *verifiedSourceMaterializationPacket) (*structpb.Struct, error) {
+	if err := validateInitializeAgentPresentationMetadata(metadata); err != nil {
+		return nil, err
+	}
 	if metadata == nil && verified == nil {
 		return nil, nil
 	}

@@ -2,11 +2,15 @@ package runtimeagent
 
 import (
 	"fmt"
+	"math"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type agentStateRuntime struct {
@@ -26,6 +30,9 @@ func (r agentStateRuntime) agentByID(localAgentRef string) (*agentEntry, error) 
 	r.svc.mu.RUnlock()
 	if entry == nil {
 		return nil, status.Error(codes.NotFound, "agent not found")
+	}
+	if err := validatePersistedAgentPresentationProfile(entry.Agent); err != nil {
+		return nil, err
 	}
 	return entry, nil
 }
@@ -84,6 +91,65 @@ func (r agentStateRuntime) updateAgent(entry *agentEntry, events ...*runtimev1.A
 	r.svc.mu.Unlock()
 	r.svc.eventStreamRuntime().broadcast(committedEvents, targetsByEvent)
 	return nil
+}
+
+func (r agentStateRuntime) mutateAgentPresentationProfile(
+	identity localAgentIdentity,
+	expectedRevision uint64,
+	mutate func(*runtimev1.AgentPresentationProfile) (*runtimev1.AgentPresentationProfile, error),
+) (*runtimev1.AgentPresentationProfile, uint64, error) {
+	if mutate == nil {
+		return nil, 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	r.svc.mu.Lock()
+	defer r.svc.mu.Unlock()
+
+	current := r.svc.agents[identity.LocalAgentRef]
+	if current == nil {
+		return nil, 0, status.Error(codes.NotFound, "agent not found")
+	}
+	if err := validateAgentRecordIdentity(current.Agent, identity); err != nil {
+		return nil, 0, err
+	}
+	if err := validatePersistedAgentPresentationProfile(current.Agent); err != nil {
+		return nil, 0, err
+	}
+	currentRevision := current.Agent.GetPresentationProfileRevision()
+	if currentRevision != expectedRevision {
+		return nil, 0, grpcerr.WithReasonCode(codes.Aborted, runtimev1.ReasonCode_AGENT_PRESENTATION_REVISION_CONFLICT)
+	}
+	if currentRevision == math.MaxUint64 {
+		return nil, 0, status.Error(codes.FailedPrecondition, "agent presentation revision exhausted")
+	}
+
+	var existing *runtimev1.AgentPresentationProfile
+	if current.Agent.GetPresentationProfile() != nil {
+		existing = proto.Clone(current.Agent.GetPresentationProfile()).(*runtimev1.AgentPresentationProfile)
+	}
+	nextProfile, err := mutate(existing)
+	if err != nil {
+		return nil, 0, err
+	}
+	committedRevision := currentRevision + 1
+	if nextProfile != nil {
+		nextProfile = proto.Clone(nextProfile).(*runtimev1.AgentPresentationProfile)
+		nextProfile.Revision = committedRevision
+	}
+
+	next := cloneAgentEntry(current)
+	next.Agent.PresentationProfile = nextProfile
+	next.Agent.PresentationProfileRevision = committedRevision
+	next.Agent.UpdatedAt = timestamppb.New(time.Now().UTC())
+	r.svc.agents[identity.LocalAgentRef] = next
+	if err := r.saveStateLocked(); err != nil {
+		r.svc.agents[identity.LocalAgentRef] = current
+		return nil, 0, err
+	}
+
+	if nextProfile == nil {
+		return nil, committedRevision, nil
+	}
+	return proto.Clone(nextProfile).(*runtimev1.AgentPresentationProfile), committedRevision, nil
 }
 
 // deleteAgent hard-removes the LocalAgent projection for localAgentRef from

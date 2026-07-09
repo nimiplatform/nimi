@@ -256,6 +256,35 @@ func TestInitializeAgentRejectsSourceMaterializationPacketReplay(t *testing.T) {
 	}
 }
 
+func TestInitializeAgentRejectsReservedPresentationMetadataBeforeConsumingSourceNonce(t *testing.T) {
+	t.Setenv(sourceMaterializationHMACSecretEnv, "unit-test-source-packet-secret")
+	svc := newRuntimeAgentTestService(t)
+	ownerID := "user-source-reserved-presentation"
+	runtimeSourceRef := "runtime-source:worldCharacter:world-1:source-1:hash-reserved-presentation"
+	packet := testSourceMaterializationPacket(t, ownerID, runtimeSourceRef, "nonce-reserved-presentation", time.Now().UTC().Add(5*time.Minute), sourceMaterializationAudienceDesktop)
+	metadata := testSourceMaterializationMetadata(t, packet)
+	metadata.Fields["presentationProfile"] = structpb.NewStringValue("bypass")
+
+	_, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
+		OwnerUserId:      ownerID,
+		RuntimeSourceRef: runtimeSourceRef,
+		Metadata:         metadata,
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("reserved presentation metadata code = %s, want InvalidArgument", status.Code(err))
+	}
+
+	if _, err := svc.InitializeAgent(context.Background(), &runtimev1.InitializeAgentRequest{
+		Context:          testSourceMaterializationContext(ownerID, runtimeSourceRef, ""),
+		OwnerUserId:      ownerID,
+		RuntimeSourceRef: runtimeSourceRef,
+		Metadata:         testSourceMaterializationMetadata(t, packet),
+	}); err != nil {
+		t.Fatalf("valid retry with same source nonce must succeed: %v", err)
+	}
+}
+
 func TestInitializeAgentRejectsExpiredSourceMaterializationPacket(t *testing.T) {
 	t.Setenv(sourceMaterializationHMACSecretEnv, "unit-test-source-packet-secret")
 	svc := newRuntimeAgentTestService(t)

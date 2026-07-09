@@ -18,6 +18,7 @@ func TestPublicChatNativeVoicePlaybackInterruptCancelsStreamAndEmitsTerminalTrut
 	upsertPublicChatTestAgentAIConfig(t, svc, publicChatTestAudioSynthesizeBinding())
 	metadata := publicChatVoicePolicyMetadata(t, true)
 	anchorID := openPublicChatTestAnchorWithMetadata(t, svc, "agent-alpha", "desktop.app", "user-1", metadata)
+	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", true)
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
 	svc.SetChatTrackSidecarExecutor(stubChatTrackSidecarExecutor{})

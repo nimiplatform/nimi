@@ -473,7 +473,7 @@ func TestRuntimeAgentSetAutonomyConfigDoesNotImplicitlyEnable(t *testing.T) {
 	}
 }
 
-func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.T) {
+func TestRuntimeAgentSetPresentationProfilePersistsAndClearsTypedFields(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentTestService(t)
@@ -485,26 +485,30 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 	}
 
 	resp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
-		Context: testRuntimeAgentIdentityContext("agent-presentation-profile"),
-		AgentId: "agent-presentation-profile",
+		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile"),
+		AgentId:          "agent-presentation-profile",
+		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
 				BackendKind:           runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_LIVE2D,
-				AvatarAssetRef:        "  avatar://airi/live2d/main  ",
-				ExpressionProfileRef:  " expressions://airi/default ",
-				IdlePreset:            " idle.soft ",
-				InteractionPolicyRef:  " interaction://airi/v1 ",
-				DefaultVoiceReference: " preset_voice_id:airi-default ",
+				AvatarAssetRef:        "agent-center-avatar",
+				ExpressionProfileRef:  "expression:airi/default",
+				IdlePreset:            "idle.soft",
+				InteractionPolicyRef:  "interaction:airi/v1",
+				DefaultVoiceReference: "preset_voice_id:airi-default",
 				AvatarAutoplay:        true,
-				BackgroundAssetRef:    " background://airi/chat-room ",
+				BackgroundAssetRef:    "agent-center-background",
 			},
 		},
 	})
 	if err != nil {
 		t.Fatalf("SetAgentPresentationProfile(set): %v", err)
 	}
-	if got := resp.GetProfile().GetAvatarAssetRef(); got != "avatar://airi/live2d/main" {
-		t.Fatalf("unexpected normalized avatar_asset_ref: %q", got)
+	if got := resp.GetProfile().GetAvatarAssetRef(); got != "agent-center-avatar" {
+		t.Fatalf("unexpected avatar_asset_ref: %q", got)
+	}
+	if resp.GetCommittedRevision() != 1 || resp.GetProfile().GetRevision() != 1 {
+		t.Fatalf("unexpected committed revisions: response=%d profile=%d", resp.GetCommittedRevision(), resp.GetProfile().GetRevision())
 	}
 
 	agentResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{
@@ -512,32 +516,30 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 	if err != nil {
 		t.Fatalf("GetAgent: %v", err)
 	}
-	presentation := agentResp.GetAgent().GetMetadata().GetFields()["presentationProfile"].GetStructValue().GetFields()
-	if got := presentation["backendKind"].GetStringValue(); got != "live2d" {
-		t.Fatalf("unexpected backendKind metadata: %q", got)
+	presentation := agentResp.GetAgent().GetPresentationProfile()
+	if presentation.GetBackendKind() != runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_LIVE2D {
+		t.Fatalf("unexpected typed backend kind: %s", presentation.GetBackendKind())
 	}
-	if got := presentation["avatarAssetRef"].GetStringValue(); got != "avatar://airi/live2d/main" {
-		t.Fatalf("unexpected avatarAssetRef metadata: %q", got)
+	if got := presentation.GetAvatarAssetRef(); got != "agent-center-avatar" {
+		t.Fatalf("unexpected typed avatar asset ref: %q", got)
 	}
-	if got := presentation["defaultVoiceReference"].GetStringValue(); got != "preset_voice_id:airi-default" {
-		t.Fatalf("unexpected defaultVoiceReference metadata: %q", got)
+	if got := presentation.GetDefaultVoiceReference(); got != "preset_voice_id:airi-default" {
+		t.Fatalf("unexpected typed default voice reference: %q", got)
 	}
-	if got := presentation["backgroundAssetRef"].GetStringValue(); got != "background://airi/chat-room" {
-		t.Fatalf("unexpected backgroundAssetRef metadata: %q", got)
+	if got := presentation.GetBackgroundAssetRef(); got != "agent-center-background" {
+		t.Fatalf("unexpected typed background asset ref: %q", got)
 	}
-	if got := presentation["avatarAutoplay"].GetBoolValue(); !got {
-		t.Fatalf("unexpected avatarAutoplay metadata: %v", got)
+	if !presentation.GetAvatarAutoplay() {
+		t.Fatal("expected typed avatar autoplay")
 	}
-	if _, ok := presentation["speechModelId"]; ok {
-		t.Fatal("presentation metadata must not carry speechModelId; audio.synthesize owns voice model truth")
-	}
-	if _, ok := presentation["speechRoutePolicy"]; ok {
-		t.Fatal("presentation metadata must not carry speechRoutePolicy; audio.synthesize owns voice route truth")
+	if agentResp.GetAgent().GetPresentationProfileRevision() != 1 {
+		t.Fatalf("unexpected typed record revision: %d", agentResp.GetAgent().GetPresentationProfileRevision())
 	}
 
 	clearResp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
-		Context: testRuntimeAgentIdentityContext("agent-presentation-profile"),
-		AgentId: "agent-presentation-profile",
+		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile"),
+		AgentId:          "agent-presentation-profile",
+		ExpectedRevision: proto.Uint64(1),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Clear{
 			Clear: &runtimev1.ClearAgentPresentationProfile{},
 		},
@@ -548,16 +550,17 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 	if clearResp.GetProfile() != nil {
 		t.Fatalf("expected cleared profile response, got %#v", clearResp.GetProfile())
 	}
+	if clearResp.GetCommittedRevision() != 2 {
+		t.Fatalf("clear committed revision = %d, want 2", clearResp.GetCommittedRevision())
+	}
 
 	clearedAgentResp, err := svc.GetAgent(ctx, &runtimev1.GetAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-presentation-profile"), AgentId: "agent-presentation-profile"})
 	if err != nil {
 		t.Fatalf("GetAgent after clear: %v", err)
 	}
-	if metadata := clearedAgentResp.GetAgent().GetMetadata(); metadata != nil {
-		if _, ok := metadata.GetFields()["presentationProfile"]; ok {
-			t.Fatalf("expected presentationProfile metadata removed, got %#v", metadata)
-		}
+	if clearedAgentResp.GetAgent().GetPresentationProfile() != nil || clearedAgentResp.GetAgent().GetPresentationProfileRevision() != 2 {
+		t.Fatalf("unexpected typed clear state: %#v", clearedAgentResp.GetAgent())
 	}
 }
 
@@ -573,13 +576,14 @@ func TestRuntimeAgentPatchPresentationProfileAllowsNonAvatarFields(t *testing.T)
 	}
 
 	resp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
-		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-patch"),
-		AgentId: "agent-presentation-profile-patch",
+		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-patch"),
+		AgentId:          "agent-presentation-profile-patch",
+		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{
 			Patch: &runtimev1.AgentPresentationProfilePatch{
-				DefaultVoiceReference: proto.String(" preset_voice_id:airi-default "),
+				DefaultVoiceReference: proto.String("preset_voice_id:airi-default"),
 				AvatarAutoplay:        proto.Bool(true),
-				BackgroundAssetRef:    proto.String(" background://airi/room "),
+				BackgroundAssetRef:    proto.String("agent-center-background"),
 			},
 		},
 	})
@@ -592,7 +596,7 @@ func TestRuntimeAgentPatchPresentationProfileAllowsNonAvatarFields(t *testing.T)
 	if got := resp.GetProfile().GetDefaultVoiceReference(); got != "preset_voice_id:airi-default" {
 		t.Fatalf("unexpected default voice after patch: %q", got)
 	}
-	if got := resp.GetProfile().GetBackgroundAssetRef(); got != "background://airi/room" {
+	if got := resp.GetProfile().GetBackgroundAssetRef(); got != "agent-center-background" {
 		t.Fatalf("unexpected background after patch: %q", got)
 	}
 	if !resp.GetProfile().GetAvatarAutoplay() {
@@ -606,23 +610,24 @@ func TestRuntimeAgentPatchPresentationProfileAllowsNonAvatarFields(t *testing.T)
 	if err != nil {
 		t.Fatalf("GetAgent: %v", err)
 	}
-	presentation := agentResp.GetAgent().GetMetadata().GetFields()["presentationProfile"].GetStructValue().GetFields()
-	if _, ok := presentation["avatarAssetRef"]; ok {
-		t.Fatalf("patch without avatar must not write avatarAssetRef metadata: %#v", presentation)
+	presentation := agentResp.GetAgent().GetPresentationProfile()
+	if presentation.GetAvatarAssetRef() != "" {
+		t.Fatalf("patch without avatar must not write typed avatar ref: %#v", presentation)
 	}
-	if got := presentation["defaultVoiceReference"].GetStringValue(); got != "preset_voice_id:airi-default" {
-		t.Fatalf("unexpected defaultVoiceReference metadata: %q", got)
+	if got := presentation.GetDefaultVoiceReference(); got != "preset_voice_id:airi-default" {
+		t.Fatalf("unexpected typed default voice reference: %q", got)
 	}
-	if got := presentation["backgroundAssetRef"].GetStringValue(); got != "background://airi/room" {
-		t.Fatalf("unexpected backgroundAssetRef metadata: %q", got)
+	if got := presentation.GetBackgroundAssetRef(); got != "agent-center-background" {
+		t.Fatalf("unexpected typed background asset ref: %q", got)
 	}
-	if got := presentation["avatarAutoplay"].GetBoolValue(); !got {
-		t.Fatalf("unexpected avatarAutoplay metadata: %v", got)
+	if !presentation.GetAvatarAutoplay() {
+		t.Fatal("expected typed avatar autoplay")
 	}
 
 	clearResp, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
-		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-patch"),
-		AgentId: "agent-presentation-profile-patch",
+		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-patch"),
+		AgentId:          "agent-presentation-profile-patch",
+		ExpectedRevision: proto.Uint64(1),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{
 			Patch: &runtimev1.AgentPresentationProfilePatch{
 				DefaultVoiceReference: proto.String(""),
@@ -651,12 +656,13 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 	}
 
 	_, err := svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
-		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
-		AgentId: "agent-presentation-profile-invalid",
+		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
+		AgentId:          "agent-presentation-profile-invalid",
+		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
 				BackendKind:    runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED,
-				AvatarAssetRef: "avatar://invalid",
+				AvatarAssetRef: "avatar-invalid",
 			},
 		},
 	})
@@ -665,8 +671,9 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 	}
 
 	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
-		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
-		AgentId: "agent-presentation-profile-invalid",
+		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
+		AgentId:          "agent-presentation-profile-invalid",
+		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
 				BackendKind:    runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
@@ -679,12 +686,13 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 	}
 
 	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
-		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
-		AgentId: "agent-presentation-profile-invalid",
+		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
+		AgentId:          "agent-presentation-profile-invalid",
+		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
 				BackendKind:           runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
-				AvatarAssetRef:        "avatar://valid",
+				AvatarAssetRef:        "avatar-valid",
 				DefaultVoiceReference: "voice://airi/default",
 			},
 		},
@@ -694,12 +702,13 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 	}
 
 	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
-		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
-		AgentId: "agent-presentation-profile-invalid",
+		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
+		AgentId:          "agent-presentation-profile-invalid",
+		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
 				BackendKind:           runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
-				AvatarAssetRef:        "avatar://valid",
+				AvatarAssetRef:        "avatar-valid",
 				DefaultVoiceReference: "voice_asset_id:   ",
 			},
 		},
@@ -709,12 +718,13 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 	}
 
 	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
-		Context: testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
-		AgentId: "agent-presentation-profile-invalid",
+		Context:          testRuntimeAgentIdentityContext("agent-presentation-profile-invalid"),
+		AgentId:          "agent-presentation-profile-invalid",
+		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
 				BackendKind:           runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
-				AvatarAssetRef:        "avatar://valid",
+				AvatarAssetRef:        "avatar-valid",
 				DefaultVoiceReference: "provider_voice_ref:dashscope/raw-voice-handle",
 			},
 		},

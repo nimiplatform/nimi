@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -47,6 +48,18 @@ func TestCBDBSeededRuntimeSourceLocalAgentRunsPublicChatTurn(t *testing.T) {
 		t.Fatalf("expected CBDB owner_user_id %q, got %q", cbdbChainVerifierOwnerID, got)
 	}
 	upsertPublicChatTestAgentAIConfigForContext(t, svc, ctx, publicChatTestAudioSynthesizeBinding())
+	if _, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
+		Context:          ctx,
+		ExpectedRevision: proto.Uint64(0),
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{Profile: &runtimev1.AgentPresentationProfile{
+			BackendKind:           runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
+			AvatarAssetRef:        "cbdb-su-zhe-avatar",
+			DefaultVoiceReference: "preset_voice_id:zh_narrator",
+			AvatarAutoplay:        true,
+		}},
+	}); err != nil {
+		t.Fatalf("SetAgentPresentationProfile(CBDB Su Zhe): %v", err)
+	}
 
 	anchorMetadata, err := structpb.NewStruct(map[string]any{
 		"surface": "desktop-agent-chat",

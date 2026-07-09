@@ -1,25 +1,183 @@
 package runtimeagent
 
 import (
+	"net/url"
 	"strings"
+	"unicode"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/proto"
 )
+
+func invalidAgentPresentationProfile() error {
+	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+}
+
+func validateAgentPresentationOpaqueRef(value string) error {
+	if value == "" {
+		return invalidAgentPresentationProfile()
+	}
+	for index := 0; index < len(value); index++ {
+		if value[index] > 0x7f {
+			return invalidAgentPresentationProfile()
+		}
+	}
+	if len(value) >= 2 && isASCIIAlpha(value[0]) && value[1] == ':' {
+		return invalidAgentPresentationProfile()
+	}
+
+	namespace, tail, qualified := strings.Cut(value, ":")
+	if !qualified {
+		if len(value) > 256 || !isAgentPresentationBareRefFirst(value[0]) {
+			return invalidAgentPresentationProfile()
+		}
+		for index := 1; index < len(value); index++ {
+			if !isAgentPresentationBareRefRest(value[index]) {
+				return invalidAgentPresentationProfile()
+			}
+		}
+		if !isSafeAgentPresentationRefPass(value) {
+			return invalidAgentPresentationProfile()
+		}
+		return nil
+	}
+
+	if len(value) > 2048 || len(namespace) == 0 || len(namespace) > 64 || tail == "" ||
+		!isLowerASCIIAlpha(namespace[0]) {
+		return invalidAgentPresentationProfile()
+	}
+	for index := 1; index < len(namespace); index++ {
+		if !isAgentPresentationNamespaceRest(namespace[index]) {
+			return invalidAgentPresentationProfile()
+		}
+	}
+	switch namespace {
+	case "file", "data", "http", "https":
+		return invalidAgentPresentationProfile()
+	}
+	for index := 0; index < len(tail); index++ {
+		if tail[index] == '%' {
+			if index+2 >= len(tail) || !isASCIIHex(tail[index+1]) || !isASCIIHex(tail[index+2]) {
+				return invalidAgentPresentationProfile()
+			}
+			index += 2
+			continue
+		}
+		if !isRFC3986URIByte(tail[index]) {
+			return invalidAgentPresentationProfile()
+		}
+	}
+	decodedTail, err := url.PathUnescape(tail)
+	if err != nil || !isSafeAgentPresentationRefPass(tail) || !isSafeAgentPresentationRefPass(decodedTail) {
+		return invalidAgentPresentationProfile()
+	}
+	if namespace == "profile_media_url" {
+		parsed, err := url.Parse(tail)
+		if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.Opaque != "" {
+			return invalidAgentPresentationProfile()
+		}
+		return nil
+	}
+	if strings.Contains(tail, "://") || strings.Contains(decodedTail, "://") {
+		return invalidAgentPresentationProfile()
+	}
+	return nil
+}
+
+func isLowerASCIIAlpha(value byte) bool {
+	return value >= 'a' && value <= 'z'
+}
+
+func isASCIIAlphaNumeric(value byte) bool {
+	return isASCIIAlpha(value) || (value >= '0' && value <= '9')
+}
+
+func isASCIIAlpha(value byte) bool {
+	return isLowerASCIIAlpha(value) || (value >= 'A' && value <= 'Z')
+}
+
+func isAgentPresentationBareRefFirst(value byte) bool {
+	return isASCIIAlphaNumeric(value)
+}
+
+func isAgentPresentationBareRefRest(value byte) bool {
+	return isASCIIAlphaNumeric(value) || strings.ContainsRune("._@+~-", rune(value))
+}
+
+func isAgentPresentationNamespaceRest(value byte) bool {
+	return isLowerASCIIAlpha(value) || (value >= '0' && value <= '9') || strings.ContainsRune("_.+-", rune(value))
+}
+
+func isASCIIHex(value byte) bool {
+	return (value >= '0' && value <= '9') || (value >= 'a' && value <= 'f') || (value >= 'A' && value <= 'F')
+}
+
+func isRFC3986URIByte(value byte) bool {
+	return isASCIIAlphaNumeric(value) || strings.ContainsRune("-._~:/?#[]@!$&'()*+,;=", rune(value))
+}
+
+func isSafeAgentPresentationRefPass(value string) bool {
+	if value == "" || strings.HasPrefix(value, "/") || strings.Contains(value, `\`) ||
+		strings.Contains(strings.ToLower(value), ";base64,") {
+		return false
+	}
+	if len(value) >= 2 && isASCIIAlpha(value[0]) && value[1] == ':' {
+		return false
+	}
+	for index := 0; index < len(value); index++ {
+		if value[index] < 0x20 || value[index] == 0x7f {
+			return false
+		}
+	}
+	for _, character := range value {
+		if unicode.IsSpace(character) || unicode.IsControl(character) {
+			return false
+		}
+	}
+	for _, segment := range strings.Split(value, "/") {
+		if segment == "." || segment == ".." {
+			return false
+		}
+	}
+	return true
+}
+
+func validateAgentPresentationProfileRefs(profile *runtimev1.AgentPresentationProfile) error {
+	if profile == nil {
+		return nil
+	}
+	for _, value := range []string{
+		profile.GetAvatarAssetRef(),
+		profile.GetExpressionProfileRef(),
+		profile.GetIdlePreset(),
+		profile.GetInteractionPolicyRef(),
+		profile.GetBackgroundAssetRef(),
+	} {
+		if value != "" {
+			if err := validateAgentPresentationOpaqueRef(value); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
 func normalizeAgentPresentationProfile(input *runtimev1.AgentPresentationProfile) (*runtimev1.AgentPresentationProfile, error) {
 	if input == nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, invalidAgentPresentationProfile()
 	}
 	backendKind := input.GetBackendKind()
 	if _, ok := agentPresentationBackendKindLabel(backendKind); !ok {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, invalidAgentPresentationProfile()
 	}
-	avatarAssetRef := strings.TrimSpace(input.GetAvatarAssetRef())
+	avatarAssetRef := input.GetAvatarAssetRef()
 	if avatarAssetRef == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, invalidAgentPresentationProfile()
+	}
+	if err := validateAgentPresentationProfileRefs(input); err != nil {
+		return nil, err
 	}
 	defaultVoiceReference, err := normalizeDefaultVoiceReference(input.GetDefaultVoiceReference())
 	if err != nil {
@@ -28,46 +186,46 @@ func normalizeAgentPresentationProfile(input *runtimev1.AgentPresentationProfile
 	return &runtimev1.AgentPresentationProfile{
 		BackendKind:           backendKind,
 		AvatarAssetRef:        avatarAssetRef,
-		ExpressionProfileRef:  strings.TrimSpace(input.GetExpressionProfileRef()),
-		IdlePreset:            strings.TrimSpace(input.GetIdlePreset()),
-		InteractionPolicyRef:  strings.TrimSpace(input.GetInteractionPolicyRef()),
+		ExpressionProfileRef:  input.GetExpressionProfileRef(),
+		IdlePreset:            input.GetIdlePreset(),
+		InteractionPolicyRef:  input.GetInteractionPolicyRef(),
 		DefaultVoiceReference: defaultVoiceReference,
 		AvatarAutoplay:        input.GetAvatarAutoplay(),
-		BackgroundAssetRef:    strings.TrimSpace(input.GetBackgroundAssetRef()),
+		BackgroundAssetRef:    input.GetBackgroundAssetRef(),
 	}, nil
 }
 
 func normalizeAgentPresentationProfilePatch(existing *runtimev1.AgentPresentationProfile, patch *runtimev1.AgentPresentationProfilePatch) (*runtimev1.AgentPresentationProfile, error) {
 	if patch == nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, invalidAgentPresentationProfile()
 	}
 	next := &runtimev1.AgentPresentationProfile{}
 	if existing != nil {
-		*next = *existing
+		next = proto.Clone(existing).(*runtimev1.AgentPresentationProfile)
 	}
 	changed := false
 	if patch.BackendKind != nil {
 		backendKind := patch.GetBackendKind()
 		if _, ok := agentPresentationBackendKindLabel(backendKind); !ok {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+			return nil, invalidAgentPresentationProfile()
 		}
 		next.BackendKind = backendKind
 		changed = true
 	}
 	if patch.AvatarAssetRef != nil {
-		next.AvatarAssetRef = strings.TrimSpace(patch.GetAvatarAssetRef())
+		next.AvatarAssetRef = patch.GetAvatarAssetRef()
 		changed = true
 	}
 	if patch.ExpressionProfileRef != nil {
-		next.ExpressionProfileRef = strings.TrimSpace(patch.GetExpressionProfileRef())
+		next.ExpressionProfileRef = patch.GetExpressionProfileRef()
 		changed = true
 	}
 	if patch.IdlePreset != nil {
-		next.IdlePreset = strings.TrimSpace(patch.GetIdlePreset())
+		next.IdlePreset = patch.GetIdlePreset()
 		changed = true
 	}
 	if patch.InteractionPolicyRef != nil {
-		next.InteractionPolicyRef = strings.TrimSpace(patch.GetInteractionPolicyRef())
+		next.InteractionPolicyRef = patch.GetInteractionPolicyRef()
 		changed = true
 	}
 	if patch.DefaultVoiceReference != nil {
@@ -83,11 +241,11 @@ func normalizeAgentPresentationProfilePatch(existing *runtimev1.AgentPresentatio
 		changed = true
 	}
 	if patch.BackgroundAssetRef != nil {
-		next.BackgroundAssetRef = strings.TrimSpace(patch.GetBackgroundAssetRef())
+		next.BackgroundAssetRef = patch.GetBackgroundAssetRef()
 		changed = true
 	}
 	if !changed {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, invalidAgentPresentationProfile()
 	}
 	return normalizeMergedAgentPresentationProfile(next)
 }
@@ -96,12 +254,15 @@ func normalizeMergedAgentPresentationProfile(input *runtimev1.AgentPresentationP
 	if input == nil {
 		return nil, nil
 	}
-	avatarAssetRef := strings.TrimSpace(input.GetAvatarAssetRef())
+	if err := validateAgentPresentationProfileRefs(input); err != nil {
+		return nil, err
+	}
+	avatarAssetRef := input.GetAvatarAssetRef()
 	backendKind := input.GetBackendKind()
 	if avatarAssetRef == "" {
 		backendKind = runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED
 	} else if _, ok := agentPresentationBackendKindLabel(backendKind); !ok {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return nil, invalidAgentPresentationProfile()
 	}
 	defaultVoiceReference, err := normalizeDefaultVoiceReference(input.GetDefaultVoiceReference())
 	if err != nil {
@@ -110,12 +271,12 @@ func normalizeMergedAgentPresentationProfile(input *runtimev1.AgentPresentationP
 	normalized := &runtimev1.AgentPresentationProfile{
 		BackendKind:           backendKind,
 		AvatarAssetRef:        avatarAssetRef,
-		ExpressionProfileRef:  strings.TrimSpace(input.GetExpressionProfileRef()),
-		IdlePreset:            strings.TrimSpace(input.GetIdlePreset()),
-		InteractionPolicyRef:  strings.TrimSpace(input.GetInteractionPolicyRef()),
+		ExpressionProfileRef:  input.GetExpressionProfileRef(),
+		IdlePreset:            input.GetIdlePreset(),
+		InteractionPolicyRef:  input.GetInteractionPolicyRef(),
 		DefaultVoiceReference: defaultVoiceReference,
 		AvatarAutoplay:        input.GetAvatarAutoplay(),
-		BackgroundAssetRef:    strings.TrimSpace(input.GetBackgroundAssetRef()),
+		BackgroundAssetRef:    input.GetBackgroundAssetRef(),
 	}
 	if normalized.AvatarAssetRef == "" {
 		normalized.ExpressionProfileRef = ""
@@ -126,6 +287,35 @@ func normalizeMergedAgentPresentationProfile(input *runtimev1.AgentPresentationP
 		return nil, nil
 	}
 	return normalized, nil
+}
+
+func validatePersistedAgentPresentationProfile(agent *runtimev1.AgentRecord) error {
+	if agent == nil {
+		return nil
+	}
+	if metadata := agent.GetMetadata(); metadata != nil {
+		for _, key := range []string{"presentationProfile", "presentationProfileRevision"} {
+			if _, exists := metadata.GetFields()[key]; exists {
+				return invalidAgentPresentationProfile()
+			}
+		}
+	}
+	if agent.GetPresentationProfile() == nil {
+		return nil
+	}
+	profile := agent.GetPresentationProfile()
+	if profile.GetRevision() == 0 || profile.GetRevision() != agent.GetPresentationProfileRevision() {
+		return invalidAgentPresentationProfile()
+	}
+	normalized, err := normalizeMergedAgentPresentationProfile(profile)
+	if err != nil || normalized == nil {
+		return invalidAgentPresentationProfile()
+	}
+	normalized.Revision = profile.GetRevision()
+	if !proto.Equal(normalized, profile) {
+		return invalidAgentPresentationProfile()
+	}
+	return nil
 }
 
 func normalizeDefaultVoiceReference(input string) (string, error) {
@@ -142,25 +332,6 @@ func normalizeDefaultVoiceReference(input string) (string, error) {
 		return kind + ":" + strings.TrimSpace(ref), nil
 	default:
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-}
-
-func agentPresentationBackendKindFromLabel(label string) (runtimev1.AgentPresentationBackendKind, bool) {
-	switch strings.TrimSpace(strings.ToLower(label)) {
-	case "":
-		return runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED, true
-	case "vrm":
-		return runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM, true
-	case "live2d":
-		return runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_LIVE2D, true
-	case "sprite2d":
-		return runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D, true
-	case "canvas2d":
-		return runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D, true
-	case "video":
-		return runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VIDEO, true
-	default:
-		return runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED, false
 	}
 }
 
@@ -181,115 +352,9 @@ func agentPresentationBackendKindLabel(kind runtimev1.AgentPresentationBackendKi
 	}
 }
 
-func structValueString(value string) *structpb.Value {
-	if value == "" {
-		return nil
-	}
-	return structpb.NewStringValue(value)
-}
-
 func agentPresentationProfileHasFields(profile *runtimev1.AgentPresentationProfile) bool {
 	return profile != nil && (profile.GetAvatarAssetRef() != "" ||
 		profile.GetDefaultVoiceReference() != "" ||
 		profile.GetBackgroundAssetRef() != "" ||
 		profile.GetAvatarAutoplay())
-}
-
-func agentPresentationProfileMetadataValue(profile *runtimev1.AgentPresentationProfile) (*structpb.Value, error) {
-	if profile == nil {
-		return nil, nil
-	}
-	fields := map[string]*structpb.Value{
-		"expressionProfileRef":  structValueString(profile.GetExpressionProfileRef()),
-		"idlePreset":            structValueString(profile.GetIdlePreset()),
-		"interactionPolicyRef":  structValueString(profile.GetInteractionPolicyRef()),
-		"defaultVoiceReference": structValueString(profile.GetDefaultVoiceReference()),
-		"backgroundAssetRef":    structValueString(profile.GetBackgroundAssetRef()),
-	}
-	if profile.GetAvatarAssetRef() != "" {
-		backendLabel, ok := agentPresentationBackendKindLabel(profile.GetBackendKind())
-		if !ok {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		}
-		fields["backendKind"] = structpb.NewStringValue(backendLabel)
-		fields["avatarAssetRef"] = structpb.NewStringValue(profile.GetAvatarAssetRef())
-	}
-	if profile.GetAvatarAutoplay() {
-		fields["avatarAutoplay"] = structpb.NewBoolValue(true)
-	}
-	for key, value := range fields {
-		if value == nil {
-			delete(fields, key)
-		}
-	}
-	return structpb.NewStructValue(&structpb.Struct{Fields: fields}), nil
-}
-
-func stringField(fields map[string]*structpb.Value, key string) string {
-	if value := fields[key]; value != nil {
-		return strings.TrimSpace(value.GetStringValue())
-	}
-	return ""
-}
-
-func agentPresentationProfileFromMetadata(metadata *structpb.Struct) (*runtimev1.AgentPresentationProfile, error) {
-	if metadata == nil {
-		return nil, nil
-	}
-	value := metadata.GetFields()["presentationProfile"]
-	if value == nil || value.GetStructValue() == nil {
-		return nil, nil
-	}
-	fields := value.GetStructValue().GetFields()
-	backendKind, ok := agentPresentationBackendKindFromLabel(stringField(fields, "backendKind"))
-	if !ok {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	profile := &runtimev1.AgentPresentationProfile{
-		BackendKind:           backendKind,
-		AvatarAssetRef:        stringField(fields, "avatarAssetRef"),
-		ExpressionProfileRef:  stringField(fields, "expressionProfileRef"),
-		IdlePreset:            stringField(fields, "idlePreset"),
-		InteractionPolicyRef:  stringField(fields, "interactionPolicyRef"),
-		DefaultVoiceReference: stringField(fields, "defaultVoiceReference"),
-		BackgroundAssetRef:    stringField(fields, "backgroundAssetRef"),
-	}
-	if value := fields["avatarAutoplay"]; value != nil {
-		profile.AvatarAutoplay = value.GetBoolValue()
-	}
-	return normalizeMergedAgentPresentationProfile(profile)
-}
-
-func agentRoutePolicyLabel(policy runtimev1.RoutePolicy) string {
-	switch policy {
-	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
-		return "local"
-	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
-		return "cloud"
-	default:
-		return ""
-	}
-}
-
-func mergeAgentPresentationProfileMetadata(metadata *structpb.Struct, profile *runtimev1.AgentPresentationProfile) (*structpb.Struct, error) {
-	next := cloneStruct(metadata)
-	if next == nil {
-		next = &structpb.Struct{Fields: map[string]*structpb.Value{}}
-	}
-	if next.Fields == nil {
-		next.Fields = map[string]*structpb.Value{}
-	}
-	if profile == nil {
-		delete(next.Fields, "presentationProfile")
-		if len(next.Fields) == 0 {
-			return nil, nil
-		}
-		return next, nil
-	}
-	value, err := agentPresentationProfileMetadataValue(profile)
-	if err != nil {
-		return nil, err
-	}
-	next.Fields["presentationProfile"] = value
-	return next, nil
 }

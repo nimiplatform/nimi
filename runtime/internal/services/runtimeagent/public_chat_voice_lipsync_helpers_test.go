@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -93,15 +94,16 @@ func setPublicChatTestPresentationProfile(t *testing.T, svc *Service, agentID st
 	ctx := testLocalAgentContext(subjectUserID, agentID)
 	ctx.AppId = callerAppID
 	_, err := svc.SetAgentPresentationProfile(context.Background(), &runtimev1.SetAgentPresentationProfileRequest{
-		Context: ctx,
-		AgentId: ctx.GetLocalAgentRef(),
+		Context:          ctx,
+		AgentId:          ctx.GetLocalAgentRef(),
+		ExpectedRevision: proto.Uint64(0),
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
 			Profile: &runtimev1.AgentPresentationProfile{
 				BackendKind:           runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
 				AvatarAssetRef:        "runtime-presentation-avatar:test-vrm",
-				ExpressionProfileRef:  "expression://test/calm",
+				ExpressionProfileRef:  "expression:test/calm",
 				IdlePreset:            "idle-soft",
-				InteractionPolicyRef:  "policy://test/ambient",
+				InteractionPolicyRef:  "policy:test/ambient",
 				DefaultVoiceReference: "preset_voice_id:nimi-default",
 				AvatarAutoplay:        avatarAutoplay,
 			},
