@@ -112,6 +112,19 @@ function protoString(value) {
   return value?.kind?.oneofKind === 'stringValue' ? value.kind.stringValue : '';
 }
 
+function imageArtifact(jobId) {
+  return {
+    artifactId: `${jobId}-artifact-image`,
+    mimeType: 'image/png',
+    uri: '',
+    bytes: new Uint8Array([137, 80, 78, 71]),
+  };
+}
+
+function imageGenerationOutput(artifacts) {
+  return { output: { oneofKind: 'imageGenerate', imageGenerate: { artifacts } } };
+}
+
 function readyLocalImageEnvironmentMethods() {
   return {
     async resolveLocalEnvironmentPlan() {
@@ -136,6 +149,57 @@ function readyLocalImageEnvironmentMethods() {
     },
     async startLocalEnvironmentDependencyJob() {
       throw new Error('local image dependency job should not start when environment is ready');
+    },
+  };
+}
+
+function scenarioJobImageAi(calls, jobId = 'job-image') {
+  const jobs = new Map();
+  const artifacts = new Map();
+  return {
+    async executeScenario() {
+      throw new Error('executeScenario should not be called by image Scenario job lanes');
+    },
+    streamScenario() {
+      throw new Error('streamScenario should not be called by image Scenario job lanes');
+    },
+    async submitScenarioJob(request) {
+      const artifact = imageArtifact(jobId);
+      calls.push(request);
+      const job = {
+        jobId,
+        status: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED,
+        scenarioType: request.scenarioType,
+        traceId: `${jobId}-trace`,
+        modelResolved: request.head.modelId,
+        routeDecision: request.head.routePolicy,
+        artifacts: [artifact],
+      };
+      jobs.set(job.jobId, job);
+      artifacts.set(job.jobId, [artifact]);
+      return { job };
+    },
+    async *subscribeScenarioJobEvents({ jobId: eventJobId }) {
+      yield {
+        eventType: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED,
+        sequence: '1',
+        traceId: jobs.get(eventJobId)?.traceId || '',
+        job: jobs.get(eventJobId),
+      };
+    },
+    async getScenarioJob({ jobId: eventJobId }) {
+      return { job: jobs.get(eventJobId) };
+    },
+    async cancelScenarioJob() {
+      return { job: undefined };
+    },
+    async getScenarioArtifacts({ jobId: eventJobId }) {
+      const jobArtifacts = artifacts.get(eventJobId) || [];
+      return {
+        traceId: jobs.get(eventJobId)?.traceId || '',
+        artifacts: jobArtifacts,
+        output: imageGenerationOutput(jobArtifacts),
+      };
     },
   };
 }
@@ -214,19 +278,7 @@ test('image.generate materializes local model and companion slots into Runtime p
           return runnableSchedulingResponse();
         },
       },
-      media: {
-        image: {
-          async generate(request) {
-            calls.push(request);
-            return {
-              job: { jobId: 'job-image', status: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED },
-              artifacts: [],
-              trace: { modelResolved: request.model, routeDecision: request.route },
-            };
-          },
-        },
-      },
-      ai: {},
+      ai: scenarioJobImageAi(calls, 'job-image'),
     },
   };
 
@@ -238,8 +290,8 @@ test('image.generate materializes local model and companion slots into Runtime p
 
   assert.equal(result.ok, true);
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].route, 'local');
-  assert.equal(calls[0].model, 'local-import/z-image-turbo-Q4_K_M');
+  assert.equal(calls[0].head.routePolicy, RUNTIME_ROUTE_POLICY_LOCAL);
+  assert.equal(calls[0].head.modelId, 'local-import/z-image-turbo-Q4_K_M');
   assert.deepEqual(planRequests.map((request) => ({
     assetId: request.assetId,
     localAssetId: request.localAssetId,
@@ -361,19 +413,7 @@ test('image.generate resolves v2 local-runtime profile binding ids to Runtime lo
           return runnableSchedulingResponse();
         },
       },
-      media: {
-        image: {
-          async generate(request) {
-            calls.push(request);
-            return {
-              job: { jobId: 'job-image', status: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED },
-              artifacts: [],
-              trace: { modelResolved: request.model, routeDecision: request.route },
-            };
-          },
-        },
-      },
-      ai: {},
+      ai: scenarioJobImageAi(calls, 'job-image'),
     },
   };
 
@@ -385,9 +425,9 @@ test('image.generate resolves v2 local-runtime profile binding ids to Runtime lo
 
   assert.equal(result.ok, true);
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].model, 'local-import/z-image-turbo-Q4_K_M');
-  assert.equal(calls[0].metadata.aiConfigRuntimeModelLocalAssetId, 'local-main-image');
-  assert.equal(calls[0].metadata.aiConfigBindingModel, 'local-runtime:local-main-image');
+  assert.equal(calls[0].head.modelId, 'local-import/z-image-turbo-Q4_K_M');
+  assert.equal(calls[0].labels.aiConfigRuntimeModelLocalAssetId, 'local-main-image');
+  assert.equal(calls[0].labels.aiConfigBindingModel, 'local-runtime:local-main-image');
 });
 
 test('image.generate materializes Ideogram4 uncond companion from selected model family', async (t) => {
@@ -467,19 +507,7 @@ test('image.generate materializes Ideogram4 uncond companion from selected model
           return runnableSchedulingResponse();
         },
       },
-      media: {
-        image: {
-          async generate(request) {
-            calls.push(request);
-            return {
-              job: { jobId: 'job-ideogram4', status: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED },
-              artifacts: [],
-              trace: { modelResolved: request.model, routeDecision: request.route },
-            };
-          },
-        },
-      },
-      ai: {},
+      ai: scenarioJobImageAi(calls, 'job-ideogram4'),
     },
   };
 
@@ -491,7 +519,7 @@ test('image.generate materializes Ideogram4 uncond companion from selected model
 
   assert.equal(result.ok, true);
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].model, 'local-import/ideogram4-Q4_0');
+  assert.equal(calls[0].head.modelId, 'local-import/ideogram4-Q4_0');
   const payload = calls[0].extensions[0]?.payload;
   const fields = payload?.fields ?? {};
   const profileEntries = protoListValues(fields.profile_entries);
@@ -594,19 +622,7 @@ test('image.generate derives Ideogram4 companion requirements from Runtime local
           return runnableSchedulingResponse();
         },
       },
-      media: {
-        image: {
-          async generate(request) {
-            calls.push(request);
-            return {
-              job: { jobId: 'job-ideogram4-family', status: RUNTIME_SCENARIO_JOB_STATUS_COMPLETED },
-              artifacts: [],
-              trace: { modelResolved: request.model, routeDecision: request.route },
-            };
-          },
-        },
-      },
-      ai: {},
+      ai: scenarioJobImageAi(calls, 'job-ideogram4-family'),
     },
   };
 

@@ -187,7 +187,7 @@ const STUDIO_PROFILES: Record<TesterCapabilityId, CapabilityStudioProfile> = {
     emptyTitle: 'Waiting for catalog',
     emptyHint: 'Available runtime voices will appear here.',
     resultKind: 'voice-catalog',
-    footnote: 'Probes runtime.ai.listPresetVoices for catalog readiness.',
+    footnote: 'Probes the Kit Runtime voice catalog consumer for catalog readiness.',
   },
   'world.generate': {
     studioTag: 'World',
@@ -216,10 +216,10 @@ const RUNTIME_METHODS: Record<TesterCapabilityId, string> = {
   'chat.stream': 'runtime.ai.streamScenario:text_generate',
   'text.embed': 'runtime.ai.executeScenario:text_embed',
   'image.generate': 'runtime.ai.submitScenarioJob:image_generate',
-  'video.generate': 'runtime.ai.submitScenarioJob:video_generate',
+  'video.generate': 'kit.generation.runRuntimeVideoGenerate',
   'audio.synthesize': 'runtime.ai.submitScenarioJob:speech_synthesize',
-  'audio.transcribe': 'runtime.ai.submitScenarioJob:speech_transcribe',
-  'speech.bundle': 'runtime.ai.listPresetVoices',
+  'audio.transcribe': 'kit.generation.runRuntimeSpeechTranscribe',
+  'speech.bundle': 'kit.generation.runRuntimeVoiceCatalog',
   'world.generate': 'tauri.open_world_tour_window',
 };
 

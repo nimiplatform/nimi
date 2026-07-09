@@ -25,9 +25,7 @@ export function readTesterRuntimeInvokersSurface(root) {
     'src/tester/tester-runtime-invokers-core.ts',
     'src/tester/tester-runtime-invokers-media.ts',
     'src/tester/tester-runtime-invokers-media-artifacts.ts',
-    'src/tester/tester-runtime-invokers-media-environment.ts',
     'src/tester/tester-runtime-invokers-media-image-video.ts',
-    'src/tester/tester-runtime-invokers-media-params.ts',
     'src/tester/tester-runtime-invokers-media-runtime.ts',
     'src/tester/tester-runtime-invokers-media-speech.ts',
   ]);

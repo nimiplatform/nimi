@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
@@ -30,7 +30,11 @@ test.after(cleanupBehaviorModules);
 
 test('tester runtime media invokers use AIConfig bindings instead of executable auto routing', () => {
   const invokers = readTesterRuntimeInvokersSurface(root);
+  const imageVideoInvokers = read('src/tester/tester-runtime-invokers-media-image-video.ts');
+  const speechInvokers = read('src/tester/tester-runtime-invokers-media-speech.ts');
   assert.doesNotMatch(invokers, /model:\s*['"]auto['"]/);
+  assert.match(invokers, /resolveTesterLLMBinding/);
+  assert.match(invokers, /runRuntimeAIConsumeCapability/);
   for (const capability of [
     'image.generate',
     'video.generate',
@@ -38,8 +42,33 @@ test('tester runtime media invokers use AIConfig bindings instead of executable 
     'audio.transcribe',
     'speech.bundle',
   ]) {
-    assert.match(invokers, new RegExp(`resolveTesterLLMBinding\\('${capability}'\\)`));
+    assert.doesNotMatch(imageVideoInvokers, new RegExp(`resolveTesterLLMBinding\\('${capability}'\\)`));
+    assert.doesNotMatch(speechInvokers, new RegExp(`resolveTesterLLMBinding\\('${capability}'\\)`));
   }
+  assert.doesNotMatch(imageVideoInvokers, /ensureSchedulingPreflight/);
+  assert.doesNotMatch(speechInvokers, /ensureSchedulingPreflight/);
+  assert.doesNotMatch(imageVideoInvokers, /schedulingTarget:\s*null/);
+  assert.doesNotMatch(speechInvokers, /schedulingTarget:\s*null/);
+});
+
+test('tester voice catalog invoker consumes Kit generation voice catalog consumer', () => {
+  const invokers = readTesterRuntimeInvokersSurface(root);
+  assert.match(invokers, /runRuntimeVoiceCatalog/);
+  assert.match(invokers, /@nimiplatform\/kit\/features\/generation\/runtime/);
+  assert.doesNotMatch(invokers, /ListPresetVoicesRequest/);
+  assert.doesNotMatch(invokers, /ListPresetVoicesResponse/);
+  assert.doesNotMatch(invokers, /from '@nimiplatform\/sdk\/runtime\/wire-types'/);
+  assert.doesNotMatch(invokers, /client\.runtime\.ai\.listPresetVoices/);
+  assert.doesNotMatch(invokers, /Runtime AI voice catalog facade is not exposed by vNext/);
+  assert.doesNotMatch(invokers, /readonly listPresetVoices\?: \(request: \{\s*readonly appId: string;/);
+});
+
+test('tester local TTS voice resolution has no active VoiceAsset fallback surface', () => {
+  const invokers = readTesterRuntimeInvokersSurface(root);
+  assert.doesNotMatch(invokers, /ListVoiceAssetsRequest/);
+  assert.doesNotMatch(invokers, /ListVoiceAssetsResponse/);
+  assert.doesNotMatch(invokers, /\blistVoiceAssets\b/);
+  assert.equal(existsSync(path.join(root, 'src/tester/tester-runtime-media-bindings.ts')), false);
 });
 
 test('tester chat.stream consumes Kit chat runtime provider (no fabricated text)', () => {
@@ -68,15 +97,35 @@ test('tester chat.stream consumes Kit chat runtime provider (no fabricated text)
   assert.match(capabilities, /streamingText=\{streamingText\}/);
 });
 
-test('tester text.generate consumes SDK vNext text runner and Runtime Scenario model', () => {
+test('tester text.generate and text.embed consume Kit generation runtime consumers', () => {
   const invokers = readTesterRuntimeInvokersSurface(root);
-  assert.match(invokers, /runNimiTextGenerate/);
-  assert.match(invokers, /createNimiRuntimeAIModel/);
-  assert.match(invokers, /createNimiRuntimeEmbeddingClient/);
+  assert.match(invokers, /runRuntimeAIConsumeCapability/);
+  assert.match(invokers, /@nimiplatform\/kit\/features\/generation\/runtime/);
   assert.match(invokers, /NimiRuntimeAIScenarioClient/);
   assert.match(invokers, /runtime: client\.runtime/);
+  assert.doesNotMatch(invokers, /runNimiTextGenerate/);
+  assert.doesNotMatch(invokers, /createNimiRuntimeAIModel/);
+  assert.doesNotMatch(invokers, /createNimiRuntimeEmbeddingClient/);
   assert.doesNotMatch(invokers, /@nimiplatform\/sdk\/ai-app/);
   assert.doesNotMatch(invokers, /runtime\.ai\.text\.generate/);
+});
+
+test('tester video.generate and audio.transcribe consume Kit generation runtime consumers', () => {
+  const imageVideoInvokers = read('src/tester/tester-runtime-invokers-media-image-video.ts');
+  const speechInvokers = read('src/tester/tester-runtime-invokers-media-speech.ts');
+  const mediaRuntime = read('src/tester/tester-runtime-invokers-media-runtime.ts');
+  const kitGenerationRuntime = read('../../kit/features/generation/src/runtime.ts');
+  assert.match(imageVideoInvokers, /runRuntimeVideoGenerate/);
+  assert.match(speechInvokers, /runRuntimeSpeechTranscribe/);
+  assert.match(imageVideoInvokers, /@nimiplatform\/kit\/features\/generation\/runtime/);
+  assert.match(speechInvokers, /@nimiplatform\/kit\/features\/generation\/runtime/);
+  assert.match(mediaRuntime, /buildRuntimeGenerationScenarioIdentity/);
+  assert.match(kitGenerationRuntime, /runtime-identity/);
+  assert.doesNotMatch(imageVideoInvokers, /buildNimiRuntimeGenerationSubmitRequest/);
+  assert.doesNotMatch(imageVideoInvokers, /runNimiRuntimeScenarioJob/);
+  assert.doesNotMatch(speechInvokers, /runNimiRuntimeSpeechTranscription/);
+  assert.doesNotMatch(mediaRuntime, /@nimiplatform\/sdk\/features\/generation/);
+  assert.equal(existsSync(path.join(root, 'src/tester/tester-runtime-invokers-media-params.ts')), false);
 });
 
 test('tester runtime metadata leaves Electron host-owned identity to the Electron host', async () => {
@@ -124,6 +173,7 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   const invokers = readTesterRuntimeInvokersSurface(root);
   const unavailable = read('src/tester/tester-unavailable.ts');
   const sdkAiConfigBinding = read('../../sdks/typescript/core/ai/config-runtime-binding.ts');
+  const kitAiConsume = read('../../kit/features/generation/src/runtime-ai-consume.ts');
   const llmInvokers = invokers.slice(
     invokers.indexOf('async function invokeTextGenerate'),
     invokers.indexOf('function summariseArtifact'),
@@ -141,11 +191,15 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.match(sdkAiConfigBinding, /stopSequences/);
   assert.match(sdkAiConfigBinding, /must be a finite number/);
   assert.match(sdkAiConfigBinding, /must be a positive integer/);
-  assert.match(invokers, /createTesterTextModel\(client, resolved, textParams\.timeoutMs, runtimeRequestDiagnostics\)/);
-  assert.match(invokers, /\.\.\.textParams\.parameters/);
-  assert.match(invokers, /temperature: textParams\.parameters\.temperature/);
-  assert.match(invokers, /timeoutMs: textParams\.timeoutMs/);
-  assert.match(invokers, /Extract<TesterCapabilityId, 'text\.generate' \| 'chat\.stream'>/);
+  assert.match(invokers, /runRuntimeAIConsumeCapability/);
+  assert.match(kitAiConsume, /coerceNimiAITextGenerationParams\(binding\.selectedParams\)/);
+  assert.match(kitAiConsume, /\.\.\.textParams\.value\.parameters/);
+  assert.match(kitAiConsume, /timeoutMs: textParams\.value\.timeoutMs/);
+  assert.match(kitAiConsume, /runtimeUnavailableReasonFromError/);
+  assert.match(kitAiConsume, /describeRuntimeGenerationError/);
+  assert.doesNotMatch(kitAiConsume, /ReasonCode/);
+  assert.doesNotMatch(kitAiConsume, /function providerDetailFromError/);
+  assert.match(invokers, /Extract<TesterCapabilityId, 'text\.generate' \| 'text\.embed'>/);
   assert.match(invokers, /case 'text\.embed':\s*return invokeEmbedding/);
   assert.match(sdkAiConfigBinding, /runtime invocation failed closed before request dispatch/);
   assert.match(sdkAiConfigBinding, /input\.config\.capabilities\.targetRefs\[bindingCapabilityId\]/);
@@ -164,33 +218,51 @@ test('tester LLM invokers consume AIConfig bindings and fail closed without bind
   assert.match(invokers, /from '@nimiplatform\/sdk\/ai'/);
   assert.match(invokers, /createNimiRuntimeAISchedulingClient/);
   assert.match(invokers, /client\.runtime/);
+  assert.match(invokers, /from '@nimiplatform\/kit\/features\/generation\/runtime'/);
+  assert.doesNotMatch(invokers, /createTesterTextModel/);
+  assert.doesNotMatch(invokers, /buildNimiUserMessages/);
   assert.doesNotMatch(invokers, /resolveAIConfigRuntimeSchedulingTargetForCapability/);
   assert.doesNotMatch(invokers, /peekRuntimeSchedulingBatch/);
   assert.doesNotMatch(invokers, /client\.runtime\.ai\.peekScheduling/);
 
-  const mediaBindings = read('src/tester/tester-runtime-media-bindings.ts');
-  const mediaParams = read('src/tester/tester-runtime-invokers-media-params.ts');
+  const kitImageRuntime = read('../../kit/features/generation/src/runtime-image-generate.ts');
+  const kitVideoRuntime = read('../../kit/features/generation/src/runtime-video-generate.ts');
+  const kitTranscribeRuntime = read('../../kit/features/generation/src/runtime-speech-transcribe.ts');
   const sdkMediaParams = readFileSync(path.join(root, '..', '..', 'sdks', 'typescript', 'features', 'generation', 'media-params.ts'), 'utf8');
   const mediaInvokers = readTesterRuntimeInvokersSurface(root);
-  assert.match(mediaBindings, /selectedParamRecord\(resolved\)/);
-  assert.match(mediaBindings, /imageProfileExtensions\(binding: ImageRuntimeBinding, providerOptions: JsonObject = \{\}\)/);
-  assert.match(mediaBindings, /\.\.\.providerOptions,\s*profile_entries:/);
-  assert.match(mediaBindings, /localRuntimeRefCandidates/);
-  assert.doesNotMatch(mediaBindings, /function localRuntimeAssetIdCandidates/);
-  assert.match(mediaParams, /imageParamsFromBinding/);
-  assert.match(mediaParams, /coerceNimiImageGenerationParams/);
+  assert.equal(existsSync(path.join(root, 'src/tester/tester-runtime-media-bindings.ts')), false);
+  assert.match(kitImageRuntime, /function imageProfileExtensionsFromBinding/);
+  assert.match(kitImageRuntime, /\.\.\.imageParams\.providerOptions,\s*profile_overrides:/);
+  assert.match(kitImageRuntime, /profile_entries:/);
+  assert.equal(existsSync(path.join(root, 'src/tester/tester-runtime-invokers-media-params.ts')), false);
   assert.match(sdkMediaParams, /2k/);
   assert.match(sdkMediaParams, /3k/);
   assert.match(sdkMediaParams, /4k/);
-  assert.match(mediaInvokers, /imageParamsFromBinding/);
-  assert.match(mediaInvokers, /videoParamsFromBinding/);
-  assert.match(mediaInvokers, /transcriptionParamsFromBinding/);
-  assert.match(mediaInvokers, /mode: videoParams\.mode/);
-  assert.match(mediaInvokers, /negativePrompt: videoParams\.negativePrompt/);
-  assert.match(mediaInvokers, /options: videoParams\.options/);
-  assert.match(mediaInvokers, /speakerCount: transcriptionParams\.speakerCount/);
-  assert.match(mediaInvokers, /diarization: transcriptionParams\.diarization/);
-  assert.match(mediaInvokers, /timeoutMs,\s*signal/s);
+  assert.doesNotMatch(mediaInvokers, /imageParamsFromBinding/);
+  assert.match(mediaInvokers, /runRuntimeVideoGenerate/);
+  assert.match(mediaInvokers, /runRuntimeSpeechTranscribe/);
+  assert.match(kitVideoRuntime, /coerceNimiVideoGenerationParams/);
+  assert.match(kitVideoRuntime, /mode: input\.params\.mode/);
+  assert.match(kitVideoRuntime, /negativePrompt: input\.params\.negativePrompt/);
+  assert.match(kitVideoRuntime, /options: input\.params\.options/);
+  assert.match(kitTranscribeRuntime, /coerceNimiSpeechTranscriptionParams/);
+  assert.match(kitTranscribeRuntime, /speakerCount: input\.params\.speakerCount/);
+  assert.match(kitTranscribeRuntime, /diarization: input\.params\.diarization/);
+  assert.match(kitTranscribeRuntime, /signal: input\.input\.signal/);
+  assert.match(kitTranscribeRuntime, /abortReason: input\.input\.abortReason/);
+});
+
+test('Kit voice catalog consumer API avoids generated voice request/response types', () => {
+  const kitVoiceCatalog = read('../../kit/features/generation/src/runtime-voice-catalog.ts');
+  const sdkContract = read('../../kit/core/src/sdk-contract.ts');
+  assert.doesNotMatch(kitVoiceCatalog, /ListPresetVoicesRequest/);
+  assert.doesNotMatch(kitVoiceCatalog, /ListPresetVoicesResponse/);
+  assert.doesNotMatch(sdkContract, /ListPresetVoicesRequest/);
+  assert.doesNotMatch(sdkContract, /ListPresetVoicesResponse/);
+  assert.doesNotMatch(sdkContract, /export \{[^}]*runNimiRuntimeScenarioJob/s);
+  assert.match(sdkContract, /runKitRuntimeScenarioJob/);
+  assert.match(kitVoiceCatalog, /signal\?: AbortSignal/);
+  assert.match(kitVoiceCatalog, /withScopes\?: RuntimeVoiceCatalogScopeRunner/);
 });
 
 test('tester LLM invoker dispatches configured AIConfig route payload', async () => {
@@ -555,7 +627,7 @@ test('tester LLM selectedParams validation fails closed before dispatch', async 
   assert.deepEqual(captured, []);
 });
 
-test('tester video invoker forwards selected media params to Runtime media lane', async () => {
+test('tester video invoker forwards selected media params to Runtime Scenario job', async () => {
   const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
   const store = await importBehaviorModule('tester/tester-ai-config-store.js');
   const scopeRef = store.createTesterAppLabAIScopeRef();
@@ -593,6 +665,7 @@ test('tester video invoker forwards selected media params to Runtime media lane'
   });
 
   let capturedVideo = null;
+  const jobs = new Map();
   const client = {
     runtime: {
       scheduling: {
@@ -602,28 +675,51 @@ test('tester video invoker forwards selected media params to Runtime media lane'
       },
       ai: {
         async executeScenario() {
-          throw new Error('executeScenario should not run when media.video.generate is available');
+          throw new Error('executeScenario should not run for media Scenario jobs');
         },
         streamScenario() {
           throw new Error('streamScenario should not be called');
         },
-      },
-      media: {
-        video: {
-          async generate(input) {
-            capturedVideo = input;
-            return {
-              job: {
-                jobId: 'video-job-1',
-                state: 'completed',
-                modelResolved: 'runtime-video-model',
-                routeDecision: 'cloud',
-                traceId: 'video-trace-1',
-              },
-              artifacts: [],
-              traceId: 'video-trace-1',
-            };
-          },
+        async submitScenarioJob(request) {
+          capturedVideo = request;
+          const job = {
+            jobId: 'video-job-1',
+            status: 4,
+            scenarioType: request.scenarioType,
+            traceId: 'video-trace-1',
+            modelResolved: request.head.modelId,
+            routeDecision: request.head.routePolicy,
+            artifacts: [],
+          };
+          jobs.set(job.jobId, job);
+          return { job };
+        },
+        async *subscribeScenarioJobEvents({ jobId }) {
+          yield {
+            eventType: 4,
+            sequence: '1',
+            traceId: jobs.get(jobId)?.traceId || '',
+            job: jobs.get(jobId),
+          };
+        },
+        async getScenarioJob({ jobId }) {
+          return { job: jobs.get(jobId) };
+        },
+        async cancelScenarioJob() {
+          return { job: undefined };
+        },
+        async getScenarioArtifacts({ jobId }) {
+          const artifact = {
+            artifactId: 'video-artifact-1',
+            mimeType: 'video/mp4',
+            uri: 'https://cdn.example/video.mp4',
+            bytes: new Uint8Array(),
+          };
+          return {
+            traceId: jobs.get(jobId)?.traceId || '',
+            artifacts: [artifact],
+            output: { output: { oneofKind: 'videoGenerate', videoGenerate: { artifacts: [artifact] } } },
+          };
         },
       },
     },
@@ -635,24 +731,23 @@ test('tester video invoker forwards selected media params to Runtime media lane'
     subjectUserId: 'subject-user-1',
   });
   assert.equal(result.ok, true);
-  assert.equal(capturedVideo.mode, 't2v');
-  assert.equal(capturedVideo.connectorId, 'runtime-video-connector');
-  assert.equal(capturedVideo.model, 'runtime-video-model');
-  assert.equal(capturedVideo.subjectUserId, 'subject-user-1');
-  assert.equal(capturedVideo.prompt, 'Generate a moving product shot');
-  assert.equal(capturedVideo.negativePrompt, 'blur');
-  assert.deepEqual(capturedVideo.options, {
-    ratio: '9:16',
-    durationSec: 6,
-    resolution: '720p',
-    fps: 24,
-    seed: '42',
-    cameraFixed: true,
-    generateAudio: true,
-  });
-  assert.equal(capturedVideo.timeoutMs, 123000);
-  assert.equal(capturedVideo.signal instanceof AbortSignal, true);
-  assert.equal(capturedVideo.metadata.aiConfigBindingCapabilityId, 'video.generate');
+  const videoSpec = capturedVideo.spec.spec.videoGenerate;
+  assert.equal(videoSpec.mode, 1);
+  assert.equal(capturedVideo.head.connectorId, 'runtime-video-connector');
+  assert.equal(capturedVideo.head.modelId, 'runtime-video-model');
+  assert.equal(capturedVideo.head.subjectUserId, 'subject-user-1');
+  assert.equal(videoSpec.prompt, 'Generate a moving product shot');
+  assert.equal(videoSpec.negativePrompt, 'blur');
+  assert.equal(videoSpec.options.ratio, '9:16');
+  assert.equal(videoSpec.options.durationSec, 6);
+  assert.equal(videoSpec.options.resolution, '720p');
+  assert.equal(videoSpec.options.fps, 24);
+  assert.equal(videoSpec.options.seed, '42');
+  assert.equal(videoSpec.options.cameraFixed, true);
+  assert.equal(videoSpec.options.generateAudio, true);
+  assert.equal(videoSpec.options.watermark, false);
+  assert.equal(capturedVideo.head.timeoutMs, 123000);
+  assert.equal(capturedVideo.labels.aiConfigBindingCapabilityId, 'video.generate');
 });
 
 test('tester local text.generate binding omits runtime connectorId payload', async () => {
@@ -908,6 +1003,7 @@ test('tester local LLM scheduling denial fails closed before Runtime execution',
   const result = await invokers.invokeTesterCapability(client, 'text.generate', {
     prompt: 'blocked',
     scenarioId: 'blocked-scheduling',
+    subjectUserId: 'subject-user-1',
   });
   assert.equal(result.ok, false);
   assert.equal(result.reason, 'runtime-call-failed');

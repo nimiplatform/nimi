@@ -13,12 +13,15 @@ import {
   createSimpleAiConversationProvider,
 } from '@nimiplatform/kit/features/chat/runtime';
 import {
-  createNimiRuntimeAIModel,
+  runRuntimeAIConsumeCapability,
+  type RuntimeAIConsumeResult,
+  type RuntimeAIConsumeUnavailable,
+  type RuntimeVoiceCatalogRuntime,
+} from '@nimiplatform/kit/features/generation/runtime';
+import {
   createNimiRuntimeAISchedulingClient,
-  createNimiRuntimeEmbeddingClient,
   coerceNimiAITextGenerationParams,
   resolveNimiAIConfigRuntimeBinding,
-  runNimiTextGenerate,
   type NimiAIConfig,
   type NimiAIConfigRuntimeBinding,
   type NimiAITextGenerationParameterSet,
@@ -28,11 +31,6 @@ import {
   type NimiRuntimeEmbeddingScenarioClient,
 } from '@nimiplatform/sdk/ai';
 import type { NimiRuntimeLocalModelCenterRpc, NimiRuntimeScenarioJobClient } from '@nimiplatform/sdk/runtime';
-import type { ListVoiceAssetsRequest, ListVoiceAssetsResponse } from '@nimiplatform/sdk/runtime/wire-types';
-import {
-  textPart,
-  type NimiMessage,
-} from '@nimiplatform/sdk/contracts';
 import type { TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
 import { getTesterCapability, getTesterRuntimeBindingCapabilityId } from './tester-capabilities.js';
@@ -116,27 +114,11 @@ export type TesterTypedSuccess = {
 export type TesterInvocationResult = TesterTypedSuccess | TesterUnavailable;
 type ConversationTurnCompletedEvent = Extract<ConversationTurnEvent, { type: 'turn-completed' }>;
 type RuntimeRequestDiagnostics = NonNullable<TesterUnavailable['runtimeRequest']>;
-type RuntimeRequestDiagnosticsRecorder = {
-  current?: RuntimeRequestDiagnostics;
-};
 export type TesterRuntimeInvocationClient = {
   readonly runtimeSubjectUserId?: string;
   readonly runtime: {
     readonly ai: NimiRuntimeAIScenarioClient & NimiRuntimeEmbeddingScenarioClient & NimiRuntimeScenarioJobClient & {
-      readonly listPresetVoices?: (request: {
-        readonly appId: string;
-        readonly subjectUserId: string;
-        readonly modelId: string;
-        readonly targetModelId: string;
-        readonly connectorId: string;
-      }) => Promise<{
-        readonly voices: readonly { readonly voiceId?: string; readonly name?: string; readonly lang?: string }[];
-        readonly modelResolved?: string;
-        readonly traceId?: string;
-      }>;
-      readonly listVoiceAssets?: (
-        request: ListVoiceAssetsRequest,
-      ) => Promise<ListVoiceAssetsResponse>;
+      readonly listPresetVoices?: RuntimeVoiceCatalogRuntime['ai']['listPresetVoices'];
     };
     readonly scheduling: NimiRuntimeAISchedulingClient;
     readonly local?: NimiRuntimeLocalModelCenterRpc;
@@ -148,15 +130,6 @@ export type TesterRuntimeInvocationClient = {
         readonly mimeType?: string;
         readonly sizeBytes?: string | number;
       }>;
-    };
-    readonly media?: {
-      readonly image?: { readonly generate: (input: unknown) => Promise<unknown> };
-      readonly video?: { readonly generate: (input: unknown) => Promise<unknown> };
-      readonly tts?: {
-        readonly synthesize: (input: unknown) => Promise<unknown>;
-        readonly listVoices: (input: unknown) => Promise<unknown>;
-      };
-      readonly stt?: { readonly transcribe: (input: unknown) => Promise<unknown> };
     };
   };
 };
@@ -310,19 +283,6 @@ export function unavailableFromError(capabilityId: TesterCapabilityId, error: un
   return capabilityUnavailable(capability, reasonFromSdkError(error), describeSdkError(error));
 }
 
-function unavailableFromRuntimeError(
-  capabilityId: TesterCapabilityId,
-  error: unknown,
-  runtimeRequest?: RuntimeRequestDiagnostics,
-): TesterUnavailable {
-  const unavailable = unavailableFromError(capabilityId, error);
-  if (!runtimeRequest?.request) return unavailable;
-  return {
-    ...unavailable,
-    runtimeRequest,
-  };
-}
-
 export function unavailableFromValidation(capabilityId: TesterCapabilityId, message: string): TesterUnavailable {
   const capability = getTesterCapability(capabilityId);
   return capabilityUnavailable(capability, 'input-invalid', message);
@@ -454,10 +414,6 @@ function unsupportedTextAttachments(
   );
 }
 
-function buildNimiUserMessages(prompt: string): NimiMessage[] {
-  return [{ role: 'user', content: [textPart(prompt)] }];
-}
-
 function buildChatRuntimeUserMessage(prompt: string): ConversationRuntimeTextMessage {
   return {
     role: 'user',
@@ -467,50 +423,82 @@ function buildChatRuntimeUserMessage(prompt: string): ConversationRuntimeTextMes
   };
 }
 
-function withRuntimeRequestDiagnostics(
-  client: TesterRuntimeInvocationClient,
-  recorder: RuntimeRequestDiagnosticsRecorder,
-): TesterRuntimeInvocationClient {
-  const originalAI = client.runtime.ai;
+function unavailableFromRuntimeAIConsume(
+  result: RuntimeAIConsumeUnavailable,
+  runtimeRequest?: RuntimeRequestDiagnostics,
+): TesterUnavailable {
+  const unavailable = capabilityUnavailable(
+    getTesterCapability(result.capabilityId),
+    result.reason as TesterUnavailableReason,
+    result.message,
+  );
+  if (!runtimeRequest?.request) return unavailable;
   return {
-    ...client,
-    runtime: {
-      ...client.runtime,
-      ai: {
-        ...originalAI,
-        async executeScenario(request, options) {
-          recorder.current = { request, options };
-          return originalAI.executeScenario(request, options);
-        },
-        streamScenario(request, options) {
-          recorder.current = { request, options };
-          return originalAI.streamScenario(request, options);
-        },
-      },
-    },
+    ...unavailable,
+    runtimeRequest,
   };
 }
 
-function createTesterTextModel(
+function successFromRuntimeAIConsume(result: Extract<RuntimeAIConsumeResult, { ok: true }>): TesterTypedSuccess {
+  return {
+    ok: true,
+    capabilityId: result.capabilityId,
+    capabilityLabel: getTesterCapability(result.capabilityId).label,
+    message: result.message,
+    output: result.output.kind === 'embedding'
+      ? {
+        kind: 'embedding',
+        vectorCount: result.output.vectorCount,
+        dimensions: result.output.dimensions,
+        sample: [...result.output.sample],
+        totalTokens: result.output.totalTokens,
+      }
+      : result.output,
+    trace: result.trace,
+  };
+}
+
+async function invokeRuntimeAIConsume(
   client: TesterRuntimeInvocationClient,
-  resolved: ResolvedLLMBinding,
-  timeoutMs?: number,
-  diagnostics?: RuntimeRequestDiagnosticsRecorder,
-) {
-  const runtimeClient = diagnostics ? withRuntimeRequestDiagnostics(client, diagnostics) : client;
-  return createNimiRuntimeAIModel({
-    runtime: runtimeClient.runtime,
+  input: TesterScenarioInput,
+  capabilityId: Extract<TesterCapabilityId, 'text.generate' | 'text.embed'>,
+  emptyPromptMessage: string,
+  surfaceId: string,
+): Promise<TesterInvocationResult> {
+  const prompt = input.prompt.trim();
+  if (!prompt) {
+    return unavailableFromValidation(capabilityId, emptyPromptMessage);
+  }
+  if (capabilityId === 'text.generate') {
+    const attachmentUnavailable = unsupportedTextAttachments('text.generate', input.attachments);
+    if (attachmentUnavailable) return attachmentUnavailable;
+  }
+
+  let runtimeRequestDiagnostics: RuntimeRequestDiagnostics | undefined;
+  const bindingCapabilityId = getTesterRuntimeBindingCapabilityId(capabilityId);
+  if (!bindingCapabilityId) {
+    return unavailableFromAIConfig(capabilityId, `Capability ${capabilityId} does not have an AIConfig runtime binding path.`);
+  }
+  const result = await runRuntimeAIConsumeCapability({
+    runtime: client.runtime,
     appId: TESTER_APP_ID,
-    model: {
-      modelId: resolved.model,
-      ...(resolved.connectorId ? { providerId: resolved.connectorId } : {}),
+    config: loadTesterAIConfig(),
+    capabilityId,
+    bindingCapabilityId,
+    prompt,
+    directive: capabilityId === 'text.generate' ? input.directive : undefined,
+    scenarioId: input.scenarioId,
+    subjectUserId: client.runtimeSubjectUserId,
+    surfaceId,
+    metadata: buildMetadata(surfaceId),
+    onRuntimeRequest: (diagnostics) => {
+      runtimeRequestDiagnostics = diagnostics;
     },
-    routePolicy: resolved.routePolicy,
-    connectorId: resolved.connectorId,
-    subjectUserId: requireRuntimeSubjectUserId('text.generate', client),
-    timeoutMs,
-    targetRef: resolved.targetRef,
   });
+  if (result.ok === false) {
+    return unavailableFromRuntimeAIConsume(result, runtimeRequestDiagnostics);
+  }
+  return successFromRuntimeAIConsume(result);
 }
 
 export function requireRuntimeSubjectUserId(
@@ -539,55 +527,13 @@ function conversationRuntimeFailure(code: string, message: string): Error & {
 }
 
 export async function invokeTextGenerate(client: TesterRuntimeInvocationClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
-  const prompt = input.prompt.trim();
-  if (!prompt) {
-    return unavailableFromValidation('text.generate', 'Scenario prompt is empty — supply a request body before running text.generate.');
-  }
-  const attachmentUnavailable = unsupportedTextAttachments('text.generate', input.attachments);
-  if (attachmentUnavailable) return attachmentUnavailable;
-  const resolved = resolveTesterLLMBinding('text.generate');
-  if (isTesterUnavailable(resolved)) return resolved;
-  const textParams = resolveTextGenerationParameters('text.generate', resolved);
-  if (isTesterUnavailable(textParams)) return textParams;
-  const schedulingPreflight = await ensureSchedulingPreflight(client, 'text.generate', resolved);
-  if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  const directedPrompt = input.directive ? `${input.directive}\n\n${prompt}` : prompt;
-  const runtimeRequestDiagnostics: RuntimeRequestDiagnosticsRecorder = {};
-  const model = createTesterTextModel(client, resolved, textParams.timeoutMs, runtimeRequestDiagnostics);
-  const result = await runNimiTextGenerate({
-    runtime: { model },
-    request: {
-      model: model.model,
-      messages: buildNimiUserMessages(directedPrompt),
-      parameters: {
-        ...textParams.parameters,
-        metadata: buildMetadata('nimi.tester.ai.text.generate', {
-          ...resolved.metadata,
-          ...schedulingPreflight.evidenceMetadata,
-        }),
-      },
-    },
-  });
-  if (result.ok === false) {
-    return unavailableFromRuntimeError('text.generate', result.error.cause ?? result.error, runtimeRequestDiagnostics.current);
-  }
-  const output = result.result;
-  return {
-    ok: true,
-    capabilityId: 'text.generate',
-    capabilityLabel: getTesterCapability('text.generate').label,
-    message: `Runtime accepted the prompt and returned ${result.text.length} characters.`,
-    output: {
-      kind: 'text',
-      text: result.text,
-      finishReason: output.finishReason,
-      inputTokens: output.usage?.promptTokens,
-      outputTokens: output.usage?.completionTokens,
-      totalTokens: output.usage?.totalTokens,
-      streamed: false,
-    },
-    trace: pickTrace(output.raw),
-  };
+  return invokeRuntimeAIConsume(
+    client,
+    input,
+    'text.generate',
+    'Scenario prompt is empty — supply a request body before running text.generate.',
+    'nimi.tester.ai.text.generate',
+  );
 }
 
 export async function invokeChatStream(client: TesterRuntimeInvocationClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
@@ -686,50 +632,11 @@ export async function invokeChatStream(client: TesterRuntimeInvocationClient, in
 }
 
 export async function invokeEmbedding(client: TesterRuntimeInvocationClient, input: TesterScenarioInput): Promise<TesterInvocationResult> {
-  const prompt = input.prompt.trim();
-  if (!prompt) {
-    return unavailableFromValidation('text.embed', 'Scenario prompt is empty — supply at least one input string for embedding.');
-  }
-  const resolved = resolveTesterLLMBinding('text.embed');
-  if (isTesterUnavailable(resolved)) return resolved;
-  const schedulingPreflight = await ensureSchedulingPreflight(client, 'text.embed', resolved);
-  if (schedulingPreflight.unavailable) return schedulingPreflight.unavailable;
-  try {
-    const embedding = createNimiRuntimeEmbeddingClient({
-      runtime: client.runtime,
-      appId: TESTER_APP_ID,
-      model: {
-        modelId: resolved.model,
-        ...(resolved.connectorId ? { providerId: resolved.connectorId } : {}),
-      },
-      routePolicy: resolved.routePolicy,
-      connectorId: resolved.connectorId,
-      subjectUserId: requireRuntimeSubjectUserId('text.embed', client),
-      targetRef: resolved.targetRef,
-    });
-    const output = await embedding.embedText({
-      values: [prompt],
-      metadata: buildMetadata('nimi.tester.ai.embedding.generate', {
-        ...resolved.metadata,
-        ...schedulingPreflight.evidenceMetadata,
-      }),
-    });
-    const first = output.embeddings[0] || [];
-    return {
-      ok: true,
-      capabilityId: 'text.embed',
-      capabilityLabel: getTesterCapability('text.embed').label,
-      message: `Runtime returned ${output.embeddings.length} vector(s) with ${first.length} dimensions.`,
-      output: {
-        kind: 'embedding',
-        vectorCount: output.embeddings.length,
-        dimensions: first.length,
-        sample: first.slice(0, 8),
-        totalTokens: output.usage?.totalTokens ?? output.usage?.promptTokens,
-      },
-      trace: pickTrace(output.raw),
-    };
-  } catch (error) {
-    return unavailableFromError('text.embed', error);
-  }
+  return invokeRuntimeAIConsume(
+    client,
+    input,
+    'text.embed',
+    'Scenario prompt is empty — supply at least one input string for embedding.',
+    'nimi.tester.ai.embedding.generate',
+  );
 }
