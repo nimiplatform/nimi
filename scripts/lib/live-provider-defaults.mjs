@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { canonicalProviderId, readYamlFile } from '../live-provider-utils.mjs';
+import { canonicalProviderId } from '../live-provider-utils.mjs';
+import { listProviderSourceDocs } from './provider-source.mjs';
 
 const MODEL_CAPABILITY_ENV_SUFFIX = new Map([
   ['text.generate', 'MODEL_ID'],
@@ -194,15 +195,12 @@ export function synthesizeLiveProviderEnvDefaults({ repoRoot, env = process.env 
     return { env: derivedEnv, providers: derivedProviders };
   }
 
-  const files = fs.readdirSync(providerSourceDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.source.yaml'))
-    .map((entry) => path.join(providerSourceDir, entry.name))
-    .sort((left, right) => left.localeCompare(right));
+  const sourceProviders = listProviderSourceDocs(providerSourceDir);
 
-  for (const filePath of files) {
-    const doc = readYamlFile(filePath);
+  for (const sourceEntry of sourceProviders) {
+    const doc = sourceEntry.doc || {};
     const provider = canonicalProviderId(
-      doc?.provider || path.basename(filePath, '.source.yaml'),
+      doc?.provider || sourceEntry.provider,
     );
     if (!provider) {
       continue;

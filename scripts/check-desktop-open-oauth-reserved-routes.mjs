@@ -28,7 +28,7 @@ const failures = [
   ]),
 ];
 
-const electronTest = read('kit/shell/electron/test/electron-shell.test.ts');
+const electronTest = read('kit/shell/electron/test/electron-shell-bridge-host-features.test.ts');
 const tauriTest = read('kit/shell/tauri/src/oauth_commands.rs');
 for (const variant of [
   'http://[::1]:4500/v1/open-intent',

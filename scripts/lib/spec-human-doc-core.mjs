@@ -1,5 +1,5 @@
 import { promises as fs } from 'node:fs';
-import YAML from 'yaml';
+import { readYamlWithFragments } from './read-yaml-with-fragments.mjs';
 
 const RULE_ID_SOURCE = String.raw`(?:C|K|S|D|P|R|F)-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-\d{3}[a-z]?`;
 const RULE_HEADING_RE = new RegExp(String.raw`^##\s+(${RULE_ID_SOURCE})\b(?:\s+[—-]\s+(.*)|\s+(.*))?$`);
@@ -42,8 +42,7 @@ export function parseKernelRules(content) {
 }
 
 export async function readYaml(filePath) {
-  const raw = await fs.readFile(filePath, 'utf8');
-  return YAML.parse(raw);
+  return readYamlWithFragments(filePath);
 }
 
 export class DocBuilder {
@@ -451,15 +450,20 @@ export function renderRuleEvidence(doc) {
 }
 
 export const runtimeKernelFiles = [
-  'rpc-surface.md', 'authz-ownership.md', 'authn-token-validation.md',
+  'rpc-surface.md', 'rpc-local-service-contract.md', 'rpc-route-describe-contract.md', 'authz-ownership.md', 'authn-token-validation.md',
   'auth-service.md', 'grant-service.md', 'key-source-routing.md',
   'scenario-job-lifecycle.md', 'local-category-capability.md',
-  'local-engine-contract.md', 'local-engine-accelerator-contract.md',
+  'local-profile-application-contract.md', 'local-catalog-recommendation-contract.md',
+  'local-asset-storage-manifest-contract.md',
+  'local-engine-contract.md', 'local-engine-resolver-contract.md',
+  'local-engine-protocol-health-contract.md', 'local-engine-runtime-environment-contract.md',
+  'local-engine-accelerator-contract.md',
   'local-engine-speech-contract.md', 'device-profile-contract.md',
   'endpoint-security.md',
   'streaming-contract.md', 'error-model.md', 'pagination-filtering.md', 'audit-contract.md',
   'daemon-lifecycle.md', 'provider-health-contract.md', 'workflow-contract.md',
   'model-service-contract.md', 'knowledge-contract.md', 'app-messaging-contract.md',
+  'app-lifecycle-contract.md', 'app-projection-contract.md',
   'cli-onboarding-contract.md',
   'config-contract.md', 'connector-contract.md',
   'nimillm-contract.md', 'multimodal-provider-contract.md', 'delivery-gates-contract.md',

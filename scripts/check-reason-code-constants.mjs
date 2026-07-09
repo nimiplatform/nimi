@@ -3,7 +3,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import YAML from 'yaml';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -87,8 +87,7 @@ function parseReasonCodeEntries(source) {
   return entries;
 }
 
-function parseSdkErrorCodeTable(source) {
-  const table = YAML.parse(source);
+function parseSdkErrorCodeTable(table) {
   const values = Array.isArray(table?.values)
     ? table.values.map((value) => String(value)).filter(Boolean)
     : [];
@@ -151,8 +150,7 @@ async function main() {
   const reasonCodeSource = await fs.readFile(reasonCodeFile, 'utf8');
   const reasonCodeEntries = parseReasonCodeEntries(reasonCodeSource);
   const reasonCodeValues = new Set(reasonCodeEntries.map((entry) => entry.value));
-  const sdkErrorCodeSource = await fs.readFile(sdkErrorCodesFile, 'utf8');
-  const sdkErrorCodeTable = parseSdkErrorCodeTable(sdkErrorCodeSource);
+  const sdkErrorCodeTable = parseSdkErrorCodeTable(readYamlWithFragments(sdkErrorCodesFile));
   const sdkErrorCodeValues = new Set(sdkErrorCodeTable.values);
   const sdkErrorCodeNames = new Set(sdkErrorCodeTable.codeNames);
 

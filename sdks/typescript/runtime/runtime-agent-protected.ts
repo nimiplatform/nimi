@@ -16,6 +16,7 @@ import { normalizeNimiRuntimeAgentText, toNimiRuntimeTimestamp } from './runtime
 
 const RUNTIME_AGENT_SCOPE_CATALOG_VERSION = 'sdk-v2';
 const RUNTIME_AGENT_TOKEN_TTL_SECONDS = 3600;
+const RUNTIME_AGENT_PROTECTED_PRINCIPAL_SUFFIX = 'runtime-agent';
 
 export interface NimiRuntimeAgentAuthClient {
   registerApp(request: RegisterAppRequest, options?: RuntimeTypedCallOptions): Promise<RegisterAppResponse>;
@@ -102,7 +103,7 @@ export async function issueNimiRuntimeAgentProtectedCallOptions(input: {
   const token = await input.runtime.appAuth.authorizeExternalPrincipal({
     domain: 'app-auth',
     appId: input.runtime.appId,
-    externalPrincipalId: input.runtime.appId,
+    externalPrincipalId: runtimeAgentProtectedExternalPrincipalId(input.runtime.appId),
     externalPrincipalType: ExternalPrincipalType.APP,
     subjectUserId: input.subjectUserId,
     consentId: 'runtime-agent',
@@ -138,6 +139,10 @@ export async function issueNimiRuntimeAgentProtectedCallOptions(input: {
       'x-nimi-access-token-secret': secret,
     },
   };
+}
+
+function runtimeAgentProtectedExternalPrincipalId(appId: string): string {
+  return `${appId}.${RUNTIME_AGENT_PROTECTED_PRINCIPAL_SUFFIX}`;
 }
 
 function protectedScopeSignature(scopes: readonly string[]): string {

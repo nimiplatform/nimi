@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { listProviderSourceDocs } from './lib/provider-source.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -82,11 +83,11 @@ function main() {
       .map((entry) => [normalizeProvider(entry?.provider), entry]),
   );
 
-  for (const name of fs.readdirSync(sourceDir).filter((entry) => entry.endsWith('.source.yaml')).sort()) {
-    const absPath = path.join(sourceDir, name);
+  for (const sourceEntry of listProviderSourceDocs(sourceDir)) {
+    const absPath = sourceEntry.absPath;
     const relPath = path.relative(repoRoot, absPath);
-    const doc = readYaml(absPath);
-    const provider = normalizeProvider(doc?.provider || name.replace(/\.source\.yaml$/u, ''));
+    const doc = sourceEntry.doc || {};
+    const provider = normalizeProvider(doc?.provider || sourceEntry.provider);
     const runtime = doc?.runtime && typeof doc.runtime === 'object' ? doc.runtime : null;
     if (!runtime) {
       fail(`${relPath} must include runtime metadata block`);

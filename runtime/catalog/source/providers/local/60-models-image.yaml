@@ -1,0 +1,331 @@
+models:
+  - model_id: flux.1-schnell-local
+    model_type: image
+    updated_at: 2026-03-15
+    capabilities: [image.generate]
+    image_request_options:
+      response_formats: [b64_json, url]
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
+    source_ids: [diffusers_flux_docs]
+    aliases:
+      - local/flux.1-schnell
+      - media/flux.1-schnell
+
+  # Curated first-run local image lane (K-MCAT-033 recommended preset, wave-2).
+  # Z-Image-Turbo runs on stable-diffusion.cpp (stablediffusion-ggml native
+  # backend). Per the stable-diffusion.cpp Z-Image guide the workflow needs two
+  # passive companion assets: a VAE (--vae / vae_path) and a Qwen3-4B text
+  # encoder (--llm / llm_path). GGUF quants span 4GB-VRAM hosts up to high-VRAM
+  # hosts; each quant carries a cuda and a metal accelerator variant.
+  - model_id: z-image-turbo-local
+    model_type: image
+    updated_at: 2026-05-21
+    capabilities: [image.generate]
+    image_request_options:
+      response_formats: [b64_json, url]
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: true
+    source_ids: [z_image_turbo_gguf_modelcard, stable_diffusion_cpp_z_image_guide]
+    install:
+      repo: leejet/Z-Image-Turbo-GGUF
+      revision: c61c0e422dc8b541b7548cf33a4ef8302b0f8085
+      install_kind: weights
+      entry: z_image_turbo-Q4_K.gguf
+      artifact_roles: [diffusion_model]
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.z-image-turbo.q3-k.cuda
+        quant: Q3_K
+        entry: z_image_turbo-Q3_K.gguf
+        files: [z_image_turbo-Q3_K.gguf]
+        hashes:
+          z_image_turbo-Q3_K.gguf: "sha256:4b44bdaa7814f20d7cf144e3939bd93aa32f50660204dd0c2aea5c5376232980"
+        total_size_bytes: 3143559104
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.image.z-image-turbo.q3-k.metal
+        quant: Q3_K
+        entry: z_image_turbo-Q3_K.gguf
+        files: [z_image_turbo-Q3_K.gguf]
+        hashes:
+          z_image_turbo-Q3_K.gguf: "sha256:4b44bdaa7814f20d7cf144e3939bd93aa32f50660204dd0c2aea5c5376232980"
+        total_size_bytes: 3143559104
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.image.z-image-turbo.q4-0.cuda
+        quant: Q4_0
+        entry: z_image_turbo-Q4_0.gguf
+        files: [z_image_turbo-Q4_0.gguf]
+        hashes:
+          z_image_turbo-Q4_0.gguf: "sha256:2bc57986874c84f7ec6d02d9d7070a53b0029954a0e38a6e1342eb91095572f5"
+        total_size_bytes: 3683370944
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 5368709120
+      - variant_id: local.image.z-image-turbo.q4-0.metal
+        quant: Q4_0
+        entry: z_image_turbo-Q4_0.gguf
+        files: [z_image_turbo-Q4_0.gguf]
+        hashes:
+          z_image_turbo-Q4_0.gguf: "sha256:2bc57986874c84f7ec6d02d9d7070a53b0029954a0e38a6e1342eb91095572f5"
+        total_size_bytes: 3683370944
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 5368709120
+      - variant_id: local.image.z-image-turbo.q4-k.cuda
+        quant: Q4_K
+        entry: z_image_turbo-Q4_K.gguf
+        files: [z_image_turbo-Q4_K.gguf]
+        hashes:
+          z_image_turbo-Q4_K.gguf: "sha256:14b375ab4f226bc5378f68f37e899ef3c2242b8541e61e2bc1aff40976086fbd"
+        total_size_bytes: 3864250304
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 5368709120
+      - variant_id: local.image.z-image-turbo.q4-k.metal
+        quant: Q4_K
+        entry: z_image_turbo-Q4_K.gguf
+        files: [z_image_turbo-Q4_K.gguf]
+        hashes:
+          z_image_turbo-Q4_K.gguf: "sha256:14b375ab4f226bc5378f68f37e899ef3c2242b8541e61e2bc1aff40976086fbd"
+        total_size_bytes: 3864250304
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 5368709120
+      - variant_id: local.image.z-image-turbo.q5-0.cuda
+        quant: Q5_0
+        entry: z_image_turbo-Q5_0.gguf
+        files: [z_image_turbo-Q5_0.gguf]
+        hashes:
+          z_image_turbo-Q5_0.gguf: "sha256:12b4a5c064cf8a0fa45d665c5b399d43effbcbeb37748d028d0d0d0fc34c2255"
+        total_size_bytes: 4542547904
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 6442450944
+      - variant_id: local.image.z-image-turbo.q5-0.metal
+        quant: Q5_0
+        entry: z_image_turbo-Q5_0.gguf
+        files: [z_image_turbo-Q5_0.gguf]
+        hashes:
+          z_image_turbo-Q5_0.gguf: "sha256:12b4a5c064cf8a0fa45d665c5b399d43effbcbeb37748d028d0d0d0fc34c2255"
+        total_size_bytes: 4542547904
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 6442450944
+      - variant_id: local.image.z-image-turbo.q6-k.cuda
+        quant: Q6_K
+        entry: z_image_turbo-Q6_K.gguf
+        files: [z_image_turbo-Q6_K.gguf]
+        hashes:
+          z_image_turbo-Q6_K.gguf: "sha256:319f627beac8059b7546f36a7b4d5097b7f4ee6a1fc37585d0f75ca1d12d01af"
+        total_size_bytes: 5263239104
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 7516192768
+      - variant_id: local.image.z-image-turbo.q6-k.metal
+        quant: Q6_K
+        entry: z_image_turbo-Q6_K.gguf
+        files: [z_image_turbo-Q6_K.gguf]
+        hashes:
+          z_image_turbo-Q6_K.gguf: "sha256:319f627beac8059b7546f36a7b4d5097b7f4ee6a1fc37585d0f75ca1d12d01af"
+        total_size_bytes: 5263239104
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 10737418240
+          min_vram_bytes: 7516192768
+      - variant_id: local.image.z-image-turbo.q8-0.cuda
+        quant: Q8_0
+        entry: z_image_turbo-Q8_0.gguf
+        files: [z_image_turbo-Q8_0.gguf]
+        hashes:
+          z_image_turbo-Q8_0.gguf: "sha256:df1c5baa86d1398c979495a6072dbcee79444fdb884a2445582ba0769c44e9a1"
+        total_size_bytes: 6577440704
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 12884901888
+          min_vram_bytes: 9663676416
+      - variant_id: local.image.z-image-turbo.q8-0.metal
+        quant: Q8_0
+        entry: z_image_turbo-Q8_0.gguf
+        files: [z_image_turbo-Q8_0.gguf]
+        hashes:
+          z_image_turbo-Q8_0.gguf: "sha256:df1c5baa86d1398c979495a6072dbcee79444fdb884a2445582ba0769c44e9a1"
+        total_size_bytes: 6577440704
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 12884901888
+          min_vram_bytes: 9663676416
+    fitness:
+      param_count: 6000000000
+      context_length: 0
+    companions:
+      # VAE companion — stable-diffusion.cpp --vae slot. Single F16 safetensors;
+      # sourced from the Comfy-Org Z-Image-Turbo distribution (the gated FLUX
+      # repo named by the guide carries the byte-identical file but cannot be
+      # authentically resolved without authentication).
+      - companion_kind: vae
+        engine_slot: vae_path
+        install:
+          repo: Comfy-Org/z_image_turbo
+          revision: 2f862278568d3f0a83167a16e5f11094da6dee72
+          install_kind: weights
+          entry: split_files/vae/ae.safetensors
+          artifact_roles: [vae]
+          preferred_engine: media
+        variants:
+          - variant_id: local.image-vae.z-image-ae.f16.cuda
+            quant: F16
+            entry: split_files/vae/ae.safetensors
+            files: [split_files/vae/ae.safetensors]
+            hashes:
+              split_files/vae/ae.safetensors: "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38"
+            total_size_bytes: 335304388
+            host_requirement:
+              accelerator: cuda
+              min_ram_bytes: 8589934592
+              min_vram_bytes: 4294967296
+          - variant_id: local.image-vae.z-image-ae.f16.metal
+            quant: F16
+            entry: split_files/vae/ae.safetensors
+            files: [split_files/vae/ae.safetensors]
+            hashes:
+              split_files/vae/ae.safetensors: "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38"
+            total_size_bytes: 335304388
+            host_requirement:
+              accelerator: metal
+              min_ram_bytes: 8589934592
+              min_vram_bytes: 4294967296
+      # Text-encoder companion — stable-diffusion.cpp --llm slot. Qwen3-4B used
+      # as the Z-Image prompt text encoder. A 4B autoregressive LLM text encoder
+      # is not a CLIP model; companion_kind is K-LOCAL-007's `auxiliary`
+      # catch-all (a passive role outside the named kinds), while functional
+      # routing stays precise via engine_slot llm_path — a distinct K-LOCAL-031
+      # engine slot from clip_path.
+      - companion_kind: auxiliary
+        engine_slot: llm_path
+        install:
+          repo: unsloth/Qwen3-4B-Instruct-2507-GGUF
+          revision: a06e946bb6b655725eafa393f4a9745d460374c9
+          install_kind: weights
+          entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+          artifact_roles: [text_encoder]
+          preferred_engine: media
+        variants:
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.cuda
+            quant: Q4_K_M
+            entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+            files: [Qwen3-4B-Instruct-2507-Q4_K_M.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q4_K_M.gguf: "sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"
+            total_size_bytes: 2497281120
+            host_requirement:
+              accelerator: cuda
+              min_ram_bytes: 8589934592
+              min_vram_bytes: 4294967296
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q4-k-m.metal
+            quant: Q4_K_M
+            entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+            files: [Qwen3-4B-Instruct-2507-Q4_K_M.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q4_K_M.gguf: "sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"
+            total_size_bytes: 2497281120
+            host_requirement:
+              accelerator: metal
+              min_ram_bytes: 8589934592
+              min_vram_bytes: 4294967296
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.cuda
+            quant: Q5_K_M
+            entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+            files: [Qwen3-4B-Instruct-2507-Q5_K_M.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q5_K_M.gguf: "sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb"
+            total_size_bytes: 2889514080
+            host_requirement:
+              accelerator: cuda
+              min_ram_bytes: 10737418240
+              min_vram_bytes: 5368709120
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q5-k-m.metal
+            quant: Q5_K_M
+            entry: Qwen3-4B-Instruct-2507-Q5_K_M.gguf
+            files: [Qwen3-4B-Instruct-2507-Q5_K_M.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q5_K_M.gguf: "sha256:5bde5e9d883622acb02bf77fe7dcbc56a8b9a9ad4be78a72ca23a532658b4ecb"
+            total_size_bytes: 2889514080
+            host_requirement:
+              accelerator: metal
+              min_ram_bytes: 10737418240
+              min_vram_bytes: 5368709120
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.cuda
+            quant: Q6_K
+            entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
+            files: [Qwen3-4B-Instruct-2507-Q6_K.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q6_K.gguf: "sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad"
+            total_size_bytes: 3306261600
+            host_requirement:
+              accelerator: cuda
+              min_ram_bytes: 10737418240
+              min_vram_bytes: 6442450944
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q6-k.metal
+            quant: Q6_K
+            entry: Qwen3-4B-Instruct-2507-Q6_K.gguf
+            files: [Qwen3-4B-Instruct-2507-Q6_K.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q6_K.gguf: "sha256:cd7b21b38b3e71400587c184b6a9b04d3beb4d13fdae6464d4075dee4f1bc5ad"
+            total_size_bytes: 3306261600
+            host_requirement:
+              accelerator: metal
+              min_ram_bytes: 10737418240
+              min_vram_bytes: 6442450944
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.cuda
+            quant: Q8_0
+            entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
+            files: [Qwen3-4B-Instruct-2507-Q8_0.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q8_0.gguf: "sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068"
+            total_size_bytes: 4280405600
+            host_requirement:
+              accelerator: cuda
+              min_ram_bytes: 12884901888
+              min_vram_bytes: 8589934592
+          - variant_id: local.image-textenc.qwen3-4b-instruct-2507.q8-0.metal
+            quant: Q8_0
+            entry: Qwen3-4B-Instruct-2507-Q8_0.gguf
+            files: [Qwen3-4B-Instruct-2507-Q8_0.gguf]
+            hashes:
+              Qwen3-4B-Instruct-2507-Q8_0.gguf: "sha256:391c1e410fd9f4cf2de2b510273b56a84c19ce18f4fa3bfb3774031dac4ef068"
+            total_size_bytes: 4280405600
+            host_requirement:
+              accelerator: metal
+              min_ram_bytes: 12884901888
+              min_vram_bytes: 8589934592
+    aliases:
+      - local/z-image-turbo
+      - media/z-image-turbo
+      - leejet/Z-Image-Turbo-GGUF

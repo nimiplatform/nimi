@@ -1,0 +1,101 @@
+sources:
+  - source_id: qwen3_tts_repo
+    url: https://github.com/QwenLM/Qwen3-TTS
+    retrieved_at: 2026-03-05
+    note: Open-source Qwen3-TTS repository and examples.
+  - source_id: qwen3_tts_readme
+    url: https://github.com/QwenLM/Qwen3-TTS/blob/main/README.md
+    retrieved_at: 2026-03-05
+    note: Open-source usage examples for synthesis and voice customization workflows.
+  - source_id: qwen3_tts_customvoice_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
+    retrieved_at: 2026-04-17
+    note: Default local plain TTS checkpoint for first-wave local admission.
+  - source_id: qwen3_tts_base_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base
+    retrieved_at: 2026-04-17
+    note: Default local voice clone checkpoint for first-wave local admission.
+  - source_id: qwen3_tts_voicedesign_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+    retrieved_at: 2026-04-17
+    note: Default local voice design checkpoint for first-wave local admission.
+  - source_id: qwen3_asr_modelcard
+    url: https://huggingface.co/Qwen/Qwen3-ASR-0.6B
+    retrieved_at: 2026-04-17
+    note: Default local STT checkpoint for first-wave local admission.
+  - source_id: gemma4_e2b_gguf_modelcard
+    url: https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF
+    retrieved_at: 2026-05-21
+    note: Curated minimal-preset local chat checkpoint (Gemma 4 E2B, GGUF quants).
+  - source_id: gemma4_26b_a4b_gguf_modelcard
+    url: https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF
+    retrieved_at: 2026-05-21
+    note: Curated recommended-preset local chat checkpoint (Gemma 4 26B-A4B MoE, GGUF quants).
+  - source_id: z_image_turbo_gguf_modelcard
+    url: https://huggingface.co/leejet/Z-Image-Turbo-GGUF
+    retrieved_at: 2026-05-21
+    note: Curated recommended-preset local image checkpoint (Z-Image-Turbo, stable-diffusion.cpp GGUF quants).
+  - source_id: stable_diffusion_cpp_z_image_guide
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/master/docs/z_image.md
+    retrieved_at: 2026-05-21
+    note: stable-diffusion.cpp Z-Image usage guide defining the diffusion-model / vae / llm engine slots.
+  - source_id: comfy_org_z_image_turbo_modelcard
+    url: https://huggingface.co/Comfy-Org/z_image_turbo
+    retrieved_at: 2026-05-21
+    note: >-
+      Z-Image-Turbo VAE companion source (split_files/vae/ae.safetensors). The
+      stable-diffusion.cpp Z-Image guide also names black-forest-labs/FLUX.1-schnell
+      for ae.sft, but that repo is access-gated; Comfy-Org/z_image_turbo is the
+      guide's ungated Z-Image distribution carrying byte-identical ae.safetensors.
+  - source_id: qwen3_4b_instruct_2507_gguf_modelcard
+    url: https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF
+    retrieved_at: 2026-05-21
+    note: Z-Image-Turbo text-encoder companion source (Qwen3-4B-Instruct-2507, GGUF quants for the stable-diffusion.cpp --llm slot).
+  - source_id: nomic_embed_text_v15_modelcard
+    url: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
+    retrieved_at: 2026-06-08
+    note: Nomic Embed Text v1.5 model card declaring 8192 context and 768 native embedding dimension.
+  - source_id: cosyvoice_repo
+    url: https://github.com/FunAudioLLM/CosyVoice
+    retrieved_at: 2026-03-05
+    note: CosyVoice repository.
+  - source_id: gpt_sovits_repo
+    url: https://github.com/RVC-Boss/GPT-SoVITS
+    retrieved_at: 2026-03-05
+    note: GPT-SoVITS repository.
+  - source_id: f5_tts_repo
+    url: https://github.com/SWivid/F5-TTS
+    retrieved_at: 2026-03-05
+    note: F5-TTS repository.
+  - source_id: piper_repo
+    url: https://github.com/rhasspy/piper
+    retrieved_at: 2026-03-05
+    note: Piper repository.
+  - source_id: kokoro_repo
+    url: https://github.com/hexgrad/kokoro
+    retrieved_at: 2026-03-05
+    note: Kokoro repository.
+  - source_id: voxcpm2_modelcard
+    url: https://huggingface.co/openbmb/VoxCPM2
+    retrieved_at: 2026-04-14
+    note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
+  - source_id: audiocraft_musicgen_docs
+    url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
+    retrieved_at: 2026-03-13
+    note: Meta AudioCraft MusicGen documentation.
+  - source_id: stable_audio_open_announcement
+    url: https://stability.ai/news/introducing-stable-audio-open
+    retrieved_at: 2026-03-13
+    note: Stable Audio Open announcement and positioning.
+  - source_id: stable_audio_tools_repo
+    url: https://github.com/Stability-AI/stable-audio-tools
+    retrieved_at: 2026-03-13
+    note: Stable Audio tools repository for self-hosted inference.
+  - source_id: diffusers_flux_docs
+    url: https://huggingface.co/docs/diffusers/api/pipelines/flux
+    retrieved_at: 2026-03-15
+    note: Official Diffusers FLUX pipeline documentation.
+  - source_id: diffusers_wan_docs
+    url: https://huggingface.co/docs/diffusers/api/pipelines/wan
+    retrieved_at: 2026-03-15
+    note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.

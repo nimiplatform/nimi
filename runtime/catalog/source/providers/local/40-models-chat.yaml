@@ -1,0 +1,130 @@
+models:
+  # Curated first-run local chat lane (K-MCAT-033 minimal preset). Gemma 4 E2B
+  # is the small-footprint instruction model; GGUF quants span cpu-small ->
+  # gpu-high. mmproj / text.generate.vision is deferred to a later tier; the
+  # first-run chat slot only consumes text.generate.
+  - model_id: gemma-4-e2b-it-local
+    model_type: chat
+    updated_at: 2026-05-04
+    capabilities: [text.generate]
+    source_ids: [gemma4_e2b_gguf_modelcard]
+    install:
+      repo: unsloth/gemma-4-E2B-it-GGUF
+      revision: 90f9618340396838ee7ff5b0ba2da27da62953d3
+      install_kind: weights
+      entry: gemma-4-E2B-it-Q4_K_M.gguf
+      artifact_roles: [llm]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.gemma-4-e2b-it.q3-k-m
+        quant: Q3_K_M
+        files: [gemma-4-E2B-it-Q3_K_M.gguf]
+        hashes:
+          gemma-4-E2B-it-Q3_K_M.gguf: "sha256:31aeee4a8b5c4a743f51f4021c29cfaa809d31a892cf9b918b9bb40542941197"
+        total_size_bytes: 2536784000
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 5368709120
+      - variant_id: local.chat.gemma-4-e2b-it.q4-k-m
+        quant: Q4_K_M
+        files: [gemma-4-E2B-it-Q4_K_M.gguf]
+        hashes:
+          gemma-4-E2B-it-Q4_K_M.gguf: "sha256:9378bc471710229ef165709b62e34bfb62231420ddaf6d729e727305b5b8672d"
+        total_size_bytes: 3106736256
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 6442450944
+      - variant_id: local.chat.gemma-4-e2b-it.q5-k-m
+        quant: Q5_K_M
+        files: [gemma-4-E2B-it-Q5_K_M.gguf]
+        hashes:
+          gemma-4-E2B-it-Q5_K_M.gguf: "sha256:d8fc2ac6fd597481dfd9c5ef9543ea1f0bda8088086da3853ce5e5564ab43bf8"
+        total_size_bytes: 3356035200
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 6979321856
+      - variant_id: local.chat.gemma-4-e2b-it.q6-k
+        quant: Q6_K
+        files: [gemma-4-E2B-it-Q6_K.gguf]
+        hashes:
+          gemma-4-E2B-it-Q6_K.gguf: "sha256:b36824f13bf9fab2910cb7b4282a4d73b13799ee4126d4ec241309ce69c0e783"
+        total_size_bytes: 4501719168
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 8589934592
+      - variant_id: local.chat.gemma-4-e2b-it.q8-0
+        quant: Q8_0
+        files: [gemma-4-E2B-it-Q8_0.gguf]
+        hashes:
+          gemma-4-E2B-it-Q8_0.gguf: "sha256:0a8488b149e1f700712c35d5bf0a3795f9dcc2563b4944d5ef2fb89375f9483e"
+        total_size_bytes: 5048350848
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 9663676416
+    fitness:
+      param_count: 2000000000
+      context_length: 32768
+    aliases:
+      - local/gemma-4-e2b-it
+      - llama/gemma-4-e2b-it
+      - unsloth/gemma-4-E2B-it-GGUF
+
+  # Curated first-run local chat lane (K-MCAT-033 recommended preset). Gemma 4
+  # 26B-A4B is the mixture-of-experts instruction model; GGUF quants span a
+  # higher footprint band. mmproj / text.generate.vision is deferred.
+  - model_id: gemma-4-26b-a4b-it-local
+    model_type: chat
+    updated_at: 2026-05-04
+    capabilities: [text.generate]
+    source_ids: [gemma4_26b_a4b_gguf_modelcard]
+    install:
+      repo: unsloth/gemma-4-26B-A4B-it-GGUF
+      revision: 3365c68df1a83799b846d05324ebfadbb8cc70b3
+      install_kind: weights
+      entry: gemma-4-26B-A4B-it-UD-Q4_K_M.gguf
+      artifact_roles: [llm]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.gemma-4-26b-a4b-it.q4-k-m
+        quant: Q4_K_M
+        files: [gemma-4-26B-A4B-it-UD-Q4_K_M.gguf]
+        hashes:
+          gemma-4-26B-A4B-it-UD-Q4_K_M.gguf: "sha256:34c746b1d50ab813e29cd46c4796e3f43c741901a582f93a67b55b9fc9687b35"
+        total_size_bytes: 16947539744
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 25769803776
+      - variant_id: local.chat.gemma-4-26b-a4b-it.q5-k-m
+        quant: Q5_K_M
+        files: [gemma-4-26B-A4B-it-UD-Q5_K_M.gguf]
+        hashes:
+          gemma-4-26B-A4B-it-UD-Q5_K_M.gguf: "sha256:f2fe28fc1d82e7c74f47d570a8c8847513fe2712a1b3a5bcd869031d952c4936"
+        total_size_bytes: 21150363424
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 32212254720
+      - variant_id: local.chat.gemma-4-26b-a4b-it.q6-k
+        quant: Q6_K
+        files: [gemma-4-26B-A4B-it-UD-Q6_K.gguf]
+        hashes:
+          gemma-4-26B-A4B-it-UD-Q6_K.gguf: "sha256:d3d9e6a63845bdc83e9f9fc5923e77c023ccc1197c9e145e6a8754bad80b5d75"
+        total_size_bytes: 23172476704
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 34359738368
+      - variant_id: local.chat.gemma-4-26b-a4b-it.q8-0
+        quant: Q8_0
+        files: [gemma-4-26B-A4B-it-Q8_0.gguf]
+        hashes:
+          gemma-4-26B-A4B-it-Q8_0.gguf: "sha256:b26c56ea4bf724b4efa0161bb4615e974847ec64450a4dd49da8712614a128c7"
+        total_size_bytes: 26859859744
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 38654705664
+    fitness:
+      param_count: 26000000000
+      context_length: 32768
+    aliases:
+      - local/gemma-4-26b-a4b-it
+      - llama/gemma-4-26b-a4b-it
+      - unsloth/gemma-4-26B-A4B-it-GGUF

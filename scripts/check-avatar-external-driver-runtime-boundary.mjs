@@ -18,7 +18,7 @@ const FILES = {
   avatarIndex: '.nimi/spec/avatar/kernel/index.md',
   avatarEvent: '.nimi/spec/avatar/kernel/avatar-event-contract.md',
   agentScript: '.nimi/spec/avatar/kernel/agent-script-contract.md',
-  runtimeParticipation: '.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md',
+  runtimeParticipationPolicy: '.nimi/spec/runtime/kernel/runtime-agent-participation-policy-boundary-contract.md',
   runtimePresentation: '.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md',
   externalBoundaryTable: '.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml',
   driverTypes: 'apps/avatar/src/shell/renderer/driver/types.ts',
@@ -110,7 +110,7 @@ requireIncludes(FILES.avatarContract, [
 
 requireIncludes(FILES.avatarIndex, ['avatar-external-entry-consumer-contract.md']);
 
-requireIncludes(FILES.runtimeParticipation, [
+requireIncludes(FILES.runtimeParticipationPolicy, [
   'K-AGCORE-089 External Entry Boundary Matrix',
   'K-AGCORE-090 MCP-Backed AI Capability Entry',
   'K-AGCORE-091 Future A2A External Agent Entry',
@@ -168,4 +168,3 @@ if (failures > 0) {
 }
 
 console.log('[avatar-external-driver-runtime-boundary] PASS');
-

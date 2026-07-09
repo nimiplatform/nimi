@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const cwd = path.resolve(scriptDir, '..');
@@ -15,6 +16,10 @@ function fail(message) {
 
 function read(relPath) {
   return fs.readFileSync(path.join(cwd, relPath), 'utf8');
+}
+
+function readYaml(relPath) {
+  return readYamlWithFragments(path.join(cwd, relPath));
 }
 
 function exists(relPath) {
@@ -221,12 +226,15 @@ function checkLocalPaginationAndAuditFields() {
     assertMessageHasFields(resp, respName, rel, ['next_page_token']);
   }
 
-  const specLocal = read('.nimi/spec/runtime/kernel/local-category-capability.md');
+  const specLocal = [
+    read('.nimi/spec/runtime/kernel/local-category-capability.md'),
+    read('.nimi/spec/runtime/kernel/local-asset-storage-manifest-contract.md'),
+  ].join('\n');
   expectRegex(specLocal, /##\s+K-LOCAL-029\b/m, 'K-LOCAL-029 rule definition');
   expectRegex(specLocal, /##\s+K-LOCAL-030\b/m, 'K-LOCAL-030 rule definition');
   for (const token of ['trace_id', 'app_id', 'domain', 'operation', 'subject_user_id', 'local_invoke_profile_id']) {
     if (!specLocal.includes(token)) {
-      fail(`.nimi/spec/runtime/kernel/local-category-capability.md missing token: ${token}`);
+      fail(`K-LOCAL local category/asset specs missing token: ${token}`);
     }
   }
 
@@ -258,7 +266,7 @@ function checkReasonCodes359To363Linkage() {
     expectRegex(commonProto, new RegExp(`\\b${name}\\s*=\\s*${value}\\s*;`), `common.proto ${name}=${value}`);
   }
 
-  const reasonCodesDoc = YAML.parse(read('.nimi/spec/runtime/kernel/tables/reason-codes.yaml'));
+  const reasonCodesDoc = readYaml('.nimi/spec/runtime/kernel/tables/reason-codes.yaml');
   const codes = Array.isArray(reasonCodesDoc?.codes) ? reasonCodesDoc.codes : [];
   const byName = new Map(codes.map((item) => [String(item?.name || ''), item]));
   for (const [name, value] of expected) {
@@ -275,7 +283,7 @@ function checkReasonCodes359To363Linkage() {
     }
   }
 
-  const mappingDoc = YAML.parse(read('.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml'));
+  const mappingDoc = readYaml('.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml');
   const mappings = Array.isArray(mappingDoc?.mappings) ? mappingDoc.mappings : [];
   const mappedReasonCodes = new Set(mappings.map((item) => String(item?.reason_code || '')));
   for (const [name] of expected) {
@@ -625,7 +633,7 @@ function checkAvatarPackageProjectionProtoRetirement() {
   if (exists(contractRel)) {
     fail(`${contractRel} must remain deleted; use rule-evidence retired sentinels instead of active Avatar package projection truth`);
   }
-  const ruleEvidence = read('.nimi/spec/runtime/kernel/tables/rule-evidence.rules-agent-core.yaml');
+  const ruleEvidence = JSON.stringify(readYaml('.nimi/spec/runtime/kernel/tables/rule-evidence.rules-agent-core.yaml') ?? {});
   for (const token of [
     'Avatar package projection contract withdrawn with Asset Market',
     'K-AGCORE-138',

@@ -1,0 +1,93 @@
+# CURATED PRESETS (K-MCAT-033). Binds factory AIProfile install levels to
+# concrete model slots. wave-1 populates the core text/speech tier; the
+# recommended image slot is wave-2 scope. `text.embed` is intentionally not a
+# preset slot in either level (post-initialization / cloud-default capability).
+presets:
+  minimal:
+    factory_aiprofile_alias: local-speech-ready
+    slots:
+      - { slot: chat, capability: text.generate, model_ref: gemma-4-e2b-it-local, required: true }
+      - { slot: stt, capability: audio.transcribe, model_ref: qwen3-asr-local, required: true }
+      - { slot: tts, capability: audio.synthesize, model_ref: qwen3-tts-local, required: true }
+  recommended:
+    factory_aiprofile_alias: local-gpu
+    slots:
+      - { slot: chat, capability: text.generate, model_ref: gemma-4-26b-a4b-it-local, required: true }
+      - { slot: stt, capability: audio.transcribe, model_ref: qwen3-asr-local, required: true }
+      - { slot: tts, capability: audio.synthesize, model_ref: qwen3-tts-local, required: true }
+      - { slot: image, capability: image.generate, model_ref: z-image-turbo-local, required: false, host_conditional: true }
+
+# NOTE: local workflow objects below are not a generic local workflow green
+# state. They express only the first admitted family-scoped slice:
+# qwen3_tts -> explicit local Qwen3 target roles.
+voice_workflow_models:
+  - workflow_model_id: qwen3-local-voice-clone
+    workflow_type: voice_clone
+    input_contract_ref: local_voice_clone_input_v1
+    output_persistence: session_ephemeral
+    request_options:
+      text_prompt_mode: optional
+      supports_language_hints: false
+      supports_preferred_name: true
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types: [audio/wav, audio/mpeg, audio/ogg, audio/flac, audio/mp4, audio/m4a]
+    target_model_refs:
+      - qwen3-tts-base-local
+      - local/qwen3-tts-base
+      - speech/qwen3tts-base
+      - Qwen/Qwen3-TTS-12Hz-0.6B-Base
+    langs_ref: short_v1
+    source_ids: [qwen3_tts_base_modelcard]
+  - workflow_model_id: qwen3-local-voice-design
+    workflow_type: voice_design
+    input_contract_ref: local_voice_design_input_v1
+    output_persistence: session_ephemeral
+    request_options:
+      instruction_text_mode: required
+      preview_text_mode: optional
+      supports_language: false
+      supports_preferred_name: true
+    target_model_refs:
+      - qwen3-tts-voicedesign-local
+      - local/qwen3-tts-voicedesign
+      - speech/qwen3tts-design
+      - Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+    langs_ref: short_v1
+    source_ids: [qwen3_tts_voicedesign_modelcard]
+
+model_workflow_bindings:
+  - model_id: qwen3-tts-base-local
+    workflow_model_refs: [qwen3-local-voice-clone]
+    workflow_types: [voice_clone]
+  - model_id: local/qwen3-tts-base
+    workflow_model_refs: [qwen3-local-voice-clone]
+    workflow_types: [voice_clone]
+  - model_id: speech/qwen3tts-base
+    workflow_model_refs: [qwen3-local-voice-clone]
+    workflow_types: [voice_clone]
+  - model_id: Qwen/Qwen3-TTS-12Hz-0.6B-Base
+    workflow_model_refs: [qwen3-local-voice-clone]
+    workflow_types: [voice_clone]
+  - model_id: qwen3-tts-voicedesign-local
+    workflow_model_refs: [qwen3-local-voice-design]
+    workflow_types: [voice_design]
+  - model_id: local/qwen3-tts-voicedesign
+    workflow_model_refs: [qwen3-local-voice-design]
+    workflow_types: [voice_design]
+  - model_id: speech/qwen3tts-design
+    workflow_model_refs: [qwen3-local-voice-design]
+    workflow_types: [voice_design]
+  - model_id: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+    workflow_model_refs: [qwen3-local-voice-design]
+    workflow_types: [voice_design]
+
+voice_handle_policies:
+  - policy_id: local_runtime_session_ephemeral_default
+    applies_to_workflow_types: [voice_clone, voice_design]
+    persistence: session_ephemeral
+    default_ttl: session
+    scope: user_scoped
+    delete_semantics: runtime_authoritative_delete
+    runtime_reconciliation_required: false
+    source_ids: [qwen3_tts_base_modelcard, qwen3_tts_voicedesign_modelcard]

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { listProviderSourceDocs } from './lib/provider-source.mjs';
 
 export const CAPABILITY_INTERFACE_ORDER = [
   'generate',
@@ -164,15 +165,11 @@ function workflowCapability(workflowType) {
 
 export function loadSourceProviderCapabilityMatrix(sourceProviderDir) {
   const matrix = new Map();
-  const entries = fs.readdirSync(sourceProviderDir, { withFileTypes: true });
-  const files = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.source.yaml'))
-    .map((entry) => path.join(sourceProviderDir, entry.name))
-    .sort((left, right) => left.localeCompare(right));
+  const sourceProviders = listProviderSourceDocs(sourceProviderDir);
 
-  for (const file of files) {
-    const doc = readYamlFile(file);
-    const provider = canonicalProviderId(doc?.provider || path.basename(file, '.source.yaml'));
+  for (const sourceEntry of sourceProviders) {
+    const doc = sourceEntry.doc || {};
+    const provider = canonicalProviderId(doc?.provider || sourceEntry.provider);
     if (!provider) {
       continue;
     }

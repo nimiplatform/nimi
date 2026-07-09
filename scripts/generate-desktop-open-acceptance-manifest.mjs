@@ -301,7 +301,7 @@ function productEvidence(rowId) {
       evidenceKind: 'oauth-hardening-tests',
       evidenceRef: [
         'scripts/check-desktop-open-oauth-reserved-routes.mjs',
-        'kit/shell/electron/test/electron-shell.test.ts',
+        'kit/shell/electron/test/electron-shell-bridge-host-features.test.ts',
         'kit/shell/tauri/src/oauth',
       ],
       command: 'pnpm check:desktop-open-oauth-reserved-routes && cargo test --manifest-path kit/shell/tauri/Cargo.toml oauth -- --nocapture',
@@ -464,7 +464,7 @@ function failureEvidence(rowId) {
     return evidenceWithAssertion(rowId, {
       status: 'passed',
       evidenceKind: 'oauth-hardening-tests',
-      evidenceRef: ['scripts/check-desktop-open-oauth-reserved-routes.mjs', 'kit/shell/electron/test/electron-shell.test.ts', 'kit/shell/tauri/src/oauth'],
+      evidenceRef: ['scripts/check-desktop-open-oauth-reserved-routes.mjs', 'kit/shell/electron/test/electron-shell-bridge-host-features.test.ts', 'kit/shell/tauri/src/oauth'],
       command: 'pnpm check:desktop-open-oauth-reserved-routes && cargo test --manifest-path kit/shell/tauri/Cargo.toml oauth -- --nocapture',
     });
   }

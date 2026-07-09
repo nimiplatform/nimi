@@ -34,9 +34,11 @@ const NIMI_APP_ORDINARY_VISIBILITIES = new Set([
   'not-admitted-visible',
 ]);
 
+const NIMI_APP_BRIDGE_PROJECTION_LABEL = 'platformProjection.get apps-bridge';
+
 export function parseNimiAppBridgeProjection(value: unknown): NimiAppBridgeProjection {
-  const record = asNimiAppBridgeRecord(value, 'apps_bridge_projection_get');
-  const registryRows = asNimiAppBridgeArray(record.registryRows, 'apps_bridge_projection registryRows')
+  const record = asNimiAppBridgeRecord(value, NIMI_APP_BRIDGE_PROJECTION_LABEL);
+  const registryRows = asNimiAppBridgeArray(record.registryRows, `${NIMI_APP_BRIDGE_PROJECTION_LABEL} registryRows`)
     .map(parseNimiAppBridgeRegistryRow)
     .filter(isDesktopBridgeCatalogCandidate);
   const admittedAppIds = new Set(registryRows.map((row) => row.appId));
@@ -44,7 +46,7 @@ export function parseNimiAppBridgeProjection(value: unknown): NimiAppBridgeProje
     registryRows,
     releaseDescriptors: asNimiAppBridgeArray(
       record.releaseDescriptors,
-      'apps_bridge_projection releaseDescriptors',
+      `${NIMI_APP_BRIDGE_PROJECTION_LABEL} releaseDescriptors`,
     ).map(parseNimiAppBridgeReleaseDescriptorRow).filter((descriptor) => admittedAppIds.has(descriptor.appId)),
   };
 }

@@ -378,7 +378,7 @@ tests:
     spec_refs:
       - P-TEST-001
       - S-SURFACE-021
-  - path: sdks/typescript/runtime/runtime-agent-consume.test.ts
+  - path: sdks/typescript/runtime/runtime-agent-consume-app-messages.test.ts
     owner: sdks
     classification: contract_conformance
     tier: T5
@@ -390,6 +390,43 @@ tests:
     spec_refs:
       - P-TEST-001
       - S-SURFACE-021
+  - path: sdks/typescript/runtime/runtime-agent-consume-client.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-SURFACE-021
+  - path: sdks/typescript/runtime/runtime-agent-consume-message-helpers.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-SURFACE-021
+  - path: sdks/typescript/runtime/runtime-agent-consume.test-helper.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-SURFACE-021
+    note: Runtime Agent consume test support split from runtime-agent-consume.test.ts
   - path: sdks/typescript/runtime/runtime-agent-ai-config-live-acceptance.test.ts
     owner: sdks
     classification: live_provider_proof
@@ -426,7 +463,44 @@ tests:
     spec_refs:
       - P-TEST-001
       - S-RUNTIME-221
-  - path: sdks/typescript/runtime/runtime-agent-helpers.test.ts
+  - path: sdks/typescript/runtime/runtime-agent-helpers.test-helper.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-SURFACE-021
+    note: Runtime Agent helper test support split from runtime-agent-helpers.test.ts
+  - path: sdks/typescript/runtime/runtime-agent-lifecycle-helpers.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-SURFACE-021
+  - path: sdks/typescript/runtime/runtime-agent-turn-helpers.test.ts
+    owner: sdks
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - S-SURFACE-021
+  - path: sdks/typescript/runtime/runtime-agent-voice-helpers.test.ts
     owner: sdks
     classification: contract_conformance
     tier: T5
@@ -463,6 +537,19 @@ tests:
       - P-TEST-001
       - S-RUNTIME-107
   - path: sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-server.test-helper.ts
+    owner: sdks
+    classification: live_provider_proof
+    tier: T7
+    authority_claim: false
+    deterministic: true
+    offline: false
+    may_enter_regression_gate: never
+    may_enter_release_gate: after_env_evidence
+    spec_refs:
+      - P-TEST-001
+      - S-GATE-080
+    note: live proof helper; classified with the live Runtime fixture consumer
+  - path: sdks/typescript/runtime/runtime-agent-live-e2e-fixture-realm-scenarios.test-helper.ts
     owner: sdks
     classification: live_provider_proof
     tier: T7

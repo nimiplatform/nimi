@@ -1,0 +1,34 @@
+language_profiles:
+  region_v1: [zh-cn, en-us, fr-fr, de-de, ru-ru, it-it, es-es, pt-pt, ja-jp, ko-kr]
+  short_v1: [zh, en, de, it, pt, es, ja, ko, fr, ru]
+
+voice_sets:
+  - voice_set_id: piper-defaults-v1
+    langs_ref: short_v1
+    source_ids: [piper_repo]
+    voices:
+      - voice_id: en_US-lessac-medium
+        name: Lessac
+        langs: [en-US]
+      - voice_id: en_GB-alan-medium
+        name: Alan
+        langs: [en-GB]
+      - voice_id: fr_FR-siwis-medium
+        name: Siwis
+        langs: [fr-FR]
+  - voice_set_id: kokoro-defaults-v1
+    langs_ref: short_v1
+    source_ids: [kokoro_repo]
+    voices:
+      - voice_id: af_bella
+        name: Bella
+        langs: [en-US]
+      - voice_id: af_sarah
+        name: Sarah
+        langs: [en-US]
+      - voice_id: am_adam
+        name: Adam
+        langs: [en-US]
+      - voice_id: bm_george
+        name: George
+        langs: [en-GB]

@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { listProviderSourceDocs } from './lib/provider-source.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -50,19 +51,14 @@ function addDays(date, days) {
 }
 
 async function main() {
-  const entries = await fs.readdir(sourceDir, { withFileTypes: true });
-  const sourceFiles = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.source.yaml'))
-    .map((entry) => entry.name)
-    .sort((left, right) => left.localeCompare(right));
+  const sourceProviders = listProviderSourceDocs(sourceDir);
 
   const failures = [];
   const now = new Date();
 
-  for (const filename of sourceFiles) {
-    const sourcePath = path.join(sourceDir, filename);
-    const sourceDoc = YAML.parse(await fs.readFile(sourcePath, 'utf8')) || {};
-    const provider = normalizeString(sourceDoc.provider || filename.replace(/\.source\.yaml$/u, ''));
+  for (const sourceEntry of sourceProviders) {
+    const sourceDoc = sourceEntry.doc || {};
+    const provider = normalizeString(sourceDoc.provider || sourceEntry.provider);
     if (!provider) {
       continue;
     }

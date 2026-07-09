@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { listProviderSourceDocs } from './lib/provider-source.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -20,6 +21,12 @@ const capabilityVocabularyPath = path.join(
   'tables',
   'capability-vocabulary-mapping.yaml',
 );
+const modelCatalogContractPaths = [
+  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'model-catalog-contract.md'),
+  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'model-catalog-voice-workflow-contract.md'),
+  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'model-catalog-provider-metadata-contract.md'),
+  path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'model-catalog-local-resolver-contract.md'),
+];
 
 const historicalLegacyCapabilityTokens = [
   'video_generation',
@@ -111,9 +118,9 @@ function checkCapabilityList(relPath, label, capabilities, vocabulary) {
   }
 }
 
-function checkSourceProviderFile(absPath, vocabulary) {
-  const relPath = path.relative(repoRoot, absPath);
-  const doc = readYaml(absPath);
+function checkSourceProviderDoc(sourceEntry, vocabulary) {
+  const relPath = path.relative(repoRoot, sourceEntry.absPath);
+  const doc = sourceEntry.doc || {};
   checkCapabilityList(relPath, 'defaults.capabilities', normalizeStringArray(doc?.defaults?.capabilities), vocabulary);
   const models = Array.isArray(doc?.models) ? doc.models : [];
   models.forEach((model, index) => {
@@ -153,12 +160,24 @@ function checkDocPhrases(absPath, bannedPatterns, requiredTokens) {
   }
 }
 
+function checkCombinedDocPhrases(absPaths, bannedPatterns, requiredTokens) {
+  const label = absPaths.map((absPath) => path.relative(repoRoot, absPath)).join(', ');
+  const content = absPaths.map((absPath) => readText(absPath)).join('\n');
+  for (const pattern of bannedPatterns) {
+    if (pattern.regex.test(content)) {
+      fail(`${label} still contains legacy normative phrase: ${pattern.label}`);
+    }
+  }
+  for (const token of requiredTokens) {
+    if (!content.includes(`\`${token}\``)) {
+      fail(`${label} must mention canonical capability token ${token}`);
+    }
+  }
+}
+
 function main() {
   const vocabulary = loadCapabilityVocabulary();
-  const sourceFiles = fs.readdirSync(sourceDir)
-    .filter((entry) => entry.endsWith('.source.yaml'))
-    .map((entry) => path.join(sourceDir, entry))
-    .sort((left, right) => left.localeCompare(right));
+  const sourceProviders = listProviderSourceDocs(sourceDir);
   const snapshotFiles = fs.readdirSync(snapshotDir)
     .filter((entry) => entry.endsWith('.yaml'))
     .map((entry) => path.join(snapshotDir, entry))
@@ -168,7 +187,7 @@ function main() {
     .map((entry) => path.join(goldFixtureDir, entry))
     .sort((left, right) => left.localeCompare(right));
 
-  sourceFiles.forEach((sourceFile) => checkSourceProviderFile(sourceFile, vocabulary));
+  sourceProviders.forEach((sourceEntry) => checkSourceProviderDoc(sourceEntry, vocabulary));
   snapshotFiles.forEach((snapshotFile) => checkSnapshotFile(snapshotFile, vocabulary));
   goldFixtureFiles.forEach((fixtureFile) => checkGoldFixtureFile(fixtureFile, vocabulary));
 
@@ -182,8 +201,8 @@ function main() {
     ],
     vocabulary.canonicalTokens,
   );
-  checkDocPhrases(
-    path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'model-catalog-contract.md'),
+  checkCombinedDocPhrases(
+    modelCatalogContractPaths,
     [
       { label: 'when capability includes `tts`', regex: /when capability includes `tts`/ },
       { label: 'when capability includes `video_generation`', regex: /when capability includes `video_generation`/ },

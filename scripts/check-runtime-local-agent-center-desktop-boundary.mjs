@@ -23,8 +23,6 @@ const placementFiles = [
 const diagnosticsFiles = [
   'apps/desktop/src/shell/renderer/features/chat/chat-agent-debug-metadata.ts',
   'apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-agent-utils.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-diagnostics-view-model.ts',
-  'apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-diagnostics-content.tsx',
   'apps/desktop/src/shell/renderer/features/chat/chat-shared-runtime-stream-ui.tsx',
 ];
 

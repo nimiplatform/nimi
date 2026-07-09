@@ -1,3 +1,5 @@
+import { listProviderSourceDocs } from './provider-source.mjs';
+
 export function createCatalogChecks(context) {
   const {
     cwd,
@@ -15,10 +17,8 @@ export function createCatalogChecks(context) {
     if (!fs.existsSync(runtimeCatalogSourceProvidersDir)) {
       return [];
     }
-    return fs.readdirSync(runtimeCatalogSourceProvidersDir)
-      .filter((name) => name.endsWith('.source.yaml') || name.endsWith('.source.yml'))
-      .map((name) => normalizeProviderName(name.replace(/\.source\.ya?ml$/iu, '')))
-      .filter(Boolean)
+    return listProviderSourceDocs(runtimeCatalogSourceProvidersDir)
+      .map((entry) => normalizeProviderName(entry.provider))
       .sort((a, b) => a.localeCompare(b));
   }
 
@@ -26,18 +26,12 @@ export function createCatalogChecks(context) {
     if (!fs.existsSync(runtimeCatalogSourceProvidersDir)) {
       return [];
     }
-    return fs.readdirSync(runtimeCatalogSourceProvidersDir)
-      .filter((name) => name.endsWith('.source.yaml') || name.endsWith('.source.yml'))
-      .sort((a, b) => a.localeCompare(b))
-      .map((name) => {
-        const relPath = path.join('runtime/catalog/source/providers', name);
-        const parsed = YAML.parse(fs.readFileSync(path.join(cwd, relPath), 'utf8')) || {};
-        return {
-          relPath,
-          provider: normalizeProviderName(parsed?.provider || name.replace(/\.source\.ya?ml$/iu, '')),
-          parsed,
-        };
-      })
+    return listProviderSourceDocs(runtimeCatalogSourceProvidersDir)
+      .map((entry) => ({
+        relPath: path.relative(cwd, entry.absPath).replaceAll(path.sep, '/'),
+        provider: normalizeProviderName(entry.provider),
+        parsed: entry.doc || {},
+      }))
       .filter((entry) => entry.provider);
   }
 
@@ -607,6 +601,10 @@ export function createCatalogChecks(context) {
     const seenProviderIDs = new Set();
     const activeProviders = new Set();
     const extensionWorkflows = providerExtensionWorkflowCapabilities();
+    const sourceDir = path.join(cwd, 'runtime/catalog/source/providers');
+    const sourceDocsByProvider = new Map(
+      listProviderSourceDocs(sourceDir).map((entry) => [normalizeProviderName(entry.provider), entry]),
+    );
 
     for (const entry of entries) {
       const providerID = String(entry?.provider_id || '').trim();
@@ -671,12 +669,11 @@ export function createCatalogChecks(context) {
         fail(`${tablePath} active provider ${providerID} missing runtime/catalog/providers/${providerID}.yaml`);
       }
 
-      const sourceDir = path.join(cwd, 'runtime/catalog/source/providers');
-      const sourcePath = path.join(sourceDir, `${providerID}.source.yaml`);
       const snapshotPath = path.join(runtimeCatalogProvidersDir, `${providerID}.yaml`);
+      const sourceEntry = sourceDocsByProvider.get(normalizeProviderName(providerID));
 
-      if (!fs.existsSync(sourcePath)) {
-        fail(`${tablePath} provider ${providerID} missing source file: ${path.relative(cwd, sourcePath)}`);
+      if (!sourceEntry) {
+        fail(`${tablePath} provider ${providerID} missing source provider entry`);
         continue;
       }
       if (!fs.existsSync(snapshotPath)) {
@@ -684,7 +681,7 @@ export function createCatalogChecks(context) {
         continue;
       }
 
-      const sourceDoc = YAML.parse(fs.readFileSync(sourcePath, 'utf8'));
+      const sourceDoc = sourceEntry.doc || {};
       const snapshotDoc = YAML.parse(fs.readFileSync(snapshotPath, 'utf8'));
 
       const sourceProvider = normalizeProviderName(sourceDoc?.provider);

@@ -320,6 +320,7 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
   const issuedOptions: RuntimeTypedCallOptions[] = [];
   const registerOptions: RuntimeTypedCallOptions[] = [];
   const authorizeOptions: RuntimeTypedCallOptions[] = [];
+  const authorizeRequests: Array<{ readonly externalPrincipalId?: string; readonly policyVersion?: string; readonly scopes: string[] }> = [];
   const requests: unknown[] = [];
   const runtime = {
     appId: 'sdk.test',
@@ -336,7 +337,11 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
       },
     },
     appAuth: {
-      async authorizeExternalPrincipal(request: { scopes: string[] }, options?: RuntimeTypedCallOptions) {
+      async authorizeExternalPrincipal(
+        request: { readonly externalPrincipalId?: string; readonly policyVersion?: string; readonly scopes: string[] },
+        options?: RuntimeTypedCallOptions,
+      ) {
+        authorizeRequests.push(request);
         issuedScopes.push(request.scopes);
         if (options) {
           authorizeOptions.push(options);
@@ -346,7 +351,7 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
           secret: 'secret-1',
           appId: 'sdk.test',
           subjectUserId: 'user-1',
-          externalPrincipalId: 'sdk.test',
+          externalPrincipalId: 'sdk.test.runtime-agent',
           effectiveScopes: request.scopes,
           policyVersion: 'runtime-agent-v1',
           issuedScopeCatalogVersion: 'sdk-v2',
@@ -381,6 +386,8 @@ test('Runtime Agent protected presentation surface requests scoped Runtime acces
   });
 
   assert.deepEqual(issuedScopes, [['runtime.agent.write']]);
+  assert.equal(authorizeRequests[0]?.externalPrincipalId, 'sdk.test.runtime-agent');
+  assert.equal(authorizeRequests[0]?.policyVersion, 'runtime-agent-v1');
   assert.match(
     String(registerOptions[0]?.metadata?.['x-nimi-idempotency-key'] ?? ''),
     /^runtime-agent-protected-register-/u,
@@ -436,7 +443,7 @@ test('Runtime Agent inspect surface reads, writes, and subscribes through protec
           secret: 'secret-1',
           appId: 'sdk.test',
           subjectUserId: 'user-1',
-          externalPrincipalId: 'sdk.test',
+          externalPrincipalId: 'sdk.test.runtime-agent',
           effectiveScopes: request.scopes,
           policyVersion: 'runtime-agent-v1',
           issuedScopeCatalogVersion: 'sdk-v2',
@@ -729,7 +736,7 @@ test('Runtime Agent smoke verification reads protected anchor snapshot and healt
           secret: 'secret-1',
           appId: 'sdk.test',
           subjectUserId: 'user-1',
-          externalPrincipalId: 'sdk.test',
+          externalPrincipalId: 'sdk.test.runtime-agent',
           effectiveScopes: request.scopes,
           policyVersion: 'runtime-agent-v1',
           issuedScopeCatalogVersion: 'sdk-v2',

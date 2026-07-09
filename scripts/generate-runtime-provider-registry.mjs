@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { listProviderSourceDocs } from './lib/provider-source.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -413,19 +414,14 @@ function renderProviderRecord(record) {
 }
 
 async function loadSourceProviders() {
-  const entries = await fs.readdir(sourceDir, { withFileTypes: true });
-  const files = entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.source.yaml'))
-    .map((entry) => path.join(sourceDir, entry.name))
-    .sort((left, right) => left.localeCompare(right));
+  const sourceDocs = listProviderSourceDocs(sourceDir);
 
   const out = [];
-  for (const file of files) {
-    const raw = await fs.readFile(file, 'utf8');
-    const doc = YAML.parse(raw) || {};
-    const providerID = normalizeProvider(doc?.provider || path.basename(file, '.source.yaml'));
+  for (const sourceEntry of sourceDocs) {
+    const doc = sourceEntry.doc || {};
+    const providerID = normalizeProvider(doc?.provider || sourceEntry.provider);
     if (!providerID) {
-      throw new Error(`provider is required: ${file}`);
+      throw new Error(`provider is required: ${sourceEntry.absPath}`);
     }
     const runtimeMetadata = readRuntimeMetadata(doc, providerID);
 

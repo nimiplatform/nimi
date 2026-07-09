@@ -963,15 +963,25 @@ function checkDomainPrimaryRuleCoverage() {
     '.nimi/spec/runtime/cli.md': { kernel: '.nimi/spec/runtime/kernel/cli-onboarding-contract.md', prefix: 'K-CLI' },
     '.nimi/spec/runtime/config.md': { kernel: '.nimi/spec/runtime/kernel/config-contract.md', prefix: 'K-CFG' },
     '.nimi/spec/runtime/connector.md': { kernel: '.nimi/spec/runtime/kernel/connector-contract.md', prefix: 'K-CONN' },
-    '.nimi/spec/runtime/local-model.md': { kernel: '.nimi/spec/runtime/kernel/local-category-capability.md', prefix: 'K-LOCAL' },
+    '.nimi/spec/runtime/local-model.md': {
+      kernels: [
+        '.nimi/spec/runtime/kernel/local-category-capability.md',
+        '.nimi/spec/runtime/kernel/local-profile-application-contract.md',
+        '.nimi/spec/runtime/kernel/local-catalog-recommendation-contract.md',
+        '.nimi/spec/runtime/kernel/local-asset-storage-manifest-contract.md',
+      ],
+      prefix: 'K-LOCAL',
+    },
     '.nimi/spec/runtime/multimodal-delivery-gates.md': { kernel: '.nimi/spec/runtime/kernel/delivery-gates-contract.md', prefix: 'K-GATE' },
     '.nimi/spec/runtime/multimodal-provider.md': { kernel: '.nimi/spec/runtime/kernel/multimodal-provider-contract.md', prefix: 'K-MMPROV' },
     '.nimi/spec/runtime/nimillm.md': { kernel: '.nimi/spec/runtime/kernel/nimillm-contract.md', prefix: 'K-NIMI' },
     '.nimi/spec/runtime/proto-governance.md': { kernel: '.nimi/spec/runtime/kernel/proto-governance-contract.md', prefix: 'K-PROTO' },
   };
 
-  for (const [domainRel, { kernel: kernelRel, prefix }] of Object.entries(primaryMap)) {
-    const kernelContent = read(kernelRel);
+  for (const [domainRel, { kernel: kernelRel, kernels: kernelRelsRaw, prefix }] of Object.entries(primaryMap)) {
+    const kernelRels = kernelRelsRaw ?? [kernelRel];
+    const kernelContent = kernelRels.map((rel) => read(rel)).join('\n');
+    const kernelLabel = kernelRels.join(', ');
     const domainContent = read(domainRel);
     const kernelRules = new Set(
       [...kernelContent.matchAll(new RegExp(`^##\\s+(${prefix}-\\d{3}[a-z]?)\\b`, 'gmu'))]
@@ -979,14 +989,14 @@ function checkDomainPrimaryRuleCoverage() {
     );
 
     if (kernelRules.size === 0) {
-      fail(`${kernelRel} must define at least one ${prefix}-* rule`);
+      fail(`${kernelLabel} must define at least one ${prefix}-* rule`);
       continue;
     }
 
     const coveredRules = collectReferencedRuntimeRuleIds(domainContent, kernelRules);
     const coverage = coveredRules.size / kernelRules.size;
     if (coverage < 0.5) {
-      fail(`${domainRel} covers only ${coveredRules.size}/${kernelRules.size} (${Math.round(coverage * 100)}%) of ${prefix}-* rules from ${kernelRel}; minimum 50% required`);
+      fail(`${domainRel} covers only ${coveredRules.size}/${kernelRules.size} (${Math.round(coverage * 100)}%) of ${prefix}-* rules from ${kernelLabel}; minimum 50% required`);
     }
   }
 }

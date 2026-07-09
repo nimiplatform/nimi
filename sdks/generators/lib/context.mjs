@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import YAML from 'yaml';
+import { readYamlWithFragments } from '../../../scripts/lib/read-yaml-with-fragments.mjs';
 
 export const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(scriptDir, '../../..');
@@ -18,7 +18,7 @@ export function readText(rel) {
 }
 
 export function readYaml(rel) {
-  return YAML.parse(readText(rel));
+  return readYamlWithFragments(path.join(repoRoot, rel));
 }
 
 export function writeJson(rel, value) {

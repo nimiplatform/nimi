@@ -1,0 +1,23 @@
+schema_version: 3
+provider: local
+catalog_version: 2026-05-21-local-v8
+generated_target: runtime/catalog/providers/local.yaml
+runtime:
+  inventory_mode: static_source
+  runtime_plane: local
+  managed_connector_supported: true
+  inline_supported: false
+  default_endpoint: null
+  requires_explicit_endpoint: false
+resolution_mode: model_anchor_v2
+defaults:
+  provider: local
+  model_type: tts
+  capabilities: []
+  pricing:
+    unit: request
+    input: "0"
+    output: "0"
+    currency: none
+    as_of: 2026-03-18
+    notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.

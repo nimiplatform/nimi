@@ -9,10 +9,6 @@ const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
 const allowedCommands = new Set([
   'runtime_local_pick_asset_manifest_path',
-  'runtime_local_pick_asset_file',
-  'runtime_local_pick_asset_directory',
-  'runtime_local_assets_reveal_in_folder',
-  'runtime_local_assets_reveal_root_folder',
 ]);
 
 const allowedLocalRuntimeFiles = new Set([
@@ -113,7 +109,11 @@ function runSelfTest() {
     label: 'self-test',
     file: 'synthetic.ts',
     source: `
+      invokeLocalRuntimeCommand('runtime_local_pick_asset_manifest_path');
       invokeLocalRuntimeCommand('runtime_local_pick_asset_file');
+      invokeLocalRuntimeCommand('runtime_local_pick_asset_directory');
+      invokeLocalRuntimeCommand('runtime_local_assets_reveal_in_folder');
+      invokeLocalRuntimeCommand('runtime_local_assets_reveal_root_folder');
       invokeLocalRuntimeCommand('runtime_local_assets_import');
       tauriInvoke('runtime_local_recommendation_feed_get');
     `,
@@ -122,7 +122,14 @@ function runSelfTest() {
   }, violations);
 
   const observed = violations.map((entry) => entry.command).sort();
-  const expected = ['runtime_local_assets_import', 'runtime_local_recommendation_feed_get'].sort();
+  const expected = [
+    'runtime_local_assets_import',
+    'runtime_local_assets_reveal_in_folder',
+    'runtime_local_assets_reveal_root_folder',
+    'runtime_local_pick_asset_directory',
+    'runtime_local_pick_asset_file',
+    'runtime_local_recommendation_feed_get',
+  ].sort();
   if (JSON.stringify(observed) !== JSON.stringify(expected)) {
     console.error('check:desktop-local-runtime-helper-boundary self-test failed');
     console.error(`expected ${JSON.stringify(expected)}, got ${JSON.stringify(observed)}`);
@@ -160,14 +167,14 @@ function main() {
   }
 
   if (violations.length > 0) {
-    console.error('Desktop runtime_local_* commands are limited to picker/reveal shell helpers.');
+    console.error('Desktop runtime_local_* commands are limited to the admitted manifest picker helper.');
     for (const item of violations) {
       console.error(` - ${item.file}:${item.line} [${item.label}] ${item.command}`);
     }
     process.exit(1);
   }
 
-  console.log('check:desktop-local-runtime-helper-boundary: admitted picker/reveal helpers only');
+  console.log('check:desktop-local-runtime-helper-boundary: admitted manifest picker helper only');
 }
 
 main();

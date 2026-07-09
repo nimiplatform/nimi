@@ -8,6 +8,8 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const kitRoot = path.join(repoRoot, 'kit');
 const baselinePath = path.join(repoRoot, 'config', 'kit-public-surface-baseline.json');
+const baselineShardDir = path.join(repoRoot, 'config', 'public-surface-baselines', 'kit');
+const baselineShardSize = 12;
 
 function normalizeExportStatement(statement) {
   return statement
@@ -214,18 +216,107 @@ function stableJson(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
+function normalizeSnapshotShape(snapshot) {
+  return {
+    version: snapshot.version,
+    package: snapshot.package,
+    packageExports: snapshot.packageExports,
+    entryPoints: snapshot.entryPoints,
+  };
+}
+
+function shardRelativePath(index) {
+  return `config/public-surface-baselines/kit/shard-${String(index + 1).padStart(2, '0')}.json`;
+}
+
+async function removeStaleBaselineShards() {
+  if (!existsSync(baselineShardDir)) return;
+
+  const entries = await fs.readdir(baselineShardDir, { withFileTypes: true });
+  await Promise.all(
+    entries
+      .filter((entry) => entry.isFile() && /^shard-\d+\.json$/u.test(entry.name))
+      .map((entry) => fs.unlink(path.join(baselineShardDir, entry.name))),
+  );
+}
+
+async function writeBaselineSnapshot(snapshot) {
+  await fs.mkdir(baselineShardDir, { recursive: true });
+  await removeStaleBaselineShards();
+
+  const shardPaths = [];
+  for (let index = 0; index < snapshot.entryPoints.length; index += baselineShardSize) {
+    const shardIndex = Math.floor(index / baselineShardSize);
+    const shardPath = shardRelativePath(shardIndex);
+    const shard = {
+      version: snapshot.version,
+      package: snapshot.package,
+      shardId: `kit_public_surface_baseline_shard_${String(shardIndex + 1).padStart(2, '0')}`,
+      entryPoints: snapshot.entryPoints.slice(index, index + baselineShardSize),
+    };
+    await fs.writeFile(path.join(repoRoot, shardPath), stableJson(shard), 'utf8');
+    shardPaths.push(shardPath);
+  }
+
+  await fs.writeFile(
+    baselinePath,
+    stableJson({
+      version: snapshot.version,
+      package: snapshot.package,
+      packageExports: snapshot.packageExports,
+      entryPointShards: shardPaths,
+    }),
+    'utf8',
+  );
+}
+
+async function readBaselineSnapshot() {
+  const baseline = JSON.parse(await fs.readFile(baselinePath, 'utf8'));
+  if (Array.isArray(baseline.entryPoints)) {
+    return normalizeSnapshotShape(baseline);
+  }
+
+  if (!Array.isArray(baseline.entryPointShards)) {
+    throw new Error(`${path.relative(repoRoot, baselinePath)} must declare entryPoints or entryPointShards`);
+  }
+
+  const entryPoints = [];
+  for (const shardRel of baseline.entryPointShards) {
+    const shardPath = path.resolve(repoRoot, String(shardRel || ''));
+    if (shardPath !== repoRoot && !shardPath.startsWith(`${repoRoot}${path.sep}`)) {
+      throw new Error(`Kit public surface baseline shard escapes repo: ${String(shardRel)}`);
+    }
+    const shard = JSON.parse(await fs.readFile(shardPath, 'utf8'));
+    if (shard.version !== baseline.version || shard.package !== baseline.package) {
+      throw new Error(`${String(shardRel)} version/package must match ${path.relative(repoRoot, baselinePath)}`);
+    }
+    if (!String(shard.shardId || '').trim()) {
+      throw new Error(`${String(shardRel)} must declare shardId`);
+    }
+    if (!Array.isArray(shard.entryPoints)) {
+      throw new Error(`${String(shardRel)} must declare entryPoints`);
+    }
+    entryPoints.push(...shard.entryPoints);
+  }
+
+  return normalizeSnapshotShape({
+    ...baseline,
+    entryPoints,
+  });
+}
+
 async function main() {
   const snapshot = await buildSnapshot();
-  const current = stableJson(snapshot);
+  const current = stableJson(normalizeSnapshotShape(snapshot));
   if (process.argv.includes('--write')) {
-    await fs.writeFile(baselinePath, current, 'utf8');
+    await writeBaselineSnapshot(snapshot);
     process.stdout.write(`wrote ${path.relative(repoRoot, baselinePath)}\n`);
     return;
   }
 
   let expected;
   try {
-    expected = await fs.readFile(baselinePath, 'utf8');
+    expected = stableJson(await readBaselineSnapshot());
   } catch (error) {
     process.stderr.write(`Kit public surface baseline missing: ${path.relative(repoRoot, baselinePath)}\n`);
     process.stderr.write(`Run: node scripts/check-kit-public-surface-snapshot.mjs --write\n`);

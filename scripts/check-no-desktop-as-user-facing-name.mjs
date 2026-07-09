@@ -13,11 +13,14 @@ const repoRoot = path.resolve(scriptDir, '..');
 // are allowed (they're internal naming, not user-facing product copy).
 const TARGET_GLOBS = [
   'apps/desktop/src/shell/renderer',
+  'apps/desktop/src-electron',
+  'apps/web/src/desktop-adapter',
+  'apps/web/src/landing',
   'apps/web/src/shell',
   'apps/web/src/public',
 ];
 
-const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.html']);
+const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.html', '.json']);
 const SKIP_DIRS = new Set(['.git', '.next', '.turbo', '.vercel', 'build', 'coverage', 'dist', 'gen', 'generated', 'node_modules', 'out', 'tmp']);
 const SKIP_FILE_PATTERNS = [/\.test\./, /\.spec\./, /\.fixture\./, /__fixtures__/, /__mocks__/];
 
@@ -33,8 +36,6 @@ const FORBIDDEN_PATTERNS = [
   /\bInstall\s+Desktop\b/,
   /\bDesktop\s+for\s+(?:Mac|Windows|Linux)\b/i,
 ];
-
-const STRING_LITERAL = /(["'`])((?:\\.|(?!\1)[^\\])*?)\1/g;
 
 function getLineColumn(source, index) {
   const prefix = source.slice(0, index);
@@ -68,20 +69,85 @@ async function collectFiles(dir) {
 
 function findViolations(text, source, file) {
   const violations = [];
-  STRING_LITERAL.lastIndex = 0;
-  let match;
-  while ((match = STRING_LITERAL.exec(source)) !== null) {
-    const literal = match[2];
-    for (const pattern of FORBIDDEN_PATTERNS) {
-      if (pattern.test(literal)) {
-        const { line, column } = getLineColumn(source, match.index);
-        const truncated = literal.length > 120 ? literal.slice(0, 117) + '...' : literal;
-        violations.push({ file, line, column, literal: truncated });
-        break;
-      }
+  const scanned = shouldStripJsComments(file) ? stripJsComments(source) : source;
+  for (const pattern of FORBIDDEN_PATTERNS) {
+    pattern.lastIndex = 0;
+    const match = pattern.exec(scanned);
+    if (match?.index !== undefined) {
+      const { line, column } = getLineColumn(source, match.index);
+      const start = Math.max(0, match.index - 60);
+      const end = Math.min(source.length, match.index + 120);
+      const excerpt = source.slice(start, end).replace(/\s+/g, ' ').trim();
+      const truncated = excerpt.length > 120 ? excerpt.slice(0, 117) + '...' : excerpt;
+      violations.push({ file, line, column, literal: truncated });
     }
   }
   return violations;
+}
+
+function shouldStripJsComments(file) {
+  return ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'].includes(path.extname(file));
+}
+
+function stripJsComments(source) {
+  let result = '';
+  let state = 'normal';
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    const next = source[index + 1] || '';
+    if (state === 'line-comment') {
+      if (char === '\n') {
+        state = 'normal';
+        result += char;
+      } else {
+        result += ' ';
+      }
+      continue;
+    }
+    if (state === 'block-comment') {
+      if (char === '*' && next === '/') {
+        result += '  ';
+        index += 1;
+        state = 'normal';
+      } else {
+        result += char === '\n' ? '\n' : ' ';
+      }
+      continue;
+    }
+    if (state === 'single-quote' || state === 'double-quote' || state === 'template') {
+      result += char;
+      if (char === '\\') {
+        result += next;
+        index += 1;
+        continue;
+      }
+      if (
+        (state === 'single-quote' && char === "'")
+        || (state === 'double-quote' && char === '"')
+        || (state === 'template' && char === '`')
+      ) {
+        state = 'normal';
+      }
+      continue;
+    }
+    if (char === '/' && next === '/') {
+      result += '  ';
+      index += 1;
+      state = 'line-comment';
+      continue;
+    }
+    if (char === '/' && next === '*') {
+      result += '  ';
+      index += 1;
+      state = 'block-comment';
+      continue;
+    }
+    if (char === "'") state = 'single-quote';
+    if (char === '"') state = 'double-quote';
+    if (char === '`') state = 'template';
+    result += char;
+  }
+  return result;
 }
 
 async function collectViolations(files) {

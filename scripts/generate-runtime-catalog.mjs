@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { listProviderSourceDocs } from './lib/provider-source.mjs';
 import {
   buildLanguageProfiles,
   buildSourceIndex,
@@ -589,27 +590,22 @@ function generateProviderCatalog(doc) {
   return result;
 }
 
-async function loadSourceFiles() {
-  const entries = await fs.readdir(sourceDir, { withFileTypes: true });
-  const files = entries
-    .filter((entry) => entry.isFile() && /\.source\.ya?ml$/iu.test(entry.name))
-    .map((entry) => path.join(sourceDir, entry.name))
-    .sort((a, b) => a.localeCompare(b));
-  if (files.length === 0) {
-    throw new Error(`no source files found in ${sourceDir}`);
+function loadSourceDocs() {
+  const entries = listProviderSourceDocs(sourceDir);
+  if (entries.length === 0) {
+    throw new Error(`no source providers found in ${sourceDir}`);
   }
-  return files;
+  return entries;
 }
 
-async function generateOne(sourcePath) {
-  const raw = await fs.readFile(sourcePath, 'utf8');
-  const doc = YAML.parse(raw);
+async function generateOne(sourceEntry) {
+  const doc = sourceEntry.doc;
   if (!doc || typeof doc !== 'object') {
-    throw new Error(`invalid YAML object: ${path.relative(repoRoot, sourcePath)}`);
+    throw new Error(`invalid YAML object: ${path.relative(repoRoot, sourceEntry.absPath)}`);
   }
   const generatedTarget = normalizeString(doc.generated_target);
   if (!generatedTarget) {
-    throw new Error(`${path.relative(repoRoot, sourcePath)} missing generated_target`);
+    throw new Error(`${path.relative(repoRoot, sourceEntry.absPath)} missing generated_target`);
   }
 
   const outputDoc = generateProviderCatalog(doc);
@@ -646,10 +642,10 @@ async function generateOne(sourcePath) {
 }
 
 async function main() {
-  const sourceFiles = await loadSourceFiles();
+  const sourceFiles = loadSourceDocs();
   const results = [];
-  for (const sourcePath of sourceFiles) {
-    results.push(await generateOne(sourcePath));
+  for (const sourceEntry of sourceFiles) {
+    results.push(await generateOne(sourceEntry));
   }
 
   if (checkMode) {

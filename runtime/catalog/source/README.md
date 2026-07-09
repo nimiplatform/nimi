@@ -10,7 +10,8 @@ Provider snapshot is optimized for runtime resolver compatibility.
 
 ## 2. Catalog Layout
 
-- Source: `runtime/catalog/source/providers/*.source.yaml`
+- Source: `runtime/catalog/source/providers/*.source.yaml` or
+  `runtime/catalog/source/providers/<provider>/*.yaml` fragments
 - Snapshot: `runtime/catalog/providers/*.yaml`
 
 Runtime only loads `runtime/catalog/providers/*.yaml`.
@@ -27,7 +28,9 @@ first, then projected into snapshot / registry / spec tables.
 
 ## 4. v3 Core Structure
 
-Each `*.source.yaml` should contain:
+Each source provider entry should contain the following after merge. The entry
+may be a single `<provider>.source.yaml` file or a `<provider>/` directory whose
+YAML fragments are merged by source tooling:
 
 - `schema_version`
 - `provider`
@@ -321,7 +324,9 @@ At minimum, generator/schema validation must enforce:
 
 ## 7. Workflow
 
-1. Edit source at `runtime/catalog/source/providers/<provider>.source.yaml`.
+1. Edit source at `runtime/catalog/source/providers/<provider>.source.yaml`, or
+   in `runtime/catalog/source/providers/<provider>/*.yaml` when the provider is
+   split into fragments.
 2. Validate source schema + semantic rules.
 3. Generate snapshots: `pnpm generate:runtime-catalog`.
 4. Generate registry + projected spec tables: `pnpm generate:runtime-provider-registry`.

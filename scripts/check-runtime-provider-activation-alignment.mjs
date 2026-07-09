@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import YAML from 'yaml';
+import { listProviderSourceDocs } from './lib/provider-source.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -23,10 +23,6 @@ function fail(message) {
 
 function readText(absPath) {
   return fs.readFileSync(absPath, 'utf8');
-}
-
-function readYaml(absPath) {
-  return YAML.parse(readText(absPath)) || {};
 }
 
 function normalizeProviderId(value) {
@@ -188,15 +184,12 @@ function supportsVoiceWorkflowExecution(provider, nimillmProviders) {
 function main() {
   const registryRecords = parseRegistryRecords(registryPath);
   const voiceWorkflowProviders = parseVoiceWorkflowProviders(voiceAdapterPath);
-  const sourceFiles = fs.readdirSync(sourceDir)
-    .filter((entry) => entry.endsWith('.source.yaml'))
-    .map((entry) => path.join(sourceDir, entry))
-    .sort((left, right) => left.localeCompare(right));
+  const sourceFiles = listProviderSourceDocs(sourceDir);
 
-  for (const absPath of sourceFiles) {
-    const relPath = path.relative(repoRoot, absPath);
-    const doc = readYaml(absPath);
-    const provider = String(doc?.provider || path.basename(absPath, '.source.yaml')).trim();
+  for (const sourceEntry of sourceFiles) {
+    const relPath = path.relative(repoRoot, sourceEntry.absPath);
+    const doc = sourceEntry.doc || {};
+    const provider = String(doc?.provider || sourceEntry.provider).trim();
     const registry = registryRecords.get(provider);
     if (!registry) {
       fail(`${relPath} provider ${provider} is missing from runtime/internal/providerregistry/generated.go`);

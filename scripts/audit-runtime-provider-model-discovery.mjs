@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { listProviderSourceDocs } from './lib/provider-source.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -247,16 +248,12 @@ function mergeConfig(base, override) {
 }
 
 function loadSourceProviders() {
-  const entries = fs.readdirSync(sourceDir)
-    .filter((entry) => entry.endsWith('.source.yaml'))
-    .sort((left, right) => left.localeCompare(right));
-  return entries.map((entry) => {
-    const absPath = path.join(sourceDir, entry);
-    const doc = readYaml(absPath);
+  return listProviderSourceDocs(sourceDir).map((entry) => {
+    const doc = entry.doc || {};
     return {
-      file: entry,
-      path: absPath,
-      provider: normalizeProviderID(doc.provider || entry.replace(/\.source\.yaml$/u, '')),
+      file: entry.relPath,
+      path: entry.absPath,
+      provider: normalizeProviderID(doc.provider || entry.provider),
       document: doc,
     };
   });

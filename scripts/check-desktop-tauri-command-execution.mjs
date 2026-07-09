@@ -9,6 +9,9 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 const tableRel = '.nimi/spec/desktop/kernel/tables/command-execution-classification.yaml';
 const tablePath = path.join(repoRoot, tableRel);
+const ipcCommandsRel = '.nimi/spec/desktop/kernel/tables/ipc-commands.yaml';
+const ipcCommandsPath = path.join(repoRoot, ipcCommandsRel);
+const jsonMode = process.argv.slice(2).includes('--json');
 
 const allowedExecutionClasses = new Set([
   'ui_sync',
@@ -59,6 +62,30 @@ function walk(dir) {
       if (entry.name === 'target' || entry.name === 'node_modules' || entry.name === '.git') continue;
       out.push(...walk(full));
     } else if (entry.name.endsWith('.rs')) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+function walkTextFiles(dir) {
+  const out = [];
+  if (!fs.existsSync(dir)) return out;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (
+        entry.name === 'target'
+        || entry.name === 'node_modules'
+        || entry.name === '.git'
+        || entry.name === 'dist'
+        || entry.name === 'generated'
+        || entry.name === 'gen'
+      ) {
+        continue;
+      }
+      out.push(...walkTextFiles(full));
+    } else if (/\.(?:ts|tsx|js|jsx|mjs|cjs)$/u.test(entry.name)) {
       out.push(full);
     }
   }
@@ -279,10 +306,16 @@ function parseKitHandlerInvocation(source, rel, macroName, markerIndex) {
   const appCommandBody = runtimeDefaultsMatch
     ? body.slice(runtimeDefaultsMatch.index + runtimeDefaultsMatch[0].length)
     : body;
-  const appCommands = parseCommandRefs(appCommandBody, rel, macroName);
+  const appCommands = parseCommandRefs(appCommandBody, rel, macroName).map((command) => ({
+    ...command,
+    origin: 'app-local',
+  }));
   return [
-    { name: runtimeDefaultsName, ref: runtimeDefaultsRef },
-    ...parseKitMacroBuiltins(macroName),
+    { name: runtimeDefaultsName, ref: runtimeDefaultsRef, origin: 'kit' },
+    ...parseKitMacroBuiltins(macroName).map((command) => ({
+      ...command,
+      origin: 'kit',
+    })),
     ...appCommands,
   ];
 }
@@ -417,6 +450,56 @@ function directRisks(command) {
   return [...new Set(risks)].sort();
 }
 
+function commandNames(commands) {
+  return commands.map((command) => command.name);
+}
+
+function uniqueSorted(values) {
+  return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))].sort();
+}
+
+function parseActiveIpcCommands() {
+  if (!fs.existsSync(ipcCommandsPath)) {
+    fail(`missing ${ipcCommandsRel}`);
+    return new Set();
+  }
+  const table = YAML.parse(fs.readFileSync(ipcCommandsPath, 'utf8')) || {};
+  return new Set(
+    (Array.isArray(table?.commands) ? table.commands : [])
+      .map((entry) => String(entry?.command || '').trim())
+      .filter(Boolean),
+  );
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
+function scanReferencedCommands(commandNamesToFind) {
+  const commands = uniqueSorted(commandNamesToFind);
+  const remaining = new Map(commands.map((command) => [
+    command,
+    new RegExp(`(?:^|[^A-Za-z0-9_])${escapeRegExp(command)}(?:[^A-Za-z0-9_]|$)`, 'u'),
+  ]));
+  const found = new Set();
+  const roots = ['apps/desktop/src'];
+
+  for (const rootRel of roots) {
+    const rootAbs = path.join(repoRoot, rootRel);
+    for (const fileAbs of walkTextFiles(rootAbs)) {
+      if (remaining.size === 0) break;
+      const source = fs.readFileSync(fileAbs, 'utf8');
+      for (const [command, pattern] of remaining) {
+        if (!pattern.test(source)) continue;
+        found.add(command);
+        remaining.delete(command);
+      }
+    }
+  }
+
+  return uniqueSorted([...found]);
+}
+
 function validateTable(table) {
   const risks = new Set((Array.isArray(table?.risk_catalog) ? table.risk_catalog : []).map((item) => String(item?.risk || '').trim()).filter(Boolean));
   if (risks.size === 0) fail(`${tableRel} risk_catalog must not be empty`);
@@ -448,7 +531,7 @@ function validateTable(table) {
 function main() {
   if (!fs.existsSync(tablePath)) {
     fail(`missing ${tableRel}`);
-    return;
+    return null;
   }
   const table = YAML.parse(fs.readFileSync(tablePath, 'utf8')) || {};
   validateTable(table);
@@ -456,9 +539,10 @@ function main() {
   const surfaceRel = String(table?.registered_surface?.generate_handler || '').trim();
   if (!surfaceRel) {
     fail(`${tableRel} missing registered_surface.generate_handler`);
-    return;
+    return null;
   }
   const registered = parseGenerateHandlerCommands(read(surfaceRel), surfaceRel);
+  const activeIpcCommands = parseActiveIpcCommands();
   const minimumRegisteredCount = Number(table?.registered_surface?.minimum_registered_count || 1);
   if (registered.length < minimumRegisteredCount) {
     fail(`${surfaceRel} registered command count ${registered.length} is below minimum ${minimumRegisteredCount}`);
@@ -482,12 +566,17 @@ function main() {
   }
 
   const registeredNames = new Set(registered.map((item) => item.name));
+  const missingActiveSpec = [];
+  const missingExecutionClassification = [];
   const registeredFamilies = Array.isArray(table?.registered_command_families) ? table.registered_command_families : [];
   const dormantFamilies = Array.isArray(table?.dormant_command_families) ? table.dormant_command_families : [];
   const remediationFamilies = new Set();
   const dormantRemediationFamilies = new Set();
 
   for (const command of registered) {
+    if (!activeIpcCommands.has(command.name)) {
+      missingActiveSpec.push(command.name);
+    }
     const definitions = annotatedByName.get(command.name) || [];
     if (definitions.length === 0) {
       fail(`registered command ${command.name} has no #[tauri::command] definition in scan roots`);
@@ -495,6 +584,7 @@ function main() {
     }
     const spec = matchSpec(command.name, registeredFamilies);
     if (!spec) {
+      missingExecutionClassification.push(command.name);
       fail(`registered command ${command.name} has no execution classification`);
       continue;
     }
@@ -533,13 +623,36 @@ function main() {
     if (spec?.remediation_required) dormantRemediationFamilies.add(String(spec.family || command.name));
   }
 
-  console.log(`[desktop-tauri-command-execution] registered=${registered.length} annotated=${annotated.length} dormant=${dormantCandidates.length} remediationFamilies=${remediationFamilies.size} dormantRemediationFamilies=${dormantRemediationFamilies.size}`);
-  if (remediationFamilies.size > 0) {
-    console.log(`[desktop-tauri-command-execution] remediation_required=${[...remediationFamilies].sort().join(', ')}`);
+  const kitRegistered = registered.filter((command) => command.origin === 'kit');
+  const appLocalRegistered = registered.filter((command) => command.origin === 'app-local');
+  const rendererReferencedAppLocal = scanReferencedCommands(commandNames(appLocalRegistered));
+  const referencedAppLocalSet = new Set(rendererReferencedAppLocal);
+
+  const report = {
+    registered: commandNames(registered),
+    kitRegistered: commandNames(kitRegistered),
+    appLocalRegistered: commandNames(appLocalRegistered),
+    annotated: commandNames(annotated),
+    dormant: commandNames(dormantCandidates),
+    rendererReferencedAppLocal,
+    unreferencedRegisteredAppLocal: commandNames(appLocalRegistered).filter((command) => !referencedAppLocalSet.has(command)),
+    missingActiveSpec: uniqueSorted(missingActiveSpec),
+    missingExecutionClassification: uniqueSorted(missingExecutionClassification),
+  };
+
+  if (jsonMode) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    console.log(`[desktop-tauri-command-execution] registered=${registered.length} annotated=${annotated.length} dormant=${dormantCandidates.length} remediationFamilies=${remediationFamilies.size} dormantRemediationFamilies=${dormantRemediationFamilies.size}`);
+    if (remediationFamilies.size > 0) {
+      console.log(`[desktop-tauri-command-execution] remediation_required=${[...remediationFamilies].sort().join(', ')}`);
+    }
+    if (dormantRemediationFamilies.size > 0) {
+      console.log(`[desktop-tauri-command-execution] dormant_remediation_required=${[...dormantRemediationFamilies].sort().join(', ')}`);
+    }
   }
-  if (dormantRemediationFamilies.size > 0) {
-    console.log(`[desktop-tauri-command-execution] dormant_remediation_required=${[...dormantRemediationFamilies].sort().join(', ')}`);
-  }
+
+  return report;
 }
 
 try {

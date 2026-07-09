@@ -1,0 +1,215 @@
+
+# NOTE: local speech source truth is now anchored to the first-wave admitted
+# Qwen speech line:
+# - STT default lane: Qwen3-ASR-0.6B
+# - plain TTS default lane: Qwen3-TTS-12Hz-0.6B-CustomVoice
+# - voice clone default lane: Qwen3-TTS-12Hz-0.6B-Base
+# - voice design default lane: Qwen3-TTS-12Hz-1.7B-VoiceDesign
+# Other local speech families below remain catalog evidence only until their
+# own execution plane and admission proof are explicitly cut over.
+#
+# LOCAL-PLANE ROW SCHEMA (K-MCAT-032 — authoring contract, populated per tier
+# in wave-1/wave-2). Each runtime_plane=local models[] row gains a local-plane
+# block. It is a plane-conditional block (mirrors the video_generation/voice
+# capability-conditional pattern), not a schema fork:
+#
+#   - model_id: <stable model identity>
+#     capabilities: [<canonical K-MCAT-024 tokens only>]
+#     install:
+#       repo: <huggingface repo>
+#       revision: <pinned revision>
+#       install_kind: binary | weights | verified-hf-multi-file
+#       entry: <engine entry artifact, relative path>
+#       artifact_roles: [<bundle roles>]
+#       preferred_engine: llama | media | speech | sidecar
+#     variants:                       # 1+; each variant is one installable asset
+#       - variant_id: <stable per-(model,quant) identity; the installable asset_id>
+#         quant: Q4_K_M | Q8_0 | Q6_K | Q5_K_M | Q4_0 | Q3 | Q2 | F16
+#         files: [<file>...]
+#         hashes: { <file>: "sha256:<hex>" }    # every file; missing => fail-close
+#         total_size_bytes: <int>
+#         host_requirement:
+#           accelerator: cpu | metal | cuda
+#           min_ram_bytes: <int>
+#           min_vram_bytes: <int>               # required only when accelerator != cpu
+#     fitness:
+#       param_count: <int>
+#       context_length: <int>
+#
+# CURATED PRESETS SCHEMA (K-MCAT-033 — authoring contract, populated in
+# wave-1/wave-2). A top-level `presets:` section binds factory AIProfile
+# install levels to concrete model slots. install-level keys are fixed to
+# `minimal` and `recommended` (aligns with ai-profile-factory-catalog.yaml
+# first_run_install_levels). `text.embed` is deliberately NOT a preset slot in
+# either level — embedding is a post-initialization / cloud-default capability,
+# not a first-run local baseline slot:
+#
+#   presets:
+#     minimal:
+#       factory_aiprofile_alias: local-speech-ready
+#       slots:
+#         - { slot: chat,  capability: text.generate,    model_ref: <model_id>, required: true }
+#         - { slot: stt,   capability: audio.transcribe, model_ref: <model_id>, required: true }
+#         - { slot: tts,   capability: audio.synthesize, model_ref: <model_id>, required: true }
+#     recommended:
+#       factory_aiprofile_alias: local-gpu
+#       slots:
+#         - { slot: chat,  capability: text.generate,    model_ref: <model_id>, required: true }
+#         - { slot: stt,   capability: audio.transcribe, model_ref: <model_id>, required: true }
+#         - { slot: tts,   capability: audio.synthesize, model_ref: <model_id>, required: true }
+#         - { slot: image, capability: image.generate,   model_ref: <model_id>, required: false, host_conditional: true }
+#
+# Each slot.model_ref must resolve to an admitted models[] row whose
+# capabilities include slot.capability. Each preset's declared capability set
+# must be a subset of the bound factory AIProfile's capability_set. The
+# deterministic resolver (K-MCAT-034..037) resolves
+# (install_level, host_posture) over this catalog into variant-level asset ids.
+# Catalog rows are populated in wave-1 (text/speech) and wave-2 (image/gpu).
+models:
+  - model_id: qwen3-tts-local
+    updated_at: 2026-05-21
+    capabilities: [audio.synthesize]
+    source_ids: [qwen3_tts_customvoice_modelcard]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_qwen3_tts_customvoice_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+    install:
+      repo: Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
+      revision: 85e237c12c027371202489a0ec509ded67b5e4b5
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles: [tts_model, speech_tokenizer, tokenizer]
+      preferred_engine: speech
+    variants:
+      - variant_id: local.tts.qwen3-tts-customvoice-0.6b.safetensors
+        quant: F16
+        files:
+          - model.safetensors
+          - config.json
+          - generation_config.json
+          - preprocessor_config.json
+          - tokenizer_config.json
+          - vocab.json
+          - merges.txt
+          - speech_tokenizer/model.safetensors
+          - speech_tokenizer/config.json
+          - speech_tokenizer/configuration.json
+          - speech_tokenizer/preprocessor_config.json
+        hashes:
+          model.safetensors: "sha256:bc3c7e785eb961179c25450d1acff03f839e0002f2f3a5aeb67b5735c0fa2adb"
+          config.json: "sha256:81aca2b6fac304944d8acf345272d8a9a727d5fc2e2e66b222ab4729340c7455"
+          generation_config.json: "sha256:f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa"
+          preprocessor_config.json: "sha256:efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119"
+          tokenizer_config.json: "sha256:dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670"
+          vocab.json: "sha256:ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+          merges.txt: "sha256:599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+          speech_tokenizer/model.safetensors: "sha256:836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258"
+          speech_tokenizer/config.json: "sha256:ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167"
+          speech_tokenizer/configuration.json: "sha256:6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd"
+          speech_tokenizer/preprocessor_config.json: "sha256:fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb"
+        total_size_bytes: 2498383610
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 4831838208
+    fitness:
+      param_count: 600000000
+      context_length: 0
+    aliases:
+      - qwen3-tts
+      - local/qwen3-tts
+      - speech/qwen3tts
+      - Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice
+
+  - model_id: qwen3-tts-base-local
+    updated_at: 2026-04-17
+    capabilities: [audio.synthesize]
+    source_ids: [qwen3_tts_base_modelcard]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_qwen3_tts_base_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+    aliases:
+      - local/qwen3-tts-base
+      - speech/qwen3tts-base
+      - Qwen/Qwen3-TTS-12Hz-0.6B-Base
+
+  - model_id: qwen3-tts-voicedesign-local
+    updated_at: 2026-04-17
+    capabilities: [audio.synthesize]
+    source_ids: [qwen3_tts_voicedesign_modelcard]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_qwen3_tts_voicedesign_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+    aliases:
+      - local/qwen3-tts-voicedesign
+      - speech/qwen3tts-design
+      - Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
+
+  - model_id: cosyvoice2-local
+    updated_at: 2026-03-05
+    capabilities: [audio.synthesize]
+    source_ids: [cosyvoice_repo]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_cosyvoice2_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+
+  - model_id: gpt-sovits-local
+    updated_at: 2026-03-05
+    capabilities: [audio.synthesize]
+    source_ids: [gpt_sovits_repo]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_gpt_sovits_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+
+  - model_id: f5-tts-local
+    updated_at: 2026-03-05
+    capabilities: [audio.synthesize]
+    source_ids: [f5_tts_repo]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_f5_tts_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+
+  - model_id: piper-local
+    updated_at: 2026-03-05
+    capabilities: [audio.synthesize]
+    source_ids: [piper_repo]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: piper-defaults-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_v1
+
+  - model_id: kokoro-local
+    updated_at: 2026-03-05
+    capabilities: [audio.synthesize]
+    source_ids: [kokoro_repo]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: kokoro-defaults-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
+      langs_ref: short_v1
+
+  - model_id: voxcpm2-local
+    updated_at: 2026-04-14
+    capabilities: [audio.synthesize]
+    source_ids: [voxcpm2_modelcard]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_voxcpm2_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+    aliases:
+      - local/voxcpm2
+      - speech/voxcpm2
+      - openbmb/VoxCPM2

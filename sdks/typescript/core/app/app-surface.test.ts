@@ -882,6 +882,10 @@ describe('vNext app surface', () => {
     assert.deepEqual(projection.releaseDescriptors.map((descriptor) => descriptor.appId), ['nimi.example-app']);
     assert.equal(projection.releaseDescriptors[0]?.descriptorClass, 'bundled-with-nimi');
     assert.throws(
+      () => parseNimiAppBridgeProjection(null),
+      /platformProjection\.get apps-bridge returned an invalid payload/,
+    );
+    assert.throws(
       () => parseNimiAppBridgeProjection({
         registryPath: '/registry.json',
         packagesPath: '/packages',

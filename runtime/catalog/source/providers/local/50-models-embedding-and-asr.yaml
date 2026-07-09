@@ -1,0 +1,72 @@
+models:
+  - model_id: nomic-embed-text-local
+    model_type: embedding
+    updated_at: 2026-03-15
+    capabilities: [text.embed]
+    source_ids: [nomic_embed_text_v15_modelcard]
+    # K-MEM-004 / K-AIEXEC-006: catalog-authoritative output dimension for the
+    # runtime memory embedding profile. nomic-embed-text-v1.5 emits 768-dim
+    # vectors natively.
+    embedding:
+      dimension: 768
+    aliases:
+      - local/nomic-embed-text
+      - llama/nomic-embed-text
+
+  - model_id: whisper-large-v3-local
+    model_type: stt
+    updated_at: 2026-03-15
+    capabilities: [audio.transcribe]
+    aliases:
+      - local/whisper-large-v3
+      - speech/whisper-large-v3
+
+  - model_id: qwen3-asr-local
+    model_type: stt
+    updated_at: 2026-05-21
+    capabilities: [audio.transcribe]
+    source_ids: [qwen3_asr_modelcard]
+    transcription:
+      tiers: [core_transcript, timed_transcript]
+      response_formats: [text, json]
+      supports_language: true
+      supports_timestamps: true
+    install:
+      repo: Qwen/Qwen3-ASR-0.6B
+      revision: 5eb144179a02acc5e5ba31e748d22b0cf3e303b0
+      install_kind: verified-hf-multi-file
+      entry: model.safetensors
+      artifact_roles: [stt_model, tokenizer]
+      preferred_engine: speech
+    variants:
+      - variant_id: local.stt.qwen3-asr-0.6b.safetensors
+        quant: F16
+        files:
+          - model.safetensors
+          - config.json
+          - generation_config.json
+          - preprocessor_config.json
+          - chat_template.json
+          - tokenizer_config.json
+          - vocab.json
+          - merges.txt
+        hashes:
+          model.safetensors: "sha256:79d6cbd4c98c7bbffe9db2edac07f56cd6637d0d5944b27f6c2b8353840323ea"
+          config.json: "sha256:76d3ae4601ce939830b2517f4a6cadb86cc51316c3900af6b020b051c21a478c"
+          generation_config.json: "sha256:1da527824d81e07118facff437e03f2e24a23311e3bdeb2368973fe77e5f275c"
+          preprocessor_config.json: "sha256:45e120a4eda2c20c5d7f2ea9354e63536bf35e27aa573fb7cdf78017b378770d"
+          chat_template.json: "sha256:75a8cfca24f00de72d796fbfed6858fc9614ef3dabd8696684cc3bc03a9c58ff"
+          tokenizer_config.json: "sha256:4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c"
+          vocab.json: "sha256:ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+          merges.txt: "sha256:8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"
+        total_size_bytes: 1880560703
+        host_requirement:
+          accelerator: cpu
+          min_ram_bytes: 4294967296
+    fitness:
+      param_count: 600000000
+      context_length: 0
+    aliases:
+      - local/qwen3-asr
+      - speech/qwen3asr
+      - Qwen/Qwen3-ASR-0.6B
