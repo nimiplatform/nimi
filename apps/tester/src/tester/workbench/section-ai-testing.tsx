@@ -1,11 +1,11 @@
 import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
+import { Button, IconButton, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { PanelRight } from 'lucide-react';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
-import { type TesterCapability, type TesterCapabilityId } from '../tester-capabilities.js';
+import { type TesterCapability } from '../tester-capabilities.js';
 import { getTesterRunModelLabel, type TesterRunConfigSnapshot, type TesterRunHistory, type TesterRunHistoryRecord } from '../tester-history.js';
 import { runTesterCapability, type TesterCapabilityRunResult, type TesterRuntimeInspection } from '../tester-runtime.js';
-import { loadTesterPromptDraft, saveTesterPromptDraft, type TesterPromptDraftStoreStatus } from '../tester-preferences.js';
+import { loadTesterPromptDraft, saveTesterPromptDraft } from '../tester-preferences.js';
 import { openWorldTourWindow, resolveWorldTourFixture } from '../world-tour/world-tour-shared.js';
 import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, STATUS_PILL_LABEL, TesterAiConfigSettingsPanel, artifactExtension, downloadArtifactUrl, downloadTextFile, presetFor, resultPlainText, statusForCapability, type SectionAITestingProps } from './section-ai-testing-surface.js';
@@ -41,15 +41,14 @@ function TextStudioShell({
 }) {
   const profile = getCapabilityStudioProfile(capability.id);
   const preset = useMemo(() => presetFor(capability), [capability]);
-  const [prompt, setPrompt] = useState(preset.prompt);
-  const [context, setContext] = useState('');
-  const [draftStatus, setDraftStatus] = useState<TesterPromptDraftStoreStatus>(() => (
+  const [prompt, setPrompt] = useState(() => (
     loadTesterPromptDraft({
       surfaceId: 'ai-capabilities',
       capabilityId: capability.id,
       scenarioId: preset.id,
-    }, draftPersistence).status
+    }, draftPersistence).prompt ?? preset.prompt
   ));
+  const [context, setContext] = useState('');
   const [running, setRunning] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const [activeRun, setActiveRun] = useState<TextStudioActiveRun | null>(null);
@@ -78,12 +77,11 @@ function TextStudioShell({
 
   function updatePrompt(nextPrompt: string) {
     setPrompt(nextPrompt);
-    const saved = saveTesterPromptDraft({
+    saveTesterPromptDraft({
       surfaceId: 'ai-capabilities',
       capabilityId: capability.id,
       scenarioId: preset.id,
     }, nextPrompt, draftPersistence);
-    setDraftStatus(saved.status);
   }
 
   useEffect(() => {
@@ -92,7 +90,6 @@ function TextStudioShell({
       capabilityId: capability.id,
       scenarioId: preset.id,
     }, draftPersistence);
-    setDraftStatus(draft.status);
     setPrompt(draft.prompt ?? preset.prompt);
     setContext('');
     setActiveRun(null);
@@ -272,15 +269,14 @@ function TextStudioShell({
                 content={historyCollapsed ? 'Show history' : 'Hide history'}
                 placement="bottom"
               >
-                <button
+                <IconButton
                   type="button"
                   className={historyCollapsed ? 'studio-history-toggle' : 'studio-history-toggle studio-history-toggle--expanded'}
                   aria-label={historyCollapsed ? 'Show history' : 'Hide history'}
                   aria-expanded={!historyCollapsed}
                   onClick={handleHistoryCollapseToggle}
-                >
-                  <PanelRight size={17} strokeWidth={1.8} aria-hidden="true" />
-                </button>
+                  icon={<PanelRight size={17} strokeWidth={1.8} aria-hidden="true" />}
+                />
               </Tooltip>
             </div>
           </header>
@@ -362,8 +358,9 @@ export function SectionAITesting({
 
       {configSection ? (
         <>
-          <button
+          <Button
             type="button"
+            tone="ghost"
             className="section-ai-testing__drawer-backdrop"
             aria-label="Close model configuration"
             onClick={() => setConfigOpen(false)}

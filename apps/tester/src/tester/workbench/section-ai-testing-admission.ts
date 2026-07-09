@@ -72,7 +72,7 @@ const scenarioPresets: Partial<Record<TesterCapabilityId, ScenarioPreset[]>> = {
     {
       id: 'voice-catalog',
       label: 'Voice catalog',
-      prompt: 'List voices through runtime.ai.listPresetVoices.',
+      prompt: 'List voices through Kit Runtime voice catalog.',
     },
   ],
   'world.generate': [

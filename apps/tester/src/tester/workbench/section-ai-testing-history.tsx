@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Tooltip } from '@nimiplatform/kit/ui';
+import { Button, IconButton, Tooltip } from '@nimiplatform/kit/ui';
 import { Check, ChevronRight, Funnel, RefreshCw, Sparkles } from 'lucide-react';
 import { testerCapabilities, type TesterCapabilityId } from '../tester-capabilities.js';
 import {
@@ -186,14 +186,16 @@ function HistoryFilterOption({
   onSelect: () => void;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      tone="ghost"
+      size="sm"
       className={selected ? 'studio-history-filter__option studio-history-filter__option--selected' : 'studio-history-filter__option'}
       onClick={onSelect}
     >
       <span>{label}</span>
       {selected ? <Check size={17} strokeWidth={2} aria-hidden="true" /> : null}
-    </button>
+    </Button>
   );
 }
 
@@ -331,16 +333,17 @@ export function CapabilityRunHistory({
             <strong>History</strong>
           </div>
           <div className="studio-history__actions">
-            <button
+            <IconButton
               ref={filterButtonRef}
               type="button"
+              tone="ghost"
+              size="sm"
               className={filterOpen ? 'studio-history__filter-trigger studio-history__filter-trigger--active' : 'studio-history__filter-trigger'}
               aria-label="Filter history"
               aria-expanded={filterOpen}
               onClick={handleFilterToggle}
-            >
-              <Funnel size={18} strokeWidth={1.9} aria-hidden="true" />
-            </button>
+              icon={<Funnel size={18} strokeWidth={1.9} aria-hidden="true" />}
+            />
           </div>
         </div>
         {!collapsed && filterOpen ? (
@@ -358,9 +361,11 @@ export function CapabilityRunHistory({
                 ['group', 'Group by'],
                 ['sort', 'Sort by'],
               ] as const).map(([id, label], index) => (
-                <button
+                <Button
                   key={id}
                   type="button"
+                  tone="ghost"
+                  size="sm"
                   className={activeMenu === id ? 'studio-history-filter__row studio-history-filter__row--active' : 'studio-history-filter__row'}
                   aria-expanded={activeMenu === id}
                   data-divider={index === 4 ? '' : undefined}
@@ -369,17 +374,19 @@ export function CapabilityRunHistory({
                   <span>{label}</span>
                   <strong>{activeMenuLabel[id]}</strong>
                   <ChevronRight size={17} strokeWidth={1.9} aria-hidden="true" />
-                </button>
+                </Button>
               ))}
               {hasActiveHistoryFilters ? (
-                <button
+                <Button
                   type="button"
+                  tone="ghost"
+                  size="sm"
                   className="studio-history-filter__clear"
                   onClick={clearHistoryFilters}
                 >
                   <RefreshCw size={14} strokeWidth={1.9} aria-hidden="true" />
                   <span>Clear all filters</span>
-                </button>
+                </Button>
               ) : null}
             </div>
             {activeMenu ? (
@@ -404,8 +411,10 @@ export function CapabilityRunHistory({
                     const Icon = capability ? capabilityIcons[capability.id] : Sparkles;
                     return (
                       <li key={record.id}>
-                        <button
+                        <Button
                           type="button"
+                          tone="ghost"
+                          size="sm"
                           className={record.id === activeRunId ? 'studio-recent__row studio-recent__row--active' : 'studio-recent__row'}
                           onClick={() => onSelectRun(record)}
                           aria-current={record.id === activeRunId ? 'true' : undefined}
@@ -430,7 +439,7 @@ export function CapabilityRunHistory({
                               </span>
                             </Tooltip>
                           </span>
-                        </button>
+                        </Button>
                       </li>
                     );
                   })}

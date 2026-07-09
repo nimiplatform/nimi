@@ -1,28 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
+import { isCanonicalPermissionScopeName } from '@nimiplatform/sdk/app';
 import './check-kit-first-style.mjs';
 
-const CLOSED_PERMISSION_SCOPES = new Set([
-  'account.read',
-  'account.session.read',
-  'data.scope.read',
-  'data.scope.write',
-  'agent.identity.project',
-  'agent.identity.bind',
-  'ai.spend.meter',
-  'ai.spend.delegate',
-  'memory.read.bounded',
-  'memory.write.admitted',
-  'knowledge.read.bounded',
-  'knowledge.write.admitted',
-  'notification.send',
-  'notification.subscribe',
-  'file.read.scoped',
-  'file.write.scoped',
-  'device.use.scoped',
-  'audit.read.scoped',
-  'ai_profile.selection.consume',
-]);
 const APP_LOCAL_DRAFTS_SCOPES = new Set(['file.read.scoped', 'file.write.scoped']);
 
 function validatePermissionDeclarations(manifestText) {
@@ -42,7 +22,7 @@ function validatePermissionDeclarations(manifestText) {
     if (!scope || !purpose) {
       throw new Error(`permission declaration ${index} requires scope and purpose`);
     }
-    if (!CLOSED_PERMISSION_SCOPES.has(scope)) {
+    if (!isCanonicalPermissionScopeName(scope)) {
       throw new Error(`permission declaration ${index} uses non-canonical scope: ${scope}`);
     }
     if (typeof declaration.qualifier === 'string' && qualifier.length === 0) {

@@ -141,14 +141,13 @@ function RecipeInspector({
             <p className="m-0 text-[10px] font-bold uppercase tracking-wider text-[var(--nimi-text-muted)]">Recipe Inspector</p>
             <h3 className="m-0 truncate text-xl font-bold">{recipe.name}</h3>
           </div>
-          <button
+          <IconButton
             type="button"
             aria-label="Close recipe inspector"
             className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]"
             onClick={onClose}
-          >
-            <X size={18} strokeWidth={2.2} aria-hidden="true" />
-          </button>
+            icon={<X size={18} strokeWidth={2.2} aria-hidden="true" />}
+          />
         </div>
 
         <div className="h-px bg-[var(--nimi-border-subtle)]" />

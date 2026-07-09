@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import './tester-workbench.css';
 import { Tooltip } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
 import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
-import { SettingsRoute } from '../shell/routes/settings.js';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { saveTesterArtifact } from './tester-artifact-storage.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
@@ -28,9 +27,14 @@ import { testerTestIds } from './tester-test-ids.js';
 import { WorkbenchSideNav } from './workbench/workbench-side-nav.js';
 import { SectionAITesting } from './workbench/section-ai-testing.js';
 import type { WorkbenchView } from './workbench/workbench-context.js';
-import { KitComponentGallery } from './kit-component-gallery.js';
 
 const initialCapabilityId: TesterCapabilityId = 'text.generate';
+const SettingsRoute = lazy(async () => ({
+  default: (await import('../shell/routes/settings-route.js')).SettingsRoute,
+}));
+const KitComponentGallery = lazy(async () => ({
+  default: (await import('./kit-component-gallery.js')).KitComponentGallery,
+}));
 
 type TesterWorkbenchProps = {
   title: string;
@@ -134,7 +138,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const activeCapabilityId: TesterCapabilityId = view.kind === 'capability' ? view.capabilityId : initialCapabilityId;
   const [summary, setSummary] = useState<TesterAIConfigSummary | null>(null);
   const [history, setHistory] = useState<TesterRunHistory | null>(null);
-  const [historyError, setHistoryError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<TesterCapabilityRunResult | null>(null);
   const [historySelectionRequest, setHistorySelectionRequest] = useState<TesterHistorySelectionRequest | null>(null);
   const [preferences] = useState<TesterPreferences>(() => loadTesterPreferences().preferences);
@@ -156,10 +159,8 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         options: { maxAttempts: 2, initialDelayMs: 25, maxDelayMs: 50 },
       });
       setHistory(next);
-      setHistoryError(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error || 'History load failed.');
-      setHistoryError(message);
       emitRuntimeLog({
         level: 'warn',
         area: 'tester-history',
@@ -242,7 +243,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
       try {
         const next = await appendTesterRunHistory(record);
         setHistory(next);
-        setHistoryError(null);
         if (shouldPersistTesterArtifactRecord(historyResult)) {
           const firstArtifact = historyResult.output.firstArtifact;
           await appendTesterImageHistoryRecord({
@@ -292,7 +292,6 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
             error: error instanceof Error ? error.message : String(error || 'History persistence failed.'),
           },
         });
-        setHistoryError(error instanceof Error ? error.message : String(error || 'History persistence failed.'));
       }
       return record;
     },
@@ -313,14 +312,18 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
         <div className="workbench__main">
           <div className="workbench__content">
             {view.kind === 'settings' ? (
-              <SettingsRoute />
+              <Suspense fallback={null}>
+                <SettingsRoute />
+              </Suspense>
             ) : view.kind === 'ui-recipes' ? (
-              <KitComponentGallery
-                onOpenSection={(target) => {
-                  const capabilityId = testerCapabilities.find((item) => item.id === target)?.id ?? initialCapabilityId;
-                  setView({ kind: 'capability', capabilityId });
-                }}
-              />
+              <Suspense fallback={null}>
+                <KitComponentGallery
+                  onOpenSection={(target) => {
+                    const capabilityId = testerCapabilities.find((item) => item.id === target)?.id ?? initialCapabilityId;
+                    setView({ kind: 'capability', capabilityId });
+                  }}
+                />
+              </Suspense>
             ) : (
               <SectionAITesting
                 capability={capability}

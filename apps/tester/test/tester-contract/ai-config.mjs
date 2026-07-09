@@ -241,6 +241,9 @@ test('tester AI config is the Kit model-config surface in Settings with real SDK
   assert.doesNotMatch(store, /createScopedAISnapshotStore/);
   assert.doesNotMatch(store, /createHostAIProfileSurface/);
   assert.doesNotMatch(store, /validateAIProfileRuntimeBindings/);
+  assert.doesNotMatch(store, /TESTER_AI_CONFIG_LEGACY_STORAGE_KEY/);
+  assert.doesNotMatch(store, /migrateLegacyTesterAIConfigIfNeeded/);
+  assert.doesNotMatch(store, /scope-mismatch/);
 
   // The kit model-config mechanics live in the scaffold-managed sectioned config
   // surface skeleton (inherited by every generated app). It composes admitted kit

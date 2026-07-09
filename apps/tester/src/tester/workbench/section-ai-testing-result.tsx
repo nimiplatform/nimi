@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Tooltip } from '@nimiplatform/kit/ui';
+import { IconButton, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, MessageSquare, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { formatTesterRunTimestamp, getTesterRunConfigParamRows, getTesterRunModelLabel, getTesterRunPromptControlFacts, getTesterRunResultTags, getTesterRunStatusLabel, getTesterRunStatusTone, type TesterRunConfigParamRow, type TesterRunHistoryRecord, type TesterRunHistoryResultSnapshot, type TesterRunPromptControlFact } from '../tester-history.js';
@@ -212,21 +212,15 @@ function TextStudioHistoryRecordResult({
           {!blocked ? (
             <>
               <Tooltip content="Copy" placement="top">
-                <button type="button" className="studio-result__action" onClick={handleCopy} disabled={!canExport} aria-label="Copy generation">
-                  <CopyIcon size={16} aria-hidden="true" />
-                </button>
+                <IconButton type="button" className="studio-result__action" onClick={handleCopy} disabled={!canExport} aria-label="Copy generation" icon={<CopyIcon size={16} aria-hidden="true" />} />
               </Tooltip>
               <Tooltip content="Download" placement="top">
-                <button type="button" className="studio-result__action" onClick={handleDownload} disabled={!canExport} aria-label="Download generation">
-                  <DownloadIcon size={16} aria-hidden="true" />
-                </button>
+                <IconButton type="button" className="studio-result__action" onClick={handleDownload} disabled={!canExport} aria-label="Download generation" icon={<DownloadIcon size={16} aria-hidden="true" />} />
               </Tooltip>
             </>
           ) : null}
           <Tooltip content="Regenerate" placement="top">
-            <button type="button" className="studio-result__action" onClick={onRegenerate} aria-label="Regenerate">
-              <RefreshCw size={16} aria-hidden="true" />
-            </button>
+            <IconButton type="button" className="studio-result__action" onClick={onRegenerate} aria-label="Regenerate" icon={<RefreshCw size={16} aria-hidden="true" />} />
           </Tooltip>
         </div>
       </div>
@@ -242,15 +236,14 @@ function TextStudioHistoryRecordResult({
             </Tooltip>
             {hasModelSettings ? (
               <Tooltip content={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'} placement="top">
-                <button
+                <IconButton
                   type="button"
                   className={modelSettingsOpen ? 'studio-model-pill__trigger studio-model-pill__trigger--open' : 'studio-model-pill__trigger'}
                   aria-label={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'}
                   aria-expanded={modelSettingsOpen}
                   onClick={() => setModelSettingsOpen((value) => !value)}
-                >
-                  <ChevronRight size={15} aria-hidden="true" />
-                </button>
+                  icon={<ChevronRight size={15} aria-hidden="true" />}
+                />
               </Tooltip>
             ) : null}
           </div>

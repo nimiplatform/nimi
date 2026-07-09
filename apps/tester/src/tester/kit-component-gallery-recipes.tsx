@@ -8,7 +8,6 @@ import {
   FieldTrigger,
   IconButton,
   IconToggleAction,
-  Pagination,
   ScrollArea,
   SelectField,
   Steps,

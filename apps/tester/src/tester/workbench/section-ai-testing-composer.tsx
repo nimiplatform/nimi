@@ -7,10 +7,17 @@ import { getCapabilityStudioProfile } from './capability-studio-profiles.js';
 
 function ModelSummaryChip({ label, onOpen }: { label: string; onOpen: () => void }) {
   return (
-    <button type="button" className="studio-model-chip" onClick={onOpen} aria-label="Open AI model configuration">
-      <SlidersHorizontal size={15} aria-hidden="true" />
-      <span>{label}</span>
-    </button>
+    <Button
+      type="button"
+      className="studio-model-chip"
+      tone="ghost"
+      size="sm"
+      leadingIcon={<SlidersHorizontal size={15} aria-hidden="true" />}
+      onClick={onOpen}
+      aria-label="Open AI model configuration"
+    >
+      {label}
+    </Button>
   );
 }
 
@@ -65,15 +72,17 @@ export function TextStudioComposer({
     <div className="studio-composer__bar">
       <div className="studio-composer__controls">
         {requiresPrompt ? (
-          <button
+          <Button
             type="button"
+            tone="ghost"
+            size="sm"
             className={contextAttached ? 'studio-context-chip studio-context-chip--attached' : 'studio-context-chip'}
+            leadingIcon={<Plus size={18} aria-hidden="true" />}
             onClick={() => setContextOpen((current) => !current)}
             aria-expanded={contextOpen}
           >
-            <Plus size={18} aria-hidden="true" />
             {contextAttached ? 'Context attached' : 'Context'}
-          </button>
+          </Button>
         ) : null}
       </div>
       <div className="studio-composer__actions">
@@ -119,15 +128,16 @@ export function TextStudioComposer({
           </div>
         ) : null}
         <Tooltip content={generateLabel} placement="top">
-          <button
+          <IconButton
             type="button"
             className={targetConfigAction ? 'studio-generate-action studio-generate-action--configure' : 'studio-generate-action'}
+            tone="primary"
+            size="sm"
             aria-label={generateLabel}
             disabled={generateDisabled}
             onClick={targetConfigAction ? onOpenModelConfig : onSubmit}
-          >
-            {running ? <RefreshCw size={15} aria-hidden="true" className="studio-spin" /> : <ArrowUp size={16} aria-hidden="true" />}
-          </button>
+            icon={running ? <RefreshCw size={15} aria-hidden="true" className="studio-spin" /> : <ArrowUp size={16} aria-hidden="true" />}
+          />
         </Tooltip>
       </div>
     </div>

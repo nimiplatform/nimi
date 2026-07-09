@@ -40,10 +40,20 @@ test('tester workbench is app-owned and rejects Desktop private imports', () => 
   assert.doesNotMatch(sources, /pseudo/i);
 });
 
+test('tester workbench lazy-loads secondary routes instead of pinning them in the first route bundle', () => {
+  const workbench = read('src/tester/tester-workbench.tsx');
+  assert.match(workbench, /lazy\(async \(\) => \(\{/);
+  assert.match(workbench, /import\('\.\.\/shell\/routes\/settings-route\.js'\)/);
+  assert.match(workbench, /import\('\.\/kit-component-gallery\.js'\)/);
+  assert.doesNotMatch(workbench, /import \{ SettingsRoute \} from '\.\.\/shell\/routes\/settings-route\.js';/);
+  assert.doesNotMatch(workbench, /import \{ KitComponentGallery \} from '\.\/kit-component-gallery\.js';/);
+});
+
 test('tester auth and runtime bootstrap consume Kit shell bridge primitives', () => {
   const main = read('src/main.tsx');
   const runtimeAccountAuth = read('src/shell/auth/runtime-account-auth.ts');
   const runtimePlatform = read('src/shell/auth/runtime-platform.ts');
+  const sdkRuntimeIndex = read('../../sdks/typescript/runtime/index.ts');
 
   assert.match(main, /installNimiShellRuntimeBridge/);
   assert.match(main, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
@@ -75,6 +85,8 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.match(runtimeAccountAuth, /createRuntimeAccountBrowserBroker/);
   assert.match(runtimePlatform, /createNimiDeveloperRegisteredRuntimeAccountCaller/);
   assert.match(runtimePlatform, /from '@nimiplatform\/sdk\/runtime'/);
+  assert.match(sdkRuntimeIndex, /RuntimeTypedCallOptions/);
+  assert.doesNotMatch(runtimePlatform, /@nimiplatform\/sdk\/runtime\/generated/);
   assert.match(runtimeAccountAuth, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
   assert.doesNotMatch(runtimeAccountAuth, /getPlatformClient\(/);
   assert.doesNotMatch(runtimeAccountAuth, /@renderer\/bridge|runtime-bridge/);

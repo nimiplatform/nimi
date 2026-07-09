@@ -3,7 +3,7 @@ import {
   Boxes,
   Compass,
 } from 'lucide-react';
-import { Tooltip } from '@nimiplatform/kit/ui';
+import { Button, Tooltip } from '@nimiplatform/kit/ui';
 import { getTesterCapability, type TesterCapabilityId } from '../tester-capabilities.js';
 import { capabilityIcons } from './capability-icons.js';
 import { workbenchLibraryCapabilityId, workbenchNavGroups, type WorkbenchView } from './workbench-context.js';
@@ -42,8 +42,10 @@ export function WorkbenchSideNav({
                       placement="right"
                       className="w-full"
                     >
-                      <button
+                      <Button
                         type="button"
+                        tone="ghost"
+                        size="sm"
                         data-workbench-rail-item=""
                         className={active ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
                         onClick={() => onSelectCapability(id)}
@@ -52,7 +54,7 @@ export function WorkbenchSideNav({
                       >
                         <Icon size={18} strokeWidth={1.9} aria-hidden="true" />
                         <span className="workbench-side-nav__item-label" data-workbench-rail-label="">{label}</span>
-                      </button>
+                      </Button>
                     </Tooltip>
                   </li>
                 );
@@ -68,8 +70,10 @@ export function WorkbenchSideNav({
                 placement="right"
                 className="w-full"
               >
-                <button
+                <Button
                   type="button"
+                  tone="ghost"
+                  size="sm"
                   data-workbench-rail-item=""
                   className={activeCapabilityId === workbenchLibraryCapabilityId ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
                   onClick={() => onSelectCapability(workbenchLibraryCapabilityId)}
@@ -78,7 +82,7 @@ export function WorkbenchSideNav({
                 >
                   <Compass size={18} strokeWidth={1.9} aria-hidden="true" />
                   <span className="workbench-side-nav__item-label" data-workbench-rail-label="">{getTesterCapability(workbenchLibraryCapabilityId).label}</span>
-                </button>
+                </Button>
               </Tooltip>
             </li>
           </ul>
@@ -91,8 +95,10 @@ export function WorkbenchSideNav({
                 placement="right"
                 className="w-full"
               >
-                <button
+                <Button
                   type="button"
+                  tone="ghost"
+                  size="sm"
                   data-workbench-rail-item=""
                   className={view.kind === 'ui-recipes' ? 'workbench-side-nav__item workbench-side-nav__item--active' : 'workbench-side-nav__item'}
                   onClick={onSelectRecipes}
@@ -101,7 +107,7 @@ export function WorkbenchSideNav({
                 >
                   <Boxes size={18} strokeWidth={1.9} aria-hidden="true" />
                   <span className="workbench-side-nav__item-label" data-workbench-rail-label="">UI Recipes</span>
-                </button>
+                </Button>
               </Tooltip>
             </li>
             {accountSlot ? (

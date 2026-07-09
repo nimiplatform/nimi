@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Dialog, DialogContent, DialogTitle, Tooltip } from '@nimiplatform/kit/ui';
+import { Dialog, DialogContent, DialogTitle, IconButton, Tooltip } from '@nimiplatform/kit/ui';
 import { Copy as CopyIcon, Download as DownloadIcon, Maximize2, X } from 'lucide-react';
 import type { TesterCapabilityRunResult } from '../tester-runtime.js';
 import { unavailableReasonTitle } from '../tester-unavailable.js';
@@ -114,14 +114,10 @@ export function RuntimeDiagnosticsActions({
   return (
     <div className="studio-diag__actions">
       <Tooltip content="Copy Runtime details" placement="top">
-        <button type="button" className="studio-result__action" onClick={handleCopyDiagnostics} disabled={!canExport} aria-label="Copy Runtime details">
-          <CopyIcon size={15} aria-hidden="true" />
-        </button>
+        <IconButton type="button" className="studio-result__action" onClick={handleCopyDiagnostics} disabled={!canExport} aria-label="Copy Runtime details" icon={<CopyIcon size={15} aria-hidden="true" />} />
       </Tooltip>
       <Tooltip content="Download Runtime details" placement="top">
-        <button type="button" className="studio-result__action" onClick={handleDownloadDiagnostics} disabled={!canExport} aria-label="Download Runtime details">
-          <DownloadIcon size={15} aria-hidden="true" />
-        </button>
+        <IconButton type="button" className="studio-result__action" onClick={handleDownloadDiagnostics} disabled={!canExport} aria-label="Download Runtime details" icon={<DownloadIcon size={15} aria-hidden="true" />} />
       </Tooltip>
     </div>
   );
@@ -167,16 +163,15 @@ export function ArtifactMediaPreview({
       <div className="ai-result__media-frame">
         <img src={url} alt={label} loading="lazy" />
         <Tooltip content="Expand image" placement="top">
-          <button
+          <IconButton
             type="button"
             className="ai-result__media-expand nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
             data-nimi-material="glass-thin"
             data-nimi-tone="overlay"
             aria-label="Expand generated image"
             onClick={() => setImagePreviewOpen(true)}
-          >
-            <Maximize2 size={16} aria-hidden="true" />
-          </button>
+            icon={<Maximize2 size={16} aria-hidden="true" />}
+          />
         </Tooltip>
       </div>
     );
@@ -199,14 +194,13 @@ export function ArtifactMediaPreview({
             className="ai-result-preview-modal"
           >
             <DialogTitle className="ai-result-preview-modal__title">Image preview</DialogTitle>
-            <button
+            <IconButton
               type="button"
               className="ai-result-preview-modal__close"
               aria-label="Close image preview"
               onClick={() => setImagePreviewOpen(false)}
-            >
-              <X size={20} aria-hidden="true" />
-            </button>
+              icon={<X size={20} aria-hidden="true" />}
+            />
             <img src={url} alt={label} className="ai-result-preview-modal__image" />
           </DialogContent>
         </Dialog>

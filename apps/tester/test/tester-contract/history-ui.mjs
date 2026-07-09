@@ -282,7 +282,7 @@ test('tester run history rows prioritize prompt title, timeline filters, and run
   assert.match(surface, /studio-history__filter-trigger/);
   assert.match(surface, /studio-history-filter__row/);
   assert.match(surface, /className="studio-history-filter__clear"/);
-  assert.match(surface, /\{hasActiveHistoryFilters \? \(\s*<button[\s\S]*className="studio-history-filter__clear"/);
+  assert.match(surface, /\{hasActiveHistoryFilters \? \(\s*<Button[\s\S]*className="studio-history-filter__clear"/);
   assert.doesNotMatch(surface, /disabled=\{!hasActiveHistoryFilters\}/);
   assert.match(surface, /onClick=\{clearHistoryFilters\}/);
   assert.match(surface, /Clear all filters/);

@@ -5,7 +5,7 @@ import {
   Settings,
   X,
 } from 'lucide-react';
-import { AccountPanel, Tooltip } from '@nimiplatform/kit/ui';
+import { AccountPanel, IconButton, Tooltip } from '@nimiplatform/kit/ui';
 import { getRuntimePlatformProjection, type RuntimePlatformReadyProjection } from '../auth/runtime-platform.js';
 import { loadRuntimeAccountUser, logoutRuntimeAccount } from '../auth/runtime-account-auth.js';
 import { RuntimeLoginPage } from '../auth/runtime-login-page.js';
@@ -167,8 +167,10 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
   return (
     <div ref={rootRef} className="lab-account-menu" data-workbench-account-root="">
       <Tooltip content={signedIn ? displayName : 'Sign in'} placement="right" className="w-full">
-        <button
+        <IconButton
           type="button"
+          tone="ghost"
+          size="sm"
           data-workbench-account-trigger=""
           data-open={open ? 'true' : undefined}
           aria-label={signedIn ? `Open Nimi Lab account menu for ${displayName}` : 'Sign in to Nimi Lab'}
@@ -176,9 +178,8 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
           aria-haspopup="menu"
           onClick={() => setOpen((value) => !value)}
           className={open ? 'lab-account-menu__trigger lab-account-menu__trigger--open' : 'lab-account-menu__trigger'}
-        >
-          {signedIn ? <span aria-hidden="true">{fallback}</span> : <LogIn size={18} strokeWidth={1.9} aria-hidden="true" />}
-        </button>
+          icon={signedIn ? <span aria-hidden="true">{fallback}</span> : <LogIn size={18} strokeWidth={1.9} aria-hidden="true" />}
+        />
       </Tooltip>
       {open ? (
         <div className="lab-account-menu__panel" data-workbench-account-panel="">
@@ -204,14 +205,15 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
       ) : null}
       {loginOpen && loginClient ? (
         <div className="lab-account-login-popover">
-          <button
+          <IconButton
             type="button"
+            tone="ghost"
+            size="sm"
             className="lab-account-login-popover__close"
             aria-label="Close Nimi Lab account login"
             onClick={() => setLoginOpen(false)}
-          >
-            <X size={17} strokeWidth={1.8} aria-hidden="true" />
-          </button>
+            icon={<X size={17} strokeWidth={1.8} aria-hidden="true" />}
+          />
           <RuntimeLoginPage
             client={loginClient}
             layout="panel"

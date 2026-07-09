@@ -212,11 +212,11 @@ test('Tester AIConfig service sees AIProfiles imported after service creation', 
   }
 });
 
-test('Tester AIConfig store quarantines retired App Lab config instead of reviving old target refs', async () => {
+test('Tester AIConfig store ignores retired unscoped App Lab config storage', async () => {
   const previousWindow = globalThis.window;
   const store = await importStore();
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  const legacyConfig = {
+  const retiredConfig = {
     scopeRef,
     capabilities: {
       targetRefs: {
@@ -231,16 +231,16 @@ test('Tester AIConfig store quarantines retired App Lab config instead of revivi
     profileOrigin: null,
   };
   const storage = createMemoryStorage({
-    [store.TESTER_AI_CONFIG_LEGACY_STORAGE_KEY]: JSON.stringify(legacyConfig),
+    [store.TESTER_AI_CONFIG_STORAGE_KEY]: JSON.stringify(retiredConfig),
   });
   globalThis.window = { localStorage: storage };
   try {
     const loaded = store.loadTesterAIConfig(scopeRef);
     const scopedKey = store.testerAIConfigStorageKeyForScopeKey(encodeScopeRef(scopeRef));
     assert.deepEqual(loaded.capabilities.targetRefs, {});
-    assert.equal(storage.getItem(store.TESTER_AI_CONFIG_LEGACY_STORAGE_KEY), null);
+    assert.equal(storage.getItem(store.TESTER_AI_CONFIG_STORAGE_KEY), JSON.stringify(retiredConfig));
     assert.equal(storage.getItem(scopedKey), null);
-    assert.equal(JSON.parse(storage.getItem(`${store.TESTER_AI_CONFIG_LEGACY_STORAGE_KEY}:invalid`)).scopeRef.surfaceId, 'app-lab');
+    assert.equal(storage.getItem(`${store.TESTER_AI_CONFIG_STORAGE_KEY}:invalid`), null);
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;
@@ -250,11 +250,11 @@ test('Tester AIConfig store quarantines retired App Lab config instead of revivi
   }
 });
 
-test('Tester AIConfig service quarantines legacy scope mismatch before profile preview', async () => {
+test('Tester AIConfig service ignores retired scope-mismatched App Lab config before profile preview', async () => {
   const previousWindow = globalThis.window;
   const store = await importStore();
   const scopeRef = store.createTesterAppLabAIScopeRef();
-  const oldScopeConfig = {
+  const retiredScopeConfig = {
     scopeRef: {
       kind: 'app',
       ownerId: scopeRef.ownerId,
@@ -273,7 +273,7 @@ test('Tester AIConfig service quarantines legacy scope mismatch before profile p
     profileOrigin: null,
   };
   const storage = createMemoryStorage({
-    [store.TESTER_AI_CONFIG_LEGACY_STORAGE_KEY]: JSON.stringify(oldScopeConfig),
+    [store.TESTER_AI_CONFIG_STORAGE_KEY]: JSON.stringify(retiredScopeConfig),
   });
   globalThis.window = { localStorage: storage };
   try {
@@ -310,8 +310,8 @@ test('Tester AIConfig service quarantines legacy scope mismatch before profile p
     });
     assert.equal(preview.outcome, 'ready_to_apply');
     assert.equal(preview.before, null);
-    assert.equal(storage.getItem(store.TESTER_AI_CONFIG_LEGACY_STORAGE_KEY), null);
-    assert.equal(JSON.parse(storage.getItem(store.TESTER_AI_CONFIG_SCOPE_MISMATCH_STORAGE_KEY)).scopeRef.surfaceId, 'old-app-lab');
+    assert.equal(storage.getItem(store.TESTER_AI_CONFIG_STORAGE_KEY), JSON.stringify(retiredScopeConfig));
+    assert.equal(storage.getItem(`${store.TESTER_AI_CONFIG_STORAGE_KEY}:scope-mismatch`), null);
   } finally {
     if (previousWindow === undefined) {
       delete globalThis.window;

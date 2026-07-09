@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { EmptyState, Surface, Tooltip } from '@nimiplatform/kit/ui';
+import { EmptyState, IconButton, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import type { TesterCapability } from '../tester-capabilities.js';
 import { formatTesterRunTimestamp } from '../tester-history.js';
@@ -303,21 +303,15 @@ export function StudioResult({
           {!blocked ? (
             <>
               <Tooltip content="Copy" placement="top">
-                <button type="button" className="studio-result__action" onClick={onCopy} disabled={!canExport} aria-label="Copy generation">
-                  <CopyIcon size={15} aria-hidden="true" />
-                </button>
+                <IconButton type="button" className="studio-result__action" onClick={onCopy} disabled={!canExport} aria-label="Copy generation" icon={<CopyIcon size={15} aria-hidden="true" />} />
               </Tooltip>
               <Tooltip content="Download" placement="top">
-                <button type="button" className="studio-result__action" onClick={onDownload} disabled={!canExport} aria-label="Download generation">
-                  <DownloadIcon size={15} aria-hidden="true" />
-                </button>
+                <IconButton type="button" className="studio-result__action" onClick={onDownload} disabled={!canExport} aria-label="Download generation" icon={<DownloadIcon size={15} aria-hidden="true" />} />
               </Tooltip>
             </>
           ) : null}
           <Tooltip content="Regenerate" placement="top">
-            <button type="button" className="studio-result__action" onClick={onRegenerate} disabled={running} aria-label="Regenerate">
-              <RefreshCw size={15} aria-hidden="true" />
-            </button>
+            <IconButton type="button" className="studio-result__action" onClick={onRegenerate} disabled={running} aria-label="Regenerate" icon={<RefreshCw size={15} aria-hidden="true" />} />
           </Tooltip>
         </div>
       </div>
@@ -342,15 +336,14 @@ export function StudioResult({
             </Tooltip>
             {hasModelSettings ? (
               <Tooltip content={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'} placement="top">
-                <button
+                <IconButton
                   type="button"
                   className={modelSettingsOpen ? 'studio-model-pill__trigger studio-model-pill__trigger--open' : 'studio-model-pill__trigger'}
                   aria-label={modelSettingsOpen ? 'Hide model settings' : 'Show model settings'}
                   aria-expanded={modelSettingsOpen}
                   onClick={() => setModelSettingsOpen((value) => !value)}
-                >
-                  <ChevronRight size={15} aria-hidden="true" />
-                </button>
+                  icon={<ChevronRight size={15} aria-hidden="true" />}
+                />
               </Tooltip>
             ) : null}
           </div>

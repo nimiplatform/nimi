@@ -12,7 +12,7 @@ function listSettingsSurfaceFiles(dir) {
 }
 
 export function readTesterSettingsSurface(root) {
-  const route = path.join(root, 'src/shell/routes/settings.tsx');
+  const route = path.join(root, 'src/shell/routes/settings-route.tsx');
   const modules = listSettingsSurfaceFiles(path.join(root, 'src/shell/routes/settings'));
   return [route, ...modules].map((filePath) => readFileSync(filePath, 'utf8')).join('\n');
 }

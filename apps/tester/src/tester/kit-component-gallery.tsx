@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { IconButton, Surface } from '@nimiplatform/kit/ui';
+import { Button, IconButton, Surface } from '@nimiplatform/kit/ui';
 import {
   CheckSquare,
   Copy,
@@ -82,9 +82,11 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
             {CATEGORIES.map((entry) => {
               const isActive = entry.id === category;
               return (
-                <button
+                <Button
                   key={entry.id}
                   type="button"
+                  tone="ghost"
+                  size="sm"
                   className={`kit-tax grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border p-2 text-left transition-all ${isActive ? 'kit-tax--active border-transparent bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]' : 'border-transparent bg-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-sidebar-item-hover)] hover:text-[var(--nimi-text-primary)]'}`}
                   onClick={() => selectCategory(entry.id)}
                   aria-current={isActive ? 'page' : undefined}
@@ -99,7 +101,7 @@ export function KitComponentGallery(_props: { onOpenSection?: (target: string) =
                     <strong className="truncate text-sm">{entry.label}</strong>
                   </span>
                   <span className={`kit-tax__count rounded-full px-2 py-0.5 text-xs font-bold ${isActive ? 'bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]' : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_14%,transparent)] text-[var(--nimi-text-secondary)]'}`}>{countFor(entry.id)}</span>
-                </button>
+                </Button>
               );
             })}
           </nav>

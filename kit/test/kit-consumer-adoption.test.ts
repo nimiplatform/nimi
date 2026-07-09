@@ -46,13 +46,10 @@ function readTesterKitGallerySurface(): string {
 }
 
 function readTesterSettingsSurface(): string {
-  const route = 'apps/tester/src/shell/routes/settings.tsx';
+  const route = 'apps/tester/src/shell/routes/settings-route.tsx';
   const modulesRoot = path.join(repoRoot, 'apps/tester/src/shell/routes/settings');
-  const modules = fs.readdirSync(modulesRoot, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => path.join('apps/tester/src/shell/routes/settings', entry.name))
-    .filter((relativePath) => relativePath.endsWith('.ts') || relativePath.endsWith('.tsx'))
-    .filter((relativePath) => relativePath !== route)
+  const modules = walkSourceFiles(modulesRoot)
+    .map((filePath) => path.relative(repoRoot, filePath))
     .sort();
 
   return [route, ...modules].map(read).join('\n');
@@ -142,22 +139,10 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   }
 
   const settings = readTesterSettingsSurface();
-  assert.match(settings, /from '@nimiplatform\/kit\/features\/model-config\/headless'/);
-  assert.match(settings, /from '@nimiplatform\/kit\/features\/chat\/headless'/);
-  assert.match(settings, /from '@nimiplatform\/kit\/features\/commerce\/realm'/);
+  assert.match(settings, /from '@nimiplatform\/kit\/core\/notifications'/);
   assert.match(settings, /from '@nimiplatform\/kit\/features\/chat\/realm'/);
   assert.match(settings, /from '@nimiplatform\/kit\/ui'/);
-
-  const realmKitProjections = read('apps/tester/src/shell/routes/settings/realm-kit-projections.ts');
-  assert.doesNotMatch(realmKitProjections, /from '@nimiplatform\/sdk\/runtime'/);
-  assert.match(realmKitProjections, /from '@nimiplatform\/kit\/features\/avatar\/headless'/);
-  assert.match(realmKitProjections, /from '@nimiplatform\/kit\/features\/avatar\/vrm'/);
-  assert.match(realmKitProjections, /from '@nimiplatform\/kit\/features\/avatar\/live2d'/);
-  assert.match(realmKitProjections, /runtime_agent_voice_playback_decision_not_public_in_sdk_vnext/);
-  assert.doesNotMatch(realmKitProjections, /\bresolveRuntimeAgentVoicePlaybackDecision\b/);
-  assert.match(realmKitProjections, /\bresolveAgentVoicePlaybackCue\b/);
-  assert.match(realmKitProjections, /\bresolveAvatarVrmFramingPolicy\b/);
-  assert.match(realmKitProjections, /\bresolveAvatarLive2dFramingPolicy\b/);
+  assert.doesNotMatch(settings, /not_public_in_sdk_vnext|data-settings-row-kind="proof"/);
 
   const testerContract = read('apps/tester/test/tester-contract.test.mjs');
   const testerSettingsSurfaceTest = read('apps/tester/test/tester-settings-surface.test.mjs');
@@ -166,7 +151,7 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   const testerWorkbench = read('apps/tester/src/tester/tester-workbench.tsx');
   assert.match(testerContract, /tester kit gallery showcases real kit components/);
   assert.match(testerContract, /tester auth and runtime bootstrap consume Kit shell bridge primitives/);
-  assert.match(testerSettingsSurfaceTest, /tester settings consumes Kit model picker binding projection/);
+  assert.match(testerSettingsSurfaceTest, /tester settings keeps real Realm live rows through SDK and Kit helpers/);
 
   assert.match(scaffoldBoundary, /createRuntimeAccountBrowserBroker/);
   assert.match(testerContract, /createRuntimeAccountBrowserBroker/);
@@ -203,15 +188,13 @@ test('Support typed projection lifecycle is owned by Kit UI and consumed by apps
   const settings = readTesterSettingsSurface();
   const testerSettingsContract = read('apps/tester/test/tester-settings-surface.test.mjs');
 
-  assert.match(settings, /useTypedProjection/);
   assert.match(settings, /from '@nimiplatform\/kit\/ui'/);
-  assert.match(settings, /useTypedProjection\(resolveTesterLocalRuntimeFacadeProjection/);
-  assert.match(settings, /useTypedProjection\(resolveTesterRealmDataSyncProjection/);
-  assert.match(settings, /localRuntimeFacadeProjection\.data/);
-  assert.match(settings, /realmDataSyncProjection\.data/);
+  assert.match(settings, /from '@nimiplatform\/kit\/core\/notifications'/);
+  assert.match(settings, /from '@nimiplatform\/kit\/features\/chat\/realm'/);
+  assert.doesNotMatch(settings, /useTypedProjection/);
   assert.doesNotMatch(settings, /setLocalRuntimeFacadeProjection|setRealmDataSyncProjection/);
   assert.doesNotMatch(settings, /type LocalRuntimeFacadeProjectionState|type RealmDataSyncProjectionState/);
-  assert.match(testerSettingsContract, /useTypedProjection/);
+  assert.match(testerSettingsContract, /tester settings does not create local Runtime, Realm, admission, or permission truth/);
 });
 
 test('Tester product-local persistence consumes Kit core storage helpers', () => {

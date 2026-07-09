@@ -8,10 +8,8 @@ import {
   withNimiRuntimeIdempotencyMetadata,
   type NimiRuntimeAccountCaller,
   type RuntimeOptions,
-} from '@nimiplatform/sdk/runtime';
-import {
   type RuntimeTypedCallOptions,
-} from '@nimiplatform/sdk/runtime/generated';
+} from '@nimiplatform/sdk/runtime';
 import {
   AccountSessionState,
   AuthorizationPreset,

@@ -254,6 +254,11 @@
 .studio-history-filter__row,
 .studio-history-filter__option,
 .studio-history-filter__clear{ display: grid; align-items: center; width: 100%; min-height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--nimi-text-primary); text-align: left; cursor: pointer;}
+.studio-history-filter__row > span,
+.studio-history-filter__option > span,
+.studio-history-filter__clear > span,
+.studio-recent__row > span,
+.kit-tax > span{ display: contents;}
 .studio-history-filter__row{ grid-template-columns: minmax(0, 1fr) auto 16px; gap: 10px; padding: 0 9px 0 11px;}
 .studio-history-filter__option{ grid-template-columns: minmax(0, 1fr) 18px; gap: 8px; padding: 0 10px;}
 .studio-history-filter__clear{ grid-template-columns: 16px minmax(0, 1fr); gap: 8px; margin-top: 8px; box-shadow: 0 -8px 0 -7px rgba(209, 213, 219, 0.82); padding: 0 10px; color: color-mix(in srgb, var(--nimi-text-secondary) 86%, #111827);}

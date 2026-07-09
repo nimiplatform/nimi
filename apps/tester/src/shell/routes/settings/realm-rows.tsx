@@ -3,22 +3,16 @@ import {
   getNimiNotificationBadgeKey,
   getNimiNotificationCategory,
 } from '@nimiplatform/kit/core/notifications';
-import type { SettingsRouteViewProps } from './view';
+import type { SettingsRouteViewProps } from './view.js';
 
 const liveRowClassName = "flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)] before:mr-2 before:rounded before:border before:border-[var(--nimi-border-subtle)] before:px-1.5 before:py-0.5 before:text-[10px] before:font-semibold before:uppercase before:text-[var(--nimi-text-muted)] before:content-['Live']";
-const proofRowClassName = "flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)] before:mr-2 before:rounded before:border before:border-[var(--nimi-border-subtle)] before:px-1.5 before:py-0.5 before:text-[10px] before:font-semibold before:uppercase before:text-[var(--nimi-text-muted)] before:content-['Proof']";
 
 export function SettingsRealmRows(props: SettingsRouteViewProps) {
   const {
-    walletProjection,
-    refreshWalletProjection,
-    giftTransactionProjection,
-    refreshGiftTransactionProjection,
     notificationProjection,
     refreshNotificationProjection,
     notificationListProjection,
     refreshNotificationListProjection,
-    resourceUploadProjection,
     accountDataProjection,
     requestAccountDataExportProjection,
     accountSettingsProjection,
@@ -27,16 +21,6 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
     refreshHumanChatProjection,
     groupChatProjection,
     refreshGroupChatProjection,
-    realmKit: {
-      realmMediaUrlProjection,
-      realmEndpointProjection,
-      realmRealtimeProjection,
-      realmFeedScopeProjection,
-      realmChatAttachmentProjection,
-      avatarVoiceCueProjection,
-      avatarFramingProjection,
-      runtimeAvatarVoiceProjection,
-    },
   } = props;
   const notificationListStatusLabel = (() => {
     if (notificationListProjection.status === 'ready') {
@@ -58,55 +42,6 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
 
   return (
     <>
-      <div data-settings-row-kind="proof" className={proofRowClassName}>
-        <span>Realm wallet projection</span>
-        <div className="inline-flex items-center gap-2">
-          {walletProjection.status === 'ready' ? (
-            <>
-              <StatusBadge tone="info">Spark {walletProjection.balances.sparkBalance}</StatusBadge>
-              <StatusBadge tone="success">Gem {walletProjection.balances.gemBalance}</StatusBadge>
-            </>
-          ) : (
-            <StatusBadge tone={walletProjection.status === 'error' ? 'danger' : 'neutral'}>
-              {walletProjection.status === 'error' ? walletProjection.error : 'not loaded'}
-            </StatusBadge>
-          )}
-          <Button
-            type="button"
-            size="sm"
-            tone="secondary"
-            loading={walletProjection.status === 'loading'}
-            onClick={() => {
-              void refreshWalletProjection();
-            }}
-          >
-            Refresh
-          </Button>
-        </div>
-      </div>
-      <div data-settings-row-kind="proof" className={proofRowClassName}>
-        <span>Realm gift transaction projection</span>
-        <div className="inline-flex items-center gap-2">
-          <StatusBadge tone={giftTransactionProjection.status === 'error' ? 'danger' : 'info'}>
-            {giftTransactionProjection.status === 'ready'
-              ? `${giftTransactionProjection.gift.id}: ${giftTransactionProjection.gift.giftStatus}`
-              : giftTransactionProjection.status === 'error'
-                ? giftTransactionProjection.error
-                : 'not loaded'}
-          </StatusBadge>
-          <Button
-            type="button"
-            size="sm"
-            tone="secondary"
-            loading={giftTransactionProjection.status === 'loading'}
-            onClick={() => {
-              void refreshGiftTransactionProjection();
-            }}
-          >
-            Refresh
-          </Button>
-        </div>
-      </div>
       <div data-settings-row-kind="live" className={liveRowClassName}>
         <span>Realm notification projection</span>
         <div className="inline-flex items-center gap-2">
@@ -148,20 +83,6 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
             Refresh
           </Button>
         </div>
-      </div>
-      <div data-settings-row-kind="proof" className={proofRowClassName}>
-        <span>Realm media URL projection</span>
-        <StatusBadge tone="neutral">{realmMediaUrlProjection}</StatusBadge>
-      </div>
-      <div data-settings-row-kind="proof" className={proofRowClassName}>
-        <span>Realm resource upload projection</span>
-        <StatusBadge tone={resourceUploadProjection.status === 'ready' ? 'success' : resourceUploadProjection.status === 'error' ? 'danger' : 'neutral'}>
-          {resourceUploadProjection.status === 'ready'
-            ? `${resourceUploadProjection.summary.resourceId}: ${resourceUploadProjection.summary.status}`
-            : resourceUploadProjection.status === 'error'
-              ? resourceUploadProjection.error
-              : 'checking'}
-        </StatusBadge>
       </div>
       <div data-settings-row-kind="live" className={liveRowClassName}>
         <span>Realm account-data export projection</span>
@@ -254,44 +175,6 @@ export function SettingsRealmRows(props: SettingsRouteViewProps) {
             Refresh
           </Button>
         </div>
-      </div>
-      <div data-settings-row-kind="proof" className={proofRowClassName}>
-        <span>Realm endpoint projection</span>
-        <StatusBadge tone="neutral">{realmEndpointProjection}</StatusBadge>
-      </div>
-      <div data-settings-row-kind="proof" className={proofRowClassName}>
-        <span>Realm realtime projection</span>
-        <StatusBadge tone="neutral">{realmRealtimeProjection}</StatusBadge>
-      </div>
-      <div data-settings-row-kind="proof" className={proofRowClassName}>
-        <span>Realm feed scope projection</span>
-        <StatusBadge tone={realmFeedScopeProjection.personalAdmitted && realmFeedScopeProjection.friendsAdmitted ? 'success' : 'warning'}>
-          {realmFeedScopeProjection.count} scopes / {realmFeedScopeProjection.personalAdmitted ? 'personal' : 'missing'} / {realmFeedScopeProjection.friendsAdmitted ? 'friends' : 'missing'}
-        </StatusBadge>
-      </div>
-      <div data-settings-row-kind="proof" className={proofRowClassName}>
-        <span>Realm chat attachment projection</span>
-        <StatusBadge tone="neutral">
-          {realmChatAttachmentProjection.targetType} / {realmChatAttachmentProjection.previewText} / {realmChatAttachmentProjection.mediaUrl}
-        </StatusBadge>
-      </div>
-      <div data-settings-row-kind="proof" className={proofRowClassName}>
-        <span>Kit avatar voice cue projection</span>
-        <StatusBadge tone="neutral">
-          {avatarVoiceCueProjection.visemeId ?? 'silent'} / {avatarVoiceCueProjection.amplitude.toFixed(2)}
-        </StatusBadge>
-      </div>
-      <div data-settings-row-kind="proof" className={proofRowClassName}>
-        <span>Kit avatar framing projection</span>
-        <StatusBadge tone="neutral">
-          {avatarFramingProjection.vrm} / {avatarFramingProjection.live2d}
-        </StatusBadge>
-      </div>
-      <div data-settings-row-kind="proof" className={proofRowClassName}>
-        <span>SDK runtime voice schedule projection</span>
-        <StatusBadge tone="neutral">
-          {runtimeAvatarVoiceProjection.kind} / {runtimeAvatarVoiceProjection.source} / {runtimeAvatarVoiceProjection.cueCount}
-        </StatusBadge>
       </div>
     </>
   );
