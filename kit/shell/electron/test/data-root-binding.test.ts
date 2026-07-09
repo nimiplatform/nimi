@@ -34,7 +34,9 @@ function registerBindingBridge(input: {
     createGrpcClient: input.createGrpcClient ?? (async () => {
       throw new Error('not used');
     }),
-    standardShellHost: input.standardShellHost,
+    standardShellHost: input.standardShellHost
+      ? { allowAllStandardShellCommands: true, ...input.standardShellHost }
+      : undefined,
   });
   return ipcMain;
 }

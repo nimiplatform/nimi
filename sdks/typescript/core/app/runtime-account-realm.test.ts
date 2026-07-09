@@ -2,10 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { AccountCallerMode } from '../../core-generated/runtime-typed-client';
-import {
-  NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID,
-  NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
-} from '../../runtime/account-caller';
+import { NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID } from '../../runtime/account-caller';
 import { createInstalledNimiAppBootstrap } from './installed-app-bootstrap';
 import {
   createRealmWithRuntimeAccountToken,
@@ -120,7 +117,6 @@ test('installed app bootstrap composes host-owned Runtime account, Realm, and st
       appId: 'community.nimi.fixture.platform-proof',
       appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
       deviceId: 'desktop-installed-app-host-device',
-      bindingSource: NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
       launchHostId: NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID,
       launchNonce: 'launch-nonce-1',
       releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
@@ -214,9 +210,9 @@ test('installed app bootstrap rejects renderer-provided auth custody fields', ()
       appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
       deviceId: 'desktop-installed-app-host-device',
       launchHostId: NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID,
-      launchNonce: 'launch-nonce-1',
+      launchNonce: '',
       releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
-    } as never,
+    },
     standardShell: {
       aiConfig: {
         get: async () => ({}),
@@ -254,7 +250,6 @@ test('installed app bootstrap rejects renderer-provided auth custody fields', ()
       appId: 'community.nimi.fixture.platform-proof',
       appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
       deviceId: 'desktop-installed-app-host-device',
-      bindingSource: NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
       launchHostId: NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID,
       launchNonce: 'launch-nonce-1',
       releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
@@ -299,7 +294,6 @@ test('installed app bootstrap requires full standard shell including ai-config, 
       appId: 'community.nimi.fixture.platform-proof',
       appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
       deviceId: 'desktop-installed-app-host-device',
-      bindingSource: NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
       launchHostId: NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID,
       launchNonce: 'launch-nonce-1',
       releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
@@ -333,7 +327,6 @@ test('installed app bootstrap requires full standard shell including ai-config, 
       appId: 'community.nimi.fixture.platform-proof',
       appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
       deviceId: 'desktop-installed-app-host-device',
-      bindingSource: NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
       launchHostId: NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID,
       launchNonce: 'launch-nonce-1',
       releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',

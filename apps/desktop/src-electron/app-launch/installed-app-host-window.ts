@@ -19,7 +19,6 @@ export type DesktopInstalledAppRendererLaunchBinding = {
   readonly appId: string;
   readonly appInstanceId: string;
   readonly deviceId: string;
-  readonly bindingSource: 'host-owned-installed-app-bridge';
   readonly launchHostId: string;
   readonly launchNonce: string;
   readonly releaseDescriptorRef: string;

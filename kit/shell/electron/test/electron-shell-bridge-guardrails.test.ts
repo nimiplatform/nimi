@@ -46,6 +46,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         throw new Error('not used');
       },
       standardShellHost: {
+        allowAllStandardShellCommands: true,
         runtimeConfigGet: async () => ({
           path: 'D:/nimi/runtime/config.json',
           config: { schemaVersion: 1, grpcAddr: '127.0.0.1:46371' },

@@ -6,7 +6,6 @@ import {
   createNimiDesktopLaunchedNimiAppRuntimeAccountCaller,
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
-  NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
 } from './index';
 import { AccountCallerMode } from '../core-generated/runtime-typed-client';
 
@@ -80,7 +79,6 @@ test('Runtime account caller projection supports Desktop-launched installed Nimi
       appId: 'community.nimi.fixture.platform-proof',
       appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
       deviceId: 'desktop-installed-app-host-device',
-      bindingSource: NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
       launchHostId: 'desktop-electron-installed-app-host',
       launchNonce: 'launch-nonce-1',
       releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
@@ -106,9 +104,9 @@ test('Runtime account caller projection rejects installed Nimi App posture witho
       appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
       deviceId: 'desktop-installed-app-host-device',
       launchHostId: 'desktop-electron-installed-app-host',
-      launchNonce: 'launch-nonce-1',
+      launchNonce: '',
       releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
-    } as never),
+    }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
   );
   assert.throws(
@@ -116,9 +114,8 @@ test('Runtime account caller projection rejects installed Nimi App posture witho
       appId: 'community.nimi.fixture.platform-proof',
       appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
       deviceId: 'desktop-installed-app-host-device',
-      bindingSource: NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
-      launchHostId: 'desktop-electron-installed-app-host',
-      launchNonce: '',
+      launchHostId: 'renderer-spoofed-host',
+      launchNonce: 'launch-nonce-1',
       releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
     }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',

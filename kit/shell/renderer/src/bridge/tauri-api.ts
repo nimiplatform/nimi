@@ -14,11 +14,13 @@ export type TauriTestHook = {
   invoke?: ShellInvoke;
   listen?: ShellEventListen;
   convertFileSrc?: (fileUrl: string) => string;
+  installedAppLaunchBinding?: unknown;
 };
 export type NimiShellRuntimeHook = {
   invoke: ShellInvoke;
   listen: ShellEventListen;
   convertFileSrc?: (fileUrl: string) => string;
+  installedAppLaunchBinding?: unknown;
 };
 export type NimiElectronRuntimeHook = {
   invoke: ShellInvoke;

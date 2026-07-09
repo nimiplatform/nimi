@@ -14,7 +14,6 @@ import {
   createNimiRuntimeInstalledAppSessionMetadataProvider,
   createNimiRuntimeAppSessionMetadataProvider,
   createNimiRuntimeFullAppRegistration,
-  NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
 } from './app-session';
 
 test('Runtime app registration helper registers full Runtime/Realm mode once', async () => {
@@ -150,7 +149,6 @@ test('Runtime installed app session metadata provider registers without develope
       appId: 'community.nimi.fixture.platform-proof',
       appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
       deviceId: 'desktop-installed-app-host-device',
-      bindingSource: NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
       launchHostId: 'desktop-electron-installed-app-host',
       launchNonce: 'launch-nonce-1',
       releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
@@ -200,15 +198,15 @@ test('Runtime installed app session metadata provider rejects developer registra
           appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
           deviceId: 'desktop-installed-app-host-device',
           launchHostId: 'desktop-electron-installed-app-host',
-          launchNonce: 'launch-nonce-1',
+          launchNonce: '',
           releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
-        } as never,
+        },
         auth: {
           async registerApp() {
-            throw new Error('installed app must not register without host-owned binding source');
+            throw new Error('installed app must not register without launch binding evidence');
           },
           async openSession() {
-            throw new Error('installed app session must not open without host-owned binding source');
+            throw new Error('installed app session must not open without launch binding evidence');
           },
         },
       });
@@ -224,7 +222,6 @@ test('Runtime installed app session metadata provider rejects developer registra
           appId: 'community.nimi.fixture.platform-proof',
           appInstanceId: 'community.nimi.fixture.platform-proof.desktop-host',
           deviceId: 'desktop-installed-app-host-device',
-          bindingSource: NIMI_HOST_OWNED_INSTALLED_APP_BINDING_SOURCE,
           launchHostId: 'desktop-electron-installed-app-host',
           launchNonce: 'launch-nonce-1',
           releaseDescriptorRef: 'community.nimi.fixture.platform-proof.0.1.0-sandbox',

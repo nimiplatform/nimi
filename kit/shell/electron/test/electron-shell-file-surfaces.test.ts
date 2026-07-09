@@ -22,6 +22,11 @@ import { FakeElectronProtocol } from './fake-electron-protocol.js';
 
 function registerFileSurfaceBridge(standardShellHost: NimiElectronStandardShellHost | undefined): FakeIpcMain {
   const ipcMain = new FakeIpcMain();
+  const resolvedStandardShellHost = standardShellHost?.capabilitySetRef
+    ? standardShellHost
+    : standardShellHost
+      ? { allowAllStandardShellCommands: true, ...standardShellHost }
+      : undefined;
   registerNimiElectronRuntimeBridge({
     appId: 'nimi.tester',
     runtimeEndpoint: '127.0.0.1:46371',
@@ -30,7 +35,7 @@ function registerFileSurfaceBridge(standardShellHost: NimiElectronStandardShellH
     createGrpcClient: async () => {
       throw new Error('not used');
     },
-    standardShellHost,
+    standardShellHost: resolvedStandardShellHost,
   });
   return ipcMain;
 }

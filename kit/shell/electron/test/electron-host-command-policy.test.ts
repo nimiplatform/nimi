@@ -67,6 +67,7 @@ function registerPolicyBridge(input: {
     },
     commandPolicy: input.policy,
     standardShellHost: {
+      allowAllStandardShellCommands: true,
       openExternalUrl: input.openExternalUrl ?? (() => undefined),
       oauthTokenExchangeFetch: input.tokenFetch ?? (async () => new Response(JSON.stringify({
         access_token: 'token',
@@ -205,6 +206,7 @@ describe('Electron host command policy', () => {
         createGrpcClient: async () => fakeClient,
         commandPolicy: parentosFixturePolicy(),
         standardShellHost: {
+          allowAllStandardShellCommands: true,
           openExternalUrl: (url) => {
             openedUrls.push(url);
           },
@@ -297,6 +299,34 @@ describe('Electron host command policy', () => {
       { command: 'create_child', commandKind: 'app-domain', appId: 'nimi.parentos' },
       { command: 'missing_parentos_command', commandKind: 'unknown', appId: 'nimi.parentos' },
     ]);
+  });
+
+  it('fails closed for standard commands when the host omits an explicit capability policy', async () => {
+    const ipcMain = new FakeIpcMain();
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.parentos',
+      runtimeEndpoint: '127.0.0.1:46371',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      createGrpcClient: async () => {
+        throw new Error('not used');
+      },
+      commandPolicy: () => ({ allow: true }),
+      standardShellHost: {},
+    });
+
+    await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
+      command: NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
+      payload: { payload: { scopeRef: 'app:fixture' } },
+    })).rejects.toMatchObject({
+      code: 'capability-unavailable',
+      reasonCode: 'electron-standard-shell-capability-policy-required',
+      actionHint: 'declare_standard_shell_capability_policy',
+      details: {
+        command: NIMI_STANDARD_SHELL_COMMANDS['ai-config.get'],
+        appId: 'nimi.parentos',
+      },
+    });
   });
 
   it('keeps capability sets scoped to standard commands while app-domain handlers remain policy-owned', async () => {

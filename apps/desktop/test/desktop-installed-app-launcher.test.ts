@@ -113,7 +113,6 @@ describe('Desktop installed app launcher', () => {
         readonly appId?: string;
         readonly appInstanceId?: string;
         readonly deviceId?: string;
-        readonly bindingSource?: string;
         readonly launchHostId?: string;
         readonly launchNonce?: string;
         readonly releaseDescriptorRef?: string;
@@ -142,7 +141,6 @@ describe('Desktop installed app launcher', () => {
       appId: projection.appId,
       appInstanceId: desktopInstalledAppInstanceId(projection.appId),
       deviceId: DESKTOP_INSTALLED_APP_DEVICE_ID,
-      bindingSource: 'host-owned-installed-app-bridge',
       launchHostId: DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID,
       launchNonce: projection.launchNonce,
       releaseDescriptorRef: projection.releaseDescriptorRef,

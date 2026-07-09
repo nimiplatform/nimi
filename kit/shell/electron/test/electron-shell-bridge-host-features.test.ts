@@ -96,6 +96,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         throw new Error('not used');
       },
       standardShellHost: {
+        allowAllStandardShellCommands: true,
         localAgentIdentity: {
           ownerUserId: ' owner-1 ',
           runtimeSourceRef: ' tester-runtime ',
@@ -148,6 +149,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         throw new Error('not used');
       },
       standardShellHost: {
+        allowAllStandardShellCommands: true,
         localAgentIdentity: {
           ownerUserId: 'owner-1',
           runtimeSourceRef: 'tester-runtime',
@@ -211,6 +213,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         throw new Error('not used');
       },
       standardShellHost: {
+        allowAllStandardShellCommands: true,
         openExternalUrl: async (url) => {
           openedUrls.push(url);
         },
@@ -245,6 +248,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         throw new Error('not used');
       },
       standardShellHost: {
+        allowAllStandardShellCommands: true,
         openExternalUrl: async (url) => {
           openedUrls.push(url);
         },
@@ -317,6 +321,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         throw new Error('not used');
       },
       standardShellHost: {
+        allowAllStandardShellCommands: true,
         oauthTokenExchangeFetch: async (url, init) => {
           requests.push({ url, body: String(init.body ?? '') });
           return new Response(JSON.stringify({
@@ -383,6 +388,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         throw new Error('not used');
       },
       standardShellHost: {
+        allowAllStandardShellCommands: true,
         confirmDialog: async (payload, input) => {
           calls.push(`${input.command}:${payload.level || 'info'}`);
           return { confirmed: payload.title === 'Confirm' && payload.description === 'Proceed?' };
@@ -593,6 +599,7 @@ describe('registerNimiElectronRuntimeBridge', () => {
         throw new Error('not used');
       },
       standardShellHost: {
+        allowAllStandardShellCommands: true,
         aiConfigStore: {
           get: ({ scopeRef }) => configs.get(scopeRef),
           set: ({ scopeRef, config }) => {

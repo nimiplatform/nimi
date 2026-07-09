@@ -35,6 +35,7 @@ describe('registerNimiElectronRuntimeBridge runtime hardening', () => {
           throw new Error('not used');
         },
         standardShellHost: {
+          allowAllStandardShellCommands: true,
           standardDataRootBinding: {
             source: 'runtime-launch-projection',
             durableDataRoot: dataRoot,

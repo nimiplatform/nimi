@@ -10,7 +10,6 @@ export type InstalledNimiAppLaunchBinding = {
   readonly appId: string;
   readonly appInstanceId: string;
   readonly deviceId: string;
-  readonly bindingSource: 'host-owned-installed-app-bridge';
   readonly launchHostId: string;
   readonly launchNonce: string;
   readonly releaseDescriptorRef: string;
@@ -116,20 +115,33 @@ export function readInstalledNimiAppLaunchBinding(
 
 function parseInstalledAppLaunchBinding(value: unknown): InstalledNimiAppLaunchBinding {
   const record = assertRecord(value, 'Installed Nimi app launch binding is unavailable');
-  const bindingSource = parseRequiredString(record.bindingSource, 'bindingSource', 'readInstalledNimiAppLaunchBinding');
-  if (bindingSource !== 'host-owned-installed-app-bridge') {
-    throw new Error('Installed Nimi app launch binding must be host-owned.');
-  }
+  assertLaunchBindingFields(record);
   return {
     appId: parseRequiredString(record.appId, 'appId', 'readInstalledNimiAppLaunchBinding'),
     appInstanceId: parseRequiredString(record.appInstanceId, 'appInstanceId', 'readInstalledNimiAppLaunchBinding'),
     deviceId: parseRequiredString(record.deviceId, 'deviceId', 'readInstalledNimiAppLaunchBinding'),
-    bindingSource,
     launchHostId: parseRequiredString(record.launchHostId, 'launchHostId', 'readInstalledNimiAppLaunchBinding'),
     launchNonce: parseRequiredString(record.launchNonce, 'launchNonce', 'readInstalledNimiAppLaunchBinding'),
     releaseDescriptorRef: parseRequiredString(record.releaseDescriptorRef, 'releaseDescriptorRef', 'readInstalledNimiAppLaunchBinding'),
     realmBaseUrl: parseRequiredString(record.realmBaseUrl, 'realmBaseUrl', 'readInstalledNimiAppLaunchBinding'),
   };
+}
+
+const INSTALLED_APP_LAUNCH_BINDING_FIELDS = new Set([
+  'appId',
+  'appInstanceId',
+  'deviceId',
+  'launchHostId',
+  'launchNonce',
+  'releaseDescriptorRef',
+  'realmBaseUrl',
+]);
+
+function assertLaunchBindingFields(record: Readonly<Record<string, unknown>>): void {
+  const unexpected = Object.keys(record).filter((field) => !INSTALLED_APP_LAUNCH_BINDING_FIELDS.has(field));
+  if (unexpected.length > 0) {
+    throw new Error(`Installed Nimi app launch binding contains unsupported field: ${unexpected[0]}`);
+  }
 }
 
 function parseAIConfigResult(value: unknown, command: string, expectedScopeRef: string): JsonObject {

@@ -132,6 +132,7 @@ describe('Electron Desktop Open Intent host client', () => {
           throw new Error('not used');
         },
         standardShellHost: {
+          allowAllStandardShellCommands: true,
           desktopOpen: {
             descriptorPath,
             now: () => Date.parse(nowIso),
@@ -242,6 +243,7 @@ describe('Electron Desktop Open Intent host client', () => {
           throw new Error('not used');
         },
         standardShellHost: {
+          allowAllStandardShellCommands: true,
           desktopOpen: {
             descriptorPath,
             now: () => Date.parse(nowIso),
@@ -292,6 +294,7 @@ describe('Electron Desktop Open Intent host client', () => {
           throw new Error('not used');
         },
         standardShellHost: {
+          allowAllStandardShellCommands: true,
           desktopOpen: {
             descriptorPath: path.join(dir, 'missing.json'),
             now: () => Date.parse(nowIso),
@@ -332,6 +335,7 @@ describe('Electron Desktop Open Intent host client', () => {
           throw new Error('not used');
         },
         standardShellHost: {
+          allowAllStandardShellCommands: true,
           desktopOpen: {
             descriptorPath,
             now: () => Date.parse(nowIso),
@@ -386,6 +390,7 @@ describe('Electron Desktop Open Intent host client', () => {
             throw new Error('not used');
           },
           standardShellHost: {
+            allowAllStandardShellCommands: true,
             desktopOpen: {
               descriptorPath,
               now: () => Date.parse(nowIso),
@@ -429,6 +434,7 @@ describe('Electron Desktop Open Intent host client', () => {
           throw new Error('not used');
         },
         standardShellHost: {
+          allowAllStandardShellCommands: true,
           desktopOpen: {
             descriptorPath,
             now: () => Date.parse('2026-07-08T00:00:20.000Z'),
@@ -473,6 +479,7 @@ describe('Electron Desktop Open Intent host client', () => {
           throw new Error('not used');
         },
         standardShellHost: {
+          allowAllStandardShellCommands: true,
           desktopOpen: {
             descriptorPath: path.join(linkDir, 'presence.v1.json'),
             readTextFile: async () => {
@@ -512,6 +519,7 @@ describe('Electron Desktop Open Intent host client', () => {
           throw new Error('not used');
         },
         standardShellHost: {
+          allowAllStandardShellCommands: true,
           desktopOpen: {
             descriptorPath,
             fetch: async () => {
@@ -545,6 +553,7 @@ describe('Electron Desktop Open Intent host client', () => {
         throw new Error('not used');
       },
       standardShellHost: {
+        allowAllStandardShellCommands: true,
         desktopOpen: {
           fetch: async () => {
             throw new Error('fetch must not be called');

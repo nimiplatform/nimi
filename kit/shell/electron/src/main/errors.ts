@@ -65,6 +65,18 @@ export function createElectronCapabilityNotInHostSetError(
     details: { command, capabilitySetRef },
   });
 }
+export function createElectronCapabilityPolicyRequiredError(
+  command: string,
+  appId: string,
+): NimiElectronShellHostError {
+  return new NimiElectronShellHostError({
+    code: 'capability-unavailable',
+    message: `Electron standard shell command requires an explicit capability policy: ${normalizeErrorToken(command, 'command')}`,
+    reasonCode: 'electron-standard-shell-capability-policy-required',
+    actionHint: 'declare_standard_shell_capability_policy',
+    details: { command, appId },
+  });
+}
 export function createElectronCapabilitySetUnknownError(capabilitySetRef: string): NimiElectronShellHostError {
   return new NimiElectronShellHostError({
     code: 'capability-unavailable',

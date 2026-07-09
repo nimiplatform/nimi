@@ -116,7 +116,6 @@ export function createDesktopInstalledAppLauncher(deps: DesktopInstalledAppLaunc
           appId: resolution.appId,
           appInstanceId: resolution.appInstanceId,
           deviceId: resolution.deviceId,
-          bindingSource: 'host-owned-installed-app-bridge',
           launchHostId: resolution.launchHostId,
           launchNonce: resolution.launchNonce,
           releaseDescriptorRef: resolution.releaseDescriptorRef,

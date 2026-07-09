@@ -106,6 +106,7 @@ void app.whenReady().then(async () => {
       runtimeEndpoint,
     }),
     standardShellHost: {
+      allowAllStandardShellCommands: true,
       standardDataRootBinding: resolveStandardDataRootBinding(),
       localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
       localAssetProtocolHost,

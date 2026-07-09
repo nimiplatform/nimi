@@ -15,7 +15,6 @@ export type NimiElectronInstalledAppLaunchBinding = {
   readonly appId: string;
   readonly appInstanceId: string;
   readonly deviceId: string;
-  readonly bindingSource: 'host-owned-installed-app-bridge';
   readonly launchHostId: string;
   readonly launchNonce: string;
   readonly releaseDescriptorRef: string;
@@ -94,20 +93,34 @@ function optionalInstalledAppLaunchBinding(): { readonly installedAppLaunchBindi
 
 function parseInstalledAppLaunchBinding(value: unknown): NimiElectronInstalledAppLaunchBinding {
   const record = asRecord(value, 'Nimi Electron installed app launch binding must be an object');
+  assertInstalledAppLaunchBindingFields(record);
   const binding: NimiElectronInstalledAppLaunchBinding = {
     appId: requiredBindingText(record.appId, 'appId'),
     appInstanceId: requiredBindingText(record.appInstanceId, 'appInstanceId'),
     deviceId: requiredBindingText(record.deviceId, 'deviceId'),
-    bindingSource: 'host-owned-installed-app-bridge',
     launchHostId: requiredBindingText(record.launchHostId, 'launchHostId'),
     launchNonce: requiredBindingText(record.launchNonce, 'launchNonce'),
     releaseDescriptorRef: requiredBindingText(record.releaseDescriptorRef, 'releaseDescriptorRef'),
     realmBaseUrl: requiredBindingText(record.realmBaseUrl, 'realmBaseUrl'),
   };
-  if (record.bindingSource !== binding.bindingSource) {
-    throw new Error('Nimi Electron installed app launch binding source is not host-owned.');
-  }
   return binding;
+}
+
+const INSTALLED_APP_LAUNCH_BINDING_FIELDS = new Set([
+  'appId',
+  'appInstanceId',
+  'deviceId',
+  'launchHostId',
+  'launchNonce',
+  'releaseDescriptorRef',
+  'realmBaseUrl',
+]);
+
+function assertInstalledAppLaunchBindingFields(record: Readonly<Record<string, unknown>>): void {
+  const unexpected = Object.keys(record).filter((field) => !INSTALLED_APP_LAUNCH_BINDING_FIELDS.has(field));
+  if (unexpected.length > 0) {
+    throw new Error(`Nimi Electron installed app launch binding contains unsupported field: ${unexpected[0]}`);
+  }
 }
 
 function requiredBindingText(value: unknown, field: string): string {
