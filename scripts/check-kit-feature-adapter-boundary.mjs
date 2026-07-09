@@ -61,6 +61,27 @@ function parseNamedImportList(rawList) {
     .filter(Boolean);
 }
 
+function parseNamedImportBindings(rawList) {
+  return rawList
+    .split(',')
+    .map((rawItem) => {
+      const withoutType = rawItem.replace(/^type\s+/u, '').trim();
+      if (!withoutType) return null;
+      const aliasMatch = withoutType.match(/^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/u);
+      if (aliasMatch) {
+        return {
+          imported: aliasMatch[1],
+          local: aliasMatch[2],
+        };
+      }
+      return {
+        imported: withoutType,
+        local: withoutType,
+      };
+    })
+    .filter(Boolean);
+}
+
 function classifySdkOrigin(specifier) {
   if (specifier === '@nimiplatform/sdk/runtime' || specifier === '@nimiplatform/sdk/runtime/generated') {
     return 'runtime';
@@ -86,6 +107,57 @@ function classifySdkOrigin(specifier) {
   return 'unknown';
 }
 
+function parseSdkContractImportedOrigins(source) {
+  const origins = new Map();
+  const importPattern = /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+['"]([^'"]+)['"]\s*;/gu;
+  for (const match of source.matchAll(importPattern)) {
+    const origin = classifySdkOrigin(String(match[2] || ''));
+    if (origin === 'unknown') continue;
+    for (const binding of parseNamedImportBindings(match[1] || '')) {
+      origins.set(binding.local, origin);
+    }
+  }
+  return origins;
+}
+
+function findMatchingBrace(source, openBraceIndex) {
+  let depth = 0;
+  for (let index = openBraceIndex; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === '{') depth += 1;
+    if (character === '}') {
+      depth -= 1;
+      if (depth === 0) return index;
+    }
+  }
+  return -1;
+}
+
+function parseSdkContractLocalExportOrigins(source, importedOrigins) {
+  const origins = new Map();
+  const exportedFunctionPattern = /export\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*(?:<[^>{}]*>)?\s*\(/gu;
+  for (const match of source.matchAll(exportedFunctionPattern)) {
+    const name = String(match[1] || '');
+    const openBraceIndex = source.indexOf('{', match.index);
+    if (!name || openBraceIndex < 0) continue;
+    const closeBraceIndex = findMatchingBrace(source, openBraceIndex);
+    if (closeBraceIndex < 0) continue;
+
+    const declaration = source.slice(match.index, closeBraceIndex + 1);
+    const usedOrigins = new Set();
+    for (const [localName, origin] of importedOrigins.entries()) {
+      const identifierPattern = new RegExp(String.raw`\b${escapeRegExp(localName)}\b`, 'u');
+      if (identifierPattern.test(declaration)) {
+        usedOrigins.add(origin);
+      }
+    }
+    if (usedOrigins.size === 1) {
+      origins.set(name, [...usedOrigins][0]);
+    }
+  }
+  return origins;
+}
+
 function parseSdkContractExportOrigins() {
   const source = fs.readFileSync(sdkContractPath, 'utf8');
   const origins = new Map();
@@ -96,6 +168,10 @@ function parseSdkContractExportOrigins() {
     for (const name of names) {
       origins.set(name, origin);
     }
+  }
+  const importedOrigins = parseSdkContractImportedOrigins(source);
+  for (const [name, origin] of parseSdkContractLocalExportOrigins(source, importedOrigins).entries()) {
+    origins.set(name, origin);
   }
   return origins;
 }

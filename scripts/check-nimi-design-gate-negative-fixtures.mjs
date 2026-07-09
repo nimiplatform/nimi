@@ -142,6 +142,7 @@ function buildKitFixture(root) {
   const standardShellCatalogRel = '.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml';
   const standardShellCatalog = YAML.parse(fs.readFileSync(path.join(repoRoot, standardShellCatalogRel), 'utf8'));
   const standardShellFixtureStrings = [
+    'NIMI_STANDARD_SHELL_CAPABILITY_SETS',
     ...(Array.isArray(standardShellCatalog?.capabilities)
       ? standardShellCatalog.capabilities.map((capability) => String(capability?.id || '').trim()).filter(Boolean)
       : []),
@@ -154,6 +155,21 @@ function buildKitFixture(root) {
             ? capability.operations.map((operation) => String(operation?.command || '').trim()).filter(Boolean)
             : [],
         )
+      : []),
+    ...(Array.isArray(standardShellCatalog?.capability_sets)
+      ? standardShellCatalog.capability_sets.flatMap((capabilitySet) => [
+          String(capabilitySet?.set_id || '').trim(),
+          String(capabilitySet?.source_rule || '').trim(),
+          ...(Array.isArray(capabilitySet?.allowed_operations)
+            ? capabilitySet.allowed_operations.map((operation) => String(operation || '').trim())
+            : []),
+          ...(Array.isArray(capabilitySet?.forbidden_operations)
+            ? capabilitySet.forbidden_operations.map((operation) => String(operation || '').trim())
+            : []),
+          ...(Array.isArray(capabilitySet?.negative_tests)
+            ? capabilitySet.negative_tests.map((testId) => String(testId || '').trim())
+            : []),
+        ].filter(Boolean))
       : []),
   ];
   write(root, '.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml', `modules:

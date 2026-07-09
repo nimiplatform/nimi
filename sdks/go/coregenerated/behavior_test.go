@@ -147,7 +147,17 @@ func (t *fakeTransport) ServerStream(ctx context.Context, req sdkstypes.CoreStre
 
 func loadBehaviorFixtures(t *testing.T) behaviorFixtures {
 	t.Helper()
-	data, err := os.ReadFile("../../conformance/fixtures/behavior-fixtures.json")
+	var data []byte
+	var err error
+	for _, path := range []string{
+		"../../conformance/fixtures/behavior-fixtures.json",
+		"../conformance/fixtures/behavior-fixtures.json",
+	} {
+		data, err = os.ReadFile(path)
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
 		t.Fatalf("read fixtures: %v", err)
 	}

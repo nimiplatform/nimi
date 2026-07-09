@@ -223,6 +223,7 @@ function collectRepoFiles() {
     'apps/web/src',
     'apps/avatar/src',
     'apps/avatar/src-tauri',
+    'kit/features/avatar/src',
     'runtime/internal/services/account',
     'runtime/internal/grpcserver',
   ];
@@ -859,12 +860,31 @@ function scanAvatarLaunchParserGuardrail(files, violations) {
     if (!source) {
       continue;
     }
-    for (const parameter of AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS) {
-      if (!source.includes(parameter)) {
+    let guardSource = source;
+    let guardRelPath = relPath;
+    if (relPath === 'apps/avatar/src/shell/renderer/bridge/launch-context.ts') {
+      if (!source.includes('parseAvatarLaunchHandoffPayload')) {
         pushViolation(
           violations,
           relPath,
           source,
+          0,
+          'Avatar launch parser missing Kit-owned guard',
+          'Avatar renderer launch parser must delegate to parseAvatarLaunchHandoffPayload',
+        );
+        continue;
+      }
+      const kitParserRelPath = 'kit/features/avatar/src/launch-handoff.ts';
+      const kitParser = files.find((item) => item.relPath === kitParserRelPath);
+      guardSource = requireSource(kitParser, violations, kitParserRelPath) || '';
+      guardRelPath = kitParserRelPath;
+    }
+    for (const parameter of AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS) {
+      if (!guardSource.includes(parameter)) {
+        pushViolation(
+          violations,
+          guardRelPath,
+          guardSource,
           0,
           'Avatar launch parser missing forbidden field',
           `Avatar launch parser must reject ${parameter}`,

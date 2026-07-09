@@ -105,7 +105,7 @@ func (r *agentAgentAIConfigRepository) loadAll() ([]*runtimev1.RuntimeAgentAICon
 	if err != nil {
 		return nil, fmt.Errorf("load runtime agent ai config rows: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var out []*runtimev1.RuntimeAgentAIConfig
 	for rows.Next() {
 		var agentInstanceID string
