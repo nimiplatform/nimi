@@ -290,7 +290,7 @@ export const NIMI_APP_REGISTRY_ROWS = [
   {
     "appId": "nimi.zhiyu",
     "appKind": "nimi-app",
-    "displayName": "Zhiyu",
+    "displayName": "织羽 Zhiyu",
     "publisher": "nimi-first-party",
     "trustTier": "nimi-first-party",
     "ordinaryVisibility": "developer-only",

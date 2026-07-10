@@ -34,30 +34,15 @@ type TauriGlobal = typeof globalThis & {
 type RuntimeBridgeMetadata = {
   protocolVersion?: string;
   participantProtocolVersion?: string;
-  participantId?: string;
   domain?: string;
-  appId?: string;
   traceId?: string;
   idempotencyKey?: string;
-  callerKind?: string;
-  callerId?: string;
   surfaceId?: string;
   keySource?: string;
   providerType?: string;
   clientId?: string;
   providerEndpoint?: string;
-  providerApiKey?: string;
   extra?: Record<string, string>;
-};
-
-type RuntimeBridgeAppSession = {
-  sessionId: string;
-  sessionToken: string;
-};
-
-type RuntimeBridgeProtectedAccessToken = {
-  tokenId: string;
-  secret: string;
 };
 
 type RuntimeBridgeMetadataScalarField = Exclude<keyof RuntimeBridgeMetadata, 'extra'>;
@@ -93,20 +78,12 @@ const BRIDGE_METADATA_FIELDS: Record<string, RuntimeBridgeMetadataScalarField> =
   'x-nimi-protocol-version': 'protocolVersion',
   participantprotocolversion: 'participantProtocolVersion',
   'x-nimi-participant-protocol-version': 'participantProtocolVersion',
-  participantid: 'participantId',
-  'x-nimi-participant-id': 'participantId',
   domain: 'domain',
   'x-nimi-domain': 'domain',
-  appid: 'appId',
-  'x-nimi-app-id': 'appId',
   traceid: 'traceId',
   'x-nimi-trace-id': 'traceId',
   idempotencykey: 'idempotencyKey',
   'x-nimi-idempotency-key': 'idempotencyKey',
-  callerkind: 'callerKind',
-  'x-nimi-caller-kind': 'callerKind',
-  callerid: 'callerId',
-  'x-nimi-caller-id': 'callerId',
   surfaceid: 'surfaceId',
   'x-nimi-surface-id': 'surfaceId',
   keysource: 'keySource',
@@ -117,11 +94,19 @@ const BRIDGE_METADATA_FIELDS: Record<string, RuntimeBridgeMetadataScalarField> =
   'x-nimi-client-id': 'clientId',
   providerendpoint: 'providerEndpoint',
   'x-nimi-provider-endpoint': 'providerEndpoint',
-  providerapikey: 'providerApiKey',
-  'x-nimi-provider-api-key': 'providerApiKey',
 };
 
 const RESERVED_EXTRA_KEYS = new Set(Object.keys(BRIDGE_METADATA_FIELDS).filter((key) => key.startsWith('x-nimi-')));
+const TAURI_RENDERER_FORBIDDEN_AUTH_METADATA_KEYS = new Set([
+  'authorization', 'protectedaccesstoken', 'appsession', 'accesstokenid', 'accesstokensecret',
+  'sessionid', 'sessiontoken', 'providerapikey', 'xnimiauthorization', 'xnimiprotectedaccesstoken',
+  'xnimiappsession', 'xnimiaccesstokenid', 'xnimiaccesstokensecret', 'xnimisessionid',
+  'xnimisessiontoken', 'xnimiproviderapikey',
+]);
+const TAURI_RENDERER_FORBIDDEN_IDENTITY_METADATA_KEYS = new Set([
+  'appid', 'participantid', 'callerkind', 'callerid', 'xnimiappid', 'xnimiparticipantid',
+  'xnimicallerkind', 'xnimicallerid',
+]);
 
 export interface RuntimeTauriIpcTransportOptions {
   readonly type?: 'tauri-ipc';
@@ -273,17 +258,9 @@ function fromBase64(value: string): Uint8Array {
 
 function splitRuntimeMetadata(metadata: CoreMetadata | undefined): {
   readonly metadata?: RuntimeBridgeMetadata;
-  readonly authorization?: string;
-  readonly protectedAccessToken?: RuntimeBridgeProtectedAccessToken;
-  readonly appSession?: RuntimeBridgeAppSession;
 } {
   const bridgeMetadata: RuntimeBridgeMetadata = {};
   const extra: Record<string, string> = {};
-  let authorization: string | undefined;
-  let accessTokenId = '';
-  let accessTokenSecret = '';
-  let sessionId = '';
-  let sessionToken = '';
 
   for (const [rawKey, rawValue] of Object.entries(metadata ?? {})) {
     const value = normalizeText(rawValue);
@@ -292,34 +269,14 @@ function splitRuntimeMetadata(metadata: CoreMetadata | undefined): {
     }
     const key = rawKey.trim();
     const lookup = key.toLowerCase();
-    if (lookup === 'authorization') {
-      throw new RuntimeTauriIpcTransportError(
-        'SDK_TRANSPORT_INVALID',
-        'Runtime authorization must use the transport auth channel, not metadata.authorization',
-        { metadataKey: rawKey },
-        {
-          reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
-          actionHint: 'move_runtime_authorization_to_transport_auth',
-          retryable: false,
-        },
-      );
-    }
     const compactLookup = lookup.replaceAll('-', '');
-    if (lookup === 'x-nimi-access-token-id' || compactLookup === 'accesstokenid') {
-      accessTokenId = value;
-      continue;
-    }
-    if (lookup === 'x-nimi-access-token-secret' || compactLookup === 'accesstokensecret') {
-      accessTokenSecret = value;
-      continue;
-    }
-    if (lookup === 'x-nimi-session-id' || compactLookup === 'sessionid') {
-      sessionId = value;
-      continue;
-    }
-    if (lookup === 'x-nimi-session-token' || compactLookup === 'sessiontoken') {
-      sessionToken = value;
-      continue;
+    const forbiddenKind = tauriRendererForbiddenMetadataKind(compactLookup);
+    if (forbiddenKind) {
+      throwInvalidRendererMetadata(
+        rawKey,
+        `Runtime metadata field ${rawKey} must use the host-owned ${forbiddenKind} channel`,
+        forbiddenKind,
+      );
     }
     const bridgeField = BRIDGE_METADATA_FIELDS[compactLookup] ?? BRIDGE_METADATA_FIELDS[lookup];
     if (bridgeField) {
@@ -337,10 +294,39 @@ function splitRuntimeMetadata(metadata: CoreMetadata | undefined): {
 
   return {
     metadata: Object.keys(bridgeMetadata).length > 0 ? bridgeMetadata : undefined,
-    authorization,
-    protectedAccessToken: accessTokenId && accessTokenSecret ? { tokenId: accessTokenId, secret: accessTokenSecret } : undefined,
-    appSession: sessionId && sessionToken ? { sessionId, sessionToken } : undefined,
   };
+}
+
+function tauriRendererForbiddenMetadataKind(key: string): 'auth' | 'identity' | undefined {
+  if (TAURI_RENDERER_FORBIDDEN_IDENTITY_METADATA_KEYS.has(key)) return 'identity';
+  if (
+    TAURI_RENDERER_FORBIDDEN_AUTH_METADATA_KEYS.has(key)
+    || key.includes('authorization')
+    || key.includes('accesstoken')
+    || key.includes('session')
+    || key.includes('providerapikey')
+    || key.includes('secret')
+  ) return 'auth';
+  return undefined;
+}
+
+function throwInvalidRendererMetadata(
+  metadataKey: string,
+  message: string,
+  forbiddenKind: 'auth' | 'identity' = 'auth',
+): never {
+  throw new RuntimeTauriIpcTransportError(
+    'SDK_TRANSPORT_INVALID',
+    message,
+    { metadataKey },
+    {
+      reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
+      actionHint: forbiddenKind === 'identity'
+        ? 'provide_runtime_identity_from_tauri_host'
+        : 'provide_runtime_auth_from_tauri_host',
+      retryable: false,
+    },
+  );
 }
 
 function normalizeResponseMetadata(response: RuntimeBridgeUnaryResponse): CoreResponseMetadata {
@@ -397,15 +383,12 @@ export function createRuntimeTauriIpcTransport(
 ): CoreTransport {
   const invokeUnaryBytes = async (methodId: string, body: Uint8Array, request: CoreUnaryRequest): Promise<Uint8Array> => {
     const invoke = ensureInvoke();
-    const { metadata, authorization, protectedAccessToken, appSession } = splitRuntimeMetadata(request.metadata);
+    const { metadata } = splitRuntimeMetadata(request.metadata);
     const response = asObject(await invoke(createCommandName(options, 'unary'), {
       payload: {
         methodId,
         requestBytesBase64: toBase64(body),
         metadata,
-        authorization,
-        protectedAccessToken,
-        appSession,
         timeoutMs: request.timeoutMs,
       },
     })) as RuntimeBridgeUnaryResponse;
@@ -428,7 +411,7 @@ export function createRuntimeTauriIpcTransport(
   ): Promise<AsyncIterable<Uint8Array>> => {
     const invoke = ensureInvoke();
     const listen = ensureListen();
-    const { metadata, authorization, protectedAccessToken, appSession } = splitRuntimeMetadata(request.metadata);
+    const { metadata } = splitRuntimeMetadata(request.metadata);
 
     let streamId = createClientStreamId();
     let unsubscribe: TauriListenUnsubscribe | undefined;
@@ -547,9 +530,6 @@ export function createRuntimeTauriIpcTransport(
           streamId,
           requestBytesBase64: toBase64(body),
           metadata,
-          authorization,
-          protectedAccessToken,
-          appSession,
           timeoutMs: request.timeoutMs,
           eventNamespace: options.eventNamespace,
         },

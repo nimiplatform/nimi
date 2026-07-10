@@ -16,7 +16,6 @@ export const RUNTIME_ACCOUNT_METHODS = [
   'requestPresenceVerification',
   'getAccessToken',
   'invokeRealmUnary',
-  'refreshAccountSession',
   'logout',
   'switchAccount',
   'issueScopedAppBinding',

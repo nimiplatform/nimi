@@ -545,7 +545,8 @@ function toCoreClientOptions(
 ): CoreClientOptions {
   const includeDefaultIdentity = !(
     options.hostOwnedIdentity === true
-    || (options.transport && !isCoreTransportLike(options.transport) && options.transport.type === 'electron-ipc')
+    || (options.transport && !isCoreTransportLike(options.transport)
+      && (options.transport.type === 'electron-ipc' || options.transport.type === 'tauri-ipc'))
   );
   return {
     authMetadata: async () => ({

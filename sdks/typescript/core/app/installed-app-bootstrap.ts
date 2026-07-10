@@ -1,4 +1,4 @@
-import type { Realm } from '../../realm';
+import { Realm } from '../../realm';
 import {
   createNimiDesktopLaunchedNimiAppRuntimeAccountCaller,
   type NimiDesktopLaunchedNimiAppRuntimeAccountCallerInput,
@@ -6,9 +6,8 @@ import {
 } from '../../runtime/account-caller';
 import { createNimiError, type JsonObject, type JsonValue } from '../../types';
 import {
-  createRealmWithRuntimeAccountToken,
-  type RuntimeAccountRealmFetch,
-  type RuntimeAccountRealmRuntime,
+  createRuntimeAccountMediatedRealmTransport,
+  type RuntimeAccountMediatedRealmRuntime,
 } from './runtime-account-realm';
 
 export type InstalledNimiAppStandardShellSurface = {
@@ -39,17 +38,15 @@ export type InstalledNimiAppStorageRemoveJsonResult = {
 };
 
 export type InstalledNimiAppBootstrapInput<
-  TRuntime extends RuntimeAccountRealmRuntime = RuntimeAccountRealmRuntime,
+  TRuntime extends RuntimeAccountMediatedRealmRuntime = RuntimeAccountMediatedRealmRuntime,
 > = {
-  readonly realmBaseUrl: string;
   readonly runtime: TRuntime;
   readonly launchBinding: NimiDesktopLaunchedNimiAppRuntimeAccountCallerInput;
   readonly standardShell: InstalledNimiAppStandardShellSurface;
-  readonly fetchImpl?: RuntimeAccountRealmFetch;
 };
 
 export type InstalledNimiAppBootstrap<
-  TRuntime extends RuntimeAccountRealmRuntime = RuntimeAccountRealmRuntime,
+  TRuntime extends RuntimeAccountMediatedRealmRuntime = RuntimeAccountMediatedRealmRuntime,
 > = {
   readonly appId: string;
   readonly accountCaller: NimiRuntimeAccountCaller;
@@ -59,7 +56,7 @@ export type InstalledNimiAppBootstrap<
 };
 
 export function createInstalledNimiAppBootstrap<
-  TRuntime extends RuntimeAccountRealmRuntime,
+  TRuntime extends RuntimeAccountMediatedRealmRuntime,
 >(
   input: InstalledNimiAppBootstrapInput<TRuntime>,
 ): InstalledNimiAppBootstrap<TRuntime> {
@@ -69,11 +66,11 @@ export function createInstalledNimiAppBootstrap<
   return {
     appId: accountCaller.appId,
     accountCaller,
-    realm: createRealmWithRuntimeAccountToken({
-      baseUrl: requireText(input.realmBaseUrl, 'realmBaseUrl'),
-      fetchImpl: input.fetchImpl,
-      runtime: input.runtime,
-      accountCaller,
+    realm: new Realm({
+      transport: createRuntimeAccountMediatedRealmTransport({
+        runtime: input.runtime,
+        accountCaller,
+      }),
     }),
     runtime: input.runtime,
     standardShell,
@@ -119,6 +116,7 @@ function assertNoRendererOwnedAuthCustody(input: Readonly<Record<string, unknown
       || normalized === 'runtimeaccountmetadata'
       || normalized === 'metadata'
       || normalized === 'headers'
+      || normalized === 'realmbaseurl'
     ) {
       throw createNimiError({
         message: `Installed Nimi App bootstrap cannot accept renderer-owned auth custody field: ${key}.`,
@@ -129,18 +127,4 @@ function assertNoRendererOwnedAuthCustody(input: Readonly<Record<string, unknown
       });
     }
   }
-}
-
-function requireText(value: unknown, field: string): string {
-  const normalized = String(value || '').trim();
-  if (!normalized) {
-    throw createNimiError({
-      message: `Installed Nimi App bootstrap requires ${field}.`,
-      reasonCode: 'SDK_INSTALLED_APP_BOOTSTRAP_INPUT_INVALID',
-      actionHint: 'provide_runtime_launch_resolution_binding',
-      source: 'sdk',
-      details: { field },
-    });
-  }
-  return normalized;
 }

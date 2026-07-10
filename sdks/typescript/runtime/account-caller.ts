@@ -3,6 +3,29 @@ import { createNimiError } from '../types';
 
 export type NimiRuntimeAccountCaller = AccountCaller;
 
+export type NimiSDKSharedAuthAppMode =
+  | 'first-party-local-app'
+  | 'developer-registered-local-app'
+  | 'third-party-nimi-app'
+  | 'dev-standalone'
+  | 'desktop-account-ux'
+  | 'binding-only-avatar';
+
+export const NIMI_SDK_SHARED_AUTH_RUNTIME_CALLER_MODE: Readonly<Record<NimiSDKSharedAuthAppMode, AccountCallerMode | null>> = {
+  'first-party-local-app': AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+  'developer-registered-local-app': AccountCallerMode.LOCAL_DEVELOPER_APP,
+  'third-party-nimi-app': AccountCallerMode.DESKTOP_LAUNCHED_NIMI_APP,
+  'dev-standalone': null,
+  'desktop-account-ux': AccountCallerMode.DESKTOP_SHELL,
+  'binding-only-avatar': AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
+};
+
+export function resolveNimiSDKSharedAuthRuntimeCallerMode(
+  appMode: NimiSDKSharedAuthAppMode,
+): AccountCallerMode | null {
+  return NIMI_SDK_SHARED_AUTH_RUNTIME_CALLER_MODE[appMode];
+}
+
 export type NimiRuntimeAccountCallerInput = {
   readonly appId: string;
   readonly appInstanceId?: string;
@@ -52,6 +75,25 @@ export function createNimiDeveloperRegisteredRuntimeAccountCaller(
   return createNimiRuntimeAccountCaller(
     input,
     AccountCallerMode.LOCAL_DEVELOPER_APP,
+    '',
+  );
+}
+
+export function createNimiBindingOnlyAvatarRuntimeAccountCaller(
+  input: NimiRuntimeAccountCallerInput,
+): NimiRuntimeAccountCaller {
+  if (input.appInstanceId === undefined || input.deviceId === undefined) {
+    requireText(input.appId, 'appId');
+    throw createNimiError({
+      message: 'Binding-only Avatar Runtime account caller identity requires explicit app instance and device identity.',
+      reasonCode: 'SDK_RUNTIME_ACCOUNT_CALLER_REGISTRATION_REQUIRED',
+      actionHint: 'use_desktop_avatar_launch_binding',
+      source: 'sdk',
+    });
+  }
+  return createNimiRuntimeAccountCaller(
+    input,
+    AccountCallerMode.DESKTOP_LAUNCHED_AVATAR,
     '',
   );
 }

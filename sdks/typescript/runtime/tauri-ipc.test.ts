@@ -78,12 +78,6 @@ test('tauri-ipc Runtime transport encodes and decodes protobuf unary calls', asy
     const runtime = new Runtime({
       appId: 'nimi.tauri.test',
       transport: { type: 'tauri-ipc' },
-      authMetadata: () => ({
-        'x-nimi-access-token-id': 'tauri-token-id',
-        'x-nimi-access-token-secret': 'tauri-token-secret',
-        'x-nimi-session-id': 'session-tauri',
-        'x-nimi-session-token': 'session-token-tauri',
-      }),
     });
 
     const health = await runtime.ready();
@@ -92,19 +86,10 @@ test('tauri-ipc Runtime transport encodes and decodes protobuf unary calls', asy
     assert.equal(health.reason, 'tauri-ok');
     assert.equal(capturedPayload.methodId, '/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth');
     assert.deepEqual(GetRuntimeHealthRequest.fromBinary(fromBase64(capturedPayload.requestBytesBase64)), {});
-    assert.equal((capturedPayload.metadata as { appId?: string }).appId, 'nimi.tauri.test');
+    assert.equal((capturedPayload.metadata as { appId?: string } | undefined)?.appId, undefined);
     assert.equal((capturedPayload.metadata as { protocolVersion?: string }).protocolVersion, '1.0.0');
-    assert.deepEqual(capturedPayload.appSession, {
-      sessionId: 'session-tauri',
-      sessionToken: 'session-token-tauri',
-    });
-    assert.deepEqual(capturedPayload.protectedAccessToken, {
-      tokenId: 'tauri-token-id',
-      secret: 'tauri-token-secret',
-    });
-    assert.equal((capturedPayload.metadata as { extra?: Record<string, string> }).extra?.['x-nimi-session-id'], undefined);
-    assert.equal((capturedPayload.metadata as { extra?: Record<string, string> }).extra?.['x-nimi-access-token-id'], undefined);
-    assert.equal((capturedPayload.metadata as { extra?: Record<string, string> }).extra?.['x-nimi-access-token-secret'], undefined);
+    assert.equal(capturedPayload.appSession, undefined);
+    assert.equal(capturedPayload.protectedAccessToken, undefined);
     assert.equal(capturedPayload.authorization, undefined);
     assert.equal(runtime.runtimeVersion(), '0.5.0');
     assert.equal(runtime.versionCompatibility().state, 'compatible');
@@ -113,7 +98,7 @@ test('tauri-ipc Runtime transport encodes and decodes protobuf unary calls', asy
   }
 });
 
-test('tauri-ipc Runtime transport rejects authorization in caller metadata', async () => {
+test('tauri-ipc Runtime transport rejects host-owned auth in renderer metadata', async () => {
   const restore = installTauriTestHook({
     invoke: async () => {
       throw new Error('authorization metadata validation should run before tauri invoke');
@@ -128,7 +113,7 @@ test('tauri-ipc Runtime transport rejects authorization in caller metadata', asy
     await assert.rejects(
       runtime.ready(),
       (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_TRANSPORT_INVALID
-        && String((error as { message?: string }).message || '').includes('transport auth channel'),
+        && String((error as { message?: string }).message || '').includes('host-owned auth channel'),
     );
   } finally {
     restore();
@@ -191,7 +176,7 @@ test('tauri-ipc Runtime transport decodes protobuf server streams', async () => 
     assert.deepEqual(SubscribeAccountSessionEventsRequest.fromBinary(fromBase64(capturedPayload.requestBytesBase64)), {
       afterSequence: '41',
     });
-    assert.equal((capturedPayload.metadata as { appId?: string }).appId, 'nimi.tauri.test');
+    assert.equal((capturedPayload.metadata as { appId?: string } | undefined)?.appId, undefined);
     assert.equal(events.length, 1);
     assert.equal(events[0]?.eventId, 'event-tauri');
     assert.equal(events[0]?.eventType, AccountEventType.LOGIN_COMPLETED);

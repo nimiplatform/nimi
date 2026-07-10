@@ -9,18 +9,13 @@ import {
   createRuntimeAccountMediatedRealmTransport,
 } from './runtime-account-realm';
 
-test('Realm Runtime account helper adds bearer token and refreshes after 401', async () => {
+test('explicit first-party Realm Runtime account helper adds a Runtime-projected bearer without public refresh', async () => {
   const calls: Array<{ readonly authorization: string }> = [];
-  let token = 'token-1';
   const realm = createRealmWithRuntimeAccountToken({
     baseUrl: 'https://realm.test',
     runtime: {
       account: {
-        getAccessToken: async () => ({ accepted: true, accessToken: token }),
-        refreshAccountSession: async () => {
-          token = 'token-2';
-          return { accepted: true };
-        },
+        getAccessToken: async () => ({ accepted: true, accessToken: 'token-1' }),
       },
     },
     accountCaller: {
@@ -33,9 +28,7 @@ test('Realm Runtime account helper adds bearer token and refreshes after 401', a
     fetchImpl: async (_request, init) => {
       const headers = new Headers(init?.headers);
       calls.push({ authorization: headers.get('authorization') || '' });
-      return calls.length === 1
-        ? new Response(JSON.stringify({ message: 'expired' }), { status: 401, headers: { 'content-type': 'application/json' } })
-        : new Response(JSON.stringify({ value: [] }), { status: 200, headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ value: [] }), { status: 200, headers: { 'content-type': 'application/json' } });
     },
   });
 
@@ -44,10 +37,7 @@ test('Realm Runtime account helper adds bearer token and refreshes after 401', a
     body: { query: {}, path: {}, headers: {} },
   } as never);
 
-  assert.deepEqual(calls.map((call) => call.authorization), [
-    'Bearer token-1',
-    'Bearer token-2',
-  ]);
+  assert.deepEqual(calls.map((call) => call.authorization), ['Bearer token-1']);
 });
 
 test('Runtime-mediated Realm transport delegates unary calls without renderer token custody', async () => {
@@ -55,7 +45,7 @@ test('Runtime-mediated Realm transport delegates unary calls without renderer to
     appId: 'nimi.zhiyu',
     appInstanceId: 'nimi.zhiyu.local-first-party',
     deviceId: 'nimi-zhiyu-local-first-party-device',
-    mode: AccountCallerMode.ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+    mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
     scopes: [],
   };
   const calls: Array<{ readonly request: unknown; readonly options: unknown }> = [];
@@ -79,6 +69,11 @@ test('Runtime-mediated Realm transport delegates unary calls without renderer to
     body: { path: { worldId: 'world-1' } },
     timeoutMs: 15_000,
   });
+  await transport.unary({
+    methodId: 'WorldPublicController_getWorld',
+    body: { path: { worldId: 'world-1' } },
+    timeoutMs: 15_000,
+  });
 
   assert.deepEqual(response, { id: 'world-1', name: '唐代文人世界' });
   assert.deepEqual(calls.map((call) => call.request), [{
@@ -87,31 +82,58 @@ test('Runtime-mediated Realm transport delegates unary calls without renderer to
     realmBaseUrl: '',
     requestJson: JSON.stringify({ path: { worldId: 'world-1' } }),
     timeoutMs: 15_000,
+  }, {
+    caller,
+    methodId: 'WorldPublicController_getWorld',
+    realmBaseUrl: '',
+    requestJson: JSON.stringify({ path: { worldId: 'world-1' } }),
+    timeoutMs: 15_000,
   }]);
   const options = calls[0]?.options as { readonly metadata?: Record<string, string> } | undefined;
-  assert.match(options?.metadata?.idempotencyKey ?? '', /^runtime-realm:WorldPublicController_getWorld:[a-f0-9]{16}$/);
+  const repeatedOptions = calls[1]?.options as { readonly metadata?: Record<string, string> } | undefined;
+  assert.match(options?.metadata?.idempotencyKey ?? '', /^runtime-realm-WorldPublicController_getWorld-[0-9A-HJKMNP-TV-Z]{26}$/);
   assert.equal(options?.metadata?.['x-nimi-idempotency-key'], options?.metadata?.idempotencyKey);
+  assert.notEqual(
+    repeatedOptions?.metadata?.idempotencyKey,
+    options?.metadata?.idempotencyKey,
+    'separate Realm broker invocations must not replay an authorization result across account-session changes',
+  );
+});
+
+test('raw Runtime account token Realm helper rejects installed and developer callers before transport', () => {
+  for (const mode of [
+    AccountCallerMode.LOCAL_DEVELOPER_APP,
+    AccountCallerMode.DESKTOP_LAUNCHED_NIMI_APP,
+  ]) {
+    assert.throws(() => createRealmWithRuntimeAccountToken({
+      baseUrl: 'https://realm.test',
+      runtime: { account: { getAccessToken: async () => ({ accepted: true, accessToken: 'must-not-project' }) } },
+      accountCaller: {
+        appId: 'community.nimi.fixture',
+        appInstanceId: 'community.nimi.fixture.instance',
+        deviceId: 'device-1',
+        mode,
+        scopes: [],
+      },
+      fetchImpl: async () => new Response('{}'),
+    }), {
+      reasonCode: 'SDK_RUNTIME_ACCOUNT_RAW_TOKEN_MODE_FORBIDDEN',
+    });
+  }
 });
 
 test('installed app bootstrap composes host-owned Runtime account, Realm, and standard shell surfaces', async () => {
-  const authorizations: string[] = [];
-  let observedCaller: unknown;
-  let token = 'runtime-account-token-1';
+  const brokerCalls: unknown[] = [];
   const runtime = {
     account: {
-      getAccessToken: async (request: { readonly caller: unknown }) => {
-        observedCaller = request.caller;
-        return { accepted: true, accessToken: token };
-      },
-      refreshAccountSession: async () => {
-        token = 'runtime-account-token-2';
-        return { accepted: true };
+      invokeRealmUnary: async (request: unknown) => {
+        brokerCalls.push(request);
+        return { accepted: true, responseJson: JSON.stringify({ items: [] }) };
       },
     },
     protectedRuntimeCall: async () => 'host-owned-runtime-surface',
   };
   const bootstrap = createInstalledNimiAppBootstrap({
-    realmBaseUrl: 'https://realm.test',
     runtime,
     launchBinding: {
       appId: 'community.nimi.fixture.platform-proof',
@@ -141,12 +163,6 @@ test('installed app bootstrap composes host-owned Runtime account, Realm, and st
       localAssets: {
         resolveUrl: async (relativePath) => `nimi-installed-app://fixture/${relativePath}`,
       },
-    },
-    fetchImpl: async (_request, init) => {
-      authorizations.push(new Headers(init?.headers).get('authorization') || '');
-      return authorizations.length === 1
-        ? new Response(JSON.stringify({ message: 'expired' }), { status: 401, headers: { 'content-type': 'application/json' } })
-        : new Response(JSON.stringify({ value: [] }), { status: 200, headers: { 'content-type': 'application/json' } });
     },
   });
 
@@ -185,24 +201,24 @@ test('installed app bootstrap composes host-owned Runtime account, Realm, and st
   assert.equal(await bootstrap.standardShell.localAssets.resolveUrl('dist/icon.png'), 'nimi-installed-app://fixture/dist/icon.png');
 
   await bootstrap.realm.core.unary({
-    methodId: 'listNotifications',
-    body: { query: {}, path: {}, headers: {} },
+    methodId: 'WorldPublicController_listWorlds',
+    body: {},
   } as never);
 
-  assert.deepEqual(authorizations, [
-    'Bearer runtime-account-token-1',
-    'Bearer runtime-account-token-2',
-  ]);
-  assert.deepEqual(observedCaller, bootstrap.accountCaller);
+  assert.deepEqual(brokerCalls, [{
+    caller: bootstrap.accountCaller,
+    methodId: 'WorldPublicController_listWorlds',
+    realmBaseUrl: '',
+    requestJson: '{}',
+    timeoutMs: 30_000,
+  }]);
 });
 
 test('installed app bootstrap rejects renderer-provided auth custody fields', () => {
   assert.throws(() => createInstalledNimiAppBootstrap({
-    realmBaseUrl: 'https://realm.test',
     runtime: {
       account: {
-        getAccessToken: async () => ({ accepted: true, accessToken: 'runtime-token' }),
-        refreshAccountSession: async () => ({ accepted: true }),
+        invokeRealmUnary: async () => ({ accepted: true, responseJson: '{}' }),
       },
     },
     launchBinding: {
@@ -239,11 +255,9 @@ test('installed app bootstrap rejects renderer-provided auth custody fields', ()
   });
 
   assert.throws(() => createInstalledNimiAppBootstrap({
-    realmBaseUrl: 'https://realm.test',
     runtime: {
       account: {
-        getAccessToken: async () => ({ accepted: true, accessToken: 'runtime-token' }),
-        refreshAccountSession: async () => ({ accepted: true }),
+        invokeRealmUnary: async () => ({ accepted: true, responseJson: '{}' }),
       },
     },
     launchBinding: {
@@ -283,11 +297,9 @@ test('installed app bootstrap rejects renderer-provided auth custody fields', ()
 
 test('installed app bootstrap requires full standard shell including ai-config, data, and storage lifecycle surfaces', () => {
   assert.throws(() => createInstalledNimiAppBootstrap({
-    realmBaseUrl: 'https://realm.test',
     runtime: {
       account: {
-        getAccessToken: async () => ({ accepted: true, accessToken: 'runtime-token' }),
-        refreshAccountSession: async () => ({ accepted: true }),
+        invokeRealmUnary: async () => ({ accepted: true, responseJson: '{}' }),
       },
     },
     launchBinding: {
@@ -316,11 +328,9 @@ test('installed app bootstrap requires full standard shell including ai-config, 
   });
 
   assert.throws(() => createInstalledNimiAppBootstrap({
-    realmBaseUrl: 'https://realm.test',
     runtime: {
       account: {
-        getAccessToken: async () => ({ accepted: true, accessToken: 'runtime-token' }),
-        refreshAccountSession: async () => ({ accepted: true }),
+        invokeRealmUnary: async () => ({ accepted: true, responseJson: '{}' }),
       },
     },
     launchBinding: {
