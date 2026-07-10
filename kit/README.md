@@ -156,11 +156,12 @@ import { getNimiNotificationBadgeKey } from '@nimiplatform/kit/core/notification
 
 ```ts
 import { invokeTauri } from '@nimiplatform/kit/shell/renderer/bridge';
-import { resolveBootstrapAuthSession } from '@nimiplatform/kit/shell/renderer/bootstrap';
+import { ensureNimiShellRuntimeBridgeInstalled } from '@nimiplatform/kit/shell/renderer/bootstrap';
 ```
 
 Renderer shell APIs are host-neutral; Tauri and Electron host implementations
-live behind injected bridge hooks.
+live behind injected bridge hooks. Shared authorization flows through the Runtime
+bridge; renderer code cannot load, save, clear, or persist Runtime account tokens.
 
 ### Electron shell
 

@@ -25,7 +25,6 @@ rfd = "0.17"
 webbrowser = "1"
 futures-util = "0.3"
 aes-gcm = "0.10"
-keyring = "3"
 log = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
@@ -36,9 +35,6 @@ protoc-bin-vendored = "3"
 
 [dev-dependencies]
 serde_yaml = "0.9"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-keyring = { version = "3", features = ["apple-native"] }
 
 [features]
 default = []

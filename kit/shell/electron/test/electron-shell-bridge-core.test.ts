@@ -62,6 +62,12 @@ describe('registerNimiElectronRuntimeBridge', () => {
       ipcMain,
       createGrpcClient: async () => fakeClient,
       trustedRuntimeMetadataProvider: async () => ({
+        metadata: {
+          extra: {
+            'x-nimi-source-host': 'desktop-electron-account-host',
+            'x-nimi-app-instance-id': 'nimi.tester.desktop-shell',
+          },
+        },
         protectedAccessToken: { tokenId: 'token-id', secret: 'token-secret' },
         appSession: { sessionId: 'session-id', sessionToken: 'session-token' },
       }),
@@ -94,6 +100,8 @@ describe('registerNimiElectronRuntimeBridge', () => {
     });
     expect(capturedMetadata['x-nimi-idempotency-key']).toMatch(/^bridge-_nimi\.runtime\.v1\.RuntimeAuditService_GetRuntimeHealth-\d+-\d+$/);
     expect(capturedMetadata['x-nimi-custom']).toBe('custom-value');
+    expect(capturedMetadata['x-nimi-source-host']).toBe('desktop-electron-account-host');
+    expect(capturedMetadata['x-nimi-app-instance-id']).toBe('nimi.tester.desktop-shell');
     expect([...fromBase64(response.responseBytesBase64)]).toEqual([4, 5, 6]);
     expect(response.responseMetadata['x-nimi-runtime-version']).toBe('0.5.0');
   });

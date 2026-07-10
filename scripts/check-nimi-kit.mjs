@@ -246,7 +246,6 @@ const requiredStandardShellCapabilityIds = [
   'runtime',
   'runtime-lifecycle',
   'runtime-defaults',
-  'auth',
   'oauth',
   'desktop-open',
   'shell-ui',
@@ -277,6 +276,11 @@ const requiredStandardShellErrorCodes = [
   'not-found',
   'invalid-payload',
   'host-internal-error',
+];
+const requiredRetiredAuthSessionForbiddenOperations = [
+  'auth.sessionLoad',
+  'auth.sessionSave',
+  'auth.sessionClear',
 ];
 
 function assertStandardShellCapabilityCatalog() {
@@ -351,6 +355,12 @@ function assertStandardShellCapabilityCatalog() {
     expect(
       Array.isArray(installedSet?.[field]) && installedSet[field].length > 0,
       `standard-shell-capabilities.yaml: installed-nimi-app-standard-shell-v1 ${field} must not be empty`,
+    );
+  }
+  for (const retiredOperation of requiredRetiredAuthSessionForbiddenOperations) {
+    expect(
+      installedSet.forbidden_operations.includes(retiredOperation),
+      `standard-shell-capabilities.yaml: retired ${retiredOperation} must remain explicit forbidden vocabulary`,
     );
   }
   for (const operationRef of Array.isArray(installedSet?.allowed_operations) ? installedSet.allowed_operations : []) {

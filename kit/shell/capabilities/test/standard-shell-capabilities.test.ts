@@ -97,7 +97,6 @@ describe('standard shell capabilities', () => {
       'runtime.ts',
       'runtime-lifecycle.ts',
       'runtime-defaults.ts',
-      'auth.ts',
       'oauth.ts',
       'shell-ui.ts',
       'diagnostics.ts',
@@ -146,21 +145,19 @@ describe('standard shell capabilities', () => {
     expect(readCatalogNegativeStatesForCommand(catalog, command)).toContain('external-daemon-required');
   });
 
-  it('classifies Runtime-owned auth session custody as a standard negative state', () => {
+  it('keeps retired auth session custody outside the active product catalog', () => {
     const catalog = readFileSync(catalogPath, 'utf8');
+    const installedSet = NIMI_STANDARD_SHELL_CAPABILITY_SETS.find(
+      (set) => set.setId === NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
+    );
 
-    for (const command of [
-      getNimiStandardShellCommand('auth', 'sessionLoad'),
-      getNimiStandardShellCommand('auth', 'sessionSave'),
-      getNimiStandardShellCommand('auth', 'sessionClear'),
-    ]) {
-      const packageOperation = NIMI_STANDARD_SHELL_CAPABILITIES
-        .flatMap((capability) => capability.operations)
-        .find((operation) => operation.command === command);
-
-      expect(packageOperation?.negativeStates).toContain('external-daemon-required');
-      expect(readCatalogNegativeStatesForCommand(catalog, command)).toContain('external-daemon-required');
-    }
+    expect(NIMI_STANDARD_SHELL_CAPABILITY_IDS).not.toContain('auth');
+    expect(catalog).not.toMatch(/command: nimi\.shell\.auth\.session/u);
+    expect(installedSet?.forbiddenOperations).toEqual(expect.arrayContaining([
+      'auth.sessionLoad',
+      'auth.sessionSave',
+      'auth.sessionClear',
+    ]));
   });
 
   it('catalogs idempotent standard storage removal for installed apps', () => {

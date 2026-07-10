@@ -89,6 +89,7 @@ describe('Electron Runtime account trusted metadata provider', () => {
   it('returns host-owned session and grant metadata', async () => {
     let registerInput: Record<string, unknown> | undefined;
     let authorizeInput: Record<string, unknown> | undefined;
+    let accountStatusOptions: Record<string, unknown> | undefined;
     const provider = createNimiElectronRuntimeAccountTrustedMetadataProvider({
       appId: 'nimi.thirdparty.fixture',
       runtimeEndpoint: '127.0.0.1:46371',
@@ -110,12 +111,18 @@ describe('Electron Runtime account trusted metadata provider', () => {
         deviceId: 'fixture.device',
         capabilities: ['realm.feed.read', 'runtime.ai.consume'],
       },
+      callerEnvelope: {
+        sourceHost: 'fixture-electron-account-host',
+      },
       runtime: {
         account: {
-          getAccountSessionStatus: async () => ({
-            state: ACCOUNT_SESSION_STATE_AUTHENTICATED,
-            accountProjection: { accountId: 'acct-1', displayName: 'Fixture' },
-          }),
+          getAccountSessionStatus: async (_input: unknown, options?: Record<string, unknown>) => {
+            accountStatusOptions = options;
+            return {
+              state: ACCOUNT_SESSION_STATE_AUTHENTICATED,
+              accountProjection: { accountId: 'acct-1', displayName: 'Fixture' },
+            };
+          },
         },
         auth: {
           registerApp: async (input: Record<string, unknown>) => {
@@ -151,19 +158,32 @@ describe('Electron Runtime account trusted metadata provider', () => {
 
     expect(metadata?.appSession).toEqual({ sessionId: 'session-1', sessionToken: 'session-secret' });
     expect(metadata?.protectedAccessToken).toEqual({ tokenId: 'grant-1', secret: 'grant-secret' });
-    expect(metadata?.metadata).toEqual({
+    expect(metadata?.metadata).toMatchObject({
       participantId: 'nimi.thirdparty.fixture',
       callerKind: 'local-first-party-app',
       callerId: 'fixture.instance',
+      extra: {
+        'x-nimi-source-host': 'fixture-electron-account-host',
+        'x-nimi-app-instance-id': 'fixture.instance',
+        'x-nimi-device-id': 'fixture.device',
+      },
     });
     expect(registerInput?.capabilities).toEqual(['realm.feed.read', 'runtime.ai.consume']);
     expect(registerInput?.developerRegistration).toBe(false);
+    expect(accountStatusOptions?.metadata).toMatchObject({
+      'x-nimi-session-id': 'session-1',
+      'x-nimi-session-token': 'session-secret',
+      'x-nimi-source-host': 'fixture-electron-account-host',
+      'x-nimi-app-instance-id': 'fixture.instance',
+      'x-nimi-device-id': 'fixture.device',
+    });
     expect(authorizeInput?.externalPrincipalType).toBe(EXTERNAL_PRINCIPAL_TYPE_APP);
     expect(authorizeInput?.policyMode).toBe(POLICY_MODE_CUSTOM);
     expect(authorizeInput?.preset).toBe(AUTHORIZATION_PRESET_UNSPECIFIED);
   });
 
-  it('invalidates only protected access metadata when a cached app grant is rejected', async () => {
+  it('invalidates app registration, app session, and protected access metadata after a Runtime grant rejection', async () => {
+    let registerCount = 0;
     let openSessionCount = 0;
     let authorizeCount = 0;
     const provider = createNimiElectronRuntimeAccountTrustedMetadataProvider({
@@ -195,7 +215,10 @@ describe('Electron Runtime account trusted metadata provider', () => {
           }),
         },
         auth: {
-          registerApp: async () => ({ accepted: true }),
+          registerApp: async () => {
+            registerCount += 1;
+            return { accepted: true };
+          },
           openSession: async () => {
             openSessionCount += 1;
             return {
@@ -233,7 +256,8 @@ describe('Electron Runtime account trusted metadata provider', () => {
     expect(first?.protectedAccessToken?.tokenId).toBe('grant-1');
     expect(cached?.protectedAccessToken?.tokenId).toBe('grant-1');
     expect(refreshed?.protectedAccessToken?.tokenId).toBe('grant-2');
-    expect(openSessionCount).toBe(1);
+    expect(registerCount).toBe(4);
+    expect(openSessionCount).toBe(2);
     expect(authorizeCount).toBe(2);
   });
 
@@ -529,6 +553,15 @@ describe('Electron Runtime account trusted metadata provider', () => {
     expect(registerInput?.appInstanceId).toBe('community.nimi.fixture.platform-proof.desktop-host');
     expect(registerInput?.deviceId).toBe('desktop-installed-app-host-device');
     expect(registerInput?.developerRegistration).toBe(false);
+    expect(metadata?.metadata?.extra).toEqual({
+      'x-nimi-source-host': 'desktop-electron-installed-app-host',
+      'x-nimi-app-instance-id': 'community.nimi.fixture.platform-proof.desktop-host',
+      'x-nimi-device-id': 'desktop-installed-app-host-device',
+      'x-nimi-launch-host-id': 'desktop-electron-installed-app-host',
+      'x-nimi-launch-nonce': 'launch-nonce-1',
+      'x-nimi-release-descriptor-ref': 'community.nimi.fixture.platform-proof.0.1.0-sandbox',
+      'x-nimi-capability-set-ref': 'installed-nimi-app-standard-shell-v1',
+    });
   });
 
   it('rejects developer registration for installed app trusted metadata', () => {

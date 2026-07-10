@@ -84,9 +84,9 @@ describe('registerNimiElectronRuntimeBridge', () => {
     });
 
     for (const command of [
-      NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad'],
-      NIMI_STANDARD_SHELL_COMMANDS['auth.sessionSave'],
-      NIMI_STANDARD_SHELL_COMMANDS['auth.sessionClear'],
+      'nimi.shell.auth.session.load',
+      'nimi.shell.auth.session.save',
+      'nimi.shell.auth.session.clear',
     ]) {
       await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
         command,
@@ -125,7 +125,6 @@ describe('registerNimiElectronRuntimeBridge', () => {
     for (const command of [
       NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status'],
       NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get'],
-      NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad'],
       NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
       NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
       NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],

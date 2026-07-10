@@ -4,7 +4,6 @@ export * from './errors.js';
 export * from './runtime.js';
 export * from './runtime-lifecycle.js';
 export * from './runtime-defaults.js';
-export * from './auth.js';
 export * from './oauth.js';
 export * from './shell-ui.js';
 export * from './diagnostics.js';

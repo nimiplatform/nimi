@@ -70,12 +70,21 @@ export type NimiElectronRuntimeAccountProtectedAccessInput = {
   readonly idempotencyKey?: NimiElectronRuntimeProtectedAccessIdempotencyKey;
 };
 
+export type NimiElectronRuntimeCallerEnvelopeInput = {
+  readonly sourceHost: string;
+  readonly launchHostId?: string;
+  readonly launchNonce?: string;
+  readonly releaseDescriptorRef?: string;
+  readonly capabilitySetRef?: string;
+};
+
 export type NimiElectronRuntimeAccountTrustedMetadataProviderInput = {
   readonly appId: string;
   readonly runtimeEndpoint: string;
   readonly accountCaller: NimiRuntimeAccountCaller;
   readonly appSession: NimiElectronRuntimeAccountAppSessionInput;
   readonly protectedAccess: NimiElectronRuntimeAccountProtectedAccessInput;
+  readonly callerEnvelope?: NimiElectronRuntimeCallerEnvelopeInput;
   readonly runtime?: NimiElectronRuntimeAccountAuthRuntime;
 };
 
@@ -146,7 +155,7 @@ export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
     refreshSkewMs: input.appSession.refreshSkewMs,
     auth: accountRuntime.auth,
   });
-  const identityMetadata = createTrustedIdentityMetadata(appId, accountCaller);
+  const identityMetadata = createTrustedIdentityMetadata(appId, accountCaller, input.callerEnvelope);
 
   let protectedAccessCache: {
     readonly subjectUserId: string;
@@ -169,7 +178,14 @@ export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
   const trustedMetadata: ElectronRuntimeBridgeTrustedMetadataProvider = async (): Promise<ElectronRuntimeBridgeTrustedMetadata | undefined> => {
     await ensureAccountCallerRegistered?.();
     const appSessionMetadata = await appSessionMetadataProvider();
-    const subjectUserId = await readRuntimeSubjectUserIdIfAvailable(accountRuntime, accountCaller);
+    const subjectUserId = await readRuntimeSubjectUserIdIfAvailable(
+      accountRuntime,
+      accountCaller,
+      {
+        ...identityMetadata,
+        ...appSessionMetadata,
+      },
+    );
     if (!subjectUserId) {
       return toTrustedMetadata({
         ...identityMetadata,
@@ -184,7 +200,9 @@ export function createNimiElectronRuntimeAccountTrustedMetadataProvider(
     });
   };
 
-  trustedMetadata.invalidate = () => {
+  trustedMetadata.invalidate = (reason) => {
+    ensureAccountCallerRegistered?.invalidate(reason);
+    appSessionMetadataProvider.invalidate(reason);
     protectedAccessCache = null;
     protectedAccessInflight = null;
     protectedAccessInflightKey = '';
@@ -306,11 +324,21 @@ function shouldRegisterAccountCaller(mode: AccountCallerMode | undefined): boole
 function createTrustedIdentityMetadata(
   appId: string,
   accountCaller: NimiRuntimeAccountCaller,
+  envelope: NimiElectronRuntimeCallerEnvelopeInput | undefined,
 ): CoreMetadata {
   return {
     participantId: appId,
     callerKind: accountCallerKindForMode(accountCaller.mode),
     callerId: requireText(accountCaller.appInstanceId, 'accountCaller.appInstanceId'),
+    ...(envelope ? {
+      'x-nimi-source-host': requireText(envelope.sourceHost, 'callerEnvelope.sourceHost'),
+      'x-nimi-app-instance-id': requireText(accountCaller.appInstanceId, 'accountCaller.appInstanceId'),
+      'x-nimi-device-id': requireText(accountCaller.deviceId, 'accountCaller.deviceId'),
+      ...(normalizeText(envelope.launchHostId) ? { 'x-nimi-launch-host-id': normalizeText(envelope.launchHostId) } : {}),
+      ...(normalizeText(envelope.launchNonce) ? { 'x-nimi-launch-nonce': normalizeText(envelope.launchNonce) } : {}),
+      ...(normalizeText(envelope.releaseDescriptorRef) ? { 'x-nimi-release-descriptor-ref': normalizeText(envelope.releaseDescriptorRef) } : {}),
+      ...(normalizeText(envelope.capabilitySetRef) ? { 'x-nimi-capability-set-ref': normalizeText(envelope.capabilitySetRef) } : {}),
+    } : {}),
   };
 }
 
@@ -357,6 +385,13 @@ export function createNimiElectronInstalledAppRuntimeAccountTrustedMetadataProvi
       launchNonce: installedApp.launchNonce,
       releaseDescriptorRef: installedApp.releaseDescriptorRef,
     }),
+    callerEnvelope: {
+      sourceHost: installedApp.launchHostId,
+      launchHostId: installedApp.launchHostId,
+      launchNonce: installedApp.launchNonce,
+      releaseDescriptorRef: installedApp.releaseDescriptorRef,
+      capabilitySetRef: 'installed-nimi-app-standard-shell-v1',
+    },
     appSession: {
       ...input.appSession,
       appInstanceId: installedApp.appInstanceId,
@@ -398,9 +433,10 @@ function normalizeProtectedAccessInput(
 async function readRuntimeSubjectUserIdIfAvailable(
   accountRuntime: NimiElectronRuntimeAccountAuthRuntime,
   accountCaller: NimiRuntimeAccountCaller,
+  metadata: CoreMetadata,
 ): Promise<string> {
   try {
-    return await readRuntimeSubjectUserId(accountRuntime, accountCaller);
+    return await readRuntimeSubjectUserId(accountRuntime, accountCaller, metadata);
   } catch (error) {
     if (isRuntimeAuthProbeUnavailable(error)) {
       return '';
@@ -412,8 +448,12 @@ async function readRuntimeSubjectUserIdIfAvailable(
 async function readRuntimeSubjectUserId(
   accountRuntime: NimiElectronRuntimeAccountAuthRuntime,
   accountCaller: NimiRuntimeAccountCaller,
+  metadata: CoreMetadata,
 ): Promise<string> {
-  const session = await accountRuntime.account.getAccountSessionStatus({ caller: accountCaller });
+  const session = await accountRuntime.account.getAccountSessionStatus(
+    { caller: accountCaller },
+    { metadata },
+  );
   if (session.state === AccountSessionState.AUTHENTICATED && session.accountProjection?.accountId) {
     return normalizeText(session.accountProjection.accountId);
   }
@@ -451,6 +491,13 @@ function toTrustedMetadata(metadata: CoreMetadata): ElectronRuntimeBridgeTrusted
   if ((tokenId && !secret) || (!tokenId && secret)) {
     throw new Error('Electron Runtime protected access metadata is incomplete.');
   }
+  const extra = Object.fromEntries(
+    Object.entries(metadata)
+      .filter(([key, value]) => key.startsWith('x-nimi-')
+        && !TRUSTED_METADATA_DEDICATED_KEYS.has(key)
+        && normalizeText(value))
+      .map(([key, value]) => [key, normalizeText(value)]),
+  );
   return {
     metadata: {
       participantId: normalizeText(metadata.participantId),
@@ -466,11 +513,19 @@ function toTrustedMetadata(metadata: CoreMetadata): ElectronRuntimeBridgeTrusted
       providerType: normalizeText(metadata.providerType) || undefined,
       clientId: normalizeText(metadata.clientId) || undefined,
       providerEndpoint: normalizeText(metadata.providerEndpoint) || undefined,
+      ...(Object.keys(extra).length > 0 ? { extra } : {}),
     },
     appSession: { sessionId, sessionToken },
     ...(tokenId && secret ? { protectedAccessToken: { tokenId, secret } } : {}),
   };
 }
+
+const TRUSTED_METADATA_DEDICATED_KEYS = new Set([
+  'x-nimi-session-id',
+  'x-nimi-session-token',
+  'x-nimi-access-token-id',
+  'x-nimi-access-token-secret',
+]);
 
 function runtimeAuthorizeResponseExpiresAtMs(token: AuthorizeExternalPrincipalResponse): number {
   const expiresAt = token.expiresAt;

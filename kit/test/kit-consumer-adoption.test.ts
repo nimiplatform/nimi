@@ -153,9 +153,11 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   assert.match(testerContract, /tester auth and runtime bootstrap consume Kit shell bridge primitives/);
   assert.match(testerSettingsSurfaceTest, /tester settings keeps real Realm live rows through SDK and Kit helpers/);
 
-  assert.match(scaffoldBoundary, /createRuntimeAccountBrowserBroker/);
-  assert.match(testerContract, /createRuntimeAccountBrowserBroker/);
-  assert.match(testerRuntimeAccountAuth, /from '@nimiplatform\/kit\/auth'/);
+  assert.match(scaffoldBoundary, /doesNotMatch\(runtimeAccountAuthSource, \/createRuntimeAccountBrowserBroker/);
+  assert.match(testerContract, /Runtime account projection without account control/);
+  assert.match(testerRuntimeAccountAuth, /getAccountSessionStatus/);
+  assert.match(testerRuntimeAccountAuth, /AccountSessionState\.AUTHENTICATED/);
+  assert.doesNotMatch(testerRuntimeAccountAuth, /createRuntimeAccountBrowserBroker|beginLogin|completeLogin|logout|switchAccount|refreshAccountSession|getAccessToken/);
   assert.doesNotMatch(testerRuntimeAccountAuth, /desktop-runtime-oauth-url|#\/login|desktop_callback/);
 
   assert.match(testerWorkbench, /emitRuntimeLog/);

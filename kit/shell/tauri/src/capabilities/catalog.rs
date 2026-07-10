@@ -5,7 +5,6 @@ pub const STANDARD_SHELL_CAPABILITY_IDS: &[&str] = &[
     "runtime",
     "runtime-lifecycle",
     "runtime-defaults",
-    "auth",
     "oauth",
     "desktop-open",
     "shell-ui",
@@ -129,30 +128,6 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
             command: "nimi.shell.runtimeDefaults.get",
             negative_states: &["capability-unavailable", "invalid-payload"],
         }],
-    },
-    StandardShellCapability {
-        id: "auth",
-        operations: &[
-            StandardShellOperation {
-                id: "sessionLoad",
-                command: "nimi.shell.auth.session.load",
-                negative_states: &["external-daemon-required", "capability-unavailable"],
-            },
-            StandardShellOperation {
-                id: "sessionSave",
-                command: "nimi.shell.auth.session.save",
-                negative_states: &[
-                    "external-daemon-required",
-                    "capability-unavailable",
-                    "invalid-payload",
-                ],
-            },
-            StandardShellOperation {
-                id: "sessionClear",
-                command: "nimi.shell.auth.session.clear",
-                negative_states: &["external-daemon-required", "capability-unavailable"],
-            },
-        ],
     },
     StandardShellCapability {
         id: "oauth",
@@ -663,6 +638,20 @@ mod tests {
                 .negative_states
                 .contains(&"external-daemon-required"));
         }
+    }
+
+    #[test]
+    fn retired_auth_session_custody_is_not_an_active_capability() {
+        assert!(!STANDARD_SHELL_CAPABILITY_IDS.contains(&"auth"));
+        assert!(STANDARD_SHELL_CAPABILITIES
+            .iter()
+            .all(|capability| capability.id != "auth"));
+        assert!(STANDARD_SHELL_CAPABILITIES
+            .iter()
+            .all(|capability| capability
+                .operations
+                .iter()
+                .all(|operation| !operation.command.starts_with("nimi.shell.auth.session."))));
     }
 
     #[test]

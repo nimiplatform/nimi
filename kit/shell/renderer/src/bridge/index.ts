@@ -26,12 +26,6 @@ export type {
 } from './nimi-error.js';
 export { getRuntimeDefaults } from './runtime-defaults.js';
 export {
-  loadAuthSession,
-  saveAuthSession,
-  clearAuthSession,
-  watchAuthSessionChanges,
-} from './auth-session.js';
-export {
   getDaemonStatus,
   startDaemon,
   stopDaemon,
@@ -160,7 +154,6 @@ export type {
   ConfirmDialogPayload,
   ConfirmDialogResult,
 } from './types.js';
-export type { SharedDesktopAuthSessionWatchOptions } from './auth-session.js';
 export {
   assertRecord,
   isJsonObject,

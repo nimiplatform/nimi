@@ -97,7 +97,7 @@ where
     Response: Message + Default,
 {
     let payload = build_unary_payload_with_metadata(method_id, request, metadata, timeout_ms);
-    let result = super::runtime_bridge_unary(payload).await?;
+    let result = super::runtime_bridge_unary_host_trusted(payload).await?;
     decode_unary_result(method_id, &result)
 }
 

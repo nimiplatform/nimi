@@ -15,6 +15,7 @@ pub mod runtime {
         reset_channel_invalidation_count, restart_daemon_async, set_runtime_bridge_host_hooks,
         start_daemon_async, stop_daemon, stop_daemon_async, stream_event_name_with_namespace,
         RuntimeBridgeAppSession, RuntimeBridgeConfigSetPayload, RuntimeBridgeDaemonStatus,
+        RuntimeBridgeHostAppSessionConfig, RuntimeBridgeHostAppSessionProvider,
         RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
         RuntimeBridgeStreamClosePayload, RuntimeBridgeStreamOpenPayload,
         RuntimeBridgeStreamOpenResult, RuntimeBridgeTrustedMetadata,
@@ -31,6 +32,8 @@ pub mod runtime {
         RUNTIME_APP_GET_APP_PACKAGE_READINESS_METHOD_ID, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
         RUNTIME_APP_LIST_APP_INSTALL_JOBS_METHOD_ID,
         RUNTIME_APP_LIST_LOCAL_APP_ADOPTIONS_METHOD_ID, RUNTIME_AUTH_REGISTER_APP_METHOD_ID,
+        RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST,
+        RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST,
         RUNTIME_LOCAL_ADMIT_PRODUCT_CONTROL_READY_FOR_USE_METHOD_ID,
         RUNTIME_LOCAL_COLLECT_DEVICE_PROFILE_METHOD_ID,
         RUNTIME_LOCAL_COMPLETE_PRODUCT_CONTROL_FIRST_RUN_DEVICE_ENVIRONMENT_SCAN_METHOD_ID,
@@ -125,27 +128,6 @@ pub mod runtime_defaults {
     #[tauri::command]
     pub fn runtime_defaults() -> RuntimeDefaults {
         crate::runtime_defaults::runtime_defaults()
-    }
-}
-
-pub mod auth {
-    pub use crate::auth_session_commands::{
-        AuthSessionLoadResult, AuthSessionSavePayload, AuthSessionUser,
-    };
-
-    #[tauri::command]
-    pub fn auth_session_load() -> Result<Option<AuthSessionLoadResult>, String> {
-        crate::auth_session_commands::auth_session_load()
-    }
-
-    #[tauri::command]
-    pub fn auth_session_save(payload: AuthSessionSavePayload) -> Result<(), String> {
-        crate::auth_session_commands::auth_session_save(payload)
-    }
-
-    #[tauri::command]
-    pub fn auth_session_clear() -> Result<(), String> {
-        crate::auth_session_commands::auth_session_clear()
     }
 }
 

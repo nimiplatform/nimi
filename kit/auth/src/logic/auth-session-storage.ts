@@ -1,13 +1,41 @@
 import { isWebShellMode } from '@nimiplatform/kit/core/shell-mode';
-import { resolveSessionExpiry } from './shared-desktop-auth-session.js';
 
 export const WEB_AUTH_SESSION_KEY = 'nimi.web.auth.session.v1';
+const WEB_AUTH_SESSION_FALLBACK_TTL_MS = 60 * 60 * 1000;
 
 export type PersistedWebAuthSession = {
   user?: Record<string, unknown> | null;
   updatedAt: string;
   expiresAt?: string;
 };
+
+function decodeJwtExpiry(accessToken: string): number | null {
+  const parts = String(accessToken || '').trim().split('.');
+  if (parts.length !== 3) {
+    return null;
+  }
+  try {
+    const payload = parts[1]!
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(parts[1]!.length / 4) * 4, '=');
+    const decoded = typeof atob === 'function'
+      ? atob(payload)
+      : Buffer.from(payload, 'base64').toString('utf8');
+    const parsed = JSON.parse(decoded) as { exp?: unknown };
+    const expSeconds = Number(parsed.exp);
+    return Number.isFinite(expSeconds) && expSeconds > 0 ? expSeconds * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveSessionExpiry(accessToken: string, updatedAtIso: string): string {
+  const updatedAtMs = Date.parse(updatedAtIso);
+  const fallbackBaseMs = Number.isFinite(updatedAtMs) ? updatedAtMs : Date.now();
+  const expiresAtMs = decodeJwtExpiry(accessToken) ?? fallbackBaseMs + WEB_AUTH_SESSION_FALLBACK_TTL_MS;
+  return new Date(expiresAtMs).toISOString();
+}
 
 // Inline validator replacing:
 //   z.object({ user: z.record(z.string(), z.unknown()).nullable().optional(), updatedAt: z.string().optional(), expiresAt: z.string().optional() })

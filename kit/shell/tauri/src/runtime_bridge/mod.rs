@@ -2,6 +2,7 @@ mod channel_pool;
 mod codec;
 mod daemon_manager;
 mod error_map;
+mod host_app_session;
 mod metadata;
 mod stream;
 mod unary;
@@ -18,6 +19,11 @@ use tauri::AppHandle;
 pub use daemon_manager::http_addr;
 pub use daemon_manager::RuntimeBridgeDaemonStatus;
 pub use error_map::bridge_error;
+pub use host_app_session::{
+    RuntimeBridgeHostAppSessionConfig, RuntimeBridgeHostAppSessionProvider,
+    RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST,
+    RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST,
+};
 pub use metadata::{RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata};
 pub use stream::RuntimeBridgeStreamOpenResult;
 pub use unary::{
@@ -408,6 +414,18 @@ pub fn is_allowlisted_method(method_id: &str) -> bool {
     generated_method_ids::is_allowlisted_method(method_id)
 }
 
+async fn runtime_bridge_unary_host_trusted(
+    payload: RuntimeBridgeUnaryPayload,
+) -> Result<RuntimeBridgeUnaryResult, String> {
+    let method_id = payload.method_id.clone();
+    if is_allowlisted_method(method_id.as_str()) && !is_stream_method(method_id.as_str()) {
+        if let Some(result) = call_unary_override_hook(&payload)? {
+            return Ok(result);
+        }
+    }
+    unary::invoke_unary(&payload).await
+}
+
 pub async fn runtime_bridge_unary(
     mut payload: RuntimeBridgeUnaryPayload,
 ) -> Result<RuntimeBridgeUnaryResult, String> {
@@ -554,13 +572,16 @@ pub fn channel_invalidation_count() -> usize {
 mod tests {
     use std::sync::Arc;
 
+    use base64::Engine;
+    use prost::Message;
+
     use super::{
-        is_allowlisted_method, is_stream_method, runtime_bridge_unary,
-        stream_event_name_with_namespace, with_runtime_bridge_host_hooks, RuntimeBridgeAppSession,
-        RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
-        RuntimeBridgeTrustedMetadata, RuntimeBridgeTrustedMetadataBridgeKind,
-        RuntimeBridgeUnaryPayload, RuntimeBridgeUnaryResult, DEFAULT_EVENT_NAMESPACE,
-        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+        invoke_unary_typed_with_metadata, is_allowlisted_method, is_stream_method,
+        runtime_bridge_unary, stream_event_name_with_namespace, with_runtime_bridge_host_hooks,
+        RuntimeBridgeAppSession, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
+        RuntimeBridgeProtectedAccessToken, RuntimeBridgeTrustedMetadata,
+        RuntimeBridgeTrustedMetadataBridgeKind, RuntimeBridgeUnaryPayload,
+        RuntimeBridgeUnaryResult, DEFAULT_EVENT_NAMESPACE, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
     };
 
     #[test]
@@ -683,6 +704,52 @@ mod tests {
         .expect("runtime bridge should return override result");
 
         assert_eq!(result.response_bytes_base64, "");
+    }
+
+    #[test]
+    fn host_typed_unary_metadata_bypasses_renderer_trusted_metadata_hook_before_override() {
+        let response = super::generated::GetAppStorageResponse::default();
+        let response_bytes_base64 =
+            base64::engine::general_purpose::STANDARD.encode(response.encode_to_vec());
+        let hooks = RuntimeBridgeHostHooks {
+            trusted_metadata: Some(Arc::new(|_| {
+                Box::pin(async {
+                    Err(
+                        "renderer trusted metadata hook must not run for a Rust host-internal call"
+                            .to_string(),
+                    )
+                })
+            })),
+            unary_override: Some(Arc::new(move |payload| {
+                let metadata = payload.metadata.as_ref().expect("host metadata");
+                assert_eq!(metadata.app_id.as_deref(), Some("nimi.desktop"));
+                assert_eq!(metadata.caller_kind.as_deref(), Some("desktop-shell"));
+                Ok(Some(RuntimeBridgeUnaryResult {
+                    response_bytes_base64: response_bytes_base64.clone(),
+                    response_metadata: None,
+                }))
+            })),
+            ..RuntimeBridgeHostHooks::default()
+        };
+
+        let result = with_runtime_bridge_host_hooks(hooks, || {
+            tauri::async_runtime::block_on(invoke_unary_typed_with_metadata::<
+                super::generated::GetAppStorageRequest,
+                super::generated::GetAppStorageResponse,
+            >(
+                RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+                super::generated::GetAppStorageRequest::default(),
+                RuntimeBridgeMetadata {
+                    app_id: Some("nimi.desktop".to_string()),
+                    caller_kind: Some("desktop-shell".to_string()),
+                    caller_id: Some("nimi.desktop.product-control".to_string()),
+                    ..RuntimeBridgeMetadata::default()
+                },
+                None,
+            ))
+        });
+
+        assert!(result.is_ok(), "host typed call failed: {result:?}");
     }
 
     #[test]

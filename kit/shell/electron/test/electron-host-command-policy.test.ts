@@ -22,9 +22,9 @@ import {
 
 const DENIED_COMMANDS = new Set<string>([
   NIMI_STANDARD_SHELL_COMMANDS['oauth.tokenExchange'],
-  NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad'],
-  NIMI_STANDARD_SHELL_COMMANDS['auth.sessionSave'],
-  NIMI_STANDARD_SHELL_COMMANDS['auth.sessionClear'],
+  'nimi.shell.auth.session.load',
+  'nimi.shell.auth.session.save',
+  'nimi.shell.auth.session.clear',
   NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.start'],
   NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.stop'],
   NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.restart'],

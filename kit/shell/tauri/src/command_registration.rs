@@ -1,7 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShellCommandBoundary {
     AgentCenter,
-    AuthSession,
     Avatar,
     Daemon,
     DesktopOpen,
@@ -78,24 +77,6 @@ pub const RUNTIME_BRIDGE_COMMANDS: &[ShellCommandDescriptor] = &[
         command_name: "runtime_bridge_config_set",
         rust_path: "nimi_shell_tauri::capabilities::runtime::runtime_bridge_config_set",
         boundary: ShellCommandBoundary::Daemon,
-    },
-];
-
-pub const AUTH_SESSION_COMMANDS: &[ShellCommandDescriptor] = &[
-    ShellCommandDescriptor {
-        command_name: "auth_session_load",
-        rust_path: "nimi_shell_tauri::capabilities::auth::auth_session_load",
-        boundary: ShellCommandBoundary::AuthSession,
-    },
-    ShellCommandDescriptor {
-        command_name: "auth_session_save",
-        rust_path: "nimi_shell_tauri::capabilities::auth::auth_session_save",
-        boundary: ShellCommandBoundary::AuthSession,
-    },
-    ShellCommandDescriptor {
-        command_name: "auth_session_clear",
-        rust_path: "nimi_shell_tauri::capabilities::auth::auth_session_clear",
-        boundary: ShellCommandBoundary::AuthSession,
     },
 ];
 
@@ -353,7 +334,6 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     let mut commands = Vec::new();
     commands.extend_from_slice(RUNTIME_DEFAULTS_COMMANDS);
     commands.extend_from_slice(RUNTIME_BRIDGE_COMMANDS);
-    commands.extend_from_slice(AUTH_SESSION_COMMANDS);
     commands.extend_from_slice(OAUTH_COMMANDS);
     commands.extend_from_slice(DESKTOP_OPEN_INTENT_COMMANDS);
     commands.extend_from_slice(SESSION_LOGGING_COMMANDS);
@@ -435,9 +415,6 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
             $crate::capabilities::runtime::runtime_bridge_restart,
             $crate::capabilities::runtime::runtime_bridge_config_get,
             $crate::capabilities::runtime::runtime_bridge_config_set,
-            $crate::capabilities::auth::auth_session_load,
-            $crate::capabilities::auth::auth_session_save,
-            $crate::capabilities::auth::auth_session_clear,
             $crate::capabilities::data::data_path_resolve,
             $crate::capabilities::storage::storage_read_json,
             $crate::capabilities::storage::storage_write_json,
@@ -473,68 +450,6 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
     };
     ($($app_command:path),* $(,)?) => {
         $crate::nimi_shell_tauri_runtime_bridge_handler![
-            @with_runtime_defaults $crate::capabilities::runtime_defaults::runtime_defaults;
-            $($app_command),*
-        ]
-    };
-}
-
-#[macro_export]
-macro_rules! nimi_shell_tauri_auth_oauth_runtime_bridge_handler {
-    (@with_runtime_defaults $runtime_defaults:path; $($app_command:path),* $(,)?) => {
-        tauri::generate_handler![
-            $runtime_defaults,
-            $crate::capabilities::auth::auth_session_load,
-            $crate::capabilities::auth::auth_session_save,
-            $crate::capabilities::auth::auth_session_clear,
-            $crate::capabilities::oauth::open_external_url,
-            $crate::capabilities::oauth::oauth_token_exchange,
-            $crate::capabilities::oauth::oauth_listen_for_code,
-            $crate::capabilities::runtime::runtime_bridge_unary,
-            $crate::capabilities::runtime::runtime_bridge_stream_open,
-            $crate::capabilities::runtime::runtime_bridge_stream_close,
-            $crate::capabilities::runtime::runtime_bridge_status,
-            $crate::capabilities::runtime::runtime_bridge_start,
-            $crate::capabilities::runtime::runtime_bridge_stop,
-            $crate::capabilities::runtime::runtime_bridge_restart,
-            $crate::capabilities::runtime::runtime_bridge_config_get,
-            $crate::capabilities::runtime::runtime_bridge_config_set,
-            $crate::capabilities::session_logging::log_renderer_event,
-            $crate::capabilities::data::data_path_resolve,
-            $crate::capabilities::storage::storage_read_json,
-            $crate::capabilities::storage::storage_write_json,
-            $crate::capabilities::storage::storage_remove_json,
-            $crate::capabilities::ai_config::ai_config_get,
-            $crate::capabilities::ai_config::ai_config_set,
-            $crate::capabilities::diagnostics::diagnostics_renderer_entry_probe,
-            $crate::capabilities::shell_ui::confirm_dialog,
-            $crate::capabilities::shell_ui::start_window_drag,
-            $crate::capabilities::shell_ui::focus_main_window,
-            $crate::capabilities::local_assets::local_assets_resolve_url,
-            $crate::capabilities::local_agent::local_agent_identity,
-            $crate::capabilities::local_agent::local_agent_runtime_trusted_caller,
-            $crate::capabilities::avatar::avatar_asset_resolve,
-            $crate::capabilities::agent_center::agent_center_avatar_asset_import,
-            $crate::capabilities::agent_center::agent_center_avatar_asset_validate,
-            $crate::capabilities::agent_center::agent_center_avatar_asset_resolve_preview,
-            $crate::capabilities::agent_center::agent_center_live2d_adapter_import,
-            $crate::capabilities::agent_center::agent_center_background_import,
-            $crate::capabilities::agent_center::agent_center_background_get,
-            $crate::capabilities::agent_center::agent_center_background_validate,
-            $crate::capabilities::agent_center::agent_center_background_remove,
-            $crate::capabilities::agent_center::agent_center_agent_resources_remove,
-            $crate::capabilities::agent_center::agent_center_account_resources_remove,
-            $crate::capabilities::platform_projection::platform_projection_get,
-            $crate::capabilities::file_dialog::file_dialog_open,
-            $crate::capabilities::file_reveal::file_reveal_reveal,
-            $crate::capabilities::export::export_save_file,
-            $crate::capabilities::artifacts::artifacts_write,
-            $crate::capabilities::desktop_open::desktop_open_intent_open_intent,
-            $($app_command),*
-        ]
-    };
-    ($($app_command:path),* $(,)?) => {
-        $crate::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![
             @with_runtime_defaults $crate::capabilities::runtime_defaults::runtime_defaults;
             $($app_command),*
         ]

@@ -1,11 +1,9 @@
-import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
-
-const ELECTRON_RUNTIME_ACCOUNT_CUSTODY_COMMAND_SET: ReadonlySet<string> = new Set([
-  NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad'],
-  NIMI_STANDARD_SHELL_COMMANDS['auth.sessionSave'],
-  NIMI_STANDARD_SHELL_COMMANDS['auth.sessionClear'],
+const RETIRED_ELECTRON_AUTH_SESSION_COMMAND_SET: ReadonlySet<string> = new Set([
+  'nimi.shell.auth.session.load',
+  'nimi.shell.auth.session.save',
+  'nimi.shell.auth.session.clear',
 ]);
 
 export function isElectronRuntimeAccountCustodyCommand(command: string): boolean {
-  return ELECTRON_RUNTIME_ACCOUNT_CUSTODY_COMMAND_SET.has(command);
+  return RETIRED_ELECTRON_AUTH_SESSION_COMMAND_SET.has(command);
 }

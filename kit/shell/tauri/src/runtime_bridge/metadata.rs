@@ -205,6 +205,13 @@ fn renderer_forbidden_metadata_kind(key: &str) -> Option<&'static str> {
         "xnimiparticipantid",
         "xnimicallerkind",
         "xnimicallerid",
+        "xnimisourcehost",
+        "xnimiappinstanceid",
+        "xnimideviceid",
+        "xnimilaunchhostid",
+        "xnimilaunchnonce",
+        "xnimireleasedescriptorref",
+        "xnimicapabilitysetref",
     ];
     const AUTH_KEYS: &[&str] = &[
         "authorization",

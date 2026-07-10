@@ -4,7 +4,6 @@ export const NIMI_STANDARD_SHELL_CAPABILITY_IDS = [
   'runtime',
   'runtime-lifecycle',
   'runtime-defaults',
-  'auth',
   'oauth',
   'desktop-open',
   'shell-ui',
@@ -77,14 +76,6 @@ export const NIMI_STANDARD_SHELL_CAPABILITIES = [
     id: 'runtime-defaults',
     operations: [
       { id: 'get', command: 'nimi.shell.runtimeDefaults.get', negativeStates: ['capability-unavailable', 'invalid-payload'] },
-    ],
-  },
-  {
-    id: 'auth',
-    operations: [
-      { id: 'sessionLoad', command: 'nimi.shell.auth.session.load', negativeStates: ['external-daemon-required', 'capability-unavailable'] },
-      { id: 'sessionSave', command: 'nimi.shell.auth.session.save', negativeStates: ['external-daemon-required', 'capability-unavailable', 'invalid-payload'] },
-      { id: 'sessionClear', command: 'nimi.shell.auth.session.clear', negativeStates: ['external-daemon-required', 'capability-unavailable'] },
     ],
   },
   {

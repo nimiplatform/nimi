@@ -116,7 +116,7 @@ pub const PLATFORM_NIMI_APP_REGISTRY_ROWS: &[PlatformNimiAppRegistryRow] = &[
     PlatformNimiAppRegistryRow {
         app_id: "nimi.zhiyu",
         app_kind: "nimi-app",
-        display_name: "Zhiyu",
+        display_name: "织羽 Zhiyu",
         publisher: "nimi-first-party",
         trust_tier: "nimi-first-party",
         ordinary_visibility: "developer-only",

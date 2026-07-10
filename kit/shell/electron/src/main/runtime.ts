@@ -255,6 +255,19 @@ export function buildElectronRuntimeGrpcMetadata(
   addMetadata(metadata, 'x-nimi-access-token-secret', trusted?.protectedAccessToken?.secret);
   addMetadata(metadata, 'x-nimi-session-id', trusted?.appSession?.sessionId);
   addMetadata(metadata, 'x-nimi-session-token', trusted?.appSession?.sessionToken);
+  for (const [key, value] of Object.entries(trusted?.metadata?.extra ?? {})) {
+    const normalizedKey = normalizeText(key).toLowerCase();
+    if (!normalizedKey.startsWith('x-nimi-')) {
+      throw new NimiElectronShellHostError({
+        code: 'invalid-payload',
+        message: `Electron trusted Runtime metadata key is not allowed: ${key}`,
+        reasonCode: 'electron-trusted-runtime-metadata-key-not-allowed',
+        actionHint: 'use_x_nimi_host_metadata_key',
+        details: { key },
+      });
+    }
+    addMetadata(metadata, normalizedKey, value);
+  }
   for (const [key, value] of Object.entries(request.metadata?.extra ?? {})) {
     assertRendererMetadataKeyAllowed(key);
     const normalizedKey = normalizeText(key).toLowerCase();
@@ -436,6 +449,13 @@ const RESERVED_METADATA_KEYS = new Set([
   'x-nimi-access-token-secret',
   'x-nimi-session-id',
   'x-nimi-session-token',
+  'x-nimi-source-host',
+  'x-nimi-app-instance-id',
+  'x-nimi-device-id',
+  'x-nimi-launch-host-id',
+  'x-nimi-launch-nonce',
+  'x-nimi-release-descriptor-ref',
+  'x-nimi-capability-set-ref',
 ]);
 function normalizeGrpcMethodId(value: unknown): string {
   const methodId = normalizeRequiredToken(value, 'methodId');
@@ -619,6 +639,13 @@ const RENDERER_FORBIDDEN_IDENTITY_METADATA_KEYS = new Set([
   'xnimiparticipantid',
   'xnimicallerkind',
   'xnimicallerid',
+  'xnimisourcehost',
+  'xnimiappinstanceid',
+  'xnimideviceid',
+  'xnimilaunchhostid',
+  'xnimilaunchnonce',
+  'xnimireleasedescriptorref',
+  'xnimicapabilitysetref',
 ]);
 const RENDERER_FORBIDDEN_AUTH_METADATA_KEYS = new Set([
   'authorization',

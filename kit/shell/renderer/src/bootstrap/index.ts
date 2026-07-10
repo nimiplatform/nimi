@@ -5,7 +5,6 @@
 // policy, and local data bootstrap. This module owns only the shared skeleton.
 
 import type { NimiShellRuntimeBridgeResult } from '../bridge/tauri-api.js';
-import type { RuntimeDefaults } from '../bridge/types.js';
 import { installNimiShellRuntimeBridge } from './runtime-bridge.js';
 export { installNimiShellRuntimeBridge } from './runtime-bridge.js';
 
@@ -164,60 +163,6 @@ export async function ensureNimiShellRuntimeBridgeInstalled(
     });
     await delay(retryDelay, setTimeoutImpl);
   }
-}
-
-// ---------------------------------------------------------------------------
-// Bootstrap auth session contract
-// ---------------------------------------------------------------------------
-
-export type BootstrapAuthSource = 'anonymous' | 'env' | 'persisted';
-
-export type BootstrapAuthSessionResult = {
-  source: BootstrapAuthSource;
-  accessToken: string;
-  refreshToken: string;
-};
-
-export type BootstrapAuthSessionConfig = {
-  runtimeDefaults: RuntimeDefaults;
-  loadPersistedSession: () => Promise<{
-    accessToken?: string;
-    refreshToken?: string;
-  } | null>;
-  clearPersistedSession: () => Promise<void>;
-};
-
-export async function resolveBootstrapAuthSession(
-  config: BootstrapAuthSessionConfig,
-): Promise<BootstrapAuthSessionResult> {
-  const envAccessToken = String(config.runtimeDefaults.realm.accessToken || '').trim();
-  if (envAccessToken) {
-    return {
-      source: 'env',
-      accessToken: envAccessToken,
-      refreshToken: '',
-    };
-  }
-
-  try {
-    const persisted = await config.loadPersistedSession();
-    const accessToken = String(persisted?.accessToken || '').trim();
-    if (accessToken) {
-      return {
-        source: 'persisted',
-        accessToken,
-        refreshToken: String(persisted?.refreshToken || '').trim(),
-      };
-    }
-  } catch {
-    await config.clearPersistedSession().catch(() => undefined);
-  }
-
-  return {
-    source: 'anonymous',
-    accessToken: '',
-    refreshToken: '',
-  };
 }
 
 // ---------------------------------------------------------------------------

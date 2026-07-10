@@ -1996,6 +1996,15 @@ pub enum AccountReasonCode {
     BindingReplay = 15,
     LoginExchangeUnavailable = 16,
     PresenceVerificationUnavailable = 17,
+    BrokerOperationNotAdmitted = 18,
+    BrokerCapabilityMissing = 19,
+    BrokerRealmBaseDenied = 20,
+    BrokerRequestInvalid = 21,
+    BrokerUpstreamFailed = 22,
+    BrokerResponseTooLarge = 23,
+    BrokerCredentialResponseForbidden = 24,
+    CallerEnvelopeMismatch = 25,
+    LaunchNonceReplay = 26,
 }
 impl AccountReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -2025,6 +2034,25 @@ impl AccountReasonCode {
             Self::PresenceVerificationUnavailable => {
                 "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE"
             }
+            Self::BrokerOperationNotAdmitted => {
+                "ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED"
+            }
+            Self::BrokerCapabilityMissing => {
+                "ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING"
+            }
+            Self::BrokerRealmBaseDenied => "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED",
+            Self::BrokerRequestInvalid => "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID",
+            Self::BrokerUpstreamFailed => "ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED",
+            Self::BrokerResponseTooLarge => {
+                "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE"
+            }
+            Self::BrokerCredentialResponseForbidden => {
+                "ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN"
+            }
+            Self::CallerEnvelopeMismatch => {
+                "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH"
+            }
+            Self::LaunchNonceReplay => "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -2053,6 +2081,31 @@ impl AccountReasonCode {
             "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE" => {
                 Some(Self::PresenceVerificationUnavailable)
             }
+            "ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED" => {
+                Some(Self::BrokerOperationNotAdmitted)
+            }
+            "ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING" => {
+                Some(Self::BrokerCapabilityMissing)
+            }
+            "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED" => {
+                Some(Self::BrokerRealmBaseDenied)
+            }
+            "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID" => {
+                Some(Self::BrokerRequestInvalid)
+            }
+            "ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED" => {
+                Some(Self::BrokerUpstreamFailed)
+            }
+            "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE" => {
+                Some(Self::BrokerResponseTooLarge)
+            }
+            "ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN" => {
+                Some(Self::BrokerCredentialResponseForbidden)
+            }
+            "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH" => {
+                Some(Self::CallerEnvelopeMismatch)
+            }
+            "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY" => Some(Self::LaunchNonceReplay),
             _ => None,
         }
     }

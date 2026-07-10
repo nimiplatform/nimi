@@ -30,9 +30,6 @@ mod tests {
                 "runtime_bridge_restart",
                 "runtime_bridge_config_get",
                 "runtime_bridge_config_set",
-                "auth_session_load",
-                "auth_session_save",
-                "auth_session_clear",
                 "open_external_url",
                 "oauth_token_exchange",
                 "oauth_listen_for_code",
@@ -85,7 +82,7 @@ mod tests {
 
         assert!(commands
             .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::AuthSession));
+            .all(|command| !command.command_name.starts_with("auth_session_")));
         assert!(commands
             .iter()
             .any(|command| command.boundary == ShellCommandBoundary::Runtime));
@@ -162,7 +159,6 @@ mod tests {
         for descriptor in STANDARD_FLOATING_WINDOW_COMMANDS {
             assert!(!RUNTIME_BRIDGE_COMMANDS
                 .iter()
-                .chain(AUTH_SESSION_COMMANDS)
                 .chain(STANDARD_STORAGE_COMMANDS)
                 .chain(STANDARD_SHELL_UI_COMMANDS)
                 .chain(STANDARD_FILE_COMMANDS)
@@ -310,15 +306,6 @@ mod tests {
                 @with_runtime_defaults test_runtime_defaults;
                 test_app_command
             ]);
-        let _auth_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
-            crate::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![test_app_command],
-        );
-        let _auth_custom_defaults_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
-            crate::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![
-                @with_runtime_defaults test_runtime_defaults;
-                test_app_command
-            ],
-        );
         let _oauth_builder = tauri::Builder::<tauri::Wry>::default().invoke_handler(
             crate::nimi_shell_tauri_oauth_runtime_bridge_handler![test_app_command],
         );
