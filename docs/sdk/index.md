@@ -1,3 +1,7 @@
+---
+aside: false
+---
+
 # SDK
 
 The Nimi SDK is the app-facing boundary for Runtime, Realm, AI, agent,
@@ -12,6 +16,10 @@ import { createNimiClient } from '@nimiplatform/sdk';
 
 The root client composes admitted Runtime and Realm surfaces with app identity.
 Dedicated subpaths remain available for lower-level or domain-specific use.
+
+## Surfaces
+
+<SdkSurfaces />
 
 ## What This Section Contains
 

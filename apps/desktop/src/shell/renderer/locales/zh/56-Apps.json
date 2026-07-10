@@ -1,11 +1,26 @@
 {
   "title": "Apps",
-  "description": "来自目录、账号和已接入本地源的 Apps 库存。",
+  "description": "管理账号中的 App 和这台设备上的本地 App。",
+  "inventoryTitle": "你的 Apps",
   "inventoryCount": "{{count}} 个 App",
   "emptyTitle": "库存中暂无 App",
   "empty": "安装账号 App，或接入一个本地 App。",
   "error": "无法加载 Apps：{{detail}}",
   "loading": "正在加载 Apps...",
+  "sourceManager": {
+    "title": "App 来源",
+    "accountTitle": "账号",
+    "accountFallback": "用户",
+    "connectedAs": "已连接为 {{name}}",
+    "noAccountApps": "未关联 App",
+    "manageAccount": "管理",
+    "localTitle": "本地",
+    "noLocalApps": "尚未接入本地 App",
+    "requirementsTitle": "可以接入什么？",
+    "requirementsSummary": "请选择包含 nimi.app.yaml 或 nimi.app.json 的文件夹。",
+    "learnMore": "了解本地 App",
+    "requirementsDetail": "Nimi 会校验应用清单；只有所选文件夹通过 Runtime 检查后，应用才会被接入。"
+  },
   "trustTier": {
     "firstParty": "第一方",
     "verifiedPartner": "认证伙伴",

@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
+import { ChevronDown, Folder, Info, UserRound } from 'lucide-react';
 import { Button, ProgressIndicator } from '@nimiplatform/kit/ui';
 import type {
   NimiAppInventoryInstallState,
@@ -158,7 +159,7 @@ function SummaryChip(props: {
     ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]'
     : 'bg-[color-mix(in_srgb,var(--nimi-surface-active)_58%,transparent)] text-[color:var(--nimi-text-muted)]';
   return (
-    <span data-testid={props.testId} data-count={props.count} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tone}`}>
+    <span data-testid={props.testId} data-count={props.count} className={`rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}>
       {props.label}: {props.count}
     </span>
   );
@@ -170,6 +171,10 @@ export interface AppsPanelViewProps {
   readonly onCardAction: (appId: string, action: AppCardActionId) => void;
   /** Open the native folder picker and adopt a local app through Runtime. */
   readonly onConnectLocalApp: () => void;
+  /** Open the account profile settings surface. */
+  readonly onManageAccount: () => void;
+  /** Human-readable account identity projected by the authenticated shell. */
+  readonly accountName: string;
   /** The appId of an in-flight card action — disables that card's buttons. */
   readonly busyAppId: string | null;
   /** The last card-action failure detail, or `null`. */
@@ -180,6 +185,8 @@ export function AppsPanelView({
   projection,
   onCardAction,
   onConnectLocalApp,
+  onManageAccount,
+  accountName,
   busyAppId,
   actionError,
 }: AppsPanelViewProps): ReactElement {
@@ -198,6 +205,23 @@ export function AppsPanelView({
     );
   }
 
+  if (projection.entries.length === 0) {
+    return (
+      <section data-testid="apps-view" aria-labelledby="apps-source-manager-title" className="flex h-full flex-col gap-4">
+        {actionError ? (
+          <p data-testid="apps-action-error" role="alert" className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-3 py-2 text-sm leading-6 text-[var(--nimi-status-danger)]">
+            {actionError}
+          </p>
+        ) : null}
+        <EmptyAppsSourceManager
+          accountName={accountName}
+          onManageAccount={onManageAccount}
+          onConnectLocalApp={onConnectLocalApp}
+        />
+      </section>
+    );
+  }
+
   const sourceSummary = buildSourceSummary(projection.entries);
 
   return (
@@ -205,9 +229,8 @@ export function AppsPanelView({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 id="apps-view-title" className="text-base font-semibold text-[color:var(--nimi-text-primary)]">
-            {t('Apps.title')}
+            {t('Apps.inventoryTitle')}
           </h2>
-          <p className="mt-1 text-sm text-[color:var(--nimi-text-secondary)]">{t('Apps.description')}</p>
           <div data-testid="apps-source-summary" className="mt-3 flex flex-wrap gap-1.5">
             <SummaryChip testId="apps-source-summary-catalog" label={t('Apps.source.catalog')} count={sourceSummary.catalog} />
             <SummaryChip testId="apps-source-summary-account" label={t('Apps.source.account')} count={sourceSummary.account} />
@@ -231,29 +254,84 @@ export function AppsPanelView({
         </p>
       ) : null}
 
-      {projection.entries.length === 0 ? (
-        <div data-testid="apps-empty" data-state="empty" className="flex flex-col gap-3 rounded-lg border border-dashed border-[color:var(--nimi-border-subtle)] px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-[color:var(--nimi-text-primary)]">{t('Apps.emptyTitle')}</p>
-            <p className="mt-1 text-sm text-[color:var(--nimi-text-muted)]">{t('Apps.empty')}</p>
+      <ul data-testid="apps-entry-list" className="flex flex-col gap-2">
+        {projection.entries.map((entry) => (
+          <AppCard
+            key={entry.app.appId}
+            entry={entry}
+            busy={busyAppId === entry.app.appId}
+            onCardAction={onCardAction}
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function EmptyAppsSourceManager(props: {
+  readonly accountName: string;
+  readonly onManageAccount: () => void;
+  readonly onConnectLocalApp: () => void;
+}): ReactElement {
+  const { t } = useTranslation();
+  return (
+    <div data-testid="apps-empty-source-manager" data-state="empty" className="flex min-h-[320px] flex-col">
+      <h2 id="apps-source-manager-title" className="text-base font-semibold text-[color:var(--nimi-text-primary)]">
+        {t('Apps.sourceManager.title')}
+      </h2>
+
+      <div data-testid="apps-empty-account-source" className="mt-4 flex flex-col gap-3 border-b border-[color:var(--nimi-border-subtle)] py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,transparent)] text-[color:var(--nimi-text-primary)]">
+            <UserRound className="h-5 w-5" strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[color:var(--nimi-text-primary)]">{t('Apps.sourceManager.accountTitle')}</p>
+            <p className="mt-1 truncate text-sm text-[color:var(--nimi-text-secondary)]">
+              {t('Apps.sourceManager.connectedAs', { name: props.accountName })}
+            </p>
           </div>
-          <Button data-testid="apps-connect-local-empty" tone="primary" size="sm" onClick={onConnectLocalApp}>
-            {t('Apps.action.connectLocal')}
+        </div>
+        <div className="flex items-center justify-between gap-4 pl-14 sm:justify-end sm:pl-0">
+          <span className="text-sm text-[color:var(--nimi-text-muted)]">{t('Apps.sourceManager.noAccountApps')}</span>
+          <Button data-testid="apps-empty-manage-account" tone="ghost" size="sm" onClick={props.onManageAccount} className="text-[var(--nimi-status-info)]">
+            {t('Apps.sourceManager.manageAccount')}
           </Button>
         </div>
-      ) : (
-        <ul data-testid="apps-entry-list" className="flex flex-col gap-2">
-          {projection.entries.map((entry) => (
-            <AppCard
-              key={entry.app.appId}
-              entry={entry}
-              busy={busyAppId === entry.app.appId}
-              onCardAction={onCardAction}
-            />
-          ))}
-        </ul>
-      )}
-    </section>
+      </div>
+
+      <div data-testid="apps-empty-local-source" className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,transparent)] text-[color:var(--nimi-text-primary)]">
+            <Folder className="h-5 w-5" strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[color:var(--nimi-text-primary)]">{t('Apps.sourceManager.localTitle')}</p>
+            <p className="mt-1 text-sm text-[color:var(--nimi-text-secondary)]">{t('Apps.sourceManager.noLocalApps')}</p>
+          </div>
+        </div>
+        <Button data-testid="apps-connect-local-empty" tone="primary" size="md" onClick={props.onConnectLocalApp} className="self-start text-white sm:self-auto">
+          {t('Apps.action.connectLocal')}
+        </Button>
+      </div>
+
+      <details data-testid="apps-empty-local-requirements" className="group rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,var(--nimi-surface-card))] px-4 py-3">
+        <summary className="flex cursor-pointer list-none items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-focus-ring)] focus-visible:ring-offset-2">
+          <Info aria-hidden="true" className="h-5 w-5 shrink-0 text-[var(--nimi-action-primary-bg-hover)]" strokeWidth={1.8} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-[color:var(--nimi-text-primary)]">{t('Apps.sourceManager.requirementsTitle')}</span>
+            <span className="mt-1 block text-sm text-[color:var(--nimi-text-secondary)]">{t('Apps.sourceManager.requirementsSummary')}</span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-[var(--nimi-status-info)]">
+            {t('Apps.sourceManager.learnMore')}
+            <ChevronDown aria-hidden="true" className="h-4 w-4 transition-transform group-open:rotate-180" />
+          </span>
+        </summary>
+        <p className="mt-3 border-t border-[color:var(--nimi-border-subtle)] pt-3 pl-8 text-sm leading-6 text-[color:var(--nimi-text-secondary)]">
+          {t('Apps.sourceManager.requirementsDetail')}
+        </p>
+      </details>
+    </div>
   );
 }
 
@@ -360,7 +438,7 @@ function AppCard({ entry, busy, onCardAction }: AppCardProps): ReactElement {
             <span
               key={key}
               data-requirement={key}
-              className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[color:var(--nimi-text-muted)]"
+              className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)] px-2 py-0.5 text-xs font-medium text-[color:var(--nimi-text-muted)]"
             >
               {t(REQUIREMENT_LABEL_KEYS[key])}
             </span>
@@ -413,7 +491,7 @@ function SourceChips(props: {
             key={sourceKey}
             data-testid={`apps-entry-${props.appId}-source-${sourceKey}`}
             data-source-status={source.status}
-            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${sourceStatusTone(source.status)}`}
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${sourceStatusTone(source.status)}`}
             title={sourceTooltip(source)}
           >
             {t(SOURCE_LABEL_KEYS[sourceKey])}

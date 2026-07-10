@@ -10,6 +10,7 @@ export type LandingContent = {
     catalog: string;
     architecture: string;
     desktop: string;
+    apps: string;
     security: string;
     openSource: string;
     faq: string;
@@ -111,12 +112,29 @@ export type LandingContent = {
     titleAccent: string;
     subtitle: string;
     callout: string;
+    primaryCta: string;
+    secondaryCta: string;
+    codeWindowTitle: string;
+    codeWindowCaption: string;
+    matrixEyebrow: string;
+    matrixTitle: string;
+    matrixSubtitle: string;
+    runtimeBadges: ReadonlyArray<string>;
+    heroHighlights: ReadonlyArray<{
+      title: string;
+      description: string;
+    }>;
     tabs: ReadonlyArray<{
       id: string;
       label: string;
       description: string;
       docsPath: string;
       previewMediaId: 'sdk' | 'multimodal' | 'streamJob' | 'workflow';
+    }>;
+    capabilityMatrix: ReadonlyArray<{
+      title: string;
+      description: string;
+      docsPath: string;
     }>;
     previewMedia: {
       sdk: { alt: string };
@@ -149,6 +167,18 @@ export type LandingContent = {
       eyebrow: string;
       items: ReadonlyArray<string>;
     };
+  };
+  apps: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    cta: string;
+    cards: ReadonlyArray<{
+      label: string;
+      title: string;
+      description: string;
+    }>;
+    notes: ReadonlyArray<string>;
   };
   faq: {
     eyebrow: string;

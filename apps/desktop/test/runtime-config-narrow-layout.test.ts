@@ -26,7 +26,7 @@ const overviewPageSource = readFileSync(
 test('runtime panel is narrow-first stacked and desktop split only at xl', () => {
   assert.match(
     panelViewSource,
-    /className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 px-4 pb-4 pt-3 xl:flex-row"/,
+    /className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 xl:flex-row"/,
     'runtime panel must stack sidebar above content on narrow viewports',
   );
   assert.match(
@@ -66,7 +66,7 @@ test('runtime page scroll content stays min-width constrained on narrow viewport
 test('runtime overview content uses narrow-first grids and wraps diagnostics', () => {
   assert.match(
     overviewPageSource,
-    /grid grid-cols-1 gap-4 sm:grid-cols-3/,
+    /grid grid-cols-1 gap-3 sm:grid-cols-3/,
     'overview snapshot tiles must stack before the small-screen breakpoint',
   );
   assert.match(

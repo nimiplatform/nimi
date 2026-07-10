@@ -212,10 +212,22 @@ describe('AppsPanel ordinary-visible projection', () => {
 });
 
 describe('AppsPanelView unified inventory UI', () => {
-  it('renders an actionable local connect empty state', () => {
+  it('renders the compact source manager empty state with one primary action', () => {
     const markup = renderAppsView([]);
-    assert.match(markup, /data-testid="apps-source-summary"/);
+    assert.match(markup, /data-testid="apps-empty-source-manager"/);
+    assert.match(markup, /data-testid="apps-empty-account-source"/);
+    assert.match(markup, /data-testid="apps-empty-local-source"/);
+    assert.match(markup, /data-testid="apps-empty-local-requirements"/);
+    assert.match(markup, /data-testid="apps-empty-manage-account"/);
     assert.match(markup, /data-testid="apps-connect-local-empty"/);
+    assert.match(
+      markup,
+      /class="[^"]*text-white[^"]*"[^>]*data-testid="apps-connect-local-empty"/,
+    );
+    assert.equal((markup.match(/data-testid="apps-connect-local/g) ?? []).length, 1);
+    assert.doesNotMatch(markup, /data-testid="apps-source-summary"/);
+    assert.doesNotMatch(markup, /data-testid="apps-entry-count"/);
+    assert.doesNotMatch(markup, /data-testid="apps-connect-local-top"/);
     assert.doesNotMatch(markup, /Admitted ordinary/);
   });
 
@@ -354,6 +366,15 @@ test('AppsPanel consumes Apps-owned projection and no longer mounts historical L
   assert.doesNotMatch(appsPanelSource, /projectLibrary/);
 });
 
+test('AppsPanel page header renders only the Apps title', () => {
+  assert.match(
+    appsPanelSource,
+    /<header>\s*<h1 className="text-2xl font-semibold text-\[var\(--nimi-text-primary\)\]">/,
+  );
+  assert.doesNotMatch(appsPanelSource, />Nimi<\/p>/);
+  assert.doesNotMatch(appsPanelSource, /t\('Apps\.description'\)/);
+});
+
 test('AppsPanel source does not scan source workspaces or app-local specs for visibility', () => {
   const combined = `${appsPanelSource}\n${appsProjectionSource}\n${appsViewSource}`;
   const workspaceScanPattern = /\bread(dir|File|FileSync)\b|\breaddir\b|\bglob\b|\bfast-glob\b|import\.meta\.glob/;
@@ -381,6 +402,8 @@ function renderAppsView(entries: readonly DesktopAppsEntry[]): string {
       projection: { status: 'loaded', entries },
       onCardAction: () => undefined,
       onConnectLocalApp: () => undefined,
+      onManageAccount: () => undefined,
+      accountName: 'H',
       busyAppId: null,
       actionError: null,
     }),

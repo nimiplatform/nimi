@@ -1,11 +1,26 @@
 {
   "title": "Apps",
-  "description": "Apps inventory from catalog, account, and connected local sources.",
+  "description": "Manage apps from your account and this device.",
+  "inventoryTitle": "Your apps",
   "inventoryCount": "{{count}} apps",
   "emptyTitle": "No apps in inventory",
   "empty": "Install an account app or connect a local app.",
   "error": "Unable to load Apps: {{detail}}",
   "loading": "Loading apps...",
+  "sourceManager": {
+    "title": "App sources",
+    "accountTitle": "Account",
+    "accountFallback": "User",
+    "connectedAs": "Connected as {{name}}",
+    "noAccountApps": "No apps linked",
+    "manageAccount": "Manage",
+    "localTitle": "Local",
+    "noLocalApps": "No local apps connected",
+    "requirementsTitle": "What can I connect?",
+    "requirementsSummary": "Select a folder containing nimi.app.yaml or nimi.app.json.",
+    "learnMore": "Learn about local apps",
+    "requirementsDetail": "Nimi validates the manifest and connects the app only after the selected folder passes Runtime checks."
+  },
   "trustTier": {
     "firstParty": "First-Party",
     "verifiedPartner": "Verified Partner",

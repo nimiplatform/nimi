@@ -11,7 +11,7 @@ type ProgressTone = 'info' | 'action' | 'warning';
 const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
 const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
 const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
-const TOKEN_PANEL_CARD = 'rounded-2xl';
+const TOKEN_PANEL_CARD = 'rounded-xl';
 const METRIC_CARD_CLASS = 'rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3';
 
 const TONE_STYLES: Record<RuntimeTone, {
@@ -86,7 +86,7 @@ function ResourceStateMessage(props: {
 
 function ResourceLoadingSkeleton() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {Array.from({ length: 3 }).map((_, index) => (
         <div key={`resource-skeleton-${index}`} className="space-y-2">
           <div className="h-3 w-24 animate-pulse rounded bg-slate-200/70" />
@@ -131,19 +131,19 @@ export function OverviewLoadUsageSection() {
     : 0;
 
   return (
-    <section className="mt-8">
+    <section>
       <SectionTitle>
         {t('runtimeConfig.overview.runtimeLoadTitle', { defaultValue: 'Runtime Load & Usage' })}
       </SectionTitle>
-      <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-5')}>
-          <div className="mb-4">
+      <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-4')}>
+          <div className="mb-3">
             <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{t('runtimeConfig.overview.systemResources', { defaultValue: 'System Resources' })}</p>
           </div>
           {sysResources.status === 'idle' || sysResources.status === 'loading' ? (
             <ResourceLoadingSkeleton />
           ) : resourceSnapshot ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {sysResources.status === 'stale' ? (
                 <ResourceStateMessage
                   tone="warning"
@@ -201,11 +201,11 @@ export function OverviewLoadUsageSection() {
           )}
         </Surface>
 
-        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-5')}>
-          <div className="mb-4">
+        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-4')}>
+          <div className="mb-3">
             <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{t('runtimeConfig.overview.usageEstimate', { defaultValue: 'Usage Estimate' })}</p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className={METRIC_CARD_CLASS}>
               <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.requests', { defaultValue: 'Requests' })}</p>
               <p className={cn('text-lg font-semibold', TOKEN_TEXT_PRIMARY)}>{formatCount(usageEstimate.totalRequests)}</p>

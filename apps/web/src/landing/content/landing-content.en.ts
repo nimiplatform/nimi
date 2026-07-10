@@ -13,15 +13,17 @@ export const landingContentEn: LandingContent = {
     catalog: 'Runtime',
     architecture: 'Platform',
     desktop: 'Desktop',
+    apps: 'Apps',
     security: 'Governance',
     openSource: 'Source',
     faq: 'FAQ',
   },
   hero: {
-    eyebrow: 'Open-source AI runtime',
+    eyebrow: 'Open-source, local-first AI runtime',
     title: 'Build agents that live in worlds,',
     titleAccent: 'not chats.',
-    subtitle: 'Open-source runtime, typed SDK, embodied agents — built on contracts you can read.',
+    subtitle:
+      'Open-source runtime, typed SDK, multi-provider AI, and embodied agents — built on contracts you can read.',
     helperPrefix: 'Or',
     helperDocsCta: 'Read Docs',
     helperGithubCta: 'View Source',
@@ -62,11 +64,11 @@ export const landingContentEn: LandingContent = {
       'Integrate through the typed SDK. Compose agents, models, workflows, and memory the same way whether they run on a laptop or in cloud infrastructure you control.',
     userTitle: 'For product readers',
     userText:
-      'Nimi is an AI open world platform — agents that persist across sessions, share state across worlds, and act through admitted runtime capabilities. Not a chat wrapper, not a single-purpose app.',
+      'Nimi is an AI open world platform — agents persist across sessions, share state across worlds, and act through runtime capabilities with clear limits. Not a chat wrapper, not a single-purpose app.',
     conclusion: 'Concept-led, contracts-first, runtime-anywhere.',
     slogan: 'Your code, your contracts, your worlds.',
     diagram: {
-      appLabel: 'YOUR AI APP / MOD',
+      appLabel: 'YOUR AI APP',
       realm: 'REALM',
       runtime: 'RUNTIME',
       cloudContextPlane: 'Cloud Context Plane',
@@ -105,7 +107,7 @@ export const landingContentEn: LandingContent = {
     kicker: 'Provider routing',
     title: 'Route any model. Through one normalized API.',
     subtitle:
-      'Connect to admitted providers through a single typed surface — pick the model, ship the integration.',
+      'Connect supported providers through one typed surface — pick the model, ship the integration.',
     overview: {
       searchPlaceholder: 'Search providers, models, and capabilities',
       cloudProvidersLabel: 'Cloud Providers',
@@ -132,9 +134,9 @@ export const landingContentEn: LandingContent = {
     localDescription:
       'Local provider routes execute through the runtime on your hardware — same SDK, same capability typing, no cloud round-trip.',
     capabilitiesTitle: 'Capability matrix',
-    capabilitiesHeadline: 'Twelve admitted capabilities across providers.',
+    capabilitiesHeadline: 'Twelve supported capability categories across providers.',
     capabilitiesDescription:
-      'Text generation, vision, embeddings, image and video generation, speech synthesis and transcription, music generation, voice cloning and design, and world generation — each capability admits the providers that support it.',
+      'Text generation, vision, embeddings, image and video generation, speech synthesis and transcription, music generation, voice cloning and design, and world generation — each category shows the providers that support it.',
     capabilityLabels: {
       'text.generate': 'Text generation',
       'text.embed': 'Embeddings',
@@ -154,10 +156,10 @@ export const landingContentEn: LandingContent = {
     matrixTitle: 'Provider matrix',
     matrixHeadline: 'Pick a model, route to the matching provider.',
     matrixDescription:
-      'Each provider admits one or more capability categories. The runtime selects the routed model based on your config — switch providers without touching call sites.',
+      'Each provider supports one or more capability categories. The runtime selects the routed model based on your config — switch providers without touching call sites.',
     providerDetailSuffix: 'capabilities',
     searchResultsTitle: 'Search results',
-    searchResultsDescription: 'Filter providers by name, default model, or admitted capability.',
+    searchResultsDescription: 'Filter providers by name, default model, or supported capability.',
     noResultsTitle: 'No providers match.',
     noResultsDescription:
       'Try a different keyword, or browse the full catalog in the routing docs.',
@@ -210,6 +212,32 @@ export const landingContentEn: LandingContent = {
     subtitle:
       'Compose agents, models, workflows, and shared environments through one typed integration surface — locally or in the cloud.',
     callout: 'Explore the SDK reference',
+    primaryCta: 'Read SDK Docs',
+    secondaryCta: 'View Source',
+    codeWindowTitle: 'Nimi SDK / agent runtime',
+    codeWindowCaption: 'One typed call surface for agent context, runtime tasks, and local/cloud routes.',
+    matrixEyebrow: 'SDK capability matrix',
+    matrixTitle: 'The detailed SDK surface moves below the hero.',
+    matrixSubtitle:
+      'The hero stays focused; the original capability points remain available as a scannable matrix with direct reference links.',
+    runtimeBadges: ['Type-safe SDK', 'Runtime Ready', 'Local-first', 'Agent Context'],
+    heroHighlights: [
+      {
+        title: 'Agent integration',
+        description:
+          'Connect agents to live worlds with shared context, identity, and product-ready boundaries.',
+      },
+      {
+        title: 'Task & state sync',
+        description:
+          'Coordinate work handoffs, world events, and status updates through typed streams.',
+      },
+      {
+        title: 'Local / cloud runtime',
+        description:
+          'Run against the local runtime first, then route the same contracts to cloud infrastructure.',
+      },
+    ],
     tabs: [
       {
         id: 'agent-participation',
@@ -253,8 +281,8 @@ export const landingContentEn: LandingContent = {
       },
       {
         id: 'wee-projection',
-        label: 'WEE Projection',
-        description: 'Stream live world execution events as a typed projection for any consumer.',
+        label: 'World Events',
+        description: 'Stream live world execution events as typed data for product consumers.',
         docsPath: 'sdk/wee-projection',
         previewMediaId: 'streamJob',
       },
@@ -262,7 +290,7 @@ export const landingContentEn: LandingContent = {
         id: 'wee-consumer',
         label: 'WEE Consumer',
         description:
-          'Subscribe to admitted world execution events with backpressure-safe consumption.',
+          'Subscribe to world execution events with backpressure-safe consumption.',
         docsPath: 'sdk/wee-consumer',
         previewMediaId: 'streamJob',
       },
@@ -273,6 +301,55 @@ export const landingContentEn: LandingContent = {
           'Typed transport contracts plus structured error semantics across the whole SDK.',
         docsPath: 'sdk/transport-and-error',
         previewMediaId: 'workflow',
+      },
+    ],
+    capabilityMatrix: [
+      {
+        title: 'Agent Participation',
+        description:
+          'Connect agents to live worlds - authored once, shared across sessions and apps.',
+        docsPath: 'sdk/agent-participation-client',
+      },
+      {
+        title: 'Avatar Control',
+        description:
+          'Drive embodied avatars with multimodal input + scripted motion through one client.',
+        docsPath: 'sdk/avatar-control-client',
+      },
+      {
+        title: 'Delegation',
+        description:
+          'Hand off tasks between agents and humans with typed context handoff and audit trail.',
+        docsPath: 'sdk/delegation-client',
+      },
+      {
+        title: 'Local Environment',
+        description:
+          'Project shared environments into local sessions - files, tools, and runtime state.',
+        docsPath: 'sdk/local-environment-projection',
+      },
+      {
+        title: 'AI Config',
+        description:
+          'One config surface for model selection, capability routing, and provider preferences.',
+        docsPath: 'sdk/ai-config-surface',
+      },
+      {
+        title: 'World Events',
+        description: 'Stream live world execution events as typed data for product consumers.',
+        docsPath: 'sdk/wee-projection',
+      },
+      {
+        title: 'WEE Consumer',
+        description:
+          'Subscribe to world execution events with backpressure-safe consumption.',
+        docsPath: 'sdk/wee-consumer',
+      },
+      {
+        title: 'Transport & Error',
+        description:
+          'Typed transport contracts plus structured error semantics across the whole SDK.',
+        docsPath: 'sdk/transport-and-error',
       },
     ],
     previewMedia: {
@@ -316,7 +393,7 @@ export const landingContentEn: LandingContent = {
       {
         icon: 'apps',
         title: 'App Launcher',
-        description: 'Open admitted first-party apps from the same native shell.',
+        description: 'Open available Nimi Apps and your connected local apps from one workspace.',
       },
     ],
     downloadCta: 'Read Desktop Docs',
@@ -328,6 +405,38 @@ export const landingContentEn: LandingContent = {
         'Local AI + runtime built-in',
       ],
     },
+  },
+  apps: {
+    eyebrow: 'Nimi Apps',
+    title: 'Bring new abilities into Nimi.',
+    subtitle:
+      'Nimi Apps are small apps you can open inside Nimi. They can add tools, scenes, or workflows. Desktop shows what is available for your account and local workspace; developers build with the SDK and ship through clear product rules.',
+    cta: 'Read Desktop Docs',
+    cards: [
+      {
+        label: 'Use',
+        title: 'Open apps in one place',
+        description:
+          'Use the Apps area in Desktop to open the tools, scenes, or workflows that are available in your current product context.',
+      },
+      {
+        label: 'Build',
+        title: 'Build with the SDK',
+        description:
+          'Developers can turn their own product ideas into Nimi Apps, connect models and workflows through the SDK, and let the app work inside Nimi.',
+      },
+      {
+        label: 'Local',
+        title: 'Connect your own app',
+        description:
+          'Local apps can be connected to Nimi for team testing, personal tools, or work that is not ready for a public release yet.',
+      },
+    ],
+    notes: [
+      'New product work uses the Nimi Apps path.',
+      'The homepage does not promise a public app catalog before it opens; the product UI shows what users can open today.',
+      'To build an app, start with the SDK and Desktop docs.',
+    ],
   },
   faq: {
     eyebrow: 'FAQ',
@@ -349,7 +458,7 @@ export const landingContentEn: LandingContent = {
       {
         question: 'Can I run models locally?',
         answer:
-          'Yes. The runtime executes through admitted local providers on your hardware — no cloud round-trip required for routes that support it.',
+          'Yes. The runtime executes through supported local providers on your hardware — no cloud round-trip required for routes that support it.',
       },
       {
         question: 'Is Nimi open source?',
@@ -361,36 +470,41 @@ export const landingContentEn: LandingContent = {
         answer:
           'Desktop is the full app — embedded runtime, local AI, native shell. Web mode runs the same shell with web-only adapters for browser-only sessions.',
       },
+      {
+        question: 'Can I build my own Nimi App?',
+        answer:
+          'Yes. Developers can start from the SDK and Desktop docs, then connect tools, scenes, or workflows to Nimi through the Nimi Apps path.',
+      },
     ],
   },
   security: {
-    title: 'Built on contracts you can read',
-    subtitle: 'Every public surface traces to admitted spec — readable, reviewable, real.',
+    title: 'Open rules. Clear boundaries.',
+    subtitle: 'Users know what they are using. Developers know where to integrate.',
     intro:
-      'Nimi separates owner cuts (runtime, SDK, desktop, realm, avatar) explicitly. The boundaries you see are the boundaries the platform actually enforces.',
+      'Nimi keeps the runtime, SDK, desktop app, and app layer separate: public entry points are documented, and private internals stay protected.',
     pillars: [
       {
-        label: 'Open spec',
-        title: 'Spec is the source of truth',
+        label: 'Public rules',
+        title: 'Core rules live in the repo',
         points: [
-          '.nimi/spec/** holds public product and platform contracts.',
-          'Docs and landing are derived projections — same source, same truth.',
+          'Public product rules live under .nimi/spec/**, where they can be read and reviewed.',
+          'Docs and landing copy follow the same source, so the story does not drift.',
         ],
       },
       {
-        label: 'Owner cuts',
-        title: 'Each surface owns its boundary',
+        label: 'Clear integration',
+        title: 'Use the public interfaces',
         points: [
-          'Runtime, SDK, desktop, realm, and avatar are distinct owner domains.',
-          'Apps integrate through admitted public boundaries — no private-surface bypass.',
+          'Developers integrate through the SDK, Desktop, and documented entry points.',
+          'Apps do not need private internals or hidden shortcuts to work inside Nimi.',
         ],
       },
       {
-        label: 'Generated truth',
-        title: 'Catalog data derives from spec',
+        label: 'Trusted catalog',
+        title: 'Model and capability data comes from source',
         points: [
-          'Provider, model, and capability data generate from admitted spec tables.',
-          'No hand-written marketing claims drift from the source.',
+          'Provider, model, and capability information is generated from source tables.',
+          'The page favors traceable facts over broad marketing promises.',
         ],
       },
     ],

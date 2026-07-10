@@ -1,5 +1,4 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import quickstartPreview from '../../../../../docs/assets/nimi-quickstart.gif';
 import type { LandingContent } from '../content/landing-content.js';
 import type { LandingLinks } from '../config/landing-links.js';
 
@@ -197,16 +196,37 @@ export function HeroSection(props: HeroSectionProps) {
                 </div>
               </div>
 
-              {/* Right Column: Walkthrough preview */}
+              {/* Right Column: Live command preview */}
               <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden border-t border-slate-200 bg-white p-2 md:col-span-3 md:border-t-0 md:p-3 lg:p-4">
-                <div className="relative flex aspect-video w-full max-w-[780px] items-center justify-center overflow-hidden rounded-[1.1rem]">
-                  <img
-                    src={quickstartPreview}
-                    alt={props.content.previewAlt}
-                    loading="lazy"
-                    decoding="async"
-                    className="block h-full w-full object-contain object-center"
-                  />
+                <div
+                  className="relative flex aspect-video w-full max-w-[780px] flex-col overflow-hidden rounded-[1.1rem] bg-slate-950 text-left shadow-[0_24px_60px_-30px_rgba(15,23,42,0.9)]"
+                  aria-label={props.content.previewAlt}
+                >
+                  <div className="flex h-10 items-center gap-2 border-b border-white/10 bg-slate-900 px-4">
+                    <span className="h-3 w-3 rounded-full bg-[#ff5f57]" aria-hidden="true" />
+                    <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" aria-hidden="true" />
+                    <span className="h-3 w-3 rounded-full bg-[#28c840]" aria-hidden="true" />
+                    <span className="ml-2 truncate text-xs font-medium text-slate-400">Nimi Terminal</span>
+                  </div>
+                  <div className="flex flex-1 flex-col justify-center gap-5 p-5 sm:p-8">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#38d6a3]">
+                        {currentTab.label}
+                      </p>
+                      <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/35 p-4">
+                        <code className="block break-all font-mono text-sm leading-7 text-slate-100 sm:text-base">
+                          <span className="select-none text-[#38d6a3]">$ </span>
+                          {currentTab.command}
+                        </code>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 text-sm leading-6 text-slate-300 md:grid-cols-[1fr_auto] md:items-center">
+                      <span>{currentTab.ctaText}</span>
+                      <span className="inline-flex justify-self-start rounded-full border border-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 md:justify-self-end">
+                        docs.nimi.ai
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

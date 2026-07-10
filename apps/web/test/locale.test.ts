@@ -4,6 +4,7 @@ import {
   LANDING_LOCALE_STORAGE_KEY,
   normalizeLocale,
   persistLocale,
+  resolveLocaleFromUrl,
   resolveInitialLocale,
 } from '../src/landing/i18n/locale.js';
 
@@ -31,6 +32,22 @@ test('resolveInitialLocale falls back to navigator language', () => {
 
 test('resolveInitialLocale uses default locale when navigator is unavailable', () => {
   assert.equal(resolveInitialLocale({ navigatorLanguage: '', defaultLocale: 'zh' }), 'zh');
+});
+
+test('resolveInitialLocale prefers explicit URL locale before storage and navigator', () => {
+  const storage = createMemoryStorage({ [LANDING_LOCALE_STORAGE_KEY]: 'zh' });
+  assert.equal(
+    resolveInitialLocale({
+      search: '?lang=en',
+      storage,
+      navigatorLanguage: 'zh-CN',
+      defaultLocale: 'zh',
+    }),
+    'en',
+  );
+  assert.equal(resolveLocaleFromUrl('?lang=zh'), 'zh');
+  assert.equal(resolveLocaleFromUrl('?locale=en'), 'en');
+  assert.equal(resolveLocaleFromUrl('?lang=fr'), null);
 });
 
 test('persistLocale writes storage key and normalizeLocale trims values', () => {

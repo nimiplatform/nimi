@@ -1,3 +1,7 @@
+---
+aside: false
+---
+
 # SDK
 
 Nimi SDK 是 App 面向 Runtime、Realm、AI、Agent、feature 与共享类型的公开边界。
@@ -10,6 +14,10 @@ import { createNimiClient } from '@nimiplatform/sdk';
 ```
 
 根 client 用显式 app identity 组合已准入的 Runtime 与 Realm surface。专用子路径仍可用于更低层或特定领域的使用。
+
+## 接入面
+
+<SdkSurfaces />
 
 ## 本节包含
 

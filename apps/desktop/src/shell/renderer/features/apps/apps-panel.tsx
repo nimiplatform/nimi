@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ConfirmDialog, ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { dispatchSettingsOpenSection } from '@renderer/features/settings/settings-storage';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsAIProfileSection } from './apps-ai-profile-section.js';
 import { AppsDetailView } from './apps-detail-view.js';
@@ -22,6 +23,11 @@ export function AppsPanel(): ReactElement {
   const navigate = useNavigate();
   const requestedDetailAppId = useAppStore((state) => state.appsDetailAppId);
   const setAppsDetailAppId = useAppStore((state) => state.setAppsDetailAppId);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const authUser = useAppStore((state) => state.auth.user);
+  const accountName = [authUser?.displayName, authUser?.handle, authUser?.username]
+    .map((value) => String(value ?? '').trim())
+    .find(Boolean) ?? t('Apps.sourceManager.accountFallback');
   const controller = useAppsPanelController({
     requestSignIn: () => {
       navigate('/login', { replace: false });
@@ -57,11 +63,10 @@ export function AppsPanel(): ReactElement {
       <ScrollArea
         className="flex-1"
         viewportClassName="bg-transparent"
-        contentClassName="mx-auto flex w-full max-w-5xl flex-col gap-5 px-5 py-5"
+        contentClassName="mx-auto flex w-full max-w-6xl flex-col gap-5 px-5 py-5"
       >
         <header>
-          <p className="text-xs font-semibold uppercase text-[var(--nimi-text-secondary)]">Nimi</p>
-          <h1 className="mt-2 text-2xl font-semibold text-[var(--nimi-text-primary)]">
+          <h1 className="text-2xl font-semibold text-[var(--nimi-text-primary)]">
             {t('Navigation.apps', { defaultValue: 'Apps' })}
           </h1>
         </header>
@@ -72,6 +77,11 @@ export function AppsPanel(): ReactElement {
               projection={projection}
               onCardAction={runCardAction}
               onConnectLocalApp={connectLocalApp}
+              onManageAccount={() => {
+                dispatchSettingsOpenSection('profile');
+                setActiveTab('settings');
+              }}
+              accountName={accountName}
               busyAppId={busyAppId}
               actionError={actionError}
             />

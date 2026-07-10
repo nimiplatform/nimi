@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { AppsSection } from './components/apps-section.js';
 import { DesktopSection } from './components/desktop-section.js';
 import { FaqSection } from './components/faq-section.js';
 import { HeroSection } from './components/hero-section.js';
@@ -10,6 +11,7 @@ import { SecuritySection } from './components/security-section.js';
 import { SdkSection } from './components/sdk-section.js';
 import { loadLandingContent, type LandingContent } from './content/landing-content.js';
 import { resolveLandingLinks, resolveLocalizedLinks } from './config/landing-links.js';
+import { useHashScroll } from './hooks/use-hash-scroll.js';
 import {
   persistLocale,
   resolveInitialLocale,
@@ -29,6 +31,13 @@ function getBrowserLanguage(): string {
     return 'en';
   }
   return navigator.language;
+}
+
+function getBrowserSearch(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  return window.location.search;
 }
 
 function DiscordIcon() {
@@ -53,6 +62,7 @@ export function App() {
   const [locale, setLocale] = useState<LandingLocale>(() =>
     resolveInitialLocale({
       storage: getBrowserStorage(),
+      search: getBrowserSearch(),
       navigatorLanguage: getBrowserLanguage(),
       defaultLocale: import.meta.env.VITE_LANDING_DEFAULT_LOCALE,
     }),
@@ -60,6 +70,7 @@ export function App() {
   // Apply locale prefix (zh -> /zh/) to docs URLs for the docs.nimi.ai subdomain.
   const links = useMemo(() => resolveLocalizedLinks(baseLinks, locale), [baseLinks, locale]);
   const [content, setContent] = useState<LandingContent | null>(null);
+  useHashScroll(Boolean(content));
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -90,6 +101,7 @@ export function App() {
     { href: '#sdk', label: content.nav.sdk },
     { href: '#catalog', label: content.nav.catalog },
     { href: '#desktop', label: content.nav.desktop },
+    { href: '#apps', label: content.nav.apps },
     { href: '#security', label: content.nav.security },
     { href: '#open-source', label: content.nav.openSource },
     { href: '#faq', label: content.nav.faq },
@@ -172,6 +184,7 @@ export function App() {
         />
         <ArchitectureSection content={content.architecture} />
         <DesktopSection content={content.desktop} links={links} />
+        <AppsSection content={content.apps} links={links} />
         <SecuritySection content={content.security} />
         <OpenSourceSection content={content.openSource} links={links} />
         <FaqSection content={content.faq} links={links} />

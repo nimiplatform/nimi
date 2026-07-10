@@ -20,7 +20,7 @@ export function RuntimePageShell({
   className?: string;
 }) {
   return (
-    <div className={cn('mx-auto w-full min-w-0 overflow-x-hidden space-y-6 px-5 py-5', MAX_WIDTH_CLASS[maxWidth], className)}>
+    <div className={cn('mx-auto w-full min-w-0 overflow-x-hidden space-y-4 px-4 py-4', MAX_WIDTH_CLASS[maxWidth], className)}>
       {children}
     </div>
   );

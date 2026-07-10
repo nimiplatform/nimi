@@ -13,15 +13,16 @@ export const landingContentZh: LandingContent = {
     catalog: 'Runtime',
     architecture: '平台',
     desktop: 'Desktop',
+    apps: 'Apps',
     security: 'Governance',
     openSource: 'Source',
     faq: '常见问题',
   },
   hero: {
-    eyebrow: '面向应用的开源 AI 运行时',
+    eyebrow: '开源、本地优先的 AI 运行时',
     title: '让智能体在世界里生活，',
     titleAccent: '不只是聊天框里。',
-    subtitle: '开源运行时、强类型 SDK、有形的智能体 —— 全部基于可阅读的契约。',
+    subtitle: '开源运行时、强类型 SDK、多 provider AI 与有形的智能体 —— 全部基于可阅读的契约。',
     helperPrefix: '或',
     helperDocsCta: '阅读文档',
     helperGithubCta: '查看源码',
@@ -62,11 +63,11 @@ export const landingContentZh: LandingContent = {
       '通过强类型 SDK 接入。无论运行在笔记本上还是你掌控的云端基础设施，组合智能体、模型、工作流和记忆的方式完全一致。',
     userTitle: '面向产品用户',
     userText:
-      'Nimi 是 AI 开放世界平台 —— 智能体跨会话持续存在、跨世界共享状态、通过 runtime 能力执行行动。不是聊天框封装，不是单一用途的应用。',
+      'Nimi 是 AI 开放世界平台 —— 智能体跨会话持续存在、跨世界共享状态，并通过边界清楚的 runtime 能力行动。不是聊天框封装，不是单一用途的应用。',
     conclusion: '概念驱动、契约优先、跨平台运行时。',
     slogan: '你的代码、你的契约、你的世界。',
     diagram: {
-      appLabel: '你的 AI 应用 / MOD',
+      appLabel: '你的 AI 应用',
       realm: 'REALM',
       runtime: 'RUNTIME',
       cloudContextPlane: '云端上下文层',
@@ -104,7 +105,7 @@ export const landingContentZh: LandingContent = {
   modelCatalog: {
     kicker: 'Provider 路由',
     title: '一套 API，路由到任意模型。',
-    subtitle: '通过统一的强类型接入面连接到任意 provider —— 选模型、接集成。',
+    subtitle: '通过统一的强类型接入面连接到支持的 provider —— 选模型、接集成。',
     overview: {
       searchPlaceholder: '搜索 provider、模型与能力',
       cloudProvidersLabel: '云端 Provider',
@@ -131,9 +132,9 @@ export const landingContentZh: LandingContent = {
     localDescription:
       '本地 provider 路由通过 runtime 在你的硬件上执行 —— 同一套 SDK、同一套能力类型，没有云端往返。',
     capabilitiesTitle: '能力矩阵',
-    capabilitiesHeadline: '覆盖 12 项能力，横跨各 provider。',
+    capabilitiesHeadline: '覆盖 12 类受支持能力，横跨各 provider。',
     capabilitiesDescription:
-      '文本生成、视觉、Embedding、图像与视频生成、语音合成与转写、音乐生成、声音克隆与设计、世界生成 —— 每项能力都明确支持它的 provider。',
+      '文本生成、视觉、Embedding、图像与视频生成、语音合成与转写、音乐生成、声音克隆与设计、世界生成 —— 每类能力都展示支持它的 provider。',
     capabilityLabels: {
       'text.generate': '文本生成',
       'text.embed': 'Embedding',
@@ -156,7 +157,7 @@ export const landingContentZh: LandingContent = {
       '每个 provider 支持一项或多项能力类别。Runtime 根据你的配置选择路由的模型 —— 切换 provider 不必修改调用点。',
     providerDetailSuffix: '项能力',
     searchResultsTitle: '搜索结果',
-    searchResultsDescription: '按名称、默认模型或支持能力筛选 provider。',
+    searchResultsDescription: '按名称、默认模型或受支持能力筛选 provider。',
     noResultsTitle: '没有匹配的 provider。',
     noResultsDescription: '换个关键词，或在路由文档查看完整目录。',
     sourceNote: '阅读路由文档了解完整的 provider 配置与能力细节。',
@@ -207,6 +208,28 @@ export const landingContentZh: LandingContent = {
     titleAccent: '多种运行 AI 的方式。',
     subtitle: '通过统一的强类型接入面，组合智能体、模型、工作流和共享环境 —— 本地或云端运行皆可。',
     callout: '查看 SDK 参考',
+    primaryCta: '阅读 SDK 文档',
+    secondaryCta: '查看源码',
+    codeWindowTitle: 'Nimi SDK / 智能体运行时',
+    codeWindowCaption: '用一个强类型接入面连接智能体上下文、运行时任务和本地/云端路由。',
+    matrixEyebrow: 'SDK 能力矩阵',
+    matrixTitle: '详细能力点移动到下一屏。',
+    matrixSubtitle: '首屏保持产品叙事；原来的 SDK 能力点保留为可扫描的矩阵，并直接链接到参考文档。',
+    runtimeBadges: ['Type-safe SDK', 'Runtime Ready', 'Local-first', 'Agent Context'],
+    heroHighlights: [
+      {
+        title: '智能体接入',
+        description: '把智能体接入正在运行的世界，共享上下文、身份与清晰的产品边界。',
+      },
+      {
+        title: '任务与状态同步',
+        description: '用强类型事件流协调任务交接、世界事件和运行状态更新。',
+      },
+      {
+        title: '本地 / 云端一体运行',
+        description: '优先连接本地 runtime，再用同一套契约路由到你掌控的云端基础设施。',
+      },
+    ],
     tabs: [
       {
         id: 'agent-participation',
@@ -245,15 +268,15 @@ export const landingContentZh: LandingContent = {
       },
       {
         id: 'wee-projection',
-        label: 'WEE 呈现',
-        description: '把世界执行事件作为强类型事件流式输出，供任意消费者使用。',
+        label: '世界事件',
+        description: '把世界执行事件作为强类型数据流式输出，供产品消费者使用。',
         docsPath: 'sdk/wee-projection',
         previewMediaId: 'streamJob',
       },
       {
         id: 'wee-consumer',
         label: 'WEE 消费',
-        description: '订阅世界执行事件，带回压安全的消费机制。',
+        description: '订阅世界执行事件，并保持回压安全的消费机制。',
         docsPath: 'sdk/wee-consumer',
         previewMediaId: 'streamJob',
       },
@@ -263,6 +286,48 @@ export const landingContentZh: LandingContent = {
         description: '强类型传输契约 + 全 SDK 一致的结构化错误语义。',
         docsPath: 'sdk/transport-and-error',
         previewMediaId: 'workflow',
+      },
+    ],
+    capabilityMatrix: [
+      {
+        title: '智能体接入',
+        description: '把智能体接到正在运行的世界 —— 一次编写、跨会话与跨应用共享。',
+        docsPath: 'sdk/agent-participation-client',
+      },
+      {
+        title: '形象控制',
+        description: '通过单个客户端用多模态输入与脚本化动作驱动有形象的智能体。',
+        docsPath: 'sdk/avatar-control-client',
+      },
+      {
+        title: '任务委派',
+        description: '在智能体与人之间交接任务，带强类型上下文交接与审计轨迹。',
+        docsPath: 'sdk/delegation-client',
+      },
+      {
+        title: '本地环境',
+        description: '将共享环境映射到本地会话 —— 文件、工具与运行时状态。',
+        docsPath: 'sdk/local-environment-projection',
+      },
+      {
+        title: 'AI 配置',
+        description: '一个配置面统管模型选择、能力路由与 provider 偏好。',
+        docsPath: 'sdk/ai-config-surface',
+      },
+      {
+        title: '世界事件',
+        description: '把世界执行事件作为强类型数据流式输出，供产品消费者使用。',
+        docsPath: 'sdk/wee-projection',
+      },
+      {
+        title: 'WEE 消费',
+        description: '订阅世界执行事件，并保持回压安全的消费机制。',
+        docsPath: 'sdk/wee-consumer',
+      },
+      {
+        title: '传输与错误',
+        description: '强类型传输契约 + 全 SDK 一致的结构化错误语义。',
+        docsPath: 'sdk/transport-and-error',
       },
     ],
     previewMedia: {
@@ -295,7 +360,7 @@ export const landingContentZh: LandingContent = {
       },
       { icon: 'chat', title: '内置聊天', description: '在同一个工作区里对话本地与云端模型。' },
       { icon: 'models', title: '模型管理', description: '一处安装、更新、切换模型。' },
-      { icon: 'apps', title: '应用启动器', description: '在同一个原生外壳中打开已准入的一方应用。' },
+      { icon: 'apps', title: '应用启动器', description: '在同一个工作区里打开可用的 Nimi App 与你连接的本地 App。' },
     ],
     downloadCta: '阅读 Desktop 文档',
     availability: {
@@ -306,6 +371,38 @@ export const landingContentZh: LandingContent = {
         '本地 AI 与 runtime 内置',
       ],
     },
+  },
+  apps: {
+    eyebrow: 'Nimi Apps',
+    title: '把新的能力装进 Nimi。',
+    subtitle:
+      'Nimi App 是可以在 Nimi 里打开和使用的小应用：它可以带来新的工具、场景或工作流。Desktop 会显示当前账号与本地工作区可用的内容；开发者用 SDK 构建，并按清晰的产品规则交付。',
+    cta: '查看 Desktop 文档',
+    cards: [
+      {
+        label: '使用',
+        title: '一个地方打开应用',
+        description:
+          '在 Desktop 的 Apps 界面打开当前产品环境中可用的工具、场景或工作流，不需要理解底层运行方式。',
+      },
+      {
+        label: '开发',
+        title: '用 SDK 接入 Nimi',
+        description:
+          '开发者可以把自己的功能做成 Nimi App，通过 SDK 调用模型、工作流和本地能力，让应用在 Nimi 的环境里工作。',
+      },
+      {
+        label: '本地',
+        title: '连接你自己的 App',
+        description:
+          '本地 App 可以显式连接到 Nimi，适合团队内测、个人工具或尚未公开发布的应用。',
+      },
+    ],
+    notes: [
+      '新的产品工作统一走 Nimi Apps 路径。',
+      '首页不提前承诺尚未开放的公开应用目录；实际可打开内容以产品内显示为准。',
+      '想构建 App，请从 SDK 与 Desktop 文档开始。',
+    ],
   },
   faq: {
     eyebrow: 'FAQ',
@@ -338,34 +435,39 @@ export const landingContentZh: LandingContent = {
         answer:
           'Desktop 是完整应用 —— 内嵌 runtime、本地 AI、原生外壳。Web mode 用同一套外壳加上 web-only adapter 支持纯浏览器会话。',
       },
+      {
+        question: '可以开发自己的 Nimi App 吗？',
+        answer:
+          '可以。开发者可以从 SDK 与 Desktop 文档开始，通过 Nimi Apps 路径把工具、场景或工作流接入 Nimi。',
+      },
     ],
   },
   security: {
-    title: '建立在可阅读的契约之上',
-    subtitle: '每个公开层都追溯到已准入的规范 —— 可读、可审、真实。',
+    title: '规则公开，边界清楚。',
+    subtitle: '用户知道自己在用什么，开发者知道该从哪里接入。',
     intro:
-      'Nimi 显式划分权责边界（runtime、SDK、desktop、realm、avatar）。你看到的边界，就是平台真正在执行的边界。',
+      'Nimi 把运行时、SDK、桌面端和应用层分清楚：该开放的入口写清楚，该保护的私有实现不绕开。',
     pillars: [
       {
-        label: '开放规范',
-        title: '规范是真相来源',
+        label: '公开规则',
+        title: '关键规则写在仓库里',
         points: [
-          '.nimi/spec/** 持有公开产品与平台契约。',
-          'Docs 与首页都是衍生呈现 —— 同一个来源、同一个真相。',
+          '公开产品规则放在 .nimi/spec/** 中，可以被阅读和审查。',
+          '文档与首页跟随同一份来源更新，减少口径漂移。',
         ],
       },
       {
-        label: '权责划分',
-        title: '每个层持有自己的边界',
+        label: '清晰接入',
+        title: '该用公开接口就用公开接口',
         points: [
-          'Runtime、SDK、desktop、realm、avatar 是各自独立的归属域。',
-          '应用通过已准入的公共边界接入 —— 不绕开私有层。',
+          '开发者从 SDK、Desktop 与文档入口接入。',
+          '应用不需要碰私有实现，也不会绕过用户看不见的规则。',
         ],
       },
       {
-        label: '生成式数据',
-        title: '目录数据从规范生成',
-        points: ['Provider、模型与能力数据由规范表生成。', '不会有手写的营销说法偏离来源。'],
+        label: '目录可信',
+        title: '模型与能力目录来自数据',
+        points: ['Provider、模型与能力信息由规范表生成。', '页面尽量少写空泛承诺，多展示可以追溯的内容。'],
       },
     ],
   },

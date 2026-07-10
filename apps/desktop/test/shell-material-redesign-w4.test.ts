@@ -22,6 +22,6 @@ test('W4 dense surfaces: settings route uses a glass shell host and transparent 
 test('W4 dense surfaces: runtime route uses a glass shell host with solid-first cards', () => {
   assert.match(runtimePanelViewSource, /<Surface[\s\S]*as="main"[\s\S]*tone="panel"[\s\S]*material="glass-regular"/);
   assert.doesNotMatch(runtimePanelViewSource, /<main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">/u);
-  assert.match(runtimePageShellSource, /mx-auto w-full[\w\s-]*space-y-6 px-5 py-5/);
+  assert.match(runtimePageShellSource, /mx-auto w-full[\w\s-]*space-y-4 px-4 py-4/);
   assert.match(runtimePrimitivesSource, /<AppCardSurface[\s\S]*kind="operational-solid"/);
 });

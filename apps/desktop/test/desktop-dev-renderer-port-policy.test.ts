@@ -46,6 +46,22 @@ test('healthy desktop renderer on the dev port is reused instead of killed', () 
   assert.deepEqual(plan.pidsToStop, []);
 });
 
+test('healthy Windows desktop renderer with quoted CLI arguments is reused', () => {
+  const windowsDesktopRoot = 'D:\\nimi-realm\\nimi\\apps\\desktop';
+  const plan = planRendererPortResolution({
+    desktopRoot: windowsDesktopRoot,
+    rendererPort,
+    processes: [processFixture({
+      commandLine: 'node "D:\\nimi-realm\\nimi\\apps\\desktop\\node_modules\\vite\\bin\\vite.js" '
+        + '"--host" "127.0.0.1" "--port" "1420" "--strictPort"',
+    })],
+    isRendererReachable: true,
+  });
+
+  assert.equal(plan.action, 'reuse');
+  assert.deepEqual(plan.pidsToStop, []);
+});
+
 test('unresponsive desktop renderer on the dev port is stopped before restart', () => {
   const plan = planRendererPortResolution({
     desktopRoot,

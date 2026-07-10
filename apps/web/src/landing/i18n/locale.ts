@@ -33,12 +33,29 @@ export function resolveDefaultLocale(rawDefault: unknown): LandingLocale {
   return normalizeLocale(rawDefault) ?? 'en';
 }
 
+export function resolveLocaleFromUrl(search: unknown): LandingLocale | null {
+  const value = typeof search === 'string' ? search.trim() : '';
+  if (!value) {
+    return null;
+  }
+
+  const query = value.startsWith('?') ? value.slice(1) : value;
+  const params = new URLSearchParams(query);
+  return normalizeLocale(params.get('lang')) ?? normalizeLocale(params.get('locale'));
+}
+
 export function resolveInitialLocale(input: {
+  search?: unknown;
   storage?: StorageLike | null;
   navigatorLanguage?: unknown;
   defaultLocale?: unknown;
 }): LandingLocale {
   const fallbackLocale = resolveDefaultLocale(input.defaultLocale);
+  const urlLocale = resolveLocaleFromUrl(input.search);
+  if (urlLocale) {
+    return urlLocale;
+  }
+
   const storedLocale = input.storage
     ? normalizeLocale(input.storage.getItem(LANDING_LOCALE_STORAGE_KEY))
     : null;

@@ -31,7 +31,7 @@ type RuntimeTone = 'neutral' | 'success' | 'warning' | 'danger';
 const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
 const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
 const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
-const TOKEN_PANEL_CARD = 'rounded-2xl';
+const TOKEN_PANEL_CARD = 'rounded-xl';
 
 const TONE_STYLES: Record<RuntimeTone, {
   surface: string;
@@ -82,7 +82,7 @@ function StatTile({
   const content = (
     <>
       <p className={cn('text-xs break-words [overflow-wrap:anywhere]', TOKEN_TEXT_MUTED)}>{title}</p>
-      <p className={cn('mt-2 text-2xl font-bold break-words [overflow-wrap:anywhere]', TOKEN_TEXT_PRIMARY)}>{value}</p>
+      <p className={cn('mt-1 text-2xl font-bold break-words [overflow-wrap:anywhere]', TOKEN_TEXT_PRIMARY)}>{value}</p>
       <p className={cn('mt-1 text-xs break-words [overflow-wrap:anywhere]', TOKEN_TEXT_MUTED)}>{subtitle}</p>
     </>
   );
@@ -94,7 +94,7 @@ function StatTile({
         type="button"
         tone="card"
         interactive
-        className={cn(TOKEN_PANEL_CARD, 'w-full min-w-0 p-5 text-center')}
+        className={cn(TOKEN_PANEL_CARD, 'w-full min-w-0 p-4 text-center')}
         onClick={onClick}
       >
         {content}
@@ -103,7 +103,7 @@ function StatTile({
   }
 
   return (
-    <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'w-full min-w-0 p-5 text-center')}>
+    <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'w-full min-w-0 p-4 text-center')}>
       {content}
     </Surface>
   );
@@ -124,7 +124,7 @@ function QuickLinkCard({
       type="button"
       tone="card"
       interactive
-      className="w-full min-w-0 rounded-2xl p-4 text-left"
+      className="w-full min-w-0 rounded-xl p-3 text-left"
       onClick={onClick}
     >
       <p className={cn('text-sm font-semibold break-words [overflow-wrap:anywhere]', TOKEN_TEXT_PRIMARY)}>{title}</p>
@@ -153,7 +153,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         <SectionTitle>
           {t('runtimeConfig.overview.snapshotTitle', { defaultValue: 'Overview Snapshot' })}
         </SectionTitle>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <StatTile
             title={t('runtimeConfig.overview.installedModels', { defaultValue: 'Installed Models' })}
             value={installedModelCount}
@@ -176,11 +176,11 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
 
       <OverviewLoadUsageSection />
 
-      <section className="mt-8">
+      <section>
         <SectionTitle>
           {t('runtimeConfig.overview.capabilityCoverageTitle', { defaultValue: 'Capability Coverage' })}
         </SectionTitle>
-        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-3 p-5')}>
+        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-2 p-4')}>
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
             {capabilityStatuses.map((item) => {
               const available = item.localAvailable || item.cloudAvailable;
@@ -223,17 +223,17 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         </Surface>
       </section>
 
-      <section className="mt-8">
+      <section>
         <SectionTitle>
           {t('runtimeConfig.overview.runtimeDaemonTitle', { defaultValue: 'Runtime Daemon' })}
         </SectionTitle>
-        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-3 p-5')}>
+        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-2 p-4')}>
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className={cn('min-w-0 text-sm break-words [overflow-wrap:anywhere]', TOKEN_TEXT_SECONDARY)}>{t('runtimeConfig.overview.runtimeDaemonStatus', { defaultValue: 'Local AI runtime daemon status' })}</div>
             <DaemonStatusBadge running={daemonRunning} />
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
             {[
               {
                 key: 'grpc',
@@ -275,7 +275,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             <p className="mt-3 text-xs text-[var(--nimi-status-danger)]">{model.runtimeDaemonError}</p>
           ) : null}
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" disabled={daemonBusy} onClick={() => void model.refreshRuntimeDaemonStatus()}>
               {daemonBusy
                 ? t('runtimeConfig.overview.working', { defaultValue: 'Working...' })
@@ -294,11 +294,11 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         </Surface>
       </section>
 
-      <section className="mt-8">
+      <section>
         <SectionTitle>
           {t('runtimeConfig.overview.quickNavigationTitle', { defaultValue: 'Quick Navigation' })}
         </SectionTitle>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           <QuickLinkCard
             title={t('runtimeConfig.overview.manageModels', { defaultValue: 'Manage Models' })}
             description={t('runtimeConfig.overview.manageModelsDescription', { defaultValue: 'Install, start, stop local assets' })}

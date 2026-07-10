@@ -1,5 +1,5 @@
 export function normalizeForMatch(value) {
-  return String(value || '').replaceAll('\\', '/').toLowerCase();
+  return String(value || '').replaceAll('\\', '/').replaceAll('"', '').toLowerCase();
 }
 
 function quoteCmdArg(value) {
