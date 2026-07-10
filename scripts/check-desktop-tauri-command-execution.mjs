@@ -328,7 +328,6 @@ function parseGenerateHandlerCommands(source, rel) {
   }
 
   const kitMacros = [
-    'nimi_shell_tauri_auth_oauth_runtime_bridge_handler',
     'nimi_shell_tauri_oauth_runtime_bridge_handler',
     'nimi_shell_tauri_runtime_bridge_handler',
   ];

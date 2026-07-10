@@ -51,9 +51,30 @@ export async function runElectronHostScenario(context) {
     await installedWindow.locator('[data-testid="platform-fixture-proof"]').waitFor({ state: 'visible', timeout: 30_000 });
 
     for (const command of [
-      NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad'],
-      NIMI_STANDARD_SHELL_COMMANDS['auth.sessionSave'],
-      NIMI_STANDARD_SHELL_COMMANDS['auth.sessionClear'],
+      'nimi.shell.auth.session.load',
+      'nimi.shell.auth.session.save',
+      'nimi.shell.auth.session.clear',
+    ]) {
+      const error = await installedWindow.evaluate(async ({ command: commandName }) => {
+        try {
+          await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(commandName, {});
+          return null;
+        } catch (caught) {
+          return {
+            code: caught?.code,
+            reasonCode: caught?.reasonCode,
+            source: caught?.source,
+          };
+        }
+      }, { command });
+      assert.deepEqual(error, {
+        code: 'external-daemon-required',
+        reasonCode: 'electron-runtime-account-custody-external',
+        source: 'electron',
+      });
+    }
+
+    for (const command of [
       NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
       NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
     ]) {

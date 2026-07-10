@@ -60,6 +60,7 @@ safeResetDir(artifactsDir, { reportsRoot: path.join(appRoot, 'reports', 'e2e') }
 const runtimeStdoutPath = path.join(artifactsDir, 'runtime-stdout.log');
 const runtimeStderrPath = path.join(artifactsDir, 'runtime-stderr.log');
 const desktopScreenshotPath = path.join(artifactsDir, 'desktop-explore-world-character.png');
+const sourceDetailNavigationFailureScreenshotPath = path.join(artifactsDir, 'desktop-source-detail-navigation-failure.png');
 const narrowScreenshotPath = path.join(artifactsDir, 'narrow-world-character-detail.png');
 const chatScreenshotPath = path.join(artifactsDir, 'desktop-chat-consumption.png');
 const sourceDetailOpenPartnerScreenshotPath = path.join(artifactsDir, 'desktop-source-detail-open-partner.png');
@@ -174,7 +175,7 @@ async function waitForRuntimeTextGenerateTargetRef(agentClient, identity) {
 
 try {
   const runtimeContext = await startRuntimeDaemon({
-    fixtureOrigin: fixtureServer.origin,
+    fixtureOrigin: desktopFixtureOrigin,
     homeDir: isolatedHome,
     stateRoot: runtimeStateRoot,
     runtimeDir,
@@ -206,7 +207,6 @@ try {
       ...acceptanceBaseEnv,
       NIMI_REALM_URL: desktopFixtureOrigin,
       NIMI_REALTIME_URL: realtimeFixtureOrigin,
-      NIMI_ACCESS_TOKEN: 'desktop-acceptance-access-token',
       NIMI_REALM_JWKS_URL: `${desktopFixtureOrigin}/api/auth/jwks`,
       NIMI_REALM_REVOCATION_URL: `${desktopFixtureOrigin}/api/auth/sessions/introspect`,
       NIMI_REALM_JWT_ISSUER: desktopFixtureOrigin,
@@ -265,6 +265,7 @@ try {
 
   await captureScreenshot(page, desktopScreenshotPath);
   const desktopLayout = await inspectLayout(page);
+  observations.desktopLayout = desktopLayout;
   assert.equal(desktopLayout.hasHorizontalOverflow, false, `desktop layout overflow: ${JSON.stringify(desktopLayout)}`);
   observations.desktopAccessibility = await inspectAccessibility(page);
   assert.equal(
@@ -275,8 +276,21 @@ try {
 
   const firstWorldCharacterProfileButton = worldPreviewPeople.locator('button[aria-label]').first();
   await firstWorldCharacterProfileButton.waitFor({ state: 'visible', timeout: 60_000 });
+  observations.worldCharacterProfileActionLabel = await firstWorldCharacterProfileButton.getAttribute('aria-label');
   await firstWorldCharacterProfileButton.click();
-  await page.getByTestId('world-character-source-detail-page').waitFor({ state: 'visible', timeout: 60_000 });
+  try {
+    await page.getByTestId('world-character-source-detail-page').waitFor({ state: 'visible', timeout: 60_000 });
+  } catch (error) {
+    observations.sourceDetailNavigationFailure = {
+      bodyText: normalizeWhitespace(await page.locator('body').innerText()).slice(0, 3000),
+      sourceDetailSkeletons: await page.getByTestId('source-detail-skeleton').count(),
+      activePanels: await page.locator('[data-testid^="panel:"]:visible').evaluateAll((nodes) => (
+        nodes.map((node) => node.getAttribute('data-testid'))
+      )),
+    };
+    await captureScreenshot(page, sourceDetailNavigationFailureScreenshotPath);
+    throw error;
+  }
   assert.equal(
     await page.getByTestId('source-detail-compact-profile-card').count(),
     0,
@@ -295,6 +309,7 @@ try {
   await setElectronWindowSize(electronApp, 390, 860);
   await captureScreenshot(page, narrowScreenshotPath);
   const narrowLayout = await inspectLayout(page);
+  observations.narrowLayout = narrowLayout;
   assert.equal(narrowLayout.hasHorizontalOverflow, false, `narrow layout overflow: ${JSON.stringify(narrowLayout)}`);
   observations.narrowAccessibility = await inspectAccessibility(page);
   assert.equal(
@@ -367,6 +382,81 @@ try {
   );
   observations.agentChatInitialAIConfigStorage = await readAIConfigStorageSnapshot(page);
   observations.agentChatInitialRuntimeAIConfig = await readRuntimeAgentAIConfig(agentClient, agentIdentity);
+
+  const sharedAuthSessionCommands = await page.evaluate(async (commands) => {
+    const bridge = globalThis.window?.__NIMI_ELECTRON_RUNTIME__;
+    if (!bridge || typeof bridge.invoke !== 'function') {
+      throw new Error('Desktop Electron Runtime bridge is unavailable');
+    }
+    return Promise.all(commands.map(async (command) => {
+      try {
+        await bridge.invoke(command, {});
+        return { command, denied: false };
+      } catch (error) {
+        const record = error && typeof error === 'object' ? error : {};
+        return {
+          command,
+          denied: true,
+          code: String(record.code || ''),
+          reasonCode: String(record.reasonCode || ''),
+          message: error instanceof Error ? error.message : String(record.message || error || ''),
+        };
+      }
+    }));
+  }, [
+    'nimi.shell.auth.session.load',
+    'nimi.shell.auth.session.save',
+    'nimi.shell.auth.session.clear',
+  ]);
+  assert.equal(
+    sharedAuthSessionCommands.every((row) => row.denied),
+    true,
+    `Desktop Electron auth.session commands must be denied: ${JSON.stringify(sharedAuthSessionCommands)}`,
+  );
+  observations.sharedAuthSessionCommands = sharedAuthSessionCommands;
+
+  const rendererCredentialProjection = await page.evaluate(() => {
+    const storage = (source) => Object.fromEntries(
+      Array.from({ length: source.length }, (_, index) => source.key(index))
+        .filter(Boolean)
+        .map((key) => [key, source.getItem(key)]),
+    );
+    const windowStrings = Object.fromEntries(Object.getOwnPropertyNames(globalThis).flatMap((key) => {
+      try {
+        const value = globalThis[key];
+        return typeof value === 'string' && value.length < 4096 ? [[key, value]] : [];
+      } catch {
+        return [];
+      }
+    }));
+    return {
+      html: globalThis.document.documentElement.outerHTML,
+      bodyText: globalThis.document.body?.innerText || '',
+      localStorage: storage(globalThis.localStorage),
+      sessionStorage: storage(globalThis.sessionStorage),
+      windowStrings,
+    };
+  });
+  const rendererCredentialRaw = JSON.stringify(rendererCredentialProjection);
+  const tokenLeakFindings = [];
+  if (rendererCredentialRaw.includes('desktop-acceptance-access-token')) {
+    tokenLeakFindings.push('Runtime fixture access token projected into Desktop renderer');
+  }
+  if (rendererCredentialRaw.includes('e2e-runtime-refresh-user-e2e-primary')) {
+    tokenLeakFindings.push('Runtime fixture refresh token projected into Desktop renderer');
+  }
+  if (/Bearer\s+[A-Za-z0-9._~-]{12,}/u.test(rendererCredentialRaw)) {
+    tokenLeakFindings.push('Bearer-shaped credential in Desktop renderer projection');
+  }
+  if (/refresh[_-]?token["'=:\s]+[A-Za-z0-9._~-]{8,}/iu.test(rendererCredentialRaw)) {
+    tokenLeakFindings.push('refresh-token-shaped credential in Desktop renderer projection');
+  }
+  assert.deepEqual(tokenLeakFindings, [], `Desktop renderer credential leak: ${JSON.stringify(tokenLeakFindings)}`);
+  observations.tokenLeak = {
+    passed: true,
+    findings: tokenLeakFindings,
+    inspected: ['DOM', 'localStorage', 'sessionStorage', 'window string globals'],
+  };
 
   const composerTextarea = page.locator('[data-chat-composer-textarea="true"]').first();
   await composerTextarea.waitFor({ state: 'visible', timeout: 30_000 });
@@ -491,7 +581,9 @@ try {
       'Agent composer must show a readable route-unavailable hint when Runtime reports the selected route is unavailable.',
     );
   } else {
-    await composerTextarea.fill('你好');
+    const longChineseMessage = '共享账户授权由运行时统一托管；这个长文本用于验证桌面与窄屏布局、中文可读性以及输入框在真实 Desktop Electron 外壳中的可用性。';
+    await composerTextarea.fill(longChineseMessage);
+    observations.agentComposerLongChineseText = await composerTextarea.inputValue();
     await sendButton.click();
     await page.waitForTimeout(2500);
     await captureScreenshot(page, chatSendAttemptScreenshotPath);
@@ -519,6 +611,38 @@ try {
   assert.ok(packetRequest, `expected fresh SourceMaterializationPacket request, got ${JSON.stringify(packetRequests)}`);
   observations.packetRequest = packetRequest;
 
+  const accountMenuTrigger = page.getByTestId('desktop-account-menu-trigger');
+  await accountMenuTrigger.waitFor({ state: 'visible', timeout: 30_000 });
+  await accountMenuTrigger.click();
+  const switchAccountButton = page.getByTestId('desktop-account-switch');
+  await switchAccountButton.waitFor({ state: 'visible', timeout: 30_000 });
+  observations.desktopAccountSwitchEnabled = await switchAccountButton.isEnabled();
+  assert.equal(observations.desktopAccountSwitchEnabled, true, 'Desktop Switch account control must be enabled');
+  await switchAccountButton.click();
+  await page.getByTestId('login-screen').waitFor({ state: 'visible', timeout: 30_000 });
+  observations.desktopAccountSwitchReachedLoginRequired = true;
+
+  const reauthObservations = {};
+  await completeRuntimeAccountLogin(runtime, reauthObservations);
+  observations.desktopRuntimeFixtureReauthentication = reauthObservations.runtimeAccount;
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  assert.equal(
+    await waitForDesktopSurface(page),
+    'main',
+    'Desktop must restore the main shell after Runtime-owned fixture re-authentication',
+  );
+
+  const restoredAccountMenuTrigger = page.getByTestId('desktop-account-menu-trigger');
+  await restoredAccountMenuTrigger.waitFor({ state: 'visible', timeout: 30_000 });
+  await restoredAccountMenuTrigger.click();
+  const logoutButton = page.getByTestId('desktop-account-logout');
+  await logoutButton.waitFor({ state: 'visible', timeout: 30_000 });
+  observations.desktopAccountLogoutEnabled = await logoutButton.isEnabled();
+  assert.equal(observations.desktopAccountLogoutEnabled, true, 'Desktop Log out control must be enabled');
+  await logoutButton.click();
+  await page.getByTestId('login-screen').waitFor({ state: 'visible', timeout: 30_000 });
+  observations.desktopAccountLogoutReachedLoginRequired = true;
+
   if (consoleErrors.length || pageErrors.length) {
     throw new Error(`renderer console/page errors observed: ${JSON.stringify({ consoleErrors, pageErrors }, null, 2)}`);
   }
@@ -542,6 +666,28 @@ try {
       agentModelChatDetail: agentModelChatDetailScreenshotPath,
       agentModelPicker: agentModelPickerScreenshotPath,
       agentModelSelected: agentModelSelectedScreenshotPath,
+    },
+    sharedAuth: {
+      success: {
+        observed: observations.runtimeAccount?.stage === 'authenticated',
+        runtimeAccount: observations.runtimeAccount,
+        realmBrokerConsumption: observations.sourceDetailSurface === 'world-character',
+      },
+      failure: {
+        observed: observations.desktopAccountSwitchReachedLoginRequired === true
+          && observations.desktopAccountLogoutReachedLoginRequired === true,
+        switchAccountReachedLoginRequired: observations.desktopAccountSwitchReachedLoginRequired === true,
+        logoutReachedLoginRequired: observations.desktopAccountLogoutReachedLoginRequired === true,
+      },
+      denied: {
+        observed: sharedAuthSessionCommands.every((row) => row.denied),
+        sessionCommands: sharedAuthSessionCommands,
+      },
+      disabled: {
+        observed: observations.worldPreviewDisabledActions > 0,
+        visibleDisabledControls: observations.worldPreviewDisabledActions,
+      },
+      tokenLeak: observations.tokenLeak,
     },
     consoleErrors,
     consoleErrorDetails,

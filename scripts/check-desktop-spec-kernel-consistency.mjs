@@ -760,7 +760,6 @@ function checkIpcCommandsMatchRegisteredTauriCommands() {
 function parseDesktopRegisteredTauriCommands(rustPath, kitRegistrationPath) {
   const source = read(rustPath);
   const macroNames = [
-    'nimi_shell_tauri_auth_oauth_runtime_bridge_handler',
     'nimi_shell_tauri_oauth_runtime_bridge_handler',
     'nimi_shell_tauri_runtime_bridge_handler',
   ];

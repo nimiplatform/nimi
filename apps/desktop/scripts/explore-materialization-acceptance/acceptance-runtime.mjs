@@ -23,7 +23,7 @@ import {
 import {
   APP_ID,
   OWNER_USER_ID,
-  PROTECTED_SCOPES,
+  REGISTRATION_CAPABILITIES,
 } from './acceptance-constants.mjs';
 import {
   allocatePort,
@@ -112,6 +112,7 @@ async function waitForRuntimeReady(endpoint, daemon) {
 
 export async function completeRuntimeAccountLogin(runtime, observationsLog) {
   const caller = createNimiDesktopShellRuntimeAccountCaller({ appId: APP_ID });
+  const attemptNonce = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   observationsLog.runtimeAccount = { stage: 'registering_app' };
   await createNimiRuntimeFullAppRegistration(
     () => ({ auth: runtime.auth }),
@@ -120,17 +121,34 @@ export async function completeRuntimeAccountLogin(runtime, observationsLog) {
       appInstanceId: caller.appInstanceId,
       deviceId: caller.deviceId,
       appVersion: 'desktop-explore-materialization-acceptance',
-      capabilities: PROTECTED_SCOPES,
+      capabilities: REGISTRATION_CAPABILITIES,
       developerRegistration: false,
     },
   )();
+  const sessionMetadata = await createNimiRuntimeAppSessionMetadataProvider({
+    appId: APP_ID,
+    appInstanceId: caller.appInstanceId,
+    deviceId: caller.deviceId,
+    appVersion: 'desktop-explore-materialization-acceptance',
+    capabilities: REGISTRATION_CAPABILITIES,
+    developerRegistration: false,
+    auth: runtime.auth,
+  })();
+  const accountControlMetadata = {
+    ...sessionMetadata,
+    'x-nimi-source-host': 'desktop-electron-account-host',
+    'x-nimi-app-id': caller.appId,
+    'x-nimi-app-instance-id': caller.appInstanceId,
+    'x-nimi-device-id': caller.deviceId,
+  };
+  const accountOptions = (key) => idempotency(key, { metadata: accountControlMetadata });
   observationsLog.runtimeAccount = { stage: 'begin_login' };
   const begin = await runtime.account.beginLogin({
     caller,
     redirectUri: 'http://localhost:46373/oauth/callback',
     callbackOrigin: '',
     ttlSeconds: 300,
-  }, idempotency(`account-begin:${caller.appInstanceId}`));
+  }, accountOptions(`account-begin:${caller.appInstanceId}:${attemptNonce}`));
   if (!begin.accepted || !begin.loginAttemptId) {
     throw new Error(`Runtime beginLogin rejected: ${JSON.stringify(begin)}`);
   }
@@ -144,30 +162,23 @@ export async function completeRuntimeAccountLogin(runtime, observationsLog) {
     redirectUri: 'http://localhost:46373/oauth/callback',
     sealedCompletionTicket: '',
     refreshToken: '',
-  }, idempotency(`account-complete:${begin.loginAttemptId}`));
+  }, accountOptions(`account-complete:${begin.loginAttemptId}:${attemptNonce}`));
   if (!complete.accepted) {
     throw new Error(`Runtime completeLogin rejected: ${JSON.stringify(complete)}`);
   }
   observationsLog.runtimeAccount = { stage: 'status', accountId: complete.accountProjection?.accountId || '' };
   const status = await runtime.account.getAccountSessionStatus(
     { caller },
-    idempotency(`account-status:${caller.appInstanceId}`),
+    accountOptions(`account-status:${caller.appInstanceId}:${attemptNonce}`),
   );
   if (status.state !== AccountSessionState.AUTHENTICATED || status.accountProjection?.accountId !== OWNER_USER_ID) {
     throw new Error(`Runtime account is not authenticated as ${OWNER_USER_ID}: ${JSON.stringify(status)}`);
   }
-  observationsLog.runtimeAccount = { stage: 'access_token', accountId: status.accountProjection?.accountId || '' };
-  const token = await runtime.account.getAccessToken(
-    { caller, requestedScopes: [] },
-    idempotency(`account-token:${caller.appInstanceId}`),
-  );
-  if (!token.accepted || !token.accessToken) {
-    throw new Error(`Runtime account token unavailable: ${JSON.stringify(token)}`);
-  }
   observationsLog.runtimeAccount = {
     stage: 'authenticated',
     accountId: status.accountProjection?.accountId || '',
-    tokenAvailable: true,
+    authCustody: 'runtime-account-service',
+    tokenProjected: false,
   };
 }
 
@@ -206,7 +217,7 @@ export function createAcceptanceAgentClient(runtime) {
     appInstanceId: `${APP_ID}.acceptance-agent-session`,
     deviceId: 'acceptance-agent-session',
     appVersion: 'desktop-explore-materialization-acceptance',
-    capabilities: PROTECTED_SCOPES,
+    capabilities: REGISTRATION_CAPABILITIES,
     developerRegistration: false,
     auth: runtime.auth,
   });

@@ -25,3 +25,18 @@ export const PROTECTED_SCOPES = [
   'runtime.agent.turn.write',
   'runtime.agent.write',
 ];
+export const ACCOUNT_BROKER_CAPABILITIES = [
+  'account.session.read',
+  'data.scope.read#realm.worlds.read-probe',
+  'data.scope.read#realm.core.world-characters',
+  'data.scope.read#realm.core.world-entities',
+  'data.scope.read#realm.core.world-relationships',
+  'data.scope.read#realm.account.private',
+  'data.scope.read#realm.social.private',
+  'data.scope.read#realm.group-chats.private',
+  'realm_source.snapshot.bind',
+];
+export const REGISTRATION_CAPABILITIES = [
+  ...PROTECTED_SCOPES,
+  ...ACCOUNT_BROKER_CAPABILITIES,
+];

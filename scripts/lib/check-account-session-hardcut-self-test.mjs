@@ -69,37 +69,36 @@ export function runAccountSessionHardcutSelfTest({
     {
       relPath: 'runtime/internal/services/account/service.go',
       source: `
-func (s *Service) GetAccountSessionStatus(req *Request) {
-  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+func (s *Service) GetAccountSessionStatus(ctx context.Context, req *Request) {
+  s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false)
   s.mu.RLock()
 }
-func (s *Service) GetAccessToken() { s.validateRuntimeAdmittedCaller(req.GetCaller(), true) }
-func (s *Service) SubscribeAccountSessionEvents(req *Request) {
-  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+func (s *Service) GetAccessToken(ctx context.Context, req *Request) { s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), true) }
+func (s *Service) SubscribeAccountSessionEvents(ctx context.Context, req *Request) {
+  s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false)
   s.subscribe(req)
 }
-func (s *Service) RefreshAccountSession(req *Request) {
-  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-  s.mu.Lock()
+func (s *Service) RefreshAccountSession(ctx context.Context, req *Request) {
+  return &Response{AccountReasonCode: ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED}
 }
-func (s *Service) Logout(req *Request) {
-  s.validateRuntimeAccountControlCaller(req.GetCaller())
+func (s *Service) Logout(ctx context.Context, req *Request) {
+  s.validateRuntimeAccountControlCaller(ctx, req.GetCaller())
   s.logout(ctx, reason)
 }
-func (s *Service) SwitchAccount(req *Request) {
-  s.validateRuntimeAccountControlCaller(req.GetCaller())
+func (s *Service) SwitchAccount(ctx context.Context, req *Request) {
+  s.validateRuntimeAccountControlCaller(ctx, req.GetCaller())
   s.mu.Lock()
 }
-func (s *Service) InvokeRealmUnary(req *Request) {
-  s.validateRuntimeAccountControlCaller(req.GetCaller())
+func (s *Service) InvokeRealmUnary(ctx context.Context, req *Request) {
+  s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false)
   parseRealmUnaryRequest(req)
 }
-func (s *Service) IssueScopedAppBinding() {
-  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+func (s *Service) IssueScopedAppBinding(ctx context.Context, req *Request) {
+  s.validateScopedBindingCaller(ctx, req.GetCaller())
   validateBindingCallerRelation(req.GetCaller(), relation)
 }
-func (s *Service) RevokeScopedAppBinding() {
-  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+func (s *Service) RevokeScopedAppBinding(ctx context.Context, req *Request) {
+  s.validateScopedBindingCaller(ctx, req.GetCaller())
   validateBindingCallerRelation(req.GetCaller(), record.relation)
   s.mu.Lock()
 }
@@ -265,7 +264,7 @@ func (s *Service) ObserveRefreshToken() {}
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime status caller admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime GetAccessToken caller admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime account event subscription caller admission')), true);
-  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime refresh caller admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime public refresh boundary')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime logout caller admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime switch caller admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime Realm unary caller admission')), true);

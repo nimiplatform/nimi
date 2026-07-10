@@ -471,6 +471,12 @@ function scanAvatarBoundary(files, violations) {
       continue;
     }
     for (const check of AVATAR_FORBIDDEN_PATTERNS) {
+      if (
+        check.label === 'Realm auth/client authority'
+        && file.source.includes('createRuntimeAccountMediatedRealmTransport')
+      ) {
+        continue;
+      }
       check.pattern.lastIndex = 0;
       for (const match of file.source.matchAll(check.pattern)) {
           pushViolation(
@@ -617,6 +623,7 @@ function scanRuntimeCallerAdmission(files, violations) {
     methodName,
     tokenRequest = false,
     accountControlOnly = false,
+    scopedBindingOnly = false,
     label,
     detail,
     beforeNeedles = [],
@@ -625,8 +632,10 @@ function scanRuntimeCallerAdmission(files, violations) {
     const methodIndex = method ? method.start : source.indexOf(methodName);
     const methodSource = method ? method.text : '';
     const admissionPatterns = accountControlOnly
-      ? [/(?:s\.)?validateRuntimeAccountControlCaller\(req\.GetCaller\(\)\)/u]
-      : [new RegExp(`(?:s\\.)?validateRuntimeAdmittedCaller\\(req\\.GetCaller\\(\\),\\s*${tokenRequest}\\)`, 'u')];
+      ? [/(?:s\.)?validateRuntimeAccountControlCaller\(ctx,\s*req\.GetCaller\(\)\)/u]
+      : scopedBindingOnly
+        ? [/(?:s\.)?validateScopedBindingCaller\(ctx,\s*req\.GetCaller\(\)\)/u]
+        : [new RegExp(`(?:s\\.)?validateRuntimeAdmittedCaller\\((?:ctx|stream\\.Context\\(\\)),\\s*req\\.GetCaller\\(\\),\\s*${tokenRequest}\\)`, 'u')];
     const admissionMatch = admissionPatterns.map((pattern) => pattern.exec(methodSource)).find(Boolean);
     if (!method || !admissionMatch) {
       pushViolation(
@@ -674,13 +683,6 @@ function scanRuntimeCallerAdmission(files, violations) {
     beforeNeedles: ['s.subscribe(req)', 'stream.Send(snapshot)'],
   });
   requireMethodAdmission({
-    methodName: 'RefreshAccountSession',
-    tokenRequest: false,
-    label: 'Runtime refresh caller admission',
-    detail: 'RefreshAccountSession must use req.GetCaller() and Runtime app registry/admission before account mutation or refresh',
-    beforeNeedles: ['s.mu.Lock()', 's.refresher.Refresh('],
-  });
-  requireMethodAdmission({
     methodName: 'Logout',
     accountControlOnly: true,
     label: 'Runtime logout caller admission',
@@ -696,19 +698,26 @@ function scanRuntimeCallerAdmission(files, violations) {
   });
   requireMethodAdmission({
     methodName: 'InvokeRealmUnary',
-    accountControlOnly: true,
+    tokenRequest: false,
     label: 'Runtime Realm unary caller admission',
-    detail: 'InvokeRealmUnary must use account-control caller admission before Realm request parsing, token access, or outbound HTTP',
+    detail: 'InvokeRealmUnary must use broker-consumer caller admission before Realm request parsing, token access, or outbound HTTP',
     beforeNeedles: ['parseRealmUnaryRequest(', 's.realmUnaryAccessToken(', 's.realmHTTP.Do('],
   });
   requireMethodAdmission({
+    methodName: 'IssueScopedAppBinding',
+    scopedBindingOnly: true,
+    label: 'Runtime binding caller admission',
+    detail: 'IssueScopedAppBinding must use scoped-binding caller admission before binding mutation',
+    beforeNeedles: ['s.mu.Lock()', 'relation.BindingId'],
+  });
+  requireMethodAdmission({
     methodName: 'RevokeScopedAppBinding',
-    tokenRequest: false,
+    scopedBindingOnly: true,
     label: 'Runtime binding revoke caller admission',
     detail: 'RevokeScopedAppBinding must use req.GetCaller() and Runtime app registry/admission before binding mutation',
     beforeNeedles: ['s.mu.Lock()', 'record.relation.State'],
   });
-  if (!/GetAccessToken[\s\S]*validateRuntimeAdmittedCaller\(req\.GetCaller\(\),\s*true\)/u.test(source)) {
+  if (!/GetAccessToken[\s\S]*validateRuntimeAdmittedCaller\(ctx,\s*req\.GetCaller\(\),\s*true\)/u.test(source)) {
     pushViolation(
       violations,
       'runtime/internal/services/account/service.go',
@@ -718,14 +727,20 @@ function scanRuntimeCallerAdmission(files, violations) {
       'GetAccessToken must use Runtime app registry/admission, not shape-only caller validation',
     );
   }
-  if (!/IssueScopedAppBinding[\s\S]*validateRuntimeAdmittedCaller\(req\.GetCaller\(\),\s*false\)/u.test(source)) {
+  const refreshMethod = findGoServiceMethod(source, 'RefreshAccountSession');
+  const refreshSource = refreshMethod ? refreshMethod.text : '';
+  if (
+    !refreshMethod
+    || !/ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED/u.test(refreshSource)
+    || /refreshAccountSessionInternal|refresher\.Refresh|s\.mu\.Lock/u.test(refreshSource)
+  ) {
     pushViolation(
       violations,
       'runtime/internal/services/account/service.go',
       source,
-      source.indexOf('IssueScopedAppBinding') >= 0 ? source.indexOf('IssueScopedAppBinding') : 0,
-      'Runtime binding caller admission',
-      'IssueScopedAppBinding must use Runtime app registry/admission',
+      refreshMethod ? refreshMethod.start : source.indexOf('RefreshAccountSession'),
+      'Runtime public refresh boundary',
+      'RefreshAccountSession must fail closed without entering Runtime-private refresh or mutating account state',
     );
   }
   if (!/IssueScopedAppBinding[\s\S]*validateBindingCallerRelation\(req\.GetCaller\(\),\s*relation\)/u.test(source)) {

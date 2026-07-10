@@ -168,11 +168,26 @@ test('Desktop Electron shell boots the Desktop renderer with auth and standard s
       assert.equal(oauthForbidden.code, 'forbidden-renderer-access');
       assert.equal(oauthForbidden.reasonCode, 'electron-oauth-external-url-not-allowed');
 
-      for (const commandKey of ['auth.sessionLoad', 'auth.sessionSave', 'auth.sessionClear']) {
-        const error = await captureInvokeError(page, commandKey, {});
-        assert.equal(error.code, 'external-daemon-required', commandKey);
-        assert.equal(error.reasonCode, 'electron-runtime-account-custody-external', commandKey);
-        assert.equal(error.source, 'electron', commandKey);
+      for (const command of [
+        'nimi.shell.auth.session.load',
+        'nimi.shell.auth.session.save',
+        'nimi.shell.auth.session.clear',
+      ]) {
+        const error = await page.evaluate(async ({ retiredCommand }) => {
+          try {
+            await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(retiredCommand, {});
+            return null;
+          } catch (caught) {
+            return {
+              code: caught?.code,
+              reasonCode: caught?.reasonCode,
+              source: caught?.source,
+            };
+          }
+        }, { retiredCommand: command });
+        assert.equal(error.code, 'external-daemon-required', command);
+        assert.equal(error.reasonCode, 'electron-runtime-account-custody-external', command);
+        assert.equal(error.source, 'electron', command);
       }
 
       const dataPath = await invokeShell(page, 'data.pathResolve', { relativePath: 'settings/profile.json' });
