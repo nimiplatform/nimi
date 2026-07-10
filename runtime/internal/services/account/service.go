@@ -20,7 +20,7 @@ func (s *Service) GetAccountSessionStatus(ctx context.Context, req *runtimev1.Ge
 			ProductionInert:   true,
 		}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(req.GetCaller(), false); !ok {
+	if reason, ok := s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false); !ok {
 		return &runtimev1.GetAccountSessionStatusResponse{
 			State:             s.currentState(),
 			ReasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
@@ -41,7 +41,7 @@ func (s *Service) SubscribeAccountSessionEvents(req *runtimev1.SubscribeAccountS
 	if !s.isActivated() {
 		return stream.Send(s.rejectedAccountSessionEvent(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED))
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(req.GetCaller(), false); !ok {
+	if reason, ok := s.validateRuntimeAdmittedCaller(stream.Context(), req.GetCaller(), false); !ok {
 		return stream.Send(s.rejectedAccountSessionEvent(reason))
 	}
 	snapshot, replay, sub := s.subscribe(req)
@@ -77,7 +77,7 @@ func (s *Service) BeginLogin(ctx context.Context, req *runtimev1.BeginLoginReque
 			ProductionInert:   true,
 		}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(req.GetCaller(), false); !ok {
+	if reason, ok := s.validateRuntimeAccountControlCaller(ctx, req.GetCaller()); !ok {
 		return &runtimev1.BeginLoginResponse{ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	now := s.now().UTC()
@@ -206,6 +206,9 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 			ProductionInert:   true,
 		}, nil
 	}
+	if reason, ok := s.validateRuntimeAccountControlCaller(ctx, req.GetCaller()); !ok {
+		return &runtimev1.CompleteLoginResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
+	}
 	if strings.TrimSpace(req.GetSealedCompletionTicket()) != "" {
 		return &runtimev1.CompleteLoginResponse{
 			Accepted:          false,
@@ -301,18 +304,22 @@ func (s *Service) GetAccessToken(ctx context.Context, req *runtimev1.GetAccessTo
 	if !s.isActivated() {
 		return &runtimev1.GetAccessTokenResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(req.GetCaller(), true); !ok {
+	if reason, ok := s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), true); !ok {
 		return &runtimev1.GetAccessTokenResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	s.mu.RLock()
-	if (s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED && s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED) || s.material.RefreshToken == "" {
+	if (s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
+		s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED &&
+		s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING) || s.material.RefreshToken == "" {
 		s.mu.RUnlock()
 		return &runtimev1.GetAccessTokenResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
-	needsRefresh := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED || !s.material.AccessTokenExpires.IsZero() && !s.material.AccessTokenExpires.After(s.now().UTC().Add(30*time.Second))
+	needsRefresh := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED ||
+		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING ||
+		!s.material.AccessTokenExpires.IsZero() && !s.material.AccessTokenExpires.After(s.now().UTC().Add(30*time.Second))
 	s.mu.RUnlock()
 	if needsRefresh {
-		refresh, err := s.RefreshAccountSession(ctx, &runtimev1.RefreshAccountSessionRequest{Caller: req.GetCaller()})
+		refresh, err := s.refreshAccountSessionInternal(ctx, false)
 		if err != nil {
 			return nil, err
 		}
@@ -338,59 +345,14 @@ func (s *Service) RefreshAccountSession(ctx context.Context, req *runtimev1.Refr
 	if !s.isActivated() {
 		return &runtimev1.RefreshAccountSessionResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(req.GetCaller(), false); !ok {
-		return &runtimev1.RefreshAccountSessionResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
-	}
-	s.mu.Lock()
-	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED && s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED {
-		state := s.state
-		s.mu.Unlock()
-		return &runtimev1.RefreshAccountSessionResponse{Accepted: false, State: state, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
-	}
-	current := s.material
-	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
-	startEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	s.mu.Unlock()
-	s.publish(startEvent)
-
-	next, err := s.refresher.Refresh(ctx, current)
-	if err != nil {
-		s.transitionToReauthRequired(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE)
-		return &runtimev1.RefreshAccountSessionResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE}, nil
-	}
-	next = normalizeMaterial(next)
-	next.RefreshTokenHashes = copyRefreshHashes(current.RefreshTokenHashes)
-	next.RefreshTokenHashes[refreshHash(current.RefreshToken)] = true
-	if next.RefreshToken == "" || next.AccessToken == "" || next.AccountID != current.AccountID {
-		s.transitionToReauthRequired(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE)
-		return &runtimev1.RefreshAccountSessionResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_AUTH_TOKEN_INVALID, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE}, nil
-	}
-	if err := s.custody.Store(ctx, s.partition, next); err != nil {
-		s.markCustodyUnavailable()
-		return &runtimev1.RefreshAccountSessionResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE}, nil
-	}
-	s.mu.Lock()
-	s.material = next
-	s.projection = projectionFromMaterial(next)
-	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED
-	revoked := s.revokeWorkspaceBindingsWithoutActiveMembershipLocked()
-	refreshEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_COMPLETED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
-	projection := cloneProjection(s.projection)
-	s.mu.Unlock()
-	for _, event := range revoked {
-		s.publish(event)
-	}
-	s.publish(refreshEvent)
-	s.publish(statusEvent)
-	return &runtimev1.RefreshAccountSessionResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED, AccountProjection: projection, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
+	return &runtimev1.RefreshAccountSessionResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED}, nil
 }
 
 func (s *Service) Logout(ctx context.Context, req *runtimev1.LogoutRequest) (*runtimev1.LogoutResponse, error) {
 	if !s.isActivated() {
 		return &runtimev1.LogoutResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
-	if reason, ok := s.validateRuntimeAccountControlCaller(req.GetCaller()); !ok {
+	if reason, ok := s.validateRuntimeAccountControlCaller(ctx, req.GetCaller()); !ok {
 		return &runtimev1.LogoutResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	return s.logout(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
@@ -400,7 +362,7 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 	if !s.isActivated() {
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
-	if reason, ok := s.validateRuntimeAccountControlCaller(req.GetCaller()); !ok {
+	if reason, ok := s.validateRuntimeAccountControlCaller(ctx, req.GetCaller()); !ok {
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: s.currentState(), ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	s.mu.Lock()
@@ -433,7 +395,7 @@ func (s *Service) IssueScopedAppBinding(ctx context.Context, req *runtimev1.Issu
 	if !s.isActivated() {
 		return &runtimev1.IssueScopedAppBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(req.GetCaller(), false); !ok {
+	if reason, ok := s.validateScopedBindingCaller(ctx, req.GetCaller()); !ok {
 		return &runtimev1.IssueScopedAppBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	relation := cloneRelation(req.GetRelation())
@@ -484,7 +446,7 @@ func (s *Service) RevokeScopedAppBinding(ctx context.Context, req *runtimev1.Rev
 	if !s.isActivated() {
 		return &runtimev1.RevokeScopedAppBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(req.GetCaller(), false); !ok {
+	if reason, ok := s.validateScopedBindingCaller(ctx, req.GetCaller()); !ok {
 		return &runtimev1.RevokeScopedAppBindingResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
 	bindingID := strings.TrimSpace(req.GetBindingId())

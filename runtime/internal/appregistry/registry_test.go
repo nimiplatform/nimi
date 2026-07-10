@@ -86,6 +86,35 @@ func TestRegistryAdmissionDistinguishesFirstPartyAndDeveloperInstances(t *testin
 	}
 }
 
+func TestRegistryInstancesRetainIndependentCapabilities(t *testing.T) {
+	registry := New()
+	manifest := &runtimev1.AppModeManifest{
+		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+		RuntimeRequired: true,
+		RealmRequired:   true,
+		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_RENDER,
+	}
+	if err := registry.UpsertInstance("nimi.desktop", "nimi.desktop.local-first-party", "desktop-shell", manifest, []string{"account.session.read", "realm_source.snapshot.bind"}); err != nil {
+		t.Fatalf("register Desktop account instance: %v", err)
+	}
+	if err := registry.UpsertInstance("nimi.desktop", "nimi.desktop.runtime-agent", "runtime-agent", manifest, []string{"runtime.agent.read"}); err != nil {
+		t.Fatalf("register Desktop Runtime Agent instance: %v", err)
+	}
+
+	record, ok := registry.Get("nimi.desktop")
+	if !ok {
+		t.Fatal("expected Desktop registry record")
+	}
+	accountInstance := record.Instances["nimi.desktop.local-first-party"]
+	runtimeAgentInstance := record.Instances["nimi.desktop.runtime-agent"]
+	if len(accountInstance.Capabilities) != 2 || accountInstance.Capabilities[1] != "realm_source.snapshot.bind" {
+		t.Fatalf("Desktop account instance capabilities were overwritten: %#v", accountInstance.Capabilities)
+	}
+	if len(runtimeAgentInstance.Capabilities) != 1 || runtimeAgentInstance.Capabilities[0] != "runtime.agent.read" {
+		t.Fatalf("Desktop Runtime Agent instance capabilities mismatch: %#v", runtimeAgentInstance.Capabilities)
+	}
+}
+
 func TestRegistryAdmissionDistinguishesDesktopLaunchedInstalledNimiApps(t *testing.T) {
 	registry := New()
 	manifest := &runtimev1.AppModeManifest{

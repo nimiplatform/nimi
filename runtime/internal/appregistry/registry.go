@@ -32,6 +32,7 @@ type Record struct {
 type InstanceRecord struct {
 	AppInstanceID          string
 	DeviceID               string
+	Capabilities           []string
 	RegisteredAt           time.Time
 	DeveloperRegistration  bool
 	DesktopLaunchedNimiApp *DesktopLaunchedNimiAppAdmission
@@ -70,6 +71,10 @@ func (r *Registry) Upsert(appID string, manifest *runtimev1.AppModeManifest, cap
 	record.AppID = appID
 	record.Manifest = cloneManifest(manifest)
 	record.Capabilities = append([]string(nil), capabilities...)
+	for instanceID, instance := range record.Instances {
+		instance.Capabilities = append([]string(nil), capabilities...)
+		record.Instances[instanceID] = instance
+	}
 	record.UpdatedAt = time.Now().UTC()
 	if record.Instances == nil {
 		record.Instances = make(map[string]InstanceRecord)
@@ -107,6 +112,7 @@ func (r *Registry) UpsertInstanceWithAdmission(appID string, appInstanceID strin
 	record.Instances[appInstanceID] = InstanceRecord{
 		AppInstanceID:          appInstanceID,
 		DeviceID:               strings.TrimSpace(deviceID),
+		Capabilities:           append([]string(nil), capabilities...),
 		RegisteredAt:           now,
 		DeveloperRegistration:  developerRegistration,
 		DesktopLaunchedNimiApp: desktopAdmission,
@@ -142,6 +148,7 @@ func (r *Registry) UpsertDesktopLaunchedNimiAppInstance(
 	record.Instances[appInstanceID] = InstanceRecord{
 		AppInstanceID:          appInstanceID,
 		DeviceID:               strings.TrimSpace(deviceID),
+		Capabilities:           append([]string(nil), capabilities...),
 		RegisteredAt:           now,
 		DesktopLaunchedNimiApp: cloneDesktopLaunchedNimiAppAdmission(&admission),
 	}
@@ -283,6 +290,7 @@ func cloneInstances(input map[string]InstanceRecord) map[string]InstanceRecord {
 	}
 	output := make(map[string]InstanceRecord, len(input))
 	for key, value := range input {
+		value.Capabilities = append([]string(nil), value.Capabilities...)
 		value.DesktopLaunchedNimiApp = cloneDesktopLaunchedNimiAppAdmission(value.DesktopLaunchedNimiApp)
 		output[key] = value
 	}

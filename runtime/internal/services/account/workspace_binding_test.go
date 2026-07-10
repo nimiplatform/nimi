@@ -27,12 +27,12 @@ func testMaterialWithWorkspace(accountID string, accessToken string, refreshToke
 
 func completeWorkspaceLogin(t *testing.T, svc *Service) {
 	t.Helper()
-	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: firstPartyCaller()})
+	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
 	}
 	complete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         firstPartyCaller(),
+		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           "auth-code",
 		State:          begin.GetState(),
@@ -587,7 +587,7 @@ func TestWorkspaceBindingRevocationAndMembershipLoss(t *testing.T) {
 
 	refreshMaterial := testMaterialWithWorkspace("acct-1", "access-2", "refresh-2", "workspace-2")
 	svc.refresher = staticRefresher{material: refreshMaterial}
-	refresh, err := svc.RefreshAccountSession(context.Background(), &runtimev1.RefreshAccountSessionRequest{Caller: firstPartyCaller()})
+	refresh, err := svc.refreshAccountSessionInternal(context.Background(), true)
 	if err != nil {
 		t.Fatalf("RefreshAccountSession: %v", err)
 	}
@@ -608,7 +608,7 @@ func TestLogoutAndSwitchRevokeWorkspaceBindings(t *testing.T) {
 		{
 			name: "logout",
 			act: func(svc *Service) error {
-				resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: firstPartyCaller()})
+				resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
 				if err != nil {
 					return err
 				}
@@ -621,7 +621,7 @@ func TestLogoutAndSwitchRevokeWorkspaceBindings(t *testing.T) {
 		{
 			name: "switch",
 			act: func(svc *Service) error {
-				resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: firstPartyCaller()})
+				resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: desktopAccountControlCaller()})
 				if err != nil {
 					return err
 				}

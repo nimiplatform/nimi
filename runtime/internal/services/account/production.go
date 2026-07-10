@@ -34,6 +34,7 @@ type ProductionConfig struct {
 	TestCustodyFilePath string
 	HTTPClient          *http.Client
 	AppRegistry         *appregistry.Registry
+	AppSessionValidator AppSessionValidator
 }
 
 type custodySnapshot struct {
@@ -108,6 +109,7 @@ func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 		WithRealmHTTPClient(resolved.HTTPClient),
 		WithRealmBaseURL(resolved.RealmBaseURL),
 		WithAppRegistry(resolved.AppRegistry),
+		WithAppSessionValidator(resolved.AppSessionValidator),
 	)
 }
 
@@ -176,6 +178,7 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 		TestCustodyFilePath: strings.TrimSpace(testCustodyFilePath),
 		HTTPClient:          httpClient,
 		AppRegistry:         cfg.AppRegistry,
+		AppSessionValidator: cfg.AppSessionValidator,
 	}
 }
 

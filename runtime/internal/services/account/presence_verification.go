@@ -32,7 +32,16 @@ func (s *Service) RequestPresenceVerification(ctx context.Context, req *runtimev
 			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_MISMATCHED,
 		}, nil
 	}
-	if reason, ok := s.validateRuntimeAdmittedCaller(req.GetCaller(), false); !ok {
+	if req.GetCaller().GetMode() == runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP {
+		return &runtimev1.RequestPresenceVerificationResponse{
+			Accepted:          false,
+			State:             runtimev1.PresenceVerificationState_PRESENCE_VERIFICATION_STATE_REJECTED,
+			Purpose:           purpose,
+			ReasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
+			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED,
+		}, nil
+	}
+	if reason, ok := s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false); !ok {
 		return &runtimev1.RequestPresenceVerificationResponse{
 			Accepted:          false,
 			State:             runtimev1.PresenceVerificationState_PRESENCE_VERIFICATION_STATE_REJECTED,

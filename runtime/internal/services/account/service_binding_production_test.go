@@ -189,7 +189,7 @@ func TestValidateScopedBindingFailsAfterNonAuthenticatedAccountTransitions(t *te
 			name: "refresh_failure_reauth_required",
 			act: func(t *testing.T, svc *Service) {
 				svc.refresher = staticRefresher{err: errors.New("refresh failed")}
-				resp, err := svc.RefreshAccountSession(context.Background(), &runtimev1.RefreshAccountSessionRequest{Caller: firstPartyCaller()})
+				resp, err := svc.refreshAccountSessionInternal(context.Background(), true)
 				if err != nil {
 					t.Fatalf("RefreshAccountSession: %v", err)
 				}
@@ -201,7 +201,7 @@ func TestValidateScopedBindingFailsAfterNonAuthenticatedAccountTransitions(t *te
 		{
 			name: "refresh_reuse_reauth_required",
 			act: func(t *testing.T, svc *Service) {
-				resp, err := svc.RefreshAccountSession(context.Background(), &runtimev1.RefreshAccountSessionRequest{Caller: firstPartyCaller()})
+				resp, err := svc.refreshAccountSessionInternal(context.Background(), true)
 				if err != nil {
 					t.Fatalf("RefreshAccountSession: %v", err)
 				}
@@ -216,7 +216,7 @@ func TestValidateScopedBindingFailsAfterNonAuthenticatedAccountTransitions(t *te
 		{
 			name: "logout",
 			act: func(t *testing.T, svc *Service) {
-				resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: firstPartyCaller()})
+				resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
 				if err != nil {
 					t.Fatalf("Logout: %v", err)
 				}
@@ -228,7 +228,7 @@ func TestValidateScopedBindingFailsAfterNonAuthenticatedAccountTransitions(t *te
 		{
 			name: "switch",
 			act: func(t *testing.T, svc *Service) {
-				resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: firstPartyCaller()})
+				resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: desktopAccountControlCaller()})
 				if err != nil {
 					t.Fatalf("SwitchAccount: %v", err)
 				}
@@ -339,8 +339,8 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 		HTTPClient:       authServer.Client(),
 	}))
 	svc := newProductionHarnessService(t, custody, WithLoginExchanger(exchanger))
-	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
-		Caller:      firstPartyCaller(),
+	begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{
+		Caller:      desktopAccountControlCaller(),
 		RedirectUri: "http://localhost:46373/oauth/callback",
 	})
 	if err != nil {
@@ -381,8 +381,8 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 	if strings.Contains(authorizeURL, "desktop_callback=") || strings.Contains(authorizeURL, "desktop_state=") {
 		t.Fatalf("authorize URL must not embed legacy web-relay params, got %q", authorizeURL)
 	}
-	complete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         firstPartyCaller(),
+	complete, err := svc.CompleteLogin(desktopAccountControlContext(), &runtimev1.CompleteLoginRequest{
+		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           "auth-code",
 		State:          begin.GetState(),
@@ -401,7 +401,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 	if exchangeCalls != 1 || !custody.has || custody.material.RefreshToken != "refresh-prod" {
 		t.Fatalf("exchange/custody mismatch calls=%d custody=%+v", exchangeCalls, custody.material)
 	}
-	token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
+	token, err := svc.GetAccessToken(desktopAccountControlContext(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
 	if err != nil {
 		t.Fatalf("GetAccessToken: %v", err)
 	}
@@ -452,8 +452,8 @@ func TestProductionCompleteLoginRejectsNonCanonicalOAuthTokenResponses(t *testin
 				HTTPClient:       authServer.Client(),
 			}))
 			svc := newProductionHarnessService(t, custody, WithLoginExchanger(exchanger))
-			begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
-				Caller:      firstPartyCaller(),
+			begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{
+				Caller:      desktopAccountControlCaller(),
 				RedirectUri: "http://localhost:46373/oauth/callback",
 			})
 			if err != nil {
@@ -462,8 +462,8 @@ func TestProductionCompleteLoginRejectsNonCanonicalOAuthTokenResponses(t *testin
 			if !begin.GetAccepted() {
 				t.Fatalf("BeginLogin not accepted: %+v", begin)
 			}
-			complete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-				Caller:         firstPartyCaller(),
+			complete, err := svc.CompleteLogin(desktopAccountControlContext(), &runtimev1.CompleteLoginRequest{
+				Caller:         desktopAccountControlCaller(),
 				LoginAttemptId: begin.GetLoginAttemptId(),
 				Code:           "auth-code",
 				State:          begin.GetState(),
@@ -496,8 +496,8 @@ func TestProductionBeginLoginMissingOAuthAuthorityFailsClosed(t *testing.T) {
 		HTTPClient:  http.DefaultClient,
 	}))
 	svc := newProductionHarnessService(t, &memoryCustody{}, WithLoginExchanger(exchanger))
-	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
-		Caller:      firstPartyCaller(),
+	begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{
+		Caller:      desktopAccountControlCaller(),
 		RedirectUri: "http://localhost:46373/oauth/callback",
 	})
 	if err != nil {
@@ -529,8 +529,8 @@ func TestProductionBeginLoginSentinelOAuthAuthorityFailsClosed(t *testing.T) {
 		HTTPClient:       http.DefaultClient,
 	}))
 	svc := newProductionHarnessService(t, &memoryCustody{}, WithLoginExchanger(exchanger))
-	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
-		Caller:      firstPartyCaller(),
+	begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{
+		Caller:      desktopAccountControlCaller(),
 		RedirectUri: "http://localhost:46373/oauth/callback",
 	})
 	if err != nil {
@@ -559,16 +559,16 @@ func TestProductionCompleteLoginRejectsBrowserCallbackTokens(t *testing.T) {
 		HTTPClient:       http.DefaultClient,
 	}))
 	svc := newProductionHarnessService(t, custody, WithLoginExchanger(exchanger))
-	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
-		Caller:      firstPartyCaller(),
+	begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{
+		Caller:      desktopAccountControlCaller(),
 		RedirectUri: "http://localhost:46373/oauth/callback",
 	})
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
 	}
 	accessToken := unsignedTestJWT("acct-web-callback")
-	complete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         firstPartyCaller(),
+	complete, err := svc.CompleteLogin(desktopAccountControlContext(), &runtimev1.CompleteLoginRequest{
+		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           accessToken,
 		RefreshToken:   "refresh-web-callback",
@@ -591,12 +591,12 @@ func TestProductionCompleteLoginRejectsBrowserCallbackTokens(t *testing.T) {
 
 func TestProductionSecureCustodyUnavailableFailsClosed(t *testing.T) {
 	svc := newProductionHarnessService(t, &memoryCustody{err: ErrCustodyUnavailable})
-	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: firstPartyCaller()})
+	begin, err := svc.BeginLogin(desktopAccountControlContext(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
 	}
-	complete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         firstPartyCaller(),
+	complete, err := svc.CompleteLogin(desktopAccountControlContext(), &runtimev1.CompleteLoginRequest{
+		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           "auth-code",
 		State:          begin.GetState(),
@@ -641,7 +641,7 @@ func TestProductionGetAccessTokenRefreshesExpiredProjection(t *testing.T) {
 	expired.AccessTokenExpires = time.Now().UTC().Add(-time.Minute)
 	custody := &memoryCustody{material: expired, has: true}
 	svc := newProductionHarnessService(t, custody, WithRefresher(staticRefresher{material: testMaterial("acct-1", "access-new", "refresh-new")}))
-	token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
+	token, err := svc.GetAccessToken(desktopAccountControlContext(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
 	if err != nil {
 		t.Fatalf("GetAccessToken: %v", err)
 	}
@@ -652,12 +652,12 @@ func TestProductionGetAccessTokenRefreshesExpiredProjection(t *testing.T) {
 
 func TestCompleteLoginRejectsSealedTicketAndInertExchange(t *testing.T) {
 	svc := newHarnessService(t, nil)
-	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: firstPartyCaller()})
+	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
 	}
 	resp, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:                 firstPartyCaller(),
+		Caller:                 desktopAccountControlCaller(),
 		LoginAttemptId:         begin.GetLoginAttemptId(),
 		State:                  begin.GetState(),
 		Nonce:                  begin.GetNonce(),
@@ -671,12 +671,12 @@ func TestCompleteLoginRejectsSealedTicketAndInertExchange(t *testing.T) {
 	}
 
 	exchangeDown := newHarnessService(t, nil, WithLoginExchanger(staticExchanger{err: errors.New("exchange unavailable")}))
-	begin, err = exchangeDown.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: firstPartyCaller()})
+	begin, err = exchangeDown.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("BeginLogin exchangeDown: %v", err)
 	}
 	resp, err = exchangeDown.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         firstPartyCaller(),
+		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           "auth-code",
 		State:          begin.GetState(),

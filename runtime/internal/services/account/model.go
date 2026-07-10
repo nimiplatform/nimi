@@ -81,6 +81,10 @@ type PresenceVerifier interface {
 	RequestPresenceVerification(ctx context.Context, request PresenceVerificationRequest) (PresenceVerification, error)
 }
 
+type AppSessionValidator interface {
+	ValidateAppSessionBinding(appID string, appInstanceID string, deviceID string, sessionID string, sessionToken string) (runtimev1.ReasonCode, bool)
+}
+
 type LoginAuthorizationURLProvider interface {
 	AuthorizationURL(attempt LoginAttempt) string
 }
@@ -145,28 +149,31 @@ type Service struct {
 	logger *slog.Logger
 	now    func() time.Time
 
-	custody          Custody
-	exchanger        LoginExchanger
-	refresher        Refresher
-	registry         *appregistry.Registry
-	realmHTTP        *http.Client
-	realmBaseURL     string
-	presenceVerifier PresenceVerifier
+	custody             Custody
+	exchanger           LoginExchanger
+	refresher           Refresher
+	registry            *appregistry.Registry
+	realmHTTP           *http.Client
+	realmBaseURL        string
+	presenceVerifier    PresenceVerifier
+	appSessionValidator AppSessionValidator
 
 	partition                string
 	productionActivated      bool
 	nonProductionHarnessMode bool
 	eventRetention           int
 
-	mu                sync.RWMutex
-	state             runtimev1.AccountSessionState
-	projection        *runtimev1.AccountProjection
-	material          AccountMaterial
-	loginAttempts     map[string]loginAttemptRecord
-	bindings          map[string]bindingRecord
-	workspaceBindings map[string]workspaceBindingRecord
-	nextSequence      uint64
-	events            []*runtimev1.AccountSessionEvent
-	nextSubscriberID  uint64
-	subscribers       map[uint64]subscriber
+	refreshMu           sync.Mutex
+	mu                  sync.RWMutex
+	state               runtimev1.AccountSessionState
+	projection          *runtimev1.AccountProjection
+	material            AccountMaterial
+	loginAttempts       map[string]loginAttemptRecord
+	bindings            map[string]bindingRecord
+	workspaceBindings   map[string]workspaceBindingRecord
+	nextSequence        uint64
+	events              []*runtimev1.AccountSessionEvent
+	nextSubscriberID    uint64
+	subscribers         map[uint64]subscriber
+	launchNonceSessions map[string]string
 }

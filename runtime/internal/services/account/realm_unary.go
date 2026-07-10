@@ -16,79 +16,19 @@ import (
 
 const realmUnaryDefaultTimeout = 30 * time.Second
 
-const (
-	realmDesktopAppID       = "nimi.desktop"
-	realmPersonaStudioAppID = "nimi.realm-persona-studio"
-	realmWorldStudioAppID   = "nimi.realm-world-studio"
-	realmZhiyuAppID         = "nimi.zhiyu"
-)
-
 type realmUnaryOperation struct {
-	method        string
-	path          string
-	allowedAppIDs []string
-}
-
-var realmUnaryOperations = map[string]realmUnaryOperation{
-	"WorldCoreController_bootstrapOasisWorld":               worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/oasis/bootstrap"),
-	"WorldCoreController_createRealmPersona":                personaStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/personas"),
-	"WorldCoreController_createSourceMaterializationPacket": studioRealmUnaryOperation(http.MethodPost, "/api/realm/core/source-materialization-packets", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"WorldCoreController_createWorldCharacter":              worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/worlds/{worldId}/characters"),
-	"WorldCoreController_createWorldCore":                   worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/worlds"),
-	"WorldCoreController_createWorldEntity":                 worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/worlds/{worldId}/entities"),
-	"WorldCoreController_createWorldRelationship":           worldStudioRealmUnaryOperation(http.MethodPost, "/api/realm/core/worlds/{worldId}/relationships"),
-	"WorldCoreController_getOasisWorld":                     studioRealmUnaryOperation(http.MethodGet, "/api/realm/core/oasis", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"WorldCoreController_getRealmPersona":                   personaStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/personas/{personaId}"),
-	"WorldCoreController_getWorldCharacter":                 worldStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/world-characters/{characterId}"),
-	"WorldCoreController_getWorldCore":                      studioRealmUnaryOperation(http.MethodGet, "/api/realm/core/worlds/{worldId}", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"WorldCoreController_getWorldEntity":                    worldStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/world-entities/{entityId}"),
-	"WorldCoreController_getWorldRelationship":              worldStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/world-relationships/{relationshipId}"),
-	"WorldCoreController_listRealmPersonas":                 personaStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/personas"),
-	"WorldCoreController_listWorldCharacters":               worldStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/worlds/{worldId}/characters"),
-	"WorldCoreController_listWorldCores":                    studioRealmUnaryOperation(http.MethodGet, "/api/realm/core/worlds", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"WorldCoreController_listWorldEntities":                 worldStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/worlds/{worldId}/entities"),
-	"WorldCoreController_listWorldRelationships":            worldStudioRealmUnaryOperation(http.MethodGet, "/api/realm/core/worlds/{worldId}/relationships"),
-	"WorldCoreController_replaceRealmPersona":               personaStudioRealmUnaryOperation(http.MethodPut, "/api/realm/core/personas/{personaId}"),
-	"WorldCoreController_replaceWorldCharacter":             worldStudioRealmUnaryOperation(http.MethodPut, "/api/realm/core/world-characters/{characterId}"),
-	"WorldCoreController_replaceWorldCore":                  worldStudioRealmUnaryOperation(http.MethodPut, "/api/realm/core/worlds/{worldId}"),
-	"WorldCoreController_replaceWorldEntity":                worldStudioRealmUnaryOperation(http.MethodPut, "/api/realm/core/world-entities/{entityId}"),
-	"WorldCoreController_replaceWorldRelationship":          worldStudioRealmUnaryOperation(http.MethodPut, "/api/realm/core/world-relationships/{relationshipId}"),
-	"WorldPublicController_getWorld":                        publicWorldRealmUnaryOperation(http.MethodGet, "/api/world/by-id/{worldId}"),
-	"WorldPublicController_getWorldDetailWithCharacters":    publicWorldRealmUnaryOperation(http.MethodGet, "/api/world/by-id/{worldId}/detail-with-characters"),
-	"WorldPublicController_listWorldCharacters":             publicWorldRealmUnaryOperation(http.MethodGet, "/api/world/by-id/{worldId}/characters"),
-	"WorldPublicController_listWorlds":                      publicWorldRealmUnaryOperation(http.MethodGet, "/api/world"),
-	"createPost":                                            personaStudioRealmUnaryOperation(http.MethodPost, "/api/world/posts"),
-	"listResources":                                         personaStudioRealmUnaryOperation(http.MethodGet, "/api/resources"),
-	"createImageDirectUpload":                               studioRealmUnaryOperation(http.MethodPost, "/api/resources/images/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"createVideoDirectUpload":                               studioRealmUnaryOperation(http.MethodPost, "/api/resources/videos/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"createAudioDirectUpload":                               studioRealmUnaryOperation(http.MethodPost, "/api/resources/audio/direct-upload", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"finalizeResource":                                      studioRealmUnaryOperation(http.MethodPost, "/api/resources/{resourceId}/finalize", realmPersonaStudioAppID, realmWorldStudioAppID),
-	"createTextResource":                                    studioRealmUnaryOperation(http.MethodPost, "/api/resources/texts", realmPersonaStudioAppID, realmWorldStudioAppID),
-}
-
-func personaStudioRealmUnaryOperation(method string, path string) realmUnaryOperation {
-	return studioRealmUnaryOperation(method, path, realmPersonaStudioAppID)
-}
-
-func worldStudioRealmUnaryOperation(method string, path string) realmUnaryOperation {
-	return studioRealmUnaryOperation(method, path, realmWorldStudioAppID)
-}
-
-func publicWorldRealmUnaryOperation(method string, path string) realmUnaryOperation {
-	return studioRealmUnaryOperation(method, path, realmDesktopAppID, realmZhiyuAppID)
-}
-
-func studioRealmUnaryOperation(method string, path string, appIDs ...string) realmUnaryOperation {
-	return realmUnaryOperation{method: method, path: path, allowedAppIDs: appIDs}
-}
-
-func (operation realmUnaryOperation) admitsApp(appID string) bool {
-	for _, allowed := range operation.allowedAppIDs {
-		if strings.TrimSpace(appID) == allowed {
-			return true
-		}
-	}
-	return false
+	method                  string
+	path                    string
+	allowedCallerModes      map[runtimev1.AccountCallerMode]struct{}
+	allowedSDKAppModes      []string
+	requiredAppCapabilities []string
+	requiredRuntimeScopes   []string
+	allowedPathParameters   map[string]struct{}
+	requiredPathParameters  map[string]struct{}
+	allowedQueryParameters  map[string]struct{}
+	requestBodyAllowed      bool
+	requestBodyRequired     bool
+	responseMaxBytes        int64
 }
 
 type realmUnaryRequestJSON struct {
@@ -101,24 +41,22 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	if !s.isActivated() {
 		return &runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED, ProductionInert: true}, nil
 	}
-	if reason, ok := s.validateRuntimeAccountControlCaller(req.GetCaller()); !ok {
+	if reason, ok := s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false); !ok {
 		return &runtimev1.InvokeRealmUnaryResponse{Accepted: false, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: reason}, nil
 	}
-	operation, ok := realmUnaryOperations[strings.TrimSpace(req.GetMethodId())]
+	operation, ok := realmBrokerOperations[strings.TrimSpace(req.GetMethodId())]
 	if !ok {
-		return realmUnaryRejected("realm method is not admitted for Runtime mediation"), nil
+		return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for Runtime mediation", 0), nil
 	}
-	if !operation.admitsApp(req.GetCaller().GetAppId()) {
-		return &runtimev1.InvokeRealmUnaryResponse{
-			Accepted:          false,
-			ReasonCode:        runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
-			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED,
-			ErrorMessage:      "realm method is not admitted for this Runtime app",
-		}, nil
+	if !operation.admitsCallerMode(req.GetCaller().GetMode()) {
+		return realmUnaryFailure(runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED, "realm method is not admitted for this Runtime caller mode", 0), nil
+	}
+	if !s.admitRealmBrokerCapabilities(req.GetCaller(), operation) {
+		return realmUnaryFailure(runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING, "realm broker capability policy is not satisfied", 0), nil
 	}
 	realmBaseURL, err := s.resolveRealmUnaryBaseURL(req.GetRealmBaseUrl())
 	if err != nil {
-		return realmUnaryRejected(err.Error()), nil
+		return realmUnaryFailure(runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED, err.Error(), 0), nil
 	}
 	accessToken, reason, ok, err := s.realmUnaryAccessToken(ctx, req.GetCaller())
 	if err != nil {
@@ -130,16 +68,19 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 
 	parsedRequest, err := parseRealmUnaryRequest(req.GetRequestJson())
 	if err != nil {
-		return realmUnaryRejected(err.Error()), nil
+		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0), nil
+	}
+	if err := validateRealmUnaryRequestShape(operation, parsedRequest); err != nil {
+		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0), nil
 	}
 	targetURL, err := buildRealmUnaryURL(realmBaseURL, operation, parsedRequest)
 	if err != nil {
-		return realmUnaryRejected(err.Error()), nil
+		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0), nil
 	}
 
 	httpReq, err := buildRealmUnaryHTTPRequest(ctx, targetURL, operation, parsedRequest, accessToken)
 	if err != nil {
-		return realmUnaryRejected(err.Error()), nil
+		return realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID, err.Error(), 0), nil
 	}
 	client := s.realmHTTP
 	if client == nil {
@@ -152,38 +93,27 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	}
 	response, err := client.Do(httpReq)
 	if err != nil {
-		return &runtimev1.InvokeRealmUnaryResponse{
-			Accepted:          false,
-			ReasonCode:        runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
-			ErrorMessage:      fmt.Sprintf("realm request failed: %v", err),
-		}, nil
+		return realmUnaryFailure(runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED, fmt.Sprintf("realm request failed: %v", err), 0), nil
 	}
 	defer func() {
 		_ = response.Body.Close()
 	}()
-	responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, 8<<20))
+	responseBody, readErr := io.ReadAll(io.LimitReader(response.Body, operation.responseMaxBytes+1))
 	if readErr != nil {
-		return &runtimev1.InvokeRealmUnaryResponse{
-			Accepted:          false,
-			ReasonCode:        runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
-			HttpStatus:        int32(response.StatusCode),
-			ErrorMessage:      fmt.Sprintf("realm response read failed: %v", readErr),
-		}, nil
+		return realmUnaryFailure(runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED, fmt.Sprintf("realm response read failed: %v", readErr), response.StatusCode), nil
 	}
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return &runtimev1.InvokeRealmUnaryResponse{
-			Accepted:          false,
-			ReasonCode:        runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
-			HttpStatus:        int32(response.StatusCode),
-			ErrorMessage:      trimRealmUnaryErrorBody(string(responseBody)),
-		}, nil
+	if int64(len(responseBody)) > operation.responseMaxBytes {
+		return realmUnaryFailure(runtimev1.ReasonCode_AI_OUTPUT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE, "realm broker response exceeds the admitted response limit", response.StatusCode), nil
 	}
 	responseJSON := strings.TrimSpace(string(responseBody))
 	if responseJSON == "" {
 		responseJSON = "{}"
+	}
+	if err := scanRealmBrokerResponseForCredentials(response.Header, []byte(responseJSON)); err != nil {
+		return realmUnaryCredentialRejected(err.Error()), nil
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return realmUnaryFailure(runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_UPSTREAM_FAILED, trimRealmUnaryErrorBody(string(responseBody)), response.StatusCode), nil
 	}
 	return &runtimev1.InvokeRealmUnaryResponse{
 		Accepted:          true,
@@ -193,16 +123,20 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	}, nil
 }
 
-func (s *Service) realmUnaryAccessToken(ctx context.Context, caller *runtimev1.AccountCaller) (string, runtimev1.AccountReasonCode, bool, error) {
+func (s *Service) realmUnaryAccessToken(ctx context.Context, _ *runtimev1.AccountCaller) (string, runtimev1.AccountReasonCode, bool, error) {
 	s.mu.RLock()
-	if (s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED && s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED) || s.material.RefreshToken == "" {
+	if (s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
+		s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED &&
+		s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING) || s.material.RefreshToken == "" {
 		s.mu.RUnlock()
 		return "", runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, false, nil
 	}
-	needsRefresh := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED || !s.material.AccessTokenExpires.IsZero() && !s.material.AccessTokenExpires.After(s.now().UTC().Add(30*time.Second))
+	needsRefresh := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED ||
+		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING ||
+		!s.material.AccessTokenExpires.IsZero() && !s.material.AccessTokenExpires.After(s.now().UTC().Add(30*time.Second))
 	s.mu.RUnlock()
 	if needsRefresh {
-		refresh, err := s.RefreshAccountSession(ctx, &runtimev1.RefreshAccountSessionRequest{Caller: caller})
+		refresh, err := s.refreshAccountSessionInternal(ctx, false)
 		if err != nil {
 			return "", runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED, false, err
 		}
@@ -218,11 +152,12 @@ func (s *Service) realmUnaryAccessToken(ctx context.Context, caller *runtimev1.A
 	return s.material.AccessToken, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true, nil
 }
 
-func realmUnaryRejected(message string) *runtimev1.InvokeRealmUnaryResponse {
+func realmUnaryFailure(reason runtimev1.ReasonCode, accountReason runtimev1.AccountReasonCode, message string, httpStatus int) *runtimev1.InvokeRealmUnaryResponse {
 	return &runtimev1.InvokeRealmUnaryResponse{
 		Accepted:          false,
-		ReasonCode:        runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-		AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED,
+		ReasonCode:        reason,
+		AccountReasonCode: accountReason,
+		HttpStatus:        int32(httpStatus),
 		ErrorMessage:      message,
 	}
 }

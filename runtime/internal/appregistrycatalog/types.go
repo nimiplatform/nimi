@@ -9,7 +9,10 @@
 // any other kind.
 package appregistrycatalog
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 type PackageKind string
 
@@ -113,6 +116,23 @@ type App struct {
 	InstallStoragePolicyRef   string
 	AdmissionStatus           AdmissionStatus
 	SourceRule                string
+}
+
+// PermissionCapabilities projects the canonical permission rows into the
+// Runtime app-registry capability vocabulary consumed by admission checks.
+func (a App) PermissionCapabilities() []string {
+	capabilities := make([]string, 0, len(a.PermissionScopeRefs))
+	for _, scope := range a.PermissionScopeRefs {
+		name := strings.TrimSpace(scope.ScopeName)
+		if name == "" {
+			continue
+		}
+		if qualifier := strings.TrimSpace(scope.Qualifier); qualifier != "" {
+			name += "#" + qualifier
+		}
+		capabilities = append(capabilities, name)
+	}
+	return capabilities
 }
 
 type Registry struct {

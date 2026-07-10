@@ -115,10 +115,11 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	authSvc.SetFirstPartyMigrationLaunchGate(defaultFirstPartyMigrationLaunchGate())
 	authSvc.SetDeveloperRegistrationEnabled(cfg.AuthDeveloperRegistrationEnabled)
 	accountSvc := accountservice.NewProduction(logger, accountservice.ProductionConfig{
-		RealmBaseURL:     cfg.AccountRealmBaseURL,
-		AuthorizationURL: cfg.AccountAuthorizationURL,
-		TokenURL:         cfg.AccountTokenURL,
-		AppRegistry:      appRegistry,
+		RealmBaseURL:        cfg.AccountRealmBaseURL,
+		AuthorizationURL:    cfg.AccountAuthorizationURL,
+		TokenURL:            cfg.AccountTokenURL,
+		AppRegistry:         appRegistry,
+		AppSessionValidator: authSvc,
 	})
 
 	// AuthN validator — JWKS mode (K-AUTHN-004). revocationUrl shares the

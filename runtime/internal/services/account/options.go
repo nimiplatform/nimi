@@ -17,22 +17,23 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
 	s := &Service{
-		logger:            logger,
-		now:               time.Now,
-		custody:           unavailableCustody{},
-		exchanger:         inertExchanger{},
-		refresher:         inertRefresher{},
-		registry:          appregistry.New(),
-		realmHTTP:         &http.Client{Timeout: 30 * time.Second},
-		realmBaseURL:      "",
-		presenceVerifier:  inertPresenceVerifier{},
-		partition:         "runtime-account:default-device",
-		eventRetention:    128,
-		state:             runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
-		loginAttempts:     make(map[string]loginAttemptRecord),
-		bindings:          make(map[string]bindingRecord),
-		workspaceBindings: make(map[string]workspaceBindingRecord),
-		subscribers:       make(map[uint64]subscriber),
+		logger:              logger,
+		now:                 time.Now,
+		custody:             unavailableCustody{},
+		exchanger:           inertExchanger{},
+		refresher:           inertRefresher{},
+		registry:            appregistry.New(),
+		realmHTTP:           &http.Client{Timeout: 30 * time.Second},
+		realmBaseURL:        "",
+		presenceVerifier:    inertPresenceVerifier{},
+		partition:           "runtime-account:default-device",
+		eventRetention:      128,
+		state:               runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE,
+		loginAttempts:       make(map[string]loginAttemptRecord),
+		bindings:            make(map[string]bindingRecord),
+		workspaceBindings:   make(map[string]workspaceBindingRecord),
+		launchNonceSessions: make(map[string]string),
+		subscribers:         make(map[uint64]subscriber),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -87,6 +88,14 @@ func WithAppRegistry(registry *appregistry.Registry) Option {
 	return func(s *Service) {
 		if registry != nil {
 			s.registry = registry
+		}
+	}
+}
+
+func WithAppSessionValidator(validator AppSessionValidator) Option {
+	return func(s *Service) {
+		if validator != nil {
+			s.appSessionValidator = validator
 		}
 	}
 }

@@ -277,7 +277,7 @@ func (s *Service) recordDesktopLaunchedNimiAppAdmission(
 			RealmRequired:   true,
 			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
 		},
-		nil,
+		app.PermissionCapabilities(),
 		admission,
 	)
 	if err != nil {

@@ -200,18 +200,19 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 	}
 
 	now := time.Now().UTC()
+	capabilities := s.registrationCapabilities(appID, req.GetCapabilities(), developerAdmission)
 	registration := appRegistration{
 		AppID:                 appID,
 		AppInstanceID:         instanceID,
 		DeviceID:              strings.TrimSpace(req.GetDeviceId()),
 		AppVersion:            strings.TrimSpace(req.GetAppVersion()),
-		Capabilities:          append([]string(nil), req.GetCapabilities()...),
+		Capabilities:          append([]string(nil), capabilities...),
 		ModeManifest:          cloneModeManifest(req.GetModeManifest()),
 		DeveloperRegistration: developerAdmission,
 		RegisteredAt:          now,
 	}
 
-	if err := s.registry.UpsertInstanceWithAdmission(appID, instanceID, req.GetDeviceId(), req.GetModeManifest(), req.GetCapabilities(), developerAdmission); err != nil {
+	if err := s.registry.UpsertInstanceWithAdmission(appID, instanceID, req.GetDeviceId(), req.GetModeManifest(), capabilities, developerAdmission); err != nil {
 		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
 	}
 	s.mu.Lock()
@@ -237,6 +238,27 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 		Accepted:      true,
 		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
 	}, nil
+}
+
+func (s *Service) registrationCapabilities(appID string, requested []string, developerAdmission bool) []string {
+	if developerAdmission {
+		return append([]string(nil), requested...)
+	}
+	if s.nimiApps != nil {
+		if app, err := s.nimiApps.FindByID(normalizeNimiAppRegistryID(appID)); err == nil &&
+			app.AdmissionStatus == appregistrycatalog.AdmissionStatusAdmitted {
+			return app.PermissionCapabilities()
+		}
+	}
+	capabilities := make([]string, 0, len(requested))
+	for _, capability := range requested {
+		normalized := strings.TrimSpace(capability)
+		if normalized == "" || normalized == "account.raw-token" {
+			continue
+		}
+		capabilities = append(capabilities, normalized)
+	}
+	return capabilities
 }
 
 // developerRegistrationReason is the eligibility reason returned when a caller

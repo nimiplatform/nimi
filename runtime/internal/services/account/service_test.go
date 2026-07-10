@@ -14,6 +14,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -32,7 +33,8 @@ func newProductionHarnessService(t *testing.T, custody *memoryCustody, opts ...O
 		WithProductionActivation(),
 		WithCustody(custody),
 		WithLoginExchanger(staticExchanger{material: testMaterial("acct-1", "access-1", "refresh-1")}),
-		WithAppRegistry(testAppRegistry(t, firstPartyCaller())),
+		WithAppRegistry(testAppRegistry(t, firstPartyCaller(), desktopAccountControlCaller())),
+		WithAppSessionValidator(testAccountAppSessionValidator{}),
 	}
 	allOpts = append(allOpts, opts...)
 	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), allOpts...)
@@ -108,7 +110,7 @@ func newHarnessService(t *testing.T, custody *memoryCustody, opts ...Option) *Se
 		WithNonProductionHarnessMode(),
 		WithCustody(custody),
 		WithLoginExchanger(staticExchanger{material: testMaterial("acct-1", "access-1", "refresh-1")}),
-		WithAppRegistry(testAppRegistry(t, firstPartyCaller())),
+		WithAppRegistry(testAppRegistry(t, firstPartyCaller(), desktopAccountControlCaller())),
 	}
 	allOpts = append(allOpts, opts...)
 	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), allOpts...)
@@ -137,6 +139,38 @@ func firstPartyCaller() *runtimev1.AccountCaller {
 		DeviceId:      "device-1",
 		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
 	}
+}
+
+func desktopAccountControlCaller() *runtimev1.AccountCaller {
+	return &runtimev1.AccountCaller{
+		AppId:         "nimi.desktop",
+		AppInstanceId: "desktop-1",
+		DeviceId:      "device-1",
+		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL,
+	}
+}
+
+type testAccountAppSessionValidator struct{}
+
+func (testAccountAppSessionValidator) ValidateAppSessionBinding(appID string, appInstanceID string, deviceID string, sessionID string, sessionToken string) (runtimev1.ReasonCode, bool) {
+	caller := desktopAccountControlCaller()
+	valid := appID == caller.GetAppId() && appInstanceID == caller.GetAppInstanceId() && deviceID == caller.GetDeviceId() && sessionID == "desktop-runtime-session" && sessionToken == "desktop-runtime-session-token"
+	if !valid {
+		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, false
+	}
+	return runtimev1.ReasonCode_ACTION_EXECUTED, true
+}
+
+func desktopAccountControlContext() context.Context {
+	caller := desktopAccountControlCaller()
+	return metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-source-host", desktopTauriAccountHostID,
+		"x-nimi-app-id", caller.GetAppId(),
+		"x-nimi-app-instance-id", caller.GetAppInstanceId(),
+		"x-nimi-device-id", caller.GetDeviceId(),
+		"x-nimi-session-id", "desktop-runtime-session",
+		"x-nimi-session-token", "desktop-runtime-session-token",
+	))
 }
 
 func testerCaller() *runtimev1.AccountCaller {
@@ -176,12 +210,16 @@ func testAppRegistry(t *testing.T, callers ...*runtimev1.AccountCaller) *appregi
 		if caller == nil {
 			continue
 		}
+		capabilities := []string{"account.session.read"}
+		if caller.GetAppId() == firstPartyCaller().GetAppId() {
+			capabilities = append(capabilities, "account.raw-token")
+		}
 		if err := registry.UpsertInstance(caller.GetAppId(), caller.GetAppInstanceId(), caller.GetDeviceId(), &runtimev1.AppModeManifest{
 			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
 			RuntimeRequired: true,
 			RealmRequired:   true,
 			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-		}, nil); err != nil {
+		}, capabilities); err != nil {
 			t.Fatalf("register test app caller: %v", err)
 		}
 	}
@@ -230,7 +268,7 @@ func testDeveloperAppRegistry(t *testing.T, caller *runtimev1.AccountCaller) *ap
 
 func completeLogin(t *testing.T, svc *Service) {
 	t.Helper()
-	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: firstPartyCaller()})
+	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
 	}
@@ -238,7 +276,7 @@ func completeLogin(t *testing.T, svc *Service) {
 		t.Fatalf("BeginLogin not accepted: %+v", begin)
 	}
 	complete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         firstPartyCaller(),
+		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           "auth-code",
 		State:          begin.GetState(),
@@ -254,14 +292,14 @@ func completeLogin(t *testing.T, svc *Service) {
 
 func TestStateMachineTransitionsAndSingleActiveAccountInvariant(t *testing.T) {
 	svc := newHarnessService(t, nil)
-	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: firstPartyCaller(), TtlSeconds: 60})
+	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller(), TtlSeconds: 60})
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
 	}
 	if svc.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGIN_PENDING {
 		t.Fatalf("state after BeginLogin = %v", svc.currentState())
 	}
-	duplicate, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: firstPartyCaller(), TtlSeconds: 60})
+	duplicate, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller(), TtlSeconds: 60})
 	if err != nil {
 		t.Fatalf("duplicate BeginLogin: %v", err)
 	}
@@ -269,7 +307,7 @@ func TestStateMachineTransitionsAndSingleActiveAccountInvariant(t *testing.T) {
 		t.Fatalf("duplicate pending login must return same attempt")
 	}
 	complete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         firstPartyCaller(),
+		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           "auth-code",
 		State:          begin.GetState(),
@@ -281,7 +319,7 @@ func TestStateMachineTransitionsAndSingleActiveAccountInvariant(t *testing.T) {
 	if !complete.GetAccepted() || complete.GetAccountProjection().GetAccountId() != "acct-1" {
 		t.Fatalf("authenticated projection missing: %+v", complete)
 	}
-	second, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: firstPartyCaller()})
+	second, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("BeginLogin while authenticated: %v", err)
 	}
@@ -293,7 +331,7 @@ func TestStateMachineTransitionsAndSingleActiveAccountInvariant(t *testing.T) {
 func TestPendingLoginReuseRequiresSameLoopbackCallback(t *testing.T) {
 	svc := newHarnessService(t, nil)
 	first, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
-		Caller:         firstPartyCaller(),
+		Caller:         desktopAccountControlCaller(),
 		RedirectUri:    "http://127.0.0.1:41001/oauth/callback",
 		CallbackOrigin: "http://127.0.0.1:41001",
 		TtlSeconds:     60,
@@ -306,7 +344,7 @@ func TestPendingLoginReuseRequiresSameLoopbackCallback(t *testing.T) {
 	}
 
 	reused, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
-		Caller:         firstPartyCaller(),
+		Caller:         desktopAccountControlCaller(),
 		RedirectUri:    "http://127.0.0.1:41001/oauth/callback",
 		CallbackOrigin: "http://127.0.0.1:41001",
 		TtlSeconds:     60,
@@ -319,7 +357,7 @@ func TestPendingLoginReuseRequiresSameLoopbackCallback(t *testing.T) {
 	}
 
 	next, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{
-		Caller:         firstPartyCaller(),
+		Caller:         desktopAccountControlCaller(),
 		RedirectUri:    "http://127.0.0.1:41002/oauth/callback",
 		CallbackOrigin: "http://127.0.0.1:41002",
 		TtlSeconds:     60,
@@ -335,7 +373,7 @@ func TestPendingLoginReuseRequiresSameLoopbackCallback(t *testing.T) {
 	}
 
 	staleComplete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         firstPartyCaller(),
+		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: first.GetLoginAttemptId(),
 		Code:           "old-code",
 		State:          first.GetState(),
@@ -350,7 +388,7 @@ func TestPendingLoginReuseRequiresSameLoopbackCallback(t *testing.T) {
 	}
 
 	complete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         firstPartyCaller(),
+		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: next.GetLoginAttemptId(),
 		Code:           "auth-code",
 		State:          next.GetState(),
@@ -387,19 +425,19 @@ func TestRegisteredLocalFirstPartyAppReadsSingleActiveAccountProjection(t *testi
 	if err != nil {
 		t.Fatalf("tester GetAccessToken: %v", err)
 	}
-	if !token.GetAccepted() || token.GetAccessToken() != "access-1" {
-		t.Fatalf("registered tester caller should receive Runtime-issued short-lived access token: %+v", token)
+	if token.GetAccepted() || token.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("registered Tester caller without explicit raw-token admission must be denied: %+v", token)
 	}
 }
 
 func TestUnavailableCustodyFailsClosed(t *testing.T) {
 	svc := newHarnessService(t, &memoryCustody{err: ErrCustodyUnavailable})
-	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: firstPartyCaller()})
+	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
 	}
 	resp, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         firstPartyCaller(),
+		Caller:         desktopAccountControlCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           "auth-code",
 		State:          begin.GetState(),
@@ -465,7 +503,7 @@ func TestRefreshRotationAndReuseDetection(t *testing.T) {
 	custody := &memoryCustody{}
 	svc := newHarnessService(t, custody, WithRefresher(staticRefresher{material: testMaterial("acct-1", "access-2", "refresh-2")}))
 	completeLogin(t, svc)
-	refresh, err := svc.RefreshAccountSession(context.Background(), &runtimev1.RefreshAccountSessionRequest{Caller: firstPartyCaller()})
+	refresh, err := svc.refreshAccountSessionInternal(context.Background(), true)
 	if err != nil {
 		t.Fatalf("RefreshAccountSession: %v", err)
 	}
@@ -484,7 +522,7 @@ func TestLogoutRevokesBindingsBeforeFinalAccountStatus(t *testing.T) {
 	svc := newHarnessService(t, nil)
 	completeLogin(t, svc)
 	issueBinding(t, svc)
-	resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: firstPartyCaller()})
+	resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("Logout: %v", err)
 	}
@@ -510,7 +548,7 @@ func TestSwitchAccountRevokesBindingsAndClearsActiveProjection(t *testing.T) {
 	svc := newHarnessService(t, nil)
 	completeLogin(t, svc)
 	issueBinding(t, svc)
-	resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: firstPartyCaller()})
+	resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: desktopAccountControlCaller()})
 	if err != nil {
 		t.Fatalf("SwitchAccount: %v", err)
 	}
@@ -530,7 +568,7 @@ func TestLogoutAndUserSwitchRevokeMultiConsumerProjections(t *testing.T) {
 		{
 			name: "logout",
 			act: func(svc *Service) error {
-				resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: firstPartyCaller()})
+				resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()})
 				if err != nil {
 					return err
 				}
@@ -543,7 +581,7 @@ func TestLogoutAndUserSwitchRevokeMultiConsumerProjections(t *testing.T) {
 		{
 			name: "user_switch",
 			act: func(svc *Service) error {
-				resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: firstPartyCaller()})
+				resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: desktopAccountControlCaller()})
 				if err != nil {
 					return err
 				}
@@ -686,7 +724,7 @@ func TestGetAccessTokenRejectsAnonymousUnavailableAvatarAndRevokedCaller(t *test
 	if resp.GetAccepted() || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY {
 		t.Fatalf("avatar token request must fail: %+v", resp)
 	}
-	if _, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: firstPartyCaller()}); err != nil {
+	if _, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()}); err != nil {
 		t.Fatalf("Logout: %v", err)
 	}
 	resp, err = svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
@@ -735,8 +773,8 @@ func TestLocalDeveloperAppAccountSurfaceRejectsFirstPartyTokenAndControlAuthorit
 	if err != nil {
 		t.Fatalf("developer RefreshAccountSession: %v", err)
 	}
-	if !refresh.GetAccepted() || refresh.GetAccountProjection().GetAccountId() != "acct-1" {
-		t.Fatalf("developer caller should refresh through Runtime custody: %+v", refresh)
+	if refresh.GetAccepted() || refresh.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("developer caller must not invoke public Runtime refresh: %+v", refresh)
 	}
 
 	binding, err := svc.IssueScopedAppBinding(context.Background(), &runtimev1.IssueScopedAppBindingRequest{
@@ -807,7 +845,8 @@ func TestDesktopLaunchedInstalledNimiAppAccountSurfaceRequiresInstalledLaunchEvi
 	)
 	completeLogin(t, svc)
 
-	status, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: caller})
+	ctx := installedBrokerContext(caller, "installed-account-status-session", "installed-account-status-token")
+	status, err := svc.GetAccountSessionStatus(ctx, &runtimev1.GetAccountSessionStatusRequest{Caller: caller})
 	if err != nil {
 		t.Fatalf("installed app GetAccountSessionStatus: %v", err)
 	}
@@ -820,8 +859,8 @@ func TestDesktopLaunchedInstalledNimiAppAccountSurfaceRequiresInstalledLaunchEvi
 	if err != nil {
 		t.Fatalf("installed app RefreshAccountSession: %v", err)
 	}
-	if !refresh.GetAccepted() || refresh.GetAccountProjection().GetAccountId() != "acct-1" {
-		t.Fatalf("installed app should refresh through Runtime custody: %+v", refresh)
+	if refresh.GetAccepted() || refresh.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("installed app must not invoke public Runtime refresh: %+v", refresh)
 	}
 
 	binding, err := svc.IssueScopedAppBinding(context.Background(), &runtimev1.IssueScopedAppBindingRequest{
@@ -836,8 +875,8 @@ func TestDesktopLaunchedInstalledNimiAppAccountSurfaceRequiresInstalledLaunchEvi
 	if err != nil {
 		t.Fatalf("installed app IssueScopedAppBinding: %v", err)
 	}
-	if !binding.GetAccepted() || binding.GetBindingId() == "" {
-		t.Fatalf("installed app should receive mediated scoped binding: %+v", binding)
+	if binding.GetAccepted() || binding.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("installed app must not issue its own scoped binding: %+v", binding)
 	}
 
 	token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: caller})
@@ -927,7 +966,7 @@ func TestDesktopLaunchedInstalledNimiAppCallerFailsClosedWithoutInstalledEvidenc
 			svc := newHarnessService(t, nil, WithAppRegistry(tc.registry))
 			completeLogin(t, svc)
 
-			status, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: testCaller})
+			status, err := svc.GetAccountSessionStatus(installedBrokerContext(testCaller, "installed-negative-session", "installed-negative-token"), &runtimev1.GetAccountSessionStatusRequest{Caller: testCaller})
 			if err != nil {
 				t.Fatalf("GetAccountSessionStatus: %v", err)
 			}
@@ -948,7 +987,7 @@ func TestDesktopLaunchedInstalledNimiAppCallerRequiresAuthenticatedAccount(t *te
 		WithAppRegistry(testInstalledNimiAppRegistry(t, caller, nil)),
 	)
 
-	status, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: caller})
+	status, err := svc.GetAccountSessionStatus(installedBrokerContext(caller, "installed-anonymous-session", "installed-anonymous-token"), &runtimev1.GetAccountSessionStatusRequest{Caller: caller})
 	if err != nil {
 		t.Fatalf("GetAccountSessionStatus: %v", err)
 	}
@@ -962,7 +1001,7 @@ func TestDesktopLaunchedInstalledNimiAppCallerRequiresAuthenticatedAccount(t *te
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
 	}
-	if begin.GetAccepted() || begin.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE {
+	if begin.GetAccepted() || begin.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
 		t.Fatalf("installed app caller must not bootstrap login from anonymous account state: %+v", begin)
 	}
 }

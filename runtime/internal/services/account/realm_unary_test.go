@@ -8,6 +8,12 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
+)
+
+const (
+	realmPersonaStudioTestAppID = "nimi.realm-persona-studio"
+	realmWorldStudioTestAppID   = "nimi.realm-world-studio"
 )
 
 func TestInvokeRealmUnaryMediatesRealmRequestWithoutReturningToken(t *testing.T) {
@@ -33,7 +39,7 @@ func TestInvokeRealmUnaryMediatesRealmRequestWithoutReturningToken(t *testing.T)
 		Caller:       realmWorldStudioCaller(),
 		MethodId:     "WorldCoreController_listWorldCores",
 		RealmBaseUrl: server.URL,
-		RequestJson:  `{"path":{},"query":{"limit":1}}`,
+		RequestJson:  `{"path":{}}`,
 	})
 	if err != nil {
 		t.Fatalf("InvokeRealmUnary: %v", err)
@@ -47,7 +53,7 @@ func TestInvokeRealmUnaryMediatesRealmRequestWithoutReturningToken(t *testing.T)
 	if observedAuthorization != "Bearer access-1" {
 		t.Fatalf("Authorization header mismatch: %q", observedAuthorization)
 	}
-	if observedPath != "/api/realm/core/worlds" || observedQuery != "limit=1" {
+	if observedPath != "/api/realm/core/worlds" || observedQuery != "" {
 		t.Fatalf("request target mismatch: path=%q query=%q", observedPath, observedQuery)
 	}
 	raw := map[string]any{}
@@ -294,14 +300,6 @@ func TestInvokeRealmUnaryAdmitsStudioOperationIDs(t *testing.T) {
 			path:        "/api/realm/core/world-characters/character-1",
 		},
 		{
-			name:        "shared resource upload",
-			caller:      realmWorldStudioCaller(),
-			methodID:    "createImageDirectUpload",
-			requestJSON: `{"path":{},"body":{"filename":"image.png"}}`,
-			method:      http.MethodPost,
-			path:        "/api/resources/images/direct-upload",
-		},
-		{
 			name:        "desktop public world list",
 			caller:      realmDesktopShellCaller(),
 			methodID:    "WorldPublicController_listWorlds",
@@ -341,6 +339,57 @@ func TestInvokeRealmUnaryAdmitsStudioOperationIDs(t *testing.T) {
 			requestJSON: `{"path":{"worldId":"world-1"}}`,
 			method:      http.MethodGet,
 			path:        "/api/world/by-id/world-1/detail-with-characters",
+		},
+		{
+			name:        "desktop first-party world character detail",
+			caller:      realmDesktopShellCaller(),
+			methodID:    "WorldCoreController_getWorldCharacter",
+			requestJSON: `{"path":{"characterId":"character-1"}}`,
+			method:      http.MethodGet,
+			path:        "/api/realm/core/world-characters/character-1",
+		},
+		{
+			name:        "desktop private account projection",
+			caller:      realmDesktopShellCaller(),
+			methodID:    "getMe",
+			requestJSON: `{"path":{}}`,
+			method:      http.MethodGet,
+			path:        "/api/human/me",
+		},
+		{
+			name:        "desktop private group list",
+			caller:      realmDesktopShellCaller(),
+			methodID:    "listGroups",
+			requestJSON: `{"path":{},"query":{"limit":20}}`,
+			method:      http.MethodGet,
+			path:        "/api/human/group-chats",
+			query:       "limit=20",
+		},
+		{
+			name:        "desktop private pending friend requests",
+			caller:      realmDesktopShellCaller(),
+			methodID:    "getMyPendingFriendRequests",
+			requestJSON: `{"path":{}}`,
+			method:      http.MethodGet,
+			path:        "/api/human/me/friends/pending",
+		},
+		{
+			name:        "desktop private friend list",
+			caller:      realmDesktopShellCaller(),
+			methodID:    "listMyFriendsWithDetails",
+			requestJSON: `{"path":{},"query":{"limit":20}}`,
+			method:      http.MethodGet,
+			path:        "/api/human/me/friends/list",
+			query:       "limit=20",
+		},
+		{
+			name:        "desktop private blocked list",
+			caller:      realmDesktopShellCaller(),
+			methodID:    "getMyBlockedUsers",
+			requestJSON: `{"path":{},"query":{"limit":20}}`,
+			method:      http.MethodGet,
+			path:        "/api/human/me/blocks",
+			query:       "limit=20",
 		},
 	}
 
@@ -477,10 +526,33 @@ func TestInvokeRealmUnaryRejectsCrossStudioLaneRequests(t *testing.T) {
 			if err != nil {
 				t.Fatalf("InvokeRealmUnary: %v", err)
 			}
-			if resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+			if resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING {
 				t.Fatalf("cross-lane request must fail closed: %+v", resp)
 			}
 		})
+	}
+}
+
+func TestInvokeRealmUnaryRejectsSignedUploadCredentialOperations(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("content-type", "application/json")
+		_, _ = w.Write([]byte(`{"uploadUrl":"https://uploads.example.test"}`))
+	}))
+	defer server.Close()
+
+	svc := newRealmUnaryHarnessService(t, server.URL)
+	completeLogin(t, svc)
+	response, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
+		Caller:       realmWorldStudioCaller(),
+		MethodId:     "createImageDirectUpload",
+		RealmBaseUrl: server.URL,
+		RequestJson:  `{"body":{"filename":"image.png"}}`,
+	})
+	if err != nil {
+		t.Fatalf("InvokeRealmUnary: %v", err)
+	}
+	if response.GetAccepted() {
+		t.Fatalf("signed upload credential operation must not be broker admitted: %+v", response)
 	}
 }
 
@@ -493,7 +565,7 @@ func TestInvokeRealmUnaryRejectsUnadmittedRealmBaseAndDeveloperCaller(t *testing
 		RuntimeRequired: true,
 		RealmRequired:   true,
 		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}, nil); err != nil {
+	}, []string{"account.session.read", "data.scope.read#realm.core.worlds"}); err != nil {
 		t.Fatalf("register world studio caller: %v", err)
 	}
 	svc := newHarnessService(
@@ -513,7 +585,7 @@ func TestInvokeRealmUnaryRejectsUnadmittedRealmBaseAndDeveloperCaller(t *testing
 	if err != nil {
 		t.Fatalf("foreign InvokeRealmUnary: %v", err)
 	}
-	if foreign.GetAccepted() || foreign.GetReasonCode() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+	if foreign.GetAccepted() || foreign.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN || foreign.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED {
 		t.Fatalf("foreign Realm base URL must fail closed: %+v", foreign)
 	}
 
@@ -526,24 +598,69 @@ func TestInvokeRealmUnaryRejectsUnadmittedRealmBaseAndDeveloperCaller(t *testing
 	if err != nil {
 		t.Fatalf("developer InvokeRealmUnary: %v", err)
 	}
-	if dev.GetAccepted() || dev.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+	if dev.GetAccepted() || dev.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED {
 		t.Fatalf("developer caller must not use Runtime Realm mediation: %+v", dev)
 	}
 }
 
 func newRealmUnaryHarnessService(t *testing.T, realmBaseURL string) *Service {
 	t.Helper()
+	registry := testAppRegistry(t, firstPartyCaller(), desktopAccountControlCaller(), realmPersonaStudioCaller(), realmWorldStudioCaller(), realmDesktopShellCaller(), zhiyuLocalFirstPartyCaller())
+	setRealmTestCapabilities(t, registry, realmPersonaStudioCaller().GetAppId(), []string{
+		"account.session.read",
+		"data.scope.read#realm.core.personas",
+		"data.scope.write#realm.core.personas",
+		"realm_source.snapshot.bind",
+		"data.scope.read#realm.core.worlds",
+		"data.scope.write#realm.world.posts",
+		"data.scope.read#realm.resources",
+	})
+	setRealmTestCapabilities(t, registry, realmWorldStudioCaller().GetAppId(), []string{
+		"account.session.read",
+		"realm_source.snapshot.bind",
+		"data.scope.read#realm.core.worlds",
+		"data.scope.write#realm.core.worlds",
+		"data.scope.read#realm.core.world-entities",
+		"data.scope.write#realm.core.world-entities",
+		"data.scope.read#realm.core.world-relationships",
+		"data.scope.write#realm.core.world-relationships",
+		"data.scope.read#realm.core.world-characters",
+		"data.scope.write#realm.core.world-characters",
+	})
+	setRealmTestCapabilities(t, registry, realmDesktopShellCaller().GetAppId(), []string{
+		"account.session.read",
+		"data.scope.read#realm.worlds.read-probe",
+		"data.scope.read#realm.core.world-characters",
+		"data.scope.read#realm.account.private",
+		"data.scope.read#realm.social.private",
+		"data.scope.read#realm.group-chats.private",
+	})
+	setRealmTestCapabilities(t, registry, zhiyuLocalFirstPartyCaller().GetAppId(), []string{
+		"account.session.read",
+		"data.scope.read#realm.worlds.read-probe",
+	})
 	return newHarnessService(
 		t,
 		nil,
-		WithAppRegistry(testAppRegistry(t, firstPartyCaller(), realmPersonaStudioCaller(), realmWorldStudioCaller(), realmDesktopShellCaller(), zhiyuLocalFirstPartyCaller())),
+		WithAppRegistry(registry),
 		WithRealmBaseURL(realmBaseURL),
 	)
 }
 
+func setRealmTestCapabilities(t *testing.T, registry *appregistry.Registry, appID string, capabilities []string) {
+	t.Helper()
+	record, ok := registry.Get(appID)
+	if !ok {
+		t.Fatalf("realm test registry missing app %q", appID)
+	}
+	if err := registry.Upsert(record.AppID, record.Manifest, capabilities); err != nil {
+		t.Fatalf("set Realm test capabilities for %q: %v", appID, err)
+	}
+}
+
 func realmPersonaStudioCaller() *runtimev1.AccountCaller {
 	return &runtimev1.AccountCaller{
-		AppId:         realmPersonaStudioAppID,
+		AppId:         realmPersonaStudioTestAppID,
 		AppInstanceId: "nimi.realm-persona-studio.local-first-party",
 		DeviceId:      "device-1",
 		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
@@ -552,7 +669,7 @@ func realmPersonaStudioCaller() *runtimev1.AccountCaller {
 
 func realmWorldStudioCaller() *runtimev1.AccountCaller {
 	return &runtimev1.AccountCaller{
-		AppId:         realmWorldStudioAppID,
+		AppId:         realmWorldStudioTestAppID,
 		AppInstanceId: "nimi.realm-world-studio.local-first-party",
 		DeviceId:      "device-1",
 		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,

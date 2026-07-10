@@ -82,6 +82,15 @@ func workspaceAuthCaller() *runtimev1.AccountCaller {
 	}
 }
 
+func workspaceAuthDesktopAccountCaller() *runtimev1.AccountCaller {
+	return &runtimev1.AccountCaller{
+		AppId:         workspaceAuthAppID,
+		AppInstanceId: workspaceAuthAppInstance,
+		DeviceId:      workspaceAuthDeviceID,
+		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL,
+	}
+}
+
 func workspaceAuthMaterial() accountservice.AccountMaterial {
 	return accountservice.AccountMaterial{
 		AccountID:          workspaceAuthAccountID,
@@ -121,12 +130,12 @@ func newWorkspaceAuthorizedCognitionService(t *testing.T, scopes ...string) (*Se
 		accountservice.WithLoginExchanger(cognitionStaticExchanger{material: workspaceAuthMaterial()}),
 		accountservice.WithAppRegistry(registry),
 	)
-	begin, err := accountSvc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: workspaceAuthCaller()})
+	begin, err := accountSvc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: workspaceAuthDesktopAccountCaller()})
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
 	}
 	complete, err := accountSvc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
-		Caller:         workspaceAuthCaller(),
+		Caller:         workspaceAuthDesktopAccountCaller(),
 		LoginAttemptId: begin.GetLoginAttemptId(),
 		Code:           "auth-code",
 		State:          begin.GetState(),
