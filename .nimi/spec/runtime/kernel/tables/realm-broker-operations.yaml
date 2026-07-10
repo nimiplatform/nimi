@@ -1,0 +1,465 @@
+version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_realm_broker_operations
+source_rule: K-ACCSVC-023
+description: >
+  Sole operation-admission authority for RuntimeAccountService.InvokeRealmUnary.
+  SDK Realm descriptors and Platform app permission rows are validated inputs;
+  neither can independently admit an operation. YAML merge templates are
+  authoring-only and every resolved operation row contains the full policy.
+
+operation_schema:
+  required_fields:
+    - operation_id
+    - http_method
+    - path_template
+    - request_schema_ref
+    - response_schema_ref
+    - allowed_sdk_app_modes
+    - allowed_runtime_caller_modes
+    - required_app_capabilities
+    - required_runtime_scopes
+    - realm_base_policy
+    - response_max_bytes
+    - credential_response_policy
+    - source_rule
+  credential_response_policy_values:
+    - forbidden
+
+policy_templates:
+  first_party_read: &first_party_read
+    allowed_sdk_app_modes: [first-party-local-app]
+    allowed_runtime_caller_modes:
+      - ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+      - ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP
+    required_runtime_scopes: [account.session.read]
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 1048576
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
+  first_party_write: &first_party_write
+    allowed_sdk_app_modes: [first-party-local-app]
+    allowed_runtime_caller_modes:
+      - ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+      - ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP
+    required_runtime_scopes: [account.session.read]
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 524288
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
+  public_world_read: &public_world_read
+    allowed_sdk_app_modes: [first-party-local-app, developer-registered-local-app, third-party-nimi-app]
+    allowed_runtime_caller_modes:
+      - ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+      - ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP
+      - ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP
+      - ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.worlds.read-probe }
+        - { scope_name: realm.worlds.read }
+        - { runtime_scope: realm.worlds.read }
+    required_runtime_scopes: [account.session.read]
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 1048576
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
+  desktop_private_read: &desktop_private_read
+    allowed_sdk_app_modes: [first-party-local-app]
+    allowed_runtime_caller_modes: [ACCOUNT_CALLER_MODE_DESKTOP_SHELL]
+    required_runtime_scopes: [account.session.read]
+    realm_base_policy: runtime-configured-canonical-exact
+    response_max_bytes: 1048576
+    credential_response_policy: forbidden
+    source_rule: K-ACCSVC-023
+
+operations:
+  - <<: *first_party_write
+    operation_id: WorldCoreController_bootstrapOasisWorld
+    http_method: POST
+    path_template: /api/realm/core/oasis/bootstrap
+    request_schema_ref: realm-openapi://operation/WorldCoreController_bootstrapOasisWorld/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_bootstrapOasisWorld/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.core.oasis }
+        - { scope_name: realm.worlds.write }
+
+  - <<: *first_party_write
+    operation_id: WorldCoreController_createRealmPersona
+    http_method: POST
+    path_template: /api/realm/core/personas
+    request_schema_ref: realm-openapi://operation/WorldCoreController_createRealmPersona/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_createRealmPersona/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.core.personas }
+        - { scope_name: realm.me.personas.write }
+
+  - <<: *first_party_write
+    operation_id: WorldCoreController_createSourceMaterializationPacket
+    http_method: POST
+    path_template: /api/realm/core/source-materialization-packets
+    request_schema_ref: realm-openapi://operation/WorldCoreController_createSourceMaterializationPacket/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_createSourceMaterializationPacket/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: realm_source.snapshot.bind }
+        - { runtime_scope: realm.source-materialization.write }
+
+  - <<: *first_party_write
+    operation_id: WorldCoreController_createWorldCharacter
+    http_method: POST
+    path_template: /api/realm/core/worlds/{worldId}/characters
+    request_schema_ref: realm-openapi://operation/WorldCoreController_createWorldCharacter/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_createWorldCharacter/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.core.world-characters }
+        - { scope_name: realm.creator.worldCharacters.write }
+
+  - <<: *first_party_write
+    operation_id: WorldCoreController_createWorldCore
+    http_method: POST
+    path_template: /api/realm/core/worlds
+    request_schema_ref: realm-openapi://operation/WorldCoreController_createWorldCore/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_createWorldCore/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.core.worlds }
+        - { scope_name: realm.worlds.write }
+
+  - <<: *first_party_write
+    operation_id: WorldCoreController_createWorldEntity
+    http_method: POST
+    path_template: /api/realm/core/worlds/{worldId}/entities
+    request_schema_ref: realm-openapi://operation/WorldCoreController_createWorldEntity/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_createWorldEntity/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.core.world-entities }
+        - { runtime_scope: realm.world-entities.write }
+
+  - <<: *first_party_write
+    operation_id: WorldCoreController_createWorldRelationship
+    http_method: POST
+    path_template: /api/realm/core/worlds/{worldId}/relationships
+    request_schema_ref: realm-openapi://operation/WorldCoreController_createWorldRelationship/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_createWorldRelationship/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.core.world-relationships }
+        - { runtime_scope: realm.world-relationships.write }
+
+  - <<: *first_party_read
+    operation_id: WorldCoreController_getOasisWorld
+    http_method: GET
+    path_template: /api/realm/core/oasis
+    request_schema_ref: realm-openapi://operation/WorldCoreController_getOasisWorld/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_getOasisWorld/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.core.oasis }
+        - { scope_name: realm.worlds.read }
+
+  - <<: *first_party_read
+    operation_id: WorldCoreController_getRealmPersona
+    http_method: GET
+    path_template: /api/realm/core/personas/{personaId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_getRealmPersona/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_getRealmPersona/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.core.personas }
+        - { scope_name: realm.me.personas.read }
+
+  - <<: *first_party_read
+    operation_id: WorldCoreController_getWorldCharacter
+    http_method: GET
+    path_template: /api/realm/core/world-characters/{characterId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCharacter/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCharacter/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.core.world-characters }
+        - { scope_name: realm.creator.worldCharacters.read }
+
+  - <<: *first_party_read
+    operation_id: WorldCoreController_getWorldCore
+    http_method: GET
+    path_template: /api/realm/core/worlds/{worldId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCore/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldCore/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.core.worlds }
+        - { scope_name: realm.worlds.read }
+
+  - <<: *first_party_read
+    operation_id: WorldCoreController_getWorldEntity
+    http_method: GET
+    path_template: /api/realm/core/world-entities/{entityId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldEntity/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldEntity/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.core.world-entities }
+        - { runtime_scope: realm.world-entities.read }
+
+  - <<: *first_party_read
+    operation_id: WorldCoreController_getWorldRelationship
+    http_method: GET
+    path_template: /api/realm/core/world-relationships/{relationshipId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_getWorldRelationship/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_getWorldRelationship/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.core.world-relationships }
+        - { runtime_scope: realm.world-relationships.read }
+
+  - <<: *first_party_read
+    operation_id: WorldCoreController_listRealmPersonas
+    http_method: GET
+    path_template: /api/realm/core/personas
+    request_schema_ref: realm-openapi://operation/WorldCoreController_listRealmPersonas/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_listRealmPersonas/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.core.personas }
+        - { scope_name: realm.me.personas.read }
+
+  - <<: *first_party_read
+    operation_id: WorldCoreController_listWorldCharacters
+    http_method: GET
+    path_template: /api/realm/core/worlds/{worldId}/characters
+    request_schema_ref: realm-openapi://operation/WorldCoreController_listWorldCharacters/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_listWorldCharacters/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.core.world-characters }
+        - { scope_name: realm.creator.worldCharacters.read }
+
+  - <<: *first_party_read
+    operation_id: WorldCoreController_listWorldCores
+    http_method: GET
+    path_template: /api/realm/core/worlds
+    request_schema_ref: realm-openapi://operation/WorldCoreController_listWorldCores/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_listWorldCores/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.core.worlds }
+        - { scope_name: realm.worlds.read }
+
+  - <<: *first_party_read
+    operation_id: WorldCoreController_listWorldEntities
+    http_method: GET
+    path_template: /api/realm/core/worlds/{worldId}/entities
+    request_schema_ref: realm-openapi://operation/WorldCoreController_listWorldEntities/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_listWorldEntities/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.core.world-entities }
+        - { runtime_scope: realm.world-entities.read }
+
+  - <<: *first_party_read
+    operation_id: WorldCoreController_listWorldRelationships
+    http_method: GET
+    path_template: /api/realm/core/worlds/{worldId}/relationships
+    request_schema_ref: realm-openapi://operation/WorldCoreController_listWorldRelationships/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_listWorldRelationships/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.core.world-relationships }
+        - { runtime_scope: realm.world-relationships.read }
+
+  - <<: *first_party_write
+    operation_id: WorldCoreController_replaceRealmPersona
+    http_method: PUT
+    path_template: /api/realm/core/personas/{personaId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_replaceRealmPersona/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_replaceRealmPersona/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.core.personas }
+        - { scope_name: realm.me.personas.write }
+
+  - <<: *first_party_write
+    operation_id: WorldCoreController_replaceWorldCharacter
+    http_method: PUT
+    path_template: /api/realm/core/world-characters/{characterId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldCharacter/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldCharacter/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.core.world-characters }
+        - { scope_name: realm.creator.worldCharacters.write }
+
+  - <<: *first_party_write
+    operation_id: WorldCoreController_replaceWorldCore
+    http_method: PUT
+    path_template: /api/realm/core/worlds/{worldId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldCore/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldCore/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.core.worlds }
+        - { scope_name: realm.worlds.write }
+
+  - <<: *first_party_write
+    operation_id: WorldCoreController_replaceWorldEntity
+    http_method: PUT
+    path_template: /api/realm/core/world-entities/{entityId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldEntity/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldEntity/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.core.world-entities }
+        - { runtime_scope: realm.world-entities.write }
+
+  - <<: *first_party_write
+    operation_id: WorldCoreController_replaceWorldRelationship
+    http_method: PUT
+    path_template: /api/realm/core/world-relationships/{relationshipId}
+    request_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldRelationship/request
+    response_schema_ref: realm-openapi://operation/WorldCoreController_replaceWorldRelationship/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.core.world-relationships }
+        - { runtime_scope: realm.world-relationships.write }
+
+  - <<: *public_world_read
+    operation_id: WorldPublicController_getWorld
+    http_method: GET
+    path_template: /api/world/by-id/{worldId}
+    request_schema_ref: realm-openapi://operation/WorldPublicController_getWorld/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_getWorld/response
+
+  - <<: *public_world_read
+    operation_id: WorldPublicController_getWorldDetailWithCharacters
+    http_method: GET
+    path_template: /api/world/by-id/{worldId}/detail-with-characters
+    request_schema_ref: realm-openapi://operation/WorldPublicController_getWorldDetailWithCharacters/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_getWorldDetailWithCharacters/response
+
+  - <<: *public_world_read
+    operation_id: WorldPublicController_listWorldCharacters
+    http_method: GET
+    path_template: /api/world/by-id/{worldId}/characters
+    request_schema_ref: realm-openapi://operation/WorldPublicController_listWorldCharacters/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_listWorldCharacters/response
+
+  - <<: *public_world_read
+    operation_id: WorldPublicController_listWorlds
+    http_method: GET
+    path_template: /api/world
+    request_schema_ref: realm-openapi://operation/WorldPublicController_listWorlds/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_listWorlds/response
+
+  - <<: *desktop_private_read
+    operation_id: getMe
+    http_method: GET
+    path_template: /api/human/me
+    request_schema_ref: realm-openapi://operation/getMe/request
+    response_schema_ref: realm-openapi://operation/getMe/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.account.private }
+
+  - <<: *desktop_private_read
+    operation_id: getMyBlockedUsers
+    http_method: GET
+    path_template: /api/human/me/blocks
+    request_schema_ref: realm-openapi://operation/getMyBlockedUsers/request
+    response_schema_ref: realm-openapi://operation/getMyBlockedUsers/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.social.private }
+
+  - <<: *desktop_private_read
+    operation_id: getMyPendingFriendRequests
+    http_method: GET
+    path_template: /api/human/me/friends/pending
+    request_schema_ref: realm-openapi://operation/getMyPendingFriendRequests/request
+    response_schema_ref: realm-openapi://operation/getMyPendingFriendRequests/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.social.private }
+
+  - <<: *desktop_private_read
+    operation_id: listGroups
+    http_method: GET
+    path_template: /api/human/group-chats
+    request_schema_ref: realm-openapi://operation/listGroups/request
+    response_schema_ref: realm-openapi://operation/listGroups/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.group-chats.private }
+
+  - <<: *desktop_private_read
+    operation_id: listMyFriendsWithDetails
+    http_method: GET
+    path_template: /api/human/me/friends/list
+    request_schema_ref: realm-openapi://operation/listMyFriendsWithDetails/request
+    response_schema_ref: realm-openapi://operation/listMyFriendsWithDetails/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.social.private }
+
+  - <<: *first_party_write
+    operation_id: createPost
+    http_method: POST
+    path_template: /api/world/posts
+    request_schema_ref: realm-openapi://operation/createPost/request
+    response_schema_ref: realm-openapi://operation/createPost/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.world.posts }
+        - { runtime_scope: realm.world.posts.write }
+
+  - <<: *first_party_read
+    operation_id: listResources
+    http_method: GET
+    path_template: /api/resources
+    request_schema_ref: realm-openapi://operation/listResources/request
+    response_schema_ref: realm-openapi://operation/listResources/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.read, qualifier: realm.resources }
+        - { runtime_scope: realm.resources.read }
+
+  - <<: *first_party_write
+    operation_id: finalizeResource
+    http_method: POST
+    path_template: /api/resources/{resourceId}/finalize
+    request_schema_ref: realm-openapi://operation/finalizeResource/request
+    response_schema_ref: realm-openapi://operation/finalizeResource/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.resources }
+        - { runtime_scope: realm.resources.write }
+
+  - <<: *first_party_write
+    operation_id: createTextResource
+    http_method: POST
+    path_template: /api/resources/texts
+    request_schema_ref: realm-openapi://operation/createTextResource/request
+    response_schema_ref: realm-openapi://operation/createTextResource/response
+    required_app_capabilities:
+      any_of:
+        - { scope_name: data.scope.write, qualifier: realm.resources }
+        - { runtime_scope: realm.resources.write }
+
+forbidden_operation_classes:
+  - auth_login_refresh_token_exchange
+  - credential_or_session_issuance
+  - direct_upload_url_or_signed_credential_issuance
+  - arbitrary_http_proxy
+
+explicitly_not_admitted:
+  - operation_id: createImageDirectUpload
+    reason: response_may_issue_signed_upload_credentials
+  - operation_id: createVideoDirectUpload
+    reason: response_may_issue_signed_upload_credentials
+  - operation_id: createAudioDirectUpload
+    reason: response_may_issue_signed_upload_credentials

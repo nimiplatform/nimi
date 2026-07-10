@@ -6,36 +6,34 @@
 
 Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/core` / `@tauri-apps/api/event` 的显式桥接与 Tauri backend 通信的命令集、类型解析、错误归一化。
 
-## D-IPC-001 — Bootstrap / Auth Session 命令
+## D-IPC-001 — Bootstrap / Runtime Shared Auth Broker Boundary
 
 > **Authority Disposition**：
-> 共享 auth session 命令（`auth_session_load` / `auth_session_save` / `auth_session_clear`）是 Kit-owned standard shell shared auth surface，面向 Nimi ecosystem apps 复用。它们不是 Desktop app-local account truth，也不得被 Desktop first-party account custody 当作 parallel truth。Desktop first-party account custody 与 local authenticated Runtime access 仍归 `RuntimeAccountService`（`K-ACCSVC-*`）；Desktop data clients 若需要 Realm access token，必须通过 Runtime `GetAccessToken` 或等价 provider 获取短期 token。
+> `auth_session_load` / `auth_session_save` / `auth_session_clear` 不是最终
+> shared auth，且不得注册为 active Tauri command、Kit renderer export 或
+> standard shell product capability。Shared auth 由 `RuntimeAccountService`
+> broker 拥有，通过 `runtime_bridge_unary` / `runtime_bridge_stream_open`
+> 承载。Desktop owns account UX, not token/session custody.
 
 `runtime_defaults` 命令返回 `RuntimeDefaults`，包含：
-- `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）
+- `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、jwksUrl、revocationUrl、jwtIssuer、jwtAudience；这些是 non-authoritative bootstrap hints，Runtime broker 对 Realm base 做最终校验）
 - `runtime: RuntimeExecutionDefaults`（targetType、targetAccountId、agentId、worldId、userConfirmedUpload 等非路由 bootstrap hints）
 
 `runtime_defaults` 不得继续承载 provider、model、connector、local provider endpoint、OpenAI-compatible endpoint 或 credential ref truth。Chat / Runtime Config 的 route selection、readiness 与 connector binding 只能来自 Runtime/SDK route projection 或 connector projection。
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。
 
-共享 auth session 命令集（**Kit shared auth surface; not Desktop app-local account truth**）：
-
-- `auth_session_load`
-- `auth_session_save`
-- `auth_session_clear`
-
-These command names may remain registered only through `kit/shell/tauri/**`
-and Kit renderer aliases. Apps must not duplicate them as app-local commands.
-Desktop renderer account flows, Desktop bootstrap, Avatar, Tester, and Web
-adapters MUST NOT consume these commands as Desktop first-party revalidation,
-token handoff, logout, or user-switch truth.
+`auth_session_*` has no active command set. If non-app-facing cleanup code is
+temporarily retained, it must be unreachable from Tauri invoke registration,
+renderer exports, capability catalogs, SDK/app imports, and must have negative
+tests proving denial.
 
 Authenticated local consumer revalidation belongs to Runtime account-session
-projection (`GetAccountSessionStatus`, `SubscribeAccountSessionEvents`,
-`GetAccessToken`) and scoped binding validation. Desktop may render Runtime
-account projection and route user intent, but it must not reintroduce
-app-local shared-session coherence as a Desktop bridge surface.
+projection (`GetAccountSessionStatus`, `SubscribeAccountSessionEvents`),
+Runtime-mediated Realm calls (`InvokeRealmUnary`), and scoped binding
+validation. Desktop may render Runtime account projection and route user
+intent, but it must not reintroduce app-local shared-session coherence or raw
+token transport as a Desktop bridge surface.
 
 ## D-IPC-002 — Daemon 生命周期命令
 
@@ -181,7 +179,7 @@ Desktop 自更新命令集：
 ## D-IPC-016 — Shared Tauri Bridge Authority
 
 - `kit/shell/tauri/**` (P-KIT-041) is the single shared implementation authority for app-agnostic Tauri host glue.
-- D-IPC-001 (auth session), D-IPC-002 (daemon lifecycle), D-IPC-004 (HTTP proxy), D-IPC-005 (UI commands `open_external_url`, `confirm_dialog`, `start_window_drag`, `focus_main_window`), D-IPC-006 (OAuth), D-IPC-009 (invoke infrastructure, `log_renderer_event`) shared implementations live in `kit/shell/tauri/**`.
+- D-IPC-001 (`runtime_defaults` bootstrap only), D-IPC-002 (daemon lifecycle), D-IPC-004 (HTTP proxy), D-IPC-005 (UI commands `open_external_url`, `confirm_dialog`, `start_window_drag`, `focus_main_window`), D-IPC-006 (OAuth), D-IPC-009 (invoke infrastructure, `log_renderer_event`) shared implementations live in `kit/shell/tauri/**`.
 - Apps must not duplicate these shared command implementations in app-local Rust code.
 - Apps must not use `#[path = "..."]` to compile another app's Rust source for shared bridge functionality.
 - App-specific Tauri commands for desktop menu bar and desktop self-update remain app-local.

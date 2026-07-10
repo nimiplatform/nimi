@@ -17,7 +17,9 @@
 > | `D-AUTH-014` | superseded | `K-BIND-006` scoped binding stale-request rejection；Runtime 拥有 revalidation 真相 |
 > | `D-AUTH-010` / `D-AUTH-011` / `D-AUTH-012` | retained | external-principal UI 仍由 Desktop 拥有，与 account session 分离 |
 >
-> Desktop 可以保留 feature-local Realm data calls，但只能通过 Runtime-backed short-lived access-token provider；Desktop 不得持有 refresh token、durable session、或 app-owned login truth。
+> Desktop 可以保留 feature-local Realm data calls，但默认且最终路径是
+> Runtime-mediated Realm broker。Desktop shell 不使用 raw `GetAccessToken`；
+> 不得持有 refresh token、durable session、或 app-owned login truth。
 >
 > Active owner switch 与代码删除由 `K-ACCSVC-013` 约束；不得保留 dual-read / fallback。
 
@@ -74,13 +76,13 @@ Desktop local first-party auth state is a redacted projection of
 | Desktop projection | Required Runtime / SDK condition | Desktop allowance |
 |---|---|---|
 | `bootstrapping` | Runtime account status has not been resolved or the Runtime-backed Platform client is not assembled | Render startup / login-gate pending state only |
-| `authenticated` | `GetAccountSessionStatus` projects `authenticated` and the SDK local-first-party client can obtain a Runtime-backed short-lived access-token projection when Realm data calls require it | Store redacted user/account display projection and enable authenticated feature wiring |
-| `anonymous` | Runtime projects `anonymous`, `expired`, `reauth_required`, `unavailable`, or access-token projection is unavailable/fail-closed | Render login / reauth / unavailable product state and disable authenticated feature wiring |
+| `authenticated` | `GetAccountSessionStatus` projects `authenticated` and the SDK Desktop composition can use an admitted Runtime-mediated Realm operation | Store redacted user/account display projection and enable authenticated feature wiring |
+| `anonymous` | Runtime projects `anonymous`, `expired`, `reauth_required`, `unavailable`, or broker admission is unavailable/fail-closed | Render login / reauth / unavailable product state and disable authenticated feature wiring |
 
 Fixed rules:
 
-- Desktop MUST configure the local first-party Platform client through the SDK
-  Runtime-backed account/token provider surface. It MUST NOT pass an
+- Desktop MUST configure the Platform client through the SDK Runtime account
+  projection and mediated Realm broker surface. It MUST NOT pass an
   app-owned access token, refresh token, session store, JWT hook, or subject
   provider into local first-party Runtime or Realm transport.
 - Desktop renderer stores, profile/settings screens, `public-web` facades, and
@@ -88,8 +90,9 @@ Fixed rules:
   `accessToken`, `refreshToken`, raw JWT, or token-bearing session setter
   parameters for local first-party auth state.
 - Realm data calls retained in Desktop feature modules MUST use SDK Realm
-  clients whose bearer material comes from the Runtime-backed short-lived
-  token provider. Desktop may observe only redacted account/user projection.
+  clients backed by `InvokeRealmUnary`. Runtime owns bearer injection and
+  internal refresh; Desktop may observe only redacted account/user projection
+  and bounded broker results.
 - `RuntimeAuthService` remains the app-session / external-principal session
   authority (`K-AUTHSVC-*`). It does not replace `RuntimeAccountService`, and
   Desktop app registration is not account-session custody or login truth.
@@ -103,8 +106,7 @@ Fixed rules:
 Desktop auth watcher listens to Runtime account-session projection events:
 
 - `isAuthenticated = true`：配置或 revalidate SDK Platform Client 的
-  Runtime-backed short-lived access-token provider and redacted account
-  projection.
+  Runtime-mediated Realm transport and redacted account projection.
 - `isAuthenticated = false`：清空 renderer redacted auth projection，停止
   feature-local subscriptions / polling。
 - Desktop must not reintroduce a DataSync listener, token hot-state, or refresh timer as an auth owner.
@@ -114,9 +116,9 @@ Desktop auth watcher listens to Runtime account-session projection events:
 Superseded for Desktop first-party account sessions. Runtime owns reactive refresh
 through `K-ACCSVC-004`; Desktop consumes the resulting session/status projection.
 
-- SDK may expose typed refresh helpers for non-authoritative developer
-  ergonomics, but Desktop must not own refresh token custody, token refresh
-  scheduling, or durable refresh results.
+- SDK local app facades must not expose public account refresh helpers.
+  Desktop must not own refresh token custody, token refresh scheduling, or
+  durable refresh results; broker/token projection refresh is Runtime-private.
 - Refresh failure projection clears renderer auth projection and disables
   authenticated Realm feature data.
 
@@ -195,8 +197,8 @@ anonymous 状态下 desktop 可调用 `Realm.AuthService.checkEmail` 获取类�
 ## D-AUTH-014 — Local Consumer Revalidation
 
 Superseded for shared Desktop auth session. Local consumer revalidation MUST
-use Runtime account-session projection, short-lived access-token projection,
-and scoped binding validation. It MUST NOT poll `auth_session_load`, depend on
+use Runtime account-session projection, Runtime-mediated Realm broker, and
+scoped binding validation. It MUST NOT poll `auth_session_load`, depend on
 `auth_session_clear`, or infer user-switch/logout from Desktop-owned session
 files.
 

@@ -70,6 +70,11 @@ gates:
     tier: app_boundary
     target: zhiyu
     source_rule: Z-PERSIST-002
+  - id: shared_auth_broker
+    command: check:shared-auth-live-apps
+    tier: app_boundary
+    target: zhiyu
+    source_rule: Z-AUTH-007
   - id: test_quarantine
     command: check:zhiyu-test-inventory
     tier: spec

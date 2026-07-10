@@ -101,6 +101,13 @@ apps:
         scopeFamily: account
         scopeName: account.session.read
       - appId: nimi.avatar
+        scopeFamily: account
+        scopeName: account.raw-token
+      - appId: nimi.avatar
+        scopeFamily: data
+        scopeName: data.scope.read
+        qualifier: realm.worlds.read-probe
+      - appId: nimi.avatar
         scopeFamily: agent
         scopeName: agent.identity.project
       - appId: nimi.avatar
@@ -230,6 +237,21 @@ apps:
         scopeFamily: realm
         scopeName: realm.me.personas.write
       - appId: nimi.realm-persona-studio
+        scopeFamily: realm_source
+        scopeName: realm_source.snapshot.bind
+      - appId: nimi.realm-persona-studio
+        scopeFamily: data
+        scopeName: data.scope.write
+        qualifier: realm.world.posts
+      - appId: nimi.realm-persona-studio
+        scopeFamily: data
+        scopeName: data.scope.read
+        qualifier: realm.resources
+      - appId: nimi.realm-persona-studio
+        scopeFamily: data
+        scopeName: data.scope.write
+        qualifier: realm.resources
+      - appId: nimi.realm-persona-studio
         scopeFamily: ai_spend
         scopeName: ai.spend.meter
     health_repair_projection:
@@ -280,6 +302,41 @@ apps:
         scopeFamily: realm
         scopeName: realm.creator.worldCharacters.write
       - appId: nimi.realm-world-studio
+        scopeFamily: realm_source
+        scopeName: realm_source.snapshot.bind
+      - appId: nimi.realm-world-studio
+        scopeFamily: data
+        scopeName: data.scope.write
+        qualifier: realm.core.oasis
+      - appId: nimi.realm-world-studio
+        scopeFamily: data
+        scopeName: data.scope.write
+        qualifier: realm.core.worlds
+      - appId: nimi.realm-world-studio
+        scopeFamily: data
+        scopeName: data.scope.read
+        qualifier: realm.core.world-entities
+      - appId: nimi.realm-world-studio
+        scopeFamily: data
+        scopeName: data.scope.write
+        qualifier: realm.core.world-entities
+      - appId: nimi.realm-world-studio
+        scopeFamily: data
+        scopeName: data.scope.read
+        qualifier: realm.core.world-relationships
+      - appId: nimi.realm-world-studio
+        scopeFamily: data
+        scopeName: data.scope.write
+        qualifier: realm.core.world-relationships
+      - appId: nimi.realm-world-studio
+        scopeFamily: data
+        scopeName: data.scope.read
+        qualifier: realm.resources
+      - appId: nimi.realm-world-studio
+        scopeFamily: data
+        scopeName: data.scope.write
+        qualifier: realm.resources
+      - appId: nimi.realm-world-studio
         scopeFamily: ai_spend
         scopeName: ai.spend.meter
     health_repair_projection:
@@ -314,6 +371,10 @@ apps:
       - appId: nimi.zhiyu
         scopeFamily: account
         scopeName: account.session.read
+      - appId: nimi.zhiyu
+        scopeFamily: data
+        scopeName: data.scope.read
+        qualifier: realm.worlds.read-probe
       - appId: nimi.zhiyu
         scopeFamily: agent
         scopeName: agent.identity.project

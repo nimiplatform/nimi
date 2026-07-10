@@ -20,6 +20,10 @@ scopes:
     allowed_interpretation: account_session_projection_support
     forbidden_interpretations: [turn_authority, binding_proof, identity_truth]
     owner: platform_runtime
+  data.scope.read#realm.worlds.read-probe:
+    allowed_interpretation: runtime_realm_broker_public_world_read
+    forbidden_interpretations: [direct_realm_rest, raw_token_access, realm_base_truth, account_truth]
+    owner: runtime_realm
   agent.identity.project:
     allowed_interpretation: partner_local_agent_identity_projection_support
     forbidden_interpretations: [app_local_agent_identity_truth, turn_authority, binding_proof]

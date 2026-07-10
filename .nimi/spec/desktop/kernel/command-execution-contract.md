@@ -27,7 +27,6 @@ The gate must fail closed when the registered command count is zero, when the ma
 
 Package-owned command families are first-class Desktop invoke surface:
 
-- `auth_session_*`
 - `oauth_*`
 - `runtime_bridge_*`
 - `log_renderer_event`

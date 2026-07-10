@@ -26,6 +26,7 @@ global_acceptance_dimensions:
   - button_input_usability
   - owner_boundary_trace
   - visual_review
+  - no_renderer_token_leak
 acceptance_mode:
   pre_remediation: define_matrix_and_boundary_gates_only
   post_remediation: real_app_shell_required
@@ -97,6 +98,12 @@ story_acceptance:
     gates: [test_quarantine, no_direct_ai_consumption]
     dimensions: [real_app_shell, failure_state, dom_cdp_state, console_error_free, chinese_readability, owner_boundary_trace]
     required_evidence: [diagnostics_secondary_surface_only, owner_reason_trace_visible, proactive_marked_deferred]
+  - story: story_12_shared_auth_broker
+    states: [partner_ready, broker_login_required, broker_grant_denied]
+    decisions: [D11, D12, D13]
+    gates: [shared_auth_broker, local_persistence_boundary]
+    dimensions: [real_app_shell, desktop_screenshot, narrow_screenshot, primary_user_path, real_runtime_auth_sdk_connectivity, dom_cdp_state, console_error_free, accessibility_probe, failure_state, disabled_state, chinese_readability, long_text_narrow_layout, button_input_usability, owner_boundary_trace, no_renderer_token_leak]
+    required_evidence: [realm_read_uses_invoke_realm_unary, authenticated_broker_success, login_required_state_visible, denied_grant_state_visible, no_direct_realm_rest, denied_auth_session_surface, no_renderer_credential_material]
 state_acceptance:
   - state: local_service_unavailable
     stories: [story_10_local_service_offline, story_11_diagnostics]
@@ -111,7 +118,7 @@ state_acceptance:
     stories: [story_03_configure_model]
     required_evidence: [runtime_ai_config_missing_or_invalid_state, config_facade_action]
   - state: partner_ready
-    stories: [story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_08_voice_full_support, story_09_creation_artifact_boundary]
+    stories: [story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_08_voice_full_support, story_09_creation_artifact_boundary, story_12_shared_auth_broker]
     required_evidence: [conversation_ready_controls, config_controls_available, avatar_launch_entry_available, continuity_projection_available]
   - state: partner_responding
     stories: [story_04_first_conversation, story_09_creation_artifact_boundary]
@@ -119,6 +126,12 @@ state_acceptance:
   - state: recoverable_failure
     stories: [story_10_local_service_offline, story_11_diagnostics]
     required_evidence: [retry_available, owner_aware_failure_reason, no_success_synthesis]
+  - state: broker_login_required
+    stories: [story_12_shared_auth_broker]
+    required_evidence: [runtime_account_anonymous_or_reauth_required, localized_login_action, no_app_owned_login_completion]
+  - state: broker_grant_denied
+    stories: [story_12_shared_auth_broker]
+    required_evidence: [typed_runtime_broker_denial, denied_state_not_success, no_direct_realm_bypass]
 decision_acceptance:
   - decision: D1
     semantics: ai_model_config_operation_required_without_zhiyu_config_truth
@@ -168,7 +181,14 @@ decision_acceptance:
     semantics: local_persistence_boundary_no_truth_localization
     spec_refs: [Z-PERSIST-001, Z-PERSIST-002, Z-PERSIST-003]
     acceptance_rows: [story_01_first_open_partner_selection, story_02_select_existing_partner, story_03_configure_model, story_04_first_conversation, story_05_revisit_continuity, story_06_relationship_state_summary, story_07_avatar_config_launch, story_09_creation_artifact_boundary, story_10_local_service_offline]
+  - decision: D13
+    semantics: runtime_shared_auth_broker_no_app_token_custody
+    spec_refs: [Z-AUTH-007, K-ACCSVC-023, K-ACCSVC-024, K-ACCSVC-025]
+    acceptance_rows: [story_12_shared_auth_broker]
 blocking_gates:
+  - gate: shared_auth_broker
+    blocks_real_app_acceptance_for: [story_12_shared_auth_broker]
+    source_rule: Z-GATE-007
   - gate: config_boundary
     blocks_real_app_acceptance_for: [story_03_configure_model, story_07_avatar_config_launch]
     source_rule: Z-GATE-007

@@ -41,21 +41,6 @@ commands:
     description: Get realm and runtime execution defaults
     source_rule: D-IPC-001
 
-  - command: auth_session_load
-    module: auth-session
-    description: Kit shared auth session surface for Nimi apps; Desktop account custody still routes through RuntimeAccountService
-    source_rule: D-IPC-001
-
-  - command: auth_session_save
-    module: auth-session
-    description: Kit shared auth session surface for Nimi apps; Desktop account custody still routes through RuntimeAccountService
-    source_rule: D-IPC-001
-
-  - command: auth_session_clear
-    module: auth-session
-    description: Kit shared auth session surface for Nimi apps; Desktop account custody still routes through RuntimeAccountService
-    source_rule: D-IPC-001
-
   - command: desktop_release_info_get
     module: desktop-release
     description: Read validated desktop release metadata for the packaged shell + bundled runtime unit

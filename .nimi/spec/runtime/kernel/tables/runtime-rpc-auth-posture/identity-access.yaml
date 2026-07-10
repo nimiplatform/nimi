@@ -53,63 +53,63 @@ services:
 methods:
   - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus
     posture: authenticated_required
-    rationale: requires admitted LOCAL_FIRST_PARTY_APP or DESKTOP_SHELL caller; rejects unadmitted callers
+    rationale: requires the caller-mode-specific registry or host-envelope admission in K-ACCSVC-024; installed apps require Runtime app-session proof
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents
     posture: authenticated_required
-    rationale: requires admitted LOCAL_FIRST_PARTY_APP or DESKTOP_SHELL caller
+    rationale: requires the caller-mode-specific registry or host-envelope admission in K-ACCSVC-024
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAccountService/BeginLogin
     posture: authenticated_required
-    rationale: requires admitted LOCAL_FIRST_PARTY_APP or DESKTOP_SHELL caller to start login flow
+    rationale: Desktop-owned account UX only; requires admitted DESKTOP_SHELL and trusted Desktop host
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAccountService/CompleteLogin
     posture: authenticated_required
-    rationale: requires admitted LOCAL_FIRST_PARTY_APP or DESKTOP_SHELL caller to complete login flow
+    rationale: Desktop-owned account UX only; requires admitted DESKTOP_SHELL, trusted Desktop host, and matching login attempt
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccessToken
     posture: authenticated_required
-    rationale: requires admitted caller and active session for token-request branch
+    rationale: raw short-lived token exception requires explicit registry/spec admission for LOCAL_FIRST_PARTY_APP; every other caller mode is denied
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
     posture: authenticated_required
-    rationale: requires admitted first-party/account-control caller and active Runtime account custody; Runtime mediates Realm HTTP without returning raw token material
+    rationale: broker-consumer admission follows K-ACCSVC-023/K-ACCSVC-025 and realm-broker-operations.yaml; it grants no account-control or raw-token permission
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession
     posture: authenticated_required
-    rationale: requires admitted caller plus existing AUTHENTICATED account session
+    rationale: public RPC has no ordinary app caller; refresh is a Runtime-private capability used internally by broker/token projection/custody paths
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAccountService/Logout
     posture: authenticated_required
-    rationale: requires admitted caller; bound to active Realm session lifecycle
+    rationale: Desktop-owned account UX only; requires admitted DESKTOP_SHELL and trusted Desktop host
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeAccountService/SwitchAccount
     posture: authenticated_required
-    rationale: requires admitted caller plus AUTHENTICATED account session
+    rationale: Desktop-owned account UX only; requires admitted DESKTOP_SHELL and trusted Desktop host
     kernel_refs:
       - K-AUTHN-001
       - K-AUTHN-006

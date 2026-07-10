@@ -437,7 +437,12 @@ cannot close SDK timeline support without current tests.
 >
 > Upstream Runtime authority: `K-ACCSVC-*`（`account-session-contract.md`）、`K-BIND-*`（`scoped-app-binding-contract.md`）。
 
-Local first-party Runtime mode 下，SDK 必须以 Runtime-owned account projection、Runtime-backed short-lived access-token provider、与 scoped binding 作为唯一权威来源。不得让 app 注入 token、refresh token、subject、session store、或独立 Realm identity bootstrap。
+Local Runtime app mode 下，SDK 必须以 Runtime-owned account projection、
+Runtime-mediated Realm broker、Runtime app session 与 scoped binding 作为唯一
+权威来源。不得让 app 注入 token、refresh token、subject、session store、或
+独立 Realm identity bootstrap。Runtime-backed short-lived access-token provider
+只属于 registry/spec 显式 admitted 的 `first-party-local-app` exception；不是
+Desktop、developer 或 installed third-party 的默认路径。
 
 Default Nimi Avatar (`nimi.avatar`) is a local first-party Runtime-mode app.
 It may use the same Runtime-backed short-lived access-token provider as other
@@ -448,11 +453,24 @@ because Desktop launched it.
 固定规则：
 
 - SDK 必须暴露 typed Runtime account projection consumer：状态查询（映射 `GetAccountSessionStatus`）、事件订阅（映射 `SubscribeAccountSessionEvents`）。
-- SDK 必须暴露或内部使用 Runtime-backed short-lived access-token provider（映射 `GetAccessToken` 或等价方法），用于 admitted local first-party Realm data client。
-- SDK 必须暴露 developer-registered local app account caller helper；该 helper 只能消费 Runtime account projection、login broker、Runtime app session、和 scoped binding，不得调用或包装 `GetAccessToken`。
+- SDK 必须为 local app composition 暴露 Runtime-mediated Realm transport（映射
+  `InvokeRealmUnary`）；`third-party-nimi-app` installed launch 必须映射为
+  `ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP`，并消费 host-bound Runtime
+  app-session proof。
+- SDK 仅为显式 admitted `first-party-local-app` helper 暴露 Runtime-backed
+  short-lived access-token provider。该 helper 与 mediated transport 分离，
+  mode construction 后不可切换。
+- SDK 必须暴露 developer-registered local app account caller helper；该 helper
+  只能消费 Runtime account projection、Runtime app session、scoped binding 和
+  developer-scoped broker，不得调用/包装 `BeginLogin`、`CompleteLogin`、
+  `RefreshAccountSession`、`GetAccessToken`、`Logout` 或 `SwitchAccount`。
 - SDK 必须暴露 typed scoped binding consumer：解析 binding 状态、订阅 binding 事件、关闭使用方时通知 Runtime。
 - SDK 不得在 local first-party mode 接收 app-provided `auth.accessToken`、`auth.refreshToken`、`subjectContext`、`subject_user_id`、token provider、refresh callback、session store、或 JWT 解析 hook。
-- SDK 可在 local first-party mode 暴露 Realm data client，但只能使用 Runtime-backed short-lived access-token provider；不得暴露 Realm identity bootstrap、`MeService.getMe` 作为 account truth、Realm `passwordLogin` / `oauthLogin` / `requestEmailOtp` / `verifyEmailOtp` / `walletLogin` 直接登录调用面、或 SDK-owned 401 refresh token flow。
+- SDK 在 local Runtime mode 暴露 Realm data client 时默认使用
+  Runtime-mediated transport；只有 explicit first-party raw-token helper 可用
+  Runtime-backed token projection。不得暴露 Realm identity bootstrap、
+  `MeService.getMe` account truth、Realm direct login routes 或 SDK-owned 401
+  refresh flow。
 - SDK 必须在 account state 非 `authenticated` 时对依赖 account 的 capability fail-close（不得返回 anonymous / fixture / mock 投影）。
 - SDK 必须在 binding state 非 `active` 时对 scoped 操作 fail-close。
 - SDK `runtime.agent.turns` 必须暴露 explicit binding-only consume mode：
@@ -471,7 +489,11 @@ because Desktop launched it.
   suspended / superseded / replay / relation mismatch / scope mismatch 作为 typed
   binding unavailable / permission failure 投影给使用方，使用方据此关闭
   interaction / voice / activity 而不影响 visual carrier。
-- SDK 必须使用稳定 mode discriminator（`first-party-local-app` vs `developer-registered-local-app` vs `web-cloud-adapter` vs `external-principal`），且 mode 一旦确定不可在运行期跨切换。
+- SDK 必须使用稳定 mode discriminator（`first-party-local-app` vs
+  `developer-registered-local-app` vs `third-party-nimi-app` vs
+  `dev-standalone` vs `web-cloud-adapter` vs `external-principal`），且 mode 一旦
+  确定不可在运行期跨切换。`third-party-nimi-app` 是 SDK app mode，不是新的
+  Runtime enum。
 - SDK 必须把 Runtime account / binding 事件以 typed 投影暴露，不得使 app 直接读取底层事件 envelope。
 - SDK 必须保留对 Runtime account projection 缺失字段、未知 state、或断流（`replay_truncated`）的 fail-close 行为。
 
@@ -487,11 +509,19 @@ the acceptance path. Only Runtime may orchestrate a Realm-backed fresh
 the Runtime response state/method/expiry. Non-verified, unavailable, cancelled,
 or expired Runtime responses remain fail-closed.
 
-## S-RUNTIME-110 Login Adapter Surface
+## S-RUNTIME-110 Desktop-Owned Login Adapter Surface
 
-local first-party 与 developer-registered local app login UX 由 kit / Desktop 提供 UX，登录结果通过 Runtime `BeginLogin` / `CompleteLogin`（`K-ACCSVC-005`）回流。SDK 在该 mode 仅扮演投影：
+local account login/logout/switch UX 仅由 Desktop account UX 拥有，并以
+`ACCOUNT_CALLER_MODE_DESKTOP_SHELL` 调用 Runtime `BeginLogin` /
+`CompleteLogin` / `Logout` / `SwitchAccount`。SDK 在 Desktop-owned composition
+中仅扮演 typed projection；developer、installed third-party、binding-only
+Avatar 与 ordinary first-party app facades 不得暴露这些 account-control helper：
 
-- SDK 必须暴露 typed `beginLogin(...)`、`completeLogin(...)` 包装，转发到 Runtime；不得在 SDK 层完成 token exchange 或解码 JWT。
+- SDK 只在 Desktop account-UX facade 暴露 typed `beginLogin(...)`、
+  `completeLogin(...)`、`logout(...)`、`switchAccount(...)` 包装并转发到
+  Runtime；不得在 SDK 层完成 token exchange 或解码 JWT。
+- public `RefreshAccountSession` 不属于 app-facing facade。SDK broker/token
+  composition 不得调用它；refresh 由 Runtime private helper 完成。
 - SDK 不得在 local first-party mode 暴露 Realm 直接登录路径；登录只允许通过 Runtime Nimi Auth Browser callback proof。
 - SDK 必须把 Runtime 返回的 UX instruction envelope（不含 PKCE verifier）原样投影给 kit / Desktop。
 - SDK 必须把 `CompleteLogin` proof envelope 视为不透明字节包，不得检查、解析或重写 token 字段。

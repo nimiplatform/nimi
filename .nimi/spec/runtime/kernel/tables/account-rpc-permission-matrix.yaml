@@ -1,0 +1,157 @@
+version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_account_rpc_permission_matrix
+source_rule: K-ACCSVC-024
+description: >
+  Per-caller admission authority for RuntimeAccountService. allow_when values
+  are conjunctive requirements. An omitted or unknown caller mode is denied.
+  Runtime internal refresh is not an RPC caller posture.
+
+decision_schema:
+  fields:
+    - caller_class
+    - runtime_caller_mode
+    - methods
+    - source_rule
+  method_decisions:
+    - allow
+    - deny
+    - allow_when
+
+callers:
+  - caller_class: desktop_account_ux
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
+    methods:
+      GetAccountSessionStatus: { decision: allow_when, requirements: [registry_admitted_desktop_instance] }
+      SubscribeAccountSessionEvents: { decision: allow_when, requirements: [registry_admitted_desktop_instance] }
+      BeginLogin: { decision: allow_when, requirements: [registry_admitted_desktop_instance, trusted_desktop_host] }
+      CompleteLogin: { decision: allow_when, requirements: [registry_admitted_desktop_instance, trusted_desktop_host, matching_login_attempt] }
+      RequestPresenceVerification: { decision: allow_when, requirements: [registry_admitted_desktop_instance, trusted_desktop_host] }
+      RefreshAccountSession: { decision: deny, reason: runtime_private_refresh_only }
+      Logout: { decision: allow_when, requirements: [registry_admitted_desktop_instance, trusted_desktop_host] }
+      SwitchAccount: { decision: allow_when, requirements: [registry_admitted_desktop_instance, trusted_desktop_host] }
+      GetAccessToken: { decision: deny, reason: desktop_uses_runtime_broker }
+      InvokeRealmUnary: { decision: allow_when, requirements: [registry_admitted_desktop_instance, broker_operation_policy] }
+      IssueScopedAppBinding: { decision: allow_when, requirements: [registry_admitted_desktop_instance, binding_relation_match] }
+      RevokeScopedAppBinding: { decision: allow_when, requirements: [registry_admitted_desktop_instance, binding_relation_match] }
+      IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_desktop_account_ux }
+      RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_desktop_account_ux }
+    source_rule: K-ACCSVC-024
+
+  - caller_class: local_first_party_app
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP
+    methods:
+      GetAccountSessionStatus: { decision: allow_when, requirements: [registry_admitted_first_party_instance] }
+      SubscribeAccountSessionEvents: { decision: allow_when, requirements: [registry_admitted_first_party_instance] }
+      BeginLogin: { decision: deny, reason: desktop_account_ux_only }
+      CompleteLogin: { decision: deny, reason: desktop_account_ux_only }
+      RequestPresenceVerification: { decision: allow_when, requirements: [registry_admitted_first_party_instance] }
+      RefreshAccountSession: { decision: deny, reason: runtime_private_refresh_only }
+      Logout: { decision: deny, reason: desktop_account_ux_only }
+      SwitchAccount: { decision: deny, reason: desktop_account_ux_only }
+      GetAccessToken: { decision: allow_when, requirements: [registry_admitted_first_party_instance, explicit_raw_token_admission, authenticated_account] }
+      InvokeRealmUnary: { decision: allow_when, requirements: [registry_admitted_first_party_instance, broker_operation_policy] }
+      IssueScopedAppBinding: { decision: allow_when, requirements: [registry_admitted_first_party_instance, binding_relation_match] }
+      RevokeScopedAppBinding: { decision: allow_when, requirements: [registry_admitted_first_party_instance, binding_relation_match] }
+      IssueWorkspaceBinding: { decision: allow_when, requirements: [registry_admitted_first_party_instance, device_binding_match, active_workspace_membership] }
+      RevokeWorkspaceBinding: { decision: allow_when, requirements: [registry_admitted_first_party_instance, device_binding_match, workspace_binding_owner] }
+    source_rule: K-ACCSVC-024
+
+  - caller_class: local_developer_app
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP
+    methods:
+      GetAccountSessionStatus: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session] }
+      SubscribeAccountSessionEvents: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session] }
+      BeginLogin: { decision: deny, reason: desktop_account_ux_only }
+      CompleteLogin: { decision: deny, reason: desktop_account_ux_only }
+      RequestPresenceVerification: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session] }
+      RefreshAccountSession: { decision: deny, reason: runtime_private_refresh_only }
+      Logout: { decision: deny, reason: desktop_account_ux_only }
+      SwitchAccount: { decision: deny, reason: desktop_account_ux_only }
+      GetAccessToken: { decision: deny, reason: raw_token_first_party_only }
+      InvokeRealmUnary: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session, developer_scoped_broker_operation] }
+      IssueScopedAppBinding: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session, binding_relation_match] }
+      RevokeScopedAppBinding: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session, binding_relation_match] }
+      IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_developer_surface }
+      RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_developer_surface }
+    source_rule: K-ACCSVC-024
+
+  - caller_class: desktop_launched_installed_nimi_app
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP
+    methods:
+      GetAccountSessionStatus: { decision: allow_when, requirements: [host_bound_envelope, runtime_app_session, registry_launch_admission] }
+      SubscribeAccountSessionEvents: { decision: allow_when, requirements: [host_bound_envelope, runtime_app_session, registry_launch_admission] }
+      BeginLogin: { decision: deny, reason: desktop_account_ux_only }
+      CompleteLogin: { decision: deny, reason: desktop_account_ux_only }
+      RequestPresenceVerification: { decision: deny, reason: installed_app_presence_not_admitted }
+      RefreshAccountSession: { decision: deny, reason: runtime_private_refresh_only }
+      Logout: { decision: deny, reason: desktop_account_ux_only }
+      SwitchAccount: { decision: deny, reason: desktop_account_ux_only }
+      GetAccessToken: { decision: deny, reason: installed_app_raw_token_forbidden }
+      InvokeRealmUnary: { decision: allow_when, requirements: [host_bound_envelope, runtime_app_session, registry_launch_admission, capability_set_match, broker_operation_policy] }
+      IssueScopedAppBinding: { decision: deny, reason: host_runtime_issues_installed_app_binding }
+      RevokeScopedAppBinding: { decision: deny, reason: host_runtime_revokes_installed_app_binding }
+      IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_installed_app_surface }
+      RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_installed_app_surface }
+    source_rule: K-ACCSVC-024
+
+  - caller_class: binding_only_avatar
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR
+    methods:
+      GetAccountSessionStatus: { decision: deny, reason: avatar_binding_only }
+      SubscribeAccountSessionEvents: { decision: deny, reason: avatar_binding_only }
+      BeginLogin: { decision: deny, reason: avatar_binding_only }
+      CompleteLogin: { decision: deny, reason: avatar_binding_only }
+      RequestPresenceVerification: { decision: deny, reason: avatar_binding_only }
+      RefreshAccountSession: { decision: deny, reason: avatar_binding_only }
+      Logout: { decision: deny, reason: avatar_binding_only }
+      SwitchAccount: { decision: deny, reason: avatar_binding_only }
+      GetAccessToken: { decision: deny, reason: avatar_binding_only }
+      InvokeRealmUnary: { decision: allow_when, requirements: [active_scoped_binding, binding_scoped_broker_operation] }
+      IssueScopedAppBinding: { decision: deny, reason: binding_owner_issues }
+      RevokeScopedAppBinding: { decision: deny, reason: binding_owner_revokes }
+      IssueWorkspaceBinding: { decision: deny, reason: avatar_binding_only }
+      RevokeWorkspaceBinding: { decision: deny, reason: avatar_binding_only }
+    source_rule: K-ACCSVC-024
+
+  - caller_class: web_cloud_adapter
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_WEB_CLOUD
+    methods: &all_account_methods_denied
+      GetAccountSessionStatus: { decision: deny, reason: local_runtime_account_not_applicable }
+      SubscribeAccountSessionEvents: { decision: deny, reason: local_runtime_account_not_applicable }
+      BeginLogin: { decision: deny, reason: local_runtime_account_not_applicable }
+      CompleteLogin: { decision: deny, reason: local_runtime_account_not_applicable }
+      RequestPresenceVerification: { decision: deny, reason: local_runtime_account_not_applicable }
+      RefreshAccountSession: { decision: deny, reason: local_runtime_account_not_applicable }
+      Logout: { decision: deny, reason: local_runtime_account_not_applicable }
+      SwitchAccount: { decision: deny, reason: local_runtime_account_not_applicable }
+      GetAccessToken: { decision: deny, reason: local_runtime_account_not_applicable }
+      InvokeRealmUnary: { decision: deny, reason: local_runtime_account_not_applicable }
+      IssueScopedAppBinding: { decision: deny, reason: local_runtime_account_not_applicable }
+      RevokeScopedAppBinding: { decision: deny, reason: local_runtime_account_not_applicable }
+      IssueWorkspaceBinding: { decision: deny, reason: local_runtime_account_not_applicable }
+      RevokeWorkspaceBinding: { decision: deny, reason: local_runtime_account_not_applicable }
+    source_rule: K-ACCSVC-024
+
+  - caller_class: external_principal
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL
+    methods: *all_account_methods_denied
+    source_rule: K-ACCSVC-024
+
+  - caller_class: unspecified
+    runtime_caller_mode: ACCOUNT_CALLER_MODE_UNSPECIFIED
+    methods: *all_account_methods_denied
+    source_rule: K-ACCSVC-024
+
+internal_capabilities:
+  - caller_class: runtime_internal_refresh
+    rpc_exposed: false
+    methods:
+      RefreshAccountMaterial: { decision: allow, requirements: [runtime_private_call_site] }
+    consumers:
+      - InvokeRealmUnary
+      - GetAccessToken
+      - proactive_refresh_scheduler
+      - custody_recovery
+    source_rule: K-ACCSVC-024

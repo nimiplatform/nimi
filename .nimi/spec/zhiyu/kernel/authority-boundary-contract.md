@@ -21,7 +21,8 @@ Platform registry scope as a substitute for `K-AGCORE-052`.
 
 ## Z-AUTH-003 Registry Scope Interpretation
 
-`account.session.read`, `agent.identity.project`, `text.generate`,
+`account.session.read`, `data.scope.read#realm.worlds.read-probe`,
+`agent.identity.project`, `text.generate`,
 `ai_profile.selection.consume`, `ai.spend.meter`, `memory.*`,
 `notification.subscribe`, and `audit.read.scoped` must be interpreted through
 `tables/registry-scope-posture.yaml`. None of these scopes grants Zhiyu turn
@@ -75,3 +76,18 @@ distinction is normative:
   Studio as a product runtime path. Developer harnesses, if reintroduced, must
   live outside the product shell and outside product app-level persisted
   AIConfig.
+
+## Z-AUTH-007 Runtime Shared Auth Broker Consumption
+
+Zhiyu consumes local account projection and Realm data through
+RuntimeAccountService. Realm data calls use SDK Runtime-mediated transport and
+`InvokeRealmUnary`; Zhiyu must not call `GetAccessToken`, public
+`RefreshAccountSession`, login completion, logout, switch, direct Realm auth,
+or `auth_session_*` shell/storage surfaces. Missing account, missing broker
+grant, denied operation, or Runtime unavailable is a typed product state and
+must not fall back to direct REST, local session persistence, or mock success.
+
+Live acceptance must prove real Runtime/account/SDK connectivity, admitted
+broker success, login-required and denied-grant states, no renderer-visible
+credential material, no console/page errors, desktop/narrow layout, Chinese
+readability, accessibility, and usable controls.

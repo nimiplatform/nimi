@@ -77,6 +77,9 @@ entries:
   - K-ACCSVC-020
   - K-ACCSVC-021
   - K-ACCSVC-022
+  - K-ACCSVC-023
+  - K-ACCSVC-024
+  - K-ACCSVC-025
   - K-GRANT-001
   - K-GRANT-002
   - K-GRANT-003
@@ -338,6 +341,38 @@ rules:
       - sdks/typescript/runtime/app-session.test.ts
       - kit/shell/electron/test/electron-runtime-account-auth.test.ts
       - apps/desktop/test/desktop-installed-app-launcher.test.ts
+  - rule_id: K-ACCSVC-023
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+    evidence_requirement: required
+    note: Runtime shared auth broker and spec-derived Realm operation policy.
+    test_files:
+      - runtime/internal/services/account/realm_unary_test.go
+      - sdks/typescript/core/app/runtime-account-realm.test.ts
+  - rule_id: K-ACCSVC-024
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+    evidence_requirement: required
+    note: Per-caller RuntimeAccountService RPC permission matrix and Runtime-private refresh boundary.
+    test_files:
+      - runtime/internal/services/account/service_test.go
+      - runtime/internal/services/account/realm_unary_test.go
+  - rule_id: K-ACCSVC-025
+    evidence_refs:
+      - runtime_kernel_consistency
+      - runtime_go_test
+      - sdk_runtime_test
+      - desktop_boundary_test
+    evidence_requirement: required
+    note: Host-bound caller envelope, Runtime app-session proof, and one-time launch nonce replay rejection.
+    test_files:
+      - runtime/internal/services/account/realm_unary_test.go
+      - runtime/internal/appregistry/registry_test.go
+      - kit/shell/electron/test/electron-runtime-account-auth.test.ts
   - rule_id: K-GRANT-001
     evidence_refs:
       - runtime_kernel_consistency

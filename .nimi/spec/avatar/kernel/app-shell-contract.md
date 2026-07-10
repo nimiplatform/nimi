@@ -10,7 +10,7 @@
 > - [Avatar event contract](avatar-event-contract.md)
 >
 > **First-Party Runtime Boundary**：
-> 本 contract 约束默认 Nimi Avatar app。Avatar 是 Runtime-admitted local first-party Nimi app（default app id `nimi.avatar`），Desktop 启动时只传递 `agent_id`、optional `avatar_instance_id`、optional non-authoritative `launch_source`。Avatar 可以像其他 local first-party app 一样使用 Runtime account projection 与 Runtime-issued short-lived access token 访问授权数据；它不得持有 refresh token、durable auth session、shared auth truth、independent Realm auth truth、或 Avatar-local JWT subject truth。Desktop 不得把 scoped binding、visual package truth、conversation anchor truth、account/user truth、Realm/auth material 透传给默认 Avatar 启动路径。
+> 本 contract 约束默认 Nimi Avatar app。Avatar 是 Runtime-admitted local first-party Nimi app（default app id `nimi.avatar`），Desktop 启动时只传递 `agent_id`、optional `avatar_instance_id`、optional non-authoritative `launch_source`。Avatar 默认使用 Runtime account projection 与 Runtime-mediated Realm broker；只有 registry/spec 显式 admitted 的 default first-party instance 可使用 memory-only short-lived `GetAccessToken` exception。它不得持有 refresh token、durable auth session、shared auth truth、independent Realm auth truth、或 Avatar-local JWT subject truth。Desktop 不得把 scoped binding、visual package truth、conversation anchor truth、account/user truth、Realm/auth material 透传给默认 Avatar 启动路径。
 >
 > Explicit binding-only / embedded / delegated Avatar mode 仍可由 `K-BIND-*` admit，但它不是 Desktop-launched Avatar 的默认路径。
 >
@@ -713,9 +713,10 @@ Minimum permission set for industrial baseline shell。窗口控制走 kit 标�
 
 - 加载 Desktop 启动 intent：required `agent_id`、optional `avatar_instance_id`、optional non-authoritative `launch_source`
 - 以 `nimi.avatar` / stable `app_instance_id` 注册或识别为 Runtime-admitted local first-party app
-- 调用 Runtime account projection / event stream / login adapter / `GetAccessToken` 等 local first-party account 方法，受 `K-ACCSVC-*` 与 app registry admission 约束
+- 调用 Runtime account projection / event stream 与 admitted `InvokeRealmUnary` broker operation；Avatar 不拥有 login/logout/switch/refresh account-control UX
+- default `nimi.avatar` 仅在 Runtime registry 与 broker/raw-token policy 显式 admission 同时成立时可调用 memory-only `GetAccessToken` exception
 - 通过 SDK local-first-party Runtime-backed token provider 为 `runtime.agent` turns API 请求获取 protected access token
-- 通过 SDK local-first-party Runtime-backed token provider 访问授权 Realm data API
+- 默认通过 SDK Runtime-mediated Realm transport 访问授权 Realm data API；显式 raw-token exception 不得持久化或自行 refresh
 - 通过 Runtime / SDK 验证 `agent_id`，解析 agent/user projection 与
   authorized visual package ref / local materialization
 - 创建或恢复 Avatar-owned conversation context
@@ -779,6 +780,8 @@ conversation anchor truth。
 
 Explicit binding-only / embedded / delegated Avatar mode 可以由 `K-BIND-*` admit，
 但它不是默认 Desktop launch path。
+
+Binding-only mode MUST be rejected for `GetAccessToken` with `ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY`; it may consume only a separately admitted binding-scoped broker operation and never gains account-control or refresh authority.
 
 默认 Avatar 不得把 scoped binding 当作启动阶段或 turns API 的 authorization
 替代物；`runtime.agent` turns API 必须依赖 Runtime-issued protected access

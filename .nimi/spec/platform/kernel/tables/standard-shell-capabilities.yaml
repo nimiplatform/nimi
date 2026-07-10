@@ -12,7 +12,6 @@ surfaces:
   - storage
   - ai-config
   - agent-center
-  - auth
   - desktop-open
 authority:
   id: platform.standard-shell-capabilities
@@ -231,25 +230,6 @@ capabilities:
         negative_states:
           - capability-unavailable
           - invalid-payload
-  - id: auth
-    host_contract: NimiStandardShellCapabilityHost
-    operations:
-      - id: sessionLoad
-        command: nimi.shell.auth.session.load
-        negative_states:
-          - external-daemon-required
-          - capability-unavailable
-      - id: sessionSave
-        command: nimi.shell.auth.session.save
-        negative_states:
-          - external-daemon-required
-          - capability-unavailable
-          - invalid-payload
-      - id: sessionClear
-        command: nimi.shell.auth.session.clear
-        negative_states:
-          - external-daemon-required
-          - capability-unavailable
   - id: oauth
     host_contract: NimiStandardShellCapabilityHost
     operations:

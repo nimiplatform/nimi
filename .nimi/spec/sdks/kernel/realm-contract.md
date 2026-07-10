@@ -5,10 +5,20 @@
 > **Authority Disposition**：
 > 本契约被分为两种显式 mode：
 >
-> - **Local first-party Runtime mode**：允许 Realm data client，但只能使用 Runtime-backed short-lived access-token provider（`RuntimeAccountService.GetAccessToken` 或等价方法）。禁止 app-provided token provider、refresh token provider、session store、JWT subject decode、`MeService.getMe` 作为 account truth、Realm 登录路由（`passwordLogin` / `oauthLogin` / `requestEmailOtp` / `verifyEmailOtp` / `walletLogin` / `walletChallenge` / `checkEmail`）以及 SDK-owned 401 refresh token flow。
+> - **Local Runtime app modes**：Runtime-mediated Realm transport
+>   (`RuntimeAccountService.InvokeRealmUnary`) 是
+>   `first-party-local-app`、`developer-registered-local-app` 与 installed
+>   `third-party-nimi-app` 的默认数据路径。只有 registry/spec 明确 admitted
+>   的 `first-party-local-app` helper 可显式选择 Runtime-backed short-lived
+>   `GetAccessToken` exception。其余模式不得获得 raw token。所有 local mode
+>   都禁止 app-provided token/refresh provider、session store、JWT subject
+>   decode、`MeService.getMe` account truth、Realm login route 与 SDK-owned 401
+>   refresh flow。
 > - **Web / cloud adapter 与 external-principal mode**：可保留本契约的 app-provided token / subject / Realm route seams，但必须显式 fenced。
 >
-> Local first-party account / login / refresh-token custody 真相由 `RuntimeAccountService`（`K-ACCSVC-*`）拥有；SDK 投影由 `S-RUNTIME-109` / `S-RUNTIME-110` 约束。
+> Local account / login / refresh-token custody 与 Realm mediation 真相由
+> `RuntimeAccountService`（`K-ACCSVC-*`）拥有；SDK 投影由
+> `S-RUNTIME-109` / `S-RUNTIME-110` 约束。
 >
 > Web / cloud adapter mode 必须显式声明 mode 标记，且与 local first-party Runtime mode 在公共 surface 上严格 fenced；不得在 local first-party 消费者中可达。
 >
@@ -88,3 +98,13 @@ Realm facade behavior must be derived from generated Realm core, explicit SDK
 consumer contracts, and runtime/client mode configuration. SDK must not consult
 or recreate `.nimi/spec/realm/**` as Realm server authority inside this
 repository.
+
+## S-REALM-040 Runtime-Mediated Local App Default
+
+`createRuntimeAccountMediatedRealmTransport` is the default transport for every
+local app composition except the explicit admitted first-party raw-token helper.
+It sends typed Realm operation ids through `InvokeRealmUnary`; it does not
+accept or expose `accessToken`, `refreshToken`, authorization headers, Realm
+base truth, session persistence, or refresh callbacks. Installed/developer app
+facades must not export `GetAccessToken` wrappers or
+`createRealmWithRuntimeAccountToken`.

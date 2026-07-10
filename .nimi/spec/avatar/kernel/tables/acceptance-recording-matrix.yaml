@@ -12,6 +12,10 @@ entries:
   - tts_speaking_lipsync
   - interrupt_active_turn
   - runtime_degraded
+  - shared_auth_broker_ready
+  - shared_auth_login_required
+  - first_party_raw_token_posture
+  - binding_only_raw_token_denied
 description: >
   Required human-review recording matrix for Avatar embodied surface acceptance.
   Unit tests and screenshots are necessary but insufficient; release acceptance
@@ -152,9 +156,45 @@ scenarios:
       presence_state: runtime_degraded
       privacy_indicator: none
 
+  - id: shared_auth_broker_ready
+    backend: any
+    mode: ready
+    action: "Boot Avatar against a Runtime-owned authenticated acceptance fixture and execute an admitted Realm read through Runtime mediation."
+    expected_visible_proof:
+      - "Runtime account projection and broker connectivity are ready without a shared auth launch payload."
+      - "The Realm result arrives through InvokeRealmUnary; no direct Realm REST path is used."
+      - "Renderer globals, storage, console, DOM, and shell payload contain no access/refresh token, authorization header, auth_session payload, or JWT-shaped credential."
+
+  - id: shared_auth_login_required
+    backend: any
+    mode: degraded
+    action: "Boot Avatar with Runtime account state anonymous or reauth_required."
+    expected_visible_proof:
+      - "Only the localized actionable reauth degraded surface is mounted."
+      - "No broker request is projected as success and no direct login/account-control call is made by Avatar."
+
+  - id: first_party_raw_token_posture
+    backend: any
+    mode: ready
+    action: "Probe GetAccessToken as the default registry-admitted nimi.avatar first-party instance."
+    expected_visible_proof:
+      - "The probe is accepted only when the Runtime registry and explicit raw-token admission both match."
+      - "Any token remains inside the SDK/runtime protected request path and is absent from renderer state, storage, DOM, console, screenshots, and evidence payloads."
+
+  - id: binding_only_raw_token_denied
+    backend: any
+    mode: degraded
+    action: "Probe GetAccessToken using ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR."
+    expected_visible_proof:
+      - "Runtime rejects the probe with ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY."
+      - "Binding-only posture cannot call account control or refresh and no token material is returned."
+
 coverage_rules:
   - "Every scenario must be recorded on at least one desktop viewport."
   - "idle_vrm_ready and idle_live2d_ready must both pass before launch-readiness can be claimed."
   - "runtime_voice_listening_projection, tts_speaking_lipsync, and interrupt_active_turn must show visible privacy feedback."
   - "runtime_degraded must show fail-closed mutual exclusion from ready surfaces."
+  - "shared_auth_broker_ready and shared_auth_login_required must be captured in a real shell against real Runtime/SDK transport; fixture-only renderer state is insufficient."
+  - "first_party_raw_token_posture and binding_only_raw_token_denied must be recorded as distinct postures."
+  - "Every shared-auth scenario must include a renderer token-leak scan and denied auth_session probe."
   - "Recordings must be linked from the release/topic evidence ledger; local one-off screenshots are not closure."

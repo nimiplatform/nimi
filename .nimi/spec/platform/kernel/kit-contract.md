@@ -87,7 +87,14 @@
 - `shell/capabilities` is the standard contract surface for Nimi shell hosts. It owns standard capability ids, operation ids, command names, operation-level negative states, and the standard shell error envelope.
 - Active machine authority is `tables/standard-shell-capabilities.yaml`. Topic documents, acceptance matrices, and gates may consume or validate this table but must not become parallel truth.
 - Delivered as the `@nimiplatform/kit/shell/capabilities` package export for TypeScript consumers and mirrored into Rust host adapters through `nimi_shell_tauri::capabilities`.
-- Nimi ecosystem capabilities are standard, not optional: runtime, runtime lifecycle, runtime defaults, auth, OAuth, shell UI, diagnostics, data, storage, config, local assets, local agent, AI Profile, AI Config, avatar, agent-center, platform projection, file dialog, file reveal, export, artifacts, and floating window must be represented in this catalog.
+- Nimi ecosystem capabilities are standard, not optional: runtime, runtime
+  lifecycle, runtime defaults, OAuth, shell UI, diagnostics, data, storage,
+  config, local assets, local agent, AI Profile, AI Config, avatar,
+  agent-center, platform projection, file dialog, file reveal, export,
+  artifacts, and floating window must be represented in this catalog. Shared
+  auth is carried by `runtime.unary` / `runtime.streamOpen` to
+  RuntimeAccountService; app-readable/app-writable `auth.session*` is not an
+  active product capability and must not appear in the standard catalog.
 - Standard `data.pathResolve` and `storage.*` operations resolve under a
   host-owned app data root. Renderer payloads must not carry absolute storage
   roots; they may carry only `{ relativePath }` or `{ relativePath, value }`.
@@ -181,6 +188,10 @@
 - Host-owned Runtime account/session metadata is injected by Electron main
   trusted providers bound to Runtime launch nonce and caller posture. It is not
   a renderer-readable standard shell auth session operation.
+- Installed hosts must carry the Runtime shared-auth broker through
+  `runtime.unary`/`runtime.streamOpen` and must reject `auth.sessionLoad`,
+  `auth.sessionSave`, and `auth.sessionClear` as unknown/forbidden operations.
+  Those ids are negative-test vocabulary only, not active catalog rows.
 - Kit/Electron installed-app host code may adapt Runtime/Desktop launch binding
   into SDK bootstrap inputs only behind the host-owned bridge. Renderer
   application code must not import Electron host modules or supply launch

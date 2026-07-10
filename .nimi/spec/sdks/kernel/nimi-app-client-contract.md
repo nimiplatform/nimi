@@ -416,17 +416,21 @@ is not enough to enter this mode.
 
 `MUST` (`developer-registered-local-app`). `developer-registered-local-app` is
 the local development mode for generated / non-first-party Nimi Apps launched
-with `pnpm dev:shell`. It may use Runtime-owned account custody, browser login,
-account projection, Runtime app session, and scoped binding only after
-Runtime's developer-registration double gate admits the app. It MUST NOT call
-`RuntimeAccountService.GetAccessToken` or any first-party helper as a
-self-declared first-party path.
+with `pnpm dev:shell`. After Runtime's developer-registration double gate it may
+consume account projection, Runtime app session, scoped binding, and
+developer-scoped Runtime-mediated Realm operations. Authenticated setup comes
+from Desktop-owned account UX or a Runtime-owned acceptance fixture. It MUST
+NOT wrap/call `BeginLogin`, `CompleteLogin`, `RefreshAccountSession`,
+`GetAccessToken`, `Logout`, `SwitchAccount`, or any first-party token helper.
 
-`MUST` (`third-party-nimi-app`). `third-party-nimi-app` is the generated app
-mode for third-party Nimi Apps. It consumes Runtime-issued app session and/or
-scoped app binding surfaces admitted by Runtime authority. It MUST NOT call
-`createLocalFirstPartyRuntimePlatformClient`, `RuntimeAccountService.GetAccessToken`,
-or any first-party-local helper as a self-declared first-party path.
+`MUST` (`third-party-nimi-app`). `third-party-nimi-app` is the SDK/generated-app
+mode for third-party Nimi Apps; for Desktop installed launches it maps to
+Runtime `ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP` (it is not a Runtime
+enum). It consumes the host-bound Runtime app session and uses
+`createRuntimeAccountMediatedRealmTransport` for Realm data. It MUST NOT call
+`createLocalFirstPartyRuntimePlatformClient`,
+`createRealmWithRuntimeAccountToken`, `RuntimeAccountService.GetAccessToken`,
+or any account-control/refresh helper.
 
 `MUST` (`dev-standalone`). `dev-standalone` uses an explicit
 `NimiAppDeveloperSession` supplied by developer tooling or Runtime development
@@ -447,11 +451,11 @@ tokens, refresh tokens, session stores, subject providers, direct Realm login
 credentials, refresh-token providers, raw JWTs, decoded subject fields, or any
 app-controlled token custody as input.
 
-`MUST NOT` (no Realm login bypass). Generated third-party auth must not call
+`MUST NOT` (no Realm login bypass). Generated third-party/developer auth must not call
 `/api/auth/login`, `/api/auth/refresh`, SDK Realm login routes, or direct Realm
 token exchange as app auth truth. Realm data access, when admitted for a caller,
-must come through Runtime-issued short-lived projection or scoped app/session
-authority, not app-owned login.
+must come through the Runtime broker. Only explicit first-party-local
+composition may select the separate short-lived token exception.
 
 `MUST NOT` (no pseudo-success). `dev-standalone` must not use mock auth,
 disabled auth gates, anonymous subject fallback, fixture-mode success, or
@@ -556,6 +560,12 @@ binding only as a projection of `K-ACCSVC-022` and `K-APP-017`. The helper
 surface may map host-owned launch binding into typed SDK/Runtime account
 caller inputs, but it is a consumer of Runtime/Desktop truth, not an owner.
 
+`MUST`: installed-app bootstrap maps SDK `third-party-nimi-app` to
+`ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP`, opens/uses the host-owned
+Runtime app session, and constructs Realm through
+`createRuntimeAccountMediatedRealmTransport`. App mode and caller mode are
+immutable after construction.
+
 `MUST`: when a generated third-party app uses an installed-app SDK bootstrap
 path, the app-owned renderer source must receive a host-owned installed-app
 bridge projection. The renderer source must not construct, persist, or pass
@@ -565,6 +575,8 @@ truth.
 `MUST NOT`: SDK installed-app bootstrap must not accept renderer-owned access
 tokens, session stores, raw auth metadata, descriptor refs, launch nonces,
 host ids, or caller posture as trust-bearing input from generated app code.
+It must not expose token write/refresh/session-persistence helpers or reverse
+update Runtime account material.
 Absent host binding, missing descriptor binding, digest/install evidence
 mismatch, or unavailable Runtime `OpenApp` projection is a typed fail-closed
 state and must not fall back to developer registration.

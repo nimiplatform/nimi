@@ -228,13 +228,19 @@ groups:
       - RequestPresenceVerification
       - GetAccessToken
       - InvokeRealmUnary
-      - RefreshAccountSession
       - Logout
       - SwitchAccount
       - IssueScopedAppBinding
       - RevokeScopedAppBinding
       - IssueWorkspaceBinding
       - RevokeWorkspaceBinding
+    excluded:
+      - name: RefreshAccountSession
+        reason: >
+          Runtime-private refresh owns broker and token-projection renewal.
+          The public RPC remains in the Runtime wire contract for separately
+          governed maintenance, but the app-facing SDK Runtime facade must not
+          expose a refresh helper under S-RUNTIME-109 and K-ACCSVC-002.
     source_rule: S-RUNTIME-109
   - group: workflow_service_projection
     service: RuntimeWorkflowService

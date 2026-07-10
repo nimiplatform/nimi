@@ -167,18 +167,6 @@ registered_command_families:
       - sync_lock_contention
     source_rule: D-GATE-092
 
-  - family: kit_shared_auth_session
-    match:
-      prefix: auth_session_
-    origin_crate: kit/shell/tauri
-    owner_domain: kit-shared-auth
-    execution_class: bounded_blocking_with_admission
-    remediation_required: false
-    admitted_risks:
-      - std_fs
-      - sync_keyring_dialog
-    source_rule: D-GATE-092
-
   - family: desktop_update_async
     match:
       exact:
