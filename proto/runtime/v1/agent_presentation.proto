@@ -1,0 +1,108 @@
+syntax = "proto3";
+package nimi.runtime.v1;
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "runtime/v1/voice.proto";
+
+// K-AGCORE-037 AgentPresentationEventFamily discriminates
+// runtime.agent.presentation.* families. Mapping is 1:1 to
+// runtime.agent.presentation.{activity_requested|motion_requested|
+// expression_requested|pose_requested|pose_cleared|lookat_requested|
+// voice_playback_requested|voice_stream_chunk_available|
+// voice_playback_terminal}.
+enum AgentPresentationEventFamily { AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED = 0; AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED = 1; AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED = 2; AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED = 3; AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED = 4; AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED = 5; AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED = 7; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE = 8; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL = 9; }
+
+enum AgentPresentationBackendKind {
+  AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED = 0;
+  AGENT_PRESENTATION_BACKEND_KIND_VRM = 1;
+  AGENT_PRESENTATION_BACKEND_KIND_LIVE2D = 2;
+  AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D = 3;
+  AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D = 4;
+  AGENT_PRESENTATION_BACKEND_KIND_VIDEO = 5;
+}
+
+// K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
+// intentionally narrow and stable; renderer-local execution state must remain
+// on transient app/runtime seams rather than being smuggled here.
+message AgentPresentationProfile {
+  AgentPresentationBackendKind backend_kind = 1;
+  string avatar_asset_ref = 2;
+  string expression_profile_ref = 3;
+  string idle_preset = 4;
+  string interaction_policy_ref = 5;
+  string default_voice_reference = 6;
+  bool avatar_autoplay = 7;
+  string background_asset_ref = 8;
+  reserved 9;
+  uint64 revision = 10;
+}
+
+message AgentPresentationProfilePatch {
+  optional AgentPresentationBackendKind backend_kind = 1;
+  optional string avatar_asset_ref = 2;
+  optional string expression_profile_ref = 3;
+  optional string idle_preset = 4;
+  optional string interaction_policy_ref = 5;
+  optional string default_voice_reference = 6;
+  optional bool avatar_autoplay = 7;
+  optional string background_asset_ref = 8;
+}
+
+message ClearAgentPresentationProfile {}
+
+// AgentPresentationEventDetail projects runtime.agent.presentation.* events
+// per K-AGCORE-037 / presentation_envelope. `agent_id` is REQUIRED at the
+// AgentEvent envelope level; `conversation_anchor_id`, `turn_id`, and
+// `stream_id` are ALSO REQUIRED on every presentation event because
+// presentation is stream-scoped transient projection derived from committed
+// runtime interpretation. Runtime MUST NOT emit presentation events without
+// real stream-identity linkage.
+message AgentPresentationEventDetail {
+  AgentPresentationEventFamily family = 1;
+  string conversation_anchor_id = 2;
+  string turn_id = 3;
+  string stream_id = 4;
+  // activity_requested
+  string activity_name = 10;
+  string activity_category = 11;
+  string activity_intensity = 12;
+  string activity_source = 13;
+  // motion_requested
+  string motion_id = 20;
+  string motion_priority = 21;
+  int64 motion_expected_duration_ms = 22;
+  // expression_requested
+  string expression_id = 30;
+  int64 expression_expected_duration_ms = 31;
+  // pose_requested / pose_cleared
+  string pose_id = 40;
+  int64 pose_expected_duration_ms = 41;
+  string previous_pose_id = 42;
+  // lookat_requested
+  string lookat_target_kind = 50;
+  double lookat_x = 51;
+  double lookat_y = 52;
+  double lookat_z = 53;
+  bool lookat_has_x = 54;
+  bool lookat_has_y = 55;
+  bool lookat_has_z = 56;
+  // voice_playback_requested / voice_stream_chunk_available /
+  // voice_playback_terminal. Non-final native stream chunks carry only
+  // transient stream identity; final replay bytes remain Runtime artifacts.
+  string audio_artifact_id = 60;
+  string audio_mime_type = 61;
+  string voice_stream_id = 62;
+  string chunk_transport_ref = 63;
+  string message_id = 64;
+  uint64 chunk_sequence = 65;
+  bool final_chunk = 66;
+  VoiceOutputMode voice_output_mode = 67;
+  VoicePlaybackState voice_playback_state = 68;
+  string playback_target = 69;
+  bool final_artifact = 70;
+  string terminal_reason = 71;
+  string reason = 72;
+  int64 duration_ms = 73;
+  int64 deadline_offset_ms = 74;
+  string final_artifact_id = 75;
+}

@@ -8,6 +8,7 @@
     "proto/runtime/v1/agent_companion.proto",
     "proto/runtime/v1/agent_group_message_candidate.proto",
     "proto/runtime/v1/agent_participation.proto",
+    "proto/runtime/v1/agent_presentation.proto",
     "proto/runtime/v1/agent_service.proto",
     "proto/runtime/v1/ai.proto",
     "proto/runtime/v1/ai_realtime.proto",
@@ -8994,7 +8995,7 @@
             "number": 75
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_presentation.proto"
       },
       {
         "name": "AgentPresentationProfile",
@@ -9063,7 +9064,7 @@
             "number": 10
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_presentation.proto"
       },
       {
         "name": "AgentPresentationProfilePatch",
@@ -9125,7 +9126,7 @@
             "number": 8
           }
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_presentation.proto"
       },
       {
         "name": "AgentProactiveEventDetail",
@@ -13889,7 +13890,7 @@
       {
         "name": "ClearAgentPresentationProfile",
         "fields": [],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_presentation.proto"
       },
       {
         "name": "CloseRealtimeSessionRequest",
@@ -39563,14 +39564,14 @@
           "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D",
           "AGENT_PRESENTATION_BACKEND_KIND_VIDEO"
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_presentation.proto"
       },
       {
         "name": "AgentPresentationEventFamily",
         "values": [
           "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED"
         ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
+        "source_file": "proto/runtime/v1/agent_presentation.proto"
       },
       {
         "name": "AgentProactiveDeliveryChannel",

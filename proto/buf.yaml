@@ -11,6 +11,7 @@ lint:
       - runtime/v1/agent_companion.proto
       - runtime/v1/agent_group_message_candidate.proto
       - runtime/v1/agent_participation.proto
+      - runtime/v1/agent_presentation.proto
       - runtime/v1/ai.proto
       - runtime/v1/ai_realtime.proto
       - runtime/v1/ai_scheduling.proto

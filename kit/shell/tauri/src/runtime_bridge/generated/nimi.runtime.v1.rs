@@ -309,6 +309,9 @@ pub enum ReasonCode {
     AppOpenAiconfigUnresolved = 611,
     AppOpenManifestRequirementUnsatisfied = 612,
     AppOpenLaunchFailed = 613,
+    /// AGENT_PRESENTATION family — optimistic concurrency for persistent
+    /// Runtime-owned presentation truth (K-AGCORE-023a).
+    AgentPresentationRevisionConflict = 614,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -526,6 +529,9 @@ impl ReasonCode {
                 "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED"
             }
             Self::AppOpenLaunchFailed => "APP_OPEN_LAUNCH_FAILED",
+            Self::AgentPresentationRevisionConflict => {
+                "AGENT_PRESENTATION_REVISION_CONFLICT"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -770,6 +776,9 @@ impl ReasonCode {
                 Some(Self::AppOpenManifestRequirementUnsatisfied)
             }
             "APP_OPEN_LAUNCH_FAILED" => Some(Self::AppOpenLaunchFailed),
+            "AGENT_PRESENTATION_REVISION_CONFLICT" => {
+                Some(Self::AgentPresentationRevisionConflict)
+            }
             _ => None,
         }
     }
@@ -18663,6 +18672,265 @@ impl ParticipationReplayOutcome {
         }
     }
 }
+/// K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
+/// intentionally narrow and stable; renderer-local execution state must remain
+/// on transient app/runtime seams rather than being smuggled here.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentPresentationProfile {
+    #[prost(enumeration = "AgentPresentationBackendKind", tag = "1")]
+    pub backend_kind: i32,
+    #[prost(string, tag = "2")]
+    pub avatar_asset_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub expression_profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub idle_preset: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub interaction_policy_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub default_voice_reference: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub avatar_autoplay: bool,
+    #[prost(string, tag = "8")]
+    pub background_asset_ref: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "10")]
+    pub revision: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AgentPresentationProfilePatch {
+    #[prost(enumeration = "AgentPresentationBackendKind", optional, tag = "1")]
+    pub backend_kind: ::core::option::Option<i32>,
+    #[prost(string, optional, tag = "2")]
+    pub avatar_asset_ref: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "3")]
+    pub expression_profile_ref: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "4")]
+    pub idle_preset: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "5")]
+    pub interaction_policy_ref: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "6")]
+    pub default_voice_reference: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, optional, tag = "7")]
+    pub avatar_autoplay: ::core::option::Option<bool>,
+    #[prost(string, optional, tag = "8")]
+    pub background_asset_ref: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ClearAgentPresentationProfile {}
+/// AgentPresentationEventDetail projects runtime.agent.presentation.\* events
+/// per K-AGCORE-037 / presentation_envelope. `agent_id` is REQUIRED at the
+/// AgentEvent envelope level; `conversation_anchor_id`, `turn_id`, and
+/// `stream_id` are ALSO REQUIRED on every presentation event because
+/// presentation is stream-scoped transient projection derived from committed
+/// runtime interpretation. Runtime MUST NOT emit presentation events without
+/// real stream-identity linkage.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AgentPresentationEventDetail {
+    #[prost(enumeration = "AgentPresentationEventFamily", tag = "1")]
+    pub family: i32,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub turn_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub stream_id: ::prost::alloc::string::String,
+    /// activity_requested
+    #[prost(string, tag = "10")]
+    pub activity_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub activity_category: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub activity_intensity: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub activity_source: ::prost::alloc::string::String,
+    /// motion_requested
+    #[prost(string, tag = "20")]
+    pub motion_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub motion_priority: ::prost::alloc::string::String,
+    #[prost(int64, tag = "22")]
+    pub motion_expected_duration_ms: i64,
+    /// expression_requested
+    #[prost(string, tag = "30")]
+    pub expression_id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "31")]
+    pub expression_expected_duration_ms: i64,
+    /// pose_requested / pose_cleared
+    #[prost(string, tag = "40")]
+    pub pose_id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "41")]
+    pub pose_expected_duration_ms: i64,
+    #[prost(string, tag = "42")]
+    pub previous_pose_id: ::prost::alloc::string::String,
+    /// lookat_requested
+    #[prost(string, tag = "50")]
+    pub lookat_target_kind: ::prost::alloc::string::String,
+    #[prost(double, tag = "51")]
+    pub lookat_x: f64,
+    #[prost(double, tag = "52")]
+    pub lookat_y: f64,
+    #[prost(double, tag = "53")]
+    pub lookat_z: f64,
+    #[prost(bool, tag = "54")]
+    pub lookat_has_x: bool,
+    #[prost(bool, tag = "55")]
+    pub lookat_has_y: bool,
+    #[prost(bool, tag = "56")]
+    pub lookat_has_z: bool,
+    /// voice_playback_requested / voice_stream_chunk_available /
+    /// voice_playback_terminal. Non-final native stream chunks carry only
+    /// transient stream identity; final replay bytes remain Runtime artifacts.
+    #[prost(string, tag = "60")]
+    pub audio_artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "61")]
+    pub audio_mime_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "62")]
+    pub voice_stream_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "63")]
+    pub chunk_transport_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "64")]
+    pub message_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "65")]
+    pub chunk_sequence: u64,
+    #[prost(bool, tag = "66")]
+    pub final_chunk: bool,
+    #[prost(enumeration = "VoiceOutputMode", tag = "67")]
+    pub voice_output_mode: i32,
+    #[prost(enumeration = "VoicePlaybackState", tag = "68")]
+    pub voice_playback_state: i32,
+    #[prost(string, tag = "69")]
+    pub playback_target: ::prost::alloc::string::String,
+    #[prost(bool, tag = "70")]
+    pub final_artifact: bool,
+    #[prost(string, tag = "71")]
+    pub terminal_reason: ::prost::alloc::string::String,
+    #[prost(string, tag = "72")]
+    pub reason: ::prost::alloc::string::String,
+    #[prost(int64, tag = "73")]
+    pub duration_ms: i64,
+    #[prost(int64, tag = "74")]
+    pub deadline_offset_ms: i64,
+    #[prost(string, tag = "75")]
+    pub final_artifact_id: ::prost::alloc::string::String,
+}
+/// K-AGCORE-037 AgentPresentationEventFamily discriminates
+/// runtime.agent.presentation.\* families. Mapping is 1:1 to
+/// runtime.agent.presentation.{activity_requested|motion_requested|
+/// expression_requested|pose_requested|pose_cleared|lookat_requested|
+/// voice_playback_requested|voice_stream_chunk_available|
+/// voice_playback_terminal}.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentPresentationEventFamily {
+    Unspecified = 0,
+    ActivityRequested = 1,
+    MotionRequested = 2,
+    ExpressionRequested = 3,
+    PoseRequested = 4,
+    PoseCleared = 5,
+    LookatRequested = 6,
+    VoicePlaybackRequested = 7,
+    VoiceStreamChunkAvailable = 8,
+    VoicePlaybackTerminal = 9,
+}
+impl AgentPresentationEventFamily {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED",
+            Self::ActivityRequested => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED"
+            }
+            Self::MotionRequested => "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED",
+            Self::ExpressionRequested => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED"
+            }
+            Self::PoseRequested => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED",
+            Self::PoseCleared => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED",
+            Self::LookatRequested => "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED",
+            Self::VoicePlaybackRequested => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED"
+            }
+            Self::VoiceStreamChunkAvailable => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE"
+            }
+            Self::VoicePlaybackTerminal => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED" => {
+                Some(Self::ActivityRequested)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED" => {
+                Some(Self::MotionRequested)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED" => {
+                Some(Self::ExpressionRequested)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED" => Some(Self::PoseRequested),
+            "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED" => Some(Self::PoseCleared),
+            "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED" => {
+                Some(Self::LookatRequested)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED" => {
+                Some(Self::VoicePlaybackRequested)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE" => {
+                Some(Self::VoiceStreamChunkAvailable)
+            }
+            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL" => {
+                Some(Self::VoicePlaybackTerminal)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentPresentationBackendKind {
+    Unspecified = 0,
+    Vrm = 1,
+    Live2d = 2,
+    Sprite2d = 3,
+    Canvas2d = 4,
+    Video = 5,
+}
+impl AgentPresentationBackendKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED",
+            Self::Vrm => "AGENT_PRESENTATION_BACKEND_KIND_VRM",
+            Self::Live2d => "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D",
+            Self::Sprite2d => "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D",
+            Self::Canvas2d => "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D",
+            Self::Video => "AGENT_PRESENTATION_BACKEND_KIND_VIDEO",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_PRESENTATION_BACKEND_KIND_VRM" => Some(Self::Vrm),
+            "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D" => Some(Self::Live2d),
+            "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D" => Some(Self::Sprite2d),
+            "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D" => Some(Self::Canvas2d),
+            "AGENT_PRESENTATION_BACKEND_KIND_VIDEO" => Some(Self::Video),
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateRealmGroupMessageCandidateRequest {
     #[prost(message, optional, tag = "1")]
@@ -19223,6 +19491,10 @@ pub struct AgentRecord {
     pub created_at: ::core::option::Option<::prost_types::Timestamp>,
     #[prost(message, optional, tag = "7")]
     pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "8")]
+    pub presentation_profile: ::core::option::Option<AgentPresentationProfile>,
+    #[prost(uint64, tag = "9")]
+    pub presentation_profile_revision: u64,
     #[prost(string, tag = "20")]
     pub local_agent_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "21")]
@@ -19294,49 +19566,6 @@ pub struct AgentStateRemoveAttribute {
     #[prost(string, tag = "1")]
     pub key: ::prost::alloc::string::String,
 }
-/// K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
-/// intentionally narrow and stable; renderer-local execution state must remain
-/// on transient app/runtime seams rather than being smuggled here.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentPresentationProfile {
-    #[prost(enumeration = "AgentPresentationBackendKind", tag = "1")]
-    pub backend_kind: i32,
-    #[prost(string, tag = "2")]
-    pub avatar_asset_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub expression_profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub idle_preset: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub interaction_policy_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub default_voice_reference: ::prost::alloc::string::String,
-    #[prost(bool, tag = "7")]
-    pub avatar_autoplay: bool,
-    #[prost(string, tag = "8")]
-    pub background_asset_ref: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentPresentationProfilePatch {
-    #[prost(enumeration = "AgentPresentationBackendKind", optional, tag = "1")]
-    pub backend_kind: ::core::option::Option<i32>,
-    #[prost(string, optional, tag = "2")]
-    pub avatar_asset_ref: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(string, optional, tag = "3")]
-    pub expression_profile_ref: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(string, optional, tag = "4")]
-    pub idle_preset: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(string, optional, tag = "5")]
-    pub interaction_policy_ref: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(string, optional, tag = "6")]
-    pub default_voice_reference: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(bool, optional, tag = "7")]
-    pub avatar_autoplay: ::core::option::Option<bool>,
-    #[prost(string, optional, tag = "8")]
-    pub background_asset_ref: ::core::option::Option<::prost::alloc::string::String>,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ClearAgentPresentationProfile {}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AgentStateMutation {
     #[prost(oneof = "agent_state_mutation::Mutation", tags = "1, 2, 3, 4, 5, 6, 7")]
@@ -19600,102 +19829,6 @@ pub struct AgentStateEventDetail {
     pub current_posture: ::core::option::Option<AgentPostureProjection>,
     #[prost(message, optional, tag = "41")]
     pub previous_posture: ::core::option::Option<AgentPostureProjection>,
-}
-/// AgentPresentationEventDetail projects runtime.agent.presentation.\* events
-/// per K-AGCORE-037 / presentation_envelope. `agent_id` is REQUIRED at the
-/// AgentEvent envelope level; `conversation_anchor_id`, `turn_id`, and
-/// `stream_id` are ALSO REQUIRED on every presentation event because
-/// presentation is stream-scoped transient projection derived from committed
-/// runtime interpretation. Runtime MUST NOT emit presentation events without
-/// real stream-identity linkage.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AgentPresentationEventDetail {
-    #[prost(enumeration = "AgentPresentationEventFamily", tag = "1")]
-    pub family: i32,
-    #[prost(string, tag = "2")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub stream_id: ::prost::alloc::string::String,
-    /// activity_requested
-    #[prost(string, tag = "10")]
-    pub activity_name: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub activity_category: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub activity_intensity: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub activity_source: ::prost::alloc::string::String,
-    /// motion_requested
-    #[prost(string, tag = "20")]
-    pub motion_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "21")]
-    pub motion_priority: ::prost::alloc::string::String,
-    #[prost(int64, tag = "22")]
-    pub motion_expected_duration_ms: i64,
-    /// expression_requested
-    #[prost(string, tag = "30")]
-    pub expression_id: ::prost::alloc::string::String,
-    #[prost(int64, tag = "31")]
-    pub expression_expected_duration_ms: i64,
-    /// pose_requested / pose_cleared
-    #[prost(string, tag = "40")]
-    pub pose_id: ::prost::alloc::string::String,
-    #[prost(int64, tag = "41")]
-    pub pose_expected_duration_ms: i64,
-    #[prost(string, tag = "42")]
-    pub previous_pose_id: ::prost::alloc::string::String,
-    /// lookat_requested
-    #[prost(string, tag = "50")]
-    pub lookat_target_kind: ::prost::alloc::string::String,
-    #[prost(double, tag = "51")]
-    pub lookat_x: f64,
-    #[prost(double, tag = "52")]
-    pub lookat_y: f64,
-    #[prost(double, tag = "53")]
-    pub lookat_z: f64,
-    #[prost(bool, tag = "54")]
-    pub lookat_has_x: bool,
-    #[prost(bool, tag = "55")]
-    pub lookat_has_y: bool,
-    #[prost(bool, tag = "56")]
-    pub lookat_has_z: bool,
-    /// voice_playback_requested / voice_stream_chunk_available /
-    /// voice_playback_terminal. Non-final native stream chunks carry only
-    /// transient stream identity; final replay bytes remain Runtime artifacts.
-    #[prost(string, tag = "60")]
-    pub audio_artifact_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "61")]
-    pub audio_mime_type: ::prost::alloc::string::String,
-    #[prost(string, tag = "62")]
-    pub voice_stream_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "63")]
-    pub chunk_transport_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "64")]
-    pub message_id: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "65")]
-    pub chunk_sequence: u64,
-    #[prost(bool, tag = "66")]
-    pub final_chunk: bool,
-    #[prost(enumeration = "VoiceOutputMode", tag = "67")]
-    pub voice_output_mode: i32,
-    #[prost(enumeration = "VoicePlaybackState", tag = "68")]
-    pub voice_playback_state: i32,
-    #[prost(string, tag = "69")]
-    pub playback_target: ::prost::alloc::string::String,
-    #[prost(bool, tag = "70")]
-    pub final_artifact: bool,
-    #[prost(string, tag = "71")]
-    pub terminal_reason: ::prost::alloc::string::String,
-    #[prost(string, tag = "72")]
-    pub reason: ::prost::alloc::string::String,
-    #[prost(int64, tag = "73")]
-    pub duration_ms: i64,
-    #[prost(int64, tag = "74")]
-    pub deadline_offset_ms: i64,
-    #[prost(string, tag = "75")]
-    pub final_artifact_id: ::prost::alloc::string::String,
 }
 /// AgentProactiveEventDetail projects runtime.agent.proactive.\* per K-AGCORE-143; required audit/origin fields must not be fabricated.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -20030,6 +20163,8 @@ pub struct SetAgentPresentationProfileRequest {
     pub context: ::core::option::Option<AgentRequestContext>,
     #[prost(string, tag = "2")]
     pub agent_id: ::prost::alloc::string::String,
+    #[prost(uint64, optional, tag = "6")]
+    pub expected_revision: ::core::option::Option<u64>,
     #[prost(
         oneof = "set_agent_presentation_profile_request::Mutation",
         tags = "3, 4, 5"
@@ -20054,6 +20189,8 @@ pub mod set_agent_presentation_profile_request {
 pub struct SetAgentPresentationProfileResponse {
     #[prost(message, optional, tag = "1")]
     pub profile: ::core::option::Option<AgentPresentationProfile>,
+    #[prost(uint64, tag = "2")]
+    pub committed_revision: u64,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListPendingHooksRequest {
@@ -20995,86 +21132,6 @@ impl AgentStateEventFamily {
         }
     }
 }
-/// K-AGCORE-037 AgentPresentationEventFamily discriminates
-/// runtime.agent.presentation.\* families. Mapping is 1:1 to
-/// runtime.agent.presentation.{activity_requested|motion_requested|
-/// expression_requested|pose_requested|pose_cleared|lookat_requested|
-/// voice_playback_requested|voice_stream_chunk_available|
-/// voice_playback_terminal}.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentPresentationEventFamily {
-    Unspecified = 0,
-    ActivityRequested = 1,
-    MotionRequested = 2,
-    ExpressionRequested = 3,
-    PoseRequested = 4,
-    PoseCleared = 5,
-    LookatRequested = 6,
-    VoicePlaybackRequested = 7,
-    VoiceStreamChunkAvailable = 8,
-    VoicePlaybackTerminal = 9,
-}
-impl AgentPresentationEventFamily {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED",
-            Self::ActivityRequested => {
-                "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED"
-            }
-            Self::MotionRequested => "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED",
-            Self::ExpressionRequested => {
-                "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED"
-            }
-            Self::PoseRequested => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED",
-            Self::PoseCleared => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED",
-            Self::LookatRequested => "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED",
-            Self::VoicePlaybackRequested => {
-                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED"
-            }
-            Self::VoiceStreamChunkAvailable => {
-                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE"
-            }
-            Self::VoicePlaybackTerminal => {
-                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED" => {
-                Some(Self::ActivityRequested)
-            }
-            "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED" => {
-                Some(Self::MotionRequested)
-            }
-            "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED" => {
-                Some(Self::ExpressionRequested)
-            }
-            "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED" => Some(Self::PoseRequested),
-            "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED" => Some(Self::PoseCleared),
-            "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED" => {
-                Some(Self::LookatRequested)
-            }
-            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED" => {
-                Some(Self::VoicePlaybackRequested)
-            }
-            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE" => {
-                Some(Self::VoiceStreamChunkAvailable)
-            }
-            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL" => {
-                Some(Self::VoicePlaybackTerminal)
-            }
-            _ => None,
-        }
-    }
-}
 /// K-AGCORE-143 AgentProactiveEventFamily discriminates
 /// runtime.agent.proactive.\* event families. The family maps 1:1 to
 /// runtime.agent.proactive.{suggested|delivered|suppressed}.
@@ -21738,44 +21795,6 @@ impl AgentCanonicalMemoryReviewReadiness {
             "AGENT_CANONICAL_MEMORY_REVIEW_READINESS_BANK_UNAVAILABLE" => {
                 Some(Self::BankUnavailable)
             }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AgentPresentationBackendKind {
-    Unspecified = 0,
-    Vrm = 1,
-    Live2d = 2,
-    Sprite2d = 3,
-    Canvas2d = 4,
-    Video = 5,
-}
-impl AgentPresentationBackendKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED",
-            Self::Vrm => "AGENT_PRESENTATION_BACKEND_KIND_VRM",
-            Self::Live2d => "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D",
-            Self::Sprite2d => "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D",
-            Self::Canvas2d => "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D",
-            Self::Video => "AGENT_PRESENTATION_BACKEND_KIND_VIDEO",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "AGENT_PRESENTATION_BACKEND_KIND_VRM" => Some(Self::Vrm),
-            "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D" => Some(Self::Live2d),
-            "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D" => Some(Self::Sprite2d),
-            "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D" => Some(Self::Canvas2d),
-            "AGENT_PRESENTATION_BACKEND_KIND_VIDEO" => Some(Self::Video),
             _ => None,
         }
     }

@@ -152,6 +152,20 @@ export type {
 };
 
 import type {
+  AgentPresentationEventDetail,
+  AgentPresentationProfile,
+  AgentPresentationProfilePatch,
+  ClearAgentPresentationProfile,
+} from "../../core-generated/runtime-protobuf/runtime/v1/agent_presentation";
+
+export type {
+  AgentPresentationEventDetail,
+  AgentPresentationProfile,
+  AgentPresentationProfilePatch,
+  ClearAgentPresentationProfile,
+};
+
+import type {
   AgentAutonomyConfig,
   AgentAutonomyState,
   AgentAvatarDebugEventDetail,
@@ -164,9 +178,6 @@ import type {
   AgentLifecycleEventDetail,
   AgentMemoryEventDetail,
   AgentPostureProjection,
-  AgentPresentationEventDetail,
-  AgentPresentationProfile,
-  AgentPresentationProfilePatch,
   AgentProactiveEventDetail,
   AgentProactiveInterruptibilityProjection,
   AgentRecord,
@@ -191,7 +202,6 @@ import type {
   CanonicalMemoryCandidate,
   CanonicalMemoryRejection,
   CanonicalMemoryView,
-  ClearAgentPresentationProfile,
   ConversationAnchor,
   ConversationAnchorSnapshot,
   DisableAutonomyRequest,
@@ -285,9 +295,6 @@ export type {
   AgentLifecycleEventDetail,
   AgentMemoryEventDetail,
   AgentPostureProjection,
-  AgentPresentationEventDetail,
-  AgentPresentationProfile,
-  AgentPresentationProfilePatch,
   AgentProactiveEventDetail,
   AgentProactiveInterruptibilityProjection,
   AgentRecord,
@@ -312,7 +319,6 @@ export type {
   CanonicalMemoryCandidate,
   CanonicalMemoryRejection,
   CanonicalMemoryView,
-  ClearAgentPresentationProfile,
   ConversationAnchor,
   ConversationAnchorSnapshot,
   DisableAutonomyRequest,
