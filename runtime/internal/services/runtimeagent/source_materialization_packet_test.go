@@ -26,7 +26,7 @@ func TestSourceMaterializationCanonicalHashMatchesForgeVector(t *testing.T) {
 	if err != nil {
 		t.Fatalf("hashCanonicalJSON: %v", err)
 	}
-	if hash != "e3431fd26fd4f62fd6d0957200a753ea3cc464e9798f50013e2b0d5f4f06f329" {
+	if hash != "e3431fd26fd4f62fd6d0957200a753ea3cc464e9798f50013e2b0d5f4f06f329" { // pragma: allowlist secret -- deterministic canonical JSON digest
 		t.Fatalf("canonical hash mismatch: %s", hash)
 	}
 }

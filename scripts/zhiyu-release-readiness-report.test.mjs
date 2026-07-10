@@ -32,7 +32,7 @@ function baseEvidence() {
       role: 'zhiyu-local-build-output',
       path: '.nimi/local/evidence/zhiyu/pp12/nimiplatform-zhiyu-0.1.0-local-preparation.tar',
       digest_algorithm: 'sha256',
-      sha256: '4c754f83e1e110c3f53ef8b66de218598a598c4f1d0c921d74ec4e29cfdb15b4',
+      sha256: '4c754f83e1e110c3f53ef8b66de218598a598c4f1d0c921d74ec4e29cfdb15b4', // pragma: allowlist secret -- public release-evidence fixture digest
       size: {
         download: '2954240',
         installed: '2946706',
@@ -43,12 +43,12 @@ function baseEvidence() {
       files: [
         {
           path: 'dist/index.html',
-          sha256: 'dd2593930c88e4d8dc6560cbf82208b47dd5ccd8acde453f8daa161caacebaad',
+          sha256: 'dd2593930c88e4d8dc6560cbf82208b47dd5ccd8acde453f8daa161caacebaad', // pragma: allowlist secret -- public release-evidence fixture digest
           size: '402',
         },
         {
           path: 'dist-electron/main.js',
-          sha256: '1976e4f1ca21bf4feaeebf01b74f1a9398a6a188625fe6d2567e9c0c102ee4fc',
+          sha256: '1976e4f1ca21bf4feaeebf01b74f1a9398a6a188625fe6d2567e9c0c102ee4fc', // pragma: allowlist secret -- public release-evidence fixture digest
           size: '4666',
         },
       ],

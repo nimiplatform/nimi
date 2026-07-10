@@ -36,8 +36,8 @@ fn endpoint_accepts_exact_loopback_origins_only() {
     assert!(normalize_endpoint("http://localhost:4500").is_err());
     assert!(normalize_endpoint("http://0.0.0.0:4500").is_err());
     assert!(normalize_endpoint("http://127.0.0.1:4500/v1/open-intent").is_err());
-    assert!(normalize_endpoint("http://user:pass@127.0.0.1:4500").is_err());
-    assert!(normalize_endpoint("http://user:pass@[::1]:4500").is_err());
+    assert!(normalize_endpoint("http://user:pass@127.0.0.1:4500").is_err()); // pragma: allowlist secret -- rejected placeholder credentials
+    assert!(normalize_endpoint("http://user:pass@[::1]:4500").is_err()); // pragma: allowlist secret -- rejected placeholder credentials
 }
 
 #[test]

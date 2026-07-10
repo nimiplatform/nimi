@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   filterSecretScanFiles,
-  generatedProtocolBaselineEntries,
+  generatedArtifactBaselineEntries,
 } from './lib/secret-scan-scope.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -54,12 +54,12 @@ function assertBaselineScope() {
     fail(`failed to read ${baselinePath}: ${error.message}`);
   }
 
-  const generatedEntries = generatedProtocolBaselineEntries(baseline);
+  const generatedEntries = generatedArtifactBaselineEntries(baseline);
   if (generatedEntries.length === 0) return;
 
   fail([
-    `${baselinePath} contains generated protocol stub allowlist entries.`,
-    'Generated protocol stubs are excluded from secret scanning because proto sources are the authority and proto:drift-check verifies regeneration.',
+    `${baselinePath} contains generated artifact allowlist entries.`,
+    'Generated artifacts are excluded only when their source authority and drift gate are registered in scripts/lib/secret-scan-scope.mjs.',
     'Remove these baseline entries:',
     ...generatedEntries.map((entry) => `  - ${entry}`),
   ].join('\n'));
@@ -87,7 +87,7 @@ function main() {
 
   runDetectSecrets(scanned);
 
-  process.stdout.write(`secret baseline gate passed: scanned ${scanned.length} tracked files; excluded ${excluded.length} generated protocol stubs\n`);
+  process.stdout.write(`secret baseline gate passed: scanned ${scanned.length} tracked files; excluded ${excluded.length} generated artifacts\n`);
 }
 
 main();

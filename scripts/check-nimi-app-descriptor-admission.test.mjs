@@ -29,7 +29,7 @@ const sandboxDescriptorDoc = {
       artifact: {
         locator: 'https://fixtures.nimi.test/releases/platform-proof/0.1.0-sandbox/app.tgz',
         digest_algorithm: 'sha256',
-        sha256: '6f1ed002ab5595859014ebf0951522d9b604294d9ad9e4d12d85bc8f0d0bb8a1',
+        sha256: '6f1ed002ab5595859014ebf0951522d9b604294d9ad9e4d12d85bc8f0d0bb8a1', // pragma: allowlist secret -- public fixture digest
         size: {
           download: '1024',
           installed: '4096',
@@ -139,7 +139,7 @@ const generatedArtifactEvidence = {
     path: 'dist/index.html',
     mediaType: 'text/html',
     sizeBytes: 1024,
-    sha256: '6f1ed002ab5595859014ebf0951522d9b604294d9ad9e4d12d85bc8f0d0bb8a1',
+    sha256: '6f1ed002ab5595859014ebf0951522d9b604294d9ad9e4d12d85bc8f0d0bb8a1', // pragma: allowlist secret -- public fixture digest
   },
   publicAdmissionTruth: 'not-generated',
   releaseDescriptorTruth: 'not-generated',

@@ -43,7 +43,7 @@ models:
     source_ids: [z_image_turbo_gguf_modelcard, stable_diffusion_cpp_z_image_guide]
     install:
       repo: leejet/Z-Image-Turbo-GGUF
-      revision: c61c0e422dc8b541b7548cf33a4ef8302b0f8085
+      revision: c61c0e422dc8b541b7548cf33a4ef8302b0f8085 # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: z_image_turbo-Q4_K.gguf
       artifact_roles: [diffusion_model]
@@ -193,7 +193,7 @@ models:
         engine_slot: vae_path
         install:
           repo: Comfy-Org/z_image_turbo
-          revision: 2f862278568d3f0a83167a16e5f11094da6dee72
+          revision: 2f862278568d3f0a83167a16e5f11094da6dee72 # pragma: allowlist secret -- public immutable model revision
           install_kind: weights
           entry: split_files/vae/ae.safetensors
           artifact_roles: [vae]
@@ -231,7 +231,7 @@ models:
         engine_slot: llm_path
         install:
           repo: unsloth/Qwen3-4B-Instruct-2507-GGUF
-          revision: a06e946bb6b655725eafa393f4a9745d460374c9
+          revision: a06e946bb6b655725eafa393f4a9745d460374c9 # pragma: allowlist secret -- public immutable model revision
           install_kind: weights
           entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
           artifact_roles: [text_encoder]

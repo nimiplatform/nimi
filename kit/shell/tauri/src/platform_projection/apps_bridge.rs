@@ -178,7 +178,7 @@ mod tests {
         assert_eq!(descriptor.size, "1503232");
         assert_eq!(
             descriptor.provenance_ref,
-            "ci-provenance/platform-proof/0.1.0-sandbox/sha256-2e8527a892b227a0d0ea5038f6f375b13c6ba2649ba4c06d96ae539ec9105863"
+            "ci-provenance/platform-proof/0.1.0-sandbox/sha256-2e8527a892b227a0d0ea5038f6f375b13c6ba2649ba4c06d96ae539ec9105863" // pragma: allowlist secret -- public fixture digest
         );
         assert_eq!(descriptor.entry_ref, "dist/index.html");
         assert_eq!(
