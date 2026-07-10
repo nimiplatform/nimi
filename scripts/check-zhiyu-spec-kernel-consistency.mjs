@@ -307,6 +307,7 @@ function checkAcceptanceGates() {
     'no_direct_ai_consumption',
     'artifact_boundary',
     'local_persistence_boundary',
+    'shared_auth_broker',
     'test_quarantine',
   ];
   const gates = new Set();

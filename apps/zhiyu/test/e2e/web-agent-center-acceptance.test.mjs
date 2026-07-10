@@ -47,7 +47,7 @@ test('zhiyu web Agent Center fails closed without standard shell bridge', { time
         1,
         'web Agent Center must expose a fail-closed blocked appearance state when Runtime/standard shell is unavailable',
       );
-      assert.equal(await page.locator('button:has-text("瀵煎叆 Live2D")').count(), 0);
+      assert.equal(await page.locator('button:has-text("导入 Live2D")').count(), 0);
       assert.equal(await page.evaluate(() => Boolean(globalThis.window.__nimiZhiyuAgentCenterLocalConfig)), false);
 
       await captureWebAgentCenterEvidence(page, pageProblems, { privateBridgePresence });

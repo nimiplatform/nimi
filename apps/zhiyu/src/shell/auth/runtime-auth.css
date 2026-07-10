@@ -33,6 +33,29 @@
   background: var(--nimi-surface-panel);
 }
 
+.runtime-login-screen {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 24px;
+  background: var(--nimi-surface-panel);
+}
+
+.runtime-account-required-panel {
+  width: min(580px, 100%);
+  display: grid;
+  gap: 18px;
+}
+
+.runtime-account-owner-copy {
+  min-width: 0;
+  margin: 0;
+  color: var(--nimi-text-secondary);
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
 .runtime-login-alert {
   position: absolute;
   right: 24px;

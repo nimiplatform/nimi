@@ -126,6 +126,10 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
         assert.equal(Object.hasOwn(live2dImportResult.material, 'previewImageRef'), false);
 
         await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__));
+        const sdkAcceptanceKeys = await page.evaluate(() =>
+          Object.keys(globalThis.window.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__).sort(),
+        );
+        assert.deepEqual(sdkAcceptanceKeys, ['renewDelegationScopedBinding', 'runtimeReady', 'sharedAuthBroker']);
         const runtimeReady = await page.evaluate(() =>
           globalThis.window.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__.runtimeReady(),
         );
@@ -133,6 +137,13 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
         assert.equal(runtimeReady.ok, false);
         assert.equal(runtimeReady.code, 'external-daemon-required');
         assert.equal(runtimeReady.reasonCode, 'electron-runtime-endpoint-unavailable');
+        const sharedAuthBroker = await page.evaluate(() =>
+          globalThis.window.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__.sharedAuthBroker(),
+        );
+        assert.equal(sharedAuthBroker.transport, 'electron-ipc');
+        assert.equal(sharedAuthBroker.ok, false);
+        assert.equal(sharedAuthBroker.code, 'external-daemon-required');
+        assert.equal(sharedAuthBroker.reasonCode, 'electron-runtime-endpoint-unavailable');
         await captureProductHomeEvidence(page, pageProblems, {
           diagnosticsProbe,
           runtimeReady,

@@ -22,8 +22,15 @@ const runtimeProtectedScopes = [
   'runtime.agent.ai_config.write',
   'ai.spend.meter',
 ] as const;
+const runtimeAccountBrokerCapabilities = [
+  'account.session.read',
+  'data.scope.read#realm.worlds.read-probe',
+] as const;
+const runtimeRegistrationCapabilities = [
+  ...runtimeProtectedScopes,
+  ...runtimeAccountBrokerCapabilities,
+] as const;
 const runtimeProtectedScopeCatalogVersion = 'sdk-v2';
-const runtimeAppSessionDeviceId = 'zhiyu-platform-runtime-session';
 const runtimeAppSessionTtlSeconds = 3600;
 const runtimeAppSessionRefreshSkewMs = 30_000;
 const runtimeProtectedTokenTtlSeconds = 3600;
@@ -41,9 +48,9 @@ export function createZhiyuElectronTrustedRuntimeMetadataProvider(input: {
     runtimeEndpoint,
     accountCaller: createZhiyuElectronRuntimeAccountCaller(appId),
     appSession: {
-      appInstanceId: `${appId}.platform-runtime-session`,
-      deviceId: runtimeAppSessionDeviceId,
-      capabilities: [...runtimeProtectedScopes],
+      appInstanceId: `${appId}.local-first-party`,
+      deviceId: `${clientIdPrefix}-local-first-party-device`,
+      capabilities: [...runtimeRegistrationCapabilities],
       ttlSeconds: runtimeAppSessionTtlSeconds,
       refreshSkewMs: runtimeAppSessionRefreshSkewMs,
       developerRegistration: runtimeDeveloperRegistrationRequested,

@@ -1,7 +1,10 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
+import { createRuntimeAccountMediatedRealmTransport } from '@nimiplatform/sdk/app';
+import { Realm } from '@nimiplatform/sdk/realm';
 import { Runtime } from '@nimiplatform/sdk/runtime';
 import { resolveZhiyuRuntimeAgentScopedBindingDecisionFromHost } from '../agent-chat/runtime-agent-binding';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electron-runtime-unavailable';
+import { appId, getRuntimeAccountCaller } from './runtime-platform';
 
 type ZhiyuElectronSdkAcceptanceProbeResult =
   | {
@@ -24,6 +27,7 @@ type ZhiyuElectronSdkAcceptanceProbeResult =
 
 type ZhiyuElectronSdkAcceptanceProbe = {
   runtimeReady(): Promise<ZhiyuElectronSdkAcceptanceProbeResult>;
+  sharedAuthBroker(): Promise<ZhiyuElectronSdkAcceptanceProbeResult>;
   renewDelegationScopedBinding(): Promise<ZhiyuElectronSdkAcceptanceProbeResult>;
 };
 
@@ -42,7 +46,7 @@ export function installZhiyuElectronSdkAcceptanceProbe(): void {
   window.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__ = {
     async runtimeReady() {
       const runtime = new Runtime({
-        appId: 'nimi.zhiyu',
+        appId,
         transport: { type: 'electron-ipc' },
       });
       try {
@@ -52,6 +56,29 @@ export function installZhiyuElectronSdkAcceptanceProbe(): void {
           transport: 'electron-ipc',
           status: health.status,
           reason: health.reason,
+        };
+      } catch (error) {
+        return serializeSdkAcceptanceError(error);
+      }
+    },
+    async sharedAuthBroker() {
+      const runtime = new Runtime({
+        appId,
+        transport: { type: 'electron-ipc' },
+      });
+      const realm = new Realm({
+        transport: createRuntimeAccountMediatedRealmTransport({
+          runtime,
+          accountCaller: getRuntimeAccountCaller(),
+        }),
+      });
+      try {
+        const response = await realm.worldPublic.worldPublicControllerListWorlds({ path: {} });
+        return {
+          ok: true,
+          transport: 'electron-ipc',
+          status: 'runtime-mediated-realm-ready',
+          reason: response.length,
         };
       } catch (error) {
         return serializeSdkAcceptanceError(error);

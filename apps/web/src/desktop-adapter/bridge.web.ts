@@ -4,7 +4,6 @@
 // Residual desktop type coupling tracked as F-011. Full decoupling requires
 // a web-specific app shell that does not render desktop App.
 
-import type { SharedDesktopAuthSession } from '@nimiplatform/kit/auth';
 import {
   hasTauriInvoke,
   hasShellHostInvoke,
