@@ -15,38 +15,44 @@ import {
 import type {
   AgentCenterAppearanceAdapter,
   AgentCenterAppearanceProjection,
-  AgentCenterHostScope,
   AgentCenterRuntimePresentationProfilePatch,
   AgentCenterRuntimePresentationProfileSurface,
   AgentCenterRuntimeSnapshot,
 } from './types.js';
 
 export interface AgentCenterShellAppearanceBridgeScope {
-  readonly hostScope: AgentCenterHostScope;
-  readonly accountId?: string;
-  readonly ownerUserId?: string;
-  readonly runtimeSourceRef?: string;
-  readonly localAgentRef?: string;
+  readonly hostScope: 'local-agent';
+  readonly accountId: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef: string;
 }
+
+export interface AgentCenterShellAppearanceBridgeAccountScope {
+  readonly hostScope: 'account';
+  readonly accountId: string;
+}
+
+type AgentCenterShellAvatarBackendKind = Extract<AgentCenterAvatarBackendKind, 'live2d' | 'vrm'>;
 
 export interface AgentCenterShellAppearanceBridge {
   readonly importLive2dAvatarAsset: (scope: AgentCenterShellAppearanceBridgeScope) => Promise<unknown | null>;
   readonly importVrmAvatarAsset: (scope: AgentCenterShellAppearanceBridgeScope) => Promise<unknown | null>;
   readonly validateAvatarAsset: (payload: AgentCenterShellAppearanceBridgeScope & { readonly avatarAssetRef: string }) => Promise<unknown>;
   readonly resolveAvatarAssetPreview?: (
-    payload: AgentCenterShellAppearanceBridgeScope & { readonly avatarAssetRef: string; readonly backendKind?: AgentCenterAvatarBackendKind }
+    payload: AgentCenterShellAppearanceBridgeScope & { readonly avatarAssetRef: string; readonly backendKind?: AgentCenterShellAvatarBackendKind }
   ) => Promise<unknown>;
   readonly importLive2dAdapterManifest?: (payload: AgentCenterShellAppearanceBridgeScope & { readonly avatarAssetRef: string }) => Promise<unknown | null>;
   readonly importBackground?: (scope: AgentCenterShellAppearanceBridgeScope) => Promise<unknown | null>;
   readonly validateBackground?: (payload: AgentCenterShellAppearanceBridgeScope & { readonly backgroundAssetRef: string }) => Promise<unknown>;
   readonly removeBackground?: (payload: AgentCenterShellAppearanceBridgeScope & { readonly backgroundAssetRef: string }) => Promise<unknown>;
   readonly removeAgentResources?: (payload: AgentCenterShellAppearanceBridgeScope & { readonly localAgentRef: string }) => Promise<unknown>;
-  readonly removeAccountResources?: (payload: { readonly accountId?: string }) => Promise<unknown>;
+  readonly removeAccountResources?: (payload: AgentCenterShellAppearanceBridgeAccountScope) => Promise<unknown>;
 }
 
 export interface CreateAgentCenterShellAppearanceAdapterInput {
   readonly identity: RuntimeLocalAgentIdentityInput;
-  readonly accountId?: string | null;
+  readonly accountId: string;
   readonly runtimePresentation: AgentCenterRuntimePresentationProfileSurface;
   readonly shell?: AgentCenterShellAppearanceBridge | null;
   readonly snapshot?: AgentCenterRuntimeSnapshot | null;
@@ -73,7 +79,7 @@ export function createAgentCenterShellAppearanceAdapter(
 
   const scope = (): AgentCenterShellAppearanceBridgeScope => ({
     hostScope: 'local-agent',
-    accountId: normalizeOptionalText(input.accountId) || undefined,
+    accountId: requireText(input.accountId, 'accountId'),
     ownerUserId: requireText(input.identity.ownerUserId, 'ownerUserId'),
     runtimeSourceRef: requireText(input.identity.runtimeSourceRef, 'runtimeSourceRef'),
     localAgentRef: requireText(input.identity.localAgentRef, 'localAgentRef'),
@@ -167,7 +173,8 @@ export function createAgentCenterShellAppearanceAdapter(
     ...(input.shell?.removeAccountResources ? { async removeAccountResources() {
       const shell = input.shell as AgentCenterShellAppearanceBridge;
       validateAgentCenterResourceRemovalResult(await shell.removeAccountResources?.({
-        accountId: normalizeOptionalText(input.accountId) || undefined,
+        hostScope: 'account',
+        accountId: requireText(input.accountId, 'accountId'),
       }));
       return refresh();
     } } : {}),
@@ -197,7 +204,9 @@ async function projectAppearance(
     ? await shell.resolveAvatarAssetPreview({
       ...scope,
       avatarAssetRef,
-      ...(profile.backendKind ? { backendKind: profile.backendKind } : {}),
+      ...(profile.backendKind === 'live2d' || profile.backendKind === 'vrm'
+        ? { backendKind: profile.backendKind }
+        : {}),
     }).then(validateAgentCenterAvatarPreviewResolveResult).then((result) => ({
       previewState: result.validationStatus === 'invalid' ? 'failed' as const : 'ready' as const,
       previewTier: 'avatar_preview_service' as const,

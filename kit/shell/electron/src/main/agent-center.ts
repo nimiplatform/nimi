@@ -17,6 +17,8 @@ const MAX_BACKGROUND_BYTES = 20_971_520;
 
 type Scope = {
   readonly accountId: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
   readonly localAgentRef: string;
 };
 
@@ -28,47 +30,129 @@ type SourceFile = {
   readonly mime: string;
 };
 
+type AgentCenterDispatchHandler = (
+  host: NimiElectronStandardShellHost | undefined,
+  payload: Readonly<Record<string, unknown>>,
+  command: string,
+) => Promise<unknown>;
+
+const AGENT_CENTER_DISPATCH = {
+  [NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport']]: importAvatarAsset,
+  [NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetValidate']]: validateAvatarAsset,
+  [NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetResolvePreview']]: resolveAvatarAssetPreview,
+  [NIMI_STANDARD_SHELL_COMMANDS['agent-center.live2dAdapterImport']]: importLive2dAdapterManifest,
+  [NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport']]: importBackground,
+  [NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundGet']]: getBackground,
+  [NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundValidate']]: validateBackground,
+  [NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundRemove']]: removeBackground,
+  [NIMI_STANDARD_SHELL_COMMANDS['agent-center.agentResourcesRemove']]: removeAgentResources,
+  [NIMI_STANDARD_SHELL_COMMANDS['agent-center.accountResourcesRemove']]: removeAccountResources,
+} as const satisfies Readonly<Record<string, AgentCenterDispatchHandler>>;
+
+type AgentCenterDispatchCommand = Extract<keyof typeof AGENT_CENTER_DISPATCH, string>;
+
 export async function dispatchElectronAgentCenterCommand(input: {
   readonly host: NimiElectronStandardShellHost | undefined;
   readonly payload: Readonly<Record<string, unknown>>;
   readonly command: string;
 }): Promise<unknown> {
   const { command, host, payload } = input;
-  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport']) {
-    return importAvatarAsset(host, payload, command);
-  }
-  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetValidate']) {
-    return validateAvatarAsset(host, payload, command);
-  }
-  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetResolvePreview']) {
-    return resolveAvatarAssetPreview(host, payload, command);
-  }
-  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.live2dAdapterImport']) {
-    return importLive2dAdapterManifest(host, payload, command);
-  }
-  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport']) {
-    return importBackground(host, payload, command);
-  }
-  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundGet']) {
-    return getBackground(host, payload, command);
-  }
-  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundValidate']) {
-    return validateBackground(host, payload, command);
-  }
-  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundRemove']) {
-    return removeBackground(host, payload, command);
-  }
-  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.agentResourcesRemove']) {
-    return removeAgentResources(host, payload, command);
-  }
-  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.accountResourcesRemove']) {
-    return removeAccountResources(host, payload, command);
+  if (isElectronAgentCenterCommand(command)) {
+    const handler = AGENT_CENTER_DISPATCH[command];
+    return handler(host, parseElectronAgentCenterPayload(command, payload), command);
   }
   throw createElectronCapabilityUnavailableError(command);
 }
 
-export function isElectronAgentCenterCommand(command: string): boolean {
-  return AGENT_CENTER_COMMAND_SET.has(command);
+export function isElectronAgentCenterCommand(command: string): command is AgentCenterDispatchCommand {
+  return Object.hasOwn(AGENT_CENTER_DISPATCH, command);
+}
+
+function parseElectronAgentCenterPayload(
+  command: AgentCenterDispatchCommand,
+  payload: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw invalidPayload(command, 'payload must be an object');
+  }
+  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.accountResourcesRemove']) {
+    return exactPayload(payload, {
+      hostScope: 'account',
+      accountId: parseAccountScope(payload, command),
+    }, command);
+  }
+
+  const scope = parseLocalAgentScope(payload, command);
+  const common = { hostScope: 'local-agent', ...scope } as const;
+  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport']) {
+    return exactPayload(payload, {
+      ...common,
+      sourcePath: parseSourcePath(payload.sourcePath, command),
+      backendKind: parseBackendKind(payload.backendKind, command),
+    }, command);
+  }
+  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetValidate']) {
+    return exactPayload(payload, {
+      ...common,
+      avatarAssetRef: parseAvatarAssetRef(payload.avatarAssetRef, command),
+    }, command);
+  }
+  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetResolvePreview']) {
+    const avatarAssetRef = parseAvatarAssetRef(payload.avatarAssetRef, command);
+    const canonical: Record<string, unknown> = {
+      ...common,
+      avatarAssetRef,
+    };
+    if (payload.backendKind !== undefined) {
+      const backendKind = parseBackendKind(payload.backendKind, command);
+      if (!avatarAssetRef.startsWith(`${backendKind}_`)) {
+        throw invalidPayload(command, 'backendKind must match avatarAssetRef');
+      }
+      canonical.backendKind = backendKind;
+    }
+    return exactPayload(payload, canonical, command);
+  }
+  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.live2dAdapterImport']) {
+    const avatarAssetRef = parseAvatarAssetRef(payload.avatarAssetRef, command);
+    if (!avatarAssetRef.startsWith('live2d_')) {
+      throw invalidPayload(command, 'avatarAssetRef must reference a Live2D avatar asset');
+    }
+    return exactPayload(payload, {
+      ...common,
+      avatarAssetRef,
+      sourcePath: parseSourcePath(payload.sourcePath, command),
+    }, command);
+  }
+  if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport']) {
+    return exactPayload(payload, {
+      ...common,
+      sourcePath: parseSourcePath(payload.sourcePath, command),
+    }, command);
+  }
+  if (
+    command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundGet']
+    || command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundValidate']
+    || command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundRemove']
+  ) {
+    return exactPayload(payload, {
+      ...common,
+      backgroundAssetRef: parseBackgroundAssetRef(payload.backgroundAssetRef, command),
+    }, command);
+  }
+  return exactPayload(payload, common, command);
+}
+
+function exactPayload(
+  raw: Readonly<Record<string, unknown>>,
+  canonical: Readonly<Record<string, unknown>>,
+  command: string,
+): Readonly<Record<string, unknown>> {
+  const actualKeys = Object.keys(raw).sort();
+  const expectedKeys = Object.keys(canonical).sort();
+  if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) {
+    throw invalidPayload(command, `payload keys must be exactly: ${expectedKeys.join(', ')}`);
+  }
+  return canonical;
 }
 
 async function importAvatarAsset(
@@ -129,6 +213,7 @@ async function importAvatarAsset(
 
 async function validateAvatarAsset(host: NimiElectronStandardShellHost | undefined, payload: Readonly<Record<string, unknown>>, command: string) {
   const dataRoot = await standardDataRoot(host, command);
+  parseLocalAgentScope(payload, command);
   const avatarAssetRef = parseAvatarAssetRef(payload.avatarAssetRef, command);
   const kind = kindFromAvatarRef(avatarAssetRef);
   const dir = await findAvatarAssetDir(dataRoot, avatarAssetRef, kind);
@@ -167,6 +252,7 @@ async function importLive2dAdapterManifest(
   command: string,
 ) {
   const dataRoot = await standardDataRoot(host, command);
+  parseLocalAgentScope(payload, command);
   const avatarAssetRef = parseAvatarAssetRef(payload.avatarAssetRef, command);
   if (!avatarAssetRef.startsWith('live2d_')) {
     throw invalidPayload(command, 'avatarAssetRef must reference a Live2D avatar asset');
@@ -245,6 +331,7 @@ async function importBackground(
 
 async function getBackground(host: NimiElectronStandardShellHost | undefined, payload: Readonly<Record<string, unknown>>, command: string) {
   const dataRoot = await standardDataRoot(host, command);
+  parseLocalAgentScope(payload, command);
   const backgroundAssetRef = parseBackgroundAssetRef(payload.backgroundAssetRef, command);
   const found = await findBackground(dataRoot, backgroundAssetRef);
   if (!found) {
@@ -264,6 +351,7 @@ async function getBackground(host: NimiElectronStandardShellHost | undefined, pa
 
 async function validateBackground(host: NimiElectronStandardShellHost | undefined, payload: Readonly<Record<string, unknown>>, command: string) {
   const dataRoot = await standardDataRoot(host, command);
+  parseLocalAgentScope(payload, command);
   const backgroundAssetRef = parseBackgroundAssetRef(payload.backgroundAssetRef, command);
   const found = await findBackground(dataRoot, backgroundAssetRef);
   return {
@@ -275,6 +363,7 @@ async function validateBackground(host: NimiElectronStandardShellHost | undefine
 
 async function removeBackground(host: NimiElectronStandardShellHost | undefined, payload: Readonly<Record<string, unknown>>, command: string) {
   const dataRoot = await standardDataRoot(host, command);
+  parseLocalAgentScope(payload, command);
   const backgroundAssetRef = parseBackgroundAssetRef(payload.backgroundAssetRef, command);
   const found = await findBackground(dataRoot, backgroundAssetRef);
   if (!found) {
@@ -286,19 +375,18 @@ async function removeBackground(host: NimiElectronStandardShellHost | undefined,
 
 async function removeAgentResources(host: NimiElectronStandardShellHost | undefined, payload: Readonly<Record<string, unknown>>, command: string) {
   const dataRoot = await standardDataRoot(host, command);
-  const accountId = validateId(payload.accountId, 'accountId', command);
-  const localAgentRef = validateId(payload.localAgentRef, 'localAgentRef', command);
-  const root = agentCenterDir(dataRoot, { accountId, localAgentRef });
+  const scope = parseLocalAgentScope(payload, command);
+  const root = agentCenterDir(dataRoot, scope);
   if (!await exists(root)) {
     return { removed: false };
   }
-  await quarantine(path.dirname(root), root, 'agent_local_resources', localAgentRef);
+  await quarantine(path.dirname(root), root, 'agent_local_resources', scope.localAgentRef);
   return { removed: true };
 }
 
 async function removeAccountResources(host: NimiElectronStandardShellHost | undefined, payload: Readonly<Record<string, unknown>>, command: string) {
   const dataRoot = await standardDataRoot(host, command);
-  const accountId = validateId(payload.accountId, 'accountId', command);
+  const accountId = parseAccountScope(payload, command);
   const root = accountDir(dataRoot, accountId);
   if (!await exists(root)) {
     return { removed: false };
@@ -312,26 +400,53 @@ async function standardDataRoot(host: NimiElectronStandardShellHost | undefined,
 }
 
 function parseLocalAgentScope(payload: Readonly<Record<string, unknown>>, command: string): Scope {
-  const hostScope = normalizeRequiredToken(payload.hostScope, 'hostScope');
+  const hostScope = typeof payload.hostScope === 'string' ? payload.hostScope.trim() : '';
   if (hostScope !== 'local-agent') {
     throw invalidPayload(command, 'Agent Center asset custody requires hostScope=local-agent');
   }
-  return {
+  const scope = {
     accountId: validateId(payload.accountId, 'accountId', command),
+    ownerUserId: validateId(payload.ownerUserId, 'ownerUserId', command),
+    runtimeSourceRef: validateId(payload.runtimeSourceRef, 'runtimeSourceRef', command),
     localAgentRef: validateId(payload.localAgentRef, 'localAgentRef', command),
   };
+  if (!scope.localAgentRef.startsWith('local-agent:')) {
+    throw invalidPayload(command, 'localAgentRef must start with local-agent:');
+  }
+  if (scope.localAgentRef === scope.runtimeSourceRef) {
+    throw invalidPayload(command, 'localAgentRef must differ from runtimeSourceRef');
+  }
+  return scope;
+}
+
+function parseAccountScope(payload: Readonly<Record<string, unknown>>, command: string): string {
+  const hostScope = typeof payload.hostScope === 'string' ? payload.hostScope.trim() : '';
+  if (hostScope !== 'account') {
+    throw invalidPayload(command, 'Account resource cleanup requires hostScope=account');
+  }
+  return validateId(payload.accountId, 'accountId', command);
 }
 
 function validateId(value: unknown, field: string, command: string): string {
-  const normalized = normalizeRequiredToken(value, field);
-  if (normalized.length > 256 || normalized === '.' || normalized === '..' || normalized.includes('://')) {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw invalidPayload(command, `${field} is required`);
+  }
+  const normalized = value.trim();
+  if (
+    normalized.length > 256
+    || normalized === '.'
+    || normalized === '..'
+    || normalized.includes('://')
+    || !/[A-Za-z0-9]/u.test(normalized)
+    || !/^[A-Za-z0-9_.~:@+-]+$/u.test(normalized)
+  ) {
     throw invalidPayload(command, `${field} is not an admitted opaque identifier`);
   }
   return normalized;
 }
 
 function parseBackendKind(value: unknown, command: string): AvatarBackendKind {
-  const kind = normalizeRequiredToken(value, 'backendKind');
+  const kind = parseRequiredPayloadText(value, 'backendKind', command);
   if (kind !== 'live2d' && kind !== 'vrm') {
     throw invalidPayload(command, 'backendKind must be live2d or vrm');
   }
@@ -339,7 +454,7 @@ function parseBackendKind(value: unknown, command: string): AvatarBackendKind {
 }
 
 function parseAvatarAssetRef(value: unknown, command: string): string {
-  const ref = normalizeRequiredToken(value, 'avatarAssetRef');
+  const ref = parseRequiredPayloadText(value, 'avatarAssetRef', command);
   if (!/^(live2d|vrm)_[a-f0-9]{12}$/u.test(ref)) {
     throw invalidPayload(command, 'avatarAssetRef is invalid');
   }
@@ -347,11 +462,22 @@ function parseAvatarAssetRef(value: unknown, command: string): string {
 }
 
 function parseBackgroundAssetRef(value: unknown, command: string): string {
-  const ref = normalizeRequiredToken(value, 'backgroundAssetRef');
+  const ref = parseRequiredPayloadText(value, 'backgroundAssetRef', command);
   if (!/^bg_[a-f0-9]{12}$/u.test(ref)) {
     throw invalidPayload(command, 'backgroundAssetRef is invalid');
   }
   return ref;
+}
+
+function parseSourcePath(value: unknown, command: string): string {
+  return parseRequiredPayloadText(value, 'sourcePath', command);
+}
+
+function parseRequiredPayloadText(value: unknown, field: string, command: string): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw invalidPayload(command, `${field} is required`);
+  }
+  return value.trim();
 }
 
 function kindFromAvatarRef(ref: string): AvatarBackendKind {
@@ -620,16 +746,3 @@ function notFound(command: string, message: string): NimiElectronShellHostError 
     details: { command },
   });
 }
-
-const AGENT_CENTER_COMMAND_SET: ReadonlySet<string> = new Set([
-  NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
-  NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetValidate'],
-  NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetResolvePreview'],
-  NIMI_STANDARD_SHELL_COMMANDS['agent-center.live2dAdapterImport'],
-  NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport'],
-  NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundGet'],
-  NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundValidate'],
-  NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundRemove'],
-  NIMI_STANDARD_SHELL_COMMANDS['agent-center.agentResourcesRemove'],
-  NIMI_STANDARD_SHELL_COMMANDS['agent-center.accountResourcesRemove'],
-]);

@@ -14,7 +14,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
   const runtimePresentation = useMemo(() => createRuntimeAgentPresentationProfileAdapter(), []);
   const shell = useMemo(() => (hasTauriInvoke() ? createAgentCenterShellBridge() : null), []);
   const appearanceAdapter = useMemo(() => {
-    if (!input.activeTarget) {
+    if (!input.activeTarget || !input.accountId) {
       return null;
     }
     return createAgentCenterShellAppearanceAdapter({

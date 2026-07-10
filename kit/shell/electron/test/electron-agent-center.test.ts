@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import {
   createElectronShellFileProtocolHost,
   isElectronAgentCenterCommand,
@@ -35,6 +36,43 @@ function registerAgentCenterBridge(standardShellHost: NimiElectronStandardShellH
 }
 
 describe('Electron standard Agent Center host', () => {
+  it('applies the shared exact-payload fixture matrix at the actual dispatcher boundary', async () => {
+    const fixtures = JSON.parse(readFileSync(path.resolve(
+      process.cwd(),
+      'shell/capabilities/test/agent-center-payload-fixtures.json',
+    ), 'utf8')) as Array<{
+      readonly command: string;
+      readonly valid: Readonly<Record<string, unknown>>;
+      readonly unknown: Readonly<Record<string, unknown>>;
+      readonly missing: Readonly<Record<string, unknown>>;
+      readonly wrong: Readonly<Record<string, unknown>>;
+    }>;
+    const ipcMain = registerAgentCenterBridge({});
+    const { event } = createInvokeEvent();
+
+    for (const fixture of fixtures) {
+      try {
+        await invokeBridge(ipcMain, event, {
+          command: fixture.command,
+          payload: fixture.valid,
+        });
+      } catch (error) {
+        expect(error, `${fixture.command} valid fixture must pass payload parsing`).not.toMatchObject({
+          reasonCode: 'electron-agent-center-payload-invalid',
+        });
+      }
+      for (const payload of [fixture.unknown, fixture.missing, fixture.wrong]) {
+        await expect(invokeBridge(ipcMain, event, {
+          command: fixture.command,
+          payload,
+        }), `${fixture.command} must reject ${JSON.stringify(payload)}`).rejects.toMatchObject({
+          code: 'invalid-payload',
+          reasonCode: 'electron-agent-center-payload-invalid',
+        });
+      }
+    }
+  });
+
   it('imports a file-dialog admitted Live2D folder through standard Agent Center commands', async () => {
     await withTempDir('agent-center-live2d', async (root) => {
       const dataRoot = path.join(root, 'data');
@@ -64,6 +102,8 @@ describe('Electron standard Agent Center host', () => {
         payload: {
           hostScope: 'local-agent',
           accountId: 'account_1',
+          ownerUserId: 'owner_1',
+          runtimeSourceRef: 'runtime-source:local',
           localAgentRef: 'local-agent:ren',
           backendKind: 'live2d',
           sourcePath: sourceRoot,
@@ -75,6 +115,39 @@ describe('Electron standard Agent Center host', () => {
         validationStatus: 'valid',
       });
       expect((imported as { avatarAssetRef?: string }).avatarAssetRef).toMatch(/^live2d_[a-f0-9]{12}$/u);
+    });
+  });
+
+  it('rejects incomplete local-agent scope with the canonical Electron error envelope', async () => {
+    await withTempDir('agent-center-scope', async (root) => {
+      const ipcMain = registerAgentCenterBridge({
+        standardDataRootBinding: {
+          source: 'runtime-launch-projection',
+          durableDataRoot: path.join(root, 'data'),
+          projectionRef: 'electron-agent-center-scope-test',
+        },
+      });
+      const { event } = createInvokeEvent();
+
+      for (const [command, extra] of [
+        [NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetValidate'], { avatarAssetRef: 'live2d_111111111111' }],
+        [NIMI_STANDARD_SHELL_COMMANDS['agent-center.agentResourcesRemove'], {}],
+      ] as const) {
+        await expect(invokeBridge(ipcMain, event, {
+          command,
+          payload: {
+            hostScope: 'local-agent',
+            accountId: 'account_1',
+            localAgentRef: 'local-agent:ren',
+            ...extra,
+          },
+        })).rejects.toMatchObject({
+          code: 'invalid-payload',
+          reasonCode: 'electron-agent-center-payload-invalid',
+          actionHint: 'send_standard_agent_center_payload',
+          source: 'electron',
+        });
+      }
     });
   });
 

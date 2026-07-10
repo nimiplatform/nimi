@@ -3,64 +3,80 @@ use super::*;
 pub(crate) fn standard_agent_center_background_import_blocking(
     roots: &crate::runtime_app_storage::StandardAppStorageRoots,
     payload: StandardAgentCenterBackgroundImportPayload,
-) -> Result<StandardAgentCenterBackgroundImportResult, String> {
-    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    validate_local_agent_host_scope(&payload.host_scope)?;
+) -> AgentCenterHostResult<StandardAgentCenterBackgroundImportResult> {
+    let account_id = validate_normalized_id(&payload.account_id, "accountId")
+        .map_err(AgentCenterHostError::InvalidPayload)?;
+    validate_local_agent_host_scope(&payload.host_scope)
+        .map_err(AgentCenterHostError::InvalidPayload)?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
         &payload.runtime_source_ref,
         &payload.local_agent_ref,
-    )?;
+    )
+    .map_err(AgentCenterHostError::InvalidPayload)?;
     let source_path = PathBuf::from(&payload.source_path);
     let source = fs::canonicalize(&source_path).map_err(|error| {
-        format!(
+        AgentCenterHostError::InvalidPath(format!(
             "failed to resolve background source ({}): {error}",
             source_path.display()
-        )
+        ))
     })?;
-    require_file_dialog_selected_source(&source, "agent_center_background_import")?;
-    let metadata = fs::symlink_metadata(&source)
-        .map_err(|error| format!("failed to read background source metadata: {error}"))?;
+    require_file_dialog_selected_source(&source, "agent_center_background_import")
+        .map_err(AgentCenterHostError::StandardEnvelope)?;
+    let metadata = fs::symlink_metadata(&source).map_err(|error| {
+        AgentCenterHostError::HostInternal(format!(
+            "failed to read background source metadata: {error}"
+        ))
+    })?;
     if metadata.file_type().is_symlink() {
-        return Err("background source path must not be a symlink".to_string());
+        return Err(AgentCenterHostError::InvalidPath(
+            "background source path must not be a symlink".to_string(),
+        ));
     }
     if !metadata.is_file() {
-        return Err("background source must be an image file".to_string());
+        return Err(AgentCenterHostError::InvalidPayload(
+            "background source must be an image file".to_string(),
+        ));
     }
-    let mime = background_mime_for_path(&source)?;
+    let mime = background_mime_for_path(&source).map_err(AgentCenterHostError::InvalidPayload)?;
     let source_bytes = fs::read(&source).map_err(|error| {
-        format!(
+        AgentCenterHostError::HostInternal(format!(
             "failed to read background source ({}): {error}",
             source.display()
-        )
+        ))
     })?;
     let bytes = u64::try_from(source_bytes.len()).unwrap_or(u64::MAX);
     if bytes == 0 || bytes > MAX_BACKGROUND_BYTES {
-        return Err("background source is outside the fixed byte cap".to_string());
+        return Err(AgentCenterHostError::InvalidPayload(
+            "background source is outside the fixed byte cap".to_string(),
+        ));
     }
-    let (pixel_width, pixel_height) = background_dimensions(&source_bytes, &mime)?;
+    let (pixel_width, pixel_height) = background_dimensions(&source_bytes, &mime)
+        .map_err(AgentCenterHostError::InvalidPayload)?;
     let sha256 = {
         let mut hasher = Sha256::new();
         hasher.update(&source_bytes);
         format!("{:x}", hasher.finalize())
     };
     let background_asset_id = format!("bg_{}", &sha256[..12]);
-    validate_background_id(&background_asset_id, "backgroundAssetId")?;
+    validate_background_id(&background_asset_id, "backgroundAssetId")
+        .map_err(AgentCenterHostError::InvalidPayload)?;
     let final_dir = background_dir(
         roots,
         &account_id,
         &scope.local_agent_ref,
         &background_asset_id,
-    )?;
-    let selected = payload.select.unwrap_or(true);
+    )
+    .map_err(AgentCenterHostError::InvalidPath)?;
 
     if final_dir.exists() {
         let validation = validate_background_manifest(&final_dir, &background_asset_id);
-        write_background_validation_sidecar(&final_dir, &validation)?;
+        write_background_validation_sidecar(&final_dir, &validation)
+            .map_err(AgentCenterHostError::HostInternal)?;
         if validation.status != StandardAgentCenterBackgroundValidationStatus::Valid {
-            return Err(format!(
+            return Err(AgentCenterHostError::InvalidPayload(format!(
                 "background id collision exists but is not valid: {background_asset_id}"
-            ));
+            )));
         }
         let _ = record_resource_operation(
             roots,
@@ -71,15 +87,16 @@ pub(crate) fn standard_agent_center_background_import_blocking(
             &background_asset_id,
             "completed",
             "content_already_imported",
-        )?;
+        )
+        .map_err(AgentCenterHostError::HostInternal)?;
         return Ok(StandardAgentCenterBackgroundImportResult {
             background_asset_id,
-            selected,
             validation,
         });
     }
 
-    let staging_dir = agent_center_dir(roots, &account_id, &scope.local_agent_ref)?
+    let staging_dir = agent_center_dir(roots, &account_id, &scope.local_agent_ref)
+        .map_err(AgentCenterHostError::InvalidPath)?
         .join("modules")
         .join("appearance")
         .join("staging")
@@ -90,22 +107,23 @@ pub(crate) fn standard_agent_center_background_import_blocking(
         ));
     remove_dir_if_exists(&staging_dir);
     fs::create_dir_all(&staging_dir).map_err(|error| {
-        format!(
+        AgentCenterHostError::HostInternal(format!(
             "failed to create background staging directory ({}): {error}",
             staging_dir.display()
-        )
+        ))
     })?;
 
     let import_result = (|| {
         let extension = extension_for(&source.to_string_lossy());
         let image_file = format!("image.{extension}");
         fs::write(staging_dir.join(&image_file), &source_bytes).map_err(|error| {
-            format!(
+            AgentCenterHostError::HostInternal(format!(
                 "failed to copy background image into staging ({}): {error}",
                 staging_dir.display()
-            )
+            ))
         })?;
-        let display_name = safe_display_name(payload.display_name, &source)?;
+        let display_name =
+            safe_display_name(&source).map_err(AgentCenterHostError::InvalidPayload)?;
         let manifest = BackgroundManifest {
             manifest_version: 1,
             background_asset_id: background_asset_id.clone(),
@@ -124,39 +142,41 @@ pub(crate) fn standard_agent_center_background_import_blocking(
             imported_at: checked_at(),
             source_label: source_label_for(&source),
         };
-        write_json_pretty(&staging_dir.join(MANIFEST_FILE_NAME), &manifest)?;
+        write_json_pretty(&staging_dir.join(MANIFEST_FILE_NAME), &manifest)
+            .map_err(AgentCenterHostError::HostInternal)?;
         let staging_validation = validate_background_manifest(&staging_dir, &background_asset_id);
         if staging_validation.status != StandardAgentCenterBackgroundValidationStatus::Valid {
-            return Err(format!(
+            return Err(AgentCenterHostError::InvalidPayload(format!(
                 "staged background failed validation: {:?}",
                 staging_validation.errors
-            ));
+            )));
         }
-        let parent = final_dir
-            .parent()
-            .ok_or_else(|| "background final path has no parent".to_string())?;
+        let parent = final_dir.parent().ok_or_else(|| {
+            AgentCenterHostError::InvalidPath("background final path has no parent".to_string())
+        })?;
         fs::create_dir_all(parent).map_err(|error| {
-            format!(
+            AgentCenterHostError::HostInternal(format!(
                 "failed to create background final directory ({}): {error}",
                 parent.display()
-            )
+            ))
         })?;
         fs::rename(&staging_dir, &final_dir).map_err(|error| {
-            format!(
+            AgentCenterHostError::HostInternal(format!(
                 "failed to finalize background import ({} -> {}): {error}",
                 staging_dir.display(),
                 final_dir.display()
-            )
+            ))
         })?;
         let validation = validate_background_manifest(&final_dir, &background_asset_id);
-        write_background_validation_sidecar(&final_dir, &validation)?;
+        write_background_validation_sidecar(&final_dir, &validation)
+            .map_err(AgentCenterHostError::HostInternal)?;
         if validation.status != StandardAgentCenterBackgroundValidationStatus::Valid {
-            return Err(format!(
+            return Err(AgentCenterHostError::InvalidPayload(format!(
                 "final background failed validation: {:?}",
                 validation.errors
-            ));
+            )));
         }
-        Ok::<_, String>(validation)
+        Ok::<_, AgentCenterHostError>(validation)
     })();
 
     let validation = match import_result {
@@ -181,11 +201,11 @@ pub(crate) fn standard_agent_center_background_import_blocking(
         &background_asset_id,
         "completed",
         "user_imported",
-    )?;
+    )
+    .map_err(AgentCenterHostError::HostInternal)?;
 
     Ok(StandardAgentCenterBackgroundImportResult {
         background_asset_id,
-        selected,
         validation,
     })
 }

@@ -226,13 +226,8 @@ pub(super) fn source_label_for(path: &Path) -> String {
         .unwrap_or_else(|| "local import".to_string())
 }
 
-pub(super) fn safe_display_name(
-    input: Option<String>,
-    fallback_path: &Path,
-) -> Result<String, String> {
-    let name = input
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| source_label_for(fallback_path));
+pub(super) fn safe_display_name(source_path: &Path) -> Result<String, String> {
+    let name = source_label_for(source_path);
     validate_display_text(&name, "displayName", 80).map_err(|issue| issue.message)?;
     Ok(name)
 }

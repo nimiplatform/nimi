@@ -14,6 +14,14 @@ export type NimiStandardShellErrorCode = (typeof NIMI_STANDARD_SHELL_ERROR_CODES
 
 export type NimiStandardShellErrorSource = 'renderer' | 'tauri' | 'electron' | 'runtime' | 'host';
 
+const NIMI_STANDARD_SHELL_ERROR_SOURCES: ReadonlySet<string> = new Set([
+  'renderer',
+  'tauri',
+  'electron',
+  'runtime',
+  'host',
+]);
+
 export interface NimiStandardShellErrorEnvelope {
   code: NimiStandardShellErrorCode;
   reasonCode: string;
@@ -54,6 +62,11 @@ export function isNimiStandardShellErrorEnvelope(value: unknown): value is NimiS
     && typeof record.actionHint === 'string'
     && record.actionHint.length > 0
     && typeof record.source === 'string'
-    && record.source.length > 0
+    && NIMI_STANDARD_SHELL_ERROR_SOURCES.has(record.source)
+    && (record.details === undefined || (
+      Boolean(record.details)
+      && typeof record.details === 'object'
+      && !Array.isArray(record.details)
+    ))
   );
 }

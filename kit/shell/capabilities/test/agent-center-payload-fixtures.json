@@ -1,0 +1,82 @@
+[
+  {
+    "operationId": "avatarAssetImport",
+    "command": "nimi.shell.agentCenter.avatarAssetImport",
+    "valid": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "sourcePath": "/fixture/avatar-live2d", "backendKind": "live2d" },
+    "unknown": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "sourcePath": "/fixture/avatar-live2d", "backendKind": "live2d", "select": true },
+    "missing": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "sourcePath": "/fixture/avatar-live2d", "backendKind": "live2d" },
+    "wrong": { "hostScope": "local-agent", "accountId": "account id", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "sourcePath": "/fixture/avatar-live2d", "backendKind": "live2d" }
+  },
+  {
+    "operationId": "avatarAssetValidate",
+    "command": "nimi.shell.agentCenter.avatarAssetValidate",
+    "valid": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "avatarAssetRef": "live2d_111111111111" },
+    "unknown": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "avatarAssetRef": "live2d_111111111111", "displayName": "legacy" },
+    "missing": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren" },
+    "wrong": { "hostScope": "local-agent", "accountId": "账户a", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "avatarAssetRef": "live2d_111111111111" }
+  },
+  {
+    "operationId": "avatarAssetResolvePreview",
+    "command": "nimi.shell.agentCenter.avatarAssetResolvePreview",
+    "valid": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "avatarAssetRef": "live2d_111111111111", "backendKind": "live2d" },
+    "unknown": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "avatarAssetRef": "live2d_111111111111", "backendKind": "live2d", "selected": true },
+    "missing": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "backendKind": "live2d" },
+    "wrong": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "avatarAssetRef": "live2d_111111111111", "backendKind": "vrm" }
+  },
+  {
+    "operationId": "live2dAdapterImport",
+    "command": "nimi.shell.agentCenter.live2dAdapterImport",
+    "valid": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "avatarAssetRef": "live2d_111111111111", "sourcePath": "/fixture/live2d-adapter.json" },
+    "unknown": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "avatarAssetRef": "live2d_111111111111", "sourcePath": "/fixture/live2d-adapter.json", "select": false },
+    "missing": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "avatarAssetRef": "live2d_111111111111" },
+    "wrong": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "avatarAssetRef": "live2d_111111111111", "sourcePath": ["bad"] }
+  },
+  {
+    "operationId": "backgroundImport",
+    "command": "nimi.shell.agentCenter.backgroundImport",
+    "valid": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "sourcePath": "/fixture/background.png" },
+    "unknown": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "sourcePath": "/fixture/background.png", "displayName": "legacy" },
+    "missing": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren" },
+    "wrong": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "sourcePath": null }
+  },
+  {
+    "operationId": "backgroundGet",
+    "command": "nimi.shell.agentCenter.backgroundGet",
+    "valid": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "backgroundAssetRef": "bg_111111111111" },
+    "unknown": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "backgroundAssetRef": "bg_111111111111", "path": "/tmp/raw" },
+    "missing": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren" },
+    "wrong": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "backgroundAssetRef": 7 }
+  },
+  {
+    "operationId": "backgroundValidate",
+    "command": "nimi.shell.agentCenter.backgroundValidate",
+    "valid": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "backgroundAssetRef": "bg_111111111111" },
+    "unknown": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "backgroundAssetRef": "bg_111111111111", "selected": true },
+    "missing": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren" },
+    "wrong": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "backgroundAssetRef": {} }
+  },
+  {
+    "operationId": "backgroundRemove",
+    "command": "nimi.shell.agentCenter.backgroundRemove",
+    "valid": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "backgroundAssetRef": "bg_111111111111" },
+    "unknown": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "backgroundAssetRef": "bg_111111111111", "legacy": true },
+    "missing": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren" },
+    "wrong": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "backgroundAssetRef": "../escape" }
+  },
+  {
+    "operationId": "agentResourcesRemove",
+    "command": "nimi.shell.agentCenter.agentResourcesRemove",
+    "valid": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren" },
+    "unknown": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "local-agent:ren", "select": true },
+    "missing": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local" },
+    "wrong": { "hostScope": "local-agent", "accountId": "account_1", "ownerUserId": "owner_1", "runtimeSourceRef": "runtime-source:local", "localAgentRef": "agent-without-prefix" }
+  },
+  {
+    "operationId": "accountResourcesRemove",
+    "command": "nimi.shell.agentCenter.accountResourcesRemove",
+    "valid": { "hostScope": "account", "accountId": "account_1" },
+    "unknown": { "hostScope": "account", "accountId": "account_1", "localAgentRef": "local-agent:ren" },
+    "missing": { "hostScope": "account" },
+    "wrong": { "hostScope": "local-agent", "accountId": "account_1" }
+  }
+]

@@ -5,6 +5,7 @@ import {
   type AgentCenterShellAppearanceBridge,
 } from '../src/headless.js';
 import type {
+  AgentCenterRuntimePresentationProfileMutationResult,
   AgentCenterRuntimePresentationProfilePatch,
   AgentCenterRuntimeSnapshot,
 } from '../src/types.js';
@@ -15,7 +16,9 @@ const identity = {
   localAgentRef: 'local-agent:ren',
 };
 
-function snapshot(profile: AgentCenterRuntimeSnapshot['inspect']['presentationProfile']): AgentCenterRuntimeSnapshot {
+type PresentationProfile = NonNullable<AgentCenterRuntimeSnapshot['inspect']>['presentationProfile'];
+
+function snapshot(profile: PresentationProfile, presentationProfileRevision = '1'): AgentCenterRuntimeSnapshot {
   return {
     inspect: {
       lifecycleStatus: 'active',
@@ -27,6 +30,7 @@ function snapshot(profile: AgentCenterRuntimeSnapshot['inspect']['presentationPr
       currentEmotion: 'calm',
       proactiveInterruptibility: null,
       presentationProfile: profile,
+      presentationProfileRevision,
       autonomyMode: null,
       autonomyEnabled: null,
       autonomyBudgetExhausted: null,
@@ -42,6 +46,42 @@ function snapshot(profile: AgentCenterRuntimeSnapshot['inspect']['presentationPr
       recentCanonicalMemories: [],
     } as never,
   };
+}
+
+function mutationResult(
+  patch: AgentCenterRuntimePresentationProfilePatch,
+  committedRevision = '2',
+): AgentCenterRuntimePresentationProfileMutationResult {
+  return {
+    profile: {
+      backendKind: normalizeMutationBackendKind(patch.backendKind),
+      avatarAssetRef: normalizeMutationText(patch.avatarAssetRef),
+      expressionProfileRef: normalizeMutationText(patch.expressionProfileRef),
+      idlePreset: normalizeMutationText(patch.idlePreset),
+      interactionPolicyRef: normalizeMutationText(patch.interactionPolicyRef),
+      defaultVoiceReference: normalizeMutationText(patch.defaultVoiceReference),
+      avatarAutoplay: patch.avatarAutoplay ?? false,
+      backgroundAssetRef: normalizeMutationText(patch.backgroundAssetRef),
+    },
+    committedRevision,
+  };
+}
+
+function normalizeMutationBackendKind(
+  value: string | null | undefined,
+): 'live2d' | 'vrm' | 'sprite2d' | 'canvas2d' | 'video' | null {
+  return value === 'live2d'
+    || value === 'vrm'
+    || value === 'sprite2d'
+    || value === 'canvas2d'
+    || value === 'video'
+    ? value
+    : null;
+}
+
+function normalizeMutationText(value: string | null | undefined): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return normalized || null;
 }
 
 function shellBridge(overrides: Partial<AgentCenterShellAppearanceBridge> = {}): AgentCenterShellAppearanceBridge {
@@ -96,7 +136,9 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
       identity,
       accountId: 'account-1',
       runtimePresentation: {
-        async patchPresentationProfile() {},
+        async patchPresentationProfile(_identity, patch) {
+          return mutationResult(patch);
+        },
       },
       shell: shellBridge({
         importLive2dAvatarAsset: async (scope) => {
@@ -122,12 +164,41 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     }]);
   });
 
+  it('passes explicit account scope through account resource cleanup', async () => {
+    const calls: unknown[] = [];
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account-1',
+      runtimePresentation: {
+        async patchPresentationProfile(_identity, patch) {
+          return mutationResult(patch);
+        },
+      },
+      shell: shellBridge({
+        removeAccountResources: async (scope) => {
+          calls.push(scope);
+          return { removed: true };
+        },
+      }),
+      snapshot: snapshot(null),
+    });
+
+    await adapter.removeAccountResources?.();
+
+    expect(calls).toEqual([{
+      hostScope: 'account',
+      accountId: 'account-1',
+    }]);
+  });
+
   it('composes Runtime presentation selection with Shell validation custody', async () => {
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
       accountId: 'account-1',
       runtimePresentation: {
-        async patchPresentationProfile() {},
+        async patchPresentationProfile(_identity, patch) {
+          return mutationResult(patch);
+        },
       },
       shell: shellBridge(),
       snapshot: snapshot({
@@ -162,7 +233,9 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
       identity,
       accountId: 'account-1',
       runtimePresentation: {
-        async patchPresentationProfile() {},
+        async patchPresentationProfile(_identity, patch) {
+          return mutationResult(patch);
+        },
       },
       shell: shellBridge(),
       snapshot: snapshot({
@@ -187,12 +260,15 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
 
   it('imports through Shell custody before committing Runtime presentation selection', async () => {
     const patches: AgentCenterRuntimePresentationProfilePatch[] = [];
+    const expectedRevisions: string[] = [];
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
       accountId: 'account-1',
       runtimePresentation: {
-        async patchPresentationProfile(_identity, patch) {
+        async patchPresentationProfile(_identity, patch, expectedRevision) {
           patches.push(patch);
+          expectedRevisions.push(expectedRevision);
+          return mutationResult(patch);
         },
       },
       shell: shellBridge(),
@@ -202,6 +278,7 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     const projection = await adapter.importAvatarAsset?.('live2d');
 
     expect(patches).toEqual([{ backendKind: 'live2d', avatarAssetRef: 'live2d_111111111111' }]);
+    expect(expectedRevisions).toEqual(['1']);
     expect(projection).toMatchObject({
       status: 'ready',
       avatarAssetRef: 'live2d_111111111111',
@@ -229,9 +306,11 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     const patches: AgentCenterRuntimePresentationProfilePatch[] = [];
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
+      accountId: 'account-1',
       runtimePresentation: {
         async patchPresentationProfile(_identity, patch) {
           patches.push(patch);
+          return mutationResult(patch);
         },
       },
       shell: shellBridge(),
@@ -247,9 +326,11 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     const patches: AgentCenterRuntimePresentationProfilePatch[] = [];
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
+      accountId: 'account-1',
       runtimePresentation: {
         async patchPresentationProfile(_identity, patch) {
           patches.push(patch);
+          return mutationResult(patch);
         },
       },
       shell: null,
@@ -277,9 +358,11 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     const patches: AgentCenterRuntimePresentationProfilePatch[] = [];
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
+      accountId: 'account-1',
       runtimePresentation: {
         async patchPresentationProfile(_identity, patch) {
           patches.push(patch);
+          return mutationResult(patch);
         },
       },
       shell: shellBridge({
@@ -301,9 +384,11 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     const patches: AgentCenterRuntimePresentationProfilePatch[] = [];
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
+      accountId: 'account-1',
       runtimePresentation: {
         async patchPresentationProfile(_identity, patch) {
           patches.push(patch);
+          return mutationResult(patch);
         },
       },
       shell: shellBridge({
@@ -325,9 +410,11 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     const patches: AgentCenterRuntimePresentationProfilePatch[] = [];
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
+      accountId: 'account-1',
       runtimePresentation: {
         async patchPresentationProfile(_identity, patch) {
           patches.push(patch);
+          return mutationResult(patch);
         },
       },
       shell: shellBridge({

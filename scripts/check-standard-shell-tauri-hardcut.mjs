@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { verifyAgentCenterParity } from './lib/standard-shell-agent-center-parity.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -31,6 +32,15 @@ const retiredRootPathPattern = new RegExp(
 const sourceRoots = ['apps', 'kit'];
 const failures = [];
 
+failures.push(...verifyAgentCenterParity({
+  canonical: readRepo('.nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml'),
+  typescriptCatalog: readRepo('kit/shell/capabilities/src/catalog.ts'),
+  rustCatalog: readRepo('kit/shell/tauri/src/capabilities/catalog.rs'),
+  rendererAliases: readRepo('kit/shell/renderer/src/bridge/tauri-api.ts'),
+  tauriRegistration: readRepo('kit/shell/tauri/src/command_registration.rs'),
+  electronHost: readRepo('kit/shell/electron/src/main/agent-center.ts'),
+}));
+
 for (const file of collectSourceFiles(sourceRoots)) {
   const relative = slash(path.relative(repoRoot, file));
   const content = readFileSync(file, 'utf8');
@@ -51,6 +61,10 @@ for (const moduleName of retiredRootModules) {
 if (failures.length > 0) {
   console.error(failures.join('\n'));
   process.exit(1);
+}
+
+function readRepo(relativePath) {
+  return readFileSync(path.join(repoRoot, relativePath), 'utf8');
 }
 
 function collectSourceFiles(roots) {

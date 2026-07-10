@@ -4,7 +4,6 @@ use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
 use std::io::{ErrorKind, Write};
 use std::path::{Component, Path, PathBuf};
-use tauri::Manager;
 
 const VALIDATION_SCHEMA_VERSION: u8 = 1;
 const MAX_LIVE2D_ADAPTER_MANIFEST_BYTES: u64 = 262_144;
@@ -33,7 +32,6 @@ pub struct StandardAgentCenterLive2dAdapterManifestImportPayload {
     pub local_agent_ref: String,
     pub avatar_asset_ref: String,
     pub source_path: String,
-    pub select: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -46,8 +44,6 @@ pub struct StandardAgentCenterAvatarAssetImportPayload {
     pub local_agent_ref: String,
     pub backend_kind: StandardAgentCenterAvatarBackendKind,
     pub source_path: String,
-    pub display_name: Option<String>,
-    pub select: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -74,6 +70,7 @@ pub struct StandardAgentCenterAgentLocalResourcesRemovePayload {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StandardAgentCenterAccountLocalResourcesRemovePayload {
+    pub host_scope: String,
     pub account_id: String,
 }
 
@@ -108,8 +105,6 @@ pub struct StandardAgentCenterBackgroundImportPayload {
     pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub source_path: String,
-    pub display_name: Option<String>,
-    pub select: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -121,7 +116,17 @@ pub struct StandardAgentCenterAvatarPreviewResolvePayload {
     pub runtime_source_ref: String,
     pub local_agent_ref: String,
     pub avatar_asset_ref: String,
+    #[serde(default, deserialize_with = "deserialize_optional_avatar_backend_kind")]
     pub backend_kind: Option<StandardAgentCenterAvatarBackendKind>,
+}
+
+fn deserialize_optional_avatar_backend_kind<'de, D>(
+    deserializer: D,
+) -> Result<Option<StandardAgentCenterAvatarBackendKind>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    StandardAgentCenterAvatarBackendKind::deserialize(deserializer).map(Some)
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -129,7 +134,6 @@ pub struct StandardAgentCenterAvatarPreviewResolvePayload {
 pub struct StandardAgentCenterLive2dAdapterManifestImportResult {
     pub manifest_ref: String,
     pub local_asset_id: String,
-    pub selected: bool,
     pub sha256: String,
     pub bytes: u64,
     pub imported_at: String,
@@ -140,7 +144,6 @@ pub struct StandardAgentCenterLive2dAdapterManifestImportResult {
 pub struct StandardAgentCenterAvatarAssetImportResult {
     pub local_asset_id: String,
     pub backend_kind: StandardAgentCenterAvatarBackendKind,
-    pub selected: bool,
     pub materialization_ref: String,
     pub backend_capability_profile_ref: String,
     pub validation: StandardAgentCenterAvatarAssetValidationResult,
@@ -160,7 +163,6 @@ pub struct StandardAgentCenterLocalResourceRemoveResult {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StandardAgentCenterBackgroundImportResult {
     pub background_asset_id: String,
-    pub selected: bool,
     pub validation: StandardAgentCenterBackgroundValidationResult,
 }
 
@@ -177,7 +179,6 @@ pub struct StandardAgentCenterBackgroundAssetResult {
 pub enum StandardAgentCenterAvatarBackendKind {
     Live2d,
     Vrm,
-    Future,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -350,6 +351,9 @@ struct StandardAgentCenterResourceOperationRecord {
     reason_code: String,
 }
 
+#[path = "standard_agent_center/commands.rs"]
+pub(crate) mod commands;
+pub(crate) use commands::{AgentCenterHostError, AgentCenterHostResult};
 #[path = "standard_agent_center/resources_avatar_import.rs"]
 mod resources_avatar_import;
 #[path = "standard_agent_center/resources_background_import.rs"]
@@ -366,6 +370,8 @@ mod resources_operations;
 mod resources_remove_commands;
 #[path = "standard_agent_center/resources_validation.rs"]
 mod resources_validation;
+#[path = "standard_agent_center/shell_projection.rs"]
+pub(crate) mod shell_projection;
 
 use resources_avatar_import::*;
 use resources_background_import::*;
@@ -444,6 +450,16 @@ pub(crate) fn validate_local_agent_host_scope(value: &str) -> Result<(), String>
     Ok(())
 }
 
+pub(crate) fn validate_account_host_scope(value: &str) -> Result<(), String> {
+    let host_scope = validate_normalized_id(value, "hostScope")?;
+    if host_scope != "account" {
+        return Err(
+            "hostScope must be account for account-scoped Agent Center cleanup".to_string(),
+        );
+    }
+    Ok(())
+}
+
 fn can_use_raw_scope_path_segment(value: &str) -> bool {
     let body = value.strip_prefix('~').unwrap_or(value);
     if body.is_empty() || value.len() > 128 {
@@ -506,7 +522,6 @@ pub(crate) fn avatar_backend_kind_label(
     match kind {
         StandardAgentCenterAvatarBackendKind::Live2d => "live2d",
         StandardAgentCenterAvatarBackendKind::Vrm => "vrm",
-        StandardAgentCenterAvatarBackendKind::Future => "future",
     }
 }
 
@@ -570,7 +585,7 @@ pub(crate) fn require_file_dialog_selected_source(
         return Ok(());
     }
     Err(crate::capabilities::standard_shell_error(
-        "permission-denied",
+        "forbidden-renderer-access",
         "tauri-agent-center-source-not-from-file-dialog",
         "select_agent_center_import_source_with_standard_file_dialog",
         "tauri",
@@ -581,363 +596,5 @@ pub(crate) fn require_file_dialog_selected_source(
     ))
 }
 
-pub(crate) async fn run_agent_center_resource_blocking<T, F>(
-    operation: &'static str,
-    task: F,
-) -> Result<T, String>
-where
-    T: Send + 'static,
-    F: FnOnce() -> Result<T, String> + Send + 'static,
-{
-    tauri::async_runtime::spawn_blocking(task)
-        .await
-        .map_err(|error| format!("{operation} background worker failed: {error}"))?
-}
-
-pub async fn avatar_asset_import(
-    roots: crate::runtime_app_storage::StandardAppStorageRoots,
-    payload: StandardAgentCenterAvatarAssetImportPayload,
-) -> Result<StandardAgentCenterAvatarAssetImportResult, String> {
-    run_agent_center_resource_blocking("agent_center_avatar_asset_import", move || {
-        standard_agent_center_avatar_asset_import_blocking(&roots, payload)
-    })
-    .await
-}
-
-pub async fn avatar_asset_validate(
-    roots: crate::runtime_app_storage::StandardAppStorageRoots,
-    payload: StandardAgentCenterAvatarAssetValidatePayload,
-) -> Result<StandardAgentCenterAvatarAssetValidationResult, String> {
-    run_agent_center_resource_blocking("agent_center_avatar_asset_validate", move || {
-        standard_agent_center_avatar_asset_validate_blocking(&roots, payload)
-    })
-    .await
-}
-
-pub async fn avatar_asset_resolve_preview(
-    roots: crate::runtime_app_storage::StandardAppStorageRoots,
-    payload: StandardAgentCenterAvatarPreviewResolvePayload,
-) -> Result<serde_json::Value, String> {
-    let backend_kind = payload
-        .backend_kind
-        .unwrap_or(avatar_backend_kind_for_asset_ref(
-            &payload.avatar_asset_ref,
-        )?);
-    let avatar_asset_ref = payload.avatar_asset_ref.clone();
-    let validation_payload = StandardAgentCenterAvatarAssetValidatePayload {
-        host_scope: payload.host_scope,
-        account_id: payload.account_id,
-        owner_user_id: payload.owner_user_id,
-        runtime_source_ref: payload.runtime_source_ref,
-        local_agent_ref: payload.local_agent_ref,
-        avatar_asset_ref: avatar_asset_ref.clone(),
-    };
-    let validation = avatar_asset_validate(roots, validation_payload).await?;
-    Ok(shell_avatar_preview_result(
-        avatar_asset_ref,
-        backend_kind,
-        validation,
-    ))
-}
-
-pub async fn live2d_adapter_manifest_import(
-    roots: crate::runtime_app_storage::StandardAppStorageRoots,
-    payload: StandardAgentCenterLive2dAdapterManifestImportPayload,
-) -> Result<StandardAgentCenterLive2dAdapterManifestImportResult, String> {
-    run_agent_center_resource_blocking("agent_center_live2d_adapter_import", move || {
-        standard_agent_center_live2d_adapter_manifest_import_blocking(&roots, payload)
-    })
-    .await
-}
-
-pub async fn background_import(
-    roots: crate::runtime_app_storage::StandardAppStorageRoots,
-    payload: StandardAgentCenterBackgroundImportPayload,
-) -> Result<StandardAgentCenterBackgroundImportResult, String> {
-    run_agent_center_resource_blocking("agent_center_background_import", move || {
-        standard_agent_center_background_import_blocking(&roots, payload)
-    })
-    .await
-}
-
-pub async fn background_validate(
-    roots: crate::runtime_app_storage::StandardAppStorageRoots,
-    payload: StandardAgentCenterBackgroundValidatePayload,
-) -> Result<StandardAgentCenterBackgroundValidationResult, String> {
-    run_agent_center_resource_blocking("agent_center_background_validate", move || {
-        standard_agent_center_background_validate_blocking(&roots, payload)
-    })
-    .await
-}
-
-pub async fn background_get(
-    roots: crate::runtime_app_storage::StandardAppStorageRoots,
-    app: tauri::AppHandle,
-    payload: StandardAgentCenterBackgroundValidatePayload,
-) -> Result<StandardAgentCenterBackgroundAssetResult, String> {
-    run_agent_center_resource_blocking("agent_center_background_get", move || {
-        standard_agent_center_background_asset_get_blocking(&roots, payload)
-    })
-    .await
-    .and_then(|mut result| {
-        if result.file_url.is_empty() {
-            return Ok(result);
-        }
-        let path = PathBuf::from(result.file_url.trim_start_matches("file://"));
-        app.state::<tauri::scope::Scopes>()
-            .allow_file(&path)
-            .map_err(|error| {
-                crate::capabilities::standard_shell_error(
-                    "host-internal-error",
-                    "tauri-agent-center-background-scope-allow-file-failed",
-                    "inspect_tauri_asset_protocol_scope",
-                    "tauri",
-                    Some(serde_json::json!({
-                        "command": "agent_center_background_get",
-                        "cause": error.to_string(),
-                    })),
-                )
-            })?;
-        result.file_url = crate::standard_local_assets::tauri_asset_url_for_file_path(&path);
-        Ok(result)
-    })
-}
-
-pub async fn background_remove(
-    roots: crate::runtime_app_storage::StandardAppStorageRoots,
-    payload: StandardAgentCenterBackgroundRemovePayload,
-) -> Result<StandardAgentCenterLocalResourceRemoveResult, String> {
-    run_agent_center_resource_blocking("agent_center_background_remove", move || {
-        standard_agent_center_background_remove_blocking(&roots, payload)
-    })
-    .await
-}
-
-pub async fn agent_resources_remove(
-    roots: crate::runtime_app_storage::StandardAppStorageRoots,
-    payload: StandardAgentCenterAgentLocalResourcesRemovePayload,
-) -> Result<StandardAgentCenterLocalResourceRemoveResult, String> {
-    run_agent_center_resource_blocking("agent_center_agent_resources_remove", move || {
-        standard_agent_center_agent_local_resources_remove_blocking(&roots, payload)
-    })
-    .await
-}
-
-pub async fn account_resources_remove(
-    roots: crate::runtime_app_storage::StandardAppStorageRoots,
-    payload: StandardAgentCenterAccountLocalResourcesRemovePayload,
-) -> Result<StandardAgentCenterLocalResourceRemoveResult, String> {
-    run_agent_center_resource_blocking("agent_center_account_resources_remove", move || {
-        standard_agent_center_account_local_resources_remove_blocking(&roots, payload)
-    })
-    .await
-}
-
-fn avatar_validation_status_for_shell(
-    status: StandardAgentCenterAvatarAssetValidationStatus,
-) -> &'static str {
-    match status {
-        StandardAgentCenterAvatarAssetValidationStatus::Valid => "valid",
-        _ => "invalid",
-    }
-}
-
-fn background_validation_status_for_shell(
-    status: StandardAgentCenterBackgroundValidationStatus,
-) -> &'static str {
-    match status {
-        StandardAgentCenterBackgroundValidationStatus::Valid => "valid",
-        _ => "invalid",
-    }
-}
-
-fn validation_message(
-    errors: &[StandardAgentCenterValidationIssue],
-    warnings: &[StandardAgentCenterValidationIssue],
-) -> Option<String> {
-    errors
-        .first()
-        .or_else(|| warnings.first())
-        .map(|issue| issue.message.clone())
-}
-
-fn validation_issue_rows(
-    errors: &[StandardAgentCenterValidationIssue],
-    warnings: &[StandardAgentCenterValidationIssue],
-) -> Vec<String> {
-    errors
-        .iter()
-        .chain(warnings.iter())
-        .map(|issue| {
-            if issue.code.trim().is_empty() {
-                issue.message.clone()
-            } else {
-                format!("{}: {}", issue.code, issue.message)
-            }
-        })
-        .collect()
-}
-
-pub fn shell_avatar_asset_import_result(
-    result: StandardAgentCenterAvatarAssetImportResult,
-) -> serde_json::Value {
-    serde_json::json!({
-        "avatarAssetRef": result.local_asset_id,
-        "backendKind": avatar_backend_kind_label(result.backend_kind),
-        "validationStatus": avatar_validation_status_for_shell(result.validation.status),
-        "validationMessage": validation_message(&result.validation.errors, &result.validation.warnings),
-        "backendCapabilityProfileRef": result.backend_capability_profile_ref,
-    })
-}
-
-pub fn shell_avatar_asset_validate_result(
-    result: StandardAgentCenterAvatarAssetValidationResult,
-) -> serde_json::Value {
-    let avatar_asset_ref = result.local_asset_id;
-    let backend_kind = avatar_backend_kind_for_asset_ref(&avatar_asset_ref)
-        .unwrap_or(StandardAgentCenterAvatarBackendKind::Future);
-    serde_json::json!({
-        "avatarAssetRef": avatar_asset_ref.clone(),
-        "backendKind": avatar_backend_kind_label(backend_kind),
-        "validationStatus": avatar_validation_status_for_shell(result.status),
-        "validationMessage": validation_message(&result.errors, &result.warnings),
-        "backendCapabilityProfileRef": backend_capability_profile_ref_for(
-            avatar_backend_kind_label(backend_kind),
-            &avatar_asset_ref,
-        ),
-        "validationIssueRows": validation_issue_rows(&result.errors, &result.warnings),
-    })
-}
-
-pub fn shell_avatar_preview_result(
-    avatar_asset_ref: String,
-    backend_kind: StandardAgentCenterAvatarBackendKind,
-    validation: StandardAgentCenterAvatarAssetValidationResult,
-) -> serde_json::Value {
-    serde_json::json!({
-        "avatarAssetRef": avatar_asset_ref,
-        "backendKind": avatar_backend_kind_label(backend_kind),
-        "previewArtifactRef": format!(
-            "agent-center-preview:{}:{}",
-            avatar_backend_kind_label(backend_kind),
-            validation.local_asset_id,
-        ),
-        "validationStatus": avatar_validation_status_for_shell(validation.status),
-        "validationMessage": validation_message(&validation.errors, &validation.warnings),
-        "warnings": validation.warnings.iter().map(|issue| issue.message.clone()).collect::<Vec<_>>(),
-    })
-}
-
-pub fn shell_live2d_adapter_import_result(
-    result: StandardAgentCenterLive2dAdapterManifestImportResult,
-) -> serde_json::Value {
-    serde_json::json!({
-        "avatarAssetRef": result.local_asset_id,
-        "live2dAdapterManifestRef": result.manifest_ref,
-        "live2dAdapterManifestSource": "external_sidecar_manifest",
-    })
-}
-
-pub fn shell_background_import_result(
-    result: StandardAgentCenterBackgroundImportResult,
-) -> serde_json::Value {
-    serde_json::json!({
-        "backgroundAssetRef": result.background_asset_id,
-        "validationStatus": background_validation_status_for_shell(result.validation.status),
-        "validationMessage": validation_message(&result.validation.errors, &result.validation.warnings),
-    })
-}
-
-pub fn shell_background_get_result(
-    result: StandardAgentCenterBackgroundAssetResult,
-) -> serde_json::Value {
-    serde_json::json!({
-        "backgroundAssetRef": result.background_asset_id,
-        "url": result.file_url,
-        "validationStatus": background_validation_status_for_shell(result.validation.status),
-        "validationMessage": validation_message(&result.validation.errors, &result.validation.warnings),
-    })
-}
-
-pub fn shell_background_validate_result(
-    result: StandardAgentCenterBackgroundValidationResult,
-) -> serde_json::Value {
-    serde_json::json!({
-        "backgroundAssetRef": result.background_asset_id,
-        "validationStatus": background_validation_status_for_shell(result.status),
-        "validationMessage": validation_message(&result.errors, &result.warnings),
-    })
-}
-
-pub fn shell_resource_removal_result(
-    result: StandardAgentCenterLocalResourceRemoveResult,
-) -> serde_json::Value {
-    let mut payload = serde_json::json!({
-        "removed": result.quarantined,
-    });
-    if let Some(record) = payload.as_object_mut() {
-        match result.resource_kind.as_str() {
-            "background" => {
-                record.insert(
-                    "backgroundAssetRef".to_string(),
-                    serde_json::Value::String(result.resource_id),
-                );
-            }
-            "avatar_asset" => {
-                record.insert(
-                    "avatarAssetRef".to_string(),
-                    serde_json::Value::String(result.resource_id),
-                );
-            }
-            "live2d_adapter_manifest" => {
-                record.insert(
-                    "live2dAdapterManifestRef".to_string(),
-                    serde_json::Value::String(result.resource_id),
-                );
-            }
-            _ => {}
-        }
-    }
-    payload
-}
-
 #[cfg(test)]
-mod shell_contract_tests {
-    use super::*;
-
-    #[test]
-    fn avatar_import_payload_accepts_renderer_shell_contract_fields() {
-        let payload = serde_json::json!({
-            "hostScope": "local-agent",
-            "accountId": "account-1",
-            "ownerUserId": "owner-1",
-            "runtimeSourceRef": "runtime-source:local",
-            "localAgentRef": "local-agent:ren",
-            "backendKind": "live2d",
-            "sourcePath": "fixtures/picked-live2d"
-        });
-
-        assert!(
-            serde_json::from_value::<StandardAgentCenterAvatarAssetImportPayload>(payload).is_ok()
-        );
-    }
-
-    #[test]
-    fn avatar_validation_projection_returns_renderer_shell_contract_fields() {
-        let projected =
-            shell_avatar_asset_validate_result(StandardAgentCenterAvatarAssetValidationResult {
-                schema_version: 1,
-                local_asset_id: "live2d_111111111111".to_string(),
-                checked_at: "2026-01-01T00:00:00Z".to_string(),
-                status: StandardAgentCenterAvatarAssetValidationStatus::Valid,
-                errors: vec![],
-                warnings: vec![],
-            });
-
-        assert_eq!(projected["avatarAssetRef"], "live2d_111111111111");
-        assert_eq!(projected["backendKind"], "live2d");
-        assert_eq!(projected["validationStatus"], "valid");
-        assert!(projected.get("localAssetId").is_none());
-        assert!(projected.get("validation").is_none());
-    }
-}
+mod tests;

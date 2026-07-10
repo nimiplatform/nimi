@@ -1,12 +1,9 @@
-﻿use super::*;
+use super::*;
 
-fn backend_kind_id(kind: StandardAgentCenterAvatarBackendKind) -> Result<&'static str, String> {
+fn backend_kind_id(kind: StandardAgentCenterAvatarBackendKind) -> &'static str {
     match kind {
-        StandardAgentCenterAvatarBackendKind::Live2d => Ok("live2d"),
-        StandardAgentCenterAvatarBackendKind::Vrm => Ok("vrm"),
-        StandardAgentCenterAvatarBackendKind::Future => {
-            Err("Avatar asset import only admits live2d or vrm backends".to_string())
-        }
+        StandardAgentCenterAvatarBackendKind::Live2d => "live2d",
+        StandardAgentCenterAvatarBackendKind::Vrm => "vrm",
     }
 }
 
@@ -39,25 +36,35 @@ struct AvatarImportSourceFile {
     mime: String,
 }
 
-fn package_relative_path(path: &Path) -> Result<String, String> {
+fn package_relative_path(path: &Path) -> AgentCenterHostResult<String> {
     let mut parts = Vec::<String>::new();
     for component in path.components() {
         match component {
             Component::Normal(value) => {
-                let segment = value
-                    .to_str()
-                    .ok_or_else(|| "Avatar asset file paths must be UTF-8".to_string())?;
+                let segment = value.to_str().ok_or_else(|| {
+                    AgentCenterHostError::InvalidPath(
+                        "Avatar asset file paths must be UTF-8".to_string(),
+                    )
+                })?;
                 if segment.trim().is_empty() || segment == "." || segment == ".." {
-                    return Err("Avatar asset file path contains an unsafe segment".to_string());
+                    return Err(AgentCenterHostError::InvalidPath(
+                        "Avatar asset file path contains an unsafe segment".to_string(),
+                    ));
                 }
                 parts.push(segment.to_string());
             }
-            _ => return Err("Avatar asset file path must be package-relative".to_string()),
+            _ => {
+                return Err(AgentCenterHostError::InvalidPath(
+                    "Avatar asset file path must be package-relative".to_string(),
+                ))
+            }
         }
     }
     let relative = parts.join("/");
     if !is_safe_relative_path(&relative) {
-        return Err("Avatar asset file path was rejected".to_string());
+        return Err(AgentCenterHostError::InvalidPath(
+            "Avatar asset file path was rejected".to_string(),
+        ));
     }
     Ok(format!("files/{relative}"))
 }
@@ -66,28 +73,42 @@ fn collect_live2d_source_files(
     root: &Path,
     current: &Path,
     output: &mut Vec<PathBuf>,
-) -> Result<(), String> {
-    let metadata = fs::symlink_metadata(current)
-        .map_err(|error| format!("failed to read Live2D source metadata: {error}"))?;
+) -> AgentCenterHostResult<()> {
+    let metadata = fs::symlink_metadata(current).map_err(|error| {
+        AgentCenterHostError::HostInternal(format!(
+            "failed to read Live2D source metadata: {error}"
+        ))
+    })?;
     if metadata.file_type().is_symlink() {
-        return Err("Live2D source must not contain symlinks".to_string());
+        return Err(AgentCenterHostError::InvalidPath(
+            "Live2D source must not contain symlinks".to_string(),
+        ));
     }
     if metadata.is_file() {
         output.push(current.to_path_buf());
         return Ok(());
     }
     if !metadata.is_dir() {
-        return Err("Live2D source must contain only files and directories".to_string());
+        return Err(AgentCenterHostError::InvalidPayload(
+            "Live2D source must contain only files and directories".to_string(),
+        ));
     }
-    for entry in fs::read_dir(current)
-        .map_err(|error| format!("failed to read Live2D source directory: {error}"))?
-    {
-        let entry =
-            entry.map_err(|error| format!("failed to read Live2D source entry: {error}"))?;
+    for entry in fs::read_dir(current).map_err(|error| {
+        AgentCenterHostError::HostInternal(format!(
+            "failed to read Live2D source directory: {error}"
+        ))
+    })? {
+        let entry = entry.map_err(|error| {
+            AgentCenterHostError::HostInternal(format!(
+                "failed to read Live2D source entry: {error}"
+            ))
+        })?;
         collect_live2d_source_files(root, &entry.path(), output)?;
     }
     if current == root && output.is_empty() {
-        return Err("Live2D source folder contains no files".to_string());
+        return Err(AgentCenterHostError::InvalidPayload(
+            "Live2D source folder contains no files".to_string(),
+        ));
     }
     Ok(())
 }
@@ -95,30 +116,44 @@ fn collect_live2d_source_files(
 fn read_avatar_source_files(
     kind: &str,
     source: &Path,
-) -> Result<(Vec<AvatarImportSourceFile>, String), String> {
+) -> AgentCenterHostResult<(Vec<AvatarImportSourceFile>, String)> {
     let mut source_files = Vec::<PathBuf>::new();
     let entry_package_path = if kind == "vrm" {
-        let metadata = fs::symlink_metadata(source)
-            .map_err(|error| format!("failed to read VRM source metadata: {error}"))?;
+        let metadata = fs::symlink_metadata(source).map_err(|error| {
+            AgentCenterHostError::HostInternal(format!(
+                "failed to read VRM source metadata: {error}"
+            ))
+        })?;
         if metadata.file_type().is_symlink() {
-            return Err("VRM source path must not be a symlink".to_string());
+            return Err(AgentCenterHostError::InvalidPath(
+                "VRM source path must not be a symlink".to_string(),
+            ));
         }
         if !metadata.is_file() || extension_for(&source.to_string_lossy()) != "vrm" {
-            return Err("VRM source must be a .vrm file".to_string());
+            return Err(AgentCenterHostError::InvalidPayload(
+                "VRM source must be a .vrm file".to_string(),
+            ));
         }
         source_files.push(source.to_path_buf());
-        let name = source
-            .file_name()
-            .ok_or_else(|| "VRM source file has no file name".to_string())?;
+        let name = source.file_name().ok_or_else(|| {
+            AgentCenterHostError::InvalidPath("VRM source file has no file name".to_string())
+        })?;
         package_relative_path(Path::new(name))?
     } else {
-        let metadata = fs::symlink_metadata(source)
-            .map_err(|error| format!("failed to read Live2D source metadata: {error}"))?;
+        let metadata = fs::symlink_metadata(source).map_err(|error| {
+            AgentCenterHostError::HostInternal(format!(
+                "failed to read Live2D source metadata: {error}"
+            ))
+        })?;
         if metadata.file_type().is_symlink() {
-            return Err("Live2D source path must not be a symlink".to_string());
+            return Err(AgentCenterHostError::InvalidPath(
+                "Live2D source path must not be a symlink".to_string(),
+            ));
         }
         if !metadata.is_dir() {
-            return Err("Live2D source must be a folder".to_string());
+            return Err(AgentCenterHostError::InvalidPayload(
+                "Live2D source must be a folder".to_string(),
+            ));
         }
         collect_live2d_source_files(source, source, &mut source_files)?;
         let mut model_entries = source_files
@@ -127,43 +162,53 @@ fn read_avatar_source_files(
             .collect::<Vec<_>>();
         model_entries.sort();
         if model_entries.len() != 1 {
-            return Err(
+            return Err(AgentCenterHostError::InvalidPayload(
                 "Live2D source folder must contain exactly one .model3.json entry".to_string(),
-            );
+            ));
         }
-        let entry_relative = model_entries[0]
-            .strip_prefix(source)
-            .map_err(|_| "Live2D entry file must stay under source folder".to_string())?;
+        let entry_relative = model_entries[0].strip_prefix(source).map_err(|_| {
+            AgentCenterHostError::InvalidPath(
+                "Live2D entry file must stay under source folder".to_string(),
+            )
+        })?;
         package_relative_path(entry_relative)?
     };
 
-    let canonical_source = fs::canonicalize(source)
-        .map_err(|error| format!("failed to resolve Avatar source path: {error}"))?;
+    let canonical_source = fs::canonicalize(source).map_err(|error| {
+        AgentCenterHostError::InvalidPath(format!("failed to resolve Avatar source path: {error}"))
+    })?;
     let mut records = Vec::<AvatarImportSourceFile>::new();
     for file_path in source_files {
         let canonical = fs::canonicalize(&file_path).map_err(|error| {
-            format!(
+            AgentCenterHostError::InvalidPath(format!(
                 "failed to resolve Avatar source file ({}): {error}",
                 file_path.display()
-            )
+            ))
         })?;
         if kind == "live2d" && !canonical.starts_with(&canonical_source) {
-            return Err("Live2D source file escaped the selected source folder".to_string());
+            return Err(AgentCenterHostError::InvalidPath(
+                "Live2D source file escaped the selected source folder".to_string(),
+            ));
         }
         let package_path = if kind == "vrm" {
-            let name = canonical
-                .file_name()
-                .ok_or_else(|| "VRM source file has no file name".to_string())?;
+            let name = canonical.file_name().ok_or_else(|| {
+                AgentCenterHostError::InvalidPath("VRM source file has no file name".to_string())
+            })?;
             package_relative_path(Path::new(name))?
         } else {
-            let relative = canonical
-                .strip_prefix(&canonical_source)
-                .map_err(|_| "Live2D source file must stay under source folder".to_string())?;
+            let relative = canonical.strip_prefix(&canonical_source).map_err(|_| {
+                AgentCenterHostError::InvalidPath(
+                    "Live2D source file must stay under source folder".to_string(),
+                )
+            })?;
             package_relative_path(relative)?
         };
-        let (bytes, sha256) = sha256_file(&canonical).map_err(|issue| issue.message)?;
+        let (bytes, sha256) = sha256_file(&canonical)
+            .map_err(|issue| AgentCenterHostError::HostInternal(issue.message))?;
         if bytes == 0 || bytes > MAX_AVATAR_ASSET_FILE_BYTES {
-            return Err("Avatar source file is outside the fixed byte cap".to_string());
+            return Err(AgentCenterHostError::InvalidPayload(
+                "Avatar source file is outside the fixed byte cap".to_string(),
+            ));
         }
         records.push(AvatarImportSourceFile {
             source_path: canonical.clone(),
@@ -175,13 +220,17 @@ fn read_avatar_source_files(
     }
     records.sort_by(|a, b| a.package_path.cmp(&b.package_path));
     if records.len() > MAX_AVATAR_ASSET_FILE_COUNT {
-        return Err("Avatar source contains too many files".to_string());
+        return Err(AgentCenterHostError::InvalidPayload(
+            "Avatar source contains too many files".to_string(),
+        ));
     }
     let total_bytes = records
         .iter()
         .fold(0_u64, |sum, file| sum.saturating_add(file.bytes));
     if total_bytes == 0 || total_bytes > MAX_AVATAR_ASSET_BYTES {
-        return Err("Avatar source package is outside the fixed byte cap".to_string());
+        return Err(AgentCenterHostError::InvalidPayload(
+            "Avatar source package is outside the fixed byte cap".to_string(),
+        ));
     }
     Ok((records, entry_package_path))
 }
@@ -202,24 +251,24 @@ fn avatar_content_digest(files: &[AvatarImportSourceFile]) -> String {
 fn copy_avatar_source_files(
     staging_dir: &Path,
     files: &[AvatarImportSourceFile],
-) -> Result<(), String> {
+) -> AgentCenterHostResult<()> {
     for file in files {
         let target = staging_dir.join(&file.package_path);
-        let parent = target
-            .parent()
-            .ok_or_else(|| "Avatar asset package file has no parent".to_string())?;
+        let parent = target.parent().ok_or_else(|| {
+            AgentCenterHostError::InvalidPath("Avatar asset package file has no parent".to_string())
+        })?;
         fs::create_dir_all(parent).map_err(|error| {
-            format!(
+            AgentCenterHostError::HostInternal(format!(
                 "failed to create Avatar asset package directory ({}): {error}",
                 parent.display()
-            )
+            ))
         })?;
         fs::copy(&file.source_path, &target).map_err(|error| {
-            format!(
+            AgentCenterHostError::HostInternal(format!(
                 "failed to copy Avatar asset file ({} -> {}): {error}",
                 file.source_path.display(),
                 target.display()
-            )
+            ))
         })?;
     }
     Ok(())
@@ -228,46 +277,52 @@ fn copy_avatar_source_files(
 pub(crate) fn standard_agent_center_avatar_asset_import_blocking(
     roots: &crate::runtime_app_storage::StandardAppStorageRoots,
     payload: StandardAgentCenterAvatarAssetImportPayload,
-) -> Result<StandardAgentCenterAvatarAssetImportResult, String> {
-    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    validate_local_agent_host_scope(&payload.host_scope)?;
+) -> AgentCenterHostResult<StandardAgentCenterAvatarAssetImportResult> {
+    let account_id = validate_normalized_id(&payload.account_id, "accountId")
+        .map_err(AgentCenterHostError::InvalidPayload)?;
+    validate_local_agent_host_scope(&payload.host_scope)
+        .map_err(AgentCenterHostError::InvalidPayload)?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
         &payload.runtime_source_ref,
         &payload.local_agent_ref,
-    )?;
-    let kind = backend_kind_id(payload.backend_kind)?;
+    )
+    .map_err(AgentCenterHostError::InvalidPayload)?;
+    let kind = backend_kind_id(payload.backend_kind);
     let source_path = PathBuf::from(&payload.source_path);
     let source = fs::canonicalize(&source_path).map_err(|error| {
-        format!(
+        AgentCenterHostError::InvalidPath(format!(
             "failed to resolve Avatar asset source ({}): {error}",
             source_path.display()
-        )
+        ))
     })?;
-    require_file_dialog_selected_source(&source, "agent_center_avatar_asset_import")?;
+    require_file_dialog_selected_source(&source, "agent_center_avatar_asset_import")
+        .map_err(AgentCenterHostError::StandardEnvelope)?;
     let (files, entry_file) = read_avatar_source_files(kind, &source)?;
     let content_digest = avatar_content_digest(&files);
     let local_asset_id = format!("{kind}_{}", &content_digest[..12]);
-    validate_local_asset_id(&local_asset_id, "localAssetId")?;
+    validate_local_asset_id(&local_asset_id, "localAssetId")
+        .map_err(AgentCenterHostError::InvalidPayload)?;
     let final_dir = avatar_asset_dir(
         roots,
         &account_id,
         &scope.local_agent_ref,
         kind,
         &local_asset_id,
-    )?;
-    let selected = payload.select.unwrap_or(true);
+    )
+    .map_err(AgentCenterHostError::InvalidPath)?;
     let backend_capability_profile_ref = backend_capability_profile_ref_for(kind, &local_asset_id);
     let materialization_ref =
         materialization_ref_for(&account_id, &scope.local_agent_ref, kind, &local_asset_id);
 
     if final_dir.exists() {
         let validation = validate_avatar_asset_manifest(&final_dir, &local_asset_id);
-        write_avatar_asset_validation_sidecar(&final_dir, &validation)?;
+        write_avatar_asset_validation_sidecar(&final_dir, &validation)
+            .map_err(AgentCenterHostError::HostInternal)?;
         if validation.status != StandardAgentCenterAvatarAssetValidationStatus::Valid {
-            return Err(format!(
+            return Err(AgentCenterHostError::InvalidPayload(format!(
                 "Avatar asset id collision exists but is not valid: {local_asset_id}"
-            ));
+            )));
         }
         let _ = record_resource_operation(
             roots,
@@ -278,18 +333,19 @@ pub(crate) fn standard_agent_center_avatar_asset_import_blocking(
             &local_asset_id,
             "completed",
             "content_already_imported",
-        )?;
+        )
+        .map_err(AgentCenterHostError::HostInternal)?;
         return Ok(StandardAgentCenterAvatarAssetImportResult {
             local_asset_id,
             backend_kind: payload.backend_kind,
-            selected,
             materialization_ref,
             backend_capability_profile_ref,
             validation,
         });
     }
 
-    let staging_dir = agent_center_dir(roots, &account_id, &scope.local_agent_ref)?
+    let staging_dir = agent_center_dir(roots, &account_id, &scope.local_agent_ref)
+        .map_err(AgentCenterHostError::InvalidPath)?
         .join("modules")
         .join("avatar_asset")
         .join("staging")
@@ -300,15 +356,16 @@ pub(crate) fn standard_agent_center_avatar_asset_import_blocking(
         ));
     remove_dir_if_exists(&staging_dir);
     fs::create_dir_all(&staging_dir).map_err(|error| {
-        format!(
+        AgentCenterHostError::HostInternal(format!(
             "failed to create Avatar asset staging directory ({}): {error}",
             staging_dir.display()
-        )
+        ))
     })?;
 
     let import_result = (|| {
         copy_avatar_source_files(&staging_dir, &files)?;
-        let display_name = safe_display_name(payload.display_name, &source)?;
+        let display_name =
+            safe_display_name(&source).map_err(AgentCenterHostError::InvalidPayload)?;
         let manifest_files = files
             .iter()
             .map(|file| AvatarAssetManifestFile {
@@ -347,39 +404,41 @@ pub(crate) fn standard_agent_center_avatar_asset_import_blocking(
                 source_fingerprint: format!("sha256:{content_digest}"),
             },
         };
-        write_json_pretty(&staging_dir.join(MANIFEST_FILE_NAME), &manifest)?;
+        write_json_pretty(&staging_dir.join(MANIFEST_FILE_NAME), &manifest)
+            .map_err(AgentCenterHostError::HostInternal)?;
         let staging_validation = validate_avatar_asset_manifest(&staging_dir, &local_asset_id);
         if staging_validation.status != StandardAgentCenterAvatarAssetValidationStatus::Valid {
-            return Err(format!(
+            return Err(AgentCenterHostError::InvalidPayload(format!(
                 "staged Avatar asset failed validation: {:?}",
                 staging_validation.errors
-            ));
+            )));
         }
-        let parent = final_dir
-            .parent()
-            .ok_or_else(|| "Avatar asset final path has no parent".to_string())?;
+        let parent = final_dir.parent().ok_or_else(|| {
+            AgentCenterHostError::InvalidPath("Avatar asset final path has no parent".to_string())
+        })?;
         fs::create_dir_all(parent).map_err(|error| {
-            format!(
+            AgentCenterHostError::HostInternal(format!(
                 "failed to create Avatar asset final directory ({}): {error}",
                 parent.display()
-            )
+            ))
         })?;
         fs::rename(&staging_dir, &final_dir).map_err(|error| {
-            format!(
+            AgentCenterHostError::HostInternal(format!(
                 "failed to finalize Avatar asset import ({} -> {}): {error}",
                 staging_dir.display(),
                 final_dir.display()
-            )
+            ))
         })?;
         let validation = validate_avatar_asset_manifest(&final_dir, &local_asset_id);
-        write_avatar_asset_validation_sidecar(&final_dir, &validation)?;
+        write_avatar_asset_validation_sidecar(&final_dir, &validation)
+            .map_err(AgentCenterHostError::HostInternal)?;
         if validation.status != StandardAgentCenterAvatarAssetValidationStatus::Valid {
-            return Err(format!(
+            return Err(AgentCenterHostError::InvalidPayload(format!(
                 "final Avatar asset failed validation: {:?}",
                 validation.errors
-            ));
+            )));
         }
-        Ok::<_, String>(validation)
+        Ok::<_, AgentCenterHostError>(validation)
     })();
 
     let validation = match import_result {
@@ -405,12 +464,12 @@ pub(crate) fn standard_agent_center_avatar_asset_import_blocking(
         &local_asset_id,
         "completed",
         "user_imported",
-    )?;
+    )
+    .map_err(AgentCenterHostError::HostInternal)?;
 
     Ok(StandardAgentCenterAvatarAssetImportResult {
         local_asset_id,
         backend_kind: payload.backend_kind,
-        selected,
         materialization_ref,
         backend_capability_profile_ref,
         validation,

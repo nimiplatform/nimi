@@ -1,4 +1,4 @@
-﻿use super::*;
+use super::*;
 
 pub(super) fn validate_background_manifest(
     background_root: &Path,
@@ -434,15 +434,19 @@ pub(super) fn validate_avatar_asset_manifest(
 pub(crate) fn standard_agent_center_avatar_asset_validate_blocking(
     roots: &crate::runtime_app_storage::StandardAppStorageRoots,
     payload: StandardAgentCenterAvatarAssetValidatePayload,
-) -> Result<StandardAgentCenterAvatarAssetValidationResult, String> {
-    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    validate_local_agent_host_scope(&payload.host_scope)?;
+) -> AgentCenterHostResult<StandardAgentCenterAvatarAssetValidationResult> {
+    let account_id = validate_normalized_id(&payload.account_id, "accountId")
+        .map_err(AgentCenterHostError::InvalidPayload)?;
+    validate_local_agent_host_scope(&payload.host_scope)
+        .map_err(AgentCenterHostError::InvalidPayload)?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
         &payload.runtime_source_ref,
         &payload.local_agent_ref,
-    )?;
-    validate_local_asset_id(&payload.avatar_asset_ref, "avatarAssetRef")?;
+    )
+    .map_err(AgentCenterHostError::InvalidPayload)?;
+    validate_local_asset_id(&payload.avatar_asset_ref, "avatarAssetRef")
+        .map_err(AgentCenterHostError::InvalidPayload)?;
     let kind = if payload.avatar_asset_ref.starts_with("live2d_") {
         "live2d"
     } else {
@@ -454,92 +458,87 @@ pub(crate) fn standard_agent_center_avatar_asset_validate_blocking(
         &scope.local_agent_ref,
         kind,
         &payload.avatar_asset_ref,
-    )?;
+    )
+    .map_err(AgentCenterHostError::InvalidPath)?;
     if !dir.exists() {
-        return Ok(avatar_asset_validation_result(
-            &payload.avatar_asset_ref,
-            StandardAgentCenterAvatarAssetValidationStatus::AssetMissing,
-            vec![error(
-                "avatar_asset_missing",
-                "Selected Avatar asset directory is missing.",
-                Some(payload.avatar_asset_ref.clone()),
-            )],
-            vec![],
-        ));
+        return Err(AgentCenterHostError::NotFound(format!(
+            "Avatar asset was not found: {}",
+            payload.avatar_asset_ref
+        )));
     }
     let result = validate_avatar_asset_manifest(&dir, &payload.avatar_asset_ref);
-    write_avatar_asset_validation_sidecar(&dir, &result)?;
+    write_avatar_asset_validation_sidecar(&dir, &result)
+        .map_err(AgentCenterHostError::HostInternal)?;
     Ok(result)
 }
 
 pub(crate) fn standard_agent_center_background_validate_blocking(
     roots: &crate::runtime_app_storage::StandardAppStorageRoots,
     payload: StandardAgentCenterBackgroundValidatePayload,
-) -> Result<StandardAgentCenterBackgroundValidationResult, String> {
-    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    validate_local_agent_host_scope(&payload.host_scope)?;
+) -> AgentCenterHostResult<StandardAgentCenterBackgroundValidationResult> {
+    let account_id = validate_normalized_id(&payload.account_id, "accountId")
+        .map_err(AgentCenterHostError::InvalidPayload)?;
+    validate_local_agent_host_scope(&payload.host_scope)
+        .map_err(AgentCenterHostError::InvalidPayload)?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
         &payload.runtime_source_ref,
         &payload.local_agent_ref,
-    )?;
-    validate_background_id(&payload.background_asset_ref, "backgroundAssetRef")?;
+    )
+    .map_err(AgentCenterHostError::InvalidPayload)?;
+    validate_background_id(&payload.background_asset_ref, "backgroundAssetRef")
+        .map_err(AgentCenterHostError::InvalidPayload)?;
     let dir = background_dir(
         roots,
         &account_id,
         &scope.local_agent_ref,
         &payload.background_asset_ref,
-    )?;
+    )
+    .map_err(AgentCenterHostError::InvalidPath)?;
     if !dir.exists() {
-        return Ok(background_validation_result(
-            &payload.background_asset_ref,
-            StandardAgentCenterBackgroundValidationStatus::AssetMissing,
-            vec![error(
-                "background_missing",
-                "Selected background directory is missing.",
-                Some(payload.background_asset_ref.clone()),
-            )],
-            vec![],
-        ));
+        return Err(AgentCenterHostError::NotFound(format!(
+            "Background asset was not found: {}",
+            payload.background_asset_ref
+        )));
     }
     let result = validate_background_manifest(&dir, &payload.background_asset_ref);
-    write_background_validation_sidecar(&dir, &result)?;
+    write_background_validation_sidecar(&dir, &result)
+        .map_err(AgentCenterHostError::HostInternal)?;
     Ok(result)
 }
 
 pub(crate) fn standard_agent_center_background_asset_get_blocking(
     roots: &crate::runtime_app_storage::StandardAppStorageRoots,
     payload: StandardAgentCenterBackgroundValidatePayload,
-) -> Result<StandardAgentCenterBackgroundAssetResult, String> {
-    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    validate_local_agent_host_scope(&payload.host_scope)?;
+) -> AgentCenterHostResult<StandardAgentCenterBackgroundAssetResult> {
+    let account_id = validate_normalized_id(&payload.account_id, "accountId")
+        .map_err(AgentCenterHostError::InvalidPayload)?;
+    validate_local_agent_host_scope(&payload.host_scope)
+        .map_err(AgentCenterHostError::InvalidPayload)?;
     let scope = validate_local_agent_scope(
         &payload.owner_user_id,
         &payload.runtime_source_ref,
         &payload.local_agent_ref,
-    )?;
-    validate_background_id(&payload.background_asset_ref, "backgroundAssetRef")?;
+    )
+    .map_err(AgentCenterHostError::InvalidPayload)?;
+    validate_background_id(&payload.background_asset_ref, "backgroundAssetRef")
+        .map_err(AgentCenterHostError::InvalidPayload)?;
     let dir = background_dir(
         roots,
         &account_id,
         &scope.local_agent_ref,
         &payload.background_asset_ref,
-    )?;
-    let validation = if dir.exists() {
-        validate_background_manifest(&dir, &payload.background_asset_ref)
-    } else {
-        background_validation_result(
-            &payload.background_asset_ref,
-            StandardAgentCenterBackgroundValidationStatus::AssetMissing,
-            vec![error(
-                "background_missing",
-                "Selected background directory is missing.",
-                Some(payload.background_asset_ref.clone()),
-            )],
-            vec![],
-        )
-    };
-    write_background_validation_sidecar(&dir, &validation)?;
+    )
+    .map_err(AgentCenterHostError::InvalidPath)?;
+    if !dir.exists() {
+        return Err(AgentCenterHostError::NotFound(format!(
+            "Background asset was not found: {}",
+            payload.background_asset_ref
+        )));
+    }
+    let validation = validate_background_manifest(&dir, &payload.background_asset_ref);
+    write_background_validation_sidecar(&dir, &validation)
+        .map_err(AgentCenterHostError::HostInternal)?;
     if validation.status != StandardAgentCenterBackgroundValidationStatus::Valid {
         return Ok(StandardAgentCenterBackgroundAssetResult {
             background_asset_id: payload.background_asset_ref,
@@ -547,12 +546,14 @@ pub(crate) fn standard_agent_center_background_asset_get_blocking(
             validation,
         });
     }
-    let raw = fs::read_to_string(dir.join(MANIFEST_FILE_NAME))
-        .map_err(|error| format!("failed to read background manifest: {error}"))?;
-    let manifest = serde_json::from_str::<BackgroundManifest>(&raw)
-        .map_err(|error| format!("failed to parse background manifest: {error}"))?;
-    let image_path =
-        resolve_under_root(&dir, &manifest.image_file).map_err(|issue| issue.message)?;
+    let raw = fs::read_to_string(dir.join(MANIFEST_FILE_NAME)).map_err(|error| {
+        AgentCenterHostError::HostInternal(format!("failed to read background manifest: {error}"))
+    })?;
+    let manifest = serde_json::from_str::<BackgroundManifest>(&raw).map_err(|error| {
+        AgentCenterHostError::HostInternal(format!("failed to parse background manifest: {error}"))
+    })?;
+    let image_path = resolve_under_root(&dir, &manifest.image_file)
+        .map_err(|issue| AgentCenterHostError::InvalidPath(issue.message))?;
     Ok(StandardAgentCenterBackgroundAssetResult {
         background_asset_id: payload.background_asset_ref,
         file_url: image_path.display().to_string(),

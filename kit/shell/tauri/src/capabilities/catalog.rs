@@ -18,6 +18,7 @@ pub const STANDARD_SHELL_CAPABILITY_IDS: &[&str] = &[
     "ai-profile",
     "ai-config",
     "avatar",
+    "agent-center",
     "platform-projection",
     "file-dialog",
     "file-reveal",
@@ -337,6 +338,113 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
         }],
     },
     StandardShellCapability {
+        id: "agent-center",
+        operations: &[
+            StandardShellOperation {
+                id: "avatarAssetImport",
+                command: "nimi.shell.agentCenter.avatarAssetImport",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-payload",
+                    "invalid-path",
+                    "forbidden-renderer-access",
+                    "host-internal-error",
+                ],
+            },
+            StandardShellOperation {
+                id: "avatarAssetValidate",
+                command: "nimi.shell.agentCenter.avatarAssetValidate",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-payload",
+                    "not-found",
+                    "host-internal-error",
+                ],
+            },
+            StandardShellOperation {
+                id: "avatarAssetResolvePreview",
+                command: "nimi.shell.agentCenter.avatarAssetResolvePreview",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-payload",
+                    "not-found",
+                    "host-internal-error",
+                ],
+            },
+            StandardShellOperation {
+                id: "live2dAdapterImport",
+                command: "nimi.shell.agentCenter.live2dAdapterImport",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-payload",
+                    "invalid-path",
+                    "not-found",
+                    "forbidden-renderer-access",
+                    "host-internal-error",
+                ],
+            },
+            StandardShellOperation {
+                id: "backgroundImport",
+                command: "nimi.shell.agentCenter.backgroundImport",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-payload",
+                    "invalid-path",
+                    "forbidden-renderer-access",
+                    "host-internal-error",
+                ],
+            },
+            StandardShellOperation {
+                id: "backgroundGet",
+                command: "nimi.shell.agentCenter.backgroundGet",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-payload",
+                    "not-found",
+                    "host-internal-error",
+                ],
+            },
+            StandardShellOperation {
+                id: "backgroundValidate",
+                command: "nimi.shell.agentCenter.backgroundValidate",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-payload",
+                    "not-found",
+                    "host-internal-error",
+                ],
+            },
+            StandardShellOperation {
+                id: "backgroundRemove",
+                command: "nimi.shell.agentCenter.backgroundRemove",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-payload",
+                    "not-found",
+                    "host-internal-error",
+                ],
+            },
+            StandardShellOperation {
+                id: "agentResourcesRemove",
+                command: "nimi.shell.agentCenter.agentResourcesRemove",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-payload",
+                    "host-internal-error",
+                ],
+            },
+            StandardShellOperation {
+                id: "accountResourcesRemove",
+                command: "nimi.shell.agentCenter.accountResourcesRemove",
+                negative_states: &[
+                    "capability-unavailable",
+                    "invalid-payload",
+                    "host-internal-error",
+                ],
+            },
+        ],
+    },
+    StandardShellCapability {
         id: "platform-projection",
         operations: &[StandardShellOperation {
             id: "get",
@@ -479,11 +587,34 @@ pub fn standard_shell_error(
     source: &str,
     details: Option<Value>,
 ) -> String {
+    let normalized_code = code.trim();
+    let admitted_code = if STANDARD_SHELL_ERROR_CODES.contains(&normalized_code) {
+        normalized_code
+    } else {
+        "host-internal-error"
+    };
+    let normalized_reason_code = reason_code.trim();
+    let normalized_action_hint = action_hint.trim();
+    let normalized_source = source.trim();
     let envelope = StandardShellErrorEnvelope {
-        code: code.trim().to_string(),
-        reason_code: reason_code.trim().to_string(),
-        action_hint: action_hint.trim().to_string(),
-        source: source.trim().to_string(),
+        code: admitted_code.to_string(),
+        reason_code: if normalized_reason_code.is_empty() {
+            "standard-shell-reason-code-missing"
+        } else {
+            normalized_reason_code
+        }
+        .to_string(),
+        action_hint: if normalized_action_hint.is_empty() {
+            "inspect_standard_shell_host_error"
+        } else {
+            normalized_action_hint
+        }
+        .to_string(),
+        source: match normalized_source {
+            "renderer" | "tauri" | "electron" | "runtime" | "host" => normalized_source,
+            _ => "host",
+        }
+        .to_string(),
         details,
     };
     serde_json::to_string(&envelope).unwrap_or_else(|_| {

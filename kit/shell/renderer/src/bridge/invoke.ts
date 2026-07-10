@@ -1,7 +1,10 @@
 import type { JsonValue } from './types.js';
 import { hasShellHostInvoke } from './env.js';
 import { invokeShell } from './tauri-api.js';
-import type { NimiStandardShellErrorEnvelope } from '@nimiplatform/kit/shell/capabilities';
+import {
+  isNimiStandardShellErrorEnvelope,
+  type NimiStandardShellErrorEnvelope,
+} from '@nimiplatform/kit/shell/capabilities';
 
 export class BridgeError extends Error {
   readonly code?: string;
@@ -45,7 +48,16 @@ export async function invoke(command: string, payload: JsonValue = {}): Promise<
     return await shellInvoke(command, payload);
   } catch (error) {
     const message = structuredErrorMessage(error);
-    const envelope = standardEnvelopeFromError(error);
+    const envelope = standardEnvelopeFromError(error) ?? {
+      code: 'host-internal-error',
+      reasonCode: 'standard-shell-host-error-envelope-missing',
+      actionHint: 'inspect_standard_shell_host_error',
+      source: 'host',
+      details: {
+        command,
+        cause: message || 'unknown host error',
+      },
+    };
     throw new BridgeError(message || `invoke ${command} failed`, command, envelope);
   }
 }
@@ -55,7 +67,24 @@ export async function invokeChecked<T>(
   payload: JsonValue,
   parseResult: (value: unknown) => T,
 ): Promise<T> {
-  return parseResult(await invoke(command, payload));
+  const value = await invoke(command, payload);
+  try {
+    return parseResult(value);
+  } catch (error) {
+    if (error instanceof BridgeError) {
+      throw error;
+    }
+    throw new BridgeError(structuredErrorMessage(error) || `${command} returned invalid payload`, command, {
+      code: 'invalid-payload',
+      reasonCode: 'renderer-standard-shell-result-invalid',
+      actionHint: 'inspect_standard_shell_host_result',
+      source: 'renderer',
+      details: {
+        command,
+        cause: structuredErrorMessage(error) || 'result parser rejected host payload',
+      },
+    });
+  }
 }
 
 function createUnavailableBridgeError(command: string): BridgeError {
@@ -69,10 +98,21 @@ function createUnavailableBridgeError(command: string): BridgeError {
 }
 
 function standardEnvelopeFromError(error: unknown): NimiStandardShellErrorEnvelope | undefined {
+  const parsed = parsePossibleJsonEnvelope(error);
+  if (parsed !== error) {
+    return standardEnvelopeFromError(parsed);
+  }
   if (!error || typeof error !== 'object') {
     return undefined;
   }
   const record = error as Record<string, unknown>;
+  const parsedMessage = parsePossibleJsonEnvelope(record.message);
+  if (parsedMessage !== record.message) {
+    const fromMessage = standardEnvelopeFromError(parsedMessage);
+    if (fromMessage) {
+      return fromMessage;
+    }
+  }
   const envelope = optionalRecord(record.envelope);
   const code = normalizeStructuredText(record.code) || normalizeStructuredText(envelope?.code);
   const reasonCode = normalizeStructuredText(record.reasonCode) || normalizeStructuredText(envelope?.reasonCode);
@@ -82,13 +122,14 @@ function standardEnvelopeFromError(error: unknown): NimiStandardShellErrorEnvelo
     return undefined;
   }
   const details = optionalRecord(record.details) ?? optionalRecord(envelope?.details);
-  return {
+  const candidate = {
     code: code as NimiStandardShellErrorEnvelope['code'],
     reasonCode,
     actionHint,
     source: source as NimiStandardShellErrorEnvelope['source'],
     details,
   };
+  return isNimiStandardShellErrorEnvelope(candidate) ? candidate : undefined;
 }
 
 function structuredErrorMessage(error: unknown): string {
@@ -105,6 +146,18 @@ function structuredErrorMessage(error: unknown): string {
     || normalizeStructuredText(envelope?.message)
     || normalizeStructuredText(details?.cause)
     || normalizeStructuredText(details?.message);
+}
+
+function parsePossibleJsonEnvelope(value: unknown): unknown {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text.startsWith('{') || !text.endsWith('}')) {
+    return value;
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return value;
+  }
 }
 
 function optionalRecord(value: unknown): Record<string, unknown> | undefined {

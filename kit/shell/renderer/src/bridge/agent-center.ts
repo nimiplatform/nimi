@@ -1,6 +1,6 @@
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import { openShellFileDialog } from './files.js';
-import { invokeChecked } from './invoke.js';
+import { BridgeError, invokeChecked } from './invoke.js';
 import {
   assertRecord,
   parseOptionalString,
@@ -9,15 +9,20 @@ import {
 } from './types.js';
 
 export type AgentCenterShellHostScope = 'account' | 'local-agent';
-export type AgentCenterShellAvatarBackendKind = 'live2d' | 'vrm' | 'sprite2d' | 'canvas2d' | 'video';
+export type AgentCenterShellAvatarBackendKind = 'live2d' | 'vrm';
 export type AgentCenterShellValidationStatus = 'valid' | 'invalid' | 'checking' | 'not_checked';
 
 export interface AgentCenterShellScopePayload {
-  readonly hostScope: AgentCenterShellHostScope;
-  readonly accountId?: string;
-  readonly ownerUserId?: string;
-  readonly runtimeSourceRef?: string;
-  readonly localAgentRef?: string;
+  readonly hostScope: 'local-agent';
+  readonly accountId: string;
+  readonly ownerUserId: string;
+  readonly runtimeSourceRef: string;
+  readonly localAgentRef: string;
+}
+
+export interface AgentCenterShellAccountScopePayload {
+  readonly hostScope: 'account';
+  readonly accountId: string;
 }
 
 export interface AgentCenterAvatarAssetImportPayload extends AgentCenterShellScopePayload {
@@ -33,7 +38,7 @@ export interface AgentCenterAvatarAssetImportResult {
   readonly backendCapabilityProfileRef?: string;
 }
 
-export interface AgentCenterAvatarAssetValidatePayload extends Partial<AgentCenterShellScopePayload> {
+export interface AgentCenterAvatarAssetValidatePayload extends AgentCenterShellScopePayload {
   readonly avatarAssetRef: string;
 }
 
@@ -46,7 +51,7 @@ export interface AgentCenterAvatarAssetValidateResult {
   readonly validationIssueRows?: readonly string[];
 }
 
-export interface AgentCenterAvatarPreviewResolvePayload extends Partial<AgentCenterShellScopePayload> {
+export interface AgentCenterAvatarPreviewResolvePayload extends AgentCenterShellScopePayload {
   readonly avatarAssetRef: string;
   readonly backendKind?: AgentCenterShellAvatarBackendKind;
 }
@@ -61,7 +66,7 @@ export interface AgentCenterAvatarPreviewResolveResult {
   readonly warnings?: readonly string[];
 }
 
-export interface AgentCenterLive2dAdapterImportPayload extends Partial<AgentCenterShellScopePayload> {
+export interface AgentCenterLive2dAdapterImportPayload extends AgentCenterShellScopePayload {
   readonly avatarAssetRef: string;
   readonly sourcePath: string;
 }
@@ -82,7 +87,7 @@ export interface AgentCenterBackgroundImportResult {
   readonly validationMessage?: string;
 }
 
-export interface AgentCenterBackgroundGetPayload extends Partial<AgentCenterShellScopePayload> {
+export interface AgentCenterBackgroundGetPayload extends AgentCenterShellScopePayload {
   readonly backgroundAssetRef: string;
 }
 
@@ -92,7 +97,7 @@ export interface AgentCenterBackgroundGetResult {
   readonly mimeType?: string;
 }
 
-export interface AgentCenterBackgroundValidatePayload extends Partial<AgentCenterShellScopePayload> {
+export interface AgentCenterBackgroundValidatePayload extends AgentCenterShellScopePayload {
   readonly backgroundAssetRef: string;
 }
 
@@ -102,14 +107,11 @@ export interface AgentCenterBackgroundValidateResult {
   readonly validationMessage?: string;
 }
 
-export interface AgentCenterBackgroundRemovePayload extends Partial<AgentCenterShellScopePayload> {
+export interface AgentCenterBackgroundRemovePayload extends AgentCenterShellScopePayload {
   readonly backgroundAssetRef: string;
 }
 
-export interface AgentCenterResourceRemovalPayload extends Partial<AgentCenterShellScopePayload> {
-  readonly accountId?: string;
-  readonly localAgentRef?: string;
-}
+export type AgentCenterResourceRemovalPayload = AgentCenterShellScopePayload | AgentCenterShellAccountScopePayload;
 
 export interface AgentCenterResourceRemovalResult {
   readonly removed: boolean;
@@ -147,10 +149,10 @@ export interface AgentCenterShellBridge {
     payload: AgentCenterBackgroundRemovePayload,
   ) => Promise<AgentCenterResourceRemovalResult>;
   readonly removeAgentResources: (
-    payload: Required<Pick<AgentCenterResourceRemovalPayload, 'localAgentRef'>> & Pick<AgentCenterResourceRemovalPayload, 'accountId'>,
+    payload: AgentCenterShellScopePayload,
   ) => Promise<AgentCenterResourceRemovalResult>;
   readonly removeAccountResources: (
-    payload?: Pick<AgentCenterResourceRemovalPayload, 'accountId'>,
+    payload: AgentCenterShellAccountScopePayload,
   ) => Promise<AgentCenterResourceRemovalResult>;
 }
 
@@ -168,10 +170,19 @@ function rememberDialogPath(path: string): string {
   return normalized;
 }
 
-function assertRegisteredDialogPath(sourcePath: string): string {
+function assertRegisteredDialogPath(sourcePath: unknown, command: string): string {
+  if (typeof sourcePath !== 'string' || !sourcePath.trim()) {
+    throw invalidRendererPayload(command, 'sourcePath must be a non-empty string');
+  }
   const normalized = sourcePath.trim();
-  if (!normalized || !dialogSelectedPaths.has(normalized)) {
-    throw new Error('Agent Center import sourcePath must come from standard file-dialog.open.');
+  if (!dialogSelectedPaths.has(normalized)) {
+    throw new BridgeError('Agent Center import sourcePath must come from standard file-dialog.open.', command, {
+      code: 'forbidden-renderer-access',
+      reasonCode: 'renderer-agent-center-source-not-from-file-dialog',
+      actionHint: 'select_agent_center_import_source_with_standard_file_dialog',
+      source: 'renderer',
+      details: { command },
+    });
   }
   return normalized;
 }
@@ -219,9 +230,17 @@ export async function importAgentCenterAvatarAsset(
   payload: AgentCenterAvatarAssetImportPayload,
 ): Promise<AgentCenterAvatarAssetImportResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'];
+  const scope = requireLocalAgentScope(payload, command);
+  const sourcePath = requireSourcePath(payload.sourcePath, command);
+  const canonical = exactPayload(payload, {
+    ...scope,
+    sourcePath,
+    backendKind: requireAvatarBackendKind(payload.backendKind, command),
+  }, command);
+  canonical.sourcePath = assertRegisteredDialogPath(sourcePath, command);
   return invokeChecked(
     command,
-    { payload: compactPayload({ ...payload, sourcePath: assertRegisteredDialogPath(payload.sourcePath) }) },
+    { payload: canonical },
     (value) => parseAvatarAssetImportResult(value, command),
   );
 }
@@ -230,9 +249,13 @@ export async function validateAgentCenterAvatarAsset(
   payload: AgentCenterAvatarAssetValidatePayload,
 ): Promise<AgentCenterAvatarAssetValidateResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetValidate'];
+  const canonical = exactPayload(payload, {
+    ...requireLocalAgentScope(payload, command),
+    avatarAssetRef: requireAvatarAssetRef(payload.avatarAssetRef, command),
+  }, command);
   return invokeChecked(
     command,
-    { payload: compactPayload(payload) },
+    { payload: canonical },
     (value) => parseAvatarAssetValidateResult(value, command),
   );
 }
@@ -241,9 +264,21 @@ export async function resolveAgentCenterAvatarAssetPreview(
   payload: AgentCenterAvatarPreviewResolvePayload,
 ): Promise<AgentCenterAvatarPreviewResolveResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetResolvePreview'];
+  const avatarAssetRef = requireAvatarAssetRef(payload.avatarAssetRef, command);
+  const backendKind = payload.backendKind == null
+    ? undefined
+    : requireAvatarBackendKind(payload.backendKind, command);
+  if (backendKind && !avatarAssetRef.startsWith(`${backendKind}_`)) {
+    throw invalidRendererPayload(command, 'backendKind must match avatarAssetRef');
+  }
+  const canonical = exactPayload(payload, compactPayload({
+    ...requireLocalAgentScope(payload, command),
+    avatarAssetRef,
+    backendKind,
+  }), command);
   return invokeChecked(
     command,
-    { payload: compactPayload(payload) },
+    { payload: canonical },
     (value) => parseAvatarPreviewResolveResult(value, command),
   );
 }
@@ -252,9 +287,17 @@ export async function importAgentCenterLive2dAdapter(
   payload: AgentCenterLive2dAdapterImportPayload,
 ): Promise<AgentCenterLive2dAdapterImportResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.live2dAdapterImport'];
+  const scope = requireLocalAgentScope(payload, command);
+  const sourcePath = requireSourcePath(payload.sourcePath, command);
+  const canonical = exactPayload(payload, {
+    ...scope,
+    avatarAssetRef: requireAvatarAssetRef(payload.avatarAssetRef, command, 'live2d'),
+    sourcePath,
+  }, command);
+  canonical.sourcePath = assertRegisteredDialogPath(sourcePath, command);
   return invokeChecked(
     command,
-    { payload: compactPayload({ ...payload, sourcePath: assertRegisteredDialogPath(payload.sourcePath) }) },
+    { payload: canonical },
     (value) => parseLive2dAdapterImportResult(value, command),
   );
 }
@@ -263,9 +306,13 @@ export async function importAgentCenterBackground(
   payload: AgentCenterBackgroundImportPayload,
 ): Promise<AgentCenterBackgroundImportResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport'];
+  const scope = requireLocalAgentScope(payload, command);
+  const sourcePath = requireSourcePath(payload.sourcePath, command);
+  const canonical = exactPayload(payload, { ...scope, sourcePath }, command);
+  canonical.sourcePath = assertRegisteredDialogPath(sourcePath, command);
   return invokeChecked(
     command,
-    { payload: compactPayload({ ...payload, sourcePath: assertRegisteredDialogPath(payload.sourcePath) }) },
+    { payload: canonical },
     (value) => parseBackgroundImportResult(value, command),
   );
 }
@@ -274,9 +321,13 @@ export async function getAgentCenterBackground(
   payload: AgentCenterBackgroundGetPayload,
 ): Promise<AgentCenterBackgroundGetResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundGet'];
+  const canonical = exactPayload(payload, {
+    ...requireLocalAgentScope(payload, command),
+    backgroundAssetRef: requireBackgroundAssetRef(payload.backgroundAssetRef, command),
+  }, command);
   return invokeChecked(
     command,
-    { payload: compactPayload(payload) },
+    { payload: canonical },
     (value) => parseBackgroundGetResult(value, command),
   );
 }
@@ -285,9 +336,13 @@ export async function validateAgentCenterBackground(
   payload: AgentCenterBackgroundValidatePayload,
 ): Promise<AgentCenterBackgroundValidateResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundValidate'];
+  const canonical = exactPayload(payload, {
+    ...requireLocalAgentScope(payload, command),
+    backgroundAssetRef: requireBackgroundAssetRef(payload.backgroundAssetRef, command),
+  }, command);
   return invokeChecked(
     command,
-    { payload: compactPayload(payload) },
+    { payload: canonical },
     (value) => parseBackgroundValidateResult(value, command),
   );
 }
@@ -296,31 +351,37 @@ export async function removeAgentCenterBackground(
   payload: AgentCenterBackgroundRemovePayload,
 ): Promise<AgentCenterResourceRemovalResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundRemove'];
+  const canonical = exactPayload(payload, {
+    ...requireLocalAgentScope(payload, command),
+    backgroundAssetRef: requireBackgroundAssetRef(payload.backgroundAssetRef, command),
+  }, command);
   return invokeChecked(
     command,
-    { payload: compactPayload(payload) },
+    { payload: canonical },
     (value) => parseResourceRemovalResult(value, command),
   );
 }
 
 export async function removeAgentCenterAgentResources(
-  payload: Required<Pick<AgentCenterResourceRemovalPayload, 'localAgentRef'>> & Pick<AgentCenterResourceRemovalPayload, 'accountId'>,
+  payload: AgentCenterShellScopePayload,
 ): Promise<AgentCenterResourceRemovalResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.agentResourcesRemove'];
+  const canonical = exactPayload(payload, requireLocalAgentScope(payload, command), command);
   return invokeChecked(
     command,
-    { payload: compactPayload(payload) },
+    { payload: canonical },
     (value) => parseResourceRemovalResult(value, command),
   );
 }
 
 export async function removeAgentCenterAccountResources(
-  payload: Pick<AgentCenterResourceRemovalPayload, 'accountId'> = {},
+  payload: AgentCenterShellAccountScopePayload,
 ): Promise<AgentCenterResourceRemovalResult> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.accountResourcesRemove'];
+  const canonical = exactPayload(payload, requireAccountScope(payload, command), command);
   return invokeChecked(
     command,
-    { payload: compactPayload(payload) },
+    { payload: canonical },
     (value) => parseResourceRemovalResult(value, command),
   );
 }
@@ -359,6 +420,122 @@ function compactPayload<T extends object>(payload: T): JsonObject {
   ) as JsonObject;
 }
 
+function exactPayload<T extends object>(raw: unknown, canonical: T, command: string): JsonObject {
+  const record = requirePayloadRecord(raw, command);
+  const actualKeys = Object.keys(record).sort();
+  const expectedKeys = Object.keys(canonical).sort();
+  if (actualKeys.length !== expectedKeys.length || actualKeys.some((key, index) => key !== expectedKeys[index])) {
+    throw invalidRendererPayload(command, `payload keys must be exactly: ${expectedKeys.join(', ')}`);
+  }
+  return { ...canonical } as JsonObject;
+}
+
+function requireLocalAgentScope(payload: unknown, command: string): AgentCenterShellScopePayload {
+  const record = requirePayloadRecord(payload, command);
+  if (record.hostScope !== 'local-agent') {
+    throw invalidRendererScope(command, 'hostScope must be local-agent');
+  }
+  const scope = {
+    hostScope: 'local-agent' as const,
+    accountId: requireScopeText(record.accountId, 'accountId', command),
+    ownerUserId: requireScopeText(record.ownerUserId, 'ownerUserId', command),
+    runtimeSourceRef: requireScopeText(record.runtimeSourceRef, 'runtimeSourceRef', command),
+    localAgentRef: requireScopeText(record.localAgentRef, 'localAgentRef', command),
+  };
+  if (!scope.localAgentRef.startsWith('local-agent:')) {
+    throw invalidRendererScope(command, 'localAgentRef must start with local-agent:');
+  }
+  if (scope.localAgentRef === scope.runtimeSourceRef) {
+    throw invalidRendererScope(command, 'localAgentRef must differ from runtimeSourceRef');
+  }
+  return scope;
+}
+
+function requireAccountScope(payload: unknown, command: string): AgentCenterShellAccountScopePayload {
+  const record = requirePayloadRecord(payload, command);
+  if (record.hostScope !== 'account') {
+    throw invalidRendererScope(command, 'hostScope must be account');
+  }
+  return {
+    hostScope: 'account',
+    accountId: requireScopeText(record.accountId, 'accountId', command),
+  };
+}
+
+function requirePayloadRecord(payload: unknown, command: string): Record<string, unknown> {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw invalidRendererPayload(command, 'payload must be an object');
+  }
+  return payload as Record<string, unknown>;
+}
+
+function requireScopeText(value: unknown, fieldName: string, command: string): string {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) {
+    throw invalidRendererScope(command, `${fieldName} is required`);
+  }
+  if (
+    normalized.length > 256
+    || normalized === '.'
+    || normalized === '..'
+    || normalized.includes('://')
+    || !/[A-Za-z0-9]/u.test(normalized)
+    || !/^[A-Za-z0-9_.~:@+-]+$/u.test(normalized)
+  ) {
+    throw invalidRendererScope(command, `${fieldName} is not an admitted opaque identifier`);
+  }
+  return normalized;
+}
+
+function requireSourcePath(value: unknown, command: string): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw invalidRendererPayload(command, 'sourcePath must be a non-empty string');
+  }
+  return value.trim();
+}
+
+function requireAvatarBackendKind(value: unknown, command: string): AgentCenterShellAvatarBackendKind {
+  if (value !== 'live2d' && value !== 'vrm') {
+    throw invalidRendererPayload(command, 'backendKind must be live2d or vrm');
+  }
+  return value;
+}
+
+function requireAvatarAssetRef(
+  value: unknown,
+  command: string,
+  requiredKind?: AgentCenterShellAvatarBackendKind,
+): string {
+  if (typeof value !== 'string' || !/^(?:live2d|vrm)_[a-f0-9]{12}$/u.test(value)) {
+    throw invalidRendererPayload(command, 'avatarAssetRef is invalid');
+  }
+  if (requiredKind && !value.startsWith(`${requiredKind}_`)) {
+    throw invalidRendererPayload(command, `avatarAssetRef must reference a ${requiredKind} asset`);
+  }
+  return value;
+}
+
+function requireBackgroundAssetRef(value: unknown, command: string): string {
+  if (typeof value !== 'string' || !/^bg_[a-f0-9]{12}$/u.test(value)) {
+    throw invalidRendererPayload(command, 'backgroundAssetRef is invalid');
+  }
+  return value;
+}
+
+function invalidRendererScope(command: string, cause: string): BridgeError {
+  return invalidRendererPayload(command, cause);
+}
+
+function invalidRendererPayload(command: string, cause: string): BridgeError {
+  return new BridgeError(`${command}: ${cause}`, command, {
+    code: 'invalid-payload',
+    reasonCode: 'renderer-agent-center-payload-invalid',
+    actionHint: 'provide_valid_agent_center_payload',
+    source: 'renderer',
+    details: { command, cause },
+  });
+}
+
 function parseOpaqueRef(value: unknown, fieldName: string, command: string): string {
   const ref = parseRequiredString(value, fieldName, command);
   if (/^(?:file:|data:)/u.test(ref) || /^[A-Za-z]:[\\/]/u.test(ref) || ref.startsWith('/') || ref.startsWith('\\\\')) {
@@ -369,7 +546,7 @@ function parseOpaqueRef(value: unknown, fieldName: string, command: string): str
 
 function parseBackendKind(value: unknown, command: string): AgentCenterShellAvatarBackendKind {
   const kind = parseRequiredString(value, 'backendKind', command) as AgentCenterShellAvatarBackendKind;
-  if (!['live2d', 'vrm', 'sprite2d', 'canvas2d', 'video'].includes(kind)) {
+  if (!['live2d', 'vrm'].includes(kind)) {
     throw new Error(`${command}: backendKind is not admitted`);
   }
   return kind;

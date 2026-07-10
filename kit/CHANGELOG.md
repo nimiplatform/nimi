@@ -85,6 +85,22 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x)**: Agent presentation mutation now requires the caller's
+  canonical uint64-string `expectedRevision` and returns
+  `{ profile, committedRevision }`. Migration: retain and pass the revision
+  returned by the preceding read or successful mutation. Kit consumers do not
+  retry revision conflicts and must not substitute `"0"` or any other fallback.
+- **Breaking (0.x)**: Agent Center shell custody payloads now use strict
+  discriminated scope contracts. The nine local-agent operations require
+  `hostScope: 'local-agent'` plus non-empty `accountId`, `ownerUserId`,
+  `runtimeSourceRef`, and `localAgentRef`; account resource cleanup requires
+  `hostScope: 'account'` plus `accountId`. Migration: pass the complete Runtime
+  identity scope to every local-agent custody call and an explicit account
+  scope to account cleanup. Missing fields no longer reach a host as partial
+  payloads and fail closed as `invalid-payload`. Tauri-only `select` and
+  `displayName` import inputs and `selected` results are removed; consumers
+  must not send renderer-owned selection/display mutations or read local
+  selection truth from custody results.
 - **Breaking (0.x)**: Electron `standardShellHost` storage root input moved
   from a plain `dataRoot: string` to the Runtime-attested
   `standardDataRootBinding` (`runtime-get-app-storage` resolved lazily by the
