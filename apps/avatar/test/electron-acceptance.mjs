@@ -24,6 +24,11 @@ test('Avatar owns a sandboxed Electron standard shell proof host', () => {
   assert.match(packageJson.scripts['build:electron'], /tsconfig\.electron\.json/);
   assert.match(packageJson.scripts['test:e2e:electron'], /electron-acceptance/);
   const mainSource = readFileSync(path.join(root, 'src-electron', 'main.ts'), 'utf8');
+  const runtimeAuthSource = readFileSync(path.join(root, 'src-electron', 'runtime-auth.ts'), 'utf8');
+  const sdkAcceptanceSource = readFileSync(
+    path.join(root, 'src', 'shell', 'renderer', 'app-shell', 'avatar-electron-sdk-acceptance.ts'),
+    'utf8',
+  );
   const preloadSource = readFileSync(path.join(root, 'src-electron', 'preload.cts'), 'utf8');
   assert.match(mainSource, /registerNimiElectronRuntimeBridge/);
   assert.match(mainSource, /registerAvatarElectronProductCommands/);
@@ -34,6 +39,10 @@ test('Avatar owns a sandboxed Electron standard shell proof host', () => {
   assert.match(mainSource, /sandbox:\s*true/);
   assert.doesNotMatch(mainSource, /sandbox:\s*false/);
   assert.doesNotMatch(mainSource, /desktop_product_control|updater|tray/i);
+  assert.match(runtimeAuthSource, /appSession:\s*\{[\s\S]*appInstanceId:\s*`\$\{appId\}\.local-first-party`[\s\S]*deviceId:\s*`\$\{clientIdPrefix\}-local-first-party-device`/);
+  assert.doesNotMatch(runtimeAuthSource, /platform-runtime-session/);
+  assert.match(mainSource, /nimi_avatar_probe_raw_access_posture/);
+  assert.doesNotMatch(sdkAcceptanceSource, /\.account\.getAccessToken\(/);
 
   for (const rendererFile of [
     'src/shell/renderer/bridge/launch-context.ts',
@@ -89,6 +98,10 @@ test('Avatar Electron host boots renderer and exposes standard shell capability 
       assert.equal(rendererEntryLoaded, true, 'Avatar renderer module entry should run in Electron');
 
       await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_AVATAR_ELECTRON_SDK_ACCEPTANCE__));
+      const sdkAcceptanceKeys = await page.evaluate(() =>
+        Object.keys(globalThis.window.__NIMI_AVATAR_ELECTRON_SDK_ACCEPTANCE__).sort(),
+      );
+      assert.deepEqual(sdkAcceptanceKeys, ['rawAccessPosture', 'runtimeReady', 'sharedAuthBroker']);
       const sdkRuntimeReady = await page.evaluate(() =>
         globalThis.window.__NIMI_AVATAR_ELECTRON_SDK_ACCEPTANCE__.runtimeReady(),
       );

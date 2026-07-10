@@ -1,5 +1,8 @@
 import { createNimiClient, type NimiClient } from '@nimiplatform/sdk';
+import { createRuntimeAccountMediatedRealmTransport } from '@nimiplatform/sdk/app';
+import { createRealm, type Realm } from '@nimiplatform/sdk/realm';
 import {
+  createNimiBindingOnlyAvatarRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
   createNimiRuntimeAppSessionMetadataProvider,
   createNimiRuntimeFullAppRegistration,
@@ -14,7 +17,20 @@ import { type AccountCaller } from '@nimiplatform/sdk/runtime/wire-types';
 import { readNormalizedString } from './app-bootstrap-helpers.js';
 
 const AVATAR_LOCAL_FIRST_PARTY_APP_INSTANCE_ID = 'nimi.avatar.local-first-party';
-const AVATAR_LOCAL_FIRST_PARTY_DEVICE_ID = 'avatar-shell-runtime-bridge';
+const AVATAR_LOCAL_FIRST_PARTY_DEVICE_ID = 'nimi-avatar-local-first-party-device';
+const AVATAR_BINDING_ONLY_APP_INSTANCE_ID = 'nimi.avatar.binding-only';
+const AVATAR_BINDING_ONLY_DEVICE_ID = 'desktop-avatar-host';
+const AVATAR_RUNTIME_ACCOUNT_CAPABILITIES = [
+  'account.session.read',
+  'account.raw-token',
+  'data.scope.read#realm.worlds.read-probe',
+  'runtime.agent.read',
+  'runtime.agent.write',
+  'runtime.agent.turn.read',
+  'runtime.agent.turn.write',
+  'runtime.agent.avatar_debug.read',
+  'runtime.agent.avatar_debug.write',
+] as const;
 
 export type AvatarRuntimeHost = 'tauri' | 'electron';
 
@@ -48,6 +64,19 @@ export function createAvatarRuntimeClient(input: {
   });
 }
 
+export function createAvatarRuntimeMediatedRealm(client: NimiClient): Realm {
+  const appId = readNormalizedString(client.appId);
+  if (!appId) {
+    throw new Error('Avatar Runtime-mediated Realm requires client appId');
+  }
+  return createRealm({
+    transport: createRuntimeAccountMediatedRealmTransport({
+      runtime: client.runtime,
+      accountCaller: createAvatarAccountCaller(appId),
+    }),
+  });
+}
+
 export function registerAvatarRuntimeApp(
   auth: NimiRuntimeAppRegistrationClient,
   appId: string,
@@ -58,6 +87,7 @@ export function registerAvatarRuntimeApp(
       appId,
       appInstanceId: AVATAR_LOCAL_FIRST_PARTY_APP_INSTANCE_ID,
       deviceId: AVATAR_LOCAL_FIRST_PARTY_DEVICE_ID,
+      capabilities: [...AVATAR_RUNTIME_ACCOUNT_CAPABILITIES],
       rejectionLabel: 'Avatar Runtime app registration was rejected',
     },
   )();
@@ -72,6 +102,7 @@ export function createAvatarRuntimeAppSessionMetadataProvider(
     appId,
     appInstanceId: AVATAR_LOCAL_FIRST_PARTY_APP_INSTANCE_ID,
     deviceId: AVATAR_LOCAL_FIRST_PARTY_DEVICE_ID,
+    capabilities: [...AVATAR_RUNTIME_ACCOUNT_CAPABILITIES],
     rejectionLabel: 'Avatar Runtime app session registration was rejected',
   });
 }
@@ -81,6 +112,14 @@ export function createAvatarAccountCaller(appId: string): AccountCaller {
     appId,
     appInstanceId: AVATAR_LOCAL_FIRST_PARTY_APP_INSTANCE_ID,
     deviceId: AVATAR_LOCAL_FIRST_PARTY_DEVICE_ID,
+  });
+}
+
+export function createAvatarBindingOnlyAccountCaller(appId: string): AccountCaller {
+  return createNimiBindingOnlyAvatarRuntimeAccountCaller({
+    appId,
+    appInstanceId: AVATAR_BINDING_ONLY_APP_INSTANCE_ID,
+    deviceId: AVATAR_BINDING_ONLY_DEVICE_ID,
   });
 }
 

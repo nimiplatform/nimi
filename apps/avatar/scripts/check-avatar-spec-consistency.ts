@@ -67,6 +67,10 @@ const requiredAcceptanceScenarioIds = [
   'tts_speaking_lipsync',
   'interrupt_active_turn',
   'runtime_degraded',
+  'shared_auth_broker_ready',
+  'shared_auth_login_required',
+  'first_party_raw_token_posture',
+  'binding_only_raw_token_denied',
 ];
 
 const missing = requiredPaths

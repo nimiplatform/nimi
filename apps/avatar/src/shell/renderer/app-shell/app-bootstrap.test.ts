@@ -562,9 +562,19 @@ describe('bootstrapAvatar', () => {
     expect(registerAppMock).toHaveBeenCalledWith(expect.objectContaining({
       appId: 'nimi.avatar',
       appInstanceId: 'nimi.avatar.local-first-party',
-      deviceId: 'avatar-shell-runtime-bridge',
+      deviceId: 'nimi-avatar-local-first-party-device',
       appVersion: '1',
-      capabilities: [],
+      capabilities: [
+        'account.session.read',
+        'account.raw-token',
+        'data.scope.read#realm.worlds.read-probe',
+        'runtime.agent.read',
+        'runtime.agent.write',
+        'runtime.agent.turn.read',
+        'runtime.agent.turn.write',
+        'runtime.agent.avatar_debug.read',
+        'runtime.agent.avatar_debug.write',
+      ],
       developerRegistration: false,
       modeManifest: {
         appMode: 3,

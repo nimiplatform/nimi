@@ -1,5 +1,9 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
-import { createAvatarRuntimeClient } from './app-bootstrap-runtime-binding.js';
+import {
+  createAvatarRuntimeClient,
+  createAvatarRuntimeMediatedRealm,
+} from './app-bootstrap-runtime-binding.js';
+import { invokeAvatarHostCommand } from './avatar-host-bridge.js';
 
 type AvatarElectronSdkAcceptanceProbeResult =
   | {
@@ -22,6 +26,8 @@ type AvatarElectronSdkAcceptanceProbeResult =
 
 type AvatarElectronSdkAcceptanceProbe = {
   runtimeReady(): Promise<AvatarElectronSdkAcceptanceProbeResult>;
+  sharedAuthBroker(): Promise<AvatarElectronSdkAcceptanceProbeResult>;
+  rawAccessPosture(posture: 'first-party' | 'binding-only'): Promise<AvatarElectronSdkAcceptanceProbeResult>;
 };
 
 const ELECTRON_SDK_ACCEPTANCE_QUERY = 'nimiElectronSdkAcceptance';
@@ -49,6 +55,47 @@ export function installAvatarElectronSdkAcceptanceProbe(): void {
           transport: 'electron-ipc',
           status: health.status,
           reason: health.reason,
+        };
+      } catch (error) {
+        return serializeSdkAcceptanceError(error);
+      }
+    },
+    async sharedAuthBroker() {
+      const nimiClient = createAvatarRuntimeClient({
+        appId: 'nimi.avatar',
+        host: 'electron',
+      });
+      const realm = createAvatarRuntimeMediatedRealm(nimiClient);
+      try {
+        const response = await realm.worldPublic.worldPublicControllerListWorlds({ path: {} });
+        return {
+          ok: true,
+          transport: 'electron-ipc',
+          status: 'runtime-mediated-realm-ready',
+          reason: response.length,
+        };
+      } catch (error) {
+        return serializeSdkAcceptanceError(error);
+      }
+    },
+    async rawAccessPosture(posture) {
+      try {
+        const result = await invokeAvatarHostCommand<{
+          posture: 'first-party' | 'binding-only';
+          accepted: boolean;
+          materialPresent: boolean;
+          materialProjected: false;
+          reasonCode: unknown;
+          accountReasonCode: unknown;
+        }>('nimi_avatar_probe_raw_access_posture', { posture });
+        return {
+          ok: true,
+          transport: 'electron-ipc',
+          status: result,
+          reason: {
+            reasonCode: result.reasonCode,
+            accountReasonCode: result.accountReasonCode,
+          },
         };
       } catch (error) {
         return serializeSdkAcceptanceError(error);
