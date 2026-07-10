@@ -46,9 +46,6 @@ export const DESKTOP_ELECTRON_INTENTIONAL_TAURI_ONLY_COMMANDS = [
 
 const DESKTOP_ELECTRON_STANDARD_SHELL_COMMANDS = [
   'runtime_defaults',
-  'auth_session_load',
-  'auth_session_save',
-  'auth_session_clear',
   'open_external_url',
   'oauth_token_exchange',
   'oauth_listen_for_code',

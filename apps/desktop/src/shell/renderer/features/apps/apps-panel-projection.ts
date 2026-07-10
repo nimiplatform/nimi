@@ -190,8 +190,6 @@ async function resolveRuntimeStatusStorageRoots(
     label: 'desktop Apps app',
     options: {
       metadata: {
-        callerKind: 'desktop-core',
-        callerId: 'desktop.apps.storage',
         surfaceId: 'desktop.apps',
       },
     },

@@ -11,8 +11,6 @@ import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-sessi
 const CONNECTOR_CALL_OPTIONS: RuntimeTypedCallOptions = {
   timeoutMs: 5000,
   metadata: {
-    callerKind: 'desktop-core',
-    callerId: 'runtime-config.connector',
     surfaceId: 'runtime.config',
   },
 };

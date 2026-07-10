@@ -13,14 +13,89 @@ use nimi_shell_tauri::{
         set_standard_local_assets_host_hooks, StandardLocalAssetsHostHooks,
     },
     capabilities::runtime::{
+        RuntimeBridgeHostAppSessionConfig, RuntimeBridgeHostAppSessionProvider,
         RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata,
-        RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+        RuntimeBridgeTrustedMetadataRequest, RUNTIME_APP_GET_APP_STORAGE_METHOD_ID,
+        RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST,
     },
     capabilities::shell_ui::{StandardConfirmDialogPayload, StandardShellUiHostHooks},
 };
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
+
+pub(super) async fn resolve_desktop_runtime_trusted_metadata(
+    request: RuntimeBridgeTrustedMetadataRequest,
+    desktop_account_caller: nimi_shell_tauri::capabilities::runtime::generated::AccountCaller,
+    desktop_account_session: RuntimeBridgeHostAppSessionProvider,
+) -> Result<Option<RuntimeBridgeTrustedMetadata>, String> {
+    if request
+        .method_id
+        .starts_with("/nimi.runtime.v1.RuntimeAccountService/")
+    {
+        let app_session = desktop_account_session.resolve().await?;
+        let extra = HashMap::from([
+            (
+                "x-nimi-source-host".to_string(),
+                RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST.to_string(),
+            ),
+            (
+                "x-nimi-app-instance-id".to_string(),
+                desktop_account_caller.app_instance_id.clone(),
+            ),
+            (
+                "x-nimi-device-id".to_string(),
+                desktop_account_caller.device_id.clone(),
+            ),
+        ]);
+        return Ok(Some(RuntimeBridgeTrustedMetadata {
+            metadata: Some(RuntimeBridgeMetadata {
+                app_id: Some(desktop_account_caller.app_id.clone()),
+                participant_id: Some(desktop_account_caller.app_id.clone()),
+                caller_kind: Some("desktop-shell".to_string()),
+                caller_id: Some(desktop_account_caller.app_instance_id.clone()),
+                extra: Some(extra),
+                ..RuntimeBridgeMetadata::default()
+            }),
+            app_session: Some(app_session),
+            ..RuntimeBridgeTrustedMetadata::default()
+        }));
+    }
+    if request.method_id == RUNTIME_APP_GET_APP_STORAGE_METHOD_ID {
+        return Ok(Some(RuntimeBridgeTrustedMetadata {
+            metadata: Some(RuntimeBridgeMetadata {
+                app_id: Some("nimi.desktop".to_string()),
+                participant_id: Some("nimi.desktop".to_string()),
+                caller_kind: Some("desktop-shell".to_string()),
+                caller_id: Some("nimi.desktop.shell".to_string()),
+                ..RuntimeBridgeMetadata::default()
+            }),
+            ..RuntimeBridgeTrustedMetadata::default()
+        }));
+    }
+    Ok(Some(RuntimeBridgeTrustedMetadata {
+        metadata: Some(RuntimeBridgeMetadata {
+            app_id: Some(desktop_account_caller.app_id.clone()),
+            participant_id: Some(desktop_account_caller.app_id.clone()),
+            caller_kind: Some("desktop-shell".to_string()),
+            caller_id: Some(desktop_account_caller.app_instance_id.clone()),
+            ..RuntimeBridgeMetadata::default()
+        }),
+        ..RuntimeBridgeTrustedMetadata::default()
+    }))
+}
 
 fn install_shared_runtime_bridge_hooks() {
+    let desktop_account_caller = desktop_shell_runtime_account_caller("nimi.desktop")
+        .expect("Desktop Runtime account caller constants must be valid");
+    let desktop_account_session = RuntimeBridgeHostAppSessionProvider::new(
+        RuntimeBridgeHostAppSessionConfig::desktop_shell(
+            &desktop_account_caller.app_id,
+            &desktop_account_caller.app_instance_id,
+            &desktop_account_caller.device_id,
+            Vec::new(),
+        )
+        .expect("Desktop Runtime host app-session constants must be valid"),
+    )
+    .expect("Desktop Runtime host app-session provider must initialize");
     let hooks = RuntimeBridgeHostHooks {
         status_override: {
             #[cfg(any(test, feature = "desktop-e2e-fixture"))]
@@ -46,22 +121,14 @@ fn install_shared_runtime_bridge_hooks() {
                 None
             }
         },
-        trusted_metadata: Some(Arc::new(|request| {
-            Box::pin(async move {
-                if request.method_id != RUNTIME_APP_GET_APP_STORAGE_METHOD_ID {
-                    return Ok(None);
-                }
-                Ok(Some(RuntimeBridgeTrustedMetadata {
-                    metadata: Some(RuntimeBridgeMetadata {
-                        app_id: Some("nimi.desktop".to_string()),
-                        participant_id: Some("nimi.desktop".to_string()),
-                        caller_kind: Some("desktop-shell".to_string()),
-                        caller_id: Some("nimi.desktop.shell".to_string()),
-                        ..RuntimeBridgeMetadata::default()
-                    }),
-                    ..RuntimeBridgeTrustedMetadata::default()
-                }))
-            })
+        trusted_metadata: Some(Arc::new(move |request| {
+            let desktop_account_session = desktop_account_session.clone();
+            let desktop_account_caller = desktop_account_caller.clone();
+            Box::pin(resolve_desktop_runtime_trusted_metadata(
+                request,
+                desktop_account_caller,
+                desktop_account_session,
+            ))
         })),
         sync_daemon_status: Some(Arc::new(|app, status| {
             crate::menu_bar_shell::sync_daemon_status(app, status);
@@ -375,7 +442,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
 
             Ok(())
         })
-        .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![
+        .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_oauth_runtime_bridge_handler![
             @with_runtime_defaults super::defaults_and_commands::runtime_defaults;
             desktop_release::desktop_release_info_get,
             desktop_updates::desktop_update_state_get,

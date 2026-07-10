@@ -140,6 +140,10 @@ test('Desktop auth custody stays RuntimeAccountService-owned', () => {
     path.join(import.meta.dirname, '../../../.nimi/spec/desktop/kernel/tables/ipc-commands.yaml'),
     'utf8',
   );
+  const tauriBootstrapSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs'),
+    'utf8',
+  );
 
   assert.doesNotMatch(authAdapterSource, /loadAuthSession|saveAuthSession/);
   assert.doesNotMatch(authAdapterSource, /shell\/renderer\/bridge\/auth-session|runtime-bridge\/auth-session/);
@@ -147,13 +151,14 @@ test('Desktop auth custody stays RuntimeAccountService-owned', () => {
   assert.match(authAdapterSource, /RuntimeAccountService/);
   assert.match(authAdapterSource, /createRuntimeAccountBrowserBroker/);
   assert.match(authAdapterSource, /getAccountSessionStatus/);
-  assert.match(authAdapterSource, /getAccessToken/);
+  assert.doesNotMatch(authAdapterSource, /getAccessToken|refreshAccountSession/);
 
-  assert.equal(fs.existsSync(authSessionCommandsPath), true);
-  assert.match(commandRegistrationSource, /auth_session_load|auth_session_save|auth_session_clear/);
-  assert.match(commandRegistrationSource, /AuthSession|AUTH_SESSION_COMMANDS/);
-  assert.match(ipcCommandsSource, /auth_session_load/);
-  assert.match(ipcCommandsSource, /Kit shared auth session surface/);
+  assert.equal(fs.existsSync(authSessionCommandsPath), false);
+  assert.doesNotMatch(commandRegistrationSource, /auth_session_load|auth_session_save|auth_session_clear/);
+  assert.doesNotMatch(commandRegistrationSource, /AuthSession|AUTH_SESSION_COMMANDS/);
+  assert.doesNotMatch(ipcCommandsSource, /auth_session_load|Kit shared auth session surface/);
+  assert.match(tauriBootstrapSource, /RuntimeBridgeHostAppSessionProvider/);
+  assert.match(tauriBootstrapSource, /RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST/);
 });
 
 test('proxyHttp fallback blocks private-network absolute URLs outside the app origin', async () => {

@@ -793,6 +793,7 @@
   "agentVoiceManualRendering": "正在准备语音",
   "agentVoiceManualUnavailable": "语音不可用",
   "agentVoiceManualError": "语音播放失败",
+  "mediaUnavailable": "当前授权路径无法访问此媒体。",
   "today": "今天",
   "yesterday": "昨天"
 }

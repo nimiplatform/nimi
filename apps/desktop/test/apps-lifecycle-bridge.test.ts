@@ -277,15 +277,16 @@ describe('createDesktopAppLifecycleBridge — typed projection pass-through', ()
 // ---------------------------------------------------------------------------
 
 describe('createDesktopAppLifecycleBridge — desktop-core call metadata', () => {
-  test('unary calls carry desktop-core caller metadata and a timeout', async () => {
+  test('unary calls carry surface metadata and a timeout without renderer caller identity', async () => {
     const { module, calls } = stubModule();
     const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
     await bridge.install({ appId: 'nimi.notes', confirmed: true });
     const options = calls[0]?.options as {
       timeoutMs?: number;
-      metadata?: { callerKind?: string; surfaceId?: string };
+      metadata?: { callerKind?: string; callerId?: string; surfaceId?: string };
     };
-    assert.equal(options?.metadata?.callerKind, 'desktop-core');
+    assert.equal(options?.metadata?.callerKind, undefined);
+    assert.equal(options?.metadata?.callerId, undefined);
     assert.equal(options?.metadata?.surfaceId, 'desktop.apps');
     assert.equal(typeof options?.timeoutMs, 'number');
   });

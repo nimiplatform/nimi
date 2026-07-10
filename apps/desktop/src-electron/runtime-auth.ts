@@ -7,14 +7,13 @@ import {
 } from '@nimiplatform/kit/shell/electron/main';
 import {
   DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION,
+  DESKTOP_RUNTIME_REGISTRATION_CAPABILITIES,
   DESKTOP_RUNTIME_PROTECTED_CONSENT_ID,
   DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION,
   DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE,
   DESKTOP_RUNTIME_PROTECTED_SCOPES,
   DESKTOP_RUNTIME_PROTECTED_TOKEN_REFRESH_SKEW_MS,
   DESKTOP_RUNTIME_PROTECTED_TOKEN_TTL_SECONDS,
-  PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX,
-  PLATFORM_RUNTIME_SESSION_DEVICE_ID,
   PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS,
   PLATFORM_RUNTIME_SESSION_TTL_SECONDS,
 } from '../src/shell/shared/runtime-account-contract.js';
@@ -37,15 +36,16 @@ export function createDesktopElectronTrustedRuntimeMetadataProvider(input: {
   readonly runtime?: DesktopElectronRuntimeAuthRuntime;
 }): ElectronRuntimeBridgeTrustedMetadataProvider {
   const appId = requireText(input.appId, 'appId');
+  const accountCaller = createNimiDesktopShellRuntimeAccountCaller({ appId });
   const auth = createNimiElectronRuntimeAccountTrustedMetadataProvider({
     appId,
     runtimeEndpoint: input.runtimeEndpoint,
     runtime: input.runtime,
-    accountCaller: createNimiDesktopShellRuntimeAccountCaller({ appId }),
+    accountCaller,
     appSession: {
-      appInstanceId: `${appId}${PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX}`,
-      deviceId: PLATFORM_RUNTIME_SESSION_DEVICE_ID,
-      capabilities: [...DESKTOP_RUNTIME_PROTECTED_SCOPES],
+      appInstanceId: accountCaller.appInstanceId,
+      deviceId: accountCaller.deviceId,
+      capabilities: [...DESKTOP_RUNTIME_REGISTRATION_CAPABILITIES],
       ttlSeconds: PLATFORM_RUNTIME_SESSION_TTL_SECONDS,
       refreshSkewMs: PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS,
     },
@@ -57,6 +57,9 @@ export function createDesktopElectronTrustedRuntimeMetadataProvider(input: {
       ttlSeconds: DESKTOP_RUNTIME_PROTECTED_TOKEN_TTL_SECONDS,
       refreshSkewMs: DESKTOP_RUNTIME_PROTECTED_TOKEN_REFRESH_SKEW_MS,
       idempotencyKey: `desktop-runtime-protected-access-${DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE}`,
+    },
+    callerEnvelope: {
+      sourceHost: 'desktop-electron-account-host',
     },
   });
   return (providerInput) => {

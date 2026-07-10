@@ -79,6 +79,7 @@ type MainLayoutViewProps = {
   userAvatarUrl: string | null;
   userEmail?: string | null;
   onNav: (tabId: string) => void;
+  onSwitchAccount: () => void;
   onLogout: () => void;
   onLogin: () => void;
   onTitlebarMouseDown: (event: MouseEvent<HTMLDivElement>) => void;
@@ -428,6 +429,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             onEditProfile={() => {
               persistStoredSettingsSelected('profile');
               props.onNav('settings');
+              setSettingsMenuOpen(false);
+            }}
+            onSwitchAccount={() => {
+              props.onSwitchAccount();
               setSettingsMenuOpen(false);
             }}
             onLogout={() => {

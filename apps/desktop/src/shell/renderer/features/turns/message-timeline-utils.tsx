@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { resolveRealmChatMediaUrl } from '@nimiplatform/kit/features/chat/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import { formatLocaleDate, i18n } from '@renderer/i18n';
-import { getDesktopRuntimeAccessToken } from '@renderer/features/auth/runtime-account-access-token';
 
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 
@@ -30,53 +29,25 @@ export function ChatMessageImage(input: {
   alt: string;
   realmBaseUrl: string;
 }) {
-  const [resolvedSrc, setResolvedSrc] = useState(input.src);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    setResolvedSrc(input.src);
-    const normalizedSrc = String(input.src || '').trim();
-    const normalizedBase = String(input.realmBaseUrl || '').trim().replace(/\/$/, '');
-    if (!normalizedSrc || !normalizedBase || !normalizedSrc.startsWith(`${normalizedBase}/`)) {
-      return;
-    }
+    setFailed(false);
+  }, [input.src]);
 
-    let revokedUrl = '';
-    let cancelled = false;
-    const run = async () => {
-      try {
-        const token = await getDesktopRuntimeAccessToken();
-        const response = await fetch(normalizedSrc, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) {
-          return;
-        }
-        const blob = await response.blob();
-        if (cancelled) {
-          return;
-        }
-        revokedUrl = URL.createObjectURL(blob);
-        setResolvedSrc(revokedUrl);
-      } catch {
-        // Keep original URL fallback when authenticated fetch is unavailable.
-      }
-    };
-    void run();
-
-    return () => {
-      cancelled = true;
-      if (revokedUrl) {
-        URL.revokeObjectURL(revokedUrl);
-      }
-    };
-  }, [input.src, input.realmBaseUrl]);
+  if (failed) {
+    return (
+      <span role="status" className="inline-flex max-w-[260px] rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground">
+        {i18n.t('Chat.mediaUnavailable', { defaultValue: 'Media is unavailable through the current authorization path.' })}
+      </span>
+    );
+  }
 
   return (
     <img
-      src={resolvedSrc}
+      src={input.src}
       alt={input.alt}
+      onError={() => setFailed(true)}
       className="max-h-[320px] max-w-[260px] rounded-xl object-contain"
     />
   );

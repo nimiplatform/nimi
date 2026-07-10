@@ -36,6 +36,7 @@ export const desktopRuntimeRouteAccess = createNimiHostRuntimeRouteAccessSurface
   appId: 'nimi.desktop',
   callerKind: 'desktop-core',
   surfaceId: 'desktop.renderer',
+  identityMetadataMode: 'host',
   emitWarmMetric: emitDesktopRuntimeRouteWarmMetric,
 });
 

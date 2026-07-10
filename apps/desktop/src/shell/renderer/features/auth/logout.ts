@@ -24,16 +24,24 @@ type LogoutTranslate = (
 ) => string;
 
 type LogoutDependencies = {
-  logout: () => Promise<void>;
+  logout: () => Promise<void | {
+    accepted: boolean;
+    reasonCode?: unknown;
+    accountReasonCode?: unknown;
+  }>;
   clearPersistedSession: () => Promise<void> | void;
   clearAllStreams: () => void;
   clearQueryClient: () => void;
   translate: LogoutTranslate;
 };
 
+type SwitchAccountDependencies = Omit<LogoutDependencies, 'logout'> & {
+  switchAccount: () => Promise<void>;
+};
+
 const defaultLogoutDependencies: LogoutDependencies = {
   logout: async () => {
-    await getDesktopAccountRuntime().account.logout({
+    return getDesktopAccountRuntime().account.logout({
       caller: getDesktopRuntimeAccountCaller(),
       reason: 'desktop_logout',
     });
@@ -44,6 +52,22 @@ const defaultLogoutDependencies: LogoutDependencies = {
   clearAllStreams,
   clearQueryClient: () => queryClient.clear(),
   translate: i18n.t.bind(i18n),
+};
+
+const defaultSwitchAccountDependencies: SwitchAccountDependencies = {
+  switchAccount: async () => {
+    const response = await getDesktopAccountRuntime().account.switchAccount({
+      caller: getDesktopRuntimeAccountCaller(),
+      reason: 'desktop_switch_account',
+    });
+    if (!response.accepted) {
+      throw new Error(String(response.accountReasonCode || response.reasonCode || 'runtime_switch_account_rejected'));
+    }
+  },
+  clearPersistedSession: defaultLogoutDependencies.clearPersistedSession,
+  clearAllStreams: defaultLogoutDependencies.clearAllStreams,
+  clearQueryClient: defaultLogoutDependencies.clearQueryClient,
+  translate: defaultLogoutDependencies.translate,
 };
 
 function toErrorMessage(error: unknown): string {
@@ -85,7 +109,14 @@ export async function logoutAndClearSession(
   deps: LogoutDependencies = defaultLogoutDependencies,
 ): Promise<void> {
   try {
-    await deps.logout();
+    const response = await deps.logout();
+    if (response && !response.accepted) {
+      throw new Error(String(
+        response.accountReasonCode
+        || response.reasonCode
+        || 'runtime_logout_rejected'
+      ));
+    }
   } catch (error) {
     await emitLogoutFeedback(input, {
       kind: 'warning',
@@ -111,4 +142,32 @@ export async function logoutAndClearSession(
     kind: 'info',
     message: deps.translate('Auth.logoutSuccess', { defaultValue: 'Signed out' }),
   });
+}
+
+export async function switchAccountAndClearSession(
+  input: LogoutAndClearSessionInput,
+  deps: SwitchAccountDependencies = defaultSwitchAccountDependencies,
+): Promise<boolean> {
+  try {
+    await deps.switchAccount();
+  } catch (error) {
+    await emitLogoutFeedback(input, {
+      kind: 'warning',
+      message: deps.translate('Auth.switchAccountRuntimeFailure', {
+        error: toErrorMessage(error),
+        defaultValue: 'Account switch could not start because Runtime did not confirm the switch: {{error}}',
+      }),
+    });
+    return false;
+  }
+
+  await deps.clearPersistedSession();
+  deps.clearAllStreams();
+  input.clearAuthSession();
+  deps.clearQueryClient();
+  await emitLogoutFeedback(input, {
+    kind: 'info',
+    message: deps.translate('Auth.switchAccountReady', { defaultValue: 'Choose another account to continue' }),
+  });
+  return true;
 }

@@ -41,11 +41,12 @@ test('Auth/OAuth preflight inventory has a real migration point closed in Kit', 
   assert.match(desktopAuthAdapter, /verifyNimiRealmEmailOtp/);
   assert.match(desktopAuthAdapter, /loginNimiRealmOAuth/);
   assert.match(desktopAuthAdapter, /getDesktopAccountRuntime/);
-  assert.match(desktopAuthAdapter, /Runtime account login completed without a usable Runtime access token/);
+  assert.match(desktopAuthAdapter, /Runtime account login completed without an authenticated account projection/);
+  assert.doesNotMatch(desktopAuthAdapter, /runtime\.account\.getAccessToken\(/);
   assert.doesNotMatch(desktopAuthAdapter, /getPlatformClient/);
 });
 
-test('Desktop browser auth completion is gated by Runtime account token readback, not full bootstrap', () => {
+test('Desktop browser auth completion is gated by Runtime account projection readback, not raw token or full bootstrap', () => {
   const desktopAuthAdapter = read('apps/desktop/src/shell/renderer/features/auth/desktop-auth-adapter.ts');
   const completeStart = desktopAuthAdapter.indexOf('complete: async (request: Parameters<typeof broker.complete>[0]) => {');
   assert.notEqual(completeStart, -1, 'desktop Runtime account browser broker complete handler must exist');
@@ -54,6 +55,7 @@ test('Desktop browser auth completion is gated by Runtime account token readback
 
   assert.match(completeSource, /await broker\.complete\(request\)/);
   assert.match(completeSource, /await loadDesktopRuntimeAccountUser\(\)/);
+  assert.doesNotMatch(completeSource, /getAccessToken/);
   assert.doesNotMatch(
     completeSource,
     /rebootstrapRuntime|bootstrapRuntime/,

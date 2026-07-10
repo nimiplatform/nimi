@@ -2663,7 +2663,6 @@ dependencies = [
  "dirs",
  "futures-util",
  "image",
- "keyring",
  "log",
  "prost",
  "prost-types",

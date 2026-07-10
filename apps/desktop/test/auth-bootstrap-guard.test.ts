@@ -70,7 +70,7 @@ test('desktop auth adapter guards Runtime-backed auth API calls behind bootstrap
   assertGuardedCall('updatePassword');
   assertGuardedCall('loadCurrentUser');
   assert.match(authAdapterSource, /runtime\.account\.getAccountSessionStatus\(\{\s*caller:/s);
-  assert.match(authAdapterSource, /runtime\.account\.getAccessToken\(\{\s*caller: desktopRuntimeAccountCaller,\s*requestedScopes: \[\],\s*\}\)/s);
+  assert.doesNotMatch(authAdapterSource, /getAccessToken|refreshAccountSession/);
 });
 
 test('desktop auth adapter delegates post-login sync to query invalidation (no direct dataSync calls)', () => {

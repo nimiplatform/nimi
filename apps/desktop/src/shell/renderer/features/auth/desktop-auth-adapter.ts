@@ -78,13 +78,6 @@ async function loadDesktopRuntimeAccountUser(): Promise<Record<string, unknown> 
   if (response.state !== AccountSessionState.AUTHENTICATED || !projection?.accountId) {
     return null;
   }
-  const tokenStatus = await runtime.account.getAccessToken({
-    caller: desktopRuntimeAccountCaller,
-    requestedScopes: [],
-  });
-  if (!tokenStatus.accepted || !tokenStatus.accessToken) {
-    return null;
-  }
   return toNimiRealmAuthUserRecord({
     id: projection.accountId,
     displayName: projection.displayName,
@@ -115,7 +108,7 @@ export function createDesktopRuntimeAccountBrowserBroker() {
       await broker.complete(request);
       const user = await loadDesktopRuntimeAccountUser();
       if (!user) {
-        throw new Error('Runtime account login completed without a usable Runtime access token.');
+        throw new Error('Runtime account login completed without an authenticated account projection.');
       }
       return { user };
     },

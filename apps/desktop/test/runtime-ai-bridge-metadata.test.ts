@@ -17,5 +17,6 @@ test('runtime AI bridge metadata helper is migrated to SDK host route access', (
 
   assert.match(desktopAccess, /surfaceId:\s*'desktop\.renderer'/);
   assert.match(desktopAccess, /callerKind:\s*'desktop-core'/);
+  assert.match(desktopAccess, /identityMetadataMode:\s*'host'/);
   assert.doesNotMatch(desktopAccess, /@runtime\/llm-adapter/);
 });

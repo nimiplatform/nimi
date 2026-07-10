@@ -146,6 +146,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                 <div ref={props.settingsTriggerRef} className="flex h-9 items-center">
                   <motion.button
                     type="button"
+                    data-testid="desktop-account-menu-trigger"
                     data-titlebar-interactive="true"
                     onClick={props.onToggleSettingsMenu}
                     whileHover={interactiveMotion.whileHover}

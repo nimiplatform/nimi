@@ -7,6 +7,8 @@ import {
   DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION,
   DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE,
   DESKTOP_RUNTIME_PROTECTED_SCOPES,
+  DESKTOP_RUNTIME_ACCOUNT_BROKER_CAPABILITIES,
+  DESKTOP_RUNTIME_REGISTRATION_CAPABILITIES,
   PLATFORM_RUNTIME_SESSION_DEVICE_ID,
 } from '../src/shell/shared/runtime-account-contract.js';
 
@@ -27,6 +29,19 @@ test('Desktop Runtime account contract keeps protected scopes in a single shared
   assert.ok(DESKTOP_RUNTIME_PROTECTED_SCOPES.includes('runtime.agent.ai_config.write'));
   assert.ok(DESKTOP_RUNTIME_PROTECTED_SCOPES.includes('runtime.agent.read'));
   assert.ok(DESKTOP_RUNTIME_PROTECTED_SCOPES.includes('runtime.agent.write'));
+  assert.deepEqual(DESKTOP_RUNTIME_ACCOUNT_BROKER_CAPABILITIES, [
+    'account.session.read',
+    'data.scope.read#realm.worlds.read-probe',
+    'data.scope.read#realm.core.world-characters',
+    'data.scope.read#realm.core.world-entities',
+    'data.scope.read#realm.core.world-relationships',
+    'data.scope.read#realm.account.private',
+    'data.scope.read#realm.social.private',
+    'data.scope.read#realm.group-chats.private',
+    'realm_source.snapshot.bind',
+  ]);
+  assert.ok(DESKTOP_RUNTIME_REGISTRATION_CAPABILITIES.includes('account.session.read'));
+  assert.ok(DESKTOP_RUNTIME_REGISTRATION_CAPABILITIES.includes('runtime.agent.read'));
   assert.match(DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE, /^s\d+-[a-z0-9]+$/u);
   assert.equal(
     DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION,

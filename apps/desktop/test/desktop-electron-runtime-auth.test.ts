@@ -57,6 +57,8 @@ test('Desktop Electron trusted Runtime metadata is host-owned and not developer-
   const tokenCall = calls.find((call) => call.kind === 'authorizeExternalPrincipal');
   assert.equal((statusCall?.request.caller as { readonly mode?: unknown } | undefined)?.mode, AccountCallerMode.DESKTOP_SHELL);
   assert.equal(registerCall?.request.developerRegistration, false);
+  assert.equal(registerCall?.request.appInstanceId, 'nimi.desktop.local-first-party');
+  assert.equal(registerCall?.request.deviceId, 'desktop-shell');
   assert.equal(tokenCall?.request.subjectUserId, 'account-1');
   assert.deepEqual(metadata, {
     metadata: {
@@ -73,6 +75,11 @@ test('Desktop Electron trusted Runtime metadata is host-owned and not developer-
       providerType: undefined,
       clientId: undefined,
       providerEndpoint: undefined,
+      extra: {
+        'x-nimi-source-host': 'desktop-electron-account-host',
+        'x-nimi-app-instance-id': 'nimi.desktop.local-first-party',
+        'x-nimi-device-id': 'desktop-shell',
+      },
     },
     appSession: {
       sessionId: 'session-id',
@@ -116,6 +123,11 @@ test('Desktop Electron trusted Runtime metadata keeps host identity and app sess
       providerType: undefined,
       clientId: undefined,
       providerEndpoint: undefined,
+      extra: {
+        'x-nimi-source-host': 'desktop-electron-account-host',
+        'x-nimi-app-instance-id': 'nimi.desktop.local-first-party',
+        'x-nimi-device-id': 'desktop-shell',
+      },
     },
     appSession: {
       sessionId: 'session-id',

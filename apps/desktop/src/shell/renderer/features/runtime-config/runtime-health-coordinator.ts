@@ -4,8 +4,6 @@ import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generate
 import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 const HEALTH_METADATA = {
-  callerKind: 'desktop-core' as const,
-  callerId: 'runtime-health-coordinator',
   surfaceId: 'runtime.health',
 };
 

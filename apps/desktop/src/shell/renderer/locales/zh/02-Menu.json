@@ -6,5 +6,6 @@
   "myAgents": "我的 Agent",
   "termsOfService": "服务条款",
   "privacyPolicy": "隐私政策",
-  "logout": "退出登录"
+  "logout": "退出登录",
+  "switchAccount": "切换账号"
 }

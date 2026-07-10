@@ -31,16 +31,12 @@ export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
       loadAccountInventory: async () => getDesktopRuntime().appLifecycle.accountInventory({
         timeoutMs: 20_000,
         metadata: {
-          callerKind: 'desktop-core',
-          callerId: 'desktop.apps.account-inventory',
           surfaceId: 'desktop.apps',
         },
       }),
       loadLocalAdoptions: async () => getDesktopRuntime().appLifecycle.listLocalAdoptions({
         timeoutMs: 20_000,
         metadata: {
-          callerKind: 'desktop-core',
-          callerId: 'desktop.apps.local-adoptions',
           surfaceId: 'desktop.apps',
         },
       }),
@@ -49,8 +45,6 @@ export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
         {
           timeoutMs: 20_000,
           metadata: {
-            callerKind: 'desktop-core',
-            callerId: 'desktop.apps.status',
             surfaceId: 'desktop.apps',
           },
         },
@@ -60,8 +54,6 @@ export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
         {
           timeoutMs: 20_000,
           metadata: {
-            callerKind: 'desktop-core',
-            callerId: 'desktop.apps.jobs',
             surfaceId: 'desktop.apps',
           },
         },

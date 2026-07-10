@@ -84,15 +84,13 @@ export type {
 } from '@nimiplatform/sdk/runtime';
 
 /**
- * Stable desktop-core call metadata for every app-lifecycle RPC. `callerKind`
- * marks the request as first-party desktop traffic; `surfaceId` scopes it to
- * the Apps surface for runtime-side observability.
+ * Stable non-authoritative renderer call metadata for every app-lifecycle
+ * RPC. Host-owned identity is stamped by the Electron/Tauri bridge;
+ * `surfaceId` scopes the call to the Apps surface for observability.
  */
 const APP_LIFECYCLE_CALL_OPTIONS = {
   timeoutMs: 20_000,
   metadata: {
-    callerKind: 'desktop-core' as const,
-    callerId: 'desktop.apps.lifecycle',
     surfaceId: 'desktop.apps',
   },
 } as const;
@@ -104,8 +102,6 @@ const APP_LIFECYCLE_CALL_OPTIONS = {
  */
 const APP_LIFECYCLE_STREAM_OPTIONS = {
   metadata: {
-    callerKind: 'desktop-core' as const,
-    callerId: 'desktop.apps.lifecycle',
     surfaceId: 'desktop.apps',
   },
 } as const;

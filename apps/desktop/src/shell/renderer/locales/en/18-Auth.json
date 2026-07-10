@@ -65,5 +65,7 @@
   "oauthLoginFailed": "OAuth sign-in failed",
   "logoutRuntimeTransientFailure": "Sign out could not be completed because Runtime logout could not be confirmed. The account session may still be active: {{error}}",
   "logoutRuntimeFailure": "Sign out could not be completed because Runtime logout failed. The account session may still be active: {{error}}",
-  "logoutSuccess": "Signed out"
+  "logoutSuccess": "Signed out",
+  "switchAccountRuntimeFailure": "Account switch could not start because Runtime did not confirm the switch: {{error}}",
+  "switchAccountReady": "Choose another account to continue"
 }

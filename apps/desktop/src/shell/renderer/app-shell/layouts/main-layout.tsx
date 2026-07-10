@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
-import { logoutAndClearSession } from '@renderer/features/auth/logout';
+import { logoutAndClearSession, switchAccountAndClearSession } from '@renderer/features/auth/logout';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useDesktopOpenIntentListener } from '@renderer/infra/desktop-open/desktop-open-intent-listener';
 import {
@@ -107,6 +107,16 @@ export function MainLayout() {
     });
   };
 
+  const onSwitchAccount = async () => {
+    const switched = await switchAccountAndClearSession({ clearAuthSession });
+    if (!switched) {
+      return;
+    }
+    await navigate('/login', {
+      state: { returnToChat: true, accountSwitch: true },
+    });
+  };
+
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
 
   const onNav = (tabId: string) => {
@@ -138,6 +148,9 @@ export function MainLayout() {
         userAvatarUrl={userAvatarUrl}
         userEmail={userEmail}
         onNav={onNav}
+        onSwitchAccount={() => {
+          void onSwitchAccount();
+        }}
         onLogout={() => {
           void onLogout();
         }}

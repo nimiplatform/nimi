@@ -44,6 +44,7 @@ type MainLayoutSettingsMenuProps = {
   isItemActive: (itemId: SettingsSubmenuItemId) => boolean;
   onOpenItem: (itemId: SettingsSubmenuItemId) => void;
   onEditProfile: () => void;
+  onSwitchAccount: () => void;
   onLogout: () => void;
 };
 
@@ -130,6 +131,20 @@ export function MainLayoutSettingsMenu(props: MainLayoutSettingsMenuProps) {
           <div className="px-2 pb-2">
             <motion.button
               type="button"
+              data-testid="desktop-account-switch"
+              onClick={props.onSwitchAccount}
+              whileHover={interactiveMotion.whileHover}
+              whileTap={interactiveMotion.whileTap}
+              transition={interactiveMotion.transition}
+              className={`${SHELL_CHROME_MENU_ITEM_BASE_CLASS} text-[var(--nimi-text-primary)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,white)]`}
+            >
+              <span className="w-4 shrink-0 text-[var(--nimi-text-secondary)]" aria-hidden="true">⇄</span>
+              <span className="min-w-0 flex-1 text-left font-medium">{t('Menu.switchAccount', 'Switch account')}</span>
+              <MenuChevron />
+            </motion.button>
+            <motion.button
+              type="button"
+              data-testid="desktop-account-logout"
               onClick={props.onLogout}
               whileHover={interactiveMotion.whileHover}
               whileTap={interactiveMotion.whileTap}

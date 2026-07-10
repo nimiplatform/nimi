@@ -1,9 +1,7 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
-import { isRealmOfflineErrorLike as isRealmOfflineError } from '@nimiplatform/sdk/types';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { getShellFeatureFlags } from '@nimiplatform/kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
-import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -40,7 +38,6 @@ import {
 } from './runtime-bootstrap-config-sync';
 import {
   clearDesktopNimiClientSession,
-  configureDesktopRealmOnlySession,
   configureDesktopRuntimeRealmSession,
   type DesktopRuntimeTransport,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
@@ -101,27 +98,6 @@ function bindOfflineCoordinator(): void {
       await rebootstrapRuntime();
     },
   });
-}
-
-function createObservedRealmFetch(fetchImpl: typeof fetch): typeof fetch {
-  return async (input, init) => {
-    try {
-      const response = await fetchImpl(input, init);
-      if (response.ok) {
-        getOfflineCoordinator().markRealmRestReachable(true);
-      }
-      return response;
-    } catch (error) {
-      if (
-        isRealmOfflineError(error)
-        || error instanceof TypeError
-        || (typeof DOMException !== 'undefined' && error instanceof DOMException)
-      ) {
-        getOfflineCoordinator().markRealmRestReachable(false);
-      }
-      throw error;
-    }
-  };
 }
 
 function resolveDesktopRuntimeTransport(): DesktopRuntimeTransport {
@@ -348,8 +324,6 @@ export function bootstrapRuntime(): Promise<void> {
       throw new Error(versionResult.message);
     }
     registerExitHandler({ managed: daemonStatus.managed });
-    const proxyFetch = createProxyFetch();
-    const observedRealmFetch = createObservedRealmFetch(proxyFetch);
     void pingDesktopMacosSmoke('bootstrap-platform-client-start', {
       skipHeavyBootstrapForMacosSmoke,
     }).catch(() => {});
@@ -357,19 +331,12 @@ export function bootstrapRuntime(): Promise<void> {
     unsubscribeRealmConnectivityEvents?.();
     unsubscribeRealmConnectivityEvents = null;
     if (runtimeUnavailable) {
-      await configureDesktopRealmOnlySession({
-        appId: 'nimi.desktop',
-        realmBaseUrl: defaults.realm.realmBaseUrl,
-        accessToken: defaults.realm.accessToken,
-        fetchImpl: observedRealmFetch,
-      });
       clearDesktopConversationCapabilityRouteRuntime();
       useAppStore.getState().clearAuthSession();
     } else {
       const desktopSession = await configureDesktopRuntimeRealmSession({
         appId: 'nimi.desktop',
         realmBaseUrl: defaults.realm.realmBaseUrl,
-        realmFetchImpl: observedRealmFetch,
         runtimeTransport: resolveDesktopRuntimeTransport(),
       });
       bindDesktopConversationCapabilityRouteRuntime();
@@ -378,30 +345,10 @@ export function bootstrapRuntime(): Promise<void> {
         caller: accountCaller,
       });
       const accountProjection = accountStatus.accountProjection;
-      let accountTokenAvailable = false;
       if (
         accountStatus.state === AccountSessionState.AUTHENTICATED
         && accountProjection?.accountId
       ) {
-        const tokenStatus = await desktopSession.accountRuntime.account.getAccessToken({
-          caller: accountCaller,
-          requestedScopes: [],
-        });
-        accountTokenAvailable = Boolean(tokenStatus.accepted && tokenStatus.accessToken);
-        if (!accountTokenAvailable) {
-          logRendererEvent({
-            level: 'warn',
-            area: 'renderer-bootstrap',
-            message: 'phase:runtime-account-token-unavailable',
-            flowId,
-            details: {
-              accountReasonCode: tokenStatus.accountReasonCode || null,
-              reasonCode: tokenStatus.reasonCode || null,
-            },
-          });
-        }
-      }
-      if (accountProjection?.accountId && accountTokenAvailable) {
         useAppStore.getState().setAuthSession({
           id: accountProjection.accountId,
           displayName: accountProjection.displayName,
@@ -430,27 +377,25 @@ export function bootstrapRuntime(): Promise<void> {
         };
       });
       if (accountProjection?.accountId) {
-        if (accountTokenAvailable) {
-          await withBootstrapStepTimeout(
-            'account profile hydrate',
-            hydrateDesktopAccountProfile({
-              accountProjection,
-              flowId,
-            }),
-            DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
-          ).catch((error) => {
-            logRendererEvent({
-              level: 'warn',
-              area: 'renderer-bootstrap',
-              message: 'phase:account-profile:hydrate-deferred',
-              flowId,
-              details: {
-                accountId: accountProjection.accountId,
-                error: safeBootstrapErrorMessage(error),
-              },
-            });
+        await withBootstrapStepTimeout(
+          'account profile hydrate',
+          hydrateDesktopAccountProfile({
+            accountProjection,
+            flowId,
+          }),
+          DEFAULT_NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+        ).catch((error) => {
+          logRendererEvent({
+            level: 'warn',
+            area: 'renderer-bootstrap',
+            message: 'phase:account-profile:hydrate-deferred',
+            flowId,
+            details: {
+              accountId: accountProjection.accountId,
+              error: safeBootstrapErrorMessage(error),
+            },
           });
-        }
+        });
         await withBootstrapStepTimeout(
           'built-in chat AIConfig init',
           initializeBuiltInChatScopesAfterReadyAdmission(flowId),

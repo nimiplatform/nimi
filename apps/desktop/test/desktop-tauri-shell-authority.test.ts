@@ -20,8 +20,8 @@ function appRegisteredCommands(): string[] {
   const source = read('apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs');
   const handlerIndex = source.indexOf('.invoke_handler(');
   assert.notEqual(handlerIndex, -1, 'Desktop app bootstrap must register invoke handler');
-  const listStart = source.indexOf('nimi_shell_tauri::nimi_shell_tauri_auth_oauth_runtime_bridge_handler![', handlerIndex);
-  assert.notEqual(listStart, -1, 'Desktop invoke handler must use the Kit auth/oauth/runtime bridge macro');
+  const listStart = source.indexOf('nimi_shell_tauri::nimi_shell_tauri_oauth_runtime_bridge_handler![', handlerIndex);
+  assert.notEqual(listStart, -1, 'Desktop invoke handler must use the Kit oauth/runtime bridge macro');
   const listEnd = source.indexOf('])', listStart);
   assert.notEqual(listEnd, -1, 'Desktop invoke handler list must close');
   const body = source.slice(listStart, listEnd);
@@ -33,7 +33,7 @@ function appRegisteredCommands(): string[] {
 
 function kitInjectedCommands(): string[] {
   const source = read('kit/shell/tauri/src/command_registration.rs');
-  const macroIndex = source.indexOf('macro_rules! nimi_shell_tauri_auth_oauth_runtime_bridge_handler');
+  const macroIndex = source.indexOf('macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler');
   assert.notEqual(macroIndex, -1, 'Kit command registration macro must exist');
   const body = source.slice(macroIndex, source.indexOf(']', macroIndex));
   return [

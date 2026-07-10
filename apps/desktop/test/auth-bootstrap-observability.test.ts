@@ -24,32 +24,27 @@ test('desktop bootstrap reads Runtime account projection instead of shared auth-
   assert.match(runtimeBootstrapSource, /configureDesktopRuntimeRealmSession\(/);
   assert.match(runtimeBootstrapSource, /createNimiDesktopShellRuntimeAccountCaller\(/);
   assert.match(runtimeBootstrapSource, /desktopSession\.accountRuntime\.account\.getAccountSessionStatus\(\{/);
-  assert.match(runtimeBootstrapSource, /desktopSession\.accountRuntime\.account\.getAccessToken\(\{/);
+  assert.doesNotMatch(runtimeBootstrapSource, /getAccessToken|refreshAccountSession/);
   assert.doesNotMatch(runtimeBootstrapSource, /accessTokenProvider:/);
   assert.doesNotMatch(runtimeBootstrapSource, /bootstrapAuthSession\(/);
   assert.doesNotMatch(runtimeBootstrapSource, /resolvedBootstrapAuthSession/);
   assert.doesNotMatch(runtimeBootstrapSource, /createLocalFirstPartyRuntimePlatformClient\(/);
 });
 
-test('desktop bootstrap only projects authenticated when Runtime account token custody is usable', () => {
+test('desktop bootstrap projects authenticated state from Runtime account truth without raw token access', () => {
   assert.match(runtimeBootstrapSource, /AccountSessionState\.AUTHENTICATED/);
-  assert.match(runtimeBootstrapSource, /accountTokenAvailable = Boolean\(tokenStatus\.accepted && tokenStatus\.accessToken\)/);
   assert.match(
     runtimeBootstrapSource,
-    /if \(accountProjection\?\.accountId && accountTokenAvailable\) \{\s*useAppStore\.getState\(\)\.setAuthSession/s,
+    /accountStatus\.state === AccountSessionState\.AUTHENTICATED\s*&& accountProjection\?\.accountId/s,
   );
   assert.match(
     runtimeBootstrapSource,
-    /if \(accountProjection\?\.accountId\) \{\s*if \(accountTokenAvailable\) \{\s*await withBootstrapStepTimeout\(\s*'account profile hydrate'/s,
+    /if \(accountProjection\?\.accountId\) \{\s*await withBootstrapStepTimeout\(\s*'account profile hydrate'/s,
   );
-  assert.doesNotMatch(
-    runtimeBootstrapSource,
-    /if \(accountProjection\?\.accountId\) \{\s*useAppStore\.getState\(\)\.setAuthSession/s,
-    'Runtime account projection alone must not mark desktop authenticated',
-  );
+  assert.doesNotMatch(runtimeBootstrapSource, /accountTokenAvailable|tokenStatus/);
 });
 
-test('desktop Realm transport refreshes Runtime account token once on Realm 401', () => {
+test('desktop Realm transport is Runtime-mediated and never calls public token refresh', () => {
   const desktopSessionSource = readFileSync(
     new URL('../src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts', import.meta.url),
     'utf8',
@@ -59,29 +54,24 @@ test('desktop Realm transport refreshes Runtime account token once on Realm 401'
     'utf8',
   );
   assert.match(desktopSessionSource, /from '@nimiplatform\/sdk\/app'/);
-  assert.match(desktopSessionSource, /createRealmWithRuntimeAccountToken\(\{/);
-  assert.doesNotMatch(desktopSessionSource, /function createRuntimeAccountRefreshingRealmFetch/);
-  assert.match(sdkRuntimeAccountRealmSource, /function createRuntimeAccountRefreshingRealmFetch/);
-  assert.match(sdkRuntimeAccountRealmSource, /if \(response\.status !== 401\) \{\s*return response;\s*\}/s);
-  assert.match(sdkRuntimeAccountRealmSource, /input\.runtime\.account\.refreshAccountSession\(\{\s*caller: input\.accountCaller,\s*\}\)/s);
-  assert.match(sdkRuntimeAccountRealmSource, /input\.runtime\.account\.getAccessToken\(\{\s*caller: input\.accountCaller,\s*requestedScopes: \[\],\s*\}\)/s);
-  assert.match(sdkRuntimeAccountRealmSource, /return fetchImpl\(request, retryInit\);/);
+  assert.match(desktopSessionSource, /createRuntimeAccountMediatedRealmTransport\(\{/);
+  assert.doesNotMatch(desktopSessionSource, /createRealmWithRuntimeAccountToken|getAccessToken|refreshAccountSession/);
+  assert.match(sdkRuntimeAccountRealmSource, /input\.runtime\.account\.invokeRealmUnary\(\{/);
+  assert.doesNotMatch(sdkRuntimeAccountRealmSource, /refreshAccountSession/);
 });
 
-test('desktop bootstrap enters Realm-only strip mode before Runtime account reads when Runtime is unavailable', () => {
-  assert.match(runtimeBootstrapSource, /configureDesktopRealmOnlySession/);
+test('desktop bootstrap fails closed without a Realm-only token fallback when Runtime is unavailable', () => {
+  assert.doesNotMatch(runtimeBootstrapSource, /configureDesktopRealmOnlySession/);
   const firstRuntimeUnavailableBranch = runtimeBootstrapSource.indexOf('if (runtimeUnavailable) {');
-  const realmOnlyIndex = runtimeBootstrapSource.indexOf('configureDesktopRealmOnlySession', firstRuntimeUnavailableBranch);
   const runtimeAccountStatusIndex = runtimeBootstrapSource.indexOf(
     'desktopSession.accountRuntime.account.getAccountSessionStatus',
   );
 
   assert.notEqual(firstRuntimeUnavailableBranch, -1);
-  assert.notEqual(realmOnlyIndex, -1);
   assert.notEqual(runtimeAccountStatusIndex, -1);
   assert.ok(
-    realmOnlyIndex < runtimeAccountStatusIndex,
-    'Runtime-unavailable bootstrap must not call Runtime account APIs before the Realm-only strip path',
+    firstRuntimeUnavailableBranch < runtimeAccountStatusIndex,
+    'Runtime-unavailable bootstrap must take the fail-closed branch before Runtime account reads',
   );
 });
 
@@ -108,7 +98,7 @@ test('desktop Runtime session carries protected execution and Runtime Agent acce
   assert.match(runtimeAccountContractSource, /'runtime\.agent\.turn\.write'/);
   assert.match(desktopSessionSource, /withDesktopRuntimeProtectedScopes/);
   assert.match(desktopSessionSource, /assertDesktopProtectedScopes\(requestedScopes\)/);
-  assert.match(desktopSessionSource, /capabilities: \[\.{3}DESKTOP_RUNTIME_PROTECTED_SCOPES\]/);
+  assert.match(desktopSessionSource, /capabilities: \[\.{3}DESKTOP_RUNTIME_REGISTRATION_CAPABILITIES\]/);
   assert.match(desktopSessionSource, /accountRuntime\.grants\.authorizeExternalPrincipal\(/);
   assert.match(desktopSessionSource, /from ['"]\.\.\/\.\.\/\.\.\/shared\/runtime-account-contract/u);
   assert.match(desktopSessionSource, /scopeCatalogVersion: DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION/);
@@ -118,7 +108,7 @@ test('desktop Runtime session carries protected execution and Runtime Agent acce
   assert.match(desktopSessionSource, /createNimiClientId\(`desktop-runtime-protected-access-\$\{DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE\}`\)/);
   assert.match(desktopSessionSource, /'x-nimi-access-token-id': tokenId/);
   assert.match(desktopSessionSource, /'x-nimi-access-token-secret': secret/);
-  assert.match(desktopSessionSource, /\.\.\.appSessionMetadata,[\s\S]*\.\.\.protectedAccessMetadata/);
+  assert.doesNotMatch(desktopSessionSource, /createNimiRuntimeAppSessionMetadataProvider/);
 });
 
 test('retired desktop bootstrap auth helper is deleted', () => {

@@ -107,19 +107,10 @@ function unwrapPayload(payload: unknown): Record<string, unknown> {
   return nested as Record<string, unknown>;
 }
 
-function installRuntimeConnectorProbeDesktopSession(sessionTokenProvider: () => string): void {
+function installRuntimeConnectorProbeDesktopSession(): void {
   const runtime = new Runtime({
     appId: RUNTIME_CONNECTOR_PROBE_APP_ID,
     transport: RUNTIME_CONNECTOR_PROBE_TAURI_TRANSPORT,
-    authMetadata: async (): Promise<Readonly<Record<string, string>>> => {
-      const sessionToken = String(sessionTokenProvider() || '').trim();
-      return sessionToken
-        ? {
-          'x-nimi-session-id': 'connector-probe-session',
-          'x-nimi-session-token': sessionToken,
-        }
-        : {};
-    },
   });
 
   setDesktopNimiClientSessionForTests({
@@ -131,7 +122,6 @@ function installRuntimeConnectorProbeDesktopSession(sessionTokenProvider: () => 
 
 function installTauriRuntime(
   calls: TauriInvokeCall[],
-  accessTokenProvider: () => string = () => 'runtime-account-access-token',
 ): () => void {
   const target = globalThis as MutableGlobalTauri;
   const previousRoot = target.__NIMI_TAURI_TEST__;
@@ -177,7 +167,7 @@ function installTauriRuntime(
   windowObject.__NIMI_TAURI_TEST__ = { invoke: runtime.core.invoke, listen: runtime.event.listen };
   target.__NIMI_TAURI_TEST__ = { invoke: runtime.core.invoke, listen: runtime.event.listen };
   target.window = windowObject;
-  installRuntimeConnectorProbeDesktopSession(accessTokenProvider);
+  installRuntimeConnectorProbeDesktopSession();
 
   return () => {
     clearDesktopNimiClientSession();
@@ -420,11 +410,10 @@ test('listConnectorAuthOptionsForProvider exposes admitted oauth-managed options
   );
 });
 
-test('sdkCreateConnector runtime calls include vNext app session metadata and pick refreshed token', async () => {
+test('sdkCreateConnector leaves Runtime app-session identity to the Tauri host', async () => {
   clearRuntimeConnectorSdkCaches();
   const calls: TauriInvokeCall[] = [];
-  let token = 'connector-token-1';
-  const restoreTauri = installTauriRuntime(calls, () => token);
+  const restoreTauri = installTauriRuntime(calls);
   try {
     await sdkCreateConnector({
       provider: 'openai',
@@ -433,7 +422,6 @@ test('sdkCreateConnector runtime calls include vNext app session metadata and pi
       apiKey: 'sk-a',
     });
 
-    token = 'connector-token-2';
     await sdkCreateConnector({
       provider: 'openai',
       endpoint: 'https://api.openai.com/v1',
@@ -450,14 +438,8 @@ test('sdkCreateConnector runtime calls include vNext app session metadata and pi
     const secondCall = unaryCalls[1];
     assert.equal(firstCall?.payload.authorization, undefined);
     assert.equal(secondCall?.payload.authorization, undefined);
-    assert.deepEqual(firstCall?.payload.appSession, {
-      sessionId: 'connector-probe-session',
-      sessionToken: 'connector-token-1',
-    });
-    assert.deepEqual(secondCall?.payload.appSession, {
-      sessionId: 'connector-probe-session',
-      sessionToken: 'connector-token-2',
-    });
+    assert.equal(firstCall?.payload.appSession, undefined);
+    assert.equal(secondCall?.payload.appSession, undefined);
   } finally {
     restoreTauri();
   }
@@ -466,7 +448,7 @@ test('sdkCreateConnector runtime calls include vNext app session metadata and pi
 test('sdkListConnectors discovers connectors via single-path vNext Runtime calls (no anonymous-fallback retry)', async () => {
   clearRuntimeConnectorSdkCaches();
   const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls, () => 'realm-token');
+  const restoreTauri = installTauriRuntime(calls);
   try {
     const target = globalThis as MutableGlobalTauri;
     const invoke = target.__NIMI_TAURI_TEST__?.invoke;
@@ -525,16 +507,10 @@ test('sdkListConnectors discovers connectors via single-path vNext Runtime calls
     // Single-path: each method is invoked exactly once. No retry.
     assert.equal(catalogCalls.length, 1, 'ListProviderCatalog must be called exactly once (no fallback retry)');
     assert.equal(catalogCalls[0]?.payload.authorization, undefined);
-    assert.deepEqual(catalogCalls[0]?.payload.appSession, {
-      sessionId: 'connector-probe-session',
-      sessionToken: 'realm-token',
-    });
+    assert.equal(catalogCalls[0]?.payload.appSession, undefined);
     assert.equal(listConnectorCalls.length, 1, 'ListConnectors must be called exactly once');
     assert.equal(listConnectorCalls[0]?.payload.authorization, undefined);
-    assert.deepEqual(listConnectorCalls[0]?.payload.appSession, {
-      sessionId: 'connector-probe-session',
-      sessionToken: 'realm-token',
-    });
+    assert.equal(listConnectorCalls[0]?.payload.appSession, undefined);
   } finally {
     restoreTauri();
   }
@@ -543,7 +519,7 @@ test('sdkListConnectors discovers connectors via single-path vNext Runtime calls
 test('sdkListConnectors coalesces concurrent inventory reads and reuses a short-lived cache', async () => {
   clearRuntimeConnectorSdkCaches();
   const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls, () => 'realm-token');
+  const restoreTauri = installTauriRuntime(calls);
   try {
     const target = globalThis as MutableGlobalTauri;
     target.__NIMI_TAURI_TEST__ = {
@@ -620,7 +596,7 @@ test('sdkListConnectors coalesces concurrent inventory reads and reuses a short-
 test('sdkListConnectorModelDescriptors coalesces concurrent model inventory reads', async () => {
   clearRuntimeConnectorSdkCaches();
   const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls, () => 'realm-token');
+  const restoreTauri = installTauriRuntime(calls);
   try {
     const target = globalThis as MutableGlobalTauri;
     target.__NIMI_TAURI_TEST__ = {
@@ -681,7 +657,7 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
 test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymous fallback', async () => {
   clearRuntimeConnectorSdkCaches();
   const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls, () => 'stale-realm-token');
+  const restoreTauri = installTauriRuntime(calls);
   try {
     const target = globalThis as MutableGlobalTauri;
     target.__NIMI_TAURI_TEST__ = {
@@ -701,7 +677,6 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymo
         if (
           command === 'runtime_bridge_unary'
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
-          && (unwrapped.appSession as { sessionToken?: unknown } | undefined)?.sessionToken === 'stale-realm-token'
         ) {
           throw {
             reasonCode: ReasonCode.AUTH_TOKEN_INVALID,
@@ -737,10 +712,7 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymo
     ));
     assert.equal(listConnectorCalls.length, 1, 'ListConnectors must not retry through a legacy auth refresh path');
     assert.equal(listConnectorCalls[0]?.payload.authorization, undefined);
-    assert.deepEqual(listConnectorCalls[0]?.payload.appSession, {
-      sessionId: 'connector-probe-session',
-      sessionToken: 'stale-realm-token',
-    });
+    assert.equal(listConnectorCalls[0]?.payload.appSession, undefined);
 
     const refreshCalls = calls.filter((call) => (
       call.command === 'runtime_bridge_unary'
@@ -755,7 +727,7 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without refresh or anonymo
 test('sdkCreateConnector emits oauth-managed payload when selected auth shape requires it', async () => {
   clearRuntimeConnectorSdkCaches();
   const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls, () => 'connector-token-oauth');
+  const restoreTauri = installTauriRuntime(calls);
   try {
     await sdkCreateConnector({
       provider: 'openai_codex',
@@ -786,7 +758,7 @@ test('sdkCreateConnector emits oauth-managed payload when selected auth shape re
 test('sdkCreateConnector preserves explicit credentialJson for oauth-managed providers', async () => {
   clearRuntimeConnectorSdkCaches();
   const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls, () => 'connector-token-oauth');
+  const restoreTauri = installTauriRuntime(calls);
   try {
     await sdkCreateConnector({
       provider: 'openai_codex',
@@ -822,7 +794,8 @@ test('sdkCreateConnector preserves explicit credentialJson for oauth-managed pro
 test('connector service delegates inventory ownership to the SDK client', () => {
   assert.match(CONNECTOR_SERVICE_SOURCE, /createNimiRuntimeConnectorInventoryClient/);
   assert.match(CONNECTOR_SERVICE_SOURCE, /getDesktopRuntime\(\)\.connectors/);
-  assert.match(CONNECTOR_SERVICE_SOURCE, /callerId: 'runtime-config\.connector'/);
+  assert.match(CONNECTOR_SERVICE_SOURCE, /surfaceId: 'runtime\.config'/);
+  assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /callerKind|callerId/);
   assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /getPlatformClient/);
   assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /PROVIDER_CATALOG_CACHE_TTL_MS|cachedProviderCatalogAt|pendingConnectorModels/);
   assert.doesNotMatch(CONNECTOR_SERVICE_SOURCE, /listProviderCatalog\(\{\}, CONNECTOR_CALL_OPTIONS\)/);

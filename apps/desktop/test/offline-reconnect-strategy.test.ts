@@ -13,6 +13,10 @@ const RUNTIME_BOOTSTRAP_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts'),
   'utf8',
 );
+const DESKTOP_SESSION_SOURCE = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/infra/sdk/desktop-nimi-client-session.ts'),
+  'utf8',
+);
 const APP_BOOTSTRAP_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs'),
   'utf8',
@@ -71,13 +75,19 @@ async function flushAsyncWork(): Promise<void> {
 }
 
 describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
-  test('Desktop binds SDK Realm connectivity events into the offline coordinator', () => {
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /function createObservedRealmFetch/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /getOfflineCoordinator\(\)\.markRealmRestReachable\(true\)/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /isRealmOfflineError\(error\)/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /getOfflineCoordinator\(\)\.markRealmRestReachable\(false\)/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /const observedRealmFetch = createObservedRealmFetch\(proxyFetch\)/);
-    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /realmFetchImpl: observedRealmFetch/);
+  test('Desktop probes Realm reachability through the Runtime-mediated Realm session', () => {
+    const runtimeSessionStart = DESKTOP_SESSION_SOURCE.indexOf('export async function configureDesktopRuntimeRealmSession');
+    const runtimeSessionEnd = DESKTOP_SESSION_SOURCE.indexOf('\nlet protectedAccessCache', runtimeSessionStart);
+    assert.notEqual(runtimeSessionStart, -1);
+    assert.notEqual(runtimeSessionEnd, -1);
+    const runtimeSessionSource = DESKTOP_SESSION_SOURCE.slice(runtimeSessionStart, runtimeSessionEnd);
+
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /probeRealmReachability:\s*async \(\) => \{/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /await realmSocialData\.loadCurrentUser\(\)/);
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /configureDesktopRuntimeRealmSession\(\{/);
+    assert.match(runtimeSessionSource, /createRuntimeAccountMediatedRealmTransport\(\{/);
+    assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /createObservedRealmFetch|realmFetchImpl/);
+    assert.doesNotMatch(runtimeSessionSource, /getAccessToken|resolveAuthToken|Authorization|Bearer/);
     assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('request\.success'/);
     assert.doesNotMatch(RUNTIME_BOOTSTRAP_SOURCE, /realm\.events\.on\('error'/);
   });

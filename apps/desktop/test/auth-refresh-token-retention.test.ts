@@ -77,7 +77,7 @@ test('desktop bootstrap reads Runtime account projection and has no shared-auth 
   assert.match(runtimeBootstrapSource, /configureDesktopRuntimeRealmSession\(/);
   assert.match(runtimeBootstrapSource, /createNimiDesktopShellRuntimeAccountCaller\(/);
   assert.match(runtimeBootstrapSource, /desktopSession\.accountRuntime\.account\.getAccountSessionStatus\(\{\s*caller: accountCaller,\s*\}\)/s);
-  assert.match(runtimeBootstrapSource, /desktopSession\.accountRuntime\.account\.getAccessToken\(\{\s*caller: accountCaller,\s*requestedScopes: \[\],\s*\}\)/s);
+  assert.doesNotMatch(runtimeBootstrapSource, /getAccessToken|refreshAccountSession/);
   assert.doesNotMatch(runtimeBootstrapSource, /createLocalFirstPartyRuntimePlatformClient\(/);
 });
 

@@ -793,6 +793,7 @@
   "agentVoiceManualRendering": "Preparing voice",
   "agentVoiceManualUnavailable": "Voice unavailable",
   "agentVoiceManualError": "Voice playback failed",
+  "mediaUnavailable": "Media is unavailable through the current authorization path.",
   "today": "Today",
   "yesterday": "Yesterday"
 }

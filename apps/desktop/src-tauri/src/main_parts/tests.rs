@@ -1,4 +1,6 @@
-use super::app_bootstrap::install_standard_local_agent_host_hooks;
+use super::app_bootstrap::{
+    install_standard_local_agent_host_hooks, resolve_desktop_runtime_trusted_metadata,
+};
 use super::env_http::load_dotenv_file_preserve_env;
 use super::{
     allow_http_request_origin_with_history, allowed_http_origins,
@@ -170,7 +172,7 @@ fn shared_bridge_ipc_handler_uses_kit_owned_scaffold_macro() {
 
     assert!(
         bootstrap_source
-            .contains("nimi_shell_tauri::nimi_shell_tauri_auth_oauth_runtime_bridge_handler!"),
+            .contains("nimi_shell_tauri::nimi_shell_tauri_oauth_runtime_bridge_handler!"),
         "Desktop must consume the Kit-owned scaffold macro for shared shell commands"
     );
     assert!(
@@ -223,6 +225,52 @@ fn standard_local_agent_hooks_project_desktop_runtime_trusted_caller_without_ide
         nimi_shell_tauri::capabilities::local_agent::local_agent_identity().is_err(),
         "Desktop Tauri must not fabricate local-agent identity when Electron keeps it unbound"
     );
+}
+
+#[test]
+fn desktop_tauri_stamps_host_identity_on_runtime_registration_before_account_bootstrap() {
+    let caller = nimi_shell_tauri::capabilities::desktop_product_local_agent::desktop_shell_runtime_account_caller(
+        "nimi.desktop",
+    )
+    .expect("desktop caller");
+    let session = nimi_shell_tauri::capabilities::runtime::RuntimeBridgeHostAppSessionProvider::new(
+        nimi_shell_tauri::capabilities::runtime::RuntimeBridgeHostAppSessionConfig::desktop_shell(
+            &caller.app_id,
+            &caller.app_instance_id,
+            &caller.device_id,
+            Vec::new(),
+        )
+        .expect("desktop session config"),
+    )
+    .expect("desktop session provider");
+
+    run_async(async move {
+        let trusted = resolve_desktop_runtime_trusted_metadata(
+            nimi_shell_tauri::capabilities::runtime::RuntimeBridgeTrustedMetadataRequest {
+                method_id: nimi_shell_tauri::capabilities::runtime::RUNTIME_AUTH_REGISTER_APP_METHOD_ID
+                    .to_string(),
+                bridge_kind: nimi_shell_tauri::capabilities::runtime::RuntimeBridgeTrustedMetadataBridgeKind::Unary,
+            },
+            caller.clone(),
+            session,
+        )
+        .await
+        .expect("trusted metadata")
+        .expect("desktop host identity");
+
+        let metadata = trusted.metadata.expect("desktop metadata");
+        assert_eq!(metadata.app_id.as_deref(), Some("nimi.desktop"));
+        assert_eq!(metadata.participant_id.as_deref(), Some("nimi.desktop"));
+        assert_eq!(metadata.caller_kind.as_deref(), Some("desktop-shell"));
+        assert_eq!(
+            metadata.caller_id.as_deref(),
+            Some(caller.app_instance_id.as_str())
+        );
+        assert!(
+            trusted.app_session.is_none(),
+            "Runtime registration must receive host identity before an app session exists"
+        );
+    });
 }
 
 #[test]
