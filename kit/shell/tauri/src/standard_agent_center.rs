@@ -358,6 +358,8 @@ pub(crate) use commands::{AgentCenterHostError, AgentCenterHostResult};
 mod resources_avatar_import;
 #[path = "standard_agent_center/resources_background_import.rs"]
 mod resources_background_import;
+#[path = "standard_agent_center/resources_content_validation.rs"]
+mod resources_content_validation;
 #[path = "standard_agent_center/resources_live2d_adapter_import.rs"]
 mod resources_live2d_adapter_import;
 #[path = "standard_agent_center/resources_live2d_validation.rs"]
@@ -375,6 +377,7 @@ pub(crate) mod shell_projection;
 
 use resources_avatar_import::*;
 use resources_background_import::*;
+use resources_content_validation::*;
 use resources_live2d_adapter_import::*;
 use resources_live2d_validation::*;
 use resources_manifest_validation::*;

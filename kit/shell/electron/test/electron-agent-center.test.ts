@@ -17,6 +17,8 @@ import {
 } from './electron-shell-test-utils.js';
 import { FakeElectronProtocol } from './fake-electron-protocol.js';
 
+const VALID_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+
 function registerAgentCenterBridge(standardShellHost: NimiElectronStandardShellHost): FakeIpcMain {
   const ipcMain = new FakeIpcMain();
   registerNimiElectronRuntimeBridge({
@@ -78,8 +80,9 @@ describe('Electron standard Agent Center host', () => {
       const dataRoot = path.join(root, 'data');
       const sourceRoot = path.join(root, 'source-live2d');
       await mkdir(sourceRoot, { recursive: true });
-      await writeFile(path.join(sourceRoot, 'ren.model3.json'), '{"Version":3,"FileReferences":{}}\n', 'utf8');
-      await writeFile(path.join(sourceRoot, 'ren.png'), 'not-a-real-png-but-host-custody-only', 'utf8');
+      await writeFile(path.join(sourceRoot, 'ren.model3.json'), '{"Version":3,"FileReferences":{"Moc":"ren.moc3","Textures":["ren.png"]}}\n', 'utf8');
+      await writeFile(path.join(sourceRoot, 'ren.moc3'), Buffer.from('MOC3\u0001valid'));
+      await writeFile(path.join(sourceRoot, 'ren.png'), VALID_PNG);
       const protocolHost = createElectronShellFileProtocolHost({ protocol: new FakeElectronProtocol() });
       const ipcMain = registerAgentCenterBridge({
         standardDataRootBinding: {

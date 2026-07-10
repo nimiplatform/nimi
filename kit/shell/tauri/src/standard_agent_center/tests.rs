@@ -35,6 +35,271 @@ fn assert_error_code(error: String, code: &str, reason_code: &str) -> serde_json
     envelope
 }
 
+fn glb_with_json(value: serde_json::Value) -> Vec<u8> {
+    let mut json = serde_json::to_vec(&value).expect("GLB JSON fixture");
+    while json.len() % 4 != 0 {
+        json.push(b' ');
+    }
+    let total_length = 20 + json.len();
+    let mut bytes = Vec::with_capacity(total_length);
+    bytes.extend_from_slice(b"glTF");
+    bytes.extend_from_slice(&2_u32.to_le_bytes());
+    bytes.extend_from_slice(&(u32::try_from(total_length).unwrap()).to_le_bytes());
+    bytes.extend_from_slice(&(u32::try_from(json.len()).unwrap()).to_le_bytes());
+    bytes.extend_from_slice(&0x4e4f534a_u32.to_le_bytes());
+    bytes.extend_from_slice(&json);
+    bytes
+}
+
+#[cfg(unix)]
+fn create_directory_symlink(target: &Path, link: &Path) {
+    std::os::unix::fs::symlink(target, link).expect("create managed directory symlink fixture");
+}
+
+#[cfg(windows)]
+fn create_directory_symlink(target: &Path, link: &Path) {
+    std::os::windows::fs::symlink_dir(target, link)
+        .expect("create managed directory symlink fixture");
+}
+
+#[test]
+fn binary_content_admission_rejects_header_only_images_and_incomplete_vrm() {
+    use base64::Engine;
+
+    let png = vec![
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0, 0x49, 0x48, 0x44, 0x52, 0, 0,
+        0, 1, 0, 0, 0, 1,
+    ];
+    let jpeg = vec![0xff, 0xd8, 0xff, 0xc0, 0, 7, 8, 0, 1, 0, 1, 0];
+    let mut webp = vec![0_u8; 30];
+    webp[0..4].copy_from_slice(b"RIFF");
+    webp[8..16].copy_from_slice(b"WEBPVP8X");
+    assert!(background_dimensions(&png, "image/png").is_err());
+    assert!(background_dimensions(&jpeg, "image/jpeg").is_err());
+    assert!(background_dimensions(&webp, "image/webp").is_err());
+
+    for (mime, encoded) in [
+        (
+            "image/png",
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        ),
+        (
+            "image/jpeg",
+            "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDwGiiimI//2Q==",
+        ),
+        (
+            "image/webp",
+            "UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAUAmJaQAA3AA/v0gUAA=",
+        ),
+    ] {
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(encoded)
+            .expect("valid one-pixel image fixture");
+        assert_eq!(background_dimensions(&bytes, mime), Ok((1, 1)), "{mime}");
+        assert!(background_dimensions(&bytes[..bytes.len() - 2], mime).is_err());
+    }
+
+    assert!(validate_vrm_glb(&glb_with_json(serde_json::json!({
+        "extensionsUsed": ["VRMC_vrm"],
+        "extensions": { "VRMC_vrm": { "specVersion": "1.0" } }
+    })))
+    .is_err());
+    assert!(validate_vrm_glb(&glb_with_json(serde_json::json!({
+        "asset": { "version": "2.0" },
+        "extensionsUsed": ["VRMC_vrm"],
+        "extensions": { "VRMC_vrm": {} }
+    })))
+    .is_err());
+    assert!(validate_vrm_glb(&glb_with_json(serde_json::json!({
+        "asset": { "version": "2.0" },
+        "extensionsUsed": ["VRMC_vrm"],
+        "extensions": { "VRMC_vrm": { "specVersion": "1.0" } }
+    })))
+    .is_ok());
+}
+
+#[test]
+fn live2d_sidecar_custody_is_scoped_by_avatar_asset_and_finalized_atomically() {
+    let nonce = Utc::now().timestamp_nanos_opt().unwrap_or(0);
+    let root = std::env::temp_dir().join(format!("nimi-agent-center-sidecar-scope-{nonce}"));
+    let roots = crate::runtime_app_storage::test_standard_app_storage_roots(root.join("data"));
+    let mut sources = Vec::new();
+    for (name, variant) in [("avatar-a", "first"), ("avatar-b", "second")] {
+        let source = root.join(name);
+        fs::create_dir_all(&source).expect("Live2D source directory");
+        fs::write(source.join("model.moc3"), format!("MOC3{variant}")).expect("Live2D MOC fixture");
+        fs::write(source.join("texture.png"), b"fixture texture").expect("Live2D texture fixture");
+        fs::write(
+            source.join("model.model3.json"),
+            br#"{"Version":3,"FileReferences":{"Moc":"model.moc3","Textures":["texture.png"]}}"#,
+        )
+        .expect("Live2D model fixture");
+        sources.push(fs::canonicalize(source).expect("canonical Live2D source"));
+    }
+    let sidecar = root.join("adapter.json");
+    fs::write(
+        &sidecar,
+        br#"{"manifest_kind":"nimi.avatar.live2d.adapter","schema_version":1}"#,
+    )
+    .expect("Live2D adapter fixture");
+    let canonical_sidecar = fs::canonicalize(sidecar).expect("canonical sidecar source");
+    crate::standard_file_dialog::register_file_dialog_selected_paths(&[
+        sources[0].clone(),
+        sources[1].clone(),
+        canonical_sidecar.clone(),
+    ])
+    .expect("register selected Agent Center sources");
+
+    let mut asset_refs = Vec::new();
+    for source in &sources {
+        let imported = standard_agent_center_avatar_asset_import_blocking(
+            &roots,
+            StandardAgentCenterAvatarAssetImportPayload {
+                host_scope: "local-agent".to_string(),
+                account_id: "account_1".to_string(),
+                owner_user_id: "owner_1".to_string(),
+                runtime_source_ref: "runtime-source:local".to_string(),
+                local_agent_ref: "local-agent:ren".to_string(),
+                backend_kind: StandardAgentCenterAvatarBackendKind::Live2d,
+                source_path: source.display().to_string(),
+            },
+        )
+        .expect("valid Live2D import");
+        asset_refs.push(imported.local_asset_id);
+    }
+    assert_ne!(asset_refs[0], asset_refs[1]);
+
+    let mut manifest_ref = None;
+    for asset_ref in &asset_refs {
+        let imported = standard_agent_center_live2d_adapter_manifest_import_blocking(
+            &roots,
+            StandardAgentCenterLive2dAdapterManifestImportPayload {
+                host_scope: "local-agent".to_string(),
+                account_id: "account_1".to_string(),
+                owner_user_id: "owner_1".to_string(),
+                runtime_source_ref: "runtime-source:local".to_string(),
+                local_agent_ref: "local-agent:ren".to_string(),
+                avatar_asset_ref: asset_ref.clone(),
+                source_path: canonical_sidecar.display().to_string(),
+            },
+        )
+        .expect("asset-scoped sidecar import");
+        manifest_ref.get_or_insert(imported.manifest_ref.clone());
+        assert_eq!(manifest_ref.as_ref(), Some(&imported.manifest_ref));
+        let custody_dir = live2d_adapter_manifest_dir(
+            &roots,
+            "account_1",
+            "local-agent:ren",
+            asset_ref,
+            &imported.manifest_ref,
+        )
+        .expect("asset-scoped sidecar path");
+        let custody: Live2dAdapterManifestCustody = serde_json::from_slice(
+            &fs::read(custody_dir.join(LIVE2D_ADAPTER_CUSTODY_FILE_NAME))
+                .expect("sidecar custody record"),
+        )
+        .expect("valid sidecar custody record");
+        assert_eq!(custody.local_asset_id, *asset_ref);
+        assert_eq!(
+            fs::read_dir(&custody_dir)
+                .expect("sidecar custody directory")
+                .count(),
+            2
+        );
+    }
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn live2d_sidecar_import_rejects_unvalidated_avatar_custody() {
+    let nonce = Utc::now().timestamp_nanos_opt().unwrap_or(0);
+    let root = std::env::temp_dir().join(format!("nimi-agent-center-sidecar-avatar-{nonce}"));
+    let roots = crate::runtime_app_storage::test_standard_app_storage_roots(root.join("data"));
+    let sidecar = root.join("adapter.json");
+    fs::create_dir_all(&root).expect("sidecar test root");
+    fs::write(
+        &sidecar,
+        br#"{"manifest_kind":"nimi.avatar.live2d.adapter","schema_version":1}"#,
+    )
+    .expect("Live2D adapter fixture");
+    let canonical_sidecar = fs::canonicalize(sidecar).expect("canonical sidecar source");
+    crate::standard_file_dialog::register_file_dialog_selected_paths(&[canonical_sidecar.clone()])
+        .expect("register selected sidecar source");
+
+    let payload_for = |account_id: &str, avatar_asset_ref: &str| {
+        StandardAgentCenterLive2dAdapterManifestImportPayload {
+            host_scope: "local-agent".to_string(),
+            account_id: account_id.to_string(),
+            owner_user_id: "owner_1".to_string(),
+            runtime_source_ref: "runtime-source:local".to_string(),
+            local_agent_ref: "local-agent:ren".to_string(),
+            avatar_asset_ref: avatar_asset_ref.to_string(),
+            source_path: canonical_sidecar.display().to_string(),
+        }
+    };
+
+    let empty_ref = "live2d_aaaaaaaaaaaa";
+    let empty_dir = avatar_asset_dir(&roots, "account_1", "local-agent:ren", "live2d", empty_ref)
+        .expect("empty avatar custody path");
+    fs::create_dir_all(&empty_dir).expect("empty avatar custody fixture");
+    assert!(matches!(
+        standard_agent_center_live2d_adapter_manifest_import_blocking(
+            &roots,
+            payload_for("account_1", empty_ref),
+        ),
+        Err(AgentCenterHostError::InvalidPayload(_))
+    ));
+    assert!(matches!(
+        standard_agent_center_live2d_adapter_manifest_import_blocking(
+            &roots,
+            payload_for("account_2", empty_ref),
+        ),
+        Err(AgentCenterHostError::NotFound(_))
+    ));
+
+    let damaged_ref = "live2d_bbbbbbbbbbbb";
+    let damaged_dir = avatar_asset_dir(
+        &roots,
+        "account_1",
+        "local-agent:ren",
+        "live2d",
+        damaged_ref,
+    )
+    .expect("damaged avatar custody path");
+    fs::create_dir_all(&damaged_dir).expect("damaged avatar custody fixture");
+    fs::write(damaged_dir.join(MANIFEST_FILE_NAME), b"not-json")
+        .expect("damaged avatar manifest fixture");
+    assert!(matches!(
+        standard_agent_center_live2d_adapter_manifest_import_blocking(
+            &roots,
+            payload_for("account_1", damaged_ref),
+        ),
+        Err(AgentCenterHostError::InvalidPayload(_))
+    ));
+
+    let symlink_ref = "live2d_cccccccccccc";
+    let symlink_dir = avatar_asset_dir(
+        &roots,
+        "account_1",
+        "local-agent:ren",
+        "live2d",
+        symlink_ref,
+    )
+    .expect("symlink avatar custody path");
+    let outside = root.join("outside-avatar");
+    fs::create_dir_all(&outside).expect("outside avatar target");
+    create_directory_symlink(&outside, &symlink_dir);
+    assert!(matches!(
+        standard_agent_center_live2d_adapter_manifest_import_blocking(
+            &roots,
+            payload_for("account_1", symlink_ref),
+        ),
+        Err(AgentCenterHostError::InvalidPath(_))
+    ));
+
+    let _ = fs::remove_dir_all(root);
+}
+
 #[test]
 fn shared_payload_fixture_matrix_is_rejected_by_the_raw_command_parser() {
     let fixtures: serde_json::Value = serde_json::from_str(include_str!(
@@ -294,6 +559,142 @@ async fn real_missing_managed_refs_are_not_found_through_command_wrappers() {
     for error in errors {
         assert_error_code(error, "not-found", "tauri-agent-center-resource-not-found");
     }
+    let _ = fs::remove_dir_all(root);
+}
+
+#[tokio::test]
+async fn all_catalogued_agent_center_path_operations_emit_invalid_path_on_managed_symlinks() {
+    let nonce = Utc::now().timestamp_nanos_opt().unwrap_or(0);
+    let root = std::env::temp_dir().join(format!("nimi-agent-center-invalid-path-{nonce}"));
+
+    let avatar_roots =
+        crate::runtime_app_storage::test_standard_app_storage_roots(root.join("avatar"));
+    let avatar_ref = "live2d_aaaaaaaaaaaa";
+    let avatar_dir = avatar_asset_dir(
+        &avatar_roots,
+        "account_1",
+        "local-agent:ren",
+        "live2d",
+        avatar_ref,
+    )
+    .expect("avatar managed path");
+    let avatar_target = root.join("outside-avatar");
+    fs::create_dir_all(avatar_dir.parent().unwrap()).expect("avatar managed parent");
+    fs::create_dir_all(&avatar_target).expect("avatar symlink target");
+    create_directory_symlink(&avatar_target, &avatar_dir);
+    let avatar_errors = [
+        commands::avatar_asset_validate(avatar_roots.clone(), avatar_validate_payload(avatar_ref))
+            .await
+            .expect_err("avatar validate symlink must fail"),
+        commands::avatar_asset_resolve_preview(
+            avatar_roots,
+            StandardAgentCenterAvatarPreviewResolvePayload {
+                host_scope: "local-agent".to_string(),
+                account_id: "account_1".to_string(),
+                owner_user_id: "owner_1".to_string(),
+                runtime_source_ref: "runtime-source:local".to_string(),
+                local_agent_ref: "local-agent:ren".to_string(),
+                avatar_asset_ref: avatar_ref.to_string(),
+                backend_kind: None,
+            },
+        )
+        .await
+        .expect_err("avatar preview symlink must fail"),
+    ];
+    for error in avatar_errors {
+        assert_error_code(error, "invalid-path", "tauri-agent-center-path-invalid");
+    }
+
+    let background_roots =
+        crate::runtime_app_storage::test_standard_app_storage_roots(root.join("background"));
+    let background_ref = "bg_bbbbbbbbbbbb";
+    let background_dir = background_dir(
+        &background_roots,
+        "account_1",
+        "local-agent:ren",
+        background_ref,
+    )
+    .expect("background managed path");
+    let background_target = root.join("outside-background");
+    fs::create_dir_all(background_dir.parent().unwrap()).expect("background managed parent");
+    fs::create_dir_all(&background_target).expect("background symlink target");
+    create_directory_symlink(&background_target, &background_dir);
+    let background_errors = [
+        commands::background_get_managed_asset(
+            background_roots.clone(),
+            background_payload(background_ref),
+        )
+        .await
+        .expect_err("background get symlink must fail"),
+        commands::background_validate(background_roots.clone(), background_payload(background_ref))
+            .await
+            .expect_err("background validate symlink must fail"),
+        commands::background_remove(
+            background_roots,
+            StandardAgentCenterBackgroundRemovePayload {
+                host_scope: "local-agent".to_string(),
+                account_id: "account_1".to_string(),
+                owner_user_id: "owner_1".to_string(),
+                runtime_source_ref: "runtime-source:local".to_string(),
+                local_agent_ref: "local-agent:ren".to_string(),
+                background_asset_ref: background_ref.to_string(),
+            },
+        )
+        .await
+        .expect_err("background remove symlink must fail"),
+    ];
+    for error in background_errors {
+        assert_error_code(error, "invalid-path", "tauri-agent-center-path-invalid");
+    }
+
+    let agent_roots =
+        crate::runtime_app_storage::test_standard_app_storage_roots(root.join("agent"));
+    let agent_dir =
+        agent_center_dir(&agent_roots, "account_1", "local-agent:ren").expect("agent managed path");
+    let agent_target = root.join("outside-agent");
+    fs::create_dir_all(agent_dir.parent().unwrap()).expect("agent managed parent");
+    fs::create_dir_all(&agent_target).expect("agent symlink target");
+    create_directory_symlink(&agent_target, &agent_dir);
+    let agent_error = commands::agent_resources_remove(
+        agent_roots,
+        StandardAgentCenterAgentLocalResourcesRemovePayload {
+            host_scope: "local-agent".to_string(),
+            account_id: "account_1".to_string(),
+            owner_user_id: "owner_1".to_string(),
+            runtime_source_ref: "runtime-source:local".to_string(),
+            local_agent_ref: "local-agent:ren".to_string(),
+        },
+    )
+    .await
+    .expect_err("agent cleanup symlink must fail");
+    assert_error_code(
+        agent_error,
+        "invalid-path",
+        "tauri-agent-center-path-invalid",
+    );
+
+    let account_roots =
+        crate::runtime_app_storage::test_standard_app_storage_roots(root.join("account"));
+    let account_root = account_dir(&account_roots, "account_1").expect("account managed path");
+    let agents_root = account_root.join("agents");
+    let account_target = root.join("outside-account-agents");
+    fs::create_dir_all(&account_root).expect("account managed parent");
+    fs::create_dir_all(&account_target).expect("account agents symlink target");
+    create_directory_symlink(&account_target, &agents_root);
+    let account_error = commands::account_resources_remove(
+        account_roots,
+        StandardAgentCenterAccountLocalResourcesRemovePayload {
+            host_scope: "account".to_string(),
+            account_id: "account_1".to_string(),
+        },
+    )
+    .await
+    .expect_err("account cleanup symlink must fail");
+    assert_error_code(
+        account_error,
+        "invalid-path",
+        "tauri-agent-center-path-invalid",
+    );
     let _ = fs::remove_dir_all(root);
 }
 

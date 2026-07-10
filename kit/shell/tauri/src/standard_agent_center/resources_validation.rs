@@ -102,12 +102,14 @@ pub(super) fn live2d_adapter_manifest_dir(
     roots: &crate::runtime_app_storage::StandardAppStorageRoots,
     account_id: &str,
     local_agent_ref: &str,
+    local_asset_id: &str,
     manifest_ref: &str,
 ) -> Result<PathBuf, String> {
     Ok(agent_center_dir(roots, account_id, local_agent_ref)?
         .join("modules")
         .join("avatar_asset")
         .join("adapter_manifests")
+        .join(local_asset_id)
         .join(manifest_ref))
 }
 
@@ -157,6 +159,86 @@ pub(super) fn resolve_under_root(
         ));
     }
     Ok(canonical_path)
+}
+
+pub(super) fn managed_custody_directory_exists(
+    roots: &crate::runtime_app_storage::StandardAppStorageRoots,
+    target: &Path,
+) -> Result<bool, String> {
+    let raw_root = roots.data_root();
+    if !raw_root.exists() {
+        return Ok(false);
+    }
+    let canonical_root = fs::canonicalize(raw_root).map_err(|error| {
+        format!(
+            "Agent Center managed data root cannot be resolved ({}): {error}",
+            raw_root.display()
+        )
+    })?;
+    let relative = target.strip_prefix(raw_root).map_err(|_| {
+        format!(
+            "Agent Center managed path escaped the data root ({})",
+            target.display()
+        )
+    })?;
+    let mut current = canonical_root.clone();
+    let components = relative.components().collect::<Vec<_>>();
+    for (index, component) in components.iter().enumerate() {
+        let Component::Normal(segment) = component else {
+            return Err(format!(
+                "Agent Center managed path contains a rejected component ({})",
+                target.display()
+            ));
+        };
+        current.push(segment);
+        let metadata = match fs::symlink_metadata(&current) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == ErrorKind::NotFound => return Ok(false),
+            Err(error) => {
+                return Err(format!(
+                    "Agent Center managed path cannot be inspected ({}): {error}",
+                    current.display()
+                ));
+            }
+        };
+        if metadata.file_type().is_symlink() {
+            return Err(format!(
+                "Agent Center managed path contains a symlink ({})",
+                current.display()
+            ));
+        }
+        if !metadata.is_dir() && index + 1 < components.len() {
+            return Err(format!(
+                "Agent Center managed path contains a non-directory ({})",
+                current.display()
+            ));
+        }
+    }
+    let metadata = fs::symlink_metadata(&current).map_err(|error| {
+        format!(
+            "Agent Center managed directory cannot be inspected ({}): {error}",
+            current.display()
+        )
+    })?;
+    if !metadata.is_dir() {
+        return Err(format!(
+            "Agent Center managed custody must be a directory ({})",
+            current.display()
+        ));
+    }
+    let canonical_target = fs::canonicalize(&current).map_err(|error| {
+        format!(
+            "Agent Center managed directory cannot be resolved ({}): {error}",
+            current.display()
+        )
+    })?;
+    if !canonical_target.starts_with(&canonical_root) {
+        return Err(format!(
+            "Agent Center managed directory escaped its data root ({})",
+            target.display()
+        ));
+    }
+    Ok(true)
 }
 
 pub(super) fn validate_display_text(
@@ -338,130 +420,4 @@ pub(super) fn status_for_background_errors(
         return StandardAgentCenterBackgroundValidationStatus::DigestMismatch;
     }
     StandardAgentCenterBackgroundValidationStatus::InvalidManifest
-}
-
-pub(super) fn allowed_background_mime(value: &str) -> bool {
-    matches!(value, "image/png" | "image/jpeg" | "image/webp")
-}
-
-pub(super) fn background_mime_for_path(path: &Path) -> Result<String, String> {
-    match extension_for(&path.to_string_lossy()).as_str() {
-        "png" => Ok("image/png".to_string()),
-        "jpg" | "jpeg" => Ok("image/jpeg".to_string()),
-        "webp" => Ok("image/webp".to_string()),
-        "svg" => Err("SVG backgrounds are not admitted.".to_string()),
-        _ => Err("Background source must be a png, jpeg, or webp image.".to_string()),
-    }
-}
-
-pub(super) fn read_u24_le(bytes: &[u8]) -> u32 {
-    u32::from(bytes[0]) | (u32::from(bytes[1]) << 8) | (u32::from(bytes[2]) << 16)
-}
-
-pub(super) fn parse_png_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
-    if bytes.len() < 24 || &bytes[0..8] != b"\x89PNG\r\n\x1a\n" || &bytes[12..16] != b"IHDR" {
-        return None;
-    }
-    Some((
-        u32::from_be_bytes([bytes[16], bytes[17], bytes[18], bytes[19]]),
-        u32::from_be_bytes([bytes[20], bytes[21], bytes[22], bytes[23]]),
-    ))
-}
-
-pub(super) fn parse_jpeg_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
-    if bytes.len() < 4 || bytes[0] != 0xff || bytes[1] != 0xd8 {
-        return None;
-    }
-    let mut index = 2_usize;
-    while index + 9 < bytes.len() {
-        while index < bytes.len() && bytes[index] != 0xff {
-            index += 1;
-        }
-        while index < bytes.len() && bytes[index] == 0xff {
-            index += 1;
-        }
-        if index >= bytes.len() {
-            return None;
-        }
-        let marker = bytes[index];
-        index += 1;
-        if marker == 0xd8 || marker == 0xd9 {
-            continue;
-        }
-        if index + 2 > bytes.len() {
-            return None;
-        }
-        let length = u16::from_be_bytes([bytes[index], bytes[index + 1]]) as usize;
-        if length < 2 || index + length > bytes.len() {
-            return None;
-        }
-        let is_sof = matches!(
-            marker,
-            0xc0 | 0xc1
-                | 0xc2
-                | 0xc3
-                | 0xc5
-                | 0xc6
-                | 0xc7
-                | 0xc9
-                | 0xca
-                | 0xcb
-                | 0xcd
-                | 0xce
-                | 0xcf
-        );
-        if is_sof && length >= 7 {
-            let height = u16::from_be_bytes([bytes[index + 3], bytes[index + 4]]) as u32;
-            let width = u16::from_be_bytes([bytes[index + 5], bytes[index + 6]]) as u32;
-            return Some((width, height));
-        }
-        index += length;
-    }
-    None
-}
-
-pub(super) fn parse_webp_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
-    if bytes.len() < 30 || &bytes[0..4] != b"RIFF" || &bytes[8..12] != b"WEBP" {
-        return None;
-    }
-    let chunk = &bytes[12..16];
-    if chunk == b"VP8X" && bytes.len() >= 30 {
-        return Some((
-            read_u24_le(&bytes[24..27]) + 1,
-            read_u24_le(&bytes[27..30]) + 1,
-        ));
-    }
-    if chunk == b"VP8L" && bytes.len() >= 25 {
-        let b0 = u32::from(bytes[21]);
-        let b1 = u32::from(bytes[22]);
-        let b2 = u32::from(bytes[23]);
-        let b3 = u32::from(bytes[24]);
-        let width = 1 + b0 + ((b1 & 0x3f) << 8);
-        let height = 1 + ((b1 & 0xc0) >> 6) + (b2 << 2) + ((b3 & 0x0f) << 10);
-        return Some((width, height));
-    }
-    if chunk == b"VP8 " && bytes.len() >= 30 && &bytes[23..26] == b"\x9d\x01\x2a" {
-        let width = u16::from_le_bytes([bytes[26], bytes[27]]) as u32 & 0x3fff;
-        let height = u16::from_le_bytes([bytes[28], bytes[29]]) as u32 & 0x3fff;
-        return Some((width, height));
-    }
-    None
-}
-
-pub(super) fn background_dimensions(bytes: &[u8], mime: &str) -> Result<(u32, u32), String> {
-    let dimensions = match mime {
-        "image/png" => parse_png_dimensions(bytes),
-        "image/jpeg" => parse_jpeg_dimensions(bytes),
-        "image/webp" => parse_webp_dimensions(bytes),
-        _ => None,
-    }
-    .ok_or_else(|| "Background image dimensions could not be read.".to_string())?;
-    if dimensions.0 == 0
-        || dimensions.1 == 0
-        || dimensions.0 > MAX_BACKGROUND_PIXELS
-        || dimensions.1 > MAX_BACKGROUND_PIXELS
-    {
-        return Err("Background image dimensions are outside the fixed pixel cap.".to_string());
-    }
-    Ok(dimensions)
 }

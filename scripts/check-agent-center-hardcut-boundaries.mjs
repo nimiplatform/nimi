@@ -173,12 +173,13 @@ const capabilitySource = await read('kit/shell/capabilities/src/agent-center.ts'
 const rendererBridgeSource = await read('kit/shell/renderer/src/bridge/agent-center.ts');
 const tauriAliasSource = await read('kit/shell/renderer/src/bridge/tauri-api.ts');
 const electronHostSource = await read('kit/shell/electron/src/main/agent-center.ts');
-const tauriHostSource = await read('kit/shell/tauri/src/capabilities/mod.rs');
+const tauriHostPath = 'kit/shell/tauri/src/capabilities/agent_center.rs';
+const tauriHostSource = await read(tauriHostPath);
 requireIncludes(capabilitySource, 'kit/shell/capabilities/src/agent-center.ts', requiredAgentCenterOperations, findings);
 requireIncludes(rendererBridgeSource, 'kit/shell/renderer/src/bridge/agent-center.ts', requiredAgentCenterOperations, findings);
 requireIncludes(tauriAliasSource, 'kit/shell/renderer/src/bridge/tauri-api.ts', requiredAgentCenterOperations, findings);
 requireIncludes(electronHostSource, 'kit/shell/electron/src/main/agent-center.ts', requiredAgentCenterOperations, findings);
-requireIncludes(tauriHostSource, 'kit/shell/tauri/src/capabilities/mod.rs', [
+requireIncludes(tauriHostSource, tauriHostPath, [
   'agent_center_avatar_asset_import',
   'agent_center_avatar_asset_validate',
   'agent_center_avatar_asset_resolve_preview',

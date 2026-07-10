@@ -22,8 +22,10 @@ pub(crate) fn standard_agent_center_background_remove_blocking(
         &scope.local_agent_ref,
         &payload.background_asset_ref,
     )
-    .map_err(AgentCenterHostError::HostInternal)?;
-    if !source.exists() {
+    .map_err(AgentCenterHostError::InvalidPath)?;
+    if !managed_custody_directory_exists(roots, &source)
+        .map_err(AgentCenterHostError::InvalidPath)?
+    {
         return Err(AgentCenterHostError::NotFound(format!(
             "Background asset was not found: {}",
             payload.background_asset_ref
@@ -91,6 +93,10 @@ pub(crate) fn standard_agent_center_agent_local_resources_remove_blocking(
         &payload.local_agent_ref,
     )
     .map_err(AgentCenterHostError::InvalidPayload)?;
+    let source = agent_center_dir(roots, &account_id, &scope.local_agent_ref)
+        .map_err(AgentCenterHostError::InvalidPath)?;
+    let _ = managed_custody_directory_exists(roots, &source)
+        .map_err(AgentCenterHostError::InvalidPath)?;
     quarantine_agent_center_tree(roots, &account_id, &scope.local_agent_ref, "agent_removed")
         .map_err(AgentCenterHostError::HostInternal)
 }
@@ -104,9 +110,11 @@ pub(crate) fn standard_agent_center_account_local_resources_remove_blocking(
     let account_id = validate_normalized_id(&payload.account_id, "accountId")
         .map_err(AgentCenterHostError::InvalidPayload)?;
     let account_root =
-        account_dir(roots, &account_id).map_err(AgentCenterHostError::HostInternal)?;
+        account_dir(roots, &account_id).map_err(AgentCenterHostError::InvalidPath)?;
     let agents_root = account_root.join("agents");
-    if !agents_root.exists() {
+    if !managed_custody_directory_exists(roots, &agents_root)
+        .map_err(AgentCenterHostError::InvalidPath)?
+    {
         let operation_id = record_account_resource_operation(
             roots,
             &account_id,
@@ -146,7 +154,7 @@ pub(crate) fn standard_agent_center_account_local_resources_remove_blocking(
             ))
         })?;
         if metadata.file_type().is_symlink() {
-            return Err(AgentCenterHostError::HostInternal(format!(
+            return Err(AgentCenterHostError::InvalidPath(format!(
                 "Agent Center account agent entry must not be a symlink ({})",
                 path.display()
             )));
@@ -164,6 +172,9 @@ pub(crate) fn standard_agent_center_account_local_resources_remove_blocking(
         let local_agent_ref =
             validate_normalized_id(local_agent_ref_segment, "localAgentRefPathSegment")
                 .map_err(AgentCenterHostError::HostInternal)?;
+        let agent_center_root = path.join("agent-center");
+        let _ = managed_custody_directory_exists(roots, &agent_center_root)
+            .map_err(AgentCenterHostError::InvalidPath)?;
         let result =
             quarantine_agent_center_tree(roots, &account_id, &local_agent_ref, "account_removed")
                 .map_err(AgentCenterHostError::HostInternal)?;

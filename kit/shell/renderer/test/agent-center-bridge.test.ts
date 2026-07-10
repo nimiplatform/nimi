@@ -4,6 +4,7 @@ import {
   BridgeError,
   clearAgentCenterRegisteredDialogPathsForTest,
   createAgentCenterShellBridge,
+  getAgentCenterBackground,
   importAgentCenterBackground,
   removeAgentCenterAccountResources,
   resolveAgentCenterAvatarAssetPreview,
@@ -120,7 +121,7 @@ describe('renderer Agent Center shell bridge', () => {
       if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundGet']) {
         return {
           backgroundAssetRef: 'agent-center-background:account-1/background',
-          url: 'nimi-shell-file://agent-center/background',
+          url: 'nimi-shell-file://local/?path=background',
           mimeType: 'image/png',
         };
       }
@@ -159,7 +160,7 @@ describe('renderer Agent Center shell bridge', () => {
         backgroundAssetRef: 'agent-center-background:account-1/background',
       });
       await expect(bridge.getBackground({ ...localAgentScope, backgroundAssetRef: 'bg_111111111111' })).resolves.toMatchObject({
-        url: 'nimi-shell-file://agent-center/background',
+        url: 'nimi-shell-file://local/?path=background',
       });
       await expect(bridge.validateBackground({ ...localAgentScope, backgroundAssetRef: 'bg_111111111111' })).resolves.toMatchObject({
         validationStatus: 'valid',
@@ -282,6 +283,56 @@ describe('renderer Agent Center shell bridge', () => {
         source: 'renderer',
       });
     });
+  });
+
+  it('rejects raw paths, file URLs, and non-standard background URL schemes', async () => {
+    for (const url of [
+      '/tmp/background.png',
+      'C:\\Users\\nimi\\background.png',
+      '\\\\server\\share\\background.png',
+      'file:///tmp/background.png',
+      'https://example.com/background.png',
+      'data:image/png;base64,AAAA',
+      'nimi-shell-file://local.evil/background.png',
+      'nimi-shell-file://user@local/?path=background',
+      'nimi-shell-file://local:443/?path=background',
+      'asset://localhost.evil/background.png',
+      'asset://user@localhost/background.png',
+      'http://asset.localhost.evil/background.png',
+      'http://user@asset.localhost/background.png',
+    ]) {
+      await withElectronInvoke(async () => ({
+        backgroundAssetRef: 'bg_111111111111',
+        url,
+        mimeType: 'image/png',
+      }), async () => {
+        await expect(getAgentCenterBackground({
+          ...localAgentScope,
+          backgroundAssetRef: 'bg_111111111111',
+        }), url).rejects.toMatchObject({
+          code: 'invalid-payload',
+          reasonCode: 'renderer-standard-shell-result-invalid',
+          source: 'renderer',
+        });
+      });
+    }
+
+    for (const url of [
+      'nimi-shell-file://local/?path=background',
+      'asset://localhost/background.png',
+      'http://asset.localhost/background.png',
+    ]) {
+      await withElectronInvoke(async () => ({
+        backgroundAssetRef: 'bg_111111111111',
+        url,
+        mimeType: 'image/png',
+      }), async () => {
+        await expect(getAgentCenterBackground({
+          ...localAgentScope,
+          backgroundAssetRef: 'bg_111111111111',
+        })).resolves.toMatchObject({ url });
+      });
+    }
   });
 
   it('does not expose config operations and maps Tauri aliases behind standard command names', () => {

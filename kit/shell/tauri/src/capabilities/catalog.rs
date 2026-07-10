@@ -357,6 +357,7 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 negative_states: &[
                     "capability-unavailable",
                     "invalid-payload",
+                    "invalid-path",
                     "not-found",
                     "host-internal-error",
                 ],
@@ -367,6 +368,7 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 negative_states: &[
                     "capability-unavailable",
                     "invalid-payload",
+                    "invalid-path",
                     "not-found",
                     "host-internal-error",
                 ],
@@ -400,6 +402,7 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 negative_states: &[
                     "capability-unavailable",
                     "invalid-payload",
+                    "invalid-path",
                     "not-found",
                     "host-internal-error",
                 ],
@@ -410,6 +413,7 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 negative_states: &[
                     "capability-unavailable",
                     "invalid-payload",
+                    "invalid-path",
                     "not-found",
                     "host-internal-error",
                 ],
@@ -420,6 +424,7 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 negative_states: &[
                     "capability-unavailable",
                     "invalid-payload",
+                    "invalid-path",
                     "not-found",
                     "host-internal-error",
                 ],
@@ -430,6 +435,7 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 negative_states: &[
                     "capability-unavailable",
                     "invalid-payload",
+                    "invalid-path",
                     "host-internal-error",
                 ],
             },
@@ -439,6 +445,7 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
                 negative_states: &[
                     "capability-unavailable",
                     "invalid-payload",
+                    "invalid-path",
                     "host-internal-error",
                 ],
             },

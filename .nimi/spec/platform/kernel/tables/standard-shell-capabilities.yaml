@@ -428,6 +428,7 @@ capabilities:
         negative_states:
           - capability-unavailable
           - invalid-payload
+          - invalid-path
           - not-found
           - host-internal-error
       - id: avatarAssetResolvePreview
@@ -437,6 +438,7 @@ capabilities:
         negative_states:
           - capability-unavailable
           - invalid-payload
+          - invalid-path
           - not-found
           - host-internal-error
       - id: live2dAdapterImport
@@ -467,6 +469,7 @@ capabilities:
         negative_states:
           - capability-unavailable
           - invalid-payload
+          - invalid-path
           - not-found
           - host-internal-error
       - id: backgroundValidate
@@ -476,6 +479,7 @@ capabilities:
         negative_states:
           - capability-unavailable
           - invalid-payload
+          - invalid-path
           - not-found
           - host-internal-error
       - id: backgroundRemove
@@ -485,6 +489,7 @@ capabilities:
         negative_states:
           - capability-unavailable
           - invalid-payload
+          - invalid-path
           - not-found
           - host-internal-error
       - id: agentResourcesRemove
@@ -494,6 +499,7 @@ capabilities:
         negative_states:
           - capability-unavailable
           - invalid-payload
+          - invalid-path
           - host-internal-error
       - id: accountResourcesRemove
         command: nimi.shell.agentCenter.accountResourcesRemove
@@ -502,6 +508,7 @@ capabilities:
         negative_states:
           - capability-unavailable
           - invalid-payload
+          - invalid-path
           - host-internal-error
   - id: platform-projection
     host_contract: NimiStandardShellCapabilityHost

@@ -87,6 +87,14 @@ pub(super) fn validate_background_manifest(
             Some("mime".to_string()),
         ));
     }
+    match background_mime_for_path(Path::new(&manifest.image_file)) {
+        Ok(path_mime) if path_mime == manifest.mime => {}
+        _ => errors.push(error(
+            "unsupported_mime",
+            "Background MIME must match the admitted image file extension.",
+            Some(manifest.image_file.clone()),
+        )),
+    }
     if extension_for(&manifest.image_file) == "svg" {
         errors.push(error(
             "unsupported_mime",
@@ -136,25 +144,48 @@ pub(super) fn validate_background_manifest(
             Some("sha256".to_string()),
         ));
     }
-    match resolve_under_root(background_root, &manifest.image_file)
-        .and_then(|path| sha256_file(&path))
-    {
-        Ok((actual_bytes, actual_sha256)) => {
-            if actual_bytes != manifest.bytes {
-                errors.push(error(
-                    "file_size_mismatch",
-                    "Background image size differs from manifest.",
-                    Some(manifest.image_file.clone()),
-                ));
+    match resolve_under_root(background_root, &manifest.image_file) {
+        Ok(path) => match fs::read(&path) {
+            Ok(image_bytes) => {
+                let actual_bytes = u64::try_from(image_bytes.len()).unwrap_or(u64::MAX);
+                let mut hasher = Sha256::new();
+                hasher.update(&image_bytes);
+                let actual_sha256 = format!("{:x}", hasher.finalize());
+                if actual_bytes != manifest.bytes {
+                    errors.push(error(
+                        "file_size_mismatch",
+                        "Background image size differs from manifest.",
+                        Some(manifest.image_file.clone()),
+                    ));
+                }
+                if actual_sha256 != manifest.sha256 {
+                    errors.push(error(
+                        "content_digest_mismatch",
+                        "Background image digest differs from manifest.",
+                        Some(manifest.image_file.clone()),
+                    ));
+                }
+                match background_dimensions(&image_bytes, &manifest.mime) {
+                    Ok((width, height))
+                        if width == manifest.pixel_width && height == manifest.pixel_height => {}
+                    Ok(_) => errors.push(error(
+                        "background_pixels_rejected",
+                        "Decoded background dimensions differ from manifest.",
+                        Some(manifest.image_file.clone()),
+                    )),
+                    Err(message) => errors.push(error(
+                        "background_decode_failed",
+                        &message,
+                        Some(manifest.image_file.clone()),
+                    )),
+                }
             }
-            if actual_sha256 != manifest.sha256 {
-                errors.push(error(
-                    "content_digest_mismatch",
-                    "Background image digest differs from manifest.",
-                    Some(manifest.image_file.clone()),
-                ));
-            }
-        }
+            Err(source) => errors.push(error(
+                "missing_image",
+                &format!("Background image cannot be read: {source}"),
+                Some(manifest.image_file.clone()),
+            )),
+        },
         Err(mut issue) => {
             if issue.code == "missing_required_file" {
                 issue.code = "missing_image".to_string();
@@ -416,6 +447,27 @@ pub(super) fn validate_avatar_asset_manifest(
     }
     if manifest.kind == "live2d" {
         validate_live2d_model3_structure(asset_root, &manifest, &mut errors, &mut warnings);
+    } else if manifest.kind == "vrm" {
+        match resolve_under_root(asset_root, &manifest.entry_file).and_then(|path| {
+            fs::read(&path).map_err(|source| {
+                error(
+                    "missing_required_file",
+                    &format!("VRM entry file cannot be read: {source}"),
+                    Some(manifest.entry_file.clone()),
+                )
+            })
+        }) {
+            Ok(bytes) => {
+                if let Err(message) = validate_vrm_glb(&bytes) {
+                    errors.push(error(
+                        "avatar_asset_manifest_invalid",
+                        &message,
+                        Some(manifest.entry_file.clone()),
+                    ));
+                }
+            }
+            Err(issue) => errors.push(issue),
+        }
     }
 
     if errors.is_empty() {
@@ -460,7 +512,7 @@ pub(crate) fn standard_agent_center_avatar_asset_validate_blocking(
         &payload.avatar_asset_ref,
     )
     .map_err(AgentCenterHostError::InvalidPath)?;
-    if !dir.exists() {
+    if !managed_custody_directory_exists(roots, &dir).map_err(AgentCenterHostError::InvalidPath)? {
         return Err(AgentCenterHostError::NotFound(format!(
             "Avatar asset was not found: {}",
             payload.avatar_asset_ref
@@ -495,7 +547,7 @@ pub(crate) fn standard_agent_center_background_validate_blocking(
         &payload.background_asset_ref,
     )
     .map_err(AgentCenterHostError::InvalidPath)?;
-    if !dir.exists() {
+    if !managed_custody_directory_exists(roots, &dir).map_err(AgentCenterHostError::InvalidPath)? {
         return Err(AgentCenterHostError::NotFound(format!(
             "Background asset was not found: {}",
             payload.background_asset_ref
@@ -530,7 +582,7 @@ pub(crate) fn standard_agent_center_background_asset_get_blocking(
         &payload.background_asset_ref,
     )
     .map_err(AgentCenterHostError::InvalidPath)?;
-    if !dir.exists() {
+    if !managed_custody_directory_exists(roots, &dir).map_err(AgentCenterHostError::InvalidPath)? {
         return Err(AgentCenterHostError::NotFound(format!(
             "Background asset was not found: {}",
             payload.background_asset_ref

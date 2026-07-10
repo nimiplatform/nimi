@@ -643,9 +643,21 @@ function parseBackgroundGetResult(value: unknown, command: string): AgentCenterB
   const record = assertRecord(value, `${command} returned invalid payload`);
   return compactPayload({
     backgroundAssetRef: parseOpaqueRef(record.backgroundAssetRef, 'backgroundAssetRef', command),
-    url: parseRequiredString(record.url, 'url', command),
+    url: parseBackgroundUrl(record.url, command),
     mimeType: parseOptionalString(record.mimeType),
   }) as unknown as AgentCenterBackgroundGetResult;
+}
+
+function parseBackgroundUrl(value: unknown, command: string): string {
+  const url = parseRequiredString(value, 'url', command);
+  if (
+    url.startsWith('nimi-shell-file://local/')
+    || url.startsWith('asset://localhost/')
+    || url.startsWith('http://asset.localhost/')
+  ) {
+    return url;
+  }
+  throw new Error(`${command}: url must use an admitted standard local asset host`);
 }
 
 function parseBackgroundValidateResult(value: unknown, command: string): AgentCenterBackgroundValidateResult {
