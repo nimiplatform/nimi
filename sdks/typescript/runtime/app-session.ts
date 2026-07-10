@@ -57,7 +57,15 @@ export interface NimiRuntimeInstalledAppSessionMetadataProviderInput {
   readonly developerRegistration?: boolean;
 }
 
-export type NimiRuntimeAppSessionMetadataProvider = () => Promise<CoreMetadata>;
+export type NimiRuntimeAppRegistration = {
+  (): Promise<void>;
+  invalidate(reason?: string): void;
+};
+
+export type NimiRuntimeAppSessionMetadataProvider = {
+  (): Promise<CoreMetadata>;
+  invalidate(reason?: string): void;
+};
 
 type RuntimeResolver = () => { readonly auth: NimiRuntimeAppRegistrationClient };
 
@@ -73,13 +81,15 @@ const NIMI_RUNTIME_APP_SESSION_DEFAULT_REFRESH_SKEW_MS = 60_000;
 export function createNimiRuntimeFullAppRegistration(
   resolveRuntime: RuntimeResolver,
   input: NimiRuntimeAppRegistrationInput,
-): () => Promise<void> {
+): NimiRuntimeAppRegistration {
   let inflight: Promise<void> | null = null;
-  return async () => {
+  let generation = 0;
+  const ensureRegistered = async () => {
     if (inflight) {
       return inflight;
     }
-    inflight = (async () => {
+    const requestGeneration = generation;
+    const request = (async () => {
       const response = await resolveRuntime().auth.registerApp(
         createNimiRuntimeRegisterAppRequest(input),
         withNimiRuntimeIdempotencyMetadata(input.callOptions, createNimiClientId('runtime-register-app')),
@@ -93,13 +103,21 @@ export function createNimiRuntimeFullAppRegistration(
         });
       }
     })();
+    inflight = request;
     try {
-      await inflight;
+      await request;
     } catch (error) {
-      inflight = null;
+      if (generation === requestGeneration && inflight === request) {
+        inflight = null;
+      }
       throw error;
     }
   };
+  ensureRegistered.invalidate = () => {
+    generation += 1;
+    inflight = null;
+  };
+  return ensureRegistered;
 }
 
 export function createNimiRuntimeAppSessionMetadataProvider(
@@ -113,21 +131,37 @@ export function createNimiRuntimeAppSessionMetadataProvider(
   );
   let cached: CachedRuntimeAppSession | null = null;
   let inflight: Promise<CachedRuntimeAppSession> | null = null;
+  let generation = 0;
 
-  return async () => {
+  const provider = async () => {
     if (cached && cached.expiresAtMs - Date.now() > refreshSkewMs) {
       return runtimeAppSessionMetadata(cached);
     }
+    const requestGeneration = generation;
     if (!inflight) {
       inflight = openNimiRuntimeAppSession(input, ensureRegistered, ttlSeconds);
     }
+    const request = inflight;
     try {
-      cached = await inflight;
-      return runtimeAppSessionMetadata(cached);
+      const session = await request;
+      if (generation !== requestGeneration) {
+        return provider();
+      }
+      cached = session;
+      return runtimeAppSessionMetadata(session);
     } finally {
-      inflight = null;
+      if (inflight === request) {
+        inflight = null;
+      }
     }
   };
+  provider.invalidate = (reason?: string) => {
+    generation += 1;
+    cached = null;
+    inflight = null;
+    ensureRegistered.invalidate(reason);
+  };
+  return provider;
 }
 
 export function createNimiRuntimeInstalledAppSessionMetadataProvider(

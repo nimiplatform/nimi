@@ -112,6 +112,131 @@ test('Runtime app session metadata provider opens app-only session and emits ses
   assert.deepEqual(sessions.map((request) => request.subjectUserId), ['']);
 });
 
+test('Runtime app session metadata provider invalidates cached registration and session after Runtime restart', async () => {
+  let runtimeGeneration = 1;
+  let registeredGeneration = 0;
+  let sessionCounter = 0;
+  const registrations: number[] = [];
+  const provider = createNimiRuntimeAppSessionMetadataProvider({
+    appId: 'nimi.desktop',
+    appInstanceId: 'nimi.desktop.runtime-session',
+    deviceId: 'desktop-shell',
+    auth: {
+      async registerApp(request) {
+        registeredGeneration = runtimeGeneration;
+        registrations.push(runtimeGeneration);
+        return {
+          appInstanceId: request.appInstanceId,
+          accepted: true,
+          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        };
+      },
+      async openSession() {
+        if (registeredGeneration !== runtimeGeneration) {
+          return {
+            sessionId: '',
+            sessionToken: '',
+            reasonCode: RuntimeGeneratedReasonCode.APP_NOT_REGISTERED,
+          };
+        }
+        sessionCounter += 1;
+        return {
+          sessionId: `session-${sessionCounter}`,
+          sessionToken: `token-${sessionCounter}`,
+          issuedAt: { seconds: String(Math.floor(Date.now() / 1000)), nanos: 0 },
+          expiresAt: { seconds: String(Math.floor(Date.now() / 1000) + 3600), nanos: 0 },
+          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        };
+      },
+    },
+  });
+
+  assert.deepEqual(await provider(), {
+    'x-nimi-session-id': 'session-1',
+    'x-nimi-session-token': 'token-1',
+  });
+
+  runtimeGeneration = 2;
+  const invalidatableProvider = provider as typeof provider & {
+    invalidate?: (reason: string) => void;
+  };
+  assert.equal(typeof invalidatableProvider.invalidate, 'function');
+  invalidatableProvider.invalidate?.('RUNTIME_RESTARTED');
+
+  assert.deepEqual(await provider(), {
+    'x-nimi-session-id': 'session-2',
+    'x-nimi-session-token': 'token-2',
+  });
+  assert.deepEqual(registrations, [1, 2]);
+});
+
+test('Runtime app session invalidation isolates a replacement request from an older in-flight session', async () => {
+  let resolveFirstSession: ((value: {
+    sessionId: string;
+    sessionToken: string;
+    issuedAt: { seconds: string; nanos: number };
+    expiresAt: { seconds: string; nanos: number };
+    reasonCode: RuntimeGeneratedReasonCode;
+  }) => void) | undefined;
+  let openSessionCalls = 0;
+  const provider = createNimiRuntimeAppSessionMetadataProvider({
+    appId: 'nimi.desktop',
+    appInstanceId: 'nimi.desktop.runtime-session',
+    deviceId: 'desktop-shell',
+    auth: {
+      async registerApp(request) {
+        return {
+          appInstanceId: request.appInstanceId,
+          accepted: true,
+          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        };
+      },
+      async openSession() {
+        openSessionCalls += 1;
+        if (openSessionCalls === 1) {
+          return new Promise((resolve) => {
+            resolveFirstSession = resolve;
+          });
+        }
+        return {
+          sessionId: 'session-2',
+          sessionToken: 'token-2',
+          issuedAt: { seconds: String(Math.floor(Date.now() / 1000)), nanos: 0 },
+          expiresAt: { seconds: String(Math.floor(Date.now() / 1000) + 3600), nanos: 0 },
+          reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+        };
+      },
+    },
+  });
+
+  const firstRequest = provider();
+  await new Promise((resolve) => setImmediate(resolve));
+  provider.invalidate('RUNTIME_RESTARTED');
+
+  assert.deepEqual(await provider(), {
+    'x-nimi-session-id': 'session-2',
+    'x-nimi-session-token': 'token-2',
+  });
+
+  resolveFirstSession?.({
+    sessionId: 'session-1',
+    sessionToken: 'token-1',
+    issuedAt: { seconds: String(Math.floor(Date.now() / 1000)), nanos: 0 },
+    expiresAt: { seconds: String(Math.floor(Date.now() / 1000) + 3600), nanos: 0 },
+    reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+  });
+  assert.deepEqual(await firstRequest, {
+    'x-nimi-session-id': 'session-2',
+    'x-nimi-session-token': 'token-2',
+  });
+
+  assert.deepEqual(await provider(), {
+    'x-nimi-session-id': 'session-2',
+    'x-nimi-session-token': 'token-2',
+  });
+  assert.equal(openSessionCalls, 2);
+});
+
 test('Runtime app session metadata provider fails closed without session token', async () => {
   const missingToken = createNimiRuntimeAppSessionMetadataProvider({
     appId: 'nimi.desktop',
