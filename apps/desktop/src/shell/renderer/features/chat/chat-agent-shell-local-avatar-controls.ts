@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { hasTauriInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasShellHostInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import { createAgentCenterShellAppearanceAdapter } from '@nimiplatform/kit/features/agent-center/headless';
 import { createAgentCenterShellBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import { clearAgentConversationAnchorBinding } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
@@ -12,7 +12,7 @@ export { resolveAvatarComposerActionState } from './chat-agent-local-avatar-laun
 
 export function useAgentConversationLocalAvatarControls(input: UseAgentConversationPresentationInput) {
   const runtimePresentation = useMemo(() => createRuntimeAgentPresentationProfileAdapter(), []);
-  const shell = useMemo(() => (hasTauriInvoke() ? createAgentCenterShellBridge() : null), []);
+  const shell = useMemo(() => (hasShellHostInvoke() ? createAgentCenterShellBridge() : null), []);
   const appearanceAdapter = useMemo(() => {
     if (!input.activeTarget || !input.accountId) {
       return null;
@@ -26,6 +26,7 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
       accountId: input.accountId,
       runtimePresentation,
       shell,
+      avatarPreview: null,
       snapshot: {
         inspect: input.runtimeInspect as never,
       },
@@ -57,14 +58,12 @@ export function useAgentConversationLocalAvatarControls(input: UseAgentConversat
   const presentationProfile = input.runtimeInspect?.presentationProfile || input.activeTarget?.presentationProfile || null;
   const avatarAssetRef = presentationProfile?.avatarAssetRef || null;
   const avatarConfigured = Boolean(avatarAssetRef);
-  const avatarAssetValid = Boolean(avatarAssetRef);
   const avatarLaunchControls = useAgentLocalAvatarLaunchControls({
     presentation: input,
     avatarAssetRef,
     backendCapabilityProfileRef: null,
     avatarConfigured,
-    avatarAssetValid,
-    validationStatus: avatarConfigured ? 'valid' : null,
+    validationStatus: null,
   });
 
   return useMemo(() => ({

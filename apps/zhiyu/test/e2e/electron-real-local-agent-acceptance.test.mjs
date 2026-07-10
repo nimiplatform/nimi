@@ -6,12 +6,10 @@ import path from 'node:path';
 import test from 'node:test';
 import { _electron as electron } from 'playwright';
 import { createNimiRealmSourceMaterializationPacket } from '@nimiplatform/sdk/realm';
-import {
-  AgentPresentationBackendKind,
-} from '../../../../sdks/typescript/core-generated/runtime-typed-client.ts';
 import { withSdkDistLock } from '../../../../scripts/lib/sdk-dist-lock.mjs';
 import {
   createFixtureRuntimeAgentClient,
+  setFixtureRuntimeAgentPresentationProfile,
 } from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
 import {
   SOURCE_MATERIALIZATION_AUDIENCE,
@@ -20,7 +18,6 @@ import {
 
 const root = path.resolve(import.meta.dirname, '..', '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
-const desktopAppId = 'nimi.desktop';
 const zhiyuAppId = 'nimi.zhiyu';
 const zhiyuRuntimeProtectedScopes = [
   'runtime.agent.read',
@@ -539,6 +536,15 @@ async function assertAppearanceConfigParity(page, captureAppearanceEvidence) {
     await panel.locator(selector).waitFor({ state: 'visible', timeout: 15_000 });
   }
 
+  const preview = panel.locator('[data-avatar-preview-tier="avatar_preview_service"]').first();
+  await preview.waitFor({ state: 'attached', timeout: 15_000 });
+  assert.equal(await preview.getAttribute('data-avatar-preview-nonplaceholder'), 'false');
+  assert.equal(
+    await panel.locator('[data-avatar-preview-nonplaceholder="true"]').count(),
+    0,
+    'Shell material without a registered Avatar preview surface must never appear Ready',
+  );
+
   const backgroundCard = panel.locator('[data-agent-center-appearance-background="chat-scene"]').first();
   const backgroundCardText = await backgroundCard.innerText();
   assert.doesNotMatch(
@@ -935,37 +941,24 @@ async function withFixtureRuntimeLocalAgent(run) {
         displayName: zhiyuAcceptanceTargetDisplayName,
         sourceMaterializationPacket,
       });
-      await context.runtime.agents.setAgentPresentationProfile(
-        {
-          context: {
-            appId: desktopAppId,
-            subjectUserId: context.ownerUserId,
-            ownerUserId: context.ownerUserId,
-            runtimeSourceRef: targetAgent.runtimeSourceRef,
-            localAgentRef: targetAgent.localAgentRef,
-          },
-          agentId: targetAgent.localAgentRef,
-          mutation: {
-            oneofKind: 'profile',
-            profile: {
-              backendKind: AgentPresentationBackendKind.VRM,
-              avatarAssetRef: zhiyuAcceptanceAvatarAssetRef,
-              expressionProfileRef: 'expression://zhiyu-real-local-agent/calm',
-              idlePreset: 'idle-soft',
-              interactionPolicyRef: 'policy://zhiyu-real-local-agent/ambient',
-              defaultVoiceReference: 'preset_voice_id:zhiyu-real-local-agent',
-              avatarAutoplay: true,
-              backgroundAssetRef: zhiyuAcceptanceBackgroundAssetRef,
-            },
-          },
+      await setFixtureRuntimeAgentPresentationProfile({
+        presentation: context.agentPresentation,
+        identity: {
+          ownerUserId: context.ownerUserId,
+          runtimeSourceRef: targetAgent.runtimeSourceRef,
+          localAgentRef: targetAgent.localAgentRef,
         },
-        {
-          metadata: {
-            idempotencyKey: `zhiyu-real-local-agent-presentation:${targetAgent.localAgentRef}`,
-            'x-nimi-idempotency-key': `zhiyu-real-local-agent-presentation:${targetAgent.localAgentRef}`,
-          },
+        profile: {
+          backendKind: 'vrm',
+          avatarAssetRef: zhiyuAcceptanceAvatarAssetRef,
+          expressionProfileRef: 'runtime-expression-profile:zhiyu-real-local-agent-calm',
+          idlePreset: 'runtime-idle-preset:idle-soft',
+          interactionPolicyRef: 'runtime-interaction-policy:zhiyu-real-local-agent-ambient',
+          defaultVoiceReference: 'preset_voice_id:zhiyu-real-local-agent',
+          avatarAutoplay: true,
+          backgroundAssetRef: zhiyuAcceptanceBackgroundAssetRef,
         },
-      );
+      });
       await agentClient.openConversation({
         ownerUserId: context.ownerUserId,
         runtimeSourceRef: targetAgent.runtimeSourceRef,
@@ -1001,24 +994,45 @@ async function seedStandardShellAppearanceAssets(input) {
     'vrm',
     zhiyuAcceptanceAvatarAssetRef,
   );
-  await mkdir(avatarDir, { recursive: true });
-  await writeFile(path.join(avatarDir, 'fixture.vrm'), 'NIMI_ZHIYU_REAL_LOCAL_AGENT_ACCEPTANCE_VRM\n');
+  const avatarFilesDir = path.join(avatarDir, 'files');
+  const avatarBytes = validVrmGlb();
+  const avatarFileDigest = sha256(avatarBytes);
+  const avatarFiles = [{
+    path: 'files/fixture.vrm',
+    sha256: avatarFileDigest,
+    bytes: avatarBytes.byteLength,
+    mime: 'model/vrm',
+  }];
+  const avatarPackageDigest = avatarContentDigest(avatarFiles);
+  await mkdir(avatarFilesDir, { recursive: true });
+  await writeFile(path.join(avatarFilesDir, 'fixture.vrm'), avatarBytes);
   await writeFile(path.join(avatarDir, 'manifest.json'), `${JSON.stringify({
     manifest_version: 1,
+    asset_version: '1.0.0',
     local_asset_id: zhiyuAcceptanceAvatarAssetRef,
     kind: 'vrm',
-    entry_file: 'fixture.vrm',
-    required_files: ['fixture.vrm'],
-    content_digest: 'sha256:zhiyu-real-local-agent-fixture',
-    files: [{
-      path: 'fixture.vrm',
-      sha256: sha256('NIMI_ZHIYU_REAL_LOCAL_AGENT_ACCEPTANCE_VRM\n'),
-      bytes: 43,
-      mime: 'model/vrm',
-    }],
+    loader_min_version: '1.0.0',
+    display_name: 'Zhiyu real local agent fixture',
+    display_name_i18n: {},
+    entry_file: 'files/fixture.vrm',
+    required_files: ['files/fixture.vrm'],
+    content_digest: `sha256:${avatarPackageDigest}`,
+    files: avatarFiles,
+    limits: {
+      max_manifest_bytes: 262_144,
+      max_asset_bytes: 524_288_000,
+      max_file_bytes: 104_857_600,
+      max_file_count: 2_048,
+    },
+    capabilities: {
+      backend_kind: 'vrm',
+      profile_ref: `avatar.backend_profile:vrm:${zhiyuAcceptanceAvatarAssetRef}:import_validated`,
+      materialization_ref: `agent-center-avatar-asset:${segment(input.ownerUserId)}:${segment(input.localAgentRef)}:vrm:${zhiyuAcceptanceAvatarAssetRef}`,
+    },
     import: {
       imported_at: '1970-01-01T00:00:00.000Z',
       source_label: 'zhiyu-real-local-agent-fixture.vrm',
+      source_fingerprint: `sha256:${avatarPackageDigest}`,
     },
   }, null, 2)}\n`);
 
@@ -1038,9 +1052,17 @@ async function seedStandardShellAppearanceAssets(input) {
   await writeFile(path.join(backgroundDir, 'manifest.json'), `${JSON.stringify({
     manifest_version: 1,
     background_asset_id: zhiyuAcceptanceBackgroundAssetRef,
+    display_name: 'Zhiyu real local agent fixture',
     image_file: 'image.png',
     mime: 'image/png',
     bytes: backgroundBytes.byteLength,
+    pixel_width: 1,
+    pixel_height: 1,
+    limits: {
+      max_bytes: 20_971_520,
+      max_pixel_width: 8_192,
+      max_pixel_height: 8_192,
+    },
     sha256: sha256(backgroundBytes),
     imported_at: '1970-01-01T00:00:00.000Z',
     source_label: 'zhiyu-real-local-agent-fixture.png',
@@ -1049,6 +1071,38 @@ async function seedStandardShellAppearanceAssets(input) {
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function avatarContentDigest(files) {
+  const hash = createHash('sha256');
+  for (const file of [...files].sort((left, right) => left.path.localeCompare(right.path))) {
+    hash.update(file.path);
+    hash.update('\0');
+    hash.update(String(file.bytes));
+    hash.update('\0');
+    hash.update(file.sha256);
+    hash.update('\n');
+  }
+  return hash.digest('hex');
+}
+
+function validVrmGlb() {
+  const root = {
+    asset: { version: '2.0' },
+    extensionsUsed: ['VRMC_vrm'],
+    extensions: { VRMC_vrm: { specVersion: '1.0' } },
+  };
+  const json = Buffer.from(JSON.stringify(root), 'utf8');
+  const padding = (4 - (json.byteLength % 4)) % 4;
+  const jsonChunk = padding === 0 ? json : Buffer.concat([json, Buffer.alloc(padding, 0x20)]);
+  const glb = Buffer.alloc(20 + jsonChunk.byteLength);
+  glb.write('glTF', 0, 'ascii');
+  glb.writeUInt32LE(2, 4);
+  glb.writeUInt32LE(glb.byteLength, 8);
+  glb.writeUInt32LE(jsonChunk.byteLength, 12);
+  glb.writeUInt32LE(0x4e4f534a, 16);
+  jsonChunk.copy(glb, 20);
+  return glb;
 }
 
 function segment(value) {

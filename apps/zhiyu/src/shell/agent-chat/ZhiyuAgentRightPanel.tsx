@@ -534,6 +534,7 @@ function buildZhiyuAgentCenterAppearanceAdapter(
     accountId: subjectUserId,
     runtimePresentation: createZhiyuAgentPresentationProfileSurface(subjectUserId, scopedBindingIdentity),
     shell: createAgentCenterShellBridge(),
+    avatarPreview: null,
     loadSnapshot: async () => ({
       inspect: await inspect.getPublicInspect(identity),
     }),

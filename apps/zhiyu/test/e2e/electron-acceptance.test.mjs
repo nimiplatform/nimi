@@ -88,6 +88,13 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
 
         assert.equal(await page.evaluate(() => Boolean(globalThis.window.__nimiZhiyuAgentCenterLocalConfig)), false);
         const live2dImportResult = await page.evaluate(async (commands) => {
+          const scope = {
+            hostScope: 'local-agent',
+            accountId: 'account_1',
+            ownerUserId: 'owner_1',
+            runtimeSourceRef: 'runtime-source:ren',
+            localAgentRef: 'local-agent:ren',
+          };
           const dialogResult = await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(commands.fileDialogOpen, {
             kind: 'directory',
             title: 'Select Live2D folder',
@@ -95,20 +102,28 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
           if (dialogResult.canceled || dialogResult.paths.length !== 1) {
             throw new Error('Live2D fixture file dialog did not return exactly one path.');
           }
-          return globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(commands.avatarAssetImport, {
-            hostScope: 'local-agent',
-            accountId: 'account_1',
-            localAgentRef: 'local-agent:ren',
+          const imported = await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(commands.avatarAssetImport, {
+            ...scope,
             backendKind: 'live2d',
             sourcePath: dialogResult.paths[0],
           });
+          const material = await globalThis.window.__NIMI_ELECTRON_RUNTIME__.invoke(commands.avatarPreviewResolve, {
+            ...scope,
+            avatarAssetRef: imported.avatarAssetRef,
+            backendKind: 'live2d',
+          });
+          return { imported, material };
         }, {
           fileDialogOpen: NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open'],
           avatarAssetImport: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
+          avatarPreviewResolve: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetResolvePreview'],
         });
-        assert.equal(live2dImportResult.backendKind, 'live2d');
-        assert.match(live2dImportResult.avatarAssetRef ?? '', /^live2d_[a-f0-9]{12}$/u);
-        assert.equal(live2dImportResult.validationStatus, 'valid');
+        assert.equal(live2dImportResult.imported.backendKind, 'live2d');
+        assert.match(live2dImportResult.imported.avatarAssetRef ?? '', /^live2d_[a-f0-9]{12}$/u);
+        assert.equal(live2dImportResult.imported.validationStatus, 'valid');
+        assert.match(live2dImportResult.material.previewMaterialRef ?? '', /^agent-center-avatar-asset:/u);
+        assert.equal(Object.hasOwn(live2dImportResult.material, 'previewArtifactRef'), false);
+        assert.equal(Object.hasOwn(live2dImportResult.material, 'previewImageRef'), false);
 
         await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ZHIYU_ELECTRON_SDK_ACCEPTANCE__));
         const runtimeReady = await page.evaluate(() =>

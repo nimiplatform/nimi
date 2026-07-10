@@ -25,7 +25,6 @@ type AvatarComposerActionState =
   | 'pending'
   | 'unavailable'
   | 'not_configured'
-  | 'local_asset_invalid'
   | 'ready_stopped';
 
 export function resolveAvatarComposerActionState(input: {
@@ -34,7 +33,6 @@ export function resolveAvatarComposerActionState(input: {
   avatarRuntimeAccountReady: boolean;
   avatarRunning: boolean;
   avatarConfigured: boolean;
-  avatarAssetValid: boolean;
 }): AvatarComposerActionState {
   return input.avatarActionPending
     ? 'pending'
@@ -44,9 +42,7 @@ export function resolveAvatarComposerActionState(input: {
         ? 'running'
         : !input.avatarConfigured
           ? 'not_configured'
-          : !input.avatarAssetValid
-            ? 'local_asset_invalid'
-            : 'ready_stopped';
+          : 'ready_stopped';
 }
 
 export function useAgentLocalAvatarLaunchControls(input: {
@@ -54,7 +50,6 @@ export function useAgentLocalAvatarLaunchControls(input: {
   avatarAssetRef: string | null;
   backendCapabilityProfileRef: string | null;
   avatarConfigured: boolean;
-  avatarAssetValid: boolean;
   validationStatus: string | null;
 }) {
   const presentation = input.presentation;
@@ -203,18 +198,9 @@ export function useAgentLocalAvatarLaunchControls(input: {
         }),
       };
     }
-    if (!avatarRunning && !input.avatarAssetValid) {
+    if (!avatarRunning && !input.avatarConfigured) {
       presentation.onOpenAgentCenter?.();
-      return {
-        kind: 'warning' as const,
-        message: presentation.t(input.avatarConfigured
-          ? 'Chat.agentCenterAvatarStartBackendEvidenceRequired'
-          : 'Chat.agentCenterAvatarStartLocalAssetRequired', {
-          defaultValue: input.avatarConfigured
-            ? 'Avatar launch requires backend capability evidence from Avatar.'
-            : 'Avatar launch requires Avatar-owned package evidence for this agent.',
-        }),
-      };
+      return null;
     }
     setAvatarActionPending(true);
     try {
@@ -284,7 +270,6 @@ export function useAgentLocalAvatarLaunchControls(input: {
     avatarRuntimeAccountReady,
     avatarConversationAnchorReady,
     input.avatarConfigured,
-    input.avatarAssetValid,
     avatarInstanceId,
     avatarLiveInstancesQuery,
     avatarRunning,
@@ -386,7 +371,6 @@ export function useAgentLocalAvatarLaunchControls(input: {
     avatarRuntimeAccountReady,
     avatarRunning,
     avatarConfigured: input.avatarConfigured,
-    avatarAssetValid: input.avatarAssetValid,
   });
 
   return {

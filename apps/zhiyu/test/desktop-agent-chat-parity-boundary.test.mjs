@@ -196,6 +196,7 @@ test('Agent Center appearance config is owned by the Kit adapter instead of a Zh
     'createAgentCenterShellBridge',
     'createZhiyuAgentPresentationProfileSurface',
     'appearanceAdapter={appearanceAdapter}',
+    'avatarPreview: null',
     'loadSnapshot: async () => ({',
     'inspect.getPublicInspect(identity)',
   ]) {

@@ -20,6 +20,7 @@ const chatAgentCanonicalComposerSource = readWorkspaceFile('src/shell/renderer/f
 const chatAgentPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
 const chatAgentPresentationSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.tsx');
 const chatAgentLocalAvatarControlsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts');
+const chatAgentAvatarLaunchControlsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts');
 const chatHumanAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-adapter.tsx');
 const canonicalHumanComposerProfileSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-canonical-composer-profile.tsx');
 const chatAiModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-nimi-mode-content.tsx');
@@ -182,6 +183,11 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /topContent: schedulingFeedbackNode/);
   assert.match(chatAgentLocalAvatarControlsSource, /createAgentCenterShellAppearanceAdapter/);
   assert.match(chatAgentLocalAvatarControlsSource, /createAgentCenterShellBridge/);
+  assert.match(chatAgentLocalAvatarControlsSource, /hasShellHostInvoke/);
+  assert.doesNotMatch(chatAgentLocalAvatarControlsSource, /avatarAssetValid\s*=\s*Boolean\(avatarAssetRef\)/);
+  assert.match(chatAgentLocalAvatarControlsSource, /avatarPreview:\s*null/);
+  assert.doesNotMatch(chatAgentAvatarLaunchControlsSource, /\bavatarAssetValid\b/);
+  assert.doesNotMatch(chatAgentCanonicalComposerSource, /local_asset_invalid/);
   assert.doesNotMatch(chatAgentPresentationSource, /chat-agent-avatar-store/);
   assert.doesNotMatch(chatAgentLocalAvatarControlsSource, /importAgentCenterBackground/);
   assert.match(chatAgentPresentationSource, /settingsContent:/);

@@ -21,6 +21,7 @@ const chatAgentPresentationSettingsSource = readWorkspaceFile('src/shell/rendere
 const kitAgentCenterPrimitivesSource = readWorkspaceFile('../../kit/features/agent-center/src/components/AgentCenterPrimitives.tsx');
 const kitAgentCenterBehaviorSectionSource = readWorkspaceFile('../../kit/features/agent-center/src/components/AgentCenterBehaviorSection.tsx');
 const chatAgentLocalAvatarControlsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-local-avatar-controls.ts');
+const chatAgentAvatarLaunchControlsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-local-avatar-launch-controls.ts');
 const chatAgentCanonicalComposerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx');
 const chatGroupModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
 const chatSideSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-side-sheet.tsx');
@@ -92,6 +93,12 @@ test('agent shell presentation disables stage panel props and consumes the Kit A
   assert.doesNotMatch(chatAgentPresentationSettingsSource, /AgentCenterPanel/);
   assert.match(chatAgentLocalAvatarControlsSource, /createAgentCenterShellAppearanceAdapter/);
   assert.match(chatAgentLocalAvatarControlsSource, /createAgentCenterShellBridge/);
+  assert.match(chatAgentLocalAvatarControlsSource, /hasShellHostInvoke/);
+  assert.doesNotMatch(chatAgentLocalAvatarControlsSource, /avatarAssetValid\s*=\s*Boolean\(avatarAssetRef\)/);
+  assert.match(chatAgentLocalAvatarControlsSource, /avatarPreview:\s*null/);
+  assert.match(chatAgentLocalAvatarControlsSource, /validationStatus:\s*null/);
+  assert.doesNotMatch(chatAgentAvatarLaunchControlsSource, /\bavatarAssetValid\b/);
+  assert.doesNotMatch(chatAgentCanonicalComposerSource, /local_asset_invalid/);
   assert.doesNotMatch(chatAgentPresentationSource, /chat-agent-avatar-store/);
   assert.doesNotMatch(chatAgentLocalAvatarControlsSource, /getAgentCenterBackgroundAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /ChatAgentAvatarSettingsPanel/u);

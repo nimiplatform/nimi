@@ -247,6 +247,7 @@ test('Avatar product surfaces do not fabricate a local Avatar resource from Runt
   assert.match(rightPanel, /createAgentCenterShellAppearanceAdapter/);
   assert.match(rightPanel, /createZhiyuAgentPresentationProfileSurface/);
   assert.match(rightPanel, /inspect\.getPublicInspect\(identity\)/);
+  assert.match(rightPanel, /avatarPreview:\s*null/);
   assert.doesNotMatch(rightPanel, /local_avatar_asset_ref|background_asset_id|ZhiyuAgentCenterLocalConfig/);
   assert.doesNotMatch(rightPanel, /avatarAssetRef\s*=\s*avatar\.configurationRef|avatarAssetRef\s*=\s*avatar\.projectionRef/);
   assert.doesNotMatch(rightPanel, /avatar\.configurationRef\s*\|\|\s*avatar\.projectionRef/);

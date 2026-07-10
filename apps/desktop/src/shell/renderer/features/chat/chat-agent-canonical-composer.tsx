@@ -19,7 +19,7 @@ type AgentComposerHandsFreeState = {
 };
 
 type AgentComposerAvatarAction = {
-  state: 'not_configured' | 'local_asset_invalid' | 'ready_stopped' | 'running' | 'pending' | 'unavailable';
+  state: 'not_configured' | 'ready_stopped' | 'running' | 'pending' | 'unavailable';
   onConfigure?: () => void;
   onActivate?: () => Promise<InlineFeedbackState | null | void> | InlineFeedbackState | null | void;
 };
@@ -66,7 +66,7 @@ function AgentComposerToolbarControls(props: {
   const handsFreeActive = props.handsFreeState?.mode === 'hands-free';
   const handsFreeDisabled = props.handsFreeState ? (!handsFreeActive && props.handsFreeState.disabled) : false;
   const avatarState = props.avatarAction?.state || 'not_configured';
-  const avatarConfigActionState = avatarState === 'not_configured' || avatarState === 'local_asset_invalid';
+  const avatarConfigActionState = avatarState === 'not_configured';
   const avatarDisabled = avatarState === 'pending'
     || avatarState === 'unavailable'
     || (avatarConfigActionState ? !props.avatarAction?.onConfigure : !props.avatarAction?.onActivate);
@@ -78,9 +78,7 @@ function AgentComposerToolbarControls(props: {
         ? t('Chat.agentCenterAvatarUpdating', { defaultValue: 'Updating Avatar' })
         : avatarState === 'unavailable'
           ? t('Chat.agentCenterAvatarLaunchUnavailable', { defaultValue: 'Avatar launch unavailable' })
-          : avatarState === 'local_asset_invalid'
-            ? t('Chat.agentCenterFixAvatarSetup', { defaultValue: 'Fix Avatar Setup' })
-            : t('Chat.agentCenterConfigureAvatar', { defaultValue: 'Configure Avatar' });
+          : t('Chat.agentCenterConfigureAvatar', { defaultValue: 'Configure Avatar' });
   const avatarTitle = avatarState === 'running'
     ? t('Chat.agentCenterAvatarStopHint', { defaultValue: 'Close the current companion window.' })
     : avatarState === 'ready_stopped'
@@ -89,8 +87,6 @@ function AgentComposerToolbarControls(props: {
         ? t('Chat.agentCenterAvatarUpdatingHint', { defaultValue: 'Avatar action is in progress.' })
         : avatarState === 'unavailable'
           ? t('Chat.agentCenterAvatarLaunchUnavailableHint', { defaultValue: 'Avatar is configured, but launch controls are not available yet.' })
-          : avatarState === 'local_asset_invalid'
-            ? t('Chat.agentCenterFixAvatarSetupHint', { defaultValue: 'Avatar setup needs attention before it can start.' })
           : t('Chat.agentCenterConfigureAvatarHint', { defaultValue: 'Configure Avatar in Agent Center before starting.' });
   const handleAvatarClick = () => {
     if (avatarDisabled) {
