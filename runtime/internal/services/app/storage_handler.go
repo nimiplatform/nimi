@@ -9,6 +9,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc/codes"
 )
 
@@ -110,6 +111,16 @@ func (s *Service) GetAppStorage(ctx context.Context, req *runtimev1.GetAppStorag
 			"",
 		)}, nil
 	}
+	if s.isBundledFirstPartySelfStorageProjection(ctx, appID, descriptor, descriptorFound) {
+		return &runtimev1.GetAppStorageResponse{Projection: appStorageProjectionFromPlan(
+			appID,
+			roots,
+			runtimev1.AppStorageState_APP_STORAGE_STATE_READY,
+			"",
+			runtimev1.ReasonCode_ACTION_EXECUTED,
+			"",
+		)}, nil
+	}
 
 	state := runtimev1.AppStorageState_APP_STORAGE_STATE_READY
 	reason := runtimev1.ReasonCode_ACTION_EXECUTED
@@ -131,6 +142,22 @@ func (s *Service) GetAppStorage(ctx context.Context, req *runtimev1.GetAppStorag
 
 func isDesktopCoreAvatarStorageProjection(ctx context.Context, appID string) bool {
 	return strings.TrimSpace(appID) == avatarAppID && isDesktopCoreLifecycleController(ctx)
+}
+
+func (s *Service) isBundledFirstPartySelfStorageProjection(
+	ctx context.Context,
+	appID string,
+	descriptor appreleasecatalog.Descriptor,
+	descriptorFound bool,
+) bool {
+	if !descriptorFound || descriptor.DescriptorClass != appreleasecatalog.DescriptorClassBundledWithNimi || s.runtimeAppRegistry == nil {
+		return false
+	}
+	meta, ok := envelope.MetadataFromContext(ctx)
+	if !ok || strings.TrimSpace(meta.AppID) != strings.TrimSpace(appID) || strings.TrimSpace(meta.CallerKind) != "local-first-party-app" {
+		return false
+	}
+	return s.runtimeAppRegistry.AdmitLocalFirstPartyInstance(appID, strings.TrimSpace(meta.CallerID))
 }
 
 func (s *Service) resolveStorageDescriptor(appID string) (appreleasecatalog.Descriptor, bool) {

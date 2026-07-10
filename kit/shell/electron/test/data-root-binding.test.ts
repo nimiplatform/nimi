@@ -3,6 +3,7 @@ import path from 'node:path';
 import { readFile, realpath } from 'node:fs/promises';
 import {
   registerNimiElectronRuntimeBridge,
+  type ElectronRuntimeBridgeTrustedMetadataProvider,
   type RuntimeGrpcBridgeClient,
   type NimiElectronStandardShellHost,
 } from '../src/main/index.js';
@@ -24,6 +25,7 @@ const GET_APP_STORAGE_METHOD_ID = '/nimi.runtime.v1.RuntimeAppService/GetAppStor
 function registerBindingBridge(input: {
   readonly standardShellHost?: NimiElectronStandardShellHost;
   readonly createGrpcClient?: () => Promise<RuntimeGrpcBridgeClient>;
+  readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
 }): FakeIpcMain {
   const ipcMain = new FakeIpcMain();
   registerNimiElectronRuntimeBridge({
@@ -34,6 +36,7 @@ function registerBindingBridge(input: {
     createGrpcClient: input.createGrpcClient ?? (async () => {
       throw new Error('not used');
     }),
+    trustedRuntimeMetadataProvider: input.trustedRuntimeMetadataProvider,
     standardShellHost: input.standardShellHost
       ? { allowAllStandardShellCommands: true, ...input.standardShellHost }
       : undefined,
@@ -59,10 +62,52 @@ describe('Electron standard data root binding', () => {
     await withTempDir('binding-runtime', async (root) => {
       const dataRoot = path.join(root, 'data');
       let getAppStorageCalls = 0;
+      let trustedMetadataCalls = 0;
+      const trustedRuntimeMetadataProvider: ElectronRuntimeBridgeTrustedMetadataProvider = async (input) => {
+        expect(input).toMatchObject({
+          command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
+          methodId: GET_APP_STORAGE_METHOD_ID,
+          appId: 'nimi.tester',
+          runtimeEndpoint: '127.0.0.1:46371',
+        });
+        trustedMetadataCalls += 1;
+        return {
+          metadata: {
+            participantId: 'nimi.tester',
+            callerKind: 'local-first-party-app',
+            callerId: 'nimi.tester.local-first-party',
+          },
+          protectedAccessToken: {
+            tokenId: 'token-id',
+            secret: 'token-secret',
+          },
+          appSession: {
+            sessionId: 'session-id',
+            sessionToken: 'session-token',
+          },
+        };
+      };
       const client: RuntimeGrpcBridgeClient = {
         unary: async (request) => {
           expect(request.methodId).toBe(GET_APP_STORAGE_METHOD_ID);
           expect(GetAppStorageRequest.fromBinary(request.requestBytes).appId).toBe('nimi.tester');
+          expect(request.metadata).toMatchObject({
+            'x-nimi-protocol-version': '1.0.0',
+            'x-nimi-participant-protocol-version': '1.0.0',
+            'x-nimi-participant-id': 'nimi.tester',
+            'x-nimi-domain': 'runtime.rpc',
+            'x-nimi-app-id': 'nimi.tester',
+            'x-nimi-caller-kind': 'local-first-party-app',
+            'x-nimi-caller-id': 'nimi.tester.local-first-party',
+            'x-nimi-access-token-id': 'token-id',
+            'x-nimi-access-token-secret': 'token-secret',
+            'x-nimi-session-id': 'session-id',
+            'x-nimi-session-token': 'session-token',
+          });
+          expect(request.metadata?.['x-nimi-idempotency-key']).toMatch(
+            /^bridge-_nimi\.runtime\.v1\.RuntimeAppService_GetAppStorage-/u,
+          );
+          expect(request.metadata).not.toHaveProperty('app_id');
           getAppStorageCalls += 1;
           return {
             responseBytes: appStorageResponseBytes({
@@ -78,6 +123,7 @@ describe('Electron standard data root binding', () => {
       };
       const ipcMain = registerBindingBridge({
         createGrpcClient: async () => client,
+        trustedRuntimeMetadataProvider,
         standardShellHost: {
           standardDataRootBinding: { source: 'runtime-get-app-storage' },
         },
@@ -107,6 +153,7 @@ describe('Electron standard data root binding', () => {
       });
 
       expect(getAppStorageCalls).toBe(1);
+      expect(trustedMetadataCalls).toBe(1);
     });
   });
 

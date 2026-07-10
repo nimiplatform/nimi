@@ -148,6 +148,7 @@ export function registerNimiElectronRuntimeBridge(
       appId,
       runtimeEndpoint,
       ensureClient,
+      trustedRuntimeMetadataProvider: input.trustedRuntimeMetadataProvider,
     });
   }
   const streams = new Map<string, RuntimeGrpcBridgeStream>();

@@ -64,6 +64,42 @@ func TestGetAppStorageOrdinaryAppRequiresInstallBeforeActiveRelease(t *testing.T
 	}
 }
 
+func TestGetAppStorageAllowsBundledFirstPartySelfProjectionBeforeActiveRelease(t *testing.T) {
+	svc, dataRoot := newBundledInstallService(t)
+	const appID = "nimi.example-app"
+	const appInstanceID = "nimi.example-app.local-first-party"
+	manifest := &runtimev1.AppModeManifest{
+		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+		RuntimeRequired: true,
+		RealmRequired:   true,
+		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+	}
+	if err := svc.runtimeAppRegistry.UpsertInstance(appID, appInstanceID, "first-party-device", manifest, nil); err != nil {
+		t.Fatalf("register first-party instance: %v", err)
+	}
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", appID))
+	ctx = envelope.WithMetadata(ctx, envelope.Metadata{
+		AppID:      appID,
+		CallerKind: "local-first-party-app",
+		CallerID:   appInstanceID,
+	})
+
+	resp, err := svc.GetAppStorage(ctx, &runtimev1.GetAppStorageRequest{AppId: appID})
+	if err != nil {
+		t.Fatalf("GetAppStorage: %v", err)
+	}
+	projection := resp.GetProjection()
+	if projection.GetState() != runtimev1.AppStorageState_APP_STORAGE_STATE_READY {
+		t.Fatalf("state = %v detail=%q, want READY", projection.GetState(), projection.GetDetail())
+	}
+	if projection.GetActiveReleaseRoot() != "" {
+		t.Fatalf("first-party self projection must not synthesize active release root: %q", projection.GetActiveReleaseRoot())
+	}
+	if want := filepath.Join(dataRoot, "apps", appID, "data"); projection.GetDurableDataRoot() != want {
+		t.Fatalf("durable data root = %q, want %q", projection.GetDurableDataRoot(), want)
+	}
+}
+
 func TestGetAppStorageReportsActiveReleaseAfterInstall(t *testing.T) {
 	svc, _ := newBundledInstallService(t)
 	installResp, err := svc.InstallApp(context.Background(), &runtimev1.InstallAppRequest{AppId: "nimi.example-app", Confirmed: true})

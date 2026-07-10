@@ -66,6 +66,33 @@ export async function invokeElectronRuntimeUnary(input: {
   readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
 }): Promise<ElectronRuntimeBridgeUnaryResponse> {
   const request = parseElectronRuntimeUnaryRequest(input.payload);
+  const response = await invokeElectronRuntimeTrustedUnary({
+    client: input.client,
+    request,
+    requestBytes: fromBase64(request.requestBytesBase64),
+    appId: input.appId,
+    event: input.event,
+    runtimeEndpoint: input.runtimeEndpoint,
+    command: input.command,
+    trustedRuntimeMetadataProvider: input.trustedRuntimeMetadataProvider,
+  });
+  return {
+    responseBytesBase64: toBase64(response.responseBytes),
+    responseMetadata: response.responseMetadata,
+  };
+}
+
+export async function invokeElectronRuntimeTrustedUnary(input: {
+  readonly client: RuntimeGrpcBridgeClient;
+  readonly request: ElectronRuntimeBridgeUnaryRequest;
+  readonly requestBytes: Uint8Array;
+  readonly appId: string;
+  readonly event: NimiElectronIpcMainInvokeEvent;
+  readonly runtimeEndpoint: string;
+  readonly command: string;
+  readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
+}): Promise<RuntimeGrpcBridgeUnaryResponse> {
+  const request = input.request;
   let trusted = await resolveTrustedRuntimeMetadata({
     provider: input.trustedRuntimeMetadataProvider,
     command: input.command,
@@ -78,7 +105,7 @@ export async function invokeElectronRuntimeUnary(input: {
   try {
     response = await input.client.unary({
       methodId: request.methodId,
-      requestBytes: fromBase64(request.requestBytesBase64),
+      requestBytes: input.requestBytes,
       metadata: buildElectronRuntimeGrpcMetadata(request, input.appId, trusted),
       timeoutMs: request.timeoutMs,
     });
@@ -96,7 +123,7 @@ export async function invokeElectronRuntimeUnary(input: {
       try {
         response = await input.client.unary({
           methodId: request.methodId,
-          requestBytes: fromBase64(request.requestBytesBase64),
+          requestBytes: input.requestBytes,
           metadata: buildElectronRuntimeGrpcMetadata(request, input.appId, trusted),
           timeoutMs: request.timeoutMs,
         });
@@ -107,10 +134,7 @@ export async function invokeElectronRuntimeUnary(input: {
       throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
     }
   }
-  return {
-    responseBytesBase64: toBase64(response.responseBytes),
-    responseMetadata: response.responseMetadata,
-  };
+  return response;
 }
 
 function shouldRefreshTrustedRuntimeMetadata(

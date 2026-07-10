@@ -38,6 +38,8 @@ test('zhiyu Electron host boots sandboxed renderer and fails closed without Runt
         await page.waitForSelector('.runtime-unavailable-screen');
         await assertVisibleText(page, '织羽 Zhiyu');
         await assertVisibleText(page, '本地运行服务暂未连接');
+        await assertNativeEditMenu(app);
+        await assertNativeCopyShortcut(app, page);
         await assertVisibleText(page, '重新检查本地服务');
         const unavailableText = await page.locator('.runtime-unavailable-screen').innerText();
         assert.doesNotMatch(unavailableText, /缁囩窘|缂佸洨|绐/);
@@ -551,6 +553,70 @@ async function writeNestedLive2dSource(rootDir) {
   await writeFile(path.join(runtimeDir, 'ren.moc3'), 'MOC3\u0005moc-bytes');
   await writeFile(path.join(textureDir, 'texture_00.png'), 'png-bytes');
   return live2dRoot;
+}
+
+async function assertNativeEditMenu(app) {
+  const menuState = await app.evaluate(({ Menu }) => {
+    const applicationMenu = Menu.getApplicationMenu();
+    const roles = [];
+    const visit = (items) => {
+      for (const item of items) {
+        if (item.role) {
+          roles.push(item.role);
+        }
+        if (item.submenu) {
+          visit(item.submenu.items);
+        }
+      }
+    };
+    if (applicationMenu) {
+      visit(applicationMenu.items);
+    }
+    return {
+      installed: applicationMenu !== null,
+      roles,
+    };
+  });
+
+  assert.equal(menuState.installed, true);
+  assert.deepEqual(
+    menuState.roles
+      .map((role) => role.toLowerCase())
+      .filter((role) => ['undo', 'redo', 'cut', 'copy', 'paste', 'selectall'].includes(role)),
+    ['undo', 'redo', 'cut', 'copy', 'paste', 'selectall'],
+  );
+}
+
+async function assertNativeCopyShortcut(app, page) {
+  const copyText = '本地运行服务暂未连接';
+  const sentinel = `zhiyu-copy-sentinel-${Date.now()}`;
+  const previousClipboard = await app.evaluate(({ clipboard }) => clipboard.readText());
+  try {
+    await app.evaluate(({ clipboard }, value) => clipboard.writeText(value), sentinel);
+    await page.evaluate((text) => {
+      const root = document.querySelector('.runtime-unavailable-screen');
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let node = walker.nextNode();
+      while (node && !node.textContent?.includes(text)) {
+        node = walker.nextNode();
+      }
+      if (!node?.textContent) {
+        throw new Error(`copy probe text not found: ${text}`);
+      }
+      const start = node.textContent.indexOf(text);
+      const range = document.createRange();
+      range.setStart(node, start);
+      range.setEnd(node, start + text.length);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }, copyText);
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+C' : 'Control+C');
+    const copied = await app.evaluate(({ clipboard }) => clipboard.readText());
+    assert.equal(copied, copyText);
+  } finally {
+    await app.evaluate(({ clipboard }, value) => clipboard.writeText(value), previousClipboard);
+  }
 }
 
 async function withTempDir(prefix, run) {

@@ -740,6 +740,16 @@ test('Desktop Agent Center side sheet uses Desktop shared side-sheet density', a
   assert.doesNotMatch(css, /\.zhiyu-agent-center__avatar\s*\{[\s\S]*?width:\s*72px;[\s\S]*?height:\s*72px;/);
 });
 
+test('Zhiyu Electron host preserves the Kit native editing baseline', async () => {
+  const mainSource = await readFile(path.join(appRoot, 'src-electron', 'main.ts'), 'utf8');
+
+  assert.match(mainSource, /createNimiElectronStandardApplicationMenuTemplate/u);
+  assert.match(mainSource, /Menu\.buildFromTemplate\(/u);
+  assert.match(mainSource, /Menu\.setApplicationMenu\(applicationMenu\)/u);
+  assert.doesNotMatch(mainSource, /Menu\.setApplicationMenu\(null\)/u);
+  assert.doesNotMatch(mainSource, /\.removeMenu\(\)/u);
+});
+
 async function collectProductionFiles(root) {
   const entries = await readdir(root, { withFileTypes: true });
   const files = [];

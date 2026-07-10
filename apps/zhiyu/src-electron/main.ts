@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { app, BrowserWindow, Menu, ipcMain, protocol, dialog } from 'electron';
 import {
+  createNimiElectronStandardApplicationMenuTemplate,
   createElectronShellFileProtocolHost,
   isAllowedElectronRendererUrl,
   registerNimiElectronRuntimeBridge,
@@ -33,7 +34,12 @@ const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
 let mainWindow: BrowserWindow | undefined;
 
 app.setName('织羽 Zhiyu');
-Menu.setApplicationMenu(null);
+const applicationMenu = Menu.buildFromTemplate(
+  createNimiElectronStandardApplicationMenuTemplate({
+    appName: '织羽 Zhiyu',
+  }),
+);
+Menu.setApplicationMenu(applicationMenu);
 configureZhiyuElectronChromiumRuntime();
 
 const localAssetProtocolHost = createLocalAssetProtocolHost();
@@ -113,7 +119,6 @@ async function createMainWindow(): Promise<BrowserWindow> {
   mainWindow = window;
   window.setAutoHideMenuBar(true);
   window.setMenuBarVisibility(false);
-  window.removeMenu();
   window.on('closed', () => {
     if (mainWindow === window) {
       mainWindow = undefined;

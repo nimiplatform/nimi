@@ -2,21 +2,30 @@ import path from 'node:path';
 import { getRuntimeWireCodec } from '@nimiplatform/sdk/runtime/generated';
 import {
   NimiElectronShellHostError,
+  type ElectronRuntimeBridgeTrustedMetadataProvider,
+  type NimiElectronIpcMainInvokeEvent,
   type NimiElectronStandardDataRootBinding,
   type NimiElectronStandardShellHost,
   type NimiElectronStandardStorageRoots,
   type RuntimeGrpcBridgeClient,
 } from './types.js';
 import { createElectronRuntimeEndpointUnavailableError } from './errors.js';
+import { invokeElectronRuntimeTrustedUnary } from './runtime.js';
 
 const GET_APP_STORAGE_METHOD_ID = '/nimi.runtime.v1.RuntimeAppService/GetAppStorage';
 const GET_APP_STORAGE_TIMEOUT_MS = 10_000;
 const APP_STORAGE_STATE_READY = 1;
+// GetAppStorage is a main-process control-plane call, not a renderer-forwarded
+// Runtime request. The trusted provider still supplies the app/session proof.
+const INTERNAL_STANDARD_STORAGE_EVENT: NimiElectronIpcMainInvokeEvent = {
+  senderFrame: null,
+};
 
 export type NimiElectronStandardDataRootRuntimeResolverDeps = {
   readonly appId: string;
   readonly runtimeEndpoint: string;
   readonly ensureClient: () => Promise<RuntimeGrpcBridgeClient>;
+  readonly trustedRuntimeMetadataProvider?: ElectronRuntimeBridgeTrustedMetadataProvider;
 };
 
 type DecodedAppStorageProjection = {
@@ -119,14 +128,26 @@ async function resolveRuntimeStorageRoots(
   let responseBytes: Uint8Array;
   try {
     const client = await deps.ensureClient();
-    const response = await client.unary({
-      methodId: GET_APP_STORAGE_METHOD_ID,
-      requestBytes: codec.encodeRequest({ appId: deps.appId }),
-      metadata: { app_id: deps.appId },
-      timeoutMs: GET_APP_STORAGE_TIMEOUT_MS,
+    const requestBytes = codec.encodeRequest({ appId: deps.appId });
+    const response = await invokeElectronRuntimeTrustedUnary({
+      client,
+      request: {
+        methodId: GET_APP_STORAGE_METHOD_ID,
+        requestBytesBase64: '',
+        timeoutMs: GET_APP_STORAGE_TIMEOUT_MS,
+      },
+      requestBytes,
+      appId: deps.appId,
+      event: INTERNAL_STANDARD_STORAGE_EVENT,
+      runtimeEndpoint: deps.runtimeEndpoint,
+      command,
+      trustedRuntimeMetadataProvider: deps.trustedRuntimeMetadataProvider,
     });
     responseBytes = response.responseBytes;
   } catch (error) {
+    if (error instanceof NimiElectronShellHostError) {
+      throw error;
+    }
     throw createElectronRuntimeEndpointUnavailableError(command, deps.runtimeEndpoint, error);
   }
   const decoded = codec.decodeResponse(responseBytes) as { projection?: DecodedAppStorageProjection };
