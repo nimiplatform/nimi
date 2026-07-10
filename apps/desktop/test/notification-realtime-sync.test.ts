@@ -9,13 +9,17 @@ const SOURCE_PATH = resolve(
 );
 const source = readFileSync(SOURCE_PATH, 'utf-8');
 
-describe('notification realtime sync wiring', () => {
-  test('realtime controller wiring invalidates notification queries', () => {
-    assert.match(source, /invalidateNotifications:\s*\(\)\s*=>\s*invalidateNotificationQueries\(\)/);
+describe('notification broker sync wiring', () => {
+  test('broker projection refresh invalidates notification queries', () => {
+    assert.match(source, /syncThroughBroker/);
+    assert.match(source, /invalidateNotificationQueries\(\),/);
   });
 
-  test('chat realtime sync wires the shared realm realtime controller instead of bespoke socket handlers', () => {
-    assert.match(source, /useRealmChatRealtimeController\(\{/);
+  test('chat sync polls mediated projections instead of opening a renderer socket', () => {
+    assert.match(source, /BROKER_SYNC_INTERVAL_MS/);
+    assert.match(source, /globalThis\.setInterval/);
+    assert.doesNotMatch(source, /useRealmChatRealtimeController\(\{/);
     assert.doesNotMatch(source, /socket\.on\('notif:new'/);
+    assert.doesNotMatch(source, /Authorization|Bearer|resolveAuthToken/);
   });
 });

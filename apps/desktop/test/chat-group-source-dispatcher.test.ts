@@ -101,10 +101,12 @@ describe('Realm group source participation Desktop hardcut', () => {
     assert.match(panelSource, /p\.role === 'admin'/);
   });
 
-  it('does not describe realtime invalidation as Desktop source dispatch', () => {
+  it('keeps chat invalidation on broker-mediated projection refresh without Desktop source dispatch', () => {
     const realtimeSource = readDesktopFile('src/shell/renderer/features/realtime/use-chat-realtime-sync.ts');
 
     assert.doesNotMatch(realtimeSource, new RegExp(`trigger ${oldSourceDomainName} dispatch`));
-    assert.match(realtimeSource, /Realm projection refresh only/);
+    assert.match(realtimeSource, /syncThroughBroker/);
+    assert.match(realtimeSource, /queryClient\.invalidateQueries\(\{ queryKey: \['chats'\] \}\)/);
+    assert.doesNotMatch(realtimeSource, /applyChatEventToCache|Authorization|Bearer|socket\.io/);
   });
 });

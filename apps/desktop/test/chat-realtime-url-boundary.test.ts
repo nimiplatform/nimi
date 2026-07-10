@@ -8,9 +8,12 @@ const realtimeSyncSource = fs.readFileSync(
   'utf8',
 );
 
-test('Desktop chat realtime consumes SDK Realm realtime projection', () => {
-  assert.match(realtimeSyncSource, /resolveNimiRealmRealtimeUrl/);
-  assert.match(realtimeSyncSource, /from '@nimiplatform\/sdk\/realm'/);
+test('Desktop chat sync stays on Runtime-mediated projections without a direct Realm realtime URL', () => {
+  assert.match(realtimeSyncSource, /syncThroughBroker/);
+  assert.match(realtimeSyncSource, /queryClient\.invalidateQueries/);
+  assert.doesNotMatch(realtimeSyncSource, /from '@nimiplatform\/sdk\/realm'/);
+  assert.doesNotMatch(realtimeSyncSource, /resolveNimiRealmRealtimeUrl/);
   assert.doesNotMatch(realtimeSyncSource, /projectRealmRealtimeUrl/);
   assert.doesNotMatch(realtimeSyncSource, /resolveRealtimeUrl/);
+  assert.doesNotMatch(realtimeSyncSource, /\/socket\.io|WebSocket/);
 });

@@ -1,240 +1,13 @@
 import { realmSocialData } from '@renderer/features/social/data/realm-social-data';
-import { useCallback, useMemo } from 'react';
-import type { QueryKey } from '@tanstack/react-query';
-import { io } from 'socket.io-client';
-import type {
-  RealmChatEventEnvelope,
-  RealmChatSyncResultDto,
-  RealmChatViewDto,
-  RealmListChatsResultDto,
-  RealmListMessagesResultDto,
-  RealmMessageViewDto,
-  RealmChatRealtimeSocket,
-} from '@nimiplatform/kit/features/chat/realm';
-import {
-  applyRealmRealtimeMessageToChatsResult,
-  applyRealmRealtimeMessageUpdateToChatsResult,
-  applyRealmRealtimeMessageUpdateToMessagesResult,
-  extractRealmMessageFromEvent,
-  mergeRealmRealtimeMessageIntoMessagesResult,
-  projectRealmChatView,
-  rememberRealmChatSeenEvent,
-  useRealmChatRealtimeController,
-} from '@nimiplatform/kit/features/chat/realm';
-import { resolveNimiRealmRealtimeUrl } from '@nimiplatform/sdk/realm';
+import { useEffect } from 'react';
+import { rememberRealmChatSeenEvent } from '@nimiplatform/kit/features/chat/realm';
 import { getOfflineCoordinator } from '@renderer/infra/offline/coordinator';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
-import {
-  flushPendingChatOutbox,
-  loadChatMessages,
-  markChatAsRead,
-  syncChatEventWindow,
-} from '@renderer/features/chat/data/realm-human-chat-data';
-import { getDesktopRuntimeAccessToken } from '@renderer/features/auth/runtime-account-access-token';
+import { flushPendingChatOutbox } from '@renderer/features/chat/data/realm-human-chat-data';
 
-const CHAT_SOCKET_PATH = '/socket.io/';
-
-type ApplyChatEventInput = {
-  event: RealmChatEventEnvelope;
-  selectedChatId: string | null;
-  currentUserId: string;
-};
-
-function hasMessageQuery(chatId: string): boolean {
-  return queryClient.getQueryState(['messages', chatId]) !== undefined;
-}
-
-function mergeChatQueriesByMessage(input: {
-  message: RealmMessageViewDto;
-  selectedChatId: string | null;
-  currentUserId: string;
-}): { found: boolean; shouldMarkRead: boolean } {
-  const queries = queryClient.getQueriesData<RealmListChatsResultDto>({
-    queryKey: ['chats'],
-  });
-  if (queries.length === 0) {
-    return { found: false, shouldMarkRead: false };
-  }
-
-  let found = false;
-  let shouldMarkRead = false;
-
-  for (const [queryKey, current] of queries) {
-    const result = applyRealmRealtimeMessageToChatsResult({
-      current,
-      message: input.message,
-      currentUserId: input.currentUserId,
-      selectedChatId: input.selectedChatId,
-    });
-    found = found || result.found;
-    shouldMarkRead = shouldMarkRead || result.shouldMarkRead;
-    queryClient.setQueryData(queryKey as QueryKey, result.data);
-  }
-
-  return { found, shouldMarkRead };
-}
-
-function mergeChatQueriesByUpdate(input: {
-  chatId: string;
-  message: RealmMessageViewDto;
-}): boolean {
-  const queries = queryClient.getQueriesData<RealmListChatsResultDto>({
-    queryKey: ['chats'],
-  });
-  if (queries.length === 0) {
-    return false;
-  }
-
-  let found = false;
-  for (const [queryKey, current] of queries) {
-    const result = applyRealmRealtimeMessageUpdateToChatsResult({
-      current,
-      chatId: input.chatId,
-      message: input.message,
-    });
-    found = found || result.found;
-    queryClient.setQueryData(queryKey as QueryKey, result.data);
-  }
-  return found;
-}
-
-function mergeMessageQueryByIncomingMessage(input: {
-  message: RealmMessageViewDto;
-  selectedChatId: string | null;
-}): void {
-  const shouldWriteMessageCache =
-    input.selectedChatId === input.message.chatId
-    || hasMessageQuery(input.message.chatId);
-  if (!shouldWriteMessageCache) {
-    return;
-  }
-
-  queryClient.setQueryData<RealmListMessagesResultDto>(
-    ['messages', input.message.chatId],
-    (current) => mergeRealmRealtimeMessageIntoMessagesResult(current, input.message),
-  );
-}
-
-function mergeMessageQueryByUpdate(input: {
-  chatId: string;
-  message: RealmMessageViewDto;
-  selectedChatId: string | null;
-}): void {
-  const shouldPatchMessageCache =
-    input.selectedChatId === input.chatId
-    || hasMessageQuery(input.chatId);
-  if (!shouldPatchMessageCache) {
-    return;
-  }
-
-  queryClient.setQueryData<RealmListMessagesResultDto | undefined>(
-    ['messages', input.chatId],
-    (current) => applyRealmRealtimeMessageUpdateToMessagesResult(current, input.message),
-  );
-}
-
-function upsertChatInChatsResult(
-  current: RealmListChatsResultDto | undefined,
-  chat: RealmChatViewDto,
-): RealmListChatsResultDto | undefined {
-  if (!current || !Array.isArray(current.items)) {
-    return current;
-  }
-  const index = current.items.findIndex((item) => String(item.id || '') === String(chat.id || ''));
-  if (index < 0) {
-    return {
-      ...current,
-      items: [chat, ...current.items],
-    };
-  }
-  const nextItems = current.items.slice();
-  nextItems[index] = chat;
-  return {
-    ...current,
-    items: nextItems,
-  };
-}
-
-function applySyncSnapshotToCache(chatId: string, snapshot: RealmChatSyncResultDto['snapshot']): void {
-  if (!snapshot) {
-    return;
-  }
-  if (snapshot.chat) {
-    const projectedChat = projectRealmChatView(snapshot.chat);
-    const chatQueries = queryClient.getQueriesData<RealmListChatsResultDto>({ queryKey: ['chats'] });
-    for (const [queryKey, current] of chatQueries) {
-      queryClient.setQueryData(queryKey as QueryKey, upsertChatInChatsResult(current, projectedChat));
-    }
-  }
-  if (Array.isArray(snapshot.messages)) {
-    queryClient.setQueryData<RealmListMessagesResultDto>(['messages', chatId], {
-      items: snapshot.messages,
-      nextBefore: null,
-      nextAfter: null,
-    });
-  }
-}
-
-function invalidateGroupChatQueries(chatId: string): void {
-  void queryClient.invalidateQueries({ queryKey: ['group-chats'] });
-  void queryClient.invalidateQueries({ queryKey: ['group-messages', chatId] });
-}
-
-function applyChatEventToCache(input: ApplyChatEventInput): void {
-  const message = extractRealmMessageFromEvent(input.event);
-  if (message && input.event.kind === 'message.created') {
-    mergeMessageQueryByIncomingMessage({
-      message,
-      selectedChatId: input.selectedChatId,
-    });
-
-    const chatMerge = mergeChatQueriesByMessage({
-      message,
-      selectedChatId: input.selectedChatId,
-      currentUserId: input.currentUserId,
-    });
-    if (!chatMerge.found) {
-      void queryClient.invalidateQueries({ queryKey: ['chats'] });
-      // If this event was not found in DIRECT cache, it may be a GROUP chat
-      // event. Invalidate GROUP queries for Realm projection refresh only.
-      invalidateGroupChatQueries(input.event.chatId);
-    }
-    if (chatMerge.shouldMarkRead) {
-      void markChatAsRead(message.chatId);
-    }
-    return;
-  }
-
-  if (
-    message
-    && (
-      input.event.kind === 'message.edited'
-      || input.event.kind === 'message.recalled'
-    )
-  ) {
-    mergeMessageQueryByUpdate({
-      chatId: input.event.chatId,
-      message,
-      selectedChatId: input.selectedChatId,
-    });
-    const found = mergeChatQueriesByUpdate({
-      chatId: input.event.chatId,
-      message,
-    });
-    if (!found) {
-      void queryClient.invalidateQueries({ queryKey: ['chats'] });
-      invalidateGroupChatQueries(input.event.chatId);
-    }
-    return;
-  }
-
-  if (input.event.kind === 'chat.read') {
-    void queryClient.invalidateQueries({ queryKey: ['chats'] });
-    invalidateGroupChatQueries(input.event.chatId);
-  }
-}
+const BROKER_SYNC_INTERVAL_MS = 5_000;
 
 export function rememberSeenEvent(seen: Map<string, number>, key: string): boolean {
   return rememberRealmChatSeenEvent(seen, key);
@@ -242,55 +15,50 @@ export function rememberSeenEvent(seen: Map<string, number>, key: string): boole
 
 export function useChatRealtimeSync(): void {
   const authStatus = useAppStore((state) => state.auth.status);
-  const currentUserId = String(useAppStore((state) => state.auth.user?.id || '')).trim();
-  const runtimeDefaults = useAppStore((state) => state.runtimeDefaults);
   const selectedChatId = useAppStore((state) => state.selectedChatId);
   const offlineCoordinator = getOfflineCoordinator();
 
-  const realtimeBaseUrl = useMemo(
-    () => resolveNimiRealmRealtimeUrl({
-      realmBaseUrl: runtimeDefaults?.realm.realmBaseUrl,
-      realtimeUrl: runtimeDefaults?.realm.realtimeUrl,
-    }),
-    [runtimeDefaults?.realm.realmBaseUrl, runtimeDefaults?.realm.realtimeUrl],
-  );
-  const resolveAuthToken = useCallback(() => getDesktopRuntimeAccessToken(), []);
-
-  useRealmChatRealtimeController({
-    authStatus,
-    resolveAuthToken,
-    realtimeBaseUrl,
-    selectedChatId,
-    currentUserId,
-    socketPath: CHAT_SOCKET_PATH,
-    createSocket: ({ baseUrl, token, socketPath }) => io(baseUrl, {
-      path: socketPath,
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 30_000,
-      reconnectionAttempts: Infinity,
-      auth: { token },
-    }) as unknown as RealmChatRealtimeSocket,
-    onSocketReachableChange: (reachable) => {
-      offlineCoordinator.markRealmSocketReachable(reachable);
-    },
-    flushChatOutbox: async () => { await flushPendingChatOutbox(); },
-    flushSocialOutbox: () => realmSocialData.flushSocialOutbox(),
-    invalidateChats: () => queryClient.invalidateQueries({ queryKey: ['chats'] }),
-    invalidateMessages: (chatId) => queryClient.invalidateQueries({ queryKey: ['messages', chatId] }),
-    invalidateNotifications: () => invalidateNotificationQueries(),
-    syncChatEvents: (chatId, afterSeq, limit) => syncChatEventWindow(chatId, afterSeq, limit),
-    loadMessages: (chatId) => loadChatMessages(chatId, 50),
-    applyChatEvent: ({ event, selectedChatId: activeChatId, currentUserId: activeUserId }) => {
-      applyChatEventToCache({
-        event,
-        selectedChatId: activeChatId,
-        currentUserId: activeUserId,
-      });
-    },
-    applySyncSnapshot: (chatId, snapshot) => {
-      applySyncSnapshotToCache(chatId, snapshot);
-    },
-  });
+  useEffect(() => {
+    offlineCoordinator.markRealmSocketReachable(false);
+    if (authStatus !== 'authenticated') {
+      return undefined;
+    }
+    let cancelled = false;
+    let inFlight = false;
+    const syncThroughBroker = async () => {
+      if (cancelled || inFlight) {
+        return;
+      }
+      inFlight = true;
+      try {
+        const tasks: Promise<unknown>[] = [
+          queryClient.invalidateQueries({ queryKey: ['chats'] }),
+          invalidateNotificationQueries(),
+          flushPendingChatOutbox(),
+          realmSocialData.flushSocialOutbox(),
+        ];
+        if (selectedChatId) {
+          tasks.push(queryClient.invalidateQueries({ queryKey: ['messages', selectedChatId] }));
+        }
+        await Promise.allSettled(tasks);
+      } finally {
+        inFlight = false;
+      }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void syncThroughBroker();
+      }
+    };
+    void syncThroughBroker();
+    const interval = globalThis.setInterval(() => {
+      void syncThroughBroker();
+    }, BROKER_SYNC_INTERVAL_MS);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      cancelled = true;
+      globalThis.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [authStatus, offlineCoordinator, selectedChatId]);
 }
