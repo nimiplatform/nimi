@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import { MemoryCanonicalClass, ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
+import {
+  AgentPresentationBackendKind,
+  MemoryCanonicalClass,
+  ReasonCode,
+} from '@nimiplatform/sdk/runtime/wire-types';
 import { createRuntimeAgentInspectAdapter } from '../src/shell/renderer/infra/runtime-agent-inspect.js';
 
 const LOCAL_AGENT_REF = 'local-agent:desktop-inspect-agent-1';
@@ -156,42 +160,17 @@ function createRuntimeMock() {
         return {
           agent: {
             lifecycleStatus: 2,
-            metadata: {
-              fields: {
-                presentationProfile: {
-                  kind: {
-                    oneofKind: 'structValue',
-                    structValue: {
-                      fields: {
-                        backendKind: {
-                          kind: {
-                            oneofKind: 'stringValue',
-                            stringValue: 'live2d',
-                          },
-                        },
-                        avatarAssetRef: {
-                          kind: {
-                            oneofKind: 'stringValue',
-                            stringValue: 'asset://live2d/agent-1',
-                          },
-                        },
-                        idlePreset: {
-                          kind: {
-                            oneofKind: 'stringValue',
-                            stringValue: 'companion.idle.soft',
-                          },
-                        },
-                        defaultVoiceReference: {
-                          kind: {
-                            oneofKind: 'stringValue',
-                            stringValue: 'voice://agent-1/default',
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
+            presentationProfileRevision: '7',
+            presentationProfile: {
+              backendKind: AgentPresentationBackendKind.LIVE2D,
+              avatarAssetRef: 'live2d_111111111111',
+              expressionProfileRef: '',
+              idlePreset: 'companion.idle.soft',
+              interactionPolicyRef: '',
+              defaultVoiceReference: 'voice_asset_id:agent-1-default',
+              avatarAutoplay: false,
+              backgroundAssetRef: '',
+              revision: '7',
             },
             autonomy: {
               enabled: true,
@@ -572,11 +551,11 @@ test('runtime agent inspect adapter projects public state and pending hook summa
   assert.equal(snapshot.lifecycleStatus, 'active');
   assert.deepEqual(snapshot.presentationProfile, {
     backendKind: 'live2d',
-    avatarAssetRef: 'asset://live2d/agent-1',
+    avatarAssetRef: 'live2d_111111111111',
     expressionProfileRef: null,
     idlePreset: 'companion.idle.soft',
     interactionPolicyRef: null,
-    defaultVoiceReference: 'voice://agent-1/default',
+    defaultVoiceReference: 'voice_asset_id:agent-1-default',
     avatarAutoplay: false,
     backgroundAssetRef: null,
   });
@@ -660,14 +639,17 @@ test('runtime agent inspect adapter projects persistent presentation profile wit
   const profile = await adapter.getPresentationProfile(LOCAL_IDENTITY);
 
   assert.deepEqual(profile, {
-    backendKind: 'live2d',
-    avatarAssetRef: 'asset://live2d/agent-1',
-    expressionProfileRef: null,
-    idlePreset: 'companion.idle.soft',
-    interactionPolicyRef: null,
-    defaultVoiceReference: 'voice://agent-1/default',
-    avatarAutoplay: false,
-    backgroundAssetRef: null,
+    committedRevision: '7',
+    profile: {
+      backendKind: 'live2d',
+      avatarAssetRef: 'live2d_111111111111',
+      expressionProfileRef: null,
+      idlePreset: 'companion.idle.soft',
+      interactionPolicyRef: null,
+      defaultVoiceReference: 'voice_asset_id:agent-1-default',
+      avatarAutoplay: false,
+      backgroundAssetRef: null,
+    },
   });
   assert.equal(calls.getAgent.length, 1);
   assert.equal(calls.getAgentState.length, 0);
@@ -689,30 +671,17 @@ test('runtime agent inspect adapter accepts live2d presentation profiles', async
     agent: {
       getAgent: async () => ({
         agent: {
-          metadata: {
-            fields: {
-              presentationProfile: {
-                kind: {
-                  oneofKind: 'structValue',
-                  structValue: {
-                    fields: {
-                      backendKind: {
-                        kind: {
-                          oneofKind: 'stringValue',
-                          stringValue: 'live2d',
-                        },
-                      },
-                      avatarAssetRef: {
-                        kind: {
-                          oneofKind: 'stringValue',
-                          stringValue: 'asset://live2d/airi',
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
+          presentationProfileRevision: '3',
+          presentationProfile: {
+            backendKind: AgentPresentationBackendKind.LIVE2D,
+            avatarAssetRef: 'live2d_222222222222',
+            expressionProfileRef: '',
+            idlePreset: '',
+            interactionPolicyRef: '',
+            defaultVoiceReference: '',
+            avatarAutoplay: false,
+            backgroundAssetRef: '',
+            revision: '3',
           },
         },
       }),
@@ -727,14 +696,17 @@ test('runtime agent inspect adapter accepts live2d presentation profiles', async
   const profile = await adapter.getPresentationProfile(LOCAL_IDENTITY);
 
   assert.deepEqual(profile, {
-    backendKind: 'live2d',
-    avatarAssetRef: 'asset://live2d/airi',
-    expressionProfileRef: null,
-    idlePreset: null,
-    interactionPolicyRef: null,
-    defaultVoiceReference: null,
-    avatarAutoplay: false,
-    backgroundAssetRef: null,
+    committedRevision: '3',
+    profile: {
+      backendKind: 'live2d',
+      avatarAssetRef: 'live2d_222222222222',
+      expressionProfileRef: null,
+      idlePreset: null,
+      interactionPolicyRef: null,
+      defaultVoiceReference: null,
+      avatarAutoplay: false,
+      backgroundAssetRef: null,
+    },
   });
 });
 

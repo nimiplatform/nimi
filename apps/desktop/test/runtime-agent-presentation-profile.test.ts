@@ -45,7 +45,7 @@ test('runtime agent presentation profile keeps admitted runtime voice references
     'preset_voice_id:alloy',
   );
   assert.equal(
-    normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(' voice_asset_id:voice-asset-1 '),
+    normalizeNimiRuntimeAgentPresentationDefaultVoiceReference('voice_asset_id:voice-asset-1'),
     'voice_asset_id:voice-asset-1',
   );
 });
@@ -59,6 +59,14 @@ test('runtime agent presentation profile rejects non-runtime voice references be
     () => normalizeNimiRuntimeAgentPresentationDefaultVoiceReference('voice://agent-1/default'),
     /preset_voice_id or voice_asset_id/,
   );
+  assert.throws(
+    () => normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(' voice_asset_id:voice-asset-1 '),
+    /preset_voice_id or voice_asset_id/,
+  );
+  assert.throws(
+    () => normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(null),
+    /preset_voice_id or voice_asset_id/,
+  );
   assert.equal(normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(''), '');
-  assert.equal(normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(null), '');
+  assert.equal(normalizeNimiRuntimeAgentPresentationDefaultVoiceReference(undefined), '');
 });
