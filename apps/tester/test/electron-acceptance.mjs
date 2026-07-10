@@ -107,6 +107,10 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     });
 
     await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__));
+    const sdkAcceptanceKeys = await page.evaluate(() =>
+      Object.keys(globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__).sort(),
+    );
+    assert.deepEqual(sdkAcceptanceKeys, ['accountProjection', 'runtimeReady', 'sharedAuthBroker']);
     const sdkRuntimeReady = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.runtimeReady(),
     );
@@ -115,6 +119,14 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     assert.equal(sdkRuntimeReady.code, 'external-daemon-required');
     assert.equal(sdkRuntimeReady.reasonCode, 'electron-runtime-endpoint-unavailable');
     assert.equal(sdkRuntimeReady.actionHint, 'start_external_runtime_daemon');
+    const sharedAuthBroker = await page.evaluate(() =>
+      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.sharedAuthBroker(),
+    );
+    assert.equal(sharedAuthBroker.transport, 'electron-ipc');
+    assert.equal(sharedAuthBroker.ok, false);
+    assert.equal(sharedAuthBroker.code, 'external-daemon-required');
+    assert.equal(sharedAuthBroker.reasonCode, 'electron-runtime-endpoint-unavailable');
+    assert.equal(sharedAuthBroker.actionHint, 'start_external_runtime_daemon');
 
     for (const commandKey of [
       'runtime-lifecycle.status',
@@ -296,12 +308,15 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     );
     assert.deepEqual(streamCloseResult, {});
 
-    for (const commandKey of [
-      'auth.sessionLoad',
-      'auth.sessionSave',
-      'auth.sessionClear',
+    for (const command of [
+      'nimi.shell.auth.session.load',
+      'nimi.shell.auth.session.save',
+      'nimi.shell.auth.session.clear',
     ]) {
-      await assertInstalledCapabilityForbidden(page, NIMI_STANDARD_SHELL_COMMANDS[commandKey], commandKey);
+      const error = await captureInvokeError(page, command, {});
+      assert.equal(error.code, 'external-daemon-required', command);
+      assert.equal(error.reasonCode, 'electron-runtime-account-custody-external', command);
+      assert.equal(error.source, 'electron', command);
     }
   } finally {
     await app.close();

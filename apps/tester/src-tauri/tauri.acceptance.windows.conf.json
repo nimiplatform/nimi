@@ -1,0 +1,14 @@
+{
+  "app": {
+    "windows": [
+      {
+        "title": "Nimi Lab",
+        "url": "tauri://localhost/index.html?nimiElectronSdkAcceptance=1",
+        "width": 1120,
+        "height": 760,
+        "additionalBrowserArgs": "--remote-debugging-port=0",
+        "devtools": true
+      }
+    ]
+  }
+}

@@ -1,4 +1,6 @@
 import { createNimiClient, createNimiClientId, createNimiError, type NimiClient } from '@nimiplatform/sdk';
+import { createRuntimeAccountMediatedRealmTransport } from '@nimiplatform/sdk/app';
+import { Realm } from '@nimiplatform/sdk/realm';
 import {
   Runtime,
   createNimiDeveloperRegisteredRuntimeAccountCaller,
@@ -8,7 +10,6 @@ import {
   withNimiRuntimeIdempotencyMetadata,
   type NimiRuntimeAccountCaller,
   type RuntimeOptions,
-  type RuntimeTypedCallOptions,
 } from '@nimiplatform/sdk/runtime';
 import {
   AccountSessionState,
@@ -29,15 +30,22 @@ const runtimeDeveloperRegistrationRequested = true;
 const runtimeClientIdPrefix = normalizeClientIdPrefix(appId);
 const runtimeAccountAppInstanceId = `${appId}.local-developer`;
 const runtimeAccountDeviceId = `${runtimeClientIdPrefix}-local-developer-device`;
-const runtimeAppSessionInstanceId = `${appId}.platform-runtime-session`;
-const runtimeAppSessionDeviceId = 'platform-runtime-session';
+const runtimeAppSessionInstanceId = runtimeAccountAppInstanceId;
+const runtimeAppSessionDeviceId = runtimeAccountDeviceId;
 const runtimeAppSessionTtlSeconds = 3600;
 const runtimeAppSessionRefreshSkewMs = 30_000;
 const runtimeProtectedScopes = ['ai.spend.meter'] as const;
+const runtimeAccountBrokerCapabilities = [
+  'account.session.read',
+  'data.scope.read#realm.worlds.read-probe',
+] as const;
+const runtimeRegistrationCapabilities = [
+  ...runtimeProtectedScopes,
+  ...runtimeAccountBrokerCapabilities,
+] as const;
 const runtimeProtectedScopeCatalogVersion = 'sdk-v2';
 const runtimeProtectedTokenTtlSeconds = 3600;
 const runtimeProtectedTokenRefreshSkewMs = 60_000;
-const runtimeAccountRefreshSurfaceId = 'runtime-account.refresh';
 
 export type RuntimeAuthMode = 'developer-registered-local-app' | 'third-party-nimi-app';
 
@@ -135,23 +143,6 @@ export function getRuntimeSubjectUserId(): string | undefined {
   return runtimeReadyProjection?.auth.subjectUserId;
 }
 
-export function createRuntimeAccountRefreshCallOptions(): RuntimeTypedCallOptions {
-  return createRuntimeAccountCallOptions(
-    runtimeAccountRefreshSurfaceId,
-    createScopedClientId('runtime-account-refresh'),
-  );
-}
-
-function createRuntimeAccountCallOptions(surfaceId: string, idempotencyKey: string): RuntimeTypedCallOptions {
-  return withNimiRuntimeIdempotencyMetadata({
-    metadata: {
-      callerKind: 'developer-registered-local-app',
-      callerId: appId,
-      surfaceId,
-    },
-  }, idempotencyKey);
-}
-
 async function createDeveloperRegisteredRuntimeProjection(
   mode: RuntimeAuthMode,
 ): Promise<RuntimePlatformProjection> {
@@ -181,7 +172,7 @@ async function createDeveloperRegisteredRuntimeProjection(
       };
     }
     const runtime = new Runtime(
-      resolveTesterRuntimeHostKind() === 'electron'
+      resolveTesterRuntimeHostKind() !== 'node'
         ? runtimeOptions()
         : {
             ...runtimeOptions(),
@@ -191,7 +182,12 @@ async function createDeveloperRegisteredRuntimeProjection(
     const client = createNimiClient({
       appId,
       runtime,
-      realm: false,
+      realm: new Realm({
+        transport: createRuntimeAccountMediatedRealmTransport({
+          runtime,
+          accountCaller,
+        }),
+      }),
       app: false,
       permissions: false,
     });
@@ -223,7 +219,7 @@ async function registerDeveloperRegisteredRuntimeAccountCaller(accountRuntime: R
       appId,
       appInstanceId: caller.appInstanceId,
       deviceId: caller.deviceId,
-      capabilities: [...runtimeProtectedScopes],
+      capabilities: [...runtimeRegistrationCapabilities],
       developerRegistration: runtimeDeveloperRegistrationRequested,
       rejectionLabel: `${appTitle} Runtime account caller registration rejected`,
     },
@@ -238,7 +234,7 @@ function createRuntimeAppSessionMetadataProvider(
     appId,
     appInstanceId: runtimeAppSessionInstanceId,
     deviceId: runtimeAppSessionDeviceId,
-    capabilities: [...runtimeProtectedScopes],
+    capabilities: [...runtimeRegistrationCapabilities],
     ttlSeconds: runtimeAppSessionTtlSeconds,
     refreshSkewMs: runtimeAppSessionRefreshSkewMs,
     auth: accountRuntime.auth,

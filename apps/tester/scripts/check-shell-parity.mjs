@@ -106,7 +106,6 @@ function validateStandardShellBridgeCatalog() {
     'nimi.shell.runtime.unary',
     'nimi.shell.runtimeLifecycle.status',
     'nimi.shell.runtimeDefaults.get',
-    'nimi.shell.auth.session.load',
     'nimi.shell.oauth.openExternalUrl',
     'nimi.shell.config.get',
   ]) {
@@ -114,13 +113,16 @@ function validateStandardShellBridgeCatalog() {
       throw new Error(`Kit standard shell catalog missing ${command}`);
     }
   }
+  if (NIMI_STANDARD_SHELL_COMMANDS.has('nimi.shell.auth.session.load')) {
+    throw new Error('Kit standard shell catalog must not expose retired auth session custody');
+  }
 
   assertIncludes(electronMain, 'registerNimiElectronRuntimeBridge', 'Tester Electron standard shell host');
   assertIncludes(electronHost, 'NIMI_STANDARD_SHELL_COMMANDS', 'Kit Electron standard shell catalog');
   assertIncludes(electronRuntime, "standardCommand('runtime.unary')", 'Kit Electron runtime bridge command');
   assertIncludes(electronRuntime, "standardCommand('runtime-lifecycle.status')", 'Kit Electron runtime lifecycle command');
   assertIncludes(electronRuntime, "standardCommand('config.get')", 'Kit Electron config command');
-  assertIncludes(electronAuth, "NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad']", 'Kit Electron auth custody hardcut');
+  assertIncludes(electronAuth, "'nimi.shell.auth.session.load'", 'Kit Electron retired auth custody denial');
   assertIncludes(electronHost, 'isElectronRuntimeAccountCustodyCommand', 'Kit Electron auth custody hardcut');
   assertIncludes(electronHost, "NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']", 'Kit Electron OAuth command');
   assertIncludes(electronHost, "NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']", 'Kit Electron local-agent command');
@@ -129,11 +131,11 @@ function validateStandardShellBridgeCatalog() {
   assertIncludes(tauriCommandRegistration, 'nimi_shell_tauri_installed_app_standard_shell_handler', 'Kit Tauri installed app command macro');
   assertIncludes(tauriCommandRegistration, 'pub const RUNTIME_BRIDGE_COMMANDS', 'Kit Tauri runtime bridge catalog');
   assertIncludes(tauriCommandRegistration, 'runtime_bridge_unary', 'Kit Tauri runtime bridge command');
-  assertIncludes(tauriCommandRegistration, 'auth_session_load', 'Kit Tauri auth command');
+  assertNotMatch(tauriCommandRegistration, /auth_session_(?:load|save|clear)/, 'Kit Tauri retired auth commands');
   assertIncludes(tauriCommandRegistration, 'open_external_url', 'Kit Tauri OAuth command');
   assertIncludes(tauriRendererApi, 'NIMI_STANDARD_SHELL_COMMANDS', 'Kit renderer standard shell catalog');
   assertIncludes(tauriRendererApi, "NIMI_STANDARD_SHELL_COMMANDS['runtime.unary']", 'Kit renderer Tauri runtime alias');
-  assertIncludes(tauriRendererApi, "NIMI_STANDARD_SHELL_COMMANDS['auth.sessionLoad']", 'Kit renderer Tauri auth alias');
+  assertNotMatch(tauriRendererApi, /auth\.session(?:Load|Save|Clear)|auth_session_(?:load|save|clear)/, 'Kit renderer retired auth alias');
 }
 
 function validateShellParity() {

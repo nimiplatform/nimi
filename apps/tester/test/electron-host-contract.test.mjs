@@ -110,11 +110,15 @@ test('Electron host owns sensitive Runtime auth metadata', () => {
   assert.match(mainSource, /trustedRuntimeMetadataProvider:\s*createTesterElectronTrustedRuntimeMetadataProvider/);
   assert.match(hostAuthSource, /createNimiElectronRuntimeAccountTrustedMetadataProvider/);
   assert.match(hostAuthSource, /appSession:\s*\{/);
+  assert.match(hostAuthSource, /runtimeAccountBrokerCapabilities = \[\s*'account\.session\.read',\s*'data\.scope\.read#realm\.worlds\.read-probe',\s*\]/s);
+  assert.match(hostAuthSource, /capabilities:\s*\[\.\.\.runtimeRegistrationCapabilities\]/);
+  assert.match(hostAuthSource, /appSession:\s*\{[\s\S]*appInstanceId:\s*`\$\{appId\}\.local-developer`[\s\S]*deviceId:\s*`\$\{clientIdPrefix\}-local-developer-device`/);
+  assert.doesNotMatch(hostAuthSource, /platform-runtime-session/);
   assert.match(hostAuthSource, /protectedAccess:\s*\{/);
   assert.match(kitHostAuthSource, /createNimiRuntimeAppSessionMetadataProvider/);
   assert.match(kitHostAuthSource, /protectedAccessToken:\s*\{/);
   assert.doesNotMatch(hostAuthSource, /\bwindow\b|\bdocument\b/);
-  assert.match(rendererAuthSource, /resolveTesterRuntimeHostKind\(\) === 'electron'/);
+  assert.match(rendererAuthSource, /resolveTesterRuntimeHostKind\(\) !== 'node'/);
   assert.match(rendererAuthSource, /authMetadata:\s*createRuntimeAppSessionMetadataProvider/);
 });
 

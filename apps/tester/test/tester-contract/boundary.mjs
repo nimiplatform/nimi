@@ -66,11 +66,13 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.match(runtimePlatform, /const accountRuntime = new Runtime\(runtimeOptions\(\)\);\s*await accountRuntime\.ready\(\);\s*await registerDeveloperRegisteredRuntimeAccountCaller\(accountRuntime\);/s);
   assert.match(runtimePlatform, /createNimiRuntimeAppSessionMetadataProvider/);
   assert.match(runtimePlatform, /authMetadata:\s*createRuntimeAppSessionMetadataProvider\(accountRuntime,\s*accountCaller\)/);
+  assert.match(runtimePlatform, /createRuntimeAccountMediatedRealmTransport/);
+  assert.match(runtimePlatform, /realm:\s*new Realm\(/);
   assert.doesNotMatch(runtimePlatform, /accountRuntime\.account\.getAccessToken|createRuntimeAccountAccessTokenCallOptions|runtime-account-access-token/);
-  assert.match(runtimePlatform, /createRuntimeAccountRefreshCallOptions/);
-  assert.match(runtimePlatform, /createScopedClientId\('runtime-account-refresh'\)/);
+  assert.doesNotMatch(runtimePlatform, /createRuntimeAccountRefreshCallOptions|runtime-account\.refresh/);
   assert.match(runtimePlatform, /const runtimeProtectedScopes = \['ai\.spend\.meter'\] as const/);
-  assert.match(runtimePlatform, /capabilities:\s*\[\.\.\.runtimeProtectedScopes\]/);
+  assert.match(runtimePlatform, /const runtimeAccountBrokerCapabilities = \[\s*'account\.session\.read',\s*'data\.scope\.read#realm\.worlds\.read-probe',\s*\] as const/s);
+  assert.match(runtimePlatform, /capabilities:\s*\[\.\.\.runtimeRegistrationCapabilities\]/);
   assert.match(runtimePlatform, /accountRuntime\.grants\.authorizeExternalPrincipal/);
   assert.match(runtimePlatform, /withNimiRuntimeIdempotencyMetadata/);
   assert.match(runtimePlatform, /createScopedClientId\(`runtime-protected-\$\{normalizedSubject\}`\)/);
@@ -81,17 +83,17 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.match(runtimePlatform, /'x-nimi-access-token-secret'/);
   assert.match(runtimePlatform, /\.\.\.appSessionMetadata,\s*\.\.\.protectedAccessMetadata/s);
   assert.doesNotMatch(runtimeAccountAuth, /getAccessToken|createRuntimeAccountAccessTokenCallOptions|refreshAccountSession|createRuntimeAccountRefreshCallOptions/);
-  assert.match(runtimeAccountAuth, /createStandardShellOAuthBridge/);
-  assert.match(runtimeAccountAuth, /createRuntimeAccountBrowserBroker/);
+  assert.doesNotMatch(runtimeAccountAuth, /createStandardShellOAuthBridge|createRuntimeAccountBrowserBroker/);
   assert.match(runtimePlatform, /createNimiDeveloperRegisteredRuntimeAccountCaller/);
   assert.match(runtimePlatform, /from '@nimiplatform\/sdk\/runtime'/);
   assert.match(sdkRuntimeIndex, /RuntimeTypedCallOptions/);
   assert.doesNotMatch(runtimePlatform, /@nimiplatform\/sdk\/runtime\/generated/);
-  assert.match(runtimeAccountAuth, /from '@nimiplatform\/kit\/shell\/renderer\/bridge'/);
+  assert.doesNotMatch(runtimeAccountAuth, /@nimiplatform\/kit\/auth|@nimiplatform\/kit\/shell\/renderer\/bridge/);
   assert.doesNotMatch(runtimeAccountAuth, /getPlatformClient\(/);
   assert.doesNotMatch(runtimeAccountAuth, /@renderer\/bridge|runtime-bridge/);
   assert.doesNotMatch(runtimeAccountAuth, /runtime\.account\.beginLogin\(/);
   assert.doesNotMatch(runtimeAccountAuth, /runtime\.account\.completeLogin\(/);
+  assert.doesNotMatch(runtimeAccountAuth, /beginLogin|completeLogin|logout|switchAccount|refreshAccountSession|getAccessToken/);
   assert.doesNotMatch(runtimeAccountAuth, /ACCOUNT_CALLER_MODE|deviceId:\s*['"`]local-first-party-device|mode:\s*1|appInstanceId:\s*`\$\{appId\}\.local-first-party`/);
 });
 
@@ -174,11 +176,13 @@ test('tester account menu consumes the shared Kit AccountPanel without owning Ru
   const runtimeAccountAuth = read('src/shell/auth/runtime-account-auth.ts');
 
   assert.match(accountPanel, /from '@nimiplatform\/kit\/ui'/);
-  assert.match(accountPanel, /RuntimeLoginPage/);
+  assert.doesNotMatch(accountPanel, /RuntimeLoginPage|loginOpen|handleOpenLogin/);
   assert.match(accountPanel, /AccountPanel/);
-  for (const label of ['Sign in', 'Nimi Lab Settings', 'Log out']) {
+  for (const label of ['Account managed in Nimi Desktop', 'Sign in with Nimi Desktop', 'Nimi Lab Settings']) {
     assert.match(accountPanel, new RegExp(label));
   }
+  assert.match(accountPanel, /disabled:\s*true/);
+  assert.doesNotMatch(accountPanel, /Log out|Logging out/);
   for (const desktopOnly of [
     'Profile',
     'Wallet',
@@ -191,19 +195,15 @@ test('tester account menu consumes the shared Kit AccountPanel without owning Ru
     assert.doesNotMatch(accountPanel, new RegExp(desktopOnly));
   }
   assert.match(accountPanel, /loadRuntimeAccountUser/);
-  assert.match(accountPanel, /logoutRuntimeAccount/);
-  assert.match(accountPanel, /handleLoginComplete/);
-  assert.match(accountPanel, /setLoginOpen\(true\)/);
+  assert.doesNotMatch(accountPanel, /logoutRuntimeAccount|handleLogout|handleLoginComplete/);
+  assert.doesNotMatch(accountPanel, /setLoginOpen\(true\)|handleOpenLogin/);
   assert.doesNotMatch(accountPanel, /localStorage\.removeItem|sessionStorage\.removeItem|getAccessToken|refreshAccountSession/);
   assert.match(workbench, /accountSlot=\{\(\s*<NimiLabAccountMenu[\s\S]*onOpenSettings=\{\(\) => setView\(\{ kind: 'settings' \}\)\}/);
   assert.match(sideNav, /accountSlot\?: ReactNode/);
   assert.match(sideNav, /data-nav-placement="bottom"[\s\S]*\{accountSlot/);
   const headerActionsSource = workbench.match(/headerActions=\{\([\s\S]*?\)\}/)?.[0] ?? '';
   assert.doesNotMatch(headerActionsSource, /NimiLabAccountMenu/);
-  assert.match(runtimeAccountAuth, /client\.runtime\.account\.logout\(\{/);
-  assert.match(runtimeAccountAuth, /reason: 'nimi_lab_logout'/);
-  assert.match(runtimeAccountAuth, /if \(!response\.accepted\)/);
-  assert.doesNotMatch(runtimeAccountAuth, /throw new Error\('Generated Nimi App shell cannot own Runtime account logout/);
+  assert.doesNotMatch(runtimeAccountAuth, /beginLogin|completeLogin|logout|switchAccount|refreshAccountSession|getAccessToken/);
 });
 
 test('Tester consumes SDK Runtime agent smoke verification surface as second app proof', () => {

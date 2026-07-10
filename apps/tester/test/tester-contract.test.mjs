@@ -2,7 +2,7 @@
 // - tester kit gallery showcases real kit components
 // - tester auth and runtime bootstrap consume Kit shell bridge primitives
 // - tester product-local preferences use Kit storage while AIConfig persistence is standard-shell owned
-// - createRuntimeAccountBrowserBroker
+// - Runtime account projection without account control
 // - emitRuntimeLog
 import './tester-contract/boundary.mjs';
 import './tester-contract/history-ui.mjs';

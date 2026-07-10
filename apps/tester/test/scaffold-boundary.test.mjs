@@ -11,6 +11,7 @@ const runtimeLoginSource = readFileSync(new URL('../src/shell/auth/runtime-login
 const productSource = readFileSync(new URL('../src/shell/routes/product-area.tsx', import.meta.url), 'utf8');
 const mainSource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const tauriMainSource = readFileSync(new URL('../src-tauri/src/main.rs', import.meta.url), 'utf8');
+const tauriAcceptanceSource = readFileSync(new URL('../src-tauri/src/acceptance.rs', import.meta.url), 'utf8');
 const appSource = [authSource, runtimeLoginSource, productSource].join('\n');
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
 const admission = readFileSync(new URL('../ADMISSION.md', import.meta.url), 'utf8');
@@ -47,7 +48,7 @@ test('Runtime transport selector supports Electron without spoofing Tauri', () =
   assert.doesNotMatch(runtimeTransportSource, /__TAURI__\?\.core\?\.invoke/);
 });
 
-test('single login model uses Runtime account login without developer-session bypass', () => {
+test('single login model consumes Desktop-owned Runtime account state without app account control', () => {
   assert.doesNotMatch(authSource, /VITE_NIMI_RUNTIME_DEVELOPER_SESSION/);
   assert.doesNotMatch(authGateSource, /dev-standalone/);
   assert.doesNotMatch(authGateSource, /runtime-developer-session/);
@@ -55,6 +56,8 @@ test('single login model uses Runtime account login without developer-session by
   assert.match(authSource, /developerRegistration:\s*runtimeDeveloperRegistrationRequested/);
   assert.match(authSource, /registerDeveloperRegisteredRuntimeAccountCaller/);
   assert.match(authSource, /runtimeProtectedScopes = \['ai\.spend\.meter'\]/);
+  assert.match(authSource, /runtimeAccountBrokerCapabilities = \[\s*'account\.session\.read',\s*'data\.scope\.read#realm\.worlds\.read-probe',\s*\]/s);
+  assert.match(authSource, /runtimeRegistrationCapabilities = \[\s*\.\.\.runtimeProtectedScopes,\s*\.\.\.runtimeAccountBrokerCapabilities,\s*\]/s);
   assert.match(authSource, /accountRuntime\.grants\.authorizeExternalPrincipal/);
   assert.match(authGateSource, /loadRuntimeAccountUser/);
   assert.match(authGateSource, /clearRuntimePlatformProjection/);
@@ -62,14 +65,15 @@ test('single login model uses Runtime account login without developer-session by
   assert.match(authSource, /status: 'login-required'/);
   assert.match(authSource, /ACCOUNT_SESSION_NOT_AUTHENTICATED/);
   assert.match(authGateSource, /projection\.status === 'login-required'/);
-  assert.match(authGateSource, /<RuntimeLoginPage client=\{state\.projection\.client\}/);
-  assert.match(runtimeAccountAuthSource, /createRuntimeAccountBrowserBroker/);
-  assert.match(runtimeAccountAuthSource, /from '@nimiplatform\/kit\/auth'/);
-  assert.doesNotMatch(runtimeAccountAuthSource, /runtime\.account\.beginLogin\(/);
-  assert.doesNotMatch(runtimeAccountAuthSource, /runtime\.account\.completeLogin\(/);
+  assert.match(authGateSource, /<RuntimeLoginPage[^>]*onRetry=\{retry\}/);
+  assert.doesNotMatch(runtimeAccountAuthSource, /createRuntimeAccountBrowserBroker|DesktopShellAuthPage/);
+  assert.doesNotMatch(runtimeAccountAuthSource, /beginLogin|completeLogin|logout|switchAccount|refreshAccountSession|getAccessToken/);
   assert.doesNotMatch(runtimeAccountAuthSource, /desktop-runtime-oauth-url|#\/login|desktop_callback/);
-  assert.match(runtimeLoginSource, /DesktopShellAuthPage/);
-  assert.match(runtimeLoginSource, /createNimiAppRuntimeAccountBroker\(client\)/);
+  assert.doesNotMatch(runtimeLoginSource, /DesktopShellAuthPage|runtimeAccountBroker|oauth/);
+  assert.match(runtimeLoginSource, /Open Nimi Desktop to sign in, sign out, or switch accounts/);
+  assert.match(runtimeLoginSource, /onRetry/);
+  assert.match(authSource, /createRuntimeAccountMediatedRealmTransport/);
+  assert.match(authSource, /new Realm\(\{[\s\S]*createRuntimeAccountMediatedRealmTransport/);
 });
 
 test('renderer bootstrap installs Kit runtime bridge before render', () => {
@@ -91,8 +95,9 @@ test('renderer bootstrap installs Kit runtime bridge before render', () => {
 test('Tauri scaffold consumes Kit shared command registration and renderer probe', () => {
   assert.match(tauriMainSource, /nimi_shell_tauri::nimi_shell_tauri_installed_app_standard_shell_handler!\[/);
   assert.doesNotMatch(tauriMainSource, /@with_runtime_defaults/);
-  assert.match(tauriMainSource, /capabilities::diagnostics::build_renderer_entry_probe_script/);
-  assert.match(tauriMainSource, /RendererEntryProbeScriptConfig/);
+  assert.match(tauriMainSource, /use acceptance::tester_renderer_entry_probe_script/);
+  assert.match(tauriAcceptanceSource, /capabilities::diagnostics::build_renderer_entry_probe_script/);
+  assert.match(tauriAcceptanceSource, /RendererEntryProbeScriptConfig/);
   assert.doesNotMatch(tauriMainSource, /tauri::generate_handler!\[/);
   assert.doesNotMatch(tauriMainSource, /desktop_macos_smoke_ping/);
   assert.doesNotMatch(tauriMainSource, /globalRecord\.__TAURI__\?\.core\?\.invoke/);

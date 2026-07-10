@@ -101,7 +101,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (state.kind === 'login-required') {
-    return <RuntimeLoginPage client={state.projection.client} errorMessage={state.message} onReady={retry} />;
+    return <RuntimeLoginPage errorMessage={state.message} onRetry={retry} />;
   }
 
   if (state.kind === 'blocked') {

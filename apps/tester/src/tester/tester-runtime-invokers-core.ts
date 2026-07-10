@@ -139,7 +139,7 @@ export type TesterRuntimeInvocationClient = {
 
 export const TESTER_APP_ID = 'nimi.tester';
 export type ResolvedLLMBinding = NimiAIConfigRuntimeBinding;
-const ELECTRON_HOST_OWNED_IDENTITY_METADATA_KEYS = new Set([
+const SHELL_HOST_OWNED_IDENTITY_METADATA_KEYS = new Set([
   'appId',
   'participantId',
   'callerKind',
@@ -160,8 +160,8 @@ export function isTesterUnavailable(value: unknown): value is TesterUnavailable 
 }
 
 export function buildMetadata(surfaceId: string, extra?: Record<string, string | undefined>): Record<string, string> {
-  const electronHostOwnsIdentity = resolveTesterRuntimeHostKind() === 'electron';
-  const metadata: Record<string, string> = electronHostOwnsIdentity
+  const shellHostOwnsIdentity = resolveTesterRuntimeHostKind() !== 'node';
+  const metadata: Record<string, string> = shellHostOwnsIdentity
     ? { surfaceId }
     : {
         callerKind: 'third-party-app',
@@ -169,7 +169,7 @@ export function buildMetadata(surfaceId: string, extra?: Record<string, string |
         surfaceId,
       };
   for (const [key, value] of Object.entries(extra || {})) {
-    if (electronHostOwnsIdentity && ELECTRON_HOST_OWNED_IDENTITY_METADATA_KEYS.has(key)) continue;
+    if (shellHostOwnsIdentity && SHELL_HOST_OWNED_IDENTITY_METADATA_KEYS.has(key)) continue;
     if (value) metadata[key] = value;
   }
   return metadata;

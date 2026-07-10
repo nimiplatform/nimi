@@ -1,50 +1,37 @@
-import { useMemo, useState } from 'react';
-import { DesktopShellAuthPage } from '@nimiplatform/kit/auth';
-import { InlineAlert } from '@nimiplatform/kit/ui';
-import { createNimiAppDesktopBrowserAuthAdapter, createNimiAppRuntimeAccountBroker, nimiAppShellOAuthBridge } from './runtime-account-auth.js';
-import type { RuntimePlatformReadyProjection } from './runtime-platform.js';
+import { Button, InlineAlert, StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { appTitle } from './runtime-platform.js';
 
 type RuntimeLoginPageProps = {
-  client: RuntimePlatformReadyProjection['client'];
   errorMessage?: string;
   layout?: 'screen' | 'panel';
-  onReady: () => void;
+  onRetry: () => void;
 };
 
-export function RuntimeLoginPage({ client, errorMessage, layout = 'screen', onReady }: RuntimeLoginPageProps) {
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const adapter = useMemo(() => createNimiAppDesktopBrowserAuthAdapter(onReady, client), [client, onReady]);
-  const runtimeAccountBroker = useMemo(() => createNimiAppRuntimeAccountBroker(client), [client]);
-
+export function RuntimeLoginPage({ errorMessage, layout = 'screen', onRetry }: RuntimeLoginPageProps) {
   return (
-    <div className={`runtime-login-screen runtime-login-screen--${layout}`}>
-      <DesktopShellAuthPage
-        adapter={adapter}
-        session={{
-          mode: 'desktop-browser',
-          authStatus: 'unauthenticated',
-          authError: errorMessage || statusMessage,
-          setAuthSession: () => { onReady(); },
-          setStatusBanner: (banner) => { setStatusMessage(banner?.message || null); },
-        }}
-        desktopBrowserAuth={{
-          bridge: nimiAppShellOAuthBridge,
-          runtimeAccountBroker,
-          hintVisibility: 'always',
-        }}
-        testIds={{
-          screen: 'nimi-app-runtime-login-page',
-          logoTrigger: 'nimi-app-runtime-login-trigger',
-        }}
-      />
-      {errorMessage ? (
-        <InlineAlert className="runtime-login-alert" tone="warning">
+    <main
+      className={`runtime-login-screen runtime-login-screen--${layout}`}
+      data-testid="nimi-app-runtime-login-required"
+    >
+      <Surface className="runtime-account-required-panel" material="glass-thick" tone="panel" elevation="floating">
+        <div className="runtime-unavailable-heading">
+          <StatusBadge tone="warning" shape="dot">account action required</StatusBadge>
+          <h1>{appTitle}</h1>
+        </div>
+        <InlineAlert tone="warning">
           <div className="runtime-alert-copy">
             <strong>Runtime account required</strong>
-            <span>{errorMessage}</span>
+            <span>{errorMessage || 'This app has no active shared Runtime account projection.'}</span>
           </div>
         </InlineAlert>
-      ) : null}
-    </div>
+        <p className="runtime-account-owner-copy">
+          Open Nimi Desktop to sign in, sign out, or switch accounts. Nimi Lab never receives or stores account tokens.
+        </p>
+        <p className="runtime-account-owner-copy" lang="zh-CN">
+          请在 Nimi Desktop 中登录、退出或切换账户；Nimi Lab 不接收也不保存账户令牌。
+        </p>
+        <Button type="button" tone="primary" onClick={onRetry}>Retry account status</Button>
+      </Surface>
+    </main>
   );
 }

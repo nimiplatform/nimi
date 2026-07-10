@@ -9,7 +9,7 @@ import {
   toNimiRealmNotificationListView,
 } from '@nimiplatform/sdk/realm';
 import { getNimiNotificationServerFilter } from '@nimiplatform/kit/core/notifications';
-import { listRealmChats } from '@nimiplatform/kit/features/chat/realm';
+import { createRealmChatService, listRealmChats } from '@nimiplatform/kit/features/chat/realm';
 import { getRuntimePlatformProjection } from '../auth/runtime-platform.js';
 import type {
   AccountDataProjectionState,
@@ -101,7 +101,8 @@ export function SettingsRoute() {
   const refreshHumanChatProjection = async () => {
     setHumanChatProjection((current) => ({ status: 'loading', chats: current.chats, error: null }));
     try {
-      const chats = await listRealmChats(20);
+      const realm = await requireTesterRealm();
+      const chats = await listRealmChats(20, undefined, createRealmChatService(realm.humanChats));
       setHumanChatProjection({ status: 'ready', chats, error: null });
     } catch (error) {
       setHumanChatProjection({ status: 'error', chats: null, error: errorMessage(error) });
