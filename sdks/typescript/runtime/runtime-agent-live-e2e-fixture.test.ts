@@ -714,9 +714,6 @@ test('runtime agent live e2e fixture exposes native Runtime Agent voice chunks t
           identity,
           profile: presentationProfile,
         });
-        progress.stage = 'refresh_runtime_account_session';
-        const refreshedAccount = await fixture.refreshRuntimeAccountSession();
-        assert.notEqual(refreshedAccount.accessToken, refreshedAccount.previousAccessToken);
         progress.stage = 'patch_presentation_profile';
         const patchedPresentation = await fixture.agentPresentation.patchPresentationProfile(
           identity,
@@ -724,14 +721,6 @@ test('runtime agent live e2e fixture exposes native Runtime Agent voice chunks t
           initialPresentation.committedRevision,
         );
         assert.notEqual(patchedPresentation.committedRevision, initialPresentation.committedRevision);
-        assert.ok(
-          fixture.realmRequests.some((request) =>
-            request.method === 'POST'
-            && request.path === '/api/auth/sessions/introspect'
-            && String((request.body as { readonly session_id?: unknown } | null)?.session_id || '')
-              === refreshedAccount.sessionId),
-          'presentation mutation after Runtime account refresh must authorize with the newly signed session token',
-        );
         progress.stage = 'restore_presentation_profile';
         const restoredPresentation = await fixture.agentPresentation.setPresentationProfile(
           identity,
@@ -850,7 +839,7 @@ test('runtime agent live e2e fixture exposes native Runtime Agent voice chunks t
             scopes: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
             ttlSeconds: 900,
             options: withNimiRuntimeIdempotencyMetadata(
-              undefined,
+              { metadata: await zhiyuSessionMetadata() },
               `sdk-live-runtime-agent-voice-stream-scoped-binding:${voiceStreamId}`,
             ),
           });

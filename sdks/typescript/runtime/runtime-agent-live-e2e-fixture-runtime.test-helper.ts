@@ -219,7 +219,15 @@ export async function admitDeveloperRegisteredRuntimeAccountCaller(
     developerRegistration: true,
     idempotencyKey: `register-developer-account:${appId}:${appInstanceId}`,
   });
-  const status = await runtime.account.getAccountSessionStatus({ caller });
+  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
+    auth: runtime.auth,
+    appId,
+    appInstanceId,
+    deviceId,
+    capabilities,
+    developerRegistration: true,
+  });
+  const status = await runtime.account.getAccountSessionStatus({ caller }, { metadata: await sessionMetadata() });
   if (
     status.state !== AccountSessionState.AUTHENTICATED
     || normalizeText(status.accountProjection?.accountId) !== OWNER_USER_ID
@@ -252,7 +260,15 @@ export async function admitLocalFirstPartyRuntimeAccountCaller(
     developerRegistration: false,
     idempotencyKey: `register-local-first-party-account:${appId}:${appInstanceId}`,
   });
-  const status = await runtime.account.getAccountSessionStatus({ caller });
+  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
+    auth: runtime.auth,
+    appId,
+    appInstanceId,
+    deviceId,
+    capabilities,
+    developerRegistration: false,
+  });
+  const status = await runtime.account.getAccountSessionStatus({ caller }, { metadata: await sessionMetadata() });
   if (
     status.state !== AccountSessionState.AUTHENTICATED
     || normalizeText(status.accountProjection?.accountId) !== OWNER_USER_ID
@@ -263,12 +279,13 @@ export async function admitLocalFirstPartyRuntimeAccountCaller(
 }
 
 export async function completeRuntimeAccountLogin(runtime: Runtime, caller: AccountCaller): Promise<void> {
+  const metadata = await runtimeAccountControlMetadata(runtime, caller);
   const begin = await runtime.account.beginLogin({
     caller,
     redirectUri: RUNTIME_ACCOUNT_REDIRECT_URI,
     callbackOrigin: '',
     ttlSeconds: 300,
-  }, liveIdempotencyOptions(`account-begin-login:${caller.appId}:${caller.appInstanceId}`));
+  }, liveIdempotencyOptions(`account-begin-login:${caller.appId}:${caller.appInstanceId}`, { metadata }));
   if (!begin.accepted || !begin.loginAttemptId) {
     throw new Error(`Runtime account BeginLogin failed: ${JSON.stringify(begin)}`);
   }
@@ -281,7 +298,7 @@ export async function completeRuntimeAccountLogin(runtime: Runtime, caller: Acco
     redirectUri: RUNTIME_ACCOUNT_REDIRECT_URI,
     sealedCompletionTicket: '',
     refreshToken: '',
-  }, liveIdempotencyOptions(`account-complete-login:${caller.appId}:${begin.loginAttemptId}`));
+  }, liveIdempotencyOptions(`account-complete-login:${caller.appId}:${begin.loginAttemptId}`, { metadata }));
   if (!complete.accepted) {
     throw new Error(`Runtime account CompleteLogin failed: ${JSON.stringify(complete)}`);
   }
@@ -289,9 +306,10 @@ export async function completeRuntimeAccountLogin(runtime: Runtime, caller: Acco
 
 export async function logoutRuntimeAccount(runtime: Runtime, caller: AccountCaller): Promise<void> {
   try {
+    const metadata = await runtimeAccountControlMetadata(runtime, caller);
     await runtime.account.logout(
       { caller },
-      liveIdempotencyOptions(`account-logout:${caller.appId}:${caller.appInstanceId}`),
+      liveIdempotencyOptions(`account-logout:${caller.appId}:${caller.appInstanceId}`, { metadata }),
     );
   } catch {
     // Best-effort cleanup for the isolated keychain partition.
@@ -303,6 +321,13 @@ export function createRuntimeMediatedRealmTransport(input: {
   readonly caller: AccountCaller;
   readonly realmBaseUrl: string;
 }): CoreTransport {
+  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
+    auth: input.runtime.auth,
+    appId: input.caller.appId,
+    appInstanceId: input.caller.appInstanceId,
+    deviceId: input.caller.deviceId,
+    developerRegistration: false,
+  });
   return {
     async unary<Response = unknown, Body = unknown>(request: CoreUnaryRequest<Body>): Promise<Response> {
       const response = await input.runtime.account.invokeRealmUnary({
@@ -312,7 +337,10 @@ export function createRuntimeMediatedRealmTransport(input: {
         requestJson: JSON.stringify(request.body ?? {}),
         timeoutMs: request.timeoutMs ?? 30_000,
       }, liveIdempotencyOptions(`realm-unary:${request.methodId}`, {
-        metadata: request.metadata,
+        metadata: {
+          ...await sessionMetadata(),
+          ...(request.metadata ?? {}),
+        },
         timeoutMs: request.timeoutMs,
         signal: request.signal,
         responseMetadataObserver: request.responseMetadataObserver,
@@ -335,11 +363,28 @@ export function desktopAccountCaller(): AccountCaller {
     appId: DESKTOP_APP_ID,
     appInstanceId: DESKTOP_APP_INSTANCE_ID,
     deviceId: DESKTOP_DEVICE_ID,
-    mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+    mode: AccountCallerMode.DESKTOP_SHELL,
     scopes: [],
     launchHostId: '',
     launchNonce: '',
     releaseDescriptorRef: '',
+  };
+}
+
+async function runtimeAccountControlMetadata(runtime: Runtime, caller: AccountCaller): Promise<Record<string, string>> {
+  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
+    auth: runtime.auth,
+    appId: caller.appId,
+    appInstanceId: caller.appInstanceId,
+    deviceId: caller.deviceId,
+    developerRegistration: false,
+  });
+  return {
+    ...await sessionMetadata(),
+    'x-nimi-source-host': 'desktop-tauri-account-host',
+    'x-nimi-app-id': caller.appId,
+    'x-nimi-app-instance-id': caller.appInstanceId,
+    'x-nimi-device-id': caller.deviceId,
   };
 }
 

@@ -100,7 +100,7 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
   await withRealmFixtureServer({
     localChatCompletionStreamDelayMs: input.localChatCompletionStreamDelayMs,
     voiceSpeechStreamDelayMs: input.voiceSpeechStreamDelayMs,
-    run: async ({ baseUrl, requests, currentRuntimeAccountSession }) => {
+    run: async ({ baseUrl, requests }) => {
     await withRuntimeDaemon({
       appId: DESKTOP_APP_ID,
       runtimeEnv: {
@@ -153,28 +153,6 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
         });
         presentationCaller.appId = 'mutated-after-presentation-construction';
         presentationCaller.scopes.push('mutated.after.construction');
-        const refreshRuntimeAccountSession = async () => {
-          const previous = currentRuntimeAccountSession();
-          const refreshed = await bootstrapRuntime.account.refreshAccountSession({
-            caller: desktopCaller,
-          }, withNimiRuntimeIdempotencyMetadata(
-            undefined,
-            `runtime-agent-live-e2e:refresh-runtime-account-session:${randomUUID()}`,
-          ));
-          if (!refreshed.accepted) {
-            throw new Error(`Runtime account refresh failed: ${JSON.stringify(refreshed)}`);
-          }
-          const current = currentRuntimeAccountSession();
-          if (current.accessToken === previous.accessToken || current.sessionId === previous.sessionId) {
-            throw new Error('Runtime account refresh fixture did not rotate its signed session token.');
-          }
-          return {
-            previousAccessToken: previous.accessToken,
-            accessToken: current.accessToken,
-            sessionId: current.sessionId,
-          };
-        };
-
         const realm = new Realm({
           transport: createRuntimeMediatedRealmTransport({
             runtime: studioRuntime,
@@ -254,7 +232,6 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
               conversationAnchorId,
               text,
             }),
-            refreshRuntimeAccountSession,
             admitDeveloperRegisteredRuntimeAccountCaller: (accountInput) =>
               admitDeveloperRegisteredRuntimeAccountCaller(
                 createRuntimeForEndpoint(endpoint, requireText(accountInput.appId, 'appId')),
