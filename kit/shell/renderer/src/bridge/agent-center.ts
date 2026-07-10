@@ -59,8 +59,7 @@ export interface AgentCenterAvatarPreviewResolvePayload extends AgentCenterShell
 export interface AgentCenterAvatarPreviewResolveResult {
   readonly avatarAssetRef: string;
   readonly backendKind: AgentCenterShellAvatarBackendKind;
-  readonly previewArtifactRef: string;
-  readonly previewImageRef?: string;
+  readonly previewMaterialRef: string;
   readonly validationStatus?: AgentCenterShellValidationStatus;
   readonly validationMessage?: string;
   readonly warnings?: readonly string[];
@@ -603,14 +602,16 @@ function parseAvatarAssetValidateResult(value: unknown, command: string): AgentC
 
 function parseAvatarPreviewResolveResult(value: unknown, command: string): AgentCenterAvatarPreviewResolveResult {
   const record = assertRecord(value, `${command} returned invalid payload`);
+  if ('previewArtifactRef' in record || 'previewImageRef' in record) {
+    throw new Error(`${command}: Shell preview result must not claim Avatar render artifacts`);
+  }
   if ('backendCompatibilityTier' in record || 'carrierProofRef' in record || 'launchPayload' in record) {
     throw new Error(`${command}: preview result contains forbidden Avatar/Runtime execution fields`);
   }
   return compactPayload({
     avatarAssetRef: parseOpaqueRef(record.avatarAssetRef, 'avatarAssetRef', command),
     backendKind: parseBackendKind(record.backendKind, command),
-    previewArtifactRef: parseOpaqueRef(record.previewArtifactRef, 'previewArtifactRef', command),
-    previewImageRef: record.previewImageRef == null ? undefined : parseOpaqueRef(record.previewImageRef, 'previewImageRef', command),
+    previewMaterialRef: parseOpaqueRef(record.previewMaterialRef, 'previewMaterialRef', command),
     validationStatus: parseOptionalValidationStatus(record.validationStatus, command),
     validationMessage: parseOptionalString(record.validationMessage),
     warnings: parseStringArray(record.warnings, 'warnings', command),

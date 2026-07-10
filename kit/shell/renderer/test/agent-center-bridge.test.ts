@@ -101,8 +101,7 @@ describe('renderer Agent Center shell bridge', () => {
         return {
           avatarAssetRef: 'agent-center-avatar:agent-1/live2d',
           backendKind: 'live2d',
-          previewArtifactRef: 'agent-center-preview:agent-1/live2d',
-          previewImageRef: 'agent-center-preview-image:agent-1/live2d',
+          previewMaterialRef: 'agent-center-avatar-asset:agent-1/live2d',
         };
       }
       if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.live2dAdapterImport']) {
@@ -151,7 +150,7 @@ describe('renderer Agent Center shell bridge', () => {
         validationStatus: 'valid',
       });
       await expect(bridge.resolveAvatarAssetPreview({ ...localAgentScope, avatarAssetRef: 'live2d_111111111111' })).resolves.toMatchObject({
-        previewArtifactRef: 'agent-center-preview:agent-1/live2d',
+        previewMaterialRef: 'agent-center-avatar-asset:agent-1/live2d',
       });
       await expect(bridge.importLive2dAdapterManifest({ ...localAgentScope, avatarAssetRef: 'live2d_111111111111' })).resolves.toMatchObject({
         live2dAdapterManifestRef: 'agent-center-sidecar:agent-1/adapter',
@@ -281,6 +280,21 @@ describe('renderer Agent Center shell bridge', () => {
         reasonCode: 'renderer-standard-shell-result-invalid',
         actionHint: 'inspect_standard_shell_host_result',
         source: 'renderer',
+      });
+    });
+
+    await withElectronInvoke(async () => ({
+      avatarAssetRef: 'live2d_111111111111',
+      backendKind: 'live2d',
+      previewMaterialRef: 'agent-center-avatar-asset:account-1:local-agent-ren:live2d:live2d_111111111111',
+      previewArtifactRef: 'agent-center-preview:forbidden-shell-claim',
+    }), async () => {
+      await expect(resolveAgentCenterAvatarAssetPreview({
+        ...localAgentScope,
+        avatarAssetRef: 'live2d_111111111111',
+      })).rejects.toMatchObject({
+        code: 'invalid-payload',
+        reasonCode: 'renderer-standard-shell-result-invalid',
       });
     });
   });

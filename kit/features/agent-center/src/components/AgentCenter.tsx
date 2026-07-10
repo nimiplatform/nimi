@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AGENT_CENTER_SECTION_LABELS } from '../sections.js';
+import { isAgentCenterAvatarPreviewReady } from '../appearance-preview-readiness.js';
 import { isAgentCenterState, resolveAgentCenterState } from '../state.js';
 import type {
   AgentCenterAdvancedCopy,
@@ -50,7 +51,7 @@ function agentCenterSetupProgress(state: AgentCenterState) {
     .filter((capability) => capability.required)
     .every((capability) => capability.readinessState === 'ready');
   const checklistDone = [
-    state.appearance.status === 'ready',
+    isAgentCenterAvatarPreviewReady(state.appearance),
     requiredModelReady,
     state.autonomy.enabled === true,
     state.cognition.memoryState !== 'unavailable',
@@ -161,7 +162,7 @@ function AgentCenterOverview({
   readonly onSectionSelect: (section: AgentCenterSectionId) => void;
 }) {
   const setup = agentCenterSetupProgress(state);
-  const appearanceReady = state.appearance.status === 'ready';
+  const appearanceReady = isAgentCenterAvatarPreviewReady(state.appearance);
   const behaviorReady = state.autonomy.enabled === true;
   const cognitionReady = state.cognition.memoryState !== 'unavailable';
   const checklist = [

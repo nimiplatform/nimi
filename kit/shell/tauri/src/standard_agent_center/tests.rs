@@ -300,6 +300,42 @@ fn live2d_sidecar_import_rejects_unvalidated_avatar_custody() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[tokio::test]
+async fn preview_material_resolution_rejects_invalid_avatar_custody() {
+    let nonce = Utc::now().timestamp_nanos_opt().unwrap_or(0);
+    let root = std::env::temp_dir().join(format!("nimi-agent-center-preview-invalid-{nonce}"));
+    let roots = crate::runtime_app_storage::test_standard_app_storage_roots(root.join("data"));
+    let avatar_ref = "live2d_bbbbbbbbbbbb";
+    let damaged_dir =
+        avatar_asset_dir(&roots, "account_1", "local-agent:ren", "live2d", avatar_ref)
+            .expect("damaged avatar custody path");
+    fs::create_dir_all(&damaged_dir).expect("damaged avatar custody fixture");
+    fs::write(damaged_dir.join(MANIFEST_FILE_NAME), b"not-json")
+        .expect("damaged avatar manifest fixture");
+
+    let error = commands::avatar_asset_resolve_preview(
+        roots,
+        StandardAgentCenterAvatarPreviewResolvePayload {
+            host_scope: "local-agent".to_string(),
+            account_id: "account_1".to_string(),
+            owner_user_id: "owner_1".to_string(),
+            runtime_source_ref: "runtime-source:local".to_string(),
+            local_agent_ref: "local-agent:ren".to_string(),
+            avatar_asset_ref: avatar_ref.to_string(),
+            backend_kind: None,
+        },
+    )
+    .await
+    .expect_err("invalid avatar custody must not produce preview material");
+
+    assert_error_code(
+        error,
+        "invalid-payload",
+        "tauri-agent-center-payload-invalid",
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
 #[test]
 fn shared_payload_fixture_matrix_is_rejected_by_the_raw_command_parser() {
     let fixtures: serde_json::Value = serde_json::from_str(include_str!(
@@ -412,6 +448,27 @@ fn avatar_validation_projection_returns_renderer_shell_contract_fields() {
     assert_eq!(projected["validationStatus"], "valid");
     assert!(projected.get("localAssetId").is_none());
     assert!(projected.get("validation").is_none());
+
+    let preview = shell_projection::avatar_preview_result(
+        "live2d_111111111111".to_string(),
+        StandardAgentCenterAvatarBackendKind::Live2d,
+        "agent-center-avatar-asset:account_1:local-agent-ren:live2d:live2d_111111111111"
+            .to_string(),
+        StandardAgentCenterAvatarAssetValidationResult {
+            schema_version: 1,
+            local_asset_id: "live2d_111111111111".to_string(),
+            checked_at: "2026-01-01T00:00:00Z".to_string(),
+            status: StandardAgentCenterAvatarAssetValidationStatus::Valid,
+            errors: vec![],
+            warnings: vec![],
+        },
+    );
+    assert_eq!(
+        preview["previewMaterialRef"],
+        "agent-center-avatar-asset:account_1:local-agent-ren:live2d:live2d_111111111111"
+    );
+    assert!(preview.get("previewArtifactRef").is_none());
+    assert!(preview.get("previewImageRef").is_none());
 }
 
 #[test]

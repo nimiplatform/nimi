@@ -121,11 +121,40 @@ function shellBridge(overrides: Partial<AgentCenterShellAppearanceBridge> = {}):
     resolveAvatarAssetPreview: async ({ avatarAssetRef }) => ({
       avatarAssetRef,
       backendKind: avatarAssetRef.startsWith('vrm_') ? 'vrm' : 'live2d',
-      previewArtifactRef: `agent-center-preview:${avatarAssetRef}`,
+      previewMaterialRef: `agent-center-avatar-asset:account-1:local-agent-ren:${avatarAssetRef}`,
       validationStatus: 'valid',
-      warnings: ['preview rendered through avatar service'],
+      warnings: [],
     }),
     ...overrides,
+  };
+}
+
+function avatarPreviewAdapter() {
+  return {
+    async resolvePreview(input: {
+      readonly avatarAssetRef: string;
+      readonly backendKind: 'live2d' | 'vrm';
+      readonly previewMaterialRef: string;
+    }) {
+      return {
+        state: 'ready' as const,
+        tier: 'avatar_preview_service' as const,
+        backendKind: input.backendKind,
+        avatarAssetRef: input.avatarAssetRef,
+        previewMaterialRef: input.previewMaterialRef,
+        previewArtifactRef: input.backendKind === 'vrm'
+          ? `avatar.vrm.preview-artifact:${input.avatarAssetRef}:123`
+          : `avatar.carrier.preview-artifact:${input.avatarAssetRef}:123`,
+        previewImageRef: `/__nimi/avatar-preview/${input.backendKind}/123`,
+        evidenceRef: input.backendKind === 'vrm'
+          ? `avatar.vrm.visual:${input.avatarAssetRef}:123`
+          : `avatar.carrier.visual:${input.avatarAssetRef}:123`,
+        visiblePixels: 32,
+        sampledPixelChecksum: 123,
+        nonPlaceholder: true as const,
+        warnings: ['preview rendered through avatar service'],
+      };
+    },
   };
 }
 
@@ -164,7 +193,7 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     }]);
   });
 
-  it('passes explicit account scope through account resource cleanup', async () => {
+  it('does not expose account-wide cleanup through a single-agent transaction adapter', async () => {
     const calls: unknown[] = [];
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
@@ -183,12 +212,8 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
       snapshot: snapshot(null),
     });
 
-    await adapter.removeAccountResources?.();
-
-    expect(calls).toEqual([{
-      hostScope: 'account',
-      accountId: 'account-1',
-    }]);
+    expect((adapter as unknown as Record<string, unknown>).removeAccountResources).toBeUndefined();
+    expect(calls).toEqual([]);
   });
 
   it('composes Runtime presentation selection with Shell validation custody', async () => {
@@ -201,6 +226,7 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
         },
       },
       shell: shellBridge(),
+      avatarPreview: avatarPreviewAdapter(),
       snapshot: snapshot({
         backendKind: 'vrm',
         avatarAssetRef: 'vrm_222222222222',
@@ -220,7 +246,8 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
       avatarAssetValid: true,
       previewState: 'ready',
       previewTier: 'avatar_preview_service',
-      previewArtifactRef: 'agent-center-preview:vrm_222222222222',
+      previewMaterialRef: expect.stringContaining('vrm_222222222222'),
+      previewArtifactRef: 'avatar.vrm.preview-artifact:vrm_222222222222:123',
       backgroundRef: 'bg_111111111111',
       backgroundValid: true,
       defaultVoiceReference: 'preset_voice_id:zh-CN',
@@ -229,6 +256,38 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
   });
 
   it('projects Avatar-owned preview service evidence without local placeholder success', async () => {
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account-1',
+      runtimePresentation: {
+        async patchPresentationProfile(_identity, patch) {
+          return mutationResult(patch);
+        },
+      },
+      shell: shellBridge(),
+      avatarPreview: avatarPreviewAdapter(),
+      snapshot: snapshot({
+        backendKind: 'live2d',
+        avatarAssetRef: 'live2d_111111111111',
+        expressionProfileRef: null,
+        idlePreset: null,
+        interactionPolicyRef: null,
+        defaultVoiceReference: null,
+        avatarAutoplay: false,
+        backgroundAssetRef: null,
+      }),
+    });
+
+    await expect(adapter.load()).resolves.toMatchObject({
+      previewState: 'ready',
+      previewTier: 'avatar_preview_service',
+      previewMaterialRef: expect.stringContaining('live2d_111111111111'),
+      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d_111111111111:123',
+      previewWarnings: ['preview rendered through avatar service'],
+    });
+  });
+
+  it('never upgrades Shell preview material into Avatar render success', async () => {
     const adapter = createAgentCenterShellAppearanceAdapter({
       identity,
       accountId: 'account-1',
@@ -251,10 +310,132 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     });
 
     await expect(adapter.load()).resolves.toMatchObject({
-      previewState: 'ready',
+      status: 'invalid',
+      previewMaterialRef: expect.stringContaining('live2d_111111111111'),
+      previewState: 'unavailable',
       previewTier: 'avatar_preview_service',
-      previewArtifactRef: 'agent-center-preview:live2d_111111111111',
-      previewWarnings: ['preview rendered through avatar service'],
+      previewArtifactRef: null,
+      previewFailureReason: 'Avatar preview service adapter is unavailable.',
+    });
+  });
+
+  it.each([
+    {
+      name: 'normalized material alias',
+      previewArtifactRef: ' agent-center-avatar-asset:account-1:local-agent-ren:live2d_111111111111 ',
+      previewImageRef: '/__nimi/avatar-preview/live2d/alias',
+    },
+    {
+      name: 'foreign-origin blob surface',
+      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d_111111111111:foreign',
+      previewImageRef: 'blob:https://foreign-origin.example/preview-id',
+    },
+    {
+      name: 'non-Avatar artifact authority',
+      previewArtifactRef: 'shell.preview-artifact:live2d_111111111111:foreign',
+      previewImageRef: '/__nimi/avatar-preview/live2d/foreign-artifact',
+    },
+    {
+      name: 'non-Avatar evidence authority',
+      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d_111111111111:foreign-evidence',
+      previewImageRef: '/__nimi/avatar-preview/live2d/foreign-evidence',
+      evidenceRef: 'shell.visual:live2d_111111111111:foreign',
+    },
+    {
+      name: 'mismatched backend claim',
+      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d_111111111111:wrong-backend',
+      previewImageRef: '/__nimi/avatar-preview/live2d/wrong-backend',
+      backendKind: 'vrm' as const,
+    },
+  ])('fails closed for $name', async ({ previewArtifactRef, previewImageRef, evidenceRef, backendKind }) => {
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account-1',
+      runtimePresentation: {
+        async patchPresentationProfile(_identity, patch) {
+          return mutationResult(patch);
+        },
+      },
+      shell: shellBridge(),
+      avatarPreview: {
+        async resolvePreview(input) {
+          return {
+            state: 'ready' as const,
+            tier: 'avatar_preview_service' as const,
+            backendKind: backendKind ?? input.backendKind,
+            avatarAssetRef: input.avatarAssetRef,
+            previewMaterialRef: input.previewMaterialRef,
+            previewArtifactRef,
+            previewImageRef,
+            evidenceRef: evidenceRef ?? 'avatar.carrier.visual:live2d_111111111111:invalid',
+            visiblePixels: 32,
+            sampledPixelChecksum: 123,
+            nonPlaceholder: true as const,
+          };
+        },
+      },
+      snapshot: snapshot({
+        backendKind: 'live2d',
+        avatarAssetRef: 'live2d_111111111111',
+        expressionProfileRef: null,
+        idlePreset: null,
+        interactionPolicyRef: null,
+        defaultVoiceReference: null,
+        avatarAutoplay: false,
+        backgroundAssetRef: null,
+      }),
+    });
+
+    await expect(adapter.load()).resolves.toMatchObject({
+      status: 'invalid',
+      previewState: 'failed',
+      previewArtifactRef: null,
+    });
+  });
+
+  it('fails closed when Avatar preview evidence does not match selected material', async () => {
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account-1',
+      runtimePresentation: {
+        async patchPresentationProfile(_identity, patch) {
+          return mutationResult(patch);
+        },
+      },
+      shell: shellBridge(),
+      avatarPreview: {
+        async resolvePreview() {
+          return {
+            state: 'ready' as const,
+            tier: 'avatar_preview_service' as const,
+            backendKind: 'vrm' as const,
+            avatarAssetRef: 'vrm_other',
+            previewMaterialRef: 'agent-center-avatar-asset:other',
+            previewArtifactRef: 'avatar.vrm.preview-artifact:other:123',
+            previewImageRef: 'blob:nimi-avatar-preview-other',
+            evidenceRef: 'avatar_preview_service:vrm:other',
+            visiblePixels: 32,
+            sampledPixelChecksum: 123,
+            nonPlaceholder: true as const,
+          };
+        },
+      },
+      snapshot: snapshot({
+        backendKind: 'live2d',
+        avatarAssetRef: 'live2d_111111111111',
+        expressionProfileRef: null,
+        idlePreset: null,
+        interactionPolicyRef: null,
+        defaultVoiceReference: null,
+        avatarAutoplay: false,
+        backgroundAssetRef: null,
+      }),
+    });
+
+    await expect(adapter.load()).resolves.toMatchObject({
+      previewState: 'failed',
+      previewArtifactRef: null,
+      previewFailureReason: expect.stringMatching(/does not match selected avatar/u),
     });
   });
 
@@ -277,10 +458,16 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
 
     const projection = await adapter.importAvatarAsset?.('live2d');
 
-    expect(patches).toEqual([{ backendKind: 'live2d', avatarAssetRef: 'live2d_111111111111' }]);
+    expect(patches).toEqual([{
+      backendKind: 'live2d',
+      avatarAssetRef: 'live2d_111111111111',
+      expressionProfileRef: null,
+      idlePreset: null,
+      interactionPolicyRef: null,
+    }]);
     expect(expectedRevisions).toEqual(['1']);
     expect(projection).toMatchObject({
-      status: 'ready',
+      status: 'invalid',
       avatarAssetRef: 'live2d_111111111111',
       backendKind: 'live2d',
     });
@@ -380,6 +567,26 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     });
   });
 
+  it('does not rewind committed state to the constructor snapshot after a cancelled import', async () => {
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account-1',
+      runtimePresentation: {
+        async patchPresentationProfile(_identity, patch) {
+          return mutationResult(patch);
+        },
+      },
+      shell: shellBridge({ importLive2dAvatarAsset: async () => null }),
+      snapshot: snapshot(null),
+    });
+
+    await adapter.setAvatarAutoplay?.(true);
+    await expect(adapter.importAvatarAsset?.('live2d')).resolves.toMatchObject({
+      avatarAutoplay: true,
+      avatarImportError: 'Avatar import was cancelled before a source was selected.',
+    });
+  });
+
   it('rejects backend mismatches before writing Runtime profile', async () => {
     const patches: AgentCenterRuntimePresentationProfilePatch[] = [];
     const adapter = createAgentCenterShellAppearanceAdapter({
@@ -405,7 +612,7 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
     expect(patches).toEqual([]);
   });
 
-  it('removes background custody then clears Runtime background ref', async () => {
+  it('clears Runtime background ref before removing background custody', async () => {
     const calls: string[] = [];
     const patches: AgentCenterRuntimePresentationProfilePatch[] = [];
     const adapter = createAgentCenterShellAppearanceAdapter({
@@ -413,6 +620,7 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
       accountId: 'account-1',
       runtimePresentation: {
         async patchPresentationProfile(_identity, patch) {
+          calls.push('runtime-clear');
           patches.push(patch);
           return mutationResult(patch);
         },
@@ -437,7 +645,199 @@ describe('createAgentCenterShellAppearanceAdapter', () => {
 
     await adapter.clearBackground?.();
 
-    expect(calls).toEqual(['remove:bg_111111111111']);
+    expect(calls).toEqual(['runtime-clear', 'remove:bg_111111111111']);
     expect(patches).toEqual([{ backgroundAssetRef: '' }]);
+  });
+
+  it.each([
+    ['missing Shell bridge', null],
+    ['missing background removal capability', shellBridge({ removeBackground: undefined })],
+  ])('surfaces cleanup debt when clearing a background with %s', async (_name, shell) => {
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account-1',
+      runtimePresentation: {
+        async patchPresentationProfile(_identity, patch) {
+          return mutationResult(patch);
+        },
+      },
+      shell,
+      snapshot: snapshot({
+        backendKind: null,
+        avatarAssetRef: null,
+        expressionProfileRef: null,
+        idlePreset: null,
+        interactionPolicyRef: null,
+        defaultVoiceReference: null,
+        avatarAutoplay: false,
+        backgroundAssetRef: 'bg_111111111111',
+      }),
+    });
+
+    await expect(adapter.clearBackground?.()).resolves.toMatchObject({
+      backgroundRef: null,
+      resourceCleanupError: expect.stringMatching(/bg_111111111111.*unavailable/u),
+    });
+  });
+
+  it('serializes concurrent Runtime mutations against the latest committed revision', async () => {
+    const expectedRevisions: string[] = [];
+    let revision = 1;
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account-1',
+      runtimePresentation: {
+        async patchPresentationProfile(_identity, patch, expectedRevision) {
+          expectedRevisions.push(expectedRevision);
+          await Promise.resolve();
+          revision += 1;
+          return mutationResult(patch, String(revision));
+        },
+      },
+      shell: shellBridge(),
+      snapshot: snapshot(null),
+    });
+
+    await Promise.all([
+      adapter.setAvatarAutoplay?.(true),
+      adapter.importBackground?.(),
+    ]);
+
+    expect(expectedRevisions).toEqual(['1', '2']);
+  });
+
+  it('clears Runtime selection before Shell cleanup and preserves committed clear on cleanup failure', async () => {
+    const calls: string[] = [];
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account-1',
+      runtimePresentation: {
+        async patchPresentationProfile(_identity, patch) {
+          calls.push('runtime-clear');
+          return mutationResult(patch);
+        },
+      },
+      shell: shellBridge({
+        async removeBackground() {
+          calls.push('shell-remove');
+          throw new Error('custody delete failed');
+        },
+      }),
+      snapshot: snapshot({
+        backendKind: null,
+        avatarAssetRef: null,
+        expressionProfileRef: null,
+        idlePreset: null,
+        interactionPolicyRef: null,
+        defaultVoiceReference: null,
+        avatarAutoplay: false,
+        backgroundAssetRef: 'bg_111111111111',
+      }),
+    });
+
+    await expect(adapter.clearBackground?.()).resolves.toMatchObject({
+      backgroundRef: null,
+      resourceCleanupError: 'custody delete failed',
+    });
+    expect(calls).toEqual(['runtime-clear', 'shell-remove']);
+  });
+
+  it('clears backend-dependent fields with the selected avatar', async () => {
+    const patches: AgentCenterRuntimePresentationProfilePatch[] = [];
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account-1',
+      runtimePresentation: {
+        async patchPresentationProfile(_identity, patch) {
+          patches.push(patch);
+          return mutationResult(patch);
+        },
+      },
+      shell: shellBridge(),
+      snapshot: snapshot({
+        backendKind: 'live2d',
+        avatarAssetRef: 'live2d_111111111111',
+        expressionProfileRef: 'expression-profile:one',
+        idlePreset: 'idle-preset:one',
+        interactionPolicyRef: 'interaction-policy:one',
+        defaultVoiceReference: 'preset_voice_id:zh-CN',
+        avatarAutoplay: true,
+        backgroundAssetRef: 'bg_111111111111',
+      }),
+    });
+
+    await adapter.clearAvatarAsset?.();
+
+    expect(patches).toEqual([{
+      backendKind: null,
+      avatarAssetRef: '',
+      expressionProfileRef: null,
+      idlePreset: null,
+      interactionPolicyRef: null,
+    }]);
+    expect((adapter as unknown as Record<string, unknown>).removeAccountResources).toBeUndefined();
+  });
+
+  it('returns committed invalid state when post-commit Shell validation fails', async () => {
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account-1',
+      runtimePresentation: {
+        async patchPresentationProfile(_identity, patch) {
+          return mutationResult(patch);
+        },
+      },
+      shell: shellBridge({
+        async validateAvatarAsset() {
+          throw new Error('custody validation unavailable');
+        },
+      }),
+      snapshot: snapshot(null),
+    });
+
+    await expect(adapter.importAvatarAsset?.('live2d')).resolves.toMatchObject({
+      status: 'invalid',
+      avatarAssetRef: 'live2d_111111111111',
+      validationStatus: 'invalid',
+      validationMessage: 'custody validation unavailable',
+    });
+  });
+
+  it('commits agent selection clear before agent custody cleanup', async () => {
+    const calls: string[] = [];
+    const adapter = createAgentCenterShellAppearanceAdapter({
+      identity,
+      accountId: 'account-1',
+      runtimePresentation: {
+        async patchPresentationProfile(_identity, patch) {
+          calls.push('runtime-clear');
+          return mutationResult(patch);
+        },
+      },
+      shell: shellBridge({
+        async removeAgentResources() {
+          calls.push('shell-cleanup');
+          throw new Error('agent custody cleanup failed');
+        },
+      }),
+      snapshot: snapshot({
+        backendKind: 'live2d',
+        avatarAssetRef: 'live2d_111111111111',
+        expressionProfileRef: 'expression-profile:one',
+        idlePreset: 'idle-preset:one',
+        interactionPolicyRef: 'interaction-policy:one',
+        defaultVoiceReference: 'preset_voice_id:zh-CN',
+        avatarAutoplay: true,
+        backgroundAssetRef: 'bg_111111111111',
+      }),
+    });
+
+    await expect(adapter.removeAgentResources?.()).resolves.toMatchObject({
+      status: 'not_configured',
+      avatarAssetRef: null,
+      backgroundRef: null,
+      resourceCleanupError: 'agent custody cleanup failed',
+    });
+    expect(calls).toEqual(['runtime-clear', 'shell-cleanup']);
   });
 });

@@ -169,10 +169,11 @@ export async function resolveAvatarAssetPreview(
   if (result.validationStatus !== 'valid') {
     throw invalidAsset(command, result.validationMessage ?? 'Avatar asset validation failed');
   }
+  const scope = parseLocalAgentScope(payload, command);
   return {
     avatarAssetRef: result.avatarAssetRef,
     backendKind: result.backendKind,
-    previewArtifactRef: `agent-center-preview:${result.backendKind}:${result.avatarAssetRef}`,
+    previewMaterialRef: avatarMaterializationRef(scope, result.backendKind, result.avatarAssetRef),
     validationStatus: result.validationStatus,
     warnings: [],
   };

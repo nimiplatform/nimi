@@ -250,8 +250,12 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
       previewTier: appearance.previewTier,
       backendKind: appearance.backendKind,
       avatarAssetRef: appearance.avatarAssetRef,
+      previewMaterialRef: appearance.previewMaterialRef,
       previewArtifactRef: appearance.previewArtifactRef,
       previewImageRef: appearance.previewImageRef,
+      previewEvidenceRef: appearance.previewEvidenceRef,
+      previewVisiblePixels: appearance.previewVisiblePixels,
+      previewSampledPixelChecksum: appearance.previewSampledPixelChecksum,
       previewFailureReason: appearance.previewFailureReason,
       previewWarnings: appearance.previewWarnings,
     });
@@ -673,6 +677,7 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
 
           {readableDisabledReason ? <Notice tone="warn">{readableDisabledReason}</Notice> : null}
           {appearance.avatarImportError ? <Notice tone="warn">{appearance.avatarImportError}</Notice> : null}
+          {appearance.resourceCleanupError ? <Notice tone="warn">{appearance.resourceCleanupError}</Notice> : null}
 
           {renderProgressChecklist()}
           {renderAssetManagement()}
@@ -700,6 +705,7 @@ export function AgentCenterAppearanceSection({ state, appearanceAdapter, copy }:
 
         {readableDisabledReason ? <Notice tone="warn">{readableDisabledReason}</Notice> : null}
         {appearance.avatarImportError ? <Notice tone="warn">{appearance.avatarImportError}</Notice> : null}
+        {appearance.resourceCleanupError ? <Notice tone="warn">{appearance.resourceCleanupError}</Notice> : null}
 
         {renderProgressChecklist()}
         {renderAssetManagement()}

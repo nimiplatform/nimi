@@ -41,19 +41,55 @@ requireIncludes(agentCenterUi, 'kit/features/agent-center/src/components/AgentCe
   'data-agent-center-appearance-avatar-preview',
   'previewArtifactRef',
   'previewImageRef',
+  'previewEvidenceRef',
+  'previewVisiblePixels',
 ], findings);
 
 const agentCenterLogic = await read('kit/features/agent-center/src/components/AgentCenterAppearanceSection.logic.ts');
 requireIncludes(agentCenterLogic, 'kit/features/agent-center/src/components/AgentCenterAppearanceSection.logic.ts', [
-  'avatar_preview_service',
-  'previewArtifactRef',
+  'isAgentCenterAvatarPreviewReady',
+  'appearance.previewEvidenceRef',
+], findings);
+
+const agentCenter = await read('kit/features/agent-center/src/components/AgentCenter.tsx');
+requireIncludes(agentCenter, 'kit/features/agent-center/src/components/AgentCenter.tsx', [
+  'isAgentCenterAvatarPreviewReady',
 ], findings);
 
 const shellAdapter = await read('kit/features/agent-center/src/shell-appearance-adapter.ts');
 requireIncludes(shellAdapter, 'kit/features/agent-center/src/shell-appearance-adapter.ts', [
   'resolveAvatarAssetPreview',
   'validateAgentCenterAvatarPreviewResolveResult',
-  "previewTier: 'avatar_preview_service'",
+  'previewMaterialRef',
+  'resolveAgentCenterAvatarPreviewProjection',
+  'isAgentCenterAvatarPreviewReady',
+], findings);
+
+const previewAdapter = await read('kit/features/agent-center/src/avatar-preview-adapter.ts');
+requireIncludes(previewAdapter, 'kit/features/agent-center/src/avatar-preview-adapter.ts', [
+  'avatarPreview.resolvePreview',
+  'result.visiblePixels',
+  'result.sampledPixelChecksum',
+  'Avatar preview service adapter is unavailable.',
+  'isAgentCenterAvatarPreviewReady',
+], findings);
+
+const previewReadiness = await read('kit/features/agent-center/src/appearance-preview-readiness.ts');
+requireIncludes(previewReadiness, 'kit/features/agent-center/src/appearance-preview-readiness.ts', [
+  "previewTier === 'avatar_preview_service'",
+  'previewMaterialRef',
+  'previewArtifactRef !== previewMaterialRef',
+  'previewEvidenceRef',
+  'previewVisiblePixels',
+  'previewSampledPixelChecksum',
+  'avatar.carrier.preview-artifact:',
+  'avatar.vrm.preview-artifact:',
+  'avatar.carrier.visual:',
+  'avatar.vrm.visual:',
+  'globalThis.location?.origin',
+], findings);
+forbid(`${shellAdapter}\n${previewAdapter}`, 'kit/features/agent-center preview orchestration', [
+  { label: 'Shell preview material relabelled as Avatar artifact', regex: /material\.result\.previewArtifactRef/u },
 ], findings);
 
 const avatarFacade = await read('kit/features/avatar/src/agent-center-preview.tsx');
@@ -63,6 +99,10 @@ requireIncludes(avatarFacade, 'kit/features/avatar/src/agent-center-preview.tsx'
   'nonPlaceholder: false',
   'data-avatar-preview-nonplaceholder="true"',
   'data-avatar-preview-nonplaceholder="false"',
+  'data-avatar-preview-visible-pixels',
+  'data-avatar-preview-sampled-pixel-checksum',
+  'normalizePreviewSurfaceRef',
+  'normalizePositiveNumber',
   'AvatarStage',
 ], findings);
 forbid(avatarFacade, 'kit/features/avatar/src/agent-center-preview.tsx', [
@@ -98,6 +138,8 @@ for (const [relPath, source] of [
 const kitFeatureFiles = [
   'kit/features/agent-center/src/components/AgentCenterAppearanceSection.tsx',
   'kit/features/agent-center/src/shell-appearance-adapter.ts',
+  'kit/features/agent-center/src/avatar-preview-adapter.ts',
+  'kit/features/agent-center/src/appearance-preview-readiness.ts',
   'kit/features/avatar/src/agent-center-preview.tsx',
   'kit/features/avatar/src/headless.ts',
   'kit/features/avatar/src/ui.ts',

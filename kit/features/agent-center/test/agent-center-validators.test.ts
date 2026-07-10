@@ -33,10 +33,9 @@ describe('AgentCenter host result validators', () => {
     expect(validateAgentCenterAvatarPreviewResolveResult({
       avatarAssetRef: 'agent-center-avatar:local-agent-1/avatar-1',
       backendKind: 'live2d',
-      previewArtifactRef: 'agent-center-preview:local-agent-1/preview-1',
-      previewImageRef: 'agent-center-preview-image:local-agent-1/preview-1',
+      previewMaterialRef: 'agent-center-avatar-asset:local-agent-1/preview-1',
       warnings: ['needs expression review'],
-    }).previewArtifactRef).toBe('agent-center-preview:local-agent-1/preview-1');
+    }).previewMaterialRef).toBe('agent-center-avatar-asset:local-agent-1/preview-1');
   });
 
   it('rejects raw paths, file URLs, unknown fields, and runtime-owned payloads', () => {
@@ -54,14 +53,14 @@ describe('AgentCenter host result validators', () => {
     expect(() => validateAgentCenterAvatarPreviewResolveResult({
       avatarAssetRef: 'agent-center-avatar:local-agent-1/avatar-1',
       backendKind: 'live2d',
-      previewArtifactRef: 'agent-center-preview:local-agent-1/preview-1',
+      previewMaterialRef: 'agent-center-avatar-asset:local-agent-1/preview-1',
       backendCompatibilityTier: 'gold',
     })).toThrow(/unsupported field backendCompatibilityTier/u);
 
     expect(() => validateAgentCenterAvatarPreviewResolveResult({
       avatarAssetRef: 'agent-center-avatar:local-agent-1/avatar-1',
       backendKind: 'live2d',
-      previewArtifactRef: 'agent-center-preview:local-agent-1/preview-1',
+      previewMaterialRef: 'agent-center-avatar-asset:local-agent-1/preview-1',
       launchPayload: {},
     })).toThrow(/unsupported field launchPayload/u);
   });

@@ -12,8 +12,13 @@ import {
   validateAgentCenterResourceRemovalResult,
   type AgentCenterAvatarBackendKind,
 } from './preview-resolve.js';
+import {
+  isAgentCenterAvatarPreviewReady,
+} from './appearance-preview-readiness.js';
+import { resolveAgentCenterAvatarPreviewProjection } from './avatar-preview-adapter.js';
 import type {
   AgentCenterAppearanceAdapter,
+  AgentCenterAvatarPreviewAdapter,
   AgentCenterAppearanceProjection,
   AgentCenterRuntimePresentationProfilePatch,
   AgentCenterRuntimePresentationProfileSurface,
@@ -55,6 +60,7 @@ export interface CreateAgentCenterShellAppearanceAdapterInput {
   readonly accountId: string;
   readonly runtimePresentation: AgentCenterRuntimePresentationProfileSurface;
   readonly shell?: AgentCenterShellAppearanceBridge | null;
+  readonly avatarPreview?: AgentCenterAvatarPreviewAdapter | null;
   readonly snapshot?: AgentCenterRuntimeSnapshot | null;
   readonly loadSnapshot?: () => Promise<AgentCenterRuntimeSnapshot | null>;
 }
@@ -76,6 +82,14 @@ export function createAgentCenterShellAppearanceAdapter(
   let committedProfile = presentationProfileFromSnapshot(input.snapshot) || EMPTY_PROFILE;
   let committedRevision = presentationRevisionFromSnapshot(input.snapshot);
   let sidecar: Pick<AgentCenterAppearanceProjection, 'live2dAdapterManifestRef' | 'live2dAdapterManifestSource'> = {};
+  let resourceCleanupError: string | null = null;
+  let transactionTail: Promise<void> = Promise.resolve();
+
+  const enqueue = <T>(operation: () => Promise<T>): Promise<T> => {
+    const pending = transactionTail.then(operation, operation);
+    transactionTail = pending.then(() => undefined, () => undefined);
+    return pending;
+  };
 
   const scope = (): AgentCenterShellAppearanceBridgeScope => ({
     hostScope: 'local-agent',
@@ -85,16 +99,26 @@ export function createAgentCenterShellAppearanceAdapter(
     localAgentRef: requireText(input.identity.localAgentRef, 'localAgentRef'),
   });
 
-  const refresh = async (): Promise<AgentCenterAppearanceProjection> => {
-    const snapshot = input.loadSnapshot ? await input.loadSnapshot() : input.snapshot;
-    committedProfile = presentationProfileFromSnapshot(snapshot) || committedProfile || EMPTY_PROFILE;
-    committedRevision = presentationRevisionFromSnapshot(snapshot) ?? committedRevision;
-    return projectAppearance(committedProfile, input.shell || null, sidecar, scope());
+  const refreshUnsafe = async (): Promise<AgentCenterAppearanceProjection> => {
+    if (input.loadSnapshot) {
+      const snapshot = await input.loadSnapshot();
+      committedProfile = presentationProfileFromSnapshot(snapshot) || committedProfile || EMPTY_PROFILE;
+      committedRevision = presentationRevisionFromSnapshot(snapshot) ?? committedRevision;
+    }
+    return projectAppearance(
+      committedProfile,
+      input.shell || null,
+      input.avatarPreview || null,
+      sidecar,
+      resourceCleanupError,
+      scope(),
+      input.identity,
+    );
   };
 
-  const patchRuntimeProfile = async (
+  const commitRuntimePatchUnsafe = async (
     patch: AgentCenterRuntimePresentationProfilePatch,
-  ): Promise<AgentCenterAppearanceProjection> => {
+  ): Promise<void> => {
     if (committedRevision === null) {
       throw new Error('Agent Center Runtime presentation revision is unavailable.');
     }
@@ -105,81 +129,130 @@ export function createAgentCenterShellAppearanceAdapter(
     );
     committedProfile = result.profile || EMPTY_PROFILE;
     committedRevision = result.committedRevision;
-    return projectAppearance(committedProfile, input.shell || null, sidecar, scope());
+  };
+
+  const projectUnsafe = () => projectAppearance(
+    committedProfile,
+    input.shell || null,
+    input.avatarPreview || null,
+    sidecar,
+    resourceCleanupError,
+    scope(),
+    input.identity,
+  );
+
+  const patchAndProjectUnsafe = async (patch: AgentCenterRuntimePresentationProfilePatch) => {
+    await commitRuntimePatchUnsafe(patch);
+    return projectUnsafe();
   };
 
   return {
-    load: refresh,
+    load: () => enqueue(refreshUnsafe),
     ...(input.shell ? { async importAvatarAsset(kind: 'live2d' | 'vrm') {
-      const shell = input.shell as AgentCenterShellAppearanceBridge;
-      const raw = kind === 'vrm'
-        ? await shell.importVrmAvatarAsset(scope())
-        : await shell.importLive2dAvatarAsset(scope());
-      if (!raw) {
-        return { ...await refresh(), avatarImportError: 'Avatar import was cancelled before a source was selected.' };
-      }
-      const result = validateAgentCenterAvatarAssetImportResult(raw);
-      if (normalizeBackendKind(result.backendKind) !== kind) {
-        throw new Error(`Agent Center shell returned ${result.backendKind} for ${kind} import.`);
-      }
-      return patchRuntimeProfile({
-        backendKind: normalizeBackendKind(result.backendKind),
-        avatarAssetRef: result.avatarAssetRef,
+      return enqueue(async () => {
+        const shell = input.shell as AgentCenterShellAppearanceBridge;
+        const raw = kind === 'vrm'
+          ? await shell.importVrmAvatarAsset(scope())
+          : await shell.importLive2dAvatarAsset(scope());
+        if (!raw) {
+          return { ...await refreshUnsafe(), avatarImportError: 'Avatar import was cancelled before a source was selected.' };
+        }
+        const result = validateAgentCenterAvatarAssetImportResult(raw);
+        if (normalizeBackendKind(result.backendKind) !== kind) {
+          throw new Error(`Agent Center shell returned ${result.backendKind} for ${kind} import.`);
+        }
+        return patchAndProjectUnsafe({
+          backendKind: normalizeBackendKind(result.backendKind),
+          avatarAssetRef: result.avatarAssetRef,
+          expressionProfileRef: null,
+          idlePreset: null,
+          interactionPolicyRef: null,
+        });
       });
     } } : {}),
     ...(input.shell?.importLive2dAdapterManifest ? { async linkLive2dAdapterManifest() {
-      const shell = input.shell as AgentCenterShellAppearanceBridge;
-      const avatarAssetRef = committedProfile.avatarAssetRef;
-      if (!avatarAssetRef) {
-        throw new Error('Agent Center requires a selected avatar before importing a Live2D adapter manifest.');
-      }
-      const raw = await shell.importLive2dAdapterManifest?.({ ...scope(), avatarAssetRef });
-      if (!raw) {
-        return refresh();
-      }
-      const result = validateAgentCenterLive2dSidecarImportResult(raw);
-      sidecar = {
-        live2dAdapterManifestRef: result.live2dAdapterManifestRef,
-        live2dAdapterManifestSource: result.live2dAdapterManifestSource,
-      };
-      return refresh();
+      return enqueue(async () => {
+        const shell = input.shell as AgentCenterShellAppearanceBridge;
+        const avatarAssetRef = committedProfile.avatarAssetRef;
+        if (!avatarAssetRef) {
+          throw new Error('Agent Center requires a selected avatar before importing a Live2D adapter manifest.');
+        }
+        const raw = await shell.importLive2dAdapterManifest?.({ ...scope(), avatarAssetRef });
+        if (!raw) return refreshUnsafe();
+        const result = validateAgentCenterLive2dSidecarImportResult(raw);
+        sidecar = {
+          live2dAdapterManifestRef: result.live2dAdapterManifestRef,
+          live2dAdapterManifestSource: result.live2dAdapterManifestSource,
+        };
+        return projectUnsafe();
+      });
     } } : {}),
     async clearAvatarAsset() {
-      sidecar = {};
-      return patchRuntimeProfile({ avatarAssetRef: '' });
+      return enqueue(async () => {
+        await commitRuntimePatchUnsafe({
+          backendKind: null,
+          avatarAssetRef: '',
+          expressionProfileRef: null,
+          idlePreset: null,
+          interactionPolicyRef: null,
+        });
+        sidecar = {};
+        return projectUnsafe();
+      });
     },
     ...(input.shell?.importBackground ? { async importBackground() {
-      const shell = input.shell as AgentCenterShellAppearanceBridge;
-      const raw = await shell.importBackground?.(scope());
-      if (!raw) {
-        return { ...await refresh(), backgroundImportError: 'Background import was cancelled before a source was selected.' };
-      }
-      const result = validateAgentCenterBackgroundImportResult(raw);
-      return patchRuntimeProfile({ backgroundAssetRef: result.backgroundAssetRef });
+      return enqueue(async () => {
+        const shell = input.shell as AgentCenterShellAppearanceBridge;
+        const raw = await shell.importBackground?.(scope());
+        if (!raw) {
+          return { ...await refreshUnsafe(), backgroundImportError: 'Background import was cancelled before a source was selected.' };
+        }
+        const result = validateAgentCenterBackgroundImportResult(raw);
+        return patchAndProjectUnsafe({ backgroundAssetRef: result.backgroundAssetRef });
+      });
     } } : {}),
     async clearBackground() {
-      const backgroundRef = committedProfile.backgroundAssetRef;
-      if (backgroundRef && input.shell?.removeBackground) {
-        validateAgentCenterResourceRemovalResult(await input.shell.removeBackground({ ...scope(), backgroundAssetRef: backgroundRef }));
-      }
-      return patchRuntimeProfile({ backgroundAssetRef: '' });
+      return enqueue(async () => {
+        const backgroundRef = committedProfile.backgroundAssetRef;
+        await commitRuntimePatchUnsafe({ backgroundAssetRef: '' });
+        resourceCleanupError = null;
+        if (backgroundRef) {
+          if (!input.shell?.removeBackground) {
+            resourceCleanupError = `Background custody cleanup for ${backgroundRef} is unavailable because Shell removeBackground is not connected.`;
+          } else {
+            try {
+              validateAgentCenterResourceRemovalResult(await input.shell.removeBackground({ ...scope(), backgroundAssetRef: backgroundRef }));
+            } catch (error) {
+              resourceCleanupError = errorMessage(error);
+            }
+          }
+        }
+        return projectUnsafe();
+      });
     },
     ...(input.shell?.removeAgentResources ? { async removeAgentResources() {
-      const shell = input.shell as AgentCenterShellAppearanceBridge;
-      validateAgentCenterResourceRemovalResult(await shell.removeAgentResources?.(scope() as AgentCenterShellAppearanceBridgeScope & { readonly localAgentRef: string }));
-      sidecar = {};
-      return patchRuntimeProfile({ avatarAssetRef: '', backgroundAssetRef: '' });
-    } } : {}),
-    ...(input.shell?.removeAccountResources ? { async removeAccountResources() {
-      const shell = input.shell as AgentCenterShellAppearanceBridge;
-      validateAgentCenterResourceRemovalResult(await shell.removeAccountResources?.({
-        hostScope: 'account',
-        accountId: requireText(input.accountId, 'accountId'),
-      }));
-      return refresh();
+      return enqueue(async () => {
+        const shell = input.shell as AgentCenterShellAppearanceBridge;
+        await commitRuntimePatchUnsafe({
+          backendKind: null,
+          avatarAssetRef: '',
+          expressionProfileRef: null,
+          idlePreset: null,
+          interactionPolicyRef: null,
+          backgroundAssetRef: '',
+        });
+        sidecar = {};
+        resourceCleanupError = null;
+        try {
+          validateAgentCenterResourceRemovalResult(await shell.removeAgentResources?.(scope() as AgentCenterShellAppearanceBridgeScope & { readonly localAgentRef: string }));
+        } catch (error) {
+          resourceCleanupError = errorMessage(error);
+        }
+        return projectUnsafe();
+      });
     } } : {}),
     async setAvatarAutoplay(enabled) {
-      return patchRuntimeProfile({ avatarAutoplay: enabled });
+      return enqueue(() => patchAndProjectUnsafe({ avatarAutoplay: enabled }));
     },
   };
 }
@@ -187,50 +260,65 @@ export function createAgentCenterShellAppearanceAdapter(
 async function projectAppearance(
   profile: NimiRuntimeAgentPresentationProfileProjection,
   shell: AgentCenterShellAppearanceBridge | null,
+  avatarPreview: AgentCenterAvatarPreviewAdapter | null,
   sidecar: Pick<AgentCenterAppearanceProjection, 'live2dAdapterManifestRef' | 'live2dAdapterManifestSource'>,
+  resourceCleanupError: string | null,
   scope: AgentCenterShellAppearanceBridgeScope,
+  identity: RuntimeLocalAgentIdentityInput,
 ): Promise<AgentCenterAppearanceProjection> {
   const avatarAssetRef = profile.avatarAssetRef || null;
   const backgroundRef = profile.backgroundAssetRef || null;
   const [avatarValidation, backgroundValidation] = await Promise.all([
     avatarAssetRef
-      ? shell?.validateAvatarAsset({ ...scope, avatarAssetRef }).then(validateAgentCenterAvatarAssetValidateResult) ?? Promise.resolve(null)
+      ? shell?.validateAvatarAsset({ ...scope, avatarAssetRef })
+        .then(validateAgentCenterAvatarAssetValidateResult)
+        .catch((error: unknown) => {
+          const message = errorMessage(error);
+          return {
+            validationStatus: 'invalid' as const,
+            validationMessage: message,
+            validationIssueRows: [message],
+            backendCapabilityProfileRef: null,
+          };
+        }) ?? Promise.resolve(null)
       : Promise.resolve(null),
     backgroundRef && shell?.validateBackground
-      ? shell.validateBackground({ ...scope, backgroundAssetRef: backgroundRef }).then(validateAgentCenterBackgroundValidateResult)
+      ? shell.validateBackground({ ...scope, backgroundAssetRef: backgroundRef })
+        .then(validateAgentCenterBackgroundValidateResult)
+        .catch((error: unknown) => ({ validationStatus: 'invalid' as const, validationMessage: errorMessage(error) }))
       : Promise.resolve(null),
   ]);
-  const preview = avatarAssetRef && shell?.resolveAvatarAssetPreview
+  const material = avatarAssetRef && avatarValidation?.validationStatus === 'valid' && shell?.resolveAvatarAssetPreview
     ? await shell.resolveAvatarAssetPreview({
       ...scope,
       avatarAssetRef,
       ...(profile.backendKind === 'live2d' || profile.backendKind === 'vrm'
         ? { backendKind: profile.backendKind }
         : {}),
-    }).then(validateAgentCenterAvatarPreviewResolveResult).then((result) => ({
-      previewState: result.validationStatus === 'invalid' ? 'failed' as const : 'ready' as const,
-      previewTier: 'avatar_preview_service' as const,
-      previewArtifactRef: result.previewArtifactRef,
-      previewImageRef: result.previewImageRef ?? null,
-      previewFailureReason: result.validationStatus === 'invalid' ? result.validationMessage ?? 'avatar_preview_service validation failed' : null,
-      previewWarnings: result.warnings ?? [],
-    })).catch((error: unknown) => ({
-      previewState: 'failed' as const,
-      previewTier: 'avatar_preview_service' as const,
-      previewArtifactRef: null,
-      previewImageRef: null,
-      previewFailureReason: error instanceof Error ? error.message : 'avatar_preview_service resolve failed',
-      previewWarnings: [],
-    }))
+    }).then(validateAgentCenterAvatarPreviewResolveResult).then((result) => {
+      if (result.validationStatus === 'invalid') {
+        throw new Error(result.validationMessage || 'Shell preview material validation failed.');
+      }
+      return { result, error: null as string | null };
+    })
+      .catch((error: unknown) => ({ result: null, error: errorMessage(error) }))
     : null;
+  const preview = await resolveAgentCenterAvatarPreviewProjection({
+    avatarAssetRef,
+    backendKind: profile.backendKind,
+    backendCapabilityProfileRef: 'backendCapabilityProfileRef' in (avatarValidation || {})
+      ? avatarValidation?.backendCapabilityProfileRef ?? null
+      : null,
+    avatarValidationStatus: avatarValidation?.validationStatus ?? null,
+    material,
+    avatarPreview,
+    identity,
+    accountId: scope.accountId,
+  });
   const validationStatus = avatarValidation?.validationStatus ?? null;
   const backgroundValidationStatus = backgroundValidation?.validationStatus ?? null;
-  return {
-    status: !avatarAssetRef
-      ? 'not_configured'
-      : validationStatus === 'invalid'
-        ? 'invalid'
-        : 'ready',
+  const projection: AgentCenterAppearanceProjection = {
+    status: 'invalid',
     backendKind: profile.backendKind,
     avatarAssetRef,
     avatarAssetValid: validationStatus === 'valid',
@@ -244,19 +332,42 @@ async function projectAppearance(
     backgroundChecking: backgroundValidationStatus === 'checking',
     backgroundValidationStatus,
     backgroundValidationMessage: backgroundValidation?.validationMessage ?? null,
+    resourceCleanupError,
+    previewMaterialRef: material?.result?.previewMaterialRef ?? null,
     previewState: preview?.previewState ?? (avatarAssetRef ? 'unavailable' : null),
     previewTier: preview?.previewTier ?? null,
     previewArtifactRef: preview?.previewArtifactRef ?? null,
     previewImageRef: preview?.previewImageRef ?? null,
+    previewEvidenceRef: preview?.previewEvidenceRef ?? null,
+    previewVisiblePixels: preview?.previewVisiblePixels ?? null,
+    previewSampledPixelChecksum: preview?.previewSampledPixelChecksum ?? null,
     previewFailureReason: preview?.previewFailureReason ?? null,
     previewWarnings: preview?.previewWarnings ?? [],
     defaultVoiceReference: profile.defaultVoiceReference,
     avatarAutoplay: profile.avatarAutoplay,
     avatarImportDisabled: !shell,
     backgroundImportDisabled: !shell?.importBackground,
-    disabledReason: avatarAssetRef ? null : 'appearance asset not configured',
+    disabledReason: !avatarAssetRef
+      ? 'appearance asset not configured'
+      : validationStatus === 'valid'
+        ? null
+        : avatarValidation?.validationMessage || 'appearance asset validation is unavailable',
     ...sidecar,
   };
+  return {
+    ...projection,
+    status: !avatarAssetRef
+      ? 'not_configured'
+      : validationStatus === 'checking' || projection.previewState === 'loading'
+        ? 'loading'
+        : validationStatus === 'valid' && isAgentCenterAvatarPreviewReady(projection)
+          ? 'ready'
+          : 'invalid',
+  };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function presentationProfileFromSnapshot(
@@ -278,39 +389,6 @@ function normalizePatch(
     key,
     typeof value === 'string' ? value.trim() : value,
   ])) as AgentCenterRuntimePresentationProfilePatch;
-}
-
-function mergeProfile(
-  profile: NimiRuntimeAgentPresentationProfileProjection,
-  patch: AgentCenterRuntimePresentationProfilePatch,
-): NimiRuntimeAgentPresentationProfileProjection {
-  return {
-    ...profile,
-    backendKind: Object.prototype.hasOwnProperty.call(patch, 'backendKind')
-      ? normalizeBackendKind(patch.backendKind)
-      : profile.backendKind,
-    avatarAssetRef: Object.prototype.hasOwnProperty.call(patch, 'avatarAssetRef')
-      ? normalizeOptionalText(patch.avatarAssetRef)
-      : profile.avatarAssetRef,
-    expressionProfileRef: Object.prototype.hasOwnProperty.call(patch, 'expressionProfileRef')
-      ? normalizeOptionalText(patch.expressionProfileRef)
-      : profile.expressionProfileRef,
-    idlePreset: Object.prototype.hasOwnProperty.call(patch, 'idlePreset')
-      ? normalizeOptionalText(patch.idlePreset)
-      : profile.idlePreset,
-    interactionPolicyRef: Object.prototype.hasOwnProperty.call(patch, 'interactionPolicyRef')
-      ? normalizeOptionalText(patch.interactionPolicyRef)
-      : profile.interactionPolicyRef,
-    defaultVoiceReference: Object.prototype.hasOwnProperty.call(patch, 'defaultVoiceReference')
-      ? normalizeOptionalText(patch.defaultVoiceReference)
-      : profile.defaultVoiceReference,
-    avatarAutoplay: Object.prototype.hasOwnProperty.call(patch, 'avatarAutoplay')
-      ? patch.avatarAutoplay === true
-      : profile.avatarAutoplay,
-    backgroundAssetRef: Object.prototype.hasOwnProperty.call(patch, 'backgroundAssetRef')
-      ? normalizeOptionalText(patch.backgroundAssetRef)
-      : profile.backgroundAssetRef,
-  };
 }
 
 function normalizeBackendKind(value: unknown): NimiRuntimeAgentPresentationProfileProjection['backendKind'] {

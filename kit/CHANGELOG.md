@@ -85,6 +85,16 @@ Discipline.
 
 ### Changed
 
+- **Breaking (0.x):** Agent Center Shell preview resolution now returns
+  `previewMaterialRef` only. Consumers must pass that material to an
+  Avatar-owned `AgentCenterAvatarPreviewAdapter` and require its render
+  artifact, same-origin surface, evidence ref, and pixel proof before showing
+  appearance readiness; migrate off Shell `previewArtifactRef` and
+  `previewImageRef` claims.
+- **Breaking (0.x):** `AgentCenterAppearanceAdapter` no longer exposes
+  account-wide `removeAccountResources`. Account teardown must use the
+  low-level Shell bridge from an account-scoped orchestrator; per-agent Agent
+  Center transactions may only remove their own resources.
 - **Breaking (0.x)**: Agent presentation mutation now requires the caller's
   canonical uint64-string `expectedRevision` and returns
   `{ profile, committedRevision }`. Migration: retain and pass the revision

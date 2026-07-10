@@ -13,8 +13,10 @@ export type AgentCenterAvatarPreviewServiceResult =
       readonly backendKind: AvatarBackendKind;
       readonly avatarAssetRef: string;
       readonly previewArtifactRef: string;
-      readonly previewImageRef?: string | null;
+      readonly previewImageRef: string;
       readonly evidenceRef: string;
+      readonly visiblePixels: number;
+      readonly sampledPixelChecksum: number;
       readonly nonPlaceholder: true;
       readonly warnings?: readonly string[];
     }
@@ -35,8 +37,12 @@ export interface ResolveAgentCenterAvatarPreviewServiceInput {
   readonly previewTier?: string | null;
   readonly backendKind?: string | null;
   readonly avatarAssetRef?: string | null;
+  readonly previewMaterialRef?: string | null;
   readonly previewArtifactRef?: string | null;
   readonly previewImageRef?: string | null;
+  readonly previewEvidenceRef?: string | null;
+  readonly previewVisiblePixels?: number | null;
+  readonly previewSampledPixelChecksum?: number | null;
   readonly previewFailureReason?: string | null;
   readonly previewWarnings?: readonly string[];
 }
@@ -46,13 +52,26 @@ export function resolveAgentCenterAvatarPreviewServiceResult(
 ): AgentCenterAvatarPreviewServiceResult {
   const backendKind = normalizeBackendKind(input.backendKind);
   const avatarAssetRef = normalizeText(input.avatarAssetRef);
+  const previewMaterialRef = normalizeText(input.previewMaterialRef);
   const previewArtifactRef = normalizeText(input.previewArtifactRef);
+  const previewImageRef = normalizePreviewSurfaceRef(input.previewImageRef);
+  const evidenceRef = normalizeText(input.previewEvidenceRef);
+  const visiblePixels = normalizePositiveNumber(input.previewVisiblePixels);
+  const sampledPixelChecksum = normalizeFiniteNumber(input.previewSampledPixelChecksum);
   if (
     input.previewState === 'ready'
     && input.previewTier === 'avatar_preview_service'
     && backendKind
     && avatarAssetRef
+    && previewMaterialRef
     && previewArtifactRef
+    && previewArtifactRef !== previewMaterialRef
+    && isAvatarOwnedArtifactRef(backendKind, previewArtifactRef)
+    && previewImageRef
+    && evidenceRef
+    && isAvatarOwnedEvidenceRef(backendKind, evidenceRef)
+    && visiblePixels !== null
+    && sampledPixelChecksum !== null
   ) {
     return {
       state: 'ready',
@@ -60,8 +79,10 @@ export function resolveAgentCenterAvatarPreviewServiceResult(
       backendKind,
       avatarAssetRef,
       previewArtifactRef,
-      previewImageRef: normalizeText(input.previewImageRef) || null,
-      evidenceRef: `avatar_preview_service:${backendKind}:${previewArtifactRef}`,
+      previewImageRef,
+      evidenceRef,
+      visiblePixels,
+      sampledPixelChecksum,
       nonPlaceholder: true,
       warnings: input.previewWarnings ?? [],
     };
@@ -115,6 +136,8 @@ export function AgentCenterAvatarPreview({
       data-avatar-preview-backend-kind={result.backendKind}
       data-avatar-preview-artifact-ref={result.previewArtifactRef}
       data-avatar-preview-evidence-ref={result.evidenceRef}
+      data-avatar-preview-visible-pixels={result.visiblePixels}
+      data-avatar-preview-sampled-pixel-checksum={result.sampledPixelChecksum}
       data-avatar-preview-nonplaceholder="true"
     >
       <AvatarStage
@@ -145,4 +168,39 @@ function normalizeBackendKind(value: unknown): AvatarBackendKind | null {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizePreviewSurfaceRef(value: unknown): string {
+  const text = normalizeText(value);
+  if (text.startsWith('/') && !text.startsWith('//') && !text.includes('\\')) return text;
+  if (text.startsWith('blob:')) {
+    const currentOrigin = normalizeText(globalThis.location?.origin);
+    if (!currentOrigin || currentOrigin === 'null') return '';
+    try {
+      return new URL(text.slice('blob:'.length)).origin === currentOrigin ? text : '';
+    } catch {
+      return '';
+    }
+  }
+  return '';
+}
+
+function isAvatarOwnedArtifactRef(backendKind: AvatarBackendKind, value: string): boolean {
+  return value.startsWith(backendKind === 'vrm'
+    ? 'avatar.vrm.preview-artifact:'
+    : 'avatar.carrier.preview-artifact:');
+}
+
+function isAvatarOwnedEvidenceRef(backendKind: AvatarBackendKind, value: string): boolean {
+  return value.startsWith(backendKind === 'vrm'
+    ? 'avatar.vrm.visual:'
+    : 'avatar.carrier.visual:');
+}
+
+function normalizePositiveNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function normalizeFiniteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

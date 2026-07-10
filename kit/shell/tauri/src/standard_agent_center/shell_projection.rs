@@ -78,16 +78,13 @@ pub(crate) fn avatar_asset_validate_result(
 pub(crate) fn avatar_preview_result(
     avatar_asset_ref: String,
     backend_kind: StandardAgentCenterAvatarBackendKind,
+    preview_material_ref: String,
     validation: StandardAgentCenterAvatarAssetValidationResult,
 ) -> serde_json::Value {
     serde_json::json!({
         "avatarAssetRef": avatar_asset_ref,
         "backendKind": avatar_backend_kind_label(backend_kind),
-        "previewArtifactRef": format!(
-            "agent-center-preview:{}:{}",
-            avatar_backend_kind_label(backend_kind),
-            validation.local_asset_id,
-        ),
+        "previewMaterialRef": preview_material_ref,
         "validationStatus": avatar_validation_status_for_shell(validation.status),
         "validationMessage": validation_message(&validation.errors, &validation.warnings),
         "warnings": validation.warnings.iter().map(|issue| issue.message.clone()).collect::<Vec<_>>(),

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { AgentCenter } from '../src/components/AgentCenter.js';
 import { buildAgentCenterState } from '../src/state.js';
+import type { AgentCenterAppearanceProjection } from '../src/types.js';
 
 (
   globalThis as typeof globalThis & {
@@ -26,9 +27,10 @@ afterEach(() => {
 });
 
 function renderAppearance(
-  appearance: Parameters<typeof buildAgentCenterState>[0]['appearance'] = {},
+  appearance: Partial<AgentCenterAppearanceProjection> = {},
   options: {
     readonly appearanceAdapter?: Parameters<typeof AgentCenter>[0]['appearanceAdapter'];
+    readonly defaultSection?: Parameters<typeof AgentCenter>[0]['defaultSection'];
   } = {},
 ) {
   container = document.createElement('div');
@@ -43,9 +45,14 @@ function renderAppearance(
       validationStatus: 'valid',
       backendCapabilityProfileRef: 'profile://avatar/live2d',
       live2dAdapterManifestSource: 'none',
+      previewMaterialRef: 'agent-center-avatar-asset:local-agent/live2d-imported',
       previewState: 'ready',
       previewTier: 'avatar_preview_service',
-      previewArtifactRef: 'agent-center-preview:local-agent/live2d',
+      previewArtifactRef: 'avatar.carrier.preview-artifact:live2d:123',
+      previewImageRef: '/__nimi/avatar-preview/live2d/123',
+      previewEvidenceRef: 'avatar.carrier.visual:live2d:123',
+      previewVisiblePixels: 32,
+      previewSampledPixelChecksum: 123,
       backgroundRef: null,
       backgroundValid: false,
       avatarAutoplay: true,
@@ -57,7 +64,7 @@ function renderAppearance(
     root?.render(
       <AgentCenter
         appearanceAdapter={options.appearanceAdapter}
-        defaultSection="appearance"
+        defaultSection={options.defaultSection ?? 'appearance'}
         state={state}
       />,
     );
@@ -76,7 +83,7 @@ describe('AgentCenter appearance visual setup surface', () => {
     expect(node.querySelector('[data-agent-center-appearance-avatar-preview="configured"]')).not.toBeNull();
     expect(node.querySelector('[data-avatar-preview-tier="avatar_preview_service"]')).not.toBeNull();
     expect(node.querySelector('[data-avatar-preview-nonplaceholder="true"]')).not.toBeNull();
-    expect(node.querySelector('[data-avatar-preview-artifact-ref="agent-center-preview:local-agent/live2d"]')).not.toBeNull();
+    expect(node.querySelector('[data-avatar-preview-artifact-ref="avatar.carrier.preview-artifact:live2d:123"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-primary-action="continue"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-secondary-action="change"]')).not.toBeNull();
     expect(node.querySelector('[data-agent-center-appearance-progress="display-checklist"]')).not.toBeNull();
@@ -98,9 +105,14 @@ describe('AgentCenter appearance visual setup surface', () => {
 
   it('does not treat the old backend label placeholder as preview success', () => {
     const node = renderAppearance({
+      live2dAdapterManifestSource: 'embedded_creator_manifest',
       previewState: 'unavailable',
       previewTier: null,
       previewArtifactRef: null,
+      previewImageRef: null,
+      previewEvidenceRef: null,
+      previewVisiblePixels: null,
+      previewSampledPixelChecksum: null,
       previewFailureReason: 'avatar_preview_service evidence is missing',
     });
 
@@ -108,6 +120,27 @@ describe('AgentCenter appearance visual setup surface', () => {
     expect(node.querySelector('[data-avatar-preview-nonplaceholder="true"]')).toBeNull();
     expect(node.querySelector('[data-avatar-preview-nonplaceholder="false"]')).not.toBeNull();
     expect(node.textContent).toContain('avatar_preview_service evidence is missing');
+    expect(node.textContent).not.toContain('Avatar can appear in chat.');
+    expect(node.textContent).not.toContain('avatar_preview_service:live2d:');
+  });
+
+  it('keeps overview appearance readiness pending when only Shell material is available', () => {
+    const node = renderAppearance({
+      live2dAdapterManifestSource: 'embedded_creator_manifest',
+      previewState: 'unavailable',
+      previewTier: 'avatar_preview_service',
+      previewArtifactRef: null,
+      previewImageRef: null,
+      previewEvidenceRef: null,
+      previewVisiblePixels: null,
+      previewSampledPixelChecksum: null,
+      previewFailureReason: 'Avatar preview service adapter is unavailable.',
+    }, { defaultSection: 'overview' });
+
+    const appearanceChecklist = [...node.querySelectorAll('button')]
+      .find((button) => button.textContent?.includes('Avatar and appearance admission are pending.'));
+    expect(appearanceChecklist?.textContent).toContain('Needs setup');
+    expect(appearanceChecklist?.textContent).not.toContain('Ready');
   });
 
   it('omits the background unset badge when the placeholder already communicates the missing state', () => {

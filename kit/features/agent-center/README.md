@@ -14,6 +14,13 @@ typed adapters exported by this feature. Host-local appearance/avatar custody is
 bounded to `AgentCenterAppearanceAdapter`; apps must not pass arbitrary feature
 panels or reconstruct Runtime execution truth inside Agent Center.
 
+The shell appearance bridge resolves validated preview material only. Rendered
+preview readiness enters separately through `AgentCenterAvatarPreviewAdapter`;
+Shell material refs must never be relabelled as Avatar preview artifacts.
+Runtime presentation mutation is the selection commit boundary, and adapter
+operations are serialized against its committed revision before any destructive
+Shell cleanup runs.
+
 ## Before Building Locally
 
 Read `.nimi/spec/platform/kernel/agent-center-contract.md`,

@@ -96,6 +96,12 @@ pub(crate) async fn avatar_asset_resolve_preview(
         })?,
     );
     let avatar_asset_ref = payload.avatar_asset_ref.clone();
+    let preview_material_ref = materialization_ref_for(
+        &payload.account_id,
+        &payload.local_agent_ref,
+        avatar_backend_kind_label(backend_kind),
+        &avatar_asset_ref,
+    );
     let validation_payload = StandardAgentCenterAvatarAssetValidatePayload {
         host_scope: payload.host_scope,
         account_id: payload.account_id,
@@ -105,9 +111,21 @@ pub(crate) async fn avatar_asset_resolve_preview(
         avatar_asset_ref: avatar_asset_ref.clone(),
     };
     let validation = avatar_asset_validate(roots, validation_payload).await?;
+    if validation.status != StandardAgentCenterAvatarAssetValidationStatus::Valid {
+        let cause = validation
+            .errors
+            .first()
+            .map(|issue| issue.message.clone())
+            .unwrap_or_else(|| {
+                "Avatar asset validation failed before preview material resolution".to_string()
+            });
+        return Err(AgentCenterHostError::InvalidPayload(cause)
+            .render("agent_center_avatar_asset_resolve_preview"));
+    }
     Ok(shell_projection::avatar_preview_result(
         avatar_asset_ref,
         backend_kind,
+        preview_material_ref,
         validation,
     ))
 }

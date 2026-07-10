@@ -274,10 +274,15 @@ export interface AgentCenterAppearanceProjection {
   readonly backgroundValidationStatus?: string | null;
   readonly backgroundValidationMessage?: string | null;
   readonly backgroundImportError?: string | null;
+  readonly resourceCleanupError?: string | null;
+  readonly previewMaterialRef?: string | null;
   readonly previewState?: 'ready' | 'failed' | 'loading' | 'unavailable' | null;
   readonly previewTier?: 'avatar_preview_service' | string | null;
   readonly previewArtifactRef?: string | null;
   readonly previewImageRef?: string | null;
+  readonly previewEvidenceRef?: string | null;
+  readonly previewVisiblePixels?: number | null;
+  readonly previewSampledPixelChecksum?: number | null;
   readonly previewFailureReason?: string | null;
   readonly previewWarnings?: readonly string[];
   readonly defaultVoiceReference?: string | null;
@@ -306,9 +311,54 @@ export interface AgentCenterAppearanceAdapter {
   readonly importBackground?: () => Promise<AgentCenterAppearanceProjection>;
   readonly clearBackground?: () => Promise<AgentCenterAppearanceProjection>;
   readonly removeAgentResources?: () => Promise<AgentCenterAppearanceProjection>;
-  readonly removeAccountResources?: () => Promise<AgentCenterAppearanceProjection>;
   readonly cleanupGeneratedVoiceArtifacts?: () => Promise<AgentCenterAppearanceProjection>;
   readonly setAvatarAutoplay?: (enabled: boolean) => Promise<AgentCenterAppearanceProjection>;
+}
+
+export interface AgentCenterAvatarPreviewResolveInput {
+  readonly identity: RuntimeLocalAgentIdentityInput;
+  readonly accountId: string;
+  readonly backendKind: 'live2d' | 'vrm';
+  readonly avatarAssetRef: string;
+  readonly previewMaterialRef: string;
+  readonly backendCapabilityProfileRef?: string | null;
+}
+
+export type AgentCenterAvatarPreviewAdapterResult =
+  | {
+      readonly state: 'ready';
+      readonly tier: 'avatar_preview_service';
+      readonly backendKind: 'live2d' | 'vrm';
+      readonly avatarAssetRef: string;
+      readonly previewMaterialRef: string;
+      readonly previewArtifactRef: string;
+      readonly previewImageRef: string;
+      readonly evidenceRef: string;
+      readonly visiblePixels: number;
+      readonly sampledPixelChecksum: number;
+      readonly nonPlaceholder: true;
+      readonly warnings?: readonly string[];
+    }
+  | {
+      readonly state: 'failed' | 'unavailable' | 'loading';
+      readonly tier: 'avatar_preview_service';
+      readonly backendKind?: 'live2d' | 'vrm' | null;
+      readonly avatarAssetRef?: string | null;
+      readonly previewMaterialRef?: string | null;
+      readonly previewArtifactRef?: string | null;
+      readonly previewImageRef?: string | null;
+      readonly evidenceRef?: string | null;
+      readonly visiblePixels?: number | null;
+      readonly sampledPixelChecksum?: number | null;
+      readonly nonPlaceholder: false;
+      readonly reason: string;
+      readonly warnings?: readonly string[];
+    };
+
+export interface AgentCenterAvatarPreviewAdapter {
+  readonly resolvePreview: (
+    input: AgentCenterAvatarPreviewResolveInput,
+  ) => Promise<AgentCenterAvatarPreviewAdapterResult>;
 }
 
 export interface AgentCenterRuntimePresentationProfilePatch {

@@ -2,6 +2,7 @@ import type {
   AgentCenterAppearanceCopy,
   AgentCenterAppearanceProjection,
 } from '../types.js';
+import { isAgentCenterAvatarPreviewReady } from '../appearance-preview-readiness.js';
 export type EvidenceState = 'ready' | 'pending' | 'missing' | 'blocked';
 type SetupStepState = 'ready' | 'active' | 'idle' | 'blocked';
 
@@ -264,7 +265,7 @@ export function live2dStatusLabel(
 function live2dProbeStatus(appearance: AgentCenterAppearanceProjection): Live2dEvidenceStatus {
   if (appearance.avatarAssetChecking) return 'checking';
   if (!appearance.avatarAssetRef || !appearance.avatarAssetValid || !appearance.backendCapabilityProfileRef) return 'blocked';
-  if (appearance.previewState === 'ready' && appearance.previewTier === 'avatar_preview_service' && appearance.previewArtifactRef) {
+  if (isAgentCenterAvatarPreviewReady(appearance)) {
     return 'ready';
   }
   if (appearance.previewState === 'failed') return 'blocked';
@@ -295,11 +296,7 @@ export function buildLive2dEvidenceItems(
       && appearance.avatarAssetValid
       && appearance.backendCapabilityProfileRef,
   );
-  const previewReady = Boolean(
-    appearance.previewState === 'ready'
-      && appearance.previewTier === 'avatar_preview_service'
-      && appearance.previewArtifactRef,
-  );
+  const previewReady = isAgentCenterAvatarPreviewReady(appearance);
   const evidenceRequired = labels.live2dEvidenceRequired;
   return [
     {
@@ -307,7 +304,7 @@ export function buildLive2dEvidenceItems(
       label: labels.live2dPreviewArtifactLabel,
       detail: previewReady ? labels.live2dPreviewReadyDetail : appearance.previewFailureReason || (launchEvidenceReady ? labels.live2dPreviewReadyDetail : evidenceRequired),
       status: live2dProbeStatus(appearance),
-      evidenceRef: previewReady ? `avatar_preview_service:live2d:${appearance.previewArtifactRef}` : null,
+      evidenceRef: previewReady ? appearance.previewEvidenceRef : null,
     },
     {
       id: 'model_framing',
@@ -352,7 +349,7 @@ export function buildSetupSteps(
   const validationReady = avatarReady && assetStatus(appearance) === 'ready';
   const sidecarReady = backendKind(appearance) !== 'live2d' || live2dManifestStatus(appearance) === 'ready';
   const sidecarActive = avatarReady && !sidecarReady;
-  const displayReady = avatarReady && sidecarReady && appearance.status === 'ready';
+  const displayReady = avatarReady && sidecarReady && isAgentCenterAvatarPreviewReady(appearance);
   return [
     {
       label: copy.stepAssetTitle,

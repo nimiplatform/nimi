@@ -27,7 +27,7 @@ Reusable agent avatar surface for Runtime-adjacent presentation records, voice p
 
 ## Before Building Locally
 - Check `avatar/ui` before building a new avatar stage, idle shell, or reusable agent render container.
-- Check `avatar/ui` and `avatar/headless` before rendering Agent Center avatar previews. A configured Agent Center avatar is only non-placeholder when `AgentCenterAvatarPreview` receives `previewTier=avatar_preview_service`, `previewState=ready`, and an Avatar-owned preview artifact ref.
+- Check `avatar/ui` and `avatar/headless` before rendering Agent Center avatar previews. A configured Agent Center avatar is only non-placeholder when `AgentCenterAvatarPreview` receives `previewTier=avatar_preview_service`, `previewState=ready`, an Avatar-owned artifact/evidence ref, positive visible-pixel evidence, a finite sampled-pixel checksum, and an Avatar-controlled blob or same-origin render-surface URL.
 - Check `avatar/headless` before introducing app-local presentation normalization, emotion cue mapping, or transient avatar interaction state contracts.
 - Check `avatar/runtime` before rebuilding avatar presentation-record or playback-cue helpers in app code. Runtime event schedule decisions belong in `@nimiplatform/sdk/runtime`.
 - Check `avatar/vrm` before introducing app-local R3F/VRM renderer code; prefer injecting that implementation through the admitted optional VRM surface.

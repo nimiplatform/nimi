@@ -63,8 +63,7 @@ export interface AgentCenterResourceRemovalResult {
 export interface AgentCenterAvatarPreviewResolveResult {
   readonly avatarAssetRef: string;
   readonly backendKind: AgentCenterAvatarBackendKind;
-  readonly previewArtifactRef: string;
-  readonly previewImageRef?: string | null;
+  readonly previewMaterialRef: string;
   readonly validationStatus?: AgentCenterValidationState;
   readonly validationMessage?: string | null;
   readonly warnings?: readonly string[];
@@ -316,8 +315,7 @@ export function validateAgentCenterAvatarPreviewResolveResult(value: unknown): A
   assertNoForbiddenFields(record, new Set([
     'avatarAssetRef',
     'backendKind',
-    'previewArtifactRef',
-    'previewImageRef',
+    'previewMaterialRef',
     'validationStatus',
     'validationMessage',
     'warnings',
@@ -325,8 +323,7 @@ export function validateAgentCenterAvatarPreviewResolveResult(value: unknown): A
   return compact({
     avatarAssetRef: assertOpaqueRef(record.avatarAssetRef, 'avatarAssetRef'),
     backendKind: assertBackendKind(record.backendKind),
-    previewArtifactRef: assertOpaqueRef(record.previewArtifactRef, 'previewArtifactRef'),
-    previewImageRef: optionalOpaqueRef(record, 'previewImageRef'),
+    previewMaterialRef: assertOpaqueRef(record.previewMaterialRef, 'previewMaterialRef'),
     validationStatus: optionalValidationState(record),
     validationMessage: optionalString(record, 'validationMessage'),
     warnings: optionalStringArray(record, 'warnings'),

@@ -188,6 +188,29 @@ describe('Electron Agent Center scoped custody', () => {
           avatarAssetRef: refA,
         })).resolves.toMatchObject({ validationStatus: 'valid' });
       }
+      const preview = await invokeAgentCenter(
+        ipcMain,
+        NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetResolvePreview'],
+        { ...SCOPE_A, avatarAssetRef: refA },
+      ) as Record<string, unknown>;
+      expect(preview.previewMaterialRef).toMatch(/^agent-center-avatar-asset:/u);
+      expect(preview).not.toHaveProperty('previewArtifactRef');
+      expect(preview).not.toHaveProperty('previewImageRef');
+
+      const managedMoc = path.join(
+        agentRoot(dataRoot, SCOPE_A),
+        'modules/avatar_asset/packages/live2d',
+        refA,
+        'files/model.moc3',
+      );
+      const managedMocBytes = await readFile(managedMoc);
+      await writeFile(managedMoc, Buffer.from('damaged-avatar'));
+      await expect(invokeAgentCenter(
+        ipcMain,
+        NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetResolvePreview'],
+        { ...SCOPE_A, avatarAssetRef: refA },
+      )).rejects.toMatchObject({ code: 'invalid-payload' });
+      await writeFile(managedMoc, managedMocBytes);
 
       const sidecar = path.join(root, 'adapter.json');
       await writeFile(sidecar, JSON.stringify({ manifest_kind: 'nimi.avatar.live2d.adapter', schema_version: 1 }));
