@@ -13,7 +13,6 @@ import { useRuntimeConfigPanelDerived } from './runtime-config-panel-derived';
 import { useRuntimeConfigPanelState } from './runtime-config-panel-state';
 import { useRuntimeConfigDaemonController } from './runtime-config-panel-controller-daemon';
 import { useRuntimeConfigInstallActions } from './runtime-config-panel-controller-install-actions';
-import { useRuntimeConfigBridgeSync } from './runtime-config-panel-controller-bridge-sync';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
@@ -180,12 +179,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     }));
   }), [panelState.updateState]);
 
-  const bridgeSync = useRuntimeConfigBridgeSync({
-    hydrated: panelState.hydrated,
-    setState: panelState.setState,
-    setStatusBanner: setPageFeedback,
-  });
-
   const resolveRuntimeProfile = useCallback(async (
     targetId: string,
     profileId: string,
@@ -253,8 +246,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     refreshRuntimeDaemonStatus: daemon.refreshRuntimeDaemonStatus,
     startRuntimeDaemon: daemon.startRuntimeDaemon,
     restartRuntimeDaemon: daemon.restartRuntimeDaemon,
-    stopRuntimeDaemon: daemon.stopRuntimeDaemon,
-    saveRuntimeLocalEndpoint: bridgeSync.saveRuntimeLocalEndpoint,
     onVaultChanged,
     onDownloadComplete: installActions.onDownloadComplete,
     retryInstall: installActions.retryInstall,

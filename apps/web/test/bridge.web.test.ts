@@ -39,7 +39,7 @@ test('bridge.web resolves runtime defaults without a standard shell host', async
   try {
     const defaults = await getRuntimeDefaults();
     assert.equal(defaults.realm.realmBaseUrl, 'http://localhost:3000');
-    assert.equal(defaults.realm.accessToken, '');
+    assert.equal('accessToken' in defaults.realm, false);
     assert.equal(defaults.realm.jwksUrl, 'http://localhost:3000/api/auth/jwks');
     assert.equal(defaults.realm.revocationUrl, 'http://localhost:3000/api/auth/sessions/introspect');
     assert.equal(defaults.realm.jwtIssuer, 'http://localhost:3000');

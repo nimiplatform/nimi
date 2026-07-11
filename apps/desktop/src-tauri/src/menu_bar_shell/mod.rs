@@ -129,7 +129,6 @@ mod tests {
 
         let presentation = snapshot.presentation(false, false);
         assert!(!presentation.restart_enabled);
-        assert!(!presentation.stop_enabled);
         assert!(presentation.status_header.contains("running"));
     }
 

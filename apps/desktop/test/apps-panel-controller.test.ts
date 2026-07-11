@@ -172,7 +172,7 @@ describe('Desktop Apps card actions', () => {
     ]);
   });
 
-  it('records Runtime launch-resolution and Desktop launch host failures separately', async () => {
+  it('records protected lifecycle open failures as Runtime launch-resolution', async () => {
     const runtimeEvents: DesktopAppsOpenFlowEvent[] = [];
     const runtimeFailure = recordingLifecycle({
       open: async () => {
@@ -231,10 +231,9 @@ describe('Desktop Apps card actions', () => {
       { appId: 'community.catalog', step: 'ai-config', status: 'started' },
       { appId: 'community.catalog', step: 'ai-config', status: 'succeeded' },
       { appId: 'community.catalog', step: 'runtime-launch-resolution', status: 'started' },
-      { appId: 'community.catalog', step: 'runtime-launch-resolution', status: 'succeeded' },
       {
         appId: 'community.catalog',
-        step: 'desktop-launch-host',
+        step: 'runtime-launch-resolution',
         status: 'failed',
         source: 'sdk',
         reasonCode: 'DESKTOP_INSTALLED_APP_HOST_WINDOW_FAILED',
@@ -242,7 +241,7 @@ describe('Desktop Apps card actions', () => {
     ]);
   });
 
-  it('records successful open as AIConfig, Runtime launch-resolution, then Desktop launch host', async () => {
+  it('records successful open as AIConfig then protected Runtime launch-resolution', async () => {
     const events: DesktopAppsOpenFlowEvent[] = [];
     const lifecycle = recordingLifecycle();
     await routeCardAction(lifecycle, 'community.catalog', 'open', {
@@ -260,7 +259,6 @@ describe('Desktop Apps card actions', () => {
       { appId: 'community.catalog', step: 'ai-config', status: 'succeeded' },
       { appId: 'community.catalog', step: 'runtime-launch-resolution', status: 'started' },
       { appId: 'community.catalog', step: 'runtime-launch-resolution', status: 'succeeded' },
-      { appId: 'community.catalog', step: 'desktop-launch-host', status: 'succeeded' },
     ]);
   });
 });

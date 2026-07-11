@@ -7,12 +7,14 @@ import type {
   NimiRuntimeAppLifecycleClient,
   NimiRuntimeAppUninstallResult,
 } from '@nimiplatform/sdk/runtime';
+import { ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 
 import {
   asAppLifecycleNimiError,
   createDesktopAppLifecycleBridge,
   formatAppLifecycleErrorDetail,
+  type DesktopAppLifecycleMutationExecutor,
 } from '../src/shell/renderer/features/apps/apps-lifecycle-bridge';
 
 // ---------------------------------------------------------------------------
@@ -185,23 +187,113 @@ function stubModule(
   return { module: { ...base, ...overrides }, calls };
 }
 
+type MutationCall = {
+  method: keyof DesktopAppLifecycleMutationExecutor;
+  input: unknown;
+};
+
+/** A recording protected-host executor for renderer bridge isolation tests. */
+function stubMutationExecutor(
+  overrides: Partial<DesktopAppLifecycleMutationExecutor> = {},
+): { executor: DesktopAppLifecycleMutationExecutor; calls: MutationCall[] } {
+  const calls: MutationCall[] = [];
+  const record = (method: keyof DesktopAppLifecycleMutationExecutor, input: unknown) => {
+    calls.push({ method, input });
+  };
+  const executor: DesktopAppLifecycleMutationExecutor = {
+    async install(input) {
+      record('install', input);
+      return installJob();
+    },
+    async adoptLocal(input) {
+      record('adoptLocal', input);
+      return {
+        appId: input.expectedAppId ?? 'local.notes',
+        rootPath: input.rootPath,
+        manifestPath: `${input.rootPath}/nimi.app.yaml`,
+        displayName: 'Local Notes',
+        version: '1.0.0',
+        entryRef: 'app://local.notes/main',
+        permissionScopeRef: 'permission-scope:local.notes',
+        storagePolicyRef: 'storage-policy:local.notes',
+        state: 'adopted',
+        trust: 'explicit-local',
+      };
+    },
+    async removeLocalAdoption(input) {
+      record('removeLocalAdoption', input);
+      return {
+        appId: input.appId,
+        rootPath: '/local/notes',
+        manifestPath: '/local/notes/nimi.app.yaml',
+        displayName: 'Local Notes',
+        version: '1.0.0',
+        entryRef: 'app://local.notes/main',
+        permissionScopeRef: 'permission-scope:local.notes',
+        storagePolicyRef: 'storage-policy:local.notes',
+        state: 'removed',
+        trust: 'explicit-local',
+        reasonCode: ReasonCode.ACTION_EXECUTED,
+      };
+    },
+    async uninstall(input) {
+      record('uninstall', input);
+      return uninstallResult;
+    },
+    async update(input) {
+      record('update', input);
+      return installJob({ kind: 'update', previousVersion: '0.9.0' });
+    },
+    async healthRepair(input) {
+      record('healthRepair', input);
+      return installJob({ kind: 'repair' });
+    },
+    async open(input) {
+      record('open', input);
+      return {
+        appId: 'nimi.notes',
+        state: 'blocked',
+        reachedStep: 'launch',
+        launched: false,
+        scope: input.scope,
+        reasonCode: RuntimeGeneratedReasonCode[
+          RuntimeGeneratedReasonCode.LIFECYCLE_INTENT_REQUIRED
+        ],
+      };
+    },
+  };
+  return { executor: { ...executor, ...overrides }, calls };
+}
+
+function bridgeWith(
+  module: NimiRuntimeAppLifecycleClient,
+  mutationExecutor = stubMutationExecutor().executor,
+) {
+  return createDesktopAppLifecycleBridge({
+    getModule: () => module,
+    mutationExecutor,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Pass-through projection
 // ---------------------------------------------------------------------------
 
 describe('createDesktopAppLifecycleBridge — typed projection pass-through', () => {
-  test('install projects the SDK AppInstallJob unchanged', async () => {
-    const { module, calls } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+  test('install projects the protected-host AppInstallJob unchanged', async () => {
+    const { module } = stubModule();
+    const { executor, calls } = stubMutationExecutor();
+    const bridge = bridgeWith(module, executor);
     const job = await bridge.install({ appId: 'nimi.notes', confirmed: true });
     assert.deepEqual(job, installJob());
     assert.equal(calls[0]?.method, 'install');
     assert.deepEqual(calls[0]?.input, { appId: 'nimi.notes', confirmed: true });
   });
 
-  test('adoptLocal projects the SDK local adoption unchanged', async () => {
-    const { module, calls } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+  test('adoptLocal projects the protected-host local adoption unchanged', async () => {
+    const { module } = stubModule();
+    const { executor, calls } = stubMutationExecutor();
+    const bridge = bridgeWith(module, executor);
     const adoption = await bridge.adoptLocal({
       rootPath: '/local/notes',
       expectedAppId: 'local.notes',
@@ -215,9 +307,10 @@ describe('createDesktopAppLifecycleBridge — typed projection pass-through', ()
     });
   });
 
-  test('removeLocalAdoption projects the SDK local adoption unchanged', async () => {
-    const { module, calls } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+  test('removeLocalAdoption projects the protected-host local adoption unchanged', async () => {
+    const { module } = stubModule();
+    const { executor, calls } = stubMutationExecutor();
+    const bridge = bridgeWith(module, executor);
     const adoption = await bridge.removeLocalAdoption({
       appId: 'local.notes',
       deleteDurableDataConfirmed: false,
@@ -233,14 +326,14 @@ describe('createDesktopAppLifecycleBridge — typed projection pass-through', ()
 
   test('uninstall projects the SDK AppUninstallResult unchanged', async () => {
     const { module } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const bridge = bridgeWith(module);
     const result = await bridge.uninstall({ appId: 'nimi.notes' });
     assert.deepEqual(result, uninstallResult);
   });
 
   test('update projects kind=update with previousVersion', async () => {
     const { module } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const bridge = bridgeWith(module);
     const job = await bridge.update({ appId: 'nimi.notes', confirmed: true });
     assert.equal(job.kind, 'update');
     assert.equal(job.previousVersion, '0.9.0');
@@ -248,21 +341,21 @@ describe('createDesktopAppLifecycleBridge — typed projection pass-through', ()
 
   test('healthRepair projects kind=repair', async () => {
     const { module } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const bridge = bridgeWith(module);
     const job = await bridge.healthRepair({ appId: 'nimi.notes', action: 'repair' });
     assert.equal(job.kind, 'repair');
   });
 
   test('listJobs returns the SDK job array unchanged', async () => {
     const { module } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const bridge = bridgeWith(module);
     const jobs = await bridge.listJobs('nimi.notes');
     assert.deepEqual(jobs, [installJob()]);
   });
 
   test('watchJobEvents yields each typed job-event frame in order', async () => {
     const { module } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const bridge = bridgeWith(module);
     const stream = await bridge.watchJobEvents({ jobId: 'job-01' });
     const seen: number[] = [];
     for await (const event of stream) {
@@ -277,10 +370,10 @@ describe('createDesktopAppLifecycleBridge — typed projection pass-through', ()
 // ---------------------------------------------------------------------------
 
 describe('createDesktopAppLifecycleBridge — desktop-core call metadata', () => {
-  test('unary calls carry surface metadata and a timeout without renderer caller identity', async () => {
+  test('read-only unary calls carry surface metadata and a timeout without renderer caller identity', async () => {
     const { module, calls } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
-    await bridge.install({ appId: 'nimi.notes', confirmed: true });
+    const bridge = bridgeWith(module);
+    await bridge.getJob('job-01');
     const options = calls[0]?.options as {
       timeoutMs?: number;
       metadata?: { callerKind?: string; callerId?: string; surfaceId?: string };
@@ -293,7 +386,7 @@ describe('createDesktopAppLifecycleBridge — desktop-core call metadata', () =>
 
   test('watchJobEvents forwards the AbortSignal and omits a timeout', async () => {
     const { module, calls } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const bridge = bridgeWith(module);
     const controller = new AbortController();
     await bridge.watchJobEvents({ jobId: 'job-01', signal: controller.signal });
     const options = calls[0]?.options as { signal?: AbortSignal; timeoutMs?: number };
@@ -303,7 +396,7 @@ describe('createDesktopAppLifecycleBridge — desktop-core call metadata', () =>
 
   test('listJobs with no appId fails closed before Runtime', async () => {
     const { module, calls } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const bridge = bridgeWith(module);
     await assert.rejects(
       bridge.listJobs(undefined as never),
       (error: unknown) =>
@@ -318,9 +411,29 @@ describe('createDesktopAppLifecycleBridge — desktop-core call metadata', () =>
 // ---------------------------------------------------------------------------
 
 describe('createDesktopAppLifecycleBridge — fail-closed', () => {
+  test('rejects a renderer lifecycle mutation without a protected desktop carrier before Runtime', async () => {
+    const { module, calls } = stubModule({
+      install: async () => {
+        throw new Error('renderer must not invoke the SDK install method');
+      },
+    });
+    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    await assert.rejects(
+      () => bridge.install({ appId: 'nimi.notes', confirmed: true } as never),
+      (error: unknown) => {
+        assert.equal(
+          (error as { reasonCode?: string }).reasonCode,
+          RuntimeGeneratedReasonCode[RuntimeGeneratedReasonCode.DESKTOP_CONTROL_TRANSPORT_REQUIRED],
+        );
+        return true;
+      },
+    );
+    assert.equal(calls.length, 0);
+  });
+
   test('getJob rejects an empty jobId before reaching the RPC', async () => {
     const { module, calls } = stubModule();
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const bridge = bridgeWith(module);
     await assert.rejects(() => bridge.getJob('   '), /jobId/);
     assert.equal(calls.length, 0);
   });
@@ -332,12 +445,13 @@ describe('createDesktopAppLifecycleBridge — fail-closed', () => {
       actionHint: 'check_runtime_app_lifecycle_projection',
       source: 'runtime',
     });
-    const { module } = stubModule({
+    const { module } = stubModule();
+    const { executor } = stubMutationExecutor({
       install: async () => {
         throw sdkError;
       },
     });
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const bridge = bridgeWith(module, executor);
     await assert.rejects(
       () => bridge.install({ appId: 'nimi.notes', confirmed: true }),
       (error: unknown) => {
@@ -351,12 +465,13 @@ describe('createDesktopAppLifecycleBridge — fail-closed', () => {
   });
 
   test('an opaque transport failure is normalized to RUNTIME_CALL_FAILED', async () => {
-    const { module } = stubModule({
+    const { module } = stubModule();
+    const { executor } = stubMutationExecutor({
       update: async () => {
         throw new Error('socket hang up');
       },
     });
-    const bridge = createDesktopAppLifecycleBridge({ getModule: () => module });
+    const bridge = bridgeWith(module, executor);
     await assert.rejects(
       () => bridge.update({ appId: 'nimi.notes', confirmed: true }),
       (error: unknown) => {

@@ -28,11 +28,8 @@ export type DesktopMacosSmokeDriverDepsOptions = {
 
 function getDesktopRuntimeAgentSmokeVerificationRuntime(): NimiRuntimeAgentSmokeVerificationRuntime {
   const runtime = getDesktopRuntime();
-  const accountRuntime = getDesktopAccountRuntime();
   return {
     appId: getDesktopAppId(),
-    auth: accountRuntime.auth,
-    appAuth: accountRuntime.grants,
     agents: runtime.agents,
     health: (request, options) => runtime.health(request, options),
   };

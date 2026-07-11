@@ -20,7 +20,6 @@ pub const MENU_ID_OPEN_CLOUD_CONNECTORS: &str = "menu-bar-open-cloud-connectors"
 pub const MENU_ID_OPEN_SETTINGS: &str = "menu-bar-open-settings";
 pub const MENU_ID_START_RUNTIME: &str = "menu-bar-start-runtime";
 pub const MENU_ID_RESTART_RUNTIME: &str = "menu-bar-restart-runtime";
-pub const MENU_ID_STOP_RUNTIME: &str = "menu-bar-stop-runtime";
 pub const MENU_ID_REFRESH_STATUS: &str = "menu-bar-refresh-status";
 pub const MENU_ID_QUIT_NIMI: &str = "menu-bar-quit-nimi";
 
@@ -36,14 +35,12 @@ struct MenuBarOpenTabPayload {
 enum RuntimeAction {
     Start,
     Restart,
-    Stop,
 }
 
 fn runtime_action_label(action: RuntimeAction) -> &'static str {
     match action {
         RuntimeAction::Start => "start",
         RuntimeAction::Restart => "restart",
-        RuntimeAction::Stop => "stop",
     }
 }
 
@@ -56,7 +53,6 @@ fn run_runtime_action_async(app: &AppHandle, action: RuntimeAction) {
         let result = match action {
             RuntimeAction::Start => runtime_bridge::start_daemon_async().await,
             RuntimeAction::Restart => runtime_bridge::restart_daemon_async().await,
-            RuntimeAction::Stop => runtime_bridge::stop_daemon_async().await,
         };
         set_action_in_flight(&app_handle, None);
         let status = match result {
@@ -94,15 +90,6 @@ pub fn handle_menu_event(app: &AppHandle, menu_id: &str) -> Result<(), String> {
                 return Ok(());
             }
             run_runtime_action_async(app, RuntimeAction::Restart);
-        }
-        MENU_ID_STOP_RUNTIME => {
-            let status = runtime_bridge::current_daemon_status();
-            if !runtime_action_enabled(&status, RuntimeAction::Stop) {
-                refresh_from_daemon(app);
-                menu::apply_state(app);
-                return Ok(());
-            }
-            run_runtime_action_async(app, RuntimeAction::Stop);
         }
         MENU_ID_REFRESH_STATUS => refresh_from_daemon(app),
         MENU_ID_QUIT_NIMI => request_quit(app)?,
@@ -144,7 +131,7 @@ fn runtime_action_enabled(status: &RuntimeBridgeDaemonStatus, action: RuntimeAct
     let launch_mode = status.launch_mode.trim().to_uppercase();
     match action {
         RuntimeAction::Start => !status.running && launch_mode != "INVALID",
-        RuntimeAction::Restart | RuntimeAction::Stop => status.running && status.managed,
+        RuntimeAction::Restart => status.running && status.managed,
     }
 }
 
@@ -155,10 +142,6 @@ pub fn force_complete_quit(app: &AppHandle) -> Result<(), String> {
     }
     menu::apply_state(app);
 
-    let daemon_status = runtime_bridge::current_daemon_status();
-    if daemon_status.managed && daemon_status.running {
-        let _ = runtime_bridge::stop_daemon();
-    }
     app.exit(0);
     Ok(())
 }
@@ -187,10 +170,6 @@ mod tests {
         assert!(!runtime_action_enabled(
             &running_external,
             RuntimeAction::Restart
-        ));
-        assert!(!runtime_action_enabled(
-            &running_external,
-            RuntimeAction::Stop
         ));
     }
 

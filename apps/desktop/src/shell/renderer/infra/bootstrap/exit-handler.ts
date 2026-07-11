@@ -1,5 +1,5 @@
 import { hasTauriRuntime, listenTauri } from '@nimiplatform/kit/shell/renderer/bridge';
-import { completeMenuBarQuit, stopRuntimeBridge } from '@renderer/bridge';
+import { completeMenuBarQuit } from '@renderer/bridge';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { stopAuthStateWatcher } from './auth-state-watcher';
 
@@ -29,10 +29,6 @@ export function registerExitHandler(options: { managed: boolean }) {
 
     try {
       stopAuthStateWatcher();
-
-      if (options.managed) {
-        await stopRuntimeBridge();
-      }
 
       await completeMenuBarQuit();
 

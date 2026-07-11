@@ -1,7 +1,7 @@
 // Desktop App Lifecycle bridge.
 //
-// Renderer-side seam onto the SDK `runtime.appLifecycle` surface
-// (`NimiRuntimeAppLifecycleClient`). The desktop Apps surface (T4-W4) drives app
+// Renderer-side seam for read-only SDK `runtime.appLifecycle` projections and
+// protected-host lifecycle mutation requests. The desktop Apps surface (T4-W4) drives app
 // install / uninstall / update / health-repair and observes the typed
 // `AppInstallJob` lifecycle through this bridge — never through a direct
 // gRPC client and never through a renderer-local job/registry truth.
@@ -10,10 +10,9 @@
 //   - K-APP-001 / K-APP-011..K-APP-016
 //     (.nimi/spec/runtime/kernel/app-messaging-contract.md)
 //   - D-IPC-012 (.nimi/spec/desktop/kernel/bridge-ipc-contract.md): app
-//     install/update/repair lifecycle is a Phase 2 Runtime RPC surface and
-//     travels through the configured desktop vNext Runtime session, not the
-//     Tauri IPC bridge path. This module is therefore an SDK-path renderer
-//     service, not a `runtime-bridge/` Tauri command client.
+//     install/update/repair lifecycle mutations require a protected desktop
+//     carrier. The renderer submits only request fields and never receives a
+//     Runtime-issued lifecycle intent or invokes the carrier directly.
 //
 // Fail-closed posture:
 //   - The SDK surface already fail-closes on a missing job projection, an
@@ -32,6 +31,7 @@ import type {
   NimiRuntimeAppInstallJob,
   NimiRuntimeAppInstallJobEvent,
   NimiRuntimeAppLifecycleClient,
+  NimiRuntimeAppLifecycleIntentBinding,
   NimiRuntimeAppOpenInput,
   NimiRuntimeAppOpenProjection,
   NimiRuntimeAppStorageProjection,
@@ -41,28 +41,20 @@ import type {
   NimiRuntimeAppUninstallResult,
   NimiRuntimeAppUpdateInput,
 } from '@nimiplatform/sdk/runtime';
+import { ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   asNimiError,
   createNimiError,
   ReasonCode,
   type NimiError,
 } from '@nimiplatform/sdk/types';
-import { invokeShell } from '@nimiplatform/kit/shell/renderer/bridge';
 import { getDesktopRuntime } from '@renderer/infra/sdk/desktop-nimi-client-session';
-import {
-  DESKTOP_INSTALLED_APP_LAUNCH_COMMAND,
-  asDesktopInstalledAppLaunchNimiError,
-  type DesktopInstalledAppLaunchResult,
-} from '../../../shared/installed-app-launch-contract';
 
 // Re-export the SDK typed projections so the Apps surface (T4-W4) consumes a
 // single bridge entrypoint without reaching into `@nimiplatform/sdk/runtime`
 // for lifecycle types directly.
 export type {
   NimiRuntimeAppHealthRepairAction,
-  NimiRuntimeAppHealthRepairInput,
-  NimiRuntimeAdoptLocalAppInput,
-  NimiRuntimeAppInstallInput,
   NimiRuntimeAppInstallJob,
   NimiRuntimeAppInstallJobEvent,
   NimiRuntimeAppInstallJobPhase,
@@ -71,21 +63,17 @@ export type {
   NimiRuntimeAppInstallStorage,
   NimiRuntimeAppLifecycleJobKind,
   NimiRuntimeAppOpenFlowStep,
-  NimiRuntimeAppOpenInput,
   NimiRuntimeAppOpenProjection,
   NimiRuntimeAppOpenScopeRef,
   NimiRuntimeAppOpenState,
   NimiRuntimeAppStorageProjection,
   NimiRuntimeLocalAppAdoption,
-  NimiRuntimeRemoveLocalAppAdoptionInput,
-  NimiRuntimeAppUninstallInput,
   NimiRuntimeAppUninstallResult,
-  NimiRuntimeAppUpdateInput,
 } from '@nimiplatform/sdk/runtime';
 
 /**
- * Stable non-authoritative renderer call metadata for every app-lifecycle
- * RPC. Host-owned identity is stamped by the Electron/Tauri bridge;
+ * Stable non-authoritative renderer call metadata for read-only app-lifecycle
+ * RPCs. Host-owned identity is stamped by the protected carrier;
  * `surfaceId` scopes the call to the Apps surface for observability.
  */
 const APP_LIFECYCLE_CALL_OPTIONS = {
@@ -151,28 +139,70 @@ export function formatAppLifecycleErrorDetail(error: unknown): string {
 }
 
 /**
- * The desktop App Lifecycle bridge surface. Mirrors the SDK
- * `NimiRuntimeAppLifecycleClient` one-to-one — install / uninstall / getJob /
- * listJobs / watchJobEvents / update / healthRepair — projecting the typed
- * `NimiRuntimeAppInstallJob` lifecycle to the renderer with stable desktop-core
- * call metadata. Each method either resolves with the SDK typed projection or
- * rejects with a typed `NimiError`.
+ * Renderer-safe lifecycle requests deliberately omit the Runtime-issued
+ * intent binding. The renderer can request an operation, but only a
+ * protected desktop host carrier can prepare and attach the anchored intent.
+ */
+type DesktopAppLifecycleMutationRequest<Input> = Omit<
+  Input,
+  keyof NimiRuntimeAppLifecycleIntentBinding
+>;
+
+export type DesktopAppLifecycleInstallRequest =
+  DesktopAppLifecycleMutationRequest<NimiRuntimeAppInstallInput>;
+export type DesktopAppLifecycleUninstallRequest =
+  DesktopAppLifecycleMutationRequest<NimiRuntimeAppUninstallInput>;
+export type DesktopAppLifecycleUpdateRequest =
+  DesktopAppLifecycleMutationRequest<NimiRuntimeAppUpdateInput>;
+export type DesktopAppLifecycleHealthRepairRequest =
+  DesktopAppLifecycleMutationRequest<NimiRuntimeAppHealthRepairInput>;
+export type DesktopAppLifecycleOpenRequest =
+  DesktopAppLifecycleMutationRequest<NimiRuntimeAppOpenInput>;
+export type DesktopAppLifecycleAdoptLocalRequest =
+  DesktopAppLifecycleMutationRequest<NimiRuntimeAdoptLocalAppInput>;
+export type DesktopAppLifecycleRemoveLocalAdoptionRequest =
+  DesktopAppLifecycleMutationRequest<NimiRuntimeRemoveLocalAppAdoptionInput>;
+
+/**
+ * Host-owned, protected execution seam for lifecycle mutations. Implementors
+ * prepare the Runtime-issued anchored intent over the protected desktop
+ * carrier; this renderer module never receives or fabricates that binding.
+ */
+export interface DesktopAppLifecycleMutationExecutor {
+  install(input: DesktopAppLifecycleInstallRequest): Promise<NimiRuntimeAppInstallJob>;
+  adoptLocal(input: DesktopAppLifecycleAdoptLocalRequest): Promise<NimiRuntimeLocalAppAdoption>;
+  removeLocalAdoption(
+    input: DesktopAppLifecycleRemoveLocalAdoptionRequest,
+  ): Promise<NimiRuntimeLocalAppAdoption>;
+  uninstall(input: DesktopAppLifecycleUninstallRequest): Promise<NimiRuntimeAppUninstallResult>;
+  update(input: DesktopAppLifecycleUpdateRequest): Promise<NimiRuntimeAppInstallJob>;
+  healthRepair(input: DesktopAppLifecycleHealthRepairRequest): Promise<NimiRuntimeAppInstallJob>;
+  open(input: DesktopAppLifecycleOpenRequest): Promise<NimiRuntimeAppOpenProjection>;
+}
+
+/**
+ * The desktop App Lifecycle bridge surface. Read methods use the SDK typed
+ * projections with stable desktop metadata; mutation methods delegate only to
+ * the injected protected host executor. Each method either resolves with a
+ * typed projection or rejects with a typed `NimiError`.
  */
 export interface DesktopAppLifecycleBridge {
   /**
    * Trigger the Runtime-owned install lifecycle for an admitted app. Resolves
    * with the initial typed `AppInstallJob` projection (`kind=install`).
    */
-  install(input: NimiRuntimeAppInstallInput): Promise<NimiRuntimeAppInstallJob>;
+  install(input: DesktopAppLifecycleInstallRequest): Promise<NimiRuntimeAppInstallJob>;
   /** Explicitly adopt a user-selected local app root through Runtime validation. */
-  adoptLocal(input: NimiRuntimeAdoptLocalAppInput): Promise<NimiRuntimeLocalAppAdoption>;
+  adoptLocal(input: DesktopAppLifecycleAdoptLocalRequest): Promise<NimiRuntimeLocalAppAdoption>;
   /** Remove a Runtime-owned local adoption record without deleting durable data by default. */
-  removeLocalAdoption(input: NimiRuntimeRemoveLocalAppAdoptionInput): Promise<NimiRuntimeLocalAppAdoption>;
+  removeLocalAdoption(
+    input: DesktopAppLifecycleRemoveLocalAdoptionRequest,
+  ): Promise<NimiRuntimeLocalAppAdoption>;
   /**
    * Uninstall an app's release payload. Durable app data is kept unless the
    * caller passes the explicit destructive-delete confirmation.
    */
-  uninstall(input: NimiRuntimeAppUninstallInput): Promise<NimiRuntimeAppUninstallResult>;
+  uninstall(input: DesktopAppLifecycleUninstallRequest): Promise<NimiRuntimeAppUninstallResult>;
   /** Read a single lifecycle job's typed projection by id. */
   getJob(jobId: string): Promise<NimiRuntimeAppInstallJob>;
   /** List lifecycle job projections for one app. There is no global job list. */
@@ -195,13 +225,13 @@ export interface DesktopAppLifecycleBridge {
    * Trigger the Runtime-owned atomic update lifecycle. Resolves with the typed
    * update job projection (`kind=update`).
    */
-  update(input: NimiRuntimeAppUpdateInput): Promise<NimiRuntimeAppInstallJob>;
+  update(input: DesktopAppLifecycleUpdateRequest): Promise<NimiRuntimeAppInstallJob>;
   /**
    * Trigger the Runtime-owned health/repair lifecycle. `cancel` resolves with
    * the cancelled job; `retry` / `repair` / `reinstall` resolve with the new
    * in-flight job.
    */
-  healthRepair(input: NimiRuntimeAppHealthRepairInput): Promise<NimiRuntimeAppInstallJob>;
+  healthRepair(input: DesktopAppLifecycleHealthRepairRequest): Promise<NimiRuntimeAppInstallJob>;
   /**
    * Open (launch) an admitted Nimi App through the Runtime Open flow
    * (`K-APP-017`). Requires an explicit app-launch `AIScopeRef` — the bridge
@@ -209,12 +239,8 @@ export interface DesktopAppLifecycleBridge {
    * projection: a `blocked` open carries the distinct fail-closed `reasonCode`
    * and the step that blocked; it is never projected as launched.
    */
-  open(input: NimiRuntimeAppOpenInput): Promise<NimiRuntimeAppOpenProjection>;
+  open(input: DesktopAppLifecycleOpenRequest): Promise<NimiRuntimeAppOpenProjection>;
 }
-
-export type DesktopInstalledAppLaunchInvoker = (
-  projection: NimiRuntimeAppOpenProjection,
-) => Promise<DesktopInstalledAppLaunchResult>;
 
 function requireJobId(jobId: string): string {
   const normalized = typeof jobId === 'string' ? jobId.trim() : '';
@@ -233,27 +259,48 @@ function requireJobId(jobId: string): string {
   return normalized;
 }
 
+async function rejectMissingProtectedDesktopLifecycleCarrier(): Promise<never> {
+  throw createNimiError({
+    message: 'Desktop Apps requires a protected desktop control carrier for lifecycle changes',
+    reasonCode: RuntimeGeneratedReasonCode[
+      RuntimeGeneratedReasonCode.DESKTOP_CONTROL_TRANSPORT_REQUIRED
+    ],
+    actionHint: 'connect_protected_desktop_control_carrier',
+    source: 'runtime',
+  });
+}
+
+const missingProtectedDesktopLifecycleCarrier: DesktopAppLifecycleMutationExecutor = {
+  install: rejectMissingProtectedDesktopLifecycleCarrier,
+  adoptLocal: rejectMissingProtectedDesktopLifecycleCarrier,
+  removeLocalAdoption: rejectMissingProtectedDesktopLifecycleCarrier,
+  uninstall: rejectMissingProtectedDesktopLifecycleCarrier,
+  update: rejectMissingProtectedDesktopLifecycleCarrier,
+  healthRepair: rejectMissingProtectedDesktopLifecycleCarrier,
+  open: rejectMissingProtectedDesktopLifecycleCarrier,
+};
+
 /**
- * Construct the desktop App Lifecycle bridge. Exposed as a factory rather than
- * a singleton const so tests can inject a stub `NimiRuntimeAppLifecycleClient`.
+ * Construct the desktop App Lifecycle bridge. Read-only projections use the
+ * SDK client; mutations require an injected host-owned protected executor.
  */
 export function createDesktopAppLifecycleBridge(deps?: {
   getModule?: () => NimiRuntimeAppLifecycleClient;
-  launchInstalledApp?: DesktopInstalledAppLaunchInvoker;
+  mutationExecutor?: DesktopAppLifecycleMutationExecutor;
 }): DesktopAppLifecycleBridge {
   const getModule = deps?.getModule ?? appLifecycleModule;
-  const launchInstalledApp = deps?.launchInstalledApp ?? invokeDesktopInstalledAppLaunch;
+  const mutationExecutor = deps?.mutationExecutor ?? missingProtectedDesktopLifecycleCarrier;
   return {
     async install(input) {
       try {
-        return await getModule().install(input, APP_LIFECYCLE_CALL_OPTIONS);
+        return await mutationExecutor.install(input);
       } catch (error) {
         throw asAppLifecycleNimiError(error);
       }
     },
     async adoptLocal(input) {
       try {
-        return await getModule().adoptLocal(input, APP_LIFECYCLE_CALL_OPTIONS);
+        return await mutationExecutor.adoptLocal(input);
       } catch (error) {
         throw asAppLifecycleNimiError(error);
       }
@@ -261,17 +308,17 @@ export function createDesktopAppLifecycleBridge(deps?: {
     async removeLocalAdoption(input) {
       const appId = requireAppId(input?.appId ?? '');
       try {
-        return await getModule().removeLocalAdoption({
+        return await mutationExecutor.removeLocalAdoption({
           appId,
           deleteDurableDataConfirmed: Boolean(input?.deleteDurableDataConfirmed),
-        }, APP_LIFECYCLE_CALL_OPTIONS);
+        });
       } catch (error) {
         throw asAppLifecycleNimiError(error);
       }
     },
     async uninstall(input) {
       try {
-        return await getModule().uninstall(input, APP_LIFECYCLE_CALL_OPTIONS);
+        return await mutationExecutor.uninstall(input);
       } catch (error) {
         throw asAppLifecycleNimiError(error);
       }
@@ -318,44 +365,26 @@ export function createDesktopAppLifecycleBridge(deps?: {
     },
     async update(input) {
       try {
-        return await getModule().update(input, APP_LIFECYCLE_CALL_OPTIONS);
+        return await mutationExecutor.update(input);
       } catch (error) {
         throw asAppLifecycleNimiError(error);
       }
     },
     async healthRepair(input) {
       try {
-        return await getModule().healthRepair(input, APP_LIFECYCLE_CALL_OPTIONS);
+        return await mutationExecutor.healthRepair(input);
       } catch (error) {
         throw asAppLifecycleNimiError(error);
       }
     },
     async open(input) {
-      let projection: NimiRuntimeAppOpenProjection;
       try {
-        projection = await getModule().open(input, APP_LIFECYCLE_CALL_OPTIONS);
+        return await mutationExecutor.open(input);
       } catch (error) {
         throw asAppLifecycleNimiError(error);
       }
-      if (projection.state === 'launched' && projection.launched) {
-        try {
-          await launchInstalledApp(projection);
-        } catch (error) {
-          throw asDesktopInstalledAppLaunchNimiError(error);
-        }
-      }
-      return projection;
     },
   };
-}
-
-async function invokeDesktopInstalledAppLaunch(
-  projection: NimiRuntimeAppOpenProjection,
-): Promise<DesktopInstalledAppLaunchResult> {
-  return await invokeShell<DesktopInstalledAppLaunchResult>(
-    DESKTOP_INSTALLED_APP_LAUNCH_COMMAND,
-    { projection },
-  );
 }
 
 function requireAppId(appId: string): string {

@@ -115,7 +115,6 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
       {activeTab === 'overview' ? (
         <RuntimeOverviewTab
           model={model}
-          state={state}
           capabilitySummary={capabilitySummary}
           availableCapabilityCount={availableCapabilityCount}
           onOpenHealth={() => setActiveTab('health')}

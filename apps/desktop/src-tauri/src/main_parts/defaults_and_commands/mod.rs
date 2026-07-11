@@ -68,10 +68,9 @@ pub(crate) fn runtime_defaults() -> Result<RuntimeDefaults, String> {
     {
         if verbose_renderer_logs_enabled() {
             eprintln!(
-                "[desktop] runtime_defaults loaded: realm_base_url={}, jwks_url={}, access_token_len={}",
+                "[desktop] runtime_defaults loaded: realm_base_url={}, jwks_url={}",
                 defaults.realm.realm_base_url,
-                defaults.realm.jwks_url,
-                defaults.realm.access_token.len()
+                defaults.realm.jwks_url
             );
         }
     }

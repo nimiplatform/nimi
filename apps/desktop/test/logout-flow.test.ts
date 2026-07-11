@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 import { logoutAndClearSession, switchAccountAndClearSession } from '../src/shell/renderer/features/auth/logout';
 
@@ -112,7 +113,7 @@ test('logout flow fails closed when Runtime returns a typed rejection', async ()
         effects.push('server-logout');
         return {
           accepted: false,
-          reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+          reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
           accountReasonCode: 'ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH',
         };
       },

@@ -48,7 +48,6 @@ pub struct MenuBarPresentation {
     pub last_check_line: String,
     pub start_enabled: bool,
     pub restart_enabled: bool,
-    pub stop_enabled: bool,
     pub refresh_enabled: bool,
 }
 
@@ -187,8 +186,6 @@ impl MenuBarShellStateSnapshot {
 
         let status_header = if quit_pending {
             "Nimi is quitting".to_string()
-        } else if matches!(self.action_in_flight.as_deref(), Some("stop")) {
-            "Nimi Runtime is stopping".to_string()
         } else if matches!(self.action_in_flight.as_deref(), Some("start" | "restart")) {
             "Nimi Runtime is starting".to_string()
         } else if running
@@ -204,9 +201,8 @@ impl MenuBarShellStateSnapshot {
             "Nimi Runtime is stopped".to_string()
         };
 
-        let runtime_line = if matches!(self.action_in_flight.as_deref(), Some("stop")) {
-            "Runtime: STOPPING".to_string()
-        } else if matches!(self.action_in_flight.as_deref(), Some("start" | "restart")) {
+        let runtime_line = if matches!(self.action_in_flight.as_deref(), Some("start" | "restart"))
+        {
             "Runtime: STARTING".to_string()
         } else if !renderer_stale {
             match self.runtime_health.status.as_deref() {
@@ -271,9 +267,9 @@ impl MenuBarShellStateSnapshot {
                 .unwrap_or_else(|| "-".to_string())
         );
         let managed_line = if managed {
-            "Managed by Desktop".to_string()
+            "Managed by Runtime Service".to_string()
         } else {
-            "External Runtime".to_string()
+            "Runtime service unavailable".to_string()
         };
         let last_check_line = format!(
             "Last check: {}",
@@ -290,7 +286,6 @@ impl MenuBarShellStateSnapshot {
         let busy = self.action_in_flight.is_some() || quit_pending;
         let start_enabled = !busy && !running && launch_mode != "INVALID";
         let restart_enabled = !busy && running && managed;
-        let stop_enabled = !busy && running && managed;
         let refresh_enabled = !busy;
 
         MenuBarPresentation {
@@ -304,7 +299,6 @@ impl MenuBarShellStateSnapshot {
             last_check_line,
             start_enabled,
             restart_enabled,
-            stop_enabled,
             refresh_enabled,
         }
     }

@@ -8,36 +8,13 @@ const desktopMemoryEmbeddingServiceSource = readFileSync(
   'utf-8',
 );
 
-test('desktop memory embedding service exposes Runtime-owned inspect, bind, and cutover only', async () => {
+test('desktop memory embedding service fails closed without a Runtime-owned scoped carrier', async () => {
   const { createDesktopMemoryEmbeddingConfigService } = await import(
     '../src/shell/renderer/app-shell/providers/desktop-memory-embedding-config-service.js'
   );
   const calls: Array<{ method: string; request: Record<string, unknown> }> = [];
   const runtime = {
     appId: 'desktop-test',
-    auth: {
-      registerApp: async () => ({ accepted: true }),
-    },
-    grants: {
-      authorizeExternalPrincipal: async (request: {
-        scopes: string[];
-        appId?: string;
-        subjectUserId?: string;
-        externalPrincipalId?: string;
-        policyVersion?: string;
-        issuedScopeCatalogVersion?: string;
-      }) => ({
-        tokenId: `token-${request.scopes.join('-')}`,
-        secret: 'secret',
-        appId: request.appId,
-        subjectUserId: request.subjectUserId,
-        externalPrincipalId: request.externalPrincipalId,
-        effectiveScopes: request.scopes,
-        policyVersion: request.policyVersion,
-        issuedScopeCatalogVersion: request.issuedScopeCatalogVersion,
-        canDelegate: false,
-      }),
-    },
     memory: {
       async inspectMemoryEmbeddingRuntime(request: Record<string, unknown>) {
         calls.push({ method: 'inspect', request });
@@ -82,20 +59,18 @@ test('desktop memory embedding service exposes Runtime-owned inspect, bind, and 
     },
   };
 
-  const inspect = await service.memoryEmbeddingRuntime.inspect(request);
-  const bind = await service.memoryEmbeddingRuntime.requestBind(request);
-  const cutover = await service.memoryEmbeddingRuntime.requestCutover(request);
-
   assert.equal('memoryEmbeddingConfig' in service, false);
-  assert.equal(inspect.textEmbedIntentPresent, true);
-  assert.equal(inspect.textEmbedSourceKind, 'local');
-  assert.equal(inspect.configRevision, 7);
-  assert.equal(inspect.resolutionState, 'resolved');
-  assert.equal(bind.outcome, 'already_bound');
-  assert.equal(bind.pendingCutover, false);
-  assert.equal(cutover.outcome, 'already_current');
-  assert.deepEqual(calls.map((call) => call.method), ['inspect', 'bind', 'cutover']);
-  assert.equal('bindingIntentSnapshot' in calls[0]!.request, false);
+  for (const operation of [
+    () => service.memoryEmbeddingRuntime.inspect(request),
+    () => service.memoryEmbeddingRuntime.requestBind(request),
+    () => service.memoryEmbeddingRuntime.requestCutover(request),
+  ]) {
+    await assert.rejects(operation(), (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED');
+      return true;
+    });
+  }
+  assert.deepEqual(calls, []);
 });
 
 test('desktop memory embedding runtime service delegates Runtime composition to SDK', () => {
@@ -109,6 +84,8 @@ test('desktop memory embedding runtime service delegates Runtime composition to 
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /desktop-memory-embedding-config-storage/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /withRuntimeMemoryScopes/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /auth:\s*runtime\.auth/);
+  assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /appAuth:\s*runtime\.grants/);
   assert.doesNotMatch(desktopMemoryEmbeddingServiceSource, /buildNimiMemoryEmbeddingAgentCoreLocator/);
   assert.doesNotMatch(
     desktopMemoryEmbeddingServiceSource,

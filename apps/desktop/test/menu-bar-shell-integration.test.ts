@@ -7,6 +7,8 @@ const EXIT_HANDLER_PATH = resolve(import.meta.dirname, '../src/shell/renderer/in
 const RUNTIME_BRIDGE_PATH = resolve(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge.ts');
 const APP_BOOTSTRAP_PATH = resolve(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs');
 const MENU_BAR_ACTIONS_PATH = resolve(import.meta.dirname, '../src-tauri/src/menu_bar_shell/actions.rs');
+const MENU_BAR_MENU_PATH = resolve(import.meta.dirname, '../src-tauri/src/menu_bar_shell/menu.rs');
+const MENU_BAR_STATE_PATH = resolve(import.meta.dirname, '../src-tauri/src/menu_bar_shell/state.rs');
 const MENU_BAR_NAVIGATION_PATH = resolve(import.meta.dirname, '../src/shell/renderer/infra/menu-bar/menu-bar-navigation-listener.ts');
 const RUNTIME_PANEL_CONTROLLER_PATH = resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-panel-controller.ts');
 
@@ -17,20 +19,25 @@ test('exit handler only reacts to explicit menu bar quit events', () => {
   assert.doesNotMatch(source, /tauri:\/\/close-requested/);
 });
 
-test('D-BOOT-011: exit handler cleans up shell state before quit and only stops managed daemons', () => {
+test('D-BOOT-011: exit handler cleans up shell state without stopping the OS-managed Runtime', () => {
   const source = readFileSync(EXIT_HANDLER_PATH, 'utf-8');
   const stopWatcherIndex = source.indexOf('stopAuthStateWatcher();');
-  const managedGuardIndex = source.indexOf('if (options.managed) {');
-  const stopRuntimeBridgeIndex = source.indexOf('await stopRuntimeBridge();');
   const completeQuitIndex = source.indexOf('await completeMenuBarQuit();');
 
   assert.ok(stopWatcherIndex !== -1, 'exit handler must stop the auth watcher');
-  assert.ok(managedGuardIndex !== -1, 'exit handler must guard daemon stop behind options.managed');
-  assert.ok(stopRuntimeBridgeIndex !== -1, 'exit handler must stop the runtime bridge on managed quit');
   assert.ok(completeQuitIndex !== -1, 'exit handler must complete the menu bar quit flow');
-  assert.ok(stopWatcherIndex < managedGuardIndex, 'shell cleanup must finish before managed daemon shutdown guard');
-  assert.ok(managedGuardIndex < stopRuntimeBridgeIndex, 'managed daemon shutdown must stay inside the managed guard');
-  assert.ok(stopRuntimeBridgeIndex < completeQuitIndex, 'runtime bridge stop must happen before final app quit');
+  assert.ok(stopWatcherIndex < completeQuitIndex, 'shell cleanup must finish before final app quit');
+  assert.doesNotMatch(source, /stopRuntimeBridge|runtime_bridge_stop/);
+});
+
+test('D-BOOT-011: native menu bar exposes no Runtime stop path', () => {
+  const actionsSource = readFileSync(MENU_BAR_ACTIONS_PATH, 'utf-8');
+  const menuSource = readFileSync(MENU_BAR_MENU_PATH, 'utf-8');
+  const stateSource = readFileSync(MENU_BAR_STATE_PATH, 'utf-8');
+
+  assert.doesNotMatch(actionsSource, /MENU_ID_STOP_RUNTIME|RuntimeAction::Stop|stop_daemon/);
+  assert.doesNotMatch(menuSource, /stop_runtime|Stop Runtime/);
+  assert.doesNotMatch(stateSource, /stop_enabled|Some\("stop"\)/);
 });
 
 test('renderer bridge exposes menu bar health sync and quit finalize actions', () => {

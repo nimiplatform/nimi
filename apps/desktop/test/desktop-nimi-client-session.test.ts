@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   clearDesktopNimiClientSession,
   setDesktopNimiClientSessionForTests,
@@ -107,6 +108,55 @@ test('desktop Electron Runtime calls leave host-owned auth metadata to the Elect
       return 'electron-host-owned';
     });
     assert.equal(result, 'electron-host-owned');
+  } finally {
+    clearDesktopNimiClientSession();
+  }
+});
+
+test('desktop Tauri Runtime calls fail closed instead of minting a public Grant token', async () => {
+  let accountStatusCalls = 0;
+  let publicGrantCalls = 0;
+  setDesktopNimiClientSessionForTests({
+    appId: 'nimi.desktop',
+    runtimeTransport: { type: 'tauri-ipc' },
+    client: {},
+    runtime: {},
+    accountRuntime: {
+      account: {
+        getAccountSessionStatus: async () => {
+          accountStatusCalls += 1;
+          return {
+            state: AccountSessionState.AUTHENTICATED,
+            accountProjection: { accountId: 'user-1' },
+          };
+        },
+      },
+      grants: {
+        authorizeExternalPrincipal: async () => {
+          publicGrantCalls += 1;
+          return { tokenId: 'public-token', secret: 'public-secret' };
+        },
+      },
+    },
+    accountCaller: {},
+    realm: {},
+  } as never);
+  try {
+    await assert.rejects(
+      withDesktopRuntimeProtectedScopes(['runtime.agent.read'], async () => 'must-not-run'),
+      (error: unknown) => {
+        assert.equal(
+          (error as { readonly reasonCode?: unknown }).reasonCode,
+          'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
+        );
+        return true;
+      },
+    );
+    assert.equal(accountStatusCalls, 0);
+    assert.equal(publicGrantCalls, 0);
+    const source = readSessionSource();
+    assert.doesNotMatch(source, /authorizeExternalPrincipal/u);
+    assert.doesNotMatch(source, /x-nimi-access-token-(?:id|secret)/u);
   } finally {
     clearDesktopNimiClientSession();
   }

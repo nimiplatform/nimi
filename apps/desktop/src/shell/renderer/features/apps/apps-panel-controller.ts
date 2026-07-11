@@ -86,8 +86,7 @@ interface DesktopAppsActionDeps extends DesktopAppsOpenAIConfigGateDeps {
 
 export type DesktopAppsOpenFlowStep =
   | 'ai-config'
-  | 'runtime-launch-resolution'
-  | 'desktop-launch-host';
+  | 'runtime-launch-resolution';
 
 export type DesktopAppsOpenFlowStatus = 'started' | 'succeeded' | 'failed';
 
@@ -432,23 +431,9 @@ async function openAppThroughRuntimeAndDesktopHost(
       step: 'runtime-launch-resolution',
       status: 'succeeded',
     });
-    if (projection.state === 'launched' && projection.launched) {
-      recordOpenFlowEvent(deps, {
-        appId,
-        step: 'desktop-launch-host',
-        status: 'succeeded',
-      });
-    }
     return projection;
   } catch (error) {
     const failure = openFlowFailure(error);
-    if (failure.step === 'desktop-launch-host') {
-      recordOpenFlowEvent(deps, {
-        appId,
-        step: 'runtime-launch-resolution',
-        status: 'succeeded',
-      });
-    }
     recordOpenFlowEvent(deps, {
       appId,
       step: failure.step,
@@ -484,9 +469,7 @@ function openFlowFailure(error: unknown): {
   const nimiError = asAppLifecycleNimiError(error);
   const reasonCode = String(nimiError.reasonCode || '').trim();
   return {
-    step: reasonCode.startsWith('DESKTOP_INSTALLED_APP_')
-      ? 'desktop-launch-host'
-      : 'runtime-launch-resolution',
+    step: 'runtime-launch-resolution',
     source: String(nimiError.source || '').trim() || 'runtime',
     reasonCode: reasonCode || 'RUNTIME_CALL_FAILED',
   };

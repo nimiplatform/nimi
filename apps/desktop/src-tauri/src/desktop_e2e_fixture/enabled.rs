@@ -529,15 +529,6 @@ pub fn runtime_bridge_unary_override(
             runtime_account_status_response(projection),
         )))
     }
-    nimi_shell_tauri::capabilities::runtime::RUNTIME_ACCOUNT_GET_ACCESS_TOKEN_METHOD_ID => {
-        append_backend_log(&format!(
-            "runtime_account_fixture method=getAccessToken accepted={}",
-            projection.is_some()
-        ));
-        Ok(Some(encode_unary_response(runtime_account_token_response(
-            projection,
-        ))))
-    }
     "/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal" => {
         append_backend_log("runtime_grant_fixture method=authorizeExternalPrincipal accepted=true");
         runtime_authorize_external_principal_response(payload).map(Some)

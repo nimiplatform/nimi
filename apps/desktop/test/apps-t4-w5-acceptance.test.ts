@@ -49,7 +49,7 @@ import type {
   NimiRuntimeAppInstallJob,
   NimiRuntimeLocalAppAdoption,
   NimiRuntimeAppStorageProjection,
-  NimiRuntimeAppUninstallInput,
+  DesktopAppLifecycleUninstallRequest,
   NimiRuntimeAppUninstallResult,
 } from '../src/shell/renderer/features/apps/apps-lifecycle-bridge.js';
 
@@ -433,10 +433,10 @@ function storageProjection(appId = 'nimi.example-app'): NimiRuntimeAppStoragePro
  */
 function recordingLifecycle(): {
   lifecycle: DesktopAppLifecycleBridge;
-  uninstallCalls: NimiRuntimeAppUninstallInput[];
+  uninstallCalls: DesktopAppLifecycleUninstallRequest[];
   removeLocalAdoptionCalls: readonly { readonly appId: string; readonly deleteDurableDataConfirmed?: boolean }[];
 } {
-  const uninstallCalls: NimiRuntimeAppUninstallInput[] = [];
+  const uninstallCalls: DesktopAppLifecycleUninstallRequest[] = [];
   const removeLocalAdoptionCalls: Array<{ readonly appId: string; readonly deleteDurableDataConfirmed?: boolean }> = [];
   const lifecycle: DesktopAppLifecycleBridge = {
     async install() {

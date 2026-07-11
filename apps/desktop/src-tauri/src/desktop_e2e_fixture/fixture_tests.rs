@@ -196,6 +196,8 @@ fn runtime_app_platform_fixture_installs_and_opens_sandbox_app() {
                 runtime_bridge_generated::InstallAppRequest {
                     app_id: "community.nimi.fixture.platform-proof".to_string(),
                     confirmed: true,
+                    lifecycle_intent_id: String::new(),
+                    displayed_impact_digest: String::new(),
                 },
             ))
             .expect("fixture override")
@@ -230,6 +232,8 @@ fn runtime_app_platform_fixture_installs_and_opens_sandbox_app() {
                         owner_id: "community.nimi.fixture.platform-proof".to_string(),
                         surface_id: String::new(),
                     }),
+                    lifecycle_intent_id: String::new(),
+                    displayed_impact_digest: String::new(),
                 },
             ))
             .expect("fixture override")
@@ -299,6 +303,8 @@ fn runtime_app_platform_fixture_blocks_open_permission_pending() {
                             owner_id: "community.nimi.fixture.platform-proof".to_string(),
                             surface_id: String::new(),
                         }),
+                        lifecycle_intent_id: String::new(),
+                        displayed_impact_digest: String::new(),
                     },
                 ))
                 .expect("fixture override")

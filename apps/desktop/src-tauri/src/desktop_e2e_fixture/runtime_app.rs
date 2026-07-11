@@ -83,29 +83,6 @@ pub(super) fn runtime_account_status_response(
     }
 }
 
-pub(super) fn runtime_account_token_response(
-    projection: Option<runtime_bridge_generated::AccountProjection>,
-) -> runtime_bridge_generated::GetAccessTokenResponse {
-    if projection.is_some() {
-        return runtime_bridge_generated::GetAccessTokenResponse {
-            accepted: true,
-            access_token: "e2e-runtime-account-access-token".to_string(),
-            expires_at: None,
-            reason_code: runtime_bridge_generated::ReasonCode::ActionExecuted as i32,
-            account_reason_code: runtime_bridge_generated::AccountReasonCode::ActionExecuted as i32,
-            production_inert: false,
-        };
-    }
-    runtime_bridge_generated::GetAccessTokenResponse {
-        accepted: false,
-        access_token: String::new(),
-        expires_at: None,
-        reason_code: runtime_bridge_generated::ReasonCode::PrincipalUnauthorized as i32,
-        account_reason_code: runtime_bridge_generated::AccountReasonCode::AccountUnavailable as i32,
-        production_inert: false,
-    }
-}
-
 pub(super) fn runtime_app_storage_response(
     payload: &RuntimeBridgeUnaryPayload,
     manifest: &DesktopE2EFixtureManifest,

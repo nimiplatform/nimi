@@ -18,7 +18,6 @@ import {
   type NimiFirstRunMaterializationDependencyProjection,
   type NimiFirstRunMaterializationProjection,
 } from './runtime-materialization.js';
-import { syncFirstRunRuntimeDataRootConfig } from './first-run-runtime-storage-sync.js';
 import { FirstRunReconcilingScreen } from './first-run-reconciling-screen.js';
 import { useFirstRunMaterializationObserver } from './use-first-run-materialization-observer.js';
 import { projectInstallLevelCard } from './first-run-install-level-cards.js';
@@ -258,7 +257,7 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
   // materialization starts. Desktop bootstrap runs before this Storage step, so
   // its config sync found no data root and failed closed; this is the seam that
   // makes the desktop→runtime data-root config sync effective. It reuses the
-  // single `syncRuntimeStorageConfig` mechanism (the same one bootstrap uses),
+  // typed Product Control projection (the same one Runtime materialization uses),
   // resolves the freshly-recorded storage dirs, writes `dataRootRef` /
   // `managedRoots` into the runtime config, and restarts the managed runtime so
   // the config takes effect. A failure here fails closed — the user cannot
@@ -299,10 +298,6 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       // validation (absolute path, writability, root layout). A non-absolute
       // or unusable path fails closed here with the backend's typed error.
       const next = await desktopBridge.selectProductDataRoot(candidate);
-      // The runtime config must carry the freshly-recorded data root before
-      // materialization; sync it now (fails closed if the runtime config write
-      // fails) and only then advance the projection out of the Storage phase.
-      await syncFirstRunRuntimeDataRootConfig();
       notifyProjectionChange(next);
     } catch (nextError) {
       setError(
@@ -329,9 +324,6 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       const picked = await desktopBridge.pickProductDataRootDirectory();
       if (!picked) return;
       const next = await desktopBridge.selectProductDataRoot(picked);
-      // Re-pointing the data root before heavy setup must re-sync the runtime
-      // config so the runtime resolves models under the new data root.
-      await syncFirstRunRuntimeDataRootConfig();
       notifyProjectionChange(next);
     } catch (nextError) {
       setError(
@@ -444,11 +436,6 @@ export function ProductControlWorkflow(props: ProductControlWorkflowProps): Reac
       // 2) Start Runtime materialization (explicit confirmation — this is the
       //    first storage/network-heavy step) and persist the resulting setup
       //    state so the gate advances into the Setup phase.
-      // Re-assert the selected data root immediately before materialization so
-      // Runtime cannot start the heavy setup path with a stale in-process config.
-      await syncFirstRunRuntimeDataRootConfig({
-        forceManagedRuntimeRestartWhenUnchanged: true,
-      });
       const next = await startDesktopNimiFirstRunMaterialization({
         profile: plan,
         runtimeDataRoot: dataRoot,

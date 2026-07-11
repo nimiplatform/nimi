@@ -17,7 +17,7 @@ test('Desktop Electron main wires host-owned Runtime auth metadata', () => {
   assert.match(authSource, /createNimiElectronRuntimeAccountTrustedMetadataProvider/);
   assert.match(authSource, /createNimiDesktopShellRuntimeAccountCaller/);
   assert.match(authSource, /appSession:\s*\{/);
-  assert.match(authSource, /protectedAccess:\s*\{/);
+  assert.doesNotMatch(authSource, /protectedAccess:\s*\{/);
   assert.match(authSource, /isDesktopRuntimeLocalProductControlMethodId/);
   assert.doesNotMatch(authSource, /createNimiDeveloperRegisteredRuntimeAccountCaller/);
   assert.doesNotMatch(authSource, /developerRegistration:\s*true/);

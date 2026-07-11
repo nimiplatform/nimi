@@ -1,6 +1,4 @@
 import {
-  parseRuntimeBridgeConfigGetResult as parseSharedRuntimeBridgeConfigGetResult,
-  parseRuntimeBridgeConfigSetResult as parseSharedRuntimeBridgeConfigSetResult,
   parseRuntimeBridgeDaemonStatus as parseSharedRuntimeBridgeDaemonStatus,
   parseRuntimeDefaults as parseSharedRuntimeDefaults,
 } from '@nimiplatform/kit/shell/renderer/bridge';
@@ -22,8 +20,6 @@ import type {
 
 export const parseRuntimeDefaults = parseSharedRuntimeDefaults;
 export const parseRuntimeBridgeDaemonStatus = parseSharedRuntimeBridgeDaemonStatus;
-export const parseRuntimeBridgeConfigGetResult = parseSharedRuntimeBridgeConfigGetResult;
-export const parseRuntimeBridgeConfigSetResult = parseSharedRuntimeBridgeConfigSetResult;
 
 export function parseDesktopReleaseInfo(value: unknown): DesktopReleaseInfo {
   const record = assertRecord(value, 'desktop_release_info_get returned invalid payload');

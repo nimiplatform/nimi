@@ -23,7 +23,6 @@ pub struct MenuBarMenuHandles {
     pub last_check_line: MenuItem<tauri::Wry>,
     pub start_runtime: MenuItem<tauri::Wry>,
     pub restart_runtime: MenuItem<tauri::Wry>,
-    pub stop_runtime: MenuItem<tauri::Wry>,
     pub refresh_status: MenuItem<tauri::Wry>,
 }
 
@@ -154,14 +153,6 @@ pub fn initialize(app: &AppHandle) -> Result<(), String> {
             None::<&str>,
         )
         .map_err(|error| error.to_string())?;
-        let stop_runtime = MenuItem::with_id(
-            app,
-            actions::MENU_ID_STOP_RUNTIME,
-            "Stop Runtime",
-            false,
-            None::<&str>,
-        )
-        .map_err(|error| error.to_string())?;
         let refresh_status = MenuItem::with_id(
             app,
             actions::MENU_ID_REFRESH_STATUS,
@@ -217,8 +208,6 @@ pub fn initialize(app: &AppHandle) -> Result<(), String> {
             .map_err(|error| error.to_string())?;
         menu.append(&restart_runtime)
             .map_err(|error| error.to_string())?;
-        menu.append(&stop_runtime)
-            .map_err(|error| error.to_string())?;
         menu.append(&refresh_status)
             .map_err(|error| error.to_string())?;
         menu.append(&separator_d)
@@ -254,7 +243,6 @@ pub fn initialize(app: &AppHandle) -> Result<(), String> {
             last_check_line,
             start_runtime,
             restart_runtime,
-            stop_runtime,
             refresh_status,
         });
         Ok(())
@@ -281,7 +269,6 @@ pub fn apply_state(app: &AppHandle) {
         let _ = handles
             .restart_runtime
             .set_enabled(presentation.restart_enabled);
-        let _ = handles.stop_runtime.set_enabled(presentation.stop_enabled);
         let _ = handles
             .refresh_status
             .set_enabled(presentation.refresh_enabled);

@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { appendFile, mkdir, readFile } from 'node:fs/promises';
+import { appendFile, mkdir } from 'node:fs/promises';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell, type MessageBoxOptions } from 'electron';
 import {
   NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION,
@@ -12,16 +12,6 @@ import {
   type NimiElectronStandardDataRootBinding,
 } from '@nimiplatform/kit/shell/electron/main';
 import { createDesktopElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
-import {
-  createDesktopInstalledAppLauncher,
-  registerDesktopInstalledAppLaunchIpc,
-} from './app-launch/installed-app-launcher.js';
-import {
-  DESKTOP_INSTALLED_APP_PROTOCOL_SCHEME,
-  createDesktopInstalledAppProtocolRegistrar,
-} from './app-launch/installed-app-protocol.js';
-import { createDesktopInstalledAppHostWindow } from './app-launch/installed-app-host-window.js';
-import { DESKTOP_INSTALLED_APP_LAUNCH_COMMAND } from '../src/shell/shared/installed-app-launch-contract.js';
 
 const APP_ID = 'nimi.desktop';
 
@@ -60,16 +50,6 @@ protocol.registerSchemesAsPrivileged([
     scheme: NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.scheme,
     privileges: { ...NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.privileges },
   },
-  {
-    scheme: DESKTOP_INSTALLED_APP_PROTOCOL_SCHEME,
-    privileges: {
-      standard: true,
-      secure: true,
-      corsEnabled: true,
-      supportFetchAPI: true,
-      stream: true,
-    },
-  },
 ]);
 
 app.setName('Nimi');
@@ -79,22 +59,6 @@ void app.whenReady().then(async () => {
   localAssetProtocolHost.registerProtocolHandler();
   const standardDataRoot = resolveStandardDataRoot();
   await mkdir(standardDataRoot, { recursive: true });
-  const installedAppLauncher = createDesktopInstalledAppLauncher({
-    runtimeEndpoint,
-    preloadPath,
-    createAIConfigStore: createDesktopAiConfigStore,
-    registerProtocol: createDesktopInstalledAppProtocolRegistrar({ protocol }),
-    createHostWindow: (input) => createDesktopInstalledAppHostWindow(input, {
-      BrowserWindow,
-      ipcMain,
-      registerRuntimeBridge: registerNimiElectronRuntimeBridge,
-    }),
-  });
-  const installedAppLaunchHandlers = registerDesktopInstalledAppLaunchIpc(installedAppLauncher);
-  const installedAppLaunchHandler = installedAppLaunchHandlers[DESKTOP_INSTALLED_APP_LAUNCH_COMMAND];
-  if (!installedAppLaunchHandler) {
-    throw new Error(`Desktop installed app launch handler missing: ${DESKTOP_INSTALLED_APP_LAUNCH_COMMAND}`);
-  }
   registerNimiElectronRuntimeBridge({
     appId: APP_ID,
     runtimeEndpoint,
@@ -117,10 +81,6 @@ void app.whenReady().then(async () => {
         mode: 'desktop-shell',
       },
       aiConfigStore: createDesktopAiConfigStore(standardDataRoot),
-      runtimeConfigGet: createDesktopRuntimeConfigReader(standardDataRoot),
-    },
-    commandHandlers: {
-      [DESKTOP_INSTALLED_APP_LAUNCH_COMMAND]: installedAppLaunchHandler,
     },
   });
 
@@ -245,23 +205,6 @@ function createDesktopAiConfigStore(dataRoot: string) {
     dataRoot,
     storeLabel: 'desktop AI Config',
   });
-}
-
-function createDesktopRuntimeConfigReader(dataRoot: string): () => Promise<{
-  readonly path: string;
-  readonly config: Readonly<Record<string, unknown>>;
-}> {
-  return async () => {
-    const filePath = path.join(dataRoot, 'runtime', 'config.json');
-    const parsed = JSON.parse(await readFile(filePath, 'utf8')) as unknown;
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error(`desktop Runtime config payload is invalid: ${filePath}`);
-    }
-    return {
-      path: filePath,
-      config: parsed as Readonly<Record<string, unknown>>,
-    };
-  };
 }
 
 async function openDesktopExternalUrl(url: string): Promise<void> {

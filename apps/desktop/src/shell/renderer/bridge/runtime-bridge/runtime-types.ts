@@ -4,8 +4,6 @@ export type {
   RealmDefaults,
   RuntimeExecutionDefaults,
   RuntimeDefaults,
-  RuntimeBridgeConfigGetResult,
-  RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 

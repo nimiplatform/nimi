@@ -287,9 +287,6 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             <Button variant="secondary" size="sm" disabled={daemonBusy || !daemonRunning} onClick={() => void model.restartRuntimeDaemon()}>
               {t('runtimeConfig.overview.restart', { defaultValue: 'Restart' })}
             </Button>
-            <Button variant="secondary" size="sm" disabled={daemonBusy || !daemonRunning} onClick={() => void model.stopRuntimeDaemon()}>
-              {t('runtimeConfig.overview.stop', { defaultValue: 'Stop' })}
-            </Button>
           </div>
         </Surface>
       </section>

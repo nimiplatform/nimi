@@ -93,8 +93,6 @@ export type RuntimeConfigPanelControllerModel = {
   refreshRuntimeDaemonStatus: () => Promise<void>;
   startRuntimeDaemon: () => Promise<void>;
   restartRuntimeDaemon: () => Promise<void>;
-  stopRuntimeDaemon: () => Promise<void>;
-  saveRuntimeLocalEndpoint: (endpoint: string) => Promise<{ restartRequired: boolean }>;
   onVaultChanged: () => void;
   onDownloadComplete: (
     installSessionId: string,

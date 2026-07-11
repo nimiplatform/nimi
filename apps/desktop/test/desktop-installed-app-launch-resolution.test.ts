@@ -5,107 +5,120 @@ import type {
   NimiRuntimeAppLifecycleClient,
   NimiRuntimeAppOpenProjection,
 } from '@nimiplatform/sdk/runtime';
+import { ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
 
 import {
   createDesktopAppLifecycleBridge,
+  type DesktopAppLifecycleMutationExecutor,
 } from '../src/shell/renderer/features/apps/apps-lifecycle-bridge';
-import {
-  DESKTOP_INSTALLED_APP_LAUNCH_REASON_CODES,
-} from '../src/shell/shared/installed-app-launch-contract';
 
-describe('Desktop App Lifecycle OpenApp launch-resolution handoff', () => {
-  test('invokes Desktop installed-app launch after Runtime returns a launched projection', async () => {
-    const projection = launchedProjection();
-    const launchCalls: NimiRuntimeAppOpenProjection[] = [];
+describe('Desktop App Lifecycle OpenApp protected-host handoff', () => {
+  test('rejects OpenApp before SDK or renderer launch when no protected host carrier exists', async () => {
+    let sdkOpenCalls = 0;
     const bridge = createDesktopAppLifecycleBridge({
-      getModule: () => stubLifecycle({ projection }),
-      launchInstalledApp: async (input) => {
-        launchCalls.push(input);
-        return {
-          appId: input.appId,
-          state: 'launched',
-          launchHostId: 'desktop-electron-installed-app-host',
-          releaseDescriptorRef: input.releaseDescriptorRef || '',
-          windowId: 7,
-        };
-      },
-    });
-
-    const result = await bridge.open({
-      appId: projection.appId,
-      scope: { kind: 'app', ownerId: projection.appId },
-    });
-
-    assert.deepEqual(result, projection);
-    assert.deepEqual(launchCalls, [projection]);
-  });
-
-  test('does not invoke Desktop launch for blocked Runtime OpenApp projections', async () => {
-    const projection: NimiRuntimeAppOpenProjection = {
-      ...launchedProjection(),
-      state: 'blocked',
-      reachedStep: 'verify_package',
-      launched: false,
-      reasonCode: ReasonCode.APP_INSTALL_DIGEST_MISMATCH,
-    };
-    const launchCalls: NimiRuntimeAppOpenProjection[] = [];
-    const bridge = createDesktopAppLifecycleBridge({
-      getModule: () => stubLifecycle({ projection }),
-      launchInstalledApp: async (input) => {
-        launchCalls.push(input);
-        throw new Error('must not launch blocked projection');
-      },
-    });
-
-    const result = await bridge.open({
-      appId: projection.appId,
-      scope: { kind: 'app', ownerId: projection.appId },
-    });
-
-    assert.deepEqual(result, projection);
-    assert.deepEqual(launchCalls, []);
-  });
-
-  test('normalizes Electron launch failure as a Desktop Apps error, not Runtime OpenApp failure', async () => {
-    const projection = launchedProjection();
-    const bridge = createDesktopAppLifecycleBridge({
-      getModule: () => stubLifecycle({ projection }),
-      launchInstalledApp: async () => {
-        throw createNimiError({
-          message: 'installed app BrowserWindow creation failed',
-          reasonCode: DESKTOP_INSTALLED_APP_LAUNCH_REASON_CODES.hostWindowFailed,
-          actionHint: 'check_desktop_installed_app_launch',
-          source: 'sdk',
-        });
-      },
+      getModule: () => ({
+        async open() {
+          sdkOpenCalls += 1;
+          throw new Error('renderer must not invoke Runtime OpenApp directly');
+        },
+      } as unknown as NimiRuntimeAppLifecycleClient),
     });
 
     await assert.rejects(
       () => bridge.open({
-        appId: projection.appId,
-        scope: { kind: 'app', ownerId: projection.appId },
+        appId: 'community.nimi.fixture.platform-proof',
+        scope: { kind: 'app', ownerId: 'community.nimi.fixture.platform-proof' },
       }),
       (error: unknown) => {
         assert.equal(
           (error as { reasonCode?: string }).reasonCode,
-          DESKTOP_INSTALLED_APP_LAUNCH_REASON_CODES.hostWindowFailed,
+          RuntimeGeneratedReasonCode[RuntimeGeneratedReasonCode.DESKTOP_CONTROL_TRANSPORT_REQUIRED],
         );
-        assert.equal((error as { source?: string }).source, 'sdk');
+        return true;
+      },
+    );
+    assert.equal(sdkOpenCalls, 0);
+  });
+
+  test('returns only the protected-host OpenApp projection and never owns child launch', async () => {
+    const projection = launchedProjection();
+    const scope = { kind: 'app' as const, ownerId: projection.appId };
+    let hostOpenCalls = 0;
+    const executor = mutationExecutor({
+      async open(input) {
+        hostOpenCalls += 1;
+        assert.deepEqual(input.scope, scope);
+        return projection;
+      },
+    });
+    const bridge = createDesktopAppLifecycleBridge({
+      getModule: () => {
+        throw new Error('OpenApp must not resolve the renderer SDK module');
+      },
+      mutationExecutor: executor,
+    });
+
+    const result = await bridge.open({
+      appId: projection.appId,
+      scope,
+    });
+
+    assert.deepEqual(result, projection);
+    assert.equal(hostOpenCalls, 1);
+  });
+
+  test('normalizes a protected-host OpenApp failure without a renderer launch fallback', async () => {
+    const bridge = createDesktopAppLifecycleBridge({
+      getModule: () => {
+        throw new Error('OpenApp must not resolve the renderer SDK module');
+      },
+      mutationExecutor: mutationExecutor({
+        async open() {
+          throw createNimiError({
+            message: 'protected host rejected the pending child launch',
+            reasonCode: RuntimeGeneratedReasonCode[
+              RuntimeGeneratedReasonCode.LIFECYCLE_INTENT_REQUIRED
+            ],
+            actionHint: 'complete_installed_app_child_launch_admission',
+            source: 'runtime',
+          });
+        },
+      }),
+    });
+
+    await assert.rejects(
+      () => bridge.open({
+        appId: 'community.nimi.fixture.platform-proof',
+        scope: { kind: 'app', ownerId: 'community.nimi.fixture.platform-proof' },
+      }),
+      (error: unknown) => {
+        assert.equal(
+          (error as { reasonCode?: string }).reasonCode,
+          RuntimeGeneratedReasonCode[RuntimeGeneratedReasonCode.LIFECYCLE_INTENT_REQUIRED],
+        );
         return true;
       },
     );
   });
 });
 
-function stubLifecycle(input: {
-  readonly projection: NimiRuntimeAppOpenProjection;
-}): NimiRuntimeAppLifecycleClient {
+function mutationExecutor(
+  overrides: Partial<DesktopAppLifecycleMutationExecutor>,
+): DesktopAppLifecycleMutationExecutor {
+  const unavailable = async (): Promise<never> => {
+    throw new Error('unexpected lifecycle mutation');
+  };
   return {
-    async open() {
-      return input.projection;
-    },
-  } as unknown as NimiRuntimeAppLifecycleClient;
+    install: unavailable,
+    adoptLocal: unavailable,
+    removeLocalAdoption: unavailable,
+    uninstall: unavailable,
+    update: unavailable,
+    healthRepair: unavailable,
+    open: unavailable,
+    ...overrides,
+  };
 }
 
 function launchedProjection(): NimiRuntimeAppOpenProjection {

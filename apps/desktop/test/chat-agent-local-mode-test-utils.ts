@@ -87,13 +87,6 @@ function createDefaultDesktopTestAccount() {
         accountId: 'user-1',
       },
     }),
-    getAccessToken: async () => ({
-      accepted: true,
-      accessToken: 'desktop-test-account-access-token',
-    }),
-    refreshAccountSession: async () => ({
-      accepted: true,
-    }),
   };
 }
 

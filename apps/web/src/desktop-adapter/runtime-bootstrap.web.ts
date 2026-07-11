@@ -4,9 +4,7 @@ type CreateRendererFlowId = (typeof import('@desktop-public/infra'))['createRend
 type LogRendererEvent = (typeof import('@desktop-public/infra'))['logRendererEvent'];
 type DesktopPublicWebBootstrapStore = (typeof import('@desktop-public/app-store'))['desktopPublicWebBootstrapStore'];
 type ConfigureWebRealmPlatformClient = (typeof import('@desktop-public/realm'))['configureWebRealmPlatformClient'];
-type CallRealmApi = (typeof import('@desktop-public/realm'))['callRealmApi'];
 type ClearPersistedAccessToken = (typeof import('@nimiplatform/kit/auth'))['clearPersistedAccessToken'];
-type PersistAuthSession = (typeof import('@nimiplatform/kit/auth'))['persistAuthSession'];
 
 type RuntimeBootstrapWebDeps = {
   desktopBridge: DesktopBridgeFacade;
@@ -15,9 +13,7 @@ type RuntimeBootstrapWebDeps = {
   logRendererEvent: LogRendererEvent;
   bootstrapStore: DesktopPublicWebBootstrapStore;
   configureWebRealmPlatformClient: ConfigureWebRealmPlatformClient;
-  callRealmApi: CallRealmApi;
   clearPersistedAccessToken: ClearPersistedAccessToken;
-  persistAuthSession: PersistAuthSession;
 };
 
 export const WEB_CLOUD_ADAPTER_AUTH_MODE = 'web-cloud-adapter' as const;
@@ -53,9 +49,7 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
       logRendererEvent: infraModule.logRendererEvent,
       bootstrapStore: bootstrapStoreModule.desktopPublicWebBootstrapStore,
       configureWebRealmPlatformClient: realmModule.configureWebRealmPlatformClient,
-      callRealmApi: realmModule.callRealmApi,
       clearPersistedAccessToken: authStorageModule.clearPersistedAccessToken,
-      persistAuthSession: authStorageModule.persistAuthSession,
     };
   })();
 
@@ -89,11 +83,7 @@ export function withTimeout<T>(task: Promise<T>, timeoutMs: number, label: strin
   });
 }
 
-async function configureWebRealmSession(
-  deps: RuntimeBootstrapWebDeps,
-  accessToken: string,
-  refreshToken?: string,
-): Promise<void> {
+async function configureWebRealmSession(deps: RuntimeBootstrapWebDeps): Promise<void> {
   let defaults = deps.bootstrapStore.getRuntimeDefaults();
   if (!defaults?.realm?.realmBaseUrl) {
     defaults = await deps.desktopBridge.getRuntimeDefaults();
@@ -102,8 +92,6 @@ async function configureWebRealmSession(
   await deps.configureWebRealmPlatformClient({
     appId: 'nimi.web',
     realmBaseUrl: defaults.realm.realmBaseUrl,
-    accessToken,
-    refreshToken,
     fetchImpl: deps.createProxyFetch(),
     getCurrentUser: () => deps.bootstrapStore.getCurrentUser(),
     setAuthSession: (user) => {
@@ -117,73 +105,20 @@ async function configureWebRealmSession(
 
 async function bootstrapAuthSession(input: {
   flowId: string;
-  accessToken: string;
-  refreshToken?: string;
 }, deps: RuntimeBootstrapWebDeps): Promise<void> {
   const bootstrapStore = deps.bootstrapStore;
-  let resolvedToken = String(input.accessToken || '').trim();
-  let resolvedRefreshToken = String(input.refreshToken || '').trim();
-
-  if (!resolvedToken) {
-    deps.clearPersistedAccessToken();
-    await configureWebRealmSession(deps, '', '');
-    bootstrapStore.applySignedOutAuthSession();
-    deps.logRendererEvent({
-      level: 'info',
-      area: 'renderer-bootstrap',
-      message: 'phase:auto-login:skipped',
-      flowId: input.flowId,
-      details: {
-        reason: 'missing_access_token',
-      },
-    });
-    return;
-  }
-
-  await configureWebRealmSession(deps, resolvedToken, resolvedRefreshToken);
-
-  try {
-    const user = await deps.callRealmApi(
-      (realm) => realm.me(),
-      '获取当前用户失败',
-    );
-    const normalizedUser = user && typeof user === 'object'
-      ? (user as unknown as Record<string, unknown>)
-      : null;
-    bootstrapStore.applyAuthSession(normalizedUser);
-    deps.persistAuthSession({
-      accessToken: resolvedToken,
-      refreshToken: resolvedRefreshToken,
-      user: normalizedUser,
-    });
-    deps.logRendererEvent({
-      level: 'info',
-      area: 'renderer-bootstrap',
-      message: 'phase:auto-login:done',
-      flowId: input.flowId,
-      details: {
-        hasToken: true,
-      },
-    });
-  } catch (error) {
-    const errorMessage = safeErrorMessage(error);
-    const expectedUnauthorized = isExpectedUnauthorizedAutoLogin(error);
-    deps.clearPersistedAccessToken();
-    bootstrapStore.applySignedOutAuthSession();
-    await configureWebRealmSession(deps, '', '');
-    deps.logRendererEvent({
-      level: expectedUnauthorized ? 'info' : 'warn',
-      area: 'renderer-bootstrap',
-      message: expectedUnauthorized
-        ? 'phase:auto-login:skipped'
-        : 'phase:auto-login:failed',
-      flowId: input.flowId,
-      details: {
-        error: errorMessage,
-        reason: expectedUnauthorized ? 'unauthorized' : 'error',
-      },
-    });
-  }
+  deps.clearPersistedAccessToken();
+  await configureWebRealmSession(deps);
+  bootstrapStore.applySignedOutAuthSession();
+  deps.logRendererEvent({
+    level: 'info',
+    area: 'renderer-bootstrap',
+    message: 'phase:auto-login:skipped',
+    flowId: input.flowId,
+    details: {
+      reason: 'runtime-custody-required',
+    },
+  });
 }
 
 export function bootstrapRuntime(): Promise<void> {
@@ -206,18 +141,12 @@ export function bootstrapRuntime(): Promise<void> {
     });
 
     const defaults = await deps.desktopBridge.getRuntimeDefaults();
-    const envAccessToken = String(defaults.realm.accessToken || '').trim();
-    const accessToken = envAccessToken;
-    const refreshToken = '';
     deps.bootstrapStore.applyRuntimeDefaults(defaults);
-    await configureWebRealmSession(deps, accessToken, refreshToken);
 
     try {
       await withTimeout(
         bootstrapAuthSession({
           flowId,
-          accessToken,
-          refreshToken,
         }, deps),
         WEB_BOOTSTRAP_AUTH_TIMEOUT_MS,
         'web-bootstrap-auth',
@@ -225,7 +154,7 @@ export function bootstrapRuntime(): Promise<void> {
     } catch (error) {
       deps.clearPersistedAccessToken();
       deps.bootstrapStore.applySignedOutAuthSession();
-      await configureWebRealmSession(deps, '', '');
+      await configureWebRealmSession(deps);
       deps.logRendererEvent({
         level: 'warn',
         area: 'renderer-bootstrap',

@@ -29,8 +29,6 @@ export type {
   DesktopUpdateCheckResult,
   DesktopUpdateState,
   RendererLogMessage,
-  RuntimeBridgeConfigGetResult,
-  RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
   SystemResourceSnapshot,

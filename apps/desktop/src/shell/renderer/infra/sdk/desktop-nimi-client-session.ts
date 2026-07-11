@@ -1,25 +1,12 @@
 import { NimiClient, createNimiClient } from '@nimiplatform/sdk';
 import { createRuntimeAccountMediatedRealmTransport } from '@nimiplatform/sdk/app';
-import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeFullAppRegistration, createNimiRuntimePlatformClient, toNimiRuntimeTimestamp, withNimiRuntimeIdempotencyMetadata, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentScopeRunner, type NimiRuntimeAgentTurnsRuntime, type Runtime } from '@nimiplatform/sdk/runtime';
+import { createNimiDesktopShellRuntimeAccountCaller, createNimiRuntimeFullAppRegistration, createNimiRuntimePlatformClient, type NimiHostRuntimeAgentDelegatedCapabilityClient, type NimiHostRuntimeAgentLifecycleClient, type NimiHostRuntimeAgentPresentationProfileClient, type NimiRuntimeAccountCaller, type NimiRuntimeAgentScopeRunner, type NimiRuntimeAgentTurnsRuntime, type Runtime } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
-import {
-  AccountSessionState,
-  AuthorizationPreset,
-  ExternalPrincipalType,
-  PolicyMode,
-  type AuthorizeExternalPrincipalResponse,
-} from '@nimiplatform/sdk/runtime/wire-types';
 import { Realm, createRealmFetchTransport, loginNimiRealmAuthPassword, type NimiRealmOAuthLoginResult } from '@nimiplatform/sdk/realm';
-import { createNimiClientId, createNimiError, ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
+import { createNimiError, ReasonCode, type CoreMetadata } from '@nimiplatform/sdk/types';
 import {
-  DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION,
-  DESKTOP_RUNTIME_PROTECTED_CONSENT_ID,
-  DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION,
-  DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE,
   DESKTOP_RUNTIME_PROTECTED_SCOPES,
   DESKTOP_RUNTIME_REGISTRATION_CAPABILITIES,
-  DESKTOP_RUNTIME_PROTECTED_TOKEN_REFRESH_SKEW_MS,
-  DESKTOP_RUNTIME_PROTECTED_TOKEN_TTL_SECONDS,
 } from '../../../shared/runtime-account-contract';
 
 export type DesktopNimiRealmFetch = typeof fetch;
@@ -130,52 +117,6 @@ export async function configureDesktopRuntimeRealmSession(
   return session;
 }
 
-let protectedAccessCache: {
-  readonly appId: string;
-  readonly subjectUserId: string;
-  readonly authorizationVersion: string;
-  readonly metadata: CoreMetadata;
-  readonly expiresAtMs: number;
-} | null = null;
-let protectedAccessInflight: Promise<{
-  readonly appId: string;
-  readonly subjectUserId: string;
-  readonly authorizationVersion: string;
-  readonly metadata: CoreMetadata;
-  readonly expiresAtMs: number;
-}> | null = null;
-let protectedAccessInflightKey = '';
-
-async function getDesktopRuntimeProtectedAccessMetadata(
-  appId: string,
-  accountRuntime: Runtime,
-  subjectUserId: string,
-): Promise<CoreMetadata> {
-  if (
-    protectedAccessCache
-    && protectedAccessCache.appId === appId
-    && protectedAccessCache.subjectUserId === subjectUserId
-    && protectedAccessCache.authorizationVersion === DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION
-    && protectedAccessCache.expiresAtMs - Date.now() > DESKTOP_RUNTIME_PROTECTED_TOKEN_REFRESH_SKEW_MS
-  ) {
-    return protectedAccessCache.metadata;
-  }
-  const cacheKey = `${appId}:${subjectUserId}:${DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION}`;
-  if (!protectedAccessInflight || protectedAccessInflightKey !== cacheKey) {
-    protectedAccessInflightKey = cacheKey;
-    protectedAccessInflight = issueDesktopRuntimeProtectedAccessMetadata(appId, accountRuntime, subjectUserId);
-  }
-  try {
-    protectedAccessCache = await protectedAccessInflight;
-    return protectedAccessCache.metadata;
-  } finally {
-    if (protectedAccessInflightKey === cacheKey) {
-      protectedAccessInflight = null;
-      protectedAccessInflightKey = '';
-    }
-  }
-}
-
 async function getDesktopRuntimeProtectedAccessCallOptions(
   requestedScopes: readonly string[],
 ): Promise<RuntimeTypedCallOptions> {
@@ -184,39 +125,18 @@ async function getDesktopRuntimeProtectedAccessCallOptions(
   if (session.runtimeTransport.type === 'electron-ipc') {
     return {};
   }
-  const subjectUserId = await getAuthenticatedRuntimeSubjectUserId(session.accountRuntime, session.accountCaller);
-  if (!subjectUserId) {
-    throw createNimiError({
-      message: 'Desktop Runtime protected access requires an authenticated Runtime account.',
-      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
-      actionHint: 'complete_runtime_account_login',
-      source: 'runtime',
-    });
-  }
-  return {
-    metadata: await getDesktopRuntimeProtectedAccessMetadata(
-      session.appId,
-      session.accountRuntime,
-      subjectUserId,
-    ),
-  };
+  throw createNimiError({
+    message: 'Desktop renderer Runtime protected access requires a Runtime-owned scoped carrier.',
+    reasonCode: 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
+    actionHint: 'use_runtime_owned_scoped_carrier',
+    source: 'runtime',
+  });
 }
 
 export const withDesktopRuntimeProtectedScopes: NimiRuntimeAgentScopeRunner = async (
   scopes,
   operation,
 ) => operation(await getDesktopRuntimeProtectedAccessCallOptions(scopes));
-
-async function getAuthenticatedRuntimeSubjectUserId(
-  accountRuntime: Runtime,
-  accountCaller: NimiRuntimeAccountCaller,
-): Promise<string> {
-  const response = await accountRuntime.account.getAccountSessionStatus({ caller: accountCaller });
-  if (response.state !== AccountSessionState.AUTHENTICATED) {
-    return '';
-  }
-  return normalizeText(response.accountProjection?.accountId);
-}
 
 function assertDesktopProtectedScopes(scopes: readonly string[]): void {
   const allowed = new Set<string>(DESKTOP_RUNTIME_PROTECTED_SCOPES);
@@ -230,77 +150,6 @@ function assertDesktopProtectedScopes(scopes: readonly string[]): void {
       source: 'runtime',
     });
   }
-}
-
-async function issueDesktopRuntimeProtectedAccessMetadata(
-  appId: string,
-  accountRuntime: Runtime,
-  subjectUserId: string,
-): Promise<{
-  readonly appId: string;
-  readonly subjectUserId: string;
-  readonly authorizationVersion: string;
-  readonly metadata: CoreMetadata;
-  readonly expiresAtMs: number;
-}> {
-  const token = await accountRuntime.grants.authorizeExternalPrincipal({
-    domain: 'app-auth',
-    appId,
-    externalPrincipalId: appId,
-    externalPrincipalType: ExternalPrincipalType.APP,
-    subjectUserId,
-    consentId: DESKTOP_RUNTIME_PROTECTED_CONSENT_ID,
-    consentVersion: DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION,
-    decisionAt: toNimiRuntimeTimestamp(new Date()),
-    policyVersion: DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION,
-    policyMode: PolicyMode.CUSTOM,
-    preset: AuthorizationPreset.UNSPECIFIED,
-    scopes: [...DESKTOP_RUNTIME_PROTECTED_SCOPES],
-    resourceSelectors: {
-      conversationIds: [],
-      messageIds: [],
-      documentIds: [],
-      labels: {},
-    },
-    canDelegate: false,
-    maxDelegationDepth: 0,
-    ttlSeconds: DESKTOP_RUNTIME_PROTECTED_TOKEN_TTL_SECONDS,
-    scopeCatalogVersion: DESKTOP_RUNTIME_PROTECTED_SCOPE_CATALOG_VERSION,
-    policyOverride: false,
-  }, withNimiRuntimeIdempotencyMetadata({
-    metadata: { domain: 'app-auth' },
-  }, createNimiClientId(`desktop-runtime-protected-access-${DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE}`)));
-  const tokenId = normalizeText(token.tokenId);
-  const secret = normalizeText(token.secret);
-  if (!tokenId || !secret) {
-    throw createNimiError({
-      message: 'Desktop Runtime protected access token response is missing credentials.',
-      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
-      actionHint: 'authorize_desktop_runtime_protected_access',
-      source: 'runtime',
-    });
-  }
-  return {
-    appId,
-    subjectUserId,
-    authorizationVersion: DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION,
-    metadata: {
-      'x-nimi-access-token-id': tokenId,
-      'x-nimi-access-token-secret': secret,
-    },
-    expiresAtMs: runtimeAuthorizeResponseExpiresAtMs(token) || Date.now() + (DESKTOP_RUNTIME_PROTECTED_TOKEN_TTL_SECONDS * 1000),
-  };
-}
-
-function runtimeAuthorizeResponseExpiresAtMs(token: AuthorizeExternalPrincipalResponse): number {
-  const expiresAt = token.expiresAt;
-  if (!expiresAt) {
-    return 0;
-  }
-  const seconds = Number(expiresAt.seconds || 0);
-  const nanos = Number(expiresAt.nanos || 0);
-  const millis = (seconds * 1000) + Math.floor(nanos / 1_000_000);
-  return Number.isFinite(millis) && millis > 0 ? millis : 0;
 }
 
 export async function configureDesktopRealmOnlySession(

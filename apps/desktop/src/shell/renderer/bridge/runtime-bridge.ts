@@ -10,12 +10,9 @@ import {
   subscribeDesktopUpdateState,
 } from './runtime-bridge/desktop-release';
 import {
-  getRuntimeBridgeConfig,
   getRuntimeBridgeStatus,
   restartRuntimeBridge,
-  setRuntimeBridgeConfig,
   startRuntimeBridge,
-  stopRuntimeBridge,
 } from './runtime-bridge/runtime-daemon';
 import { getSystemResourceSnapshot } from './runtime-bridge/system-resources';
 import { proxyHttp } from './runtime-bridge/http';
@@ -76,8 +73,6 @@ export type {
   RendererLogLevel,
   RendererLogMessage,
   RuntimeBridgeDaemonStatus,
-  RuntimeBridgeConfigGetResult,
-  RuntimeBridgeConfigSetResult,
   RuntimeDefaults,
   SystemResourceSnapshot,
   MenuBarProviderSummary,
@@ -105,12 +100,9 @@ export {
   logRendererEvent,
   toRendererLogMessage,
   getRuntimeBridgeStatus,
-  getRuntimeBridgeConfig,
   getSystemResourceSnapshot,
   startRuntimeBridge,
-  stopRuntimeBridge,
   restartRuntimeBridge,
-  setRuntimeBridgeConfig,
   proxyHttp,
   getRuntimeDefaults,
   getProductControlRecord,

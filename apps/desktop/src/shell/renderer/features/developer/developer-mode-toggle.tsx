@@ -22,16 +22,10 @@ import {
   loadStoredPerformancePreferences,
   persistStoredPerformancePreferences,
 } from './developer-mode.js';
-import {
-  describeDeveloperModeRuntimeSyncError,
-  syncDeveloperModeRuntimeGate,
-} from './developer-mode-runtime-sync.js';
 
 export function DeveloperModeToggle() {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(() => isDeveloperModeEnabled());
-  const [syncing, setSyncing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Keep in sync if Developer Mode is toggled elsewhere (e.g. another
   // discoverable entry or a second tab) — a single persisted truth.
@@ -41,48 +35,11 @@ export function DeveloperModeToggle() {
     });
   }, []);
 
-  useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-    let cancelled = false;
-    const flowId = `developer-mode-reconcile-${Date.now().toString(36)}`;
-    setSyncing(true);
-    setError(null);
-    void syncDeveloperModeRuntimeGate({ enabled: true, flowId })
-      .catch((syncError) => {
-        if (!cancelled) {
-          setError(describeDeveloperModeRuntimeSyncError(syncError));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setSyncing(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled]);
-
-  const toggle = async () => {
-    if (syncing) {
-      return;
-    }
+  const toggle = () => {
     const next = !enabled;
-    const flowId = `developer-mode-toggle-${Date.now().toString(36)}`;
-    setSyncing(true);
-    setError(null);
-    try {
-      await syncDeveloperModeRuntimeGate({ enabled: next, flowId });
-      const prefs = loadStoredPerformancePreferences();
-      persistStoredPerformancePreferences({ ...prefs, developerMode: next });
-      setEnabled(next);
-    } catch (syncError) {
-      setError(describeDeveloperModeRuntimeSyncError(syncError));
-    } finally {
-      setSyncing(false);
-    }
+    const prefs = loadStoredPerformancePreferences();
+    persistStoredPerformancePreferences({ ...prefs, developerMode: next });
+    setEnabled(next);
   };
 
   return (
@@ -111,20 +68,11 @@ export function DeveloperModeToggle() {
               ? t('DeveloperTools.developerModeStatusOn')
               : t('DeveloperTools.developerModeStatusOff')}
           </p>
-          {error ? (
-            <p
-              data-testid="developer-mode-sync-error"
-              className="text-xs font-medium text-[var(--nimi-status-danger)]"
-            >
-              {error}
-            </p>
-          ) : null}
         </div>
         <button
           type="button"
           data-testid="developer-mode-toggle-button"
           aria-pressed={enabled}
-          disabled={syncing}
           onClick={toggle}
           className={
             enabled

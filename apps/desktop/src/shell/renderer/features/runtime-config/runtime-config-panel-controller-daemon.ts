@@ -4,7 +4,7 @@ import { applyRuntimeDaemonStatusToConfigState } from './runtime-daemon-state';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 
-export type RuntimeDaemonAction = 'start' | 'restart' | 'stop';
+export type RuntimeDaemonAction = 'start' | 'restart';
 
 export type UseRuntimeConfigDaemonControllerInput = {
   updateState: (updater: (previous: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
@@ -20,7 +20,6 @@ export type UseRuntimeConfigDaemonControllerOutput = {
   refreshRuntimeDaemonStatus: () => Promise<void>;
   startRuntimeDaemon: () => Promise<void>;
   restartRuntimeDaemon: () => Promise<void>;
-  stopRuntimeDaemon: () => Promise<void>;
 };
 
 export function useRuntimeConfigDaemonController(
@@ -61,9 +60,7 @@ export function useRuntimeConfigDaemonController(
     try {
       const status = action === 'start'
         ? await desktopBridge.startRuntimeBridge()
-        : action === 'restart'
-          ? await desktopBridge.restartRuntimeBridge()
-          : await desktopBridge.stopRuntimeBridge();
+        : await desktopBridge.restartRuntimeBridge();
       setRuntimeDaemonStatus(status);
       setRuntimeDaemonUpdatedAt(new Date().toISOString());
       applyRuntimeDaemonStatusToState(status, 'action');
@@ -93,10 +90,6 @@ export function useRuntimeConfigDaemonController(
     await runRuntimeDaemonAction('restart');
   }, [runRuntimeDaemonAction]);
 
-  const stopRuntimeDaemon = useCallback(async () => {
-    await runRuntimeDaemonAction('stop');
-  }, [runRuntimeDaemonAction]);
-
   return {
     runtimeDaemonStatus,
     runtimeDaemonBusyAction,
@@ -105,6 +98,5 @@ export function useRuntimeConfigDaemonController(
     refreshRuntimeDaemonStatus,
     startRuntimeDaemon,
     restartRuntimeDaemon,
-    stopRuntimeDaemon,
   };
 }

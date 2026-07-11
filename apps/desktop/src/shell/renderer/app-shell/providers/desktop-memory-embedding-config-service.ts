@@ -42,8 +42,6 @@ function createProtectedMemoryEmbeddingRuntimeClient(
   return {
     appId: normalizedAppId,
     memory: runtime.memory,
-    auth: runtime.auth,
-    appAuth: runtime.grants,
   };
 }
 

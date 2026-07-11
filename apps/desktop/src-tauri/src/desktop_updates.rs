@@ -466,7 +466,6 @@ fn install_pending_downloaded_update(
                 .to_string(),
         )
     })?;
-    crate::runtime_bridge::stop_daemon().map_err(|error| set_error_state(app, error))?;
     set_state(app, |state| {
         let _ = sync_current_version(state);
         apply_state_event(

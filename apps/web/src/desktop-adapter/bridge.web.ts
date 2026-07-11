@@ -9,7 +9,6 @@ import {
   hasShellHostInvoke,
   getDaemonStatus,
   startDaemon,
-  stopDaemon,
   restartDaemon,
   openExternalUrl,
   focusMainWindow,
@@ -41,8 +40,6 @@ import type {
   OauthTokenExchangePayload,
   OauthTokenExchangeResult,
   RendererLogMessage,
-  RuntimeBridgeConfigGetResult,
-  RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
   DesktopStorageDirs,
@@ -67,8 +64,6 @@ export type {
   OauthTokenExchangePayload,
   OauthTokenExchangeResult,
   RendererLogMessage,
-  RuntimeBridgeConfigGetResult,
-  RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
   RuntimeDefaults,
   DesktopStorageDirs,
@@ -94,27 +89,6 @@ function unsupportedDesktopRuntime(message: string): never {
 
 export { hasTauriInvoke };
 
-type WebRuntimeEnvRecord = Record<string, string | boolean | undefined>;
-type WebRuntimeGlobal = typeof globalThis & {
-  __NIMI_IMPORT_META_ENV__?: WebRuntimeEnvRecord;
-  process?: {
-    env?: Record<string, string | undefined>;
-  };
-};
-
-function readWebRuntimeEnvValue(key: string): string {
-  const runtimeGlobal = globalThis as WebRuntimeGlobal;
-  const bundledEnv = runtimeGlobal.__NIMI_IMPORT_META_ENV__ || {};
-  let importMetaEnv: WebRuntimeEnvRecord = {};
-  try {
-    importMetaEnv = (import.meta as { env?: WebRuntimeEnvRecord }).env || {};
-  } catch {
-    importMetaEnv = {};
-  }
-  const processEnv = runtimeGlobal.process?.env || {};
-  return String(bundledEnv[key] ?? importMetaEnv[key] ?? processEnv[key] ?? '').trim();
-}
-
 function normalizeHttpOrigin(raw: string): string | null {
   const value = String(raw || '').trim();
   if (!value) {
@@ -132,8 +106,7 @@ function normalizeHttpOrigin(raw: string): string | null {
 }
 
 function resolveWebRuntimeOrigin(): string {
-  const runtimeGlobal = globalThis as WebRuntimeGlobal;
-  const locationOrigin = normalizeHttpOrigin(String(runtimeGlobal.location?.origin || ''));
+  const locationOrigin = normalizeHttpOrigin(String(globalThis.location?.origin || ''));
   if (locationOrigin) {
     return locationOrigin;
   }
@@ -150,7 +123,6 @@ export async function getRuntimeDefaults(): Promise<RuntimeDefaults> {
     realm: {
       realmBaseUrl,
       realtimeUrl: '',
-      accessToken: readWebRuntimeEnvValue('VITE_NIMI_ACCESS_TOKEN'),
       jwksUrl: resolveWebRuntimeUrl(realmBaseUrl, '/api/auth/jwks'),
       revocationUrl: resolveWebRuntimeUrl(realmBaseUrl, '/api/auth/sessions/introspect'),
       jwtIssuer: realmBaseUrl,
@@ -291,24 +263,12 @@ export async function getRuntimeBridgeStatus(): Promise<RuntimeBridgeDaemonStatu
   return getDaemonStatus();
 }
 
-export async function getRuntimeBridgeConfig(): Promise<RuntimeBridgeConfigGetResult> {
-  unsupportedDesktopRuntime('Runtime bridge config is only available in desktop runtime');
-}
-
 export async function startRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
   return startDaemon();
 }
 
-export async function stopRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
-  return stopDaemon();
-}
-
 export async function restartRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
   return restartDaemon();
-}
-
-export async function setRuntimeBridgeConfig(_configJson: string): Promise<RuntimeBridgeConfigSetResult> {
-  unsupportedDesktopRuntime('Runtime bridge config updates are only available in desktop runtime');
 }
 
 export { oauthListenForCode, oauthTokenExchange, openExternalUrl, focusMainWindow };
@@ -325,12 +285,9 @@ export const desktopBridge = {
   desktopUpdateRestart,
   subscribeDesktopUpdateState,
   getRuntimeBridgeStatus,
-  getRuntimeBridgeConfig,
   getSystemResourceSnapshot,
   startRuntimeBridge,
-  stopRuntimeBridge,
   restartRuntimeBridge,
-  setRuntimeBridgeConfig,
   getRuntimeDefaults,
   getProductControlRecord,
   ensureProductControlRecordCreated,

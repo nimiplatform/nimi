@@ -40,19 +40,9 @@ test('runtime defaults bridge is consumed directly from Kit without Desktop forw
   );
 });
 
-test('runtime daemon bridge config schemas and commands are Kit-owned', () => {
-  assert.match(
-    runtimeParsersSource,
-    /parseRuntimeBridgeConfigGetResult as parseSharedRuntimeBridgeConfigGetResult/,
-  );
-  assert.match(
-    runtimeParsersSource,
-    /parseRuntimeBridgeConfigSetResult as parseSharedRuntimeBridgeConfigSetResult/,
-  );
-  assert.doesNotMatch(runtimeParsersSource, /function\s+parseRuntimeBridgeConfig(Get|Set)Result\b/);
-  assert.match(runtimeDaemonSource, /getDaemonConfig/);
-  assert.match(runtimeDaemonSource, /setDaemonConfig/);
-  assert.doesNotMatch(runtimeDaemonSource, /invokeChecked\('runtime_bridge_config_(get|set)'/);
+test('runtime daemon bridge exposes no generic config document path', () => {
+  assert.doesNotMatch(runtimeParsersSource, /parseRuntimeBridgeConfig(Get|Set)Result/);
+  assert.doesNotMatch(runtimeDaemonSource, /getDaemonConfig|setDaemonConfig|runtime_bridge_config_(get|set)/);
 });
 
 test('parseRuntimeDefaults requires split realm/runtime payload', () => {
@@ -60,7 +50,7 @@ test('parseRuntimeDefaults requires split realm/runtime payload', () => {
     realm: {
       realmBaseUrl: 'http://localhost:3002',
       realtimeUrl: 'http://localhost:3003',
-      accessToken: 'token-1',
+      accessToken: 'forged-renderer-token',
       jwksUrl: 'http://localhost:3002/api/auth/jwks',
       revocationUrl: 'http://localhost:3002/api/auth/sessions/introspect',
       jwtIssuer: 'http://localhost:3002',
@@ -77,7 +67,7 @@ test('parseRuntimeDefaults requires split realm/runtime payload', () => {
 
   assert.equal(parsed.realm.realmBaseUrl, 'http://localhost:3002');
   assert.equal(parsed.realm.realtimeUrl, 'http://localhost:3003');
-  assert.equal(parsed.realm.accessToken, 'token-1');
+  assert.equal('accessToken' in parsed.realm, false);
   assert.equal(parsed.realm.jwksUrl, 'http://localhost:3002/api/auth/jwks');
   assert.equal(parsed.realm.revocationUrl, 'http://localhost:3002/api/auth/sessions/introspect');
   assert.equal(parsed.realm.jwtIssuer, 'http://localhost:3002');
@@ -92,7 +82,7 @@ test('parseRuntimeDefaults ignores retired route defaults', () => {
     realm: {
       realmBaseUrl: 'http://localhost:3002',
       realtimeUrl: '',
-      accessToken: '',
+      accessToken: 'retired-token',
       jwksUrl: 'http://localhost:3002/api/auth/jwks',
       revocationUrl: 'http://localhost:3002/api/auth/sessions/introspect',
       jwtIssuer: 'http://localhost:3002',

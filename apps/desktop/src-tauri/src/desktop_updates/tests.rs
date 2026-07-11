@@ -297,7 +297,7 @@ fn install_requires_downloaded_payload() {
 }
 
 #[test]
-fn install_consumes_cached_payload_and_marks_ready_to_restart() {
+fn install_consumes_cached_payload_without_mutating_runtime_service() {
     with_update_test_lock(|| {
         with_release_version(|| {
             clear_pending_update();
@@ -321,7 +321,11 @@ fn install_consumes_cached_payload_and_marks_ready_to_restart() {
             assert_eq!(state.status, "readyToRestart");
             assert_eq!(state.target_version.as_deref(), Some("2.0.0"));
             assert!(state.ready_to_restart);
-            assert!(channel_invalidation_count() >= 1);
+            assert_eq!(
+                channel_invalidation_count(),
+                0,
+                "Desktop updater must not stop or otherwise mutate the Runtime service"
+            );
         });
     });
 }

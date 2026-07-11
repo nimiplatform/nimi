@@ -1,19 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NimiRuntimeRouteCapabilityCoverageProjection } from '@nimiplatform/sdk/runtime';
 import { Surface, StatusBadge as KitStatusBadge, cn } from '@nimiplatform/kit/ui';
 import { desktopBridge } from '@renderer/bridge';
 import { formatLocaleDateTime } from '@renderer/i18n';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Button } from './runtime-config-primitives';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
 import {
-  CheckIcon,
-  CopyIcon,
-  IconButton,
   KeyIcon,
+  IconButton,
   PlusIcon,
   StatusDot,
   TOKEN_PANEL_CARD,
@@ -26,7 +22,6 @@ import {
 
 type RuntimeOverviewTabProps = {
   model: RuntimeConfigPanelControllerModel;
-  state: RuntimeConfigStateV11;
   capabilitySummary: NimiRuntimeRouteCapabilityCoverageProjection[];
   availableCapabilityCount: number;
   onOpenHealth: () => void;
@@ -34,7 +29,6 @@ type RuntimeOverviewTabProps = {
 
 export function RuntimeOverviewTab({
   model,
-  state,
   capabilitySummary,
   availableCapabilityCount,
   onOpenHealth,
@@ -47,50 +41,6 @@ export function RuntimeOverviewTab({
     status: model.runtimeDaemonStatus,
     runtimeDaemonError: model.runtimeDaemonError,
   });
-
-  const [copiedEndpoint, setCopiedEndpoint] = useState(false);
-  const [endpointDraft, setEndpointDraft] = useState(state.local.endpoint);
-  const [savingEndpoint, setSavingEndpoint] = useState(false);
-
-  useEffect(() => {
-    setEndpointDraft(state.local.endpoint);
-  }, [state.local.endpoint]);
-
-  const endpointDirty = endpointDraft.trim() !== state.local.endpoint.trim();
-  const onCopyEndpoint = useCallback(() => {
-    const value = endpointDraft;
-    if (!value) return;
-    const clip = typeof navigator !== 'undefined' ? navigator.clipboard : null;
-    if (!clip?.writeText) return;
-    void clip.writeText(value).then(() => {
-      setCopiedEndpoint(true);
-      window.setTimeout(() => setCopiedEndpoint(false), 1500);
-    }).catch(() => undefined);
-  }, [endpointDraft]);
-
-  const onSaveEndpoint = useCallback(async () => {
-    setSavingEndpoint(true);
-    try {
-      const result = await model.saveRuntimeLocalEndpoint(endpointDraft);
-      if (!result.restartRequired) {
-        model.setPageFeedback({
-          kind: 'success',
-          message: t('runtimeConfig.runtime.endpointSaved', { defaultValue: 'Runtime local endpoint saved.' }),
-        });
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error || 'Runtime local endpoint save failed');
-      model.setPageFeedback({
-        kind: 'error',
-        message: t('runtimeConfig.runtime.endpointSaveFailed', {
-          defaultValue: 'Runtime local endpoint save failed: {{message}}',
-          message,
-        }),
-      });
-    } finally {
-      setSavingEndpoint(false);
-    }
-  }, [endpointDraft, model, t]);
 
   return (
     <>
@@ -121,14 +71,9 @@ export function RuntimeOverviewTab({
                   : t('runtimeConfig.runtime.refresh', { defaultValue: 'Refresh' })}
               </Button>
               {daemonRunning ? (
-                <>
-                  <Button variant="secondary" size="sm" disabled={!canManageDaemon || daemonBusy} onClick={() => void model.restartRuntimeDaemon()}>
-                    {t('runtimeConfig.overview.restart', { defaultValue: 'Restart' })}
-                  </Button>
-                  <Button variant="ghost" size="sm" disabled={!canManageDaemon || daemonBusy} onClick={() => void model.stopRuntimeDaemon()}>
-                    {t('runtimeConfig.overview.stop', { defaultValue: 'Stop' })}
-                  </Button>
-                </>
+                <Button variant="secondary" size="sm" disabled={!canManageDaemon || daemonBusy} onClick={() => void model.restartRuntimeDaemon()}>
+                  {t('runtimeConfig.overview.restart', { defaultValue: 'Restart' })}
+                </Button>
               ) : (
                 <Button variant="secondary" size="sm" disabled={!canManageDaemon || daemonBusy} onClick={() => void model.startRuntimeDaemon()}>
                   {t('runtimeConfig.overview.start', { defaultValue: 'Start' })}
@@ -186,47 +131,14 @@ export function RuntimeOverviewTab({
 
         <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'group p-5')}>
           <p className={cn('text-[10px] font-semibold uppercase tracking-[0.16em]', TOKEN_TEXT_MUTED)}>
-            {t('runtimeConfig.runtime.localEndpointShort', { defaultValue: 'Local Endpoint' })}
+            {t('runtimeConfig.runtime.localEndpointShort', { defaultValue: 'Runtime Endpoint' })}
           </p>
-          <div className="relative mt-3">
-            <input
-              type="text"
-              value={endpointDraft}
-              onChange={(event) => setEndpointDraft(event.target.value)}
-              placeholder={t('runtimeConfig.runtime.endpointPlaceholder', { defaultValue: 'http://host:port[/base-path]' })}
-              spellCheck={false}
-              className={cn(
-                'w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-transparent px-3 py-2 pr-9 font-mono text-sm outline-none transition-colors focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]',
-                TOKEN_TEXT_PRIMARY,
-              )}
-            />
-            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-              <IconButton
-                icon={copiedEndpoint ? <CheckIcon /> : <CopyIcon />}
-                title={copiedEndpoint
-                  ? t('runtimeConfig.runtime.copied', { defaultValue: 'Copied' })
-                  : t('runtimeConfig.runtime.copy', { defaultValue: 'Copy' })}
-                onClick={onCopyEndpoint}
-              />
-            </div>
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <p className={cn('text-xs', endpointDirty ? TOKEN_TEXT_SECONDARY : TOKEN_TEXT_MUTED)}>
-              {endpointDirty
-                ? t('runtimeConfig.runtime.endpointDraftPending', { defaultValue: 'Unsaved draft. Save to update Runtime bridge config.' })
-                : t('runtimeConfig.runtime.endpointProjectionCurrent', { defaultValue: 'Current Runtime bridge projection.' })}
-            </p>
-            <Button
-              size="sm"
-              variant={endpointDirty ? 'primary' : 'secondary'}
-              disabled={!endpointDirty || savingEndpoint || model.runtimeWritesDisabled}
-              onClick={() => { void onSaveEndpoint(); }}
-            >
-              {savingEndpoint
-                ? t('runtimeConfig.runtime.savingEndpoint', { defaultValue: 'Saving' })
-                : t('runtimeConfig.runtime.saveEndpoint', { defaultValue: 'Save' })}
-            </Button>
-          </div>
+          <p className={cn('mt-3 break-all font-mono text-sm', TOKEN_TEXT_PRIMARY)}>
+            {model.runtimeDaemonStatus?.grpcAddr || '-'}
+          </p>
+          <p className={cn('mt-3 text-xs', TOKEN_TEXT_MUTED)}>
+            {t('runtimeConfig.runtime.endpointProjectionCurrent', { defaultValue: 'Runtime service controls this endpoint.' })}
+          </p>
         </Surface>
       </div>
 
