@@ -1,0 +1,92 @@
+version: 1
+table_family: owner_matrix
+owner: platform
+matrix_id: nimi_app_local_development_admission
+description: Canonical non-production local-development trust, authorization, session, owner, reapproval, platform, command, and operation posture.
+authority_refs: [P-NAPP-035, K-PLOCAL-009, K-APP-027, D-IPC-019, P-KIT-046, P-SCAF-018, S-TRANSPORT-014]
+trust_class:
+  id: local-development-installed-admission
+  environment: non_production_development
+  mutable_project_allowed: true
+  product_readiness_claim_allowed: false
+  store_listing_allowed: false
+  production_release_conversion: forbidden_new_admission_required
+  adoption_alone_authorizes: false
+user_development_authorization:
+  owner: runtime_protected_state
+  bindings:
+    - canonical_project_root
+    - app_id
+    - manifest_capability_fingerprint
+    - account_id
+    - trust_class
+  choices: [run_once, remember_project]
+  app_owned_storage_allowed: false
+  renderer_storage_allowed: false
+  generic_keyring_allowed: false
+  survives_technical_session: true
+technical_session:
+  owner: runtime
+  ttl_class: short_rotating
+  bindings:
+    - development_authorization_id
+    - desktop_supervisor_process
+    - host_process_id
+    - host_process_creation_marker
+    - shell_kind
+    - account_generation
+    - runtime_boot_epoch
+    - expires_at
+  material_visibility: runtime_and_native_host_private_only
+  cli_visibility: forbidden
+  renderer_visibility: forbidden
+  terminal_visibility: forbidden
+reapproval_matrix:
+  no_reapproval:
+    - renderer_source_hmr
+    - renderer_reload
+    - electron_main_or_preload_rebuild_and_controlled_restart
+    - tauri_rust_rebuild_and_controlled_restart
+    - technical_session_rotation
+    - runtime_restart_with_valid_authorization
+    - controlled_host_restart_same_project_app_capability_account_shell
+  reapprove_or_reject:
+    - capability_expansion
+    - app_id_change
+    - canonical_project_root_change
+    - shell_or_trust_class_change
+    - account_change
+    - authorization_revoked
+    - host_outside_desktop_supervisor
+    - executable_or_renderer_origin_outside_controlled_project_outputs
+    - remote_or_uncontrolled_dev_server
+rows:
+  - owner_id: app_tools
+    responsibility: command_scaffold_project_validation_build_coordination_and_user_safe_status_only
+    may_mint_portable_authority: false
+  - owner_id: desktop
+    responsibility: confirmation_ui_dev_supervisor_dev_server_and_host_process_ownership
+    may_mint_portable_authority: false
+  - owner_id: runtime
+    responsibility: authorization_admission_generation_revocation_and_session_truth
+    may_mint_portable_authority: false
+  - owner_id: kit
+    responsibility: electron_tauri_typed_bootstrap_status_rotation_and_operation_surface
+    may_mint_portable_authority: false
+platform_posture:
+  windows: admitted_for_local_development_implementation
+  macos: fail_closed_pending_independent_admission
+  linux: fail_closed_pending_independent_admission
+  localhost_grpc_fallback: forbidden
+  same_user_daemon_fallback: forbidden
+command_surface:
+  commands:
+    - pnpm dev
+    - pnpm dev:shell -- --shell electron
+    - pnpm dev:shell -- --shell tauri
+  canonical_launcher: nimi-app dev
+  direct_tauri_dev: denied
+  manual_electron: denied
+operation_posture:
+  allowed: [artifacts.readRuntimeBytes]
+  denied_families: [account, lifecycle, realm, ai, realtime, media, generic_protected_proxy]

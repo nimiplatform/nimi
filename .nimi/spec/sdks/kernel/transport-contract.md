@@ -136,6 +136,26 @@ Mode D 投影规则按 Phase 分层：
   Realm bases, protected session ids and origin material rather than silently
   stripping and continuing.
 
+## S-TRANSPORT-014 Local-Development Carrier Projection
+
+The SDK local-development transport is host-injected by Kit and is never
+renderer-constructed. It exposes only typed bootstrap/status and admitted
+business calls. The SDK cannot accept or return a Runtime endpoint, project
+authorization, launch correlation, process binding, session id/proof, Runtime
+epoch, credential, token, capability fingerprint, or trust-class override.
+
+Technical-session rotation and controlled host/Runtime restart are transparent
+behind the typed transport. A revoked, expired, project-changed,
+account-changed, untrusted-host, or unavailable carrier produces a stable typed
+failure before a business call. Session material never enters renderer IPC,
+application state, telemetry, errors, or retry callbacks.
+
+Local-development transport does not widen the Runtime method set. During Wave
+A it can carry only `artifacts.readRuntimeBytes`; every account, lifecycle,
+Realm, AI, realtime, media, or generic proxy attempt remains unavailable even
+when a valid development authorization exists. Ordinary Electron/Tauri IPC and
+localhost gRPC cannot claim this transport type.
+
 ## S-TRANSPORT-011 背压投影
 
 SDK 在流消费速度不足时必须将背压关闭转化为可判定的错误（`K-STREAM-011`）：

@@ -396,6 +396,38 @@ Desktop Open target catalog ownership is recorded in
 `tables/desktop-open-targets.yaml`. Platform may reference this table from
 `P-DOPEN-*`, but Platform must not duplicate Desktop IA values.
 
+## D-IPC-019 - Local-Development Confirmation And Supervisor
+
+Desktop owns the real local-development confirmation UI and the Desktop-owned
+dev supervisor. The app-tools `nimi-app dev` request is a non-authorizing
+same-user intent containing only developer-visible project inputs. Desktop
+canonicalizes and validates those inputs, reads the current Runtime account
+projection over protected control, and displays app name/app id, canonical
+project root, shell kind, current account, requested manifest capabilities,
+`run once`, `remember this project`, and cancel/deny before requesting Runtime
+authorization.
+
+Approval UI state is Desktop product state, but authorization persistence,
+generation, and revocation remain Runtime-owned. The UI lists remembered
+projects and can revoke them through the protected typed Runtime operation.
+Renderer state, Desktop preferences, app-owned config, browser storage, and a
+generic keyring cannot persist or reconstruct the authorization.
+
+After authorization, Desktop starts and monitors the build coordinator, dev
+server, and Electron/Tauri host as one Desktop-owned dev supervisor run. It
+retains native process witnesses, binds each host restart to Runtime, validates
+the renderer origin and controlled project output roots, and terminates the
+chain on reject, revoke, invalid project change, or supervisor/dev-server/host
+exit. HMR and controlled rebuild/restart remain within the same run and do not
+repeat confirmation.
+
+Desktop never returns a launch ticket, session proof, Runtime epoch, protected
+endpoint, credential, token, or native carrier handle to CLI or renderer. The
+CLI receives only stable request/status/failure projections. The renderer sees
+only Kit typed bootstrap/status and admitted operations. Direct `tauri dev`,
+manual Electron, remote/uncontrolled dev servers, and direct localhost gRPC do
+not traverse this supervisor and remain denied.
+
 ## Fact Sources
 
 - `tables/ipc-commands.yaml` — IPC 命令清单

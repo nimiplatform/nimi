@@ -27,3 +27,6 @@ Current scope:
   Agent Participation method projection gate.
 - `nimi-proposal-intake-client-contract.md` owns the SDK typed consumer
   surface for Platform `P-PROP-*` proposal intake.
+- `transport-contract.md` owns the host-injected local-development carrier
+  projection; it exposes no session material and cannot widen the A.5
+  artifact-only operation set.

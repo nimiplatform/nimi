@@ -95,6 +95,7 @@
 | `delegated-a2a-future-seam-contract.md` | `K-DELEG-*` | Future A2A adapter seam only、no production A2A support、no protocol authority promotion、and no app/Desktop/Avatar bypass |
 | `app-messaging-contract.md` | `K-APP-*` | RuntimeAppService messaging、event stream、reserved runtime.agent target、companion multi-app interaction、and Avatar runtime boundary |
 | `app-lifecycle-contract.md` | `K-APP-*` | Runtime-owned Nimi App install、uninstall、update、health repair、open、and file-API non-admission authority |
+| `app-lifecycle-contract.md#K-APP-027` | `K-APP-027` | Runtime-owned local-development authorization and technical launch lifecycle, distinct from local adoption and production `OpenApp` |
 | `app-projection-contract.md` | `K-APP-*` | Runtime-owned app health、response-state、support next-action、storage、package readiness、account inventory、and local adoption projection |
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
 | `config-contract.md` | `K-CFG-*` | service-principal-owned closed configuration, signed boot authority, typed protected mutation, secret custody, hardcut/no-import, and selected `nimi_data` dataRootRef projection |

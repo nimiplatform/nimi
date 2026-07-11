@@ -57,6 +57,7 @@ entries:
 - P-NAPP-032
 - P-NAPP-033
 - P-NAPP-034
+- P-NAPP-035
 - P-MOEX-001
 - P-MOEX-002
 - P-MOEX-003
@@ -274,6 +275,14 @@ rules:
   - scripts/check-installed-realm-owner-boundary.mjs
   - scripts/check-protected-local-authority.mjs
   - scripts/check-protected-local-authority.test.mjs
+- rule_id: P-NAPP-035
+  evidence_refs:
+  - platform_kernel_consistency
+  evidence_requirement: structural_required
+  evidence_scope_note: the permanent authority gate validates trust separation, reapproval, owner, and platform posture; Runtime, Desktop, Kit, app-tools, and live-shell tests are required executable evidence.
+  test_files:
+  - scripts/check-local-development-admission-authority.mjs
+  - scripts/check-local-development-admission-authority.test.mjs
 - rule_id: P-MOEX-001
   evidence_refs:
   - platform_kernel_consistency

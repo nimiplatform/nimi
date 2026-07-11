@@ -63,6 +63,7 @@
     "check:runtime-broker-token-leak": "node scripts/check-shared-auth-broker.mjs runtime-broker-token-leak",
     "check:installed-realm-owner-boundary": "node --test scripts/check-installed-realm-owner-boundary.test.mjs && node scripts/check-installed-realm-owner-boundary.mjs",
     "check:protected-local-authority": "node --test scripts/check-protected-local-authority.test.mjs && node scripts/check-protected-local-authority.mjs --mode protected-local-authority",
+    "check:local-development-admission-authority": "node --test scripts/check-local-development-admission-authority.test.mjs && node scripts/check-local-development-admission-authority.mjs",
     "check:protected-local-proto-linkage": "node --test scripts/check-protected-local-proto-linkage.test.mjs",
     "check:protected-rpc-posture": "node scripts/check-protected-local-authority.mjs --mode protected-rpc-posture",
     "check:no-portable-privileged-session": "node scripts/check-protected-local-authority.mjs --mode no-portable-privileged-session",

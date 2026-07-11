@@ -41,6 +41,7 @@ entries:
   - P-SCAF-015
   - P-SCAF-016
   - P-SCAF-017
+  - P-SCAF-018
 rules:
   - rule_id: P-SCAF-001
     evidence_refs:
@@ -128,3 +129,11 @@ rules:
       - platform_kernel_consistency
     evidence_requirement: structural_required
     evidence_scope_note: structural only; artifact evidence and horizon separation require app-tools pack/local-audit tests plus later Desktop/live gates
+  - rule_id: P-SCAF-018
+    evidence_refs:
+      - platform_kernel_consistency
+    evidence_requirement: structural_required
+    evidence_scope_note: one-command launcher ownership and direct-shell denial require the permanent authority gate, app-tools scaffold tests, and real supervised shell acceptance.
+    test_files:
+      - scripts/check-local-development-admission-authority.mjs
+      - scripts/check-local-development-admission-authority.test.mjs

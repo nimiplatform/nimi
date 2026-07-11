@@ -50,6 +50,7 @@ entries:
 - D-IPC-015
 - D-IPC-016
 - D-IPC-018
+- D-IPC-019
 - D-IPC-010
 - D-IPC-011
 - D-IPC-012
@@ -279,6 +280,17 @@ rules:
   - apps/desktop/src-tauri/src/desktop_open_intent.rs
   - apps/desktop/src-tauri/src/desktop_open_intent_tests.rs
   - apps/desktop/test/desktop-open-intent-navigation.test.ts
+- rule_id: D-IPC-019
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - desktop_e2e_journey_gate
+  evidence_requirement: required
+  note: Desktop confirmation, remembered-project management, supervisor ownership, non-leak, and controlled restart authority for A.5.
+  test_files:
+  - scripts/check-local-development-admission-authority.mjs
+  - scripts/check-local-development-admission-authority.test.mjs
 - rule_id: D-LLM-001
   evidence_refs:
   - desktop_kernel_consistency

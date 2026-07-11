@@ -24,6 +24,7 @@
 |---|---|---|
 | `bootstrap-contract.md` | `D-BOOT-*` | 多阶段异步初始化、feature flag 门控 |
 | `bridge-ipc-contract.md` | `D-IPC-*` | Tauri IPC 命令与桥接类型 |
+| `bridge-ipc-contract.md#D-IPC-019` | `D-IPC-019` | Local-development confirmation UI, remembered-project management, and Desktop-owned dev supervisor boundary |
 | `self-update-contract.md` | cross-cutting (`D-BOOT-001`, `D-IPC-002`, `D-IPC-014`, `D-IPC-015`) | packaged Desktop self-update、signed Runtime service-updater handoff 与 mutual release-record compatibility |
 | `state-contract.md` | `D-STATE-*` | Zustand slices、持久化策略、pending action lifecycle projection boundary |
 | `auth-session-contract.md` | `D-AUTH-*` | 会话生命周期、token 持久化 |

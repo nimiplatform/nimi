@@ -222,3 +222,35 @@ digest never authorizes. Conflicting idempotency reuse, wrong target/release,
 wrong process/account/epoch, revoked session, or stale generation fails closed.
 Lost responses reconcile through the typed status RPC; status never authorizes
 a new mutation.
+
+## K-APP-027 Local-Development Admission Lifecycle
+
+Runtime owns the distinct `local-development-installed-admission` lifecycle.
+`AdoptLocalApp` continues to establish only validated local inventory and an
+adoption generation; adoption alone cannot create a development authorization,
+launch, host session, or protected operation posture.
+
+The protected `RuntimeDevelopmentService` owns request/list/revoke of user
+development authorizations and prepare/bind/open/status of technical launches.
+Authorization mutations and launch preparation are accepted only from the live
+`desktop_lifecycle_host` origin. The development host may call only the empty
+bootstrap/session-open surface on its verified `development_bootstrap`
+connection and the exact operations admitted for `development_host`. Public
+TCP, installed host, renderer, app metadata, and app-tools cannot invoke the
+Desktop-owned methods or select a trust class.
+
+Authorization creation consumes a currently adopted manifest, canonicalizes
+the real project root, computes the canonical manifest capability fingerprint,
+binds the authenticated account, and records the user choice supplied by the
+trusted Desktop confirmation flow. It fails closed on stale adoption, wrong
+app/root/fingerprint/account/shell, capability expansion, revoked approval, or
+an unsupported platform. Listing and revoke projections expose no session,
+ticket, process, epoch, credential, or endpoint material.
+
+Launch preparation is distinct from `OpenApp` production release resolution.
+It uses K-PLOCAL-009 and returns only a non-authorizing correlation to Desktop;
+the host receives no portable launch value. Host bind, session creation,
+rotation, process/supervisor exit, Runtime restart, account change, and revoke
+are transactional Runtime truth. A remembered authorization may authorize a
+new supervised command run without a repeated prompt, but every run and every
+host restart creates new process-bound technical state.

@@ -87,6 +87,8 @@ entries:
   - K-PLOCAL-005
   - K-PLOCAL-006
   - K-PLOCAL-007
+  - K-PLOCAL-008
+  - K-PLOCAL-009
   - K-GRANT-001
   - K-GRANT-002
   - K-GRANT-003
@@ -444,6 +446,13 @@ rules:
     evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
     evidence_requirement: required
     note: A.1 structurally admits Windows process-bound launch bootstrap and atomic Runtime-owned installed sessions; product positive evidence and macOS/Linux admission remain open.
+  - rule_id: K-PLOCAL-009
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Windows-only mutable-project authorization and short process/supervisor/account/epoch-bound technical sessions require Runtime, Desktop, Kit, app-tools, and live-shell evidence.
+    test_files:
+      - scripts/check-local-development-admission-authority.mjs
+      - scripts/check-local-development-admission-authority.test.mjs
   - rule_id: K-GRANT-001
     evidence_refs:
       - runtime_kernel_consistency

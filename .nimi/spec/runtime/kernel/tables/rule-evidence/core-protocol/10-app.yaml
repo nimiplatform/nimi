@@ -50,6 +50,8 @@ entries:
   - K-APP-023
   - K-APP-024
   - K-APP-025
+  - K-APP-026
+  - K-APP-027
 
 rules:
   - rule_id: K-APP-001
@@ -199,3 +201,12 @@ rules:
       - protected_local_authority_gate
     note: Structural authority for the generic Desktop lifecycle intent prepare/display/consume/status protocol; proto and product implementation evidence remain pending A.0 implementation.
     evidence_requirement: required
+  - rule_id: K-APP-027
+    evidence_refs:
+      - runtime_kernel_consistency
+      - protected_local_authority_gate
+    note: Runtime-owned local-development authorization/launch lifecycle remains distinct from adoption and production OpenApp.
+    evidence_requirement: required
+    test_files:
+      - scripts/check-local-development-admission-authority.mjs
+      - scripts/check-local-development-admission-authority.test.mjs

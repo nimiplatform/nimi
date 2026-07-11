@@ -788,6 +788,44 @@ and a Runtime outside Program Files receives no product app resources. This is
 installer/package ACL custody, not a second release-signature protocol;
 production signed-installer evidence remains required at Windows closeout.
 
+## P-NAPP-035 — Local-Development Installed Admission Is A Separate Trust Class
+
+Production release trust and mutable local-development trust are distinct and
+non-convertible. Production continues to require an immutable admitted release
+digest and its platform signing policy. Local development instead authorizes a
+user-selected mutable project under the exact
+`local-development-installed-admission` trust class defined by
+`tables/nimi-app-local-development-admission.yaml`. That class is
+non-production, developer-only, cannot create a store listing or product
+readiness claim, and cannot become a production release without a new ordinary
+admission.
+
+`AdoptLocalApp` remains Runtime-owned local inventory and source validation. It
+never creates installed or local-development privilege by itself. A positive
+development chain additionally requires a current Runtime-owned user
+development authorization and a live Desktop-supervised technical session.
+App identity, manifest content, filesystem presence, localhost reachability,
+ordinary gRPC, a direct shell command, and a local adoption row are inputs or
+selectors only and cannot satisfy that chain.
+
+The user authorization binds canonical project root, app id, manifest
+capability fingerprint, current account, and trust class. The technical
+session separately binds the Desktop supervisor, actual host process and
+creation marker, shell, account generation, and Runtime boot epoch. The exact
+no-reapproval and reapprove-or-reject matrix is canonical in the table. HMR,
+renderer reload, controlled Electron/Tauri rebuild and restart, short-session
+rotation, and Runtime restart under the same authorization do not repeat the
+user confirmation. Identity, root, capability expansion, account, shell,
+supervision, controlled output, or dev-server-origin changes reapprove or fail
+closed.
+
+Windows is admitted independently for the A.5 implementation. macOS and Linux
+remain fail-closed until separately admitted. Localhost gRPC, a same-user
+daemon, ordinary `tauri dev`, and manually started Electron are never fallback
+trust paths. The Wave A local-development positive operation ceiling remains
+`artifacts.readRuntimeBytes`; account, lifecycle, Realm, AI, realtime, media,
+and generic protected proxies stay denied.
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-001..P-ARCH-021`
@@ -803,6 +841,7 @@ production signed-installer evidence remains required at Windows closeout.
 - `.nimi/spec/platform/kernel/tables/nimi-app-registry.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-release-descriptors.yaml`
 - `.nimi/spec/platform/kernel/tables/nimi-app-trust-tiers.yaml`
+- `.nimi/spec/platform/kernel/tables/nimi-app-local-development-admission.yaml`
 - `.nimi/spec/platform/kernel/kit-contract.md` — `P-KIT-041C`, `P-KIT-041E`, `P-KIT-044`
 - `.nimi/spec/desktop/kernel/ui-shell-contract.md` — `D-SHELL-038`
 - `.nimi/spec/desktop/kernel/tables/installed-app-launch-hosts.yaml`

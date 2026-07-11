@@ -397,6 +397,30 @@ template truth, and generated scaffold evidence must not be promoted into
 ordinary-visible product readiness, signing truth, mirror truth, review truth,
 or registry/release descriptor truth.
 
+## P-SCAF-018 - One-Command Local Development
+
+`MUST`: fresh standalone and workspace-app scaffolds expose `pnpm dev` and
+`pnpm dev:shell -- --shell electron|tauri`; both delegate to the same official
+`nimi-app dev` launcher. The launcher owns command parsing, scaffold/manifest
+validation, build coordination, and developer-safe status output only. It
+cannot issue an authorization, grant, ticket, session, protected endpoint,
+credential, release trust, or production evidence.
+
+`MUST`: generated project validation and `nimi-app doctor` reject direct
+`tauri dev`, manually launched Electron host scripts, generic Runtime/localhost
+proxies, token/session custody, and app-owned development authorization truth.
+The scaffold does not ask developers to select a Runtime binary/service,
+endpoint, path, argv/env, registry, ticket, or session. `dev:renderer` may exist
+only as an explicit protected-operation-unavailable surface and is not an A.5
+end-to-end path.
+
+`MUST`: sync keeps the launcher reference in scaffold-managed glue, remains
+byte-identical across repeated runs, and never overwrites app-owned product
+files. Tester and external apps consume this same command and Kit/Runtime
+surface; they cannot carry a private launcher or special registration bypass.
+Ordinary `tauri dev`, manual Electron, and a direct app-tools-to-Runtime path
+remain fail-closed.
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/nimi-app-admission-contract.md` --

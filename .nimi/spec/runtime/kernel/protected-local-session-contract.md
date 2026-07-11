@@ -59,8 +59,10 @@ fallback, or compatibility path may manufacture installed-host authority.
 ## K-PLOCAL-002 Transport Classes and Immutable Origin Roles
 
 The closed RPC transport-class vocabulary is `public_tcp`, `desktop_control`,
-`launch_bootstrap`, and `installed_host`. A.1 admits `launch_bootstrap` and
-`installed_host` on Windows only. Runtime-private refresh is a direct
+`launch_bootstrap`, `installed_host`, `development_bootstrap`, and
+`development_host`. A.1 admits `launch_bootstrap` and `installed_host` on
+Windows only; A.5 admits the two development classes on Windows only.
+Runtime-private refresh is a direct
 in-process helper call and is never a transport class or an invocation of a
 public refresh RPC.
 
@@ -121,6 +123,50 @@ a launch-time snapshot are never sufficient authorization.
 Windows is admitted independently. macOS/Linux implementations remain
 `protected-carrier-required` and cannot claim A.1 completion until their native
 handle-transfer, peer verification and signed-release evidence are admitted.
+
+## K-PLOCAL-009 Windows Local-Development Authorization And Session
+
+Local development has two different lifetimes. Runtime owns the durable user
+development authorization in protected service state. It binds the canonical
+project root, app id, manifest capability fingerprint, current account id, and
+the exact `local-development-installed-admission` trust class. `run_once`
+persists only while its Desktop-owned supervisor run remains live, including a
+Runtime restart during that run. `remember_project` persists until explicit
+revoke or a reapproval trigger. Neither record is an installed release,
+signature, listing, production grant, or app-owned configuration truth.
+
+Runtime separately owns every short-lived technical session. A session binds
+the development authorization, verified Desktop supervisor process, actual
+host PID and creation marker, current host executable identity, shell kind,
+controlled renderer origin/output roots, account generation, and Runtime boot
+epoch. The Desktop supervisor opens a development launch, starts the exact
+Electron or Tauri host, and binds its retained process witness over the live
+`desktop_lifecycle_host` connection. Runtime then requires the native
+`development_bootstrap` peer PID to equal that bound host before atomically
+creating `development_host` session state. PID, path, parent PID, argv, env,
+project manifest, localhost, and a caller-supplied digest are never sufficient
+authority.
+
+Session proof and launch material remain Runtime/native-host private. They are
+never returned through renderer IPC, CLI output, terminal environment, argv,
+files, preload APIs, or app code. Kit may expose only typed status and admitted
+business operations. Runtime revalidates authorization, capability
+fingerprint, process liveness, supervisor liveness, account generation, boot
+epoch, shell, controlled outputs, and operation policy on every call.
+
+Renderer HMR/reload, a controlled Electron main/preload rebuild and host
+restart, a controlled Tauri Rust rebuild and host restart, technical-session
+rotation, and Runtime restart automatically rebuild the technical session
+without another confirmation while the user authorization and supervisor run
+remain valid. Host or supervisor exit, revoke, logout, account switch,
+authorization mismatch, app/root/capability/shell change, uncontrolled output
+or remote dev-server origin revokes the applicable launch/session before the
+next operation. Account change requires a new confirmation.
+
+Windows is the only admitted A.5 positive platform. macOS/Linux development
+bootstrap remains fail-closed. Ordinary installed sessions and production
+release validation remain unchanged; development state cannot be reinterpreted
+as an A.1 production release or installed listing.
 
 ## K-PLOCAL-003 Mutual Endpoint Authentication
 

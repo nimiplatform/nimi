@@ -117,6 +117,7 @@ entries:
   - S-TRANSPORT-011
   - S-TRANSPORT-012
   - S-TRANSPORT-013
+  - S-TRANSPORT-014
 rules:
   - rule_id: S-AIP-001
     evidence_refs:
@@ -614,4 +615,10 @@ rules:
     evidence_refs:
       - sdk_behavioral_test
       - sdk_kernel_consistency
+    evidence_requirement: required
+  - rule_id: S-TRANSPORT-014
+    evidence_refs:
+      - sdk_behavioral_test
+      - sdk_kernel_consistency
+    note: Host-injected local-development carrier exposes only typed status and artifact reads with no renderer-visible session material.
     evidence_requirement: required
