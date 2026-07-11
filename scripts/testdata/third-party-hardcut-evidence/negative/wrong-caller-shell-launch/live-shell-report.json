@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "row_id": "A-11",
+  "shell_id": "tester-tauri",
+  "execution_status": "executed",
+  "executable": {
+    "name": "tester.exe",
+    "process_id": 4242,
+    "shell_type": "tauri"
+  },
+  "launch": {
+    "posture": "direct-app-start",
+    "authority": "app-self-report"
+  },
+  "caller": {
+    "observed_by": "app",
+    "mode": "desktop-launched-nimi-app",
+    "app_id": "fixture.tester",
+    "release_ref": "release-fixture",
+    "capability_refs": ["realm.fixture"],
+    "session_generation": 1
+  },
+  "ui": {
+    "dom_ref": "dom.json",
+    "accessibility_ref": "accessibility.json",
+    "viewports": [],
+    "screenshots": []
+  },
+  "console_errors": [],
+  "page_errors": []
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "probes": [
+    {"material_class":"account_access_token","canary_sha256":"29bfb3044ab5ff0fbfb4b56d1751279db5484c6873b3450ec4299e5b38466d29","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"account_refresh_token","canary_sha256":"7ab161022455729b704c20391527e47d879b7fd344e5f3ae753ea2daad990999","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"runtime_app_session_secret","canary_sha256":"c6237fbd20a7b7dbf1113f669294f4d34d1ec72b0a1e56db79e6a10598db6968","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"launch_ticket","canary_sha256":"a714a76e3da5ff9b72b95ec7d976fb50cd35385489081a41f71b723f67f0961f","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"protected_access_token_id","canary_sha256":"d02180cc0ffc39b5c790b4a90440df64333b5057df17045acd2fddf4ce956a7c","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"protected_access_secret","canary_sha256":"633c679ad3155ada327dc8f8f4fc36514d34a7dcad2e3938188e765e38661387","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"signed_upload_url","canary_sha256":"addf421767122770ea68559b84d666bb147812c9f94fca1094364bec2af57fa9","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"signed_upload_header","canary_sha256":"b46875db3070e80e8820a2afd43c482e6733c70f9582f19e3e39ab730d08ed0e","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"signed_upload_object_key","canary_sha256":"bb2e40baa43ef7b9103024ad0ff1dd75d8f729de9c42ebca9e805da612eb6cdc","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"authoritative_local_path","canary_sha256":"aebc21ff043571e0855d795de66edf6642de84a17fd16449aba0bff774a16989","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"file_handle","canary_sha256":"97062c858c9c77cecfa5d341ddc8d08a0ddfddf9c1d396c1f7696992c6cee54d","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"raw_realm_response","canary_sha256":"3abe7ae9fb898f041d603fb3632cafcdaa14f3d121e86fcf91daed6e28402072","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"raw_provider_response","canary_sha256":"7f0aabaac5bf34d7aba70fab98a8153bfaf682ebb5127029dc11456dc8eacb63","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"raw_auth_error","canary_sha256":"330a55ebad99a82fdf683c62dd13d4b0a244ee01bfea8516de5506ce75df0048","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]},
+    {"material_class":"media_content","canary_sha256":"5a153155c7b51ac1a6f1d88810b7b0e6a8b27f6795ed1f25349466b6cbd75056","surfaces":[{"surface":"packet_serialization_probe","finding_count":0,"redacted_locations":[]}]}
+  ]
+}

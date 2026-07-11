@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "packet_id": "fixture-valid-implementation-incomplete",
+  "wave": "phase0",
+  "run_id": "fixture-run",
+  "generated_at": "2026-07-10T00:00:00.000Z",
+  "timezone": "UTC",
+  "authority_refs": [
+    ".nimi/spec/platform/kernel/nimi-app-admission-contract.md"
+  ],
+  "declared_disposition": "implementation_incomplete",
+  "baseline_ref": {
+    "path": "execution-baseline.json",
+    "sha256": "a831673bff7f47fbe6de8d58d24af9af923dee15e39df7a527aed6dca330a475"
+  },
+  "commands_ref": {
+    "path": "commands.jsonl",
+    "sha256": "62fa9491550676276c271eeb1291fa60dd9faf01951e8198a85636764f922b7a"
+  },
+  "coverage_ref": {
+    "path": "coverage.jsonl",
+    "sha256": "7419b90e8e06cbc1836920fe91b50d5b260eae95834e2dd98a2a88b15a98bc20"
+  },
+  "leak_report_ref": {
+    "path": "leak-report.json",
+    "sha256": "e90287837d698452884411526dc4e792ae986154b85791f107350ea08486b192"
+  },
+  "derived_reports": []
+}

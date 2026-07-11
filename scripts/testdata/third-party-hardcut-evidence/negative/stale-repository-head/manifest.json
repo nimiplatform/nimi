@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "packet_id": "fixture-stale-repository-head",
+  "wave": "phase0",
+  "run_id": "fixture-run",
+  "generated_at": "2026-07-10T00:00:00.000Z",
+  "timezone": "UTC",
+  "authority_refs": [
+    ".nimi/spec/platform/kernel/nimi-app-admission-contract.md"
+  ],
+  "declared_disposition": "implementation_incomplete",
+  "baseline_ref": {
+    "path": "execution-baseline.json",
+    "sha256": "968f8a6433b7bc413c88c694231c333493709508e1f01ed7a01bda7fc600868b"
+  },
+  "commands_ref": {
+    "path": "commands.jsonl",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "coverage_ref": {
+    "path": "coverage.jsonl",
+    "sha256": "935972c3b330f52befc6f3d5d7248ef64a4bc7659515d8ed9da579aba8cba9d7"
+  },
+  "leak_report_ref": {
+    "path": "leak-report.json",
+    "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+  },
+  "derived_reports": []
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "packet_id": "fixture-missing-live-ui-metadata",
+  "wave": "A",
+  "run_id": "fixture-run",
+  "generated_at": "2026-07-10T00:00:00.000Z",
+  "timezone": "UTC",
+  "authority_refs": [
+    ".nimi/spec/platform/kernel/nimi-app-admission-contract.md"
+  ],
+  "declared_disposition": "implementation_incomplete",
+  "baseline_ref": {
+    "path": "execution-baseline.json",
+    "sha256": "633d55dcc21c4ff2c3080893d7ee5fdeae8f478774f383c9f5c130ab76dbabb7"
+  },
+  "commands_ref": {
+    "path": "commands.jsonl",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "coverage_ref": {
+    "path": "coverage.jsonl",
+    "sha256": "d164df8a8cea7d72393f2b1e2af6850065c3e7aa6a202815776ab45d97f73f7c"
+  },
+  "leak_report_ref": {
+    "path": "leak-report.json",
+    "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+  },
+  "derived_reports": []
+}

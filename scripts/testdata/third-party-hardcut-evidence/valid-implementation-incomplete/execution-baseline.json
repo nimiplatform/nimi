@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "repositories": [
+    {
+      "id": "nimi",
+      "head": "0000000000000000000000000000000000000000",
+      "branch": "develop",
+      "clean": true,
+      "status_porcelain": "",
+      "preflight_command": "git status --short",
+      "observed_at": "2026-07-10T00:00:00.000Z"
+    }
+  ]
+}

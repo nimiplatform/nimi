@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "packet_id": "fixture-structured-leak-finding",
+  "wave": "phase0",
+  "run_id": "fixture-run",
+  "generated_at": "2026-07-10T00:00:00.000Z",
+  "timezone": "UTC",
+  "authority_refs": [
+    ".nimi/spec/platform/kernel/nimi-app-admission-contract.md"
+  ],
+  "declared_disposition": "implementation_incomplete",
+  "baseline_ref": {
+    "path": "execution-baseline.json",
+    "sha256": "633d55dcc21c4ff2c3080893d7ee5fdeae8f478774f383c9f5c130ab76dbabb7"
+  },
+  "commands_ref": {
+    "path": "commands.jsonl",
+    "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  "coverage_ref": {
+    "path": "coverage.jsonl",
+    "sha256": "935972c3b330f52befc6f3d5d7248ef64a4bc7659515d8ed9da579aba8cba9d7"
+  },
+  "leak_report_ref": {
+    "path": "leak-report.json",
+    "sha256": "e14301e23c559799fb5fcacc4f2d9c2784be13e3d70ffd439e47a9b91875215d"
+  },
+  "derived_reports": []
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "packet_id": "fixture-self-asserted-pass",
+  "wave": "phase0",
+  "run_id": "fixture-run",
+  "generated_at": "2026-07-10T00:00:00.000Z",
+  "timezone": "UTC",
+  "authority_refs": [
+    ".nimi/spec/platform/kernel/nimi-app-admission-contract.md"
+  ],
+  "declared_disposition": "admitted_and_observed",
+  "baseline_ref": "execution-baseline.json",
+  "commands_ref": "commands.jsonl",
+  "coverage_ref": "coverage.jsonl",
+  "leak_report_ref": "leak-report.json",
+  "derived_reports": []
+}

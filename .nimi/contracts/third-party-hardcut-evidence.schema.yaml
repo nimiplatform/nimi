@@ -1,0 +1,357 @@
+version: 1
+contract:
+  id: nimi.third-party-hardcut-evidence.v1
+  owner: nimi-host-governance
+  kind: machine-consumed-yaml-descriptor
+admission_derivation:
+  implementation_incomplete:
+    supported: true
+  admitted_and_observed:
+    supported: false
+    reason: wave_specific_raw_adapters_and_enforced_required_row_sets_are_not_admitted_in_v1
+enforced_required_rows:
+  phase0: []
+  A: []
+  U: []
+  R: []
+  B: []
+repository_policy:
+  primary_repository_id: nimi
+  primary_branch: develop
+object_schemas:
+  manifest:
+    required_fields:
+      - schema_version
+      - packet_id
+      - wave
+      - run_id
+      - generated_at
+      - timezone
+      - authority_refs
+      - declared_disposition
+      - baseline_ref
+      - commands_ref
+      - coverage_ref
+      - leak_report_ref
+      - derived_reports
+    exact: true
+  execution_baseline:
+    required_fields: [schema_version, repositories]
+    exact: true
+  repository_preflight:
+    required_fields:
+      - id
+      - head
+      - branch
+      - clean
+      - status_porcelain
+      - preflight_command
+      - observed_at
+    exact: true
+  artifact_ref:
+    required_fields: [path, sha256]
+    exact: true
+  derived_report_ref:
+    required_fields: [path, sha256, source_artifact_refs]
+    exact: true
+  command_record:
+    required_fields:
+      - schema_version
+      - command_id
+      - repository_id
+      - cwd
+      - command
+      - started_at
+      - ended_at
+      - exit_code
+      - tests
+      - output_truncated
+      - launched_real_shell
+      - unexpected_mutations
+      - committed_head
+      - log_ref
+    exact: true
+  test_counts:
+    required_fields: [passed, failed, skipped]
+    exact: true
+  coverage_row:
+    required_fields:
+      - schema_version
+      - row_id
+      - execution_status
+      - raw_artifact_refs
+      - shell_report_ref
+    exact: true
+  leak_report:
+    required_fields: [schema_version, probes]
+    exact: true
+  leak_probe:
+    required_fields: [material_class, canary_sha256, surfaces]
+    exact: true
+  leak_surface:
+    required_fields: [surface, finding_count, redacted_locations]
+    exact: true
+  live_shell_report:
+    required_fields:
+      - schema_version
+      - row_id
+      - shell_id
+      - execution_status
+      - executable
+      - launch
+      - caller
+      - runtime
+      - actions
+      - failure_states
+      - faults
+      - leak_probe_ref
+      - ui
+      - console_errors
+      - page_errors
+    exact: true
+  live_executable:
+    required_fields: [name, process_id, shell_type]
+    exact: true
+  live_launch:
+    required_fields: [posture, authority]
+    exact: true
+  live_caller:
+    required_fields:
+      - observed_by
+      - mode
+      - app_id
+      - release_ref
+      - capability_refs
+      - session_generation
+      - app_instance_id
+      - device_id
+      - grant_generation
+      - release_generation
+      - account_generation
+    exact: true
+  live_runtime:
+    required_fields:
+      - executable_name
+      - executable_sha256
+      - process_id
+      - generation
+      - endpoint_class
+      - health_observed
+      - realm_connection_observed
+    exact: true
+  live_action:
+    required_fields: [id, occurred_at, state, dom_observation_ref]
+    exact: true
+  live_failure_state:
+    required_fields: [state, observed, source_ref]
+    exact: true
+  live_fault:
+    required_fields: [kind, injected_at, recovery_observed, source_ref]
+    exact: true
+  live_ui:
+    required_fields: [dom_ref, accessibility_ref, viewports, screenshots]
+    exact: true
+  viewport:
+    required_fields: [id, kind, width, height]
+    exact: true
+  screenshot:
+    required_fields: [viewport_id, artifact_ref, captured_at, width, height]
+    exact: true
+  runtime_error:
+    required_fields: [message, occurred_at, disposition, explanation, source_ref]
+    exact: true
+  wave_a_posture:
+    required_fields: [schema_version, wave, persona]
+    exact: true
+  wave_a_persona:
+    required_fields: [direct_media_enabled, publication_posture]
+    exact: true
+  wave_r_posture:
+    required_fields: [schema_version, wave, realtime]
+    exact: true
+  wave_r_realtime:
+    required_fields: [polling_posture, upstream_connection_observed]
+    exact: true
+  wave_b_posture:
+    required_fields: [schema_version, wave, media]
+    exact: true
+  wave_b_media:
+    required_fields:
+      - finalize_status
+      - cleanup_status
+      - signed_upload_credential_surface
+    exact: true
+prohibited_material_registry:
+  version: 1
+  classes:
+    - account_access_token
+    - account_refresh_token
+    - runtime_app_session_secret
+    - launch_ticket
+    - protected_access_token_id
+    - protected_access_secret
+    - signed_upload_url
+    - signed_upload_header
+    - signed_upload_object_key
+    - authoritative_local_path
+    - file_handle
+    - raw_realm_response
+    - raw_provider_response
+    - raw_auth_error
+    - media_content
+privacy_scan_policy:
+  version: 1
+  text_extensions: [.json, .jsonl, .yaml, .yml, .txt, .tap, .log, .md, .csv, .tsv]
+  png_text_chunks: [tEXt, zTXt, iTXt]
+  synthetic_canary_literals:
+    - nimi-synthetic-binary-canary-v1
+    - synthetic-media-canary
+packet_resource_policy:
+  version: 1
+  path_key_collision_posture: reject
+  max_file_count: 512
+  max_entry_count: 1024
+  max_directory_depth: 32
+  max_single_file_bytes: 16777216
+  max_packet_total_bytes: 134217728
+  max_text_scan_bytes: 4194304
+  max_screenshot_compressed_bytes: 16777216
+  stream_chunk_bytes: 65536
+live_shell_policy:
+  caller_mode: desktop-launched-nimi-app
+  caller_observer: runtime
+  launch_postures:
+    desktop-installed: runtime-open-app
+    runtime-authorized-developer-installed: runtime-admission
+wave_posture_policies:
+  A:
+    row_id: A-16
+    persona_direct_media_enabled: false
+  R:
+    row_id: R-07
+    polling_posture: fallback_only
+    upstream_connection_observed: true
+  B:
+    row_id: B-12
+    finalize_status: resolved
+    cleanup_status: completed
+    signed_upload_credential_surface: runtime_private
+required_row_registry:
+  version: 1
+  semantic_posture: identifiers_only_no_product_rule_body
+  authority_refs:
+    - .nimi/spec/platform/kernel/nimi-app-admission-contract.md
+    - .nimi/spec/platform/kernel/nimi-app-audit-pipeline-contract.md
+    - .nimi/spec/runtime/kernel/account-session-contract.md
+    - .nimi/spec/runtime/kernel/app-messaging-contract.md
+    - .nimi/spec/desktop/kernel/ui-shell-contract.md
+    - .nimi/spec/sdks/kernel/nimi-app-client-contract.md
+  waves:
+    global:
+      - G-01
+      - G-02
+      - G-03
+      - G-04
+      - G-05
+      - G-06
+      - G-07
+    A:
+      - A-01
+      - A-02
+      - A-03
+      - A-04
+      - A-05
+      - A-06
+      - A-07
+      - A-08
+      - A-08b
+      - A-09
+      - A-10
+      - A-11
+      - A-12
+      - A-13
+      - A-14
+      - A-15
+      - A-16
+      - A-17
+      - A-18
+      - A-19
+      - A-20
+      - A-21
+      - A-22
+      - A-23
+      - A-24
+      - A-25
+    U:
+      - U-01
+      - U-02
+      - U-03
+      - U-04
+      - U-05
+      - U-06
+      - U-07
+      - U-08
+      - U-09
+      - U-10
+      - U-11
+      - U-12
+      - U-13
+    R:
+      - R-01
+      - R-02
+      - R-03
+      - R-04
+      - R-05
+      - R-06
+      - R-07
+      - R-08
+      - R-09
+      - R-10
+      - R-11
+      - R-12
+      - R-13
+    B:
+      - B-01
+      - B-02
+      - B-03
+      - B-04
+      - B-05
+      - B-06
+      - B-07
+      - B-08
+      - B-09
+      - B-10
+      - B-11
+      - B-12
+      - B-13
+      - B-14
+      - B-15
+      - B-16
+      - B-17
+      - B-18
+      - B-19
+      - B-20
+      - B-21
+    closeout:
+      - C-01
+      - C-02
+      - C-03
+row_adapters:
+  C-02:
+    evidence_kind: command
+    shell_type: null
+  A-11:
+    evidence_kind: live_shell
+    shell_type: tauri
+  A-12:
+    evidence_kind: live_shell
+    shell_type: electron
+  A-16:
+    evidence_kind: wave_posture
+    shell_type: null
+  R-07:
+    evidence_kind: wave_posture
+    shell_type: null
+  B-12:
+    evidence_kind: wave_posture
+    shell_type: null
