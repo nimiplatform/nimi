@@ -87,8 +87,24 @@ function unavailableFromError(error: unknown): RuntimePlatformUnavailableProject
     mode: 'third-party-nimi-app',
     reasonCode,
     actionHint: actionHintFor(reasonCode),
-    message: error instanceof Error ? error.message : 'The protected Nimi app host is unavailable.',
+    message: messageFor(reasonCode),
   };
+}
+
+function messageFor(reasonCode: string): string {
+  switch (reasonCode) {
+    case 'runtime-service-unavailable':
+      return 'Nimi Desktop could not reach its protected Runtime service.';
+    case 'local-development-authorization-required':
+    case 'local-development-reapproval-required':
+      return 'This development project needs your approval in Nimi Desktop.';
+    case 'local-development-session-revoked':
+      return 'This development authorization was revoked in Nimi Desktop.';
+    case 'local-development-project-changed':
+      return 'The project identity no longer matches the approved development project.';
+    default:
+      return 'The protected Nimi app host is unavailable.';
+  }
 }
 
 function actionHintFor(reasonCode: string): string {

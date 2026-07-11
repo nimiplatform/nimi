@@ -48,35 +48,23 @@ test('Electron acceptance matrix maps every standard shell command to e2e or hos
   }
 });
 
-test('Electron acceptance host boots the tester renderer with the narrowed preload bridge', { timeout: 90_000 }, async () => {
+test('plain Electron boots the narrowed renderer but cannot acquire protected app-host authority', { timeout: 90_000 }, async () => {
   await withTempDir('acceptance', async (tmpRoot) => {
-  const dataRoot = path.join(tmpRoot, 'data');
-
   const app = await electron.launch({
     args: [mainEntry],
     env: {
       ...process.env,
-      NIMI_RUNTIME_GRPC_ADDR: '',
       NIMI_TESTER_ELECTRON_RENDERER_URL: rendererAcceptanceUrl,
-      NIMI_TESTER_ELECTRON_RUNTIME_ENDPOINT: '127.0.0.1:1',
-      NIMI_TESTER_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
-      NIMI_TESTER_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: dataRoot,
-      NIMI_REALM_URL: 'http://localhost',
-      NIMI_REALM_JWKS_URL: '',
-      NIMI_REALM_REVOCATION_URL: '',
-      NIMI_REALM_JWT_ISSUER: '',
-      NIMI_REALM_JWT_AUDIENCE: '',
-      NIMI_REALTIME_URL: 'ws://localhost:3003',
-      NIMI_ACCESS_TOKEN: 'acceptance-token',
-      NIMI_TARGET_TYPE: 'local',
-      NIMI_TARGET_ACCOUNT_ID: 'acceptance-account',
-      NIMI_AGENT_ID: 'acceptance-agent',
-      NIMI_WORLD_ID: 'acceptance-world',
-      NIMI_USER_CONFIRMED_UPLOAD: '1',
     },
   });
   try {
     const page = await app.firstWindow();
+    const consoleErrors = [];
+    const pageErrors = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') consoleErrors.push(message.text());
+    });
+    page.on('pageerror', (error) => pageErrors.push(String(error)));
     await page.waitForLoadState('domcontentloaded');
     await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_ELECTRON_RUNTIME__));
     const hookKeys = await page.evaluate(() => Object.keys(globalThis.window.__NIMI_ELECTRON_RUNTIME__).sort());
@@ -99,8 +87,8 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       NIMI_STANDARD_SHELL_COMMANDS['artifacts.readRuntimeBytes'],
       { payload: { artifactId: 'runtime-artifact-acceptance' } },
     );
-    assert.equal(artifactUnavailable.code, 'protected-carrier-required');
-    assert.equal(artifactUnavailable.reasonCode, 'protected-carrier-required');
+    assert.equal(artifactUnavailable.code, 'runtime-service-unavailable');
+    assert.equal(artifactUnavailable.reasonCode, 'runtime-service-unavailable');
     assert.equal(artifactUnavailable.source, 'electron');
 
     await page.waitForFunction(() => Boolean(globalThis.window?.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__));
@@ -128,16 +116,16 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     assert.equal(installedProjection.status, 'action-required');
     assert.deepEqual(installedProjection.reason, {
       mode: 'third-party-nimi-app',
-      reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
-      actionHint: 'use_admitted_protected_runtime_carrier',
+      reasonCode: 'runtime-service-unavailable',
+      actionHint: 'open_nimi_desktop_and_retry',
     });
     const sdkInstalledArtifact = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.installedArtifactRead(),
     );
     assert.equal(sdkInstalledArtifact.transport, 'electron-ipc');
     assert.equal(sdkInstalledArtifact.ok, false);
-    assert.equal(sdkInstalledArtifact.code, 'protected-carrier-required');
-    assert.equal(sdkInstalledArtifact.reasonCode, 'protected-carrier-required');
+    assert.equal(sdkInstalledArtifact.code, 'runtime-service-unavailable');
+    assert.equal(sdkInstalledArtifact.reasonCode, 'runtime-service-unavailable');
     assert.equal(sdkInstalledArtifact.source, 'electron');
 
     for (const commandKey of [
@@ -213,17 +201,38 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     const retryButton = page.getByRole('button', { name: 'Retry Runtime check' });
     assert.equal(await retryButton.isEnabled(), true);
     await retryButton.click();
-    await page.waitForFunction(() => document.body?.innerText.includes('Runtime session unavailable'));
+    await page.waitForFunction(() => document.body?.innerText.includes('Nimi Desktop connection required'));
+    const visibleCopy = await page.locator('body').innerText();
+    assert.match(visibleCopy, /Open Nimi Desktop, confirm Runtime is available, then retry\./);
+    assert.doesNotMatch(visibleCopy, /open_nimi_desktop_and_retry/);
     const shellProblems = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_SHELL_ACCEPTANCE_PROBLEMS__ ?? [],
     );
     assert.deepEqual(shellProblems, []);
+    assert.deepEqual(consoleErrors, []);
+    assert.deepEqual(pageErrors, []);
     const artifactDir = String(process.env.NIMI_TESTER_ELECTRON_ACCEPTANCE_ARTIFACT_DIR || '').trim();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const desktopLayout = await page.evaluate(() => ({
+      width: innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      buttonEnabled: !document.querySelector('button')?.hasAttribute('disabled'),
+    }));
+    assert.ok(desktopLayout.scrollWidth <= desktopLayout.width);
+    assert.equal(desktopLayout.buttonEnabled, true);
     if (artifactDir) {
       await mkdir(artifactDir, { recursive: true });
-      await page.setViewportSize({ width: 1280, height: 800 });
       await page.screenshot({ path: path.join(artifactDir, 'tester-electron-desktop.png'), fullPage: true });
-      await page.setViewportSize({ width: 720, height: 760 });
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    const narrowLayout = await page.evaluate(() => ({
+      width: innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      bodyText: document.body.innerText,
+    }));
+    assert.ok(narrowLayout.scrollWidth <= narrowLayout.width);
+    assert.match(narrowLayout.bodyText, /Nimi Desktop connection required/);
+    if (artifactDir) {
       await page.screenshot({ path: path.join(artifactDir, 'tester-electron-narrow.png'), fullPage: true });
     }
   } finally {
