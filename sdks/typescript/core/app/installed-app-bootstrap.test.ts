@@ -4,10 +4,11 @@ import test from 'node:test';
 import { createNimiError } from '../../types';
 import { createInstalledNimiAppBootstrap } from './installed-app-bootstrap';
 
-test('installed app bootstrap exposes only the typed artifact reader', async () => {
+test('app bootstrap exposes typed status and the admitted artifact reader only', async () => {
   const calls: string[] = [];
   const bootstrap = createInstalledNimiAppBootstrap({
     standardShell: {
+      appHost: appHostSurface(),
       artifacts: {
         async readRuntimeBytes(artifactId: string) {
           calls.push(artifactId);
@@ -22,12 +23,14 @@ test('installed app bootstrap exposes only the typed artifact reader', async () 
     },
   } as never);
 
-  assert.deepEqual(Object.keys(bootstrap), ['artifacts']);
+  assert.deepEqual(Object.keys(bootstrap), ['appHost', 'artifacts']);
+  assert.deepEqual(Object.keys(bootstrap.appHost), ['bootstrap']);
   assert.deepEqual(Object.keys(bootstrap.artifacts), ['readRuntimeBytes']);
   assert.equal('runtime' in bootstrap, false);
   assert.equal('realm' in bootstrap, false);
   assert.equal('accountCaller' in bootstrap, false);
   assert.equal('launchBinding' in bootstrap, false);
+  assert.deepEqual(await bootstrap.appHost.bootstrap(), localDevelopmentBootstrap());
   assert.deepEqual(await bootstrap.artifacts.readRuntimeBytes('artifact-one'), {
     bytes: Uint8Array.from([97, 114, 116, 105, 102, 97, 99, 116]),
     mimeType: 'text/plain',
@@ -39,6 +42,7 @@ test('installed app bootstrap exposes only the typed artifact reader', async () 
 
 test('installed app bootstrap rejects renderer authority and missing carriers', () => {
   const standardShell = {
+    appHost: appHostSurface(),
     artifacts: {
       readRuntimeBytes: async () => ({
         bytes: new Uint8Array(),
@@ -71,6 +75,7 @@ test('installed artifact reads validate input and host projections', async () =>
   let calls = 0;
   const bootstrap = createInstalledNimiAppBootstrap({
     standardShell: {
+      appHost: appHostSurface(),
       artifacts: {
         async readRuntimeBytes() {
           calls += 1;
@@ -105,6 +110,7 @@ test('installed artifact reads preserve typed carrier failures', async () => {
   });
   const bootstrap = createInstalledNimiAppBootstrap({
     standardShell: {
+      appHost: appHostSurface(),
       artifacts: {
         async readRuntimeBytes() {
           throw expected;
@@ -115,3 +121,43 @@ test('installed artifact reads preserve typed carrier failures', async () => {
 
   await assert.rejects(bootstrap.artifacts.readRuntimeBytes('artifact-one'), (error) => error === expected);
 });
+
+test('app-host bootstrap rejects technical material and malformed trust projections', async () => {
+  const bootstrap = createInstalledNimiAppBootstrap({
+    standardShell: {
+      appHost: {
+        async bootstrap() {
+          return {
+            ...localDevelopmentBootstrap(),
+            sessionId: 'forbidden',
+          };
+        },
+      },
+      artifacts: {
+        async readRuntimeBytes() {
+          throw new Error('not used');
+        },
+      },
+    },
+  } as never);
+
+  await assert.rejects(bootstrap.appHost.bootstrap(), {
+    reasonCode: 'SDK_APP_HOST_BOOTSTRAP_PROJECTION_INVALID',
+  });
+});
+
+function appHostSurface() {
+  return {
+    bootstrap: async () => localDevelopmentBootstrap(),
+  };
+}
+
+function localDevelopmentBootstrap() {
+  return {
+    state: 'ready' as const,
+    trustClass: 'local-development' as const,
+    appId: 'nimi.thirdparty.fixture',
+    bootstrapArtifactId: 'bootstrap-artifact',
+    expiresAtUnixMs: 1_800_000_000_000,
+  };
+}

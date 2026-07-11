@@ -15,7 +15,18 @@ export type InstalledNimiAppArtifactReader = {
 };
 
 export type InstalledNimiAppStandardShellSurface = {
+  readonly appHost: {
+    readonly bootstrap: () => Promise<NimiAppHostBootstrapStatus>;
+  };
   readonly artifacts: InstalledNimiAppArtifactReader;
+};
+
+export type NimiAppHostBootstrapStatus = {
+  readonly state: 'ready';
+  readonly trustClass: 'production-installed' | 'local-development';
+  readonly appId: string;
+  readonly bootstrapArtifactId?: string;
+  readonly expiresAtUnixMs: number;
 };
 
 export type InstalledNimiAppBootstrapInput = {
@@ -23,6 +34,9 @@ export type InstalledNimiAppBootstrapInput = {
 };
 
 export type InstalledNimiAppBootstrap = {
+  readonly appHost: {
+    readonly bootstrap: () => Promise<NimiAppHostBootstrapStatus>;
+  };
   readonly artifacts: InstalledNimiAppArtifactReader;
 };
 
@@ -38,9 +52,11 @@ export function createInstalledNimiAppBootstrap(
     );
   }
   const standardShell = asRecord(record.standardShell);
+  const appHost = asRecord(standardShell?.appHost);
+  const bootstrap = appHost?.bootstrap;
   const artifacts = asRecord(standardShell?.artifacts);
   const readRuntimeBytes = artifacts?.readRuntimeBytes;
-  if (typeof readRuntimeBytes !== 'function') {
+  if (typeof bootstrap !== 'function' || typeof readRuntimeBytes !== 'function') {
     throw sdkInstalledError(
       'Installed app bootstrap requires the typed protected artifact carrier.',
       'SDK_INSTALLED_APP_PROTECTED_CARRIER_REQUIRED',
@@ -48,6 +64,9 @@ export function createInstalledNimiAppBootstrap(
     );
   }
   return Object.freeze({
+    appHost: Object.freeze({
+      bootstrap: async () => projectAppHostBootstrap(await bootstrap.call(appHost)),
+    }),
     artifacts: Object.freeze({
       readRuntimeBytes: async (artifactId: string) => {
         const normalized = normalizeArtifactId(artifactId);
@@ -55,6 +74,44 @@ export function createInstalledNimiAppBootstrap(
         return projectArtifactBytes(result);
       },
     }),
+  });
+}
+
+function projectAppHostBootstrap(value: unknown): NimiAppHostBootstrapStatus {
+  const record = asRecord(value);
+  const trustClass = record?.trustClass;
+  const appId = typeof record?.appId === 'string' ? record.appId : '';
+  const bootstrapArtifactId = typeof record?.bootstrapArtifactId === 'string'
+    ? record.bootstrapArtifactId
+    : undefined;
+  const expiresAtUnixMs = Number(record?.expiresAtUnixMs);
+  const expectedKeys = trustClass === 'local-development'
+    ? ['appId', 'bootstrapArtifactId', 'expiresAtUnixMs', 'state', 'trustClass']
+    : ['appId', 'expiresAtUnixMs', 'state', 'trustClass'];
+  if (
+    !record
+    || JSON.stringify(Object.keys(record).sort()) !== JSON.stringify(expectedKeys)
+    || record.state !== 'ready'
+    || (trustClass !== 'production-installed' && trustClass !== 'local-development')
+    || !appId
+    || appId.trim() !== appId
+    || !Number.isSafeInteger(expiresAtUnixMs)
+    || expiresAtUnixMs <= 0
+    || (trustClass === 'local-development') !== Boolean(bootstrapArtifactId)
+    || (bootstrapArtifactId !== undefined && bootstrapArtifactId.trim() !== bootstrapArtifactId)
+  ) {
+    throw sdkInstalledError(
+      'App-host bootstrap carrier returned an invalid projection.',
+      'SDK_APP_HOST_BOOTSTRAP_PROJECTION_INVALID',
+      'repair_verified_app_host_carrier',
+    );
+  }
+  return Object.freeze({
+    state: 'ready' as const,
+    trustClass,
+    appId,
+    ...(bootstrapArtifactId ? { bootstrapArtifactId } : {}),
+    expiresAtUnixMs,
   });
 }
 

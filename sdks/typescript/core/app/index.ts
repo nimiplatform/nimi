@@ -79,6 +79,7 @@ export {
   type InstalledNimiAppBootstrap,
   type InstalledNimiAppBootstrapInput,
   type InstalledNimiAppStandardShellSurface,
+  type NimiAppHostBootstrapStatus,
 } from './installed-app-bootstrap.js';
 export {
   NIMI_APP_AI_PROFILE_FACTORY_CATALOG,
