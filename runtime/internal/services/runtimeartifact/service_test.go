@@ -46,6 +46,11 @@ func artifactTestDecision() accountservice.InstalledCallerDecision {
 		RealmEnvironmentID: "realm-1",
 		AccountGeneration:  7,
 		RuntimeBootEpoch:   artifactTestIdentifier(0x41),
+		Operation:          accountservice.InstalledOperationReadArtifactBytes,
+		PermissionScope:    "data.scope.read#runtime.artifacts",
+		CatalogVersion:     1,
+		GrantID:            "grant-artifact-read",
+		GrantVersion:       1,
 		Process: protectedlocal.ProcessTuple{
 			OS: protectedlocal.OSWindows, PID: 4201, CreationMarker: "artifact-process-1",
 			OSLoginSession: "login-1", SecurityPrincipal: "user-1",
@@ -190,6 +195,13 @@ func TestReadArtifactBytesRequiresCurrentMatchingAudience(t *testing.T) {
 
 	authorized := New(store, logger, WithInstalledOperationAuthorizer(staticInstalledCallerAuthorizer{decision: artifactTestDecision()}))
 	authorized.now = func() time.Time { return artifactTestNow }
+	incompletePolicy := artifactTestDecision()
+	incompletePolicy.GrantVersion = 0
+	incomplete := New(store, logger, WithInstalledOperationAuthorizer(staticInstalledCallerAuthorizer{decision: incompletePolicy}))
+	incomplete.now = func() time.Time { return artifactTestNow }
+	if _, err := incomplete.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-bound"}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
+		t.Fatalf("incomplete operation policy reason = %v, err=%v", artifactReason(err), err)
+	}
 	if _, err := authorized.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-unbound"}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
 		t.Fatalf("unbound read reason = %v, err=%v", artifactReason(err), err)
 	}

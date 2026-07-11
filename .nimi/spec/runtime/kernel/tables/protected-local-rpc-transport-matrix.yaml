@@ -8,7 +8,7 @@ surfaces:
   - RuntimeGrantService
   - RuntimeAppService
   - RuntimeArtifactService
-description: Closed transport and verified-origin admission for A.0 Desktop control, A.1 Windows installed launch/session methods, and A.3-pending artifact reads.
+description: Closed transport and verified-origin admission for A.0 Desktop control, A.1 Windows installed launch/session methods, and the admitted A.3 installed artifact read.
 authority_refs:
   - K-PLOCAL-001
   - K-PLOCAL-002
@@ -44,6 +44,7 @@ operation_classes:
   - desktop_lifecycle_mutation
   - installed_session_bootstrap
   - installed_launch_process_binding
+  - installed_artifact_read
   - blocked_pending_separate_authority
   - ordinary_projection
 matrix_schema:
@@ -141,9 +142,9 @@ methods:
     lifecycle_challenge_required: false
     source_rule: K-PLOCAL-008
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
-    operation_class: blocked_pending_separate_authority
-    allowed_transport_classes: []
-    required_origin_roles: []
+    operation_class: installed_artifact_read
+    allowed_transport_classes: [installed_host]
+    required_origin_roles: [installed_host_session]
     request_may_select_role: false
     portable_session_allowed: false
     public_tcp_disposition: deny

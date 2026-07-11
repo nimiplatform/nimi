@@ -200,9 +200,11 @@ buffer was discarded.
   release/session/generation/use/expiry before returning bytes.
 - unbound historical records, direct local gRPC, wrong app/account/release/
   session, expired or revoked records and guessed ids fail closed.
-- capability/grant admission is an additional gate. Until its canonical A.3
-  row is admitted, the installed transport remains deny-all even when a stored
-  record has a matching audience.
+- capability/grant admission is an additional gate. The admitted mapping is
+  `data.scope.read` qualified by `runtime.artifacts`; the Account-owned
+  evaluator revalidates the protected catalog ceiling, current inventory,
+  highest-version live grant and active release on every read before the
+  durable artifact audience is matched.
 
 ## Backward Compatibility
 

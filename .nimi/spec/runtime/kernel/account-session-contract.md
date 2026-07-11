@@ -511,6 +511,16 @@ other consumers must not create independent installed-session caches or accept
 portable session values. Capability/grant/resource policy remains separately
 deny-all until its canonical owner rows are admitted.
 
+The first admitted installed operation is
+`/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes`. It maps to the
+Platform product permission `data.scope.read` qualified by
+`runtime.artifacts`. On every call the Account-owned evaluator must additionally
+re-read the protected catalog ceiling, current account inventory, highest
+version of the matching live grant, and current active-release evidence. A
+missing, expired, revoked, superseded or disabled input, an old release, or a
+catalog/grant mismatch denies the operation. Public Grant credentials and
+caller-supplied app, account, release, scope or grant fields remain forbidden.
+
 ## K-ACCSVC-023 Runtime Shared Auth Broker
 
 Exact per-operation Realm unary authority remains blocked pending a separate

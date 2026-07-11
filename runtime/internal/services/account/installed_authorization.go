@@ -18,6 +18,63 @@ type InstalledOperation string
 
 const InstalledOperationReadArtifactBytes InstalledOperation = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
 
+type InstalledInventoryAccountState string
+
+const (
+	InstalledInventoryAccountStateVerified InstalledInventoryAccountState = "verified"
+	InstalledInventoryAccountStateEntitled InstalledInventoryAccountState = "entitled"
+)
+
+type InstalledInventoryInstallState string
+
+const (
+	InstalledInventoryInstallStateInstalled    InstalledInventoryInstallState = "installed"
+	InstalledInventoryInstallStateAdoptedLocal InstalledInventoryInstallState = "adopted-local"
+)
+
+type InstalledGrantState string
+
+const (
+	InstalledGrantStateGranted    InstalledGrantState = "granted"
+	InstalledGrantStateRevoked    InstalledGrantState = "revoked"
+	InstalledGrantStateExpired    InstalledGrantState = "expired"
+	InstalledGrantStateSuperseded InstalledGrantState = "superseded"
+)
+
+// InstalledOperationPolicyQuery is assembled only by RuntimeAccountService
+// from a verified installed caller and a closed operation mapping. No request
+// field or transport metadata can supply these values.
+type InstalledOperationPolicyQuery struct {
+	Operation         InstalledOperation
+	AccountID         string
+	AccountGeneration uint64
+	AppID             string
+	ReleaseDigest     protectedlocal.Identifier
+	ScopeFamily       string
+	ScopeName         string
+	Qualifier         string
+}
+
+// InstalledOperationPolicySnapshot carries current facts from the existing
+// catalog, account projection and install owners. RuntimeAccountService remains
+// the only component that combines these facts into an authorization decision.
+type InstalledOperationPolicySnapshot struct {
+	CatalogVersion           uint64
+	CatalogPermissionPresent bool
+	InventoryAccountState    InstalledInventoryAccountState
+	InventoryInstallState    InstalledInventoryInstallState
+	CurrentAccountGeneration uint64
+	ActiveReleaseDigest      protectedlocal.Identifier
+	GrantID                  string
+	GrantState               InstalledGrantState
+	GrantVersion             uint64
+	GrantExpiresAt           time.Time
+}
+
+type InstalledOperationPolicySource interface {
+	ResolveInstalledOperationPolicy(context.Context, InstalledOperationPolicyQuery) (InstalledOperationPolicySnapshot, error)
+}
+
 // InstalledCallerBinding is the Auth-owned session/process projection consumed
 // by RuntimeAccountService. It carries no capability or grant decision.
 type InstalledCallerBinding struct {
@@ -47,11 +104,22 @@ type InstalledCallerDecision struct {
 	RuntimeBootEpoch   protectedlocal.Identifier
 	Process            protectedlocal.ProcessTuple
 	ExpiresAt          time.Time
+	Operation          InstalledOperation
+	PermissionScope    string
+	CatalogVersion     uint64
+	GrantID            string
+	GrantVersion       uint64
 }
 
 func (s *Service) SetInstalledSessionResolver(resolver InstalledSessionResolver) {
 	if s != nil {
 		s.installedSessions = resolver
+	}
+}
+
+func (s *Service) SetInstalledOperationPolicySource(source InstalledOperationPolicySource) {
+	if s != nil {
+		s.installedPolicy = source
 	}
 }
 
@@ -91,16 +159,84 @@ func (s *Service) AuthorizeInstalledCaller(ctx context.Context) (InstalledCaller
 }
 
 // AuthorizeInstalledOperation is the sole Account-owned operation entrypoint.
-// A live caller alone is not permission: all installed operations remain
-// denied until their canonical capability and current grant policy are wired
-// here. This keeps future transport registration from accidentally promoting
-// origin proof into product authorization.
+// A live caller alone is not permission. Each installed operation must have a
+// closed mapping here and pass the current catalog, inventory, grant and
+// release facts. This keeps transport registration from accidentally
+// promoting origin proof into product authorization.
 func (s *Service) AuthorizeInstalledOperation(ctx context.Context, operation InstalledOperation) (InstalledCallerDecision, error) {
-	if strings.TrimSpace(string(operation)) == "" {
-		return InstalledCallerDecision{}, ErrInstalledCallerUnauthorized
+	requirement, ok := installedOperationRequirement(operation)
+	if !ok {
+		if strings.TrimSpace(string(operation)) == "" {
+			return InstalledCallerDecision{}, ErrInstalledCallerUnauthorized
+		}
+		return InstalledCallerDecision{}, ErrInstalledOperationNotAdmitted
 	}
-	if _, err := s.AuthorizeInstalledCaller(ctx); err != nil {
+	decision, err := s.AuthorizeInstalledCaller(ctx)
+	if err != nil {
 		return InstalledCallerDecision{}, err
 	}
-	return InstalledCallerDecision{}, ErrInstalledOperationNotAdmitted
+	if s.installedPolicy == nil {
+		return InstalledCallerDecision{}, ErrInstalledOperationNotAdmitted
+	}
+	query := InstalledOperationPolicyQuery{
+		Operation:         operation,
+		AccountID:         decision.AccountID,
+		AccountGeneration: decision.AccountGeneration,
+		AppID:             decision.AppID,
+		ReleaseDigest:     decision.ReleaseDigest,
+		ScopeFamily:       requirement.scopeFamily,
+		ScopeName:         requirement.scopeName,
+		Qualifier:         requirement.qualifier,
+	}
+	snapshot, err := s.installedPolicy.ResolveInstalledOperationPolicy(ctx, query)
+	if err != nil || !validInstalledOperationPolicy(snapshot, decision.ReleaseDigest, decision.AccountGeneration, s.now().UTC()) {
+		return InstalledCallerDecision{}, ErrInstalledOperationNotAdmitted
+	}
+	decision.Operation = operation
+	decision.PermissionScope = requirement.scopeName + "#" + requirement.qualifier
+	decision.CatalogVersion = snapshot.CatalogVersion
+	decision.GrantID = snapshot.GrantID
+	decision.GrantVersion = snapshot.GrantVersion
+	return decision, nil
+}
+
+type installedOperationPolicyRequirement struct {
+	scopeFamily string
+	scopeName   string
+	qualifier   string
+}
+
+func installedOperationRequirement(operation InstalledOperation) (installedOperationPolicyRequirement, bool) {
+	switch operation {
+	case InstalledOperationReadArtifactBytes:
+		return installedOperationPolicyRequirement{
+			scopeFamily: "data",
+			scopeName:   "data.scope.read",
+			qualifier:   "runtime.artifacts",
+		}, true
+	default:
+		return installedOperationPolicyRequirement{}, false
+	}
+}
+
+func validInstalledOperationPolicy(snapshot InstalledOperationPolicySnapshot, releaseDigest protectedlocal.Identifier, accountGeneration uint64, now time.Time) bool {
+	if snapshot.CatalogVersion == 0 || !snapshot.CatalogPermissionPresent || snapshot.ActiveReleaseDigest != releaseDigest ||
+		snapshot.CurrentAccountGeneration == 0 || snapshot.CurrentAccountGeneration != accountGeneration {
+		return false
+	}
+	switch snapshot.InventoryAccountState {
+	case InstalledInventoryAccountStateVerified, InstalledInventoryAccountStateEntitled:
+	default:
+		return false
+	}
+	switch snapshot.InventoryInstallState {
+	case InstalledInventoryInstallStateInstalled, InstalledInventoryInstallStateAdoptedLocal:
+	default:
+		return false
+	}
+	grantID := strings.TrimSpace(snapshot.GrantID)
+	if grantID == "" || grantID != snapshot.GrantID || snapshot.GrantState != InstalledGrantStateGranted || snapshot.GrantVersion == 0 {
+		return false
+	}
+	return snapshot.GrantExpiresAt.IsZero() || now.Before(snapshot.GrantExpiresAt.UTC())
 }

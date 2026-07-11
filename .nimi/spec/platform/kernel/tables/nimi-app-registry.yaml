@@ -168,6 +168,10 @@ apps:
         scopeName: data.scope.read
         qualifier: realm.worlds.read-probe
       - appId: community.nimi.fixture.platform-proof
+        scopeFamily: data
+        scopeName: data.scope.read
+        qualifier: runtime.artifacts
+      - appId: community.nimi.fixture.platform-proof
         scopeFamily: ai_spend
         scopeName: ai.spend.meter
       - appId: community.nimi.fixture.platform-proof

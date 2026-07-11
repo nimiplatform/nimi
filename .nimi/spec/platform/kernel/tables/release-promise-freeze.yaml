@@ -275,7 +275,7 @@ capabilities:
     login_requirement: realm_login_required
     public_promise: RuntimeArtifactService ReadArtifactBytes returns bytes, mime type, and observed size only for a current protected installed caller matching the durable account/app/release/session/use audience.
     failure_behavior: Anonymous, direct-gRPC, unbound, wrong-audience, expired, revoked, missing, corrupt, or over-size reads return typed ARTIFACT_* failures; no truncation or fabricated bytes.
-    partial_deferred_reason: Positive installed transport remains fail-closed until the canonical A.3 capability/grant row is admitted; chunked retrieval, metadata discovery, upload-by-id, and delegated audiences are not promised.
+    partial_deferred_reason: The installed read mapping is admitted as data.scope.read#runtime.artifacts; chunked retrieval, metadata discovery, upload-by-id, delegated audiences, and non-installed transports are not promised.
     verification_refs:
       - runtime/internal/services/runtimeartifact/service_test.go
       - sdks/typescript/features/generation/index.ts

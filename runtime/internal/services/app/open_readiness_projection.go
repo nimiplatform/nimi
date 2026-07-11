@@ -12,6 +12,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
 
 const (
@@ -24,12 +25,19 @@ type runtimeAccountProjectionProvider interface {
 }
 
 type accountProjectionOpenReadinessVerifier struct {
-	accounts runtimeAccountProjectionProvider
-	nimiDir  func() (string, error)
-	now      func() time.Time
+	accounts       runtimeAccountProjectionProvider
+	nimiDir        func() (string, error)
+	now            func() time.Time
+	catalog        *appregistrycatalog.Registry
+	installRuntime *installRuntime
 }
 
 type OpenAppReadinessProjectionOption func(*accountProjectionOpenReadinessVerifier)
+
+type AccountProjectionOpenAppReadinessVerifier interface {
+	OpenAppReadinessVerifier
+	accountservice.InstalledOperationPolicySource
+}
 
 func WithOpenAppReadinessNimiDirForTest(path string) OpenAppReadinessProjectionOption {
 	return func(v *accountProjectionOpenReadinessVerifier) {
@@ -51,12 +59,24 @@ func WithOpenAppReadinessClockForTest(now func() time.Time) OpenAppReadinessProj
 	}
 }
 
+func WithOpenAppReadinessCatalog(catalog *appregistrycatalog.Registry) OpenAppReadinessProjectionOption {
+	return func(v *accountProjectionOpenReadinessVerifier) {
+		v.catalog = catalog
+	}
+}
+
+func WithOpenAppReadinessInstallRuntime(runtime *installRuntime) OpenAppReadinessProjectionOption {
+	return func(v *accountProjectionOpenReadinessVerifier) {
+		v.installRuntime = runtime
+	}
+}
+
 // NewAccountProjectionOpenAppReadinessVerifier builds the production Runtime
 // verifier for K-APP-017 account-inventory and permission gates. The verifier
 // consumes Runtime AccountService authenticated projection and governed
 // account-scoped files under ~/.nimi/accounts/<account-id>/...; it never
 // treats package verification or registry structure as launch permission.
-func NewAccountProjectionOpenAppReadinessVerifier(accounts runtimeAccountProjectionProvider, opts ...OpenAppReadinessProjectionOption) OpenAppReadinessVerifier {
+func NewAccountProjectionOpenAppReadinessVerifier(accounts runtimeAccountProjectionProvider, opts ...OpenAppReadinessProjectionOption) AccountProjectionOpenAppReadinessVerifier {
 	v := &accountProjectionOpenReadinessVerifier{
 		accounts: accounts,
 		nimiDir:  defaultNimiDir,
@@ -149,6 +169,95 @@ func (v *accountProjectionOpenReadinessVerifier) VerifyOpenPermissions(ctx conte
 	return OpenAppReadinessDecision{Allowed: true}, nil
 }
 
+// ResolveInstalledOperationPolicy exposes current protected facts to the
+// Account-owned evaluator. It does not authorize: Account supplies the closed
+// operation-to-permission mapping and combines these facts with the live
+// installed session/account decision.
+func (v *accountProjectionOpenReadinessVerifier) ResolveInstalledOperationPolicy(ctx context.Context, query accountservice.InstalledOperationPolicyQuery) (accountservice.InstalledOperationPolicySnapshot, error) {
+	var snapshot accountservice.InstalledOperationPolicySnapshot
+	accountID := strings.TrimSpace(query.AccountID)
+	appID := strings.TrimSpace(query.AppID)
+	if accountID == "" || accountID != query.AccountID || appID == "" || appID != query.AppID ||
+		strings.TrimSpace(query.ScopeFamily) == "" || strings.TrimSpace(query.ScopeName) == "" || strings.TrimSpace(query.Qualifier) == "" {
+		return snapshot, errors.New("installed operation policy query is incomplete")
+	}
+	security, ok := v.accounts.(runtimeAccountSecurityContextProvider)
+	if !ok {
+		return snapshot, errors.New("installed operation account security context is unavailable")
+	}
+	projection, currentGeneration, authenticated := security.AuthenticatedRuntimeSecurityContext(ctx)
+	if !authenticated || projection == nil || currentGeneration == 0 || currentGeneration != query.AccountGeneration || strings.TrimSpace(projection.GetAccountId()) != accountID {
+		return snapshot, errors.New("installed operation account is no longer current")
+	}
+	snapshot.CurrentAccountGeneration = currentGeneration
+	if v.catalog == nil || v.installRuntime == nil || v.catalog.Version <= 0 {
+		return snapshot, errors.New("installed operation catalog and release facts are unavailable")
+	}
+	snapshot.CatalogVersion = uint64(v.catalog.Version)
+	app, err := v.catalog.FindByID(appID)
+	if err != nil || app.AdmissionStatus != appregistrycatalog.AdmissionStatusAdmitted || app.PermissionScopeRefPending {
+		return snapshot, nil
+	}
+	for _, scope := range app.PermissionScopeRefs {
+		if scope.AppID == appID && scope.ScopeFamily == query.ScopeFamily && scope.ScopeName == query.ScopeName && scope.Qualifier == query.Qualifier {
+			snapshot.CatalogPermissionPresent = true
+			break
+		}
+	}
+
+	inventory, err := v.readAccountAppInventory(accountID)
+	if err != nil {
+		return snapshot, err
+	}
+	for _, row := range inventory.Apps {
+		if row.AppID == appID {
+			snapshot.InventoryAccountState = accountservice.InstalledInventoryAccountState(row.AccountState)
+			snapshot.InventoryInstallState = accountservice.InstalledInventoryInstallState(row.InstallState)
+			break
+		}
+	}
+
+	grants, err := v.readAccountGrants(accountID)
+	if err != nil {
+		return snapshot, err
+	}
+	grant, found, err := grants.currentGrant(query)
+	if err != nil {
+		return snapshot, err
+	}
+	if found {
+		snapshot.GrantID = grant.GrantID
+		snapshot.GrantState = accountservice.InstalledGrantState(grant.State)
+		snapshot.GrantVersion = *grant.Version
+		if grant.ExpiresAt != nil {
+			expiresAt, parseErr := time.Parse(time.RFC3339, strings.TrimSpace(*grant.ExpiresAt))
+			if parseErr != nil {
+				return snapshot, parseErr
+			}
+			snapshot.GrantExpiresAt = expiresAt.UTC()
+		}
+	}
+
+	_, descriptor, err := v.installRuntime.resolveDescriptor(appID)
+	if err != nil {
+		return snapshot, nil
+	}
+	plan, err := v.installRuntime.plan(descriptor)
+	if err != nil {
+		return snapshot, nil
+	}
+	resolution, blocked := verifyOpenPackage(v.installRuntime, plan, descriptor)
+	if blocked != nil {
+		return snapshot, nil
+	}
+	releaseDigest, err := installedReleaseDigest(resolution.Evidence.SHA256)
+	if err != nil {
+		return snapshot, nil
+	}
+	snapshot.ActiveReleaseDigest = releaseDigest
+	return snapshot, nil
+}
+
 type accountGrantsRecord struct {
 	SchemaVersion uint32            `json:"schemaVersion"`
 	AccountID     string            `json:"accountId"`
@@ -208,8 +317,8 @@ func (v *accountProjectionOpenReadinessVerifier) readAccountGrants(accountID str
 			strings.TrimSpace(row.AppID) == "" ||
 			strings.TrimSpace(row.ScopeFamily) == "" ||
 			strings.TrimSpace(row.ScopeName) == "" ||
-			row.Version == nil {
-			return accountGrantsRecord{}, errors.New("grants.json grant row requires grantId, subjectAccountId, appId, scopeFamily, scopeName, state, and version")
+			row.Version == nil || *row.Version == 0 {
+			return accountGrantsRecord{}, errors.New("grants.json grant row requires grantId, subjectAccountId, appId, scopeFamily, scopeName, state, and a non-zero version")
 		}
 		if !knownAccountGrantState(row.State) {
 			return accountGrantsRecord{}, fmt.Errorf("grants.json grant %s has an unknown state: %s", row.GrantID, row.State)
@@ -264,24 +373,39 @@ func readRequiredJSON(path string, out any) error {
 }
 
 func (r accountGrantsRecord) hasGrantedScope(required appregistrycatalog.PermissionScopeRef) bool {
+	grant, found, err := r.currentGrantForScope(
+		strings.TrimSpace(required.AppID),
+		strings.TrimSpace(required.ScopeFamily),
+		strings.TrimSpace(required.ScopeName),
+		strings.TrimSpace(required.Qualifier),
+	)
+	return err == nil && found && grant.State == accountGrantStateGranted && grant.Version != nil && *grant.Version > 0
+}
+
+func (r accountGrantsRecord) currentGrant(query accountservice.InstalledOperationPolicyQuery) (accountGrantRow, bool, error) {
+	return r.currentGrantForScope(query.AppID, query.ScopeFamily, query.ScopeName, query.Qualifier)
+}
+
+func (r accountGrantsRecord) currentGrantForScope(appID string, scopeFamily string, scopeName string, qualifier string) (accountGrantRow, bool, error) {
+	var current accountGrantRow
+	found := false
 	for _, grant := range r.Grants {
-		if grant.State != accountGrantStateGranted {
+		if grant.AppID != appID || grant.ScopeFamily != scopeFamily || grant.ScopeName != scopeName || grantQualifier(grant) != qualifier {
 			continue
 		}
-		if strings.TrimSpace(grant.AppID) != strings.TrimSpace(required.AppID) {
+		if grant.Version == nil {
+			return accountGrantRow{}, false, errors.New("matching installed operation grant has no version")
+		}
+		if !found || *grant.Version > *current.Version {
+			current = grant
+			found = true
 			continue
 		}
-		if strings.TrimSpace(grant.ScopeFamily) != strings.TrimSpace(required.ScopeFamily) {
-			continue
-		}
-		if strings.TrimSpace(grant.ScopeName) != strings.TrimSpace(required.ScopeName) {
-			continue
-		}
-		if grantQualifier(grant) == strings.TrimSpace(required.Qualifier) {
-			return true
+		if *grant.Version == *current.Version {
+			return accountGrantRow{}, false, errors.New("matching installed operation grants have duplicate current versions")
 		}
 	}
-	return false
+	return current, found, nil
 }
 
 func knownAccountGrantState(state string) bool {
@@ -324,3 +448,5 @@ func accountPathSegment(accountID string) string {
 	}
 	return out.String()
 }
+
+var _ accountservice.InstalledOperationPolicySource = (*accountProjectionOpenReadinessVerifier)(nil)

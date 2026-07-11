@@ -574,6 +574,12 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		localSvc.Close()
 		return nil, fmt.Errorf("init Nimi App install runtime: %w", err)
 	}
+	openReadiness := appservice.NewAccountProjectionOpenAppReadinessVerifier(
+		accountSvc,
+		appservice.WithOpenAppReadinessCatalog(nimiAppRegistry),
+		appservice.WithOpenAppReadinessInstallRuntime(appInstallRuntime),
+	)
+	accountSvc.SetInstalledOperationPolicySource(openReadiness)
 	appOptions := []appservice.Option{
 		appservice.WithSessionValidator(authSvc),
 		appservice.WithScopedBindingValidator(accountSvc),
@@ -581,7 +587,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		appservice.WithInstallRuntime(appInstallRuntime),
 		appservice.WithRuntimeAppRegistry(appRegistry),
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
-		appservice.WithOpenAppReadinessVerifier(appservice.NewAccountProjectionOpenAppReadinessVerifier(accountSvc)),
+		appservice.WithOpenAppReadinessVerifier(openReadiness),
 	}
 	if protected != nil {
 		appOptions = append(appOptions,
@@ -591,9 +597,10 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		)
 	}
 	appSvc := appservice.New(logger, appOptions...)
+	artifactSvc := runtimeartifactservice.New(artifactStore, logger, runtimeartifactservice.WithInstalledOperationAuthorizer(accountSvc))
 	if protected != nil {
 		protectedGRPCServer = newProtectedDesktopRPCServer(authSvc, accountSvc, appSvc, protected.DesktopSessions)
-		installedGRPCServer = newProtectedInstalledRPCServer(authSvc)
+		installedGRPCServer = newProtectedInstalledRPCServer(authSvc, artifactSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
@@ -605,7 +612,6 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	})
 	runtimev1.RegisterRuntimeAppServiceServer(g, appSvc) // Phase 2 Draft
 
-	artifactSvc := runtimeartifactservice.New(artifactStore, logger, runtimeartifactservice.WithInstalledOperationAuthorizer(accountSvc))
 	runtimev1.RegisterRuntimeArtifactServiceServer(g, artifactSvc)
 
 	s := &Server{

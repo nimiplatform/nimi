@@ -109,9 +109,9 @@ func TestA0PublicTransportGateCoversCanonicalProtectedMatrix(t *testing.T) {
 			if !blocked {
 				t.Fatalf("canonical public deny is not enforced: %s", row.MethodID)
 			}
-			want := runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED
-			if len(row.AllowedTransportClasses) == 0 {
-				want = runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH
+			want := runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH
+			if len(row.AllowedTransportClasses) > 0 && !containsTransportClass(row.AllowedTransportClasses, "installed_host") {
+				want = runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED
 			}
 			if reason != want {
 				t.Fatalf("canonical public denial reason mismatch for %s: got=%v want=%v", row.MethodID, reason, want)
@@ -122,6 +122,15 @@ func TestA0PublicTransportGateCoversCanonicalProtectedMatrix(t *testing.T) {
 			}
 		}
 	}
+}
+
+func containsTransportClass(classes []string, required string) bool {
+	for _, class := range classes {
+		if class == required {
+			return true
+		}
+	}
+	return false
 }
 
 func findRepoFile(t *testing.T, relative string) string {

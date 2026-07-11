@@ -151,6 +151,8 @@ func validInstalledArtifactDecision(decision accountservice.InstalledCallerDecis
 		strings.TrimSpace(decision.RealmEnvironmentID) != "" && decision.AccountGeneration > 0 &&
 		decision.RuntimeBootEpoch != (protectedlocal.Identifier{}) && decision.Process.PID > 0 &&
 		strings.TrimSpace(decision.Process.CreationMarker) != "" && decision.Process.ExecutableDigest == decision.ReleaseDigest &&
+		decision.Operation == accountservice.InstalledOperationReadArtifactBytes && decision.PermissionScope == "data.scope.read#runtime.artifacts" &&
+		decision.CatalogVersion > 0 && strings.TrimSpace(decision.GrantID) != "" && decision.GrantID == strings.TrimSpace(decision.GrantID) && decision.GrantVersion > 0 &&
 		now.Before(decision.ExpiresAt.UTC())
 }
 

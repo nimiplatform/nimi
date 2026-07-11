@@ -7,11 +7,14 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
+	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -57,7 +60,10 @@ func TestProtectedInstalledTransportOpensOnlyProcessBoundSession(t *testing.T) {
 	t.Cleanup(connection.Revoke)
 	authService := authservice.NewWithDependencies(slog.Default(), nil, nil, 60, 86400, authservice.WithInstalledLaunchStore(store))
 	authService.SetRuntimeAccountSecurityContextProvider(grpcInstalledAccount{})
-	server := newProtectedInstalledRPCServer(authService)
+	artifactStore := runtimeartifactservice.NewMemoryStore()
+	artifactAuthorizer := &grpcInstalledArtifactAuthorizer{}
+	artifactService := runtimeartifactservice.New(artifactStore, slog.Default(), runtimeartifactservice.WithInstalledOperationAuthorizer(artifactAuthorizer))
+	server := newProtectedInstalledRPCServer(authService, artifactService)
 	baseListener := bufconn.Listen(1024 * 1024)
 	listener := &protectedInstalledTestListener{Listener: baseListener, connection: connection}
 	done := make(chan error, 1)
@@ -72,6 +78,10 @@ func TestProtectedInstalledTransportOpensOnlyProcessBoundSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = clientConn.Close() })
+	artifactClient := runtimev1.NewRuntimeArtifactServiceClient(clientConn)
+	if _, err := artifactClient.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-installed"}); grpcInstalledReason(err) != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED {
+		t.Fatalf("artifact read before installed session reason=%v err=%v", grpcInstalledReason(err), err)
+	}
 	client := runtimev1.NewRuntimeAuthServiceClient(clientConn)
 	response, err := client.OpenDesktopLaunchedAppSession(context.Background(), &runtimev1.OpenDesktopLaunchedAppSessionRequest{})
 	if err != nil {
@@ -80,9 +90,56 @@ func TestProtectedInstalledTransportOpensOnlyProcessBoundSession(t *testing.T) {
 	if response.GetAppId() != "world.nimi.app" || response.GetAccountGeneration() != 12 || len(response.GetInstalledSessionId()) != protectedlocal.IdentifierBytes {
 		t.Fatalf("unexpected installed session: %+v", response)
 	}
+	var sessionID protectedlocal.Identifier
+	copy(sessionID[:], response.GetInstalledSessionId())
+	expiresAt := time.Now().UTC().Add(time.Hour)
+	artifactAuthorizer.decision = accountservice.InstalledCallerDecision{
+		SessionID:          sessionID,
+		AppID:              "world.nimi.app",
+		ReleaseDigest:      release,
+		AccountID:          "account-installed",
+		RealmEnvironmentID: "realm-installed",
+		AccountGeneration:  12,
+		RuntimeBootEpoch:   boot,
+		Process:            process,
+		ExpiresAt:          expiresAt,
+		Operation:          accountservice.InstalledOperationReadArtifactBytes,
+		PermissionScope:    "data.scope.read#runtime.artifacts",
+		CatalogVersion:     1,
+		GrantID:            "grant-installed-artifact",
+		GrantVersion:       1,
+	}
+	if err := artifactStore.Put("artifact-installed", runtimeartifactservice.ArtifactRecord{
+		Bytes: []byte("installed-artifact"), MimeType: "text/plain", CreatedAt: time.Now().UTC(),
+		Audience: &runtimeartifactservice.ArtifactAudience{
+			ProducerJobID: "job-installed", OwnerAccountID: "account-installed", AppID: "world.nimi.app",
+			ReleaseDigest: release, SessionID: sessionID, AccountGeneration: 12,
+			AllowedUse: runtimeartifactservice.ArtifactUseReadBytes, ExpiresAt: expiresAt,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	artifactResponse, err := artifactClient.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-installed"})
+	if err != nil || string(artifactResponse.GetBytes()) != "installed-artifact" {
+		t.Fatalf("read artifact over installed transport = (%+v, %v)", artifactResponse, err)
+	}
+	if _, err := artifactClient.CleanupGeneratedVoiceArtifacts(context.Background(), &runtimev1.CleanupGeneratedVoiceArtifactsRequest{AgentId: "agent-1"}); grpcInstalledReason(err) != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
+		t.Fatalf("non-allowlisted artifact RPC reason=%v err=%v", grpcInstalledReason(err), err)
+	}
 	if _, err := client.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{}); grpcInstalledReason(err) != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
 		t.Fatalf("non-allowlisted RPC reason=%v err=%v", grpcInstalledReason(err), err)
 	}
+}
+
+type grpcInstalledArtifactAuthorizer struct {
+	decision accountservice.InstalledCallerDecision
+}
+
+func (authorizer *grpcInstalledArtifactAuthorizer) AuthorizeInstalledOperation(_ context.Context, operation accountservice.InstalledOperation) (accountservice.InstalledCallerDecision, error) {
+	if operation != accountservice.InstalledOperationReadArtifactBytes {
+		return accountservice.InstalledCallerDecision{}, accountservice.ErrInstalledOperationNotAdmitted
+	}
+	return authorizer.decision, nil
 }
 
 type protectedInstalledTestListener struct {

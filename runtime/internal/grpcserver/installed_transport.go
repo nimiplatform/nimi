@@ -15,7 +15,10 @@ import (
 	"google.golang.org/grpc/peer"
 )
 
-const protectedOpenInstalledSessionMethod = "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession"
+const (
+	protectedOpenInstalledSessionMethod = "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession"
+	protectedReadArtifactBytesMethod    = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
+)
 
 type protectedInstalledNetConn struct {
 	net.Conn
@@ -87,7 +90,7 @@ func (protectedInstalledTransportCredentials) OverrideServerName(string) error {
 	return fmt.Errorf("protected installed transport has no portable server name")
 }
 
-func newProtectedInstalledRPCServer(authService runtimev1.RuntimeAuthServiceServer) *grpc.Server {
+func newProtectedInstalledRPCServer(authService runtimev1.RuntimeAuthServiceServer, artifactService runtimev1.RuntimeArtifactServiceServer) *grpc.Server {
 	server := grpc.NewServer(
 		grpc.Creds(protectedInstalledTransportCredentials{}),
 		grpc.MaxRecvMsgSize(maxGRPCRecvMessageBytes),
@@ -96,12 +99,13 @@ func newProtectedInstalledRPCServer(authService runtimev1.RuntimeAuthServiceServ
 		grpc.UnaryInterceptor(newUnaryProtectedInstalledTransportInterceptor()),
 	)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
+	runtimev1.RegisterRuntimeArtifactServiceServer(server, artifactService)
 	return server
 }
 
 func newUnaryProtectedInstalledTransportInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if info == nil || info.FullMethod != protectedOpenInstalledSessionMethod {
+		if info == nil || (info.FullMethod != protectedOpenInstalledSessionMethod && info.FullMethod != protectedReadArtifactBytesMethod) {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
 		peerInfo, ok := peer.FromContext(ctx)
@@ -111,6 +115,11 @@ func newUnaryProtectedInstalledTransportInterceptor() grpc.UnaryServerIntercepto
 		authInfo, ok := peerInfo.AuthInfo.(*protectedInstalledAuthInfo)
 		if !ok || authInfo == nil || authInfo.connection == nil || !authInfo.connection.Live() {
 			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE)
+		}
+		if info.FullMethod == protectedReadArtifactBytesMethod {
+			if _, ok := authInfo.connection.InstalledSession(); !ok {
+				return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+			}
 		}
 		return handler(protectedlocal.ContextWithInstalledLaunchConnection(ctx, authInfo.connection), req)
 	}

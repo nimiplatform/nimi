@@ -33,7 +33,7 @@ methods:
     posture: protected_origin_required
     protected_transport_class: installed_host
     required_origin_role: installed_host_session
-    rationale: artifact id is a selector only; current installed caller and durable account/app/release/session/use audience must match, while transport remains deny-all pending A.3 capability/grant admission
+    rationale: artifact id is a selector only; the current installed caller, data.scope.read#runtime.artifacts catalog ceiling and live grant, current inventory/release, and durable account/app/release/session/use audience must all match
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001

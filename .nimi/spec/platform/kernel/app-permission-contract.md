@@ -103,6 +103,13 @@ filesystem、socket 等私有 channel 实现 cross-app 数据访问。
 }
 ```
 
+The exact product permission for installed callers retrieving their own
+Runtime artifact audience is `data.scope.read` with qualifier
+`runtime.artifacts`. This is an operation mapping, not a new permission scope:
+the Runtime operation id, product permission and AI capability namespaces stay
+distinct. A registry row is only the static ceiling; a current account grant
+for the same app, scope and qualifier is still required on every operation.
+
 `tables/nimi-app-registry.yaml` 的 `permission_scope_ref` 必须解析到该
 schema；`permission_fabric_pending` 是 permission fabric 尚未 admit 具体
 scope set 时的 fail-closed 状态，不能被应用当作 granted scope。

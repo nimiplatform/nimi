@@ -158,6 +158,7 @@ type Service struct {
 	presenceVerifier    PresenceVerifier
 	appSessionValidator AppSessionValidator
 	installedSessions   InstalledSessionResolver
+	installedPolicy     InstalledOperationPolicySource
 
 	partition                string
 	productionActivated      bool
