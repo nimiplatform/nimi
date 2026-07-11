@@ -152,9 +152,15 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	if err != nil {
 		return fail(fmt.Errorf("construct Windows installed process verifier: %w", err))
 	}
+	platformAppRegistryPath, platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
+	if err != nil {
+		return fail(fmt.Errorf("resolve protected Platform app resources: %w", err))
+	}
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
 			ServiceStateRoot:         stateRoot,
+			PlatformAppRegistryPath:  platformAppRegistryPath,
+			PlatformBundledAppsRoot:  platformBundledAppsRoot,
 			AccountCustody:           accountCustody,
 			AccountPartition:         accountPartition,
 			ConnectorSecrets:         connectorSecrets,

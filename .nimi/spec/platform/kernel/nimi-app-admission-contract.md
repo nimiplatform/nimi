@@ -779,6 +779,15 @@ an absent binding leaves product app admission fail-closed without degrading to
 the portable path. Non-production harnesses may supply explicit fixture paths,
 but those paths cannot produce product readiness or signing evidence.
 
+Windows independently resolves the protected binding from the OS Known Folder
+Program Files tree and the already verified Runtime service executable. Its
+fixed layout is `<Runtime directory>/resources/nimi-app-registry.yaml`, the
+sibling `nimi-app-release-descriptors.yaml`, and optional `nimi-apps/`. Every
+path component must be non-reparse, the registry/descriptor pair is atomic,
+and a Runtime outside Program Files receives no product app resources. This is
+installer/package ACL custody, not a second release-signature protocol;
+production signed-installer evidence remains required at Windows closeout.
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-001..P-ARCH-021`
