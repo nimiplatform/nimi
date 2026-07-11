@@ -30,11 +30,16 @@ services:
   - RuntimeWorkflowService
 methods:
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
-    posture: anonymous_read
-    rationale: pure id-based artifact byte read; no JWT validation, no owner gate
+    posture: protected_origin_required
+    protected_transport_class: installed_host
+    required_origin_role: installed_host_session
+    rationale: artifact id is a selector only; current installed caller and durable account/app/release/session/use audience must match, while transport remains deny-all pending A.3 capability/grant admission
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-PLOCAL-008
+      - K-ACCSVC-022
+      - K-AGCORE-053
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts
     posture: anonymous_read
     rationale: machine-local generated voice artifact cleanup; no JWT validation, no Realm-subject-bound write side effect

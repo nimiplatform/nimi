@@ -9,7 +9,14 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
-var ErrInstalledCallerUnauthorized = errors.New("installed caller is not currently authorized")
+var (
+	ErrInstalledCallerUnauthorized   = errors.New("installed caller is not currently authorized")
+	ErrInstalledOperationNotAdmitted = errors.New("installed operation capability and grant are not admitted")
+)
+
+type InstalledOperation string
+
+const InstalledOperationReadArtifactBytes InstalledOperation = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
 
 // InstalledCallerBinding is the Auth-owned session/process projection consumed
 // by RuntimeAccountService. It carries no capability or grant decision.
@@ -81,4 +88,19 @@ func (s *Service) AuthorizeInstalledCaller(ctx context.Context) (InstalledCaller
 		Process:            binding.Process,
 		ExpiresAt:          binding.ExpiresAt.UTC(),
 	}, nil
+}
+
+// AuthorizeInstalledOperation is the sole Account-owned operation entrypoint.
+// A live caller alone is not permission: all installed operations remain
+// denied until their canonical capability and current grant policy are wired
+// here. This keeps future transport registration from accidentally promoting
+// origin proof into product authorization.
+func (s *Service) AuthorizeInstalledOperation(ctx context.Context, operation InstalledOperation) (InstalledCallerDecision, error) {
+	if strings.TrimSpace(string(operation)) == "" {
+		return InstalledCallerDecision{}, ErrInstalledCallerUnauthorized
+	}
+	if _, err := s.AuthorizeInstalledCaller(ctx); err != nil {
+		return InstalledCallerDecision{}, err
+	}
+	return InstalledCallerDecision{}, ErrInstalledOperationNotAdmitted
 }

@@ -496,6 +496,9 @@ services:
     methods:
       - name: ReadArtifactBytes
         type: unary
+        authority_status: blocked_pending_a3_capability_grant
+        transport_disposition: deny_all
+        protected_transport_ref: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
       - name: CleanupGeneratedVoiceArtifacts
         type: unary
   - name: RuntimeAgentService

@@ -4,12 +4,13 @@ source_rule: K-AGCORE-053
 
 ## Purpose
 
-Runtime owns artifact identity. Consumer apps (avatar, desktop, future
-clients) must be able to retrieve artifact bytes by `artifact_id` for
+Runtime owns artifact identity and read audience. Authorized consumer apps
+must be able to retrieve artifact bytes by `artifact_id` for
 artifacts emitted in runtime events (e.g.
 `voice_playback_requested.audio_artifact_id`,
 `lipsync_frame_batch.audio_artifact_id`). This contract admits the
-authoritative read-bytes-by-id surface as a generic capability,
+authoritative read-bytes-by-id surface only when the current protected caller
+matches the durable artifact audience,
 orthogonal to existing typed media projections
 (`getScenarioArtifacts(jobId)` per S-RUNTIME-073) and voice asset
 library (`getVoiceAsset`).
@@ -32,6 +33,8 @@ must treat it as a string; format may evolve. The runtime guarantees:
 - artifact_id is unique within a runtime instance; across runtime instances
   uniqueness is not guaranteed (consumers must scope retrieval to their
   authoritative runtime client)
+- artifact_id is a selector, never a credential or authorization proof; a
+  guessed, observed, replayed, or cross-app id cannot authorize a read
 
 ### Lifecycle
 
@@ -49,6 +52,16 @@ artifact lifecycle is owned by runtime:
 - emitter-side invariant: `Store.Put(artifact_id, bytes, mime_type)` must
   complete BEFORE the runtime emit event referencing the id (e.g.
   `voice_playback_requested`); violation logs fatal at the emitter site
+- every record exposed through `ReadArtifactBytes` binds producer job, owner
+  account, initiating app, release digest, installed session, account
+  generation, allowed use, observed byte size, content SHA-256 and expiry
+- internal or historical records without that complete audience may remain in
+  Runtime-owned storage but are not externally readable and fail closed
+- once an artifact id is written, bytes, MIME, observed size, content hash and
+  audience are immutable. The generated-voice producer may atomically enrich
+  an otherwise identical record from absent metadata to its complete
+  `GeneratedVoiceArtifactMetadata` before the referencing event; it cannot
+  replace content or audience.
 
 ### Voice Artifact Identity
 
@@ -150,8 +163,9 @@ under `source_rule: K-AGCORE-053`. Numeric values 600..604:
 - `ARTIFACT_TOO_LARGE` (602): artifact exists but exceeds inline retrieval
   limit (32 MiB hard ceiling for this admission; chunked retrieval requires
   future authority)
-- `ARTIFACT_FORBIDDEN` (603): caller has no read permission (multi-tenant scope
-  violation; reserved — current single-runtime deployment never returns this)
+- `ARTIFACT_FORBIDDEN` (603): the protected caller is absent/revoked/expired or
+  its account, app, release, session, generation, allowed use or artifact
+  audience does not match
 - `ARTIFACT_MIME_MISMATCH` (604): SDK-side check; client passed
   `expected_mime_prefix` and stored artifact mime_type does not start with
   the prefix (case-insensitive). Server never returns this reason; SDK
@@ -178,12 +192,17 @@ buffer was discarded.
 
 ### Trust Model
 
-- caller is a trusted runtime client (avatar / desktop / first-party app);
-  authorization is the same trust model as existing
-  `getScenarioArtifacts(jobId)` and `getVoiceAsset` (single-process /
-  single-user / single-tenant deployment).
-- multi-tenant ACL / RBAC is reserved future; `ARTIFACT_FORBIDDEN`
-  reason code is admitted but never returned by current deployment.
+- `ReadArtifactBytes` requires the current Account-owned installed-caller
+  decision and a matching durable artifact audience; app/session metadata,
+  ordinary local gRPC and artifact-id possession are non-authorizing.
+- Runtime revalidates the live process, account generation and durable
+  installed session before the artifact lookup, then matches account/app/
+  release/session/generation/use/expiry before returning bytes.
+- unbound historical records, direct local gRPC, wrong app/account/release/
+  session, expired or revoked records and guessed ids fail closed.
+- capability/grant admission is an additional gate. Until its canonical A.3
+  row is admitted, the installed transport remains deny-all even when a stored
+  record has a matching audience.
 
 ## Backward Compatibility
 
@@ -195,12 +214,18 @@ Existing `getScenarioArtifacts(jobId)` (S-RUNTIME-073 typed projection)
 and `getVoiceAsset` remain admitted for their distinct use cases (job-typed
 media result projection / voice asset library).
 
+This is a hard cut: artifacts written before audience binding do not inherit
+readability from their id, local-user ownership or earlier anonymous behavior.
+
 ## Drift Resistance
 
 - ReasonCode ARTIFACT family must be admitted in three places synchronously
   (proto `common.proto` enum + `tables/reason-codes.yaml` + vNext SDK
   `sdks/typescript/types/reason-code.ts` ReasonCode const); spec validator enforces.
 - emitter-side `Store.Put` must precede emit event; absence logs fatal.
+- externally readable records must persist observed size, content SHA-256 and
+  the complete account/app/release/session/use/expiry audience; disk reads
+  recheck payload size and hash.
 - runtime handler must use `grpcerr.WithReasonCode`, not status.Error
   message string.
 - SDK consumer surface must be class-member shape (`Runtime.artifacts.readBytes`),
@@ -210,8 +235,7 @@ media result projection / voice asset library).
 
 ## Out of Scope (requires future authority)
 
-- generic artifact governance beyond generated agent voice artifacts
-- multi-tenant artifact ACL
+- cross-device or cross-account artifact sharing and delegated audiences
 - generic chunked retrieval for arbitrary artifact classes
 - generic artifact metadata API (`describeArtifact`) beyond the generated voice
   metadata required above

@@ -399,7 +399,7 @@ export class Runtime {
     this.appLifecycle = createNimiRuntimeAppLifecycleClient({
       client: bindRuntimeModule(generated, RUNTIME_APP_LIFECYCLE_METHODS),
     });
-    this.artifacts = bindRuntimeModule(generated, RUNTIME_ARTIFACT_METHODS);
+    this.artifacts = bindRuntimeModule(this.generated, RUNTIME_ARTIFACT_METHODS);
   }
 
   health(request: GetRuntimeHealthRequest = {}, options: RuntimeTypedCallOptions = {}): Promise<GetRuntimeHealthResponse> {

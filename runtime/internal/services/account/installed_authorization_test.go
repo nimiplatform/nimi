@@ -51,6 +51,9 @@ func TestAuthorizeInstalledCallerUsesCurrentAccountGeneration(t *testing.T) {
 	if resolver.generation != generation || decision.AccountGeneration != generation || decision.AccountID != "acct-1" || decision.AppID != "world.nimi.app" || decision.ReleaseDigest != release {
 		t.Fatalf("unexpected decision: %+v resolver_generation=%d", decision, resolver.generation)
 	}
+	if _, err := service.AuthorizeInstalledOperation(context.Background(), InstalledOperationReadArtifactBytes); !errors.Is(err, ErrInstalledOperationNotAdmitted) {
+		t.Fatalf("unadmitted artifact operation err = %v", err)
+	}
 }
 
 func TestAuthorizeInstalledCallerFailsClosedOnResolverOrAccountInvalidation(t *testing.T) {

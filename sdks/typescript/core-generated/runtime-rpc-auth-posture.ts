@@ -106,7 +106,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAppService/UpdateApp": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents": "authenticated_required",
   "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts": "anonymous_read",
-  "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes": "anonymous_read",
+  "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth": "anonymous_read",

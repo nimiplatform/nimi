@@ -244,6 +244,8 @@ test('Runtime facade keeps low-level generated core explicit and high-level defe
   );
   for (const invoke of [
     () => runtime.generated.openDesktopSession({}),
+    () => runtime.generated.readArtifactBytes({ artifactId: 'artifact-1' }),
+    () => runtime.artifacts.readArtifactBytes({ artifactId: 'artifact-1' }),
     () => runtime.generated.authorizeExternalPrincipal({} as never),
     () => runtime.grants.authorizeExternalPrincipal({} as never),
   ]) {

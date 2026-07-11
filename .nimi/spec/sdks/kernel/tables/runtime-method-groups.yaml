@@ -406,7 +406,9 @@ groups:
       ReadArtifactBytes and generated voice artifact cleanup are SDK typed
       projections for Runtime-owned artifact retrieval and cleanup. Artifact
       identity, authorization, MIME, size, and lifecycle truth remain
-      Runtime-owned.
+      Runtime-owned. ReadArtifactBytes is blocked on the ordinary/public
+      Runtime facade; its typed projection is reserved for an admitted
+      installed protected carrier with current capability/grant and audience.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - ReadArtifactBytes

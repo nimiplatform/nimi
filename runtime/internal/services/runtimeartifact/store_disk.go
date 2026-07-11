@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
 const (
@@ -33,9 +35,22 @@ type diskArtifactRecord struct {
 	PayloadFile    string                          `json:"payload_file"`
 	MimeType       string                          `json:"mime_type"`
 	SizeBytes      int64                           `json:"size_bytes"`
+	ContentSHA256  string                          `json:"content_sha256"`
 	MimeInferred   bool                            `json:"mime_inferred"`
 	CreatedAt      time.Time                       `json:"created_at"`
+	Audience       *diskArtifactAudience           `json:"audience,omitempty"`
 	GeneratedVoice *GeneratedVoiceArtifactMetadata `json:"generated_voice,omitempty"`
+}
+
+type diskArtifactAudience struct {
+	ProducerJobID     string      `json:"producer_job_id"`
+	OwnerAccountID    string      `json:"owner_account_id"`
+	AppID             string      `json:"app_id"`
+	ReleaseDigest     string      `json:"release_digest"`
+	SessionID         string      `json:"session_id"`
+	AccountGeneration uint64      `json:"account_generation"`
+	AllowedUse        ArtifactUse `json:"allowed_use"`
+	ExpiresAt         time.Time   `json:"expires_at"`
 }
 
 // NewDiskStoreForLocalStatePath places the artifact store next to
@@ -82,8 +97,10 @@ func (s *DiskStore) Put(artifactID string, record ArtifactRecord) error {
 		PayloadFile:    payloadFile,
 		MimeType:       normalized.MimeType,
 		SizeBytes:      normalized.SizeBytes,
+		ContentSHA256:  normalized.ContentSHA256,
 		MimeInferred:   normalized.MimeInferred,
 		CreatedAt:      normalized.CreatedAt,
+		Audience:       diskArtifactAudienceFromRecord(normalized.Audience),
 		GeneratedVoice: normalized.GeneratedVoice,
 	}
 	metadata, err := json.MarshalIndent(diskRecord, "", "  ")
@@ -95,6 +112,38 @@ func (s *DiskStore) Put(artifactID string, record ArtifactRecord) error {
 	defer s.mu.Unlock()
 	if err := s.ensureDirs(); err != nil {
 		return err
+	}
+	if existingDisk, ok := s.readDiskRecordLocked(artifactID); ok {
+		existing, ok := s.artifactFromDiskRecordLocked(existingDisk)
+		if !ok {
+			return ErrInvalidArtifactRecord
+		}
+		merged, changed, valid := mergeArtifactRecords(existing, normalized)
+		if !valid {
+			return ErrInvalidArtifactRecord
+		}
+		if !changed {
+			return nil
+		}
+		mergedDisk := diskArtifactRecord{
+			ArtifactID:     artifactID,
+			PayloadFile:    existingDisk.PayloadFile,
+			MimeType:       merged.MimeType,
+			SizeBytes:      merged.SizeBytes,
+			ContentSHA256:  merged.ContentSHA256,
+			MimeInferred:   merged.MimeInferred,
+			CreatedAt:      existing.CreatedAt,
+			Audience:       diskArtifactAudienceFromRecord(merged.Audience),
+			GeneratedVoice: merged.GeneratedVoice,
+		}
+		mergedMetadata, err := json.MarshalIndent(mergedDisk, "", "  ")
+		if err != nil {
+			return fmt.Errorf("marshal enriched artifact metadata: %w", err)
+		}
+		if err := writeFileAtomic(filepath.Join(s.recordsDir, key+".json"), mergedMetadata, 0o600); err != nil {
+			return fmt.Errorf("write enriched artifact metadata: %w", err)
+		}
+		return nil
 	}
 	if err := writeFileAtomic(filepath.Join(s.payloadsDir, payloadFile), normalized.Bytes, 0o600); err != nil {
 		return fmt.Errorf("write artifact payload: %w", err)
@@ -117,17 +166,30 @@ func (s *DiskStore) Get(artifactID string) (ArtifactRecord, bool) {
 	if !ok {
 		return ArtifactRecord{}, false
 	}
+	return s.artifactFromDiskRecordLocked(diskRecord)
+}
+
+func (s *DiskStore) artifactFromDiskRecordLocked(diskRecord diskArtifactRecord) (ArtifactRecord, bool) {
 	payload, err := os.ReadFile(filepath.Join(s.payloadsDir, diskRecord.PayloadFile))
 	if err != nil {
 		return ArtifactRecord{}, false
 	}
-	record := ArtifactRecord{
+	audience, ok := artifactAudienceFromDisk(diskRecord.Audience)
+	if !ok {
+		return ArtifactRecord{}, false
+	}
+	record, err := normalizeArtifactRecord(ArtifactRecord{
 		Bytes:          payload,
 		MimeType:       diskRecord.MimeType,
 		SizeBytes:      diskRecord.SizeBytes,
+		ContentSHA256:  diskRecord.ContentSHA256,
 		MimeInferred:   diskRecord.MimeInferred,
 		CreatedAt:      diskRecord.CreatedAt,
+		Audience:       audience,
 		GeneratedVoice: diskRecord.GeneratedVoice,
+	})
+	if err != nil {
+		return ArtifactRecord{}, false
 	}
 	return cloneArtifactRecord(record), true
 }
@@ -277,4 +339,54 @@ func removeFileIfPresent(path string) error {
 		return err
 	}
 	return nil
+}
+
+func diskArtifactAudienceFromRecord(audience *ArtifactAudience) *diskArtifactAudience {
+	if audience == nil {
+		return nil
+	}
+	return &diskArtifactAudience{
+		ProducerJobID:     audience.ProducerJobID,
+		OwnerAccountID:    audience.OwnerAccountID,
+		AppID:             audience.AppID,
+		ReleaseDigest:     hex.EncodeToString(audience.ReleaseDigest[:]),
+		SessionID:         hex.EncodeToString(audience.SessionID[:]),
+		AccountGeneration: audience.AccountGeneration,
+		AllowedUse:        audience.AllowedUse,
+		ExpiresAt:         audience.ExpiresAt.UTC(),
+	}
+}
+
+func artifactAudienceFromDisk(audience *diskArtifactAudience) (*ArtifactAudience, bool) {
+	if audience == nil {
+		return nil, true
+	}
+	release, ok := decodeArtifactIdentifier(audience.ReleaseDigest)
+	if !ok {
+		return nil, false
+	}
+	session, ok := decodeArtifactIdentifier(audience.SessionID)
+	if !ok {
+		return nil, false
+	}
+	return &ArtifactAudience{
+		ProducerJobID:     audience.ProducerJobID,
+		OwnerAccountID:    audience.OwnerAccountID,
+		AppID:             audience.AppID,
+		ReleaseDigest:     release,
+		SessionID:         session,
+		AccountGeneration: audience.AccountGeneration,
+		AllowedUse:        audience.AllowedUse,
+		ExpiresAt:         audience.ExpiresAt,
+	}, true
+}
+
+func decodeArtifactIdentifier(encoded string) (protectedlocal.Identifier, bool) {
+	var identifier protectedlocal.Identifier
+	decoded, err := hex.DecodeString(strings.TrimSpace(encoded))
+	if err != nil || len(decoded) != protectedlocal.IdentifierBytes {
+		return identifier, false
+	}
+	copy(identifier[:], decoded)
+	return identifier, identifier != (protectedlocal.Identifier{})
 }

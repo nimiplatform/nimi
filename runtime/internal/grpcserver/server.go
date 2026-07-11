@@ -576,7 +576,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	})
 	runtimev1.RegisterRuntimeAppServiceServer(g, appSvc) // Phase 2 Draft
 
-	artifactSvc := runtimeartifactservice.New(artifactStore, logger)
+	artifactSvc := runtimeartifactservice.New(artifactStore, logger, runtimeartifactservice.WithInstalledOperationAuthorizer(accountSvc))
 	runtimev1.RegisterRuntimeArtifactServiceServer(g, artifactSvc)
 
 	s := &Server{

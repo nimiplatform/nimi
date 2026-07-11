@@ -563,6 +563,12 @@ SDK 必须暴露通用 artifact bytes 取回 surface，与 typed media projectio
 
 - SDK 必须以 `Runtime` class `readonly artifacts: RuntimeArtifactsModule` 字段暴露 `runtime.artifacts.readBytes({ artifactId, expectedMimePrefix? }): Promise<{ bytes: ArrayBuffer; mimeType: string; sizeBytes: number; mimeInferred: boolean }>` 稳定 high-level convenience API。
 - SDK 必须以 `Runtime['client']` / RPC binding 形态暴露底层 `runtimeClient.readArtifactBytes(request: ReadArtifactBytesRequest, options?: RuntimeCallOptions): Promise<ReadArtifactBytesResponse>`，绑定到 `RuntimeArtifactService.ReadArtifactBytes` proto method id。
+- `ReadArtifactBytes` 的 wire binding 仅是 typed projection，不代表 public
+  transport admission。普通 `Runtime.generated`、`Runtime.artifacts`、app
+  session metadata 和 direct local gRPC 必须返回
+  `SDK_RUNTIME_METHOD_UNAVAILABLE` 且不得发出请求；只有未来 admitted 的
+  installed protected carrier 在 A.3 capability/grant 与 artifact audience
+  同时成立后才能消费该 binding。
 - SDK Runtime class 的 `artifacts` module 必须暴露 Runtime-owned generated voice cleanup RPC binding：`cleanupGeneratedVoiceArtifacts({ agentId?, conversationAnchorId? })`，绑定到 `RuntimeArtifactService.CleanupGeneratedVoiceArtifacts`；SDK 不得在 app/Avatar 层实现文件删除逻辑。
 - SDK 不得以 singleton const（如 `export const runtime = { artifacts }`）形式暴露 artifacts namespace；必须通过 Runtime class 实例化路径（`new Runtime(options)` 或 `createLocalFirstPartyRuntimePlatformClient(...)`）。
 - `expectedMimePrefix` 用于 SDK fail-fast：runtime 返回 `mime_type` 不以 prefix 开头（case-insensitive）时，SDK throw `NimiError(reasonCode: ARTIFACT_MIME_MISMATCH)`，不暴露 bytes。
