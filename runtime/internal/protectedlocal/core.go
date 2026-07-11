@@ -170,8 +170,9 @@ type Connection struct {
 	clientLiveness DesktopProcessLiveness
 	livenessSignal <-chan struct{}
 
-	revokeMu    sync.Mutex
-	revokeHooks []func()
+	revokeMu         sync.Mutex
+	revokeHooks      []func()
+	boundRevokeHooks map[Identifier]func()
 
 	desktopSessionMu sync.RWMutex
 	desktopSession   *desktopSessionAuthority
@@ -306,8 +307,13 @@ func (connection *Connection) Revoke() {
 	close(connection.done)
 	_ = connection.clientLiveness.Close()
 	connection.revokeMu.Lock()
-	hooks := append([]func(){}, connection.revokeHooks...)
+	hooks := make([]func(), 0, len(connection.revokeHooks)+len(connection.boundRevokeHooks))
+	hooks = append(hooks, connection.revokeHooks...)
+	for _, hook := range connection.boundRevokeHooks {
+		hooks = append(hooks, hook)
+	}
 	connection.revokeHooks = nil
+	connection.boundRevokeHooks = nil
 	connection.revokeMu.Unlock()
 	for _, hook := range hooks {
 		hook()
@@ -325,6 +331,40 @@ func (connection *Connection) onRevoke(hook func()) {
 		return
 	}
 	connection.revokeHooks = append(connection.revokeHooks, hook)
+	connection.revokeMu.Unlock()
+}
+
+// BindRevocationHook keeps one replaceable hook for an exact Runtime-owned
+// binding. Local-development uses the supervisor run identifier so repeated
+// host restarts do not accumulate callbacks, while reapproval can replace the
+// callback with the newly admitted authorization. A hook bound after the
+// verified Desktop connection is already revoked runs synchronously.
+func (connection *Connection) BindRevocationHook(binding Identifier, hook func()) error {
+	if connection == nil || binding == (Identifier{}) || hook == nil {
+		return fmt.Errorf("complete protected connection revocation binding is required")
+	}
+	connection.revokeMu.Lock()
+	if !connection.live.Load() {
+		connection.revokeMu.Unlock()
+		hook()
+		return nil
+	}
+	if connection.boundRevokeHooks == nil {
+		connection.boundRevokeHooks = make(map[Identifier]func())
+	}
+	connection.boundRevokeHooks[binding] = hook
+	connection.revokeMu.Unlock()
+	return nil
+}
+
+// UnbindRevocationHook removes a completed Runtime-owned binding without
+// changing the liveness or authority of the protected Desktop connection.
+func (connection *Connection) UnbindRevocationHook(binding Identifier) {
+	if connection == nil || binding == (Identifier{}) {
+		return
+	}
+	connection.revokeMu.Lock()
+	delete(connection.boundRevokeHooks, binding)
 	connection.revokeMu.Unlock()
 }
 

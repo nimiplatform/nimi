@@ -14,7 +14,7 @@ import (
 	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
-func TestLocalDevelopmentHandlerCompletesDesktopToVerifiedHostBootstrap(t *testing.T) {
+func TestLocalDevelopmentHandlerCompletesBootstrapAndRevokesTechnicalSessionWithDesktopSupervisor(t *testing.T) {
 	ctx := context.Background()
 	boot := localDevelopmentTestIdentifier(0x91)
 	store, err := openLocalDevelopmentStore(filepath.Join(t.TempDir(), "local-development.db"), boot)
@@ -127,6 +127,26 @@ permissions:
 	}
 	if rotated.GetBootstrapArtifactId() == opened.GetBootstrapArtifactId() || rotated.GetState() != runtimev1.LocalDevelopmentBootstrapState_LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_READY {
 		t.Fatalf("session rotation must mint a new audience-bound bootstrap without reapproval: before=%+v after=%+v", opened, rotated)
+	}
+	desktopConnection.Revoke()
+	if _, err := service.GetLocalDevelopmentSessionStatus(hostContext, &runtimev1.GetLocalDevelopmentSessionStatusRequest{}); err == nil {
+		t.Fatal("verified Desktop supervisor exit must revoke the local-development technical session")
+	}
+
+	nextDesktopConnection := newLocalDevelopmentHandlerDesktopConnection(t, boot)
+	t.Cleanup(nextDesktopConnection.Revoke)
+	nextDesktopContext := protectedlocal.ContextWithDesktopConnection(ctx, nextDesktopConnection)
+	nextRunID := localDevelopmentTestIdentifier(0x94)
+	nextEvaluation, err := service.EvaluateLocalDevelopmentProject(nextDesktopContext, &runtimev1.EvaluateLocalDevelopmentProjectRequest{
+		ExpectedAppId: "sample.nimi.app", ProjectRoot: projectRoot,
+		ShellKind:       runtimev1.LocalDevelopmentShellKind_LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON,
+		SupervisorRunId: nextRunID[:],
+	})
+	if err != nil {
+		t.Fatalf("EvaluateLocalDevelopmentProject after supervisor restart: %v", err)
+	}
+	if nextEvaluation.GetConfirmationRequired() || nextEvaluation.GetAuthorization().GetState() != runtimev1.LocalDevelopmentAuthorizationState_LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE {
+		t.Fatalf("remember-project authorization must survive supervisor exit while technical state is replaced: %+v", nextEvaluation)
 	}
 	hostConnection.Revoke()
 	if _, err := service.GetLocalDevelopmentSessionStatus(hostContext, &runtimev1.GetLocalDevelopmentSessionStatusRequest{}); err == nil {

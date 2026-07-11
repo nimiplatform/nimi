@@ -88,6 +88,46 @@ func TestZeroValueDesktopConnectionRevokeDoesNotBlock(t *testing.T) {
 	}
 }
 
+func TestBoundRevocationHookReplacesExactBindingAndUnbindsCompletedWork(t *testing.T) {
+	boot := identifierFilled(0xc1)
+	connection, err := EstablishDesktopConnection(
+		context.Background(),
+		fixedDesktopVerifier{peers: desktopPeers(boot)},
+		distinctIdentifierReader(0xc2, 1),
+	)
+	if err != nil {
+		t.Fatalf("establish desktop connection: %v", err)
+	}
+	binding := identifierFilled(0xc3)
+	removedBinding := identifierFilled(0xc4)
+	firstCalls := 0
+	replacementCalls := 0
+	removedCalls := 0
+	if err := connection.BindRevocationHook(binding, func() { firstCalls++ }); err != nil {
+		t.Fatalf("bind first revocation hook: %v", err)
+	}
+	if err := connection.BindRevocationHook(binding, func() { replacementCalls++ }); err != nil {
+		t.Fatalf("replace revocation hook: %v", err)
+	}
+	if err := connection.BindRevocationHook(removedBinding, func() { removedCalls++ }); err != nil {
+		t.Fatalf("bind removable revocation hook: %v", err)
+	}
+	connection.UnbindRevocationHook(removedBinding)
+
+	connection.Revoke()
+	if firstCalls != 0 || replacementCalls != 1 || removedCalls != 0 {
+		t.Fatalf("unexpected bound revocation calls: first=%d replacement=%d removed=%d", firstCalls, replacementCalls, removedCalls)
+	}
+
+	lateCalls := 0
+	if err := connection.BindRevocationHook(identifierFilled(0xc5), func() { lateCalls++ }); err != nil {
+		t.Fatalf("bind hook after revocation: %v", err)
+	}
+	if lateCalls != 1 {
+		t.Fatalf("hook bound after revocation must run synchronously, got %d", lateCalls)
+	}
+}
+
 func TestDesktopSessionManagerValidationIsIndependentOfDurableLedger(t *testing.T) {
 	if err := (&DesktopSessionManager{}).ValidateBootScoped(context.Background()); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
 		t.Fatalf("zero manager validation error = %v", err)

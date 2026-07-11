@@ -183,6 +183,17 @@ func (s *Service) PrepareLocalDevelopmentLaunch(ctx context.Context, req *runtim
 	if err != nil {
 		return nil, localDevelopmentStoreError(err)
 	}
+	desktopConnection, ok := protectedlocal.DesktopConnectionFromContext(ctx)
+	if !ok || desktopConnection == nil {
+		_ = s.localDevelopment.EndRun(context.Background(), authorizationID, runID)
+		return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED)
+	}
+	if err := desktopConnection.BindRevocationHook(runID, func() {
+		_ = s.localDevelopment.EndRun(context.Background(), authorizationID, runID)
+	}); err != nil {
+		_ = s.localDevelopment.EndRun(context.Background(), authorizationID, runID)
+		return nil, localDevelopmentFailure(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED)
+	}
 	return &runtimev1.PrepareLocalDevelopmentLaunchResponse{LaunchId: append([]byte(nil), ticket.LaunchID[:]...), BindDeadline: timestamppb.New(ticket.BindDeadline), ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
@@ -351,6 +362,9 @@ func (s *Service) EndLocalDevelopmentRun(ctx context.Context, req *runtimev1.End
 	}
 	if err := s.localDevelopment.EndRun(ctx, authorizationID, runID); err != nil {
 		return nil, localDevelopmentStoreError(err)
+	}
+	if connection, ok := protectedlocal.DesktopConnectionFromContext(ctx); ok {
+		connection.UnbindRevocationHook(runID)
 	}
 	return &runtimev1.EndLocalDevelopmentRunResponse{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
