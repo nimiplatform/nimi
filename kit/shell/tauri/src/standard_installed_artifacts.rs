@@ -1,10 +1,12 @@
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine as _;
-use nimi_shell_protected_local::InstalledArtifactBytes;
+use nimi_shell_protected_local::{
+    AppHostArtifactBytes, AppHostBootstrapState, AppHostBootstrapStatus, AppHostTrustClass,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::runtime_bridge::{RuntimeBridgeInstalledHost, RuntimeBridgeInstalledHostError};
+use crate::runtime_bridge::{RuntimeBridgeAppHost, RuntimeBridgeAppHostError};
 
 const COMMAND: &str = "artifacts_read_runtime_bytes";
 const MAX_ARTIFACT_ID_LENGTH: usize = 512;
@@ -24,15 +26,33 @@ pub struct InstalledArtifactReadResult {
     pub mime_inferred: bool,
 }
 
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppHostBootstrapResult {
+    pub state: &'static str,
+    pub trust_class: &'static str,
+    pub app_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bootstrap_artifact_id: Option<String>,
+    pub expires_at_unix_ms: i64,
+}
+
+pub async fn app_host_bootstrap_for_host(
+    host: &RuntimeBridgeAppHost,
+) -> Result<AppHostBootstrapResult, String> {
+    let status = host.bootstrap().await.map_err(map_app_host_error)?;
+    project_bootstrap(status)
+}
+
 pub async fn artifacts_read_runtime_bytes_for_host(
-    host: &RuntimeBridgeInstalledHost,
+    host: &RuntimeBridgeAppHost,
     payload: Value,
 ) -> Result<InstalledArtifactReadResult, String> {
     let artifact_id = parse_artifact_id(payload)?;
     let artifact = host
         .read_artifact_bytes(artifact_id)
         .await
-        .map_err(map_installed_host_error)?;
+        .map_err(map_app_host_error)?;
     Ok(project_artifact(artifact))
 }
 
@@ -62,7 +82,7 @@ fn parse_artifact_id(payload: Value) -> Result<String, String> {
     Ok(parsed.artifact_id)
 }
 
-fn project_artifact(artifact: InstalledArtifactBytes) -> InstalledArtifactReadResult {
+fn project_artifact(artifact: AppHostArtifactBytes) -> InstalledArtifactReadResult {
     InstalledArtifactReadResult {
         data_base64: BASE64_STANDARD.encode(artifact.bytes),
         mime_type: artifact.mime_type,
@@ -71,7 +91,29 @@ fn project_artifact(artifact: InstalledArtifactBytes) -> InstalledArtifactReadRe
     }
 }
 
-fn map_installed_host_error(error: RuntimeBridgeInstalledHostError) -> String {
+fn project_bootstrap(status: AppHostBootstrapStatus) -> Result<AppHostBootstrapResult, String> {
+    if status.state != AppHostBootstrapState::Ready {
+        return Err(crate::capabilities::standard_shell_error(
+            "runtime-service-untrusted",
+            "runtime-service-untrusted",
+            "restart_verified_app_host",
+            "tauri",
+            Some(json!({ "command": "app_host_bootstrap" })),
+        ));
+    }
+    Ok(AppHostBootstrapResult {
+        state: "ready",
+        trust_class: match status.trust_class {
+            AppHostTrustClass::ProductionInstalled => "production-installed",
+            AppHostTrustClass::LocalDevelopment => "local-development",
+        },
+        app_id: status.app_id,
+        bootstrap_artifact_id: status.bootstrap_artifact_id,
+        expires_at_unix_ms: status.expires_at_unix_ms,
+    })
+}
+
+fn map_app_host_error(error: RuntimeBridgeAppHostError) -> String {
     let reason_code = error.reason_code();
     crate::capabilities::standard_shell_error(
         standard_code(reason_code),
@@ -119,7 +161,7 @@ fn action_hint(reason_code: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nimi_shell_protected_local::{InstalledArtifactReadError, InstalledArtifactReadReasonCode};
+    use nimi_shell_protected_local::{AppHostArtifactReadError, AppHostArtifactReadReasonCode};
 
     #[test]
     fn payload_accepts_only_the_artifact_selector() {
@@ -139,7 +181,7 @@ mod tests {
 
     #[test]
     fn projection_contains_only_renderer_safe_artifact_fields() {
-        let result = project_artifact(InstalledArtifactBytes {
+        let result = project_artifact(AppHostArtifactBytes {
             bytes: b"artifact".to_vec(),
             mime_type: "text/plain".to_string(),
             size_bytes: 8,
@@ -155,17 +197,17 @@ mod tests {
     fn typed_runtime_denials_map_to_standard_codes_without_detail() {
         for (reason, expected_code) in [
             (
-                InstalledArtifactReadReasonCode::Forbidden,
+                AppHostArtifactReadReasonCode::Forbidden,
                 "runtime-permission-denied",
             ),
-            (InstalledArtifactReadReasonCode::NotFound, "not-found"),
+            (AppHostArtifactReadReasonCode::NotFound, "not-found"),
             (
-                InstalledArtifactReadReasonCode::TooLarge,
+                AppHostArtifactReadReasonCode::TooLarge,
                 "resource-exhausted",
             ),
         ] {
-            let error = map_installed_host_error(RuntimeBridgeInstalledHostError::Artifact(
-                InstalledArtifactReadError::new(reason, false),
+            let error = map_app_host_error(RuntimeBridgeAppHostError::Artifact(
+                AppHostArtifactReadError::new(reason, false),
             ));
             let envelope: Value = serde_json::from_str(&error).expect("standard error");
             assert_eq!(envelope["code"], expected_code);

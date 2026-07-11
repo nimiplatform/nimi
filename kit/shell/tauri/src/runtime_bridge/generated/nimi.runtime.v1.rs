@@ -337,6 +337,17 @@ pub enum ReasonCode {
     LifecycleIntentMismatch = 639,
     LifecycleIntentReplay = 640,
     LifecycleIntentExpired = 641,
+    /// LOCAL_DEVELOPMENT family (642+). These values are reserved for the
+    /// explicit non-production mutable-project trust class (K-PLOCAL-009).
+    LocalDevelopmentAuthorizationRequired = 642,
+    LocalDevelopmentReapprovalRequired = 643,
+    LocalDevelopmentProjectChanged = 644,
+    LocalDevelopmentSupervisorRequired = 645,
+    LocalDevelopmentSessionRevoked = 646,
+    LocalDevelopmentPlatformUnsupported = 647,
+    LocalDevelopmentOperationForbidden = 648,
+    LocalDevelopmentDevServerUncontrolled = 649,
+    LocalDevelopmentApprovalDenied = 650,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -599,6 +610,27 @@ impl ReasonCode {
             Self::LifecycleIntentMismatch => "LIFECYCLE_INTENT_MISMATCH",
             Self::LifecycleIntentReplay => "LIFECYCLE_INTENT_REPLAY",
             Self::LifecycleIntentExpired => "LIFECYCLE_INTENT_EXPIRED",
+            Self::LocalDevelopmentAuthorizationRequired => {
+                "LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED"
+            }
+            Self::LocalDevelopmentReapprovalRequired => {
+                "LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED"
+            }
+            Self::LocalDevelopmentProjectChanged => "LOCAL_DEVELOPMENT_PROJECT_CHANGED",
+            Self::LocalDevelopmentSupervisorRequired => {
+                "LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED"
+            }
+            Self::LocalDevelopmentSessionRevoked => "LOCAL_DEVELOPMENT_SESSION_REVOKED",
+            Self::LocalDevelopmentPlatformUnsupported => {
+                "LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED"
+            }
+            Self::LocalDevelopmentOperationForbidden => {
+                "LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN"
+            }
+            Self::LocalDevelopmentDevServerUncontrolled => {
+                "LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED"
+            }
+            Self::LocalDevelopmentApprovalDenied => "LOCAL_DEVELOPMENT_APPROVAL_DENIED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -892,6 +924,33 @@ impl ReasonCode {
             "LIFECYCLE_INTENT_MISMATCH" => Some(Self::LifecycleIntentMismatch),
             "LIFECYCLE_INTENT_REPLAY" => Some(Self::LifecycleIntentReplay),
             "LIFECYCLE_INTENT_EXPIRED" => Some(Self::LifecycleIntentExpired),
+            "LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED" => {
+                Some(Self::LocalDevelopmentAuthorizationRequired)
+            }
+            "LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED" => {
+                Some(Self::LocalDevelopmentReapprovalRequired)
+            }
+            "LOCAL_DEVELOPMENT_PROJECT_CHANGED" => {
+                Some(Self::LocalDevelopmentProjectChanged)
+            }
+            "LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED" => {
+                Some(Self::LocalDevelopmentSupervisorRequired)
+            }
+            "LOCAL_DEVELOPMENT_SESSION_REVOKED" => {
+                Some(Self::LocalDevelopmentSessionRevoked)
+            }
+            "LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED" => {
+                Some(Self::LocalDevelopmentPlatformUnsupported)
+            }
+            "LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN" => {
+                Some(Self::LocalDevelopmentOperationForbidden)
+            }
+            "LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED" => {
+                Some(Self::LocalDevelopmentDevServerUncontrolled)
+            }
+            "LOCAL_DEVELOPMENT_APPROVAL_DENIED" => {
+                Some(Self::LocalDevelopmentApprovalDenied)
+            }
             _ => None,
         }
     }
@@ -14190,8 +14249,9 @@ pub struct AppOpenProjection {
     #[prost(string, tag = "8")]
     pub detail: ::prost::alloc::string::String,
     /// release_descriptor_ref is Runtime-attested descriptor identity used for
-    /// the installed launch. It is empty for local adoption launches, which do
-    /// not satisfy P-NAPP-034 installed third-party launch proof.
+    /// the installed launch. It is empty for blocked local-adoption projections;
+    /// adoption inventory alone cannot satisfy either production installed or
+    /// P-NAPP-035 local-development launch authority.
     #[prost(string, tag = "9")]
     pub release_descriptor_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "10")]

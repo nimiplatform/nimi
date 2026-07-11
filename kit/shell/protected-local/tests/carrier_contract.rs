@@ -1,11 +1,11 @@
+#[cfg(not(target_os = "windows"))]
+use nimi_shell_protected_local::WindowsAppHostCarrier;
 use nimi_shell_protected_local::{
-    LinuxInstalledAppCarrier, LinuxUnixSocketCarrier, MacOsInstalledAppCarrier,
-    MacOsPrivilegedXpcCarrier, NimiInstalledAppCarrier, NimiProtectedLocalHostCarrier,
+    LinuxAppHostCarrier, LinuxUnixSocketCarrier, MacOsAppHostCarrier, MacOsPrivilegedXpcCarrier,
+    NimiAppHostCarrier, NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier,
     ProtectedCarrierReasonCode, RuntimeServiceAction, RuntimeServiceActionOutcome,
     RuntimeServiceState, RuntimeServiceStatus, WindowsNamedPipeCarrier,
 };
-#[cfg(not(target_os = "windows"))]
-use nimi_shell_protected_local::WindowsInstalledAppCarrier;
 
 async fn assert_unbound<C: NimiProtectedLocalHostCarrier>(carrier: C) {
     for error in [
@@ -26,14 +26,14 @@ async fn assert_unbound<C: NimiProtectedLocalHostCarrier>(carrier: C) {
     }
 }
 
-async fn assert_installed_unbound<C: NimiInstalledAppCarrier>(carrier: C) {
-    let error = match carrier.open_installed_app_session().await {
-        Ok(_) => panic!("unbound installed carrier must not open a session"),
+async fn assert_app_host_unbound<C: NimiAppHostCarrier>(carrier: C) {
+    let error = match carrier.open_app_host_session().await {
+        Ok(_) => panic!("unbound app-host carrier must not open a session"),
         Err(error) => error,
     };
     assert_eq!(
         error.reason_code(),
-        ProtectedCarrierReasonCode::ProtectedCarrierRequired
+        NimiHostErrorReasonCode::ProtectedCarrierRequired
     );
     assert!(!error.retryable());
 }
@@ -45,10 +45,10 @@ async fn compile_only_os_adapters_fail_closed_when_unbound() {
     #[cfg(not(target_os = "windows"))]
     assert_unbound(WindowsNamedPipeCarrier).await;
 
-    assert_installed_unbound(LinuxInstalledAppCarrier).await;
-    assert_installed_unbound(MacOsInstalledAppCarrier).await;
+    assert_app_host_unbound(LinuxAppHostCarrier).await;
+    assert_app_host_unbound(MacOsAppHostCarrier).await;
     #[cfg(not(target_os = "windows"))]
-    assert_installed_unbound(WindowsInstalledAppCarrier).await;
+    assert_app_host_unbound(WindowsAppHostCarrier).await;
 }
 
 #[cfg(target_os = "windows")]

@@ -1,8 +1,8 @@
 import type { NimiElectronStandardShellHost } from './types.js';
 import {
-  NimiElectronInstalledHostError,
-  type NimiElectronInstalledArtifactBytes,
-} from './installed-host.js';
+  NimiElectronAppHostError,
+  type NimiElectronAppHostArtifactBytes,
+} from './app-host.js';
 import { NimiElectronShellHostError } from './types.js';
 
 const MAX_ARTIFACT_ID_LENGTH = 512;
@@ -19,8 +19,8 @@ export async function readElectronInstalledArtifact(
   payload: Readonly<Record<string, unknown>>,
   command: string,
 ): Promise<NimiElectronInstalledArtifactResult> {
-  const installedHost = host?.installedHost;
-  if (!installedHost) {
+  const appHost = host?.appHost;
+  if (!appHost) {
     throw new NimiElectronShellHostError({
       code: 'protected-carrier-required',
       message: 'Electron installed artifact read requires the native protected carrier',
@@ -38,9 +38,9 @@ export async function readElectronInstalledArtifact(
     throw invalidPayload(command);
   }
   try {
-    return projectArtifact(await installedHost.readArtifactBytes(artifactId));
+    return projectArtifact(await appHost.readArtifactBytes(artifactId));
   } catch (error) {
-    if (error instanceof NimiElectronInstalledHostError) {
+    if (error instanceof NimiElectronAppHostError) {
       throw mapInstalledHostError(error, command);
     }
     throw new NimiElectronShellHostError({
@@ -53,7 +53,7 @@ export async function readElectronInstalledArtifact(
   }
 }
 
-function projectArtifact(artifact: NimiElectronInstalledArtifactBytes): NimiElectronInstalledArtifactResult {
+function projectArtifact(artifact: NimiElectronAppHostArtifactBytes): NimiElectronInstalledArtifactResult {
   return {
     dataBase64: Buffer.from(artifact.bytes).toString('base64'),
     mimeType: artifact.mimeType,
@@ -63,7 +63,7 @@ function projectArtifact(artifact: NimiElectronInstalledArtifactBytes): NimiElec
 }
 
 function mapInstalledHostError(
-  error: NimiElectronInstalledHostError,
+  error: NimiElectronAppHostError,
   command: string,
 ): NimiElectronShellHostError {
   const code = installedArtifactStandardCode(error.reasonCode);

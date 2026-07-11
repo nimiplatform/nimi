@@ -6,15 +6,20 @@ fn main() {
     let auth_proto = proto_root.join("runtime/v1/auth.proto");
     let app_proto = proto_root.join("runtime/v1/app.proto");
     let artifact_proto = proto_root.join("runtime/v1/artifact_service.proto");
+    let development_proto = proto_root.join("runtime/v1/development.proto");
     let protoc = protoc_bin_vendored::protoc_bin_path().expect("vendored protoc");
     std::env::set_var("PROTOC", protoc);
     tonic_prost_build::configure()
         .build_client(true)
         .build_server(false)
-        .compile_protos(&[auth_proto, app_proto, artifact_proto], &[proto_root])
+        .compile_protos(
+            &[auth_proto, app_proto, artifact_proto, development_proto],
+            &[proto_root],
+        )
         .expect("compile protected Runtime auth protocol");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/auth.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/app.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/artifact_service.proto");
+    println!("cargo:rerun-if-changed=../../../proto/runtime/v1/development.proto");
     println!("cargo:rerun-if-changed=../../../proto/runtime/v1/common.proto");
 }

@@ -1,4 +1,9 @@
-use crate::{FixedRuntimeServiceControl, ProtectedCarrierError};
+use crate::{
+    AppHostBootstrapStatus, FixedRuntimeServiceControl, LocalDevelopmentAuthorization,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
+    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    LocalDevelopmentLaunchRequest, NimiHostError, ProtectedCarrierError,
+};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::future::Future;
@@ -18,7 +23,7 @@ pub struct InstalledAppLaunchOutcome {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct InstalledArtifactBytes {
+pub struct AppHostArtifactBytes {
     pub bytes: Vec<u8>,
     pub mime_type: String,
     pub size_bytes: i64,
@@ -26,7 +31,7 @@ pub struct InstalledArtifactBytes {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum InstalledArtifactReadReasonCode {
+pub enum AppHostArtifactReadReasonCode {
     InvalidInput,
     Forbidden,
     NotFound,
@@ -35,7 +40,7 @@ pub enum InstalledArtifactReadReasonCode {
     RuntimeUntrusted,
 }
 
-impl InstalledArtifactReadReasonCode {
+impl AppHostArtifactReadReasonCode {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::InvalidInput => "installed-artifact-invalid-input",
@@ -49,20 +54,20 @@ impl InstalledArtifactReadReasonCode {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct InstalledArtifactReadError {
-    reason_code: InstalledArtifactReadReasonCode,
+pub struct AppHostArtifactReadError {
+    reason_code: AppHostArtifactReadReasonCode,
     retryable: bool,
 }
 
-impl InstalledArtifactReadError {
-    pub const fn new(reason_code: InstalledArtifactReadReasonCode, retryable: bool) -> Self {
+impl AppHostArtifactReadError {
+    pub const fn new(reason_code: AppHostArtifactReadReasonCode, retryable: bool) -> Self {
         Self {
             reason_code,
             retryable,
         }
     }
 
-    pub const fn reason_code(self) -> InstalledArtifactReadReasonCode {
+    pub const fn reason_code(self) -> AppHostArtifactReadReasonCode {
         self.reason_code
     }
 
@@ -71,13 +76,13 @@ impl InstalledArtifactReadError {
     }
 }
 
-impl Display for InstalledArtifactReadError {
+impl Display for AppHostArtifactReadError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         formatter.write_str(self.reason_code.as_str())
     }
 }
 
-impl Error for InstalledArtifactReadError {}
+impl Error for AppHostArtifactReadError {}
 
 /// Opaque host-only handle for one connection-bound protected Desktop session.
 ///
@@ -96,31 +101,78 @@ pub trait NimiDesktopControl: Send + Sync {
                 + '_,
         >,
     >;
+
+    fn evaluate_local_development_project(
+        &self,
+        request: LocalDevelopmentEvaluationRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<LocalDevelopmentEvaluation, NimiHostError>> + Send + '_>>;
+
+    fn decide_local_development_project(
+        &self,
+        request: LocalDevelopmentDecisionRequest,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
+    >;
+
+    fn list_local_development_authorizations(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Vec<LocalDevelopmentAuthorization>, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    >;
+
+    fn revoke_local_development_authorization(
+        &self,
+        authorization_id: [u8; 32],
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
+    >;
+
+    fn launch_local_development_host(
+        &self,
+        request: LocalDevelopmentLaunchRequest,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalDevelopmentLaunchOutcome, NimiHostError>> + Send + '_>,
+    >;
+
+    fn local_development_host_running(
+        &self,
+        supervisor_run_id: [u8; 32],
+    ) -> Result<bool, NimiHostError>;
+
+    fn terminate_local_development_host(
+        &self,
+        supervisor_run_id: [u8; 32],
+    ) -> Result<(), NimiHostError>;
+
+    fn end_local_development_run(
+        &self,
+        request: LocalDevelopmentEndRunRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>>;
 }
 
-pub trait NimiInstalledAppSession: Send + Sync {
+pub trait NimiAppHostSession: Send + Sync {
+    fn bootstrap_status(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<AppHostBootstrapStatus, NimiHostError>> + Send + '_>>;
+
     fn read_artifact_bytes(
         &self,
         artifact_id: String,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<InstalledArtifactBytes, InstalledArtifactReadError>>
-                + Send
-                + '_,
+            dyn Future<Output = Result<AppHostArtifactBytes, AppHostArtifactReadError>> + Send + '_,
         >,
     >;
 }
 
-pub trait NimiInstalledAppCarrier: Send + Sync {
-    fn open_installed_app_session(
+pub trait NimiAppHostCarrier: Send + Sync {
+    fn open_app_host_session(
         &self,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<Box<dyn NimiInstalledAppSession>, ProtectedCarrierError>>
-                + Send
-                + '_,
-        >,
-    >;
+    ) -> Pin<Box<dyn Future<Output = Result<Box<dyn NimiAppHostSession>, NimiHostError>> + Send + '_>>;
 }
 
 pub trait NimiProtectedLocalHostCarrier: FixedRuntimeServiceControl {

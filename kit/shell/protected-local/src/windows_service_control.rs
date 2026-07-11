@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs::{File, OpenOptions};
 use std::future::Future;
@@ -20,9 +21,11 @@ use crate::generated::OpenDesktopSessionRequest;
 use crate::windows_peer_trust::{verify_runtime_peer_code_signing, VerifiedRuntimePeer};
 use crate::{
     FixedRuntimeServiceControl, InstalledAppLaunchOutcome, InstalledAppLaunchRequest,
-    NimiDesktopControl, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
-    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceState,
-    RuntimeServiceStatus,
+    LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
+    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    LocalDevelopmentLaunchRequest, NimiDesktopControl, NimiHostError, NimiHostErrorReasonCode,
+    NimiProtectedLocalHostCarrier, ProtectedCarrierError, ProtectedCarrierReasonCode,
+    RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
 };
 
 const RUNTIME_SERVICE_NAME: &str = "NimiRuntime";
@@ -36,6 +39,8 @@ struct WindowsDesktopControl {
     _runtime_peer: VerifiedRuntimePeer,
     _desktop_session_id: [u8; 32],
     _runtime_boot_epoch: [u8; 32],
+    development_processes:
+        Mutex<HashMap<[u8; 32], crate::windows_supervised_process::SupervisedDevelopmentProcess>>,
 }
 
 impl NimiDesktopControl for WindowsDesktopControl {
@@ -53,6 +58,125 @@ impl NimiDesktopControl for WindowsDesktopControl {
             self._channel.clone(),
             request,
         ))
+    }
+
+    fn evaluate_local_development_project(
+        &self,
+        request: LocalDevelopmentEvaluationRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<LocalDevelopmentEvaluation, NimiHostError>> + Send + '_>>
+    {
+        Box::pin(crate::windows_local_development::evaluate_project(
+            self._channel.clone(),
+            request,
+        ))
+    }
+
+    fn decide_local_development_project(
+        &self,
+        request: LocalDevelopmentDecisionRequest,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
+    > {
+        Box::pin(crate::windows_local_development::decide_project(
+            self._channel.clone(),
+            request,
+        ))
+    }
+
+    fn list_local_development_authorizations(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<Vec<LocalDevelopmentAuthorization>, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::windows_local_development::list_authorizations(
+            self._channel.clone(),
+        ))
+    }
+
+    fn revoke_local_development_authorization(
+        &self,
+        authorization_id: [u8; 32],
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalDevelopmentAuthorization, NimiHostError>> + Send + '_>,
+    > {
+        Box::pin(crate::windows_local_development::revoke_authorization(
+            self._channel.clone(),
+            authorization_id,
+        ))
+    }
+
+    fn launch_local_development_host(
+        &self,
+        request: LocalDevelopmentLaunchRequest,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<LocalDevelopmentLaunchOutcome, NimiHostError>> + Send + '_>,
+    > {
+        Box::pin(async move {
+            let run_id = request.supervisor_run_id;
+            let (outcome, process) =
+                crate::windows_local_development::launch_host(self._channel.clone(), request)
+                    .await?;
+            let mut processes = self.development_processes.lock().map_err(|_| {
+                NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
+            })?;
+            processes.insert(run_id, process);
+            Ok(outcome)
+        })
+    }
+
+    fn end_local_development_run(
+        &self,
+        request: LocalDevelopmentEndRunRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>> {
+        Box::pin(async move {
+            let run_id = request.supervisor_run_id;
+            let result =
+                crate::windows_local_development::end_run(self._channel.clone(), request).await;
+            let mut processes = self.development_processes.lock().map_err(|_| {
+                NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
+            })?;
+            processes.remove(&run_id);
+            result
+        })
+    }
+
+    fn local_development_host_running(
+        &self,
+        supervisor_run_id: [u8; 32],
+    ) -> Result<bool, NimiHostError> {
+        if supervisor_run_id == [0u8; 32] {
+            return Err(NimiHostError::new(
+                NimiHostErrorReasonCode::RuntimeServiceUntrusted,
+                false,
+            ));
+        }
+        let processes = self.development_processes.lock().map_err(|_| {
+            NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
+        })?;
+        Ok(processes
+            .get(&supervisor_run_id)
+            .is_some_and(|process| process.running()))
+    }
+
+    fn terminate_local_development_host(
+        &self,
+        supervisor_run_id: [u8; 32],
+    ) -> Result<(), NimiHostError> {
+        if supervisor_run_id == [0u8; 32] {
+            return Err(NimiHostError::new(
+                NimiHostErrorReasonCode::RuntimeServiceUntrusted,
+                false,
+            ));
+        }
+        let mut processes = self.development_processes.lock().map_err(|_| {
+            NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false)
+        })?;
+        processes.remove(&supervisor_run_id);
+        Ok(())
     }
 }
 
@@ -136,6 +260,7 @@ async fn open_verified_desktop_control(
         _runtime_peer: runtime_peer,
         _desktop_session_id: desktop_session_id,
         _runtime_boot_epoch: runtime_boot_epoch,
+        development_processes: Mutex::new(HashMap::new()),
     }))
 }
 

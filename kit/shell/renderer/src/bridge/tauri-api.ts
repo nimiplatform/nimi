@@ -44,6 +44,7 @@ export type NimiShellRuntimeBridgeResult =
   | { installed: false; reason: 'standard-host-preload-required' };
 
 export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = {
+  ['nimi.app-host.bootstrap']: 'app_host_bootstrap',
   [NIMI_STANDARD_SHELL_COMMANDS['runtime.unary']]: 'runtime_bridge_unary',
   [NIMI_STANDARD_SHELL_COMMANDS['runtime.streamOpen']]: 'runtime_bridge_stream_open',
   [NIMI_STANDARD_SHELL_COMMANDS['runtime.streamClose']]: 'runtime_bridge_stream_close',

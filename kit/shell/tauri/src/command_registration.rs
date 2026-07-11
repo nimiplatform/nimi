@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShellCommandBoundary {
     AgentCenter,
+    AppHost,
     Avatar,
     Daemon,
     DesktopOpen,
@@ -18,6 +19,12 @@ pub enum ShellCommandBoundary {
     ShellUi,
     Storage,
 }
+
+pub const APP_HOST_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDescriptor {
+    command_name: "app_host_bootstrap",
+    rust_path: "nimi_shell_tauri::capabilities::artifacts::app_host_bootstrap",
+    boundary: ShellCommandBoundary::AppHost,
+}];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ShellCommandDescriptor {
@@ -342,8 +349,12 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
 }
 
 pub fn installed_app_standard_shell_commands() -> Vec<ShellCommandDescriptor> {
-    const INSTALLED_APP_COMMAND_NAMES: &[&str] = &["artifacts_read_runtime_bytes"];
-    all_shell_commands()
+    const INSTALLED_APP_COMMAND_NAMES: &[&str] =
+        &["app_host_bootstrap", "artifacts_read_runtime_bytes"];
+    APP_HOST_COMMANDS
+        .iter()
+        .copied()
+        .chain(all_shell_commands())
         .into_iter()
         .filter(|command| INSTALLED_APP_COMMAND_NAMES.contains(&command.command_name))
         .collect()
@@ -353,6 +364,7 @@ pub fn installed_app_standard_shell_commands() -> Vec<ShellCommandDescriptor> {
 macro_rules! nimi_shell_tauri_installed_app_standard_shell_handler {
     ($($app_command:path),* $(,)?) => {
         tauri::generate_handler![
+            $crate::capabilities::artifacts::app_host_bootstrap,
             $crate::capabilities::artifacts::artifacts_read_runtime_bytes,
             $($app_command),*
         ]

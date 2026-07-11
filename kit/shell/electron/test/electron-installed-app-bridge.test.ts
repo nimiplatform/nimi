@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
-import { registerNimiElectronInstalledAppBridge } from '../src/main/index.js';
+import {
+  NIMI_ELECTRON_APP_HOST_BOOTSTRAP_COMMAND,
+  registerNimiElectronAppBridge,
+} from '../src/main/index.js';
 import {
   FakeIpcMain,
   createInvokeEvent,
@@ -8,7 +11,7 @@ import {
 } from './electron-shell-test-utils.js';
 
 function registerFixture(ipcMain: FakeIpcMain) {
-  return registerNimiElectronInstalledAppBridge({
+  return registerNimiElectronAppBridge({
     appId: 'nimi.thirdparty.fixture',
     allowedRendererUrls: ['http://localhost:1430/'],
     ipcMain,
@@ -26,7 +29,7 @@ function createInstalledInvokeEvent() {
   };
 }
 
-describe('registerNimiElectronInstalledAppBridge', () => {
+describe('registerNimiElectronAppBridge', () => {
   it('denies ordinary Runtime commands before any gRPC client can be constructed', async () => {
     const ipcMain = new FakeIpcMain();
     registerFixture(ipcMain);
@@ -58,21 +61,39 @@ describe('registerNimiElectronInstalledAppBridge', () => {
     });
   });
 
+  it('exposes typed bootstrap status without accepting renderer authority fields', async () => {
+    const ipcMain = new FakeIpcMain();
+    registerFixture(ipcMain);
+
+    await expect(invokeBridge(ipcMain, createInstalledInvokeEvent(), {
+      command: NIMI_ELECTRON_APP_HOST_BOOTSTRAP_COMMAND,
+      payload: {},
+    })).rejects.toSatisfy((error: unknown) => {
+      const reasonCode = (error as { reasonCode?: unknown })?.reasonCode;
+      return [
+        'protected-carrier-required',
+        'runtime-service-unavailable',
+        'runtime-service-untrusted',
+        'runtime-service-repair-required',
+      ].includes(String(reasonCode || ''));
+    });
+  });
+
   it('rejects app-owned endpoint, capability, handler, and native-host fields', () => {
     for (const forbidden of [
       { runtimeEndpoint: '127.0.0.1:46371' },
       { capabilitySetRef: 'forged' },
       { commandHandlers: {} },
-      { installedHost: {} },
+      { appHost: {} },
     ]) {
-      expect(() => registerNimiElectronInstalledAppBridge({
+      expect(() => registerNimiElectronAppBridge({
         appId: 'nimi.thirdparty.fixture',
         allowedRendererUrls: ['http://localhost:1430/'],
         ipcMain: new FakeIpcMain(),
         ...forbidden,
       } as never)).toThrow(expect.objectContaining({
         code: 'invalid-payload',
-        reasonCode: 'electron-installed-bridge-input-forbidden',
+        reasonCode: 'electron-app-host-bridge-input-forbidden',
       }));
     }
   });

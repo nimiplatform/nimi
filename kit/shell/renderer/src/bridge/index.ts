@@ -138,6 +138,7 @@ export type {
   InstalledNimiAppArtifactBytes,
   InstalledNimiAppStorageRemoveJsonResult,
   InstalledNimiAppStandardShellSurface,
+  NimiAppHostBootstrapStatus,
 } from './installed-app.js';
 export type {
   JsonPrimitive,

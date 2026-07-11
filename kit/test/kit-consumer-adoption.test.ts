@@ -147,18 +147,19 @@ test('Tester is the second consumer for Kit shared primitives and shell bootstra
   const testerContract = read('apps/tester/test/tester-contract.test.mjs');
   const testerSettingsSurfaceTest = read('apps/tester/test/tester-settings-surface.test.mjs');
   const scaffoldBoundary = read('apps/tester/test/scaffold-boundary.test.mjs');
-  const testerRuntimeAccountAuth = read('apps/tester/src/shell/auth/runtime-account-auth.ts');
+  const testerRuntimePlatform = read('apps/tester/src/shell/auth/runtime-platform.ts');
   const testerWorkbench = read('apps/tester/src/tester/tester-workbench.tsx');
   assert.match(testerContract, /tester kit gallery showcases real kit components/);
   assert.match(testerContract, /tester auth and runtime bootstrap consume Kit shell bridge primitives/);
   assert.match(testerSettingsSurfaceTest, /tester settings keeps real Realm live rows through SDK and Kit helpers/);
 
-  assert.match(scaffoldBoundary, /doesNotMatch\(runtimeAccountAuthSource, \/createRuntimeAccountBrowserBroker/);
+  assert.match(scaffoldBoundary, /runtime-platform\.ts/);
+  assert.match(scaffoldBoundary, /bootstrapArtifactId/);
   assert.match(testerContract, /Runtime account projection without account control/);
-  assert.match(testerRuntimeAccountAuth, /getAccountSessionStatus/);
-  assert.match(testerRuntimeAccountAuth, /AccountSessionState\.AUTHENTICATED/);
-  assert.doesNotMatch(testerRuntimeAccountAuth, /createRuntimeAccountBrowserBroker|beginLogin|completeLogin|logout|switchAccount|refreshAccountSession|getAccessToken/);
-  assert.doesNotMatch(testerRuntimeAccountAuth, /desktop-runtime-oauth-url|#\/login|desktop_callback/);
+  assert.match(testerRuntimePlatform, /testerInstalledAppBootstrap\.appHost\.bootstrap\(\)/);
+  assert.match(testerRuntimePlatform, /artifacts\.readRuntimeBytes\(status\.bootstrapArtifactId\)/);
+  assert.doesNotMatch(testerRuntimePlatform, /createRuntimeAccountBrowserBroker|createNimiRuntimeFullAppRegistration|getAccountSessionStatus|beginLogin|completeLogin|logout|switchAccount|refreshAccountSession|getAccessToken/);
+  assert.doesNotMatch(testerRuntimePlatform, /desktop-runtime-oauth-url|#\/login|desktop_callback|runtimeEndpoint/);
 
   assert.match(testerWorkbench, /emitRuntimeLog/);
   assert.match(testerWorkbench, /from '@nimiplatform\/kit\/telemetry'/);
@@ -223,13 +224,13 @@ test('Tester product-local persistence uses Kit storage while AIConfig is standa
   assert.match(testerContract, /tester product-local preferences use Kit storage while AIConfig persistence is standard-shell owned/);
 });
 
-test('Tester Electron shell host consumes Kit Electron AI config store', () => {
+test('Tester Electron shell host uses the fixed app bridge without app-owned config custody', () => {
   const testerElectronMain = read('apps/tester/src-electron/main.ts');
 
   assert.match(
     testerElectronMain,
-    /createNimiElectronFileAIConfigStore/,
-    'Tester Electron main must consume the shared Kit Electron AI config file store',
+    /registerNimiElectronAppBridge/,
+    'Tester Electron main must consume the fixed Kit app-host bridge',
   );
   assert.match(
     testerElectronMain,
@@ -238,7 +239,7 @@ test('Tester Electron shell host consumes Kit Electron AI config store', () => {
   );
   assert.doesNotMatch(
     testerElectronMain,
-    /type NimiElectronAIConfigStore|testerAiConfigPath|isNotFoundError/,
-    'Tester Electron main must not keep a duplicate AI config file-store implementation',
+    /createNimiElectronFileAIConfigStore|type NimiElectronAIConfigStore|testerAiConfigPath|isNotFoundError|commandHandlers|runtimeEndpoint/,
+    'Tester Electron main must not keep duplicate config or Runtime authority',
   );
 });

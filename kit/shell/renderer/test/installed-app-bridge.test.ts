@@ -16,6 +16,15 @@ describe('renderer installed app standard shell surface', () => {
     root.__NIMI_ELECTRON_TEST__ = {
       invoke: async (command, payload) => {
         calls.push({ command, payload });
+        if (command === 'nimi.app-host.bootstrap') {
+          return {
+            state: 'ready',
+            trustClass: 'local-development',
+            appId: 'nimi.thirdparty.fixture',
+            bootstrapArtifactId: 'bootstrap-artifact',
+            expiresAtUnixMs: 1_800_000_000_000,
+          };
+        }
         return {
           dataBase64: 'YXJ0aWZhY3Q=',
           mimeType: 'text/plain',
@@ -28,6 +37,13 @@ describe('renderer installed app standard shell surface', () => {
 
     try {
       const surface = createInstalledNimiAppStandardShellSurface();
+      await expect(surface.appHost.bootstrap()).resolves.toEqual({
+        state: 'ready',
+        trustClass: 'local-development',
+        appId: 'nimi.thirdparty.fixture',
+        bootstrapArtifactId: 'bootstrap-artifact',
+        expiresAtUnixMs: 1_800_000_000_000,
+      });
       const artifact = await surface.artifacts.readRuntimeBytes('artifact-one');
       expect(Array.from(artifact.bytes)).toEqual(Array.from(new TextEncoder().encode('artifact')));
       expect({ ...artifact, bytes: undefined }).toEqual({
@@ -59,10 +75,13 @@ describe('renderer installed app standard shell surface', () => {
       root.__NIMI_ELECTRON_TEST__ = previous;
     }
 
-    expect(calls).toEqual([{
-      command: 'nimi.shell.artifacts.readRuntimeBytes',
-      payload: { payload: { artifactId: 'artifact-one' } },
-    }]);
+    expect(calls).toEqual([
+      { command: 'nimi.app-host.bootstrap', payload: {} },
+      {
+        command: 'nimi.shell.artifacts.readRuntimeBytes',
+        payload: { payload: { artifactId: 'artifact-one' } },
+      },
+    ]);
   });
 
   it('rejects malformed host artifact projections in the renderer', async () => {

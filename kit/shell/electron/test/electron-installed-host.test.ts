@@ -1,20 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  createNimiElectronInstalledHostForBinding,
+  createNimiElectronAppHostForBinding,
   resolveNimiElectronProtectedLocalBindingPackage,
-} from '../src/main/installed-host.js';
+} from '../src/main/app-host.js';
 
-describe('Electron installed Runtime host', () => {
-  it('opens one opaque native session and forwards only typed artifact selectors', async () => {
+describe('Electron protected app host', () => {
+  it('opens one opaque native session and forwards only typed bootstrap and artifact selectors', async () => {
     let opens = 0;
     const reads: string[] = [];
-    const host = createNimiElectronInstalledHostForBinding({
-      async openInstalledAppSession() {
+    const host = createNimiElectronAppHostForBinding({
+      async openAppHostSession() {
         opens += 1;
-        return { status: 'ok' };
+        return bootstrapOutcome();
       },
-      async readInstalledArtifactBytes(artifactId) {
+      async getAppHostSessionStatus() {
+        return bootstrapOutcome();
+      },
+      async readAppHostArtifactBytes(artifactId) {
         reads.push(artifactId);
         const bytes = new TextEncoder().encode(artifactId);
         return {
@@ -47,8 +50,8 @@ describe('Electron installed Runtime host', () => {
 
   it('retries native session open after fail-closed carrier denial', async () => {
     let opens = 0;
-    const host = createNimiElectronInstalledHostForBinding({
-      async openInstalledAppSession() {
+    const host = createNimiElectronAppHostForBinding({
+      async openAppHostSession() {
         opens += 1;
         if (opens === 1) {
           return {
@@ -57,9 +60,12 @@ describe('Electron installed Runtime host', () => {
             retryable: true,
           };
         }
-        return { status: 'ok' };
+        return bootstrapOutcome();
       },
-      async readInstalledArtifactBytes() {
+      async getAppHostSessionStatus() {
+        return bootstrapOutcome();
+      },
+      async readAppHostArtifactBytes() {
         return {
           status: 'ok',
           bytes: new Uint8Array([1]),
@@ -81,11 +87,14 @@ describe('Electron installed Runtime host', () => {
   });
 
   it('preserves typed artifact denial without native detail or portable session material', async () => {
-    const host = createNimiElectronInstalledHostForBinding({
-      async openInstalledAppSession() {
-        return { status: 'ok' };
+    const host = createNimiElectronAppHostForBinding({
+      async openAppHostSession() {
+        return bootstrapOutcome();
       },
-      async readInstalledArtifactBytes() {
+      async getAppHostSessionStatus() {
+        return bootstrapOutcome();
+      },
+      async readAppHostArtifactBytes() {
         return {
           status: 'error',
           reasonCode: 'installed-artifact-forbidden',
@@ -96,7 +105,7 @@ describe('Electron installed Runtime host', () => {
 
     const error = await host.readArtifactBytes('artifact-denied').catch((caught) => caught);
     expect(error).toMatchObject({
-      name: 'NimiElectronInstalledHostError',
+      name: 'NimiElectronAppHostError',
       message: 'installed-artifact-forbidden',
       reasonCode: 'installed-artifact-forbidden',
       retryable: false,
@@ -106,11 +115,14 @@ describe('Electron installed Runtime host', () => {
   });
 
   it('rejects malformed native success projections as untrusted Runtime output', async () => {
-    const host = createNimiElectronInstalledHostForBinding({
-      async openInstalledAppSession() {
-        return { status: 'ok' };
+    const host = createNimiElectronAppHostForBinding({
+      async openAppHostSession() {
+        return bootstrapOutcome();
       },
-      async readInstalledArtifactBytes() {
+      async getAppHostSessionStatus() {
+        return bootstrapOutcome();
+      },
+      async readAppHostArtifactBytes() {
         return {
           status: 'ok',
           bytes: new Uint8Array([1, 2]),
@@ -125,6 +137,30 @@ describe('Electron installed Runtime host', () => {
       reasonCode: 'runtime-service-untrusted',
       retryable: false,
     });
+  });
+
+  it('projects local-development bootstrap without technical session material', async () => {
+    const host = createNimiElectronAppHostForBinding({
+      async openAppHostSession() {
+        return bootstrapOutcome();
+      },
+      async getAppHostSessionStatus() {
+        return bootstrapOutcome();
+      },
+      async readAppHostArtifactBytes() {
+        throw new Error('not used');
+      },
+    });
+
+    const bootstrap = await host.bootstrap();
+    expect(bootstrap).toEqual({
+      state: 'ready',
+      trustClass: 'local-development',
+      appId: 'nimi.thirdparty.fixture',
+      bootstrapArtifactId: 'bootstrap-artifact',
+      expiresAtUnixMs: 1_800_000_000_000,
+    });
+    expect(JSON.stringify(bootstrap)).not.toMatch(/session|proof|token|credential|epoch/i);
   });
 
   it('admits only the packaged Windows x64 native binding', () => {
@@ -145,3 +181,14 @@ describe('Electron installed Runtime host', () => {
     }
   });
 });
+
+function bootstrapOutcome() {
+  return {
+    status: 'ok' as const,
+    state: 'ready' as const,
+    trustClass: 'local-development' as const,
+    appId: 'nimi.thirdparty.fixture',
+    bootstrapArtifactId: 'bootstrap-artifact',
+    expiresAtUnixMs: 1_800_000_000_000,
+  };
+}

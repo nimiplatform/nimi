@@ -6,9 +6,11 @@ use nimi_shell_protected_local::MacOsPrivilegedXpcCarrier;
 use nimi_shell_protected_local::WindowsNamedPipeCarrier;
 use nimi_shell_protected_local::{
     FixedRuntimeServiceControl, InstalledAppLaunchOutcome, InstalledAppLaunchRequest,
-    NimiDesktopControl, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
-    ProtectedCarrierReasonCode, RuntimeServiceAction, RuntimeServiceActionOutcome,
-    RuntimeServiceState, RuntimeServiceStatus,
+    LocalDevelopmentAuthorization, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
+    LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    LocalDevelopmentLaunchRequest, NimiDesktopControl, NimiHostError,
+    NimiProtectedLocalHostCarrier, ProtectedCarrierError, ProtectedCarrierReasonCode,
+    RuntimeServiceAction, RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
 };
 use std::sync::{Arc, Mutex, OnceLock};
 
@@ -144,12 +146,187 @@ fn retain_desktop_control(
 pub(super) async fn launch_installed_app(
     request: InstalledAppLaunchRequest,
 ) -> Result<InstalledAppLaunchOutcome, ProtectedCarrierError> {
-    let control = DESKTOP_CONTROL
+    let control = desktop_control().map_err(|error| {
+        ProtectedCarrierError::new(
+            match error.reason_code() {
+                nimi_shell_protected_local::NimiHostErrorReasonCode::ProtectedCarrierRequired => {
+                    ProtectedCarrierReasonCode::ProtectedCarrierRequired
+                }
+                _ => ProtectedCarrierReasonCode::RuntimeServiceUntrusted,
+            },
+            error.retryable(),
+        )
+    })?;
+    control.launch_installed_app(request).await
+}
+
+pub(super) async fn evaluate_local_development_project(
+    request: LocalDevelopmentEvaluationRequest,
+) -> Result<LocalDevelopmentEvaluation, NimiHostError> {
+    let control = control_for_call().await?;
+    match control
+        .evaluate_local_development_project(request.clone())
+        .await
+    {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(&control);
+            control_for_call()
+                .await?
+                .evaluate_local_development_project(request)
+                .await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) async fn decide_local_development_project(
+    request: LocalDevelopmentDecisionRequest,
+) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
+    let control = control_for_call().await?;
+    match control
+        .decide_local_development_project(request.clone())
+        .await
+    {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(&control);
+            control_for_call()
+                .await?
+                .decide_local_development_project(request)
+                .await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) async fn list_local_development_authorizations(
+) -> Result<Vec<LocalDevelopmentAuthorization>, NimiHostError> {
+    let control = control_for_call().await?;
+    match control.list_local_development_authorizations().await {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(&control);
+            control_for_call()
+                .await?
+                .list_local_development_authorizations()
+                .await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) async fn revoke_local_development_authorization(
+    authorization_id: [u8; 32],
+) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
+    let control = control_for_call().await?;
+    match control
+        .revoke_local_development_authorization(authorization_id)
+        .await
+    {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(&control);
+            control_for_call()
+                .await?
+                .revoke_local_development_authorization(authorization_id)
+                .await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) async fn launch_local_development_host(
+    request: LocalDevelopmentLaunchRequest,
+) -> Result<LocalDevelopmentLaunchOutcome, NimiHostError> {
+    let control = control_for_call().await?;
+    match control.launch_local_development_host(request.clone()).await {
+        Ok(value) => Ok(value),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(&control);
+            control_for_call()
+                .await?
+                .launch_local_development_host(request)
+                .await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub(super) fn local_development_host_running(
+    supervisor_run_id: [u8; 32],
+) -> Result<bool, NimiHostError> {
+    desktop_control()?.local_development_host_running(supervisor_run_id)
+}
+
+pub(super) fn terminate_local_development_host(
+    supervisor_run_id: [u8; 32],
+) -> Result<(), NimiHostError> {
+    desktop_control()?.terminate_local_development_host(supervisor_run_id)
+}
+
+pub(super) async fn end_local_development_run(
+    request: LocalDevelopmentEndRunRequest,
+) -> Result<(), NimiHostError> {
+    let control = control_for_call().await?;
+    match control.end_local_development_run(request.clone()).await {
+        Ok(()) => Ok(()),
+        Err(error) if should_reconnect(error) => {
+            clear_desktop_control_if_same(&control);
+            control_for_call()
+                .await?
+                .end_local_development_run(request)
+                .await
+        }
+        Err(error) => Err(error),
+    }
+}
+
+async fn control_for_call() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError> {
+    if let Ok(control) = desktop_control() {
+        return Ok(control);
+    }
+    let control = PlatformCarrier::default()
+        .open_desktop_control()
+        .await
+        .map_err(NimiHostError::from)?;
+    retain_desktop_control(control).map_err(NimiHostError::from)?;
+    desktop_control()
+}
+
+fn should_reconnect(error: NimiHostError) -> bool {
+    matches!(
+        error.reason_code(),
+        nimi_shell_protected_local::NimiHostErrorReasonCode::RuntimeServiceUnavailable
+            | nimi_shell_protected_local::NimiHostErrorReasonCode::RuntimeServiceUntrusted
+            | nimi_shell_protected_local::NimiHostErrorReasonCode::ProtectedCarrierRequired
+    )
+}
+
+fn clear_desktop_control_if_same(control: &Arc<dyn NimiDesktopControl>) {
+    let Some(slot) = DESKTOP_CONTROL.get() else {
+        return;
+    };
+    let Ok(mut slot) = slot.lock() else {
+        return;
+    };
+    if slot
+        .as_ref()
+        .is_some_and(|candidate| Arc::ptr_eq(candidate, control))
+    {
+        *slot = None;
+    }
+}
+
+fn desktop_control() -> Result<Arc<dyn NimiDesktopControl>, NimiHostError> {
+    DESKTOP_CONTROL
         .get()
         .and_then(|slot| slot.lock().ok())
         .and_then(|slot| slot.clone())
         .ok_or_else(|| {
-            ProtectedCarrierError::new(ProtectedCarrierReasonCode::ProtectedCarrierRequired, false)
-        })?;
-    control.launch_installed_app(request).await
+            NimiHostError::new(
+                nimi_shell_protected_local::NimiHostErrorReasonCode::ProtectedCarrierRequired,
+                false,
+            )
+        })
 }

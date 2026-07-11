@@ -263,7 +263,10 @@ mod tests {
             .into_iter()
             .map(|command| command.command_name)
             .collect::<Vec<_>>();
-        assert_eq!(names, vec!["artifacts_read_runtime_bytes"]);
+        assert_eq!(
+            names,
+            vec!["app_host_bootstrap", "artifacts_read_runtime_bytes"]
+        );
         for forbidden in [
             "runtime_bridge_unary",
             "runtime_bridge_stream_open",

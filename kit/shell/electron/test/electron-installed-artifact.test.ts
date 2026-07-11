@@ -5,7 +5,7 @@ import {
 } from '@nimiplatform/kit/shell/capabilities';
 
 import {
-  NimiElectronInstalledHostError,
+  NimiElectronAppHostError,
   registerNimiElectronRuntimeBridge,
 } from '../src/main/index.js';
 import {
@@ -30,7 +30,10 @@ describe('Electron installed artifact standard-shell operation', () => {
       },
       standardShellHost: {
         capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
-        installedHost: {
+        appHost: {
+          async bootstrap() {
+            return appHostBootstrap();
+          },
           async readArtifactBytes(artifactId) {
             reads.push(artifactId);
             return {
@@ -66,7 +69,10 @@ describe('Electron installed artifact standard-shell operation', () => {
       ipcMain,
       standardShellHost: {
         capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
-        installedHost: {
+        appHost: {
+          async bootstrap() {
+            return appHostBootstrap();
+          },
           async readArtifactBytes() {
             called = true;
             throw new Error('must not run');
@@ -91,11 +97,14 @@ describe('Electron installed artifact standard-shell operation', () => {
   });
 
   it('preserves typed Runtime denial and fails closed without a native host', async () => {
-    for (const installedHost of [
+    for (const appHost of [
       undefined,
       {
         async readArtifactBytes(): Promise<never> {
-          throw new NimiElectronInstalledHostError('installed-artifact-forbidden', false);
+          throw new NimiElectronAppHostError('installed-artifact-forbidden', false);
+        },
+        async bootstrap() {
+          return appHostBootstrap();
         },
       },
     ]) {
@@ -107,7 +116,7 @@ describe('Electron installed artifact standard-shell operation', () => {
         ipcMain,
         standardShellHost: {
           capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
-          installedHost,
+          appHost,
         },
       });
 
@@ -115,9 +124,19 @@ describe('Electron installed artifact standard-shell operation', () => {
         command,
         payload: { payload: { artifactId: 'artifact-denied' } },
       })).rejects.toMatchObject({
-        code: installedHost ? 'runtime-permission-denied' : 'protected-carrier-required',
-        reasonCode: installedHost ? 'installed-artifact-forbidden' : 'protected-carrier-required',
+        code: appHost ? 'runtime-permission-denied' : 'protected-carrier-required',
+        reasonCode: appHost ? 'installed-artifact-forbidden' : 'protected-carrier-required',
       });
     }
   });
 });
+
+function appHostBootstrap() {
+  return {
+    state: 'ready' as const,
+    trustClass: 'local-development' as const,
+    appId: 'nimi.thirdparty.fixture',
+    bootstrapArtifactId: 'bootstrap-artifact',
+    expiresAtUnixMs: 1_800_000_000_000,
+  };
+}

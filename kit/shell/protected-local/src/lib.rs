@@ -2,6 +2,8 @@
 
 mod adapters;
 mod carrier;
+mod grpc_status;
+mod local_development;
 mod reason;
 mod service;
 mod generated {
@@ -14,19 +16,33 @@ mod windows_installed_launch;
 mod windows_installed_session;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
+mod windows_local_development;
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
 mod windows_peer_trust;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_service_control;
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
+mod windows_supervised_process;
 
 pub use adapters::{
-    LinuxInstalledAppCarrier, LinuxUnixSocketCarrier, MacOsInstalledAppCarrier,
-    MacOsPrivilegedXpcCarrier, WindowsInstalledAppCarrier, WindowsNamedPipeCarrier,
+    LinuxAppHostCarrier, LinuxUnixSocketCarrier, MacOsAppHostCarrier, MacOsPrivilegedXpcCarrier,
+    WindowsAppHostCarrier, WindowsNamedPipeCarrier,
 };
 pub use carrier::{
-    InstalledAppLaunchOutcome, InstalledAppLaunchRequest, InstalledArtifactBytes,
-    InstalledArtifactReadError, InstalledArtifactReadReasonCode, NimiDesktopControl,
-    NimiInstalledAppCarrier, NimiInstalledAppSession, NimiProtectedLocalHostCarrier,
+    AppHostArtifactBytes, AppHostArtifactReadError, AppHostArtifactReadReasonCode,
+    InstalledAppLaunchOutcome, InstalledAppLaunchRequest, NimiAppHostCarrier, NimiAppHostSession,
+    NimiDesktopControl, NimiProtectedLocalHostCarrier,
+};
+pub use local_development::{
+    AppHostBootstrapState, AppHostBootstrapStatus, AppHostTrustClass,
+    LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
+    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    LocalDevelopmentLaunchRequest, LocalDevelopmentProject, LocalDevelopmentShellKind,
+    NimiHostError, NimiHostErrorReasonCode, LOCAL_DEVELOPMENT_TRUST_CLASS,
 };
 pub use reason::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 pub use service::{

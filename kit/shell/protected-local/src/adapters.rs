@@ -1,6 +1,6 @@
 use crate::{
-    FixedRuntimeServiceControl, NimiDesktopControl, NimiInstalledAppCarrier,
-    NimiInstalledAppSession, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
+    FixedRuntimeServiceControl, NimiAppHostCarrier, NimiAppHostSession, NimiDesktopControl,
+    NimiHostError, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
     ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceStatus,
 };
 
@@ -55,37 +55,34 @@ define_unbound_carrier!(WindowsNamedPipeCarrier);
 define_unbound_carrier!(LinuxUnixSocketCarrier);
 define_unbound_carrier!(MacOsPrivilegedXpcCarrier);
 
-macro_rules! define_unbound_installed_carrier {
+macro_rules! define_unbound_app_host_carrier {
     ($name:ident) => {
         #[derive(Clone, Copy, Debug, Default)]
         pub struct $name;
 
-        impl NimiInstalledAppCarrier for $name {
-            fn open_installed_app_session(
+        impl NimiAppHostCarrier for $name {
+            fn open_app_host_session(
                 &self,
             ) -> std::pin::Pin<
                 Box<
                     dyn std::future::Future<
-                            Output = Result<
-                                Box<dyn NimiInstalledAppSession>,
-                                ProtectedCarrierError,
-                            >,
+                            Output = Result<Box<dyn NimiAppHostSession>, NimiHostError>,
                         > + Send
                         + '_,
                 >,
             > {
-                Box::pin(async { Err(unbound()) })
+                Box::pin(async { Err(NimiHostError::from(unbound())) })
             }
         }
     };
 }
 
 #[cfg(not(target_os = "windows"))]
-define_unbound_installed_carrier!(WindowsInstalledAppCarrier);
-define_unbound_installed_carrier!(LinuxInstalledAppCarrier);
-define_unbound_installed_carrier!(MacOsInstalledAppCarrier);
+define_unbound_app_host_carrier!(WindowsAppHostCarrier);
+define_unbound_app_host_carrier!(LinuxAppHostCarrier);
+define_unbound_app_host_carrier!(MacOsAppHostCarrier);
 
 #[cfg(target_os = "windows")]
-pub use crate::windows_installed_session::WindowsInstalledAppCarrier;
+pub use crate::windows_installed_session::WindowsAppHostCarrier;
 #[cfg(target_os = "windows")]
 pub use crate::windows_service_control::WindowsNamedPipeCarrier;

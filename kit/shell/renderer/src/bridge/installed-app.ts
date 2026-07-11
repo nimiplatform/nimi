@@ -4,8 +4,12 @@ import { assertRecord, parseRequiredString } from './types.js';
 import type { JsonObject, JsonValue } from './types.js';
 
 const MAX_INLINE_ARTIFACT_BYTES = 32 * 1024 * 1024;
+const APP_HOST_BOOTSTRAP_COMMAND = 'nimi.app-host.bootstrap';
 
 export type InstalledNimiAppStandardShellSurface = {
+  readonly appHost: {
+    readonly bootstrap: () => Promise<NimiAppHostBootstrapStatus>;
+  };
   readonly artifacts: {
     readonly readRuntimeBytes: (artifactId: string) => Promise<InstalledNimiAppArtifactBytes>;
   };
@@ -30,6 +34,14 @@ export type InstalledNimiAppStandardShellSurface = {
   };
 };
 
+export type NimiAppHostBootstrapStatus = {
+  readonly state: 'ready';
+  readonly trustClass: 'production-installed' | 'local-development';
+  readonly appId: string;
+  readonly bootstrapArtifactId?: string;
+  readonly expiresAtUnixMs: number;
+};
+
 export type InstalledNimiAppArtifactBytes = {
   readonly bytes: Uint8Array;
   readonly mimeType: string;
@@ -44,6 +56,9 @@ export type InstalledNimiAppStorageRemoveJsonResult = {
 
 export function createInstalledNimiAppStandardShellSurface(): InstalledNimiAppStandardShellSurface {
   return {
+    appHost: {
+      bootstrap: readAppHostBootstrap,
+    },
     artifacts: {
       readRuntimeBytes: readInstalledRuntimeArtifactBytes,
     },
@@ -66,6 +81,44 @@ export function createInstalledNimiAppStandardShellSurface(): InstalledNimiAppSt
     localAssets: {
       resolveUrl: () => rejectInstalledAppCarrier(NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']),
     },
+  };
+}
+
+async function readAppHostBootstrap(): Promise<NimiAppHostBootstrapStatus> {
+  return invokeChecked(APP_HOST_BOOTSTRAP_COMMAND, {}, parseAppHostBootstrap);
+}
+
+function parseAppHostBootstrap(value: unknown): NimiAppHostBootstrapStatus {
+  const record = assertRecord(value, `${APP_HOST_BOOTSTRAP_COMMAND} returned invalid payload`);
+  const expectedKeys = record.trustClass === 'local-development'
+    ? ['appId', 'bootstrapArtifactId', 'expiresAtUnixMs', 'state', 'trustClass']
+    : ['appId', 'expiresAtUnixMs', 'state', 'trustClass'];
+  if (JSON.stringify(Object.keys(record).sort()) !== JSON.stringify(expectedKeys)) {
+    throw new Error(`${APP_HOST_BOOTSTRAP_COMMAND}: result fields must match app-host bootstrap`);
+  }
+  const state = parseRequiredString(record.state, 'state', APP_HOST_BOOTSTRAP_COMMAND);
+  const trustClass = parseRequiredString(record.trustClass, 'trustClass', APP_HOST_BOOTSTRAP_COMMAND);
+  const appId = parseRequiredString(record.appId, 'appId', APP_HOST_BOOTSTRAP_COMMAND);
+  const expiresAtUnixMs = Number(record.expiresAtUnixMs);
+  const bootstrapArtifactId = record.bootstrapArtifactId === undefined
+    ? undefined
+    : parseRequiredString(record.bootstrapArtifactId, 'bootstrapArtifactId', APP_HOST_BOOTSTRAP_COMMAND);
+  if (
+    state !== 'ready'
+    || (trustClass !== 'production-installed' && trustClass !== 'local-development')
+    || appId.trim() !== appId
+    || !Number.isSafeInteger(expiresAtUnixMs)
+    || expiresAtUnixMs <= 0
+    || (trustClass === 'local-development') !== Boolean(bootstrapArtifactId)
+  ) {
+    throw new Error(`${APP_HOST_BOOTSTRAP_COMMAND}: bootstrap projection is invalid`);
+  }
+  return {
+    state,
+    trustClass,
+    appId,
+    ...(bootstrapArtifactId ? { bootstrapArtifactId } : {}),
+    expiresAtUnixMs,
   };
 }
 

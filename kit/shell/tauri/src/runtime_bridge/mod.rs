@@ -24,8 +24,15 @@ pub use host_app_session::{
     RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST,
     RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST,
 };
-pub use installed_host::{RuntimeBridgeInstalledHost, RuntimeBridgeInstalledHostError};
+pub use installed_host::{RuntimeBridgeAppHost, RuntimeBridgeAppHostError};
 pub use metadata::{RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata};
+pub use nimi_shell_protected_local::{
+    LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState, LocalDevelopmentDecision,
+    LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest, LocalDevelopmentEvaluation,
+    LocalDevelopmentEvaluationRequest, LocalDevelopmentLaunchOutcome,
+    LocalDevelopmentLaunchRequest, LocalDevelopmentProject, LocalDevelopmentShellKind,
+    NimiHostError, NimiHostErrorReasonCode,
+};
 pub use stream::RuntimeBridgeStreamOpenResult;
 pub use unary::{
     build_unary_payload, build_unary_payload_with_metadata, decode_unary_result,
@@ -532,6 +539,49 @@ pub async fn launch_installed_app_host(
             error.reason_code().as_str(),
         )
     })
+}
+
+pub async fn evaluate_local_development_project(
+    request: LocalDevelopmentEvaluationRequest,
+) -> Result<LocalDevelopmentEvaluation, NimiHostError> {
+    service_control::evaluate_local_development_project(request).await
+}
+
+pub async fn decide_local_development_project(
+    request: LocalDevelopmentDecisionRequest,
+) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
+    service_control::decide_local_development_project(request).await
+}
+
+pub async fn list_local_development_authorizations(
+) -> Result<Vec<LocalDevelopmentAuthorization>, NimiHostError> {
+    service_control::list_local_development_authorizations().await
+}
+
+pub async fn revoke_local_development_authorization(
+    authorization_id: [u8; 32],
+) -> Result<LocalDevelopmentAuthorization, NimiHostError> {
+    service_control::revoke_local_development_authorization(authorization_id).await
+}
+
+pub async fn launch_local_development_host(
+    request: LocalDevelopmentLaunchRequest,
+) -> Result<LocalDevelopmentLaunchOutcome, NimiHostError> {
+    service_control::launch_local_development_host(request).await
+}
+
+pub fn local_development_host_running(supervisor_run_id: [u8; 32]) -> Result<bool, NimiHostError> {
+    service_control::local_development_host_running(supervisor_run_id)
+}
+
+pub fn terminate_local_development_host(supervisor_run_id: [u8; 32]) -> Result<(), NimiHostError> {
+    service_control::terminate_local_development_host(supervisor_run_id)
+}
+
+pub async fn end_local_development_run(
+    request: LocalDevelopmentEndRunRequest,
+) -> Result<(), NimiHostError> {
+    service_control::end_local_development_run(request).await
 }
 
 async fn sync_menu_bar_daemon_status(

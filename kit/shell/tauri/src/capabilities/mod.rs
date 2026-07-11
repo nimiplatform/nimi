@@ -10,13 +10,21 @@ pub mod runtime {
     pub use crate::runtime_bridge::{
         bridge_error, build_unary_payload, build_unary_payload_with_metadata,
         channel_invalidation_count, current_daemon_status, current_daemon_status_async,
-        decode_unary_result, generated, generated_method_ids, http_addr, invoke_unary_typed,
-        invoke_unary_typed_with_metadata, is_allowlisted_method, is_stream_method,
-        reset_channel_invalidation_count, restart_daemon_async, set_runtime_bridge_host_hooks,
-        start_daemon_async, stream_event_name_with_namespace, RuntimeBridgeAppSession,
-        RuntimeBridgeDaemonStatus, RuntimeBridgeHostAppSessionConfig,
-        RuntimeBridgeHostAppSessionProvider, RuntimeBridgeHostHooks, RuntimeBridgeInstalledHost,
-        RuntimeBridgeInstalledHostError, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
+        decide_local_development_project, decode_unary_result, end_local_development_run,
+        evaluate_local_development_project, generated, generated_method_ids, http_addr,
+        invoke_unary_typed, invoke_unary_typed_with_metadata, is_allowlisted_method,
+        is_stream_method, launch_local_development_host, list_local_development_authorizations,
+        local_development_host_running, reset_channel_invalidation_count, restart_daemon_async,
+        revoke_local_development_authorization, set_runtime_bridge_host_hooks, start_daemon_async,
+        stream_event_name_with_namespace, terminate_local_development_host,
+        LocalDevelopmentAuthorization, LocalDevelopmentAuthorizationState,
+        LocalDevelopmentDecision, LocalDevelopmentDecisionRequest, LocalDevelopmentEndRunRequest,
+        LocalDevelopmentEvaluation, LocalDevelopmentEvaluationRequest,
+        LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest, LocalDevelopmentProject,
+        LocalDevelopmentShellKind, NimiHostError, NimiHostErrorReasonCode, RuntimeBridgeAppHost,
+        RuntimeBridgeAppHostError, RuntimeBridgeAppSession, RuntimeBridgeDaemonStatus,
+        RuntimeBridgeHostAppSessionConfig, RuntimeBridgeHostAppSessionProvider,
+        RuntimeBridgeHostHooks, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken,
         RuntimeBridgeStreamClosePayload, RuntimeBridgeStreamOpenPayload,
         RuntimeBridgeStreamOpenResult, RuntimeBridgeTrustedMetadata,
         RuntimeBridgeTrustedMetadataBridgeKind, RuntimeBridgeTrustedMetadataRequest,
@@ -520,7 +528,16 @@ pub mod artifacts {
     pub use crate::standard_artifacts::{
         StandardArtifactsWritePayload, StandardArtifactsWriteResult,
     };
-    pub use crate::standard_installed_artifacts::InstalledArtifactReadResult;
+    pub use crate::standard_installed_artifacts::{
+        AppHostBootstrapResult, InstalledArtifactReadResult,
+    };
+
+    #[tauri::command]
+    pub async fn app_host_bootstrap(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeAppHost>,
+    ) -> Result<AppHostBootstrapResult, String> {
+        crate::standard_installed_artifacts::app_host_bootstrap_for_host(host.inner()).await
+    }
 
     #[tauri::command]
     pub fn artifacts_write(
@@ -536,7 +553,7 @@ pub mod artifacts {
 
     #[tauri::command]
     pub async fn artifacts_read_runtime_bytes(
-        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeInstalledHost>,
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeAppHost>,
         payload: serde_json::Value,
     ) -> Result<InstalledArtifactReadResult, String> {
         crate::standard_installed_artifacts::artifacts_read_runtime_bytes_for_host(
