@@ -131,7 +131,7 @@ fn install_standard_app_storage_slot(app: &tauri::App<tauri::Wry>) {
 
 fn install_installed_runtime_host(app: &tauri::App<tauri::Wry>) {
     use tauri::Manager;
-    app.manage(nimi_shell_tauri::capabilities::runtime::RuntimeBridgeInstalledHost::platform_default());
+    app.manage(nimi_shell_tauri::capabilities::runtime::RuntimeBridgeAppHost::platform_default());
 }
 
 fn acceptance_storage_root_override() -> Option<String> {
@@ -335,8 +335,7 @@ mod tests {
         assert!(script.contains("tester_renderer_probe_ping"));
         assert!(script.contains("tester_renderer_probe_report_write"));
         assert!(script.contains("tester_renderer_probe_context_get"));
-        assert!(super::tester_shared_auth_acceptance_script()
-            .contains("nimiElectronSdkAcceptance"));
+        assert!(super::tester_shared_auth_acceptance_script().contains("nimiElectronSdkAcceptance"));
         assert!(script.contains("import(scriptSrc);"));
         assert!(script.contains("command-checks-ok"));
         let forbidden_desktop_command = ["desktop", "macos", "smoke", "ping"].join("_");

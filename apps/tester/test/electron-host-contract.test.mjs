@@ -22,25 +22,17 @@ function readRepoJson(relativePath) {
   return JSON.parse(readFileSync(path.join(repoRoot, relativePath), 'utf8'));
 }
 
-const requiredCommands = [
-  'resolve_world_tour_fixture',
-  'claim_world_tour_viewer_launch',
-  'save_world_tour_viewer_preset',
-  'open_world_tour_window',
-];
-
 test('tester owns an Electron host beside the Tauri host', () => {
   for (const relativePath of [
     'src-electron/main.ts',
     'src-electron/preload.cts',
-    'src-electron/commands/tester-commands.ts',
     'tsconfig.electron.json',
   ]) {
     assert.equal(existsSync(path.join(root, relativePath)), true, `${relativePath} should exist`);
   }
 
   const packageJson = readJson('package.json');
-  assert.match(packageJson.scripts['dev:electron'], /electron/);
+  assert.equal(packageJson.scripts['dev:electron'], 'nimi-app dev --shell electron');
   assert.match(packageJson.scripts['build:electron'], /tsconfig\.electron\.json/);
   assert.match(packageJson.scripts['test:e2e:electron'], /electron-acceptance/);
   assert.equal(packageJson.devDependencies['@grpc/grpc-js'], undefined, 'tester must not own raw gRPC');
@@ -57,35 +49,13 @@ test('repo exposes a first-class tester Electron dev command', () => {
   );
 });
 
-test('Electron dev runner avoids Windows batch shims for long-running children', () => {
-  const runnerSource = read('scripts/run-electron-dev.mjs');
-  assert.match(runnerSource, /node_modules['"], ['"]vite['"], ['"]bin['"], ['"]vite\.js/);
-  assert.match(runnerSource, /require\(['"]electron['"]\)/);
-  assert.doesNotMatch(runnerSource, /cmd\.exe/);
-  assert.doesNotMatch(runnerSource, /ComSpec/);
-  assert.doesNotMatch(runnerSource, /corepack\.cmd/);
-  assert.doesNotMatch(runnerSource, /spawn\(corepack,/);
-});
-
-test('Electron dev runner owns Ctrl-C cleanup for renderer and Electron process trees', () => {
-  const runnerSource = read('scripts/run-electron-dev.mjs');
-  assert.match(runnerSource, /const SIGNAL_EXIT_CODES = new Map/);
-  assert.match(runnerSource, /function requestProcessTreeShutdown\(child, signal\)/);
-  assert.match(runnerSource, /function forceKillProcessTree\(child\)/);
-  assert.match(runnerSource, /taskkill\.exe/);
-  assert.match(runnerSource, /process\.on\(signal, \(\) => shutdownFromSignal\(signal\)\)/);
-  assert.match(runnerSource, /requestAllChildrenShutdown\(signal\)/);
-  assert.doesNotMatch(runnerSource, /renderer\.kill\(\)/);
-});
-
-test('Electron dev runner clears stale tester renderers before launching Vite', () => {
-  const runnerSource = read('scripts/run-electron-dev.mjs');
-  const preflightIndex = runnerSource.indexOf('ensureRendererPortAvailable();');
-  const spawnRendererIndex = runnerSource.indexOf('spawnRenderer();');
-
-  assert.ok(preflightIndex > -1, 'Electron dev runner must preflight the renderer port');
-  assert.ok(spawnRendererIndex > preflightIndex, 'renderer preflight must run before Vite starts');
-  assert.match(runnerSource, /process\.execPath, \['scripts\/ensure-dev-renderer-port\.mjs'\]/);
+test('Electron development is supervised by Desktop and not by app-owned scripts', () => {
+  const launcher = readRepo('app-tools/scripts/dev-shell.mjs');
+  const supervisor = readRepo('apps/desktop/src-tauri/src/desktop_local_development/supervisor.rs');
+  assert.match(launcher, /\/v1\/start/);
+  assert.match(supervisor, /spawn_package_script\(run\.clone\(\), "dev:renderer"\)/);
+  assert.match(supervisor, /launch_electron_host/);
+  assert.equal(existsSync(path.join(root, 'scripts/run-electron-dev.mjs')), false);
 });
 
 test('Electron host uses canonical tester app identity for Runtime calls', () => {
@@ -111,7 +81,9 @@ test('Electron installed host does not synthesize Runtime account authority', ()
   assert.doesNotMatch(kitHostAuthSource, /protectedAccessToken|protectedAccessInflightKey|x-nimi-access-token/);
   assert.doesNotMatch(rendererAuthSource, /DeveloperRegistered|FullAppRegistration|AppSessionMetadataProvider/);
   assert.doesNotMatch(rendererAuthSource, /local-developer|developerRegistration|getRuntimeAccountCaller/);
-  assert.match(rendererAuthSource, /use_admitted_protected_runtime_carrier/);
+  assert.match(rendererAuthSource, /testerInstalledAppBootstrap\.appHost\.bootstrap\(\)/);
+  assert.match(rendererAuthSource, /artifacts\.readRuntimeBytes\(status\.bootstrapArtifactId\)/);
+  assert.doesNotMatch(rendererAuthSource, /readonly client:|readonly auth:/);
 });
 
 test('Tester and Kit Electron carriers retain no portable protected-access cache', () => {
@@ -124,13 +96,14 @@ test('Tester and Kit Electron carriers retain no portable protected-access cache
   }
 });
 
-test('Electron host keeps Runtime bridge in Kit and app commands in tester', () => {
+test('Electron host exposes only the fixed Kit app-host bridge', () => {
   const mainSource = read('src-electron/main.ts');
   const preloadSource = read('src-electron/preload.cts');
-  const commandSource = read('src-electron/commands/tester-commands.ts');
 
-  assert.match(mainSource, /registerNimiElectronRuntimeBridge/);
-  assert.match(mainSource, /createTesterElectronCommandHandlers/);
+  assert.match(mainSource, /registerNimiElectronAppBridge/);
+  assert.doesNotMatch(mainSource, /registerNimiElectronRuntimeBridge/);
+  assert.doesNotMatch(mainSource, /createTesterElectronCommandHandlers/);
+  assert.doesNotMatch(mainSource, /runtimeEndpoint|NIMI_RUNTIME_GRPC_ADDR|createGrpcClient/);
   assert.match(mainSource, /BrowserWindow/);
   assert.match(mainSource, /Menu\.setApplicationMenu\(null\)/);
   assert.match(mainSource, /autoHideMenuBar:\s*true/);
@@ -148,12 +121,6 @@ test('Electron host keeps Runtime bridge in Kit and app commands in tester', () 
   assert.doesNotMatch(mainSource, /new Set\(\['file:\/\/'\]\)/);
   assert.match(preloadSource, /@nimiplatform\/kit\/shell\/electron\/preload-cjs/);
   assert.match(preloadSource, /installNimiElectronRuntimeBridge/);
-
-  for (const command of requiredCommands) {
-    assert.match(commandSource, new RegExp(command));
-  }
-  assert.doesNotMatch(commandSource, /@grpc\/grpc-js/);
-  assert.doesNotMatch(commandSource, /runtime\/internal/);
   assert.doesNotMatch(mainSource, /runtime\/internal/);
 });
 

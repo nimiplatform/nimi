@@ -5,6 +5,10 @@ import { createRendererFlowId, emitRuntimeLog, logRendererEvent } from '@nimipla
 import { createNimiClientId } from '@nimiplatform/sdk';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
 import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
+import {
+  getRuntimePlatformProjection,
+  type RuntimePlatformReadyProjection,
+} from '../shell/auth/runtime-platform.js';
 import { getTesterCapability, testerCapabilities, type TesterCapabilityId } from './tester-capabilities.js';
 import { saveTesterArtifact } from './tester-artifact-storage.js';
 import { shouldPersistTesterArtifactRecord } from './tester-artifact-persistence.js';
@@ -141,6 +145,7 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   const [lastResult, setLastResult] = useState<TesterCapabilityRunResult | null>(null);
   const [historySelectionRequest, setHistorySelectionRequest] = useState<TesterHistorySelectionRequest | null>(null);
   const [preferences] = useState<TesterPreferences>(() => loadTesterPreferences().preferences);
+  const [appHostProjection, setAppHostProjection] = useState<RuntimePlatformReadyProjection | null>(null);
 
   const capability = useMemo(() => getTesterCapability(activeCapabilityId), [activeCapabilityId]);
   const runtimeState = useMemo(() => runtimeBadge(summary), [summary]);
@@ -191,7 +196,25 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
   useEffect(() => {
     void refreshSummary();
     void refreshHistory();
+    void getRuntimePlatformProjection().then((projection) => {
+      if (projection.status === 'ready') setAppHostProjection(projection);
+    });
   }, [refreshSummary, refreshHistory]);
+
+  const appHostTooltipRows = useMemo(() => {
+    const appHost = appHostProjection?.appHost;
+    return [
+      { label: 'Status', value: appHost ? 'Ready' : 'Checking' },
+      { label: 'Trust', value: appHost?.trustClass || 'Pending' },
+      { label: 'App', value: appHost?.appId || 'Pending' },
+      {
+        label: 'Protected artifact',
+        value: appHost?.bootstrapArtifact
+          ? `${appHost.bootstrapArtifact.mimeType} · ${appHost.bootstrapArtifact.sizeBytes} bytes`
+          : 'Pending',
+      },
+    ];
+  }, [appHostProjection]);
 
   const handleSelectHistoryRun = useCallback((record: TesterRunHistoryRecord) => {
     const capabilityId = record.capabilityId as TesterCapabilityId;
@@ -336,15 +359,29 @@ export function TesterWorkbench(_props: TesterWorkbenchProps) {
                 verboseConsole={preferences.verboseConsole}
                 draftPersistence={preferences.draftPersistence}
                 headerActions={(
-                  <Tooltip
-                    content={<TopbarStatusTooltip title="Runtime" rows={runtimeTooltipRows} />}
-                    placement="bottom"
-                  >
-                    <span className={`workbench-topbar__attachment workbench-topbar__attachment--${runtimeState.tone}`}>
-                      <span className="workbench-topbar__dot" aria-hidden="true" />
-                      <span>Runtime</span>
-                    </span>
-                  </Tooltip>
+                  <>
+                    <Tooltip
+                      content={<TopbarStatusTooltip title="Protected app host" rows={appHostTooltipRows} />}
+                      placement="bottom"
+                    >
+                      <span
+                        className={`workbench-topbar__attachment workbench-topbar__attachment--${appHostProjection ? 'success' : 'neutral'}`}
+                        data-testid="tester-app-host-status"
+                      >
+                        <span className="workbench-topbar__dot" aria-hidden="true" />
+                        <span>App host</span>
+                      </span>
+                    </Tooltip>
+                    <Tooltip
+                      content={<TopbarStatusTooltip title="Runtime" rows={runtimeTooltipRows} />}
+                      placement="bottom"
+                    >
+                      <span className={`workbench-topbar__attachment workbench-topbar__attachment--${runtimeState.tone}`}>
+                        <span className="workbench-topbar__dot" aria-hidden="true" />
+                        <span>Runtime</span>
+                      </span>
+                    </Tooltip>
+                  </>
                 )}
               />
             )}

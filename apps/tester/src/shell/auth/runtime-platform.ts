@@ -1,5 +1,6 @@
-import type { NimiClient } from '@nimiplatform/sdk';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { appId } from './app-identity.js';
+import { testerInstalledAppBootstrap } from '../installed-app-bootstrap.js';
 
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 
@@ -10,11 +11,15 @@ export type RuntimeAuthMode = 'third-party-nimi-app';
 export type RuntimePlatformReadyProjection = {
   readonly status: 'ready';
   readonly mode: RuntimeAuthMode;
-  readonly client: NimiClient;
-  readonly auth: {
+  readonly appHost: {
     readonly state: 'ready';
-    readonly source: 'runtime-installed-app-session';
-    readonly subjectUserId: string;
+    readonly trustClass: 'production-installed' | 'local-development';
+    readonly appId: string;
+    readonly bootstrapArtifactId?: string;
+    readonly bootstrapArtifact?: {
+      readonly mimeType: string;
+      readonly sizeBytes: number;
+    };
   };
 };
 
@@ -37,12 +42,69 @@ export function clearRuntimePlatformProjection(): void {
 }
 
 export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjection> {
-  runtimeProjection ??= Promise.resolve({
+  runtimeProjection ??= resolveAppHostProjection();
+  return runtimeProjection;
+}
+
+async function resolveAppHostProjection(): Promise<RuntimePlatformProjection> {
+  try {
+    const status = await testerInstalledAppBootstrap.appHost.bootstrap();
+    if (status.appId !== appId) {
+      throw new Error('The protected app-host identity does not match nimi.app.yaml.');
+    }
+    const bootstrapArtifact = status.bootstrapArtifactId
+      ? await testerInstalledAppBootstrap.artifacts.readRuntimeBytes(status.bootstrapArtifactId)
+      : undefined;
+    return {
+      status: 'ready',
+      mode: 'third-party-nimi-app',
+      appHost: {
+        state: 'ready',
+        trustClass: status.trustClass,
+        appId: status.appId,
+        ...(status.bootstrapArtifactId ? { bootstrapArtifactId: status.bootstrapArtifactId } : {}),
+        ...(bootstrapArtifact
+          ? {
+              bootstrapArtifact: {
+                mimeType: bootstrapArtifact.mimeType,
+                sizeBytes: bootstrapArtifact.sizeBytes,
+              },
+            }
+          : {}),
+      },
+    };
+  } catch (error) {
+    return unavailableFromError(error);
+  }
+}
+
+function unavailableFromError(error: unknown): RuntimePlatformUnavailableProjection {
+  const reasonCode = typeof error === 'object' && error !== null && 'reasonCode' in error
+    ? normalizeText((error as { reasonCode?: unknown }).reasonCode) || ReasonCode.RUNTIME_UNAVAILABLE
+    : ReasonCode.RUNTIME_UNAVAILABLE;
+  return {
     status: 'action-required',
     mode: 'third-party-nimi-app',
-    reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
-    actionHint: 'use_admitted_protected_runtime_carrier',
-    message: 'Tester installed account, Realm, and AI access requires a Runtime-issued protected app session.',
-  });
-  return runtimeProjection;
+    reasonCode,
+    actionHint: actionHintFor(reasonCode),
+    message: error instanceof Error ? error.message : 'The protected Nimi app host is unavailable.',
+  };
+}
+
+function actionHintFor(reasonCode: string): string {
+  switch (reasonCode) {
+    case 'local-development-authorization-required':
+    case 'local-development-reapproval-required':
+      return 'approve_project_in_nimi_desktop';
+    case 'local-development-session-revoked':
+      return 'restart_official_nimi_app_dev_command';
+    case 'local-development-project-changed':
+      return 'restore_authorized_project_identity';
+    default:
+      return 'open_nimi_desktop_and_retry';
+  }
+}
+
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
 }

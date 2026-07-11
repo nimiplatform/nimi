@@ -10,3 +10,6 @@ permissions:
     - scope: file.write.scoped
       qualifier: app-local-drafts
       purpose: Store drafts owned by this app during author testing.
+    - scope: data.scope.read
+      qualifier: runtime.artifacts
+      purpose: Read Runtime-owned bootstrap artifacts through the typed app-host surface.

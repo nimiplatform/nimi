@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CanonicalCapabilitySectionId } from '@nimiplatform/kit/core/runtime-capabilities';
 import type { AppModelConfigSurface, LocalAssetEntry } from '@nimiplatform/kit/features/model-config';
-import { listNimiRuntimeLocalAssetEntries } from '@nimiplatform/sdk/runtime';
 import type { TesterRuntimeInspection } from '../tester-runtime.js';
 import {
   createTesterAIConfigService,
@@ -70,20 +69,13 @@ function useTesterRuntimeLocalAssetSource(runtimeReady: boolean): AppModelConfig
     void getRuntimePlatformProjection()
       .then(async (projection) => {
         if (projection.status !== 'ready') {
-          return [];
+          return [] as LocalAssetEntry[];
         }
-        return listNimiRuntimeLocalAssetEntries(projection.client.runtime);
+        return [] as LocalAssetEntry[];
       })
       .then((next) => {
         if (cancelled) return;
-        setAssets(next.map((asset) => ({
-          localAssetId: asset.localAssetId,
-          assetId: asset.assetId,
-          kind: asset.kind,
-          engine: asset.engine,
-          status: asset.status,
-          artifactRoles: asset.artifactRoles,
-        })));
+        setAssets(next);
       })
       .catch(() => {
         if (!cancelled) {

@@ -16,14 +16,13 @@ test('tester exposes a first-class shell parity gate', () => {
   assert.equal(packageJson.scripts['check:shell-parity'], 'pnpm run check:shell-static-parity && pnpm run test:e2e:electron && pnpm run test:e2e:tauri');
   assert.equal(existsSync(path.join(root, 'scripts/check-shell-parity.mjs')), true);
   const source = read('scripts/check-shell-parity.mjs');
-  assert.match(source, /STATIC_TESTER_SHELL_COMMANDS/);
-  assert.match(source, /NIMI_STANDARD_SHELL_COMMANDS/);
+  assert.match(source, /registerNimiElectronAppBridge/);
+  assert.match(source, /app_host_bootstrap/);
+  assert.match(source, /artifacts_read_runtime_bytes/);
   assert.match(source, /src-electron\/main\.ts/);
   assert.match(source, /src-tauri\/src\/main\.rs/);
-  assert.match(source, /createTesterElectronCommandHandlers/);
   assert.match(source, /nimi_shell_tauri_installed_app_standard_shell_handler/);
-  assert.match(source, /resolve_world_tour_fixture/);
-  assert.match(source, /open_world_tour_window/);
+  assert.match(source, /electron-app-host-ordinary-grpc-forbidden/);
   assert.equal(existsSync(path.join(root, 'scripts/run-tauri-acceptance.mjs')), true);
   const tauriAcceptance = read('scripts/run-tauri-acceptance.mjs');
   assert.match(tauriAcceptance, /commandMatrix/);
@@ -42,7 +41,7 @@ test('tester exposes a first-class shell parity gate', () => {
     assert.match(tauriAcceptance, new RegExp(expectedCommand));
   }
   const tauriMain = read('src-tauri/src/main.rs');
-  assert.match(tauriMain, /commandChecks/);
-  assert.match(tauriMain, /relativePath/);
-  assert.match(tauriMain, /expectError/);
+  const tauriProduct = tauriMain.split('#[cfg(test)]')[0];
+  assert.match(tauriProduct, /nimi_shell_tauri_installed_app_standard_shell_handler/);
+  assert.doesNotMatch(tauriProduct, /runtime_bridge_unary|nimi_shell_tauri_runtime_bridge_handler/);
 });

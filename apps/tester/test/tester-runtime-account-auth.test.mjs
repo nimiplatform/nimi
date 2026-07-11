@@ -47,23 +47,83 @@ test.after(() => {
   }
 });
 
-test('Tester exposes only the installed app projection and fails closed before protected session admission', async () => {
+test('Tester app-host projection fails closed before protected session admission', async () => {
   const runtimePlatform = await importRuntimePlatform();
 
   assert.equal(runtimePlatform.runtimeAccountLoginEnabled, false);
-  assert.deepEqual(await runtimePlatform.getRuntimePlatformProjection(), {
-    status: 'action-required',
-    mode: 'third-party-nimi-app',
-    reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
-    actionHint: 'use_admitted_protected_runtime_carrier',
-    message: 'Tester installed account, Realm, and AI access requires a Runtime-issued protected app session.',
-  });
+  const projection = await runtimePlatform.getRuntimePlatformProjection();
+  assert.equal(projection.status, 'action-required');
+  assert.equal(projection.mode, 'third-party-nimi-app');
+  assert.equal(projection.reasonCode, 'renderer-standard-shell-host-unavailable');
+  assert.equal(projection.actionHint, 'open_nimi_desktop_and_retry');
 
   runtimePlatform.clearRuntimePlatformProjection();
   const refreshed = await runtimePlatform.getRuntimePlatformProjection();
   assert.equal('client' in refreshed, false);
   assert.equal('accountCaller' in refreshed, false);
   assert.equal('accountRuntime' in refreshed, false);
+});
+
+test('Tester proves admitted app-host bootstrap and Runtime artifact read without generic authority', async () => {
+  const previousElectronTest = globalThis.__NIMI_ELECTRON_TEST__;
+  const calls = [];
+  globalThis.__NIMI_ELECTRON_TEST__ = {
+    async invoke(command, payload) {
+      calls.push({ command, payload });
+      if (command === 'nimi.app-host.bootstrap') {
+        return {
+          state: 'ready',
+          trustClass: 'local-development',
+          appId: 'nimi.tester',
+          bootstrapArtifactId: 'bootstrap-artifact',
+          expiresAtUnixMs: Date.now() + 60_000,
+        };
+      }
+      if (command === 'nimi.shell.artifacts.readRuntimeBytes') {
+        return {
+          dataBase64: 'AQIDBA==',
+          mimeType: 'application/octet-stream',
+          sizeBytes: 4,
+          mimeInferred: false,
+        };
+      }
+      throw new Error(`unexpected command: ${command}`);
+    },
+    listen() {
+      return () => {};
+    },
+  };
+  try {
+    const runtimePlatform = await importRuntimePlatform();
+    runtimePlatform.clearRuntimePlatformProjection();
+    const projection = await runtimePlatform.getRuntimePlatformProjection();
+    assert.deepEqual(projection, {
+      status: 'ready',
+      mode: 'third-party-nimi-app',
+      appHost: {
+        state: 'ready',
+        trustClass: 'local-development',
+        appId: 'nimi.tester',
+        bootstrapArtifactId: 'bootstrap-artifact',
+        bootstrapArtifact: {
+          mimeType: 'application/octet-stream',
+          sizeBytes: 4,
+        },
+      },
+    });
+    assert.equal('client' in projection, false);
+    assert.equal('auth' in projection, false);
+    assert.deepEqual(calls.map(({ command }) => command), [
+      'nimi.app-host.bootstrap',
+      'nimi.shell.artifacts.readRuntimeBytes',
+    ]);
+  } finally {
+    if (previousElectronTest === undefined) {
+      delete globalThis.__NIMI_ELECTRON_TEST__;
+    } else {
+      globalThis.__NIMI_ELECTRON_TEST__ = previousElectronTest;
+    }
+  }
 });
 
 test('Tester media artifact readback crosses the installed SDK and Kit carrier', async () => {

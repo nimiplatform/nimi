@@ -3,8 +3,6 @@ import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js'
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable } from './tester-unavailable.js';
 import {
-  invokeTesterCapability,
-  type TesterInvocationResult,
   type TesterTypedSuccess,
 } from './tester-runtime-invokers.js';
 
@@ -46,21 +44,17 @@ export async function inspectRuntimeReadiness(): Promise<TesterRuntimeInspection
       detail: projection.message,
     };
   }
-  try {
-    const health = await projection.client.runtime.health({});
-    return {
-      status: 'ready',
-      mode: projection.mode,
-      detail: 'Runtime app session is ready. Capability lanes call runtime.ai.* directly.',
-      healthJson: compactJson(health),
-    };
-  } catch (error) {
-    return {
-      status: 'unavailable',
-      mode: projection.mode,
-      detail: error instanceof Error ? error.message : String(error || 'Runtime health check failed.'),
-    };
-  }
+  return {
+    status: 'unavailable',
+    mode: projection.mode,
+    detail: 'Protected app host is ready. This app authorization admits artifacts.readRuntimeBytes only; Runtime health, account, Realm, AI, realtime, lifecycle, and media operations remain blocked.',
+    healthJson: compactJson({
+      appHost: projection.appHost.state,
+      trustClass: projection.appHost.trustClass,
+      appId: projection.appHost.appId,
+      bootstrapArtifact: projection.appHost.bootstrapArtifact,
+    }),
+  };
 }
 
 export async function runTesterCapability(input: TesterCapabilityRunInput): Promise<TesterCapabilityRunResult> {
@@ -69,13 +63,9 @@ export async function runTesterCapability(input: TesterCapabilityRunInput): Prom
   if (projection.status !== 'ready') {
     return capabilityUnavailable(capability, 'runtime-not-ready', projection.message);
   }
-  const result: TesterInvocationResult = await invokeTesterCapability(projection.client, input.capabilityId, {
-    prompt: input.prompt,
-    scenarioId: input.scenarioId || 'default',
-    subjectUserId: projection.auth.subjectUserId,
-    onPartial: input.onPartial,
-    attachments: input.attachments,
-    directive: input.directive,
-  });
-  return result;
+  return capabilityUnavailable(
+    capability,
+    'sdk-method-unavailable',
+    'This local-development authorization admits artifacts.readRuntimeBytes only. AI and media execution remain fail-closed.',
+  );
 }

@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm run dev:renderer",
+    "dev": "nimi-app dev --shell tauri",
     "dev:renderer": "vite --host 127.0.0.1 --port 1468 --strictPort",
-    "dev:electron": "corepack pnpm run build:electron && node scripts/run-electron-dev.mjs",
-    "dev:shell": "node scripts/run-tauri-dev.mjs",
+    "dev:electron": "nimi-app dev --shell electron",
+    "dev:shell": "nimi-app dev",
     "init": "nimi-app init",
     "prepare:workspace-surfaces": "corepack pnpm --filter @nimiplatform/sdk build && corepack pnpm --filter @nimiplatform/kit build",
     "typecheck": "pnpm run prepare:workspace-surfaces && tsc --noEmit",

@@ -4,6 +4,7 @@ import { isCanonicalPermissionScopeName } from '@nimiplatform/sdk/app';
 import './check-kit-first-style.mjs';
 
 const APP_LOCAL_DRAFTS_SCOPES = new Set(['file.read.scoped', 'file.write.scoped']);
+const RUNTIME_ARTIFACT_SCOPES = new Set(['data.scope.read']);
 
 function validatePermissionDeclarations(manifestText) {
   const parsed = parseYaml(manifestText);
@@ -28,11 +29,14 @@ function validatePermissionDeclarations(manifestText) {
     if (typeof declaration.qualifier === 'string' && qualifier.length === 0) {
       throw new Error(`permission declaration ${index} qualifier must be omitted or non-empty`);
     }
-    if (qualifier && qualifier !== 'app-local-drafts') {
+    if (qualifier && qualifier !== 'app-local-drafts' && qualifier !== 'runtime.artifacts') {
       throw new Error(`permission declaration ${index} uses unsupported qualifier: ${qualifier}`);
     }
     if (qualifier === 'app-local-drafts' && !APP_LOCAL_DRAFTS_SCOPES.has(scope)) {
       throw new Error(`permission declaration ${index} app-local-drafts qualifier is only admitted for file.read.scoped or file.write.scoped`);
+    }
+    if (qualifier === 'runtime.artifacts' && !RUNTIME_ARTIFACT_SCOPES.has(scope)) {
+      throw new Error(`permission declaration ${index} runtime.artifacts qualifier is only admitted for data.scope.read`);
     }
     for (const grantField of ['grantId', 'grant_id', 'state', 'granted', 'granted_permissions']) {
       if (Object.hasOwn(declaration, grantField)) {
@@ -55,7 +59,7 @@ if (existsSync(submissionUrl) && existsSync(buildProfileUrl)) {
   if (!submission.includes('submission_role: developer-submitted-input')) {
     throw new Error('developer submission role marker missing');
   }
-  if (!submission.includes('dev_shell_command: pnpm dev:shell')) {
+  if (!submission.includes('dev_command: pnpm dev')) {
     throw new Error('dev shell command marker missing');
   }
   if (!submission.includes('init_command: pnpm run init')) {

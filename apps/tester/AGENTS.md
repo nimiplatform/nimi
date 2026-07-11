@@ -3,7 +3,7 @@
 - Treat `.nimi/{config,contracts,methodology}/**` as `@nimiplatform/nimi-coding` managed projections created by `pnpm run init`.
 - Keep auth, Runtime, permission, manifest, and Tauri shell glue in scaffold-managed files.
 - The app-owned area is `src/shell/routes/product-area.tsx`, `src/tester/**`, the app-owned tester Tauri module `src-tauri/src/world_tour.rs` (run/image history, export, and artifact persistence now flow through the kit standard shell storage/export/artifacts capabilities, not app-local Tauri commands), and tester contract tests.
-- `src-electron/**` is the app-owned Electron dev/acceptance host for this same tester app. Keep reusable Electron main/preload bridge behavior in `@nimiplatform/kit/shell/electron`; keep app-specific storage commands, windows, fixture routing, and acceptance harness wiring under `src-electron/**`.
+- `src-electron/**` is the app-owned Electron product host for this same tester app. It may consume only the fixed `@nimiplatform/kit` app-host bridge; protected Runtime transport, authorization, session, and credential behavior remain outside the app.
 - `.nimi/admission/**` and `ADMISSION.md` are developer-submitted review inputs, not platform admission truth.
 - Local checks are pre-submission self-checks only.
 

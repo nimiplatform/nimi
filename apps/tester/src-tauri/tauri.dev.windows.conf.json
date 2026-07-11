@@ -1,7 +1,0 @@
-{
-  "build": {
-    "runner": {
-      "cmd": "../scripts/tauri-dev-runner.cmd"
-    }
-  }
-}

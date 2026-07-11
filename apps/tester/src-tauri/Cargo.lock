@@ -2229,6 +2229,7 @@ dependencies = [
  "tonic-prost",
  "tonic-prost-build",
  "tower",
+ "url",
  "windows-service",
  "windows-sys 0.61.2",
 ]

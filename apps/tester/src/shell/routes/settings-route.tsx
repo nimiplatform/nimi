@@ -26,10 +26,7 @@ async function requireTesterRealm(): Promise<Realm> {
   if (projection.status !== 'ready') {
     throw new Error(projection.message);
   }
-  if (!projection.client.realm) {
-    throw new Error('Tester settings Realm projection requires explicit vNext Realm configuration.');
-  }
-  return projection.client.realm;
+  throw new Error('Realm is not admitted for this app-host authorization.');
 }
 
 function errorMessage(error: unknown): string {

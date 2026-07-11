@@ -60,7 +60,9 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
   assert.match(installedBootstrap, /createInstalledNimiAppStandardShellSurface/);
   assert.match(runtimePlatform, /runtimeAccountLoginEnabled = false/);
   assert.match(runtimePlatform, /mode: 'third-party-nimi-app'/);
-  assert.match(runtimePlatform, /use_admitted_protected_runtime_carrier/);
+  assert.match(runtimePlatform, /testerInstalledAppBootstrap\.appHost\.bootstrap\(\)/);
+  assert.match(runtimePlatform, /artifacts\.readRuntimeBytes\(status\.bootstrapArtifactId\)/);
+  assert.doesNotMatch(runtimePlatform, /readonly client:|readonly auth:/);
   assert.doesNotMatch(runtimePlatform, /createNimi(?:DeveloperRegistered|LocalFirstParty)RuntimeAccountCaller/);
   assert.doesNotMatch(runtimePlatform, /createNimiRuntimeFullAppRegistration|createNimiRuntimeAppSessionMetadataProvider/);
   assert.doesNotMatch(runtimePlatform, /new Runtime|new Realm|createRuntimeAccountMediatedRealmTransport/);
@@ -159,7 +161,7 @@ test('tester account menu consumes the shared Kit AccountPanel without owning Ru
   assert.match(accountPanel, /from '@nimiplatform\/kit\/ui'/);
   assert.doesNotMatch(accountPanel, /RuntimeLoginPage|loginOpen|handleOpenLogin/);
   assert.match(accountPanel, /AccountPanel/);
-  for (const label of ['Account managed in Nimi Desktop', 'Sign in with Nimi Desktop', 'Nimi Lab Settings']) {
+  for (const label of ['Account protected by Nimi Desktop', 'Open Nimi Desktop', 'Nimi Lab Settings']) {
     assert.match(accountPanel, new RegExp(label));
   }
   assert.match(accountPanel, /disabled:\s*true/);
@@ -175,7 +177,8 @@ test('tester account menu consumes the shared Kit AccountPanel without owning Ru
   ]) {
     assert.doesNotMatch(accountPanel, new RegExp(desktopOnly));
   }
-  assert.match(accountPanel, /projection\.auth\.subjectUserId/);
+  assert.match(accountPanel, /projection\.appHost/);
+  assert.doesNotMatch(accountPanel, /subjectUserId|projection\.auth/);
   assert.doesNotMatch(accountPanel, /runtime\.account|getRuntimeAccountCaller|loadRuntimeAccountUser/);
   assert.doesNotMatch(accountPanel, /logoutRuntimeAccount|handleLogout|handleLoginComplete/);
   assert.doesNotMatch(accountPanel, /setLoginOpen\(true\)|handleOpenLogin/);

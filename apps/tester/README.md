@@ -9,7 +9,7 @@ This repository is a Nimi App authoring scaffold. `nimi.app.yaml`, the build pro
 ```bash
 pnpm install
 pnpm run init
-pnpm dev:shell
+pnpm dev
 pnpm run validate
 pnpm run local-audit
 pnpm run pack
@@ -19,7 +19,9 @@ pnpm run update
 
 `init` runs the pinned local `nimicoding sync --apply` projection and writes app-scaffold admission/build-profile/lock state. It is explicit after install; package installation does not mutate `.nimi/**` by itself.
 
-`dev:shell` launches the Tauri shell (`tauri dev`). The app authenticates through the in-app Runtime account login, exactly like a shipped app — there is no standalone developer session. For a not-yet-admitted local app, enable Developer Mode in the desktop app; the Runtime developer-registration gate then admits the local app under your real logged-in account. This is local developer material only; it is not Nimi listing admission, install truth, or a permission grant.
+`dev` uses the same official launcher as every generated third-party app and selects Tauri by default. Use `pnpm dev:shell -- --shell electron` or `pnpm dev:shell -- --shell tauri` to select explicitly. Nimi Desktop owns the confirmation, dev server, and native host. Renderer HMR and Desktop-controlled native rebuilds reuse an unchanged project authorization; app id, root, shell, account, or capability changes require a new decision.
+
+The Tester local-development manifest admits only the typed Runtime artifact-read proof. The UI reports the protected app host and the real bootstrap artifact result, while account, Realm, AI, lifecycle, realtime, and media calls remain visibly fail-closed. No Runtime credential or protected session material enters the app, renderer, or terminal. This non-production authorization is not listing admission, install truth, a production release, signing evidence, or a permission grant. Non-Windows development admission currently fails closed.
 
 `doctor` and `update` are developer scaffold checks for this source repository. They do not update an installed app, publish admission truth, create release descriptors, or grant permissions.
 

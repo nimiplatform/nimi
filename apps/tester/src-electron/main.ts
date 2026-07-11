@@ -1,20 +1,10 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { mkdir } from 'node:fs/promises';
-import { app, BrowserWindow, ipcMain, Menu, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu } from 'electron';
 import {
-  createElectronShellFileProtocolHost,
-  createNimiElectronFileAIConfigStore,
-  createNimiElectronInstalledHost,
   isAllowedElectronRendererUrl,
-  registerNimiElectronRuntimeBridge,
-  resolveElectronStandardStorageRoots,
-  type NimiElectronShellFileProtocolHost,
-  type NimiElectronStandardDataRootBinding,
-  type NimiElectronStandardShellHost,
+  registerNimiElectronAppBridge,
 } from '@nimiplatform/kit/shell/electron/main';
-import { NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID } from '@nimiplatform/kit/shell/capabilities';
-import { createTesterElectronCommandHandlers } from './commands/tester-commands.js';
 
 const APP_ID = 'nimi.tester';
 
@@ -24,49 +14,18 @@ const appRoot = path.resolve(currentDir, '..');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
-const rendererUrl = normalizeText(process.env.NIMI_TESTER_ELECTRON_RENDERER_URL);
-const runtimeEndpoint = normalizeText(process.env.NIMI_RUNTIME_GRPC_ADDR)
-  || normalizeText(process.env.NIMI_TESTER_ELECTRON_RUNTIME_ENDPOINT)
-  || '127.0.0.1:46371';
-const worldTourWindows = new Map<string, BrowserWindow>();
-
-const fileProtocolHost: NimiElectronShellFileProtocolHost = createElectronShellFileProtocolHost({
-  protocol: {
-    registerSchemesAsPrivileged: (customSchemes) => protocol.registerSchemesAsPrivileged([...customSchemes]),
-    handle: (scheme, handler) => protocol.handle(scheme, (request) => handler(request) as Promise<Response>),
-  },
-  roots: resolveStandardLocalAssetRoots(resolveStandardDataRoot()),
-});
-
-fileProtocolHost.registerPrivilegedSchemes();
+const rendererUrl = readDevelopmentRendererUrl()
+  || normalizeText(process.env.NIMI_TESTER_ELECTRON_RENDERER_URL);
 
 app.setName('Nimi Tester');
 Menu.setApplicationMenu(null);
 configureTesterElectronChromiumRuntime();
 
 void app.whenReady().then(async () => {
-  fileProtocolHost.registerProtocolHandler();
-  const standardDataRoot = resolveStandardDataRoot();
-  const standardShellHost: NimiElectronStandardShellHost = {
-    capabilitySetRef: NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
-    installedHost: createNimiElectronInstalledHost(),
-    standardDataRootBinding: resolveStandardDataRootBinding(),
-    localAssetRoots: resolveStandardLocalAssetRoots(standardDataRoot),
-    localAssetProtocolHost: fileProtocolHost,
-    aiConfigStore: createTesterAiConfigStore(standardDataRoot),
-  };
-  registerNimiElectronRuntimeBridge({
+  registerNimiElectronAppBridge({
     appId: APP_ID,
-    runtimeEndpoint,
-    allowedOrigins: allowedRendererOrigins(),
     allowedRendererUrls: allowedRendererUrls(),
     ipcMain,
-    commandHandlers: createTesterElectronCommandHandlers({
-      registerReadableFile: (filePath) => fileProtocolHost.registerReadableFile(filePath).then(() => undefined),
-      resolveWorldTourStorageRoots: () => resolveWorldTourStorageRoots(standardShellHost),
-      openWorldTourWindow,
-    }),
-    standardShellHost,
   });
 
   await createMainWindow();
@@ -109,46 +68,6 @@ async function createMainWindow(): Promise<BrowserWindow> {
   return window;
 }
 
-async function openWorldTourWindow(input: {
-  readonly route: string;
-  readonly title: string;
-  readonly width: number;
-  readonly height: number;
-  readonly minWidth: number;
-  readonly minHeight: number;
-}): Promise<{ readonly windowLabel: string }> {
-  for (const window of worldTourWindows.values()) {
-    if (!window.isDestroyed()) {
-      window.close();
-    }
-  }
-  worldTourWindows.clear();
-
-  const windowLabel = `world-tour-${Date.now()}`;
-  const window = new BrowserWindow({
-    width: input.width,
-    height: input.height,
-    minWidth: input.minWidth,
-    minHeight: input.minHeight,
-    title: input.title,
-    autoHideMenuBar: true,
-    webPreferences: {
-      preload: preloadPath,
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-  hardenTesterWindowChrome(window);
-  secureTesterWindow(window);
-  worldTourWindows.set(windowLabel, window);
-  window.on('closed', () => {
-    worldTourWindows.delete(windowLabel);
-  });
-  await loadRendererRoute(window, input.route);
-  return { windowLabel };
-}
-
 async function loadRendererRoute(window: BrowserWindow, route: string): Promise<void> {
   const hash = hashFromRoute(route);
   if (rendererUrl) {
@@ -177,25 +96,6 @@ function secureTesterWindow(window: BrowserWindow): void {
   });
 }
 
-function allowedRendererOrigins(): string[] {
-  const origins = new Set<string>();
-  for (const url of allowedRendererUrls()) {
-    origins.add(originForRendererUrl(url));
-  }
-  for (const origin of normalizeText(process.env.NIMI_TESTER_ELECTRON_ALLOWED_ORIGINS).split(',')) {
-    const normalized = normalizeText(origin);
-    if (normalized) {
-      origins.add(normalized);
-    }
-  }
-  return [...origins];
-}
-
-function originForRendererUrl(url: string): string {
-  const parsed = new URL(url);
-  return parsed.protocol === 'file:' ? 'file://' : parsed.origin;
-}
-
 function allowedRendererUrls(): string[] {
   const urls = new Set<string>([rendererUrl || rendererDistUrl]);
   for (const url of normalizeText(process.env.NIMI_TESTER_ELECTRON_ALLOWED_RENDERER_URLS).split(',')) {
@@ -207,60 +107,8 @@ function allowedRendererUrls(): string[] {
   return [...urls];
 }
 
-function resolveStandardDataRoot(): string {
-  const fromEnv = normalizeText(process.env.NIMI_TESTER_ELECTRON_STANDARD_DATA_ROOT);
-  return path.resolve(fromEnv || path.join(app.getPath('userData'), 'standard-shell-data'));
-}
-
-function resolveStandardDataRootBinding(): NimiElectronStandardDataRootBinding {
-  const fromEnv = normalizeText(process.env.NIMI_TESTER_ELECTRON_STANDARD_DATA_ROOT);
-  if (fromEnv) {
-    return {
-      source: 'runtime-launch-projection',
-      durableDataRoot: path.resolve(fromEnv),
-      projectionRef: 'tester-electron-acceptance-fixture',
-    };
-  }
-  return { source: 'runtime-get-app-storage' };
-}
-
-function resolveStandardLocalAssetRoots(dataRoot: string): string[] {
-  const fromEnv = normalizeText(process.env.NIMI_TESTER_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS);
-  if (!fromEnv) {
-    return [dataRoot, app.getPath('downloads')].map((filePath) => path.resolve(filePath));
-  }
-  return fromEnv
-    .split(path.delimiter)
-    .map((filePath) => normalizeText(filePath))
-    .filter(Boolean)
-    .map((filePath) => path.resolve(filePath));
-}
-
-function createTesterAiConfigStore(dataRoot: string) {
-  return createNimiElectronFileAIConfigStore({
-    dataRoot,
-    storeLabel: 'tester AI Config',
-  });
-}
-
 function isTesterRendererUrl(url: string): boolean {
   return isAllowedElectronRendererUrl(url, allowedRendererUrls());
-}
-
-/**
- * Resolves the Runtime-attested cache/temp roots for the app-owned world-tour
- * fixture cache and launch-token temp handles from the standard data root
- * binding. Falls back to the resolved data root when the binding does not carry
- * explicit cache/temp roots (e.g. the acceptance launch projection).
- */
-async function resolveWorldTourStorageRoots(
-  host: NimiElectronStandardShellHost,
-): Promise<{ readonly cacheRoot: string; readonly tempRoot: string }> {
-  const roots = await resolveElectronStandardStorageRoots(host, 'world_tour_storage_roots');
-  return {
-    cacheRoot: roots.cacheRoot ?? roots.dataRoot,
-    tempRoot: roots.tempRoot ?? roots.dataRoot,
-  };
 }
 
 function hashFromRoute(route: string): string {
@@ -279,4 +127,29 @@ function hashFromRoute(route: string): string {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function readDevelopmentRendererUrl(): string {
+  const prefix = '--nimi-dev-renderer-url=';
+  const values = process.argv.filter((value) => value.startsWith(prefix));
+  if (values.length === 0) {
+    return '';
+  }
+  if (values.length !== 1) {
+    throw new Error('Nimi development renderer URL must be singular.');
+  }
+  const parsed = new URL(values[0].slice(prefix.length));
+  if (
+    parsed.protocol !== 'http:'
+    || !['127.0.0.1', 'localhost', '[::1]', '::1'].includes(parsed.hostname.toLowerCase())
+    || !parsed.port
+    || parsed.username
+    || parsed.password
+    || (parsed.pathname !== '/' && parsed.pathname !== '')
+    || parsed.search
+    || parsed.hash
+  ) {
+    throw new Error('Nimi development renderer URL must be exact loopback.');
+  }
+  return parsed.origin;
 }

@@ -4,25 +4,11 @@ import {
   Settings,
 } from 'lucide-react';
 import { AccountPanel, IconButton, Tooltip } from '@nimiplatform/kit/ui';
-import {
-  getRuntimePlatformProjection,
-  type RuntimePlatformReadyProjection,
-} from '../auth/runtime-platform.js';
-
-type RuntimeAccountUser = {
-  readonly displayName: string;
-  readonly email?: string;
-};
+import { getRuntimePlatformProjection } from '../auth/runtime-platform.js';
 
 type NimiLabAccountMenuProps = {
   onOpenSettings: () => void;
 };
-
-function toAccountUser(projection: RuntimePlatformReadyProjection): RuntimeAccountUser {
-  return {
-    displayName: projection.auth.subjectUserId,
-  };
-}
 
 function toAccountStatusMessage(error: unknown, fallback: string): string {
   const message = error instanceof Error ? error.message : String(error || '');
@@ -35,7 +21,7 @@ function toAccountStatusMessage(error: unknown, fallback: string): string {
 export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<RuntimeAccountUser | null>(null);
+  const [appHostReady, setAppHostReady] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -44,9 +30,9 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
     if (projection.status !== 'ready') {
       throw new Error(projection.message || 'Runtime account projection unavailable.');
     }
-    const nextUser = toAccountUser(projection);
-    setUser(nextUser);
-    return nextUser;
+    setAppHostReady(true);
+    setStatusMessage('Account identity remains protected by Nimi Desktop; this app receives no account token or subject identifier.');
+    return projection.appHost;
   }, []);
 
   useEffect(() => {
@@ -79,13 +65,12 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
     };
   }, [open]);
 
-  const signedIn = Boolean(user);
-  const displayName = user?.displayName || (loadingUser ? 'Checking account' : 'Not signed in');
-  const fallback = signedIn ? displayName.charAt(0).toUpperCase() || 'N' : 'N';
+  const displayName = appHostReady ? 'Nimi Desktop app host' : (loadingUser ? 'Checking app host' : 'App host unavailable');
+  const fallback = 'N';
   const items = [
     {
       id: 'desktop-account-owner',
-      label: signedIn ? 'Account managed in Nimi Desktop' : 'Sign in with Nimi Desktop',
+      label: appHostReady ? 'Account protected by Nimi Desktop' : 'Open Nimi Desktop',
       icon: <LogIn size={18} strokeWidth={1.8} aria-hidden="true" />,
       disabled: true,
     },
@@ -102,25 +87,25 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
 
   return (
     <div ref={rootRef} className="lab-account-menu" data-workbench-account-root="">
-      <Tooltip content={signedIn ? displayName : 'Sign in'} placement="right" className="w-full">
+      <Tooltip content={displayName} placement="right" className="w-full">
         <IconButton
           type="button"
           tone="ghost"
           size="sm"
           data-workbench-account-trigger=""
           data-open={open ? 'true' : undefined}
-          aria-label={signedIn ? `Open Nimi Lab account menu for ${displayName}` : 'Sign in to Nimi Lab'}
+          aria-label="Open Nimi Lab Desktop-owned account status"
           aria-expanded={open}
           aria-haspopup="menu"
           onClick={() => setOpen((value) => !value)}
           className={open ? 'lab-account-menu__trigger lab-account-menu__trigger--open' : 'lab-account-menu__trigger'}
-          icon={signedIn ? <span className="lab-account-menu__avatar-glyph" aria-hidden="true">{fallback}</span> : <LogIn size={18} strokeWidth={1.9} aria-hidden="true" />}
+          icon={appHostReady ? <span className="lab-account-menu__avatar-glyph" aria-hidden="true">{fallback}</span> : <LogIn size={18} strokeWidth={1.9} aria-hidden="true" />}
         />
       </Tooltip>
       {open ? (
         <div className="lab-account-menu__panel" data-workbench-account-panel="">
           <AccountPanel
-            user={{ displayName, email: user?.email, fallback }}
+            user={{ displayName, fallback }}
             items={items}
             footerItems={[]}
             ariaLabel="Nimi Lab account menu"

@@ -17,8 +17,10 @@ const admission = readFileSync(new URL('../ADMISSION.md', import.meta.url), 'utf
 test('auth glue exposes only the installed app projection', () => {
   assert.match(authSource, /'third-party-nimi-app'/);
   assert.match(authSource, /runtimeAccountLoginEnabled = false/);
-  assert.match(authSource, /use_admitted_protected_runtime_carrier/);
+  assert.match(authSource, /testerInstalledAppBootstrap\.appHost\.bootstrap\(\)/);
+  assert.match(authSource, /artifacts\.readRuntimeBytes\(status\.bootstrapArtifactId\)/);
   assert.doesNotMatch(authSource, /createNimiClient|new Runtime|new Realm/);
+  assert.doesNotMatch(authSource, /readonly client:|readonly auth:/);
   assert.doesNotMatch(authSource, /DeveloperRegistered|FullAppRegistration|AppSessionMetadataProvider/);
   assert.doesNotMatch(authSource, /getRuntimeAccountCaller|getRuntimeNimiClient|getRuntimeSubjectUserId/);
   assert.doesNotMatch(authSource, /developer-registration|local-developer|developer-registered-local-app/i);
@@ -117,6 +119,7 @@ test('manifest remains submitted input', () => {
   assert.match(manifest, /declared_nimi_api_scopes/);
   assert.match(manifest, /scope: file\.read\.scoped/);
   assert.match(manifest, /scope: file\.write\.scoped/);
+  assert.match(manifest, /scope: data\.scope\.read\s+qualifier: runtime\.artifacts/);
   assert.doesNotMatch(manifest, /scope: app\.local\.drafts/);
 });
 
@@ -124,6 +127,8 @@ test('validate script consumes SDK canonical permission scope names', () => {
   const validateSource = readFileSync(new URL('../scripts/validate.mjs', import.meta.url), 'utf8');
   assert.match(validateSource, /from ['"]@nimiplatform\/sdk\/app['"]/);
   assert.match(validateSource, /isCanonicalPermissionScopeName/);
+  assert.match(validateSource, /RUNTIME_ARTIFACT_SCOPES = new Set\(\['data\.scope\.read'\]\)/);
+  assert.match(validateSource, /qualifier === 'runtime\.artifacts'/);
   assert.doesNotMatch(validateSource, /CLOSED_PERMISSION_SCOPES/);
 });
 

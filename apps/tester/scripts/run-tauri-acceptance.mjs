@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
+const officialLauncher = path.resolve(root, '..', '..', 'app-tools', 'bin', 'nimi-app.mjs');
 const timeoutMs = Number.parseInt(process.env.NIMI_TESTER_TAURI_ACCEPTANCE_TIMEOUT_MS || '90000', 10);
 const commandMatrix = [
   { id: 'artifacts.readRuntimeBytes.native-unavailable', command: 'artifacts_read_runtime_bytes', expectError: true },
@@ -127,7 +128,7 @@ async function main() {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-tester-tauri-acceptance-'));
   const probePath = path.join(tempRoot, 'probe.json');
   const outputChunks = [];
-  const child = spawn(process.execPath, ['scripts/run-tauri-dev.mjs'], {
+  const child = spawn(process.execPath, [officialLauncher, 'dev', '--shell', 'tauri'], {
     cwd: root,
     detached: process.platform !== 'win32',
     env: {
