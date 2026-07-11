@@ -2,19 +2,15 @@ import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/t
 import type { ProfileData } from '@renderer/features/profile/profile-model';
 import type { ContactRecord } from './relationship-model';
 import {
-  createNimiHostRuntimeAgentLifecycleSurface,
   isRuntimeLocalAgentRef,
   normalizeNimiRuntimeAgentText,
 } from '@nimiplatform/sdk/runtime';
 import {
-  createRealmSourceMaterializationPacket,
+  discoverRealmSourceLocalAgents,
+  materializeRealmSourceLocalAgent,
   realmPersonaSourceAmbiguousMessage,
   resolveRealmCoreSourceRef,
 } from '@renderer/features/explore/realm-persona-source-materialization';
-import {
-  getDesktopHostRuntimeAgentClient,
-  withDesktopRuntimeProtectedScopes,
-} from '@renderer/infra/sdk/desktop-nimi-client-session';
 
 type SourceContactLaunchSource = {
   id: string;
@@ -62,16 +58,11 @@ async function discoverSourceContactLaunchTarget(
   if (!sourceRef) {
     return null;
   }
-  const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
-    getRuntime: getDesktopHostRuntimeAgentClient,
-    getSubjectUserId: () => ownerUserId,
-    withScopes: withDesktopRuntimeProtectedScopes,
-  });
-  const existing = await lifecycle.discoverLocalAgentsBySource({
-    ownerUserId,
+  const existing = await discoverRealmSourceLocalAgents({
+    ...source,
     runtimeSourceRef,
     sourceRef,
-  });
+  }, ownerUserId);
   if (existing.length > 1) {
     throw new Error(realmPersonaSourceAmbiguousMessage());
   }
@@ -138,26 +129,11 @@ export async function materializeSourceContactLaunchTarget(
   if (discovered) {
     return discovered;
   }
-  const packet = await createRealmSourceMaterializationPacket(source);
-  const runtimeSourceRef = normalizeRequiredText(packet.runtimeSourceRef, 'runtimeSourceRef');
-  const displayName = normalizeRequiredText(source.displayName || source.name, 'displayName');
-  const worldId = source.sourceWorldId || source.worldId || null;
-  const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
-    getRuntime: getDesktopHostRuntimeAgentClient,
-    getSubjectUserId: () => ownerUserId,
-    withScopes: withDesktopRuntimeProtectedScopes,
-  });
-  const initialized = await lifecycle.initializeLocalAgent({
-    ownerUserId,
-    runtimeSourceRef,
-    displayName,
-    worldId,
-    sourceMaterializationPacket: packet,
-  });
+  const materialized = await materializeRealmSourceLocalAgent(source, ownerUserId);
   return toSourceContactLaunchTarget({
     ...source,
-    runtimeSourceRef,
-    localAgentRef: initialized.localAgentRef,
+    runtimeSourceRef: materialized.runtimeSourceRef,
+    localAgentRef: materialized.localAgentRef,
   }, ownerUserId);
 }
 

@@ -5,16 +5,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { _electron as electron } from 'playwright';
-import { createNimiRealmSourceMaterializationPacket } from '@nimiplatform/sdk/realm';
 import { withSdkDistLock } from '../../../../scripts/lib/sdk-dist-lock.mjs';
 import {
   createFixtureRuntimeAgentClient,
   setFixtureRuntimeAgentPresentationProfile,
 } from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-runtime.test-helper.ts';
-import {
-  SOURCE_MATERIALIZATION_AUDIENCE,
-  withRuntimeAgentLiveE2EFixture,
-} from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test-helper.ts';
+import { withRuntimeAgentLiveE2EFixture } from '../../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture.test-helper.ts';
 
 const root = path.resolve(import.meta.dirname, '..', '..');
 const mainEntry = path.join(root, 'dist-electron', 'main.js');
@@ -31,20 +27,14 @@ const zhiyuRuntimeProtectedScopes = [
   'runtime.agent.ai_config.write',
   'ai.spend.meter',
 ];
-const zhiyuAcceptanceTargetDisplayName = '\u989c\u771f\u537f';
-const zhiyuAcceptanceTargetSourceRef = {
-  kind: 'worldCharacter',
-  worldId: 'world-runtime-live',
-  sourceId: 'source-runtime-live-yan-zhenqing',
-  sourceContentHash: 'hash-runtime-live-yan-zhenqing',
-};
+const zhiyuAcceptanceTargetDisplayName = 'Runtime Live Source';
 const zhiyuAcceptanceAvatarAssetRef = 'vrm_aaaaaaaaaaaa';
 const zhiyuAcceptanceBackgroundAssetRef = 'bg_bbbbbbbbbbbb';
 
 test('zhiyu Electron real local-agent flow lists, selects, configures, and chats through Runtime', { timeout: 600_000 }, async () => {
   await resetRealLocalAgentEvidenceRoot();
 
-  await withFixtureRuntimeLocalAgent(async ({ endpoint, targetAgent }) => {
+  await withFixtureRuntimeLocalAgent(async ({ endpoint, realmBaseUrl, targetAgent }) => {
     await withTempDir('real-local-agent', async (tmpRoot) => {
       const runtimeEndpoint = endpoint;
       const dataRoot = path.join(tmpRoot, 'standard-shell-data');
@@ -63,6 +53,8 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
             NIMI_RUNTIME_GRPC_ADDR: runtimeEndpoint,
             NIMI_ZHIYU_ELECTRON_RUNTIME_ENDPOINT: runtimeEndpoint,
             NIMI_ZHIYU_ELECTRON_STANDARD_DATA_ROOT: dataRoot,
+            NIMI_REALM_URL: realmBaseUrl,
+            NIMI_REALTIME_URL: realmBaseUrl,
           },
         });
 
@@ -87,13 +79,19 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(listedEvidence.inventory.count, listedEvidence.inventory.localAgents.length);
       assert.ok(listedEvidence.inventory.count > 0, 'Runtime listAgents returned no active LocalAgents');
       await assertRelationshipRail(page, listedEvidence.inventory.count);
-      await assertUnselectedLocalPartnerEmptyState(page);
+      if (!listedEvidence.localAgent.ready) {
+        await assertUnselectedLocalPartnerEmptyState(page);
+      }
 
       const targetAgentEvidence = chooseTargetAgent(listedEvidence.inventory.localAgents, targetAgent.localAgentRef);
       const targetIndex = listedEvidence.inventory.localAgents.findIndex((agent) => agent.localAgentRef === targetAgentEvidence.localAgentRef);
       assert.notEqual(targetIndex, -1, 'target LocalAgent must be part of the listed Runtime inventory');
       assert.doesNotMatch(targetAgentEvidence.displayName || '', /\uFFFD/u, 'target LocalAgent display name must not contain replacement characters');
-      assert.match(targetAgentEvidence.displayName || '', /\p{Script=Han}/u, 'target LocalAgent display name should remain human-readable Chinese for this acceptance scenario');
+      assert.equal(
+        targetAgentEvidence.displayName,
+        zhiyuAcceptanceTargetDisplayName,
+        'target LocalAgent display name must preserve the source-derived Runtime projection',
+      );
       await captureRealLocalAgentEvidence(page, 'listed', pageProblems, {
         runtimeEndpoint,
         targetAgent: targetAgentEvidence,
@@ -122,8 +120,10 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
           switchedEvidence,
         });
       }
-      await candidateButtons.nth(targetIndex).waitFor({ timeout: 15_000 });
-      await candidateButtons.nth(targetIndex).click();
+      if (listedEvidence.localAgent.localAgentRef !== targetAgentEvidence.localAgentRef) {
+        await candidateButtons.nth(targetIndex).waitFor({ timeout: 15_000 });
+        await candidateButtons.nth(targetIndex).click();
+      }
 
       await waitForEvidence(page, (targetLocalAgentRef) =>
         globalThis.window.__nimiZhiyuEvidence?.localAgent?.ready === true
@@ -137,6 +137,9 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(selectedEvidence.localAgent.reasonCode, 'runtime-local-agent-selected');
       assert.equal(selectedEvidence.localAgent.runtimeSourceRef, targetAgentEvidence.runtimeSourceRef);
       assert.equal(selectedEvidence.conversation.localAgentRef, targetAgentEvidence.localAgentRef);
+      assert.equal(selectedEvidence.source.sourceContextStatus.localAgentRef, targetAgentEvidence.localAgentRef);
+      assert.equal(selectedEvidence.source.sourceRef.kind === 'worldCharacter' || selectedEvidence.source.sourceRef.kind === 'realmPersona', true);
+      assert.equal(await page.locator('[data-zhiyu-source-snapshot-correlated]').getAttribute('data-zhiyu-source-snapshot-correlated'), 'true');
       assert.equal(await page.locator('[data-zhiyu-product-stage]').getAttribute('data-zhiyu-product-stage'), 'ready');
       assert.equal(selectedEvidence.route.reasonCode, 'runtime-agent-ai-config-ready');
       assert.ok(
@@ -191,10 +194,17 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       });
 
       const modelSelection = await selectTextGenerateModel(page, modelConfig);
-      await waitForEvidence(page, () =>
-        globalThis.window.__nimiZhiyuEvidence?.route?.reasonCode === 'runtime-agent-ai-config-ready'
-        && Boolean(globalThis.window.__nimiZhiyuEvidence?.route?.executionBinding),
+      await waitForEvidence(page, ({ previousRevision, selectedSource }) => {
+        const route = globalThis.window.__nimiZhiyuEvidence?.route;
+        return route?.reasonCode === 'runtime-agent-ai-config-ready'
+          && route.configRevision > previousRevision
+          && route.executionBinding?.route === selectedSource;
+      },
         'real Runtime model route ready',
+        {
+          previousRevision: selectedEvidence.route.configRevision,
+          selectedSource: modelSelection.source,
+        },
       );
 
       const modelReadyEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
@@ -218,14 +228,27 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.equal(await page.locator('[data-zhiyu-submit-enabled]').getAttribute('data-zhiyu-submit-enabled'), 'true');
       await page.locator('[data-chat-composer-send="true"]').click();
 
-      await waitForEvidence(page, (targetLocalAgentRef) =>
-        globalThis.window.__nimiZhiyuEvidence?.chat?.state === 'completed'
-        && globalThis.window.__nimiZhiyuEvidence?.chat?.ready === true
-        && Boolean(globalThis.window.__nimiZhiyuEvidence?.chat?.outputText)
-        && globalThis.window.__nimiZhiyuEvidence?.chat?.localAgentRef === targetLocalAgentRef,
-        'real Runtime Agent chat completed',
+      await waitForEvidence(page, (targetLocalAgentRef) => {
+        const chat = globalThis.window.__nimiZhiyuEvidence?.chat;
+        return (chat?.state === 'completed' || chat?.state === 'failed' || chat?.state === 'canceled')
+          && chat?.localAgentRef === targetLocalAgentRef;
+      },
+        'real Runtime Agent chat reached terminal state',
         targetAgentEvidence.localAgentRef,
       );
+      const terminalChatEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
+      assert.equal(
+        terminalChatEvidence.chat.state,
+        'completed',
+        `real Runtime Agent chat failed: ${JSON.stringify(terminalChatEvidence.chat)}`,
+      );
+      assert.equal(terminalChatEvidence.chat.ready, true);
+      assert.ok(terminalChatEvidence.chat.outputText, 'real Runtime Agent chat outputText must be projected');
+      await waitForEvidence(page, (expectedAnchorId) => {
+        const source = globalThis.window.__nimiZhiyuEvidence?.source;
+        return (source?.projectionState === 'ready' || source?.projectionState === 'truncated')
+          && source?.turnContextSummary?.conversationAnchorId === expectedAnchorId;
+      }, 'bounded Runtime turn context projected', modelReadyEvidence.conversation.conversationAnchorId);
 
       const chatCompletedEvidence = await page.evaluate(() => globalThis.window.__nimiZhiyuEvidence);
       assert.equal(chatCompletedEvidence.chat.source, 'runtime');
@@ -240,6 +263,9 @@ test('zhiyu Electron real local-agent flow lists, selects, configures, and chats
       assert.ok(chatCompletedEvidence.turn.messageId, 'completed turn must expose the sealed assistant message id');
       assert.equal(chatCompletedEvidence.composer.submitState, 'accepted');
       assert.equal(chatCompletedEvidence.composer.draftLength, prompt.trim().length);
+      assert.equal(chatCompletedEvidence.source.turnContextSummary.localAgentRef, targetAgentEvidence.localAgentRef);
+      assert.equal(chatCompletedEvidence.source.turnContextSummary.conversationAnchorId, chatCompletedEvidence.chat.conversationAnchorId);
+      assert.equal(await page.locator('[data-zhiyu-turn-anchor-correlated]').getAttribute('data-zhiyu-turn-anchor-correlated'), 'true');
       assert.ok(chatCompletedEvidence.chat.messageCount >= 2, 'chat transcript must contain user and partner messages');
       assert.ok(chatCompletedEvidence.chat.outputText.trim().length > 0, 'chat outputText must not be empty');
       assert.doesNotMatch(chatCompletedEvidence.chat.outputText, /\uFFFD/u, 'chat outputText must not contain replacement characters');
@@ -929,18 +955,9 @@ async function withFixtureRuntimeLocalAgent(run) {
         capabilities: zhiyuRuntimeProtectedScopes,
       });
       const agentClient = createFixtureRuntimeAgentClient(context.runtime);
-      const sourceMaterializationPacket = await createNimiRealmSourceMaterializationPacket(
-        context.realm,
-        () => {},
-        zhiyuAcceptanceTargetSourceRef,
-        SOURCE_MATERIALIZATION_AUDIENCE,
-      );
-      const targetAgent = await agentClient.initialize({
-        ownerUserId: context.ownerUserId,
-        runtimeSourceRef: runtimeSourceRefForSource(zhiyuAcceptanceTargetSourceRef),
-        displayName: zhiyuAcceptanceTargetDisplayName,
-        sourceMaterializationPacket,
-      });
+      const targetAgent = (await agentClient.listLocalAgents({ ownerUserId: context.ownerUserId }))
+        .find((candidate) => candidate.localAgentRef === context.localAgent.localAgentRef);
+      assert.ok(targetAgent, 'materialized Character must appear in bounded Runtime inventory');
       await setFixtureRuntimeAgentPresentationProfile({
         presentation: context.agentPresentation,
         identity: {
@@ -970,6 +987,7 @@ async function withFixtureRuntimeLocalAgent(run) {
       });
       await run({
         endpoint: context.endpoint,
+        realmBaseUrl: context.realmBaseUrl,
         targetAgent,
       });
     },
@@ -1114,16 +1132,6 @@ function segment(value) {
   return `id_${sha256(text).slice(0, 24)}`;
 }
 
-function runtimeSourceRefForSource(sourceRef) {
-  return [
-    'runtime-source',
-    sourceRef.kind,
-    sourceRef.worldId,
-    sourceRef.sourceId,
-    sourceRef.sourceContentHash,
-  ].map((value) => String(value || '').trim()).join(':');
-}
-
 async function assertUnselectedLocalPartnerEmptyState(page) {
   const shellText = await page.locator('[data-zhiyu-product-shell="workspace"]').innerText();
   assert.match(shellText, /选择一位本地伙伴，开始对话/);
@@ -1175,7 +1183,7 @@ async function selectTextGenerateModel(page, drawer) {
 
   const modelPattern = regexFromEnv(
     'NIMI_ZHIYU_ACCEPTANCE_TEXT_MODEL_PATTERN',
-    /gemma-?4|gemma|gpt|claude|qwen|deepseek|doubao|seed|kimi|moonshot/i,
+    /runtime-agent-live|gemma-?4|gemma|gpt|claude|qwen|deepseek|doubao|seed|kimi|moonshot/i,
   );
   const requestedSource = process.env.NIMI_ZHIYU_ACCEPTANCE_MODEL_SOURCE?.trim().toLowerCase() || 'auto';
   const sources = requestedSource === 'cloud'

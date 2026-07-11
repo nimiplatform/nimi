@@ -79,9 +79,12 @@ pub(super) fn runtime_agent_record(
         metadata: None,
         created_at: Some(fixture_timestamp()),
         updated_at: Some(fixture_timestamp()),
+        presentation_profile: None,
+        presentation_profile_revision: 0,
         local_agent_ref,
         owner_user_id,
         runtime_source_ref,
+        source_context_status: None,
     }
 }
 
@@ -181,6 +184,7 @@ pub(super) fn runtime_agent_set_presentation_profile_response(
             default_voice_reference: patch.default_voice_reference.unwrap_or_default(),
             avatar_autoplay: patch.avatar_autoplay.unwrap_or(false),
             background_asset_ref: patch.background_asset_ref.unwrap_or_default(),
+            revision: 0,
         }),
         Some(
             runtime_bridge_generated::set_agent_presentation_profile_request::Mutation::Clear(_),
@@ -188,7 +192,10 @@ pub(super) fn runtime_agent_set_presentation_profile_response(
         | None => None,
     };
     Ok(encode_unary_response(
-        runtime_bridge_generated::SetAgentPresentationProfileResponse { profile },
+        runtime_bridge_generated::SetAgentPresentationProfileResponse {
+            profile,
+            committed_revision: 0,
+        },
     ))
 }
 
@@ -217,6 +224,8 @@ pub(super) fn runtime_agent_anchor_snapshot(
         }),
         active_turn_id: String::new(),
         active_stream_id: String::new(),
+        source_context_status: None,
+        turn_context_summary: None,
     }
 }
 
@@ -400,6 +409,8 @@ pub(super) fn runtime_agent_list_conversation_summaries_response(
                 last_message_id: String::new(),
                 transcript_message_count: 0,
                 updated_at: Some(fixture_timestamp()),
+                source_context_status: None,
+                last_turn_context_summary: None,
             }],
             next_page_token: String::new(),
         },

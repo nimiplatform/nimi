@@ -354,7 +354,21 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
   const agentCenterWorld = agentCenterWorldLabel(props.evidence);
   const appearanceAdapter = useMemo(
     () => buildZhiyuAgentCenterAppearanceAdapter(props.evidence),
-    [props.evidence],
+    [
+      props.evidence.auth.accountId,
+      props.evidence.auth.ready,
+      props.evidence.avatar.backendKind,
+      props.evidence.avatar.message,
+      props.evidence.conversation.conversationAnchorId,
+      props.evidence.conversation.localAgentRef,
+      props.evidence.conversation.ownerUserId,
+      props.evidence.conversation.runtimeSourceRef,
+      props.evidence.localAgent.localAgentRef,
+      props.evidence.localAgent.ownerUserId,
+      props.evidence.localAgent.runtimeSourceRef,
+      props.evidence.source.ownerUserId,
+      props.evidence.source.runtimeSourceRef,
+    ],
   );
   const runtimeState = props.evidence.runtime.ready
     ? 'ready'
@@ -646,6 +660,8 @@ function buildZhiyuAgentCenterRuntimeAdapter(evidence: ZhiyuEvidence): AgentCent
         agentAIConfig,
         readiness,
         inspect: publicInspect,
+        sourceContextStatus: evidence.source.sourceContextStatus,
+        turnContextSummary: evidence.source.turnContextSummary,
       };
     },
     upsertAgentAIConfig: upsertWithIdentity,

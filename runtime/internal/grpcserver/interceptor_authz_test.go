@@ -612,6 +612,16 @@ type authzTestAuthorizer struct {
 	actionHint string
 }
 
+type authzIdentityTestAuthorizer struct {
+	authzTestAuthorizer
+	subjectUserID string
+}
+
+func (a *authzIdentityTestAuthorizer) ValidateProtectedCapabilityIdentity(appID string, tokenID string, secret string, capability string) (runtimev1.ReasonCode, string, string, bool) {
+	reason, actionHint, ok := a.authzTestAuthorizer.ValidateProtectedCapability(appID, tokenID, secret, capability)
+	return reason, actionHint, a.subjectUserID, ok
+}
+
 func (a *authzTestAuthorizer) ValidateProtectedCapability(appID string, tokenID string, secret string, capability string) (runtimev1.ReasonCode, string, bool) {
 	a.calls++
 	a.lastAppID = appID
@@ -619,6 +629,37 @@ func (a *authzTestAuthorizer) ValidateProtectedCapability(appID string, tokenID 
 	a.lastSecret = secret
 	a.lastCap = capability
 	return a.reason, a.actionHint, a.allow
+}
+
+func TestUnaryAuthzProjectsValidatedProtectedTokenSubjectForSourceMaterialization(t *testing.T) {
+	authorizer := &authzIdentityTestAuthorizer{
+		authzTestAuthorizer: authzTestAuthorizer{allow: true, reason: runtimev1.ReasonCode_ACTION_EXECUTED},
+		subjectUserID:       "account-materializer-1",
+	}
+	interceptor := newUnaryAuthzInterceptor(authorizer)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-app-id", "nimi.desktop",
+		"x-nimi-access-token-id", "tok-materializer-1",
+		"x-nimi-access-token-secret", "sec-materializer-1",
+	))
+	request := &runtimev1.CreateSourceMaterializationChallengeRequest{
+		Context: &runtimev1.AgentRequestContext{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "account-materializer-1",
+			OwnerUserId:   "account-materializer-1",
+		},
+	}
+	info := &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge"}
+	_, err := interceptor(ctx, request, info, func(handlerCtx context.Context, _ any) (any, error) {
+		identity := authn.IdentityFromContext(handlerCtx)
+		if identity == nil || identity.SubjectUserID != "account-materializer-1" {
+			t.Fatalf("expected validated protected token subject, got %#v", identity)
+		}
+		return &runtimev1.CreateSourceMaterializationChallengeResponse{}, nil
+	})
+	if err != nil {
+		t.Fatalf("source materialization authz failed: %v", err)
+	}
 }
 
 type authzTestStream struct {

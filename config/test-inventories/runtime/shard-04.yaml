@@ -5,6 +5,50 @@ authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
 shard_id: runtime_test_inventory_shard_04
 tests:
+  - path: runtime/internal/services/account/workspace_binding_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/services/ai/artifact_methods_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/services/ai/chat_content_part_test_helpers_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/services/ai/key_source_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: runtime/internal/services/ai/live_dashscope_voice_asset_tts_test.go
     owner: runtime
     classification: live_provider_proof
@@ -561,61 +605,6 @@ tests:
     spec_refs:
       - P-TEST-001
   - path: runtime/internal/services/app/account_app_inventory_handler_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/app/guards_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/app/install_handler_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/app/local_app_adoption_handler_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/app/open_handler_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/app/open_readiness_projection_test.go
     owner: runtime
     classification: behavior_unit
     tier: T4

@@ -30,6 +30,7 @@ test('zhiyu runtime auth migrates to shared SDK/Kit account gate surfaces', () =
   const runtimePlatformSource = read('src/shell/auth/runtime-platform.ts');
   const hostAccountCallerSource = read('src-electron/runtime-account-caller.ts');
   const hostAuthSource = read('src-electron/runtime-auth.ts');
+  const hostAuthCustodySource = `${hostAuthSource}\n${hostAccountCallerSource}`;
   const liveAcceptanceSource = read('test/scenario/run-context-helpers.mjs');
 
   assert.match(mainSource, /installNimiShellRuntimeBridge\(\)/);
@@ -49,12 +50,12 @@ test('zhiyu runtime auth migrates to shared SDK/Kit account gate surfaces', () =
   assert.match(hostAccountCallerSource, /createNimiLocalFirstPartyRuntimeAccountCaller/);
   assert.match(hostAccountCallerSource, /deviceId:\s*runtimeAccountDeviceId/);
   assert.match(hostAccountCallerSource, /const runtimeAccountDeviceId = `\$\{clientIdPrefix\}-local-first-party-device`/);
-  assert.match(hostAuthSource, /'runtime\.agent\.delegation\.read'/);
-  assert.match(hostAuthSource, /'runtime\.agent\.delegation\.write'/);
-  assert.match(hostAuthSource, /'runtime\.agent\.autonomy\.write'/);
-  assert.match(hostAuthSource, /'account\.session\.read'/);
-  assert.match(hostAuthSource, /'data\.scope\.read#realm\.worlds\.read-probe'/);
-  assert.match(hostAuthSource, /capabilities:\s*\[\.\.\.runtimeRegistrationCapabilities\]/);
+  assert.match(hostAuthCustodySource, /'runtime\.agent\.delegation\.read'/);
+  assert.match(hostAuthCustodySource, /'runtime\.agent\.delegation\.write'/);
+  assert.match(hostAuthCustodySource, /'runtime\.agent\.autonomy\.write'/);
+  assert.match(hostAuthCustodySource, /'account\.session\.read'/);
+  assert.match(hostAuthCustodySource, /'data\.scope\.read#realm\.worlds\.read-probe'/);
+  assert.match(hostAuthSource, /capabilities:\s*\[\.\.\.ZHIYU_RUNTIME_REGISTRATION_CAPABILITIES\]/);
   assert.match(hostAuthSource, /appSession:\s*\{[\s\S]*appInstanceId:\s*`\$\{appId\}\.local-first-party`[\s\S]*deviceId:\s*`\$\{clientIdPrefix\}-local-first-party-device`/);
   assert.doesNotMatch(hostAuthSource, /platform-runtime-session/);
   assert.match(liveAcceptanceSource, /admitLocalFirstPartyRuntimeAccountCaller/);

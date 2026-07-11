@@ -1,10 +1,30 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { toNimiRuntimeProtoStruct } from '@nimiplatform/sdk/runtime';
+import type { NimiRuntimeAgentSourceContextStatus } from '@nimiplatform/sdk/runtime';
 import { toLocalAgentListItem } from '../src/shell/renderer/features/agents/local-agent-list-model.js';
 
 const OWNER = 'user-1';
+const READY_SOURCE_STATUS: NimiRuntimeAgentSourceContextStatus = {
+  schemaVersion: 'v1',
+  ready: true,
+  state: 'ready',
+  reasonCode: 'none',
+  localAgentRef: 'local-agent:01ABC',
+  sourceRef: {
+    kind: 'worldCharacter',
+    worldId: 'world-1',
+    sourceId: 'char-1',
+    sourceContentHash: 'hash-1',
+  },
+  sourceSchemaVersion: 'realm.world-character-core/v1',
+  snapshotSchemaVersion: 'v1',
+  snapshotHash: 'a'.repeat(64),
+  capturedAt: '2026-07-11T00:00:00.000Z',
+  worldContentHash: 'b'.repeat(64),
+  materializationContextHash: 'c'.repeat(64),
+  coverageSections: [],
+};
 
 function makeAgentRecord(overrides: Record<string, unknown> = {}) {
   return {
@@ -12,14 +32,7 @@ function makeAgentRecord(overrides: Record<string, unknown> = {}) {
     localAgentRef: 'local-agent:01ABC',
     ownerUserId: OWNER,
     runtimeSourceRef: 'runtime-source:xyz',
-    metadata: toNimiRuntimeProtoStruct({
-      sourceMaterialization: {
-        sourceKind: 'worldCharacter',
-        sourceWorldId: 'world-1',
-        sourceId: 'char-1',
-        sourceContentHash: 'hash-1',
-      },
-    }),
+    sourceContextStatus: READY_SOURCE_STATUS,
     ...overrides,
   };
 }
@@ -46,19 +59,13 @@ test('Characters tab excludes non local-agent refs', () => {
   assert.equal(toLocalAgentListItem(makeAgentRecord({ localAgentRef: 'agent-42' }), OWNER), null);
 });
 
-test('Characters tab fails closed on incomplete materialization metadata', () => {
+test('Characters tab fails closed on incomplete bounded source status', () => {
   const missingHash = makeAgentRecord({
-    metadata: toNimiRuntimeProtoStruct({
-      sourceMaterialization: {
-        sourceKind: 'worldCharacter',
-        sourceWorldId: 'world-1',
-        sourceId: 'char-1',
-      },
-    }),
+    sourceContextStatus: { ready: false, state: 'invalid', reasonCode: 'source_snapshot_invalid' },
   });
   assert.equal(toLocalAgentListItem(missingHash, OWNER), null);
 
-  const noMaterialization = makeAgentRecord({ metadata: toNimiRuntimeProtoStruct({}) });
+  const noMaterialization = makeAgentRecord({ sourceContextStatus: null });
   assert.equal(toLocalAgentListItem(noMaterialization, OWNER), null);
 });
 

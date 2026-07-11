@@ -302,6 +302,7 @@ function checkAcceptanceGates() {
     'acceptance_matrix',
     'binding_only_consumption',
     'sdk_kit_turn_consumption',
+    'bounded_context_projection',
     'no_duplicate_turn_reducer',
     'config_boundary',
     'no_direct_ai_consumption',

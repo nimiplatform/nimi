@@ -1,85 +1,74 @@
-import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
+import {
+  projectAgentCenterSourceContext,
+} from '@nimiplatform/kit/features/agent-center';
+import type {
+  NimiRuntimeAgentSourceContextStatus,
+  NimiRuntimeAgentTurnContextSummary,
+} from '@nimiplatform/sdk/runtime';
 import type { ZhiyuEvidence } from '../app/evidence';
 
 export type ZhiyuRuntimeSourceStatus = ZhiyuEvidence['source'];
 
-const ELECTRON_SDK_ACCEPTANCE_QUERY = 'nimiElectronSdkAcceptance';
-
-declare global {
-  interface Window {
-    __NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__?: unknown;
-  }
-}
-
-export function probeZhiyuRuntimeSourceProjection(): ZhiyuRuntimeSourceStatus {
-  if (typeof window === 'undefined' || !hasElectronRuntime()) {
-    return sourceUnavailable({
-      reasonCode: 'electron-runtime-bridge-unavailable',
-      actionHint: 'restart_zhiyu_electron_shell',
-      source: 'renderer',
-      message: 'Electron Runtime bridge is not available.',
-    });
-  }
-
-  const acceptanceSource = readAcceptanceSourceProjection();
-  if (acceptanceSource) {
-    return acceptanceSource;
-  }
-
-  return sourceUnavailable({
-    reasonCode: 'zhiyu-admitted-source-projection-required',
-    actionHint: 'await_admitted_runtime_source_projection',
-    source: 'renderer',
-    message: 'Zhiyu requires an admitted Runtime source projection before LocalAgent discovery.',
-  });
-}
-
-function readAcceptanceSourceProjection(): ZhiyuRuntimeSourceStatus | null {
-  if (!isElectronSdkAcceptanceRenderer()) {
-    return null;
-  }
-  const candidate = typeof window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__ === 'function'
-    ? (window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__ as () => unknown)()
-    : window.__NIMI_ZHIYU_ACCEPTANCE_SOURCE_PROJECTION__;
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
-    return null;
-  }
-  const projection = candidate as ZhiyuRuntimeSourceStatus;
-  if (
-    projection.transport !== 'electron-ipc'
-    || projection.ready !== true
-    || !stringOr(projection.ownerUserId, '')
-    || !stringOr(projection.runtimeSourceRef, '')
-    || !projection.sourceRef
-  ) {
-    return null;
-  }
-  return projection;
-}
-
-function isElectronSdkAcceptanceRenderer(): boolean {
-  return new URL(window.location.href).searchParams.get(ELECTRON_SDK_ACCEPTANCE_QUERY) === '1';
-}
-
-function sourceUnavailable(input: {
-  readonly reasonCode: string;
-  readonly actionHint: string;
-  readonly source: string;
-  readonly message: string;
+export function projectZhiyuRuntimeSourceProjection(input: {
+  readonly ownerUserId?: string | null;
+  readonly runtimeSourceRef?: string | null;
+  readonly localAgentRef?: string | null;
+  readonly sourceContextStatus?: NimiRuntimeAgentSourceContextStatus | null;
+  readonly turnContextSummary?: NimiRuntimeAgentTurnContextSummary | null;
 }): ZhiyuRuntimeSourceStatus {
+  const expectedLocalAgentRef = normalized(input.localAgentRef);
+  const identityMismatch = Boolean(
+    sourceStatusIdentity(input.sourceContextStatus) && sourceStatusIdentity(input.sourceContextStatus) !== expectedLocalAgentRef,
+  );
+  const projected = identityMismatch ? { status: 'failed' as const, source: null, context: null } : projectAgentCenterSourceContext({
+    sourceContextStatus: input.sourceContextStatus ?? null,
+    turnContextSummary: input.turnContextSummary ?? null,
+  });
+  const sourceStatus = input.sourceContextStatus ?? null;
+  const sourceRef = sourceStatus?.sourceRef ?? null;
+  const ready = sourceStatus?.ready === true
+    && (projected.status === 'ready' || projected.status === 'truncated' || projected.status === 'unknown');
   return {
     transport: 'electron-ipc',
-    ready: false,
-    reasonCode: input.reasonCode,
-    actionHint: input.actionHint,
-    source: input.source,
-    message: input.message,
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    sourceRef: null,
+    ready,
+    reasonCode: sourceProjectionReason(projected.status),
+    actionHint: ready ? 'continue_runtime_local_agent' : 'refresh_runtime_local_agent_inventory',
+    source: 'sdk',
+    message: sourceProjectionMessage(projected.status),
+    ownerUserId: normalized(input.ownerUserId),
+    runtimeSourceRef: normalized(input.runtimeSourceRef),
+    sourceRef: sourceRef ? {
+      kind: sourceRef.kind,
+      worldId: sourceRef.worldId,
+      sourceId: sourceRef.sourceId,
+      sourceContentHash: sourceRef.sourceContentHash,
+    } : null,
+    projectionState: projected.status,
+    sourceContextStatus: sourceStatus,
+    turnContextSummary: input.turnContextSummary ?? null,
   };
 }
 
-function stringOr(value: unknown, fallback: string): string {
-  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+function sourceStatusIdentity(status: NimiRuntimeAgentSourceContextStatus | null | undefined): string | null {
+  return status ? normalized(status.localAgentRef) : null;
+}
+
+function sourceProjectionReason(status: ZhiyuRuntimeSourceStatus['projectionState']): string {
+  return `runtime-source-context-${status}`;
+}
+
+function sourceProjectionMessage(status: ZhiyuRuntimeSourceStatus['projectionState']): string {
+  const copy = {
+    ready: 'Runtime source snapshot and latest turn context are ready.',
+    blocked: 'Runtime source or turn context requires attention.',
+    truncated: 'Runtime turn context is ready with bounded omissions.',
+    failed: 'Runtime source or turn context projection failed closed.',
+    unknown: 'Runtime source is available; turn context has not been projected yet.',
+  } as const;
+  return copy[status];
+}
+
+function normalized(value: string | null | undefined): string | null {
+  const text = value?.trim();
+  return text || null;
 }

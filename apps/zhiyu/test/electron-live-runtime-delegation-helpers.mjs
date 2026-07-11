@@ -23,7 +23,7 @@ export async function assertPreConfigRuntimeEvidence(page, fixture, zhiyuAppId) 
   );
   assert.equal(preConfigEvidence.runtime.reasonCode, 'ready');
   assert.equal(preConfigEvidence.auth.accountId, fixture.ownerUserId);
-  assert.equal(preConfigEvidence.source.source, 'sdk-fixture');
+  assert.equal(preConfigEvidence.source.source, 'sdk');
   assert.equal(preConfigEvidence.source.runtimeSourceRef, fixture.runtimeSourceRef);
   assert.equal(preConfigEvidence.localAgent.localAgentRef, fixture.localAgentRef);
   assert.match(preConfigEvidence.conversation.conversationAnchorId, /^agent_anchor_/);

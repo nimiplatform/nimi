@@ -1,10 +1,156 @@
 version: 1
 inventory_id: kit_test_inventory
-shard_id: kit_test_inventory_shard_03
 owner: platform
 authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+shard_id: kit_test_inventory_shard_03
 tests:
+  - path: kit/shell/renderer/test/agent-center-bridge.test.ts
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: kit/shell/renderer/test/bootstrap.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-042
+  - path: kit/shell/renderer/test/desktop-open-bridge.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-DOPEN-001
+      - P-DOPEN-004
+      - P-DOPEN-006
+  - path: kit/shell/renderer/test/files-bridge.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-042
+      - P-KIT-044
+  - path: kit/shell/renderer/test/installed-app-bridge.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-042
+      - P-KIT-044
+  - path: kit/shell/renderer/test/platform-projection-bridge.test.ts
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: kit/shell/renderer/test/runtime-bridge.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-042
+  - path: kit/shell/renderer/test/shared-auth-broker-hardcut.test.ts
+    owner: platform
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: kit/shell/renderer/test/shell-bridge-error-normalization.test.ts
+    owner: platform
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-042
+    sentinel_purpose: forbidden_import
+  - path: kit/test/auth-email-flow.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-020
+  - path: kit/test/auth-form-state.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-020
+  - path: kit/test/auth-menu-handlers.test.ts
+    owner: platform
+    classification: contract_conformance
+    tier: T5
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - P-KIT-020
   - path: kit/test/auth-oauth-security.test.ts
     owner: platform
     classification: contract_conformance
@@ -226,167 +372,3 @@ tests:
       - P-TEST-001
       - P-KIT-010
     sentinel_purpose: forbidden_import
-  - path: kit/core/test/sdk-contract.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-030
-  - path: kit/core/test/desktop-open.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-DOPEN-001
-      - P-DOPEN-004
-      - P-DOPEN-009
-  - path: kit/features/agent-center/test/agent-center-runtime-adapter.test.ts
-    owner: platform
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-060
-      - P-KIT-080
-    sentinel_purpose: forbidden_import
-  - path: kit/features/agent-center/test/agent-center-state.test.ts
-    owner: platform
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_api
-  - path: kit/features/agent-center/test/agent-center-ui.test.tsx
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/agent-center/test/agent-center-appearance-style.test.tsx
-    owner: platform
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/features/agent-center/test/agent-center-cognition-style.test.tsx
-    owner: platform
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-060
-      - P-KIT-070
-      - P-KIT-080
-  - path: kit/shell/electron/test/data-root-binding.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-003
-      - P-KIT-044
-      - P-KIT-090
-  - path: kit/shell/electron/test/electron-desktop-open.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-DOPEN-002
-      - P-DOPEN-006
-      - P-DOPEN-008
-      - P-DOPEN-009
-  - path: kit/shell/electron/test/electron-shell-file-surfaces.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-003
-      - P-KIT-044
-      - P-KIT-090
-  - path: kit/shell/renderer/test/files-bridge.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-KIT-042
-      - P-KIT-044
-  - path: kit/shell/renderer/test/desktop-open-bridge.test.ts
-    owner: platform
-    classification: contract_conformance
-    tier: T5
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - P-DOPEN-001
-      - P-DOPEN-004
-      - P-DOPEN-006

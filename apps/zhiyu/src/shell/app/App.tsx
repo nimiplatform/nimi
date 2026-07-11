@@ -5,6 +5,7 @@ import {
 } from '@nimiplatform/kit/core/runtime-capabilities';
 import {
   createNimiRuntimeAgentClient,
+  createNimiRuntimeAgentConsumeClient,
   Runtime,
   type NimiRuntimeAgentConsumeEvent,
   type NimiRuntimeAgentAIConfigReadinessSnapshotProjection,
@@ -52,7 +53,6 @@ import {
   submitZhiyuRuntimeDelegationApproval,
 } from '../agent/delegation-ux';
 import { projectZhiyuDiaryReflectionArtifacts } from '../agent/diary-reflection';
-import { probeZhiyuLocalAgentDiscovery } from '../agent/local-agent-discovery';
 import { resolveZhiyuRuntimeLocalAgentSelection } from '../agent/local-agent-selection';
 import { probeZhiyuRuntimeMemoryObservatory } from '../agent/memory-observatory';
 import {
@@ -71,12 +71,17 @@ import {
   createZhiyuVoiceCaptureController,
   projectZhiyuVoiceCaptureReadiness,
 } from '../agent-chat/voice-capture';
-import { probeZhiyuRuntimeSourceProjection } from '../agent/source-projection';
+import { projectZhiyuRuntimeSourceProjection } from '../agent/source-projection';
 import { runZhiyuAgentChatTurn } from '../agent-chat/runtime-agent-turn-adapter';
 import { withZhiyuRuntimeAgentBindingRequired } from '../agent-chat/runtime-agent-binding';
+import {
+  resolveZhiyuRuntimeAgentBindingDecisionFromHost,
+  scopedBindingForRuntimeAgentRequest,
+} from '../agent-chat/runtime-agent-binding';
 import { probeZhiyuRuntimeAccountStatus } from '../auth/runtime-account-status';
 import { requestZhiyuDesktopOpenSelectPartner } from '../desktop-open/desktop-open-action';
 import { probeZhiyuRuntimeStatus } from '../runtime/runtime-status';
+import { loadZhiyuSourceContextProjection } from './source-context-loader';
 
 export function App() {
   const [evidence, setEvidence] = useState<ZhiyuEvidence>(() => createInitialZhiyuEvidence());
@@ -114,21 +119,23 @@ export function App() {
   useEffect(() => {
     let active = true;
     void (async () => {
-      const [runtime, auth, source] = await Promise.all([
+      const [runtime, auth] = await Promise.all([
         probeZhiyuRuntimeStatus(),
         probeZhiyuRuntimeAccountStatus(),
-        probeZhiyuRuntimeSourceProjection(),
       ]);
       const inventory = await probeZhiyuRuntimeAgentInventory(auth);
-      const sourceLocalAgent = await probeZhiyuLocalAgentDiscovery(source.ready ? {
-        ownerUserId: source.ownerUserId,
-        runtimeSourceRef: source.runtimeSourceRef,
-        sourceRef: source.sourceRef,
-      } : {});
       const localAgent = resolveZhiyuRuntimeLocalAgentSelection({
-        sourceLocalAgent,
         inventory,
         selectedLocalAgentRef,
+      });
+      const selectedInventoryAgent = inventory.localAgents.find(
+        (agent) => agent.localAgentRef === localAgent.localAgentRef,
+      );
+      const source = projectZhiyuRuntimeSourceProjection({
+        ownerUserId: localAgent.ownerUserId,
+        runtimeSourceRef: localAgent.runtimeSourceRef,
+        localAgentRef: localAgent.localAgentRef,
+        sourceContextStatus: selectedInventoryAgent?.sourceContextStatus ?? null,
       });
       const diaryReflection = projectZhiyuDiaryReflectionArtifacts(localAgent);
       const [conversation, memory, companion, avatar] = await Promise.all([
@@ -281,10 +288,34 @@ export function App() {
       };
 
       try {
-        const snapshot = await client.getSessionSnapshot(identity);
+        const consume = createNimiRuntimeAgentConsumeClient({
+          runtime: {
+            agents: runtime.agents,
+            appMessages: runtime.appMessages,
+          },
+          runtimeAppId: 'nimi.zhiyu',
+        });
+        const [snapshot, anchorSnapshot] = await Promise.all([
+          client.getSessionSnapshot(identity),
+          withZhiyuRuntimeAgentBindingRequired(['runtime.agent.turn.read'], async (callOptions) => {
+            const binding = resolveZhiyuRuntimeAgentBindingDecisionFromHost(['runtime.agent.turn.read']);
+            return consume.anchors.getSnapshot({
+              ...identity,
+              subjectUserId: ownerUserId,
+              scopedBinding: scopedBindingForRuntimeAgentRequest(binding),
+            }, callOptions);
+          }),
+        ]);
         if (active) {
           setEvidence((current) => ({
             ...current,
+            source: projectZhiyuRuntimeSourceProjection({
+              ownerUserId,
+              runtimeSourceRef,
+              localAgentRef,
+              sourceContextStatus: anchorSnapshot.sourceContextStatus ?? current.source.sourceContextStatus,
+              turnContextSummary: anchorSnapshot.turnContextSummary ?? null,
+            }),
             chat: hydrateZhiyuAgentChatFromRuntimeSessionSnapshot({
               current: current.chat,
               ...identity,
@@ -543,6 +574,22 @@ export function App() {
         submittedConversation,
       })
     ) {
+      try {
+        const source = await loadZhiyuSourceContextProjection({
+          ownerUserId: submittedConversation.ownerUserId!,
+          runtimeSourceRef: submittedConversation.runtimeSourceRef!,
+          localAgentRef: submittedConversation.localAgentRef!,
+          conversationAnchorId: submittedConversation.conversationAnchorId!,
+        });
+        if (shouldApplyZhiyuRuntimeChatUpdate({
+          currentConversation: latestConversationIdentityRef.current,
+          submittedConversation,
+        })) {
+          setEvidence((current) => ({ ...current, source }));
+        }
+      } catch {
+        // Existing bounded source evidence remains fail-closed when refresh is unavailable.
+      }
       setDraft('');
     }
   }

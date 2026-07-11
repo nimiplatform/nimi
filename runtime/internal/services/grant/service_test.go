@@ -584,6 +584,9 @@ func TestValidateProtectedCapabilityRequiresMatchingSecret(t *testing.T) {
 	if reason, _, ok := svc.ValidateProtectedCapability("nimi.desktop", authorizeResp.GetTokenId(), authorizeResp.GetSecret(), "read:chat"); !ok || reason != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("expected valid secret accepted, got reason=%v ok=%v", reason, ok)
 	}
+	if reason, _, subjectUserID, ok := svc.ValidateProtectedCapabilityIdentity("nimi.desktop", authorizeResp.GetTokenId(), authorizeResp.GetSecret(), "read:chat"); !ok || reason != runtimev1.ReasonCode_ACTION_EXECUTED || subjectUserID != "user-001" {
+		t.Fatalf("expected Runtime-owned token subject, got reason=%v subject=%q ok=%v", reason, subjectUserID, ok)
+	}
 }
 
 func TestValidateProtectedCapabilityRejectsRevokedCatalogScope(t *testing.T) {

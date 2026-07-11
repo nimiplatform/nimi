@@ -221,8 +221,8 @@ test('desktop E2E Realm fixture serves public world and source materialization p
 });
 
 test('Explore materialization Electron acceptance hard-cuts to worldCharacter detail', () => {
-  assert.match(exploreMaterializationAcceptanceConstantsSource, /kind:\s*'worldCharacter'/);
-  assert.doesNotMatch(exploreMaterializationAcceptanceConstantsSource, /kind:\s*'realmPersona'/);
+  assert.match(exploreMaterializationAcceptanceConstantsSource, /VALID_SOURCE_REF = FIXTURE_SOURCE_REF/);
+  assert.match(exploreMaterializationAcceptanceConstantsSource, /source-materialization-packet-v2\.mjs/);
   assert.match(exploreMaterializationAcceptanceConstantsSource, /runtime\.agent\.ai_config\.read/);
   assert.match(exploreMaterializationAcceptanceConstantsSource, /runtime\.agent\.ai_config\.write/);
   assert.match(exploreMaterializationAcceptanceFixtureSource, /characters:\s*\[/);

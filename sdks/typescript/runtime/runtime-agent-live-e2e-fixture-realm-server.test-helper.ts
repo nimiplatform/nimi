@@ -5,6 +5,8 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { JsonObject } from '../types';
 import {
   createFixtureSourceMaterializationPacket,
+  FIXTURE_SOURCE_WORLD_ID,
+  FIXTURE_SOURCE_WORLD_NAME,
   FIXTURE_SOURCE_MATERIALIZATION_JWKS,
 } from './runtime-agent-live-e2e-fixture-source-packet.test-helper';
 import {
@@ -319,6 +321,39 @@ async function handleRealmFixtureRequest(
       return;
     }
     writeJSON(response, 200, []);
+    return;
+  }
+
+  if (request.method === 'GET' && url.pathname === `/api/world/by-id/${FIXTURE_SOURCE_WORLD_ID}`) {
+    if (String(request.headers.authorization || '') !== `Bearer ${RUNTIME_ACCOUNT_ACCESS_TOKEN}`) {
+      writeJSON(response, 401, { message: 'Runtime Realm mediation token missing' });
+      return;
+    }
+    writeJSON(response, 200, {
+      id: FIXTURE_SOURCE_WORLD_ID,
+      name: FIXTURE_SOURCE_WORLD_NAME,
+      summary: 'A canonical world for Runtime source snapshot verification.',
+      tagline: 'Source materialization fixture world.',
+      type: 'CREATOR',
+      visibility: 'public',
+      tags: [],
+      entityKinds: ['worldCharacter'],
+      relationshipTypes: ['knows'],
+      rules: [],
+      systems: [],
+      scenes: [],
+      timeline: [],
+      media: { assets: [] },
+      stats: { characterCount: 1, entityCount: 1, relationshipCount: 0 },
+      time: {
+        mode: 'wallClockAnchored',
+        flowRatio: 1,
+        isPaused: false,
+        worldStartedAt: '2026-07-10T00:00:00.000Z',
+      },
+      createdAt: '2026-07-10T00:00:00.000Z',
+      updatedAt: '2026-07-10T00:00:00.000Z',
+    });
     return;
   }
 

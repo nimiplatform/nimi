@@ -20,9 +20,10 @@ test('profile detail modal materializes source chat without Realm connection evi
 
   assert.match(source, /launchAgentConversationFromDisplay/);
   assert.match(source, /materializeSourceContactLaunchTarget\(profile,\s*ownerUserId\)/);
-  assert.match(launchTarget, /initializeLocalAgent/);
-  assert.match(launchTarget, /sourceMaterializationPacket:\s*packet/);
-  assert.match(launchTarget, /initialized\.localAgentRef/);
+  assert.match(launchTarget, /materializeRealmSourceLocalAgent/);
+  assert.doesNotMatch(launchTarget, new RegExp(['initialize', 'Local', 'Agent'].join('')));
+  assert.doesNotMatch(launchTarget, new RegExp(['source', 'Materialization', 'Packet'].join('')));
+  assert.match(launchTarget, /materialized\.localAgentRef/);
   assert.doesNotMatch(launchTarget, /createNimiClientId\('local-agent:desktop'\)/);
   assert.doesNotMatch(source, new RegExp(['source', 'Connection', 'State'].join('')));
   assert.doesNotMatch(source, new RegExp(['source', 'Connected'].join('')));

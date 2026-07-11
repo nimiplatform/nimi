@@ -1,11 +1,11 @@
 import {
-  fromNimiRuntimeProtoStruct,
+  createNimiHostRuntimeAgentLifecycleSurface,
   isRuntimeLocalAgentRef,
+  type NimiRuntimeAgentSourceContextStatus,
 } from '@nimiplatform/sdk/runtime';
-import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import type { NimiRealmCoreSourceRef } from '@nimiplatform/sdk/realm';
 import {
-  getDesktopRuntime,
+  getDesktopHostRuntimeAgentClient,
   withDesktopRuntimeProtectedScopes,
 } from '@renderer/infra/sdk/desktop-nimi-client-session';
 import { realmSourceRefKey } from '@renderer/features/explore/realm-persona-source-materialization';
@@ -32,27 +32,16 @@ export type LocalAgentSourceDiscoveryProjection = {
   readonly sourceContentHash: string;
 };
 
-const LIST_PAGE_SIZE = 200;
-const LIST_MAX_PAGES = 10;
-
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-}
-
-function toCoreSourceRefFromMaterialization(value: unknown): NimiRealmCoreSourceRef | null {
-  const record = readRecord(value);
-  if (!record) return null;
-  const kind = normalizeText(record.sourceKind);
-  if (kind !== 'worldCharacter' && kind !== 'realmPersona') return null;
-  const worldId = normalizeText(record.sourceWorldId);
-  const sourceId = normalizeText(record.sourceId);
-  const sourceContentHash = normalizeText(record.sourceContentHash);
+function toCoreSourceRefFromStatus(status: NimiRuntimeAgentSourceContextStatus | null | undefined): NimiRealmCoreSourceRef | null {
+  if (status?.ready !== true || !status.sourceRef) return null;
+  const kind = status.sourceRef.kind;
+  const worldId = normalizeText(status.sourceRef.worldId);
+  const sourceId = normalizeText(status.sourceRef.sourceId);
+  const sourceContentHash = normalizeText(status.sourceRef.sourceContentHash);
   if (!worldId || !sourceId || !sourceContentHash) return null;
   return {
     kind,
@@ -65,9 +54,9 @@ function toCoreSourceRefFromMaterialization(value: unknown): NimiRealmCoreSource
 type RuntimeAgentRecordLike = {
   readonly displayName?: string;
   readonly localAgentRef?: string;
-  readonly metadata?: Parameters<typeof fromNimiRuntimeProtoStruct>[0];
   readonly ownerUserId?: string;
   readonly runtimeSourceRef?: string;
+  readonly sourceContextStatus?: NimiRuntimeAgentSourceContextStatus | null;
 };
 
 export function toLocalAgentListItem(
@@ -79,8 +68,7 @@ export function toLocalAgentListItem(
   if (!isRuntimeLocalAgentRef(agent.localAgentRef)) return null;
   const runtimeSourceRef = normalizeText(agent.runtimeSourceRef);
   if (!runtimeSourceRef) return null;
-  const metadata = fromNimiRuntimeProtoStruct(agent.metadata);
-  const sourceRef = toCoreSourceRefFromMaterialization(metadata.sourceMaterialization);
+  const sourceRef = toCoreSourceRefFromStatus(agent.sourceContextStatus);
   if (!sourceRef) return null;
   return {
     localAgentRef: String(agent.localAgentRef),
@@ -125,25 +113,17 @@ export async function fetchLocalAgentList(ownerUserIdInput: string): Promise<Loc
   if (!ownerUserId) {
     return [];
   }
+  const lifecycle = createNimiHostRuntimeAgentLifecycleSurface({
+    getRuntime: getDesktopHostRuntimeAgentClient,
+    getSubjectUserId: () => ownerUserId,
+    withScopes: withDesktopRuntimeProtectedScopes,
+  });
   const itemsByRef = new Map<string, LocalAgentListItem>();
-  let pageToken = '';
-  for (let page = 0; page < LIST_MAX_PAGES; page += 1) {
-    const response = await withDesktopRuntimeProtectedScopes(
-      ['runtime.agent.read'],
-      (callOptions) => getDesktopRuntime().agents.listAgents({
-        lifecycleFilter: AgentLifecycleStatus.ACTIVE,
-        pageSize: LIST_PAGE_SIZE,
-        pageToken,
-      }, callOptions),
-    );
-    for (const agent of response.agents || []) {
-      const item = toLocalAgentListItem(agent, ownerUserId);
-      if (item) {
-        itemsByRef.set(item.localAgentRef, item);
-      }
+  for (const agent of await lifecycle.listLocalAgents({ ownerUserId })) {
+    const item = toLocalAgentListItem(agent, ownerUserId);
+    if (item) {
+      itemsByRef.set(item.localAgentRef, item);
     }
-    pageToken = normalizeText(response.nextPageToken);
-    if (!pageToken) break;
   }
   return [...itemsByRef.values()].sort(
     (left, right) => left.displayName.localeCompare(right.displayName),

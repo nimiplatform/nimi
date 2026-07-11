@@ -189,12 +189,12 @@ export function createNimiHostRuntimeAgentMaterializationSurface(
           beginRequestId: `${requestId}:begin`,
           control: bundle.control,
         }, callOptions));
+        requireBeginSuccess(begin, bundle);
         openUpload = {
           uploadId: requireText(begin.uploadId, 'SDK_RUNTIME_AGENT_MATERIALIZATION_RESPONSE_INVALID', 'check_runtime_materialization_begin'),
           packetHash: requireText(begin.packetHash, 'SDK_RUNTIME_AGENT_MATERIALIZATION_RESPONSE_INVALID', 'check_runtime_materialization_begin'),
           bundleManifestHash: requireText(begin.bundleManifestHash, 'SDK_RUNTIME_AGENT_MATERIALIZATION_RESPONSE_INVALID', 'check_runtime_materialization_begin'),
         };
-        requireBeginSuccess(begin, bundle);
 
         for (const chunk of bundle.chunks) {
           const put = await call((callOptions) => runtime.agent.putSourceMaterializationChunk({
@@ -459,7 +459,10 @@ function requireBeginSuccess(
       || response.reasonCode !== AgentSourceMaterializationReasonCode.NONE
       || response.packetHash !== bundle.packetHash
       || response.bundleManifestHash !== bundle.bundleManifestHash) {
-    responseError('Runtime rejected source materialization begin.', 'check_runtime_materialization_begin');
+    responseError(
+      `Runtime rejected source materialization begin (uploadState=${String(response.uploadState)}, challengeState=${String(response.challengeState)}, reasonCode=${String(response.reasonCode)}, packetHashMatch=${String(response.packetHash === bundle.packetHash)}, bundleManifestHashMatch=${String(response.bundleManifestHash === bundle.bundleManifestHash)}).`,
+      'check_runtime_materialization_begin',
+    );
   }
 }
 
@@ -644,7 +647,7 @@ function requireTimestamp(value: unknown, field: string): Date {
 function requireText(value: unknown, reasonCode: string, actionHint: string): string {
   const text = normalizeNimiRuntimeAgentText(value);
   if (!text) {
-    responseError('Source materialization required text is missing.', actionHint, reasonCode);
+    responseError(`Source materialization required text is missing (${actionHint}).`, actionHint, reasonCode);
   }
   return text;
 }

@@ -5,6 +5,61 @@ authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
 shard_id: runtime_test_inventory_shard_05
 tests:
+  - path: runtime/internal/services/app/guards_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/services/app/install_handler_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/services/app/local_app_adoption_handler_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/services/app/open_handler_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/services/app/open_readiness_projection_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: runtime/internal/services/app/package_readiness_handler_test.go
     owner: runtime
     classification: behavior_unit
@@ -82,7 +137,29 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
+  - path: runtime/internal/services/auth/registration_capabilities_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: runtime/internal/services/auth/service_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/services/auth/session_binding_test.go
     owner: runtime
     classification: behavior_unit
     tier: T4
@@ -525,83 +602,6 @@ tests:
     spec_refs:
       - P-TEST-001
   - path: runtime/internal/services/localservice/local_environment_job_python_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/localservice/local_environment_jobs_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/localservice/local_environment_plan_resolver_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/localservice/local_environment_plan_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/localservice/local_environment_rpc_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/localservice/local_inventory_identity_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/localservice/product_control_test.go
-    owner: runtime
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: runtime/internal/services/localservice/profile_runtime_descriptor_test.go
     owner: runtime
     classification: behavior_unit
     tier: T4

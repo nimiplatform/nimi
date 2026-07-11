@@ -12,7 +12,10 @@ import {
   NimiElectronShellHostError,
   type NimiElectronCommandHandler,
 } from '@nimiplatform/kit/shell/electron/main';
-import { createZhiyuElectronRuntimeAccountCaller } from './runtime-account-caller.js';
+import {
+  createZhiyuElectronRuntimeAccountCaller,
+  createZhiyuElectronRuntimeAppSessionMetadataProvider,
+} from './runtime-account-caller.js';
 
 export const ZHIYU_RUNTIME_AGENT_SCOPED_BINDING_COMMAND = 'zhiyu.runtimeAgent.issueScopedBinding';
 
@@ -38,24 +41,32 @@ export function createZhiyuRuntimeAgentScopedBindingCommandHandler(input: {
   readonly runtimeEndpoint: string;
   readonly runtime?: ZhiyuRuntimeAgentScopedBindingRuntime;
   readonly accountCaller?: NimiRuntimeAccountCaller;
+  readonly appSessionMetadata?: () => Promise<Readonly<Record<string, string>>>;
 }): NimiElectronCommandHandler {
   const appId = requireText(input.appId, 'appId');
   const runtimeEndpoint = requireText(input.runtimeEndpoint, 'runtimeEndpoint');
-  const runtime = input.runtime ?? new Runtime({
+  const ownedRuntime = input.runtime ? null : new Runtime({
     appId,
     transport: { endpoint: runtimeEndpoint },
   });
+  const runtime = input.runtime ?? ownedRuntime!;
   const accountCaller = input.accountCaller ?? createZhiyuElectronRuntimeAccountCaller(appId);
+  const appSessionMetadata = input.appSessionMetadata
+    ?? (ownedRuntime
+      ? createZhiyuElectronRuntimeAppSessionMetadataProvider({ appId, auth: ownedRuntime.auth })
+      : async () => ({}));
   return async ({ payload }) => {
     const ownerUserId = requireText(payload.ownerUserId, 'ownerUserId');
     const localAgentRef = requireText(payload.localAgentRef, 'localAgentRef');
     const conversationAnchorId = requireText(payload.conversationAnchorId, 'conversationAnchorId');
     const issueRequestId = optionalText(payload.issueRequestId) || createScopedBindingIssueRequestId();
     const scopes = requestedScopedBindingScopes(payload.scopes);
+    const metadata = await appSessionMetadata();
     await assertRuntimeAccountMatchesOwner({
       runtime,
       accountCaller,
       ownerUserId,
+      metadata,
       idempotencyKey: scopedBindingIdempotencyKey('status', ownerUserId, localAgentRef, conversationAnchorId),
     });
     const issued = await issueNimiRuntimeAgentScopedBinding({
@@ -66,7 +77,7 @@ export function createZhiyuRuntimeAgentScopedBindingCommandHandler(input: {
       scopes,
       ttlSeconds: scopedBindingTtlSeconds,
       options: withNimiRuntimeIdempotencyMetadata(
-        undefined,
+        { metadata },
         scopedBindingIdempotencyKey('issue', ownerUserId, localAgentRef, conversationAnchorId, issueRequestId),
       ),
     });
@@ -88,11 +99,12 @@ async function assertRuntimeAccountMatchesOwner(input: {
   readonly runtime: ZhiyuRuntimeAgentScopedBindingRuntime;
   readonly accountCaller: NimiRuntimeAccountCaller;
   readonly ownerUserId: string;
+  readonly metadata: Readonly<Record<string, string>>;
   readonly idempotencyKey: string;
 }): Promise<void> {
   const status = await input.runtime.account.getAccountSessionStatus(
     { caller: input.accountCaller },
-    withNimiRuntimeIdempotencyMetadata(undefined, input.idempotencyKey),
+    withNimiRuntimeIdempotencyMetadata({ metadata: input.metadata }, input.idempotencyKey),
   );
   const accountId = normalizeText(status.accountProjection?.accountId);
   if (status.state !== AccountSessionState.AUTHENTICATED || accountId !== input.ownerUserId) {

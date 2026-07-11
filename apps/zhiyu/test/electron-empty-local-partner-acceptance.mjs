@@ -21,7 +21,6 @@ import {
   DESKTOP_APP_INSTANCE_ID,
   DESKTOP_DEVICE_ID,
   LOCAL_TEXT_MODEL_ID,
-  SOURCE_PACKET_HMAC_SECRET,
 } from '../../../sdks/typescript/runtime/runtime-agent-live-e2e-fixture-shared.test-helper.ts';
 import {
   seedRuntimeAgentLiveImageCatalogProvider,
@@ -169,7 +168,6 @@ async function withEmptyLocalAgentRuntime(run) {
           NIMI_RUNTIME_ENGINE_LLAMA_ENABLED: '0',
           NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: `${baseUrl}/v1`,
           NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT: '1',
-          SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET: SOURCE_PACKET_HMAC_SECRET,
         },
         prepareState: ({ localStatePath, stateRoot }) => {
           const catalogCustomDir = path.join(stateRoot, 'model-catalog-custom');

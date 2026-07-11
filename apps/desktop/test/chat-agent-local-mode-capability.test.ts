@@ -380,14 +380,14 @@ test('agent shell stays a Runtime Agent projection consumer with local UI state'
   assert.match(adapterStateSource, /loadDesktopRouteOptions\('text\.generate'\)/);
   assert.match(adapterStateSource, /findNimiRuntimeRouteModelProfile/);
   assert.match(sessionHydrationSource, /snapshot\.transcript/);
-  assert.match(hostActionHelpersSource, /createNimiHostRuntimeAgentLifecycleSurface/);
   assert.match(hostActionHelpersSource, /createNimiHostRuntimeAgentPresentationProfileSurface/);
   assert.match(hostActionHelpersSource, /createNimiRuntimeAgentConsumeClient/);
   assert.match(hostActionHelpersSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
   assert.match(runtimeAgentTurnSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
   assert.match(runtimeAgentMemorySource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
   assert.match(runtimeAgentInspectSource, /withScopes:\s*withDesktopRuntimeProtectedScopes/);
-  assert.match(hostActionHelpersSource, /ensureLocalAgentInitialized/);
+  assert.match(hostActionHelpersSource, /runtime\.agent\.getAgent/);
+  assert.doesNotMatch(hostActionHelpersSource, /ensureLocalAgentInitialized/);
   assert.doesNotMatch(hostActionHelpersSource, /createRuntimeProtectedScopeHelper/);
   assert.doesNotMatch(hostActionHelpersSource, /runtime\.agent\.initializeAgent/);
   assert.match(hostActionHelpersSource, /client\.anchors\.getSnapshot/);

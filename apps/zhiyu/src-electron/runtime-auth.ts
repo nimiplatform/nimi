@@ -5,31 +5,11 @@ import {
 import {
   createZhiyuElectronRuntimeAccountCaller,
   normalizeZhiyuElectronRuntimeClientIdPrefix,
+  ZHIYU_RUNTIME_PROTECTED_SCOPES,
+  ZHIYU_RUNTIME_REGISTRATION_CAPABILITIES,
 } from './runtime-account-caller.js';
 
 const runtimeDeveloperRegistrationRequested = false;
-const runtimeProtectedScopes = [
-  'runtime.agent.read',
-  'runtime.agent.write',
-  'runtime.agent.autonomy.write',
-  'runtime.agent.turn.read',
-  'runtime.agent.turn.write',
-  'runtime.agent.delegation.read',
-  'runtime.agent.delegation.write',
-  // K-AGCORE-144~150 / Z-AUTH-006: the renderer's runtime.agent.ai_config
-  // projection + model-tab commits require the AI Config scopes.
-  'runtime.agent.ai_config.read',
-  'runtime.agent.ai_config.write',
-  'ai.spend.meter',
-] as const;
-const runtimeAccountBrokerCapabilities = [
-  'account.session.read',
-  'data.scope.read#realm.worlds.read-probe',
-] as const;
-const runtimeRegistrationCapabilities = [
-  ...runtimeProtectedScopes,
-  ...runtimeAccountBrokerCapabilities,
-] as const;
 const runtimeProtectedScopeCatalogVersion = 'sdk-v2';
 const runtimeAppSessionTtlSeconds = 3600;
 const runtimeAppSessionRefreshSkewMs = 30_000;
@@ -50,7 +30,7 @@ export function createZhiyuElectronTrustedRuntimeMetadataProvider(input: {
     appSession: {
       appInstanceId: `${appId}.local-first-party`,
       deviceId: `${clientIdPrefix}-local-first-party-device`,
-      capabilities: [...runtimeRegistrationCapabilities],
+      capabilities: [...ZHIYU_RUNTIME_REGISTRATION_CAPABILITIES],
       ttlSeconds: runtimeAppSessionTtlSeconds,
       refreshSkewMs: runtimeAppSessionRefreshSkewMs,
       developerRegistration: runtimeDeveloperRegistrationRequested,
@@ -60,7 +40,7 @@ export function createZhiyuElectronTrustedRuntimeMetadataProvider(input: {
       authorizationVersion: 'v1',
       policyVersion: `${clientIdPrefix}-runtime-account-v1`,
       scopeCatalogVersion: runtimeProtectedScopeCatalogVersion,
-      scopes: [...runtimeProtectedScopes],
+      scopes: [...ZHIYU_RUNTIME_PROTECTED_SCOPES],
       ttlSeconds: runtimeProtectedTokenTtlSeconds,
       refreshSkewMs: runtimeProtectedTokenRefreshSkewMs,
       idempotencyKey: ({ normalizedSubjectUserId, scopesSignature }) =>

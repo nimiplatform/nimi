@@ -4,18 +4,13 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import { fullScopeAppCodeFindings } from './lib/local-agent-full-chain-app-scan.mjs';
 import { runtimeMaterializationCodeFindings } from './lib/local-agent-runtime-materialization-hardcut.mjs';
 import { runtimeContextConsumerCodeFindings } from './lib/local-agent-runtime-context-hardcut.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-const validScopes = new Set([
-  'runtime-authority',
-  'consumer-authority',
-  'authority',
-  'runtime-materialization',
-  'runtime-consumer',
-]);
+const validScopes = new Set(['runtime-authority', 'consumer-authority', 'authority', 'runtime-materialization', 'runtime-consumer', 'all']);
 const textExtensions = new Set(['.md', '.yaml', '.yml']);
 const excludedDirectoryNames = new Set([
   '.git',
@@ -372,7 +367,7 @@ const behaviorEvaluationRequirements = [
 ));
 
 function usage() {
-  return 'usage: pnpm check:local-agent-full-chain-hardcut -- --scope <runtime-authority|consumer-authority|authority|runtime-materialization|runtime-consumer>\n';
+  return 'usage: pnpm check:local-agent-full-chain-hardcut -- --scope <runtime-authority|consumer-authority|authority|runtime-materialization|runtime-consumer|all>\n';
 }
 
 function parseScope(argv) {
@@ -688,30 +683,31 @@ async function resolveRealmCoreRuleInventory() {
 
 async function traceabilityMappingFindings() {
   const findings = [];
-  let text;
+  let text = null;
   try {
     text = await fs.readFile(path.join(repoRoot, ...ownerPaths.scenarioCatalog.split('/')), 'utf8');
   } catch (error) {
-    return [`[traceability] LAHC-T001 cannot read ${ownerPaths.scenarioCatalog}: ${error instanceof Error ? error.message : String(error)}`];
+    if (error?.code !== 'ENOENT') return [
+      `[traceability] LAHC-T001 cannot read ${ownerPaths.scenarioCatalog}: ${error instanceof Error ? error.message : String(error)}`,
+    ];
   }
 
-  if (text.includes('pending_i0')) {
-    findings.push(`[traceability] LAHC-T002 ${ownerPaths.scenarioCatalog} must contain zero pending_i0 placeholders`);
-  }
-  const rows = parseTraceabilityRows(text);
-  for (const [requirementId, expectedRuleIds] of expectedTraceabilityMappings) {
-    const authorityCells = rows.get(requirementId) || [];
-    if (authorityCells.length !== 1) {
-      findings.push(`[traceability] LAHC-T003 ${requirementId} must have exactly one requirement coverage row`);
-      continue;
-    }
-    const authorityCell = authorityCells[0];
-    const actualRuleIds = extractCompactRuleIds(authorityCell);
-    if (authorityCell.includes('pending_i0') || !sameOrderedValues(actualRuleIds, expectedRuleIds)) {
-      findings.push(
-        `[traceability] LAHC-T004 ${requirementId} mapping must be [${expectedRuleIds.join(', ')}], got [${actualRuleIds.join(', ')}]`,
-      );
-      continue;
+  if (text !== null) {
+    if (text.includes('pending_i0')) findings.push(
+      `[traceability] LAHC-T002 ${ownerPaths.scenarioCatalog} must contain zero pending_i0 placeholders`,
+    );
+    const rows = parseTraceabilityRows(text);
+    for (const [requirementId, expectedRuleIds] of expectedTraceabilityMappings) {
+      const authorityCells = rows.get(requirementId) || [];
+      if (authorityCells.length !== 1) {
+        findings.push(`[traceability] LAHC-T003 ${requirementId} must have exactly one requirement coverage row`);
+        continue;
+      }
+      const authorityCell = authorityCells[0];
+      const actualRuleIds = extractCompactRuleIds(authorityCell);
+      if (authorityCell.includes('pending_i0') || !sameOrderedValues(actualRuleIds, expectedRuleIds)) {
+        findings.push(`[traceability] LAHC-T004 ${requirementId} mapping must be [${expectedRuleIds.join(', ')}], got [${actualRuleIds.join(', ')}]`);
+      }
     }
   }
 
@@ -1367,7 +1363,7 @@ async function main() {
     process.stdout.write(`local-agent-full-chain-hardcut ${selectedScope}: OK\n`);
     return;
   }
-  const scopes = selectedScope === 'authority'
+  const scopes = selectedScope === 'authority' || selectedScope === 'all'
     ? ['runtime-authority', 'consumer-authority']
     : [selectedScope];
   const findings = [];
@@ -1380,7 +1376,12 @@ async function main() {
         ? runtimeAuthorityFindings(documents)
         : consumerAuthorityFindings(documents)));
     }
-    if (selectedScope === 'authority') findings.push(...await traceabilityMappingFindings());
+    if (selectedScope === 'authority' || selectedScope === 'all') findings.push(...await traceabilityMappingFindings());
+    if (selectedScope === 'all') {
+      findings.push(...await runtimeMaterializationCodeFindings(repoRoot));
+      findings.push(...await runtimeContextConsumerCodeFindings(repoRoot));
+      findings.push(...await fullScopeAppCodeFindings(repoRoot));
+    }
   } catch (error) {
     process.stderr.write(`local-agent-full-chain-hardcut checker error: ${error instanceof Error ? error.message : String(error)}\n`);
     process.exit(2);

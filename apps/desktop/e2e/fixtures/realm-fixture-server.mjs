@@ -1,12 +1,12 @@
 import fs from 'node:fs';
 import http from 'node:http';
-import crypto from 'node:crypto';
 import { Server as SocketIOServer } from 'socket.io';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-
-const SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET = String(
-  process.env.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET || 'desktop-e2e-source-materialization-secret',
-).trim();
+import {
+  configureFixtureRealmIssuer,
+  createFixtureSourceMaterializationPacket,
+  FIXTURE_SOURCE_MATERIALIZATION_JWKS,
+} from './source-materialization-packet-v2.mjs';
 
 function readJsonFile(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -664,12 +664,6 @@ function listWorldRelationshipCores(manifest, worldIdInput, entityIdInput = '') 
   return entityId ? rows.filter((row) => row.sourceEntityId === entityId || row.targetEntityId === entityId) : rows;
 }
 
-function lookupSourceRow(manifest, sourceRef) {
-  const world = lookupWorld(manifest, sourceRef?.worldId);
-  const collection = sourceRef?.kind === 'realmPersona' ? world?.personas : world?.characters;
-  return asArray(collection).find((item) => String(item?.id || '') === String(sourceRef?.sourceId || '')) || null;
-}
-
 function resolveFixtureSourceHash(manifest, source) {
   const worldId = text(source?.worldId, 'world-e2e-1');
   const sourceId = text(source?.sourceId, `${source?.kind || 'source'}-fixture`);
@@ -695,100 +689,6 @@ function normalizeSourceRef(manifest, source) {
       worldId,
       sourceId,
     }),
-  };
-}
-
-function canonicalJson(value) {
-  if (value === null || value === undefined) {
-    return 'null';
-  }
-  if (typeof value === 'string') {
-    return JSON.stringify(value);
-  }
-  if (typeof value === 'boolean') {
-    return value ? 'true' : 'false';
-  }
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) {
-      throw new Error('canonicalJson received a non-finite number');
-    }
-    if (Number.isInteger(value)) {
-      return String(value);
-    }
-    return String(value);
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => canonicalJson(item)).join(',')}]`;
-  }
-  if (typeof value === 'object') {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
-  }
-  throw new Error(`canonicalJson received a non-JSON value ${typeof value}`);
-}
-
-function hashCanonicalJson(value) {
-  return crypto.createHash('sha256').update(canonicalJson(value)).digest('hex');
-}
-
-function signSourceMaterializationPacketProof(packetHash, ownerId, nonce, intendedRuntimeAudience) {
-  if (!SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET) {
-    throw new Error('SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET is required');
-  }
-  const proofPayloadHash = hashCanonicalJson({
-    packetHash,
-    ownerId,
-    nonce,
-    intendedRuntimeAudience,
-  });
-  return `hmac-sha256:${crypto.createHmac('sha256', SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET).update(proofPayloadHash).digest('hex')}`;
-}
-
-function buildSourceMaterializationPacket(manifest, sourceRef, intendedRuntimeAudience) {
-  const now = new Date().toISOString();
-  const ownerUserId = String(manifest.realmFixture?.currentUser?.id || 'user-e2e-primary');
-  const runtimeSourceRef = `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`;
-  const packetId = `packet-${sourceRef.kind}-${sourceRef.sourceId}-${Date.now()}`;
-  const sourceContentRevision = 1;
-  const audience = String(intendedRuntimeAudience || 'nimi.desktop.local-agent.materialization');
-  const payloadSchema = sourceRef.kind === 'worldCharacter'
-    ? 'realm.world-character-core/v1'
-    : 'realm.persona/v1';
-  const sourceWorldName = text(lookupWorld(manifest, sourceRef.worldId)?.name, '');
-  const sourceRow = lookupSourceRow(manifest, sourceRef);
-  const sourceMedia = normalizeSourceMedia(sourceRow);
-  const sourceDisplayName = text(sourceRow?.displayName || sourceRow?.name, sourceRef.sourceId);
-  const unsignedPacket = {
-    packetSchemaVersion: 'realm.source-materialization-packet/v1',
-    packetId,
-    sourceKind: sourceRef.kind,
-    sourceId: sourceRef.sourceId,
-    sourceWorldId: sourceRef.worldId,
-    sourceContentRevision,
-    sourceContentHash: sourceRef.sourceContentHash,
-    issuedAt: now,
-    expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-    nonce: `nonce-${packetId}`,
-    intendedRuntimeAudience: audience,
-    runtimeSourceRef,
-    sourceDisplayMetadata: {
-      ...(sourceWorldName ? { worldName: sourceWorldName } : {}),
-      displayName: sourceDisplayName,
-      avatarUrl: sourceMedia.avatarUrl,
-      profileCoverUrl: sourceMedia.profileCoverUrl,
-    },
-    payload: {
-      sourceRef,
-      schemaVersion: payloadSchema,
-      contentRevision: sourceContentRevision,
-      contentHash: sourceRef.sourceContentHash,
-    },
-  };
-  const packetHash = hashCanonicalJson(unsignedPacket);
-  return {
-    ...unsignedPacket,
-    ownerUserId,
-    packetHash,
-    packetProof: signSourceMaterializationPacketProof(packetHash, ownerUserId, unsignedPacket.nonce, audience),
   };
 }
 
@@ -949,6 +849,11 @@ async function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
+  if (request.method === 'GET' && pathname === '/api/auth/jwks/source-materialization') {
+    json(response, 200, FIXTURE_SOURCE_MATERIALIZATION_JWKS);
+    return undefined;
+  }
+
   if (request.method === 'POST' && pathname === '/api/auth/sessions/introspect') {
     json(response, 200, {
       active: true,
@@ -1073,7 +978,11 @@ async function handleApi(request, response, manifestPath) {
       json(response, 400, { message: 'sourceRef must include kind, worldId, sourceId, and sourceContentHash' });
       return undefined;
     }
-    const packet = buildSourceMaterializationPacket(manifest, sourceRef, body?.intendedRuntimeAudience);
+    const requestOrigin = `http://${request.headers.host}`;
+    configureFixtureRealmIssuer(
+      manifest.tauriFixture?.runtimeDefaults?.realm?.realmBaseUrl || requestOrigin,
+    );
+    const packet = createFixtureSourceMaterializationPacket({ ...body, sourceRef });
     manifest.realmFixture = manifest.realmFixture || {};
     manifest.realmFixture.sourceMaterializationPacketRequests = [
       ...(Array.isArray(manifest.realmFixture.sourceMaterializationPacketRequests)
@@ -1083,7 +992,7 @@ async function handleApi(request, response, manifestPath) {
         sourceRef,
         intendedRuntimeAudience: text(body?.intendedRuntimeAudience, ''),
         packetId: packet.packetId,
-        runtimeSourceRef: packet.runtimeSourceRef,
+        runtimeSourceRef: `runtime-source:${sourceRef.kind}:${sourceRef.worldId}:${sourceRef.sourceId}:${sourceRef.sourceContentHash}`,
         issuedAt: packet.issuedAt,
       },
     ];

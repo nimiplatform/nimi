@@ -54,7 +54,6 @@ export async function streamChatAgentRuntimeAgentTurn(
     ...localIdentity,
     conversationAnchorId: request.conversationAnchorId,
     threadId: request.threadId,
-    systemPrompt: undefined,
     maxOutputTokens: Number.isFinite(Number(request.maxOutputTokensRequested))
       && Number(request.maxOutputTokensRequested) > 0
       ? Math.floor(Number(request.maxOutputTokensRequested))
@@ -62,7 +61,7 @@ export async function streamChatAgentRuntimeAgentTurn(
     messages: [{
       role: 'user' as const,
       content: normalizeText(request.userText),
-    }],
+    }] as const,
     reasoning: (() => {
       const resolved = resolveChatThinkingConfig(
         request.reasoningPreference,

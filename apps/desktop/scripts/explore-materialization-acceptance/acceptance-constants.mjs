@@ -1,13 +1,10 @@
+import { FIXTURE_SOURCE_REF } from '../../e2e/fixtures/source-materialization-packet-v2.mjs';
+
 export const APP_ID = 'nimi.desktop';
 export const OWNER_USER_ID = 'user-e2e-primary';
-export const VALID_CHARACTER_ID = 'character-acceptance-yan-zhenqing';
+export const VALID_CHARACTER_ID = FIXTURE_SOURCE_REF.sourceId;
 export const DISABLED_CHARACTER_ID = 'character-acceptance-missing-hash';
-export const VALID_SOURCE_REF = {
-  kind: 'worldCharacter',
-  worldId: 'world-explore-acceptance',
-  sourceId: VALID_CHARACTER_ID,
-  sourceContentHash: 'character-acceptance-yan-zhenqing-hash',
-};
+export const VALID_SOURCE_REF = FIXTURE_SOURCE_REF;
 export const PROTECTED_SCOPES = [
   'ai.spend.meter',
   'runtime.agent.admin',

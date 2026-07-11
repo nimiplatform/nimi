@@ -1,59 +1,12 @@
 version: 1
-inventory_id: tester_test_inventory
-owner: tester
+inventory_id: runtime_test_inventory
+owner: runtime
 authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+shard_id: runtime_test_inventory_shard_08
 tests:
-  - path: apps/tester/test/dev-runner-contract.test.mjs
-    owner: tester
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_api
-  - path: apps/tester/test/electron-host-contract.test.mjs
-    owner: tester
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_import
-  - path: apps/tester/test/scaffold-boundary.test.mjs
-    owner: tester
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_import
-  - path: apps/tester/test/shell-parity-gate.test.mjs
-    owner: tester
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_api
-  - path: apps/tester/test/tester-ai-profile-surface.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/service_memory_read_scope_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -63,20 +16,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-ai-scope-boundary.test.mjs
-    owner: tester
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/tester/test/tester-artifact-persistence.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/service_memory_state_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -86,21 +27,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-contract.test.mjs
-    owner: tester
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_api
-    note: assertion-free aggregator; imported non-census members include after_rewrite sentinel/behavior coverage
-  - path: apps/tester/test/tester-first-run-ai-config-projection.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/service_state_hardcut_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -110,8 +38,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-history-fail-closed.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/service_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -121,8 +49,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-media-local-image-environment.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/source_materialization_commit_lifecycle_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -132,8 +60,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-media-scenario-jobs.artifacts.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/source_materialization_product_atomic_helpers_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -143,8 +71,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-media-scenario-jobs.contract.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/source_materialization_product_atomic_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -154,8 +82,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-media-scenario-jobs.image-video.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/source_materialization_test_helpers_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -165,8 +93,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-media-scenario-jobs.speech.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/source_materialization_transport_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -176,8 +104,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-memory-embedding-runtime-surface.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/source_materialization_v2_codec_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -187,20 +115,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-preferences.test.mjs
-    owner: tester
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_api
-  - path: apps/tester/test/tester-product-control-projection.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/source_materialization_v2_crypto_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -210,8 +126,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-runtime-account-auth.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/source_materialization_v2_jcs_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -221,8 +137,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-runtime-agent-delegated-capability-surface.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/source_materialization_v2_normalize_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -232,8 +148,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-runtime-agent-inspect-surface.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/source_snapshot_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -243,8 +159,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-runtime-agent-memory-surface.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeagent/voice_lipsync_synthesis_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -254,8 +170,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-runtime-agent-presentation-profile-surface.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeartifact/service_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -265,8 +181,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-runtime-connector-projection.test.mjs
-    owner: tester
+  - path: runtime/internal/services/runtimeartifact/store_disk_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -276,8 +192,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-runtime-local-config-projection.test.mjs
-    owner: tester
+  - path: runtime/internal/services/workflow/executor_ai_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -287,8 +203,8 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-runtime-route-capability-runtime.test.mjs
-    owner: tester
+  - path: runtime/internal/services/workflow/executor_nodes_test.go
+    owner: runtime
     classification: behavior_unit
     tier: T4
     authority_claim: false
@@ -298,10 +214,10 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-  - path: apps/tester/test/tester-settings-surface.test.mjs
-    owner: tester
-    classification: source_regex_sentinel
-    tier: T3
+  - path: runtime/internal/services/workflow/helpers_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
@@ -309,16 +225,80 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    sentinel_purpose: forbidden_api
-  - path: apps/tester/test/world-tour-contract.test.mjs
-    owner: tester
-    classification: source_regex_sentinel
-    tier: T3
+  - path: runtime/internal/services/workflow/service_cancel_cleanup_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
     authority_claim: false
     deterministic: true
     offline: true
     may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
+    may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
-    sentinel_purpose: forbidden_import
+  - path: runtime/internal/services/workflow/service_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/services/workflow/stores_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/spendvisibility/projection_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/streamutil/relay_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/texttarget/defaults_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: runtime/internal/usagemetrics/queue_wait_test.go
+    owner: runtime
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001

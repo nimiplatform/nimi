@@ -14,7 +14,6 @@ import {
 } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   Realm,
-  createNimiRealmSourceMaterializationPacket,
 } from '@nimiplatform/sdk/realm';
 import { startRealmFixtureServer } from '../../e2e/fixtures/realm-fixture-server.mjs';
 import { createRealmFixtureManifest } from '../explore-materialization-acceptance/acceptance-fixture.mjs';
@@ -74,10 +73,7 @@ export async function runDesktopRuntimeLocalAgentCenterAcceptance({
   const resolvedEvidenceRoot = path.resolve(repoRoot, normalizeText(evidenceRoot) || defaultEvidenceRoot(resolvedScenario));
   const resolvedCheckpoint = normalizeText(checkpoint) || `runtime-local-agent-center-rla0b-desktop-${resolvedScenario}`;
   const artifactsDir = path.join(appRoot, 'reports', 'e2e', 'runtime-local-agent-center', resolvedScenario);
-  const sourcePacketSecret = process.env.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET
-    || 'desktop-e2e-source-materialization-secret';
   const acceptanceBaseEnv = { ...process.env };
-  delete acceptanceBaseEnv.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET;
 
   safeResetDir(artifactsDir, { reportsRoot: path.join(appRoot, 'reports', 'e2e') });
   fs.mkdirSync(resolvedEvidenceRoot, { recursive: true });
@@ -110,7 +106,6 @@ export async function runDesktopRuntimeLocalAgentCenterAcceptance({
       logs: path.join(acceptedRuntimeDataRoot, 'logs'),
       audit: path.join(acceptedRuntimeDataRoot, 'audit'),
     },
-    sourceMaterializationPacketHmacSecret: sourcePacketSecret,
   });
 
   const fixtureServer = await startRealmFixtureServer({ manifestPath });
@@ -164,17 +159,16 @@ export async function runDesktopRuntimeLocalAgentCenterAcceptance({
     observations.productControl = await prepareRuntimeProductControl(runtime, runtimeDataRoot);
     const agentClient = createAcceptanceAgentClient(runtime);
     const realmWorldStudioCaller = await registerRealmWorldStudioRuntimeApp(realmWorldStudioRuntime);
-    const sourceMaterializationPacket = await createRuntimeMediatedSourceMaterializationPacket({
+    const mediatedRealm = createRuntimeMediatedRealm({
       runtime: realmWorldStudioRuntime,
       caller: realmWorldStudioCaller,
       realmBaseUrl: fixtureServer.origin,
-      sourceRef: VALID_SOURCE_REF,
     });
-    const initializedAgent = await agentClient.initialize({
-      ownerUserId: OWNER_USER_ID,
-      runtimeSourceRef: runtimeSourceRefForSource(VALID_SOURCE_REF),
-      displayName: 'Runtime Local Agent Center Fixture',
-      sourceMaterializationPacket,
+    const initializedAgent = await agentClient.materialize({
+      sourceRef: VALID_SOURCE_REF,
+      requestId: `desktop-rla-materialization:${resolvedScenario}`,
+      realm: mediatedRealm,
+      emitRealmDataError: () => {},
     });
     const localAgentRef = initializedAgent.localAgentRef;
     const runtimeSourceRef = initializedAgent.runtimeSourceRef;
@@ -409,8 +403,8 @@ function defaultEvidenceRoot(scenario) {
   return `.nimi/local/evidence/runtime-local-agent-center/rla0b/${scenario === 'live-runtime' ? 'desktop-live' : 'desktop-no-runtime'}`;
 }
 
-async function createRuntimeMediatedSourceMaterializationPacket({ runtime, caller, realmBaseUrl, sourceRef }) {
-  const realm = new Realm({
+function createRuntimeMediatedRealm({ runtime, caller, realmBaseUrl }) {
+  return new Realm({
     transport: {
       async unary(request) {
         const response = await runtime.account.invokeRealmUnary({
@@ -436,12 +430,6 @@ async function createRuntimeMediatedSourceMaterializationPacket({ runtime, calle
       },
     },
   });
-  return createNimiRealmSourceMaterializationPacket(
-    realm,
-    () => {},
-    sourceRef,
-    'nimi.desktop.local-agent.materialization',
-  );
 }
 
 async function registerRealmWorldStudioRuntimeApp(runtime) {
@@ -468,16 +456,6 @@ async function registerRealmWorldStudioRuntimeApp(runtime) {
     throw new Error(`Runtime RegisterApp failed for ${REALM_WORLD_STUDIO_APP_ID}: ${JSON.stringify(response)}`);
   }
   return caller;
-}
-
-function runtimeSourceRefForSource(sourceRef) {
-  return [
-    'runtime-source',
-    sourceRef.kind,
-    sourceRef.worldId,
-    sourceRef.sourceId,
-    sourceRef.sourceContentHash,
-  ].map(normalizeText).join(':');
 }
 
 function normalizeText(value) {

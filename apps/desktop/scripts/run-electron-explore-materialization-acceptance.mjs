@@ -52,10 +52,7 @@ const electronExecutablePath = require('electron');
 const mainEntry = path.join(appRoot, 'dist-electron', 'main.js');
 let rendererUrl;
 const artifactsDir = path.join(appRoot, 'reports', 'e2e', 'explore-materialization-acceptance');
-const sourcePacketSecret = process.env.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET
-  || 'desktop-e2e-source-materialization-secret';
 const acceptanceBaseEnv = { ...process.env };
-delete acceptanceBaseEnv.SOURCE_MATERIALIZATION_PACKET_HMAC_SECRET;
 safeResetDir(artifactsDir, { reportsRoot: path.join(appRoot, 'reports', 'e2e') });
 const runtimeStdoutPath = path.join(artifactsDir, 'runtime-stdout.log');
 const runtimeStderrPath = path.join(artifactsDir, 'runtime-stderr.log');
@@ -91,6 +88,7 @@ const acceptedRuntimeDataRoot = normalizeOptionalPath(admittedProductControlSeed
 writeJsonFile(manifestPath, createRealmFixtureManifest('http://127.0.0.1:0'));
 writeJsonFile(runtimeConfigPath, {
   schemaVersion: 1,
+  runtimeId: 'runtime-instance-desktop-explore-materialization',
   dataRootRef: acceptedRuntimeDataRoot,
   managedRoots: {
     models: path.join(acceptedRuntimeDataRoot, 'models'),
@@ -99,7 +97,6 @@ writeJsonFile(runtimeConfigPath, {
     logs: path.join(acceptedRuntimeDataRoot, 'logs'),
     audit: path.join(acceptedRuntimeDataRoot, 'audit'),
   },
-  sourceMaterializationPacketHmacSecret: sourcePacketSecret,
 });
 const fixtureServer = await startRealmFixtureServer({ manifestPath });
 let rendererServer;

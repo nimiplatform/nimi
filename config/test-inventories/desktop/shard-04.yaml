@@ -1,211 +1,10 @@
 version: 1
 inventory_id: desktop_test_inventory
-shard_id: desktop_test_inventory_shard_04
 owner: desktop
 authority_class: non_authoritative_inventory
 spec_policy_ref: .nimi/spec/platform/kernel/tables/test-governance-policy.yaml
+shard_id: desktop_test_inventory_shard_04
 tests:
-  - path: apps/desktop/test/desktop-update-panel-alerts.test.ts
-    owner: desktop
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/desktop/test/desktop-updater-artifacts-script.test.ts
-    owner: desktop
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/desktop/test/desktop-updater-public-key.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_api
-  - path: apps/desktop/test/desktop-updates-availability.test.ts
-    owner: desktop
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/desktop/test/desktop-updates-bootstrap.test.ts
-    owner: desktop
-    classification: behavior_unit
-    tier: T4
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-  - path: apps/desktop/test/desktop-vite-renderer-contract.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/desktop-wallet-hidden-surface.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/developer-mode-runtime-sync.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/economy-recharge-flow.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/encoding-util.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: allowed
-    spec_refs:
-      - P-TEST-001
-      - D-IPC-012
-    sentinel_purpose: forbidden_import
-  - path: apps/desktop/test/error-boundary-normalization.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/explore-feed-profile-modal-e2e-contract.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/explore-world-fold.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/explore-world-truth-projection.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/external-agent-delegation-control-surface.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/external-agent-phase-contract.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
-  - path: apps/desktop/test/external-agent-tier1-capability-contract.test.ts
-    owner: desktop
-    classification: source_regex_sentinel
-    tier: T3
-    authority_claim: false
-    deterministic: true
-    offline: true
-    may_enter_regression_gate: allowed
-    may_enter_release_gate: after_rewrite
-    spec_refs:
-      - P-TEST-001
-    sentinel_purpose: forbidden_copy
   - path: apps/desktop/test/external-agent-token-ledger-fail-close.test.ts
     owner: desktop
     classification: source_regex_sentinel
@@ -514,6 +313,17 @@ tests:
     may_enter_release_gate: after_rewrite
     spec_refs:
       - P-TEST-001
+  - path: apps/desktop/test/local-runtime-os-helpers-bridge.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: apps/desktop/test/local-runtime-transfer-plane-contract.test.ts
     owner: desktop
     classification: source_regex_sentinel
@@ -550,6 +360,17 @@ tests:
     spec_refs:
       - P-TEST-001
     sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/macos-smoke-command-boundary.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
   - path: apps/desktop/test/main-layout-kit-inline-style-contract.test.ts
     owner: desktop
     classification: source_regex_sentinel
@@ -598,3 +419,241 @@ tests:
     spec_refs:
       - P-TEST-001
     sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/menu-bar-runtime-sync.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/menu-bar-shell-integration.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/model-center-utils.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/multimodal-capability-projection.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/network-retry-domain-boundary.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - D-NET-002
+    sentinel_purpose: forbidden_import
+  - path: apps/desktop/test/nimi-app-platform-e2e-registry.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/nimi-app-registry-domain-boundary.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - D-SHELL-038
+    sentinel_purpose: forbidden_import
+  - path: apps/desktop/test/nimi-app-release-server.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/nimi-home-shell-mount.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/nimi-theme-entry-contract.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/notification-panel-actions.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/notification-realtime-sync.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/notification-settings-mapping.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/notification-surface-guardrails.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/notification-unread-boundary.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/oauth-next-continuation.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_api
+  - path: apps/desktop/test/offline-error-classification.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/offline-outbox-manager.test.ts
+    owner: desktop
+    classification: behavior_unit
+    tier: T4
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+  - path: apps/desktop/test/offline-reconnect-strategy.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: after_rewrite
+    spec_refs:
+      - P-TEST-001
+    sentinel_purpose: forbidden_copy
+  - path: apps/desktop/test/offline-typed-error-domain-boundary.test.ts
+    owner: desktop
+    classification: source_regex_sentinel
+    tier: T3
+    authority_claim: false
+    deterministic: true
+    offline: true
+    may_enter_regression_gate: allowed
+    may_enter_release_gate: allowed
+    spec_refs:
+      - P-TEST-001
+      - D-OFFLINE-001
+    sentinel_purpose: forbidden_import

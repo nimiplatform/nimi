@@ -29,12 +29,13 @@ test('CBDB legacy friend local chat path is removed from active Desktop sources'
   assert.doesNotMatch(threadModel, new RegExp(['parse', 'Agent', 'Friend', 'Target'].join('')));
 });
 
-test('CBDB RealmPersona source materialization uses sourceRef packet materialization', () => {
+test('CBDB RealmPersona source materialization uses the SDK terminal materialization surface', () => {
   const materialization = readDesktopSource('features/explore/realm-persona-source-materialization.ts');
   const sourceIdentity = readDesktopSource('features/realm-source/realm-source-identity.ts');
   const materializationSurface = `${materialization}\n${sourceIdentity}`;
-  assert.match(materialization, /createRealmSourceMaterializationPacket/);
-  assert.match(materialization, /createNimiRealmSourceMaterializationPacket/);
+  assert.match(materialization, /createNimiHostRuntimeAgentMaterializationSurface/);
+  assert.match(materialization, /materializeRealmSource/);
+  assert.doesNotMatch(materialization, /intendedRuntimeAudience/);
   assert.doesNotMatch(materialization, /connectNimiRealmSource/);
   assert.doesNotMatch(materialization, new RegExp(['list', 'Nimi', 'Realm', 'Source', 'Connections'].join('')));
   assert.match(materialization, /resolveRealmCoreSourceRef/);
@@ -65,10 +66,11 @@ test('CBDB RealmPersona source materialization maps runtime failures before show
   );
 });
 
-test('CBDB runtime anchor metadata uses source-core owner scope, not Forge import scope', () => {
+test('CBDB runtime anchor metadata does not carry source/profile prompt authority', () => {
   const hostActions = readDesktopSource('features/chat/chat-agent-shell-host-actions-helpers.ts');
 
-  assert.match(hostActions, /ownerScope = 'cbdb-curated-system'/);
-  assert.match(hostActions, /sourceProfileId = 'cbdb-historical'/);
+  assert.match(hostActions, /surface: 'desktop-agent-chat'/);
+  assert.doesNotMatch(hostActions, new RegExp(['realm', 'Profile', 'Context'].join(''), 'i'));
+  assert.doesNotMatch(hostActions, /sourceProfileId/);
   assert.doesNotMatch(hostActions, /forge-imported-system/);
 });

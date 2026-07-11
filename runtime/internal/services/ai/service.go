@@ -230,7 +230,7 @@ func (s *Service) ResolvePublicChatTextBinding(
 	if s == nil || s.selector == nil {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	routeDecision, modelResolved, err := s.selector.resolveBindingRouteModel(routeHint, runtimev1.FallbackPolicy_FALLBACK_POLICY_ALLOW, modelID)
+	routeDecision, modelResolved, err := s.selector.resolveCommittedBindingRouteModel(routeHint, modelID)
 	if err != nil {
 		return runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED, "", err
 	}
@@ -254,10 +254,26 @@ func (s *Service) ResolvePublicChatTextContextMetadata(
 	resolvedModelID := strings.TrimSpace(modelID)
 	switch route {
 	case runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL:
-		if targetRef == nil || targetRef.GetLocalRuntime() == nil {
+		localTarget := targetRef.GetLocalRuntime()
+		if localTarget == nil {
 			return 0, "", "", "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
 		provider = "local"
+		requestedLocalModelID := strings.TrimSpace(localTarget.GetProfileBindingId())
+		if requestedLocalModelID == "" {
+			requestedLocalModelID = resolvedModelID
+		}
+		plan, resolveErr := s.prepareLocalModelExecutionPlan(ctx, requestedLocalModelID, nil, runtimev1.Modal_MODAL_TEXT, nil)
+		if resolveErr != nil {
+			return 0, "", "", "", resolveErr
+		}
+		if plan != nil && plan.selected != nil {
+			if logicalModelID := strings.TrimSpace(plan.selected.GetLogicalModelId()); logicalModelID != "" {
+				resolvedModelID = logicalModelID
+			} else if assetID := strings.TrimSpace(plan.selected.GetAssetId()); assetID != "" {
+				resolvedModelID = assetID
+			}
+		}
 	case runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD:
 		cloud := targetRef.GetCloud()
 		if cloud == nil {

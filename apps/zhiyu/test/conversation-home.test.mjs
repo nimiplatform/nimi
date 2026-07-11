@@ -20,7 +20,6 @@ test('Zhiyu conversation home reuses the Desktop-parity anchor binding for the s
   const module = await importConversationHome();
   globalThis.window = {};
   globalThis.__zhiyuConversationHomeTestGetSessionSnapshot = undefined;
-  globalThis.__zhiyuConversationHomeTestEnsureInitialized = undefined;
   const opened = [];
   globalThis.__zhiyuConversationHomeTestOpenConversation = async (request) => {
     opened.push(request);
@@ -41,21 +40,11 @@ test('Zhiyu conversation home reuses the Desktop-parity anchor binding for the s
   assert.equal(opened.length, 1);
 });
 
-test('Zhiyu conversation home verifies Runtime Agent lifecycle before opening an anchor', async () => {
+test('Zhiyu conversation home treats materialized inventory identity as terminal before opening an anchor', async () => {
   const module = await importConversationHome();
   globalThis.window = {};
   globalThis.__zhiyuConversationAnchorStorageValue = null;
-  const ensured = [];
   const opened = [];
-  globalThis.__zhiyuConversationHomeTestEnsureInitialized = async (request) => {
-    ensured.push(request);
-    return {
-      localAgentRef: request.localAgentRef,
-      ownerUserId: request.ownerUserId,
-      runtimeSourceRef: request.runtimeSourceRef,
-      agent: { lifecycleStatus: 'ACTIVE' },
-    };
-  };
   globalThis.__zhiyuConversationHomeTestOpenConversation = async (request) => {
     opened.push(request);
     return {
@@ -69,19 +58,12 @@ test('Zhiyu conversation home verifies Runtime Agent lifecycle before opening an
 
   assert.equal(result.ready, true);
   assert.equal(result.conversationAnchorId, 'agent_anchor_lifecycle');
-  assert.deepEqual(ensured, [{
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'runtime-source:opaque',
-    localAgentRef: 'runtime-local-agent:opaque',
-    displayName: 'runtime-local-agent:opaque',
-  }]);
   assert.equal(opened.length, 1);
 });
 
 test('Zhiyu conversation home clears a stale anchor binding before opening a replacement', async () => {
   const module = await importConversationHome();
   globalThis.window = {};
-  globalThis.__zhiyuConversationHomeTestEnsureInitialized = undefined;
   const opened = [];
   const snapshots = [];
   globalThis.__zhiyuConversationHomeTestOpenConversation = async (request) => {
@@ -117,7 +99,6 @@ test('Zhiyu conversation home restores anchor binding from standard shell storag
   const module = await importConversationHome();
   globalThis.window = {};
   globalThis.__zhiyuConversationAnchorStorageValue = null;
-  globalThis.__zhiyuConversationHomeTestEnsureInitialized = undefined;
   const opened = [];
   const snapshots = [];
   globalThis.__zhiyuConversationHomeTestOpenConversation = async (request) => {
@@ -249,17 +230,6 @@ function workspaceSdkSourceAliasPlugin() {
           }
           export function createNimiRuntimeAgentClient() {
             return {
-              async ensureInitialized(request) {
-                if (typeof globalThis.__zhiyuConversationHomeTestEnsureInitialized === 'function') {
-                  return globalThis.__zhiyuConversationHomeTestEnsureInitialized(request);
-                }
-                return {
-                  localAgentRef: request.localAgentRef,
-                  ownerUserId: request.ownerUserId,
-                  runtimeSourceRef: request.runtimeSourceRef,
-                  agent: { lifecycleStatus: 'ACTIVE' },
-                };
-              },
               async openConversation(request) {
                 if (typeof globalThis.__zhiyuConversationHomeTestOpenConversation !== 'function') {
                   throw new Error('missing openConversation test hook');

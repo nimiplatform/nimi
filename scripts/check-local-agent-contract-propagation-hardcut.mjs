@@ -280,17 +280,9 @@ function checkDeferredLegacyMaterializationInventory() {
   // deferred marker across the complete active source surface. This remains a
   // bounded RED inventory, never a product-success allowlist; any new file or
   // count fails immediately.
-  const i6AppAndAcceptance = new Map([
-    ['apps/desktop/e2e/fixtures/realm-fixture-server.mjs', 9],
-    ['apps/desktop/scripts/lib/runtime-local-agent-center-runner.mjs', 6],
-    ['apps/desktop/scripts/run-e2e.mjs', 6],
-    ['apps/desktop/scripts/run-electron-explore-materialization-acceptance.mjs', 5],
-    ['apps/desktop/scripts/run-macos-smoke-support.mjs', 2],
-    ['apps/desktop/src/shell/renderer/features/explore/realm-persona-source-materialization.ts', 2],
-    ['apps/zhiyu/test/electron-empty-local-partner-acceptance.mjs', 3],
-  ]);
+  const i6AppAndAcceptance = new Map();
   const rejectionOnly = new Map([
-    ['scripts/check-local-agent-full-chain-hardcut.mjs', 1],
+    ['scripts/check-local-agent-full-chain-hardcut.mjs', 10],
     ['scripts/check-realm-contract-lock.mjs', 1],
     ['scripts/lib/local-agent-runtime-materialization-hardcut.mjs', 7],
     ['sdks/go/coregenerated/behavior_test.go', 1],
