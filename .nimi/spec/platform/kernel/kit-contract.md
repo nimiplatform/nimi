@@ -224,6 +224,18 @@ admission. No Electron/Tauri metadata, Runtime unary proxy, host provider, app
 id, or standard-shell operation may upgrade that narrow native carrier.
 macOS/Linux remain fail-closed and cannot claim A.1 completion.
 
+The first A.4 business method admitted on the opaque installed session is the
+host-only typed `read_artifact_bytes(artifact_id)` call, bound exactly to
+Runtime `ReadArtifactBytes`. It returns only validated bytes, MIME, observed
+size and MIME-inferred state, and preserves typed invalid-input, forbidden,
+not-found, too-large and Runtime availability failures. The session proof,
+account, app, release, grant and transport channel remain private to the
+carrier. This does not admit a method-id/bytes proxy, generic `runtime.unary`,
+arbitrary metadata, or a renderer command; the standard-shell
+`allowed_operations` list remains empty until an owning Tauri/Electron host
+adapter is separately admitted. macOS/Linux continue to fail closed at session
+open until their native carrier admission.
+
 ## P-KIT-045 - Desktop Open Intent Kit Surfaces
 
 - `core/desktop-open` is a pure-logic Kit surface that wraps SDK

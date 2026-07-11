@@ -183,7 +183,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiProtectedLocalHostCarrier
-    description: Shared native protected-local carrier contract for mutual service/process/executable verification, empty OpenDesktopSession bootstrap, and typed fixed-service status/start/restart across Tauri and Electron hosts. Kit carries calls only; Runtime and the OS remain security and lifecycle authorities.
+    description: Shared native protected-local carrier contract for mutual service/process/executable verification, empty OpenDesktopSession/bootstrap, typed fixed-service status/start/restart, and the host-only installed read_artifact_bytes method. Kit carries typed calls only; Runtime and the OS remain security, account, grant, artifact, and lifecycle authorities.
     dependencies: []
     peer_dependencies: []
     exports: []

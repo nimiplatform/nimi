@@ -1,4 +1,6 @@
 use crate::{FixedRuntimeServiceControl, ProtectedCarrierError};
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 use std::future::Future;
 use std::path::PathBuf;
 use std::pin::Pin;
@@ -14,6 +16,68 @@ pub struct InstalledAppLaunchOutcome {
     pub launch_id: [u8; 32],
     pub process_id: u32,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InstalledArtifactBytes {
+    pub bytes: Vec<u8>,
+    pub mime_type: String,
+    pub size_bytes: i64,
+    pub mime_inferred: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InstalledArtifactReadReasonCode {
+    InvalidInput,
+    Forbidden,
+    NotFound,
+    TooLarge,
+    RuntimeUnavailable,
+    RuntimeUntrusted,
+}
+
+impl InstalledArtifactReadReasonCode {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidInput => "installed-artifact-invalid-input",
+            Self::Forbidden => "installed-artifact-forbidden",
+            Self::NotFound => "installed-artifact-not-found",
+            Self::TooLarge => "installed-artifact-too-large",
+            Self::RuntimeUnavailable => "installed-artifact-runtime-unavailable",
+            Self::RuntimeUntrusted => "installed-artifact-runtime-untrusted",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct InstalledArtifactReadError {
+    reason_code: InstalledArtifactReadReasonCode,
+    retryable: bool,
+}
+
+impl InstalledArtifactReadError {
+    pub const fn new(reason_code: InstalledArtifactReadReasonCode, retryable: bool) -> Self {
+        Self {
+            reason_code,
+            retryable,
+        }
+    }
+
+    pub const fn reason_code(self) -> InstalledArtifactReadReasonCode {
+        self.reason_code
+    }
+
+    pub const fn retryable(self) -> bool {
+        self.retryable
+    }
+}
+
+impl Display for InstalledArtifactReadError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.reason_code.as_str())
+    }
+}
+
+impl Error for InstalledArtifactReadError {}
 
 /// Opaque host-only handle for one connection-bound protected Desktop session.
 ///
@@ -34,7 +98,18 @@ pub trait NimiDesktopControl: Send + Sync {
     >;
 }
 
-pub trait NimiInstalledAppSession: Send + Sync {}
+pub trait NimiInstalledAppSession: Send + Sync {
+    fn read_artifact_bytes(
+        &self,
+        artifact_id: String,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<InstalledArtifactBytes, InstalledArtifactReadError>>
+                + Send
+                + '_,
+        >,
+    >;
+}
 
 pub trait NimiInstalledAppCarrier: Send + Sync {
     fn open_installed_app_session(

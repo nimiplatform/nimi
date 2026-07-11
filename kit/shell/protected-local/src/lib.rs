@@ -24,7 +24,8 @@ pub use adapters::{
     MacOsPrivilegedXpcCarrier, WindowsInstalledAppCarrier, WindowsNamedPipeCarrier,
 };
 pub use carrier::{
-    InstalledAppLaunchOutcome, InstalledAppLaunchRequest, NimiDesktopControl,
+    InstalledAppLaunchOutcome, InstalledAppLaunchRequest, InstalledArtifactBytes,
+    InstalledArtifactReadError, InstalledArtifactReadReasonCode, NimiDesktopControl,
     NimiInstalledAppCarrier, NimiInstalledAppSession, NimiProtectedLocalHostCarrier,
 };
 pub use reason::{ProtectedCarrierError, ProtectedCarrierReasonCode};
