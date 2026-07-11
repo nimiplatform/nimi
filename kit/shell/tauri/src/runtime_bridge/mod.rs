@@ -507,7 +507,7 @@ pub async fn current_daemon_status_async() -> RuntimeBridgeDaemonStatus {
     if let Some(override_status) = call_status_override_hook().ok().flatten() {
         return override_status;
     }
-    service_control::status()
+    service_control::status_async().await
 }
 
 async fn sync_menu_bar_daemon_status(
@@ -584,7 +584,7 @@ mod tests {
     }
 
     #[test]
-    fn public_lifecycle_controls_fail_closed_without_a_bound_protected_carrier() {
+    fn public_lifecycle_controls_fail_closed_without_a_verified_runtime() {
         reset_channel_invalidation_count();
 
         for result in [
@@ -593,7 +593,11 @@ mod tests {
         ] {
             let error = result.expect_err("unbound protected carrier must fail closed");
             assert!(error.contains("RUNTIME_BRIDGE_DAEMON_UNAVAILABLE"));
-            assert!(error.contains("protected-carrier-required"));
+            assert!(
+                error.contains("protected-carrier-required")
+                    || error.contains("runtime-service-unavailable")
+                    || error.contains("runtime-service-untrusted")
+            );
         }
 
         assert_eq!(channel_invalidation_count(), 0);
@@ -601,11 +605,12 @@ mod tests {
         assert!(!status.running);
         assert!(!status.managed);
         assert_eq!(status.launch_mode, "INVALID");
-        assert!(status
-            .last_error
-            .as_deref()
-            .unwrap_or_default()
-            .contains("protected-carrier-required"));
+        let last_error = status.last_error.as_deref().unwrap_or_default();
+        assert!(
+            last_error.contains("protected-carrier-required")
+                || last_error.contains("runtime-service-unavailable")
+                || last_error.contains("runtime-service-untrusted")
+        );
     }
 
     #[test]

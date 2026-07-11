@@ -5,9 +5,11 @@ use nimi_shell_protected_local::MacOsPrivilegedXpcCarrier;
 #[cfg(target_os = "windows")]
 use nimi_shell_protected_local::WindowsNamedPipeCarrier;
 use nimi_shell_protected_local::{
-    FixedRuntimeServiceControl, ProtectedCarrierError, ProtectedCarrierReasonCode,
-    RuntimeServiceAction, RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
+    FixedRuntimeServiceControl, NimiDesktopControl, NimiProtectedLocalHostCarrier,
+    ProtectedCarrierError, ProtectedCarrierReasonCode, RuntimeServiceAction,
+    RuntimeServiceActionOutcome, RuntimeServiceState, RuntimeServiceStatus,
 };
+use std::sync::{Mutex, OnceLock};
 
 use super::{error_map::bridge_error, RuntimeBridgeDaemonStatus};
 
@@ -22,12 +24,28 @@ type PlatformCarrier = MacOsPrivilegedXpcCarrier;
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 type PlatformCarrier = LinuxUnixSocketCarrier;
 
+static DESKTOP_CONTROL: OnceLock<Mutex<Option<Box<dyn NimiDesktopControl>>>> = OnceLock::new();
+
 pub(super) fn status() -> RuntimeBridgeDaemonStatus {
     let carrier = PlatformCarrier::default();
     carrier
         .runtime_service_status()
         .map(status_projection)
         .unwrap_or_else(unavailable_status)
+}
+
+pub(super) async fn status_async() -> RuntimeBridgeDaemonStatus {
+    if desktop_control_is_open() {
+        return service_projection(RuntimeServiceState::Running, None, None, false);
+    }
+    let carrier = PlatformCarrier::default();
+    match carrier.open_desktop_control().await {
+        Ok(control) => match retain_desktop_control(control) {
+            Ok(()) => service_projection(RuntimeServiceState::Running, None, None, false),
+            Err(error) => unavailable_status(error),
+        },
+        Err(error) => unavailable_status(error),
+    }
 }
 
 pub(super) fn request(action: RuntimeServiceAction) -> Result<RuntimeBridgeDaemonStatus, String> {
@@ -100,4 +118,24 @@ fn carrier_error(error: ProtectedCarrierError) -> String {
         "RUNTIME_BRIDGE_DAEMON_UNAVAILABLE",
         error.reason_code().as_str(),
     )
+}
+
+fn desktop_control_is_open() -> bool {
+    DESKTOP_CONTROL
+        .get()
+        .and_then(|control| control.lock().ok())
+        .is_some_and(|control| control.is_some())
+}
+
+fn retain_desktop_control(
+    control: Box<dyn NimiDesktopControl>,
+) -> Result<(), ProtectedCarrierError> {
+    let slot = DESKTOP_CONTROL.get_or_init(|| Mutex::new(None));
+    let mut slot = slot.lock().map_err(|_| {
+        ProtectedCarrierError::new(ProtectedCarrierReasonCode::RuntimeServiceUntrusted, false)
+    })?;
+    if slot.is_none() {
+        *slot = Some(control);
+    }
+    Ok(())
 }
