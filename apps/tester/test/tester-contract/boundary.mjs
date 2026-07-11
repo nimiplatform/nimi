@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {
@@ -17,7 +17,6 @@ import {
   read,
   readTesterAiTestingSurface,
   readTesterKitComponentGallerySurface,
-  readTesterRuntimeInvokersSurface,
   root,
   runnableSchedulingResponse,
   textEmbedScenarioResponse,
@@ -70,15 +69,19 @@ test('tester auth and runtime bootstrap consume Kit shell bridge primitives', ()
 });
 
 test('tester artifact readback uses the installed SDK and Kit carrier', () => {
-  const invocationCore = read('src/tester/tester-runtime-invokers-core.ts');
-  const imageVideo = read('src/tester/tester-runtime-invokers-media-image-video.ts');
-  const artifacts = read('src/tester/tester-runtime-invokers-media-artifacts.ts');
+  const runtimePlatform = read('src/shell/auth/runtime-platform.ts');
+  const bootstrap = read('src/shell/installed-app-bootstrap.ts');
 
-  assert.match(imageVideo, /testerInstalledRuntimeArtifactReader/);
-  assert.match(artifacts, /testerInstalledRuntimeArtifactReader\.readArtifactBytes/);
-  assert.doesNotMatch(invocationCore, /readonly artifacts\??:/);
-  assert.doesNotMatch(imageVideo, /client\.runtime\.artifacts/);
-  assert.doesNotMatch(artifacts, /client\.runtime\.artifacts/);
+  assert.match(runtimePlatform, /testerInstalledAppBootstrap\.artifacts\.readRuntimeBytes/);
+  assert.match(bootstrap, /createInstalledNimiAppBootstrap/);
+  assert.doesNotMatch(runtimePlatform, /client\.runtime|new Runtime|runtimeEndpoint/);
+  for (const retired of [
+    'src/tester/tester-runtime-invokers.ts',
+    'src/tester/tester-runtime-invokers-core.ts',
+    'src/tester/tester-runtime-invokers-media.ts',
+  ]) {
+    assert.equal(existsSync(path.join(root, retired)), false, `${retired} must stay hardcut`);
+  }
 });
 
 test('tester visible product identity hard-cuts to Nimi Lab', () => {

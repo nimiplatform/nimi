@@ -5,14 +5,12 @@ import { pathToFileURL } from 'node:url';
 import {
   readTesterAiTestingSurface,
   readTesterKitComponentGallerySurface,
-  readTesterRuntimeInvokersSurface,
 } from '../tester-surface-readers.mjs';
 import { installStandardShellAIConfigHarness } from '../tester-standard-shell-harness.mjs';
 
 export {
   readTesterAiTestingSurface,
   readTesterKitComponentGallerySurface,
-  readTesterRuntimeInvokersSurface,
   installStandardShellAIConfigHarness,
 };
 
@@ -55,7 +53,6 @@ function buildBehaviorModules() {
     'node',
     '--noEmit',
     'false',
-    'src/tester/tester-runtime-invokers.ts',
     'src/tester/tester-ai-config-store.ts',
     'src/tester/tester-runtime-model-provider.ts',
     'src/tester/tester-run-target.ts',

@@ -19,18 +19,6 @@ export function readTesterKitComponentGallerySurface(root) {
   ]);
 }
 
-export function readTesterRuntimeInvokersSurface(root) {
-  return readMany(root, [
-    'src/tester/tester-runtime-invokers.ts',
-    'src/tester/tester-runtime-invokers-core.ts',
-    'src/tester/tester-runtime-invokers-media.ts',
-    'src/tester/tester-runtime-invokers-media-artifacts.ts',
-    'src/tester/tester-runtime-invokers-media-image-video.ts',
-    'src/tester/tester-runtime-invokers-media-runtime.ts',
-    'src/tester/tester-runtime-invokers-media-speech.ts',
-  ]);
-}
-
 export function readTesterAiTestingSurface(root) {
   return readMany(root, [
     'src/tester/workbench/section-ai-testing.tsx',

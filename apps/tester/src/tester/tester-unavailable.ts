@@ -1,9 +1,9 @@
 import type { TesterCapability } from './tester-capabilities.js';
 
-// Typed unavailable reasons. Each reason maps 1:1 to a precise failure class so
-// the cockpit never mislabels a real Runtime/auth contract failure as a missing
-// SDK method. The reason is derived from the SDK ReasonCode at the call site
-// (see tester-runtime-invokers.ts), not blanket-assigned.
+// Typed unavailable reasons retained by the workbench presentation model.
+// The admitted app-host path currently emits only runtime-not-ready and
+// sdk-method-unavailable; adding another live reason requires a separately
+// admitted SDK operation and a concrete call site.
 export type TesterUnavailableReason =
   | 'runtime-not-ready'
   | 'ai-config-binding-missing'

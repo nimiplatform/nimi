@@ -2,9 +2,28 @@ import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/h
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
 import { getTesterCapability, type TesterCapabilityId } from './tester-capabilities.js';
 import { capabilityUnavailable, type TesterUnavailable } from './tester-unavailable.js';
-import {
-  type TesterTypedSuccess,
-} from './tester-runtime-invokers.js';
+
+export type TesterTrace = {
+  traceId?: string;
+  modelResolved?: string;
+  routeDecision?: string;
+};
+
+export type TesterTypedOutput =
+  | { kind: 'text'; text: string; finishReason: string; inputTokens?: number; outputTokens?: number; totalTokens?: number; streamed: boolean }
+  | { kind: 'embedding'; vectorCount: number; dimensions: number; sample: number[]; totalTokens?: number }
+  | { kind: 'artifacts'; jobId: string; jobState: string; artifactCount: number; firstArtifact?: { artifactId?: string; mimeType?: string; url?: string; displayName?: string } }
+  | { kind: 'transcript'; text: string; jobId: string; jobState: string; artifactCount: number }
+  | { kind: 'voice-catalog'; modelResolved: string; voiceCount: number; sample: Array<{ voiceId: string; name: string; lang: string }> };
+
+export type TesterTypedSuccess = {
+  ok: true;
+  capabilityId: TesterCapabilityId;
+  capabilityLabel: string;
+  message: string;
+  output: TesterTypedOutput;
+  trace?: TesterTrace;
+};
 
 export type TesterRuntimeInspection = {
   status: 'ready' | 'unavailable';

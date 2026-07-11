@@ -17,7 +17,6 @@ import {
   read,
   readTesterAiTestingSurface,
   readTesterKitComponentGallerySurface,
-  readTesterRuntimeInvokersSurface,
   root,
   runnableSchedulingResponse,
   textEmbedScenarioResponse,
@@ -380,142 +379,12 @@ test('tester capability model config drawer section follows the active left rail
   assert.doesNotMatch(capabilities, /useState<CanonicalCapabilitySectionId \| null>/);
 });
 
-test('tester LLM binding resolver fails closed for missing and malformed bindings', async () => {
-  const invokers = await importBehaviorModule('tester/tester-runtime-invokers.js');
-  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
-  const scopeRef = store.createTesterAppLabAIScopeRef();
+test('tester keeps AIConfig and AI execution fail-closed until separately admitted', () => {
+  const runtime = read('src/tester/tester-runtime.ts');
 
-  const missing = invokers.resolveTesterLLMBinding('text.generate', {
-    scopeRef,
-    capabilities: { targetRefs: {}, selectedParams: {} },
-    profileOrigin: null,
-  });
-  assert.equal(missing.ok, false);
-  assert.equal(missing.reason, 'ai-config-binding-missing');
-
-  const unresolvedProfileSlice = invokers.resolveTesterLLMBinding('text.generate', {
-    scopeRef,
-    capabilities: {
-      targetRefs: {
-        'text.generate': {
-          kind: 'profile-slice',
-          sourceProfileId: 'profile-chat',
-          sliceId: 'text-generate-local',
-        },
-      },
-      selectedParams: {},
-    },
-    profileOrigin: null,
-  });
-  assert.equal(unresolvedProfileSlice.ok, false);
-  assert.equal(unresolvedProfileSlice.reason, 'ai-config-binding-missing');
-  assert.match(unresolvedProfileSlice.message, /profile-slice .* apply\/materialize/i);
-
-  const malformedProfile = store.importTesterAIProfileJson(JSON.stringify({
-    profileId: 'malformed',
-    title: 'Malformed',
-    description: '',
-    tags: [],
-    capabilities: {
-      'text.generate': {
-        targetRef: {
-          kind: 'cloud-connector',
-          connectorId: '',
-          providerModelId: '',
-        },
-      },
-    },
-  }));
-  assert.equal(malformedProfile.ok, false);
-  assert.match(malformedProfile.message, /AIProfile validation failed/i);
-  assert.match(malformedProfile.errors.join('\n'), /targetRef.*connectorId.*required/i);
-  assert.match(malformedProfile.errors.join('\n'), /targetRef.*remoteModelCatalogId.*required/i);
-  assert.match(malformedProfile.errors.join('\n'), /targetRef.*providerModelId.*required/i);
-
-  const legacyBindingProfile = store.importTesterAIProfileJson(JSON.stringify({
-    profileId: 'legacy-binding-facade',
-    title: 'Legacy Binding Facade',
-    description: '',
-    tags: [],
-    capabilities: {
-      'text.generate': {
-        binding: {
-          source: 'local',
-          connectorId: 'runtime-local-facade',
-          model: 'local.chat.gemma-4-e2b-it.q8-0',
-        },
-      },
-    },
-  }));
-  assert.equal(legacyBindingProfile.ok, false);
-  assert.match(legacyBindingProfile.errors.join('\n'), /binding is forbidden/i);
-
-  await assert.rejects(() => store.saveTesterAIConfig({
-    scopeRef,
-    capabilities: {
-      targetRefs: {
-        'text.generate': {
-          kind: 'cloud-connector',
-          connectorId: '',
-          providerModelId: '',
-        },
-      },
-      selectedParams: {},
-    },
-    profileOrigin: null,
-  }), /Tester AIConfig save validation failed: .*connectorId.*required.*providerModelId.*required/i);
-
-  await assert.rejects(() => store.saveTesterAIConfig({
-    scopeRef,
-    capabilities: {
-      targetRefs: {
-        'text.generate': {
-          kind: 'local-runtime',
-        },
-      },
-      selectedParams: {},
-    },
-    profileOrigin: null,
-  }), /Tester AIConfig save validation failed: .*profileBindingId or readinessRef/i);
-});
-
-test('Tester consumes SDK scoped AISnapshot store as App Lab execution evidence proof', async () => {
-  const store = await importBehaviorModule('tester/tester-ai-config-store.js');
-  const { createNimiAISnapshotRecord } = await import('@nimiplatform/sdk/ai');
-  const scopeRef = store.createTesterAppLabAIScopeRef();
-  const targetRef = {
-    kind: 'cloud-connector',
-    connectorId: 'runtime-connector',
-    remoteModelCatalogId: 'remote-catalog:runtime-connector:runtime-model',
-    providerModelId: 'runtime-model',
-  };
-  const config = await store.saveTesterAIConfig({
-    scopeRef,
-    capabilities: {
-      targetRefs: {
-        'text.generate': targetRef,
-      },
-      selectedParams: {},
-    },
-    profileOrigin: {
-      profileId: 'snapshot-profile',
-      title: 'Snapshot Profile',
-      appliedAt: '2026-06-02T00:00:00.000Z',
-    },
-  });
-  const snapshot = createNimiAISnapshotRecord({
-    executionId: 'tester-snapshot-exec-1',
-    scopeRef,
-    createdAt: '2026-06-02T00:00:01.000Z',
-    config,
-    capability: 'text.generate',
-    selectedTargetRef: targetRef,
-    metadata: { flow: 'app-lab-capability-run' },
-  });
-
-  assert.deepEqual(store.recordTesterAISnapshot(snapshot), snapshot);
-  assert.deepEqual(store.getTesterAISnapshot(snapshot.executionId), snapshot);
-  assert.deepEqual(store.getLatestTesterAISnapshot(scopeRef), snapshot);
+  assert.match(runtime, /admits artifacts\.readRuntimeBytes only/);
+  assert.match(runtime, /'sdk-method-unavailable'/);
+  assert.doesNotMatch(runtime, /invokeTesterCapability|projection\.client|new Runtime/);
 });
 
 test('tester model picker consumes SDK route projection for runtime local assets and remote connectors', async () => {
@@ -739,8 +608,9 @@ test('tester model picker catalog uses SDK route options projection only', () =>
   assert.doesNotMatch(summary, /runtimeAdmin\.listConnectors\/listConnectorModels/);
 });
 
-test('tester local asset source preserves companion artifact roles for model config filtering', () => {
+test('tester local asset source remains empty while model catalog access is not admitted', () => {
   const panel = read('src/tester/workbench/tester-ai-config-settings-panel.tsx');
 
-  assert.match(panel, /artifactRoles:\s*asset\.artifactRoles/);
+  assert.match(panel, /return \[\] as LocalAssetEntry\[\]/);
+  assert.doesNotMatch(panel, /listNimiRuntimeLocalAssetEntries|artifactRoles:\s*asset\.artifactRoles/);
 });
