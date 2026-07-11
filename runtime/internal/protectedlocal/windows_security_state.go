@@ -11,20 +11,22 @@ import (
 // exist before the protected Desktop transport starts accepting connections.
 // Its capabilities are intentionally opaque outside this package.
 type WindowsRuntimeSecurityState struct {
-	root             WindowsProtectedStateRoot
-	principal        WindowsServicePrincipal
-	process          WindowsRuntimeProcess
-	secrets          BinarySecretStore
-	ledger           *Ledger
-	bootEpoch        Identifier
-	desktopSessions  *DesktopSessionManager
-	lifecycleIntents *LifecycleIntentManager
-	desktopPipe      *WindowsDesktopPipeInstance
-	desktopIdentity  WindowsDesktopIdentity
+	root              WindowsProtectedStateRoot
+	principal         WindowsServicePrincipal
+	process           WindowsRuntimeProcess
+	secrets           BinarySecretStore
+	ledger            *Ledger
+	bootEpoch         Identifier
+	desktopSessions   *DesktopSessionManager
+	lifecycleIntents  *LifecycleIntentManager
+	installedLaunches *InstalledLaunchRegistry
+	desktopPipe       *WindowsDesktopPipeInstance
+	desktopIdentity   WindowsDesktopIdentity
 
-	transportMu      sync.Mutex
-	desktopTransport interface{ Close() error }
-	closed           bool
+	transportMu        sync.Mutex
+	desktopTransport   interface{ Close() error }
+	installedTransport interface{ Close() error }
+	closed             bool
 
 	closeOnce sync.Once
 	closeErr  error
@@ -89,6 +91,13 @@ func (state *WindowsRuntimeSecurityState) LifecycleIntents() *LifecycleIntentMan
 	return state.lifecycleIntents
 }
 
+func (state *WindowsRuntimeSecurityState) InstalledLaunches() *InstalledLaunchRegistry {
+	if state == nil {
+		return nil
+	}
+	return state.installedLaunches
+}
+
 func (state *WindowsRuntimeSecurityState) DesktopPipe() *WindowsDesktopPipeInstance {
 	if state == nil {
 		return nil
@@ -113,18 +122,22 @@ func (state *WindowsRuntimeSecurityState) Close() error {
 		state.transportMu.Lock()
 		state.closed = true
 		transport := state.desktopTransport
+		installedTransport := state.installedTransport
 		pipe := state.desktopPipe
 		state.transportMu.Unlock()
-		var pipeErr, ledgerErr error
+		var pipeErr, installedErr, ledgerErr error
 		if transport != nil {
 			pipeErr = transport.Close()
 		} else if pipe != nil {
 			pipeErr = pipe.Close()
 		}
+		if installedTransport != nil {
+			installedErr = installedTransport.Close()
+		}
 		if state.ledger != nil {
 			ledgerErr = state.ledger.Close()
 		}
-		state.closeErr = errors.Join(pipeErr, ledgerErr)
+		state.closeErr = errors.Join(pipeErr, installedErr, ledgerErr)
 	})
 	return state.closeErr
 }
@@ -196,6 +209,10 @@ func assembleWindowsRuntimeSecurityState(
 	if err != nil {
 		return nil, err
 	}
+	installedLaunches, err := NewInstalledLaunchRegistry(bootEpoch)
+	if err != nil {
+		return nil, err
+	}
 
 	// The listener is created last: no Desktop client can arrive before the
 	// durable boot epoch and its session authority are ready.
@@ -216,13 +233,14 @@ func assembleWindowsRuntimeSecurityState(
 
 	cleanupLedger = false
 	return &WindowsRuntimeSecurityState{
-		root:             root,
-		secrets:          secrets,
-		ledger:           ledger,
-		bootEpoch:        bootEpoch,
-		desktopSessions:  desktopSessions,
-		lifecycleIntents: lifecycleIntents,
-		desktopPipe:      desktopPipe,
-		desktopIdentity:  desktopIdentity,
+		root:              root,
+		secrets:           secrets,
+		ledger:            ledger,
+		bootEpoch:         bootEpoch,
+		desktopSessions:   desktopSessions,
+		lifecycleIntents:  lifecycleIntents,
+		installedLaunches: installedLaunches,
+		desktopPipe:       desktopPipe,
+		desktopIdentity:   desktopIdentity,
 	}, nil
 }

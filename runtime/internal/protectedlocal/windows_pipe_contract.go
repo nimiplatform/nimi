@@ -7,6 +7,7 @@ import (
 )
 
 const WindowsProductionDesktopPipeName = `\\.\pipe\nimi-runtime-protected-v1`
+const WindowsProductionInstalledPipeName = `\\.\pipe\nimi-runtime-installed-v1`
 
 const (
 	WindowsExecutableRoleDesktop   WindowsExecutableRole = "nimi_desktop"

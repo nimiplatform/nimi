@@ -42,14 +42,15 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	runtimeDaemon, listener, err := service.open(ctx)
+	runtimeDaemon, desktopListener, installedListener, err := service.open(ctx)
 	if err != nil {
 		return false, 1
 	}
-	defer listener.Close()
+	defer desktopListener.Close()
+	defer installedListener.Close()
 
 	done := make(chan error, 1)
-	go func() { done <- runtimeDaemon.RunProtected(ctx, listener) }()
+	go func() { done <- runtimeDaemon.RunProtectedWithInstalled(ctx, desktopListener, installedListener) }()
 	statuses <- svc.Status{State: svc.Running, Accepts: svc.AcceptStop | svc.AcceptShutdown}
 
 	for {
@@ -75,47 +76,55 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 	}
 }
 
-func (service *windowsRuntimeService) open(ctx context.Context) (*daemon.Daemon, net.Listener, error) {
+func (service *windowsRuntimeService) open(ctx context.Context) (*daemon.Daemon, net.Listener, net.Listener, error) {
 	principal, err := protectedlocal.ValidateWindowsProductionPrincipal(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	verifier, err := protectedlocal.NewWindowsNativeExecutableTrustVerifier()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	process, err := protectedlocal.VerifyWindowsProductionRuntimeProcess(ctx, principal, verifier)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	programData, err := windows.KnownFolderPath(windows.FOLDERID_ProgramData, windows.KF_FLAG_DEFAULT)
 	if err != nil {
-		return nil, nil, fmt.Errorf("resolve fixed Windows ProgramData root: %w", err)
+		return nil, nil, nil, fmt.Errorf("resolve fixed Windows ProgramData root: %w", err)
 	}
 	root, err := protectedlocal.ValidateWindowsProtectedStateRoot(ctx, filepath.Join(programData, windowsProtectedStateRelativePath), principal)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	securityState, err := protectedlocal.OpenWindowsRuntimeSecurityState(ctx, principal, process, root)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	listener, err := protectedlocal.OpenWindowsVerifiedDesktopListener(ctx, securityState, verifier)
+	desktopListener, err := protectedlocal.OpenWindowsVerifiedDesktopListener(ctx, securityState, verifier)
 	if err != nil {
 		_ = securityState.Close()
-		return nil, nil, err
+		return nil, nil, nil, err
+	}
+	installedListener, err := protectedlocal.OpenWindowsVerifiedInstalledListener(ctx, securityState, verifier)
+	if err != nil {
+		_ = desktopListener.Close()
+		_ = securityState.Close()
+		return nil, nil, nil, err
 	}
 	cfg, err := config.Load()
 	if err != nil {
-		_ = listener.Close()
+		_ = installedListener.Close()
+		_ = desktopListener.Close()
 		_ = securityState.Close()
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	runtimeDaemon, err := daemon.NewProtectedFromWindowsSecurityState(cfg, logger, service.version, securityState)
 	if err != nil {
-		_ = listener.Close()
-		return nil, nil, err
+		_ = installedListener.Close()
+		_ = desktopListener.Close()
+		return nil, nil, nil, err
 	}
-	return runtimeDaemon, listener, nil
+	return runtimeDaemon, desktopListener, installedListener, nil
 }

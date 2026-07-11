@@ -50,6 +50,7 @@ type Server struct {
 	logger               *slog.Logger
 	grpcServer           *grpc.Server
 	protectedServer      *grpc.Server
+	installedServer      *grpc.Server
 	healthServer         *grpcHealth.Server
 	rpcRegistry          *activeRPCRegistry
 	aiHealth             *providerhealth.Tracker
@@ -145,6 +146,7 @@ type ProtectedServiceBindings struct {
 	DesktopSessions          *protectedlocal.DesktopSessionManager
 	LifecycleIntents         *protectedlocal.LifecycleIntentManager
 	InstalledProcessVerifier protectedlocal.InstalledProcessVerifier
+	InstalledLaunches        *protectedlocal.InstalledLaunchRegistry
 }
 
 func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
@@ -188,10 +190,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		if err != nil {
 			return nil, fmt.Errorf("open installed launch store: %w", err)
 		}
-		installedLaunchRegistry, err = protectedlocal.NewInstalledLaunchRegistry(protected.DesktopSessions.BootEpoch())
-		if err != nil {
-			return nil, fmt.Errorf("create installed launch registry: %w", err)
-		}
+		installedLaunchRegistry = protected.InstalledLaunches
 	}
 	keepInstalledLaunchStore := false
 	defer func() {
@@ -249,6 +248,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	authSvc.SetFirstPartyMigrationLaunchGate(defaultFirstPartyMigrationLaunchGate())
 	authSvc.SetDeveloperRegistrationEnabled(cfg.AuthDeveloperRegistrationEnabled)
 	var protectedGRPCServer *grpc.Server
+	var installedGRPCServer *grpc.Server
 	accountSvc := accountservice.New(logger)
 	if protected != nil {
 		accountSvc = accountservice.NewProduction(logger, accountservice.ProductionConfig{
@@ -563,6 +563,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	appSvc := appservice.New(logger, appOptions...)
 	if protected != nil {
 		protectedGRPCServer = newProtectedDesktopRPCServer(authSvc, accountSvc, appSvc, protected.DesktopSessions)
+		installedGRPCServer = newProtectedInstalledRPCServer(authSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
@@ -583,6 +584,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		logger:               logger,
 		grpcServer:           g,
 		protectedServer:      protectedGRPCServer,
+		installedServer:      installedGRPCServer,
 		healthServer:         h,
 		rpcRegistry:          rpcRegistry,
 		aiHealth:             aiHealth,
@@ -677,6 +679,19 @@ func (s *Server) ServeVerifiedNativeDesktop(listener net.Listener) error {
 	return s.ServeProtected(&nativeVerifiedDesktopListener{Listener: listener})
 }
 
+func (s *Server) ServeVerifiedNativeInstalled(listener net.Listener) error {
+	if s == nil || s.installedServer == nil {
+		return fmt.Errorf("protected installed gRPC server is unavailable")
+	}
+	if listener == nil {
+		return fmt.Errorf("verified native installed listener is required")
+	}
+	if err := s.installedServer.Serve(&nativeVerifiedInstalledListener{Listener: listener}); err != nil {
+		return fmt.Errorf("serve protected installed gRPC: %w", err)
+	}
+	return nil
+}
+
 type StopResult struct {
 	Shutdown ShutdownSummary
 }
@@ -702,6 +717,9 @@ func (s *Server) Stop(ctx context.Context) StopResult {
 		if s.protectedServer != nil {
 			s.protectedServer.GracefulStop()
 		}
+		if s.installedServer != nil {
+			s.installedServer.GracefulStop()
+		}
 		s.grpcServer.GracefulStop()
 		close(done)
 	}()
@@ -715,6 +733,9 @@ func (s *Server) Stop(ctx context.Context) StopResult {
 	case <-ctx.Done():
 		if s.protectedServer != nil {
 			s.protectedServer.Stop()
+		}
+		if s.installedServer != nil {
+			s.installedServer.Stop()
 		}
 		s.grpcServer.Stop()
 		if s.rpcRegistry == nil {

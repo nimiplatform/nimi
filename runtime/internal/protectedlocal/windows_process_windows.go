@@ -179,6 +179,10 @@ func (connection *WindowsDesktopPipeConnection) VerifyClientProcess(ctx context.
 }
 
 func (connection *WindowsDesktopPipeConnection) verifyAndBindClientProcess(ctx context.Context, verifier WindowsExecutableTrustVerifier, expectedTrustSetID string) (ProcessTuple, DesktopProcessLiveness, error) {
+	return connection.verifyAndBindClientProcessForRole(ctx, verifier, WindowsExecutableRoleDesktop, expectedTrustSetID)
+}
+
+func (connection *WindowsDesktopPipeConnection) verifyAndBindClientProcessForRole(ctx context.Context, verifier WindowsExecutableTrustVerifier, role WindowsExecutableRole, expectedTrustSetID string) (ProcessTuple, DesktopProcessLiveness, error) {
 	if connection == nil {
 		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows pipe client process", fmt.Errorf("connected pipe capability required"))
 	}
@@ -187,7 +191,7 @@ func (connection *WindowsDesktopPipeConnection) verifyAndBindClientProcess(ctx c
 	if connection.verifiedClientHealth != nil || connection.verifiedClient != (ProcessTuple{}) {
 		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows pipe client process", fmt.Errorf("desktop process capability is already bound"))
 	}
-	tuple, liveness, err := verifyWindowsPipeClientProcess(ctx, connection, connection.instanceIdentity(), verifier, expectedTrustSetID)
+	tuple, liveness, err := verifyWindowsPipeClientProcessForRole(ctx, connection, connection.instanceIdentity(), verifier, role, expectedTrustSetID)
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
@@ -211,6 +215,10 @@ func (connection *WindowsDesktopPipeConnection) instanceIdentity() WindowsDeskto
 }
 
 func verifyWindowsPipeClientProcess(ctx context.Context, connection *WindowsDesktopPipeConnection, identity WindowsDesktopIdentity, verifier WindowsExecutableTrustVerifier, expectedTrustSetID string) (ProcessTuple, DesktopProcessLiveness, error) {
+	return verifyWindowsPipeClientProcessForRole(ctx, connection, identity, verifier, WindowsExecutableRoleDesktop, expectedTrustSetID)
+}
+
+func verifyWindowsPipeClientProcessForRole(ctx context.Context, connection *WindowsDesktopPipeConnection, identity WindowsDesktopIdentity, verifier WindowsExecutableTrustVerifier, role WindowsExecutableRole, expectedTrustSetID string) (ProcessTuple, DesktopProcessLiveness, error) {
 	if err := ctx.Err(); err != nil {
 		return ProcessTuple{}, nil, fmt.Errorf("verify Windows pipe client process: %w", err)
 	}
@@ -257,7 +265,7 @@ func verifyWindowsPipeClientProcess(ctx context.Context, connection *WindowsDesk
 	if err != nil {
 		return ProcessTuple{}, nil, windowsPipeFailure("read Windows pipe client creation marker", err)
 	}
-	evidence, trustSetID, err := verifyWindowsLockedExecutable(ctx, process, connection.clientPID, creationMarker, WindowsExecutableRoleDesktop, verifier, expectedTrustSetID)
+	evidence, trustSetID, err := verifyWindowsLockedExecutable(ctx, process, connection.clientPID, creationMarker, role, verifier, expectedTrustSetID)
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}

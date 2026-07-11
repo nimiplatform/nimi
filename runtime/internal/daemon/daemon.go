@@ -161,6 +161,7 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 			DesktopSessions:          sessions,
 			LifecycleIntents:         intents,
 			InstalledProcessVerifier: installedProcessVerifier,
+			InstalledLaunches:        state.InstalledLaunches(),
 		},
 		Close: state.Close,
 	})
@@ -244,6 +245,26 @@ func (d *Daemon) RunProtected(ctx context.Context, listener net.Listener) error 
 	return d.run(ctx, 1, func(errCh chan<- error) {
 		go func() { errCh <- d.grpc.ServeVerifiedNativeDesktop(listener) }()
 	}, func() { _ = listener.Close() }, "verified-native-desktop")
+}
+
+// RunProtectedWithInstalled starts both independently verified native
+// transports. Production Windows entrypoints use this path; platforms without
+// an admitted installed carrier remain on RunProtected and fail installed RPCs
+// closed.
+func (d *Daemon) RunProtectedWithInstalled(ctx context.Context, desktopListener, installedListener net.Listener) error {
+	if d == nil {
+		return fmt.Errorf("Runtime daemon is required")
+	}
+	if !d.protected || desktopListener == nil || installedListener == nil {
+		return fmt.Errorf("%s: protected Runtime requires verified Desktop and installed listeners", protectedlocal.ReasonProtectedLocalTransportUnsupported)
+	}
+	return d.run(ctx, 2, func(errCh chan<- error) {
+		go func() { errCh <- d.grpc.ServeVerifiedNativeDesktop(desktopListener) }()
+		go func() { errCh <- d.grpc.ServeVerifiedNativeInstalled(installedListener) }()
+	}, func() {
+		_ = installedListener.Close()
+		_ = desktopListener.Close()
+	}, "verified-native-desktop-and-installed")
 }
 
 func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonServerStarter, stopServers daemonServerStopper, transport string) error {
