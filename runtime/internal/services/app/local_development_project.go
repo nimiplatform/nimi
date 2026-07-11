@@ -18,6 +18,11 @@ var localDevelopmentCanonicalScopes = map[string]struct{}{
 	"device.use.scoped": {}, "audit.read.scoped": {}, "ai_profile.selection.consume": {},
 }
 
+var localDevelopmentQualifierScopeRules = map[string]map[string]struct{}{
+	"app-local-drafts":  {"file.read.scoped": {}, "file.write.scoped": {}},
+	"runtime.artifacts": {"data.scope.read": {}},
+}
+
 func resolveLocalDevelopmentProject(rootPath string, expectedAppID string, shellKind runtimev1.LocalDevelopmentShellKind, accountID string, accountGeneration uint64) (localDevelopmentProjectSnapshot, error) {
 	root, manifestPath, manifest, err := loadLocalAppManifest(rootPath)
 	if err != nil {
@@ -70,8 +75,13 @@ func normalizeLocalDevelopmentCapabilities(declarations []localAppManifestCapabi
 		}
 		capability := scope
 		if qualifier != "" {
-			if strings.ContainsAny(qualifier, "#\x00") {
+			if !canonicalLocalDevelopmentQualifier(qualifier) {
 				return nil, fmt.Errorf("local-development capability %d qualifier is invalid", index)
+			}
+			if admittedScopes, constrained := localDevelopmentQualifierScopeRules[qualifier]; constrained {
+				if _, admitted := admittedScopes[scope]; !admitted {
+					return nil, fmt.Errorf("local-development capability %d qualifier %s is not admitted for scope %s", index, qualifier, scope)
+				}
 			}
 			capability += "#" + qualifier
 		}
@@ -83,6 +93,22 @@ func normalizeLocalDevelopmentCapabilities(declarations []localAppManifestCapabi
 	}
 	sort.Strings(capabilities)
 	return capabilities, nil
+}
+
+func canonicalLocalDevelopmentQualifier(value string) bool {
+	if value == "" || len(value) > 160 {
+		return false
+	}
+	for index, character := range value {
+		alphanumeric := character >= 'a' && character <= 'z' || character >= 'A' && character <= 'Z' || character >= '0' && character <= '9'
+		if alphanumeric {
+			continue
+		}
+		if index == 0 || index == len(value)-1 || !strings.ContainsRune("._:-", character) {
+			return false
+		}
+	}
+	return true
 }
 
 func localDevelopmentProjectHasCapability(project localDevelopmentProjectSnapshot, capability string) bool {
