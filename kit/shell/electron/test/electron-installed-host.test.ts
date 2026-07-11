@@ -86,6 +86,73 @@ describe('Electron protected app host', () => {
     expect(opens).toBe(2);
   });
 
+  it('reopens the native session in the same bootstrap after Runtime restart', async () => {
+    let opens = 0;
+    let statusChecks = 0;
+    const host = createNimiElectronAppHostForBinding({
+      async openAppHostSession() {
+        opens += 1;
+        return {
+          ...bootstrapOutcome(),
+          bootstrapArtifactId: `bootstrap-artifact-${opens}`,
+        };
+      },
+      async getAppHostSessionStatus() {
+        statusChecks += 1;
+        return {
+          status: 'error',
+          reasonCode: 'runtime-service-unavailable',
+          retryable: true,
+        };
+      },
+      async readAppHostArtifactBytes() {
+        throw new Error('not used');
+      },
+    });
+
+    await expect(host.bootstrap()).resolves.toMatchObject({
+      bootstrapArtifactId: 'bootstrap-artifact-1',
+    });
+    await expect(host.bootstrap()).resolves.toMatchObject({
+      bootstrapArtifactId: 'bootstrap-artifact-2',
+    });
+    expect({ opens, statusChecks }).toEqual({ opens: 2, statusChecks: 1 });
+  });
+
+  it('keeps reapproval and revocation fail-closed after automatic session reopen', async () => {
+    let opens = 0;
+    const host = createNimiElectronAppHostForBinding({
+      async openAppHostSession() {
+        opens += 1;
+        if (opens === 1) {
+          return bootstrapOutcome();
+        }
+        return {
+          status: 'error',
+          reasonCode: 'local-development-reapproval-required',
+          retryable: false,
+        };
+      },
+      async getAppHostSessionStatus() {
+        return {
+          status: 'error',
+          reasonCode: 'local-development-session-revoked',
+          retryable: false,
+        };
+      },
+      async readAppHostArtifactBytes() {
+        throw new Error('not used');
+      },
+    });
+
+    await expect(host.bootstrap()).resolves.toMatchObject({ state: 'ready' });
+    await expect(host.bootstrap()).rejects.toMatchObject({
+      reasonCode: 'local-development-reapproval-required',
+      retryable: false,
+    });
+    expect(opens).toBe(2);
+  });
+
   it('preserves typed artifact denial without native detail or portable session material', async () => {
     const host = createNimiElectronAppHostForBinding({
       async openAppHostSession() {

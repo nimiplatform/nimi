@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 const MAX_INLINE_ARTIFACT_BYTES = 32 * 1024 * 1024;
 const WINDOWS_X64_BINDING_PACKAGE = '@nimiplatform/kit-protected-local-win32-x64';
 
-const HOST_REASON_CODES = new Set([
+const HOST_REASON_CODES: ReadonlySet<string> = new Set([
   'protected-carrier-required',
   'runtime-service-unavailable',
   'runtime-service-untrusted',
@@ -93,23 +93,28 @@ class ElectronAppHost implements NimiElectronAppHost {
 
   async bootstrap(): Promise<NimiElectronAppHostBootstrap> {
     if (!this.sessionReady) {
-      if (!this.sessionOpening) {
-        this.sessionOpening = this.openSession();
-      }
-      try {
-        const opened = await this.sessionOpening;
-        this.sessionReady = true;
-        return opened;
-      } finally {
-        this.sessionOpening = undefined;
-      }
+      return this.ensureSessionOpen();
     }
-    const outcome = await this.binding.getAppHostSessionStatus();
+    let outcome: NativeBootstrapOutcome;
+    try {
+      outcome = await this.binding.getAppHostSessionStatus();
+    } catch {
+      this.sessionReady = false;
+      throw untrustedRuntimeError();
+    }
     if (outcome?.status === 'error') {
       this.sessionReady = false;
-      throw typedNativeError(outcome, HOST_REASON_CODES);
+      if (!HOST_REASON_CODES.has(outcome.reasonCode) || typeof outcome.retryable !== 'boolean') {
+        throw untrustedRuntimeError();
+      }
+      return this.ensureSessionOpen();
     }
-    return validateBootstrapOutcome(outcome);
+    try {
+      return validateBootstrapOutcome(outcome);
+    } catch (error) {
+      this.sessionReady = false;
+      throw error;
+    }
   }
 
   async readArtifactBytes(artifactId: string): Promise<NimiElectronAppHostArtifactBytes> {
@@ -123,11 +128,32 @@ class ElectronAppHost implements NimiElectronAppHost {
   }
 
   private async openSession(): Promise<NimiElectronAppHostBootstrap> {
-    const outcome = await this.binding.openAppHostSession();
+    let outcome: NativeBootstrapOutcome;
+    try {
+      outcome = await this.binding.openAppHostSession();
+    } catch {
+      throw untrustedRuntimeError();
+    }
     if (outcome?.status === 'error') {
       throw typedNativeError(outcome, HOST_REASON_CODES);
     }
     return validateBootstrapOutcome(outcome);
+  }
+
+  private async ensureSessionOpen(): Promise<NimiElectronAppHostBootstrap> {
+    if (!this.sessionOpening) {
+      this.sessionOpening = this.openSession();
+    }
+    const opening = this.sessionOpening;
+    try {
+      const opened = await opening;
+      this.sessionReady = true;
+      return opened;
+    } finally {
+      if (this.sessionOpening === opening) {
+        this.sessionOpening = undefined;
+      }
+    }
   }
 }
 
