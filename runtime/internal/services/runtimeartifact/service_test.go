@@ -85,6 +85,7 @@ func TestReadArtifactBytesExisting(t *testing.T) {
 		MimeType:     "audio/wav",
 		SizeBytes:    int64(len(bytes)),
 		MimeInferred: false,
+		CreatedAt:    artifactTestNow,
 		Audience:     artifactTestAudience(),
 	}); err != nil {
 		t.Fatalf("Put: %v", err)
@@ -157,9 +158,10 @@ func TestReadArtifactBytesTooLarge(t *testing.T) {
 	svc, store := newTestService(t)
 	payload := make([]byte, MaxInlineBytes+1)
 	if err := store.Put("artifact-too-large", ArtifactRecord{
-		Bytes:    payload,
-		MimeType: "video/mp4",
-		Audience: artifactTestAudience(),
+		Bytes:     payload,
+		MimeType:  "video/mp4",
+		CreatedAt: artifactTestNow,
+		Audience:  artifactTestAudience(),
 	}); err != nil {
 		t.Fatalf("Put: %v", err)
 	}
@@ -179,7 +181,7 @@ func TestReadArtifactBytesTooLarge(t *testing.T) {
 func TestReadArtifactBytesRequiresCurrentMatchingAudience(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	store := NewMemoryStore()
-	if err := store.Put("artifact-bound", ArtifactRecord{Bytes: []byte("bound"), Audience: artifactTestAudience()}); err != nil {
+	if err := store.Put("artifact-bound", ArtifactRecord{Bytes: []byte("bound"), CreatedAt: artifactTestNow, Audience: artifactTestAudience()}); err != nil {
 		t.Fatalf("Put bound: %v", err)
 	}
 	if err := store.Put("artifact-unbound", ArtifactRecord{Bytes: []byte("unbound")}); err != nil {
