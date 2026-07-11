@@ -13,6 +13,11 @@ pub(crate) fn tester_renderer_entry_probe_script() -> Result<String, String> {
 pub(crate) fn tester_tauri_acceptance_command_checks() -> Vec<serde_json::Value> {
     vec![
         serde_json::json!({
+            "id": "app-host.bootstrap.native-unavailable",
+            "command": "app_host_bootstrap",
+            "expectError": true,
+        }),
+        serde_json::json!({
             "id": "artifacts.readRuntimeBytes.native-unavailable",
             "command": "artifacts_read_runtime_bytes",
             "payload": {

@@ -78,6 +78,9 @@ test('Tauri scaffold consumes Kit shared command registration and renderer probe
   assert.doesNotMatch(tauriMainSource, /globalRecord\.__TAURI__\?\.core\?\.invoke/);
   assert.doesNotMatch(tauriMainSource, /local_developer_app|local-developer-app|developer_registration/);
   assert.doesNotMatch(tauriMainSource, /RuntimeBridgeHostAppSessionProvider|set_runtime_bridge_host_hooks/);
+  assert.doesNotMatch(tauriMainSource, /NIMI_TESTER_TAURI_SHARED_AUTH_ACCEPTANCE|NIMI_TESTER_TAURI_ACCEPTANCE_STORAGE_ROOT/);
+  assert.equal(existsSync(new URL('../src-tauri/src/shared_auth_acceptance.js', import.meta.url)), false);
+  assert.equal(existsSync(new URL('../scripts/shared-auth-broker-live-tauri-acceptance.mjs', import.meta.url)), false);
 });
 
 test('generated shell rejects placeholder and private Desktop imports', () => {

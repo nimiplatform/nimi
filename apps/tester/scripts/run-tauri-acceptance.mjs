@@ -6,9 +6,10 @@ import os from 'node:os';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
-const officialLauncher = path.resolve(root, '..', '..', 'app-tools', 'bin', 'nimi-app.mjs');
+const tauriCli = path.join(root, 'node_modules', '@tauri-apps', 'cli', 'tauri.js');
 const timeoutMs = Number.parseInt(process.env.NIMI_TESTER_TAURI_ACCEPTANCE_TIMEOUT_MS || '90000', 10);
 const commandMatrix = [
+  { id: 'app-host.bootstrap.native-unavailable', command: 'app_host_bootstrap', expectError: true },
   { id: 'artifacts.readRuntimeBytes.native-unavailable', command: 'artifacts_read_runtime_bytes', expectError: true },
   { id: 'ai-config.set.negative', command: 'ai_config_set', expectError: true },
   { id: 'ai-config.get.negative', command: 'ai_config_get', expectError: true },
@@ -128,16 +129,14 @@ async function main() {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-tester-tauri-acceptance-'));
   const probePath = path.join(tempRoot, 'probe.json');
   const outputChunks = [];
-  const child = spawn(process.execPath, [officialLauncher, 'dev', '--shell', 'tauri'], {
+  const child = spawn(process.execPath, [tauriCli, 'dev'], {
     cwd: root,
     detached: process.platform !== 'win32',
     env: {
       ...process.env,
       CARGO_TERM_PROGRESS_WHEN: process.env.CARGO_TERM_PROGRESS_WHEN || 'never',
-      NIMI_RUNTIME_BRIDGE_MODE: 'ACCEPTANCE_INVALID_MODE',
       NIMI_TESTER_TAURI_ACCEPTANCE_PROBE_PATH: probePath,
-      NIMI_TESTER_TAURI_ACCEPTANCE_SCENARIO_ID: 'tester.tauri.acceptance',
-      NIMI_TESTER_TAURI_ACCEPTANCE_STORAGE_ROOT: tempRoot,
+      NIMI_TESTER_TAURI_ACCEPTANCE_SCENARIO_ID: 'tester.tauri.plain-negative',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -151,7 +150,7 @@ async function main() {
       child.once('error', reject);
     });
     const record = await waitForProbe(child, probePath, outputChunks);
-    process.stdout.write(`[tester-tauri-acceptance] passed (${record.payload.stage})\n`);
+    process.stdout.write(`[tester-tauri-plain-negative] passed (${record.payload.stage})\n`);
   } finally {
     await terminateProcessTree(child);
     rmSync(tempRoot, { recursive: true, force: true });
@@ -162,6 +161,6 @@ try {
   await main();
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error || 'unknown error');
-  process.stderr.write(`[tester-tauri-acceptance] failed: ${message}\n`);
+  process.stderr.write(`[tester-tauri-plain-negative] failed: ${message}\n`);
   process.exit(1);
 }

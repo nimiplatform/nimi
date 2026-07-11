@@ -3,19 +3,10 @@ mod world_tour;
 
 use acceptance::tester_renderer_entry_probe_script;
 
-use nimi_shell_tauri::capabilities::data::{
-    resolve_standard_app_storage_roots, StandardAppStorageRootSlot, StandardDataRootBinding,
-};
+use nimi_shell_tauri::capabilities::data::StandardAppStorageRootSlot;
 
-const TESTER_APP_ID: &str = "nimi.tester";
 const ACCEPTANCE_PROBE_PATH_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_PROBE_PATH";
 const ACCEPTANCE_SCENARIO_ID_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_SCENARIO_ID";
-const ACCEPTANCE_STORAGE_ROOT_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_STORAGE_ROOT";
-const SHARED_AUTH_ACCEPTANCE_ENV: &str = "NIMI_TESTER_TAURI_SHARED_AUTH_ACCEPTANCE";
-
-fn tester_shared_auth_acceptance_script() -> &'static str {
-    include_str!("shared_auth_acceptance.js")
-}
 
 #[tauri::command]
 fn tester_renderer_probe_ping(payload: serde_json::Value) -> Result<(), String> {
@@ -42,23 +33,6 @@ fn tester_renderer_probe_context_get() -> serde_json::Value {
             Vec::new()
         },
     })
-}
-
-#[tauri::command]
-fn tester_acceptance_window_set_size(
-    window: tauri::WebviewWindow,
-    width: u32,
-    height: u32,
-) -> Result<(), String> {
-    if std::env::var(SHARED_AUTH_ACCEPTANCE_ENV).ok().as_deref() != Some("1") {
-        return Err("Tester acceptance window sizing is disabled".to_string());
-    }
-    window
-        .set_size(tauri::Size::Logical(tauri::LogicalSize::new(
-            f64::from(width),
-            f64::from(height),
-        )))
-        .map_err(|error| format!("resize Tester acceptance window: {error}"))
 }
 
 fn acceptance_probe_path() -> Option<std::path::PathBuf> {
@@ -92,53 +66,16 @@ fn write_acceptance_probe_event(kind: &str, payload: serde_json::Value) -> Resul
         .map_err(|error| format!("write Tauri acceptance probe event: {error}"))
 }
 
-/// Resolves and manages the Runtime-attested standard app storage slot that
-/// backs the kit standard storage/data commands and the app-owned world-tour
-/// cache/temp roots. Under the Tauri acceptance harness the roots come from the
-/// acceptance storage root as a Runtime launch projection; otherwise they are
-/// resolved from Runtime `GetAppStorage` for the tester app id. If resolution
-/// fails the slot stays unbound and dependent commands fail closed.
+/// Keeps app-owned World Tour storage fail-closed until a future operation
+/// admission supplies Runtime-attested roots through a Kit-owned carrier.
 fn install_standard_app_storage_slot(app: &tauri::App<tauri::Wry>) {
     use tauri::Manager;
-    let slot = StandardAppStorageRootSlot::empty();
-    let binding = if let Some(root) = acceptance_storage_root_override() {
-        let root = std::path::PathBuf::from(root);
-        StandardDataRootBinding::RuntimeLaunchProjection {
-            durable_data_root: root.clone(),
-            cache_root: Some(root.clone()),
-            temp_root: Some(root),
-            projection_ref: "tester-tauri-acceptance-fixture".to_string(),
-        }
-    } else {
-        StandardDataRootBinding::RuntimeGetAppStorage {
-            app_id: TESTER_APP_ID.to_string(),
-        }
-    };
-    match tauri::async_runtime::block_on(resolve_standard_app_storage_roots(binding)) {
-        Ok(roots) => {
-            if let Err(error) = slot.bind(roots) {
-                eprintln!("[tester-tauri] standard app storage slot bind failed: {error}");
-            }
-        }
-        Err(error) => {
-            eprintln!(
-                "[tester-tauri] standard app storage slot left unbound (fail-closed): {error}"
-            );
-        }
-    }
-    app.manage(slot);
+    app.manage(StandardAppStorageRootSlot::empty());
 }
 
 fn install_installed_runtime_host(app: &tauri::App<tauri::Wry>) {
     use tauri::Manager;
     app.manage(nimi_shell_tauri::capabilities::runtime::RuntimeBridgeAppHost::platform_default());
-}
-
-fn acceptance_storage_root_override() -> Option<String> {
-    std::env::var(ACCEPTANCE_STORAGE_ROOT_ENV)
-        .ok()
-        .map(|raw| raw.trim().to_string())
-        .filter(|value| !value.is_empty())
 }
 
 fn main() {
@@ -152,11 +89,7 @@ fn main() {
             if !matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
                 return;
             }
-            let shared_auth_acceptance =
-                std::env::var(SHARED_AUTH_ACCEPTANCE_ENV).ok().as_deref() == Some("1");
-            if shared_auth_acceptance {
-                let _ = webview.eval(tester_shared_auth_acceptance_script());
-            } else if let Ok(script) = tester_renderer_entry_probe_script() {
+            if let Ok(script) = tester_renderer_entry_probe_script() {
                 let _ = webview.eval(script.as_str());
             }
         })
@@ -165,7 +98,6 @@ fn main() {
                 tester_renderer_probe_ping,
                 tester_renderer_probe_report_write,
                 tester_renderer_probe_context_get,
-                tester_acceptance_window_set_size,
                 world_tour::resolve_world_tour_fixture,
                 world_tour::claim_world_tour_viewer_launch,
                 world_tour::save_world_tour_viewer_preset,
@@ -335,7 +267,6 @@ mod tests {
         assert!(script.contains("tester_renderer_probe_ping"));
         assert!(script.contains("tester_renderer_probe_report_write"));
         assert!(script.contains("tester_renderer_probe_context_get"));
-        assert!(super::tester_shared_auth_acceptance_script().contains("nimiElectronSdkAcceptance"));
         assert!(script.contains("import(scriptSrc);"));
         assert!(script.contains("command-checks-ok"));
         let forbidden_desktop_command = ["desktop", "macos", "smoke", "ping"].join("_");
