@@ -1,4 +1,4 @@
-use super::{DesktopOpenPresenceDescriptor, PRESENCE_RELATIVE_PATH};
+use super::PRESENCE_RELATIVE_PATH;
 use base64::Engine;
 use std::{
     fs,
@@ -13,7 +13,14 @@ pub(super) fn presence_descriptor_path(nimi_dir: &Path) -> PathBuf {
 
 pub(super) fn write_presence_descriptor(
     path: &Path,
-    descriptor: &DesktopOpenPresenceDescriptor,
+    descriptor: &super::DesktopOpenPresenceDescriptor,
+) -> Result<(), String> {
+    write_presence_document(path, descriptor)
+}
+
+pub(crate) fn write_presence_document<T: serde::Serialize>(
+    path: &Path,
+    descriptor: &T,
 ) -> Result<(), String> {
     let parent = path
         .parent()
@@ -189,13 +196,13 @@ fn set_owner_only_file(_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-pub(super) fn random_base64_url(byte_count: usize) -> Result<String, String> {
+pub(crate) fn random_base64_url(byte_count: usize) -> Result<String, String> {
     let mut bytes = vec![0_u8; byte_count];
     getrandom::getrandom(&mut bytes)
         .map_err(|error| format!("desktop open random generation failed: {error}"))?;
     Ok(base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes))
 }
 
-pub(super) fn now_iso8601() -> String {
+pub(crate) fn now_iso8601() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
 }

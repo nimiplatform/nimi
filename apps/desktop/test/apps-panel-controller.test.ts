@@ -394,7 +394,7 @@ function recordingLifecycle(
     scope: appLaunchScopeRef('community.catalog'),
     reasonCode: ReasonCode.ACTION_EXECUTED,
     releaseDescriptorRef: 'community.catalog.0.1.0',
-    launchNonce: 'nonce-1',
+    launchId: Uint8Array.from({ length: 32 }, (_, index) => index + 1),
     runtimeEntryRef: 'dist/index.html',
     activeReleaseRoot: '/data/apps/community.catalog/releases/0.1.0',
     storage: installStorage,

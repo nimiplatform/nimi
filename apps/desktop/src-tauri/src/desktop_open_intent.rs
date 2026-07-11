@@ -23,7 +23,7 @@ use tokio::{net::TcpListener, sync::oneshot};
 #[path = "desktop_open_intent_parser.rs"]
 mod parser;
 #[path = "desktop_open_intent_presence.rs"]
-mod presence;
+pub(crate) mod presence;
 
 #[cfg(test)]
 #[path = "desktop_open_intent_presence_tests.rs"]

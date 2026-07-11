@@ -324,6 +324,24 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
                     );
                 }
             }
+            match crate::desktop_local_development::DesktopLocalDevelopmentRuntime::start(
+                app.handle().clone(),
+            ) {
+                Ok(runtime) => {
+                    eprintln!(
+                        "[boot:{:}] local development supervisor initialized",
+                        now_ms()
+                    );
+                    app.manage(runtime);
+                }
+                Err(error) => {
+                    eprintln!(
+                        "[boot:{:}] local development supervisor disabled fail-closed: {}",
+                        now_ms(),
+                        error
+                    );
+                }
+            }
             app.manage(crate::menu_bar_shell::MenuBarShellStore::new());
             match crate::desktop_release::initialize(app.handle()) {
                 Ok(info) => {
@@ -451,6 +469,11 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             desktop_updates::desktop_update_install,
             desktop_updates::desktop_update_restart,
             crate::desktop_open_intent::desktop_open_intent_set_ready,
+            crate::desktop_local_development::local_development_pending_approvals,
+            crate::desktop_local_development::local_development_decide,
+            crate::desktop_local_development::local_development_authorizations_list,
+            crate::desktop_local_development::local_development_runs_list,
+            crate::desktop_local_development::local_development_authorization_revoke,
             crate::desktop_product_control::product_control_record_get,
             crate::desktop_product_control::product_control_selected_data_root_get,
             crate::desktop_product_control::product_control_record_ensure_created,
@@ -532,6 +555,11 @@ pub(crate) fn run() {
                         .try_state::<crate::desktop_open_intent::DesktopOpenIntentRuntime>(
                     ) {
                         runtime.shutdown();
+                    }
+                    if let Some(runtime) = app_handle.try_state::<
+                        crate::desktop_local_development::DesktopLocalDevelopmentRuntime,
+                    >() {
+                        tauri::async_runtime::block_on(runtime.shutdown());
                     }
                     if !crate::menu_bar_shell::is_enabled() {
                         return;

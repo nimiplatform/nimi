@@ -147,7 +147,7 @@ function launchedProjection(): NimiRuntimeAppOpenProjection {
     },
     shellCapabilitySetRef: 'installed-nimi-app-standard-shell-v1',
     callerMode: 'desktop-launched-nimi-app',
-    launchNonce: 'launch-nonce-1',
+    launchId: Uint8Array.from({ length: 32 }, (_, index) => index + 1),
     productReadinessClaimAllowed: false,
   };
 }

@@ -22,13 +22,14 @@ rfd = "0.17"
 tauri = { version = "2", features = ["protocol-asset", "tray-icon", "image-png"] }
 rusqlite = { version = "0.38", features = ["bundled"] }
 serde_yaml = "0.9"
+toml = "0.9"
 webbrowser = "1"
 sha2 = "0.10"
 getrandom = "0.2"
 chrono = { version = "0.4", default-features = true, features = ["clock"] }
 url = "2"
 axum = { version = "0.8", features = ["json"] }
-tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "net", "process", "fs", "sync", "time"] }
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "net", "process", "fs", "sync", "time", "io-util"] }
 jsonwebtoken = "10"
 futures-util = "0.3"
 tonic = { version = "0.14", features = ["transport"] }

@@ -1,0 +1,61 @@
+{
+  "trustClass": "本地开发",
+  "approval": {
+    "title": "允许此开发项目吗？",
+    "subtitle": "Nimi Desktop 将监督构建、开发服务器和原生宿主进程。",
+    "warning": "仅批准你正在开发且信任的项目。此开发授权不能转化为商店上架或生产发布。",
+    "queue": "当前有 {{count}} 个开发请求等待处理。"
+  },
+  "field": {
+    "app": "应用",
+    "projectRoot": "项目根目录",
+    "shell": "Shell 类型",
+    "account": "当前账号",
+    "capabilities": "请求的能力"
+  },
+  "shell": {
+    "electron": "Electron",
+    "tauri": "Tauri"
+  },
+  "state": {
+    "active": "已启用",
+    "preparing": "准备中",
+    "pending-approval": "等待确认",
+    "building": "构建中",
+    "starting": "启动中",
+    "running": "运行中",
+    "restarting": "正在重启",
+    "build-failed": "构建失败",
+    "runtime-unavailable": "Runtime 不可用",
+    "authorization-required": "需要重新授权",
+    "project-changed": "项目已变更",
+    "failed": "运行失败",
+    "stopped": "已停止",
+    "revoked": "已撤销",
+    "denied": "已拒绝",
+    "reapproval-required": "需要重新确认",
+    "confirmation-required": "等待确认"
+  },
+  "action": {
+    "deny": "拒绝",
+    "allowOnce": "仅本次运行",
+    "remember": "记住此项目",
+    "refresh": "刷新",
+    "revoke": "撤销授权",
+    "confirmRevoke": "立即撤销",
+    "cancel": "取消"
+  },
+  "activity": {
+    "title": "开发活动",
+    "description": "查看受监督的实时运行与最近的拒绝状态。此处不会显示 Token、Ticket、Session、凭据或 Runtime endpoint。",
+    "empty": "本次 Desktop 会话中尚无本地开发活动。",
+    "hostGeneration": "宿主第 {{count}} 代",
+    "retryable": "只要当前命令保持运行，Desktop 就会继续自动重试。"
+  },
+  "management": {
+    "title": "已授权的开发项目",
+    "description": "记住的项目会绑定准确的项目根目录、应用 ID、Shell、能力集合和 Nimi 账号。撤销后，正在运行的开发访问会立即失效。",
+    "empty": "当前账号尚未授权任何开发项目。",
+    "revokeConfirm": "正在运行的开发宿主将立即失去访问权限。"
+  }
+}

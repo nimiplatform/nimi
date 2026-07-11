@@ -22,6 +22,7 @@ import {
   SettingRow,
   ShieldIcon,
 } from './settings-security-controls.js';
+import { LocalDevelopmentAuthorizations } from '@renderer/features/local-development/local-development-authorizations';
 
 export function SecurityPage() {
   const { t } = useTranslation();
@@ -359,6 +360,8 @@ export function SecurityPage() {
           </div>
         </div>
       </section>
+
+      <LocalDevelopmentAuthorizations />
 
       <SaveFooter
         onSave={() => {

@@ -13,6 +13,7 @@ import { useDesktopUpdatesBootstrap } from '@renderer/infra/bootstrap/desktop-up
 import { useDesktopMacosSmokeBootstrap } from '@renderer/infra/bootstrap/desktop-macos-smoke';
 import { useRuntimeHealthCoordinatorBootstrap } from '@renderer/features/runtime-config/runtime-health-coordinator';
 import { getDesktopMacosSmokeContext, pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
+import { LocalDevelopmentApprovalCenter } from '@renderer/features/local-development/local-development-approval-center';
 
 const WEB_BOOTSTRAP_TIMEOUT_MS = 15000;
 const DESKTOP_BOOTSTRAP_TIMEOUT_MS = 25000;
@@ -194,7 +195,12 @@ function AppBoot() {
     return unsubscribe;
   }, []);
 
-  return <AppRoutes />;
+  return (
+    <>
+      <AppRoutes />
+      <LocalDevelopmentApprovalCenter />
+    </>
+  );
 }
 
 export default function App() {
