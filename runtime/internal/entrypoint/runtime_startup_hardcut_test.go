@@ -5,9 +5,25 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
 
-func TestRunDaemonFromArgsFailsOnInvalidModelRegistry(t *testing.T) {
+func TestRunProductionDaemonFromArgsRejectsUserSuppliedRuntimeControls(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:59999")
+	err := RunProductionDaemonFromArgs("nimi serve", []string{
+		"--grpc-addr=127.0.0.1:59998",
+		"--local-state-path=C:\\user-writable-state.json",
+	})
+	if err == nil {
+		t.Fatal("production daemon entrypoint accepted user-controlled startup inputs")
+	}
+	if !strings.Contains(err.Error(), string(protectedlocal.ReasonProtectedLocalRuntimePrincipalRequired)) {
+		t.Fatalf("production startup error = %v, want protected Runtime principal failure", err)
+	}
+}
+
+func TestNonProductionDaemonFromArgsFailsOnInvalidModelRegistry(t *testing.T) {
 	homeDir := t.TempDir()
 	setEntrypointTestHome(t, homeDir)
 	clearRuntimeConfigEnvForStartupTest(t)
@@ -19,7 +35,7 @@ func TestRunDaemonFromArgsFailsOnInvalidModelRegistry(t *testing.T) {
 	}
 	t.Setenv("NIMI_RUNTIME_MODEL_REGISTRY_PATH", registryPath)
 
-	err := RunDaemonFromArgs("nimi serve", nil)
+	err := runNonProductionDaemonFromArgs("nimi serve", nil)
 	if err == nil {
 		t.Fatal("expected startup failure for invalid model registry")
 	}
@@ -28,7 +44,7 @@ func TestRunDaemonFromArgsFailsOnInvalidModelRegistry(t *testing.T) {
 	}
 }
 
-func TestRunDaemonFromArgsFailsOnInvalidLocalState(t *testing.T) {
+func TestNonProductionDaemonFromArgsFailsOnInvalidLocalState(t *testing.T) {
 	homeDir := t.TempDir()
 	setEntrypointTestHome(t, homeDir)
 	clearRuntimeConfigEnvForStartupTest(t)
@@ -41,7 +57,7 @@ func TestRunDaemonFromArgsFailsOnInvalidLocalState(t *testing.T) {
 	}
 	t.Setenv("NIMI_RUNTIME_LOCAL_STATE_PATH", localStatePath)
 
-	err := RunDaemonFromArgs("nimi serve", nil)
+	err := runNonProductionDaemonFromArgs("nimi serve", nil)
 	if err == nil {
 		t.Fatal("expected startup failure for invalid local state")
 	}

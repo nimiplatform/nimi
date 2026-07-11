@@ -57,7 +57,6 @@ Core command groups:
 
 Advanced runtime groups:
 - `ai`
-- `app-auth`
 - `knowledge`
 - `app`
 - `audit`

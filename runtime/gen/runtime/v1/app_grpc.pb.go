@@ -19,22 +19,24 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAppService_SendAppMessage_FullMethodName           = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
-	RuntimeAppService_SubscribeAppMessages_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
-	RuntimeAppService_InstallApp_FullMethodName               = "/nimi.runtime.v1.RuntimeAppService/InstallApp"
-	RuntimeAppService_UninstallApp_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/UninstallApp"
-	RuntimeAppService_GetAppStorage_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/GetAppStorage"
-	RuntimeAppService_GetAccountAppInventory_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory"
-	RuntimeAppService_AdoptLocalApp_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp"
-	RuntimeAppService_ListLocalAppAdoptions_FullMethodName    = "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions"
-	RuntimeAppService_RemoveLocalAppAdoption_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption"
-	RuntimeAppService_GetAppPackageReadiness_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness"
-	RuntimeAppService_GetAppInstallJob_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob"
-	RuntimeAppService_ListAppInstallJobs_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs"
-	RuntimeAppService_WatchAppInstallJobEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents"
-	RuntimeAppService_UpdateApp_FullMethodName                = "/nimi.runtime.v1.RuntimeAppService/UpdateApp"
-	RuntimeAppService_HealthRepairApp_FullMethodName          = "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp"
-	RuntimeAppService_OpenApp_FullMethodName                  = "/nimi.runtime.v1.RuntimeAppService/OpenApp"
+	RuntimeAppService_SendAppMessage_FullMethodName              = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
+	RuntimeAppService_SubscribeAppMessages_FullMethodName        = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
+	RuntimeAppService_PrepareAppLifecycleIntent_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent"
+	RuntimeAppService_GetAppLifecycleIntentStatus_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus"
+	RuntimeAppService_InstallApp_FullMethodName                  = "/nimi.runtime.v1.RuntimeAppService/InstallApp"
+	RuntimeAppService_UninstallApp_FullMethodName                = "/nimi.runtime.v1.RuntimeAppService/UninstallApp"
+	RuntimeAppService_GetAppStorage_FullMethodName               = "/nimi.runtime.v1.RuntimeAppService/GetAppStorage"
+	RuntimeAppService_GetAccountAppInventory_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory"
+	RuntimeAppService_AdoptLocalApp_FullMethodName               = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp"
+	RuntimeAppService_ListLocalAppAdoptions_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions"
+	RuntimeAppService_RemoveLocalAppAdoption_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption"
+	RuntimeAppService_GetAppPackageReadiness_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness"
+	RuntimeAppService_GetAppInstallJob_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob"
+	RuntimeAppService_ListAppInstallJobs_FullMethodName          = "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs"
+	RuntimeAppService_WatchAppInstallJobEvents_FullMethodName    = "/nimi.runtime.v1.RuntimeAppService/WatchAppInstallJobEvents"
+	RuntimeAppService_UpdateApp_FullMethodName                   = "/nimi.runtime.v1.RuntimeAppService/UpdateApp"
+	RuntimeAppService_HealthRepairApp_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp"
+	RuntimeAppService_OpenApp_FullMethodName                     = "/nimi.runtime.v1.RuntimeAppService/OpenApp"
 )
 
 // RuntimeAppServiceClient is the client API for RuntimeAppService service.
@@ -43,6 +45,8 @@ const (
 type RuntimeAppServiceClient interface {
 	SendAppMessage(ctx context.Context, in *SendAppMessageRequest, opts ...grpc.CallOption) (*SendAppMessageResponse, error)
 	SubscribeAppMessages(ctx context.Context, in *SubscribeAppMessagesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AppMessageEvent], error)
+	PrepareAppLifecycleIntent(ctx context.Context, in *PrepareAppLifecycleIntentRequest, opts ...grpc.CallOption) (*PrepareAppLifecycleIntentResponse, error)
+	GetAppLifecycleIntentStatus(ctx context.Context, in *GetAppLifecycleIntentStatusRequest, opts ...grpc.CallOption) (*GetAppLifecycleIntentStatusResponse, error)
 	// Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
 	InstallApp(ctx context.Context, in *InstallAppRequest, opts ...grpc.CallOption) (*InstallAppResponse, error)
 	UninstallApp(ctx context.Context, in *UninstallAppRequest, opts ...grpc.CallOption) (*UninstallAppResponse, error)
@@ -100,6 +104,26 @@ func (c *runtimeAppServiceClient) SubscribeAppMessages(ctx context.Context, in *
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAppService_SubscribeAppMessagesClient = grpc.ServerStreamingClient[AppMessageEvent]
+
+func (c *runtimeAppServiceClient) PrepareAppLifecycleIntent(ctx context.Context, in *PrepareAppLifecycleIntentRequest, opts ...grpc.CallOption) (*PrepareAppLifecycleIntentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PrepareAppLifecycleIntentResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_PrepareAppLifecycleIntent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) GetAppLifecycleIntentStatus(ctx context.Context, in *GetAppLifecycleIntentStatusRequest, opts ...grpc.CallOption) (*GetAppLifecycleIntentStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAppLifecycleIntentStatusResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_GetAppLifecycleIntentStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 func (c *runtimeAppServiceClient) InstallApp(ctx context.Context, in *InstallAppRequest, opts ...grpc.CallOption) (*InstallAppResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -256,6 +280,8 @@ func (c *runtimeAppServiceClient) OpenApp(ctx context.Context, in *OpenAppReques
 type RuntimeAppServiceServer interface {
 	SendAppMessage(context.Context, *SendAppMessageRequest) (*SendAppMessageResponse, error)
 	SubscribeAppMessages(*SubscribeAppMessagesRequest, grpc.ServerStreamingServer[AppMessageEvent]) error
+	PrepareAppLifecycleIntent(context.Context, *PrepareAppLifecycleIntentRequest) (*PrepareAppLifecycleIntentResponse, error)
+	GetAppLifecycleIntentStatus(context.Context, *GetAppLifecycleIntentStatusRequest) (*GetAppLifecycleIntentStatusResponse, error)
 	// Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
 	InstallApp(context.Context, *InstallAppRequest) (*InstallAppResponse, error)
 	UninstallApp(context.Context, *UninstallAppRequest) (*UninstallAppResponse, error)
@@ -289,6 +315,12 @@ func (UnimplementedRuntimeAppServiceServer) SendAppMessage(context.Context, *Sen
 }
 func (UnimplementedRuntimeAppServiceServer) SubscribeAppMessages(*SubscribeAppMessagesRequest, grpc.ServerStreamingServer[AppMessageEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAppMessages not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) PrepareAppLifecycleIntent(context.Context, *PrepareAppLifecycleIntentRequest) (*PrepareAppLifecycleIntentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PrepareAppLifecycleIntent not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) GetAppLifecycleIntentStatus(context.Context, *GetAppLifecycleIntentStatusRequest) (*GetAppLifecycleIntentStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAppLifecycleIntentStatus not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) InstallApp(context.Context, *InstallAppRequest) (*InstallAppResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method InstallApp not implemented")
@@ -380,6 +412,42 @@ func _RuntimeAppService_SubscribeAppMessages_Handler(srv interface{}, stream grp
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAppService_SubscribeAppMessagesServer = grpc.ServerStreamingServer[AppMessageEvent]
+
+func _RuntimeAppService_PrepareAppLifecycleIntent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PrepareAppLifecycleIntentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).PrepareAppLifecycleIntent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_PrepareAppLifecycleIntent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).PrepareAppLifecycleIntent(ctx, req.(*PrepareAppLifecycleIntentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_GetAppLifecycleIntentStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAppLifecycleIntentStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).GetAppLifecycleIntentStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_GetAppLifecycleIntentStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).GetAppLifecycleIntentStatus(ctx, req.(*GetAppLifecycleIntentStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
 
 func _RuntimeAppService_InstallApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(InstallAppRequest)
@@ -636,6 +704,14 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendAppMessage",
 			Handler:    _RuntimeAppService_SendAppMessage_Handler,
+		},
+		{
+			MethodName: "PrepareAppLifecycleIntent",
+			Handler:    _RuntimeAppService_PrepareAppLifecycleIntent_Handler,
+		},
+		{
+			MethodName: "GetAppLifecycleIntentStatus",
+			Handler:    _RuntimeAppService_GetAppLifecycleIntentStatus_Handler,
 		},
 		{
 			MethodName: "InstallApp",

@@ -96,6 +96,27 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 			effectiveCfg.ProviderDefaultModels[providerID] = defaultModel
 		}
 	}
+	return newService(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, daemonCfg, strings.TrimSpace(daemonCfg.ModelCatalogCustomDir))
+}
+
+// NewProtected creates the production protected-service AI surface. Provider
+// endpoints and credentials are deliberately absent from this constructor:
+// remote execution resolves them through the Runtime-owned connector store.
+func NewProtected(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
+	if connStore == nil {
+		return nil, fmt.Errorf("protected AI service requires Runtime-owned connector resolver")
+	}
+	effectiveCfg := Config{
+		AIHTTPTimeout:           defaultAIHTTPTimeout,
+		EnforceEndpointSecurity: true,
+	}.normalized()
+	if daemonCfg.AIHTTPTimeoutSeconds > 0 {
+		effectiveCfg.AIHTTPTimeout = time.Duration(daemonCfg.AIHTTPTimeoutSeconds) * time.Second
+	}
+	return newService(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, daemonCfg, "")
+}
+
+func newService(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, effectiveCfg Config, daemonCfg config.Config, customCatalogDir string) (*Service, error) {
 	globalConc := daemonCfg.GlobalConcurrencyLimit
 	if globalConc <= 0 {
 		globalConc = 8
@@ -113,11 +134,9 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 		return nil, fmt.Errorf("init voice asset store: %w", err)
 	}
 	svc.voiceAssets = voiceAssets
-	svc.allowLoopback = daemonCfg.AllowLoopbackProviderEndpoint
-	customDir := strings.TrimSpace(daemonCfg.ModelCatalogCustomDir)
 	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{
 		Logger:    logger,
-		CustomDir: customDir,
+		CustomDir: strings.TrimSpace(customCatalogDir),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init catalog: %w", err)

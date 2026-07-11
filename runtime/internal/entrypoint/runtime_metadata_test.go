@@ -2,10 +2,34 @@ package entrypoint
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"google.golang.org/grpc/metadata"
 )
+
+func TestClientMetadataHardcutsPortableAccessTokens(t *testing.T) {
+	metadataType := reflect.TypeOf(ClientMetadata{})
+	for _, fieldName := range []string{"AccessTokenID", "AccessTokenSecret"} {
+		if _, exists := metadataType.FieldByName(fieldName); exists {
+			t.Fatalf("ClientMetadata must not expose portable access-token field %s", fieldName)
+		}
+	}
+
+	ctx := withNimiOutgoingMetadata(context.Background(), "nimi.desktop", &ClientMetadata{
+		SessionID:    "binding-only-session",
+		SessionToken: "binding-only-token",
+	})
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if !ok {
+		t.Fatalf("outgoing metadata missing")
+	}
+	for _, key := range []string{"x-nimi-access-token-id", "x-nimi-access-token-secret"} {
+		if got := firstMDValue(md, key); got != "" {
+			t.Fatalf("portable access-token header %s must be absent, got=%q", key, got)
+		}
+	}
+}
 
 func TestWithNimiOutgoingMetadataDefault(t *testing.T) {
 	ctx := withNimiOutgoingMetadata(context.Background(), "nimi.desktop", nil)
@@ -77,8 +101,6 @@ func TestWithNimiOutgoingMetadataOverrideAllSupportedFields(t *testing.T) {
 		ProviderType:               "gemini",
 		ProviderEndpoint:           "https://example.invalid/v1",
 		ProviderAPIKey:             "sk-test",
-		AccessTokenID:              "token-1",
-		AccessTokenSecret:          "secret-1",
 		SessionID:                  "session-1",
 		SessionToken:               "session-token-1",
 	})
@@ -109,12 +131,6 @@ func TestWithNimiOutgoingMetadataOverrideAllSupportedFields(t *testing.T) {
 	}
 	if got := firstMDValue(md, "x-nimi-provider-api-key"); got != "sk-test" {
 		t.Fatalf("provider api key mismatch: %q", got)
-	}
-	if got := firstMDValue(md, "x-nimi-access-token-id"); got != "token-1" {
-		t.Fatalf("access token id mismatch: %q", got)
-	}
-	if got := firstMDValue(md, "x-nimi-access-token-secret"); got != "secret-1" {
-		t.Fatalf("access token secret mismatch: %q", got)
 	}
 	if got := firstMDValue(md, "x-nimi-session-id"); got != "session-1" {
 		t.Fatalf("session id mismatch: %q", got)
@@ -160,7 +176,6 @@ func TestPrepareInsecureOutgoingContextRejectsCredentialSecretsOnNonLoopback(t *
 		override *ClientMetadata
 	}{
 		{name: "provider api key", override: &ClientMetadata{ProviderAPIKey: "sk-test"}},
-		{name: "access token secret", override: &ClientMetadata{AccessTokenSecret: "access-secret"}},
 		{name: "session token", override: &ClientMetadata{SessionToken: "session-secret"}},
 	}
 	for _, tt := range tests {

@@ -32,8 +32,8 @@ func newTestStore(t *testing.T) *ConnectorStore {
 	return NewConnectorStoreWithMemorySecrets(dir)
 }
 
-func TestNewConnectorStoreUsesMemorySecretsForTestRuntimeEnv(t *testing.T) {
-	t.Setenv(connectorTestMemorySecretsEnv, "1")
+func TestNewConnectorStoreIgnoresEnvironmentMemorySecretOverride(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CONNECTOR_TEST_MEMORY_SECRETS", "1")
 	store := NewConnectorStore(t.TempDir())
 	rec := ConnectorRecord{
 		ConnectorID: "test-memory-secret",
@@ -45,15 +45,34 @@ func TestNewConnectorStoreUsesMemorySecretsForTestRuntimeEnv(t *testing.T) {
 		Label:       "Memory Secret",
 		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
-	if _, err := store.Create(rec, "sk-memory"); err != nil {
-		t.Fatalf("Create: %v", err)
+	if _, err := store.Create(rec, "sk-memory"); err == nil {
+		t.Fatal("environment override must not activate in-memory production connector custody")
 	}
-	secret, err := store.LoadSecretPayload("test-memory-secret")
-	if err != nil {
-		t.Fatalf("LoadSecretPayload: %v", err)
+}
+
+func TestConnectorRegistryCredentialEnvCannotBypassProtectedStore(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY", "env-secret-must-not-load")
+	basePath := t.TempDir()
+	registry := `[
+  {
+    "connector_id": "env-bypass",
+    "kind": 2,
+    "owner_type": 2,
+    "owner_id": "user-1",
+    "provider": "dashscope",
+    "endpoint": "https://dashscope.example/v1",
+    "label": "Environment bypass",
+    "status": 1,
+    "has_credential": true,
+    "credential_env": "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY"
+  }
+]`
+	if err := os.WriteFile(filepath.Join(basePath, registryFileName), []byte(registry), 0o600); err != nil {
+		t.Fatalf("write legacy environment-backed registry: %v", err)
 	}
-	if secret != "sk-memory" {
-		t.Fatalf("secret mismatch: %q", secret)
+	store := NewConnectorStore(basePath)
+	if err := store.ReconcileStartup(); !errors.Is(err, ErrProtectedConnectorCustodyRequired) {
+		t.Fatalf("environment-backed credential must fail at protected store boundary, got %v", err)
 	}
 }
 

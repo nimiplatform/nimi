@@ -216,7 +216,6 @@ func remoteModelCatalogIdentityForConnector(rec ConnectorRecord, providerRecord 
 		strings.TrimSpace(rec.Endpoint),
 		rec.AuthKind.String(),
 		strings.TrimSpace(rec.ProviderAuthProfile),
-		strings.TrimSpace(rec.CredentialEnv),
 		fmt.Sprintf("%t", rec.HasCredential),
 	)
 	endpointProfileID := stableID("endpoint-profile",

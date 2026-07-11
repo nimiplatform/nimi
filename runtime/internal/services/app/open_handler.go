@@ -14,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc/codes"
 )
 
@@ -131,6 +132,14 @@ func (s *Service) OpenApp(ctx context.Context, req *runtimev1.OpenAppRequest) (*
 	scope, scopeErr := validateOpenScope(appID, req.GetScope())
 	if scopeErr != nil {
 		return openBlockedResponse(appID, nil, *scopeErr), nil
+	}
+	if _, err := s.consumeLifecycleIntentForMutation(ctx, lifecycleIntentMutationRequest{
+		action:                protectedlocal.LifecycleActionOpenApp,
+		appID:                 appID,
+		intentID:              req.GetLifecycleIntentId(),
+		displayedImpactDigest: req.GetDisplayedImpactDigest(),
+	}); err != nil {
+		return nil, err
 	}
 
 	// Step 1 — resolve the admitted Nimi App registry row + bound descriptor.

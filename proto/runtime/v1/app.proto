@@ -134,6 +134,90 @@ enum AppHealthRepairAction {
   APP_HEALTH_REPAIR_ACTION_REINSTALL = 4;
 }
 
+// AppLifecycleIntentAction is the closed action vocabulary owned by
+// K-APP-026. A single prepare/status protocol covers every lifecycle mutation;
+// callers cannot introduce action-specific confirmation RPCs.
+enum AppLifecycleIntentAction {
+  APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED = 0;
+  APP_LIFECYCLE_INTENT_ACTION_INSTALL = 1;
+  APP_LIFECYCLE_INTENT_ACTION_UNINSTALL = 2;
+  APP_LIFECYCLE_INTENT_ACTION_UPDATE = 3;
+  APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR = 4;
+  APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP = 5;
+  APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION = 6;
+  APP_LIFECYCLE_INTENT_ACTION_OPEN_APP = 7;
+}
+
+// AppLifecycleIntentStatus is the durable reconciliation vocabulary. An
+// intent id or status is correlation-only and never authorizes a mutation.
+enum AppLifecycleIntentStatus {
+  APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED = 0;
+  APP_LIFECYCLE_INTENT_STATUS_PREPARED = 1;
+  APP_LIFECYCLE_INTENT_STATUS_CONSUMED = 2;
+  APP_LIFECYCLE_INTENT_STATUS_SIDE_EFFECT_STARTED = 3;
+  APP_LIFECYCLE_INTENT_STATUS_SUCCEEDED = 4;
+  APP_LIFECYCLE_INTENT_STATUS_FAILED = 5;
+  APP_LIFECYCLE_INTENT_STATUS_CANCELLED = 6;
+  APP_LIFECYCLE_INTENT_STATUS_EXPIRED = 7;
+}
+
+// AppLifecycleDestructiveOptions is the closed set of option values that can
+// alter the canonical impact for today's lifecycle methods. Runtime resolves
+// and revalidates their concrete target before it issues an intent.
+message AppLifecycleDestructiveOptions {
+  bool delete_durable_data = 1;
+  AppHealthRepairAction health_repair_action = 2;
+  string target_job_id = 3;
+}
+
+// AppLifecycleCanonicalImpact is the typed input to RFC8785 JSON
+// canonicalization and SHA-256 digesting. account_generation remains inside
+// Runtime/protected transport and is never projected into renderer IPC.
+message AppLifecycleCanonicalImpact {
+  uint32 schema_version = 1;
+  AppLifecycleIntentAction action = 2;
+  string app_id = 3;
+  uint64 account_generation = 4;
+  string release_ref = 5;
+  string artifact_digest = 6;
+  uint64 adoption_generation = 7;
+  AppLifecycleDestructiveOptions destructive_options = 8;
+  repeated string impact_flags = 9;
+  uint32 display_contract_version = 10;
+}
+
+message PrepareAppLifecycleIntentRequest {
+  AppLifecycleIntentAction action = 1;
+  string app_id = 2;
+  string expected_release_ref = 3;
+  string expected_artifact_digest = 4;
+  uint64 expected_adoption_generation = 5;
+  AppLifecycleDestructiveOptions destructive_options = 6;
+}
+
+message PrepareAppLifecycleIntentResponse {
+  string intent_id = 1;
+  AppLifecycleCanonicalImpact canonical_impact = 2;
+  string canonical_impact_digest = 3;
+  google.protobuf.Timestamp deadline = 4;
+  ReasonCode reason_code = 5;
+}
+
+message GetAppLifecycleIntentStatusRequest {
+  string intent_id = 1;
+}
+
+message GetAppLifecycleIntentStatusResponse {
+  string intent_id = 1;
+  AppLifecycleIntentStatus status = 2;
+  string non_authorizing_job_id = 3;
+  // canonical_result is an RFC8785 JSON document with no credential,
+  // process-tuple, boot-epoch, account-generation, or ledger-anchor material.
+  string canonical_result = 4;
+  ReasonCode reason_code = 5;
+  bool retryability = 6;
+}
+
 // AppInstallSourceKind distinguishes a bundled first-party install (no network
 // download; materialized from the atomic Nimi release bundle) from an external
 // immutable artifact install (HTTPS download + sha256 verification).
@@ -253,6 +337,8 @@ message InstallAppRequest {
   // confirmed records that the user confirmed the install requirement preview
   // (size, data roots, AI/profile requirements, permissions).
   bool confirmed = 2;
+  string lifecycle_intent_id = 3;
+  string displayed_impact_digest = 4;
 }
 
 message InstallAppResponse {
@@ -374,6 +460,8 @@ message LocalAppAdoption {
 message AdoptLocalAppRequest {
   string root_path = 1;
   string expected_app_id = 2;
+  string lifecycle_intent_id = 3;
+  string displayed_impact_digest = 4;
 }
 
 message AdoptLocalAppResponse {
@@ -394,6 +482,8 @@ message ListLocalAppAdoptionsResponse {
 message RemoveLocalAppAdoptionRequest {
   string app_id = 1;
   bool delete_durable_data_confirmed = 2;
+  string lifecycle_intent_id = 3;
+  string displayed_impact_digest = 4;
 }
 
 message RemoveLocalAppAdoptionResponse {
@@ -445,6 +535,8 @@ message UninstallAppRequest {
   // destructive_data_delete_confirmed records explicit user confirmation of
   // the separate destructive "Delete app data" flow with impact preview.
   bool destructive_data_delete_confirmed = 3;
+  string lifecycle_intent_id = 4;
+  string displayed_impact_digest = 5;
 }
 
 // AppUninstallResult is the typed uninstall projection. Uninstall removes
@@ -480,6 +572,8 @@ message UpdateAppRequest {
   // (version, size, breaking-vs-non-breaking impact). It is required for a
   // required (breaking) update and ignored for a non-breaking update.
   bool confirmed = 2;
+  string lifecycle_intent_id = 3;
+  string displayed_impact_digest = 4;
 }
 
 message UpdateAppResponse {
@@ -500,6 +594,8 @@ message HealthRepairAppRequest {
   // job_id optionally targets a specific lifecycle job for cancel/retry. When
   // empty, cancel/retry resolve the most recent recoverable job for the app.
   string job_id = 3;
+  string lifecycle_intent_id = 4;
+  string displayed_impact_digest = 5;
 }
 
 message HealthRepairAppResponse {
@@ -577,6 +673,8 @@ message OpenAppRequest {
   // scope is the explicit canonical app-launch AIConfig scope. It is
   // mandatory: OpenApp never infers launch scope (K-APP-017 / S-APP-003).
   AppOpenScopeRef scope = 2;
+  string lifecycle_intent_id = 3;
+  string displayed_impact_digest = 4;
 }
 
 // AppOpenProjection is the typed Open-flow projection. It reports the
@@ -636,6 +734,9 @@ message OpenAppResponse {
 service RuntimeAppService {
   rpc SendAppMessage(SendAppMessageRequest) returns (SendAppMessageResponse);
   rpc SubscribeAppMessages(SubscribeAppMessagesRequest) returns (stream AppMessageEvent);
+
+  rpc PrepareAppLifecycleIntent(PrepareAppLifecycleIntentRequest) returns (PrepareAppLifecycleIntentResponse);
+  rpc GetAppLifecycleIntentStatus(GetAppLifecycleIntentStatusRequest) returns (GetAppLifecycleIntentStatusResponse);
 
   // Nimi App install/uninstall lifecycle (K-APP-011..K-APP-014).
   rpc InstallApp(InstallAppRequest) returns (InstallAppResponse);

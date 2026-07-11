@@ -270,8 +270,6 @@ func runRuntimeAuditExport(args []string) error {
 	toTimeRaw := fs.String("to-time", "", "to time (RFC3339)")
 	compress := fs.Bool("compress", false, "compress export payload")
 	output := fs.String("output", "", "output file path (optional)")
-	accessTokenID := fs.String("access-token-id", "", "protected access token id")
-	accessTokenSecret := fs.String("access-token-secret", "", "protected access token secret")
 	jsonOutput := fs.Bool("json", false, "output json")
 	callerKind := fs.String("caller-kind", "third-party-service", "caller kind metadata")
 	callerID := fs.String("caller-id", "nimi-cli", "caller id metadata")
@@ -295,8 +293,6 @@ func runRuntimeAuditExport(args []string) error {
 	}
 
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
-	callerMeta.AccessTokenID = strings.TrimSpace(*accessTokenID)
-	callerMeta.AccessTokenSecret = strings.TrimSpace(*accessTokenSecret)
 	resp, err := entrypoint.ExportAuditEventsGRPC(*grpcAddr, timeout, &runtimev1.ExportAuditEventsRequest{
 		AppId:         strings.TrimSpace(*appID),
 		SubjectUserId: strings.TrimSpace(*subjectUserID),

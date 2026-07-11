@@ -20,6 +20,16 @@ type protectedCapabilityAuthorizer interface {
 	ValidateProtectedCapability(appID string, tokenID string, secret string, capability string) (runtimev1.ReasonCode, string, bool)
 }
 
+// protectedCarrierOnlyCapabilityAuthorizer is installed on the ordinary gRPC
+// stack of a protected Runtime. That stack is never a production transport,
+// but it must remain fail-closed if a listener is wired incorrectly before the
+// carrier-specific evaluator is attached to an admitted native surface.
+type protectedCarrierOnlyCapabilityAuthorizer struct{}
+
+func (protectedCarrierOnlyCapabilityAuthorizer) ValidateProtectedCapability(string, string, string, string) (runtimev1.ReasonCode, string, bool) {
+	return runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH, "use_protected_desktop_carrier", false
+}
+
 const deferredStreamCapability = "__deferred__"
 
 func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.UnaryServerInterceptor {

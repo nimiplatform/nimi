@@ -254,5 +254,3 @@ func RevokeExternalPrincipalSessionGRPC(grpcAddr string, timeout time.Duration, 
 	}
 	return resp, nil
 }
-
-// AuthorizeExternalPrincipalGRPC calls RuntimeGrantService.AuthorizeExternalPrincipal over gRPC.

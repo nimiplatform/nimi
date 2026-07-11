@@ -6,6 +6,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc/codes"
 )
@@ -26,6 +27,12 @@ func isDesktopCoreLifecycleController(ctx context.Context) bool {
 // controller for RuntimeAppService app targets; install/open still go through
 // account-inventory and permission gates before mutating or launching anything.
 func (s *Service) requireAppLifecycleSession(ctx context.Context, appID string) error {
+	if connection, ok := protectedlocal.DesktopConnectionFromContext(ctx); ok {
+		origin := connection.Origin()
+		if origin.TransportClass == protectedlocal.TransportDesktopControl && origin.HasRole(protectedlocal.RoleDesktopLifecycleHost) {
+			return nil
+		}
+	}
 	if contextAppID := appIDFromContext(ctx); contextAppID != "" && contextAppID != appID {
 		if isDesktopCoreLifecycleController(ctx) {
 			return nil

@@ -2,57 +2,33 @@ package connector
 
 import (
 	"errors"
-	"fmt"
 	"sync"
-
-	keyring "github.com/zalando/go-keyring"
 )
 
-const (
-	connectorSecretServicePrefix = "nimi/runtime/connector"
-	connectorSecretAccount       = "credential-payload"
-)
+var ErrProtectedConnectorCustodyRequired = errors.New("protected connector custody required")
 
-type connectorSecretStore interface {
+type SecretStore interface {
 	WriteSecret(connectorID string, payload string) error
 	ReadSecret(connectorID string) (string, bool, error)
 	DeleteSecret(connectorID string) error
 }
 
-type osKeychainSecretStore struct{}
+type unavailableSecretStore struct{}
 
-func newOSKeychainSecretStore() connectorSecretStore {
-	return osKeychainSecretStore{}
+func newUnavailableSecretStore() SecretStore {
+	return unavailableSecretStore{}
 }
 
-func (osKeychainSecretStore) WriteSecret(connectorID string, payload string) error {
-	if err := keyring.Set(connectorSecretServiceName(connectorID), connectorSecretAccount, payload); err != nil {
-		return fmt.Errorf("secure store write failed: %w", err)
-	}
-	return nil
+func (unavailableSecretStore) WriteSecret(string, string) error {
+	return ErrProtectedConnectorCustodyRequired
 }
 
-func (osKeychainSecretStore) ReadSecret(connectorID string) (string, bool, error) {
-	secret, err := keyring.Get(connectorSecretServiceName(connectorID), connectorSecretAccount)
-	if err != nil {
-		if !errors.Is(err, keyring.ErrNotFound) {
-			return "", false, fmt.Errorf("secure store read failed: %w", err)
-		}
-		return "", false, nil
-	}
-	return secret, true, nil
+func (unavailableSecretStore) ReadSecret(string) (string, bool, error) {
+	return "", false, ErrProtectedConnectorCustodyRequired
 }
 
-func (osKeychainSecretStore) DeleteSecret(connectorID string) error {
-	err := keyring.Delete(connectorSecretServiceName(connectorID), connectorSecretAccount)
-	if err != nil && !errors.Is(err, keyring.ErrNotFound) {
-		return fmt.Errorf("secure store delete failed: %w", err)
-	}
-	return nil
-}
-
-func connectorSecretServiceName(connectorID string) string {
-	return connectorSecretServicePrefix + "/" + connectorID
+func (unavailableSecretStore) DeleteSecret(string) error {
+	return ErrProtectedConnectorCustodyRequired
 }
 
 type memorySecretStore struct {
@@ -60,7 +36,7 @@ type memorySecretStore struct {
 	secrets map[string]string
 }
 
-func newMemorySecretStore() connectorSecretStore {
+func newMemorySecretStore() SecretStore {
 	return &memorySecretStore{secrets: make(map[string]string)}
 }
 

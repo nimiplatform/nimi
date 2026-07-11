@@ -58,46 +58,6 @@ func TestAccountRPCPermissionMatrixKeepsAccountControlDesktopOwned(t *testing.T)
 	}
 
 	completeLoginAttemptAs(t, svc, desktop, login)
-	refresh, err := svc.RefreshAccountSession(context.Background(), &runtimev1.RefreshAccountSessionRequest{Caller: developer})
-	if err != nil {
-		t.Fatalf("developer RefreshAccountSession: %v", err)
-	}
-	if refresh.GetAccepted() || refresh.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("public refresh must reject developer caller: %+v", refresh)
-	}
-}
-
-func TestGetAccessTokenRequiresExplicitFirstPartyRawTokenAdmission(t *testing.T) {
-	desktop := realmDesktopShellCaller()
-	avatar := &runtimev1.AccountCaller{
-		AppId:         "nimi.avatar",
-		AppInstanceId: "nimi.avatar.first-party",
-		DeviceId:      "avatar-device",
-		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
-	}
-
-	unadmittedRegistry := testAppRegistry(t, desktop, avatar)
-	unadmitted := newHarnessService(t, nil, WithAppRegistry(unadmittedRegistry))
-	completeLoginAs(t, unadmitted, desktop)
-	rejected, err := unadmitted.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: avatar})
-	if err != nil {
-		t.Fatalf("unadmitted GetAccessToken: %v", err)
-	}
-	if rejected.GetAccepted() || rejected.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("raw token without explicit admission must fail closed: %+v", rejected)
-	}
-
-	admittedRegistry := testAppRegistry(t, desktop)
-	registerTestCallerWithCapabilities(t, admittedRegistry, avatar, []string{"account.raw-token", "account.session.read"}, false)
-	admitted := newHarnessService(t, nil, WithAppRegistry(admittedRegistry))
-	completeLoginAs(t, admitted, desktop)
-	accepted, err := admitted.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: avatar})
-	if err != nil {
-		t.Fatalf("admitted GetAccessToken: %v", err)
-	}
-	if !accepted.GetAccepted() || accepted.GetAccessToken() != "access-1" {
-		t.Fatalf("explicit first-party raw-token admission must work: %+v", accepted)
-	}
 }
 
 func TestInstalledAppBrokerRequiresBoundEnvelopeAndRejectsLaunchNonceReplay(t *testing.T) {
@@ -131,7 +91,7 @@ func TestInstalledAppBrokerRequiresBoundEnvelopeAndRejectsLaunchNonceReplay(t *t
 	if withoutEnvelope.GetAccepted() {
 		t.Fatalf("installed broker call without host envelope must fail closed: %+v", withoutEnvelope)
 	}
-	if withoutEnvelope.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH {
+	if withoutEnvelope.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
 		t.Fatalf("installed broker call without envelope reason = %v", withoutEnvelope.GetAccountReasonCode())
 	}
 
@@ -140,8 +100,8 @@ func TestInstalledAppBrokerRequiresBoundEnvelopeAndRejectsLaunchNonceReplay(t *t
 	if err != nil {
 		t.Fatalf("InvokeRealmUnary with envelope: %v", err)
 	}
-	if !accepted.GetAccepted() {
-		t.Fatalf("bound installed broker call must be accepted: %+v", accepted)
+	if accepted.GetAccepted() || accepted.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		t.Fatalf("installed broker call must remain denied before A.1: %+v", accepted)
 	}
 
 	forgedCaller := proto.Clone(caller).(*runtimev1.AccountCaller)
@@ -166,7 +126,7 @@ func TestInstalledAppBrokerRequiresBoundEnvelopeAndRejectsLaunchNonceReplay(t *t
 	if replayed.GetAccepted() {
 		t.Fatalf("launch nonce must not bind a second Runtime app session: %+v", replayed)
 	}
-	if replayed.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY {
+	if replayed.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
 		t.Fatalf("launch nonce replay reason = %v", replayed.GetAccountReasonCode())
 	}
 }
@@ -271,13 +231,13 @@ func TestRuntimePrivateRefreshIsSingleFlightForTokenProjection(t *testing.T) {
 	for range callers {
 		go func() {
 			defer wait.Done()
-			response, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
+			accessToken, reason, ok, err := svc.realmUnaryAccessToken(context.Background(), nil)
 			if err != nil {
 				errors <- err
 				return
 			}
-			if !response.GetAccepted() || response.GetAccessToken() != "access-refreshed" {
-				errors <- fmt.Errorf("unexpected token projection: %+v", response)
+			if !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED || accessToken != "access-refreshed" {
+				errors <- fmt.Errorf("unexpected private credential: ok=%v reason=%v token=%q", ok, reason, accessToken)
 			}
 		}()
 	}

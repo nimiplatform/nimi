@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -24,6 +23,7 @@ const (
 	ModeStopped               Mode = "stopped"
 	ModeBackground            Mode = "background"
 	ModeExternal              Mode = "external"
+	ModeProtectedService      Mode = "protected-service"
 	followLogFallbackInterval      = 2 * time.Second
 	fileRemoveRetryDelay           = 50 * time.Millisecond
 	fileRemoveRetryTimeout         = 2 * time.Second
@@ -95,42 +95,59 @@ type StopResult struct {
 	Mode           Mode `json:"mode,omitempty"`
 }
 
+// protectedServiceController is the only production lifecycle authority on
+// Windows. Its implementation calls the fixed NimiRuntime SCM service and
+// never accepts a caller-selected executable, command line, or endpoint.
+type protectedServiceController interface {
+	Status() (protectedServiceStatus, error)
+	Start(timeout time.Duration) (protectedServiceStatus, error)
+	Stop(timeout time.Duration) (protectedServiceStatus, error)
+}
+
+type protectedServiceStatus struct {
+	Running bool
+	PID     int
+	State   string
+}
+
 type Manager struct {
-	version        string
-	resolvePaths   func() (Paths, error)
-	loadConfig     func() (config.Config, error)
-	executablePath func() (string, error)
-	startProcess   func(executable string, logPath string) (int, error)
-	probe          func(grpcAddr string, timeout time.Duration) (map[string]any, error)
-	isProcessAlive func(pid int) bool
-	stopProcess    func(pid int, expectedExecutable string, force bool) error
-	now            func() time.Time
-	sleep          func(time.Duration)
-	readTail       func(path string, lines int) (string, error)
-	followLogsCtx  func() context.Context
-	writeAtomic    func(path string, content []byte, mode os.FileMode) error
-	readFile       func(path string) ([]byte, error)
-	removeFile     func(path string) error
-	openFile       func(path string) (*os.File, error)
-	statFile       func(path string) (os.FileInfo, error)
+	version          string
+	resolvePaths     func() (Paths, error)
+	loadConfig       func() (config.Config, error)
+	executablePath   func() (string, error)
+	startProcess     func(executable string, logPath string) (int, error)
+	protectedService protectedServiceController
+	probe            func(grpcAddr string, timeout time.Duration) (map[string]any, error)
+	isProcessAlive   func(pid int) bool
+	stopProcess      func(pid int, expectedExecutable string, force bool) error
+	now              func() time.Time
+	sleep            func(time.Duration)
+	readTail         func(path string, lines int) (string, error)
+	followLogsCtx    func() context.Context
+	writeAtomic      func(path string, content []byte, mode os.FileMode) error
+	readFile         func(path string) ([]byte, error)
+	removeFile       func(path string) error
+	openFile         func(path string) (*os.File, error)
+	statFile         func(path string) (os.FileInfo, error)
 }
 
 func NewManager(version string) *Manager {
 	return &Manager{
-		version:        strings.TrimSpace(version),
-		resolvePaths:   defaultPaths,
-		loadConfig:     config.Load,
-		executablePath: os.Executable,
-		startProcess:   defaultStartProcess,
-		probe:          entrypoint.FetchRuntimeHealthGRPC,
-		isProcessAlive: defaultProcessAlive,
-		stopProcess:    defaultStopProcess,
-		now:            time.Now,
-		sleep:          time.Sleep,
-		readTail:       readTailLines,
-		followLogsCtx:  context.Background,
-		writeAtomic:    writeBytesAtomic,
-		readFile:       os.ReadFile,
+		version:          strings.TrimSpace(version),
+		resolvePaths:     defaultPaths,
+		loadConfig:       config.Load,
+		executablePath:   os.Executable,
+		startProcess:     defaultStartProcess,
+		protectedService: newProtectedServiceController(),
+		probe:            entrypoint.FetchRuntimeHealthGRPC,
+		isProcessAlive:   defaultProcessAlive,
+		stopProcess:      defaultStopProcess,
+		now:              time.Now,
+		sleep:            time.Sleep,
+		readTail:         readTailLines,
+		followLogsCtx:    context.Background,
+		writeAtomic:      writeBytesAtomic,
+		readFile:         os.ReadFile,
 		removeFile: func(path string) error {
 			if strings.TrimSpace(path) == "" {
 				return nil
@@ -151,6 +168,9 @@ func NewManager(version string) *Manager {
 func (m *Manager) Start(timeout time.Duration) (StartResult, error) {
 	if timeout <= 0 {
 		timeout = 15 * time.Second
+	}
+	if controller := m.protectedService; controller != nil {
+		return m.startProtectedService(controller, timeout)
 	}
 	cfg, err := m.loadConfig()
 	if err != nil {
@@ -235,9 +255,35 @@ func (m *Manager) Start(timeout time.Duration) (StartResult, error) {
 	}
 }
 
+func (m *Manager) startProtectedService(controller protectedServiceController, timeout time.Duration) (StartResult, error) {
+	status, err := controller.Status()
+	if err != nil {
+		return StartResult{}, fmt.Errorf("query protected Runtime service: %w", err)
+	}
+	if status.Running {
+		return StartResult{}, fmt.Errorf("protected Runtime service is already running")
+	}
+	status, err = controller.Start(timeout)
+	if err != nil {
+		return StartResult{}, fmt.Errorf("start protected Runtime service: %w", err)
+	}
+	if !status.Running || status.PID <= 0 {
+		return StartResult{}, fmt.Errorf("protected Runtime service did not reach running state")
+	}
+	return StartResult{
+		Mode:          ModeProtectedService,
+		PID:           status.PID,
+		HealthSummary: "protected-service-running",
+		Version:       m.version,
+	}, nil
+}
+
 func (m *Manager) Stop(timeout time.Duration, force bool) (StopResult, error) {
 	if timeout <= 0 {
 		timeout = 10 * time.Second
+	}
+	if controller := m.protectedService; controller != nil {
+		return m.stopProtectedService(controller, timeout, force)
 	}
 	cfg := m.statusConfig()
 	status, err := m.statusWithConfig(cfg, config.RuntimeConfigPath(), false)
@@ -293,9 +339,51 @@ func (m *Manager) Stop(timeout time.Duration, force bool) (StopResult, error) {
 	}, nil
 }
 
+func (m *Manager) stopProtectedService(controller protectedServiceController, timeout time.Duration, force bool) (StopResult, error) {
+	if force {
+		return StopResult{}, fmt.Errorf("force stop is forbidden for the protected Runtime service")
+	}
+	status, err := controller.Status()
+	if err != nil {
+		return StopResult{}, fmt.Errorf("query protected Runtime service: %w", err)
+	}
+	if !status.Running {
+		return StopResult{AlreadyStopped: true, Stopped: true, Mode: ModeProtectedService}, nil
+	}
+	stopped, err := controller.Stop(timeout)
+	if err != nil {
+		return StopResult{}, fmt.Errorf("stop protected Runtime service: %w", err)
+	}
+	if stopped.Running {
+		return StopResult{}, fmt.Errorf("protected Runtime service did not stop")
+	}
+	return StopResult{Stopped: true, PID: status.PID, Mode: ModeProtectedService}, nil
+}
+
 func (m *Manager) Status() (Status, error) {
+	if controller := m.protectedService; controller != nil {
+		return m.statusFromProtectedService(controller)
+	}
 	cfg := m.statusConfig()
 	return m.statusWithConfig(cfg, config.RuntimeConfigPath(), true)
+}
+
+func (m *Manager) statusFromProtectedService(controller protectedServiceController) (Status, error) {
+	status, err := controller.Status()
+	if err != nil {
+		return Status{}, fmt.Errorf("query protected Runtime service: %w", err)
+	}
+	if !status.Running {
+		return Status{Mode: ModeProtectedService, Process: "stopped", HealthSummary: "protected-service-stopped", Version: m.version}, nil
+	}
+	return Status{
+		Mode:            ModeProtectedService,
+		Process:         "running",
+		PID:             status.PID,
+		HealthReachable: true,
+		HealthSummary:   "protected-service-running",
+		Version:         m.version,
+	}, nil
 }
 
 func (m *Manager) PrintLogs(ctx context.Context, w io.Writer, tail int, follow bool) error {
@@ -647,31 +735,6 @@ func defaultStatusConfig() config.Config {
 	return config.Config{
 		GRPCAddr: fileCfg.GRPCAddr,
 	}
-}
-
-func defaultStartProcess(executable string, logPath string) (int, error) {
-	logFile, err := os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
-	if err != nil {
-		return 0, fmt.Errorf("open runtime log file: %w", err)
-	}
-	defer func() { _ = logFile.Close() }()
-
-	cmd := exec.Command(executable, "serve")
-	detachCommand(cmd)
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
-	cmd.Stdin = nil
-
-	if err := cmd.Start(); err != nil {
-		return 0, fmt.Errorf("start background runtime: %w", err)
-	}
-	if cmd.Process == nil {
-		return 0, fmt.Errorf("start background runtime: process handle unavailable")
-	}
-	if err := cmd.Process.Release(); err != nil {
-		return 0, fmt.Errorf("release background runtime handle: %w", err)
-	}
-	return cmd.Process.Pid, nil
 }
 
 func normalizeHealthSummary(payload map[string]any) string {

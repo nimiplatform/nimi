@@ -25,7 +25,7 @@ func setEntrypointTestHome(t *testing.T, homeDir string) {
 	t.Setenv("HOMEPATH", homePath)
 }
 
-func TestRunDaemonFromArgsDoesNotMigrateLegacyRuntimeConfigOnStartup(t *testing.T) {
+func TestNonProductionDaemonFromArgsDoesNotMigrateLegacyRuntimeConfigOnStartup(t *testing.T) {
 	homeDir := t.TempDir()
 	setEntrypointTestHome(t, homeDir)
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
@@ -45,7 +45,7 @@ func TestRunDaemonFromArgsDoesNotMigrateLegacyRuntimeConfigOnStartup(t *testing.
 		t.Fatalf("write legacy config: %v", err)
 	}
 
-	err := RunDaemonFromArgs("nimi serve", []string{"--shutdown-timeout=invalid-duration"})
+	err := runNonProductionDaemonFromArgs("nimi serve", []string{"--shutdown-timeout=invalid-duration"})
 	if err == nil {
 		t.Fatalf("expected parse shutdown-timeout error")
 	}

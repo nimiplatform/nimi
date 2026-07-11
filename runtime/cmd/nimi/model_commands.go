@@ -157,8 +157,6 @@ func runRuntimeModelRemove(args []string) error {
 	timeoutRaw := fs.String("timeout", "10s", "grpc request timeout")
 	appID := fs.String("app-id", "nimi.desktop", "caller app id")
 	modelID := fs.String("model-id", "", "model id")
-	accessTokenID := fs.String("access-token-id", "", "protected access token id")
-	accessTokenSecret := fs.String("access-token-secret", "", "protected access token secret")
 	jsonOutput := fs.Bool("json", false, "output json")
 	callerKind := fs.String("caller-kind", "third-party-service", "caller kind metadata")
 	callerID := fs.String("caller-id", "nimi-cli", "caller id metadata")
@@ -176,8 +174,6 @@ func runRuntimeModelRemove(args []string) error {
 		return fmt.Errorf("parse timeout: %w", err)
 	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
-	callerMeta.AccessTokenID = strings.TrimSpace(*accessTokenID)
-	callerMeta.AccessTokenSecret = strings.TrimSpace(*accessTokenSecret)
 	resp, err := entrypoint.RemoveModelGRPC(*grpcAddr, timeout, &runtimev1.RemoveModelRequest{
 		AppId:   strings.TrimSpace(*appID),
 		ModelId: strings.TrimSpace(*modelID),

@@ -611,24 +611,6 @@ func TestTestConnectorSystemOwnedRemoteFailsClosedWithoutCloudProvider(t *testin
 		t.Fatalf("expected AI_PROVIDER_UNAVAILABLE, got %v", resp.GetAck().GetReasonCode())
 	}
 }
-func TestEnsureLocalConnectors(t *testing.T) {
-	store := newTestStore(t)
-	if err := EnsureLocalConnectors(store); err != nil {
-		t.Fatalf("EnsureLocalConnectors: %v", err)
-	}
-	records, _ := store.Load()
-	if len(records) != 0 {
-		t.Fatalf("expected no local connectors after hard cut, got %d", len(records))
-	}
-	// Running again should be idempotent
-	if err := EnsureLocalConnectors(store); err != nil {
-		t.Fatalf("EnsureLocalConnectors second run: %v", err)
-	}
-	records2, _ := store.Load()
-	if len(records2) != 0 {
-		t.Fatalf("expected still no local connectors, got %d", len(records2))
-	}
-}
 func TestTestConnectorRetiredLocalFailsClosed(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")

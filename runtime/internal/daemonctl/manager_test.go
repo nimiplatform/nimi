@@ -26,6 +26,7 @@ func newTestManager(t *testing.T) (*Manager, Paths, map[int]bool) {
 	}
 	alive := map[int]bool{}
 	manager := NewManager("0.2.0")
+	manager.protectedService = nil
 	manager.resolvePaths = func() (Paths, error) { return paths, nil }
 	manager.loadConfig = func() (config.Config, error) {
 		return config.Config{GRPCAddr: "127.0.0.1:46371"}, nil

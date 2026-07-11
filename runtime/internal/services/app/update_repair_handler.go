@@ -7,6 +7,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc/codes"
 )
 
@@ -66,6 +67,14 @@ func (s *Service) UpdateApp(ctx context.Context, req *runtimev1.UpdateAppRequest
 		return &runtimev1.UpdateAppResponse{Job: existing}, nil
 	}
 
+	if _, err := s.consumeLifecycleIntentForMutation(ctx, lifecycleIntentMutationRequest{
+		action:                protectedlocal.LifecycleActionUpdate,
+		appID:                 appID,
+		intentID:              req.GetLifecycleIntentId(),
+		displayedImpactDigest: req.GetDisplayedImpactDigest(),
+	}); err != nil {
+		return nil, err
+	}
 	job := s.installJobs.createJob(jobSpec{
 		appID:           appID,
 		descriptorRef:   descriptor.DescriptorID,
@@ -95,6 +104,18 @@ func (s *Service) HealthRepairApp(ctx context.Context, req *runtimev1.HealthRepa
 	}
 	if s.installRuntime == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_INSTALL_INTERNAL)
+	}
+	if _, err := s.consumeLifecycleIntentForMutation(ctx, lifecycleIntentMutationRequest{
+		action:                protectedlocal.LifecycleActionHealthRepair,
+		appID:                 appID,
+		intentID:              req.GetLifecycleIntentId(),
+		displayedImpactDigest: req.GetDisplayedImpactDigest(),
+		destructiveOptions: &runtimev1.AppLifecycleDestructiveOptions{
+			HealthRepairAction: req.GetAction(),
+			TargetJobId:        strings.TrimSpace(req.GetJobId()),
+		},
+	}); err != nil {
+		return nil, err
 	}
 
 	switch req.GetAction() {

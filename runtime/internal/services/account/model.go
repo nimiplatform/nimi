@@ -163,17 +163,19 @@ type Service struct {
 	nonProductionHarnessMode bool
 	eventRetention           int
 
-	refreshMu           sync.Mutex
-	mu                  sync.RWMutex
-	state               runtimev1.AccountSessionState
-	projection          *runtimev1.AccountProjection
-	material            AccountMaterial
-	loginAttempts       map[string]loginAttemptRecord
-	bindings            map[string]bindingRecord
-	workspaceBindings   map[string]workspaceBindingRecord
-	nextSequence        uint64
-	events              []*runtimev1.AccountSessionEvent
-	nextSubscriberID    uint64
-	subscribers         map[uint64]subscriber
-	launchNonceSessions map[string]string
+	identityMutationMu           sync.Mutex
+	mu                           sync.RWMutex
+	state                        runtimev1.AccountSessionState
+	projection                   *runtimev1.AccountProjection
+	material                     AccountMaterial
+	accountGeneration            uint64
+	authenticatedRuntimeIdentity bool
+	loginAttempts                map[string]loginAttemptRecord
+	bindings                     map[string]bindingRecord
+	workspaceBindings            map[string]workspaceBindingRecord
+	nextSequence                 uint64
+	events                       []*runtimev1.AccountSessionEvent
+	nextSubscriberID             uint64
+	subscribers                  map[uint64]subscriber
+	launchNonceSessions          map[string]string
 }

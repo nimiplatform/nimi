@@ -31,7 +31,7 @@ func main() {
 
 	switch args[1] {
 	case "serve":
-		exitIfCommandError("serve", entrypoint.RunDaemonFromArgs("nimi serve", args[2:], Version))
+		exitIfCommandError("serve", runServe(args[2:]))
 	case "start":
 		exitIfCommandError("start", runRuntimeStart(args[2:]))
 	case "doctor":
@@ -52,8 +52,6 @@ func main() {
 		exitIfCommandError("ai", runRuntimeAI(args[2:]))
 	case "model":
 		exitIfCommandError("model", runRuntimeModel(args[2:]))
-	case "app-auth":
-		exitIfCommandError("app-auth", runRuntimeAppAuth(args[2:]))
 	case "knowledge":
 		exitIfCommandError("knowledge", runRuntimeKnowledge(args[2:]))
 	case "app":
@@ -76,6 +74,10 @@ func main() {
 		printUsage()
 		os.Exit(2)
 	}
+}
+
+func runServe(args []string) error {
+	return entrypoint.RunProductionDaemonFromArgs("nimi serve", args, Version)
 }
 
 func exitIfCommandError(command string, err error) {
@@ -443,29 +445,6 @@ func runRuntimeProvider(args []string) error {
 		return runRuntimeProviderTest(args[1:])
 	default:
 		printRuntimeProviderUsage()
-		return flag.ErrHelp
-	}
-}
-
-func runRuntimeAppAuth(args []string) error {
-	if len(args) == 0 {
-		printRuntimeAppAuthUsage()
-		return flag.ErrHelp
-	}
-
-	switch args[0] {
-	case "authorize":
-		return runRuntimeAppAuthAuthorize(args[1:])
-	case "validate":
-		return runRuntimeAppAuthValidate(args[1:])
-	case "revoke":
-		return runRuntimeAppAuthRevoke(args[1:])
-	case "delegate":
-		return runRuntimeAppAuthDelegate(args[1:])
-	case "chain":
-		return runRuntimeAppAuthChain(args[1:])
-	default:
-		printRuntimeAppAuthUsage()
 		return flag.ErrHelp
 	}
 }

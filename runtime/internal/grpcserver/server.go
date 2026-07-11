@@ -6,10 +6,9 @@ import (
 	"log/slog"
 	"net"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
-	"unicode"
-	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appinstallgateway"
@@ -20,6 +19,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
@@ -49,11 +49,13 @@ type Server struct {
 	state            *health.State
 	logger           *slog.Logger
 	grpcServer       *grpc.Server
+	protectedServer  *grpc.Server
 	healthServer     *grpcHealth.Server
 	rpcRegistry      *activeRPCRegistry
 	aiHealth         *providerhealth.Tracker
 	auditStore       *auditlog.Store
 	accountService   *accountservice.Service
+	authService      *authservice.Service
 	aiSvc            *aiservice.Service
 	appService       *appservice.Service
 	localService     *localservice.Service
@@ -128,7 +130,45 @@ func isSourceMaterializationLoopbackHost(host string) bool {
 	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
-func New(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
+// ProtectedServiceBindings are supplied only after the OS-specific service
+// principal, state root, and secure store have been verified. No field is
+// sourced from argv, environment, renderer IPC, or user-writable config.
+type ProtectedServiceBindings struct {
+	ServiceStateRoot        string
+	AccountCustody          accountservice.Custody
+	AccountPartition        string
+	AccountRealmBaseURL     string
+	AccountAuthorizationURL string
+	AccountTokenURL         string
+	ConnectorSecrets        connectorservice.SecretStore
+	DesktopSessions         *protectedlocal.DesktopSessionManager
+	LifecycleIntents        *protectedlocal.LifecycleIntentManager
+}
+
+func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
+	return newServer(cfg, state, logger, version, nil)
+}
+
+func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Logger, version string, bindings ProtectedServiceBindings) (*Server, error) {
+	stateRoot := filepath.Clean(strings.TrimSpace(bindings.ServiceStateRoot))
+	if !filepath.IsAbs(stateRoot) || stateRoot == filepath.VolumeName(stateRoot)+string(filepath.Separator) {
+		return nil, fmt.Errorf("protected service state root must be an absolute non-root path")
+	}
+	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil || bindings.LifecycleIntents == nil {
+		return nil, fmt.Errorf("protected service custody, verified account partition, Desktop sessions, and lifecycle intent authority are required")
+	}
+	if err := bindings.DesktopSessions.ValidateAnchored(context.Background()); err != nil {
+		return nil, fmt.Errorf("validate protected Desktop session authority: %w", err)
+	}
+	if err := bindings.LifecycleIntents.ValidateAnchored(context.Background(), bindings.DesktopSessions); err != nil {
+		return nil, fmt.Errorf("validate protected lifecycle intent authority: %w", err)
+	}
+	bindings.ServiceStateRoot = stateRoot
+	cfg.LocalStatePath = filepath.Join(stateRoot, "runtime", "local-state.json")
+	return newServer(cfg, state, logger, version, &bindings)
+}
+
+func newServer(cfg config.Config, state *health.State, logger *slog.Logger, version string, protected *ProtectedServiceBindings) (*Server, error) {
 	addr := cfg.GRPCAddr
 	auditStore := auditlog.New(cfg.AuditRingBufferSize, cfg.UsageStatsBufferSize)
 	idempotencyStore, err := idempotency.New(24*time.Hour, cfg.IdempotencyCapacity)
@@ -140,16 +180,6 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	if err != nil {
 		return nil, err
 	}
-	scopeCatalog := scopecatalog.New(func(operation string, version string, code runtimev1.ReasonCode) {
-		appendAuditEvent(auditStore, auditEventInput{
-			Domain:              "runtime.scope",
-			Operation:           operation,
-			ReasonCode:          code,
-			ScopeCatalogVersion: version,
-			CallerKind:          runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
-			CallerID:            "scope-catalog",
-		})
-	})
 	registryPath := modelregistry.ResolvePersistencePath()
 	modelRegistry, err := modelregistry.NewFromFile(registryPath)
 	if err != nil {
@@ -162,25 +192,51 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	rpcRegistry := newActiveRPCRegistry(nil)
 
 	h := grpcHealth.NewServer()
-	grantSvc := grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog,
-		grantservice.WithAuditStore(auditStore),
-		grantservice.WithTTLBounds(cfg.SessionTTLMinSeconds, cfg.SessionTTLMaxSeconds),
-		grantservice.WithMaxDelegationDepth(cfg.MaxDelegationDepth),
-	)
+	capabilityAuthorizer := protectedCapabilityAuthorizer(protectedCarrierOnlyCapabilityAuthorizer{})
+	var grantSvc *grantservice.Service
+	if protected == nil {
+		scopeCatalog := scopecatalog.New(func(operation string, version string, code runtimev1.ReasonCode) {
+			appendAuditEvent(auditStore, auditEventInput{
+				Domain:              "runtime.scope",
+				Operation:           operation,
+				ReasonCode:          code,
+				ScopeCatalogVersion: version,
+				CallerKind:          runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
+				CallerID:            "scope-catalog",
+			})
+		})
+		grantSvc = grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog,
+			grantservice.WithAuditStore(auditStore),
+			grantservice.WithTTLBounds(cfg.SessionTTLMinSeconds, cfg.SessionTTLMaxSeconds),
+			grantservice.WithMaxDelegationDepth(cfg.MaxDelegationDepth),
+		)
+		capabilityAuthorizer = grantSvc
+	}
+	authOptions := make([]authservice.Option, 0, 1)
+	if protected != nil {
+		authOptions = append(authOptions, authservice.WithDesktopSessionManager(protected.DesktopSessions))
+	}
 	authSvc := authservice.NewWithDependencies(
 		logger, appRegistry, auditStore,
 		int32(cfg.SessionTTLMinSeconds), int32(cfg.SessionTTLMaxSeconds),
+		authOptions...,
 	)
 	authSvc.SetNimiAppRegistryCatalog(nimiAppRegistry)
 	authSvc.SetFirstPartyMigrationLaunchGate(defaultFirstPartyMigrationLaunchGate())
 	authSvc.SetDeveloperRegistrationEnabled(cfg.AuthDeveloperRegistrationEnabled)
-	accountSvc := accountservice.NewProduction(logger, accountservice.ProductionConfig{
-		RealmBaseURL:        cfg.AccountRealmBaseURL,
-		AuthorizationURL:    cfg.AccountAuthorizationURL,
-		TokenURL:            cfg.AccountTokenURL,
-		AppRegistry:         appRegistry,
-		AppSessionValidator: authSvc,
-	})
+	var protectedGRPCServer *grpc.Server
+	accountSvc := accountservice.New(logger)
+	if protected != nil {
+		accountSvc = accountservice.NewProduction(logger, accountservice.ProductionConfig{
+			RealmBaseURL:        protected.AccountRealmBaseURL,
+			AuthorizationURL:    protected.AccountAuthorizationURL,
+			TokenURL:            protected.AccountTokenURL,
+			CustodyPartition:    protected.AccountPartition,
+			Custody:             protected.AccountCustody,
+			AppRegistry:         appRegistry,
+			AppSessionValidator: authSvc,
+		})
+	}
 
 	// AuthN validator — JWKS mode (K-AUTHN-004). revocationUrl shares the
 	// bearer JWT restart config group with issuer/audience/jwksUrl, so the full
@@ -205,20 +261,22 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		grpc.ChainUnaryInterceptor(
 			newUnaryVersionInterceptor(logger, version),
 			newUnaryLifecycleInterceptor(state),
+			newUnaryPublicTransportInterceptor(),
 			newUnaryActivityInterceptor(rpcRegistry),
 			newUnaryProtocolInterceptor(idempotencyStore),
 			authn.NewUnaryInterceptor(authnValidator),
-			newUnaryAuthzInterceptor(grantSvc),
+			newUnaryAuthzInterceptor(capabilityAuthorizer),
 			newUnaryCredentialScrubInterceptor(),
 			newUnaryAuditInterceptor(auditStore),
 		),
 		grpc.ChainStreamInterceptor(
 			newStreamVersionInterceptor(logger, version),
 			newStreamLifecycleInterceptor(state),
+			newStreamPublicTransportInterceptor(),
 			newStreamActivityInterceptor(rpcRegistry),
 			newStreamProtocolInterceptor(),
 			authn.NewStreamInterceptor(authnValidator),
-			newStreamAuthzInterceptor(grantSvc),
+			newStreamAuthzInterceptor(capabilityAuthorizer),
 			newStreamCredentialScrubInterceptor(),
 			newStreamAuditInterceptor(auditStore),
 		),
@@ -226,24 +284,25 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	healthpb.RegisterHealthServer(g, h)
 	runtimev1.RegisterRuntimeAuditServiceServer(g, auditservice.New(state, logger, aiHealth, auditStore))
 
-	connStore := connectorservice.NewConnectorStore(connectorservice.ResolveBasePath())
+	connectorBasePath := filepath.Join(filepath.Dir(cfg.LocalStatePath), "connectors")
+	connStore := connectorservice.NewConnectorStore(connectorBasePath)
+	if protected != nil {
+		connectorBasePath = filepath.Join(protected.ServiceStateRoot, "connectors")
+		connStore = connectorservice.NewConnectorStoreWithSecretStore(connectorBasePath, protected.ConnectorSecrets)
+	}
 	if err := connStore.ReconcileStartup(); err != nil {
 		return nil, fmt.Errorf("reconcile connector store: %w", err)
 	}
-	if err := connectorservice.EnsureLocalConnectors(connStore); err != nil {
-		return nil, fmt.Errorf("ensure local connectors: %w", err)
-	}
-
-	cloudDefs := buildCloudConnectorDefs(cfg)
-	if err := connectorservice.EnsureCloudConnectorsFromConfig(connStore, cloudDefs); err != nil {
-		return nil, fmt.Errorf("ensure cloud connectors: %w", err)
-	}
-
 	artifactStore, err := runtimeartifactservice.NewDiskStoreForLocalStatePath(cfg.LocalStatePath)
 	if err != nil {
 		return nil, fmt.Errorf("init runtime artifact store: %w", err)
 	}
-	aiSvc, err := aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
+	var aiSvc *aiservice.Service
+	if protected != nil {
+		aiSvc, err = aiservice.NewProtected(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
+	} else {
+		aiSvc, err = aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("init ai service: %w", err)
 	}
@@ -440,7 +499,9 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		return nil, fmt.Errorf("init cognition service: %w", err)
 	}
 
-	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
+	if grantSvc != nil {
+		runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
+	}
 	runtimev1.RegisterRuntimeExternalAgentServiceServer(g, externalagentservice.New(logger))
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
 	runtimev1.RegisterRuntimeAccountServiceServer(g, accountSvc)
@@ -458,7 +519,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		localSvc.Close()
 		return nil, fmt.Errorf("init Nimi App install runtime: %w", err)
 	}
-	appSvc := appservice.New(logger,
+	appOptions := []appservice.Option{
 		appservice.WithSessionValidator(authSvc),
 		appservice.WithScopedBindingValidator(accountSvc),
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
@@ -466,7 +527,14 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		appservice.WithRuntimeAppRegistry(appRegistry),
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
 		appservice.WithOpenAppReadinessVerifier(appservice.NewAccountProjectionOpenAppReadinessVerifier(accountSvc)),
-	)
+	}
+	if protected != nil {
+		appOptions = append(appOptions, appservice.WithLifecycleIntentManager(protected.LifecycleIntents))
+	}
+	appSvc := appservice.New(logger, appOptions...)
+	if protected != nil {
+		protectedGRPCServer = newProtectedDesktopRPCServer(authSvc, accountSvc, appSvc, protected.DesktopSessions)
+	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
 	agentSvc.SetPublicChatAppEmitter(func(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
@@ -485,11 +553,13 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		state:            state,
 		logger:           logger,
 		grpcServer:       g,
+		protectedServer:  protectedGRPCServer,
 		healthServer:     h,
 		rpcRegistry:      rpcRegistry,
 		aiHealth:         aiHealth,
 		auditStore:       auditStore,
 		accountService:   accountSvc,
+		authService:      authSvc,
 		aiSvc:            aiSvc,
 		appService:       appSvc,
 		localService:     localSvc,
@@ -552,6 +622,30 @@ func (s *Server) Serve() error {
 	return nil
 }
 
+// ServeProtected serves the dedicated native Desktop control transport. The
+// listener must yield only connections wrapped after OS peer verification.
+func (s *Server) ServeProtected(listener net.Listener) error {
+	if s == nil || s.protectedServer == nil {
+		return fmt.Errorf("protected Desktop gRPC server is unavailable")
+	}
+	if listener == nil {
+		return fmt.Errorf("protected Desktop listener is required")
+	}
+	if err := s.protectedServer.Serve(listener); err != nil {
+		return fmt.Errorf("serve protected Desktop gRPC: %w", err)
+	}
+	return nil
+}
+
+// ServeVerifiedNativeDesktop serves protected Desktop gRPC only after the
+// native listener has minted an opaque OS-verified connection carrier.
+func (s *Server) ServeVerifiedNativeDesktop(listener net.Listener) error {
+	if listener == nil {
+		return fmt.Errorf("verified native Desktop listener is required")
+	}
+	return s.ServeProtected(&nativeVerifiedDesktopListener{Listener: listener})
+}
+
 type StopResult struct {
 	Shutdown ShutdownSummary
 }
@@ -569,6 +663,9 @@ func (s *Server) Stop(ctx context.Context) StopResult {
 	}
 	done := make(chan struct{})
 	go func() {
+		if s.protectedServer != nil {
+			s.protectedServer.GracefulStop()
+		}
 		s.grpcServer.GracefulStop()
 		close(done)
 	}()
@@ -580,6 +677,9 @@ func (s *Server) Stop(ctx context.Context) StopResult {
 		}
 		return StopResult{Shutdown: s.rpcRegistry.CompleteShutdown(false)}
 	case <-ctx.Done():
+		if s.protectedServer != nil {
+			s.protectedServer.Stop()
+		}
 		s.grpcServer.Stop()
 		if s.rpcRegistry == nil {
 			return StopResult{}
@@ -611,46 +711,4 @@ func (s *Server) SyncServingState() {
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAccountService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAppService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeConnectorService_ServiceDesc.ServiceName, servingStatus)
-}
-
-// buildCloudConnectorDefs builds cloud connector definitions from config.json providers.
-func buildCloudConnectorDefs(cfg config.Config) []connectorservice.CloudConnectorDef {
-	if len(cfg.Providers) == 0 {
-		return nil
-	}
-	var defs []connectorservice.CloudConnectorDef
-	for configKey, target := range cfg.Providers {
-		canonical, ok := config.ResolveCanonicalProviderID(configKey)
-		if !ok {
-			continue
-		}
-		apiKey := config.ResolveProviderAPIKey(target)
-		if apiKey == "" {
-			continue
-		}
-		endpoint := strings.TrimSpace(target.BaseURL)
-		if endpoint == "" {
-			endpoint = connectorservice.ResolveEndpoint(canonical, "")
-		}
-		label := "Cloud " + capitalizeFirst(canonical)
-		defs = append(defs, connectorservice.CloudConnectorDef{
-			Provider:  canonical,
-			Endpoint:  endpoint,
-			APIKey:    apiKey,
-			APIKeyEnv: strings.TrimSpace(target.APIKeyEnv),
-			Label:     label,
-		})
-	}
-	return defs
-}
-
-func capitalizeFirst(s string) string {
-	if s == "" {
-		return s
-	}
-	firstRune, width := utf8.DecodeRuneInString(s)
-	if firstRune == utf8.RuneError && width == 0 {
-		return s
-	}
-	return string(unicode.ToUpper(firstRune)) + s[width:]
 }

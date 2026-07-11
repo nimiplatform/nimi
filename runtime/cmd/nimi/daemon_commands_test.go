@@ -164,6 +164,38 @@ func TestRunRuntimeStatusReturnsUnreachableExitCode(t *testing.T) {
 	}
 }
 
+func TestRunRuntimeStartProtectedServiceOmitsLegacyTransportFields(t *testing.T) {
+	previousFactory := daemonManagerFactory
+	daemonManagerFactory = func() daemonManager {
+		return stubDaemonManager{
+			startResult: daemonctl.StartResult{
+				Mode:          daemonctl.ModeProtectedService,
+				PID:           426,
+				Version:       "test",
+				HealthSummary: "protected-service-running",
+			},
+		}
+	}
+	defer func() {
+		daemonManagerFactory = previousFactory
+	}()
+
+	output, err := captureStdoutFromRun(func() error {
+		return runRuntimeStart(nil)
+	})
+	if err != nil {
+		t.Fatalf("runRuntimeStart: %v", err)
+	}
+	if !strings.Contains(output, "protected-service") || !strings.Contains(output, "426") {
+		t.Fatalf("unexpected protected service start output: %q", output)
+	}
+	for _, legacyField := range []string{"grpc:", "config:", "logs:"} {
+		if strings.Contains(output, legacyField) {
+			t.Fatalf("protected service start output must omit %s: %q", legacyField, output)
+		}
+	}
+}
+
 func TestRunRuntimeProviderTestRuntimeUnavailableHint(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_GRPC_ADDR", "127.0.0.1:1")
 

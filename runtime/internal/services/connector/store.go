@@ -16,10 +16,7 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-const (
-	registryFileName              = "connector-registry.json"
-	connectorTestMemorySecretsEnv = "NIMI_RUNTIME_CONNECTOR_TEST_MEMORY_SECRETS"
-)
+const registryFileName = "connector-registry.json"
 
 var errConnectorLimitExceeded = errors.New("connector limit exceeded")
 
@@ -47,7 +44,6 @@ type ConnectorRecord struct {
 	HasCredential        bool                         `json:"has_credential"`
 	AuthKind             runtimev1.ConnectorAuthKind  `json:"auth_kind,omitempty"`
 	ProviderAuthProfile  string                       `json:"provider_auth_profile,omitempty"`
-	CredentialEnv        string                       `json:"credential_env,omitempty"`
 	CreatedAt            int64                        `json:"created_at"`
 	UpdatedAt            int64                        `json:"updated_at"`
 	DeletePending        bool                         `json:"delete_pending,omitempty"`
@@ -58,7 +54,6 @@ type ConnectorMutations struct {
 	Label               *string
 	Endpoint            *string
 	SecretPayload       *string
-	CredentialEnv       *string
 	Status              *runtimev1.ConnectorStatus
 	AuthKind            *runtimev1.ConnectorAuthKind
 	ProviderAuthProfile *string
@@ -68,18 +63,25 @@ type ConnectorMutations struct {
 type ConnectorStore struct {
 	mu           sync.Mutex
 	registryPath string
-	secretStore  connectorSecretStore
+	secretStore  SecretStore
 }
 
 // NewConnectorStore creates a store rooted at basePath.
 func NewConnectorStore(basePath string) *ConnectorStore {
-	if strings.TrimSpace(os.Getenv(connectorTestMemorySecretsEnv)) == "1" {
-		return NewConnectorStoreWithMemorySecrets(basePath)
-	}
-	return newConnectorStore(basePath, newOSKeychainSecretStore())
+	return newConnectorStore(basePath, newUnavailableSecretStore())
 }
 
-func newConnectorStore(basePath string, secretStore connectorSecretStore) *ConnectorStore {
+// NewConnectorStoreWithSecretStore binds Runtime-service-owned credential
+// custody. Production callers must inject a protected service-principal store;
+// the default constructor intentionally fails closed for credential access.
+func NewConnectorStoreWithSecretStore(basePath string, secretStore SecretStore) *ConnectorStore {
+	if secretStore == nil {
+		secretStore = newUnavailableSecretStore()
+	}
+	return newConnectorStore(basePath, secretStore)
+}
+
+func newConnectorStore(basePath string, secretStore SecretStore) *ConnectorStore {
 	return &ConnectorStore{
 		registryPath: filepath.Join(basePath, registryFileName),
 		secretStore:  secretStore,
@@ -158,11 +160,6 @@ func (s *ConnectorStore) createLocked(record ConnectorRecord, secretPayload stri
 	} else if _, err := sanitizeConnectorID(record.ConnectorID); err != nil {
 		return ConnectorRecord{}, fmt.Errorf("invalid connector id: %w", err)
 	}
-	credentialEnv, err := sanitizeCredentialEnv(record.CredentialEnv)
-	if err != nil {
-		return ConnectorRecord{}, err
-	}
-	record.CredentialEnv = credentialEnv
 	now := time.Now().UnixMilli()
 	if record.CreatedAt == 0 {
 		record.CreatedAt = now
@@ -197,12 +194,7 @@ func (s *ConnectorStore) createLocked(record ConnectorRecord, secretPayload stri
 		}
 	}
 
-	if secretPayload != "" && record.CredentialEnv != "" {
-		return ConnectorRecord{}, fmt.Errorf("credential env and credential payload are mutually exclusive")
-	}
-	if record.CredentialEnv != "" {
-		record.HasCredential = envCredentialAvailable(record.CredentialEnv)
-	} else if secretPayload != "" {
+	if secretPayload != "" {
 		if err := s.writeSecretPayloadLocked(record.ConnectorID, secretPayload); err != nil {
 			return ConnectorRecord{}, fmt.Errorf("write credential: %w", err)
 		}
@@ -254,23 +246,8 @@ func (s *ConnectorStore) Update(connectorID string, mutations ConnectorMutations
 	if mutations.ProviderAuthProfile != nil {
 		rec.ProviderAuthProfile = strings.TrimSpace(*mutations.ProviderAuthProfile)
 	}
-	if mutations.CredentialEnv != nil && mutations.SecretPayload != nil {
-		return ConnectorRecord{}, fmt.Errorf("credential env and credential payload are mutually exclusive")
-	}
-	if mutations.CredentialEnv != nil {
-		credentialEnv, err := sanitizeCredentialEnv(*mutations.CredentialEnv)
-		if err != nil {
-			return ConnectorRecord{}, err
-		}
-		rec.CredentialEnv = credentialEnv
-		if credentialEnv != "" {
-			s.deleteStoredSecretPayloadBestEffortLocked(connectorID)
-			rec.HasCredential = envCredentialAvailable(credentialEnv)
-		}
-	}
 	if mutations.SecretPayload != nil {
 		payload := *mutations.SecretPayload
-		rec.CredentialEnv = ""
 		if payload != "" {
 			if err := s.writeSecretPayloadLocked(connectorID, payload); err != nil {
 				return ConnectorRecord{}, fmt.Errorf("write credential: %w", err)
@@ -376,16 +353,11 @@ func (s *ConnectorStore) ReconcileStartup() error {
 	}
 	records = filtered
 
-	// Sync has_credential flag from the current credential source.
+	// Sync has_credential only from the protected credential store.
 	for i := range records {
 		r := &records[i]
 		hasCred := false
-		if r.CredentialEnv != "" {
-			if _, err := sanitizeCredentialEnv(r.CredentialEnv); err != nil {
-				return fmt.Errorf("invalid credential env for connector %q: %w", r.ConnectorID, err)
-			}
-			hasCred = envCredentialAvailable(r.CredentialEnv)
-		} else if r.HasCredential {
+		if r.HasCredential {
 			secret, readErr := s.readStoredSecretPayloadLocked(r.ConnectorID)
 			if readErr != nil {
 				return fmt.Errorf("load credential %q: %w", r.ConnectorID, readErr)
@@ -448,13 +420,6 @@ func (s *ConnectorStore) writeSecretPayloadLocked(connectorID string, payload st
 }
 
 func (s *ConnectorStore) readSecretPayloadLocked(connectorID string) (string, error) {
-	rec, found, err := s.getRecordLocked(connectorID)
-	if err != nil {
-		return "", err
-	}
-	if found && strings.TrimSpace(rec.CredentialEnv) != "" {
-		return strings.TrimSpace(os.Getenv(strings.TrimSpace(rec.CredentialEnv))), nil
-	}
 	return s.readStoredSecretPayloadLocked(connectorID)
 }
 
@@ -482,10 +447,6 @@ func (s *ConnectorStore) deleteSecretPayloadLocked(connectorID string) error {
 		return err
 	}
 	return nil
-}
-
-func (s *ConnectorStore) deleteStoredSecretPayloadBestEffortLocked(connectorID string) {
-	_ = s.deleteSecretPayloadLocked(connectorID)
 }
 
 func (s *ConnectorStore) getRecordLocked(connectorID string) (ConnectorRecord, bool, error) {
@@ -517,27 +478,6 @@ func sanitizeConnectorID(connectorID string) (string, error) {
 		return "", fmt.Errorf("connector id %q must not contain path separators", trimmed)
 	}
 	return trimmed, nil
-}
-
-func sanitizeCredentialEnv(envKey string) (string, error) {
-	trimmed := strings.TrimSpace(envKey)
-	if trimmed == "" {
-		return "", nil
-	}
-	for i, char := range trimmed {
-		if char >= 'A' && char <= 'Z' || char >= 'a' && char <= 'z' || char == '_' {
-			continue
-		}
-		if i > 0 && char >= '0' && char <= '9' {
-			continue
-		}
-		return "", fmt.Errorf("credential env %q must be a valid environment variable name", trimmed)
-	}
-	return trimmed, nil
-}
-
-func envCredentialAvailable(envKey string) bool {
-	return strings.TrimSpace(os.Getenv(strings.TrimSpace(envKey))) != ""
 }
 
 // atomicWriteFile writes content atomically: temp → fsync → rename → fsync parent dir.

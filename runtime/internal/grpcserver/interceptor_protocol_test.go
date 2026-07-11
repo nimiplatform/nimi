@@ -2,22 +2,16 @@ package grpcserver
 
 import (
 	"context"
-	"io"
-	"log/slog"
 	"strings"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
-	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
-	grantservice "github.com/nimiplatform/nimi/runtime/internal/services/grant"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestUnaryProtocolInterceptorRejectsMissingMetadata(t *testing.T) {
@@ -220,37 +214,8 @@ func TestUnaryProtocolInterceptorRejectsNonProtoWriteRequest(t *testing.T) {
 }
 
 func TestUnaryAuthzInterceptorProtectedCapability(t *testing.T) {
-	registry := appregistry.New()
-	if err := registry.Upsert("nimi.desktop", &runtimev1.AppModeManifest{
-		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
-		RuntimeRequired: true,
-		RealmRequired:   true,
-		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}, nil); err != nil {
-		t.Fatalf("Upsert: %v", err)
-	}
-	grantSvc := grantservice.NewWithDependencies(slog.New(slog.NewTextHandler(io.Discard, nil)), registry, scopecatalog.New())
-	authorizeResp, err := grantSvc.AuthorizeExternalPrincipal(context.Background(), &runtimev1.AuthorizeExternalPrincipalRequest{
-		Domain:                "app-auth",
-		AppId:                 "nimi.desktop",
-		ExternalPrincipalId:   "agent-a",
-		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
-		SubjectUserId:         "user-1",
-		ConsentId:             "consent-1",
-		ConsentVersion:        "v1",
-		DecisionAt:            timestamppb.Now(),
-		PolicyVersion:         "p1",
-		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_CUSTOM,
-		Scopes:                []string{"runtime.model.remove"},
-		ResourceSelectors:     &runtimev1.ResourceSelectors{},
-		ScopeCatalogVersion:   "sdk-v1",
-		TtlSeconds:            300,
-	})
-	if err != nil {
-		t.Fatalf("authorize token: %v", err)
-	}
-
-	interceptor := newUnaryAuthzInterceptor(grantSvc)
+	authorizer := &authzTestAuthorizer{reason: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED}
+	interceptor := newUnaryAuthzInterceptor(authorizer)
 	info := &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeModelService/RemoveModel"}
 	req := &runtimev1.RemoveModelRequest{
 		AppId:   "nimi.desktop",
@@ -258,7 +223,7 @@ func TestUnaryAuthzInterceptorProtectedCapability(t *testing.T) {
 	}
 
 	missingTokenCtx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "nimi.desktop"))
-	_, err = interceptor(missingTokenCtx, req, info, func(_ context.Context, _ any) (any, error) {
+	_, err := interceptor(missingTokenCtx, req, info, func(_ context.Context, _ any) (any, error) {
 		return &runtimev1.Ack{Ok: true}, nil
 	})
 	if err == nil {
@@ -269,10 +234,11 @@ func TestUnaryAuthzInterceptorProtectedCapability(t *testing.T) {
 		t.Fatalf("unexpected error without token: %v", err)
 	}
 
+	authorizer.allow = true
 	authorizedCtx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"x-nimi-app-id", "nimi.desktop",
-		"x-nimi-access-token-id", authorizeResp.GetTokenId(),
-		"x-nimi-access-token-secret", authorizeResp.GetSecret(),
+		"x-nimi-access-token-id", "runtime-private-decision",
+		"x-nimi-access-token-secret", "runtime-private-proof",
 	))
 	_, err = interceptor(authorizedCtx, req, info, func(_ context.Context, _ any) (any, error) {
 		return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil

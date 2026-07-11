@@ -2,12 +2,14 @@ package app
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc/codes"
 )
 
@@ -110,8 +112,28 @@ func (s *Service) RemoveLocalAppAdoption(ctx context.Context, req *runtimev1.Rem
 	if s.localAdoptions == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_INSTALL_INTERNAL)
 	}
-	adoption, err := s.localAdoptions.remove(appID)
+	target, err := s.consumeLifecycleIntentForMutation(ctx, lifecycleIntentMutationRequest{
+		action:                protectedlocal.LifecycleActionRemoveLocalAppAdoption,
+		appID:                 appID,
+		intentID:              req.GetLifecycleIntentId(),
+		displayedImpactDigest: req.GetDisplayedImpactDigest(),
+		destructiveOptions: &runtimev1.AppLifecycleDestructiveOptions{
+			DeleteDurableData: req.GetDeleteDurableDataConfirmed(),
+		},
+	})
 	if err != nil {
+		return nil, err
+	}
+	var adoption localAppAdoptionRecord
+	if target.adoptionGeneration != 0 {
+		adoption, err = s.localAdoptions.removeAtGeneration(appID, target.adoptionGeneration)
+	} else {
+		adoption, err = s.localAdoptions.remove(appID)
+	}
+	if err != nil {
+		if errors.Is(err, errLocalAppAdoptionGenerationChanged) {
+			return nil, lifecycleIntentMismatch("prepare_lifecycle_intent")
+		}
 		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_APP_INSTALL_DESCRIPTOR_NOT_FOUND, grpcerr.ReasonOptions{
 			Message: err.Error(),
 		})

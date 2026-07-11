@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
@@ -88,9 +89,11 @@ type Service struct {
 	appStorageDataRoot string
 	openReadiness      OpenAppReadinessVerifier
 	accountProjection  runtimeAccountProjectionProvider
+	accountSecurity    runtimeAccountSecurityContextProvider
 	runtimeAppRegistry *appregistry.Registry
 	accountInventory   *accountAppInventoryStore
 	localAdoptions     *localAppAdoptionStore
+	lifecycleIntents   *protectedlocal.LifecycleIntentManager
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
@@ -143,12 +146,21 @@ func WithOpenAppReadinessVerifier(verifier OpenAppReadinessVerifier) Option {
 func WithRuntimeAccountProjectionProvider(provider runtimeAccountProjectionProvider) Option {
 	return func(s *Service) {
 		s.accountProjection = provider
+		if security, ok := provider.(runtimeAccountSecurityContextProvider); ok {
+			s.accountSecurity = security
+		}
 	}
 }
 
 func WithRuntimeAppRegistry(registry *appregistry.Registry) Option {
 	return func(s *Service) {
 		s.runtimeAppRegistry = registry
+	}
+}
+
+func WithLifecycleIntentManager(manager *protectedlocal.LifecycleIntentManager) Option {
+	return func(s *Service) {
+		s.lifecycleIntents = manager
 	}
 }
 

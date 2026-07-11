@@ -71,6 +71,21 @@ message OpenSessionResponse {
   ReasonCode reason_code = 5;
 }
 
+// OpenDesktopSessionRequest is intentionally empty. The protected transport,
+// verified peer process, executable trust, and origin roles are derived from
+// the already-authenticated desktop_control connection; no request field or
+// metadata value may select or upgrade that authority (K-PLOCAL-006).
+message OpenDesktopSessionRequest {
+}
+
+// Both byte strings are exactly 32 bytes. desktop_session_id is
+// correlation-only and runtime_boot_epoch is used only for stale projection
+// rejection; neither value is a portable credential or rebind proof.
+message OpenDesktopSessionResponse {
+  bytes desktop_session_id = 1;
+  bytes runtime_boot_epoch = 2;
+}
+
 message RefreshSessionRequest {
   string session_id = 1;
   int32 ttl_seconds = 2;
@@ -123,6 +138,7 @@ message RevokeExternalPrincipalSessionRequest {
 service RuntimeAuthService {
   rpc RegisterApp(RegisterAppRequest) returns (RegisterAppResponse);
   rpc OpenSession(OpenSessionRequest) returns (OpenSessionResponse);
+  rpc OpenDesktopSession(OpenDesktopSessionRequest) returns (OpenDesktopSessionResponse);
   rpc RefreshSession(RefreshSessionRequest) returns (RefreshSessionResponse);
   rpc RevokeSession(RevokeSessionRequest) returns (Ack);
   rpc RegisterExternalPrincipal(RegisterExternalPrincipalRequest) returns (RegisterExternalPrincipalResponse);

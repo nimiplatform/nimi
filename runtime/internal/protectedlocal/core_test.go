@@ -1,0 +1,356 @@
+package protectedlocal
+
+import (
+	"bytes"
+	"context"
+	"sync"
+	"testing"
+	"time"
+
+	"google.golang.org/grpc/metadata"
+)
+
+type fixedDesktopVerifier struct {
+	peers VerifiedDesktopPeers
+	err   error
+}
+
+func (v fixedDesktopVerifier) VerifyDesktopPeers(context.Context) (VerifiedDesktopPeers, error) {
+	return v.peers, v.err
+}
+
+func TestDesktopSessionIsConnectionBoundAndNotReconstructable(t *testing.T) {
+	t.Parallel()
+
+	ledger, boot := startedTestLedger(t)
+	peer := desktopPeers(boot)
+	random := distinctIdentifierReader(0x51, 6)
+	connection, err := EstablishDesktopConnection(context.Background(), fixedDesktopVerifier{peers: peer}, random)
+	if err != nil {
+		t.Fatalf("establish desktop connection: %v", err)
+	}
+
+	manager, err := NewDesktopSessionManager(boot, random, ledger)
+	if err != nil {
+		t.Fatalf("new session manager: %v", err)
+	}
+	connectionContext := ContextWithDesktopConnection(context.Background(), connection)
+	projection, err := manager.Open(connectionContext)
+	if err != nil {
+		t.Fatalf("open desktop session: %v", err)
+	}
+	if len(projection.DesktopSessionID) != IdentifierBytes || len(projection.RuntimeBootEpoch) != IdentifierBytes {
+		t.Fatalf("unexpected projection lengths: session=%d epoch=%d", len(projection.DesktopSessionID), len(projection.RuntimeBootEpoch))
+	}
+	if err := manager.AuthorizeContext(connectionContext, RoleDesktopAccountHost); err != nil {
+		t.Fatalf("authorize bound account role: %v", err)
+	}
+	if _, ok := DesktopConnectionFromContext(context.Background()); ok {
+		t.Fatal("plain context unexpectedly carried a protected desktop connection")
+	}
+	forgedMetadata := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"desktop-session-id", string(projection.DesktopSessionID),
+		"runtime-boot-epoch", string(projection.RuntimeBootEpoch),
+	))
+	if _, ok := DesktopConnectionFromContext(forgedMetadata); ok {
+		t.Fatal("metadata unexpectedly reconstructed a protected desktop connection")
+	}
+	if err := manager.AuthorizeContext(forgedMetadata, RoleDesktopAccountHost); !IsReason(err, ReasonDesktopControlTransportRequired) {
+		t.Fatalf("expected metadata reconstruction to be non-authorizing, got %v", err)
+	}
+
+	otherPeer := desktopPeers(boot)
+	otherPeer.Client.CreationMarker = "desktop-start-2"
+	other, err := EstablishDesktopConnection(context.Background(), fixedDesktopVerifier{peers: otherPeer}, random)
+	if err != nil {
+		t.Fatalf("establish second connection: %v", err)
+	}
+	if err := manager.AuthorizeContext(ContextWithDesktopConnection(context.Background(), other), RoleDesktopAccountHost); !IsReason(err, ReasonProtectedOriginRoleMismatch) {
+		t.Fatalf("expected connection-bound rejection, got %v", err)
+	}
+
+	connection.Revoke()
+	if err := manager.AuthorizeContext(connectionContext, RoleDesktopAccountHost); !IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
+		t.Fatalf("expected revoked process rejection, got %v", err)
+	}
+}
+
+func TestZeroValueDesktopConnectionRevokeDoesNotBlock(t *testing.T) {
+	done := make(chan struct{})
+	go func() {
+		(&Connection{}).Revoke()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("zero-value connection revoke blocked")
+	}
+}
+
+func TestDesktopSessionManagerValidateAnchoredRejectsZeroAndClosedLedger(t *testing.T) {
+	if err := (&DesktopSessionManager{}).ValidateAnchored(context.Background()); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
+		t.Fatalf("zero manager validation error = %v", err)
+	}
+
+	ledger, boot := startedTestLedger(t)
+	manager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0xb4, 2), ledger)
+	if err != nil {
+		t.Fatalf("new session manager: %v", err)
+	}
+	if err := manager.ValidateAnchored(context.Background()); err != nil {
+		t.Fatalf("validate anchored manager: %v", err)
+	}
+	if err := ledger.Close(); err != nil {
+		t.Fatalf("close ledger: %v", err)
+	}
+	if err := manager.ValidateAnchored(context.Background()); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
+		t.Fatalf("closed-ledger validation error = %v", err)
+	}
+}
+
+func TestBootEpochRequiresExactlyThirtyTwoNonzeroRandomBytes(t *testing.T) {
+	t.Parallel()
+
+	if _, err := NewBootEpoch(bytes.NewReader(make([]byte, IdentifierBytes))); !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
+		t.Fatalf("expected all-zero epoch rejection, got %v", err)
+	}
+	if _, err := NewBootEpoch(bytes.NewReader(make([]byte, IdentifierBytes-1))); !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
+		t.Fatalf("expected short entropy rejection, got %v", err)
+	}
+}
+
+func TestDesktopSessionIsLimitedToOnePerCanonicalProcessTuple(t *testing.T) {
+	t.Parallel()
+
+	ledger, boot := startedTestLedger(t)
+	random := distinctIdentifierReader(0x71, 5)
+	connection, err := EstablishDesktopConnection(context.Background(), fixedDesktopVerifier{peers: desktopPeers(boot)}, random)
+	if err != nil {
+		t.Fatalf("establish desktop connection: %v", err)
+	}
+	manager, err := NewDesktopSessionManager(boot, random, ledger)
+	if err != nil {
+		t.Fatalf("new session manager: %v", err)
+	}
+	connectionContext := ContextWithDesktopConnection(context.Background(), connection)
+	if _, err := manager.Open(connectionContext); err != nil {
+		t.Fatalf("first open: %v", err)
+	}
+	if _, err := manager.Open(connectionContext); !IsReason(err, ReasonProtectedOriginRoleMismatch) {
+		t.Fatalf("expected one-session limit rejection, got %v", err)
+	}
+}
+
+func TestTransportAndRolesAreDerivedBeforeRequests(t *testing.T) {
+	t.Parallel()
+
+	boot := identifierFilled(0x21)
+	random := bytes.NewReader(bytes.Repeat([]byte{0x31}, IdentifierBytes))
+	connection, err := EstablishDesktopConnection(context.Background(), fixedDesktopVerifier{peers: desktopPeers(boot)}, random)
+	if err != nil {
+		t.Fatalf("establish desktop connection: %v", err)
+	}
+	origin := connection.Origin()
+	if origin.TransportClass != TransportDesktopControl {
+		t.Fatalf("unexpected transport: %q", origin.TransportClass)
+	}
+	for _, role := range []OriginRole{RoleVerifiedDesktopProcess, RoleDesktopAccountHost, RoleDesktopLifecycleHost} {
+		if !origin.HasRole(role) {
+			t.Fatalf("missing derived role %q", role)
+		}
+	}
+	if origin.HasRole(RoleBindingOnly) {
+		t.Fatal("desktop connection must not inherit binding-only as privilege")
+	}
+}
+
+func TestDesktopSessionRequiresAnchoredLedgerAcrossManagers(t *testing.T) {
+	t.Parallel()
+
+	ledger, boot := startedTestLedger(t)
+	if _, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0x91, 1), nil); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
+		t.Fatalf("expected nil ledger rejection, got %v", err)
+	}
+	firstConnection, err := EstablishDesktopConnection(
+		context.Background(),
+		fixedDesktopVerifier{peers: desktopPeers(boot)},
+		distinctIdentifierReader(0x92, 1),
+	)
+	if err != nil {
+		t.Fatalf("establish first connection: %v", err)
+	}
+	t.Cleanup(firstConnection.Revoke)
+	secondConnection, err := EstablishDesktopConnection(
+		context.Background(),
+		fixedDesktopVerifier{peers: desktopPeers(boot)},
+		distinctIdentifierReader(0x93, 1),
+	)
+	if err != nil {
+		t.Fatalf("establish second connection: %v", err)
+	}
+	t.Cleanup(secondConnection.Revoke)
+	firstManager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0x94, 2), ledger)
+	if err != nil {
+		t.Fatalf("new first session manager: %v", err)
+	}
+	secondManager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0x95, 2), ledger)
+	if err != nil {
+		t.Fatalf("new second session manager: %v", err)
+	}
+	if _, err := firstManager.Open(ContextWithDesktopConnection(context.Background(), firstConnection)); err != nil {
+		t.Fatalf("open first durable session: %v", err)
+	}
+	if _, err := secondManager.Open(ContextWithDesktopConnection(context.Background(), secondConnection)); !IsReason(err, ReasonProtectedLocalLedgerUnavailable) {
+		t.Fatalf("expected durable one-session rejection across managers, got %v", err)
+	}
+}
+
+func TestDesktopSessionLivenessRevocationImmediatelyRemovesContextAuthority(t *testing.T) {
+	t.Parallel()
+
+	ledger, boot := startedTestLedger(t)
+	peers := desktopPeers(boot)
+	liveness := peers.ClientLiveness.(*manualDesktopLiveness)
+	connection, err := EstablishDesktopConnection(context.Background(), fixedDesktopVerifier{peers: peers}, distinctIdentifierReader(0xb1, 1))
+	if err != nil {
+		t.Fatalf("establish desktop connection: %v", err)
+	}
+	manager, err := NewDesktopSessionManager(boot, distinctIdentifierReader(0xb2, 2), ledger)
+	if err != nil {
+		t.Fatalf("new session manager: %v", err)
+	}
+	connectionContext := ContextWithDesktopConnection(context.Background(), connection)
+	if _, err := manager.Open(connectionContext); err != nil {
+		t.Fatalf("open desktop session: %v", err)
+	}
+	if err := manager.AuthorizeContext(connectionContext, RoleDesktopLifecycleHost); err != nil {
+		t.Fatalf("authorize live lifecycle role: %v", err)
+	}
+
+	liveness.revoke()
+	deadline := time.Now().Add(time.Second)
+	for {
+		err = manager.AuthorizeContext(connectionContext, RoleDesktopLifecycleHost)
+		if IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("liveness revocation did not remove authority: %v", err)
+		}
+		time.Sleep(time.Millisecond)
+	}
+	connection.Revoke()
+}
+
+func TestDesktopConnectionRequiresCanonicalPrincipalAndRetainedLiveness(t *testing.T) {
+	t.Parallel()
+
+	boot := identifierFilled(0xa1)
+	missingLiveness := desktopPeers(boot)
+	missingLiveness.ClientLiveness = nil
+	if _, err := EstablishDesktopConnection(context.Background(), fixedDesktopVerifier{peers: missingLiveness}, distinctIdentifierReader(0xa2, 1)); !IsReason(err, ReasonDesktopProcessVerificationUnavailable) {
+		t.Fatalf("expected retained liveness rejection, got %v", err)
+	}
+
+	nonCanonicalPrincipal := desktopPeers(boot)
+	nonCanonicalPrincipal.Server.SecurityPrincipal = " interactive-user "
+	if _, err := EstablishDesktopConnection(context.Background(), fixedDesktopVerifier{peers: nonCanonicalPrincipal}, distinctIdentifierReader(0xa3, 1)); !IsReason(err, ReasonProtectedLocalRuntimePrincipalRequired) {
+		t.Fatalf("expected non-canonical principal rejection, got %v", err)
+	}
+
+	peers := desktopPeers(boot)
+	liveness := peers.ClientLiveness.(*manualDesktopLiveness)
+	connection, err := EstablishDesktopConnection(context.Background(), fixedDesktopVerifier{peers: peers}, distinctIdentifierReader(0xa4, 1))
+	if err != nil {
+		t.Fatalf("establish live connection: %v", err)
+	}
+	liveness.revoke()
+	deadline := time.Now().Add(time.Second)
+	for connection.live.Load() && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if connection.live.Load() {
+		t.Fatal("retained liveness revocation did not revoke connection")
+	}
+}
+
+func desktopPeers(boot Identifier) VerifiedDesktopPeers {
+	return VerifiedDesktopPeers{
+		Client: ProcessTuple{
+			OS:                          OSWindows,
+			PID:                         4101,
+			CreationMarker:              "desktop-start-1",
+			OSLoginSession:              "logon-9",
+			SecurityPrincipal:           "interactive-user",
+			CanonicalExecutableIdentity: "desktop-file-identity",
+			ExecutableDigest:            identifierFilled(0x11),
+			ExecutableTrustSetID:        "nimi-desktop-e2e-fixture-v1",
+		},
+		Server: ProcessTuple{
+			OS:                          OSWindows,
+			PID:                         5101,
+			CreationMarker:              "runtime-start-1",
+			OSLoginSession:              "service-session",
+			SecurityPrincipal:           "NT SERVICE/NimiRuntimeE2E",
+			CanonicalExecutableIdentity: "runtime-file-identity",
+			ExecutableDigest:            identifierFilled(0x12),
+			ExecutableTrustSetID:        "nimi-runtime-e2e-fixture-v1",
+		},
+		ClientLiveness:     newManualDesktopLiveness(),
+		RuntimeBootEpoch:   boot,
+		EndpointInstanceID: identifierFilled(0x13),
+		TranscriptNonce:    identifierFilled(0x14),
+	}
+}
+
+type manualDesktopLiveness struct {
+	revoked chan struct{}
+	once    sync.Once
+}
+
+func newManualDesktopLiveness() *manualDesktopLiveness {
+	return &manualDesktopLiveness{revoked: make(chan struct{})}
+}
+
+func (liveness *manualDesktopLiveness) Revoked() <-chan struct{} { return liveness.revoked }
+
+func (liveness *manualDesktopLiveness) Close() error {
+	liveness.revoke()
+	return nil
+}
+
+func (liveness *manualDesktopLiveness) revoke() {
+	liveness.once.Do(func() { close(liveness.revoked) })
+}
+
+func startedTestLedger(t *testing.T) (*Ledger, Identifier) {
+	t.Helper()
+	directory := t.TempDir()
+	ledger, err := OpenLedger(context.Background(), testLedgerOptions(directory, newTestAnchorStore()))
+	if err != nil {
+		t.Fatalf("open anchored test ledger: %v", err)
+	}
+	t.Cleanup(func() { _ = ledger.Close() })
+	boot, err := ledger.StartRuntime(context.Background())
+	if err != nil {
+		t.Fatalf("start anchored test runtime: %v", err)
+	}
+	return ledger, boot
+}
+
+func distinctIdentifierReader(first byte, count int) *bytes.Reader {
+	blocks := make([][]byte, 0, count)
+	for index := 0; index < count; index++ {
+		blocks = append(blocks, bytes.Repeat([]byte{first + byte(index)}, IdentifierBytes))
+	}
+	return bytes.NewReader(bytes.Join(blocks, nil))
+}
+
+func identifierFilled(value byte) Identifier {
+	var identifier Identifier
+	for index := range identifier {
+		identifier[index] = value
+	}
+	return identifier
+}

@@ -207,8 +207,6 @@ func runRuntimeAppSend(args []string) error {
 	messageType := fs.String("message-type", "", "message type")
 	payloadFile := fs.String("payload-file", "", "payload file (protojson struct)")
 	requireAck := fs.Bool("require-ack", true, "require ack")
-	accessTokenID := fs.String("access-token-id", "", "protected access token id")
-	accessTokenSecret := fs.String("access-token-secret", "", "protected access token secret")
 	sessionID := fs.String("session-id", "", "app session id")
 	sessionToken := fs.String("session-token", "", "app session token")
 	jsonOutput := fs.Bool("json", false, "output json")
@@ -238,8 +236,6 @@ func runRuntimeAppSend(args []string) error {
 	}
 
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
-	callerMeta.AccessTokenID = strings.TrimSpace(*accessTokenID)
-	callerMeta.AccessTokenSecret = strings.TrimSpace(*accessTokenSecret)
 	callerMeta.SessionID = strings.TrimSpace(*sessionID)
 	callerMeta.SessionToken = strings.TrimSpace(*sessionToken)
 	resp, err := entrypoint.SendAppMessageGRPC(*grpcAddr, timeout, &runtimev1.SendAppMessageRequest{

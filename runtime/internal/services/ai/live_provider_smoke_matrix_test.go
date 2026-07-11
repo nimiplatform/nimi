@@ -114,7 +114,7 @@ func liveSmokeCatalogModelCandidates(providerID string, modelID string) []string
 func TestLiveSmokeCloudScenarioHeadUsesManagedCatalogTargetRef(t *testing.T) {
 	harness := liveSmokeProviderHarness{
 		providerID:   "openai",
-		connectorID:  connector.SystemCloudConnectorID("openai"),
+		connectorID:  liveSmokeCloudConnectorID("openai"),
 		routePolicy:  runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
 		context:      context.Background(),
 		modelCatalog: map[string]*runtimev1.ConnectorModelDescriptor{},
@@ -129,14 +129,14 @@ func TestLiveSmokeCloudScenarioHeadUsesManagedCatalogTargetRef(t *testing.T) {
 
 	head := harness.scenarioHead(t, liveSmokeMatrixAppID, liveSmokeMatrixUserID, "cloud/gpt-4o-mini", 45_000)
 
-	if head.GetConnectorId() != connector.SystemCloudConnectorID("openai") {
+	if head.GetConnectorId() != liveSmokeCloudConnectorID("openai") {
 		t.Fatalf("connector_id = %q", head.GetConnectorId())
 	}
 	cloud := head.GetTargetRef().GetCloud()
 	if cloud == nil {
 		t.Fatalf("expected cloud targetRef, got %#v", head.GetTargetRef())
 	}
-	if cloud.GetConnectorId() != connector.SystemCloudConnectorID("openai") {
+	if cloud.GetConnectorId() != liveSmokeCloudConnectorID("openai") {
 		t.Fatalf("targetRef connector_id = %q", cloud.GetConnectorId())
 	}
 	if cloud.GetRemoteModelCatalogId() != "remote-catalog-openai-gpt-4o-mini" {
@@ -317,7 +317,7 @@ func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL s
 		t.Fatalf("live cloud smoke requires provider id and api key")
 	}
 	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
-	connectorID := connector.SystemCloudConnectorID(normalizedProviderID)
+	connectorID := liveSmokeCloudConnectorID(normalizedProviderID)
 	created, err := store.Create(connector.ConnectorRecord{
 		ConnectorID: connectorID,
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
@@ -351,6 +351,10 @@ func newLiveSmokeCloudProviderHarness(t *testing.T, providerID string, baseURL s
 		connectorID:  created.ConnectorID,
 		modelCatalog: modelCatalog,
 	}
+}
+
+func liveSmokeCloudConnectorID(providerID string) string {
+	return "live-cloud-" + strings.ToLower(strings.TrimSpace(providerID))
 }
 
 func liveSmokeProviderHeaders(providerID string) map[string]string {

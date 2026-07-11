@@ -9,13 +9,17 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"gopkg.in/yaml.v3"
 )
 
-const localAppAdoptionsSchemaVersion = 1
+const localAppAdoptionsSchemaVersion = 2
+
+var errLocalAppAdoptionGenerationChanged = errors.New("local app adoption generation changed")
 
 type localAppAdoptionStore struct {
+	mu      sync.Mutex
 	nimiDir func() (string, error)
 	now     func() string
 }
@@ -28,6 +32,7 @@ type localAppAdoptionsRecord struct {
 
 type localAppAdoptionRecord struct {
 	AppID              string `json:"appId"`
+	Generation         uint64 `json:"generation"`
 	RootPath           string `json:"rootPath"`
 	ManifestPath       string `json:"manifestPath"`
 	DisplayName        string `json:"displayName"`
@@ -103,11 +108,14 @@ func (s *localAppAdoptionStore) adopt(rootPath string, expectedAppID string) (lo
 }
 
 func (s *localAppAdoptionStore) commitAdoption(candidate localAppAdoptionRecord) (localAppAdoptionRecord, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	path, err := s.localAppAdoptionsPath()
 	if err != nil {
 		return localAppAdoptionRecord{}, err
 	}
-	record, err := s.readOrEmpty()
+	record, err := s.readOrEmptyLocked()
 	if err != nil {
 		return localAppAdoptionRecord{}, err
 	}
@@ -121,6 +129,10 @@ func (s *localAppAdoptionStore) commitAdoption(candidate localAppAdoptionRecord)
 	replaced := false
 	for index := range record.Adoptions {
 		if record.Adoptions[index].AppID == candidate.AppID {
+			candidate.Generation, err = nextLocalAppAdoptionGeneration(candidate.AppID, record.Adoptions[index].Generation)
+			if err != nil {
+				return localAppAdoptionRecord{}, err
+			}
 			if strings.TrimSpace(record.Adoptions[index].AdoptedAt) != "" {
 				candidate.AdoptedAt = record.Adoptions[index].AdoptedAt
 			}
@@ -130,6 +142,7 @@ func (s *localAppAdoptionStore) commitAdoption(candidate localAppAdoptionRecord)
 		}
 	}
 	if !replaced {
+		candidate.Generation = 1
 		record.Adoptions = append(record.Adoptions, candidate)
 	}
 	record.UpdatedAt = now
@@ -158,15 +171,22 @@ func resolveLocalAppAdoptionCandidate(rootPath string, expectedAppID string) (lo
 }
 
 func (s *localAppAdoptionStore) remove(appID string) (localAppAdoptionRecord, error) {
+	return s.removeAtGeneration(appID, 0)
+}
+
+func (s *localAppAdoptionStore) removeAtGeneration(appID string, expectedGeneration uint64) (localAppAdoptionRecord, error) {
 	normalized := strings.TrimSpace(appID)
 	if normalized == "" {
 		return localAppAdoptionRecord{}, errors.New("local app adoption remove requires appId")
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	path, err := s.localAppAdoptionsPath()
 	if err != nil {
 		return localAppAdoptionRecord{}, err
 	}
-	record, err := s.readOrEmpty()
+	record, err := s.readOrEmptyLocked()
 	if err != nil {
 		return localAppAdoptionRecord{}, err
 	}
@@ -175,6 +195,14 @@ func (s *localAppAdoptionStore) remove(appID string) (localAppAdoptionRecord, er
 		if record.Adoptions[index].AppID != normalized {
 			continue
 		}
+		if expectedGeneration != 0 && record.Adoptions[index].Generation != expectedGeneration {
+			return localAppAdoptionRecord{}, fmt.Errorf("%w for %s", errLocalAppAdoptionGenerationChanged, normalized)
+		}
+		nextGeneration, err := nextLocalAppAdoptionGeneration(normalized, record.Adoptions[index].Generation)
+		if err != nil {
+			return localAppAdoptionRecord{}, err
+		}
+		record.Adoptions[index].Generation = nextGeneration
 		record.Adoptions[index].State = "removed"
 		record.Adoptions[index].UpdatedAt = now
 		record.UpdatedAt = now
@@ -190,7 +218,10 @@ func (s *localAppAdoptionStore) remove(appID string) (localAppAdoptionRecord, er
 }
 
 func (s *localAppAdoptionStore) list() ([]localAppAdoptionRecord, error) {
-	record, err := s.readOrEmpty()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	record, err := s.readOrEmptyLocked()
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +229,10 @@ func (s *localAppAdoptionStore) list() ([]localAppAdoptionRecord, error) {
 }
 
 func (s *localAppAdoptionStore) findAdopted(appID string) (localAppAdoptionRecord, bool, error) {
-	record, err := s.readOrEmpty()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	record, err := s.readOrEmptyLocked()
 	if err != nil {
 		return localAppAdoptionRecord{}, false, err
 	}
@@ -211,6 +245,13 @@ func (s *localAppAdoptionStore) findAdopted(appID string) (localAppAdoptionRecor
 }
 
 func (s *localAppAdoptionStore) readOrEmpty() (localAppAdoptionsRecord, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.readOrEmptyLocked()
+}
+
+func (s *localAppAdoptionStore) readOrEmptyLocked() (localAppAdoptionsRecord, error) {
 	path, err := s.localAppAdoptionsPath()
 	if err != nil {
 		return localAppAdoptionsRecord{}, err
@@ -230,6 +271,36 @@ func (s *localAppAdoptionStore) readOrEmpty() (localAppAdoptionsRecord, error) {
 		return localAppAdoptionsRecord{}, err
 	}
 	return record, nil
+}
+
+func (s *localAppAdoptionStore) adoptionGeneration(appID string) (uint64, error) {
+	normalized := strings.TrimSpace(appID)
+	if normalized == "" {
+		return 0, errors.New("local app adoption generation requires appId")
+	}
+	if normalized != appID || !safeLocalAppID(normalized) {
+		return 0, fmt.Errorf("local app adoption generation requires canonical appId, got %q", appID)
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record, err := s.readOrEmptyLocked()
+	if err != nil {
+		return 0, err
+	}
+	for _, adoption := range record.Adoptions {
+		if adoption.AppID == normalized {
+			return adoption.Generation, nil
+		}
+	}
+	return 0, nil
+}
+
+func nextLocalAppAdoptionGeneration(appID string, current uint64) (uint64, error) {
+	if current == ^uint64(0) {
+		return 0, fmt.Errorf("local app adoption %s generation overflow", appID)
+	}
+	return current + 1, nil
 }
 
 func (s *localAppAdoptionStore) localAppAdoptionsPath() (string, error) {
@@ -307,6 +378,9 @@ func validateLocalAppAdoptionsRecord(record localAppAdoptionsRecord) error {
 	for _, adoption := range record.Adoptions {
 		if err := validateLocalAppAdoption(adoption); err != nil {
 			return err
+		}
+		if adoption.Generation == 0 {
+			return fmt.Errorf("local app adoption %s generation must be nonzero", adoption.AppID)
 		}
 		appID := strings.TrimSpace(adoption.AppID)
 		if _, exists := seenAppIDs[appID]; exists {

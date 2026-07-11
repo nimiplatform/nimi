@@ -135,8 +135,7 @@ func (s *Service) markCustodyUnavailable() {
 	s.mu.Lock()
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE
 	revoked := s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
-	s.material = AccountMaterial{}
-	s.projection = nil
+	s.clearAuthenticatedRuntimeIdentityLocked()
 	custodyEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE, "")
 	statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE, "")
 	s.mu.Unlock()
@@ -151,8 +150,7 @@ func (s *Service) transitionToReauthRequired(reason runtimev1.AccountReasonCode)
 	s.mu.Lock()
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
 	revoked := s.revokeBindingsLocked(reason)
-	s.material = AccountMaterial{}
-	s.projection = nil
+	s.clearAuthenticatedRuntimeIdentityLocked()
 	refreshEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, reason, "")
 	statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason, "")
 	s.mu.Unlock()

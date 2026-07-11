@@ -1,0 +1,499 @@
+//go:build windows
+
+package protectedlocal
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"strings"
+	"sync"
+	"time"
+	"unsafe"
+
+	"github.com/Microsoft/go-winio"
+	"golang.org/x/sys/windows"
+)
+
+const (
+	windowsNoActiveConsoleSession = 0xffffffff
+	windowsPipeClientAccess       = (windows.FILE_GENERIC_READ | windows.FILE_GENERIC_WRITE) &^ windows.FILE_APPEND_DATA
+	windowsPipeBufferBytes        = 16 * 1024
+	windowsPipeHandshakeTimeout   = 5 * time.Second
+)
+
+type windowsTokenStatistics struct {
+	TokenID            windows.LUID
+	AuthenticationID   windows.LUID
+	ExpirationTime     int64
+	TokenType          uint32
+	ImpersonationLevel uint32
+	DynamicCharged     uint32
+	DynamicAvailable   uint32
+	GroupCount         uint32
+	PrivilegeCount     uint32
+	ModifiedID         windows.LUID
+}
+
+type WindowsDesktopPipeInstance struct {
+	handle   windows.Handle
+	identity WindowsDesktopIdentity
+	name     string
+	stream   windowsDesktopPipeStream
+
+	mu       sync.Mutex
+	accepted bool
+	closed   bool
+}
+
+type WindowsDesktopPipeConnection struct {
+	instance  *WindowsDesktopPipeInstance
+	clientPID uint32
+
+	verificationMu       sync.Mutex
+	verifiedClient       ProcessTuple
+	verifiedClientHealth DesktopProcessLiveness
+}
+
+type windowsDesktopPipeStream interface {
+	io.ReadWriteCloser
+	SetReadDeadline(time.Time) error
+	SetWriteDeadline(time.Time) error
+}
+
+type windowsDesktopPipeNetConn struct {
+	instance *WindowsDesktopPipeInstance
+	stream   windowsDesktopPipeStream
+	address  windowsDesktopPipeAddress
+}
+
+type windowsDesktopPipeAddress string
+
+func (address windowsDesktopPipeAddress) Network() string { return "windows-named-pipe" }
+func (address windowsDesktopPipeAddress) String() string  { return string(address) }
+
+func (connection *windowsDesktopPipeNetConn) Read(buffer []byte) (int, error) {
+	return connection.stream.Read(buffer)
+}
+
+func (connection *windowsDesktopPipeNetConn) Write(buffer []byte) (int, error) {
+	return connection.stream.Write(buffer)
+}
+
+func (connection *windowsDesktopPipeNetConn) Close() error {
+	if connection == nil || connection.instance == nil {
+		return nil
+	}
+	return connection.instance.Close()
+}
+
+func (connection *windowsDesktopPipeNetConn) LocalAddr() net.Addr  { return connection.address }
+func (connection *windowsDesktopPipeNetConn) RemoteAddr() net.Addr { return connection.address }
+
+func (connection *windowsDesktopPipeNetConn) SetDeadline(deadline time.Time) error {
+	if err := connection.stream.SetReadDeadline(deadline); err != nil {
+		return err
+	}
+	return connection.stream.SetWriteDeadline(deadline)
+}
+
+func (connection *windowsDesktopPipeNetConn) SetReadDeadline(deadline time.Time) error {
+	return connection.stream.SetReadDeadline(deadline)
+}
+
+func (connection *windowsDesktopPipeNetConn) SetWriteDeadline(deadline time.Time) error {
+	return connection.stream.SetWriteDeadline(deadline)
+}
+
+func ResolveWindowsActiveDesktopIdentity(ctx context.Context, principal WindowsServicePrincipal) (WindowsDesktopIdentity, error) {
+	if err := ctx.Err(); err != nil {
+		return WindowsDesktopIdentity{}, fmt.Errorf("resolve active Windows desktop identity: %w", err)
+	}
+	if principal.serviceSID != WindowsProductionServiceSID {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("validate Runtime principal capability", fmt.Errorf("exact production service principal required"))
+	}
+	sessionID := windows.WTSGetActiveConsoleSessionId()
+	if sessionID == windowsNoActiveConsoleSession || sessionID == 0 {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("resolve active console session", fmt.Errorf("active interactive session unavailable"))
+	}
+	var token windows.Token
+	if err := windows.WTSQueryUserToken(sessionID, &token); err != nil {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("open active desktop token", err)
+	}
+	defer token.Close()
+	return inspectWindowsDesktopToken(token, &sessionID)
+}
+
+func inspectWindowsDesktopToken(token windows.Token, expectedSessionID *uint32) (WindowsDesktopIdentity, error) {
+	user, err := token.GetTokenUser()
+	if err != nil || user == nil || user.User.Sid == nil {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("read active desktop user SID", err)
+	}
+	userSID := user.User.Sid.String()
+	switch userSID {
+	case "", WindowsProductionServiceSID, "S-1-5-18", "S-1-5-19", "S-1-5-20":
+		return WindowsDesktopIdentity{}, windowsPipeFailure("validate active desktop user SID", fmt.Errorf("service identities are forbidden"))
+	}
+	sessionID, err := readWindowsTokenUint32(token, windows.TokenSessionId)
+	if err != nil {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("read active desktop session", err)
+	}
+	if sessionID == 0 || (expectedSessionID != nil && sessionID != *expectedSessionID) {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("validate active desktop session", fmt.Errorf("token session mismatch"))
+	}
+	tokenType, err := readWindowsTokenUint32(token, windows.TokenType)
+	if err != nil || tokenType != windowsTokenPrimary {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("validate active desktop token type", err)
+	}
+	groups, err := readWindowsTokenGroups(token, windows.TokenGroups)
+	if err != nil {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("read active desktop token groups", err)
+	}
+	if !containsEnabledSID(groups, windowsInteractiveLogonSID) && !containsEnabledSID(groups, windowsRemoteInteractiveLogonSID) {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("validate active desktop logon class", fmt.Errorf("interactive logon SID required"))
+	}
+	logonSID := ""
+	for _, group := range groups {
+		if group.Attributes&windows.SE_GROUP_LOGON_ID != windows.SE_GROUP_LOGON_ID {
+			continue
+		}
+		if logonSID != "" || !strings.HasPrefix(group.SID, "S-1-5-5-") {
+			return WindowsDesktopIdentity{}, windowsPipeFailure("validate active desktop logon SID", fmt.Errorf("exact single logon SID required"))
+		}
+		logonSID = group.SID
+	}
+	if logonSID == "" {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("validate active desktop logon SID", fmt.Errorf("logon SID is absent"))
+	}
+	logonLUID, err := windowsTokenLogonLUID(token)
+	if err != nil {
+		return WindowsDesktopIdentity{}, windowsPipeFailure("read active desktop logon LUID", err)
+	}
+	accountScope := fmt.Sprintf("windows:%s:%s", strings.ToLower(userSID), logonLUID)
+	return WindowsDesktopIdentity{
+		userSID:      userSID,
+		logonSID:     logonSID,
+		logonLUID:    logonLUID,
+		sessionID:    sessionID,
+		accountScope: accountScope,
+	}, nil
+}
+
+func OpenWindowsProductionDesktopPipe(ctx context.Context, principal WindowsServicePrincipal, process WindowsRuntimeProcess) (*WindowsDesktopPipeInstance, WindowsDesktopIdentity, error) {
+	if err := process.validate(); err != nil {
+		return nil, WindowsDesktopIdentity{}, principalFailure("bind Windows desktop pipe to verified Runtime executable", err)
+	}
+	if process.principalSID != principal.serviceSID {
+		return nil, WindowsDesktopIdentity{}, principalFailure("bind Windows desktop pipe to verified Runtime executable", fmt.Errorf("service principal capability mismatch"))
+	}
+	identity, err := ResolveWindowsActiveDesktopIdentity(ctx, principal)
+	if err != nil {
+		return nil, WindowsDesktopIdentity{}, err
+	}
+	instance, err := createWindowsDesktopPipeInstance(ctx, WindowsProductionDesktopPipeName, principal, identity, true)
+	if err != nil {
+		return nil, WindowsDesktopIdentity{}, err
+	}
+	return instance, identity, nil
+}
+
+func createWindowsDesktopPipeInstance(ctx context.Context, name string, principal WindowsServicePrincipal, identity WindowsDesktopIdentity, firstInstance bool) (*WindowsDesktopPipeInstance, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("create Windows desktop pipe: %w", err)
+	}
+	if principal.serviceSID != WindowsProductionServiceSID {
+		return nil, windowsPipeFailure("validate pipe service principal", fmt.Errorf("exact production service principal required"))
+	}
+	if err := identity.validate(); err != nil {
+		return nil, windowsPipeFailure("validate pipe desktop identity", err)
+	}
+	if !strings.HasPrefix(name, `\\.\pipe\`) || strings.ContainsRune(name, '\x00') {
+		return nil, windowsPipeFailure("validate pipe endpoint name", fmt.Errorf("local named-pipe path required"))
+	}
+	securityDescriptor, err := windowsDesktopPipeSecurityDescriptor(identity.logonSID)
+	if err != nil {
+		return nil, err
+	}
+	namePointer, err := windows.UTF16PtrFromString(name)
+	if err != nil {
+		return nil, windowsPipeFailure("encode pipe endpoint name", err)
+	}
+	securityAttributes := windows.SecurityAttributes{
+		Length:             uint32(unsafe.Sizeof(windows.SecurityAttributes{})),
+		SecurityDescriptor: securityDescriptor,
+		InheritHandle:      0,
+	}
+	openMode := uint32(windows.PIPE_ACCESS_DUPLEX | windows.FILE_FLAG_OVERLAPPED | windows.FILE_FLAG_WRITE_THROUGH | windows.WRITE_DAC)
+	if firstInstance {
+		openMode |= windows.FILE_FLAG_FIRST_PIPE_INSTANCE
+	}
+	pipeMode := uint32(windows.PIPE_TYPE_BYTE | windows.PIPE_READMODE_BYTE | windows.PIPE_WAIT | windows.PIPE_REJECT_REMOTE_CLIENTS)
+	handle, err := windows.CreateNamedPipe(
+		namePointer,
+		openMode,
+		pipeMode,
+		1,
+		windowsPipeBufferBytes,
+		windowsPipeBufferBytes,
+		0,
+		&securityAttributes,
+	)
+	if err != nil {
+		return nil, windowsPipeFailure("create fixed Windows desktop pipe", err)
+	}
+	instance := &WindowsDesktopPipeInstance{handle: handle, identity: identity, name: name}
+	if err := validateWindowsDesktopPipeACL(handle, identity.logonSID); err != nil {
+		_ = instance.Close()
+		return nil, err
+	}
+	return instance, nil
+}
+
+func (instance *WindowsDesktopPipeInstance) Accept(ctx context.Context) (*WindowsDesktopPipeConnection, error) {
+	if instance == nil {
+		return nil, windowsPipeFailure("accept Windows desktop pipe", fmt.Errorf("pipe instance is nil"))
+	}
+	instance.mu.Lock()
+	if instance.closed || instance.accepted {
+		instance.mu.Unlock()
+		return nil, windowsPipeFailure("accept Windows desktop pipe", fmt.Errorf("pipe instance is closed or already accepted"))
+	}
+	instance.accepted = true
+	instance.mu.Unlock()
+
+	acceptCtx, cancel := context.WithTimeout(ctx, windowsPipeHandshakeTimeout)
+	defer cancel()
+	if err := connectWindowsDesktopPipe(acceptCtx, instance.handle); err != nil {
+		_ = instance.Close()
+		return nil, err
+	}
+	var clientPID uint32
+	if err := windows.GetNamedPipeClientProcessId(instance.handle, &clientPID); err != nil || clientPID == 0 {
+		_ = instance.Close()
+		return nil, windowsPipeFailure("bind Windows pipe client process", err)
+	}
+	return &WindowsDesktopPipeConnection{instance: instance, clientPID: clientPID}, nil
+}
+
+func connectWindowsDesktopPipe(ctx context.Context, handle windows.Handle) error {
+	event, err := windows.CreateEvent(nil, 1, 0, nil)
+	if err != nil {
+		return windowsPipeFailure("create Windows pipe connect event", err)
+	}
+	defer windows.CloseHandle(event)
+	overlapped := windows.Overlapped{HEvent: event}
+	err = windows.ConnectNamedPipe(handle, &overlapped)
+	switch {
+	case err == nil, errors.Is(err, windows.ERROR_PIPE_CONNECTED):
+		return nil
+	case !errors.Is(err, windows.ERROR_IO_PENDING):
+		return windowsPipeFailure("connect Windows desktop pipe", err)
+	}
+
+	for {
+		waitResult, waitErr := windows.WaitForSingleObject(event, 50)
+		switch waitResult {
+		case windows.WAIT_OBJECT_0:
+			var transferred uint32
+			if err := windows.GetOverlappedResult(handle, &overlapped, &transferred, false); err != nil && !errors.Is(err, windows.ERROR_PIPE_CONNECTED) {
+				return windowsPipeFailure("complete Windows desktop pipe connect", err)
+			}
+			return nil
+		case uint32(windows.WAIT_TIMEOUT):
+			select {
+			case <-ctx.Done():
+				cancelErr := windows.CancelIoEx(handle, &overlapped)
+				if cancelErr != nil && !errors.Is(cancelErr, windows.ERROR_NOT_FOUND) {
+					return windowsPipeFailure("cancel Windows desktop pipe connect", cancelErr)
+				}
+				_, _ = windows.WaitForSingleObject(event, windows.INFINITE)
+				var transferred uint32
+				_ = windows.GetOverlappedResult(handle, &overlapped, &transferred, false)
+				return windowsPipeFailure("accept Windows desktop pipe", ctx.Err())
+			default:
+			}
+		default:
+			if waitErr == nil {
+				waitErr = fmt.Errorf("unexpected wait result %d", waitResult)
+			}
+			return windowsPipeFailure("wait for Windows desktop pipe connection", waitErr)
+		}
+	}
+}
+
+func (connection *WindowsDesktopPipeConnection) ClientProcessID() uint32 {
+	if connection == nil {
+		return 0
+	}
+	return connection.clientPID
+}
+
+// NetConn transfers the connected overlapped pipe handle into the IOCP-backed
+// stream used by gRPC. It is a one-way ownership transfer: the native instance
+// remains the single close authority and a handle can never be wrapped twice.
+func (connection *WindowsDesktopPipeConnection) NetConn() (net.Conn, error) {
+	if connection == nil || connection.instance == nil {
+		return nil, windowsPipeFailure("open Windows desktop pipe stream", fmt.Errorf("connected pipe capability required"))
+	}
+	connection.verificationMu.Lock()
+	defer connection.verificationMu.Unlock()
+	if err := connection.verifiedClient.validate(); err != nil || connection.verifiedClientHealth == nil {
+		return nil, windowsPipeFailure("open Windows desktop pipe stream", fmt.Errorf("verified desktop process capability required"))
+	}
+	select {
+	case <-connection.verifiedClientHealth.Revoked():
+		return nil, windowsPipeFailure("open Windows desktop pipe stream", fmt.Errorf("verified desktop process is no longer live"))
+	default:
+	}
+	instance := connection.instance
+	instance.mu.Lock()
+	defer instance.mu.Unlock()
+	if instance.closed || !instance.accepted || instance.stream != nil || instance.handle == 0 || instance.handle == windows.InvalidHandle {
+		return nil, windowsPipeFailure("open Windows desktop pipe stream", fmt.Errorf("connected pipe handle is unavailable or already transferred"))
+	}
+	opened, err := winio.NewOpenFile(instance.handle)
+	if err != nil {
+		return nil, windowsPipeFailure("bind Windows desktop pipe to IO completion port", err)
+	}
+	stream, ok := opened.(windowsDesktopPipeStream)
+	if !ok {
+		_ = opened.Close()
+		instance.closed = true
+		instance.handle = 0
+		return nil, windowsPipeFailure("bind Windows desktop pipe stream deadlines", fmt.Errorf("IOCP stream lacks deadline support"))
+	}
+	instance.stream = stream
+	instance.handle = 0
+	address := windowsDesktopPipeAddress(instance.name)
+	return &windowsDesktopPipeNetConn{instance: instance, stream: stream, address: address}, nil
+}
+
+func (connection *WindowsDesktopPipeConnection) Close() error {
+	if connection == nil || connection.instance == nil {
+		return nil
+	}
+	return connection.instance.Close()
+}
+
+func (instance *WindowsDesktopPipeInstance) Close() error {
+	if instance == nil {
+		return nil
+	}
+	instance.mu.Lock()
+	if instance.closed {
+		instance.mu.Unlock()
+		return nil
+	}
+	instance.closed = true
+	handle := instance.handle
+	stream := instance.stream
+	instance.handle = 0
+	instance.stream = nil
+	instance.mu.Unlock()
+	if stream != nil {
+		return stream.Close()
+	}
+	if handle == 0 || handle == windows.InvalidHandle {
+		return nil
+	}
+	disconnectErr := windows.DisconnectNamedPipe(handle)
+	if errors.Is(disconnectErr, windows.ERROR_PIPE_NOT_CONNECTED) {
+		disconnectErr = nil
+	}
+	closeErr := windows.CloseHandle(handle)
+	return errors.Join(disconnectErr, closeErr)
+}
+
+var _ net.Conn = (*windowsDesktopPipeNetConn)(nil)
+
+func windowsDesktopPipeSecurityDescriptor(logonSID string) (*windows.SECURITY_DESCRIPTOR, error) {
+	if _, err := windows.StringToSid(logonSID); err != nil || !strings.HasPrefix(logonSID, "S-1-5-5-") {
+		return nil, windowsPipeFailure("parse active desktop logon SID", err)
+	}
+	sddl := fmt.Sprintf("D:P(A;;GA;;;%s)(A;;0x%08x;;;%s)", WindowsProductionServiceSID, uint32(windowsPipeClientAccess), logonSID)
+	descriptor, err := windows.SecurityDescriptorFromString(sddl)
+	if err != nil {
+		return nil, windowsPipeFailure("build service-owned pipe DACL", err)
+	}
+	return descriptor, nil
+}
+
+func validateWindowsDesktopPipeACL(handle windows.Handle, logonSID string) error {
+	descriptor, err := windows.GetSecurityInfo(handle, windows.SE_KERNEL_OBJECT, windows.DACL_SECURITY_INFORMATION)
+	if err != nil {
+		return windowsPipeFailure("read Windows desktop pipe DACL", err)
+	}
+	control, _, err := descriptor.Control()
+	if err != nil || control&windows.SE_DACL_PROTECTED == 0 {
+		return windowsPipeFailure("validate protected Windows desktop pipe DACL", err)
+	}
+	dacl, _, err := descriptor.DACL()
+	if err != nil {
+		return windowsPipeFailure("read Windows desktop pipe DACL entries", err)
+	}
+	return validateWindowsDesktopPipeDACL(dacl, logonSID)
+}
+
+func validateWindowsDesktopPipeDACL(dacl *windows.ACL, logonSID string) error {
+	if dacl == nil || dacl.AceCount != 2 {
+		return windowsPipeFailure("validate Windows desktop pipe DACL entries", fmt.Errorf("exact closed two-entry DACL required"))
+	}
+	serviceAllowed := false
+	userAllowed := false
+	for index := uint32(0); index < uint32(dacl.AceCount); index++ {
+		var ace *windows.ACCESS_ALLOWED_ACE
+		if err := windows.GetAce(dacl, index, &ace); err != nil {
+			return windowsPipeFailure("read Windows desktop pipe DACL entry", err)
+		}
+		if ace.Header.AceType != windows.ACCESS_ALLOWED_ACE_TYPE || ace.Header.AceFlags != 0 {
+			return windowsPipeFailure("validate Windows desktop pipe DACL entry", fmt.Errorf("unflagged allow ACE required"))
+		}
+		sid := (*windows.SID)(unsafe.Pointer(&ace.SidStart)).String()
+		mask := uint32(ace.Mask)
+		switch sid {
+		case WindowsProductionServiceSID:
+			if mask != windows.GENERIC_ALL && mask != windowsFileAllAccess {
+				return windowsPipeFailure("validate Windows desktop pipe service ACE", fmt.Errorf("full service access required"))
+			}
+			serviceAllowed = true
+		case logonSID:
+			if mask != uint32(windowsPipeClientAccess) {
+				return windowsPipeFailure("validate Windows desktop pipe client ACE", fmt.Errorf("connect-only client access required"))
+			}
+			userAllowed = true
+		default:
+			return windowsPipeFailure("validate Windows desktop pipe DACL entry", fmt.Errorf("unexpected allowed principal"))
+		}
+	}
+	if !serviceAllowed || !userAllowed {
+		return windowsPipeFailure("validate Windows desktop pipe DACL entries", fmt.Errorf("required service and desktop ACEs are absent"))
+	}
+	return nil
+}
+
+func windowsPipeAccessEntry(sid *windows.SID, access uint32) windows.EXPLICIT_ACCESS {
+	return windows.EXPLICIT_ACCESS{
+		AccessPermissions: windows.ACCESS_MASK(access),
+		AccessMode:        windows.SET_ACCESS,
+		Inheritance:       windows.NO_INHERITANCE,
+		Trustee: windows.TRUSTEE{
+			TrusteeForm:  windows.TRUSTEE_IS_SID,
+			TrusteeType:  windows.TRUSTEE_IS_UNKNOWN,
+			TrusteeValue: windows.TrusteeValueFromSID(sid),
+		},
+	}
+}
+
+func windowsPipeFailure(operation string, cause error) error {
+	if cause == nil {
+		cause = fmt.Errorf("required Windows named-pipe primitive unavailable")
+	}
+	return fail(
+		ReasonDesktopProcessVerificationUnavailable,
+		true,
+		"restart_desktop",
+		fmt.Errorf("%s: %w", operation, cause),
+	)
+}

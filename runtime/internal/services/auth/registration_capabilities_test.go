@@ -1,13 +1,12 @@
 package auth
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/nimiplatform/nimi/runtime/internal/appregistrycatalog"
 )
 
-func TestRegistrationCapabilitiesUseAdmittedCatalogPolicy(t *testing.T) {
+func TestRegistrationCapabilitiesIgnoreCatalogPrivilegeForBindingOnlyBootstrap(t *testing.T) {
 	svc := New(nil)
 	svc.nimiApps = &appregistrycatalog.Registry{Apps: []appregistrycatalog.App{{
 		AppID:           "nimi.avatar",
@@ -20,17 +19,15 @@ func TestRegistrationCapabilitiesUseAdmittedCatalogPolicy(t *testing.T) {
 	}}}
 
 	got := svc.registrationCapabilities("nimi.avatar", []string{"realm.admin", "attacker.claim"}, false)
-	want := []string{"account.session.read", "account.raw-token", "data.scope.read#realm.worlds.read-probe"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("catalog-derived capabilities = %#v, want %#v", got, want)
+	if len(got) != 0 {
+		t.Fatalf("binding-only catalog registration retained capabilities: %#v", got)
 	}
 }
 
-func TestRegistrationCapabilitiesCannotSelfAdmitRawToken(t *testing.T) {
+func TestRegistrationCapabilitiesCannotSelfAdmitAnyBusinessCapability(t *testing.T) {
 	svc := New(nil)
 	got := svc.registrationCapabilities("community.example", []string{"account.session.read", "account.raw-token"}, false)
-	want := []string{"account.session.read"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("non-catalog capabilities = %#v, want %#v", got, want)
+	if len(got) != 0 {
+		t.Fatalf("binding-only non-catalog registration retained capabilities: %#v", got)
 	}
 }

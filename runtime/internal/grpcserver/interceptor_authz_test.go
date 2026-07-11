@@ -681,6 +681,35 @@ func TestUnaryAuthzInterceptorFailsClosedWhenAuthorizerUnavailable(t *testing.T)
 	}
 }
 
+func TestProtectedCarrierOnlyCapabilityAuthorizerRejectsPortableGrant(t *testing.T) {
+	interceptor := newUnaryAuthzInterceptor(protectedCarrierOnlyCapabilityAuthorizer{})
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-app-id", "nimi.desktop",
+		"x-nimi-access-token-id", "portable-token-id",
+		"x-nimi-access-token-secret", "portable-token-secret",
+	))
+	called := false
+	_, err := interceptor(
+		ctx,
+		&runtimev1.RemoveModelRequest{AppId: "nimi.desktop", ModelId: "local/model"},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeModelService/RemoveModel"},
+		func(context.Context, any) (any, error) {
+			called = true
+			return &runtimev1.Ack{}, nil
+		},
+	)
+	if err == nil {
+		t.Fatal("carrier-only authorizer unexpectedly accepted portable grant metadata")
+	}
+	if called {
+		t.Fatal("carrier-only authorizer invoked protected handler")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH {
+		t.Fatalf("carrier-only authorizer reason = %v (present=%v), err=%v", reason, ok, err)
+	}
+}
+
 func TestUnaryAuthzInterceptorAllowsUnprotectedMethodWithoutAuthorizer(t *testing.T) {
 	interceptor := newUnaryAuthzInterceptor(nil)
 	called := false

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -191,9 +190,9 @@ func TestValidateScopedBindingFailsAfterNonAuthenticatedAccountTransitions(t *te
 				svc.refresher = staticRefresher{err: errors.New("refresh failed")}
 				resp, err := svc.refreshAccountSessionInternal(context.Background(), true)
 				if err != nil {
-					t.Fatalf("RefreshAccountSession: %v", err)
+					t.Fatalf("private refresh: %v", err)
 				}
-				if resp.GetAccepted() || resp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED {
+				if resp.accepted || resp.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED {
 					t.Fatalf("refresh failure must enter reauth_required: %+v", resp)
 				}
 			},
@@ -203,9 +202,9 @@ func TestValidateScopedBindingFailsAfterNonAuthenticatedAccountTransitions(t *te
 			act: func(t *testing.T, svc *Service) {
 				resp, err := svc.refreshAccountSessionInternal(context.Background(), true)
 				if err != nil {
-					t.Fatalf("RefreshAccountSession: %v", err)
+					t.Fatalf("private refresh: %v", err)
 				}
-				if !resp.GetAccepted() {
+				if !resp.accepted {
 					t.Fatalf("refresh should seed reuse hash: %+v", resp)
 				}
 				if reason, ok := svc.ObserveRefreshToken(context.Background(), "refresh-1"); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED {
@@ -282,13 +281,6 @@ func TestProductionSubstrateIsInertForFirstPartyDesktopSDKAvatar(t *testing.T) {
 			if !statusResp.GetProductionInert() || statusResp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
 				t.Fatalf("status must be inert unavailable: %+v", statusResp)
 			}
-			tokenResp, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: caller})
-			if err != nil {
-				t.Fatalf("GetAccessToken: %v", err)
-			}
-			if tokenResp.GetAccepted() || !tokenResp.GetProductionInert() {
-				t.Fatalf("production token issuance must be inert: %+v", tokenResp)
-			}
 			bindingResp, err := svc.IssueScopedAppBinding(context.Background(), &runtimev1.IssueScopedAppBindingRequest{Caller: caller, Relation: bindingRelation()})
 			if err != nil {
 				t.Fatalf("IssueScopedAppBinding: %v", err)
@@ -300,7 +292,7 @@ func TestProductionSubstrateIsInertForFirstPartyDesktopSDKAvatar(t *testing.T) {
 	}
 }
 
-func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testing.T) {
+func TestProductionActivationCodeStateExchangeCustodyAndPrivateCredential(t *testing.T) {
 	custody := &memoryCustody{}
 	exchangeCalls := 0
 	authServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -401,12 +393,12 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 	if exchangeCalls != 1 || !custody.has || custody.material.RefreshToken != "refresh-prod" {
 		t.Fatalf("exchange/custody mismatch calls=%d custody=%+v", exchangeCalls, custody.material)
 	}
-	token, err := svc.GetAccessToken(desktopAccountControlContext(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
+	token, reason, ok, err := svc.realmUnaryAccessToken(context.Background(), nil)
 	if err != nil {
-		t.Fatalf("GetAccessToken: %v", err)
+		t.Fatalf("Runtime-private broker credential: %v", err)
 	}
-	if !token.GetAccepted() || token.GetAccessToken() != "access-prod" {
-		t.Fatalf("Runtime token projection mismatch: %+v", token)
+	if !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED || token != "access-prod" {
+		t.Fatalf("Runtime-private broker credential mismatch: ok=%v reason=%v token=%q", ok, reason, token)
 	}
 }
 
@@ -610,43 +602,17 @@ func TestProductionSecureCustodyUnavailableFailsClosed(t *testing.T) {
 	}
 }
 
-func TestProductionFileCustodyPersistsAndClears(t *testing.T) {
-	custody := fileAccountCustody{path: filepath.Join(t.TempDir(), "account", "custody.json")}
-	if _, err := custody.Load(context.Background(), "partition-1"); !errors.Is(err, ErrNoStoredAccount) {
-		t.Fatalf("missing file should report no stored account, got %v", err)
-	}
-
-	material := testMaterial("acct-file", "access-file", "refresh-file")
-	material.DisplayName = "File Custody"
-	if err := custody.Store(context.Background(), "partition-1", material); err != nil {
-		t.Fatalf("Store: %v", err)
-	}
-	loaded, err := custody.Load(context.Background(), "partition-1")
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-	if loaded.AccountID != "acct-file" || loaded.AccessToken != "access-file" || loaded.RefreshToken != "refresh-file" {
-		t.Fatalf("loaded material mismatch: %+v", loaded)
-	}
-	if err := custody.Clear(context.Background(), "partition-1"); err != nil {
-		t.Fatalf("Clear: %v", err)
-	}
-	if _, err := custody.Load(context.Background(), "partition-1"); !errors.Is(err, ErrNoStoredAccount) {
-		t.Fatalf("cleared file should report no stored account, got %v", err)
-	}
-}
-
-func TestProductionGetAccessTokenRefreshesExpiredProjection(t *testing.T) {
+func TestProductionPrivateBrokerRefreshesExpiredCredential(t *testing.T) {
 	expired := testMaterial("acct-1", "access-old", "refresh-old")
 	expired.AccessTokenExpires = time.Now().UTC().Add(-time.Minute)
 	custody := &memoryCustody{material: expired, has: true}
 	svc := newProductionHarnessService(t, custody, WithRefresher(staticRefresher{material: testMaterial("acct-1", "access-new", "refresh-new")}))
-	token, err := svc.GetAccessToken(desktopAccountControlContext(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
+	token, reason, ok, err := svc.realmUnaryAccessToken(context.Background(), nil)
 	if err != nil {
-		t.Fatalf("GetAccessToken: %v", err)
+		t.Fatalf("Runtime-private broker credential: %v", err)
 	}
-	if !token.GetAccepted() || token.GetAccessToken() != "access-new" {
-		t.Fatalf("expired projection should refresh through Runtime: %+v", token)
+	if !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED || token != "access-new" {
+		t.Fatalf("expired credential should refresh privately: ok=%v reason=%v token=%q", ok, reason, token)
 	}
 }
 
@@ -795,7 +761,7 @@ func TestProductionAuthorizationURLRejectsLegacyOverrideShape(t *testing.T) {
 	}
 }
 
-func TestProductionAuthorizationURLRejectsSentinelEnvOverride(t *testing.T) {
+func TestProductionAuthorizationURLIgnoresSentinelEnvOverride(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "https://auth.nimi.invalid/oauth/authorize")
 	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "")
 	t.Setenv("NIMI_REALM_URL", "")
@@ -805,8 +771,8 @@ func TestProductionAuthorizationURLRejectsSentinelEnvOverride(t *testing.T) {
 		RedirectURI:  "http://127.0.0.1:34939/oauth/callback",
 		HTTPClient:   http.DefaultClient,
 	})
-	if resolved.AuthorizationURL != "" {
-		t.Fatalf("sentinel env override resolved to %q", resolved.AuthorizationURL)
+	if resolved.AuthorizationURL != "https://realm.nimi.test/api/auth/oauth/authorize" {
+		t.Fatalf("environment override affected production URL resolution: %q", resolved.AuthorizationURL)
 	}
 }
 
@@ -837,21 +803,19 @@ func TestProductionAuthorizationURLDefaultsToRealmAuthorizeEndpoint(t *testing.T
 	}
 }
 
-// TestProductionAuthorizationURLHonoursExplicitOverride asserts that the
-// NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL env override wins over the default
-// realm authorize endpoint, while a missing override still resolves to the
-// API authorize endpoint (Wave A-fix R-OAUTH-011 split UI/API topology). The
-// override exists for staging/test environments — production deployments
-// MUST NOT point this at the apps/web origin.
+// TestProductionAuthorizationURLHonoursExplicitOverride asserts that an
+// explicitly injected service-owned URL wins while environment input remains
+// non-authoritative.
 func TestProductionAuthorizationURLHonoursExplicitOverride(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "https://override.nimi.test/oauth/authorize")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "https://ignored.nimi.test/oauth/authorize")
 	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "")
 	t.Setenv("NIMI_REALM_URL", "")
 	resolved := resolveProductionConfig(ProductionConfig{
-		RealmBaseURL: "https://realm.nimi.test",
-		ClientID:     "nimi-desktop",
-		RedirectURI:  "http://127.0.0.1:34939/oauth/callback",
-		HTTPClient:   http.DefaultClient,
+		RealmBaseURL:     "https://realm.nimi.test",
+		AuthorizationURL: "https://override.nimi.test/oauth/authorize",
+		ClientID:         "nimi-desktop",
+		RedirectURI:      "http://127.0.0.1:34939/oauth/callback",
+		HTTPClient:       http.DefaultClient,
 	})
 	if resolved.AuthorizationURL != "https://override.nimi.test/oauth/authorize" {
 		t.Fatalf("override AuthorizationURL = %q, want https://override.nimi.test/oauth/authorize", resolved.AuthorizationURL)

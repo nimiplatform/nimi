@@ -32,10 +32,10 @@ func captureStderrOutput(t *testing.T, fn func()) string {
 	return string(bytes)
 }
 
-func TestPrintUsageUsesAppAuthCommand(t *testing.T) {
+func TestPrintUsageOmitsPublicAppAuthCommand(t *testing.T) {
 	output := captureStderrOutput(t, printUsage)
-	if !strings.Contains(output, "app-auth") {
-		t.Fatalf("usage should include app-auth command: %q", output)
+	if strings.Contains(output, "app-auth") {
+		t.Fatalf("usage must not expose public app-auth command: %q", output)
 	}
 	for _, command := range []string{"doctor", "version", "provider", "run"} {
 		if !strings.Contains(output, command) {
@@ -74,16 +74,6 @@ func TestPrintUsageUsesAppAuthCommand(t *testing.T) {
 	}
 	if strings.Contains(output, "|grant|") {
 		t.Fatalf("usage should not include legacy grant command: %q", output)
-	}
-}
-
-func TestPrintRuntimeAppAuthUsageUsesAppAuthSubcommands(t *testing.T) {
-	output := captureStderrOutput(t, printRuntimeAppAuthUsage)
-	if !strings.Contains(output, "nimi app-auth authorize") {
-		t.Fatalf("runtime app-auth usage missing authorize command: %q", output)
-	}
-	if strings.Contains(output, "nimi grant authorize") {
-		t.Fatalf("runtime app-auth usage should not include legacy grant command: %q", output)
 	}
 }
 

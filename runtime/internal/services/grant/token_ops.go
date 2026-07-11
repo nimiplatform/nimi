@@ -18,7 +18,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 )
 
-func (s *Service) ValidateAppAccessToken(ctx context.Context, req *runtimev1.ValidateAppAccessTokenRequest) (*runtimev1.ValidateAppAccessTokenResponse, error) {
+func (s *Service) retiredValidateAppAccessToken(ctx context.Context, req *runtimev1.ValidateAppAccessTokenRequest) (*runtimev1.ValidateAppAccessTokenResponse, error) {
 	tokenID := strings.TrimSpace(req.GetTokenId())
 	appID := strings.TrimSpace(req.GetAppId())
 	if tokenID == "" || appID == "" {
@@ -114,7 +114,7 @@ func (s *Service) ValidateAppAccessToken(ctx context.Context, req *runtimev1.Val
 	}, nil
 }
 
-func (s *Service) RevokeAppAccessToken(ctx context.Context, req *runtimev1.RevokeAppAccessTokenRequest) (*runtimev1.Ack, error) {
+func (s *Service) retiredRevokeAppAccessToken(ctx context.Context, req *runtimev1.RevokeAppAccessTokenRequest) (*runtimev1.Ack, error) {
 	tokenID := strings.TrimSpace(req.GetTokenId())
 	appID := strings.TrimSpace(req.GetAppId())
 	if tokenID == "" {
@@ -142,7 +142,7 @@ func (s *Service) RevokeAppAccessToken(ctx context.Context, req *runtimev1.Revok
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
-func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.IssueDelegatedAccessTokenRequest) (*runtimev1.IssueDelegatedAccessTokenResponse, error) {
+func (s *Service) retiredIssueDelegatedAccessToken(ctx context.Context, req *runtimev1.IssueDelegatedAccessTokenRequest) (*runtimev1.IssueDelegatedAccessTokenResponse, error) {
 	appID := strings.TrimSpace(req.GetAppId())
 	parentID := strings.TrimSpace(req.GetParentTokenId())
 	if appID == "" || parentID == "" {
@@ -279,7 +279,7 @@ func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.
 	}, nil
 }
 
-func (s *Service) ListTokenChain(ctx context.Context, req *runtimev1.ListTokenChainRequest) (*runtimev1.ListTokenChainResponse, error) {
+func (s *Service) retiredListTokenChain(ctx context.Context, req *runtimev1.ListTokenChainRequest) (*runtimev1.ListTokenChainResponse, error) {
 	root := strings.TrimSpace(req.GetRootTokenId())
 	if root == "" {
 		s.emitAudit(ctx, "ListTokenChain", "", "", runtimev1.ReasonCode_GRANT_TOKEN_CHAIN_ROOT_REQUIRED)

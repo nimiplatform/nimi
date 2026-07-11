@@ -4,25 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
-	keyring "github.com/zalando/go-keyring"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
-
-const accountCustodyServicePrefix = "nimi/runtime/account"
-const accountTestCustodyFilePathEnv = "NIMI_RUNTIME_ACCOUNT_TEST_CUSTODY_FILE_PATH"
 
 type ProductionConfig struct {
 	RealmBaseURL        string
@@ -31,7 +24,7 @@ type ProductionConfig struct {
 	ClientID            string
 	RedirectURI         string
 	CustodyPartition    string
-	TestCustodyFilePath string
+	Custody             Custody
 	HTTPClient          *http.Client
 	AppRegistry         *appregistry.Registry
 	AppSessionValidator AppSessionValidator
@@ -55,8 +48,6 @@ type workspaceMembershipSnapshot struct {
 	ObservedAt         string            `json:"observedAt,omitempty"`
 	DisplayMetadata    map[string]string `json:"displayMetadata,omitempty"`
 }
-
-type osKeychainCustody struct{}
 
 type realmOAuthExchanger struct {
 	httpClient       *http.Client
@@ -95,9 +86,9 @@ func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 	if strings.TrimSpace(resolved.AuthorizationURL) == "" && logger != nil {
 		logger.Warn("runtime account production activation has no Realm auth base URL; login exchange will fail closed")
 	}
-	custody := Custody(osKeychainCustody{})
-	if strings.TrimSpace(resolved.TestCustodyFilePath) != "" {
-		custody = fileAccountCustody{path: resolved.TestCustodyFilePath}
+	custody := Custody(unavailableCustody{})
+	if resolved.Custody != nil && resolved.CustodyPartition != "" {
+		custody = resolved.Custody
 	}
 	return New(logger,
 		WithProductionActivation(),
@@ -126,11 +117,7 @@ func newProductionPresenceVerifier(cfg ProductionConfig) PresenceVerifier {
 }
 
 func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
-	realmBaseURL := trimURL(firstNonEmpty(
-		cfg.RealmBaseURL,
-		os.Getenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL"),
-		os.Getenv("NIMI_REALM_URL"),
-	))
+	realmBaseURL := trimURL(cfg.RealmBaseURL)
 	// Authorization URL must point at the realm OAuth authorize endpoint
 	// (R-OAUTH-002 / R-OAUTH-011). Web-relay shapes (NIMI_WEB_URL with
 	// #/login?desktop_callback=...) are no longer admitted; the runtime
@@ -138,32 +125,21 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 	// the realm 302-redirects to the loopback redirect_uri.
 	authorizationURL := firstNonEmpty(
 		cfg.AuthorizationURL,
-		os.Getenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL"),
 		joinURL(realmBaseURL, "/api/auth/oauth/authorize"),
 	)
 	tokenURL := firstNonEmpty(
 		cfg.TokenURL,
-		os.Getenv("NIMI_RUNTIME_ACCOUNT_TOKEN_URL"),
 		joinURL(realmBaseURL, "/api/auth/oauth/token"),
 	)
 	clientID := firstNonEmpty(
 		cfg.ClientID,
-		os.Getenv("NIMI_RUNTIME_ACCOUNT_CLIENT_ID"),
 		"nimi-desktop",
 	)
 	redirectURI := firstNonEmpty(
 		cfg.RedirectURI,
-		os.Getenv("NIMI_RUNTIME_ACCOUNT_REDIRECT_URI"),
 		"http://localhost:46373/oauth/callback",
 	)
-	custodyPartition := firstNonEmpty(
-		cfg.CustodyPartition,
-		os.Getenv("NIMI_RUNTIME_ACCOUNT_CUSTODY_PARTITION"),
-	)
-	testCustodyFilePath := firstNonEmpty(
-		cfg.TestCustodyFilePath,
-		os.Getenv(accountTestCustodyFilePathEnv),
-	)
+	custodyPartition := strings.TrimSpace(cfg.CustodyPartition)
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 20 * time.Second}
@@ -175,7 +151,7 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 		ClientID:            strings.TrimSpace(clientID),
 		RedirectURI:         strings.TrimSpace(redirectURI),
 		CustodyPartition:    strings.TrimSpace(custodyPartition),
-		TestCustodyFilePath: strings.TrimSpace(testCustodyFilePath),
+		Custody:             cfg.Custody,
 		HTTPClient:          httpClient,
 		AppRegistry:         cfg.AppRegistry,
 		AppSessionValidator: cfg.AppSessionValidator,
@@ -197,158 +173,6 @@ func newRealmTokenRefresher(cfg ProductionConfig) realmTokenRefresher {
 		httpClient: cfg.HTTPClient,
 		tokenURL:   strings.TrimSuffix(cfg.TokenURL, "/oauth/token") + "/refresh",
 	}
-}
-
-func (osKeychainCustody) Load(_ context.Context, partition string) (AccountMaterial, error) {
-	payload, err := keyring.Get(accountCustodyServiceName(partition), "account-session")
-	if err != nil {
-		if errors.Is(err, keyring.ErrNotFound) {
-			return AccountMaterial{}, ErrNoStoredAccount
-		}
-		return AccountMaterial{}, fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
-	}
-	var snapshot custodySnapshot
-	if err := json.Unmarshal([]byte(payload), &snapshot); err != nil {
-		return AccountMaterial{}, fmt.Errorf("%w: invalid custody snapshot", ErrCustodyUnavailable)
-	}
-	expiresAt, _ := time.Parse(time.RFC3339Nano, snapshot.AccessTokenExpires)
-	return normalizeMaterial(AccountMaterial{
-		AccountID:            snapshot.AccountID,
-		DisplayName:          snapshot.DisplayName,
-		RealmEnvironmentID:   snapshot.RealmEnvironmentID,
-		WorkspaceMemberships: workspaceMembershipsFromSnapshots(snapshot.WorkspaceMemberships),
-		AccessToken:          snapshot.AccessToken,
-		AccessTokenExpires:   expiresAt,
-		RefreshToken:         snapshot.RefreshToken,
-		RefreshTokenHashes:   snapshot.RefreshTokenHashes,
-	}), nil
-}
-
-func (osKeychainCustody) Store(_ context.Context, partition string, material AccountMaterial) error {
-	material = normalizeMaterial(material)
-	payload, err := json.Marshal(custodySnapshot{
-		AccountID:            material.AccountID,
-		DisplayName:          material.DisplayName,
-		RealmEnvironmentID:   material.RealmEnvironmentID,
-		WorkspaceMemberships: workspaceMembershipSnapshotsFromProjections(material.WorkspaceMemberships),
-		AccessToken:          material.AccessToken,
-		AccessTokenExpires:   material.AccessTokenExpires.UTC().Format(time.RFC3339Nano),
-		RefreshToken:         material.RefreshToken,
-		RefreshTokenHashes:   material.RefreshTokenHashes,
-	})
-	if err != nil {
-		return fmt.Errorf("%w: encode custody snapshot", ErrCustodyUnavailable)
-	}
-	if err := keyring.Set(accountCustodyServiceName(partition), "account-session", string(payload)); err != nil {
-		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
-	}
-	return nil
-}
-
-func (osKeychainCustody) Clear(_ context.Context, partition string) error {
-	err := keyring.Delete(accountCustodyServiceName(partition), "account-session")
-	if err != nil && !errors.Is(err, keyring.ErrNotFound) {
-		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
-	}
-	return nil
-}
-
-type fileAccountCustody struct {
-	path string
-}
-
-func (f fileAccountCustody) normalizedPath() string {
-	return strings.TrimSpace(f.path)
-}
-
-func (f fileAccountCustody) Load(_ context.Context, _ string) (AccountMaterial, error) {
-	path := f.normalizedPath()
-	if path == "" {
-		return AccountMaterial{}, ErrCustodyUnavailable
-	}
-	payload, err := os.ReadFile(path)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return AccountMaterial{}, ErrNoStoredAccount
-		}
-		return AccountMaterial{}, fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
-	}
-	var snapshot custodySnapshot
-	if err := json.Unmarshal(payload, &snapshot); err != nil {
-		return AccountMaterial{}, fmt.Errorf("%w: invalid custody snapshot", ErrCustodyUnavailable)
-	}
-	expiresAt, _ := time.Parse(time.RFC3339Nano, snapshot.AccessTokenExpires)
-	return normalizeMaterial(AccountMaterial{
-		AccountID:            snapshot.AccountID,
-		DisplayName:          snapshot.DisplayName,
-		RealmEnvironmentID:   snapshot.RealmEnvironmentID,
-		WorkspaceMemberships: workspaceMembershipsFromSnapshots(snapshot.WorkspaceMemberships),
-		AccessToken:          snapshot.AccessToken,
-		AccessTokenExpires:   expiresAt,
-		RefreshToken:         snapshot.RefreshToken,
-		RefreshTokenHashes:   snapshot.RefreshTokenHashes,
-	}), nil
-}
-
-func (f fileAccountCustody) Store(_ context.Context, _ string, material AccountMaterial) error {
-	path := f.normalizedPath()
-	if path == "" {
-		return ErrCustodyUnavailable
-	}
-	material = normalizeMaterial(material)
-	payload, err := json.Marshal(custodySnapshot{
-		AccountID:            material.AccountID,
-		DisplayName:          material.DisplayName,
-		RealmEnvironmentID:   material.RealmEnvironmentID,
-		WorkspaceMemberships: workspaceMembershipSnapshotsFromProjections(material.WorkspaceMemberships),
-		AccessToken:          material.AccessToken,
-		AccessTokenExpires:   material.AccessTokenExpires.UTC().Format(time.RFC3339Nano),
-		RefreshToken:         material.RefreshToken,
-		RefreshTokenHashes:   material.RefreshTokenHashes,
-	})
-	if err != nil {
-		return fmt.Errorf("%w: encode custody snapshot", ErrCustodyUnavailable)
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
-	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".account-custody-*.tmp")
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
-	}
-	tmpPath := tmp.Name()
-	cleanup := true
-	defer func() {
-		if cleanup {
-			_ = os.Remove(tmpPath)
-		}
-	}()
-	if _, err := tmp.Write(payload); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
-	}
-	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
-	}
-	if err := os.Chmod(tmpPath, 0o600); err != nil {
-		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
-	}
-	if err := os.Rename(tmpPath, path); err != nil {
-		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
-	}
-	cleanup = false
-	return nil
-}
-
-func (f fileAccountCustody) Clear(_ context.Context, _ string) error {
-	path := f.normalizedPath()
-	if path == "" {
-		return ErrCustodyUnavailable
-	}
-	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("%w: %v", ErrCustodyUnavailable, err)
-	}
-	return nil
 }
 
 func (r realmOAuthExchanger) Exchange(ctx context.Context, attempt LoginAttempt, code string) (AccountMaterial, error) {
@@ -480,12 +304,16 @@ func workspaceMembershipsFromTokenPayload(items []realmWorkspaceMembershipShape,
 func workspaceMembershipsFromSnapshots(in []workspaceMembershipSnapshot) []*runtimev1.WorkspaceMembershipProjection {
 	out := make([]*runtimev1.WorkspaceMembershipProjection, 0, len(in))
 	for _, snapshot := range in {
-		observedAt, _ := time.Parse(time.RFC3339Nano, snapshot.ObservedAt)
+		var observedAt *timestamppb.Timestamp
+		if snapshot.ObservedAt != "" {
+			parsed, _ := time.Parse(time.RFC3339Nano, snapshot.ObservedAt)
+			observedAt = timestamppb.New(parsed)
+		}
 		out = append(out, &runtimev1.WorkspaceMembershipProjection{
 			WorkspaceId:        snapshot.WorkspaceID,
 			MembershipState:    workspaceMembershipStateFromString(snapshot.MembershipState),
 			RealmEnvironmentId: snapshot.RealmEnvironmentID,
-			ObservedAt:         timestamppb.New(observedAt),
+			ObservedAt:         observedAt,
 			DisplayMetadata:    snapshot.DisplayMetadata,
 		})
 	}
@@ -575,10 +403,6 @@ func normalizeOAuthAuthorizeEndpoint(raw string) string {
 		return ""
 	}
 	return u.String()
-}
-
-func accountCustodyServiceName(partition string) string {
-	return accountCustodyServicePrefix + "/" + strings.NewReplacer("/", "_", ":", "_").Replace(strings.TrimSpace(partition))
 }
 
 func joinURL(base string, path string) string {

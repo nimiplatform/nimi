@@ -1,7 +1,9 @@
 package grpcserver
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
 	"io"
 	"log/slog"
 	"os"
@@ -12,7 +14,10 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
 
 func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
@@ -27,7 +32,7 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 		UsageStatsBufferSize: 64,
 		IdempotencyCapacity:  32,
 	}
-	server, err := New(cfg, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	server, err := NewNonProduction(cfg, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
 		t.Fatalf("grpcserver.New: %v", err)
 	}
@@ -69,8 +74,8 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("account status: %v", err)
 	}
-	if status.GetProductionInert() {
-		t.Fatal("account service must be production-active in wave-3")
+	if !status.GetProductionInert() {
+		t.Fatal("non-production server must not activate production account custody")
 	}
 	if !agentSvc.HasLifeTrackExecutor() {
 		t.Fatal("expected life-track executor to be configured")
@@ -101,28 +106,264 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	}
 }
 
-func TestBuildCloudConnectorDefsPreservesEnvCredentialSource(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY", "dashscope-env-key")
-	cfg := config.Config{
-		Providers: map[string]config.RuntimeFileTarget{
-			"dashscope": {
-				BaseURL:   "https://dashscope.aliyuncs.com/compatible-mode/v1",
-				APIKeyEnv: "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY",
-			},
-		},
+func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
+	t.Parallel()
+
+	serviceStateRoot := t.TempDir()
+	if _, err := NewProtectedService(config.Config{}, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", ProtectedServiceBindings{
+		ServiceStateRoot: serviceStateRoot,
+	}); err == nil {
+		t.Fatal("protected service must reject missing custody bindings")
 	}
 
-	defs := buildCloudConnectorDefs(cfg)
-	if len(defs) != 1 {
-		t.Fatalf("expected one cloud connector def, got %d", len(defs))
+	userStateRoot := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(userStateRoot, "connectors"), 0o700); err != nil {
+		t.Fatalf("create untrusted connector root: %v", err)
 	}
-	if defs[0].APIKey != "dashscope-env-key" {
-		t.Fatalf("api key mismatch: %q", defs[0].APIKey)
+	if err := os.WriteFile(filepath.Join(userStateRoot, "connectors", "connector-registry.json"), []byte("not-json"), 0o600); err != nil {
+		t.Fatalf("write untrusted connector registry: %v", err)
 	}
-	if defs[0].APIKeyEnv != "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY" {
-		t.Fatalf("api key env mismatch: %q", defs[0].APIKeyEnv)
+	cfg := config.Config{
+		GRPCAddr:                "127.0.0.1:0",
+		HTTPAddr:                "127.0.0.1:0",
+		ShutdownTimeout:         2 * time.Second,
+		LocalStatePath:          filepath.Join(userStateRoot, "local-state.json"),
+		AccountRealmBaseURL:     "https://user-config.invalid",
+		AccountAuthorizationURL: "https://user-config.invalid/oauth/authorize",
+		AccountTokenURL:         "https://user-config.invalid/oauth/token",
+		AuditRingBufferSize:     64,
+		UsageStatsBufferSize:    64,
+		IdempotencyCapacity:     32,
+	}
+	authorities := newProtectedAuthoritiesForServerTest(t)
+	server, err := NewProtectedService(
+		cfg,
+		health.NewState(),
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		"test",
+		ProtectedServiceBindings{
+			ServiceStateRoot: serviceStateRoot,
+			AccountCustody:   emptyProtectedAccountCustody{},
+			AccountPartition: "verified-user-and-logon-session",
+			ConnectorSecrets: emptyProtectedConnectorSecrets{},
+			DesktopSessions:  authorities.desktop,
+			LifecycleIntents: authorities.lifecycle,
+		},
+	)
+	if err != nil {
+		t.Fatalf("protected service must ignore user-config security roots: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = server.Stop(context.Background())
+		if svc := server.LocalService(); svc != nil {
+			svc.Close()
+		}
+		if svc := server.MemoryService(); svc != nil {
+			_ = svc.Close()
+		}
+		if svc := server.CognitionService(); svc != nil {
+			_ = svc.Close()
+		}
+		if svc := server.AgentService(); svc != nil {
+			svc.Close()
+		}
+	})
+	status, err := server.AccountService().GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{})
+	if err != nil {
+		t.Fatalf("protected account status: %v", err)
+	}
+	if status.GetProductionInert() {
+		t.Fatal("verified protected bindings must activate the production account service")
+	}
+	if _, err := server.authService.OpenDesktopSession(context.Background(), &runtimev1.OpenDesktopSessionRequest{}); err == nil {
+		t.Fatal("plain context unexpectedly opened a protected Desktop session")
+	} else if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED {
+		t.Fatalf("protected auth service manager injection reason = %v (present=%v), err=%v", reason, ok, err)
 	}
 }
+
+func TestProtectedServiceDoesNotRegisterPublicRuntimeGrantService(t *testing.T) {
+	authorities := newProtectedAuthoritiesForServerTest(t)
+	server, err := NewProtectedService(
+		config.Config{
+			GRPCAddr:             "127.0.0.1:0",
+			HTTPAddr:             "127.0.0.1:0",
+			ShutdownTimeout:      2 * time.Second,
+			AuditRingBufferSize:  64,
+			UsageStatsBufferSize: 64,
+			IdempotencyCapacity:  32,
+		},
+		health.NewState(),
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		"test",
+		ProtectedServiceBindings{
+			ServiceStateRoot: t.TempDir(),
+			AccountCustody:   emptyProtectedAccountCustody{},
+			AccountPartition: "verified-user-and-logon-session",
+			ConnectorSecrets: emptyProtectedConnectorSecrets{},
+			DesktopSessions:  authorities.desktop,
+			LifecycleIntents: authorities.lifecycle,
+		},
+	)
+	if err != nil {
+		t.Fatalf("NewProtectedService: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = server.Stop(context.Background())
+		if svc := server.LocalService(); svc != nil {
+			svc.Close()
+		}
+		if svc := server.MemoryService(); svc != nil {
+			_ = svc.Close()
+		}
+		if svc := server.CognitionService(); svc != nil {
+			_ = svc.Close()
+		}
+		if svc := server.AgentService(); svc != nil {
+			svc.Close()
+		}
+	})
+	if _, registered := server.grpcServer.GetServiceInfo()["nimi.runtime.v1.RuntimeGrantService"]; registered {
+		t.Fatal("protected Runtime must not register the public RuntimeGrantService")
+	}
+}
+
+func TestProtectedServiceRejectsMissingDesktopSessionAuthority(t *testing.T) {
+	for name, manager := range map[string]*protectedlocal.DesktopSessionManager{
+		"missing": nil,
+		"zero":    {},
+	} {
+		t.Run(name, func(t *testing.T) {
+			server, err := NewProtectedService(
+				config.Config{
+					GRPCAddr:                "127.0.0.1:0",
+					HTTPAddr:                "127.0.0.1:0",
+					ShutdownTimeout:         2 * time.Second,
+					AuditRingBufferSize:     64,
+					UsageStatsBufferSize:    64,
+					IdempotencyCapacity:     32,
+					AccountRealmBaseURL:     "https://portable.invalid",
+					AccountAuthorizationURL: "https://portable.invalid/oauth/authorize",
+					AccountTokenURL:         "https://portable.invalid/oauth/token",
+				},
+				health.NewState(),
+				slog.New(slog.NewTextHandler(io.Discard, nil)),
+				"test",
+				ProtectedServiceBindings{
+					ServiceStateRoot: t.TempDir(),
+					AccountCustody:   emptyProtectedAccountCustody{},
+					AccountPartition: "verified-user-and-logon-session",
+					ConnectorSecrets: emptyProtectedConnectorSecrets{},
+					DesktopSessions:  manager,
+					LifecycleIntents: &protectedlocal.LifecycleIntentManager{},
+				},
+			)
+			if server != nil {
+				_ = server.Stop(context.Background())
+			}
+			if err == nil {
+				t.Fatal("protected service accepted incomplete Desktop session authority")
+			}
+		})
+	}
+}
+
+func TestProtectedServiceRejectsMismatchedLifecycleIntentAuthority(t *testing.T) {
+	first := newProtectedAuthoritiesForServerTest(t)
+	second := newProtectedAuthoritiesForServerTest(t)
+	for name, lifecycle := range map[string]*protectedlocal.LifecycleIntentManager{
+		"zero":        {},
+		"other_state": second.lifecycle,
+	} {
+		t.Run(name, func(t *testing.T) {
+			server, err := NewProtectedService(
+				config.Config{},
+				health.NewState(),
+				slog.New(slog.NewTextHandler(io.Discard, nil)),
+				"test",
+				ProtectedServiceBindings{
+					ServiceStateRoot: t.TempDir(),
+					AccountCustody:   emptyProtectedAccountCustody{},
+					AccountPartition: "verified-user-and-logon-session",
+					ConnectorSecrets: emptyProtectedConnectorSecrets{},
+					DesktopSessions:  first.desktop,
+					LifecycleIntents: lifecycle,
+				},
+			)
+			if server != nil {
+				_ = server.Stop(context.Background())
+			}
+			if err == nil {
+				t.Fatal("protected service accepted mismatched lifecycle intent authority")
+			}
+		})
+	}
+}
+
+type protectedAuthoritiesForServerTest struct {
+	desktop   *protectedlocal.DesktopSessionManager
+	lifecycle *protectedlocal.LifecycleIntentManager
+}
+
+func newProtectedAuthoritiesForServerTest(t *testing.T) protectedAuthoritiesForServerTest {
+	t.Helper()
+	directory := t.TempDir()
+	anchor, err := protectedlocal.NewFileAnchorStore(
+		filepath.Join(directory, "protected_local.anchor"),
+		bytes.Repeat([]byte{0x91}, protectedlocal.IdentifierBytes),
+	)
+	if err != nil {
+		t.Fatalf("create protected test anchor: %v", err)
+	}
+	ledger, err := protectedlocal.OpenLedger(context.Background(), protectedlocal.LedgerOptions{
+		Path:         filepath.Join(directory, protectedlocal.LedgerFilename),
+		AnchorStore:  anchor,
+		RecordMACKey: bytes.Repeat([]byte{0x92}, protectedlocal.IdentifierBytes),
+		Random:       rand.Reader,
+	})
+	if err != nil {
+		t.Fatalf("open protected test ledger: %v", err)
+	}
+	t.Cleanup(func() { _ = ledger.Close() })
+	bootEpoch, err := ledger.StartRuntime(context.Background())
+	if err != nil {
+		t.Fatalf("start protected test Runtime: %v", err)
+	}
+	desktop, err := protectedlocal.NewDesktopSessionManager(bootEpoch, rand.Reader, ledger)
+	if err != nil {
+		t.Fatalf("create protected test Desktop session manager: %v", err)
+	}
+	lifecycle, err := protectedlocal.NewLifecycleIntentManager(protectedlocal.LifecycleIntentManagerOptions{
+		Sessions: desktop,
+		Ledger:   ledger,
+	})
+	if err != nil {
+		t.Fatalf("create protected test lifecycle intent manager: %v", err)
+	}
+	return protectedAuthoritiesForServerTest{desktop: desktop, lifecycle: lifecycle}
+}
+
+type emptyProtectedAccountCustody struct{}
+
+func (emptyProtectedAccountCustody) Load(context.Context, string) (accountservice.AccountMaterial, error) {
+	return accountservice.AccountMaterial{}, accountservice.ErrNoStoredAccount
+}
+
+func (emptyProtectedAccountCustody) Store(context.Context, string, accountservice.AccountMaterial) error {
+	return nil
+}
+
+func (emptyProtectedAccountCustody) Clear(context.Context, string) error { return nil }
+
+type emptyProtectedConnectorSecrets struct{}
+
+func (emptyProtectedConnectorSecrets) WriteSecret(string, string) error { return nil }
+
+func (emptyProtectedConnectorSecrets) ReadSecret(string) (string, bool, error) {
+	return "", false, nil
+}
+
+func (emptyProtectedConnectorSecrets) DeleteSecret(string) error { return nil }
 
 func TestLoadNimiAppRegistryCatalog(t *testing.T) {
 	dir := t.TempDir()

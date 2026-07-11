@@ -292,20 +292,6 @@ message RequestPresenceVerificationResponse {
   bool production_inert = 9;
 }
 
-message GetAccessTokenRequest {
-  AccountCaller caller = 1;
-  repeated string requested_scopes = 2;
-}
-
-message GetAccessTokenResponse {
-  bool accepted = 1;
-  string access_token = 2;
-  google.protobuf.Timestamp expires_at = 3;
-  ReasonCode reason_code = 4;
-  AccountReasonCode account_reason_code = 5;
-  bool production_inert = 6;
-}
-
 message InvokeRealmUnaryRequest {
   AccountCaller caller = 1;
   string method_id = 2;
@@ -322,19 +308,6 @@ message InvokeRealmUnaryResponse {
   bool production_inert = 5;
   int32 http_status = 6;
   string error_message = 7;
-}
-
-message RefreshAccountSessionRequest {
-  AccountCaller caller = 1;
-}
-
-message RefreshAccountSessionResponse {
-  bool accepted = 1;
-  AccountSessionState state = 2;
-  AccountProjection account_projection = 3;
-  ReasonCode reason_code = 4;
-  AccountReasonCode account_reason_code = 5;
-  bool production_inert = 6;
 }
 
 message LogoutRequest {
@@ -431,9 +404,7 @@ service RuntimeAccountService {
   rpc BeginLogin(BeginLoginRequest) returns (BeginLoginResponse);
   rpc CompleteLogin(CompleteLoginRequest) returns (CompleteLoginResponse);
   rpc RequestPresenceVerification(RequestPresenceVerificationRequest) returns (RequestPresenceVerificationResponse);
-  rpc GetAccessToken(GetAccessTokenRequest) returns (GetAccessTokenResponse);
   rpc InvokeRealmUnary(InvokeRealmUnaryRequest) returns (InvokeRealmUnaryResponse);
-  rpc RefreshAccountSession(RefreshAccountSessionRequest) returns (RefreshAccountSessionResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc SwitchAccount(SwitchAccountRequest) returns (SwitchAccountResponse);
   rpc IssueScopedAppBinding(IssueScopedAppBindingRequest) returns (IssueScopedAppBindingResponse);

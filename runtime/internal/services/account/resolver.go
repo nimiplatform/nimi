@@ -129,6 +129,7 @@ func (s *Service) resolveWorkspaceBindingLocked(req WorkspaceBindingResolveReque
 	}
 	if s.accountMaterialExpiredLocked() {
 		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
+		s.invalidateAuthenticatedRuntimeIdentityLocked()
 		return workspaceBindingDeny(WorkspaceBindingDenyAccountUnavailable, runtimev1.ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE, bindingID)
 	}
 	now := s.now().UTC()

@@ -221,9 +221,6 @@ func TestListConnectorsAnonymousDoesNotSeeUserRemoteOrRetiredLocal(t *testing.T)
 	// K-RTARGET-006: local connectors are retired; anonymous callers must not
 	// receive user-owned remote connectors or legacy local connector facades.
 	svc := newTestService(t)
-	if err := EnsureLocalConnectors(svc.store); err != nil {
-		t.Fatalf("EnsureLocalConnectors: %v", err)
-	}
 	if _, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
@@ -291,9 +288,6 @@ func TestListConnectorsFiltering(t *testing.T) {
 	svc := newTestService(t)
 	user1Ctx := userContext("user-1")
 	user2Ctx := userContext("user-2")
-	if err := EnsureLocalConnectors(svc.store); err != nil {
-		t.Fatalf("EnsureLocalConnectors: %v", err)
-	}
 	// Create remote connectors for different users
 	if _, err := svc.CreateConnector(user1Ctx, &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
@@ -462,9 +456,6 @@ func TestNonUserOwnedOAuthManagedConnectorsFailClosed(t *testing.T) {
 }
 func TestAuthenticatedCallerSeesMachineGlobalAndOwnedConnectors(t *testing.T) {
 	svc := newTestService(t)
-	if err := EnsureLocalConnectors(svc.store); err != nil {
-		t.Fatalf("EnsureLocalConnectors: %v", err)
-	}
 	if _, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "machine-key",

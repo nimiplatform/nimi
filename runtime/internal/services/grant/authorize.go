@@ -15,7 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1.AuthorizeExternalPrincipalRequest) (*runtimev1.AuthorizeExternalPrincipalResponse, error) {
+func (s *Service) retiredAuthorizeExternalPrincipal(ctx context.Context, req *runtimev1.AuthorizeExternalPrincipalRequest) (*runtimev1.AuthorizeExternalPrincipalResponse, error) {
 	appID := strings.TrimSpace(req.GetAppId())
 	externalID := strings.TrimSpace(req.GetExternalPrincipalId())
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())

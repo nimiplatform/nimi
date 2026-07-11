@@ -2,6 +2,11 @@ version: 1
 table_family: product_catalog
 owner: runtime
 catalog_id: runtime_provider_probe_targets
+production_target_authority: runtime_service_owned_connector_provider_or_engine_state
+production_credential_authority: runtime_service_principal_custody_ref_only
+production_environment_or_argv_consumption: forbidden
+environment_columns_scope: separately_signed_synthetic_non_product_probe_fixture_only
+environment_fixture_product_evidence_allowed: false
 entries:
   - local
   - local-image

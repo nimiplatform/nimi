@@ -469,7 +469,7 @@ func TestInterceptorPermitsAnonymousOnAuthenticatedRequiredMethods(t *testing.T)
 	table := loadPostureTableFixture(t)
 
 	wantSamples := []string{
-		"/nimi.runtime.v1.RuntimeAccountService/Logout",
+		"/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
 	}
 	for _, methodID := range wantSamples {
 		assertPostureClassification(t, table, methodID, "authenticated_required")

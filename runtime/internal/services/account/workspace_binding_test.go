@@ -589,9 +589,9 @@ func TestWorkspaceBindingRevocationAndMembershipLoss(t *testing.T) {
 	svc.refresher = staticRefresher{material: refreshMaterial}
 	refresh, err := svc.refreshAccountSessionInternal(context.Background(), true)
 	if err != nil {
-		t.Fatalf("RefreshAccountSession: %v", err)
+		t.Fatalf("private refresh: %v", err)
 	}
-	if !refresh.GetAccepted() {
+	if !refresh.accepted {
 		t.Fatalf("refresh failed: %+v", refresh)
 	}
 	result := resolveWorkspace(t, svc, issued.GetAttachment(), firstPartyCaller(), testWorkspaceID, "runtime.knowledge.read")

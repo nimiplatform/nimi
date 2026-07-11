@@ -140,8 +140,8 @@ func (s *Service) realmUnaryAccessToken(ctx context.Context, _ *runtimev1.Accoun
 		if err != nil {
 			return "", runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED, false, err
 		}
-		if !refresh.GetAccepted() {
-			return "", refresh.GetAccountReasonCode(), false, nil
+		if !refresh.accepted {
+			return "", refresh.accountReasonCode, false, nil
 		}
 	}
 	s.mu.RLock()

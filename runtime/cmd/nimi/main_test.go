@@ -9,6 +9,16 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
+func TestRunServeRejectsDirectUserDaemonLaunch(t *testing.T) {
+	err := runServe([]string{"--grpc-addr=127.0.0.1:59998"})
+	if err == nil {
+		t.Fatal("direct user daemon launch unexpectedly succeeded")
+	}
+	if !strings.Contains(err.Error(), "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED") {
+		t.Fatalf("direct user daemon launch error = %v", err)
+	}
+}
+
 func TestExtractProviders(t *testing.T) {
 	payload := map[string]any{
 		"ai_providers": []any{

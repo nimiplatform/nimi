@@ -115,12 +115,6 @@ func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverrid
 	if appID != "" {
 		pairs = append(pairs, "x-nimi-app-id", appID)
 	}
-	if tokenID := strings.TrimSpace(metadataValue.AccessTokenID); tokenID != "" {
-		pairs = append(pairs, "x-nimi-access-token-id", tokenID)
-	}
-	if secret := strings.TrimSpace(metadataValue.AccessTokenSecret); secret != "" {
-		pairs = append(pairs, "x-nimi-access-token-secret", secret)
-	}
 	if sessionID := strings.TrimSpace(metadataValue.SessionID); sessionID != "" {
 		pairs = append(pairs, "x-nimi-session-id", sessionID)
 	}
@@ -153,8 +147,6 @@ func applyClientMetadataOverrides(dst *ClientMetadata, override *ClientMetadata)
 		{value: strings.TrimSpace(override.ProviderType), set: func(value string) { dst.ProviderType = value }},
 		{value: strings.TrimSpace(override.ProviderEndpoint), set: func(value string) { dst.ProviderEndpoint = value }},
 		{value: strings.TrimSpace(override.ProviderAPIKey), set: func(value string) { dst.ProviderAPIKey = value }},
-		{value: strings.TrimSpace(override.AccessTokenID), set: func(value string) { dst.AccessTokenID = value }},
-		{value: strings.TrimSpace(override.AccessTokenSecret), set: func(value string) { dst.AccessTokenSecret = value }},
 		{value: strings.TrimSpace(override.SessionID), set: func(value string) { dst.SessionID = value }},
 		{value: strings.TrimSpace(override.SessionToken), set: func(value string) { dst.SessionToken = value }},
 	}
@@ -195,7 +187,6 @@ func metadataOverrideCarriesInsecureTransportSecret(metadataOverride *ClientMeta
 		return false
 	}
 	return strings.TrimSpace(metadataOverride.ProviderAPIKey) != "" ||
-		strings.TrimSpace(metadataOverride.AccessTokenSecret) != "" ||
 		strings.TrimSpace(metadataOverride.SessionToken) != ""
 }
 

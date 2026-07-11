@@ -9,6 +9,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/daemon"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"io"
 	"log/slog"
 	"net/http"
@@ -23,7 +24,18 @@ import (
 
 const maxRuntimeLockAcquireAttempts = 8
 
-func RunDaemonFromArgs(program string, args []string, version ...string) error {
+// RunProductionDaemonFromArgs never promotes argv, environment, or user-writable
+// configuration into a production Runtime startup authority. The signed OS
+// service bootstrap will replace this fail-closed boundary once it can supply
+// validated principal, custody, executable, and transport capabilities.
+func RunProductionDaemonFromArgs(_ string, _ []string, _ ...string) error {
+	return fmt.Errorf(
+		"%s: production Runtime startup requires the signed OS service bootstrap",
+		protectedlocal.ReasonProtectedLocalRuntimePrincipalRequired,
+	)
+}
+
+func runNonProductionDaemonFromArgs(program string, args []string, version ...string) error {
 	runtimeVersion := "0.0.0-dev"
 	if len(version) > 0 && version[0] != "" {
 		runtimeVersion = version[0]
@@ -274,8 +286,6 @@ type ClientMetadata struct {
 	ProviderType               string
 	ProviderEndpoint           string
 	ProviderAPIKey             string
-	AccessTokenID              string
-	AccessTokenSecret          string
 	SessionID                  string
 	SessionToken               string
 }

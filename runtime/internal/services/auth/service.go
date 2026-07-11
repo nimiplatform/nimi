@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/firstpartymigration"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -44,7 +45,12 @@ type appSession struct {
 	ExpiresAt     time.Time
 	SessionToken  string
 	Revoked       bool
+	Authority     appSessionAuthority
 }
+
+type appSessionAuthority string
+
+const appSessionAuthorityBindingOnly appSessionAuthority = "binding_only"
 
 type externalPrincipal struct {
 	AppID                 string
@@ -65,14 +71,23 @@ type externalSession struct {
 	Revoked             bool
 }
 
+type Option func(*Service)
+
+func WithDesktopSessionManager(manager *protectedlocal.DesktopSessionManager) Option {
+	return func(service *Service) {
+		service.desktopSessions = manager
+	}
+}
+
 // Service implements RuntimeAuthService with in-memory session storage.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAuthServiceServer
-	logger     *slog.Logger
-	registry   *appregistry.Registry
-	nimiApps   *appregistrycatalog.Registry
-	migrations *firstpartymigration.LaunchGate
-	auditStore *auditlog.Store
+	logger          *slog.Logger
+	registry        *appregistry.Registry
+	nimiApps        *appregistrycatalog.Registry
+	migrations      *firstpartymigration.LaunchGate
+	auditStore      *auditlog.Store
+	desktopSessions *protectedlocal.DesktopSessionManager
 
 	// TTL bounds (K-AUTHSVC-004).
 	ttlMinSeconds int32
@@ -99,7 +114,7 @@ func NewWithRegistry(logger *slog.Logger, registry *appregistry.Registry) *Servi
 }
 
 // NewWithDependencies creates a Service with audit store and configurable TTL bounds.
-func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, auditStore *auditlog.Store, ttlMinSeconds int32, ttlMaxSeconds int32) *Service {
+func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, auditStore *auditlog.Store, ttlMinSeconds int32, ttlMaxSeconds int32, options ...Option) *Service {
 	if registry == nil {
 		registry = appregistry.New()
 	}
@@ -109,7 +124,7 @@ func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, au
 	if ttlMaxSeconds <= 0 {
 		ttlMaxSeconds = 86400
 	}
-	return &Service{
+	service := &Service{
 		logger:             logger,
 		registry:           registry,
 		auditStore:         auditStore,
@@ -121,6 +136,12 @@ func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, au
 		externalPrincipals: make(map[string]externalPrincipal),
 		externalSessions:   make(map[string]externalSession),
 	}
+	for _, option := range options {
+		if option != nil {
+			option(service)
+		}
+	}
+	return service
 }
 
 func (s *Service) SetNimiAppRegistryCatalog(registry *appregistrycatalog.Registry) {
@@ -135,6 +156,71 @@ func (s *Service) SetFirstPartyMigrationLaunchGate(gate *firstpartymigration.Lau
 // registration gate (auth.developerRegistration.enabled). Default false.
 func (s *Service) SetDeveloperRegistrationEnabled(enabled bool) {
 	s.developerRegistrationEnabled = enabled
+}
+
+// OpenDesktopSession establishes non-portable Desktop authority from the
+// protected connection attached by the native transport. The empty request and
+// response projections never participate in authorization.
+func (s *Service) OpenDesktopSession(ctx context.Context, _ *runtimev1.OpenDesktopSessionRequest) (*runtimev1.OpenDesktopSessionResponse, error) {
+	if s.desktopSessions == nil {
+		retryable := false
+		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "restart_runtime_service",
+			Retryable:  &retryable,
+		})
+	}
+	projection, err := s.desktopSessions.Open(ctx)
+	if err != nil {
+		return nil, protectedDesktopSessionError(err)
+	}
+	if len(projection.DesktopSessionID) != protectedlocal.IdentifierBytes || len(projection.RuntimeBootEpoch) != protectedlocal.IdentifierBytes {
+		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "restart_runtime_service",
+		})
+	}
+	return &runtimev1.OpenDesktopSessionResponse{
+		DesktopSessionId: append([]byte(nil), projection.DesktopSessionID...),
+		RuntimeBootEpoch: append([]byte(nil), projection.RuntimeBootEpoch...),
+	}, nil
+}
+
+func protectedDesktopSessionError(err error) error {
+	var failure *protectedlocal.Failure
+	if !errors.As(err, &failure) {
+		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "restart_runtime_service",
+		})
+	}
+	reasonValue, ok := runtimev1.ReasonCode_value[string(failure.Reason())]
+	if !ok {
+		return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "restart_runtime_service",
+		})
+	}
+	reason := runtimev1.ReasonCode(reasonValue)
+	retryable := failure.Retryable()
+	return grpcerr.WithReasonCodeOptions(protectedDesktopSessionCode(failure.Reason()), reason, grpcerr.ReasonOptions{
+		ActionHint: failure.ActionHint(),
+		Retryable:  &retryable,
+	})
+}
+
+func protectedDesktopSessionCode(reason protectedlocal.Reason) codes.Code {
+	switch reason {
+	case protectedlocal.ReasonDesktopControlTransportRequired,
+		protectedlocal.ReasonDesktopExecutableTrustFailed,
+		protectedlocal.ReasonProtectedOriginRoleMismatch,
+		protectedlocal.ReasonProtectedLocalRuntimePrincipalRequired:
+		return codes.PermissionDenied
+	case protectedlocal.ReasonDesktopProcessVerificationUnavailable:
+		return codes.Unauthenticated
+	case protectedlocal.ReasonProtectedLocalBootEpochMismatch:
+		return codes.FailedPrecondition
+	case protectedlocal.ReasonProtectedLocalLedgerRollbackDetected:
+		return codes.DataLoss
+	default:
+		return codes.Unavailable
+	}
 }
 
 func (s *Service) pruneExpiredSessionsLocked(now time.Time) {
@@ -240,25 +326,8 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 	}, nil
 }
 
-func (s *Service) registrationCapabilities(appID string, requested []string, developerAdmission bool) []string {
-	if developerAdmission {
-		return append([]string(nil), requested...)
-	}
-	if s.nimiApps != nil {
-		if app, err := s.nimiApps.FindByID(normalizeNimiAppRegistryID(appID)); err == nil &&
-			app.AdmissionStatus == appregistrycatalog.AdmissionStatusAdmitted {
-			return app.PermissionCapabilities()
-		}
-	}
-	capabilities := make([]string, 0, len(requested))
-	for _, capability := range requested {
-		normalized := strings.TrimSpace(capability)
-		if normalized == "" || normalized == "account.raw-token" {
-			continue
-		}
-		capabilities = append(capabilities, normalized)
-	}
-	return capabilities
+func (s *Service) registrationCapabilities(_ string, _ []string, _ bool) []string {
+	return nil
 }
 
 // developerRegistrationReason is the eligibility reason returned when a caller
@@ -361,18 +430,13 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 	localFirstParty := isPlatformGovernedNimiAppID(normalizeNimiAppRegistryID(appID)) &&
 		isLocalFirstPartyModeManifest(registration.ModeManifest)
 	if localFirstParty && subjectUserID != "" {
-		s.emitAuditWithPayload(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, map[string]any{
+		s.emitAuditWithPayload(ctx, "OpenSession", appID, "", runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED, map[string]any{
 			"subject_source":         "caller_provided",
 			"session_mode":           runtimeAccountSessionMode(registration),
 			"developer_registration": registration.DeveloperRegistration,
 		})
 		return &runtimev1.OpenSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_AUTHORIZATION_DENIED}, nil
 	}
-	if !localFirstParty && subjectUserID == "" {
-		s.emitAudit(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		return &runtimev1.OpenSessionResponse{ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID}, nil
-	}
-
 	now := time.Now().UTC()
 	ttl, err := s.resolveTTL(req.GetTtlSeconds(), 3600)
 	if err != nil {
@@ -394,18 +458,20 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 		AppID:         appID,
 		AppInstanceID: instanceID,
 		DeviceID:      deviceID,
-		SubjectUserID: subjectUserID,
+		SubjectUserID: "",
 		IssuedAt:      now,
 		ExpiresAt:     expiresAt,
 		SessionToken:  sessionToken,
 		Revoked:       false,
+		Authority:     appSessionAuthorityBindingOnly,
 	}
 	s.mu.Unlock()
 
-	s.emitAuditWithPayload(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+	s.emitAuditWithPayload(ctx, "OpenSession", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 		"session_id":             sessionID,
 		"session_mode":           runtimeAccountSessionMode(registration),
 		"developer_registration": registration.DeveloperRegistration,
+		"caller_subject_ignored": subjectUserID != "",
 	})
 	return &runtimev1.OpenSessionResponse{
 		SessionId:    sessionID,
@@ -416,17 +482,14 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 	}, nil
 }
 
+func runtimeAccountSessionMode(appRegistration) string {
+	return string(appSessionAuthorityBindingOnly)
+}
+
 func isLocalFirstPartyModeManifest(manifest *runtimev1.AppModeManifest) bool {
 	return manifest.GetAppMode() == runtimev1.AppMode_APP_MODE_FULL &&
 		manifest.GetRuntimeRequired() &&
 		manifest.GetRealmRequired()
-}
-
-func runtimeAccountSessionMode(registration appRegistration) string {
-	if registration.DeveloperRegistration {
-		return "developer_registered_local_app"
-	}
-	return "local_first_party"
 }
 
 func (s *Service) RefreshSession(ctx context.Context, req *runtimev1.RefreshSessionRequest) (*runtimev1.RefreshSessionResponse, error) {

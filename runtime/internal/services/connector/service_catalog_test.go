@@ -194,20 +194,6 @@ func TestConnectorCheckOrderOwnerBeforeStatusBeforeCredential(t *testing.T) {
 	}
 }
 
-func TestEnsureLocalConnectorsDoesNotCreateRetiredCategories(t *testing.T) {
-	// K-RTARGET-006: local connector categories are retired; startup no longer
-	// creates local ConnectorService records.
-	store := newTestStore(t)
-	if err := EnsureLocalConnectors(store); err != nil {
-		t.Fatalf("EnsureLocalConnectors: %v", err)
-	}
-
-	records, _ := store.Load()
-	if len(records) != 0 {
-		t.Fatalf("expected no local connectors after hard cut, got %d", len(records))
-	}
-}
-
 // ---------------------------------------------------------------------------
 // State-machine exhaustive verification tests
 // Spec: state-transitions.yaml

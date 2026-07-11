@@ -419,15 +419,6 @@ func TestRegisteredLocalFirstPartyAppReadsSingleActiveAccountProjection(t *testi
 		t.Fatalf("registered tester caller should read the Runtime single active account projection: %+v", status)
 	}
 
-	token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{
-		Caller: testerCaller(),
-	})
-	if err != nil {
-		t.Fatalf("tester GetAccessToken: %v", err)
-	}
-	if token.GetAccepted() || token.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("registered Tester caller without explicit raw-token admission must be denied: %+v", token)
-	}
 }
 
 func TestUnavailableCustodyFailsClosed(t *testing.T) {
@@ -505,9 +496,9 @@ func TestRefreshRotationAndReuseDetection(t *testing.T) {
 	completeLogin(t, svc)
 	refresh, err := svc.refreshAccountSessionInternal(context.Background(), true)
 	if err != nil {
-		t.Fatalf("RefreshAccountSession: %v", err)
+		t.Fatalf("private refresh: %v", err)
 	}
-	if !refresh.GetAccepted() {
+	if !refresh.accepted {
 		t.Fatalf("refresh failed: %+v", refresh)
 	}
 	if reason, ok := svc.ObserveRefreshToken(context.Background(), "refresh-1"); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED {
@@ -555,9 +546,6 @@ func TestSwitchAccountRevokesBindingsAndClearsActiveProjection(t *testing.T) {
 	if !resp.GetAccepted() || resp.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
 		t.Fatalf("switch must clear old active account in wave-2 substrate: %+v", resp)
 	}
-	if token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()}); err != nil || token.GetAccepted() {
-		t.Fatalf("token after switch must fail closed: resp=%+v err=%v", token, err)
-	}
 }
 
 func TestLogoutAndUserSwitchRevokeMultiConsumerProjections(t *testing.T) {
@@ -595,12 +583,12 @@ func TestLogoutAndUserSwitchRevokeMultiConsumerProjections(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			svc := newHarnessService(t, nil)
 			completeLogin(t, svc)
-			desktopToken, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
+			desktopToken, reason, ok, err := svc.realmUnaryAccessToken(context.Background(), nil)
 			if err != nil {
-				t.Fatalf("GetAccessToken before revoke: %v", err)
+				t.Fatalf("Runtime-private broker credential before revoke: %v", err)
 			}
-			if !desktopToken.GetAccepted() {
-				t.Fatalf("Desktop/SDK Runtime token provider should work before revoke: %+v", desktopToken)
+			if !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED || desktopToken == "" {
+				t.Fatalf("Runtime-private broker credential unavailable before revoke: ok=%v reason=%v token=%q", ok, reason, desktopToken)
 			}
 			avatarBinding := issueBinding(t, svc)
 			secondaryHostBinding := issueBindingForRelation(t, svc, bindingRelationFor("window-2", "avatar-2", "agent-2", "anchor-2"))
@@ -620,13 +608,6 @@ func TestLogoutAndUserSwitchRevokeMultiConsumerProjections(t *testing.T) {
 			}
 			if status.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS || status.GetAccountProjection() != nil {
 				t.Fatalf("Runtime account projection must be revoked: %+v", status)
-			}
-			token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
-			if err != nil {
-				t.Fatalf("GetAccessToken after revoke: %v", err)
-			}
-			if token.GetAccepted() {
-				t.Fatalf("Runtime token projection must fail closed after %s: %+v", tc.name, token)
 			}
 			for _, binding := range []*runtimev1.IssueScopedAppBindingResponse{avatarBinding, secondaryHostBinding} {
 				if reason, ok := svc.ValidateScopedBinding(binding.GetBindingId(), binding.GetRelation(), "runtime.agent.turn.read"); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_STALE {
@@ -675,12 +656,12 @@ func TestDaemonRestartRecoversAccountButInvalidatesScopedBindings(t *testing.T) 
 	if status.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED || status.GetAccountProjection().GetAccountId() != "acct-1" {
 		t.Fatalf("restart should recover account projection from custody: %+v", status)
 	}
-	token, err := afterRestart.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
+	token, reason, ok, err := afterRestart.realmUnaryAccessToken(context.Background(), nil)
 	if err != nil {
-		t.Fatalf("GetAccessToken after restart: %v", err)
+		t.Fatalf("Runtime-private broker credential after restart: %v", err)
 	}
-	if !token.GetAccepted() || token.GetAccessToken() != "access-1" {
-		t.Fatalf("Runtime token projection should recover through custody: %+v", token)
+	if !ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED || token != "access-1" {
+		t.Fatalf("Runtime-private broker credential should recover through custody: ok=%v reason=%v token=%q", ok, reason, token)
 	}
 	if reason, ok := afterRestart.ValidateScopedBinding(issued.GetBindingId(), issued.GetRelation(), "runtime.agent.turn.read"); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND {
 		t.Fatalf("pre-restart binding must not survive daemon restart, ok=%v reason=%v", ok, reason)
@@ -693,60 +674,6 @@ func TestDaemonRestartRecoversAccountButInvalidatesScopedBindings(t *testing.T) 
 	}
 	if status.GetState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
 		t.Fatalf("unrecoverable restart must fail closed: %+v", status)
-	}
-	token, err = unavailable.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
-	if err != nil {
-		t.Fatalf("GetAccessToken unavailable restart: %v", err)
-	}
-	if token.GetAccepted() {
-		t.Fatalf("unrecoverable restart must not project access token: %+v", token)
-	}
-}
-
-func TestGetAccessTokenRejectsAnonymousUnavailableAvatarAndRevokedCaller(t *testing.T) {
-	anonymous := newHarnessService(t, &memoryCustody{err: ErrCustodyUnavailable})
-	resp, err := anonymous.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
-	if err != nil {
-		t.Fatalf("anonymous GetAccessToken: %v", err)
-	}
-	if resp.GetAccepted() || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE {
-		t.Fatalf("anonymous token request must fail: %+v", resp)
-	}
-
-	svc := newHarnessService(t, nil)
-	completeLogin(t, svc)
-	avatar := *firstPartyCaller()
-	avatar.Mode = runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR
-	resp, err = svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: &avatar})
-	if err != nil {
-		t.Fatalf("avatar GetAccessToken: %v", err)
-	}
-	if resp.GetAccepted() || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY {
-		t.Fatalf("avatar token request must fail: %+v", resp)
-	}
-	if _, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: desktopAccountControlCaller()}); err != nil {
-		t.Fatalf("Logout: %v", err)
-	}
-	resp, err = svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
-	if err != nil {
-		t.Fatalf("post-logout GetAccessToken: %v", err)
-	}
-	if resp.GetAccepted() {
-		t.Fatalf("token request after logout must fail closed")
-	}
-}
-
-func TestGetAccessTokenRejectsUnregisteredLocalFirstPartyCaller(t *testing.T) {
-	svc := newHarnessService(t, nil)
-	completeLogin(t, svc)
-	svc.registry = appregistry.New()
-
-	resp, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyCaller()})
-	if err != nil {
-		t.Fatalf("GetAccessToken: %v", err)
-	}
-	if resp.GetAccepted() || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("unregistered caller must not receive access token: %+v", resp)
 	}
 }
 
@@ -769,14 +696,6 @@ func TestLocalDeveloperAppAccountSurfaceRejectsFirstPartyTokenAndControlAuthorit
 		t.Fatalf("developer caller should receive Runtime account projection: %+v", status)
 	}
 
-	refresh, err := svc.RefreshAccountSession(context.Background(), &runtimev1.RefreshAccountSessionRequest{Caller: developer})
-	if err != nil {
-		t.Fatalf("developer RefreshAccountSession: %v", err)
-	}
-	if refresh.GetAccepted() || refresh.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("developer caller must not invoke public Runtime refresh: %+v", refresh)
-	}
-
 	binding, err := svc.IssueScopedAppBinding(context.Background(), &runtimev1.IssueScopedAppBindingRequest{
 		Caller: developer,
 		Relation: &runtimev1.ScopedAppBindingRelation{
@@ -791,14 +710,6 @@ func TestLocalDeveloperAppAccountSurfaceRejectsFirstPartyTokenAndControlAuthorit
 	}
 	if !binding.GetAccepted() || binding.GetBindingId() == "" {
 		t.Fatalf("developer caller should issue scoped app binding: %+v", binding)
-	}
-
-	token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: developer})
-	if err != nil {
-		t.Fatalf("developer GetAccessToken: %v", err)
-	}
-	if token.GetAccepted() || token.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("developer caller must not receive raw Realm access token: %+v", token)
 	}
 
 	logout, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: developer})
@@ -818,24 +729,7 @@ func TestLocalDeveloperAppAccountSurfaceRejectsFirstPartyTokenAndControlAuthorit
 	}
 }
 
-func TestLocalDeveloperRegistrationCannotBeClaimedAsLocalFirstPartyCaller(t *testing.T) {
-	developer := localDeveloperCaller()
-	firstPartyClaim := proto.Clone(developer).(*runtimev1.AccountCaller)
-	firstPartyClaim.Mode = runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP
-
-	svc := newHarnessService(t, nil, WithAppRegistry(testDeveloperAppRegistry(t, developer)))
-	completeLogin(t, svc)
-
-	token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: firstPartyClaim})
-	if err != nil {
-		t.Fatalf("claimed first-party GetAccessToken: %v", err)
-	}
-	if token.GetAccepted() || token.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("developer-registered instance must not become first-party by caller mode: %+v", token)
-	}
-}
-
-func TestDesktopLaunchedInstalledNimiAppAccountSurfaceRequiresInstalledLaunchEvidence(t *testing.T) {
+func TestDesktopLaunchedInstalledNimiAppAccountSurfaceFailsClosedBeforeA1(t *testing.T) {
 	caller := installedNimiAppCaller()
 	svc := newHarnessService(
 		t,
@@ -850,17 +744,10 @@ func TestDesktopLaunchedInstalledNimiAppAccountSurfaceRequiresInstalledLaunchEvi
 	if err != nil {
 		t.Fatalf("installed app GetAccountSessionStatus: %v", err)
 	}
-	if status.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
-		status.GetAccountProjection().GetAccountId() != "acct-1" {
-		t.Fatalf("installed app should receive host-owned account projection after launch evidence: %+v", status)
-	}
-
-	refresh, err := svc.RefreshAccountSession(context.Background(), &runtimev1.RefreshAccountSessionRequest{Caller: caller})
-	if err != nil {
-		t.Fatalf("installed app RefreshAccountSession: %v", err)
-	}
-	if refresh.GetAccepted() || refresh.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("installed app must not invoke public Runtime refresh: %+v", refresh)
+	if status.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
+		status.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED ||
+		status.GetAccountProjection() != nil {
+		t.Fatalf("installed app must remain denied before A.1 even with launch-shaped evidence: %+v", status)
 	}
 
 	binding, err := svc.IssueScopedAppBinding(context.Background(), &runtimev1.IssueScopedAppBindingRequest{
@@ -877,14 +764,6 @@ func TestDesktopLaunchedInstalledNimiAppAccountSurfaceRequiresInstalledLaunchEvi
 	}
 	if binding.GetAccepted() || binding.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
 		t.Fatalf("installed app must not issue its own scoped binding: %+v", binding)
-	}
-
-	token, err := svc.GetAccessToken(context.Background(), &runtimev1.GetAccessTokenRequest{Caller: caller})
-	if err != nil {
-		t.Fatalf("installed app GetAccessToken: %v", err)
-	}
-	if token.GetAccepted() || token.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-		t.Fatalf("installed app must not receive raw Realm access token: %+v", token)
 	}
 
 	logout, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: caller})
@@ -992,9 +871,9 @@ func TestDesktopLaunchedInstalledNimiAppCallerRequiresAuthenticatedAccount(t *te
 		t.Fatalf("GetAccountSessionStatus: %v", err)
 	}
 	if status.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
-		status.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE ||
+		status.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED ||
 		status.GetAccountProjection() != nil {
-		t.Fatalf("installed app caller must require authenticated Runtime account custody: %+v", status)
+		t.Fatalf("installed app caller must remain denied before A.1: %+v", status)
 	}
 
 	begin, err := svc.BeginLogin(context.Background(), &runtimev1.BeginLoginRequest{Caller: caller})
@@ -1096,13 +975,6 @@ func TestLifecycleRPCsRejectUnregisteredCallerWithoutMutation(t *testing.T) {
 		name string
 		act  func(*Service) (bool, runtimev1.AccountReasonCode, error)
 	}{
-		{
-			name: "refresh",
-			act: func(svc *Service) (bool, runtimev1.AccountReasonCode, error) {
-				resp, err := svc.RefreshAccountSession(context.Background(), &runtimev1.RefreshAccountSessionRequest{Caller: firstPartyCaller()})
-				return resp.GetAccepted(), resp.GetAccountReasonCode(), err
-			},
-		},
 		{
 			name: "logout",
 			act: func(svc *Service) (bool, runtimev1.AccountReasonCode, error) {

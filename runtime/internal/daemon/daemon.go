@@ -11,9 +11,14 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcserver"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/httpserver"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"log/slog"
+	"net"
 	"net/http"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -27,6 +32,10 @@ type Daemon struct {
 	state                     *health.State
 	grpc                      *grpcserver.Server
 	http                      *httpserver.Server
+	protected                 bool
+	protectedStateClose       func() error
+	protectedStateCloseOnce   sync.Once
+	protectedStateCloseErr    error
 	aiHealth                  *providerhealth.Tracker
 	auditStore                *auditlog.Store
 	engineMgr                 *engine.Manager
@@ -53,14 +62,110 @@ const (
 	maxShutdownDrainWait      = 250 * time.Millisecond
 )
 
+// New wires the explicit non-production daemon surface. Production service
+// startup must use NewProtected with OS-verified bindings.
 func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error) {
 	if value := strings.TrimSpace(cfg.LocalStatePath); value != "" {
 		if err := runtimeSetenv("NIMI_RUNTIME_LOCAL_STATE_PATH", value); err != nil {
 			return nil, fmt.Errorf("set NIMI_RUNTIME_LOCAL_STATE_PATH: %w", err)
 		}
 	}
+	return newDaemon(cfg, logger, version, grpcserver.NewNonProduction)
+}
+
+// NewProtected wires a production daemon only from OS-verified service
+// bindings. Unlike New, it never publishes the protected state root through
+// process environment state.
+func NewProtected(cfg config.Config, logger *slog.Logger, version string, bindings grpcserver.ProtectedServiceBindings) (*Daemon, error) {
+	cfg.LocalStatePath = filepath.Join(filepath.Clean(strings.TrimSpace(bindings.ServiceStateRoot)), "runtime", "local-state.json")
+	d, err := newDaemon(cfg, logger, version, func(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*grpcserver.Server, error) {
+		return grpcserver.NewProtectedService(cfg, state, logger, version, bindings)
+	})
+	if err != nil {
+		return nil, err
+	}
+	d.protected = true
+	return d, nil
+}
+
+// ProtectedRuntimeResources carries the already-verified security state that
+// owns the protected-local ledger and native transport. The daemon takes over
+// its closure only after the protected gRPC server has been constructed.
+type ProtectedRuntimeResources struct {
+	Bindings grpcserver.ProtectedServiceBindings
+	Close    func() error
+}
+
+// NewProtectedWithResources gives a protected Runtime ownership of its
+// already-verified OS security state. If protected server construction fails,
+// the state is closed before the failure is returned; after construction,
+// shutdown closes it exactly once after all Runtime services stop using it.
+func NewProtectedWithResources(cfg config.Config, logger *slog.Logger, version string, resources ProtectedRuntimeResources) (*Daemon, error) {
+	if resources.Close == nil {
+		return nil, fmt.Errorf("protected Runtime security-state closer is required")
+	}
+	d, err := NewProtected(cfg, logger, version, resources.Bindings)
+	if err != nil {
+		if closeErr := resources.Close(); closeErr != nil {
+			return nil, errors.Join(err, fmt.Errorf("close protected Runtime security state after construction failure: %w", closeErr))
+		}
+		return nil, err
+	}
+	d.protectedStateClose = resources.Close
+	return d, nil
+}
+
+// NewProtectedFromWindowsSecurityState converts the opaque, verified Windows
+// service capability into the only custody/session bindings accepted by the
+// protected Runtime. It never accepts a state root, account partition, secret
+// store, or session authority from configuration or a caller-provided path.
+func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger, version string, state *protectedlocal.WindowsRuntimeSecurityState) (*Daemon, error) {
+	if state == nil {
+		return nil, fmt.Errorf("verified Windows Runtime security state is required")
+	}
+	fail := func(err error) (*Daemon, error) {
+		if closeErr := state.Close(); closeErr != nil {
+			return nil, errors.Join(err, fmt.Errorf("close Windows Runtime security state after binding failure: %w", closeErr))
+		}
+		return nil, err
+	}
+	stateRoot := strings.TrimSpace(state.ServiceStatePath())
+	secrets := state.BinarySecrets()
+	sessions := state.DesktopSessions()
+	intents := state.LifecycleIntents()
+	if stateRoot == "" || state.Ledger() == nil || secrets == nil || sessions == nil || intents == nil {
+		return fail(fmt.Errorf("complete verified Windows Runtime security state is required"))
+	}
+	accountPartition := strings.TrimSpace(state.DesktopIdentity().AccountPartition())
+	if accountPartition == "" {
+		return fail(fmt.Errorf("verified Windows Desktop account partition is required"))
+	}
+	accountCustody, err := accountservice.NewProtectedBinaryCustody(secrets)
+	if err != nil {
+		return fail(fmt.Errorf("adapt Windows protected account custody: %w", err))
+	}
+	connectorSecrets, err := connectorservice.NewProtectedBinarySecretStore(secrets)
+	if err != nil {
+		return fail(fmt.Errorf("adapt Windows protected connector custody: %w", err))
+	}
+	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
+		Bindings: grpcserver.ProtectedServiceBindings{
+			ServiceStateRoot: stateRoot,
+			AccountCustody:   accountCustody,
+			AccountPartition: accountPartition,
+			ConnectorSecrets: connectorSecrets,
+			DesktopSessions:  sessions,
+			LifecycleIntents: intents,
+		},
+		Close: state.Close,
+	})
+}
+
+type grpcServerConstructor func(config.Config, *health.State, *slog.Logger, string) (*grpcserver.Server, error)
+
+func newDaemon(cfg config.Config, logger *slog.Logger, version string, newGRPCServer grpcServerConstructor) (*Daemon, error) {
 	state := health.NewState()
-	grpcServer, err := grpcserver.New(cfg, state, logger, version)
+	grpcServer, err := newGRPCServer(cfg, state, logger, version)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +204,57 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 	)
 	return d, nil
 }
+
+type daemonServerStarter func(chan<- error)
+type daemonServerStopper func()
+
+// Run starts the explicit non-production daemon surface. Production Runtime
+// instances must use RunProtected with a verified native Desktop carrier.
 func (d *Daemon) Run(ctx context.Context) error {
+	if d == nil {
+		return fmt.Errorf("Runtime daemon is required")
+	}
+	if d.protected {
+		return fmt.Errorf("%s: protected Runtime requires a verified native Desktop listener", protectedlocal.ReasonProtectedLocalTransportUnsupported)
+	}
+	return d.run(ctx, 2, func(errCh chan<- error) {
+		go func() { errCh <- d.grpc.Serve() }()
+		go func() { errCh <- d.http.Serve() }()
+	}, nil, "ordinary-local")
+}
+
+// RunProtected starts a production Runtime only through the native listener
+// that has already verified the Desktop process. It never opens ordinary TCP
+// gRPC or HTTP listeners.
+func (d *Daemon) RunProtected(ctx context.Context, listener net.Listener) error {
+	if d == nil {
+		return fmt.Errorf("Runtime daemon is required")
+	}
+	if !d.protected {
+		return fmt.Errorf("%s: verified native Desktop transport requires a protected Runtime", protectedlocal.ReasonProtectedLocalTransportUnsupported)
+	}
+	if listener == nil {
+		return fmt.Errorf("%s: protected Runtime requires a verified native Desktop listener", protectedlocal.ReasonProtectedLocalTransportUnsupported)
+	}
+	return d.run(ctx, 1, func(errCh chan<- error) {
+		go func() { errCh <- d.grpc.ServeVerifiedNativeDesktop(listener) }()
+	}, func() { _ = listener.Close() }, "verified-native-desktop")
+}
+
+func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonServerStarter, stopServers daemonServerStopper, transport string) error {
+	if ctx == nil {
+		return fmt.Errorf("Runtime context is required")
+	}
+	if serverCount <= 0 || startServers == nil {
+		return fmt.Errorf("Runtime server starter is required")
+	}
+	var stopOnce sync.Once
+	stop := func() {
+		if stopServers != nil {
+			stopOnce.Do(stopServers)
+		}
+	}
+	defer stop()
 	d.aiHealth = d.grpc.AIHealthTracker()
 	d.auditStore = d.grpc.AuditStore()
 	d.state.SetStatus(health.StatusStarting, "booting")
@@ -112,13 +267,8 @@ func (d *Daemon) Run(ctx context.Context) error {
 		defer backgroundWG.Done()
 		d.sampleRuntimeResource(backgroundCtx)
 	}()
-	errCh := make(chan error, 2)
-	go func() {
-		errCh <- d.grpc.Serve()
-	}()
-	go func() {
-		errCh <- d.http.Serve()
-	}()
+	errCh := make(chan error, serverCount)
+	startServers(errCh)
 	// Supervised engines may download or repair native dependencies. Keep that
 	// work outside the runtime readiness path and project failures through
 	// degraded health/provider detail instead of holding the daemon in STARTING.
@@ -128,6 +278,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 		d.startSupervisedEngines(backgroundCtx)
 	}()
 	if err := d.refreshManagedEmbeddingProfile(backgroundCtx); err != nil {
+		stop()
 		cancelBackground()
 		backgroundWG.Wait()
 		if shutdownErr := d.shutdown(); shutdownErr != nil {
@@ -137,6 +288,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	}
 	if memorySvc := d.grpc.MemoryService(); memorySvc != nil && memorySvc.PersistenceBackend() != nil {
 		if _, err := memorySvc.PersistenceBackend().BackupNow(backgroundCtx); err != nil {
+			stop()
 			cancelBackground()
 			backgroundWG.Wait()
 			if shutdownErr := d.shutdown(); shutdownErr != nil {
@@ -158,7 +310,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 			return fmt.Errorf("start runtime-agent life-track loop: %w", err)
 		}
 	}
-	d.logger.Info("runtime ready", "grpc_addr", d.cfg.GRPCAddr, "http_addr", d.cfg.HTTPAddr)
+	if transport == "verified-native-desktop" {
+		d.logger.Info("runtime ready", "transport", transport)
+	} else {
+		d.logger.Info("runtime ready", "grpc_addr", d.cfg.GRPCAddr, "http_addr", d.cfg.HTTPAddr)
+	}
 	if startupDegradedReason != "" {
 		d.transitionToDegraded(startupDegradedReason)
 		d.logger.Warn("runtime started in degraded state", "reason", startupDegradedReason)
@@ -175,7 +331,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 		}
 	}()
 	var serveErr error
-	remainingServers := cap(errCh)
+	remainingServers := serverCount
 waitForShutdown:
 	for remainingServers > 0 {
 		select {
@@ -193,6 +349,7 @@ waitForShutdown:
 			break waitForShutdown
 		}
 	}
+	stop()
 	cancelBackground()
 	backgroundWG.Wait()
 	if agentSvc := d.grpc.AgentService(); agentSvc != nil {
@@ -234,11 +391,24 @@ func (d *Daemon) shutdown() error {
 	if cognitionSvc := d.grpc.CognitionService(); cognitionSvc != nil {
 		cognitionCloseErr = cognitionSvc.Close()
 	}
+	protectedStateErr := d.closeProtectedState()
 	d.state.SetStatus(health.StatusStopped, "stopped")
-	if joined := errors.Join(backupErr, httpErr, closeErr, cognitionCloseErr); joined != nil {
+	if joined := errors.Join(backupErr, httpErr, closeErr, cognitionCloseErr, protectedStateErr); joined != nil {
 		return fmt.Errorf("shutdown runtime: %w", joined)
 	}
 	return nil
+}
+
+func (d *Daemon) closeProtectedState() error {
+	if d == nil {
+		return nil
+	}
+	d.protectedStateCloseOnce.Do(func() {
+		if d.protectedStateClose != nil {
+			d.protectedStateCloseErr = d.protectedStateClose()
+		}
+	})
+	return d.protectedStateCloseErr
 }
 func (d *Daemon) EmergencyStopSupervisedEngines() {
 	d.stopSupervisedEngines("forcing supervised engines to stop after repeated shutdown signal")

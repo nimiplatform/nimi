@@ -10,6 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appreleasecatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc/codes"
 )
 
@@ -52,6 +53,14 @@ func (s *Service) InstallApp(ctx context.Context, req *runtimev1.InstallAppReque
 	var storage *runtimev1.AppInstallStorageProjection
 	if planErr == nil {
 		storage = storageProjectionFromPlan(plan)
+	}
+	if _, err := s.consumeLifecycleIntentForMutation(ctx, lifecycleIntentMutationRequest{
+		action:                protectedlocal.LifecycleActionInstall,
+		appID:                 appID,
+		intentID:              req.GetLifecycleIntentId(),
+		displayedImpactDigest: req.GetDisplayedImpactDigest(),
+	}); err != nil {
+		return nil, err
 	}
 	job := s.installJobs.createJob(jobSpec{
 		appID:         appID,
@@ -246,6 +255,17 @@ func (s *Service) UninstallApp(ctx context.Context, req *runtimev1.UninstallAppR
 	}
 
 	storage := storageProjectionFromPlan(plan)
+	if _, err := s.consumeLifecycleIntentForMutation(ctx, lifecycleIntentMutationRequest{
+		action:                protectedlocal.LifecycleActionUninstall,
+		appID:                 appID,
+		intentID:              req.GetLifecycleIntentId(),
+		displayedImpactDigest: req.GetDisplayedImpactDigest(),
+		destructiveOptions: &runtimev1.AppLifecycleDestructiveOptions{
+			DeleteDurableData: req.GetDeleteDurableData(),
+		},
+	}); err != nil {
+		return nil, err
+	}
 	job := s.installJobs.createJob(jobSpec{
 		appID:         appID,
 		descriptorRef: descriptor.DescriptorID,
