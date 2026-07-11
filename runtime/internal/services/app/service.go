@@ -16,6 +16,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
+	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -73,31 +74,36 @@ type InternalConsumer func(context.Context, *runtimev1.AppMessageEvent) error
 // Service implements RuntimeAppService with in-memory pub/sub channels.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAppServiceServer
+	runtimev1.UnimplementedRuntimeDevelopmentServiceServer
 	logger *slog.Logger
 
-	mu                 sync.RWMutex
-	nextSeq            uint64
-	nextSubID          uint64
-	subscribers        map[uint64]subscriber
-	internalConsumers  map[string]InternalConsumer
-	now                func() time.Time
-	sessionValidator   sessionValidator
-	bindingValidator   scopedBindingValidator
-	rateLimiter        *appRateLimiter
-	loopDetector       *appLoopDetector
-	installJobs        *installJobManager
-	installRuntime     *installRuntime
-	appStorageDataRoot string
-	openReadiness      OpenAppReadinessVerifier
-	accountProjection  runtimeAccountProjectionProvider
-	accountSecurity    runtimeAccountSecurityContextProvider
-	runtimeAppRegistry *appregistry.Registry
-	accountInventory   *accountAppInventoryStore
-	localAdoptions     *localAppAdoptionStore
-	lifecycleIntents   *protectedlocal.LifecycleIntentManager
-	installedLaunches  *authservice.InstalledLaunchStore
-	installedRegistry  *protectedlocal.InstalledLaunchRegistry
-	installedVerifier  protectedlocal.InstalledProcessVerifier
+	mu                        sync.RWMutex
+	nextSeq                   uint64
+	nextSubID                 uint64
+	subscribers               map[uint64]subscriber
+	internalConsumers         map[string]InternalConsumer
+	now                       func() time.Time
+	sessionValidator          sessionValidator
+	bindingValidator          scopedBindingValidator
+	rateLimiter               *appRateLimiter
+	loopDetector              *appLoopDetector
+	installJobs               *installJobManager
+	installRuntime            *installRuntime
+	appStorageDataRoot        string
+	openReadiness             OpenAppReadinessVerifier
+	accountProjection         runtimeAccountProjectionProvider
+	accountSecurity           runtimeAccountSecurityContextProvider
+	runtimeAppRegistry        *appregistry.Registry
+	accountInventory          *accountAppInventoryStore
+	localAdoptions            *localAppAdoptionStore
+	lifecycleIntents          *protectedlocal.LifecycleIntentManager
+	installedLaunches         *authservice.InstalledLaunchStore
+	installedRegistry         *protectedlocal.InstalledLaunchRegistry
+	installedVerifier         protectedlocal.InstalledProcessVerifier
+	localDevelopment          *localDevelopmentStore
+	localDevelopmentRegistry  *protectedlocal.InstalledLaunchRegistry
+	localDevelopmentVerifier  protectedlocal.LocalDevelopmentProcessVerifier
+	localDevelopmentArtifacts runtimeartifactservice.Store
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
@@ -178,6 +184,15 @@ func WithInstalledLaunchProcessBinding(registry *protectedlocal.InstalledLaunchR
 	return func(s *Service) {
 		s.installedRegistry = registry
 		s.installedVerifier = verifier
+	}
+}
+
+func WithLocalDevelopmentAuthority(store *localDevelopmentStore, registry *protectedlocal.InstalledLaunchRegistry, verifier protectedlocal.LocalDevelopmentProcessVerifier, artifacts runtimeartifactservice.Store) Option {
+	return func(s *Service) {
+		s.localDevelopment = store
+		s.localDevelopmentRegistry = registry
+		s.localDevelopmentVerifier = verifier
+		s.localDevelopmentArtifacts = artifacts
 	}
 }
 

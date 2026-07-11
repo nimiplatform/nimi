@@ -1,0 +1,190 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+// Local-development trust is a mutable-project, non-production trust class.
+// None of these enums or messages can be converted into an installed release,
+// store listing, portable grant, credential, or caller-selected session proof.
+enum LocalDevelopmentShellKind {
+  LOCAL_DEVELOPMENT_SHELL_KIND_UNSPECIFIED = 0;
+  LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON = 1;
+  LOCAL_DEVELOPMENT_SHELL_KIND_TAURI = 2;
+}
+
+enum LocalDevelopmentDecision {
+  LOCAL_DEVELOPMENT_DECISION_UNSPECIFIED = 0;
+  LOCAL_DEVELOPMENT_DECISION_DENY = 1;
+  LOCAL_DEVELOPMENT_DECISION_ALLOW_RUN_ONCE = 2;
+  LOCAL_DEVELOPMENT_DECISION_ALLOW_REMEMBER_PROJECT = 3;
+}
+
+enum LocalDevelopmentAuthorizationState {
+  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_UNSPECIFIED = 0;
+  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_CONFIRMATION_REQUIRED = 1;
+  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_ACTIVE = 2;
+  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REAPPROVAL_REQUIRED = 3;
+  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_DENIED = 4;
+  LOCAL_DEVELOPMENT_AUTHORIZATION_STATE_REVOKED = 5;
+}
+
+enum LocalDevelopmentBootstrapState {
+  LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_UNSPECIFIED = 0;
+  LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_READY = 1;
+  LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_AUTHORIZATION_REQUIRED = 2;
+  LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_DENIED = 3;
+  LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_RUNTIME_UNAVAILABLE = 4;
+  LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_REVOKED = 5;
+  LOCAL_DEVELOPMENT_BOOTSTRAP_STATE_PROJECT_CHANGED = 6;
+}
+
+message LocalDevelopmentProjectProjection {
+  string app_id = 1;
+  string display_name = 2;
+  string canonical_project_root = 3;
+  string canonical_manifest_path = 4;
+  LocalDevelopmentShellKind shell_kind = 5;
+  string account_id = 6;
+  repeated string requested_capabilities = 7;
+  bytes capability_fingerprint = 8;
+  string trust_class = 9;
+}
+
+message LocalDevelopmentAuthorizationProjection {
+  // Non-secret management selector. It is not sufficient to open, bind, or
+  // use a technical session and is safe for Desktop management UI.
+  bytes authorization_id = 1;
+  LocalDevelopmentProjectProjection project = 2;
+  LocalDevelopmentAuthorizationState state = 3;
+  LocalDevelopmentDecision persistence = 4;
+  uint64 authorization_generation = 5;
+  google.protobuf.Timestamp approved_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  ReasonCode reason_code = 8;
+}
+
+message EvaluateLocalDevelopmentProjectRequest {
+  string expected_app_id = 1;
+  string project_root = 2;
+  LocalDevelopmentShellKind shell_kind = 3;
+  // Runtime treats this as a correlation selector only. It is generated and
+  // retained by the Desktop-owned supervisor and never grants authority.
+  bytes supervisor_run_id = 4;
+}
+
+message EvaluateLocalDevelopmentProjectResponse {
+  bytes evaluation_id = 1;
+  LocalDevelopmentProjectProjection project = 2;
+  LocalDevelopmentAuthorizationState state = 3;
+  bool confirmation_required = 4;
+  LocalDevelopmentAuthorizationProjection authorization = 5;
+  google.protobuf.Timestamp evaluation_expires_at = 6;
+  ReasonCode reason_code = 7;
+}
+
+message DecideLocalDevelopmentProjectRequest {
+  bytes evaluation_id = 1;
+  LocalDevelopmentDecision decision = 2;
+}
+
+message DecideLocalDevelopmentProjectResponse {
+  LocalDevelopmentAuthorizationProjection authorization = 1;
+  ReasonCode reason_code = 2;
+}
+
+message ListLocalDevelopmentAuthorizationsRequest {}
+
+message ListLocalDevelopmentAuthorizationsResponse {
+  repeated LocalDevelopmentAuthorizationProjection authorizations = 1;
+  ReasonCode reason_code = 2;
+}
+
+message RevokeLocalDevelopmentAuthorizationRequest {
+  bytes authorization_id = 1;
+}
+
+message RevokeLocalDevelopmentAuthorizationResponse {
+  LocalDevelopmentAuthorizationProjection authorization = 1;
+  ReasonCode reason_code = 2;
+}
+
+message PrepareLocalDevelopmentLaunchRequest {
+  bytes authorization_id = 1;
+  bytes supervisor_run_id = 2;
+  LocalDevelopmentShellKind shell_kind = 3;
+  string host_executable_path = 4;
+  string renderer_origin = 5;
+}
+
+message PrepareLocalDevelopmentLaunchResponse {
+  // Non-authorizing correlation selector consumed only by Desktop when it
+  // binds the exact suspended child process.
+  bytes launch_id = 1;
+  google.protobuf.Timestamp bind_deadline = 2;
+  ReasonCode reason_code = 3;
+}
+
+message BindLocalDevelopmentHostProcessRequest {
+  bytes launch_id = 1;
+  uint32 child_process_id = 2;
+}
+
+message BindLocalDevelopmentHostProcessResponse {
+  bytes launch_id = 1;
+  google.protobuf.Timestamp bind_deadline = 2;
+  ReasonCode reason_code = 3;
+}
+
+// Empty by design: the verified native peer selects the Runtime-owned bound
+// launch. App id, project root, run id, session id, and proofs are never caller
+// fields on the app-host transport.
+message OpenLocalDevelopmentAppSessionRequest {}
+
+// Host-only stable bootstrap status. Technical session identifiers and proofs
+// remain private to Runtime/Kit native code and never cross renderer IPC.
+message OpenLocalDevelopmentAppSessionResponse {
+  LocalDevelopmentBootstrapState state = 1;
+  string app_id = 2;
+  string bootstrap_artifact_id = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  uint64 account_generation = 5;
+  bytes runtime_boot_epoch = 6;
+  ReasonCode reason_code = 7;
+}
+
+message GetLocalDevelopmentSessionStatusRequest {}
+
+message GetLocalDevelopmentSessionStatusResponse {
+  LocalDevelopmentBootstrapState state = 1;
+  string app_id = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  ReasonCode reason_code = 4;
+}
+
+message EndLocalDevelopmentRunRequest {
+  bytes authorization_id = 1;
+  bytes supervisor_run_id = 2;
+}
+
+message EndLocalDevelopmentRunResponse {
+  ReasonCode reason_code = 1;
+}
+
+// RuntimeDevelopmentService is registered only on protected Desktop control
+// and verified native app-host transports. The ordinary TCP transport blocks
+// every method in this service before handler dispatch.
+service RuntimeDevelopmentService {
+  rpc EvaluateLocalDevelopmentProject(EvaluateLocalDevelopmentProjectRequest) returns (EvaluateLocalDevelopmentProjectResponse);
+  rpc DecideLocalDevelopmentProject(DecideLocalDevelopmentProjectRequest) returns (DecideLocalDevelopmentProjectResponse);
+  rpc ListLocalDevelopmentAuthorizations(ListLocalDevelopmentAuthorizationsRequest) returns (ListLocalDevelopmentAuthorizationsResponse);
+  rpc RevokeLocalDevelopmentAuthorization(RevokeLocalDevelopmentAuthorizationRequest) returns (RevokeLocalDevelopmentAuthorizationResponse);
+  rpc PrepareLocalDevelopmentLaunch(PrepareLocalDevelopmentLaunchRequest) returns (PrepareLocalDevelopmentLaunchResponse);
+  rpc BindLocalDevelopmentHostProcess(BindLocalDevelopmentHostProcessRequest) returns (BindLocalDevelopmentHostProcessResponse);
+  rpc OpenLocalDevelopmentAppSession(OpenLocalDevelopmentAppSessionRequest) returns (OpenLocalDevelopmentAppSessionResponse);
+  rpc GetLocalDevelopmentSessionStatus(GetLocalDevelopmentSessionStatusRequest) returns (GetLocalDevelopmentSessionStatusResponse);
+  rpc EndLocalDevelopmentRun(EndLocalDevelopmentRunRequest) returns (EndLocalDevelopmentRunResponse);
+}

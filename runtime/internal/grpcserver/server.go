@@ -45,25 +45,26 @@ import (
 
 // Server wraps the gRPC serving stack for the runtime daemon.
 type Server struct {
-	addr                 string
-	state                *health.State
-	logger               *slog.Logger
-	grpcServer           *grpc.Server
-	protectedServer      *grpc.Server
-	installedServer      *grpc.Server
-	healthServer         *grpcHealth.Server
-	rpcRegistry          *activeRPCRegistry
-	aiHealth             *providerhealth.Tracker
-	auditStore           *auditlog.Store
-	accountService       *accountservice.Service
-	authService          *authservice.Service
-	aiSvc                *aiservice.Service
-	appService           *appservice.Service
-	localService         *localservice.Service
-	memoryService        *memoryservice.Service
-	cognitionService     *cognitionservice.Service
-	agentService         *runtimeagentservice.Service
-	installedLaunchStore *authservice.InstalledLaunchStore
+	addr                  string
+	state                 *health.State
+	logger                *slog.Logger
+	grpcServer            *grpc.Server
+	protectedServer       *grpc.Server
+	installedServer       *grpc.Server
+	healthServer          *grpcHealth.Server
+	rpcRegistry           *activeRPCRegistry
+	aiHealth              *providerhealth.Tracker
+	auditStore            *auditlog.Store
+	accountService        *accountservice.Service
+	authService           *authservice.Service
+	aiSvc                 *aiservice.Service
+	appService            *appservice.Service
+	localService          *localservice.Service
+	memoryService         *memoryservice.Service
+	cognitionService      *cognitionservice.Service
+	agentService          *runtimeagentservice.Service
+	installedLaunchStore  *authservice.InstalledLaunchStore
+	localDevelopmentStore interface{ Close() error }
 }
 
 const (
@@ -149,6 +150,7 @@ type ProtectedServiceBindings struct {
 	LifecycleIntents         *protectedlocal.LifecycleIntentManager
 	InstalledProcessVerifier protectedlocal.InstalledProcessVerifier
 	InstalledLaunches        *protectedlocal.InstalledLaunchRegistry
+	LocalDevelopmentVerifier protectedlocal.LocalDevelopmentProcessVerifier
 }
 
 func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
@@ -211,6 +213,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	appRegistry := appregistry.New()
 	var installedLaunchStore *authservice.InstalledLaunchStore
 	var installedLaunchRegistry *protectedlocal.InstalledLaunchRegistry
+	var localDevelopmentStore *appservice.LocalDevelopmentStore
 	if protected != nil {
 		installedLaunchStore, err = authservice.OpenInstalledLaunchStore(
 			filepath.Join(protected.ServiceStateRoot, "installed-launch.db"),
@@ -220,11 +223,23 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			return nil, fmt.Errorf("open installed launch store: %w", err)
 		}
 		installedLaunchRegistry = protected.InstalledLaunches
+		developmentStore, developmentErr := appservice.OpenLocalDevelopmentStore(
+			filepath.Join(protected.ServiceStateRoot, "local-development.db"),
+			protected.DesktopSessions.BootEpoch(),
+		)
+		if developmentErr != nil {
+			_ = installedLaunchStore.Close()
+			return nil, fmt.Errorf("open local-development store: %w", developmentErr)
+		}
+		localDevelopmentStore = developmentStore
 	}
 	keepInstalledLaunchStore := false
 	defer func() {
 		if !keepInstalledLaunchStore && installedLaunchStore != nil {
 			_ = installedLaunchStore.Close()
+		}
+		if !keepInstalledLaunchStore && localDevelopmentStore != nil {
+			_ = localDevelopmentStore.Close()
 		}
 	}()
 	nimiAppRegistry, nimiAppReleases, err := loadNimiAppRegistryCatalog(cfg.AppRegistryPath)
@@ -594,13 +609,16 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			appservice.WithLifecycleIntentManager(protected.LifecycleIntents),
 			appservice.WithInstalledLaunchStore(installedLaunchStore),
 			appservice.WithInstalledLaunchProcessBinding(installedLaunchRegistry, protected.InstalledProcessVerifier),
+			appservice.WithLocalDevelopmentAuthority(localDevelopmentStore, installedLaunchRegistry, protected.LocalDevelopmentVerifier, artifactStore),
 		)
 	}
 	appSvc := appservice.New(logger, appOptions...)
+	accountSvc.SetInstalledSessionResolver(installedSessionResolverChain{authSvc, appSvc})
+	accountSvc.SetAccountAuthorityRevoker(appSvc)
 	artifactSvc := runtimeartifactservice.New(artifactStore, logger, runtimeartifactservice.WithInstalledOperationAuthorizer(accountSvc))
 	if protected != nil {
-		protectedGRPCServer = newProtectedDesktopRPCServer(authSvc, accountSvc, appSvc, protected.DesktopSessions)
-		installedGRPCServer = newProtectedInstalledRPCServer(authSvc, artifactSvc)
+		protectedGRPCServer = newProtectedDesktopRPCServer(authSvc, accountSvc, appSvc, appSvc, protected.DesktopSessions)
+		installedGRPCServer = newProtectedInstalledRPCServer(authSvc, appSvc, artifactSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
@@ -611,29 +629,31 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return appSvc.SendAppMessage(appservice.WithTrustedInternalCaller(ctx, req.GetFromAppId()), req)
 	})
 	runtimev1.RegisterRuntimeAppServiceServer(g, appSvc) // Phase 2 Draft
+	runtimev1.RegisterRuntimeDevelopmentServiceServer(g, appSvc)
 
 	runtimev1.RegisterRuntimeArtifactServiceServer(g, artifactSvc)
 
 	s := &Server{
-		addr:                 addr,
-		state:                state,
-		logger:               logger,
-		grpcServer:           g,
-		protectedServer:      protectedGRPCServer,
-		installedServer:      installedGRPCServer,
-		healthServer:         h,
-		rpcRegistry:          rpcRegistry,
-		aiHealth:             aiHealth,
-		auditStore:           auditStore,
-		accountService:       accountSvc,
-		authService:          authSvc,
-		aiSvc:                aiSvc,
-		appService:           appSvc,
-		localService:         localSvc,
-		memoryService:        memorySvc,
-		cognitionService:     cognitionSvc,
-		agentService:         agentSvc,
-		installedLaunchStore: installedLaunchStore,
+		addr:                  addr,
+		state:                 state,
+		logger:                logger,
+		grpcServer:            g,
+		protectedServer:       protectedGRPCServer,
+		installedServer:       installedGRPCServer,
+		healthServer:          h,
+		rpcRegistry:           rpcRegistry,
+		aiHealth:              aiHealth,
+		auditStore:            auditStore,
+		accountService:        accountSvc,
+		authService:           authSvc,
+		aiSvc:                 aiSvc,
+		appService:            appSvc,
+		localService:          localSvc,
+		memoryService:         memorySvc,
+		cognitionService:      cognitionSvc,
+		agentService:          agentSvc,
+		installedLaunchStore:  installedLaunchStore,
+		localDevelopmentStore: localDevelopmentStore,
 	}
 	s.SyncServingState()
 	keepInstalledLaunchStore = true
@@ -743,6 +763,9 @@ func (s *Server) Stop(ctx context.Context) StopResult {
 	defer func() {
 		if s.installedLaunchStore != nil {
 			_ = s.installedLaunchStore.Close()
+		}
+		if s.localDevelopmentStore != nil {
+			_ = s.localDevelopmentStore.Close()
 		}
 	}()
 	if s.rpcRegistry != nil {

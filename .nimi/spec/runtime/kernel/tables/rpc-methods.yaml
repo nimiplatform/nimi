@@ -18,6 +18,7 @@ surfaces:
   - RuntimeAppService
   - RuntimeArtifactService
   - RuntimeAgentService
+  - RuntimeDevelopmentService
 authority_pending_methods: []
 services:
   - name: AIService
@@ -496,11 +497,41 @@ services:
     methods:
       - name: ReadArtifactBytes
         type: unary
-        authority_status: blocked_pending_a3_capability_grant
-        transport_disposition: deny_all
+        authority_status: admitted_installed_and_local_development
+        transport_disposition: protected_native_app_host_only
         protected_transport_ref: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
       - name: CleanupGeneratedVoiceArtifacts
         type: unary
+  - name: RuntimeDevelopmentService
+    source_rule: K-PLOCAL-009
+    methods:
+      - name: EvaluateLocalDevelopmentProject
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject
+      - name: DecideLocalDevelopmentProject
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject
+      - name: ListLocalDevelopmentAuthorizations
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations
+      - name: RevokeLocalDevelopmentAuthorization
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization
+      - name: PrepareLocalDevelopmentLaunch
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch
+      - name: BindLocalDevelopmentHostProcess
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess
+      - name: OpenLocalDevelopmentAppSession
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession
+      - name: GetLocalDevelopmentSessionStatus
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus
+      - name: EndLocalDevelopmentRun
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun
   - name: RuntimeAgentService
     source_rule: K-RPC-004b
     methods:

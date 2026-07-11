@@ -67,6 +67,7 @@ function assertRpc(source, service, method, request, response) {
 const authProto = read('proto/runtime/v1/auth.proto');
 const appProto = read('proto/runtime/v1/app.proto');
 const commonProto = read('proto/runtime/v1/common.proto');
+const developmentProto = read('proto/runtime/v1/development.proto');
 const transportAuthority = parseYaml(read('.nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml'));
 const lifecycleAuthority = parseYaml(read('.nimi/spec/runtime/kernel/tables/protected-local-lifecycle-intent-protocol.yaml'));
 const reasonAuthority = parseYaml(read('.nimi/spec/runtime/kernel/tables/reason-codes/10-general-auth-connector.yaml'));
@@ -178,10 +179,39 @@ test('every lifecycle mutation carries the same intent id and displayed digest',
   }
 });
 
+test('local-development bootstrap is empty-request and exposes no technical session material', () => {
+  assert.deepEqual(messageFields(developmentProto, 'OpenLocalDevelopmentAppSessionRequest'), []);
+  assert.deepEqual(messageFields(developmentProto, 'OpenLocalDevelopmentAppSessionResponse'), [
+    { repeated: false, type: 'LocalDevelopmentBootstrapState', name: 'state', number: 1 },
+    { repeated: false, type: 'string', name: 'app_id', number: 2 },
+    { repeated: false, type: 'string', name: 'bootstrap_artifact_id', number: 3 },
+    { repeated: false, type: 'google.protobuf.Timestamp', name: 'expires_at', number: 4 },
+    { repeated: false, type: 'uint64', name: 'account_generation', number: 5 },
+    { repeated: false, type: 'bytes', name: 'runtime_boot_epoch', number: 6 },
+    { repeated: false, type: 'ReasonCode', name: 'reason_code', number: 7 },
+  ]);
+  for (const forbidden of ['session_id', 'session_proof', 'session_token', 'launch_ticket', 'credential', 'token']) {
+    assert.doesNotMatch(namedBlock(developmentProto, 'message', 'OpenLocalDevelopmentAppSessionResponse'), new RegExp(`\\b${forbidden}\\b`));
+  }
+  for (const [method, request, response] of [
+    ['EvaluateLocalDevelopmentProject', 'EvaluateLocalDevelopmentProjectRequest', 'EvaluateLocalDevelopmentProjectResponse'],
+    ['DecideLocalDevelopmentProject', 'DecideLocalDevelopmentProjectRequest', 'DecideLocalDevelopmentProjectResponse'],
+    ['ListLocalDevelopmentAuthorizations', 'ListLocalDevelopmentAuthorizationsRequest', 'ListLocalDevelopmentAuthorizationsResponse'],
+    ['RevokeLocalDevelopmentAuthorization', 'RevokeLocalDevelopmentAuthorizationRequest', 'RevokeLocalDevelopmentAuthorizationResponse'],
+    ['PrepareLocalDevelopmentLaunch', 'PrepareLocalDevelopmentLaunchRequest', 'PrepareLocalDevelopmentLaunchResponse'],
+    ['BindLocalDevelopmentHostProcess', 'BindLocalDevelopmentHostProcessRequest', 'BindLocalDevelopmentHostProcessResponse'],
+    ['OpenLocalDevelopmentAppSession', 'OpenLocalDevelopmentAppSessionRequest', 'OpenLocalDevelopmentAppSessionResponse'],
+    ['GetLocalDevelopmentSessionStatus', 'GetLocalDevelopmentSessionStatusRequest', 'GetLocalDevelopmentSessionStatusResponse'],
+    ['EndLocalDevelopmentRun', 'EndLocalDevelopmentRunRequest', 'EndLocalDevelopmentRunResponse'],
+  ]) {
+    assertRpc(developmentProto, 'RuntimeDevelopmentService', method, request, response);
+  }
+});
+
 test('all admitted protected-local reason codes preserve their authority values', () => {
-  const protectedReasons = reasonAuthority.codes.filter(({ value }) => value >= 620 && value <= 641);
+  const protectedReasons = reasonAuthority.codes.filter(({ value }) => value >= 620 && value <= 650);
   const commonReasons = new Map(enumEntries(commonProto, 'ReasonCode').map(({ name, value }) => [name, value]));
-  assert.equal(protectedReasons.length, 22);
+  assert.equal(protectedReasons.length, 31);
   for (const reason of protectedReasons) {
     assert.equal(commonReasons.get(reason.name), reason.value, reason.name);
   }

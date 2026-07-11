@@ -18,6 +18,13 @@ type InstalledOperation string
 
 const InstalledOperationReadArtifactBytes InstalledOperation = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
 
+type InstalledTrustClass string
+
+const (
+	InstalledTrustClassProductionInstalled InstalledTrustClass = "production-installed"
+	InstalledTrustClassLocalDevelopment    InstalledTrustClass = "local-development"
+)
+
 type InstalledInventoryAccountState string
 
 const (
@@ -78,37 +85,52 @@ type InstalledOperationPolicySource interface {
 // InstalledCallerBinding is the Auth-owned session/process projection consumed
 // by RuntimeAccountService. It carries no capability or grant decision.
 type InstalledCallerBinding struct {
-	SessionID         protectedlocal.Identifier
-	AppID             string
-	ReleaseDigest     protectedlocal.Identifier
-	AccountGeneration uint64
-	RuntimeBootEpoch  protectedlocal.Identifier
-	Process           protectedlocal.ProcessTuple
-	ExpiresAt         time.Time
+	SessionID               protectedlocal.Identifier
+	AppID                   string
+	ReleaseDigest           protectedlocal.Identifier
+	AccountGeneration       uint64
+	RuntimeBootEpoch        protectedlocal.Identifier
+	Process                 protectedlocal.ProcessTuple
+	ExpiresAt               time.Time
+	TrustClass              InstalledTrustClass
+	AuthorizationID         protectedlocal.Identifier
+	AuthorizationGeneration uint64
+	ProjectRoot             string
+	CapabilityFingerprint   protectedlocal.Identifier
+	Capabilities            []string
 }
 
 type InstalledSessionResolver interface {
 	ResolveInstalledSession(context.Context, uint64) (InstalledCallerBinding, error)
 }
 
+type AccountAuthorityRevoker interface {
+	RevokeAccountAuthority(context.Context, string) error
+}
+
 // InstalledCallerDecision is an immutable, per-call origin/account decision.
 // Later capability and grant evaluation extends this Account-owned boundary;
 // consumers must not add independent installed-session caches.
 type InstalledCallerDecision struct {
-	SessionID          protectedlocal.Identifier
-	AppID              string
-	ReleaseDigest      protectedlocal.Identifier
-	AccountID          string
-	RealmEnvironmentID string
-	AccountGeneration  uint64
-	RuntimeBootEpoch   protectedlocal.Identifier
-	Process            protectedlocal.ProcessTuple
-	ExpiresAt          time.Time
-	Operation          InstalledOperation
-	PermissionScope    string
-	CatalogVersion     uint64
-	GrantID            string
-	GrantVersion       uint64
+	SessionID               protectedlocal.Identifier
+	AppID                   string
+	ReleaseDigest           protectedlocal.Identifier
+	AccountID               string
+	RealmEnvironmentID      string
+	AccountGeneration       uint64
+	RuntimeBootEpoch        protectedlocal.Identifier
+	Process                 protectedlocal.ProcessTuple
+	ExpiresAt               time.Time
+	Operation               InstalledOperation
+	PermissionScope         string
+	CatalogVersion          uint64
+	GrantID                 string
+	GrantVersion            uint64
+	TrustClass              InstalledTrustClass
+	AuthorizationID         protectedlocal.Identifier
+	AuthorizationGeneration uint64
+	ProjectRoot             string
+	CapabilityFingerprint   protectedlocal.Identifier
 }
 
 func (s *Service) SetInstalledSessionResolver(resolver InstalledSessionResolver) {
@@ -120,6 +142,12 @@ func (s *Service) SetInstalledSessionResolver(resolver InstalledSessionResolver)
 func (s *Service) SetInstalledOperationPolicySource(source InstalledOperationPolicySource) {
 	if s != nil {
 		s.installedPolicy = source
+	}
+}
+
+func (s *Service) SetAccountAuthorityRevoker(revoker AccountAuthorityRevoker) {
+	if s != nil {
+		s.accountAuthorityRevoker = revoker
 	}
 }
 
@@ -145,16 +173,33 @@ func (s *Service) AuthorizeInstalledCaller(ctx context.Context) (InstalledCaller
 		binding.RuntimeBootEpoch == (protectedlocal.Identifier{}) || binding.Process.PID == 0 || !s.now().UTC().Before(binding.ExpiresAt.UTC()) {
 		return InstalledCallerDecision{}, ErrInstalledCallerUnauthorized
 	}
+	switch binding.TrustClass {
+	case InstalledTrustClassProductionInstalled:
+		if binding.AuthorizationID != (protectedlocal.Identifier{}) || binding.AuthorizationGeneration != 0 || strings.TrimSpace(binding.ProjectRoot) != "" || binding.CapabilityFingerprint != (protectedlocal.Identifier{}) || len(binding.Capabilities) != 0 {
+			return InstalledCallerDecision{}, ErrInstalledCallerUnauthorized
+		}
+	case InstalledTrustClassLocalDevelopment:
+		if binding.AuthorizationID == (protectedlocal.Identifier{}) || binding.AuthorizationGeneration == 0 || strings.TrimSpace(binding.ProjectRoot) == "" || binding.CapabilityFingerprint == (protectedlocal.Identifier{}) || len(binding.Capabilities) == 0 {
+			return InstalledCallerDecision{}, ErrInstalledCallerUnauthorized
+		}
+	default:
+		return InstalledCallerDecision{}, ErrInstalledCallerUnauthorized
+	}
 	return InstalledCallerDecision{
-		SessionID:          binding.SessionID,
-		AppID:              strings.TrimSpace(binding.AppID),
-		ReleaseDigest:      binding.ReleaseDigest,
-		AccountID:          accountID,
-		RealmEnvironmentID: realmEnvironmentID,
-		AccountGeneration:  generation,
-		RuntimeBootEpoch:   binding.RuntimeBootEpoch,
-		Process:            binding.Process,
-		ExpiresAt:          binding.ExpiresAt.UTC(),
+		SessionID:               binding.SessionID,
+		AppID:                   strings.TrimSpace(binding.AppID),
+		ReleaseDigest:           binding.ReleaseDigest,
+		AccountID:               accountID,
+		RealmEnvironmentID:      realmEnvironmentID,
+		AccountGeneration:       generation,
+		RuntimeBootEpoch:        binding.RuntimeBootEpoch,
+		Process:                 binding.Process,
+		ExpiresAt:               binding.ExpiresAt.UTC(),
+		TrustClass:              binding.TrustClass,
+		AuthorizationID:         binding.AuthorizationID,
+		AuthorizationGeneration: binding.AuthorizationGeneration,
+		ProjectRoot:             binding.ProjectRoot,
+		CapabilityFingerprint:   binding.CapabilityFingerprint,
 	}, nil
 }
 
@@ -174,6 +219,17 @@ func (s *Service) AuthorizeInstalledOperation(ctx context.Context, operation Ins
 	decision, err := s.AuthorizeInstalledCaller(ctx)
 	if err != nil {
 		return InstalledCallerDecision{}, err
+	}
+	if decision.TrustClass == InstalledTrustClassLocalDevelopment {
+		capability := requirement.scopeName + "#" + requirement.qualifier
+		binding, resolveErr := s.installedSessions.ResolveInstalledSession(ctx, decision.AccountGeneration)
+		if resolveErr != nil || binding.TrustClass != InstalledTrustClassLocalDevelopment || !containsInstalledCapability(binding.Capabilities, capability) ||
+			binding.AuthorizationID != decision.AuthorizationID || binding.AuthorizationGeneration != decision.AuthorizationGeneration || binding.CapabilityFingerprint != decision.CapabilityFingerprint {
+			return InstalledCallerDecision{}, ErrInstalledOperationNotAdmitted
+		}
+		decision.Operation = operation
+		decision.PermissionScope = capability
+		return decision, nil
 	}
 	if s.installedPolicy == nil {
 		return InstalledCallerDecision{}, ErrInstalledOperationNotAdmitted
@@ -198,6 +254,15 @@ func (s *Service) AuthorizeInstalledOperation(ctx context.Context, operation Ins
 	decision.GrantID = snapshot.GrantID
 	decision.GrantVersion = snapshot.GrantVersion
 	return decision, nil
+}
+
+func containsInstalledCapability(capabilities []string, required string) bool {
+	for _, capability := range capabilities {
+		if capability == required {
+			return true
+		}
+	}
+	return false
 }
 
 type installedOperationPolicyRequirement struct {

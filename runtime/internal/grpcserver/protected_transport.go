@@ -50,7 +50,14 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		"/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
 		"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
 		"/nimi.runtime.v1.RuntimeAppService/OpenApp",
-		"/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess":
+		"/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess",
+		"/nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun":
 		return protectedlocal.RoleDesktopLifecycleHost, true
 	default:
 		return "", false
@@ -160,6 +167,7 @@ func newProtectedDesktopRPCServer(
 	authService runtimev1.RuntimeAuthServiceServer,
 	accountService runtimev1.RuntimeAccountServiceServer,
 	appService runtimev1.RuntimeAppServiceServer,
+	developmentService runtimev1.RuntimeDevelopmentServiceServer,
 	desktopSessions *protectedlocal.DesktopSessionManager,
 ) *grpc.Server {
 	server := grpc.NewServer(
@@ -175,6 +183,7 @@ func newProtectedDesktopRPCServer(
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
 	runtimev1.RegisterRuntimeAccountServiceServer(server, accountService)
 	runtimev1.RegisterRuntimeAppServiceServer(server, appService)
+	runtimev1.RegisterRuntimeDevelopmentServiceServer(server, developmentService)
 	return server
 }
 

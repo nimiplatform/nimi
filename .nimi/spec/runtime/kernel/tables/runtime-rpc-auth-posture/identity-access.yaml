@@ -12,6 +12,7 @@ surfaces:
   - RuntimeGrantService
   - RuntimeExternalAgentService
   - RuntimeAppService
+  - RuntimeDevelopmentService
   - methods_1
   - methods_2
   - methods_3
@@ -43,14 +44,69 @@ surfaces:
   - methods_29
   - methods_30
   - methods_31
-description: Account, auth, grants, and app binding posture entries.
+description: Account, auth, grants, app binding, and local-development posture entries.
 services:
   - RuntimeAccountService
   - RuntimeAuthService
   - RuntimeGrantService
   - RuntimeExternalAgentService
   - RuntimeAppService
+  - RuntimeDevelopmentService
 methods:
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EvaluateLocalDevelopmentProject
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: desktop_lifecycle_host
+    rationale: Runtime canonicalizes the project manifest and current account only for the live Desktop-owned supervisor; public TCP and caller metadata cannot create an evaluation
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/DecideLocalDevelopmentProject
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: desktop_lifecycle_host
+    rationale: a user decision consumes a short-lived Runtime evaluation on the verified Desktop connection and never accepts a caller-confirmed boolean
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/ListLocalDevelopmentAuthorizations
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: desktop_lifecycle_host
+    rationale: remembered mutable-project authorizations are Runtime-owned account truth exposed only to Desktop management UI
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/RevokeLocalDevelopmentAuthorization
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: desktop_lifecycle_host
+    rationale: Desktop revocation atomically invalidates pending launches and technical sessions for the selected non-secret authorization id
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/PrepareLocalDevelopmentLaunch
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: desktop_lifecycle_host
+    rationale: only the Desktop supervisor may prepare an exact project, shell, loopback renderer origin, and host executable binding
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/BindLocalDevelopmentHostProcess
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: desktop_lifecycle_host
+    rationale: Runtime opens and validates the actual suspended child process against the prepared mutable-project launch before Desktop resumes it
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession
+    posture: protected_origin_required
+    protected_transport_class: installed_host
+    required_origin_role: verified_local_development_process
+    rationale: the empty request consumes only the exact Desktop-bound native host connection and returns no technical session material
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus
+    posture: protected_origin_required
+    protected_transport_class: installed_host
+    required_origin_role: local_development_host_session
+    rationale: typed status is revalidated against current account, Runtime epoch, process liveness, authorization generation, and session expiry
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
+  - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun
+    posture: protected_origin_required
+    protected_transport_class: desktop_control
+    required_origin_role: desktop_lifecycle_host
+    rationale: the Desktop supervisor ends the exact run and Runtime revokes every bound launch and technical session without exposing them
+    kernel_refs: [K-AUTHN-001, K-AUTH-001, K-PLOCAL-009]
   - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus
     posture: protected_origin_required
     protected_transport_class: desktop_control

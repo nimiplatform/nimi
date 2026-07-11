@@ -106,6 +106,7 @@ func (s *Service) ResolveInstalledSession(ctx context.Context, accountGeneration
 		RuntimeBootEpoch:  projection.RuntimeBootEpoch,
 		Process:           process,
 		ExpiresAt:         projection.ExpiresAt,
+		TrustClass:        accountservice.InstalledTrustClassProductionInstalled,
 	}, nil
 }
 

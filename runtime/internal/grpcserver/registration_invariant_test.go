@@ -46,6 +46,7 @@ func TestServerRegistersRuntimeCognitionServiceExactlyOnce(t *testing.T) {
 		"RegisterRuntimeAuthServiceServer":          {},
 		"RegisterRuntimeCognitionServiceServer":     {},
 		"RegisterRuntimeConnectorServiceServer":     {},
+		"RegisterRuntimeDevelopmentServiceServer":   {},
 		"RegisterRuntimeExternalAgentServiceServer": {},
 		"RegisterRuntimeGrantServiceServer":         {},
 		"RegisterRuntimeLocalServiceServer":         {},

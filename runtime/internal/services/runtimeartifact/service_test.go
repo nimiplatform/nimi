@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -19,6 +20,46 @@ var artifactTestNow = time.Date(2026, time.July, 11, 12, 0, 0, 0, time.UTC)
 type staticInstalledCallerAuthorizer struct {
 	decision accountservice.InstalledCallerDecision
 	err      error
+}
+
+func TestReadArtifactBytesAcceptsExactLocalDevelopmentAudienceWithoutProductionGrant(t *testing.T) {
+	store := NewMemoryStore()
+	projectRoot := filepath.Clean(t.TempDir())
+	decision := artifactTestDecision()
+	decision.TrustClass = accountservice.InstalledTrustClassLocalDevelopment
+	decision.CatalogVersion = 0
+	decision.GrantID = ""
+	decision.GrantVersion = 0
+	decision.AuthorizationID = artifactTestIdentifier(0x81)
+	decision.AuthorizationGeneration = 4
+	decision.ProjectRoot = projectRoot
+	decision.CapabilityFingerprint = artifactTestIdentifier(0x82)
+	decision.Process.CanonicalExecutablePath = filepath.Join(projectRoot, "node_modules", "electron", "electron.exe")
+	decision.Process.ExecutableTrustSetID = protectedlocal.WindowsLocalDevelopmentTrustSetID
+	audience := &ArtifactAudience{
+		ProducerJobID: "runtime.local-development.bootstrap", OwnerAccountID: decision.AccountID, AppID: decision.AppID,
+		ReleaseDigest: decision.ReleaseDigest, SessionID: decision.SessionID, AccountGeneration: decision.AccountGeneration,
+		AllowedUse: ArtifactUseReadBytes, ExpiresAt: decision.ExpiresAt,
+		TrustClass: "local-development", AuthorizationID: decision.AuthorizationID,
+		AuthorizationGeneration: decision.AuthorizationGeneration, ProjectRoot: decision.ProjectRoot,
+		CapabilityFingerprint: decision.CapabilityFingerprint,
+	}
+	if err := store.Put("artifact-development", ArtifactRecord{Bytes: []byte("development"), MimeType: "text/plain", CreatedAt: artifactTestNow, Audience: audience}); err != nil {
+		t.Fatal(err)
+	}
+	service := New(store, slog.New(slog.NewTextHandler(io.Discard, nil)), WithInstalledOperationAuthorizer(staticInstalledCallerAuthorizer{decision: decision}))
+	service.now = func() time.Time { return artifactTestNow }
+	response, err := service.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-development"})
+	if err != nil || string(response.GetBytes()) != "development" {
+		t.Fatalf("read exact local-development artifact = (%+v, %v)", response, err)
+	}
+
+	decision.AuthorizationGeneration++
+	mismatch := New(store, slog.New(slog.NewTextHandler(io.Discard, nil)), WithInstalledOperationAuthorizer(staticInstalledCallerAuthorizer{decision: decision}))
+	mismatch.now = func() time.Time { return artifactTestNow }
+	if _, err := mismatch.ReadArtifactBytes(context.Background(), &runtimev1.ReadArtifactBytesRequest{ArtifactId: "artifact-development"}); artifactReason(err) != runtimev1.ReasonCode_ARTIFACT_FORBIDDEN {
+		t.Fatalf("changed development authorization generation must fail closed, got %v", err)
+	}
 }
 
 func (authorizer staticInstalledCallerAuthorizer) AuthorizeInstalledOperation(_ context.Context, operation accountservice.InstalledOperation) (accountservice.InstalledCallerDecision, error) {
@@ -51,6 +92,7 @@ func artifactTestDecision() accountservice.InstalledCallerDecision {
 		CatalogVersion:     1,
 		GrantID:            "grant-artifact-read",
 		GrantVersion:       1,
+		TrustClass:         accountservice.InstalledTrustClassProductionInstalled,
 		Process: protectedlocal.ProcessTuple{
 			OS: protectedlocal.OSWindows, PID: 4201, CreationMarker: "artifact-process-1",
 			OSLoginSession: "login-1", SecurityPrincipal: "user-1",

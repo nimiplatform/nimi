@@ -71,8 +71,12 @@ type ProcessTuple struct {
 	OSLoginSession              string
 	SecurityPrincipal           string
 	CanonicalExecutableIdentity string
-	ExecutableDigest            Identifier
-	ExecutableTrustSetID        string
+	// CanonicalExecutablePath is populated for mutable local-development hosts
+	// whose authorization is bound to a selected project root. Production
+	// release callers remain bound by immutable file identity and digest.
+	CanonicalExecutablePath string
+	ExecutableDigest        Identifier
+	ExecutableTrustSetID    string
 }
 
 func ValidateProcessTuple(tuple ProcessTuple) error { return tuple.validate() }
@@ -88,6 +92,9 @@ func (tuple ProcessTuple) validate() error {
 		!canonicalIdentityField(tuple.CanonicalExecutableIdentity) || tuple.ExecutableDigest == (Identifier{}) ||
 		!canonicalIdentityField(tuple.ExecutableTrustSetID) {
 		return fmt.Errorf("process tuple is incomplete")
+	}
+	if tuple.CanonicalExecutablePath != "" && !canonicalIdentityField(tuple.CanonicalExecutablePath) {
+		return fmt.Errorf("process tuple executable path is not canonical")
 	}
 	return nil
 }

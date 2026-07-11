@@ -63,7 +63,7 @@ func TestProtectedInstalledTransportOpensOnlyProcessBoundSession(t *testing.T) {
 	artifactStore := runtimeartifactservice.NewMemoryStore()
 	artifactAuthorizer := &grpcInstalledArtifactAuthorizer{}
 	artifactService := runtimeartifactservice.New(artifactStore, slog.Default(), runtimeartifactservice.WithInstalledOperationAuthorizer(artifactAuthorizer))
-	server := newProtectedInstalledRPCServer(authService, artifactService)
+	server := newProtectedInstalledRPCServer(authService, &runtimev1.UnimplementedRuntimeDevelopmentServiceServer{}, artifactService)
 	baseListener := bufconn.Listen(1024 * 1024)
 	listener := &protectedInstalledTestListener{Listener: baseListener, connection: connection}
 	done := make(chan error, 1)
@@ -108,6 +108,7 @@ func TestProtectedInstalledTransportOpensOnlyProcessBoundSession(t *testing.T) {
 		CatalogVersion:     1,
 		GrantID:            "grant-installed-artifact",
 		GrantVersion:       1,
+		TrustClass:         accountservice.InstalledTrustClassProductionInstalled,
 	}
 	if err := artifactStore.Put("artifact-installed", runtimeartifactservice.ArtifactRecord{
 		Bytes: []byte("installed-artifact"), MimeType: "text/plain", CreatedAt: time.Now().UTC(),
@@ -115,6 +116,7 @@ func TestProtectedInstalledTransportOpensOnlyProcessBoundSession(t *testing.T) {
 			ProducerJobID: "job-installed", OwnerAccountID: "account-installed", AppID: "world.nimi.app",
 			ReleaseDigest: release, SessionID: sessionID, AccountGeneration: 12,
 			AllowedUse: runtimeartifactservice.ArtifactUseReadBytes, ExpiresAt: expiresAt,
+			TrustClass: "production-installed",
 		},
 	}); err != nil {
 		t.Fatal(err)

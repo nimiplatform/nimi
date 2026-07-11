@@ -149,16 +149,17 @@ type Service struct {
 	logger *slog.Logger
 	now    func() time.Time
 
-	custody             Custody
-	exchanger           LoginExchanger
-	refresher           Refresher
-	registry            *appregistry.Registry
-	realmHTTP           *http.Client
-	realmBaseURL        string
-	presenceVerifier    PresenceVerifier
-	appSessionValidator AppSessionValidator
-	installedSessions   InstalledSessionResolver
-	installedPolicy     InstalledOperationPolicySource
+	custody                 Custody
+	exchanger               LoginExchanger
+	refresher               Refresher
+	registry                *appregistry.Registry
+	realmHTTP               *http.Client
+	realmBaseURL            string
+	presenceVerifier        PresenceVerifier
+	appSessionValidator     AppSessionValidator
+	installedSessions       InstalledSessionResolver
+	installedPolicy         InstalledOperationPolicySource
+	accountAuthorityRevoker AccountAuthorityRevoker
 
 	partition                string
 	productionActivated      bool

@@ -11,3 +11,7 @@ func installedProcessVerifierForWindowsState(state *protectedlocal.WindowsRuntim
 	}
 	return protectedlocal.NewWindowsInstalledProcessVerifier(state.DesktopIdentity(), executableVerifier)
 }
+
+func localDevelopmentProcessVerifierForWindowsState(state *protectedlocal.WindowsRuntimeSecurityState) (protectedlocal.LocalDevelopmentProcessVerifier, error) {
+	return protectedlocal.NewWindowsLocalDevelopmentProcessVerifier(state.DesktopIdentity())
+}

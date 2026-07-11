@@ -199,8 +199,10 @@ func TestAdoptLocalAppUpdatesAccountInventoryAndOpenUsesLocalMaterialization(t *
 	if err != nil {
 		t.Fatalf("OpenApp local adopted: %v", err)
 	}
-	if openResp.GetProjection().GetState() != runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCHED {
-		t.Fatalf("OpenApp state = %v detail=%q, want LAUNCHED", openResp.GetProjection().GetState(), openResp.GetProjection().GetDetail())
+	if openResp.GetProjection().GetState() != runtimev1.AppOpenState_APP_OPEN_STATE_BLOCKED ||
+		openResp.GetProjection().GetReasonCode() != runtimev1.ReasonCode_LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED ||
+		openResp.GetProjection().GetLaunched() {
+		t.Fatalf("local adoption alone must remain blocked pending Desktop-supervised development authorization: %+v", openResp.GetProjection())
 	}
 	if openResp.GetProjection().GetReleaseDescriptorRef() != "" ||
 		openResp.GetProjection().GetCallerMode() != "" ||

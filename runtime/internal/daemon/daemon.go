@@ -152,6 +152,10 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	if err != nil {
 		return fail(fmt.Errorf("construct Windows installed process verifier: %w", err))
 	}
+	localDevelopmentVerifier, err := localDevelopmentProcessVerifierForWindowsState(state)
+	if err != nil {
+		return fail(fmt.Errorf("construct Windows local-development process verifier: %w", err))
+	}
 	platformAppRegistryPath, platformBundledAppsRoot, err := protectedPlatformAppResourceBindings()
 	if err != nil {
 		return fail(fmt.Errorf("resolve protected Platform app resources: %w", err))
@@ -168,6 +172,7 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 			LifecycleIntents:         intents,
 			InstalledProcessVerifier: installedProcessVerifier,
 			InstalledLaunches:        state.InstalledLaunches(),
+			LocalDevelopmentVerifier: localDevelopmentVerifier,
 		},
 		Close: state.Close,
 	})

@@ -245,3 +245,48 @@ mappings:
     surface: protected_lifecycle_intent_gate
     exit_shape: grpc_status_with_sanitized_detail
     source_rule: K-APP-026
+  - reason_code: LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED
+    grpc_code: PERMISSION_DENIED
+    surface: local_development_authorization
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-009
+  - reason_code: LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_development_authorization
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-009
+  - reason_code: LOCAL_DEVELOPMENT_PROJECT_CHANGED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_development_project
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-009
+  - reason_code: LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED
+    grpc_code: PERMISSION_DENIED
+    surface: local_development_process_binding
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-009
+  - reason_code: LOCAL_DEVELOPMENT_SESSION_REVOKED
+    grpc_code: UNAUTHENTICATED
+    surface: local_development_session
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-009
+  - reason_code: LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED
+    grpc_code: FAILED_PRECONDITION
+    surface: local_development_platform
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-009
+  - reason_code: LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN
+    grpc_code: PERMISSION_DENIED
+    surface: local_development_operation
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-009
+  - reason_code: LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED
+    grpc_code: PERMISSION_DENIED
+    surface: local_development_dev_server
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-009
+  - reason_code: LOCAL_DEVELOPMENT_APPROVAL_DENIED
+    grpc_code: PERMISSION_DENIED
+    surface: local_development_authorization
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-009

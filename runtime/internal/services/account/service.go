@@ -336,6 +336,7 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 		return &runtimev1.SwitchAccountResponse{Accepted: false, State: state, ReasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_SWITCHING
+	accountID := strings.TrimSpace(s.projection.GetAccountId())
 	switchStart := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_SWITCH_STARTED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
 	revoked := s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.clearAuthenticatedRuntimeIdentityLocked()
@@ -344,6 +345,9 @@ func (s *Service) SwitchAccount(ctx context.Context, req *runtimev1.SwitchAccoun
 	statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, "")
 	state := s.state
 	s.mu.Unlock()
+	if s.accountAuthorityRevoker != nil && accountID != "" {
+		_ = s.accountAuthorityRevoker.RevokeAccountAuthority(ctx, accountID)
+	}
 	_ = s.custody.Clear(ctx, s.partition)
 	s.publish(switchStart)
 	for _, event := range revoked {
@@ -685,6 +689,7 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 		return &runtimev1.LogoutResponse{Accepted: true, State: runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED}, nil
 	}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_LOGGING_OUT
+	accountID := strings.TrimSpace(s.projection.GetAccountId())
 	start := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_STARTED, reason, "")
 	revoked := s.revokeBindingsLocked(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED)
 	s.clearAuthenticatedRuntimeIdentityLocked()
@@ -692,6 +697,9 @@ func (s *Service) logout(ctx context.Context, reason runtimev1.AccountReasonCode
 	done := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED, reason, "")
 	statusEvent := s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason, "")
 	s.mu.Unlock()
+	if s.accountAuthorityRevoker != nil && accountID != "" {
+		_ = s.accountAuthorityRevoker.RevokeAccountAuthority(ctx, accountID)
+	}
 	_ = s.custody.Clear(ctx, s.partition)
 	s.publish(start)
 	for _, event := range revoked {

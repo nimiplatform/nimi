@@ -9,3 +9,7 @@ func installedProcessVerifierForWindowsState(*protectedlocal.WindowsRuntimeSecur
 	// cannot admit a Windows process. The handler remains fail-closed.
 	return nil, nil
 }
+
+func localDevelopmentProcessVerifierForWindowsState(*protectedlocal.WindowsRuntimeSecurityState) (protectedlocal.LocalDevelopmentProcessVerifier, error) {
+	return nil, nil
+}

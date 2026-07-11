@@ -71,6 +71,10 @@ service_mappings:
     proto_service: RuntimeArtifactService
     source_rule: K-AGCORE-053
     mapping_posture: aligned
+  - design_service: RuntimeDevelopmentService
+    proto_service: RuntimeDevelopmentService
+    source_rule: K-PLOCAL-009
+    mapping_posture: aligned
   - design_service: RuntimeAgentService
     proto_service: RuntimeAgentService
     source_rule: K-RPC-004b

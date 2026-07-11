@@ -27,16 +27,23 @@ func OpenWindowsVerifiedInstalledListener(ctx context.Context, state *WindowsRun
 		return nil, err
 	}
 	listenerCtx, cancel := context.WithCancel(ctx)
-	listener := &windowsVerifiedInstalledListener{ctx: listenerCtx, cancel: cancel, state: state, verifier: verifier, initial: initial}
+	developmentVerifier, err := NewWindowsLocalDevelopmentProcessVerifier(state.desktopIdentity)
+	if err != nil {
+		_ = initial.Close()
+		cancel()
+		return nil, err
+	}
+	listener := &windowsVerifiedInstalledListener{ctx: listenerCtx, cancel: cancel, state: state, verifier: verifier, developmentVerifier: developmentVerifier, initial: initial}
 	state.installedTransport = listener
 	return listener, nil
 }
 
 type windowsVerifiedInstalledListener struct {
-	ctx      context.Context
-	cancel   context.CancelFunc
-	state    *WindowsRuntimeSecurityState
-	verifier WindowsExecutableTrustVerifier
+	ctx                 context.Context
+	cancel              context.CancelFunc
+	state               *WindowsRuntimeSecurityState
+	verifier            WindowsExecutableTrustVerifier
+	developmentVerifier LocalDevelopmentProcessVerifier
 
 	mu      sync.Mutex
 	initial *WindowsDesktopPipeInstance
@@ -64,7 +71,20 @@ func (listener *windowsVerifiedInstalledListener) Accept() (net.Conn, error) {
 			}
 			continue
 		}
-		peer, pipeLiveness, err := native.verifyAndBindClientProcessForRole(listener.ctx, listener.verifier, WindowsExecutableRoleInstalled, WindowsInstalledReleaseTrustSetID)
+		expected, policy, development, bound := listener.state.installedLaunches.BoundProcessPolicy(native.ClientProcessID())
+		var peer ProcessTuple
+		var pipeLiveness DesktopProcessLiveness
+		if bound && development {
+			developmentVerifier := listener.developmentVerifier
+			if developmentVerifier == nil {
+				developmentVerifier, err = NewWindowsLocalDevelopmentProcessVerifier(listener.state.desktopIdentity)
+			}
+			if err == nil {
+				peer, pipeLiveness, err = native.verifyAndBindLocalDevelopmentClientProcess(listener.ctx, developmentVerifier, policy, expected)
+			}
+		} else {
+			peer, pipeLiveness, err = native.verifyAndBindClientProcessForRole(listener.ctx, listener.verifier, WindowsExecutableRoleInstalled, WindowsInstalledReleaseTrustSetID)
+		}
 		if err != nil {
 			_ = native.Close()
 			continue

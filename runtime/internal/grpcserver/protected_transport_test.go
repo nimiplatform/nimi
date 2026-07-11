@@ -56,7 +56,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	)
 	accountService := &protectedDesktopAccountTestService{}
 	appService := &protectedDesktopAppTestService{}
-	server := newProtectedDesktopRPCServer(authService, accountService, appService, manager)
+	server := newProtectedDesktopRPCServer(authService, accountService, appService, &runtimev1.UnimplementedRuntimeDevelopmentServiceServer{}, manager)
 	baseListener := bufconn.Listen(1024 * 1024)
 	listener := &protectedDesktopTestListener{Listener: baseListener, connection: connection}
 	serveDone := make(chan error, 1)

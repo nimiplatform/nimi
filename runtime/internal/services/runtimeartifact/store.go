@@ -15,6 +15,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -47,14 +48,19 @@ const ArtifactUseReadBytes ArtifactUse = "read_bytes"
 // artifact. A nil audience denotes an internal-only historical or producer
 // record and can never authorize ReadArtifactBytes.
 type ArtifactAudience struct {
-	ProducerJobID     string
-	OwnerAccountID    string
-	AppID             string
-	ReleaseDigest     protectedlocal.Identifier
-	SessionID         protectedlocal.Identifier
-	AccountGeneration uint64
-	AllowedUse        ArtifactUse
-	ExpiresAt         time.Time
+	ProducerJobID           string
+	OwnerAccountID          string
+	AppID                   string
+	ReleaseDigest           protectedlocal.Identifier
+	SessionID               protectedlocal.Identifier
+	AccountGeneration       uint64
+	AllowedUse              ArtifactUse
+	ExpiresAt               time.Time
+	TrustClass              string
+	AuthorizationID         protectedlocal.Identifier
+	AuthorizationGeneration uint64
+	ProjectRoot             string
+	CapabilityFingerprint   protectedlocal.Identifier
 }
 
 // GeneratedVoiceArtifactMetadata is the durable cleanup index for assistant
@@ -251,9 +257,26 @@ func normalizeArtifactAudience(input ArtifactAudience, createdAt time.Time) (Art
 	input.OwnerAccountID = strings.TrimSpace(input.OwnerAccountID)
 	input.AppID = strings.TrimSpace(input.AppID)
 	input.AllowedUse = ArtifactUse(strings.TrimSpace(string(input.AllowedUse)))
+	input.TrustClass = strings.TrimSpace(input.TrustClass)
+	if input.TrustClass == "" {
+		input.TrustClass = "production-installed"
+	}
+	input.ProjectRoot = strings.TrimSpace(input.ProjectRoot)
 	input.ExpiresAt = input.ExpiresAt.UTC()
 	if input.ProducerJobID == "" || input.OwnerAccountID == "" || input.AppID == "" || input.ReleaseDigest == (protectedlocal.Identifier{}) ||
 		input.SessionID == (protectedlocal.Identifier{}) || input.AccountGeneration == 0 || input.AllowedUse == "" || input.ExpiresAt.IsZero() || !input.ExpiresAt.After(createdAt.UTC()) {
+		return ArtifactAudience{}, ErrInvalidArtifactRecord
+	}
+	switch input.TrustClass {
+	case "production-installed":
+		if input.AuthorizationID != (protectedlocal.Identifier{}) || input.AuthorizationGeneration != 0 || input.ProjectRoot != "" || input.CapabilityFingerprint != (protectedlocal.Identifier{}) {
+			return ArtifactAudience{}, ErrInvalidArtifactRecord
+		}
+	case "local-development":
+		if input.AuthorizationID == (protectedlocal.Identifier{}) || input.AuthorizationGeneration == 0 || input.ProjectRoot == "" || !filepath.IsAbs(input.ProjectRoot) || input.CapabilityFingerprint == (protectedlocal.Identifier{}) {
+			return ArtifactAudience{}, ErrInvalidArtifactRecord
+		}
+	default:
 		return ArtifactAudience{}, ErrInvalidArtifactRecord
 	}
 	return input, nil
@@ -295,7 +318,9 @@ func artifactAudiencesEqual(left, right *ArtifactAudience) bool {
 	}
 	return left.ProducerJobID == right.ProducerJobID && left.OwnerAccountID == right.OwnerAccountID && left.AppID == right.AppID &&
 		left.ReleaseDigest == right.ReleaseDigest && left.SessionID == right.SessionID && left.AccountGeneration == right.AccountGeneration &&
-		left.AllowedUse == right.AllowedUse && left.ExpiresAt.Equal(right.ExpiresAt)
+		left.AllowedUse == right.AllowedUse && left.ExpiresAt.Equal(right.ExpiresAt) && left.TrustClass == right.TrustClass &&
+		left.AuthorizationID == right.AuthorizationID && left.AuthorizationGeneration == right.AuthorizationGeneration &&
+		left.ProjectRoot == right.ProjectRoot && left.CapabilityFingerprint == right.CapabilityFingerprint
 }
 
 func normalizeGeneratedVoiceArtifactMetadata(input GeneratedVoiceArtifactMetadata, payload []byte) GeneratedVoiceArtifactMetadata {

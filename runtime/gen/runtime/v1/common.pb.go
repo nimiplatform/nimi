@@ -269,6 +269,17 @@ const (
 	ReasonCode_LIFECYCLE_INTENT_MISMATCH                            ReasonCode = 639
 	ReasonCode_LIFECYCLE_INTENT_REPLAY                              ReasonCode = 640
 	ReasonCode_LIFECYCLE_INTENT_EXPIRED                             ReasonCode = 641
+	// LOCAL_DEVELOPMENT family (642+). These values are reserved for the
+	// explicit non-production mutable-project trust class (K-PLOCAL-009).
+	ReasonCode_LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED  ReasonCode = 642
+	ReasonCode_LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED     ReasonCode = 643
+	ReasonCode_LOCAL_DEVELOPMENT_PROJECT_CHANGED         ReasonCode = 644
+	ReasonCode_LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED     ReasonCode = 645
+	ReasonCode_LOCAL_DEVELOPMENT_SESSION_REVOKED         ReasonCode = 646
+	ReasonCode_LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED    ReasonCode = 647
+	ReasonCode_LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN     ReasonCode = 648
+	ReasonCode_LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED ReasonCode = 649
+	ReasonCode_LOCAL_DEVELOPMENT_APPROVAL_DENIED         ReasonCode = 650
 )
 
 // Enum value maps for ReasonCode.
@@ -478,6 +489,15 @@ var (
 		639: "LIFECYCLE_INTENT_MISMATCH",
 		640: "LIFECYCLE_INTENT_REPLAY",
 		641: "LIFECYCLE_INTENT_EXPIRED",
+		642: "LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED",
+		643: "LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED",
+		644: "LOCAL_DEVELOPMENT_PROJECT_CHANGED",
+		645: "LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED",
+		646: "LOCAL_DEVELOPMENT_SESSION_REVOKED",
+		647: "LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED",
+		648: "LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN",
+		649: "LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED",
+		650: "LOCAL_DEVELOPMENT_APPROVAL_DENIED",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":                              0,
@@ -684,6 +704,15 @@ var (
 		"LIFECYCLE_INTENT_MISMATCH":                            639,
 		"LIFECYCLE_INTENT_REPLAY":                              640,
 		"LIFECYCLE_INTENT_EXPIRED":                             641,
+		"LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED":             642,
+		"LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED":                643,
+		"LOCAL_DEVELOPMENT_PROJECT_CHANGED":                    644,
+		"LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED":                645,
+		"LOCAL_DEVELOPMENT_SESSION_REVOKED":                    646,
+		"LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED":               647,
+		"LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN":                648,
+		"LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED":            649,
+		"LOCAL_DEVELOPMENT_APPROVAL_DENIED":                    650,
 	}
 )
 
@@ -1393,7 +1422,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xdd6\n" +
+	"actionHint*\xe59\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1600,7 +1629,16 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x19LIFECYCLE_INTENT_REQUIRED\x10\xfe\x04\x12\x1e\n" +
 	"\x19LIFECYCLE_INTENT_MISMATCH\x10\xff\x04\x12\x1c\n" +
 	"\x17LIFECYCLE_INTENT_REPLAY\x10\x80\x05\x12\x1d\n" +
-	"\x18LIFECYCLE_INTENT_EXPIRED\x10\x81\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
+	"\x18LIFECYCLE_INTENT_EXPIRED\x10\x81\x05\x12-\n" +
+	"(LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED\x10\x82\x05\x12*\n" +
+	"%LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED\x10\x83\x05\x12&\n" +
+	"!LOCAL_DEVELOPMENT_PROJECT_CHANGED\x10\x84\x05\x12*\n" +
+	"%LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED\x10\x85\x05\x12&\n" +
+	"!LOCAL_DEVELOPMENT_SESSION_REVOKED\x10\x86\x05\x12+\n" +
+	"&LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED\x10\x87\x05\x12*\n" +
+	"%LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN\x10\x88\x05\x12.\n" +
+	")LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED\x10\x89\x05\x12&\n" +
+	"!LOCAL_DEVELOPMENT_APPROVAL_DENIED\x10\x8a\x05\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

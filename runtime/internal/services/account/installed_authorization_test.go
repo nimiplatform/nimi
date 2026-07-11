@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,6 +15,51 @@ type installedAuthorizationResolver struct {
 	binding    InstalledCallerBinding
 	generation uint64
 	err        error
+}
+
+func TestAuthorizeInstalledOperationAdmitsOnlyExplicitLocalDevelopmentCapability(t *testing.T) {
+	service := newHarnessService(t, nil)
+	completeLogin(t, service)
+	_, generation, ok := service.AuthenticatedRuntimeSecurityContext(context.Background())
+	if !ok {
+		t.Fatal("runtime account context is unavailable")
+	}
+	hostDigest := accountInstalledIdentifier(0x71)
+	projectRoot := filepath.Clean(t.TempDir())
+	resolver := &installedAuthorizationResolver{binding: InstalledCallerBinding{
+		SessionID:         accountInstalledIdentifier(0x72),
+		AppID:             "sample.nimi.app",
+		ReleaseDigest:     hostDigest,
+		AccountGeneration: generation,
+		RuntimeBootEpoch:  accountInstalledIdentifier(0x73),
+		Process: protectedlocal.ProcessTuple{
+			OS: protectedlocal.OSWindows, PID: 7101, CreationMarker: "development-start-1",
+			OSLoginSession: "login-dev-1", SecurityPrincipal: "user-dev-1",
+			CanonicalExecutableIdentity: "development-file-1",
+			CanonicalExecutablePath:     filepath.Join(projectRoot, "electron.exe"),
+			ExecutableDigest:            hostDigest, ExecutableTrustSetID: protectedlocal.WindowsLocalDevelopmentTrustSetID,
+		},
+		ExpiresAt:               time.Now().Add(time.Minute),
+		TrustClass:              InstalledTrustClassLocalDevelopment,
+		AuthorizationID:         accountInstalledIdentifier(0x74),
+		AuthorizationGeneration: 3,
+		ProjectRoot:             projectRoot,
+		CapabilityFingerprint:   accountInstalledIdentifier(0x75),
+		Capabilities:            []string{"data.scope.read#runtime.artifacts"},
+	}}
+	service.SetInstalledSessionResolver(resolver)
+	decision, err := service.AuthorizeInstalledOperation(context.Background(), InstalledOperationReadArtifactBytes)
+	if err != nil {
+		t.Fatalf("authorize local-development artifact operation: %v", err)
+	}
+	if decision.TrustClass != InstalledTrustClassLocalDevelopment || decision.AuthorizationID != resolver.binding.AuthorizationID || decision.PermissionScope != "data.scope.read#runtime.artifacts" || decision.CatalogVersion != 0 || decision.GrantID != "" {
+		t.Fatalf("unexpected local-development decision: %+v", decision)
+	}
+
+	resolver.binding.Capabilities = []string{"file.read.scoped#app-local-drafts"}
+	if _, err := service.AuthorizeInstalledOperation(context.Background(), InstalledOperationReadArtifactBytes); !errors.Is(err, ErrInstalledOperationNotAdmitted) {
+		t.Fatalf("missing development capability must fail closed, got %v", err)
+	}
 }
 
 type installedOperationPolicySource struct {
@@ -52,7 +98,8 @@ func TestAuthorizeInstalledCallerUsesCurrentAccountGeneration(t *testing.T) {
 			CanonicalExecutableIdentity: "installed-file-1", ExecutableDigest: release,
 			ExecutableTrustSetID: "installed-release-policy",
 		},
-		ExpiresAt: time.Now().Add(time.Minute),
+		ExpiresAt:  time.Now().Add(time.Minute),
+		TrustClass: InstalledTrustClassProductionInstalled,
 	}}
 	service.SetInstalledSessionResolver(resolver)
 	decision, err := service.AuthorizeInstalledCaller(context.Background())
@@ -103,7 +150,8 @@ func TestAuthorizeInstalledOperationRevalidatesCurrentPolicy(t *testing.T) {
 			CanonicalExecutableIdentity: "installed-file-2", ExecutableDigest: release,
 			ExecutableTrustSetID: "installed-release-policy",
 		},
-		ExpiresAt: time.Now().Add(time.Minute),
+		ExpiresAt:  time.Now().Add(time.Minute),
+		TrustClass: InstalledTrustClassProductionInstalled,
 	}})
 	policy := &installedOperationPolicySource{snapshot: InstalledOperationPolicySnapshot{
 		CatalogVersion:           1,

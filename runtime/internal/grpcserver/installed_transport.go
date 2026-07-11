@@ -16,9 +16,23 @@ import (
 )
 
 const (
-	protectedOpenInstalledSessionMethod = "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession"
-	protectedReadArtifactBytesMethod    = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
+	protectedOpenInstalledSessionMethod   = "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopLaunchedAppSession"
+	protectedReadArtifactBytesMethod      = "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes"
+	protectedOpenDevelopmentSessionMethod = "/nimi.runtime.v1.RuntimeDevelopmentService/OpenLocalDevelopmentAppSession"
+	protectedGetDevelopmentStatusMethod   = "/nimi.runtime.v1.RuntimeDevelopmentService/GetLocalDevelopmentSessionStatus"
 )
+
+func protectedInstalledUnaryMethodAllowed(method string) bool {
+	switch method {
+	case protectedOpenInstalledSessionMethod,
+		protectedOpenDevelopmentSessionMethod,
+		protectedGetDevelopmentStatusMethod,
+		protectedReadArtifactBytesMethod:
+		return true
+	default:
+		return false
+	}
+}
 
 type protectedInstalledNetConn struct {
 	net.Conn
@@ -90,7 +104,7 @@ func (protectedInstalledTransportCredentials) OverrideServerName(string) error {
 	return fmt.Errorf("protected installed transport has no portable server name")
 }
 
-func newProtectedInstalledRPCServer(authService runtimev1.RuntimeAuthServiceServer, artifactService runtimev1.RuntimeArtifactServiceServer) *grpc.Server {
+func newProtectedInstalledRPCServer(authService runtimev1.RuntimeAuthServiceServer, developmentService runtimev1.RuntimeDevelopmentServiceServer, artifactService runtimev1.RuntimeArtifactServiceServer) *grpc.Server {
 	server := grpc.NewServer(
 		grpc.Creds(protectedInstalledTransportCredentials{}),
 		grpc.MaxRecvMsgSize(maxGRPCRecvMessageBytes),
@@ -99,13 +113,14 @@ func newProtectedInstalledRPCServer(authService runtimev1.RuntimeAuthServiceServ
 		grpc.UnaryInterceptor(newUnaryProtectedInstalledTransportInterceptor()),
 	)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
+	runtimev1.RegisterRuntimeDevelopmentServiceServer(server, developmentService)
 	runtimev1.RegisterRuntimeArtifactServiceServer(server, artifactService)
 	return server
 }
 
 func newUnaryProtectedInstalledTransportInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if info == nil || (info.FullMethod != protectedOpenInstalledSessionMethod && info.FullMethod != protectedReadArtifactBytesMethod) {
+		if info == nil || !protectedInstalledUnaryMethodAllowed(info.FullMethod) {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
 		peerInfo, ok := peer.FromContext(ctx)
@@ -117,8 +132,15 @@ func newUnaryProtectedInstalledTransportInterceptor() grpc.UnaryServerIntercepto
 			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE)
 		}
 		if info.FullMethod == protectedReadArtifactBytesMethod {
-			if _, ok := authInfo.connection.InstalledSession(); !ok {
+			_, installed := authInfo.connection.InstalledSession()
+			_, development := authInfo.connection.LocalDevelopmentSession()
+			if !installed && !development {
 				return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+			}
+		}
+		if info.FullMethod == protectedGetDevelopmentStatusMethod {
+			if _, ok := authInfo.connection.LocalDevelopmentSession(); !ok {
+				return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_DEVELOPMENT_SESSION_REVOKED)
 			}
 		}
 		return handler(protectedlocal.ContextWithInstalledLaunchConnection(ctx, authInfo.connection), req)

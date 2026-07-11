@@ -43,14 +43,19 @@ type diskArtifactRecord struct {
 }
 
 type diskArtifactAudience struct {
-	ProducerJobID     string      `json:"producer_job_id"`
-	OwnerAccountID    string      `json:"owner_account_id"`
-	AppID             string      `json:"app_id"`
-	ReleaseDigest     string      `json:"release_digest"`
-	SessionID         string      `json:"session_id"`
-	AccountGeneration uint64      `json:"account_generation"`
-	AllowedUse        ArtifactUse `json:"allowed_use"`
-	ExpiresAt         time.Time   `json:"expires_at"`
+	ProducerJobID           string      `json:"producer_job_id"`
+	OwnerAccountID          string      `json:"owner_account_id"`
+	AppID                   string      `json:"app_id"`
+	ReleaseDigest           string      `json:"release_digest"`
+	SessionID               string      `json:"session_id"`
+	AccountGeneration       uint64      `json:"account_generation"`
+	AllowedUse              ArtifactUse `json:"allowed_use"`
+	ExpiresAt               time.Time   `json:"expires_at"`
+	TrustClass              string      `json:"trust_class"`
+	AuthorizationID         string      `json:"authorization_id,omitempty"`
+	AuthorizationGeneration uint64      `json:"authorization_generation,omitempty"`
+	ProjectRoot             string      `json:"project_root,omitempty"`
+	CapabilityFingerprint   string      `json:"capability_fingerprint,omitempty"`
 }
 
 // NewDiskStoreForLocalStatePath places the artifact store next to
@@ -346,14 +351,19 @@ func diskArtifactAudienceFromRecord(audience *ArtifactAudience) *diskArtifactAud
 		return nil
 	}
 	return &diskArtifactAudience{
-		ProducerJobID:     audience.ProducerJobID,
-		OwnerAccountID:    audience.OwnerAccountID,
-		AppID:             audience.AppID,
-		ReleaseDigest:     hex.EncodeToString(audience.ReleaseDigest[:]),
-		SessionID:         hex.EncodeToString(audience.SessionID[:]),
-		AccountGeneration: audience.AccountGeneration,
-		AllowedUse:        audience.AllowedUse,
-		ExpiresAt:         audience.ExpiresAt.UTC(),
+		ProducerJobID:           audience.ProducerJobID,
+		OwnerAccountID:          audience.OwnerAccountID,
+		AppID:                   audience.AppID,
+		ReleaseDigest:           hex.EncodeToString(audience.ReleaseDigest[:]),
+		SessionID:               hex.EncodeToString(audience.SessionID[:]),
+		AccountGeneration:       audience.AccountGeneration,
+		AllowedUse:              audience.AllowedUse,
+		ExpiresAt:               audience.ExpiresAt.UTC(),
+		TrustClass:              audience.TrustClass,
+		AuthorizationID:         encodeOptionalArtifactIdentifier(audience.AuthorizationID),
+		AuthorizationGeneration: audience.AuthorizationGeneration,
+		ProjectRoot:             audience.ProjectRoot,
+		CapabilityFingerprint:   encodeOptionalArtifactIdentifier(audience.CapabilityFingerprint),
 	}
 }
 
@@ -369,16 +379,41 @@ func artifactAudienceFromDisk(audience *diskArtifactAudience) (*ArtifactAudience
 	if !ok {
 		return nil, false
 	}
+	var authorizationID, capabilityFingerprint protectedlocal.Identifier
+	if strings.TrimSpace(audience.AuthorizationID) != "" {
+		authorizationID, ok = decodeArtifactIdentifier(audience.AuthorizationID)
+		if !ok {
+			return nil, false
+		}
+	}
+	if strings.TrimSpace(audience.CapabilityFingerprint) != "" {
+		capabilityFingerprint, ok = decodeArtifactIdentifier(audience.CapabilityFingerprint)
+		if !ok {
+			return nil, false
+		}
+	}
 	return &ArtifactAudience{
-		ProducerJobID:     audience.ProducerJobID,
-		OwnerAccountID:    audience.OwnerAccountID,
-		AppID:             audience.AppID,
-		ReleaseDigest:     release,
-		SessionID:         session,
-		AccountGeneration: audience.AccountGeneration,
-		AllowedUse:        audience.AllowedUse,
-		ExpiresAt:         audience.ExpiresAt,
+		ProducerJobID:           audience.ProducerJobID,
+		OwnerAccountID:          audience.OwnerAccountID,
+		AppID:                   audience.AppID,
+		ReleaseDigest:           release,
+		SessionID:               session,
+		AccountGeneration:       audience.AccountGeneration,
+		AllowedUse:              audience.AllowedUse,
+		ExpiresAt:               audience.ExpiresAt,
+		TrustClass:              audience.TrustClass,
+		AuthorizationID:         authorizationID,
+		AuthorizationGeneration: audience.AuthorizationGeneration,
+		ProjectRoot:             audience.ProjectRoot,
+		CapabilityFingerprint:   capabilityFingerprint,
 	}, true
+}
+
+func encodeOptionalArtifactIdentifier(identifier protectedlocal.Identifier) string {
+	if identifier == (protectedlocal.Identifier{}) {
+		return ""
+	}
+	return hex.EncodeToString(identifier[:])
 }
 
 func decodeArtifactIdentifier(encoded string) (protectedlocal.Identifier, bool) {

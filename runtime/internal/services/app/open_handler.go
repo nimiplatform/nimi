@@ -333,7 +333,7 @@ func (s *Service) openLocalAdoptedApp(
 		return openBlockedResponse(appID, scope, *manifestErr), true
 	}
 	if s.logger != nil {
-		s.logger.Info("local app open flow launched",
+		s.logger.Info("local app adoption remains non-authorizing",
 			"app_id", appID,
 			"active_version", adoption.Version,
 			"scope_owner", scope.GetOwnerId(),
@@ -341,17 +341,11 @@ func (s *Service) openLocalAdoptedApp(
 			"registry_resolve_error", resolveErr.Error(),
 		)
 	}
-	return &runtimev1.OpenAppResponse{
-		Projection: &runtimev1.AppOpenProjection{
-			AppId:         appID,
-			State:         runtimev1.AppOpenState_APP_OPEN_STATE_LAUNCHED,
-			ReachedStep:   runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
-			Launched:      true,
-			ActiveVersion: adoption.Version,
-			Scope:         scope,
-			ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
-		},
-	}, true
+	return openBlockedResponse(appID, scope, blocked(
+		runtimev1.AppOpenFlowStep_APP_OPEN_FLOW_STEP_LAUNCH,
+		runtimev1.ReasonCode_LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED,
+		"local adoption records inventory only; launch requires Desktop-supervised local-development authorization",
+	)), true
 }
 
 func (s *Service) localAdoptionAppRoots(adoption localAppAdoptionRecord) (appstorage.Plan, error) {

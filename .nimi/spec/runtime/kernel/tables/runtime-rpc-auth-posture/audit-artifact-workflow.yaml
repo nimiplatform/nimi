@@ -33,11 +33,12 @@ methods:
     posture: protected_origin_required
     protected_transport_class: installed_host
     required_origin_role: installed_host_session
-    rationale: artifact id is a selector only; the current installed caller, data.scope.read#runtime.artifacts catalog ceiling and live grant, current inventory/release, and durable account/app/release/session/use audience must all match
+    rationale: artifact id is a selector only; production installed callers require the current catalog/inventory/release/grant chain, while local-development callers require the explicit approved capability fingerprint and live Desktop-supervised technical session; both require an exact durable account/app/trust/session/use audience match
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
       - K-PLOCAL-008
+      - K-PLOCAL-009
       - K-ACCSVC-022
       - K-AGCORE-053
   - method_id: /nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts

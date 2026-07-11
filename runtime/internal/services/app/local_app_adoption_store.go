@@ -69,9 +69,16 @@ type localAppManifestRuntime struct {
 }
 
 type localAppManifestPerms struct {
-	Ref           string `json:"ref" yaml:"ref"`
-	ScopeRef      string `json:"scope_ref" yaml:"scope_ref"`
-	ScopeRefCamel string `json:"scopeRef" yaml:"scopeRef"`
+	Ref                   string                       `json:"ref" yaml:"ref"`
+	ScopeRef              string                       `json:"scope_ref" yaml:"scope_ref"`
+	ScopeRefCamel         string                       `json:"scopeRef" yaml:"scopeRef"`
+	DeclaredNimiAPIScopes []localAppManifestCapability `json:"declared_nimi_api_scopes" yaml:"declared_nimi_api_scopes"`
+}
+
+type localAppManifestCapability struct {
+	Scope     string `json:"scope" yaml:"scope"`
+	Qualifier string `json:"qualifier" yaml:"qualifier"`
+	Purpose   string `json:"purpose" yaml:"purpose"`
 }
 
 type localAppManifestStorage struct {
@@ -327,6 +334,11 @@ func loadLocalAppManifest(rootPath string) (string, string, localAppManifest, er
 	if !info.IsDir() {
 		return "", "", localAppManifest{}, errors.New("local app rootPath must be a directory")
 	}
+	canonicalRoot, err := filepath.EvalSymlinks(absRoot)
+	if err != nil {
+		return "", "", localAppManifest{}, fmt.Errorf("canonicalize local app rootPath: %w", err)
+	}
+	absRoot = filepath.Clean(canonicalRoot)
 	for _, name := range []string{"nimi.app.yaml", "nimi.app.json"} {
 		path := filepath.Join(absRoot, name)
 		raw, err := os.ReadFile(path)

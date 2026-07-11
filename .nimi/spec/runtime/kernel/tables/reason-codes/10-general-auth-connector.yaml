@@ -168,6 +168,42 @@ codes:
     value: 641
     family: PROTECTED_LOCAL
     source_rule: K-APP-026
+  - name: LOCAL_DEVELOPMENT_AUTHORIZATION_REQUIRED
+    value: 642
+    family: LOCAL_DEVELOPMENT
+    source_rule: K-PLOCAL-009
+  - name: LOCAL_DEVELOPMENT_REAPPROVAL_REQUIRED
+    value: 643
+    family: LOCAL_DEVELOPMENT
+    source_rule: K-PLOCAL-009
+  - name: LOCAL_DEVELOPMENT_PROJECT_CHANGED
+    value: 644
+    family: LOCAL_DEVELOPMENT
+    source_rule: K-PLOCAL-009
+  - name: LOCAL_DEVELOPMENT_SUPERVISOR_REQUIRED
+    value: 645
+    family: LOCAL_DEVELOPMENT
+    source_rule: K-PLOCAL-009
+  - name: LOCAL_DEVELOPMENT_SESSION_REVOKED
+    value: 646
+    family: LOCAL_DEVELOPMENT
+    source_rule: K-PLOCAL-009
+  - name: LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED
+    value: 647
+    family: LOCAL_DEVELOPMENT
+    source_rule: K-PLOCAL-009
+  - name: LOCAL_DEVELOPMENT_OPERATION_FORBIDDEN
+    value: 648
+    family: LOCAL_DEVELOPMENT
+    source_rule: K-PLOCAL-009
+  - name: LOCAL_DEVELOPMENT_DEV_SERVER_UNCONTROLLED
+    value: 649
+    family: LOCAL_DEVELOPMENT
+    source_rule: K-PLOCAL-009
+  - name: LOCAL_DEVELOPMENT_APPROVAL_DENIED
+    value: 650
+    family: LOCAL_DEVELOPMENT
+    source_rule: K-PLOCAL-009
   - name: AI_CONNECTOR_NOT_FOUND
     value: 310
     family: CONNECTOR

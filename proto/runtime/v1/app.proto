@@ -707,8 +707,9 @@ message AppOpenProjection {
   ReasonCode reason_code = 7;
   string detail = 8;
   // release_descriptor_ref is Runtime-attested descriptor identity used for
-  // the installed launch. It is empty for local adoption launches, which do
-  // not satisfy P-NAPP-034 installed third-party launch proof.
+  // the installed launch. It is empty for blocked local-adoption projections;
+  // adoption inventory alone cannot satisfy either production installed or
+  // P-NAPP-035 local-development launch authority.
   string release_descriptor_ref = 9;
   string descriptor_class = 10;
   string admission_track = 11;

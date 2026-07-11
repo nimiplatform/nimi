@@ -266,3 +266,48 @@ method_mappings:
     proto_service: RuntimeAppService
     proto_method: BindInstalledLaunchProcess
     mapping_posture: aligned
+  - design_service: RuntimeDevelopmentService
+    design_method: EvaluateLocalDevelopmentProject
+    proto_service: RuntimeDevelopmentService
+    proto_method: EvaluateLocalDevelopmentProject
+    mapping_posture: aligned
+  - design_service: RuntimeDevelopmentService
+    design_method: DecideLocalDevelopmentProject
+    proto_service: RuntimeDevelopmentService
+    proto_method: DecideLocalDevelopmentProject
+    mapping_posture: aligned
+  - design_service: RuntimeDevelopmentService
+    design_method: ListLocalDevelopmentAuthorizations
+    proto_service: RuntimeDevelopmentService
+    proto_method: ListLocalDevelopmentAuthorizations
+    mapping_posture: aligned
+  - design_service: RuntimeDevelopmentService
+    design_method: RevokeLocalDevelopmentAuthorization
+    proto_service: RuntimeDevelopmentService
+    proto_method: RevokeLocalDevelopmentAuthorization
+    mapping_posture: aligned
+  - design_service: RuntimeDevelopmentService
+    design_method: PrepareLocalDevelopmentLaunch
+    proto_service: RuntimeDevelopmentService
+    proto_method: PrepareLocalDevelopmentLaunch
+    mapping_posture: aligned
+  - design_service: RuntimeDevelopmentService
+    design_method: BindLocalDevelopmentHostProcess
+    proto_service: RuntimeDevelopmentService
+    proto_method: BindLocalDevelopmentHostProcess
+    mapping_posture: aligned
+  - design_service: RuntimeDevelopmentService
+    design_method: OpenLocalDevelopmentAppSession
+    proto_service: RuntimeDevelopmentService
+    proto_method: OpenLocalDevelopmentAppSession
+    mapping_posture: aligned
+  - design_service: RuntimeDevelopmentService
+    design_method: GetLocalDevelopmentSessionStatus
+    proto_service: RuntimeDevelopmentService
+    proto_method: GetLocalDevelopmentSessionStatus
+    mapping_posture: aligned
+  - design_service: RuntimeDevelopmentService
+    design_method: EndLocalDevelopmentRun
+    proto_service: RuntimeDevelopmentService
+    proto_method: EndLocalDevelopmentRun
+    mapping_posture: aligned

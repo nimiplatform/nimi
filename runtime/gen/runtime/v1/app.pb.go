@@ -4380,8 +4380,9 @@ type AppOpenProjection struct {
 	ReasonCode ReasonCode `protobuf:"varint,7,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	Detail     string     `protobuf:"bytes,8,opt,name=detail,proto3" json:"detail,omitempty"`
 	// release_descriptor_ref is Runtime-attested descriptor identity used for
-	// the installed launch. It is empty for local adoption launches, which do
-	// not satisfy P-NAPP-034 installed third-party launch proof.
+	// the installed launch. It is empty for blocked local-adoption projections;
+	// adoption inventory alone cannot satisfy either production installed or
+	// P-NAPP-035 local-development launch authority.
 	ReleaseDescriptorRef    string `protobuf:"bytes,9,opt,name=release_descriptor_ref,json=releaseDescriptorRef,proto3" json:"release_descriptor_ref,omitempty"`
 	DescriptorClass         string `protobuf:"bytes,10,opt,name=descriptor_class,json=descriptorClass,proto3" json:"descriptor_class,omitempty"`
 	AdmissionTrack          string `protobuf:"bytes,11,opt,name=admission_track,json=admissionTrack,proto3" json:"admission_track,omitempty"`

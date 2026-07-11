@@ -11,12 +11,41 @@ type InstalledProcessVerifier interface {
 	VerifyInstalledProcess(context.Context, uint32) (ProcessTuple, DesktopProcessLiveness, error)
 }
 
+type LocalDevelopmentProcessPolicy struct {
+	ProjectRoot        string
+	HostExecutablePath string
+}
+
+type LocalDevelopmentProcessVerifier interface {
+	VerifyLocalDevelopmentProcess(context.Context, uint32, LocalDevelopmentProcessPolicy) (ProcessTuple, DesktopProcessLiveness, error)
+}
+
+type localDevelopmentProcessVerifierAdapter struct {
+	verifier LocalDevelopmentProcessVerifier
+	policy   LocalDevelopmentProcessPolicy
+}
+
+func (adapter localDevelopmentProcessVerifierAdapter) VerifyInstalledProcess(ctx context.Context, pid uint32) (ProcessTuple, DesktopProcessLiveness, error) {
+	if adapter.verifier == nil {
+		return ProcessTuple{}, nil, fmt.Errorf("local-development process verifier is required")
+	}
+	return adapter.verifier.VerifyLocalDevelopmentProcess(ctx, pid, adapter.policy)
+}
+
+func BindLocalDevelopmentProcess(registry *InstalledLaunchRegistry, ctx context.Context, launchID Identifier, pid uint32, verifier LocalDevelopmentProcessVerifier, policy LocalDevelopmentProcessPolicy, commit func(ProcessTuple) (time.Time, error), revoke func()) (time.Time, error) {
+	if registry == nil {
+		return time.Time{}, fmt.Errorf("local-development launch registry is required")
+	}
+	return registry.bind(ctx, launchID, pid, localDevelopmentProcessVerifierAdapter{verifier: verifier, policy: policy}, commit, revoke, &policy)
+}
+
 type installedLaunchBinding struct {
-	launchID Identifier
-	process  ProcessTuple
-	liveness DesktopProcessLiveness
-	done     chan struct{}
-	revoke   func()
+	launchID          Identifier
+	process           ProcessTuple
+	liveness          DesktopProcessLiveness
+	done              chan struct{}
+	revoke            func()
+	developmentPolicy *LocalDevelopmentProcessPolicy
 }
 
 type InstalledLaunchRegistry struct {
@@ -36,6 +65,10 @@ func NewInstalledLaunchRegistry(bootEpoch Identifier) (*InstalledLaunchRegistry,
 // Bind verifies the suspended child through an OS-owned process witness before
 // the durable commit callback transitions the launch record to process_bound.
 func (registry *InstalledLaunchRegistry) Bind(ctx context.Context, launchID Identifier, pid uint32, verifier InstalledProcessVerifier, commit func(ProcessTuple) (time.Time, error), revoke func()) (time.Time, error) {
+	return registry.bind(ctx, launchID, pid, verifier, commit, revoke, nil)
+}
+
+func (registry *InstalledLaunchRegistry) bind(ctx context.Context, launchID Identifier, pid uint32, verifier InstalledProcessVerifier, commit func(ProcessTuple) (time.Time, error), revoke func(), developmentPolicy *LocalDevelopmentProcessPolicy) (time.Time, error) {
 	if registry == nil || launchID == (Identifier{}) || pid == 0 || verifier == nil || commit == nil || revoke == nil {
 		return time.Time{}, fmt.Errorf("complete installed process binding authority is required")
 	}
@@ -71,11 +104,34 @@ func (registry *InstalledLaunchRegistry) Bind(ctx context.Context, launchID Iden
 		return time.Time{}, err
 	}
 	binding := &installedLaunchBinding{launchID: launchID, process: process, liveness: liveness, done: make(chan struct{}), revoke: revoke}
+	if developmentPolicy != nil {
+		policy := *developmentPolicy
+		binding.developmentPolicy = &policy
+	}
 	registry.byLaunch[launchID] = binding
 	registry.byPID[pid] = binding
 	accepted = true
 	go registry.watch(binding)
 	return deadline, nil
+}
+
+// BoundProcessPolicy is read only after the native pipe reports its actual
+// client PID. It cannot create or consume a binding; Promote remains the sole
+// atomic transition to a verified host connection.
+func (registry *InstalledLaunchRegistry) BoundProcessPolicy(pid uint32) (ProcessTuple, LocalDevelopmentProcessPolicy, bool, bool) {
+	if registry == nil || pid == 0 {
+		return ProcessTuple{}, LocalDevelopmentProcessPolicy{}, false, false
+	}
+	registry.mu.Lock()
+	defer registry.mu.Unlock()
+	binding := registry.byPID[pid]
+	if binding == nil {
+		return ProcessTuple{}, LocalDevelopmentProcessPolicy{}, false, false
+	}
+	if binding.developmentPolicy == nil {
+		return binding.process, LocalDevelopmentProcessPolicy{}, false, true
+	}
+	return binding.process, *binding.developmentPolicy, true, true
 }
 
 func (registry *InstalledLaunchRegistry) watch(binding *installedLaunchBinding) {

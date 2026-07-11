@@ -28,21 +28,30 @@ type InstalledSessionHandle struct {
 	SessionProof Identifier
 }
 
+// LocalDevelopmentSessionHandle is Runtime-private technical session material
+// for the non-production mutable-project trust class. It is never serialized
+// to Desktop, CLI, terminal, renderer, or app code.
+type LocalDevelopmentSessionHandle struct {
+	SessionID    Identifier
+	SessionProof Identifier
+}
+
 type InstalledLaunchPeerVerifier interface {
 	VerifyInstalledLaunchPeer(context.Context) (VerifiedInstalledLaunchPeer, error)
 }
 
 type InstalledLaunchConnection struct {
-	launchID  Identifier
-	process   ProcessTuple
-	boot      Identifier
-	liveness  DesktopProcessLiveness
-	live      atomic.Bool
-	done      chan struct{}
-	revokeMu  sync.Mutex
-	hooks     []func()
-	sessionMu sync.RWMutex
-	session   *InstalledSessionHandle
+	launchID           Identifier
+	process            ProcessTuple
+	boot               Identifier
+	liveness           DesktopProcessLiveness
+	live               atomic.Bool
+	done               chan struct{}
+	revokeMu           sync.Mutex
+	hooks              []func()
+	sessionMu          sync.RWMutex
+	session            *InstalledSessionHandle
+	developmentSession *LocalDevelopmentSessionHandle
 }
 
 func EstablishInstalledLaunchConnection(ctx context.Context, verifier InstalledLaunchPeerVerifier) (*InstalledLaunchConnection, error) {
@@ -117,8 +126,54 @@ func (connection *InstalledLaunchConnection) BindInstalledSession(handle Install
 	if connection.session != nil {
 		return fmt.Errorf("installed launch connection already has a session")
 	}
+	if connection.developmentSession != nil {
+		return fmt.Errorf("installed launch connection already has a local-development session")
+	}
 	bound := handle
 	connection.session = &bound
+	return nil
+}
+
+func (connection *InstalledLaunchConnection) BindLocalDevelopmentSession(handle LocalDevelopmentSessionHandle) error {
+	if connection == nil || handle.SessionID == (Identifier{}) || handle.SessionProof == (Identifier{}) {
+		return fmt.Errorf("local-development session handle is incomplete")
+	}
+	connection.sessionMu.Lock()
+	defer connection.sessionMu.Unlock()
+	if !connection.live.Load() {
+		return fmt.Errorf("installed launch connection is revoked")
+	}
+	if connection.session != nil || connection.developmentSession != nil {
+		return fmt.Errorf("installed launch connection already has a session")
+	}
+	bound := handle
+	connection.developmentSession = &bound
+	return nil
+}
+
+func (connection *InstalledLaunchConnection) LocalDevelopmentSession() (LocalDevelopmentSessionHandle, bool) {
+	if connection == nil || !connection.live.Load() {
+		return LocalDevelopmentSessionHandle{}, false
+	}
+	connection.sessionMu.RLock()
+	defer connection.sessionMu.RUnlock()
+	if connection.developmentSession == nil || !connection.live.Load() {
+		return LocalDevelopmentSessionHandle{}, false
+	}
+	return *connection.developmentSession, true
+}
+
+func (connection *InstalledLaunchConnection) RotateLocalDevelopmentSession(previous LocalDevelopmentSessionHandle, next LocalDevelopmentSessionHandle) error {
+	if connection == nil || previous.SessionID == (Identifier{}) || previous.SessionProof == (Identifier{}) || next.SessionID == (Identifier{}) || next.SessionProof == (Identifier{}) {
+		return fmt.Errorf("local-development session rotation handles are incomplete")
+	}
+	connection.sessionMu.Lock()
+	defer connection.sessionMu.Unlock()
+	if !connection.live.Load() || connection.session != nil || connection.developmentSession == nil || *connection.developmentSession != previous {
+		return fmt.Errorf("local-development session rotation lost its exact connection binding")
+	}
+	rotated := next
+	connection.developmentSession = &rotated
 	return nil
 }
 
@@ -142,6 +197,7 @@ func (connection *InstalledLaunchConnection) Revoke() {
 	_ = connection.liveness.Close()
 	connection.sessionMu.Lock()
 	connection.session = nil
+	connection.developmentSession = nil
 	connection.sessionMu.Unlock()
 	connection.revokeMu.Lock()
 	hooks := append([]func(){}, connection.hooks...)
