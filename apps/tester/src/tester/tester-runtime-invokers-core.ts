@@ -125,15 +125,6 @@ export type TesterRuntimeInvocationClient = {
     };
     readonly scheduling: NimiRuntimeAISchedulingClient;
     readonly local?: NimiRuntimeLocalModelCenterRpc;
-    readonly artifacts?: {
-      readonly readArtifactBytes: (request: {
-        readonly artifactId: string;
-      }) => Promise<{
-        readonly bytes?: unknown;
-        readonly mimeType?: string;
-        readonly sizeBytes?: string | number;
-      }>;
-    };
   };
 };
 

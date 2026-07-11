@@ -1,5 +1,5 @@
-import type { TesterRuntimeInvocationClient } from './tester-runtime-invokers-core.js';
 import { pickTrace } from './tester-runtime-invokers-core.js';
+import { testerInstalledRuntimeArtifactReader } from '../shell/installed-app-bootstrap.js';
 
 export type RuntimeMediaJobOutput = {
   readonly job?: unknown;
@@ -81,13 +81,10 @@ function artifactIdFrom(record: Record<string, unknown>): string | undefined {
 }
 
 async function readRuntimeArtifactDataUrl(
-  client: TesterRuntimeInvocationClient,
   artifactId: string,
   fallbackMimeType: string,
 ): Promise<{ readonly url?: string; readonly mimeType?: string }> {
-  const reader = client.runtime.artifacts?.readArtifactBytes;
-  if (!reader) return {};
-  const response = await reader({ artifactId });
+  const response = await testerInstalledRuntimeArtifactReader.readArtifactBytes({ artifactId });
   const mimeType = typeof response.mimeType === 'string' && response.mimeType.trim()
     ? response.mimeType
     : fallbackMimeType;
@@ -97,7 +94,7 @@ async function readRuntimeArtifactDataUrl(
   };
 }
 
-export async function summariseArtifact(client: TesterRuntimeInvocationClient, artifact: unknown) {
+export async function summariseArtifact(artifact: unknown) {
   if (!artifact || typeof artifact !== 'object') return undefined;
   const record = artifact as Record<string, unknown>;
   const inline = record.inline as Record<string, unknown> | undefined;
@@ -111,7 +108,7 @@ export async function summariseArtifact(client: TesterRuntimeInvocationClient, a
   const inlineUrl = artifactBytesToDataUrl(record.bytes ?? inline?.bytes, mimeType ?? '');
   const readBack = hostedUrl || inlineUrl || !artifactId
     ? {}
-    : await readRuntimeArtifactDataUrl(client, artifactId, mimeType ?? '');
+    : await readRuntimeArtifactDataUrl(artifactId, mimeType ?? '');
   const url = hostedUrl
     || inlineUrl
     || readBack.url

@@ -15,6 +15,7 @@ import {
 import { TESTER_APP_ID, runtimeJobIdentity } from './tester-runtime-invokers-media-runtime.js';
 import { capabilityUnavailable, type TesterUnavailable, type TesterUnavailableReason } from './tester-unavailable.js';
 import { hydrateTesterAIConfigFromStandardShell } from './tester-ai-config-store.js';
+import { testerInstalledRuntimeArtifactReader } from '../shell/installed-app-bootstrap.js';
 
 type RuntimeRequestDiagnostics = NonNullable<TesterUnavailable['runtimeRequest']>;
 
@@ -30,7 +31,7 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
     const result = await runRuntimeImageGenerate({
       runtime: {
         ai: client.runtime.ai,
-        artifacts: imageArtifactReadClient(client),
+        artifacts: testerInstalledRuntimeArtifactReader,
         scheduling: client.runtime.scheduling,
         local: client.runtime.local,
       },
@@ -65,30 +66,6 @@ export async function invokeImageGenerate(client: TesterRuntimeInvocationClient,
   } catch (error) {
     return unavailableFromError('image.generate', error);
   }
-}
-
-function imageArtifactReadClient(client: TesterRuntimeInvocationClient) {
-  if (!client.runtime.artifacts) return undefined;
-  return {
-    readArtifactBytes: async (request: { readonly artifactId: string }, _options?: unknown) => {
-      const response = await client.runtime.artifacts?.readArtifactBytes(request);
-      return {
-        bytes: bytesFromArtifactResponse(response?.bytes),
-        mimeType: response?.mimeType ?? '',
-        sizeBytes: String(response?.sizeBytes ?? '0'),
-        mimeInferred: false,
-      };
-    },
-  };
-}
-
-function bytesFromArtifactResponse(value: unknown): Uint8Array {
-  if (value instanceof Uint8Array) return value;
-  if (value instanceof ArrayBuffer) return new Uint8Array(value);
-  if (Array.isArray(value)) {
-    return new Uint8Array(value.filter((item) => Number.isInteger(item) && item >= 0 && item <= 255));
-  }
-  return new Uint8Array();
 }
 
 function unavailableFromKitImage(

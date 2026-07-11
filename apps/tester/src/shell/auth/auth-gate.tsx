@@ -4,27 +4,16 @@ import { StatusBadge } from '@nimiplatform/kit/ui';
 import {
   clearRuntimePlatformProjection,
   getRuntimePlatformProjection,
-  runtimeAccountLoginEnabled,
-  type RuntimePlatformLoginRequiredProjection,
   type RuntimePlatformReadyProjection,
   type RuntimePlatformUnavailableProjection,
 } from './runtime-platform.js';
-import { loadRuntimeAccountUser } from './runtime-account-auth.js';
-import { RuntimeLoginPage } from './runtime-login-page.js';
 import { RuntimeUnavailablePage } from './runtime-unavailable-page.js';
 
 const runtimeGateOfflineCoordinator = new OfflineCoordinator();
 
-type RuntimePlatformLoginProjection = RuntimePlatformLoginRequiredProjection | RuntimePlatformReadyProjection;
-
 type GateState =
   | { kind: 'checking' }
   | { kind: 'ready'; projection: RuntimePlatformReadyProjection }
-  | {
-      kind: 'login-required';
-      projection: RuntimePlatformLoginProjection;
-      message?: string;
-    }
   | {
       kind: 'blocked';
       projection?: RuntimePlatformUnavailableProjection;
@@ -38,29 +27,12 @@ function toMessage(error: unknown): string {
 
 async function resolveGateState(): Promise<GateState> {
   const projection = await getRuntimePlatformProjection();
-  if (projection.status === 'login-required') {
-    runtimeGateOfflineCoordinator.markRuntimeReachable(true);
-    return { kind: 'login-required', projection, message: projection.message };
-  }
   if (projection.status !== 'ready') {
     runtimeGateOfflineCoordinator.markRuntimeReachable(false);
     return { kind: 'blocked', projection, offlineTier: runtimeGateOfflineCoordinator.getTier() };
   }
   runtimeGateOfflineCoordinator.markRuntimeReachable(true);
-
-  if (!runtimeAccountLoginEnabled) {
-    return { kind: 'ready', projection };
-  }
-
-  try {
-    const user = await loadRuntimeAccountUser(projection.client);
-    if (user) {
-      return { kind: 'ready', projection };
-    }
-    return { kind: 'login-required', projection };
-  } catch (error) {
-    return { kind: 'login-required', projection, message: toMessage(error) };
-  }
+  return { kind: 'ready', projection };
 }
 
 export function AuthGate({ children }: { children: ReactNode }) {
@@ -98,10 +70,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <StatusBadge tone="neutral" shape="dot">Runtime check</StatusBadge>
       </main>
     );
-  }
-
-  if (state.kind === 'login-required') {
-    return <RuntimeLoginPage errorMessage={state.message} onRetry={retry} />;
   }
 
   if (state.kind === 'blocked') {

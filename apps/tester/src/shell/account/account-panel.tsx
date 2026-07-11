@@ -4,8 +4,10 @@ import {
   Settings,
 } from 'lucide-react';
 import { AccountPanel, IconButton, Tooltip } from '@nimiplatform/kit/ui';
-import { getRuntimePlatformProjection } from '../auth/runtime-platform.js';
-import { loadRuntimeAccountUser } from '../auth/runtime-account-auth.js';
+import {
+  getRuntimePlatformProjection,
+  type RuntimePlatformReadyProjection,
+} from '../auth/runtime-platform.js';
 
 type RuntimeAccountUser = {
   readonly displayName: string;
@@ -16,17 +18,16 @@ type NimiLabAccountMenuProps = {
   onOpenSettings: () => void;
 };
 
-function toAccountUser(user: Awaited<ReturnType<typeof loadRuntimeAccountUser>>): RuntimeAccountUser | null {
-  if (!user) return null;
+function toAccountUser(projection: RuntimePlatformReadyProjection): RuntimeAccountUser {
   return {
-    displayName: user.displayName || user.id,
+    displayName: projection.auth.subjectUserId,
   };
 }
 
 function toAccountStatusMessage(error: unknown, fallback: string): string {
   const message = error instanceof Error ? error.message : String(error || '');
-  if (message.includes('tauri-ipc Runtime transport requires')) {
-    return 'Runtime account login requires the Nimi Lab desktop shell. Browser preview cannot open the Runtime account broker.';
+  if (message.includes('protected app session')) {
+    return 'Nimi Lab account projection requires a verified Desktop-installed session.';
   }
   return message || fallback;
 }
@@ -40,10 +41,10 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
 
   const refreshAccountUser = useCallback(async () => {
     const projection = await getRuntimePlatformProjection();
-    if (projection.status !== 'ready' && projection.status !== 'login-required') {
+    if (projection.status !== 'ready') {
       throw new Error(projection.message || 'Runtime account projection unavailable.');
     }
-    const nextUser = toAccountUser(await loadRuntimeAccountUser(projection.client));
+    const nextUser = toAccountUser(projection);
     setUser(nextUser);
     return nextUser;
   }, []);

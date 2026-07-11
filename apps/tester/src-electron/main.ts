@@ -15,7 +15,6 @@ import {
 } from '@nimiplatform/kit/shell/electron/main';
 import { NIMI_INSTALLED_NIMI_APP_STANDARD_SHELL_CAPABILITY_SET_ID } from '@nimiplatform/kit/shell/capabilities';
 import { createTesterElectronCommandHandlers } from './commands/tester-commands.js';
-import { createTesterElectronTrustedRuntimeMetadataProvider } from './runtime-auth.js';
 
 const APP_ID = 'nimi.tester';
 
@@ -62,10 +61,6 @@ void app.whenReady().then(async () => {
     allowedOrigins: allowedRendererOrigins(),
     allowedRendererUrls: allowedRendererUrls(),
     ipcMain,
-    trustedRuntimeMetadataProvider: createTesterElectronTrustedRuntimeMetadataProvider({
-      appId: APP_ID,
-      runtimeEndpoint,
-    }),
     commandHandlers: createTesterElectronCommandHandlers({
       registerReadableFile: (filePath) => fileProtocolHost.registerReadableFile(filePath).then(() => undefined),
       resolveWorldTourStorageRoots: () => resolveWorldTourStorageRoots(standardShellHost),

@@ -8,8 +8,6 @@ use nimi_shell_tauri::capabilities::data::{
 };
 
 const TESTER_APP_ID: &str = "nimi.tester";
-const TESTER_RUNTIME_ACCOUNT_APP_INSTANCE_ID: &str = "nimi.tester.local-developer";
-const TESTER_RUNTIME_ACCOUNT_DEVICE_ID: &str = "nimi-tester-local-developer-device";
 const ACCEPTANCE_PROBE_PATH_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_PROBE_PATH";
 const ACCEPTANCE_SCENARIO_ID_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_SCENARIO_ID";
 const ACCEPTANCE_STORAGE_ROOT_ENV: &str = "NIMI_TESTER_TAURI_ACCEPTANCE_STORAGE_ROOT";
@@ -143,79 +141,7 @@ fn acceptance_storage_root_override() -> Option<String> {
         .filter(|value| !value.is_empty())
 }
 
-fn tester_runtime_account_host_session_config(
-) -> Result<nimi_shell_tauri::capabilities::runtime::RuntimeBridgeHostAppSessionConfig, String> {
-    nimi_shell_tauri::capabilities::runtime::RuntimeBridgeHostAppSessionConfig::local_developer_app(
-        TESTER_APP_ID,
-        TESTER_RUNTIME_ACCOUNT_APP_INSTANCE_ID,
-        TESTER_RUNTIME_ACCOUNT_DEVICE_ID,
-        vec![
-            "account.session.read".to_string(),
-            "data.scope.read#realm.worlds.read-probe".to_string(),
-        ],
-    )
-}
-
-fn install_shared_runtime_account_bridge_hooks() {
-    use nimi_shell_tauri::capabilities::runtime::{
-        RuntimeBridgeHostAppSessionProvider, RuntimeBridgeHostHooks, RuntimeBridgeMetadata,
-        RuntimeBridgeTrustedMetadata, RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST,
-    };
-    use std::{collections::HashMap, sync::Arc};
-
-    let account_session = RuntimeBridgeHostAppSessionProvider::new(
-        tester_runtime_account_host_session_config()
-            .expect("Tester Runtime account host-session constants must be valid"),
-    )
-    .expect("Tester Runtime account host-session provider must initialize");
-    let hooks = RuntimeBridgeHostHooks {
-        trusted_metadata: Some(Arc::new(move |request| {
-            let account_session = account_session.clone();
-            Box::pin(async move {
-                let extra = HashMap::from([
-                    (
-                        "x-nimi-source-host".to_string(),
-                        RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST.to_string(),
-                    ),
-                    (
-                        "x-nimi-app-instance-id".to_string(),
-                        TESTER_RUNTIME_ACCOUNT_APP_INSTANCE_ID.to_string(),
-                    ),
-                    (
-                        "x-nimi-device-id".to_string(),
-                        TESTER_RUNTIME_ACCOUNT_DEVICE_ID.to_string(),
-                    ),
-                ]);
-                let app_session = if request
-                    .method_id
-                    .starts_with("/nimi.runtime.v1.RuntimeAccountService/")
-                {
-                    Some(account_session.resolve().await?)
-                } else {
-                    None
-                };
-                Ok(Some(RuntimeBridgeTrustedMetadata {
-                    metadata: Some(RuntimeBridgeMetadata {
-                        app_id: Some(TESTER_APP_ID.to_string()),
-                        participant_id: Some(TESTER_APP_ID.to_string()),
-                        caller_kind: Some("local-developer-app".to_string()),
-                        caller_id: Some(TESTER_RUNTIME_ACCOUNT_APP_INSTANCE_ID.to_string()),
-                        extra: Some(extra),
-                        ..RuntimeBridgeMetadata::default()
-                    }),
-                    app_session,
-                    ..RuntimeBridgeTrustedMetadata::default()
-                }))
-            })
-        })),
-        ..RuntimeBridgeHostHooks::default()
-    };
-    nimi_shell_tauri::capabilities::runtime::set_runtime_bridge_host_hooks(hooks)
-        .expect("Tester Runtime bridge host hooks must install once");
-}
-
 fn main() {
-    install_shared_runtime_account_bridge_hooks();
     tauri::Builder::default()
         .setup(|app| {
             install_standard_app_storage_slot(app);
@@ -615,45 +541,6 @@ mod tests {
             }
             other => panic!("expected shared governed-config repair state, got {other:?}"),
         }
-    }
-
-    #[test]
-    fn tester_consumes_shared_runtime_account_caller_projection() {
-        let caller =
-            nimi_shell_tauri::capabilities::local_agent::local_developer_runtime_account_caller(
-                "nimi.tester",
-            )
-            .expect("caller");
-
-        assert_eq!(caller.app_id, "nimi.tester");
-        assert_eq!(caller.app_instance_id, "nimi.tester.local-developer");
-        assert_eq!(caller.device_id, "local-developer-device");
-        assert_eq!(
-            caller.mode,
-            nimi_shell_tauri::capabilities::runtime::generated::AccountCallerMode::LocalDeveloperApp
-                as i32
-        );
-        assert!(caller.scopes.is_empty());
-    }
-
-    #[test]
-    fn tester_tauri_host_session_matches_renderer_account_caller_and_broker_capabilities() {
-        let config =
-            super::tester_runtime_account_host_session_config().expect("host session config");
-        assert_eq!(config.app_id, super::TESTER_APP_ID);
-        assert_eq!(
-            config.app_instance_id,
-            super::TESTER_RUNTIME_ACCOUNT_APP_INSTANCE_ID
-        );
-        assert_eq!(config.device_id, super::TESTER_RUNTIME_ACCOUNT_DEVICE_ID);
-        assert!(config.developer_registration);
-        assert_eq!(
-            config.capabilities,
-            vec![
-                "account.session.read",
-                "data.scope.read#realm.worlds.read-probe"
-            ]
-        );
     }
 
     #[test]

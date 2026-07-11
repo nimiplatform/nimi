@@ -56,8 +56,8 @@
     if (typeof invoke !== 'function') throw new Error('Tauri invoke bridge unavailable');
     const hook = await waitFor(() => window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__, 'SDK acceptance hook');
     const runtimeReady = await hook.runtimeReady();
-    const accountProjection = await hook.accountProjection();
-    const sharedAuthBroker = await hook.sharedAuthBroker();
+    const installedProjection = await hook.installedProjection();
+    const installedArtifactRead = await hook.installedArtifactRead();
     try {
       await waitFor(
         () => document.querySelector('[data-testid="nimi-tester-workbench"]'),
@@ -65,7 +65,7 @@
         15000,
       );
     } catch (error) {
-      throw new Error(`${error.message}; runtimeReady=${JSON.stringify(runtimeReady)} accountProjection=${JSON.stringify(accountProjection)} sharedAuthBroker=${JSON.stringify(sharedAuthBroker)} body=${String(document.body?.innerText || '').slice(0, 3000)}`);
+      throw new Error(`${error.message}; runtimeReady=${JSON.stringify(runtimeReady)} installedProjection=${JSON.stringify(installedProjection)} installedArtifactRead=${JSON.stringify(installedArtifactRead)} body=${String(document.body?.innerText || '').slice(0, 3000)}`);
     }
     const sessionCommands = await Promise.all(['auth_session_load', 'auth_session_save', 'auth_session_clear'].map(async (command) => {
       try {
@@ -100,8 +100,8 @@
     const narrow = inspect();
     await write('tester_renderer_probe_ping', { stage: 'shared-auth-narrow-ready' });
     await sleep(5000);
-    const loginRequiredProjection = await hook.accountProjection();
-    const brokerAfterLogout = await hook.sharedAuthBroker();
+    const projectionAfterInteraction = await hook.installedProjection();
+    const artifactAfterInteraction = await hook.installedArtifactRead();
     const browserProjection = {
       localStorage: { ...localStorage },
       sessionStorage: { ...sessionStorage },
@@ -114,7 +114,7 @@
         } catch { return []; }
       })),
     };
-    const raw = JSON.stringify({ browserProjection, runtimeReady, accountProjection, sharedAuthBroker });
+    const raw = JSON.stringify({ browserProjection, runtimeReady, installedProjection, installedArtifactRead });
     const tokenLeakFindings = [];
     if (/Bearer\s+[A-Za-z0-9._~-]{12,}/u.test(raw)) tokenLeakFindings.push('Bearer-shaped credential in renderer projection');
     if (/refresh[_-]?token["'=:\s]+[A-Za-z0-9._~-]{8,}/iu.test(raw)) tokenLeakFindings.push('refresh-token-shaped credential in renderer projection');
@@ -123,13 +123,13 @@
       stage: 'shared-auth-complete',
       ok: true,
       runtimeReady,
-      accountProjection,
-      sharedAuthBroker,
+      installedProjection,
+      installedArtifactRead,
       sessionCommands,
       desktopOwnedAccountControlDisabled,
       interaction: { kind: 'workbench-input-and-account-owner', value: input.value, usable: !input.disabled },
       accessibility: { desktop, narrow },
-      failure: { observed: true, accountProjection: loginRequiredProjection, sharedAuthBroker: brokerAfterLogout },
+      failure: { observed: true, installedProjection: projectionAfterInteraction, installedArtifactRead: artifactAfterInteraction },
       tokenLeak: { passed: tokenLeakFindings.length === 0, findings: tokenLeakFindings, inspected: ['DOM', 'localStorage', 'sessionStorage', 'window string globals', 'acceptance hook results'] },
       consoleErrors: problems.filter((item) => item.kind === 'console.error'),
       pageErrors: problems.filter((item) => item.kind !== 'console.error'),

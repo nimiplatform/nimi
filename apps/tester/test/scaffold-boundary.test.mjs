@@ -5,32 +5,23 @@ import test from 'node:test';
 
 const authSource = readFileSync(new URL('../src/shell/auth/runtime-platform.ts', import.meta.url), 'utf8');
 const authGateSource = readFileSync(new URL('../src/shell/auth/auth-gate.tsx', import.meta.url), 'utf8');
-const runtimeAccountAuthSource = readFileSync(new URL('../src/shell/auth/runtime-account-auth.ts', import.meta.url), 'utf8');
 const runtimeTransportSource = readFileSync(new URL('../src/shell/auth/runtime-transport.ts', import.meta.url), 'utf8');
-const runtimeLoginSource = readFileSync(new URL('../src/shell/auth/runtime-login-page.tsx', import.meta.url), 'utf8');
 const productSource = readFileSync(new URL('../src/shell/routes/product-area.tsx', import.meta.url), 'utf8');
 const mainSource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const tauriMainSource = readFileSync(new URL('../src-tauri/src/main.rs', import.meta.url), 'utf8');
 const tauriAcceptanceSource = readFileSync(new URL('../src-tauri/src/acceptance.rs', import.meta.url), 'utf8');
-const appSource = [authSource, runtimeLoginSource, productSource].join('\n');
+const appSource = [authSource, productSource].join('\n');
 const manifest = readFileSync(new URL('../nimi.app.yaml', import.meta.url), 'utf8');
 const admission = readFileSync(new URL('../ADMISSION.md', import.meta.url), 'utf8');
 
-test('auth glue uses app-scoped SDK Runtime developer projections', () => {
-  assert.match(authSource, /createNimiClient/);
-  assert.match(authSource, /createNimiDeveloperRegisteredRuntimeAccountCaller/);
-  assert.match(authSource, /createNimiRuntimeFullAppRegistration/);
-  assert.match(authSource, /createNimiRuntimeAppSessionMetadataProvider/);
-  assert.doesNotMatch(authSource, /createRealmFetchTransport|getRuntimeDefaults|getAccessToken/);
-  assert.match(authSource, /'developer-registered-local-app'/);
+test('auth glue exposes only the installed app projection', () => {
   assert.match(authSource, /'third-party-nimi-app'/);
-  assert.match(authSource, /getRuntimeNimiClient/);
-  assert.match(authSource, /getRuntimeSubjectUserId/);
-  assert.match(authSource, /createTesterRuntimeTransportConfig/);
-  assert.doesNotMatch(authSource, /type:\s*'tauri-ipc'/);
-  assert.doesNotMatch(authSource, /createNimiAppRuntimePlatformClient/);
-  assert.doesNotMatch(authSource, /createPlatformClient\s*\(/);
-  assert.doesNotMatch(authSource, /getPlatformClient\(/);
+  assert.match(authSource, /runtimeAccountLoginEnabled = false/);
+  assert.match(authSource, /use_admitted_protected_runtime_carrier/);
+  assert.doesNotMatch(authSource, /createNimiClient|new Runtime|new Realm/);
+  assert.doesNotMatch(authSource, /DeveloperRegistered|FullAppRegistration|AppSessionMetadataProvider/);
+  assert.doesNotMatch(authSource, /getRuntimeAccountCaller|getRuntimeNimiClient|getRuntimeSubjectUserId/);
+  assert.doesNotMatch(authSource, /developer-registration|local-developer|developer-registered-local-app/i);
 });
 
 test('Runtime transport selector supports Electron without spoofing Tauri', () => {
@@ -48,33 +39,14 @@ test('Runtime transport selector supports Electron without spoofing Tauri', () =
   assert.doesNotMatch(runtimeTransportSource, /__TAURI__\?\.core\?\.invoke/);
 });
 
-test('single login model consumes Desktop-owned Runtime account state without app account control', () => {
-  assert.doesNotMatch(authSource, /VITE_NIMI_RUNTIME_DEVELOPER_SESSION/);
-  assert.doesNotMatch(authGateSource, /dev-standalone/);
-  assert.doesNotMatch(authGateSource, /runtime-developer-session/);
-  assert.match(authSource, /const runtimeDeveloperRegistrationRequested = true/);
-  assert.match(authSource, /developerRegistration:\s*runtimeDeveloperRegistrationRequested/);
-  assert.match(authSource, /registerDeveloperRegisteredRuntimeAccountCaller/);
-  assert.match(authSource, /runtimeAccountBrokerCapabilities = \[\s*'account\.session\.read',\s*'data\.scope\.read#realm\.worlds\.read-probe',\s*\]/s);
-  assert.match(authSource, /runtimeRegistrationCapabilities = \[\s*\.\.\.runtimeAccountBrokerCapabilities,\s*\]/s);
-  assert.match(authSource, /return requiredRuntimeSessionMetadata;/);
-  assert.doesNotMatch(authSource, /runtimeProtectedScopes|accountRuntime\.grants\.authorizeExternalPrincipal/);
-  assert.doesNotMatch(authSource, /x-nimi-access-token-(?:id|secret)|protectedAccessMetadata/);
-  assert.match(authGateSource, /loadRuntimeAccountUser/);
+test('installed auth gate keeps account control and embedded login out of the app', () => {
+  assert.equal(existsSync(new URL('../src/shell/auth/runtime-account-auth.ts', import.meta.url)), false);
+  assert.equal(existsSync(new URL('../src/shell/auth/runtime-login-page.tsx', import.meta.url)), false);
   assert.match(authGateSource, /clearRuntimePlatformProjection/);
   assert.match(authGateSource, /clearRuntimePlatformProjection\(\);\s*setReloadKey/s);
-  assert.match(authSource, /status: 'login-required'/);
-  assert.match(authSource, /ACCOUNT_SESSION_NOT_AUTHENTICATED/);
-  assert.match(authGateSource, /projection\.status === 'login-required'/);
-  assert.match(authGateSource, /<RuntimeLoginPage[^>]*onRetry=\{retry\}/);
-  assert.doesNotMatch(runtimeAccountAuthSource, /createRuntimeAccountBrowserBroker|DesktopShellAuthPage/);
-  assert.doesNotMatch(runtimeAccountAuthSource, /beginLogin|completeLogin|logout|switchAccount|refreshAccountSession|getAccessToken/);
-  assert.doesNotMatch(runtimeAccountAuthSource, /desktop-runtime-oauth-url|#\/login|desktop_callback/);
-  assert.doesNotMatch(runtimeLoginSource, /DesktopShellAuthPage|runtimeAccountBroker|oauth/);
-  assert.match(runtimeLoginSource, /Open Nimi Desktop to sign in, sign out, or switch accounts/);
-  assert.match(runtimeLoginSource, /onRetry/);
-  assert.match(authSource, /createRuntimeAccountMediatedRealmTransport/);
-  assert.match(authSource, /new Realm\(\{[\s\S]*createRuntimeAccountMediatedRealmTransport/);
+  assert.match(authGateSource, /<RuntimeUnavailablePage/);
+  assert.doesNotMatch(authGateSource, /RuntimeLoginPage|loadRuntimeAccountUser|login-required/);
+  assert.doesNotMatch(appSource, /beginLogin|completeLogin|logout|switchAccount|refreshAccountSession|getAccessToken/);
 });
 
 test('renderer bootstrap installs Kit runtime bridge before render', () => {
@@ -102,6 +74,8 @@ test('Tauri scaffold consumes Kit shared command registration and renderer probe
   assert.doesNotMatch(tauriMainSource, /tauri::generate_handler!\[/);
   assert.doesNotMatch(tauriMainSource, /desktop_macos_smoke_ping/);
   assert.doesNotMatch(tauriMainSource, /globalRecord\.__TAURI__\?\.core\?\.invoke/);
+  assert.doesNotMatch(tauriMainSource, /local_developer_app|local-developer-app|developer_registration/);
+  assert.doesNotMatch(tauriMainSource, /RuntimeBridgeHostAppSessionProvider|set_runtime_bridge_host_hooks/);
 });
 
 test('generated shell rejects placeholder and private Desktop imports', () => {

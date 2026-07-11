@@ -108,10 +108,9 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
       Object.keys(globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__).sort(),
     );
     assert.deepEqual(sdkAcceptanceKeys, [
-      'accountProjection',
       'installedArtifactRead',
+      'installedProjection',
       'runtimeReady',
-      'sharedAuthBroker',
     ]);
     const sdkRuntimeReady = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.runtimeReady(),
@@ -121,6 +120,17 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     assert.equal(sdkRuntimeReady.code, 'capability-unavailable');
     assert.equal(sdkRuntimeReady.reasonCode, 'electron-standard-capability-not-in-host-set');
     assert.equal(sdkRuntimeReady.actionHint, 'use_command_admitted_by_electron_standard_shell_capability_set');
+    const installedProjection = await page.evaluate(() =>
+      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.installedProjection(),
+    );
+    assert.equal(installedProjection.transport, 'electron-ipc');
+    assert.equal(installedProjection.ok, true);
+    assert.equal(installedProjection.status, 'action-required');
+    assert.deepEqual(installedProjection.reason, {
+      mode: 'third-party-nimi-app',
+      reasonCode: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
+      actionHint: 'use_admitted_protected_runtime_carrier',
+    });
     const sdkInstalledArtifact = await page.evaluate(() =>
       globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.installedArtifactRead(),
     );
@@ -129,15 +139,6 @@ test('Electron acceptance host boots the tester renderer with the narrowed prelo
     assert.equal(sdkInstalledArtifact.code, 'protected-carrier-required');
     assert.equal(sdkInstalledArtifact.reasonCode, 'protected-carrier-required');
     assert.equal(sdkInstalledArtifact.source, 'electron');
-    const sharedAuthBroker = await page.evaluate(() =>
-      globalThis.window.__NIMI_TESTER_ELECTRON_SDK_ACCEPTANCE__.sharedAuthBroker(),
-    );
-    assert.equal(sharedAuthBroker.transport, 'electron-ipc');
-    assert.equal(sharedAuthBroker.ok, false);
-    assert.equal(sharedAuthBroker.code, 'SDK_RUNTIME_METHOD_UNAVAILABLE');
-    assert.equal(sharedAuthBroker.reasonCode, 'SDK_RUNTIME_METHOD_UNAVAILABLE');
-    assert.equal(sharedAuthBroker.actionHint, 'use_admitted_protected_runtime_carrier');
-    assert.equal(sharedAuthBroker.source, 'sdk');
 
     for (const commandKey of [
       'runtime-lifecycle.status',

@@ -100,26 +100,18 @@ test('Electron host uses canonical tester app identity for Runtime calls', () =>
   assert.doesNotMatch(acceptanceSource, /com\.nimiplatform\.tester/);
 });
 
-test('Electron host owns sensitive Runtime auth metadata', () => {
-  assert.equal(existsSync(path.join(root, 'src-electron/runtime-auth.ts')), true);
+test('Electron installed host does not synthesize Runtime account authority', () => {
+  assert.equal(existsSync(path.join(root, 'src-electron/runtime-auth.ts')), false);
   const mainSource = read('src-electron/main.ts');
-  const hostAuthSource = read('src-electron/runtime-auth.ts');
   const kitHostAuthSource = readRepo('kit/shell/electron/src/main/runtime-account-auth.ts');
   const rendererAuthSource = read('src/shell/auth/runtime-platform.ts');
 
-  assert.match(mainSource, /trustedRuntimeMetadataProvider:\s*createTesterElectronTrustedRuntimeMetadataProvider/);
-  assert.match(hostAuthSource, /createNimiElectronRuntimeAccountTrustedMetadataProvider/);
-  assert.match(hostAuthSource, /appSession:\s*\{/);
-  assert.match(hostAuthSource, /runtimeAccountBrokerCapabilities = \[\s*'account\.session\.read',\s*'data\.scope\.read#realm\.worlds\.read-probe',\s*\]/s);
-  assert.match(hostAuthSource, /capabilities:\s*\[\.\.\.runtimeRegistrationCapabilities\]/);
-  assert.match(hostAuthSource, /appSession:\s*\{[\s\S]*appInstanceId:\s*`\$\{appId\}\.local-developer`[\s\S]*deviceId:\s*`\$\{clientIdPrefix\}-local-developer-device`/);
-  assert.doesNotMatch(hostAuthSource, /platform-runtime-session/);
-  assert.doesNotMatch(hostAuthSource, /protectedAccess:\s*\{/);
+  assert.doesNotMatch(mainSource, /trustedRuntimeMetadataProvider|createTesterElectronTrustedRuntimeMetadataProvider/);
   assert.match(kitHostAuthSource, /return protectedCarrierRequiredProvider\(\);/);
   assert.doesNotMatch(kitHostAuthSource, /protectedAccessToken|protectedAccessInflightKey|x-nimi-access-token/);
-  assert.doesNotMatch(hostAuthSource, /\bwindow\b|\bdocument\b/);
-  assert.match(rendererAuthSource, /resolveTesterRuntimeHostKind\(\) !== 'node'/);
-  assert.match(rendererAuthSource, /authMetadata:\s*createRuntimeAppSessionMetadataProvider/);
+  assert.doesNotMatch(rendererAuthSource, /DeveloperRegistered|FullAppRegistration|AppSessionMetadataProvider/);
+  assert.doesNotMatch(rendererAuthSource, /local-developer|developerRegistration|getRuntimeAccountCaller/);
+  assert.match(rendererAuthSource, /use_admitted_protected_runtime_carrier/);
 });
 
 test('Tester and Kit Electron carriers retain no portable protected-access cache', () => {

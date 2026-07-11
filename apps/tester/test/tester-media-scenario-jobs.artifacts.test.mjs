@@ -378,22 +378,26 @@ test('tester reads compact runtime artifact bytes by id for image preview', asyn
   });
   const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x11, 0x22, 0x33, 0x44]);
   const artifactReads = [];
+  const standardShellInvoke = globalThis.__NIMI_ELECTRON_TEST__.invoke;
+  globalThis.__NIMI_ELECTRON_TEST__.invoke = async (command, payload = {}) => {
+    if (command === 'nimi.shell.artifacts.readRuntimeBytes') {
+      const body = payload?.payload ?? payload;
+      artifactReads.push(body);
+      return {
+        dataBase64: Buffer.from(pngBytes).toString('base64'),
+        mimeType: 'image/png',
+        sizeBytes: pngBytes.byteLength,
+        mimeInferred: false,
+      };
+    }
+    return standardShellInvoke(command, payload);
+  };
   const jobs = new Map();
   const client = {
     runtime: {
       scheduling: {
         async peekScheduling() {
           return runnableSchedulingResponse();
-        },
-      },
-      artifacts: {
-        async readArtifactBytes(request) {
-          artifactReads.push(request);
-          return {
-            bytes: pngBytes,
-            mimeType: 'image/png',
-            sizeBytes: String(pngBytes.byteLength),
-          };
         },
       },
       ai: {

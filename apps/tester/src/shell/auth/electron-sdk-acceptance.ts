@@ -1,8 +1,6 @@
 import { hasElectronRuntime, hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
-import { createRuntimeAccountMediatedRealmTransport } from '@nimiplatform/sdk/app';
-import { Realm } from '@nimiplatform/sdk/realm';
 import { Runtime } from '@nimiplatform/sdk/runtime';
-import { getRuntimeAccountCaller } from './runtime-platform.js';
+import { getRuntimePlatformProjection } from './runtime-platform.js';
 import { createTesterRuntimeTransportConfig } from './runtime-transport.js';
 import { testerInstalledAppBootstrap } from '../installed-app-bootstrap.js';
 
@@ -27,9 +25,8 @@ type TesterElectronSdkAcceptanceProbeResult =
 
 type TesterElectronSdkAcceptanceProbe = {
   runtimeReady(): Promise<TesterElectronSdkAcceptanceProbeResult>;
-  accountProjection(): Promise<TesterElectronSdkAcceptanceProbeResult>;
+  installedProjection(): Promise<TesterElectronSdkAcceptanceProbeResult>;
   installedArtifactRead(): Promise<TesterElectronSdkAcceptanceProbeResult>;
-  sharedAuthBroker(): Promise<TesterElectronSdkAcceptanceProbeResult>;
 };
 
 const ELECTRON_SDK_ACCEPTANCE_QUERY = 'nimiElectronSdkAcceptance';
@@ -86,24 +83,18 @@ export function installTesterElectronSdkAcceptanceProbe(): void {
         return serializeSdkAcceptanceError(error, transport);
       }
     },
-    async accountProjection() {
+    async installedProjection() {
       const transport = acceptanceTransport();
-      const runtime = new Runtime({
-        appId: 'nimi.tester',
-        transport: createTesterRuntimeTransportConfig(),
-      });
       try {
-        const response = await runtime.account.getAccountSessionStatus({
-          caller: getRuntimeAccountCaller(),
-        });
+        const projection = await getRuntimePlatformProjection();
         return {
           ok: true,
           transport,
-          status: response.state,
+          status: projection.status,
           reason: {
-            reasonCode: response.reasonCode,
-            accountReasonCode: response.accountReasonCode,
-            accountProjection: response.accountProjection,
+            mode: projection.mode,
+            reasonCode: projection.status === 'ready' ? undefined : projection.reasonCode,
+            actionHint: projection.status === 'ready' ? undefined : projection.actionHint,
           },
         };
       } catch (error) {
@@ -125,30 +116,6 @@ export function installTesterElectronSdkAcceptanceProbe(): void {
             sizeBytes: artifact.sizeBytes,
             mimeInferred: artifact.mimeInferred,
           },
-        };
-      } catch (error) {
-        return serializeSdkAcceptanceError(error, transport);
-      }
-    },
-    async sharedAuthBroker() {
-      const transport = acceptanceTransport();
-      const runtime = new Runtime({
-        appId: 'nimi.tester',
-        transport: createTesterRuntimeTransportConfig(),
-      });
-      const realm = new Realm({
-        transport: createRuntimeAccountMediatedRealmTransport({
-          runtime,
-          accountCaller: getRuntimeAccountCaller(),
-        }),
-      });
-      try {
-        const response = await realm.worldPublic.worldPublicControllerListWorlds({ path: {} });
-        return {
-          ok: true,
-          transport,
-          status: 'runtime-mediated-realm-ready',
-          reason: response.length,
         };
       } catch (error) {
         return serializeSdkAcceptanceError(error, transport);

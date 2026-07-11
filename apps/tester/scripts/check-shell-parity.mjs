@@ -158,7 +158,7 @@ function validateShellParity() {
   assertIncludes(tauriConfig, '"identifier": "ai.nimi.apps.nimi.tester"', 'Tauri bundle identity');
 
   assertIncludes(electronMain, 'registerNimiElectronRuntimeBridge', 'Electron runtime bridge');
-  assertIncludes(electronMain, 'trustedRuntimeMetadataProvider', 'Electron runtime auth');
+  assertNotMatch(electronMain, /trustedRuntimeMetadataProvider|createTesterElectronTrustedRuntimeMetadataProvider/, 'Electron self-issued Runtime auth');
   assertIncludes(electronMain, 'createTesterElectronCommandHandlers', 'Electron tester commands');
   assertIncludes(electronPreload, 'installNimiElectronRuntimeBridge', 'Electron preload bridge');
   assertIncludes(tauriMain, 'nimi_shell_tauri_installed_app_standard_shell_handler![', 'Tauri installed app standard shell');
@@ -169,8 +169,10 @@ function validateShellParity() {
   assertIncludes(runtimeTransport, "type: 'electron-ipc'", 'Runtime transport');
   assertIncludes(runtimeTransport, "type: 'tauri-ipc'", 'Runtime transport');
   assertIncludes(runtimeTransport, "commandNamespace: RUNTIME_BRIDGE_NAMESPACE", 'Tauri bridge namespace');
-  assertIncludes(runtimePlatform, "resolveTesterRuntimeHostKind() !== 'node'", 'Runtime auth metadata split');
-  assertIncludes(runtimePlatform, 'authMetadata: createRuntimeAppSessionMetadataProvider', 'Runtime auth metadata split');
+  assertIncludes(runtimePlatform, "mode: 'third-party-nimi-app'", 'installed Runtime posture');
+  assertIncludes(runtimePlatform, 'use_admitted_protected_runtime_carrier', 'installed Runtime fail-close');
+  assertNotMatch(runtimePlatform, /DeveloperRegistered|FullAppRegistration|AppSessionMetadataProvider/, 'renderer-created Runtime authority');
+  assertNotMatch(tauriMain, /local_developer_app|local-developer-app|set_runtime_bridge_host_hooks/, 'Tauri self-issued Runtime auth');
 
   validateStandardShellBridgeCatalog();
   assertEqualSet(extractElectronCommands(electronCommands), STATIC_TESTER_SHELL_COMMANDS, 'Electron tester command surface');
