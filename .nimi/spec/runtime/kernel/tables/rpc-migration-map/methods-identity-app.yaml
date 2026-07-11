@@ -262,7 +262,7 @@ method_mappings:
     proto_method: OpenApp
     mapping_posture: aligned
   - design_service: RuntimeAppService
-    design_method: AcquireInstalledLaunchLease
+    design_method: BindInstalledLaunchProcess
     proto_service: RuntimeAppService
-    proto_method: AcquireInstalledLaunchLease
+    proto_method: BindInstalledLaunchProcess
     mapping_posture: aligned

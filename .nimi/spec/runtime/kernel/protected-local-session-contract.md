@@ -84,13 +84,17 @@ Desktop lifecycle admission resolves the exact installed app, active release
 digest, account generation and current Runtime boot epoch. The renderer-safe
 projection carries only a non-authorizing 32-byte launch correlation id.
 
-The protected host carrier exchanges that id for a short-lived Windows named
-pipe client handle already duplicated into the verified Desktop process.
-Desktop may transfer that handle only through an explicit child handle list;
-argv, env, files, stdout, preload and renderer IPC are forbidden. Runtime owns
-the server handle and binds the connected child with
-`GetNamedPipeClientProcessId`, process creation time, login session, locked
-executable identity, active release digest and platform code-signing policy.
+The protected host carrier starts the exact installed executable suspended,
+then sends the launch correlation and child PID only over the verified Desktop
+control connection. Runtime independently opens and verifies that process,
+derives its creation marker, login session, locked executable identity, active
+release digest and platform code-signing policy, and records the process
+binding before Desktop resumes it. The child then opens the fixed service-owned
+installed-app named pipe itself. Runtime requires `GetNamedPipeClientProcessId`
+on that new connection to match the pre-bound PID and rechecks the retained
+process witness. PID and launch correlation are selectors, never sufficient
+authority. argv, env, inherited pipe handles, files, stdout, preload and
+renderer IPC cannot carry or reconstruct launch authority.
 
 `OpenDesktopLaunchedAppSession` has an empty request and exists only on that
 verified `launch_bootstrap` connection. Success atomically consumes the launch

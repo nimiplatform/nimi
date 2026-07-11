@@ -210,8 +210,11 @@
 **Owner-only authority allocation.** Kit owns typed shell APIs and trusted carrier implementation only. A Kit host adapter may carry opaque Runtime/Platform/Desktop attestations across a trusted shell boundary, but it cannot create account, catalog, release, grant, launch, unary, realtime, or media truth. A host or renderer MUST NOT supply or retain authenticated Realm credentials, signed upload credentials, refresh material, or self-certified privilege evidence.
 
 The A.1 Windows installed-app child carrier consumes only the Runtime-created
-launch correlation and duplicated native pipe handle defined by K-PLOCAL-008.
-It cannot create launch, release, account/session or capability truth.
+launch correlation defined by K-PLOCAL-008, starts the Runtime-resolved exact
+executable suspended, and submits its PID over retained protected Desktop
+control before resuming it. The child opens the fixed installed pipe itself;
+Kit never inherits or forwards a pre-connected pipe handle and cannot create
+launch, process, release, account/session or capability truth.
 `tables/standard-shell-capabilities.yaml` records
 `installed-nimi-app-standard-shell-v1` as `blocked_pending_a1`, with an empty
 `allowed_operations` list. Its planned operation list is conflict/planning

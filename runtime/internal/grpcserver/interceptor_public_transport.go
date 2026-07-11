@@ -24,7 +24,7 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 	"/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp":                  runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption":         runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAppService/OpenApp":                        runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
-	"/nimi.runtime.v1.RuntimeAppService/AcquireInstalledLaunchLease":    runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
+	"/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess":    runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":                 runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/StreamScenario":                  runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":               runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,

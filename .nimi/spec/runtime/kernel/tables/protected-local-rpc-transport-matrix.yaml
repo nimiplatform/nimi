@@ -41,7 +41,7 @@ operation_classes:
   - desktop_lifecycle_ux_projection
   - desktop_lifecycle_mutation
   - installed_session_bootstrap
-  - installed_launch_host_lease
+  - installed_launch_process_binding
   - blocked_pending_separate_authority
   - ordinary_projection
 matrix_schema:
@@ -309,8 +309,8 @@ methods:
     public_tcp_disposition: deny
     lifecycle_challenge_required: false
     source_rule: K-PLOCAL-007
-  - method_id: /nimi.runtime.v1.RuntimeAppService/AcquireInstalledLaunchLease
-    operation_class: installed_launch_host_lease
+  - method_id: /nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess
+    operation_class: installed_launch_process_binding
     allowed_transport_classes: [desktop_control]
     required_origin_roles: [desktop_lifecycle_host]
     request_may_select_role: false

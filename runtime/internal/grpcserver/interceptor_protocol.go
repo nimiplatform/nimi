@@ -229,7 +229,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAppService/UpdateApp",
 		"/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
 		"/nimi.runtime.v1.RuntimeAppService/OpenApp",
-		"/nimi.runtime.v1.RuntimeAppService/AcquireInstalledLaunchLease",
+		"/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess",
 		"/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset",
 		"/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset",
 		"/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetBundle",

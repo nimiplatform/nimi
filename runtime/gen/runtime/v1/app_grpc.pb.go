@@ -37,7 +37,7 @@ const (
 	RuntimeAppService_UpdateApp_FullMethodName                   = "/nimi.runtime.v1.RuntimeAppService/UpdateApp"
 	RuntimeAppService_HealthRepairApp_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp"
 	RuntimeAppService_OpenApp_FullMethodName                     = "/nimi.runtime.v1.RuntimeAppService/OpenApp"
-	RuntimeAppService_AcquireInstalledLaunchLease_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/AcquireInstalledLaunchLease"
+	RuntimeAppService_BindInstalledLaunchProcess_FullMethodName  = "/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess"
 )
 
 // RuntimeAppServiceClient is the client API for RuntimeAppService service.
@@ -67,7 +67,7 @@ type RuntimeAppServiceClient interface {
 	// entry for launching a Nimi App; it requires an explicit app-shape
 	// AIScopeRef and never infers launch scope.
 	OpenApp(ctx context.Context, in *OpenAppRequest, opts ...grpc.CallOption) (*OpenAppResponse, error)
-	AcquireInstalledLaunchLease(ctx context.Context, in *AcquireInstalledLaunchLeaseRequest, opts ...grpc.CallOption) (*AcquireInstalledLaunchLeaseResponse, error)
+	BindInstalledLaunchProcess(ctx context.Context, in *BindInstalledLaunchProcessRequest, opts ...grpc.CallOption) (*BindInstalledLaunchProcessResponse, error)
 }
 
 type runtimeAppServiceClient struct {
@@ -276,10 +276,10 @@ func (c *runtimeAppServiceClient) OpenApp(ctx context.Context, in *OpenAppReques
 	return out, nil
 }
 
-func (c *runtimeAppServiceClient) AcquireInstalledLaunchLease(ctx context.Context, in *AcquireInstalledLaunchLeaseRequest, opts ...grpc.CallOption) (*AcquireInstalledLaunchLeaseResponse, error) {
+func (c *runtimeAppServiceClient) BindInstalledLaunchProcess(ctx context.Context, in *BindInstalledLaunchProcessRequest, opts ...grpc.CallOption) (*BindInstalledLaunchProcessResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AcquireInstalledLaunchLeaseResponse)
-	err := c.cc.Invoke(ctx, RuntimeAppService_AcquireInstalledLaunchLease_FullMethodName, in, out, cOpts...)
+	out := new(BindInstalledLaunchProcessResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_BindInstalledLaunchProcess_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +313,7 @@ type RuntimeAppServiceServer interface {
 	// entry for launching a Nimi App; it requires an explicit app-shape
 	// AIScopeRef and never infers launch scope.
 	OpenApp(context.Context, *OpenAppRequest) (*OpenAppResponse, error)
-	AcquireInstalledLaunchLease(context.Context, *AcquireInstalledLaunchLeaseRequest) (*AcquireInstalledLaunchLeaseResponse, error)
+	BindInstalledLaunchProcess(context.Context, *BindInstalledLaunchProcessRequest) (*BindInstalledLaunchProcessResponse, error)
 }
 
 // UnimplementedRuntimeAppServiceServer should be embedded to have
@@ -377,8 +377,8 @@ func (UnimplementedRuntimeAppServiceServer) HealthRepairApp(context.Context, *He
 func (UnimplementedRuntimeAppServiceServer) OpenApp(context.Context, *OpenAppRequest) (*OpenAppResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OpenApp not implemented")
 }
-func (UnimplementedRuntimeAppServiceServer) AcquireInstalledLaunchLease(context.Context, *AcquireInstalledLaunchLeaseRequest) (*AcquireInstalledLaunchLeaseResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method AcquireInstalledLaunchLease not implemented")
+func (UnimplementedRuntimeAppServiceServer) BindInstalledLaunchProcess(context.Context, *BindInstalledLaunchProcessRequest) (*BindInstalledLaunchProcessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BindInstalledLaunchProcess not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) testEmbeddedByValue() {}
 
@@ -710,20 +710,20 @@ func _RuntimeAppService_OpenApp_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAppService_AcquireInstalledLaunchLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AcquireInstalledLaunchLeaseRequest)
+func _RuntimeAppService_BindInstalledLaunchProcess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BindInstalledLaunchProcessRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeAppServiceServer).AcquireInstalledLaunchLease(ctx, in)
+		return srv.(RuntimeAppServiceServer).BindInstalledLaunchProcess(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeAppService_AcquireInstalledLaunchLease_FullMethodName,
+		FullMethod: RuntimeAppService_BindInstalledLaunchProcess_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAppServiceServer).AcquireInstalledLaunchLease(ctx, req.(*AcquireInstalledLaunchLeaseRequest))
+		return srv.(RuntimeAppServiceServer).BindInstalledLaunchProcess(ctx, req.(*BindInstalledLaunchProcessRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -800,8 +800,8 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAppService_OpenApp_Handler,
 		},
 		{
-			MethodName: "AcquireInstalledLaunchLease",
-			Handler:    _RuntimeAppService_AcquireInstalledLaunchLease_Handler,
+			MethodName: "BindInstalledLaunchProcess",
+			Handler:    _RuntimeAppService_BindInstalledLaunchProcess_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

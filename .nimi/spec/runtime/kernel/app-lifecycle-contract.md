@@ -137,7 +137,7 @@ child side effects.
 
 A.1 defines the process-bound Windows launch record and installed session in
 K-PLOCAL-008. `OpenApp` may expose only the non-authorizing launch correlation
-id in its renderer-safe projection; the native handle lease is host-only.
+id in its renderer-safe projection; verified child-process binding is host-only.
 Filesystem guesses, process liveness alone, local adoption, account inventory,
 tester registration, Desktop identity, app metadata,
 ordinary gRPC and prior implementation cannot approximate launch success.

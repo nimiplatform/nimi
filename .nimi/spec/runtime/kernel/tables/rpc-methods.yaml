@@ -482,9 +482,9 @@ services:
       - name: OpenApp
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/OpenApp
-      - name: AcquireInstalledLaunchLease
+      - name: BindInstalledLaunchProcess
         type: unary
-        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/AcquireInstalledLaunchLease
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess
       - name: PrepareAppLifecycleIntent
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent
