@@ -43,6 +43,10 @@ macro_rules! define_unbound_carrier {
     };
 }
 
+#[cfg(not(target_os = "windows"))]
 define_unbound_carrier!(WindowsNamedPipeCarrier);
 define_unbound_carrier!(LinuxUnixSocketCarrier);
 define_unbound_carrier!(MacOsPrivilegedXpcCarrier);
+
+#[cfg(target_os = "windows")]
+pub use crate::windows_service_control::WindowsNamedPipeCarrier;

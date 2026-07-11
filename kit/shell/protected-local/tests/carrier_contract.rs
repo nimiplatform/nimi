@@ -25,9 +25,24 @@ fn assert_unbound<C: NimiProtectedLocalHostCarrier>(carrier: C) {
 
 #[test]
 fn compile_only_os_adapters_fail_closed_when_unbound() {
-    assert_unbound(WindowsNamedPipeCarrier);
     assert_unbound(LinuxUnixSocketCarrier);
     assert_unbound(MacOsPrivilegedXpcCarrier);
+    #[cfg(not(target_os = "windows"))]
+    assert_unbound(WindowsNamedPipeCarrier);
+}
+
+#[cfg(target_os = "windows")]
+#[test]
+fn windows_carrier_keeps_desktop_control_closed_until_peer_trust_is_bound() {
+    let carrier = WindowsNamedPipeCarrier;
+    let error = match carrier.open_desktop_control() {
+        Ok(_) => panic!("native peer verification is required"),
+        Err(error) => error,
+    };
+    assert_eq!(
+        error.reason_code(),
+        ProtectedCarrierReasonCode::ProtectedCarrierRequired
+    );
 }
 
 #[test]

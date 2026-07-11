@@ -23,10 +23,12 @@ process tuples, trust-record paths, or an installed-app child carrier.
 A.1 owns any future installed/developer child carrier. Until then, no launch
 metadata or ordinary gRPC proxy can provide protected app access.
 
-The Windows named-pipe, Linux filesystem-UDS, and macOS privileged-XPC carrier
-types currently compile and fail closed with `protected-carrier-required` until
-their mutually verified native backends are bound. They never report synthetic
-service or session success. This compile-only slice intentionally exposes no
-generic method-id/byte proxy; generated account and lifecycle bindings attach
-to the opaque connection-bound control handle in the carrier implementation
-slice.
+The Windows carrier now binds fixed-name SCM status/start with the minimum
+query/start access. An SCM `running` observation is deliberately reported as
+untrusted until the named-pipe peer, signed release and `OpenDesktopSession`
+handshake are verified; restart also remains closed until it can use the live
+protected connection rather than SCM stop authority. Linux filesystem-UDS and
+macOS privileged-XPC carrier types remain compile-only and fail closed with
+`protected-carrier-required` until their mutually verified native backends are
+bound. No carrier reports synthetic service or session success or exposes a
+generic method-id/byte proxy.
