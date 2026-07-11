@@ -13,6 +13,7 @@ name = "nimi-shell-protected-local"
 version = "0.1.0"
 dependencies = [
  "windows-service",
+ "windows-sys",
 ]
 
 [[package]]

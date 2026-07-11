@@ -1,7 +1,11 @@
 use std::ffi::OsStr;
+use std::fs::{File, OpenOptions};
+use std::os::windows::io::AsRawHandle;
 
 use windows_service::service::{ServiceAccess, ServiceState};
 use windows_service::service_manager::{ServiceManager, ServiceManagerAccess};
+use windows_sys::Win32::Foundation::HANDLE;
+use windows_sys::Win32::System::Pipes::GetNamedPipeServerProcessId;
 
 use crate::{
     FixedRuntimeServiceControl, NimiDesktopControl, NimiProtectedLocalHostCarrier,
@@ -10,6 +14,7 @@ use crate::{
 };
 
 const RUNTIME_SERVICE_NAME: &str = "NimiRuntime";
+const RUNTIME_PROTECTED_PIPE_NAME: &str = r"\\.\pipe\nimi-runtime-protected-v1";
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WindowsNamedPipeCarrier;
@@ -95,7 +100,13 @@ fn project_status(state: ServiceState) -> Result<RuntimeServiceStatus, Protected
             reason_code: None,
             retryable: true,
         }),
-        ServiceState::Running => Err(untrusted()),
+        ServiceState::Running => {
+            verify_fixed_pipe_scm_binding()?;
+            // PID/service binding alone is insufficient. Exact locked-file,
+            // Authenticode, signed release-record and OpenDesktopSession
+            // verification must all succeed before Running is projected.
+            Err(untrusted())
+        }
         _ => Err(repair_required()),
     }
 }
@@ -110,7 +121,10 @@ fn project_start_outcome(
             reason_code: None,
             retryable: true,
         }),
-        ServiceState::Running => Err(untrusted()),
+        ServiceState::Running => {
+            verify_fixed_pipe_scm_binding()?;
+            Err(untrusted())
+        }
         ServiceState::Stopped => Err(unavailable()),
         _ => Err(repair_required()),
     }
@@ -131,6 +145,76 @@ fn repair_required() -> ProtectedCarrierError {
     )
 }
 
+fn verify_fixed_pipe_scm_binding() -> Result<(), ProtectedCarrierError> {
+    let before = query_service_status()?;
+    let expected_pid = running_service_pid(&before)?;
+    let pipe = open_fixed_runtime_pipe()?;
+    let pipe_server_pid = named_pipe_server_pid(&pipe)?;
+    let after = query_service_status()?;
+    let observed_pid = running_service_pid(&after)?;
+    validate_stable_server_binding(expected_pid, observed_pid, pipe_server_pid)
+}
+
+fn query_service_status() -> Result<windows_service::service::ServiceStatus, ProtectedCarrierError>
+{
+    let manager = service_manager()?;
+    let service = manager
+        .open_service(RUNTIME_SERVICE_NAME, ServiceAccess::QUERY_STATUS)
+        .map_err(|_| unavailable())?;
+    service.query_status().map_err(|_| unavailable())
+}
+
+fn running_service_pid(
+    status: &windows_service::service::ServiceStatus,
+) -> Result<u32, ProtectedCarrierError> {
+    if status.current_state != ServiceState::Running {
+        return Err(unavailable());
+    }
+    status
+        .process_id
+        .filter(|pid| *pid != 0)
+        .ok_or_else(untrusted)
+}
+
+fn open_fixed_runtime_pipe() -> Result<File, ProtectedCarrierError> {
+    OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(RUNTIME_PROTECTED_PIPE_NAME)
+        .map_err(|_| unavailable())
+}
+
+fn named_pipe_server_pid(pipe: &File) -> Result<u32, ProtectedCarrierError> {
+    let handle = pipe.as_raw_handle() as HANDLE;
+    if handle.is_null() {
+        return Err(untrusted());
+    }
+    let mut pid = 0u32;
+    // SAFETY: `handle` is borrowed from a live `File`, the output pointer is
+    // valid for one u32, and neither value escapes this call.
+    let succeeded = unsafe { GetNamedPipeServerProcessId(handle, &mut pid) };
+    if succeeded == 0 || pid == 0 {
+        return Err(untrusted());
+    }
+    Ok(pid)
+}
+
+fn validate_stable_server_binding(
+    before_pid: u32,
+    after_pid: u32,
+    pipe_server_pid: u32,
+) -> Result<(), ProtectedCarrierError> {
+    if before_pid == 0
+        || after_pid == 0
+        || pipe_server_pid == 0
+        || before_pid != after_pid
+        || before_pid != pipe_server_pid
+    {
+        return Err(untrusted());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,11 +222,11 @@ mod tests {
     #[test]
     fn scm_running_never_claims_protected_runtime_success() {
         let error = project_status(ServiceState::Running).expect_err("trust verification required");
-        assert_eq!(
+        assert!(matches!(
             error.reason_code(),
-            ProtectedCarrierReasonCode::RuntimeServiceUntrusted
-        );
-        assert!(!error.retryable());
+            ProtectedCarrierReasonCode::RuntimeServiceUnavailable
+                | ProtectedCarrierReasonCode::RuntimeServiceUntrusted
+        ));
     }
 
     #[test]
@@ -168,6 +252,19 @@ mod tests {
             assert_eq!(
                 error.reason_code(),
                 ProtectedCarrierReasonCode::RuntimeServiceRepairRequired
+            );
+        }
+    }
+
+    #[test]
+    fn pipe_server_pid_must_match_two_stable_scm_snapshots() {
+        assert!(validate_stable_server_binding(41, 41, 41).is_ok());
+        for (before, after, pipe) in [(0, 41, 41), (41, 0, 41), (41, 42, 41), (41, 41, 42)] {
+            let error = validate_stable_server_binding(before, after, pipe)
+                .expect_err("unstable or mismatched service binding");
+            assert_eq!(
+                error.reason_code(),
+                ProtectedCarrierReasonCode::RuntimeServiceUntrusted
             );
         }
     }

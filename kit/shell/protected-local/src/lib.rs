@@ -1,10 +1,11 @@
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 mod adapters;
 mod carrier;
 mod reason;
 mod service;
 #[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
 mod windows_service_control;
 
 pub use adapters::{LinuxUnixSocketCarrier, MacOsPrivilegedXpcCarrier, WindowsNamedPipeCarrier};
