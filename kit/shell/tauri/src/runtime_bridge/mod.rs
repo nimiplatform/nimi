@@ -3,6 +3,7 @@ mod codec;
 mod daemon_manager;
 mod error_map;
 mod host_app_session;
+mod installed_host;
 mod metadata;
 mod service_control;
 mod stream;
@@ -23,6 +24,7 @@ pub use host_app_session::{
     RUNTIME_BRIDGE_DESKTOP_TAURI_ACCOUNT_SOURCE_HOST,
     RUNTIME_BRIDGE_TAURI_STANDARD_SHELL_SOURCE_HOST,
 };
+pub use installed_host::{RuntimeBridgeInstalledHost, RuntimeBridgeInstalledHostError};
 pub use metadata::{RuntimeBridgeMetadata, RuntimeBridgeTrustedMetadata};
 pub use stream::RuntimeBridgeStreamOpenResult;
 pub use unary::{

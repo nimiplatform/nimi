@@ -236,6 +236,14 @@ arbitrary metadata, or a renderer command; the standard-shell
 adapter is separately admitted. macOS/Linux continue to fail closed at session
 open until their native carrier admission.
 
+The Tauri A.4 host adapter owns one lazily opened opaque installed-session
+handle per host instance and forwards only the typed artifact selector to that
+handle. Concurrent or repeated reads reuse that handle; they cannot mint a
+second account/session truth. Its public Rust host API preserves the carrier's
+typed errors, but no `#[tauri::command]`, preload/renderer bridge, portable
+`RuntimeBridgeAppSession`, session bytes, or generic unary hook is admitted in
+this slice.
+
 ## P-KIT-045 - Desktop Open Intent Kit Surfaces
 
 - `core/desktop-open` is a pure-logic Kit surface that wraps SDK

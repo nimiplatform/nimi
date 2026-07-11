@@ -199,7 +199,7 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiStandardShellCapabilityHost
-    description: Shared Tauri host glue consuming the native protected-local carrier for typed fixed-service status/start/restart and protected Runtime calls; owns no executable selection, service stop, config document, credential, Realm endpoint, or Runtime lifecycle truth.
+    description: Shared Tauri host glue consuming the native protected-local carrier for typed fixed-service status/start/restart and a single cached opaque installed-session host with typed artifact reads; owns no executable selection, service stop, config document, credential, Realm endpoint, account/grant truth, or Runtime lifecycle truth.
     dependencies:
       - kit.shell.protected-local
     peer_dependencies: []
