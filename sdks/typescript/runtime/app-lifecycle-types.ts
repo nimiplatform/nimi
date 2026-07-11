@@ -214,7 +214,7 @@ export type NimiRuntimeAppOpenFlowStep =
   | 'validate_manifest'
   | 'launch';
 
-export type NimiRuntimeAppOpenState = 'launched' | 'blocked';
+export type NimiRuntimeAppOpenState = 'launched' | 'blocked' | 'launch_prepared';
 
 export type NimiRuntimeAppOpenProjection = {
   readonly appId: string;
@@ -236,7 +236,8 @@ export type NimiRuntimeAppOpenProjection = {
   readonly storage?: NimiRuntimeAppInstallStorage;
   readonly shellCapabilitySetRef?: string;
   readonly callerMode?: string;
-  readonly launchNonce?: string;
+  /** Non-authorizing Runtime launch correlation id. */
+  readonly launchId?: Uint8Array;
   readonly productReadinessClaimAllowed?: boolean;
 };
 

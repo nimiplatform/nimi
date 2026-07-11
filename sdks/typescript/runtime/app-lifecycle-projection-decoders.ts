@@ -222,8 +222,13 @@ export function decodeNimiRuntimeAppOpenProjection(
       `runtime app open projection for ${appId} is blocked but launched=true`,
     );
   }
+  if (state === 'launch_prepared' && projection.launched === true) {
+    return decodeNimiRuntimeAppLifecycleError(
+      `runtime app open projection for ${appId} is launch-prepared but launched=true`,
+    );
+  }
   const scope = decodeNimiRuntimeAppOpenScope(projection.scope);
-  if (state === 'launched' && !scope) {
+  if ((state === 'launched' || state === 'launch_prepared') && !scope) {
     return decodeNimiRuntimeAppLifecycleError(
       `runtime app open projection for ${appId} launched without an app-launch scope`,
     );
@@ -245,7 +250,24 @@ export function decodeNimiRuntimeAppOpenProjection(
   const activeReleaseRoot = normalizeNimiRuntimeAppLifecycleText(projection.activeReleaseRoot);
   const shellCapabilitySetRef = normalizeNimiRuntimeAppLifecycleText(projection.shellCapabilitySetRef);
   const callerMode = normalizeNimiRuntimeAppLifecycleText(projection.callerMode);
-  const launchNonce = normalizeNimiRuntimeAppLifecycleText(projection.launchNonce);
+  if (projection.launchId !== undefined && !(projection.launchId instanceof Uint8Array)) {
+    return decodeNimiRuntimeAppLifecycleError(
+      `runtime app open projection for ${appId} carries a malformed launch id`,
+    );
+  }
+  const launchId = projection.launchId && projection.launchId.length > 0
+    ? Uint8Array.from(projection.launchId)
+    : undefined;
+  if (launchId && launchId.length !== 32) {
+    return decodeNimiRuntimeAppLifecycleError(
+      `runtime app open projection for ${appId} launch id must contain exactly 32 bytes`,
+    );
+  }
+  if (state === 'launch_prepared' && !launchId) {
+    return decodeNimiRuntimeAppLifecycleError(
+      `runtime app open projection for ${appId} is launch-prepared without a launch id`,
+    );
+  }
   return {
     appId,
     state,
@@ -266,7 +288,7 @@ export function decodeNimiRuntimeAppOpenProjection(
     ...(projection.storage ? { storage: decodeNimiRuntimeAppInstallStorage(projection.storage) } : {}),
     ...(shellCapabilitySetRef ? { shellCapabilitySetRef } : {}),
     ...(callerMode ? { callerMode } : {}),
-    ...(launchNonce ? { launchNonce } : {}),
+    ...(launchId ? { launchId } : {}),
     ...(releaseDescriptorRef ? { productReadinessClaimAllowed: Boolean(projection.productReadinessClaimAllowed) } : {}),
   };
 }
@@ -433,6 +455,8 @@ function decodeNimiRuntimeAppOpenState(value: AppOpenState): NimiRuntimeAppOpenS
       return 'launched';
     case AppOpenState.BLOCKED:
       return 'blocked';
+    case AppOpenState.LAUNCH_PREPARED:
+      return 'launch_prepared';
     default:
       return decodeNimiRuntimeAppLifecycleError(
         `runtime app open projection has an unspecified state: ${String(value)}`,

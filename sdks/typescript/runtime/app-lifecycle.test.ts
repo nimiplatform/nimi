@@ -729,13 +729,32 @@ test('Nimi Runtime app lifecycle projection decoders normalize storage readiness
     },
     shellCapabilitySetRef: 'installed-nimi-app-standard-shell-v1',
     callerMode: 'desktop-launched-nimi-app',
-    launchNonce: 'nonce-1',
+    launchId: Uint8Array.from({ length: 32 }, (_, index) => index + 1),
     productReadinessClaimAllowed: false,
   });
   assert.equal(sandboxLaunch.releaseDescriptorRef, 'community.nimi.fixture.platform-proof.0.1.0-sandbox');
   assert.equal(sandboxLaunch.admissionTrack, 'admission-sandbox-ci');
   assert.equal(sandboxLaunch.productReadinessClaimAllowed, false);
+  assert.deepEqual(
+    sandboxLaunch.launchId,
+    Uint8Array.from({ length: 32 }, (_, index) => index + 1),
+  );
   assert.equal(sandboxLaunch.storage?.releaseRoot, sandboxLaunch.activeReleaseRoot);
+
+  const preparedLaunch = decodeNimiRuntimeAppOpenProjection({
+    ...{
+      appId: 'nimi.notes',
+      state: AppOpenState.LAUNCH_PREPARED,
+      reachedStep: AppOpenFlowStep.LAUNCH,
+      launched: false,
+      scope: { kind: 'app', ownerId: 'nimi.notes', surfaceId: '' },
+      reasonCode: RuntimeGeneratedReasonCode.ACTION_EXECUTED,
+      launchId: Uint8Array.from({ length: 32 }, (_, index) => 32 - index),
+    },
+  } as Parameters<typeof decodeNimiRuntimeAppOpenProjection>[0]);
+  assert.equal(preparedLaunch.state, 'launch_prepared');
+  assert.equal(preparedLaunch.launched, false);
+  assert.equal(preparedLaunch.launchId?.length, 32);
 });
 
 test('Nimi Runtime app lifecycle decoders fail closed on malformed Runtime projections', () => {
