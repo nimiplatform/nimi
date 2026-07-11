@@ -239,13 +239,17 @@ connection and the exact operations admitted for `development_host`. Public
 TCP, installed host, renderer, app metadata, and app-tools cannot invoke the
 Desktop-owned methods or select a trust class.
 
-Authorization creation consumes a currently adopted manifest, canonicalizes
-the real project root, computes the canonical manifest capability fingerprint,
-binds the authenticated account, and records the user choice supplied by the
-trusted Desktop confirmation flow. It fails closed on stale adoption, wrong
-app/root/fingerprint/account/shell, capability expansion, revoked approval, or
-an unsupported platform. Listing and revoke projections expose no session,
-ticket, process, epoch, credential, or endpoint material.
+Authorization creation consumes the current submitted manifest under the
+canonical selected project root, independently validates its closed permission
+declarations, computes the canonical manifest capability fingerprint, binds the
+authenticated account, and records the user choice supplied by the trusted
+Desktop confirmation flow. One-command development does not require a prior
+`AdoptLocalApp` record and does not synthesize one: local adoption remains an
+independent inventory lifecycle whose presence or absence cannot authorize a
+development host. Evaluation fails closed on wrong app/root/fingerprint/account/
+shell, capability expansion, revoked approval, or an unsupported platform.
+Listing and revoke projections expose no session, ticket, process, epoch,
+credential, or endpoint material.
 
 Launch preparation is distinct from `OpenApp` production release resolution.
 It uses K-PLOCAL-009 and returns only a non-authorizing correlation to Desktop;

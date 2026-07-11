@@ -22,7 +22,12 @@ export const authorityPaths = Object.freeze({
 const requiredRules = new Map([
   ['platform', ['P-NAPP-035', /production release trust.*mutable local-development trust/isu, /AdoptLocalApp.*never.*installed/isu]],
   ['runtime', ['K-PLOCAL-009', /user\s+development authorization/iu, /technical session/iu, /account generation.*Runtime\s+boot\s+epoch/isu]],
-  ['appLifecycle', ['K-APP-027', /local-development-installed-admission/iu, /AdoptLocalApp.*inventory/isu]],
+  ['appLifecycle', [
+    'K-APP-027',
+    /local-development-installed-admission/iu,
+    /AdoptLocalApp.*inventory/isu,
+    /does not require.*AdoptLocalApp/isu,
+  ]],
   ['desktop', ['D-IPC-019', /Desktop-owned dev supervisor/iu, /confirmation/iu, /never.*CLI.*renderer/isu]],
   ['kit', ['P-KIT-046', /typed.*bootstrap.*status/isu, /Electron.*Tauri/isu, /artifacts\.readRuntimeBytes/iu]],
   ['scaffold', ['P-SCAF-018', /pnpm dev/iu, /nimi-app dev/iu, /direct.*tauri dev/isu]],

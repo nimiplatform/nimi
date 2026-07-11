@@ -21,6 +21,16 @@ test('gate rejects adoption-only privilege and production trust conversion', () 
   assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_TRUST_CLASS_INVALID'));
 });
 
+test('gate rejects a pre-adoption prerequisite for one-command development', () => {
+  const bundle = loadAuthorityBundle();
+  bundle.appLifecycle = bundle.appLifecycle.replace(
+    /does not require[^.]*AdoptLocalApp[^.]*\./iu,
+    'requires AdoptLocalApp before evaluation.',
+  );
+  const issues = validateLocalDevelopmentAuthority(bundle);
+  assert.ok(issues.some((entry) => entry.code === 'LOCAL_DEVELOPMENT_AUTHORITY_CLAUSE_MISSING'));
+});
+
 test('gate rejects session leakage and weak transport fallbacks', () => {
   const bundle = loadAuthorityBundle();
   const policy = YAML.parse(bundle.policy);
