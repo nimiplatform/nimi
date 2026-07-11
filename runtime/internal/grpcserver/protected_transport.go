@@ -49,7 +49,8 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		"/nimi.runtime.v1.RuntimeAppService/UpdateApp",
 		"/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
 		"/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
-		"/nimi.runtime.v1.RuntimeAppService/OpenApp":
+		"/nimi.runtime.v1.RuntimeAppService/OpenApp",
+		"/nimi.runtime.v1.RuntimeAppService/BindInstalledLaunchProcess":
 		return protectedlocal.RoleDesktopLifecycleHost, true
 	default:
 		return "", false

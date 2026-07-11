@@ -20,6 +20,7 @@ import (
 
 const (
 	InstalledLaunchTicketTTL = 30 * time.Second
+	InstalledProcessBindTTL  = 10 * time.Second
 	installedSessionTTL      = time.Hour
 )
 
@@ -39,6 +40,12 @@ type InstalledLaunchIssue struct {
 type InstalledLaunchTicket struct {
 	LaunchID     protectedlocal.Identifier
 	BindDeadline time.Time
+}
+
+type InstalledLaunchBinding struct {
+	LaunchID     protectedlocal.Identifier
+	BindDeadline time.Time
+	Process      InstalledLaunchProcess
 }
 
 type InstalledLaunchProcess struct {
@@ -116,13 +123,14 @@ func (store *InstalledLaunchStore) initialize(ctx context.Context) error {
 			runtime_boot_epoch BLOB NOT NULL CHECK(length(runtime_boot_epoch) = 32),
 			issued_unix_nano INTEGER NOT NULL,
 			expires_unix_nano INTEGER NOT NULL,
-			status TEXT NOT NULL CHECK(status IN ('pending','consumed','cancelled','expired','revoked')),
+			status TEXT NOT NULL CHECK(status IN ('pending','process_bound','consumed','cancelled','expired','revoked')),
 			process_id INTEGER,
 			process_creation_marker TEXT,
+			bind_deadline_unix_nano INTEGER,
 			consumed_unix_nano INTEGER,
 			revoked_unix_nano INTEGER
 		)`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS installed_launch_one_pending ON installed_launch_ticket(app_id, account_generation) WHERE status = 'pending'`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS installed_launch_one_pending ON installed_launch_ticket(app_id, account_generation) WHERE status IN ('pending','process_bound')`,
 		`CREATE TABLE IF NOT EXISTS installed_app_session (
 			session_id BLOB PRIMARY KEY CHECK(length(session_id) = 32),
 			session_proof_hash BLOB NOT NULL CHECK(length(session_proof_hash) = 32),
@@ -137,7 +145,7 @@ func (store *InstalledLaunchStore) initialize(ctx context.Context) error {
 			expires_unix_nano INTEGER NOT NULL,
 			revoked_unix_nano INTEGER
 		)`,
-		`UPDATE installed_launch_ticket SET status = 'revoked', revoked_unix_nano = ? WHERE status = 'pending' AND runtime_boot_epoch <> ?`,
+		`UPDATE installed_launch_ticket SET status = 'revoked', revoked_unix_nano = ? WHERE status IN ('pending','process_bound') AND runtime_boot_epoch <> ?`,
 		`UPDATE installed_app_session SET revoked_unix_nano = ? WHERE revoked_unix_nano IS NULL AND runtime_boot_epoch <> ?`,
 	} {
 		var err error
@@ -169,7 +177,7 @@ func (store *InstalledLaunchStore) Issue(ctx context.Context, input InstalledLau
 		return InstalledLaunchTicket{}, err
 	}
 	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'cancelled', revoked_unix_nano = ? WHERE app_id = ? AND account_generation = ? AND status = 'pending'`, now.UnixNano(), input.AppID, input.AccountGeneration); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'cancelled', revoked_unix_nano = ? WHERE app_id = ? AND account_generation = ? AND status IN ('pending','process_bound')`, now.UnixNano(), input.AppID, input.AccountGeneration); err != nil {
 		return InstalledLaunchTicket{}, err
 	}
 	deadline := now.Add(InstalledLaunchTicketTTL)
@@ -180,6 +188,54 @@ func (store *InstalledLaunchStore) Issue(ctx context.Context, input InstalledLau
 		return InstalledLaunchTicket{}, err
 	}
 	return InstalledLaunchTicket{LaunchID: launchID, BindDeadline: deadline}, nil
+}
+
+func (store *InstalledLaunchStore) BindProcess(ctx context.Context, input InstalledLaunchProcess) (InstalledLaunchBinding, error) {
+	if store == nil || store.db == nil || input.LaunchID == (protectedlocal.Identifier{}) || input.PID == 0 || strings.TrimSpace(input.CreationMarker) == "" || input.CreationMarker != strings.TrimSpace(input.CreationMarker) || input.ReleaseDigest == (protectedlocal.Identifier{}) || input.AccountGeneration == 0 {
+		return InstalledLaunchBinding{}, ErrInstalledLaunchMismatch
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	now := store.now().UTC()
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return InstalledLaunchBinding{}, err
+	}
+	defer tx.Rollback()
+	var status string
+	var releaseDigest, bootEpoch []byte
+	var accountGeneration uint64
+	var expiresAt int64
+	err = tx.QueryRowContext(ctx, `SELECT release_digest, account_generation, runtime_boot_epoch, expires_unix_nano, status FROM installed_launch_ticket WHERE launch_id = ?`, input.LaunchID[:]).Scan(&releaseDigest, &accountGeneration, &bootEpoch, &expiresAt, &status)
+	if errors.Is(err, sql.ErrNoRows) {
+		return InstalledLaunchBinding{}, ErrInstalledLaunchMismatch
+	}
+	if err != nil {
+		return InstalledLaunchBinding{}, err
+	}
+	if status != "pending" {
+		return InstalledLaunchBinding{}, ErrInstalledLaunchReplay
+	}
+	if !now.Before(time.Unix(0, expiresAt)) {
+		if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'expired', revoked_unix_nano = ? WHERE launch_id = ? AND status = 'pending'`, now.UnixNano(), input.LaunchID[:]); err != nil {
+			return InstalledLaunchBinding{}, err
+		}
+		if err := tx.Commit(); err != nil {
+			return InstalledLaunchBinding{}, err
+		}
+		return InstalledLaunchBinding{}, ErrInstalledLaunchExpired
+	}
+	if accountGeneration != input.AccountGeneration || !equalInstalledIdentifier(releaseDigest, input.ReleaseDigest) || !equalInstalledIdentifier(bootEpoch, store.bootEpoch) {
+		return InstalledLaunchBinding{}, ErrInstalledLaunchMismatch
+	}
+	bindDeadline := now.Add(InstalledProcessBindTTL)
+	if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'process_bound', process_id = ?, process_creation_marker = ?, bind_deadline_unix_nano = ? WHERE launch_id = ? AND status = 'pending'`, input.PID, input.CreationMarker, bindDeadline.UnixNano(), input.LaunchID[:]); err != nil {
+		return InstalledLaunchBinding{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return InstalledLaunchBinding{}, err
+	}
+	return InstalledLaunchBinding{LaunchID: input.LaunchID, BindDeadline: bindDeadline, Process: input}, nil
 }
 
 func (store *InstalledLaunchStore) Consume(ctx context.Context, input InstalledLaunchProcess) (InstalledSessionProjection, error) {
@@ -198,18 +254,23 @@ func (store *InstalledLaunchStore) Consume(ctx context.Context, input InstalledL
 	var releaseDigest, bootEpoch []byte
 	var accountGeneration uint64
 	var expires int64
-	err = tx.QueryRowContext(ctx, `SELECT app_id, release_digest, account_generation, runtime_boot_epoch, expires_unix_nano, status FROM installed_launch_ticket WHERE launch_id = ?`, input.LaunchID[:]).Scan(&appID, &releaseDigest, &accountGeneration, &bootEpoch, &expires, &status)
+	var bindDeadline, processID sql.NullInt64
+	var creationMarker sql.NullString
+	err = tx.QueryRowContext(ctx, `SELECT app_id, release_digest, account_generation, runtime_boot_epoch, expires_unix_nano, bind_deadline_unix_nano, process_id, process_creation_marker, status FROM installed_launch_ticket WHERE launch_id = ?`, input.LaunchID[:]).Scan(&appID, &releaseDigest, &accountGeneration, &bootEpoch, &expires, &bindDeadline, &processID, &creationMarker, &status)
 	if errors.Is(err, sql.ErrNoRows) {
 		return InstalledSessionProjection{}, ErrInstalledLaunchMismatch
 	}
 	if err != nil {
 		return InstalledSessionProjection{}, err
 	}
-	if status != "pending" {
+	if status != "process_bound" {
 		return InstalledSessionProjection{}, ErrInstalledLaunchReplay
 	}
-	if now.UnixNano() >= expires {
-		if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'expired', revoked_unix_nano = ? WHERE launch_id = ? AND status = 'pending'`, now.UnixNano(), input.LaunchID[:]); err != nil {
+	if !bindDeadline.Valid || !processID.Valid || !creationMarker.Valid {
+		return InstalledSessionProjection{}, ErrInstalledLaunchMismatch
+	}
+	if now.UnixNano() >= expires || now.UnixNano() >= bindDeadline.Int64 {
+		if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'expired', revoked_unix_nano = ? WHERE launch_id = ? AND status = 'process_bound'`, now.UnixNano(), input.LaunchID[:]); err != nil {
 			return InstalledSessionProjection{}, err
 		}
 		if err := tx.Commit(); err != nil {
@@ -217,7 +278,7 @@ func (store *InstalledLaunchStore) Consume(ctx context.Context, input InstalledL
 		}
 		return InstalledSessionProjection{}, ErrInstalledLaunchExpired
 	}
-	if accountGeneration != input.AccountGeneration || !equalInstalledIdentifier(releaseDigest, input.ReleaseDigest) || !equalInstalledIdentifier(bootEpoch, store.bootEpoch) {
+	if accountGeneration != input.AccountGeneration || processID.Int64 != int64(input.PID) || creationMarker.String != input.CreationMarker || !equalInstalledIdentifier(releaseDigest, input.ReleaseDigest) || !equalInstalledIdentifier(bootEpoch, store.bootEpoch) {
 		return InstalledSessionProjection{}, ErrInstalledLaunchMismatch
 	}
 	sessionID, err := readInstalledIdentifier(store.random)
@@ -230,7 +291,7 @@ func (store *InstalledLaunchStore) Consume(ctx context.Context, input InstalledL
 	}
 	proofHash := sha256.Sum256(sessionProof[:])
 	sessionExpiry := now.Add(installedSessionTTL)
-	if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'consumed', process_id = ?, process_creation_marker = ?, consumed_unix_nano = ? WHERE launch_id = ? AND status = 'pending'`, input.PID, input.CreationMarker, now.UnixNano(), input.LaunchID[:]); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'consumed', consumed_unix_nano = ? WHERE launch_id = ? AND status = 'process_bound'`, now.UnixNano(), input.LaunchID[:]); err != nil {
 		return InstalledSessionProjection{}, err
 	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO installed_app_session(session_id, session_proof_hash, launch_id, app_id, release_digest, account_generation, runtime_boot_epoch, process_id, process_creation_marker, issued_unix_nano, expires_unix_nano) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, sessionID[:], proofHash[:], input.LaunchID[:], appID, input.ReleaseDigest[:], input.AccountGeneration, store.bootEpoch[:], input.PID, input.CreationMarker, now.UnixNano(), sessionExpiry.UnixNano()); err != nil {
@@ -254,7 +315,7 @@ func (store *InstalledLaunchStore) RevokeAccountGeneration(ctx context.Context, 
 		return err
 	}
 	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'revoked', revoked_unix_nano = ? WHERE account_generation = ? AND status = 'pending'`, now, generation); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'revoked', revoked_unix_nano = ? WHERE account_generation = ? AND status IN ('pending','process_bound')`, now, generation); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE installed_app_session SET revoked_unix_nano = ? WHERE account_generation = ? AND revoked_unix_nano IS NULL`, now, generation); err != nil {
@@ -270,6 +331,16 @@ func (store *InstalledLaunchStore) RevokeSession(ctx context.Context, sessionID 
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	_, err := store.db.ExecContext(ctx, `UPDATE installed_app_session SET revoked_unix_nano = ? WHERE session_id = ? AND revoked_unix_nano IS NULL`, store.now().UTC().UnixNano(), sessionID[:])
+	return err
+}
+
+func (store *InstalledLaunchStore) RevokeLaunch(ctx context.Context, launchID protectedlocal.Identifier) error {
+	if store == nil || store.db == nil || launchID == (protectedlocal.Identifier{}) {
+		return ErrInstalledLaunchMismatch
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	_, err := store.db.ExecContext(ctx, `UPDATE installed_launch_ticket SET status = 'revoked', revoked_unix_nano = ? WHERE launch_id = ? AND status IN ('pending','process_bound')`, store.now().UTC().UnixNano(), launchID[:])
 	return err
 }
 

@@ -135,6 +135,9 @@ func newInstalledSessionFixtureWithAuthority(t *testing.T, storeBoot, peerBoot p
 		ExecutableDigest:            peerRelease,
 		ExecutableTrustSetID:        "installed-release-v1",
 	}
+	if _, err := store.BindProcess(context.Background(), InstalledLaunchProcess{LaunchID: ticket.LaunchID, PID: process.PID, CreationMarker: process.CreationMarker, ReleaseDigest: ticketRelease, AccountGeneration: ticketGeneration}); err != nil {
+		t.Fatalf("bind installed process: %v", err)
+	}
 	liveness := newDesktopSessionTestLiveness()
 	connection, err := protectedlocal.EstablishInstalledLaunchConnection(context.Background(), installedSessionVerifier{peer: protectedlocal.VerifiedInstalledLaunchPeer{
 		LaunchID: ticket.LaunchID, Process: process, RuntimeBootEpoch: peerBoot, ProcessLiveness: liveness,

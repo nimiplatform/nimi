@@ -96,6 +96,8 @@ type Service struct {
 	localAdoptions     *localAppAdoptionStore
 	lifecycleIntents   *protectedlocal.LifecycleIntentManager
 	installedLaunches  *authservice.InstalledLaunchStore
+	installedRegistry  *protectedlocal.InstalledLaunchRegistry
+	installedVerifier  protectedlocal.InstalledProcessVerifier
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
@@ -169,6 +171,13 @@ func WithLifecycleIntentManager(manager *protectedlocal.LifecycleIntentManager) 
 func WithInstalledLaunchStore(store *authservice.InstalledLaunchStore) Option {
 	return func(s *Service) {
 		s.installedLaunches = store
+	}
+}
+
+func WithInstalledLaunchProcessBinding(registry *protectedlocal.InstalledLaunchRegistry, verifier protectedlocal.InstalledProcessVerifier) Option {
+	return func(s *Service) {
+		s.installedRegistry = registry
+		s.installedVerifier = verifier
 	}
 }
 

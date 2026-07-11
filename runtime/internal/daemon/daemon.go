@@ -148,14 +148,19 @@ func NewProtectedFromWindowsSecurityState(cfg config.Config, logger *slog.Logger
 	if err != nil {
 		return fail(fmt.Errorf("adapt Windows protected connector custody: %w", err))
 	}
+	installedProcessVerifier, err := installedProcessVerifierForWindowsState(state)
+	if err != nil {
+		return fail(fmt.Errorf("construct Windows installed process verifier: %w", err))
+	}
 	return NewProtectedWithResources(cfg, logger, version, ProtectedRuntimeResources{
 		Bindings: grpcserver.ProtectedServiceBindings{
-			ServiceStateRoot: stateRoot,
-			AccountCustody:   accountCustody,
-			AccountPartition: accountPartition,
-			ConnectorSecrets: connectorSecrets,
-			DesktopSessions:  sessions,
-			LifecycleIntents: intents,
+			ServiceStateRoot:         stateRoot,
+			AccountCustody:           accountCustody,
+			AccountPartition:         accountPartition,
+			ConnectorSecrets:         connectorSecrets,
+			DesktopSessions:          sessions,
+			LifecycleIntents:         intents,
+			InstalledProcessVerifier: installedProcessVerifier,
 		},
 		Close: state.Close,
 	})

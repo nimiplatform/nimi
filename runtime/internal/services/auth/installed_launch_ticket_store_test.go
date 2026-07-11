@@ -30,14 +30,19 @@ func TestInstalledLaunchStorePersistsSingleUseAtomicSession(t *testing.T) {
 	if ticket.LaunchID == (protectedlocal.Identifier{}) || !ticket.BindDeadline.Equal(now.Add(InstalledLaunchTicketTTL)) {
 		t.Fatalf("invalid ticket: %+v", ticket)
 	}
-	session, err := store.Consume(context.Background(), InstalledLaunchProcess{LaunchID: ticket.LaunchID, PID: 4201, CreationMarker: "01dc", ReleaseDigest: release, AccountGeneration: 7})
+	process := InstalledLaunchProcess{LaunchID: ticket.LaunchID, PID: 4201, CreationMarker: "01dc", ReleaseDigest: release, AccountGeneration: 7}
+	binding, err := store.BindProcess(context.Background(), process)
+	if err != nil || !binding.BindDeadline.Equal(now.Add(InstalledProcessBindTTL)) {
+		t.Fatalf("bind process: binding=%+v err=%v", binding, err)
+	}
+	session, err := store.Consume(context.Background(), process)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if session.AppID != "world.nimi.app" || session.SessionID == (protectedlocal.Identifier{}) || session.SessionProof == (protectedlocal.Identifier{}) || session.RuntimeBootEpoch != boot {
 		t.Fatalf("invalid session: %+v", session)
 	}
-	if _, err := store.Consume(context.Background(), InstalledLaunchProcess{LaunchID: ticket.LaunchID, PID: 4201, CreationMarker: "01dc", ReleaseDigest: release, AccountGeneration: 7}); !errors.Is(err, ErrInstalledLaunchReplay) {
+	if _, err := store.Consume(context.Background(), process); !errors.Is(err, ErrInstalledLaunchReplay) {
 		t.Fatalf("replay error = %v", err)
 	}
 	if err := store.Close(); err != nil {
@@ -48,7 +53,7 @@ func TestInstalledLaunchStorePersistsSingleUseAtomicSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer reopened.Close()
-	if _, err := reopened.Consume(context.Background(), InstalledLaunchProcess{LaunchID: ticket.LaunchID, PID: 4201, CreationMarker: "01dc", ReleaseDigest: release, AccountGeneration: 7}); !errors.Is(err, ErrInstalledLaunchReplay) {
+	if _, err := reopened.Consume(context.Background(), process); !errors.Is(err, ErrInstalledLaunchReplay) {
 		t.Fatalf("durable replay error = %v", err)
 	}
 }
@@ -76,11 +81,11 @@ func TestInstalledLaunchStoreRejectsMismatchExpiryReplacementAndOldBoot(t *testi
 	if _, err := store.Consume(context.Background(), InstalledLaunchProcess{LaunchID: first.LaunchID, PID: 9, CreationMarker: "m1", ReleaseDigest: release, AccountGeneration: 9}); !errors.Is(err, ErrInstalledLaunchReplay) {
 		t.Fatalf("replaced ticket error = %v", err)
 	}
-	if _, err := store.Consume(context.Background(), InstalledLaunchProcess{LaunchID: second.LaunchID, PID: 9, CreationMarker: "m1", ReleaseDigest: installedIdentifier(0xff), AccountGeneration: 9}); !errors.Is(err, ErrInstalledLaunchMismatch) {
+	if _, err := store.BindProcess(context.Background(), InstalledLaunchProcess{LaunchID: second.LaunchID, PID: 9, CreationMarker: "m1", ReleaseDigest: installedIdentifier(0xff), AccountGeneration: 9}); !errors.Is(err, ErrInstalledLaunchMismatch) {
 		t.Fatalf("release mismatch error = %v", err)
 	}
 	now = now.Add(InstalledLaunchTicketTTL)
-	if _, err := store.Consume(context.Background(), InstalledLaunchProcess{LaunchID: second.LaunchID, PID: 9, CreationMarker: "m1", ReleaseDigest: release, AccountGeneration: 9}); !errors.Is(err, ErrInstalledLaunchExpired) {
+	if _, err := store.BindProcess(context.Background(), InstalledLaunchProcess{LaunchID: second.LaunchID, PID: 9, CreationMarker: "m1", ReleaseDigest: release, AccountGeneration: 9}); !errors.Is(err, ErrInstalledLaunchExpired) {
 		t.Fatalf("expiry error = %v", err)
 	}
 	third, err := store.Issue(context.Background(), InstalledLaunchIssue{AppID: "persona.nimi.app", ReleaseDigest: release, AccountGeneration: 9})

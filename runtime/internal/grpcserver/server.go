@@ -135,15 +135,16 @@ func isSourceMaterializationLoopbackHost(host string) bool {
 // principal, state root, and secure store have been verified. No field is
 // sourced from argv, environment, renderer IPC, or user-writable config.
 type ProtectedServiceBindings struct {
-	ServiceStateRoot        string
-	AccountCustody          accountservice.Custody
-	AccountPartition        string
-	AccountRealmBaseURL     string
-	AccountAuthorizationURL string
-	AccountTokenURL         string
-	ConnectorSecrets        connectorservice.SecretStore
-	DesktopSessions         *protectedlocal.DesktopSessionManager
-	LifecycleIntents        *protectedlocal.LifecycleIntentManager
+	ServiceStateRoot         string
+	AccountCustody           accountservice.Custody
+	AccountPartition         string
+	AccountRealmBaseURL      string
+	AccountAuthorizationURL  string
+	AccountTokenURL          string
+	ConnectorSecrets         connectorservice.SecretStore
+	DesktopSessions          *protectedlocal.DesktopSessionManager
+	LifecycleIntents         *protectedlocal.LifecycleIntentManager
+	InstalledProcessVerifier protectedlocal.InstalledProcessVerifier
 }
 
 func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
@@ -178,6 +179,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	appRegistry := appregistry.New()
 	var installedLaunchStore *authservice.InstalledLaunchStore
+	var installedLaunchRegistry *protectedlocal.InstalledLaunchRegistry
 	if protected != nil {
 		installedLaunchStore, err = authservice.OpenInstalledLaunchStore(
 			filepath.Join(protected.ServiceStateRoot, "installed-launch.db"),
@@ -185,6 +187,10 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		)
 		if err != nil {
 			return nil, fmt.Errorf("open installed launch store: %w", err)
+		}
+		installedLaunchRegistry, err = protectedlocal.NewInstalledLaunchRegistry(protected.DesktopSessions.BootEpoch())
+		if err != nil {
+			return nil, fmt.Errorf("create installed launch registry: %w", err)
 		}
 	}
 	keepInstalledLaunchStore := false
@@ -551,6 +557,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		appOptions = append(appOptions,
 			appservice.WithLifecycleIntentManager(protected.LifecycleIntents),
 			appservice.WithInstalledLaunchStore(installedLaunchStore),
+			appservice.WithInstalledLaunchProcessBinding(installedLaunchRegistry, protected.InstalledProcessVerifier),
 		)
 	}
 	appSvc := appservice.New(logger, appOptions...)

@@ -9,11 +9,13 @@ import (
 const WindowsProductionDesktopPipeName = `\\.\pipe\nimi-runtime-protected-v1`
 
 const (
-	WindowsExecutableRoleDesktop WindowsExecutableRole = "nimi_desktop"
-	WindowsExecutableRoleRuntime WindowsExecutableRole = "nimi_runtime_service"
+	WindowsExecutableRoleDesktop   WindowsExecutableRole = "nimi_desktop"
+	WindowsExecutableRoleRuntime   WindowsExecutableRole = "nimi_runtime_service"
+	WindowsExecutableRoleInstalled WindowsExecutableRole = "nimi_installed_app"
 
 	WindowsDesktopProductionTrustSetID = "nimi-desktop-production-v1"
 	WindowsRuntimeProductionTrustSetID = "nimi-runtime-production-v1"
+	WindowsInstalledReleaseTrustSetID  = "windows-platform-release-authenticode-v1"
 
 	windowsDesktopE2ETrustSetID = "nimi-desktop-e2e-fixture-v1"
 )

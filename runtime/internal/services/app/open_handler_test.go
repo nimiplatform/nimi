@@ -132,7 +132,11 @@ func TestOpenAppCreatesRuntimeOwnedLaunchRecordWithoutClaimingChildSuccess(t *te
 	}
 	var launchID protectedlocal.Identifier
 	copy(launchID[:], projection.GetLaunchId())
-	session, err := store.Consume(context.Background(), authservice.InstalledLaunchProcess{LaunchID: launchID, PID: 4401, CreationMarker: "01dc-installed", ReleaseDigest: digest, AccountGeneration: 7})
+	process := authservice.InstalledLaunchProcess{LaunchID: launchID, PID: 4401, CreationMarker: "01dc-installed", ReleaseDigest: digest, AccountGeneration: 7}
+	if _, err := store.BindProcess(context.Background(), process); err != nil {
+		t.Fatalf("bind installed launch: %v", err)
+	}
+	session, err := store.Consume(context.Background(), process)
 	if err != nil || session.AppID != "nimi.example-app" || session.RuntimeBootEpoch != boot {
 		t.Fatalf("atomic installed session = %+v, error = %v", session, err)
 	}

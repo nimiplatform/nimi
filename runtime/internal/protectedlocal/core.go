@@ -75,6 +75,8 @@ type ProcessTuple struct {
 	ExecutableTrustSetID        string
 }
 
+func ValidateProcessTuple(tuple ProcessTuple) error { return tuple.validate() }
+
 func (tuple ProcessTuple) validate() error {
 	switch tuple.OS {
 	case OSWindows, OSLinux, OSMacOS:
