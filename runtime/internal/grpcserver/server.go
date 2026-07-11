@@ -137,6 +137,8 @@ func isSourceMaterializationLoopbackHost(host string) bool {
 // sourced from argv, environment, renderer IPC, or user-writable config.
 type ProtectedServiceBindings struct {
 	ServiceStateRoot         string
+	PlatformAppRegistryPath  string
+	PlatformBundledAppsRoot  string
 	AccountCustody           accountservice.Custody
 	AccountPartition         string
 	AccountRealmBaseURL      string
@@ -161,6 +163,14 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	if bindings.AccountCustody == nil || strings.TrimSpace(bindings.AccountPartition) == "" || bindings.ConnectorSecrets == nil || bindings.DesktopSessions == nil || bindings.LifecycleIntents == nil {
 		return nil, fmt.Errorf("protected service custody, verified account partition, Desktop sessions, and lifecycle intent authority are required")
 	}
+	registryPath, err := normalizeOptionalProtectedResourcePath("Platform app registry", bindings.PlatformAppRegistryPath)
+	if err != nil {
+		return nil, err
+	}
+	bundledAppsRoot, err := normalizeOptionalProtectedResourcePath("Platform bundled apps root", bindings.PlatformBundledAppsRoot)
+	if err != nil {
+		return nil, err
+	}
 	if err := bindings.DesktopSessions.ValidateBootScoped(context.Background()); err != nil {
 		return nil, fmt.Errorf("validate protected Desktop session authority: %w", err)
 	}
@@ -168,8 +178,27 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 		return nil, fmt.Errorf("validate protected lifecycle intent authority: %w", err)
 	}
 	bindings.ServiceStateRoot = stateRoot
+	bindings.PlatformAppRegistryPath = registryPath
+	bindings.PlatformBundledAppsRoot = bundledAppsRoot
 	cfg.LocalStatePath = filepath.Join(stateRoot, "runtime", "local-state.json")
+	// Production catalog/release selection is a native bootstrap binding. The
+	// portable config/env fields remain available only to non-production
+	// harnesses and cannot select protected app admission or bundled code.
+	cfg.AppRegistryPath = registryPath
+	cfg.AppBundledArtifactsRoot = bundledAppsRoot
 	return newServer(cfg, state, logger, version, &bindings)
+}
+
+func normalizeOptionalProtectedResourcePath(label string, value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "", nil
+	}
+	cleaned := filepath.Clean(trimmed)
+	if !filepath.IsAbs(cleaned) || cleaned == filepath.VolumeName(cleaned)+string(filepath.Separator) {
+		return "", fmt.Errorf("%s must be an absolute non-root path", label)
+	}
+	return cleaned, nil
 }
 
 func newServer(cfg config.Config, state *health.State, logger *slog.Logger, version string, protected *ProtectedServiceBindings) (*Server, error) {

@@ -136,17 +136,16 @@ type Config struct {
 	// Default: ~/.nimi/runtime/model-catalog/providers
 	ModelCatalogCustomDir string
 
-	// AppRegistryPath points to the local projection of the Platform Nimi App
-	// registry. Empty means the daemon starts without a projection and
-	// Platform-governed Nimi App registrations fail closed. Runtime consumes
-	// this file read-only and does not own app admission truth.
+	// AppRegistryPath points to an explicit non-production projection of the
+	// Platform Nimi App registry. Protected production startup ignores this
+	// portable config/env field and accepts only its native service binding.
+	// Empty means Platform-governed Nimi App registrations fail closed.
 	AppRegistryPath string
 
-	// AppBundledArtifactsRoot points to the runtime-local directory holding
-	// first-party bundled Nimi App artifacts shipped inside the atomic Nimi
-	// release bundle. Each admitted bundled-with-nimi app artifact is the
-	// directory <AppBundledArtifactsRoot>/<app-id>. Empty disables the
-	// bundled install path; bundled descriptors then fail closed.
+	// AppBundledArtifactsRoot is the explicit non-production bundled-app fixture
+	// root. Protected production startup ignores this portable config/env field
+	// and accepts only the fixed native service resource binding. Empty disables
+	// the bundled install path.
 	AppBundledArtifactsRoot string
 
 	// EngineLlamaEnabled enables the supervised llama engine.

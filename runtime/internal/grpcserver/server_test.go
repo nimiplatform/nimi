@@ -123,6 +123,10 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(userStateRoot, "connectors", "connector-registry.json"), []byte("not-json"), 0o600); err != nil {
 		t.Fatalf("write untrusted connector registry: %v", err)
 	}
+	untrustedRegistry := filepath.Join(userStateRoot, "nimi-app-registry.yaml")
+	if err := os.WriteFile(untrustedRegistry, []byte("apps: ["), 0o600); err != nil {
+		t.Fatalf("write untrusted app registry: %v", err)
+	}
 	cfg := config.Config{
 		GRPCAddr:                "127.0.0.1:0",
 		HTTPAddr:                "127.0.0.1:0",
@@ -131,6 +135,8 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 		AccountRealmBaseURL:     "https://user-config.invalid",
 		AccountAuthorizationURL: "https://user-config.invalid/oauth/authorize",
 		AccountTokenURL:         "https://user-config.invalid/oauth/token",
+		AppRegistryPath:         untrustedRegistry,
+		AppBundledArtifactsRoot: filepath.Join(userStateRoot, "untrusted-bundled-apps"),
 		AuditRingBufferSize:     64,
 		UsageStatsBufferSize:    64,
 		IdempotencyCapacity:     32,
@@ -179,6 +185,28 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 		t.Fatal("plain context unexpectedly opened a protected Desktop session")
 	} else if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED {
 		t.Fatalf("protected auth service manager injection reason = %v (present=%v), err=%v", reason, ok, err)
+	}
+}
+
+func TestProtectedServiceRejectsPortableProtectedResourceBindings(t *testing.T) {
+	authorities := newProtectedAuthoritiesForServerTest(t)
+	_, err := NewProtectedService(
+		config.Config{},
+		health.NewState(),
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		"test",
+		ProtectedServiceBindings{
+			ServiceStateRoot:        t.TempDir(),
+			PlatformAppRegistryPath: "relative/nimi-app-registry.yaml",
+			AccountCustody:          emptyProtectedAccountCustody{},
+			AccountPartition:        "verified-user-and-logon-session",
+			ConnectorSecrets:        emptyProtectedConnectorSecrets{},
+			DesktopSessions:         authorities.desktop,
+			LifecycleIntents:        authorities.lifecycle,
+		},
+	)
+	if err == nil || !strings.Contains(err.Error(), "Platform app registry must be an absolute non-root path") {
+		t.Fatalf("relative protected catalog binding err = %v", err)
 	}
 }
 

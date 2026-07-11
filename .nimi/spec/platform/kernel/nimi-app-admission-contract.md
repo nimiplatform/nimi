@@ -771,6 +771,14 @@ AIConfig, storage, or Runtime OpenApp gates.
 
 **A.1 authority disposition:** Windows is admitted independently through K-PLOCAL-008. Runtime owns the durable short-lived launch record, verified child-process binding and atomic installed session; Platform installer/release authority supplies the exact executable, active release digest and signing policy. Desktop/Kit start that exact executable suspended and carry only the host-private launch/PID binding call; the child opens the fixed service-owned installed pipe itself, allowing Runtime to compare the native pipe peer PID with the retained verified process. `OpenApp` returns a non-authorizing launch correlation id, never a portable ticket. Renderer metadata, ordinary gRPC, inherited pipe handles, local adoption alone, tester registration and app self-report remain non-authorizing. macOS/Linux remain fail-closed until separately admitted and cannot claim A.1 completion.
 
+**A.2 protected catalog custody:** Production Runtime ignores portable config,
+environment and user-selected `AppRegistryPath` / bundled-artifact roots for
+app admission. Only the native service bootstrap may bind fixed Platform
+registry/release and bundled-app resource paths from the trusted installation;
+an absent binding leaves product app admission fail-closed without degrading to
+the portable path. Non-production harnesses may supply explicit fixture paths,
+but those paths cannot produce product readiness or signing evidence.
+
 ## Fact Sources
 
 - `.nimi/spec/platform/kernel/architecture-contract.md` — `P-ARCH-001..P-ARCH-021`
