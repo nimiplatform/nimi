@@ -365,7 +365,7 @@ impl DesktopLocalDevelopmentRuntime {
                     }
                     _ => {
                         run.fail_host_error(error).await;
-                        let _ = run.cancel_tx.send(true);
+                        run.cancel_tx.send_replace(true);
                         AuthorityRefresh::Terminal
                     }
                 };
@@ -379,7 +379,7 @@ impl DesktopLocalDevelopmentRuntime {
             )
             .await;
             let _ = runtime_bridge::terminate_local_development_host(run.supervisor_run_id);
-            let _ = run.cancel_tx.send(true);
+            run.cancel_tx.send_replace(true);
             return AuthorityRefresh::Terminal;
         }
         if evaluation.confirmation_required {
@@ -464,7 +464,7 @@ impl DesktopLocalDevelopmentRuntime {
 
     pub(crate) async fn cancel(&self, run_id: &str) -> Option<LocalDevelopmentRunStatus> {
         let run = self.inner.runs.read().await.get(run_id).cloned()?;
-        let _ = run.cancel_tx.send(true);
+        run.cancel_tx.send_replace(true);
         if run.authorization_id.read().await.is_none() {
             self.inner
                 .pending
@@ -618,7 +618,7 @@ impl DesktopLocalDevelopmentRuntime {
                 .map_err(|error| error.reason_code().as_str().to_string())?;
         for run in self.inner.runs.read().await.values() {
             if run.authorization_id.read().await.as_ref() == Some(&authorization_id) {
-                let _ = run.cancel_tx.send(true);
+                run.cancel_tx.send_replace(true);
                 run.set_state(
                     "revoked",
                     "Development authorization was revoked",
@@ -643,7 +643,7 @@ impl DesktopLocalDevelopmentRuntime {
             }
         }
         for run in self.inner.runs.read().await.values() {
-            let _ = run.cancel_tx.send(true);
+            run.cancel_tx.send_replace(true);
         }
         let _ = fs::remove_file(&self.inner.descriptor_path);
     }

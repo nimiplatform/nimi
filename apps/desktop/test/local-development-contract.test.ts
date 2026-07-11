@@ -55,6 +55,20 @@ test('Desktop owns Tauri build and launch without a project-visible runner secre
   assert.equal(readRepo('app-tools/package.json').includes('nimi-tauri-dev-runner'), false);
 });
 
+test('Desktop cancellation preempts builds and renderer readiness before host launch', () => {
+  const supervisor = read('src-tauri/src/desktop_local_development/supervisor.rs');
+  const runtime = read('src-tauri/src/desktop_local_development/mod.rs');
+  assert.match(supervisor, /const RUN_CANCELLED_REASON:/);
+  assert.match(supervisor, /async fn wait_for_child_or_cancel/);
+  assert.match(supervisor, /async fn wait_for_renderer[\s\S]*run\.cancel_tx\.subscribe\(\)/);
+  assert.match(supervisor, /tokio::select!\s*\{[\s\S]*cancel\.changed\(\)/);
+  assert.match(supervisor, /ensure_run_active\(&run\.cancel_tx\)\?/);
+  assert.match(supervisor, /wait_for_child_or_cancel\(run, &mut child/);
+  assert.match(supervisor, /wait_or_cancel\(&mut cancel, SOURCE_REBUILD_DEBOUNCE\)/);
+  assert.match(runtime, /cancel_tx\.send_replace\(true\)/);
+  assert.doesNotMatch(runtime, /cancel_tx\.send\(true\)/);
+});
+
 test('Desktop independently requires official launcher scripts and exposes fail-closed run states', () => {
   const plan = read('src-tauri/src/desktop_local_development/plan.rs');
   const activity = read('src/shell/renderer/features/local-development/local-development-authorizations.tsx');

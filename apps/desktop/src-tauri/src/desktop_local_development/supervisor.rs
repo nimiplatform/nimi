@@ -9,12 +9,13 @@ use std::{path::Path, process::Stdio, sync::Arc, time::Duration};
 use tokio::{
     io::{AsyncBufReadExt, AsyncRead, BufReader},
     process::{Child, Command},
-    sync::mpsc,
+    sync::{mpsc, watch},
 };
 
 const RENDERER_READY_TIMEOUT: Duration = Duration::from_secs(60);
 const HOST_HEALTH_INTERVAL: Duration = Duration::from_secs(2);
 const SOURCE_REBUILD_DEBOUNCE: Duration = Duration::from_millis(450);
+const RUN_CANCELLED_REASON: &str = "local-development-run-cancelled";
 
 pub(super) async fn run(runtime: DesktopLocalDevelopmentRuntime, run: Arc<RunContext>) {
     let result = match run.plan.shell.clone() {
@@ -67,8 +68,10 @@ async fn run_electron(
     .await;
     run_package_script(run.clone(), "build:electron").await?;
     let mut renderer = spawn_package_script(run.clone(), "dev:renderer").await?;
-    if let Err(error) = wait_for_renderer(&run.plan.renderer_origin, &mut renderer).await {
-        let _ = renderer.kill().await;
+    if let Err(error) =
+        wait_for_renderer(run.clone(), &run.plan.renderer_origin, &mut renderer).await
+    {
+        terminate_child(&mut renderer).await;
         return Err(error);
     }
     if let Err(error) = launch_electron_host(run.clone()).await {
@@ -88,6 +91,11 @@ async fn run_electron(
         .map_err(|_| "local-development-supervisor-required".to_string())?;
     let mut health = tokio::time::interval(HOST_HEALTH_INTERVAL);
     let mut cancel = run.cancel_tx.subscribe();
+    if ensure_cancel_receiver_active(&cancel).is_err() {
+        terminate_child(&mut renderer).await;
+        drop(watcher);
+        return Ok(());
+    }
     loop {
         tokio::select! {
             changed = cancel.changed() => {
@@ -99,7 +107,9 @@ async fn run_electron(
                 return Err(renderer_exit_reason(status));
             }
             _ = watch_rx.recv() => {
-                tokio::time::sleep(SOURCE_REBUILD_DEBOUNCE).await;
+                if wait_or_cancel(&mut cancel, SOURCE_REBUILD_DEBOUNCE).await.is_err() {
+                    break;
+                }
                 while watch_rx.try_recv().is_ok() {}
                 run.set_state("restarting", "Rebuilding Electron main and preload", None, true).await;
                 match run_package_script(run.clone(), "build:electron").await {
@@ -108,6 +118,7 @@ async fn run_electron(
                             record_launch_error(&run, &error).await;
                         }
                     }
+                    Err(error) if error == RUN_CANCELLED_REASON => break,
                     Err(error) => {
                         run.set_state("build-failed", &error, Some("local-development-build-failed"), true).await;
                     }
@@ -145,8 +156,10 @@ async fn run_tauri(
     run.set_state("building", "Starting the supervised renderer", None, false)
         .await;
     let mut renderer = spawn_package_script(run.clone(), "dev:renderer").await?;
-    if let Err(error) = wait_for_renderer(&run.plan.renderer_origin, &mut renderer).await {
-        let _ = renderer.kill().await;
+    if let Err(error) =
+        wait_for_renderer(run.clone(), &run.plan.renderer_origin, &mut renderer).await
+    {
+        terminate_child(&mut renderer).await;
         return Err(error);
     }
     run.set_state(
@@ -172,6 +185,12 @@ async fn run_tauri(
         .map_err(|_| "local-development-supervisor-required".to_string())?;
     let mut cancel = run.cancel_tx.subscribe();
     let mut health = tokio::time::interval(HOST_HEALTH_INTERVAL);
+    if ensure_cancel_receiver_active(&cancel).is_err() {
+        let _ = runtime_bridge::terminate_local_development_host(run.supervisor_run_id);
+        terminate_child(&mut renderer).await;
+        drop(watcher);
+        return Ok(());
+    }
     loop {
         tokio::select! {
             changed = cancel.changed() => {
@@ -185,7 +204,9 @@ async fn run_tauri(
                 return Err(renderer_exit_reason(status));
             }
             _ = watch_rx.recv() => {
-                tokio::time::sleep(SOURCE_REBUILD_DEBOUNCE).await;
+                if wait_or_cancel(&mut cancel, SOURCE_REBUILD_DEBOUNCE).await.is_err() {
+                    break Ok(());
+                }
                 while watch_rx.try_recv().is_ok() {}
                 let _ = runtime_bridge::terminate_local_development_host(run.supervisor_run_id);
                 run.set_state("building", "Rebuilding the supervised Tauri host", None, true).await;
@@ -195,6 +216,7 @@ async fn run_tauri(
                             record_launch_error(&run, &error).await;
                         }
                     }
+                    Err(error) if error == RUN_CANCELLED_REASON => break Ok(()),
                     Err(error) => {
                         run.set_state("build-failed", &error, Some("local-development-build-failed"), true).await;
                     }
@@ -226,6 +248,7 @@ async fn run_tauri(
 }
 
 async fn build_tauri_host(run: Arc<RunContext>) -> Result<(), String> {
+    ensure_run_active(&run.cancel_tx)?;
     let DevelopmentShellPlan::Tauri {
         cargo_manifest,
         cargo_package,
@@ -253,11 +276,9 @@ async fn build_tauri_host(run: Arc<RunContext>) -> Result<(), String> {
     let mut child = command
         .spawn()
         .map_err(|_| "local-development-build-failed".to_string())?;
-    attach_child_logs(run, &mut child, "tauri:build");
-    let status = child
-        .wait()
-        .await
-        .map_err(|_| "local-development-build-failed".to_string())?;
+    attach_child_logs(run.clone(), &mut child, "tauri:build");
+    let status =
+        wait_for_child_or_cancel(run, &mut child, "local-development-build-failed").await?;
     if status.success() {
         Ok(())
     } else {
@@ -269,6 +290,7 @@ async fn build_tauri_host(run: Arc<RunContext>) -> Result<(), String> {
 }
 
 async fn launch_tauri_host(run: Arc<RunContext>) -> Result<(), String> {
+    ensure_run_active(&run.cancel_tx)?;
     let DevelopmentShellPlan::Tauri {
         host_executable, ..
     } = &run.plan.shell
@@ -298,11 +320,16 @@ async fn launch_tauri_host(run: Arc<RunContext>) -> Result<(), String> {
     })
     .await
     .map_err(|error| error.reason_code().as_str().to_string())?;
+    if let Err(error) = ensure_run_active(&run.cancel_tx) {
+        let _ = runtime_bridge::terminate_local_development_host(run.supervisor_run_id);
+        return Err(error);
+    }
     run.mark_running(outcome.process_id).await;
     Ok(())
 }
 
 async fn relaunch_last_tauri_host(run: Arc<RunContext>) -> Result<(), String> {
+    ensure_run_active(&run.cancel_tx)?;
     let (host_executable_path, host_arguments) = run
         .last_tauri_launch
         .read()
@@ -320,11 +347,16 @@ async fn relaunch_last_tauri_host(run: Arc<RunContext>) -> Result<(), String> {
     })
     .await
     .map_err(|error| error.reason_code().as_str().to_string())?;
+    if let Err(error) = ensure_run_active(&run.cancel_tx) {
+        let _ = runtime_bridge::terminate_local_development_host(run.supervisor_run_id);
+        return Err(error);
+    }
     run.mark_running(outcome.process_id).await;
     Ok(())
 }
 
 async fn launch_electron_host(run: Arc<RunContext>) -> Result<(), String> {
+    ensure_run_active(&run.cancel_tx)?;
     let DevelopmentShellPlan::Electron {
         electron_executable,
         main_entry,
@@ -353,6 +385,10 @@ async fn launch_electron_host(run: Arc<RunContext>) -> Result<(), String> {
     })
     .await
     .map_err(|error| error.reason_code().as_str().to_string())?;
+    if let Err(error) = ensure_run_active(&run.cancel_tx) {
+        let _ = runtime_bridge::terminate_local_development_host(run.supervisor_run_id);
+        return Err(error);
+    }
     run.mark_running(outcome.process_id).await;
     Ok(())
 }
@@ -377,10 +413,8 @@ async fn record_launch_error(run: &RunContext, reason: &str) {
 
 async fn run_package_script(run: Arc<RunContext>, script: &str) -> Result<(), String> {
     let mut child = spawn_package_script(run.clone(), script).await?;
-    let status = child
-        .wait()
-        .await
-        .map_err(|_| "local-development-build-failed".to_string())?;
+    let status =
+        wait_for_child_or_cancel(run, &mut child, "local-development-build-failed").await?;
     if !status.success() {
         return Err(format!(
             "local-development-build-failed-{}",
@@ -391,6 +425,7 @@ async fn run_package_script(run: Arc<RunContext>, script: &str) -> Result<(), St
 }
 
 async fn spawn_package_script(run: Arc<RunContext>, script: &str) -> Result<Child, String> {
+    ensure_run_active(&run.cancel_tx)?;
     let mut command = corepack_command();
     command
         .current_dir(&run.plan.project_root)
@@ -444,7 +479,14 @@ fn renderer_exit_reason(status: std::io::Result<std::process::ExitStatus>) -> St
     }
 }
 
-async fn wait_for_renderer(origin: &str, renderer: &mut Child) -> Result<(), String> {
+async fn wait_for_renderer(
+    run: Arc<RunContext>,
+    origin: &str,
+    renderer: &mut Child,
+) -> Result<(), String> {
+    ensure_run_active(&run.cancel_tx)?;
+    let mut cancel = run.cancel_tx.subscribe();
+    ensure_cancel_receiver_active(&cancel)?;
     let client = reqwest::Client::builder()
         .no_proxy()
         .redirect(reqwest::redirect::Policy::none())
@@ -465,9 +507,18 @@ async fn wait_for_renderer(origin: &str, renderer: &mut Child) -> Result<(), Str
         if tokio::time::Instant::now() >= deadline {
             return Err("local-development-dev-server-unavailable".to_string());
         }
-        match client.get(origin).send().await {
+        let response = tokio::select! {
+            changed = cancel.changed() => {
+                if changed.is_err() || *cancel.borrow() {
+                    return Err(RUN_CANCELLED_REASON.to_string());
+                }
+                continue;
+            }
+            response = client.get(origin).send() => response,
+        };
+        match response {
             Ok(response) if response.status().as_u16() < 500 => {
-                tokio::time::sleep(Duration::from_millis(250)).await;
+                wait_or_cancel(&mut cancel, Duration::from_millis(250)).await?;
                 if let Some(status) = renderer
                     .try_wait()
                     .map_err(|_| "local-development-dev-server-uncontrolled".to_string())?
@@ -479,8 +530,106 @@ async fn wait_for_renderer(origin: &str, renderer: &mut Child) -> Result<(), Str
                 }
                 return Ok(());
             }
-            _ => tokio::time::sleep(Duration::from_millis(350)).await,
+            _ => wait_or_cancel(&mut cancel, Duration::from_millis(350)).await?,
         }
+    }
+}
+
+fn ensure_run_active(cancel_tx: &watch::Sender<bool>) -> Result<(), String> {
+    if *cancel_tx.borrow() {
+        return Err(RUN_CANCELLED_REASON.to_string());
+    }
+    Ok(())
+}
+
+fn ensure_cancel_receiver_active(cancel: &watch::Receiver<bool>) -> Result<(), String> {
+    if *cancel.borrow() {
+        return Err(RUN_CANCELLED_REASON.to_string());
+    }
+    Ok(())
+}
+
+async fn wait_for_child_or_cancel(
+    run: Arc<RunContext>,
+    child: &mut Child,
+    failure_reason: &str,
+) -> Result<std::process::ExitStatus, String> {
+    if let Err(error) = ensure_run_active(&run.cancel_tx) {
+        terminate_child(child).await;
+        return Err(error);
+    }
+    let mut cancel = run.cancel_tx.subscribe();
+    if let Err(error) = ensure_cancel_receiver_active(&cancel) {
+        terminate_child(child).await;
+        return Err(error);
+    }
+    tokio::select! {
+        status = child.wait() => status.map_err(|_| failure_reason.to_string()),
+        changed = cancel.changed() => {
+            if changed.is_err() || *cancel.borrow() {
+                terminate_child(child).await;
+                Err(RUN_CANCELLED_REASON.to_string())
+            } else {
+                Err(failure_reason.to_string())
+            }
+        }
+    }
+}
+
+async fn wait_or_cancel(
+    cancel: &mut watch::Receiver<bool>,
+    duration: Duration,
+) -> Result<(), String> {
+    if *cancel.borrow() {
+        return Err(RUN_CANCELLED_REASON.to_string());
+    }
+    tokio::select! {
+        _ = tokio::time::sleep(duration) => Ok(()),
+        changed = cancel.changed() => {
+            if changed.is_err() || *cancel.borrow() {
+                Err(RUN_CANCELLED_REASON.to_string())
+            } else {
+                Ok(())
+            }
+        }
+    }
+}
+
+async fn terminate_child(child: &mut Child) {
+    let _ = child.kill().await;
+    let _ = child.wait().await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn run_guard_rejects_a_pre_cancelled_supervisor() {
+        let (cancel_tx, cancel_rx) = watch::channel(false);
+        assert!(ensure_run_active(&cancel_tx).is_ok());
+        drop(cancel_rx);
+        cancel_tx.send_replace(true);
+        assert_eq!(
+            ensure_run_active(&cancel_tx).unwrap_err(),
+            RUN_CANCELLED_REASON
+        );
+    }
+
+    #[tokio::test]
+    async fn cancellation_preempts_supervisor_waits() {
+        let (cancel_tx, mut cancel_rx) = watch::channel(false);
+        let wait =
+            tokio::spawn(
+                async move { wait_or_cancel(&mut cancel_rx, Duration::from_secs(30)).await },
+            );
+        tokio::task::yield_now().await;
+        cancel_tx.send_replace(true);
+        let result = tokio::time::timeout(Duration::from_secs(1), wait)
+            .await
+            .expect("cancellation must preempt the wait")
+            .expect("wait task");
+        assert_eq!(result.unwrap_err(), RUN_CANCELLED_REASON);
     }
 }
 
