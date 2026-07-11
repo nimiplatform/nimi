@@ -130,12 +130,19 @@ function checkRuntimeBrokerTokenLeak() {
 function checkSdkInstalledBootstrap() {
   const bootstrap = read('sdks/typescript/core/app/installed-app-bootstrap.ts');
   const realm = read('sdks/typescript/core/app/runtime-account-realm.ts');
-  requireMatch(bootstrap, /createRuntimeAccountMediatedRealmTransport/u, 'installed app bootstrap does not use mediated Realm');
-  forbidMatch(bootstrap, /createRealmWithRuntimeAccountToken|getAccessToken|refreshAccountSession/u, 'installed app bootstrap exposes raw token or refresh');
-  requireMatch(bootstrap, /assertNoRendererOwnedAuthCustody/u, 'installed app bootstrap does not reject renderer auth custody');
+  requireMatch(bootstrap, /export function createInstalledNimiAppBootstrap/u, 'installed app bootstrap constructor is missing');
+  requireMatch(bootstrap, /InstalledNimiAppStandardShellSurface/u, 'installed app bootstrap does not require the typed standard shell');
+  requireMatch(bootstrap, /readRuntimeBytes/u, 'installed app bootstrap does not expose the protected artifact reader');
+  requireMatch(bootstrap, /Object\.keys\(record\)\.sort\(\)[\s\S]*\['standardShell'\]/u, 'installed app bootstrap does not reject renderer-owned authority fields');
+  forbidMatch(
+    bootstrap,
+    /createRuntimeAccountMediatedRealmTransport|createRealmWithRuntimeAccountToken|getAccessToken|refreshAccountSession|accountCaller|authMetadata|developerRegistration/u,
+    'installed app bootstrap exposes renderer-owned account or Realm authority',
+  );
   forbidMatch(realm, /createRealmWithRuntimeAccountToken|getAccessToken|refreshAccountSession/u, 'SDK Realm helper exposes public account credential access');
   run(process.execPath, [
     '--import', 'tsx', '--test',
+    'core/app/installed-app-bootstrap.test.ts',
     'core/app/runtime-account-realm.test.ts',
     'runtime/account-caller.test.ts',
     'runtime/shared-auth-surface.test.ts',
