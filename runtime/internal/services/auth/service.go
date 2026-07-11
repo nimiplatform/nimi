@@ -73,21 +73,33 @@ type externalSession struct {
 
 type Option func(*Service)
 
+type runtimeAccountSecurityContextProvider interface {
+	AuthenticatedRuntimeSecurityContext(context.Context) (*runtimev1.AccountProjection, uint64, bool)
+}
+
 func WithDesktopSessionManager(manager *protectedlocal.DesktopSessionManager) Option {
 	return func(service *Service) {
 		service.desktopSessions = manager
 	}
 }
 
+func WithInstalledLaunchStore(store *InstalledLaunchStore) Option {
+	return func(service *Service) {
+		service.installedLaunches = store
+	}
+}
+
 // Service implements RuntimeAuthService with in-memory session storage.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAuthServiceServer
-	logger          *slog.Logger
-	registry        *appregistry.Registry
-	nimiApps        *appregistrycatalog.Registry
-	migrations      *firstpartymigration.LaunchGate
-	auditStore      *auditlog.Store
-	desktopSessions *protectedlocal.DesktopSessionManager
+	logger            *slog.Logger
+	registry          *appregistry.Registry
+	nimiApps          *appregistrycatalog.Registry
+	migrations        *firstpartymigration.LaunchGate
+	auditStore        *auditlog.Store
+	desktopSessions   *protectedlocal.DesktopSessionManager
+	installedLaunches *InstalledLaunchStore
+	accountSecurity   runtimeAccountSecurityContextProvider
 
 	// TTL bounds (K-AUTHSVC-004).
 	ttlMinSeconds int32
@@ -146,6 +158,10 @@ func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, au
 
 func (s *Service) SetNimiAppRegistryCatalog(registry *appregistrycatalog.Registry) {
 	s.nimiApps = registry
+}
+
+func (s *Service) SetRuntimeAccountSecurityContextProvider(provider runtimeAccountSecurityContextProvider) {
+	s.accountSecurity = provider
 }
 
 func (s *Service) SetFirstPartyMigrationLaunchGate(gate *firstpartymigration.LaunchGate) {

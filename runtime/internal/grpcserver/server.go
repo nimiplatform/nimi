@@ -232,6 +232,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	authOptions := make([]authservice.Option, 0, 1)
 	if protected != nil {
 		authOptions = append(authOptions, authservice.WithDesktopSessionManager(protected.DesktopSessions))
+		authOptions = append(authOptions, authservice.WithInstalledLaunchStore(installedLaunchStore))
 	}
 	authSvc := authservice.NewWithDependencies(
 		logger, appRegistry, auditStore,
@@ -254,6 +255,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			AppSessionValidator: authSvc,
 		})
 	}
+	authSvc.SetRuntimeAccountSecurityContextProvider(accountSvc)
 
 	// AuthN validator — JWKS mode (K-AUTHN-004). revocationUrl shares the
 	// bearer JWT restart config group with issuer/audience/jwksUrl, so the full

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -26,6 +27,7 @@ var (
 	ErrInstalledLaunchMismatch = errors.New("installed launch binding mismatch")
 	ErrInstalledLaunchReplay   = errors.New("installed launch already consumed or revoked")
 	ErrInstalledLaunchExpired  = errors.New("installed launch expired")
+	ErrInstalledSessionRevoked = errors.New("installed session expired or revoked")
 )
 
 type InstalledLaunchIssue struct {
@@ -57,12 +59,30 @@ type InstalledSessionProjection struct {
 	RuntimeBootEpoch  protectedlocal.Identifier
 }
 
+type InstalledSessionBinding struct {
+	SessionID         protectedlocal.Identifier
+	SessionProof      protectedlocal.Identifier
+	AppID             string
+	ReleaseDigest     protectedlocal.Identifier
+	PID               uint32
+	CreationMarker    string
+	AccountGeneration uint64
+	RuntimeBootEpoch  protectedlocal.Identifier
+}
+
 type InstalledLaunchStore struct {
 	db        *sql.DB
 	bootEpoch protectedlocal.Identifier
 	random    io.Reader
 	now       func() time.Time
 	mu        sync.Mutex
+}
+
+func (store *InstalledLaunchStore) BootEpoch() protectedlocal.Identifier {
+	if store == nil {
+		return protectedlocal.Identifier{}
+	}
+	return store.bootEpoch
 }
 
 func OpenInstalledLaunchStore(path string, bootEpoch protectedlocal.Identifier) (*InstalledLaunchStore, error) {
@@ -241,6 +261,52 @@ func (store *InstalledLaunchStore) RevokeAccountGeneration(ctx context.Context, 
 		return err
 	}
 	return tx.Commit()
+}
+
+func (store *InstalledLaunchStore) RevokeSession(ctx context.Context, sessionID protectedlocal.Identifier) error {
+	if store == nil || store.db == nil || sessionID == (protectedlocal.Identifier{}) {
+		return ErrInstalledLaunchMismatch
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	_, err := store.db.ExecContext(ctx, `UPDATE installed_app_session SET revoked_unix_nano = ? WHERE session_id = ? AND revoked_unix_nano IS NULL`, store.now().UTC().UnixNano(), sessionID[:])
+	return err
+}
+
+func (store *InstalledLaunchStore) ValidateSession(ctx context.Context, binding InstalledSessionBinding) error {
+	if store == nil || store.db == nil || binding.SessionID == (protectedlocal.Identifier{}) || binding.SessionProof == (protectedlocal.Identifier{}) ||
+		strings.TrimSpace(binding.AppID) == "" || binding.AppID != strings.TrimSpace(binding.AppID) || binding.ReleaseDigest == (protectedlocal.Identifier{}) ||
+		binding.PID == 0 || strings.TrimSpace(binding.CreationMarker) == "" || binding.CreationMarker != strings.TrimSpace(binding.CreationMarker) ||
+		binding.AccountGeneration == 0 || binding.RuntimeBootEpoch == (protectedlocal.Identifier{}) {
+		return ErrInstalledLaunchMismatch
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	var proofHash, releaseDigest, bootEpoch []byte
+	var appID, creationMarker string
+	var processID uint32
+	var accountGeneration uint64
+	var expiresAt int64
+	var revokedAt sql.NullInt64
+	err := store.db.QueryRowContext(ctx, `SELECT session_proof_hash, app_id, release_digest, account_generation, runtime_boot_epoch, process_id, process_creation_marker, expires_unix_nano, revoked_unix_nano FROM installed_app_session WHERE session_id = ?`, binding.SessionID[:]).Scan(
+		&proofHash, &appID, &releaseDigest, &accountGeneration, &bootEpoch, &processID, &creationMarker, &expiresAt, &revokedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrInstalledLaunchMismatch
+	}
+	if err != nil {
+		return err
+	}
+	if revokedAt.Valid || !store.now().UTC().Before(time.Unix(0, expiresAt)) {
+		return ErrInstalledSessionRevoked
+	}
+	expectedProofHash := sha256.Sum256(binding.SessionProof[:])
+	if subtle.ConstantTimeCompare(proofHash, expectedProofHash[:]) != 1 || appID != binding.AppID || processID != binding.PID || creationMarker != binding.CreationMarker ||
+		accountGeneration != binding.AccountGeneration || !equalInstalledIdentifier(releaseDigest, binding.ReleaseDigest) ||
+		!equalInstalledIdentifier(bootEpoch, binding.RuntimeBootEpoch) || binding.RuntimeBootEpoch != store.bootEpoch {
+		return ErrInstalledLaunchMismatch
+	}
+	return nil
 }
 
 func (store *InstalledLaunchStore) Close() error {
