@@ -1,18 +1,11 @@
 import type { CoreTransport } from '../../core-client';
 import { AccountCallerMode } from '../../core-generated/runtime-typed-client';
-import { Realm, createRealmFetchTransport } from '../../realm';
 import type { NimiRuntimeAccountCaller, Runtime } from '../../runtime';
 import { createNimiClientId, createNimiError, type CoreStreamRequest, type CoreUnaryRequest, ReasonCode } from '../../types';
-
-export type RuntimeAccountRealmRuntime = {
-  readonly account: Pick<Runtime['account'], 'getAccessToken'>;
-};
 
 export type RuntimeAccountMediatedRealmRuntime = {
   readonly account: Pick<Runtime['account'], 'invokeRealmUnary'>;
 };
-
-export type RuntimeAccountRealmFetch = typeof fetch;
 
 export function createRuntimeAccountMediatedRealmTransport(input: {
   readonly runtime: RuntimeAccountMediatedRealmRuntime;
@@ -65,39 +58,10 @@ export function createRuntimeAccountMediatedRealmTransport(input: {
   };
 }
 
-export function createRealmWithRuntimeAccountToken(input: {
-  readonly baseUrl: string;
-  readonly fetchImpl?: RuntimeAccountRealmFetch;
-  readonly runtime: RuntimeAccountRealmRuntime;
-  readonly accountCaller: NimiRuntimeAccountCaller;
-}): Realm {
-  if (input.accountCaller.mode !== AccountCallerMode.LOCAL_FIRST_PARTY_APP) {
-    throw createNimiError({
-      message: 'Raw Runtime account token Realm transport is restricted to explicitly admitted local first-party callers.',
-      reasonCode: 'SDK_RUNTIME_ACCOUNT_RAW_TOKEN_MODE_FORBIDDEN',
-      actionHint: 'use_runtime_account_mediated_realm_transport',
-      source: 'sdk',
-    });
-  }
-  return new Realm({
-    transport: createRealmFetchTransport({
-      baseUrl: input.baseUrl,
-      fetch: resolveFetchImpl(input.fetchImpl),
-      headers: async () => {
-        const accessToken = await getRuntimeAccountAccessToken(input);
-        return {
-          authorization: `Bearer ${accessToken}`,
-        };
-      },
-    }),
-  });
-}
-
 function assertRuntimeMediatedRealmCallerMode(caller: NimiRuntimeAccountCaller): void {
   if (
     caller.mode !== AccountCallerMode.LOCAL_FIRST_PARTY_APP
     && caller.mode !== AccountCallerMode.LOCAL_DEVELOPER_APP
-    && caller.mode !== AccountCallerMode.DESKTOP_LAUNCHED_NIMI_APP
     && caller.mode !== AccountCallerMode.DESKTOP_SHELL
   ) {
     throw createNimiError({
@@ -107,47 +71,6 @@ function assertRuntimeMediatedRealmCallerMode(caller: NimiRuntimeAccountCaller):
       source: 'sdk',
     });
   }
-}
-
-async function getRuntimeAccountAccessToken(input: {
-  readonly runtime: RuntimeAccountRealmRuntime;
-  readonly accountCaller: NimiRuntimeAccountCaller;
-}): Promise<string> {
-  const accessToken = await readRuntimeAccountAccessToken(input);
-  if (!accessToken) {
-    throw createNimiError({
-      message: 'Runtime account access token unavailable.',
-      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
-      actionHint: 'complete_runtime_account_login',
-      source: 'runtime',
-    });
-  }
-  return accessToken;
-}
-
-async function readRuntimeAccountAccessToken(input: {
-  readonly runtime: RuntimeAccountRealmRuntime;
-  readonly accountCaller: NimiRuntimeAccountCaller;
-}): Promise<string> {
-  const token = await input.runtime.account.getAccessToken({
-    caller: input.accountCaller,
-    requestedScopes: [],
-  });
-  const accessToken = normalizeText(token.accessToken);
-  return token.accepted && accessToken ? accessToken : '';
-}
-
-function resolveFetchImpl(fetchImpl: RuntimeAccountRealmFetch | undefined): RuntimeAccountRealmFetch {
-  const resolved = fetchImpl ?? globalThis.fetch?.bind(globalThis);
-  if (typeof resolved !== 'function') {
-    throw createNimiError({
-      message: 'Realm Runtime account helper requires a fetch implementation.',
-      reasonCode: ReasonCode.SDK_REALM_FETCH_UNAVAILABLE,
-      actionHint: 'provide_realm_fetch_transport_fetch',
-      source: 'sdk',
-    });
-  }
-  return resolved;
 }
 
 function withRuntimeRealmIdempotencyMetadata(

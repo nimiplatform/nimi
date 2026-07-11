@@ -10,10 +10,11 @@ import type {
   NimiRealmCoreSourceRef,
 } from '../realm/social';
 import type { Runtime } from './index';
-import type { NimiLocalFirstPartyAgentPresentationClient } from './local-first-party-agent-presentation';
 import type { NimiRuntimeRouteTargetRef } from './route-options';
 import type { NimiRuntimeAgentInitializedLocalAgent } from './runtime-agent-lifecycle';
 import type { NimiRuntimeAgentMaterializedRealmSource } from './runtime-agent-materialization';
+import type { NimiRuntimeAgentInspectSurface } from './runtime-agent-inspect-types';
+import type { NimiRuntimeAgentPresentationProfileSurface } from './runtime-agent-presentation';
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import {
   FIXTURE_REALM_ISSUER,
@@ -29,11 +30,15 @@ export type RuntimeAgentLiveE2ERealmRequest = {
   fixtureScenarioApml?: string;
 };
 
+export type RuntimeAgentLiveE2EAgentPresentationSurface =
+  Pick<NimiRuntimeAgentInspectSurface, 'getPresentationProfile'>
+  & NimiRuntimeAgentPresentationProfileSurface;
+
 export type RuntimeAgentLiveE2EFixtureContext = {
   readonly endpoint: string;
   readonly localModelsPath: string;
   readonly runtime: Runtime;
-  readonly agentPresentation: NimiLocalFirstPartyAgentPresentationClient;
+  readonly agentPresentation: RuntimeAgentLiveE2EAgentPresentationSurface;
   readonly realm: Realm;
   readonly realmBaseUrl: string;
   readonly realmRequests: readonly RuntimeAgentLiveE2ERealmRequest[];

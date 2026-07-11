@@ -1,5 +1,10 @@
 import { CoreClient, type CoreClientOptions, type CoreTransport } from '../core-client';
+import { RUNTIME_METHODS } from '../core-generated/runtime-client';
 import { RuntimeHealthStatus } from '../core-generated/runtime-protobuf/runtime/v1/audit';
+import {
+  runtimeRpcAuthPosture,
+  type RuntimeRpcAuthPosture,
+} from '../core-generated/runtime-rpc-auth-posture';
 import { RuntimeTypedClient } from '../core-generated/runtime-typed-client';
 import type {
   GetRuntimeHealthRequest,
@@ -130,7 +135,6 @@ export * from './external-agent';
 export * from './first-run-materialization';
 export * from './health-coordinator';
 export * from './local-asset-vocabulary';
-export * from './local-first-party-agent-presentation';
 export * from './runtime-local-model-center';
 export * from './runtime-local-profile-manifest';
 export * from './runtime-local-recommendation';
@@ -378,14 +382,14 @@ export class Runtime {
       ? options
       : new RuntimeTypedClient(this.core);
     this.generated = createPublicRuntimeGeneratedClient(generated);
-    this.account = bindRuntimeModule(generated, RUNTIME_ACCOUNT_METHODS);
+    this.account = bindRuntimeModule(this.generated, RUNTIME_ACCOUNT_METHODS);
     this.agents = bindRuntimeModule(generated, RUNTIME_AGENT_METHODS);
     this.ai = bindRuntimeModule(generated, RUNTIME_AI_METHODS);
     this.scheduling = bindRuntimeModule(generated, RUNTIME_SCHEDULING_METHODS);
     this.realtime = bindRuntimeModule(generated, RUNTIME_REALTIME_METHODS);
     this.connectors = bindRuntimeModule(generated, RUNTIME_CONNECTOR_METHODS);
     this.auth = bindRuntimeModule(generated, RUNTIME_AUTH_METHODS);
-    this.grants = bindRuntimeModule(generated, RUNTIME_GRANT_METHODS);
+    this.grants = bindRuntimeModule(this.generated, RUNTIME_GRANT_METHODS);
     this.externalAgents = bindRuntimeModule(generated, RUNTIME_EXTERNAL_AGENT_METHODS);
     this.audit = bindRuntimeModule(generated, RUNTIME_AUDIT_METHODS);
     this.knowledge = bindRuntimeModule(generated, RUNTIME_KNOWLEDGE_METHODS);
@@ -536,10 +540,35 @@ function createPublicRuntimeGeneratedClient(client: RuntimeTypedClient): Runtime
           });
         };
       }
+      if (typeof property === 'string' && RUNTIME_PUBLIC_GENERATED_BLOCKED_METHODS.has(property)) {
+        return async () => {
+          throw createNimiError({
+            message: `Runtime protected method ${property} is unavailable on the public generated client.`,
+            reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+            actionHint: 'use_admitted_protected_runtime_carrier',
+            source: 'sdk',
+          });
+        };
+      }
       return Reflect.get(target, property, receiver);
     },
   });
 }
+
+const RUNTIME_PUBLIC_GENERATED_BLOCKED_POSTURES = new Set<RuntimeRpcAuthPosture>([
+  'protected_origin_required',
+  'deny_all_tombstone',
+  'blocked_pending_authority',
+]);
+
+const RUNTIME_PUBLIC_GENERATED_BLOCKED_METHODS = new Set(
+  RUNTIME_METHODS
+    .filter(({ methodId }) => {
+      const posture = runtimeRpcAuthPosture(methodId);
+      return posture !== null && RUNTIME_PUBLIC_GENERATED_BLOCKED_POSTURES.has(posture);
+    })
+    .map(({ method }) => `${method.slice(0, 1).toLowerCase()}${method.slice(1)}`),
+);
 
 function toCoreClientOptions(
   options: RuntimeOptions,

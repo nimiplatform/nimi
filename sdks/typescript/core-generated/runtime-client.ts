@@ -31,14 +31,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CompleteLoginResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
-    "service": "RuntimeAccountService",
-    "method": "GetAccessToken",
-    "kind": "unary",
-    "requestType": "GetAccessTokenRequest",
-    "responseType": "GetAccessTokenResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
     "service": "RuntimeAccountService",
     "method": "GetAccountSessionStatus",
@@ -77,14 +69,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "LogoutRequest",
     "responseType": "LogoutResponse"
-  },
-  {
-    "methodId": "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
-    "service": "RuntimeAccountService",
-    "method": "RefreshAccountSession",
-    "kind": "unary",
-    "requestType": "RefreshAccountSessionRequest",
-    "responseType": "RefreshAccountSessionResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
@@ -807,6 +791,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetAppInstallJobResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
+    "service": "RuntimeAppService",
+    "method": "GetAppLifecycleIntentStatus",
+    "kind": "unary",
+    "requestType": "GetAppLifecycleIntentStatusRequest",
+    "responseType": "GetAppLifecycleIntentStatusResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
     "service": "RuntimeAppService",
     "method": "GetAppPackageReadiness",
@@ -861,6 +853,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "OpenAppRequest",
     "responseType": "OpenAppResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
+    "service": "RuntimeAppService",
+    "method": "PrepareAppLifecycleIntent",
+    "kind": "unary",
+    "requestType": "PrepareAppLifecycleIntentRequest",
+    "responseType": "PrepareAppLifecycleIntentResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
@@ -981,6 +981,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "server_stream",
     "requestType": "SubscribeRuntimeHealthEventsRequest",
     "responseType": "RuntimeHealthEvent"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
+    "service": "RuntimeAuthService",
+    "method": "OpenDesktopSession",
+    "kind": "unary",
+    "requestType": "OpenDesktopSessionRequest",
+    "responseType": "OpenDesktopSessionResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",

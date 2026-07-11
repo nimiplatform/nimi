@@ -1,0 +1,51 @@
+[
+  {
+    "fixture_id": "account-surface-reintroduced",
+    "code": "PUBLIC_RAW_TOKEN_ACCOUNT_SURFACE_PRESENT",
+    "path": ".nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml",
+    "replace_from": "  - RevokeScopedAppBinding\n  - RevokeWorkspaceBinding",
+    "replace_to": "  - RevokeScopedAppBinding\n  - GetAccessToken\n  - RevokeWorkspaceBinding"
+  },
+  {
+    "fixture_id": "refresh-account-surface-reintroduced",
+    "code": "PUBLIC_REFRESH_ACCOUNT_SURFACE_PRESENT",
+    "path": ".nimi/spec/runtime/kernel/tables/account-rpc-permission-matrix.yaml",
+    "replace_from": "  - RevokeScopedAppBinding\n  - RevokeWorkspaceBinding",
+    "replace_to": "  - RevokeScopedAppBinding\n  - RefreshAccountSession\n  - RevokeWorkspaceBinding"
+  },
+  {
+    "fixture_id": "transport-surface-reintroduced",
+    "code": "PUBLIC_RAW_TOKEN_TRANSPORT_SURFACE_PRESENT",
+    "path": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
+    "replace_from": "  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+    "replace_to": "  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccessToken\n    operation_class: reintroduced\n  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
+  },
+  {
+    "fixture_id": "sdk-method-reexported",
+    "code": "PUBLIC_RAW_TOKEN_SDK_EXPORT_FORBIDDEN",
+    "path": ".nimi/spec/sdks/kernel/tables/runtime-method-groups.yaml",
+    "replace_from": "      - RequestPresenceVerification\n      - InvokeRealmUnary",
+    "replace_to": "      - RequestPresenceVerification\n      - GetAccessToken\n      - InvokeRealmUnary"
+  },
+  {
+    "fixture_id": "platform-capability-reintroduced",
+    "code": "PUBLIC_RAW_TOKEN_CAPABILITY_FORBIDDEN",
+    "path": ".nimi/spec/platform/kernel/tables/nimi-app-registry.yaml",
+    "replace_from": "scopeName: account.session.read\n      - appId: nimi.avatar\n        scopeFamily: data\n        scopeName: data.scope.read\n        qualifier: realm.worlds.read-probe",
+    "replace_to": "scopeName: account.raw-token\n      - appId: nimi.avatar\n        scopeFamily: data\n        scopeName: data.scope.read\n        qualifier: realm.worlds.read-probe"
+  },
+  {
+    "fixture_id": "canonical-removal-weakened",
+    "code": "PUBLIC_RAW_TOKEN_CANONICAL_CLAUSE_REQUIRED",
+    "path": ".nimi/spec/runtime/kernel/account-session-contract.md",
+    "replace_from": "Public `GetAccessToken` and `RefreshAccountSession` have been removed from\nthe public protocol",
+    "replace_to": "Public `GetAccessToken` has no public protocol"
+  },
+  {
+    "fixture_id": "avatar-surface-restored",
+    "code": "PUBLIC_RAW_TOKEN_AVATAR_ACCEPTANCE_FORBIDDEN",
+    "path": ".nimi/spec/avatar/kernel/tables/acceptance-recording-matrix.yaml",
+    "replace_from": "id: public_raw_token_surface_absent",
+    "replace_to": "id: first_party_raw_token_posture"
+  }
+]

@@ -6,28 +6,23 @@ import test from 'node:test';
 
 import {
   AccountEventType,
-  AgentSourceMaterializationSourceKind,
   ExecutionMode,
   RoutePolicy,
   RuntimeHealthStatus,
   ScenarioType,
 } from '../core-generated/runtime-typed-client';
 import {
-  AccountSessionEvent,
-  SubscribeAccountSessionEventsRequest,
-} from '../core-generated/runtime-protobuf/runtime/v1/account';
-import {
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
+  RuntimeHealthEvent,
+  SubscribeRuntimeHealthEventsRequest,
 } from '../core-generated/runtime-protobuf/runtime/v1/audit';
 import {
-  CreateSourceMaterializationChallengeResponse,
   SetAgentPresentationProfileResponse,
 } from '../core-generated/runtime-protobuf/runtime/v1/agent_service';
 import { StreamScenarioEvent } from '../core-generated/runtime-protobuf/runtime/v1/ai';
 import { Runtime } from './index';
 import { createRuntimeNodeGrpcTransport, type RuntimeNodeGrpcBridge } from './node-grpc';
-import { installRuntimeNodeGrpcLocalFirstPartyAuthority } from './node-grpc-authority';
 import { ReasonCode } from '../types';
 
 function readRuntimeSource(relativePath: string): string {
@@ -158,119 +153,18 @@ test('ordinary Runtime mixed stream bridge cannot observe bearer authority', asy
   assert.deepEqual(observedAuthorizationFields, [false]);
 });
 
-test('hidden Runtime account authority injects bearer only for admitted materialization RPCs', async () => {
-  const observedAuthorization = new Map<string, string[]>();
-  const server = new grpc.Server();
-  const unaryMethod = (path: string): grpc.MethodDefinition<Uint8Array, Uint8Array> => ({
-    path,
-    requestStream: false,
-    responseStream: false,
-    requestSerialize: (value) => Buffer.from(value),
-    requestDeserialize: (value) => Uint8Array.from(value),
-    responseSerialize: (value) => Buffer.from(value),
-    responseDeserialize: (value) => Uint8Array.from(value),
-  });
-  server.addService({
-    createSourceMaterializationChallenge: unaryMethod(
-      '/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge',
-    ),
-    getRuntimeHealth: unaryMethod('/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth'),
-  }, {
-    createSourceMaterializationChallenge(
-      call: grpc.ServerUnaryCall<Uint8Array, Uint8Array>,
-      callback: grpc.sendUnaryData<Uint8Array>,
-    ) {
-      observedAuthorization.set('materialization', call.metadata.get('authorization').map(String));
-      callback(null, CreateSourceMaterializationChallengeResponse.toBinary(
-        CreateSourceMaterializationChallengeResponse.create({}),
-      ));
-    },
-    getRuntimeHealth(
-      call: grpc.ServerUnaryCall<Uint8Array, Uint8Array>,
-      callback: grpc.sendUnaryData<Uint8Array>,
-    ) {
-      observedAuthorization.set('health', call.metadata.get('authorization').map(String));
-      callback(null, GetRuntimeHealthResponse.toBinary(GetRuntimeHealthResponse.create({
-        status: RuntimeHealthStatus.READY,
-      })));
-    },
-  });
-  const port = await new Promise<number>((resolvePromise, reject) => {
-    server.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createInsecure(), (error, boundPort) => {
-      if (error) reject(error);
-      else resolvePromise(boundPort);
-    });
-  });
-  try {
-    const transport = {
-      type: 'node-grpc' as const,
-      endpoint: `127.0.0.1:${port}`,
-    };
-    let tokenReads = 0;
-    installRuntimeNodeGrpcLocalFirstPartyAuthority(transport, {
-      async getRuntimeAccountAccessToken() {
-        tokenReads += 1;
-        return 'fixture.header.signature';
-      },
-    });
-    const runtime = new Runtime({ appId: 'nimi.desktop', transport });
-    await runtime.agents.createSourceMaterializationChallenge({
-      context: {
-        appId: 'nimi.desktop',
-        subjectUserId: 'user-1',
-        ownerUserId: 'user-1',
-        runtimeSourceRef: `runtime-source:worldCharacter:world-1:source-1:${'a'.repeat(64)}`,
-        localAgentRef: '',
-      },
-      requestId: 'materialization-authority-test',
-      sourceRef: {
-        kind: AgentSourceMaterializationSourceKind.WORLD_CHARACTER,
-        worldId: 'world-1',
-        sourceId: 'source-1',
-        sourceContentHash: 'a'.repeat(64),
-      },
-    });
-    await runtime.audit.getRuntimeHealth({});
-
-    assert.equal(tokenReads, 1);
-    assert.deepEqual(observedAuthorization.get('materialization'), ['Bearer fixture.header.signature']);
-    assert.deepEqual(observedAuthorization.get('health'), []);
-  } finally {
-    await new Promise<void>((resolvePromise) => server.tryShutdown(() => resolvePromise()));
-  }
-});
-
-test('hidden Runtime account authority allowlist is posture-bound to six RPCs', () => {
-  const source = readRuntimeSource('node-grpc.ts');
-  const admitted = [
-    '/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile',
-    '/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge',
-    '/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload',
-    '/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk',
-    '/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization',
-    '/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload',
-  ];
-  for (const methodId of admitted) {
-    assert.match(source, new RegExp(methodId.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
-  }
-  assert.match(source, /runtimeRpcAuthPosture\(request\.methodId\) !== 'authenticated_required'/u);
-  assert.doesNotMatch(source, /RUNTIME_ACCOUNT_AUTHORITY_METHODS[\s\S]*TerminateAgent/u);
-});
-
 test('node-grpc Runtime transport decodes protobuf server streams', async () => {
   const bridge: RuntimeNodeGrpcBridge = {
     async unary() {
       throw new Error('unexpected unary call');
     },
     async *serverStream(request) {
-      assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents');
-      assert.deepEqual(SubscribeAccountSessionEventsRequest.fromBinary(request.body), {
-        afterSequence: '41',
-      });
-      yield AccountSessionEvent.toBinary(AccountSessionEvent.create({
-        eventId: 'event-42',
+      assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents');
+      assert.deepEqual(SubscribeRuntimeHealthEventsRequest.fromBinary(request.body), {});
+      yield RuntimeHealthEvent.toBinary(RuntimeHealthEvent.create({
         sequence: '42',
-        eventType: AccountEventType.LOGIN_COMPLETED,
+        status: RuntimeHealthStatus.READY,
+        reason: 'event-ready',
       }));
     },
   };
@@ -279,13 +173,14 @@ test('node-grpc Runtime transport decodes protobuf server streams', async () => 
   const runtime = new Runtime({ transport });
   const events = [];
 
-  for await (const event of runtime.account.subscribeAccountSessionEvents({ afterSequence: '41' })) {
+  for await (const event of runtime.audit.subscribeRuntimeHealthEvents({})) {
     events.push(event);
   }
 
   assert.equal(events.length, 1);
-  assert.equal(events[0]?.eventId, 'event-42');
-  assert.equal(events[0]?.eventType, AccountEventType.LOGIN_COMPLETED);
+  assert.equal(events[0]?.sequence, '42');
+  assert.equal(events[0]?.status, RuntimeHealthStatus.READY);
+  assert.equal(events[0]?.reason, 'event-ready');
 });
 
 test('node-grpc Runtime transport cancels pending server stream returns without waiting for chunks', async () => {
@@ -301,10 +196,8 @@ test('node-grpc Runtime transport cancels pending server stream returns without 
       throw new Error('unexpected unary call');
     },
     serverStream(request) {
-      assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents');
-      assert.deepEqual(SubscribeAccountSessionEventsRequest.fromBinary(request.body), {
-        afterSequence: '41',
-      });
+      assert.equal(request.methodId, '/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents');
+      assert.deepEqual(SubscribeRuntimeHealthEventsRequest.fromBinary(request.body), {});
       return {
         [Symbol.asyncIterator](): AsyncIterator<Uint8Array> {
           return {
@@ -326,7 +219,7 @@ test('node-grpc Runtime transport cancels pending server stream returns without 
   };
 
   const runtime = new Runtime({ transport: { type: 'node-grpc', bridge } });
-  const iterator = runtime.account.subscribeAccountSessionEvents({ afterSequence: '41' })[Symbol.asyncIterator]();
+  const iterator = runtime.audit.subscribeRuntimeHealthEvents({})[Symbol.asyncIterator]();
 
   const pendingNext = iterator.next();
   await expectWithin(nextStarted, 500, 'node-grpc stream next');

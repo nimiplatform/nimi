@@ -7,6 +7,10 @@ export {
   type RuntimeWireMethodId,
   type RuntimeWireMethodKind,
 } from '../core-generated/runtime-wire-codecs';
+export {
+  runtimeRpcAuthPosture,
+  type RuntimeRpcAuthPosture,
+} from '../core-generated/runtime-rpc-auth-posture';
 export type {
   AgentConversationSummary,
   AIProviderHealthEvent,
@@ -16,7 +20,6 @@ export type {
   AccountProjection,
   RequestPresenceVerificationRequest,
   RequestPresenceVerificationResponse,
-  AuthorizeExternalPrincipalResponse,
   AuditEventRecord,
   AuditExportChunk,
   CatalogModelDetail,
@@ -68,7 +71,6 @@ export type {
   SubmitAvatarDebugProbeResultResponse,
 } from '../core-generated/runtime-typed-client';
 export {
-  RuntimeTypedClient,
   AccountCallerMode,
   AccountReasonCode,
   AccountSessionState,

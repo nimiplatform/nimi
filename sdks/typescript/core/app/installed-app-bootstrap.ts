@@ -1,14 +1,10 @@
-import { Realm } from '../../realm';
-import {
-  createNimiDesktopLaunchedNimiAppRuntimeAccountCaller,
-  type NimiDesktopLaunchedNimiAppRuntimeAccountCallerInput,
-  type NimiRuntimeAccountCaller,
+import type { Realm } from '../../realm';
+import type {
+  NimiDesktopLaunchedNimiAppRuntimeAccountCallerInput,
+  NimiRuntimeAccountCaller,
 } from '../../runtime/account-caller';
 import { createNimiError, type JsonObject, type JsonValue } from '../../types';
-import {
-  createRuntimeAccountMediatedRealmTransport,
-  type RuntimeAccountMediatedRealmRuntime,
-} from './runtime-account-realm';
+import type { RuntimeAccountMediatedRealmRuntime } from './runtime-account-realm';
 
 export type InstalledNimiAppStandardShellSurface = {
   readonly aiConfig: {
@@ -58,73 +54,12 @@ export type InstalledNimiAppBootstrap<
 export function createInstalledNimiAppBootstrap<
   TRuntime extends RuntimeAccountMediatedRealmRuntime,
 >(
-  input: InstalledNimiAppBootstrapInput<TRuntime>,
+  _input: InstalledNimiAppBootstrapInput<TRuntime>,
 ): InstalledNimiAppBootstrap<TRuntime> {
-  assertNoRendererOwnedAuthCustody(input as Readonly<Record<string, unknown>>);
-  const accountCaller = createNimiDesktopLaunchedNimiAppRuntimeAccountCaller(input.launchBinding);
-  const standardShell = requireInstalledStandardShell(input.standardShell);
-  return {
-    appId: accountCaller.appId,
-    accountCaller,
-    realm: new Realm({
-      transport: createRuntimeAccountMediatedRealmTransport({
-        runtime: input.runtime,
-        accountCaller,
-      }),
-    }),
-    runtime: input.runtime,
-    standardShell,
-  };
-}
-
-function requireInstalledStandardShell(
-  surface: InstalledNimiAppStandardShellSurface | undefined,
-): InstalledNimiAppStandardShellSurface {
-  if (
-    !surface
-    || typeof surface.aiConfig?.get !== 'function'
-    || typeof surface.aiConfig?.set !== 'function'
-    || typeof surface.config?.get !== 'function'
-    || typeof surface.config?.set !== 'function'
-    || typeof surface.data?.resolvePath !== 'function'
-    || typeof surface.storage?.readJson !== 'function'
-    || typeof surface.storage?.writeJson !== 'function'
-    || typeof surface.storage?.removeJson !== 'function'
-    || typeof surface.localAssets?.resolveUrl !== 'function'
-  ) {
-    throw createNimiError({
-      message: 'Installed Nimi App bootstrap requires host-provided standard shell aiConfig, config, storage, and local asset surfaces.',
-      reasonCode: 'SDK_INSTALLED_APP_BOOTSTRAP_STANDARD_SHELL_REQUIRED',
-      actionHint: 'compose_bootstrap_from_installed_app_standard_shell_host',
-      source: 'sdk',
-    });
-  }
-  return surface;
-}
-
-function assertNoRendererOwnedAuthCustody(input: Readonly<Record<string, unknown>>): void {
-  for (const key of Object.keys(input)) {
-    const normalized = key.toLowerCase().replace(/[-_]/gu, '');
-    if (
-      normalized === 'authorization'
-      || normalized === 'bearertoken'
-      || normalized === 'accesstoken'
-      || normalized === 'sessionid'
-      || normalized === 'sessiontoken'
-      || normalized === 'appsession'
-      || normalized === 'protectedaccesstoken'
-      || normalized === 'runtimeaccountmetadata'
-      || normalized === 'metadata'
-      || normalized === 'headers'
-      || normalized === 'realmbaseurl'
-    ) {
-      throw createNimiError({
-        message: `Installed Nimi App bootstrap cannot accept renderer-owned auth custody field: ${key}.`,
-        reasonCode: 'SDK_INSTALLED_APP_BOOTSTRAP_HOST_METADATA_ONLY',
-        actionHint: 'use_host_owned_runtime_account_and_standard_shell_surfaces',
-        source: 'sdk',
-        details: { field: key },
-      });
-    }
-  }
+  throw createNimiError({
+    message: 'Installed Nimi App bootstrap requires the A.1 protected carrier.',
+    reasonCode: 'SDK_INSTALLED_APP_BOOTSTRAP_A1_CARRIER_REQUIRED',
+    actionHint: 'wait_for_a1_installed_app_carrier',
+    source: 'sdk',
+  });
 }

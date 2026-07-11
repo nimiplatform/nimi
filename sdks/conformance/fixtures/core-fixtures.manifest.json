@@ -17,7 +17,7 @@
   "fixture_groups": [
     {
       "name": "runtime_method_presence",
-      "count": 256
+      "count": 257
     },
     {
       "name": "realm_operation_presence",
@@ -26,7 +26,7 @@
     },
     {
       "name": "request_response_codecs",
-      "count": 256
+      "count": 257
     },
     {
       "name": "stream_event_branch_preservation",
@@ -34,7 +34,7 @@
     },
     {
       "name": "error_reason_code_projection",
-      "count": 254
+      "count": 256
     },
     {
       "name": "export_manifest",

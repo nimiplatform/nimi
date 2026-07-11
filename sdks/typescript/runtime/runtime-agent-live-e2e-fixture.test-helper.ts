@@ -12,7 +12,6 @@ import {
 } from '../core-generated/runtime-typed-client';
 import { toRuntimeDurableTargetRef } from '../core/ai';
 import { Runtime } from './index';
-import { createNimiLocalFirstPartyAgentPresentationClient } from './local-first-party-agent-presentation';
 import { createNimiRuntimeAppSessionMetadataProvider } from './app-session';
 import { withRuntimeDaemon } from './live-runtime-daemon.test-helper';
 import { withNimiRuntimeAgentScopes } from './runtime-agent-protected';
@@ -33,6 +32,7 @@ import {
   admitDeveloperRegisteredRuntimeAccountCaller,
   admitLocalFirstPartyRuntimeAccountCaller,
   completeRuntimeAccountLogin,
+  createFixtureRuntimeAgentPresentationSurface,
   createFixtureRuntimeAgentClient,
   createRuntimeForEndpoint,
   createRuntimeMediatedRealmTransport,
@@ -75,9 +75,6 @@ export type {
 } from './runtime-agent-live-e2e-fixture-shared.test-helper';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const PRESENTATION_APP_ID = 'nimi.avatar';
-const PRESENTATION_APP_INSTANCE_ID = 'nimi.avatar.runtime-agent-live-e2e';
-const PRESENTATION_DEVICE_ID = 'runtime-agent-live-e2e-avatar-device';
 const PLATFORM_APP_REGISTRY_PATH = resolve(
   REPO_ROOT,
   '.nimi',
@@ -136,7 +133,6 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
         const studioCaller = realmWorldStudioCaller();
         const bootstrapRuntime = createRuntimeForEndpoint(endpoint, DESKTOP_APP_ID);
         const studioRuntime = createRuntimeForEndpoint(endpoint, REALM_WORLD_STUDIO_APP_ID);
-        const presentationRuntime = createRuntimeForEndpoint(endpoint, PRESENTATION_APP_ID);
 
         await registerRuntimeApp(bootstrapRuntime, DESKTOP_APP_ID, DESKTOP_APP_INSTANCE_ID, DESKTOP_DEVICE_ID);
         await registerRuntimeApp(
@@ -146,46 +142,8 @@ export async function withRuntimeAgentLiveE2EFixture(input: {
           REALM_STUDIO_DEVICE_ID,
         );
         await completeRuntimeAccountLogin(bootstrapRuntime, desktopCaller);
-        const admittedPresentationCaller = await admitLocalFirstPartyRuntimeAccountCaller(
-          presentationRuntime,
-          {
-            appId: PRESENTATION_APP_ID,
-            appInstanceId: PRESENTATION_APP_INSTANCE_ID,
-            deviceId: PRESENTATION_DEVICE_ID,
-          },
-        );
-        const materializationAccountSessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
-          appId: PRESENTATION_APP_ID,
-          appInstanceId: PRESENTATION_APP_INSTANCE_ID,
-          deviceId: PRESENTATION_DEVICE_ID,
-          appVersion: 'sdk-runtime-agent-live-e2e',
-          developerRegistration: false,
-          auth: presentationRuntime.auth,
-        });
-        const runtime = createRuntimeForEndpoint(endpoint, DESKTOP_APP_ID, async () => {
-          const response = await presentationRuntime.account.getAccessToken({
-            caller: admittedPresentationCaller,
-            requestedScopes: [],
-          }, withNimiRuntimeIdempotencyMetadata({
-            metadata: await materializationAccountSessionMetadata(),
-          }, `runtime-agent-live-account-token:${randomUUID()}`));
-          if (!response.accepted) {
-            throw new Error(`Runtime account custody rejected materialization bearer access: ${JSON.stringify(response)}`);
-          }
-          return requireText(response.accessToken, 'runtime materialization account access token');
-        });
-        const presentationCaller = {
-          ...admittedPresentationCaller,
-          scopes: [...admittedPresentationCaller.scopes],
-        };
-        const agentPresentation = createNimiLocalFirstPartyAgentPresentationClient({
-          mode: 'first-party-local-app',
-          appId: PRESENTATION_APP_ID,
-          accountCaller: presentationCaller,
-          endpoint,
-        });
-        presentationCaller.appId = 'mutated-after-presentation-construction';
-        presentationCaller.scopes.push('mutated.after.construction');
+        const runtime = bootstrapRuntime;
+        const agentPresentation = createFixtureRuntimeAgentPresentationSurface(runtime);
         const realm = new Realm({
           transport: createRuntimeMediatedRealmTransport({
             runtime: studioRuntime,

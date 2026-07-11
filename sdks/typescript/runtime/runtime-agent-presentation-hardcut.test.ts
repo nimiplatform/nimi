@@ -12,8 +12,8 @@ import {
   AgentPresentationBackendKind,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
-import type { NimiLocalFirstPartyAgentPresentationClient } from './local-first-party-agent-presentation';
 import { setFixtureRuntimeAgentPresentationProfile } from './runtime-agent-live-e2e-fixture-runtime.test-helper';
+import type { RuntimeAgentLiveE2EAgentPresentationSurface } from './runtime-agent-live-e2e-fixture-shared.test-helper';
 
 const IDENTITY = {
   ownerUserId: 'user-1',
@@ -259,8 +259,7 @@ test('presentation projection rejects retired metadata and invalid persisted pro
 
 test('live fixture presentation helper reads CAS revision through the narrow capability', async () => {
   const calls: Array<{ readonly method: string; readonly expectedRevision?: string }> = [];
-  const presentation: NimiLocalFirstPartyAgentPresentationClient = {
-    mode: 'first-party-local-app',
+  const presentation: RuntimeAgentLiveE2EAgentPresentationSurface = {
     async getPresentationProfile() {
       calls.push({ method: 'get' });
       return { profile: null, committedRevision: '11' };
@@ -386,6 +385,9 @@ test('presentation surface returns Runtime committed revision without retrying',
   const surface = createNimiHostRuntimeAgentPresentationProfileSurface({
     getRuntime: () => runtime,
     getSubjectUserId: () => 'user-1',
+    withScopes: async (scopes, operation) => operation({
+      metadata: { scopes: scopes.join(' ') },
+    }),
   });
 
   const result = await surface.setPresentationProfile(IDENTITY, {

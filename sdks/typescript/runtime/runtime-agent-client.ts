@@ -405,12 +405,12 @@ function normalizeRuntime(runtime: NimiRuntimeAgentClientRuntime, appIdOverride:
       'provide_runtime_agents_module',
     );
   }
-  const appAuth = runtime.appAuth ?? runtime.grants;
+  const appAuth = runtime.appAuth;
   if (!appAuth) {
     runtimeAgentClientError(
-      'Nimi runtime agent client requires Runtime grant/appAuth projection.',
+      'Nimi runtime agent client requires a Runtime-owned appAuth carrier projection.',
       'SDK_RUNTIME_AGENT_AUTH_REQUIRED',
-      'provide_runtime_grants_module',
+      'use_runtime_owned_scoped_carrier',
     );
   }
   return {

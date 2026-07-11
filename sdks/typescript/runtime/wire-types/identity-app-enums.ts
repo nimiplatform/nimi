@@ -136,6 +136,28 @@ export enum AppInstallSourceKind {
   EXTERNAL_ARTIFACT = 2,
 }
 
+export enum AppLifecycleIntentAction {
+  UNSPECIFIED = 0,
+  INSTALL = 1,
+  UNINSTALL = 2,
+  UPDATE = 3,
+  HEALTH_REPAIR = 4,
+  ADOPT_LOCAL_APP = 5,
+  REMOVE_LOCAL_APP_ADOPTION = 6,
+  OPEN_APP = 7,
+}
+
+export enum AppLifecycleIntentStatus {
+  UNSPECIFIED = 0,
+  PREPARED = 1,
+  CONSUMED = 2,
+  SIDE_EFFECT_STARTED = 3,
+  SUCCEEDED = 4,
+  FAILED = 5,
+  CANCELLED = 6,
+  EXPIRED = 7,
+}
+
 export enum AppLifecycleJobKind {
   UNSPECIFIED = 0,
   INSTALL = 1,

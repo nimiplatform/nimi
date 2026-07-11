@@ -9,7 +9,6 @@ import {
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { createNimiClientId, createNimiError, type CoreMetadata } from '../types';
-import { NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID } from './account-caller';
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 
 export interface NimiRuntimeAppRegistrationClient {
@@ -165,29 +164,18 @@ export function createNimiRuntimeAppSessionMetadataProvider(
 }
 
 export function createNimiRuntimeInstalledAppSessionMetadataProvider(
-  input: NimiRuntimeInstalledAppSessionMetadataProviderInput,
+  _input: NimiRuntimeInstalledAppSessionMetadataProviderInput,
 ): NimiRuntimeAppSessionMetadataProvider {
-  if (input.developerRegistration === true) {
+  const unavailable: NimiRuntimeAppSessionMetadataProvider = async () => {
     throw createNimiError({
-      message: 'Desktop-launched installed Nimi App sessions cannot use developerRegistration.',
-      reasonCode: 'SDK_RUNTIME_INSTALLED_APP_SESSION_DEVELOPER_REGISTRATION_FORBIDDEN',
-      actionHint: 'use_runtime_open_app_launch_resolution_binding',
+      message: 'Desktop-launched installed Nimi App sessions require the A.1 protected carrier.',
+      reasonCode: 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
+      actionHint: 'wait_for_a1_installed_app_carrier',
       source: 'sdk',
     });
-  }
-  const binding = normalizeInstalledAppLaunchBinding(input.binding);
-  return createNimiRuntimeAppSessionMetadataProvider({
-    appId: binding.appId,
-    appInstanceId: binding.appInstanceId,
-    deviceId: binding.deviceId,
-    appVersion: input.appVersion,
-    capabilities: input.capabilities,
-    developerRegistration: false,
-    ttlSeconds: input.ttlSeconds,
-    refreshSkewMs: input.refreshSkewMs,
-    callOptions: input.callOptions,
-    auth: input.auth,
-  });
+  };
+  unavailable.invalidate = () => {};
+  return unavailable;
 }
 
 function createNimiRuntimeRegisterAppRequest(input: NimiRuntimeAppRegistrationInput): RegisterAppRequest {
@@ -289,37 +277,4 @@ function requireText(value: unknown, field: string): string {
 
 function normalizeText(value: unknown): string {
   return String(value || '').trim();
-}
-
-function normalizeInstalledAppLaunchBinding(input: NimiRuntimeInstalledAppLaunchBinding): NimiRuntimeInstalledAppLaunchBinding {
-  const binding = {
-    appId: requireInstalledAppBindingText(input?.appId, 'binding.appId'),
-    appInstanceId: requireInstalledAppBindingText(input?.appInstanceId, 'binding.appInstanceId'),
-    deviceId: requireInstalledAppBindingText(input?.deviceId, 'binding.deviceId'),
-    launchHostId: requireInstalledAppBindingText(input?.launchHostId, 'binding.launchHostId'),
-    launchNonce: requireInstalledAppBindingText(input?.launchNonce, 'binding.launchNonce'),
-    releaseDescriptorRef: requireInstalledAppBindingText(input?.releaseDescriptorRef, 'binding.releaseDescriptorRef'),
-  };
-  if (binding.launchHostId !== NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID) {
-    throw createNimiError({
-      message: `Desktop-launched installed Nimi App session requires launchHostId ${NIMI_DESKTOP_INSTALLED_APP_LAUNCH_HOST_ID}.`,
-      reasonCode: 'SDK_RUNTIME_INSTALLED_APP_SESSION_BINDING_REQUIRED',
-      actionHint: 'use_runtime_open_app_launch_resolution_binding',
-      source: 'sdk',
-    });
-  }
-  return binding;
-}
-
-function requireInstalledAppBindingText(value: unknown, field: string): string {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    throw createNimiError({
-      message: `Desktop-launched installed Nimi App session requires ${field} from Runtime launch resolution.`,
-      reasonCode: 'SDK_RUNTIME_INSTALLED_APP_SESSION_BINDING_REQUIRED',
-      actionHint: 'use_runtime_open_app_launch_resolution_binding',
-      source: 'sdk',
-    });
-  }
-  return normalized;
 }

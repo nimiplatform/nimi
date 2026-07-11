@@ -4,6 +4,7 @@ import {
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode } from '../types';
 import type { NimiRuntimeAppInstallStorage } from './app-lifecycle-types';
+import type { NimiRuntimeAppLifecycleIntentBinding } from './app-lifecycle-types';
 
 export function decodeNimiRuntimeReasonCode(value: RuntimeGeneratedReasonCode): string | undefined {
   if (!Number.isInteger(value) || value === RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED) {
@@ -96,6 +97,30 @@ export function requireNimiRuntimeAppLifecycleJobId(value: unknown): string {
     });
   }
   return jobId;
+}
+
+export function requireNimiRuntimeAppLifecycleIntentBinding(
+  value: Partial<NimiRuntimeAppLifecycleIntentBinding> | null | undefined,
+): NimiRuntimeAppLifecycleIntentBinding {
+  const lifecycleIntentId = normalizeNimiRuntimeAppLifecycleText(value?.lifecycleIntentId);
+  if (!lifecycleIntentId) {
+    throw createNimiError({
+      message: 'runtime.appLifecycle mutation requires a Runtime-issued lifecycleIntentId',
+      reasonCode: ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_INTENT_ID_REQUIRED,
+      actionHint: 'prepare_lifecycle_intent_over_protected_desktop_transport',
+      source: 'sdk',
+    });
+  }
+  const displayedImpactDigest = normalizeNimiRuntimeAppLifecycleText(value?.displayedImpactDigest);
+  if (!displayedImpactDigest) {
+    throw createNimiError({
+      message: 'runtime.appLifecycle mutation requires the displayed impact digest',
+      reasonCode: ReasonCode.SDK_RUNTIME_APP_LIFECYCLE_IMPACT_DIGEST_REQUIRED,
+      actionHint: 'pass_exact_displayed_lifecycle_impact_digest',
+      source: 'sdk',
+    });
+  }
+  return { lifecycleIntentId, displayedImpactDigest };
 }
 
 export function requireNimiRuntimeAppLifecycleProjectionText(value: unknown, field: string): string {

@@ -73,35 +73,12 @@ test('Runtime memory embedding runtime state helpers consume text.embed AI confi
 
 test('Runtime memory embedding protected surface is runtime-only and inspect driven', async () => {
   const issuedScopes: string[][] = [];
+  const receivedMetadata: Array<Record<string, string> | undefined> = [];
   const runtime = {
     appId: 'sdk.test',
-    auth: {
-      async registerApp() {
-        return {
-          appInstanceId: 'sdk.test.memory-embedding',
-          accepted: true,
-          reasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
-        };
-      },
-    },
-    appAuth: {
-      async authorizeExternalPrincipal(request: { scopes: string[] }) {
-        issuedScopes.push(request.scopes);
-        return {
-          tokenId: 'token-1',
-          secret: 'secret-1',
-          appId: 'sdk.test',
-          subjectUserId: 'user-1',
-          externalPrincipalId: 'sdk.test',
-          effectiveScopes: request.scopes,
-          policyVersion: 'memory-embedding-v1',
-          issuedScopeCatalogVersion: 'sdk-v2',
-          canDelegate: false,
-        };
-      },
-    },
     memory: {
-      async inspectMemoryEmbeddingRuntime() {
+      async inspectMemoryEmbeddingRuntime(_request: unknown, options?: { metadata?: Record<string, string> }) {
+        receivedMetadata.push(options?.metadata);
         return {
           textEmbedIntentPresent: true,
           textEmbedSourceKind: 'cloud',
@@ -132,6 +109,10 @@ test('Runtime memory embedding protected surface is runtime-only and inspect dri
   const surface = createNimiProtectedHostMemoryEmbeddingRuntimeSurface({
     runtime: () => runtime,
     getSubjectUserId: () => 'user-1',
+    withScopes: async (scopes, operation) => {
+      issuedScopes.push([...scopes]);
+      return operation({ metadata: { 'x-nimi-protected-carrier': 'test-carrier' } });
+    },
   });
 
   const state = await surface.inspect({ targetRef });
@@ -146,4 +127,55 @@ test('Runtime memory embedding protected surface is runtime-only and inspect dri
     ['runtime.memory.read'],
     ['runtime.memory.write'],
   ]);
+  assert.deepEqual(receivedMetadata, [{ 'x-nimi-protected-carrier': 'test-carrier' }]);
+});
+
+test('Runtime memory embedding protected surface rejects public grant minting without a scoped carrier', async () => {
+	let registrationCalls = 0;
+	let grantCalls = 0;
+	const runtime = {
+		appId: 'sdk.test',
+		auth: {
+			async registerApp() {
+				registrationCalls += 1;
+				return { accepted: true, reasonCode: ReasonCode.REASON_CODE_UNSPECIFIED };
+			},
+		},
+		appAuth: {
+			async authorizeExternalPrincipal() {
+				grantCalls += 1;
+				return { tokenId: 'portable-token', secret: 'portable-secret' };
+			},
+		},
+		memory: {
+			async inspectMemoryEmbeddingRuntime() {
+				return {
+					textEmbedIntentPresent: true,
+					textEmbedSourceKind: 'cloud',
+					configRevision: '1',
+					resolutionState: 'resolved',
+					canonicalBankStatus: 'bound_equivalent',
+					blockedReasonCode: ReasonCode.REASON_CODE_UNSPECIFIED,
+					operationReadiness: { bindAllowed: true, cutoverAllowed: true },
+				};
+			},
+			async requestMemoryEmbeddingRuntimeBind() {
+				throw new Error('not reached');
+			},
+			async requestMemoryEmbeddingRuntimeCutover() {
+				throw new Error('not reached');
+			},
+		},
+	};
+	const surface = createNimiProtectedHostMemoryEmbeddingRuntimeSurface({
+		runtime: () => runtime,
+		getSubjectUserId: () => 'user-1',
+	});
+
+	await assert.rejects(surface.inspect({ targetRef }), (error: unknown) => {
+		assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED');
+		return true;
+	});
+	assert.equal(registrationCalls, 0);
+	assert.equal(grantCalls, 0);
 });

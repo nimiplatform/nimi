@@ -18,7 +18,6 @@ import {
 import type { NimiRealmSocialApi } from '../realm/social';
 import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
 import { Runtime } from './index';
-import { installRuntimeNodeGrpcLocalFirstPartyAuthority } from './node-grpc-authority';
 import {
   createNimiDeveloperRegisteredRuntimeAccountCaller,
   createNimiLocalFirstPartyRuntimeAccountCaller,
@@ -32,13 +31,20 @@ import {
   type NimiRuntimeAgentClientRuntime,
 } from './runtime-agent-client';
 import {
+  createNimiHostRuntimeAgentInspectSurface,
+} from './runtime-agent-inspect';
+import type {
+  NimiHostRuntimeAgentInspectClient,
+} from './runtime-agent-inspect-types';
+import {
+  createNimiHostRuntimeAgentPresentationProfileSurface,
   type NimiRuntimeAgentPresentationProfileInput,
   type NimiRuntimeAgentPresentationProfileMutationResult,
+  type NimiHostRuntimeAgentPresentationProfileClient,
 } from './runtime-agent-presentation';
 import {
   type RuntimeLocalAgentIdentityInput,
 } from './agent-local-identity';
-import type { NimiLocalFirstPartyAgentPresentationClient } from './local-first-party-agent-presentation';
 import type { NimiRuntimeAgentInitializedLocalAgent } from './runtime-agent-lifecycle';
 import type { NimiRuntimeAgentMaterializedRealmSource } from './runtime-agent-materialization';
 import {
@@ -58,6 +64,7 @@ import {
   RUNTIME_SOURCE_REF,
   SOURCE_REF,
   type RuntimeAgentLiveE2EDeveloperRegisteredAccountInput,
+  type RuntimeAgentLiveE2EAgentPresentationSurface,
   liveIdempotencyOptions,
   normalizeStrings,
   normalizeText,
@@ -135,28 +142,41 @@ export async function openFixtureConversation(input: {
   });
 }
 
-export function createFixtureRuntimeAgentClient(
-  runtime: Runtime,
-): ReturnType<typeof createNimiRuntimeAgentClient> {
-  const agentRuntime = runtimeAgentClientRuntime(runtime, DESKTOP_APP_ID);
-  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
-    appId: DESKTOP_APP_ID,
-    appInstanceId: DESKTOP_APP_INSTANCE_ID,
-    deviceId: DESKTOP_DEVICE_ID,
-    appVersion: 'sdk-runtime-agent-live-e2e',
-    developerRegistration: false,
-    auth: runtime.auth,
-  });
+export function createFixtureRuntimeAgentClient(runtime: Runtime): ReturnType<typeof createNimiRuntimeAgentClient> {
+  const { agentRuntime, withScopes } = createFixtureRuntimeAgentContext(runtime);
   return createNimiRuntimeAgentClient({
     runtime: agentRuntime,
     appId: DESKTOP_APP_ID,
     getSubjectUserId: () => OWNER_USER_ID,
-    withScopes: runtimeAgentLiveScopeRunner(agentRuntime, sessionMetadata),
+    withScopes,
   });
 }
 
+export function createFixtureRuntimeAgentPresentationSurface(
+  runtime: Runtime,
+): RuntimeAgentLiveE2EAgentPresentationSurface {
+  const { agentRuntime, withScopes } = createFixtureRuntimeAgentContext(runtime);
+  const inspectSurface = createNimiHostRuntimeAgentInspectSurface({
+    getRuntime: () => agentRuntime,
+    getSubjectUserId: () => OWNER_USER_ID,
+    withScopes,
+  });
+  const mutationSurface = createNimiHostRuntimeAgentPresentationProfileSurface({
+    getRuntime: () => agentRuntime,
+    getSubjectUserId: () => OWNER_USER_ID,
+    withScopes,
+  });
+  return {
+    getPresentationProfile: (identity) => inspectSurface.getPresentationProfile(identity),
+    setPresentationProfile: (identity, profile, expectedRevision) =>
+      mutationSurface.setPresentationProfile(identity, profile, expectedRevision),
+    patchPresentationProfile: (identity, patch, expectedRevision) =>
+      mutationSurface.patchPresentationProfile(identity, patch, expectedRevision),
+  };
+}
+
 export async function setFixtureRuntimeAgentPresentationProfile(input: {
-  readonly presentation: NimiLocalFirstPartyAgentPresentationClient;
+  readonly presentation: RuntimeAgentLiveE2EAgentPresentationSurface;
   readonly identity: RuntimeLocalAgentIdentityInput;
   readonly profile: NimiRuntimeAgentPresentationProfileInput;
 }): Promise<NimiRuntimeAgentPresentationProfileMutationResult> {
@@ -182,20 +202,13 @@ export function requireConversationAnchorId(conversation: ConversationAnchorSnap
 export function createRuntimeForEndpoint(
   endpoint: string,
   appId: string,
-  getRuntimeAccountAccessToken?: () => Promise<string>,
 ): Runtime {
-  const transport = {
-    type: 'node-grpc' as const,
-    endpoint,
-  };
-  if (getRuntimeAccountAccessToken) {
-    installRuntimeNodeGrpcLocalFirstPartyAuthority(transport, {
-      getRuntimeAccountAccessToken,
-    });
-  }
   return new Runtime({
     appId,
-    transport,
+    transport: {
+      type: 'node-grpc',
+      endpoint,
+    },
   });
 }
 
@@ -434,12 +447,37 @@ export function realmWorldStudioCaller(): AccountCaller {
   };
 }
 
-function runtimeAgentClientRuntime(runtime: Runtime, appId: string):
-  NimiRuntimeAgentClientRuntime & NimiRuntimeAgentProtectedRuntime {
+type FixtureRuntimeAgentRuntime =
+  & NimiRuntimeAgentClientRuntime
+  & NimiRuntimeAgentProtectedRuntime
+  & NimiHostRuntimeAgentInspectClient
+  & NimiHostRuntimeAgentPresentationProfileClient;
+
+function createFixtureRuntimeAgentContext(runtime: Runtime): {
+  readonly agentRuntime: FixtureRuntimeAgentRuntime;
+  readonly withScopes: NimiRuntimeAgentScopeRunner;
+} {
+  const agentRuntime = runtimeAgentClientRuntime(runtime, DESKTOP_APP_ID);
+  const sessionMetadata = createNimiRuntimeAppSessionMetadataProvider({
+    appId: DESKTOP_APP_ID,
+    appInstanceId: DESKTOP_APP_INSTANCE_ID,
+    deviceId: DESKTOP_DEVICE_ID,
+    appVersion: 'sdk-runtime-agent-live-e2e',
+    developerRegistration: false,
+    auth: runtime.auth,
+  });
+  return {
+    agentRuntime,
+    withScopes: runtimeAgentLiveScopeRunner(agentRuntime, sessionMetadata),
+  };
+}
+
+function runtimeAgentClientRuntime(runtime: Runtime, appId: string): FixtureRuntimeAgentRuntime {
   return {
     appId,
     auth: runtime.auth,
     appAuth: runtime.grants,
+    agent: runtime.agents,
     agents: runtime.agents,
     appMessages: runtime.appMessages,
   };

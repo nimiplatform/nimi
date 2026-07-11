@@ -350,8 +350,9 @@ test('Runtime Agent voice helper consumes typed stream and replays only audio ar
   assert.deepEqual(scopes[1], ['runtime.agent.turn.write']);
 });
 
-test('Runtime Agent voice helper preserves injected metadata and supplies protected token when no Runtime binding exists', async () => {
+test('Runtime Agent voice helper fails closed when its carrier provides only raw public token metadata', async () => {
   const streamOptions: RuntimeTypedCallOptions[] = [];
+  const interruptOptions: RuntimeTypedCallOptions[] = [];
   const authCalls: string[] = [];
   const module = createNimiRuntimeAgentVoiceModule({
     runtime: {
@@ -388,7 +389,8 @@ test('Runtime Agent voice helper preserves injected metadata and supplies protec
             replayTruncated: false,
           };
         },
-        async interruptAgentVoicePlayback() {
+        async interruptAgentVoicePlayback(_request, options) {
+          interruptOptions.push(options ?? {});
           throw new Error('not expected');
         },
       },
@@ -400,25 +402,43 @@ test('Runtime Agent voice helper preserves injected metadata and supplies protec
     },
     getSubjectUserId: () => 'user-1',
     withScopes: async (_nextScopes, operation) =>
-      operation({ metadata: { scoped: 'voice-owner-binding' } }),
+      operation({
+        metadata: {
+          'x-nimi-access-token-id': 'portable-voice-token',
+          'x-nimi-access-token-secret': 'portable-voice-secret',
+        },
+      }),
   });
 
-  const stream = await module.subscribeStream({
-    ownerUserId: OWNER_USER_ID,
-    runtimeSourceRef: RUNTIME_SOURCE_REF,
-    localAgentRef: LOCAL_AGENT_REF,
-    conversationAnchorId: 'anchor-1',
-    turnId: 'turn-1',
-    voiceStreamId: 'voice-stream-1',
-  });
-  for await (const _event of stream) {
-    break;
-  }
+  await assert.rejects(
+    module.subscribeStream({
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
+      localAgentRef: LOCAL_AGENT_REF,
+      conversationAnchorId: 'anchor-1',
+      turnId: 'turn-1',
+      voiceStreamId: 'voice-stream-1',
+    }),
+    (error: unknown) =>
+      (error as { readonly reasonCode?: string }).reasonCode === 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
+  );
+  await assert.rejects(
+    module.interruptPlayback({
+      ownerUserId: OWNER_USER_ID,
+      runtimeSourceRef: RUNTIME_SOURCE_REF,
+      localAgentRef: LOCAL_AGENT_REF,
+      conversationAnchorId: 'anchor-1',
+      turnId: 'turn-1',
+      voiceStreamId: 'voice-stream-1',
+      reason: 'user_cancelled',
+    }),
+    (error: unknown) =>
+      (error as { readonly reasonCode?: string }).reasonCode === 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
+  );
 
-  assert.deepEqual(authCalls, ['register', 'authorize']);
-  assert.equal(streamOptions[0]?.metadata?.scoped, 'voice-owner-binding');
-  assert.equal(streamOptions[0]?.metadata?.['x-nimi-access-token-id'], 'token-voice');
-  assert.equal(streamOptions[0]?.metadata?.['x-nimi-access-token-secret'], 'secret-voice');
+  assert.deepEqual(authCalls, []);
+  assert.deepEqual(streamOptions, []);
+  assert.deepEqual(interruptOptions, []);
 });
 
 test('Runtime Agent voice helper preserves scoped Runtime binding without renderer token fallback', async () => {

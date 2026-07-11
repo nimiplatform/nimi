@@ -175,6 +175,19 @@ function checkGrantTokenChainEvolution() {
   expectRegex(specGrant, /##\s+K-GRANT-012\b/m, 'K-GRANT-012 rule definition');
   expectRegex(specGrant, /##\s+K-GRANT-013\b/m, 'K-GRANT-013 rule definition');
   for (const token of [
+    'deny-all tombstones',
+    'A.3d',
+    'AuthorizeExternalPrincipal',
+    'ValidateAppAccessToken',
+    'RevokeAppAccessToken',
+    'IssueDelegatedAccessToken',
+    'ListTokenChain',
+  ]) {
+    if (!specGrant.includes(token)) {
+      fail(`.nimi/spec/runtime/kernel/grant-service.md missing token: ${token}`);
+    }
+  }
+  for (const retiredPositiveAuthorityToken of [
     'include_revoked',
     'next_page_token',
     'has_more',
@@ -183,8 +196,8 @@ function checkGrantTokenChainEvolution() {
     'policy_version',
     'issued_scope_catalog_version',
   ]) {
-    if (!specGrant.includes(token)) {
-      fail(`.nimi/spec/runtime/kernel/grant-service.md missing token: ${token}`);
+    if (specGrant.includes(retiredPositiveAuthorityToken)) {
+      fail(`.nimi/spec/runtime/kernel/grant-service.md restored retired public Grant detail: ${retiredPositiveAuthorityToken}`);
     }
   }
 }

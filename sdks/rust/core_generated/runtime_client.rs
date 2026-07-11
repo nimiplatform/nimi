@@ -32,14 +32,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "CompleteLoginResponse",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
-        service: "RuntimeAccountService",
-        method: "GetAccessToken",
-        kind: "unary",
-        request_type: "GetAccessTokenRequest",
-        response_type: "GetAccessTokenResponse",
-    },
-    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
         service: "RuntimeAccountService",
         method: "GetAccountSessionStatus",
@@ -78,14 +70,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "LogoutRequest",
         response_type: "LogoutResponse",
-    },
-    RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
-        service: "RuntimeAccountService",
-        method: "RefreshAccountSession",
-        kind: "unary",
-        request_type: "RefreshAccountSessionRequest",
-        response_type: "RefreshAccountSessionResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
@@ -808,6 +792,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetAppInstallJobResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
+        service: "RuntimeAppService",
+        method: "GetAppLifecycleIntentStatus",
+        kind: "unary",
+        request_type: "GetAppLifecycleIntentStatusRequest",
+        response_type: "GetAppLifecycleIntentStatusResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
         service: "RuntimeAppService",
         method: "GetAppPackageReadiness",
@@ -862,6 +854,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "OpenAppRequest",
         response_type: "OpenAppResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
+        service: "RuntimeAppService",
+        method: "PrepareAppLifecycleIntent",
+        kind: "unary",
+        request_type: "PrepareAppLifecycleIntentRequest",
+        response_type: "PrepareAppLifecycleIntentResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
@@ -982,6 +982,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "server_stream",
         request_type: "SubscribeRuntimeHealthEventsRequest",
         response_type: "RuntimeHealthEvent",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
+        service: "RuntimeAuthService",
+        method: "OpenDesktopSession",
+        kind: "unary",
+        request_type: "OpenDesktopSessionRequest",
+        response_type: "OpenDesktopSessionResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",

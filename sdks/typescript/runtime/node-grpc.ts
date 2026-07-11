@@ -8,7 +8,6 @@ import type {
   ServiceError,
 } from '@grpc/grpc-js';
 import type { CoreTransport } from '../core-client';
-import { runtimeRpcAuthPosture } from '../core-generated/runtime-rpc-auth-posture';
 import { getRuntimeWireCodec } from '../core-generated/runtime-wire-codecs';
 import { asNimiError, ReasonCode } from '../types';
 import type {
@@ -27,10 +26,6 @@ import {
   type GrpcStatusLike,
 } from './node-grpc-errors';
 import {
-  readRuntimeNodeGrpcLocalFirstPartyAuthority,
-} from './node-grpc-authority';
-import {
-  assertRuntimeNodeGrpcSensitiveTransport,
   normalizeRuntimeNodeGrpcEndpoint,
   runtimeNodeGrpcTransportAllowsSensitiveCredentials,
 } from './node-grpc-security';
@@ -50,35 +45,6 @@ export interface RuntimeNodeGrpcTransportOptions {
   readonly endpoint?: string;
   readonly tls?: RuntimeNodeGrpcTlsOptions;
   readonly bridge?: RuntimeNodeGrpcBridge;
-}
-
-interface RuntimeNodeGrpcLocalFirstPartyAuthority {
-  readonly getRuntimeAccountAccessToken: () => Promise<string>;
-}
-
-function readLocalFirstPartyAuthority(
-  options: RuntimeNodeGrpcTransportOptions,
-): RuntimeNodeGrpcLocalFirstPartyAuthority | undefined {
-  const authority = readRuntimeNodeGrpcLocalFirstPartyAuthority(options);
-  if (authority === undefined) {
-    return undefined;
-  }
-  if (
-    !authority
-    || typeof authority !== 'object'
-    || typeof (authority as { readonly getRuntimeAccountAccessToken?: unknown }).getRuntimeAccountAccessToken !== 'function'
-  ) {
-    throw toTransportError(
-      'SDK_TRANSPORT_INVALID',
-      'node-grpc Runtime account authority is invalid',
-      undefined,
-      {
-        actionHint: 'recreate_local_first_party_agent_presentation_client',
-        retryable: false,
-      },
-    );
-  }
-  return authority as RuntimeNodeGrpcLocalFirstPartyAuthority;
 }
 
 export interface RuntimeNodeGrpcBridgeRequest {
@@ -128,65 +94,12 @@ function toGrpcMetadata(
   grpc: GrpcModule,
   options: RuntimeNodeGrpcTransportOptions,
   metadata: CoreMetadata | undefined,
-  authorization: string | undefined,
 ): Metadata {
   const result = new grpc.Metadata();
   for (const [key, value] of runtimeMetadataEntries(metadata, options)) {
     result.set(key, value);
   }
-  if (authorization) {
-    result.set('authorization', authorization);
-  }
   return result;
-}
-
-const RUNTIME_ACCOUNT_AUTHORITY_METHODS = new Set([
-  '/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile',
-  '/nimi.runtime.v1.RuntimeAgentService/CreateSourceMaterializationChallenge',
-  '/nimi.runtime.v1.RuntimeAgentService/BeginSourceMaterializationUpload',
-  '/nimi.runtime.v1.RuntimeAgentService/PutSourceMaterializationChunk',
-  '/nimi.runtime.v1.RuntimeAgentService/CommitSourceMaterialization',
-  '/nimi.runtime.v1.RuntimeAgentService/AbortSourceMaterializationUpload',
-]);
-
-async function resolveTransportAuthorization(
-  request: RuntimeNodeGrpcBridgeRequest,
-  options: RuntimeNodeGrpcTransportOptions,
-  authority: RuntimeNodeGrpcLocalFirstPartyAuthority | undefined,
-): Promise<string | undefined> {
-  if (!authority || !RUNTIME_ACCOUNT_AUTHORITY_METHODS.has(request.methodId)) {
-    return undefined;
-  }
-  if (runtimeRpcAuthPosture(request.methodId) !== 'authenticated_required') {
-    throw toTransportError(
-      'SDK_TRANSPORT_INVALID',
-      'generated Runtime auth posture no longer admits account bearer mediation',
-      { methodId: request.methodId },
-      {
-        actionHint: 'regenerate_runtime_rpc_auth_posture',
-        retryable: false,
-      },
-    );
-  }
-  assertRuntimeNodeGrpcSensitiveTransport(options, request.methodId);
-  const token = await authority.getRuntimeAccountAccessToken();
-  if (
-    typeof token !== 'string'
-    || token.length === 0
-    || token.trim() !== token
-    || !/^[A-Za-z0-9\-._~+/]+=*$/u.test(token)
-  ) {
-    throw toTransportError(
-      'SDK_TRANSPORT_INVALID',
-      'node-grpc Runtime transport bearer token provider returned an invalid token',
-      undefined,
-      {
-        actionHint: 'refresh_runtime_account_access_token_projection',
-        retryable: false,
-      },
-    );
-  }
-  return `Bearer ${token}`;
 }
 
 const RUNTIME_METADATA_HEADERS: Record<string, string> = {
@@ -302,19 +215,6 @@ export function createRuntimeNodeGrpcTransport(
       'node-grpc Runtime transport requires endpoint',
     );
   }
-  const authority = readLocalFirstPartyAuthority(options);
-  if (authority && options.bridge) {
-    throw toTransportError(
-      'SDK_TRANSPORT_INVALID',
-      'Runtime account bearer mediation requires the native node-grpc transport',
-      undefined,
-      {
-        actionHint: 'use_native_node_grpc_for_agent_presentation',
-        retryable: false,
-      },
-    );
-  }
-
   let runtimePromise: Promise<{ readonly grpc: GrpcModule; readonly client: Client }> | undefined;
   const ensureRuntime = async () => {
     runtimePromise ??= (async () => {
@@ -329,7 +229,6 @@ export function createRuntimeNodeGrpcTransport(
 
   const invokeUnaryBytes = async (request: RuntimeNodeGrpcBridgeRequest): Promise<Uint8Array> => {
     validateRuntimeMetadataSecurity(request.metadata, options);
-    const authorization = await resolveTransportAuthorization(request, options, authority);
     if (options.bridge) {
       return options.bridge.unary(request);
     }
@@ -363,7 +262,7 @@ export function createRuntimeNodeGrpcTransport(
         (value) => Buffer.from(value),
         (value) => Uint8Array.from(value),
         request.body,
-        toGrpcMetadata(runtime.grpc, options, request.metadata, authorization),
+        toGrpcMetadata(runtime.grpc, options, request.metadata),
         toCallOptions(request.timeoutMs),
         (error: ServiceError | null, response?: Uint8Array) => {
           if (error) {
@@ -416,7 +315,6 @@ export function createRuntimeNodeGrpcTransport(
 
   const openStreamBytes = async (request: RuntimeNodeGrpcBridgeRequest): Promise<AsyncIterable<Uint8Array>> => {
     validateRuntimeMetadataSecurity(request.metadata, options);
-    const authorization = await resolveTransportAuthorization(request, options, authority);
     if (options.bridge) {
       return options.bridge.serverStream(request);
     }
@@ -426,7 +324,7 @@ export function createRuntimeNodeGrpcTransport(
       (value) => Buffer.from(value),
       (value) => Uint8Array.from(value),
       request.body,
-      toGrpcMetadata(runtime.grpc, options, request.metadata, authorization),
+      toGrpcMetadata(runtime.grpc, options, request.metadata),
       toCallOptions(request.timeoutMs),
     );
     return nodeGrpcReadableStream(

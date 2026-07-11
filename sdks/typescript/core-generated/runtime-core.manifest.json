@@ -94,29 +94,11 @@
           "response_stream": false
         },
         {
-          "name": "GetAccessToken",
-          "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
-          "kind": "unary",
-          "request_type": "GetAccessTokenRequest",
-          "response_type": "GetAccessTokenResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
           "name": "InvokeRealmUnary",
           "method_id": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
           "kind": "unary",
           "request_type": "InvokeRealmUnaryRequest",
           "response_type": "InvokeRealmUnaryResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RefreshAccountSession",
-          "method_id": "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
-          "kind": "unary",
-          "request_type": "RefreshAccountSessionRequest",
-          "response_type": "RefreshAccountSessionResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -955,6 +937,24 @@
           "response_stream": true
         },
         {
+          "name": "PrepareAppLifecycleIntent",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
+          "kind": "unary",
+          "request_type": "PrepareAppLifecycleIntentRequest",
+          "response_type": "PrepareAppLifecycleIntentResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetAppLifecycleIntentStatus",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
+          "kind": "unary",
+          "request_type": "GetAppLifecycleIntentStatusRequest",
+          "response_type": "GetAppLifecycleIntentStatusResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "InstallApp",
           "method_id": "/nimi.runtime.v1.RuntimeAppService/InstallApp",
           "kind": "unary",
@@ -1194,6 +1194,15 @@
           "kind": "unary",
           "request_type": "OpenSessionRequest",
           "response_type": "OpenSessionResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "OpenDesktopSession",
+          "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
+          "kind": "unary",
+          "request_type": "OpenDesktopSessionRequest",
+          "response_type": "OpenDesktopSessionResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2442,13 +2451,11 @@
   "method_ids": [
     "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
     "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
-    "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
     "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
     "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
     "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
     "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
     "/nimi.runtime.v1.RuntimeAccountService/Logout",
-    "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
     "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
     "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
     "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
@@ -2539,6 +2546,7 @@
     "/nimi.runtime.v1.RuntimeAppService/AdoptLocalApp",
     "/nimi.runtime.v1.RuntimeAppService/GetAccountAppInventory",
     "/nimi.runtime.v1.RuntimeAppService/GetAppInstallJob",
+    "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
     "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
     "/nimi.runtime.v1.RuntimeAppService/HealthRepairApp",
@@ -2546,6 +2554,7 @@
     "/nimi.runtime.v1.RuntimeAppService/ListAppInstallJobs",
     "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAdoptions",
     "/nimi.runtime.v1.RuntimeAppService/OpenApp",
+    "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
     "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
@@ -2561,6 +2570,7 @@
     "/nimi.runtime.v1.RuntimeAuditService/ListUsageStats",
     "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
     "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
+    "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
     "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
     "/nimi.runtime.v1.RuntimeAuthService/OpenSession",
     "/nimi.runtime.v1.RuntimeAuthService/RefreshSession",
@@ -2715,14 +2725,6 @@
       "response_type": "CompleteLoginResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
-      "service": "RuntimeAccountService",
-      "method": "GetAccessToken",
-      "kind": "unary",
-      "request_type": "GetAccessTokenRequest",
-      "response_type": "GetAccessTokenResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
       "service": "RuntimeAccountService",
       "method": "GetAccountSessionStatus",
@@ -2761,14 +2763,6 @@
       "kind": "unary",
       "request_type": "LogoutRequest",
       "response_type": "LogoutResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
-      "service": "RuntimeAccountService",
-      "method": "RefreshAccountSession",
-      "kind": "unary",
-      "request_type": "RefreshAccountSessionRequest",
-      "response_type": "RefreshAccountSessionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
@@ -3491,6 +3485,14 @@
       "response_type": "GetAppInstallJobResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
+      "service": "RuntimeAppService",
+      "method": "GetAppLifecycleIntentStatus",
+      "kind": "unary",
+      "request_type": "GetAppLifecycleIntentStatusRequest",
+      "response_type": "GetAppLifecycleIntentStatusResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
       "service": "RuntimeAppService",
       "method": "GetAppPackageReadiness",
@@ -3545,6 +3547,14 @@
       "kind": "unary",
       "request_type": "OpenAppRequest",
       "response_type": "OpenAppResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
+      "service": "RuntimeAppService",
+      "method": "PrepareAppLifecycleIntent",
+      "kind": "unary",
+      "request_type": "PrepareAppLifecycleIntentRequest",
+      "response_type": "PrepareAppLifecycleIntentResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
@@ -3665,6 +3675,14 @@
       "kind": "server_stream",
       "request_type": "SubscribeRuntimeHealthEventsRequest",
       "response_type": "RuntimeHealthEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
+      "service": "RuntimeAuthService",
+      "method": "OpenDesktopSession",
+      "kind": "unary",
+      "request_type": "OpenDesktopSessionRequest",
+      "response_type": "OpenDesktopSessionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
@@ -4765,14 +4783,6 @@
       "response_type": "CompleteLoginResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
-      "service": "RuntimeAccountService",
-      "method": "GetAccessToken",
-      "kind": "unary",
-      "request_type": "GetAccessTokenRequest",
-      "response_type": "GetAccessTokenResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
       "service": "RuntimeAccountService",
       "method": "GetAccountSessionStatus",
@@ -4811,14 +4821,6 @@
       "kind": "unary",
       "request_type": "LogoutRequest",
       "response_type": "LogoutResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
-      "service": "RuntimeAccountService",
-      "method": "RefreshAccountSession",
-      "kind": "unary",
-      "request_type": "RefreshAccountSessionRequest",
-      "response_type": "RefreshAccountSessionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
@@ -5541,6 +5543,14 @@
       "response_type": "GetAppInstallJobResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
+      "service": "RuntimeAppService",
+      "method": "GetAppLifecycleIntentStatus",
+      "kind": "unary",
+      "request_type": "GetAppLifecycleIntentStatusRequest",
+      "response_type": "GetAppLifecycleIntentStatusResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
       "service": "RuntimeAppService",
       "method": "GetAppPackageReadiness",
@@ -5595,6 +5605,14 @@
       "kind": "unary",
       "request_type": "OpenAppRequest",
       "response_type": "OpenAppResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
+      "service": "RuntimeAppService",
+      "method": "PrepareAppLifecycleIntent",
+      "kind": "unary",
+      "request_type": "PrepareAppLifecycleIntentRequest",
+      "response_type": "PrepareAppLifecycleIntentResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
@@ -5715,6 +5733,14 @@
       "kind": "server_stream",
       "request_type": "SubscribeRuntimeHealthEventsRequest",
       "response_type": "RuntimeHealthEvent"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
+      "service": "RuntimeAuthService",
+      "method": "OpenDesktopSession",
+      "kind": "unary",
+      "request_type": "OpenDesktopSessionRequest",
+      "response_type": "OpenDesktopSessionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",
@@ -6865,6 +6891,8 @@
       "AppInstallJob",
       "AppInstallJobEvent",
       "AppInstallStorageProjection",
+      "AppLifecycleCanonicalImpact",
+      "AppLifecycleDestructiveOptions",
       "AppMessageEvent",
       "AppModeManifest",
       "AppOpenProjection",
@@ -7024,8 +7052,6 @@
       "ExternalPayloadRefBlock",
       "ExtractNodeConfig",
       "GatewayVerdictRefBlock",
-      "GetAccessTokenRequest",
-      "GetAccessTokenResponse",
       "GetAccountAppInventoryRequest",
       "GetAccountAppInventoryResponse",
       "GetAccountSessionStatusRequest",
@@ -7040,6 +7066,8 @@
       "GetAgentStateResponse",
       "GetAppInstallJobRequest",
       "GetAppInstallJobResponse",
+      "GetAppLifecycleIntentStatusRequest",
+      "GetAppLifecycleIntentStatusResponse",
       "GetAppPackageReadinessRequest",
       "GetAppPackageReadinessResponse",
       "GetAppStorageRequest",
@@ -7332,6 +7360,8 @@
       "OpenCompanionParticipationReplayResponse",
       "OpenConversationAnchorRequest",
       "OpenConversationAnchorResponse",
+      "OpenDesktopSessionRequest",
+      "OpenDesktopSessionResponse",
       "OpenExternalPrincipalSessionRequest",
       "OpenExternalPrincipalSessionResponse",
       "OpenRealtimeSessionRequest",
@@ -7354,6 +7384,8 @@
       "PeekSchedulingRequest",
       "PeekSchedulingResponse",
       "PendingHook",
+      "PrepareAppLifecycleIntentRequest",
+      "PrepareAppLifecycleIntentResponse",
       "PrepareProfileRuntimeDescriptorRequest",
       "PrepareProfileRuntimeDescriptorResponse",
       "ProductControlProjectionJson",
@@ -7395,8 +7427,6 @@
       "ReconcileProductControlFirstRunSetupStateRequest",
       "RecordProductControlAccountDefaultProfileEvidenceRequest",
       "RecordProductControlFirstRunLocalAiReadyEvidenceRequest",
-      "RefreshAccountSessionRequest",
-      "RefreshAccountSessionResponse",
       "RefreshSessionRequest",
       "RefreshSessionResponse",
       "RegisterAppRequest",
@@ -7715,6 +7745,8 @@
       "AppInstallJobPhase",
       "AppInstallJobState",
       "AppInstallSourceKind",
+      "AppLifecycleIntentAction",
+      "AppLifecycleIntentStatus",
       "AppLifecycleJobKind",
       "AppMessageEventType",
       "AppMode",
@@ -8336,6 +8368,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "lifecycle_intent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "displayed_impact_digest",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -11637,6 +11683,109 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppLifecycleCanonicalImpact",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "action",
+            "type": "AppLifecycleIntentAction",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "account_generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "release_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "artifact_digest",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "adoption_generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "destructive_options",
+            "type": "AppLifecycleDestructiveOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "impact_flags",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "display_contract_version",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppLifecycleDestructiveOptions",
+        "fields": [
+          {
+            "name": "delete_durable_data",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "health_repair_action",
+            "type": "AppHealthRepairAction",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "target_job_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -17881,74 +18030,6 @@
         "source_file": "proto/runtime/v1/agent_participation.proto"
       },
       {
-        "name": "GetAccessTokenRequest",
-        "fields": [
-          {
-            "name": "caller",
-            "type": "AccountCaller",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "requested_scopes",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "GetAccessTokenResponse",
-        "fields": [
-          {
-            "name": "accepted",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "access_token",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "expires_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "account_reason_code",
-            "type": "AccountReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "production_inert",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
         "name": "GetAccountAppInventoryRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/app.proto"
@@ -18202,6 +18283,67 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "GetAppLifecycleIntentStatusRequest",
+        "fields": [
+          {
+            "name": "intent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "GetAppLifecycleIntentStatusResponse",
+        "fields": [
+          {
+            "name": "intent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "status",
+            "type": "AppLifecycleIntentStatus",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "non_authorizing_job_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "canonical_result",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "retryability",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -19421,6 +19563,20 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "lifecycle_intent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "displayed_impact_digest",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -20221,6 +20377,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "lifecycle_intent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "displayed_impact_digest",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -29258,6 +29428,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "lifecycle_intent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "displayed_impact_digest",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -29431,6 +29615,31 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "OpenDesktopSessionRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/auth.proto"
+      },
+      {
+        "name": "OpenDesktopSessionResponse",
+        "fields": [
+          {
+            "name": "desktop_session_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "runtime_boot_epoch",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/auth.proto"
       },
       {
         "name": "OpenExternalPrincipalSessionRequest",
@@ -30452,6 +30661,95 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "PrepareAppLifecycleIntentRequest",
+        "fields": [
+          {
+            "name": "action",
+            "type": "AppLifecycleIntentAction",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "expected_release_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "expected_artifact_digest",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "expected_adoption_generation",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "destructive_options",
+            "type": "AppLifecycleDestructiveOptions",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "PrepareAppLifecycleIntentResponse",
+        "fields": [
+          {
+            "name": "intent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "canonical_impact",
+            "type": "AppLifecycleCanonicalImpact",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "canonical_impact_digest",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "deadline",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "PrepareProfileRuntimeDescriptorRequest",
@@ -31980,67 +32278,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "RefreshAccountSessionRequest",
-        "fields": [
-          {
-            "name": "caller",
-            "type": "AccountCaller",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
-        "name": "RefreshAccountSessionResponse",
-        "fields": [
-          {
-            "name": "accepted",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "state",
-            "type": "AccountSessionState",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "account_projection",
-            "type": "AccountProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "reason_code",
-            "type": "ReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "account_reason_code",
-            "type": "AccountReasonCode",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "production_inert",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/account.proto"
-      },
-      {
         "name": "RefreshSessionRequest",
         "fields": [
           {
@@ -32354,6 +32591,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "lifecycle_intent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "displayed_impact_digest",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -38538,6 +38789,20 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "lifecycle_intent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "displayed_impact_digest",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -38618,6 +38883,20 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "lifecycle_intent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "displayed_impact_digest",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -41499,6 +41778,34 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "AppLifecycleIntentAction",
+        "values": [
+          "APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED",
+          "APP_LIFECYCLE_INTENT_ACTION_INSTALL",
+          "APP_LIFECYCLE_INTENT_ACTION_UNINSTALL",
+          "APP_LIFECYCLE_INTENT_ACTION_UPDATE",
+          "APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR",
+          "APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP",
+          "APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION",
+          "APP_LIFECYCLE_INTENT_ACTION_OPEN_APP"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppLifecycleIntentStatus",
+        "values": [
+          "APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED",
+          "APP_LIFECYCLE_INTENT_STATUS_PREPARED",
+          "APP_LIFECYCLE_INTENT_STATUS_CONSUMED",
+          "APP_LIFECYCLE_INTENT_STATUS_SIDE_EFFECT_STARTED",
+          "APP_LIFECYCLE_INTENT_STATUS_SUCCEEDED",
+          "APP_LIFECYCLE_INTENT_STATUS_FAILED",
+          "APP_LIFECYCLE_INTENT_STATUS_CANCELLED",
+          "APP_LIFECYCLE_INTENT_STATUS_EXPIRED"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "AppLifecycleJobKind",
         "values": [
           "APP_LIFECYCLE_JOB_KIND_UNSPECIFIED",
@@ -42711,7 +43018,29 @@
           "APP_OPEN_AICONFIG_UNRESOLVED",
           "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED",
           "APP_OPEN_LAUNCH_FAILED",
-          "AGENT_PRESENTATION_REVISION_CONFLICT"
+          "AGENT_PRESENTATION_REVISION_CONFLICT",
+          "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED",
+          "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED",
+          "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED",
+          "DESKTOP_CONTROL_TRANSPORT_REQUIRED",
+          "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE",
+          "DESKTOP_EXECUTABLE_TRUST_FAILED",
+          "DESKTOP_TEST_TRUST_FORBIDDEN",
+          "PROTECTED_ORIGIN_ROLE_MISMATCH",
+          "LIFECYCLE_CHALLENGE_REQUIRED",
+          "LIFECYCLE_CHALLENGE_MISMATCH",
+          "LIFECYCLE_CHALLENGE_REPLAY",
+          "PROTECTED_LOCAL_LEDGER_UNAVAILABLE",
+          "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED",
+          "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH",
+          "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED",
+          "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE",
+          "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN",
+          "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID",
+          "LIFECYCLE_INTENT_REQUIRED",
+          "LIFECYCLE_INTENT_MISMATCH",
+          "LIFECYCLE_INTENT_REPLAY",
+          "LIFECYCLE_INTENT_EXPIRED"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

@@ -980,7 +980,99 @@ export enum ReasonCode {
      *
      * @generated from protobuf enum value: AGENT_PRESENTATION_REVISION_CONFLICT = 614;
      */
-    AGENT_PRESENTATION_REVISION_CONFLICT = 614
+    AGENT_PRESENTATION_REVISION_CONFLICT = 614,
+    /**
+     * PROTECTED_LOCAL family (620+). These values are shared by protected
+     * transport, verified Desktop origin, the anchored lifecycle-intent ledger,
+     * and their sanitized fail-closed projections (K-PLOCAL-001..007/K-APP-026).
+     *
+     * @generated from protobuf enum value: PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED = 620;
+     */
+    PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED = 620,
+    /**
+     * @generated from protobuf enum value: PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED = 621;
+     */
+    PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED = 621,
+    /**
+     * @generated from protobuf enum value: PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED = 622;
+     */
+    PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED = 622,
+    /**
+     * @generated from protobuf enum value: DESKTOP_CONTROL_TRANSPORT_REQUIRED = 623;
+     */
+    DESKTOP_CONTROL_TRANSPORT_REQUIRED = 623,
+    /**
+     * @generated from protobuf enum value: DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE = 624;
+     */
+    DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE = 624,
+    /**
+     * @generated from protobuf enum value: DESKTOP_EXECUTABLE_TRUST_FAILED = 625;
+     */
+    DESKTOP_EXECUTABLE_TRUST_FAILED = 625,
+    /**
+     * @generated from protobuf enum value: DESKTOP_TEST_TRUST_FORBIDDEN = 626;
+     */
+    DESKTOP_TEST_TRUST_FORBIDDEN = 626,
+    /**
+     * @generated from protobuf enum value: PROTECTED_ORIGIN_ROLE_MISMATCH = 627;
+     */
+    PROTECTED_ORIGIN_ROLE_MISMATCH = 627,
+    /**
+     * @generated from protobuf enum value: LIFECYCLE_CHALLENGE_REQUIRED = 628;
+     */
+    LIFECYCLE_CHALLENGE_REQUIRED = 628,
+    /**
+     * @generated from protobuf enum value: LIFECYCLE_CHALLENGE_MISMATCH = 629;
+     */
+    LIFECYCLE_CHALLENGE_MISMATCH = 629,
+    /**
+     * @generated from protobuf enum value: LIFECYCLE_CHALLENGE_REPLAY = 630;
+     */
+    LIFECYCLE_CHALLENGE_REPLAY = 630,
+    /**
+     * @generated from protobuf enum value: PROTECTED_LOCAL_LEDGER_UNAVAILABLE = 631;
+     */
+    PROTECTED_LOCAL_LEDGER_UNAVAILABLE = 631,
+    /**
+     * @generated from protobuf enum value: PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED = 632;
+     */
+    PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED = 632,
+    /**
+     * @generated from protobuf enum value: PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH = 633;
+     */
+    PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH = 633,
+    /**
+     * @generated from protobuf enum value: PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED = 634;
+     */
+    PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED = 634,
+    /**
+     * @generated from protobuf enum value: PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE = 635;
+     */
+    PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE = 635,
+    /**
+     * @generated from protobuf enum value: PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN = 636;
+     */
+    PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN = 636,
+    /**
+     * @generated from protobuf enum value: RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID = 637;
+     */
+    RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID = 637,
+    /**
+     * @generated from protobuf enum value: LIFECYCLE_INTENT_REQUIRED = 638;
+     */
+    LIFECYCLE_INTENT_REQUIRED = 638,
+    /**
+     * @generated from protobuf enum value: LIFECYCLE_INTENT_MISMATCH = 639;
+     */
+    LIFECYCLE_INTENT_MISMATCH = 639,
+    /**
+     * @generated from protobuf enum value: LIFECYCLE_INTENT_REPLAY = 640;
+     */
+    LIFECYCLE_INTENT_REPLAY = 640,
+    /**
+     * @generated from protobuf enum value: LIFECYCLE_INTENT_EXPIRED = 641;
+     */
+    LIFECYCLE_INTENT_EXPIRED = 641
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

@@ -24,14 +24,6 @@ RUNTIME_METHODS = [
     "response_type": "CompleteLoginResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
-    "service": "RuntimeAccountService",
-    "method": "GetAccessToken",
-    "kind": "unary",
-    "request_type": "GetAccessTokenRequest",
-    "response_type": "GetAccessTokenResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
     "service": "RuntimeAccountService",
     "method": "GetAccountSessionStatus",
@@ -70,14 +62,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "LogoutRequest",
     "response_type": "LogoutResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
-    "service": "RuntimeAccountService",
-    "method": "RefreshAccountSession",
-    "kind": "unary",
-    "request_type": "RefreshAccountSessionRequest",
-    "response_type": "RefreshAccountSessionResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
@@ -800,6 +784,14 @@ RUNTIME_METHODS = [
     "response_type": "GetAppInstallJobResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
+    "service": "RuntimeAppService",
+    "method": "GetAppLifecycleIntentStatus",
+    "kind": "unary",
+    "request_type": "GetAppLifecycleIntentStatusRequest",
+    "response_type": "GetAppLifecycleIntentStatusResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
     "service": "RuntimeAppService",
     "method": "GetAppPackageReadiness",
@@ -854,6 +846,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "OpenAppRequest",
     "response_type": "OpenAppResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
+    "service": "RuntimeAppService",
+    "method": "PrepareAppLifecycleIntent",
+    "kind": "unary",
+    "request_type": "PrepareAppLifecycleIntentRequest",
+    "response_type": "PrepareAppLifecycleIntentResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption",
@@ -974,6 +974,14 @@ RUNTIME_METHODS = [
     "kind": "server_stream",
     "request_type": "SubscribeRuntimeHealthEventsRequest",
     "response_type": "RuntimeHealthEvent"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
+    "service": "RuntimeAuthService",
+    "method": "OpenDesktopSession",
+    "kind": "unary",
+    "request_type": "OpenDesktopSessionRequest",
+    "response_type": "OpenDesktopSessionResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession",

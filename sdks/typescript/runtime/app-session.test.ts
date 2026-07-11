@@ -266,7 +266,7 @@ test('Runtime app session metadata provider fails closed without session token',
   );
 });
 
-test('Runtime installed app session metadata provider registers without developer registration', async () => {
+test('Runtime installed app session metadata provider fails closed before A.1 even with a complete forged launch binding', async () => {
   const registrations: RegisterAppRequest[] = [];
   const sessions: OpenSessionRequest[] = [];
   const provider = createNimiRuntimeInstalledAppSessionMetadataProvider({
@@ -301,20 +301,15 @@ test('Runtime installed app session metadata provider registers without develope
     },
   });
 
-  assert.deepEqual(await provider(), {
-    'x-nimi-session-id': 'installed-session-1',
-    'x-nimi-session-token': 'installed-token-1',
-  });
-  assert.equal(registrations.length, 1);
-  assert.equal(registrations[0]?.appId, 'community.nimi.fixture.platform-proof');
-  assert.equal(registrations[0]?.appInstanceId, 'community.nimi.fixture.platform-proof.desktop-host');
-  assert.equal(registrations[0]?.deviceId, 'desktop-installed-app-host-device');
-  assert.equal(registrations[0]?.developerRegistration, false);
-  assert.deepEqual(registrations[0]?.capabilities, ['runtime.account.status']);
-  assert.deepEqual(sessions.map((request) => request.subjectUserId), ['']);
+  await assert.rejects(
+    provider(),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
+  );
+  assert.equal(registrations.length, 0);
+  assert.equal(sessions.length, 0);
 });
 
-test('Runtime installed app session metadata provider rejects developer registration', async () => {
+test('Runtime installed app session metadata provider blocks malformed and developer-shaped input before A.1', async () => {
   await assert.rejects(
     async () => {
       const provider = createNimiRuntimeInstalledAppSessionMetadataProvider({
@@ -337,7 +332,7 @@ test('Runtime installed app session metadata provider rejects developer registra
       });
       await provider();
     },
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_SESSION_BINDING_REQUIRED',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
   );
 
   await assert.rejects(
@@ -363,6 +358,6 @@ test('Runtime installed app session metadata provider rejects developer registra
       } as never);
       await provider();
     },
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_SESSION_DEVELOPER_REGISTRATION_FORBIDDEN',
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_INSTALLED_APP_CALLER_BINDING_REQUIRED',
   );
 });

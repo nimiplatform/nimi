@@ -61,7 +61,6 @@ import assert from 'node:assert/strict';
 const checks = [
   ['@nimiplatform/sdk', 'createNimiClient'],
   ['@nimiplatform/sdk/runtime', 'createRuntime'],
-  ['@nimiplatform/sdk/runtime/generated', 'RuntimeTypedClient'],
   ['@nimiplatform/sdk/realm', 'createRealm'],
   ['@nimiplatform/sdk/realm/generated', 'RealmTypedClient'],
   ['@nimiplatform/sdk/app', 'createNimiAppClient'],
@@ -99,7 +98,7 @@ assert.equal(typeof typesModule.ReasonCode.RUNTIME_UNAVAILABLE, 'string');
   writeFileSync(path.join(tempRoot, 'consumer.ts'), `
 import { createNimiClient, type NimiClientConfig } from '@nimiplatform/sdk';
 import { createRuntime, type CoreTransport } from '@nimiplatform/sdk/runtime';
-import { RuntimeTypedClient, ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import { ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import { ScenarioType, type ExecuteScenarioRequest } from '@nimiplatform/sdk/runtime/wire-types';
 import { createRealm, type Realm } from '@nimiplatform/sdk/realm';
 import { RealmTypedClient, type RealmModel, type RealmModelName } from '@nimiplatform/sdk/realm/generated';
@@ -124,7 +123,6 @@ const transport: CoreTransport = {
 const config: NimiClientConfig = { appId: 'dev.nimi.surface', runtime: { transport } };
 const client = createNimiClient(config);
 const runtime = createRuntime({ transport });
-const generatedRuntime = new RuntimeTypedClient(runtime.core as never);
 const realm: Realm = createRealm({ transport });
 const generatedRealm = new RealmTypedClient(realm.core as never);
 const appRow: NimiAppRow = {
@@ -184,7 +182,7 @@ const runner: NimiAiRunnerSpec = { id: 'runner', name: 'Runner' };
 const plan = createWorldWorkflowPlan({ planId: 'plan', steps: [{ kind: 'world-core-list' }] });
 const registry = createNimiToolRegistry([]);
 
-void client; void runtime; void generatedRuntime; void realm; void generatedRealm; void appClient; void error; void json; void generatedReason; void scenarioRequest; void realmModelName; void grantRow; void message;
+void client; void runtime; void realm; void generatedRealm; void appClient; void error; void json; void generatedReason; void scenarioRequest; void realmModelName; void grantRow; void message;
 void manifest; void model; void runner; void plan; void registry;
 void collectNimiTextStream; void runNimiAiRunner; void userTextMessage;
 void buildNimiConversationHistoryWindow; void createNimiKnowledgeContextBundle;

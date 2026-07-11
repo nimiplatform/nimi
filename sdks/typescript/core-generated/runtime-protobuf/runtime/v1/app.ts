@@ -143,6 +143,171 @@ export interface AppMessageEvent {
     timestamp?: Timestamp;
 }
 /**
+ * AppLifecycleDestructiveOptions is the closed set of option values that can
+ * alter the canonical impact for today's lifecycle methods. Runtime resolves
+ * and revalidates their concrete target before it issues an intent.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AppLifecycleDestructiveOptions
+ */
+export interface AppLifecycleDestructiveOptions {
+    /**
+     * @generated from protobuf field: bool delete_durable_data = 1
+     */
+    deleteDurableData: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppHealthRepairAction health_repair_action = 2
+     */
+    healthRepairAction: AppHealthRepairAction;
+    /**
+     * @generated from protobuf field: string target_job_id = 3
+     */
+    targetJobId: string;
+}
+/**
+ * AppLifecycleCanonicalImpact is the typed input to RFC8785 JSON
+ * canonicalization and SHA-256 digesting. account_generation remains inside
+ * Runtime/protected transport and is never projected into renderer IPC.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AppLifecycleCanonicalImpact
+ */
+export interface AppLifecycleCanonicalImpact {
+    /**
+     * @generated from protobuf field: uint32 schema_version = 1
+     */
+    schemaVersion: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppLifecycleIntentAction action = 2
+     */
+    action: AppLifecycleIntentAction;
+    /**
+     * @generated from protobuf field: string app_id = 3
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: uint64 account_generation = 4
+     */
+    accountGeneration: string;
+    /**
+     * @generated from protobuf field: string release_ref = 5
+     */
+    releaseRef: string;
+    /**
+     * @generated from protobuf field: string artifact_digest = 6
+     */
+    artifactDigest: string;
+    /**
+     * @generated from protobuf field: uint64 adoption_generation = 7
+     */
+    adoptionGeneration: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppLifecycleDestructiveOptions destructive_options = 8
+     */
+    destructiveOptions?: AppLifecycleDestructiveOptions;
+    /**
+     * @generated from protobuf field: repeated string impact_flags = 9
+     */
+    impactFlags: string[];
+    /**
+     * @generated from protobuf field: uint32 display_contract_version = 10
+     */
+    displayContractVersion: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PrepareAppLifecycleIntentRequest
+ */
+export interface PrepareAppLifecycleIntentRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppLifecycleIntentAction action = 1
+     */
+    action: AppLifecycleIntentAction;
+    /**
+     * @generated from protobuf field: string app_id = 2
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string expected_release_ref = 3
+     */
+    expectedReleaseRef: string;
+    /**
+     * @generated from protobuf field: string expected_artifact_digest = 4
+     */
+    expectedArtifactDigest: string;
+    /**
+     * @generated from protobuf field: uint64 expected_adoption_generation = 5
+     */
+    expectedAdoptionGeneration: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppLifecycleDestructiveOptions destructive_options = 6
+     */
+    destructiveOptions?: AppLifecycleDestructiveOptions;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PrepareAppLifecycleIntentResponse
+ */
+export interface PrepareAppLifecycleIntentResponse {
+    /**
+     * @generated from protobuf field: string intent_id = 1
+     */
+    intentId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppLifecycleCanonicalImpact canonical_impact = 2
+     */
+    canonicalImpact?: AppLifecycleCanonicalImpact;
+    /**
+     * @generated from protobuf field: string canonical_impact_digest = 3
+     */
+    canonicalImpactDigest: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp deadline = 4
+     */
+    deadline?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 5
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAppLifecycleIntentStatusRequest
+ */
+export interface GetAppLifecycleIntentStatusRequest {
+    /**
+     * @generated from protobuf field: string intent_id = 1
+     */
+    intentId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAppLifecycleIntentStatusResponse
+ */
+export interface GetAppLifecycleIntentStatusResponse {
+    /**
+     * @generated from protobuf field: string intent_id = 1
+     */
+    intentId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppLifecycleIntentStatus status = 2
+     */
+    status: AppLifecycleIntentStatus;
+    /**
+     * @generated from protobuf field: string non_authorizing_job_id = 3
+     */
+    nonAuthorizingJobId: string;
+    /**
+     * canonical_result is an RFC8785 JSON document with no credential,
+     * process-tuple, boot-epoch, account-generation, or ledger-anchor material.
+     *
+     * @generated from protobuf field: string canonical_result = 4
+     */
+    canonicalResult: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 5
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: bool retryability = 6
+     */
+    retryability: boolean;
+}
+/**
  * AppInstallStorageProjection mirrors the Runtime-owned app storage roots
  * (P-NAPP-015 / S-APP-011). All four roots are absolute paths under the
  * selected nimi_data directory.
@@ -387,6 +552,14 @@ export interface InstallAppRequest {
      * @generated from protobuf field: bool confirmed = 2
      */
     confirmed: boolean;
+    /**
+     * @generated from protobuf field: string lifecycle_intent_id = 3
+     */
+    lifecycleIntentId: string;
+    /**
+     * @generated from protobuf field: string displayed_impact_digest = 4
+     */
+    displayedImpactDigest: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.InstallAppResponse
@@ -603,6 +776,14 @@ export interface AdoptLocalAppRequest {
      * @generated from protobuf field: string expected_app_id = 2
      */
     expectedAppId: string;
+    /**
+     * @generated from protobuf field: string lifecycle_intent_id = 3
+     */
+    lifecycleIntentId: string;
+    /**
+     * @generated from protobuf field: string displayed_impact_digest = 4
+     */
+    displayedImpactDigest: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AdoptLocalAppResponse
@@ -655,6 +836,14 @@ export interface RemoveLocalAppAdoptionRequest {
      * @generated from protobuf field: bool delete_durable_data_confirmed = 2
      */
     deleteDurableDataConfirmed: boolean;
+    /**
+     * @generated from protobuf field: string lifecycle_intent_id = 3
+     */
+    lifecycleIntentId: string;
+    /**
+     * @generated from protobuf field: string displayed_impact_digest = 4
+     */
+    displayedImpactDigest: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.RemoveLocalAppAdoptionResponse
@@ -770,6 +959,14 @@ export interface UninstallAppRequest {
      * @generated from protobuf field: bool destructive_data_delete_confirmed = 3
      */
     destructiveDataDeleteConfirmed: boolean;
+    /**
+     * @generated from protobuf field: string lifecycle_intent_id = 4
+     */
+    lifecycleIntentId: string;
+    /**
+     * @generated from protobuf field: string displayed_impact_digest = 5
+     */
+    displayedImpactDigest: string;
 }
 /**
  * AppUninstallResult is the typed uninstall projection. Uninstall removes
@@ -843,6 +1040,14 @@ export interface UpdateAppRequest {
      * @generated from protobuf field: bool confirmed = 2
      */
     confirmed: boolean;
+    /**
+     * @generated from protobuf field: string lifecycle_intent_id = 3
+     */
+    lifecycleIntentId: string;
+    /**
+     * @generated from protobuf field: string displayed_impact_digest = 4
+     */
+    displayedImpactDigest: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.UpdateAppResponse
@@ -883,6 +1088,14 @@ export interface HealthRepairAppRequest {
      * @generated from protobuf field: string job_id = 3
      */
     jobId: string;
+    /**
+     * @generated from protobuf field: string lifecycle_intent_id = 4
+     */
+    lifecycleIntentId: string;
+    /**
+     * @generated from protobuf field: string displayed_impact_digest = 5
+     */
+    displayedImpactDigest: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.HealthRepairAppResponse
@@ -951,6 +1164,14 @@ export interface OpenAppRequest {
      * @generated from protobuf field: nimi.runtime.v1.AppOpenScopeRef scope = 2
      */
     scope?: AppOpenScopeRef;
+    /**
+     * @generated from protobuf field: string lifecycle_intent_id = 3
+     */
+    lifecycleIntentId: string;
+    /**
+     * @generated from protobuf field: string displayed_impact_digest = 4
+     */
+    displayedImpactDigest: string;
 }
 /**
  * AppOpenProjection is the typed Open-flow projection. It reports the
@@ -1292,6 +1513,87 @@ export enum AppHealthRepairAction {
      * @generated from protobuf enum value: APP_HEALTH_REPAIR_ACTION_REINSTALL = 4;
      */
     REINSTALL = 4
+}
+/**
+ * AppLifecycleIntentAction is the closed action vocabulary owned by
+ * K-APP-026. A single prepare/status protocol covers every lifecycle mutation;
+ * callers cannot introduce action-specific confirmation RPCs.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AppLifecycleIntentAction
+ */
+export enum AppLifecycleIntentAction {
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_ACTION_INSTALL = 1;
+     */
+    INSTALL = 1,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_ACTION_UNINSTALL = 2;
+     */
+    UNINSTALL = 2,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_ACTION_UPDATE = 3;
+     */
+    UPDATE = 3,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR = 4;
+     */
+    HEALTH_REPAIR = 4,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP = 5;
+     */
+    ADOPT_LOCAL_APP = 5,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION = 6;
+     */
+    REMOVE_LOCAL_APP_ADOPTION = 6,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_ACTION_OPEN_APP = 7;
+     */
+    OPEN_APP = 7
+}
+/**
+ * AppLifecycleIntentStatus is the durable reconciliation vocabulary. An
+ * intent id or status is correlation-only and never authorizes a mutation.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.AppLifecycleIntentStatus
+ */
+export enum AppLifecycleIntentStatus {
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_STATUS_PREPARED = 1;
+     */
+    PREPARED = 1,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_STATUS_CONSUMED = 2;
+     */
+    CONSUMED = 2,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_STATUS_SIDE_EFFECT_STARTED = 3;
+     */
+    SIDE_EFFECT_STARTED = 3,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_STATUS_SUCCEEDED = 4;
+     */
+    SUCCEEDED = 4,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_STATUS_FAILED = 5;
+     */
+    FAILED = 5,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_STATUS_CANCELLED = 6;
+     */
+    CANCELLED = 6,
+    /**
+     * @generated from protobuf enum value: APP_LIFECYCLE_INTENT_STATUS_EXPIRED = 7;
+     */
+    EXPIRED = 7
 }
 /**
  * AppInstallSourceKind distinguishes a bundled first-party install (no network
@@ -1936,6 +2238,484 @@ class AppMessageEvent$Type extends MessageType<AppMessageEvent> {
  */
 export const AppMessageEvent = new AppMessageEvent$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AppLifecycleDestructiveOptions$Type extends MessageType<AppLifecycleDestructiveOptions> {
+    constructor() {
+        super("nimi.runtime.v1.AppLifecycleDestructiveOptions", [
+            { no: 1, name: "delete_durable_data", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "health_repair_action", kind: "enum", T: () => ["nimi.runtime.v1.AppHealthRepairAction", AppHealthRepairAction, "APP_HEALTH_REPAIR_ACTION_"] },
+            { no: 3, name: "target_job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppLifecycleDestructiveOptions>): AppLifecycleDestructiveOptions {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.deleteDurableData = false;
+        message.healthRepairAction = 0;
+        message.targetJobId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppLifecycleDestructiveOptions>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppLifecycleDestructiveOptions): AppLifecycleDestructiveOptions {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool delete_durable_data */ 1:
+                    message.deleteDurableData = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.AppHealthRepairAction health_repair_action */ 2:
+                    message.healthRepairAction = reader.int32();
+                    break;
+                case /* string target_job_id */ 3:
+                    message.targetJobId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppLifecycleDestructiveOptions, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool delete_durable_data = 1; */
+        if (message.deleteDurableData !== false)
+            writer.tag(1, WireType.Varint).bool(message.deleteDurableData);
+        /* nimi.runtime.v1.AppHealthRepairAction health_repair_action = 2; */
+        if (message.healthRepairAction !== 0)
+            writer.tag(2, WireType.Varint).int32(message.healthRepairAction);
+        /* string target_job_id = 3; */
+        if (message.targetJobId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.targetJobId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppLifecycleDestructiveOptions
+ */
+export const AppLifecycleDestructiveOptions = new AppLifecycleDestructiveOptions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppLifecycleCanonicalImpact$Type extends MessageType<AppLifecycleCanonicalImpact> {
+    constructor() {
+        super("nimi.runtime.v1.AppLifecycleCanonicalImpact", [
+            { no: 1, name: "schema_version", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "action", kind: "enum", T: () => ["nimi.runtime.v1.AppLifecycleIntentAction", AppLifecycleIntentAction, "APP_LIFECYCLE_INTENT_ACTION_"] },
+            { no: 3, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "account_generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 5, name: "release_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "artifact_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "adoption_generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 8, name: "destructive_options", kind: "message", T: () => AppLifecycleDestructiveOptions },
+            { no: 9, name: "impact_flags", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "display_contract_version", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppLifecycleCanonicalImpact>): AppLifecycleCanonicalImpact {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.schemaVersion = 0;
+        message.action = 0;
+        message.appId = "";
+        message.accountGeneration = "0";
+        message.releaseRef = "";
+        message.artifactDigest = "";
+        message.adoptionGeneration = "0";
+        message.impactFlags = [];
+        message.displayContractVersion = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AppLifecycleCanonicalImpact>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppLifecycleCanonicalImpact): AppLifecycleCanonicalImpact {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint32 schema_version */ 1:
+                    message.schemaVersion = reader.uint32();
+                    break;
+                case /* nimi.runtime.v1.AppLifecycleIntentAction action */ 2:
+                    message.action = reader.int32();
+                    break;
+                case /* string app_id */ 3:
+                    message.appId = reader.string();
+                    break;
+                case /* uint64 account_generation */ 4:
+                    message.accountGeneration = reader.uint64().toString();
+                    break;
+                case /* string release_ref */ 5:
+                    message.releaseRef = reader.string();
+                    break;
+                case /* string artifact_digest */ 6:
+                    message.artifactDigest = reader.string();
+                    break;
+                case /* uint64 adoption_generation */ 7:
+                    message.adoptionGeneration = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.AppLifecycleDestructiveOptions destructive_options */ 8:
+                    message.destructiveOptions = AppLifecycleDestructiveOptions.internalBinaryRead(reader, reader.uint32(), options, message.destructiveOptions);
+                    break;
+                case /* repeated string impact_flags */ 9:
+                    message.impactFlags.push(reader.string());
+                    break;
+                case /* uint32 display_contract_version */ 10:
+                    message.displayContractVersion = reader.uint32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppLifecycleCanonicalImpact, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint32 schema_version = 1; */
+        if (message.schemaVersion !== 0)
+            writer.tag(1, WireType.Varint).uint32(message.schemaVersion);
+        /* nimi.runtime.v1.AppLifecycleIntentAction action = 2; */
+        if (message.action !== 0)
+            writer.tag(2, WireType.Varint).int32(message.action);
+        /* string app_id = 3; */
+        if (message.appId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.appId);
+        /* uint64 account_generation = 4; */
+        if (message.accountGeneration !== "0")
+            writer.tag(4, WireType.Varint).uint64(message.accountGeneration);
+        /* string release_ref = 5; */
+        if (message.releaseRef !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.releaseRef);
+        /* string artifact_digest = 6; */
+        if (message.artifactDigest !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.artifactDigest);
+        /* uint64 adoption_generation = 7; */
+        if (message.adoptionGeneration !== "0")
+            writer.tag(7, WireType.Varint).uint64(message.adoptionGeneration);
+        /* nimi.runtime.v1.AppLifecycleDestructiveOptions destructive_options = 8; */
+        if (message.destructiveOptions)
+            AppLifecycleDestructiveOptions.internalBinaryWrite(message.destructiveOptions, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string impact_flags = 9; */
+        for (let i = 0; i < message.impactFlags.length; i++)
+            writer.tag(9, WireType.LengthDelimited).string(message.impactFlags[i]);
+        /* uint32 display_contract_version = 10; */
+        if (message.displayContractVersion !== 0)
+            writer.tag(10, WireType.Varint).uint32(message.displayContractVersion);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppLifecycleCanonicalImpact
+ */
+export const AppLifecycleCanonicalImpact = new AppLifecycleCanonicalImpact$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PrepareAppLifecycleIntentRequest$Type extends MessageType<PrepareAppLifecycleIntentRequest> {
+    constructor() {
+        super("nimi.runtime.v1.PrepareAppLifecycleIntentRequest", [
+            { no: 1, name: "action", kind: "enum", T: () => ["nimi.runtime.v1.AppLifecycleIntentAction", AppLifecycleIntentAction, "APP_LIFECYCLE_INTENT_ACTION_"] },
+            { no: 2, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "expected_release_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "expected_artifact_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "expected_adoption_generation", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 6, name: "destructive_options", kind: "message", T: () => AppLifecycleDestructiveOptions }
+        ]);
+    }
+    create(value?: PartialMessage<PrepareAppLifecycleIntentRequest>): PrepareAppLifecycleIntentRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.action = 0;
+        message.appId = "";
+        message.expectedReleaseRef = "";
+        message.expectedArtifactDigest = "";
+        message.expectedAdoptionGeneration = "0";
+        if (value !== undefined)
+            reflectionMergePartial<PrepareAppLifecycleIntentRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PrepareAppLifecycleIntentRequest): PrepareAppLifecycleIntentRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppLifecycleIntentAction action */ 1:
+                    message.action = reader.int32();
+                    break;
+                case /* string app_id */ 2:
+                    message.appId = reader.string();
+                    break;
+                case /* string expected_release_ref */ 3:
+                    message.expectedReleaseRef = reader.string();
+                    break;
+                case /* string expected_artifact_digest */ 4:
+                    message.expectedArtifactDigest = reader.string();
+                    break;
+                case /* uint64 expected_adoption_generation */ 5:
+                    message.expectedAdoptionGeneration = reader.uint64().toString();
+                    break;
+                case /* nimi.runtime.v1.AppLifecycleDestructiveOptions destructive_options */ 6:
+                    message.destructiveOptions = AppLifecycleDestructiveOptions.internalBinaryRead(reader, reader.uint32(), options, message.destructiveOptions);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PrepareAppLifecycleIntentRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppLifecycleIntentAction action = 1; */
+        if (message.action !== 0)
+            writer.tag(1, WireType.Varint).int32(message.action);
+        /* string app_id = 2; */
+        if (message.appId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.appId);
+        /* string expected_release_ref = 3; */
+        if (message.expectedReleaseRef !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.expectedReleaseRef);
+        /* string expected_artifact_digest = 4; */
+        if (message.expectedArtifactDigest !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.expectedArtifactDigest);
+        /* uint64 expected_adoption_generation = 5; */
+        if (message.expectedAdoptionGeneration !== "0")
+            writer.tag(5, WireType.Varint).uint64(message.expectedAdoptionGeneration);
+        /* nimi.runtime.v1.AppLifecycleDestructiveOptions destructive_options = 6; */
+        if (message.destructiveOptions)
+            AppLifecycleDestructiveOptions.internalBinaryWrite(message.destructiveOptions, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PrepareAppLifecycleIntentRequest
+ */
+export const PrepareAppLifecycleIntentRequest = new PrepareAppLifecycleIntentRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PrepareAppLifecycleIntentResponse$Type extends MessageType<PrepareAppLifecycleIntentResponse> {
+    constructor() {
+        super("nimi.runtime.v1.PrepareAppLifecycleIntentResponse", [
+            { no: 1, name: "intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "canonical_impact", kind: "message", T: () => AppLifecycleCanonicalImpact },
+            { no: 3, name: "canonical_impact_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "deadline", kind: "message", T: () => Timestamp },
+            { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<PrepareAppLifecycleIntentResponse>): PrepareAppLifecycleIntentResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.intentId = "";
+        message.canonicalImpactDigest = "";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<PrepareAppLifecycleIntentResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PrepareAppLifecycleIntentResponse): PrepareAppLifecycleIntentResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string intent_id */ 1:
+                    message.intentId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppLifecycleCanonicalImpact canonical_impact */ 2:
+                    message.canonicalImpact = AppLifecycleCanonicalImpact.internalBinaryRead(reader, reader.uint32(), options, message.canonicalImpact);
+                    break;
+                case /* string canonical_impact_digest */ 3:
+                    message.canonicalImpactDigest = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp deadline */ 4:
+                    message.deadline = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.deadline);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 5:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PrepareAppLifecycleIntentResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string intent_id = 1; */
+        if (message.intentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.intentId);
+        /* nimi.runtime.v1.AppLifecycleCanonicalImpact canonical_impact = 2; */
+        if (message.canonicalImpact)
+            AppLifecycleCanonicalImpact.internalBinaryWrite(message.canonicalImpact, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string canonical_impact_digest = 3; */
+        if (message.canonicalImpactDigest !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.canonicalImpactDigest);
+        /* google.protobuf.Timestamp deadline = 4; */
+        if (message.deadline)
+            Timestamp.internalBinaryWrite(message.deadline, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 5; */
+        if (message.reasonCode !== 0)
+            writer.tag(5, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PrepareAppLifecycleIntentResponse
+ */
+export const PrepareAppLifecycleIntentResponse = new PrepareAppLifecycleIntentResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAppLifecycleIntentStatusRequest$Type extends MessageType<GetAppLifecycleIntentStatusRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetAppLifecycleIntentStatusRequest", [
+            { no: 1, name: "intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetAppLifecycleIntentStatusRequest>): GetAppLifecycleIntentStatusRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.intentId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetAppLifecycleIntentStatusRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAppLifecycleIntentStatusRequest): GetAppLifecycleIntentStatusRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string intent_id */ 1:
+                    message.intentId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAppLifecycleIntentStatusRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string intent_id = 1; */
+        if (message.intentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.intentId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAppLifecycleIntentStatusRequest
+ */
+export const GetAppLifecycleIntentStatusRequest = new GetAppLifecycleIntentStatusRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAppLifecycleIntentStatusResponse$Type extends MessageType<GetAppLifecycleIntentStatusResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetAppLifecycleIntentStatusResponse", [
+            { no: 1, name: "intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.AppLifecycleIntentStatus", AppLifecycleIntentStatus, "APP_LIFECYCLE_INTENT_STATUS_"] },
+            { no: 3, name: "non_authorizing_job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "canonical_result", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 6, name: "retryability", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetAppLifecycleIntentStatusResponse>): GetAppLifecycleIntentStatusResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.intentId = "";
+        message.status = 0;
+        message.nonAuthorizingJobId = "";
+        message.canonicalResult = "";
+        message.reasonCode = 0;
+        message.retryability = false;
+        if (value !== undefined)
+            reflectionMergePartial<GetAppLifecycleIntentStatusResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAppLifecycleIntentStatusResponse): GetAppLifecycleIntentStatusResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string intent_id */ 1:
+                    message.intentId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppLifecycleIntentStatus status */ 2:
+                    message.status = reader.int32();
+                    break;
+                case /* string non_authorizing_job_id */ 3:
+                    message.nonAuthorizingJobId = reader.string();
+                    break;
+                case /* string canonical_result */ 4:
+                    message.canonicalResult = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 5:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* bool retryability */ 6:
+                    message.retryability = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAppLifecycleIntentStatusResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string intent_id = 1; */
+        if (message.intentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.intentId);
+        /* nimi.runtime.v1.AppLifecycleIntentStatus status = 2; */
+        if (message.status !== 0)
+            writer.tag(2, WireType.Varint).int32(message.status);
+        /* string non_authorizing_job_id = 3; */
+        if (message.nonAuthorizingJobId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.nonAuthorizingJobId);
+        /* string canonical_result = 4; */
+        if (message.canonicalResult !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.canonicalResult);
+        /* nimi.runtime.v1.ReasonCode reason_code = 5; */
+        if (message.reasonCode !== 0)
+            writer.tag(5, WireType.Varint).int32(message.reasonCode);
+        /* bool retryability = 6; */
+        if (message.retryability !== false)
+            writer.tag(6, WireType.Varint).bool(message.retryability);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAppLifecycleIntentStatusResponse
+ */
+export const GetAppLifecycleIntentStatusResponse = new GetAppLifecycleIntentStatusResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class AppInstallStorageProjection$Type extends MessageType<AppInstallStorageProjection> {
     constructor() {
         super("nimi.runtime.v1.AppInstallStorageProjection", [
@@ -2447,13 +3227,17 @@ class InstallAppRequest$Type extends MessageType<InstallAppRequest> {
     constructor() {
         super("nimi.runtime.v1.InstallAppRequest", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 2, name: "confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "lifecycle_intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "displayed_impact_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<InstallAppRequest>): InstallAppRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.appId = "";
         message.confirmed = false;
+        message.lifecycleIntentId = "";
+        message.displayedImpactDigest = "";
         if (value !== undefined)
             reflectionMergePartial<InstallAppRequest>(this, message, value);
         return message;
@@ -2468,6 +3252,12 @@ class InstallAppRequest$Type extends MessageType<InstallAppRequest> {
                     break;
                 case /* bool confirmed */ 2:
                     message.confirmed = reader.bool();
+                    break;
+                case /* string lifecycle_intent_id */ 3:
+                    message.lifecycleIntentId = reader.string();
+                    break;
+                case /* string displayed_impact_digest */ 4:
+                    message.displayedImpactDigest = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2487,6 +3277,12 @@ class InstallAppRequest$Type extends MessageType<InstallAppRequest> {
         /* bool confirmed = 2; */
         if (message.confirmed !== false)
             writer.tag(2, WireType.Varint).bool(message.confirmed);
+        /* string lifecycle_intent_id = 3; */
+        if (message.lifecycleIntentId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.lifecycleIntentId);
+        /* string displayed_impact_digest = 4; */
+        if (message.displayedImpactDigest !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.displayedImpactDigest);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3167,13 +3963,17 @@ class AdoptLocalAppRequest$Type extends MessageType<AdoptLocalAppRequest> {
     constructor() {
         super("nimi.runtime.v1.AdoptLocalAppRequest", [
             { no: 1, name: "root_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "expected_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "expected_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "lifecycle_intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "displayed_impact_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<AdoptLocalAppRequest>): AdoptLocalAppRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.rootPath = "";
         message.expectedAppId = "";
+        message.lifecycleIntentId = "";
+        message.displayedImpactDigest = "";
         if (value !== undefined)
             reflectionMergePartial<AdoptLocalAppRequest>(this, message, value);
         return message;
@@ -3188,6 +3988,12 @@ class AdoptLocalAppRequest$Type extends MessageType<AdoptLocalAppRequest> {
                     break;
                 case /* string expected_app_id */ 2:
                     message.expectedAppId = reader.string();
+                    break;
+                case /* string lifecycle_intent_id */ 3:
+                    message.lifecycleIntentId = reader.string();
+                    break;
+                case /* string displayed_impact_digest */ 4:
+                    message.displayedImpactDigest = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3207,6 +4013,12 @@ class AdoptLocalAppRequest$Type extends MessageType<AdoptLocalAppRequest> {
         /* string expected_app_id = 2; */
         if (message.expectedAppId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.expectedAppId);
+        /* string lifecycle_intent_id = 3; */
+        if (message.lifecycleIntentId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.lifecycleIntentId);
+        /* string displayed_impact_digest = 4; */
+        if (message.displayedImpactDigest !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.displayedImpactDigest);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3385,13 +4197,17 @@ class RemoveLocalAppAdoptionRequest$Type extends MessageType<RemoveLocalAppAdopt
     constructor() {
         super("nimi.runtime.v1.RemoveLocalAppAdoptionRequest", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "delete_durable_data_confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 2, name: "delete_durable_data_confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "lifecycle_intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "displayed_impact_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<RemoveLocalAppAdoptionRequest>): RemoveLocalAppAdoptionRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.appId = "";
         message.deleteDurableDataConfirmed = false;
+        message.lifecycleIntentId = "";
+        message.displayedImpactDigest = "";
         if (value !== undefined)
             reflectionMergePartial<RemoveLocalAppAdoptionRequest>(this, message, value);
         return message;
@@ -3406,6 +4222,12 @@ class RemoveLocalAppAdoptionRequest$Type extends MessageType<RemoveLocalAppAdopt
                     break;
                 case /* bool delete_durable_data_confirmed */ 2:
                     message.deleteDurableDataConfirmed = reader.bool();
+                    break;
+                case /* string lifecycle_intent_id */ 3:
+                    message.lifecycleIntentId = reader.string();
+                    break;
+                case /* string displayed_impact_digest */ 4:
+                    message.displayedImpactDigest = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3425,6 +4247,12 @@ class RemoveLocalAppAdoptionRequest$Type extends MessageType<RemoveLocalAppAdopt
         /* bool delete_durable_data_confirmed = 2; */
         if (message.deleteDurableDataConfirmed !== false)
             writer.tag(2, WireType.Varint).bool(message.deleteDurableDataConfirmed);
+        /* string lifecycle_intent_id = 3; */
+        if (message.lifecycleIntentId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.lifecycleIntentId);
+        /* string displayed_impact_digest = 4; */
+        if (message.displayedImpactDigest !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.displayedImpactDigest);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3798,7 +4626,9 @@ class UninstallAppRequest$Type extends MessageType<UninstallAppRequest> {
         super("nimi.runtime.v1.UninstallAppRequest", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "delete_durable_data", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 3, name: "destructive_data_delete_confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 3, name: "destructive_data_delete_confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "lifecycle_intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "displayed_impact_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<UninstallAppRequest>): UninstallAppRequest {
@@ -3806,6 +4636,8 @@ class UninstallAppRequest$Type extends MessageType<UninstallAppRequest> {
         message.appId = "";
         message.deleteDurableData = false;
         message.destructiveDataDeleteConfirmed = false;
+        message.lifecycleIntentId = "";
+        message.displayedImpactDigest = "";
         if (value !== undefined)
             reflectionMergePartial<UninstallAppRequest>(this, message, value);
         return message;
@@ -3823,6 +4655,12 @@ class UninstallAppRequest$Type extends MessageType<UninstallAppRequest> {
                     break;
                 case /* bool destructive_data_delete_confirmed */ 3:
                     message.destructiveDataDeleteConfirmed = reader.bool();
+                    break;
+                case /* string lifecycle_intent_id */ 4:
+                    message.lifecycleIntentId = reader.string();
+                    break;
+                case /* string displayed_impact_digest */ 5:
+                    message.displayedImpactDigest = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3845,6 +4683,12 @@ class UninstallAppRequest$Type extends MessageType<UninstallAppRequest> {
         /* bool destructive_data_delete_confirmed = 3; */
         if (message.destructiveDataDeleteConfirmed !== false)
             writer.tag(3, WireType.Varint).bool(message.destructiveDataDeleteConfirmed);
+        /* string lifecycle_intent_id = 4; */
+        if (message.lifecycleIntentId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.lifecycleIntentId);
+        /* string displayed_impact_digest = 5; */
+        if (message.displayedImpactDigest !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.displayedImpactDigest);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3991,13 +4835,17 @@ class UpdateAppRequest$Type extends MessageType<UpdateAppRequest> {
     constructor() {
         super("nimi.runtime.v1.UpdateAppRequest", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 2, name: "confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "lifecycle_intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "displayed_impact_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<UpdateAppRequest>): UpdateAppRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.appId = "";
         message.confirmed = false;
+        message.lifecycleIntentId = "";
+        message.displayedImpactDigest = "";
         if (value !== undefined)
             reflectionMergePartial<UpdateAppRequest>(this, message, value);
         return message;
@@ -4012,6 +4860,12 @@ class UpdateAppRequest$Type extends MessageType<UpdateAppRequest> {
                     break;
                 case /* bool confirmed */ 2:
                     message.confirmed = reader.bool();
+                    break;
+                case /* string lifecycle_intent_id */ 3:
+                    message.lifecycleIntentId = reader.string();
+                    break;
+                case /* string displayed_impact_digest */ 4:
+                    message.displayedImpactDigest = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4031,6 +4885,12 @@ class UpdateAppRequest$Type extends MessageType<UpdateAppRequest> {
         /* bool confirmed = 2; */
         if (message.confirmed !== false)
             writer.tag(2, WireType.Varint).bool(message.confirmed);
+        /* string lifecycle_intent_id = 3; */
+        if (message.lifecycleIntentId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.lifecycleIntentId);
+        /* string displayed_impact_digest = 4; */
+        if (message.displayedImpactDigest !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.displayedImpactDigest);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4093,7 +4953,9 @@ class HealthRepairAppRequest$Type extends MessageType<HealthRepairAppRequest> {
         super("nimi.runtime.v1.HealthRepairAppRequest", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "action", kind: "enum", T: () => ["nimi.runtime.v1.AppHealthRepairAction", AppHealthRepairAction, "APP_HEALTH_REPAIR_ACTION_"] },
-            { no: 3, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "lifecycle_intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "displayed_impact_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<HealthRepairAppRequest>): HealthRepairAppRequest {
@@ -4101,6 +4963,8 @@ class HealthRepairAppRequest$Type extends MessageType<HealthRepairAppRequest> {
         message.appId = "";
         message.action = 0;
         message.jobId = "";
+        message.lifecycleIntentId = "";
+        message.displayedImpactDigest = "";
         if (value !== undefined)
             reflectionMergePartial<HealthRepairAppRequest>(this, message, value);
         return message;
@@ -4118,6 +4982,12 @@ class HealthRepairAppRequest$Type extends MessageType<HealthRepairAppRequest> {
                     break;
                 case /* string job_id */ 3:
                     message.jobId = reader.string();
+                    break;
+                case /* string lifecycle_intent_id */ 4:
+                    message.lifecycleIntentId = reader.string();
+                    break;
+                case /* string displayed_impact_digest */ 5:
+                    message.displayedImpactDigest = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4140,6 +5010,12 @@ class HealthRepairAppRequest$Type extends MessageType<HealthRepairAppRequest> {
         /* string job_id = 3; */
         if (message.jobId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.jobId);
+        /* string lifecycle_intent_id = 4; */
+        if (message.lifecycleIntentId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.lifecycleIntentId);
+        /* string displayed_impact_digest = 5; */
+        if (message.displayedImpactDigest !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.displayedImpactDigest);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4264,12 +5140,16 @@ class OpenAppRequest$Type extends MessageType<OpenAppRequest> {
     constructor() {
         super("nimi.runtime.v1.OpenAppRequest", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "scope", kind: "message", T: () => AppOpenScopeRef }
+            { no: 2, name: "scope", kind: "message", T: () => AppOpenScopeRef },
+            { no: 3, name: "lifecycle_intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "displayed_impact_digest", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<OpenAppRequest>): OpenAppRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.appId = "";
+        message.lifecycleIntentId = "";
+        message.displayedImpactDigest = "";
         if (value !== undefined)
             reflectionMergePartial<OpenAppRequest>(this, message, value);
         return message;
@@ -4284,6 +5164,12 @@ class OpenAppRequest$Type extends MessageType<OpenAppRequest> {
                     break;
                 case /* nimi.runtime.v1.AppOpenScopeRef scope */ 2:
                     message.scope = AppOpenScopeRef.internalBinaryRead(reader, reader.uint32(), options, message.scope);
+                    break;
+                case /* string lifecycle_intent_id */ 3:
+                    message.lifecycleIntentId = reader.string();
+                    break;
+                case /* string displayed_impact_digest */ 4:
+                    message.displayedImpactDigest = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4303,6 +5189,12 @@ class OpenAppRequest$Type extends MessageType<OpenAppRequest> {
         /* nimi.runtime.v1.AppOpenScopeRef scope = 2; */
         if (message.scope)
             AppOpenScopeRef.internalBinaryWrite(message.scope, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string lifecycle_intent_id = 3; */
+        if (message.lifecycleIntentId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.lifecycleIntentId);
+        /* string displayed_impact_digest = 4; */
+        if (message.displayedImpactDigest !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.displayedImpactDigest);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

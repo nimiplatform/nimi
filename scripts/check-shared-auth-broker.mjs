@@ -66,28 +66,19 @@ function checkRuntimePermissionMatrix() {
     assertDecision(installed, method, 'deny');
     assertDecision(avatar, method, 'deny');
   }
-  for (const caller of [desktop, firstParty, developer, installed, avatar]) {
-    assertDecision(caller, 'RefreshAccountSession', 'deny');
-  }
-  assertDecision(firstParty, 'GetAccessToken', 'allow_when');
-  for (const caller of [desktop, developer, installed, avatar]) {
-    assertDecision(caller, 'GetAccessToken', 'deny');
-  }
-  assertDecision(developer, 'InvokeRealmUnary', 'allow_when');
-  assertDecision(installed, 'InvokeRealmUnary', 'allow_when');
+  assertDecision(developer, 'InvokeRealmUnary', 'deny');
+  assertDecision(installed, 'InvokeRealmUnary', 'deny');
   runGoTest('^TestAccountRPCPermissionMatrixKeepsAccountControlDesktopOwned$');
 }
 
 function checkRuntimePrivateRefresh() {
   const privateRefresh = read('runtime/internal/services/account/refresh_internal.go');
   const realmUnary = read('runtime/internal/services/account/realm_unary.go');
-  const service = read('runtime/internal/services/account/service.go');
+  const accountProto = read('proto/runtime/v1/account.proto');
   requireMatch(privateRefresh, /func \(s \*Service\) refreshAccountSessionInternal\(/u, 'private refresh helper is missing');
   requireMatch(realmUnary, /refreshAccountSessionInternal\(ctx,\s*false\)/u, 'Realm broker does not use private refresh');
-  requireMatch(service, /GetAccessToken[\s\S]*refreshAccountSessionInternal\(ctx,\s*false\)/u, 'raw token projection does not use private refresh');
-  const publicRefresh = service.match(/func \(s \*Service\) RefreshAccountSession[\s\S]*?\n\}\n/u)?.[0] || '';
-  requireMatch(publicRefresh, /ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED/u, 'public refresh does not fail closed');
-  forbidMatch(publicRefresh, /refreshAccountSessionInternal|refresher\.Refresh|s\.mu\.Lock/u, 'public refresh enters private refresh or mutation');
+  forbidMatch(accountProto, /\bRefreshAccountSession\b/u, 'public refresh RPC remains in the account protocol');
+  forbidMatch(privateRefresh, /RefreshAccountSession(?:Request|Response)/u, 'private refresh depends on a public protocol type');
   runGoTest('^(TestRuntimePrivateRefreshIsSingleFlightForTokenProjection|TestAccountRPCPermissionMatrixKeepsAccountControlDesktopOwned)$');
 }
 
@@ -142,7 +133,7 @@ function checkSdkInstalledBootstrap() {
   requireMatch(bootstrap, /createRuntimeAccountMediatedRealmTransport/u, 'installed app bootstrap does not use mediated Realm');
   forbidMatch(bootstrap, /createRealmWithRuntimeAccountToken|getAccessToken|refreshAccountSession/u, 'installed app bootstrap exposes raw token or refresh');
   requireMatch(bootstrap, /assertNoRendererOwnedAuthCustody/u, 'installed app bootstrap does not reject renderer auth custody');
-  requireMatch(realm, /SDK_RUNTIME_ACCOUNT_RAW_TOKEN_MODE_FORBIDDEN/u, 'SDK raw helper does not reject non-first-party callers');
+  forbidMatch(realm, /createRealmWithRuntimeAccountToken|getAccessToken|refreshAccountSession/u, 'SDK Realm helper exposes public account credential access');
   run(process.execPath, [
     '--import', 'tsx', '--test',
     'core/app/runtime-account-realm.test.ts',

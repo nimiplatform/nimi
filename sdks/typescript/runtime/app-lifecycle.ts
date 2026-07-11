@@ -12,6 +12,7 @@ import type {
 import {
   normalizeNimiRuntimeAppLifecycleText,
   requireNimiRuntimeAppId,
+  requireNimiRuntimeAppLifecycleIntentBinding,
   requireNimiRuntimeAppLifecycleJobId,
   requireNimiRuntimeAppLifecycleRootPath,
 } from './app-lifecycle-decoder-utils';
@@ -56,7 +57,8 @@ export function createNimiRuntimeAppLifecycleClient(input: {
     async adoptLocal(adoptInput, options) {
       const rootPath = requireNimiRuntimeAppLifecycleRootPath(adoptInput?.rootPath);
       const expectedAppId = normalizeNimiRuntimeAppLifecycleText(adoptInput?.expectedAppId);
-      const response = await client.adoptLocalApp({ rootPath, expectedAppId }, options);
+      const intent = requireNimiRuntimeAppLifecycleIntentBinding(adoptInput);
+      const response = await client.adoptLocalApp({ rootPath, expectedAppId, ...intent }, options);
       return decodeNimiRuntimeLocalAppAdoption(response.adoption);
     },
     async listLocalAdoptions(options) {
@@ -65,26 +67,32 @@ export function createNimiRuntimeAppLifecycleClient(input: {
     },
     async removeLocalAdoption(removeInput, options) {
       const appId = requireNimiRuntimeAppId(removeInput?.appId);
+      const intent = requireNimiRuntimeAppLifecycleIntentBinding(removeInput);
       const response = await client.removeLocalAppAdoption({
         appId,
         deleteDurableDataConfirmed: Boolean(removeInput?.deleteDurableDataConfirmed),
+        ...intent,
       }, options);
       return decodeNimiRuntimeLocalAppAdoption(response.adoption);
     },
     async install(installInput, options) {
       const appId = requireNimiRuntimeAppId(installInput?.appId);
+      const intent = requireNimiRuntimeAppLifecycleIntentBinding(installInput);
       const response = await client.installApp({
         appId,
         confirmed: Boolean(installInput?.confirmed),
+        ...intent,
       }, options);
       return decodeNimiRuntimeAppInstallJob(response.job);
     },
     async uninstall(uninstallInput, options) {
       const appId = requireNimiRuntimeAppId(uninstallInput?.appId);
+      const intent = requireNimiRuntimeAppLifecycleIntentBinding(uninstallInput);
       const response = await client.uninstallApp({
         appId,
         deleteDurableData: Boolean(uninstallInput?.deleteDurableData),
         destructiveDataDeleteConfirmed: Boolean(uninstallInput?.destructiveDataDeleteConfirmed),
+        ...intent,
       }, options);
       return decodeNimiRuntimeAppUninstallResult(response.result, response.job);
     },
@@ -121,26 +129,32 @@ export function createNimiRuntimeAppLifecycleClient(input: {
     },
     async update(updateInput, options) {
       const appId = requireNimiRuntimeAppId(updateInput?.appId);
+      const intent = requireNimiRuntimeAppLifecycleIntentBinding(updateInput);
       const response = await client.updateApp({
         appId,
         confirmed: Boolean(updateInput?.confirmed),
+        ...intent,
       }, options);
       return decodeNimiRuntimeAppInstallJob(response.job);
     },
     async healthRepair(repairInput, options) {
       const appId = requireNimiRuntimeAppId(repairInput?.appId);
+      const intent = requireNimiRuntimeAppLifecycleIntentBinding(repairInput);
       const response = await client.healthRepairApp({
         appId,
         action: toRuntimeGeneratedAppHealthRepairAction(repairInput?.action),
         jobId: normalizeNimiRuntimeAppLifecycleText(repairInput?.jobId),
+        ...intent,
       }, options);
       return decodeNimiRuntimeAppInstallJob(response.job);
     },
     async open(openInput, options) {
       const appId = requireNimiRuntimeAppId(openInput?.appId);
+      const intent = requireNimiRuntimeAppLifecycleIntentBinding(openInput);
       const response = await client.openApp({
         appId,
         scope: toRuntimeGeneratedAppOpenScope(appId, openInput?.scope),
+        ...intent,
       }, options);
       return decodeNimiRuntimeAppOpenProjection(response.projection);
     },

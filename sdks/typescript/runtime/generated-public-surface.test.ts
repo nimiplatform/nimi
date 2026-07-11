@@ -7,7 +7,7 @@ test('runtime generated public barrel does not expose raw descriptor client surf
   assert.equal('RuntimeGeneratedClient' in runtimeGenerated, false);
   assert.equal('RUNTIME_METHODS' in runtimeGenerated, false);
   assert.equal('RUNTIME_METHOD_BY_ID' in runtimeGenerated, false);
-  assert.equal('RuntimeTypedClient' in runtimeGenerated, true);
+  assert.equal('RuntimeTypedClient' in runtimeGenerated, false);
   assert.equal('ExecuteDelegatedCapabilityRequest' in runtimeGenerated, false);
   assert.equal('ExecuteDelegatedCapabilityResponse' in runtimeGenerated, false);
   assert.equal('ResumeDelegatedCapabilityRequest' in runtimeGenerated, false);

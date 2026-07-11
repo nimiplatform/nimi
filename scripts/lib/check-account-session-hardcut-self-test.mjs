@@ -78,9 +78,6 @@ func (s *Service) SubscribeAccountSessionEvents(ctx context.Context, req *Reques
   s.validateRuntimeAdmittedCaller(ctx, req.GetCaller(), false)
   s.subscribe(req)
 }
-func (s *Service) RefreshAccountSession(ctx context.Context, req *Request) {
-  return &Response{AccountReasonCode: ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED}
-}
 func (s *Service) Logout(ctx context.Context, req *Request) {
   s.validateRuntimeAccountControlCaller(ctx, req.GetCaller())
   s.logout(ctx, reason)
@@ -262,9 +259,8 @@ func (s *Service) ObserveRefreshToken() {}
     },
   ]);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime status caller admission')), true);
-  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime GetAccessToken caller admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime account event subscription caller admission')), true);
-  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime public refresh boundary')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime public refresh removal')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime logout caller admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime switch caller admission')), true);
   assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime Realm unary caller admission')), true);

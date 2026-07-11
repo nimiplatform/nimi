@@ -49,6 +49,11 @@ import {
   type NimiRuntimeAppLifecycleGeneratedClient,
 } from './index';
 
+const lifecycleIntentBinding = Object.freeze({
+  lifecycleIntentId: 'intent-1',
+  displayedImpactDigest: 'impact-digest-1',
+});
+
 function storageRoot() {
   return {
     appRoot: '/nimi/apps/nimi.notes',
@@ -327,7 +332,7 @@ test('Nimi Runtime app lifecycle client decodes generated jobs to canonical stri
   const { client, installCalls } = createClientStub();
   const lifecycle = createNimiRuntimeAppLifecycleClient({ client });
   const job = await lifecycle.install(
-    { appId: ' nimi.notes ', confirmed: true },
+    { appId: ' nimi.notes ', confirmed: true, ...lifecycleIntentBinding },
     { timeoutMs: 123, metadata: { callerId: 'test' } },
   );
 
@@ -339,9 +344,31 @@ test('Nimi Runtime app lifecycle client decodes generated jobs to canonical stri
   assert.equal(job.reasonCode, 'ACTION_EXECUTED');
   assert.equal(job.artifactBytes, 42);
   assert.deepEqual(installCalls, [{
-    request: { appId: 'nimi.notes', confirmed: true },
+    request: { appId: 'nimi.notes', confirmed: true, ...lifecycleIntentBinding },
     options: { timeoutMs: 123, metadata: { callerId: 'test' } },
   }]);
+});
+
+test('Nimi Runtime app lifecycle mutations reject missing protected intent inputs before transport', async () => {
+  const { client, installCalls } = createClientStub();
+  const lifecycle = createNimiRuntimeAppLifecycleClient({ client });
+
+  await assert.rejects(
+    lifecycle.install({ appId: 'nimi.notes', confirmed: true } as never),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode
+      === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_INTENT_ID_REQUIRED,
+  );
+  await assert.rejects(
+    lifecycle.install({
+      appId: 'nimi.notes',
+      confirmed: true,
+      lifecycleIntentId: 'intent-1',
+      displayedImpactDigest: '   ',
+    }),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode
+      === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_IMPACT_DIGEST_REQUIRED,
+  );
+  assert.deepEqual(installCalls, []);
 });
 
 test('Nimi Runtime app lifecycle client maps all lifecycle request envelopes', async () => {
@@ -372,11 +399,12 @@ test('Nimi Runtime app lifecycle client maps all lifecycle request envelopes', a
   const localAdoption = await lifecycle.adoptLocal({
     rootPath: ' /Users/test/local-notes ',
     expectedAppId: ' local.notes ',
+    ...lifecycleIntentBinding,
   }, options);
   assert.equal(localAdoption.appId, 'local.notes');
   assert.equal(localAdoption.trust, 'explicit-local');
   assert.deepEqual(adoptLocalCalls, [{
-    request: { rootPath: '/Users/test/local-notes', expectedAppId: 'local.notes' },
+    request: { rootPath: '/Users/test/local-notes', expectedAppId: 'local.notes', ...lifecycleIntentBinding },
     options,
   }]);
 
@@ -387,10 +415,11 @@ test('Nimi Runtime app lifecycle client maps all lifecycle request envelopes', a
   const removedAdoption = await lifecycle.removeLocalAdoption({
     appId: ' local.notes ',
     deleteDurableDataConfirmed: true,
+    ...lifecycleIntentBinding,
   }, options);
   assert.equal(removedAdoption.state, 'removed');
   assert.deepEqual(removeLocalAdoptionCalls, [{
-    request: { appId: 'local.notes', deleteDurableDataConfirmed: true },
+    request: { appId: 'local.notes', deleteDurableDataConfirmed: true, ...lifecycleIntentBinding },
     options,
   }]);
 
@@ -398,6 +427,7 @@ test('Nimi Runtime app lifecycle client maps all lifecycle request envelopes', a
     appId: ' nimi.notes ',
     deleteDurableData: true,
     destructiveDataDeleteConfirmed: true,
+    ...lifecycleIntentBinding,
   }, options);
   assert.equal(uninstall.appId, 'nimi.notes');
   assert.equal(uninstall.releaseRemoved, true);
@@ -408,6 +438,7 @@ test('Nimi Runtime app lifecycle client maps all lifecycle request envelopes', a
       appId: 'nimi.notes',
       deleteDurableData: true,
       destructiveDataDeleteConfirmed: true,
+      ...lifecycleIntentBinding,
     },
     options,
   }]);
@@ -429,11 +460,15 @@ test('Nimi Runtime app lifecycle client maps all lifecycle request envelopes', a
   assert.equal(scopedJobs[0]?.appId, 'nimi.notes');
   assert.deepEqual(listJobCalls, [{ request: { appId: 'nimi.notes' }, options }]);
 
-  const update = await lifecycle.update({ appId: ' nimi.notes ', confirmed: false }, options);
+  const update = await lifecycle.update({
+    appId: ' nimi.notes ',
+    confirmed: false,
+    ...lifecycleIntentBinding,
+  }, options);
   assert.equal(update.kind, 'update');
   assert.equal(update.previousVersion, '0.9.0');
   assert.deepEqual(updateCalls, [{
-    request: { appId: 'nimi.notes', confirmed: false },
+    request: { appId: 'nimi.notes', confirmed: false, ...lifecycleIntentBinding },
     options,
   }]);
 
@@ -462,10 +497,15 @@ test('Nimi Runtime app lifecycle client maps repair action and validates open sc
   const { client, healthRepairCalls, openCalls } = createClientStub();
   const lifecycle = createNimiRuntimeAppLifecycleClient({ client });
 
-  await lifecycle.healthRepair({ appId: 'nimi.notes', action: 'cancel' });
-  await lifecycle.healthRepair({ appId: 'nimi.notes', action: 'retry' });
-  await lifecycle.healthRepair({ appId: 'nimi.notes', action: 'repair' });
-  await lifecycle.healthRepair({ appId: 'nimi.notes', action: 'reinstall', jobId: 'job-1' });
+  await lifecycle.healthRepair({ appId: 'nimi.notes', action: 'cancel', ...lifecycleIntentBinding });
+  await lifecycle.healthRepair({ appId: 'nimi.notes', action: 'retry', ...lifecycleIntentBinding });
+  await lifecycle.healthRepair({ appId: 'nimi.notes', action: 'repair', ...lifecycleIntentBinding });
+  await lifecycle.healthRepair({
+    appId: 'nimi.notes',
+    action: 'reinstall',
+    jobId: 'job-1',
+    ...lifecycleIntentBinding,
+  });
   assert.deepEqual(healthRepairCalls.map((call) => call.action), [
     AppHealthRepairAction.CANCEL,
     AppHealthRepairAction.RETRY,
@@ -477,6 +517,7 @@ test('Nimi Runtime app lifecycle client maps repair action and validates open sc
   const openProjection = await lifecycle.open({
     appId: 'nimi.notes',
     scope: { kind: 'app', ownerId: 'nimi.notes', surfaceId: 'compose' },
+    ...lifecycleIntentBinding,
   });
   assert.equal(openProjection.state, 'launched');
   assert.deepEqual(openProjection.scope, { kind: 'app', ownerId: 'nimi.notes', surfaceId: 'compose' });
@@ -484,15 +525,19 @@ test('Nimi Runtime app lifecycle client maps repair action and validates open sc
   assert.equal(openCalls[0]?.scope?.ownerId, 'nimi.notes');
 
   await assert.rejects(
-    lifecycle.open({ appId: 'nimi.notes', scope: { kind: 'app', ownerId: 'other.app' } }),
+    lifecycle.open({
+      appId: 'nimi.notes',
+      scope: { kind: 'app', ownerId: 'other.app' },
+      ...lifecycleIntentBinding,
+    }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_SCOPE_REF_REQUIRED,
   );
   await assert.rejects(
-    lifecycle.healthRepair({ appId: 'nimi.notes', action: 'unknown' as never }),
+    lifecycle.healthRepair({ appId: 'nimi.notes', action: 'unknown' as never, ...lifecycleIntentBinding }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_REPAIR_ACTION_INVALID,
   );
   await assert.rejects(
-    lifecycle.open({ appId: 'nimi.notes', scope: undefined as never }),
+    lifecycle.open({ appId: 'nimi.notes', scope: undefined as never, ...lifecycleIntentBinding }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_APP_LIFECYCLE_SCOPE_REF_REQUIRED,
   );
 });
@@ -919,7 +964,11 @@ test('Nimi Runtime app lifecycle readiness and open projections fail closed on m
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
   );
   await assert.rejects(
-    lifecycle.open({ appId: 'nimi.notes', scope: { kind: 'app', ownerId: 'nimi.notes' } }),
+    lifecycle.open({
+      appId: 'nimi.notes',
+      scope: { kind: 'app', ownerId: 'nimi.notes' },
+      ...lifecycleIntentBinding,
+    }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === SdkReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
   );
 });
@@ -953,7 +1002,11 @@ test('Runtime facade exposes canonical appLifecycle client over generated Runtim
     appId: 'nimi.desktop',
   });
 
-  const job = await runtime.appLifecycle.install({ appId: 'nimi.notes', confirmed: true });
+  const job = await runtime.appLifecycle.install({
+    appId: 'nimi.notes',
+    confirmed: true,
+    ...lifecycleIntentBinding,
+  });
   assert.equal(job.kind, 'install');
   assert.equal(transport.unaryCalls[0]?.methodId, '/nimi.runtime.v1.RuntimeAppService/InstallApp');
 

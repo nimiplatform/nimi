@@ -14,7 +14,7 @@ import {
   type RuntimeLocalAgentIdentityInput,
 } from './agent-local-identity';
 import {
-  issueNimiRuntimeAgentProtectedCallOptions,
+  withNimiRuntimeAgentScopes,
   type NimiRuntimeAgentAppAuthClient,
   type NimiRuntimeAgentAuthClient,
   type NimiRuntimeAgentScopeRunner,
@@ -121,8 +121,7 @@ export function createNimiRuntimeAgentVoiceModule(
           subjectUserId,
           withScopes: options.withScopes,
           hasRuntimeAgentAuth: Boolean(requestScopedBinding)
-            || hasRuntimeAgentAuthBinding(callOptions)
-            || hasRuntimeProtectedAccessToken(callOptions),
+            || hasRuntimeAgentAuthBinding(callOptions),
         },
         ['runtime.agent.turn.read'],
         async (scopedOptions) => {
@@ -206,8 +205,7 @@ export function createNimiRuntimeAgentVoiceModule(
           subjectUserId,
           withScopes: options.withScopes,
           hasRuntimeAgentAuth: Boolean(requestScopedBinding)
-            || hasRuntimeAgentAuthBinding(interruptOptions)
-            || hasRuntimeProtectedAccessToken(interruptOptions),
+            || hasRuntimeAgentAuthBinding(interruptOptions),
         },
         ['runtime.agent.turn.write'],
         async (scopedOptions) => {
@@ -249,30 +247,27 @@ async function withNimiRuntimeAgentVoiceScopes<T>(
 ): Promise<T> {
   if (input.withScopes) {
     return input.withScopes(scopes, async (scopedOptions) => {
-      if (
-        input.hasRuntimeAgentAuth
-        || hasRuntimeProtectedAccessToken(scopedOptions)
-        || hasRuntimeAgentAuthBinding(scopedOptions)
+        if (
+          input.hasRuntimeAgentAuth
+          || hasRuntimeAgentAuthBinding(scopedOptions)
       ) {
         return operation(scopedOptions);
       }
-      const protectedOptions = await issueNimiRuntimeAgentProtectedCallOptions({
-        runtime: input.runtime,
-        subjectUserId: input.subjectUserId,
-        scopes,
+      throw createNimiError({
+        message: 'Runtime Agent voice carrier did not provide an admitted protected binding.',
+        reasonCode: 'SDK_RUNTIME_AGENT_SCOPED_CARRIER_REQUIRED',
+        actionHint: 'use_runtime_owned_scoped_carrier',
+        source: 'runtime',
       });
-      return operation(mergeRuntimeAgentVoiceCallOptions(scopedOptions, protectedOptions));
     });
   }
   if (input.hasRuntimeAgentAuth) {
     return operation({});
   }
-  const protectedOptions = await issueNimiRuntimeAgentProtectedCallOptions({
+  return withNimiRuntimeAgentScopes({
     runtime: input.runtime,
     subjectUserId: input.subjectUserId,
-    scopes,
-  });
-  return operation(protectedOptions);
+  }, scopes, operation);
 }
 
 function hasRuntimeAgentAuthBinding(options: RuntimeTypedCallOptions | undefined): boolean {
@@ -280,14 +275,6 @@ function hasRuntimeAgentAuthBinding(options: RuntimeTypedCallOptions | undefined
   return Boolean(
     normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-scoped-binding-id'])
       || normalizeNimiRuntimeAgentText(metadata['x-nimi-runtime-host-equivalence']),
-  );
-}
-
-function hasRuntimeProtectedAccessToken(options: RuntimeTypedCallOptions | undefined): boolean {
-  const metadata = options?.metadata ?? {};
-  return Boolean(
-    normalizeNimiRuntimeAgentText(metadata['x-nimi-access-token-id'])
-      && normalizeNimiRuntimeAgentText(metadata['x-nimi-access-token-secret']),
   );
 }
 

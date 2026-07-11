@@ -1,0 +1,182 @@
+[
+  {
+    "fixture_id": "runtime-collapses-into-interactive-user",
+    "code": "RUNTIME_OS_PRINCIPAL_ISOLATION_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  - os: windows\n    production_principal: NT_SERVICE_NimiRuntime_restricted_service_sid\n    interactive_user_relation: distinct_os_security_principal",
+      "to": "  - os: windows\n    production_principal: interactive_desktop_user\n    interactive_user_relation: same_os_security_principal"
+    }
+  },
+  {
+    "fixture_id": "production-uses-user-generic-keyring",
+    "code": "USER_SCOPED_CUSTODY_FORBIDDEN",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "production_user_session_generic_keyring_allowed: false",
+      "to": "production_user_session_generic_keyring_allowed: true"
+    }
+  },
+  {
+    "fixture_id": "client-only-endpoint-auth",
+    "code": "MUTUAL_ENDPOINT_AUTH_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "    server_peer_verification: GetNamedPipeServerProcessId_service_sid_and_same_file_runtime_trust",
+      "to": "    server_peer_verification: GetNamedPipeServerProcessId_only"
+    }
+  },
+  {
+    "fixture_id": "runtime-production-trust-row-removed",
+    "code": "RUNTIME_EXECUTABLE_TRUST_REQUIRED",
+    "target": ".nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  - trust_set_id: nimi-runtime-production-v1",
+      "to": "  - trust_set_id: removed-runtime-production-row"
+    }
+  },
+  {
+    "fixture_id": "request-selects-origin-role",
+    "code": "TRANSPORT_ROLE_MATRIX_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "request_role_selection: forbidden",
+      "to": "request_role_selection: allowed"
+    }
+  },
+  {
+    "fixture_id": "public-tcp-account-control",
+    "code": "PUBLIC_PRIVILEGED_RPC_FORBIDDEN",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "public_tcp_privileged_disposition: deny",
+      "to": "public_tcp_privileged_disposition: allow"
+    }
+  },
+  {
+    "fixture_id": "portable-privileged-session",
+    "code": "PORTABLE_PRIVILEGE_FORBIDDEN",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "portable_privileged_session: forbidden",
+      "to": "portable_privileged_session: allowed"
+    }
+  },
+  {
+    "fixture_id": "registration-elevates",
+    "code": "BINDING_ONLY_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp\n    operation_class: binding_bootstrap",
+      "to": "  - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp\n    operation_class: desktop_session_bootstrap"
+    }
+  },
+  {
+    "fixture_id": "production-accepts-test-trust",
+    "code": "PRODUCTION_TEST_TRUST_ISOLATION_REQUIRED",
+    "target": ".nimi/spec/platform/kernel/tables/protected-local-executable-trust-sets.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "production_runtime_accepts_test_trust_set: false",
+      "to": "production_runtime_accepts_test_trust_set: true"
+    }
+  },
+  {
+    "fixture_id": "reopened-executable-verification",
+    "code": "SAME_FILE_EXECUTABLE_VERIFICATION_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "    client_executable_verification: same_open_hfile_volume_serial_file_id_sha256_win_verify_trust",
+      "to": "    client_executable_verification: pathname_reopen_sha256_win_verify_trust"
+    }
+  },
+  {
+    "fixture_id": "linux-pidfd-without-exec-revocation",
+    "code": "PROCESS_LIVENESS_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-os-profiles.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "    post_bind_exec_control: signed_static_control_carrier_seccomp_denies_execve_execveat_and_channel_is_cloexec",
+      "to": "    post_bind_exec_control: pidfd_exit_only"
+    }
+  },
+  {
+    "fixture_id": "security-ledger-backup-rollback",
+    "code": "SECURITY_LEDGER_ANTI_ROLLBACK_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "automatic_backup_restore: forbidden",
+      "to": "automatic_backup_restore: allowed"
+    }
+  },
+  {
+    "fixture_id": "challenge-intent-split-commit",
+    "code": "LIFECYCLE_CHALLENGE_TRANSACTION_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-runtime-principal-profiles.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "challenge_consume_intent_transaction: atomic_anchored",
+      "to": "challenge_consume_intent_transaction: separate_commits"
+    }
+  },
+  {
+    "fixture_id": "renderer-receives-authorizing-lifecycle-material",
+    "code": "LIFECYCLE_INTENT_PROTOCOL_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-lifecycle-intent-protocol.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "renderer_receives_authorizing_material: false",
+      "to": "renderer_receives_authorizing_material: true"
+    }
+  },
+  {
+    "fixture_id": "temporary-a1-fallback",
+    "code": "A1_CHILD_CHANNEL_DEPENDENCY_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "reserved_not_admitted_in_a0: [launch_bootstrap, installed_host]",
+      "to": "reserved_not_admitted_in_a0: []"
+    }
+  },
+  {
+    "fixture_id": "app-mode-upgrades-binding-session",
+    "code": "BINDING_ONLY_APP_MODE_CEILING_REQUIRED",
+    "target": ".nimi/spec/runtime/kernel/auth-service.md",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "的 static upper bound",
+      "to": "的 runtime privilege selector"
+    }
+  },
+  {
+    "fixture_id": "public-refresh-uses-internal-transport",
+    "code": "PUBLIC_REFRESH_FORBIDDEN",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-rpc-transport-matrix.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
+      "to": "  - method_id: /nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession\n    operation_class: runtime_private\n    allowed_transport_classes: [runtime_internal]\n    required_origin_roles: []\n    request_may_select_role: false\n    portable_session_allowed: false\n    public_tcp_disposition: deny\n    lifecycle_challenge_required: false\n    source_rule: K-PLOCAL-001\n  - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary"
+    }
+  },
+  {
+    "fixture_id": "limit-hard-bound-removed",
+    "code": "SECURITY_LIMIT_SCHEMA_INVALID",
+    "target": ".nimi/spec/runtime/kernel/tables/protected-local-security-limits.yaml",
+    "mutation": {
+      "kind": "replace_exact",
+      "from": "  - limit_id: proof-hmac-digest\n    default: SHA-256\n    hard_bound: SHA-256",
+      "to": "  - limit_id: proof-hmac-digest\n    default: SHA-256\n    hard_bound: null"
+    }
+  }
+]

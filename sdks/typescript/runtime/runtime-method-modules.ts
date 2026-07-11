@@ -14,7 +14,6 @@ export const RUNTIME_ACCOUNT_METHODS = [
   'beginLogin',
   'completeLogin',
   'requestPresenceVerification',
-  'getAccessToken',
   'invokeRealmUnary',
   'logout',
   'switchAccount',
@@ -281,7 +280,15 @@ export const RUNTIME_APP_LIFECYCLE_METHODS = [
   'openApp',
 ] as const satisfies readonly RuntimeTypedMethodName[];
 
-export const RUNTIME_APP_LIFECYCLE_METHOD_SET = new Set<string>(RUNTIME_APP_LIFECYCLE_METHODS);
+const RUNTIME_PROTECTED_APP_LIFECYCLE_METHODS = [
+  'prepareAppLifecycleIntent',
+  'getAppLifecycleIntentStatus',
+] as const satisfies readonly RuntimeTypedMethodName[];
+
+export const RUNTIME_APP_LIFECYCLE_METHOD_SET = new Set<string>([
+  ...RUNTIME_APP_LIFECYCLE_METHODS,
+  ...RUNTIME_PROTECTED_APP_LIFECYCLE_METHODS,
+]);
 
 export const RUNTIME_ARTIFACT_METHODS = [
   'readArtifactBytes',

@@ -3,7 +3,7 @@
 
 import { CoreClient } from '../core-client';
 import type { CoreMetadata, CoreResponseMetadataObserver } from '../types';
-import type { AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccessTokenRequest, GetAccessTokenResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, IssueScopedAppBindingRequest, IssueScopedAppBindingResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LogoutRequest, LogoutResponse, RefreshAccountSessionRequest, RefreshAccountSessionResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, RevokeScopedAppBindingRequest, RevokeScopedAppBindingResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse } from "./runtime-protobuf/runtime/v1/account";
+import type { AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, IssueScopedAppBindingRequest, IssueScopedAppBindingResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LogoutRequest, LogoutResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, RevokeScopedAppBindingRequest, RevokeScopedAppBindingResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse } from "./runtime-protobuf/runtime/v1/account";
 import type { CancelCompanionParticipationRequest, CancelCompanionParticipationResponse, GetCompanionParticipationProjectionRequest, GetCompanionParticipationProjectionResponse, OpenCompanionParticipationReplayRequest, OpenCompanionParticipationReplayResponse, RequestCompanionParticipationRequest, RequestCompanionParticipationResponse } from "./runtime-protobuf/runtime/v1/agent_companion";
 import type { CreateRealmGroupMessageCandidateRequest, CreateRealmGroupMessageCandidateResponse, GetRealmGroupMessageCandidateEvidenceRequest, GetRealmGroupMessageCandidateEvidenceResponse } from "./runtime-protobuf/runtime/v1/agent_group_message_candidate";
 import type { DescribeParticipationContextBlocksRequest, DescribeParticipationContextBlocksResponse, DescribeParticipationProfilesRequest, DescribeParticipationProfilesResponse, ExecuteParticipationRequest, ExecuteParticipationResponse, GetParticipationCandidateRequest, GetParticipationCandidateResponse, GetParticipationReplayRequest, GetParticipationReplayResponse, GetParticipationVerdictsRequest, GetParticipationVerdictsResponse, ListParticipationAuditEventsRequest, ListParticipationAuditEventsResponse, ValidateParticipationRequest, ValidateParticipationResponse } from "./runtime-protobuf/runtime/v1/agent_participation";
@@ -11,10 +11,10 @@ import type { AbortSourceMaterializationUploadRequest, AbortSourceMaterializatio
 import type { CancelScenarioJobRequest, CancelScenarioJobResponse, ExecuteScenarioRequest, ExecuteScenarioResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, ListScenarioProfilesRequest, ListScenarioProfilesResponse, ScenarioJobEvent, StreamScenarioEvent, StreamScenarioRequest, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeScenarioJobEventsRequest, UploadArtifactRequest, UploadArtifactResponse } from "./runtime-protobuf/runtime/v1/ai";
 import type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeEvent } from "./runtime-protobuf/runtime/v1/ai_realtime";
 import type { PeekSchedulingRequest, PeekSchedulingResponse } from "./runtime-protobuf/runtime/v1/ai_scheduling";
-import type { AdoptLocalAppRequest, AdoptLocalAppResponse, AppInstallJobEvent, AppMessageEvent, GetAccountAppInventoryRequest, GetAccountAppInventoryResponse, GetAppInstallJobRequest, GetAppInstallJobResponse, GetAppPackageReadinessRequest, GetAppPackageReadinessResponse, GetAppStorageRequest, GetAppStorageResponse, HealthRepairAppRequest, HealthRepairAppResponse, InstallAppRequest, InstallAppResponse, ListAppInstallJobsRequest, ListAppInstallJobsResponse, ListLocalAppAdoptionsRequest, ListLocalAppAdoptionsResponse, OpenAppRequest, OpenAppResponse, RemoveLocalAppAdoptionRequest, RemoveLocalAppAdoptionResponse, SendAppMessageRequest, SendAppMessageResponse, SubscribeAppMessagesRequest, UninstallAppRequest, UninstallAppResponse, UpdateAppRequest, UpdateAppResponse, WatchAppInstallJobEventsRequest } from "./runtime-protobuf/runtime/v1/app";
+import type { AdoptLocalAppRequest, AdoptLocalAppResponse, AppInstallJobEvent, AppMessageEvent, GetAccountAppInventoryRequest, GetAccountAppInventoryResponse, GetAppInstallJobRequest, GetAppInstallJobResponse, GetAppLifecycleIntentStatusRequest, GetAppLifecycleIntentStatusResponse, GetAppPackageReadinessRequest, GetAppPackageReadinessResponse, GetAppStorageRequest, GetAppStorageResponse, HealthRepairAppRequest, HealthRepairAppResponse, InstallAppRequest, InstallAppResponse, ListAppInstallJobsRequest, ListAppInstallJobsResponse, ListLocalAppAdoptionsRequest, ListLocalAppAdoptionsResponse, OpenAppRequest, OpenAppResponse, PrepareAppLifecycleIntentRequest, PrepareAppLifecycleIntentResponse, RemoveLocalAppAdoptionRequest, RemoveLocalAppAdoptionResponse, SendAppMessageRequest, SendAppMessageResponse, SubscribeAppMessagesRequest, UninstallAppRequest, UninstallAppResponse, UpdateAppRequest, UpdateAppResponse, WatchAppInstallJobEventsRequest } from "./runtime-protobuf/runtime/v1/app";
 import type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 import type { AIProviderHealthEvent, AuditExportChunk, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAIProviderHealthRequest, ListAIProviderHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeAIProviderHealthEventsRequest, SubscribeRuntimeHealthEventsRequest } from "./runtime-protobuf/runtime/v1/audit";
-import type { OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
+import type { OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
 import type { Ack } from "./runtime-protobuf/runtime/v1/common";
 import type { CreateConnectorRequest, CreateConnectorResponse, DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse, DeleteConnectorRequest, DeleteConnectorResponse, DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse, GetCatalogModelDetailRequest, GetCatalogModelDetailResponse, GetConnectorRequest, GetConnectorResponse, ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse, ListConnectorModelsRequest, ListConnectorModelsResponse, ListConnectorsRequest, ListConnectorsResponse, ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse, ListProviderCatalogRequest, ListProviderCatalogResponse, TestConnectorRequest, TestConnectorResponse, UpdateConnectorRequest, UpdateConnectorResponse, UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse, UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse } from "./runtime-protobuf/runtime/v1/connector";
 import type { ExecuteDelegatedCapabilityRequest, ExecuteDelegatedCapabilityResponse, GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse, GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse, ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse, ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse, ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse, ResumeDelegatedCapabilityRequest, ResumeDelegatedCapabilityResponse, SetDelegatedProviderStateRequest, SetDelegatedProviderStateResponse, SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse, UpsertDelegatedProviderProfileRequest, UpsertDelegatedProviderProfileResponse } from "./runtime-protobuf/runtime/v1/delegated_control";
@@ -35,7 +35,7 @@ export interface RuntimeTypedCallOptions {
   readonly responseMetadataObserver?: CoreResponseMetadataObserver;
 }
 
-export type { AccountCaller, AccountProjection, AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccessTokenRequest, GetAccessTokenResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, IssueScopedAppBindingRequest, IssueScopedAppBindingResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LogoutRequest, LogoutResponse, RefreshAccountSessionRequest, RefreshAccountSessionResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, RevokeScopedAppBindingRequest, RevokeScopedAppBindingResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, ScopedAppBindingRelation, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse, WorkspaceBindingRelation, WorkspaceMembershipProjection } from "./runtime-protobuf/runtime/v1/account";
+export type { AccountCaller, AccountProjection, AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, IssueScopedAppBindingRequest, IssueScopedAppBindingResponse, IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse, LogoutRequest, LogoutResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, RevokeScopedAppBindingRequest, RevokeScopedAppBindingResponse, RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse, ScopedAppBindingRelation, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse, WorkspaceBindingRelation, WorkspaceMembershipProjection } from "./runtime-protobuf/runtime/v1/account";
 export type { AgentRequestContext } from "./runtime-protobuf/runtime/v1/agent_common";
 export type { CancelCompanionParticipationRequest, CancelCompanionParticipationResponse, CompanionParticipationProjection, GetCompanionParticipationProjectionRequest, GetCompanionParticipationProjectionResponse, OpenCompanionParticipationReplayRequest, OpenCompanionParticipationReplayResponse, RequestCompanionParticipationRequest, RequestCompanionParticipationResponse } from "./runtime-protobuf/runtime/v1/agent_companion";
 export type { CreateRealmGroupMessageCandidateRequest, CreateRealmGroupMessageCandidateResponse, GetRealmGroupMessageCandidateEvidenceRequest, GetRealmGroupMessageCandidateEvidenceResponse, RealmGroupMessageCandidateCommitHandle, RealmGroupMessageCandidateEvidence } from "./runtime-protobuf/runtime/v1/agent_group_message_candidate";
@@ -45,10 +45,10 @@ export type { AbortSourceMaterializationUploadRequest, AbortSourceMaterializatio
 export type { ArtifactChunk, ArtifactStreamDelta, AudioChunks, CancelScenarioJobRequest, CancelScenarioJobResponse, ChatContentArtifactRef, ChatContentImageURL, ChatContentPart, ChatMessage, EmbeddingVector, ExecuteScenarioRequest, ExecuteScenarioResponse, GetScenarioArtifactsRequest, GetScenarioArtifactsResponse, GetScenarioJobRequest, GetScenarioJobResponse, IgnoredScenarioExtension, ImageGenerateResult, ImageGenerateScenarioSpec, ListScenarioProfilesRequest, ListScenarioProfilesResponse, MusicGenerateResult, MusicGenerateScenarioSpec, RawChunk, ReasoningConfig, ReasoningStreamDelta, ResponseFormat, ScenarioArtifact, ScenarioExtension, ScenarioJob, ScenarioJobEvent, ScenarioOutput, ScenarioProfile, ScenarioRequestHead, ScenarioSpec, ScenarioStreamCompleted, ScenarioStreamDelta, ScenarioStreamFailed, ScenarioStreamStarted, SpeechAlignment, SpeechAlignmentToken, SpeechSynthesizeResult, SpeechSynthesizeScenarioSpec, SpeechTranscribeResult, SpeechTranscribeScenarioSpec, SpeechTranscriptionAudioSource, StreamScenarioEvent, StreamScenarioRequest, SubmitScenarioJobRequest, SubmitScenarioJobResponse, SubscribeScenarioJobEventsRequest, TextEmbedOutput, TextEmbedScenarioSpec, TextGenerateOutput, TextGenerateScenarioSpec, TextSource, TextStreamDelta, ToolApprovalRequest, ToolApprovalResponse, ToolCall, ToolResult, ToolSpec, UploadArtifactChunk, UploadArtifactMetadata, UploadArtifactRequest, UploadArtifactResponse, VideoContentAudioURL, VideoContentImageURL, VideoContentItem, VideoContentVideoURL, VideoGenerateResult, VideoGenerateScenarioSpec, VideoGenerationOptions, VoiceCloneScenarioSpec, VoiceDesignScenarioSpec, VoiceRenderHints, WorldGenerateAssetSource, WorldGenerateImagePrompt, WorldGenerateMultiImagePrompt, WorldGenerateMultiImageReference, WorldGenerateResult, WorldGenerateScenarioSpec, WorldGenerateSemanticsMetadata, WorldGenerateVideoPrompt } from "./runtime-protobuf/runtime/v1/ai";
 export type { AppendRealtimeInputRequest, AppendRealtimeInputResponse, CloseRealtimeSessionRequest, CloseRealtimeSessionResponse, OpenRealtimeSessionRequest, OpenRealtimeSessionResponse, ReadRealtimeEventsRequest, RealtimeAudioChunk, RealtimeAudioInput, RealtimeCompleted, RealtimeEvent, RealtimeFailed, RealtimeInputItem, RealtimeSessionOpened, RealtimeTextDelta } from "./runtime-protobuf/runtime/v1/ai_realtime";
 export type { PeekSchedulingRequest, PeekSchedulingResponse, SchedulingEvaluationTarget, SchedulingJudgement, SchedulingOccupancySnapshot, SchedulingResourceHint, SchedulingTargetJudgement } from "./runtime-protobuf/runtime/v1/ai_scheduling";
-export type { AccountAppInventoryRecord, AccountAppInventoryRow, AdoptLocalAppRequest, AdoptLocalAppResponse, AppInstallJob, AppInstallJobEvent, AppInstallStorageProjection, AppMessageEvent, AppOpenProjection, AppOpenScopeRef, AppPackageReadinessProjection, AppStorageProjection, AppUninstallResult, GetAccountAppInventoryRequest, GetAccountAppInventoryResponse, GetAppInstallJobRequest, GetAppInstallJobResponse, GetAppPackageReadinessRequest, GetAppPackageReadinessResponse, GetAppStorageRequest, GetAppStorageResponse, HealthRepairAppRequest, HealthRepairAppResponse, InstallAppRequest, InstallAppResponse, ListAppInstallJobsRequest, ListAppInstallJobsResponse, ListLocalAppAdoptionsRequest, ListLocalAppAdoptionsResponse, LocalAppAdoption, OpenAppRequest, OpenAppResponse, RemoveLocalAppAdoptionRequest, RemoveLocalAppAdoptionResponse, SendAppMessageRequest, SendAppMessageResponse, SubscribeAppMessagesRequest, UninstallAppRequest, UninstallAppResponse, UpdateAppRequest, UpdateAppResponse, WatchAppInstallJobEventsRequest } from "./runtime-protobuf/runtime/v1/app";
+export type { AccountAppInventoryRecord, AccountAppInventoryRow, AdoptLocalAppRequest, AdoptLocalAppResponse, AppInstallJob, AppInstallJobEvent, AppInstallStorageProjection, AppLifecycleCanonicalImpact, AppLifecycleDestructiveOptions, AppMessageEvent, AppOpenProjection, AppOpenScopeRef, AppPackageReadinessProjection, AppStorageProjection, AppUninstallResult, GetAccountAppInventoryRequest, GetAccountAppInventoryResponse, GetAppInstallJobRequest, GetAppInstallJobResponse, GetAppLifecycleIntentStatusRequest, GetAppLifecycleIntentStatusResponse, GetAppPackageReadinessRequest, GetAppPackageReadinessResponse, GetAppStorageRequest, GetAppStorageResponse, HealthRepairAppRequest, HealthRepairAppResponse, InstallAppRequest, InstallAppResponse, ListAppInstallJobsRequest, ListAppInstallJobsResponse, ListLocalAppAdoptionsRequest, ListLocalAppAdoptionsResponse, LocalAppAdoption, OpenAppRequest, OpenAppResponse, PrepareAppLifecycleIntentRequest, PrepareAppLifecycleIntentResponse, RemoveLocalAppAdoptionRequest, RemoveLocalAppAdoptionResponse, SendAppMessageRequest, SendAppMessageResponse, SubscribeAppMessagesRequest, UninstallAppRequest, UninstallAppResponse, UpdateAppRequest, UpdateAppResponse, WatchAppInstallJobEventsRequest } from "./runtime-protobuf/runtime/v1/app";
 export type { CleanupGeneratedVoiceArtifactsRequest, CleanupGeneratedVoiceArtifactsResponse, ReadArtifactBytesRequest, ReadArtifactBytesResponse } from "./runtime-protobuf/runtime/v1/artifact_service";
 export type { AIProviderHealthEvent, AIProviderHealthSnapshot, AIProviderSubHealth, AuditEventRecord, AuditExportChunk, ExportAuditEventsRequest, GetRuntimeHealthRequest, GetRuntimeHealthResponse, ListAIProviderHealthRequest, ListAIProviderHealthResponse, ListAuditEventsRequest, ListAuditEventsResponse, ListUsageStatsRequest, ListUsageStatsResponse, RuntimeHealthEvent, SubscribeAIProviderHealthEventsRequest, SubscribeRuntimeHealthEventsRequest, UsageStatRecord } from "./runtime-protobuf/runtime/v1/audit";
-export type { AppModeManifest, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
+export type { AppModeManifest, OpenDesktopSessionRequest, OpenDesktopSessionResponse, OpenExternalPrincipalSessionRequest, OpenExternalPrincipalSessionResponse, OpenSessionRequest, OpenSessionResponse, RefreshSessionRequest, RefreshSessionResponse, RegisterAppRequest, RegisterAppResponse, RegisterExternalPrincipalRequest, RegisterExternalPrincipalResponse, RevokeExternalPrincipalSessionRequest, RevokeSessionRequest } from "./runtime-protobuf/runtime/v1/auth";
 export type { Ack, ConsentRef, ErrorInfo, ResourceSelectors, ScopedRuntimeBindingAttachment, UsageStats, WorkspaceBindingAttachment } from "./runtime-protobuf/runtime/v1/common";
 export type { CatalogModelDetail, CatalogModelInput, CatalogModelSummary, CatalogModelWorkflowBinding, CatalogOverlayWarning, CatalogPricing, CatalogSourceRef, CatalogStringListEntry, CatalogVideoGenerationCapability, CatalogVideoGenerationOutputs, CatalogVoiceEntry, CatalogWorkflowModel, Connector, ConnectorModelDescriptor, CreateConnectorRequest, CreateConnectorResponse, DeleteCatalogModelOverlayRequest, DeleteCatalogModelOverlayResponse, DeleteConnectorRequest, DeleteConnectorResponse, DeleteModelCatalogProviderRequest, DeleteModelCatalogProviderResponse, GetCatalogModelDetailRequest, GetCatalogModelDetailResponse, GetConnectorRequest, GetConnectorResponse, ListCatalogProviderModelsRequest, ListCatalogProviderModelsResponse, ListConnectorModelsRequest, ListConnectorModelsResponse, ListConnectorsRequest, ListConnectorsResponse, ListModelCatalogProvidersRequest, ListModelCatalogProvidersResponse, ListProviderCatalogRequest, ListProviderCatalogResponse, ModelCatalogProviderEntry, ProviderCatalogEntry, TestConnectorRequest, TestConnectorResponse, UpdateConnectorRequest, UpdateConnectorResponse, UpsertCatalogModelOverlayRequest, UpsertCatalogModelOverlayResponse, UpsertModelCatalogProviderRequest, UpsertModelCatalogProviderResponse } from "./runtime-protobuf/runtime/v1/connector";
 export type { DelegatedApprovalRequest, DelegatedControlSurfaceSnapshot, DelegatedDiagnostic, DelegatedProviderProfile, DelegatedReplayTrace, DelegatedReplayTraceStage, DelegatedToolAllowlistEntry, ExecuteDelegatedCapabilityRequest, ExecuteDelegatedCapabilityResponse, GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse, GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse, ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse, ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse, ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse, ResumeDelegatedCapabilityRequest, ResumeDelegatedCapabilityResponse, SetDelegatedProviderStateRequest, SetDelegatedProviderStateResponse, SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse, UpsertDelegatedProviderProfileRequest, UpsertDelegatedProviderProfileResponse } from "./runtime-protobuf/runtime/v1/delegated_control";
@@ -76,7 +76,7 @@ export { AgentAutonomyMode, AgentCanonicalMemoryBankMode, AgentCanonicalMemoryRe
 export { ChatContentPartType, ExecutionMode, FallbackPolicy, FinishReason, Modal, ReasoningMode, ReasoningTraceMode, ResponseFormatKind, RoutePolicy, ScenarioJobEventType, ScenarioJobStatus, ScenarioType, SpeechAlignmentUnit, SpeechTimingMode, StreamEventType, TextSourceType, TokenProviderHealthStatus, ToolChoiceMode, ToolSpecKind, VideoContentRole, VideoContentType, VideoMode } from "./runtime-protobuf/runtime/v1/ai";
 export { RealtimeEventType } from "./runtime-protobuf/runtime/v1/ai_realtime";
 export { SchedulingState } from "./runtime-protobuf/runtime/v1/ai_scheduling";
-export { AccountAppInstallState, AccountAppInventoryState, AppHealthRepairAction, AppInstallJobPhase, AppInstallJobState, AppInstallSourceKind, AppLifecycleJobKind, AppMessageEventType, AppOpenFlowStep, AppOpenState, AppPackageReadinessState, AppStorageState, LocalAppAdoptionState, LocalAppAdoptionTrust } from "./runtime-protobuf/runtime/v1/app";
+export { AccountAppInstallState, AccountAppInventoryState, AppHealthRepairAction, AppInstallJobPhase, AppInstallJobState, AppInstallSourceKind, AppLifecycleIntentAction, AppLifecycleIntentStatus, AppLifecycleJobKind, AppMessageEventType, AppOpenFlowStep, AppOpenState, AppPackageReadinessState, AppStorageState, LocalAppAdoptionState, LocalAppAdoptionTrust } from "./runtime-protobuf/runtime/v1/app";
 export { RuntimeHealthStatus, UsageWindow } from "./runtime-protobuf/runtime/v1/audit";
 export { AppMode, ExternalProofType, WorldRelation } from "./runtime-protobuf/runtime/v1/auth";
 export { CallerKind, ExternalPrincipalType, ReasonCode } from "./runtime-protobuf/runtime/v1/common";
@@ -110,17 +110,6 @@ export class RuntimeTypedClient {
   async completeLogin(request: CompleteLoginRequest, options: RuntimeTypedCallOptions = {}): Promise<CompleteLoginResponse> {
     return this.core.unary<CompleteLoginResponse, CompleteLoginRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async getAccessToken(request: GetAccessTokenRequest, options: RuntimeTypedCallOptions = {}): Promise<GetAccessTokenResponse> {
-    return this.core.unary<GetAccessTokenResponse, GetAccessTokenRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -176,17 +165,6 @@ export class RuntimeTypedClient {
   async logout(request: LogoutRequest, options: RuntimeTypedCallOptions = {}): Promise<LogoutResponse> {
     return this.core.unary<LogoutResponse, LogoutRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAccountService/Logout",
-      body: request,
-      metadata: options.metadata,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      responseMetadataObserver: options.responseMetadataObserver,
-    });
-  }
-
-  async refreshAccountSession(request: RefreshAccountSessionRequest, options: RuntimeTypedCallOptions = {}): Promise<RefreshAccountSessionResponse> {
-    return this.core.unary<RefreshAccountSessionResponse, RefreshAccountSessionRequest>({
-      methodId: "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -1180,6 +1158,17 @@ export class RuntimeTypedClient {
     });
   }
 
+  async getAppLifecycleIntentStatus(request: GetAppLifecycleIntentStatusRequest, options: RuntimeTypedCallOptions = {}): Promise<GetAppLifecycleIntentStatusResponse> {
+    return this.core.unary<GetAppLifecycleIntentStatusResponse, GetAppLifecycleIntentStatusRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async getAppPackageReadiness(request: GetAppPackageReadinessRequest, options: RuntimeTypedCallOptions = {}): Promise<GetAppPackageReadinessResponse> {
     return this.core.unary<GetAppPackageReadinessResponse, GetAppPackageReadinessRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness",
@@ -1249,6 +1238,17 @@ export class RuntimeTypedClient {
   async openApp(request: OpenAppRequest, options: RuntimeTypedCallOptions = {}): Promise<OpenAppResponse> {
     return this.core.unary<OpenAppResponse, OpenAppRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAppService/OpenApp",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async prepareAppLifecycleIntent(request: PrepareAppLifecycleIntentRequest, options: RuntimeTypedCallOptions = {}): Promise<PrepareAppLifecycleIntentResponse> {
+    return this.core.unary<PrepareAppLifecycleIntentResponse, PrepareAppLifecycleIntentRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -1414,6 +1414,17 @@ export class RuntimeTypedClient {
   subscribeRuntimeHealthEvents(request: SubscribeRuntimeHealthEventsRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<RuntimeHealthEvent> {
     return this.core.serverStream<RuntimeHealthEvent, SubscribeRuntimeHealthEventsRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async openDesktopSession(request: OpenDesktopSessionRequest, options: RuntimeTypedCallOptions = {}): Promise<OpenDesktopSessionResponse> {
+    return this.core.unary<OpenDesktopSessionResponse, OpenDesktopSessionRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

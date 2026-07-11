@@ -70,10 +70,7 @@ export type {
 } from './desktop-open.js';
 export {
   createRuntimeAccountMediatedRealmTransport,
-  createRealmWithRuntimeAccountToken,
   type RuntimeAccountMediatedRealmRuntime,
-  type RuntimeAccountRealmFetch,
-  type RuntimeAccountRealmRuntime,
 } from './runtime-account-realm.js';
 export {
   createInstalledNimiAppBootstrap,

@@ -1,11 +1,7 @@
 import type {
-  AuthorizeExternalPrincipalRequest,
-  AuthorizeExternalPrincipalResponse,
   InspectMemoryEmbeddingRuntimeRequest,
   InspectMemoryEmbeddingRuntimeResponse,
   MemoryBankLocator,
-  RegisterAppRequest,
-  RegisterAppResponse,
   RequestMemoryEmbeddingRuntimeBindRequest,
   RequestMemoryEmbeddingRuntimeBindResponse,
   RequestMemoryEmbeddingRuntimeCutoverRequest,
@@ -121,17 +117,6 @@ export interface NimiMemoryEmbeddingRuntimeClient {
   ): Promise<RequestMemoryEmbeddingRuntimeCutoverResponse>;
 }
 
-export interface NimiMemoryEmbeddingAuthClient {
-  registerApp(request: RegisterAppRequest, options?: RuntimeTypedCallOptions): Promise<RegisterAppResponse>;
-}
-
-export interface NimiMemoryEmbeddingAppAuthClient {
-  authorizeExternalPrincipal(
-    request: AuthorizeExternalPrincipalRequest,
-    options?: RuntimeTypedCallOptions,
-  ): Promise<AuthorizeExternalPrincipalResponse>;
-}
-
 export interface NimiHostMemoryEmbeddingRuntimeClient {
   readonly appId: string;
   readonly memory: NimiMemoryEmbeddingRuntimeClient;
@@ -149,13 +134,10 @@ export interface NimiHostMemoryEmbeddingRuntimeSurfaceOptions {
   readonly unavailableReasonCode?: string;
 }
 
-export interface NimiProtectedHostMemoryEmbeddingRuntimeClient extends NimiHostMemoryEmbeddingRuntimeClient {
-  readonly auth: NimiMemoryEmbeddingAuthClient;
-  readonly appAuth: NimiMemoryEmbeddingAppAuthClient;
-}
+export interface NimiProtectedHostMemoryEmbeddingRuntimeClient extends NimiHostMemoryEmbeddingRuntimeClient {}
 
 export interface NimiProtectedHostMemoryEmbeddingRuntimeSurfaceOptions
-  extends Omit<NimiHostMemoryEmbeddingRuntimeSurfaceOptions, 'runtime' | 'withScopes'> {
+  extends Omit<NimiHostMemoryEmbeddingRuntimeSurfaceOptions, 'runtime'> {
   readonly runtime: () => NimiMemoryEmbeddingAwaitable<NimiProtectedHostMemoryEmbeddingRuntimeClient>;
 }
 export type NimiMemoryEmbeddingBankLocator = MemoryBankLocator;

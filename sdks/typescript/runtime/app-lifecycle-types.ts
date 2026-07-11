@@ -240,39 +240,44 @@ export type NimiRuntimeAppOpenProjection = {
   readonly productReadinessClaimAllowed?: boolean;
 };
 
-export type NimiRuntimeAppInstallInput = {
+export type NimiRuntimeAppLifecycleIntentBinding = {
+  readonly lifecycleIntentId: string;
+  readonly displayedImpactDigest: string;
+};
+
+export type NimiRuntimeAppInstallInput = NimiRuntimeAppLifecycleIntentBinding & {
   readonly appId: string;
   readonly confirmed: boolean;
 };
 
-export type NimiRuntimeAppUninstallInput = {
+export type NimiRuntimeAppUninstallInput = NimiRuntimeAppLifecycleIntentBinding & {
   readonly appId: string;
   readonly deleteDurableData?: boolean;
   readonly destructiveDataDeleteConfirmed?: boolean;
 };
 
-export type NimiRuntimeAppUpdateInput = {
+export type NimiRuntimeAppUpdateInput = NimiRuntimeAppLifecycleIntentBinding & {
   readonly appId: string;
   readonly confirmed: boolean;
 };
 
-export type NimiRuntimeAppHealthRepairInput = {
+export type NimiRuntimeAppHealthRepairInput = NimiRuntimeAppLifecycleIntentBinding & {
   readonly appId: string;
   readonly action: NimiRuntimeAppHealthRepairAction;
   readonly jobId?: string;
 };
 
-export type NimiRuntimeAppOpenInput = {
+export type NimiRuntimeAppOpenInput = NimiRuntimeAppLifecycleIntentBinding & {
   readonly appId: string;
   readonly scope: NimiRuntimeAppOpenScopeRef;
 };
 
-export type NimiRuntimeAdoptLocalAppInput = {
+export type NimiRuntimeAdoptLocalAppInput = NimiRuntimeAppLifecycleIntentBinding & {
   readonly rootPath: string;
   readonly expectedAppId?: string;
 };
 
-export type NimiRuntimeRemoveLocalAppAdoptionInput = {
+export type NimiRuntimeRemoveLocalAppAdoptionInput = NimiRuntimeAppLifecycleIntentBinding & {
   readonly appId: string;
   readonly deleteDurableDataConfirmed?: boolean;
 };

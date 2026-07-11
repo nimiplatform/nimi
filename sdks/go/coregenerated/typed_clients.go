@@ -544,6 +544,32 @@ const (
 	APPINSTALLSOURCEKINDEXTERNALARTIFACT AppInstallSourceKind = "APP_INSTALL_SOURCE_KIND_EXTERNAL_ARTIFACT"
 )
 
+type AppLifecycleIntentAction string
+
+const (
+	APPLIFECYCLEINTENTACTIONUNSPECIFIED AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_UNSPECIFIED"
+	APPLIFECYCLEINTENTACTIONINSTALL AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_INSTALL"
+	APPLIFECYCLEINTENTACTIONUNINSTALL AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_UNINSTALL"
+	APPLIFECYCLEINTENTACTIONUPDATE AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_UPDATE"
+	APPLIFECYCLEINTENTACTIONHEALTHREPAIR AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_HEALTH_REPAIR"
+	APPLIFECYCLEINTENTACTIONADOPTLOCALAPP AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_ADOPT_LOCAL_APP"
+	APPLIFECYCLEINTENTACTIONREMOVELOCALAPPADOPTION AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_REMOVE_LOCAL_APP_ADOPTION"
+	APPLIFECYCLEINTENTACTIONOPENAPP AppLifecycleIntentAction = "APP_LIFECYCLE_INTENT_ACTION_OPEN_APP"
+)
+
+type AppLifecycleIntentStatus string
+
+const (
+	APPLIFECYCLEINTENTSTATUSUNSPECIFIED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_UNSPECIFIED"
+	APPLIFECYCLEINTENTSTATUSPREPARED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_PREPARED"
+	APPLIFECYCLEINTENTSTATUSCONSUMED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_CONSUMED"
+	APPLIFECYCLEINTENTSTATUSSIDEEFFECTSTARTED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_SIDE_EFFECT_STARTED"
+	APPLIFECYCLEINTENTSTATUSSUCCEEDED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_SUCCEEDED"
+	APPLIFECYCLEINTENTSTATUSFAILED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_FAILED"
+	APPLIFECYCLEINTENTSTATUSCANCELLED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_CANCELLED"
+	APPLIFECYCLEINTENTSTATUSEXPIRED AppLifecycleIntentStatus = "APP_LIFECYCLE_INTENT_STATUS_EXPIRED"
+)
+
 type AppLifecycleJobKind string
 
 const (
@@ -1660,6 +1686,28 @@ const (
 	APPOPENMANIFESTREQUIREMENTUNSATISFIED ReasonCode = "APP_OPEN_MANIFEST_REQUIREMENT_UNSATISFIED"
 	APPOPENLAUNCHFAILED ReasonCode = "APP_OPEN_LAUNCH_FAILED"
 	AGENTPRESENTATIONREVISIONCONFLICT ReasonCode = "AGENT_PRESENTATION_REVISION_CONFLICT"
+	PROTECTEDLOCALTRANSPORTUNSUPPORTED ReasonCode = "PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED"
+	PROTECTEDLOCALENDPOINTOWNERSHIPFAILED ReasonCode = "PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED"
+	PROTECTEDLOCALSERVERVERIFICATIONFAILED ReasonCode = "PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED"
+	DESKTOPCONTROLTRANSPORTREQUIRED ReasonCode = "DESKTOP_CONTROL_TRANSPORT_REQUIRED"
+	DESKTOPPROCESSVERIFICATIONUNAVAILABLE ReasonCode = "DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE"
+	DESKTOPEXECUTABLETRUSTFAILED ReasonCode = "DESKTOP_EXECUTABLE_TRUST_FAILED"
+	DESKTOPTESTTRUSTFORBIDDEN ReasonCode = "DESKTOP_TEST_TRUST_FORBIDDEN"
+	PROTECTEDORIGINROLEMISMATCH ReasonCode = "PROTECTED_ORIGIN_ROLE_MISMATCH"
+	LIFECYCLECHALLENGEREQUIRED ReasonCode = "LIFECYCLE_CHALLENGE_REQUIRED"
+	LIFECYCLECHALLENGEMISMATCH ReasonCode = "LIFECYCLE_CHALLENGE_MISMATCH"
+	LIFECYCLECHALLENGEREPLAY ReasonCode = "LIFECYCLE_CHALLENGE_REPLAY"
+	PROTECTEDLOCALLEDGERUNAVAILABLE ReasonCode = "PROTECTED_LOCAL_LEDGER_UNAVAILABLE"
+	PROTECTEDLOCALLEDGERROLLBACKDETECTED ReasonCode = "PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED"
+	PROTECTEDLOCALBOOTEPOCHMISMATCH ReasonCode = "PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH"
+	PROTECTEDLOCALRUNTIMEPRINCIPALREQUIRED ReasonCode = "PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED"
+	PROTECTEDLOCALCUSTODYBOUNDARYUNAVAILABLE ReasonCode = "PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE"
+	PROTECTEDLOCALPRODUCTIONCONFIGOVERRIDEFORBIDDEN ReasonCode = "PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN"
+	RUNTIMEEXECUTABLETRUSTRECORDINVALID ReasonCode = "RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID"
+	LIFECYCLEINTENTREQUIRED ReasonCode = "LIFECYCLE_INTENT_REQUIRED"
+	LIFECYCLEINTENTMISMATCH ReasonCode = "LIFECYCLE_INTENT_MISMATCH"
+	LIFECYCLEINTENTREPLAY ReasonCode = "LIFECYCLE_INTENT_REPLAY"
+	LIFECYCLEINTENTEXPIRED ReasonCode = "LIFECYCLE_INTENT_EXPIRED"
 )
 
 type ReasoningMode string
@@ -2193,6 +2241,8 @@ type AdmitProductControlReadyForUseRequest struct {
 type AdoptLocalAppRequest struct {
 	RootPath string `json:"root_path,omitempty"`
 	ExpectedAppId string `json:"expected_app_id,omitempty"`
+	LifecycleIntentId string `json:"lifecycle_intent_id,omitempty"`
+	DisplayedImpactDigest string `json:"displayed_impact_digest,omitempty"`
 }
 
 type AdoptLocalAppResponse struct {
@@ -2728,6 +2778,25 @@ type AppInstallStorageProjection struct {
 	DurableDataRoot string `json:"durable_data_root,omitempty"`
 	CacheRoot string `json:"cache_root,omitempty"`
 	TempRoot string `json:"temp_root,omitempty"`
+}
+
+type AppLifecycleCanonicalImpact struct {
+	SchemaVersion uint32 `json:"schema_version,omitempty"`
+	Action AppLifecycleIntentAction `json:"action,omitempty"`
+	AppId string `json:"app_id,omitempty"`
+	AccountGeneration uint64 `json:"account_generation,omitempty"`
+	ReleaseRef string `json:"release_ref,omitempty"`
+	ArtifactDigest string `json:"artifact_digest,omitempty"`
+	AdoptionGeneration uint64 `json:"adoption_generation,omitempty"`
+	DestructiveOptions *AppLifecycleDestructiveOptions `json:"destructive_options,omitempty"`
+	ImpactFlags []string `json:"impact_flags,omitempty"`
+	DisplayContractVersion uint32 `json:"display_contract_version,omitempty"`
+}
+
+type AppLifecycleDestructiveOptions struct {
+	DeleteDurableData bool `json:"delete_durable_data,omitempty"`
+	HealthRepairAction AppHealthRepairAction `json:"health_repair_action,omitempty"`
+	TargetJobId string `json:"target_job_id,omitempty"`
 }
 
 type AppMessageEvent struct {
@@ -3992,20 +4061,6 @@ type GatewayVerdictRefBlock struct {
 	GatewayVerdictId string `json:"gateway_verdict_id,omitempty"`
 }
 
-type GetAccessTokenRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
-	RequestedScopes []string `json:"requested_scopes,omitempty"`
-}
-
-type GetAccessTokenResponse struct {
-	Accepted bool `json:"accepted,omitempty"`
-	AccessToken string `json:"access_token,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
-	ProductionInert bool `json:"production_inert,omitempty"`
-}
-
 type GetAccountAppInventoryRequest struct {
 
 }
@@ -4072,6 +4127,19 @@ type GetAppInstallJobRequest struct {
 
 type GetAppInstallJobResponse struct {
 	Job *AppInstallJob `json:"job,omitempty"`
+}
+
+type GetAppLifecycleIntentStatusRequest struct {
+	IntentId string `json:"intent_id,omitempty"`
+}
+
+type GetAppLifecycleIntentStatusResponse struct {
+	IntentId string `json:"intent_id,omitempty"`
+	Status AppLifecycleIntentStatus `json:"status,omitempty"`
+	NonAuthorizingJobId string `json:"non_authorizing_job_id,omitempty"`
+	CanonicalResult string `json:"canonical_result,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	Retryability bool `json:"retryability,omitempty"`
 }
 
 type GetAppPackageReadinessRequest struct {
@@ -4376,6 +4444,8 @@ type HealthRepairAppRequest struct {
 	AppId string `json:"app_id,omitempty"`
 	Action AppHealthRepairAction `json:"action,omitempty"`
 	JobId string `json:"job_id,omitempty"`
+	LifecycleIntentId string `json:"lifecycle_intent_id,omitempty"`
+	DisplayedImpactDigest string `json:"displayed_impact_digest,omitempty"`
 }
 
 type HealthRepairAppResponse struct {
@@ -4545,6 +4615,8 @@ type InspectMemoryEmbeddingRuntimeResponse struct {
 type InstallAppRequest struct {
 	AppId string `json:"app_id,omitempty"`
 	Confirmed bool `json:"confirmed,omitempty"`
+	LifecycleIntentId string `json:"lifecycle_intent_id,omitempty"`
+	DisplayedImpactDigest string `json:"displayed_impact_digest,omitempty"`
 }
 
 type InstallAppResponse struct {
@@ -6279,6 +6351,8 @@ type ObservationalMemoryRecord struct {
 type OpenAppRequest struct {
 	AppId string `json:"app_id,omitempty"`
 	Scope *AppOpenScopeRef `json:"scope,omitempty"`
+	LifecycleIntentId string `json:"lifecycle_intent_id,omitempty"`
+	DisplayedImpactDigest string `json:"displayed_impact_digest,omitempty"`
 }
 
 type OpenAppResponse struct {
@@ -6314,6 +6388,15 @@ type OpenConversationAnchorRequest struct {
 
 type OpenConversationAnchorResponse struct {
 	Snapshot *ConversationAnchorSnapshot `json:"snapshot,omitempty"`
+}
+
+type OpenDesktopSessionRequest struct {
+
+}
+
+type OpenDesktopSessionResponse struct {
+	DesktopSessionId []byte `json:"desktop_session_id,omitempty"`
+	RuntimeBootEpoch []byte `json:"runtime_boot_epoch,omitempty"`
 }
 
 type OpenExternalPrincipalSessionRequest struct {
@@ -6507,6 +6590,23 @@ type PendingHook struct {
 	Intent *HookIntent `json:"intent,omitempty"`
 	ScheduledFor string `json:"scheduled_for,omitempty"`
 	AdmittedAt string `json:"admitted_at,omitempty"`
+}
+
+type PrepareAppLifecycleIntentRequest struct {
+	Action AppLifecycleIntentAction `json:"action,omitempty"`
+	AppId string `json:"app_id,omitempty"`
+	ExpectedReleaseRef string `json:"expected_release_ref,omitempty"`
+	ExpectedArtifactDigest string `json:"expected_artifact_digest,omitempty"`
+	ExpectedAdoptionGeneration uint64 `json:"expected_adoption_generation,omitempty"`
+	DestructiveOptions *AppLifecycleDestructiveOptions `json:"destructive_options,omitempty"`
+}
+
+type PrepareAppLifecycleIntentResponse struct {
+	IntentId string `json:"intent_id,omitempty"`
+	CanonicalImpact *AppLifecycleCanonicalImpact `json:"canonical_impact,omitempty"`
+	CanonicalImpactDigest string `json:"canonical_impact_digest,omitempty"`
+	Deadline string `json:"deadline,omitempty"`
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
 type PrepareProfileRuntimeDescriptorRequest struct {
@@ -6816,19 +6916,6 @@ type RecordProductControlFirstRunLocalAiReadyEvidenceRequest struct {
 	ExecutionEvidenceRef string `json:"execution_evidence_ref,omitempty"`
 }
 
-type RefreshAccountSessionRequest struct {
-	Caller *AccountCaller `json:"caller,omitempty"`
-}
-
-type RefreshAccountSessionResponse struct {
-	Accepted bool `json:"accepted,omitempty"`
-	State AccountSessionState `json:"state,omitempty"`
-	AccountProjection *AccountProjection `json:"account_projection,omitempty"`
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	AccountReasonCode AccountReasonCode `json:"account_reason_code,omitempty"`
-	ProductionInert bool `json:"production_inert,omitempty"`
-}
-
 type RefreshSessionRequest struct {
 	SessionId string `json:"session_id,omitempty"`
 	TtlSeconds int32 `json:"ttl_seconds,omitempty"`
@@ -6896,6 +6983,8 @@ type RemoveLinkResponse struct {
 type RemoveLocalAppAdoptionRequest struct {
 	AppId string `json:"app_id,omitempty"`
 	DeleteDurableDataConfirmed bool `json:"delete_durable_data_confirmed,omitempty"`
+	LifecycleIntentId string `json:"lifecycle_intent_id,omitempty"`
+	DisplayedImpactDigest string `json:"displayed_impact_digest,omitempty"`
 }
 
 type RemoveLocalAppAdoptionResponse struct {
@@ -8181,6 +8270,8 @@ type UninstallAppRequest struct {
 	AppId string `json:"app_id,omitempty"`
 	DeleteDurableData bool `json:"delete_durable_data,omitempty"`
 	DestructiveDataDeleteConfirmed bool `json:"destructive_data_delete_confirmed,omitempty"`
+	LifecycleIntentId string `json:"lifecycle_intent_id,omitempty"`
+	DisplayedImpactDigest string `json:"displayed_impact_digest,omitempty"`
 }
 
 type UninstallAppResponse struct {
@@ -8201,6 +8292,8 @@ type UpdateAgentStateResponse struct {
 type UpdateAppRequest struct {
 	AppId string `json:"app_id,omitempty"`
 	Confirmed bool `json:"confirmed,omitempty"`
+	LifecycleIntentId string `json:"lifecycle_intent_id,omitempty"`
+	DisplayedImpactDigest string `json:"displayed_impact_digest,omitempty"`
 }
 
 type UpdateAppResponse struct {
@@ -8792,14 +8885,6 @@ func (c RuntimeTypedClient) CompleteLogin(ctx context.Context, request CompleteL
 	return decodeRuntimeTypedResponse[CompleteLoginResponse](raw, "CompleteLoginResponse")
 }
 
-func (c RuntimeTypedClient) GetAccessToken(ctx context.Context, request GetAccessTokenRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccessTokenResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken", request, metadata, timeoutMS)
-	if err != nil {
-		return GetAccessTokenResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetAccessTokenResponse](raw, "GetAccessTokenResponse")
-}
-
 func (c RuntimeTypedClient) GetAccountSessionStatus(ctx context.Context, request GetAccountSessionStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAccountSessionStatusResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus", request, metadata, timeoutMS)
 	if err != nil {
@@ -8838,14 +8923,6 @@ func (c RuntimeTypedClient) Logout(ctx context.Context, request LogoutRequest, m
 		return LogoutResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[LogoutResponse](raw, "LogoutResponse")
-}
-
-func (c RuntimeTypedClient) RefreshAccountSession(ctx context.Context, request RefreshAccountSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RefreshAccountSessionResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession", request, metadata, timeoutMS)
-	if err != nil {
-		return RefreshAccountSessionResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RefreshAccountSessionResponse](raw, "RefreshAccountSessionResponse")
 }
 
 func (c RuntimeTypedClient) RequestPresenceVerification(ctx context.Context, request RequestPresenceVerificationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestPresenceVerificationResponse, error) {
@@ -9564,6 +9641,14 @@ func (c RuntimeTypedClient) GetAppInstallJob(ctx context.Context, request GetApp
 	return decodeRuntimeTypedResponse[GetAppInstallJobResponse](raw, "GetAppInstallJobResponse")
 }
 
+func (c RuntimeTypedClient) GetAppLifecycleIntentStatus(ctx context.Context, request GetAppLifecycleIntentStatusRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppLifecycleIntentStatusResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAppLifecycleIntentStatus", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAppLifecycleIntentStatusResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetAppLifecycleIntentStatusResponse](raw, "GetAppLifecycleIntentStatusResponse")
+}
+
 func (c RuntimeTypedClient) GetAppPackageReadiness(ctx context.Context, request GetAppPackageReadinessRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppPackageReadinessResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/GetAppPackageReadiness", request, metadata, timeoutMS)
 	if err != nil {
@@ -9618,6 +9703,14 @@ func (c RuntimeTypedClient) OpenApp(ctx context.Context, request OpenAppRequest,
 		return OpenAppResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[OpenAppResponse](raw, "OpenAppResponse")
+}
+
+func (c RuntimeTypedClient) PrepareAppLifecycleIntent(ctx context.Context, request PrepareAppLifecycleIntentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrepareAppLifecycleIntentResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppService/PrepareAppLifecycleIntent", request, metadata, timeoutMS)
+	if err != nil {
+		return PrepareAppLifecycleIntentResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[PrepareAppLifecycleIntentResponse](raw, "PrepareAppLifecycleIntentResponse")
 }
 
 func (c RuntimeTypedClient) RemoveLocalAppAdoption(ctx context.Context, request RemoveLocalAppAdoptionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RemoveLocalAppAdoptionResponse, error) {
@@ -9738,6 +9831,14 @@ func (c RuntimeTypedClient) SubscribeRuntimeHealthEvents(ctx context.Context, re
 		return nil, err
 	}
 	return &RuntimeTypedStream[RuntimeHealthEvent]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) OpenDesktopSession(ctx context.Context, request OpenDesktopSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenDesktopSessionResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession", request, metadata, timeoutMS)
+	if err != nil {
+		return OpenDesktopSessionResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[OpenDesktopSessionResponse](raw, "OpenDesktopSessionResponse")
 }
 
 func (c RuntimeTypedClient) OpenExternalPrincipalSession(ctx context.Context, request OpenExternalPrincipalSessionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenExternalPrincipalSessionResponse, error) {

@@ -12,7 +12,7 @@ import {
   RuntimeHealthStatus,
   StreamEventType,
 } from '../core-generated/runtime-typed-client';
-import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
+import { ReasonCode, type CoreStreamRequest, type CoreUnaryRequest } from '../types';
 import { Runtime, createRuntime } from './index';
 
 class FakeRuntimeTransport implements CoreTransport {
@@ -217,8 +217,41 @@ test('Runtime facade keeps low-level generated core explicit and high-level defe
     (error: unknown) => (error as { code?: string }).code === 'SDK_RUNTIME_METHOD_UNAVAILABLE',
   );
   await assert.rejects(
-    runtime.generated.installApp({ appId: 'app.example' }),
+    runtime.generated.installApp({
+      appId: 'app.example',
+      confirmed: true,
+      lifecycleIntentId: 'intent-1',
+      displayedImpactDigest: 'impact-digest-1',
+    }),
     (error: unknown) =>
       (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
   );
+  await assert.rejects(
+    runtime.generated.prepareAppLifecycleIntent({
+      action: 1,
+      appId: 'app.example',
+      expectedReleaseRef: 'release:app.example@1.0.0',
+      expectedArtifactDigest: 'digest-1',
+      expectedAdoptionGeneration: '0',
+    }),
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
+  );
+  await assert.rejects(
+    runtime.generated.getAppLifecycleIntentStatus({ intentId: 'intent-1' }),
+    (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_APP_LIFECYCLE_TYPED_CLIENT_REQUIRED',
+  );
+  for (const invoke of [
+    () => runtime.generated.openDesktopSession({}),
+    () => runtime.generated.authorizeExternalPrincipal({} as never),
+    () => runtime.grants.authorizeExternalPrincipal({} as never),
+  ]) {
+    await assert.rejects(
+      invoke(),
+      (error: unknown) =>
+        (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+    );
+  }
+  assert.equal(transport.unaryCalls.length, 0);
 });

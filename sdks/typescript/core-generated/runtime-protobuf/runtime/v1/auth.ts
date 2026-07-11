@@ -142,6 +142,33 @@ export interface OpenSessionResponse {
     reasonCode: ReasonCode;
 }
 /**
+ * OpenDesktopSessionRequest is intentionally empty. The protected transport,
+ * verified peer process, executable trust, and origin roles are derived from
+ * the already-authenticated desktop_control connection; no request field or
+ * metadata value may select or upgrade that authority (K-PLOCAL-006).
+ *
+ * @generated from protobuf message nimi.runtime.v1.OpenDesktopSessionRequest
+ */
+export interface OpenDesktopSessionRequest {
+}
+/**
+ * Both byte strings are exactly 32 bytes. desktop_session_id is
+ * correlation-only and runtime_boot_epoch is used only for stale projection
+ * rejection; neither value is a portable credential or rebind proof.
+ *
+ * @generated from protobuf message nimi.runtime.v1.OpenDesktopSessionResponse
+ */
+export interface OpenDesktopSessionResponse {
+    /**
+     * @generated from protobuf field: bytes desktop_session_id = 1
+     */
+    desktopSessionId: Uint8Array;
+    /**
+     * @generated from protobuf field: bytes runtime_boot_epoch = 2
+     */
+    runtimeBootEpoch: Uint8Array;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.RefreshSessionRequest
  */
 export interface RefreshSessionRequest {
@@ -720,6 +747,99 @@ class OpenSessionResponse$Type extends MessageType<OpenSessionResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.OpenSessionResponse
  */
 export const OpenSessionResponse = new OpenSessionResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenDesktopSessionRequest$Type extends MessageType<OpenDesktopSessionRequest> {
+    constructor() {
+        super("nimi.runtime.v1.OpenDesktopSessionRequest", []);
+    }
+    create(value?: PartialMessage<OpenDesktopSessionRequest>): OpenDesktopSessionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<OpenDesktopSessionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenDesktopSessionRequest): OpenDesktopSessionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenDesktopSessionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenDesktopSessionRequest
+ */
+export const OpenDesktopSessionRequest = new OpenDesktopSessionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OpenDesktopSessionResponse$Type extends MessageType<OpenDesktopSessionResponse> {
+    constructor() {
+        super("nimi.runtime.v1.OpenDesktopSessionResponse", [
+            { no: 1, name: "desktop_session_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "runtime_boot_epoch", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<OpenDesktopSessionResponse>): OpenDesktopSessionResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.desktopSessionId = new Uint8Array(0);
+        message.runtimeBootEpoch = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<OpenDesktopSessionResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OpenDesktopSessionResponse): OpenDesktopSessionResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes desktop_session_id */ 1:
+                    message.desktopSessionId = reader.bytes();
+                    break;
+                case /* bytes runtime_boot_epoch */ 2:
+                    message.runtimeBootEpoch = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OpenDesktopSessionResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes desktop_session_id = 1; */
+        if (message.desktopSessionId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.desktopSessionId);
+        /* bytes runtime_boot_epoch = 2; */
+        if (message.runtimeBootEpoch.length)
+            writer.tag(2, WireType.LengthDelimited).bytes(message.runtimeBootEpoch);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.OpenDesktopSessionResponse
+ */
+export const OpenDesktopSessionResponse = new OpenDesktopSessionResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class RefreshSessionRequest$Type extends MessageType<RefreshSessionRequest> {
     constructor() {

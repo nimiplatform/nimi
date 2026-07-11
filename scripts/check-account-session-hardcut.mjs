@@ -669,13 +669,6 @@ function scanRuntimeCallerAdmission(files, violations) {
     beforeNeedles: ['s.mu.RLock()'],
   });
   requireMethodAdmission({
-    methodName: 'GetAccessToken',
-    tokenRequest: true,
-    label: 'Runtime GetAccessToken caller admission',
-    detail: 'GetAccessToken must use Runtime app registry/admission, not shape-only caller validation',
-    beforeNeedles: ['s.mu.RLock()', 's.RefreshAccountSession('],
-  });
-  requireMethodAdmission({
     methodName: 'SubscribeAccountSessionEvents',
     tokenRequest: false,
     label: 'Runtime account event subscription caller admission',
@@ -717,30 +710,15 @@ function scanRuntimeCallerAdmission(files, violations) {
     detail: 'RevokeScopedAppBinding must use req.GetCaller() and Runtime app registry/admission before binding mutation',
     beforeNeedles: ['s.mu.Lock()', 'record.relation.State'],
   });
-  if (!/GetAccessToken[\s\S]*validateRuntimeAdmittedCaller\(ctx,\s*req\.GetCaller\(\),\s*true\)/u.test(source)) {
+  const refreshMethod = findAccountServiceMethod('RefreshAccountSession');
+  if (refreshMethod) {
     pushViolation(
       violations,
-      'runtime/internal/services/account/service.go',
-      source,
-      source.indexOf('GetAccessToken') >= 0 ? source.indexOf('GetAccessToken') : 0,
-      'Runtime GetAccessToken caller admission',
-      'GetAccessToken must use Runtime app registry/admission, not shape-only caller validation',
-    );
-  }
-  const refreshMethod = findGoServiceMethod(source, 'RefreshAccountSession');
-  const refreshSource = refreshMethod ? refreshMethod.text : '';
-  if (
-    !refreshMethod
-    || !/ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED/u.test(refreshSource)
-    || /refreshAccountSessionInternal|refresher\.Refresh|s\.mu\.Lock/u.test(refreshSource)
-  ) {
-    pushViolation(
-      violations,
-      'runtime/internal/services/account/service.go',
-      source,
-      refreshMethod ? refreshMethod.start : source.indexOf('RefreshAccountSession'),
-      'Runtime public refresh boundary',
-      'RefreshAccountSession must fail closed without entering Runtime-private refresh or mutating account state',
+      refreshMethod.relPath,
+      refreshMethod.source,
+      refreshMethod.start,
+      'Runtime public refresh removal',
+      'RefreshAccountSession must be physically absent; Runtime refresh is a non-RPC private helper',
     );
   }
   if (!/IssueScopedAppBinding[\s\S]*validateBindingCallerRelation\(req\.GetCaller\(\),\s*relation\)/u.test(source)) {
