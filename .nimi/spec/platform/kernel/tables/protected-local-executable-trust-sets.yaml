@@ -1,0 +1,228 @@
+version: 1
+table_family: product_catalog
+owner: platform
+catalog_id: platform_protected_local_executable_trust_sets
+entries:
+  - nimi-desktop-production-v1
+  - nimi-desktop-e2e-fixture-v1
+  - nimi-runtime-production-v1
+  - nimi-runtime-e2e-fixture-v1
+  - nimi-desktop-control-carrier-production-v1
+  - nimi-desktop-control-carrier-e2e-fixture-v1
+  - nimi-production-release-signing-policy
+  - external-non-product-e2e-signing-policy
+description: Platform-owned bidirectional executable trust rows consumed by Runtime and protected Desktop carriers.
+authority_refs: [P-NAPP-034, K-PLOCAL-003, K-PLOCAL-005]
+trust_set_schema:
+  fields:
+    - trust_set_id
+    - executable_role
+    - environment
+    - allowed_os_profiles
+    - signer_policy_ref
+    - digest_authority
+    - trust_record_profile_ref
+    - launch_authority
+    - configuration_authority
+    - exact_release_descriptor_required
+    - runtime_build_allowance
+    - product_readiness_claim_allowed
+    - runtime_configuration_mutable
+    - source_rule
+signer_policy_schema:
+  fields:
+    - signer_policy_id
+    - environment
+    - identity_authority
+    - exact_identity_constraints
+    - key_material_boundary
+    - runtime_build_allowance
+    - source_rule
+release_trust_record_schema:
+  canonicalization: RFC8785_JSON
+  signature_algorithms: [Ed25519]
+  fields:
+    - schema_version
+    - environment
+    - executable_role
+    - trust_set_id
+    - os_profile
+    - protected_local_protocol_version
+    - compatible_peer_release_ids
+    - release_id
+    - build_id
+    - artifact_sha256
+    - signer_policy_id
+    - windows_leaf_spki_sha256
+    - windows_chain_policy_ref
+    - macos_designated_requirement
+    - macos_team_id
+    - macos_cdhash
+    - linux_manifest_key_id
+    - os_service_principal
+    - valid_from
+    - expires_at
+    - generation
+    - root_key_id
+    - signature
+  request_or_environment_override: forbidden
+release_trust_record_artifact:
+  format: RFC8785_canonical_JSON_with_inline_Ed25519_signature
+  relative_layout: trust/protected-local/v1/<executable_role>.release-trust-record.json
+  production_release_roots:
+    windows: "%ProgramFiles%/Nimi/releases/<release_id>"
+    linux: /usr/lib/nimi/releases/<release_id>
+    macos: /Library/Application Support/Nimi/releases/<release_id>
+  acquisition:
+    runtime_service: signed_os_service_definition_selects_release_root_and_role_record
+    desktop: own_signed_bundle_release_metadata_selects_release_root_and_role_record
+    linux_control_carrier: inherited_signed_desktop_release_metadata_selects_role_record
+  installation: signed_installer_or_service_updater_writes_complete_release_directory_then_atomically_activates_signed_service_definition
+  ownership_and_acl: root_or_trusted_installer_owned_immutable_to_interactive_user_and_app_principals
+  path_override: forbidden
+  environment_or_argv_override: forbidden
+  symlink_reparse_or_alias_traversal: reject
+  verification_order: canonicalize_payload_verify_root_signature_match_release_id_role_signer_policy_then_match_open_executable_file_object
+  root_key_source: production_build_injected_platform_release_root_public_key
+  missing_expired_rollback_or_mismatch_disposition: protected_control_unavailable
+  update_coherency: service_definition_record_and_executable_activate_as_one_release_generation
+release_trust_record_profiles:
+  - profile_id: production-protected-local-release-record
+    environment: production
+    root_key_ref: platform-release-root-production-v1
+    root_material_source: production_build_injected_public_key_from_external_release_signing_service
+    missing_or_placeholder_root_disposition: production_build_fail
+    record_source: signed_service_owned_release_manifest
+    source_rule: P-NAPP-034
+  - profile_id: non-product-protected-local-release-record
+    environment: non_product_test
+    root_key_ref: platform-release-root-e2e-v1
+    root_material_source: external_non_product_e2e_secret_store_public_projection
+    missing_or_placeholder_root_disposition: test_build_fail
+    record_source: isolated_non_product_fixture_manifest
+    source_rule: P-NAPP-034
+signer_policies:
+  - signer_policy_id: nimi-production-release-signing-policy
+    environment: production
+    identity_authority: nimi_production_release_signing_identity
+    exact_identity_constraints:
+      windows: exact_authenticode_publisher_leaf_certificate_and_executable_role
+      linux: exact_platform_signed_release_digest_and_executable_role
+      macos: exact_designated_requirement_team_id_cdhash_and_executable_role
+    key_material_boundary: production_release_signing_service_only
+    runtime_build_allowance: production_only
+    source_rule: P-NAPP-034
+  - signer_policy_id: external-non-product-e2e-signing-policy
+    environment: non_product_test
+    identity_authority: external_ephemeral_e2e_fixture_identity
+    exact_identity_constraints:
+      windows: exact_non_product_fixture_certificate_and_executable_role
+      linux: exact_non_product_fixture_release_digest_and_executable_role
+      macos: exact_non_product_designated_requirement_team_id_cdhash_and_executable_role
+    key_material_boundary: external_test_secret_store_only
+    runtime_build_allowance: test_only
+    source_rule: P-NAPP-034
+production_runtime_accepts_test_trust_set: false
+test_runtime_accepts_production_realm_endpoints: false
+test_runtime_accepts_production_account_custody: false
+production_runtime_trusts_user_selected_executable: false
+production_configuration_override_sources_forbidden: [environment_variable, argv, renderer_url, app_manifest, user_writable_config]
+trust_direction_requirements:
+  runtime_verifies_desktop_or_control_carrier: required
+  desktop_or_control_carrier_verifies_runtime: required
+selection_override_sources_forbidden:
+  - environment_variable
+  - app_manifest
+  - renderer_metadata
+  - app_owned_host_metadata
+  - request_field
+fixture_private_key_locations_forbidden:
+  - repository
+  - product_bundle
+  - app_starter
+  - evidence_artifact
+trust_sets:
+  - trust_set_id: nimi-desktop-production-v1
+    executable_role: nimi_desktop
+    environment: production
+    allowed_os_profiles: [windows, macos]
+    signer_policy_ref: nimi-production-release-signing-policy
+    digest_authority: exact_production_release_descriptor
+    trust_record_profile_ref: production-protected-local-release-record
+    launch_authority: interactive_start_signed_binary_with_immutable_production_config
+    configuration_authority: signed_release_descriptor_no_environment_argv_or_renderer_url_override
+    exact_release_descriptor_required: true
+    runtime_build_allowance: production_only
+    product_readiness_claim_allowed: true
+    runtime_configuration_mutable: false
+    source_rule: P-NAPP-034
+  - trust_set_id: nimi-desktop-e2e-fixture-v1
+    executable_role: nimi_desktop
+    environment: non_product_test
+    allowed_os_profiles: [windows, macos]
+    signer_policy_ref: external-non-product-e2e-signing-policy
+    digest_authority: exact_non_product_test_fixture_descriptor
+    trust_record_profile_ref: non-product-protected-local-release-record
+    launch_authority: non_product_harness_only
+    configuration_authority: non_product_harness_config_only
+    exact_release_descriptor_required: true
+    runtime_build_allowance: test_only
+    product_readiness_claim_allowed: false
+    runtime_configuration_mutable: false
+    source_rule: P-NAPP-034
+  - trust_set_id: nimi-runtime-production-v1
+    executable_role: nimi_runtime_service
+    environment: production
+    allowed_os_profiles: [windows, linux, macos]
+    signer_policy_ref: nimi-production-release-signing-policy
+    digest_authority: exact_production_runtime_release_descriptor
+    trust_record_profile_ref: production-protected-local-release-record
+    launch_authority: os_service_manager_exact_signed_service_definition
+    configuration_authority: signed_service_definition_and_runtime_release_descriptor_only
+    exact_release_descriptor_required: true
+    runtime_build_allowance: production_only
+    product_readiness_claim_allowed: true
+    runtime_configuration_mutable: false
+    source_rule: P-NAPP-034
+  - trust_set_id: nimi-runtime-e2e-fixture-v1
+    executable_role: nimi_runtime_service
+    environment: non_product_test
+    allowed_os_profiles: [windows, linux, macos]
+    signer_policy_ref: external-non-product-e2e-signing-policy
+    digest_authority: exact_non_product_runtime_fixture_descriptor
+    trust_record_profile_ref: non-product-protected-local-release-record
+    launch_authority: separate_non_product_os_service_manager_definition
+    configuration_authority: synthetic_accounts_and_non_product_endpoints_only
+    exact_release_descriptor_required: true
+    runtime_build_allowance: test_only
+    product_readiness_claim_allowed: false
+    runtime_configuration_mutable: false
+    source_rule: P-NAPP-034
+  - trust_set_id: nimi-desktop-control-carrier-production-v1
+    executable_role: nimi_desktop_control_carrier
+    environment: production
+    allowed_os_profiles: [linux]
+    signer_policy_ref: nimi-production-release-signing-policy
+    digest_authority: exact_production_desktop_release_descriptor
+    trust_record_profile_ref: production-protected-local-release-record
+    launch_authority: desktop_explicit_inherited_handle_spawn_only
+    configuration_authority: signed_static_carrier_no_runtime_configuration_inputs
+    exact_release_descriptor_required: true
+    runtime_build_allowance: production_only
+    product_readiness_claim_allowed: true
+    runtime_configuration_mutable: false
+    source_rule: P-NAPP-034
+  - trust_set_id: nimi-desktop-control-carrier-e2e-fixture-v1
+    executable_role: nimi_desktop_control_carrier
+    environment: non_product_test
+    allowed_os_profiles: [linux]
+    signer_policy_ref: external-non-product-e2e-signing-policy
+    digest_authority: exact_non_product_desktop_fixture_descriptor
+    trust_record_profile_ref: non-product-protected-local-release-record
+    launch_authority: non_product_desktop_harness_explicit_handle_only
+    configuration_authority: synthetic_non_product_carrier_config_only
+    exact_release_descriptor_required: true
+    runtime_build_allowance: test_only
+    product_readiness_claim_allowed: false
+    runtime_configuration_mutable: false
+    source_rule: P-NAPP-034

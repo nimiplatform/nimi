@@ -118,8 +118,9 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; Apps non-owner and ordinary-visible filtering
-    enforcement is `D-HOME-004` / `D-HOME-005` plus SDK consumer validation
+  evidence_scope_note: structural only; Platform single-owner allocation and app/self-certification non-authorization are checked without admitting detailed catalog, release, or launch rows
+  test_files:
+  - scripts/check-installed-realm-owner-boundary.mjs
 - rule_id: P-NAPP-010
   evidence_refs:
   - platform_kernel_consistency
@@ -130,9 +131,9 @@ rules:
 - rule_id: P-NAPP-011
   evidence_refs:
   - platform_kernel_consistency
+  - public_raw_token_authority_hardcut_gate
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; first-party seed enforcement is registry consumer
-    validation and Avatar productization master gate consumer validation
+  evidence_scope_note: structural only; first-party seed enforcement includes zero raw-account bearer capability and broker-only Avatar authority, while product implementation remains consumer-gated
 - rule_id: P-NAPP-012
   evidence_refs:
   - platform_kernel_consistency
@@ -261,12 +262,18 @@ rules:
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; admission track enforcement is owned by release descriptor admission validation and ordinary-readiness gates.
+  evidence_scope_note: blocked detailed catalog/release conflict; the owner-only allocation does not admit admission-track schemas or product-readiness rows.
+  test_files:
+  - scripts/check-installed-realm-owner-boundary.mjs
 - rule_id: P-NAPP-034
   evidence_refs:
   - platform_kernel_consistency
   evidence_requirement: structural_required
-  evidence_scope_note: structural only; installed-app launch/session enforcement is owned by Runtime OpenApp, Runtime account posture, Kit shell capability-set, and Desktop launch-host gates.
+  evidence_scope_note: A.0 structurally admits only Platform-owned Desktop production/test executable trust-set identity and isolation; installed launch/session/carrier fields remain blocked pending A.1 owner admissions and implementation.
+  test_files:
+  - scripts/check-installed-realm-owner-boundary.mjs
+  - scripts/check-protected-local-authority.mjs
+  - scripts/check-protected-local-authority.test.mjs
 - rule_id: P-MOEX-001
   evidence_refs:
   - platform_kernel_consistency

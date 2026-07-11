@@ -34,6 +34,15 @@ session, token custody, refresh, logout, or login-route authority.
 
 ## D-AUTH-001 — Session Bootstrap
 
+Desktop login, logout, and account switching first establish a non-portable
+Runtime `OpenDesktopSession` on the mutually authenticated `desktop_control`
+transport. Desktop does not originate caller mode, source host, process proof,
+or account authority; Runtime derives `desktop_account_host` from the verified
+live Desktop process under K-PLOCAL-003..006. If protected-local verification
+is unavailable, account-control UI exposes a typed unavailable/repair-required
+state and does not fall back to public TCP, `RegisterApp`, `OpenSession`, or a
+renderer/host-supplied session.
+
 Superseded for Desktop local first-party account sessions. Desktop bootstrap
 MUST NOT run `bootstrapAuthSession`, read `runtime_defaults.realm.accessToken`
 as durable account truth, call `auth_session_load`, or fall back to a Desktop
@@ -54,11 +63,11 @@ treat `~/.nimi/auth/session.v1.json`, `auth_session_load`,
 token custody, refresh, logout, or revalidation truth.
 
 Runtime secure custody (`K-ACCSVC-007`) owns durable token/session material.
-Desktop feature-data modules and renderer stores are in-process projections
-only. Local first-party consumers, including Avatar paths, must consume
-Runtime account-session projection, Runtime-issued short-lived access-token
-projection, or scoped binding projection as applicable; they must not read a
-shared Desktop auth session.
+Desktop feature-data modules and renderer stores are in-process redacted
+projections only. Local first-party consumers, including Avatar paths, consume
+Runtime account-session projection, Runtime-mediated operations and scoped
+binding projection as applicable; they never receive account bearer material or
+read a shared Desktop auth session.
 
 ## D-AUTH-003 — Token 持久化（Web）
 
@@ -118,7 +127,7 @@ through `K-ACCSVC-004`; Desktop consumes the resulting session/status projection
 
 - SDK local app facades must not expose public account refresh helpers.
   Desktop must not own refresh token custody, token refresh scheduling, or
-  durable refresh results; broker/token projection refresh is Runtime-private.
+  durable refresh results; broker/private bearer refresh is Runtime-private.
 - Refresh failure projection clears renderer auth projection and disables
   authenticated Realm feature data.
 
@@ -136,8 +145,8 @@ Superseded for Desktop first-party account sessions. Desktop must not persist or
 cache refresh tokens.
 
 - Runtime secure custody owns refresh token storage (`K-ACCSVC-007`).
-- SDK client/provider internals may hold an in-memory short-lived access token
-  projection long enough to execute an admitted request. Desktop renderer
+- SDK and Desktop internals must not hold account bearer material. Runtime owns
+  credential acquisition, refresh and network invocation; Desktop renderer
   app-store state, public-web facades, profile/settings screens, and bootstrap
   watchers MUST NOT carry access-token or refresh-token fields.
 - Desktop renderer stores, settings/profile pages, bootstrap watchers, and the
@@ -155,7 +164,7 @@ Desktop token 过期检测与刷新所有权已迁移到 Runtime account session
 | 层 | 职责 | 实现位置 |
 |---|---|---|
 | Runtime | token custody、refresh、revocation reaction、account session status projection | K-ACCSVC-004、K-ACCSVC-005、K-ACCSVC-007 |
-| SDK | typed access-token provider plumbing and public Realm/Runtime transport ergonomics | S-REALM-*、S-RUNTIME-* |
+| SDK | typed broker/service transport ergonomics with no local bearer export | S-REALM-*、S-RUNTIME-* |
 | Desktop | renderer auth projection, login-gate UI, feature data enable/disable wiring | D-AUTH-004、D-AUTH-005 |
 | Realm Backend | token 签发、刷新、校验 | 不在 spec 管辖范围 |
 

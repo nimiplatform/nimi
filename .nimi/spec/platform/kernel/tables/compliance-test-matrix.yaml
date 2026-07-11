@@ -85,58 +85,18 @@ layers:
         source_rule: P-PROTO-020
 
   - layer: L1_app_auth
-    label: "App 授权层 (ExternalPrincipal -> App)"
+    label: "Public Grant deny-all tombstone"
     items:
-      - item: "AuthorizeExternalPrincipal 原子签发"
-        positive: required
+      - item: "RuntimeGrantService five-method family rejects every public/protected caller and returns no credential material"
+        positive: forbidden
         rejection: required
         regression: required
         source_rule: P-PROTO-030
-      - item: "preset(readOnly/full/delegate)"
-        positive: required
-        rejection: required
-        regression: required
-        source_rule: P-PROTO-030
-      - item: "custom 策略解析"
-        positive: required
-        rejection: required
-        regression: required
-        source_rule: P-PROTO-030
-      - item: "同一 ExternalPrincipal 跨 App token 隔离"
-        positive: required
-        rejection: required
-        regression: required
-        source_rule: P-PROTO-030
-      - item: "非授权 token 访问拒绝"
-        positive: required
-        rejection: required
-        regression: required
-        source_rule: P-PROTO-030
-      - item: "委托链路（子集 scopes + TTL）"
-        positive: required
+      - item: "SDK/Kit/Desktop export none of the public grant credential family pending A.3d removal"
+        positive: forbidden
         rejection: required
         regression: required
         source_rule: P-PROTO-035
-      - item: "资源级约束（resourceSelectors）"
-        positive: required
-        rejection: required
-        regression: required
-        source_rule: P-PROTO-030
-      - item: "同意证据校验（consent fields）"
-        positive: required
-        rejection: required
-        regression: required
-        source_rule: P-PROTO-030
-      - item: "scope/preset 自动映射一致性"
-        positive: required
-        rejection: required
-        regression: required
-        source_rule: P-PROTO-021
-      - item: "scope 扩展 manifest 发布/审核/撤销链路"
-        positive: required
-        rejection: required
-        regression: required
-        source_rule: P-PROTO-021
 
   - layer: L1_world_app
     label: "World-App 绑定层 (产品关系)"

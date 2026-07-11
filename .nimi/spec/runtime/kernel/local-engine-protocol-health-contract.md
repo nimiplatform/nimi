@@ -109,20 +109,26 @@ runtime 不得把任意 backend 名称直接透传给受管 `llama` 引擎 CLI�
 
 ## K-LENG-008 配置来源优先级
 
-引擎相关配置项（endpoint、api_key 等）的来源按以下优先级合并（高优先覆盖低优先）：
-
-1. RPC 请求参数
-2. 环境变量
-3. 配置文件
-4. 引擎默认值
+Production engine endpoint/configuration comes from Runtime-owned supervised
+engine state or an independently admitted service-owned attached-endpoint
+record, followed only by spec-governed defaults where allowed. RPC request,
+environment, argv, user-writable file, renderer, SDK and app inputs cannot
+select or override endpoint/security configuration. Separately signed
+synthetic non-product fixtures have their own explicit test posture and cannot
+provide product evidence.
 
 配置结构必须围绕 `llama` / `media` / `speech` / `sidecar` 组织，不得继续保留 `localai` / `nexa` / `nimi_media` 为 public 配置入口。
 
 ## K-LENG-009 凭据安全策略
 
-- attached endpoint 如需凭据，允许使用 inline `apiKey` 或 `apiKeyEnv`；二者互斥。
-- 本地 supervised 引擎默认不要求 API key；如上游宿主要求，凭据解析仍遵循 `apiKeyEnv` 优先。
-- 不需要凭据的本地引擎不得因空 `apiKey` 被判定为未配置。
+- An attached endpoint that requires a credential stores only opaque
+  `credentialRef`; Runtime resolves material inside service-principal custody.
+  Inline `apiKey`, `apiKeyEnv`, request injection, and user-session vaults are
+  forbidden.
+- Local supervised engines normally require no API key. If an upstream engine
+  requires one, only Runtime-owned custody may provide it.
+- An engine declared credential-free is not treated as unconfigured merely
+  because it has no credential ref.
 
 ## K-LENG-010 HTTP 错误 → gRPC 状态映射
 

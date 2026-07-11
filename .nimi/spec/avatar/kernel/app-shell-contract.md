@@ -10,7 +10,7 @@
 > - [Avatar event contract](avatar-event-contract.md)
 >
 > **First-Party Runtime Boundary**：
-> 本 contract 约束默认 Nimi Avatar app。Avatar 是 Runtime-admitted local first-party Nimi app（default app id `nimi.avatar`），Desktop 启动时只传递 `agent_id`、optional `avatar_instance_id`、optional non-authoritative `launch_source`。Avatar 默认使用 Runtime account projection 与 Runtime-mediated Realm broker；只有 registry/spec 显式 admitted 的 default first-party instance 可使用 memory-only short-lived `GetAccessToken` exception。它不得持有 refresh token、durable auth session、shared auth truth、independent Realm auth truth、或 Avatar-local JWT subject truth。Desktop 不得把 scoped binding、visual package truth、conversation anchor truth、account/user truth、Realm/auth material 透传给默认 Avatar 启动路径。
+> 本 contract 约束默认 Nimi Avatar app。Avatar 是 Runtime-admitted local first-party Nimi app（default app id `nimi.avatar`），Desktop 启动时只传递 `agent_id`、optional `avatar_instance_id`、optional non-authoritative `launch_source`。Avatar 使用 Runtime account projection 与 Runtime-mediated Realm/service operations only；public `GetAccessToken` is a deny-all tombstone pending A.3d removal，first-party identity 不产生 bearer exception。它不得持有 access/refresh token、authorization header、durable auth session、shared auth truth、independent Realm auth truth、或 Avatar-local JWT subject truth。Desktop 不得把 scoped binding、visual package truth、conversation anchor truth、account/user truth、Realm/auth material 透传给默认 Avatar 启动路径。
 >
 > Explicit binding-only / embedded / delegated Avatar mode 仍可由 `K-BIND-*` admit，但它不是 Desktop-launched Avatar 的默认路径。
 >
@@ -543,8 +543,8 @@ Degraded Surface 是 ready 之外所有 composition state 的唯一渲染表面�
 ### 9.2 Runtime First-Party Bootstrap
 
 Supersedes the earlier Desktop scoped-binding-only launch rule. Avatar is a
-local first-party app and uses Runtime account projection / SDK Runtime-backed
-short-lived access-token provider when it needs authorized private data.
+local first-party app and uses Runtime account projection plus Runtime-mediated
+broker/service operations when it needs authorized private data.
 
 Normal path boundary:
 
@@ -577,8 +577,8 @@ Login / account handling:
 - Avatar must not run independent Realm login or own browser callback custody.
 - Avatar must not receive refresh tokens, durable session material, raw JWT, or
   Avatar-local subject truth.
-- Avatar may receive short-lived access tokens only through Runtime-backed SDK
-  providers and only for request-time Realm data access.
+- Avatar never receives account bearer material; Runtime performs credential
+  access, authorization and network invocation before returning typed results.
 
 Failure handling:
 
@@ -714,9 +714,12 @@ Minimum permission set for industrial baseline shell。窗口控制走 kit 标�
 - 加载 Desktop 启动 intent：required `agent_id`、optional `avatar_instance_id`、optional non-authoritative `launch_source`
 - 以 `nimi.avatar` / stable `app_instance_id` 注册或识别为 Runtime-admitted local first-party app
 - 调用 Runtime account projection / event stream 与 admitted `InvokeRealmUnary` broker operation；Avatar 不拥有 login/logout/switch/refresh account-control UX
-- default `nimi.avatar` 仅在 Runtime registry 与 broker/raw-token policy 显式 admission 同时成立时可调用 memory-only `GetAccessToken` exception
-- 通过 SDK local-first-party Runtime-backed token provider 为 `runtime.agent` turns API 请求获取 protected access token
-- 默认通过 SDK Runtime-mediated Realm transport 访问授权 Realm data API；显式 raw-token exception 不得持久化或自行 refresh
+- default `nimi.avatar` 只能调用 independently admitted Runtime-mediated
+  broker/service operations；registry 或 first-party posture 不得启用 public token RPC
+- `runtime.agent` turns API 由 Runtime server-side evaluator、current account/app
+  relation、capability/grant 与 scoped binding 授权；SDK/host 不安装 bearer provider
+- 默认通过 SDK Runtime-mediated Realm transport 访问授权 Realm data API；不得
+  直连 Realm、构造 authorization header 或自行 refresh
 - 通过 Runtime / SDK 验证 `agent_id`，解析 agent/user projection 与
   authorized visual package ref / local materialization
 - 创建或恢复 Avatar-owned conversation context
@@ -781,13 +784,15 @@ conversation anchor truth。
 Explicit binding-only / embedded / delegated Avatar mode 可以由 `K-BIND-*` admit，
 但它不是默认 Desktop launch path。
 
-Binding-only mode MUST be rejected for `GetAccessToken` with `ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY`; it may consume only a separately admitted binding-scoped broker operation and never gains account-control or refresh authority.
+Every Avatar mode, including default first-party and binding-only, MUST be
+rejected by the public `GetAccessToken` tombstone with
+`ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED`; a separately admitted binding-scoped
+broker operation never grants account-control, refresh, or bearer authority.
 
 默认 Avatar 不得把 scoped binding 当作启动阶段或 turns API 的 authorization
-替代物；`runtime.agent` turns API 必须依赖 Runtime-issued protected access
-capability token。Scoped binding 只属于 explicit binding-only / embedded /
+替代物；`runtime.agent` turns API 必须由 Runtime server-side evaluator
+authorize and execute。Scoped binding 只属于 explicit binding-only / embedded /
 delegated Avatar mode，且作为 carrier-relation attachment，不替代 token。
 
 ---
-
 **Industrial baseline.** Embodied Output Interaction、Transient Overlays、Degraded Surface、Composition State 属于本 contract 的完整权威；实现不得偏离本 contract 已声明的规则，新增表面 / 新增 composition state 必须先以 minor / major bump 方式更新本 contract。

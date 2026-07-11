@@ -6,6 +6,7 @@ entries:
   - kit.ui
   - kit.auth
   - kit.core
+  - kit.shell.protected-local
   - kit.shell.tauri
   - kit.shell.renderer
   - kit.shell.electron
@@ -177,13 +178,30 @@ modules:
     owner: platform
     source_rule: P-KIT-041C
     notes: Machine truth is .nimi/spec/platform/kernel/tables/standard-shell-capabilities.yaml. Topic documents, acceptance matrices, and gate descriptions consume or validate that table only. Installed app standard shell capability-set policy is admitted by P-KIT-044 and remains an allowlist over this module's standard capability vocabulary.
+  - id: kit.shell.protected-local
+    subpath: /shell/protected-local
+    kind: infra
+    surface_level: infra
+    adapter_contract: NimiProtectedLocalHostCarrier
+    description: Shared native protected-local carrier contract for mutual service/process/executable verification, empty OpenDesktopSession bootstrap, and typed fixed-service status/start/restart across Tauri and Electron hosts. Kit carries calls only; Runtime and the OS remain security and lifecycle authorities.
+    dependencies: []
+    peer_dependencies: []
+    exports: []
+    headless_exports: []
+    ui_exports: []
+    reuse_entrypoints: []
+    admission_status: authority_admitted_implementation_pending
+    owner: platform
+    source_rule: P-KIT-041
+    notes: Non-npm Rust crate/native host contract. No renderer import or npm export. A.0 admits the shared carrier boundary only; implementation must consume Runtime K-PLOCAL tables and Platform signed release trust rows without copying authority. Product stop, binary/service/path selection, generic config JSON, bearer-based privilege, and app-child carrier are absent.
   - id: kit.shell.tauri
     subpath: /shell/tauri
     kind: infra
     surface_level: infra
     adapter_contract: NimiStandardShellCapabilityHost
-    description: Shared Tauri host glue — runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults, packaged Platform catalog projections, deterministic host projection record builders, and SDK-shaped host bridge mappers for Rust host materialization/verification code. Delivered as the public Rust crate nimi-shell-tauri for standalone apps and as a Cargo path dependency for workspace apps, within the single kit authority.
-    dependencies: []
+    description: Shared Tauri host glue consuming the native protected-local carrier for typed fixed-service status/start/restart and protected Runtime calls; owns no executable selection, service stop, config document, credential, Realm endpoint, or Runtime lifecycle truth.
+    dependencies:
+      - kit.shell.protected-local
     peer_dependencies: []
     exports: []
     headless_exports: []
@@ -195,7 +213,7 @@ modules:
     public_crate_name: nimi-shell-tauri
     standalone_dependency: published_crate_after_api_publication_admission
     workspace_dependency: cargo_path_dependency
-    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after API/publication mechanics are admitted; workspace apps consume via Cargo path dependency. No package.json exports. Standard capability truth comes from kit.shell.capabilities and standard-shell-capabilities.yaml. The platform_catalog Rust modules are generated read-only Platform catalog projections for consumers; platform_projection Rust modules provide deterministic host projection record construction/validation and SDK-shaped bridge mapping from those catalog projections. Canonical truth remains under .nimi/spec/platform/kernel/tables/**; apps remain responsible for admitted storage roots, file materialization, and app-specific command adapters.
+    notes: Non-npm Rust crate. Standalone apps consume the public delivery crate name nimi-shell-tauri after API/publication mechanics are admitted; workspace apps consume via Cargo path dependency. No package.json exports. Standard capability truth comes from kit.shell.capabilities and standard-shell-capabilities.yaml. Protected service/origin truth comes only from kit.shell.protected-local and Runtime K-PLOCAL authority. The platform_catalog Rust modules are generated read-only Platform catalog projections for consumers; platform_projection Rust modules provide deterministic host projection record construction/validation and SDK-shaped bridge mapping from those catalog projections. Canonical truth remains under .nimi/spec/platform/kernel/tables/**; apps remain responsible for admitted storage roots, file materialization, and app-specific command adapters.
   - id: kit.shell.renderer
     subpath: /shell/renderer
     kind: infra
@@ -229,9 +247,10 @@ modules:
     kind: infra
     surface_level: infra
     adapter_contract: NimiStandardShellCapabilityHost
-    description: Shared Electron main/preload host glue for Runtime gRPC proxying, narrowed preload IPC exposure, stream forwarding, origin allowlisting, app identity enforcement, artifact URL serving, and externally managed daemon status projection.
+    description: Shared Electron main/preload host glue that consumes the native protected-local carrier for typed Runtime access while keeping renderer IPC narrowed; it owns no external daemon mode, executable/service selection, stop/config authority, bearer custody, or protected origin truth.
     dependencies:
       - kit.shell.capabilities
+      - kit.shell.protected-local
       - kit.core.desktop-open
       - sdk
       - "@grpc/grpc-js"
@@ -253,7 +272,7 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-041E
-    notes: Node/Electron-host only. Renderer code must not import this module directly. Runtime daemon lifecycle is external-host only; start/stop/restart/config mutation must fail closed with the standard external-daemon-required envelope until a separate authority cut admits Electron daemon ownership. Runtime calls use @grpc/grpc-js raw identity byte proxying and preserve SDK tauri-ipc wire shape. Desktop-launched installed Nimi App hosts must consume Runtime OpenApp launch-resolution, bind the one-time launch nonce, use the installed-nimi-app-standard-shell-v1 capability set, and inject Runtime account/session metadata from Electron main trusted providers rather than renderer-readable auth custody.
+    notes: Node/Electron-host only. Renderer code must not import this module directly. Product service control is exactly typed status/start/restart through kit.shell.protected-local; stop, binary selection, generic config mutation, raw bearer injection, and external-daemon fallback are forbidden. Generic @grpc/grpc-js proxying cannot carry protected methods. Installed-app child carrier/session behavior remains absent pending A.1 and must fail closed rather than approximating it with launch metadata.
   - id: kit.core.runtime-capabilities
     subpath: /core/runtime-capabilities
     kind: logic

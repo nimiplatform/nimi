@@ -436,8 +436,8 @@ Fixed rules:
   auth payload, or auth UX route in Avatar launch context.
 - `agent_id` is launch intent only; Avatar / Runtime must validate access
   before private data or visual package descriptor loads.
-- Avatar owns first-party runtime bootstrap, including account projection,
-  short-lived access-token provider use, agent validation, visual package
+- Avatar owns first-party runtime bootstrap orchestration, including redacted
+  account projection, Runtime-mediated broker/service use, agent validation, visual package
   descriptor resolution, and Avatar-owned conversation context.
 - Desktop may request bounded live-instance reveal/close operations by
   `avatar_instance_id`, but it must not treat those operations as proof of

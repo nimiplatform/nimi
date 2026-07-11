@@ -1,0 +1,102 @@
+version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_protected_local_principal_profiles
+surfaces: [windows, linux, macos]
+entries: [windows, linux, macos]
+description: Closed production isolation profiles for Runtime custody, protected state, process memory, and local endpoints.
+authority_refs: [K-PLOCAL-001, K-PLOCAL-003, K-PLOCAL-007]
+production_runtime_execution_mode: isolated_os_service_principal
+production_user_session_generic_keyring_allowed: false
+protected_credential_domains: [account_tokens, connector_provider_secrets, protected_ledger_keys, authenticated_realm_credentials]
+production_same_interactive_user_daemon_allowed: false
+interactive_app_state_enumeration: forbidden
+service_install_authority: signed_nimi_installer_only
+service_update_authority: signed_runtime_release_atomic_service_update_only
+desktop_service_control:
+  status_authority: os_service_manager_and_verified_runtime_control
+  start_or_restart_authority: typed_os_service_control_gateway
+  operations: [status, start, restart]
+  product_stop_operation: absent
+  desktop_direct_spawn: forbidden
+  desktop_direct_stop: forbidden
+  desktop_quit_disposition: service_remains_running
+  release_staging_authority: signed_installer_service_updater
+  runtime_binary_selection_by_desktop: forbidden
+  common_response_fields: [state, release_id, reason_code, retryable]
+  state_values: [stopped, start_pending, running, restart_pending, unavailable]
+  windows:
+    service_name: NimiRuntime
+    status_semantics: scm_query_status_then_verified_runtime_health_when_running
+    start_semantics: scm_start_fixed_service_name_without_binary_path_or_arguments
+    restart_semantics: runtime_self_exit_then_scm_recovery_start_and_new_boot_epoch_verification
+    desktop_scm_access: [SERVICE_QUERY_STATUS, SERVICE_START]
+    desktop_scm_stop_access: forbidden
+    service_binary_path_or_arguments_input: forbidden
+    running_success_requirement: verified_new_or_existing_runtime_process_and_protected_handshake
+    restart_success_requirement: new_pid_creation_marker_and_runtime_boot_epoch_verified
+    hung_runtime_recovery: signed_installer_service_updater_or_administrator_only
+production_boot_security_configuration_authority: signed_service_definition_and_signed_release_descriptor_only
+mutable_product_configuration_authority: typed_protected_desktop_control_write_to_service_owned_state_only
+production_environment_or_argv_override: forbidden
+retired_user_keyring_import: forbidden_hardcut_requires_fresh_login_and_connector_credential_reentry
+automatic_backup_restore: forbidden
+challenge_consume_intent_transaction: atomic_anchored
+account_partition_source: verified_interactive_os_principal_and_login_session
+non_product_same_user_fixture:
+  allowed: true
+  custody: synthetic_ephemeral_only
+  production_account_or_realm_endpoint: forbidden
+  production_trust_set: forbidden
+  product_readiness_claim_allowed: false
+profile_schema:
+  fields:
+    - os
+    - production_principal
+    - interactive_user_relation
+    - service_installation
+    - account_partition_derivation
+    - custody_store
+    - ledger_and_anchor_store
+    - process_isolation
+    - endpoint_connect_boundary
+    - non_product_e2e_principal
+    - non_product_endpoint_boundary
+    - source_rule
+profiles:
+  - os: windows
+    production_principal: NT_SERVICE_NimiRuntime_restricted_service_sid
+    interactive_user_relation: distinct_os_security_principal
+    service_installation: signed_installer_creates_restricted_windows_service_no_interactive_logon
+    account_partition_derivation: verified_pipe_client_user_sid_and_logon_luid
+    custody_store: dpapi_ng_exact_service_sid_protector_in_service_sid_acl_state
+    ledger_and_anchor_store: service_sid_acl_with_dpapi_ng_exact_service_sid_anchor_key
+    process_isolation: service_process_dacl_denies_interactive_vm_read_vm_write_vm_operation_dup_handle_create_thread
+    endpoint_connect_boundary: named_pipe_acl_grants_connect_only_to_active_interactive_sid_and_service_sid
+    non_product_e2e_principal: NT_SERVICE_NimiRuntimeE2E_separate_service_sid
+    non_product_endpoint_boundary: synthetic_accounts_and_non_product_endpoints_only
+    source_rule: K-PLOCAL-007
+  - os: linux
+    production_principal: dedicated_nimi_runtime_system_uid
+    interactive_user_relation: distinct_os_security_principal
+    service_installation: signed_package_creates_systemd_system_service_with_no_login_uid
+    account_partition_derivation: verified_so_peercred_uid_and_login_session
+    custody_store: dedicated_uid_0600_encrypted_store_with_root_loaded_system_credential_key
+    ledger_and_anchor_store: dedicated_uid_0700_state_with_separate_hmac_anchor_file_and_root_loaded_system_credential_key
+    process_isolation: systemd_protect_proc_invisible_no_new_privileges_protect_system_strict_private_tmp
+    endpoint_connect_boundary: service_owned_socket_acl_grants_connect_only_to_active_interactive_uid
+    non_product_e2e_principal: dedicated_nimi_runtime_e2e_system_uid
+    non_product_endpoint_boundary: synthetic_accounts_and_non_product_endpoints_only
+    source_rule: K-PLOCAL-007
+  - os: macos
+    production_principal: dedicated_nimi_runtime_launchdaemon_principal
+    interactive_user_relation: distinct_os_security_principal
+    service_installation: signed_installer_creates_hardened_launchdaemon_and_privileged_xpc_service
+    account_partition_derivation: verified_audit_token_euid_and_audit_session
+    custody_store: code_identity_acl_system_keychain_item_for_runtime_designated_requirement
+    ledger_and_anchor_store: launchdaemon_principal_state_with_code_identity_acl_keychain_anchor_key
+    process_isolation: hardened_runtime_library_validation_and_task_for_pid_denial
+    endpoint_connect_boundary: privileged_xpc_mach_service_validates_client_audit_token_and_code_identity
+    non_product_e2e_principal: dedicated_nimi_runtime_e2e_launchdaemon_principal
+    non_product_endpoint_boundary: synthetic_accounts_and_non_product_endpoints_only
+    source_rule: K-PLOCAL-007

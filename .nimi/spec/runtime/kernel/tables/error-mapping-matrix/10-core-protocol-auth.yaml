@@ -135,3 +135,113 @@ mappings:
     surface: app_mode_gate
     exit_shape: grpc_status
     source_rule: K-AUTHSVC-010
+  - reason_code: PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED
+    grpc_code: FAILED_PRECONDITION
+    surface: protected_local_handshake
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-003
+  - reason_code: PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED
+    grpc_code: UNAVAILABLE
+    surface: protected_local_endpoint_startup
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-003
+  - reason_code: PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED
+    grpc_code: PERMISSION_DENIED
+    surface: protected_local_handshake
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-003
+  - reason_code: DESKTOP_CONTROL_TRANSPORT_REQUIRED
+    grpc_code: PERMISSION_DENIED
+    surface: protected_rpc_transport_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-006
+  - reason_code: DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: protected_process_verification
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-004
+  - reason_code: DESKTOP_EXECUTABLE_TRUST_FAILED
+    grpc_code: PERMISSION_DENIED
+    surface: protected_executable_verification
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-005
+  - reason_code: DESKTOP_TEST_TRUST_FORBIDDEN
+    grpc_code: PERMISSION_DENIED
+    surface: protected_executable_verification
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-005
+  - reason_code: PROTECTED_ORIGIN_ROLE_MISMATCH
+    grpc_code: PERMISSION_DENIED
+    surface: protected_rpc_origin_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-002
+  - reason_code: LIFECYCLE_CHALLENGE_REQUIRED
+    grpc_code: FAILED_PRECONDITION
+    surface: protected_lifecycle_intent_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-007
+  - reason_code: LIFECYCLE_CHALLENGE_MISMATCH
+    grpc_code: PERMISSION_DENIED
+    surface: protected_lifecycle_intent_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-007
+  - reason_code: LIFECYCLE_CHALLENGE_REPLAY
+    grpc_code: PERMISSION_DENIED
+    surface: protected_lifecycle_intent_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-007
+  - reason_code: PROTECTED_LOCAL_LEDGER_UNAVAILABLE
+    grpc_code: UNAVAILABLE
+    surface: protected_security_ledger
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-007
+  - reason_code: PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED
+    grpc_code: UNAVAILABLE
+    surface: protected_security_ledger
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-007
+  - reason_code: PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH
+    grpc_code: PERMISSION_DENIED
+    surface: protected_rpc_origin_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-007
+  - reason_code: PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED
+    grpc_code: FAILED_PRECONDITION
+    surface: protected_runtime_principal_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-001
+  - reason_code: PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE
+    grpc_code: UNAVAILABLE
+    surface: protected_runtime_principal_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-007
+  - reason_code: PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN
+    grpc_code: PERMISSION_DENIED
+    surface: protected_runtime_principal_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-003
+  - reason_code: RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID
+    grpc_code: PERMISSION_DENIED
+    surface: protected_executable_verification
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-PLOCAL-005
+  - reason_code: LIFECYCLE_INTENT_REQUIRED
+    grpc_code: FAILED_PRECONDITION
+    surface: protected_lifecycle_intent_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-APP-026
+  - reason_code: LIFECYCLE_INTENT_MISMATCH
+    grpc_code: PERMISSION_DENIED
+    surface: protected_lifecycle_intent_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-APP-026
+  - reason_code: LIFECYCLE_INTENT_REPLAY
+    grpc_code: PERMISSION_DENIED
+    surface: protected_lifecycle_intent_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-APP-026
+  - reason_code: LIFECYCLE_INTENT_EXPIRED
+    grpc_code: FAILED_PRECONDITION
+    surface: protected_lifecycle_intent_gate
+    exit_shape: grpc_status_with_sanitized_detail
+    source_rule: K-APP-026

@@ -18,7 +18,7 @@ Desktop 在 macOS 环境下必须支持 menu bar 常驻入口。
 
 menu bar 状态数据固定来自两层：
 
-1. **平台管理层**：daemon lifecycle 状态通过 `D-IPC-002` 的 `runtime_bridge_status` / `start` / `stop` / `restart` 投影。
+1. **平台管理层**：service state through D-IPC-002 typed `status/start/restart`; no stop operation exists.
 2. **应用健康层**：runtime/provider 细粒度健康通过现有 SDK runtime health APIs 投影，不新增 Tauri backend 平行 gRPC/HTTP health 路径。
 
 menu bar 聚合状态至少包含：
@@ -38,11 +38,14 @@ Phase 1 menu bar 菜单固定包含以下区块：
 
 1. **状态头**：`running / degraded / starting / stopped / unavailable`
 2. **快捷入口**：`Open Nimi`、`Open Runtime Dashboard`、`Open Local Models`、`Open Cloud Connectors`、`Open Settings`
-3. **状态摘要**：runtime health、provider summary、gRPC、PID、managed/external、last check
-4. **操作区**：`Start Runtime`、`Restart Runtime`、`Stop Runtime`、`Refresh Status`
+3. **状态摘要**：runtime health、provider summary、verified release、last check；不得显示或依赖 gRPC 地址、PID、binary path 或 managed/external selector
+4. **操作区**：`Start Runtime`、`Restart Runtime`、`Refresh Status`
 5. **退出区**：`Quit Nimi`
 
-`Restart Runtime` 与 `Stop Runtime` 在 `managed=false` 时必须禁用，Desktop 不得通过 menu bar 停止或重启外部 runtime。
+`Start Runtime` and `Restart Runtime` are enabled only when the fixed installed
+service and signed release records are valid. There is no external-daemon mode,
+binary selector, or stop action in production. Unverified/hung service state
+routes to signed installer/service-updater repair.
 
 ## D-MBAR-004 — Navigation Dispatch
 
@@ -70,8 +73,10 @@ menu bar 不得直接耦合具体 React 组件实例。
 Quit path 必须执行：
 
 1. 停止前端轮询 / auth watcher 等 shell cleanup
-2. 若 daemon `managed=true` 且正在运行，则执行 `runtime_bridge_stop`
-3. 退出应用进程
+2. 退出应用进程
+
+Production Runtime is an independent OS service and remains running across
+Desktop hide, window close, renderer reload, crash, and explicit quit.
 
 ## Fact Sources
 

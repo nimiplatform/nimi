@@ -1,0 +1,146 @@
+version: 1
+table_family: protocol_surface
+owner: runtime
+protocol_id: runtime_protected_local_security_limits
+surfaces: [endpoint-handshake, lifecycle-challenge-ttl, outstanding-lifecycle-challenge, consumed-challenge-tombstone, protected-frame-bytes, desktop-sessions-per-process, security-ledger-busy-timeout, boot-epoch-bytes, proof-hmac-digest]
+entries:
+  - endpoint-handshake
+  - lifecycle-challenge-ttl
+  - outstanding-lifecycle-challenge
+  - consumed-challenge-tombstone
+  - protected-frame-bytes
+  - desktop-sessions-per-process
+  - security-ledger-busy-timeout
+  - boot-epoch-bytes
+  - proof-hmac-digest
+description: Closed hard bounds for A.0 protected-local handshakes, sessions, challenges, and ledger recovery.
+authority_refs: [K-PLOCAL-003, K-PLOCAL-006, K-PLOCAL-007]
+bound_kind_enum: [exact, minimum, maximum, exact_enum]
+limit_schema:
+  fields:
+    - limit_id
+    - default
+    - hard_bound
+    - bound_kind
+    - exact
+    - minimum
+    - maximum
+    - unit
+    - scope
+    - enforcement_clock
+    - restart_semantics
+    - source_rule
+  null_policy: non_selected_bound_fields_must_be_explicit_null
+limits:
+  - limit_id: endpoint-handshake
+    default: 5
+    hard_bound: 10
+    bound_kind: maximum
+    exact: null
+    minimum: null
+    maximum: 10
+    unit: seconds
+    scope: connection
+    enforcement_clock: monotonic
+    restart_semantics: restart_deadline
+    source_rule: K-PLOCAL-003
+  - limit_id: lifecycle-challenge-ttl
+    default: 60
+    hard_bound: 120
+    bound_kind: maximum
+    exact: null
+    minimum: null
+    maximum: 120
+    unit: seconds
+    scope: challenge
+    enforcement_clock: monotonic
+    restart_semantics: revoke_on_restart
+    source_rule: K-PLOCAL-007
+  - limit_id: outstanding-lifecycle-challenge
+    default: 1
+    hard_bound: 1
+    bound_kind: exact
+    exact: 1
+    minimum: null
+    maximum: null
+    unit: challenge
+    scope: desktop_session_action_app
+    enforcement_clock: monotonic
+    restart_semantics: revoke_on_restart
+    source_rule: K-PLOCAL-007
+  - limit_id: consumed-challenge-tombstone
+    default: 7
+    hard_bound: 1
+    bound_kind: minimum
+    exact: null
+    minimum: 1
+    maximum: null
+    unit: days
+    scope: security_ledger
+    enforcement_clock: wall_clock_rollback_may_only_extend
+    restart_semantics: retained
+    source_rule: K-PLOCAL-007
+  - limit_id: protected-frame-bytes
+    default: 4096
+    hard_bound: 16384
+    bound_kind: maximum
+    exact: null
+    minimum: null
+    maximum: 16384
+    unit: bytes
+    scope: handshake_frame
+    enforcement_clock: not_applicable
+    restart_semantics: unchanged
+    source_rule: K-PLOCAL-003
+  - limit_id: desktop-sessions-per-process
+    default: 1
+    hard_bound: 1
+    bound_kind: exact
+    exact: 1
+    minimum: null
+    maximum: null
+    unit: session
+    scope: canonical_process_tuple
+    enforcement_clock: monotonic
+    restart_semantics: revoke_on_restart
+    source_rule: K-PLOCAL-006
+  - limit_id: security-ledger-busy-timeout
+    default: 5
+    hard_bound: 5
+    bound_kind: exact
+    exact: 5
+    minimum: null
+    maximum: null
+    unit: seconds
+    scope: protected_local_db
+    enforcement_clock: monotonic
+    restart_semantics: restart_timeout
+    source_rule: K-PLOCAL-007
+  - limit_id: boot-epoch-bytes
+    default: 32
+    hard_bound: 32
+    bound_kind: exact
+    exact: 32
+    minimum: null
+    maximum: null
+    unit: bytes
+    scope: runtime_start
+    enforcement_clock: not_applicable
+    restart_semantics: regenerate_csprng
+    source_rule: K-PLOCAL-007
+  - limit_id: proof-hmac-digest
+    default: SHA-256
+    hard_bound: SHA-256
+    bound_kind: exact_enum
+    exact: SHA-256
+    minimum: null
+    maximum: null
+    unit: algorithm
+    scope: protected_security_record
+    enforcement_clock: not_applicable
+    restart_semantics: unchanged
+    source_rule: K-PLOCAL-007
+deadline_semantics:
+  live_deadline_clock: monotonic
+  wall_clock_rollback_effect: retention_may_only_extend
+  source_rule: K-PLOCAL-007

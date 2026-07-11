@@ -23,7 +23,16 @@
 
 ## K-PROV-002 探测目标
 
-Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定为：
+Production probe targets are resolved only inside the Runtime service
+principal: cloud targets come from Runtime-owned connector/provider records and
+opaque custody refs; supervised local targets come from Runtime engine state;
+an admitted attached endpoint comes from service-owned typed configuration.
+Environment variables, argv, user config, Desktop/SDK/renderer payloads, and
+raw keys cannot create or override a production target.
+
+The following environment-name mapping is retained solely for separately
+signed synthetic non-product probe fixtures. It cannot be loaded by a
+production Runtime or counted as product evidence:
 
 | 探测名称 | Base URL 环境变量 | API Key 环境变量 |
 |---|---|---|
@@ -47,13 +56,17 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 | `cloud-openai-compatible` | `NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL` | `NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY` |
 | `cloud-openai-codex` | `NIMI_RUNTIME_CLOUD_OPENAI_CODEX_BASE_URL` | `NIMI_RUNTIME_CLOUD_OPENAI_CODEX_API_KEY` |
 
-仅 Base URL 非空的目标参与探测。
+Only within that non-product fixture posture does a non-empty synthetic Base
+URL activate a mapped fixture target. Production activation uses the owner
+records above.
 
 本地 provider 补充：
 
 - `local-image` 仅用于 daemon-managed image backend 的健康归因与审计，不从环境变量装配独立 probe target。
 - `local-media` 在 `supported_supervised` host 之外不得由 runtime 自动注入默认 loopback probe target。
-- 当 host 仅支持 `attached_only` 时，只有调用方显式配置的 `NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL` 才参与 provider health 探测。
+- 当 host 仅支持 `attached_only` 时，只有 Runtime service-owned typed config
+  中 independently admitted 的 endpoint 才参与 provider health 探测；调用方/env
+  不能注入。
 - `tables/local-image-supervised-backend-matrix.yaml`（v2）是 canonical local image supervised health 归因的唯一平台事实源。health attribution 必须消费 v2 matrix resolver 输出的 `entry_id`、`backend_family`、`backend_class`、`product_state`；不得各自推断。
 - `local-media` 的 host support 判断不得只按 public engine=`media` 一刀切；必须由 v2 matrix resolver 输出的 `backend_class` / `backend_family` / `control_plane` / `execution_plane` 驱动。
 - `product_state=unsupported` 的 entry 命中时，health 必须返回 recognized-but-unsupported 归因并以 `AI_LOCAL_MODEL_UNAVAILABLE` fail-close。`product_state=proposed` 且 admission 未通过时同理。
@@ -80,8 +93,8 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 
 > 本协议适用于云端 provider 探测目标（K-PROV-002）。本地引擎健康探测使用 K-LENG-007。
 
-- **基础探测间隔**：默认 8s（`NIMI_RUNTIME_AI_HEALTH_INTERVAL` 可覆盖）。
-- **HTTP 超时**：默认 30s（`NIMI_RUNTIME_AI_HTTP_TIMEOUT` 可覆盖）。
+- **基础探测间隔**：service-owned `aiHealthIntervalSeconds`，默认 8s。
+- **HTTP 超时**：service-owned `aiHttpTimeoutSeconds`，默认 30s。
 - **探测路径**：按序尝试 `/healthz` → `/v1/models`，任一路径返回 `2xx` 即视为健康；`401`/`403`/`429`（server 可达但配置/限流问题）亦视为健康；`404` 触发下一探测路径；其余 `4xx` 与 `5xx` 视为不健康。
 - `local-media` 与 `local-speech` 为例外：canonical provider probe 固定为 `/healthz` → `/v1/catalog`。
   - **设计取舍（K-PROV-003）**：`401`/`403` 标记为 healthy 意味着 API key 无效或权限不足的 provider 在健康面板显示"健康"，但该 provider 的所有 AI consume 请求会失败并返回 `UNAVAILABLE + AI_PROVIDER_UNAVAILABLE`（K-ERR-005）。此为有意设计：健康探测回答的是"server 是否可达"，而非"凭据是否有效"。两个信号服务不同用途——健康面板用于网络连通性诊断，consume 错误用于凭据配置诊断。Desktop UI 应在 provider 显示 healthy 但 consume 持续返回 `AI_PROVIDER_UNAVAILABLE` 时，引导用户检查 API key 配置而非网络连通性。

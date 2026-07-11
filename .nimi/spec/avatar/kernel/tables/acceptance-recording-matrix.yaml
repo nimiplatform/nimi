@@ -173,21 +173,13 @@ scenarios:
       - "Only the localized actionable reauth degraded surface is mounted."
       - "No broker request is projected as success and no direct login/account-control call is made by Avatar."
 
-  - id: first_party_raw_token_posture
-    backend: any
-    mode: ready
-    action: "Probe GetAccessToken as the default registry-admitted nimi.avatar first-party instance."
-    expected_visible_proof:
-      - "The probe is accepted only when the Runtime registry and explicit raw-token admission both match."
-      - "Any token remains inside the SDK/runtime protected request path and is absent from renderer state, storage, DOM, console, screenshots, and evidence payloads."
-
-  - id: binding_only_raw_token_denied
+  - id: public_raw_token_surface_absent
     backend: any
     mode: degraded
-    action: "Probe GetAccessToken using ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR."
+    action: "Inspect Runtime, SDK, Kit and app projections to prove the retired public GetAccessToken surface is absent."
     expected_visible_proof:
-      - "Runtime rejects the probe with ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY."
-      - "Binding-only posture cannot call account control or refresh and no token material is returned."
+      - "No RuntimeAccountService GetAccessToken method, request/response type, SDK export, Kit bridge method or app fixture remains."
+      - "No bearer, authorization header, JWT, subject or session material reaches host, renderer, SDK result, storage, DOM, console, screenshot or evidence payload."
 
 coverage_rules:
   - "Every scenario must be recorded on at least one desktop viewport."
@@ -195,6 +187,6 @@ coverage_rules:
   - "runtime_voice_listening_projection, tts_speaking_lipsync, and interrupt_active_turn must show visible privacy feedback."
   - "runtime_degraded must show fail-closed mutual exclusion from ready surfaces."
   - "shared_auth_broker_ready and shared_auth_login_required must be captured in a real shell against real Runtime/SDK transport; fixture-only renderer state is insufficient."
-  - "first_party_raw_token_posture and binding_only_raw_token_denied must be recorded as distinct postures."
+  - "public_raw_token_surface_absent must prove that no public token method can be called by any local caller class."
   - "Every shared-auth scenario must include a renderer token-leak scan and denied auth_session probe."
   - "Recordings must be linked from the release/topic evidence ledger; local one-off screenshots are not closure."

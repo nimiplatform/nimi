@@ -80,6 +80,94 @@ codes:
     value: 303
     family: AUTH
     source_rule: K-AUTHN-006
+  - name: PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED
+    value: 620
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-003
+  - name: PROTECTED_LOCAL_ENDPOINT_OWNERSHIP_FAILED
+    value: 621
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-003
+  - name: PROTECTED_LOCAL_SERVER_VERIFICATION_FAILED
+    value: 622
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-003
+  - name: DESKTOP_CONTROL_TRANSPORT_REQUIRED
+    value: 623
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-006
+  - name: DESKTOP_PROCESS_VERIFICATION_UNAVAILABLE
+    value: 624
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-004
+  - name: DESKTOP_EXECUTABLE_TRUST_FAILED
+    value: 625
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-005
+  - name: DESKTOP_TEST_TRUST_FORBIDDEN
+    value: 626
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-005
+  - name: PROTECTED_ORIGIN_ROLE_MISMATCH
+    value: 627
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-002
+  - name: LIFECYCLE_CHALLENGE_REQUIRED
+    value: 628
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-007
+  - name: LIFECYCLE_CHALLENGE_MISMATCH
+    value: 629
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-007
+  - name: LIFECYCLE_CHALLENGE_REPLAY
+    value: 630
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-007
+  - name: PROTECTED_LOCAL_LEDGER_UNAVAILABLE
+    value: 631
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-007
+  - name: PROTECTED_LOCAL_LEDGER_ROLLBACK_DETECTED
+    value: 632
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-007
+  - name: PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH
+    value: 633
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-007
+  - name: PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED
+    value: 634
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-001
+  - name: PROTECTED_LOCAL_CUSTODY_BOUNDARY_UNAVAILABLE
+    value: 635
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-007
+  - name: PROTECTED_LOCAL_PRODUCTION_CONFIG_OVERRIDE_FORBIDDEN
+    value: 636
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-003
+  - name: RUNTIME_EXECUTABLE_TRUST_RECORD_INVALID
+    value: 637
+    family: PROTECTED_LOCAL
+    source_rule: K-PLOCAL-005
+  - name: LIFECYCLE_INTENT_REQUIRED
+    value: 638
+    family: PROTECTED_LOCAL
+    source_rule: K-APP-026
+  - name: LIFECYCLE_INTENT_MISMATCH
+    value: 639
+    family: PROTECTED_LOCAL
+    source_rule: K-APP-026
+  - name: LIFECYCLE_INTENT_REPLAY
+    value: 640
+    family: PROTECTED_LOCAL
+    source_rule: K-APP-026
+  - name: LIFECYCLE_INTENT_EXPIRED
+    value: 641
+    family: PROTECTED_LOCAL
+    source_rule: K-APP-026
   - name: AI_CONNECTOR_NOT_FOUND
     value: 310
     family: CONNECTOR

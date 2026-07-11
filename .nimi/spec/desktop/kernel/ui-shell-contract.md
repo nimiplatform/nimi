@@ -657,40 +657,15 @@ Fixed rules:
 
 ## D-SHELL-038 - Installed Nimi App Launch Host
 
-Desktop owns installed Nimi App host process/window creation after Runtime
-returns a successful `OpenApp` launch-resolution projection.
-
-The only admitted day-1 installed app host class is
-`desktop-electron-installed-app-host`, recorded in
-`tables/installed-app-launch-hosts.yaml`. It may host only `package_kind:
-nimi-app` releases launched from Runtime-attested launch resolution.
-
-Fixed requirements:
-
-- the host must consume the Runtime-attested launch resolution from `K-APP-017`
-  and must not recompute descriptor refs, release roots, entry refs, storage
-  roots, source kind, admission track, caller posture, or launch success from
-  filesystem guesses
-- the host must bind the one-time launch nonce returned by Runtime before
-  exposing any installed-app bridge surface
-- the host must use `installed-nimi-app-standard-shell-v1` from
-  `P-KIT-044` / `standard-shell-capabilities.yaml`
-- the host must inject account/session metadata only through the host-owned
-  Runtime app session channel admitted by `K-ACCSVC-022`
-- the host must root loaded entry URLs, local asset URLs, data/cache/tmp
-  handles, and storage helpers in the Runtime-attested installed release and
-  app storage projection
-
-Forbidden sources:
-
-- local adoption, account-only inventory, tester developer registration,
-  Desktop shell caller identity, renderer-supplied bearer/session metadata,
-  process liveness, and app self-report must not satisfy installed app launch
-  host admission
-- Desktop private product-control commands, Runtime daemon lifecycle ownership,
-  OAuth token exchange, local-agent trusted caller identity, Tauri-only
-  commands, raw Electron IPC, and raw Node filesystem access must not be exposed
-  to launched installed apps
+A.0 admits no installed-app host class or positive child launch. The registry
+row in `tables/installed-app-launch-hosts.yaml` is a blocked A.1 placeholder
+only. Desktop must not create an installed app process/window, bind launch
+metadata, expose a child bridge, inject account/session material, or claim
+launch success. Runtime `OpenApp`, local adoption, account inventory, tester
+registration, Desktop identity, process liveness, renderer metadata, ordinary
+gRPC and existing Electron code cannot bypass this block. A separate A.1 batch
+must admit the exact child transport/session/host/projection/capability shapes
+across all owners before Desktop implementation.
 
 ## D-SHELL-039 - Desktop Open Intent Navigation Targets
 

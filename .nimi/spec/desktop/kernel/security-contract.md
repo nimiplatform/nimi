@@ -8,6 +8,21 @@ Desktop 安全模型契约。定义 CSP 策略、AI 凭据委托、OAuth 安全�
 
 ## D-SEC-001 — Endpoint 回环限制
 
+Loopback restriction is not privileged-origin proof. Desktop account-control
+and lifecycle mutation use only Runtime's protected `desktop_control`
+endpoint, mutually authenticate the Runtime server process, and require
+Runtime verification of the Desktop process and executable trust set. A TCP
+port, app id, caller enum, source host, manifest, metadata, or portable bearer
+cannot elevate a caller.
+
+Before sending login/account/lifecycle material, Desktop also verifies the
+Runtime service SID/UID/audit principal, live same-object executable identity,
+signed per-release trust record, and OS service-manager launch authority. A
+correctly signed Runtime binary started by the interactive user, a squatted
+pipe/socket, or an environment/argv-selected endpoint is rejected. Production
+Desktop never directly spawns Runtime; start/restart invokes the typed OS
+service-control gateway.
+
 本地运行时端点必须为回环地址：
 
 - 允许：`localhost`、`127.0.0.1`、`[::1]`
@@ -19,7 +34,9 @@ Desktop 安全模型契约。定义 CSP 策略、AI 凭据委托、OAuth 安全�
 
 ## D-SEC-002 — Bearer Token 管理
 
-- Desktop renderer may hold only a short-lived access-token projection needed to configure SDK public Realm/Runtime calls.
+- Desktop renderer, main process and SDK carrier must not receive account bearer
+  material. Realm and protected Runtime calls use typed Runtime-mediated
+  operations with server-side authorization.
 - Refresh token custody, durable account session storage, refresh scheduling, and revocation reaction are Runtime account session responsibilities (`K-ACCSVC-*`).
 - Desktop must not store bearer tokens in a resurrected DataSync hot-state, Zustand persistence, IndexedDB, or app-local durable files.
 - Runtime secure custody failures and session projection failures must fail closed; Desktop must not recover by guessing, falling back to anonymous ordinary product use, or reading retired shared-session files.
@@ -35,6 +52,23 @@ OAuth 流程通过 Tauri IPC 执行（参考 `D-IPC-006`）：
 - 超时：`timeoutMs` 参数防止无限等待。
 
 ## D-SEC-004 — IPC 桥接安全
+
+Renderer and app-owned Electron/Tauri host code are untrusted app principals.
+They cannot construct protected origin metadata, select a trust set, mint a
+Desktop session, or forward a portable protected credential. Desktop trust
+comes from Runtime/OS process verification and Platform's exact executable
+trust-set row, not from code calling itself trusted. Production builds cannot
+load the non-product E2E trust set; test Runtime configuration cannot connect
+to production account/Realm endpoints.
+
+Production Desktop configuration is immutable signed-release input. It must
+ignore environment/argv overrides for renderer URL, Runtime binary/endpoint,
+trust record/root, caller role, and Realm/account endpoint. Test overrides
+exist only in a separately signed non-product build and cannot produce product
+evidence. The isolated Runtime service principal owns account and
+connector/provider credentials, ledger/anchor state, and process memory; a
+native app-host probe must be denied direct keyring, filesystem, anchor, and
+process-memory access.
 
 - `hasTauriInvoke()` 检查 Tauri runtime presence（`__TAURI_INTERNALS__` / `__TAURI_IPC__` 或等价的显式 bridge 环境），不得要求 `window.__TAURI__` 全局暴露。
 - 非 Tauri 环境抛出明确错误而非静默失败。

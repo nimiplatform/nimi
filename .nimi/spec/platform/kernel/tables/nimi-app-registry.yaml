@@ -101,9 +101,6 @@ apps:
         scopeFamily: account
         scopeName: account.session.read
       - appId: nimi.avatar
-        scopeFamily: account
-        scopeName: account.raw-token
-      - appId: nimi.avatar
         scopeFamily: data
         scopeName: data.scope.read
         qualifier: realm.worlds.read-probe

@@ -36,11 +36,21 @@ core/read path 仍需回到 realm canonical surface 继续展开。
 
 ## P-PROTO-030 — App 授权策略原子性
 
-`MUST`: Runtime 侧授权策略创建与 token 签发必须是单事务调用。所有 preset（readOnly/full/delegate）共用一套 token 结构与校验链路。授权决策必须包含可审计同意证据。`custom` 策略允许资源级约束，在 runtime 侧强制执行。
+`MUST`: The former public app authorization/preset/token issuance family is
+deny-all. Request-body consent, `readOnly/full/delegate`, custom scopes,
+resource selectors, app id, external-principal session, parent token or bearer
+cannot authorize or mint a protected credential. The five
+`RuntimeGrantService` wire methods remain removal tombstones only; A.3d removes
+proto/generated/SDK/handler/persistence surfaces. Runtime-private operation
+evaluation requires an exact protected origin and operation policy and returns
+no reusable credential.
 
 ## P-PROTO-035 — 委托规则
 
-`MUST`: 仅 `canDelegate=true` 的父 token 可申请子 token。子 token scopes/resourceSelectors 必须是父 token 子集。子 token `expiresAt` 必须早于父 token。父 token 撤销时子 token 级联失效。`preset=delegate` 默认 `maxDelegationDepth=1`。
+`MUST`: Public delegation is a deny-all tombstone pending A.3d removal. No
+parent token, scope subset, TTL, resource selector, `canDelegate`, preset, or
+chain record admits a child credential. Former delegation fields are removal
+inventory, not a compatibility path.
 
 ## P-PROTO-040 — 策略更新与 catalog 规则
 

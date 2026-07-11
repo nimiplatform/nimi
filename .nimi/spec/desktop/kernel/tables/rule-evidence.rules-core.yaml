@@ -101,8 +101,15 @@ rules:
   - desktop_lint_gate
   - desktop_test_gate
   evidence_requirement: required
+  evidence_scope_note: Existing Desktop tests are compatibility evidence only; A.0 protected Desktop session authority is structurally covered by scripts/check-protected-local-authority.mjs and has no implementation/live claim yet.
+  test_files:
+  - scripts/check-protected-local-authority.mjs
 - rule_id: D-AUTH-002
-  evidence_refs: *1
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - public_raw_token_authority_hardcut_gate
   evidence_requirement: required
 - rule_id: D-AUTH-003
   evidence_refs: *1
@@ -171,11 +178,18 @@ rules:
 - rule_id: D-BOOT-004
   evidence_refs: *1
   evidence_requirement: required
+  evidence_scope_note: Existing bootstrap tests are compatibility evidence only; RegisterApp/OpenSession are now binding-only and protected Desktop origin implementation remains pending.
+  test_files:
+  - scripts/check-protected-local-authority.mjs
 - rule_id: D-BOOT-006
   evidence_refs: *1
   evidence_requirement: required
 - rule_id: D-BOOT-007
-  evidence_refs: *1
+  evidence_refs:
+  - desktop_kernel_consistency
+  - desktop_lint_gate
+  - desktop_test_gate
+  - public_raw_token_authority_hardcut_gate
   evidence_requirement: required
 - rule_id: D-BOOT-008
   evidence_refs:
@@ -278,11 +292,15 @@ rules:
   - desktop_lint_gate
   - desktop_test_gate
   evidence_requirement: required
+  evidence_scope_note: Existing loopback behavior does not prove protected origin; A.0 mutual endpoint/process authority is structural only pending Runtime/Desktop implementation.
+  test_files:
+  - scripts/check-protected-local-authority.mjs
 - rule_id: D-SEC-002
   evidence_refs:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
+  - public_raw_token_authority_hardcut_gate
   evidence_requirement: required
 - rule_id: D-SEC-003
   evidence_refs:
@@ -296,6 +314,9 @@ rules:
   - desktop_lint_gate
   - desktop_test_gate
   evidence_requirement: required
+  evidence_scope_note: Existing IPC tests remain compatibility evidence; process-bound protected origin and production/test trust isolation are structural A.0 authority only.
+  test_files:
+  - scripts/check-protected-local-authority.mjs
 - rule_id: D-SEC-006
   evidence_refs:
   - desktop_kernel_consistency

@@ -4,9 +4,12 @@
 
 ## K-AUTHSVC-001 服务职责
 
-`RuntimeAuthService` 负责应用会话与外部主体会话生命周期，不承载授权决策（授权由 `RuntimeGrantService` 负责）。
+`RuntimeAuthService` owns binding-only app/external-principal session lifecycle.
+The public `RuntimeGrantService` family is deny-all pending A.3d removal and
+cannot provide authorization. Protected operation decisions are Runtime-private
+and require the exact verified origin plus operation policy.
 
-`RuntimeAuthService` **不负责** local machine account session、login lifecycle、custody、refresh、logout、user switch、daemon restart recovery、或首方 scoped app binding；这些权威由 `RuntimeAccountService`（`K-ACCSVC-*`，见 `account-session-contract.md`）拥有。`RuntimeAuthService` 与 `RuntimeAccountService` 不重叠，且 `K-AUTHSVC-002` 的方法集合冻结。
+`RuntimeAuthService` **不负责** local machine account session、login lifecycle、custody、refresh、logout、user switch、daemon restart recovery、或首方 scoped app binding；这些权威由 `RuntimeAccountService`（`K-ACCSVC-*`，见 `account-session-contract.md`）拥有。Protected-local origin、Desktop process verification 与 control-session authority 由 `K-PLOCAL-*` 拥有，Auth service 只消费其 immutable origin context。
 
 ## K-AUTHSVC-002 方法集合（权威）
 
@@ -19,18 +22,30 @@
 5. `RegisterExternalPrincipal`
 6. `OpenExternalPrincipalSession`
 7. `RevokeExternalPrincipalSession`
+8. `OpenDesktopSession`（A.0 authority admitted；仅 `desktop_control`，proto/Runtime implementation pending）
+
+除 `OpenDesktopSession` 的 A.0 authority addition 外，不得扩展方法集合。该
+方法不接收 app id、caller class、source host 或 portable proof override，且
+不返回可迁移到其他连接的授权 bearer。
 
 ## K-AUTHSVC-003 RegisterApp 最小约束
 
 - `app_id` 必填且不可为空。
 - `app_instance_id` 在客户端缺省时可由服务端分配。
 - `mode_manifest` 必须按 proto 枚举值校验，不允许未知值透传。
+- 无论 registry 或 developer-registration gate 是否通过，`RegisterApp` 和
+  随后的 `OpenSession` 只建立 `BINDING_ONLY`。其 app id、manifest、session
+  id/token 或 source-host metadata 不得产生 account、broker、AI、artifact、
+  realtime、media、lifecycle 或 `OpenApp` 权限；完整矩阵由
+  `K-PLOCAL-001` 与 `tables/protected-local-rpc-transport-matrix.yaml` 拥有。
 
 ## K-AUTHSVC-004 OpenSession / RefreshSession TTL 约束
 
 - `ttl_seconds` 必须落在服务端配置区间 `[sessionTtlMinSeconds, sessionTtlMaxSeconds]` 内（默认 `[60, 86400]` 秒，可通过 `K-DAEMON-009` 配置）。
 - 超出区间必须 fail-close（`INVALID_ARGUMENT`）。
 - `RefreshSession` 仅对仍有效的 `session_id` 生效。
+- 本节 TTL 仅适用于 non-privileged binding/external-principal session；
+  续签不升级 origin role，也不创建 portable protected privilege。
 
 ## K-AUTHSVC-005 Revoke 幂等语义
 
@@ -52,17 +67,34 @@
 
 ## K-AUTHSVC-009 AppMode 校验矩阵
 
-`AppMode` 决定应用可访问的 domain 和 scope：
+`AppMode` 不是授权源；它仅是未来 separately admitted non-binding session
+的 static upper bound。所有 `BINDING_ONLY` registration/session 的 effective
+domains 与 effective scopes 均为 empty，不受 `LITE`、`CORE_ONLY`、`FULL`、
+manifest、developer-registration flag 或 grant row 影响。Mode/manifest
+validation never upgrades protected origin、caller role、transport class、
+account posture 或 token custody。
+For `BINDING_ONLY`, effective domains and effective scopes are empty.
 
-| AppMode | 允许 runtime.* domain | 允许 realm.* domain | 说明 |
+Before A.1 protected child-channel authority and implementation, ordinary
+`OpenSession` has no broker, AI, artifact, realtime, media, lifecycle, or
+`OpenApp` authority。下表仅定义未来独立准入 session 可被进一步收窄的 ceiling，
+不表达当前 effective rights：
+
+| AppMode | runtime.* ceiling | realm.* ceiling | 静态上限说明 |
 |---|---|---|---|
-| `LITE` | 否 | 是 | 轻量模式，仅 realm 功能 |
-| `CORE_ONLY` | 是 | 否 | 核心模式，仅 runtime 功能 |
-| `FULL` | 是 | 是 | 完整模式，全功能 |
+| `LITE` | 否 | 是 | 最多允许 realm；仍需独立 session/origin/grant admission |
+| `CORE_ONLY` | 是 | 否 | 最多允许 runtime；仍需独立 session/origin/grant admission |
+| `FULL` | 是 | 是 | 最多允许两类 domain；不等于授予任何权限 |
 
-域访问违规时返回 `APP_MODE_DOMAIN_FORBIDDEN`；scope 违规时返回 `APP_MODE_SCOPE_FORBIDDEN`。
+只有在 non-binding session、protected origin 和具体 operation/grant 已由其
+canonical owner 独立准入后，域 ceiling 违规才返回
+`APP_MODE_DOMAIN_FORBIDDEN`，scope ceiling 违规才返回
+`APP_MODE_SCOPE_FORBIDDEN`。
 
-**评估顺序**：AppMode gate 在 Scope prefix gate（`K-GRANT-009`）之前执行。AppMode 拒绝后不再评估具体 scope，直接返回 `APP_MODE_DOMAIN_FORBIDDEN` 或 `APP_MODE_SCOPE_FORBIDDEN`。
+**评估顺序**：先判定 `BINDING_ONLY`（effective set 直接为空），再验证
+protected origin 与 independently admitted session，之后才应用 AppMode ceiling，
+最后应用 Scope prefix/grant gate（`K-GRANT-009`）。任一前置不成立均 fail
+closed，且不得借由后续 ceiling/grant 反向升级。
 
 ## K-AUTHSVC-010 Manifest 与 WorldRelation 组合规则
 
@@ -88,6 +120,12 @@
 本规则已 split 为两个独立 owner 域：
 
 **App session / external-principal session（`RuntimeAuthService` 拥有）：**
+
+In A.0, an app session created by `OpenSession` is `BINDING_ONLY`; reconnect or
+refresh recreates only that empty-effective-rights binding and cannot restore
+broker/AI/artifact/realtime/media/lifecycle privilege. External-principal
+sessions remain their separately proven external path and never become local
+account or protected process origin.
 
 - Phase 1 session 存储使用进程内内存 map，不跨重启持久化。
 - daemon 重启后所有 app session / external-principal session 失效，客户端需重新调用 `OpenSession` 或 `OpenExternalPrincipalSession` 建立新会话。
@@ -156,10 +194,13 @@ Proto 枚举冻结约束：
 
 任一条件不成立 → 维持默认拒绝（`APP_NOT_REGISTERED`），**不得 pseudo-success**、不得静默放行。
 
-**放行后权限**：developer registration 产出的 app session 是**权限正常**的 app session，
-按 `K-AUTHSVC-009` AppMode 矩阵授予 domain/scope，**不降级、不匿名化**——用户开启
-`auth.developerRegistration.enabled` 即视为对本地开发者注册的授权。该 session 不绕过
-`RuntimeGrantService` 授权决策，也不获得超出其 `mode_manifest` 的能力。
+**放行后权限（A.0 hard cut）**：developer registration 只允许创建
+`BINDING_ONLY` registration/session，不授予 account、Realm broker、AI、
+artifact、realtime、media、lifecycle 或 `OpenApp` 权限。开关与 request
+intent 不是 process-origin proof。需要 Runtime/auth/Realm/AI E2E 的本地开发
+必须等待 A.1 developer-installed adoption 与 protected child channel 独立
+admit/implement；不得用现有 app session、metadata、nonce 或临时 bearer
+恢复权限。纯 renderer UI dev 可以显示 Runtime unavailable，但不计 E2E。
 
 **审计（K-AUTHSVC-007）**：developer registration 的成功与失败都必须写审计，且最小字段之外
 必须标记 developer registration（如 `developer_registration=true` 与 registry app id），

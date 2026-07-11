@@ -3,6 +3,7 @@ table_family: product_catalog
 owner: runtime
 catalog_id: runtime_interceptor_chain
 entries:
+  - protected-origin
   - version
   - lifecycle
   - activity
@@ -12,43 +13,50 @@ entries:
   - credential-scrub
   - audit
 interceptors:
-  - name: version
+  - name: protected-origin
     order: 1
+    unary: true
+    stream: true
+    side_effects: []
+    description: Derives immutable transport/process origin before protocol parsing, authn, authz, token access, or business request parsing; public TCP cannot provide protected metadata
+    source_rule: K-PLOCAL-002
+  - name: version
+    order: 2
     unary: true
     stream: true
     side_effects: []
     description: Version negotiation; injects runtime version metadata into response headers
     source_rule: K-DAEMON-005
   - name: lifecycle
-    order: 2
+    order: 3
     unary: true
     stream: true
     side_effects: []
     description: Health state gate; rejects non-readonly requests when STOPPING/STOPPED
     source_rule: K-DAEMON-005
   - name: activity
-    order: 3
+    order: 4
     unary: true
     stream: true
     side_effects: [active_rpc_registry_write]
     description: Tracks active RPC category, last activity time, and shutdown disposition for drain/cancel policy
     source_rule: K-DAEMON-005
   - name: protocol
-    order: 4
+    order: 5
     unary: true
     stream: true
     side_effects: [idempotency_store_write]
     description: Envelope parsing, metadata extraction, idempotency check (unary only)
     source_rule: K-DAEMON-005
   - name: authn
-    order: 5
+    order: 6
     unary: true
     stream: true
     side_effects: []
     description: Authentication token validation; extracts and verifies caller identity from metadata
     source_rule: K-DAEMON-005
   - name: authz
-    order: 6
+    order: 7
     unary: true
     stream: true
     stream_rpc_scope: [ExportAuditEvents]
@@ -56,14 +64,14 @@ interceptors:
     description: Protected capability validation via grant service; AI consume streaming RPCs (StreamScenario TEXT_GENERATE/SPEECH_SYNTHESIZE) are authorized via key-source evaluation path (K-KEYSRC-004), not this interceptor
     source_rule: K-DAEMON-005
   - name: credential-scrub
-    order: 7
+    order: 8
     unary: true
     stream: true
     side_effects: []
     description: Scrubs incoming credential-bearing metadata from handler context before downstream logging or audit consumers can observe raw secrets
     source_rule: K-DAEMON-005
   - name: audit
-    order: 8
+    order: 9
     unary: true
     stream: true
     side_effects: [audit_event_write, usage_metric_update]

@@ -33,6 +33,7 @@ entries:
   - package_authority_admission_gate
   - delegated_projection_admission_gate
   - canonical_capability_catalog_gate
+  - public_raw_token_authority_hardcut_gate
 platform_kernel_consistency:
   type: static_gate
   evidence_type: structural
@@ -93,3 +94,9 @@ canonical_capability_catalog_gate:
   command: pnpm check:canonical-capability-catalog
   path: scripts/check-canonical-capability-catalog.mjs
   description: Platform kernel gate validating canonical capability catalog row consistency against runtime tables, completeness against the admitted capability union, deferred entry admission fields, and codegen idempotency.
+public_raw_token_authority_hardcut_gate:
+  type: static_gate
+  evidence_type: structural
+  command: pnpm check:public-raw-token-authority-hardcut
+  path: scripts/check-public-raw-token-authority.mjs
+  description: Cross-domain structural gate rejecting the retired raw-account capability id and any app-specific path that could restore public Runtime bearer projection.

@@ -4,19 +4,38 @@
 
 ## K-ACCSVC-001 服务职责
 
-`RuntimeAccountService` 拥有本地机器层的 account session truth、custody、login lifecycle、refresh、logout、user switch、daemon restart recovery、首方 short-lived app access-token projection、和 Runtime-issued scoped app binding issuance。它是 local account authority 与 refresh-token custody 的唯一所有者。
+**Owner-only authority allocation.** Runtime is the sole owner of authenticated Realm unary, realtime, and media data planes. Runtime alone owns account and token custody, private refresh, and authenticated Realm credential exchange. Platform owns dynamic app catalog/release/capability/grant vocabulary and trust roots; Desktop owns account-control/lifecycle UX and verified process launch; SDK and Kit own typed APIs and trusted carriers only; app-tools remains authoring and lifecycle orchestration tooling.
+
+Apps MUST NOT own account or session truth, bearer or refresh tokens, or signed upload credentials. A Desktop host, Kit bridge, SDK client, renderer, app manifest, or app-supplied callback may carry only owner-attested opaque inputs and results; none may originate credentials, refresh authenticated Realm state, or become a parallel unary, realtime, or media authority.
+
+This rule admits that single-owner allocation. `K-PLOCAL-001..007` additionally
+admit only the A.0 protected Desktop/process-origin prerequisite and are the
+sole authority for transport, process, executable, challenge, boot-epoch, and
+security-ledger facts. Installed carrier/session details, per-operation Realm
+rows, realtime protocol or dependency posture, and media states or limits
+remain blocked until their canonical owners independently admit them. Realtime
+replay semantics require prior compatibility evidence, and authenticated media
+implementation requires Runtime-owned exact lifecycle states, limits,
+credential custody, and failure semantics to be admitted first.
+
+Existing per-operation unary rows, realtime protocol or dependency posture, and media state or limits remain blocked authority conflicts outside the explicit A.0 protected-origin slice.
+
+`RuntimeAccountService` 拥有本地机器层的 account session truth、custody、login lifecycle、refresh、logout、user switch、daemon restart recovery、Runtime-mediated Realm broker 和 Runtime-issued scoped app binding issuance。它是 local account authority 与 refresh-token custody 的唯一所有者。
 
 `RuntimeAuthService`（`K-AUTHSVC-*`）继续负责 app session 与 external-principal session，二者不互相替代。`RuntimeAccountService` 不接受调用方提供的 `subject_user_id` 作为 account 真相，account subject 必须从 Runtime account custody 内部派生。
 
-`RuntimeAccountService` 还是 Nimi 本地 app 的 shared auth broker 与默认 Realm
-data access owner。`InvokeRealmUnary` 是 installed app、developer-registered app、
-Desktop 与未使用 raw-token exception 的 first-party local app 的标准 Realm
-访问路径。只有 registry-admitted 且被
-`tables/realm-broker-operations.yaml`/Platform admission 显式允许的 true local
-first-party app instance 才能通过 `GetAccessToken` 获得 memory-only short-lived
-token；该 exception 不是新 app 的默认路径。任何 app 都不得拥有 refresh
-token、durable shared session、login bootstrap、subject truth，或把 token/session
-反向写回 Runtime。
+`RuntimeAccountService` 还是 Nimi 本地 app 的 shared auth broker 与唯一 Realm
+credential mediation owner。`InvokeRealmUnary` 是 Desktop、bundled、installed、
+developer-installed 与其他 local app 的唯一 admitted Realm unary 路径；caller
+获得 bounded application result，不获得 Realm bearer。任何 app、Desktop、SDK、
+Kit、renderer 或 app-owned host 都不得持有 access/refresh token、durable shared
+session、login bootstrap、subject truth，或把 token/session 反向写回 Runtime。
+
+Public `GetAccessToken` and `RefreshAccountSession` have been removed from
+the public protocol, generated clients, Runtime handlers, Kit, and app
+projections. Runtime may access or refresh account bearer material only through
+non-RPC private helpers while executing an
+independently admitted broker or service operation.
 
 ## K-ACCSVC-002 方法集合（权威）
 
@@ -27,7 +46,7 @@ token、durable shared session、login bootstrap、subject truth，或把 token/
 3. `BeginLogin`
 4. `CompleteLogin`
 5. `RequestPresenceVerification`
-6. `GetAccessToken`
+6. `GetAccessToken`（deny-all tombstone；A.3d 将删除并 reserve proto surface）
 7. `InvokeRealmUnary`
 8. `RefreshAccountSession`
 9. `Logout`
@@ -88,7 +107,10 @@ admission before proto / RPC table projection.
 - `SubscribeAccountSessionEvents`: server-stream，必须先返回 `account.status` snapshot，再按单调 sequence 顺序投递事件。重连时若 replay 不可用，必须发出 `replay_truncated` 标志。
 - `BeginLogin`: 创建 login attempt，返回 UX instruction envelope（如 `oauth_authorization_url`、`callback_origin`、`pkce_challenge`、`state`、`expires_at`）。kit / Desktop 不得获得 PKCE verifier。
 - `CompleteLogin`: 接受 typed proof envelope（见 K-ACCSVC-008）。Runtime 验证后写入 custody 并转换状态。
-- `GetAccessToken`: 向 registry-admitted true local first-party app instance 返回当前 short-lived access token，或在 Runtime 内部 refresh 后返回新 access token。不得返回 refresh token、durable session、raw subject、或任何可由 app 自行刷新 token 的材料。Developer-registered local app 与 explicit binding-only Avatar embodiment 必须被拒绝；default `nimi.avatar` first-party app instance may use this method when registry-admitted.
+- `GetAccessToken`: deny-all tombstone。所有 caller、transport、origin、capability
+  与 grant 均拒绝，且不得返回任何 bearer、header、JWT、subject 或 session
+  material。A.3d 负责删除并 reserve proto/generated/code surface；在删除前该
+  handler 只能返回稳定的 typed denial。
 - `InvokeRealmUnary`: Runtime 根据 `tables/realm-broker-operations.yaml`、
   Platform app capability/grant、Runtime app-session scope 与 host-bound caller
   envelope 执行单个 admitted Realm operation。Runtime 在内部取得/刷新 bearer，
@@ -96,7 +118,7 @@ admission before proto / RPC table projection.
   bounded application JSON。响应 headers、bearer/access/refresh token、JWT、
   credential-like JSON keys/value 均不得返回 app；命中扫描器必须 fail-close。
 - `RefreshAccountSession`: public RPC 不属于普通 app account control。主动、
-  被动、broker 与 token projection refresh 均调用 Runtime-private refresh helper；
+  被动、broker 与 Runtime-private bearer refresh 均调用 Runtime-private refresh helper；
   `LOCAL_DEVELOPER_APP`、`DESKTOP_LAUNCHED_NIMI_APP`、binding-only Avatar、
   `LOCAL_FIRST_PARTY_APP` 与 ordinary renderer callers 均不得通过 public RPC
   发起 refresh。未来 operator maintenance admission 需要独立规则，不能复用
@@ -137,15 +159,15 @@ sufficient.
 
 任何方法都不允许接受 raw Realm token、refresh token、raw JWT、或 caller 提供的 `subject_user_id` 作为 account truth。
 
-`GetAccessToken` 允许返回 Realm access token，或未来 backend-issued scoped app token，但必须满足：
+`GetAccessToken` 不允许返回 Realm access token 或任何替代 bearer。固定规则：
 
-- caller 是 registry-admitted true local first-party app mode；
-- caller app / instance registration 与 Runtime-owned app registry/admission policy 精确匹配；caller 不得通过 Desktop、SDK、Avatar、test fixture、或 app-local shape 自声明 first-party 权限；
-- account state 为 `authenticated`，或 Runtime 能先完成 refresh；
-- token 短生命、app-memory-only；
-- token 不可自刷新；
-- logout、user switch、refresh failure、remote revocation、policy revoke 后 Runtime 能使后续 provider 调用 fail-close；
-- app 不得持久化该 token，不得把它作为 login truth，不得 decode JWT 作为 subject truth。
+- registry、first-party、bundled、Desktop、Avatar、Zhiyu、developer、installed、
+  binding-only、renderer 与 test fixture posture 全部拒绝；
+- capability/grant/AppMode/session/envelope 不得升级该 tombstone；
+- Runtime service implementation 仅可通过非 RPC private helper 取得 bearer，
+  并在同一 Runtime-owned operation 内消费；
+- A.3d 删除 proto/generated/code 后必须 reserve 原 field/method identity，禁止
+  以其他名字恢复 app/host token projection。
 
 ## K-ACCSVC-006 事件契约
 
@@ -187,18 +209,22 @@ Reconnect 行为：先 snapshot，再按 sequence 投递。replay 不可用时�
 
 | 平台 | Primary custody | 不可用时行为 |
 |---|---|---|
-| macOS desktop | Runtime daemon 拥有的 system keychain entry | `unavailable`；authenticated 调用 fail-close |
-| Windows desktop | Runtime daemon 拥有的 OS credential vault entry | `unavailable`；authenticated 调用 fail-close |
-| Linux desktop | secret service / libsecret（如可用） | 无 secure backend 时 `unavailable` |
-| Headless / server | 显式配置的 Runtime custody backend | 未配置时 fail-close |
+| Windows | restricted `NT SERVICE\NimiRuntime` service SID；DPAPI-NG exact-service-SID protector；service-SID-only state ACL | protector、ACL 或 service principal 不匹配时 `unavailable`；authenticated 调用 fail-close |
+| Linux | dedicated non-login Runtime system UID；0600 encrypted store；root-loaded system credential key | dedicated UID、key 或 protected state 不可用时 `unavailable` |
+| macOS | hardened LaunchDaemon Runtime principal；code-identity-ACL system Keychain item bound to the Runtime designated requirement | code identity、Keychain ACL 或 LaunchDaemon principal 不匹配时 `unavailable` |
 
 固定规则：
 
 - Runtime 拥有 refresh material；Desktop / app 不存储任何 durable token。
-- access token 短生命，可通过 `GetAccessToken` 投影给 admitted app 用于直接 Realm data calls；app 仅可内存使用，不得持久化或自刷新。
+- access token 只存在于 Runtime custody/private service call chain；不得投影给
+  app、Desktop、SDK、Kit、renderer 或 host，也不得用于 app 直连 Realm。
 - refresh token rotation 必须原子：新 token 提交后再丢弃旧 token。
 - Reuse detection：在 rotation 之后再次观察到旧 refresh token，必须 revoke 本地 chain，发出 `refresh.failed` reason `replay`，并进入 `reauth_required` 或 `unavailable`。
 - audit 永远不记录 token 值、auth code、PKCE verifier、refresh material。
+- Interactive-user generic keyring, Credential Manager/vault, login Keychain,
+  secret-service/libsecret session store, Desktop secure store, and app-owned
+  vault are forbidden production custody. No retained user-session credential
+  is imported; fresh login and connector credential re-entry are required.
 
 custody 不可用时不允许 fallback 到 in-memory durable account truth、Desktop shared auth、或 app-local custody。
 
@@ -285,14 +311,14 @@ binding 在 daemon 重启时全部失效；调用方必须重新申请。Runtime
 
 | Caller | 注册路径 | 必需 account state | Binding 来源 | 禁止 |
 |---|---|---|---|---|
-| Desktop shell | Runtime-mediated Desktop host registration | `authenticated` 或 anonymous（仅 account UX） | Runtime account broker；account-control 仅此 caller mode | durable token custody、public refresh、renderer caller truth、raw-token default |
-| SDK local first-party app | Runtime local mode 注册 | 操作要求 authenticated 时必须 `authenticated` | Runtime-issued binding + broker；仅显式 raw-token admission 可用 token projection | login/logout/switch control、app-provided token / subject providers、refresh token、session store |
-| SDK developer-registered local app | Runtime developer-registration double gate | 操作要求 authenticated 时必须 `authenticated` | Runtime-issued app session + scoped binding + developer-scoped broker | `BeginLogin`/`CompleteLogin`/`RefreshAccountSession`/`GetAccessToken`/`Logout`/`SwitchAccount`、first-party permission ceiling、app-provided token / subject providers |
-| Default Avatar app (`nimi.avatar`) | Runtime local first-party app registration | 同 local first-party app | Runtime account broker + optional short-lived access-token projection | independent auth truth、refresh token、durable session、Desktop launch auth/package/anchor truth |
+| Desktop shell | Runtime-mediated Desktop host registration | `authenticated` 或 anonymous（仅 account UX） | Runtime account broker；account-control 仅此 caller mode | durable token custody、public refresh、renderer caller truth、任何 bearer projection |
+| SDK local first-party app | binding-only bootstrap in A.0 | protected account state unavailable pending A.1 | none | every protected account/Realm/binding method、public token/grant、app-provided token/subject/session |
+| SDK developer-registered local app | binding-only bootstrap in A.0 | protected account state unavailable pending A.1 | none | every protected account/Realm/binding method、account control、public token/grant |
+| Default Avatar app (`nimi.avatar`) | binding-only bootstrap in A.0 | protected account state unavailable pending A.1 | none | first-party exception、account/Realm/agent protected path、public token/grant |
 | Binding-only Avatar mode | 不允许直接 account registration | N/A | Runtime-issued scoped binding from owner surface | account access token、refresh token、anchor 创建、independent auth truth |
 | Web / cloud app | 显式 Web/cloud adapter | Web/cloud session | Web/cloud adapter | local Runtime account authority claim |
-| External principal | 现有 external-principal 注册 | external proof | external-principal session / grant | local account projection claim |
-| Desktop-launched installed Nimi App | Runtime `OpenApp` launch-resolution + one-time launch nonce + host-owned Runtime app session proof | `authenticated` | host-owned Runtime app session metadata + mediated account/Realm/protected Runtime access | all account-control RPCs、public refresh、`GetAccessToken`、developer registration proof、Desktop shell caller identity、external-principal local-account claim、renderer token/session custody |
+| External principal | binding-only external-principal session | N/A for local account | none; public Grant family deny-all | every local protected account claim |
+| Desktop-launched installed Nimi App | no caller/host/session admitted in A.0 | N/A | none pending A.1 | every protected account/Realm method and all launch metadata approximations |
 
 ## K-ACCSVC-013 Activation Boundary
 
@@ -306,13 +332,17 @@ account broker 实现允许在 Desktop / SDK 切换前作为 inert substrate 落
 
 active owner switch 必须原子闭合：Runtime broker 激活、SDK / kit local first-party seam 移除、Desktop login UX adapter 转换三件事必须在同一 authority transition 内闭合，并在 transition 完成前删除或 hard-block 替换的 Desktop shared-auth 与 SDK local token / subject owner 路径。
 
-同一 active owner switch 还必须激活 Runtime-backed short-lived access-token provider，使保留 direct Realm data calls 的 admitted apps 不需要 app-owned refresh/session truth。
+同一 active owner switch 还必须激活 Runtime-mediated broker，使所有 local app
+data calls 在 Runtime 内部完成 credential exchange、refresh 与 Realm invocation，
+并删除 app/host/SDK bearer provider 或 direct Realm path。
 
 ## K-ACCSVC-014 与既有 Auth 服务的关系
 
 - account session 回答 “谁登录在本机 Runtime”。
 - app session 回答 “哪个已注册 app instance 在调用”，由 `RuntimeAuthService` 拥有。
-- external-principal session / grant 回答 “哪个外部主体被授权执行 scoped 操作”，由 `RuntimeAuthService` / `RuntimeGrantService` 拥有。
+- external-principal session remains a binding-only `RuntimeAuthService`
+  concept. Public `RuntimeGrantService` grant/credential behavior is deny-all;
+  no external session can upgrade into local protected account authority.
 
 `K-AUTHSVC-012` 必须被 split：app session 保持内存且重启即失，account session 使用 secure Runtime custody 与重启恢复（见 K-ACCSVC-007、K-ACCSVC-011）。
 
@@ -376,20 +406,22 @@ Fixed rules:
 
 ## K-ACCSVC-019 Workspace Binding Account Surface And Resolver Ownership
 
-`RuntimeAccountService` owns workspace binding issuance, revocation, and the
-internal resolver seam used by runtime knowledge authorization. Public proto /
-RPC projection of workspace binding issue/revoke is admitted only for
-`IssueWorkspaceBinding` and `RevokeWorkspaceBinding`; no caller-visible
-workspace binding resolve/probe RPC exists.
+`RuntimeAccountService` is the only possible owner of workspace binding
+issuance, revocation, and the internal resolver seam used by runtime knowledge
+authorization. A.0 admits no transport or origin for public
+`IssueWorkspaceBinding` or `RevokeWorkspaceBinding`; both are explicit
+`blocked_pending_authority` rows and ordinary authenticated, SDK, Desktop,
+binding-only, installed, developer, Web/cloud, and external-principal callers
+are denied. A future admission must name the exact protected origin and
+operation policy before either method may be implemented or exported.
 
 Fixed rules:
 
 - workspace binding issue/revoke is workspace-specific authority and must not be
   implemented by broadening `IssueScopedAppBinding` / `RevokeScopedAppBinding`
-- `IssueWorkspaceBinding` and `RevokeWorkspaceBinding` public local
-  first-party account RPCs may only mint/revoke workspace knowledge
-  attachments; they must not return account truth, membership truth, Realm
-  tokens, or resolver decisions
+- if independently admitted later, issue/revoke may only mutate workspace
+  knowledge attachments and must not return account truth, membership truth,
+  Realm tokens, or resolver decisions
 - `ResolveWorkspaceBinding` is not a public RPC, not an SDK/Desktop-visible
   method, and not a probing surface; it is an internal Go/runtime capability
   consumed by `RuntimeCognitionService` through the cognition
@@ -462,84 +494,38 @@ app-owned prompts. The only Realm-backed exception is the Runtime-owned
 
 ## K-ACCSVC-022 Desktop-Launched Installed Nimi App Caller Posture
 
-`MUST`: installed third-party Nimi Apps use a distinct Runtime caller posture
-named `desktop-launched-nimi-app`. The proto realization is a new
-`AccountCallerMode` value, `ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP`,
-admitted by this rule and by Platform `P-NAPP-034`.
-
-`MUST`: Runtime admits this posture only when all launch-bound evidence is
-present and mutually consistent:
-
-- Platform registry row is admitted for the app id.
-- Runtime install evidence proves the active release digest was verified before
-  unpack, registration, launch-resolution, or execution.
-- Runtime account app-inventory marks the app entitled or verified and locally
-  materialized.
-- `OpenApp` issued a successful launch-resolution projection for the same app,
-  active version, release descriptor, and app scope.
-- Desktop supplies `launch_host_id`, `launch_nonce`, and
-  `release_descriptor_ref` through the host-owned `AccountCaller` binding path,
-  not through renderer state. Runtime must compare those fields with the
-  successful `OpenApp` launch-resolution evidence before admitting this caller
-  posture.
-- The host-owned transport envelope also supplies `source_host`,
-  `capability_set_ref`, `runtime_app_session_id`, and secret
-  `runtime_app_session_token`. The secret proof is transport metadata only and
-  is never projected to renderer-visible launch data.
-- `launch_nonce` is consumed atomically when the host opens the Runtime app
-  session. The same nonce cannot mint a second app session. Subsequent broker
-  calls authenticate with that app-session id/token and may carry the nonce only
-  as a comparison field bound to that already-open session; a stale, unknown,
-  second-session, or cross-instance nonce is replay and fails closed.
-- Account state is `authenticated` and Runtime owns session custody.
-
-`MUST`: the installed-app host may request account/session metadata only through
-host-owned Runtime metadata providers and mediated SDK/Runtime helpers. Renderer
-code may receive command bridge access and SDK results, but it must not receive
-refresh tokens, raw Realm bearer tokens, durable session stores, decoded subject
-truth, or caller-supplied account ids.
-
-`MUST NOT`: `ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL` must not be constrained
-into this installed-app posture. External principal remains the external proof
-/ grant path and continues to forbid local account projection claims. Tester
-developer registration and `ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP` remain
-development paths and cannot satisfy installed third-party proof.
+`K-PLOCAL-001..007` admit only the prerequisite that protected authority must
+come from a mutually verified live-process connection. A.0 admits no installed
+caller enum, launch ticket/nonce, child channel, installed session, carrier
+envelope, token, or metadata schema. All such detail is reserved to an
+independent A.1 Runtime/Platform/Desktop/Kit/SDK authority batch. Until that
+batch is admitted, every installed-app account method is deny-all and no
+metadata, nonce, host stamp, bearer, ordinary gRPC connection, test fixture, or
+existing implementation can approximate positive product evidence.
 
 ## K-ACCSVC-023 Runtime Shared Auth Broker
 
-Runtime-mediated Realm access is the default local app access pattern.
-`tables/realm-broker-operations.yaml` is the sole operation-policy authority;
-Runtime-local maps, SDK generated operation descriptors, Platform app rows, and
-host capability sets are inputs/projections and cannot independently admit an
-operation.
-
-Fixed rules:
-
-- broker-consumer admission is independent from account-control and raw-token
-  admission; an admitted `InvokeRealmUnary` caller gains no permission for
-  login, completion, public refresh, logout, switch, or `GetAccessToken`
-- operation id, HTTP method, path template, request/response schema refs,
-  caller/app modes, required app capabilities, Runtime scopes, canonical Realm
-  base policy, response size, and credential response policy come from the table
-- Runtime validates host/registry/app-session proof before request JSON parsing,
-  refresh, token access, or outbound network I/O
-- Runtime owns bearer injection and private refresh; apps cannot submit
-  authorization headers, access/refresh tokens, raw subjects, or Realm base
-  truth
-- response headers and JSON are bounded and scanned for forbidden credential
-  keys and Bearer/JWT-shaped values; a match returns typed denial and is policy
-  failure evidence, never a silent scrub success
-- account unavailable, grant missing, operation denied, Realm base mismatch,
-  request mismatch, upstream non-2xx, oversized response, and credential-like
-  response all fail closed with typed reason/detail
-- the broker-specific `AccountReasonCode` vocabulary is
-  `BROKER_OPERATION_NOT_ADMITTED`, `BROKER_CAPABILITY_MISSING`,
-  `BROKER_REALM_BASE_DENIED`, `BROKER_REQUEST_INVALID`,
-  `BROKER_UPSTREAM_FAILED`, `BROKER_RESPONSE_TOO_LARGE`,
-  `BROKER_CREDENTIAL_RESPONSE_FORBIDDEN`, `CALLER_ENVELOPE_MISMATCH`, and
-  `LAUNCH_NONCE_REPLAY`; callers must not infer these states from free-form text
+Exact per-operation Realm unary authority remains blocked pending a separate
+Runtime admission under K-ACCSVC-001. Existing operation tables and code are
+conflict inventory, not an admitted product surface. A future admission must
+retain Runtime-only bearer injection/private refresh, response credential
+denial, exact payload limits, and a verified protected origin; no public grant,
+portable envelope, renderer/app token provider, or direct Realm path is a
+fallback.
 
 ## K-ACCSVC-024 Account RPC Permission Matrix
+
+**A.0 authority disposition:** The Desktop account projection/control,
+scoped-binding control, and Realm-broker transport/origin prerequisites plus
+the Runtime-private refresh slice are admitted only through
+`K-PLOCAL-001`, `K-PLOCAL-002`, `K-PLOCAL-006`, and
+`tables/protected-local-rpc-transport-matrix.yaml`. This admits no Realm
+operation row, payload policy, installed carrier, or raw-token projection.
+
+**Remaining authority disposition:** Blocked detailed authority conflict. All
+installed/bundled/developer carrier admission, broker/realtime/media caller
+rows, and portable envelope details remain compatibility evidence pending
+their independent owner admissions.
 
 `tables/account-rpc-permission-matrix.yaml` is the executable authority for
 per-caller RuntimeAccountService admission. Runtime handlers must enforce the
@@ -550,21 +536,10 @@ is a non-RPC internal capability.
 
 ## K-ACCSVC-025 Host-Bound Caller Envelope
 
-Electron/Tauri installed-app broker calls carry authenticated transport metadata
-for `source_host`, `app_id`, `app_instance_id`, `device_id`, `launch_host_id`,
-`launch_nonce`, `release_descriptor_ref`, `capability_set_ref`,
-`runtime_app_session_id`, and `runtime_app_session_token`.
-
-- Electron main stamps metadata from Runtime `OpenApp` resolution and its
-  host-owned app session; Tauri stamps equivalent values from host-owned
-  registration/acceptance binding. Renderer payload cannot supply or override
-  any envelope field.
-- Runtime constant-time validates the app-session secret proof, compares every
-  overlapping request-body `AccountCaller` field with the envelope, validates
-  registry/release/capability refs, and rejects mismatch.
-- Installed-app broker access without this envelope fails closed. Direct local
-  gRPC is permitted only for registry-admitted local first-party/developer modes
-  with a Runtime app session; shape-only callers are rejected.
-- Envelope metadata and audit output are redacted; app-session tokens, bearer
-  tokens, and subject truth never enter response/error payloads or renderer
-  logs.
+A.0 establishes only that app id, source host, caller enum, manifest, renderer
+metadata, host self-description, session id, nonce, and portable bearer are
+non-authorizing. The installed-host carrier/envelope schema is deliberately
+absent and requires A.1 authority before any implementation or SDK projection.
+Until then, direct local gRPC and any Electron/Tauri metadata envelope are
+deny-all for installed account access; implementation-shaped evidence is not
+authority or product acceptance.

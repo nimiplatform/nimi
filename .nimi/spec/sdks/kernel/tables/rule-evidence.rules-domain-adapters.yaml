@@ -38,6 +38,7 @@ entries:
   - S-REALM-036
   - S-REALM-037
   - S-REALM-038
+  - S-REALM-040
   - S-WORLD-001
   - S-WORLD-002
   - S-WORLD-003
@@ -107,19 +108,25 @@ rules:
       - sdk_kernel_consistency
     evidence_requirement: required
   - rule_id: S-REALM-035
-    na_reason: Realtime client not in SDK scope; rule constrains auth/state/reconnect governance boundary
+    na_reason: Blocked realtime protocol/dependency conflict; SDK is carrier-only and Runtime realtime authority is not admitted here
     evidence_requirement: not_applicable
   - rule_id: S-REALM-036
-    na_reason: Realtime reconnect delivery guarantee; no realtime transport in SDK
+    na_reason: Blocked replay/delivery conflict; compatibility evidence and Runtime replay authority must precede any guarantee
     evidence_requirement: not_applicable
   - rule_id: S-REALM-037
-    na_reason: Event name ownership; SDK does not maintain authoritative event enum
+    na_reason: Blocked event-vocabulary conflict; SDK does not maintain authoritative realtime event truth
     evidence_requirement: not_applicable
   - rule_id: S-REALM-038
     evidence_refs:
       - sdk_behavioral_test
       - sdk_kernel_consistency
     note: Unauthenticated decision routing; checkEmail/requestEmailOtp/verifyEmailOtp/passwordLogin allowed without token
+    evidence_requirement: required
+  - rule_id: S-REALM-040
+    evidence_refs:
+      - sdk_kernel_consistency
+      - public_raw_token_authority_hardcut_gate
+    note: SDK typed Realm API and trusted-carrier owner boundary; Runtime exclusively owns authenticated Realm unary, realtime, media, credential, and private-refresh truth.
     evidence_requirement: required
   - rule_id: S-WORLD-001
     evidence_refs:

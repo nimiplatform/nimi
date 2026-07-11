@@ -41,11 +41,17 @@ entries:
 - desktop_tauri_command_execution_gate
 - desktop_runtime_config_path_gate
 - desktop_local_ai_bridge_gate
+- public_raw_token_authority_hardcut_gate
 desktop_kernel_consistency:
   type: static_gate
   command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency
   path: scripts/check-desktop-spec-kernel-consistency.mjs
   description: Kernel rule integrity and source/spec consistency checks for desktop domain.
+public_raw_token_authority_hardcut_gate:
+  type: static_gate
+  command: pnpm check:public-raw-token-authority-hardcut
+  path: scripts/check-public-raw-token-authority.mjs
+  description: Cross-domain structural gate proving Desktop, Avatar and local SDK carriers receive broker results only and never account bearer material.
 desktop_spec_docs_drift_gate:
   type: static_gate
   command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check

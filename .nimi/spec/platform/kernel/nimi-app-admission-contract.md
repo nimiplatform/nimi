@@ -133,8 +133,9 @@ completion 推断 `ready`。
 
 ## P-NAPP-009 — Apps Non-Owner Rule
 
-`MUST`：Desktop `Apps` surface（`D-HOME-004` / `D-HOME-005`）仅消费
-registry/package/SDK projection。Ordinary Apps visibility 的闭合条件为：
+**Owner-only authority allocation.** Platform is the sole owner of dynamic installed-app catalog, release, capability, grant, and trust-root truth. An app id, manifest, renderer metadata, or app-owned host self-description MUST NOT grant privilege. App-provided signatures, health claims, launch claims, capability declarations, or other self-certifying evidence are inputs only and cannot satisfy admission or authorization. app-tools owns authoring, sync, doctor, and launcher orchestration only; it is not product authority and cannot mint catalog, release, capability, grant, trust, or launch truth. Desktop, Runtime, SDK, and Kit may consume or carry Platform decisions only within their admitted owner boundaries. This rule admits only the owner allocation and the prohibition on self-authorization. Existing detailed catalog, release, and launch rows remain blocked authority conflicts until each row family is independently admitted by its canonical Platform, Runtime, or Desktop owner. Their presence in a contract or table does not make them implementation authority or release evidence.
+
+`MUST`：Desktop `Apps` surface（`D-HOME-004` / `D-HOME-005`）仅消费 registry/package/SDK projection。Ordinary Apps visibility 的闭合条件为：
 
 - `admission_status=admitted`
 - `ordinary_visibility=ordinary-visible`
@@ -142,9 +143,7 @@ registry/package/SDK projection。Ordinary Apps visibility 的闭合条件为：
   permission/runtime requirements、and storage policy
 - host/runtime projection does not fail-close the row as unsupported or blocked
 
-`MUST NOT`：Apps 不得拥有 admission truth、marketplace truth、economy
-truth、package trust truth；不得读取 source workspace、app-local spec、or
-unadmitted registry rows to decide visibility.
+`MUST NOT`：Apps 不得拥有 admission truth、marketplace truth、economy truth、package trust truth；不得读取 source workspace、app-local spec、or unadmitted registry rows to decide visibility.
 
 ## P-NAPP-010 — App-Slice Admission Orthogonality
 
@@ -740,10 +739,7 @@ three admitted source families:
 - `local` — Runtime local adoption rows (`K-APP-025`) written only after an
   explicit local adoption validation succeeds.
 
-`MUST`：source identity is part of the projection. A single `app_id` may carry
-more than one source, but source truth must remain independently inspectable.
-Catalog admission, account verification, and local adoption are not
-interchangeable.
+`MUST`：source identity is part of the projection. A single `app_id` may carry more than one source, but source truth must remain independently inspectable. Catalog admission, account verification, and local adoption are not interchangeable.
 
 `MUST NOT`：`P-NAPP-031` MUST NOT redefine the `P-NAPP-009` ordinary listing
 predicate. It admits an inventory composition above that predicate; it does not
@@ -768,9 +764,12 @@ spec slices. Local adoption MUST NOT bypass permission, account/session,
 AIConfig, storage, or Runtime OpenApp gates.
 
 ## P-NAPP-033 — Third-Party Admission Track Boundary
+**Authority disposition:** Blocked detailed authority conflict. Admission-track, catalog, and release-row details are conflict evidence only and are not independently admitted for implementation; exact Platform product authority requires a separate admission under `P-NAPP-009`.
 `MUST`: every third-party external immutable descriptor declares exactly one `admission_track`: `ordinary-release-proof` is the only track that may satisfy ordinary-user third-party product readiness; `admission-sandbox-ci` is non-product CI plumbing for descriptor download, digest verification, install, launch-resolution, host binding, and SDK/Kit probes before public release evidence exists. `MUST`: an `ordinary-release-proof` app projected as `ordinary_visibility: ordinary-visible` must truthfully satisfy the full third-party descriptor floor: immutable GitHub-style or pinned package source, public source repository visibility, publisher identity posture, mirror/license clearance, typed sizes/dates/versions, support posture, and platform signing/notarization required by `P-NAPP-024`. `MUST`: an `admission-sandbox-ci` app row, when later admitted for tests, must use non-product `ordinary_visibility: developer-only`; it MUST NOT appear in ordinary Apps catalog proof, satisfy live readiness claims, or be described as an ordinary-visible community app. `MUST`: `admission-sandbox-ci` may use an immutable HTTPS CI artifact endpoint and constrained internal signing posture only with `admission_track: admission-sandbox-ci`, `source.kind: admission-sandbox-https-artifact`, exact `artifact.sha256`, typed artifact sizes, mirror/license test evidence, and review/support test evidence; Runtime must still verify sha256 before unpack, registration, launch-resolution, or execution. `MUST NOT`: unsigned local artifacts, mutable Git refs, direct clone/build/run source, direct `npx`, or app-local fixture manifests must never be admitted or projected as ordinary-visible community proof. Promotion from `admission-sandbox-ci` to `ordinary-release-proof` is a new descriptor and registry admission, not in-place reinterpretation.
 ## P-NAPP-034 — Desktop-Launched Installed Nimi App Boundary
-`MUST`: Runtime `OpenApp` remains the Runtime launch gate. The first admitted third-party launch-resolution contract extends `OpenApp`'s typed projection instead of adding a separate launch RPC; Runtime owns launch-resolution fields and Desktop consumes them without deriving descriptor refs, release roots, entry refs, caller posture, or storage roots from filesystem guesses. `MUST`: installed-app launch resolution is track-discriminated. `ordinary-release-proof` may satisfy product proof only with `ordinary_visibility: ordinary-visible` and the `P-NAPP-033` ordinary release floor; `admission-sandbox-ci` is developer-only CI plumbing evidence carrying `ordinary_visibility: developer-only`, `source.kind: admission-sandbox-https-artifact`, and `product_readiness_claim_allowed: false`, and it MUST NOT satisfy ordinary Apps catalog discovery or ordinary release readiness. `MUST`: a successful installed Nimi App launch resolution must carry Runtime-attested app id, active version, release descriptor ref, descriptor class, `admission_track`, source kind, ordinary visibility, digest verification state, `runtime.entry_ref`, verified active release root or opaque launch URI, app data/cache/tmp roots or opaque storage handles, standard shell capability-set ref, installed-app caller mode, and one-time launch nonce. `MUST`: installed third-party apps use a Runtime-owned caller/session posture named `desktop-launched-nimi-app` and implemented as a new `AccountCallerMode` in Runtime authority; `ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL` remains the external proof / grant path and MUST NOT be tightened into the installed-app local account posture because its existing contract forbids local account projection claims. `MUST`: Desktop owns app host process/window creation and host-owned Runtime session metadata injection after Runtime returns successful launch resolution; admitted Desktop installed-app host classes are owned by Desktop `D-SHELL-038` and `.nimi/spec/desktop/kernel/tables/installed-app-launch-hosts.yaml`, while Platform owns only the non-owner boundary and Kit capability-set references. Kit/SDK may expose app-facing helpers, but they do not own admission truth, package truth, account truth, or token custody. `MUST NOT`: tester developer registration, local adoption, account-only inventory, Desktop shell caller identity, renderer-provided bearer/session metadata, or app self-report may emit or satisfy installed third-party product proof, catalog proof, `desktop-launched-nimi-app` caller posture, launch nonce, or release descriptor launch-resolution proof.
+**A.0 authority disposition:** Admitted: `tables/protected-local-executable-trust-sets.yaml` owns bidirectional Desktop/Linux-control-carrier/Runtime-service executable roles, signed per-release trust records, immutable launch/config authority and strict production/non-product isolation; K-PLOCAL-003/005 require both peers to verify the live same-object identity, while Runtime's distinct OS principal and credential/state isolation remain Runtime-owned.
+
+**Remaining authority disposition:** blocked pending A.1. A.0 defines no launch-resolution fields, installed caller enum/session, launch nonce/ticket, host binding, child transport, renderer bridge, capability allowlist, or positive installed-app launch response. Those shapes must be admitted together by Runtime, Platform, Desktop, Kit and SDK in a separate A.1 batch before implementation. Until then `OpenApp` cannot report launched/create a child, the installed host registry and capability set are blocked, and every nonce, metadata envelope, ordinary gRPC connection, external principal, local adoption, tester registration, app self-report or existing code path is non-authorizing. Git retains prior proposal detail; it is not active truth.
 
 ## Fact Sources
 

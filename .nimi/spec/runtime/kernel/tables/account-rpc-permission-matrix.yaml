@@ -5,13 +5,12 @@ protocol_id: runtime_account_rpc_permission_matrix
 surfaces:
   - BeginLogin
   - CompleteLogin
-  - GetAccessToken
   - GetAccountSessionStatus
   - InvokeRealmUnary
   - IssueScopedAppBinding
   - IssueWorkspaceBinding
   - Logout
-  - RefreshAccountSession
+  - RefreshAccountMaterial
   - RequestPresenceVerification
   - RevokeScopedAppBinding
   - RevokeWorkspaceBinding
@@ -21,7 +20,14 @@ source_rule: K-ACCSVC-024
 description: >
   Per-caller admission authority for RuntimeAccountService. allow_when values
   are conjunctive requirements. An omitted or unknown caller mode is denied.
-  Runtime internal refresh is not an RPC caller posture.
+  Runtime internal refresh is not an RPC caller posture. Account decisions are
+  subordinate to the protected transport/origin authority in
+  protected-local-rpc-transport-matrix.yaml; caller enums and sessions cannot
+  satisfy that prerequisite.
+protected_transport_authority_ref: protected-local-rpc-transport-matrix.yaml
+a0_authority_scope:
+  admitted: [desktop_account_projection_origin, desktop_account_control_origin, desktop_realm_broker_transport, desktop_binding_control_origin, runtime_private_refresh]
+  blocked_pending_a1: [installed_host_origin, bundled_host_origin, developer_installed_host_origin]
 
 decision_schema:
   fields:
@@ -38,73 +44,68 @@ callers:
   - caller_class: desktop_account_ux
     runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_SHELL
     methods:
-      GetAccountSessionStatus: { decision: allow_when, requirements: [registry_admitted_desktop_instance] }
-      SubscribeAccountSessionEvents: { decision: allow_when, requirements: [registry_admitted_desktop_instance] }
-      BeginLogin: { decision: allow_when, requirements: [registry_admitted_desktop_instance, trusted_desktop_host] }
-      CompleteLogin: { decision: allow_when, requirements: [registry_admitted_desktop_instance, trusted_desktop_host, matching_login_attempt] }
-      RequestPresenceVerification: { decision: allow_when, requirements: [registry_admitted_desktop_instance, trusted_desktop_host] }
-      RefreshAccountSession: { decision: deny, reason: runtime_private_refresh_only }
-      Logout: { decision: allow_when, requirements: [registry_admitted_desktop_instance, trusted_desktop_host] }
-      SwitchAccount: { decision: allow_when, requirements: [registry_admitted_desktop_instance, trusted_desktop_host] }
-      GetAccessToken: { decision: deny, reason: desktop_uses_runtime_broker }
-      InvokeRealmUnary: { decision: allow_when, requirements: [registry_admitted_desktop_instance, broker_operation_policy] }
-      IssueScopedAppBinding: { decision: allow_when, requirements: [registry_admitted_desktop_instance, binding_relation_match] }
-      RevokeScopedAppBinding: { decision: allow_when, requirements: [registry_admitted_desktop_instance, binding_relation_match] }
+      GetAccountSessionStatus: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
+      SubscribeAccountSessionEvents: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
+      BeginLogin: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
+      CompleteLogin: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance, matching_login_attempt] }
+      RequestPresenceVerification: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
+      Logout: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
+      SwitchAccount: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance] }
+      InvokeRealmUnary: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance, broker_operation_policy] }
+      IssueScopedAppBinding: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance, binding_relation_match] }
+      RevokeScopedAppBinding: { decision: allow_when, requirements: [protected_desktop_control_origin, desktop_account_host_origin, registry_admitted_desktop_instance, binding_relation_match] }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_desktop_account_ux }
       RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_desktop_account_ux }
     source_rule: K-ACCSVC-024
 
   - caller_class: local_first_party_app
     runtime_caller_mode: ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP
+    authority_status: blocked_pending_a1_bundled_protected_child_channel
     methods:
-      GetAccountSessionStatus: { decision: allow_when, requirements: [registry_admitted_first_party_instance] }
-      SubscribeAccountSessionEvents: { decision: allow_when, requirements: [registry_admitted_first_party_instance] }
+      GetAccountSessionStatus: { decision: deny, reason: protected_child_channel_not_admitted }
+      SubscribeAccountSessionEvents: { decision: deny, reason: protected_child_channel_not_admitted }
       BeginLogin: { decision: deny, reason: desktop_account_ux_only }
       CompleteLogin: { decision: deny, reason: desktop_account_ux_only }
-      RequestPresenceVerification: { decision: allow_when, requirements: [registry_admitted_first_party_instance] }
-      RefreshAccountSession: { decision: deny, reason: runtime_private_refresh_only }
+      RequestPresenceVerification: { decision: deny, reason: protected_child_channel_not_admitted }
       Logout: { decision: deny, reason: desktop_account_ux_only }
       SwitchAccount: { decision: deny, reason: desktop_account_ux_only }
-      GetAccessToken: { decision: allow_when, requirements: [registry_admitted_first_party_instance, explicit_raw_token_admission, authenticated_account] }
-      InvokeRealmUnary: { decision: allow_when, requirements: [registry_admitted_first_party_instance, broker_operation_policy] }
-      IssueScopedAppBinding: { decision: allow_when, requirements: [registry_admitted_first_party_instance, binding_relation_match] }
-      RevokeScopedAppBinding: { decision: allow_when, requirements: [registry_admitted_first_party_instance, binding_relation_match] }
-      IssueWorkspaceBinding: { decision: allow_when, requirements: [registry_admitted_first_party_instance, device_binding_match, active_workspace_membership] }
-      RevokeWorkspaceBinding: { decision: allow_when, requirements: [registry_admitted_first_party_instance, device_binding_match, workspace_binding_owner] }
+      InvokeRealmUnary: { decision: deny, reason: protected_child_channel_not_admitted }
+      IssueScopedAppBinding: { decision: deny, reason: protected_child_channel_not_admitted }
+      RevokeScopedAppBinding: { decision: deny, reason: protected_child_channel_not_admitted }
+      IssueWorkspaceBinding: { decision: deny, reason: protected_child_channel_not_admitted }
+      RevokeWorkspaceBinding: { decision: deny, reason: protected_child_channel_not_admitted }
     source_rule: K-ACCSVC-024
 
   - caller_class: local_developer_app
     runtime_caller_mode: ACCOUNT_CALLER_MODE_LOCAL_DEVELOPER_APP
+    authority_status: blocked_pending_a1_developer_installed_protected_child_channel
     methods:
-      GetAccountSessionStatus: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session] }
-      SubscribeAccountSessionEvents: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session] }
+      GetAccountSessionStatus: { decision: deny, reason: binding_only_pending_a1_developer_installed_channel }
+      SubscribeAccountSessionEvents: { decision: deny, reason: binding_only_pending_a1_developer_installed_channel }
       BeginLogin: { decision: deny, reason: desktop_account_ux_only }
       CompleteLogin: { decision: deny, reason: desktop_account_ux_only }
-      RequestPresenceVerification: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session] }
-      RefreshAccountSession: { decision: deny, reason: runtime_private_refresh_only }
+      RequestPresenceVerification: { decision: deny, reason: binding_only_pending_a1_developer_installed_channel }
       Logout: { decision: deny, reason: desktop_account_ux_only }
       SwitchAccount: { decision: deny, reason: desktop_account_ux_only }
-      GetAccessToken: { decision: deny, reason: raw_token_first_party_only }
-      InvokeRealmUnary: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session, developer_scoped_broker_operation] }
-      IssueScopedAppBinding: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session, binding_relation_match] }
-      RevokeScopedAppBinding: { decision: allow_when, requirements: [developer_registration_double_gate, runtime_app_session, binding_relation_match] }
+      InvokeRealmUnary: { decision: deny, reason: binding_only_pending_a1_developer_installed_channel }
+      IssueScopedAppBinding: { decision: deny, reason: binding_only_pending_a1_developer_installed_channel }
+      RevokeScopedAppBinding: { decision: deny, reason: binding_only_pending_a1_developer_installed_channel }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_developer_surface }
       RevokeWorkspaceBinding: { decision: deny, reason: workspace_binding_not_developer_surface }
     source_rule: K-ACCSVC-024
 
   - caller_class: desktop_launched_installed_nimi_app
+    authority_status: blocked_pending_a1_protected_child_channel
     runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP
     methods:
-      GetAccountSessionStatus: { decision: allow_when, requirements: [host_bound_envelope, runtime_app_session, registry_launch_admission] }
-      SubscribeAccountSessionEvents: { decision: allow_when, requirements: [host_bound_envelope, runtime_app_session, registry_launch_admission] }
+      GetAccountSessionStatus: { decision: deny, reason: a1_installed_child_channel_not_admitted }
+      SubscribeAccountSessionEvents: { decision: deny, reason: a1_installed_child_channel_not_admitted }
       BeginLogin: { decision: deny, reason: desktop_account_ux_only }
       CompleteLogin: { decision: deny, reason: desktop_account_ux_only }
       RequestPresenceVerification: { decision: deny, reason: installed_app_presence_not_admitted }
-      RefreshAccountSession: { decision: deny, reason: runtime_private_refresh_only }
       Logout: { decision: deny, reason: desktop_account_ux_only }
       SwitchAccount: { decision: deny, reason: desktop_account_ux_only }
-      GetAccessToken: { decision: deny, reason: installed_app_raw_token_forbidden }
-      InvokeRealmUnary: { decision: allow_when, requirements: [host_bound_envelope, runtime_app_session, registry_launch_admission, capability_set_match, broker_operation_policy] }
+      InvokeRealmUnary: { decision: deny, reason: a1_installed_child_channel_not_admitted }
       IssueScopedAppBinding: { decision: deny, reason: host_runtime_issues_installed_app_binding }
       RevokeScopedAppBinding: { decision: deny, reason: host_runtime_revokes_installed_app_binding }
       IssueWorkspaceBinding: { decision: deny, reason: workspace_binding_not_installed_app_surface }
@@ -113,17 +114,16 @@ callers:
 
   - caller_class: binding_only_avatar
     runtime_caller_mode: ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR
+    authority_status: blocked_pending_a1_bundled_protected_child_channel
     methods:
       GetAccountSessionStatus: { decision: deny, reason: avatar_binding_only }
       SubscribeAccountSessionEvents: { decision: deny, reason: avatar_binding_only }
       BeginLogin: { decision: deny, reason: avatar_binding_only }
       CompleteLogin: { decision: deny, reason: avatar_binding_only }
       RequestPresenceVerification: { decision: deny, reason: avatar_binding_only }
-      RefreshAccountSession: { decision: deny, reason: avatar_binding_only }
       Logout: { decision: deny, reason: avatar_binding_only }
       SwitchAccount: { decision: deny, reason: avatar_binding_only }
-      GetAccessToken: { decision: deny, reason: avatar_binding_only }
-      InvokeRealmUnary: { decision: allow_when, requirements: [active_scoped_binding, binding_scoped_broker_operation] }
+      InvokeRealmUnary: { decision: deny, reason: protected_child_channel_not_admitted }
       IssueScopedAppBinding: { decision: deny, reason: binding_owner_issues }
       RevokeScopedAppBinding: { decision: deny, reason: binding_owner_revokes }
       IssueWorkspaceBinding: { decision: deny, reason: avatar_binding_only }
@@ -138,10 +138,8 @@ callers:
       BeginLogin: { decision: deny, reason: local_runtime_account_not_applicable }
       CompleteLogin: { decision: deny, reason: local_runtime_account_not_applicable }
       RequestPresenceVerification: { decision: deny, reason: local_runtime_account_not_applicable }
-      RefreshAccountSession: { decision: deny, reason: local_runtime_account_not_applicable }
       Logout: { decision: deny, reason: local_runtime_account_not_applicable }
       SwitchAccount: { decision: deny, reason: local_runtime_account_not_applicable }
-      GetAccessToken: { decision: deny, reason: local_runtime_account_not_applicable }
       InvokeRealmUnary: { decision: deny, reason: local_runtime_account_not_applicable }
       IssueScopedAppBinding: { decision: deny, reason: local_runtime_account_not_applicable }
       RevokeScopedAppBinding: { decision: deny, reason: local_runtime_account_not_applicable }
@@ -166,7 +164,6 @@ internal_capabilities:
       RefreshAccountMaterial: { decision: allow, requirements: [runtime_private_call_site] }
     consumers:
       - InvokeRealmUnary
-      - GetAccessToken
       - proactive_refresh_scheduler
       - custody_recovery
     source_rule: K-ACCSVC-024

@@ -22,6 +22,14 @@ posture_enum:
     meaning: Handler requires authenticated identity for any documented branch. Writes, owner-bound
       reads where authenticated identity is required for the call to succeed at all. SDK MUST carry
       Authorization (Realm JWT) or an equivalent admitted credential per K-AUTHN-006.
+  - value: binding_only_bootstrap
+    meaning: Public bootstrap may create only a non-privileged binding. Effective domains and scopes are empty; app id, manifest, caller enum, source host, session material, and AppMode cannot upgrade protected origin.
+  - value: protected_origin_required
+    meaning: Method is authority-admitted only on the exact K-PLOCAL transport and Runtime-derived live-process origin role. Portable credentials and request metadata cannot satisfy this posture.
+  - value: deny_all_tombstone
+    meaning: The public wire symbol remains only as a removal tombstone. No transport, origin, identity, capability, consent flag, bearer, or product caller may invoke it; a named follow-up owns physical proto/generated/code removal.
+  - value: blocked_pending_authority
+    meaning: The method is not admitted on any current transport or origin. Unlike a removal tombstone, a future authority batch may define an exact protected origin and operation policy before implementation.
   - value: mixed
     meaning: Handler diverges by JWT presence per K-AUTH-002 / K-AUTH-003 / K-AUTH-004 / K-AUTH-006
       (e.g., information-hiding patterns where an owner-scoped read hides non-owner records when JWT
@@ -40,6 +48,16 @@ posture_decision_doctrine: |
   - If the handler requires an authenticated identity for any documented
     branch (write, owner-bound read where authenticated identity is required
     for the call to succeed at all), the posture is `authenticated_required`.
+  - If the method is RegisterApp or OpenSession under K-PLOCAL-001, classify it
+    `binding_only_bootstrap`; no domain/scope or protected role may be derived.
+  - If the method requires K-PLOCAL verified transport/process origin before
+    handler parsing, classify it `protected_origin_required`.
+  - If authority has hard-cut the public method while physical wire removal is
+    assigned to a named follow-up, classify it `deny_all_tombstone`. This value
+    admits no caller and must be paired with an empty protected-transport row.
+  - If a method remains in the design surface but no exact protected origin and
+    operation authority is admitted, classify it `blocked_pending_authority`
+    and pair it with an empty protected-transport row.
   - If the handler diverges by JWT presence per K-AUTH-002 / K-AUTH-003, the
     posture is `mixed`. The rationale field on a `mixed` entry MUST cite the
     specific divergence rule.
@@ -50,13 +68,12 @@ posture_decision_doctrine: |
   consumers (SDK and runtime tests) read the same doctrine the
   worker used.
 
-  If a handler genuinely does not match any of the three values, the worker
-  STOPS and overflows the packet; a fourth posture would require a kernel
-  rule change, which is out of the current admitted scope.
+  If a method does not match any closed value, validation fails closed; a new
+  posture requires an independent Runtime authority change.
 method_shards:
   - path: ./runtime-rpc-auth-posture/identity-access.yaml
     id: nimicoding.runtime-rpc-auth-posture.identity-access.v1
-    method_count: 42
+    method_count: 46
     services:
       - RuntimeAccountService
       - RuntimeAuthService

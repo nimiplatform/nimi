@@ -179,7 +179,7 @@ features:
       - runtime
     covers_bootstrap_phases: []
     covers_ipc_commands:
-      - runtime_bridge_config_get
+      - runtime_bridge_status
     covers_runtime_pages:
       - overview
     scenarios:

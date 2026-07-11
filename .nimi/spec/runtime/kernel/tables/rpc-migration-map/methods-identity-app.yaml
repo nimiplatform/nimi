@@ -19,7 +19,7 @@ services:
   - RuntimeExternalAgentService
   - RuntimeAccountService
   - RuntimeAppService
-method_count: 46
+method_count: 49
 method_mappings:
   - design_service: RuntimeAuthService
     design_method: RegisterApp
@@ -56,31 +56,36 @@ method_mappings:
     proto_service: RuntimeAuthService
     proto_method: RevokeExternalPrincipalSession
     mapping_posture: aligned
+  - design_service: RuntimeAuthService
+    design_method: OpenDesktopSession
+    proto_service: RuntimeAuthService
+    proto_method: OpenDesktopSession
+    mapping_posture: aligned
   - design_service: RuntimeGrantService
     design_method: AuthorizeExternalPrincipal
     proto_service: RuntimeGrantService
     proto_method: AuthorizeExternalPrincipal
-    mapping_posture: aligned
+    mapping_posture: tombstone_pending_a3d_removal
   - design_service: RuntimeGrantService
     design_method: ValidateAppAccessToken
     proto_service: RuntimeGrantService
     proto_method: ValidateAppAccessToken
-    mapping_posture: aligned
+    mapping_posture: tombstone_pending_a3d_removal
   - design_service: RuntimeGrantService
     design_method: RevokeAppAccessToken
     proto_service: RuntimeGrantService
     proto_method: RevokeAppAccessToken
-    mapping_posture: aligned
+    mapping_posture: tombstone_pending_a3d_removal
   - design_service: RuntimeGrantService
     design_method: IssueDelegatedAccessToken
     proto_service: RuntimeGrantService
     proto_method: IssueDelegatedAccessToken
-    mapping_posture: aligned
+    mapping_posture: tombstone_pending_a3d_removal
   - design_service: RuntimeGrantService
     design_method: ListTokenChain
     proto_service: RuntimeGrantService
     proto_method: ListTokenChain
-    mapping_posture: aligned
+    mapping_posture: tombstone_pending_a3d_removal
   - design_service: RuntimeExternalAgentService
     design_method: GetExternalAgentGatewayStatus
     proto_service: RuntimeExternalAgentService
@@ -127,19 +132,9 @@ method_mappings:
     proto_method: RequestPresenceVerification
     mapping_posture: aligned
   - design_service: RuntimeAccountService
-    design_method: GetAccessToken
-    proto_service: RuntimeAccountService
-    proto_method: GetAccessToken
-    mapping_posture: aligned
-  - design_service: RuntimeAccountService
     design_method: InvokeRealmUnary
     proto_service: RuntimeAccountService
     proto_method: InvokeRealmUnary
-    mapping_posture: aligned
-  - design_service: RuntimeAccountService
-    design_method: RefreshAccountSession
-    proto_service: RuntimeAccountService
-    proto_method: RefreshAccountSession
     mapping_posture: aligned
   - design_service: RuntimeAccountService
     design_method: Logout
@@ -180,6 +175,16 @@ method_mappings:
     design_method: SubscribeAppMessages
     proto_service: RuntimeAppService
     proto_method: SubscribeAppMessages
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: PrepareAppLifecycleIntent
+    proto_service: RuntimeAppService
+    proto_method: PrepareAppLifecycleIntent
+    mapping_posture: aligned
+  - design_service: RuntimeAppService
+    design_method: GetAppLifecycleIntentStatus
+    proto_service: RuntimeAppService
+    proto_method: GetAppLifecycleIntentStatus
     mapping_posture: aligned
   - design_service: RuntimeAppService
     design_method: InstallApp

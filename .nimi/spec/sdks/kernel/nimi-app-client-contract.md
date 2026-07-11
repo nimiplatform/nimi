@@ -383,11 +383,12 @@ review-evidence accessor is NOT in S-PERM), parent invariants
 **Background fact.** Platform `P-SCAF-*` admits Nimi app scaffolding and
 requires generated apps to consume SDK/Runtime auth/session authority without
 self-declaring first-party status, owning tokens, or calling Realm login routes.
-Runtime `K-ACCSVC-*` owns local account session truth and first-party
-short-lived access-token projection; Runtime `K-BIND-*` owns scoped app binding;
-Runtime `K-APP-*` owns app launch / lifecycle projection. This rule admits the
-SDK generated-app helper surface only and keeps product trust tier separate from
-Runtime local developer registration.
+Runtime `K-ACCSVC-*` owns local account session truth, private bearer custody,
+and Runtime-mediated Realm operations; Runtime `K-BIND-*` owns scoped app binding;
+Runtime `K-APP-*` owns app launch / lifecycle projection. A.0 admits the helper
+only as binding-only construction plus typed protected-unavailable projection.
+It admits no installed/developer/first-party protected child carrier or account
+session; those require independent A.1 authority and implementation.
 
 `MUST` (exported names). SDK admits the following exact public exported names
 for generated Nimi app auth/client construction:
@@ -406,39 +407,30 @@ for generated Nimi app auth/client construction:
 - `third-party-nimi-app`;
 - `dev-standalone`.
 
-`MUST` (`first-party-local-app`). `first-party-local-app` is admitted only for
-true local first-party apps whose caller registration is admitted by Runtime app
-registry / admission policy as first-party. This mode may consume
-`RuntimeAccountService` account status and first-party short-lived access-token
-projection only under `K-ACCSVC-*` exact registration policy. Shape-only app id,
-workspace folder presence, generated scaffold state, or app-local spec presence
-is not enough to enter this mode.
+`MUST` (`first-party-local-app`). This value is classification only in A.0.
+Registry/admission shape, app id, workspace folder, scaffold state, bundled
+status, or first-party label cannot authorize protected operations. Until A.1
+admits its exact child carrier and caller role, the helper returns typed
+protected-unavailable and may expose only binding-only public construction.
+There is no token or normal-account-path exception, including for Avatar.
 
-`MUST` (`developer-registered-local-app`). `developer-registered-local-app` is
-the local development mode for generated / non-first-party Nimi Apps launched
-with `pnpm dev:shell`. After Runtime's developer-registration double gate it may
-consume account projection, Runtime app session, scoped binding, and
-developer-scoped Runtime-mediated Realm operations. Authenticated setup comes
-from Desktop-owned account UX or a Runtime-owned acceptance fixture. It MUST
-NOT wrap/call `BeginLogin`, `CompleteLogin`, `RefreshAccountSession`,
-`GetAccessToken`, `Logout`, `SwitchAccount`, or any first-party token helper.
+`MUST` (`developer-registered-local-app`). This value is also binding-only and
+protected-unavailable until A.1 admits a developer child channel. Developer
+registration, `pnpm dev:shell`, Desktop login state, or a fixture cannot grant
+account projection, Runtime app session, binding, Realm, or protected Runtime
+access. It must not wrap/call any account-control, public refresh/token, grant,
+or protected method.
 
-`MUST` (`third-party-nimi-app`). `third-party-nimi-app` is the SDK/generated-app
-mode for third-party Nimi Apps; for Desktop installed launches it maps to
-Runtime `ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP` (it is not a Runtime
-enum). It consumes the host-bound Runtime app session and uses
-`createRuntimeAccountMediatedRealmTransport` for Realm data. It MUST NOT call
-`createLocalFirstPartyRuntimePlatformClient`,
-`createRealmWithRuntimeAccountToken`, `RuntimeAccountService.GetAccessToken`,
-or any account-control/refresh helper.
+`MUST` (`third-party-nimi-app`). This value does not map to an admitted Runtime
+caller enum in A.0. Installed launch/session/envelope fields are absent pending
+A.1, so the helper returns typed protected-unavailable. It must not construct a
+host session, Realm transport, first-party client, token/grant wrapper, or
+account-control/refresh helper from launch metadata or loopback connectivity.
 
-`MUST` (`dev-standalone`). `dev-standalone` uses an explicit
-`NimiAppDeveloperSession` supplied by developer tooling or Runtime development
-registration. If Runtime support or developer session material is absent,
-`createNimiAppRuntimePlatformClient` MUST return or expose a typed unavailable
-projection using `NimiAppAuthUnavailable`. The unavailable state is fail-closed
-and must name the missing support; it is not a disabled auth gate or a mock
-success.
+`MUST` (`dev-standalone`). `NimiAppDeveloperSession` is synthetic non-product
+fixture material only, under a distinct trust root with synthetic accounts and
+non-product endpoints. It cannot access production custody or produce product
+evidence. Product builds always return typed unavailable for this mode.
 
 `MUST` (projection). `NimiAppAuthProjection` must distinguish authenticated /
 session-bound, unavailable, and action-required states without collapsing them
@@ -453,9 +445,9 @@ app-controlled token custody as input.
 
 `MUST NOT` (no Realm login bypass). Generated third-party/developer auth must not call
 `/api/auth/login`, `/api/auth/refresh`, SDK Realm login routes, or direct Realm
-token exchange as app auth truth. Realm data access, when admitted for a caller,
-must come through the Runtime broker. Only explicit first-party-local
-composition may select the separate short-lived token exception.
+token exchange as app auth truth. Realm data access, when later admitted for a
+caller, must come through an exact Runtime-owned protected operation. No mode,
+including first-party local composition, has a short-lived token exception.
 
 `MUST NOT` (no pseudo-success). `dev-standalone` must not use mock auth,
 disabled auth gates, anonymous subject fallback, fixture-mode success, or
@@ -465,8 +457,8 @@ setting a mode string, app id, app instance id, or workspace profile flag.
 
 Cross-references: `P-SCAF-002` (A2/A4 accepted mode split and fail-closed
 dev-standalone requirement), `P-SCAF-008` (generated app authoring command
-family), `K-ACCSVC-001..K-ACCSVC-021` (Runtime account/session and short-lived
-access-token authority), `K-BIND-001..K-BIND-015` (scoped app binding
+family), `K-ACCSVC-001..K-ACCSVC-021` (Runtime account/session custody and
+deny-all public-token boundary), `K-BIND-001..K-BIND-015` (scoped app binding
 authority), `K-APP-017` (launch authority), `P-NAPP-013` / `P-NAPP-018`
 (public admission and descriptor authority; not redefined).
 
@@ -555,31 +547,13 @@ OpenApp permissions, AIConfig, storage, account/session, or manifest gates.
 
 ## S-APP-022 - Installed-App Bootstrap Custody Boundary
 
-`MUST`: SDK installed-app bootstrap helpers consume Runtime/Desktop launch
-binding only as a projection of `K-ACCSVC-022` and `K-APP-017`. The helper
-surface may map host-owned launch binding into typed SDK/Runtime account
-caller inputs, but it is a consumer of Runtime/Desktop truth, not an owner.
-
-`MUST`: installed-app bootstrap maps SDK `third-party-nimi-app` to
-`ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_NIMI_APP`, opens/uses the host-owned
-Runtime app session, and constructs Realm through
-`createRuntimeAccountMediatedRealmTransport`. App mode and caller mode are
-immutable after construction.
-
-`MUST`: when a generated third-party app uses an installed-app SDK bootstrap
-path, the app-owned renderer source must receive a host-owned installed-app
-bridge projection. The renderer source must not construct, persist, or pass
-`launchNonce`, `releaseDescriptorRef`, or `launchBinding` as app-supplied
-truth.
-
-`MUST NOT`: SDK installed-app bootstrap must not accept renderer-owned access
-tokens, session stores, raw auth metadata, descriptor refs, launch nonces,
-host ids, or caller posture as trust-bearing input from generated app code.
-It must not expose token write/refresh/session-persistence helpers or reverse
-update Runtime account material.
-Absent host binding, missing descriptor binding, digest/install evidence
-mismatch, or unavailable Runtime `OpenApp` projection is a typed fail-closed
-state and must not fall back to developer registration.
+A.0 admits no installed-app SDK bootstrap, caller-mode mapping, host Runtime
+session, child bridge, launch binding/nonce, or Realm transport. The
+`third-party-nimi-app` classifier remains binding-only and returns typed
+protected-unavailable. SDK must reject renderer/host metadata, token/session,
+descriptor refs, caller posture, ordinary gRPC and developer-registration
+fallback as authority. Exact bootstrap inputs/outputs require the independent
+A.1 cross-owner admission; prior detail remains in Git, not active truth.
 
 Cross-references: `P-SCAF-016` (scaffolded installed-app binding custody),
 `K-ACCSVC-022` (Desktop-launched installed Nimi App caller posture),
@@ -626,7 +600,7 @@ Cross-references: `P-DOPEN-*`, `P-KIT-045`, `D-IPC-018`, `D-SHELL-039`.
 - `.nimi/spec/runtime/kernel/local-environment-materializers-contract.md` — `K-LENG-028`
 - `.nimi/spec/runtime/kernel/app-lifecycle-contract.md` — `K-APP-014` (uninstall lifecycle), `K-APP-017` (launch gate), `K-APP-018` (Runtime-mediated file-API non-admission)
 - `.nimi/spec/runtime/kernel/app-projection-contract.md` — `K-APP-022` (app storage), `K-APP-023` (package readiness), `K-APP-024` (account app-inventory), `K-APP-025` (local adoption)
-- `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*` (Runtime account/session and short-lived access-token projection authority consumed by `S-APP-016`)
+- `.nimi/spec/runtime/kernel/account-session-contract.md` — `K-ACCSVC-*` (Runtime account/session custody and Runtime-mediated broker authority consumed by `S-APP-016`; public token RPC is deny-all pending removal)
 - `.nimi/spec/runtime/kernel/scoped-app-binding-contract.md` — `K-BIND-*` (Runtime-issued scoped app binding authority consumed by `S-APP-016`)
 - `.nimi/spec/platform/kernel/nimi-app-scaffolding-contract.md` — `P-SCAF-*` (generated-app auth helper naming, auth modes, dev-standalone fail-closed posture, and no first-party self-declaration consumed by `S-APP-016`)
 - `.nimi/spec/platform/kernel/desktop-open-intent-contract.md` — `P-DOPEN-*`

@@ -8,18 +8,29 @@ Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/c
 
 ## D-IPC-001 — Bootstrap / Runtime Shared Auth Broker Boundary
 
+Desktop owns UX and orchestration but not protected-origin truth. Account
+control and lifecycle commands travel on one Runtime-authenticated
+`desktop_control` connection after `OpenDesktopSession`; the session id is
+correlation-only and never crosses into renderer payloads as authority.
+Renderer metadata, preload arguments, app-owned host stamps, and public gRPC
+cannot replace the K-PLOCAL verified process context. Disconnect or Desktop
+process exit/exec disables the bridge until a fresh full verification.
+
 > **Authority Disposition**：
 > `auth_session_load` / `auth_session_save` / `auth_session_clear` 不是最终
 > shared auth，且不得注册为 active Tauri command、Kit renderer export 或
 > standard shell product capability。Shared auth 由 `RuntimeAccountService`
-> broker 拥有，通过 `runtime_bridge_unary` / `runtime_bridge_stream_open`
-> 承载。Desktop owns account UX, not token/session custody.
+> custody 拥有，并只经 exact typed protected carrier operations 投影。
+> Generic renderer-selectable `runtime_bridge_unary` /
+> `runtime_bridge_stream_open` cannot carry protected account authority.
+> Desktop owns account UX, not token/session custody.
 
-`runtime_defaults` 命令返回 `RuntimeDefaults`，包含：
-- `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、jwksUrl、revocationUrl、jwtIssuer、jwtAudience；这些是 non-authoritative bootstrap hints，Runtime broker 对 Realm base 做最终校验）
-- `runtime: RuntimeExecutionDefaults`（targetType、targetAccountId、agentId、worldId、userConfirmedUpload 等非路由 bootstrap hints）
-
-`runtime_defaults` 不得继续承载 provider、model、connector、local provider endpoint、OpenAI-compatible endpoint 或 credential ref truth。Chat / Runtime Config 的 route selection、readiness 与 connector binding 只能来自 Runtime/SDK route projection 或 connector projection。
+`runtime_defaults`, if retained, returns only non-security shell hints. It has no
+`realm` object and must not carry Realm/JWKS/revocation endpoints, bearer,
+account/subject, provider/model/connector route, local endpoint, credential ref,
+Runtime listener, executable/service selector, trust path, or configuration
+document. Chat/Runtime Config truth comes from exact Runtime-owned typed
+projections after protected origin verification.
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。
 
@@ -37,63 +48,63 @@ token transport as a Desktop bridge surface.
 
 ## D-IPC-002 — Daemon 生命周期命令
 
-Daemon 管理命令集：`runtime_bridge_status`、`runtime_bridge_start`、`runtime_bridge_stop`、`runtime_bridge_restart`。
+Install, uninstall, update, repair, local adoption/removal, and `OpenApp`
+commands require Runtime's `desktop_lifecycle_host` origin and the anchored
+K-PLOCAL-007 lifecycle challenge/intent. A UI confirmation boolean is display
+intent only. A.0 cannot claim positive Avatar/Zhiyu child launch until A.1
+protected child-channel authority and implementation land; no nonce, metadata,
+or portable bearer fallback is allowed.
 
-返回 `RuntimeBridgeDaemonStatus`：
-- `running: boolean`
-- `managed: boolean`
-- `launchMode: 'RUNTIME' | 'RELEASE' | 'INVALID'`
-- `grpcAddr: string`
-- `version?: string`（release 模式下必须来自 bundled runtime 执行 `nimi version --json` 的自报版本，不得取自 manifest 猜测值）
+The shared Kit protected-local host carrier exposes exactly three typed product
+operations: `status`, `start`, and `restart`. The authoritative product surface
+has no `runtime_bridge_stop`; product registration/export of that command must
+be removed by the A.0 implementation cut. No operation accepts a binary path,
+argv, endpoint, config path, service name, release-record path, or environment
+override.
 
-**Runtime 健康状态 UI 映射**（对应 Runtime K-DAEMON-001 五态）：
+The common redacted result is `{ state, releaseId?, reasonCode?, retryable }`,
+where state is exactly `stopped | start_pending | running | restart_pending |
+unavailable`. It exposes no PID, gRPC/HTTP address, process path, service ACL,
+trust record, account material, or credential.
 
-| Runtime 状态 | UI 指示器 | 可用操作 | 超时预期 |
-|---|---|---|---|
-| `STOPPED` | 灰色/离线标记 | start | — |
-| `STARTING` | 加载动画/启动中 | — (等待) | 120s 启动超时（对齐 K-LENG-004 SUPERVISED 最差情形） |
-| `READY` | 绿色/就绪标记 | stop, restart | — |
-| `DEGRADED` | 黄色/降级警告 | stop, restart | —（Phase 1 通过 `running=true` 统一覆盖 READY/DEGRADED，DEGRADED 独立检测需 daemon 暴露结构化健康状态，Phase 2 增强） |
-| `STOPPING` | 加载动画/停止中 | — (等待) | 10s 停机超时（K-DAEMON-003） |
+On Windows, `status` queries SCM for fixed service `NimiRuntime` and requires a
+verified Runtime protected handshake before reporting `running`; `start` uses
+only `SERVICE_QUERY_STATUS | SERVICE_START` on that fixed service; `restart`
+asks verified Runtime to drain and self-exit, then reports `running` only after
+SCM recovery starts a new PID/creation marker/boot epoch that passes mutual
+verification. Desktop never receives `SERVICE_STOP`. A hung/unverified process
+fails closed to repair by the signed installer/service updater or administrator.
 
-Desktop 通过 `runtime_bridge_status` 轮询获取 `running` 状态。`running=true` 对应 `READY` 或 `DEGRADED`，`running=false` 对应 `STOPPED`。`STARTING`/`STOPPING` 过渡态通过命令执行期间的 UI 加载状态表示。
+Linux/macOS follow their OS service-manager profiles with the same typed
+result/denials. Desktop quit leaves Runtime running.
 
-**Provider 健康探测窗口**：Daemon 到达 READY 后启动 provider 健康探测（K-PROV-003），首次探测立即执行但结果需 0~8s 到达。在此窗口内，所有 provider 状态为 `unknown`。Desktop UI 行为：
-
-- READY 后、首次探测结果到达前：provider 列表展示"检测中"状态（非"就绪"），不阻塞用户操作但不显示绿色健康标记。
-- 首次探测结果到达后：按 healthy/unhealthy 更新 UI 指示器。
-- Phase 1 简化：`running=true` 统一覆盖 READY/DEGRADED，provider 健康细粒度展示为 Phase 2。Phase 1 不展示 provider 级健康指示器，仅展示 daemon 级 running 状态。
+Service `running` only means the process and protected handshake are verified;
+it is not provider readiness. Provider health remains a separate Runtime-owned
+typed SDK projection. Before the first authoritative sample the UI displays
+`unknown/checking`, never green readiness, and service-control IPC must not
+fabricate provider health.
 
 ## D-IPC-003 — Config 读写命令
 
-`runtime_bridge_config_get` / `runtime_bridge_config_set` 命令。
-
-- `ConfigGetResult`：`{ path, config }`
-- `ConfigSetResult`：`{ path, reasonCode?, actionHint?, config }`
-
-**配置可见性规则**：
-
-- **UI 暴露子集**：Phase 1 Desktop UI 仅暴露安全且用户可理解的配置项。完整字段清单由 K-DAEMON-009 定义，Desktop UI 暴露子集为实现定义。
-- **热重载 vs 重启**：`config_set` 通过 `reasonCode` 指示后续行为：`CONFIG_APPLIED`（无需重启）或 `CONFIG_RESTART_REQUIRED`（需重启 daemon 生效）。Desktop 收到 `CONFIG_RESTART_REQUIRED` 时执行 `D-BOOT-001` 中 Runtime JWT Config Sync 定义的重启分支。
-- **环境变量覆盖不可见性**：环境变量优先级高于配置文件（K-DAEMON-009 三层优先级）。Desktop UI 展示配置文件中的值，不反映环境变量覆盖。此为已知限制，Phase 1 不解决。
-- **向前兼容**：Runtime 新增配置字段在 Desktop 未更新时不可见。`config_get` 返回完整 JSON（含未识别字段），`config_set` 透传未识别字段（不丢弃）。
-
-canonical 配置路径固定为 `~/.nimi/runtime/config.json`（K-CFG-001）；Desktop 不得保留 root-level `~/.nimi/config.json` fallback，该旧路径仅可作为显式迁移输入。
+Whole-document/path commands `runtime_bridge_config_get` and
+`runtime_bridge_config_set` are not admitted production surfaces and must be
+removed from product registration. Desktop may consume bounded typed, redacted
+config status and submit an exact typed mutation only after that field and
+operation are admitted by Runtime authority. Such messages carry no path,
+unknown JSON, raw provider secret, Realm endpoint override, listener address,
+service identity, executable selector, environment merge, or last-writer-wins
+document semantics. A restart-required response may enable typed `restart`; it
+does not grant direct stop or file access.
 
 ## D-IPC-004 — HTTP 代理命令
 
-`http_request` is a fail-closed Desktop shell network helper, not a general HTTP
-proxy and not platform truth. It may dispatch only:
-
-- configured Runtime / Realm origins from `runtime_defaults` / E2E runtime
-  defaults; or
-- exact SDK connector-auth acquisition profile endpoints generated from
-  `.nimi/spec/sdks/kernel/tables/connector-auth-acquisition-profiles.yaml`.
-
-Renderer-supplied `Authorization` is admitted only for configured Runtime /
-Realm origins. Provider acquisition endpoints must be selected by
-`connectorAuthProfileId` + `connectorAuthPurpose` and must not receive a
-renderer-supplied Authorization header through this command.
+`http_request` is not an authenticated Runtime/Realm/provider transport. It
+must reject renderer-supplied `Authorization`, cookies, bearer/JWT-shaped
+values, provider credentials, Realm bases, and Runtime endpoints. Account and
+connector acquisition/exchange terminate in typed Runtime-owned protected
+operations; a Desktop HTTP proxy cannot become their fallback. Any retained
+unauthenticated shell fetch requires its own exact public-origin allowlist and
+response limit and confers no security authority.
 
 - 每次调用生成唯一 `invokeId` 用于追踪。
 - 日志记录 `requestUrl`、`requestMethod`、`requestBodyBytes`。
@@ -114,10 +125,13 @@ renderer-supplied Authorization header through this command.
 
 ## D-IPC-006 — OAuth 命令
 
-- `oauth_token_exchange`：交换 OAuth authorization code。
-- `oauth_listen_for_code`：监听 redirect URI 回调。
-
-支持 PKCE（codeVerifier）和 clientSecret 两种模式。
+- Product `oauth_token_exchange` in Desktop is forbidden: Runtime owns account
+  and connector code exchange, PKCE verifier, client secret, tokens, and
+  custody under its isolated service principal.
+- A native shell may open the system browser and forward an exact callback
+  observation to a typed protected Runtime login/connector attempt. Desktop and
+  renderer never receive PKCE verifier, client secret, access/refresh token, or
+  provider credential.
 
 ## D-IPC-008 — External Agent Runtime Boundary
 
@@ -149,13 +163,15 @@ audit store.
 
 版本协商引用 SDK `S-TRANSPORT-005`，并受 `self-update-contract.md` 约束：
 
-Desktop 编译发布与 Runtime daemon 独立更新，版本偏差是真实场景。版本兼容行为：
-
-- **packaged desktop / release 模式**：Desktop 启动时必须要求 runtime exact match。missing / unparseable / mismatch 全部是 blocking error，不允许任何 drift。
-- **source development / runtime 模式**：可继续沿用 major fail-close、minor/patch warn 的受控兼容行为。
-- **版本信息获取**：通过 `runtime_bridge_status` 返回的 `version` 字段（D-IPC-002 `RuntimeBridgeDaemonStatus`）获取。release 模式下该值必须是 runtime 自报真值；runtime/source 模式下可按开发态语义提供。
-- **降级行为**：功能不可用的场景在 UI 中展示明确提示，不隐藏功能入口。
-- **与 SDK S-TRANSPORT-005 的关系**：S-TRANSPORT-005 定义的"metadata 交换"版本协商是通用 SDK 契约。Desktop 通过 `version` IPC 字段实现等效功能（Tauri IPC 传输无需 gRPC metadata），满足 S-TRANSPORT-005 的语义要求。
+Desktop and Runtime releases may be serviced independently, but production
+compatibility is never inferred from semver. Mutual verification requires both
+signed release records to name the same `protected_local_protocol_version` and
+each record's exact `compatible_peer_release_ids` to include the observed peer
+release. Missing, expired, rollback, unparseable, one-way-only, or mismatched
+compatibility blocks protected control. Typed `status` may return the verified
+Runtime `releaseId`; it never executes a candidate binary to discover version.
+Synthetic non-product fixtures use distinct trust roots and cannot relax the
+production check.
 
 ## D-IPC-015 — Desktop Self-Update Surface
 
@@ -173,13 +189,28 @@ Desktop 自更新命令集：
 
 - `desktop_release_info_get` 仅在 release metadata 初始化成功时返回 `DesktopReleaseInfo`；初始化失败必须返回错误，不得合成 fallback 版本。
 - `desktop_update_download` 必须仅执行下载、验签与缓存 update bytes，并在成功后停在 `downloaded` 状态，不得隐式进入安装。
-- `desktop_update_install` 必须仅消费已缓存的 update bytes。调用前必须先停止 managed runtime、失效 channel pool、再进入 updater 安装阶段；未下载时必须 fail-close。
+- `desktop_update_install` must consume only cached, verified Desktop update
+  bytes. It must not stop, stage, replace, or select Runtime. If the signed
+  compatibility record requires a Runtime service release, the signed
+  installer/service updater completes and activates that service release;
+  Desktop installation remains unavailable until the updater reports a
+  mutually compatible installed pair.
 - `desktop_update_state_get` / desktop update 事件流必须共享同一个状态机语义：`idle -> checking -> available -> downloading -> downloaded -> installing -> readyToRestart -> error`。
 
 ## D-IPC-016 — Shared Tauri Bridge Authority
 
-- `kit/shell/tauri/**` (P-KIT-041) is the single shared implementation authority for app-agnostic Tauri host glue.
-- D-IPC-001 (`runtime_defaults` bootstrap only), D-IPC-002 (daemon lifecycle), D-IPC-004 (HTTP proxy), D-IPC-005 (UI commands `open_external_url`, `confirm_dialog`, `start_window_drag`, `focus_main_window`), D-IPC-006 (OAuth), D-IPC-009 (invoke infrastructure, `log_renderer_event`) shared implementations live in `kit/shell/tauri/**`.
+- `kit/shell/protected-local/**` (P-KIT-041) is the shared native protected
+  carrier and typed OS service-control host surface for Tauri and Electron.
+  Kit carries typed calls only; Runtime/OS remain endpoint, origin, service
+  lifecycle, credential and security authorities.
+- `kit/shell/tauri/**` remains the implementation owner for app-agnostic Tauri
+  shell glue. It consumes the protected-local carrier and must not own a
+  parallel daemon manager, executable resolver, config document, token store,
+  or authenticated HTTP proxy.
+- D-IPC-001 (non-security shell defaults only), D-IPC-002 (typed
+  status/start/restart), D-IPC-005 (UI commands `open_external_url`,
+  `confirm_dialog`, `start_window_drag`, `focus_main_window`), and D-IPC-009
+  (invoke infrastructure, `log_renderer_event`) use shared Kit surfaces.
 - Apps must not duplicate these shared command implementations in app-local Rust code.
 - Apps must not use `#[path = "..."]` to compile another app's Rust source for shared bridge functionality.
 - App-specific Tauri commands for desktop menu bar and desktop self-update remain app-local.
@@ -190,24 +221,40 @@ Desktop 自更新命令集：
 
 Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不是临时妥协：
 
-**SDK gRPC 路径**（D-BOOT-004 → SDK Runtime client）：
-- 应用层 Runtime 能力：AI 推理（ExecuteScenario、StreamScenario）、Connector 管理（CreateConnector、ListConnectors 等）、Auth/Grant（RegisterApp、OpenSession 等）、场景任务（SubmitScenarioJob 等）
+**SDK typed Runtime path**（D-BOOT-004 → SDK Runtime client + native carrier）：
+- Binding-only bootstrap includes only `RegisterApp` and `OpenSession`.
+  AI, connector, scenario, account, lifecycle and every other protected
+  operation require their own admitted transport/origin/policy; listing a
+  generated method does not admit it.
+- The entire public `RuntimeGrantService` protected-token family is deny-all
+  pending A.3d physical removal. Desktop/SDK cannot issue, validate, revoke,
+  delegate, enumerate, inject, or consume a portable protected credential.
+- `RegisterApp` / `OpenSession` in this list are binding-only bootstrap and do
+  not authorize any other listed capability. Each privileged capability must
+  satisfy its own admitted transport/origin/operation authority.
 - 本地资产控制面：`RuntimeLocalService` 负责 local asset inventory 的 list、import/install、health/readiness、intake、audit、transfer session 与 progress watch；`StartLocalAsset` / `StopLocalAsset` 保留为 runtime 维护能力，不是 Desktop 产品主路径
 - agent presentation projection：runtime-owned persistent `AgentPresentationProfile` 通过 `runtime.agent.*` 暴露；Desktop avatar current-surface state 不得借道升格为 IPC canonical truth
 - Phase 1 健康监控（GetRuntimeHealth、ListAIProviderHealth、SubscribeRuntimeHealthEvents、SubscribeAIProviderHealthEvents）— 见 S-TRANSPORT-007 Mode D Phase 1 投影
 - Phase 2 服务（Workflow、Knowledge、Audit、AppMessage、Script）
 
 **Runtime IPC payload 鉴权字段**：
-- `runtime_bridge_unary` / `runtime_bridge_stream_open` / `runtime_bridge_stream_close` 构成完整的 gRPC-over-IPC 传输面。payload 必须支持顶层可选字段 `authorization`。
-- 该字段由 SDK Runtime transport 自动注入，不从 `metadata.extra` 透传。
-- Renderer 业务层不得手工构造此字段。
-- 注：此为 Tauri IPC transport 对 SDK `S-TRANSPORT-010`（传输内部实现细节）的等价实现。`authorization` 字段虽在 IPC payload 中作为顶层字段对 renderer 架构可见，但其语义与 S-TRANSPORT-010 一致——由 transport 层自动管理，业务层不得 bypass。
+- Binding-only public calls may use their separately governed public transport,
+  but an `authorization` bearer never establishes protected origin.
+- Protected Runtime calls travel through the shared native carrier on the
+  mutually verified connection. Renderer IPC exposes neither a generic
+  gRPC-over-IPC method selector nor `authorization`, Desktop session id, boot
+  epoch, process tuple, lifecycle intent proof, account material, or token.
+- SDK transport code cannot inject or upgrade protected authority from a
+  bearer, metadata.extra, app id, caller enum, or renderer payload.
 
 **IPC 桥路径**（Tauri backend → daemon）：
-- 平台层 Runtime 管理：daemon 生命周期（D-IPC-002: start/stop/restart/status）
-- 配置管理（D-IPC-003: config_get/config_set + hot-reload 提示）
-- HTTP 代理（D-IPC-004: proxy fetch）
-- OAuth 流（D-IPC-006: token exchange）
+- OS/Runtime service control: typed `status/start/restart` only (D-IPC-002)
+- Runtime configuration: bounded typed redacted operations only after
+  independent field/operation admission (D-IPC-003)
+- unauthenticated shell network helper only; no Runtime/Realm/provider auth
+  proxy (D-IPC-004)
+- native browser/callback observation only; Runtime owns OAuth exchange and
+  custody (D-IPC-006)
 - External Agent 管理（D-IPC-008: SDK-projected Runtime gateway/token/action
   state only）
 - shell-native / host helper 能力（D-IPC-011：picker、reveal、notification、以及仍未下沉到 runtime 的 host-local helper）
@@ -216,8 +263,11 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 - SDK 路径承载**应用逻辑 RPC**——调用语义与平台无关，独立 SDK 消费者可复用。
 - SDK 路径同时承载 local model 控制面真源；desktop 不得以 Tauri host state 取代 `RuntimeLocalService`。
 - avatar persistent presentation profile 属于 SDK/runtime path；avatar transient interaction state 属于 renderer surface-local truth，不得发明第二套 Tauri command owner。
-- IPC 桥路径承载**平台管理操作与原生壳能力**——依赖 Tauri backend 进程管理/文件选择/系统集成能力，与 Desktop 生命周期耦合。
-- 独立 SDK 消费者（无 Tauri 环境）需通过 `nimi` CLI 或外部工具完成 IPC 桥路径的等效操作（如 `nimi daemon start`、`nimi config set`、`nimi local install`）。
+- IPC bridge carries shell-native UI and the Kit protected-local typed carrier;
+  it does not own Runtime process management or configuration truth.
+- Independent SDK consumers do not inherit an equivalent public CLI path for
+  protected service/config operations. They require an independently admitted
+  native protected carrier; absent one, they fail closed.
 
 补充约束：
 
@@ -226,7 +276,10 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 
 cloud 路径必须固定经由 Runtime connector APIs；Desktop 不得恢复 legacy adapter factory、直接 `listModels()` 或 `healthCheck()` 调用以绕开 Runtime。
 
-**健康监控双路径等价性**：D-IPC-002 通过 `runtime_bridge_status` 轮询获取 daemon 健康状态，SDK 通过 `SubscribeRuntimeHealthEvents` gRPC 流获取等效数据。两条路径语义等价，Desktop 选择 IPC 路径是因为 Tauri backend 已维护 daemon 连接状态。
+Service status and Runtime health are intentionally distinct. D-IPC-002 reports
+OS service plus protected-handshake state; SDK health streams report
+Runtime-owned health only after a verified carrier is active. Neither may
+fabricate the other.
 
 执行命令：
 

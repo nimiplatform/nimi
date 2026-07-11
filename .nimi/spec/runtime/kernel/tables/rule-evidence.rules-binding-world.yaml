@@ -64,14 +64,20 @@ entries:
   - K-WEV-016
 rules:
   - rule_id: K-BIND-001
-    evidence_refs: []
-    evidence_requirement: deferred
+    evidence_refs:
+      - runtime_kernel_consistency
+      - public_raw_token_authority_hardcut_gate
+    evidence_requirement: required
+    evidence_scope_note: Structural evidence covers the no-bearer binding boundary only; binding lifecycle implementation evidence remains separately governed.
   - rule_id: K-BIND-002
     evidence_refs: []
     evidence_requirement: deferred
   - rule_id: K-BIND-003
-    evidence_refs: []
-    evidence_requirement: deferred
+    evidence_refs:
+      - runtime_kernel_consistency
+      - public_raw_token_authority_hardcut_gate
+    evidence_requirement: required
+    evidence_scope_note: Structural evidence covers the prohibition on redeeming binding material into app bearer truth.
   - rule_id: K-BIND-004
     evidence_refs: []
     evidence_requirement: deferred

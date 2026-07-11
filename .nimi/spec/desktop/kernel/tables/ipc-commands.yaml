@@ -466,12 +466,12 @@ commands:
   # Runtime bridge (runtime_bridge) — gRPC transport
   - command: runtime_bridge_unary
     module: runtime-bridge
-    description: Forward a unary gRPC call to runtime daemon via IPC bridge
+    description: Forward only binding-only or independently admitted ordinary public unary calls; protected methods are rejected and require the native protected carrier.
     source_rule: D-IPC-012
 
   - command: runtime_bridge_stream_open
     module: runtime-bridge
-    description: Open a server-streaming gRPC call to runtime daemon via IPC bridge
+    description: Open only an independently admitted ordinary public stream; protected streams and authorization-bearing renderer payloads are rejected.
     source_rule: D-IPC-012
 
   - command: runtime_bridge_stream_close
@@ -480,34 +480,19 @@ commands:
     source_rule: D-IPC-012
 
   - command: runtime_bridge_status
-    module: runtime-daemon
-    description: Get runtime daemon status (running, managed, launchMode, grpcAddr)
+    module: protected-local-host
+    description: Return redacted fixed-service status through the shared native carrier; no PID, address, path, service selector, or credential.
     source_rule: D-IPC-002
 
   - command: runtime_bridge_start
-    module: runtime-daemon
-    description: Start runtime daemon
-    source_rule: D-IPC-002
-
-  - command: runtime_bridge_stop
-    module: runtime-daemon
-    description: Stop runtime daemon
+    module: protected-local-host
+    description: Request start of the fixed signed Runtime OS service with no binary, argument, endpoint, or service-name input.
     source_rule: D-IPC-002
 
   - command: runtime_bridge_restart
-    module: runtime-daemon
-    description: Restart runtime daemon
+    module: protected-local-host
+    description: Request verified Runtime self-exit plus OS service-manager recovery and report success only after new-process mutual verification.
     source_rule: D-IPC-002
-
-  - command: runtime_bridge_config_get
-    module: runtime-daemon
-    description: Get runtime bridge configuration
-    source_rule: D-IPC-003
-
-  - command: runtime_bridge_config_set
-    module: runtime-daemon
-    description: Set runtime bridge configuration
-    source_rule: D-IPC-003
 
   # Local runtime (local_runtime::commands)
   - command: runtime_local_pick_asset_manifest_path

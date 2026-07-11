@@ -105,6 +105,7 @@ rules:
   - rule_id: K-APP-010
     evidence_refs:
       - runtime_kernel_consistency
+      - public_raw_token_authority_hardcut_gate
     note: Avatar runtime binding boundary; executable owner-side binding implementation is deferred and must not be bypassed through Avatar Realm/auth ownership.
     evidence_requirement: required
   - rule_id: K-APP-011
@@ -191,4 +192,10 @@ rules:
       - sdk_runtime_test
       - desktop_boundary_test
     note: Local app adoption is Runtime-owned explicit adoption truth; tests cover manifest/path/permission/storage validation, typed SDK accessors, and Desktop consumption without local source scanning.
+    evidence_requirement: required
+  - rule_id: K-APP-026
+    evidence_refs:
+      - runtime_kernel_consistency
+      - protected_local_authority_gate
+    note: Structural authority for the generic Desktop lifecycle intent prepare/display/consume/status protocol; proto and product implementation evidence remain pending A.0 implementation.
     evidence_requirement: required

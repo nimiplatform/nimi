@@ -8,6 +8,8 @@ description: >-
   Records which ~/.nimi user-local config files share the cross-file validation
   framework and which authority owns each file's schema field definitions. Does
   not define schema fields and does not author old-schema migration steps.
+  Production Runtime service configuration is explicitly excluded; retired
+  ~/.nimi/runtime/config.json is not membership or migration input.
 rows:
   - config_files_1
   - config_files_2
@@ -16,14 +18,14 @@ rows:
   - config_files_5
   - config_files_6
   - config_files_7
-  - config_files_8
+  - config_files_7
   - every governed ~/.nimi user-local config file must declare its schema owner
     and current-schema validation framework authority before it is admitted to ordinary
     readiness paths
   - old schemaVersion values fail closed to repair unless a future admitted
     owner packet explicitly adds a migration capability
-  - runtime config JSON migration execution remains owned by K-CFG-014..016;
-    this registry records membership and alignment only
+  - Runtime service-owned configuration is outside this user-local registry;
+    retired ~/.nimi/runtime/config.json import is forbidden by K-CFG-001
   - unknown future schemaVersion or broken pointer in any governed file routes
     to repair_required or blocked per P-MIG-004, never a raw error
 
@@ -33,12 +35,6 @@ config_files:
     schema_owner: runtime_product_control_service
     framework_authority: P-MIG-003
     source_rule: P-MIG-001
-
-  - config_file_id: runtime_config_json
-    path: "~/.nimi/runtime/config.json"
-    schema_owner: runtime_config
-    framework_authority: K-CFG-014
-    source_rule: P-MIG-003
 
   - config_file_id: runtime_default_json
     path: "~/.nimi/runtime/default.json"

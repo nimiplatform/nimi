@@ -172,6 +172,7 @@ rules:
     evidence_refs:
       - sdk_behavioral_test
       - sdk_kernel_consistency
+      - public_raw_token_authority_hardcut_gate
     evidence_requirement: required
   - rule_id: S-RUNTIME-068
     evidence_refs:
@@ -391,7 +392,8 @@ rules:
   - rule_id: S-RUNTIME-109
     evidence_refs:
       - sdk_kernel_consistency
-    note: Admitted authority for local first-party Runtime account projection, Runtime-backed short-lived access-token provider, and binding consumer. SDK code projection depends on the active owner switch.
+      - public_raw_token_authority_hardcut_gate
+    note: SDK typed-API and trusted-carrier owner boundary; all local modes are broker/service mediated and public account bearer projection is a deny-all tombstone pending A.3d deletion.
     evidence_requirement: required
   - rule_id: S-RUNTIME-110
     evidence_refs:

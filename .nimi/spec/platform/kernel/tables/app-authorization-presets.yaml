@@ -2,48 +2,15 @@ version: 1
 table_family: owner_matrix
 owner: platform
 matrix_id: platform_app_authorization_presets
+authority_status: deny_all_tombstone_pending_a3d_removal
+production_consumption: forbidden
 rows:
+  - public_grant_presets_retired
+presets: []
+delegation_rules: []
+retired_value_inventory:
   - readOnly
   - full
   - delegate
-  - delegation_rules_1
-  - delegation_rules_2
-  - delegation_rules_3
-  - delegation_rules_4
-  - delegation_rules_5
-  - delegation_rules_6
-presets:
-  - name: readOnly
-    description: "Read-only access to app capabilities"
-    default_scopes_pattern: "app.<appId>.*.read"
-    can_delegate: false
-    max_delegation_depth: 0
-    source_rule: P-PROTO-030
-
-  - name: full
-    description: "Full read and write access to app capabilities"
-    default_scopes_pattern: "app.<appId>.*.read, app.<appId>.*.write"
-    can_delegate: false
-    max_delegation_depth: 0
-    source_rule: P-PROTO-030
-
-  - name: delegate
-    description: "Full access with single-hop delegation"
-    default_scopes_pattern: "app.<appId>.*.read, app.<appId>.*.write"
-    can_delegate: true
-    max_delegation_depth: 1
-    source_rule: P-PROTO-035
-
-delegation_rules:
-  - rule: "仅 canDelegate=true 的父 token 可申请子 token"
-    source_rule: P-PROTO-035
-  - rule: "子 token scopes 必须是父 token 子集"
-    source_rule: P-PROTO-035
-  - rule: "子 token expiresAt 必须早于父 token"
-    source_rule: P-PROTO-035
-  - rule: "父 token 撤销时子 token 级联失效"
-    source_rule: P-PROTO-035
-  - rule: "preset=delegate 默认 maxDelegationDepth=1"
-    source_rule: P-PROTO-035
-  - rule: "子 token resourceSelectors 必须是父 token 子集"
-    source_rule: P-PROTO-035
+retired_value_disposition: no_authority_no_issuance_no_validation_no_compatibility
+source_rules: [P-PROTO-030, P-PROTO-035, K-GRANT-001]

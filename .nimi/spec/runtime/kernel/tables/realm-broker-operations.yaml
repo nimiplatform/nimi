@@ -40,11 +40,14 @@ surfaces:
   - finalizeResource
   - createTextResource
 source_rule: K-ACCSVC-023
+authority_status: blocked_pending_separate_runtime_operation_admission
+production_consumption: forbidden
+row_disposition: planning_inventory_only_no_operation_is_admitted
 description: >
-  Sole operation-admission authority for RuntimeAccountService.InvokeRealmUnary.
-  SDK Realm descriptors and Platform app permission rows are validated inputs;
-  neither can independently admit an operation. YAML merge templates are
-  authoring-only and every resolved operation row contains the full policy.
+  Planning inventory for a future RuntimeAccountService.InvokeRealmUnary
+  operation admission. No row is active until a separate Runtime authority
+  batch flips this table and admits exact protected caller origins. SDK Realm
+  descriptors and Platform rows cannot admit an operation.
 
 operation_schema:
   required_fields:

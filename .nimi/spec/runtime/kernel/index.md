@@ -36,10 +36,11 @@
 | `authz-ownership.md` | `K-AUTH-*` | JWT、owner、信息隐藏、访问门禁 |
 | `authn-token-validation.md` | `K-AUTHN-*` | JWT/JWKS 验签、缓存刷新、时钟偏差、会话失效 |
 | `auth-service.md` | `K-AUTHSVC-*` | RuntimeAuthService 契约与会话生命周期 |
-| `account-session-contract.md` | `K-ACCSVC-*` | RuntimeAccountService 契约：local first-party account session、login lifecycle、secure custody、refresh、short-lived app access-token projection、logout、user switch、daemon restart recovery、scoped binding issuance |
+| `account-session-contract.md` | `K-ACCSVC-*` | RuntimeAccountService 契约：local account session、login lifecycle、secure custody、private refresh、Runtime-mediated Realm broker、logout、user switch、daemon restart recovery、scoped binding issuance；public token RPC 仅保留待删除 deny-all tombstone |
+| `protected-local-session-contract.md` | `K-PLOCAL-*` | Isolated Runtime service principal、protected-local mutual process/executable identity、Desktop control origin、lifecycle challenge、boot epoch 与 anti-rollback security ledger 唯一 authority |
 | `scoped-app-binding-contract.md` | `K-BIND-*` | Runtime-issued scoped app binding：carrier 分类、生命周期、relation tuple、revocation、replay、Avatar/Desktop binding 规则 |
 | `workspace-binding-contract.md` | `K-BIND-*` | Runtime-issued workspace knowledge binding：Realm membership projection consumption、workspace-specific relation/attachment、issue/revoke lifecycle、internal resolver、decision/audit/fail-close matrix |
-| `grant-service.md` | `K-GRANT-*` | RuntimeGrantService 契约与 delegated token 约束 |
+| `grant-service.md` | `K-GRANT-*` | public RuntimeGrantService deny-all tombstones、Runtime-private evaluation boundary 与 A.3d removal tracking |
 | `key-source-routing.md` | `K-KEYSRC-*` | `connector_id`/inline 与 metadata 契约 |
 | `scenario-job-lifecycle.md` | `K-JOB-*` | ScenarioJob 生命周期与 owner/credential 快照 |
 | `local-category-capability.md` | `K-LOCAL-*` | 本地模型基础 category、capability、install/catalog intake |
@@ -96,7 +97,7 @@
 | `app-lifecycle-contract.md` | `K-APP-*` | Runtime-owned Nimi App install、uninstall、update、health repair、open、and file-API non-admission authority |
 | `app-projection-contract.md` | `K-APP-*` | Runtime-owned app health、response-state、support next-action、storage、package readiness、account inventory、and local adoption projection |
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
-| `config-contract.md` | `K-CFG-*` | Runtime config path `~/.nimi/runtime/config.json`, source priority, secret policy, atomic writes, schema migration, and selected `nimi_data` dataRootRef boundary |
+| `config-contract.md` | `K-CFG-*` | service-principal-owned closed configuration, signed boot authority, typed protected mutation, secret custody, hardcut/no-import, and selected `nimi_data` dataRootRef projection |
 | `connector-contract.md` | `K-CONN-*` | connector 托管、字段约束、补偿与并发安全 |
 | `runtime-target-identity-contract.md` | `K-RTARGET-*` | Runtime Target Identity v2 durable refs, inventory projection, resolved execution binding, and scan classification authority |
 | `nimillm-contract.md` | `K-NIMI-*` | remote 执行边界、流式与审计对齐 |
@@ -133,6 +134,11 @@
 - `tables/local-adapter-routing.yaml`
 - `tables/daemon-health-states.yaml`
 - `tables/interceptor-chain.yaml`
+- `tables/protected-local-os-profiles.yaml`
+- `tables/protected-local-runtime-principal-profiles.yaml`
+- `tables/protected-local-lifecycle-intent-protocol.yaml`
+- `tables/protected-local-rpc-transport-matrix.yaml`
+- `tables/protected-local-security-limits.yaml`
 - `tables/ai-timeout-defaults.yaml`
 - `tables/provider-probe-targets.yaml`
 - `tables/workflow-node-types.yaml`

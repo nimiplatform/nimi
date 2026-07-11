@@ -372,6 +372,14 @@ records. `RemoveLocalAppAdoption(app_id, delete_durable_data_confirmed=false)`
 marks the adoption removed and may delete durable data only when the destructive
 confirmation is explicit.
 
+`MUST`: `AdoptLocalApp` and `RemoveLocalAppAdoption` are lifecycle mutations
+and require the K-PLOCAL-006 `desktop_control` /
+`desktop_lifecycle_host` origin plus the K-PLOCAL-007 anchored lifecycle
+challenge/intent. A renderer path, confirmation flag, app id,
+developer-registration session, or public TCP caller cannot satisfy origin.
+Positive developer Runtime/auth/Realm/AI E2E remains dependent on the
+separately admitted and implemented A.1 protected child channel.
+
 `MUST`：local adoption is not Platform public admission. It may create a local
 inventory source, but OpenApp must still pass account/session, app data,
 permissions, AIConfig, manifest, and storage gates. A local-adopted app without

@@ -91,7 +91,10 @@ Realm 后端签发 JWT，Runtime 校验 JWT。两者的 claims 契约必须对�
 
 **跨层引用**：`D-AUTH-004`（Desktop 消费 Realm 签发 token）、`K-DAEMON-009`（配置三层优先级）。
 
-> 跨表引用：每个 RPC 在 K-AUTHN-001..009 下的实际接受姿态（anonymous_read / authenticated_required / mixed）由 `tables/runtime-rpc-auth-posture.yaml` 索引并汇总在 `tables/runtime-rpc-auth-posture/*.yaml` 分片中，由 `pnpm check:runtime-rpc-auth-posture-coverage` / `check:runtime-rpc-auth-posture-shape` 守护。
+> 跨表引用：每个 RPC 的 closed posture（including binding-only,
+> protected-origin, blocked-pending-authority and deny-all tombstone）由
+> `tables/runtime-rpc-auth-posture.yaml` 索引并汇总在分片中；a JWT posture
+> never implies protected origin。
 
 ## Reference Tests (informative, not normative)
 

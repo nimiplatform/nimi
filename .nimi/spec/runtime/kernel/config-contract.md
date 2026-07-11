@@ -4,17 +4,28 @@
 
 ## K-CFG-001 Canonical Config Path
 
-Runtime 配置文件唯一 canonical 路径为 `~/.nimi/runtime/config.json`。
-Root-level `~/.nimi/config.json` 不再是 future product authority。读取旧路径
-只能作为显式迁移输入，并且不得在迁移后继续作为 fallback truth。
+Production Runtime configuration is service-principal-owned state at the
+OS-profile-specific protected location in
+`tables/protected-local-runtime-principal-profiles.yaml`. Its physical path is
+not a Desktop/SDK/public CLI interface and is never projected to renderer or
+app callers. `~/.nimi/runtime/config.json`, `~/.nimi/config.json`, and any other
+user-writable file are forbidden production inputs. This pre-release hardcut
+imports no retired config or credential material.
 
 ## K-CFG-002 Source Priority
 
-配置来源优先级固定为：环境变量 > 配置文件 > 内置默认值。
+Production source authority is the closed partition in
+`tables/config-schema.yaml`: signed OS service/release boot security,
+service-owned immutable/mutable state, Runtime-private secret custody, then
+spec-governed defaults where the field permits a default. Environment
+variables, argv, user-writable config, renderer metadata, and app manifests
+have no production selection priority because they are rejected inputs.
 
 ## K-CFG-003 Schema Version
 
-配置文件必须包含 `schemaVersion`，当前固定为 `1`。未知字段按向前兼容策略忽略。
+Service-owned state must contain `schemaVersion`, currently `1`. Every field
+belongs to exactly one production authority class. Unknown fields are rejected;
+they are never ignored for forward compatibility.
 
 ## K-CFG-004 Provider Name Canonicalization
 
@@ -22,15 +33,27 @@ Root-level `~/.nimi/config.json` 不再是 future product authority。读取旧�
 
 ## K-CFG-005 Secret Policy
 
-provider 凭据允许使用 `apiKey` 或 `apiKeyEnv` 之一；两者不得同时设置。user-facing tooling 应优先使用环境变量或系统安全存储，inline `apiKey` 仅作为 canonical config file 的 fallback 形态。
+Provider records may contain only an opaque `credentialRef`. The referenced
+material is created and resolved inside Runtime service-principal custody.
+Inline `apiKey`, `apiKeyEnv`, process-environment lookup, user-session generic
+keyring/vault storage, renderer projection, and app-provided secrets are
+forbidden production shapes.
 
 ## K-CFG-006 Atomic Write
 
-配置写入必须采用临时文件 + rename 的原子写策略。
+Runtime writes service-owned non-secret state with fail-closed atomic replace,
+owner-only ACLs, symlink/reparse-point refusal, and durability appropriate to
+the OS profile. Secrets use the protected custody backend defined by
+K-PLOCAL-004 and are never serialized into the non-secret state document.
 
 ## K-CFG-007 Runtime Command Surface
 
-`config init/validate/get/set` 的行为语义必须与本契约一致，错误通过统一 reason code 输出。
+Production configuration is mutated only through typed protected control owned
+by Runtime. Desktop may receive redacted typed status and may request an
+admitted mutation; public CLI `config init/get/set`, arbitrary JSON patching,
+physical-path access, and whole-document reads are not production surfaces.
+Any retained command is a separately signed synthetic non-product fixture and
+cannot provide product evidence.
 
 ## K-CFG-008 Validation Fail-Close
 
@@ -38,7 +61,10 @@ provider 凭据允许使用 `apiKey` 或 `apiKeyEnv` 之一；两者不得同时
 
 ## K-CFG-009 Provider Env Binding
 
-provider 对应 `baseUrl/apiKey` 的环境变量绑定以 `provider-probe-targets.yaml` 为事实源。
+`provider-probe-targets.yaml` environment bindings are non-product probe
+fixtures only. Production provider endpoint and credential selection comes
+from Runtime-owned connector/provider state; an environment variable can
+neither create nor override a production provider record.
 
 ## K-CFG-010 Hot Reload Boundaries
 
@@ -46,17 +72,21 @@ provider 对应 `baseUrl/apiKey` 的环境变量绑定以 `provider-probe-target
 
 已声明的边界：
 
-- `~/.nimi/runtime/config.json`（本契约管辖的 machine config）为重启生效，
-  除非某条规则显式另行声明。
+- Service-owned Runtime configuration follows the per-field `restart`, `hot`,
+  or `immutable` disposition in `tables/config-schema.yaml`; callers cannot
+  infer reload behavior from a physical document.
 - Runtime Agent AI Config（K-AGCORE-144~150）不属于本契约的 machine
   config plane。它经 RuntimeAgentService RPC 持久化于 runtime store，热生效，
   粒度为 next-turn：变更不影响 in-flight turn 的 execution snapshot。
 
 ## K-CFG-011 Credential Plane Boundary
 
-配置层允许声明凭据引用，也允许在 canonical config file 中保留 fallback inline secret；更高层的安装与配置入口必须优先提供 env / secure-store path。
-
-对 public CLI first-run 而言，interactive credential capture 若发生，用户粘贴的 provider key 必须立即写入 canonical machine config，使同一条 onboarding `run` 不以“仅本次 inline memory credential”作为成功条件。该路径仍必须提示 inline secret 风险并继续推荐 `apiKeyEnv` / secure-store；写入失败必须 fail-close，不得继续执行 cloud generation。当前 invocation 可继续携带 inline metadata 给已运行 daemon，以避免假定 daemon 已热重载配置，但持久化结果必须以 canonical config 为准。
+Configuration may carry opaque credential references only. Interactive product
+credential capture terminates at a Runtime-owned protected connector/control
+operation, which stores the credential under the isolated Runtime principal
+and returns only redacted typed state. Desktop, public CLI, SDK, and app callers
+must not persist, cache, replay, or re-submit raw credential material after that
+operation. There is no inline-memory or user-file success fallback.
 
 Source materialization proof verification uses the configured Realm issuer and
 JWKS trust chain plus a closed materialization-purpose signing-key registry.
@@ -108,37 +138,41 @@ Desktop/CLI/SDK 对 runtime 配置行为的投影必须与本契约保持语义�
 `nimi run --cloud`、provider-only high-level CLI/SDK 等 surface 不得绕过这组
 配置语义。
 
-## K-CFG-014 Schema Migration Framework
+## K-CFG-014 Service Schema Transition Framework
 
-`schemaVersion` 不是声明性占位字段，而是迁移入口：
+Future service-owned schema transitions require an admitted release transition
+plan with exact `from_version`, `to_version`, field changes, defaults,
+anti-rollback rules, and fail-closed conditions. They operate only on state
+already owned by the isolated Runtime principal. This pre-release cutover does
+not import, inspect, back up, or transform user-session/retired configuration.
 
-- 每次 `schemaVersion` 递增都必须伴随明确的 migration plan。
-- migration plan 必须声明 `from_version`、`to_version`、字段级变更、默认值策略与 fail-close 条件。
-- 禁止跨版本隐式“猜测修复”；未知旧字段只能通过显式迁移规则处理。
+## K-CFG-015 Transition Execution Semantics
 
-## K-CFG-015 Migration Execution Semantics
+The signed Runtime release performs any admitted service-owned transition
+before protected listeners open. It is deterministic, idempotent, atomic, and
+anti-rollback anchored. Failure leaves no partially admitted state and keeps
+the service unavailable. Desktop/CLI/SDK never execute or select transitions.
 
-- Runtime 读取到旧 `schemaVersion` 配置时，必须先执行顺序迁移，再允许进入核心服务启动路径。
-- 迁移执行必须保持幂等：同一版本配置多次重放迁移，输出结果必须一致。
-- 迁移写回必须沿用 `K-CFG-006` 的原子写语义；写回失败时保留旧文件并终止启动。
+## K-CFG-016 Transition Backup & Drift Boundary
 
-## K-CFG-016 Migration Backup & Drift Boundary
-
-- 迁移成功写回前，Runtime 必须保留可恢复的 pre-migration backup 或等价回滚材料。
-- Desktop/CLI/SDK 只能消费迁移后的 canonical 配置，不得各自实现第二套 schema upgrade 逻辑。
-- 配置迁移规则进入 kernel 后，相关 default 值、热重载边界与 command surface 必须同步更新，禁止出现”schema 已升级但投影仍停留旧版本”的漂移。
+Automatic backups cannot restore older security ledger, executable trust,
+listener, or custody authority. Recovery material is version-bound and
+service-principal protected; restoration requires the same or newer admitted
+release record. User files and old generic keyring/vault entries are not
+recovery inputs.
 
 ## K-CFG-017 Phase 1 Field Authority
 
-Phase 1 配置文件 `~/.nimi/runtime/config.json` 的权威字段清单由
-`tables/config-schema.yaml` 定义。该表包含每个字段的类型、默认值、reload
-语义（`restart`/`hot`/`immutable`）与来源规则引用。
+Production Runtime fields and their authority classes are defined by
+`tables/config-schema.yaml`. The table records type, default, reload semantics
+(`restart`/`hot`/`immutable`), source rule, closed field partition, forbidden
+inputs, and redaction boundary.
 
 配置字段的新增或修改必须先更新 `tables/config-schema.yaml`，再同步相关合约文档。
 
 ## K-CFG-018 Data Root Reference And Service Posture Boundary
 
-Runtime config may store `dataRootRef` and derived managed roots for models,
+Runtime service-owned state may store `dataRootRef` and derived managed roots for models,
 dependencies, environments, logs, and audit. These fields are Runtime-owned
 daemon/materialization configuration and must be reconciled from the product
 control record selected `nimi_data`.
@@ -146,16 +180,16 @@ control record selected `nimi_data`.
 Runtime config also owns its own daemon identity and service posture:
 
 - `runtimeId` is the stable local Runtime daemon identity. It is generated once
-  at config init and is immutable for the lifetime of the config file.
+  by the service and is immutable for the lifetime of service-owned state.
 - `localService.enabled` and `localService.mode` declare the Runtime local
   service posture. `localService.mode` is restricted to the closed value
   `desktop-local` for the on-device Phase 1 product.
 
 Runtime config does not own first-run product state, install level, account app
 library, account profile library, permission grants, or app durable data.
-Conflicts between Runtime config roots and `~/.nimi/nimi.json` selected
-`nimi_data` must fail closed into repair/migration rather than silently choosing
-one path.
+The product-control service may project selected `nimi_data` through an exact
+typed protected operation. Conflicts fail closed; Runtime never reads the
+user-writable product-control file as configuration truth.
 
 The Runtime page `Environment` surface reads the `nimi_data` data-plane roots
 (`models`, `dependencies`, `environments`, `logs`, `audit`) as a Runtime-owned

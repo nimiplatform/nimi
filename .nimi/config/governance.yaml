@@ -385,6 +385,7 @@ ai_governance:
       - archive/**
       - docs/**
       - .local/**
+      - scripts/testdata/third-party-hardcut-evidence/**
       - "**/generated/**"
       - "**/gen/**"
       - "**/core_generated/**"

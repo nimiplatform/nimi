@@ -6,7 +6,20 @@ Runtime-owned Nimi App install, uninstall, update, health repair, open, and file
 
 This file is a semantic split from `app-messaging-contract.md`; Rule IDs and rule text remain authoritative under Runtime kernel.
 
+All lifecycle mutations (`InstallApp`, `UninstallApp`, `UpdateApp`,
+`HealthRepairApp`, `AdoptLocalApp`, `RemoveLocalAppAdoption`, and `OpenApp`)
+require the `desktop_control` / `desktop_lifecycle_host` row in
+`tables/protected-local-rpc-transport-matrix.yaml`. Public TCP, app session,
+app id, caller enum, source host, renderer metadata, and portable bearer are
+denied before lifecycle parsing. Mutations require the K-PLOCAL-007 lifecycle
+challenge and anchored durable intent; loss of protected transport, ledger, or
+process verification fails closed without fallback.
+
 ## K-APP-011 InstallApp Lifecycle
+
+Before download or filesystem side effects, Runtime validates the
+`desktop_lifecycle_host` protected origin and consumes a matching lifecycle
+challenge into an anchored durable intent.
 
 `MUST`：`InstallApp` 由 Runtime 拥有，是 Nimi App install 的唯一 RPC 入口。
 Runtime registration / supervision / sandbox 归 Runtime 所有
@@ -48,6 +61,10 @@ typed 进度帧。每个 `AppInstallJobEvent` 携带单调递增 `sequence` 与�
 
 ## K-APP-014 UninstallApp Lifecycle
 
+Before any irreversible removal, Runtime consumes the K-PLOCAL-007
+challenge/intent transaction. A request-body confirmation is product intent,
+not origin or authorization.
+
 `MUST`：`UninstallApp` 默认移除 `<nimi_data>/apps/<app-id>/releases` 下的
 release payload，保留 `<nimi_data>/apps/<app-id>/data` 下的 durable data
 （Platform `P-NAPP-015`）。只有当 caller 显式确认 destructive delete 时才
@@ -57,6 +74,9 @@ release payload，保留 `<nimi_data>/apps/<app-id>/data` 下的 durable data
 account data、或其他 app 的数据。
 
 ## K-APP-015 UpdateApp Atomic Update Lifecycle
+
+Protected Desktop lifecycle-origin validation and anchored challenge/intent
+creation precede download, swap, or active-release mutation.
 
 `MUST`：`UpdateApp` 由 Runtime 拥有，是 Nimi App update 的唯一 RPC 入口。
 Update handler 必须：
@@ -81,6 +101,10 @@ pseudo-success。
 
 ## K-APP-016 HealthRepairApp Lifecycle
 
+Every repair mutation requires the protected Desktop lifecycle origin and a
+single-use anchored lifecycle challenge; health reads do not manufacture that
+write authority.
+
 `MUST`：`HealthRepairApp` 由 Runtime 拥有，是 Nimi App health/repair 的唯一
 RPC 入口。它仅 admit 四个显式 action token：`cancel`、`retry`、`repair`、
 `reinstall`（SDK `S-APP-002`）。
@@ -97,47 +121,26 @@ success；不得 admit 上述四个 token 之外的 action。
 
 ## K-APP-017 OpenApp Launch Flow
 
-`MUST`：`RuntimeAppService` admit 一个 `OpenApp` RPC，作为 Nimi App
-launch（Open flow）的唯一 Runtime RPC 入口。Runtime 拥有 app launch
-supervision（Platform `P-NAPP-006`）。`OpenApp` 必须：
+Before package or launch-resolution work, the current `desktop_control`
+connection must carry Runtime-derived `desktop_lifecycle_host` origin and a
+matching anchored lifecycle intent. A.0 does not admit the installed child
+channel or installed app session; positive bundled/installed launch closeout
+waits for A.1 without a temporary fallback.
 
-- 解析 `app_id` 对应的 admitted Nimi App registry row
-  （`admission_status=admitted`），并按 descriptor `admission_track`
-  执行 visibility gate：`ordinary-release-proof` 必须来自 catalog
-  ordinary-visible row；`admission-sandbox-ci` 只能来自 admitted
-  developer-only sandbox row 和显式 CI/test harness launch context，不能计入
-  ordinary Apps discovery 或 product-readiness proof；
-- 接收一个显式的 canonical `AIScopeRef`，且该 ref 必须是 `P-AISC-007`
-  定义的 app-launch scope 形状 `{ kind: 'app', ownerId: <admitted app_id>,
-  surfaceId? }`，其 `ownerId` 必须与被 launch 的 `app_id` 一致；
-- 按 Open flow 顺序校验并 launch：verify package + account library state +
-  app data state → verify permissions 已 grant 或 promptable → ensure app
-  AIConfig 存在（首次 launch 走 `S-AICONF-009` 的 per-app first-launch
-  AIConfig initialization：app recommended profile if declared+satisfied,
-  else Account Default Profile；既有 per-app AIConfig 永不被覆盖）→
-  validate manifest requirements → launch；
-- 返回 typed launch projection，并对 package / library / app-data /
-  permission / AIConfig / manifest 任一环节的 fail-closed reason 携带
-  typed `reason_code`。
+In A.0, `OpenApp` is admitted only as a protected Desktop lifecycle mutation
+that consumes the exact anchored lifecycle intent. Because the installed child
+transport/session and launch projection are not admitted, it must not create a
+process/window or return `APP_OPEN_STATE_LAUNCHED`. It fails closed with the
+typed protected-transport-unavailable reason after intent validation and before
+child side effects.
 
-`MUST`：`OpenAppResponse.projection` is the Runtime-owned launch-resolution contract for installed Nimi Apps. The first third-party launch cut extends `OpenApp`; it MUST NOT add a parallel launch-resolution RPC unless a later Runtime authority rule amends the `K-APP-001` method set.
-
-`MUST`: for `APP_OPEN_STATE_LAUNCHED`, the projection MUST carry Runtime-attested launch-resolution fields: `app_id`, active version, release descriptor ref, descriptor class, `admission_track`, source kind, ordinary visibility, digest verification state, descriptor `runtime.entry_ref`, verified active release root or opaque launch URI rooted in the installed digest-verified release, app data/cache/tmp roots or opaque storage handles, standard shell capability-set ref for installed Nimi Apps, installed-app caller mode `desktop-launched-nimi-app`, and one-time launch nonce bound to the Desktop-created app host.
-
-`MUST`: an `admission-sandbox-ci` launch projection is non-product plumbing evidence. It MUST carry `ordinary_visibility: developer-only`, `source.kind: admission-sandbox-https-artifact`, and `product_readiness_claim_allowed: false`; Desktop/SDK may consume it only for CI/developer sandbox install-open-host probes. It MUST NOT satisfy ordinary catalog discovery, ordinary third-party release readiness, user-visible community listing proof, or the manual ordinary release gate.
-
-`MUST NOT`：Desktop, SDK, Kit, or apps must not derive descriptor refs, release roots, entry refs, storage roots, caller posture, or launch success from filesystem guesses, process liveness, local adoption, or renderer self-report.
-
-`MUST NOT`: local adoption, account-only inventory, tester developer registration, or Desktop shell caller identity may emit or satisfy the installed third-party launch-resolution fields admitted by `P-NAPP-034`, including `desktop-launched-nimi-app`, the one-time launch nonce, descriptor catalog proof, or product-readiness proof.
-
-`MUST NOT`：`OpenApp` 不得在缺少显式 `AIScopeRef` 时 launch，不得从 active
-chat、renderer-local current app、或默认 scope 隐式推断 launch scope
-（对齐 SDK `S-APP-003`）。它不得从 transfer completion、process liveness、
-file existence 推断 launch 成功；不得用单一 generic `unavailable` /
-`failed` 文案 collapse 多种 fail-closed reason；不得在 permission 未授予、
-AIConfig 无法解析、或 manifest requirement 未满足时返回 pseudo-success；
-不得在 Open flow 内静默改写既有 per-app AIConfig 或 factory profile
-template。
+A.0 defines no installed app caller enum, launch nonce/ticket, release/storage
+projection, host binding, renderer bridge, capability set, or sandbox positive
+path. A separate A.1 cross-owner admission must add all exact request/response,
+transport, process, replay, lifetime and failure semantics before positive
+launch implementation. Filesystem guesses, process liveness, local adoption,
+account inventory, tester registration, Desktop identity, app metadata,
+ordinary gRPC and prior implementation cannot approximate launch success.
 
 `MUST`：`UninstallApp`（`K-APP-014`）必须发射一个可被 watch 的 lifecycle
 job —— `AppLifecycleJobKind` admit 一个 `uninstall` job kind，使
@@ -155,10 +158,11 @@ audit / permission / spend 事件，也不得改变 `K-APP-014` 的 durable-data
 
 ## K-APP-018 Runtime-Mediated File-API Non-Admission
 
-`RuntimeAppService` 的 current admitted method set is exactly the 13
-methods listed in `K-APP-001` and
-`.nimi/spec/runtime/kernel/tables/rpc-methods.yaml`. No Runtime-mediated
-file-API RPC is admitted on the current `RuntimeAppService` surface.
+`RuntimeAppService` 的 admitted method set is exactly the 18 methods listed in
+`K-APP-001`. The two K-APP-026 lifecycle-intent methods remain non-callable and
+fail closed until the A.0 proto/`rpc-methods.yaml`/Runtime/SDK/Kit projection
+lands atomically; absence is not permission to emulate them. No
+Runtime-mediated file-API RPC is admitted on this service surface.
 
 The following method names are explicitly non-admitted on the current
 surface and MUST NOT be exposed by Runtime, SDK, Kit, Desktop, Tester, or
@@ -191,3 +195,30 @@ change updates `K-APP-001`, `rpc-methods.yaml`,
 `proto/runtime/v1/app.proto`, the Runtime implementation, SDK projection,
 and consumer tests together. A rule body outside `K-APP-001` MUST NOT
 amend the service method set by implication.
+
+## K-APP-026 Protected Desktop Lifecycle Intent Protocol
+
+`tables/protected-local-lifecycle-intent-protocol.yaml` is the sole method,
+action, canonical-impact, state, renderer-projection, replay, and
+reconciliation authority for lifecycle confirmation. Runtime admits one generic
+`PrepareAppLifecycleIntent` plus `GetAppLifecycleIntentStatus`; it does not
+duplicate prepare/status RPCs per lifecycle action.
+
+`PrepareAppLifecycleIntent` is available only on the live
+`desktop_lifecycle_host` connection. Runtime resolves current release,
+artifact/adoption generation, account generation, destructive options, and
+impact flags before returning the typed canonical impact and its RFC8785/SHA-256
+digest. `intent_id` and any job id are correlation-only and non-authorizing.
+Renderer may receive only the table's safe projection; it never receives a
+portable proof, process tuple, boot epoch, ledger anchor, account generation
+material, or credential.
+
+Every consuming lifecycle request carries `lifecycle_intent_id` and
+`displayed_impact_digest`. Runtime revalidates the same protected Desktop
+session/process/account/boot epoch, consumes the intent and creates its durable
+side-effect record in one anchored transaction, and starts no external side
+effect before the anchor advances. Caller `confirmed=true` is display state and
+never authorization. Missing, replaced, expired, replayed, wrong-target,
+wrong-release/digest, wrong-process, wrong-account, or wrong-display intent
+fails closed. Lost responses reconcile through the typed status RPC; status
+never authorizes a new mutation.

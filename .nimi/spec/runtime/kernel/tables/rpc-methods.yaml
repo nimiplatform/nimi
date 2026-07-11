@@ -18,6 +18,13 @@ surfaces:
   - RuntimeAppService
   - RuntimeArtifactService
   - RuntimeAgentService
+authority_pending_methods:
+  - service: RuntimeAuthService
+    name: OpenDesktopSession
+    type: unary
+    authority_status: admitted_a0_pending_proto_and_runtime_implementation
+    protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession
+    source_rule: K-PLOCAL-006
 services:
   - name: AIService
     source_rule: K-RPC-002
@@ -236,8 +243,10 @@ services:
     methods:
       - name: RegisterApp
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/RegisterApp
       - name: OpenSession
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAuthService/OpenSession
       - name: RefreshSession
         type: unary
       - name: RevokeSession
@@ -253,14 +262,29 @@ services:
     methods:
       - name: AuthorizeExternalPrincipal
         type: unary
+        authority_status: tombstone_pending_a3d_removal
+        transport_disposition: deny_all
+        protected_transport_ref: /nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal
       - name: ValidateAppAccessToken
         type: unary
+        authority_status: tombstone_pending_a3d_removal
+        transport_disposition: deny_all
+        protected_transport_ref: /nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken
       - name: RevokeAppAccessToken
         type: unary
+        authority_status: tombstone_pending_a3d_removal
+        transport_disposition: deny_all
+        protected_transport_ref: /nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken
       - name: IssueDelegatedAccessToken
         type: unary
+        authority_status: tombstone_pending_a3d_removal
+        transport_disposition: deny_all
+        protected_transport_ref: /nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken
       - name: ListTokenChain
         type: unary
+        authority_status: tombstone_pending_a3d_removal
+        transport_disposition: deny_all
+        protected_transport_ref: /nimi.runtime.v1.RuntimeGrantService/ListTokenChain
   - name: RuntimeExternalAgentService
     source_rule: K-RPC-026
     methods:
@@ -277,33 +301,45 @@ services:
     methods:
       - name: GetAccountSessionStatus
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus
       - name: SubscribeAccountSessionEvents
         type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents
       - name: BeginLogin
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/BeginLogin
       - name: CompleteLogin
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/CompleteLogin
       - name: RequestPresenceVerification
         type: unary
-      - name: GetAccessToken
-        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification
       - name: InvokeRealmUnary
         type: unary
         source_rule: K-ACCSVC-023
-      - name: RefreshAccountSession
-        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
       - name: Logout
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/Logout
       - name: SwitchAccount
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/SwitchAccount
       - name: IssueScopedAppBinding
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding
       - name: RevokeScopedAppBinding
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding
       - name: IssueWorkspaceBinding
         type: unary
+        authority_status: blocked_pending_separate_authority
+        transport_disposition: deny_all
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding
       - name: RevokeWorkspaceBinding
         type: unary
+        authority_status: blocked_pending_separate_authority
+        transport_disposition: deny_all
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding
   - name: RuntimeWorkflowService
     source_rule: K-WF-003
     methods:
@@ -413,18 +449,22 @@ services:
         type: server_stream
       - name: InstallApp
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/InstallApp
       - name: UninstallApp
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/UninstallApp
       - name: GetAppStorage
         type: unary
       - name: GetAccountAppInventory
         type: unary
       - name: AdoptLocalApp
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/AdoptLocalApp
       - name: ListLocalAppAdoptions
         type: unary
       - name: RemoveLocalAppAdoption
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAdoption
       - name: GetAppPackageReadiness
         type: unary
       - name: GetAppInstallJob
@@ -435,10 +475,13 @@ services:
         type: server_stream
       - name: UpdateApp
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/UpdateApp
       - name: HealthRepairApp
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/HealthRepairApp
       - name: OpenApp
         type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/OpenApp
   - name: RuntimeArtifactService
     source_rule: K-AGCORE-053
     methods:

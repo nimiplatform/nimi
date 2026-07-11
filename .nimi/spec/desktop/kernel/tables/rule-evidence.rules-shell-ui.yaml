@@ -253,12 +253,20 @@ rules:
   - desktop_lint_gate
   - desktop_test_gate
   evidence_requirement: required
+  note: Desktop UX/process-launch owner boundary and Runtime authenticated Realm data-plane ownership; detailed realtime clauses remain blocked.
+  evidence_scope_note: Desktop implementation gates remain compatibility evidence only; the owner-boundary checker validates the owner allocation, and neither evidence class admits detailed realtime transport.
+  test_files:
+  - scripts/check-installed-realm-owner-boundary.mjs
 - rule_id: D-NET-007
   evidence_refs:
   - desktop_kernel_consistency
   - desktop_lint_gate
   - desktop_test_gate
   evidence_requirement: required
+  note: Blocked detailed polling/realtime/replay coordination conflict; compatibility evidence and Runtime replay authority must precede implementation.
+  evidence_scope_note: Desktop implementation gates remain compatibility evidence only; the owner-boundary checker validates the blocked authority disposition, and neither evidence class admits polling/replay details.
+  test_files:
+  - scripts/check-installed-realm-owner-boundary.mjs
 - rule_id: D-SHELL-001
   evidence_refs:
   - desktop_kernel_consistency
@@ -648,6 +656,9 @@ rules:
   - desktop_test_gate
   - desktop_e2e_smoke_gate
   evidence_requirement: required
+  evidence_scope_note: Existing reconnect tests are compatibility evidence only; protected Desktop and child-channel reverification implementation/live evidence remains pending.
+  test_files:
+  - scripts/check-protected-local-authority.mjs
 - rule_id: D-OFFLINE-005
   evidence_refs:
   - desktop_kernel_consistency

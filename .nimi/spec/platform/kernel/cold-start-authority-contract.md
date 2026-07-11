@@ -154,15 +154,17 @@ authenticated product readiness.
 
 ## P-COLD-013 — Runtime Config Owner Split
 
-`MUST`：Runtime config belongs under `~/.nimi/runtime/config.json` and may
-reference selected `nimi_data` through `dataRootRef` and managed root fields.
-Runtime config owns daemon/materialization roots and service posture; product
-setup ownership remains in `~/.nimi/nimi.json`.
+`MUST`：Production Runtime configuration belongs to the isolated Runtime OS
+service principal at its OS-profile protected location. Product-control may
+send selected `nimi_data` only through an exact typed protected operation;
+Runtime stores `dataRootRef`/managed roots in service-owned state. Physical
+Runtime config paths are never product-control pointers.
 
-`MUST NOT`：root-level `~/.nimi/config.json`, `~/.nimi/runtime/config.json`,
-`~/.nimi/nimi.json`, and Desktop path cache records are not interchangeable
-owners. Migration may read old files only as explicit migration evidence and
-must fail closed on ambiguous conflicts.
+`MUST NOT`：`~/.nimi/config.json`, retired
+`~/.nimi/runtime/config.json`, `~/.nimi/nimi.json`, Desktop caches, env, argv,
+or renderer metadata cannot become Runtime security/configuration truth. The
+pre-release hardcut imports no old Runtime config or credentials; ambiguity
+fails closed and requires fresh service configuration.
 
 ## P-COLD-014 — Canonical First-Run State Machine
 

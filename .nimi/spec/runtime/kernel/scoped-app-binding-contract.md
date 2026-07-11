@@ -13,8 +13,9 @@ reuse Avatar / agent / window / anchor tuple semantics. WORKSPACE_PRIVATE
 knowledge access uses the workspace-specific binding authority in
 `workspace-binding-contract.md` (`K-BIND-016..024`).
 
-Runtime-issued app access token 是 `RuntimeAccountService.GetAccessToken`
-管理的独立 account-token-broker surface。它不是 scoped binding carrier，也不得作为 binding-only Avatar capability 的一部分传递。
+Public `RuntimeAccountService.GetAccessToken` is a deny-all tombstone pending
+A.3d removal. Scoped binding never carries or redeems account bearer material;
+all local app Realm access uses the Runtime-mediated broker.
 
 Default Nimi Avatar launch is no longer a Desktop scoped-binding consumer.
 Avatar default launch is governed by `.nimi/spec/avatar/kernel/app-shell-contract.md`
@@ -61,7 +62,10 @@ Avatar binding 必需 scope 集合：
 | Raw JWT 或解码后的 subject | `forbidden` | subject / account truth 泄漏 |
 | `subject_user_id` 字段 | `forbidden` | 调用方提供的 subject truth |
 
-Invariant: local first-party 消费者不允许把 binding 材料赎回为 durable account / session / subject / token truth。需要 direct Realm data access 的 full first-party app 必须使用单独的 Runtime-backed short-lived access-token provider，不能把 binding carrier 当 token surface。
+Invariant: no local consumer may redeem binding material into durable account,
+session, subject, bearer, or token truth. First-party, bundled, installed,
+developer and binding-only callers all use Runtime-mediated operations; binding
+is an authorization relation, never a token surface.
 
 ## K-BIND-004 生命周期
 
@@ -159,10 +163,13 @@ binding 事件家族（与 `K-ACCSVC-006` 一致）：
 
 ## K-BIND-011 与 Grant Service 的关系
 
-`RuntimeGrantService`（`K-GRANT-*`）继续负责 external-principal grant 与 caller-supplied subject 流程。external-principal grant 与本契约不互通：
+The public `RuntimeGrantService` family is deny-all pending A.3d removal.
+External-principal binding cannot interoperate with or substitute for this
+scoped local binding contract:
 
 - local first-party / developer-registered local scoped binding 必须由 `RuntimeAccountService.IssueScopedAppBinding` 发出，subject 由 Runtime 内部派生。
-- external-principal grant 仍由 `RuntimeGrantService` 发出，使用现有 `subject_user_id` 流程。
+- no public external-principal grant or caller-supplied `subject_user_id`
+  issuance path is admitted;
 - 二者 binding ID 命名空间必须可区分，且不可互相赎回。
 
 ## K-BIND-012 与 App Messaging 的关系
@@ -216,4 +223,7 @@ binding 相关 fail-close 场景：
 - daemon restart 后旧 binding 被复用
 - replay 检测命中
 
-任何场景下都不得回退到 anonymous subject、shared auth、Realm direct identity bootstrap、或 fixture mode。Full first-party app direct Realm data access 只允许通过 `K-ACCSVC-005` / `GetAccessToken` 的 Runtime-issued short-lived access token，不属于 binding fallback。Default Avatar app falls under that full first-party rule, not this binding-only fallback path.
+任何场景下都不得回退到 anonymous subject、shared auth、Realm direct identity
+bootstrap、fixture mode 或 public token RPC。Full first-party apps and default
+Avatar use the same Runtime-mediated broker as every local app; no binding or
+caller class permits an app/host bearer fallback.

@@ -9,25 +9,36 @@ Runtime SDK transport 必须满足以下构造边界：
 - `node-grpc`
 - `tauri-ipc`
 - `electron-ipc`
+- native `protected-local-host` carrier (host-injected; never renderer-constructed)
 
 Electron transport rules:
 - Non-Node Runtime consumers must pass an explicit transport. Supported explicit transports are `node-grpc`, `tauri-ipc`, and `electron-ipc`.
-- `electron-ipc` is the first-party Runtime transport for Electron renderers. It must use `window.__NIMI_ELECTRON_RUNTIME__` installed by preload and must not spoof `__NIMI_TAURI_RUNTIME__` or open raw Node gRPC from renderer code.
-- `tauri-ipc` and `electron-ipc` share SDK wire semantics for renderer-owned fields: method id, protobuf bytes, metadata split, response metadata, server stream open/close, abort, backpressure, and fail-closed structured errors. `electron-ipc` must not accept renderer-provided Runtime auth/session credentials; Electron host code owns trusted auth/session injection.
+- `electron-ipc` / `tauri-ipc` generic renderer bridges can carry only
+  independently admitted public/binding-only operations. They must reject
+  protected method ids and authorization-bearing renderer payloads.
+- Protected Desktop calls use the host-injected native carrier. SDK receives a
+  typed carrier handle, never endpoint/session/process/trust material, and
+  cannot derive or inject origin. Installed/developer app child carriers are
+  absent pending A.1.
 
 规则：
 
-- Node.js first-run surface 允许默认 `node-grpc` transport，目标地址为 `process.env.NIMI_RUNTIME_ENDPOINT || '127.0.0.1:46371'`。
-- 非 Node.js surface 禁止隐式默认 transport，必须显式传入 `node-grpc` 或 `tauri-ipc`。
-- 默认 transport 只解决本地 runtime 发现问题，不得引入 SDK 级全局单例。
+- Production has no `NIMI_RUNTIME_ENDPOINT` or implicit endpoint discovery for
+  protected calls. A Node loopback default is allowed only for separately
+  signed synthetic non-product fixtures and public/binding-only testing.
+- Non-Node surfaces require an explicit ordinary transport or injected native
+  carrier. Missing method-required carrier fails closed.
 
 ## S-TRANSPORT-002 Metadata 投影边界
 
 Runtime SDK 必须遵循 metadata/body 分离：
 
 - `connectorId` 在 request body
-- provider endpoint/api_key 在 transport metadata
-- Runtime 鉴权 token 不属于业务 metadata；必须通过 transport auth 通道注入到 gRPC metadata `authorization`
+- provider endpoint/key never enters SDK transport metadata; Runtime resolves
+  connector/credential refs inside service-principal custody
+- an `authorization` bearer may serve only an explicitly fenced Web/cloud,
+  external-principal, or ordinary public AuthN contract; it never establishes
+  K-PLOCAL protected origin or invokes the public Grant tombstones
 
 幂等键透传：SDK 支持通过 `options.idempotencyKey` 传递 `x-nimi-idempotency-key` metadata（`K-DAEMON-006`）。缺省时不设置该 header，runtime 不做去重。
 
@@ -54,7 +65,12 @@ SDK 与 Runtime 的版本协商必须显式可判定：
 - 方法可用性通过已知方法集合（`runtime-method-groups.yaml`）静态判定，不依赖运行时反射。
 - 降级仅限于 Phase 2 deferred 方法标记为不可用，不改变 Phase 1 方法语义。
 
-**Runtime 侧协议**：Runtime 通过 gRPC response header metadata `x-nimi-runtime-version` 暴露 semver 版本（`K-DAEMON-011`）。SDK 从首次成功 RPC 的 response metadata 中提取并缓存版本。Desktop 通过 `runtime_bridge_status` 的 `daemonVersion` 字段获取版本（`D-IPC-002`/`D-IPC-014`），两条路径语义等价。若 metadata 缺失（旧版 Runtime），SDK 按 best-effort 处理：假设兼容，首次方法不可用错误时报告版本问题。
+**Protected protocol**：Production Desktop/Runtime compatibility is proven
+before SDK traffic by mutual signed release records: exact
+`protected_local_protocol_version` plus reciprocal peer release-id admission.
+Typed status returns the verified release id. Semver metadata is advisory for
+ordinary public transports only; missing protected compatibility never uses
+best-effort or assumes compatibility.
 
 **blocked vs deferred 语义区分**：
 
@@ -107,16 +123,18 @@ Mode D 投影规则按 Phase 分层：
 
 ## S-TRANSPORT-010 Runtime 鉴权注入边界
 
-- Runtime SDK 必须支持 `auth.accessToken`（`string` 或 token provider 函数）作为统一鉴权来源。
-- 每次 unary/stream 调用前都必须重新解析 token（不得在 client 构造时静态固化）。
-- Bearer 注入必须按方法/路由判定，不得对所有 Runtime 调用无条件注入：
-  - `cloud` AI consume 路径必须注入 Bearer。
-  - local 生命周期写 RPC 必须注入 Bearer。
-  - anonymous local AI consume（`route_policy=LOCAL` 且无 `connector_id`、无 inline remote 凭据 metadata）不得注入 Bearer。
-  - `RuntimeLocalService` 的只读 RPC（含 `WarmLocalAsset`）不得注入 Bearer。
-- 未解析到 token 时，SDK 发送匿名请求；匿名是否被接受由 runtime 侧按 `K-AUTHN-*` / `K-KEYSRC-*` / `K-LOCAL-*` 判定。
-- anonymous 行为仅在 `Authorization` 头缺失时成立。若 SDK 注入或上游显式提供了非法 Bearer，runtime 必须按 `K-AUTHN-001` / `K-AUTHN-007` 返回 `UNAUTHENTICATED + AUTH_TOKEN_INVALID`，不得降级为 anonymous。
-- 上层应用不得通过 `metadata.extra` 手工拼接 `authorization`；该字段属于 transport 内部实现细节。
+- `auth.accessToken` is available only in explicit Web/cloud or
+  external-principal adapters whose own authority admits it. It is unreachable
+  from every local Runtime app/Desktop facade.
+- Local protected account, lifecycle, Realm, connector, AI and service-control
+  calls never inject a bearer. They require the native verified carrier and the
+  exact Runtime-derived origin/operation policy.
+- Public/binding-only calls cannot be upgraded by a bearer, app id, caller enum
+  or metadata. `GetAccessToken`, public refresh and all five public Grant
+  methods remain deny-all regardless of token validity.
+- `metadata.extra` and renderer IPC must reject `authorization`, provider keys,
+  Realm bases, protected session ids and origin material rather than silently
+  stripping and continuing.
 
 ## S-TRANSPORT-011 背压投影
 

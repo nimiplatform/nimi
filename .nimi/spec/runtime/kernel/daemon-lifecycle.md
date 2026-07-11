@@ -20,13 +20,32 @@ Runtime daemon 维护全局健康状态，枚举固定为：
 
 ## K-DAEMON-002 启动序列
 
+Before any public or protected listener opens, Runtime validates the dedicated
+`protected_local.db` ledger against its secure-store anti-rollback anchor,
+generates the 32-byte CSPRNG boot epoch, and commits an anchored revocation of
+all nonterminal prior-epoch protected state. Ledger unavailability,
+corruption, rollback mismatch, endpoint ownership failure, or an unsupported
+required OS primitive disables protected features fail-closed; it never
+enables public-TCP or portable-session fallback.
+
+In a production build the signed OS service manager definition must prove the
+exact K-PLOCAL Runtime service principal, executable trust row, release digest,
+and immutable production configuration before ledger or custody access. A
+Desktop-spawned same-user process, command-line `serve`, user-session generic
+keyring, environment-selected Realm/renderer/gRPC endpoint, user-writable
+config, or test trust row is non-product and cannot open a production listener.
+Desktop start/restart UX invokes the typed OS service-control gateway; it does
+not choose or spawn the Runtime executable.
+
 Daemon 启动固定为以下阶段：
 
-1. **Config**：加载配置（`K-DAEMON-009`），校验地址与超时。
-2. **Servers**：并行启动 gRPC server 与 HTTP server。
-3. **Engines**：若引擎 SUPERVISED 模式启用（`K-LENG-004`），创建 engine.Manager 并按配置启动 enabled 的引擎。引擎就绪后注入 endpoint 环境变量。启动失败不阻塞 daemon，标记 `DEGRADED`，并写入引擎 bootstrap 失败审计与 provider 不健康原因上下文。
-4. **Ready**：状态从 `STARTING` 迁移到 `READY`，同步 gRPC health serving status。
-5. **Probes**：启动资源采样（1s 周期，内存）与 AI Provider 健康探测（`K-PROV-003`）。
+1. **Service identity**：验证 service principal、signed service definition、Runtime release trust/digest、account partition 和 production/test isolation。
+2. **Config**：仅从 signed service definition 与 signed release projection 加载 production 配置（`K-DAEMON-009`），校验地址与超时；env/argv/user-writable override 被拒绝。
+3. **Protected state**：验证 service-owned custody/ledger/anchor 并提交 boot-epoch revocation。
+4. **Servers**：并行启动 public gRPC/HTTP 与 protected local listeners。
+5. **Engines**：若引擎 SUPERVISED 模式启用（`K-LENG-004`），创建 engine.Manager 并按配置启动 enabled 的引擎。引擎就绪后注入 endpoint 环境变量。启动失败不阻塞 daemon，标记 `DEGRADED`，并写入引擎 bootstrap 失败审计与 provider 不健康原因上下文。
+6. **Ready**：状态从 `STARTING` 迁移到 `READY`，同步 gRPC health serving status。
+7. **Probes**：启动资源采样（1s 周期，内存）与 AI Provider 健康探测（`K-PROV-003`）。
 
 ## K-DAEMON-003 优雅停机
 
@@ -61,23 +80,30 @@ Daemon 启动固定为以下阶段：
 
 ## K-DAEMON-005 gRPC 拦截器链
 
-gRPC 请求经过 8 层有序拦截器，unary 与 stream 分别注册：
+For protected transports, immutable `protected-origin` derivation executes
+before version/protocol parsing, authn, authz, business request parsing, token
+access, or network I/O. It binds the K-PLOCAL-003..005 verified
+connection/process facts and rejects transport/role mismatch. Public TCP gets
+an explicit non-protected origin and cannot supply protected metadata.
+
+gRPC 请求经过 9 层有序拦截器，unary 与 stream 分别注册：
 
 | 顺序 | 名称 | Unary | Stream | 职责 |
 |---|---|---|---|---|
-| 1 | version | 是 | 是 | 版本协商：向 response header 注入 `x-nimi-runtime-version` |
-| 2 | lifecycle | 是 | 是 | 健康状态门控：`STOPPING`/`STOPPED` 时拒绝非只读请求（`UNAVAILABLE`） |
-| 3 | activity | 是 | 是 | 活跃 RPC 跟踪：记录方法分类、最近活动时间、shutdown disposition |
-| 4 | protocol | 是 | 是（仅解析） | 信封解析、幂等性检查（unary only，`K-DAEMON-006`）、metadata 提取 |
-| 5 | authn | 是 | 是 | 认证校验：解析并校验 metadata `authorization`，投影调用方身份 |
-| 6 | authz | 是 | 是（仅 ExportAuditEvents） | 保护能力校验：通过 grant service 验证 token 有效性 |
-| 7 | credential-scrub | 是 | 是 | 擦除进入 handler context 的敏感 credential metadata，避免下游日志/审计链路回显原始凭据 |
-| 8 | audit | 是 | 是 | 审计记录：请求/响应写入审计日志，更新使用量指标 |
+| 1 | protected-origin | 是 | 是 | 在解析 protocol/auth metadata 前从连接派生 immutable transport/process origin；public TCP 只能得到 non-protected origin |
+| 2 | version | 是 | 是 | 版本协商：向 response header 注入 `x-nimi-runtime-version` |
+| 3 | lifecycle | 是 | 是 | 健康状态门控：`STOPPING`/`STOPPED` 时拒绝非只读请求（`UNAVAILABLE`） |
+| 4 | activity | 是 | 是 | 活跃 RPC 跟踪：记录方法分类、最近活动时间、shutdown disposition |
+| 5 | protocol | 是 | 是（仅解析） | 信封解析、幂等性检查（unary only，`K-DAEMON-006`）、metadata 提取 |
+| 6 | authn | 是 | 是 | 认证校验：解析并校验 metadata `authorization`，投影调用方身份 |
+| 7 | authz | 是 | 是（仅 ExportAuditEvents） | 保护能力校验：通过 grant service 验证 token 有效性 |
+| 8 | credential-scrub | 是 | 是 | 擦除进入 handler context 的敏感 credential metadata，避免下游日志/审计链路回显原始凭据 |
+| 9 | audit | 是 | 是 | 审计记录：请求/响应写入审计日志，更新使用量指标 |
 
 说明：
 
 - `StreamScenario` 的授权范围豁免由 `K-KEYSRC-004` 在请求评估链中单独定义，不归入本表的 stream authz 适用面；本表中 stream authz 拦截器仅对 `ExportAuditEvents` 生效。
-- activity interceptor 负责 shutdown/drain 期的活跃 RPC 跟踪，不替代 lifecycle gate。
+- protected-origin interceptor 只消费 OS/transport 层事实，不解析或相信 request metadata；activity interceptor 负责 shutdown/drain 期的活跃 RPC 跟踪，不替代 lifecycle gate。
 - credential-scrub interceptor 发生在 authz 之后、audit 之前；它不移除 authn/authz 所需凭据，只防止下游消费到原始 credential metadata。
 
 协议信封 metadata 的单字段值必须不超过 `4096` bytes。超限时 protocol interceptor 必须以 `PROTOCOL_ENVELOPE_INVALID` fail-close，避免在现有 gRPC/HTTP header 总预算（64 KiB）内被单个异常大字段挤占或污染日志链路。
@@ -125,32 +151,42 @@ AI 执行路径使用双层信号量控制并发：
 
 ## K-DAEMON-009 配置解析
 
-配置通过多源合并，优先级从高到低：
+Production configuration has two disjoint classes:
 
-1. **环境变量**（`NIMI_RUNTIME_*`）
-2. **配置文件**（`~/.nimi/runtime/config.json`，JSON 格式，`schemaVersion=1`）
-3. **硬编码默认值**
+1. **Boot security configuration** — service principal, service definition,
+   protected/public listener identity, release trust root/record, Realm account
+   endpoints, custody locations, and test/production posture come only from the
+   signed OS service definition and signed Runtime release projection. They are
+   immutable at runtime.
+2. **Mutable product configuration** — admitted provider/model/local-engine and
+   user preference fields live in service-principal-owned state and may change
+   only through typed protected Desktop control after authorization. The
+   service validates the closed `tables/config-schema.yaml` row before commit.
 
-关键配置项的权威字段清单见 `tables/config-schema.yaml`（K-CFG-017）。
+Production ignores and rejects `NIMI_RUNTIME_*`, argv-selected endpoints,
+user-writable config files, `~/.nimi/runtime/config.json`, app/renderer
+metadata, and unknown fields as configuration authority. The pre-release
+hardcut performs no legacy import. Separately signed non-product binaries may
+accept explicit test harness configuration only with synthetic custody and
+non-product endpoints; those runs cannot produce product evidence.
 
 校验规则：
 - 地址必须为合法 `host:port` 格式。
 - `ShutdownTimeout > 0`。
 
-仅支持 canonical 配置路径：`~/.nimi/runtime/config.json`。Root-level
-`~/.nimi/config.json` 仅可作为显式 migration input；迁移后不得作为 fallback
-truth。
+The physical service-owned path is OS-profile-specific and never returned to
+Desktop/apps. Config reads return a redacted typed projection; config writes
+commit through the Runtime service and cannot replace boot security fields.
+Unknown fields fail closed.
 
-Phase 1 配置文件 schema 权威字段清单见 `tables/config-schema.yaml`（`K-CFG-017`）。
-
-未知字段在解析时忽略（向前兼容）。
-
-**`config set` 响应 reasonCode**：
+**Typed protected config mutation response**：
 
 - `CONFIG_RESTART_REQUIRED`：至少一个 `restart` 列字段发生了变更。
 - `CONFIG_APPLIED`：仅 `hot` 列字段发生变更，或无实质变更。
 
-消费端（Desktop）仅在收到 `CONFIG_RESTART_REQUIRED` 时提示用户重启 runtime。
+Desktop may present `CONFIG_RESTART_REQUIRED` and request the typed service
+`restart` operation. It never calls stop, writes a document, or selects a
+binary/config path.
 
 `providers.*`、`engines.llama.*`、`engines.media.*` 变更属于 restart 范畴，必须返回 `CONFIG_RESTART_REQUIRED`。legacy `engines.localai.*`、`engines.nexa.*`、`engines.nimi_media.*` 命中时必须 reject。
 

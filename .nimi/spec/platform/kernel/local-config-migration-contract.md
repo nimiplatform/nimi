@@ -9,7 +9,7 @@
 
 本契约是 T10 portfolio 的 cross-cutting authority：它**不**重新拥有任何单个
 `~/.nimi` schema 文件的字段定义。每个 schema 文件的字段权威仍归其 surface owner
-authority family（`~/.nimi/nimi.json` → T1；`~/.nimi/runtime/config.json` /
+authority family（`~/.nimi/nimi.json` → T1；
 `~/.nimi/profiles/factory-index.json` / `~/.nimi/runtime/default.json` → T2；
 `~/.nimi` app registry / packages / library / grants 文件 → T4）。本契约只拥有：
 
@@ -20,16 +20,16 @@ authority family（`~/.nimi/nimi.json` → T1；`~/.nimi/runtime/config.json` /
   never data orphaning）；
 - `nimi_data` data-root 目录所有权与 destructive-cleanup confirmation floor。
 
-Runtime `~/.nimi/runtime/config.json` 的迁移机制由 Runtime kernel 的
-`K-CFG-014` / `K-CFG-015` / `K-CFG-016` 定义并执行。本契约**不**重定义该机制；
-`~/.nimi` 配置文件族的统一框架与之**不竞争**：Desktop 侧不执行 Runtime config
-迁移，也不提供跨文件旧 schema 自动升级。Runtime config 继续由 `K-CFG-*` 作为
-该文件自身的执行权威。
+Production Runtime configuration is service-principal-owned protected state,
+not a `~/.nimi` user-local config file and not a member of this registry.
+`K-CFG-014..016` govern only future transitions of already service-owned state;
+they import no retired `~/.nimi/runtime/config.json`. Desktop and this framework
+must not inspect, repair, migrate, recreate, or point at that retired file.
 
 不拥有：
 
 - 任何单个 `~/.nimi` schema 文件的字段定义、默认值或 reload 语义；
-- Runtime config 的迁移执行（`K-CFG-014..016` 所有）；
+- Runtime service-state transition or retired user-config import（the latter is forbidden）；
 - `~/.nimi/nimi.json` 的 product-control 状态机（`P-COLD-009..016`）；
 - Runtime model / dependency / environment materializer 对 `nimi_data` 子目录的
   写入与清理执行（`K-LENV-*`）。
@@ -41,7 +41,6 @@ Runtime `~/.nimi/runtime/config.json` 的迁移机制由 Runtime kernel 的
 | File | Schema field owner authority | Notes |
 |---|---|---|
 | `~/.nimi/nimi.json` | T1 | product-control record；`P-COLD-009` |
-| `~/.nimi/runtime/config.json` | T2 | Runtime config；迁移执行由 `K-CFG-014..016` 拥有 |
 | `~/.nimi/runtime/default.json` | T2 | Runtime default seed |
 | `~/.nimi/profiles/factory-index.json` | T2 | factory AIProfile index |
 | `~/.nimi/apps/registry.json` | T4 | account apps registry projection |
@@ -96,9 +95,9 @@ repair-routing 框架，不得每个文件各自实现一套旧 schema upgrade �
 authority 与 migration packet；在该 authority admitted 之前，旧版本一律
 fail-closed-to-repair。
 
-`MUST`：Runtime `~/.nimi/runtime/config.json` 的迁移执行继续由 `K-CFG-014` /
-`K-CFG-015` / `K-CFG-016` 拥有。本框架对该文件的约束是 membership /
-alignment-only：`P-MIG-*` 不执行该文件迁移。
+`MUST NOT`：本框架不得把 retired `~/.nimi/runtime/config.json` 注册为成员、
+修复输入或 migration source。Runtime service-owned state is outside the
+interactive-user file family and follows `K-CFG-014..016` only.
 
 `MUST NOT`：不得存在第二套并行的 `~/.nimi` schema upgrade 实现；不得出现
 Desktop 读旧版本并自动补字段、改写文件、保留 migration backup、或把旧版本当作
@@ -186,8 +185,9 @@ non-cache 的 user / app / account 持久数据；`cache/` / `tmp/` 类纯缓存
 - `~/.nimi/nimi.json` 的 product-control 状态机仍归 `P-COLD-009..016`；本契约
   对该文件只提供 governed-family 成员资格与统一 fail-closed/repair-routing
   floor，不重定义其 `state` 集合。
-- `~/.nimi/runtime/config.json` 的迁移执行仍归 `K-CFG-014..016`；本契约只
-  作为跨文件 membership / repair floor 与之对齐，不重定义其执行规则。
+- Runtime service-owned state transition remains under `K-CFG-014..016` and is
+  outside this user-local registry. Retired `~/.nimi/runtime/config.json` is
+  neither membership nor repair/migration input.
 - `nimi_data` 子目录的 materialization 写入与 job 执行仍归 Runtime
   `K-LENV-*`；本契约只拥有目录 owner/cleanup 表与 data-root relocation admission
   floor，不提供 ordinary Desktop relocation 执行面。

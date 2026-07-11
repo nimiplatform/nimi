@@ -21,6 +21,7 @@ authority:
   rust_host_surface: nimi_shell_tauri::capabilities
   electron_host_surface: "@nimiplatform/kit/shell/electron/main"
   renderer_surface: "@nimiplatform/kit/shell/renderer/bridge"
+  protected_host_surface: kit/shell/protected-local
 
 error_envelope:
   required_fields:
@@ -32,7 +33,10 @@ error_envelope:
     - details
   codes:
     - capability-unavailable
-    - external-daemon-required
+    - protected-carrier-required
+    - runtime-service-unavailable
+    - runtime-service-untrusted
+    - runtime-service-repair-required
     - runtime-permission-denied
     - runtime-unauthenticated
     - forbidden-renderer-access
@@ -78,6 +82,20 @@ storage_payload_policy:
     - cacheRoot
     - tempRoot
 
+protected_service_control_policy:
+  operations: [runtime-lifecycle.status, runtime-lifecycle.start, runtime-lifecycle.restart]
+  request_fields:
+    runtime-lifecycle.status: []
+    runtime-lifecycle.start: []
+    runtime-lifecycle.restart: []
+  result_fields: [state, releaseId, reasonCode, retryable]
+  state_values: [stopped, start_pending, running, restart_pending, unavailable]
+  product_stop_operation: absent
+  service_name_binary_path_argv_endpoint_config_or_trust_path_input: forbidden
+  owner: runtime_os_service_manager
+  carrier: kit.shell.protected-local
+  source_rule: P-KIT-041
+
 capability_set_schema:
   owner: platform_standard_shell_capabilities
   source_rule: P-KIT-044
@@ -87,7 +105,10 @@ capability_set_schema:
     - app_package_kind
     - launch_resolution
     - auth_binding
+    - authority_status
     - allowed_operations
+    - planned_operations
+    - planned_operations_disposition
     - forbidden_operations
     - negative_tests
     - source_rule
@@ -96,9 +117,11 @@ capability_sets:
   - set_id: installed-nimi-app-standard-shell-v1
     host_class: desktop-electron-installed-app-host
     app_package_kind: nimi-app
-    launch_resolution: runtime-openapp-attested
-    auth_binding: host-owned-runtime-app-session
-    allowed_operations:
+    launch_resolution: blocked_pending_a1_no_product_launch
+    auth_binding: binding_only_no_protected_session
+    authority_status: blocked_pending_a1
+    allowed_operations: []
+    planned_operations:
       - runtime.unary
       - runtime.streamOpen
       - runtime.streamClose
@@ -115,10 +138,10 @@ capability_sets:
       - shell-ui.confirmDialog
       - shell-ui.startWindowDrag
       - shell-ui.focusMainWindow
+    planned_operations_disposition: deny_until_a1_authority_and_implementation
     forbidden_operations:
       - runtime-lifecycle.status
       - runtime-lifecycle.start
-      - runtime-lifecycle.stop
       - runtime-lifecycle.restart
       - runtime-defaults.get
       - auth.sessionLoad
@@ -179,7 +202,7 @@ capabilities:
         command: nimi.shell.runtime.unary
         negative_states:
           - capability-unavailable
-          - external-daemon-required
+          - protected-carrier-required
           - runtime-permission-denied
           - runtime-unauthenticated
           - invalid-payload
@@ -188,7 +211,7 @@ capabilities:
         command: nimi.shell.runtime.stream.open
         negative_states:
           - capability-unavailable
-          - external-daemon-required
+          - protected-carrier-required
           - runtime-permission-denied
           - runtime-unauthenticated
           - invalid-payload
@@ -207,21 +230,19 @@ capabilities:
         command: nimi.shell.runtimeLifecycle.status
         negative_states:
           - capability-unavailable
-          - external-daemon-required
+          - protected-carrier-required
           - runtime-permission-denied
           - runtime-unauthenticated
       - id: start
         command: nimi.shell.runtimeLifecycle.start
         negative_states:
-          - external-daemon-required
-      - id: stop
-        command: nimi.shell.runtimeLifecycle.stop
-        negative_states:
-          - external-daemon-required
+          - runtime-service-unavailable
       - id: restart
         command: nimi.shell.runtimeLifecycle.restart
         negative_states:
-          - external-daemon-required
+          - runtime-service-unavailable
+          - runtime-service-untrusted
+          - runtime-service-repair-required
   - id: runtime-defaults
     host_contract: NimiStandardShellCapabilityHost
     operations:
@@ -330,7 +351,7 @@ capabilities:
       - id: set
         command: nimi.shell.config.set
         negative_states:
-          - external-daemon-required
+          - capability-unavailable
           - capability-unavailable
           - invalid-payload
   - id: local-assets

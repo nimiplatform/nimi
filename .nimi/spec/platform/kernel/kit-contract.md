@@ -62,9 +62,19 @@
 - Error boundary must be React-only and must not assume a specific app context.
 - Only peer dependency on React is permitted.
 
-## P-KIT-041 — Tauri Shell Module
+## P-KIT-041 — Native Protected Carrier And Tauri Shell Modules
 
-- `shell/tauri` is an infra module that implements the standard shell capabilities for Tauri hosts: runtime bridge, runtime lifecycle, session logging, auth/oauth commands, runtime defaults, data/storage/config, local assets, local agent identity, avatar support, diagnostics, and packaged Platform catalog projections needed by Rust host materialization/verification code.
+- `shell/protected-local` is the single shared native host contract for
+  protected Runtime mutual endpoint/process/executable verification, the empty
+  `OpenDesktopSession` bootstrap, and typed fixed-service
+  `status/start/restart`. Kit carries typed calls only; Runtime/OS own endpoint,
+  origin, custody, service lifecycle and security truth. Product stop, binary /
+  service/path selection, generic config JSON, bearer privilege, and A.1 app
+  child carrier are absent.
+- `shell/tauri` is an infra module that consumes `shell/protected-local` and
+  implements app-agnostic Tauri shell capabilities. It must not implement a
+  parallel daemon manager, stage/execute Runtime, own credentials, exchange
+  OAuth tokens, inject Realm endpoints, or expose protected generic gRPC IPC.
 - Authority id and source location are `kit.shell.tauri` at `kit/shell/tauri/`.
 - Public standalone delivery crate name is `nimi-shell-tauri`; standalone
   generated apps depend on the published crate only after scaffolding shell
@@ -75,7 +85,10 @@
 - Must remain renderer-agnostic: pure Rust host/bridge logic, no JS/TS runtime code.
 - Must not contain app-specific business logic, single-consumer menu bar logic,
   or realm/runtime typed API truth.
-- Shared `runtime_defaults` payload shape is owned by `shell/capabilities`; Tauri and renderer code implement or parse that standard contract. Canonical fields include `realmBaseUrl`, `jwksUrl`, `revocationUrl`, `jwtIssuer`, `jwtAudience`, and non-route target/upload hints. Provider, model, connector, and local endpoint route fields must not remain emitted truth; route selection is owned by the Runtime/SDK route projection.
+- Shared `runtime_defaults` payload shape is owned by `shell/capabilities` and
+  contains only non-security shell hints. Realm/JWKS/revocation endpoints,
+  tokens, account/subject, provider/model/connector/local endpoint truth,
+  service/listener identity, executable selector and config paths are forbidden.
 - Consumer Tauri apps that wire `nimi_shell_tauri::runtime_defaults` must not retain an app-local src-tauri defaults module duplicate for the same payload shape.
 - D-IPC-* rules continue to govern IPC contract semantics; this module provides the shared implementation.
 - App identity and session prefix must be parameterized; no hardcoded app branding in shared code.
@@ -87,8 +100,9 @@
 - `shell/capabilities` is the standard contract surface for Nimi shell hosts. It owns standard capability ids, operation ids, command names, operation-level negative states, and the standard shell error envelope.
 - Active machine authority is `tables/standard-shell-capabilities.yaml`. Topic documents, acceptance matrices, and gates may consume or validate this table but must not become parallel truth.
 - Delivered as the `@nimiplatform/kit/shell/capabilities` package export for TypeScript consumers and mirrored into Rust host adapters through `nimi_shell_tauri::capabilities`.
-- Nimi ecosystem capabilities are standard, not optional: runtime, runtime
-  lifecycle, runtime defaults, OAuth, shell UI, diagnostics, data, storage,
+- Nimi ecosystem capabilities are standard, not optional: binding-only/runtime
+  ordinary transport, typed Runtime service status/start/restart, non-security
+  runtime defaults, native browser/callback observation, shell UI, diagnostics, data, storage,
   config, local assets, local agent, AI Profile, AI Config, avatar,
   agent-center, platform projection, file dialog, file reveal, export,
   artifacts, and floating window must be represented in this catalog. Shared
@@ -107,6 +121,10 @@
 - Standard `agent-center.*` operations own host-local Agent Center asset byte custody only: avatar/background import, validation, preview material resolution, Live2D adapter sidecar association, and scoped resource removal. They must not expose `configGet` or `configSet`, persist selection truth, decide Avatar readiness, return raw filesystem paths, or materialize runtime launch payload truth.
 - `renderer_entry_probe` is a diagnostics capability. Generic `runtime_account_caller`/trusted caller metadata belongs to the local-agent standard capability; Desktop-specific caller policy remains product-owned and must not be promoted into the standard catalog.
 - Tauri and Electron host adapters must implement the same capability ids and shared error envelope. Gaps must fail closed with catalogued standard error codes instead of returning pseudo-success.
+- `runtime-lifecycle.stop` does not exist. Lifecycle payloads cannot contain a
+  service name, binary path, argv, endpoint, config path or trust-record path.
+  Generic runtime unary/stream commands reject every protected method; those
+  require `shell/protected-local`.
 
 ## P-KIT-041F - Standard Shell File & Window Capabilities
 
@@ -159,14 +177,28 @@
 
 ## P-KIT-041E - Electron Shell Module
 
-- `shell/electron` is an infra module for shared Electron main/preload host glue that implements the standard shell capability host contract: safe preload bridge installation, app-scoped IPC command registration, Runtime gRPC proxying, stream event forwarding, origin allowlisting, artifact URL serving, and externally managed Runtime daemon status projection.
+- `shell/electron` is shared Electron main/preload host glue that consumes
+  `shell/protected-local` for exact typed protected calls and fixed-service
+  status/start/restart while keeping preload IPC narrowed. There is no
+  production external-daemon mode.
 - Authority id and source location are `kit.shell.electron` at `kit/shell/electron/`.
 - Delivered as subpath exports of the single `@nimiplatform/kit` package: `./shell/electron/main` and `./shell/electron/preload`.
 - This module is Node/Electron-host only. Renderer application code must consume host-neutral renderer APIs from `shell/renderer` and standard command/error contracts from `shell/capabilities`, not import `shell/electron` directly.
 - Must not contain app-specific stores, routes, product UI, business logic, Runtime/Realm typed API truth, or app-local command semantics.
-- Runtime bridge forwarding must preserve the same wire shape used by `tauri-ipc` for renderer-owned request fields: `methodId`, base64 request bytes, structured metadata, timeout, response metadata, and stream close behavior. Protected Runtime auth/session material is host-owned for Electron and must be injected by main-process trusted providers, not accepted from renderer payloads.
-- Runtime gRPC calls use raw identity byte serialization/deserialization through `@grpc/grpc-js`; generated Runtime truth remains owned by Runtime proto/SDK, not by Electron shell code.
-- Electron daemon lifecycle ownership is external-host until a separate admitted authority cut changes it. `start`, `stop`, `restart`, and config mutation requests must fail closed with the standard `external-daemon-required` envelope; status must not return offline pseudo-success when the backing endpoint is unavailable.
+- Generic Runtime bridge forwarding may preserve the public/binding-only wire
+  shape, but must reject protected method ids and authorization-bearing
+  renderer payloads. Protected session/origin material stays inside the native
+  carrier and is neither injected by Electron main providers nor exposed to
+  preload/renderer.
+- Public/binding-only Runtime gRPC calls may use raw identity byte
+  serialization/deserialization through `@grpc/grpc-js`; generated Runtime
+  truth remains owned by Runtime proto/SDK. This path cannot carry protected
+  account/lifecycle/Realm/Grant methods.
+- Electron never owns Runtime lifecycle. It may carry exact typed fixed-service
+  `status/start/restart` through `shell/protected-local`; stop, external-daemon
+  mode, executable/config selection and generic mutation are forbidden.
+  Unavailable/untrusted service status is a typed failure, never offline
+  pseudo-success.
 - Preload must expose only the narrowed Nimi bridge API needed by renderer code. It must not expose raw `ipcRenderer`, `electron`, `fs`, `child_process`, arbitrary channel senders, or unrestricted event listeners.
 - Main-process IPC must enforce catalog-sourced command namespaces, app identity, and an explicit renderer origin allowlist. A missing app id or disallowed origin is a fail-closed host error.
 - Standard Electron acceptance windows must enable `sandbox: true`, `contextIsolation: true`, and `nodeIntegration: false`.
@@ -174,35 +206,17 @@
 
 ## P-KIT-044 - Installed App Standard Shell Capability Sets
 
-- `tables/standard-shell-capabilities.yaml` owns standard shell capability-set
-  policy for installed Nimi App hosts. The vocabulary remains the
-  `P-KIT-041C` standard capability catalog; this rule admits host-class
-  allowlists over that vocabulary.
-- The first installed-app capability set is
-  `installed-nimi-app-standard-shell-v1`. It is for `nimi-app` packages
-  launched from Runtime `OpenApp` launch-resolution by the Desktop Electron
-  installed-app host.
-- The installed-app set may include only standard operations required by an
-  installed app: Runtime unary/stream proxying, app-scoped storage/config/local
-  asset operations, and limited shell UI operations.
-- Host-owned Runtime account/session metadata is injected by Electron main
-  trusted providers bound to Runtime launch nonce and caller posture. It is not
-  a renderer-readable standard shell auth session operation.
-- Installed hosts must carry the Runtime shared-auth broker through
-  `runtime.unary`/`runtime.streamOpen` and must reject `auth.sessionLoad`,
-  `auth.sessionSave`, and `auth.sessionClear` as unknown/forbidden operations.
-  Those ids are negative-test vocabulary only, not active catalog rows.
-- Kit/Electron installed-app host code may adapt Runtime/Desktop launch binding
-  into SDK bootstrap inputs only behind the host-owned bridge. Renderer
-  application code must not import Electron host modules or supply launch
-  nonce, release descriptor ref, launch binding, or caller posture as trusted
-  fields.
-- The installed-app set must fail closed for Runtime daemon lifecycle
-  management, OAuth/token-exchange surfaces, local-agent trusted caller
-  surfaces, platform projection, Desktop-private product-control commands,
-  raw Electron/Node/Tauri bridge access, and any Tauri-only command assumption.
-- Negative tests for excluded capabilities are part of the capability-set
-  contract. Missing negative tests make the set inadmissible.
+**Owner-only authority allocation.** Kit owns typed shell APIs and trusted carrier implementation only. A Kit host adapter may carry opaque Runtime/Platform/Desktop attestations across a trusted shell boundary, but it cannot create account, catalog, release, grant, launch, unary, realtime, or media truth. A host or renderer MUST NOT supply or retain authenticated Realm credentials, signed upload credentials, refresh material, or self-certified privilege evidence.
+
+Installed-app child carrier, launch binding, account/session envelope and
+capability allowlist are absent from A.0 and require independent A.1 authority.
+`tables/standard-shell-capabilities.yaml` records
+`installed-nimi-app-standard-shell-v1` as `blocked_pending_a1`, with an empty
+`allowed_operations` list. Its planned operation list is conflict/planning
+inventory only and has deny disposition. No Electron/Tauri metadata, launch
+nonce, Runtime unary proxy, host provider, app id, or standard-shell operation
+may approximate the future carrier. Product positive evidence remains
+impossible until A.1 authority and implementation land.
 
 ## P-KIT-045 - Desktop Open Intent Kit Surfaces
 
@@ -371,7 +385,13 @@ Fixed rules:
   - the `shell/renderer` sub-module re-owns auth session truth or telemetry normalization truth
   - the `shell/capabilities` sub-module is missing from the package export map, diverges from `tables/standard-shell-capabilities.yaml`, or omits any required standard Nimi ecosystem capability
   - the `shell/renderer` sub-module uses browser/no-host fallbacks, renderer-owned Tauri truth, raw Tauri globals as capability truth, raw `file://` conversion fallback paths, or command names not sourced from `shell/capabilities`
-  - the `shell/electron` sub-module is imported by renderer application code, exposes raw Electron/Node primitives through preload, omits origin allowlist enforcement, uses non-sandboxed standard acceptance windows, or claims daemon lifecycle ownership before a separate authority cut
+  - the `shell/protected-local` boundary is absent, renderer-visible, or claims
+    Runtime/OS lifecycle, custody, origin, listener, configuration or executable
+    selection authority
+  - the `shell/electron` sub-module is imported by renderer application code,
+    exposes raw Electron/Node/protected primitives through preload, omits origin
+    allowlist enforcement, uses non-sandboxed standard acceptance windows,
+    generically proxies protected methods, or claims Runtime lifecycle ownership
   - the `core/runtime-capabilities` sub-module contains UI, CSS, or shell-specific imports
   - the auth sub-module defines CSS custom properties outside the `--nimi-*` namespace (except scoped overrides within `data-shell-auth-theme`)
   - a feature module omits required registry metadata for `surface_level`, `adapter_contract`, `headless_exports`, or `ui_exports`

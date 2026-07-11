@@ -2,13 +2,11 @@
 
 > Owner Domain: `K-GRANT-*`
 
-## K-GRANT-001 服务职责
+## K-GRANT-001 Public Grant Family Hardcut
 
-`RuntimeGrantService` 负责授权签发、访问校验、委托链管理。其输入依赖 `RuntimeAuthService` 会话与外部主体身份。
-
-## K-GRANT-002 方法集合（权威）
-
-`RuntimeGrantService` 方法固定为：
+`RuntimeGrantService` is not an admitted product credential surface. The five
+public wire symbols remain deny-all tombstones only until A.3d removes their
+proto, generated, SDK, handler, registration, and persistence paths:
 
 1. `AuthorizeExternalPrincipal`
 2. `ValidateAppAccessToken`
@@ -16,115 +14,84 @@
 4. `IssueDelegatedAccessToken`
 5. `ListTokenChain`
 
-## K-GRANT-003 AuthorizeExternalPrincipal 约束
+No public TCP, loopback gRPC, renderer IPC, ordinary SDK client, app-owned host,
+Desktop bearer, request-body consent, parent-token possession, scope claim, or
+portable session may invoke or revive this family. Retaining a symbol during
+the A.0-to-A.3d transition does not retain its former behavior.
 
-- `policy_mode=PRESET` 时必须提供合法 `preset`。
-- `policy_mode=CUSTOM` 时必须提供 `scopes` 与 `resource_selectors`。
-- `ttl_seconds` 必须受服务端上限约束。
+## K-GRANT-002 Runtime-Private Grant Evaluation
 
-## K-GRANT-004 ValidateAppAccessToken 决策输出
+Runtime may evaluate protected operations only inside its own security
+principal, after the admitted protected transport has established a
+Runtime-derived live origin and the operation-specific policy has authorized
+that origin. Such evaluation:
 
-- `valid=true` 时必须返回 `effective_scopes`。
-- `valid=false` 时必须返回可解析 `reason_code`，禁止空原因失败。
-- 校验结果必须包含 `policy_version` 与 `issued_scope_catalog_version`（若可用）。
+- is a private Runtime call path rather than a `RuntimeGrantService` transport;
+- does not mint or return a reusable protected credential to Desktop, SDK,
+  renderer, app, or another ordinary local caller;
+- cannot be authorized by a caller-supplied `confirmed`, consent boolean,
+  principal id, token id, scope list, resource selector, or delegation chain;
+- records fail-closed authorization and audit state in Runtime-owned protected
+  storage; and
+- may expose only typed operation results and redacted status projection.
 
-## K-GRANT-005 Delegation 约束
+The detailed private evaluator and replacement type surface are owned by A.3d.
+A.0 admits only this boundary and does not claim that the replacement exists.
 
-- `IssueDelegatedAccessToken` 只能在父 token 允许委托时成功。
-- 子 token 的 scope/resource selector 必须是父 token 能力的子集。
-- `max_delegation_depth` 超限必须拒绝。默认值为 `3`（可通过 `K-DAEMON-009` 的 `maxDelegationDepth` 配置覆盖）。
+## K-GRANT-003 Removal And Drift Boundary
 
-## K-GRANT-006 Revoke 与链路可见性
+The authoritative deny-all projection is closed across:
 
-- `RevokeAppAccessToken` 必须幂等。
-- `ListTokenChain` 必须可观测父子链路，不得返回环。
+- `tables/runtime-rpc-auth-posture/identity-access.yaml`;
+- `tables/protected-local-rpc-transport-matrix.yaml`;
+- `tables/rpc-methods.yaml`;
+- `tables/rpc-migration-map/methods-identity-app.yaml`; and
+- `../../sdks/kernel/tables/runtime-method-groups.yaml`.
 
-## K-GRANT-007 错误与审计
+Any active SDK export, anonymous/authenticated posture, non-empty transport or
+origin admission, protected credential response, or product caller for one of
+the five methods is authority drift and must fail validation.
 
-- 认证失败统一遵循 `K-AUTHN-007`（失败语义统一）。
-- 授权策略拒绝与 token 无效必须写入审计，字段集合遵循 `K-AUDIT-001`（最小字段）。
+Former public grant, delegation, scope-catalog, token-chain, and request-body
+consent behavior is retired pre-cutover authority history available from Git;
+it is not active product truth and must not be copied into a new facade.
 
-## K-GRANT-008 ScopeCatalog 版本化
+## K-GRANT-004 Reserved Validate Tombstone
 
-- ScopeCatalog 是运行时 scope 定义的权威来源，带版本号（如 `sdk-v1`）。
-- 每个版本固定 scope 集合，不可变。新增 scope 需发布新版本。
-- `ValidateAppAccessToken` 响应包含 `issued_scope_catalog_version`，用于检测版本漂移。
+Reserved for A.3d deletion tracking; it admits no validation RPC or success response.
 
-**Current implementation 约束**：
+## K-GRANT-005 Reserved Delegation Tombstone
 
-- runtime 保持显式 published scope catalog versions；旧 token 继续按签发时版本评估（old token + new catalog = old version evaluation）。
-- cognition-era public facade 对齐后，active runtime protected access 必须使用 `sdk-v2`；保留 `sdk-v1` 仅用于既有已签发 token / 兼容评估，不得把新的 facade 集合静默回写到 `sdk-v1`。
-- 当前仍不存在版本协商；调用方必须显式提供已发布的 `scope_catalog_version`。
-- 多版本协商协议列为 deferred decision。
+Reserved for A.3d deletion tracking; it admits no delegation RPC, parent-token authority, or active depth policy.
 
-## K-GRANT-009 Scope 前缀识别规则
+## K-GRANT-006 Reserved Revocation/Chain Tombstone
 
-合法 scope 必须匹配以下前缀之一：
+Reserved for A.3d deletion tracking; it admits no public revocation or chain visibility.
 
-| 前缀 | 含义 |
-|---|---|
-| `runtime.*` | Runtime 服务访问 |
-| `realm.*` | Realm 服务访问 |
-| `app.*` | 应用自定义 scope |
-| `ai.*` | AI 能力访问 |
-| `read:*` | 读取权限 |
-| `write:*` | 写入权限 |
-| `grant:*` | 授权委托权限 |
+## K-GRANT-007 Tombstone Audit Boundary
 
-不匹配任何前缀的 scope 在校验时拒绝（`APP_SCOPE_FORBIDDEN`）。
+Rejected calls are security events; this rule does not admit a public grant operation.
 
-## K-GRANT-010 Scope 撤销语义
+## K-GRANT-008 Reserved Scope-Catalog Tombstone
 
-- Scope 撤销以版本为粒度：`(scope_catalog_version, scope_name)` 元组标记为 revoked。
-- 已撤销的 scope 在 `ValidateAppAccessToken` 时从 `effective_scopes` 中排除。
-- 撤销不影响已签发 token 的生命周期（token 仍有效，但 effective scope 收窄）。
-- 撤销事件返回 `APP_SCOPE_REVOKED`。
+Reserved for A.3d deletion tracking; former public grant scope catalogs confer no capability.
 
-## K-GRANT-011 ListTokenChain 请求字段
+## K-GRANT-009 Reserved Scope-Prefix Tombstone
 
-`ListTokenChain` 请求（`ListTokenChainRequest`）：
+Reserved for A.3d deletion tracking; matching a former prefix never authorizes an operation.
 
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `root_token_id` | string | 是 | 链路根 token ID，从此节点向下遍历委托链 |
-| `include_revoked` | bool | 否 | 是否包含已撤销 token（默认 `false`） |
-| `page_size` | int32 | 否 | 分页大小（通用默认值见 K-PAGE-005） |
-| `page_token` | string | 否 | 分页游标 |
+## K-GRANT-010 Reserved Scope-Revocation Tombstone
 
-## K-GRANT-012 ListTokenChain 响应字段
+Reserved for A.3d deletion tracking; it admits no public token or scope mutation.
 
-`ListTokenChainResponse` 返回有序的委托链条目：
+## K-GRANT-011 Reserved Chain-Request Tombstone
 
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| `entries` | repeated TokenChainEntry | 链路条目列表 |
-| `next_page_token` | string | 下一页游标（空表示无后续） |
-| `has_more` | bool | 是否因深度截断（超出 `max_delegation_depth`，`K-GRANT-005`）而存在更多未返回的链路节点 |
+Reserved for A.3d deletion tracking; the former request fields have no admitted caller.
 
-`TokenChainEntry` 字段：
+## K-GRANT-012 Reserved Chain-Response Tombstone
 
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| `token_id` | string | Token ID |
-| `parent_token_id` | string | 父 Token ID（根节点为空） |
-| `principal_id` | string | 主体 ID |
-| `principal_type` | string | 主体类型 |
-| `effective_scopes` | repeated string | 生效的 scope 列表 |
-| `issued_at` | Timestamp | 签发时间 |
-| `expires_at` | Timestamp | 过期时间 |
-| `revoked` | bool | 是否已撤销 |
-| `delegation_depth` | int32 | 委托深度（根=0） |
-| `policy_version` | string | 生效策略版本 |
-| `issued_scope_catalog_version` | string | 签发时 scope catalog 版本 |
+Reserved for A.3d deletion tracking; Runtime must not produce the former response publicly.
 
-排序：`issued_at DESC`（最新签发在前）。
+## K-GRANT-013 Tombstone Error Boundary
 
-## K-GRANT-013 ListTokenChain 错误语义
-
-| 场景 | gRPC Code | ReasonCode | 说明 |
-|---|---|---|---|
-| `root_token_id` 不存在 | `NOT_FOUND` | `GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND` | Token 链根节点未找到 |
-| `root_token_id` 为空 | `INVALID_ARGUMENT` | `GRANT_TOKEN_CHAIN_ROOT_REQUIRED` | 必填字段缺失 |
-| 深度截断 | `OK` | — | 响应中 `has_more=true`，表示委托链超出 `max_delegation_depth`（K-GRANT-005）后仍有节点 |
-
-分页语义遵循 K-PAGE-002（page_token）与 K-PAGE-005（通用默认值）。
+Any retained former error mapping is removal inventory only and cannot imply an active method.

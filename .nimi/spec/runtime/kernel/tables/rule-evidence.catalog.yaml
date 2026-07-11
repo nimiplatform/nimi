@@ -28,6 +28,8 @@ entries:
   - runtime_provider_checks
   - runtime_catalog_drift
   - runtime_selection_freshness
+  - protected_local_authority_gate
+  - public_raw_token_authority_hardcut_gate
 runtime_kernel_consistency:
   type: static_gate
   command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency
@@ -83,3 +85,13 @@ runtime_selection_freshness:
   command: pnpm check:runtime-selection-freshness
   path: scripts/check-runtime-selection-freshness.mjs
   description: Reviewed selection profile freshness, capability fit, and default-model projection validation.
+protected_local_authority_gate:
+  type: static_gate
+  command: pnpm check:protected-local-authority && pnpm check:protected-rpc-posture && pnpm check:no-portable-privileged-session && pnpm check:protected-local-trust-set-isolation
+  path: scripts/check-protected-local-authority.mjs
+  description: Structural A.0 authority gate for mutually verified process origin, privileged transport posture, non-portable privilege, trust-set isolation, lifecycle challenge, and anti-rollback ledger requirements.
+public_raw_token_authority_hardcut_gate:
+  type: static_gate
+  command: pnpm check:public-raw-token-authority-hardcut
+  path: scripts/check-public-raw-token-authority.mjs
+  description: Cross-domain structural gate proving the public account-token RPC is deny-all pending A.3d removal, no Platform raw-account capability exists, and SDK/Desktop/Avatar authority admits broker-only local data access.

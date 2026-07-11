@@ -5,15 +5,14 @@
 > **Authority Disposition**：
 > 本契约被分为两种显式 mode：
 >
-> - **Local Runtime app modes**：Runtime-mediated Realm transport
->   (`RuntimeAccountService.InvokeRealmUnary`) 是
->   `first-party-local-app`、`developer-registered-local-app` 与 installed
->   `third-party-nimi-app` 的默认数据路径。只有 registry/spec 明确 admitted
->   的 `first-party-local-app` helper 可显式选择 Runtime-backed short-lived
->   `GetAccessToken` exception。其余模式不得获得 raw token。所有 local mode
->   都禁止 app-provided token/refresh provider、session store、JWT subject
->   decode、`MeService.getMe` account truth、Realm login route 与 SDK-owned 401
->   refresh flow。
+> - **Local Runtime app modes**：no authenticated Realm transport is admitted
+>   by A.0. Future local Realm access must use an exact Runtime-mediated
+>   protected operation after its operation row and the caller's A.1 child
+>   carrier are independently admitted. All local modes prohibit app/host/SDK
+>   bearer, token/refresh provider, session store, JWT subject decode,
+>   `MeService.getMe` account truth, Realm login route and SDK-owned 401 refresh.
+>   Public `GetAccessToken` and the entire public `RuntimeGrantService` family
+>   are deny-all pending A.3d removal.
 > - **Web / cloud adapter 与 external-principal mode**：可保留本契约的 app-provided token / subject / Realm route seams，但必须显式 fenced。
 >
 > Local account / login / refresh-token custody 与 Realm mediation 真相由
@@ -73,13 +72,19 @@ Realm `ready()` 探测失败必须 fail-close 并抛出错误，不得再以事�
 
 ## S-REALM-035 Realtime Governance Boundary
 
+**Authority disposition:** Blocked detailed authority conflict. Realtime protocol and dependency details are conflict evidence only and are not independently admitted for implementation; Runtime realtime authority requires a separate admission under `S-REALM-040`.
+
 实时传输具体协议细节由后端与客户端实现定义，SDK 合同只约束认证、状态事件与重连边界。
 
 ## S-REALM-036 Reconnect Delivery Guarantee
 
+**Authority disposition:** Blocked detailed authority conflict. Reconnect, delivery, and replay details are conflict evidence only and are not independently admitted for implementation; compatibility evidence must precede a separate Runtime replay admission under `S-REALM-040`.
+
 重连策略实现可变，但不得静默丢失已确认投递事件。
 
 ## S-REALM-037 Event Name Ownership
+
+**Authority disposition:** Blocked detailed authority conflict. Realtime event-vocabulary details are conflict evidence only and are not independently admitted for implementation; exact event ownership requires a separate Runtime admission under `S-REALM-040`.
 
 SDK 不维护实时事件名权威枚举，事件名以后端协议为准。
 
@@ -101,10 +106,16 @@ repository.
 
 ## S-REALM-040 Runtime-Mediated Local App Default
 
-`createRuntimeAccountMediatedRealmTransport` is the default transport for every
-local app composition except the explicit admitted first-party raw-token helper.
-It sends typed Realm operation ids through `InvokeRealmUnary`; it does not
-accept or expose `accessToken`, `refreshToken`, authorization headers, Realm
-base truth, session persistence, or refresh callbacks. Installed/developer app
-facades must not export `GetAccessToken` wrappers or
+**Owner-only authority allocation.** SDK owns typed Realm APIs and trusted carriers only. Runtime remains the sole owner of every authenticated Realm data plane, including bearer injection, private refresh, unary mediation, realtime connection authority, and media credential exchange. SDK and app inputs cannot turn an app id, endpoint, token callback, event name, or generated descriptor into authorization or canonical data-plane truth.
+
+The realtime protocol, dependency, delivery, and replay details recorded by `S-REALM-035` through `S-REALM-037` remain blocked authority conflicts until Runtime admits the corresponding realtime authority. Runtime compatibility evidence must precede any replay posture; client caches, outboxes, event shapes, or reconnect success cannot establish replay guarantees. SDK media helpers likewise remain carrier-only until Runtime admits exact media states, limits, credential custody, and failure behavior.
+
+`createRuntimeAccountMediatedRealmTransport` is a reserved typed constructor,
+not an A.0 data-path admission. It returns protected-unavailable for every app
+composition until the exact Runtime operation policy and caller carrier are
+admitted. When enabled by a later authority batch, it may send only typed
+operation ids on that verified carrier and can never accept/expose
+`accessToken`, `refreshToken`, authorization headers, Realm base truth, session
+persistence, refresh callbacks, public grants, or caller-selected origin.
+Installed/developer/first-party facades must not export token wrappers or
 `createRealmWithRuntimeAccountToken`.

@@ -41,6 +41,12 @@ Runtime 和 Realm 均不可达时的行为规则：
 
 ## D-OFFLINE-004 — 重连策略
 
+After reconnect, `OpenSession` may restore only `BINDING_ONLY`. Desktop must
+repeat the complete protected endpoint/process/executable handshake and
+`OpenDesktopSession` before account-control or lifecycle commands. Bundled or
+installed positive child access cannot resume until A.1 supplies a fresh
+protected child channel; cached metadata/session ids never authorize replay.
+
 断联后的重连行为：
 
 - 使用指数退避重连，初始间隔 1s，最大间隔 30s。

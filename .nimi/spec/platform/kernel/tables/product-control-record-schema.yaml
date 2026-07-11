@@ -34,7 +34,7 @@ invariants:
   - id: backend-admission-only
     requirement: ready_for_use may be written only by the product-control backend admission operation after composing all owner evidence in the canonical order.
   - id: runtime-config-pointer-non-owner
-    requirement: pointers.runtimeConfigPath may point to ~/.nimi/runtime/config.json, but Runtime config is not product readiness truth.
+    requirement: pointers.runtimeConfigPath is forbidden; product control may project selected dataRoot only through an exact typed protected Runtime operation and never stores or exposes a service config path.
   - id: app-projection-pointer-non-owner
     requirement: pointers.appRegistry may point to ~/.nimi/apps/registry.json and pointers.appPackages may point to ~/.nimi/apps/packages.json, but the Apps registry and package projections are discoverability pointers, not product readiness truth.
   - id: repair-fail-closed

@@ -80,6 +80,13 @@ entries:
   - K-ACCSVC-023
   - K-ACCSVC-024
   - K-ACCSVC-025
+  - K-PLOCAL-001
+  - K-PLOCAL-002
+  - K-PLOCAL-003
+  - K-PLOCAL-004
+  - K-PLOCAL-005
+  - K-PLOCAL-006
+  - K-PLOCAL-007
   - K-GRANT-001
   - K-GRANT-002
   - K-GRANT-003
@@ -256,11 +263,19 @@ rules:
       - runtime_go_test
     evidence_requirement: required
   - rule_id: K-ACCSVC-001
-    evidence_refs: []
-    evidence_requirement: deferred
+    evidence_refs:
+      - runtime_kernel_consistency
+      - public_raw_token_authority_hardcut_gate
+    evidence_requirement: required
+    note: Owner-only Runtime allocation for authenticated Realm unary, realtime, media, account, token, and private refresh authority; detailed cross-wave rows remain blocked conflicts.
+    test_files:
+      - scripts/check-installed-realm-owner-boundary.mjs
   - rule_id: K-ACCSVC-002
-    evidence_refs: []
-    evidence_requirement: deferred
+    evidence_refs:
+      - runtime_kernel_consistency
+      - public_raw_token_authority_hardcut_gate
+    evidence_requirement: required
+    evidence_scope_note: Structural evidence covers the deny-all public token tombstone; A.3d owns proto/generated/code deletion evidence.
   - rule_id: K-ACCSVC-003
     evidence_refs: []
     evidence_requirement: deferred
@@ -268,14 +283,20 @@ rules:
     evidence_refs: []
     evidence_requirement: deferred
   - rule_id: K-ACCSVC-005
-    evidence_refs: []
-    evidence_requirement: deferred
+    evidence_refs:
+      - runtime_kernel_consistency
+      - public_raw_token_authority_hardcut_gate
+    evidence_requirement: required
+    evidence_scope_note: Structural evidence proves broker-only local data access and zero caller/token projection; Runtime behavioral deletion remains A.3d.
   - rule_id: K-ACCSVC-006
     evidence_refs: []
     evidence_requirement: deferred
   - rule_id: K-ACCSVC-007
-    evidence_refs: []
-    evidence_requirement: deferred
+    evidence_refs:
+      - runtime_kernel_consistency
+      - public_raw_token_authority_hardcut_gate
+    evidence_requirement: required
+    evidence_scope_note: Structural evidence proves custody material is Runtime-private and never app/host projected; custody implementation evidence remains separately governed.
   - rule_id: K-ACCSVC-008
     evidence_refs: []
     evidence_requirement: deferred
@@ -334,13 +355,16 @@ rules:
       - runtime_go_test
       - sdk_runtime_test
       - desktop_boundary_test
+      - protected_local_authority_gate
     evidence_requirement: required
-    note: Desktop-launched installed Nimi App caller posture; evidence binds Runtime account posture, SDK app session, Kit Electron auth, and Desktop launch host gates.
+    note: A.0 admits only the verified Desktop process-origin prerequisite; installed caller posture, child channel, and session remain blocked pending A.1.
+    evidence_scope_note: The protected-local gate is structural A.0 authority evidence. Runtime/SDK/Kit/Desktop tests remain implementation compatibility evidence only and do not admit A.1 launch/session details.
     test_files:
       - runtime/internal/services/account/service_test.go
       - sdks/typescript/runtime/app-session.test.ts
       - kit/shell/electron/test/electron-runtime-account-auth.test.ts
       - apps/desktop/test/desktop-installed-app-launcher.test.ts
+      - scripts/check-installed-realm-owner-boundary.mjs
   - rule_id: K-ACCSVC-023
     evidence_refs:
       - runtime_kernel_consistency
@@ -348,31 +372,74 @@ rules:
       - sdk_runtime_test
       - desktop_boundary_test
     evidence_requirement: required
-    note: Runtime shared auth broker and spec-derived Realm operation policy.
+    note: Blocked detailed per-operation unary policy conflict; K-ACCSVC-001 admits Runtime ownership, not individual operation rows.
+    evidence_scope_note: Runtime/SDK tests are retained as implementation compatibility evidence only; the owner-boundary checker validates the blocked authority disposition, and neither evidence class admits per-operation rows.
     test_files:
       - runtime/internal/services/account/realm_unary_test.go
       - sdks/typescript/core/app/runtime-account-realm.test.ts
+      - scripts/check-installed-realm-owner-boundary.mjs
   - rule_id: K-ACCSVC-024
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
+      - protected_local_authority_gate
+      - public_raw_token_authority_hardcut_gate
     evidence_requirement: required
-    note: Per-caller RuntimeAccountService RPC permission matrix and Runtime-private refresh boundary.
+    note: A.0 admits only Desktop account-control origin and Runtime-private refresh transport slices; installed/bundled/developer carrier and broker rows remain blocked.
+    evidence_scope_note: The protected-local gate is structural A.0 authority evidence. Runtime tests remain implementation compatibility evidence only for all remaining blocked caller rows.
     test_files:
       - runtime/internal/services/account/service_test.go
       - runtime/internal/services/account/realm_unary_test.go
+      - scripts/check-installed-realm-owner-boundary.mjs
+      - scripts/check-public-raw-token-authority.mjs
   - rule_id: K-ACCSVC-025
     evidence_refs:
       - runtime_kernel_consistency
       - runtime_go_test
       - sdk_runtime_test
       - desktop_boundary_test
+      - protected_local_authority_gate
     evidence_requirement: required
-    note: Host-bound caller envelope, Runtime app-session proof, and one-time launch nonce replay rejection.
+    note: A.0 admits the rejection of self-asserted envelope fields as origin proof; installed envelope, child carrier, and replay posture remain blocked pending A.1.
+    evidence_scope_note: The protected-local gate is structural A.0 authority evidence. Runtime/SDK/Kit tests remain implementation compatibility evidence only and do not admit installed envelope or replay fields.
     test_files:
       - runtime/internal/services/account/realm_unary_test.go
       - runtime/internal/appregistry/registry_test.go
       - kit/shell/electron/test/electron-runtime-account-auth.test.ts
+      - scripts/check-installed-realm-owner-boundary.mjs
+  - rule_id: K-PLOCAL-001
+    evidence_refs:
+      - runtime_kernel_consistency
+      - protected_local_authority_gate
+    evidence_requirement: required
+    note: A.0 structural authority only; anonymous privilege fails closed, while bundled positive closeout remains dependent on separately admitted and implemented A.1 protected child channels.
+    test_files:
+      - scripts/check-protected-local-authority.test.mjs
+      - scripts/testdata/protected-local-authority/negative-fixtures.json
+  - rule_id: K-PLOCAL-002
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Structural transport and immutable-origin vocabulary; launch_bootstrap and installed_host remain reserved and unadmitted in A.0.
+  - rule_id: K-PLOCAL-003
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Structural mutual endpoint authentication requirements; implementation and live OS evidence are not claimed by this row.
+  - rule_id: K-PLOCAL-004
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Structural process tuple and liveness requirements; implementation and live OS evidence are pending.
+  - rule_id: K-PLOCAL-005
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Structural same-open-file executable verification and Platform trust-set reference boundary; signer verification implementation is pending.
+  - rule_id: K-PLOCAL-006
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Structural Desktop control-session authority; proto, Runtime, Desktop, and carrier implementation evidence is pending.
+  - rule_id: K-PLOCAL-007
+    evidence_refs: [runtime_kernel_consistency, protected_local_authority_gate]
+    evidence_requirement: required
+    note: Structural lifecycle challenge, boot epoch, and anti-rollback ledger authority; durable implementation and crash-recovery evidence is pending.
   - rule_id: K-GRANT-001
     evidence_refs:
       - runtime_kernel_consistency

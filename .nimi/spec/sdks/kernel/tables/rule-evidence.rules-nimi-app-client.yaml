@@ -116,7 +116,8 @@ rules:
   - rule_id: S-APP-016
     evidence_refs:
       - sdk_kernel_consistency
-    note: Generated-app Runtime platform client auth helper admits exact exported names and the first-party-local-app / developer-registered-local-app / third-party-nimi-app / dev-standalone mode split. SDK helper and generated scaffold auth tests are required.
+      - public_raw_token_authority_hardcut_gate
+    note: Generated-app Runtime platform client auth helper admits the mode split but every local mode receives typed Runtime-mediated results only; no first-party or installed token helper is admitted.
     evidence_requirement: required
   - rule_id: S-APP-017
     evidence_refs:

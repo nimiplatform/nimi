@@ -70,6 +70,10 @@ Desktop 网络层契约。定义代理 fetch 机制、请求重试策略、指�
 
 ## D-NET-006 — Realtime Transport
 
+**Owner-only authority allocation.** Desktop owns account-control and lifecycle UX and verified process launch. Runtime remains the sole owner of authenticated Realm unary, realtime, and media transport. Desktop may carry opaque Runtime-attested connection state through a trusted host boundary, but Desktop, Electron/Tauri main, preload, renderer, and app code cannot mint, request, inject, cache, or refresh Realm bearer or signed-upload credentials as data-plane owners.
+
+Only this owner allocation and its prohibited parallel-truth clauses are admitted here. D-NET-006 and D-NET-007 detailed clauses remain blocked authority conflicts until Runtime admits realtime protocol/dependency authority and Desktop separately admits its carrier integration. Runtime compatibility evidence must precede any replay posture; host-local outboxes, event caches, reconnect observations, or renderer state cannot prove replay or delivery authority.
+
 **SDK 契约引用**：SDK S-REALM-035/036/037 定义 Realm 实时传输的 SDK 层约束（token 注入、事件不丢失保证）。D-NET-006 是 Desktop 层的具体实现，满足 SDK 层约束。
 
 Socket.IO WebSocket 传输层：
@@ -83,6 +87,8 @@ Socket.IO WebSocket 传输层：
 - 断线恢复：`chat:session.sync_required` 触发增量同步回填。
 
 ## D-NET-007 — 轮询与实时传输协同
+
+**Authority disposition:** Blocked detailed authority conflict. Polling/realtime coordination, cache, reconnect, delivery, and replay details are conflict evidence only and are not independently admitted for implementation; Runtime compatibility evidence and separate Runtime/Desktop admissions are required under `D-NET-006`.
 
 Kit Realm chat realtime controller 的 `syncChatEvents` 增量回填与 D-NET-006
 的 Socket.IO 实时传输操作同一数据域（聊天消息）。Desktop may wire these

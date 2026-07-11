@@ -180,14 +180,25 @@ groups:
   - group: grant_service_projection
     service: RuntimeGrantService
     phase: 1
-    status: active
+    status: tombstone_pending_a3d_removal
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
-    methods:
-      - AuthorizeExternalPrincipal
-      - ValidateAppAccessToken
-      - RevokeAppAccessToken
-      - IssueDelegatedAccessToken
-      - ListTokenChain
+    methods: []
+    excluded:
+      - name: AuthorizeExternalPrincipal
+        authority_status: tombstone_pending_a3d_removal
+        reason: Public request-body consent cannot issue a protected credential.
+      - name: ValidateAppAccessToken
+        authority_status: tombstone_pending_a3d_removal
+        reason: Public protected-token introspection has no admitted product caller.
+      - name: RevokeAppAccessToken
+        authority_status: tombstone_pending_a3d_removal
+        reason: Public protected-token mutation has no admitted origin.
+      - name: IssueDelegatedAccessToken
+        authority_status: tombstone_pending_a3d_removal
+        reason: Parent-token possession cannot authorize protected credential issuance.
+      - name: ListTokenChain
+        authority_status: tombstone_pending_a3d_removal
+        reason: Public protected-token chain enumeration has no admitted product caller.
     source_rule: S-SURFACE-002
   - group: external_agent_service_projection
     service: RuntimeExternalAgentService
@@ -211,12 +222,13 @@ groups:
     service: RuntimeAccountService
     phase: 1
     status: active
+    carrier_scope: verified_desktop_account_ux_only
     note: >
       Runtime account authority is admitted by K-ACCSVC-* as the local
       first-party custody source, with K-ACCSVC-002 defining the frozen method
       set. SDK projection is required by S-RUNTIME-109 / S-RUNTIME-110 for
-      account projection, login/logout, scoped binding, Runtime-issued
-      short-lived Realm access tokens, and the login adapter surface;
+      account projection, login/logout, scoped binding, Runtime-mediated Realm
+      operations, and the login adapter surface;
       Desktop/app code must not own refresh tokens, session stores, shared auth
       files, or direct token refresh seams.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
@@ -226,21 +238,18 @@ groups:
       - BeginLogin
       - CompleteLogin
       - RequestPresenceVerification
-      - GetAccessToken
       - InvokeRealmUnary
       - Logout
       - SwitchAccount
       - IssueScopedAppBinding
       - RevokeScopedAppBinding
-      - IssueWorkspaceBinding
-      - RevokeWorkspaceBinding
     excluded:
-      - name: RefreshAccountSession
-        reason: >
-          Runtime-private refresh owns broker and token-projection renewal.
-          The public RPC remains in the Runtime wire contract for separately
-          governed maintenance, but the app-facing SDK Runtime facade must not
-          expose a refresh helper under S-RUNTIME-109 and K-ACCSVC-002.
+      - name: IssueWorkspaceBinding
+        authority_status: blocked_pending_separate_authority
+        reason: No exact protected origin or operation owner is admitted; ordinary SDK callers remain denied.
+      - name: RevokeWorkspaceBinding
+        authority_status: blocked_pending_separate_authority
+        reason: No exact protected origin or operation owner is admitted; ordinary SDK callers remain denied.
     source_rule: S-RUNTIME-109
   - group: workflow_service_projection
     service: RuntimeWorkflowService

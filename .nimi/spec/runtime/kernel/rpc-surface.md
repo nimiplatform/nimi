@@ -15,6 +15,13 @@ model ids as non-identity facts.
 
 ## K-RPC-001 服务范围
 
+`tables/protected-local-rpc-transport-matrix.yaml` is the sole A.0
+transport/origin authority for Desktop account-control, all app lifecycle
+mutations, `OpenApp`, and Runtime-private refresh. Method presence in proto or
+`tables/rpc-methods.yaml`, a loopback listener, and an authenticated portable
+session do not grant those roles. `OpenDesktopSession` is authority-admitted in
+A.0 and remains implementation-pending until the proto/Runtime batch.
+
 Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 design-first service surface：
 
 **Phase 1（AI 执行平面 + Auth Core + Account Core）：**
@@ -23,7 +30,7 @@ Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 desi
 - `ConnectorService`（design-first，proto 仍在迁移）
 - `RuntimeLocalService`
 - `RuntimeAuthService`
-- `RuntimeGrantService`
+- `RuntimeGrantService` (five deny-all wire tombstones only, pending A.3d physical removal; no admitted service capability)
 - `RuntimeExternalAgentService`
 - `RuntimeAccountService`（local first-party account session / scoped app binding 权威，方法集合见 `account-session-contract.md` `K-ACCSVC-002`，与 `RuntimeAuthService` 不重叠）
 

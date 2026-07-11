@@ -1,4 +1,6 @@
 version: 1
+authority_status: blocked_pending_separate_runtime_operation_admission
+production_consumption: forbidden
 table_family: product_catalog
 owner: runtime
 catalog_id: runtime_workspace_binding_relation

@@ -35,6 +35,7 @@ entries:
   - sdk_mod_hardcut_gate
   - sdk_runtime_stable_ai_output_gate
   - sdk_consumer_smoke
+  - public_raw_token_authority_hardcut_gate
 sdk_behavioral_test:
   type: test_gate
   command: pnpm --filter @nimiplatform/sdk test
@@ -90,3 +91,8 @@ sdk_consumer_smoke:
   command: pnpm check:sdk-consumer-smoke
   path: scripts/check-sdk-consumer-smoke.mjs
   description: Packaged SDK consumer smoke test proving public exports typecheck in standalone and workspace Nimi app consumers.
+public_raw_token_authority_hardcut_gate:
+  type: static_gate
+  command: pnpm check:public-raw-token-authority-hardcut
+  path: scripts/check-public-raw-token-authority.mjs
+  description: Cross-domain structural gate rejecting every local SDK account-bearer helper/export and retaining only the pending-removal public RPC tombstone.

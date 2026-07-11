@@ -4,7 +4,7 @@
 
 Split authority map:
 
-- `app-lifecycle-contract.md`: K-APP-011..018
+- `app-lifecycle-contract.md`: K-APP-011..018 and K-APP-026
 - `app-projection-contract.md`: K-APP-019..025
 ## K-APP-001 RuntimeAppService 方法集合
 
@@ -12,21 +12,25 @@ Split authority map:
 
 1. `SendAppMessage` — 发送应用间消息
 2. `SubscribeAppMessages` — 订阅应用消息事件流
-3. `InstallApp` — 触发 Runtime-owned Nimi App install lifecycle（见 `K-APP-011`）
-4. `UninstallApp` — 触发 Runtime-owned Nimi App uninstall lifecycle（见 `K-APP-014`）
-5. `GetAppStorage` — 读取 app-scoped storage projection（见 `K-APP-022`）
-6. `GetAccountAppInventory` — 读取 authenticated account app-inventory projection（见 `K-APP-024`）
-7. `AdoptLocalApp` / `ListLocalAppAdoptions` / `RemoveLocalAppAdoption` — 显式本地 app 接入、读取、移除（见 `K-APP-025`）
-8. `GetAppPackageReadiness` — 读取 active release / install evidence package readiness projection（见 `K-APP-023`）
-9. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
-10. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
-11. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
-12. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
-12. `HealthRepairApp` — 触发 Runtime-owned Nimi App health/repair lifecycle（见 `K-APP-016`）
-13. `OpenApp` — 触发 Runtime-owned Nimi App launch/open flow（见 `K-APP-017`）
+3. `PrepareAppLifecycleIntent` — 解析并冻结 Desktop 将展示的 canonical lifecycle impact（见 `K-APP-026`）
+4. `GetAppLifecycleIntentStatus` — 查询 non-authorizing intent/reconciliation 状态（见 `K-APP-026`）
+5. `InstallApp` — 触发 Runtime-owned Nimi App install lifecycle（见 `K-APP-011`）
+6. `UninstallApp` — 触发 Runtime-owned Nimi App uninstall lifecycle（见 `K-APP-014`）
+7. `GetAppStorage` — 读取 app-scoped storage projection（见 `K-APP-022`）
+8. `GetAccountAppInventory` — 读取 authenticated account app-inventory projection（见 `K-APP-024`）
+9. `AdoptLocalApp` — 创建显式本地 app adoption（见 `K-APP-025`）
+10. `ListLocalAppAdoptions` — 读取本地 app adoption（见 `K-APP-025`）
+11. `RemoveLocalAppAdoption` — 移除本地 app adoption（见 `K-APP-025`）
+12. `GetAppPackageReadiness` — 读取 active release / install evidence package readiness projection（见 `K-APP-023`）
+13. `GetAppInstallJob` — 读取单个 install job 的 typed projection（见 `K-APP-012`）
+14. `ListAppInstallJobs` — 列出 install job 的 typed projection（见 `K-APP-012`）
+15. `WatchAppInstallJobEvents` — 订阅 install job 进度事件流（见 `K-APP-013`）
+16. `UpdateApp` — 触发 Runtime-owned Nimi App atomic update lifecycle（见 `K-APP-015`）
+17. `HealthRepairApp` — 触发 Runtime-owned Nimi App health/repair lifecycle（见 `K-APP-016`）
+18. `OpenApp` — 触发 Runtime-owned Nimi App launch/open flow（见 `K-APP-017`）
 
-App messaging 方法（1–2）与 app install/uninstall/update/repair lifecycle 方法
-（3–13）共用 `RuntimeAppService`，但语义独立：lifecycle / projection 方法不承载
+App messaging 方法（1–2）与 lifecycle intent/install/uninstall/update/repair 方法
+（3–18）共用 `RuntimeAppService`，但语义独立：lifecycle / projection 方法不承载
 app-to-app message broker 语义，messaging 方法不承载 install/uninstall/update/repair/open
 语义。
 
@@ -226,9 +230,8 @@ Fixed rules:
   optional `avatar_instance_id`, and optional non-authoritative `launch_source`.
   It must not carry scoped binding, conversation anchor, visual package,
   account/user, Realm, or auth material in the default path.
-- Avatar may use Runtime-issued short-lived access tokens through SDK
-  local-first-party mode for direct Realm data access; this is not a scoped
-  binding carrier and must not expose refresh-token custody.
+- Avatar uses Runtime-mediated Realm and Runtime service operations only. SDK,
+  renderer and host receive typed results, never account bearer material.
 - Avatar must validate `agent_id` and resolve visual package / private data
   through Runtime / SDK authority before loading private agent data.
 - Explicit binding-only Avatar modes must use `K-BIND-*` scoped binding
